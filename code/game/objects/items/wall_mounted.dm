@@ -10,8 +10,12 @@
 	var/result_path
 	/// For frames that are external to the wall they are placed on, like light fixtures and cameras.
 	var/wall_external = FALSE
-	//The amount of pixels to shift when mounted
+	/// The amount of pixels to shift when mounted.
 	var/pixel_shift
+	/// Whether the user must stand on a floor turf to mount this frame.
+	var/requires_floor = TRUE // NOVA EDIT ADDITION
+	/// Whether a successful placement consumes this frame.
+	var/consume_after_attach = TRUE // NOVA EDIT ADDITION
 
 /obj/item/wallframe/Initialize(mapload)
 	. = ..()
@@ -72,6 +76,10 @@
 				hanging_object.pixel_x = -pixel_shift
 	hanging_object.find_and_mount_on_atom()
 	after_attach(hanging_object)
+	// NOVA EDIT ADDITION START - Allow reusable wallframes.
+	if(!consume_after_attach)
+		return ITEM_INTERACT_SUCCESS
+	// NOVA EDIT ADDITION END
 	qdel(src)
 
 	return ITEM_INTERACT_SUCCESS
@@ -92,7 +100,7 @@
 		balloon_alert(user, "stand in line with wall!")
 		return FALSE
 	var/turf/T = get_turf(user)
-	if(!isfloorturf(T))
+	if(requires_floor && !isfloorturf(T)) // NOVA EDIT CHANGE - ORIGINAL: if(!isfloorturf(T))
 		balloon_alert(user, "cannot place here!")
 		return FALSE
 	if(check_wall_item(T, floor_to_support, wall_external))

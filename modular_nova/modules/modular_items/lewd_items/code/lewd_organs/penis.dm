@@ -140,7 +140,7 @@
 	. = ..()
 	update_sprite_suffix()
 
-/obj/item/organ/genital/penis/get_sprite_size_string()
+/obj/item/organ/genital/penis/get_sprite_size_string(minimum_sprite_affix = 1)
 	if(is_sheathed())
 		var/datum/bodypart_overlay/mutant/genital/penis/our_overlay = bodypart_overlay
 		var/poking_out = (aroused == AROUSAL_PARTIAL) ? 1 : 0
@@ -176,7 +176,9 @@
 		base_name = our_overlay.shaft_datum.taur_icon_state || genital_type
 	// taur_penis_onmob.dmi only goes up to size 4, and has no skintoned "_s" variants.
 	var/affix_cap = taur_mode ? our_overlay.shaft_datum.taur_max_sprite_size_affix : max_sprite_size_affix
-	size_affix = "[min((text2num(size_affix)), max(affix_cap, 1))]"
+	affix_cap = max(affix_cap, 1)
+	var/minimum_affix = clamp(minimum_sprite_affix, 1, affix_cap)
+	size_affix = "[clamp(text2num(size_affix), minimum_affix, affix_cap)]"
 	if(isnull(base_name))
 		base_name = genital_type
 	var/passed_string = "[base_name]_[size_affix]_[is_erect]"

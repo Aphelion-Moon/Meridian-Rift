@@ -12,6 +12,53 @@
 	var/obj/item/nipples = null
 	var/obj/item/penis = null
 
+/// Gets the item held in one of our `ORGAN_SLOT_*` lewd slots.
+/mob/living/carbon/human/proc/get_lewd_slot_item(slot)
+	switch(slot)
+		if(ORGAN_SLOT_VAGINA)
+			return vagina
+		if(ORGAN_SLOT_ANUS)
+			return anus
+		if(ORGAN_SLOT_NIPPLES)
+			return nipples
+		if(ORGAN_SLOT_PENIS)
+			return penis
+
+/// Sets an item in one of our `ORGAN_SLOT_*` lewd slots. Returns FALSE when the slot isn't supported.
+/mob/living/carbon/human/proc/set_lewd_slot_item(slot, obj/item/new_item)
+	switch(slot)
+		if(ORGAN_SLOT_VAGINA)
+			vagina = new_item
+		if(ORGAN_SLOT_ANUS)
+			anus = new_item
+		if(ORGAN_SLOT_NIPPLES)
+			nipples = new_item
+		if(ORGAN_SLOT_PENIS)
+			penis = new_item
+		else
+			return FALSE
+	return TRUE
+
+/// Whether a portal can physically reach the selected organ, mouth, active hand, or leg.
+/mob/living/carbon/human/proc/portal_target_is_accessible(target_part)
+	if(target_part in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS))
+		var/obj/item/organ/genital/genital = get_organ_slot(target_part)
+		if(!genital || genital.covered_by_clothing(src))
+			return FALSE
+		if(target_part == ORGAN_SLOT_PENIS)
+			var/obj/item/organ/genital/penis/penis = genital
+			return !penis.is_sheathed()
+		return TRUE
+	if(target_part == BODY_ZONE_PRECISE_MOUTH)
+		return !!get_bodypart(BODY_ZONE_HEAD) && is_location_accessible(BODY_ZONE_PRECISE_MOUTH)
+	if(target_part in list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM))
+		var/obj/item/bodypart/active_hand = has_hand_for_held_index(active_hand_index)
+		return active_hand && active_hand.body_zone == target_part
+	if(target_part in list(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG))
+		var/obj/item/bodypart/leg = get_bodypart(target_part)
+		return leg && !leg.bodypart_disabled
+	return FALSE
+
 
 /*
 *	This code needed to determine if the human is naked in that part of body or not
@@ -35,6 +82,18 @@
 
 /mob/living/carbon/human/proc/is_head_uncovered()
 	return (head?.body_parts_covered & HEAD)
+
+/**
+ * Both preferences a portal needs before it will act on, relay, or reveal this mob.
+ *
+ * Portals put someone's body somewhere they can't see, so the sex-toy pref is required on top of the master ERP one.
+ * Silent by design: portal code revalidates this constantly, and `check_erp_prefs()` is the one to reach for when a
+ * single deliberate attempt is worth logging.
+ */
+/mob/proc/allows_portal_use()
+	var/datum/client_interface/portal_client = GET_CLIENT(src)
+	return portal_client?.prefs?.read_preference(/datum/preference/toggle/erp) \
+		&& portal_client.prefs.read_preference(/datum/preference/toggle/erp/sex_toy)
 
 /// Returns true if the human has an accessible penis for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
 /mob/living/carbon/human/proc/has_penis(required_state = REQUIRE_GENITAL_ANY)
