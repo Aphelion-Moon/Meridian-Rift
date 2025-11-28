@@ -384,6 +384,10 @@
 #include "~nova\liver_nova.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
+#include "~nova\portal_test_helpers.dm"
+#include "~nova\portal_device.dm"
+#include "~nova\portal_lifecycle.dm"
+#include "~nova\portal_routes.dm"
 #include "~nova\shuttle.dm"
 // NOVA EDIT END
 // END_INCLUDE

@@ -12,6 +12,8 @@
 	var/use_subtler = TRUE
 	/// Whether or not we have an erp interaction available to us right now
 	var/has_erp_interaction = FALSE
+	/// Non-owning reference to the relay which currently represents our parent.
+	var/datum/weakref/body_relay
 
 /datum/component/interactable/Initialize(...)
 	if(QDELETED(parent))
@@ -43,41 +45,80 @@
 	UnregisterSignal(parent, COMSIG_CLICK_CTRL_SHIFT)
 
 /datum/component/interactable/Destroy(force)
+	body_relay = null
 	self = null
 	interactions = null
 	return ..()
 
+/// Returns the current relay, clearing a stale weak reference along the way.
+/datum/component/interactable/proc/resolve_body_relay()
+	var/atom/movable/resolved_relay = body_relay?.resolve()
+	if(QDELETED(resolved_relay))
+		body_relay = null
+		return null
+	return resolved_relay
+
+/// Replaces the component's non-owning relay reference.
+/datum/component/interactable/proc/set_body_relay(atom/movable/new_relay)
+	if(QDELETED(new_relay))
+		body_relay = null
+		return
+	body_relay = WEAKREF(new_relay)
+
+/// Clears the relay only when it is still the expected session's relay.
+/datum/component/interactable/proc/clear_body_relay(atom/movable/expected_relay)
+	if(isnull(expected_relay) || resolve_body_relay() == expected_relay)
+		body_relay = null
+
+/// TRUE while either participant is still on cooldown from their last interaction.
+/datum/component/interactable/proc/on_interaction_cooldown(datum/component/interactable/partner)
+	return interact_next >= world.time || partner.interact_next >= world.time
+
+/// Puts both participants on the shared interaction cooldown. Both ends of an interaction pay it.
+/datum/component/interactable/proc/start_interaction_cooldown(datum/component/interactable/partner)
+	interact_last = world.time
+	partner.interact_last = interact_last
+	interact_next = interact_last + INTERACTION_COOLDOWN
+	partner.interact_next = interact_next
+
+/// Resolves a route from the viewer's active item or this component's current body relay.
+/datum/component/interactable/proc/get_interaction_route(datum/interaction/interaction, mob/living/carbon/human/user)
+	if(user == self)
+		var/obj/item/active_item = user.get_active_held_item()
+		return active_item?.interaction_route_for(self, interaction, user)
+	if(user.Adjacent(self))
+		return null
+	var/atom/movable/resolved_relay = resolve_body_relay()
+	if(resolved_relay && user.Adjacent(resolved_relay))
+		return resolved_relay.interaction_route_for(self, interaction, user)
+	return null
+
 /datum/component/interactable/proc/open_interaction_menu(datum/source, mob/user)
 	SIGNAL_HANDLER
 
-	if(!ishuman(user))
+	if(source != self || QDELETED(self) || !ishuman(user) || QDELETED(user))
 		return
-	build_interactions_list()
 	INVOKE_ASYNC(src, PROC_REF(ui_interact), user)
 	return CLICK_ACTION_SUCCESS
 
 /datum/component/interactable/proc/can_interact(datum/interaction/interaction, mob/living/carbon/human/target)
-	if(!interaction.allow_act(target, self))
+	if(QDELETED(interaction) || QDELETED(target) || QDELETED(self))
 		return FALSE
-	if(interaction.lewd && !target.client?.prefs?.read_preference(/datum/preference/toggle/erp))
-		return FALSE
-	if(!interaction.distance_allowed && !target.Adjacent(self))
-		return FALSE
-	if(interaction.category == INTERACTION_CAT_HIDE)
-		return FALSE
-	if(self == target && interaction.usage == INTERACTION_OTHER)
-		return FALSE
-	return TRUE
+	var/datum/interaction_route/route = get_interaction_route(interaction, target)
+	return interaction.category != INTERACTION_CAT_HIDE && interaction.can_execute(target, self, route, ignore_cooldown = TRUE)
 
 /// UI Control
 /datum/component/interactable/ui_interact(mob/user, datum/tgui/ui)
+	if(!ishuman(user) || QDELETED(user) || QDELETED(self))
+		return
+	build_interactions_list()
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
 		ui = new(user, src, "InteractionPanel")
 		ui.open()
 
 /datum/component/interactable/ui_status(mob/user, datum/ui_state/state)
-	if(!ishuman(user))
+	if(!ishuman(user) || QDELETED(user) || QDELETED(self))
 		return UI_CLOSE
 
 	return UI_INTERACTIVE // This UI is always interactive as we handle distance flags via can_interact
@@ -93,6 +134,8 @@
 
 /datum/component/interactable/ui_data(mob/user)
 	var/list/data = list()
+	if(!ishuman(user) || QDELETED(user) || QDELETED(self))
+		return data
 	var/list/descriptions = list()
 	var/list/categories = list()
 	var/list/colors = list()
@@ -147,9 +190,8 @@
 	data["descriptions"] = descriptions
 	data["colors"] = colors
 
-	data["ref_user"] = REF(user)
-	data["ref_self"] = REF(self)
-	data["self"] = self.name
+	var/atom/movable/resolved_relay = resolve_body_relay()
+	data["self"] = can_see(user, self) ? self.name : (resolved_relay?.name || "Unknown")
 	data["block_interact"] = interact_next >= world.time
 	data["use_subtler"] = use_subtler
 	data["erp_interaction"] = self.client?.prefs?.read_preference(/datum/preference/toggle/erp)
@@ -219,15 +261,16 @@
 	if(.)
 		return
 
-	if(!ishuman(ui.user))
+	if(QDELETED(ui) || ui.src_object != src || !ishuman(ui.user) || QDELETED(ui.user) || QDELETED(self))
 		return
+	var/mob/living/carbon/human/actor = ui.user
+	var/mob/living/carbon/human/target = self
 
 	if(action == "toggle_subtler")
 		use_subtler = !use_subtler
 		return TRUE
 
 	if(action == "set_genital_visibility" || action == "set_genital_layering" || action == "set_genital_arousal")
-		var/mob/living/carbon/human/actor = ui.user
 		if(actor != self) // You configure your own body, nobody else's.
 			return
 		// Locating within the actor's own configurable set is the ref whitelist.
@@ -245,7 +288,6 @@
 		return success
 
 	if(action == "set_underwear_visibility" || action == "set_all_underwear_visibility")
-		var/mob/living/carbon/human/actor = ui.user
 		if(actor != self)
 			return
 		if(IS_UNCONSCIOUS_OR_CRIT(actor))
@@ -260,41 +302,46 @@
 		var/interaction_id = params["interaction"]
 		// Vore is a bespoke interaction added programmatically until such time as a better setup is figured out.
 		if(interaction_id == VORE_ACT)
-			// Grab the associated player mobs.
-			var/mob/living/carbon/human/source = locate(params["userref"])
-			var/mob/living/carbon/human/target = locate(params["selfref"])
-			if(!source.Adjacent(target))
-				source.show_message(span_warning("You can't eat someone with your mind- get next to them!"))
+			if(!actor.Adjacent(target))
+				actor.show_message(span_warning("You can't eat someone with your mind- get next to them!"))
 				return FALSE
 			// Pull the belly object from the pred's belly quirk.
-			var/datum/quirk/belly/bellyquirk = locate() in source.quirks
+			var/datum/quirk/belly/bellyquirk = locate() in actor.quirks
 			var/obj/item/belly_function/a_belly = bellyquirk?.the_bwelly
 			// And if the belly object is there as expected, we move to the next phase: actually trying to nom.
 			if(a_belly != null)
-				a_belly.try_nom(target, source)
+				a_belly.try_nom(target, actor)
 				return TRUE
 			else
-				source.show_message(span_warning("Couldn't find the belly helper to try to do vore with- yell at an admin!"))
+				actor.show_message(span_warning("Couldn't find the belly helper to try to do vore with- yell at an admin!"))
 				return
-		else if(GLOB.interaction_instances[interaction_id])
-			var/mob/living/carbon/human/user = locate(params["userref"])
-			if(!can_interact(GLOB.interaction_instances[interaction_id], user))
+		else
+			var/datum/interaction/interaction = GLOB.interaction_instances[interaction_id]
+			if(!interaction || !can_interact(interaction, actor))
 				return FALSE
-			GLOB.interaction_instances[interaction_id].act(user, locate(params["selfref"]), use_subtler)
-			var/datum/component/interactable/interaction_component = user.GetComponent(/datum/component/interactable)
-			interaction_component.interact_last = world.time
-			interact_next = interaction_component.interact_last + INTERACTION_COOLDOWN
-			interaction_component.interact_next = interact_next
+			var/datum/component/interactable/interaction_component = actor.GetComponent(/datum/component/interactable)
+			if(QDELETED(interaction_component) || on_interaction_cooldown(interaction_component))
+				return FALSE
+			var/datum/interaction_route/route = get_interaction_route(interaction, actor)
+			if(!interaction.act(
+				actor,
+				target,
+				use_subtler = use_subtler,
+				route = route,
+			))
+				return FALSE
+			start_interaction_cooldown(interaction_component)
 			return TRUE
 
 	if(params["item_slot"])
 		// This code should be easy enough to follow... I hope.
 		var/item_index = params["item_slot"]
-		var/mob/living/carbon/human/source = locate(params["userref"])
-		var/mob/living/carbon/human/target = locate(params["selfref"])
+		if(!(item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_ANUS, ORGAN_SLOT_NIPPLES)))
+			return
+		var/mob/living/carbon/human/source = actor
 
 		var/obj/item/clothing/sextoy/new_item = source.get_active_held_item()
-		var/obj/item/clothing/sextoy/existing_item = target.vars[item_index]
+		var/obj/item/clothing/sextoy/existing_item = target.get_lewd_slot_item(item_index)
 
 		if(!existing_item && !new_item)
 			source.show_message(span_warning("No item to insert or remove!"))
@@ -305,6 +352,9 @@
 			return
 
 		if(can_lewd_strip(source, target, item_index) && is_toy_compatible(new_item, item_index))
+			var/removing_existing = !isnull(existing_item)
+			var/datum/weakref/existing_item_ref = existing_item ? WEAKREF(existing_item) : null
+			var/datum/weakref/new_item_ref = new_item ? WEAKREF(new_item) : null
 			var/internal = (item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS))
 			var/insert_or_attach = internal ? "insert" : "attach"
 			var/into_or_onto = internal ? "into" : "onto"
@@ -326,14 +376,23 @@
 				target,
 				interaction_key = "interaction_[item_index]"
 				) && can_lewd_strip(source, target, item_index))
+				existing_item = existing_item_ref?.resolve()
+				new_item = new_item_ref?.resolve()
+				if(removing_existing)
+					if(QDELETED(existing_item) || target.get_lewd_slot_item(item_index) != existing_item)
+						return
+				else if(QDELETED(new_item) || source.get_active_held_item() != new_item || target.get_lewd_slot_item(item_index) || !is_toy_compatible(new_item, item_index))
+					return
 
 				if(existing_item)
 					source.visible_message(span_purple("[source.name] removes [existing_item.name] from [target.name]'s [item_index]."), span_purple("You remove [existing_item.name] from [target.name]'s [item_index]."), span_purple("You hear someone remove something from someone nearby."), vision_distance = SAMETILE_MESSAGE_RANGE, ignored_mobs = ignoring_mobs)
-					target.dropItemToGround(existing_item, force = TRUE) // Force is true, cause nodrop shouldn't affect lewd items.
-					target.vars[item_index] = null
+					if(!target.dropItemToGround(existing_item, force = TRUE)) // Force is true, cause nodrop shouldn't affect lewd items.
+						return
+					target.set_lewd_slot_item(item_index, null)
+					source.put_in_hands(existing_item)
 				else if (new_item)
 					source.visible_message(span_purple("[source.name] [internal ? "inserts" : "attaches"] the [new_item.name] [into_or_onto] [target.name]'s [item_index]."), span_purple("You [insert_or_attach] the [new_item.name] [into_or_onto] [target.name]'s [item_index]."), span_purple("You hear someone [insert_or_attach] something [into_or_onto] someone nearby."), vision_distance = SAMETILE_MESSAGE_RANGE, ignored_mobs = ignoring_mobs)
-					target.vars[item_index] = new_item
+					target.set_lewd_slot_item(item_index, new_item)
 					new_item.forceMove(target)
 					new_item.lewd_equipped(target, item_index)
 				target.update_inv_lewd()

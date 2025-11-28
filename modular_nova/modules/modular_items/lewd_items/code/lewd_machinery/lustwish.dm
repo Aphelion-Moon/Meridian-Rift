@@ -167,6 +167,8 @@
 				/obj/item/storage/box/strippole_kit = 4,
 				/obj/item/storage/box/xstand_kit = 4,
 				/obj/item/holosign_creator/privacy = 4,
+				/obj/item/storage/box/erp/portal_fleshlight = 8,
+				/obj/item/wallframe/lewd_portal = 8,
 			),
 		),
 	)
