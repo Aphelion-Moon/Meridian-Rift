@@ -687,10 +687,7 @@
 
 /// Explicit integration coverage for a deployment supplying the complete portal interaction configuration.
 /datum/unit_test/portal_device/live_configuration/Run()
-#ifndef TEST_PORTAL_LIVE_CONFIG
-	TEST_NOTICE(src, "Optional live portal configuration check; enable TEST_PORTAL_LIVE_CONFIG with the full interaction configuration.")
-	return
-#endif
+#ifdef TEST_PORTAL_LIVE_CONFIG
 	var/list/expected_parts = list(
 		"Fuck (vagina)" = list(list(ORGAN_SLOT_PENIS), list(ORGAN_SLOT_VAGINA)),
 		"Tribadism" = list(list(ORGAN_SLOT_VAGINA), list(ORGAN_SLOT_VAGINA)),
@@ -727,6 +724,9 @@
 				TEST_ASSERT(!findtext(formatted_message, recipient.name), "Self-interaction '[interaction_name]' referred to the recipient by name.")
 				TEST_ASSERT(!findtext(formatted_message, "%"), "Interaction '[interaction_name]' left a template token unexpanded.")
 				TEST_ASSERT(!findtext(formatted_message, "you's"), "Interaction '[interaction_name]' used an invalid second-person possessive.")
+#else
+	TEST_NOTICE(src, "Optional live portal configuration check; enable TEST_PORTAL_LIVE_CONFIG with the full interaction configuration.")
+#endif
 
 /// Message expansion anonymizes each participant independently while administrative formatting keeps real identities.
 /datum/unit_test/portal_device/message_anonymity/Run()

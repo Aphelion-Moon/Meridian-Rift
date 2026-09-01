@@ -4,6 +4,12 @@
  * @see https://github.com/chriskempson/base16
  * @see https://github.com/tgstation/tgui-core/blob/main/styles/vars-colors.scss
  */
+// APHELION EDIT ADDITION START - MERIDIAN_UI
+// MeridianOS theme metadata and resolution live in their own modular file.
+// Re-exported here so existing `constants/theme` imports keep resolving.
+export * from './meridian-theme';
+// APHELION EDIT ADDITION END
+/* // APHELION EDIT REMOVAL START - MERIDIAN_UI
 export const tgui16 = {
   scheme: 'ntos16',
   author: 'Aleksej Komarov et al., (https://github.com/tgstation)',
@@ -29,3 +35,5 @@ export const tgui16 = {
   base0E: '#ae81ff',
   base0F: '#cc6633',
 } as const;
+*/ // APHELION EDIT REMOVAL END
+export { MERIDIAN_BASE16 as tgui16 } from './meridian-theme'; // APHELION EDIT ADDITION
