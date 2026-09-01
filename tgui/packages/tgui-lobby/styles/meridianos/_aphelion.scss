@@ -1,0 +1,924 @@
+// THIS IS AN APHELION UI FILE
+// Aphelion's own lobby look (LOBBY_MENU_REWORK) - plain-text nav menu
+
+:root {
+  // Standard fallbacks are available before the first DM init message. Once
+  // React receives the saved preference, the managed root theme classes below
+  // replace these values without remounting the lobby contents.
+  --lobby-canvas: #080d10;
+  --lobby-panel: #0d171d;
+  --lobby-recessed: #091217;
+  --lobby-boundary: #4b6b78;
+  --lobby-boundary-strong: #9fb2bc;
+  --lobby-text: #e6eef1;
+  --lobby-text-muted: #9fb2bc;
+  --lobby-accent: #58d1c9;
+  --lobby-accent-secondary: #7ae2db;
+  --lobby-focus: #ffd84d;
+  --lobby-success: #54d98c;
+  --lobby-warning: #f2bd52;
+  --lobby-danger: #ff6b6b;
+  --lobby-corner-cut: 4px;
+  --lobby-frame-layer: 1px;
+  --lobby-frame-top-weight: 1px;
+  --lobby-frame-left-weight: 1px;
+  --lobby-title-rail: 92px;
+  --lobby-control-depth: inset 0 0 0 1px rgb(75 107 120 / 50%);
+  --lobby-frame-shadow: 2px 2px rgb(8 13 16 / 78%);
+  --lobby-nav-opacity: 0.96;
+  --lobby-nav-background: linear-gradient(
+    180deg,
+    rgb(24 48 58 / 94%),
+    rgb(13 23 29 / 96%)
+  );
+  --lobby-text-shadow: 1px 1px #000;
+  --lobby-font: 'Fixedsys', monospace;
+  --lobby-control-height: clamp(24px, 4vmin, 48px);
+  --lobby-control-font-size: clamp(16px, 4vmin, 48px);
+  --lobby-control-marker-width: clamp(28px, 5vmin, 60px);
+  --lobby-control-icon-size: clamp(24px, 4vmin, 48px);
+  --boot-accent: #58d1c9;
+  --boot-accent-secondary: #7ae2db;
+  --boot-boundary: #4b6b78;
+  --boot-surface: #0d171d;
+  --boot-surface-recessed: #091217;
+  --boot-text: #e6eef1;
+  --boot-text-secondary: #9fb2bc;
+  --boot-warning: #f2bd52;
+}
+
+.theme-console {
+  --lobby-canvas: var(--console-surface-canvas);
+  --lobby-panel: var(--console-surface-base);
+  --lobby-recessed: var(--console-surface-recessed);
+  --lobby-boundary: var(--console-border-control);
+  --lobby-boundary-strong: var(--console-border-strong);
+  --lobby-text: var(--console-text-primary);
+  --lobby-text-muted: var(--console-text-secondary);
+  --lobby-accent: var(--console-interaction-accent);
+  --lobby-accent-secondary: var(--console-interaction-selected);
+  --lobby-focus: var(--console-interaction-focus);
+  --lobby-success: var(--console-status-success);
+  --lobby-warning: var(--console-status-warning);
+  --lobby-danger: var(--console-status-danger);
+  --lobby-corner-cut: var(--console-corner-cut);
+  --lobby-frame-layer: var(--console-frame-layer);
+  --lobby-frame-top-weight: var(--console-frame-top-weight);
+  --lobby-frame-left-weight: var(--console-frame-left-weight);
+  --lobby-title-rail: var(--console-title-rail);
+  --lobby-control-depth: var(--console-control-depth);
+  --lobby-frame-shadow: 2px 2px
+    color-mix(in srgb, var(--console-surface-canvas) 78%, transparent);
+  --lobby-nav-background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--console-surface-raised) 94%, transparent),
+    color-mix(in srgb, var(--console-surface-base) 97%, transparent)
+  );
+  --boot-accent: var(--console-interaction-accent);
+  --boot-accent-secondary: var(--console-interaction-selected);
+  --boot-boundary: var(--console-border-control);
+  --boot-surface: var(--console-surface-base);
+  --boot-surface-recessed: var(--console-surface-recessed);
+  --boot-text: var(--console-text-primary);
+  --boot-text-secondary: var(--console-text-secondary);
+  --boot-warning: var(--console-status-warning);
+}
+
+// Classic NT carries its purple-to-blue identity into startup. Its HTML menu
+// uses a quieter reading surface in _instrument-menus.scss. Regular TGUI
+// resolves this preference to base `theme-nanotrasen`.
+.theme-nanotrasen {
+  --lobby-canvas: #000;
+  --lobby-panel: #000066;
+  --lobby-recessed: #000;
+  --lobby-boundary: #fff;
+  --lobby-boundary-strong: #cde;
+  --lobby-text: #cde;
+  --lobby-text-muted: #cde;
+  --lobby-accent: #ff0;
+  --lobby-accent-secondary: #cde;
+  --lobby-focus: #ff0;
+  --lobby-success: #4f4;
+  --lobby-warning: #f80;
+  --lobby-danger: #f44;
+  --lobby-corner-cut: 4px;
+  --lobby-frame-layer: 2px;
+  --lobby-frame-top-weight: 2px;
+  --lobby-frame-left-weight: 2px;
+  --lobby-title-rail: 0px;
+  --lobby-control-depth: inset 1px 1px #333;
+  --lobby-frame-shadow: 2px 2px #333;
+  --lobby-nav-opacity: 0.95;
+  --lobby-nav-background: linear-gradient(
+    to bottom,
+    rgb(110 45 136 / 60%),
+    rgb(120 68 204 / 60%),
+    rgb(68 68 204 / 60%),
+    rgb(68 68 204 / 60%),
+    rgb(0 0 102 / 60%)
+  );
+  --lobby-text-shadow: 2px 2px #000;
+  --boot-accent: #8e7dff;
+  --boot-accent-secondary: #8fb7ff;
+  --boot-boundary: #cde;
+  --boot-surface: #000066;
+  --boot-surface-recessed: #000033;
+  --boot-text: #fff;
+  --boot-text-secondary: #cde;
+  --boot-warning: #f80;
+}
+
+.theme-meridian_highline {
+  --lobby-nav-opacity: 1;
+  --lobby-nav-background: var(--console-surface-base);
+  --lobby-frame-shadow: none;
+  --lobby-text-shadow: none;
+}
+
+:is(
+  .theme-meridian_pipboy,
+  .theme-meridian_vector,
+  .theme-meridian_cyberpunk,
+  .theme-meridian_augmentation
+) {
+  --lobby-font: var(--console-font-display);
+}
+
+.bg {
+  position: absolute;
+  width: auto;
+  height: 100vmin;
+  min-width: 100vmin;
+  min-height: 100vmin;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+.lobby__theme-picker {
+  position: absolute;
+  top: clamp(8px, 1.5vmin, 16px);
+  right: clamp(8px, 1.5vmin, 16px);
+  z-index: 20;
+}
+
+.boot_terminal {
+  --boot-font: 'VCR OSD Mono', Consolas, monospace;
+
+  // One anchor drives both the startup glyph and its backlight. They used to
+  // carry separate hardcoded offsets, so any change to the viewport or to the
+  // wrapped status line slid the glyph out from under its own glow.
+  --boot-instrument-anchor: 46%;
+  --boot-loader-size: clamp(120px, 18vmin, 160px);
+  --boot-glow-extent: 42%;
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--boot-text);
+  font-family: var(--boot-font);
+  isolation: isolate;
+  z-index: 1;
+}
+
+.boot_terminal::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+  background-color: color-mix(in srgb, var(--boot-surface) 88%, transparent);
+  background-image: radial-gradient(
+    circle at 50% var(--boot-instrument-anchor),
+    color-mix(in srgb, var(--boot-accent) 6%, transparent),
+    transparent var(--boot-glow-extent)
+  );
+}
+
+.theme-meridian_highline .boot_terminal::before {
+  background-color: var(--boot-surface);
+  background-image: none;
+}
+
+.theme-nanotrasen .boot_terminal::before {
+  background-color: #000;
+  background-image: linear-gradient(
+    to bottom,
+    rgb(110 45 136 / 60%),
+    rgb(120 68 204 / 60%),
+    rgb(68 68 204 / 60%),
+    rgb(68 68 204 / 60%),
+    rgb(0 0 102 / 60%)
+  );
+}
+
+.lobby--transparent .boot_terminal::before {
+  background-color: transparent;
+  background-image: none;
+}
+
+.boot_terminal__instrument {
+  position: absolute;
+  top: var(--boot-instrument-anchor);
+  left: 50%;
+  z-index: 2;
+  width: min(42vw, 36rem);
+  // Pin the glyph's own centre rather than the centre of the whole stack. The
+  // label and status line beneath it change height whenever a boot message
+  // rewraps, and centring the box let that reflow drag the glyph off-anchor.
+  transform: translate(-50%, calc(var(--boot-loader-size) / -2));
+}
+
+.boot_terminal .DiagnosticLoader {
+  --console-text-primary: var(--boot-text);
+  --console-text-secondary: var(--boot-text-secondary);
+  --console-border-control: var(--boot-boundary);
+  --console-interaction-accent: var(--boot-accent);
+  --console-interaction-selected: var(--boot-accent-secondary);
+  --console-interaction-focus: var(--boot-accent-secondary);
+  --console-loader-crown-color: var(--boot-boundary);
+  --console-loader-progress-track: var(--boot-surface-recessed);
+  --console-loader-progress-core: var(--boot-accent);
+  width: 100%;
+  height: auto;
+  // The shared `--large` min-height would centre slack space above the glyph
+  // and reintroduce the drift the anchor above removes.
+  min-height: 0;
+  color: var(--boot-text);
+  font-family: var(--boot-font);
+}
+
+// Keep the glyph's rendered size and the anchor maths reading the same token.
+.boot_terminal .DiagnosticLoader--large {
+  --diagnostic-loader-size: var(--boot-loader-size);
+}
+
+.theme-nanotrasen .boot_terminal .DiagnosticLoader {
+  --console-loader-stroke: 2px;
+  --console-loader-stroke-secondary: 1px;
+  --console-loader-ticks: 4;
+  --console-loader-nodes: 0;
+  --console-loader-tick-step: 90deg;
+  --console-loader-tick-width: 3deg;
+  --console-loader-tick-depth: 6%;
+  --console-loader-crown-color: var(--boot-boundary);
+  --console-loader-crown-gap: transparent;
+  --console-loader-cage-pattern: conic-gradient(
+    from -78deg,
+    var(--boot-accent) 0deg 92deg,
+    transparent 92deg 142deg,
+    var(--boot-accent-secondary) 142deg 224deg,
+    transparent 224deg
+  );
+  --console-loader-cage-width: 3px;
+  --console-loader-track-width: 3px;
+  --console-loader-node-step: 90deg;
+  --console-loader-node-width: 5deg;
+  --console-loader-node-size: 4px;
+  --console-loader-node-opacity: 0;
+  --console-loader-core-size: 24%;
+  --console-loader-core-shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  --console-loader-origin-width: 2px;
+  --console-loader-origin-height: 8px;
+  --console-loader-turn-duration: 5.6s;
+  --console-loader-fill-gap: transparent;
+}
+
+.boot_terminal .DiagnosticLoader__label {
+  min-width: 18em;
+  padding: 4px 12px 3px;
+  color: var(--boot-text);
+  border-top: 1px solid var(--boot-boundary);
+  border-bottom: 1px solid var(--boot-boundary);
+  font-family: var(--boot-font);
+  font-size: clamp(14px, 2vmin, 18px);
+  letter-spacing: 0.16em;
+}
+
+.boot_terminal .DiagnosticLoader__detail {
+  width: min(100%, 52rem);
+  max-width: min(72vw, 52rem);
+  color: var(--boot-text-secondary);
+  font-family: var(--boot-font);
+  font-size: clamp(11px, 1.45vmin, 14px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.boot_terminal__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.7em;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.boot_terminal__statusChannel {
+  flex: 0 0 auto;
+  color: var(--boot-accent);
+  font-size: 0.88em;
+  letter-spacing: 0.1em;
+}
+
+.boot_terminal__statusValue {
+  flex: 1 1 12em;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.container_terminal {
+  position: absolute;
+  top: clamp(48px, 7vmin, 72px);
+  left: clamp(16px, 3vmin, 40px);
+  width: min(48vw, 720px);
+  height: min(27vh, 240px);
+  overflow: hidden;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  color: var(--boot-text-secondary);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--boot-boundary);
+  border-left: 1px solid var(--boot-boundary);
+  box-shadow: none;
+  clip-path: none;
+  z-index: 2;
+}
+
+.container_terminal::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(var(--lobby-title-rail), 56%);
+  height: max(2px, var(--lobby-frame-layer));
+  content: '';
+  pointer-events: none;
+  background: var(--boot-accent);
+}
+
+.container_terminal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 9px 11px 7px;
+  color: var(--boot-accent);
+  border-bottom: 0;
+  font-family: var(--boot-font);
+  font-size: clamp(10px, 1.2vmin, 12px);
+  letter-spacing: 0.11em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.container_terminal__header > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.container_terminal__channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: var(--boot-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.container_terminal__lamp {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  background: var(--boot-accent-secondary);
+  border: 1px solid var(--boot-surface-recessed);
+}
+
+.container_terminal__log {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 8px 11px;
+  scrollbar-color: var(--boot-boundary) var(--boot-surface-recessed);
+  scrollbar-width: thin;
+}
+
+.container_terminal__log:focus-visible {
+  outline: 2px solid var(--lobby-focus);
+  outline-offset: -3px;
+}
+
+.terminal_text {
+  display: grid;
+  grid-template-columns: 3.5em minmax(0, 1fr);
+  gap: 0.7em;
+  align-items: baseline;
+  font-family: var(--boot-font);
+  font-weight: 400;
+  text-decoration: none;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  color: var(--boot-text-secondary);
+  margin: 0;
+  font-size: clamp(10px, 1.3vmin, 13px);
+  line-height: 1.42;
+  letter-spacing: 0.04em;
+}
+
+.terminal_text + .terminal_text {
+  margin-top: 2px;
+}
+
+.terminal_text__channel {
+  color: var(--boot-accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.terminal_text__message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.terminal_text--warning {
+  color: var(--boot-warning);
+}
+
+.terminal_text--warning .terminal_text__channel {
+  color: var(--boot-warning);
+}
+
+.terminal_prompt {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 11px;
+  color: var(--boot-text);
+  background: transparent;
+  border-top: 0;
+  font-family: var(--boot-font);
+  font-size: clamp(10px, 1.3vmin, 13px);
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.terminal_prompt__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boot_terminal__cursor {
+  display: inline-block;
+  width: 0.62em;
+  height: 0.96em;
+  flex: 0 0 auto;
+  margin-left: 0.42em;
+  background: var(--boot-accent);
+  border: 1px solid var(--boot-surface-recessed);
+  animation: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .boot_terminal__cursor {
+    animation: boot-terminal-cursor-blink 1.08s steps(1, end) infinite;
+  }
+}
+
+@keyframes boot-terminal-cursor-blink {
+  0%,
+  48% {
+    visibility: visible;
+  }
+  49%,
+  100% {
+    visibility: hidden;
+  }
+}
+
+.boot_terminal[data-document-hidden] .boot_terminal__cursor {
+  visibility: visible;
+  animation: none;
+}
+
+.container_progress {
+  position: absolute;
+  box-sizing: border-box;
+  right: clamp(16px, 3vmin, 40px);
+  bottom: clamp(16px, 3vmin, 40px);
+  left: clamp(16px, 3vmin, 40px);
+  height: 10px;
+  padding: 2px;
+  background: var(--boot-surface-recessed);
+  border: 1px solid var(--boot-boundary);
+  z-index: 2;
+}
+
+.progress_bar {
+  width: 100%;
+  height: 100%;
+  background: var(--boot-accent);
+  transform: scaleX(var(--boot-progress, 0));
+  transform-origin: left center;
+}
+
+@media (max-width: 1100px), (max-height: 720px) {
+  .boot_terminal {
+    --boot-instrument-anchor: 58%;
+  }
+
+  .boot_terminal__instrument {
+    left: 50%;
+    width: min(calc(100% - 20px), 36rem);
+  }
+
+  .container_terminal {
+    top: 48px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    height: clamp(132px, 28vh, 200px);
+  }
+
+  .boot_terminal .DiagnosticLoader__detail {
+    max-width: 88vw;
+  }
+
+  .container_terminal__channel,
+  .boot_terminal__statusChannel {
+    display: none;
+  }
+}
+
+@media (max-height: 520px) {
+  .boot_terminal {
+    --boot-instrument-anchor: 60%;
+  }
+
+  .container_terminal {
+    height: clamp(96px, 24vh, 120px);
+  }
+
+  .container_terminal__header {
+    padding-block: 5px 4px;
+  }
+
+  .terminal_prompt {
+    min-height: 22px;
+    padding-block: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container_terminal__header {
+    padding-inline: 8px;
+  }
+
+  .container_terminal__log {
+    padding-inline: 8px;
+  }
+
+  .terminal_text {
+    grid-template-columns: 3em minmax(0, 1fr);
+    gap: 0.4em;
+  }
+
+  .boot_terminal__status {
+    padding-inline: 8px;
+  }
+}
+
+.theme-meridian_highline .boot_terminal__cursor {
+  visibility: visible;
+  animation: none;
+}
+
+@media (forced-colors: active) {
+  .boot_terminal {
+    --boot-accent: Highlight;
+    --boot-accent-secondary: Highlight;
+    --boot-boundary: CanvasText;
+    --boot-surface: Canvas;
+    --boot-surface-recessed: Canvas;
+    --boot-text: CanvasText;
+    --boot-text-secondary: CanvasText;
+    --boot-warning: Mark;
+  }
+
+  .boot_terminal::before {
+    background: Canvas;
+  }
+
+  .container_terminal,
+  .terminal_prompt {
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+    box-shadow: none;
+    forced-color-adjust: none;
+  }
+
+  .container_terminal__header,
+  .container_terminal__channel,
+  .terminal_text,
+  .terminal_text__channel,
+  .terminal_text--warning,
+  .terminal_text--warning .terminal_text__channel {
+    color: CanvasText;
+  }
+
+  .container_terminal__lamp,
+  .boot_terminal__cursor {
+    visibility: visible;
+    background: Highlight;
+    border-color: Canvas;
+    animation: none;
+  }
+}
+
+.container_nav {
+  position: absolute;
+  box-sizing: border-box;
+  width: 90vmin;
+  min-height: 10vmin;
+  max-height: 90vmin;
+  overflow-y: auto;
+  top: calc(50% + 22.5vmin);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  border: var(--lobby-frame-layer) solid var(--lobby-boundary);
+  border-top-width: var(--lobby-frame-top-weight);
+  border-left-width: var(--lobby-frame-left-weight);
+  border-radius: var(--lobby-corner-cut);
+  box-shadow:
+    var(--lobby-control-depth),
+    var(--lobby-frame-shadow);
+  background:
+    linear-gradient(var(--lobby-accent), var(--lobby-accent)) top left /
+      var(--lobby-title-rail) var(--lobby-frame-layer) no-repeat,
+    var(--lobby-nav-background);
+  opacity: var(--lobby-nav-opacity);
+  padding: 1em;
+
+  hr {
+    height: var(--lobby-frame-layer);
+    background-color: var(--lobby-boundary-strong);
+    border: none;
+    box-shadow: 2px 2px var(--lobby-canvas);
+  }
+}
+
+.menu_button {
+  appearance: none;
+  display: block;
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  font-family: var(--lobby-font);
+  font-weight: lighter;
+  text-decoration: none;
+  font-size: var(--lobby-control-font-size);
+  text-shadow: var(--lobby-text-shadow);
+  line-height: var(--lobby-control-height);
+  width: 100%;
+  text-align: left;
+  color: var(--lobby-text);
+  height: var(--lobby-control-height);
+  margin: 0;
+  padding-top: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+  padding-left: var(--lobby-control-marker-width);
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &:hover {
+    padding-left: 0;
+    color: var(--lobby-focus);
+
+    &::before {
+      content: '☞';
+      text-align: center;
+      width: var(--lobby-control-marker-width);
+      display: inline-block;
+    }
+  }
+
+  &:active {
+    padding-left: 0;
+    transform: translate(2px, 2px);
+  }
+
+  &:focus-visible {
+    color: var(--lobby-focus);
+    outline: 2px solid var(--lobby-focus);
+    outline-offset: -2px;
+  }
+
+  @keyframes pulse_button {
+    0% {
+      transform: translateX(0px);
+    }
+    100% {
+      transform: translateX(2px);
+    }
+  }
+
+  &:active::before {
+    content: '☛';
+    text-align: center;
+    width: var(--lobby-control-marker-width);
+    animation: pulse_button 0.25s infinite alternate;
+  }
+
+  &.info_display {
+    cursor: default;
+    pointer-events: none;
+    color: var(--lobby-text-muted);
+  }
+
+  &__icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: var(--lobby-control-icon-size);
+    height: var(--lobby-control-icon-size);
+    margin-right: 1vmin;
+    image-rendering: pixelated;
+  }
+}
+
+@keyframes pollsbox {
+  0% {
+    color: var(--lobby-text);
+  }
+  50% {
+    color: var(--lobby-warning);
+  }
+}
+
+.menu_newpoll {
+  animation: pollsbox 2s step-start infinite;
+  padding-left: 0;
+
+  &::before {
+    content: '→';
+    text-align: center;
+    width: var(--lobby-control-marker-width);
+    display: inline-block;
+  }
+
+  &::after {
+    content: '←';
+    text-align: center;
+    width: var(--lobby-control-marker-width);
+    display: inline-block;
+  }
+}
+
+.container_notice {
+  position: absolute;
+  box-sizing: border-box;
+  width: auto;
+  padding-top: 1vmin;
+  top: calc(50% - 10vmin);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.menu_notice {
+  display: inline-block;
+  font-family: var(--lobby-font);
+  font-weight: lighter;
+  text-decoration: none;
+  width: 100%;
+  text-align: left;
+  color: var(--lobby-danger);
+  text-shadow:
+    1px 0px var(--lobby-canvas),
+    -1px 0px var(--lobby-canvas),
+    0px 1px var(--lobby-canvas),
+    0px -1px var(--lobby-canvas),
+    2px 0px var(--lobby-canvas),
+    -2px 0px var(--lobby-canvas),
+    0px 2px var(--lobby-canvas),
+    0px -2px var(--lobby-canvas);
+  margin: 0;
+  font-size: 3vmin;
+  line-height: 2vmin;
+}
+
+.unchecked {
+  color: var(--lobby-danger);
+}
+
+.checked {
+  color: var(--lobby-success);
+}
+
+// Station trait sign-up buttons - kept from the ported tg lobby, restyled to match
+// the plain-text nav instead of tg's sprite buttons.
+.trait_list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5vmin 2vmin;
+  margin-top: 0.5em;
+  padding-left: 5vmin;
+}
+
+.trait_button {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 1vmin;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--lobby-font);
+  font-size: 3vmin;
+  color: var(--lobby-text);
+  text-shadow: var(--lobby-text-shadow);
+
+  &:hover {
+    color: var(--lobby-focus);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lobby-focus);
+    outline-offset: 2px;
+  }
+}
+
+.trait_icon_wrapper {
+  position: relative;
+  width: 3vmin;
+  height: 3vmin;
+  flex: none;
+}
+
+.trait_icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+
+  &--overlay {
+    pointer-events: none;
+  }
+}
+
+.trait_feedback {
+  font-family: var(--lobby-font);
+  font-size: 2.5vmin;
+  color: var(--lobby-focus);
+  text-shadow: var(--lobby-text-shadow);
+  margin-top: 0.5em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu_newpoll,
+  .menu_button:active::before {
+    animation: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .container_nav {
+    opacity: 1;
+    color: CanvasText;
+    background: Canvas;
+    border-color: CanvasText;
+    box-shadow: none;
+  }
+
+  .menu_button,
+  .trait_button,
+  .menu_notice {
+    color: CanvasText;
+    text-shadow: none;
+    forced-color-adjust: auto;
+  }
+
+  .menu_button:focus-visible,
+  .trait_button:focus-visible {
+    outline-color: Highlight;
+  }
+}

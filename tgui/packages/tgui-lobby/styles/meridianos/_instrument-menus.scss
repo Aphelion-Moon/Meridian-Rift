@@ -1,0 +1,340 @@
+// THIS IS AN APHELION UI FILE
+// Lobby housings borrow the construction of their matching interface themes.
+// Texture and registration marks stay at the edges, clear of the controls.
+
+.theme-meridian .lobby {
+  --menu-panel: linear-gradient(180deg, var(--lobby-panel), var(--lobby-recessed)), var(--lobby-panel);
+  --menu-frame: color-mix(in srgb, var(--lobby-boundary) 76%, var(--lobby-panel));
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 48%, transparent);
+  --menu-border-top: 1px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 1px;
+  --menu-border-left: 1px;
+  --menu-radius: 3px;
+  --menu-shadow: 0 0 0 3px var(--lobby-canvas), inset 0 1px 0 color-mix(in srgb, var(--lobby-boundary) 18%, transparent);
+  --menu-rule: linear-gradient(90deg, var(--lobby-accent) 0 62%, transparent 62% 68%, var(--lobby-boundary) 68% 84%, transparent 84% 89%, var(--lobby-boundary) 89%);
+  --menu-rule-height: 2px;
+  --menu-rule-width: 184px;
+  --menu-heading-tracking: 0.12em;
+  --menu-body-tracking: 0.035em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 8%, var(--lobby-panel));
+  --menu-control-rail: 2px;
+}
+
+.theme-meridian_classic .lobby {
+  // Keep the purple-to-blue CRT identity on a quieter, opaque reading surface.
+  --menu-panel: linear-gradient(180deg, #211735, #131527 62%, #0b1030), #211735;
+  --menu-raised: #282641;
+  --menu-text: #ccddee;
+  --menu-muted: #a5b6d0;
+  --menu-accent: #b4a0f2;
+  --menu-secondary: #98b7eb;
+  --menu-focus: #ffe77f;
+  --menu-frame: #71648f;
+  --menu-line: #413952;
+  --menu-border-top: 2px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 1px;
+  --menu-border-left: 2px;
+  --menu-radius: 3px;
+  --menu-shadow: inset 1px 1px 0 #4b4261, 3px 3px 0 #080813;
+  --menu-rule: linear-gradient(90deg, #9c82d2, #7394d5);
+  --menu-rule-height: 1px;
+  --menu-rule-width: 100%;
+  --menu-heading-tracking: 0.1em;
+  --menu-body-tracking: 0.025em;
+  --menu-hover-face: #2d2949;
+  --menu-control-rail: 2px;
+}
+
+.theme-meridian_vector .lobby {
+  --menu-panel: linear-gradient(180deg, var(--lobby-panel), var(--lobby-recessed)), var(--lobby-panel);
+  --menu-frame: var(--lobby-boundary);
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 50%, transparent);
+  --menu-border-top: 3px;
+  --menu-border-right: 3px;
+  --menu-border-bottom: 3px;
+  --menu-border-left: 3px;
+  --menu-radius: 0px;
+  --menu-shadow: 0 0 0 3px var(--lobby-canvas);
+  --menu-rule: repeating-linear-gradient(90deg, var(--lobby-accent) 0 1px, transparent 1px 12px);
+  --menu-rule-height: 4px;
+  --menu-rule-width: 252px;
+  --menu-heading-tracking: 0.15em;
+  --menu-body-tracking: 0.02em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 7%, var(--lobby-panel));
+  --menu-control-rail: 1px;
+
+  .container_nav {
+    border-style: double;
+  }
+}
+
+.theme-meridian_foundry .lobby {
+  --menu-panel:
+    linear-gradient(rgb(19 13 8 / 78%), rgb(12 8 5 / 90%)),
+    var(--forge-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+  --menu-frame: var(--forge-metal, #866244);
+  --menu-line: color-mix(in srgb, var(--forge-edge, #bd8a52) 46%, var(--lobby-recessed));
+  --menu-border-top: 3px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 2px;
+  --menu-border-left: 3px;
+  --menu-radius: 1px;
+  --menu-shadow: inset 0 0 0 8px var(--forge-recess, #19120d), 0 2px 0 #060403, 0 8px 20px rgb(0 0 0 / 48%);
+  --menu-rule: none;
+  --menu-heading-tracking: 0.14em;
+  --menu-body-tracking: 0.04em;
+  --menu-hover-face:
+    linear-gradient(rgb(84 48 19 / 66%), rgb(36 22 11 / 85%)),
+    var(--forge-bronze-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+  --menu-control-rail: 3px;
+
+  .container_nav {
+    border-image: var(--forge-frame, none) 32 / 8px;
+  }
+
+  .lobby-terminal-heading {
+    padding: 9px 12px;
+    border: 1px solid var(--forge-metal, #866244);
+    color: var(--menu-text);
+    background:
+      linear-gradient(rgb(34 21 11 / 56%), rgb(19 12 7 / 80%)),
+      var(--forge-bronze-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+    box-shadow: inset 0 1px 0 var(--forge-edge, #bd8a52), inset 0 -2px 0 var(--forge-recess, #19120d);
+    text-shadow: 0 2px 1px #070503;
+  }
+
+  .lobby-terminal-phase {
+    border-color: var(--forge-edge, #bd8a52);
+    color: var(--menu-accent);
+  }
+
+  .menu_button {
+    border: 1px solid var(--menu-line);
+    border-left: var(--menu-control-rail) solid var(--forge-metal, #866244);
+    background:
+      linear-gradient(rgb(30 19 11 / 80%), rgb(17 11 7 / 93%)),
+      var(--forge-bronze-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+    box-shadow: inset 0 1px 0 rgb(214 167 103 / 16%), inset 0 -2px 0 #090603;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      box-shadow: inset 0 1px 0 var(--forge-edge, #bd8a52), inset 0 -2px 0 #090603;
+    }
+
+    &.menu_readout {
+      background: var(--forge-recess, #19120d);
+      box-shadow: inset 0 1px 3px rgb(0 0 0 / 50%);
+    }
+  }
+
+  .trait_list,
+  .trait_feedback {
+    background: var(--forge-recess, #19120d);
+  }
+
+  @media (forced-colors: active) {
+    .container_nav {
+      border-image: none;
+    }
+
+    .lobby-terminal-heading,
+    .menu_button,
+    .trait_list,
+    .trait_feedback {
+      border-color: CanvasText;
+      color: CanvasText;
+      background: Canvas;
+      box-shadow: none;
+      text-shadow: none;
+    }
+
+    .lobby-terminal-phase {
+      border-color: CanvasText;
+      color: CanvasText;
+    }
+
+    .menu_button:hover:not(:disabled),
+    .menu_button:focus-visible,
+    .menu_button.menu_readout {
+      background: Canvas;
+      box-shadow: none;
+    }
+  }
+}
+
+.theme-meridian_diagnostic .lobby {
+  --menu-panel: var(--lobby-recessed);
+  --menu-frame: color-mix(in srgb, var(--lobby-boundary) 82%, var(--lobby-recessed));
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 42%, transparent);
+  --menu-border-top: 1px;
+  --menu-border-right: 2px;
+  --menu-border-bottom: 1px;
+  --menu-border-left: 2px;
+  --menu-radius: 0px;
+  --menu-shadow: inset 0 0 0 3px var(--lobby-canvas);
+  --menu-rule: repeating-linear-gradient(90deg, var(--lobby-accent-secondary) 0 2px, transparent 2px 8px);
+  --menu-rule-height: 2px;
+  --menu-rule-width: 74px;
+  --menu-heading-tracking: 0.1em;
+  --menu-body-tracking: 0;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 7%, var(--lobby-recessed));
+  --menu-control-rail: 2px;
+}
+
+.theme-meridian_afterlight .lobby {
+  --menu-panel:
+    linear-gradient(rgb(13 22 27 / 55%), rgb(7 13 16 / 85%)),
+    var(--forge-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+  --menu-frame: var(--forge-metal, #967044);
+  --menu-line: color-mix(in srgb, var(--forge-edge, #b89965) 38%, var(--lobby-recessed));
+  --menu-border-top: 5px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 1px;
+  --menu-border-left: 4px;
+  --menu-radius: 1px;
+  --menu-shadow: inset 0 0 0 8px var(--forge-recess, #131d24), 0 2px 0 #05090b, 0 8px 20px rgb(0 0 0 / 44%);
+  --menu-rule: none;
+  --menu-heading-tracking: 0.12em;
+  --menu-body-tracking: 0.04em;
+  --menu-hover-face:
+    linear-gradient(rgb(49 55 41 / 58%), rgb(18 27 29 / 85%)),
+    var(--forge-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+  --menu-control-rail: 2px;
+
+  .container_nav {
+    border-image: var(--forge-frame, none) 32 / 8px;
+  }
+
+  .lobby-terminal-heading {
+    padding: 9px 12px;
+    border: 1px solid var(--forge-metal, #967044);
+    color: var(--menu-text);
+    background:
+      linear-gradient(rgb(20 29 32 / 54%), rgb(10 17 20 / 78%)),
+      var(--forge-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+    box-shadow: inset 0 1px 0 var(--forge-edge, #b89965), inset 0 -2px 0 var(--forge-recess, #131d24);
+    text-shadow: 0 2px 1px #040709;
+  }
+
+  .lobby-terminal-phase {
+    border-color: var(--forge-metal, #967044);
+    color: var(--menu-secondary);
+    background: linear-gradient(rgb(65 77 49 / 35%), rgb(14 23 18 / 74%));
+    box-shadow: inset 0 1px 0 rgb(180 198 163 / 15%);
+  }
+
+  .menu_button {
+    border: 1px solid var(--menu-line);
+    border-left: var(--menu-control-rail) solid var(--forge-metal, #967044);
+    background:
+      linear-gradient(rgb(19 28 32 / 67%), rgb(9 16 20 / 89%)),
+      var(--forge-texture, none) 0 0 / 384px 384px, var(--lobby-panel);
+    box-shadow: inset 0 1px 0 rgb(186 181 156 / 14%), inset 0 -2px 0 #060b0d;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      box-shadow: inset 0 1px 0 var(--forge-edge, #b89965), inset 0 -2px 0 #060b0d;
+    }
+
+    &.menu_readout {
+      background: var(--forge-recess, #131d24);
+      box-shadow: inset 0 1px 3px rgb(0 0 0 / 50%);
+    }
+  }
+
+  .trait_list,
+  .trait_feedback {
+    background: var(--forge-recess, #131d24);
+  }
+
+  @media (forced-colors: active) {
+    .container_nav {
+      border-image: none;
+    }
+
+    .lobby-terminal-heading,
+    .lobby-terminal-phase,
+    .menu_button,
+    .trait_list,
+    .trait_feedback {
+      border-color: CanvasText;
+      color: CanvasText;
+      background: Canvas;
+      box-shadow: none;
+      text-shadow: none;
+    }
+
+    .menu_button:hover:not(:disabled),
+    .menu_button:focus-visible,
+    .menu_button.menu_readout {
+      background: Canvas;
+      box-shadow: none;
+    }
+  }
+}
+
+.theme-meridian_relay .lobby {
+  --menu-panel:
+    radial-gradient(circle, var(--lobby-boundary) 0 1px, transparent 1.5px) bottom 7px left 7px / 4px 4px no-repeat,
+    radial-gradient(circle, var(--lobby-boundary) 0 1px, transparent 1.5px) bottom 7px right 7px / 4px 4px no-repeat,
+    linear-gradient(180deg, var(--lobby-panel), var(--lobby-recessed)), var(--lobby-panel);
+  --menu-frame: color-mix(in srgb, var(--lobby-boundary) 80%, var(--lobby-panel));
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 48%, transparent);
+  --menu-border-top: 1px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 3px;
+  --menu-border-left: 1px;
+  --menu-radius: 2px;
+  --menu-shadow: inset 0 -3px 0 var(--lobby-recessed), inset 0 0 0 2px color-mix(in srgb, var(--lobby-boundary) 18%, transparent), 0 0 0 3px var(--lobby-canvas);
+  --menu-rule: linear-gradient(90deg, var(--lobby-accent) 0 42%, transparent 42% 49%, var(--lobby-accent-secondary) 49% 67%, transparent 67% 74%, var(--lobby-boundary) 74%);
+  --menu-rule-height: 3px;
+  --menu-rule-width: 104px;
+  --menu-heading-tracking: 0.12em;
+  --menu-body-tracking: 0.035em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent-secondary) 8%, var(--lobby-panel));
+  --menu-control-rail: 3px;
+}
+
+.theme-meridian_bastion .lobby {
+  --menu-panel: linear-gradient(rgb(0 0 0 / 28%), rgb(0 0 0 / 28%)), var(--scavenger-texture) 0 0 / 384px 384px, var(--lobby-panel);
+  --menu-frame: color-mix(in srgb, var(--lobby-boundary) 78%, var(--lobby-panel));
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 50%, transparent);
+  --menu-border-top: 4px;
+  --menu-border-right: 4px;
+  --menu-border-bottom: 4px;
+  --menu-border-left: 4px;
+  --menu-radius: 0;
+  --menu-shadow: inset 0 0 0 1px var(--lobby-recessed);
+  --menu-rule: none;
+  --menu-heading-tracking: 0.04em;
+  --menu-body-tracking: 0.025em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 8%, var(--lobby-panel));
+  --menu-control-rail: 4px;
+
+  .lobby-terminal-heading {
+    background-image: var(--scavenger-plates);
+    background-size: 100% 100%;
+  }
+
+  .menu_button,
+  .trait_list,
+  .trait_feedback {
+    background-color: var(--lobby-panel);
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-meridian_bastion .lobby {
+    .lobby-terminal-heading {
+      background-image: none;
+    }
+
+    .menu_button,
+    .trait_list,
+    .trait_feedback {
+      background-color: Canvas;
+    }
+  }
+}

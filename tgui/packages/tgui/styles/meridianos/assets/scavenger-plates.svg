@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="80" viewBox="0 0 960 80" preserveAspectRatio="none">
+  <title>Bastion salvaged casing plates</title>
+  <desc>Original translucent olive and oxide plates, edge-anchored seams and recessed fasteners. The rust material is supplied separately.</desc>
+  <defs>
+    <g id="bolt">
+      <circle r="3" fill="#100d0a" stroke="#776548" stroke-width=".7"/>
+      <circle r="1.8" fill="#635b45"/>
+      <path d="M-1.2 .8 1.2-.8" stroke="#100d0a" stroke-width=".8"/>
+    </g>
+  </defs>
+  <path d="M0 0h288l-48 80H0z" fill="#814a2d" fill-opacity=".2"/>
+  <path d="M288 0h356l24 80H240z" fill="#393d29" fill-opacity=".3"/>
+  <path d="M644 0h316v80H668z" fill="#171a12" fill-opacity=".25"/>
+  <path d="M288 0 240 80M644 0l24 80" stroke="#100d0a" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  <path d="M291 0 243 80M647 0l24 80M0 1h960M0 79h960" fill="none" stroke="#b7a27b" stroke-opacity=".3" vector-effect="non-scaling-stroke"/>
+  <use href="#bolt" x="10" y="10"/>
+  <use href="#bolt" x="275" y="10"/>
+  <use href="#bolt" x="237" y="70"/>
+  <use href="#bolt" x="633" y="10"/>
+  <use href="#bolt" x="655" y="70"/>
+  <use href="#bolt" x="950" y="70"/>
+</svg>

@@ -1,0 +1,210 @@
+// THIS IS AN APHELION UI FILE
+@use '../base';
+
+.theme-console {
+  --console-border-subtle: color-mix(in srgb, var(--console-border-control) 50%, transparent);
+  --console-border-strong: color-mix(in srgb, var(--console-border-control) 72%, var(--console-text-primary));
+  --console-border-separator: color-mix(in srgb, var(--console-border-control) 60%, transparent);
+  --console-text-disabled: color-mix(in srgb, var(--console-text-secondary) 54%, var(--console-surface-base));
+  --console-text-on-accent: var(--console-surface-canvas);
+  --console-interaction-hover: color-mix(in srgb, var(--console-interaction-accent) 22%, var(--console-surface-raised));
+  --console-interaction-pressed: color-mix(in srgb, var(--console-interaction-accent) 34%, var(--console-surface-recessed));
+  --console-interaction-focus-contrast: var(--console-surface-canvas);
+  --console-status-information: #63b4ff;
+  --console-status-success: #54d98c;
+  --console-status-warning: #f2bd52;
+  --console-status-danger: #ff6b6b;
+  // Map tgui-core's own component tokens instead of re-declaring the
+  // properties they feed. Upstream exposes these precisely so a skin can
+  // recolour a component without overpainting callers that style one
+  // themselves; see the `.Section > .Section__title` note in _components.scss.
+  --section-background: var(--console-surface-base);
+  --section-title-color: var(--console-text-primary);
+  --section-separator-color: var(--console-border-separator);
+  // NoticeBox turns this default into its private --noticebox-background
+  // token. Explicit `color` classes replace that private token themselves,
+  // so caller-selected banners keep their authored color.
+  --notice-box-background: var(--console-status-warning);
+  --notice-box-color: var(--console-text-primary);
+  --console-corner-cut: 4px;
+  --console-frame-layer: 1px;
+  --console-corner-layer: 18px;
+  --console-title-rail: 92px;
+  --console-control-face: var(--console-surface-raised);
+  --console-selected-rail: 3px;
+  --console-segment-pattern: 8px;
+  --console-motif-opacity: 0.62;
+  // Window frame geometry. `.Window::before` is the only thing that draws the
+  // frame, and it reads these exclusively, so a skin restates geometry here
+  // rather than re-hardcoding `inset` and `border-width` next to the artwork.
+  --console-frame-gap: 3px;
+  --console-frame-gap-top: var(--console-frame-gap);
+  --console-frame-gap-right: var(--console-frame-gap);
+  --console-frame-gap-bottom: var(--console-frame-gap);
+  --console-frame-gap-left: var(--console-frame-gap);
+  --console-frame-top-weight: 1px;
+  --console-frame-left-weight: 1px;
+  --console-frame-right-weight: 1px;
+  --console-frame-bottom-weight: 1px;
+  // Derived: the band each edge reserves for its frame. Chrome and content
+  // keep clear of these so a frame rule never crosses a control. Treat them as
+  // read-only -- override the gap and weight tokens above instead.
+  --console-chrome-safe-top: calc(
+    var(--console-frame-gap-top) + var(--console-frame-top-weight)
+  );
+  --console-chrome-safe-right: calc(
+    var(--console-frame-gap-right) + var(--console-frame-right-weight)
+  );
+  --console-chrome-safe-bottom: calc(
+    var(--console-frame-gap-bottom) + var(--console-frame-bottom-weight)
+  );
+  --console-chrome-safe-left: calc(
+    var(--console-frame-gap-left) + var(--console-frame-left-weight)
+  );
+  // Title bar geometry. The bar sizes from the inside out: a constant interior
+  // that always seats a full-height control, plus whatever band the skin's
+  // frame needs above it. A thick-framed skin therefore grows the bar instead
+  // of squeezing its controls out through the frame rule. The `max()` floor is
+  // upstream's own 32px, so every thin-framed skin keeps its stock height.
+  --console-titlebar-control: #{base.rem(24px)};
+  --console-titlebar-base: #{base.rem(32px)};
+  // 1px of breathing room above and below the control, plus the bar's own 1px
+  // bottom border -- the same slack upstream's 32px bar leaves around a 24px
+  // control, restated so it survives a taller bar.
+  --console-titlebar-slack: #{base.rem(3px)};
+  --console-titlebar-height: max(
+    var(--console-titlebar-base),
+    calc(
+      var(--console-chrome-safe-top) + var(--console-titlebar-control) +
+        var(--console-titlebar-slack)
+    )
+  );
+  // The frame's pin (.Window::after) paints at z 201, above the title bar and
+  // its opaque background, so it cannot be tucked behind a control -- the bar
+  // has to leave it a lane instead. These describe the pin's painted footprint
+  // so the pin and the bar size that lane from one source: `width` is the box,
+  // `reach` how far a skin's box-shadow spills right of it (toward the close
+  // button), `tail` how far it spills left (toward the utilities cluster).
+  --console-window-pin-width: 6px;
+  --console-window-pin-reach: 0px;
+  --console-window-pin-tail: 0px;
+  // The gap the utilities cluster keeps to its right. The 3px is the pin's own
+  // clearance from the close button, which is what upstream's 9px margin
+  // amounted to for a stock 6px pin -- so thin-pinned skins are unchanged.
+  --console-window-pin-lane: calc(
+    3px + var(--console-window-pin-width) + var(--console-window-pin-reach) +
+      var(--console-window-pin-tail)
+  );
+  --console-control-depth: inset 0 0 0 1px var(--console-border-subtle);
+  --console-overlay-shadow: 0 4px 12px rgb(0 0 0 / 46%);
+  --console-heading-case: uppercase;
+  --console-heading-tracking: 0.08em;
+  --console-loader-stroke: 2px;
+  --console-loader-stroke-secondary: 1px;
+  // Profile metadata stays readable for inspection; explicit angular steps
+  // below drive gradients without relying on newer CSS division syntax.
+  --console-loader-ticks: 4;
+  --console-loader-nodes: 0;
+  --console-loader-arc-start: 12deg;
+  --console-loader-arc-span: 264deg;
+  --console-loader-progress-track: var(--console-surface-recessed);
+  --console-loader-progress-core: var(--console-interaction-accent);
+  --console-loader-tick-step: 90deg;
+  --console-loader-tick-width: 3deg;
+  --console-loader-tick-depth: 6%;
+  --console-loader-crown-color: var(--console-border-control);
+  --console-loader-crown-gap: transparent;
+  --console-loader-crown-clip: none;
+  --console-loader-fill-gap: transparent;
+  --console-loader-cage-pattern: conic-gradient(
+    from -78deg,
+    var(--console-interaction-accent) 0deg 92deg,
+    transparent 92deg 142deg,
+    var(--console-interaction-selected) 142deg 224deg,
+    transparent 224deg 360deg
+  );
+  --console-loader-cage-width: 3px;
+  --console-loader-track-width: 3px;
+  --console-loader-node-step: 90deg;
+  --console-loader-node-width: 5deg;
+  --console-loader-node-size: 4px;
+  --console-loader-node-opacity: 0;
+  --console-loader-core-size: 24%;
+  --console-loader-core-shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  --console-loader-origin-width: 2px;
+  --console-loader-origin-height: 8px;
+  --console-loader-turn-duration: 5.6s;
+  --console-space-1: 4px;
+  --console-space-2: 8px;
+  --console-space-3: 12px;
+  // The augments workbench follows the active skin like every other surface.
+  // Cyberpunk and Augmentation pin their own red/cyan in _themes.scss, which is
+  // the look this palette used to force on all twelve.
+  --augmentation-frame: var(--console-border-control);
+  --augmentation-readout: var(--console-interaction-accent);
+
+  // tgui-core bridge. Shared component rules below consume only these semantics.
+  --color-base: var(--console-surface-base);
+  --color-base-start: var(--console-surface-base);
+  --color-base-end: var(--console-surface-canvas);
+  --color-primary: var(--console-interaction-accent);
+  --color-secondary: var(--console-surface-raised);
+  --color-section: var(--console-surface-base);
+  --color-border: var(--console-border-control);
+  --color-border-dark: var(--console-border-subtle);
+  --color-text: var(--console-text-primary);
+  --color-text-translucent: var(--console-text-secondary);
+  --color-text-translucent-light: var(--console-text-secondary);
+  --color-scrollbar-base: var(--console-surface-recessed);
+  --color-scrollbar-thumb: var(--console-border-control);
+  --button-background-default: var(--console-control-face);
+  --button-background-selected: var(--console-interaction-selected);
+  --button-background-disabled: var(--console-surface-recessed);
+  --button-color: var(--console-text-primary);
+  // Use secondary text to distinguish idle transparent buttons from body text.
+  // _components.scss restores primary text on hover/focus.
+  --button-color-transparent: var(--console-text-secondary);
+  --button-border-radius: 0;
+  --button-disabled-opacity: 1;
+  --tabs-container-background: var(--console-surface-recessed);
+  --tab-background: transparent;
+  --tab-background-hover: var(--console-interaction-hover);
+  --tab-background-selected: var(--console-interaction-pressed);
+  --tab-color: var(--console-text-secondary);
+  --tab-color-selected: var(--console-text-primary);
+  --tab-border-radius: 0;
+  --input-background: var(--console-surface-recessed);
+  --input-border-color: var(--console-border-control);
+  --input-border-color-focus: var(--console-interaction-focus);
+  --input-border-disabled: var(--console-border-subtle);
+  --input-color: var(--console-text-primary);
+  --input-color-placeholder: var(--console-text-secondary);
+  --input-border-radius: 0;
+  --progress-bar-background: var(--console-surface-recessed);
+  --progress-bar-fill: var(--console-interaction-accent);
+  --progress-bar-border-radius: 0;
+  --modal-background: var(--console-surface-overlay);
+  --tooltip-background: var(--console-surface-overlay);
+  --tooltip-color: var(--console-text-primary);
+  --tooltip-border-radius: 0;
+  --tooltip-blur: none;
+  --dropdown-menu-background: var(--console-surface-overlay);
+  --dropdown-menu-color: var(--console-text-primary);
+  --dropdown-menu-border: 1px solid var(--console-border-strong);
+  --dropdown-menu-border-radius: 0;
+  --dropdown-menu-blur: none;
+  --dropdown-entry-background-hover: var(--console-interaction-hover);
+  --dropdown-entry-background-active: var(--console-interaction-pressed);
+  --dropdown-entry-background-selected: var(--console-interaction-selected);
+  --dropdown-entry-border-radius: 0;
+  --number-input-background: var(--console-surface-recessed);
+  --number-input-color: var(--console-text-primary);
+  --number-input-border-color: var(--console-border-control);
+  --number-input-border-color-active: var(--console-interaction-focus);
+  --slider-cursor-color: var(--console-interaction-focus);
+  --titlebar-background: var(--console-surface-raised);
+  --titlebar-text: var(--console-text-primary);
+  --titlebar-shadow-color: transparent;
+  --titlebar-shadow-core: var(--console-border-strong);
+  --console-font-display: 'VCR OSD Mono', var(--font-family-mono);
+}

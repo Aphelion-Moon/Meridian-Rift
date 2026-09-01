@@ -1,0 +1,814 @@
+// THIS IS AN APHELION UI FILE
+.theme-console {
+  // Normal controls share a 24px border box. Compact buttons and the dense
+  // 18px job-priority matrix keep their documented interface dimensions.
+  --button-height: 22px;
+
+  color: var(--console-text-primary);
+  background: var(--console-surface-canvas);
+
+  .Window {
+    background-color: var(--console-surface-canvas);
+    background-image: linear-gradient(
+      180deg,
+      var(--console-surface-base),
+      var(--console-surface-canvas)
+    );
+    box-shadow:
+      inset 0 0 0 var(--console-frame-layer) var(--console-border-strong),
+      inset 0 0 0 calc(var(--console-frame-layer) + 3px)
+        var(--console-border-subtle);
+  }
+
+  .TitleBar {
+    color: var(--console-text-primary);
+    background: var(--console-surface-raised);
+    border-top: var(--console-frame-top-weight) solid
+      var(--console-border-strong);
+    border-bottom: 1px solid var(--console-border-strong);
+    box-shadow: none;
+  }
+
+  .TitleBar__statusIcon {
+    color: var(--console-interaction-accent);
+  }
+
+  .TitleBar__title,
+  .Section__titleText {
+    text-transform: var(--console-heading-case);
+    letter-spacing: var(--console-heading-tracking);
+  }
+
+  .Layout__content {
+    background-color: transparent;
+    background-image: none;
+  }
+
+  .NtosWindow__header {
+    color: var(--console-text-secondary);
+    background: var(--console-surface-recessed);
+    border-bottom: 1px solid var(--console-border-separator);
+  }
+
+  // Surface and title colours come from the --section-* tokens in
+  // _tokens.scss, so only the structural chrome is declared here.
+  .Section {
+    border: 1px solid var(--console-border-subtle);
+    box-shadow: inset 0 1px 0
+      color-mix(in srgb, var(--console-border-control) 24%, transparent);
+  }
+
+  // Scope to Section so caller-painted StyleableSection headers stay readable.
+  // --section-title-background can override the theme surface.
+  .Section > .Section__title {
+    min-height: 2.25em;
+    border-bottom: 1px solid var(--console-border-separator);
+    background: var(
+      --section-title-background,
+      color-mix(
+        in srgb,
+        var(--console-surface-raised) 66%,
+        var(--console-surface-base)
+      )
+    );
+  }
+
+  .Section .Section {
+    border-width: 1px 0 0;
+    border-color: var(--console-border-separator);
+    background: var(--console-surface-recessed);
+    box-shadow: none;
+  }
+
+  .Section .Section > .Section__title {
+    background: transparent;
+  }
+
+  :is(.Tab, .Dropdown__control, .Dropdown__input) {
+    min-height: 24px;
+    border: 1px solid var(--console-border-strong);
+    border-radius: 0;
+    box-shadow: var(--console-control-depth);
+  }
+
+  // Align mixed icon, text and input controls by their boxes.
+  // stylelint-disable-next-line
+  :is(
+    .Button,
+    .Input,
+    .NumberInput,
+    .TextArea,
+    .Dropdown,
+    .ProgressBar,
+    .Slider
+  ) {
+    vertical-align: middle;
+  }
+
+  // Symmetric margins keep middle-aligned buttons level, including wrapped rows.
+  // Match the later upstream :last-child reset and its physical properties.
+  .Button,
+  .Button:last-child {
+    margin-top: calc(var(--space-xs) / 2);
+    margin-bottom: calc(var(--space-xs) / 2);
+  }
+
+  // Grouped controls already get their spacing from the parent.
+  .Stack > .Button,
+  .Stack__item > .Button,
+  .Dropdown > .Button {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .Button {
+    border: 1px solid var(--console-border-strong);
+    box-shadow: var(--console-control-depth);
+  }
+
+  // Subtract the 1px frame from padding to preserve label width.
+  // Icon buttons retain their asymmetric padding.
+  .Button:not(.Button--hasIcon):not(.Button--compact) {
+    padding-right: calc(var(--space-m) - 1px);
+    padding-left: calc(var(--space-m) - 1px);
+  }
+
+  .Button--compact:not(.Button--hasIcon) {
+    padding-right: calc(var(--space-s) - 1px);
+    padding-left: calc(var(--space-s) - 1px);
+  }
+
+  // Hide the frame on idle transparent buttons, but keep the border width
+  // so they stay aligned with framed controls.
+  // stylelint-disable-next-line
+  .Button--color--transparent:not(.Button--selected):not([aria-pressed='true']):not([aria-checked='true']):not(:hover):not(:focus-visible) {
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  // Upstream's hover changes only alpha; our opaque token needs a color change.
+  .Button--color--transparent:is(:hover, :focus-visible) {
+    --button-color: var(--console-text-primary);
+
+    color: var(--button-color);
+  }
+
+  // Table cells default to baseline, which aligns a fluid (block) button in one
+  // cell against an inline-block button in the next by their text baselines --
+  // and an icon-only button has no text to align. Centre the row instead.
+  .Table__cell {
+    vertical-align: middle;
+  }
+
+  .Button:not(.Button--compact):not(
+      .PreferencesMenu__Jobs__departments__priority
+    ) {
+    min-height: 24px;
+  }
+
+  .Button--hasIcon > .Button__content {
+    display: flex;
+    min-width: 0;
+    height: 100%;
+    align-items: center;
+  }
+
+  .Button--hasIcon > .Button__content > .Button--icon {
+    flex: 0 0 auto;
+    align-self: center;
+    line-height: 1;
+  }
+
+  // Button.Checkbox uses Font Awesome's outline-square pair. Give both glyphs
+  // the same fixed cell so changing state cannot shift the label or clip the
+  // check at compact widths.
+  .Button > .Button__content > :is(.fa-square, .fa-check-square) {
+    display: inline-flex;
+    width: 1.333em;
+    min-width: 1.333em;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    text-align: center;
+  }
+
+  .Button--empty.Button--hasIcon:not(.Button--compact) {
+    min-width: 24px;
+  }
+
+  .Button:hover {
+    border-color: var(--console-border-strong);
+  }
+
+  .Button:active {
+    border-color: var(--console-interaction-selected);
+  }
+
+  .Button:where(
+    .Button--selected,
+    [aria-pressed='true'],
+    [aria-checked='true']
+  ) {
+    border-color: var(--console-interaction-selected);
+    box-shadow:
+      inset 0 calc(-1 * var(--console-selected-rail)) 0
+        var(--console-interaction-selected),
+      var(--console-control-depth);
+  }
+
+  // Filled selections use the bright accent. Restate color so the legacy
+  // JobsAltTitles selected/hover rules cannot restore a light foreground.
+  .Button--selected:not(.Button--color--transparent) {
+    --button-color: var(--console-text-on-accent);
+    color: var(--button-color);
+  }
+
+  .Tab:where(.Tab--selected, [aria-selected='true']) {
+    color: var(--console-text-primary);
+    background-color: var(--console-interaction-pressed);
+    border-color: var(--console-interaction-selected);
+    box-shadow:
+      inset 0 calc(-1 * var(--console-selected-rail)) 0
+        var(--console-interaction-selected),
+      var(--console-control-depth);
+  }
+
+  .Button--empty.Button--hasIcon > .Button__content {
+    justify-content: center;
+  }
+
+  .Button--hasIcon:not(.Button--compact) > .Button__content {
+    // A percentage height cannot resolve against the Button's min-height.
+    // Give icon-bearing controls a definite inner row so glyphs center inside
+    // the shared 24px border box even when there is no text line to size it.
+    min-height: var(--button-height);
+  }
+
+  .Button--empty.Button--hasIcon > .Button__content > .Button--icon {
+    margin: 0;
+  }
+
+  .Button--disabled,
+  .Button[aria-disabled='true'],
+  .Input--disabled,
+  :is(
+    button,
+    select,
+    textarea,
+    input:not([type='checkbox']):not([type='radio'])
+  ):disabled {
+    color: var(--console-text-disabled) !important;
+    border-color: var(--console-border-subtle) !important;
+    background-color: var(--console-surface-recessed) !important;
+    background-image: linear-gradient(
+      135deg,
+      transparent 46%,
+      var(--console-border-subtle) 47% 53%,
+      transparent 54%
+    );
+    box-shadow: none;
+  }
+
+  :is(input[type='checkbox'], input[type='radio']) {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--console-interaction-selected);
+    vertical-align: middle;
+  }
+
+  :is(input[type='checkbox'], input[type='radio']):focus-visible {
+    outline: 2px solid var(--console-interaction-focus);
+    outline-offset: 2px;
+  }
+
+  :is(input[type='checkbox'], input[type='radio']):disabled {
+    cursor: var(--cursor-disabled);
+    outline: 1px dashed var(--console-text-disabled);
+    outline-offset: 1px;
+    opacity: 0.58;
+  }
+
+  :is(.Button--color--danger, .Button--color--bad) {
+    // Status changes must not change the border box or move adjacent controls.
+    border-left-color: var(--console-status-danger);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: max(0px, calc(var(--console-selected-rail) - 1px));
+      background: var(--console-status-danger);
+      pointer-events: none;
+    }
+  }
+
+  .Tabs {
+    border-bottom: 1px solid var(--console-border-separator);
+    background: var(--console-surface-recessed);
+  }
+
+  .Tab {
+    color: var(--console-text-secondary);
+  }
+
+  .Tab__left,
+  .Tab__right {
+    display: inline-flex;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .Tab__text {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+  }
+
+  .Section__title {
+    display: flex;
+    align-items: center;
+    gap: var(--console-space-2);
+  }
+
+  // The title is the half that gives. It already truncates cleanly, so it takes
+  // the leftover space and shrinks; the action group keeps its measured width.
+  .Section__titleText {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Section emits this span even for a header opened by `buttons` alone. Skins
+  // that give it a box -- Wastelander and Relay both paint it as a chip -- then
+  // draw that box around nothing. Kept here rather than beside either chip so a
+  // skin that starts painting one later is covered without knowing to opt in.
+  .Section > .Section__title > .Section__titleText:empty {
+    display: none;
+  }
+
+  // A `max-width` cap here made the action group the thing that gave way: past
+  // 70% it shrank, and `min-width: 0` let each control go under its own label,
+  // which wraps to a second line inside a box with no room for one -- the
+  // "Eject ID" / "Imprint ID" pair in the NtOS Details header. Sizing it to its
+  // content instead puts the pressure on the title, which truncates properly.
+  .Section__buttons {
+    position: static;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    // `--space-xs` lands at ~2px, which reads as two controls fused together
+    // once the margin reset below strips their inline spacing. Match the
+    // title's own gap so an action group stays legibly separated.
+    gap: var(--console-space-2);
+    margin: 0 0 0 auto;
+    line-height: normal;
+  }
+
+  .Section__buttons > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .Section__buttons > :is(.Button, .Dropdown, .NumberInput) {
+    // These controls carry legacy inline-flow margins. Section actions are a
+    // flex group, so its gap owns spacing and every border box shares a center.
+    margin: 0;
+  }
+
+  .Input,
+  .TextArea,
+  .NumberInput {
+    min-height: 24px;
+    color: var(--console-text-primary);
+    background: var(--console-surface-recessed);
+    border-color: var(--console-border-strong);
+    border-radius: 0;
+  }
+
+  .Dropdown__control,
+  .Dropdown__input {
+    height: 24px;
+    align-items: stretch;
+  }
+
+  .Dropdown__selected-text {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+  }
+
+  .Dropdown__icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .TextArea {
+    border: 1px solid var(--console-border-control);
+    padding: var(--console-space-2);
+  }
+
+  .Dropdown__menu--wrapper,
+  .Modal,
+  .Dialog__content,
+  .Tooltip {
+    color: var(--console-text-primary);
+    background: var(--console-surface-overlay);
+    border: 1px solid var(--console-border-strong);
+    border-radius: 0;
+    box-shadow: var(--console-overlay-shadow);
+  }
+
+  .Dropdown__menu--entry.selected {
+    color: var(--console-text-on-accent);
+    // Paint the selection rail without shifting the entry's text.
+    box-shadow: inset var(--console-selected-rail) 0 0 var(--console-interaction-focus);
+  }
+
+  .ProgressBar {
+    min-height: 24px;
+    color: var(--console-text-primary);
+    background: var(--console-surface-recessed);
+    border-color: var(--console-border-control);
+    box-shadow: inset 0 0 0 1px var(--console-surface-canvas);
+  }
+
+  .ProgressBar__content {
+    color: var(--console-text-primary);
+    font-variant-numeric: tabular-nums;
+    text-shadow:
+      0 1px 1px var(--console-surface-canvas),
+      0 0 3px var(--console-surface-canvas);
+  }
+
+  .ProgressBar--segmented .ProgressBar__fill {
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(var(--console-segment-pattern) - 1px),
+      var(--console-surface-recessed) calc(var(--console-segment-pattern) - 1px)
+        var(--console-segment-pattern)
+    );
+  }
+
+  .NoticeBox {
+    position: relative;
+    min-height: 32px;
+    padding-left: 2.5em;
+    border: 1px solid var(--noticebox-background);
+    border-left-width: 4px;
+    font-style: normal;
+  }
+
+  .NoticeBox::before {
+    position: absolute;
+    left: 0.75em;
+    top: 50%;
+    width: 1em;
+    content: '!';
+    transform: translateY(-50%);
+    // The banner already uses the status color as its fill; keep the marker
+    // as readable as its text instead of blending it into that same color.
+    color: inherit;
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .NoticeBox--type--info {
+    --noticebox-background: var(--console-status-information);
+  }
+
+  .NoticeBox--type--info::before {
+    content: 'i';
+  }
+
+  .NoticeBox--type--success {
+    --noticebox-background: var(--console-status-success);
+  }
+
+  .NoticeBox--type--success::before {
+    content: '+';
+  }
+
+  .NoticeBox--type--warning {
+    --noticebox-background: var(--console-status-warning);
+  }
+
+  .NoticeBox--type--danger {
+    --noticebox-background: var(--console-status-danger);
+  }
+
+  .NoticeBox--type--danger::before {
+    content: 'x';
+  }
+
+  .Table__cell,
+  .LabeledList__cell {
+    padding-top: var(--console-space-1);
+    padding-bottom: var(--console-space-1);
+    border-bottom: 1px solid var(--console-border-separator);
+  }
+
+  // Draw separators only between rows.
+  .Table__row:last-child > .Table__cell,
+  .LabeledList__row:last-child > .LabeledList__cell {
+    border-bottom: 0;
+  }
+
+  .Table__row--header .Table__cell,
+  .Table__cell--header,
+  .LabeledList__label {
+    color: var(--console-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .Table__row:has(.Button, [role='button']) .Table__cell:first-child {
+    border-left: 2px solid var(--console-interaction-accent);
+    padding-left: var(--console-space-1);
+  }
+
+  :is(.Input, .TextArea, .NumberInput, .Dropdown):focus-within,
+  :is(.Button, .Tab, .TitleBar__close, a):focus-visible {
+    outline: 2px solid var(--console-interaction-focus);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px var(--console-interaction-focus-contrast);
+  }
+
+  :is(.Input, .TextArea, .NumberInput, .Dropdown):focus-within {
+    border-color: var(--console-interaction-focus);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--console-text-primary);
+    text-transform: var(--console-heading-case);
+    letter-spacing: var(--console-heading-tracking);
+  }
+
+  :is(.ConsoleReading, time, output, data) {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  scrollbar-color: var(--console-border-control) var(--console-surface-recessed);
+  scrollbar-width: thin;
+}
+
+.theme-meridian_highline {
+  .Layout__content {
+    background-color: var(--console-surface-canvas);
+  }
+
+  :is(input[type='checkbox'], input[type='radio']):disabled {
+    outline-width: 2px;
+    opacity: 1;
+  }
+
+  .Section,
+  .Dropdown__menu--wrapper,
+  .Modal,
+  .Dialog__content,
+  .Tooltip {
+    box-shadow: none;
+  }
+}
+
+.MeridianShowcase {
+  &__switcher {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--console-space-3);
+    min-height: 48px;
+    padding: var(--console-space-2) var(--console-space-3);
+    color: var(--console-text-primary);
+    background: var(--console-surface-recessed);
+    border: 1px solid var(--console-border-strong);
+  }
+
+  &__themeDetail {
+    display: block;
+    margin-top: 2px;
+    color: var(--console-text-secondary);
+    font-size: 11px;
+  }
+
+  &__switcherControls,
+  &__controlRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--console-space-1);
+  }
+
+  &__switcherControls > :is(.Button, .Dropdown, .NumberInput),
+  &__controlRow > :is(.Button, .Dropdown, .NumberInput) {
+    // Do not combine tgui-core's inline margins with a gap-owned flex row.
+    margin: 0;
+  }
+
+  &__board {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
+    gap: var(--console-space-2);
+  }
+
+  &__board > .Section {
+    margin: 0;
+  }
+
+  &__scrollSection {
+    height: 132px;
+  }
+
+  &__radio {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--console-space-1);
+    min-height: 24px;
+    padding: 0 var(--console-space-1);
+    color: var(--console-text-primary);
+    border: 1px solid var(--console-border-strong);
+    cursor: pointer;
+  }
+
+  &__radio input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--console-interaction-accent);
+  }
+
+  &__radio:focus-within {
+    outline: 2px solid var(--console-interaction-focus);
+    outline-offset: 2px;
+  }
+
+  &__forceHover {
+    background-color: var(--console-interaction-hover) !important;
+    border-color: var(--console-border-strong) !important;
+  }
+
+  &__forcePressed {
+    background-color: var(--console-interaction-pressed) !important;
+    transform: translateY(1px);
+  }
+
+  &__forceFocus {
+    outline: 2px solid var(--console-interaction-focus) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px var(--console-interaction-focus-contrast) !important;
+  }
+}
+
+.MeridianLoaderPreview {
+  &__controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--console-space-2);
+    margin-bottom: var(--console-space-3);
+  }
+
+  &__samples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(224px, 1fr));
+    gap: var(--console-space-2);
+  }
+
+  &__sample {
+    --loader-preview-size: 80px;
+    --loader-preview-scale: 1;
+    display: grid;
+    place-items: center;
+    min-height: 260px;
+    padding: var(--console-space-2);
+    overflow: hidden;
+    background: var(--console-surface-recessed);
+    border: 1px solid var(--console-border-separator);
+  }
+
+  &__sample .DiagnosticLoader {
+    min-height: 0;
+  }
+
+  &__sample .DiagnosticLoader__instrument {
+    width: var(--loader-preview-size);
+    height: var(--loader-preview-size);
+    transform: scale(var(--loader-preview-scale));
+  }
+
+  &__sampleLabel {
+    align-self: end;
+    color: var(--console-text-secondary);
+    font: 11px var(--font-family-mono);
+  }
+}
+
+@media (max-width: 520px) {
+  .MeridianShowcase {
+    &__switcher {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    &__switcherControls {
+      display: grid;
+      grid-template-columns: auto auto auto minmax(0, 1fr);
+    }
+
+    &__board {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  .MeridianLoaderPreview {
+    &__samples {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+:is(
+    .theme-meridian_pipboy,
+    .theme-meridian_vector,
+    .theme-meridian_cyberpunk,
+    .theme-meridian_augmentation,
+    // Relay stamps its section titles as printed tags, which is the one place
+    // the display face is doing real work rather than styling. It was the only
+    // character skin left setting them in the body font.
+    .theme-meridian_relay
+  )
+  :is(.ConsoleDisplay, .TitleBar__title, .Section__titleText) {
+  font-family: var(--console-font-display);
+  font-size: max(13px, 1em);
+  font-weight: 400;
+}
+
+// Classic NT is MeridianOS wearing nanotrasen's paint, so it inherits stock
+// tgui's control geometry: a button is sized only by `line-height`, giving a
+// 20px box with no min-height, and .Section__buttons is absolutely positioned
+// so its header never grows to fit what is in it. The result is the cramped
+// action row in the Details header -- text almost touching the fill, icons
+// tight to the edge.
+//
+// Everything below is geometry. No border, colour, background or motif is set
+// here, so Classic keeps looking like Classic. It is scoped to the marker
+// class rather than `.theme-nanotrasen` on purpose: the genuine legacy themes
+// share that paint and must keep their existing proportions exactly.
+.theme-meridian_classic {
+  // Let the header size to its controls instead of to its text line, so a
+  // full-height button is not pressed against the separator.
+  .Section > .Section__title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-m);
+  }
+
+  .Section__buttons {
+    position: static;
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: 0;
+    margin-left: auto;
+  }
+
+  .Section__buttons > :is(.Button, .Dropdown, .NumberInput) {
+    // The row's gap owns the spacing once these are flex items.
+    margin: 0;
+  }
+
+  // The same comfortable box the console skins use, so a 12px label is not
+  // sitting in a 20px line box with its icon jammed against the edge.
+  .Button:not(.Button--compact) {
+    min-height: 24px;
+  }
+
+  .Button--hasIcon:not(.Button--compact) > .Button__content {
+    display: flex;
+    min-height: 24px;
+    align-items: center;
+  }
+
+  .Button--empty.Button--hasIcon:not(.Button--compact) {
+    min-width: 24px;
+  }
+
+  .Button--empty.Button--hasIcon > .Button__content {
+    justify-content: center;
+  }
+}

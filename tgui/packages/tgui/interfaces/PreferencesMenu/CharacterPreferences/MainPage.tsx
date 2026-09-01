@@ -265,6 +265,7 @@ function GenderButton(props: GenderButtonProps) {
         <Button
           fontSize="22px"
           icon={GENDERS[props.gender].icon}
+          my={0} // APHELION EDIT ADDITION - MERIDIAN_UI - Match the toolbar's Stack spacing.
           tooltip="Gender"
           tooltipPosition="top"
         />
@@ -705,7 +706,8 @@ export function MainPage(props: MainPageProps) {
           </Stack>
         </Stack.Item>
 
-        <Stack.Item>
+        {/* APHELION EDIT ADDITION - MERIDIAN_UI casing hook */}
+        <Stack.Item className="PreferencesMenu__appearanceRail">
           <Stack fill vertical wrap>
             {mainFeatures.map(([clothingKey, clothing]) => {
               const catalog = serverData?.[
@@ -736,7 +738,8 @@ export function MainPage(props: MainPageProps) {
 
         {/* NOVA EDIT CHANGE: Swappable pref menus */}
         {/* ORIGINAL: <Stack.Item grow basis={0}> */}
-        <Stack.Item grow basis={0} ml="4px">
+        {/* APHELION EDIT ADDITION - MERIDIAN_UI opaque reading surface */}
+        <Stack.Item grow basis={0} ml="4px" className="PreferencesMenu__settings">
           <Stack vertical fill>
             {/* // NOVA EDIT REMOVAL START
              <PreferenceList

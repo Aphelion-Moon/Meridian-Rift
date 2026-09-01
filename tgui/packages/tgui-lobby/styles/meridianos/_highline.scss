@@ -1,0 +1,156 @@
+// THIS IS AN APHELION UI FILE
+// Ceramic plates and graphite insets carry Highline into the lobby menu.
+.theme-meridian_highline .lobby {
+  --highline-menu-inset: clamp(12px, 1.5vmin, 20px);
+  --highline-menu-gutter: clamp(22px, 2.4vmin, 32px);
+  --highline-menu-font: 'Bahnschrift', 'Segoe UI', Arial, sans-serif;
+
+  .container_nav {
+    padding: var(--highline-menu-inset);
+    scrollbar-color: var(--lobby-boundary) var(--lobby-recessed);
+    border: 1px solid var(--lobby-boundary);
+    border-radius: 0;
+    color: var(--lobby-text);
+    background: linear-gradient(
+      180deg,
+      var(--lobby-panel),
+      var(--lobby-recessed)
+    );
+    box-shadow:
+      0 0 0 3px var(--lobby-recessed),
+      0 0 0 4px color-mix(in srgb, var(--lobby-boundary) 42%, transparent),
+      inset 3px 0 var(--console-surface-raised),
+      0 8px 18px rgb(0 0 0 / 24%);
+
+    hr {
+      margin: clamp(7px, 0.85vmin, 12px) 0;
+      background: var(--console-border-separator);
+    }
+  }
+
+  .lobby-terminal-heading {
+    gap: 12px;
+    margin: calc(-1 * var(--highline-menu-inset));
+    margin-bottom: var(--highline-menu-inset);
+    padding: clamp(12px, 1.3vmin, 18px) var(--highline-menu-inset);
+    border-bottom: 3px solid var(--lobby-accent-secondary);
+    color: var(--lobby-canvas);
+    background: var(--highline-ceramic);
+    font-family: var(--highline-menu-font);
+    font-size: clamp(13px, 1.4vmin, 19px);
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    line-height: 1.4;
+  }
+
+  .lobby-terminal-phase {
+    flex-shrink: 0;
+    border-left: 1px solid var(--lobby-boundary);
+    padding-left: 14px;
+    font-size: 0.8em;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+  }
+
+  .menu_button {
+    min-height: clamp(32px, 3.4vmin, 46px);
+    padding: 6px 12px 6px var(--highline-menu-gutter);
+    border-left: 3px solid transparent;
+    color: var(--lobby-text);
+    font-family: var(--highline-menu-font);
+    font-size: clamp(16px, 2vmin, 27px);
+    letter-spacing: 0.07em;
+    line-height: 1.35;
+
+    &:first-of-type {
+      border-left-color: var(--lobby-accent-secondary);
+      color: var(--lobby-accent-secondary);
+      background: color-mix(in srgb, var(--lobby-accent-secondary) 7%, var(--lobby-recessed));
+    }
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      padding-left: var(--highline-menu-gutter);
+      border-left-color: var(--lobby-focus);
+      color: var(--lobby-focus);
+      background: color-mix(in srgb, var(--lobby-accent-secondary) 14%, var(--lobby-recessed));
+    }
+
+    &:hover:not(:disabled)::before,
+    &:focus-visible::before {
+      left: 7px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--lobby-focus);
+    }
+
+    &:active:not(:disabled) {
+      padding-left: var(--highline-menu-gutter);
+      background: var(--console-interaction-pressed);
+    }
+
+    &.info_display {
+      color: var(--lobby-text-muted);
+    }
+  }
+
+  #character_slot,
+  .unchecked {
+    color: var(--lobby-text-muted);
+  }
+
+  .checked {
+    color: var(--lobby-accent-secondary);
+  }
+
+  .trait_list {
+    padding-left: var(--highline-menu-gutter);
+  }
+
+  .trait_button {
+    min-height: 32px;
+    font-family: var(--highline-menu-font);
+    font-size: clamp(16px, 1.8vmin, 24px);
+    letter-spacing: 0.04em;
+  }
+
+  .trait_feedback {
+    font-family: var(--highline-menu-font);
+    color: var(--lobby-text-muted);
+    text-shadow: none;
+  }
+
+  .menu_newpoll {
+    padding-left: var(--highline-menu-gutter);
+    border-left-color: var(--lobby-accent-secondary);
+    color: var(--lobby-accent-secondary);
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-meridian_highline .lobby {
+    .container_nav,
+    .lobby-terminal-heading {
+      color: CanvasText;
+      background: Canvas;
+      border-color: CanvasText;
+      box-shadow: none;
+    }
+
+    .menu_button,
+    .menu_button:first-of-type,
+    .lobby-terminal-phase,
+    .checked,
+    .unchecked,
+    #character_slot {
+      color: CanvasText;
+    }
+
+    .menu_button:focus-visible {
+      outline-color: Highlight;
+      border-left-color: Highlight;
+      background: Canvas;
+    }
+  }
+}

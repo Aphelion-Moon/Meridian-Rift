@@ -1,0 +1,28 @@
+// THIS IS AN APHELION UI FILE
+@use 'sass:meta';
+
+@include meta.load-css('./shared.scss');
+@include meta.load-css('./components.scss');
+@include meta.load-css('./control-layout.scss');
+@include meta.load-css('./prompt.scss');
+@include meta.load-css('./theme-picker.scss');
+@include meta.load-css('./loader.scss');
+@include meta.load-css('./decoration.scss');
+@include meta.load-css('./forge.scss');
+@include meta.load-css('./forge-loaders.scss');
+@include meta.load-css('./scavenger.scss');
+@include meta.load-css('./aphelion.scss');
+@include meta.load-css('./title-art.scss');
+@include meta.load-css('./hotline.scss');
+@include meta.load-css('./synapse-neon.scss');
+@include meta.load-css('./cyberpunk-neon.scss');
+@include meta.load-css('./augmentation-neon.scss');
+@include meta.load-css('./neon-details.scss');
+@include meta.load-css('./edge-lit-glass.scss');
+@include meta.load-css('./peripheral-data.scss');
+@include meta.load-css('./neon-title.scss');
+@include meta.load-css('./aphelion-neon-title.scss');
+@include meta.load-css('./diagnostic.scss');
+@include meta.load-css('./vector.scss');
+@include meta.load-css('./motion.scss');
+@include meta.load-css('../interfaces/TimeoutBar.scss');

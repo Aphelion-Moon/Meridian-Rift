@@ -49,7 +49,7 @@ export function PreferencesMenu(props) {
 //function PrefsWindowInner(props) { // NOVA EDIT REMOVAL
 // NOVA EDIT ADDITION START
 function PrefsWindowInner(props: {
-  onAugmentsTabChange: (tab: AugmentsTab) => void;
+  onAugmentsTabChange: (tab: AugmentsTab | null) => void; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: onAugmentsTabChange: (tab: AugmentsTab) => void;
 }) {
 // NOVA EDIT ADDITION END
   const { data } = useBackend<PreferencesMenuData>();

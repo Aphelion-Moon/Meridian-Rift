@@ -1,0 +1,152 @@
+// THIS IS AN APHELION UI FILE
+// Dark glass and quieter internal frames retain the authored title tubes,
+// selected glowstick faces, semantic colors, and inset construction motifs.
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  .theme-meridian_cyberpunk {
+    --edge-glass-canvas: #0d0404;
+    --edge-glass-panel: rgb(20 6 5 / 88%);
+    --edge-glass-header: #300908;
+    --edge-glass-face: #2a0a08;
+    --edge-glass-face-high: #451210;
+    --edge-glass-frame: #a9322b;
+    --edge-glass-edge: #752821;
+    --edge-glass-separator: #4d211b;
+    --edge-glass-ink: #ff6759;
+    --edge-glass-hover-ink: #ff9a7a;
+    --edge-glass-ambient: #d31c1238;
+    --edge-glass-reflected: #08b3bd10;
+    --edge-glass-reflection: #ff49351c;
+    --edge-glass-grain: #e72c1607;
+    --edge-glass-ink-glow: #ff2e173b;
+    --edge-glass-corner-opacity: 0.46;
+  }
+
+  .theme-meridian_augmentation {
+    --edge-glass-canvas: #060a0b;
+    --edge-glass-panel: rgb(9 18 21 / 89%);
+    --edge-glass-header: #09282c;
+    --edge-glass-face: #0b2023;
+    --edge-glass-face-high: #173a3e;
+    --edge-glass-frame: #814051;
+    --edge-glass-edge: #28575a;
+    --edge-glass-separator: #213c43;
+    --edge-glass-ink: #82e0da;
+    --edge-glass-hover-ink: #b4fff5;
+    --edge-glass-ambient: #00cbb725;
+    --edge-glass-reflected: #c128431b;
+    --edge-glass-reflection: #43e8d214;
+    --edge-glass-grain: #53daca05;
+    --edge-glass-ink-glow: #31dcc43b;
+    --edge-glass-corner-opacity: 0.46;
+  }
+
+  :is(.theme-meridian_cyberpunk, .theme-meridian_augmentation) {
+    .Window {
+      background-color: var(--edge-glass-canvas);
+      background-image:
+        radial-gradient(ellipse at 4% 5%, var(--edge-glass-ambient), transparent 57%),
+        radial-gradient(ellipse at 95% 84%, var(--edge-glass-reflected), transparent 54%),
+        repeating-linear-gradient(0deg, var(--edge-glass-grain) 0 1px, transparent 1px 4px),
+        linear-gradient(145deg, var(--edge-glass-canvas), #03040766);
+      box-shadow: inset 0 0 22px #0006, 0 0 20px var(--edge-glass-reflected);
+    }
+
+    .Window::before {
+      border-color: var(--edge-glass-frame) var(--edge-glass-edge)
+        var(--edge-glass-edge) var(--edge-glass-frame);
+      box-shadow: none;
+    }
+
+    .TitleBar {
+      background-color: var(--edge-glass-canvas);
+      background-image: linear-gradient(110deg, var(--edge-glass-header), var(--edge-glass-canvas) 86%);
+      border-top-color: var(--edge-glass-frame);
+      border-bottom-color: var(--edge-glass-edge);
+      box-shadow: inset 0 1px 0 var(--edge-glass-reflection), inset 0 -2px 4px #0005;
+    }
+
+    .NtosWindow__header {
+      background-color: var(--edge-glass-canvas);
+      background-image: linear-gradient(90deg, var(--edge-glass-reflected), transparent 78%);
+      border-bottom-color: var(--edge-glass-separator);
+    }
+
+    // Caller-colored sections (including job departments) keep their own face.
+    .Section:not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]) {
+      background-color: var(--edge-glass-panel);
+      background-image:
+        radial-gradient(ellipse at 0 0, var(--edge-glass-reflected), transparent 68%),
+        repeating-linear-gradient(91deg, var(--edge-glass-grain) 0 1px, transparent 1px 5px);
+      border-color: var(--edge-glass-separator);
+      box-shadow: inset 0 1px 0 var(--edge-glass-reflection), 0 3px 8px #0005;
+    }
+
+    .Section::before {
+      opacity: var(--edge-glass-corner-opacity);
+    }
+
+    .Section:not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]) > .Section__title {
+      background: var(--section-title-background, linear-gradient(110deg, var(--edge-glass-header), transparent 83%));
+      border-bottom-color: var(--edge-glass-separator);
+      box-shadow: none;
+    }
+
+    // Selected, disabled, semantic, and explicitly colored controls retain
+    // their authored material and contrast. Only ordinary faces change.
+    .Button--color--default:not(.Button--selected):not([aria-pressed='true']):not([aria-checked='true']):not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]):not(.Button--disabled):not([aria-disabled='true']):not(:disabled) {
+      color: var(--edge-glass-ink);
+      background-color: var(--edge-glass-face);
+      background-image:
+        linear-gradient(165deg, var(--edge-glass-reflection), transparent 36%, #0003),
+        linear-gradient(100deg, var(--edge-glass-face-high), var(--edge-glass-face) 74%);
+      border-color: var(--edge-glass-edge);
+      box-shadow: inset 0 1px 0 var(--edge-glass-reflection), inset 0 -1px 0 #0008;
+      text-shadow: 0 0 4px var(--edge-glass-ink-glow);
+    }
+
+    .Button--color--default:is(:hover, :focus-visible):not(.Button--selected):not([aria-pressed='true']):not([aria-checked='true']):not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]):not(.Button--disabled):not([aria-disabled='true']):not(:disabled) {
+      color: var(--edge-glass-hover-ink);
+      background-color: var(--edge-glass-face-high);
+      border-color: var(--console-interaction-accent);
+      box-shadow: inset 0 1px 0 var(--edge-glass-reflection), 0 0 5px var(--edge-glass-ink-glow);
+    }
+
+    .Button--color--default:active:not(.Button--selected):not([aria-pressed='true']):not([aria-checked='true']):not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]):not(.Button--disabled):not([aria-disabled='true']):not(:disabled) {
+      background-image: linear-gradient(180deg, #0005, transparent 85%);
+      box-shadow: inset 0 2px 3px #0009;
+    }
+
+    .NtosWindow .Section .Button--color--transparent:not(.Button--selected):not([aria-pressed='true']):not([aria-checked='true']):not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]):not(.Button--disabled):not([aria-disabled='true']):not(:disabled):not(:hover):not(:focus-visible) {
+      color: var(--edge-glass-ink);
+      border-color: var(--edge-glass-separator);
+      box-shadow: none;
+      text-shadow: 0 0 4px var(--edge-glass-ink-glow);
+    }
+
+    // Dropdowns use the guarded default Button material above. In particular,
+    // do not treat disabled or semantic dropdown divs as generic input fields.
+    :is(.Input, .NumberInput, .TextArea):not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]):not([class*='--disabled']):not([aria-disabled='true']):not(:disabled) {
+      background-color: var(--edge-glass-canvas);
+      background-image: linear-gradient(180deg, #0005, transparent 60%);
+      border-color: var(--edge-glass-edge);
+      box-shadow: inset 0 1px 2px #0008;
+    }
+
+    .Tab:not(.Tab--selected):not([aria-selected='true']):not([class*='--disabled']):not([aria-disabled='true']):not(:disabled):not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]) {
+      background-color: var(--edge-glass-face);
+      background-image: linear-gradient(165deg, var(--edge-glass-reflection), transparent 60%);
+      border-color: var(--edge-glass-edge);
+      box-shadow: inset 0 1px 0 var(--edge-glass-reflection);
+    }
+  }
+
+  // Cyan pictograms are distinct from Cyberpunk's red labels. A selected neon
+  // face and an explicit icon/status color retain their own contrast.
+  .theme-meridian_cyberpunk .Window__rest {
+    .Button:is(.Button--color--default, .Button--color--transparent):not(.Button--selected):not(.Button--disabled):not([aria-disabled='true']):not([aria-pressed='true']):not([aria-checked='true']):not(:disabled):not([class*=' color-']):not([class^='color-']):not([style*='background' i]):not([style*='color:' i]) > .Button__content > .Icon:not([class*=' color-']):not([class^='color-']):not([style*='color:' i]),
+    .Dropdown__control:is(.Button--color--default, .Button--color--transparent):not(.Button--disabled):not([aria-disabled='true']):not([class*=' color-']):not([style*='background' i]):not([style*='color:' i]) > .Dropdown__icon:not([class*=' color-']):not([style*='color:' i]) {
+      color: #55e4e5;
+      text-shadow: 0 0 4px #15cbd238;
+    }
+  }
+}

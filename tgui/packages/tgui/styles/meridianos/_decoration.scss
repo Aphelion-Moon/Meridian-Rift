@@ -1,0 +1,393 @@
+// THIS IS AN APHELION UI FILE
+// Meridian-authored construction motifs. These are deliberately sparse and
+// pointer-transparent; no motif changes the hit box or clips a control.
+.theme-console {
+  .Window::before,
+  .Window::after,
+  .Section::before,
+  .Section__title::after,
+  .TitleBar::after {
+    pointer-events: none;
+  }
+
+  .Window::before {
+    position: fixed;
+    inset: var(--console-frame-gap-top) var(--console-frame-gap-right)
+      var(--console-frame-gap-bottom) var(--console-frame-gap-left);
+    z-index: 200;
+    content: '';
+    border-style: solid;
+    border-width: var(--console-frame-top-weight)
+      var(--console-frame-right-weight) var(--console-frame-bottom-weight)
+      var(--console-frame-left-weight);
+    border-color: var(--console-border-strong) var(--console-border-subtle)
+      var(--console-border-subtle) var(--console-border-strong);
+    clip-path: polygon(
+      var(--console-corner-cut) 0,
+      100% 0,
+      100% calc(100% - var(--console-corner-cut)),
+      calc(100% - var(--console-corner-cut)) 100%,
+      0 100%,
+      0 var(--console-corner-cut)
+    );
+  }
+
+  .Window::after {
+    position: fixed;
+    // Theme-level pin dimensions also reserve space for title-bar utilities.
+    top: calc(var(--console-chrome-safe-top) + 2px);
+    right: calc(
+      var(--console-chrome-safe-right) + 48px + var(--console-window-pin-reach)
+    );
+    z-index: 201;
+    width: var(--console-window-pin-width);
+    height: 6px;
+    content: '';
+    background: var(--console-interaction-accent);
+    border: 1px solid var(--console-surface-canvas);
+  }
+
+  // Reserve the frame band without counting the top border twice or reducing
+  // the title bar's usable height.
+  .TitleBar {
+    block-size: var(--console-titlebar-height);
+    padding-block-start: max(
+      0px,
+      calc(var(--console-chrome-safe-top) - var(--console-frame-top-weight))
+    );
+    padding-inline: var(--console-chrome-safe-left)
+      var(--console-chrome-safe-right);
+  }
+
+  // Content follows the themed title height instead of the upstream 32px.
+  .Window__rest {
+    top: var(--console-titlebar-height);
+  }
+
+  // Reserve the pin's footprint beside the utilities.
+  .TitleBar__utilities {
+    margin-inline-end: var(--console-window-pin-lane);
+  }
+
+  .TitleBar::after {
+    position: absolute;
+    // Repeat the inset because absolute positioning uses the padding box.
+    left: calc(var(--console-chrome-safe-left) + 45px);
+    bottom: -1px;
+    width: var(--console-title-rail);
+    height: 2px;
+    content: '';
+    background: linear-gradient(
+      90deg,
+      var(--console-interaction-accent) 0 62%,
+      transparent 62% 68%,
+      var(--console-border-control) 68% 84%,
+      transparent 84% 89%,
+      var(--console-border-control) 89%
+    );
+  }
+
+  // Leave 2px beyond every frame, with a minimum 0.5rem gutter.
+  // Custom properties preserve this arithmetic through minification.
+  .Window__contentPadding {
+    --console-chrome-air: 2px;
+    --console-gutter-left: max(
+      0.5rem,
+      calc(var(--console-chrome-safe-left) + var(--console-chrome-air))
+    );
+    --console-gutter-right: max(
+      0.5rem,
+      calc(var(--console-chrome-safe-right) + var(--console-chrome-air))
+    );
+    --console-gutter-bottom: max(
+      0.5rem,
+      calc(var(--console-chrome-safe-bottom) + var(--console-chrome-air))
+    );
+
+    margin-inline: var(--console-gutter-left) var(--console-gutter-right);
+    margin-bottom: var(--console-gutter-bottom);
+    height: calc(100% - 0.5rem - var(--console-gutter-bottom));
+  }
+
+  .Section::before {
+    position: absolute;
+    inset: 3px;
+    z-index: 1;
+    content: '';
+    opacity: var(--console-motif-opacity);
+    background:
+      linear-gradient(var(--console-interaction-accent) 0 0) top left /
+        var(--console-corner-layer) 1px no-repeat,
+      linear-gradient(var(--console-interaction-accent) 0 0) top left / 1px
+        var(--console-corner-layer) no-repeat,
+      linear-gradient(var(--console-border-control) 0 0) bottom right /
+        var(--console-corner-layer) 1px no-repeat,
+      linear-gradient(var(--console-border-control) 0 0) bottom right / 1px
+        var(--console-corner-layer) no-repeat;
+  }
+
+  // Keep construction marks above the panel paint, but below its foreground.
+  // The title children are already flex items and the rest is positioned, so
+  // these layers need no geometry changes. Leave the title background below
+  // the marks; lifting it too would hide ornament even outside the controls.
+  .Section > .Section__title > .Section__titleText,
+  .Section > .Section__title > .Section__buttons,
+  .Section > .Section__rest {
+    z-index: 2;
+  }
+
+  .Section > .Section__title::after {
+    position: absolute;
+    z-index: 1;
+    left: var(--console-space-3);
+    bottom: -1px;
+    width: min(var(--console-title-rail), calc(100% - 24px));
+    height: 2px;
+    content: '';
+    background: repeating-linear-gradient(
+      90deg,
+      var(--console-interaction-accent) 0
+        calc(var(--console-segment-pattern) - 2px),
+      transparent calc(var(--console-segment-pattern) - 2px)
+        var(--console-segment-pattern)
+    );
+  }
+
+  .Section .Section::before {
+    display: none;
+  }
+}
+
+.theme-meridian_pipboy {
+  --console-window-pin-width: 12px;
+  --console-window-pin-tail: 17px; // -18px offset, -1px spread
+
+  .Window::before {
+    border-color: var(--console-border-control);
+    box-shadow:
+      inset 0 0 0 2px var(--console-surface-canvas),
+      inset 0 0 0 3px var(--console-border-control);
+    // Static wear stays on the casing edges, clear of text and controls.
+    background:
+      linear-gradient(100deg, transparent 36%, var(--console-border-subtle) 37% 39%, transparent 40%)
+        left 24px top / 92px 3px no-repeat,
+      linear-gradient(85deg, transparent 58%, var(--console-border-subtle) 59% 64%, transparent 65%)
+        right 22px bottom / 74px 3px no-repeat;
+  }
+
+  .Window::after {
+    height: 4px;
+    background: var(--console-interaction-selected);
+    box-shadow: -18px 0 0 -1px var(--console-border-control);
+  }
+
+  .TitleBar {
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 7px,
+      var(--console-border-subtle) 7px 8px
+    );
+    background-size: 112px 3px;
+    background-repeat: no-repeat;
+    background-position: right 48px bottom 4px;
+  }
+
+  .Section::before {
+    inset: 4px;
+    background:
+      linear-gradient(var(--console-interaction-accent) 0 0) top left / 26px 2px
+        no-repeat,
+      linear-gradient(var(--console-interaction-accent) 0 0) top left / 2px 14px
+        no-repeat,
+      repeating-linear-gradient(
+          90deg,
+          var(--console-border-control) 0 3px,
+          transparent 3px 7px
+        )
+        top right / 45px 1px no-repeat,
+      linear-gradient(var(--console-interaction-selected) 0 0) bottom right /
+        26px 2px no-repeat,
+      linear-gradient(var(--console-interaction-selected) 0 0) bottom right / 2px
+        14px no-repeat;
+  }
+
+  .Section > .Section__title > .Section__titleText {
+    display: inline-block;
+    padding: 1px 7px;
+    color: var(--console-interaction-selected);
+    background: var(--console-surface-recessed);
+    box-shadow: inset 0 -1px 0 var(--console-border-control);
+    letter-spacing: 0.1em;
+  }
+}
+
+.theme-meridian_vector {
+  .Window::before {
+    border-style: double;
+  }
+
+  .TitleBar {
+    background-image: repeating-linear-gradient(
+      90deg,
+      transparent 0 23px,
+      var(--console-border-subtle) 23px 24px
+    );
+    background-size: 192px 4px;
+    background-repeat: no-repeat;
+    background-position: right bottom;
+  }
+}
+
+.theme-meridian_foundry {
+  :is(.NoticeBox--type--warning, .NoticeBox--type--danger, .Button--color--danger) {
+    --foundry-hazard-color: currentColor;
+
+    background-image: repeating-linear-gradient(
+      135deg,
+      transparent 0 8px,
+      color-mix(in srgb, var(--foundry-hazard-color) 12%, transparent) 8px 12px
+    );
+  }
+
+  :is(.NoticeBox--type--warning, .NoticeBox--type--danger) {
+    --foundry-hazard-color: var(--noticebox-background);
+  }
+}
+
+.theme-meridian_diagnostic {
+  --console-window-pin-reach: 8px; // 10px offset, -2px spread
+  --console-window-pin-tail: 8px;
+
+  .Section::before {
+    inset: 5px -1px;
+    border-left: 2px solid var(--console-interaction-accent);
+    border-right: 2px solid var(--console-interaction-accent);
+    background: none;
+  }
+
+  .Window::after {
+    border-radius: 50%;
+    box-shadow:
+      -10px 0 0 -2px var(--console-interaction-selected),
+      10px 0 0 -2px var(--console-interaction-selected);
+  }
+}
+
+.theme-console.theme-meridian_highline {
+  .TitleBar {
+    color: var(--console-surface-canvas);
+    background: var(--highline-ceramic);
+    border-bottom-color: var(--console-surface-recessed);
+  }
+
+  .TitleBar__title,
+  .TitleBar__statusIcon {
+    color: var(--console-surface-canvas);
+  }
+
+  .TitleBar__close {
+    color: var(--console-surface-canvas);
+    opacity: 1;
+
+    &:hover {
+      color: var(--console-text-primary);
+      background-color: var(--console-surface-raised);
+    }
+  }
+
+  // Focus on the pale plate needs a dark edge; content keeps its blue focus.
+  .TitleBar :is(.TitleBar__close, .TitleBar__utilityButton, .MeridianThemePicker__trigger):focus-visible {
+    outline-color: var(--console-surface-canvas);
+    box-shadow: 0 0 0 1px var(--highline-ceramic);
+  }
+
+  .Window::before {
+    border-color: var(--console-border-strong);
+  }
+
+  .Window::after,
+  .Section::before {
+    display: none;
+  }
+
+  .Section > .Section__title::after {
+    left: 0;
+    width: 100%;
+    background: var(--console-border-separator);
+  }
+
+  .TitleBar::after {
+    left: var(--console-chrome-safe-left);
+    width: calc(
+      100% - var(--console-chrome-safe-left) - var(--console-chrome-safe-right)
+    );
+    background: var(--console-interaction-selected);
+  }
+
+  .Button--selected,
+  .Button[aria-pressed='true'],
+  .Button[aria-checked='true'],
+  .Tab--selected,
+  .Tab[aria-selected='true'] {
+    color: var(--console-surface-canvas);
+    background-color: var(--console-text-primary);
+  }
+}
+
+.theme-meridian_synapse .Section::before {
+  background:
+    linear-gradient(var(--console-interaction-accent) 0 0) top left / 28px 1px
+      no-repeat,
+    linear-gradient(var(--console-interaction-selected) 0 0) top left / 1px 11px
+      no-repeat,
+    radial-gradient(circle, var(--console-interaction-selected) 0 2px, transparent 3px)
+      bottom right / 8px 8px no-repeat;
+}
+
+:is(.theme-meridian_cyberpunk, .theme-meridian_augmentation) {
+  --console-window-pin-width: 11px;
+  --console-window-pin-reach: 13px; // 14px offset, -1px spread
+
+  .TitleBar {
+    background-image:
+      linear-gradient(90deg, transparent 0 64%, var(--console-border-control) 64% 68%, transparent 68%),
+      linear-gradient(90deg, transparent 0 78%, var(--console-interaction-selected) 78% 79%, transparent 79%);
+    background-size: 100% 2px, 100% 1px;
+    background-repeat: no-repeat;
+    background-position: 0 7px, 0 23px;
+  }
+
+  .Window::after {
+    height: 3px;
+    background: var(--console-interaction-selected);
+    box-shadow: 14px 0 0 -1px var(--console-border-control);
+  }
+}
+
+.theme-meridian_augmentation .Section::before {
+  inset: 4px 10px;
+  background:
+    linear-gradient(var(--augmentation-readout) 0 0) top center / 1px 12px no-repeat,
+    linear-gradient(var(--augmentation-frame) 0 0) top left / 32px 2px no-repeat,
+    linear-gradient(var(--augmentation-frame) 0 0) bottom right / 32px 2px no-repeat;
+}
+
+.theme-meridian_relay {
+  --console-window-pin-tail: 11px; // -12px offset, -1px spread
+
+  // Bone tags label panels; amber remains reserved for actions.
+  .Section > .Section__title > .Section__titleText {
+    display: inline-block;
+    padding: 1px var(--console-space-2);
+    color: var(--console-surface-canvas);
+    background: var(--console-text-secondary);
+    box-shadow: inset 0 -2px 0
+      color-mix(in srgb, var(--console-text-secondary) 58%, var(--console-surface-canvas));
+  }
+
+  .Window::after {
+    border-radius: 50%;
+    background: var(--console-interaction-accent);
+    box-shadow: -12px 0 0 -1px var(--console-border-control);
+  }
+}

@@ -28,6 +28,7 @@ import {
   storeWindowGeometry,
 } from '../drag';
 import { suspendStart } from '../events/handlers/suspense';
+import { usePromptSizing } from '../hooks/usePromptSizing'; // APHELION EDIT ADDITION - prompt sizing
 import { createLogger } from '../logging';
 import { Layout } from './Layout';
 import { TitleBar } from './TitleBar';
@@ -57,6 +58,12 @@ export function Window(props: Props) {
   } = props;
 
   const { config, suspended, debug } = useBackend();
+  // APHELION EDIT ADDITION START - prompt sizing
+  const { promptClass, fitBeforeShow } = usePromptSizing(
+    config.interface.name,
+    suspended,
+  );
+  // APHELION EDIT ADDITION END
 
   const [isReadyToRender, setIsReadyToRender] = useState(false);
 
@@ -88,6 +95,7 @@ export function Window(props: Props) {
           setWindowKey(config.window.key);
         }
         await recallWindowGeometry(options);
+        await fitBeforeShow(() => cancelled, options); // APHELION EDIT ADDITION - prompt sizing
         if (cancelled) {
           return;
         }
@@ -110,7 +118,12 @@ export function Window(props: Props) {
       cancelled = true;
       logger.log('unmounting');
     };
+  /* APHELION EDIT REMOVAL START - prompt sizing lifecycle
   }, [isReadyToRender, suspended, width, height, scale]);
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START - prompt sizing lifecycle
+  }, [isReadyToRender, suspended, width, height, scale, fitBeforeShow]);
+  // APHELION EDIT ADDITION END
 
   // Determine when to show dimmer
   const showDimmer =
@@ -120,7 +133,12 @@ export function Window(props: Props) {
       : config.status < UI_INTERACTIVE);
 
   return suspended ? null : (
+    /* APHELION EDIT REMOVAL START - prompt sizing
     <Layout className="Window" theme={theme}>
+    */ // APHELION EDIT REMOVAL END
+    // APHELION EDIT ADDITION START - prompt sizing
+    <Layout className={classes(['Window', promptClass])} theme={theme}>
+      {/* APHELION EDIT ADDITION END */}
       <TitleBar
         title={title || decodeHtmlEntities(config.title)}
         status={config.status}

@@ -54,21 +54,20 @@
   }
 
   &__hover-text--tooltip-wrapper {
-    position: absolute;
-    top: 100%;
-    margin-top: 4px;
-    left: 2px;
+    // APHELION EDIT - Theme tooltip colors.
+    --augment-tooltip-border: var(--console-border-strong, var(--color-border-primary));
     max-width: 250px;
-    z-index: 100;
     pointer-events: none;
-    background: #c0152a;
+    background: var(--augment-tooltip-border);
     clip-path: polygon(0% 0%, calc(100% - 12px) 0%, 100% 100%, 12px 100%);
     padding: 1px;
     visibility: hidden;
     opacity: 0;
-    filter: drop-shadow(0 0 6px #c0152a) drop-shadow(0 0 12px #c0152a66);
+    filter:
+      drop-shadow(0 0 6px var(--augment-tooltip-border))
+      drop-shadow(0 0 12px color-mix(in srgb, var(--augment-tooltip-border) 40%, transparent));
 
-    &.visible {
+    &[data-transition='open'] {
       visibility: visible;
       animation: LimbsPage__fade-in 0.6s ease-out forwards;
 
@@ -79,8 +78,9 @@
   }
 
   &__hover-text--tooltip {
-    background: #0f0505;
-    color: #00e5d4;
+    // APHELION EDIT - Theme tooltip colors.
+    background: var(--tooltip-background);
+    color: var(--tooltip-color);
     padding: 4px 12px;
     font-size: 11px;
     white-space: normal;

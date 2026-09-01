@@ -94,7 +94,7 @@
  */
 
 ///Default NtOS PDA theme
-#define PDA_THEME_NTOS "ntos"
+#define PDA_THEME_NTOS "meridian" // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: #define PDA_THEME_NTOS "ntos"
 #define PDA_THEME_DARK_MODE "ntos_darkmode"
 #define PDA_THEME_RETRO "ntOS95"
 #define PDA_THEME_SYNTH "ntos_synth"
@@ -125,14 +125,14 @@
 #define PDA_THEME_ID_ABDUCTOR "abductor"
 
 //Defines for the names of all the themes
-#define PDA_THEME_NTOS_NAME "NtOS"
-#define PDA_THEME_DARK_MODE_NAME "NtOS Dark Mode"
+#define PDA_THEME_NTOS_NAME "MeridianOS" // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: #define PDA_THEME_NTOS_NAME "NtOS"
+#define PDA_THEME_DARK_MODE_NAME "NTOS Dark mode" // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: #define PDA_THEME_DARK_MODE_NAME "NtOS Dark Mode"
 #define PDA_THEME_RETRO_NAME "Retro"
 #define PDA_THEME_SYNTH_NAME "Synth"
 #define PDA_THEME_TERMINAL_NAME "Terminal"
 #define PDA_THEME_SYNDICATE_NAME "Syndicate"
 #define PDA_THEME_CAT_NAME "Cat"
-#define PDA_THEME_LIGHT_MODE_NAME "NtOS Light Mode"
+#define PDA_THEME_LIGHT_MODE_NAME "MeridianOS Light Mode" // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: #define PDA_THEME_LIGHT_MODE_NAME "NtOS Light Mode"
 #define PDA_THEME_SPOOKY_NAME "Eldritch"
 #define PDA_THEME_HACKERMAN_NAME "Hackerman"
 #define PDA_THEME_ROULETTE_NAME "Roulette Table"
