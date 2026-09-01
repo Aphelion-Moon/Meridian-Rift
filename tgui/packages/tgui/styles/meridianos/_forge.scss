@@ -1,0 +1,165 @@
+// THIS IS AN APHELION UI FILE
+// B: cast bronze and engraved seams. D: gunmetal with fitted bronze hardware.
+// Nine-slice artwork keeps the corner fittings intact as the window resizes.
+@media (forced-colors: none) {
+  .theme-meridian_foundry,
+  .theme-meridian_afterlight {
+    .Window {
+      background-color: var(--forge-recess);
+      background-image:
+        linear-gradient(var(--forge-casing-shade), var(--forge-casing-shade)),
+        var(--forge-texture);
+      background-size: auto, 384px 384px;
+      box-shadow: none;
+    }
+
+    .Window::before {
+      border-image: var(--forge-frame) 32 / 1 / 0 stretch;
+      clip-path: none;
+    }
+
+    .Window::after,
+    .TitleBar::after,
+    .Section > .Section__title::after {
+      display: none;
+    }
+
+    .TitleBar {
+      background-color: var(--console-surface-base);
+      background-image:
+        linear-gradient(var(--forge-title-shade), var(--forge-title-shade)),
+        var(--forge-texture);
+      background-size: auto, 384px 384px;
+      border-top-color: transparent;
+      border-bottom-color: var(--forge-edge);
+      box-shadow: inset 0 -2px 0 rgb(0 0 0 / 55%);
+    }
+
+    .TitleBar__utilities {
+      margin-inline-end: 3px;
+    }
+
+    .TitleBar__title,
+    .Section > .Section__title > .Section__titleText {
+      font-family: Bahnschrift, 'Arial Narrow', 'Segoe UI', sans-serif;
+      font-weight: 600;
+      font-stretch: condensed;
+      text-shadow: 0 1px 1px rgb(0 0 0 / 75%);
+    }
+
+    // The shared aperture also protects fitted windows that have no gutter.
+    .Window__rest {
+      left: var(--console-chrome-safe-left);
+      right: var(--console-chrome-safe-right);
+      bottom: var(--console-chrome-safe-bottom);
+    }
+
+    .Window__contentPadding {
+      margin-inline: 0.5rem;
+      margin-bottom: 0.5rem;
+      height: calc(100% - 1rem);
+    }
+
+    .Section {
+      border-color: var(--forge-edge);
+      box-shadow: inset 0 0 0 2px var(--console-surface-recessed), 0 2px 3px rgb(0 0 0 / 34%);
+    }
+
+    .Section::before {
+      display: block;
+      inset: 0;
+      border: 5px solid transparent;
+      border-image: var(--forge-panel-frame) 32 / 1 / 0 stretch;
+      background: none;
+      opacity: 1;
+    }
+
+    .Section > .Section__title {
+      background: var(
+        --section-title-background,
+        linear-gradient(var(--forge-title-shade), var(--forge-title-shade)),
+        var(--forge-texture) 0 0 / 384px 384px,
+        var(--console-surface-raised)
+      );
+      box-shadow: inset 0 -1px 0 var(--console-surface-recessed);
+    }
+
+    // Caller-colored and nested panels retain their own reading surfaces.
+    .Section .Section,
+    .Section--fitted {
+      box-shadow: none;
+    }
+
+    .Section .Section::before,
+    .Section--fitted::before {
+      display: none;
+    }
+
+    .Section .Section > .Section__title {
+      background: var(--section-title-background, transparent);
+      box-shadow: none;
+    }
+
+    .Tabs {
+      padding: 2px;
+      background-color: var(--console-surface-recessed);
+      box-shadow: inset 0 1px 0 var(--forge-edge), inset 0 -1px 0 var(--forge-edge);
+    }
+
+    // Preserve caller-painted backgrounds and core control states.
+    .Button--color--default:not([style*='background']):not([class*='color-bg-']):not(.Button--selected):not(.Button--disabled):not([aria-disabled='true']):not([aria-pressed='true']):not([aria-checked='true']),
+    .Tab:not([style*='background']):not([class*='color-bg-']):not(.Tab--selected):not([aria-selected='true']) {
+      background-image:
+        linear-gradient(var(--forge-title-shade), var(--forge-title-shade)),
+        var(--forge-texture);
+      background-size: auto, 256px 256px;
+      border-color: var(--forge-edge);
+      box-shadow: var(--console-control-depth);
+    }
+
+    .Button--color--default:not([style*='background']):not([class*='color-bg-']):not(.Button--selected):not(.Button--disabled):not([aria-disabled='true']):not([aria-pressed='true']):not([aria-checked='true']):hover,
+    .Tab:not([style*='background']):not([class*='color-bg-']):not(.Tab--selected):not([aria-selected='true']):hover {
+      background-image:
+        linear-gradient(rgb(0 0 0 / 25%), rgb(0 0 0 / 25%)),
+        var(--forge-texture);
+      border-color: var(--console-interaction-focus);
+    }
+
+    .Button--selected,
+    .Tab--selected,
+    .Button[aria-pressed='true'],
+    .Button[aria-checked='true'],
+    .Tab[aria-selected='true'] {
+      background-image: none;
+    }
+
+    :is(.Input, .NumberInput, .TextArea, .Dropdown__control) {
+      box-shadow: inset 1px 2px 3px rgb(0 0 0 / 52%), inset 0 -1px 0 rgb(241 223 188 / 9%);
+    }
+
+    .ProgressBar {
+      border-color: var(--forge-edge);
+      box-shadow: inset 0 1px 2px #000, 0 1px 0 rgb(241 223 188 / 12%);
+    }
+
+    .ProgressBar__fill {
+      background-image: linear-gradient(rgb(255 241 209 / 22%), transparent 42%, rgb(0 0 0 / 28%));
+      box-shadow: inset 0 0 0 1px rgb(0 0 0 / 38%);
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  // Core derives selected fills with relative HSL. Use the system pair directly
+  // so forced colors cannot turn the fill into Canvas behind HighlightText.
+  .theme-console:is(.theme-meridian_foundry, .theme-meridian_afterlight) {
+    .Button:is(.Button--selected, [aria-pressed='true'], [aria-checked='true']):not(.Button--disabled):not([aria-disabled='true']) {
+      --button-color: HighlightText;
+      forced-color-adjust: none;
+      color: HighlightText;
+      background: Highlight;
+      border-color: Highlight;
+      box-shadow: none;
+    }
+  }
+}

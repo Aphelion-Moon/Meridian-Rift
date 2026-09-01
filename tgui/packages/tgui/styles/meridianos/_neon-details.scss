@@ -1,0 +1,45 @@
+// THIS IS AN APHELION UI FILE
+@use './glowstick';
+
+// Keep small utility icons flush and reserve solid neon tubes for the title.
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  :is(
+    .theme-meridian_cyberpunk,
+    .theme-meridian_augmentation,
+    .theme-meridian_synapse_xxxo
+  ) {
+    .NtosHeader
+      .Button--color--transparent:not(.Button--selected):not(.Button--disabled):not([aria-disabled='true']):not(:disabled):not([class*='color-bg-']):not([style*='background' i]) {
+      border-color: transparent;
+      background-image: none;
+      box-shadow: none;
+
+      &:hover {
+        color: var(--console-interaction-focus);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--console-interaction-focus);
+        outline-offset: -2px;
+      }
+    }
+
+    .Section > .Section__title::after {
+      @include glowstick.surface(#ff405b);
+      // Match Synapse's short illuminated segments and genuinely empty gaps.
+      -webkit-mask-image: repeating-linear-gradient(
+        90deg,
+        #000 0 calc(var(--console-segment-pattern) - 2px),
+        transparent calc(var(--console-segment-pattern) - 2px)
+          var(--console-segment-pattern)
+      );
+      mask-image: repeating-linear-gradient(
+        90deg,
+        #000 0 calc(var(--console-segment-pattern) - 2px),
+        transparent calc(var(--console-segment-pattern) - 2px)
+          var(--console-segment-pattern)
+      );
+      @include glowstick.halo(#ff405b);
+    }
+  }
+}

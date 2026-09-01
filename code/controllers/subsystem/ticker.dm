@@ -141,7 +141,6 @@ SUBSYSTEM_DEF(ticker)
 			*/ // NOVA EDIT REMOVAL END
 			current_state = GAME_STATE_PREGAME
 			SStitle.change_title_screen() // NOVA EDIT ADDITION - Title screen
-			addtimer(CALLBACK(SStitle, TYPE_PROC_REF(/datum/controller/subsystem/title, change_title_screen)), 1 SECONDS) // NOVA EDIT ADDITION - Title screen
 			SEND_SIGNAL(src, COMSIG_TICKER_ENTER_PREGAME)
 			fire()
 		if(GAME_STATE_PREGAME)

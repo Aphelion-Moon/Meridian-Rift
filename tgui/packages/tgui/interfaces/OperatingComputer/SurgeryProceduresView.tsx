@@ -100,7 +100,7 @@ export const SurgeryProceduresView = (props: SurgeryProceduresViewProps) => {
 
   return (
     <Section
-      title="&nbsp;"
+      //title="&nbsp;" APHELION EDIT REMOVAL - MERIDIAN_UI - `buttons` already opens the header, this messed with themes
       scrollable
       fill
       buttons={

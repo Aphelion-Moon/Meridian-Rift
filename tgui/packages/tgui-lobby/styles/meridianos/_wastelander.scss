@@ -1,0 +1,138 @@
+// THIS IS AN APHELION UI FILE
+// Wastelander controls sit beneath the same glass as the title artwork.
+.theme-meridian_pipboy .lobby {
+  .container_nav {
+    padding: clamp(14px, 1.6vmin, 22px);
+    scrollbar-color: var(--lobby-boundary) var(--lobby-recessed);
+    border: 1px solid var(--lobby-boundary);
+    border-radius: 0;
+    color: var(--lobby-text);
+    background:
+      linear-gradient(var(--lobby-boundary), var(--lobby-boundary))
+        top 3px left 4px / 42px 1px no-repeat,
+      linear-gradient(var(--lobby-boundary), var(--lobby-boundary))
+        bottom 3px right 4px / 28px 1px no-repeat,
+      linear-gradient(110deg, transparent 36%, var(--lobby-boundary) 37% 39%, transparent 40%)
+        right 20px top / 92px 2px no-repeat,
+      linear-gradient(180deg, var(--lobby-panel), var(--lobby-recessed));
+    box-shadow:
+      0 0 0 3px var(--lobby-recessed),
+      0 0 0 4px color-mix(in srgb, var(--lobby-boundary) 34%, transparent),
+      inset 0 0 0 4px color-mix(in srgb, var(--lobby-boundary) 12%, transparent),
+      0 8px 18px rgb(0 0 0 / 26%);
+
+    hr {
+      margin: clamp(6px, 0.8vmin, 11px) 0;
+      background: color-mix(in srgb, var(--lobby-boundary) 55%, transparent);
+    }
+  }
+
+  .lobby-terminal-heading {
+    gap: 12px;
+    padding: 0 4px 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--lobby-boundary);
+    color: var(--lobby-text-muted);
+    font-family: var(--lobby-font);
+    font-size: clamp(12px, 1.25vmin, 16px);
+    letter-spacing: 0.12em;
+  }
+
+  .lobby-terminal-phase {
+    flex-shrink: 0;
+    padding: 3px 6px;
+    border: 1px solid color-mix(in srgb, var(--lobby-boundary) 65%, transparent);
+    color: var(--lobby-accent);
+    font-size: 0.9em;
+    letter-spacing: 0.06em;
+  }
+
+  .menu_button {
+    min-height: clamp(30px, 3.6vmin, 42px);
+    padding: 4px 10px 4px clamp(24px, 2.4vmin, 32px);
+    border-left: 2px solid transparent;
+    color: var(--lobby-text);
+    font-size: clamp(16px, 2.4vmin, 28px);
+    letter-spacing: 0.025em;
+    line-height: 1.3;
+
+    &:first-of-type {
+      color: var(--lobby-accent-secondary);
+    }
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      padding-left: clamp(24px, 2.4vmin, 32px);
+      color: var(--lobby-focus);
+      border-left-color: var(--lobby-focus);
+      background: color-mix(in srgb, var(--lobby-accent) 10%, var(--lobby-recessed));
+    }
+
+    &:hover:not(:disabled)::before,
+    &:focus-visible::before {
+      left: 6px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--lobby-focus);
+    }
+
+    &:active:not(:disabled) {
+      padding-left: clamp(24px, 2.4vmin, 32px);
+      background: var(--console-interaction-pressed);
+    }
+
+    &.info_display {
+      color: var(--lobby-text-muted);
+    }
+  }
+
+  #character_slot,
+  .unchecked {
+    color: var(--lobby-text-muted);
+  }
+
+  .checked {
+    color: var(--lobby-accent-secondary);
+  }
+
+  .trait_list {
+    padding-left: clamp(24px, 2.4vmin, 32px);
+  }
+
+  .trait_button {
+    min-height: 30px;
+    font-size: clamp(16px, 2.1vmin, 25px);
+  }
+
+  .menu_newpoll {
+    border-left-color: var(--lobby-focus);
+    color: var(--lobby-focus);
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-meridian_pipboy .lobby {
+    .container_nav {
+      color: CanvasText;
+      background: Canvas;
+      border-color: CanvasText;
+      box-shadow: none;
+    }
+
+    .menu_button,
+    .lobby-terminal-heading,
+    .lobby-terminal-phase,
+    .checked,
+    .unchecked,
+    #character_slot {
+      color: CanvasText;
+    }
+
+    .menu_button:focus-visible {
+      outline-color: Highlight;
+      border-left-color: Highlight;
+      background: Canvas;
+    }
+  }
+}

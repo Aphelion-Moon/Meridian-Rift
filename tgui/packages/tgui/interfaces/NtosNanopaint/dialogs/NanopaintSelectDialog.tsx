@@ -49,10 +49,12 @@ export const NanopaintSelectDialog = (props: NanopaintSelectDialogProps) => {
   }, [diskInserted]);
   return (
     <Dimmer>
-      <Section title={title} width="500px">
+      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Section title={title} width="500px"> */}
+      <Section title={title} width="500px" className="MeridianControlDialog">
         <Stack vertical>
           <Stack.Item>
-            <Stack fill height="300px">
+            {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack fill height="300px"> */}
+            <Stack fill height="300px" className="MeridianControlRow MeridianControlRow--top">
               <Stack.Item>
                 <Tabs vertical>
                   <Tabs.Tab selected={tab === 'drive'}>Local Drive</Tabs.Tab>
@@ -62,7 +64,8 @@ export const NanopaintSelectDialog = (props: NanopaintSelectDialogProps) => {
                 </Tabs>
               </Stack.Item>
               <Stack.Divider />
-              <Stack.Item width="100%">
+              {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item width="100%"> */}
+              <Stack.Item width="100%" className="MeridianControlRow__fill">
                 <Stack vertical overflowY="scroll">
                   {visibleFiles.map((file, i) => {
                     const filePath = `${file.name}.${file.extension}`;
@@ -70,6 +73,10 @@ export const NanopaintSelectDialog = (props: NanopaintSelectDialogProps) => {
                       <Stack.Item key={i}>
                         <Button
                           width="100%"
+                          /* APHELION EDIT ADDITION START - readable filenames */
+                          ellipsis
+                          tooltip={filePath}
+                          /* APHELION EDIT ADDITION END */
                           selected={path === filePath && !pathLastPickedByInput}
                           className="NtosNanopaint__SelectDialog__EntryCell"
                           onClick={() => {
@@ -87,8 +94,10 @@ export const NanopaintSelectDialog = (props: NanopaintSelectDialogProps) => {
             </Stack>
           </Stack.Item>
           <Stack.Item>
-            <Stack fill>
-              <Stack.Item grow>
+            {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack fill> */}
+            <Stack fill className="MeridianControlRow">
+              {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item grow> */}
+              <Stack.Item grow className="MeridianControlRow__fill">
                 <Input
                   fluid
                   value={path}
@@ -98,7 +107,8 @@ export const NanopaintSelectDialog = (props: NanopaintSelectDialogProps) => {
                   }}
                 />
               </Stack.Item>
-              <Stack.Item>
+              {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item> */}
+              <Stack.Item className="MeridianControlRow__fill MeridianControlRow__fill--wide">
                 <Dropdown
                   selected={dropdownOptions[descIndex].displayText}
                   options={dropdownOptions}

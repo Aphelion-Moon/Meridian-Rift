@@ -1,0 +1,130 @@
+// THIS IS AN APHELION UI FILE
+// Salvaged olive steel belongs to the housing, not the reading surfaces.
+.theme-meridian_bastion {
+  .Window,
+  .TitleBar,
+  .Tabs,
+  .PreferencesMenu__appearanceRail {
+    background-color: var(--console-surface-base);
+    background-image:
+      linear-gradient(rgb(0 0 0 / 24%), rgb(0 0 0 / 24%)),
+      var(--scavenger-texture);
+    background-size:
+      auto,
+      384px 384px;
+  }
+
+  .Window {
+    // The perimeter pseudo-element is the single frame; discard both inset rails.
+    box-shadow: none;
+  }
+
+  .Window::before {
+    border-image-source: var(--scavenger-texture);
+    border-image-slice: 16;
+    border-image-repeat: repeat;
+    clip-path: none;
+    box-shadow: none;
+  }
+
+  .Window::after,
+  .TitleBar::after,
+  .Section > .Section__title::after {
+    display: none;
+  }
+
+  // Fitted content has no padding wrapper. Reserve the casing on the shared
+  // aperture, then subtract it from padded windows' existing half-rem gutters.
+  .Window__rest {
+    left: var(--console-chrome-safe-left);
+    right: var(--console-chrome-safe-right);
+    bottom: var(--console-chrome-safe-bottom);
+  }
+
+  .Window__contentPadding {
+    margin-inline: max(0px, calc(0.5rem - var(--console-chrome-safe-left)))
+      max(0px, calc(0.5rem - var(--console-chrome-safe-right)));
+    margin-bottom: max(0px, calc(0.5rem - var(--console-chrome-safe-bottom)));
+    height: calc(
+      100% - 0.5rem - max(0px, 0.5rem - var(--console-chrome-safe-bottom))
+    );
+  }
+
+  .TitleBar {
+    background-image:
+      var(--scavenger-plates),
+      linear-gradient(rgb(0 0 0 / 16%), rgb(0 0 0 / 16%)),
+      var(--scavenger-texture);
+    background-size:
+      100% 100%,
+      auto,
+      384px 384px;
+    background-repeat: no-repeat, no-repeat, repeat;
+    box-shadow:
+      inset 0 1px 0 rgb(240 231 206 / 15%),
+      inset 0 -1px 0 var(--console-surface-recessed);
+  }
+
+  .Tabs,
+  .PreferencesMenu__appearanceRail {
+    box-shadow:
+      inset 1px 0 0 var(--console-border-control),
+      inset -1px 0 0 var(--console-border-subtle);
+  }
+
+  .PreferencesMenu__settings {
+    // PreferenceList uses a translucent black fill. Give it an opaque backing
+    // so the casing texture cannot show through the actual form rows.
+    background-color: var(--console-surface-canvas);
+  }
+
+  .Section {
+    border-width: 1px;
+    box-shadow:
+      inset 0 1px 0 rgb(240 231 206 / 8%),
+      0 1px 0 var(--console-surface-recessed);
+  }
+
+  .Section::before {
+    inset: 0;
+    opacity: 0.8;
+    background:
+      var(--scavenger-fastener) top left / 6px 6px no-repeat,
+      var(--scavenger-fastener) bottom right / 6px 6px no-repeat;
+  }
+
+  .Section > .Section__title {
+    // Keep the public override and nested-section/caller-owned color contracts.
+    background: var(
+      --section-title-background,
+      linear-gradient(rgb(0 0 0 / 32%), rgb(0 0 0 / 32%)),
+      var(--scavenger-texture) 0 0 / 384px 384px,
+      var(--console-surface-raised)
+    );
+  }
+
+  .LabeledList__label {
+    text-transform: none;
+    letter-spacing: normal;
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-meridian_bastion {
+    .Window,
+    .TitleBar,
+    .Tabs,
+    .PreferencesMenu__appearanceRail,
+    .PreferencesMenu__settings,
+    .Section > .Section__title {
+      background: Canvas;
+      box-shadow: none;
+    }
+
+    .Window::before {
+      border-image: none;
+      border-color: CanvasText;
+      box-shadow: none;
+    }
+  }
+}

@@ -1,0 +1,160 @@
+// THIS IS AN APHELION UI FILE
+@use './glowstick';
+
+// Shared neon finish; callers retain their palette and loader geometry.
+@keyframes meridian-neon-loader-turn {
+  to { transform: rotate(1turn); }
+}
+
+@mixin finish($tube, $cyan) {
+  --glass-accent: var(--console-interaction-accent);
+  --glass-secondary: var(--console-interaction-selected);
+  --glass-hot: color-mix(in srgb, var(--glass-accent) 74%, white);
+  --glass-selected-hot: color-mix(in srgb, var(--glass-secondary) 74%, white);
+  --glass-loader-core: var(--console-loader-progress-core);
+  --glass-cyan: #{$cyan};
+  --glass-tube: url(#{$tube});
+
+  .Window {
+    background-image:
+      radial-gradient(ellipse at 85% 20%, color-mix(in srgb, var(--glass-secondary) 7%, transparent), transparent 55%),
+      radial-gradient(ellipse at 5% 10%, color-mix(in srgb, var(--glass-accent) 9%, transparent), transparent 55%),
+      linear-gradient(145deg, var(--console-surface-base), var(--console-surface-canvas) 62%, var(--console-surface-base));
+    box-shadow: inset 0 0 0 1px var(--console-border-control), 3px 3px 0 color-mix(in srgb, var(--glass-secondary) 17%, transparent), 0 0 24px #0005;
+  }
+
+  .TitleBar {
+    background-color: color-mix(in srgb, var(--glass-accent) 8%, var(--console-surface-raised));
+    box-shadow: inset 0 1px 0 #ffffff20, inset 0 -2px 3px #0008;
+    border-top-color: color-mix(in srgb, var(--glass-accent) 72%, white);
+  }
+
+  .TitleBar::after {
+    width: calc(var(--console-title-rail) * 1.9);
+    height: 16px;
+    bottom: -8px;
+    background: var(--glass-tube) center / 100% 100% no-repeat;
+  }
+
+  .Section {
+    background-image: linear-gradient(125deg, #ffffff05, transparent 46%, color-mix(in srgb, var(--glass-secondary) 3%, transparent)),
+      repeating-linear-gradient(91deg, #ffffff03 0 1px, transparent 1px 5px);
+    box-shadow: inset 0 1px 0 #ffffff0d, 0 2px 5px #0008;
+  }
+
+  .Section > .Section__title {
+    background: var(--section-title-background, linear-gradient(180deg, #ffffff0b, transparent 16%, #0003),
+      linear-gradient(105deg, color-mix(in srgb, var(--glass-accent) 9%, var(--console-surface-raised)), var(--console-surface-base) 72%));
+  }
+
+  .Section > .Section__title::after {
+    @include glowstick.surface(var(--glass-accent));
+    // Preserve the dark gaps between the original illuminated segments.
+    -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 calc(var(--console-segment-pattern) - 2px), transparent calc(var(--console-segment-pattern) - 2px) var(--console-segment-pattern));
+    mask-image: repeating-linear-gradient(90deg, #000 0 calc(var(--console-segment-pattern) - 2px), transparent calc(var(--console-segment-pattern) - 2px) var(--console-segment-pattern));
+    @include glowstick.halo(var(--glass-accent));
+  }
+
+  .Button--color--default:is(.Button--selected, [aria-pressed='true'], [aria-checked='true']):not(.Button--disabled):not([aria-disabled='true']):not(:disabled) {
+    @include glowstick.control(var(--glass-secondary));
+  }
+
+  .Button--color--default:not(.Button--selected):not([aria-pressed='true']):not([aria-checked='true']):not(.Button--disabled):not([aria-disabled='true']):not(:disabled) {
+    background-image: linear-gradient(165deg, #ffffff09, transparent 45%, #00000024);
+    box-shadow: inset 0 1px 0 #ffffff10, inset 0 -1px 0 #0009;
+  }
+
+  :is(.Tab--selected, .Tab[aria-selected='true']) {
+    @include glowstick.tab(var(--glass-secondary));
+  }
+
+  .DiagnosticLoader__instrument {   contain: layout style; overflow: visible;
+    --console-loader-progress-core: var(--glass-loader-core);
+  }
+
+  .DiagnosticLoader__outerCage {
+    @include glowstick.ring(var(--glass-cyan-cage), var(--console-loader-cage-width, 3px));
+  }
+
+  .DiagnosticLoader__progressFill {
+    background: conic-gradient(from -90deg,
+      var(--console-loader-progress-core) 0deg var(--diagnostic-loader-angle),
+      transparent var(--diagnostic-loader-angle));
+    @include glowstick.progress;
+  }
+
+  .DiagnosticLoader__core {
+    @include glowstick.core(var(--console-loader-progress-core));
+  }
+
+  .DiagnosticLoader__nodes {
+    background: repeating-conic-gradient(from var(--console-loader-node-start, -90deg),
+      var(--glass-secondary) 0deg var(--console-loader-node-width), transparent var(--console-loader-node-width) var(--console-loader-node-step));
+  }
+
+  .DiagnosticLoader__innerMarks {
+    border-top-color: var(--console-border-control);
+    border-right-color: var(--glass-secondary);
+    border-bottom-color: var(--console-border-control);
+    border-left-color: var(--glass-accent);
+  }
+
+  .DiagnosticLoader__origin {
+    @include glowstick.surface(var(--console-interaction-focus));
+  }
+
+  .lobby .container_nav {
+    background-image: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--glass-secondary) 8%, transparent), transparent 65%), repeating-linear-gradient(91deg, #ffffff03 0 1px, transparent 1px 5px);
+  }
+
+  .lobby .container_nav::before {   top: -3px; height: 20px; width: 82%; background: var(--glass-tube) center / 100% 100% no-repeat;
+  }
+
+  .lobby .menu_button:first-of-type:not(:disabled) {
+    color: var(--glass-selected-hot);
+    text-shadow: 0 0 3px color-mix(in srgb, var(--glass-secondary) 70%, transparent), 0 0 9px color-mix(in srgb, var(--glass-secondary) 25%, transparent);
+    background-image: linear-gradient(90deg, color-mix(in srgb, var(--glass-secondary) 10%, transparent), transparent 80%);
+    border-left-color: var(--glass-secondary);
+    box-shadow: inset 1px 0 0 var(--glass-selected-hot), -2px 0 4px color-mix(in srgb, var(--glass-secondary) 17%, transparent);
+  }
+
+  .DiagnosticLoader__light {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    filter: blur(0.65px)
+      drop-shadow(0 0 2px color-mix(in srgb, var(--glass-cyan) 70%, transparent))
+      drop-shadow(0 0 6px color-mix(in srgb, var(--glass-cyan) 38%, transparent))
+      drop-shadow(0 0 12px color-mix(in srgb, var(--glass-cyan) 16%, transparent));
+
+    .DiagnosticLoader__outerCage { background: var(--glass-cyan-cage); }
+    .DiagnosticLoader__innerMarks { border-color: transparent; }
+  }
+
+  // Theme switching restarts both cages together; visibility and reduced motion
+  // still use the shared loader's existing pause rules.
+  .DiagnosticLoader--indeterminate[data-motion='running']:not(.DiagnosticLoader--motion-reduced)
+    .DiagnosticLoader__outerCage {
+    animation-name: meridian-neon-loader-turn;
+  }
+
+  .Slider:not(.Slider--disabled) .Slider__cursor {
+    border-left-color: var(--glass-hot);
+    filter: drop-shadow(0 0 2px color-mix(in srgb, var(--glass-accent) 50%, transparent));
+  }
+
+  .ProgressBar--color--default:not(.Slider--disabled) > .ProgressBar__fill {
+    @include glowstick.progress-face(var(--glass-accent));
+  }
+
+  .container_terminal::before {
+    height: 10px;
+    top: -4px;
+    width: min(240px, 70%);
+    background: var(--glass-tube) center / 100% 100% no-repeat;
+  }
+
+  @include glowstick.boot(var(--glass-accent));
+}

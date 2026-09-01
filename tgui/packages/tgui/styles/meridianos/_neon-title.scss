@@ -1,0 +1,70 @@
+// THIS IS AN APHELION UI FILE
+// The existing alpha master owns the lettering and its placement. Layer the
+// same clouded plastic used by the controls inside that unchanged silhouette.
+@media (forced-colors: none) {
+  .theme-meridian_synapse .lobby-title-art {
+    --lobby-title-mark-background: linear-gradient(
+      90deg, #c477e8 10%, #ae8aef 38%, #68c8e1 64%, #38d6cf 88%
+    );
+    --glowstick-title-halo: #38d6cf;
+  }
+
+  .theme-meridian_synapse_xxxo .lobby-title-art {
+    // Keep the approved pink-to-red ramp and stop placement exactly.
+    --lobby-title-mark-background: linear-gradient(
+      90deg, #ff74de 10%, #ff57d5 48%, #ff477d 74%, #ff405b 92%
+    );
+    --glowstick-title-halo: #ff57d5;
+  }
+
+  .theme-meridian_cyberpunk .lobby-title-art {
+    --lobby-title-mark-background: linear-gradient(
+      90deg, #00e5d4 10%, #25dccf 64%, #bd90a4 86%, #ff5267 98%
+    );
+    --glowstick-title-halo: #00e5d4;
+  }
+
+  .theme-meridian_augmentation .lobby-title-art {
+    --lobby-title-mark-background: linear-gradient(
+      90deg, #00e5d4 10%, #22cfc8 42%, #c27687 70%, #f04459 92%
+    );
+    --glowstick-title-halo: #00e5d4;
+  }
+
+  :is(.theme-meridian_synapse, .theme-meridian_synapse_xxxo,
+    .theme-meridian_cyberpunk, .theme-meridian_augmentation) {
+    .lobby-title-art__mark {
+      // Broad internal light has no opaque white stop or outlined edge. The
+      // neutral texture is tinted by the underlying theme gradient.
+      background-image: var(--glowstick-texture),
+        linear-gradient(180deg,
+          #525252, #919191 17%, #bcbcbc 38%, #999 64%, #818181 84%, #626262),
+        var(--lobby-title-mark-background);
+      background-blend-mode: soft-light, soft-light, normal;
+      background-size: 100% 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: drop-shadow(0 0 clamp(2px, 0.45cqmin, 5px)
+          color-mix(in srgb, var(--glowstick-title-halo) 44%, transparent))
+        drop-shadow(0 0 clamp(4px, 0.9cqmin, 10px)
+          color-mix(in srgb, var(--glowstick-title-halo) 18%, transparent));
+    }
+
+    .lobby-title-art--classic-alt .lobby-title-art__mark {
+      // All three layers occupy the original master's y=12-20% title band.
+      // One value repeats for every image, preserving the established sizing.
+      background-position: center 13%;
+      background-size: 100% 9%;
+    }
+  }
+}
+
+@media (forced-colors: none) and (prefers-contrast: more) {
+  :is(.theme-meridian_synapse, .theme-meridian_synapse_xxxo,
+    .theme-meridian_cyberpunk, .theme-meridian_augmentation)
+    .lobby-title-art__mark {
+    background-image: var(--lobby-title-mark-background);
+    background-blend-mode: normal;
+    filter: none;
+  }
+}

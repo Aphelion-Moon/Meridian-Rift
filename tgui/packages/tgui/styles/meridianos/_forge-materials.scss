@@ -1,0 +1,37 @@
+// THIS IS AN APHELION UI FILE
+// Shared casing materials also reach the lobby without importing window styles.
+.theme-meridian_foundry,
+.theme-meridian_afterlight {
+  --forge-bronze-texture: url('tgui/styles/meridianos/assets/forge/foundry-bronze.jpg');
+  --console-frame-gap: 2px;
+  --console-frame-gap-right: 2px;
+  --console-frame-gap-bottom: 2px;
+  --console-frame-top-weight: 12px;
+  --console-frame-left-weight: 12px;
+  --console-frame-right-weight: 12px;
+  --console-frame-bottom-weight: 12px;
+  --console-heading-tracking: 0.09em;
+  --console-control-depth: inset 0 1px 0 rgb(241 223 188 / 16%), inset 0 -2px 0 rgb(0 0 0 / 65%), 0 1px 1px rgb(0 0 0 / 40%);
+}
+
+.theme-meridian_foundry {
+  --forge-texture: var(--forge-bronze-texture);
+  --forge-frame: url('tgui/styles/meridianos/assets/forge/foundry-frame.svg');
+  --forge-panel-frame: var(--forge-frame);
+  --forge-edge: #bd8a52;
+  --forge-metal: #866244;
+  --forge-recess: #19120d;
+  --forge-casing-shade: rgb(20 12 5 / 60%);
+  --forge-title-shade: rgb(24 14 7 / 74%);
+}
+
+.theme-meridian_afterlight {
+  --forge-texture: url('tgui/styles/meridianos/assets/forge/hephaestus-gunmetal.jpg');
+  --forge-frame: url('tgui/styles/meridianos/assets/forge/hephaestus-frame.svg');
+  --forge-panel-frame: var(--forge-frame);
+  --forge-edge: #b89965;
+  --forge-metal: #967044;
+  --forge-recess: #131d24;
+  --forge-casing-shade: rgb(5 12 16 / 30%);
+  --forge-title-shade: rgb(5 12 16 / 48%);
+}

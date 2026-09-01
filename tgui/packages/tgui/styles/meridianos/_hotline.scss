@@ -1,0 +1,218 @@
+// THIS IS AN APHELION UI FILE
+@use './glowstick';
+
+// Synapse XXXO: glowstick neon. Synapse owns the shared geometry.
+// Native forced colors and the shared loader motion rules remain authoritative.
+@media (forced-colors: none) {
+  .theme-meridian_synapse_xxxo {
+    --xxxo-violet: #b57aff;
+    --console-control-face: #2c143a;
+    --section-title-color: #fbd1ff;
+    --console-control-depth: inset 0 1px 0 #ffffff09, inset 0 -2px 0 #08020e70;
+    --console-border-subtle: #613041;
+    --console-border-strong: #b775bb;
+    --xxxo-red: #ff405b;
+    --console-loader-crown-color: #ff536c;
+    --console-loader-progress-core: #ff5f75;
+    --console-loader-cage-width: 4px;
+    --console-loader-track-width: 3px;
+    --console-loader-cage-pattern: conic-gradient(from -54deg,
+      #ff405b 0deg 164deg, transparent 164deg 224deg,
+      #ff67d3 224deg 318deg, transparent 318deg);
+  }
+
+  .theme-meridian_synapse_xxxo .Window {
+    background-image: radial-gradient(ellipse at 82% 30%, #f52c3d15, transparent 50%),
+      radial-gradient(ellipse at 6% 8%, #db37ef1d, transparent 55%),
+      linear-gradient(145deg, #1d0c29, #0d0713 55%, #1c0817);
+    box-shadow: inset 0 0 0 1px #99527e, 3px 3px 0 #ff344837,
+      0 0 30px #ff405b09;
+  }
+
+  .theme-meridian_synapse_xxxo .TitleBar {
+    background: linear-gradient(90deg, #341340, #24102f 65%, #391321);
+    background-image: linear-gradient(107deg, #45123e, #23112f 48%, #4b1024);
+    border-top-color: #ffc1ec;
+    border-bottom-color: #c75082;
+    box-shadow: inset 0 1px 0 #ffe9fa30, inset 0 -2px 3px #09010bc0;
+  }
+
+  .theme-meridian_synapse_xxxo .TitleBar::after {
+    height: 20px;
+    bottom: -10px;
+    width: 240px;
+    background: url('tgui/styles/meridianos/assets/hotline-neon-tube.svg') center / 100% 100% no-repeat;
+    box-shadow: none;
+  }
+
+  .theme-meridian_synapse_xxxo .Window::after {
+    background: var(--xxxo-red);
+    box-shadow: 0 0 8px #ff405b70;
+  }
+
+  .theme-meridian_synapse_xxxo .Section::before {
+    background: linear-gradient(#ff7cda 0 0) top left / 28px 1px no-repeat,
+      linear-gradient(#ff405b 0 0) top left / 1px 11px no-repeat,
+      radial-gradient(circle, #ffe2e5 0 1px, #ff405b 1px 2px, #ff405b40 3px, transparent 5px)
+      bottom right / 9px 9px no-repeat;
+  }
+
+  .theme-meridian_synapse_xxxo .Section > .Section__title {
+    background: var(--section-title-background, linear-gradient(180deg, #ffb0f010, transparent 16%, #00000028 100%),
+      linear-gradient(100deg, #3d183b, #25102c 72%, #41111e));
+  }
+
+  .theme-meridian_synapse_xxxo .Button--color--default:is(.Button--selected, [aria-pressed='true'], [aria-checked='true']):not(.Button--disabled):not([aria-disabled='true']):not(:disabled) {
+    @include glowstick.control(#ff67d3);
+  }
+
+  .theme-meridian_synapse_xxxo .lobby {
+    --menu-rule: linear-gradient(90deg, #ff70dc 0 64%, transparent 64% 70%, #ff405b 70% 100%);
+    --menu-shadow: 3px 3px 0 #ff405b47, 0 0 14px #ff405b0a;
+    --menu-frame: #a8638f;
+  }
+
+  .theme-meridian_synapse_xxxo .lobby .container_nav::before {
+    top: -3px;
+    height: 20px;
+    width: 82%;
+    background: url('tgui/styles/meridianos/assets/hotline-neon-tube.svg') center / 100% 100% no-repeat;
+    filter: none;
+  }
+
+  .theme-meridian_synapse_xxxo .lobby .lobby-terminal-phase,
+  .theme-meridian_synapse_xxxo .lobby .menu_button:first-of-type:not(:disabled) {
+    color: var(--xxxo-red);
+  }
+
+  .theme-meridian_synapse_xxxo .Window::before {
+    border-right-color: #ff405b88;
+    border-bottom-color: #ff405b66;
+  }
+
+  .theme-meridian_synapse_xxxo .Section {
+    background-image: linear-gradient(125deg, #c876e408, transparent 46%, #ff35500b),
+      repeating-linear-gradient(91deg, #ffffff03 0 1px, transparent 1px 5px);
+    box-shadow: inset 0 1px 0 #d69bb416, 0 2px 5px #03000580;
+  }
+
+  .theme-meridian_synapse_xxxo .Section > .Section__title::after {
+    height: 2px;
+    @include glowstick.surface(#ff67d3);
+    background-image: var(--glowstick-texture),
+      linear-gradient(90deg, #ff7185, #ff405b 20% 48%, #561524 48% 54%, #ff7add 54%, #ff98e3 85%, #ff6bd8);
+    @include glowstick.halo(var(--xxxo-red));
+  }
+
+  .theme-meridian_synapse_xxxo .Button--color--default:not(.Button--selected):not([aria-pressed='true']):not([aria-checked='true']):not(.Button--disabled):not([aria-disabled='true']):not(:disabled) {
+    background-image: linear-gradient(165deg, #ffffff09, transparent 45%, #00000024);
+    box-shadow: inset 0 1px 0 #ffe9ff10, inset 0 -1px 0 #0009;
+  }
+
+  .theme-meridian_synapse_xxxo :is(.Tab--selected, .Tab[aria-selected='true']) {
+    @include glowstick.tab(#ff5b88);
+  }
+
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__instrument {
+    --console-loader-crown-color: #ff536c;
+    --console-loader-progress-core: #ff5f75;
+    --console-interaction-selected: #ff6b7c;
+    contain: layout style;
+    overflow: visible;
+    filter: drop-shadow(0 0 2px #ff405ba6)
+      drop-shadow(0 0 6px #ff284961) drop-shadow(0 0 12px #ff284929);
+  }
+
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__instrument::before {
+    content: '';
+    position: absolute;
+    inset: -14%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 54% 48%, #ff344b15, #b116440c 35%, transparent 69%);
+    pointer-events: none;
+  }
+
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__tickCrown {
+    background-image: repeating-conic-gradient(from var(--console-loader-crown-start, -90deg),
+      #ff536c 0deg var(--console-loader-tick-width),
+      transparent var(--console-loader-tick-width) var(--console-loader-tick-step));
+  }
+
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__outerCage {
+    @include glowstick.ring(var(--console-loader-cage-pattern), var(--console-loader-cage-width));
+  }
+
+  // Relative stops preserve an empty arc at 0% and a full arc at 100%.
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__progressFill {
+    background: conic-gradient(
+      from -90deg,
+      #ff75d9 0deg,
+      #ff67d3 calc(var(--diagnostic-loader-angle) * 0.347222),
+      #ff528e calc(var(--diagnostic-loader-angle) * 0.694444),
+      #ff5674 var(--diagnostic-loader-angle),
+      transparent var(--diagnostic-loader-angle)
+      );
+    @include glowstick.progress;
+  }
+
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__innerMarks {
+    border-top-color: #ff3f5b;
+    border-right-color: #ff7185;
+    border-bottom-color: #822647;
+    border-left-color: #ff72d5;
+    box-shadow: 1px 0 2px #ff405b55, -1px 0 2px #ff57d544;
+  }
+
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__origin {
+    @include glowstick.surface(#ff4a68);
+  }
+
+  .theme-meridian_synapse_xxxo .DiagnosticLoader__core {
+    @include glowstick.core(var(--console-loader-progress-core));
+  }
+
+  .theme-meridian_synapse_xxxo .lobby .container_nav {
+    background-image: radial-gradient(ellipse at 100% 0%, #ff274826, transparent 65%),
+      repeating-linear-gradient(91deg, #ffffff03 0 1px, transparent 1px 5px);
+  }
+
+  .theme-meridian_synapse_xxxo .lobby .menu_button:first-of-type:not(:disabled) {
+    color: #ff9aa6;
+    text-shadow: 0 0 3px #ff526cbb, 0 0 9px #ff28483b;
+    background-image: linear-gradient(90deg, #ff2b481b, transparent 80%);
+    border-left-color: #ff5b73;
+    box-shadow: inset 1px 0 0 #ffc1ce, -2px 0 4px #ff405b2b;
+  }
+
+  .theme-meridian_synapse_xxxo .Slider:not(.Slider--disabled) .Slider__cursor {
+    border-left-color: #ff87dd;
+    filter: drop-shadow(0 0 2px #ff57d580);
+  }
+
+  // Keep labelled progress faces dark enough for their foreground text.
+  .theme-meridian_synapse_xxxo .ProgressBar--color--default:not(.Slider--disabled) > .ProgressBar__fill {
+    @include glowstick.progress-face(#ff67d3);
+  }
+
+  .theme-meridian_synapse_xxxo .boot_terminal {
+    --boot-accent: #ff7185;
+    --boot-accent-secondary: #ff7185;
+    --boot-boundary: #995269;
+  }
+
+  .theme-meridian_synapse_xxxo .boot_terminal .DiagnosticLoader__label {
+    color: #ffdae7;
+    text-shadow: 0 0 8px #ff405b40;
+  }
+
+  .theme-meridian_synapse_xxxo .container_terminal::before {
+    height: 10px;
+    top: -4px;
+    width: min(240px, 70%);
+    background: url('tgui/styles/meridianos/assets/hotline-neon-tube.svg') center / 100% 100% no-repeat;
+  }
+
+  .theme-meridian_synapse_xxxo {
+    @include glowstick.boot(var(--xxxo-red));
+  }
+}

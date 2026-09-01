@@ -166,7 +166,7 @@ GLOBAL_LIST_EMPTY(request_list)
 
 /datum/feed_network/New()
 	create_feed_channel(NEWSCASTER_STATION_ANNOUNCEMENTS, "SS13", "Company news, staff announcements, and all the latest information. Have a secure shift!", locked = TRUE)
-	create_feed_channel(NEWSCASTER_SPACE_BETTING, "NtOS", "News from the SpaceBet PDA App! Download now and make your own bets!", locked = TRUE)
+	create_feed_channel(NEWSCASTER_SPACE_BETTING, "MeridianOS", "News from the SpaceBet PDA App! Download now and make your own bets!", locked = TRUE) // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: create_feed_channel(NEWSCASTER_SPACE_BETTING, "NtOS", "News from the SpaceBet PDA App! Download now and make your own bets!", locked = TRUE)
 	wanted_issue = new /datum/wanted_message
 
 /datum/feed_network/proc/add_feed_channel(datum/feed_channel/new_channel)

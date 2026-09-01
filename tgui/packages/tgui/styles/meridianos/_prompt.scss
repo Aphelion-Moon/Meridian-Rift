@@ -1,0 +1,53 @@
+// THIS IS AN APHELION UI FILE
+// Natural height makes short prompts fit; screen-limited prompts remain scrollable.
+.Window.MeridianContentFit {
+  .Window__content {
+    overflow-y: auto;
+  }
+
+  .Window__contentPadding,
+  .Window__contentPadding > .Section,
+  .Window__contentPadding > .Section > .Section__rest > .Section__content,
+  .Stack--fill {
+    height: auto;
+  }
+
+  .Stack--vertical > .Stack__item {
+    flex-shrink: 0;
+  }
+
+  .Stack__item,
+  .Flex__item {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .Stack--horizontal,
+  .Flex:not(.Stack) {
+    flex-wrap: wrap;
+  }
+
+  .Button {
+    min-width: 0 !important;
+    max-width: 100%;
+    height: auto !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .Section__content {
+    overflow-wrap: anywhere;
+  }
+}
+
+.Window.MeridianChoicePrompt {
+  .Section--scrollable {
+    height: 12rem;
+  }
+}
+
+.Window.MeridianPrompt {
+  textarea {
+    min-height: 1.8rem;
+  }
+}

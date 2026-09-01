@@ -6,9 +6,13 @@ import { playCollapseSound, playExpandSound, playSelectSound } from './audio';
 
 */ // APHELION EDIT REMOVAL END
 // APHELION EDIT ADDITION START - LOBBY_MENU_REWORK
-import { useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer } from 'react'; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: import { useEffect, useReducer } from 'react';
+// APHELION EDIT ADDITION START - MERIDIAN_UI
+import type { MeridianBaseThemeId } from 'tgui/constants/theme';
+import type { MeridianLobbyState } from './AphelionLobbyMenu';
+// APHELION EDIT ADDITION END
 import { AphelionLobbyMenu } from './AphelionLobbyMenu';
-import type { StartupMessage } from './components/BootTerminal';
+import type { StartupMessage, StartupStatus } from './components/BootTerminal';
 import type { StationTrait } from './components/StationTraitList';
 // APHELION EDIT ADDITION END
 /* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - moved to components/StationTraitList.tsx
@@ -21,39 +25,42 @@ type StationTrait = {
 };
 */ // APHELION EDIT REMOVAL END
 
-export type ServerState = {
-  titleImageUrl: string;
-  gamePhase: 'startup' | 'pregame' | 'setting_up' | 'playing' | 'postgame';
-  isReady: boolean;
-  canReady: boolean;
-  canJoin: boolean;
-  canObserve: boolean;
-  assetsReady: boolean;
-  countdown: string;
-  playerCount: number;
-  readyCount: number;
-  adminReadyCount: number;
-  adminCount: number;
-  mapName: string;
-  shiftTime: string;
-  isAdmin: boolean;
-  isLocalhost: boolean;
-  stationTraits: StationTrait[];
-  hasNewPoll: boolean;
-  canPoll: boolean;
-  overflowJob: string | null;
-  traitFeedback: string | null;
-  transparent: boolean;
-  // APHELION EDIT ADDITION START - LOBBY_MENU_REWORK - Aphelion's own lobby content
-  notice: string | null;
-  latejoinQueue: string | number;
-  characterName: string;
-  isAntag: boolean;
-  startupMessages: StartupMessage[];
-  progressCurrent: number;
-  progressTotal: number;
-  // APHELION EDIT ADDITION END
-};
+export type ServerState = MeridianLobbyState &
+  StartupStatus & {
+    // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: export type ServerState = {
+    titleImageUrl: string;
+    gamePhase: 'startup' | 'pregame' | 'setting_up' | 'playing' | 'postgame';
+    isReady: boolean;
+    canReady: boolean;
+    canJoin: boolean;
+    canObserve: boolean;
+    assetsReady: boolean;
+    countdown: string;
+    playerCount: number;
+    readyCount: number;
+    adminReadyCount: number;
+    adminCount: number;
+    mapName: string;
+    shiftTime: string;
+    isAdmin: boolean;
+    isLocalhost: boolean;
+    stationTraits: StationTrait[];
+    hasNewPoll: boolean;
+    canPoll: boolean;
+    canSwapServers: boolean;
+    overflowJob: string | null;
+    traitFeedback: string | null;
+    transparent: boolean;
+    // APHELION EDIT ADDITION START - LOBBY_MENU_REWORK - Aphelion's own lobby content
+    notice: string | null;
+    latejoinQueue: string | number;
+    characterName: string;
+    isAntag: boolean;
+    startupMessages: StartupMessage[];
+    progressCurrent: number;
+    progressTotal: number;
+    // APHELION EDIT ADDITION END
+  };
 
 /* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - isCollapsed dropped along with the shutter/collapse feature
 type LobbyState = {
@@ -734,10 +741,22 @@ export function LobbyMenu() {
     );
   }, [serverState?.transparent]);
 
+  // APHELION EDIT ADDITION START - MERIDIAN_UI
+  const setMeridianTheme = useCallback((theme: MeridianBaseThemeId) => {
+    dispatch({ type: 'serverUpdate', payload: { meridianTheme: theme } });
+    Byond.sendMessage('setMeridianTheme', { theme });
+  }, []);
+
+  // APHELION EDIT ADDITION END
   if (!serverState) {
     return null;
   }
 
-  return <AphelionLobbyMenu serverState={serverState} />;
+  return (
+    <AphelionLobbyMenu
+      onMeridianThemeChange={setMeridianTheme} // APHELION EDIT ADDITION - MERIDIAN_UI
+      serverState={serverState}
+    />
+  );
 }
 // APHELION EDIT ADDITION END

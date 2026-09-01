@@ -1,0 +1,14 @@
+// THIS IS AN APHELION UI FILE
+// A fixed-height canvas keeps the approved 2px tube thin at every box width.
+// The SVG reaches both ends; only its width stretches with the surrounding box.
+@mixin rail {
+  left: var(--console-chrome-safe-left);
+  right: var(--console-chrome-safe-right);
+  width: auto;
+  max-width: none;
+  height: 64px;
+  background: url('tgui/styles/meridianos/assets/aphelion-neon-tube.svg') center / 100% 100%
+    no-repeat;
+  opacity: 1;
+  pointer-events: none;
+}

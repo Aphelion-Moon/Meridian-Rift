@@ -229,8 +229,14 @@ ADMIN_VERB(toggle_lobby_transparency, R_ADMIN, "Toggle Lobby Transparency", "Tog
 	var/mob/dead/new_player/player = client?.mob
 	var/game_phase = get_game_phase()
 
+	/* // APHELION EDIT REMOVAL START
 	window.send_message("init", list(
 		"titleImageUrl" = SSassets.transport.get_asset_url(SStitle.current_title_asset_name), // APHELION EDIT CHANGE - LOBBY_MENU_REWORK - ORIGINAL: "titleImageUrl" = SSassets.transport.get_asset_url(LOBBY_TITLE_ASSET_NAME),
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START
+	var/list/init_payload = get_title_init_payload()
+	init_payload += list(
+	// APHELION EDIT ADDITION END
 		"gamePhase" = game_phase,
 		"isReady" = istype(player) && player.ready == PLAYER_READY_TO_PLAY,
 		"canReady" = game_phase == "pregame" || game_phase == "startup",
@@ -249,18 +255,11 @@ ADMIN_VERB(toggle_lobby_transparency, R_ADMIN, "Toggle Lobby Transparency", "Tog
 		"stationTraits" = get_station_traits(),
 		"hasNewPoll" = FALSE,
 		"canPoll" = !is_guest_key(client?.key) && SSdbcore.Connect(),
+		"canSwapServers" = LAZYLEN(CONFIG_GET(keyed_list/cross_server)) > 0,
 		"overflowJob" = null,
 		"transparent" = GLOB.lobby_background_transparent,
-		// APHELION EDIT ADDITION START - LOBBY_MENU_REWORK - Aphelion's own lobby content
-		"notice" = SStitle.current_notice,
-		"latejoinQueue" = SStitle.get_latejoin_queue_count(),
-		"characterName" = uppertext(client?.prefs?.read_preference(/datum/preference/name/real_name)),
-		"isAntag" = client?.prefs?.read_preference(/datum/preference/toggle/be_antag),
-		"startupMessages" = GLOB.startup_messages,
-		"progressCurrent" = world.timeofday - SStitle.progress_reference_time,
-		"progressTotal" = SStitle.average_completion_time,
-		// APHELION EDIT ADDITION END
-	))
+	)  // APHELION EDIT CHANGE - LOBBY_MENU_REWORK - ORIGINAL: ))
+	window.send_message("init", init_payload) // APHELION EDIT ADDITION
 
 	check_new_polls()
 

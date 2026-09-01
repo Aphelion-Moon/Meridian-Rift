@@ -1,0 +1,29 @@
+// THIS IS AN APHELION UI FILE
+@use './neon-glass' as glass;
+@use './glowstick';
+
+@media (forced-colors: none) {
+  .theme-meridian_synapse {
+    @include glass.finish('tgui/styles/meridianos/assets/synapse-neon-tube.svg', #38d6cf);
+    --glass-cyan-cage: conic-gradient(from -54deg,
+      transparent 0deg 224deg, #38d6cf 224deg 318deg, transparent 318deg);
+    --console-loader-cage-pattern: conic-gradient(from -54deg,
+      #c477e8 0deg, #edd1fc 42deg, #c477e8 84deg 164deg, transparent 164deg 224deg,
+      #38d6cf 224deg 318deg, transparent 318deg);
+
+    .DiagnosticLoader__nodes {
+      @include glowstick.ring(
+        repeating-conic-gradient(from var(--console-loader-node-start, -90deg),
+          #000 0deg var(--console-loader-node-width),
+          transparent var(--console-loader-node-width) var(--console-loader-node-step)),
+        var(--console-loader-node-size, 4px)
+      );
+    }
+
+    // Cyan stays on the original inset accents. The crown and core stay violet.
+    .DiagnosticLoader__light .DiagnosticLoader__innerMarks { border-right-color: #38d6cf; }
+    .DiagnosticLoader__light :is(.DiagnosticLoader__core, .DiagnosticLoader__progressFill) {
+      display: none;
+    }
+  }
+}
