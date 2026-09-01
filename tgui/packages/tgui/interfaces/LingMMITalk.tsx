@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { Button, ByondUi, Stack, TextArea } from 'tgui-core/components';
+// APHELION EDIT REMOVAL - native UI menu avoidance
+// import { Button, ByondUi, Stack, TextArea } from 'tgui-core/components';
+// APHELION EDIT ADDITION START - native UI menu avoidance
+import { Button, Stack, TextArea } from 'tgui-core/components';
+import { ByondUi } from '../layouts/ByondUi';
+// APHELION EDIT ADDITION END
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';

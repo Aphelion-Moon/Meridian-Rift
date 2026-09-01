@@ -4,6 +4,7 @@
  * @license MIT
  */
 
+import type { ComponentProps } from 'react'; // APHELION EDIT ADDITION - MERIDIAN_UI
 import { Box, Button } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 
@@ -51,7 +52,8 @@ type Login = {
   IDName: string | null;
 };
 
-export const NtosWindow = (props) => {
+export const NtosWindow = (props: ComponentProps<typeof Window>) => {
+  // APHELION EDIT CHANGE - MERIDIAN_UI - typed window props
   const { title, width = 575, height = 700, children } = props;
   const { act, data } = useBackend<NTOSData>();
   const {
@@ -84,7 +86,8 @@ export const NtosWindow = (props) => {
               {PC_stationtime}
             </Box>
             <Box inline italic mr={2} opacity={0.33}>
-              {(PC_device_theme === 'syndicate' && 'Syndix') || 'NtOS'}
+              {(PC_device_theme === 'syndicate' && 'Syndix') || 'MeridianOS'}{' '}
+              {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: NtOS */}
               {!!PC_lowpower_mode && ' - RUNNING ON LOW POWER MODE'}
             </Box>
           </div>
@@ -150,7 +153,8 @@ export const NtosWindow = (props) => {
   );
 };
 
-const NtosWindowContent = (props) => {
+const NtosWindowContent = (props: ComponentProps<typeof Window.Content>) => {
+  // APHELION EDIT CHANGE - MERIDIAN_UI - typed content props
   return (
     <div className="NtosWindow__content">
       <Window.Content {...props} />

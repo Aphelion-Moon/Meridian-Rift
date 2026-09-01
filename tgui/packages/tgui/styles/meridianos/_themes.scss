@@ -1,0 +1,407 @@
+// THIS IS AN APHELION UI FILE
+@use 'palette';
+
+// Adding a palette automatically emits its theme selector in both bundles.
+@each $id, $colors in palette.$palettes {
+  .theme-#{$id}:root,
+  .theme-#{$id} {
+    @include palette.emit($colors);
+  }
+}
+
+.theme-meridian_electra {
+  // Give the diamond frame consistent line weight on all four sides.
+  --console-loader-stroke-secondary: var(--console-loader-stroke);
+}
+
+.theme-meridian_wastelander {
+  --console-frame-gap: 4px;
+  --console-frame-top-weight: 3px;
+  --console-frame-left-weight: 3px;
+  --console-frame-right-weight: 2px;
+  --console-frame-bottom-weight: 2px;
+  --console-corner-cut: 0;
+  --console-frame-layer: 3px;
+  --console-corner-layer: 24px;
+  --console-title-rail: 78px;
+  --console-segment-pattern: 6px;
+  --console-loader-tick-step: 22.5deg;
+  --console-loader-tick-width: 9deg;
+  --console-loader-tick-depth: 10%;
+  --console-loader-node-step: 90deg;
+  --console-loader-node-width: 7deg;
+  --console-loader-node-opacity: 0.86;
+  --console-loader-cage-width: 4px;
+  --console-loader-track-width: 3px;
+  --console-loader-core-size: 28%;
+  --console-loader-core-shape: inset(0);
+  --console-heading-tracking: 0.12em;
+  --console-control-depth: inset 0 -3px 0 var(--console-surface-recessed), inset 0 0 0 1px var(--console-border-control);
+  --console-motif-opacity: 0.42;
+  --console-overlay-shadow: 0 4px 10px rgb(0 0 0 / 52%);
+}
+
+.theme-meridian_aphelion,
+.theme-meridian_classic,
+.theme-meridian_electra,
+.theme-meridian_wastelander,
+.theme-meridian_vector,
+.theme-meridian_foundry,
+.theme-meridian_highline,
+.theme-meridian_synapse,
+.theme-meridian_hotline,
+.theme-meridian_cyberpunk,
+.theme-meridian_augmentation {
+  // Clear the diamond outline without changing the spoke angles.
+  // Its 38% square, rotated 45deg, has tips at 23.13% and 76.87%.
+  // The outer contour retains the crown; the inner one cuts a clear gap.
+  --console-loader-crown-clip: polygon(
+    evenodd,
+    0 0,
+    100% 0,
+    100% 100%,
+    0 100%,
+    0 0,
+    50% calc(23.13% - 2px),
+    calc(76.87% + 2px) 50%,
+    50% calc(76.87% + 2px),
+    calc(23.13% - 2px) 50%,
+    50% calc(23.13% - 2px)
+  );
+}
+
+.theme-meridian_vector {
+  --console-frame-top-weight: 3px;
+  --console-frame-left-weight: 3px;
+  --console-frame-right-weight: 3px;
+  --console-frame-bottom-weight: 3px;
+  --console-corner-cut: 6px;
+  --console-corner-layer: 24px;
+  --console-title-rail: 116px;
+  --console-loader-tick-step: 15deg;
+  --console-loader-tick-width: 1deg;
+  --console-loader-tick-depth: 4%;
+  --console-loader-cage-width: 2px;
+  --console-loader-cage-pattern: conic-gradient(
+    from -90deg,
+    var(--console-interaction-accent) 0deg 118deg,
+    transparent 118deg 128deg,
+    var(--console-border-control) 128deg 260deg,
+    transparent 260deg 274deg,
+    var(--console-interaction-selected) 274deg 344deg,
+    transparent 344deg
+  );
+  --console-loader-turn-duration: 7.2s;
+  --console-heading-tracking: 0.12em;
+}
+
+.theme-meridian_foundry {
+  --console-corner-cut: 8px;
+  --console-frame-layer: 2px;
+  --console-corner-layer: 12px;
+  --console-title-rail: 72px;
+  --console-segment-pattern: 12px;
+  --console-loader-tick-step: 30deg;
+  --console-loader-tick-width: 10deg;
+  --console-loader-tick-depth: 9%;
+  --console-loader-cage-width: 5px;
+  --console-loader-core-size: 28%;
+  --console-loader-core-shape: polygon(
+    12% 0,
+    100% 0,
+    100% 88%,
+    88% 100%,
+    0 100%,
+    0 12%
+  );
+  --console-control-depth: inset 2px 2px 0 var(--console-surface-recessed), inset -1px -1px 0 var(--console-border-control);
+}
+
+.theme-meridian_diagnostic {
+  --console-corner-cut: 0;
+  --console-corner-layer: 20px;
+  --console-title-rail: 104px;
+  --console-loader-tick-step: 45deg;
+  --console-loader-tick-width: 2deg;
+  --console-loader-node-step: 45deg;
+  --console-loader-node-width: 5deg;
+  --console-loader-node-opacity: 1;
+  --console-loader-core-shape: inset(8%);
+  --console-heading-case: none;
+}
+
+.theme-meridian_highline {
+  --console-frame-gap: 2px;
+  --console-frame-top-weight: 2px;
+  --console-frame-left-weight: 2px;
+  --console-frame-right-weight: 2px;
+  --console-frame-bottom-weight: 2px;
+  // Pale structural edges, quiet panel seams, and an unlit ceramic title plate.
+  --console-border-strong: var(--console-border-control);
+  --console-border-subtle: color-mix(in srgb, var(--console-border-control) 48%, var(--console-surface-base));
+  --console-border-separator: color-mix(in srgb, var(--console-border-control) 60%, var(--console-surface-base));
+  --highline-ceramic: color-mix(in srgb, var(--console-text-primary) 75%, var(--console-border-control));
+  --console-text-disabled: var(--console-text-secondary);
+  --console-corner-cut: 0;
+  --console-frame-layer: 2px;
+  --console-corner-layer: 0px;
+  --console-title-rail: 100%;
+  --console-motif-opacity: 0;
+  --console-selected-rail: 4px;
+  --console-loader-crown-color: #d9dedb;
+  --console-loader-progress-core: #d5bd68;
+  --console-loader-tick-step: 90deg;
+  --console-loader-tick-width: 36deg;
+  --console-loader-tick-depth: 12%;
+  --console-loader-crown-gap: var(--console-surface-canvas);
+  --console-loader-fill-gap: var(--console-surface-canvas);
+  --console-loader-cage-width: 5px;
+  --console-loader-track-width: 5px;
+  --console-loader-cage-pattern: conic-gradient(
+    from -68deg,
+    #e2e5df 0deg 66deg,
+    var(--console-surface-canvas) 66deg 112deg,
+    #e2e5df 112deg 178deg,
+    var(--console-surface-canvas) 178deg 224deg,
+    #e2e5df 224deg 290deg,
+    var(--console-surface-canvas) 290deg 336deg,
+    #e2e5df 336deg
+  );
+  --console-loader-core-size: 30%;
+  --console-loader-core-shape: inset(0);
+  --console-control-depth: none;
+  --console-overlay-shadow: none;
+  --tab-background: var(--console-surface-recessed);
+
+  // Retain Highline's white-and-yellow instrument without brightening controls.
+  .DiagnosticLoader__instrument {
+    --console-border-control: #d9dedb;
+    --console-interaction-accent: #d5bd68;
+    --console-interaction-selected: #dfcf87;
+    --console-interaction-focus: #d5bd68;
+  }
+}
+
+.theme-meridian_synapse,
+.theme-meridian_hotline {
+  --console-corner-cut: 7px;
+  --console-corner-layer: 16px;
+  --console-title-rail: 84px;
+  --console-loader-tick-step: 120deg;
+  --console-loader-tick-width: 7deg;
+  --console-loader-node-step: 120deg;
+  --console-loader-node-width: 9deg;
+  --console-loader-node-opacity: 1;
+  --console-loader-cage-pattern: conic-gradient(
+    from -54deg,
+    var(--console-interaction-accent) 0deg 164deg,
+    transparent 164deg 224deg,
+    var(--console-interaction-selected) 224deg 318deg,
+    transparent 318deg
+  );
+  --console-loader-core-shape: polygon(
+    50% 0,
+    92% 26%,
+    80% 82%,
+    22% 100%,
+    0 44%
+  );
+}
+
+.theme-meridian_cyberpunk {
+  --console-corner-cut: 10px;
+  --console-frame-layer: 2px;
+  --console-corner-layer: 30px;
+  --console-title-rail: 128px;
+  --console-loader-tick-step: 36deg;
+  --console-loader-tick-width: 4deg;
+  --console-loader-cage-pattern: conic-gradient(
+    from -74deg,
+    var(--augmentation-frame) 0deg 72deg,
+    transparent 72deg 86deg,
+    var(--augmentation-frame) 86deg 178deg,
+    transparent 178deg 214deg,
+    var(--augmentation-readout) 214deg 292deg,
+    transparent 292deg
+  );
+  --console-loader-progress-core: var(--augmentation-readout);
+  --console-loader-origin-width: 8px;
+  --console-loader-origin-height: 2px;
+  --console-heading-tracking: 0.14em;
+  --augmentation-frame: #c0152a;
+  --augmentation-readout: #00e5d4;
+}
+
+.theme-meridian_augmentation {
+  --console-corner-cut: 12px;
+  --console-frame-layer: 2px;
+  --console-corner-layer: 28px;
+  --console-title-rail: 132px;
+  --console-loader-tick-step: 120deg;
+  --console-loader-tick-width: 26deg;
+  --console-loader-tick-depth: 8%;
+  --console-loader-node-step: 120deg;
+  --console-loader-node-width: 8deg;
+  --console-loader-node-opacity: 1;
+  --console-loader-cage-pattern: conic-gradient(
+    from -90deg,
+    var(--augmentation-frame) 0deg 98deg,
+    transparent 98deg 120deg,
+    var(--augmentation-frame) 120deg 218deg,
+    transparent 218deg 240deg,
+    var(--augmentation-readout) 240deg 338deg,
+    transparent 338deg
+  );
+  --console-loader-progress-core: var(--augmentation-readout);
+  --console-loader-core-shape: polygon(
+    12% 0,
+    88% 0,
+    100% 50%,
+    88% 100%,
+    12% 100%,
+    0 50%
+  );
+  --console-heading-tracking: 0.16em;
+  --augmentation-frame: #c0152a;
+  --augmentation-readout: #00e5d4;
+}
+
+.theme-meridian_hephaestus {
+  --console-corner-cut: 2px;
+  --console-frame-layer: 2px;
+  --console-corner-layer: 10px;
+  --console-title-rail: 64px;
+  --console-frame-gap-right: 5px;
+  --console-frame-gap-bottom: 5px;
+  --console-frame-top-weight: 5px;
+  --console-frame-left-weight: 4px;
+  --console-loader-tick-step: 45deg;
+  --console-loader-tick-width: 18deg;
+  --console-loader-tick-depth: 11%;
+  --console-loader-cage-width: 6px;
+  --console-loader-core-size: 32%;
+  --console-loader-core-shape: inset(0);
+  --console-control-depth: inset 2px 2px 0 var(--console-surface-recessed), inset -2px -2px 0 var(--console-border-control);
+}
+
+.theme-meridian_shadowbroker {
+  --console-corner-cut: 1px;
+  --console-frame-layer: 2px;
+  --console-corner-layer: 8px;
+  --console-title-rail: 76px;
+  // Wider segments keep the short signal rail legible.
+  --console-segment-pattern: 14px;
+  // Tighter tracking suits the monospace heading font.
+  --console-heading-tracking: 0.05em;
+  // Use Shadowbroker's cyan for information readouts.
+  --console-status-information: var(--console-interaction-selected);
+  --console-loader-tick-step: 30deg;
+  --console-loader-tick-width: 12deg;
+  --console-loader-tick-depth: 10%;
+  // Center both sets of marks on the same twelve positions.
+  --console-loader-crown-start: -6deg;
+  --console-loader-node-start: -4deg;
+  // Clear the original square's corners without changing its size.
+  --console-loader-inner-inset: calc(30% - 2px);
+  --console-loader-node-step: 30deg;
+  --console-loader-node-width: 8deg;
+  --console-loader-node-opacity: 0.72;
+  --console-loader-core-size: 28%;
+  --console-loader-core-shape: inset(0);
+  --console-control-depth: inset 0 -3px 0 var(--console-surface-recessed), inset 0 0 0 1px var(--console-border-control);
+}
+
+.theme-meridian_scavenger {
+  --scavenger-texture: url('tgui/styles/meridianos/assets/scavenger-rust.jpg');
+  --scavenger-plates: url('tgui/styles/meridianos/assets/scavenger-plates.svg');
+  --scavenger-fastener: radial-gradient(circle, #17130e 0 0.5px, #89775b 1px 1.5px, #100d0a 2px, transparent 2.5px);
+  --console-frame-gap: 0px;
+  --console-frame-top-weight: 4px;
+  --console-frame-left-weight: 4px;
+  --console-frame-right-weight: 4px;
+  --console-frame-bottom-weight: 4px;
+  --console-corner-cut: 0px;
+  --console-frame-layer: 0px;
+  --console-corner-layer: 0px;
+  --console-title-rail: 0px;
+  --console-window-pin-width: 0px;
+  --console-border-subtle: color-mix(in srgb, var(--console-border-control) 68%, var(--console-surface-base));
+  --console-heading-case: none;
+  --console-heading-tracking: 0.025em;
+  --console-selected-rail: 5px;
+  --console-loader-tick-step: 90deg;
+  --console-loader-tick-width: 54deg;
+  --console-loader-tick-depth: 15%;
+  --console-loader-cage-width: 7px;
+  --console-loader-track-width: 5px;
+  --console-loader-core-size: 34%;
+  --console-loader-core-shape: polygon(
+    18% 0,
+    82% 0,
+    100% 18%,
+    100% 82%,
+    82% 100%,
+    18% 100%,
+    0 82%,
+    0 18%
+  );
+  --console-control-depth: inset 0 1px 0 rgb(240 231 206 / 8%), inset 0 -1px 0 var(--console-surface-recessed);
+}
+
+// The Meridian website's field-instrument palette and restrained calibration marks.
+.theme-meridian_aphelion {
+  --aphelion-neon-tube: url('tgui/styles/meridianos/assets/aphelion-neon-tube.svg');
+  --aphelion-line: #2e2a25;
+  --aphelion-line-strong: #453f36;
+  --aphelion-surface-selected: #292520;
+  --console-border-subtle: var(--aphelion-line);
+  --console-border-strong: var(--aphelion-line-strong);
+  --console-border-separator: var(--aphelion-line);
+  --console-text-disabled: #8f887c;
+  --color-label: var(--console-text-secondary);
+  --font-family: var(--aphelion-font-sans);
+  --font-family-mono: var(--aphelion-font-mono);
+  --console-font-display: var(--aphelion-font-display);
+  --console-heading-case: none;
+  --console-heading-tracking: 0.025em;
+  --console-corner-cut: 0px;
+  --console-frame-gap: 2px;
+  --console-corner-layer: 7px;
+  --console-title-rail: 180px;
+  --console-motif-opacity: 0.22;
+  --console-control-depth: inset 0 1px 1px rgb(0 0 0 / 16%);
+  --console-interaction-hover: color-mix(in srgb, #56d4dc 7%, #211d19);
+  --console-interaction-pressed: var(--aphelion-surface-selected);
+  --console-overlay-shadow: 0 2px 8px rgb(0 0 0 / 32%);
+  --console-loader-tick-step: 15deg;
+  --console-loader-crown-start: -0.5deg;
+  --console-loader-tick-width: 1deg;
+  --console-loader-tick-depth: 4%;
+  --console-loader-stroke: 1px;
+  --console-loader-stroke-secondary: 1px;
+  --console-loader-cage-width: 3px;
+  --console-loader-track-width: 2px;
+  --console-loader-core-size: 22%;
+  --console-loader-origin-width: 1px;
+  --console-loader-origin-height: 6px;
+  --console-loader-turn-duration: 9s;
+  --console-loader-cage-pattern: conic-gradient(
+    from -90deg,
+    #56d4dc 0deg 40deg, transparent 40deg 44deg,
+    #7bc86f 44deg 84deg, transparent 84deg 88deg,
+    #e5c25b 88deg 128deg, transparent 128deg 132deg,
+    #e0863f 132deg 172deg, transparent 172deg 176deg,
+    #d95f4c 176deg 216deg, transparent 216deg 220deg,
+    #c06bb4 220deg 260deg, transparent 260deg
+  );
+
+  // Instrument-local tokens also win over the lobby's boot palette bridge.
+  .DiagnosticLoader__instrument {
+    --console-loader-crown-color: #a89f90;
+    --console-loader-progress-core: #e5c25b;
+    --console-border-control: #8f887c;
+    --console-interaction-accent: #ece5d8;
+    --console-interaction-selected: #ece5d8;
+    --console-interaction-focus: #e5c25b;
+  }
+}

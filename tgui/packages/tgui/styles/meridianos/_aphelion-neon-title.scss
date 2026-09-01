@@ -1,0 +1,53 @@
+// THIS IS AN APHELION UI FILE
+// The foreground retains the original alpha master and fine stroke widths.
+// Mask each duplicate inside an unmasked blur wrapper so the bloom can extend
+// beyond the lettering instead of being clipped back into its silhouette.
+.lobby-title-art__bloom {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  .theme-meridian_aphelion .lobby-title-art {
+    // The visible wordmark occupies x=12-88% of the square alpha master.
+    --lobby-title-mark-background: linear-gradient(
+      90deg,
+      #56d4dc 12%,
+      #7bc86f 27.2%,
+      #e5c25b 42.4%,
+      #e0863f 57.6%,
+      #d95f4c 72.8%,
+      #c06bb4 88%
+    );
+
+    .lobby-title-art__bloom-source {
+      // Geometry, mask and Classic Alt band are shared with the foreground in
+      // title-art, including in the smaller title screen manager preview.
+      background-image: var(--lobby-title-mark-background);
+    }
+
+    .lobby-title-art__bloom--near {
+      filter: blur(clamp(1px, 0.2cqmin, 2px));
+      opacity: 0.56;
+    }
+
+    .lobby-title-art__bloom--far {
+      filter: blur(clamp(3px, 0.7cqmin, 7px));
+      opacity: 0.5;
+    }
+
+    &.lobby-title-art--overlay .lobby-title-art__bloom {
+      mix-blend-mode: screen;
+    }
+  }
+
+  @supports ((mask-image: url('')) or (-webkit-mask-image: url(''))) {
+    .theme-meridian_aphelion .lobby-title-art:not(.lobby-title-art--screen)
+      .lobby-title-art__bloom {
+      display: block;
+    }
+  }
+}

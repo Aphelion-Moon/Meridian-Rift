@@ -21,33 +21,54 @@ import { useServerPrefs } from '../useServerPrefs';
 import { JobTitle } from './JobsAltTitles'; // NOVA EDIT ADDITION
 
 const PRIORITY_BUTTON_SIZE = '18px';
+const PRIORITY_BUTTON_ROLE = { role: 'button' } as const; // APHELION EDIT ADDITION
 
 type PriorityButtonProps = {
   name: string;
   color: string;
-  modifier?: string;
   enabled: boolean;
   onClick: () => void;
 };
 
-function PriorityButton(props: PriorityButtonProps) {
+export function PriorityButton(props: PriorityButtonProps) { // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: function PriorityButton(props: PriorityButtonProps) {
   const className = `PreferencesMenu__Jobs__departments__priority`;
 
   return (
     <Stack.Item height={PRIORITY_BUTTON_SIZE} width={PRIORITY_BUTTON_SIZE}>
       <Button
+        {...PRIORITY_BUTTON_ROLE} // APHELION EDIT ADDITION
         className={classes([
           className,
-          props.modifier && `${className}--${props.modifier}`,
+          props.enabled && `${className}--enabled`, // APHELION EDIT ADDITION
         ])}
+        /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
         color={props.enabled ? props.color : 'white'}
         circular
+        */ // APHELION EDIT REMOVAL END
+        /* APHELION EDIT ADDITION START - MERIDIAN_UI */
+        aria-label={props.name}
+        aria-pressed={props.enabled}
+        color={props.enabled ? props.color : 'transparent'}
+        /* APHELION EDIT ADDITION END */
         onClick={props.onClick}
         tooltip={props.name}
         tooltipPosition="bottom"
         height="100%"
         width="100%"
-      />
+        /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
+        />
+        */ // APHELION EDIT REMOVAL END
+      > {/* APHELION EDIT ADDITION START - MERIDIAN_UI */}
+        {props.enabled && (
+          <span
+            aria-hidden="true"
+            className="PreferencesMenu__Jobs__departments__priorityMark"
+          >
+            ✓
+          </span>
+        )}
+      </Button>
+      {/* APHELION EDIT ADDITION END */}
     </Stack.Item>
   );
 }
@@ -92,17 +113,16 @@ function PriorityHeaders() {
 
   return (
     <Stack.Item>
-      <Stack>
-        <Stack.Item grow />
-
-        <Stack.Item className={className}>Off</Stack.Item>
-
-        <Stack.Item className={className}>Low</Stack.Item>
-
-        <Stack.Item className={className}>Med</Stack.Item>
-
-        <Stack.Item className={className}>High</Stack.Item>
-      </Stack>
+      {/* APHELION EDIT ADDITION START - MERIDIAN_UI - shared priority columns */}
+      <div className="PreferencesMenu__Jobs__priorityHeaders">
+        <div className="PreferencesMenu__Jobs__priorityGrid">
+          <span className={className}>Off</span>
+          <span className={className}>Low</span>
+          <span className={className}>Med</span>
+          <span className={className}>High</span>
+        </div>
+      </div>
+      {/* APHELION EDIT ADDITION END */}
     </Stack.Item>
   );
 }
@@ -117,18 +137,18 @@ function PriorityButtons(props: PriorityButtonsProps) {
   const { createSetPriority, isOverflow, priority } = props;
 
   return (
-    <Stack
-      className="options"
-      pl={'0.3em'}
-      pt={'0.2em'}
-      justify="flex-end"
-      height="stretch"
+    <div
+      className={classes([
+        'options',
+        'PreferencesMenu__Jobs__priorityGrid',
+        isOverflow && 'PreferencesMenu__Jobs__priorityGrid--overflow',
+      ])} // APHELION EDIT ADDITION - MERIDIAN_UI - align with priority headers
     >
       {isOverflow ? (
         <>
           <PriorityButton
             name="Off"
-            modifier="off"
+            // modifier="off" // APHELION EDIT REMOVAL - MERIDIAN_UI
             color="light-grey"
             enabled={!priority}
             onClick={createSetPriority(null)}
@@ -145,7 +165,7 @@ function PriorityButtons(props: PriorityButtonsProps) {
         <>
           <PriorityButton
             name="Off"
-            modifier="off"
+            // modifier="off" // APHELION EDIT REMOVAL - MERIDIAN_UI
             color="light-grey"
             enabled={!priority}
             onClick={createSetPriority(null)}
@@ -173,7 +193,7 @@ function PriorityButtons(props: PriorityButtonsProps) {
           />
         </>
       )}
-    </Stack>
+    </div>
   );
 }
 
@@ -293,7 +313,8 @@ function JobRow(props: JobRowProps) {
         borderTop: `${isTop ? null : '0px'}`,
       }}
     >
-      <Stack align="top" g={0}>
+      <div className="PreferencesMenu__Jobs__row">
+        {/* APHELION EDIT CHANGE - MERIDIAN_UI - shared priority columns */}
         <Stack.Item grow={1.5}>
           <Stack vertical g={0} fill>
             <Stack.Item
@@ -351,10 +372,11 @@ function JobRow(props: JobRowProps) {
             )}
           </Stack>
         </Stack.Item>
-        <Stack.Item grow height="stretch">
+        <Stack.Item className="PreferencesMenu__Jobs__priorityArea">
+          {/* APHELION EDIT CHANGE - MERIDIAN_UI */}
           {rightSide}
         </Stack.Item>
-      </Stack>
+      </div>
     </Stack.Item>
   );
 }

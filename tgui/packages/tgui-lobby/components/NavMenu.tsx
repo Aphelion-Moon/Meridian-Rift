@@ -2,6 +2,7 @@
 import type { MouseEvent } from 'react';
 import { sendAction } from '../actions';
 import type { ServerState } from '../LobbyMenu';
+import { getLobbyMenuTheme } from '../menuTheme';
 import { MenuButton } from './MenuButton';
 import { StationTraitList } from './StationTraitList';
 
@@ -13,8 +14,22 @@ export function NavMenu({
   serverState: ServerState;
   assetMap: Record<string, string>;
 }) {
+  const { heading } = getLobbyMenuTheme(serverState.meridianTheme);
+
   return (
     <div className="container_nav">
+      {heading && (
+        <div className="lobby-terminal-heading">
+          <span>{heading}</span>
+          <span className="lobby-terminal-phase">
+            {serverState.gamePhase === 'pregame'
+              ? 'PRE-ROUND'
+              : serverState.gamePhase === 'playing'
+                ? 'ROUND ACTIVE'
+                : 'STANDBY'}
+          </span>
+        </div>
+      )}
       {!!serverState.canReady && (
         <MenuButton onClick={() => sendAction('ready_toggle')}>
           {serverState.isReady ? (
@@ -32,7 +47,7 @@ export function NavMenu({
       {!!serverState.canJoin && (
         <>
           <MenuButton
-            onClick={(event: MouseEvent) =>
+            onClick={(event: MouseEvent<HTMLButtonElement>) =>
               sendAction('join', { ctrlClick: event.ctrlKey })
             }
           >
@@ -75,11 +90,11 @@ export function NavMenu({
           </>
         )}
       </MenuButton>
-      <MenuButton disabled>
+      <MenuButton disabled readout>
         LATEJOIN QUEUE: {serverState.latejoinQueue}
       </MenuButton>
 
-      <hr />
+      {(!!serverState.canSwapServers || !!serverState.canPoll) && <hr />}
 
       {!!serverState.canSwapServers && (
         <MenuButton onClick={() => sendAction('server_swap')}>
@@ -109,7 +124,10 @@ export function NavMenu({
         )}
 
       {!!serverState.stationTraits.length && <hr />}
-      <StationTraitList traits={serverState.stationTraits} assetMap={assetMap} />
+      <StationTraitList
+        traits={serverState.stationTraits}
+        assetMap={assetMap}
+      />
 
       {!!serverState.traitFeedback && (
         <div className="trait_feedback">{serverState.traitFeedback}</div>
