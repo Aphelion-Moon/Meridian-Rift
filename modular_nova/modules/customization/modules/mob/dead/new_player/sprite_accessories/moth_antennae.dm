@@ -1,4 +1,5 @@
 /datum/sprite_accessory/moth_antennae
+	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/moth_antennae.dmi'
 	key = FEATURE_MOTH_ANTENNAE
 	organ_type = /obj/item/organ/antennae
 	use_custom_mod_icon = TRUE

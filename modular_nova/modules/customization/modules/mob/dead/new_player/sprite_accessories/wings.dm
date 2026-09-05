@@ -68,7 +68,6 @@
 	color_src = USE_ONE_COLOR
 	locked = FALSE
 
-
 /datum/sprite_accessory/wings_open
 	key = FEATURE_WINGS_OPEN
 	color_src = USE_ONE_COLOR

@@ -100,6 +100,8 @@
 
 /datum/sprite_accessory/horns/big
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/horns_big.dmi'
+	center = TRUE
+	dimension_y = 48
 
 /datum/sprite_accessory/horns/big/antlers
 	name = "Antlers"
