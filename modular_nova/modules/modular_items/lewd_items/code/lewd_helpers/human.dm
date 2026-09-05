@@ -394,7 +394,8 @@
 	var/mutable_appearance/penis_overlay
 
 	if(!penis_overlay)
-		penis_overlay = sex_toy?.build_worn_icon(default_layer = PENIS_CLOTHING_LAYER, default_icon_file = 'icons/mob/clothing/under/default.dmi', isinhands = FALSE, override_file = icon_file)
+		// Keep worn items above the exposed organ while retaining its standing-overlay cache slot.
+		penis_overlay = sex_toy?.build_worn_icon(default_layer = OUTER_HAIR_LAYER - (2 * GENITAL_STACK_STEP), default_icon_file = 'icons/mob/clothing/under/default.dmi', isinhands = FALSE, override_file = icon_file)
 
 	var/obj/item/bodypart/chest/chest_part = get_bodypart(BODY_ZONE_CHEST)
 	chest_part?.worn_uniform_offset?.apply_offset(penis_overlay) // we can never escape, we are forever governed by sex(two)

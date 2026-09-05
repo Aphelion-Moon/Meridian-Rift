@@ -59,6 +59,9 @@
 
 /datum/sprite_accessory/ears/external/big
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/ears_big.dmi'
+	// The artwork is shifted up eight pixels inside this canvas to preserve standing placement.
+	center = TRUE
+	dimension_y = 48
 
 /datum/sprite_accessory/ears/external/vulpkanin
 	recommended_species = list(
@@ -507,6 +510,8 @@
 
 /datum/sprite_accessory/ears/external/acrador
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/ears_big.dmi'
+	center = TRUE
+	dimension_y = 48
 	color_src = USE_MATRIXED_COLORS
 
 /datum/sprite_accessory/ears/external/acrador/long
@@ -643,6 +648,8 @@
 
 /datum/sprite_accessory/ears/external/fennecl
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/ears_big.dmi'
+	center = TRUE
+	dimension_y = 48
 	color_src = USE_MATRIXED_COLORS
 
 /datum/sprite_accessory/ears/external/fennecl/large

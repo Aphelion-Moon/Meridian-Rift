@@ -12,8 +12,9 @@
 
 /datum/bodypart_overlay/mutant/genital/penis
 	feature_key = ORGAN_SLOT_PENIS
+	// Normal visibility checks clothing coverage; exposed front art clears hair, but stays below hands and restraints.
 	layers = list(
-		EXTERNAL_FRONT_UNDER_CLOTHES = PENIS_LAYER,
+		EXTERNAL_FRONT_UNDER_CLOTHES = OUTER_HAIR_LAYER - GENITAL_STACK_STEP,
 		EXTERNAL_BEHIND = BODY_BEHIND_LAYER,
 	)
 	genital_stack_rank = 2
@@ -30,7 +31,7 @@
 		set_layers(list(EXTERNAL_BEHIND = BODY_BEHIND_LAYER - (genital_stack_rank * GENITAL_STACK_STEP)))
 	else
 		set_layers(list(
-			EXTERNAL_FRONT_UNDER_CLOTHES = PENIS_LAYER,
+			EXTERNAL_FRONT_UNDER_CLOTHES = OUTER_HAIR_LAYER - GENITAL_STACK_STEP,
 			EXTERNAL_BEHIND = BODY_BEHIND_LAYER,
 		))
 	return ..()

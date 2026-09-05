@@ -8,6 +8,28 @@ IF YOU WANT TO ADD AN EXTRA FEATURE TO SOMEONES DNA LOOK AT "`code\__DEFINES\~no
 
 Re-writes how mutant bodyparts exist and how they're handled. Adds in a per limb body marking system. Adds in loadout, with lots of clothing ported over. Adds in all the missing species. Adds in flavor text and OOC prefs. Adds in special rendering cases for digitigrades, taurs, snouts, voxes etc. Adds in changeable PDA ringtone message.
 
+### Accessory canvases:
+
+Visible accessories and their emissive masks need the same rotation origin. A centered
+accessory's `dimension_x` and `dimension_y` must match its DMI canvas; an uncentered
+accessory must use a 32x32 canvas. `accessory_icon_canvases` checks this for drawable
+accessories, including those with centering disabled.
+
+The corrected sheets in `modular_nova/master_files/icons/mob/sprite_accessory/` preserve
+their original standing positions and animation metadata:
+
+- `ears_big`, `horns_big`, `halo`, and `moogle_pom`: artwork shifted north eight pixels
+  within the 32x48 canvas, paired with `center = TRUE` and `dimension_y = 48`.
+- `moth_fluff`: unused top/right margins removed to make a 32x32 canvas. `moth_antennae`
+  and `moth_markings` use similarly cropped copies of the upstream moth sheets.
+
+Fish infusion tails and the xenomorph queen tail retain their original TG sheets and
+offsets. Their known canvas mismatches are excluded from this test; correcting those
+tails is deferred to avoid maintaining duplicate upstream artwork.
+
+When updating these assets from upstream, preserve the paired artwork and centering
+changes. The upstream sheets remain available to their non-accessory consumers.
+
 ### TG Proc Changes:
 
 `.\code\__HELPERS\global_lists.dm > \proc\make_datum_references_lists()`

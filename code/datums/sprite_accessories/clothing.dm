@@ -23,8 +23,9 @@
  * * color - if this is NOT a statically colored clothing article and NOT gags, uses this color.
  * * physique - physique of the wearer (male or female)
  * * bodyshape - bodyshape of the wearer (humanoid, digitigrade, etc)
+ * * wearer - optional owner for emissive blockers. // APHELION EDIT ADDITION
  */
-/datum/sprite_accessory/clothing/proc/make_appearance(color = COLOR_WHITE, physique = MALE, bodyshape = BODYSHAPE_HUMANOID)
+/datum/sprite_accessory/clothing/proc/make_appearance(color = COLOR_WHITE, physique = MALE, bodyshape = BODYSHAPE_HUMANOID, atom/wearer) // APHELION EDIT CHANGE - Underwear emissive blockers - ORIGINAL: /datum/sprite_accessory/clothing/proc/make_appearance(color = COLOR_WHITE, physique = MALE, bodyshape = BODYSHAPE_HUMANOID)
 	var/static/list/cached_icons = list()
 	var/use_female = physique == FEMALE && female_sprite_flags
 	var/use_digi = digi_icon_state && (bodyshape & BODYSHAPE_DIGITIGRADE)
@@ -55,6 +56,10 @@
 
 	result.layer = -layer
 	result.color = use_static ? null : color
+	// APHELION EDIT ADDITION START - Use the finished garment silhouette; BODY_LAYER preparation applies later height filters.
+	if(em_block && wearer)
+		result.overlays += emissive_blocker(result.icon, result.icon_state, wearer, layer = FLOAT_LAYER, alpha = result.alpha)
+	// APHELION EDIT ADDITION END
 
 	return result
 

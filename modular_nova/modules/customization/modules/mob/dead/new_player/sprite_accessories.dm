@@ -110,6 +110,7 @@
 	natural_spawn = FALSE
 
 /datum/sprite_accessory/moth_markings
+	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/moth_markings.dmi'
 	key = FEATURE_MOTH_MARKINGS
 	// organ_type = /obj/item/organ/moth_markings // UNCOMMENT THIS IF THEY EVER FIX IT UPSTREAM, CAN'T BE BOTHERED TO FIX IT MYSELF
 
