@@ -6,7 +6,7 @@
 * Check some of the wings that make use of them for examples on how to make it look decent.
 */
 /datum/sprite_accessory/wings
-	icon = 'icons/mob/human/species/wings.dmi'
+	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/wings.dmi'
 	key = FEATURE_WINGS
 	color_src = USE_ONE_COLOR
 	recommended_species = list(
@@ -43,35 +43,72 @@
 */
 
 /datum/sprite_accessory/wings/angel
+	// The shared canvas matches the centering dimensions, including for emissive rotation.
+	dimension_x = 96
+	dimension_y = 36
 	color_src = USE_ONE_COLOR
 	default_color = "#FFFFFF"
 	locked = FALSE
 
 /datum/sprite_accessory/wings/fly
+	dimension_y = 36
 	key = FEATURE_WINGS_FUNCTIONAL
 
 /datum/sprite_accessory/wings/megamoth
+	dimension_y = 36
 	color_src = USE_ONE_COLOR
 	default_color = "#FFFFFF"
 	key = FEATURE_WINGS_FUNCTIONAL
 
 /datum/sprite_accessory/wings/mothra
+	dimension_y = 36
 	key = FEATURE_WINGS_FUNCTIONAL
 
 /datum/sprite_accessory/wings/robotic
+	dimension_y = 36
 	locked = FALSE
 
 /datum/sprite_accessory/wings/skeleton
+	dimension_y = 36
 	key = FEATURE_WINGS_FUNCTIONAL
 
 /datum/sprite_accessory/wings/dragon
+	dimension_y = 36
 	color_src = USE_ONE_COLOR
 	locked = FALSE
 
+/datum/sprite_accessory/wings/slime
+	dimension_y = 36
 
 /datum/sprite_accessory/wings_open
+	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/wings.dmi'
 	key = FEATURE_WINGS_OPEN
 	color_src = USE_ONE_COLOR
+
+/datum/sprite_accessory/wings_open/angel
+	dimension_x = 96
+	dimension_y = 36
+
+/datum/sprite_accessory/wings_open/dragon
+	dimension_y = 36
+
+/datum/sprite_accessory/wings_open/megamoth
+	dimension_y = 36
+
+/datum/sprite_accessory/wings_open/mothra
+	dimension_y = 36
+
+/datum/sprite_accessory/wings_open/skeleton
+	dimension_y = 36
+
+/datum/sprite_accessory/wings_open/robotic
+	dimension_y = 36
+
+/datum/sprite_accessory/wings_open/fly
+	dimension_y = 36
+
+/datum/sprite_accessory/wings_open/slime
+	dimension_y = 36
 
 /datum/sprite_accessory/wings_open/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/wings/bodypart_overlay)
 	var/obj/item/clothing/worn_suit = wearer.wear_suit
@@ -105,8 +142,8 @@
 		SPECIES_LIZARD = 1,
 		SPECIES_INSECT = 1,
 	)
-	dimension_x = 46
-	dimension_y = 34
+	dimension_x = 96
+	dimension_y = 36
 	center = TRUE
 
 /datum/sprite_accessory/wings/mammal/bat //TODO: port my sprite from hyper for this one
@@ -273,8 +310,8 @@
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/wings.dmi'
 	name = "Low wings"
 	icon_state = "low"
-	dimension_x = 46
-	dimension_y = 34
+	dimension_x = 96
+	dimension_y = 36
 	center = TRUE
 
 /datum/sprite_accessory/wings/low_wings/top

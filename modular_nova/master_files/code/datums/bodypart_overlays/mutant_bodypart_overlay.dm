@@ -252,7 +252,7 @@
 
 
 /**
- * Helper proc to add the appropriate emissives to the overlays, based on the preferences.
+ * Adds glow or blockers to the emissive plane in the same order as the visible color layers.
  *
  * Arguments:
  * * overlays - The list of mutable appearances previously generated and colored.
@@ -261,21 +261,30 @@
  * add them if the limb is missing, somehow.
  */
 /datum/bodypart_overlay/mutant/proc/add_emissives(list/mutable_appearance/overlays, obj/item/bodypart/limb)
-	if(!limb || !length(emissive_eligibility_by_color_index))
+	if(!limb)
 		return overlays
 
-	var/list/mutable_appearance/emissives
-	var/max = min(MAX_MATRIXED_COLORS, length(overlays)) // only care about the first 3 indexes
-	for(var/index = 1 to max)
-		if(emissive_eligibility_by_color_index[index])
-			var/mutable_appearance/overlay = overlays[index]
-			var/mutable_appearance/new_emissive = emissive_appearance(overlay.icon, overlay.icon_state, offset_spokesman = limb, layer = overlay.layer)
-			// emissive_appearance() builds a fresh appearance from scratch, so it doesn't inherit the pixel_w/pixel_z offset center_image() applies to wide sprites (taur, wings, etc.) - without
-			new_emissive.pixel_w = overlay.pixel_w
-			new_emissive.pixel_z = overlay.pixel_z
-			LAZYADD(emissives, new_emissive)
+	var/list/mutable_appearance/emissive_overlays
+	var/max_emissive_index = min(MAX_MATRIXED_COLORS, length(emissive_eligibility_by_color_index))
+	for(var/index = 1 to length(overlays))
+		var/mutable_appearance/overlay = overlays[index]
+		if(!overlay.icon) // The MOD texture container has no sprite of its own.
+			continue
+		var/mutable_appearance/emissive_overlay
+		if(index <= max_emissive_index && emissive_eligibility_by_color_index[index])
+			emissive_overlay = emissive_appearance(overlay.icon, overlay.icon_state, offset_spokesman = limb, layer = overlay.layer)
+		else if(blocks_emissive != EMISSIVE_BLOCK_NONE)
+			// Restore the parent builder's blocking for non-emitting parts, including taur bodies.
+			// An emitting layer already covers lower emissives; an extra blocker would double-mask translucent edges.
+			emissive_overlay = emissive_blocker(overlay.icon, overlay.icon_state, limb, layer = overlay.layer, alpha = overlay.alpha)
+		else
+			continue
+		// These helpers create fresh appearances and do not inherit center_image()'s offsets.
+		emissive_overlay.pixel_w = overlay.pixel_w
+		emissive_overlay.pixel_z = overlay.pixel_z
+		LAZYADD(emissive_overlays, emissive_overlay)
 
-	return emissives ? (overlays + emissives) : overlays
+	return emissive_overlays ? (overlays + emissive_overlays) : overlays
 
 
 #undef MAX_MATRIXED_COLORS

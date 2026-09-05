@@ -7339,6 +7339,7 @@
 #include "modular_aphelion\modules\admin_tech\code\legacy.dm"
 #include "modular_aphelion\modules\job_desc_overrides\job_desc_overrides.dm"
 #include "modular_aphelion\modules\storage_navigation\code\storage_exit.dm"
+#include "modular_aphelion\modules\worn_emissives\code\worn_emissives.dm"
 #include "modular_nova\master_files\code\_globalvars\configuration.dm"
 #include "modular_nova\master_files\code\_globalvars\regexes.dm"
 #include "modular_nova\master_files\code\_globalvars\religion.dm"
