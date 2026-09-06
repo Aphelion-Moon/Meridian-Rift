@@ -213,6 +213,8 @@
 	stump_typepath = null
 	dmg_overlay_type = null
 	should_draw_greyscale = FALSE
+	// Initialization builds the dropped icon before this hand receives its extra slot index.
+	is_actually_just_invisible = TRUE
 	/// Vertical pair within the manifested hands.
 	var/display_pair = 1
 	/// Color captured from the psion's manifestation preference.
