@@ -162,7 +162,17 @@
 
 /obj/item/ammo_box/magazine/parallax/update_icon_state()
 	. = ..()
-	icon_state = "magazine"
+	icon_state = ammo_indicator_state()
+	if(istype(loc, /obj/item/gun/ballistic/parallax))
+		var/obj/item/gun/ballistic/parallax/gun = loc
+		if(gun.magazine == src)
+			gun.update_appearance()
+
+/obj/item/ammo_box/magazine/parallax/proc/ammo_indicator_state()
+	var/remaining = ammo_count(countempties = FALSE)
+	if(!remaining)
+		return "magazine_empty"
+	return remaining < max_ammo ? "magazine_partial" : "magazine"
 
 /obj/item/gun/ballistic/parallax
 	name = "Parallax modular sidearm"
@@ -433,7 +443,8 @@
 		var/obj/item/ballistic_module/part = modules[socket]
 		. += mutable_appearance(icon, part.overlay_state)
 	if(magazine)
-		. += mutable_appearance(icon, "magazine")
+		var/obj/item/ammo_box/magazine/parallax/cassette = magazine
+		. += mutable_appearance(icon, cassette.ammo_indicator_state())
 
 /obj/item/gun/ballistic/parallax/worn_overlays(mutable_appearance/standing, isinhands, icon_file)
 	. = ..()
@@ -443,7 +454,8 @@
 		var/obj/item/ballistic_module/part = modules[socket]
 		. += mutable_appearance(icon_file, part.overlay_state)
 	if(magazine)
-		. += mutable_appearance(icon_file, "magazine")
+		var/obj/item/ammo_box/magazine/parallax/cassette = magazine
+		. += mutable_appearance(icon_file, cassette.ammo_indicator_state())
 
 /obj/item/gun/ballistic/parallax/empty
 	name = "Parallax incomplete frame"
