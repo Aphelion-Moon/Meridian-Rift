@@ -5,6 +5,10 @@
 		var/obj/item/bodypart/part = path
 		if(part::bodypart_flags & BODYPART_STUMP)
 			continue // stumps don't need to have icons
+		// NOVA EDIT ADDITION START
+		if(UNLINT(part::is_actually_just_invisible))
+			continue // Non-rendered bodyparts don't need limb icon states.
+		// NOVA EDIT ADDITION END
 
 		if(part::is_dimorphic)
 			if(!icon_exists(UNLINT(part::should_draw_greyscale ? part::icon_greyscale : part::icon_static), "[part::limb_id]_[part::body_zone]_m"))
