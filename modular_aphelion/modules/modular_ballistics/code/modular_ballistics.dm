@@ -30,6 +30,9 @@
 	damage_factor = 0.85
 	dispersion = 6
 	kick = 0.5
+	/// The accelerator determines the report independently of stocks and optics.
+	var/shot_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'
+	var/shot_volume = 50
 
 /obj/item/ballistic_module/barrel/carbine
 	name = "Parallax carbine accelerator"
@@ -41,6 +44,7 @@
 	dispersion = 4
 	kick = 0.8
 	is_long = TRUE
+	shot_volume = 60
 
 /obj/item/ballistic_module/barrel/compact_auto
 	name = "Parallax compact heat-sink accelerator"
@@ -68,6 +72,7 @@
 	dispersion = 2
 	kick = 1.4
 	is_long = TRUE
+	shot_volume = 70
 
 /obj/item/ballistic_module/control
 	name = "Parallax semi-automatic controller"
@@ -132,6 +137,7 @@
 	name = "6mm frangible smart round"
 	icon = 'modular_aphelion/modules/modular_ballistics/icons/ammunition.dmi'
 	icon_state = "smart_round"
+	muzzle_flash_color_override = LIGHT_COLOR_BLUE
 	damage = 22
 	wound_bonus = -10
 
@@ -142,6 +148,8 @@
 	icon_state = "smart_casing"
 	caliber = "parallax_6mm"
 	projectile_type = /obj/projectile/bullet/parallax
+	muzzle_flash_color = LIGHT_COLOR_BLUE
+	firing_effect_type = /obj/effect/temp_visual/dir_setting/firing_effect/blue
 
 /obj/item/ammo_box/magazine/parallax
 	name = "Parallax ammunition cassette (6mm)"
@@ -166,7 +174,7 @@
 	righthand_file = 'modular_aphelion/modules/modular_ballistics/icons/righthand.dmi'
 	inhand_x_dimension = 64
 	inhand_y_dimension = 64
-	pixel_x = -8
+	SET_BASE_PIXEL(-8, 0)
 	slot_flags = NONE
 	w_class = WEIGHT_CLASS_NORMAL
 	accepted_magazine_type = /obj/item/ammo_box/magazine/parallax
@@ -174,7 +182,7 @@
 	show_bolt_icon = FALSE
 	can_suppress = FALSE
 	bolt_type = BOLT_TYPE_STANDARD
-	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pistol_light.ogg'
+	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'
 	/// Installed objects keyed by socket, not a list of predetermined gun combinations.
 	var/list/modules = list()
 	var/list/starting_modules = list(/obj/item/ballistic_module/barrel, /obj/item/ballistic_module/control)
@@ -282,7 +290,8 @@
 		name = "Parallax modular carbine"
 	else
 		name = controller.automatic ? "Parallax modular machine pistol" : "Parallax modular sidearm"
-	fire_sound = long_profile ? 'modular_nova/modules/modular_weapons/sounds/battle_rifle.ogg' : 'modular_nova/modules/modular_weapons/sounds/pistol_light.ogg'
+	fire_sound = barrel ? barrel.shot_sound : initial(fire_sound)
+	fire_sound_volume = barrel ? barrel.shot_volume : initial(fire_sound_volume)
 	if(controller?.automatic && barrel && !service_open)
 		controller_autofire = AddComponent(/datum/component/automatic_fire, fire_delay)
 	var/obj/item/ballistic_module/optic/optic = modules["optic"]
@@ -415,7 +424,8 @@
 	// inspection sprite. Once assembly begins, use the shared overlay anchors.
 	var/bare_frame = !length(modules) && !magazine
 	icon = bare_frame ? 'modular_aphelion/modules/modular_ballistics/icons/parts.dmi' : 'modular_aphelion/modules/modular_ballistics/icons/modular_ballistics.dmi'
-	pixel_x = bare_frame ? 0 : -8
+	base_pixel_x = bare_frame ? 0 : -8
+	pixel_x = base_pixel_x
 
 /obj/item/gun/ballistic/parallax/update_overlays()
 	. = ..()
