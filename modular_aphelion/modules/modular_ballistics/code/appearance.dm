@@ -58,7 +58,9 @@
 	// A completely stripped receiver is a loose component, so show its larger
 	// inspection sprite. Once assembly begins, use the shared overlay anchors.
 	var/bare_frame = !length(modules) && !magazine
-	icon = bare_frame ? 'modular_aphelion/modules/modular_ballistics/icons/parts.dmi' : 'modular_aphelion/modules/modular_ballistics/icons/modular_ballistics.dmi'
+	icon = bare_frame ? frame_loose_icon : frame_world_icon
+	icon_state = frame_icon_state
+	inhand_icon_state = frame_icon_state
 	base_pixel_x = bare_frame ? 0 : -8
 	pixel_x = base_pixel_x
 

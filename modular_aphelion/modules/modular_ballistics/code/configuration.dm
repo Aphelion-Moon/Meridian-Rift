@@ -11,7 +11,7 @@
 	projectile_damage_multiplier = barrel ? barrel.damage_factor : 1
 	spread = 0
 	recoil = 0
-	var/long_profile = FALSE
+	var/long_profile = frame_requires_two_hands
 	for(var/obj/item/ballistic_module/part as anything in all_modules())
 		spread += part.dispersion
 		recoil += part.kick
@@ -19,7 +19,7 @@
 		aimed_accuracy += part.scoped_accuracy
 		long_profile ||= part.is_long
 	spread = max(0, spread)
-	recoil = max(0.1, recoil)
+	recoil = max(0.1, recoil * frame_recoil_multiplier)
 	burst_size = controller ? controller.shots_per_burst : 1
 	burst_delay = fire_delay
 	if(burst_size > 1)
@@ -30,21 +30,21 @@
 	attachment_inhand_profile = long_profile ? "rifle" : "compact"
 	// Compact sidearms use the small angled pose of other pistols. A long barrel
 	// or stock switches every component together to the horizontal rifle pose.
-	lefthand_file = long_profile ? 'modular_aphelion/modules/modular_ballistics/icons/lefthand.dmi' : 'modular_aphelion/modules/modular_ballistics/icons/compact_lefthand.dmi'
-	righthand_file = long_profile ? 'modular_aphelion/modules/modular_ballistics/icons/righthand.dmi' : 'modular_aphelion/modules/modular_ballistics/icons/compact_righthand.dmi'
+	lefthand_file = long_profile ? frame_rifle_left_icon : frame_compact_left_icon
+	righthand_file = long_profile ? frame_rifle_right_icon : frame_compact_right_icon
 	weapon_weight = long_profile ? WEAPON_MEDIUM : WEAPON_LIGHT
-	if(istype(barrel, /obj/item/ballistic_module/barrel/marksman) || istype(barrel, /obj/item/ballistic_module/barrel/shotgun))
+	if(frame_requires_two_hands || istype(barrel, /obj/item/ballistic_module/barrel/marksman) || istype(barrel, /obj/item/ballistic_module/barrel/shotgun))
 		weapon_weight = WEAPON_HEAVY
 	if(!barrel || !controller)
-		name = "Parallax incomplete frame"
+		name = "[frame_name_prefix] incomplete frame"
 	else if(istype(barrel, /obj/item/ballistic_module/barrel/marksman))
-		name = "Parallax modular marksman weapon"
+		name = "[frame_name_prefix] modular marksman weapon"
 	else if(istype(barrel, /obj/item/ballistic_module/barrel/shotgun))
-		name = "Parallax modular shotgun"
+		name = "[frame_name_prefix] modular shotgun"
 	else if(long_profile)
-		name = "Parallax modular carbine"
+		name = "[frame_name_prefix] modular carbine"
 	else
-		name = controller.automatic ? "Parallax modular machine pistol" : "Parallax modular sidearm"
+		name = controller.automatic ? "[frame_name_prefix] modular machine pistol" : "[frame_name_prefix] modular sidearm"
 	fire_sound = barrel ? barrel.shot_sound : initial(fire_sound)
 	fire_sound_volume = barrel ? barrel.shot_volume : initial(fire_sound_volume)
 	if(controller?.automatic && barrel && !service_open)

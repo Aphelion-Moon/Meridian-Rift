@@ -7,18 +7,19 @@ compose world and held sprites without a separate sprite for every configuration
 
 Production files are included explicitly in the root `tgstation.dme`.
 
-| File in `code/` | Responsibility |
-| --- | --- |
-| `modular_ballistics.dm` | Frame defaults and sockets, initialization, cleanup, magazine admission, and presets |
-| `modules.dm` | Part fields, point lookup/compatibility, physical ownership, nested installation/removal, and part examination |
-| `barrels.dm` | Barrel performance and suppressor mount coordinates |
-| `accessories.dm` | Controllers, stocks, optics, and suppressors |
-| `ammunition.dm` | Projectile, cartridge, six-round volley, and cassette indicators |
-| `configuration.dm` | Derived performance, suppression, scope behavior, firing guards, and aimed spread |
-| `service.dm` | Service latch, installation selection, removal menu, and gun examination |
-| `appearance.dm` | Recursive overlays, loose/assembled appearance, held poses, and facing layers |
-| `supplies.dm` | Kits, storage limits, and cargo packs |
-| `modular_ballistics_tests.dm` | Existing tests, gated by `UNIT_TESTS` or `SPACEMAN_DMM` |
+| File in `code/`               | Responsibility                                                                                                 |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `modular_ballistics.dm`       | Frame defaults and sockets, initialization, cleanup, magazine admission, and presets                           |
+| `frames.dm`                   | Alternative receiver definitions and their frame-specific modifiers                                            |
+| `modules.dm`                  | Part fields, point lookup/compatibility, physical ownership, nested installation/removal, and part examination |
+| `barrels.dm`                  | Barrel performance and suppressor mount coordinates                                                            |
+| `accessories.dm`              | Controllers, stocks, optics, and suppressors                                                                   |
+| `ammunition.dm`               | Projectile, cartridge, six-round volley, and cassette indicators                                               |
+| `configuration.dm`            | Derived performance, suppression, scope behavior, firing guards, and aimed spread                              |
+| `service.dm`                  | Service latch, installation selection, removal menu, and gun examination                                       |
+| `appearance.dm`               | Recursive overlays, loose/assembled appearance, held poses, and facing layers                                  |
+| `supplies.dm`                 | Kits, storage limits, and cargo packs                                                                          |
+| `modular_ballistics_tests.dm` | Existing tests, gated by `UNIT_TESTS` or `SPACEMAN_DMM`                                                        |
 
 Add barrels in `barrels.dm` and accessory definitions in `accessories.dm`. Change
 mount positions on the parent's `attachment_points`. Firing behavior belongs in
@@ -70,7 +71,7 @@ attachment_points = list(
 
 Coordinates translate the authored sprite: positive x is right and positive y is
 up. Child offsets accumulate through their parents. They do not automatically
-mirror, rotate or detect a muzzle. The current frame uses zero offsets because
+mirror, rotate or detect a muzzle. The standard frame uses zero offsets because
 the existing artwork already contains its attachment placement.
 
 Treat point tables as read-only subtype configuration. Install through
@@ -86,13 +87,13 @@ point for compatibility and visual placement.
 
 ## Sprite contract
 
-| Asset | Canvas and purpose |
-| --- | --- |
-| `icons/modular_ballistics.dmi` | 48×32 frame and installed overlays |
-| `icons/parts.dmi` | 32×32 loose parts and cassette |
-| `icons/lefthand.dmi`, `icons/righthand.dmi` | 64×64 rifle poses, four directions |
+| Asset                                                       | Canvas and purpose                   |
+| ----------------------------------------------------------- | ------------------------------------ |
+| `icons/modular_ballistics.dmi`                              | 48×32 frame and installed overlays   |
+| `icons/parts.dmi`                                           | 32×32 loose parts and cassette       |
+| `icons/lefthand.dmi`, `icons/righthand.dmi`                 | 64×64 rifle poses, four directions   |
 | `icons/compact_lefthand.dmi`, `icons/compact_righthand.dmi` | 64×64 compact poses, four directions |
-| `icons/ammunition.dmi` | Cartridge and projectile artwork |
+| `icons/ammunition.dmi`                                      | Cartridge and projectile artwork     |
 
 New visual parts need matching states in the world and four held atlases, plus
 loose artwork. Preserve unrelated pixels and DMI metadata. Use at most 16 visible

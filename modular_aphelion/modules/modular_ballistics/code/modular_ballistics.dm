@@ -24,6 +24,17 @@
 	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'
 	/// Installed objects keyed by socket, not a list of predetermined gun combinations.
 	var/list/modules = list()
+	/// Frame art is independent of the shared attachment states in these atlases.
+	var/frame_icon_state = "frame"
+	var/frame_world_icon = 'modular_aphelion/modules/modular_ballistics/icons/modular_ballistics.dmi'
+	var/frame_loose_icon = 'modular_aphelion/modules/modular_ballistics/icons/parts.dmi'
+	var/frame_rifle_left_icon = 'modular_aphelion/modules/modular_ballistics/icons/lefthand.dmi'
+	var/frame_rifle_right_icon = 'modular_aphelion/modules/modular_ballistics/icons/righthand.dmi'
+	var/frame_compact_left_icon = 'modular_aphelion/modules/modular_ballistics/icons/compact_lefthand.dmi'
+	var/frame_compact_right_icon = 'modular_aphelion/modules/modular_ballistics/icons/compact_righthand.dmi'
+	var/frame_name_prefix = "Parallax"
+	var/frame_recoil_multiplier = 1
+	var/frame_requires_two_hands = FALSE
 	/// The frame uses the same named-point schema as every detachable module.
 	/// Socket -> accepted type and per-context offsets. Omitted offsets are zero.
 	var/list/attachment_points = list(
