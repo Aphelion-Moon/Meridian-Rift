@@ -217,6 +217,11 @@
 	<label class='inputlabel checkbox'>Applies to Admins
 	<input type='checkbox' id='applyadmins' name='applyadmins' value='1'[applies_to_admins ? " checked": ""]>
 	<div class='inputbox'></div></label>
+	<!-- NOVA EDIT ADDITION BEGIN - SSYMPHONY -->
+	[CONFIG_GET(flag/symphony_enabled) ? "<label class='inputlabel checkbox'>Community ban (all servers)\
+	<input type='checkbox' id='symphonycommunity' name='symphonycommunity' value='1'[edit_id ? " disabled" : " checked"]>\
+	<div class='inputbox'></div></label>" : ""]
+	<!-- NOVA EDIT ADDITION END -->
 	<input type='submit' value='Submit'>
 	<br>
 	<div class='row'>
@@ -456,6 +461,7 @@
 	var/player_cid
 	var/use_last_connection = FALSE
 	var/applies_to_admins = FALSE
+	var/community_ban = FALSE // NOVA EDIT ADDITION - SSYMPHONY
 	var/duration
 	var/interval
 	var/severity
@@ -496,6 +502,10 @@
 		error_state += "Use last connection was ticked, but neither IP nor CID was."
 	if(href_list["applyadmins"])
 		applies_to_admins = TRUE
+	// NOVA EDIT ADDITION BEGIN - SSYMPHONY
+	if(href_list["symphonycommunity"])
+		community_ban = TRUE
+	// NOVA EDIT ADDITION END
 	switch(href_list["radioduration"])
 		if("permanent")
 			duration = null
@@ -562,9 +572,9 @@
 	if(edit_id)
 		edit_ban(edit_id, player_key, ip_check, player_ip, cid_check, player_cid, use_last_connection, applies_to_admins, duration, interval, reason, mirror_edit, old_key, old_ip, old_cid, old_applies, page, admin_key, changes, roles_to_ban[1] == "Server")
 	else
-		create_ban(player_key, ip_check, player_ip, cid_check, player_cid, use_last_connection, applies_to_admins, duration, interval, severity, reason, roles_to_ban)
+		create_ban(player_key, ip_check, player_ip, cid_check, player_cid, use_last_connection, applies_to_admins, duration, interval, severity, reason, roles_to_ban, community_ban) // NOVA EDIT CHANGE - SSYMPHONY - original: create_ban(player_key, ip_check, player_ip, cid_check, player_cid, use_last_connection, applies_to_admins, duration, interval, severity, reason, roles_to_ban)
 
-/datum/admins/proc/create_ban(player_key, ip_check, player_ip, cid_check, player_cid, use_last_connection, applies_to_admins, duration, interval, severity, reason, list/roles_to_ban)
+/datum/admins/proc/create_ban(player_key, ip_check, player_ip, cid_check, player_cid, use_last_connection, applies_to_admins, duration, interval, severity, reason, list/roles_to_ban, community_ban = FALSE) // NOVA EDIT CHANGE - SSYMPHONY - original: /datum/admins/proc/create_ban(player_key, ip_check, player_ip, cid_check, player_cid, use_last_connection, applies_to_admins, duration, interval, severity, reason, list/roles_to_ban)
 	if(!check_rights(R_BAN))
 		return
 	if(!SSdbcore.Connect())
@@ -646,6 +656,11 @@
 		))
 	if(!SSdbcore.MassInsert(format_table_name("ban"), sql_ban, warn = TRUE, special_columns = special_columns))
 		return
+	// NOVA EDIT ADDITION BEGIN - SSYMPHONY
+	// Say so if it didn't take - our ban stands, the rest never hear.
+	if(community_ban && !symphony_request_community_ban(player_ckey, roles_to_ban, reason, duration, interval, admin_ckey))
+		to_chat(usr, span_boldwarning("The community-wide ban was NOT recorded. This server's ban still applies."))
+	// NOVA EDIT ADDITION END
 	var/target = ban_target_string(player_key, player_ip, player_cid)
 	var/msg = "has created a [isnull(duration) ? "permanent" : "temporary [time_message]"] [applies_to_admins ? "admin " : ""][is_server_ban ? "server ban" : "role ban from [roles_to_ban.len] roles"] for [target]."
 	log_admin_private("[kn] [msg][is_server_ban ? "" : " Roles: [roles_to_ban.Join(", ")]"] Reason: [reason]")
@@ -1100,15 +1115,17 @@
  * * kick_banned_players - TRUE if we want to kick affected players, FALSE otherwise. This should generally only be TRUE for server bans.
  * * applies_to_admins - TRUE if this ban applies to admins and we may need to kick them, FALSE otherwise.
  */
-/datum/admins/proc/notify_all_banned_players(banned_player_ckey, banned_player_ip, banned_player_cid, banned_player_message, banned_other_message, kick_banned_players, applies_to_admins)
+// NOVA EDIT CHANGE - shared with Symphony world topics, which have no admin holder.
+/proc/notify_all_banned_players(banned_player_ckey, banned_player_ip, banned_player_cid, banned_player_message, banned_other_message, kick_banned_players, applies_to_admins)
 	var/client/player_client = GLOB.directory[banned_player_ckey]
 
 	var/appeal_url = "No ban appeal url set!"
-	appeal_url = CONFIG_GET(string/banappeals)
+	appeal_url = CONFIG_GET(string/banappeals) || appeal_url
 
 	var/is_admin = FALSE
 	if(player_client)
 		build_ban_cache(player_client)
+	if(!QDELETED(player_client))
 		to_chat(player_client, span_boldannounce("[banned_player_message]<br><span class='danger'>To appeal this ban go to [appeal_url]"), confidential = TRUE)
 		if(GLOB.admin_datums[player_client.ckey] || GLOB.deadmins[player_client.ckey])
 			is_admin = TRUE
@@ -1116,13 +1133,17 @@
 			qdel(player_client)
 
 	for(var/client/other_player_client in GLOB.clients - player_client)
-		if(other_player_client.address == banned_player_ip || other_player_client.computer_id == banned_player_cid)
+		if((banned_player_ip && other_player_client.address == banned_player_ip) || (banned_player_cid && other_player_client.computer_id == banned_player_cid))
 			build_ban_cache(other_player_client)
+			if(QDELETED(other_player_client))
+				continue
 			to_chat(other_player_client, span_boldannounce("[banned_other_message]<br><span class='danger'>To appeal this ban go to [appeal_url]"), confidential = TRUE)
+			is_admin = FALSE
 			if(GLOB.admin_datums[other_player_client.ckey] || GLOB.deadmins[other_player_client.ckey])
 				is_admin = TRUE
 			if(kick_banned_players && (!is_admin || (is_admin && applies_to_admins)))
 				qdel(other_player_client)
+// NOVA EDIT END
 
 #undef MAX_ADMINBANS_PER_ADMIN
 #undef MAX_ADMINBANS_PER_HEADMIN

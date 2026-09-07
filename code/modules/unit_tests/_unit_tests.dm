@@ -384,7 +384,11 @@
 #include "~nova\liver_nova.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
+#include "~nova\preferences_import.dm"
 #include "~nova\shuttle.dm"
+#include "~nova\symphony_moderation.dm"
+#include "~nova\symphony_whitelist.dm"
+#include "~nova\world_topic_log_redaction.dm"
 // NOVA EDIT END
 // END_INCLUDE
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter
