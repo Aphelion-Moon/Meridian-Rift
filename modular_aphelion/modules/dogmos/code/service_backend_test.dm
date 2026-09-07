@@ -1311,8 +1311,11 @@
 /datum/unit_test/dogmos_idle_machinery_operational_wake/Run()
 	var/obj/machinery/atmospherics/components/binary/pump/test_pump = allocate(/obj/machinery/atmospherics/components/binary/pump)
 	test_pump.on = TRUE
+	test_pump.set_is_operational(FALSE)
 	SSair.stop_processing_machine(test_pump)
-	test_pump.on_set_is_operational(FALSE)
+	if(test_pump in SSair.atmos_machinery)
+		return Fail("The operational wake test requires dormant machinery.", __FILE__, __LINE__)
+	test_pump.set_is_operational(TRUE)
 	if(!(test_pump in SSair.atmos_machinery))
 		return Fail("Dormant enabled atmosphere machinery did not wake when it became operational.", __FILE__, __LINE__)
 

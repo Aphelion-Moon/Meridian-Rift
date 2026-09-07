@@ -589,7 +589,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
  * Returns TRUE if the list of gases is acceptable, FALSE otherwise.
  */
 /datum/gas_mixture/proc/check_gases(list/acceptable_gas_bounds, extraneous_gas_limit = 0.1)
+	/* // APHELION EDIT REMOVAL START - DOGMOS - Gas reads update snapshot caches and telemetry.
 	SHOULD_BE_PURE(TRUE)
+	*/ // APHELION EDIT REMOVAL END
 
 	var/list/gases_to_check = acceptable_gas_bounds.Copy() // thank you spaceman
 	for(var/id in get_gases())
