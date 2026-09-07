@@ -129,19 +129,23 @@
 	scoped_accuracy = 4
 
 /obj/projectile/bullet/parallax
-	name = "6mm flechette"
+	name = "6mm frangible smart round"
+	icon = 'modular_aphelion/modules/modular_ballistics/icons/ammunition.dmi'
+	icon_state = "smart_round"
 	damage = 22
 	wound_bonus = -10
 
 /obj/item/ammo_casing/parallax
-	name = "6mm flechette cartridge"
-	desc = "A cased 6mm flechette for the Parallax ballistic platform."
+	name = "6mm frangible smart cartridge"
+	desc = "A Parallax cartridge with a segmented frangible tip, a cyan identification collar and a copper-toned casing. Its spacecraft-interior designation is marked by a red notch."
+	icon = 'modular_aphelion/modules/modular_ballistics/icons/ammunition.dmi'
+	icon_state = "smart_casing"
 	caliber = "parallax_6mm"
 	projectile_type = /obj/projectile/bullet/parallax
 
 /obj/item/ammo_box/magazine/parallax
 	name = "Parallax ammunition cassette (6mm)"
-	desc = "A detachable 24-round ballistic cassette, shared by all Parallax configurations."
+	desc = "A detachable cassette of 24 smart cartridges, shared by all Parallax configurations."
 	icon = 'modular_aphelion/modules/modular_ballistics/icons/parts.dmi'
 	icon_state = "magazine"
 	ammo_type = /obj/item/ammo_casing/parallax
@@ -154,7 +158,7 @@
 
 /obj/item/gun/ballistic/parallax
 	name = "Parallax modular sidearm"
-	desc = "A modular ballistic platform with sculpted ceramic housings over an accelerator spine. Fires physical 6mm flechettes from a removable ammunition cassette."
+	desc = "A modular ballistic platform with sculpted ceramic housings over an accelerator spine. Fires physical 6mm smart rounds from a removable ammunition cassette."
 	icon = 'modular_aphelion/modules/modular_ballistics/icons/modular_ballistics.dmi'
 	icon_state = "frame"
 	inhand_icon_state = "frame"
