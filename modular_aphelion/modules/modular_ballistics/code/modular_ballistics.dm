@@ -8,6 +8,10 @@
 	var/socket
 	/// Overlay state shared by the world and directional in-hand atlases.
 	var/overlay_state
+	/// Named child sockets. Each entry contains an accepted "type" and context offsets.
+	var/list/attachment_points = list()
+	/// Physical children, keyed by the attachment point they occupy.
+	var/list/attachments = list()
 	var/shot_delay = 0
 	var/damage_factor = 1
 	var/dispersion = 0
@@ -20,7 +24,123 @@
 	var/scope_range = 0
 	var/scoped_accuracy = 0
 
+/// Configuration lists are read-only. Missing coordinates use the authored sprite position.
+/proc/parallax_point_offset(list/points, socket, context, facing)
+	var/list/point = points?[socket]
+	var/list/context_offsets = point?[context]
+	var/list/offset = context_offsets?["[facing]"]
+	if(isnull(offset))
+		offset = context_offsets?["default"]
+	return length(offset) >= 2 ? offset : list(0, 0)
+
+/proc/parallax_point_accepts(list/points, obj/item/ballistic_module/part)
+	if(QDELETED(part) || !part.socket)
+		return FALSE
+	var/list/point = points?[part.socket]
+	var/accepted_type = point?["type"]
+	return ispath(accepted_type, /obj/item/ballistic_module) && istype(part, accepted_type)
+
+/obj/item/ballistic_module/proc/installed_gun()
+	var/atom/parent = loc
+	while(istype(parent, /obj/item/ballistic_module))
+		parent = parent.loc
+	return istype(parent, /obj/item/gun/ballistic/parallax) ? parent : null
+
+/obj/item/ballistic_module/proc/all_modules()
+	var/list/result = list(src)
+	for(var/point in attachments)
+		var/obj/item/ballistic_module/child = attachments[point]
+		result += child.all_modules()
+	return result
+
+/obj/item/ballistic_module/proc/can_attach(obj/item/ballistic_module/part)
+	if(!parallax_point_accepts(attachment_points, part) || attachments[part.socket])
+		return FALSE
+	// An ancestor cannot become its own descendant.
+	var/atom/ancestor = src
+	while(istype(ancestor, /obj/item/ballistic_module))
+		if(ancestor == part)
+			return FALSE
+		ancestor = ancestor.loc
+	return TRUE
+
+/obj/item/ballistic_module/proc/install_attachment(obj/item/ballistic_module/part)
+	if(!can_attach(part))
+		return FALSE
+	part.forceMove(src)
+	attachments[part.socket] = part
+	RegisterSignal(part, COMSIG_QDELETING, PROC_REF(attachment_deleted))
+	attachments_changed()
+	return TRUE
+
+/obj/item/ballistic_module/proc/attachments_changed()
+	update_appearance()
+	var/obj/item/gun/ballistic/parallax/gun = installed_gun()
+	if(gun && !QDELETED(gun))
+		gun.rebuild_configuration()
+	else if(istype(loc, /obj/item/ballistic_module))
+		var/obj/item/ballistic_module/parent = loc
+		parent.attachments_changed()
+
+/obj/item/ballistic_module/proc/attachment_deleted(obj/item/ballistic_module/part)
+	SIGNAL_HANDLER
+	forget_attachment(part)
+
+/obj/item/ballistic_module/proc/forget_attachment(obj/item/ballistic_module/part)
+	if(attachments[part.socket] != part)
+		return
+	UnregisterSignal(part, COMSIG_QDELETING)
+	attachments -= part.socket
+	if(!QDELETED(src))
+		attachments_changed()
+
+/obj/item/ballistic_module/Exited(atom/movable/gone, direction)
+	. = ..()
+	if(istype(gone, /obj/item/ballistic_module))
+		forget_attachment(gone)
+
+/obj/item/ballistic_module/Destroy()
+	for(var/point in attachments.Copy())
+		var/obj/item/ballistic_module/child = attachments[point]
+		UnregisterSignal(child, COMSIG_QDELETING)
+		qdel(child)
+	attachments.Cut()
+	return ..()
+
+/// Loose subassemblies use their own context; gun overlays use the held/world atlases.
+/obj/item/ballistic_module/update_overlays()
+	. = ..()
+	for(var/point in attachments)
+		var/obj/item/ballistic_module/child = attachments[point]
+		. += child.attachment_overlays(icon, attachment_points, "loose", SOUTH)
+
+/obj/item/ballistic_module/proc/attachment_overlays(icon_file, list/parent_points, context, facing, parent_x = 0, parent_y = 0)
+	var/list/offset = parallax_point_offset(parent_points, socket, context, facing)
+	var/x = parent_x + offset[1]
+	var/y = parent_y + offset[2]
+	var/list/result = list()
+	if(overlay_state)
+		var/mutable_appearance/appearance = mutable_appearance(icon_file, overlay_state)
+		appearance.pixel_x = x
+		appearance.pixel_y = y
+		result += appearance
+	for(var/point in attachments)
+		var/obj/item/ballistic_module/child = attachments[point]
+		result += child.attachment_overlays(icon_file, attachment_points, context, facing, x, y)
+	return result
+
 /obj/item/ballistic_module/barrel
+	attachment_points = list(
+		"silencer" = list(
+			"type" = /obj/item/ballistic_module/silencer,
+			"world" = list("default" = list(0, 0)),
+			"loose" = list("default" = list(17, 0)),
+			"rifle_left" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
+			"rifle_right" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
+			"compact_left" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
+			"compact_right" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
+		),
+	)
 	name = "Parallax compact accelerator"
 	desc = "A short, shrouded ballistic accelerator. Compact and quick to handle, with reduced muzzle performance."
 	socket = "barrel"
@@ -35,6 +155,17 @@
 	var/shot_volume = 50
 
 /obj/item/ballistic_module/barrel/carbine
+	attachment_points = list(
+		"silencer" = list(
+			"type" = /obj/item/ballistic_module/silencer,
+			"world" = list("default" = list(8, 0)),
+			"loose" = list("default" = list(19, -1)),
+			"rifle_left" = list("2" = list(-5, -1), "1" = list(5, 2), "4" = list(5, 0), "8" = list(-5, 0)),
+			"rifle_right" = list("2" = list(5, -1), "1" = list(-4, 2), "4" = list(5, 0), "8" = list(-5, 0)),
+			"compact_left" = list("2" = list(-2, -2), "1" = list(3, 1), "4" = list(-3, 0), "8" = list(3, 0)),
+			"compact_right" = list("2" = list(3, -2), "1" = list(-2, 1), "4" = list(3, 0), "8" = list(-3, 0)),
+		),
+	)
 	name = "Parallax carbine accelerator"
 	desc = "A vented medium-length accelerator housing for general-purpose ballistic fire."
 	icon_state = "barrel_carbine"
@@ -47,6 +178,17 @@
 	shot_volume = 60
 
 /obj/item/ballistic_module/barrel/compact_auto
+	attachment_points = list(
+		"silencer" = list(
+			"type" = /obj/item/ballistic_module/silencer,
+			"world" = list("default" = list(3, 0)),
+			"loose" = list("default" = list(18, 0)),
+			"rifle_left" = list("2" = list(-2, -1), "1" = list(2, 1), "4" = list(2, 0), "8" = list(-2, 0)),
+			"rifle_right" = list("2" = list(2, -1), "1" = list(-2, 1), "4" = list(2, 0), "8" = list(-2, 0)),
+			"compact_left" = list("2" = list(0, -1), "1" = list(1, 1), "4" = list(-1, 0), "8" = list(1, 0)),
+			"compact_right" = list("2" = list(1, -1), "1" = list(0, 1), "4" = list(1, 0), "8" = list(-1, 0)),
+		),
+	)
 	name = "Parallax compact heat-sink accelerator"
 	desc = "A short accelerator with a stepped lower heat sink. Tighter shot grouping than the compact accelerator, but a slower cycle."
 	icon_state = "barrel_smg"
@@ -55,6 +197,7 @@
 	shot_delay = 0.35 SECONDS
 
 /obj/item/ballistic_module/barrel/carbine/assault
+	attachment_points = list()
 	name = "Parallax assault accelerator"
 	desc = "A deep twin-rib accelerator housing with recessed thermal channels. Its heavier assembly reduces recoil at the expense of a longer cycle."
 	icon_state = "barrel_assault"
@@ -64,6 +207,7 @@
 	kick = 1.6
 
 /obj/item/ballistic_module/barrel/marksman
+	attachment_points = list()
 	name = "Parallax marksman accelerator"
 	desc = "A long, split-shroud accelerator. Its greater muzzle performance requires a slower firing cycle."
 	icon_state = "barrel_marksman"
@@ -76,6 +220,7 @@
 	shot_volume = 70
 
 /obj/item/ballistic_module/barrel/shotgun
+	attachment_points = list()
 	name = "Parallax six-tube shotgun accelerator"
 	desc = "A fixed cluster of six short accelerator tubes. Fires six cassette rounds together in a spread; requires six live rounds for each volley."
 	icon_state = "barrel_shotgun"
@@ -86,6 +231,13 @@
 	kick = 1.6
 	is_long = TRUE
 	shot_volume = 70
+
+/obj/item/ballistic_module/silencer
+	name = "Parallax sound suppressor"
+	desc = "A ceramic-sleeved baffle assembly for compact and carbine accelerators. Reduces the firing report while adding bulk. Install or remove it through the unloaded frame's service latch."
+	socket = "silencer"
+	icon_state = "silencer"
+	overlay_state = "silencer"
 
 /obj/item/ballistic_module/control
 	name = "Parallax semi-automatic controller"
@@ -247,10 +399,25 @@
 	mag_display = FALSE
 	show_bolt_icon = FALSE
 	can_suppress = FALSE
+	// Modular suppressors are drawn and removed by the attachment tree.
+	can_unsuppress = FALSE
+	suppressed_volume = 35
 	bolt_type = BOLT_TYPE_STANDARD
 	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'
 	/// Installed objects keyed by socket, not a list of predetermined gun combinations.
 	var/list/modules = list()
+	/// The frame uses the same named-point schema as every detachable module.
+	/// Socket -> accepted type and per-context offsets. Omitted offsets are zero.
+	var/list/attachment_points = list(
+		"barrel" = list("type" = /obj/item/ballistic_module/barrel),
+		"controller" = list("type" = /obj/item/ballistic_module/control),
+		"stock" = list("type" = /obj/item/ballistic_module/stock),
+		"optic" = list("type" = /obj/item/ballistic_module/optic),
+		"magazine" = list("type" = /obj/item/ammo_box/magazine/parallax),
+	)
+	var/attachment_inhand_profile = "compact"
+	/// Cached because the direction-change signal runs before the wearer's dir updates.
+	var/attachment_inhand_direction = SOUTH
 	var/list/starting_modules = list(/obj/item/ballistic_module/barrel, /obj/item/ballistic_module/control)
 	var/service_open = FALSE
 	var/datum/component/scope/installed_scope
@@ -260,6 +427,12 @@
 	var/mob/inhand_wearer
 
 /obj/item/gun/ballistic/parallax/Initialize(mapload)
+	var/list/magazine_point = attachment_points?["magazine"]
+	var/magazine_type = magazine_point?["type"]
+	if(ispath(magazine_type, /obj/item/ammo_box/magazine))
+		accepted_magazine_type = magazine_type
+	else
+		spawnwithmagazine = FALSE
 	. = ..()
 	AddElement(/datum/element/update_icon_updates_onmob)
 	for(var/module_type in starting_modules)
@@ -269,6 +442,13 @@
 
 /obj/item/gun/ballistic/parallax/add_bayonet_point()
 	return
+
+/obj/item/gun/ballistic/parallax/insert_magazine(mob/user, obj/item/ammo_box/magazine/new_magazine, display_message = TRUE)
+	var/list/point = attachment_points?["magazine"]
+	var/accepted_type = point?["type"]
+	if(!ispath(accepted_type, /obj/item/ammo_box/magazine) || !istype(new_magazine, accepted_type))
+		return FALSE
+	return ..()
 
 /obj/item/gun/ballistic/parallax/add_seclight_point()
 	return
@@ -288,6 +468,7 @@
 	clear_inhand_wearer()
 	if(slot & ITEM_SLOT_HANDS)
 		inhand_wearer = user
+		attachment_inhand_direction = user.dir
 		RegisterSignal(user, COMSIG_ATOM_DIR_CHANGE, PROC_REF(wearer_turned))
 		alternate_worn_layer = user.dir == NORTH ? BODY_BEHIND_LAYER : initial(alternate_worn_layer)
 	return ..()
@@ -308,10 +489,9 @@
 		clear_inhand_wearer()
 		return
 	// The direction signal fires before dir changes, so use its new_dir argument.
-	// Rebuild only when crossing the north-facing boundary; the DMI handles the rest.
+	// Socket offsets may vary between any two directions, even on the same layer.
+	attachment_inhand_direction = new_dir
 	var/new_layer = new_dir == NORTH ? BODY_BEHIND_LAYER : initial(alternate_worn_layer)
-	if(alternate_worn_layer == new_layer)
-		return
 	alternate_worn_layer = new_layer
 	source.update_held_items()
 
@@ -327,8 +507,7 @@
 	spread = 0
 	recoil = 0
 	var/long_profile = FALSE
-	for(var/socket in modules)
-		var/obj/item/ballistic_module/part = modules[socket]
+	for(var/obj/item/ballistic_module/part as anything in all_modules())
 		spread += part.dispersion
 		recoil += part.kick
 		fire_delay += part.cycle_cost
@@ -340,7 +519,10 @@
 	burst_delay = fire_delay
 	if(burst_size > 1)
 		fire_delay *= burst_size
-	update_weight_class(long_profile ? WEIGHT_CLASS_BULKY : WEIGHT_CLASS_NORMAL)
+	var/obj/item/ballistic_module/silencer/sound_suppressor = barrel?.attachments["silencer"]
+	suppressed = istype(sound_suppressor) ? SUPPRESSED_QUIET : SUPPRESSED_NONE
+	update_weight_class((long_profile || suppressed) ? WEIGHT_CLASS_BULKY : WEIGHT_CLASS_NORMAL)
+	attachment_inhand_profile = long_profile ? "rifle" : "compact"
 	// Compact sidearms use the small angled pose of other pistols. A long barrel
 	// or stock switches every component together to the horizontal rifle pose.
 	lefthand_file = long_profile ? 'modular_aphelion/modules/modular_ballistics/icons/lefthand.dmi' : 'modular_aphelion/modules/modular_ballistics/icons/compact_lefthand.dmi'
@@ -368,7 +550,7 @@
 	update_appearance()
 
 /obj/item/gun/ballistic/parallax/proc/install_module(obj/item/ballistic_module/part)
-	if(!part.socket || modules[part.socket])
+	if(!parallax_point_accepts(attachment_points, part) || modules[part.socket])
 		return FALSE
 	part.forceMove(src)
 	modules[part.socket] = part
@@ -452,12 +634,32 @@
 			balloon_alert(user, "open unloaded frame first!")
 			return ITEM_INTERACT_BLOCKING
 		var/obj/item/ballistic_module/part = tool
-		if(!part.socket || modules[part.socket])
-			balloon_alert(user, "socket occupied!")
+		var/list/parents = list()
+		if(parallax_point_accepts(attachment_points, part) && !modules[part.socket])
+			parents["Frame: [part.socket]"] = src
+		for(var/obj/item/ballistic_module/parent as anything in all_modules())
+			if(parent.can_attach(part))
+				parents["[length(parents) + 1]. [parent.name]: [part.socket]"] = parent
+		if(!length(parents))
+			balloon_alert(user, "no compatible free socket!")
 			return ITEM_INTERACT_BLOCKING
-		if(user.transferItemToLoc(part, src))
-			install_module(part)
-			balloon_alert(user, "module installed")
+		var/choice = length(parents) == 1 ? parents[1] : tgui_input_list(user, "Choose an attachment point.", name, parents)
+		var/obj/item/target = parents[choice]
+		if(!target || QDELETED(part) || !service_open || !can_service(user) || !user.is_holding(part))
+			return ITEM_INTERACT_BLOCKING
+		if(target == src)
+			if(!parallax_point_accepts(attachment_points, part) || modules[part.socket])
+				return ITEM_INTERACT_BLOCKING
+			if(user.transferItemToLoc(part, src))
+				install_module(part)
+				balloon_alert(user, "module installed")
+		else
+			var/obj/item/ballistic_module/parent = target
+			if(QDELETED(parent) || !(parent in all_modules()) || !parent.can_attach(part))
+				return ITEM_INTERACT_BLOCKING
+			if(user.transferItemToLoc(part, parent))
+				parent.install_attachment(part)
+				balloon_alert(user, "module installed")
 		return ITEM_INTERACT_SUCCESS
 	if(service_open && istype(tool, /obj/item/ammo_box))
 		balloon_alert(user, "close service latch first!")
@@ -469,12 +671,11 @@
 		balloon_alert(user, "open unloaded frame first!")
 		return CLICK_ACTION_BLOCKING
 	var/list/choices = list()
-	for(var/socket in modules)
-		var/obj/item/ballistic_module/part = modules[socket]
-		choices["[socket]: [part.name]"] = part
+	for(var/obj/item/ballistic_module/part as anything in all_modules())
+		choices["[length(choices) + 1]. [part.loc.name] / [part.socket]: [part.name]"] = part
 	var/choice = tgui_input_list(user, "Choose a component to remove.", name, choices)
 	var/obj/item/ballistic_module/selected = choices[choice]
-	if(QDELETED(selected) || !service_open || !can_service(user) || modules[selected.socket] != selected)
+	if(QDELETED(selected) || !service_open || !can_service(user) || !(selected in all_modules()))
 		return CLICK_ACTION_BLOCKING
 	selected.forceMove(drop_location())
 	user.put_in_hands(selected)
@@ -486,6 +687,8 @@
 	if(has_shotgun_barrel())
 		. += span_notice("Six projectiles per volley; consumes six live rounds including the chamber. Fixed 20-degree pellet spread. Fewer than six rounds cannot fire.")
 	. += span_notice("Service latch: [service_open ? "open (firing disabled)" : "closed"].")
+	if(suppressed)
+		. += span_notice("A barrel-mounted sound suppressor reduces the firing report. Remove it through the service latch.")
 	var/obj/item/ballistic_module/control/controller = modules["controller"]
 	var/fire_mode = !controller ? "unavailable" : (controller.automatic ? "automatic" : (burst_size > 1 ? "[burst_size]-round burst" : "semi-automatic"))
 	. += span_notice("Fire mode: [fire_mode]. Cycle: [burst_delay / 10] seconds per shot; [fire_delay / 10] seconds per trigger cycle.")
@@ -506,25 +709,43 @@
 	base_pixel_x = bare_frame ? 0 : -8
 	pixel_x = base_pixel_x
 
+/// Include nested modules for modifiers, service menus and membership checks.
+/obj/item/gun/ballistic/parallax/proc/all_modules()
+	var/list/result = list()
+	for(var/socket in modules)
+		var/obj/item/ballistic_module/part = modules[socket]
+		result += part.all_modules()
+	return result
+
+/// Magazine ownership/loading stays with the ballistic gun; its mount uses the same schema.
+/obj/item/gun/ballistic/parallax/proc/attachment_appearance(icon_file, state, socket, context = "world", facing = SOUTH)
+	var/mutable_appearance/part_appearance = mutable_appearance(icon_file, state)
+	var/list/offset = parallax_point_offset(attachment_points, socket, context, facing)
+	part_appearance.pixel_x = offset[1]
+	part_appearance.pixel_y = offset[2]
+	return part_appearance
+
 /obj/item/gun/ballistic/parallax/update_overlays()
 	. = ..()
 	for(var/socket in modules)
 		var/obj/item/ballistic_module/part = modules[socket]
-		. += mutable_appearance(icon, part.overlay_state)
+		. += part.attachment_overlays(icon, attachment_points, "world", SOUTH)
 	if(magazine)
 		var/obj/item/ammo_box/magazine/parallax/cassette = magazine
-		. += mutable_appearance(icon, cassette.ammo_indicator_state())
+		. += attachment_appearance(icon, cassette.ammo_indicator_state(), "magazine")
 
 /obj/item/gun/ballistic/parallax/worn_overlays(mutable_appearance/standing, isinhands, icon_file)
 	. = ..()
 	if(!isinhands)
 		return
+	var/hand = icon_file == lefthand_file ? "left" : "right"
+	var/context = "[attachment_inhand_profile]_[hand]"
 	for(var/socket in modules)
 		var/obj/item/ballistic_module/part = modules[socket]
-		. += mutable_appearance(icon_file, part.overlay_state)
+		. += part.attachment_overlays(icon_file, attachment_points, context, attachment_inhand_direction)
 	if(magazine)
 		var/obj/item/ammo_box/magazine/parallax/cassette = magazine
-		. += mutable_appearance(icon_file, cassette.ammo_indicator_state())
+		. += attachment_appearance(icon_file, cassette.ammo_indicator_state(), "magazine", context, attachment_inhand_direction)
 
 /obj/item/gun/ballistic/parallax/empty
 	name = "Parallax incomplete frame"
@@ -564,11 +785,12 @@
 	new /obj/item/ballistic_module/stock/precision(src)
 	new /obj/item/ballistic_module/optic(src)
 	new /obj/item/ballistic_module/optic/scope(src)
+	new /obj/item/ballistic_module/silencer(src)
 
 /obj/item/storage/box/parallax_modules/Initialize(mapload)
 	. = ..()
-	atom_storage.max_slots = 13
-	atom_storage.max_total_storage = 26
+	atom_storage.max_slots = 14
+	atom_storage.max_total_storage = 28
 
 /datum/supply_pack/security/armory/parallax
 	name = "Parallax Modular Ballistics Kit"
