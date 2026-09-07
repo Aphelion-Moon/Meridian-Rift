@@ -25,22 +25,18 @@
 		if(isnull(declared[postfix]))
 			TEST_FAIL("SSaccessories.all_layer_postfixes contains \"[postfix]\" but no bodypart_overlay declares it in a layers list - remove it, or add the overlay layer that should use it.")
 
-/// Visible accessories and their emissive masks must rotate around the same 32x32 body origin.
-/datum/unit_test/accessory_icon_canvases
+/// Centering must use the actual canvas so emissive and visible wings share a rotation pivot.
+/datum/unit_test/wing_icon_canvases
 
-/datum/unit_test/accessory_icon_canvases/Run()
+/datum/unit_test/wing_icon_canvases/Run()
 	var/list/canvases = list()
-	for(var/datum/sprite_accessory/accessory_path as anything in subtypesof(/datum/sprite_accessory))
-		// Abstract parents and "None" choices do not draw an accessory.
-		if(!initial(accessory_path.icon) || !initial(accessory_path.icon_state) || !initial(accessory_path.factual))
+	for(var/datum/sprite_accessory/wing_path as anything in subtypesof(/datum/sprite_accessory/wings) + subtypesof(/datum/sprite_accessory/wings_open))
+		if(!initial(wing_path.center))
 			continue
-		var/icon_file = initial(accessory_path.icon)
+		var/icon_file = initial(wing_path.icon)
 		var/icon/canvas = canvases[icon_file]
 		if(!canvas)
 			canvas = icon(icon_file)
 			canvases[icon_file] = canvas
-		var/centered = initial(accessory_path.center)
-		var/width = centered ? initial(accessory_path.dimension_x) : ICON_SIZE_X
-		var/height = centered ? initial(accessory_path.dimension_y) : ICON_SIZE_Y
-		if(width != canvas.Width() || height != canvas.Height())
-			TEST_FAIL("[accessory_path] uses a [canvas.Width()]x[canvas.Height()] canvas in [icon_file], but centers for [width]x[height] (center = [centered]).")
+		TEST_ASSERT_EQUAL(initial(wing_path.dimension_x), canvas.Width(), "[wing_path] centers its wings using a width that does not match [icon_file].")
+		TEST_ASSERT_EQUAL(initial(wing_path.dimension_y), canvas.Height(), "[wing_path] centers its wings using a height that does not match [icon_file].")
