@@ -39,8 +39,8 @@
 	desc = "A vented medium-length accelerator housing for general-purpose ballistic fire."
 	icon_state = "barrel_carbine"
 	overlay_state = "barrel_carbine"
-	shot_delay = 0.35 SECONDS
-	damage_factor = 1
+	shot_delay = 0.2 SECONDS
+	damage_factor = 0.8
 	dispersion = 4
 	kick = 0.8
 	is_long = TRUE
@@ -59,8 +59,9 @@
 	desc = "A deep twin-rib accelerator housing with recessed thermal channels. Its heavier assembly reduces recoil at the expense of a longer cycle."
 	icon_state = "barrel_assault"
 	overlay_state = "barrel_assault"
-	shot_delay = 0.4 SECONDS
-	kick = 0.6
+	shot_delay = 0.3 SECONDS
+	damage_factor = 1
+	kick = 1.6
 
 /obj/item/ballistic_module/barrel/marksman
 	name = "Parallax marksman accelerator"
@@ -70,7 +71,7 @@
 	shot_delay = 0.8 SECONDS
 	damage_factor = 1.45
 	dispersion = 2
-	kick = 1.4
+	kick = 2
 	is_long = TRUE
 	shot_volume = 70
 
