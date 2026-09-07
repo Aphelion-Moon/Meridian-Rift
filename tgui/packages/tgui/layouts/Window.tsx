@@ -60,7 +60,7 @@ export function Window(props: Props) {
   const { config, suspended, debug } = useBackend();
   // APHELION EDIT ADDITION START - prompt sizing
   const { promptClass, fitBeforeShow } = usePromptSizing(
-    config.interface.name,
+    config.interface?.name ?? '',
     suspended,
   );
   // APHELION EDIT ADDITION END

@@ -260,7 +260,7 @@ export function MeridianThemePicker(props: MeridianThemePickerProps) {
           aria-controls={menuId}
           aria-expanded={isOpen}
           aria-haspopup="menu"
-          aria-label={`Change base interface theme. Current: ${selectedOption?.name ?? 'Standard'}`}
+          aria-label={`Change base interface theme. Current: ${selectedOption?.name ?? 'Aphelion'}`}
           className="MeridianThemePicker__trigger"
           id={triggerId}
           onMouseDown={() => {
