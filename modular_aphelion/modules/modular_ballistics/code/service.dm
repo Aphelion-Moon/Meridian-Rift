@@ -5,7 +5,7 @@
 
 /obj/item/gun/ballistic/parallax/screwdriver_act(mob/living/user, obj/item/tool)
 	if(!can_service(user))
-		balloon_alert(user, "hold and fully unload first!")
+		balloon_alert(user, "hold and remove heatsink first!")
 		return ITEM_INTERACT_BLOCKING
 	service_open = !service_open
 	tool.play_tool_sound(src)
@@ -68,9 +68,22 @@
 
 /obj/item/gun/ballistic/parallax/examine(mob/user)
 	. = ..()
-	. += span_notice("Remove the cassette and rack out the chambered round before servicing. While holding it, use a screwdriver to open or close the service latch; Alt-click to remove a part, or apply a part to install it.")
+	// Remove inherited ballistic ammunition readouts; the chamber is only a firing adapter.
+	. -= "It has <b>[get_ammo(TRUE)]</b> round\s remaining."
+	. -= "It does not seem to have a round chambered."
+	. -= "The [bolt_wording] is locked back and needs to be released before firing or de-fouling."
+	. += span_notice("Activate in hand to eject the heatsink. Right-click in hand to toggle thermal safety. Remove the heatsink before servicing; use a screwdriver to operate the latch, Alt-click to remove a part, or apply a part to install it.")
+	. += span_notice("Thermal safety: [thermal_safety ? "enabled" : "DISABLED"]. Heat per shot: [shot_heat()]. Metal feedstock is effectively inexhaustible.")
+	. += span_notice("The ammo counter shows remaining shots before the safe heat limit. Disabling thermal safety risks burning out the sink and burning both arms on every further shot.")
+	var/obj/item/ammo_box/magazine/parallax/sink = magazine
+	if(sink)
+		. += span_notice("Heatsink: [round(100 * sink.stored_heat / sink.heat_capacity)]% heat; dissipates [sink.cooling_rate] heat per second.")
+		if(sink.burnt_out)
+			. += span_danger("Heatsink burnt out! Every further shot burns both arms until it is replaced. Cooling will not repair it.")
+	else
+		. += span_warning("No heatsink installed; firing disabled.")
 	if(has_shotgun_barrel())
-		. += span_notice("Six projectiles per volley; consumes six live rounds including the chamber. Fixed 20-degree pellet spread. Fewer than six rounds cannot fire.")
+		. += span_notice("Six metal shavings per volley, generating six times the heat. Fixed 20-degree pellet spread.")
 	. += span_notice("Service latch: [service_open ? "open (firing disabled)" : "closed"].")
 	if(suppressed)
 		. += span_notice("A barrel-mounted sound suppressor reduces the firing report. Remove it through the service latch.")

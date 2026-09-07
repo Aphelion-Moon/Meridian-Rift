@@ -93,7 +93,7 @@
 /obj/item/ballistic_module/barrel/shotgun
 	attachment_points = list()
 	name = "Parallax six-tube shotgun accelerator"
-	desc = "A fixed cluster of six short accelerator tubes. Fires six cassette rounds together in a spread; requires six live rounds for each volley."
+	desc = "A fixed cluster of six short accelerator tubes. Fires six metal shavings in a spread, generating six times the heat per volley."
 	icon_state = "barrel_shotgun"
 	overlay_state = "barrel_shotgun"
 	shot_delay = 1.2 SECONDS

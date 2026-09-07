@@ -59,7 +59,7 @@
 
 /obj/item/gun/ballistic/parallax/bullpup
 	name = "Parallax bullpup prototype"
-	desc = "A compact rear-action Parallax receiver with an integrated buttstock and a cassette well behind the grip. Requires both hands and accepts standard barrels, controllers and optics."
+	desc = "A compact rear-action Parallax receiver with an integrated buttstock and a heatsink well behind the grip. Requires both hands and accepts standard barrels, controllers and optics."
 	frame_name_prefix = "Parallax bullpup"
 	frame_icon_state = "frame_bullpup"
 	icon_state = "frame_bullpup"

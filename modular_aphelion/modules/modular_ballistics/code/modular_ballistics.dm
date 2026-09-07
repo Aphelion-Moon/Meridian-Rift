@@ -2,7 +2,7 @@
 
 /obj/item/gun/ballistic/parallax
 	name = "Parallax modular sidearm"
-	desc = "A modular ballistic platform with sculpted ceramic housings over an accelerator spine. Fires physical 6mm smart rounds from a removable ammunition cassette."
+	desc = "A modular magnetic accelerator with sculpted ceramic housings. Slices rice-sized projectiles from an effectively inexhaustible metal block, shedding firing heat into a removable heatsink."
 	icon = 'modular_aphelion/modules/modular_ballistics/icons/modular_ballistics.dmi'
 	icon_state = "frame"
 	inhand_icon_state = "frame"
@@ -21,6 +21,12 @@
 	can_unsuppress = FALSE
 	suppressed_volume = 35
 	bolt_type = BOLT_TYPE_STANDARD
+	magazine_wording = "heatsink"
+	click_on_low_ammo = FALSE
+	/// Thermal safety prevents shots that would exceed the installed sink's capacity.
+	var/thermal_safety = TRUE
+	var/heat_per_projectile = 5
+	var/overheat_burn_damage = 5
 	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'
 	/// Installed objects keyed by socket, not a list of predetermined gun combinations.
 	var/list/modules = list()
@@ -77,7 +83,10 @@
 	var/accepted_type = point?["type"]
 	if(!ispath(accepted_type, /obj/item/ammo_box/magazine) || !istype(new_magazine, accepted_type))
 		return FALSE
-	return ..()
+	. = ..()
+	if(.)
+		bolt_locked = FALSE
+		chamber_round()
 
 /obj/item/gun/ballistic/parallax/add_seclight_point()
 	return

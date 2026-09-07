@@ -60,23 +60,20 @@
 /obj/item/gun/ballistic/parallax/proc/has_shotgun_barrel()
 	return istype(modules["barrel"], /obj/item/ballistic_module/barrel/shotgun)
 
-/obj/item/gun/ballistic/parallax/proc/has_volley_ammo()
-	return chambered?.loaded_projectile && magazine && magazine.ammo_count(countempties = FALSE) >= 5
-
 /obj/item/gun/ballistic/parallax/can_shoot()
-	return assembly_ready() && (!has_shotgun_barrel() || has_volley_ammo()) && ..()
+	return assembly_ready() && thermal_ready() && ..()
 
 /obj/item/gun/ballistic/parallax/can_trigger_gun(mob/living/user, akimbo_usage)
 	if(!assembly_ready())
 		balloon_alert(user, "frame not ready!")
 		return FALSE
-	if(has_shotgun_barrel() && !has_volley_ammo())
-		balloon_alert(user, "need six live rounds!")
+	if(!thermal_ready())
+		balloon_alert(user, magazine ? "heatsink too hot or burnt out!" : "no heatsink installed!")
 		return FALSE
 	return ..()
 
 /obj/item/gun/ballistic/parallax/process_fire(atom/target, mob/living/user, message = TRUE, params = null, zone_override = "", bonus_spread = 0)
-	if(!assembly_ready())
+	if(!can_shoot())
 		return NONE
 	var/hip_spread = spread
 	spread = configuration_spread(user)
@@ -89,7 +86,7 @@
 
 /// Also guard queued burst callbacks if a component is externally removed or deleted.
 /obj/item/gun/ballistic/parallax/process_burst(mob/living/user, atom/target, message = TRUE, params = null, zone_override = "", random_spread = 0, burst_spread_mult = 0, iteration = 0)
-	if(!assembly_ready())
+	if(!can_shoot())
 		firing_burst = FALSE
 		return FALSE
 	return ..()

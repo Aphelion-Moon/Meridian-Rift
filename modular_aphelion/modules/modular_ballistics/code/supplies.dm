@@ -27,14 +27,14 @@
 
 /datum/supply_pack/security/armory/parallax
 	name = "Parallax Modular Ballistics Kit"
-	desc = "Two Parallax sidearms, two complete conversion kits, four spare ammunition cassettes and a screwdriver."
+	desc = "Two Parallax sidearms, two complete conversion kits, four spare reusable heatsinks and a screwdriver."
 	cost = CARGO_CRATE_VALUE * 24
 	contains = list(/obj/item/gun/ballistic/parallax, /obj/item/gun/ballistic/parallax, /obj/item/storage/box/parallax_modules, /obj/item/storage/box/parallax_modules, /obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax, /obj/item/screwdriver)
 	crate_name = "Parallax modular ballistics crate"
 
 /datum/supply_pack/security/armory/parallax_ammo
-	name = "Parallax Ammunition Cassettes"
-	desc = "Four 24-round 6mm flechette cassettes for the Parallax platform."
+	name = "Parallax Heatsinks"
+	desc = "Four reusable heatsinks for the Parallax magnetic accelerator platform."
 	cost = CARGO_CRATE_VALUE * 4
 	contains = list(/obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax)
-	crate_name = "Parallax ammunition crate"
+	crate_name = "Parallax heatsink crate"
