@@ -74,6 +74,18 @@
 	is_long = TRUE
 	shot_volume = 70
 
+/obj/item/ballistic_module/barrel/shotgun
+	name = "Parallax six-tube shotgun accelerator"
+	desc = "A fixed cluster of six short accelerator tubes. Fires six cassette rounds together in a spread; requires six live rounds for each volley."
+	icon_state = "barrel_shotgun"
+	overlay_state = "barrel_shotgun"
+	shot_delay = 1.2 SECONDS
+	damage_factor = 10 / 22
+	dispersion = 4
+	kick = 1.6
+	is_long = TRUE
+	shot_volume = 70
+
 /obj/item/ballistic_module/control
 	name = "Parallax semi-automatic controller"
 	desc = "A fire-control cartridge that authorizes one shot per trigger pull."
@@ -150,6 +162,47 @@
 	projectile_type = /obj/projectile/bullet/parallax
 	muzzle_flash_color = LIGHT_COLOR_BLUE
 	firing_effect_type = /obj/effect/temp_visual/dir_setting/firing_effect/blue
+
+/// Split the volley only after reserving five additional physical cartridges.
+/// The chamber supplies the sixth; ordinary gun cycling ejects that casing.
+/obj/item/ammo_casing/parallax/fire_casing(atom/target, mob/living/user, params, distro, quiet, zone_override, spread, atom/fired_from)
+	if(!istype(fired_from, /obj/item/gun/ballistic/parallax))
+		return ..()
+	var/obj/item/gun/ballistic/parallax/gun = fired_from
+	if(!gun.has_shotgun_barrel())
+		return ..()
+	if(!user || !get_turf(target) || !get_turf(gun) || !loaded_projectile || !gun.has_volley_ammo())
+		return FALSE
+	var/obj/item/ammo_box/magazine/source_magazine = gun.magazine
+	var/list/reserved = list()
+	for(var/i in 1 to 5)
+		var/obj/item/ammo_casing/extra = source_magazine.get_round()
+		if(!extra?.loaded_projectile)
+			for(var/obj/item/ammo_casing/refund as anything in reserved)
+				source_magazine.give_round(refund)
+			source_magazine.update_appearance()
+			return FALSE
+		extra.forceMove(src)
+		reserved += extra
+	pellets = 6
+	variance = 20
+	randomspread = TRUE
+	. = ..()
+	pellets = initial(pellets)
+	variance = initial(variance)
+	randomspread = initial(randomspread)
+	for(var/obj/item/ammo_casing/extra as anything in reserved)
+		if(.)
+			QDEL_NULL(extra.loaded_projectile)
+			extra.shot_timestamp = world.time
+			extra.forceMove(get_turf(gun))
+			extra.update_appearance()
+			extra.bounce_away(TRUE)
+		else
+			source_magazine.give_round(extra)
+	if(. && !quiet && firing_effect_type)
+		new firing_effect_type(user, get_dir(user, target))
+	source_magazine.update_appearance()
 
 /obj/item/ammo_box/magazine/parallax
 	name = "Parallax ammunition cassette (6mm)"
@@ -290,12 +343,14 @@
 	lefthand_file = long_profile ? 'modular_aphelion/modules/modular_ballistics/icons/lefthand.dmi' : 'modular_aphelion/modules/modular_ballistics/icons/compact_lefthand.dmi'
 	righthand_file = long_profile ? 'modular_aphelion/modules/modular_ballistics/icons/righthand.dmi' : 'modular_aphelion/modules/modular_ballistics/icons/compact_righthand.dmi'
 	weapon_weight = long_profile ? WEAPON_MEDIUM : WEAPON_LIGHT
-	if(istype(barrel, /obj/item/ballistic_module/barrel/marksman))
+	if(istype(barrel, /obj/item/ballistic_module/barrel/marksman) || istype(barrel, /obj/item/ballistic_module/barrel/shotgun))
 		weapon_weight = WEAPON_HEAVY
 	if(!barrel || !controller)
 		name = "Parallax incomplete frame"
 	else if(istype(barrel, /obj/item/ballistic_module/barrel/marksman))
 		name = "Parallax modular marksman weapon"
+	else if(istype(barrel, /obj/item/ballistic_module/barrel/shotgun))
+		name = "Parallax modular shotgun"
 	else if(long_profile)
 		name = "Parallax modular carbine"
 	else
@@ -338,12 +393,21 @@
 /obj/item/gun/ballistic/parallax/proc/assembly_ready()
 	return !service_open && modules["barrel"] && modules["controller"]
 
+/obj/item/gun/ballistic/parallax/proc/has_shotgun_barrel()
+	return istype(modules["barrel"], /obj/item/ballistic_module/barrel/shotgun)
+
+/obj/item/gun/ballistic/parallax/proc/has_volley_ammo()
+	return chambered?.loaded_projectile && magazine && magazine.ammo_count(countempties = FALSE) >= 5
+
 /obj/item/gun/ballistic/parallax/can_shoot()
-	return assembly_ready() && ..()
+	return assembly_ready() && (!has_shotgun_barrel() || has_volley_ammo()) && ..()
 
 /obj/item/gun/ballistic/parallax/can_trigger_gun(mob/living/user, akimbo_usage)
 	if(!assembly_ready())
 		balloon_alert(user, "frame not ready!")
+		return FALSE
+	if(has_shotgun_barrel() && !has_volley_ammo())
+		balloon_alert(user, "need six live rounds!")
 		return FALSE
 	return ..()
 
@@ -416,6 +480,8 @@
 /obj/item/gun/ballistic/parallax/examine(mob/user)
 	. = ..()
 	. += span_notice("Remove the cassette and rack out the chambered round before servicing. While holding it, use a screwdriver to open or close the service latch; Alt-click to remove a part, or apply a part to install it.")
+	if(has_shotgun_barrel())
+		. += span_notice("Six projectiles per volley; consumes six live rounds including the chamber. Fixed 20-degree pellet spread. Fewer than six rounds cannot fire.")
 	. += span_notice("Service latch: [service_open ? "open (firing disabled)" : "closed"].")
 	var/obj/item/ballistic_module/control/controller = modules["controller"]
 	var/fire_mode = !controller ? "unavailable" : (controller.automatic ? "automatic" : (burst_size > 1 ? "[burst_size]-round burst" : "semi-automatic"))
@@ -471,6 +537,9 @@
 /obj/item/gun/ballistic/parallax/assault
 	starting_modules = list(/obj/item/ballistic_module/barrel/carbine/assault, /obj/item/ballistic_module/control/automatic, /obj/item/ballistic_module/stock/precision, /obj/item/ballistic_module/optic)
 
+/obj/item/gun/ballistic/parallax/shotgun
+	starting_modules = list(/obj/item/ballistic_module/barrel/shotgun, /obj/item/ballistic_module/control, /obj/item/ballistic_module/stock)
+
 /obj/item/gun/ballistic/parallax/marksman
 	starting_modules = list(/obj/item/ballistic_module/barrel/marksman, /obj/item/ballistic_module/control, /obj/item/ballistic_module/stock/precision, /obj/item/ballistic_module/optic/scope)
 
@@ -484,6 +553,7 @@
 	new /obj/item/ballistic_module/barrel/carbine(src)
 	new /obj/item/ballistic_module/barrel/carbine/assault(src)
 	new /obj/item/ballistic_module/barrel/marksman(src)
+	new /obj/item/ballistic_module/barrel/shotgun(src)
 	new /obj/item/ballistic_module/control(src)
 	new /obj/item/ballistic_module/control/burst(src)
 	new /obj/item/ballistic_module/control/automatic(src)
@@ -494,8 +564,8 @@
 
 /obj/item/storage/box/parallax_modules/Initialize(mapload)
 	. = ..()
-	atom_storage.max_slots = 12
-	atom_storage.max_total_storage = 24
+	atom_storage.max_slots = 13
+	atom_storage.max_total_storage = 26
 
 /datum/supply_pack/security/armory/parallax
 	name = "Parallax Modular Ballistics Kit"
