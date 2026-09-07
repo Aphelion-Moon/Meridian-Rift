@@ -7343,6 +7343,7 @@
 #include "modular_aphelion\modules\modular_ballistics\code\appearance.dm"
 #include "modular_aphelion\modules\modular_ballistics\code\barrels.dm"
 #include "modular_aphelion\modules\modular_ballistics\code\configuration.dm"
+#include "modular_aphelion\modules\modular_ballistics\code\frames.dm"
 #include "modular_aphelion\modules\modular_ballistics\code\modular_ballistics.dm"
 #include "modular_aphelion\modules\modular_ballistics\code\modules.dm"
 #include "modular_aphelion\modules\modular_ballistics\code\service.dm"
