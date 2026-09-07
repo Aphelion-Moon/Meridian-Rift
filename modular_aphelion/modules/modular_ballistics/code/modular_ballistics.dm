@@ -152,6 +152,8 @@
 	muzzle_flash_color_override = LIGHT_COLOR_BLUE
 	damage = 22
 	wound_bonus = -10
+	weak_against_armour = TRUE
+	demolition_mod = 0.1
 
 /obj/item/ammo_casing/parallax
 	name = "6mm frangible smart cartridge"
