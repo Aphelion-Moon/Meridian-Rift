@@ -1,135 +1,117 @@
 # Parallax modular ballistics
 
-An MCR-inspired ballistic platform with original Mass Effect-inspired ceramic
-shells, dark structural parts, red insets and cyan indicators. Every configuration
-is assembled from the same physical component objects and overlay states.
+A ballistic weapon assembled from physical, removable parts. Shared overlays
+compose world and held sprites without a separate sprite for every configuration.
+
+## Source layout
+
+Production files are included explicitly in the root `tgstation.dme`.
+
+| File in `code/` | Responsibility |
+| --- | --- |
+| `modular_ballistics.dm` | Frame defaults and sockets, initialization, cleanup, magazine admission, and presets |
+| `modules.dm` | Part fields, point lookup/compatibility, physical ownership, nested installation/removal, and part examination |
+| `barrels.dm` | Barrel performance and suppressor mount coordinates |
+| `accessories.dm` | Controllers, stocks, optics, and suppressors |
+| `ammunition.dm` | Projectile, cartridge, six-round volley, and cassette indicators |
+| `configuration.dm` | Derived performance, suppression, scope behavior, firing guards, and aimed spread |
+| `service.dm` | Service latch, installation selection, removal menu, and gun examination |
+| `appearance.dm` | Recursive overlays, loose/assembled appearance, held poses, and facing layers |
+| `supplies.dm` | Kits, storage limits, and cargo packs |
+| `modular_ballistics_tests.dm` | Existing tests, gated by `UNIT_TESTS` or `SPACEMAN_DMM` |
+
+Add barrels in `barrels.dm` and accessory definitions in `accessories.dm`. Change
+mount positions on the parent's `attachment_points`. Firing behavior belongs in
+`configuration.dm` or `ammunition.dm`; player interactions belong in `service.dm`.
+Update `supplies.dm` when adding kit contents.
 
 ## Use
 
-Order **Parallax Modular Ballistics Kit** from the armory cargo category, or spawn
-`/obj/item/gun/ballistic/parallax`. The kit contains two sidearms, two complete
-conversion kits, spare 24-round 6mm cassettes and a screwdriver. Ammo is also
-available as a separate armory order.
+Order **Parallax Modular Ballistics Kit** from armory cargo, or spawn
+`/obj/item/gun/ballistic/parallax`. Conversion kits include a suppressor.
+Spare ammunition cassettes also have a separate cargo order.
 
-1. Hold the weapon, remove its ammunition cassette and rack out the chambered round.
-2. Use a screwdriver on it to open the service latch. Firing is disabled while open.
-3. Alt-click to select and remove a component. Apply another component to its empty
-   socket. Removed parts remain ordinary items and can be reused on another frame.
-4. Close the latch with the screwdriver, insert a cassette and rack the weapon.
+1. Hold the gun, remove its cassette, and rack out the chambered cartridge.
+2. Open its service latch with a screwdriver.
+3. Apply a part and choose a compatible parent if necessary. Alt-click to remove
+   a part, including a nested attachment. Removing a parent carries its children.
+4. Close the latch, insert a cassette, and chamber a round.
 
-The barrel and controller are required. Stocks and optics are optional. Any barrel
-works with any controller, stock and optic: **135 complete combinations**.
-An occupied socket rejects another component; remove its current component first.
+Servicing requires a fully unloaded, held gun outside a burst or firing cooldown.
+The barrel and controller are required; stocks and optics are optional. Examine
+the weapon and parts for current performance values.
 
-| Socket | Choices | Effect |
-| --- | --- | --- |
-| Barrel | Compact, compact heat-sink, carbine, assault, marksman | Cycle time, damage, dispersion, recoil and handling size |
-| Controller | Semi, three-round burst, automatic | Trigger behavior; automatic mode fires while held |
-| Stock | None, compact, precision | Lower recoil and dispersion; adds bulk; precision adds 0.1 seconds per shot |
-| Optic | None, reflex, precision | Reflex improves all shots; precision enables right-click aiming with a hip-fire and cycle penalty |
+Compact, compact heat-sink, and carbine barrels accept a suppressor. Suppression
+uses the existing quiet-shot behavior and makes compact weapons bulky, without
+changing damage or cycle time. Marksman and shotgun builds require both hands.
+The shotgun fires six pellets and consumes six live cassette rounds per volley.
 
-Carbines cannot be fired akimbo. Marksman barrels require both hands. All builds
-use the same ammunition, with barrel performance trading rate of fire for damage.
-Automatic and burst controllers respect the barrel's cycle time plus installed
-part cycle costs. The compact heat-sink accelerator trades a 0.35-second cycle
-(instead of 0.3) for tighter grouping. The assault accelerator trades speed for
-reduced recoil compared with the carbine.
+## Attachment model
 
-Right-click with a complete precision-optic build to toggle the game's normal
-scope view (range modifier 2). The optic adds 1 dispersion and 0.1 seconds per
-shot, then subtracts 4 dispersion while aiming through that weapon's own scope.
-The reflex optic instead subtracts 1 dispersion at all times with no cycle cost.
-Precision stocks improve stability more than compact stocks but add 0.1 seconds
-per shot. These costs also apply between burst rounds.
+The frame's `modules` and each part's `attachments` hold physical children keyed
+by socket. Both frames and parts define `attachment_points`. A child's `socket`
+selects a point; the point's `type` restricts accepted subtypes. Missing points
+mean unsupported. Missing coordinates mean zero offset.
 
-Examine a weapon for its fire mode, shot and trigger cycles, damage multiplier,
-hip/scoped dispersion, recoil, handling, missing required parts and installed
-modules. Examine a loose part for its modifiers. Opening the service latch,
-removing the optic, or losing a required part removes the scope controls.
+Contexts are `world`, `loose`, `compact_left`, `compact_right`, `rifle_left` and
+`rifle_right`. Each context accepts `default` coordinates and held-direction
+overrides. Use quoted numeric direction keys in constant declarations:
+`"1"` north, `"2"` south, `"4"` east, `"8"` west.
 
-Presets are examples of installed parts, not separate mechanics or combined icons:
-`parallax`, `parallax/machine_pistol`, `parallax/carbine`, `parallax/assault`,
-`parallax/marksman`. `parallax/empty` is an unloaded bare frame.
+```dm
+attachment_points = list(
+    "silencer" = list(
+        "type" = /obj/item/ballistic_module/silencer,
+        "world" = list("default" = list(8, 0)),
+        "rifle_left" = list("4" = list(5, 0), "8" = list(-5, 0)),
+    ),
+)
+```
+
+Coordinates translate the authored sprite: positive x is right and positive y is
+up. Child offsets accumulate through their parents. They do not automatically
+mirror, rotate or detect a muzzle. The current frame uses zero offsets because
+the existing artwork already contains its attachment placement.
+
+Treat point tables as read-only subtype configuration. Install through
+`install_module()` or `install_attachment()` to maintain ownership signals and
+configuration updates. Player service additionally enforces the latch restrictions.
+
+`rebuild_configuration()` derives values from the current tree rather than
+stacking previous bonuses. Nested parts contribute additive dispersion, recoil,
+cycle cost, aimed accuracy and handling. Primary barrel/controller/optic roles
+remain on the frame. Suppression comes from the primary barrel's silencer.
+Magazines retain ballistic loading/chambering behavior while using their named
+point for compatibility and visual placement.
 
 ## Sprite contract
 
-- `icons/modular_ballistics.dmi`: 48×32 shared frame and installed part overlays.
-- `icons/parts.dmi`: 32×32 centered loose component and cassette sprites.
-- `icons/lefthand.dmi`, `icons/righthand.dmi`: 64×64, four directions per state.
-  Rifle artwork uses approximately 66% of the ground-weapon scale, anchored at
-  the grip. Canvas size is padding for placement, not the weapon's visible size.
-- `icons/compact_lefthand.dmi`, `icons/compact_righthand.dmi`: the same per-part
-  states in a small angled handgun pose with a separately refined grip, based on
-  the standard `gun` pistol carry. Any stock or long barrel switches the complete
-  assembly to the shallow-angle rifle pose.
-- States: `frame`, `barrel_short`, `barrel_smg`, `barrel_carbine`, `barrel_assault`,
-  `barrel_marksman`, `stock_compact`, `stock_precision`, `optic_reflex`,
-  `optic_scope`, `control_semi`, `control_burst`, `control_auto`, `magazine`.
+| Asset | Canvas and purpose |
+| --- | --- |
+| `icons/modular_ballistics.dmi` | 48×32 frame and installed overlays |
+| `icons/parts.dmi` | 32×32 loose parts and cassette |
+| `icons/lefthand.dmi`, `icons/righthand.dmi` | 64×64 rifle poses, four directions |
+| `icons/compact_lefthand.dmi`, `icons/compact_righthand.dmi` | 64×64 compact poses, four directions |
+| `icons/ammunition.dmi` | Cartridge and projectile artwork |
 
-World and held appearances layer installed components dynamically. No complete
-combination is baked into an icon state. New parts need a matching state in the
-world and both pairs of held overlay atlases, plus a centered loose-item state.
+New visual parts need matching states in the world and four held atlases, plus
+loose artwork. Preserve unrelated pixels and DMI metadata. Use at most 16 visible
+colors per finished sprite across directions and animation frames.
 
-Loose components have their own larger, detailed artwork rather than tiny copies
-of installed overlays; the ammunition cassette occupies 18×22 pixels and the loose
-receiver 26×22. The earlier detailed loose receiver artwork is restored.
-Completely stripped frames use the loose receiver sprite. Held
-weapons switch to `BODY_BEHIND_LAYER` when the wearer faces north and restore the
-normal hand layer when turning away. The listener is cleared on drop/destruction.
-Rifle carry placement follows the MMR-2543E (`infanterie`) in Carwo's inhand
-atlases, with preserved grip depth below a slim receiver. Both held profiles
-use horizontal east/west poses and opposite south/north tilts, rotating around
-the same hand contact points.
-`tools/rebuild_pose_sprites.py` regenerates the held overlays with explicit grip
-contact anchors for each hand/direction, and preserves independent loose artwork.
+Cassette indicators show full, partial and empty ammunition. Held overlays refresh
+on turns and assembly changes; north-facing guns render behind the wearer.
+Completely stripped frames use the larger loose receiver artwork.
 
-## Artwork provenance
+The DMI files are authoritative. Historical generation scripts and previews in
+ignored `.parallax-work/` may predate manual edits; do not regenerate blindly.
 
-Original artwork generated with the built-in image tool, then extracted and
-cleaned at native resolution: fixed color palette, structural joins, simplified
-receiver and cassette, optical mounts, and hand-specific directional alignment.
-No Mass Effect or gallery pixels were copied into the delivered weapon sprites.
+## Validation and provenance
 
-Visual references inspected:
+Existing tests cover component lifecycle, configuration combinations, service
+restrictions, held profiles and north-facing layering. Compilation is separate
+from runtime tests and does not establish in-game alignment or multiplayer balance.
 
-- MCR-01 and its separate attachments, in `modular_nova/modules/microfusion/icons`.
-- Szot Dynamica Borb, Slonce, Gwiazda and Zashch in the local modular weapons atlas.
-- DopplerShift gallery energy sprites, snapshot
-  `81d8936562e0db994fa667c75dba4d667aed1312`.
-- [Mass Effect weapon cards](https://me3tweaks.com/store_catalog/cards/weapons):
-  Predator, Avenger, Mantis and Raptor silhouettes.
-
-Selected generation source, exact generation prompt and working previews are
-retained in ignored `.parallax-work/`. Run `tools/preview_sprites.py` with Python
-and Pillow to regenerate the previews directly from the DMI files. The committed
-DMI files are the authoritative game assets. The character preview uses the game's
-`icons/mob/human/human.dmi`, `human_basic` state as a scale reference only.
-
-## Verification
-
-The focused tests cover component movement/deletion, removal of automatic fire,
-queued burst rejection, non-stacking stats, all 135 configurations, matching
-overlay states, the loaded/chambered service interlock, and north-facing layering
-including turning and pickup/drop transitions. Test definitions live
-in `code/modular_ballistics_tests.dm` and participate in UNIT_TESTS builds.
-The pose-profile test verifies stock/barrel changes switch between compact and
-rifle artwork, and that stripping a frame restores its large loose-item sprite.
-
-Balance values are initial tuning and still need multiplayer playtesting.
-
-Independent sprite review: **5/10 → 7/10 → 8/10**, after two refinement passes.
-The final reviewer rated native readability, sci-fi identity, modular joins,
-pixel quality and held silhouettes at 8/10 each. Static previews show no missing
-parts, floating attachments or gross grip-placement failures. Live-client
-movement and layering have not been visually verified.
-
-Follow-up artwork review after the in-hand size, loose-part detail and north-facing
-occlusion fixes: **8/10**. The loose SMG/assault housings were refined to match the
-other detailed components. Direction transitions are covered by the runtime test;
-the character-scale artwork preview models north-facing body occlusion.
-
-![Runtime overlay compositions](preview.png)
-
-![Larger loose components](parts_preview.png)
-
-![Handgun and rifle held poses](inhand_preview.png)
+Original artwork was generated and refined at native resolution using Mass Effect
+silhouettes and local SS13 sprites as references. No Mass Effect or gallery pixels
+were copied. Generation sources, prompts and previews are retained in ignored
+`.parallax-work/` where available.
