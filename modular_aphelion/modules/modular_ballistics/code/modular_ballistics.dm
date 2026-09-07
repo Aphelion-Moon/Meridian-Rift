@@ -15,6 +15,10 @@
 	var/is_long = FALSE
 	var/automatic = FALSE
 	var/shots_per_burst = 1
+	/// Added time between shots, separate from the accelerator cycle.
+	var/cycle_cost = 0
+	var/scope_range = 0
+	var/scoped_accuracy = 0
 
 /obj/item/ballistic_module/barrel
 	name = "Parallax compact accelerator"
@@ -40,10 +44,11 @@
 
 /obj/item/ballistic_module/barrel/compact_auto
 	name = "Parallax compact heat-sink accelerator"
-	desc = "A short accelerator with a stepped lower heat sink for compact automatic builds."
+	desc = "A short accelerator with a stepped lower heat sink. Tighter shot grouping than the compact accelerator, but a slower cycle."
 	icon_state = "barrel_smg"
 	overlay_state = "barrel_smg"
 	dispersion = 5
+	shot_delay = 0.35 SECONDS
 
 /obj/item/ballistic_module/barrel/carbine/assault
 	name = "Parallax assault accelerator"
@@ -98,11 +103,12 @@
 
 /obj/item/ballistic_module/stock/precision
 	name = "Parallax precision stock"
-	desc = "An extended triangular shoulder support with a recessed stabilizer."
+	desc = "An extended triangular shoulder support with a recessed stabilizer. Greater stability than the compact stock, but adds 0.1 seconds between shots."
 	icon_state = "stock_precision"
 	overlay_state = "stock_precision"
 	dispersion = -3
 	kick = -0.5
+	cycle_cost = 0.1 SECONDS
 
 /obj/item/ballistic_module/optic
 	name = "Parallax reflex optic"
@@ -114,10 +120,13 @@
 
 /obj/item/ballistic_module/optic/scope
 	name = "Parallax precision optic"
-	desc = "An elongated ballistic sight with a cyan objective. Improves shot placement; does not extend the user's field of view."
+	desc = "An elongated ballistic sight with a cyan objective. Right-click to scope in. Excellent aimed accuracy, but awkward hip fire and a slower firing cycle."
 	icon_state = "optic_scope"
 	overlay_state = "optic_scope"
-	dispersion = -2
+	dispersion = 1
+	cycle_cost = 0.1 SECONDS
+	scope_range = 2
+	scoped_accuracy = 4
 
 /obj/projectile/bullet/parallax
 	name = "6mm flechette"
@@ -166,6 +175,8 @@
 	var/list/modules = list()
 	var/list/starting_modules = list(/obj/item/ballistic_module/barrel, /obj/item/ballistic_module/control)
 	var/service_open = FALSE
+	var/datum/component/scope/installed_scope
+	var/aimed_accuracy = 0
 	var/datum/component/automatic_fire/controller_autofire
 	/// Wearer whose facing controls whether the assembled in-hand is behind the body.
 	var/mob/inhand_wearer
@@ -186,6 +197,7 @@
 
 /obj/item/gun/ballistic/parallax/Destroy()
 	clear_inhand_wearer()
+	QDEL_NULL(installed_scope)
 	QDEL_NULL(controller_autofire)
 	for(var/socket in modules)
 		var/obj/item/ballistic_module/part = modules[socket]
@@ -228,6 +240,8 @@
 /// Assembly changes always derive from the current parts, avoiding stacked bonuses.
 /obj/item/gun/ballistic/parallax/proc/rebuild_configuration()
 	QDEL_NULL(controller_autofire)
+	QDEL_NULL(installed_scope)
+	aimed_accuracy = 0
 	var/obj/item/ballistic_module/barrel/barrel = modules["barrel"]
 	var/obj/item/ballistic_module/control/controller = modules["controller"]
 	fire_delay = barrel ? barrel.shot_delay : 0.5 SECONDS
@@ -239,6 +253,8 @@
 		var/obj/item/ballistic_module/part = modules[socket]
 		spread += part.dispersion
 		recoil += part.kick
+		fire_delay += part.cycle_cost
+		aimed_accuracy += part.scoped_accuracy
 		long_profile ||= part.is_long
 	spread = max(0, spread)
 	recoil = max(0.1, recoil)
@@ -265,6 +281,9 @@
 	fire_sound = long_profile ? 'modular_nova/modules/modular_weapons/sounds/battle_rifle.ogg' : 'modular_nova/modules/modular_weapons/sounds/pistol_light.ogg'
 	if(controller?.automatic && barrel && !service_open)
 		controller_autofire = AddComponent(/datum/component/automatic_fire, fire_delay)
+	var/obj/item/ballistic_module/optic/optic = modules["optic"]
+	if(optic?.scope_range && assembly_ready())
+		installed_scope = AddComponent(/datum/component/scope, range_modifier = optic.scope_range)
 	update_appearance()
 
 /obj/item/gun/ballistic/parallax/proc/install_module(obj/item/ballistic_module/part)
@@ -308,7 +327,14 @@
 /obj/item/gun/ballistic/parallax/process_fire(atom/target, mob/living/user, message = TRUE, params = null, zone_override = "", bonus_spread = 0)
 	if(!assembly_ready())
 		return NONE
-	return ..()
+	var/hip_spread = spread
+	spread = configuration_spread(user)
+	. = ..()
+	spread = hip_spread
+
+/// Accuracy benefits belong to this gun's active scope, never another item's zoom.
+/obj/item/gun/ballistic/parallax/proc/configuration_spread(mob/living/user)
+	return max(0, spread - ((user && installed_scope?.tracker?.owner == user) ? aimed_accuracy : 0))
 
 /// Also guard queued burst callbacks if a component is externally removed or deleted.
 /obj/item/gun/ballistic/parallax/process_burst(mob/living/user, atom/target, message = TRUE, params = null, zone_override = "", random_spread = 0, burst_spread_mult = 0, iteration = 0)
@@ -368,6 +394,13 @@
 	. = ..()
 	. += span_notice("Remove the cassette and rack out the chambered round before servicing. While holding it, use a screwdriver to open or close the service latch; Alt-click to remove a part, or apply a part to install it.")
 	. += span_notice("Service latch: [service_open ? "open (firing disabled)" : "closed"].")
+	var/obj/item/ballistic_module/control/controller = modules["controller"]
+	var/fire_mode = !controller ? "unavailable" : (controller.automatic ? "automatic" : (burst_size > 1 ? "[burst_size]-round burst" : "semi-automatic"))
+	. += span_notice("Fire mode: [fire_mode]. Cycle: [burst_delay / 10] seconds per shot; [fire_delay / 10] seconds per trigger cycle.")
+	. += span_notice("Damage multiplier: [round(projectile_damage_multiplier, 0.01)]x. Dispersion: [spread] hip-fired / [max(0, spread - aimed_accuracy)] scoped (lower is better). Recoil: [round(recoil, 0.01)].")
+	. += span_notice("Handling: [weapon_weight == WEAPON_HEAVY ? "requires two hands" : (weapon_weight == WEAPON_MEDIUM ? "medium weapon" : "light weapon")].")
+	if(!modules["barrel"] || !controller)
+		. += span_warning("Cannot fire: install [!modules["barrel"] ? "an accelerator" : ""][!modules["barrel"] && !controller ? " and " : ""][!controller ? "a controller" : ""].")
 	for(var/socket in list("barrel", "controller", "stock", "optic"))
 		var/obj/item/ballistic_module/part = modules[socket]
 		. += span_notice("[capitalize(socket)]: [part ? part.name : "empty"].")
@@ -451,3 +484,15 @@
 	cost = CARGO_CRATE_VALUE * 4
 	contains = list(/obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax, /obj/item/ammo_box/magazine/parallax)
 	crate_name = "Parallax ammunition crate"
+
+/obj/item/ballistic_module/examine(mob/user)
+	. = ..()
+	. += span_notice("Socket: [socket]. Dispersion modifier: [dispersion]. Recoil modifier: [kick]. Added cycle time: [cycle_cost / 10] seconds.")
+	if(socket == "barrel")
+		. += span_notice("Base shot cycle: [shot_delay / 10] seconds. Damage multiplier: [damage_factor]x.")
+	if(socket == "controller")
+		. += span_notice("Fire mode: [automatic ? "automatic" : (shots_per_burst > 1 ? "[shots_per_burst]-round burst" : "semi-automatic")].")
+	if(scope_range)
+		. += span_notice("Enables right-click aiming. While scoped with this weapon, reduces dispersion by [scoped_accuracy]; hip-fire modifier remains included.")
+	if(is_long)
+		. += span_notice("Makes the assembled weapon bulky.")

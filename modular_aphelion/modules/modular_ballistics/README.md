@@ -25,12 +25,27 @@ An occupied socket rejects another component; remove its current component first
 | --- | --- | --- |
 | Barrel | Compact, compact heat-sink, carbine, assault, marksman | Cycle time, damage, dispersion, recoil and handling size |
 | Controller | Semi, three-round burst, automatic | Trigger behavior; automatic mode fires while held |
-| Stock | None, compact, precision | Lower recoil and dispersion; adds bulk |
-| Optic | None, reflex, precision | Lower dispersion; no view zoom |
+| Stock | None, compact, precision | Lower recoil and dispersion; adds bulk; precision adds 0.1 seconds per shot |
+| Optic | None, reflex, precision | Reflex improves all shots; precision enables right-click aiming with a hip-fire and cycle penalty |
 
 Carbines cannot be fired akimbo. Marksman barrels require both hands. All builds
 use the same ammunition, with barrel performance trading rate of fire for damage.
-Automatic and burst controllers respect the barrel's cycle time.
+Automatic and burst controllers respect the barrel's cycle time plus installed
+part cycle costs. The compact heat-sink accelerator trades a 0.35-second cycle
+(instead of 0.3) for tighter grouping. The assault accelerator trades speed for
+reduced recoil compared with the carbine.
+
+Right-click with a complete precision-optic build to toggle the game's normal
+scope view (range modifier 2). The optic adds 1 dispersion and 0.1 seconds per
+shot, then subtracts 4 dispersion while aiming through that weapon's own scope.
+The reflex optic instead subtracts 1 dispersion at all times with no cycle cost.
+Precision stocks improve stability more than compact stocks but add 0.1 seconds
+per shot. These costs also apply between burst rounds.
+
+Examine a weapon for its fire mode, shot and trigger cycles, damage multiplier,
+hip/scoped dispersion, recoil, handling, missing required parts and installed
+modules. Examine a loose part for its modifiers. Opening the service latch,
+removing the optic, or losing a required part removes the scope controls.
 
 Presets are examples of installed parts, not separate mechanics or combined icons:
 `parallax`, `parallax/machine_pistol`, `parallax/carbine`, `parallax/assault`,
