@@ -107,12 +107,11 @@ const ALTERNATE_ACTIONS: Record<string, AlternateAction> = {
     icon: 'power-off',
     text: 'Deactivate MOD',
   },
-  // NOVA ADDITION BEGIN - entombed quirk suit reactivation
-  entombed_emergency_reactivate: {
-    icon: 'power-off',
-    text: 'Emergency MODsuit reactivation',
+
+  access_storage: {
+    icon: 'box-open',
+    text: 'Open',
   },
-  // NOVA ADDITION END
 };
 
 const SLOTS: Record<

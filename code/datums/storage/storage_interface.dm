@@ -5,6 +5,7 @@
 	// APHELION EDIT ADDITION START - STORAGE_NAVIGATION
 	var/atom/movable/screen/storage_exit/exit_button
 	// APHELION EDIT ADDITION END
+	var/atom/movable/screen/storage_up/upper
 	var/atom/movable/screen/storage/cell/cells
 	var/atom/movable/screen/storage/corner/corner_top_left
 	var/atom/movable/screen/storage/corner/top_right/corner_top_right
@@ -21,7 +22,7 @@
 	src.parent_storage = parent_storage
 	var/datum/hud/owner_hud = user.hud_used
 	closer = new(null, owner_hud, parent_storage)
-	exit_button = new(null, owner_hud, parent_storage) // APHELION EDIT ADDITION - STORAGE_NAVIGATION
+	upper = new(null, owner_hud, parent_storage)
 	cells = new(null, owner_hud, parent_storage)
 	corner_top_left = new(null, owner_hud, parent_storage)
 	corner_top_right = new(null, owner_hud, parent_storage)
@@ -35,7 +36,7 @@
 
 /// Returns all UI elements under this theme
 /datum/storage_interface/proc/list_ui_elements(initializing = FALSE)
-	return list(cells, corner_top_left, corner_top_right, corner_bottom_left, corner_bottom_right, rowjoin_left, rowjoin_right, closer, exit_button) // APHELION EDIT CHANGE - STORAGE_NAVIGATION - ORIGINAL: return list(cells, corner_top_left, corner_top_right, corner_bottom_left, corner_bottom_right, rowjoin_left, rowjoin_right, closer)
+	return list(cells, corner_top_left, corner_top_right, corner_bottom_left, corner_bottom_right, rowjoin_left, rowjoin_right, upper, closer)
 
 /datum/storage_interface/Destroy(force)
 	QDEL_NULL(closer)
@@ -86,6 +87,9 @@
 	var/row_right_loc = spanning_screen_loc(end_pixel_x, start_pixel_y + 27, end_pixel_x, start_pixel_y + 27 + max(0, rows - 2) * 32)
 	rowjoin_right.screen_loc = row_right_loc
 	rowjoin_right.alpha = (rows > 1) * 255
+
+	upper.screen_loc = "[screen_start_x + columns]:[screen_pixel_x + 8],[screen_start_y]:[screen_pixel_y]"
+	upper.invisibility = parent_storage.parent.loc?.atom_storage ? 0 : INVISIBILITY_MAXIMUM
 
 	closer.screen_loc = "[screen_start_x + columns]:[screen_pixel_x - 5],[screen_start_y]:[screen_pixel_y]"
 	exit_button.screen_loc = "[screen_start_x + columns]:[screen_pixel_x - 5 + STORAGE_UI_BUTTON_WIDTH],[screen_start_y]:[screen_pixel_y]" // APHELION EDIT ADDITION - STORAGE_NAVIGATION - sits flush against the right of the closer
