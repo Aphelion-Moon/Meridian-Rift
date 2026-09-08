@@ -60,7 +60,7 @@
 	mismatched_customization = save_data["mismatched_customization"]
 	allow_advanced_colors = save_data["allow_advanced_colors"]
 
-	// APHELION EDIT ADDITION - edited savefiles can put any string on the ID card
+	// edited savefiles can put any string on the ID card
 	alt_job_titles = sanitize_alt_job_titles(save_data["alt_job_titles"])
 
 	general_record = sanitize_text(general_record)
@@ -253,26 +253,14 @@
 
 	if(current_version < VERSION_TG_LOADOUT)
 		var/list/save_loadout = SANITIZE_LIST(save_data["loadout_list"])
-		// APHELION EDIT CHANGE BEGIN - don't mutate the list while iterating it, and drop bad paths
-		// ORIGINAL:
-		// for(var/loadout in save_loadout)
-		// 	var/entry = save_loadout[loadout]
-		// 	save_loadout -= loadout
-		//
-		// 	if(istext(loadout))
-		// 		loadout = _text2path(loadout)
-		// 	save_loadout[loadout] = entry
-		// var/loadout_list = sanitize_loadout_list(save_loadout)
 		var/list/migrated_loadout = list()
-		for(var/loadout in save_loadout)
-			var/entry = save_loadout[loadout]
+		for(var/loadout, loadout_entry in save_loadout)
 			if(istext(loadout))
 				loadout = _text2path(loadout)
 			if(!ispath(loadout))
 				continue
-			migrated_loadout[loadout] = entry
+			migrated_loadout[loadout] = loadout_entry
 		var/loadout_list = sanitize_loadout_list(migrated_loadout)
-		// APHELION EDIT CHANGE END
 
 		if (length(loadout_list)) // We only want to write these changes down if we're certain that there was anything in that.
 			write_preference(GLOB.preference_entries[/datum/preference/loadout], loadout_list)
@@ -653,16 +641,13 @@
 #undef INDEX_BRA
 #undef VERSION_HEIGHT_UPDATE
 
-/// Shape check only. Never ask SSjob here, it can be down on connect and we'd wipe everyone's titles.
+/// Keep only entries whose job title and alternative title are text.
+/// get_alt_job_title() handles job validation; SSjob may not be initialized while preferences load.
 /proc/sanitize_alt_job_titles(raw)
 	if(!islist(raw))
 		return list()
 	var/list/out = list()
-	for(var/job_title in raw)
-		if(!istext(job_title))
-			continue
-		var/new_title = raw[job_title]
-		if(!istext(new_title))
-			continue
-		out[job_title] = new_title
+	for(var/job_title, alt_title in raw)
+		if(istext(job_title) && istext(alt_title))
+			out[job_title] = alt_title
 	return out
