@@ -7349,6 +7349,7 @@
 #include "modular_aphelion\modules\meridian_ui\code\computer.dm"
 #include "modular_aphelion\modules\meridian_ui\code\preferences.dm"
 #include "modular_aphelion\modules\meridian_ui\code\tgui.dm"
+#include "modular_aphelion\modules\stat_panel\code\preferences.dm"
 #include "modular_aphelion\modules\storage_navigation\code\storage_exit.dm"
 #include "modular_aphelion\modules\worn_emissives\code\worn_emissives.dm"
 #include "modular_nova\master_files\code\_globalvars\configuration.dm"

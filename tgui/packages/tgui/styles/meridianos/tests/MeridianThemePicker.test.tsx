@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from '@testing-library/react';
 import { MERIDIAN_BASE_THEME_OPTIONS } from '../../../constants/theme';
 import { MeridianThemePicker } from '../../../layouts/MeridianThemePicker';
@@ -21,16 +22,15 @@ describe('MeridianThemePicker', () => {
       name: /change base interface theme/i,
     });
 
-    fireEvent.click(trigger);
+    await act(async () => {
+      fireEvent.click(trigger);
+    });
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'c' });
-    await act(async () => {
-      await Promise.resolve();
-    });
     fireEvent.pointerDown(document.body);
+    await waitFor(() => expect(screen.queryAllByRole('menu').length).toBe(0));
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      fireEvent.click(trigger);
     });
-    fireEvent.click(trigger);
     const selected = screen.getByRole('menuitemradio', { name: /Diagnostic/ });
     expect(document.activeElement === selected).toBe(true);
 
@@ -38,8 +38,10 @@ describe('MeridianThemePicker', () => {
     expect(document.activeElement === selected).toBe(true);
   });
 
-  it('renders the ordered theme catalog as an accessible radio menu', () => {
-    render(<MeridianThemePicker onChange={() => {}} value="meridian_aphelion" />);
+  it('renders the ordered theme catalog as an accessible radio menu', async () => {
+    render(
+      <MeridianThemePicker onChange={() => {}} value="meridian_aphelion" />,
+    );
 
     const trigger = screen.getByRole('button', {
       name: /change base interface theme/i,
@@ -47,7 +49,9 @@ describe('MeridianThemePicker', () => {
     expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
 
-    fireEvent.click(trigger);
+    await act(async () => {
+      fireEvent.click(trigger);
+    });
 
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
     const options = screen.getAllByRole('menuitemradio');
@@ -62,12 +66,16 @@ describe('MeridianThemePicker', () => {
 
   it('supports complete menu navigation, selection, and focus return', async () => {
     const onChange = mock(() => {});
-    render(<MeridianThemePicker onChange={onChange} value="meridian_aphelion" />);
+    render(
+      <MeridianThemePicker onChange={onChange} value="meridian_aphelion" />,
+    );
     const trigger = screen.getByRole('button', {
       name: /change base interface theme/i,
     });
 
-    fireEvent.click(trigger);
+    await act(async () => {
+      fireEvent.click(trigger);
+    });
     const menu = screen.getByRole('menu');
     const options = screen.getAllByRole('menuitemradio');
 
@@ -87,17 +95,24 @@ describe('MeridianThemePicker', () => {
       screen.getByRole('menuitemradio', { name: /Cyberpunk/ }),
     );
 
-    fireEvent.keyDown(menu, { key: 'Escape' });
-    await Promise.resolve();
+    await act(async () => {
+      fireEvent.keyDown(menu, { key: 'Escape' });
+    });
+    await waitFor(() => expect(screen.queryAllByRole('menu').length).toBe(0));
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     expect(document.activeElement).toBe(trigger);
 
-    fireEvent.click(trigger);
-    fireEvent.click(screen.getAllByRole('menuitemradio')[1]);
+    await act(async () => {
+      fireEvent.click(trigger);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('menuitemradio')[1]);
+    });
+    await waitFor(() => expect(screen.queryAllByRole('menu').length).toBe(0));
     expect(onChange).toHaveBeenCalledWith('meridian_classic');
   });
 
-  it('opens from either arrow key at the corresponding boundary', () => {
+  it('opens from either arrow key at the corresponding boundary', async () => {
     const view = render(
       <MeridianThemePicker onChange={() => {}} value="meridian_diagnostic" />,
     );
@@ -105,7 +120,9 @@ describe('MeridianThemePicker', () => {
       name: /change base interface theme/i,
     });
 
-    fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+    await act(async () => {
+      fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+    });
     const options = screen.getAllByRole('menuitemradio');
     expect(document.activeElement).toBe(options[options.length - 1]);
 
@@ -116,7 +133,9 @@ describe('MeridianThemePicker', () => {
     const nextTrigger = screen.getByRole('button', {
       name: /change base interface theme/i,
     });
-    fireEvent.keyDown(nextTrigger, { key: 'ArrowDown' });
+    await act(async () => {
+      fireEvent.keyDown(nextTrigger, { key: 'ArrowDown' });
+    });
     expect(document.activeElement).toBe(
       screen.getAllByRole('menuitemradio')[0],
     );
@@ -128,11 +147,10 @@ describe('MeridianThemePicker', () => {
       name: /change base interface theme/i,
     });
 
-    fireEvent.click(trigger);
-    expect(screen.getByRole('menu')).toBeTruthy();
     await act(async () => {
-      await Promise.resolve();
+      fireEvent.click(trigger);
     });
+    expect(screen.getByRole('menu')).toBeTruthy();
     fireEvent.pointerDown(document.body);
 
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
@@ -142,5 +160,6 @@ describe('MeridianThemePicker', () => {
         .closest('.Floating')
         ?.getAttribute('data-transition'),
     ).toBe('close');
+    await waitFor(() => expect(screen.queryAllByRole('menu').length).toBe(0));
   });
 });

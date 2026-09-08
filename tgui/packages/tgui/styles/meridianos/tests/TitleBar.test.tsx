@@ -1,6 +1,13 @@
 // THIS IS AN APHELION UI FILE
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { Provider } from 'jotai';
 import {
   configAtom,
@@ -26,7 +33,7 @@ afterEach(() => {
 });
 
 describe('TitleBar theme utilities', () => {
-  it('keeps the gear beside development controls and sends the base preference', () => {
+  it('keeps the gear beside development controls and sends the base preference', async () => {
     const sendMessage = mock(() => {});
     Byond.sendMessage = sendMessage as typeof Byond.sendMessage;
     const view = render(
@@ -46,8 +53,13 @@ describe('TitleBar theme utilities', () => {
     );
     expect(screen.getByRole('button', { name: 'Close window' })).toBeTruthy();
 
-    fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /Classic/i }));
+    await act(async () => {
+      fireEvent.click(trigger);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('menuitemradio', { name: /Classic/i }));
+    });
+    await waitFor(() => expect(screen.queryAllByRole('menu').length).toBe(0));
 
     expect(store.get(meridianThemeAtom)).toBe('meridian_classic');
     expect(store.get(debugThemeAtom)).toBeNull();
@@ -59,7 +71,7 @@ describe('TitleBar theme utilities', () => {
     ).toHaveLength(1);
   });
 
-  it('clears a debug override even when the saved theme is reselected', () => {
+  it('clears a debug override even when the saved theme is reselected', async () => {
     const sendMessage = mock(() => {});
     Byond.sendMessage = sendMessage as typeof Byond.sendMessage;
     render(
@@ -68,12 +80,17 @@ describe('TitleBar theme utilities', () => {
       </Provider>,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /change base interface theme/i,
-      }),
-    );
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /Electra/i }));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: /change base interface theme/i,
+        }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('menuitemradio', { name: /Electra/i }));
+    });
+    await waitFor(() => expect(screen.queryAllByRole('menu').length).toBe(0));
 
     expect(store.get(debugThemeAtom)).toBeNull();
     expect(sendMessage).toHaveBeenCalledWith('setMeridianTheme', {
