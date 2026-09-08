@@ -6,8 +6,9 @@ The native repairs are committed on the native repository's `dogmos` branch at
 `0b942d58cef15be73a2f6911ef50109fc846c25b`; its `master` branch was left unchanged.
 All four release targets build and their complete generated release contract verifies.
 The complete `0b942d58cef15be73a2f6911ef50109fc846c25b` pair is now installed and verified
-in the isolated development workspace, after collecting the old-native controls below.
-The main `dogmos` checkout still has the old pair pending transfer of the verified changes.
+in both the isolated development workspace and the main `dogmos` checkout, after collecting
+the old-native controls below. The listener repair is committed at
+`e89389ec769648d0d1650fed42a6fdca345a5dab`.
 Native artifact rebuilding is authorized. No server deployment has occurred.
 
 ## Startup and shift-start evidence
@@ -300,7 +301,7 @@ The native commit and complete release build were prepared under the user's auth
 The game contract remains the seven-file set: `dogmos.lock.json`, `dogmos.dll`, `dogmosd.exe`,
 `libdogmos.so`, `dogmosd`, `code/__DEFINES/dogmos_bindings.dm`, and
 `code/__DEFINES/dogmos_contract.dm`. Its authority and synchronizer implementations need no
-changes. The complete set has been synchronized and verified in the development workspace.
+changes. The complete set has been synchronized and verified in both game workspaces.
 Finish the focused DM gate, then run production native-load boot, cross-process lifecycle/fault
 tests, matched candidates, the full DM suite, and a bounded full-map soak.
 Example focused command from the game repository:
