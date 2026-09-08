@@ -170,9 +170,28 @@
 /obj/item/gun/ballistic/parallax/add_notes_ballistic()
 	return "Magnetically accelerates rice-sized metal shavings. Heat capacity replaces ammunition capacity."
 
-/// The inherited ammo HUD counts down shots until ruin, including the ruining shot.
+/// Compatibility count for ballistic callers, including the ruining shot.
 /obj/item/gun/ballistic/parallax/get_ammo(countchambered = TRUE)
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
 	if(!istype(sink) || sink.burnt_out)
 		return 0
 	return CEILING(max(0, sink.heat_capacity - sink.stored_heat) / shot_heat(), 1)
+
+/// Replace the numerical ammo counter with a bottom-up flame warning symbol.
+/obj/item/gun/ballistic/parallax/update_custom_ammo_hud(atom/movable/screen/ammo_counter/hud)
+	hud.maptext = null
+	hud.icon_state = ""
+	// Clear cached digit overlays as well as visible ones when changing weapons.
+	var/mutable_appearance/coil = mutable_appearance('modular_aphelion/modules/modular_ballistics/icons/heat_hud.dmi', heat_hud_state())
+	hud.set_hud(COLOR_WHITE, null, null, null, null, null, coil)
+	return TRUE
+
+/// Burnout is permanent: cooling a ruined sink must never lower its warning.
+/obj/item/gun/ballistic/parallax/proc/heat_hud_state()
+	var/obj/item/ammo_box/magazine/parallax/sink = magazine
+	if(!istype(sink))
+		return "coil_missing"
+	if(sink.burnt_out)
+		return "coil_20"
+	var/heat_fraction = clamp(sink.stored_heat / max(1, sink.heat_capacity), 0, 1)
+	return "coil_[CEILING(heat_fraction * 20, 1)]"
