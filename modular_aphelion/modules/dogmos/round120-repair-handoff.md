@@ -93,12 +93,25 @@ cleanup. No map artwork, layout, name, or description was edited.
 The lava repair is committed on game `dogmos` at `2836d8ff38464b4cf3dcede7053fd6175a5e68ab`;
 shutdown admission and its regression are committed at `e1e2b2c72b69ee6ffe3f9319bab99e59372ed6fa`.
 
-Three sequential full-content, unprofiled old-native controls are being collected as
-`full-content-control-01` through `03`. The first run is `20260908T063846Z-d6a0e1dc`.
-Its live startup records confirm `procedure_profiling = 0` with the corrected focus selection.
-Each run must pass RIFT, cover at least 180 seconds, report profiling disabled, retain
-MetaStation/seed 29051994/native revision 8456726, and emit no native panic log before the
-next run starts. Do not alter measured DM/native inputs while this series is running.
+The first unprofiled full-content attempt, `20260908T063846Z-d6a0e1dc`, confirmed profiling
+disabled and initialized in 305.858 seconds. It stopped at 64 seconds of gameplay on a
+duplicate context-handler registration when a public condo door replaced an earlier turf.
+The three-control batch stopped immediately; controls two and three did not run. This attempt
+is archived locally as `full-content-pre-context-01`, and is not a complete control.
+Inspection traced the duplicate to self-owned screentip handlers surviving `ChangeTurf()`;
+the replacement must retain external signal listeners but discard its former type's handler.
+Focused red run `20260908T065419Z-61344e7c` reproduced the retained self-handler without
+runtime errors. Green run `20260908T070213Z-719a48ca` passed the new turf-context regression,
+`connect_loc_change_turf`, and the cafe-lava regression: three passes, zero runtimes, natural
+shutdown, and clean owned-process/workspace cleanup. The narrow destruction hook removes only
+the turf's own context subscription; the regression verifies external subscribers survive.
+The tooling build had zero errors and its two expected test warnings. This is focused
+iteration evidence, not a completed full-content control or production build.
+
+Next, collect three sequential full-content old-native controls. Each must
+pass RIFT, cover at least 180 seconds, report profiling disabled, retain MetaStation/seed
+29051994/native revision 8456726, and emit no native panic log before the next run starts.
+Do not alter measured DM/native inputs while a matched series is running.
 
 Initialization procedure costs from that diagnostic run include 33.422 seconds self time
 in mixture lifecycle IPC, 33.08 seconds inclusive in weak-reference construction, and

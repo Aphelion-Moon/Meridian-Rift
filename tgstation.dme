@@ -7352,6 +7352,7 @@
 #include "modular_aphelion\modules\dogmos\code\service_backend_test.dm"
 #include "modular_aphelion\modules\job_desc_overrides\job_desc_overrides.dm"
 #include "modular_aphelion\modules\storage_navigation\code\storage_exit.dm"
+#include "modular_aphelion\modules\turf_context\code\turf_context_test.dm"
 #include "modular_nova\master_files\code\_globalvars\configuration.dm"
 #include "modular_nova\master_files\code\_globalvars\regexes.dm"
 #include "modular_nova\master_files\code\_globalvars\religion.dm"
