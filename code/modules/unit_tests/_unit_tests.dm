@@ -394,8 +394,8 @@
 #include "~nova\shuttle.dm"
 #include "~nova\symphony_moderation.dm"
 #include "~nova\symphony_whitelist.dm"
-#include "~nova\world_topic_log_redaction.dm"
 #include "~nova\title_screen_settings.dm"
+#include "~nova\world_topic_log_redaction.dm"
 // NOVA EDIT ADDITION END
 // END_INCLUDE
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter

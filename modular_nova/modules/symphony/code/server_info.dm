@@ -53,9 +53,9 @@
 		.["shuttle_status"] = shuttle.getModeStr()
 		.["shuttle_time_left_secs"] = shuttle.timeLeft(10)
 
-	.["server_name"] = CONFIG_GET(string/servername)
+	.["server_name"] = SSsymphony.server_name
 	.["port"] = world.port
-	.["byond_version"] = "[world.byond_version].[world.byond_build]"
+	.["byond_version"] = SSsymphony.byond_version
 	.["revision"] = GLOB.revdata?.commit
 
 /// Live player list for the panel. Ckeys and antag roles, so it's comms-key gated.
@@ -89,9 +89,8 @@
 			state = "alive"
 
 		var/list/antag_names = list()
-		if(player_mind)
-			for(var/datum/antagonist/antag as anything in player_mind.antag_datums)
-				antag_names += "[antag.name]"
+		for(var/datum/antagonist/antag as anything in player_mind?.antag_datums)
+			antag_names += "[antag.name]"
 
 		var/datum/admins/holder = connected.holder
 		players += list(list(
@@ -101,8 +100,8 @@
 			"is_antag" = player_mob ? player_mob.is_antag() : FALSE,
 			"antags" = antag_names,
 			"is_admin" = !!holder,
-			"admin_rank" = holder ? holder.rank_names() : null,
-			"whitelisted" = whitelisted_ckeys?[connected.ckey] ? TRUE : FALSE,
+			"admin_rank" = holder?.rank_names(),
+			"whitelisted" = !!whitelisted_ckeys?[connected.ckey],
 			"state" = state,
 			"ping" = round(connected.avgping, 1),
 			"connected_secs" = connected.connection_time ? round((world.time - connected.connection_time) / 10) : 0,

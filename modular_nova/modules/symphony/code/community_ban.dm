@@ -21,7 +21,7 @@
 
 /// Queue propagation of an existing local ban to the other servers.
 /proc/symphony_request_community_ban(target_ckey, list/roles, reason, duration, interval, admin_ckey)
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return FALSE
 	if(!target_ckey || !length(roles) || !SSdbcore.Connect())
 		return FALSE
