@@ -44,6 +44,9 @@
 	var/static/list/datum/computer_file/pda_programs = list(
 		/datum/computer_file/program/messenger,
 		/datum/computer_file/program/nt_pay,
+		// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+		/datum/computer_file/program/persistent_savings,
+		// APHELION EDIT ADDITION END
 		/datum/computer_file/program/notepad,
 		/datum/computer_file/program/crew_manifest,
 		/datum/computer_file/program/crew_self_serve, // NOVA EDIT ADDITION - Adds punch clock app to all base tablets

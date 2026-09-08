@@ -100,8 +100,16 @@
 		current_user.bank_card_talk("You cannot afford it.")
 		return NT_PAY_STATUS_INVALID_MONEY
 
+	/* // APHELION EDIT REMOVAL START - PERSISTENT_ECONOMY
 	recipient.bank_card_talk("You received [money_to_send] [MONEY_NAME](s). Reason: transfer from [current_user.account_holder]")
 	recipient.transfer_money(current_user, money_to_send)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+	if(!recipient.transfer_money(current_user, money_to_send))
+		current_user.bank_card_talk("Your transfer could not be completed. No funds were transferred.")
+		return NT_PAY_STATUS_INVALID_MONEY
+	recipient.bank_card_talk("You received [money_to_send] [MONEY_NAME](s). Reason: transfer from [current_user.account_holder]")
+	// APHELION EDIT ADDITION END
 	for(var/obj/item/card/id/id_card as anything in recipient.bank_cards)
 		SEND_SIGNAL(id_card, COMSIG_ID_CARD_NTPAY_MONEY_RECEIVED, computer, money_to_send)
 

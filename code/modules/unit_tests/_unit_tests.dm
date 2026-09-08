@@ -285,6 +285,9 @@
 #include "plantgrowth_tests.dm"
 #include "preference_species.dm"
 #include "preferences.dm"
+// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+#include "../../../modular_aphelion/modules/persistent_economy/code/savings_tests.dm"
+// APHELION EDIT ADDITION END
 #include "projectiles.dm"
 #include "punpun.dm"
 #include "quirks.dm"
