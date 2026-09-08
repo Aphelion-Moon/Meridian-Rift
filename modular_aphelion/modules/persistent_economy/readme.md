@@ -12,13 +12,13 @@ Eligible incoming payments settle automatically, subject to the shared gross rou
 
 Defaults, all changeable through the admin panel:
 
-| Setting | Default | Scope |
-| --- | ---: | --- |
-| Gross earning cap | 2,000 per round | Shared by every character and both currencies on a ckey |
-| Settlement fee | 10%, rounded up | Removed from circulation on income that clears |
-| Savings ceiling | 100,000 | Combined regular/offshore balances across the ckey |
-| Wealth levy exemption | 20,000 | Combined wealth across the ckey |
-| Active-round levy | 1% of excess, rounded up | Once on the first successful income transaction that round |
+| Setting               |                  Default | Scope                                                      |
+| --------------------- | -----------------------: | ---------------------------------------------------------- |
+| Gross earning cap     |          2,000 per round | Shared by every character and both currencies on a ckey    |
+| Settlement fee        |          10%, rounded up | Removed from circulation on income that clears             |
+| Savings ceiling       |                  100,000 | Combined regular/offshore balances across the ckey         |
+| Wealth levy exemption |                   20,000 | Combined wealth across the ckey                            |
+| Active-round levy     | 1% of excess, rounded up | Once on the first successful income transaction that round |
 
 The levy is distributed across the owner's balances, including frozen characters. Inactive rounds do not incur a levy. Converting or spending does not create new earning allowance. Failed settlement neither charges the levy nor consumes allowance. Lowering a cap preserves existing funds and limits subsequent settlement. Administrators may exceed the gameplay ceiling for repairs; each stored balance remains limited to 1,000,000 whole credits for arithmetic safety. Fees, levies, and spending remove persistent currency. Station vendor and black-market prices are unchanged.
 
@@ -38,11 +38,7 @@ The existing `persistent_economy.json`, `persistent_economy_settings.json`, and 
 
 Snapshots are copied through JSON to preserve history arrays. Earlier builds could serialize histories as `{"/list": null}` objects, crashing TGUI after a policy save. Startup repairs these history fields independently of current balances, policy, allowances, and purchase receipts, using valid backup histories when available. Before publishing a repaired main snapshot, it preserves the original as `.history-recovery`. The admin panel displays a recovery notice; entries missing from both snapshots cannot be reconstructed and should be checked against economy logs. The interfaces also tolerate malformed legacy history payloads without crashing.
 
-### Planned black market and persistent purchases
-
-Compatibility reference: [Aphelion Server BM economy Design Document](https://docs.google.com/document/d/13LrVtgayjixpjXQECtdow6Sfa47VVfvTAGWr5c7I1vU/edit?tab=t.0), read September 8, 2026.
-
-The design's separate offshore balance and 1:1 conversion into offshore funds are implemented. Reverse conversion is unavailable because the design leaves that rate undecided. Existing black-market uplinks, cargo exports, elasticity, contraband detection, fines, smuggling equipment, and customs escalation retain their current behavior. This module supplies the persistent accounting foundation; it does not implement that market rework, apartments, or an item shop.
+### Integrations
 
 Future integrations use `SSsavings.ledger`:
 
