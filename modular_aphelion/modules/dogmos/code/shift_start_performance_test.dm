@@ -22,7 +22,10 @@
 	var/start_wall = REALTIMEOFDAY
 	var/round_wall
 	var/sample_index = 0
-	var/profile_procs = GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile)
+	// Focusing the parent also focuses its children through inherited test_flags.
+	// Only a separately focused diagnostic subtype should enable profiling overhead.
+	var/profile_procs = !GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
+		&& GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile)
 	if(profile_procs)
 		world.Profile(PROFILE_RESTART)
 	while(!shift_start_performance_complete)

@@ -35,6 +35,9 @@ before reporting a performance change.
 
 For diagnosis, focus `/datum/unit_test/dogmos_shift_start_performance/profile` instead.
 This also records BYOND procedure profiles separately for initialization and gameplay.
+Focusing the ordinary parent takes precedence and disables profiling, including when the
+test framework inherits its focus flag into the diagnostic subtype. Check the report's
+`procedure_profiling` field before accepting an unprofiled control or candidate.
 The added profiler overhead makes this a different workload; exclude these diagnostic
 runs from unprofiled timing comparisons. The initialization profile begins at SSdogmos,
 so it excludes earlier world and subsystem construction.

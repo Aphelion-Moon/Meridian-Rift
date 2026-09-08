@@ -1,6 +1,7 @@
 # Round 120 repair checkpoint
 
-Game repairs are committed on `dogmos` at `4547d77217ed7ce75e0caf0a82ab00127b148f34`.
+Initial performance repairs are committed on `dogmos` at `4547d77217ed7ce75e0caf0a82ab00127b148f34`.
+Subsequent deployment, lava, and shutdown repair commits are recorded below.
 The native repairs are committed on the native repository's `dogmos` branch at
 `0b942d58cef15be73a2f6911ef50109fc846c25b`; its `master` branch was left unchanged.
 All four release targets build and their complete generated release contract verifies.
@@ -60,6 +61,44 @@ modules' `.dmm` files in isolated deployments. The missing-map regression failed
 the correction; all 93 controller/deployment tests pass on pinned Bun 1.3.5 under the host
 account. An initial sandbox run failed the unrelated descendant-process observation test;
 the host rerun passed it. Fresh full-content measurements are underway.
+
+The deployment fix is committed on game `dogmos` as `1cd9af5bb01d25152782b09b61ca35f5eb09798a`.
+Full-content run `20260908T055127Z-751b5c0b` verified all 28 condo maps were deployed and
+reached initialization in 313.216 seconds (Atoms 152.71, Atmospherics 59.91, Shuttle 33.19).
+This is diagnostic evidence only: focusing the ordinary observation test inherited its focus
+flag into the profiling subtype and unexpectedly enabled procedure profiling. The sampler now
+gives the ordinary parent precedence; a fresh ordinary run must verify `procedure_profiling = 0`.
+
+That run stopped at about 128 seconds of gameplay on an existing fake-lava/decorative-object
+runtime during condo preview generation. It remained at 14 z-levels, but its active-turf count
+rose to 8,649 without advancing the recorded atmosphere cycle counter. Complete three-minute
+coverage and a settled-frontier result remain unproven. Do not use this failed, profiled run as
+an unprofiled control. Its separate report is `full-content-diagnostic-01.json` under the local
+ignored performance-qualification directory.
+
+Fake cafe lava has zero damage values but still inherited real lava's ignition and processing
+path. A narrow Meridian-owned override now skips `burn_stuff()` on that subtype. Regression
+`20260908T060608Z-6595b88e` failed on fake lava changing an object's resistance/ignition/processing,
+with zero runtimes and clean shutdown. The first post-fix test passed that check but exposed a
+fixture error: the second sheet stack auto-merged away before the ordinary-lava check. The
+fixture now reuses the surviving object. Run `20260908T062031Z-0cdc7de9` passed both lava
+assertions with zero test runtimes, but failed overall during shutdown: a suspended condo
+preview resumed after Dogmos stopped and attempted new gas registration/copy commands.
+Intentional service shutdown now closes native admission before teardown, separately from
+the failure latch, and retains that state across subsystem recovery. Late producers receive
+the existing inactive-service responses; unexpected live-service loss still raises its
+diagnostic. Combined run `20260908T063050Z-862055e9` passed all four shutdown/failure-latch/lava
+cases with zero runtimes, exit zero, natural shutdown, and complete owned-process/workspace
+cleanup. No map artwork, layout, name, or description was edited.
+The lava repair is committed on game `dogmos` at `2836d8ff38464b4cf3dcede7053fd6175a5e68ab`;
+shutdown admission and its regression are committed at `e1e2b2c72b69ee6ffe3f9319bab99e59372ed6fa`.
+
+Three sequential full-content, unprofiled old-native controls are being collected as
+`full-content-control-01` through `03`. The first run is `20260908T063846Z-d6a0e1dc`.
+Its live startup records confirm `procedure_profiling = 0` with the corrected focus selection.
+Each run must pass RIFT, cover at least 180 seconds, report profiling disabled, retain
+MetaStation/seed 29051994/native revision 8456726, and emit no native panic log before the
+next run starts. Do not alter measured DM/native inputs while this series is running.
 
 Initialization procedure costs from that diagnostic run include 33.422 seconds self time
 in mixture lifecycle IPC, 33.08 seconds inclusive in weak-reference construction, and
