@@ -2,9 +2,33 @@
 
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
-from analyze import dense_process_resources
+from analyze import analyze, dense_process_resources
+
+
+class ProfilingEvidenceTest(unittest.TestCase):
+    def test_ordinary_focus_cannot_hide_automatic_profile_dumps(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            run = Path(temporary)
+            logs = run / "artifacts/data/logs/rift"
+            (logs / "profiler").mkdir(parents=True)
+            (logs / "profiler/profiler-0.json").write_text("[]", encoding="utf-8")
+            (logs / "profiler/sendmaps-0.json").write_text("[]", encoding="utf-8")
+            (logs / "runtime.log.json").write_text("", encoding="utf-8")
+            (run / "events.ndjson").write_text("", encoding="utf-8")
+            (run / "summary.json").write_text('{"status":"passed"}', encoding="utf-8")
+            samples = [dict(utc=10 + seconds, shift_seconds=seconds, map="fixture", seed="1",
+                procedure_profiling=False, complete=seconds == 180, air_cycles=seconds,
+                active_turfs=0, turf_cost_ms=0, groups_cost_ms=0, equalize_cost_ms=0)
+                for seconds in (0, 180)]
+            (logs / "dogmos-performance.jsonl").write_text(
+                "\n".join(json.dumps(sample) for sample in samples), encoding="utf-8")
+            result = analyze(run)
+        self.assertTrue(result["procedure_profiling"])
+        self.assertFalse(result["diagnostic_procedure_profiling"])
+        self.assertEqual(result["procedure_profile_dumps"], ["profiler/profiler-0.json"])
 
 
 class DenseProcessResourcesTest(unittest.TestCase):

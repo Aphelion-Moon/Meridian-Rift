@@ -94,12 +94,19 @@ def analyze(run):
         if match:
             initialization["total"] = float(match[1])
     report = json.loads((run / "summary.json").read_text(encoding="utf-8-sig"))
+    diagnostic_profiling = any(s.get("procedure_profiling", False) for s in samples)
+    profile_dumps = sorted(path.relative_to(logs).as_posix()
+                           for path in logs.glob("profiler/profiler-*.json"))
     return {
         "run_id": run.name,
         "rift_status": report["status"],
         "maps": sorted({s["map"] for s in gameplay}),
         "seeds": sorted({s["seed"] for s in gameplay}),
-        "procedure_profiling": any(s.get("procedure_profiling", False) for s in samples),
+        # A drift-triggered DumpFile uses PROFILE_REFRESH, which starts profiling.
+        # Missing dumps do not prove that profiling remained off throughout the run.
+        "procedure_profiling": True if diagnostic_profiling or profile_dumps else None,
+        "diagnostic_procedure_profiling": diagnostic_profiling,
+        "procedure_profile_dumps": profile_dumps,
         "complete": any(s["complete"] for s in gameplay),
         "observed_shift_seconds": gameplay[-1]["shift_seconds"],
         "initialization_seconds": initialization,
@@ -112,6 +119,7 @@ def analyze(run):
         "active_location_samples": [dict(shift_seconds=s["shift_seconds"], locations=s["active_locations"])
                                     for s in gameplay if "active_locations" in s],
         "limits": ["Test build, fixed seed and empty player population; match controls to this workload.",
+                   "Profiling evidence means active at some point, not continuous coverage; null means unknown, not unprofiled.",
                    "The test framework creates its fixture room about ten seconds after round start.",
                    "Stage costs are rolling averages; they are not individual frame durations.",
                    "Gameplay origin is first observed playing state, within the sampler's scheduling delay."],

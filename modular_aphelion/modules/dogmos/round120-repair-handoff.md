@@ -9,6 +9,7 @@ The complete `0b942d58cef15be73a2f6911ef50109fc846c25b` pair is now installed an
 in both the isolated development workspace and the main `dogmos` checkout, after collecting
 the old-native controls below. The listener repair is committed at
 `e89389ec769648d0d1650fed42a6fdca345a5dab`.
+The paired artifact installation is committed at `ff58181486a67f5b6b43bc89130869b3848d925f`.
 Native artifact rebuilding is authorized. No server deployment has occurred.
 
 ## Startup and shift-start evidence
@@ -96,8 +97,8 @@ cleanup. No map artwork, layout, name, or description was edited.
 The lava repair is committed on game `dogmos` at `2836d8ff38464b4cf3dcede7053fd6175a5e68ab`;
 shutdown admission and its regression are committed at `e1e2b2c72b69ee6ffe3f9319bab99e59372ed6fa`.
 
-The first unprofiled full-content attempt, `20260908T063846Z-d6a0e1dc`, confirmed profiling
-disabled and initialized in 305.858 seconds. It stopped at 64 seconds of gameplay on a
+The first ordinary-focus full-content attempt, `20260908T063846Z-d6a0e1dc`, disabled the
+explicit diagnostic mode and initialized in 305.858 seconds. It stopped at 64 seconds of gameplay on a
 duplicate context-handler registration when a public condo door replaced an earlier turf.
 The three-control batch stopped immediately; controls two and three did not run. This attempt
 is archived locally as `full-content-pre-context-01`, and is not a complete control.
@@ -113,7 +114,7 @@ iteration evidence, not a completed full-content control or production build.
 The turf-context repair is committed on game `dogmos` at
 `6e56a752387d604ce59561907b84b75455791493`.
 
-First complete, unprofiled, full-content control `20260908T072049Z-dc33f797` passed with
+First complete ordinary-focus full-content control `20260908T072049Z-dc33f797` passed with
 180.928 seconds of gameplay, zero runtimes, natural shutdown and clean process/workspace
 cleanup. Initialization was 303.612 seconds: Atoms 146.05, Atmospherics 59.48, Shuttle 33.31.
 Gameplay active turfs ranged from 1,943 to 10,285 (median 6,345); the final minute's median
@@ -134,13 +135,23 @@ The three controls with startup resource coverage are complete:
 | `20260908T075709Z-c38e0692` | 301.391 s | 144.93 s | 59.18 s | 10,147 | 9,758 | 8 |
 
 Mean initialization: 299.546 seconds. Each run passed RIFT, covered at least 180 seconds,
-had profiling disabled, retained MetaStation/seed 29051994/native revision 8456726, had no
+had the explicit diagnostic mode disabled, retained MetaStation/seed 29051994/native revision 8456726, had no
 runtime failures or native panic log, and shut down with clean process/workspace cleanup.
 The read-only sampler attached within five seconds of each process starting and recorded
 separate private bytes, working set, virtual size and CPU time at approximately 250 ms.
 Reports and actual sample gaps are in `data/performance-qualification/controls-summary.json`.
 Local hardware was an Intel Core i7-9750H (6 cores/12 logical processors), Windows 10 build
 19045, BYOND 516.1687. These are local test-build controls, not production-server timings.
+
+Correction to the earlier unprofiled description: the master controller's lag-triggered
+`AttemptProfileDump()` calls `SSprofiler.DumpFile()`, whose `PROFILE_REFRESH` starts profiling
+even when AUTO_PROFILE is disabled. The controls contain growing procedure-profile dumps
+through gameplay. The helper's false flag describes only its own explicit diagnostic mode;
+it does not establish that profiling stayed off. The analyzer now lists automatic profile
+dumps and reports profiling evidence separately from that mode. These ordinary-focus runs
+remain useful default-CI observations, with automatic profile activation as an additional
+comparison limitation. Do not mix them with a future verified unprofiled series.
+[BYOND documents PROFILE_REFRESH as starting or continuing profiling](https://www.byond.com/docs/ref/#/world/proc/Profile).
 
 These clean deployments rendered cold condo previews during gameplay. Both supplied server
 rounds initialized Condos in 0.13 seconds and show no post-initialization condo template loads.
@@ -171,8 +182,16 @@ missing datum annotation during compilation. After correction, green run
 zero runtimes, natural shutdown and clean owned-process/workspace cleanup. The tooling compile
 had zero errors and two expected test warnings. DMB SHA-256:
 `dc5862c3d2b0ab098b7fab5b3f95b14a4fc60d7bf425730de28905bdda849615`.
-This is focused native/DM integration evidence; full-suite, production boot and matched
-candidate performance remain separate gates.
+This is focused native/DM integration evidence; full-suite and matched candidate performance
+remain separate gates.
+
+Production full-build/native-load boot `20260908T083549Z-5a927b79` rebuilt with zero compiler
+errors and warnings. Full RuntimeStation initialized in 184.291 seconds with no detected
+runtime signatures; its map logged four missing-arrivals-shuttle warnings. RIFT requested
+termination after the observation window (DreamDaemon exit 143) and confirmed no owned
+process/workspace leftovers. This is successful boot/cleanup evidence, not natural game
+shutdown or a matched MetaStation speedup. DMB SHA-256:
+`5e0073eb18e905d3c3054af56aa309e20bd9387178cbfa617cf6389d96c97713`.
 
 Initialization procedure costs from that diagnostic run include 33.422 seconds self time
 in mixture lifecycle IPC, 33.08 seconds inclusive in weak-reference construction, and
@@ -302,8 +321,9 @@ The game contract remains the seven-file set: `dogmos.lock.json`, `dogmos.dll`, 
 `libdogmos.so`, `dogmosd`, `code/__DEFINES/dogmos_bindings.dm`, and
 `code/__DEFINES/dogmos_contract.dm`. Its authority and synchronizer implementations need no
 changes. The complete set has been synchronized and verified in both game workspaces.
-Finish the focused DM gate, then run production native-load boot, cross-process lifecycle/fault
-tests, matched candidates, the full DM suite, and a bounded full-map soak.
+Focused DM and production native-load boot gates passed as recorded above. Remaining work:
+cross-process lifecycle/fault tests, matched candidates, the full DM suite, and a bounded
+full-map soak.
 Example focused command from the game repository:
 
 ```powershell
