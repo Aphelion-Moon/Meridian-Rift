@@ -74,12 +74,12 @@
 	. -= "The [bolt_wording] is locked back and needs to be released before firing or de-fouling."
 	. += span_notice("Activate in hand to eject the heatsink. Remove the heatsink before servicing; use a screwdriver to operate the latch, Alt-click to remove a part, or apply a part to install it.")
 	. += span_notice("Heat per shot: [shot_heat()]. Metal feedstock is effectively inexhaustible.")
-	. += span_warning("Reaching maximum heat ruins the heatsink. Starting with the next shot, every shot burns both arms until the sink is replaced. Firing does not stop automatically. The heat indicator fills as the heatsink heats up and stays full after burnout.")
+	. += span_warning("Reaching maximum heat ruins the heatsink. Starting with the next shot, every shot burns only the arm holding the receiver until the sink is replaced. Firing does not stop automatically. The heat indicator fills as the heatsink heats up and stays full after burnout.")
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
 	if(sink)
 		. += span_notice("Heatsink: [round(100 * sink.heat_fraction())]% heat; dissipates [sink.cooling_rate] heat per second.")
 		if(sink.burnt_out)
-			. += span_danger("Heatsink burnt out! Every further shot burns both arms until it is replaced. Cooling will not repair it.")
+			. += span_danger("Heatsink burnt out! Every further shot burns the arm holding the receiver until it is replaced. Cooling will not repair it.")
 	else
 		. += span_warning("No heatsink installed; firing disabled.")
 	var/obj/item/ballistic_module/barrel/barrel = modules["barrel"]

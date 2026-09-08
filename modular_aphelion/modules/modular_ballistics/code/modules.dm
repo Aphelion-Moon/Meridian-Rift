@@ -17,6 +17,8 @@
 	var/is_long = FALSE
 	/// Added time between shots, separate from the accelerator cycle.
 	var/cycle_cost = 0
+	/// Multiplies generated heat
+	var/heat_multiplier = 1
 	var/scoped_accuracy = 0
 
 /// Configuration lists are read-only. Missing coordinates use the authored sprite position.
@@ -142,5 +144,6 @@
 /obj/item/ballistic_module/examine(mob/user)
 	. = ..()
 	. += span_notice("Socket: [socket]. Dispersion modifier: [dispersion]. Recoil modifier: [kick]. Added cycle time: [cycle_cost / 10] seconds.")
+	. += span_notice("Generated heat multiplier: [heat_multiplier]x.")
 	if(is_long)
 		. += span_notice("Makes the assembled weapon bulky.")

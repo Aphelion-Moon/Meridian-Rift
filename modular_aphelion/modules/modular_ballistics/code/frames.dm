@@ -1,15 +1,18 @@
-// Alternate receiver prototypes. Shared modules keep their existing behavior.
+// Receiver tradeoffs: flexible sidearm, stable heavy, fast but hot bullpup.
 
 /obj/item/gun/ballistic/parallax/heavy
 	name = "Parallax heavy-frame prototype"
-	desc = "An armored Parallax receiver with a reinforced recoil bed. Always bulky and requires two hands, but reduces recoil by 30%. Uses standard Parallax modules."
+	desc = "An armored Parallax receiver built for steady sustained fire. Reduces dispersion by 2, recoil by 45% and generated heat by 20%, but adds 0.1 seconds between shots. Always bulky and requires two hands. Uses standard Parallax modules."
 	frame_name_prefix = "Parallax heavy"
 	frame_icon_state = "frame_heavy"
 	icon_state = "frame_heavy"
 	inhand_icon_state = "frame_heavy"
-	frame_recoil_multiplier = 0.7
+	frame_recoil_multiplier = 0.55
+	frame_dispersion = -2
+	frame_cycle_cost = 0.1 SECONDS
+	frame_heat_multiplier = 0.8
 	frame_requires_two_hands = TRUE
-	starting_modules = list(/obj/item/ballistic_module/barrel/carbine/assault, /obj/item/ballistic_module/control/automatic, /obj/item/ballistic_module/stock/precision, /obj/item/ballistic_module/optic)
+	starting_modules = list(/obj/item/ballistic_module/barrel/carbine/assault, /obj/item/ballistic_module/control/automatic, /obj/item/ballistic_module/stock, /obj/item/ballistic_module/optic)
 	attachment_points = list(
 		"barrel" = list(
 			"type" = /obj/item/ballistic_module/barrel,
@@ -52,8 +55,12 @@
 
 /obj/item/gun/ballistic/parallax/bullpup
 	name = "Parallax bullpup prototype"
-	desc = "A compact rear-action Parallax receiver with an integrated buttstock and a heatsink well behind the grip. Requires both hands and accepts standard barrels, controllers and optics."
+	desc = "A rear-action Parallax receiver for aggressive close-range fire. Its integrated stock reduces dispersion by 1 and recoil by 15%; its shortened action cuts 0.1 seconds off the shot cycle but generates 25% more heat. Requires both hands and cannot accept a separate stock."
 	frame_name_prefix = "Parallax bullpup"
+	frame_recoil_multiplier = 0.85
+	frame_dispersion = -1
+	frame_cycle_cost = -0.1 SECONDS
+	frame_heat_multiplier = 1.25
 	frame_icon_state = "frame_bullpup"
 	icon_state = "frame_bullpup"
 	inhand_icon_state = "frame_bullpup"

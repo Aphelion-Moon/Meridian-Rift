@@ -27,9 +27,9 @@
 	var/overheat_burn_damage = 5
 	/// One-time thermal failure cue when the installed sink becomes ruined.
 	var/overheat_sound = 'modular_aphelion/modules/modular_ballistics/sound/overheat.ogg'
-	var/overheat_sound_volume = 65
+	var/overheat_sound_volume = 75
 	/// Playback multiplier at full heat; cold shots use the original pitch.
-	var/hot_fire_pitch = 1.35
+	var/hot_fire_pitch = 1.25
 	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'
 	/// Installed objects keyed by socket, not a list of predetermined gun combinations.
 	var/list/modules = list()
@@ -43,6 +43,10 @@
 	var/frame_compact_right_icon = 'modular_aphelion/modules/modular_ballistics/icons/compact_righthand.dmi'
 	var/frame_name_prefix = "Parallax"
 	var/frame_recoil_multiplier = 1
+	/// Receiver tradeoffs apply to every compatible barrel and attachment.
+	var/frame_dispersion = 0
+	var/frame_cycle_cost = 0
+	var/frame_heat_multiplier = 1
 	var/frame_requires_two_hands = FALSE
 	/// The frame uses the same named-point schema as every detachable module.
 	/// Socket -> accepted type and per-context offsets. Omitted offsets are zero.
@@ -117,7 +121,7 @@
 	starting_modules = list(/obj/item/ballistic_module/barrel/carbine, /obj/item/ballistic_module/control/burst, /obj/item/ballistic_module/stock, /obj/item/ballistic_module/optic)
 
 /obj/item/gun/ballistic/parallax/assault
-	starting_modules = list(/obj/item/ballistic_module/barrel/carbine/assault, /obj/item/ballistic_module/control/automatic, /obj/item/ballistic_module/stock/precision, /obj/item/ballistic_module/optic)
+	starting_modules = list(/obj/item/ballistic_module/barrel/carbine/assault, /obj/item/ballistic_module/control/automatic, /obj/item/ballistic_module/stock, /obj/item/ballistic_module/optic)
 
 /obj/item/gun/ballistic/parallax/shotgun
 	starting_modules = list(/obj/item/ballistic_module/barrel/shotgun, /obj/item/ballistic_module/control, /obj/item/ballistic_module/stock)

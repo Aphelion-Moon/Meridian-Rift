@@ -5,7 +5,7 @@
 	icon = 'modular_aphelion/modules/modular_ballistics/icons/ammunition.dmi'
 	icon_state = "smart_round"
 	muzzle_flash_color_override = LIGHT_COLOR_BLUE
-	damage = 22
+	damage = 20
 	wound_bonus = -10
 	weak_against_armour = TRUE
 	demolition_mod = 0.1
@@ -51,7 +51,7 @@
 	var/stored_heat = 0
 	var/heat_capacity = 100
 	/// Heat dissipated per second, installed or loose.
-	var/cooling_rate = 5
+	var/cooling_rate = 1
 	var/burnt_out = FALSE
 
 /obj/item/ammo_box/magazine/parallax/Destroy(force)
@@ -119,7 +119,10 @@
 
 /obj/item/gun/ballistic/parallax/proc/shot_heat()
 	var/obj/item/ballistic_module/barrel/barrel = modules["barrel"]
-	return heat_per_projectile * (barrel ? barrel.projectiles_per_shot : 1)
+	var/heat = heat_per_projectile * (barrel ? barrel.projectiles_per_shot : 1) * frame_heat_multiplier
+	for(var/obj/item/ballistic_module/part as anything in all_modules())
+		heat *= part.heat_multiplier
+	return heat
 
 /obj/item/gun/ballistic/parallax/proc/thermal_ready()
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
@@ -137,9 +140,13 @@
 	if(!already_ruined && sink.burnt_out)
 		playsound(src, overheat_sound, overheat_sound_volume, FALSE)
 	if(already_ruined && user)
-		user.apply_damage(overheat_burn_damage, BURN, BODY_ZONE_L_ARM)
-		user.apply_damage(overheat_burn_damage, BURN, BODY_ZONE_R_ARM)
-		balloon_alert(user, "overheated gun burns your arms!")
+		// Burn only the arm holding the receiver, including when the other hand supports it.
+		var/holding_index = user.get_held_index_of_item(src)
+		if(!holding_index)
+			holding_index = user.active_hand_index
+		var/burn_zone = IS_RIGHT_INDEX(holding_index) ? BODY_ZONE_R_ARM : BODY_ZONE_L_ARM
+		user.apply_damage(overheat_burn_damage, BURN, burn_zone)
+		balloon_alert(user, "overheated gun burns your arm!")
 
 /// Heat is applied before shoot_live_shot calls this, so the ruining shot peaks.
 /obj/item/gun/ballistic/parallax/fire_sounds()

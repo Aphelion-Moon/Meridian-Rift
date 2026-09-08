@@ -2,17 +2,20 @@
 
 /obj/item/ballistic_module/silencer
 	name = "Parallax sound suppressor"
-	desc = "A ceramic-sleeved baffle assembly for compact and carbine accelerators. Reduces the firing report while adding bulk. Install or remove it through the unloaded frame's service latch."
+	desc = "A ceramic-sleeved baffle assembly for compact and carbine accelerators. Reduces the firing report while adding bulk and trapping 25% more firing heat. Install or remove it through the unloaded frame's service latch."
 	socket = "silencer"
 	icon_state = "silencer"
+	heat_multiplier = 1.25
 
 /obj/item/ballistic_module/control
 	name = "Parallax semi-automatic controller"
-	desc = "A fire-control cartridge that authorizes one shot per trigger pull."
+	desc = "A fire-control cartridge that authorizes one shot per trigger pull. Its metered pulse generates 20% less heat than burst or automatic fire."
 	socket = "controller"
 	icon_state = "control_semi"
 	var/automatic = FALSE
 	var/shots_per_burst = 1
+	var/burst_recovery = 0
+	heat_multiplier = 0.8
 
 /obj/item/ballistic_module/control/proc/fire_mode()
 	return automatic ? "automatic" : (shots_per_burst > 1 ? "[shots_per_burst]-round burst" : "semi-automatic")
@@ -23,9 +26,12 @@
 
 /obj/item/ballistic_module/control/burst
 	name = "Parallax burst controller"
-	desc = "A fire-control cartridge that authorizes three rounds per trigger pull."
+	desc = "A fire-control cartridge that commits to three rounds per trigger pull. Reduces dispersion by 1, but adds 0.3 seconds of recovery between bursts and lacks semi-auto heat savings."
 	icon_state = "control_burst"
 	shots_per_burst = 3
+	burst_recovery = 0.3 SECONDS
+	dispersion = -1
+	heat_multiplier = 1
 
 /obj/item/ballistic_module/control/automatic
 	name = "Parallax automatic controller"
@@ -33,6 +39,7 @@
 	icon_state = "control_auto"
 	automatic = TRUE
 	dispersion = 2
+	heat_multiplier = 1
 
 /obj/item/ballistic_module/stock
 	name = "Parallax compact stock"
@@ -45,10 +52,11 @@
 
 /obj/item/ballistic_module/stock/precision
 	name = "Parallax precision stock"
-	desc = "An extended triangular shoulder support with a recessed stabilizer. Greater stability than the compact stock, but adds 0.1 seconds between shots."
+	desc = "An extended shoulder support for scoped fire. Reduces hip dispersion by 1 and scoped dispersion by a further 3, with stronger recoil control than the compact stock. Adds 0.1 seconds between shots."
 	icon_state = "stock_precision"
-	dispersion = -3
-	kick = -0.5
+	dispersion = -1
+	scoped_accuracy = 3
+	kick = -0.6
 	cycle_cost = 0.1 SECONDS
 
 /obj/item/ballistic_module/optic
@@ -68,7 +76,7 @@
 	name = "Parallax precision optic"
 	desc = "An elongated ballistic sight with a cyan objective. Right-click to scope in. Excellent aimed accuracy, but awkward hip fire and a slower firing cycle."
 	icon_state = "optic_scope"
-	dispersion = 1
+	dispersion = 2
 	cycle_cost = 0.1 SECONDS
 	scope_range = 2
 	scoped_accuracy = 4

@@ -8,8 +8,10 @@
 	var/obj/item/ballistic_module/barrel/barrel = modules["barrel"]
 	var/obj/item/ballistic_module/control/controller = modules["controller"]
 	fire_delay = barrel ? barrel.shot_delay : 0.5 SECONDS
+	fire_delay += frame_cycle_cost
 	projectile_damage_multiplier = barrel ? barrel.damage_factor : 1
-	spread = 0
+	projectile_speed_multiplier = barrel ? barrel.projectile_velocity_multiplier : initial(projectile_speed_multiplier)
+	spread = frame_dispersion
 	recoil = 0
 	var/long_profile = frame_requires_two_hands
 	for(var/obj/item/ballistic_module/part as anything in all_modules())
@@ -19,11 +21,13 @@
 		aimed_accuracy += part.scoped_accuracy
 		long_profile ||= part.is_long
 	spread = max(0, spread)
+	// Preserve a minimum cycle
+	fire_delay = max(0.15 SECONDS, fire_delay)
 	recoil = max(0.1, recoil * frame_recoil_multiplier)
 	burst_size = controller ? controller.shots_per_burst : 1
 	burst_delay = fire_delay
 	if(burst_size > 1)
-		fire_delay *= burst_size
+		fire_delay = fire_delay * burst_size + controller.burst_recovery
 	var/obj/item/ballistic_module/silencer/sound_suppressor = barrel?.attachments["silencer"]
 	suppressed = istype(sound_suppressor) ? SUPPRESSED_QUIET : SUPPRESSED_NONE
 	update_weight_class((long_profile || suppressed) ? WEIGHT_CLASS_BULKY : WEIGHT_CLASS_NORMAL)
