@@ -5,8 +5,10 @@ Subsequent deployment, lava, and shutdown repair commits are recorded below.
 The native repairs are committed on the native repository's `dogmos` branch at
 `0b942d58cef15be73a2f6911ef50109fc846c25b`; its `master` branch was left unchanged.
 All four release targets build and their complete generated release contract verifies.
-The installed pair remains `8456726ed1b69e4ae2ac41042b64ef179a68f84d` while controls
-are measured. Native artifact rebuilding is authorized. No server deployment has occurred.
+The complete `0b942d58cef15be73a2f6911ef50109fc846c25b` pair is now installed and verified
+in the isolated development workspace, after collecting the old-native controls below.
+The main `dogmos` checkout still has the old pair pending transfer of the verified changes.
+Native artifact rebuilding is authorized. No server deployment has occurred.
 
 ## Startup and shift-start evidence
 
@@ -122,10 +124,54 @@ by that CSV. RIFT's sparser resource observations remain available. The dense sa
 recorded both processes through shutdown, with a maximum observed gap of 277 ms. Treat this
 run's dense initialization resource coverage as partial. Repeat controls attach during compile.
 
-Collect the remaining sequential full-content old-native controls. Each must
-pass RIFT, cover at least 180 seconds, report profiling disabled, retain MetaStation/seed
-29051994/native revision 8456726, and emit no native panic log before the next run starts.
-Do not alter measured DM/native inputs while a matched series is running.
+The three controls with startup resource coverage are complete:
+
+| RIFT run | Initialization | Atoms | Atmospherics | Active peak | Final-minute active median | Air cycles advanced |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `20260908T073334Z-9cd84002` | 301.391 s | 142.98 s | 57.92 s | 11,464 | 11,173.5 | 3 |
+| `20260908T074504Z-d66bb5ad` | 295.856 s | 136.95 s | 60.11 s | 11,337 | 10,682 | 1 |
+| `20260908T075709Z-c38e0692` | 301.391 s | 144.93 s | 59.18 s | 10,147 | 9,758 | 8 |
+
+Mean initialization: 299.546 seconds. Each run passed RIFT, covered at least 180 seconds,
+had profiling disabled, retained MetaStation/seed 29051994/native revision 8456726, had no
+runtime failures or native panic log, and shut down with clean process/workspace cleanup.
+The read-only sampler attached within five seconds of each process starting and recorded
+separate private bytes, working set, virtual size and CPU time at approximately 250 ms.
+Reports and actual sample gaps are in `data/performance-qualification/controls-summary.json`.
+Local hardware was an Intel Core i7-9750H (6 cores/12 logical processors), Windows 10 build
+19045, BYOND 516.1687. These are local test-build controls, not production-server timings.
+
+These clean deployments rendered cold condo previews during gameplay. Both supplied server
+rounds initialized Condos in 0.13 seconds and show no post-initialization condo template loads.
+Therefore the cold-preview backlog cannot establish the cause of the server's oscillation.
+Slow Atoms/Atmospherics precede the preview work and remain independently reproduced. All 28
+generated preview-cache images were exported after control four's measured window for a later
+warm-cache diagnostic. No measured DM/native inputs changed during the control series.
+
+### Current published CI and listener repair
+
+The published PR still points to `e2845174ee1dfb077e7c31e2750025d32cea24f4`. Its current
+CI suite `34173336083` passes the inspected station integration jobs except SerenityStation.
+Job `101898390984` reports one old-gibs hard delete; the reference search finds the decal in
+a lava-land turf's `_listen_lookup[atom_entered]`. The codeowner job separately fails its
+reviewer-request API call with `Resource not accessible by integration`; no workflow or
+repository permission setting was changed.
+
+Focused red run `20260908T081157Z-2754d127` reproduced deletion during replacement
+construction followed by restoration of the obsolete subscription (`deleted=1, retained=1`).
+It had zero runtimes and clean cleanup. On the newly installed native pair, the other six
+cases passed: service lifecycle, excited groups, deferred mixture retirement, intentional
+shutdown, own turf context replacement, and existing connect-loc turf replacement.
+The restoration helper now filters deleted subscribers and preserves live subscriptions,
+including the single-listener representation after filtering a shared bucket. Its extended
+regression checks delivery to a surviving listener. The first green attempt stopped at a
+missing datum annotation during compilation. After correction, green run
+`20260908T082525Z-af41e258` passed all eight requested cases, including the cafe-lava regression:
+zero runtimes, natural shutdown and clean owned-process/workspace cleanup. The tooling compile
+had zero errors and two expected test warnings. DMB SHA-256:
+`dc5862c3d2b0ab098b7fab5b3f95b14a4fc60d7bf425730de28905bdda849615`.
+This is focused native/DM integration evidence; full-suite, production boot and matched
+candidate performance remain separate gates.
 
 Initialization procedure costs from that diagnostic run include 33.422 seconds self time
 in mixture lifecycle IPC, 33.08 seconds inclusive in weak-reference construction, and
@@ -250,12 +296,13 @@ The game rejects mismatched native identities/hashes before gas registration. It
 synchronizer also requires a clean native source revision. A separate script cannot make an
 uncommitted core repair available to the real game through the installed contract.
 
-The native commit and complete release build are now prepared under the user's authorization.
+The native commit and complete release build were prepared under the user's authorization.
 The game contract remains the seven-file set: `dogmos.lock.json`, `dogmos.dll`, `dogmosd.exe`,
 `libdogmos.so`, `dogmosd`, `code/__DEFINES/dogmos_bindings.dm`, and
 `code/__DEFINES/dogmos_contract.dm`. Its authority and synchronizer implementations need no
-changes. After collecting controls, synchronize atomically, then run native-load boot, cross-process
-lifecycle/fault tests, focused DM cases, the full DM suite, and a bounded full-map soak.
+changes. The complete set has been synchronized and verified in the development workspace.
+Finish the focused DM gate, then run production native-load boot, cross-process lifecycle/fault
+tests, matched candidates, the full DM suite, and a bounded full-map soak.
 Example focused command from the game repository:
 
 ```powershell

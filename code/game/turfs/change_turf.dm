@@ -53,6 +53,9 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 
 // Creates a new turf
 // new_baseturfs can be either a single type or list of types, formated the same as baseturfs. see turf.dm
+// APHELION EDIT ADDITION START - TURF_CONTEXT
+/** Replaces a turf while carrying surviving subscriptions and persistent tile state forward. */
+// APHELION EDIT ADDITION END
 /turf/proc/ChangeTurf(path, list/new_baseturfs, flags)
 	switch(path)
 		if(null)
@@ -120,7 +123,12 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	// Turfs DO NOT lose their signals when they get replaced, REMEMBER THIS
 	// It's possible because turfs are fucked, and if you have one in a list and it's replaced with another one, the list ref points to the new turf
 	if(old_listen_lookup)
+		/* // APHELION EDIT REMOVAL START - TURF_CONTEXT
 		LAZYOR(new_turf._listen_lookup, old_listen_lookup)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - TURF_CONTEXT
+		new_turf.restore_surviving_turf_listeners(old_listen_lookup)
+		// APHELION EDIT ADDITION END
 	if(old_signal_procs)
 		LAZYOR(new_turf._signal_procs, old_signal_procs)
 
