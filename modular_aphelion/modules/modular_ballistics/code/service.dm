@@ -74,21 +74,22 @@
 	. -= "The [bolt_wording] is locked back and needs to be released before firing or de-fouling."
 	. += span_notice("Activate in hand to eject the heatsink. Remove the heatsink before servicing; use a screwdriver to operate the latch, Alt-click to remove a part, or apply a part to install it.")
 	. += span_notice("Heat per shot: [shot_heat()]. Metal feedstock is effectively inexhaustible.")
-	. += span_warning("Reaching maximum heat ruins the heatsink. Starting with the next shot, every shot burns both arms until the sink is replaced. Firing does not stop automatically. The ammo counter shows shots until ruin, including the final shot.")
+	. += span_warning("Reaching maximum heat ruins the heatsink. Starting with the next shot, every shot burns both arms until the sink is replaced. Firing does not stop automatically. The heat indicator fills as the heatsink heats up and stays full after burnout.")
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
 	if(sink)
-		. += span_notice("Heatsink: [round(100 * sink.stored_heat / sink.heat_capacity)]% heat; dissipates [sink.cooling_rate] heat per second.")
+		. += span_notice("Heatsink: [round(100 * sink.heat_fraction())]% heat; dissipates [sink.cooling_rate] heat per second.")
 		if(sink.burnt_out)
 			. += span_danger("Heatsink burnt out! Every further shot burns both arms until it is replaced. Cooling will not repair it.")
 	else
 		. += span_warning("No heatsink installed; firing disabled.")
-	if(has_shotgun_barrel())
-		. += span_notice("Six metal shavings per volley, generating six times the heat. Fixed 20-degree pellet spread.")
+	var/obj/item/ballistic_module/barrel/barrel = modules["barrel"]
+	if(barrel && barrel.projectiles_per_shot > 1)
+		. += span_notice("[barrel.projectiles_per_shot] metal shavings per volley. Fixed [barrel.pellet_spread]-degree pellet spread.")
 	. += span_notice("Service latch: [service_open ? "open (firing disabled)" : "closed"].")
 	if(suppressed)
 		. += span_notice("A barrel-mounted sound suppressor reduces the firing report. Remove it through the service latch.")
 	var/obj/item/ballistic_module/control/controller = modules["controller"]
-	var/fire_mode = !controller ? "unavailable" : (controller.automatic ? "automatic" : (burst_size > 1 ? "[burst_size]-round burst" : "semi-automatic"))
+	var/fire_mode = controller ? controller.fire_mode() : "unavailable"
 	. += span_notice("Fire mode: [fire_mode]. Cycle: [burst_delay / 10] seconds per shot; [fire_delay / 10] seconds per trigger cycle.")
 	. += span_notice("Damage multiplier: [round(projectile_damage_multiplier, 0.01)]x. Dispersion: [spread] hip-fired / [max(0, spread - aimed_accuracy)] scoped (lower is better). Recoil: [round(recoil, 0.01)].")
 	. += span_notice("Handling: [weapon_weight == WEAPON_HEAVY ? "requires two hands" : (weapon_weight == WEAPON_MEDIUM ? "medium weapon" : "light weapon")].")

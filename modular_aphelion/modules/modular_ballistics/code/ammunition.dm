@@ -28,8 +28,9 @@
 	var/obj/item/gun/ballistic/parallax/gun = fired_from
 	if(!user || !get_turf(target) || !get_turf(gun) || !gun.can_shoot())
 		return FALSE
-	pellets = gun.has_shotgun_barrel() ? 6 : 1
-	variance = gun.has_shotgun_barrel() ? 20 : 0
+	var/obj/item/ballistic_module/barrel/barrel = gun.modules["barrel"]
+	pellets = barrel.projectiles_per_shot
+	variance = barrel.pellet_spread
 	randomspread = TRUE
 	. = ..()
 	if(.)
@@ -45,8 +46,6 @@
 	icon_state = "heatsink_cool"
 	ammo_type = /obj/item/ammo_casing/parallax
 	caliber = "parallax_metal"
-	// Compatibility value for inherited firing sounds; no cartridges are stored.
-	max_ammo = 20
 	start_empty = TRUE
 	custom_materials = list(/datum/material/iron = SMALL_MATERIAL_AMOUNT)
 	var/stored_heat = 0
@@ -84,7 +83,7 @@
 
 /obj/item/ammo_box/magazine/parallax/examine(mob/user)
 	. = ..()
-	. += span_notice("Heat: [round(100 * stored_heat / heat_capacity)]%. Dissipation: [cooling_rate] heat per second.")
+	. += span_notice("Heat: [round(100 * heat_fraction())]%. Dissipation: [cooling_rate] heat per second.")
 	if(burnt_out)
 		. += span_danger("Burnt out! Cooling will not repair it. Replace it before firing safely.")
 
@@ -106,6 +105,9 @@
 		return "heatsink_warm"
 	return "heatsink_cool"
 
+/obj/item/ammo_box/magazine/parallax/proc/heat_fraction()
+	return clamp(stored_heat / max(1, heat_capacity), 0, 1)
+
 /obj/item/gun/ballistic/parallax/chamber_round(spin_cylinder, replace_new_round)
 	if(!chambered && magazine)
 		chambered = new /obj/item/ammo_casing/parallax(src)
@@ -115,13 +117,9 @@
 	if(chamber_next_round)
 		chamber_round()
 
-/obj/item/gun/ballistic/parallax/Exited(atom/movable/gone, direction)
-	if(gone == magazine)
-		QDEL_NULL(chambered)
-	return ..()
-
 /obj/item/gun/ballistic/parallax/proc/shot_heat()
-	return heat_per_projectile * (has_shotgun_barrel() ? 6 : 1)
+	var/obj/item/ballistic_module/barrel/barrel = modules["barrel"]
+	return heat_per_projectile * (barrel ? barrel.projectiles_per_shot : 1)
 
 /obj/item/gun/ballistic/parallax/proc/thermal_ready()
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
@@ -149,7 +147,7 @@
 	var/heat_fraction = 0
 	if(istype(sink))
 		// A ruined sink retains the warning pitch even after cooling.
-		heat_fraction = sink.burnt_out ? 1 : clamp(sink.stored_heat / sink.heat_capacity, 0, 1)
+		heat_fraction = sink.burnt_out ? 1 : sink.heat_fraction()
 	var/shot_frequency = 1 + (hot_fire_pitch - 1) * heat_fraction
 	// playsound_local applies frequency only with vary enabled. Supplying an
 	// explicit frequency bypasses random variation while enabling pitch changes.
@@ -193,5 +191,4 @@
 		return "coil_missing"
 	if(sink.burnt_out)
 		return "coil_20"
-	var/heat_fraction = clamp(sink.stored_heat / max(1, sink.heat_capacity), 0, 1)
-	return "coil_[CEILING(heat_fraction * 20, 1)]"
+	return "coil_[CEILING(sink.heat_fraction() * 20, 1)]"

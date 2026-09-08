@@ -7,18 +7,18 @@ compose world and held sprites without a separate sprite for every configuration
 
 Production files are included explicitly in the root `tgstation.dme`.
 
-| File in `code/`               | Responsibility                                                                                                 |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `modular_ballistics.dm`       | Frame defaults and sockets, initialization, cleanup, heatsink admission, and presets                           |
-| `frames.dm`                   | Alternative receiver definitions and their frame-specific modifiers                                            |
-| `modules.dm`                  | Part fields, point lookup/compatibility, physical ownership, nested installation/removal, and part examination |
-| `barrels.dm`                  | Barrel performance and suppressor mount coordinates                                                            |
-| `accessories.dm`              | Controllers, stocks, optics, and suppressors                                                                   |
-| `ammunition.dm`               | Metal shavings, heatsinks, cooling, automatic burnout and firing adapters                                               |
-| `configuration.dm`            | Derived performance, suppression, scope behavior, firing guards, and aimed spread                              |
-| `service.dm`                  | Service latch, installation selection, removal menu, and gun examination                                       |
-| `appearance.dm`               | Recursive overlays, loose/assembled appearance, held poses, and facing layers                                  |
-| `supplies.dm`                 | Kits, storage limits, and cargo packs                                                                          |
+| File in `code/`         | Responsibility                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `modular_ballistics.dm` | Frame defaults and sockets, initialization, cleanup, heatsink admission, and presets                           |
+| `frames.dm`             | Alternative receiver definitions and their frame-specific modifiers                                            |
+| `modules.dm`            | Part fields, point lookup/compatibility, physical ownership, nested installation/removal, and part examination |
+| `barrels.dm`            | Barrel performance and suppressor mount coordinates                                                            |
+| `accessories.dm`        | Controllers, stocks, optics, and suppressors                                                                   |
+| `ammunition.dm`         | Metal shavings, heatsinks, cooling, automatic burnout and firing adapters                                      |
+| `configuration.dm`      | Derived performance, suppression, scope behavior, firing guards, and aimed spread                              |
+| `service.dm`            | Service latch, installation selection, removal menu, and gun examination                                       |
+| `appearance.dm`         | Recursive overlays, loose/assembled appearance, held poses, and facing layers                                  |
+| `supplies.dm`           | Kits, storage limits, and cargo packs                                                                          |
 
 Add barrels in `barrels.dm` and accessory definitions in `accessories.dm`. Change
 mount positions on the parent's `attachment_points`. Firing behavior belongs in
@@ -59,8 +59,8 @@ burning the shooter. Starting with the next shot, firing inflicts 5 burn damage 
 even after cooling. Firing continues automatically; there is no safety toggle.
 Let an intact sink cool before it reaches capacity to reuse it indefinitely.
 Replace a ruined sink to stop the burns. A missing sink still prevents firing.
-Examine the gun or sink for heat and condition. The ammo counter counts shots
-until ruin, including the ruining shot. All heat/damage defaults are configurable.
+Examine the gun or sink for heat and condition. The HUD heat indicator fills as
+heat rises and stays full after burnout. All heat/damage defaults are configurable.
 
 Four finned heatsink states are shared by loose, world and held artwork:
 `heatsink_cool` below one-third capacity, `heatsink_warm` from one-third,
@@ -115,8 +115,8 @@ The gun creates internal firing adapters without storing physical ammunition.
 | `icons/compact_lefthand.dmi`, `icons/compact_righthand.dmi` | 64×64 compact poses, four directions |
 | `icons/ammunition.dmi`                                      | Cartridge and projectile artwork     |
 
-New visual parts need matching states in the world and four held atlases, plus
-loose artwork. Preserve unrelated pixels and DMI metadata. Use at most 16 visible
+New visual parts use their `icon_state` in the world, loose and four held atlases.
+Preserve unrelated pixels and DMI metadata. Use at most 16 visible
 colors per finished sprite across directions and animation frames.
 
 Heatsink indicators show cool, warm, hot and ruined states. Held overlays refresh
@@ -128,7 +128,8 @@ ignored `.parallax-work/` may predate manual edits; do not regenerate blindly.
 
 ## Validation and provenance
 
-Thermal validation covers the burnout boundary, cooldown, arm damage, replacement,
+Regression tests live in `code/modules/unit_tests/parallax.dm` and cover component
+removal, burnout and HUD resets. Thermal validation covers the burnout boundary, cooldown, arm damage, replacement,
 missing heatsinks and cartridge-free firing adapters. Compilation is separate
 from runtime tests and does not establish in-game alignment or multiplayer balance.
 

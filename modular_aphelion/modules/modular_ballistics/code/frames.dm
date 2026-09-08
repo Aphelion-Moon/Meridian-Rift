@@ -32,16 +32,9 @@
 			"world" = list("default" = list(-1, 0)),
 			"rifle_left" = list("2" = list(1, 0), "1" = list(-1, 0), "4" = list(-1, 0), "8" = list(1, 0)),
 			"rifle_right" = list("2" = list(-1, 0), "1" = list(1, 0), "4" = list(-1, 0), "8" = list(1, 0)),
-			"compact_left" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
-			"compact_right" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
 		),
 		"optic" = list(
 			"type" = /obj/item/ballistic_module/optic,
-			"world" = list("default" = list(0, 0)),
-			"rifle_left" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
-			"rifle_right" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
-			"compact_left" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
-			"compact_right" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
 		),
 		"magazine" = list(
 			"type" = /obj/item/ammo_box/magazine/parallax,

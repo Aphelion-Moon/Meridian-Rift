@@ -12,8 +12,8 @@
 	var/x = parent_x + offset[1]
 	var/y = parent_y + offset[2]
 	var/list/result = list()
-	if(overlay_state)
-		var/mutable_appearance/appearance = mutable_appearance(icon_file, overlay_state)
+	if(icon_state)
+		var/mutable_appearance/appearance = mutable_appearance(icon_file, icon_state)
 		appearance.pixel_x = x
 		appearance.pixel_y = y
 		result += appearance
@@ -49,8 +49,7 @@
 	// The direction signal fires before dir changes, so use its new_dir argument.
 	// Socket offsets may vary between any two directions, even on the same layer.
 	attachment_inhand_direction = new_dir
-	var/new_layer = new_dir == NORTH ? BODY_BEHIND_LAYER : initial(alternate_worn_layer)
-	alternate_worn_layer = new_layer
+	alternate_worn_layer = new_dir == NORTH ? BODY_BEHIND_LAYER : initial(alternate_worn_layer)
 	source.update_held_items()
 
 /obj/item/gun/ballistic/parallax/update_icon_state()

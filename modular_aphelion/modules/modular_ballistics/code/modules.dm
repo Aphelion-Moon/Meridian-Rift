@@ -8,22 +8,15 @@
 	w_class = WEIGHT_CLASS_SMALL
 	/// One component per named socket; subtypes may extend the platform without combination sprites.
 	var/socket
-	/// Overlay state shared by the world and directional in-hand atlases.
-	var/overlay_state
 	/// Named child sockets. Each entry contains an accepted "type" and context offsets.
 	var/list/attachment_points = list()
 	/// Physical children, keyed by the attachment point they occupy.
 	var/list/attachments = list()
-	var/shot_delay = 0
-	var/damage_factor = 1
 	var/dispersion = 0
 	var/kick = 0
 	var/is_long = FALSE
-	var/automatic = FALSE
-	var/shots_per_burst = 1
 	/// Added time between shots, separate from the accelerator cycle.
 	var/cycle_cost = 0
-	var/scope_range = 0
 	var/scoped_accuracy = 0
 
 /// Configuration lists are read-only. Missing coordinates use the authored sprite position.
@@ -131,6 +124,9 @@
 		rebuild_configuration()
 
 /obj/item/gun/ballistic/parallax/Exited(atom/movable/gone, direction)
+	// The parent clears magazine, so discard its firing adapter first.
+	if(gone == magazine)
+		QDEL_NULL(chambered)
 	. = ..()
 	if(istype(gone, /obj/item/ballistic_module))
 		forget_module(gone)
@@ -146,11 +142,5 @@
 /obj/item/ballistic_module/examine(mob/user)
 	. = ..()
 	. += span_notice("Socket: [socket]. Dispersion modifier: [dispersion]. Recoil modifier: [kick]. Added cycle time: [cycle_cost / 10] seconds.")
-	if(socket == "barrel")
-		. += span_notice("Base shot cycle: [shot_delay / 10] seconds. Damage multiplier: [damage_factor]x.")
-	if(socket == "controller")
-		. += span_notice("Fire mode: [automatic ? "automatic" : (shots_per_burst > 1 ? "[shots_per_burst]-round burst" : "semi-automatic")].")
-	if(scope_range)
-		. += span_notice("Enables right-click aiming. While scoped with this weapon, reduces dispersion by [scoped_accuracy]; hip-fire modifier remains included.")
 	if(is_long)
 		. += span_notice("Makes the assembled weapon bulky.")

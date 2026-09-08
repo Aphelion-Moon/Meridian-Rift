@@ -57,9 +57,6 @@
 /obj/item/gun/ballistic/parallax/proc/assembly_ready()
 	return !service_open && modules["barrel"] && modules["controller"]
 
-/obj/item/gun/ballistic/parallax/proc/has_shotgun_barrel()
-	return istype(modules["barrel"], /obj/item/ballistic_module/barrel/shotgun)
-
 /obj/item/gun/ballistic/parallax/can_shoot()
 	return assembly_ready() && thermal_ready() && ..()
 
