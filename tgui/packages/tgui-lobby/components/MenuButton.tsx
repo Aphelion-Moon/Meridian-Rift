@@ -8,6 +8,7 @@ export function MenuButton({
   disabled,
   iconState,
   assetMap,
+  className,
   children,
 }: {
   onClick?: (event: MouseEvent) => void;
@@ -18,11 +19,13 @@ export function MenuButton({
   /** Optional PNG icon (e.g. "ready", "join_game") shown before the label, looked up in assetMap. */
   iconState?: string;
   assetMap?: Record<string, string>;
+  className?: string;
   children: ReactNode;
 }) {
   const classes = ['menu_button'];
   if (newPoll) classes.push('menu_newpoll');
   if (disabled) classes.push('info_display');
+  if (className) classes.push(className);
 
   const iconUrl = iconState ? assetMap?.[`${iconState}.png`] : undefined;
 
