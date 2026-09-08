@@ -40,9 +40,9 @@
 /// Legacy path/socket preserved for maps, cargo and artwork.
 /obj/item/ammo_box/magazine/parallax
 	name = "Parallax heatsink"
-	desc = "A detachable thermal sink for a magnetic accelerator. Cools passively, installed or loose. Firing beyond its capacity burns it out permanently."
+	desc = "A detachable finned thermal sink for a magnetic accelerator. Cools passively, installed or loose. Reaching its heat capacity ruins it permanently."
 	icon = 'modular_aphelion/modules/modular_ballistics/icons/parts.dmi'
-	icon_state = "magazine"
+	icon_state = "heatsink_cool"
 	ammo_type = /obj/item/ammo_casing/parallax
 	caliber = "parallax_metal"
 	// Compatibility value for inherited firing sounds; no cartridges are stored.
@@ -66,7 +66,7 @@
 		return PROCESS_KILL
 
 /obj/item/ammo_box/magazine/parallax/proc/absorb_heat(amount)
-	if(stored_heat + amount > heat_capacity)
+	if(stored_heat + amount >= heat_capacity)
 		burnt_out = TRUE
 	stored_heat = min(heat_capacity, stored_heat + amount)
 	START_PROCESSING(SSobj, src)
@@ -90,17 +90,21 @@
 
 /obj/item/ammo_box/magazine/parallax/update_icon_state()
 	. = ..()
-	icon_state = ammo_indicator_state()
+	icon_state = heatsink_state()
 	if(istype(loc, /obj/item/gun/ballistic/parallax))
 		var/obj/item/gun/ballistic/parallax/gun = loc
 		if(gun.magazine == src)
 			gun.update_appearance()
 			SEND_SIGNAL(gun, COMSIG_UPDATE_AMMO_HUD)
 
-/obj/item/ammo_box/magazine/parallax/proc/ammo_indicator_state()
-	if(burnt_out || stored_heat >= heat_capacity)
-		return "magazine_empty"
-	return stored_heat > 0 ? "magazine_partial" : "magazine"
+/obj/item/ammo_box/magazine/parallax/proc/heatsink_state()
+	if(burnt_out)
+		return "heatsink_ruined"
+	if(stored_heat >= heat_capacity * 2 / 3)
+		return "heatsink_hot"
+	if(stored_heat >= heat_capacity / 3)
+		return "heatsink_warm"
+	return "heatsink_cool"
 
 /obj/item/gun/ballistic/parallax/chamber_round(spin_cylinder, replace_new_round)
 	if(!chambered && magazine)
@@ -121,9 +125,8 @@
 
 /obj/item/gun/ballistic/parallax/proc/thermal_ready()
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
-	if(!istype(sink) || QDELETED(sink))
-		return FALSE
-	return !thermal_safety || (!sink.burnt_out && sink.stored_heat + shot_heat() <= sink.heat_capacity)
+	// Heat never interrupts firing; a ruined sink burns the shooter on every shot.
+	return istype(sink) && !QDELETED(sink)
 
 /// Only successful discharges add heat, once per shot or shotgun volley.
 /obj/item/gun/ballistic/parallax/proc/add_shot_heat(mob/living/user)
@@ -142,21 +145,15 @@
 	else
 		balloon_alert(user, "no heatsink installed!")
 
-/obj/item/gun/ballistic/parallax/attack_self_secondary(mob/user, modifiers)
-	if(user.is_holding(src) && can_interact(user) && !firing_burst)
-		thermal_safety = !thermal_safety
-		balloon_alert(user, thermal_safety ? "thermal safety enabled" : "thermal safety disabled!")
-	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
-
 /obj/item/gun/ballistic/parallax/rack(mob/user = null)
 	return
 
 /obj/item/gun/ballistic/parallax/add_notes_ballistic()
 	return "Magnetically accelerates rice-sized metal shavings. Heat capacity replaces ammunition capacity."
 
-/// The inherited ammo HUD displays remaining thermal headroom in shots.
+/// The inherited ammo HUD counts down shots until ruin, including the ruining shot.
 /obj/item/gun/ballistic/parallax/get_ammo(countchambered = TRUE)
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
 	if(!istype(sink) || sink.burnt_out)
 		return 0
-	return FLOOR(max(0, sink.heat_capacity - sink.stored_heat) / shot_heat(), 1)
+	return CEILING(max(0, sink.heat_capacity - sink.stored_heat) / shot_heat(), 1)

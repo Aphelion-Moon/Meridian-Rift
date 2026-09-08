@@ -72,9 +72,9 @@
 	. -= "It has <b>[get_ammo(TRUE)]</b> round\s remaining."
 	. -= "It does not seem to have a round chambered."
 	. -= "The [bolt_wording] is locked back and needs to be released before firing or de-fouling."
-	. += span_notice("Activate in hand to eject the heatsink. Right-click in hand to toggle thermal safety. Remove the heatsink before servicing; use a screwdriver to operate the latch, Alt-click to remove a part, or apply a part to install it.")
-	. += span_notice("Thermal safety: [thermal_safety ? "enabled" : "DISABLED"]. Heat per shot: [shot_heat()]. Metal feedstock is effectively inexhaustible.")
-	. += span_notice("The ammo counter shows remaining shots before the safe heat limit. Disabling thermal safety risks burning out the sink and burning both arms on every further shot.")
+	. += span_notice("Activate in hand to eject the heatsink. Remove the heatsink before servicing; use a screwdriver to operate the latch, Alt-click to remove a part, or apply a part to install it.")
+	. += span_notice("Heat per shot: [shot_heat()]. Metal feedstock is effectively inexhaustible.")
+	. += span_warning("Reaching maximum heat ruins the heatsink. That shot and every further shot burn both arms until the sink is replaced. Firing does not stop automatically. The ammo counter shows shots until ruin, including the final shot.")
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
 	if(sink)
 		. += span_notice("Heatsink: [round(100 * sink.stored_heat / sink.heat_capacity)]% heat; dissipates [sink.cooling_rate] heat per second.")

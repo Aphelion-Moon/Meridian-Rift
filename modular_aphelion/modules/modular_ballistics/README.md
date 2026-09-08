@@ -14,12 +14,11 @@ Production files are included explicitly in the root `tgstation.dme`.
 | `modules.dm`                  | Part fields, point lookup/compatibility, physical ownership, nested installation/removal, and part examination |
 | `barrels.dm`                  | Barrel performance and suppressor mount coordinates                                                            |
 | `accessories.dm`              | Controllers, stocks, optics, and suppressors                                                                   |
-| `ammunition.dm`               | Metal shavings, heatsinks, cooling, thermal safety and firing adapters                                               |
+| `ammunition.dm`               | Metal shavings, heatsinks, cooling, automatic burnout and firing adapters                                               |
 | `configuration.dm`            | Derived performance, suppression, scope behavior, firing guards, and aimed spread                              |
 | `service.dm`                  | Service latch, installation selection, removal menu, and gun examination                                       |
 | `appearance.dm`               | Recursive overlays, loose/assembled appearance, held poses, and facing layers                                  |
 | `supplies.dm`                 | Kits, storage limits, and cargo packs                                                                          |
-| `modular_ballistics_tests.dm` | Thermal regression tests, gated by `UNIT_TESTS` or `SPACEMAN_DMM`                                                        |
 
 Add barrels in `barrels.dm` and accessory definitions in `accessories.dm`. Change
 mount positions on the parent's `attachment_points`. Firing behavior belongs in
@@ -47,7 +46,7 @@ uses the existing quiet-shot behavior and makes compact weapons bulky, without
 changing damage or cycle time. Marksman and shotgun builds require both hands.
 The shotgun fires six metal shavings and generates six times the heat per volley.
 
-## Heat and safety
+## Heat and burnout
 
 The gun slices rice-sized pieces from an effectively inexhaustible metal block
 and accelerates them magnetically. There are no ammunition refills or ejected
@@ -55,17 +54,18 @@ cartridges. The old magazine type path and socket remain for compatibility.
 
 Heatsinks hold 100 heat; each projectile generates 5 heat. They dissipate 5 heat
 per second, both installed and loose (20 seconds to cool from full).
-Thermal safety starts enabled and blocks a shot if its heat would exceed capacity.
-Wait for sufficient cooling or swap in another sink to continue firing.
+The shot that reaches or crosses capacity permanently ruins the sink and inflicts
+5 burn damage on each arm. Every subsequent shot with that sink does the same,
+even after cooling. Firing continues automatically; there is no safety toggle.
+Let an intact sink cool before it reaches capacity to reuse it indefinitely.
+Replace a ruined sink to stop the burns. A missing sink still prevents firing.
+Examine the gun or sink for heat and condition. The ammo counter counts shots
+until ruin, including the ruining shot. All heat/damage defaults are configurable.
 
-Right-click the gun in hand to toggle thermal safety. Firing past capacity with
-safety disabled permanently burns out the sink. That shot and every subsequent
-shot with that sink inflict 5 burn damage on each arm, even after cooling.
-Replace the burnt-out sink to restore safe operation; re-enabling safety blocks
-firing while a burnt-out sink is installed. Safety cannot bypass a missing sink.
-Examine the gun or sink for heat and condition. The ammo counter shows remaining
-shots before the safe heat limit. All heat/damage defaults are
-configurable on their respective types.
+Four finned heatsink states are shared by loose, world and held artwork:
+`heatsink_cool` below one-third capacity, `heatsink_warm` from one-third,
+`heatsink_hot` from two-thirds, and `heatsink_ruined` after burnout. Ruined sinks
+remain scorched with a flickering glowing fracture even after their heat falls.
 
 ## Attachment model
 
@@ -119,7 +119,7 @@ New visual parts need matching states in the world and four held atlases, plus
 loose artwork. Preserve unrelated pixels and DMI metadata. Use at most 16 visible
 colors per finished sprite across directions and animation frames.
 
-Heatsink indicators show cool, warm, and full/burnt-out states. Held overlays refresh
+Heatsink indicators show cool, warm, hot and ruined states. Held overlays refresh
 on turns and assembly changes; north-facing guns render behind the wearer.
 Completely stripped frames use the larger loose receiver artwork.
 
@@ -128,7 +128,7 @@ ignored `.parallax-work/` may predate manual edits; do not regenerate blindly.
 
 ## Validation and provenance
 
-Thermal tests cover safe limits, cooldown, burnout, arm damage, replacement,
+Thermal validation covers the burnout boundary, cooldown, arm damage, replacement,
 missing heatsinks and cartridge-free firing adapters. Compilation is separate
 from runtime tests and does not establish in-game alignment or multiplayer balance.
 
@@ -136,3 +136,8 @@ Original artwork was generated and refined at native resolution using Mass Effec
 silhouettes and local SS13 sprites as references. No Mass Effect or gallery pixels
 were copied. Generation sources, prompts and previews are retained in ignored
 `.parallax-work/` where available.
+
+The finned heatsink redesign uses built-in image generation followed by native
+pixel cleanup. All four states, animation frames and atlas contexts share 15
+visible colors. Source artwork, prompt, backups, previews and validation are in
+`.parallax-work/heatsinks/`; unrelated atlas cells retain their original pixels.

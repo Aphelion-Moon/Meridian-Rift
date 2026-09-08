@@ -68,7 +68,7 @@
 		balloon_alert(user, "frame not ready!")
 		return FALSE
 	if(!thermal_ready())
-		balloon_alert(user, magazine ? "heatsink too hot or burnt out!" : "no heatsink installed!")
+		balloon_alert(user, "no heatsink installed!")
 		return FALSE
 	return ..()
 

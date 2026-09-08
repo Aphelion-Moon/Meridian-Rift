@@ -23,8 +23,6 @@
 	bolt_type = BOLT_TYPE_STANDARD
 	magazine_wording = "heatsink"
 	click_on_low_ammo = FALSE
-	/// Thermal safety prevents shots that would exceed the installed sink's capacity.
-	var/thermal_safety = TRUE
 	var/heat_per_projectile = 5
 	var/overheat_burn_damage = 5
 	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'

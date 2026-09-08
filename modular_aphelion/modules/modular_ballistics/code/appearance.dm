@@ -78,8 +78,8 @@
 		var/obj/item/ballistic_module/part = modules[socket]
 		. += part.attachment_overlays(icon, attachment_points, "world", SOUTH)
 	if(magazine)
-		var/obj/item/ammo_box/magazine/parallax/cassette = magazine
-		. += attachment_appearance(icon, cassette.ammo_indicator_state(), "magazine")
+		var/obj/item/ammo_box/magazine/parallax/sink = magazine
+		. += attachment_appearance(icon, sink.heatsink_state(), "magazine")
 
 /obj/item/gun/ballistic/parallax/worn_overlays(mutable_appearance/standing, isinhands, icon_file)
 	. = ..()
@@ -91,5 +91,5 @@
 		var/obj/item/ballistic_module/part = modules[socket]
 		. += part.attachment_overlays(icon_file, attachment_points, context, attachment_inhand_direction)
 	if(magazine)
-		var/obj/item/ammo_box/magazine/parallax/cassette = magazine
-		. += attachment_appearance(icon_file, cassette.ammo_indicator_state(), "magazine", context, attachment_inhand_direction)
+		var/obj/item/ammo_box/magazine/parallax/sink = magazine
+		. += attachment_appearance(icon_file, sink.heatsink_state(), "magazine", context, attachment_inhand_direction)
