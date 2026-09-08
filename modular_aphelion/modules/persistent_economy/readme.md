@@ -56,7 +56,7 @@ Receipt records are permanent to prevent replay; history is limited to 50 entrie
 - `code/modules/modular_computers/file_system/programs/nt_pay.dm`: report transfer failure before notifying recipients or emitting receipt signals.
 - `code/modules/modular_computers/computers/item/pda.dm`: install the savings app alongside the standard PDA programs.
 - `modular_nova/master_files/code/modules/cargo/packs/_companies.dm`: credit cargo commissions through `adjust_money` so they appear in round history.
-- `code/modules/unit_tests/_unit_tests.dm`: include this module's regression tests while the test assertion macros are available.
+- `code/modules/unit_tests/_unit_tests.dm`: include `savings_tests.dm` from the standard unit-test directory while the test assertion macros are available.
 - `tgstation.dme`: include module files and shared defines.
 
 ### Modular Overrides

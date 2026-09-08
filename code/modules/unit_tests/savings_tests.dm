@@ -1,3 +1,4 @@
+// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
 #if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
 
 /** Verify character isolation, shared earning limits, fee sinks, and one-way currency conversion. */
@@ -488,3 +489,4 @@
 	TEST_ASSERT_EQUAL(savings_statement_description("Nanotrasen: Salary", 100), "Payroll credit", "Payroll must use a bank description")
 
 #endif
+// APHELION EDIT ADDITION END

@@ -173,7 +173,7 @@
 /datum/savings_ledger/proc/character_key(character_name)
 	if(!istext(character_name) || !length(trim(character_name)))
 		return null
-	return md5(lowertext(trim(character_name)))
+	return md5(LOWER_TEXT(trim(character_name)))
 
 /** Open a ckey-owned character account. In-round aliases and ID-card names do not change this identity. */
 /datum/savings_ledger/proc/open_account(owner_key, character_name)

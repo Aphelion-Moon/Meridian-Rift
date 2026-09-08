@@ -122,7 +122,7 @@
 
 /** Translate internal transaction reasons into customer-facing statement categories without exposing admin notes. */
 /proc/savings_statement_description(reason, amount)
-	var/description = lowertext(reason || "")
+	var/description = LOWER_TEXT(reason || "")
 	if(findtext(description, "brought forward"))
 		return "Balance brought forward"
 	if(description == "settlement fee")
