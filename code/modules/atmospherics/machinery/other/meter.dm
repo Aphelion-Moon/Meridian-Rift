@@ -21,13 +21,19 @@
 	energy = 100
 	fire = 40
 
+// APHELION EDIT ADDITION START - DOGMOS
+/** Stops processing and releases target references for both pipe and turf meters. */
+// APHELION EDIT ADDITION END
 /obj/machinery/meter/Destroy()
 	SSair.stop_processing_machine(src)
 	if(!isnull(target))
 		UnregisterSignal(target, COMSIG_QDELETING)
-		// NOVA EDIT ADDITION START - DOGMOS
-		target.dogmos_pipeline_meters -= src
-		// NOVA EDIT ADDITION END
+		// APHELION EDIT ADDITION START - DOGMOS - Turf meters do not register pipeline wakeups.
+		if(istype(target, /obj/machinery/atmospherics/pipe))
+			// NOVA EDIT ADDITION START - DOGMOS
+			target.dogmos_pipeline_meters -= src
+			// NOVA EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 		target = null
 	return ..()
 

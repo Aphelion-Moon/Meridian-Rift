@@ -1329,6 +1329,39 @@
 	if(!(test_vent in SSair.atmos_machinery))
 		return Fail("Turf atmosphere activity did not wake a dormant vent on that turf.", __FILE__, __LINE__)
 
+/** Verifies turf meter deletion reaches parent cleanup without accessing pipe-only state. */
+/datum/unit_test/dogmos_turf_meter_destroy
+
+/datum/unit_test/dogmos_turf_meter_destroy/Run()
+	var/obj/machinery/meter/turf/test_meter = allocate(/obj/machinery/meter/turf)
+	if(test_meter.target != run_loc_floor_bottom_left)
+		return Fail("The turf meter must attach to its turf.", __FILE__, __LINE__)
+	qdel(test_meter, force = TRUE)
+	if(!isnull(test_meter.target))
+		return Fail("Deleting a turf meter must clear its target.", __FILE__, __LINE__)
+	if(!isnull(test_meter.loc))
+		return Fail("Deleting a turf meter must reach parent cleanup and leave the map.", __FILE__, __LINE__)
+	if(test_meter in SSair.atmos_machinery)
+		return Fail("Deleted turf meters must leave atmosphere processing.", __FILE__, __LINE__)
+
+/** Verifies pipe meter deletion removes the pipeline's wakeup reference. */
+/datum/unit_test/dogmos_pipe_meter_destroy
+
+/datum/unit_test/dogmos_pipe_meter_destroy/Run()
+	var/obj/machinery/atmospherics/pipe/test_pipe = allocate(/obj/machinery/atmospherics/pipe/smart/simple)
+	var/obj/machinery/meter/test_meter = allocate(/obj/machinery/meter)
+	if(test_meter.target != test_pipe)
+		return Fail("The pipe meter must attach to the test pipe.", __FILE__, __LINE__)
+	if(!(test_meter in test_pipe.dogmos_pipeline_meters))
+		return Fail("The pipe must register the meter for pipeline wakeups.", __FILE__, __LINE__)
+	qdel(test_meter, force = TRUE)
+	if(test_meter in test_pipe.dogmos_pipeline_meters)
+		return Fail("Deleting a pipe meter must remove its pipeline wakeup reference.", __FILE__, __LINE__)
+	if(!isnull(test_meter.target))
+		return Fail("Deleting a pipe meter must clear its target.", __FILE__, __LINE__)
+	if(!isnull(test_meter.loc))
+		return Fail("Deleting a pipe meter must reach parent cleanup and leave the map.", __FILE__, __LINE__)
+
 /** Verifies a stable pipe meter sleeps and wakes on its pipeline's next change. */
 /datum/unit_test/dogmos_idle_meter_scheduler
 	/// Pipeline released during teardown.

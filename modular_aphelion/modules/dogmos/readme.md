@@ -30,6 +30,10 @@ hand-edit either generated file.
 The remaining gas and turf processing implementation stays in the core atmospherics files because it
 must preserve their include order and existing call sites.
 
+`code/modules/atmospherics/machinery/other/meter.dm` removes pipeline wakeup references only for
+pipe targets during deletion; turf meters share the same cleanup path. Regression tests for both
+target types live in `code/service_backend_test.dm` in this module.
+
 ## Ownership and process boundary
 
 The fork-owned exception is limited to the forced implementation under
