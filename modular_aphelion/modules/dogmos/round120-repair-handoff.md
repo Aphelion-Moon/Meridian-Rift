@@ -107,8 +107,22 @@ shutdown, and clean owned-process/workspace cleanup. The narrow destruction hook
 the turf's own context subscription; the regression verifies external subscribers survive.
 The tooling build had zero errors and its two expected test warnings. This is focused
 iteration evidence, not a completed full-content control or production build.
+The turf-context repair is committed on game `dogmos` at
+`6e56a752387d604ce59561907b84b75455791493`.
 
-Next, collect three sequential full-content old-native controls. Each must
+First complete, unprofiled, full-content control `20260908T072049Z-dc33f797` passed with
+180.928 seconds of gameplay, zero runtimes, natural shutdown and clean process/workspace
+cleanup. Initialization was 303.612 seconds: Atoms 146.05, Atmospherics 59.48, Shuttle 33.31.
+Gameplay active turfs ranged from 1,943 to 10,285 (median 6,345); the final minute's median
+was 9,100. The atmosphere cycle counter advanced once. This reproduces poor shift-start
+progress on MetaStation, but a single control does not establish a speedup or its cause.
+Its separate 250 ms process sampler attached late after a PowerShell JSON date conversion
+repair: DreamDaemon's first 85.9 seconds and the service's first 59.6 seconds are not covered
+by that CSV. RIFT's sparser resource observations remain available. The dense sampler then
+recorded both processes through shutdown, with a maximum observed gap of 277 ms. Treat this
+run's dense initialization resource coverage as partial. Repeat controls attach during compile.
+
+Collect the remaining sequential full-content old-native controls. Each must
 pass RIFT, cover at least 180 seconds, report profiling disabled, retain MetaStation/seed
 29051994/native revision 8456726, and emit no native panic log before the next run starts.
 Do not alter measured DM/native inputs while a matched series is running.

@@ -27,6 +27,24 @@ Use identical builds, map, seed, population, configuration and sampling for each
 They do not replace a production server Tracy capture. A passing observation case establishes
 coverage and service availability, not acceptable speed or settled turfs.
 
+For 250 ms process samples, start this read-only helper in another administrator PowerShell
+session after RIFT creates its run directory, while compilation is still in progress:
+
+```powershell
+.\modular_aphelion\tools\dogmos_performance\Sample-RiftProcesses.ps1 `
+    -RunDirectory data/rift-runs/<run-id>
+```
+
+It follows that run's reported process identities and writes `processes-250ms.csv` and
+`processes-250ms.json` beside the RIFT events. It exits when RIFT publishes its summary,
+or fails after its bounded timeout. It never starts or stops game processes. Inspect the
+metadata for attachment delays, actual sample gaps and missing processes before accepting
+coverage; memory allocated before discovery is not captured. Preserve these files with
+each control and candidate. The analyzer retains the original peaks from RIFT events and
+reports the denser CSV separately, including virtual size, actual sample gaps and CPU time
+between the first and last sample in each phase. Process lifetimes remain separate even
+if Windows reuses a PID. CPU before the first sample in a phase is not included.
+
 Inspect initialization phase durations, first-three-minute turf activity, last-minute
 activity, rolling stage costs, and sparse active coordinates. The analyzer reports
 DreamDaemon and `dogmosd` memory separately. It does not sum overlapping procedure costs

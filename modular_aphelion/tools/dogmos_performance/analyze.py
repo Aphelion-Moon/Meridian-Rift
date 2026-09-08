@@ -1,6 +1,7 @@
 """Summarize a RIFT first-three-minute run without merging process footprints."""
 
 import argparse
+import csv
 import datetime as dt
 import json
 import math
@@ -22,6 +23,39 @@ def summary(values):
         return None
     return dict(count=len(values), minimum=values[0], median=statistics.median(values),
                 p95=values[math.ceil(0.95 * len(values)) - 1], maximum=values[-1])
+
+
+def dense_process_resources(run, begin, end):
+    """Keep each process lifetime separate when computing CPU and sampling coverage."""
+    path = run / "processes-250ms.csv"
+    if not path.exists():
+        return None
+    instances = {}
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        for row in csv.DictReader(stream):
+            if row["role"] not in ("dreamdaemon", "dogmosd"):
+                continue
+            timestamp = dt.datetime.fromisoformat(row["utc"].replace("Z", "+00:00")).timestamp()
+            phase = "gameplay" if begin <= timestamp <= end else "initialization" if timestamp < begin else None
+            if phase is None:
+                continue
+            key = (row["role"], row["pid"], row["start_utc"], phase)
+            instances.setdefault(key, []).append((timestamp, row))
+    result = []
+    for (role, pid, start, phase), rows in instances.items():
+        rows.sort(key=lambda item: item[0])
+        first_time, first = rows[0]
+        last_time, last = rows[-1]
+        result.append(dict(role=role, pid=int(pid), start_utc=start, phase=phase,
+            sample_count=len(rows), first_sample_utc=first["utc"], last_sample_utc=last["utc"],
+            observed_seconds=last_time - first_time,
+            sampled_cpu_seconds=float(last["cpu_seconds"]) - float(first["cpu_seconds"]),
+            sample_gap_ms=summary((right[0] - left[0]) * 1000 for left, right in zip(rows, rows[1:])),
+            peaks_bytes={key: max(int(row[key]) for _, row in rows)
+                         for key in ("private_bytes", "working_set_bytes", "virtual_bytes")}))
+    metadata_path = run / "processes-250ms.json"
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8-sig")) if metadata_path.exists() else None
+    return dict(metadata=metadata, instances=result)
 
 
 def analyze(run):
@@ -74,6 +108,7 @@ def analyze(run):
         "last_minute_active_turfs": summary(s["active_turfs"] for s in last_minute),
         "air_cycles_observed": window[-1]["air_cycles"] - window[0]["air_cycles"],
         "process_peaks_bytes": resources,
+        "dense_process_resources": dense_process_resources(run, begin, end),
         "active_location_samples": [dict(shift_seconds=s["shift_seconds"], locations=s["active_locations"])
                                     for s in gameplay if "active_locations" in s],
         "limits": ["Test build, fixed seed and empty player population; match controls to this workload.",
