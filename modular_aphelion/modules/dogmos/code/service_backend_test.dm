@@ -1049,6 +1049,30 @@
 	if(turf_changed)
 		return Fail("Dogmos queued a turf lifecycle mutation after the service failure latch was set.", __FILE__, __LINE__)
 
+/** Late map-loading producers must not submit native work after intentional shutdown begins. */
+/datum/unit_test/dogmos_service_shutdown_stops_producers/Run()
+	var/original_service_ready = SSdogmos.service_ready
+	var/original_shutdown_requested = SSdogmos.service_shutdown_requested
+	var/original_failure_latched = SSdogmos.service_failure_latched
+	var/slot_count = length(SSdogmos.dogmos_mixture_slots)
+	var/turf/open/target = run_loc_floor_bottom_left
+	var/datum/gas_mixture/source = target.air
+	SSdogmos.begin_service_shutdown()
+	var/datum/gas_mixture/late_copy = source.copy()
+	var/list/gases = late_copy.__get_gases()
+	var/stage_stopped = SSair.dogmos_run_stage(DOGMOS_TEST_STAGE_EQUALIZE, 1)
+	target.update_air_ref(DOGMOS_SIMULATION_ALL)
+	var/registration_blocked = !late_copy.dogmos_slot && length(SSdogmos.dogmos_mixture_slots) == slot_count
+	var/admission_closed = SSdogmos.service_shutdown_requested && !SSdogmos.service_ready
+	var/failure_unchanged = SSdogmos.service_failure_latched == original_failure_latched
+	SSdogmos.service_ready = original_service_ready
+	SSdogmos.service_shutdown_requested = original_shutdown_requested
+	SSdogmos.service_failure_latched = original_failure_latched
+	if(!admission_closed || !registration_blocked || !stage_stopped || !failure_unchanged)
+		return Fail("Intentional shutdown did not close native admission independently of service failure.", __FILE__, __LINE__)
+	if(!islist(gases) || length(gases))
+		return Fail("A late shutdown producer did not receive an inert gas snapshot.", __FILE__, __LINE__)
+
 /** Verifies failure blocks queued topology before any lifecycle or adjacency FFI call. */
 /datum/unit_test/dogmos_service_failure_latch_stops_topology
 

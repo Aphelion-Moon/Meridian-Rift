@@ -154,6 +154,8 @@
 	var/service_ready = FALSE
 	/// Whether the first authoritative service failure has already emitted its diagnostic.
 	var/service_failure_latched = FALSE
+	/// Whether intentional shutdown has closed admission for late asynchronous producers.
+	var/service_shutdown_requested = FALSE
 	/// Weak mixture references indexed by bounded IPC slot.
 	var/list/dogmos_mixture_slots = list()
 	/// Current generation for every allocated mixture slot.
@@ -447,7 +449,7 @@
 /** Registers one gas mixture with a stale-handle-safe numeric identity. */
 /datum/controller/subsystem/dogmos/proc/register_mixture(datum/gas_mixture/mixture)
 	if(!service_ready)
-		if(!service_failure_latched)
+		if(!service_failure_latched && !service_shutdown_requested)
 			CRASH("Attempted to register a gas mixture while dogmosd is unavailable.")
 		return
 
@@ -937,7 +939,7 @@
 /** Validates and returns a typed mixture-command response. */
 /datum/controller/subsystem/dogmos/proc/mixture_command(list/fields, expected_response)
 	if(!service_ready)
-		if(!service_failure_latched)
+		if(!service_failure_latched && !service_shutdown_requested)
 			CRASH("dogmosd became unavailable; in-process atmosphere fallback is forbidden.")
 		var/failed_length = expected_response == DOGMOS_RESPONSE_REACTION_PROGRESS ? 8 : 4
 		var/list/failed_response = new/list(failed_length)
@@ -1062,6 +1064,7 @@
 /** Starts dogmosd, validates the generated contract, and installs metadata. */
 /proc/auxtools_atmos_init(gas_data)
 	SSdogmos.service_failure_latched = FALSE
+	SSdogmos.service_shutdown_requested = FALSE
 	var/contract_protocol_version = DOGMOS_CONTRACT_PROTOCOL_VERSION
 	if(contract_protocol_version != DOGMOS_REQUIRED_PROTOCOL_VERSION)
 		stack_trace("Dogmos contract protocol [DOGMOS_CONTRACT_PROTOCOL_VERSION] is stale; protocol [DOGMOS_REQUIRED_PROTOCOL_VERSION] is required.")
@@ -1166,9 +1169,14 @@
 		return FALSE
 	return TRUE
 
+/** Closes admission before service teardown, including for suspended map-loading producers. */
+/datum/controller/subsystem/dogmos/proc/begin_service_shutdown()
+	service_shutdown_requested = TRUE
+	service_ready = FALSE
+
 /** Stops the production service without attempting a mid-round restart. */
 /proc/dogmos_shutdown()
-	SSdogmos.service_ready = FALSE
+	SSdogmos.begin_service_shutdown()
 	return dogmos_service_shutdown()
 
 /// Returns whether dogmosd remains healthy.
@@ -1853,7 +1861,7 @@
 /** Runs or resumes one service simulation stage and returns TRUE while work remains. */
 /datum/controller/subsystem/air/proc/dogmos_run_stage(stage, remaining_ms)
 	if(!SSdogmos.service_ready)
-		if(!SSdogmos.service_failure_latched)
+		if(!SSdogmos.service_failure_latched && !SSdogmos.service_shutdown_requested)
 			CRASH("dogmosd became unavailable during SSair processing.")
 		return TRUE
 	if(!isnull(dogmos_pending_stage) && dogmos_pending_stage != stage)
@@ -1957,7 +1965,7 @@
 /** Registers or removes this turf's service-owned gas and heat state. */
 /turf/proc/update_air_ref(flag)
 	if(!SSdogmos.service_ready)
-		if(!SSdogmos.service_failure_latched)
+		if(!SSdogmos.service_failure_latched && !SSdogmos.service_shutdown_requested)
 			CRASH("Attempted to update a turf while dogmosd is unavailable.")
 		return
 

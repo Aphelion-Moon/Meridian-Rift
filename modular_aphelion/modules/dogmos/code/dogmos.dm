@@ -60,6 +60,7 @@ SUBSYSTEM_DEF(dogmos)
 	gases_registered = SSdogmos.gases_registered
 	service_ready = SSdogmos.service_ready
 	service_failure_latched = SSdogmos.service_failure_latched
+	service_shutdown_requested = SSdogmos.service_shutdown_requested
 	dogmos_mixture_slots = SSdogmos.dogmos_mixture_slots
 	dogmos_mixture_generations = SSdogmos.dogmos_mixture_generations
 	dogmos_free_mixture_slots = SSdogmos.dogmos_free_mixture_slots
