@@ -7324,6 +7324,7 @@
 #include "modular_aphelion\master_files\code\game\objects\objs.dm"
 #include "modular_aphelion\master_files\code\game\objects\items\plushes.dm"
 #include "modular_aphelion\master_files\code\game\turfs\open\_open.dm"
+#include "modular_aphelion\master_files\code\game\turfs\open\lava.dm"
 #include "modular_aphelion\master_files\code\game\turfs\open\space\space.dm"
 #include "modular_aphelion\master_files\code\modules\admin\admin.dm"
 #include "modular_aphelion\master_files\code\modules\power\lighting\light_items.dm"
