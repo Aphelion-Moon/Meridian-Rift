@@ -17,7 +17,7 @@
 		SPECIES_MAMMAL = 1,
 	)
 	organ_type = /obj/item/organ/wings/custom
-	use_custom_mod_icon = TRUE
+	mod_icon_slots = ITEM_SLOT_OCLOTHING
 
 /datum/sprite_accessory/wings/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/wings/bodypart_overlay)
 	var/obj/item/clothing/suit/mod/worn_suit = wearer.wear_suit
@@ -201,11 +201,13 @@
 	color_src = USE_MATRIXED_COLORS
 
 /datum/sprite_accessory/wings/mammal/harpy
+	mod_icon_slots = ITEM_SLOT_GLOVES
 	name = "Harpy"
 	icon_state = "harpy"
 	color_src = USE_ONE_COLOR
 
 /datum/sprite_accessory/wings/mammal/top/harpy
+	mod_icon_slots = ITEM_SLOT_GLOVES
 	name = "Harpy (Top)"
 	icon_state = "harpy_top"
 	color_src = USE_ONE_COLOR
@@ -456,15 +458,18 @@
 	icon_state = "lightbearer"
 
 /datum/sprite_accessory/wings/mammal/top/arfel_harpy
+	mod_icon_slots = ITEM_SLOT_GLOVES
 	name = "Arfel Harpy"
 	icon_state = "arfelharpy_top"
 	color_src = USE_ONE_COLOR
 
 /datum/sprite_accessory/wings/mammal/harpy_fluffy
+	mod_icon_slots = ITEM_SLOT_GLOVES
 	name = "Harpy (Fluffy)"
 	icon_state = "harpyfluffy"
 	color_src = USE_ONE_COLOR
 
 /datum/sprite_accessory/wings/mammal/top/harpy_fluffy
+	mod_icon_slots = ITEM_SLOT_GLOVES
 	name = "Harpy (Fluffy, Top)"
 	icon_state = "harpyfluffy_top"

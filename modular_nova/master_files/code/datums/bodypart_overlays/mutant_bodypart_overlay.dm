@@ -11,8 +11,6 @@
 	var/list/emissive_eligibility_by_color_index
 	/// A simple list of indexes to color (as we don't want to color emissives, MOD overlays or inner ears)
 	var/list/overlay_indexes_to_color
-	/// Whether or not this overlay can be affected by MODsuit-related procs.
-	var/modsuit_affected = FALSE
 	/// A simple cache of what the last icon_states built were.
 	/// It's really only there to help with debugging what's happening.
 	var/list/last_built_icon_states
@@ -36,7 +34,6 @@
 		return FALSE
 	var/datum/mutant_bodypart/mutant_part = mutantparts_list[feature_key]
 	sprite_datum = fetch_sprite_datum_from_name(accessory_name ? accessory_name : mutant_part.name)
-	modsuit_affected = sprite_datum.use_custom_mod_icon
 	draw_color = mutant_part.get_colors()
 	emissive_eligibility_by_color_index = mutant_part.get_emissive_tri_bool_list()
 	return TRUE
@@ -59,8 +56,9 @@
 	. += "[sprite_datum.get_special_icon(limb?.owner)]"
 
 	// MOD overlays on mutant parts
-	if(modsuit_affected && sprite_datum?.mod_overlay_active(limb?.owner))
-		. += "MOD_[sprite_datum.get_hardlight_theme_key(limb?.owner)]"
+	var/hardlight_theme = sprite_datum?.get_hardlight_theme_key(limb?.owner)
+	if(hardlight_theme)
+		. += "MOD_[hardlight_theme]"
 
 	if(islist(draw_color))
 		for(var/sub_color in draw_color)
@@ -115,7 +113,8 @@
 	last_built_icon_states = list()
 
 	var/mutable_appearance/mod_overlay
-	if(sprite_datum.mod_overlay_active(owner))
+	var/datum/mod_theme/mod_theme = sprite_datum.get_mod_overlay_theme(owner)
+	if(mod_theme)
 		mod_overlay = mutable_appearance(layer = layer_real)
 		if(sprite_datum.center)
 			center_image(mod_overlay, sprite_datum.special_x_dimension ? sprite_datum.get_special_x_dimension(owner) : sprite_datum.dimension_x, sprite_datum.dimension_y)
@@ -131,9 +130,8 @@
 				index++
 
 				if(mod_overlay)
-					var/icon/mod_icon = sprite_datum.get_custom_mod_icon(owner, color_layer_image)
-					if(mod_icon)
-						mod_overlay.add_overlay(mutable_appearance(mod_icon))
+					var/mod_icon = sprite_datum.get_custom_mod_icon(color_layer_image, mod_theme)
+					mod_overlay.add_overlay(mutable_appearance(mod_icon))
 
 		else
 			var/mutable_appearance/image_to_return = get_singular_image(build_icon_state_nova(gender, layer_index), layer_index, layer_real, owner, limb = limb)
@@ -141,9 +139,8 @@
 			overlay_indexes_to_color += index
 
 			if(mod_overlay)
-				var/icon/mod_icon = sprite_datum.get_custom_mod_icon(owner, image_to_return)
-				if(mod_icon)
-					mod_overlay.add_overlay(mutable_appearance(mod_icon))
+				var/mod_icon = sprite_datum.get_custom_mod_icon(image_to_return, mod_theme)
+				mod_overlay.add_overlay(mutable_appearance(mod_icon))
 
 	if(sprite_datum.has_inner)
 		returned_images += get_singular_image(build_icon_state_nova(gender, layer_index, feature_key_suffix = "inner"), layer_index, layer_real, owner, limb = limb)

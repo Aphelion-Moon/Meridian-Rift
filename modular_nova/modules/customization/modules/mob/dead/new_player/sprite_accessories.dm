@@ -29,8 +29,8 @@
 	var/always_color_customizable
 	///Special case of whether the accessory should be shifted in the X dimension, check taur genitals for example
 	var/special_x_dimension
-	///Special case for MODsuit overlays
-	var/use_custom_mod_icon
+	/// All of these inventory slots must contain sealed parts of the wearer's MOD to project hardlight. NONE disables it.
+	var/mod_icon_slots = NONE
 	var/uses_emissives = FALSE
 	var/color_layer_names
 	/// If this sprite accessory will be inaccessable if ERP config is disabled

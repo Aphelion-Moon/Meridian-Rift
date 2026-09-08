@@ -4,6 +4,7 @@
 	icon_state = "arfelharpy_top_reshade"
 
 /datum/sprite_accessory/wings/mammal/arfel_harpy
+	mod_icon_slots = ITEM_SLOT_GLOVES
 	name = "Arfel Harpy (Low) Reshade"
 	icon_state = "arfelharpy_reshade"
 	color_src = USE_ONE_COLOR

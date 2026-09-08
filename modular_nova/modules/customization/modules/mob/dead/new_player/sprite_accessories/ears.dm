@@ -2,7 +2,7 @@
 	key = FEATURE_EARS
 	organ_type = /obj/item/organ/ears_external
 	color_src = USE_MATRIXED_COLORS
-	use_custom_mod_icon = TRUE
+	mod_icon_slots = ITEM_SLOT_HEAD
 
 /datum/sprite_accessory/ears/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/bodypart_overlay)
 	if(!(wearer.obscured_slots & HIDEHAIR))
