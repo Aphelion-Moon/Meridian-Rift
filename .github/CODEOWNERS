@@ -16,13 +16,6 @@
 
 # MULTIPLE OWNERS
 
-# Maptainers
-
-/tools/maplint/lints @sqnztb
-/tools/UpdatePaths @sqnztb
-/_maps/ @sqnztb
-/modular_nova/modules/mapping @sqnztb
-
 # Expensive files that touching basically always cause performance problems
 ## Init times
 **/*_EXPENSIVE.dm @vinylspiders
