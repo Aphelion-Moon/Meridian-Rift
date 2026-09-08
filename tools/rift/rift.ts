@@ -1769,6 +1769,8 @@ export const DEPLOY_TREES = [
 ] as const;
 
 const DEPLOY_GLOBS = [
+  'modular_nova/**/*.dmm',
+  'modular_aphelion/**/*.dmm',
   'modular_nova/**/*.dmi',
   'modular_nova/modules/GAGS/json_configs/**/*.json',
   'modular_nova/modules/GAGS/nsfw/json_configs/**/*.json',

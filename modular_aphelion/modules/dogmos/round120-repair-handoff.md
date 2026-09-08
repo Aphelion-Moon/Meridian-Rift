@@ -1,6 +1,6 @@
 # Round 120 repair checkpoint
 
-Game repairs are prepared against `e2845174ee1dfb077e7c31e2750025d32cea24f4`.
+Game repairs are committed on `dogmos` at `4547d77217ed7ce75e0caf0a82ab00127b148f34`.
 The native repairs are committed on the native repository's `dogmos` branch at
 `0b942d58cef15be73a2f6911ef50109fc846c25b`; its `master` branch was left unchanged.
 All four release targets build and their complete generated release contract verifies.
@@ -55,9 +55,11 @@ templates caused preview generation to allocate 27 unnecessary reserved z-levels
 gameplay. The first-three-minute and process-memory measurements above are therefore **not
 representative full-content qualification**. Repeat them after correcting the deployment.
 The slow Atoms/Atmospherics phases precede the condo preview work and remain reproduced.
-The prepared two-line `tools/rift/rift.ts` patch awaits explicit infrastructure approval.
-Its regression fails against the current controller on pinned Bun 1.3.5 and passes against
-an isolated copy with only that patch. The protected controller itself is unchanged.
+The user approved the two-line `tools/rift/rift.ts` correction, which now includes both
+modules' `.dmm` files in isolated deployments. The missing-map regression failed before
+the correction; all 93 controller/deployment tests pass on pinned Bun 1.3.5 under the host
+account. An initial sandbox run failed the unrelated descendant-process observation test;
+the host rerun passed it. Fresh full-content measurements are underway.
 
 Initialization procedure costs from that diagnostic run include 33.422 seconds self time
 in mixture lifecycle IPC, 33.08 seconds inclusive in weak-reference construction, and
@@ -114,6 +116,8 @@ Exact Rust version: `rustc 1.98.0 (88d9e12ae 2026-08-18)`; all Cargo gates used 
   identity resolved the harness error without changing the release binaries.
   The maintained 12-configuration Linux i686 feature matrix passed through a temporary
   WSL Cargo adapter pinned to Rust 1.98.0. Formatting and dependency-direction checks passed.
+  Final Linux x64 core/server/protocol and i686 shim tests passed 355 tests with no failures
+  or ignored cases; strict x64 Clippy also passed.
 - Production full build `20260908T013136Z-5bdca791`: zero errors/warnings. This includes the
   startup prefetch but predates the later failure-path edits.
 - Final production full build `20260908T021441Z-2d8bbae5`: rebuilt, zero errors/warnings,
