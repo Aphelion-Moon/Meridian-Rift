@@ -128,6 +128,7 @@ ADMIN_VERB(toggle_lobby_transparency, R_ADMIN, "Toggle Lobby Transparency", "Tog
 		"adminCount" = length(GLOB.admins),
 		"shiftTime" = (SSticker.round_start_time == 0) ? "Pre-Game" : round_timestamp(),
 		"latejoinQueue" = SStitle.get_latejoin_queue_count(), // APHELION EDIT ADDITION
+		"whitelistGate" = symphony_blocks_this_player(), // APHELION EDIT ADDITION
 	))
 
 /datum/lobby_menu/proc/on_client_qdel()
@@ -254,7 +255,9 @@ ADMIN_VERB(toggle_lobby_transparency, R_ADMIN, "Toggle Lobby Transparency", "Tog
 		// APHELION EDIT ADDITION START - LOBBY_MENU_REWORK - Aphelion's own lobby content
 		"notice" = SStitle.current_notice,
 		"latejoinQueue" = SStitle.get_latejoin_queue_count(),
+		"canSwapServers" = length(CONFIG_GET(keyed_list/cross_server)) > 0,
 		"characterName" = uppertext(client?.prefs?.read_preference(/datum/preference/name/real_name)),
+		"whitelistGate" = symphony_blocks_this_player(),
 		"isAntag" = client?.prefs?.read_preference(/datum/preference/toggle/be_antag),
 		"startupMessages" = GLOB.startup_messages,
 		"progressCurrent" = world.timeofday - SStitle.progress_reference_time,
@@ -332,6 +335,16 @@ ADMIN_VERB(toggle_lobby_transparency, R_ADMIN, "Toggle Lobby Transparency", "Tog
 		return TRUE
 	if(client.interviewee)
 		return TRUE
+	// APHELION EDIT ADDITION START
+	if(action == "get_whitelisted") // APHELION EDIT - discord whitelist
+		player.play_lobby_button_sound()
+		client?.get_whitelisted()
+		return TRUE
+	// Account linking above and server switching remain available while the gate is closed.
+	if(action != "server_swap" && player.symphony_blocks_play())
+		player.symphony_gate_notice()
+		return TRUE
+	// APHELION EDIT ADDITION END
 
 	player.play_lobby_button_sound() // APHELION EDIT ADDITION - LOBBY_MENU_REWORK
 	switch(action)
@@ -404,7 +417,7 @@ ADMIN_VERB(toggle_lobby_transparency, R_ADMIN, "Toggle Lobby Transparency", "Tog
 			player.ViewManifest()
 		if("poll")
 			player.handle_player_polling()
-		// APHELION EDIT ADDITION START - LOBBY_MENU_REWORK
+		// APHELION EDIT ADDITION START
 		if("server_swap")
 			player.server_swap()
 		if("view_directory")
