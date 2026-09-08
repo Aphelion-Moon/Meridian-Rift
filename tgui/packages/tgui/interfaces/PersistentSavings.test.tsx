@@ -66,17 +66,20 @@ beforeEach(() => {
 });
 
 describe('Persistent savings controls', () => {
-  it('uses bank language and exposes no manual deposit or development information', () => {
+  it('uses bank language apart from the OOC beta notice and exposes no manual deposit', () => {
     const { container } = render(<PersistentSavings />);
     expect(screen.getByText('1250 cr')).toBeDefined();
     expect(screen.getByText('900 cr')).toBeDefined();
     expect(screen.getByText('Elena Ward')).toBeDefined();
-    expect(container.textContent).not.toMatch(
+    const betaNotice = screen.getByText(
+      'OOC: The persistent economy is still in beta. Frequent economy resets are expected.',
+    );
+    expect(container.textContent?.replace(betaNotice.textContent!, '')).not.toMatch(
       /planned|black market|character|ckey|round|persistent|future/i,
     );
     expect(screen.queryByText(/Deposit/)).toBeNull();
     fireEvent.click(screen.getByText('Terms and charges'));
-    expect(container.textContent).not.toMatch(
+    expect(container.textContent?.replace(betaNotice.textContent!, '')).not.toMatch(
       /planned|black market|character|ckey|round earnings|persistent|future/i,
     );
     expect(screen.getByText(/Settlement fee/)).toBeDefined();

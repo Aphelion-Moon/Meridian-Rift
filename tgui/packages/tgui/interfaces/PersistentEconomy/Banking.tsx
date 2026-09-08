@@ -32,6 +32,15 @@ type BankingData = {
   offshore_activity: Entry[];
 };
 
+function BetaNotice() {
+  return (
+    <Box color="label" fontSize={0.9} mb={1}>
+      OOC: The persistent economy is still in beta. Frequent economy resets are
+      expected.
+    </Box>
+  );
+}
+
 function Statement(props: { entries: Entry[] }) {
   const entries = Array.isArray(props.entries) ? props.entries : [];
   return (
@@ -73,6 +82,7 @@ export function Banking() {
     return (
       <NtosWindow title="NT Banking" width={650} height={700}>
         <NtosWindow.Content>
+          <BetaNotice />
           <Section title="NT Banking">
             <NoticeBox>
               We could not verify an active account. Please contact your payroll
@@ -87,6 +97,7 @@ export function Banking() {
   return (
     <NtosWindow title="NT Banking" width={650} height={740}>
       <NtosWindow.Content scrollable>
+        <BetaNotice />
         <Section title="NT Banking">
           <Box fontSize={1.3} bold>
             {data.holder}
