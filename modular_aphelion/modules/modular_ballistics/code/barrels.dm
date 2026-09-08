@@ -4,12 +4,12 @@
 	attachment_points = list(
 		"silencer" = list(
 			"type" = /obj/item/ballistic_module/silencer,
-			"world" = list("default" = list(0, 0)),
+			"world" = list("default" = list(0, 1)),
 			"loose" = list("default" = list(17, 0)),
-			"rifle_left" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
-			"rifle_right" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
-			"compact_left" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
-			"compact_right" = list("2" = list(0, 0), "1" = list(0, 0), "4" = list(0, 0), "8" = list(0, 0)),
+			"rifle_left" = list("2" = list(0, 1), "1" = list(0, 1), "4" = list(0, 1), "8" = list(0, 1)),
+			"rifle_right" = list("2" = list(0, 1), "1" = list(0, 1), "4" = list(0, 1), "8" = list(0, 1)),
+			"compact_left" = list("2" = list(0, 1), "1" = list(0, 1), "4" = list(0, 1), "8" = list(0, 1)),
+			"compact_right" = list("2" = list(0, 1), "1" = list(0, 1), "4" = list(0, 1), "8" = list(0, 1)),
 		),
 	)
 	name = "Parallax compact accelerator"
