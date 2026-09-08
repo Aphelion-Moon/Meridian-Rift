@@ -383,6 +383,7 @@
 #include "~nova\digi_underclothes.dm"
 #include "~nova\liver_nova.dm"
 #include "~nova\meridian_preferences.dm"
+#include "~nova\mod_accessories.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
 #include "~nova\portal_device.dm"
