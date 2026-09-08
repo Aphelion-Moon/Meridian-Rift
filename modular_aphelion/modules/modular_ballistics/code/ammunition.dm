@@ -136,10 +136,27 @@
 	// The shot that ruins the sink is harmless to the shooter; burns start next shot.
 	var/already_ruined = sink.burnt_out
 	sink.absorb_heat(shot_heat())
+	if(!already_ruined && sink.burnt_out)
+		playsound(src, overheat_sound, overheat_sound_volume, FALSE)
 	if(already_ruined && user)
 		user.apply_damage(overheat_burn_damage, BURN, BODY_ZONE_L_ARM)
 		user.apply_damage(overheat_burn_damage, BURN, BODY_ZONE_R_ARM)
 		balloon_alert(user, "overheated gun burns your arms!")
+
+/// Heat is applied before shoot_live_shot calls this, so the ruining shot peaks.
+/obj/item/gun/ballistic/parallax/fire_sounds()
+	var/obj/item/ammo_box/magazine/parallax/sink = magazine
+	var/heat_fraction = 0
+	if(istype(sink))
+		// A ruined sink retains the warning pitch even after cooling.
+		heat_fraction = sink.burnt_out ? 1 : clamp(sink.stored_heat / sink.heat_capacity, 0, 1)
+	var/shot_frequency = 1 + (hot_fire_pitch - 1) * heat_fraction
+	// playsound_local applies frequency only with vary enabled. Supplying an
+	// explicit frequency bypasses random variation while enabling pitch changes.
+	if(suppressed)
+		playsound(src, suppressed_sound, suppressed_volume, TRUE, ignore_walls = FALSE, extrarange = SILENCED_SOUND_EXTRARANGE, falloff_distance = 0, frequency = shot_frequency)
+	else
+		playsound(src, fire_sound, fire_sound_volume, TRUE, frequency = shot_frequency)
 
 /obj/item/gun/ballistic/parallax/attack_self(mob/living/user)
 	if(magazine)

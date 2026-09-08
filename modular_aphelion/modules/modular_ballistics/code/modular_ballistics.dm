@@ -25,6 +25,11 @@
 	click_on_low_ammo = FALSE
 	var/heat_per_projectile = 5
 	var/overheat_burn_damage = 5
+	/// One-time thermal failure cue when the installed sink becomes ruined.
+	var/overheat_sound = 'modular_aphelion/modules/modular_ballistics/sound/overheat.ogg'
+	var/overheat_sound_volume = 65
+	/// Playback multiplier at full heat; cold shots use the original pitch.
+	var/hot_fire_pitch = 1.35
 	fire_sound = 'modular_nova/modules/modular_weapons/sounds/pulse_shoot.ogg'
 	/// Installed objects keyed by socket, not a list of predetermined gun combinations.
 	var/list/modules = list()
