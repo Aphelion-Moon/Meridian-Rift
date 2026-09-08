@@ -302,7 +302,6 @@
 #include "resist.dm"
 #include "reskin_validation.dm"
 #include "reta_system.dm"
-#include "savings_tests.dm"
 #include "say.dm"
 #include "screenshot_airlocks.dm"
 #include "screenshot_antag_icons.dm"
