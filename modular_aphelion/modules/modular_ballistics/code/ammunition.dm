@@ -133,8 +133,10 @@
 	var/obj/item/ammo_box/magazine/parallax/sink = magazine
 	if(!istype(sink))
 		return
+	// The shot that ruins the sink is harmless to the shooter; burns start next shot.
+	var/already_ruined = sink.burnt_out
 	sink.absorb_heat(shot_heat())
-	if(sink.burnt_out && user)
+	if(already_ruined && user)
 		user.apply_damage(overheat_burn_damage, BURN, BODY_ZONE_L_ARM)
 		user.apply_damage(overheat_burn_damage, BURN, BODY_ZONE_R_ARM)
 		balloon_alert(user, "overheated gun burns your arms!")

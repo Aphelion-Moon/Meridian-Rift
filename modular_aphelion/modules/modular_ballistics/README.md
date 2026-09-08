@@ -54,8 +54,8 @@ cartridges. The old magazine type path and socket remain for compatibility.
 
 Heatsinks hold 100 heat; each projectile generates 5 heat. They dissipate 5 heat
 per second, both installed and loose (20 seconds to cool from full).
-The shot that reaches or crosses capacity permanently ruins the sink and inflicts
-5 burn damage on each arm. Every subsequent shot with that sink does the same,
+The shot that reaches or crosses capacity permanently ruins the sink without
+burning the shooter. Starting with the next shot, firing inflicts 5 burn damage on each arm,
 even after cooling. Firing continues automatically; there is no safety toggle.
 Let an intact sink cool before it reaches capacity to reuse it indefinitely.
 Replace a ruined sink to stop the burns. A missing sink still prevents firing.
