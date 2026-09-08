@@ -325,6 +325,8 @@ describe('Shared window sizing lifecycle', () => {
     await open(hook.result.current.fitBeforeShow);
     act(() => globalEvents.emit('window-geometry-finished'));
     await pause();
+    // Mutation subscriptions must survive collection between layout updates.
+    Bun.gc(true);
     property(area, 'scrollHeight', 240);
     act(() => {
       area.querySelector('.Section')!.textContent = 'Additional controls';
@@ -344,14 +346,23 @@ describe('Shared window sizing lifecycle', () => {
     try {
       const hook = renderHook(() => useWindowSizing('Smes', false));
       await open(hook.result.current.fitBeforeShow);
-      expect(observe).toHaveBeenCalledWith(area);
-      expect(observe).toHaveBeenCalledWith(section);
-      expect(observe).not.toHaveBeenCalledWith(section.firstElementChild);
+      // Compare identity without dumping Happy DOM's entire object graph on failure.
+      const wasObserved = (element: Element | null) =>
+        observe.mock.calls.some(([target]) => target === element);
+      expect(wasObserved(area)).toBe(true);
+      expect(wasObserved(section)).toBe(true);
+      expect(wasObserved(section.firstElementChild)).toBe(false);
+      await pause();
+      Bun.gc(true);
       act(() => section.classList.remove('Section--scrollable'));
-      await waitFor(() => expect(unobserve).toHaveBeenCalledWith(section));
+      await waitFor(() =>
+        expect(
+          unobserve.mock.calls.some(([target]) => target === section),
+        ).toBe(true),
+      );
       act(() => area.classList.remove('Layout__content--scrollable'));
       await waitFor(() =>
-        expect(observe).toHaveBeenCalledWith(section.firstElementChild),
+        expect(wasObserved(section.firstElementChild)).toBe(true),
       );
       hook.unmount();
     } finally {
