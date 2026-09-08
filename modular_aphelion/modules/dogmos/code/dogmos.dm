@@ -46,6 +46,11 @@ SUBSYSTEM_DEF(dogmos)
 		return SS_INIT_FAILURE
 
 	gases_registered = TRUE
+	#ifdef UNIT_TESTS
+	if(GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
+		|| GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile))
+		INVOKE_ASYNC(src, PROC_REF(record_shift_start_performance))
+	#endif
 	return SS_INIT_SUCCESS
 
 /** Preserves the live service session and every DM-side identity boundary across MC recovery. */

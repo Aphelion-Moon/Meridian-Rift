@@ -960,7 +960,17 @@ SUBSYSTEM_DEF(air)
 
 	// Now we're gonna compare for differences
 	// Taking advantage of current cycle being set to negative before this run to do A->B B->A prevention
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/difference_index = 0
+	// Startup comparisons need the same bounded snapshot prefetch as the runtime walk.
+	// Fetching each mixture on demand otherwise turns map setup into one IPC per cache miss.
+	// APHELION EDIT ADDITION END
 	for(var/turf/open/potential_diff as anything in difference_check)
+		// APHELION EDIT ADDITION START - DOGMOS
+		difference_index++
+		if(DOGMOS && (difference_index - 1) % ACTIVE_TURFS_WALK_BATCH_SIZE == 0)
+			dogmos_prefetch_walk_snapshots(difference_check.Copy(difference_index, min(difference_index + ACTIVE_TURFS_WALK_BATCH_SIZE, length(difference_check) + 1)))
+		// APHELION EDIT ADDITION END
 		// I can't use 0 here, so we're gonna do this instead. If it ever breaks I'll eat my shoe
 		potential_diff.current_cycle = -INFINITY
 		for(var/turf/open/enemy_tile as anything in potential_diff.atmos_adjacent_turfs)

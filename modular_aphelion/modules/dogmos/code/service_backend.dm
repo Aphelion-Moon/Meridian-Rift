@@ -247,6 +247,8 @@
 
 /** Flushes pending turf mutations in bounded batches while preserving lifecycle-before-topology ordering. */
 /datum/controller/subsystem/dogmos/proc/flush_turf_registration_batch()
+	if(!service_ready)
+		return FALSE
 	if(SSair?.dogmos_pending_frontier_epoch)
 		dogmos_runtime_topology_deferrals++
 		return FALSE
@@ -343,7 +345,9 @@
 	for(var/turf/retry_turf as anything in retry_turfs)
 		if(!retry_turf)
 			continue
-		retry_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+		retry_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy, startup_flush = TRUE)
+		if(turf_registration_batching && !SSair.initialized)
+			CHECK_TICK
 	runtime_topology_batching = original_runtime_batching
 
 /** Flushes a full startup turf batch before any wire payload can exceed its bound. */
@@ -576,6 +580,7 @@
 		var/list/failed_snapshot = new/list(DOGMOS_MIXTURE_SNAPSHOT_FIELDS)
 		failed_snapshot[1] = slot || 0
 		failed_snapshot[2] = generation || 0
+		failed_snapshot[DOGMOS_MIXTURE_SNAPSHOT_GAS_COUNT] = 0
 		failed_snapshot[DOGMOS_MIXTURE_SNAPSHOT_TEMPERATURE] = T20C
 		failed_snapshot[DOGMOS_MIXTURE_SNAPSHOT_VOLUME] = CELL_VOLUME
 		return failed_snapshot
@@ -2047,10 +2052,21 @@
 		return null
 	return snapshot[2]
 
-/** Rebuilds this turf's gas and heat adjacency edges in dogmosd. */
-/turf/proc/__update_auxtools_turf_adjacency_info(max_x, max_y)
+/** Rebuilds this turf's gas and heat adjacency edges in dogmosd.
+ *
+ * Arguments:
+ * * max_x - Current world width, checked against stale caller dimensions.
+ * * max_y - Current world height, checked against stale caller dimensions.
+ * * startup_flush - Final startup drain after all endpoints have their DM adjacency.
+ */
+/turf/proc/__update_auxtools_turf_adjacency_info(max_x, max_y, startup_flush = FALSE)
 	if(max_x != world.maxx || max_y != world.maxy)
 		CRASH("Dogmos received stale world dimensions for turf adjacency.")
+	if(SSdogmos.turf_registration_batching && !startup_flush)
+		// Initialization visits each endpoint repeatedly while its neighbors are still
+		// being prepared. Retain one turf identity and emit only its final topology.
+		SSdogmos.dogmos_pending_adjacency_retry[src] = TRUE
+		return TRUE
 	if(isnull(dogmos_registration_generation))
 		// Boot-time slot ordering means this turf's own registration can still be pending when its
 		// pass runs. Queue a retry rather than dropping every edge this turf owns permanently.

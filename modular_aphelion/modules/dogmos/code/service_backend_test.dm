@@ -1,5 +1,7 @@
 #if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
 
+#include "shift_start_performance_test.dm"
+
 #define DOGMOS_WORLD_GENERATION_WORD_MAX 65535
 #define DOGMOS_TEST_STAGE_EXCITED_GROUPS 1
 #define DOGMOS_TEST_STAGE_EQUALIZE 2
@@ -1025,6 +1027,8 @@
 	SSdogmos.service_failure_latched = TRUE
 	var/stage_stopped = SSair.dogmos_run_stage(DOGMOS_TEST_STAGE_EQUALIZE, 1)
 	var/list/failed_response = SSdogmos.mixture_command(list(), DOGMOS_TEST_RESPONSE_APPLIED)
+	SSdogmos.evict_mixture_snapshot_cache(mixture_slot, mixture_generation)
+	var/list/failed_gases = mixture.__get_gases()
 	SSdogmos.register_mixture(mixture)
 	target.update_air_ref(DOGMOS_SIMULATION_ALL)
 	var/stage_changed = SSair.dogmos_pending_stage != original_pending_stage || SSair.dogmos_pending_frontier_epoch != original_pending_frontier
@@ -1038,10 +1042,40 @@
 		return Fail("Dogmos mutated stage state after the service failure latch was set.", __FILE__, __LINE__)
 	if(!islist(failed_response) || length(failed_response) != 4 || failed_response[1] != DOGMOS_TEST_RESPONSE_APPLIED)
 		return Fail("Dogmos returned a malformed inert mixture response after the service failure latch was set.", __FILE__, __LINE__)
+	if(!islist(failed_gases) || length(failed_gases))
+		return Fail("Dogmos failed gas enumeration did not return an empty list without a runtime.", __FILE__, __LINE__)
 	if(mixture_changed)
 		return Fail("Dogmos mutated mixture registration after the service failure latch was set.", __FILE__, __LINE__)
 	if(turf_changed)
 		return Fail("Dogmos queued a turf lifecycle mutation after the service failure latch was set.", __FILE__, __LINE__)
+
+/** Verifies failure blocks queued topology before any lifecycle or adjacency FFI call. */
+/datum/unit_test/dogmos_service_failure_latch_stops_topology
+
+/datum/unit_test/dogmos_service_failure_latch_stops_topology/Run()
+	var/original_service_ready = SSdogmos.service_ready
+	var/original_failure_latched = SSdogmos.service_failure_latched
+	var/list/original_pending_frontier = SSair.dogmos_pending_frontier_epoch
+	var/list/queue_names = list("dogmos_pending_mixture_unregistrations", "dogmos_pending_turf_lifecycle", "dogmos_pending_turf_heat", "dogmos_pending_turf_adjacency", "dogmos_pending_turf_heat_adjacency", "dogmos_pending_adjacency_retry")
+	var/list/saved_queues = list()
+	for(var/queue_name in queue_names)
+		saved_queues[queue_name] = SSdogmos.vars[queue_name]
+		SSdogmos.vars[queue_name] = list()
+	// An invalid sentinel must never reach dogmosd after the failure latch is set.
+	var/list/sentinel = list(0, 0, 0, 0, TRUE)
+	SSdogmos.dogmos_pending_turf_adjacency["failed-service-sentinel"] = sentinel
+	SSdogmos.service_ready = FALSE
+	SSdogmos.service_failure_latched = TRUE
+	SSair.dogmos_pending_frontier_epoch = null
+	var/flushed = SSdogmos.flush_turf_registration_batch()
+	var/sentinel_preserved = SSdogmos.dogmos_pending_turf_adjacency["failed-service-sentinel"] == sentinel
+	SSair.dogmos_pending_frontier_epoch = original_pending_frontier
+	SSdogmos.service_ready = original_service_ready
+	SSdogmos.service_failure_latched = original_failure_latched
+	for(var/queue_name in queue_names)
+		SSdogmos.vars[queue_name] = saved_queues[queue_name]
+	if(flushed || !sentinel_preserved)
+		return Fail("Dogmos consumed pending topology after the service failure latch was set.", __FILE__, __LINE__)
 
 /** Verifies rejected mixture registration fails closed without publishing an invalid identity. */
 /datum/unit_test/dogmos_service_rejected_mixture_registration_fails_closed
@@ -1476,6 +1510,28 @@
 	QDEL_NULL(pipeline_air)
 	return ..()
 
+
+/** Verifies startup coalesces repeated turf visits until all endpoints are initialized. */
+/datum/unit_test/dogmos_service_startup_adjacency_coalesces
+
+/datum/unit_test/dogmos_service_startup_adjacency_coalesces/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/turf/target = run_loc_floor_bottom_left
+	SSdogmos.begin_turf_registration_batch()
+	for(var/repetition in 1 to 3)
+		target.sync_dogmos_adjacency()
+	var/failure_message
+	if(length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat_adjacency))
+		failure_message = "Startup constructed intermediate edges before the final adjacency drain."
+	else if(length(SSdogmos.dogmos_pending_adjacency_retry) != 1 || !SSdogmos.dogmos_pending_adjacency_retry[target])
+		failure_message = "Repeated startup adjacency visits did not coalesce to one turf."
+	SSdogmos.finish_turf_registration_batch()
+	if(length(SSdogmos.dogmos_pending_adjacency_retry) || length(SSdogmos.dogmos_pending_turf_adjacency) \
+		|| length(SSdogmos.dogmos_pending_turf_heat_adjacency))
+		failure_message = "Startup adjacency work remained queued after the final drain."
+	if(failure_message)
+		return Fail(failure_message, __FILE__, __LINE__)
 
 /** Verifies repeated deferred adjacency updates coalesce and drain completely. */
 /datum/unit_test/dogmos_service_topology_pressure
