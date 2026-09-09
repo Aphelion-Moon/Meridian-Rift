@@ -67,9 +67,7 @@
 			blind_message = span_hear("You hear gore sounds, like someone is tearing up flesh and breaking bones."),
 		)
 		var/obj/item/bodypart/new_bodypart = new part_type()
-		var/mob/living/basic/living_limb_flesh/parasite = new /mob/living/basic/living_limb_flesh
-		parasite.forceMove(new_bodypart)
+		new /mob/living/basic/living_limb_flesh(new_bodypart, new_bodypart)
 		new_bodypart.replace_limb(carbon_mob)
-		parasite.register_to_limb(new_bodypart)
 		return TRUE
 

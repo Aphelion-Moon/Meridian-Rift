@@ -70,6 +70,7 @@
 	trim_state = "trim_hc_police"
 	department_color = COLOR_HC_POLICE_BLUE
 	subdepartment_color = COLOR_HC_POLICE_SILVER
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = "hud_hc_police"
 	access = list(ACCESS_SYNDICATE, ACCESS_MAINT_TUNNELS)
 	threat_modifier = 2 // Not as threatening as syndicate, but still potentially harmful to the station

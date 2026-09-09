@@ -81,12 +81,6 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	var/old_lighting_corner_SW = lighting_corner_SW
 	var/old_lighting_corner_NW = lighting_corner_NW
 	var/old_directional_opacity = directional_opacity
-	var/old_dynamic_lumcount = dynamic_lumcount
-	//NOVA EDIT CHANGE
-	var/obj/effect/abstract/liquid_turf/old_liquids = liquids
-	if(lgroup)
-		lgroup.remove_from_group(src)
-	//NOVA EDIT END
 	var/old_rcd_memory = rcd_memory
 	var/old_explosion_throw_details = explosion_throw_details
 	var/old_opacity = opacity
@@ -96,6 +90,11 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	// We get just the bits of explosive_resistance that aren't the turf
 	var/old_explosive_resistance = explosive_resistance - get_explosive_block()
 	var/old_lattice_underneath = lattice_underneath
+	// NOVA EDIT ADDITION START
+	var/obj/effect/abstract/liquid_turf/old_liquids = liquids
+	if(lgroup)
+		lgroup.remove_from_group(src)
+	// NOVA EDIT ADDITION END
 
 	var/old_bp = blueprint_data
 	blueprint_data = null
@@ -155,8 +154,6 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	lighting_corner_SE = old_lighting_corner_SE
 	lighting_corner_SW = old_lighting_corner_SW
 	lighting_corner_NW = old_lighting_corner_NW
-
-	dynamic_lumcount = old_dynamic_lumcount
 
 	lattice_underneath = old_lattice_underneath
 

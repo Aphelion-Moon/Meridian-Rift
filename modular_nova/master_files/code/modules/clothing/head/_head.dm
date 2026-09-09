@@ -73,6 +73,7 @@
 /obj/item/clothing/head/helmet/space/changeling
 	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	supports_variations_flags = NONE
+	worn_icon_muzzled = null
 
 /obj/item/clothing/head/helmet/space/freedom
 	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT

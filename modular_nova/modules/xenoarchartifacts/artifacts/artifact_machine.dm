@@ -92,12 +92,13 @@
 	if(!QDELING(src))
 		return ..()
 
-/obj/machinery/artifact/Destroy()
-	do_destroy_effects()
-	loc.visible_message(
-		span_danger("[src] breaks in pieces, releasing a wave of energy!"),
-		blind_message = span_hear("You hear something break into pieces!"),
-	)
+/obj/machinery/artifact/Destroy(force)
+	if(!force)
+		do_destroy_effects()
+		loc.visible_message(
+			span_danger("[src] breaks in pieces, releasing a wave of energy!"),
+			blind_message = span_hear("You hear something break into pieces!"),
+		)
 	if(!QDELETED(first_effect))
 		QDEL_NULL(first_effect)
 	if(!QDELETED(secondary_effect))

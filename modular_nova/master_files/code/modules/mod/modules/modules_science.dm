@@ -19,7 +19,7 @@
 		spacer_quirk.update_effects(mod.wearer)
 
 /obj/item/mod/module/anomaly_locked/kinesis/commercial
-	name = "MOD kinesis module (commercial variant)"
+	name = "\improper MOD kinesis module (commercial variant)"
 	desc = "A modular plug-in to the forearm, this widely distributed model refines kinesis technology \
 		into a stable and accessible format, eliminating the need for exotic anomaly based components. \
 		The resulting system prioritizes reliability over raw performance, producing modest anti-gravity \
@@ -33,7 +33,7 @@
 	hit_cooldown_time = 1.5 SECONDS // original is 1
 
 /obj/item/mod/module/anomaly_locked/antigrav/commercial
-	name = "MOD anti-gravity module (commercial variant)"
+	name = "\improper MOD anti-gravity module (commercial variant)"
 	desc = "A modular plug-in that achieves complete weightlessness through controlled anti-gravity output, \
 		redesigned to operate without anomaly based cores. It matches the performance of earlier models, \
 		though at the cost of increased system complexity and significantly higher power consumption."
@@ -46,7 +46,7 @@
 	teleport_time = 4 SECONDS // original is 1
 
 /obj/item/mod/module/anomaly_locked/teleporter/commercial
-	name = "MOD teleporter module (commercial variant)"
+	name = "\improper MOD teleporter module (commercial variant)"
 	desc = "A modular plug-in that enables localized particle displacement, redesigned to operate without anomaly-based cores. \
 		While retaining its ability to transport the user across space, the system relies on more complex circuitry, \
 		resulting in longer recalibration periods and more limited operational use between cycles."

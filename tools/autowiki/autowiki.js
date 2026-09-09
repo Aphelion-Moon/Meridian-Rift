@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import MWBot from 'mwbot';
 
-const { USERNAME, PASSWORD } = process.env;
+const { USERNAME, PASSWORD, WIKI_API_URL } = process.env;
 
 if (!USERNAME) {
   console.error('USERNAME was not set.');
@@ -38,7 +38,7 @@ async function main() {
   const bot = new MWBot();
 
   await bot.loginGetEditToken({
-    apiUrl: 'https://wiki.tgstation13.org/api.php',
+    apiUrl: WIKI_API_URL || 'https://wiki.tgstation13.org/api.php',
     username: USERNAME,
     password: PASSWORD,
   });

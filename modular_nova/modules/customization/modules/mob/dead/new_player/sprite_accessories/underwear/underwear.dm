@@ -8,7 +8,7 @@
 	return icon_state
 
 /*
-	Adding has_custom_digi_sprite to TG stuff
+	Adding has_custom_digi_sprite to TG stuff, as well as setting digi_icon_state to null on the boxers, because we have dedicated digi sprites for those
 */
 /datum/sprite_accessory/clothing/underwear/female_kinky
 	name = "Panties - Lingerie"
@@ -21,27 +21,35 @@
 
 /datum/sprite_accessory/clothing/underwear/male_boxers
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /datum/sprite_accessory/clothing/underwear/male_stripe
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /datum/sprite_accessory/clothing/underwear/male_midway
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /datum/sprite_accessory/clothing/underwear/male_longjohns
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /datum/sprite_accessory/clothing/underwear/male_hearts
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /datum/sprite_accessory/clothing/underwear/male_commie
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /datum/sprite_accessory/clothing/underwear/male_usastripe
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /datum/sprite_accessory/clothing/underwear/male_uk
 	has_custom_digi_sprite = TRUE
+	digi_icon_state = null
 
 /*
 	Modular Underwear past here
@@ -239,3 +247,19 @@
 	name = "Chastity Cage"
 	icon_state = "chastcage"
 	erp_accessory = TRUE
+
+// These reuse TG's sprite verbatim, so they read it straight from TG's file
+/datum/sprite_accessory/clothing/underwear/male_kinky
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/male_mankini
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/swimsuit_onepiece
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/swimsuit_strapless_onepiece
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/swimsuit_stripe
+	icon = 'icons/mob/clothing/underwear.dmi'

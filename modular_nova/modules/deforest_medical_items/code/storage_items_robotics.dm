@@ -34,7 +34,7 @@
 /obj/item/storage/medkit/robotic_repair/stocked
 
 /obj/item/storage/medkit/robotic_repair/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/stack/medical/wrap/gauze = 1,
 		/obj/item/stack/medical/synth_repair = 3,
 		/obj/item/stack/medical/wound_recovery/robofoam = 1,
@@ -58,7 +58,7 @@
 /obj/item/storage/medkit/robotic_repair/preemo/stocked
 
 /obj/item/storage/medkit/robotic_repair/preemo/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/stack/medical/wrap/gauze/twelve = 1,
 		/obj/item/stack/cable_coil/thirty = 1,
 		/obj/item/stack/medical/synth_repair = 4,

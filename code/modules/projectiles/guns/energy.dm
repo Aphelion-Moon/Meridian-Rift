@@ -154,6 +154,7 @@
 		ammo_type[i] = shot
 	shot = ammo_type[select]
 	fire_sound = shot.fire_sound
+	fire_sound_volume = shot.fire_sound_volume //NOVA EDIT ADDITION
 	fire_delay = shot.delay
 
 /obj/item/gun/energy/Destroy()
@@ -242,6 +243,7 @@
 		select = 1
 	var/obj/item/ammo_casing/energy/shot = ammo_type[select]
 	fire_sound = shot.fire_sound
+	fire_sound_volume = shot.fire_sound_volume //NOVA EDIT ADDITION
 	fire_delay = shot.delay
 	if (shot.muzzle_flash_color)
 		set_light_color(shot.muzzle_flash_color)

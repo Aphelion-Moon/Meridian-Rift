@@ -123,7 +123,7 @@
 
 /datum/loadout_item/mask/cmcp_mask
 	name = "CMCP Mask"
-	item_path = /obj/item/clothing/mask/gas/CMCP_mask
+	item_path = /obj/item/clothing/mask/gas/cmcp_mask
 	ckeywhitelist = list("candlejax")
 
 /datum/loadout_item/head/anahelm

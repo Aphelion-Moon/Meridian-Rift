@@ -139,6 +139,7 @@
 	name = "joyful coat"
 	desc = "<i>\"You look like a good Joe.\"</i>"
 	icon_state = "bladerunner_neue"
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS|LEGS
 	cold_protection = CHEST|GROIN|ARMS|LEGS
 	heat_protection = CHEST|ARMS|GROIN|LEGS
@@ -399,6 +400,8 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/custom"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	post_init_icon_state = "labcoat_job"
 	greyscale_config = /datum/greyscale_config/labcoat
 	greyscale_config_worn = /datum/greyscale_config/labcoat/worn

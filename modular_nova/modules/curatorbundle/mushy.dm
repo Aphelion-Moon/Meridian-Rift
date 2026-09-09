@@ -35,6 +35,7 @@
 	slowdown = 1
 	clothing_flags = THICKMATERIAL
 	body_parts_covered = CHEST|GROIN|LEGS|FEET|ARMS|HANDS
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/mush/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/mushroom_suit)

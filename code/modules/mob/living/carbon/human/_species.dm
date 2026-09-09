@@ -47,7 +47,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	var/digitigrade_customization = DIGITIGRADE_NEVER
 	///If your race uses a non standard bloodtype (A+, O-, AB-, etc). For example, lizards have L type blood.
 	///Reagent that your species bleeds, and what chemical can be used to recover lost blood depend on this
-	var/exotic_bloodtype
+	var/datum/blood_type/exotic_bloodtype
 	///The rate at which blood is passively drained by having the blood deficiency quirk. Some races such as slimepeople can regen their blood at different rates so this is to account for that
 	var/blood_deficiency_drain_rate = BLOOD_REGEN_FACTOR + BLOOD_DEFICIENCY_MODIFIER // slightly above the regen rate so it slowly drains instead of regenerates.
 	///What the species drops when gibbed by a gibber machine.
@@ -375,6 +375,9 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	// Drop the items the new species can't wear
 	human_who_gained_species.mob_biotypes |= inherent_biotypes
 	human_who_gained_species.butcher_results = knife_butcher_results?.Copy()
+	MODIFY_PHYSIOLOGY(human_who_gained_species, PHYS_COEFF_ELEC_CONDUCTIVITY, siemens_coeff)
+	MODIFY_PHYSIOLOGY(human_who_gained_species, PHYS_COEFF_HEAT, heatmod)
+	MODIFY_PHYSIOLOGY(human_who_gained_species, PHYS_COEFF_COLD, coldmod)
 
 	//update body zones to match what they are supposed to have
 	var/atom/movable/screen/healthdoll/doll = human_who_gained_species.hud_used?.screen_objects[HUD_MOB_HEALTHDOLL]
@@ -449,6 +452,9 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	human.living_flags |= STOP_OVERLAY_UPDATE_BODY_PARTS //Don't call update_body_parts() for every single bodypart overlay removed.
 	human.butcher_results = null
 	human.mob_biotypes &= ~inherent_biotypes
+	MODIFY_PHYSIOLOGY(human, PHYS_COEFF_ELEC_CONDUCTIVITY, 1 / siemens_coeff)
+	MODIFY_PHYSIOLOGY(human, PHYS_COEFF_HEAT, 1 / heatmod)
+	MODIFY_PHYSIOLOGY(human, PHYS_COEFF_COLD, 1 / coldmod)
 	for(var/trait in inherent_traits)
 		REMOVE_TRAIT(human, trait, SPECIES_TRAIT)
 
@@ -763,9 +769,6 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	var/obj/item/organ/brain/brain = user.get_organ_slot(ORGAN_SLOT_BRAIN)
 	var/obj/item/bodypart/attacking_bodypart = attacker_style?.get_attacking_limb(user, target) || brain?.get_attacking_limb(target) || user.get_active_hand()
 
-	// Whether or not we get some protein for a successful attack. Nom.
-	var/biting = FALSE
-
 	var/atk_verb_index = rand(1, length(attacking_bodypart.unarmed_attack_verbs))
 	var/atk_verb = attacking_bodypart.unarmed_attack_verbs[atk_verb_index]
 	var/atk_verb_continuous = "[atk_verb]s"
@@ -775,19 +778,18 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	var/atk_effect = attacking_bodypart.unarmed_attack_effect
 
 	if(atk_effect == ATTACK_EFFECT_BITE)
-		if(!user.is_mouth_covered(ITEM_SLOT_MASK))
-			biting = TRUE
-		else if(user.get_active_hand()) //In the event we can't bite, emergency swap to see if we can attack with a hand.
-			attacking_bodypart = user.get_active_hand()
-			atk_verb_index = rand(1, length(attacking_bodypart.unarmed_attack_verbs))
-			atk_verb = attacking_bodypart.unarmed_attack_verbs[atk_verb_index]
-			atk_verb_continuous = "[atk_verb]s"
-			if (length(attacking_bodypart.unarmed_attack_verbs_continuous) >= atk_verb_index) // Just in case
-				atk_verb_continuous = attacking_bodypart.unarmed_attack_verbs_continuous[atk_verb_index]
-			atk_effect = attacking_bodypart.unarmed_attack_effect
-		else  //Nothing? Okay. Fail.
-			user.balloon_alert(user, "can't attack!")
-			return FALSE
+		if(user.is_mouth_covered(ITEM_SLOT_MASK))
+			if((user.get_active_hand())) //In the event we can't bite, emergency swap to see if we can attack with a hand.
+				attacking_bodypart = user.get_active_hand()
+				atk_verb_index = rand(1, length(attacking_bodypart.unarmed_attack_verbs))
+				atk_verb = attacking_bodypart.unarmed_attack_verbs[atk_verb_index]
+				atk_verb_continuous = "[atk_verb]s"
+				if (length(attacking_bodypart.unarmed_attack_verbs_continuous) >= atk_verb_index) // Just in case
+					atk_verb_continuous = attacking_bodypart.unarmed_attack_verbs_continuous[atk_verb_index]
+				atk_effect = attacking_bodypart.unarmed_attack_effect
+			else  //Nothing? Okay. Fail.
+				user.balloon_alert(user, "can't attack!")
+				return FALSE
 
 	user.do_attack_animation(target, atk_effect)
 
@@ -921,13 +923,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		return
 	// NOVA EDIT ADDITION END
 
-	if(user != target && biting && (target.mob_biotypes & MOB_ORGANIC)) //Good for you. You probably just ate someone alive.
-		var/datum/reagents/tasty_meal = new()
-		tasty_meal.add_reagent(/datum/reagent/consumable/nutriment/protein, round(damage/3, 1))
-		tasty_meal.trans_to(user, tasty_meal.total_volume, transferred_by = user, methods = INGEST)
-
-	SEND_SIGNAL(target, COMSIG_HUMAN_GOT_PUNCHED, user, damage, attack_type, affecting, final_armor_block, kicking, limb_sharpness)
-	SEND_SIGNAL(user, COMSIG_HUMAN_PUNCHED, target, damage, attack_type, affecting, final_armor_block, kicking, limb_sharpness)
+	SEND_SIGNAL(target, COMSIG_HUMAN_GOT_PUNCHED, user, damage, attack_type, atk_effect, affecting, final_armor_block, limb_sharpness)
+	SEND_SIGNAL(user, COMSIG_HUMAN_PUNCHED, target, damage, attack_type, atk_effect, affecting, final_armor_block, limb_sharpness)
 
 	// If our target is staggered and has sustained enough damage, we can apply a randomly determined status effect to inflict when we punch them.
 	// The effects are based on the punching effectiveness of our attacker. Some effects are not reachable by the average human, and require augmentation to reach or being a species with a heavy punch effectiveness.
@@ -1073,7 +1070,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
  * * humi (required) The mob we will stabilize
  */
 /datum/species/proc/body_temperature_core(mob/living/carbon/human/humi, seconds_per_tick)
-	var/natural_change = get_temp_change_amount(humi.get_body_temp_normal() - humi.coretemperature, 0.06 * seconds_per_tick)
+	var/natural_change = get_temp_change_amount(humi.get_body_temp_normal() - humi.coretemperature, BODYTEMP_CORE_CHANGE_RATE * seconds_per_tick)
 	humi.adjust_coretemperature(humi.metabolism_efficiency * natural_change)
 
 /**
@@ -1090,8 +1087,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	// change the core based on the skin temp
 	var/skin_core_diff = humi.bodytemperature - humi.coretemperature
-	// change rate of 0.04 per second to be slightly below area to skin change rate and still have a solid curve
-	var/skin_core_change = get_temp_change_amount(skin_core_diff, 0.04 * seconds_per_tick)
+	// change rate of slightly below area to skin change rate and still having a solid curve
+	var/skin_core_change = get_temp_change_amount(skin_core_diff, BODYTEMP_SKIN_CORE_CHANGE_RATE * seconds_per_tick)
 
 	humi.adjust_coretemperature(skin_core_change)
 
@@ -1117,8 +1114,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	// Changes to the skin temperature based on the area
 	var/area_skin_diff = area_temp - humi.bodytemperature
 	if(!humi.on_fire || area_skin_diff > 0)
-		// change rate of 0.05 as area temp has large impact on the surface
-		var/area_skin_change = get_temp_change_amount(area_skin_diff, 0.05 * seconds_per_tick)
+		// change rate near full speed as area temp has large impact on the surface
+		var/area_skin_change = get_temp_change_amount(area_skin_diff, BODYTEMP_AREA_SKIN_CHANGE_RATE * seconds_per_tick)
 
 		// We need to apply the thermal protection of the clothing when applying area to surface change
 		// If the core bodytemp goes over the normal body temp you are overheating and becom sweaty
@@ -1136,8 +1133,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	if(!humi.on_fire)
 		// Get the changes to the skin from the core temp
 		var/core_skin_diff = humi.coretemperature - humi.bodytemperature
-		// change rate of 0.045 to reflect temp back to the skin at the slight higher rate then core to skin
-		var/core_skin_change = (1 + thermal_protection) * get_temp_change_amount(core_skin_diff, 0.045 * seconds_per_tick)
+		// change rate to reflect temp back to the skin at a slightly higher rate than skin to core
+		var/core_skin_change = (1 + thermal_protection) * get_temp_change_amount(core_skin_diff, BODYTEMP_CORE_SKIN_CHANGE_RATE * seconds_per_tick)
 
 		// We do not want to over shoot after using protection
 		if(core_skin_diff > 0)
@@ -1230,7 +1227,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		var/burn_damage = max(log(2 - firemodifier, (humi.coretemperature - humi.get_body_temp_normal(apply_change=FALSE))) - 5, 0)
 
 		// Apply species and physiology modifiers to heat damage
-		burn_damage = burn_damage * heatmod * humi.physiology.heat_mod * 0.5 * seconds_per_tick
+		burn_damage = burn_damage * GET_PHYSIOLOGY(humi, PHYS_COEFF_HEAT) * 0.5 * seconds_per_tick
 
 		// 40% for level 3 damage on humans to scream in pain
 		if (!IS_UNCONSCIOUS(humi) && (prob(burn_damage) * 10) / 4)
@@ -1250,7 +1247,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	if(humi.coretemperature < cold_damage_limit && !HAS_TRAIT(humi, TRAIT_RESISTCOLD))
 		var/damage_type = is_hulk ? BRUTE : BURN // Why?
-		var/damage_mod = coldmod * humi.physiology.cold_mod * (is_hulk ? HULK_COLD_DAMAGE_MOD : 1)
+		var/damage_mod = GET_PHYSIOLOGY(humi, PHYS_COEFF_COLD)
 		// Can't be a switch due to http://www.byond.com/forum/post/2750423
 		if(humi.coretemperature in 201 to cold_damage_limit)
 			humi.apply_damage(COLD_DAMAGE_LEVEL_1 * damage_mod * seconds_per_tick, damage_type, wound_clothing = FALSE)
@@ -1320,7 +1317,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			if(HAS_TRAIT(H, TRAIT_RESISTHIGHPRESSURE))
 				H.clear_alert(ALERT_PRESSURE)
 			else
-				var/pressure_damage = min(((adjusted_pressure / HAZARD_HIGH_PRESSURE) - 1) * PRESSURE_DAMAGE_COEFFICIENT, MAX_HIGH_PRESSURE_DAMAGE) * H.physiology.pressure_mod * H.physiology.brute_mod * seconds_per_tick
+				var/pressure_damage = min(((adjusted_pressure / HAZARD_HIGH_PRESSURE) - 1) * PRESSURE_DAMAGE_COEFFICIENT, MAX_HIGH_PRESSURE_DAMAGE) * seconds_per_tick
+				pressure_damage *= GET_PHYSIOLOGY(H, BRUTE) * GET_PHYSIOLOGY(H, PHYS_COEFF_PRESSURE)
 				H.adjust_brute_loss(pressure_damage, required_bodytype = BODYTYPE_ORGANIC)
 				H.throw_alert(ALERT_PRESSURE, /atom/movable/screen/alert/highpressure, 2)
 
@@ -1348,7 +1346,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			if(HAS_TRAIT(H, TRAIT_RESISTLOWPRESSURE))
 				H.clear_alert(ALERT_PRESSURE)
 			else
-				var/pressure_damage = min(round(1 + (H.seconds_in_low_pressure / 80 SECONDS), 0.05) * BASE_LOW_PRESSURE_DAMAGE, MAX_LOW_PRESSURE_DAMAGE)  * H.physiology.pressure_mod * H.physiology.brute_mod * seconds_per_tick
+				var/pressure_damage = min(round(1 + (H.seconds_in_low_pressure / 80 SECONDS), 0.05) * BASE_LOW_PRESSURE_DAMAGE, MAX_LOW_PRESSURE_DAMAGE) * seconds_per_tick
+				pressure_damage *= GET_PHYSIOLOGY(H, BRUTE) * GET_PHYSIOLOGY(H, PHYS_COEFF_PRESSURE)
 				H.adjust_brute_loss(pressure_damage, required_bodytype = BODYTYPE_ORGANIC)
 				H.throw_alert(ALERT_PRESSURE, /atom/movable/screen/alert/lowpressure, 2)
 			H.seconds_in_low_pressure += seconds_per_tick
@@ -1372,14 +1371,6 @@ GLOBAL_LIST_EMPTY(features_by_species)
 ////////////
 //  Stun  //
 ////////////
-
-/datum/species/proc/spec_stun(mob/living/carbon/human/H, amount)
-	if((H.movement_type & FLYING) && !H.buckled)
-		var/obj/item/organ/wings/functional/wings = H.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS)
-		if(wings)
-			wings.toggle_flight(H)
-			wings.fly_slip(H)
-	. = min(stunmod * H.physiology.stun_mod * amount, LAZYMIN(H.physiology.max_stun_len, INFINITY))
 
 /datum/species/proc/negates_gravity(mob/living/carbon/human/H)
 	if(H.movement_type & FLYING)

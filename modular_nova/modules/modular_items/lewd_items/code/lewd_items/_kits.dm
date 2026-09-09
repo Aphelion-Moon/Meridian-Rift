@@ -5,7 +5,7 @@
 	desc = "Contains everything you need to build your own milking machine!"
 
 /obj/item/storage/box/milking_kit/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/construction_kit/milker = 1)
 	generate_items_inside(items_inside, src)
 
@@ -15,7 +15,7 @@
 	desc = "Contains everything you need to build your own X-stand!"
 
 /obj/item/storage/box/xstand_kit/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/construction_kit/bdsm/x_stand = 1)
 	generate_items_inside(items_inside, src)
 
@@ -25,7 +25,7 @@
 	desc = "Contains everything you need to build your own BDSM bed!"
 
 /obj/item/storage/box/bdsmbed_kit/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/construction_kit/bdsm/bed = 1)
 	generate_items_inside(items_inside, src)
 
@@ -35,7 +35,7 @@
 	desc = "Contains everything you need to build your own stripper pole!"
 
 /obj/item/storage/box/strippole_kit/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/construction_kit/pole = 1)
 	generate_items_inside(items_inside, src)
 
@@ -45,7 +45,7 @@
 	desc = "Contains everything you need to build your own shibari stand!"
 
 /obj/item/storage/box/shibari_stand/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/construction_kit/bdsm/shibari = 1,
 		/obj/item/paper/shibari_kit_instructions = 1)
 	generate_items_inside(items_inside, src)

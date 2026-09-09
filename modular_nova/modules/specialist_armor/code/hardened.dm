@@ -19,6 +19,7 @@
 		to lose much of their armor penetrating energy before any damage can be done."
 	icon = 'modular_nova/modules/specialist_armor/icons/armor.dmi'
 	icon_state = "hardened_standard"
+	worn_icon_digi = null
 	worn_icon = 'modular_nova/modules/specialist_armor/icons/armor_worn.dmi'
 	inhand_icon_state = "armor"
 	blood_overlay_type = "armor"
@@ -68,6 +69,7 @@
 		While not so incredible at directly stopping bullets, the vest is uniquely suited to cause bullets \
 		to lose much of their armor penetrating energy before any damage can be done."
 	icon_state = "hardened_emt"
+	worn_icon_digi = null
 
 // helmets
 
@@ -89,6 +91,7 @@
 	dog_fashion = null
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 	resistance_flags = FIRE_PROOF
+	worn_icon_muzzled = null
 
 /obj/item/clothing/head/helmet/toggleable/sf_hardened/equipped(mob/living/carbon/human/wearer, slot)
 	. = ..()

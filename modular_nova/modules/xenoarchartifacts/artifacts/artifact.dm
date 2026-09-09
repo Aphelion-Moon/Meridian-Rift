@@ -100,10 +100,11 @@
 			qdel(new_artifact)
 
 /obj/structure/boulder/Destroy() // spawns and destroys artifact immediately
-	if (!stabilised)
-		var/obj/machinery/artifact/new_artifact = new artifact_find_type(get_turf(src))
+	var/turf/our_turf = get_turf(src)
+	. = ..()
+	if (!stabilised && our_turf)
+		var/obj/machinery/artifact/new_artifact = new artifact_find_type(our_turf)
 		qdel(new_artifact)
-	return ..()
 
 /obj/structure/boulder/Bumped(who_moved)
 	. = ..()

@@ -212,7 +212,7 @@ GAME_VERB_DESC(/client, department_ooc, "Department OOC", "Speak on one of the O
 		if(channel.department_flags && (job?.departments_bitflags & channel.department_flags))
 			listeners[iterated_client] = TRUE
 			continue
-		if(channel.is_antag_channel && iterating_mob.is_antag())
+		if(channel.is_antag_channel && iterated_mob.is_antag())
 			listeners[iterated_client] = TRUE
 			continue
 

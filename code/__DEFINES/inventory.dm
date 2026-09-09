@@ -190,18 +190,10 @@ DEFINE_BITFIELD(no_equip_flags, list(
 #define CLOTHING_SNOUTED_VARIATION (1<<3)
 /// The sprite works fine for snouts as-is.
 #define CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON (1<<4)
-/// The sprite works fine for vox snouts.
-#define CLOTHING_SNOUTED_VOX_VARIATION (1<<5)
-/// The sprite works fine for vox snouts as is.
-#define CLOTHING_SNOUTED_VOX_VARIATION_NO_NEW_ICON (1<<6)
-/// The sprite works fine for vox snouts.
-#define CLOTHING_SNOUTED_BETTER_VOX_VARIATION (1<<7)
-/// The sprite works fine for vox snouts as is.
-#define CLOTHING_SNOUTED_BETTER_VOX_VARIATION_NO_NEW_ICON (1<<8)
 /// The clothing item has a custom sprite for the big legs type taur bodyshape
-#define CLOTHING_BIG_LEGS_VARIATION (1<<9)
+#define CLOTHING_BIG_LEGS_VARIATION (1<<5)
 /// The sprite mask particularly for the big legs type taur bodyshape
-#define CLOTHING_BIG_LEGS_MASK (1<<10)
+#define CLOTHING_BIG_LEGS_MASK (1<<6)
 // NOVA EDIT ADDITION END
 
 /// All variation flags which render "correctly" on a digitigrade leg setup
@@ -281,6 +273,7 @@ GLOBAL_LIST_INIT(detective_vest_allowed, list(
 	/obj/item/storage/belt/holster/nukie,
 	/obj/item/storage/belt/holster/energy,
 	/obj/item/gun/ballistic/shotgun/automatic/combat/compact,
+	/obj/item/gun/microfusion, //NOVA EDIT ADDITION
 ))
 
 GLOBAL_LIST_INIT(security_vest_allowed, list(
@@ -299,6 +292,7 @@ GLOBAL_LIST_INIT(security_vest_allowed, list(
 	/obj/item/gun/ballistic/shotgun/automatic/combat/compact,
 	/obj/item/pen/red/security,
 	/obj/item/storage/belt/machete, // NOVA EDIT ADDITION
+	/obj/item/gun/microfusion, //NOVA EDIT ADDITION
 ))
 
 GLOBAL_LIST_INIT(security_wintercoat_allowed, list(
@@ -312,6 +306,7 @@ GLOBAL_LIST_INIT(security_wintercoat_allowed, list(
 	/obj/item/storage/belt/holster/energy,
 	/obj/item/gun/ballistic/shotgun/automatic/combat/compact,
 	/obj/item/storage/belt/machete, // NOVA EDIT ADDITION
+	/obj/item/gun/microfusion, //NOVA EDIT ADDITION
 ))
 
 //Allowed list for all chaplain suits (except the honkmother robe)

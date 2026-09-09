@@ -1,5 +1,5 @@
 /obj/item/mod/module/smartgun
-	name = "MOD smartgun module"
+	name = "\improper MOD smartgun module"
 	desc = "A bulky module that attahces to the back of a MODsuit, this \
 			module is comprised of two parts, a holster and the M63A4 \"Smartgun\". \
 			The holster works as storage for a gun that would be otherwise uncarryable, \

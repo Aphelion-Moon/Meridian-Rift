@@ -187,6 +187,7 @@
 	desc = "A warm trenchcoat lined with fur, made for the cold, dark, and desperate winter nights."
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/nova/furred_trenchcoat"
+	worn_icon_digi = null
 	post_init_icon_state = "coat"
 	body_parts_covered = CHEST|GROIN|ARMS
 	cold_protection = CHEST|GROIN|ARMS
@@ -202,6 +203,7 @@
 	desc = "An overcoat of regalness, it looks quite fancy."
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/nova/overcoat"
+	worn_icon_digi = null
 	post_init_icon_state = "overcoat"
 	body_parts_covered = CHEST|ARMS
 	greyscale_config = /datum/greyscale_config/overcoat
@@ -215,6 +217,7 @@
 	desc = "A big'ol sweater! Makes for an improvised blanket with how huge this thing is."
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/nova/sweater"
+	worn_icon_digi = null
 	post_init_icon_state = "sweater"
 	body_parts_covered = CHEST|ARMS
 	greyscale_config = /datum/greyscale_config/sweater_nova_1
@@ -227,6 +230,7 @@
 	name = "big sweater with bow"
 	desc = "A big'ol sweater with an equally big ribbon bow! Makes for an improvised blanket with how huge this thing is."
 	icon_state = "/obj/item/clothing/suit/nova/sweater/bow"
+	worn_icon_digi = null
 	post_init_icon_state = "sweaterbow"
 	greyscale_config = /datum/greyscale_config/sweater_nova_2
 	greyscale_config_worn = /datum/greyscale_config/sweater_nova_2/worn

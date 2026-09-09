@@ -25,7 +25,17 @@
 /obj/item/organ/tail/on_mob_insert(mob/living/carbon/receiver, special, movement_flags)
 	if(sprite_accessory_flags & SPRITE_ACCESSORY_WAG_ABLE)
 		wag_flags |= WAG_ABLE
+		RegisterSignal(receiver, COMSIG_HUMAN_SPEC_STUN, PROC_REF(spec_stun))
 	return ..()
+
+/obj/item/organ/tail/on_mob_remove(mob/living/carbon/organ_owner, special, movement_flags)
+	. = ..()
+	if(wag_flags & WAG_ABLE)
+		UnregisterSignal(organ_owner, COMSIG_HUMAN_SPEC_STUN)
+
+/obj/item/organ/tail/proc/spec_stun(datum/source, amount)
+	SIGNAL_HANDLER
+	stop_wag(source)
 
 /obj/item/organ/tail/monkey
 	wag_flags = WAG_ABLE // waggable monkey tails

@@ -22,6 +22,10 @@ SUBSYSTEM_DEF(automapper)
 	var/loaded_config
 	/// Our preloaded map templates
 	var/list/preloaded_map_templates = list()
+	/// Turfs claimed by our preloaded templates, so modular map loads from tramstation cannot race with automapper.
+	var/list/automapped_turfs
+	/// Count of modular map loads (see /obj/modular_map_root) that have not finished loading
+	var/pending_modular_map_loads = 0
 
 /datum/controller/subsystem/automapper/Initialize()
 	loaded_config = rustg_read_toml_file(config_file)
@@ -161,4 +165,24 @@ SUBSYSTEM_DEF(automapper)
 				continue
 
 			blacklisted_turfs[blacklisted_turf] = TRUE
+			LAZYSET(automapped_turfs, blacklisted_turf, TRUE)
 	return blacklisted_turfs
+
+/// Registers an in progress modular map load
+/datum/controller/subsystem/automapper/proc/register_modular_map_load()
+	pending_modular_map_loads++
+
+/// Checks a modular map load back in. once every registered load has checked in, automapped_turfs is no longer needed and is freed.
+/datum/controller/subsystem/automapper/proc/finish_modular_map_load()
+	pending_modular_map_loads = max(0, pending_modular_map_loads - 1)
+	if(!pending_modular_map_loads)
+		LAZYNULL(automapped_turfs)
+
+/datum/map_template/map_module/update_blacklist(turf/placement, list/input_blacklist)
+	. = ..()
+	for(var/turf/automapped_turf as anything in SSautomapper.automapped_turfs)
+		input_blacklist[automapped_turf] = TRUE
+
+/obj/modular_map_root/load_map()
+	. = ..()
+	SSautomapper.finish_modular_map_load()

@@ -79,7 +79,7 @@
 /obj/item/storage/medkit/civil_defense/stocked
 
 /obj/item/storage/medkit/civil_defense/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/reagent_containers/hypospray/medipen/deforest/meridine = 1,
 		/obj/item/reagent_containers/hypospray/medipen/deforest/halobinin = 1,
 		/obj/item/reagent_containers/hypospray/medipen/deforest/lipital = 1,
@@ -122,7 +122,7 @@
 /obj/item/storage/medkit/civil_defense/comfort/stocked
 
 /obj/item/storage/medkit/civil_defense/comfort/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/reagent_containers/hypospray/medipen/deforest/psifinil = 3,
 		/obj/item/storage/pill_bottle/prescription_stimulant = 1,
 	)
@@ -148,7 +148,7 @@
 /obj/item/storage/medkit/frontier/stocked
 
 /obj/item/storage/medkit/frontier/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/reagent_containers/hypospray/medipen/deforest/meridine = 1,
 		/obj/item/reagent_containers/hypospray/medipen/deforest/morpital = 1,
 		/obj/item/stack/medical/ointment = 1,
@@ -181,7 +181,7 @@
 /obj/item/storage/medkit/combat_surgeon/stocked
 
 /obj/item/storage/medkit/combat_surgeon/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/bonesetter = 1,
 		/obj/item/hemostat = 1,
 		/obj/item/cautery = 1,
@@ -214,7 +214,7 @@
 /obj/item/storage/backpack/duffelbag/deforest_medkit/stocked
 
 /obj/item/storage/backpack/duffelbag/deforest_medkit/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/reagent_containers/hypospray/medipen/deforest/morpital = 1,
 		/obj/item/reagent_containers/hypospray/medipen/deforest/lepoturi = 1,
 		/obj/item/reagent_containers/hypospray/medipen/deforest/lipital = 1,
@@ -310,7 +310,7 @@
 /obj/item/storage/backpack/duffelbag/deforest_surgical/stocked
 
 /obj/item/storage/backpack/duffelbag/deforest_surgical/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/scalpel = 1,
 		/obj/item/hemostat = 1,
 		/obj/item/retractor = 1,
@@ -419,7 +419,7 @@
 /obj/item/storage/backpack/duffelbag/deforest_paramedic/stocked
 
 /obj/item/storage/backpack/duffelbag/deforest_paramedic/stocked/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/scalpel = 1,
 		/obj/item/hemostat = 1,
 		/obj/item/retractor = 1,

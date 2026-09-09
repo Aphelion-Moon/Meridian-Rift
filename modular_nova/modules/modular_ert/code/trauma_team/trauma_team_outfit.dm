@@ -57,6 +57,7 @@
 /datum/id_trim/centcom/ert/medical/ntrauma
 	assignment = "Trauma Team Specialist"
 	trim_state = "trim_highcleric"	//This is the CMO trim for the RPG Titles; considering it's 'angelic' sprite, it's fitting for these guardian angels
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_SCRAMBLED
 
 /obj/item/card/id/advanced/centcom/ert/medical/ntrauma

@@ -105,6 +105,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/armor.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/armor.dmi'
 	icon_state = "naval_carapace"
+	worn_icon_digi = null
 
 // GLASSES
 /obj/item/clothing/glasses/hud/security/sunglasses/black

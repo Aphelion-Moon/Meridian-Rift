@@ -54,3 +54,18 @@
 /obj/item/ammo_box/c46x30mm/rubber
 	name = "ammo box (4.6x30mm rubber)"
 	ammo_type = /obj/item/ammo_casing/c46x30mm/rubber
+
+/obj/item/storage/box/ammo_box/microfusion/bluespace
+	name = "bluespace microfusion cell container"
+	desc = "A box filled with microfusion cells."
+
+/obj/item/storage/box/ammo_box/microfusion/bluespace/PopulateContents()
+	new /obj/item/storage/pouch/ammo(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion/bluespace(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion/bluespace(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion/bluespace(src)
+
+/obj/item/storage/box/ammo_box/microfusion/bluespace/bagless/PopulateContents()
+	new /obj/item/stock_parts/power_store/cell/microfusion/bluespace(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion/bluespace(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion/bluespace(src)

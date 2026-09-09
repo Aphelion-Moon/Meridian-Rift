@@ -43,10 +43,12 @@
 		This is awarded to those rare operatives who fit that definition."
 
 /obj/item/clothing/suit/armor/hos/maa_greatcoat
+	worn_icon_digi = null
 	name = "Master at Arms' armored greatcoat"
 	desc = "A greatcoat enhanced with a special alloy for some extra protection and style for those with a likely chance to get bullied for being outside of the brig"
 
 /obj/item/clothing/suit/armor/hos/trenchcoat/maa_greatcoat
+	worn_icon_digi = null
 	name = "Master at Arms' armored trenchcoat"
 	desc = "A trenchcoat enhanced with a special lightweight kevlar. It has little Syndicate logos sewn onto the shoulder badges with the letters 'MAA' just under it."
 

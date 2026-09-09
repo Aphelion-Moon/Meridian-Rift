@@ -37,12 +37,18 @@
 
 		gun_count++
 
+		if(istype(spawned_gun, /obj/item/gun/microfusion))
+			var/obj/item/gun/microfusion/spawned_microfusion_gun = spawned_gun
+			var/obj/item/storage/box/ammo_box/microfusion/armory/spawned_box = new(loc)
+			for(var/i in 1 to mags_to_spawn)
+				new spawned_microfusion_gun.cell_type (spawned_box)
+
 		if(!istype(spawned_gun, /obj/item/gun/ballistic))
 			continue
 
 		var/obj/item/gun/ballistic/spawned_ballistic_gun = spawned_gun
 		if(spawned_ballistic_gun.magazine && !istype(spawned_ballistic_gun.magazine, /obj/item/ammo_box/magazine/internal))
-			var/obj/item/storage/box/spawned_box = new(loc)
+			var/obj/item/storage/box/ammo_box/spawned_box = new(loc)
 			spawned_box.name = "ammo box - [spawned_ballistic_gun.name]"
 			for(var/i in 1 to mags_to_spawn)
 				new spawned_ballistic_gun.spawn_magazine_type(spawned_box)
@@ -73,6 +79,38 @@
 	new /obj/item/storage/box/rubbershot(src)
 	new /obj/item/storage/box/rubbershot(src)
 	new /obj/item/storage/box/rubbershot(src)
+
+/*
+*	AMMO BOXES
+*/
+
+/obj/item/storage/box/ammo_box
+	name = "ammo box"
+	desc = "A box filled with ammunition."
+	icon = 'modular_nova/modules/microfusion/icons/microfusion_cells.dmi'
+	icon_state = "microfusion_box"
+	illustration = null
+	layer = 2.9
+
+/obj/item/storage/box/ammo_box/microfusion
+	name = "microfusion cell container"
+	desc = "A box filled with microfusion cells."
+
+/obj/item/storage/box/ammo_box/microfusion/armory/PopulateContents()
+	new /obj/item/storage/pouch/ammo(src)
+
+/obj/item/storage/box/ammo_box/microfusion/full/PopulateContents()
+	new /obj/item/storage/pouch/ammo(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion(src)
+
+/obj/item/storage/box/ammo_box/microfusion/bagless
+
+/obj/item/storage/box/ammo_box/microfusion/bagless/PopulateContents()
+	new /obj/item/stock_parts/power_store/cell/microfusion(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion(src)
+	new /obj/item/stock_parts/power_store/cell/microfusion(src)
 
 /obj/effect/spawner/armory_spawn/centcom_rifles
 	guns = list(

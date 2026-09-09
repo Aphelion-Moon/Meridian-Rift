@@ -117,6 +117,7 @@ SOLFED ARMOR VALUES!
 	worn_icon_state = "mark_one_helmet"
 	actions_types = list(/datum/action/item_action/toggle_helmet_light)
 	armor_type = /datum/armor/clothing_under/solfed_response_standard
+	worn_icon_muzzled = null
 
 	light_system = OVERLAY_LIGHT_DIRECTIONAL
 	light_range = 4
@@ -195,7 +196,7 @@ SOLFED ARMOR VALUES!
 	icon_state = "icons/map_icons/clothing/suit/_suit"
 	post_init_icon_state = "hercules"
 	worn_icon_state = "hercules"
-	worn_icon_digi = "hercules"
+	worn_icon_digi = 'modular_nova/modules/goofsec/icons/mob/uniforms_digi.dmi'
 	armor_type = /datum/armor/clothing_under/solfed_response_grand
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 

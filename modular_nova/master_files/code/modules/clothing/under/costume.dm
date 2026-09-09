@@ -47,6 +47,7 @@
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	greyscale_colors = "#434d7a" //THATS RIGHT, FUCK YOU! THE BATHROBE CAN BE RECOLORED!
 	flags_1 = IS_PLAYER_COLORABLE_1
+	worn_icon_digi = null
 
 /obj/item/clothing/under/costume/dutch
 	icon = 'icons/map_icons/clothing/under/costume.dmi'
@@ -86,6 +87,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/under/costume/nova/maid_uniform
+	worn_icon_digi = null
 	name = "maid uniform"
 	desc = "A simple maid uniform for housekeeping."
 	icon = 'icons/map_icons/clothing/under/costume.dmi'
@@ -97,8 +99,10 @@
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	alternate_worn_layer = UNDER_SUIT_LAYER
 	flags_1 = IS_PLAYER_COLORABLE_1
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/costume/nova/maid_uniform_alt
+	worn_icon_digi = null
 	name = "maid uniform"
 	desc = "A simple maid uniform for housekeeping."
 	icon = 'icons/map_icons/clothing/under/costume.dmi'
@@ -111,6 +115,7 @@
 	alternate_worn_layer = UNDER_SUIT_LAYER
 	can_adjust = TRUE
 	flags_1 = IS_PLAYER_COLORABLE_1
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /*
 *	LUNAR AND JAPANESE CLOTHES
@@ -181,21 +186,26 @@
 	name = "kamishimo"
 	desc = "A traditional ancient Earth Japanese Kamishimo."
 	icon_state = "kamishimo"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/costume/nova/kimono
 	name = "fancy kimono"
 	desc = "A traditional ancient Earth Japanese Kimono. Longer and fancier than a yukata."
 	icon_state = "kimono"
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/costume/nova/shihakusho
+	worn_icon_digi = null
 	name = "shihakusho"
 	desc = "A traditional ancient Earth Japanese Shihakusho."
 	icon_state = "shihakusho"
 	body_parts_covered = CHEST|GROIN|ARMS
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/costume/nova/chima_jeogori
 	name = "chima jeogori"
@@ -211,6 +221,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
 	flags_1 = IS_PLAYER_COLORABLE_1
+	worn_icon_digi = null
 
 /*
 *	CHRISTMAS CLOTHES
@@ -264,7 +275,6 @@
 	icon_state = "/obj/item/clothing/under/solfed/marines"
 	post_init_icon_state = "solfed_camo"
 	worn_icon_state = "solfed_camo"
-	worn_icon_digi = "solfed_camo"
 	greyscale_config = /datum/greyscale_config/solfedcamo
 	greyscale_config_worn = /datum/greyscale_config/solfedcamo/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/solfedcamo/worn/digi

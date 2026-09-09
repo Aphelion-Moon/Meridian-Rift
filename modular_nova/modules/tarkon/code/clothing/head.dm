@@ -17,6 +17,7 @@
 	actions_types = list(/datum/action/item_action/toggle)
 	visor_flags_inv = HIDEEARS|HIDEEYES
 	visor_flags_cover = HEADCOVERSEYES
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/head/utility/welding/hat/Initialize(mapload)
 	. = ..()

@@ -320,10 +320,8 @@ There are several things that need to be remembered:
 				mutant_override = TRUE
 		//On the off-chance we have a neck item that has to move around or cover the muzzle, it ALSO gets worn_icon_muzzled compatiability
 		if((bodyshape & BODYSHAPE_SNOUTED) && (worn_item.supports_variations_flags & CLOTHING_SNOUTED_VARIATION) && worn_item.worn_icon_muzzled)
-			var/snout_icon_file = worn_item.worn_icon_muzzled
-			if(snout_icon_file && icon_exists(snout_icon_file, RESOLVE_ICON_STATE(worn_item)))
-				icon_file = snout_icon_file
-				mutant_override = TRUE
+			icon_file = worn_item.worn_icon_muzzled
+			mutant_override = TRUE
 		// NOVA EDIT ADDITION END
 		var/mutable_appearance/neck_overlay = worn_item.build_worn_icon(default_layer = NECK_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/neck_overlay = worn_item.build_worn_icon(default_layer = NECK_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 		apply_height(neck_overlay, ENTIRE_BODY)
@@ -416,10 +414,8 @@ There are several things that need to be remembered:
 				icon_file = species_icon_file
 				mutant_override = TRUE
 		if((icon_file == 'icons/mob/clothing/head/default.dmi') && (bodyshape & BODYSHAPE_SNOUTED) && (worn_item.supports_variations_flags & CLOTHING_SNOUTED_VARIATION))
-			var/snout_icon_file = worn_item.worn_icon_muzzled || SNOUTED_HEAD_FILE
-			if(snout_icon_file && icon_exists(snout_icon_file, RESOLVE_ICON_STATE(worn_item)))
-				icon_file = snout_icon_file
-				mutant_override = TRUE
+			icon_file = worn_item.worn_icon_muzzled || SNOUTED_HEAD_FILE
+			mutant_override = TRUE
 		// NOVA EDIT ADDITION END
 		var/mutable_appearance/head_overlay = head.build_worn_icon(default_layer = HEAD_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/head_overlay = head.build_worn_icon(default_layer = HEAD_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 		apply_height(head_overlay, UPPER_BODY)
@@ -532,10 +528,8 @@ There are several things that need to be remembered:
 				icon_file = species_icon_file
 				mutant_override = TRUE
 		if(!mutant_override && (bodyshape & BODYSHAPE_SNOUTED) && (worn_item.supports_variations_flags & CLOTHING_SNOUTED_VARIATION))
-			var/snout_icon_file = worn_item.worn_icon_muzzled || SNOUTED_MASK_FILE
-			if(snout_icon_file && icon_exists(snout_icon_file, RESOLVE_ICON_STATE(worn_item)))
-				icon_file = snout_icon_file
-				mutant_override = TRUE
+			icon_file = worn_item.worn_icon_muzzled || SNOUTED_MASK_FILE
+			mutant_override = TRUE
 		// NOVA EDIT ADDITION END
 		var/mutable_appearance/mask_overlay = wear_mask.build_worn_icon(default_layer = FACEMASK_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/mask_overlay = wear_mask.build_worn_icon(default_layer = FACEMASK_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 		apply_height(mask_overlay, UPPER_BODY)
@@ -869,7 +863,11 @@ generate/load female uniform sprites matching all previously decided variables
 			greyscale_colors = greyscale_colors,
 			bodyshape = bodyshape,
 		)
-	if(!isinhands && ((bodyshapes_with_variations & bodyshape) || (gets_cropped_on_taurs && (bodyshape & BODYSHAPE_TAUR)))) // NOVA EDIT CHANGE - taur cropping routes through get_bodyshape_icon - ORIGINAL: if(!isinhands && (bodyshapes_with_variations & bodyshape)) // NOVA EDIT CHANGE - ORIGINAL: if(!isinhands && (bodyshapes_with_variations & bodyshape))
+	//if(!isinhands && (bodyshapes_with_variations & bodyshape)) // NOVA EDIT REMOVAL
+	// NOVA EDIT ADDITION START - three ways into get_bodyshape_icon()
+	var/wants_big_legs_mask = (bodyshape & BODYSHAPE_TAUR_BIG_LEGS_ALL) && (supports_variations_flags & CLOTHING_BIG_LEGS_MASK)
+	if(!isinhands && ((bodyshapes_with_variations & bodyshape) || gets_cropped_on_taurs && (bodyshape & BODYSHAPE_TAUR) || wants_big_legs_mask))
+	// NOVA EDIT ADDITION END
 		building_icon = get_bodyshape_icon(
 			base_icon = building_icon || icon(file2use, t_state),
 			key = "[t_state]-[file2use]-[female_uniform]",

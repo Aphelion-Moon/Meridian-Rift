@@ -49,6 +49,7 @@
 	trim_state = "trim_blueshield"
 	department_color = COLOR_COMMAND_BLUE
 	subdepartment_color = COLOR_CENTCOM_BLUE // Not the other way around. I think.
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_BLUESHIELD
 	honorifics = list("Agent", "Lieutenant", "Lt.") //Beret says they're an LT.
 	honorific_positions = HONORIFIC_POSITION_FIRST | HONORIFIC_POSITION_LAST | HONORIFIC_POSITION_FIRST_FULL | HONORIFIC_POSITION_NONE
@@ -86,6 +87,7 @@
 	trim_state = "trim_centcom"
 	department_color = COLOR_GREEN
 	subdepartment_color = COLOR_GREEN
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_NT_CONSULTANT
 	honorifics = list("Advisor", "Consultant", "Representative", "Rep.", "Liason")
 	honorific_positions = HONORIFIC_POSITION_FIRST | HONORIFIC_POSITION_LAST | HONORIFIC_POSITION_FIRST_FULL | HONORIFIC_POSITION_NONE
@@ -143,6 +145,7 @@
 	trim_state = "trim_corrections_officer"
 	department_color = COLOR_SECURITY_RED
 	subdepartment_color = COLOR_SECURITY_RED
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_CORRECTIONS_OFFICER
 	honorifics = list("Officer", "Corrections Officer", "C.O.")
 	honorific_positions = HONORIFIC_POSITION_FIRST | HONORIFIC_POSITION_LAST | HONORIFIC_POSITION_FIRST_FULL | HONORIFIC_POSITION_NONE
@@ -169,6 +172,7 @@
 	trim_state = "trim_barber"
 	department_color = COLOR_SERVICE_LIME
 	subdepartment_color = COLOR_SERVICE_LIME
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_BARBER
 	extra_access = list()
 	minimal_access = list(

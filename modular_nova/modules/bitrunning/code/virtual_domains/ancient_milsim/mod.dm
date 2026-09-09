@@ -132,7 +132,7 @@
 		dispense_type = new_dispense_type
 
 /obj/item/mod/module/dispenser/ancient_milsim/mechanic
-	name = "MOD alien tools-cable dispenser module"
+	name = "\improper MOD alien tools-cable dispenser module"
 	desc = "This module can create set of advanced tools and additional cable coils at the user's liking."
 	dispense_type = /obj/item/storage/belt/military/abductor/full
 	cooldown_time = 5 SECONDS
@@ -140,7 +140,7 @@
 	new_cooldown_time = 15 SECONDS
 
 /obj/item/mod/module/dispenser/ancient_milsim/trapper
-	name = "MOD chameleon projector-stealth landmines dispenser module"
+	name = "\improper MOD chameleon projector-stealth landmines dispenser module"
 	desc = "This module can create a chameleon projector and additional stealth landmines at the user's liking."
 	dispense_type = /obj/item/chameleon
 	cooldown_time = 10 SECONDS
@@ -148,7 +148,7 @@
 	new_cooldown_time = 10 SECONDS
 
 /obj/item/mod/module/dispenser/ancient_milsim/marksman
-	name = "MOD barricade box-throwing knives dispenser module"
+	name = "\improper MOD barricade box-throwing knives dispenser module"
 	desc = "This module can create a box of barricades and additional throwing knives at the user's liking."
 	dispense_type = /obj/item/storage/barricade
 	cooldown_time = 15 SECONDS
@@ -156,7 +156,7 @@
 	new_cooldown_time = 5 SECONDS
 
 /obj/item/mod/module/dispenser/ancient_milsim/medic
-	name = "MOD custom hypospray-hypospray vials dispenser module"
+	name = "\improper MOD custom hypospray-hypospray vials dispenser module"
 	desc = "This module can create a single combat hypospray and additional cartridges at the user's liking."
 	dispense_type = /obj/item/hypospray/mkii/deluxe/cmo/combat/ancient_milsim
 	cooldown_time = 5 SECONDS
@@ -178,7 +178,7 @@
 	)
 
 /obj/item/mod/module/dispenser/ancient_milsim/saboteur
-	name = "MOD Binyat implanter-EMP grenade dispenser module"
+	name = "\improper MOD Binyat implanter-EMP grenade dispenser module"
 	desc = "This module can create a single Binyat deck implanter and additional EMP grenades at the user's liking."
 	dispense_type = /obj/item/autosurgeon/syndicate/binyat
 	cooldown_time = 15 SECONDS
@@ -189,7 +189,7 @@
 	starting_organ = /obj/item/organ/cyberimp/hackerman_deck
 
 /obj/item/mod/module/dispenser/ancient_milsim/sentinel
-	name = "MOD stationary machinegun-machinegun ammo box module"
+	name = "\improper MOD stationary machinegun-machinegun ammo box module"
 	desc = "This module can create a single disassembled heavy machinegun and additional ammo boxes at the user's liking."
 	dispense_type = /obj/item/mounted_machine_gun_folded
 	cooldown_time = 15 SECONDS
@@ -197,7 +197,7 @@
 	new_cooldown_time = 15 SECONDS
 
 /obj/item/mod/module/dispenser/ancient_milsim/trooper
-	name = "MOD Sol rifle-Sol rifle magazine dispenser module"
+	name = "\improper MOD Sol rifle-Sol rifle magazine dispenser module"
 	desc = "This module can create a single .40 Sol caliber assault rifle and additional magazines at the user's liking."
 	dispense_type = /obj/item/gun/ballistic/automatic/sol_rifle/evil
 	cooldown_time = 25 SECONDS

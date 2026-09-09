@@ -4,7 +4,7 @@
 	icon = 'modular_nova/modules/syndie_edits/icons/obj.dmi'
 	worn_icon = 'modular_nova/modules/syndie_edits/icons/worn.dmi'
 	icon_state = "syndievest"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/suit/armor/vest/capcarapace/syndicate/Initialize(mapload)
 	. = ..()
@@ -16,6 +16,8 @@
 	icon = 'modular_nova/modules/syndie_edits/icons/obj.dmi'
 	worn_icon = 'modular_nova/modules/syndie_edits/icons/worn.dmi'
 	icon_state = "syndievest_winter"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = CHEST|GROIN
 	cold_protection = CHEST|GROIN|ARMS
 	min_cold_protection_temperature = FIRE_SUIT_MIN_TEMP_PROTECT
@@ -58,6 +60,7 @@
 	icon_state = "balaclava_ds"
 	flags_inv = HIDEFACE | HIDEEARS | HIDEFACIALHAIR
 	alternate_worn_layer = LOW_FACEMASK_LAYER //This lets it layer below glasses and headsets; yes, that's below hair, but it already has HIDEHAIR
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/neck_gaiter/syndicate
 	name = "tactical neck gaiter"
@@ -112,6 +115,7 @@
 	icon = 'icons/obj/clothing/suits/armor.dmi'
 	worn_icon = 'icons/mob/clothing/suits/armor.dmi'
 	icon_state = "bulletproof"
+	worn_icon_digi = null
 	body_parts_covered = CHEST //TG's version has no groin/arm padding
 
 /obj/item/clothing/under/syndicate/nova/overalls
@@ -124,6 +128,7 @@
 	name = "utility overalls skirtleneck"
 	desc = "A pair of spiffy overalls with a turtleneck underneath, this one is a skirt instead, breezy."
 	icon_state = "syndicate_overallskirt"
+	worn_icon_digi = null
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
@@ -158,6 +163,7 @@
 	name = "tactical maid outfit"
 	desc = "A 'tactical' skirtleneck fashioned to the likeness of a maid outfit. Why the Syndicate has these, you'll never know."
 	icon_state = "syndimaid"
+	worn_icon_digi = null
 	armor_type = /datum/armor/clothing_under
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT
@@ -230,6 +236,8 @@
 	icon_state = "ip_miner"
 	can_adjust = TRUE
 	alt_covers_chest = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 /obj/item/clothing/under/syndicate/nova/interdyne/deckofficer
 	name = "deck officer's jumpsuit"
@@ -267,6 +275,8 @@
 	icon_state = "ip_biosuit_head"
 	icon = 'modular_nova/master_files/icons/obj/clothing/hats.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/head.dmi'
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+	worn_icon_muzzled = null
 
 /obj/item/clothing/suit/bio_suit/interdyne
 	name = "interdyne biosuit"
@@ -276,11 +286,13 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
 	slowdown = 0.3
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/suit/armor/hos/deckofficer
 	name = "deck officer's cloak"
 	desc = "An armored trench-cloak with green accents worn by high-ranking interdyne staff."
 	icon_state = "ip_officercloak"
+	worn_icon_digi = null
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/armor.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/armor.dmi'
 	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/species/teshari/suit.dmi'
@@ -292,6 +304,7 @@
 	name = "interdyne black labcoat"
 	desc = "A black labcoat accented with interdyne-green colors."
 	icon_state = "ip_labcoatblack"
+	worn_icon_digi = null
 	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/species/teshari/suit.dmi'
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
@@ -299,6 +312,7 @@
 	name = "interdyne white labcoat"
 	desc = "A white labcoat accented with interdyne-green colors."
 	icon_state = "ip_labcoatwhite"
+	worn_icon_digi = null
 	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/species/teshari/suit.dmi'
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
@@ -313,6 +327,7 @@
 
 /obj/item/clothing/suit/toggle/labcoat/nova/fancy/rd/deckofficer
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/fancy/rd/deckofficer"
+	worn_icon_digi = null
 	greyscale_colors = "#FFFFFF#4F8F56"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 

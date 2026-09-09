@@ -137,6 +137,7 @@
 #include "card_mismatch.dm"
 #include "cardboard_cutouts.dm"
 #include "cargo_crate_sanity.dm"
+#include "cargo_crates_and_exclusions.dm"
 #include "cargo_dep_order_locations.dm"
 #include "cargo_selling.dm"
 #include "chain_pull_through_space.dm"
@@ -229,6 +230,7 @@
 #include "language_transfer.dm"
 #include "leash.dm"
 #include "lesserform.dm"
+#include "light_replacer.dm"
 #include "limbsanity.dm"
 #include "ling_decap.dm"
 #include "liver.dm"
@@ -377,11 +379,16 @@
 #include "~nova\accessory_layers.dm"
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
+#include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\liver_nova.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
+#include "~nova\preferences_import.dm"
 #include "~nova\shuttle.dm"
+#include "~nova\symphony_moderation.dm"
+#include "~nova\symphony_whitelist.dm"
+#include "~nova\world_topic_log_redaction.dm"
 // NOVA EDIT END
 // END_INCLUDE
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter

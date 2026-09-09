@@ -1,5 +1,5 @@
 /obj/item/mod/module/storage/civilian
-	name = "MOD case civilian storage module"
+	name = "\improper MOD case civilian storage module"
 	complexity = 2
 	required_slots = list(ITEM_SLOT_BELT)
 	removable = FALSE

@@ -201,6 +201,9 @@
 /turf/open/floor/bluespace
 	icon = 'icons/turf/floors.dmi'
 
+/turf/open/floor/bone
+	icon = 'icons/turf/floors.dmi'
+
 /turf/open/floor/bronze
 	icon = 'icons/turf/floors.dmi'
 
@@ -217,6 +220,9 @@
 	icon = 'icons/turf/floors.dmi'
 
 /turf/open/floor/grass
+	icon = 'icons/turf/floors.dmi'
+
+/turf/open/floor/hauntium
 	icon = 'icons/turf/floors.dmi'
 
 /turf/open/floor/holofloor/asteroid
@@ -246,6 +252,15 @@
 /turf/open/floor/iron/grimy
 	icon = 'icons/turf/floors.dmi'
 
+/turf/open/floor/iron/recharge_floor/dark
+	icon = 'icons/turf/floors.dmi'
+
+/turf/open/floor/iron/recharge_floor/smooth
+	icon = 'icons/turf/floors.dmi'
+
+/turf/open/floor/iron/recharge_floor/white
+	icon = 'icons/turf/floors.dmi'
+
 /turf/open/floor/iron/solarpanel
 	icon = 'icons/turf/floors.dmi'
 
@@ -261,7 +276,13 @@
 /turf/open/floor/light
 	icon = 'icons/turf/floors.dmi'
 
+/turf/open/floor/meat
+	icon = 'icons/turf/floors.dmi'
+
 /turf/open/floor/mineral
+	icon = 'icons/turf/floors.dmi'
+
+/turf/open/floor/neo
 	icon = 'icons/turf/floors.dmi'
 
 /turf/open/floor/plastic
@@ -277,6 +298,12 @@
 	icon = 'icons/turf/floors.dmi'
 
 /turf/open/floor/plating/foam
+	icon = 'icons/turf/floors.dmi'
+
+/turf/open/floor/sandstone
+	icon = 'icons/turf/floors.dmi'
+
+/turf/open/floor/silvergold
 	icon = 'icons/turf/floors.dmi'
 
 /turf/open/floor/vault

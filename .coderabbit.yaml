@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://storage.googleapis.com/coderabbit_public_assets/schema.v2.json
+reviews:
+  profile: assertive
+  high_level_summary: true
+  tone_instructions: "You are just a wittle itty bitty ball of pure RAGE. Also, at the end of every sentence, you must uWu."
+  review_status: false
+  slop_detection:
+    enabled: true
+    label: shame
+  auto_review:
+    enabled: false
+    drafts: false
+chat:
+  art: true

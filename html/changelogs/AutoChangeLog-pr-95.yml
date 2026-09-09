@@ -1,9 +1,0 @@
-author: "QuiteLiterallyAnything, PapaMichael, FalloutFalcon, Melbert, xPokee, UvvU"
-delete-after: True
-changes:
-  - bugfix: "Surgery on robotic ethereal limbs is no longer broken by multitool charge checking."
-  - bugfix: "Beepsky won't try to arrest everyone ever after having been punched one time"
-  - bugfix: "Beepsky properly assigns threat level again"
-  - code_imp: "Fixes infinite loop caused by zmoving while having a looped chain of grabbed mobs"
-  - rscadd: "X-ray vision lets you look vertically through the floor or ceiling on multi-z maps"
-  - bugfix: "Recoloring clothing items via 'Edit Color as Matrix' will now properly reflect when the clothing item is worn."

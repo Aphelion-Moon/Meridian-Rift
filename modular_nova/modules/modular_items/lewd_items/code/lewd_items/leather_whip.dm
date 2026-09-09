@@ -12,10 +12,10 @@
 	worn_icon_muzzled = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_masks_muzzled.dmi'
 	w_class = WEIGHT_CLASS_NORMAL
 	hitsound = 'sound/items/weapons/whip.ogg'
-	clothing_flags = INEDIBLE_CLOTHING
 	obj_flags_nova = ERP_ITEM
 	//When taking that thing in mouth
 	flags_cover = MASKCOVERSMOUTH
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	var/modifies_speech = TRUE
 	/// If the color of the toy has been changed before
 	var/color_changed = FALSE
@@ -44,6 +44,9 @@
 	var/list/moans_alt = list("Mhgm...", "Hmmmp!...", "GMmmhp!")
 	/// Probabilty that `moans_alt` is used instead of `moans`
 	var/moans_alt_probability = 5
+
+/obj/item/clothing/mask/leatherwhip/create_moth_snack()
+	return null
 
 /obj/item/clothing/mask/leatherwhip/worn_overlays(isinhands = FALSE)
 	. = ..()

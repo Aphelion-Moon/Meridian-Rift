@@ -26,7 +26,6 @@
 /datum/design/board/powerator
 	name = "Powerator Board"
 	desc = "Allows for the construction of circuit boards used to build a powerator."
-	id = "powerator"
 	build_path = /obj/item/circuitboard/machine/powerator
 	category = list(
 		RND_CATEGORY_MACHINE + RND_SUBCATEGORY_MACHINE_ENGINEERING,
@@ -34,16 +33,14 @@
 	departmental_flags = DEPARTMENT_BITFLAG_ENGINEERING
 
 /datum/techweb_node/powerator
-	id = TECHWEB_NODE_POWERATOR
 	display_name = "Powerator"
 	description = "We've been saved by it in the past, we should send some power ourselves!"
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = TECHWEB_TIER_3_POINTS)
 	announce_channels = list(RADIO_CHANNEL_ENGINEERING)
-	hidden = TRUE
-	experimental = TRUE
-	prereq_ids = list(TECHWEB_NODE_PARTS_ADV)
-	design_ids = list(
-		"powerator",
+	node_flags = parent_type::node_flags | TECHWEB_NODE_HIDDEN | TECHWEB_NODE_EXPERIMENTAL
+	prerequisite_nodes = list(/datum/techweb_node/parts_adv)
+	unlocked_designs = list(
+		/datum/design/board/powerator,
 	)
 
 // This produces 62 per 2 seconds, taxed to 49, which gives us 24-25 per second.

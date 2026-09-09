@@ -14,6 +14,8 @@
 	var/using_power = FALSE
 	/// List of items that can be recharged
 	var/static/list/allowed_devices = typecacheof(list(
+		/obj/item/stock_parts/power_store/cell/microfusion, //NOVA EDIT ADDITION
+		/obj/item/gun/microfusion, // NOVA EDIT ADDITION
 		/obj/item/gun/energy,
 		/obj/item/melee/baton/security,
 		/obj/item/ammo_box/magazine/recharge,
@@ -103,6 +105,21 @@
 		if(!energy_gun.can_charge)
 			to_chat(user, span_notice("Your gun has no external power connector."))
 			return ITEM_INTERACT_BLOCKING
+	//NOVA EDIT ADDITION START
+
+	if (istype(tool, /obj/item/gun/microfusion))
+		var/obj/item/gun/microfusion/microfusion_gun = tool
+		if(microfusion_gun.cell?.chargerate <= 0)
+			to_chat(user, span_notice("[microfusion_gun] cannot be recharged!"))
+			return ITEM_INTERACT_BLOCKING
+
+	if (istype(tool, /obj/item/stock_parts/power_store/cell/microfusion))
+		var/obj/item/stock_parts/power_store/cell/microfusion/inserting_cell = tool
+		if(inserting_cell.chargerate <= 0)
+			to_chat(user, span_notice("[inserting_cell] cannot be recharged!"))
+			return ITEM_INTERACT_BLOCKING
+
+	//NOVA EDIT ADDITION END
 	user.transferItemToLoc(tool, src)
 	return ITEM_INTERACT_SUCCESS
 

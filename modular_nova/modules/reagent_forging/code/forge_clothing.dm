@@ -47,6 +47,7 @@
 	worn_icon_vox = 'modular_nova/modules/reagent_forging/icons/mob/clothing/forge_clothing_oldvox.dmi'
 	worn_icon_teshari = 'modular_nova/modules/reagent_forging/icons/mob/clothing/forge_clothing_teshari.dmi'
 	icon_state = "plate_vest"
+	worn_icon_digi = null
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	resistance_flags = FIRE_PROOF
 	obj_flags_nova = ANVIL_REPAIR
@@ -67,6 +68,7 @@
 	name = "chain mail"
 	desc = "An armor made by weaved chain links, allowing blows to be evenly distributed."
 	icon_state = "chained_leather_armor"
+	worn_icon_digi = null
 	icon = 'modular_nova/modules/primitive_catgirls/icons/objects.dmi'
 	worn_icon = 'modular_nova/modules/primitive_catgirls/icons/clothing_greyscale.dmi'
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
@@ -122,6 +124,7 @@
 	obj_flags_nova = ANVIL_REPAIR
 	armor_type = /datum/armor/armor_forging_medium
 	material_flags = MATERIAL_EFFECTS | MATERIAL_ADD_PREFIX | MATERIAL_COLOR
+	worn_icon_muzzled = null
 
 /obj/item/clothing/head/helmet/forging_plate_helmet/Initialize(mapload)
 	. = ..()

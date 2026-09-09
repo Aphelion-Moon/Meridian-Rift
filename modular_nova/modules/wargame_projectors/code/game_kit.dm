@@ -9,7 +9,7 @@
 	custom_premium_price = PAYCHECK_CREW * 2
 
 /obj/item/storage/briefcase/secure/white/wargame_kit/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/wargame_projector/ships = 1,
 		/obj/item/wargame_projector/ships/red = 1,
 		/obj/item/wargame_projector/terrain = 1,

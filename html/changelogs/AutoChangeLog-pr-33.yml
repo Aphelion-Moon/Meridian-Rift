@@ -1,8 +1,0 @@
-author: "vinylspiders"
-delete-after: True
-changes:
-  - bugfix: "taurs can loaf again"
-  - bugfix: "teshari mask offsets should now being applied correctly"
-  - bugfix: "fixes a visual bug where if you switched slots from a taur to a teshari you could end up with normal legs on the preview dummy"
-  - bugfix: "fixes sheaths not updating when in the default state"
-  - bugfix: "taur mode penises/testicles work again"

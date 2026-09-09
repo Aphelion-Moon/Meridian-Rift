@@ -82,6 +82,56 @@
 	contains = list(/obj/item/gun/energy/modular_laser_rifle)
 	cost = CARGO_CRATE_VALUE * 4
 
+/datum/supply_pack/companies/energy/microstar/basic_energy_long_weapons/basic_mcr
+	contains = list(/obj/item/gun/microfusion/mcr01)
+	cost = CARGO_CRATE_VALUE * 2
+
+// Preset 'loadout' kits built around a barrel attachment
+/datum/supply_pack/companies/energy/microstar/mcr_attachments
+	cost = CARGO_CRATE_VALUE * 2
+
+/datum/supply_pack/companies/energy/microstar/mcr_attachments/hellfire
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_loadout/hellfire)
+
+/datum/supply_pack/companies/energy/microstar/mcr_attachments/scatter
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_loadout/scatter)
+
+/datum/supply_pack/companies/energy/microstar/mcr_attachments/lance
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_loadout/lance)
+
+/datum/supply_pack/companies/energy/microstar/mcr_attachments/repeater
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_loadout/repeater)
+
+/datum/supply_pack/companies/energy/microstar/mcr_attachments/tacticool
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_loadout/tacticool)
+
+// Improved phase emitters, cells, and cell attachments
+/datum/supply_pack/companies/energy/microstar/mcr_upgrades
+
+/datum/supply_pack/companies/energy/microstar/mcr_upgrades/stabilizer
+	contains = list(/obj/item/microfusion_cell_attachment/stabiliser)
+	cost = CARGO_CRATE_VALUE * 0.5
+
+/datum/supply_pack/companies/energy/microstar/mcr_upgrades/enhanced_part_kit
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_parts/enhanced)
+	cost = CARGO_CRATE_VALUE
+
+/datum/supply_pack/companies/energy/microstar/mcr_upgrades/capacity_booster
+	contains = list(/obj/item/microfusion_cell_attachment/overcapacity)
+	cost = CARGO_CRATE_VALUE * 0.5
+
+/datum/supply_pack/companies/energy/microstar/mcr_upgrades/advanced_part_kit
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_parts/advanced)
+	cost = CARGO_CRATE_VALUE
+
+/datum/supply_pack/companies/energy/microstar/mcr_upgrades/selfcharge
+	contains = list(/obj/item/microfusion_cell_attachment/selfcharging)
+	cost = CARGO_CRATE_VALUE * 2
+
+/datum/supply_pack/companies/energy/microstar/mcr_upgrades/bluespace_part_kit
+	contains = list(/obj/item/storage/briefcase/secure/white/mcr_parts/bluespace)
+	cost = CARGO_CRATE_VALUE * 3
+
 /datum/supply_pack/companies/energy/microstar/experimental_energy
 	cost = CARGO_CRATE_VALUE * 3
 

@@ -18,6 +18,7 @@
 	name = "gear harness"
 	desc = "A simple, inconspicuous harness replacement for a jumpsuit."
 	icon_state = "gear_harness"
+	worn_icon_digi = null
 	body_parts_covered = NONE
 	attachment_slot_override = CHEST
 	can_adjust = FALSE
@@ -26,6 +27,8 @@
 	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/misc/nova/gear_harness/suit // Functionally the same, this is just so the loadout system allows you to pick either one
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/misc/nova/gear_harness/Initialize(mapload)
 	. = ..()
@@ -35,12 +38,16 @@
 	name = "collection of leaves"
 	desc = "Three leaves, designed to cover the nipples and genetalia of the wearer. A foe so proud will first the weaker seek."
 	icon_state = "eve"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = CHEST|GROIN
 
 /obj/item/clothing/under/misc/nova/gear_harness/adam
 	name = "leaf"
 	desc = "A single leaf, designed to cover the genitalia of the wearer. Seek not temptation."
 	icon_state = "adam"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = GROIN
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 

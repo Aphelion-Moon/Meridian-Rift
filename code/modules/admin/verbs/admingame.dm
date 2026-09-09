@@ -1,7 +1,8 @@
 ADMIN_VERB(cmd_player_panel, R_ADMIN, "Player Panel", "See all players and their Player Panel.", ADMIN_CATEGORY_GAME)
 	user.holder.player_panel_new()
 
-ADMIN_VERB_ONLY_CONTEXT_MENU(show_player_panel, R_ADMIN, "Show Player Panel", mob/player)
+ADMIN_VERB_ONLY_CONTEXT_MENU(show_player_panel, R_ADMIN, "Show Player Panel", /mob)
+	VERB_ARG_TYPED(player, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_WORLD, /mob)
 	log_admin("[key_name(user)] checked the individual player panel for [key_name(player)][isobserver(user.mob)?"":" while in game"].")
 
 	if(!player)
@@ -138,12 +139,12 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(show_player_panel, R_ADMIN, "Show Player Panel", mo
 			else
 				body += "<A href='byond://?_src_=holder;[HrefToken()];simplemake=observer;mob=[REF(player)]'>Make Ghost</A> | "
 
-			if(ishuman(player) && !ismonkey(player))
+			if(ishuman(player) && !HAS_TRAIT(player, TRAIT_LESSER_HUMANOID))
 				body += "<b>Human</b> | "
 			else
 				body += "<A href='byond://?_src_=holder;[HrefToken()];simplemake=human;mob=[REF(player)]'>Make Human</A> | "
 
-			if(ismonkey(player))
+			if(HAS_TRAIT(player, TRAIT_LESSER_HUMANOID))
 				body += "<b>Monkey</b> | "
 			else
 				body += "<A href='byond://?_src_=holder;[HrefToken()];simplemake=monkey;mob=[REF(player)]'>Make Monkey</A> | "
@@ -176,7 +177,8 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(show_player_panel, R_ADMIN, "Show Player Panel", mo
 	user << browse(body, "window=adminplayeropts-[REF(player)];size=550x540")
 	BLACKBOX_LOG_ADMIN_VERB("Player Panel")
 
-ADMIN_VERB_ONLY_CONTEXT_MENU(show_occupants_player_panel, R_ADMIN, "Show Occupants PP", obj/target)
+ADMIN_VERB_ONLY_CONTEXT_MENU(show_occupants_player_panel, R_ADMIN, "Show Occupants PP", /obj)
+	VERB_ARG_TYPED(target, VERB_ARG_TYPE_OBJ, VERB_ARG_SOURCE_WORLD, /obj)
 	var/list/options = list()
 
 	// Vehicles
@@ -246,7 +248,8 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(show_occupants_player_panel, R_ADMIN, "Show Occupan
 			SSadmin_verbs.dynamic_invoke_verb(user, /datum/admin_verb/show_player_panel, selected_mob)
 		return
 
-GAME_VERB_PROC(/client, cmd_admin_godmode, "Godmode", "Admin.Game", mob/mob)
+GAME_VERB_PROC(/client, cmd_admin_godmode, "Godmode", "Admin.Game")
+	VERB_ARG_TYPED(mob, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_WORLD, /mob)
 	if(!check_rights(R_ADMIN))
 		return
 
@@ -469,7 +472,27 @@ ADMIN_VERB(combo_hud, R_ADMIN, "Toggle Combo HUD", "Toggles the Admin Combo HUD.
 
 #undef ADMIN_HUDS
 
-ADMIN_VERB(show_traitor_panel, R_ADMIN, "Show Traitor Panel", "Edit mobs's memory and role", ADMIN_CATEGORY_GAME, mob/target_mob)
+// APHELION EDIT ADDITION START - ADMIN_TECH
+ADMIN_VERB(wallhacks, R_ADMIN, "Admin Wallhacks", "Toggles full-bright, perfect vision (see mobs through walls), and hearing through walls.", ADMIN_CATEGORY_GAME)
+	if(!user.mob)
+		return
+
+	// State lives on the client rather than the mob, so aghosting or possessing a new body can't strand the old one
+	// with wallhacks on. See modular_aphelion/master_files/code/modules/admin/admin.dm for both halves of the toggle.
+	if(user.admin_wallhacks_enabled)
+		user.disable_admin_wallhacks()
+	else
+		user.enable_admin_wallhacks()
+
+	var/wallhacks_on = user.admin_wallhacks_enabled
+	to_chat(user, "You toggled Admin Wallhacks [wallhacks_on ? "ON" : "OFF"].", confidential = TRUE)
+	message_admins("[key_name_admin(user)] toggled Admin Wallhacks [wallhacks_on ? "ON" : "OFF"].")
+	log_admin("[key_name(user)] toggled Admin Wallhacks [wallhacks_on ? "ON" : "OFF"].")
+	SSblackbox.record_feedback("nested tally", "admin_toggle", 1, list("Admin Wallhacks", "[wallhacks_on ? "Enabled" : "Disabled"]"))
+
+// APHELION EDIT ADDITION END
+ADMIN_VERB(show_traitor_panel, R_ADMIN, "Show Traitor Panel", "Edit mobs's memory and role", ADMIN_CATEGORY_GAME)
+	VERB_ARG_TYPED(target_mob, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_WORLD, /mob)
 	var/datum/mind/target_mind = target_mob.mind
 	if(!target_mind)
 		to_chat(user, "This mob has no mind!", confidential = TRUE)
@@ -480,7 +503,8 @@ ADMIN_VERB(show_traitor_panel, R_ADMIN, "Show Traitor Panel", "Edit mobs's memor
 	target_mind.traitor_panel()
 	BLACKBOX_LOG_ADMIN_VERB("Traitor Panel")
 
-ADMIN_VERB(show_skill_panel, R_ADMIN, "Show Skill Panel", "Edit mobs's experience and skill levels", ADMIN_CATEGORY_GAME, mob/target_mob)
+ADMIN_VERB(show_skill_panel, R_ADMIN, "Show Skill Panel", "Edit mobs's experience and skill levels", ADMIN_CATEGORY_GAME)
+	VERB_ARG_TYPED(target_mob, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_WORLD, /mob)
 	var/datum/mind/target_mind
 	if(istype(target_mob, /datum/mind))
 		target_mind = target_mob

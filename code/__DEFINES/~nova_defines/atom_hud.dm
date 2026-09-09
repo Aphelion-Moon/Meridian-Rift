@@ -1,3 +1,5 @@
+#define MODULAR_HUDS_DMI 'modular_nova/master_files/icons/mob/huds/hud.dmi'
+
 // Nova Security
 #define SECHUD_CORRECTIONS_OFFICER "hudcorrectionsofficer"
 // Nova Departmental Guards

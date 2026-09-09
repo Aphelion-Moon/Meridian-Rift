@@ -68,6 +68,10 @@
 	name = "handcrafted hearthkin armor"
 	desc = "An armor obviously crafted by the expertise of a hearthkin. It has leather shoulder pads and a chain mail underneath."
 	icon_state = "chained_leather_armor"
+	worn_icon_digi = null
+	worn_icon_vox = null
+	worn_icon_better_vox = null
+	worn_icon_teshari = null
 	icon = 'modular_nova/modules/primitive_catgirls/icons/objects.dmi'
 	worn_icon = 'modular_nova/modules/primitive_catgirls/icons/clothing_greyscale.dmi'
 	body_parts_covered = GROIN|CHEST

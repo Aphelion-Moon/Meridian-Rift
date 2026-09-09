@@ -3,7 +3,7 @@
 	var/obj/projectile/tether/tether_type = /obj/projectile/tether
 
 /obj/item/mod/module/tether/anti_teleport
-	name = "MOD grounding apprehension module"
+	name = "\improper MOD grounding apprehension module"
 	desc = "A custom-built grappling-hook powered by a winch capable of hauling the user. \
 		The serrated edges on this variant's anchors, and the flashforged bluespace grounding circuit, \
 		mean that each tether drains much more charge when fired. It remains functional as a tether, though."

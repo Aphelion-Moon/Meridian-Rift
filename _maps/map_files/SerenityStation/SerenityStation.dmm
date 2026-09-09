@@ -77837,7 +77837,7 @@
 /area/station/maintenance/port/greater)
 "wCM" = (
 /obj/structure/closet/crate/science{
-	name = "MOD core crate"
+	name = "\improper MOD core crate"
 	},
 /obj/item/mod/core/standard{
 	pixel_x = -4

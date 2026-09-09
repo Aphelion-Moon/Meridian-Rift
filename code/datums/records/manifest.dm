@@ -46,7 +46,7 @@ GLOBAL_DATUM_INIT(manifest, /datum/manifest, new)
 			misc_list[++misc_list.len] = list(
 				"name" = name,
 				"rank" = rank,
-				"trim" = trim,
+				"trim" = trim, // APHELION EDIT CHANGE - CREW_MANIFEST_JOB_ICONS - ORIGINAL: "trim" = job?.tgui_icon,
 				)
 			continue
 		for(var/department_type in job.departments_list)
@@ -60,7 +60,7 @@ GLOBAL_DATUM_INIT(manifest, /datum/manifest, new)
 			var/list/entry = list(
 				"name" = name,
 				"rank" = rank,
-				"trim" = trim,
+				"trim" = trim, // APHELION EDIT CHANGE - CREW_MANIFEST_JOB_ICONS - ORIGINAL: "trim" = job.tgui_icon,
 				)
 			var/list/department_list = manifest_out[department.department_name]
 			if(istype(job, department.department_head))
@@ -131,7 +131,7 @@ GLOBAL_DATUM_INIT(manifest, /datum/manifest, new)
 
 	// NOVA EDIT ADDITION BEGIN - ALTERNATIVE_JOB_TITLES
 	// The alt job title, if user picked one, or the default
-	var/chosen_assignment = person_client?.prefs.alt_job_titles[assignment] || assignment
+	var/chosen_assignment = person_client?.prefs?.get_alt_job_title(assignment) || assignment
 	// NOVA EDIT ADDITION END - ALTERNATIVE_JOB_TITLES
 
 	var/datum/record/locked/lockfile = new(

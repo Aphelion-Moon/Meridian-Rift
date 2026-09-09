@@ -84,6 +84,7 @@
 	assignment = "Tarkon Ensign"
 	access = list(ACCESS_MEDICAL, ACCESS_ROBOTICS, ACCESS_AWAY_GENERAL, ACCESS_TARKON, ACCESS_WEAPONS)
 	department_color = COLOR_COMMAND_BLUE
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_BLUESHIELD
 	trim_icon = 'modular_nova/master_files/icons/obj/card.dmi'
 	trim_state = "trim_blueshield"
@@ -103,6 +104,7 @@
 	assignment = "Tarkon Port Director"
 	access = list(ACCESS_MEDICAL, ACCESS_ROBOTICS, ACCESS_AWAY_GENERAL, ACCESS_TARKON, ACCESS_WEAPONS)
 	department_color = COLOR_COMMAND_BLUE
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_BLUESHIELD
 	trim_state = "trim_captain"
 

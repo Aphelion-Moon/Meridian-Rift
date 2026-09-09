@@ -272,7 +272,7 @@
 		add_bodypart_overlay(texture_bodypart_overlay, update = FALSE)
 
 	if(IS_ORGANIC_LIMB(src))
-		blood_dna_info = list("Unknown DNA" = get_blood_type(BLOOD_TYPE_O_PLUS))
+		blood_dna_info = list("Unknown DNA" = get_blood_type(/datum/blood_type/human/o_plus))
 
 	set_bio_state_status()
 
@@ -750,6 +750,9 @@
 			wounding_type = WOUND_PIERCE
 
 	if(owner) // i tried to modularize the below, but the modifications to wounding_dmg and wounding_type cant be extracted to a proc
+		if(!forced)
+			brute *= GET_PHYSIOLOGY(owner, BRUTE)
+			burn *= GET_PHYSIOLOGY(owner, BURN)
 		var/easy_dismember = HAS_TRAIT(owner, TRAIT_EASYDISMEMBER) // if we have easydismember, we don't reduce damage when redirecting damage to different types (slashing weapons on mangled/skinless limbs attack at 100% instead of 50%)
 
 		var/has_exterior = (bio_status & ANATOMY_EXTERIOR)
@@ -1341,6 +1344,17 @@
 	if (dropped)
 		image_dir = SOUTH
 
+	// Stumps are FAKE limbs that hold the spot for REAL limbs. thusly no sprite of their own, so early return!
+	if(IS_STUMP(src))
+		SEND_SIGNAL(src, COMSIG_BODYPART_GET_LIMB_ICON, ., dropped)
+		return .
+
+	// Arms past the first pair get body_zone suffixed (l_arm_2 and so on). No state exists for them
+	// This guard is bad :)
+	if(held_index >= 3)
+		SEND_SIGNAL(src, COMSIG_BODYPART_GET_LIMB_ICON, ., dropped)
+		return .
+
 	// Handles invisibility (not alpha or actual invisibility but invisibility)
 	if(is_invisible)
 		. += image(icon_invisible, "invisible_[body_zone]", -BODYPARTS_LAYER, dir = image_dir)
@@ -1767,7 +1781,7 @@
 			continue
 		// Consider it contirubuted by the wound itself
 		// Not -surgery_bloodloss as this way clamping the vessels reduces the overall bleeding
-		cached_bleed_rate -= UNCLAMPED_VESSELS_BLEEDING
+		cached_bleed_rate -= min(iter_wound.blood_flow, UNCLAMPED_VESSELS_BLEEDING) // APHELION EDIT CHANGE - ORIGINAL: cached_bleed_rate -= UNCLAMPED_VESSELS_BLEEDING
 		surgery_bloodloss = 0
 
 	if(owner.body_position == LYING_DOWN)

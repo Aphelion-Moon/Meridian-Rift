@@ -1,0 +1,124 @@
+# Advanced loadouts, tools, items, and machines for admins
+
+Aphelion PR: https://github.com/AphelionDevelopment/Meridian-Rift/pull/111
+Nova source PR: https://github.com/NovaSector/NovaSector/pull/6628
+
+MODULE ID: ADMIN_TECH
+
+### Description:
+
+Adds Aphelion-specific admin outfits, tools, debug items, and other quality of life considerations
+This module aims to migrate admin 'god-hand the world is changing magically around you' into the in-character sphere by providing nearly every conceivable solution to problems that a staffer might encounter in the course of preparing for events or resolving problems with a body instead of tools like buildmode.
+
+'Bluespace' items are a baseline admin tool, usually identified by /admin as the breakpoint in its path.
+'Subspace' items are meant to be the 'badmin' variant of the above, with additional extras tacked on top of the Bluespace parent items. Some items only exist in this variant state.
+You should be really careful giving these items to players without supervision.
+
+Subspace refers to Telecommunications, or general data. If we consider a blackhole to be the ultimate medium for storage of information, then 'subspace' is the layer of data and information.
+I viewed this as these items existing from simply containing data into a form. It's writing on a fourth wall. I don't think it particularly makes sense, but it doesn't need to.
+Lore Team can skin me later and help me update this if they please.
+
+Links in with icspawning module from skyrat era, integrates some of its content more relevantly into this module's organization, and updates many of that module's original features.
+
+### TG Code Changes and Modular Additions:
+
+code/datums/elements/strippable.dm - Adds NOSTRIP trait to /datum/strippable_item/proc/try_unequip
+code/modules/mob/living/carbon/examine.dm - Adds TRAIT_ADMIN_STEALTH which provides a unique obscuration flavor while blocking examines.
+code/__HELPERS/pronouns.dm - TRAIT_ADMIN_STEALTH
+modular_aphelion/modules/admin_tech/code/admin_elements.dm - can_see_target helper addition
+code/_onclick/click.dm - TRAIT_ADMIN_REACHABLE early-return in IsReachableBy
+code/game/machinery/_machinery.dm - TRAIT_ADMIN_REACHABLE early-return in interact gating
+code/__DEFINES/~aphelion_defines/admin_tech.dm - Admin-Tech defines
+icons/map_icons/items/encryptionkey.dmi - Justification: Auto-Sprited, cant stop it
+icons/map_icons/items/pda.dmi - Justification: Auto-Sprited, cant stop it
+code/datums/storage/storage.dm - Replaces /datum/storage/proc/orient_storage() with one including a widescreen check for oversized storages, and paired var screen_max_columns_widescreen on master /datum/storage
+modular_nova/modules/cellguns/code/cellguns.dm - Updated for quality of life and stuff needed for admin and other cellgun types
+code/modules/tgui/states.dm - Modular edit to fix ui opening at distance with the subspace headset, thank you again internetizen
+modular_aphelion/master_files/code/modules/surgery/surgery_tools.dm - Nulls worn_icon on the surgical tools that had it set as a bad string, surfaced by admin MOD themes exposing every item to the suit_storage_icons unit test
+modular_aphelion/master_files/code/modules/power/lighting/light_items.dm - Same worn_icon fix, for light tubes and bulbs
+modular_aphelion/master_files/code/game/objects/items/plushes.dm - Same worn_icon fix, for the carp/Ratvar/Nar'Sie plushies
+
+### Defines:
+
+ADMIN_OBJ_FLAGS - code/__DEFINES/~aphelion_defines/admin_tech.dm - code/__DEFINES/~nova_defines/_globalvars/bitfields.dm
+
+These are three separate defines because they target three separate bitfields whose bits overlap - do not merge them back into one:
+ADMIN_OBJ_FLAGS goes on obj_flags, ADMIN_OBJ_FLAGS_NOVA goes on obj_flags_nova, ADMIN_CLOTHING_FLAGS goes on clothing_flags (set with |= in Initialize so the parent type's own flags survive).
+
+### Administrative Fabricator:
+
+`/obj/machinery/rnd/production/colony_lathe/admin` prints the module's gear. It runs on `/datum/techweb/autounlocking/admin`, whose `allowed_buildtypes` is `ADMIN_TECHWEB | COLONY_FABRICATOR`, so it is a superset of the rapid construction fabricator rather than a replacement for it.
+
+Just about everything in the module is on it - roughly 110 designs, sorted into tools, weaponry, equipment, storage, medical, internals, worn kit, identification, MOD suits, cyborg upgrades and the subspace tier. What is deliberately left off is ammo casings, firing pins, robot model datums and abstract parent types.
+
+Adding a printable means adding a `/datum/design/admin` subtype in admin_techweb.dm. Only `name`, `id` and `build_path` are usually needed - the parent supplies `build_type`, the token material cost and the category list. Two rules the CI unit tests enforce:
+
+- keep `RND_CATEGORY_INITIAL` in the category list, or an autounlocking techweb will not pick the design up
+- never set `materials = list()`, since a design with a `build_path` and no material cost at all fails the design test. The fabricator overrides `build_efficiency()` to zero, so the token cost is never actually charged.
+
+### Traits:
+
+TRAIT_NOSTRIP - Prevents item removal by Strip Menu
+TRAIT_ADMIN_STEALTH - Provides identity masking similar to the UNKNOWN_APPEARANCE trait, but special inspect texts
+TRAIT_ADMIN_REACHABLE - Provides early TRUE returns on IsReachableBy in code/_onclick/click.dm and can_perform_action code/modules/mob/living/living.dm. Also provides additions to code/game/machinery/_machinery.dm
+TRAIT_SHOW_ALL_WIRES - Adds another method of showing the global wire legend without having to hold an abductor multi-tool / be a borg / be holding a copy of the blueprints modular_aphelion/master_files/code/datums/wires/_wires.dm
+
+### Included files:
+
+modular_aphelion/master_files/code/datums/wires/_wires.dm - TRAIT_SHOW_ALL_WIRES hook
+modular_aphelion/master_files/code/game/objects/objs.dm - admin obj support
+modular_aphelion/master_files/code/modules/admin/admin.dm - Admin Combo HUD and Wallhacks keybindings and client state
+modular_aphelion/master_files/code/modules/research/techweb/techweb_types.dm - ADMIN_TECHWEB node registration
+modular_nova/modules/customization/modules/mob/living/carbon/human/MOD_sprite_accessories/mod_themes.dm - admin MOD theme support
+modular_nova/modules/icspawning/code/cards_ids.dm - trimmed for admin outfit menu integration
+modular_nova/modules/icspawning/code/observer.dm - outfit selection converted to tgui list, adds save slots
+modular_nova/modules/icspawning/readme.md - updated for the above
+modular_nova/modules/job_locker_beacon/code/job_locker_beacon.dm - removed, folded into admin_tech
+modular_nova/modules/bluespace_admin/icons/mob/belt.dmi - removed, old module folded into admin_tech
+modular_nova/modules/bluespace_admin/icons/obj/belt.dmi - removed, old module folded into admin_tech
+modular_nova/modules/borgs/icons/screen_cyborg.dmi - updated cyborg screen icon
+modular_nova/master_files/code/modules/client/preferences.dm - preferred_spawn_methods/preferred_spawn_outfits vars
+code/modules/client/preferences_savefile.dm - Saves/loads preferred_spawn_methods and preferred_spawn_outfits used inside the icspawning menu
+code/modules/mob/living/living.dm - TRAIT_ADMIN_REACHABLE early-return in can_perform_action
+code/modules/tgui/states.dm - Grants UI_INTERACTIVE to clients with TRAIT_ADMIN_REACHABLE, allowing admin UI interaction at range with stuff like machines
+_maps/nova/capsules/tiny_fan_capsule.dmm - simple reference capsule, places a tiny fan with super reinforced flooring
+tgstation.dme - registers new/moved files
+
+### Credits:
+
+moonridden - creation, general design, most items, some sprites
+plejek - debug headset and encryption key
+fluffles - code advice
+iamgoofball - lots of code advice
+internetizen - lots of code advice
+melon_a2 - a few feature ideas
+realwinterfrost - bluespace belt sprites, animations sampled
+
+Original PR: https://github.com/Skyrat-SS13/Skyrat-tg/pull/104
+Gandalf2k15 - Porting
+BunBun - Cration ([sic] from the original PR credits)
+
+### Remaining To-Do
+
+Search TODO on this folder to find remaining known issues / missing content
+Icons. Everywhere. They all need icons. Either you do it, or hope I eventually do it. And I am anything but an artist.
+Player appropriate tech loadout with considerations to reduce the need for admins to support them when they wish to test mechanics
+
+subclass admin capsules for useful testing setups, such as instant departments and test environments. 'oh just use xyz location, it already exists-' shut up nerd
+
+holder checks everywhere. have some options to do so anyways which causes an alog or harms them
+
+Debug Box Ideas: recreational / admin drugs, Antag, Research, Security, Service, Cargo, Medical Box revisit, borgs / silicons, bots, syndie theme, cc theme,
+
+NT-Uplink
+Bring firemode selector to some energy weapons, from ballistic weapons
+admin language
+handheld advanced camera console
+syndie ai card, make a cc one
+CC Cyborg Spawner Beacons
+Add radial select states for storing multiple multitool inputs on one multitool
+handheld fabricator
+
+### Useful-ish Breadcrumbs
+
+code/__DEFINES/admin.dm

@@ -278,7 +278,7 @@
 /obj/item/storage/pouch/ammo/clock
 
 /obj/item/storage/pouch/ammo/clock/PopulateContents()
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/ammo_box/speedloader/strilka310/lionhunter/clock = 3
 	)
 

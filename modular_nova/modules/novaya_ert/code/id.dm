@@ -10,6 +10,7 @@
 	trim_state = "trim_nri"
 	department_color = COLOR_RED_LIGHT
 	subdepartment_color = COLOR_COMMAND_BLUE
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = "hud_nri"
 	threat_modifier = 2 // Matching the nri_police threat modifier
 

@@ -1,4 +1,3 @@
-
 /**
  * Enables an admin to upload a new titlescreen image.
  */
@@ -33,29 +32,11 @@ ADMIN_VERB(change_title_screen_notice, R_FUN, "Title Screen: Set Notice", "Sets 
 		SEND_SOUND(new_player,  sound('modular_nova/modules/admin/sound/duckhonk.ogg'))
 
 /**
- * Reloads the titlescreen if it is bugged for someone.
+ * Reloads the lobby menu if it is bugged for someone.
  */
 ADMIN_VERB(fix_title_screen, R_ADMIN, "Fix Lobby Screen", "Lobbyscreen broke? Press this.", ADMIN_CATEGORY_MAIN)
 	if(istype(user.mob, /mob/dead/new_player))
 		var/mob/dead/new_player/new_player = user.mob
 		new_player.show_title_screen()
 	else
-		winset(src, "nova_title_browser", "is-disabled=true;is-visible=false")
-		winset(src, "status_bar", "is-visible=true")
-
-/**
- * An admin debug command that enables you to change the HTML on the go.
- */
-ADMIN_VERB(change_title_screen_html, R_DEBUG, "Title Screen: Set HTML", "Change lobby screen HTML on the go.", ADMIN_CATEGORY_FUN)
-	log_admin("[key_name(user)] is setting the title screen HTML.")
-	message_admins("[key_name_admin(user)] is setting the title screen HTML.")
-
-	var/new_html = input(user, "Please enter your desired HTML(WARNING: YOU WILL BREAK SHIT)", "DANGER: TITLE HTML EDIT") as message|null
-
-	if(!new_html)
-		return
-
-	SStitle.title_html = new_html
-	SStitle.show_title_screen()
-
-	message_admins("[key_name_admin(user)] has changed the title screen HTML.")
+		user.lobby_menu?.send_init()

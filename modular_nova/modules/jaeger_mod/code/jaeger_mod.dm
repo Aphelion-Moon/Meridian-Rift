@@ -75,7 +75,7 @@
 	)
 
 /obj/item/mod/module/jaeger_sprint
-	name = "MOD jaeger sprint module"
+	name = "\improper MOD jaeger sprint module"
 	desc = "An integrated subsystem that provides extra energy and cooling to the Jaeger/MOD's leg servos, reducing the equipment burden \
 		at the non-negligible cost of increased power draw. Use in controlled bursts."
 	icon = 'modular_nova/modules/jaeger_mod/icons/obj/infantry.dmi'

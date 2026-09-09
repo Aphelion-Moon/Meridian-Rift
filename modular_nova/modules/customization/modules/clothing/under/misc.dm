@@ -32,7 +32,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/uniforms.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/uniform.dmi'
 	icon_state = "texas"
-	supports_variations_flags = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/under/doug_dimmadome
 	name = "dimmadome formal outfit"
@@ -40,7 +40,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/uniforms.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/uniform.dmi'
 	icon_state = "doug_dimmadome"
-	supports_variations_flags = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/under/pants/tactical
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/shorts_pants_shirts.dmi'
@@ -64,6 +64,7 @@
 	alternate_worn_layer = LOW_FACEMASK_LAYER
 
 /obj/item/clothing/under/pants/nova/loose_pants
+	worn_icon_digi = null
 	name = "Loose pants"
 	desc = "Some loose pants with a belt that looks comfy."
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
@@ -74,8 +75,10 @@
 	greyscale_colors = "#4d4d4d#666633#c0c0c0"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 
 /obj/item/clothing/under/pants/nova/hakama
+	worn_icon_digi = null
 	name = "hakama"
 	desc = "Traditional Japanese wide-legged trousers, often worn with formal attire."
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
@@ -86,3 +89,4 @@
 	greyscale_colors = "#292929#ffffff#ff0000"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK

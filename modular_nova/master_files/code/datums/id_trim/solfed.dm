@@ -4,6 +4,7 @@
 	trim_state = "trim_solfed"
 	department_color = COLOR_SOLFED_GOLD
 	subdepartment_color = COLOR_SOLFED_GOLD
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_SOLFED
 	threat_modifier = -5 // Solfed Count as a police force
 
@@ -84,4 +85,5 @@
 	trim_state = "trim_spacepolice"
 	department_color = COLOR_CENTCOM_BLUE // why did these guys get this but the other modular id trims didn't. what
 	subdepartment_color = COLOR_SECURITY_RED
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_SPACE_POLICE

@@ -1,0 +1,17 @@
+/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
+@font-face {
+	font-family: "Pixellari";
+	src: url("Pixellari.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Grand9K Pixel";
+	src: url("Grand9K_Pixel.ttf") format("truetype");
+}
+*/ /* APHELION EDIT REMOVAL END */
+/* APHELION EDIT ADDITION START - LOBBY_MENU_REWORK */
+@font-face {
+	font-family: "Fixedsys";
+	src: url("FixedsysExcelsior3.01Regular.ttf");
+}
+/* APHELION EDIT ADDITION END */

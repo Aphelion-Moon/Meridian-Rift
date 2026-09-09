@@ -17,9 +17,12 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/head/plasmaman_hats.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/head/plasmaman_head.dmi'
 	icon_state = "security_envirohelm_new"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/head/helmet/space/plasmaman/security/nova/warden
 	icon_state = "warden_envirohelm_new"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/head/helmet/space/plasmaman/security/nova/head_of_security
 	icon_state = "hos_envirohelm_new"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON

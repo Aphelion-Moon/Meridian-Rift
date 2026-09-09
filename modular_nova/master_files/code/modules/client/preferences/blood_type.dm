@@ -6,14 +6,14 @@
 
 /datum/preference/choiced/blood_type/init_possible_values()
 	return list(
-		BLOOD_TYPE_O_MINUS,
-		BLOOD_TYPE_O_PLUS,
-		BLOOD_TYPE_A_MINUS,
-		BLOOD_TYPE_A_PLUS,
-		BLOOD_TYPE_B_MINUS,
-		BLOOD_TYPE_B_PLUS,
-		BLOOD_TYPE_AB_MINUS,
-		BLOOD_TYPE_AB_PLUS,
+		/datum/blood_type/human/o_minus::name,
+		/datum/blood_type/human/o_plus::name,
+		/datum/blood_type/human/a_minus::name,
+		/datum/blood_type/human/a_plus::name,
+		/datum/blood_type/human/b_minus::name,
+		/datum/blood_type/human/b_plus::name,
+		/datum/blood_type/human/ab_minus::name,
+		/datum/blood_type/human/ab_plus::name,
 	)
 
 /datum/preference/choiced/blood_type/is_accessible(datum/preferences/preferences)

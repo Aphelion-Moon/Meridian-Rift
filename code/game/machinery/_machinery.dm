@@ -658,6 +658,12 @@
 	if(try_use_signal & COMPONENT_CANT_USE_MACHINE_INTERACT)
 		return FALSE
 
+	// APHELION EDIT ADDITION START - ADMIN_TECH
+	// Sits below the signal block on purpose, so components can still veto or observe the interaction.
+	if(HAS_TRAIT(user, TRAIT_ADMIN_REACHABLE) && user.can_see_target(src))//badmin does touchies wowow
+		return TRUE
+
+	// APHELION EDIT ADDITION END
 	if(isAdminGhostAI(user))
 		return TRUE //the Gods have unlimited power and do not care for things such as range or blindness
 

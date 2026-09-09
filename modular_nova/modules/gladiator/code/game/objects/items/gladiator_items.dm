@@ -51,6 +51,7 @@
 	w_class = WEIGHT_CLASS_BULKY
 	armor_type = /datum/armor/berserker_gatsu
 	resistance_flags = INDESTRUCTIBLE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /datum/armor/berserker_gatsu
 	melee = 40

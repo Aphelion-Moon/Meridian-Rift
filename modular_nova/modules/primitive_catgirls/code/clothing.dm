@@ -20,7 +20,7 @@
 	desc = "Some pretty simple wraps to cover up your lower bits."
 	worn_icon = 'modular_nova/modules/primitive_catgirls/icons/clothing_greyscale.dmi'
 	body_parts_covered = GROIN
-	icon = 'icons/map_icons/clothing/under/_under.dmi'
+	icon = 'icons/map_icons/clothing/under/dress.dmi'
 	icon_state = "/obj/item/clothing/under/dress/skirt/primitive_catgirl_body_wraps"
 	post_init_icon_state = "wraps"
 	greyscale_config = /datum/greyscale_config/primitive_catgirl_wraps
@@ -34,7 +34,7 @@
 	desc = "A handmade dress, tailored to fit perfectly to its wearer's body measurements."
 	worn_icon = 'modular_nova/modules/primitive_catgirls/icons/clothing_greyscale.dmi'
 	body_parts_covered = GROIN|CHEST
-	icon = 'icons/map_icons/clothing/under/_under.dmi'
+	icon = 'icons/map_icons/clothing/under/dress.dmi'
 	icon_state = "/obj/item/clothing/under/dress/skirt/primitive_catgirl_tailored_dress"
 	post_init_icon_state = "tailored_dress"
 	greyscale_config = /datum/greyscale_config/primitive_catgirl_tailored_dress
@@ -48,7 +48,7 @@
 	desc = "A simple garment that reaches from the shoulders to above the knee. This one has a belt to secure it."
 	worn_icon = 'modular_nova/modules/primitive_catgirls/icons/clothing_greyscale.dmi'
 	body_parts_covered = GROIN|CHEST
-	icon = 'icons/map_icons/clothing/under/_under.dmi'
+	icon = 'icons/map_icons/clothing/under/dress.dmi'
 	icon_state = "/obj/item/clothing/under/dress/skirt/primitive_catgirl_tunic"
 	post_init_icon_state = "tunic"
 	greyscale_config = /datum/greyscale_config/primitive_catgirl_tunic
@@ -120,6 +120,7 @@
 	greyscale_config_worn = /datum/greyscale_config/primitive_catgirl_boots/worn
 	greyscale_colors = "#594032#cec8bf"
 	flags_1 = IS_PLAYER_COLORABLE_1
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Neck
 

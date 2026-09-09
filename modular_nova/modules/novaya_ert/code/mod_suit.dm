@@ -94,7 +94,7 @@
 	AddElement(/datum/element/manufacturer_examine, COMPANY_ZCM)
 
 /obj/item/mod/module/status_readout/operational
-	name = "MOD operational status readout module"
+	name = "\improper MOD operational status readout module"
 	desc = "A once-common module, this technology unfortunately went out of fashion in the safer regions of space; \
 		however, it remained in use everywhere else. This particular unit hooks into the suit's spine, \
 		capable of capturing and displaying all possible biometric data of the wearer; sleep, nutrition, fitness, fingerprints, \
@@ -107,7 +107,7 @@
 	removable = FALSE
 
 /obj/item/mod/module/auto_doc
-	name = "MOD automatic paramedical module"
+	name = "\improper MOD automatic paramedical module"
 	desc = "The reverse-engineered and redesigned medical assistance system, previously used by the now decommissioned Voskhod combat armor. \
 		The technology it uses is very similar to the one of the N-URSEI suites, yet miniaturised and lacking self-synthesis capabilities. \
 		Using a built-in storage of chemical compounds and a miniature chemical mixer, it's capable of injecting its user with a plethora of drugs, \

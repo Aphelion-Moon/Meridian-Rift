@@ -215,6 +215,7 @@
 	righthand_file = 'modular_nova/master_files/icons/donator/mob/inhands/donator_right.dmi'
 	icon_state = "butterbox"
 	inhand_icon_state = "butterbox"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 //Donation reward for Thedragmeme
 /obj/item/bouquet/stellar
@@ -266,6 +267,7 @@
 	righthand_file = 'modular_nova/master_files/icons/donator/mob/inhands/donator_right.dmi'
 	icon_state = "virginslayer"
 	inhand_icon_state = "virginslayer"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/jacket/bomber_donor
 	name = "old hoodie"
@@ -307,6 +309,7 @@
 	righthand_file = 'modular_nova/master_files/icons/donator/mob/inhands/donator_right.dmi'
 	icon_state = "paddedunder"
 	inhand_icon_state = "paddedunder"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for Thedragmeme
 /obj/item/clothing/shoes/jackboots/padded
@@ -318,6 +321,7 @@
 	righthand_file = 'modular_nova/master_files/icons/donator/mob/inhands/donator_right.dmi'
 	icon_state = "paddedboots"
 	inhand_icon_state = "paddedboots"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for Thedragmeme and snailomi
 /obj/item/clothing/gloves/padded
@@ -336,6 +340,7 @@
 	desc = "A meticulously handcrafted dress that is lined on the inside with feathers and down. Twirling in this dress provides a satisfying result!"
 	icon_state = "paddeddress"
 	inhand_icon_state = "paddeddress"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for snailomi
 /obj/item/clothing/neck/padded/alt
@@ -413,6 +418,7 @@
 	w_class = WEIGHT_CLASS_SMALL
 	tint = 0
 	interaction_flags_click = NEED_DEXTERITY
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask/gas/nightlight/attack_self(mob/user)
 	adjust_visor(user)
@@ -430,6 +436,7 @@
 	name = "\improper FIR-22 full-face rebreather"
 	desc = "A full-face respirator designed by Forestfel Intersystem Industries and originally meant for Ixian Tajarans, the FIR-22 Rebreather is a snout-covering variant often seen used by Tajaran Military Personnel. It reeks of militarism."
 	icon_state = "fir22"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask/gas/caligram_visage_mask
 	name = "\improper Caligram visage mask"
@@ -444,6 +451,7 @@
 	visor_flags_inv = HIDEFACE | HIDESNOUT
 	w_class = WEIGHT_CLASS_SMALL
 	tint = 0
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 // Donation reward for Raxraus
 /datum/atom_skin/caligram_cap
@@ -535,6 +543,7 @@
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "caligram_parka_vest_tan"
+	worn_icon_digi = null
 	inhand_icon_state = "armor"
 	body_parts_covered = CHEST|GROIN|ARMS
 	cold_protection = CHEST|GROIN|LEGS|ARMS|HANDS
@@ -590,7 +599,8 @@
 	visor_flags_inv = HIDEFACIALHAIR | HIDESNOUT
 	flags_cover = MASKCOVERSMOUTH | MASKCOVERSEYES | PEPPERPROOF
 	visor_flags_cover = MASKCOVERSMOUTH | MASKCOVERSEYES | PEPPERPROOF
-	clothing_flags = VOICEBOX_DISABLED | MASKINTERNALS | BLOCK_GAS_SMOKE_EFFECT | GAS_FILTERING
+	clothing_flags = VOICEBOX_DISABLED | MASKINTERNALS | BLOCK_GAS_SMOKE_EFFECT
+	has_filter = TRUE
 	alternate_worn_layer = ABOVE_BODY_FRONT_HEAD_LAYER
 	use_radio_beeps_tts = TRUE
 
@@ -905,6 +915,7 @@
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	worn_icon_state = "scraparmor"
 	body_parts_covered = CHEST
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for Enzoman
 /obj/item/clothing/mask/luchador/enzo
@@ -915,7 +926,7 @@
 	icon_state = "luchador"
 	worn_icon_state = "luchador"
 	clothing_flags = MASKINTERNALS
-	supports_variations_flags = NONE
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 // Donation Reward for Grand Vegeta
 /obj/item/clothing/under/mikubikini
@@ -927,6 +938,7 @@
 	worn_icon_state = "mikubikini"
 	body_parts_covered = CHEST|GROIN
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation Reward for Grand Vegeta
 /obj/item/clothing/suit/mikujacket
@@ -936,6 +948,7 @@
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	worn_icon_state = "mikujacket"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation Reward for Grand Vegeta
 /obj/item/clothing/head/mikuhair
@@ -968,9 +981,10 @@
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/shoes.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/feet.dmi'
 	worn_icon_state = "mikuleggings"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for CandleJax
-/obj/item/clothing/mask/gas/CMCP_mask
+/obj/item/clothing/mask/gas/cmcp_mask
 	name = "\improper CMCP 'Oni' Faceplate"
 	desc = "A modular faceplate mount. Typically meant to be attached to field platforms."
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/masks.dmi'
@@ -978,6 +992,7 @@
 	icon_state = "yoni"
 	visor_flags_cover = MASKCOVERSMOUTH | MASKCOVERSEYES | PEPPERPROOF
 	clothing_flags = parent_type::clothing_flags | VOICEBOX_DISABLED
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 	flags_inv = NONE
 	use_radio_beeps_tts = TRUE
 	voice_filter = /obj/item/clothing/mask/gas/sechailer::voice_filter
@@ -996,6 +1011,7 @@
 	interaction_flags_click = NEED_DEXTERITY
 	use_radio_beeps_tts = TRUE
 	voice_filter = /obj/item/clothing/mask/gas/sechailer::voice_filter
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask/gas/signalis_gaiter/attack_self(mob/user)
 	adjust_visor(user)
@@ -1027,6 +1043,7 @@
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/uniform.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	icon_state = "bodysuitkoruu"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/bodysuit_koruu/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/bodysuit_koruu)
@@ -1038,6 +1055,7 @@
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/hats.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/head.dmi'
 	icon_state = "anahead"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 // Donation reward for CandleJax
 /obj/item/clothing/under/plasmaman/candlejax
@@ -1074,6 +1092,7 @@
 	clothing_flags = parent_type::clothing_flags | VOICEBOX_DISABLED
 	interaction_flags_click = NEED_DEXTERITY
 	/// Whether or not the mask is currently being layered over (or under!) hair. FALSE/null means the mask is layered over the hair (this is how it starts off).
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 	var/wear_hair_over
 
 /obj/item/clothing/mask/gas/psycho_malice/examine(mob/user)
@@ -1329,6 +1348,7 @@
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "CCvest"
+	worn_icon_digi = null
 
 //Donation reward for Hacker T.Dog
 /obj/item/clothing/under/rank/nanotrasen_consultant/hubert
@@ -1337,6 +1357,8 @@
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/uniform.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	icon_state = "CCofficer"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 // Donation reward for Cherno_00
 /obj/item/clothing/head/costume/ushanka/frosty
@@ -1494,6 +1516,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	desc = "A labcoat crafted from a variety of pristine materials, sewn together with a frightening amount of skill. The fabric is aery, smooth as silk, and exceptionally pleasant to the touch. The golden stripes are visible in the dark, working as a beacon to the injured. A small label on the inside of it reads \"Tenrai Kitsunes Supremacy\"."
 	base_icon_state = "tenraicoat"
 	icon_state = "tenraicoat"
+	worn_icon_digi = null
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
@@ -1551,6 +1574,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon_state = "hosaltred"
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 /obj/item/clothing/glasses/hud/security/sunglasses/gars/giga/roselia
 	name = "red-tinted giga HUD gar glasses"
@@ -1575,6 +1600,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "rainbowcoat"
 	base_icon_state = "rainbowcoat"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for M97screwsyourparents
 /obj/item/clothing/head/recruiter_cap
@@ -1593,6 +1619,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "officerjacket"
 	base_icon_state = "officerjacket"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for M97screwsyourparents
 /obj/item/clothing/under/recruiter_uniform
@@ -1602,6 +1629,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon_state = "oldmarine_whites"
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 //Donation reward for Tetrako
 /obj/item/clothing/under/nt_idol_skirt
@@ -1674,6 +1703,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/uniform.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	icon_state = "tactichill"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 // Donation reward for thedragmeme and snailom
 /obj/item/clothing/shoes/fancy_heels/drag
@@ -1764,6 +1795,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "razurath_coat"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 // Donation reward for MaSvedish
 /obj/item/holocigarette/masvedishcigar
@@ -1786,6 +1818,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "lt3_jacket"
+	worn_icon_digi = null
 	inhand_icon_state = "syndicate-black"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
@@ -1799,6 +1832,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/pants/skyy
+	worn_icon_digi = null
 	name = "silver jeans"
 	desc = "A pair of jeans for those with a commanding presence. Made of shining, silver denim, it's interwoven with a special alloy that provides extra protection and style."
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/uniform.dmi'
@@ -1807,6 +1841,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	righthand_file = 'modular_nova/master_files/icons/donator/mob/inhands/donator_right.dmi'
 	icon_state = "lt3_jeans"
 	inhand_icon_state = "lt3_jeans"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/gloves/skyy
 	name = "charcoal fingerless gloves"
@@ -1940,14 +1975,17 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/shoes.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/feet.dmi'
 	icon_state = "boots_blackblue"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/shoes/jackboots/elofy/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/boots_elofy)
 
 // Donation reward for grasshand
 /obj/item/clothing/under/rank/civilian/chaplain/divine_archer/noble
+	worn_icon_digi = null
 	name = "noble gambeson"
 	desc = "These clothes make you feel a little closer to space."
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/shoes/jackboots/noble
 	name = "noble boots"
@@ -1960,6 +1998,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "vickyred"
+	worn_icon_digi = null
 	name = "nobility dresscoat"
 	desc = "An elaborate coat composed of a silky yet firm material. \
 		The fabric is quite thin, and provides negligible protection or insulation, \
@@ -2032,6 +2071,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
 	can_adjust = FALSE
+	worn_icon_digi = null
 
 #undef NOBILITY_DRESSCOAT_WASHING_CREDITS_NEEDED
 
@@ -2072,6 +2112,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	desc = "It seems somebody has kept a couple outdated quartermaster uniforms. They smell of Rum and Smoke."
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/uniform.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
+	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/cargo_digi.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 //Donation reward for Jasohavents
 /obj/item/food/griddle_toast/toaster_implant
@@ -2123,24 +2165,23 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 // donator item for Sciamach
 /obj/item/organ/cyberimp/arm/toolkit/shard/donator/theurgic_crystal
 	name = "theurgic stone"
-	desc = "An eerie crystalline shard that pulses with theurgic energies. Tendrils of crimson energy seem to dance along its surface."
+	desc = "An eerie crystalline shard that pulses with theurgic energy. Tendrils of crimson energy seem to dance along its surface."
 	icon = 'modular_nova/master_files/icons/donator/obj/custom.dmi'
 	icon_state = "crystal"
-	items_to_create = list(/obj/item/knife/razor_claws/donator/theurgic_knife)
+	items_to_create = list(/obj/item/melee/implantarmblade/theurgic_knife)
 	extend_sound = 'sound/items/haunted/ghostitemattack.ogg'
 	retract_sound = 'sound/items/haunted/ghostitemattack.ogg'
 
-/obj/item/knife/razor_claws/donator/theurgic_knife
+/obj/item/melee/implantarmblade/theurgic_knife
 	name = "cursed ritual knife"
 	desc = "A large carving or flensing dagger made of a heavy, dusty material. It seems to emit a soft, eerie crimson glow."
 	icon = 'modular_nova/master_files/icons/donator/obj/custom.dmi'
 	righthand_file = 'modular_nova/modules/modular_ert/icons/pizza/righthand.dmi'
 	lefthand_file = 'modular_nova/modules/modular_ert/icons/pizza/lefthand.dmi'
-	icon_state = "dagger"
+	icon_state = "precision_dagger"
 	inhand_icon_state = "hotknife"
-	toggle_sound = 'sound/items/haunted/ghostitemattack.ogg'
 
-/obj/item/knife/razor_claws/donator/theurgic_knife/attack_self(mob/user)
+/obj/item/melee/implantarmblade/theurgic_knife/attack_self(mob/user)
 	. = ..()
 	inhand_icon_state = src::inhand_icon_state // Don't have a precision variant for this, just always use base
 
@@ -2180,6 +2221,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	icon_state = "bovinesignature"
 	can_adjust = TRUE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 // donator reward for ignari
 /obj/item/clothing/under/rem
@@ -2190,6 +2233,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	icon_state = "ignari_rem"
 	can_adjust = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 /obj/item/clothing/shoes/rem_shoes
 	name = "\improper M.I.A. heels"
@@ -2197,6 +2242,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/shoes.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/feet.dmi'
 	icon_state = "rem_shoes"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/shoes/rem_shoes/Initialize(mapload)
 	. = ..()
@@ -2209,6 +2255,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	icon_state = "bwake_uniform"
 	can_adjust = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/ig_harness
 	name = "body harness"
@@ -2247,6 +2294,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 	icon_state = "techpants"
 	can_adjust = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 /obj/item/storage/backpack/satchel/drop_pouch
 	name = "drop pouch"
@@ -2393,6 +2442,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	icon_state = "vest_com_melon"
+	worn_icon_digi = null
 
 /obj/item/clothing/suit/hooded/explorer/melon
 	name = "anomalous materials protection suit"
@@ -2423,6 +2473,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	body_parts_covered = CHEST|GROIN|LEGS|FEET
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	icon_state = "dagmardress_a"
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/neoflapperdagmar
 	name = "neo-flapper dress"
@@ -2434,6 +2485,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	body_parts_covered = CHEST|GROIN|LEGS|FEET
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	icon_state = "dagmardress_b"
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/ambassadordagmar
 	name = "ambassador's dress"
@@ -2445,6 +2497,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	body_parts_covered = CHEST|GROIN|LEGS|FEET
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	icon_state = "dagmardress_c"
+	worn_icon_digi = null
 
 /obj/item/clothing/under/ecologist
 	name = "ecologist's garb"
@@ -2531,6 +2584,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	desc = "A dark grey labcoat with navy blue accents and the fox-faced emblem of Triumvirate Textiles on the right breast pocket. Despite having a spot on the right sleeve for a company patch, there doesn't seem to be one. \
 		The materials used to make this coat make it perfectly sanitary for any medical or research needs."
 	icon_state = "gabeny_labcoat"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	worn_icon_state = "gabeny_labcoat"
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
@@ -2558,6 +2613,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	body_parts_covered = CHEST|ARM_LEFT
 	hoodtype = /obj/item/clothing/head/hooded/merctac_hood
 	hood_up_affix = ""
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/hooded/merctac_hoodie/armored
 	name = "\improper MercTac armored hoodie"
@@ -2589,11 +2645,13 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon_state = "merctac_gloves"
 
 /obj/item/clothing/under/pants/merctac_pants
+	worn_icon_digi = null
 	name = "\improper MercTac pants"
 	desc = "Surplus military battle dress, coupled with insertable kneepads and woven with highly durable cordura fabric."
 	icon_state = "merctac_pants"
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/uniform.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask/merctac_mask
 	name = "Gambit's mask"
@@ -2696,6 +2754,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon = 'modular_nova/master_files/icons/donator/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 	icon_state = "duke_armored_coat"
+	worn_icon_digi = null
 	worn_icon_state = "duke_armored_coat"
 	inhand_icon_state = null
 	body_parts_covered = CHEST|ARM_LEFT
@@ -2752,6 +2811,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	female_sprite_flags = NO_FEMALE_UNIFORM
+	worn_icon_digi = null
 
 
 /obj/structure/sign/flag/pride/bon
@@ -2766,4 +2826,3 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	icon_state = "folded_pride_bon"
 	sign_path = /obj/structure/sign/flag/pride/bon
 	worn_icon_state = "bon"
-

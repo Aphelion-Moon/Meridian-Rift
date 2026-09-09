@@ -268,6 +268,12 @@
  * * update_dna - if TRUE (default), updates the mob's DNA with the new height value
  */
 /mob/living/carbon/human/proc/set_mob_height(new_height = HUMAN_HEIGHT_MEDIUM, update_dna = TRUE)
+	// NOVA EDIT ADDITION START - respects the teshari rework, don't let them get shorter than medium
+	if(HAS_TRAIT(src, TRAIT_DWARF))
+		return
+	if(isteshari(src))
+		new_height = max(new_height, HUMAN_HEIGHT_MEDIUM)
+	// NOVA EDIT ADDITION END
 	base_mob_height = new_height
 	update_mob_height()
 	if(update_dna)

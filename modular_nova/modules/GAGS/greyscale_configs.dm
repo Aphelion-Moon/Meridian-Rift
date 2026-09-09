@@ -1465,6 +1465,15 @@
 	name = "Giant Scarf (Worn)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 
+/datum/greyscale_config/virgin_killer_sweater
+	name = "Virgin Killer Sweater"
+	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/skirts_dresses.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/pants_shorts_skirts_dresses/virgin_killer_sweater.json'
+
+/datum/greyscale_config/virgin_killer_sweater/worn
+	name = "Virgin Killer Sweater (Worn)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+
 /datum/greyscale_config/mini_skirt
 	name = "Mini Skirt"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/skirts_dresses.dmi'
@@ -3162,6 +3171,10 @@ Cloaks
 	name = "Worn Bartender's Tailcoat"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	json_config = 'modular_nova/modules/GAGS/json_configs/bunny_stuff/tailcoat_bar_worn.json'
+
+/datum/greyscale_config/tailcoat_bar_worn/digi
+	name = "Worn Bartender's Tailcoat (Digi)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
 
 /datum/greyscale_config/bowtie_collar
 	name = "Bowtie Collar"

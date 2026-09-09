@@ -12,10 +12,12 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/armor.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/armor.dmi'
 	icon_state = "peacekeeper_white"
+	worn_icon_digi = null
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/armor/vest/peacekeeper/black
 	icon_state = "peacekeeper_black"
+	worn_icon_digi = null
 
 /obj/item/clothing/suit/armor/vest/peacekeeper/spacecoat
 	name = "peacekeeper sleek coat"
@@ -23,6 +25,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
 	icon_state = "peacekeeper_spacecoat"
+	worn_icon_digi = null
 	worn_icon_state = "peacekeeper_spacecoat"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 

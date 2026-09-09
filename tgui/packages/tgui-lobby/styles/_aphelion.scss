@@ -1,0 +1,328 @@
+// THIS IS AN APHELION UI FILE
+// Aphelion's own lobby look (LOBBY_MENU_REWORK) - plain-text nav menu
+
+.bg {
+  position: absolute;
+  width: auto;
+  height: 100vmin;
+  min-width: 100vmin;
+  min-height: 100vmin;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+.container_terminal {
+  position: absolute;
+  width: 100%;
+  height: calc(100% - 7vmin);
+  overflow: clip;
+  box-sizing: border-box;
+  padding: 3vmin 2vmin;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.terminal_text {
+  display: block;
+  font-family: 'Fixedsys', monospace;
+  font-weight: lighter;
+  text-decoration: none;
+  width: 100%;
+  text-align: right;
+  color: green;
+  text-shadow: 1px 1px black;
+  margin: 0;
+  font-size: 2vmin;
+  line-height: 2.2vmin;
+  letter-spacing: 1px;
+}
+
+.container_progress {
+  position: absolute;
+  box-sizing: border-box;
+  bottom: 3vmin;
+  left: 2vmin;
+  height: 4vmin;
+  width: calc(100% - 4vmin);
+  border-left: 2px solid green;
+  border-right: 2px solid green;
+  padding: 4px;
+  background-color: black;
+  z-index: 1;
+}
+
+.progress_bar {
+  width: 0%;
+  height: 100%;
+  background-color: green;
+}
+
+@keyframes looping_sub_pattern {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 11.3137px 0;
+  }
+}
+
+.sub_progress_bar {
+  width: 0%;
+  height: 100%;
+  float: right;
+  background-color: lime;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    green,
+    green 7px,
+    black 7px,
+    black 8px
+  );
+  background-attachment: fixed;
+  animation: looping_sub_pattern 1s linear infinite;
+}
+
+.container_nav {
+  position: absolute;
+  box-sizing: border-box;
+  width: 90vmin;
+  min-height: 10vmin;
+  max-height: 90vmin;
+  overflow-y: auto;
+  top: calc(50% + 22.5vmin);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  border: 2px solid white;
+  border-radius: 4px;
+  box-shadow:
+    2px 2px #333,
+    inset 1px 1px #333;
+  background: linear-gradient(
+    to bottom,
+    rgba(110, 45, 136, 0.6),
+    rgba(120, 68, 204, 0.6),
+    rgba(68, 68, 204, 0.6),
+    rgba(68, 68, 204, 0.6),
+    rgba(0, 0, 102, 0.6)
+  );
+  opacity: 95%;
+  padding: 1em;
+
+  hr {
+    height: 2px;
+    background-color: #cde;
+    border: none;
+    box-shadow: 2px 2px black;
+  }
+
+  &--centered {
+    text-align: center;
+  }
+}
+
+.menu_button {
+  display: block;
+  box-sizing: border-box;
+  font-family: 'Fixedsys', monospace;
+  font-weight: lighter;
+  text-decoration: none;
+  font-size: 4vmin;
+  text-shadow: 2px 2px black;
+  line-height: 4vmin;
+  width: 100%;
+  text-align: left;
+  color: #cde;
+  height: 4vmin;
+  padding-left: 5vmin;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+
+  &:hover {
+    padding-left: 0;
+    color: yellow;
+
+    &::before {
+      content: '☞';
+      text-align: center;
+      width: 5vmin;
+      display: inline-block;
+    }
+  }
+
+  &:active {
+    padding-left: 0;
+    transform: translate(2px, 2px);
+  }
+
+  @keyframes pulse_button {
+    0% {
+      transform: translateX(0px);
+    }
+    100% {
+      transform: translateX(2px);
+    }
+  }
+
+  &:active::before {
+    content: '☛';
+    text-align: center;
+    width: 5vmin;
+    animation: pulse_button 0.25s infinite alternate;
+  }
+
+  &.info_display {
+    cursor: default;
+    pointer-events: none;
+  }
+
+  &__icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: 4vmin;
+    height: 4vmin;
+    margin-right: 1vmin;
+    image-rendering: pixelated;
+  }
+
+  &--centered {
+    text-align: center;
+    padding-left: 0;
+  }
+}
+
+@keyframes pollsbox {
+  0% {
+    color: #cde;
+  }
+  50% {
+    color: #f80;
+  }
+}
+
+.menu_newpoll {
+  animation: pollsbox 2s step-start infinite;
+  padding-left: 0;
+
+  &::before {
+    content: '→';
+    text-align: center;
+    width: 5vmin;
+    display: inline-block;
+  }
+
+  &::after {
+    content: '←';
+    text-align: center;
+    width: 5vmin;
+    display: inline-block;
+  }
+}
+
+.container_notice {
+  position: absolute;
+  box-sizing: border-box;
+  width: auto;
+  padding-top: 1vmin;
+  top: calc(50% - 10vmin);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.menu_notice {
+  display: inline-block;
+  font-family: 'Fixedsys', monospace;
+  font-weight: lighter;
+  text-decoration: none;
+  width: 100%;
+  text-align: left;
+  color: red;
+  text-shadow:
+    1px 0px black,
+    -1px 0px black,
+    0px 1px black,
+    0px -1px black,
+    2px 0px black,
+    -2px 0px black,
+    0px 2px black,
+    0px -2px black;
+  margin: 0;
+  font-size: 3vmin;
+  line-height: 2vmin;
+
+  &--centered {
+    text-align: center;
+  }
+
+  // For notices that aren't a refusal - the nav text colour, not the error red.
+  &--muted {
+    color: #cde;
+  }
+}
+
+.unchecked {
+  color: #f44;
+}
+
+.checked {
+  color: #4f4;
+}
+
+// Station trait sign-up buttons - kept from the ported tg lobby, restyled to match
+// the plain-text nav instead of tg's sprite buttons.
+.trait_list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5vmin 2vmin;
+  margin-top: 0.5em;
+  padding-left: 5vmin;
+}
+
+.trait_button {
+  display: flex;
+  align-items: center;
+  gap: 1vmin;
+  cursor: pointer;
+  font-family: 'Fixedsys', monospace;
+  font-size: 3vmin;
+  color: #cde;
+  text-shadow: 2px 2px black;
+
+  &:hover {
+    color: yellow;
+  }
+}
+
+.trait_icon_wrapper {
+  position: relative;
+  width: 3vmin;
+  height: 3vmin;
+  flex: none;
+}
+
+.trait_icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+
+  &--overlay {
+    pointer-events: none;
+  }
+}
+
+.trait_feedback {
+  font-family: 'Fixedsys', monospace;
+  font-size: 2.5vmin;
+  color: yellow;
+  text-shadow: 2px 2px black;
+  margin-top: 0.5em;
+}

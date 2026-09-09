@@ -5,3 +5,4 @@
 	inhand_icon_state = "breathmuzzle"
 	body_parts_covered = NONE
 	clothing_flags = MASKINTERNALS
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION

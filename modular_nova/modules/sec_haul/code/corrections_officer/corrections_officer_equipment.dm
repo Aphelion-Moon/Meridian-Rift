@@ -16,6 +16,8 @@
 	desc = "A white satin shirt with some bronze rank pins at the neck."
 	name = "corrections officer's skirt"
 	icon_state = "corrections_officerw"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	gets_cropped_on_taurs = FALSE
 
 /obj/item/clothing/under/rank/security/corrections_officer/sweater
@@ -24,9 +26,12 @@
 	icon_state = "corrections_officer_sweat"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
+	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/security/corrections_officer/sweater/skirt
 	icon_state = "corrections_officer_sweatw"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	gets_cropped_on_taurs = FALSE
 
 /obj/item/radio/headset/corrections_officer

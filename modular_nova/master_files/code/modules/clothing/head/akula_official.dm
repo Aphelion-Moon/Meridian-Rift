@@ -38,6 +38,8 @@
 	flags_inv = null
 	flags_cover = HEADCOVERSMOUTH | PEPPERPROOF
 	/// Variable for storing hats which are worn inside the bubble helmet
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+	worn_icon_muzzled = null
 	var/obj/item/clothing/head/attached_hat
 
 /// Helmet armor

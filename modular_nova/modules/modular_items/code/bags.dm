@@ -53,6 +53,7 @@
 		/obj/item/ammo_box/magazine,
 		/obj/item/ammo_casing,
 		/obj/item/ammo_box/speedloader,
+		/obj/item/stock_parts/power_store/cell/microfusion,
 	))
 
 /datum/storage/casing_pouch
@@ -161,7 +162,7 @@
 /obj/item/storage/pouch/medical/firstaid/loaded/Initialize(mapload)
 	. = ..()
 	desc += " Repackaged with station-standard medical supplies."
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/stack/medical/suture = 1,
 		/obj/item/stack/medical/mesh = 1,
 		/obj/item/storage/box/bandages = 1,
@@ -173,7 +174,7 @@
 /obj/item/storage/pouch/medical/firstaid/stabilizer/Initialize(mapload)
 	. = ..()
 	desc += " Repackaged with a wound stabilization-focused loadout."
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/cautery = 1,
 		/obj/item/bonesetter = 1,
 		/obj/item/stack/medical/wrap/gauze/twelve = 1,
@@ -184,7 +185,7 @@
 /obj/item/storage/pouch/medical/firstaid/advanced/Initialize(mapload)
 	. = ..()
 	desc += " Repackaged with improved medical supplies."
-	var/static/items_inside = list(
+	var/list/items_inside = list(
 		/obj/item/stack/medical/suture/medicated = 2,
 		/obj/item/stack/medical/mesh/advanced = 1,
 		/obj/item/stack/medical/wrap/gauze/twelve = 1,

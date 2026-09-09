@@ -15,7 +15,7 @@
 		TRAIT_NO_DNA_COPY,
 		TRAIT_NO_UNDERWEAR,
 		TRAIT_VENTCRAWLER_NUDE,
-		TRAIT_WEAK_SOUL,
+		TRAIT_LESSER_HUMANOID,
 		TRAIT_MUTANT_COLORS,
 	)
 	no_equip_flags = null
@@ -34,7 +34,7 @@
 		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/kobold,
 		BODY_ZONE_CHEST = /obj/item/bodypart/chest/kobold,
 	)
-	exotic_bloodtype = BLOOD_TYPE_LIZARD
+	exotic_bloodtype = /datum/blood_type/lizard
 	payday_modifier = 1
 
 /datum/species/monkey/kobold/get_default_mutant_bodyparts()

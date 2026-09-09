@@ -25,6 +25,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/head/plasmaman_hats.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/head/plasmaman_head.dmi'
 	icon_state = "bs_envirohelm"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/plasmaman/blueshield
 	name = "blueshield envirosuit"
@@ -123,6 +124,7 @@
 	name = "blueshield's armor"
 	desc = "A tight-fitting kevlar-lined vest with a blue badge on the chest of it."
 	icon_state = "blueshieldarmor"
+	worn_icon_digi = null
 	body_parts_covered = CHEST
 
 /obj/item/clothing/suit/armor/vest/blueshield/setup_reskins()
@@ -132,6 +134,7 @@
 	name = "blueshield's jacket"
 	desc = "An expensive kevlar-lined jacket with a golden badge on the chest and \"NT\" emblazoned on the back. It weighs surprisingly little, despite how heavy it looks."
 	icon_state = "blueshield"
+	worn_icon_digi = null
 	body_parts_covered = CHEST|ARMS
 
 /obj/item/clothing/suit/armor/vest/blueshield/jacket/setup_reskins()

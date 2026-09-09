@@ -1,14 +1,18 @@
 /// Marine vest
 /obj/item/clothing/suit/armor/vest/sol/marine/desert
+	worn_icon_digi = null
 	greyscale_colors = "#e0dab7"
 
 /obj/item/clothing/suit/armor/vest/sol/marine/winter
+	worn_icon_digi = null
 	greyscale_colors = "#eaeaea"
 
 /obj/item/clothing/suit/armor/vest/sol/marine/ocean
+	worn_icon_digi = null
 	greyscale_colors = "#53638f"
 
 /obj/item/clothing/suit/armor/vest/sol/marine/forest
+	worn_icon_digi = null
 	greyscale_colors = "#008000"
 
 /// Marine vest

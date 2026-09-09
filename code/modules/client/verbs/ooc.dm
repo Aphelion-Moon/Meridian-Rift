@@ -2,7 +2,8 @@ GLOBAL_VAR_INIT(OOC_COLOR, null)//If this is null, use the CSS for OOC. Otherwis
 GLOBAL_VAR_INIT(normal_ooc_colour, "#002eb8")
 
 ///talking in OOC uses this
-GAME_VERB(/client, ooc, VERB_OOC, null, msg as text)
+GAME_VERB(/client, ooc, VERB_OOC, null)
+	VERB_ARG(msg, VERB_ARG_TYPE_TEXT, VERB_ARG_SOURCE_INPUT)
 	if(GLOB.say_disabled) //This is here to try to identify lag problems
 		to_chat(usr, span_danger("Speech is currently admin-disabled."))
 		return
@@ -14,6 +15,12 @@ GAME_VERB(/client, ooc, VERB_OOC, null, msg as text)
 
 		to_chat(usr, span_warning("Failed to send your OOC message. You attempted to send the following message:\n[span_big(msg)]"))
 		return
+
+	// APHELION EDIT ADDITION START - DISCORD WHITELIST GATE
+	if(!holder && isnewplayer(mob) && CONFIG_GET(flag/symphony_enabled) && !is_symphony_whitelisted(ckey))
+		to_chat(src, span_danger("You must be whitelisted to use OOC. Ahelp if you need help getting whitelisted."))
+		return
+	// APHELION EDIT ADDITION END
 
 	if(isnull(holder))
 		if(!GLOB.ooc_allowed)

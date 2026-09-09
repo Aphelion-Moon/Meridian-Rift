@@ -11,6 +11,7 @@
 	desc = "A special black containment helmet that allows plasma-based lifeforms to exist safely in an oxygenated environment. It is space-worthy, and may be worn in tandem with other EVA gear."
 	icon = 'icons/obj/clothing/head/plasmaman_hats.dmi'
 	icon_state = "chap_envirohelm"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /// White Envirosuit, renamed Chef suit
 
@@ -33,6 +34,7 @@
 	desc = "A special khaki containment helmet that allows plasma-based lifeforms to exist safely in an oxygenated environment. It is space-worthy, and may be worn in tandem with other EVA gear."
 	icon = 'icons/obj/clothing/head/plasmaman_hats.dmi'
 	icon_state = "explorer_envirohelm"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /// Prototype Envirosuit, renamed Curator suit
 
@@ -47,4 +49,4 @@
 	desc = "A slight modification on a traditional voidsuit helmet, this helmet was Nanotrasen's first solution to the *logistical problems* that come with employing plasmamen. Despite their limitations, these helmets still see use by historians and old-skool plasmamen alike."
 	icon_state = "prototype_envirohelm"
 	actions_types = list(/datum/action/item_action/toggle_welding_screen)
-
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON

@@ -154,6 +154,10 @@
 	addtimer(CALLBACK(src, PROC_REF(handle_wave_conclusion)), wave_timer)
 	update_appearance(UPDATE_ICON_STATE)
 
+/obj/structure/ore_vent/ghost_mining/handle_wave_conclusion(datum/source)
+	qdel(GetComponent(/datum/component/spawner))
+	return ..()
+
 /obj/structure/ore_vent/ghost_mining/proc/reset_vent(cleared = FALSE) // We want to re-cycle the vent to an untapped state.
 	var/gps_name = "fresh oxide chunk" // Default backup incase we dont recycle ore
 	cut_overlays() // Remove the rig. Maybe later i or someone else can do some fancy animation for this.

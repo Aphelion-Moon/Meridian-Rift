@@ -9,7 +9,7 @@
 	static_lighting = TRUE
 	mood_bonus = /area/centcom/holding::mood_bonus
 	mood_message = /area/centcom/holding::mood_message
-	var/condo_number = 0
+	var/datum/condo_room/condo_room
 	var/obj/machinery/cafe_condo_teleporter/parent_object
 	var/datum/turf_reservation/reservation
 
@@ -30,19 +30,25 @@
 
 /// Still somebody in the condo; just leave peacibly.
 /area/misc/condo/proc/dont_come_knockin(atom/movable/gone)
-	log_game("[gone] has left condo [condo_number]")
+	log_game("[gone] has left condo [condo_room?.id]")
 
 /// Nobody left inside! Remove this condo from the active list and unload it.
 /area/misc/condo/proc/burn_the_sheets(atom/movable/gone)
-	log_game("[gone] has left condo [condo_number]")
+	log_game("[gone] has left condo [condo_room?.id]")
 	var/list/all_atoms = get_all_contents()
 	for(var/atom/movable/potential_blacklisted_atom in all_atoms)
 		if(is_type_in_list(potential_blacklisted_atom, SScondos.item_blacklist) || HAS_TRAIT(potential_blacklisted_atom, TRAIT_CONTRABAND))
 			potential_blacklisted_atom.forceMove(get_turf(parent_object))
 	if(isnull(reservation))
 		return
-	for(var/turf/turf_to_empty as anything in reservation.reserved_turfs) //remove this once clearing turf reservations is actually reliable
+	var/datum/condo_room/room_to_delete = condo_room
+	var/datum/turf_reservation/reservation_to_delete = reservation
+	for(var/turf/turf_to_empty as anything in reservation_to_delete.reserved_turfs) //remove this once clearing turf reservations is actually reliable
 		turf_to_empty.empty()
-	SScondos.active_condos -= "[condo_number]"
+	condo_room = null
+	reservation = null
+	if(room_to_delete)
+		SScondos.active_condos -= room_to_delete.id
+		qdel(room_to_delete)
 	parent_object = null
-	QDEL_NULL(reservation)
+	qdel(reservation_to_delete)

@@ -11,8 +11,17 @@
 		RegisterSignals(target, list(COMSIG_UPDATE_AMMO_HUD, COMSIG_GUN_CHAMBER_PROCESSED), PROC_REF(update_ballistic))
 	else if(istype(target, /obj/item/gun/energy))
 		RegisterSignals(target, list(COMSIG_UPDATE_AMMO_HUD, COMSIG_GUN_CHAMBER_PROCESSED), PROC_REF(update_energy))
+	else if(istype(target, /obj/item/gun/microfusion))
+		RegisterSignals(target, list(COMSIG_UPDATE_AMMO_HUD, COMSIG_GUN_CHAMBER_PROCESSED), PROC_REF(update_microfusion))
 	else // non guns don't need the chamber_processed signal registered
 		RegisterSignal(target, COMSIG_UPDATE_AMMO_HUD, PROC_REF(update_welder))
+
+	//Spawned straight into a hand never fires COMSIG_ITEM_EQUIPPED, so catch it here
+	var/obj/item/item_target = target
+	if(ismob(item_target.loc))
+		var/mob/holder = item_target.loc
+		if(holder.is_holding(item_target))
+			on_equipped(item_target, holder, holder.get_held_index_of_item(item_target))
 
 /**
  * Resolves the ammo HUD screen object for a given holder or item.
@@ -168,7 +177,7 @@
  * Dispatches an ammo HUD update based on the item's type.
  *
  * Routes the update call to the appropriate handler for ballistic guns,
- * energy guns, or welding tools.
+ * energy guns, microfusion guns, or welding tools.
  *
  * Arguments:
  * * source - The item whose ammo display should be updated.
@@ -180,6 +189,9 @@
 
 	if(istype(source, /obj/item/gun/energy))
 		return update_energy(source, hud)
+
+	if(istype(source, /obj/item/gun/microfusion))
+		return update_microfusion(source, hud)
 
 	return update_welder(source, hud)
 
@@ -277,6 +289,57 @@
 		hud.maptext = span_maptext("<div align='center' valign='middle' style='position:relative'><font color='[COLOR_YELLOW]'><b>[batt_percent]%</b></font><br><font color='[COLOR_CYAN]'>[shot_cost_percent]%</font></div>")
 		return
 	hud.maptext = span_maptext("<div align='center' valign='middle' style='position:relative'><font color='[COLOR_VIBRANT_LIME]'><b>[batt_percent]%</b></font><br><font color='[COLOR_CYAN]'>[shot_cost_percent]%</font></div>")
+
+/**
+ * Updates the ammo HUD for microfusion firearms.
+ *
+ * Displays the phase emitter's heat state as the counter backing, with cell
+ * charge and per-shot energy cost as maptext, falling back to fault readouts
+ * when the emitter is missing or damaged.
+ *
+ * Signal handler for COMSIG_UPDATE_AMMO_HUD and COMSIG_GUN_CHAMBER_PROCESSED.
+ *
+ * Arguments:
+ * * to_update - The microfusion firearm being evaluated.
+ * * hud - Optional ammo HUD screen object to update.
+ */
+/datum/element/ammo_hud/proc/update_microfusion(obj/item/gun/microfusion/to_update, atom/movable/screen/ammo_counter/hud)
+	SIGNAL_HANDLER
+
+	if(!should_update(to_update))
+		return
+
+	hud = hud || get_hud(parent_item = to_update)
+	if(isnull(hud))
+		return
+
+	if(isnull(to_update.phase_emitter) || isnull(to_update.cell) || !to_update.cell.charge)
+		hud.icon_state = "microfusion_counter_no_emitter"
+		hud.maptext = null
+		return
+
+	if(to_update.phase_emitter.damaged)
+		hud.icon_state = "microfusion_counter_damaged"
+		hud.maptext = null
+		return
+
+	hud.icon_state = "microfusion_counter_[to_update.phase_emitter.get_heat_icon_state()]"
+	hud.cut_overlays()
+	hud.maptext_x = -12
+	var/obj/item/ammo_casing/energy/shot = to_update.microfusion_lens
+	var/batt_percent = floor(clamp(to_update.cell.charge / to_update.cell.maxcharge, 0, 1) * 100)
+	var/shot_cost_percent = floor(clamp(shot.e_cost / to_update.cell.maxcharge, 0, 1) * 100)
+	if(batt_percent > 99 || shot_cost_percent > 99)
+		hud.maptext_x = -12
+	else
+		hud.maptext_x = -8
+	if(!to_update.can_shoot())
+		hud.icon_state = "microfusion_counter_no_emitter"
+		return
+	if(batt_percent <= 25)
+		hud.maptext = span_maptext("<div align='center' valign='middle' style='position:relative'><font color='[COLOR_YELLOW]'>[batt_percent]%</font><br><font color='[COLOR_CYAN]'>[shot_cost_percent]%</font></div>")
+		return
+	hud.maptext = span_maptext("<div align='center' valign='middle' style='position:relative'><font color='[COLOR_VIBRANT_LIME]'>[batt_percent]%</font><br><font color='[COLOR_CYAN]'>[shot_cost_percent]%</font></div>")
 
 /**
  * Updates the ammo HUD for welding tools.

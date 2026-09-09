@@ -25,10 +25,25 @@
 	bodyshape = BODYSHAPE_MONKEY
 	acceptable_bodyshape = BODYSHAPE_MONKEY
 	dmg_overlay_type = SPECIES_MONKEY
-	wing_types = list(/obj/item/organ/wings/functional/dragon)
+	wing_types = list(/obj/item/organ/wings/dragon)
 
 /obj/item/bodypart/chest/kobold/get_butt_sprite()
 	return icon('icons/mob/butts.dmi', BUTT_SPRITE_LIZARD)
+
+/obj/item/bodypart/chest/kobold/update_mob_heights(mob/living/carbon/holder)
+	if(HAS_TRAIT(holder, TRAIT_DWARF))
+		return MONKEY_HEIGHT_DWARF
+
+	if(HAS_TRAIT(holder, TRAIT_TOO_TALL))
+		return MONKEY_HEIGHT_TALL
+
+	// Allows for shorter kobolds
+	var/mob/living/carbon/human/human_holder = holder
+	var/preferred_height = human_holder.get_base_mob_height()
+	if(preferred_height <= HUMAN_HEIGHT_SHORT)
+		return MONKEY_HEIGHT_DWARF
+
+	return MONKEY_HEIGHT_MEDIUM
 
 /obj/item/bodypart/arm/left/kobold
 	icon = 'modular_nova/master_files/icons/mob/species/kobold_bodyparts.dmi'

@@ -41,20 +41,16 @@
 	if(slot_flags & ITEM_SLOT_NECK)
 		to_chat(user, span_warning("You must undo [src] in order to push it into a hat!"))
 		return FALSE
-	//NOVA EDIT ADDITION START: BANDANA HATS FOR MUTANTS
-	if(slot_flags & ITEM_SLOT_HEAD)
-		supports_variations_flags = NONE
-	if(slot_flags & ITEM_SLOT_MASK)
-		supports_variations_flags = initial(supports_variations_flags)
-	//NOVA EDIT ADDITION END
 	return ..()
 
 /obj/item/clothing/mask/bandana/visor_toggling()
 	. = ..()
 	if(up)
 		undyeable = TRUE
+		supports_variations_flags = NONE // NOVA EDIT ADDITION
 	else
 		undyeable = initial(undyeable)
+		supports_variations_flags = initial(supports_variations_flags) // NOVA EDIT ADDITION
 
 /obj/item/clothing/mask/bandana/click_alt(mob/user)
 	if(!iscarbon(user))
@@ -81,6 +77,7 @@
 		user.visible_message(span_notice("[user] ties [src] up like a neckerchief."), span_notice("You tie [src] up like a neckerchief."))
 		flags_inv = NONE
 		flags_cover = NONE
+		supports_variations_flags = NONE // NOVA EDIT ADDITION
 		return CLICK_ACTION_SUCCESS
 
 	undyeable = initial(undyeable)
@@ -90,6 +87,7 @@
 	user.visible_message(span_notice("[user] unties the neckerchief."), span_notice("You untie the neckerchief."))
 	flags_inv = initial(flags_inv)
 	flags_cover = initial(flags_cover)
+	supports_variations_flags = initial(supports_variations_flags) // NOVA EDIT ADDITION
 	return CLICK_ACTION_SUCCESS
 
 /obj/item/clothing/mask/bandana/red

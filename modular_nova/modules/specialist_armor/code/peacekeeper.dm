@@ -15,6 +15,7 @@
 		will protect you from bullets best, a few blunt blows, and the wounds they cause. Lasers will burn more or less straight through it."
 	icon = 'modular_nova/modules/specialist_armor/icons/armor.dmi'
 	icon_state = "soft_peacekeeper"
+	worn_icon_digi = null
 	worn_icon = 'modular_nova/modules/specialist_armor/icons/armor_worn.dmi'
 	inhand_icon_state = "armor"
 	blood_overlay_type = "armor"
@@ -39,6 +40,7 @@
 	desc = "A bright white vest, notably missing an 'SF' marking on either its front or back. Dense fabric with a thin layer of rolled metal \
 		will protect you from bullets best, a few blunt blows, and the wounds they cause. Lasers will burn more or less straight through it."
 	icon_state = "soft_civilian"
+	worn_icon_digi = null
 
 /obj/item/clothing/head/helmet/sf_peacekeeper
 	name = "'Kastrol' peacekeeper helmet"
@@ -53,6 +55,7 @@
 	flags_inv = null
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 	resistance_flags = FIRE_PROOF
+	worn_icon_muzzled = null
 
 /obj/item/clothing/head/helmet/sf_peacekeeper/examine_more(mob/user)
 	. = ..()

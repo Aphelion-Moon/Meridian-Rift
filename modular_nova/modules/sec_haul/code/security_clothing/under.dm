@@ -76,10 +76,14 @@
 	greyscale_colors = "#A52F29#39393F#39393F#A52F29"
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	gets_cropped_on_taurs = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/security/nova/skirt/blue
+	worn_icon_digi = null
 	icon_state = "/obj/item/clothing/under/rank/security/nova/skirt/blue"
 	greyscale_colors = "#3F6E9E#39393F#39393F#3F6E9E"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/rank/security/nova/plainskirt
 	name = "guard plain skirt"
@@ -92,10 +96,14 @@
 	greyscale_colors = "#A52F29#39393F#39393F#A52F29"
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	gets_cropped_on_taurs = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/security/nova/plainskirt/blue
+	worn_icon_digi = null
 	icon_state = "/obj/item/clothing/under/rank/security/nova/plainskirt/blue"
 	greyscale_colors = "#3F6E9E#39393F#3F6E9E#3F6E9E"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/rank/security/nova/miniskirt
 	name = "guard miniskirt"
@@ -107,10 +115,14 @@
 	greyscale_config_worn = /datum/greyscale_config/depgag_mini/worn
 	greyscale_colors = "#A52F29#39393F"
 	gets_cropped_on_taurs = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/security/nova/miniskirt/blue
+	worn_icon_digi = null
 	icon_state = "/obj/item/clothing/under/rank/security/nova/miniskirt/blue"
 	greyscale_colors = "#3F6E9E#39393F"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/rank/security/nova/utility
 	name = "guard utility uniform"
@@ -130,16 +142,20 @@
 	greyscale_config = /datum/greyscale_config/depgag_dress
 	greyscale_config_worn = /datum/greyscale_config/depgag_dress/worn
 	greyscale_colors = "#A52F29#39393F#A52F29"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/security/nova/dress/blue
+	worn_icon_digi = null
 	icon_state = "/obj/item/clothing/under/rank/security/nova/dress/blue"
 	greyscale_colors = "#3F6E9E#39393F#3F6E9E"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/rank/security/nova/shorts
 	name = "pair of guard shorts"
 	desc = "Some \"combat\" shorts. Please don't actually wear these."
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
-	icon_state = "/obj/item/clothing/under/rank/security/nova/secshorts"
+	icon_state = "/obj/item/clothing/under/rank/security/nova/shorts"
 	post_init_icon_state = "depgag_shorts"
 	greyscale_config = /datum/greyscale_config/depgag_shorts
 	greyscale_config_worn = /datum/greyscale_config/depgag_shorts/worn
@@ -270,6 +286,8 @@
 	name = "head of security's formal uniform"
 	desc = "A female head of security's luxury-wear, for special occasions."
 	icon_state = "hos_parade_fem_blue"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 
 /obj/item/clothing/under/rank/security/head_of_security/nova/alt
@@ -283,6 +301,7 @@
 	name = "head of security's turtleneck skirt"
 	desc = "A stylish alternative to the normal head of security jumpsuit, complete with a tactical skirt."
 	icon_state = "hosalt_skirt_blue"
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	dying_key = DYE_REGISTRY_JUMPSKIRT
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY

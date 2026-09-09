@@ -1,17 +1,17 @@
+/// Boot log lines shown in the lobby's startup terminal, capped to MAX_STARTUP_MESSAGES.
+GLOBAL_LIST_EMPTY(startup_messages)
+
 SUBSYSTEM_DEF(title)
 	name = "Title Screen"
 	ss_flags = SS_NO_FIRE
 	init_stage = INITSTAGE_FIRST
 
-	var/file_path
 	var/icon/startup_splash
 
 	/// The current title screen being displayed, as a file path text.
 	var/current_title_screen
 	/// The current notice text, or null.
 	var/current_notice
-	/// The preamble html that includes all styling and layout.
-	var/title_html
 	/// The list of possible title screens to rotate through, as file path texts.
 	var/title_screens = list()
 
@@ -23,17 +23,14 @@ SUBSYSTEM_DEF(title)
 	var/list/progress_json = list()
 	/// The reference realtime that we're treating as 0 for this run
 	var/progress_reference_time = 0
+	/// Name the current title image is registered under in the asset cache. Incremented each
+	/// time the image changes, since re-registering the same name with different content logs
+	/// an asset cache error (see /datum/asset_transport/proc/register_asset).
+	var/current_title_asset_name
+	/// Counter used to build a fresh, unique asset name each time the title image changes.
+	var/title_asset_generation = 0
 
 /datum/controller/subsystem/title/Initialize()
-	var/dat
-	if(!fexists("[global.config.directory]/nova/title_html.txt"))
-		to_chat(world, span_boldwarning("CRITICAL ERROR: Unable to read title_html.txt, reverting to backup title html, please check your server config and ensure this file exists."))
-		dat = DEFAULT_TITLE_HTML
-	else
-		dat = file2text("[global.config.directory]/nova/title_html.txt")
-
-	title_html = dat
-
 	var/list/provisional_title_screens = flist("[global.config.directory]/title_screens/images/")
 	var/list/local_title_screens = list()
 
@@ -138,31 +135,45 @@ SUBSYSTEM_DEF(title)
 
 /datum/controller/subsystem/title/Recover()
 	startup_splash = SStitle.startup_splash
-	file_path = SStitle.file_path
 
 	current_title_screen = SStitle.current_title_screen
 	current_notice = SStitle.current_notice
-	title_html = SStitle.title_html
 	title_screens = SStitle.title_screens
 
 	average_completion_time = SStitle.average_completion_time
 	startup_message_timings = SStitle.startup_message_timings
 	progress_json = SStitle.progress_json
 	progress_reference_time = SStitle.progress_reference_time
+	current_title_asset_name = SStitle.current_title_asset_name
+	title_asset_generation = SStitle.title_asset_generation
 
 /**
- * Show the title screen to all new players.
+ * Registers the current title screen as the lobby menu's background asset,
+ * and pushes the fresh URL to every currently-open lobby menu.
+ *
+ * The title image changes over time (loading gif -> picked title screen -> admin swaps), and
+ * /datum/asset_transport/proc/register_asset logs an error if you re-register the same name
+ * with different content, so each call here registers under a fresh, unique name instead of
+ * reusing one fixed name.
  */
 /datum/controller/subsystem/title/proc/show_title_screen()
-	for(var/mob/dead/new_player/new_player in GLOB.new_player_list)
-		INVOKE_ASYNC(new_player, TYPE_PROC_REF(/mob/dead/new_player, show_title_screen))
+	set waitfor = FALSE
+	title_asset_generation++
+	current_title_asset_name = "[LOBBY_TITLE_ASSET_PREFIX]_[title_asset_generation].png"
+	SSassets.transport.register_asset(current_title_asset_name, current_title_screen)
+	for(var/datum/lobby_menu/menu as anything in GLOB.lobby_menus)
+		if(!menu.client)
+			continue
+		SSassets.transport.send_assets(menu.client, current_title_asset_name)
+		menu.send_update(list("titleImageUrl" = SSassets.transport.get_asset_url(current_title_asset_name)))
 
 /**
  * Adds a notice to the main title screen in the form of big red text!
  */
 /datum/controller/subsystem/title/proc/set_notice(new_title)
 	current_notice = new_title ? sanitize_text(new_title) : null
-	show_title_screen()
+	for(var/datum/lobby_menu/menu as anything in GLOB.lobby_menus)
+		menu.send_update(list("notice" = current_notice))
 
 /**
  * Changes the title screen to a new image.
@@ -186,10 +197,7 @@ SUBSYSTEM_DEF(title)
  * * name - the real name of the current slot.
  */
 /datum/controller/subsystem/title/proc/update_character_name(mob/dead/new_player/user, name)
-	if(!(istype(user) && user.title_screen_is_ready))
-		return
-
-	user.client << output(name, "nova_title_browser:update_current_character")
+	user.client?.lobby_menu?.send_update(list("characterName" = uppertext(name)))
 
 /**
  * Adds a startup message to the splashscreen.
@@ -201,13 +209,12 @@ SUBSYSTEM_DEF(title)
 /proc/add_startup_message(msg, warning)
 	// Remove the # second(s) / #s part of the message.
 	var/static/regex/msg_key_regex = new(@"[0-9.]+( second)?s?!", "ig")
-
-	// HTML displayed to user
-	var/msg_html = {"<p class="terminal_text">[warning ? "☒ " : ""][msg]</p>"}
 	// Key used to cache the timing info
 	var/msg_key = msg_key_regex.Replace(msg, "#")
 
-	GLOB.startup_messages += msg_html
+	GLOB.startup_messages += list(list("text" = msg, "warning" = !!warning))
+	if(length(GLOB.startup_messages) > MAX_STARTUP_MESSAGES)
+		GLOB.startup_messages.Cut(1, length(GLOB.startup_messages) - MAX_STARTUP_MESSAGES + 1)
 
 	// If we ran before SStitle initialized, set the ref time now.
 	SStitle.check_progress_reference_time()
@@ -223,9 +230,9 @@ SUBSYSTEM_DEF(title)
 		new_timing = 0.75 * old_timing + 0.25 * (world.timeofday - SStitle.progress_reference_time)
 	SStitle.startup_message_timings[msg_key] = new_timing
 
-	for(var/mob/dead/new_player/new_player in GLOB.new_player_list)
-		if(!new_player.title_screen_is_ready)
-			continue
-
-		new_player.client << output(msg_html, "nova_title_browser:append_terminal_text")
-		new_player.client << output(list2params(list(new_timing, SStitle.average_completion_time)), "nova_title_browser:update_loading_progress")
+	for(var/datum/lobby_menu/menu as anything in GLOB.lobby_menus)
+		menu.send_update(list(
+			"startupMessages" = GLOB.startup_messages,
+			"progressCurrent" = new_timing,
+			"progressTotal" = SStitle.average_completion_time,
+		))

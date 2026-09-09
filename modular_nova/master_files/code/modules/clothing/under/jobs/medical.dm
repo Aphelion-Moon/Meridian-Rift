@@ -49,7 +49,6 @@
 
 /obj/item/clothing/under/rank/medical/chief_medical_officer/nova
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/medical.dmi'
-	worn_icon = 'modular_nova/master_files/icons/mob/clothing/under/medical.dmi'
 
 /*
 *	DOCTOR
@@ -91,6 +90,7 @@
 /obj/item/clothing/under/rank/medical/chemist/nova/formal/skirt
 	name = "chemist's formal jumpskirt"
 	icon_state = "pharmacologist_skirt"
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	dying_key = DYE_REGISTRY_JUMPSKIRT
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
@@ -113,6 +113,7 @@
 	name = "light paramedic skirt"
 	desc = "A brighter variant of the typical Paramedic uniform made with special fibers that provide minor protection against biohazards, this one has had its legs replaced with a skirt."
 	icon_state = "paramedic_light_skirt"
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	dying_key = DYE_REGISTRY_JUMPSKIRT
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY

@@ -5,6 +5,7 @@
 	desc = "A face-covering mask that can be connected to an air supply. This one doesn't obscure your face however."
 	icon_state = "gas_clear"
 	flags_inv = NONE
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/atmos/glass
 	icon = 'modular_nova/master_files/icons/obj/clothing/masks.dmi'
@@ -13,12 +14,14 @@
 	desc = "A face-covering mask that can be connected to an air supply. This one doesn't obscure your face however."
 	icon_state = "gas_clear"
 	flags_inv = NONE
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/alt
 	icon = 'modular_nova/master_files/icons/obj/clothing/masks.dmi'
 	icon_state = "gas_alt2"
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/mask.dmi'
 	dirt_state = "gas_wide_dirt"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/gags
 	flags_inv = NONE
@@ -39,8 +42,8 @@
 	desc = "A deprecated field protective mask developed during the 20th century in Sol-3. It's designed to protect from chemical agents, biological agents, and nuclear fallout particles. It does not protect the user from ammonia or from lack of oxygen, though the filter can be replaced with a tube for any air tank."
 	icon = 'modular_nova/master_files/icons/obj/clothing/masks.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/mask.dmi'
-	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/species/teshari/mask.dmi'
 	icon_state = "hecu"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/clown_colourable
 	name = "colourable clown mask"
@@ -55,6 +58,7 @@
 	greyscale_config_worn = /datum/greyscale_config/clown_mask/worn
 	greyscale_colors = "#FFFFFF#F20018#0000FF#00CC00"
 	flags_1 = IS_PLAYER_COLORABLE_1
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask/gas/clownbald
 	name = "bald clown mask"
@@ -66,6 +70,7 @@
 	inhand_icon_state = null
 	flags_cover = MASKCOVERSEYES
 	resistance_flags = FLAMMABLE
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/pink_clown_wig
 	name = "pink clown wig"
@@ -77,6 +82,7 @@
 	inhand_icon_state = null
 	flags_inv = HIDEHAIR
 	resistance_flags = FLAMMABLE
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask/gas/respirator
 	name = "half mask respirator"
@@ -95,10 +101,11 @@
 	greyscale_config = /datum/greyscale_config/respirator
 	greyscale_config_worn = /datum/greyscale_config/respirator/worn
 	//NIGHTMARE NIGHTMARE NIGHTMARE
-	greyscale_config_worn_digi = /datum/greyscale_config/respirator/worn/snouted
+	greyscale_config_worn_muzzled = /datum/greyscale_config/respirator/worn/snouted
 	greyscale_config_worn_better_vox = /datum/greyscale_config/respirator/worn/better_vox
 	greyscale_config_worn_vox = /datum/greyscale_config/respirator/worn/vox
 	greyscale_config_worn_teshari = /datum/greyscale_config/respirator/worn/teshari
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/respirator/examine(mob/user)
 	. = ..()
@@ -210,6 +217,7 @@
 	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	starting_filter_type = /obj/item/gas_filter/vox
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/sechailer/vox
 	desc = "A standard issue Security gas mask with integrated 'Compli-o-nator 3000' device. Plays over a dozen pre-recorded compliance phrases designed to get scumbags to stand still whilst you tase them. Do not tamper with the device. This one's got an easily accessible feeding port to be more suitable for the Vox crewmembers."
@@ -217,6 +225,8 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
-	clothing_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS | GAS_FILTERING
-	visor_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS | GAS_FILTERING
+	clothing_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS
+	visor_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS
+	has_filter = TRUE
 	starting_filter_type = /obj/item/gas_filter/vox
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION

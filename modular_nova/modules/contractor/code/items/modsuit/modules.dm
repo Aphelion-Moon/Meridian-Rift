@@ -1,5 +1,5 @@
 /obj/item/mod/module/weapon_recall/contractor
-	name = "MOD baton recall module"
+	name = "\improper MOD baton recall module"
 	desc = "A module installed into the forearm and palm of a MODsuit, this allows users to remotely recall a paired contractor baton, \
 		by virtue of being paired to a proprietary miniature bluespace drive built into the handle of the baton. \
 		The magnetic system also allows you to throw guns at people really hard."
@@ -25,7 +25,7 @@
 	complexity = 0
 
 /obj/item/mod/module/springlock/contractor
-	name = "MOD magnetic deployment module"
+	name = "\improper MOD magnetic deployment module"
 	desc = "A much more modern version of a springlock system, utilizing magnets to speed up the deployment and retraction time of a MODsuit \
 	with a distinct lack of ability to snap into place when exposed to moisture."
 	icon_state = "magnet"
@@ -44,7 +44,7 @@
 	complexity = 0
 
 /obj/item/mod/module/scorpion_hook
-	name = "MOD SCORPION hook module"
+	name = "\improper MOD SCORPION hook module"
 	desc = "A module installed in the wrist of a MODSuit, this highly \
 			illegal module uses a hardlight hook to forcefully pull \
 			a target towards you at high speed, knocking them down and \

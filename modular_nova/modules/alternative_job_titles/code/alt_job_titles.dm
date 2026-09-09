@@ -14,6 +14,12 @@
 		"AI",
 		"Automated Overseer",
 		"Station Intelligence",
+		"Networked Intelligence",
+		"Cybernetic Command",
+		"Positronic Personality",
+		"Station Interface AI",
+		"Remote Networked AI",
+		"Robotic Command",
 	)
 
 /datum/job/assistant
@@ -23,7 +29,6 @@
 		"Businessman",
 		"Businesswoman",
 		"Civilian",
-		"Entertainer",
 		"Freelancer",
 		"Tourist",
 		"Trader",
@@ -33,6 +38,7 @@
 		"Contractor",
 		"Visitor",
 		"Traveler",
+		"Independant",
 	)
 
 /datum/job/atmospheric_technician
@@ -55,6 +61,8 @@
 		"Salon Manager",
 		"Salon Technician",
 		"Stylist",
+		"Fur Stylist",
+		"Scale Polisher",
 	)
 
 /datum/job/bartender
@@ -67,6 +75,8 @@
 		"Beverage Architect",
 		"Barkeeper",
 		"Mixologist",
+		"Bar Steward",
+		"Bar Caretaker",
 	)
 
 /datum/job/bitrunner
@@ -78,6 +88,7 @@
 		"Pod Jockey",
 		"Union Bitrunner",
 		"Junior Runner",
+		"Hacker",
 	)
 
 /datum/job/bridge_assistant
@@ -97,6 +108,8 @@
 		"Command Bodyguard",
 		"Corporate Protection Specialist",
 		"Executive Protection Agent",
+		"Astraeus Protection Specialist",
+		"ASF Asset Protection",
 	)
 
 /datum/job/botanist
@@ -119,6 +132,8 @@
 		"Doorman",
 		"Civil Protection Officer",
 		"Public Peacekeeper",
+		"Safeguard Officer",
+		"Bar Lookout",
 	)
 
 /datum/job/corrections_officer
@@ -127,6 +142,8 @@
 		"Brig Officer",
 		"Brig Guard",
 		"Prison Guard",
+		"Prison Overseer",
+		"Prisoner Care Officer",
 	)
 
 /datum/job/captain
@@ -139,6 +156,8 @@
 		"Site Director",
 		"Site Administrator",
 		"Station Commander",
+		"Astraeus Command Chief",
+		"Federation Command Officer",
 	)
 
 /datum/job/cargo_technician
@@ -154,6 +173,7 @@
 		"Receiving Clerk",
 		"Shipping Associate",
 		"Union Associate",
+		"Merchant Guild Associate",
 	)
 
 /datum/job/chaplain
@@ -174,6 +194,10 @@
 		"Reverend",
 		"Shrine Maiden",
 		"Shrine Guardian",
+		"Minister",
+		"Cleric",
+		"Paladin",
+		"Saint",
 	)
 
 /datum/job/chemist
@@ -194,6 +218,8 @@
 		"Engineering Foreman",
 		"Engineering Supervisor",
 		"Head of Engineering",
+		"Engineering Hyperspecialist",
+		"Master of Works",
 	)
 
 /datum/job/chief_medical_officer
@@ -205,6 +231,9 @@
 		"Head Physician",
 		"Medical Director",
 		"Medical Administrator",
+		"Hospital Chief",
+		"Medical Department Head",
+		"Master of Medicine",
 	)
 
 /datum/job/clown
@@ -213,6 +242,10 @@
 		"Comedian",
 		"Jester",
 		"Joker",
+		"Harlequin",
+		"Clowness",
+		"Entertainer",
+		"Jokester",
 	)
 
 /datum/job/cook
@@ -235,15 +268,24 @@
 		"Funeral Director",
 		"Medical Examiner",
 		"Mortician",
+		"Mortuary Attendant",
+		"Morgue Technician",
+		"Morgue Porter",
+		"Bereavement Specialist",
+		"Embalmer",
 	)
 
 /datum/job/curator
 	alt_titles = list(
 		"Curator",
 		"Archivist",
+		"Bookworm",
 		"Conservator",
 		"Journalist",
 		"Librarian",
+		"Library Manager",
+		"Theatre Manager",
+		"Podcaster",
 	)
 
 /datum/job/customs_agent
@@ -252,6 +294,9 @@
 		"Supply Guard",
 		"Deck Defense Officer",
 		"Delivery Escort",
+		"Cargo Safeguard Officer",
+		"Shipment Security Specialist",
+		"Merchant Guild Mercenary",
 	)
 
 /datum/job/cyborg
@@ -259,6 +304,10 @@
 		"Cyborg",
 		"Android",
 		"Robot",
+		"Machine",
+		"Federation Cyborg",
+		"Commercial-Grade Robot",
+		"Military Surplus Cyborg",
 	)
 
 /datum/job/detective
@@ -270,6 +319,7 @@
 		"Forensic Technician",
 		"Forensic Investigator",
 		"Private Investigator",
+		"Criminal Researcher",
 	)
 
 /datum/job/doctor
@@ -285,14 +335,17 @@
 		"Physician Assistant",
 		"Emergency Physician",
 		"Registered Nurse",
+		"Diagnostician",
 	)
 
 /datum/job/engineering_guard //see orderly
 	alt_titles = list(
 		"Engineering Guard",
-		"Tide Deterrent",
+		"Engineering Porter",
 		"Power Plant Guard",
 		"Construction Guard",
+		"Engineering Overwatch",
+		"Engineering Defensive Officer",
 	)
 
 /datum/job/geneticist
@@ -303,6 +356,7 @@
 		"Gene Analyzer",
 		"Gene Tailor",
 		"Mutation Researcher",
+		"Genetic Biologist",
 	)
 
 /datum/job/head_of_personnel
@@ -312,6 +366,9 @@
 		"Employment Officer",
 		"Human Resources Officer",
 		"Executive Officer",
+		"Astraeus Personnel Officer",
+		"Employee Relations",
+		"Personnel Management",
 	)
 
 /datum/job/head_of_security
@@ -323,6 +380,7 @@
 		"Security Supervisor",
 		"Security Director",
 		"Sheriff",
+		"Federation Security Consult",
 	)
 
 /datum/job/janitor
@@ -359,17 +417,18 @@
 		"Mime",
 		"Mummer",
 		"Pantomimist",
+		"Juggler",
+		"Mute",
+		"Silent",
 	)
 
 /datum/job/nanotrasen_consultant
 	alt_titles = list(
-		"Nanotrasen Representative",
-		"Nanotrasen Consultant",
-		"Nanotrasen Regulatory Advisor",
-		"Nanotrasen Diplomat",
-		"Corporate Adjutant",
-		"Corporate Representative",
-		"Corporate Advocate",
+		"Astraeus Diplomacy Officer",
+		"Federation Consultant",
+		"Astraeus Regulatory Advisor",
+		"Astraeus Federation Diplomat",
+		"Command Relations Consultant",
 	)
 
 /datum/job/orderly
@@ -377,6 +436,10 @@
 		"Orderly",
 		"Medical Guard",
 		"Medical Escort",
+		"Medical Porter",
+		"Patient Care Officer",
+		"Patient Safeguard",
+		"Safeguard Care Nurse",
 	) //other dept guards' alt-titles should be kept to [department] guard to avoid confusion, unless the department gets a re-do.
 
 /datum/job/paramedic
@@ -384,13 +447,18 @@
 		"Paramedic",
 		"Emergency Medical Technician",
 		"Search and Rescue Technician",
-		"Trauma Team Responder",
 		"Emergency Medical Responder",
+		"Field Medic",
+		"Urgent Care Responder",
 	)
 
 /datum/job/prisoner
 	alt_titles = list(
 		"Prisoner",
+		"Convict",
+		"Inmate",
+		"Political Prisoner",
+		"Diplomatic Transfer Inmate",
 		"Minimum Security Prisoner",
 		"Maximum Security Prisoner",
 		"SuperMax Security Prisoner",
@@ -404,17 +472,24 @@
 		"Counsellor",
 		"Psychiatrist",
 		"Therapist",
+		"Clinical Psychologist",
+		"Neurotherapist",
+		"Community Therapist",
+		"Careers Counsellor",
 	)
 
 /datum/job/quartermaster
 	alt_titles = list(
 		"Quartermaster",
 		"Deck Chief",
-		"Head of Supply",
+		"Cargo Command Chief",
+		"Head of Cargo",
 		"Logistics Coordinator",
 		"Supply Foreman",
 		"Union Requisitions Officer",
 		"Warehouse Supervisor",
+		"Federation Union Representative",
+		"Deep Space Cargo Coordinator",
 	)
 
 /datum/job/research_director
@@ -427,6 +502,10 @@
 		"Silicon Administrator",
 		"Research Administrator",
 		"Director of Science",
+		"Scientific Administrator",
+		"Head of Development",
+		"Research and Development Lead",
+		"Astraeus Science Lead",
 	)
 
 /datum/job/roboticist
@@ -438,6 +517,9 @@
 		"Machinist",
 		"Mechatronic Engineer",
 		"Apprentice Roboticist",
+		"Cybersmith",
+		"Servomechanic",
+		"Synthetic Lifeform Technician",
 	)
 
 /datum/job/science_guard //See orderly
@@ -445,7 +527,9 @@
 		"Science Guard",
 		"Hazardous Experiment Overwatch",
 		"Xenobiological Recontainment Officer",
-		"Expedition Protection Agent",
+		"Scientist Protection Agent",
+		"Research and Development Porter",
+		"Robotics Protection Agent",
 	)
 
 /datum/job/scientist
@@ -473,6 +557,9 @@
 		"Security Specialist",
 		"Deputy",
 		"Constable",
+		"Security Chaperone",
+		"Security Overwatch",
+		"Security Agent",
 	)
 
 /datum/job/shaft_miner
@@ -485,6 +572,7 @@
 		"Ore Excavation Specialist",
 		"Spelunker",
 		"Apprentice Miner",
+		"Planetside Explorer",
 	)
 
 /datum/job/station_engineer

@@ -20,10 +20,11 @@
 
 /obj/item/clothing/suit/clockwork/speed
 	worn_icon_taur_snake = null
-	bodyshapes_with_variations = TRUE
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/suit/clockwork/cloak
 	worn_icon_taur_snake = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/hooded/explorer
 	worn_icon_taur_snake = 'modular_nova/master_files/icons/mob/clothing/suit_taur_snake.dmi'

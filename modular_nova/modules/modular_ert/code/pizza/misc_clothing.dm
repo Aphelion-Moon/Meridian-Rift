@@ -9,6 +9,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
 	icon_state = "forensics_red_long"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/pizza
 	name = "dogginos employee uniform"
@@ -16,3 +17,4 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/centcom.dmi' //Dogginos is not technically affiliated with CC, but it's not OPPOSING it, and it's an "ERT"...
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/under/centcom.dmi'
 	icon_state = "pizzapizza"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK

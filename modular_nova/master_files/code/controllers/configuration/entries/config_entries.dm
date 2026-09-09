@@ -158,3 +158,8 @@
 /// Whether the techweb uses its default (vanilla) set of starting nodes (FALSE) or forces every node to start unlocked (TRUE).
 /datum/config_entry/flag/enable_nova_techweb_starting_nodes
 	default = FALSE
+
+// Used with the Manage Holosigns verb to control the maximum number of signs someone can place.
+/datum/config_entry/number/max_player_holosigns
+	default = 10
+	min_val = 1

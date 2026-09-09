@@ -38,6 +38,7 @@ jobs:
         env:
           USERNAME: ${{ secrets.AUTOWIKI_USERNAME }}
           PASSWORD: ${{ secrets.AUTOWIKI_PASSWORD }}
+          WIKI_API_URL: ${{ vars.WIKI_API_URL }}
         run: |
           cd tools/autowiki
           npm install

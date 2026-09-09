@@ -31,6 +31,7 @@
 	trim_state = "trim_solfed"
 	department_color = COLOR_SOLFED_GOLD
 	subdepartment_color = COLOR_SOLFED_GOLD
+	sechud_icon = MODULAR_HUDS_DMI
 	sechud_icon_state = SECHUD_SOLFED
 
 /datum/outfit/cin_soldier_corpse

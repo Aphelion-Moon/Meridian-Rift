@@ -22,6 +22,7 @@
 	desc = "A pair of aesthetically pleasing heels."
 	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lewd_shoes.dmi'
 	icon_state = "dominaheels"
+	worn_icon_digi = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi'
 	greyscale_colors = null
 	greyscale_config = null
 	greyscale_config_worn = null

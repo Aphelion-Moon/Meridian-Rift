@@ -21,6 +21,9 @@
 	mutantlungs = /obj/item/organ/lungs/carp/akula
 	mutanttongue = /obj/item/organ/tongue/carp/akula
 	mutanteyes = /obj/item/organ/eyes/akula
+	mutant_organs = list(
+		/obj/item/organ/fangs/carp/akula,
+	)
 	meat = /obj/item/food/fishmeat/human
 	inherent_traits = list(
 		TRAIT_ADVANCEDTOOLUSER,
@@ -206,15 +209,24 @@
 	RemoveElement(/datum/element/organ_set_bonus, /datum/status_effect/organ_set_bonus/carp)
 	AddElement(/datum/element/organ_set_bonus, /datum/status_effect/organ_set_bonus/carp/akula)
 
-/obj/item/organ/tongue/carp/akula/on_mob_insert(mob/living/carbon/tongue_owner, special, movement_flags)
+/obj/item/organ/fangs/carp/akula
+	name = "azulean fangs"
+	desc = /obj/item/organ/fangs::desc
+
+/obj/item/organ/fangs/carp/akula/Initialize(mapload)
 	. = ..()
-	if(!ishuman(tongue_owner))
+	RemoveElement(/datum/element/organ_set_bonus, /datum/status_effect/organ_set_bonus/carp)
+	AddElement(/datum/element/organ_set_bonus, /datum/status_effect/organ_set_bonus/carp/akula)
+
+/obj/item/organ/fangs/carp/akula/on_mob_insert(mob/living/carbon/organ_owner, special, movement_flags)
+	. = ..()
+	if(!ishuman(organ_owner))
 		return
-	var/mob/living/carbon/human/human_receiver = tongue_owner
+	var/mob/living/carbon/human/human_receiver = organ_owner
 	if(!human_receiver.can_mutate())
 		return
 	var/datum/species/rec_species = human_receiver.dna.species
-	rec_species.update_no_equip_flags(tongue_owner, initial(rec_species.no_equip_flags))
+	rec_species.update_no_equip_flags(organ_owner, initial(rec_species.no_equip_flags))
 
 //Lungs
 /obj/item/organ/lungs/carp/akula

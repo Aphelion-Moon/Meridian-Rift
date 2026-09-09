@@ -76,7 +76,6 @@ img {
   display: inline-table;
   cursor: pointer;
   user-select: none;
-  -ms-user-select: none; /* Remove after Byond 516 */
   text-align: center;
   font-size: 1em;
   min-width: 2.9em;
@@ -161,11 +160,12 @@ img {
   white-space: nowrap;
   pointer-events: none;
   width: 100%;
-  min-width: 0;
+  min-width: 0; /* APHELION EDIT ADDITION */
   padding: 0.33em 0.5em;
   border-radius: 0.25em;
 }
 
+/* APHELION EDIT ADDITION START */
 .grid-item-star {
   flex: 0 0 auto;
   align-self: center;
@@ -207,6 +207,7 @@ img {
 .verb-search-input::placeholder {
   color: #999999;
 }
+/* APHELION EDIT ADDITION END */
 
 .grid-item:hover .grid-item-text {
   height: 100%;
@@ -315,6 +316,7 @@ body.dark {
   background-color: #313131;
 }
 
+/* APHELION EDIT ADDITION START */
 .dark .grid-item-star {
   color: #5a5a5a;
 }
@@ -337,3 +339,4 @@ body.dark {
 .dark .verb-search-input::placeholder {
   color: #6a6a6a;
 }
+/* APHELION EDIT ADDITION END */
