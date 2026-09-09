@@ -24,8 +24,9 @@
 	var/sample_index = 0
 	// Focusing the parent also focuses its children through inherited test_flags.
 	// Only a separately focused diagnostic subtype should enable profiling overhead.
-	var/profile_procs = !GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
-		&& GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile)
+	var/list/focused_tests = GLOB.focused_tests
+	var/profile_procs = !focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
+		&& focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile)
 	if(profile_procs)
 		world.Profile(PROFILE_RESTART)
 	while(!shift_start_performance_complete)
@@ -92,7 +93,8 @@
 		world.Profile(PROFILE_STOP)
 
 /datum/unit_test/dogmos_shift_start_performance/Run()
-	if(!GLOB.focused_tests?.Find(type))
+	var/list/focused_tests = GLOB.focused_tests
+	if(!focused_tests?.Find(type))
 		return
 	var/deadline = REALTIMEOFDAY + 5 MINUTES
 	while(!SSdogmos.shift_start_performance_complete && REALTIMEOFDAY < deadline)

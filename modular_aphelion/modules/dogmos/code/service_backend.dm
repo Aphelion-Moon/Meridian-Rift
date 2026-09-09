@@ -335,12 +335,21 @@
 			dogmos_pending_mixture_unregistrations.Remove("[retired_slot]")
 			dogmos_free_mixture_slots += retired_slot
 
-/** Rebuilds deferred turf adjacency records from current DM state without nested flushing. */
-/datum/controller/subsystem/dogmos/proc/retry_pending_turf_adjacencies()
-	if(!length(dogmos_pending_adjacency_retry))
+/**
+ * Rebuilds deferred turf adjacency records synchronously without nested flushing.
+ *
+ * Arguments:
+ * * retry_turfs - Optional snapshot owned by the startup caller; otherwise drains the pending queue.
+ */
+/datum/controller/subsystem/dogmos/proc/retry_pending_turf_adjacencies(list/retry_turfs)
+	SHOULD_NOT_SLEEP(TRUE)
+	if(isnull(retry_turfs))
+		if(!length(dogmos_pending_adjacency_retry))
+			return
+		retry_turfs = dogmos_pending_adjacency_retry.Copy()
+		dogmos_pending_adjacency_retry.Cut()
+	if(!length(retry_turfs))
 		return
-	var/list/retry_turfs = dogmos_pending_adjacency_retry.Copy()
-	dogmos_pending_adjacency_retry.Cut()
 	var/original_runtime_batching = runtime_topology_batching
 	runtime_topology_batching = TRUE
 	try
@@ -348,8 +357,6 @@
 			if(!retry_turf)
 				continue
 			retry_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy, startup_flush = TRUE)
-			if(turf_registration_batching && !SSair.initialized)
-				CHECK_TICK
 	catch(var/exception/error)
 		runtime_topology_batching = original_runtime_batching
 		throw error
@@ -466,13 +473,26 @@
 		for(var/heat_edge_key in heat_candidates.Copy())
 			remove_pending_heat_edge(heat_edge_key)
 
-/** Flushes and closes startup turf mutation accumulation. */
-/datum/controller/subsystem/dogmos/proc/finish_turf_registration_batch()
+/** Rebuilds startup adjacency in bounded chunks, yielding only from the atmosphere initialization caller. */
+/datum/controller/subsystem/dogmos/proc/retry_startup_turf_adjacencies()
 	if(!turf_registration_batching)
-		CRASH("Attempted to finish an inactive Dogmos turf registration batch.")
+		CRASH("Attempted startup adjacency retries outside a Dogmos turf registration batch.")
 	// Every turf has now had its Initalize_Atmos() pass, so retry any turf whose own adjacency
 	// pass bailed earlier on an unregistered self or neighbor - both sides should be registered
 	// by now, so this is the last chance to pick up edges the slot-ordered boot walk dropped.
+	var/list/retry_turfs = dogmos_pending_adjacency_retry.Copy()
+	dogmos_pending_adjacency_retry.Cut()
+	// Only startup may yield. Runtime flushes also run inside non-sleeping lifecycle hooks.
+	for(var/retry_index = 1; retry_index <= length(retry_turfs); retry_index += DOGMOS_TURF_BATCH_OPERATIONS)
+		retry_pending_turf_adjacencies(retry_turfs.Copy(retry_index, min(retry_index + DOGMOS_TURF_BATCH_OPERATIONS, length(retry_turfs) + 1)))
+		if(!SSair.initialized)
+			CHECK_TICK
+
+/** Flushes and closes turf mutation accumulation synchronously, including during test cleanup. */
+/datum/controller/subsystem/dogmos/proc/finish_turf_registration_batch()
+	SHOULD_NOT_SLEEP(TRUE)
+	if(!turf_registration_batching)
+		CRASH("Attempted to finish an inactive Dogmos turf registration batch.")
 	retry_pending_turf_adjacencies()
 	if(!flush_turf_registration_batch())
 		CRASH("Dogmos startup turf mutations were blocked by an unexpected pending stage.")

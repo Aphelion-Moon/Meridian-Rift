@@ -1145,6 +1145,7 @@ SUBSYSTEM_DEF(air)
 	if(DOGMOS)
 		if(length(initialization_batch))
 			time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
+		SSdogmos.retry_startup_turf_adjacencies()
 		SSdogmos.finish_turf_registration_batch()
 	// APHELION EDIT ADDITION END
 

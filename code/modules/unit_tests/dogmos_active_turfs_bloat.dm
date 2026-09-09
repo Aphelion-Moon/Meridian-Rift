@@ -1,5 +1,5 @@
-/// Upper bound for the bounded active-turf maintenance walk.
-#define ACTIVE_TURFS_BLOAT_TEST_MAX_MS 15
+/// Maximum entries permitted in one active-turf maintenance chunk.
+#define ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES 100
 
 /** Bounds the legacy active-turf walk independently of gas movement. */
 /datum/unit_test/dogmos_active_turfs_bloat
@@ -36,7 +36,11 @@
 	// APHELION EDIT ADDITION END
 
 	var/start_tick_usage = TICK_USAGE_REAL
-	SSair.walk_active_turfs_batch() // NOVA EDIT CHANGE - ORIGINAL: SSair.process_active_turfs()
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/more_work = SSair.walk_active_turfs_batch()
+	var/visited_entries = SSair.active_turfs_walk_cursor
+	var/prefetched_entries = SSair.dogmos_walk_prefetch_end
+	// APHELION EDIT ADDITION END
 	var/cost_ms = TICK_USAGE_TO_MS(start_tick_usage)
 
 	SSair.active_turfs = original_active_turfs
@@ -54,7 +58,14 @@
 		fixture_turf.archived_cycle = original_turf_state[4]
 	// APHELION EDIT ADDITION END
 
-	TEST_ASSERT(cost_ms < ACTIVE_TURFS_BLOAT_TEST_MAX_MS, \
-		"walk_active_turfs_batch() took [cost_ms]ms against a ~3800-entry list (bound: [ACTIVE_TURFS_BLOAT_TEST_MAX_MS]ms); work should stay within ACTIVE_TURFS_WALK_BATCH_SIZE.") // NOVA EDIT CHANGE - ORIGINAL: "process_active_turfs() took [cost_ms]ms against a ~3800-entry list (bound: [ACTIVE_TURFS_BLOAT_TEST_MAX_MS]ms); work should stay within ACTIVE_TURFS_WALK_BATCH_SIZE.")
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Shared CI runner speed and IPC latency are observations, not a work-bound contract.
+	log_test("Active-turf bloat walk: [visited_entries] visited, [prefetched_entries] prefetched, [cost_ms]ms.")
+	TEST_ASSERT(prefetched_entries > 0 && prefetched_entries <= ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES, \
+		"Active-turf maintenance must prefetch at most [ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES] entries, got [prefetched_entries].")
+	TEST_ASSERT(visited_entries >= 0 && visited_entries <= prefetched_entries, \
+		"Active-turf maintenance walked outside its prefetched chunk: [visited_entries] visited, [prefetched_entries] prefetched.")
+	TEST_ASSERT(more_work, "A single bounded maintenance call must leave work pending in the bloated snapshot.")
+	// APHELION EDIT ADDITION END
 
-#undef ACTIVE_TURFS_BLOAT_TEST_MAX_MS
+#undef ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES

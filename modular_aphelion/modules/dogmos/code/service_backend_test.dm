@@ -3094,7 +3094,8 @@
 /// Captures one real turf without reading neighboring mixtures.
 /datum/unit_test/dogmos_startup_own_prefetch_regression/proc/capture_turf_state(turf/open/target, save_air_copy = FALSE)
 	var/list/result = list()
-	result["air"] = target.air.dogmos_snapshot()?.Copy()
+	var/list/air_snapshot = target.air.dogmos_snapshot()
+	result["air"] = air_snapshot?.Copy()
 	if(save_air_copy)
 		var/datum/gas_mixture/air_copy = target.air.copy()
 		allocated += air_copy
@@ -3166,9 +3167,12 @@
 		if(!saved_air)
 			return FALSE
 		target.air.copy_from(saved_air)
-		target.air.reaction_results = saved["reaction_results"]?.Copy()
-		target.apply_visual_overlays(saved["visuals"]?.Copy())
-		target.atmos_adjacent_turfs = saved["adjacency"]?.Copy()
+		var/list/reaction_results = saved["reaction_results"]
+		var/list/visuals = saved["visuals"]
+		var/list/adjacency = saved["adjacency"]
+		target.air.reaction_results = reaction_results?.Copy()
+		target.apply_visual_overlays(visuals?.Copy())
+		target.atmos_adjacent_turfs = adjacency?.Copy()
 		target.excited = saved["excited"]
 		target.current_cycle = saved["current_cycle"]
 		target.archived_cycle = saved["archived_cycle"]
