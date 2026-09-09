@@ -896,6 +896,7 @@
 /** Verifies frontier changes wait without publication while an older stage remains resumable. */
 /datum/unit_test/dogmos_service_frontier_mutation_waits_for_pending_stage
 
+/** Probes the deferred-mutation fence with a private snapshot, including before the first SSair cycle. */
 /datum/unit_test/dogmos_service_frontier_mutation_waits_for_pending_stage/Run()
 	var/reached_stage_boundary = FALSE
 	for(var/attempt in 1 to DOGMOS_TEST_STAGE_BOUNDARY_ATTEMPTS)
@@ -906,6 +907,10 @@
 	if(!reached_stage_boundary)
 		return Fail("Dogmos did not reach a safe stage boundary before the pending-stage frontier test.", __FILE__, __LINE__)
 
+	// A focused run can start before the lazy committed frontier exists. Keep the injected
+	// pending-stage fixture local and restore the original snapshot after probing the fence.
+	var/list/original_committed_frontier = SSair.dogmos_committed_frontier
+	SSair.dogmos_committed_frontier = isnull(original_committed_frontier) ? list() : original_committed_frontier.Copy()
 	var/turf/open/target = run_loc_floor_bottom_left
 	var/was_active = SSair.active_turfs.Find(target)
 	var/list/original_pair = SSair.dogmos_committed_frontier[target]
@@ -929,6 +934,7 @@
 		SSair.active_turfs -= target
 	SSair.dogmos_pending_stage = original_pending_stage
 	SSair.dogmos_pending_frontier_epoch = original_pending_frontier
+	SSair.dogmos_committed_frontier = original_committed_frontier
 	if(!synced)
 		return Fail("Dogmos rejected a deferred frontier mutation while an older stage was pending.", __FILE__, __LINE__)
 	if(epoch_changed || frontier_changed || pending_changed)
