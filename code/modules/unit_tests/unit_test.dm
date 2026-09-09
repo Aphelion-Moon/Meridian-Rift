@@ -190,7 +190,7 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
  * There are no sleeps between publication, stage calls and restoration: another SSair
  * stage cannot move gas during the measured before/after interval.
  */
-/datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE)
+/datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE, chunk_budget_ms = 100, require_budget_use = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE)
 	if(!isnull(SSair.dogmos_pending_stage) || SSair.dogmos_pending_frontier_epoch)
 		return FALSE
 	var/list/original_active = SSair.active_turfs
@@ -201,10 +201,20 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/pending = TRUE
 	var/restored = FALSE
 	var/failure = "Native fixture stage [stage] exceeded its completion bound."
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/unused_budget_ms = 0
+	// APHELION EDIT ADDITION END
 	try
 		SSair.active_turfs = turfs.Copy()
 		for(var/chunk in 1 to 4096)
-			pending = use_fdm_cadence ? SSair.process_turfs_auxtools(100) : SSair.dogmos_run_stage(stage, 100)
+			// APHELION EDIT ADDITION START - DOGMOS
+			var/chunk_start = TICK_USAGE
+			// APHELION EDIT ADDITION END
+			pending = use_fdm_cadence ? SSair.process_turfs_auxtools(chunk_budget_ms) : SSair.dogmos_run_stage(stage, chunk_budget_ms) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: pending = use_fdm_cadence ? SSair.process_turfs_auxtools(100) : SSair.dogmos_run_stage(stage, 100)
+			// APHELION EDIT ADDITION START - DOGMOS
+			if(require_budget_use && pending)
+				unused_budget_ms = max(unused_budget_ms, chunk_budget_ms - TICK_DELTA_TO_MS(TICK_USAGE - chunk_start))
+			// APHELION EDIT ADDITION END
 			if(!pending || !SSdogmos.service_ready)
 				break
 		if(!pending && SSdogmos.service_ready)
@@ -229,6 +239,11 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		fixture_turf.pressure_direction = pressure[2]
 	if(!restored)
 		return dogmos_abort_fixture(failure)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(unused_budget_ms > 0)
+		Fail("Native stage yielded with [unused_budget_ms] ms of its [chunk_budget_ms] ms allocation unused.", __FILE__, __LINE__)
+		return FALSE
+	// APHELION EDIT ADDITION END
 	return restored
 
 /** Re-registers a turf and rebuilds its Dogmos heat-graph adjacency. */

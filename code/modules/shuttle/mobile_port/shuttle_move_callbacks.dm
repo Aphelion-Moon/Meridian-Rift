@@ -69,10 +69,15 @@ All ShuttleMove procs go here
 		new_turf.reasses_liquids()
 	//NOVA EDIT END
 	new_turf.CopyOnTop(src, 1, shuttle_depth, TRUE, ignore_area_change ? CHANGETURF_NO_AREA_CHANGE : NONE) // Don't automatically change space area to nearspace if we'll override it later
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	new_turf.blocks_air = TRUE
 	new_turf.air_update_turf(TRUE, FALSE)
 	blocks_air = TRUE
 	air_update_turf(TRUE, TRUE)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	SSdogmos.block_shuttle_turfs(src, new_turf)
+	// APHELION EDIT ADDITION END
 	if(isopenturf(new_turf))
 		var/turf/open/new_open = new_turf
 		new_open.copy_air_with_tile(src)

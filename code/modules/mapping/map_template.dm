@@ -49,6 +49,9 @@
 			cached_map = parsed
 	return bounds
 
+// APHELION EDIT ADDITION START - DOGMOS
+/// Initializes loaded atoms and refreshes atmosphere and underfloor state across the template border.
+// APHELION EDIT ADDITION END
 /datum/map_template/proc/initTemplateBounds(list/bounds)
 	if (!bounds) //something went wrong
 		stack_trace("[name] template failed to initialize correctly!")
@@ -102,9 +105,14 @@
 		bounds[MAP_MINX]-1, bounds[MAP_MINY]-1, bounds[MAP_MINZ],
 		bounds[MAP_MAXX]+1, bounds[MAP_MAXY]+1, bounds[MAP_MAXZ]
 	)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	for(var/turf/affected_turf as anything in template_and_bordering_turfs)
 		affected_turf.air_update_turf(TRUE, TRUE)
 		affected_turf.levelupdate()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	SSdogmos.update_template_border(template_and_bordering_turfs)
+	// APHELION EDIT ADDITION END
 
 /datum/map_template/proc/load_new_z(secret = FALSE)
 	var/x = round((world.maxx - width) * 0.5) + 1

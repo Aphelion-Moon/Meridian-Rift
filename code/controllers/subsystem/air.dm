@@ -1,4 +1,4 @@
-/// Number of active turfs visited per fire cycle by the legacy maintenance walk.
+/// Maximum turfs prefetched by one maintenance or visual chunk.
 #define ACTIVE_TURFS_WALK_BATCH_SIZE 100 // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: #define ACTIVE_TURFS_WALK_BATCH_SIZE 400
 
 /// Fire cycles between shared Dogmos Kennel UI updates while slow mode is enabled.
@@ -125,8 +125,7 @@ SUBSYSTEM_DEF(air)
 
 	var/list/excited_groups = list()
 	var/list/active_turfs = list()
-	/// Round-robin cursor into active_turfs for the legacy per-cycle walk (archive/current_cycle/
-	/// temperature_expose/stability check, process_active_turfs()) - see ACTIVE_TURFS_WALK_BATCH_SIZE.
+	/// Number of initial snapshot entries visited by this cycle's resumable maintenance walk.
 	var/active_turfs_walk_cursor = 0
 	// APHELION EDIT ADDITION START - DOGMOS
 	/// Four exact little-endian words identifying the latest published active frontier.
@@ -147,9 +146,23 @@ SUBSYSTEM_DEF(air)
 	var/dogmos_stage_work_limit = DOGMOS_STAGE_INITIAL_WORK_LIMIT
 	/// Whether both active-turf service stages completed before a callback-drain resume.
 	var/dogmos_active_turf_stages_complete = FALSE
+	/// Whether equalization finished before a pressure-queue continuation.
+	var/dogmos_equalize_stage_complete = FALSE
 	/// Number of FDM passes completed in the current active-turf service cycle.
 	var/dogmos_fdm_steps_completed = 0
-	/// Active-turf walk batch awaiting a post-simulation visual refresh.
+	/// Whether this cycle's complete maintenance walk has published its frontier.
+	var/dogmos_active_walk_complete = FALSE
+	/// Number of initial snapshot entries whose post-simulation visuals have been refreshed.
+	var/dogmos_visual_refresh_cursor = 0
+	/// End of the already-prefetched maintenance chunk, retained across budget pauses.
+	var/dogmos_walk_prefetch_end = 0
+	/// End of the already-prefetched settlement chunk, retained across budget pauses.
+	var/dogmos_visual_prefetch_end = 0
+	/// One-use continuation override after the Master replaces this subsystem and rebuilds its queue.
+	var/dogmos_resume_recovered_cycle = FALSE
+	/// Turfs that reacted during this active phase and must remain active for another evaluation.
+	var/list/dogmos_reacted_turfs = list()
+	/// Fixed initial active set, retained through maintenance, native stages and visual refresh.
 	var/list/dogmos_visual_refresh_batch = list()
 	// APHELION EDIT ADDITION END
 	var/list/hotspots = list()
@@ -245,6 +258,9 @@ SUBSYSTEM_DEF(air)
 
 /datum/controller/subsystem/air/fire(resumed = FALSE)
 	// APHELION EDIT ADDITION START - DOGMOS
+	if(dogmos_resume_recovered_cycle)
+		resumed = TRUE
+		dogmos_resume_recovered_cycle = FALSE
 	if(dogmos_health_preflight_required(resumed))
 		SSdogmos.dogmos_health_preflight_count = min(SSdogmos.dogmos_health_preflight_count + 1, DOGMOS_HEALTH_COUNTER_MAX)
 		if(!SSdogmos.service_ready || !dogmos_service_health())
@@ -411,6 +427,14 @@ SUBSYSTEM_DEF(air)
 	queued_for_activation = SSair.queued_for_activation
 
 	// APHELION EDIT ADDITION START - DOGMOS
+	// The Master owns state and queue links and resets them after replacement.
+	// Preserve the phase and cycle separately so its first fire(FALSE) can resume.
+	currentpart = SSair.currentpart
+	times_fired = SSair.times_fired
+	dogmos_resume_recovered_cycle = initialized && (SSair.dogmos_resume_recovered_cycle \
+		|| SSair.state == SS_RUNNING || SSair.state == SS_PAUSED \
+		|| ((SSair.state == SS_IDLE || SSair.state == SS_QUEUED) \
+			&& (!isnull(SSair.dogmos_pending_stage) || SSair.dogmos_pending_frontier_epoch || length(SSair.dogmos_visual_refresh_batch))))
 	share_max_steps = SSair.share_max_steps
 	equalize_enabled = SSair.equalize_enabled
 	realistic_space_radiation = SSair.realistic_space_radiation
@@ -428,8 +452,14 @@ SUBSYSTEM_DEF(air)
 	dogmos_stage_remaining_estimate = SSair.dogmos_stage_remaining_estimate
 	dogmos_stage_work_limit = SSair.dogmos_stage_work_limit
 	dogmos_active_turf_stages_complete = SSair.dogmos_active_turf_stages_complete
+	dogmos_equalize_stage_complete = SSair.dogmos_equalize_stage_complete
 	dogmos_fdm_steps_completed = SSair.dogmos_fdm_steps_completed
 	dogmos_visual_refresh_batch = SSair.dogmos_visual_refresh_batch?.Copy() || list()
+	dogmos_active_walk_complete = SSair.dogmos_active_walk_complete
+	dogmos_visual_refresh_cursor = SSair.dogmos_visual_refresh_cursor
+	dogmos_walk_prefetch_end = SSair.dogmos_walk_prefetch_end
+	dogmos_visual_prefetch_end = SSair.dogmos_visual_prefetch_end
+	dogmos_reacted_turfs = SSair.dogmos_reacted_turfs.Copy()
 
 	kennel_slow_mode = SSair.kennel_slow_mode
 	kennel_profile_reactions = SSair.kennel_profile_reactions
@@ -439,7 +469,7 @@ SUBSYSTEM_DEF(air)
 	kennel_machine_cost_ms_threshold = SSair.kennel_machine_cost_ms_threshold
 	kennel_auto_pin_duration = SSair.kennel_auto_pin_duration
 	kennel_push_cursor = 0
-	active_turfs_walk_cursor = 0
+	active_turfs_walk_cursor = SSair.active_turfs_walk_cursor
 
 	recent_fire_groups = SSair.recent_fire_groups
 	recent_high_cost_zones = SSair.recent_high_cost_zones
@@ -620,11 +650,16 @@ SUBSYSTEM_DEF(air)
 /** Runs Rust's pressure equalizer, then drains any queued DM pressure movements. */
 /datum/controller/subsystem/air/proc/process_high_pressure_delta(resumed = FALSE)
 	// APHELION EDIT ADDITION START - DOGMOS
-	if(!resumed || dogmos_pending_stage == DOGMOS_SIMULATION_TURF_EQUALIZE)
+	if(!resumed)
+		dogmos_equalize_stage_complete = FALSE
+	// A budget deferral can happen before a native cursor exists. Only successful
+	// completion permits pressure-only resumes to skip the service stage.
+	if(!dogmos_equalize_stage_complete)
 		var/remaining_ms = TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)
 		if(process_turf_equalize_auxtools(remaining_ms))
 			pause() // ran out of budget mid-equalize - resume next fire()
 			return
+		dogmos_equalize_stage_complete = TRUE
 	// APHELION EDIT ADDITION END
 
 	while (high_pressure_delta.len)
@@ -639,19 +674,40 @@ SUBSYSTEM_DEF(air)
 		if(MC_TICK_CHECK)
 			return
 
-/** Runs the Rust gas pass while retaining DM exposure callbacks and a bounded legacy walk.
- * The walk settles and awakens turfs before their frontier is published for this cycle.
+/** Runs native gas and reactions between resumable exposure and settlement passes.
+ * New activations join the published frontier; their exposure waits until the next cycle.
  */
 /datum/controller/subsystem/air/proc/process_active_turfs(resumed = FALSE)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(!SSdogmos.service_ready)
+		pause()
+		return
+	// APHELION EDIT ADDITION END
 	if(!resumed)
 		// APHELION EDIT ADDITION START - DOGMOS
 		dogmos_active_turf_stages_complete = FALSE
 		dogmos_fdm_steps_completed = 0
-		walk_active_turfs_batch()
+		dogmos_active_walk_complete = FALSE
+		active_turfs_walk_cursor = 0
+		dogmos_visual_refresh_cursor = 0
+		dogmos_walk_prefetch_end = 0
+		dogmos_visual_prefetch_end = 0
+		dogmos_visual_refresh_batch = active_turfs.Copy()
+		dogmos_reacted_turfs = list()
+		// APHELION EDIT ADDITION END
+
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(!dogmos_active_walk_complete)
+		while(walk_active_turfs_batch())
+			if(state != SS_RUNNING)
+				return
+		if(MC_TICK_CHECK)
+			return
 		if(!sync_dogmos_frontier())
 			dogmos_fail_closed_stage(DOGMOS_SIMULATION_TURFS)
 			return
-		// APHELION EDIT ADDITION END
+		dogmos_active_walk_complete = TRUE
+	// APHELION EDIT ADDITION END
 
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(!dogmos_active_turf_stages_complete)
@@ -672,6 +728,7 @@ SUBSYSTEM_DEF(air)
 	refresh_dogmos_visuals()
 
 /** Processes a bounded round-robin batch without iterating the live list while removing entries. */
+/* // APHELION EDIT REMOVAL START - DOGMOS - superseded by the fixed per-cycle snapshot below
 /datum/controller/subsystem/air/proc/walk_active_turfs_batch()
 	var/list/turfs = active_turfs
 	var/turf_count = length(turfs)
@@ -688,6 +745,7 @@ SUBSYSTEM_DEF(air)
 
 	// APHELION EDIT ADDITION START - DOGMOS
 	dogmos_prefetch_walk_snapshots(batch)
+	var/removed_count = 0
 	// APHELION EDIT ADDITION END
 
 	for(var/turf/open/T as anything in batch)
@@ -698,12 +756,67 @@ SUBSYSTEM_DEF(air)
 		T.current_cycle = times_fired
 		T.temperature_expose(T.air, T.air.return_temperature())
 		if(turf_settled(T))
+			// APHELION EDIT ADDITION START - DOGMOS
+			var/count_before_removal = length(turfs)
+			// APHELION EDIT ADDITION END
 			remove_from_active(T)
+			// APHELION EDIT ADDITION START - DOGMOS
+			removed_count += count_before_removal - length(turfs)
+			// APHELION EDIT ADDITION END
 
 	// Removals may have shortened the list since batch_end was computed.
-	active_turfs_walk_cursor = (batch_end >= length(active_turfs)) ? 0 : batch_end
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Count removals directly: waking neighbors can append entries during the same walk.
+	var/next_cursor = max(0, batch_end - removed_count)
+	// APHELION EDIT ADDITION END
+	active_turfs_walk_cursor = (next_cursor >= length(active_turfs)) ? 0 : next_cursor // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: active_turfs_walk_cursor = (batch_end >= length(active_turfs)) ? 0 : batch_end
+*/ // APHELION EDIT REMOVAL END
 
 // APHELION EDIT ADDITION START - DOGMOS
+/** Visits at most one snapshot chunk, returning TRUE while maintenance remains.
+ * The cursor advances before exposure callbacks, so resuming never repeats an emitted exposure.
+ * Settling and reactivation mutate only the live queue, never this fixed snapshot.
+ */
+/datum/controller/subsystem/air/proc/walk_active_turfs_batch()
+	var/list/snapshot = dogmos_visual_refresh_batch
+	if(!SSdogmos.service_ready)
+		pause()
+		return TRUE
+	var/turf_count = length(snapshot)
+	if(active_turfs_walk_cursor >= turf_count)
+		return FALSE
+	if(MC_TICK_CHECK)
+		return TRUE
+	if(active_turfs_walk_cursor >= dogmos_walk_prefetch_end)
+		dogmos_walk_prefetch_end = min(active_turfs_walk_cursor + ACTIVE_TURFS_WALK_BATCH_SIZE, turf_count)
+		dogmos_prefetch_walk_snapshots(snapshot.Copy(active_turfs_walk_cursor + 1, dogmos_walk_prefetch_end + 1))
+		if(!SSdogmos.service_ready)
+			pause()
+			return TRUE
+		// Retain the prefetched end even if this request consumed the entire budget.
+		if(MC_TICK_CHECK)
+			return TRUE
+	var/batch_end = dogmos_walk_prefetch_end
+	while(active_turfs_walk_cursor < batch_end)
+		var/turf/open/active_turf = snapshot[++active_turfs_walk_cursor]
+		if(QDELETED(active_turf) || !isopenturf(active_turf) || !active_turf.air)
+			remove_from_active(active_turf)
+		else if(active_turf.excited)
+			if(active_turf.archived_cycle < times_fired)
+				LINDA_CYCLE_ARCHIVE(active_turf)
+			active_turf.current_cycle = times_fired
+			active_turf.temperature_expose(active_turf.air, active_turf.air.return_temperature())
+			if(!SSdogmos.service_ready)
+				pause()
+				return TRUE
+			if(!QDELETED(active_turf) && isopenturf(active_turf) && active_turf.air)
+				// Wake differing neighbors before publication, but matching gas may
+				// still react. Retirement belongs after native reactions and callbacks.
+				turf_settled(active_turf)
+		if(MC_TICK_CHECK)
+			return TRUE
+	return active_turfs_walk_cursor < turf_count
+
 /** Batch-fetches turf air snapshots for the active-turf walk batch and their neighbors.
  * compare() reads both the turf and each adjacent turf's air; prefetching them in one IPC call
  * replaces one per unique mixture the walk will access.
@@ -711,11 +824,16 @@ SUBSYSTEM_DEF(air)
 /datum/controller/subsystem/air/proc/dogmos_prefetch_walk_snapshots(list/batch)
 	var/list/datum/gas_mixture/prefetch = list()
 	for(var/turf/open/T as anything in batch)
+		if(QDELETED(T) || !isopenturf(T))
+			continue
 		if(T?.air)
 			prefetch += T.air
-		for(var/turf/open/neighbor as anything in T.atmos_adjacent_turfs)
-			if(neighbor?.air)
-				prefetch += neighbor.air
+		for(var/turf/neighbor as anything in T.atmos_adjacent_turfs)
+			if(QDELETED(neighbor) || !isopenturf(neighbor))
+				continue
+			var/turf/open/open_neighbor = neighbor
+			if(open_neighbor.air)
+				prefetch += open_neighbor.air
 	if(length(prefetch))
 		SSdogmos.prefetch_mixture_snapshots(prefetch)
 
@@ -736,6 +854,7 @@ SUBSYSTEM_DEF(air)
 // APHELION EDIT ADDITION END
 
 /** Refreshes the walked turfs after their gas diffusion, reactions, and callbacks are complete. */
+/* // APHELION EDIT REMOVAL START - DOGMOS - visual work must retain the same bounded continuation
 /datum/controller/subsystem/air/proc/refresh_dogmos_visuals()
 	for(var/turf/open/active_turf as anything in dogmos_visual_refresh_batch)
 		if(!active_turf?.air)
@@ -743,6 +862,46 @@ SUBSYSTEM_DEF(air)
 		active_turf.update_visuals()
 		check_kennel_reaction_of_interest(active_turf)
 	dogmos_visual_refresh_batch.Cut()
+*/ // APHELION EDIT REMOVAL END
+
+// APHELION EDIT ADDITION START - DOGMOS
+/** Resumes post-simulation visuals without repeating native stages or completed refreshes. */
+/datum/controller/subsystem/air/proc/refresh_dogmos_visuals()
+	var/list/snapshot = dogmos_visual_refresh_batch
+	if(!SSdogmos.service_ready)
+		pause()
+		return
+	while(dogmos_visual_refresh_cursor < length(snapshot))
+		if(MC_TICK_CHECK)
+			return
+		if(dogmos_visual_refresh_cursor >= dogmos_visual_prefetch_end)
+			dogmos_visual_prefetch_end = min(dogmos_visual_refresh_cursor + ACTIVE_TURFS_WALK_BATCH_SIZE, length(snapshot))
+			dogmos_prefetch_walk_snapshots(snapshot.Copy(dogmos_visual_refresh_cursor + 1, dogmos_visual_prefetch_end + 1))
+			if(!SSdogmos.service_ready)
+				pause()
+				return
+			if(MC_TICK_CHECK)
+				return
+		var/batch_end = dogmos_visual_prefetch_end
+		while(dogmos_visual_refresh_cursor < batch_end)
+			var/turf/open/active_turf = snapshot[++dogmos_visual_refresh_cursor]
+			if(!QDELETED(active_turf) && isopenturf(active_turf) && active_turf.air)
+				if(active_turf.excited && turf_settled(active_turf) && !dogmos_reacted_turfs[active_turf])
+					remove_from_active(active_turf)
+				active_turf.update_visuals()
+				if(!SSdogmos.service_ready)
+					pause()
+					return
+				check_kennel_reaction_of_interest(active_turf)
+			if(MC_TICK_CHECK)
+				return
+	dogmos_visual_refresh_batch.Cut()
+	dogmos_reacted_turfs.Cut()
+	active_turfs_walk_cursor = 0
+	dogmos_visual_refresh_cursor = 0
+	dogmos_walk_prefetch_end = 0
+	dogmos_visual_prefetch_end = 0
+// APHELION EDIT ADDITION END
 
 /** Returns TRUE when a turf has no active hotspot and matches its open neighbors.
  * Mutable neighbors with different air are activated before this cycle's frontier publication.
@@ -922,6 +1081,24 @@ SUBSYSTEM_DEF(air)
 		add_to_active(T, TRUE)
 	queued_for_activation.Cut()
 
+// APHELION EDIT ADDITION START - DOGMOS
+/** Prefetches own gas before initialization reads its visuals, preserving turf order and cycle stamps. */
+/datum/controller/subsystem/air/proc/dogmos_initialize_turf_batch(list/batch, list/difference_check, time)
+	var/list/mixtures = list()
+	for(var/turf/open/setup as anything in batch)
+		if(!QDELETED(setup) && isopenturf(setup) && setup.init_air && setup.air)
+			mixtures += setup.air
+	SSdogmos.prefetch_mixture_snapshots(mixtures)
+	for(var/turf/setup as anything in batch)
+		if(QDELETED(setup) || !setup.init_air)
+			continue
+		setup.Initalize_Atmos(time)
+		difference_check += setup
+		if(CHECK_TICK)
+			time--
+	return time
+// APHELION EDIT ADDITION END
+
 /datum/controller/subsystem/air/proc/setup_allturfs()
 	var/list/active_turfs = src.active_turfs
 	times_fired++
@@ -943,9 +1120,20 @@ SUBSYSTEM_DEF(air)
 	var/time = -1
 
 	var/list/turf/open/difference_check = list()
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/list/initialization_batch = list()
+	// APHELION EDIT ADDITION END
 	for(var/turf/setup as anything in ALL_TURFS())
 		if (!setup.init_air)
 			continue
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(DOGMOS)
+			initialization_batch += setup
+			if(length(initialization_batch) >= ACTIVE_TURFS_WALK_BATCH_SIZE)
+				time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
+				initialization_batch.Cut()
+			continue
+		// APHELION EDIT ADDITION END
 		// We pass the tick as the current step so if we sleep the step changes
 		// This way we can make setting up adjacent turfs O(n) rather then O(n^2)
 		setup.Initalize_Atmos(time)
@@ -955,6 +1143,8 @@ SUBSYSTEM_DEF(air)
 			time--
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(DOGMOS)
+		if(length(initialization_batch))
+			time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
 		SSdogmos.finish_turf_registration_batch()
 	// APHELION EDIT ADDITION END
 

@@ -29,6 +29,9 @@
 		/area/station/engineering/atmos/space_catwalk,
 	))
 
+	// APHELION EDIT ADDITION START - MAP_SPACE_VALIDATION
+	var/intentional_condo_boundaries = 0
+	// APHELION EDIT ADDITION END
 	// We aren't planetary, so let's check area placements and ensure stuff lines up.
 	for(var/turf/iterated_turf in ALL_TURFS())
 		var/area/turf_area = get_area(iterated_turf)
@@ -36,8 +39,17 @@
 			continue // Alright, so let's assume we have intended behavior. If something yorks, we'll get a bare `/area` (maploader?) or a mapper is doing something they shouldn't be doing.
 		if(HAS_TRAIT(iterated_turf, TRAIT_HYPERSPACE_STOPPED))
 			continue // This means that a shuttle with a noop template turf is just temporarily parked ontop of us and that we're not actually a part of it. We don't have to care about it as it will leave us alone when it flies away.
+		// APHELION EDIT ADDITION START - MAP_SPACE_VALIDATION
+		// Condo rooms and asynchronous previews intentionally use these exit boundaries.
+		if(istype(iterated_turf, /turf/open/space/bluespace) && istype(turf_area, /area/misc/condo) && SSmapping.level_trait(iterated_turf.z, ZTRAIT_RESERVED))
+			intentional_condo_boundaries++
+			continue
+		// APHELION EDIT ADDITION END
 		// We need turf_area.type for the error message because we have fifteen million ruin areas named "Unexplored Location" and it's completely unhelpful here.
 		TEST_FAIL("Space turf [iterated_turf.type] found in non-allowed area ([turf_area.type]) at [AREACOORD(iterated_turf)]! Please ensure that all space turfs are in an /area/space!")
+	// APHELION EDIT ADDITION START - MAP_SPACE_VALIDATION
+	log_test("Map space validation accepted [intentional_condo_boundaries] intentional reserved condo boundary turfs.")
+	// APHELION EDIT ADDITION END
 
 
 /// Verifies that there are ZERO space turfs on a valid planetary station. We NEVER want space turfs here, so we do not check for /area/space here since something completely undesirable is happening.

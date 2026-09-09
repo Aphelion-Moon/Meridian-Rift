@@ -64,6 +64,7 @@ SUBSYSTEM_DEF(dogmos)
 	dogmos_mixture_slots = SSdogmos.dogmos_mixture_slots
 	dogmos_mixture_generations = SSdogmos.dogmos_mixture_generations
 	dogmos_free_mixture_slots = SSdogmos.dogmos_free_mixture_slots
+	dogmos_pending_mixture_unregistrations = SSdogmos.dogmos_pending_mixture_unregistrations
 	dogmos_gas_ids = SSdogmos.dogmos_gas_ids
 	dogmos_gas_paths = SSdogmos.dogmos_gas_paths
 	dogmos_reaction_ids = SSdogmos.dogmos_reaction_ids

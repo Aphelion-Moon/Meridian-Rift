@@ -21,6 +21,10 @@
 		"dogmos_pending_frontier_epoch", "dogmos_committed_frontier",
 		"dogmos_stage_remaining_estimate", "dogmos_stage_work_limit",
 		"dogmos_active_turf_stages_complete", "dogmos_fdm_steps_completed",
+		"dogmos_equalize_stage_complete", // APHELION EDIT ADDITION - DOGMOS
+		"dogmos_active_walk_complete", "dogmos_visual_refresh_cursor", "dogmos_visual_refresh_batch", // APHELION EDIT ADDITION - DOGMOS
+		"dogmos_reacted_turfs", "dogmos_resume_recovered_cycle", // APHELION EDIT ADDITION - DOGMOS
+		"dogmos_walk_prefetch_end", "dogmos_visual_prefetch_end", // APHELION EDIT ADDITION - DOGMOS
 	)
 	recovery_air_state = list()
 	for(var/field_name in air_recovery_fields)
@@ -38,13 +42,24 @@
 	SSair.kennel_slow_mode = FALSE
 	SSair.kennel_high_cost_ms_threshold = 7.5
 	SSair.kennel_push_cursor = 3
-	SSair.active_turfs_walk_cursor = 17
+	SSair.active_turfs_walk_cursor = 25
 	SSair.dogmos_frontier_epoch = list(1, 2, 3, 4)
 	SSair.dogmos_stage_epoch = list(5, 6, 7, 8)
 	SSair.dogmos_pending_stage = 4
 	SSair.dogmos_pending_frontier_epoch = list(1, 2, 3, 4)
 	SSair.dogmos_stage_remaining_estimate = 17
 	SSair.dogmos_stage_work_limit = 128
+	SSair.dogmos_equalize_stage_complete = TRUE // APHELION EDIT ADDITION - DOGMOS
+	// APHELION EDIT ADDITION START - DOGMOS
+	SSair.dogmos_active_walk_complete = TRUE
+	SSair.dogmos_visual_refresh_cursor = 7
+	SSair.dogmos_visual_refresh_batch = block(run_loc_floor_bottom_left, run_loc_floor_top_right)
+	SSair.dogmos_reacted_turfs = list()
+	SSair.dogmos_reacted_turfs[jump_target] = TRUE
+	SSair.dogmos_resume_recovered_cycle = TRUE
+	SSair.dogmos_walk_prefetch_end = 25
+	SSair.dogmos_visual_prefetch_end = 25
+	// APHELION EDIT ADDITION END
 	var/list/recovery_breaches = list(list(
 		"time" = "00:00:00",
 		"jump_to" = jump_key,
@@ -101,8 +116,17 @@
 		"SSair recovery did not retain the active-turf runtime queue.")
 	TEST_ASSERT_EQUAL(recovered_air.kennel_push_cursor, 0, \
 		"SSair recovery retained the old Kennel update cursor.")
-	TEST_ASSERT_EQUAL(recovered_air.active_turfs_walk_cursor, 0, \
-		"SSair recovery retained the old active-turf walk cursor.")
+	// APHELION EDIT ADDITION START - DOGMOS
+	TEST_ASSERT_EQUAL(recovered_air.active_turfs_walk_cursor, 25, \
+		"SSair recovery lost the initial snapshot's maintenance cursor.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_visual_refresh_cursor, 7, "SSair recovery lost the visual continuation cursor.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_active_walk_complete, TRUE, "SSair recovery lost completed frontier publication.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_visual_refresh_batch[1], jump_target, "SSair recovery lost the initial walk snapshot.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_reacted_turfs[jump_target], TRUE, "SSair recovery lost chemical activity before settlement.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_resume_recovered_cycle, TRUE, "SSair recovery lost its pending cycle continuation.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_walk_prefetch_end, 25, "SSair recovery lost its prefetched maintenance chunk.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_visual_prefetch_end, 25, "SSair recovery lost its prefetched visual chunk.")
+	// APHELION EDIT ADDITION END
 	for(var/word_index in 1 to 4)
 		TEST_ASSERT_EQUAL(recovered_air.dogmos_frontier_epoch[word_index], word_index, \
 			"SSair recovery changed frontier epoch word [word_index].")
@@ -116,6 +140,10 @@
 		"SSair recovery did not retain the pending Dogmos work estimate.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_stage_work_limit, 128, \
 		"SSair recovery did not retain the Dogmos stage work limit.")
+	// APHELION EDIT ADDITION START - DOGMOS
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_equalize_stage_complete, TRUE, \
+		"SSair recovery lost completed equalization during a pressure continuation.")
+	// APHELION EDIT ADDITION END
 	TEST_ASSERT_EQUAL(recovered_air.resolve_kennel_jump_target(jump_key), jump_target, \
 		"SSair recovery did not rebuild the bounded Kennel jump-target index.")
 
@@ -125,6 +153,7 @@
 		"dogmos_mixture_slots",
 		"dogmos_mixture_generations",
 		"dogmos_free_mixture_slots",
+		"dogmos_pending_mixture_unregistrations", // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_gas_ids",
 		"dogmos_gas_paths",
 		"dogmos_reaction_ids",
@@ -163,6 +192,7 @@
 		original_dogmos_state[field_name] = SSdogmos.vars[field_name]
 	recovery_dogmos_state = original_dogmos_state
 
+	SSdogmos.dogmos_pending_mixture_unregistrations = list("recovery mixture unregistration") // APHELION EDIT ADDITION - DOGMOS
 	SSdogmos.dogmos_pending_callback_batch = list("recovery callback")
 	SSdogmos.dogmos_pending_callback_index = 1
 	SSdogmos.dogmos_pending_callback_count = 1
@@ -236,7 +266,7 @@
 	var/deadline = world.time + 60 SECONDS
 	while(SSair.times_fired == times_fired_before && world.time < deadline)
 		sleep(SSair.wait)
-	TEST_ASSERT(SSair.times_fired > times_fired_before, "Atmospherics did not complete a naturally scheduled cycle after the recovery fixture.")
+	TEST_ASSERT(SSair.times_fired > times_fired_before, "Atmospherics did not complete a naturally scheduled cycle after the recovery fixture (phase [SSair.currentpart], walk [SSair.active_turfs_walk_cursor]/[length(SSair.dogmos_visual_refresh_batch)], prefetch [SSair.dogmos_walk_prefetch_end], visuals [SSair.dogmos_visual_refresh_cursor], stage [SSair.dogmos_pending_stage]).")
 
 /datum/unit_test/dogmos_ssair_recovery/proc/restore_recovery_state()
 	QDEL_NULL(recovered_air)

@@ -67,7 +67,7 @@
 		"The test pair's directional conductivity masks do not expose a reciprocal east-west heat edge.")
 
 	for(var/attempt in 1 to 20)
-		if(!SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
+		if(!length(SSair.adjacent_rebuild) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
 			break
 		sleep(SSair.wait)
 	// SSair.adjacent_rebuild is re-checked here, not just above: a re-queue landing between setup and
@@ -89,12 +89,41 @@
 
 	var/a_after = a_before
 	var/b_after = b_before
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/list/progress_samples = list()
+	SSair.dogmos_stage_test_samples = list()
+	// APHELION EDIT ADDITION END
 	for(var/attempt in 1 to 20)
 		sleep(SSair.wait)
 		a_after = turf_a.dogmos_heat_temperature()
 		b_after = turf_b.dogmos_heat_temperature()
+		// APHELION EDIT ADDITION START - DOGMOS
+		progress_samples += list(list(
+			"world_time" = world.time,
+			"air_cycles" = SSair.times_fired,
+			"part" = SSair.currentpart,
+			"active" = length(SSair.active_turfs),
+			"walk" = SSair.active_turfs_walk_cursor,
+			"snapshot" = length(SSair.dogmos_visual_refresh_batch),
+			"prefetch" = SSair.dogmos_walk_prefetch_end,
+			"visual" = SSair.dogmos_visual_refresh_cursor,
+			"adjacency" = length(SSair.adjacent_rebuild),
+			"current_run" = length(SSair.currentrun),
+			"stage" = SSair.dogmos_pending_stage,
+			"remaining" = SSair.dogmos_stage_remaining_estimate,
+			"fdm_steps" = SSair.dogmos_fdm_steps_completed,
+			"allocation" = SSair.tick_allocation_last,
+			"hot" = a_after,
+			"cold" = b_after,
+		))
+		// APHELION EDIT ADDITION END
 		if(a_after != a_before && b_after != b_before)
 			break
+	// APHELION EDIT ADDITION START - DOGMOS
+	file("[GLOB.log_directory]/dogmos-superconduction-progress.json") << json_encode(progress_samples)
+	file("[GLOB.log_directory]/dogmos-stage-budget.json") << json_encode(SSair.dogmos_stage_test_samples)
+	SSair.dogmos_stage_test_samples = null
+	// APHELION EDIT ADDITION END
 
 	TEST_ASSERT(a_after < a_before, \
 		"turf_a's temperature ([a_before] -> [a_after]) did not decrease after conducting with cooler turf_b (cost_superconductivity [SSair.cost_superconductivity]) - heat is not flowing out of the hotter turf.")

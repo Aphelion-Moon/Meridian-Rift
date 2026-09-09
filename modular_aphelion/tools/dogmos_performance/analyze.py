@@ -18,7 +18,7 @@ def records(path):
 
 
 def summary(values):
-    values = sorted(values)
+    values = sorted(value for value in values if value is not None)
     if not values:
         return None
     return dict(count=len(values), minimum=values[0], median=statistics.median(values),
@@ -94,12 +94,15 @@ def analyze(run):
         if match:
             initialization["total"] = float(match[1])
     report = json.loads((run / "summary.json").read_text(encoding="utf-8-sig"))
-    diagnostic_profiling = any(s.get("procedure_profiling", False) for s in samples)
+    diagnostic_profiling = any(s.get("diagnostic_procedure_profiling",
+                                    s.get("procedure_profiling", False)) for s in samples)
     profile_dumps = sorted(path.relative_to(logs).as_posix()
                            for path in logs.glob("profiler/profiler-*.json"))
     return {
         "run_id": run.name,
         "rift_status": report["status"],
+        "repository": report.get("repository"),
+        "tool_versions": report.get("tool_versions"),
         "maps": sorted({s["map"] for s in gameplay}),
         "seeds": sorted({s["seed"] for s in gameplay}),
         # A drift-triggered DumpFile uses PROFILE_REFRESH, which starts profiling.
@@ -114,6 +117,10 @@ def analyze(run):
                      ("active_turfs", "turf_cost_ms", "groups_cost_ms", "equalize_cost_ms")},
         "last_minute_active_turfs": summary(s["active_turfs"] for s in last_minute),
         "air_cycles_observed": window[-1]["air_cycles"] - window[0]["air_cycles"],
+        "first_air_cycle_progress_seconds": next((s["shift_seconds"] for s in window
+            if s["air_cycles"] > window[0]["air_cycles"]), None),
+        "gameplay_queues": {key: summary(s.get(key) for s in window) for key in
+            ("adjacency_queue", "pipe_rebuild_queue", "pipe_expansion_queue", "currentrun_remaining")},
         "process_peaks_bytes": resources,
         "dense_process_resources": dense_process_resources(run, begin, end),
         "active_location_samples": [dict(shift_seconds=s["shift_seconds"], locations=s["active_locations"])

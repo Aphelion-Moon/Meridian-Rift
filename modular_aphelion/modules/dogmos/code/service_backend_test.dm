@@ -771,12 +771,18 @@
 /datum/unit_test/dogmos_service_general_reaction_subject
 
 /datum/unit_test/dogmos_service_general_reaction_subject/Run()
-	var/datum/gas_mixture/mixture = new(CELL_VOLUME)
+	var/turf/open/target = run_loc_floor_bottom_left
+	var/datum/gas_mixture/mixture = target.air
 	var/list/callback = new/list(48)
 	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + DOGMOS_TEST_REACTION_SUBJECT_SLOT_FIELD] = mixture.dogmos_slot % 65536
 	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + DOGMOS_TEST_REACTION_SUBJECT_SLOT_FIELD + 1] = floor(mixture.dogmos_slot / 65536)
 	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + DOGMOS_TEST_REACTION_SUBJECT_GENERATION_FIELD] = mixture.dogmos_generation % 65536
 	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + DOGMOS_TEST_REACTION_SUBJECT_GENERATION_FIELD + 1] = floor(mixture.dogmos_generation / 65536)
+	var/target_slot = target.dogmos_service_slot()
+	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + 15] = target_slot % 65536
+	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + 16] = floor(target_slot / 65536)
+	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + 17] = target.dogmos_registration_generation % 65536
+	callback[DOGMOS_TEST_REACTION_EVENT_OFFSET + 18] = floor(target.dogmos_registration_generation / 65536)
 	var/list/live_subject = SSdogmos.decode_general_reaction_subject(callback, DOGMOS_TEST_REACTION_EVENT_OFFSET)
 	var/failure_message
 	if(live_subject[1] != mixture)
@@ -792,7 +798,6 @@
 	if(!failure_message && SSdogmos.dogmos_stale_callback_count != original_stale_callbacks + 1)
 		failure_message = "Dogmos did not count a discarded stale finished-reaction callback."
 	SSdogmos.dogmos_stale_callback_count = original_stale_callbacks
-	qdel(mixture)
 	if(failure_message)
 		return Fail(failure_message, __FILE__, __LINE__)
 
@@ -1105,6 +1110,9 @@
 /datum/unit_test/dogmos_service_rejected_mixture_registration_fails_closed
 
 /datum/unit_test/dogmos_service_rejected_mixture_registration_fails_closed/Run()
+	var/list/original_walk_state = list()
+	for(var/field in list("dogmos_active_walk_complete", "active_turfs_walk_cursor", "dogmos_visual_refresh_cursor", "dogmos_visual_refresh_batch"))
+		original_walk_state[field] = SSair.vars[field]
 	var/original_service_ready = SSdogmos.service_ready
 	var/original_failure_latched = SSdogmos.service_failure_latched
 	var/original_can_fire = SSair.can_fire
@@ -1112,6 +1120,7 @@
 	var/list/original_pending_frontier = SSair.dogmos_pending_frontier_epoch
 	var/original_remaining_estimate = SSair.dogmos_stage_remaining_estimate
 	var/original_active_complete = SSair.dogmos_active_turf_stages_complete
+	var/original_equalize_complete = SSair.dogmos_equalize_stage_complete
 	var/original_fdm_steps = SSair.dogmos_fdm_steps_completed
 	var/turf/open/target = run_loc_floor_bottom_left
 	var/datum/gas_mixture/mixture = target.air
@@ -1134,7 +1143,10 @@
 	SSair.dogmos_pending_frontier_epoch = original_pending_frontier
 	SSair.dogmos_stage_remaining_estimate = original_remaining_estimate
 	SSair.dogmos_active_turf_stages_complete = original_active_complete
+	SSair.dogmos_equalize_stage_complete = original_equalize_complete
 	SSair.dogmos_fdm_steps_completed = original_fdm_steps
+	for(var/field in original_walk_state)
+		SSair.vars[field] = original_walk_state[field]
 	if(accepted)
 		return Fail("Dogmos accepted a rejected mixture lifecycle response.", __FILE__, __LINE__)
 	if(identity_changed)
@@ -1162,6 +1174,614 @@
 		return Fail("Dogmos did not report an exhausted stage as deferred.", __FILE__, __LINE__)
 	if(world.time != defer_start)
 		return Fail("Dogmos slept inside SSair while deferring an exhausted stage.", __FILE__, __LINE__)
+
+/** Verifies a positive fractional MC allocation can finish bounded native diffusion work. */
+/datum/unit_test/dogmos_service_fractional_budget_progress
+
+/datum/unit_test/dogmos_service_fractional_budget_progress/Run()
+	if(!SSair.dogmos_work_limit_for_budget(0.25))
+		return Fail("Dogmos refuses all native work for a positive 0.25 ms MC allocation.", __FILE__, __LINE__)
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/pair = allocate_turf_pair()
+	var/turf/open/hot_turf = pair[1]
+	var/turf/open/cold_turf = pair[2]
+	hot_turf.air.set_moles(GAS_O2, 100)
+	cold_turf.air.set_moles(GAS_O2, 10)
+	// The active pair exchanges gas with passive neighbors. The sealed test room,
+	// rather than just the active frontier, is the conserved volume.
+	var/list/room_turfs = block(run_loc_floor_bottom_left, run_loc_floor_top_right)
+	var/oxygen_before = 0
+	for(var/turf/open/room_turf in room_turfs)
+		oxygen_before += room_turf.air.get_moles(GAS_O2)
+	var/original_work_limit = SSair.dogmos_stage_work_limit
+	SSair.dogmos_stage_work_limit = 1
+	var/completed = dogmos_run_fixture_stage(DOGMOS_TEST_STAGE_TURFS, pair, chunk_budget_ms = 0.25)
+	SSair.dogmos_stage_work_limit = original_work_limit
+	if(!completed)
+		return
+	var/hot_moles = hot_turf.air.get_moles(GAS_O2)
+	var/cold_moles = cold_turf.air.get_moles(GAS_O2)
+	if(hot_moles >= 100 || cold_moles <= 10)
+		return Fail("Fractional-budget continuation did not diffuse the fixture's oxygen.", __FILE__, __LINE__)
+	var/oxygen_after = 0
+	for(var/turf/open/room_turf in room_turfs)
+		oxygen_after += room_turf.air.get_moles(GAS_O2)
+	if(abs(oxygen_after - oxygen_before) > DOGMOS_PIPELINE_TEST_EPSILON * length(room_turfs))
+		return Fail("Fractional-budget continuation changed the sealed room's oxygen from [oxygen_before] to [oxygen_after] moles.", __FILE__, __LINE__)
+
+/** Verifies native continuations consume the caller's remaining budget before yielding. */
+/datum/unit_test/dogmos_service_stage_uses_remaining_budget
+
+/datum/unit_test/dogmos_service_stage_uses_remaining_budget/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/pair = allocate_turf_pair()
+	var/original_work_limit = SSair.dogmos_stage_work_limit
+	SSair.dogmos_stage_work_limit = 1
+	dogmos_run_fixture_stage(DOGMOS_TEST_STAGE_TURFS, pair, chunk_budget_ms = 100, require_budget_use = TRUE)
+	SSair.dogmos_stage_work_limit = original_work_limit
+
+/** Resuming after an exhausted entry budget must still start the equalizer. */
+/datum/unit_test/dogmos_equalize_resume_after_empty_budget
+
+/datum/unit_test/dogmos_equalize_resume_after_empty_budget/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/original_active = SSair.active_turfs
+	var/list/original_pressure = SSair.high_pressure_delta
+	var/list/original_samples = SSair.dogmos_stage_test_samples
+	var/original_state = SSair.state
+	var/original_tick_limit = Master.current_ticklimit
+	var/list/fixture_turfs = block(run_loc_floor_bottom_left, run_loc_floor_top_right)
+	var/list/original_pressure_fields = list()
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		original_pressure_fields[fixture_turf] = list(fixture_turf.pressure_difference, fixture_turf.pressure_direction)
+	var/completion_field = "dogmos_equalize_stage_complete"
+	var/original_completion = (completion_field in SSair.vars) ? SSair.vars[completion_field] : null
+	var/failure
+	var/restored = FALSE
+	try
+		SSair.active_turfs = fixture_turfs.Copy()
+		SSair.high_pressure_delta = list()
+		SSair.dogmos_stage_test_samples = list()
+		if(!SSair.sync_dogmos_frontier())
+			failure = "The equalizer-resume fixture could not publish its frontier."
+		else
+			SSair.state = SS_RUNNING
+			Master.current_ticklimit = TICK_USAGE
+			SSair.process_high_pressure_delta(FALSE)
+			if(!isnull(SSair.dogmos_pending_stage))
+				failure = "The exhausted initial budget unexpectedly started a native stage."
+			else
+				for(var/chunk in 1 to 4096)
+					SSair.state = SS_RUNNING
+					Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
+					SSair.process_high_pressure_delta(TRUE)
+					if(isnull(SSair.dogmos_pending_stage) || !SSdogmos.service_ready)
+						break
+				var/list/equalize_calls = SSair.dogmos_stage_test_samples["[DOGMOS_TEST_STAGE_EQUALIZE]"]
+				if(!equalize_calls || !equalize_calls[1])
+					failure = "The equalizer was skipped when resuming after an exhausted entry budget."
+				else if(isnull(SSair.dogmos_pending_stage))
+					var/completed_call_count = equalize_calls[1]
+					var/turf/open/first_pressure_turf = fixture_turfs[1]
+					var/turf/open/second_pressure_turf = fixture_turfs[2]
+					first_pressure_turf.pressure_difference = 0
+					second_pressure_turf.pressure_difference = 0
+					SSair.high_pressure_delta = list(first_pressure_turf, second_pressure_turf)
+					SSair.state = SS_RUNNING
+					Master.current_ticklimit = TICK_USAGE - 1
+					SSair.process_high_pressure_delta(TRUE)
+					if(length(SSair.high_pressure_delta) != 1 || SSair.state != SS_PAUSED)
+						failure = "The pressure queue fixture did not yield with one entry remaining."
+					SSair.state = SS_RUNNING
+					Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
+					SSair.process_high_pressure_delta(TRUE)
+					if(equalize_calls[1] != completed_call_count)
+						failure = "A resumed pressure phase repeated an already completed equalizer."
+					else if(length(SSair.high_pressure_delta))
+						failure = "The resumed pressure phase left its final queue entry undrained."
+		if(isnull(SSair.dogmos_pending_stage) && SSdogmos.service_ready && dogmos_drain_fixture_callbacks())
+			SSair.active_turfs = original_active
+			SSair.dogmos_pending_frontier_epoch = null
+			restored = SSair.sync_dogmos_frontier()
+			SSair.dogmos_pending_frontier_epoch = null
+	catch(var/exception/error)
+		failure = "The equalizer-resume fixture raised [error.name]."
+	SSair.active_turfs = original_active
+	SSair.high_pressure_delta = original_pressure
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		var/list/pressure_fields = original_pressure_fields[fixture_turf]
+		fixture_turf.pressure_difference = pressure_fields[1]
+		fixture_turf.pressure_direction = pressure_fields[2]
+	SSair.dogmos_stage_test_samples = original_samples
+	SSair.state = original_state
+	Master.current_ticklimit = original_tick_limit
+	if(completion_field in SSair.vars)
+		SSair.vars[completion_field] = original_completion
+	if(!restored)
+		return dogmos_abort_fixture("The equalizer-resume fixture did not safely restore its frontier.")
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** Matching neighboring gas is not sufficient to retire an unevaluated chemical reaction. */
+/datum/unit_test/dogmos_uniform_reaction_before_settlement
+	/// Second reactant and temperature select native fire or a continued non-fire DM reaction.
+	var/second_gas = /datum/gas/oxygen
+	var/seed_temperature = PLASMA_MINIMUM_BURN_TEMPERATURE + 500
+	var/product_gas = /datum/gas/carbon_dioxide
+	var/reaction_cycles = 1
+
+/** BZ formation remains active across multiple identical-neighbor reaction cycles. */
+/datum/unit_test/dogmos_uniform_reaction_before_settlement/slow_reaction
+	second_gas = /datum/gas/nitrous_oxide
+	seed_temperature = T20C
+	product_gas = /datum/gas/bz
+	reaction_cycles = 2
+
+/datum/unit_test/dogmos_uniform_reaction_before_settlement/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/fixture_turfs = block(run_loc_floor_bottom_left, run_loc_floor_top_right)
+	if(length(fixture_turfs) != 25)
+		return Fail("The uniform reaction fixture needs its sealed 25-turf room.", __FILE__, __LINE__)
+	var/list/saved_air = list()
+	var/list/saved_turfs = list()
+	for(var/field in list("active_turfs", "currentrun", "state", "times_fired", "high_pressure_delta", "active_turfs_walk_cursor", "dogmos_visual_refresh_batch", "dogmos_visual_refresh_cursor", "dogmos_active_walk_complete", "dogmos_active_turf_stages_complete", "dogmos_fdm_steps_completed", "dogmos_reacted_turfs", "dogmos_walk_prefetch_end", "dogmos_visual_prefetch_end", "kennel_reaction_magnitude_threshold", "kennel_fire_group_notable_size"))
+		saved_air[field] = SSair.vars[field]
+	var/saved_tick_limit = Master.current_ticklimit
+	var/datum/gas_mixture/seed = allocate(/datum/gas_mixture, CELL_VOLUME)
+	seed.set_moles(/datum/gas/plasma, 50)
+	seed.set_moles(second_gas, 200)
+	seed.set_temperature(seed_temperature)
+	var/datum/gas_mixture/reference = seed.copy()
+	allocated += reference
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		if(!fixture_turf.air || fixture_turf.active_hotspot || !fixture_turf.dogmos_air_registration_is_current())
+			return Fail("The uniform reaction needs an open fixture without an existing hotspot.", __FILE__, __LINE__)
+		for(var/turf/neighbor as anything in fixture_turf.atmos_adjacent_turfs)
+			if(!(neighbor in fixture_turfs))
+				return Fail("The uniform reaction fixture is not sealed from outside gas.", __FILE__, __LINE__)
+			if(!(fixture_turf in neighbor.atmos_adjacent_turfs))
+				return Fail("The uniform reaction fixture has asymmetric gas adjacency.", __FILE__, __LINE__)
+		var/datum/gas_mixture/saved_mix = fixture_turf.air.copy()
+		allocated += saved_mix
+		saved_turfs[fixture_turf] = list(saved_mix, fixture_turf.excited, fixture_turf.excited_group, fixture_turf.current_cycle, fixture_turf.archived_cycle, fixture_turf.pressure_difference, fixture_turf.pressure_direction, fixture_turf.air.reaction_results?.Copy(), fixture_turf.kennel_last_reaction_results?.Copy())
+	var/failure
+	var/restored = FALSE
+	try
+		// Keep this numerical fixture out of the shared Kennel event/overlay history.
+		SSair.kennel_reaction_magnitude_threshold = INFINITY
+		SSair.kennel_fire_group_notable_size = INFINITY
+		// A turf fire also creates a hotspot whose initialization reacts gas again.
+		// Obtain the reference through the same real holder and callback behavior.
+		var/turf/open/reference_turf = fixture_turfs[1]
+		reference_turf.air.copy_from(seed)
+		reference_turf.air.react(reference_turf)
+		reference.copy_from(reference_turf.air)
+		if(reference.get_moles(product_gas) <= 0)
+			failure = "The uniform-reaction reference did not produce its expected gas."
+		if(reference_turf.active_hotspot)
+			qdel(reference_turf.active_hotspot)
+		for(var/turf/open/fixture_turf as anything in fixture_turfs)
+			fixture_turf.air.copy_from(seed)
+			fixture_turf.air.reaction_results = list()
+			fixture_turf.excited = TRUE
+			fixture_turf.excited_group = null
+			fixture_turf.archived_cycle = SSair.times_fired
+		SSair.active_turfs = fixture_turfs.Copy()
+		SSair.currentrun = list()
+		SSair.high_pressure_delta = list()
+		for(var/reaction_cycle in 1 to reaction_cycles)
+			if(reaction_cycle > 1)
+				// Each fixture phase finished its native cursor and callbacks. Release
+				// its frontier token without rewinding the accepted service epoch.
+				SSair.dogmos_pending_frontier_epoch = null
+				SSair.times_fired++
+				reference.react(null)
+			for(var/chunk in 1 to 4096)
+				SSair.state = SS_RUNNING
+				Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
+				SSair.process_active_turfs(chunk != 1)
+				if(SSair.state == SS_RUNNING || !SSdogmos.service_ready)
+					break
+			if(SSair.state != SS_RUNNING)
+				failure = "The uniform reaction phase did not finish within its bound."
+				break
+			for(var/turf/open/fixture_turf as anything in fixture_turfs)
+				for(var/gas_id in list(/datum/gas/plasma, second_gas, product_gas, /datum/gas/water_vapor))
+					if(abs(fixture_turf.air.get_moles(gas_id) - reference.get_moles(gas_id)) > 0.001)
+						failure += " Gas [gas_id]: [fixture_turf.air.get_moles(gas_id)] versus [reference.get_moles(gas_id)] in cycle [reaction_cycle]."
+				if(abs(fixture_turf.air.return_temperature() - reference.return_temperature()) > 0.1)
+					failure += " Temperature [fixture_turf.air.return_temperature()] versus [reference.return_temperature()] in cycle [reaction_cycle]."
+				if(reaction_cycle < reaction_cycles && (!fixture_turf.excited || !(fixture_turf in SSair.active_turfs)))
+					failure = "A reacting turf was retired before its next chemical evaluation."
+		if(isnull(SSair.dogmos_pending_stage) && SSdogmos.service_ready && dogmos_drain_fixture_callbacks())
+			for(var/turf/open/fixture_turf as anything in fixture_turfs)
+				var/list/restoring_turf_state = saved_turfs[fixture_turf]
+				fixture_turf.air.copy_from(restoring_turf_state[1])
+				fixture_turf.air.reaction_results = restoring_turf_state[8]
+				fixture_turf.kennel_last_reaction_results = restoring_turf_state[9]
+				if(fixture_turf.active_hotspot)
+					qdel(fixture_turf.active_hotspot)
+				fixture_turf.update_visuals()
+			SSair.active_turfs = saved_air["active_turfs"]
+			SSair.dogmos_pending_frontier_epoch = null
+			restored = SSair.sync_dogmos_frontier()
+			SSair.dogmos_pending_frontier_epoch = null
+	catch(var/exception/error)
+		failure = "The uniform-reaction fixture raised [error.name]."
+	for(var/field in saved_air)
+		SSair.vars[field] = saved_air[field]
+	Master.current_ticklimit = saved_tick_limit
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		var/list/turf_state = saved_turfs[fixture_turf]
+		fixture_turf.excited = turf_state[2]
+		fixture_turf.excited_group = turf_state[3]
+		fixture_turf.current_cycle = turf_state[4]
+		fixture_turf.archived_cycle = turf_state[5]
+		fixture_turf.pressure_difference = turf_state[6]
+		fixture_turf.pressure_direction = turf_state[7]
+	if(!restored)
+		return dogmos_abort_fixture("The uniform-reaction fixture could not safely restore its native frontier.")
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** A recreated subsystem must enter its saved phase even when the scheduler calls fire(FALSE). */
+/datum/unit_test/dogmos_ssair_recreated_phase_resume
+
+/datum/unit_test/dogmos_ssair_recreated_phase_resume/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/original_state = SSair.state
+	var/original_part = SSair.currentpart
+	var/original_cycle = SSair.times_fired
+	var/original_tick_limit = Master.current_ticklimit
+	var/datum/controller/subsystem/air/recovery_test_copy/phase_probe/probe = new
+	var/failure
+	try
+		SSair.state = SS_PAUSED
+		SSair.currentpart = SSAIR_ACTIVETURFS
+		SSair.times_fired = 37
+		probe.Recover()
+		// These queues precede the saved phase in fire(); isolate them from the real world.
+		probe.adjacent_rebuild = list()
+		probe.rebuild_queue = list()
+		probe.expansion_queue = list()
+		probe.state = SS_RUNNING
+		Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
+		probe.fire(FALSE)
+		if(probe.entered_phase != SSAIR_ACTIVETURFS || !probe.received_resume || probe.times_fired != 37)
+			failure = "A recreated SSair restarted the cycle instead of resuming its saved active phase and cycle id."
+		else
+			probe.state = SS_RUNNING
+			probe.fire(FALSE)
+			if(probe.entered_phase != SSAIR_PIPENETS || probe.received_resume)
+				failure = "SSair reused its recovery resume override for a later new cycle."
+	catch(var/exception/error)
+		failure = "The recreated-phase fixture raised [error.name]."
+	SSair.state = original_state
+	SSair.currentpart = original_part
+	SSair.times_fired = original_cycle
+	Master.current_ticklimit = original_tick_limit
+	qdel(probe)
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** Observes scheduler routing without advancing native stages or mutating live queues. */
+/datum/controller/subsystem/air/recovery_test_copy/phase_probe
+	/// First phase chosen by the real fire() dispatcher.
+	var/entered_phase
+	/// Whether the dispatcher preserves a recovered continuation.
+	var/received_resume
+
+/datum/controller/subsystem/air/recovery_test_copy/phase_probe/process_pipenets(resumed = FALSE)
+	entered_phase = SSAIR_PIPENETS
+	received_resume = resumed
+	pause()
+
+/datum/controller/subsystem/air/recovery_test_copy/phase_probe/process_active_turfs(resumed = FALSE)
+	entered_phase = SSAIR_ACTIVETURFS
+	received_resume = resumed
+	pause()
+
+/** Every initially active turf must receive maintenance before the cycle publishes its frontier. */
+/datum/unit_test/dogmos_active_walk_full_cycle
+	/// Counts actual turf exposure signals, independently of the traversal cursor.
+	var/list/exposures
+	/// Force two budget pauses to check that resuming does not refill a shifted window.
+	var/yield_count = 0
+
+/datum/unit_test/dogmos_active_walk_full_cycle/proc/count_exposure(turf/source)
+	SIGNAL_HANDLER
+	exposures[source]++
+	if(yield_count < 2)
+		yield_count++
+		Master.current_ticklimit = TICK_USAGE - 1
+
+/datum/unit_test/dogmos_active_walk_full_cycle/Run()
+	var/datum/turf_reservation/fixture = SSmapping.request_turf_block_reservation(11, 11, turf_type_override = /turf/open/floor/plating/airless)
+	if(!fixture)
+		return Fail("Could not reserve the 121-turf traversal fixture.", __FILE__, __LINE__)
+	allocated += fixture
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/fixture_turfs = fixture.reserved_turfs.Copy()
+	if(length(fixture_turfs) != 121)
+		return Fail("The traversal fixture needs 121 distinct real turfs.", __FILE__, __LINE__)
+	var/list/saved_fields = list()
+	for(var/field in list("active_turfs", "currentrun", "state", "active_turfs_walk_cursor", "dogmos_visual_refresh_batch", "dogmos_active_walk_complete", "dogmos_visual_refresh_cursor", "dogmos_active_turf_stages_complete", "dogmos_fdm_steps_completed", "high_pressure_delta", "dogmos_reacted_turfs", "dogmos_walk_prefetch_end", "dogmos_visual_prefetch_end"))
+		saved_fields[field] = SSair.vars[field]
+	var/original_tick_limit = Master.current_ticklimit
+	var/list/turf_states = list()
+	exposures = list()
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		if(!fixture_turf.air || !fixture_turf.dogmos_air_registration_is_current())
+			return Fail("A reserved traversal turf lacks its current native gas registration.", __FILE__, __LINE__)
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		turf_states[fixture_turf] = list(fixture_turf.atmos_adjacent_turfs, fixture_turf.excited, fixture_turf.excited_group, fixture_turf.current_cycle, fixture_turf.archived_cycle)
+		fixture_turf.atmos_adjacent_turfs = list()
+		fixture_turf.excited = TRUE
+		fixture_turf.excited_group = null
+		fixture_turf.archived_cycle = SSair.times_fired
+		RegisterSignal(fixture_turf, COMSIG_TURF_EXPOSE, PROC_REF(count_exposure))
+	var/failure
+	var/restored = FALSE
+	try
+		SSair.active_turfs = fixture_turfs.Copy()
+		SSair.currentrun = list()
+		SSair.active_turfs_walk_cursor = 0
+		SSair.high_pressure_delta = list()
+		var/original_frontier_epoch = SSair.dogmos_frontier_epoch.Join(":")
+		var/turf/open/prefetch_probe = fixture_turfs[50]
+		var/list/retained_probe_snapshot
+		for(var/chunk in 1 to 4096)
+			SSair.state = SS_RUNNING
+			Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
+			SSair.process_active_turfs(chunk != 1)
+			if(chunk == 1)
+				if(SSair.state != SS_PAUSED || length(exposures) != 1 || SSair.active_turfs_walk_cursor != 1)
+					failure = "The maintenance walk did not retain its position after the first exposure exhausted its budget."
+				else if(SSair.dogmos_frontier_epoch.Join(":") != original_frontier_epoch || SSair.dogmos_active_walk_complete)
+					failure = "The active frontier was published before the initial maintenance snapshot completed."
+				retained_probe_snapshot = SSdogmos.lookup_mixture_snapshot_cache(prefetch_probe.air.dogmos_slot, prefetch_probe.air.dogmos_generation)
+				if(!retained_probe_snapshot)
+					failure = "The first chunk did not populate the untouched prefetch probe."
+			if(chunk == 2 && retained_probe_snapshot != SSdogmos.lookup_mixture_snapshot_cache(prefetch_probe.air.dogmos_slot, prefetch_probe.air.dogmos_generation))
+				failure = "Resuming after one exposure fetched a replacement snapshot for the untouched prefetch window."
+			if(SSair.state == SS_RUNNING || !SSdogmos.service_ready)
+				break
+		if(SSair.state != SS_RUNNING)
+			failure = "The full active phase did not finish within the fixture bound."
+		for(var/turf/open/fixture_turf as anything in fixture_turfs)
+			if(exposures[fixture_turf] != 1)
+				failure = "A completed active phase exposed only [length(exposures)] of 121 initially active turfs exactly once."
+				break
+		if(!failure && length(SSair.active_turfs))
+			failure = "Settled fixture turfs remained active after the full walk."
+		// The current cycle's frontier remains frozen through equalization and heat.
+		// All initial entries must have reached its reaction pass before retirement.
+		if(!failure && length(SSair.dogmos_committed_frontier) != length(fixture_turfs))
+			failure = "An initial fixture turf was retired before native reaction evaluation."
+		if(!failure && (length(SSair.dogmos_visual_refresh_batch) || SSair.active_turfs_walk_cursor || SSair.dogmos_visual_refresh_cursor || SSair.dogmos_walk_prefetch_end || SSair.dogmos_visual_prefetch_end))
+			failure = "The completed visual pass retained its snapshot or cursors."
+		if(isnull(SSair.dogmos_pending_stage) && SSdogmos.service_ready && dogmos_drain_fixture_callbacks())
+			SSair.active_turfs = saved_fields["active_turfs"]
+			SSair.dogmos_pending_frontier_epoch = null
+			restored = SSair.sync_dogmos_frontier()
+			SSair.dogmos_pending_frontier_epoch = null
+	catch(var/exception/error)
+		failure = "The full-walk fixture raised [error.name]."
+	for(var/field in saved_fields)
+		SSair.vars[field] = saved_fields[field]
+	Master.current_ticklimit = original_tick_limit
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		UnregisterSignal(fixture_turf, COMSIG_TURF_EXPOSE)
+		var/list/turf_state = turf_states[fixture_turf]
+		fixture_turf.atmos_adjacent_turfs = turf_state[1]
+		fixture_turf.excited = turf_state[2]
+		fixture_turf.excited_group = turf_state[3]
+		fixture_turf.current_cycle = turf_state[4]
+		fixture_turf.archived_cycle = turf_state[5]
+	exposures = null
+	if(!restored)
+		return dogmos_abort_fixture("The full-walk fixture could not safely restore the native frontier.")
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** Keeps the next maintenance batch fair when a settled entry leaves the live list. */
+/datum/unit_test/dogmos_active_walk_removal_cursor
+	/// Exposure counts for the four real fixture turfs, including repeated filler entries.
+	var/list/exposures
+
+/datum/unit_test/dogmos_active_walk_removal_cursor/proc/count_exposure(turf/source)
+	SIGNAL_HANDLER
+	exposures[source]++
+	// Model a real callback removing a live entry while the initial snapshot is in use.
+	if(source == run_loc_floor_bottom_left)
+		SSair.remove_from_active(source)
+
+/datum/unit_test/dogmos_active_walk_removal_cursor/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/turf/open/settler = run_loc_floor_bottom_left
+	var/turf/open/filler = get_step(settler, EAST)
+	var/turf/open/sentinel = get_step(filler, EAST)
+	var/turf/open/tail = get_step(sentinel, EAST)
+	var/list/fixture_turfs = list(settler, filler, sentinel, tail)
+	var/list/original_turf_state = list()
+	var/list/original_active = SSair.active_turfs
+	var/list/original_run = SSair.currentrun
+	var/list/original_visuals = SSair.dogmos_visual_refresh_batch
+	var/original_prefetch_end = SSair.dogmos_walk_prefetch_end
+	var/original_cursor = SSair.active_turfs_walk_cursor
+	var/original_state = SSair.state
+	var/original_tick_limit = Master.current_ticklimit
+	var/original_oxygen = tail.air.get_moles(/datum/gas/oxygen)
+	var/batch_limit = 100 // The public maintenance bound; air.dm's define is file-local.
+	exposures = list()
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		original_turf_state[fixture_turf] = list(fixture_turf.atmos_adjacent_turfs, fixture_turf.excited, fixture_turf.excited_group, fixture_turf.current_cycle, fixture_turf.archived_cycle)
+		fixture_turf.excited = TRUE
+		fixture_turf.excited_group = null
+		// This fixture checks traversal, so preserve the native archived air state.
+		fixture_turf.archived_cycle = SSair.times_fired
+		RegisterSignal(fixture_turf, COMSIG_TURF_EXPOSE, PROC_REF(count_exposure))
+	settler.atmos_adjacent_turfs = list()
+	filler.atmos_adjacent_turfs = list(tail)
+	sentinel.atmos_adjacent_turfs = list(tail)
+	tail.atmos_adjacent_turfs = list(filler)
+	tail.excited = FALSE
+	var/failure
+	try
+		tail.air.set_moles(/datum/gas/oxygen, filler.air.get_moles(/datum/gas/oxygen) + 100)
+		var/list/queue = list(settler)
+		for(var/index in 1 to batch_limit - 1)
+			queue += filler
+		queue += sentinel
+		// The differing tail starts outside the queue and is appended by filler comparisons.
+		SSair.active_turfs = queue
+		SSair.currentrun = list()
+		SSair.active_turfs_walk_cursor = 0
+		SSair.dogmos_visual_refresh_batch = queue.Copy()
+		SSair.dogmos_walk_prefetch_end = 0
+		SSair.state = SS_RUNNING
+		Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
+		SSair.walk_active_turfs_batch()
+		if(exposures[settler] != 1 || exposures[filler] != batch_limit - 1 || exposures[sentinel] || exposures[tail])
+			failure = "The first walk did not process exactly its bounded fixture batch."
+		else if(settler in SSair.active_turfs)
+			failure = "The isolated settled turf did not leave the active list."
+		else if(!tail.excited || !(tail in SSair.active_turfs))
+			failure = "The differing inactive tail was not appended during the first batch."
+		else
+			SSair.walk_active_turfs_batch()
+			if(exposures[sentinel] != 1)
+				failure = "Removing the first settled turf skipped the next unprocessed turf on the second walk."
+			else if(exposures[tail])
+				failure = "An activation outside the initial snapshot was exposed during the same cycle."
+	catch(var/exception/error)
+		failure = "The removal-cursor fixture raised [error.name]."
+
+	SSair.active_turfs = original_active
+	SSair.currentrun = original_run
+	SSair.dogmos_visual_refresh_batch = original_visuals
+	SSair.dogmos_walk_prefetch_end = original_prefetch_end
+	SSair.active_turfs_walk_cursor = original_cursor
+	SSair.state = original_state
+	Master.current_ticklimit = original_tick_limit
+	tail.air.set_moles(/datum/gas/oxygen, original_oxygen)
+	for(var/turf/open/fixture_turf as anything in fixture_turfs)
+		UnregisterSignal(fixture_turf, COMSIG_TURF_EXPOSE)
+		var/list/saved_turf_state = original_turf_state[fixture_turf]
+		fixture_turf.atmos_adjacent_turfs = saved_turf_state[1]
+		fixture_turf.excited = saved_turf_state[2]
+		fixture_turf.excited_group = saved_turf_state[3]
+		fixture_turf.current_cycle = saved_turf_state[4]
+		fixture_turf.archived_cycle = saved_turf_state[5]
+	exposures = null
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** Verifies atomic stage candidates do not invalidate warm snapshots before publication. */
+/datum/unit_test/dogmos_service_atomic_stage_cache_boundary
+
+/datum/unit_test/dogmos_service_atomic_stage_cache_boundary/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/original_active = SSair.active_turfs
+	var/list/original_pressure_queue = SSair.high_pressure_delta.Copy()
+	var/list/original_pressure = list()
+	var/original_work_limit = SSair.dogmos_stage_work_limit
+	var/list/room_turfs = block(run_loc_floor_bottom_left, run_loc_floor_top_right)
+	var/turf/open/target = run_loc_floor_bottom_left
+	for(var/turf/open/fixture_turf as anything in room_turfs)
+		original_pressure[fixture_turf] = list(fixture_turf.pressure_difference, fixture_turf.pressure_direction)
+	var/list/original_stage_samples = SSair.dogmos_stage_test_samples
+	var/failure
+	var/restored = FALSE
+	var/pending = FALSE
+	var/stage_complete = FALSE
+	try
+		SSair.dogmos_stage_test_samples = list()
+		SSdogmos.reset_mixture_snapshot_cache()
+		SSair.active_turfs = room_turfs.Copy()
+		SSair.dogmos_pending_frontier_epoch = null
+		if(!SSair.sync_dogmos_frontier())
+			failure = "The atomic stage cache fixture could not publish its temporary frontier."
+		else
+			// Seed a real diffusion mutation, then warm the exact service snapshot that must remain
+			// readable until the atomic candidate is finally published.
+			var/seeded_oxygen = target.air.get_moles(/datum/gas/oxygen) + 100
+			target.air.set_moles(/datum/gas/oxygen, seeded_oxygen)
+			target.air.dogmos_snapshot()
+			var/cache_epoch_before = SSdogmos.dogmos_mixture_cache_epoch
+			SSair.dogmos_stage_work_limit = 1
+			// A 0.01 ms allocation can be consumed by the DM entry checks before any
+			// native request. Keep the fixture large enough that this positive allocation
+			// must return a real bounded response with preparation work remaining.
+			pending = SSair.dogmos_run_stage(DOGMOS_TEST_STAGE_TURFS, 0.25)
+			var/list/first_sample = SSair.dogmos_stage_test_samples["[DOGMOS_TEST_STAGE_TURFS]"]
+			if(!pending)
+				failure = "The atomic diffusion fixture completed before exposing a pending native chunk."
+			else if(!islist(first_sample) || first_sample[1] < 1 || first_sample[2] < 1 || SSair.dogmos_stage_remaining_estimate <= 0 || SSair.dogmos_stage_remaining_estimate >= length(room_turfs))
+				failure = "The atomic diffusion fixture did not record native work in its first pending response."
+			else if(SSdogmos.dogmos_mixture_cache_epoch != cache_epoch_before || !SSdogmos.lookup_mixture_snapshot_cache(target.air.dogmos_slot, target.air.dogmos_generation))
+				failure = "An atomic diffusion chunk invalidated a warm snapshot before publication."
+			if(pending)
+				for(var/attempt in 1 to 4096)
+					if(!pending)
+						break
+					pending = SSair.dogmos_run_stage(DOGMOS_TEST_STAGE_TURFS, 100)
+			if(pending)
+				failure = "The atomic diffusion fixture did not complete within its bounded retry count."
+			else if(!isnull(SSair.dogmos_pending_stage))
+				failure = "The atomic diffusion fixture reported completion while retaining a native cursor."
+			else
+				stage_complete = TRUE
+				if(SSdogmos.lookup_mixture_snapshot_cache(target.air.dogmos_slot, target.air.dogmos_generation))
+					failure = "The atomic diffusion publication left a stale warm snapshot readable."
+				if(target.air.get_moles(/datum/gas/oxygen) >= seeded_oxygen)
+					failure = "The atomic diffusion fixture did not publish a numeric gas change."
+	catch(var/exception/error)
+		failure = "The atomic stage cache fixture raised [error.name]."
+	try
+		if(stage_complete && SSdogmos.service_ready && !dogmos_drain_fixture_callbacks())
+			failure = "The atomic stage cache fixture left callbacks pending after publication."
+			stage_complete = FALSE
+	catch(var/exception/drain_error)
+		failure = "The atomic stage cache fixture callback drain raised [drain_error.name]."
+		stage_complete = FALSE
+	// Restore DM-local state for diagnostics even when the native cursor is
+	// incomplete. Do not clear its frontier or call sync while that cursor is live;
+	// there is no safe DM cancellation API for an in-flight native stage.
+	var/native_cursor_open = !stage_complete || pending || !isnull(SSair.dogmos_pending_stage)
+	SSair.dogmos_stage_work_limit = original_work_limit
+	SSair.active_turfs = original_active
+	SSair.high_pressure_delta.Cut()
+	SSair.high_pressure_delta += original_pressure_queue
+	for(var/turf/open/fixture_turf as anything in room_turfs)
+		var/list/pressure = original_pressure[fixture_turf]
+		fixture_turf.pressure_difference = pressure[1]
+		fixture_turf.pressure_direction = pressure[2]
+	if(!native_cursor_open && SSdogmos.service_ready)
+		try
+			SSair.dogmos_pending_frontier_epoch = null
+			restored = SSair.sync_dogmos_frontier()
+			SSair.dogmos_pending_frontier_epoch = null
+		catch(var/exception/restore_error)
+			failure = "The atomic stage cache fixture restoration raised [restore_error.name]."
+	SSair.dogmos_stage_test_samples = original_stage_samples
+	SSdogmos.reset_mixture_snapshot_cache()
+	if(native_cursor_open)
+		return dogmos_abort_fixture("The atomic stage cache fixture left a native stage pending; its frontier was not touched.")
+	if(!restored)
+		return dogmos_abort_fixture("The atomic stage cache fixture could not restore its normal frontier.")
+	if(!isnull(SSair.dogmos_pending_stage) || SSair.dogmos_pending_frontier_epoch)
+		return dogmos_abort_fixture("The atomic stage cache fixture left a native stage or frontier pending.")
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
 
 /** Verifies one Dogmos turf-processing cycle performs the configured FDM pass count. */
 /datum/unit_test/dogmos_service_fdm_linda_cadence
@@ -1223,6 +1843,10 @@
 	var/list/original_pending_frontier = SSair.dogmos_pending_frontier_epoch
 	var/original_remaining_estimate = SSair.dogmos_stage_remaining_estimate
 	var/original_active_stages_complete = SSair.dogmos_active_turf_stages_complete
+	var/original_equalize_stages_complete = SSair.dogmos_equalize_stage_complete
+	var/list/original_walk_state = list()
+	for(var/field in list("dogmos_active_walk_complete", "active_turfs_walk_cursor", "dogmos_visual_refresh_cursor", "dogmos_visual_refresh_batch"))
+		original_walk_state[field] = SSair.vars[field]
 	var/original_fdm_steps_completed = SSair.dogmos_fdm_steps_completed
 	var/original_can_fire = SSair.can_fire
 	var/original_service_ready = SSdogmos.service_ready
@@ -1231,22 +1855,32 @@
 	SSair.dogmos_pending_frontier_epoch = list(1, 0, 0, 0)
 	SSair.dogmos_stage_remaining_estimate = 77
 	SSair.dogmos_active_turf_stages_complete = TRUE
+	SSair.dogmos_equalize_stage_complete = TRUE
 	SSair.dogmos_fdm_steps_completed = 3
+	SSair.dogmos_active_walk_complete = TRUE
+	SSair.active_turfs_walk_cursor = 1
+	SSair.dogmos_visual_refresh_cursor = 1
+	SSair.dogmos_visual_refresh_batch = list(run_loc_floor_bottom_left)
 	var/failure_pending = SSair.dogmos_fail_closed_stage(DOGMOS_TEST_STAGE_REACTIONS, FALSE)
 	var/failure_message
 	if(!failure_pending)
 		failure_message = "Dogmos did not pause SSair after an irrecoverable stage response."
 	else if(!isnull(SSair.dogmos_pending_stage) || !isnull(SSair.dogmos_pending_frontier_epoch))
 		failure_message = "Dogmos retained failed stage state for another retry."
-	else if(SSair.dogmos_stage_remaining_estimate || SSair.dogmos_active_turf_stages_complete || SSair.dogmos_fdm_steps_completed)
+	else if(SSair.dogmos_stage_remaining_estimate || SSair.dogmos_active_turf_stages_complete || SSair.dogmos_equalize_stage_complete || SSair.dogmos_fdm_steps_completed)
 		failure_message = "Dogmos retained failed-cycle progress after the stage failure."
 	else if(SSair.can_fire || SSdogmos.service_ready || !SSdogmos.service_failure_latched)
 		failure_message = "Dogmos did not fail closed after the stage failure."
+	else if(SSair.dogmos_active_walk_complete || SSair.active_turfs_walk_cursor || SSair.dogmos_visual_refresh_cursor || length(SSair.dogmos_visual_refresh_batch))
+		failure_message = "Dogmos retained a failed maintenance or visual continuation."
 
 	SSair.dogmos_pending_stage = original_pending_stage
 	SSair.dogmos_pending_frontier_epoch = original_pending_frontier
 	SSair.dogmos_stage_remaining_estimate = original_remaining_estimate
 	SSair.dogmos_active_turf_stages_complete = original_active_stages_complete
+	SSair.dogmos_equalize_stage_complete = original_equalize_stages_complete
+	for(var/field in original_walk_state)
+		SSair.vars[field] = original_walk_state[field]
 	SSair.dogmos_fdm_steps_completed = original_fdm_steps_completed
 	SSair.can_fire = original_can_fire
 	SSdogmos.service_ready = original_service_ready
@@ -1622,6 +2256,125 @@
 	if(failure_message)
 		return Fail(failure_message, __FILE__, __LINE__)
 
+/** Verifies a deferred adjacency retry refreshes its own late-created gas registration. */
+/datum/unit_test/dogmos_service_adjacency_retry_late_air
+
+/datum/unit_test/dogmos_service_adjacency_retry_late_air/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/pair = allocate_turf_pair()
+	var/turf/open/target = pair[1]
+	var/datum/gas_mixture/original_air = target.air
+	var/original_runtime_batching = SSdogmos.runtime_topology_batching
+	// Map construction can register a heat node before creating its gas datum.
+	target.air = null
+	target.register_dogmos_air()
+	target.air = original_air
+	SSdogmos.runtime_topology_batching = TRUE
+	SSdogmos.dogmos_pending_adjacency_retry[target] = TRUE
+	SSdogmos.retry_pending_turf_adjacencies()
+	var/source_current = target.dogmos_air_registration_is_current()
+	// Repair the fixture before flushing even on RED: stale edges must not reach the service.
+	if(!source_current)
+		target.register_dogmos_air()
+		target.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+	SSdogmos.runtime_topology_batching = original_runtime_batching
+	SSdogmos.flush_turf_registration_batch()
+	if(!source_current)
+		return Fail("Deferred adjacency rebuilt gas edges while its source still had a heat-only registration.", __FILE__, __LINE__)
+
+/** Verifies the real template finalizer coalesces border edges without resetting live air or heat. */
+/datum/unit_test/dogmos_template_border_batch
+
+/datum/unit_test/dogmos_template_border_batch/Run()
+	var/reached_stage_boundary = FALSE
+	for(var/attempt in 1 to DOGMOS_TEST_STAGE_BOUNDARY_ATTEMPTS)
+		if(isnull(SSair.dogmos_pending_stage) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
+			reached_stage_boundary = TRUE
+			break
+		sleep(SSair.wait)
+	if(!reached_stage_boundary)
+		return Fail("Template border fixture did not reach a safe stage boundary.", __FILE__, __LINE__)
+	var/list/pair = allocate_turf_pair()
+	var/turf/open/hot_turf = pair[1]
+	var/turf/open/cold_turf = pair[2]
+	var/original_hot_temperature = hot_turf.dogmos_heat_temperature()
+	var/original_cold_temperature = cold_turf.dogmos_heat_temperature()
+	hot_turf.air.set_moles(GAS_O2, 13)
+	cold_turf.air.set_moles(GAS_O2, 29)
+	hot_turf.set_temperature(420)
+	cold_turf.set_temperature(333)
+	var/hot_slot = hot_turf.dogmos_registered_mixture_slot
+	var/cold_slot = cold_turf.dogmos_registered_mixture_slot
+	var/datum/map_template/template = allocate(/datum/map_template)
+	var/list/bounds = list(
+		hot_turf.x + 1, hot_turf.y + 1, hot_turf.z,
+		hot_turf.x + 3, hot_turf.y + 3, hot_turf.z,
+	)
+	var/original_can_fire = SSair.can_fire
+	SSair.can_fire = FALSE
+	var/calls_before = SSdogmos.dogmos_runtime_topology_calls
+	template.initTemplateBounds(bounds)
+	var/calls = SSdogmos.dogmos_runtime_topology_calls - calls_before
+	file("[GLOB.log_directory]/dogmos-template-border.json") << json_encode(list("interior_bounds" = bounds, "topology_calls" = calls))
+	var/failure_message
+	if(hot_turf.dogmos_registered_mixture_slot != hot_slot || cold_turf.dogmos_registered_mixture_slot != cold_slot)
+		failure_message = "Template finalization replaced an existing mixture identity."
+	else if(hot_turf.air.get_moles(GAS_O2) != 13 || cold_turf.air.get_moles(GAS_O2) != 29)
+		failure_message = "Template finalization changed existing gas quantities."
+	else if(hot_turf.dogmos_heat_temperature() != 420 || cold_turf.dogmos_heat_temperature() != 333)
+		failure_message = "Template finalization reset existing solid temperatures."
+	else if(!(cold_turf in hot_turf.atmos_adjacent_turfs) || !(hot_turf in cold_turf.atmos_adjacent_turfs))
+		failure_message = "Template finalization lost reciprocal border adjacency."
+	else if(SSdogmos.runtime_topology_batching || length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat_adjacency))
+		failure_message = "Template finalization leaked its batch ownership or unpublished edges."
+	else if(calls > 4)
+		failure_message = "A 25-turf template border used [calls] topology calls; its unique edges fit in at most four bounded batches."
+	hot_turf.set_temperature(original_hot_temperature)
+	cold_turf.set_temperature(original_cold_temperature)
+	SSair.can_fire = original_can_fire
+	if(failure_message)
+		return Fail(failure_message, __FILE__, __LINE__)
+
+/** Verifies template border updates respect an outer batch and a frozen simulation frontier. */
+/datum/unit_test/dogmos_template_border_batch_ownership
+
+/datum/unit_test/dogmos_template_border_batch_ownership/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/pair = allocate_turf_pair()
+	var/original_runtime_batching = SSdogmos.runtime_topology_batching
+	var/list/original_frontier = SSair.dogmos_pending_frontier_epoch
+	var/calls_before = SSdogmos.dogmos_runtime_topology_calls
+	SSdogmos.runtime_topology_batching = TRUE
+	SSdogmos.update_template_border(pair)
+	var/failure_message
+	var/retained_targets = (pair[1] in SSdogmos.dogmos_pending_adjacency_retry) && (pair[2] in SSdogmos.dogmos_pending_adjacency_retry)
+	var/retained_edges = length(SSdogmos.dogmos_pending_turf_adjacency) && length(SSdogmos.dogmos_pending_turf_heat_adjacency)
+	if(!SSdogmos.runtime_topology_batching || SSdogmos.dogmos_runtime_topology_calls != calls_before)
+		failure_message = "Template border update drained or released its outer partial batch."
+	else if(!retained_targets && !retained_edges)
+		failure_message = "Template border update lost its outer owner's pending topology."
+	SSdogmos.runtime_topology_batching = original_runtime_batching
+	SSdogmos.flush_turf_registration_batch()
+	if(!failure_message && (SSdogmos.dogmos_runtime_topology_calls - calls_before < 2 \
+		|| length(SSdogmos.dogmos_pending_adjacency_retry) || length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat_adjacency)))
+		failure_message = "Closing the outer batch did not publish and drain gas and heat topology."
+
+	calls_before = SSdogmos.dogmos_runtime_topology_calls
+	SSair.dogmos_pending_frontier_epoch = SSair.dogmos_frontier_epoch.Copy()
+	SSdogmos.update_template_border(pair)
+	if(!failure_message && (SSdogmos.runtime_topology_batching != original_runtime_batching || SSdogmos.dogmos_runtime_topology_calls != calls_before))
+		failure_message = "Template border update bypassed a frozen simulation frontier."
+	if(!failure_message && !length(SSdogmos.dogmos_pending_adjacency_retry))
+		failure_message = "Template border update discarded topology deferred behind the frontier."
+	SSair.dogmos_pending_frontier_epoch = original_frontier
+	SSdogmos.flush_turf_registration_batch()
+	if(!failure_message && (length(SSdogmos.dogmos_pending_adjacency_retry) || length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat_adjacency)))
+		failure_message = "Template border topology did not drain after the frontier was released."
+	if(failure_message)
+		return Fail(failure_message, __FILE__, __LINE__)
+
 /** Verifies runtime topology coalescing does not re-register current neighbor state. */
 /datum/unit_test/dogmos_service_runtime_topology_batch_preserves_neighbor_state
 
@@ -1646,6 +2399,8 @@
 	SSdogmos.dogmos_pending_turf_heat_adjacency_index = list()
 	SSdogmos.dogmos_pending_adjacency_retry = list()
 	run_loc_floor_bottom_left.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+	// Inspect actual edge construction even when notifications are deferred by the owner.
+	SSdogmos.retry_pending_turf_adjacencies()
 	var/requeued_neighbor_state = length(SSdogmos.dogmos_pending_turf_lifecycle) || length(SSdogmos.dogmos_pending_turf_heat)
 
 	SSair.dogmos_pending_frontier_epoch = original_pending_frontier
@@ -1791,6 +2546,277 @@
 	SSdogmos.reset_mixture_snapshot_cache()
 	return ..()
 
+/// Measures native publications inside the two blocked-turf shuttle updates.
+/turf/open/indestructible/plating/airless/dogmos_shuttle_probe
+	/// Shared only for the synchronous test interval; contains numeric observations.
+	var/static/list/dogmos_shuttle_samples
+
+/turf/open/indestructible/plating/airless/dogmos_shuttle_probe/air_update_turf(update, remove)
+	var/measuring = islist(dogmos_shuttle_samples) && blocks_air
+	var/calls_before = SSdogmos.dogmos_runtime_topology_calls
+	. = ..()
+	if(measuring)
+		dogmos_shuttle_samples += SSdogmos.dogmos_runtime_topology_calls - calls_before
+
+/// Actual shuttle movement must publish a bounded batch and copy gas before its final signal.
+/datum/unit_test/dogmos_shuttle_topology_batch
+	/// Whether a surrounding operation owns publication throughout the move.
+	var/outer_batch_owner = FALSE
+	var/turf/open/moving_source
+	var/turf/open/moving_destination
+	var/list/adjacency_observations
+	var/list/shuttle_observation
+
+/datum/unit_test/dogmos_shuttle_topology_batch/outer_owner
+	outer_batch_owner = TRUE
+
+/datum/unit_test/dogmos_shuttle_topology_batch/proc/observe_adjacency(turf/source)
+	SIGNAL_HANDLER
+	adjacency_observations += list(list(moving_source.blocks_air, moving_destination.blocks_air, moving_source.air.get_moles(GAS_O2)))
+
+/datum/unit_test/dogmos_shuttle_topology_batch/proc/observe_shuttle(turf/source, turf/open/destination)
+	SIGNAL_HANDLER
+	shuttle_observation = list(source.blocks_air, destination.blocks_air, destination.air.get_moles(GAS_O2), SSdogmos.runtime_topology_batching)
+
+/datum/unit_test/dogmos_shuttle_topology_batch/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/original_batching = SSdogmos.runtime_topology_batching
+	if(original_batching || SSdogmos.turf_registration_batching)
+		return Fail("Shuttle fixture encountered another batch owner.", __FILE__, __LINE__)
+	var/list/pair = allocate_turf_pair()
+	var/list/restoration = list()
+	for(var/turf/fixture_turf as anything in pair)
+		restoration += list(list(fixture_turf.x, fixture_turf.y, fixture_turf.z, fixture_turf.type, islist(fixture_turf.baseturfs) ? fixture_turf.baseturfs.Copy() : fixture_turf.baseturfs))
+	var/original_can_fire = SSair.can_fire
+	SSair.can_fire = FALSE
+	var/turf/open/indestructible/plating/airless/dogmos_shuttle_probe/probe
+	var/list/measured_calls
+	var/failure
+	try
+		moving_source = pair[1]
+		moving_destination = pair[2]
+		moving_source = moving_source.ChangeTurf(/turf/open/indestructible/plating/airless/dogmos_shuttle_probe)
+		moving_destination = moving_destination.ChangeTurf(/turf/open/indestructible/plating/airless/dogmos_shuttle_probe)
+		moving_source.baseturfs = list(/turf/open/space, /turf/baseturf_skipover/shuttle, moving_source.type)
+		moving_source.air.clear()
+		moving_source.air.set_moles(GAS_O2, 17)
+		moving_destination.air.clear()
+		moving_destination.air.set_moles(GAS_O2, 3)
+		moving_source.air_update_turf(TRUE)
+		moving_destination.air_update_turf(TRUE)
+		if(!SSdogmos.flush_turf_registration_batch())
+			CRASH("Shuttle fixture setup could not publish topology.")
+		adjacency_observations = list()
+		RegisterSignal(moving_source, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, PROC_REF(observe_adjacency))
+		RegisterSignal(moving_source, COMSIG_TURF_ON_SHUTTLE_MOVE, PROC_REF(observe_shuttle))
+		probe = moving_source
+		probe.dogmos_shuttle_samples = list()
+		SSdogmos.runtime_topology_batching = outer_batch_owner
+		if(!moving_source.onShuttleMove(moving_destination, list(), EAST, ignore_area_change = TRUE))
+			CRASH("Shuttle fixture did not move its turf.")
+		measured_calls = probe.dogmos_shuttle_samples
+		probe.dogmos_shuttle_samples = null
+		var/native_calls = 0
+		for(var/call_count in measured_calls)
+			native_calls += call_count
+		if(length(measured_calls) != 2 || native_calls > 4)
+			failure = "Two blocked shuttle updates published topology repeatedly ([length(measured_calls)] updates, [native_calls] native calls)."
+		if(length(shuttle_observation) != 4 || !shuttle_observation[1] || !shuttle_observation[2] || shuttle_observation[3] != 17 || shuttle_observation[4] != outer_batch_owner)
+			failure = "The shuttle signal did not see blocked turfs, copied gas and restored batch ownership."
+		var/destination_blocked_index = 0
+		var/both_blocked_index = 0
+		var/observation_index = 0
+		for(var/list/observation as anything in adjacency_observations)
+			observation_index++
+			if(observation[3] != 17)
+				failure = "An intermediate adjacency callback read changed source gas."
+			if(!destination_blocked_index && !observation[1] && observation[2])
+				destination_blocked_index = observation_index
+			if(!both_blocked_index && observation[1] && observation[2])
+				both_blocked_index = observation_index
+		if(!destination_blocked_index || !both_blocked_index || destination_blocked_index >= both_blocked_index)
+			failure = "Shuttle movement did not preserve the ordered intermediate adjacency notifications."
+		var/pending_topology = length(SSdogmos.dogmos_pending_adjacency_retry) + length(SSdogmos.dogmos_pending_turf_adjacency) + length(SSdogmos.dogmos_pending_turf_heat_adjacency)
+		if(!outer_batch_owner && pending_topology)
+			failure = "Shuttle movement retained topology after its final signal."
+		if(outer_batch_owner && !pending_topology)
+			failure = "Shuttle movement prematurely drained its outer owner's topology."
+	catch(var/exception/error)
+		failure = "Shuttle topology fixture raised [error]."
+	if(probe)
+		probe.dogmos_shuttle_samples = null
+	if(moving_source)
+		UnregisterSignal(moving_source, list(COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, COMSIG_TURF_ON_SHUTTLE_MOVE))
+	SSdogmos.runtime_topology_batching = original_batching
+	file("[GLOB.log_directory]/dogmos-shuttle-topology.json") << json_encode(list("outer_owner" = outer_batch_owner, "calls_inside_updates" = measured_calls, "adjacency" = adjacency_observations, "shuttle" = shuttle_observation))
+	moving_source = null
+	moving_destination = null
+	try
+		if(!SSdogmos.flush_turf_registration_batch())
+			return dogmos_abort_fixture("Shuttle cleanup could not reach the service.")
+		for(var/list/saved_turf as anything in restoration)
+			var/turf/current = locate(saved_turf[1], saved_turf[2], saved_turf[3])
+			var/turf/restored = current.ChangeTurf(saved_turf[4])
+			restored.baseturfs = saved_turf[5]
+			if(!isopenturf(restored))
+				return dogmos_abort_fixture("Shuttle cleanup did not restore an open floor.")
+			restored.air_update_turf(TRUE, FALSE)
+			if(saved_turf == restoration[1])
+				run_loc_floor_bottom_left = restored
+		if(!SSdogmos.flush_turf_registration_batch())
+			return dogmos_abort_fixture("Shuttle cleanup could not publish restored topology.")
+	catch(var/exception/cleanup_error)
+		return dogmos_abort_fixture("Shuttle cleanup raised [cleanup_error].")
+	// The normal test runner resets this room's gas and native temperature before Destroy().
+	SSair.can_fire = original_can_fire
+	if(failure)
+		Fail(failure, __FILE__, __LINE__)
+
+/// Counts identity reads only while a bounded topology fixture is measuring work.
+/turf/open/indestructible/plating/airless/dogmos_topology_probe
+	/// Whether identity lookups belong to the measured interval.
+	var/dogmos_probe_enabled = FALSE
+	/// Identity lookups made by the measured topology rebuilds.
+	var/dogmos_probe_slot_reads = 0
+	/// Test-only fault injected at the identity-read boundary, after fixture setup.
+	var/dogmos_probe_throw = FALSE
+
+/turf/open/indestructible/plating/airless/dogmos_topology_probe/dogmos_service_slot()
+	if(dogmos_probe_throw)
+		throw "dogmos batch exception sentinel"
+	if(dogmos_probe_enabled)
+		dogmos_probe_slot_reads++
+	return ..()
+
+/// Repeated notifications in one runtime batch must rebuild the final topology once.
+/datum/unit_test/dogmos_runtime_topology_coalesces_notifications
+
+/datum/unit_test/dogmos_runtime_topology_coalesces_notifications/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/original_can_fire = SSair.can_fire
+	var/original_batching = SSdogmos.runtime_topology_batching
+	if(original_batching || SSdogmos.turf_registration_batching)
+		return Fail("Topology fixture encountered another batch owner.", __FILE__, __LINE__)
+	var/original_type = run_loc_floor_bottom_left.type
+	var/list/original_position = list(run_loc_floor_bottom_left.x, run_loc_floor_bottom_left.y, run_loc_floor_bottom_left.z)
+	SSair.can_fire = FALSE
+	var/turf/open/indestructible/plating/airless/dogmos_topology_probe/target
+	var/calls_before = SSdogmos.dogmos_runtime_topology_calls
+	var/failure_message
+	var/slot_reads
+	try
+		target = run_loc_floor_bottom_left.ChangeTurf(/turf/open/indestructible/plating/airless/dogmos_topology_probe)
+		target.immediate_calculate_adjacent_turfs()
+		if(!SSdogmos.flush_turf_registration_batch())
+			CRASH("Topology fixture setup could not reach the service.")
+		target.air.set_moles(GAS_O2, 17)
+		target.air.set_temperature(321)
+		var/original_mixture_slot = target.air.dogmos_slot
+		var/original_mixture_generation = target.air.dogmos_generation
+		calls_before = SSdogmos.dogmos_runtime_topology_calls
+		SSdogmos.runtime_topology_batching = TRUE
+		target.dogmos_probe_enabled = TRUE
+		for(var/repetition in 1 to 50)
+			target.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+		SSdogmos.runtime_topology_batching = original_batching
+		if(!SSdogmos.flush_turf_registration_batch())
+			failure_message = "The runtime batch failed to publish its final topology."
+		slot_reads = target.dogmos_probe_slot_reads
+		target.dogmos_probe_enabled = FALSE
+		if(!failure_message && slot_reads > 4)
+			failure_message = "Fifty notifications rebuilt the same turf repeatedly ([slot_reads] identity reads)."
+		if(!failure_message && (target.air.dogmos_slot != original_mixture_slot || target.air.dogmos_generation != original_mixture_generation))
+			failure_message = "Coalescing topology replaced the gas mixture identity."
+		if(!failure_message && (target.air.get_moles(GAS_O2) != 17 || target.air.return_temperature() != 321))
+			failure_message = "Coalescing topology changed gas state."
+		if(!failure_message && (length(SSdogmos.dogmos_pending_adjacency_retry) || length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat_adjacency)))
+			failure_message = "The runtime batch retained pending topology after publication."
+	catch(var/exception/error)
+		failure_message = "Runtime topology fixture raised [error]."
+	if(istype(target))
+		target.dogmos_probe_enabled = FALSE
+	SSdogmos.runtime_topology_batching = original_batching
+	file("[GLOB.log_directory]/dogmos-runtime-topology-coalescing.json") << json_encode(list("notifications" = 50, "identity_reads" = slot_reads, "topology_calls" = SSdogmos.dogmos_runtime_topology_calls - calls_before))
+	try
+		if(!SSdogmos.flush_turf_registration_batch())
+			return dogmos_abort_fixture("Runtime topology cleanup could not reach the service.")
+		var/turf/current = locate(original_position[1], original_position[2], original_position[3])
+		var/turf/restored = current.ChangeTurf(original_type)
+		if(!isopenturf(restored))
+			return dogmos_abort_fixture("Runtime topology cleanup could not restore the test floor.")
+		run_loc_floor_bottom_left = restored
+		if(!SSdogmos.flush_turf_registration_batch())
+			return dogmos_abort_fixture("Restored test floor topology did not reach the service.")
+	catch(var/exception/cleanup_error)
+		return dogmos_abort_fixture("Runtime topology cleanup raised [cleanup_error.name].")
+	// The normal low-priority test runner restores this room's numeric atmosphere next.
+	SSair.can_fire = original_can_fire
+	if(failure_message)
+		return Fail(failure_message, __FILE__, __LINE__)
+
+/** Exceptions must release only the batching scope owned by the failing helper. */
+/datum/unit_test/dogmos_topology_batch_exception_ownership/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/original_can_fire = SSair.can_fire
+	var/original_batching = SSdogmos.runtime_topology_batching
+	if(original_batching || SSdogmos.turf_registration_batching)
+		return Fail("Exception fixture encountered another batch owner.", __FILE__, __LINE__)
+	var/original_type = run_loc_floor_bottom_left.type
+	var/list/position = list(run_loc_floor_bottom_left.x, run_loc_floor_bottom_left.y, run_loc_floor_bottom_left.z)
+	var/turf/open/indestructible/plating/airless/dogmos_topology_probe/target
+	var/failure_message
+	SSair.can_fire = FALSE
+	try
+		target = run_loc_floor_bottom_left.ChangeTurf(/turf/open/indestructible/plating/airless/dogmos_topology_probe)
+		target.immediate_calculate_adjacent_turfs()
+		if(!SSdogmos.flush_turf_registration_batch())
+			CRASH("Exception fixture setup could not reach the service.")
+		for(var/outer_owner in list(FALSE, TRUE))
+			for(var/helper in list("template", "retry"))
+				SSdogmos.runtime_topology_batching = outer_owner
+				target.dogmos_probe_throw = TRUE
+				var/caught_expected = FALSE
+				try
+					if(helper == "template")
+						SSdogmos.update_template_border(list(target))
+					else
+						SSdogmos.dogmos_pending_adjacency_retry[target] = TRUE
+						SSdogmos.retry_pending_turf_adjacencies()
+				catch(var/helper_error)
+					caught_expected = helper_error == "dogmos batch exception sentinel"
+				target.dogmos_probe_throw = FALSE
+				if(!caught_expected)
+					failure_message = "The [helper] helper did not propagate the injected exception unchanged."
+				else if(SSdogmos.runtime_topology_batching != outer_owner)
+					failure_message = "The [helper] helper leaked batching ownership after an exception (outer owner [outer_owner])."
+				SSdogmos.runtime_topology_batching = original_batching
+				// Reconcile the faulted turf from current DM state before the next case.
+				target.immediate_calculate_adjacent_turfs()
+				if(!SSdogmos.flush_turf_registration_batch())
+					CRASH("Exception fixture could not reconcile topology.")
+	catch(var/exception/error)
+		failure_message = "Exception ownership fixture raised [error]."
+	if(istype(target))
+		target.dogmos_probe_throw = FALSE
+	SSdogmos.runtime_topology_batching = original_batching
+	try
+		var/turf/current = locate(position[1], position[2], position[3])
+		var/turf/restored = current.ChangeTurf(original_type)
+		if(!isopenturf(restored))
+			return dogmos_abort_fixture("Exception cleanup could not restore the test floor.")
+		run_loc_floor_bottom_left = restored
+		restored.immediate_calculate_adjacent_turfs()
+		if(!SSdogmos.flush_turf_registration_batch())
+			return dogmos_abort_fixture("Exception cleanup could not publish restored topology.")
+	catch(var/exception/cleanup_error)
+		return dogmos_abort_fixture("Exception cleanup raised [cleanup_error].")
+	SSair.can_fire = original_can_fire
+	if(failure_message)
+		return Fail(failure_message, __FILE__, __LINE__)
+
 #undef DOGMOS_WORLD_GENERATION_WORD_MAX
 #undef DOGMOS_TEST_STAGE_EXCITED_GROUPS
 #undef DOGMOS_TEST_STAGE_EQUALIZE
@@ -1805,5 +2831,674 @@
 #undef DOGMOS_TEST_RESPONSE_APPLIED
 #undef DOGMOS_TEST_SNAPSHOT_REVISION_LOW
 #undef DOGMOS_TEST_SNAPSHOT_REVISION_HIGH
+
+#endif
+
+#if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
+
+#define DOGMOS_FAILURE_FENCE_STAGE 4
+
+/** Fixed snapshots may retain a turf that no longer has open-turf fields. */
+/datum/unit_test/dogmos_walk_prefetch_closed_turf/Run()
+	var/turf/open/interior = run_loc_floor_bottom_left
+	var/turf/boundary = get_step(interior, WEST)
+	if(!interior.air || !boundary || isopenturf(boundary))
+		return Fail("The stale-snapshot fixture needs an open interior and a closed room boundary.", __FILE__, __LINE__)
+	var/list/original_neighbors = interior.atmos_adjacent_turfs
+	var/failure
+	try
+		// Exercise both a stale snapshot entry and a stale neighbor reference.
+		interior.atmos_adjacent_turfs = list(boundary)
+		SSair.dogmos_prefetch_walk_snapshots(list(boundary, interior))
+	catch(var/exception/error)
+		failure = "Prefetch accessed open-turf fields on a closed snapshot entry: [error.name]."
+	interior.atmos_adjacent_turfs = original_neighbors
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/datum/unit_test/dogmos_active_walk_failure_fence
+	var/list/exposure_count
+	var/failed_once = FALSE
+
+/datum/unit_test/dogmos_active_walk_failure_fence/proc/fail_from_exposure(turf/source)
+	SIGNAL_HANDLER
+	exposure_count[source]++
+	if(!failed_once)
+		failed_once = TRUE
+		SSair.dogmos_fail_closed_stage(DOGMOS_FAILURE_FENCE_STAGE, FALSE)
+
+/datum/unit_test/dogmos_active_walk_failure_fence/proc/count_exposure(turf/source)
+	SIGNAL_HANDLER
+	exposure_count[source]++
+
+/datum/unit_test/dogmos_active_walk_failure_fence/proc/frontier_matches(list/before, list/after)
+	if(isnull(before) || isnull(after))
+		return isnull(before) && isnull(after)
+	if(!islist(after) || length(before) != length(after))
+		return FALSE
+	for(var/turf/fixture_turf in before)
+		var/list/before_pair = before[fixture_turf]
+		var/list/after_pair = after[fixture_turf]
+		if(!islist(before_pair) || !islist(after_pair) || length(before_pair) != length(after_pair))
+			return FALSE
+		for(var/index in 1 to length(before_pair))
+			if(before_pair[index] != after_pair[index])
+				return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_active_walk_failure_fence/proc/frontier_copy(list/frontier)
+	if(isnull(frontier))
+		return null
+	var/list/result = list()
+	for(var/turf/fixture_turf in frontier)
+		var/list/pair = frontier[fixture_turf]
+		result[fixture_turf] = islist(pair) ? pair.Copy() : pair
+	return result
+
+/datum/unit_test/dogmos_active_walk_failure_fence/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+
+	var/list/pair = allocate_turf_pair()
+	if(!islist(pair) || length(pair) != 2)
+		return Fail("The failure-fence fixture needs exactly two real turfs.", __FILE__, __LINE__)
+	var/turf/open/first = pair[1]
+	var/turf/open/second = pair[2]
+	if(!istype(first) || !istype(second) || !first.air || !second.air)
+		return Fail("The failure-fence fixture did not receive two live open turfs with gas.", __FILE__, __LINE__)
+	if(!first.dogmos_air_registration_is_current() || !second.dogmos_air_registration_is_current())
+		return Fail("The failure-fence fixture did not receive current native gas registrations.", __FILE__, __LINE__)
+
+	var/list/saved_fields = list()
+	for(var/field in list(
+		"active_turfs", "currentrun", "state", "can_fire",
+		"active_turfs_walk_cursor", "dogmos_visual_refresh_batch",
+		"dogmos_visual_refresh_cursor", "dogmos_active_walk_complete",
+		"dogmos_active_turf_stages_complete", "dogmos_equalize_stage_complete",
+		"dogmos_fdm_steps_completed", "high_pressure_delta",
+		"dogmos_pending_stage", "dogmos_pending_frontier_epoch",
+		"dogmos_stage_remaining_estimate", "dogmos_stage_test_samples", "dogmos_resume_recovered_cycle",
+		"dogmos_reacted_turfs", "dogmos_walk_prefetch_end", "dogmos_visual_prefetch_end"))
+		saved_fields[field] = SSair.vars[field]
+
+	// These are accepted native state. Save copies for comparison only; never restore them.
+	var/list/saved_frontier_epoch = SSair.dogmos_frontier_epoch.Copy()
+	var/list/saved_stage_epoch = islist(SSair.dogmos_stage_epoch) ? SSair.dogmos_stage_epoch.Copy() : null
+	var/list/saved_committed_frontier = frontier_copy(SSair.dogmos_committed_frontier)
+	var/list/saved_pending_frontier = islist(SSair.dogmos_pending_frontier_epoch) ? SSair.dogmos_pending_frontier_epoch.Copy() : null
+	var/saved_pending_stage = SSair.dogmos_pending_stage
+	if(saved_pending_stage || length(saved_pending_frontier))
+		return dogmos_abort_fixture("The failure-fence fixture did not start at a native stage boundary.")
+
+	var/saved_service_ready = SSdogmos.service_ready
+	var/saved_failure_latched = SSdogmos.service_failure_latched
+	var/saved_shutdown_requested = SSdogmos.service_shutdown_requested
+	var/saved_pending_callback_count = SSdogmos.dogmos_pending_callback_count
+	var/saved_stale_callback_count = SSdogmos.dogmos_stale_callback_count
+	var/saved_tick_limit = Master.current_ticklimit
+	var/list/saved_turf_state = list()
+	for(var/turf/open/fixture_turf as anything in pair)
+		saved_turf_state[fixture_turf] = list(
+			fixture_turf.atmos_adjacent_turfs, fixture_turf.excited, fixture_turf.excited_group,
+			fixture_turf.current_cycle, fixture_turf.archived_cycle,
+			fixture_turf.pressure_difference, fixture_turf.pressure_direction)
+
+	exposure_count = list()
+	exposure_count[first] = 0
+	exposure_count[second] = 0
+	failed_once = FALSE
+	var/first_signal_registered = FALSE
+	var/second_signal_registered = FALSE
+	var/failure
+	var/restore_allowed = FALSE
+
+	try
+		RegisterSignal(first, COMSIG_TURF_EXPOSE, PROC_REF(fail_from_exposure))
+		first_signal_registered = TRUE
+		RegisterSignal(second, COMSIG_TURF_EXPOSE, PROC_REF(count_exposure))
+		second_signal_registered = TRUE
+
+		SSair.active_turfs = pair.Copy()
+		SSair.currentrun = list()
+		SSair.high_pressure_delta = list()
+		SSair.active_turfs_walk_cursor = 0
+		SSair.dogmos_visual_refresh_batch = pair.Copy()
+		SSair.dogmos_visual_refresh_cursor = 0
+		SSair.dogmos_active_walk_complete = FALSE
+		SSair.dogmos_active_turf_stages_complete = FALSE
+		SSair.dogmos_fdm_steps_completed = 0
+		SSair.dogmos_stage_remaining_estimate = 0
+		SSair.dogmos_stage_test_samples = list()
+		for(var/turf/open/fixture_turf as anything in pair)
+			fixture_turf.excited = TRUE
+			fixture_turf.excited_group = null
+			fixture_turf.archived_cycle = SSair.times_fired
+
+		SSair.state = SS_RUNNING
+		Master.current_ticklimit = TICK_USAGE + max(1, 100 / world.tick_lag)
+		SSair.process_active_turfs(FALSE)
+
+		if(!failed_once || exposure_count[first] != 1)
+			failure = "COMSIG_TURF_EXPOSE did not fail closed exactly once on the first real turf."
+		else if(exposure_count[second] != 0)
+			failure = "The second real turf was exposed after the failure fence fired."
+		else if(SSair.can_fire || SSdogmos.service_ready || !SSdogmos.service_failure_latched)
+			failure = "The failure fence did not leave SSair and the service unavailable."
+		else if(SSair.dogmos_active_walk_complete || SSair.dogmos_active_turf_stages_complete || SSair.dogmos_equalize_stage_complete || SSair.dogmos_fdm_steps_completed || length(SSair.dogmos_visual_refresh_batch) || SSair.active_turfs_walk_cursor || SSair.dogmos_visual_refresh_cursor || SSair.dogmos_walk_prefetch_end || SSair.dogmos_visual_prefetch_end)
+			failure = "The failure fence left active-walk snapshot state usable after closing the service."
+		else if(!isnull(SSair.dogmos_pending_stage) || !isnull(SSair.dogmos_pending_frontier_epoch))
+			failure = "The failure fence left a native stage or frontier pending."
+		else if(!SSdogmos.equal_u64_words(SSair.dogmos_frontier_epoch, saved_frontier_epoch) || !SSdogmos.equal_u64_words(SSair.dogmos_stage_epoch, saved_stage_epoch))
+			failure = "The failure callback changed an accepted native epoch before frontier publication."
+		else if(!frontier_matches(saved_committed_frontier, SSair.dogmos_committed_frontier))
+			failure = "The failure callback changed the committed native frontier before publication."
+		else if(length(SSair.dogmos_stage_test_samples))
+			failure = "A native stage ran after the exposure failure fence."
+		else if(SSdogmos.dogmos_pending_callback_count != saved_pending_callback_count || SSdogmos.dogmos_stale_callback_count != saved_stale_callback_count)
+			failure = "Callback bookkeeping changed after the failure fence."
+	catch(var/exception/error)
+		failure = "The failure-fence walk raised [error.name] after its snapshot was cleared."
+
+	var/native_epochs_unchanged = SSdogmos.equal_u64_words(SSair.dogmos_frontier_epoch, saved_frontier_epoch) \
+		&& SSdogmos.equal_u64_words(SSair.dogmos_stage_epoch, saved_stage_epoch)
+	var/committed_frontier_unchanged = frontier_matches(saved_committed_frontier, SSair.dogmos_committed_frontier)
+	var/no_pending_native_state = isnull(SSair.dogmos_pending_stage) && isnull(SSair.dogmos_pending_frontier_epoch)
+	// Assertion failures and a pure DM indexing exception can be reported after a safe
+	// restore when every accepted native value and pending boundary stayed unchanged.
+	// Pending state, epoch changes, and frontier changes cannot be repaired by restoring
+	// DM variables without hiding an accepted native mutation.
+	restore_allowed = native_epochs_unchanged && committed_frontier_unchanged && no_pending_native_state \
+		&& !length(SSair.dogmos_stage_test_samples) \
+		&& SSdogmos.dogmos_pending_callback_count == saved_pending_callback_count \
+		&& SSdogmos.dogmos_stale_callback_count == saved_stale_callback_count
+
+	if(first_signal_registered)
+		UnregisterSignal(first, COMSIG_TURF_EXPOSE)
+	if(second_signal_registered)
+		UnregisterSignal(second, COMSIG_TURF_EXPOSE)
+
+	// No sync/republish is needed: the test proves the accepted epochs and committed
+	// frontier never changed. A changed epoch, committed frontier, or pending value is
+	// an actual mutation and must remain failed closed rather than being hidden by restore.
+	if(!restore_allowed)
+		SSair.dogmos_fail_closed_stage("failure-fence unit test", FALSE)
+	else
+		for(var/field in saved_fields)
+			SSair.vars[field] = saved_fields[field]
+		SSdogmos.service_ready = saved_service_ready
+		SSdogmos.service_failure_latched = saved_failure_latched
+		SSdogmos.service_shutdown_requested = saved_shutdown_requested
+		Master.current_ticklimit = saved_tick_limit
+		SSair.can_fire = saved_fields["can_fire"]
+
+	for(var/turf/open/fixture_turf as anything in pair)
+		var/list/turf_state = saved_turf_state[fixture_turf]
+		fixture_turf.atmos_adjacent_turfs = turf_state[1]
+		fixture_turf.excited = turf_state[2]
+		fixture_turf.excited_group = turf_state[3]
+		fixture_turf.current_cycle = turf_state[4]
+		fixture_turf.archived_cycle = turf_state[5]
+		fixture_turf.pressure_difference = turf_state[6]
+		fixture_turf.pressure_direction = turf_state[7]
+	exposure_count = null
+
+	if(!restore_allowed)
+		return dogmos_abort_fixture("The failure-fence fixture could not prove a safe synchronous restoration.")
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+#undef DOGMOS_FAILURE_FENCE_STAGE
+
+/// Counts cold reads caused by direct-cache aliases within each ordered 100-entry prefetch window.
+/proc/dogmos_startup_prefetch_expected_misses(list/buckets)
+	var/expected_misses = 0
+	for(var/start = 1, start <= length(buckets), start += 100)
+		var/list/bucket_counts = list()
+		for(var/index in start to min(start + 99, length(buckets)))
+			var/bucket = "[buckets[index]]"
+			var/previous_count = bucket_counts[bucket] || 0
+			bucket_counts[bucket] = previous_count + 1
+			// Prefetch leaves the last alias resident. Reading the first alias evicts
+			// it, so every distinct slot in a colliding bucket needs one cold read.
+			if(previous_count == 1)
+				expected_misses += 2
+			else if(previous_count > 1)
+				expected_misses++
+	return expected_misses
+
+/datum/unit_test/dogmos_startup_prefetch_collision_accounting
+
+/datum/unit_test/dogmos_startup_prefetch_collision_accounting/Run()
+	var/list/buckets = list()
+	for(var/slot in 1 to 121)
+		buckets += slot
+	if(dogmos_startup_prefetch_expected_misses(buckets) != 0)
+		return Fail("Unique buckets must stay warm.", __FILE__, __LINE__)
+	buckets[2] = 1
+	if(dogmos_startup_prefetch_expected_misses(buckets) != 2)
+		return Fail("Both slots in a colliding bucket must miss.", __FILE__, __LINE__)
+	buckets[3] = 1
+	if(dogmos_startup_prefetch_expected_misses(buckets) != 3)
+		return Fail("Every distinct alias must miss.", __FILE__, __LINE__)
+	buckets[102] = buckets[101]
+	if(dogmos_startup_prefetch_expected_misses(buckets) != 5)
+		return Fail("Tail-window collisions must also count.", __FILE__, __LINE__)
+	for(var/index in 1 to 121)
+		buckets[index] = index
+	buckets[101] = buckets[100]
+	if(dogmos_startup_prefetch_expected_misses(buckets) != 0)
+		return Fail("Aliases across separate prefetch windows must stay warm.", __FILE__, __LINE__)
+
+/datum/unit_test/dogmos_startup_own_prefetch_regression
+
+/// Captures one real turf without reading neighboring mixtures.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/capture_turf_state(turf/open/target, save_air_copy = FALSE)
+	var/list/result = list()
+	result["air"] = target.air.dogmos_snapshot()?.Copy()
+	if(save_air_copy)
+		var/datum/gas_mixture/air_copy = target.air.copy()
+		allocated += air_copy
+		result["air_copy"] = air_copy
+	result["visuals"] = target.atmos_overlay_types?.Copy()
+	result["adjacency"] = target.atmos_adjacent_turfs?.Copy()
+	result["excited"] = target.excited
+	result["current_cycle"] = target.current_cycle
+	result["archived_cycle"] = target.archived_cycle
+	result["reaction_results"] = target.air.reaction_results?.Copy()
+	return result
+
+/// Compares ordered visual and difference-check lists by identity.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/list_matches(list/left, list/right)
+	if(isnull(left) || isnull(right))
+		return isnull(left) && isnull(right)
+	if(length(left) != length(right))
+		return FALSE
+	for(var/index in 1 to length(left))
+		if(left[index] != right[index])
+			return FALSE
+	return TRUE
+
+/// Compares physical gas fields while excluding the first two revision words.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/air_matches(list/left, list/right)
+	if(isnull(left) || isnull(right))
+		return isnull(left) && isnull(right)
+	if(length(left) < 3 || length(left) != length(right))
+		return FALSE
+	for(var/index in 3 to length(left))
+		if(left[index] != right[index])
+			return FALSE
+	return TRUE
+
+/// Compares keyed reaction bookkeeping without depending on list identity.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/associative_lists_match(list/left, list/right)
+	if(isnull(left) || isnull(right))
+		return isnull(left) && isnull(right)
+	if(length(left) != length(right))
+		return FALSE
+	for(var/key in left)
+		if(right[key] != left[key])
+			return FALSE
+	return TRUE
+
+/// Compares reciprocal adjacency maps and their edge flags.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/adjacency_matches(list/left, list/right)
+	if(isnull(left) || isnull(right))
+		return isnull(left) && isnull(right)
+	if(length(left) != length(right))
+		return FALSE
+	for(var/turf/neighbor as anything in left)
+		if(right[neighbor] != left[neighbor])
+			return FALSE
+	return TRUE
+
+/// Captures the ordered fixture state for control/candidate parity or restoration.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/capture_states(list/turfs, save_air_copy = FALSE)
+	var/list/result = list()
+	for(var/turf/open/target as anything in turfs)
+		result[target] = capture_turf_state(target, save_air_copy)
+	return result
+
+/// Restores only owned real turfs from registered gas copies.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/restore_turfs(list/turfs, list/states)
+	for(var/turf/open/target as anything in turfs)
+		var/list/saved = states[target]
+		var/datum/gas_mixture/saved_air = saved["air_copy"]
+		if(!saved_air)
+			return FALSE
+		target.air.copy_from(saved_air)
+		target.air.reaction_results = saved["reaction_results"]?.Copy()
+		target.apply_visual_overlays(saved["visuals"]?.Copy())
+		target.atmos_adjacent_turfs = saved["adjacency"]?.Copy()
+		target.excited = saved["excited"]
+		target.current_cycle = saved["current_cycle"]
+		target.archived_cycle = saved["archived_cycle"]
+	return TRUE
+
+/// Runs the existing setup ordering without any startup prefetch.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/run_control(list/turfs)
+	var/list/difference_check = list()
+	var/time = -1
+	SSdogmos.begin_turf_registration_batch()
+	for(var/turf/open/target as anything in turfs)
+		target.Initalize_Atmos(time)
+		difference_check += target
+		if(CHECK_TICK)
+			time--
+	SSdogmos.finish_turf_registration_batch()
+	return list(time, difference_check)
+
+/// Runs the proposed own-mixture helper in the exact 100+21 windows.
+/datum/unit_test/dogmos_startup_own_prefetch_regression/proc/run_candidate(list/turfs)
+	var/list/difference_check = list()
+	var/time = -1
+	var/has_helper = hascall(SSair, "dogmos_initialize_turf_batch")
+	SSdogmos.begin_turf_registration_batch()
+	for(var/start in list(1, 101))
+		var/end = min(start + 99, length(turfs))
+		var/list/batch = turfs.Copy(start, end + 1)
+		if(has_helper)
+			var/result = call(SSair, "dogmos_initialize_turf_batch")(batch, difference_check, time)
+			if(!isnum(result))
+				return list(null, difference_check, FALSE, "The startup helper returned a nonnumeric time.")
+			time = result
+		else
+			// Intentional RED fallback: it exercises the old actual path so the artifact
+			// remains useful before the helper is inserted, but cannot claim a cache win.
+			for(var/turf/open/target as anything in batch)
+				target.Initalize_Atmos(time)
+				difference_check += target
+				if(CHECK_TICK)
+					time--
+	SSdogmos.finish_turf_registration_batch()
+	return list(time, difference_check, has_helper, null)
+
+/datum/unit_test/dogmos_startup_own_prefetch_regression/Run()
+	var/datum/turf_reservation/fixture = SSmapping.request_turf_block_reservation(11, 11, turf_type_override = /turf/open/floor/plating/airless)
+	if(!fixture)
+		return Fail("Could not reserve the 121-turf startup prefetch fixture.", __FILE__, __LINE__)
+	allocated += fixture
+	for(var/turf/open/fixture_turf as anything in fixture.reserved_turfs)
+		fixture_turf.immediate_calculate_adjacent_turfs()
+	// Reservation itself queues native lifecycle/topology work; only now is the
+	// boundary meaningful.
+	var/adjacency_deadline = world.time + 180 SECONDS
+	while(length(SSair.adjacent_rebuild) && world.time < adjacency_deadline)
+		sleep(SSair.wait)
+	if(length(SSair.adjacent_rebuild))
+		return dogmos_abort_fixture("Startup fixture adjacency did not drain within three simulated minutes: [length(SSair.adjacent_rebuild)] turfs remain.")
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/turfs = fixture.reserved_turfs.Copy()
+	if(length(turfs) != 121)
+		return Fail("The startup prefetch fixture needs 121 reserved turfs.", __FILE__, __LINE__)
+	for(var/turf/open/target as anything in turfs)
+		if(!istype(target) || !target.air || !target.dogmos_air_registration_is_current())
+			return Fail("The startup prefetch fixture contains an unregistered or non-open turf.", __FILE__, __LINE__)
+
+	var/turf/open/boundary_left
+	var/turf/open/boundary_right
+	for(var/turf/open/left as anything in turfs)
+		for(var/turf/open/right as anything in left.atmos_adjacent_turfs)
+			if((right in turfs) && (left in right.atmos_adjacent_turfs))
+				boundary_left = left
+				boundary_right = right
+				break
+		if(boundary_left)
+			break
+	if(!boundary_left)
+		return Fail("The startup prefetch fixture has no reciprocal real-turf boundary pair.", __FILE__, __LINE__)
+	var/list/reordered_turfs = list()
+	for(var/turf/open/target as anything in turfs)
+		if(target != boundary_left && target != boundary_right)
+			reordered_turfs += target
+	reordered_turfs.Insert(100, boundary_left)
+	reordered_turfs.Insert(101, boundary_right)
+	turfs = reordered_turfs
+	var/list/unique_turfs = list()
+	for(var/turf/open/target as anything in turfs)
+		if(unique_turfs[target])
+			return Fail("The startup prefetch fixture reordered a turf more than once.", __FILE__, __LINE__)
+		unique_turfs[target] = TRUE
+	if(length(turfs) != 121 || length(unique_turfs) != 121)
+		return Fail("The startup prefetch fixture lost a turf while placing its boundary pair.", __FILE__, __LINE__)
+	if(!(boundary_left in boundary_right.atmos_adjacent_turfs) || !(boundary_right in boundary_left.atmos_adjacent_turfs))
+		return Fail("The startup prefetch fixture did not place a reciprocal pair across the 100-entry boundary.", __FILE__, __LINE__)
+	var/list/fixture_slots = list()
+	var/list/fixture_generations = list()
+	var/list/fixture_buckets = list()
+	for(var/turf/open/target as anything in turfs)
+		if(target.air.dogmos_slot in fixture_slots)
+			return Fail("The startup prefetch fixture needs distinct live mixture slots.", __FILE__, __LINE__)
+		fixture_slots += target.air.dogmos_slot
+		fixture_generations += target.air.dogmos_generation
+		fixture_buckets += SSdogmos.mixture_snapshot_cache_bucket(target.air.dogmos_slot)
+	var/expected_candidate_misses = dogmos_startup_prefetch_expected_misses(fixture_buckets)
+
+	var/list/saved_air_fields = list()
+	for(var/field in list("active_turfs", "currentrun", "state", "can_fire", "times_fired", "dogmos_pending_stage", "dogmos_pending_frontier_epoch"))
+		saved_air_fields[field] = SSair.vars[field]
+	var/list/saved_frontier_epoch = SSair.dogmos_frontier_epoch.Copy()
+	var/list/saved_stage_epoch = SSair.dogmos_stage_epoch.Copy()
+	var/saved_pending_callbacks = SSdogmos.dogmos_pending_callback_count
+	var/saved_stale_callbacks = SSdogmos.dogmos_stale_callback_count
+	var/saved_tick_limit = Master.current_ticklimit
+	var/saved_batching = SSdogmos.turf_registration_batching
+	var/list/initial_states = capture_states(turfs, TRUE)
+	var/list/seeded_states
+	var/failure
+	var/helper_used = FALSE
+	var/control_misses = 0
+	var/candidate_misses = 0
+	var/control_hits = 0
+	var/candidate_hits = 0
+	var/control_topology_calls = 0
+	var/candidate_topology_calls = 0
+	var/list/control_result
+	var/list/candidate_result
+
+	try
+		if(SSdogmos.turf_registration_batching || length(SSdogmos.dogmos_pending_turf_lifecycle) || length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat) || length(SSdogmos.dogmos_pending_turf_heat_adjacency))
+			return dogmos_abort_fixture("The startup prefetch fixture did not start with an empty registration batch.")
+		SSair.can_fire = FALSE
+		// Keep the bounded 121-turf counter measurement synchronous: unrelated subsystem
+		// cache reads during CHECK_TICK would otherwise contaminate these deltas.
+		Master.current_ticklimit = INFINITY
+		for(var/index in 1 to length(turfs))
+			var/turf/open/target = turfs[index]
+			target.air.set_moles(/datum/gas/oxygen, 0)
+			target.air.set_moles(/datum/gas/plasma, (index % 2) ? max(1, MOLES_GAS_VISIBLE * 2) : max(0.01, MOLES_GAS_VISIBLE * 0.25))
+			target.air.set_temperature(T20C)
+		seeded_states = capture_states(turfs, TRUE)
+
+		SSdogmos.reset_mixture_snapshot_cache()
+		var/control_misses_before = SSdogmos.dogmos_mixture_cache_misses
+		var/control_hits_before = SSdogmos.dogmos_mixture_cache_hits
+		var/control_topology_before = SSdogmos.dogmos_runtime_topology_calls
+		control_result = run_control(turfs)
+		control_misses = SSdogmos.dogmos_mixture_cache_misses - control_misses_before
+		control_hits = SSdogmos.dogmos_mixture_cache_hits - control_hits_before
+		control_topology_calls = SSdogmos.dogmos_runtime_topology_calls - control_topology_before
+		var/list/control_states = capture_states(turfs)
+		if(!restore_turfs(turfs, seeded_states))
+			failure = "The startup prefetch control path could not restore its fixture state."
+
+		if(!failure)
+			SSdogmos.reset_mixture_snapshot_cache()
+			var/candidate_misses_before = SSdogmos.dogmos_mixture_cache_misses
+			var/candidate_hits_before = SSdogmos.dogmos_mixture_cache_hits
+			var/candidate_topology_before = SSdogmos.dogmos_runtime_topology_calls
+			candidate_result = run_candidate(turfs)
+			if(!candidate_result || !isnum(candidate_result[1]))
+				failure = candidate_result?[4] || "The startup prefetch candidate did not return a valid time."
+			else
+				helper_used = candidate_result[3]
+				candidate_misses = SSdogmos.dogmos_mixture_cache_misses - candidate_misses_before
+				candidate_hits = SSdogmos.dogmos_mixture_cache_hits - candidate_hits_before
+				candidate_topology_calls = SSdogmos.dogmos_runtime_topology_calls - candidate_topology_before
+				var/list/candidate_states = capture_states(turfs)
+				if(length(control_result[2]) != length(candidate_result[2]))
+					failure = "Control and candidate initialization returned different turf order lengths."
+				else
+					var/control_previous_cycle
+					var/candidate_previous_cycle
+					for(var/index in 1 to length(turfs))
+						if(control_result[2][index] != turfs[index] || candidate_result[2][index] != turfs[index] || control_result[2][index] != candidate_result[2][index])
+							failure = "Candidate initialization changed difference-check order at [index]."
+							break
+						var/list/control_state = control_states[turfs[index]]
+						var/list/candidate_state = candidate_states[turfs[index]]
+						var/control_cycle = control_state["current_cycle"]
+						var/candidate_cycle = candidate_state["current_cycle"]
+						if(!air_matches(control_state["air"], candidate_state["air"]) || !list_matches(control_state["visuals"], candidate_state["visuals"]) || !adjacency_matches(control_state["adjacency"], candidate_state["adjacency"]) || !associative_lists_match(control_state["reaction_results"], candidate_state["reaction_results"]) || control_state["excited"] != candidate_state["excited"] || control_state["archived_cycle"] != candidate_state["archived_cycle"] || !isnum(control_cycle) || !isnum(candidate_cycle) || control_cycle > -1 || candidate_cycle > -1 || (!isnull(control_previous_cycle) && control_cycle > control_previous_cycle) || (!isnull(candidate_previous_cycle) && candidate_cycle > candidate_previous_cycle))
+							failure = "Candidate initialization changed gas, visual, or adjacency state at [index]."
+							break
+						control_previous_cycle = control_cycle
+						candidate_previous_cycle = candidate_cycle
+				if(!failure && (!helper_used || candidate_misses >= control_misses))
+					failure = "Own-mixture startup prefetch did not reduce cold misses: control [control_misses], candidate [candidate_misses], helper [helper_used]."
+				if(!failure && candidate_hits + candidate_misses != control_hits + control_misses)
+					failure = "Startup prefetch changed the total number of snapshot reads."
+				if(!failure && (candidate_misses != expected_candidate_misses || control_misses != length(turfs)))
+					failure = "Startup cache misses differ from the fixture's bucket aliases: control [control_misses] (expected [length(turfs)]), candidate [candidate_misses] (expected [expected_candidate_misses])."
+		if(!failure && (!SSdogmos.equal_u64_words(SSair.dogmos_frontier_epoch, saved_frontier_epoch) || !SSdogmos.equal_u64_words(SSair.dogmos_stage_epoch, saved_stage_epoch) || SSdogmos.dogmos_pending_callback_count != saved_pending_callbacks || SSdogmos.dogmos_stale_callback_count != saved_stale_callbacks || SSair.dogmos_pending_stage || SSair.dogmos_pending_frontier_epoch))
+			failure = "Initialization changed native stage, frontier epoch, or callback state."
+	catch(var/exception/error)
+		failure = "The startup prefetch fixture raised [error.name]."
+
+	var/list/counter_report = list(
+		"fixture_turfs" = length(turfs),
+		"boundary_index" = 100,
+		"control_misses" = control_misses,
+		"candidate_misses" = candidate_misses,
+		"expected_candidate_misses" = expected_candidate_misses,
+		"fixture_slots" = fixture_slots,
+		"fixture_generations" = fixture_generations,
+		"fixture_buckets" = fixture_buckets,
+		"control_hits" = control_hits,
+		"candidate_hits" = candidate_hits,
+		"control_topology_calls" = control_topology_calls,
+		"candidate_topology_calls" = candidate_topology_calls,
+		"helper_used" = helper_used)
+	if(failure)
+		counter_report["failure"] = failure
+	file("[GLOB.log_directory]/dogmos-startup-own-prefetch.json") << json_encode(counter_report)
+
+	if(SSdogmos.turf_registration_batching || length(SSdogmos.dogmos_pending_turf_lifecycle) || length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat) || length(SSdogmos.dogmos_pending_turf_heat_adjacency))
+		return dogmos_abort_fixture("The startup prefetch fixture left a registration batch pending after an initialization path.")
+	if(!restore_turfs(turfs, initial_states))
+		return dogmos_abort_fixture("The startup prefetch fixture could not restore its reserved turf state.")
+	if(SSair.dogmos_pending_stage || SSair.dogmos_pending_frontier_epoch || !SSdogmos.equal_u64_words(SSair.dogmos_frontier_epoch, saved_frontier_epoch) || !SSdogmos.equal_u64_words(SSair.dogmos_stage_epoch, saved_stage_epoch))
+		return dogmos_abort_fixture("The startup prefetch fixture changed accepted native state during restoration.")
+	SSdogmos.reset_mixture_snapshot_cache()
+	for(var/field in saved_air_fields)
+		SSair.vars[field] = saved_air_fields[field]
+	Master.current_ticklimit = saved_tick_limit
+	SSdogmos.turf_registration_batching = saved_batching
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** Registration must not allocate a reverse weak reference before any callback needs it. */
+/datum/unit_test/dogmos_mixture_registration_without_weakref
+
+/datum/unit_test/dogmos_mixture_registration_without_weakref/Run()
+	var/datum/gas_mixture/mixture = new(CELL_VOLUME)
+	var/allocated_weakref = !isnull(mixture.weak_reference)
+	qdel(mixture)
+	if(allocated_weakref)
+		return Fail("Mixture registration allocated an eager reverse weak reference.", __FILE__, __LINE__)
+
+/** Returns an ownership token after dropping the only reference to its mixture. */
+/datum/unit_test/dogmos_identity_token_gc/proc/drop_temporary_mixture()
+	var/datum/gas_mixture/temporary = new(CELL_VOLUME)
+	var/list/result = list(temporary.dogmos_slot, temporary.dogmos_generation, temporary.dogmos_identity_token)
+	temporary = null
+	return result
+
+/** Token retention must not prevent ordinary BYOND collection and native unregistration. */
+/datum/unit_test/dogmos_identity_token_gc
+
+/datum/unit_test/dogmos_identity_token_gc/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/identity = drop_temporary_mixture()
+	var/slot = identity[1]
+	if(!islist(identity[3]) || length(identity[3]))
+		return Fail("Registration did not create an opaque empty ownership token.", __FILE__, __LINE__)
+	if(!isnull(SSdogmos.dogmos_mixture_slots[slot]) || !(slot in SSdogmos.dogmos_free_mixture_slots))
+		return Fail("The retained ownership token prevented mixture GC and native unregistration.", __FILE__, __LINE__)
+	var/datum/gas_mixture/reused = new(CELL_VOLUME)
+	var/failure
+	if(reused.dogmos_slot != slot || reused.dogmos_generation != identity[2] + 1 || reused.dogmos_identity_token == identity[3])
+		failure = "Collected mixture reuse did not advance generation and replace its ownership token."
+	qdel(reused)
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** Matching numeric handles cannot impersonate a different mixture's ownership token. */
+/datum/unit_test/dogmos_identity_token_foreign
+
+/datum/unit_test/dogmos_identity_token_foreign/Run()
+	var/datum/gas_mixture/first = new(CELL_VOLUME)
+	var/datum/gas_mixture/second = new(CELL_VOLUME / 2)
+	var/second_slot = second.dogmos_slot
+	var/second_generation = second.dogmos_generation
+	var/failure
+	try
+		if(!SSdogmos.mixture_identity_matches(first, first.dogmos_slot, first.dogmos_generation) || second.return_volume() != CELL_VOLUME / 2)
+			failure = "Registration changed live identity or non-default volume initialization."
+		second.dogmos_slot = first.dogmos_slot
+		second.dogmos_generation = first.dogmos_generation
+		if(SSdogmos.mixture_identity_matches(second, first.dogmos_slot, first.dogmos_generation))
+			failure = "A foreign token impersonated a registered mixture."
+		if(SSdogmos.mixture_identity_matches(first, first.dogmos_slot, first.dogmos_generation + 1) || SSdogmos.mixture_identity_matches(first, 0, 0) || SSdogmos.mixture_identity_matches(first, length(SSdogmos.dogmos_mixture_slots) + 1, 1))
+			failure = "An invalid slot or stale generation passed mixture validation."
+	catch(var/exception/error)
+		failure = "Identity validation raised [error.name]."
+	second.dogmos_slot = second_slot
+	second.dogmos_generation = second_generation
+	qdel(first)
+	qdel(second)
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** Encodes only identity fields consumed by the real general-reaction decoder. */
+/datum/unit_test/dogmos_identity_token_turf_context/proc/encode_subject(datum/gas_mixture/mixture, turf/target)
+	var/list/batch = new/list(48)
+	// Event offset 13; subject slot/generation at +11/+13, target at +15/+17.
+	var/list/handles = list(mixture.dogmos_slot, mixture.dogmos_generation, target.dogmos_service_slot(), target.dogmos_registration_generation)
+	for(var/index in 1 to 4)
+		var/field = 24 + (index - 1) * 2
+		batch[field] = handles[index] % 65536
+		batch[field + 1] = floor(handles[index] / 65536)
+	return batch
+
+/** General callbacks must resolve the exact turf and its current mixture together. */
+/datum/unit_test/dogmos_identity_token_turf_context
+
+/datum/unit_test/dogmos_identity_token_turf_context/Run()
+	var/turf/open/target = run_loc_floor_bottom_left
+	var/datum/gas_mixture/original = target.air
+	var/datum/gas_mixture/replacement = new(CELL_VOLUME)
+	var/list/callback = encode_subject(original, target)
+	var/failure
+	try
+		var/list/live = SSdogmos.decode_general_reaction_subject(callback, 13)
+		if(live[1] != original)
+			failure = "The callback decoder rejected the current turf and mixture."
+		callback[30]++ // Stale target generation, leaving the live mixture handle unchanged.
+		var/list/stale_target = SSdogmos.decode_general_reaction_subject(callback, 13)
+		if(stale_target[1])
+			failure = "The callback decoder accepted a stale turf generation."
+		callback[30]--
+		target.air = replacement
+		var/list/changed_air = SSdogmos.decode_general_reaction_subject(callback, 13)
+		if(changed_air[1])
+			failure = "The callback decoder accepted air no longer owned by its target turf."
+	catch(var/exception/error)
+		failure = "The callback identity decoder raised [error.name]."
+	target.air = original
+	qdel(replacement)
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
 
 #endif

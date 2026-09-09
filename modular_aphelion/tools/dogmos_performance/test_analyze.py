@@ -5,7 +5,16 @@ import unittest
 import json
 from pathlib import Path
 
-from analyze import analyze, dense_process_resources
+from analyze import analyze, dense_process_resources, summary
+
+
+class OptionalMetricsTest(unittest.TestCase):
+    def test_missing_engine_metrics_are_unknown_instead_of_zero(self):
+        self.assertIsNone(summary([None, None]))
+        observed = summary([None, 0, 4, None])
+        self.assertEqual(observed["count"], 2)
+        self.assertEqual(observed["minimum"], 0)
+        self.assertEqual(observed["maximum"], 4)
 
 
 class ProfilingEvidenceTest(unittest.TestCase):

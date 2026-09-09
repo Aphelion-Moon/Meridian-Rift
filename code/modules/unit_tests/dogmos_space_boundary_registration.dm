@@ -22,6 +22,7 @@
 
 	SSair.add_to_active(interior)
 	var/after_moles = before_moles
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	for(var/attempt in 1 to 10)
 		sleep(1 SECONDS)
 		after_moles = air_interior.total_moles()
@@ -29,6 +30,22 @@
 			break
 	TEST_ASSERT(after_moles < before_moles, \
 		"The interior turf's total moles ([before_moles] -> [after_moles]) did not decrease across ten real SSair cycles with a registered space neighbor - gas is not actually diffusing into space.")
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	// A full-map startup can spend many ticks rebuilding topology before its first fire.
+	// Count completed SSair fires; sleeping ten times does not establish ten cycles.
+	var/initial_cycle = SSair.times_fired
+	var/start_time = world.time
+	var/deadline = start_time + 180 SECONDS
+	while(SSair.times_fired - initial_cycle < 10 && world.time < deadline)
+		sleep(SSair.wait)
+		after_moles = air_interior.total_moles()
+		if(after_moles < before_moles)
+			break
+	TEST_ASSERT(after_moles < before_moles, \
+		"The interior turf's total moles ([before_moles] -> [after_moles]) did not decrease after [SSair.times_fired - initial_cycle] completed SSair fires over [(world.time - start_time) / (1 SECONDS)] seconds (limits: ten fires or 180 seconds); state: [SSair.state], enabled: [SSair.can_fire], adjacency queue: [length(SSair.adjacent_rebuild)], pending stage: [SSair.dogmos_pending_stage].")
+	log_test("Space boundary diffusion: [before_moles] -> [after_moles] moles after [SSair.times_fired - initial_cycle] completed fires over [(world.time - start_time) / (1 SECONDS)] seconds.")
+	// APHELION EDIT ADDITION END
 
 	restore_neighbor_from_space(interior, original_neighbor_type)
 	original_neighbor_type = null
@@ -75,7 +92,29 @@
 	vacuum_neighbor.excited = TRUE
 	SSair.active_turfs = list(vacuum_neighbor)
 	SSair.active_turfs_walk_cursor = 0
+	var/list/original_snapshot = SSair.dogmos_visual_refresh_batch
+	var/list/original_reacted_turfs = SSair.dogmos_reacted_turfs
+	var/original_walk_prefetch_end = SSair.dogmos_walk_prefetch_end
+	var/original_visual_prefetch_end = SSair.dogmos_visual_prefetch_end
+	var/original_visual_cursor = SSair.dogmos_visual_refresh_cursor
+	var/original_state = SSair.state
+	var/original_tick_limit = Master.current_ticklimit
+	SSair.dogmos_visual_refresh_batch = SSair.active_turfs.Copy()
+	SSair.dogmos_reacted_turfs = list()
+	SSair.dogmos_walk_prefetch_end = 0
+	SSair.dogmos_visual_prefetch_end = 0
+	SSair.dogmos_visual_refresh_cursor = 0
+	SSair.state = SS_RUNNING
+	Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
 	SSair.walk_active_turfs_batch()
+	SSair.refresh_dogmos_visuals()
+	SSair.dogmos_visual_refresh_batch = original_snapshot
+	SSair.dogmos_reacted_turfs = original_reacted_turfs
+	SSair.dogmos_walk_prefetch_end = original_walk_prefetch_end
+	SSair.dogmos_visual_prefetch_end = original_visual_prefetch_end
+	SSair.dogmos_visual_refresh_cursor = original_visual_cursor
+	SSair.state = original_state
+	Master.current_ticklimit = original_tick_limit
 
 	var/vacuum_settled = !(vacuum_neighbor in SSair.active_turfs)
 	var/interior_activated = (interior in SSair.active_turfs)
