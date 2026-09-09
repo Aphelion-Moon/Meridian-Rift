@@ -288,13 +288,13 @@ GLOBAL_VAR_INIT(last_maptick_time, 0)
 			break
 
 	if((!handler || initial(handler.log)) && config && CONFIG_GET(flag/log_world_topic))
-		log_topic("\"[T]\", from:[addr], master:[master], key:[key]")
+		log_topic("\"[world_topic_log_parameters(input)]\", from:[addr], master:[master]") // APHELION EDIT CHANGE - scrub the comms key out of the topic log - ORIGINAL: log_topic("\"[T]\", from:[addr], master:[master], key:[key]")
 
 	if(!handler)
 		return
 
 	handler = new handler()
-	return handler.TryRun(input)
+	return handler.TryRun(input, addr) // APHELION EDIT CHANGE - addr for the Symphony address gate - ORIGINAL: return handler.TryRun(input)
 
 /world/proc/AnnouncePR(announcement, list/payload)
 	var/static/list/PRcounts = list() //PR id -> number of times announced this round

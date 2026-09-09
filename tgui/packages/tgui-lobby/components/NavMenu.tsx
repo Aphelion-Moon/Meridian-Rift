@@ -81,9 +81,11 @@ export function NavMenu({
 
       <hr />
 
-      <MenuButton onClick={() => sendAction('server_swap')}>
-        SWAP SERVERS
-      </MenuButton>
+      {!!serverState.canSwapServers && (
+        <MenuButton onClick={() => sendAction('server_swap')}>
+          SWAP SERVERS
+        </MenuButton>
+      )}
 
       {!!serverState.canPoll && (
         <MenuButton
