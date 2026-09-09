@@ -60,7 +60,7 @@
 
 	original_blood_type = human_holder.get_bloodtype()
 	human_holder.set_blood_type(get_blood_type(/datum/blood_type/universal))
-	human_holder.physiology.bleed_mod *= HEMOPHAGE_BLEED_MOD
+	MODIFY_PHYSIOLOGY(human_holder, PHYS_COEFF_BLEED, HEMOPHAGE_BLEED_MOD)
 
 	for(var/organ_slot in corrupted_organs)
 		var/organ_path = corrupted_organs[organ_slot]
@@ -90,7 +90,7 @@
 
 	human_holder.set_blood_type(original_blood_type)
 	original_blood_type = null
-	human_holder.physiology.bleed_mod /= HEMOPHAGE_BLEED_MOD
+	MODIFY_PHYSIOLOGY(human_holder, PHYS_COEFF_BLEED, 1 / HEMOPHAGE_BLEED_MOD)
 
 	// Swapping the tumor out detaches the corruption element, so the replacements come back clean.
 	for(var/organ_slot in restored_organ_slots)

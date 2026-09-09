@@ -7,7 +7,6 @@
 
 /obj/item/clothing/under/rank/engineering/chief_engineer/nova
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/engineering.dmi'
-	worn_icon = 'modular_nova/master_files/icons/mob/clothing/under/engineering.dmi'
 
 /obj/item/clothing/under/rank/engineering/atmospheric_technician/nova
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/engineering.dmi'
@@ -108,6 +107,8 @@
 	desc = "It's a jumpskirt worn by telecomms specialists. Made from fire resistant materials."
 	name = "telecomm jumpskirt"
 	icon_state = "telecomm_skirt"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	can_adjust = TRUE
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	gets_cropped_on_taurs = FALSE

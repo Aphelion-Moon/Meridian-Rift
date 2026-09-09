@@ -3172,6 +3172,10 @@ Cloaks
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	json_config = 'modular_nova/modules/GAGS/json_configs/bunny_stuff/tailcoat_bar_worn.json'
 
+/datum/greyscale_config/tailcoat_bar_worn/digi
+	name = "Worn Bartender's Tailcoat (Digi)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
+
 /datum/greyscale_config/bowtie_collar
 	name = "Bowtie Collar"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/neck.dmi'

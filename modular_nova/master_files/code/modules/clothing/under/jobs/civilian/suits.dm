@@ -28,7 +28,7 @@
 	name = "recolorable suitskirt"
 	desc = "A semi-formal suitskirt, clean-cut with a matching vest and skirt."
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
 	body_parts_covered = CHEST|GROIN|LEGS
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
@@ -64,7 +64,7 @@
 	name = "pencilskirt and shirt"
 	desc = "A clean shirt with a tight-fitting pencilskirt."
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
 	greyscale_colors = "#37373e#ffffff"
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
@@ -170,8 +170,9 @@
 	icon_state = "really_black_suit_skirt_collar"
 	body_parts_covered = CHEST|GROIN|ARMS
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY|FEMALE_UNIFORM_NO_BREASTS
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
+	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
 /datum/atom_skin/inferno_suit
 	abstract_type = /datum/atom_skin/inferno_suit
@@ -229,4 +230,3 @@
 
 /obj/item/clothing/under/suit/nova/inferno/skirt/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/inferno_suitskirt)
-

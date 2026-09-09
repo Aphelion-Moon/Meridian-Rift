@@ -16,3 +16,13 @@ engine = "auxtools"
 [map_renderer.render_passes]
 icon-smoothing = false
 icon-smoothing-2025 = true
+# APHELION EDIT ADDITION START
+
+[map_renderer]
+# These are not invisible for some reason???
+hide_invisible = [
+  "/turf/open/genturf",
+  "/turf/open/openspace",
+  "/turf/open/space/openspace",
+]
+# APHELION EDIT ADDITION END

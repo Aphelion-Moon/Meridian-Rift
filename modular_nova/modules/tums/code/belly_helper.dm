@@ -7,11 +7,10 @@
 	icon_state = "bwelly"
 	base_icon_state = "belly"
 	icon = 'modular_nova/modules/tums/icons/helpers.dmi'
-	worn_icon_state = "haha-no"
 	worn_icon = 'modular_nova/modules/tums/icons/bellies.dmi'
+	worn_icon_teshari ='modular_nova/modules/tums/icons/bellies_teshari.dmi'
 	/// Worn icon used for XL sizes that require a 64x64 sprite.
 	var/icon/worn_icon_64x ='modular_nova/modules/tums/icons/bellies_64x.dmi'
-	worn_icon_teshari ='modular_nova/modules/tums/icons/bellies_teshari.dmi'
 	/// Worn icon used for XL sizes on a teshari that require a 64x64 sprite.
 	var/icon/worn_icon_teshari_64x ='modular_nova/modules/tums/icons/bellies_teshari_64x.dmi'
 

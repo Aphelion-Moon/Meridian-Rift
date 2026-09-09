@@ -215,6 +215,10 @@
 	if(isnull(user))
 		return FALSE
 
+	// APHELION EDIT ADDITION START - ADMIN_TECH
+	if(HAS_TRAIT(user, TRAIT_ADMIN_REACHABLE) && user.can_see_target(src))
+		return TRUE
+	// APHELION EDIT ADDITION END
 	if(src in direct_access)
 		return TRUE
 

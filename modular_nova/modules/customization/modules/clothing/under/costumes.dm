@@ -6,9 +6,9 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/uniform.dmi'
 	icon_state = "cyberpunksleek"
 	body_parts_covered = CHEST|ARMS|GROIN|LEGS
-	supports_variations_flags = NONE
 	can_adjust = FALSE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 /obj/item/clothing/under/costume/cybersleek/long
 	name = "long modern coat"
@@ -27,6 +27,9 @@
 	greyscale_config_worn = /datum/greyscale_config/maid_costume/worn
 	greyscale_colors = "#7b9ab5#edf9ff"
 	flags_1 = IS_PLAYER_COLORABLE_1
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	bodyshapes_with_variations = NONE
+	gets_cropped_on_taurs = FALSE
 
 //ALL BUNNY STUFF BY DimWhat OF MONKEESTATION
 
@@ -38,6 +41,7 @@
 	alt_covers_chest = TRUE
 
 /obj/item/clothing/under/costume/playbunny/greyscale
+	worn_icon_digi = null
 	name = "bunny suit"
 	desc = "The staple of any bunny themed waiters and the like. It has a little cottonball tail too."
 	icon = 'icons/map_icons/clothing/under/costume.dmi'
@@ -47,6 +51,7 @@
 	greyscale_config = /datum/greyscale_config/bunnysuit
 	greyscale_config_worn = /datum/greyscale_config/bunnysuit_worn
 	flags_1 = IS_PLAYER_COLORABLE_1
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 
 /obj/item/clothing/under/syndicate/syndibunny //heh
 	name = "blood-red bunny suit"
@@ -471,6 +476,7 @@
 	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/bunnysuits_digi.dmi'
 	body_parts_covered = CHEST|GROIN|LEGS
 	alt_covers_chest = TRUE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
 
 /obj/item/clothing/under/rank/civilian/mime_bunnysuit
 	name = "mime's bunny suit"

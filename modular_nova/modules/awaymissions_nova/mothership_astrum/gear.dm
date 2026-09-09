@@ -28,6 +28,7 @@
  */
 
 /obj/item/clothing/suit/armor/abductor/astrum
+	worn_icon_digi = null
 	name = "agent vest"
 	desc = "You feel like you're wearing the suit wrong, and you have no idea how to operate its systems."
 	icon = 'icons/obj/antags/abductor.dmi'
@@ -37,6 +38,7 @@
 	armor_type = /datum/armor/abductor_astrum
 	resistance_flags = FIRE_PROOF | ACID_PROOF
 	allowed = null // populated on init with armour vest defaults
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /datum/armor/abductor_astrum
 	melee = 40
@@ -55,6 +57,7 @@
 	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT
 	armor_type = /datum/armor/helmet_astrum
 	resistance_flags = FIRE_PROOF | ACID_PROOF
+	worn_icon_muzzled = null
 
 /datum/armor/helmet_astrum
 	melee = 40

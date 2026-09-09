@@ -15,6 +15,7 @@
 	body_parts_covered = CHEST|GROIN
 	can_adjust = TRUE
 	alt_covers_chest = FALSE
+	worn_icon_digi = null
 
 
 /obj/item/clothing/under/costume/bunnylewd/white

@@ -41,6 +41,7 @@
 	icon_state = "knight_red"
 
 /obj/item/clothing/suit/armor/vest/cuirass/larp
+	worn_icon_digi = null
 	armor_type = /datum/armor/cuirass_larp
 
 /datum/armor/cuirass_larp

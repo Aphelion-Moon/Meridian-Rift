@@ -641,3 +641,37 @@
   - bugfix: Fixed occasional unresponsiveness in the verb panel
   - refactor: the lobby menu now lives on the client, but should look and function
       identically
+2026-08-31:
+  Absolucy:
+  - rscadd: Added purple luxury medipens. These are given instead when bought with
+      a jellyperson's bank account. They are jelly-friendly, however heal less than
+      normal luxury pens. They also make you more purple. Sprite by Bieyes.
+  FalloutFalcon:
+  - bugfix: Anchored Items cant be looted with quick inserting from bags
+  Happyowl93:
+  - code_imp: server compiles on 1687 now.
+  JohnFulpWillard:
+  - qol: Pressing backspace while unfocused now clears your command bar.
+  - qol: The Command bar now starts on Say instead of Command mode.
+  Melbert:
+  - bugfix: Humans can take CSL
+  Morskoikot:
+  - rscadd: 'Added Chemnaga, Leopard seal, Insect + winged alt and Bunny taur sprites.
+
+      :cl:'
+  Richard Blonski:
+  - bugfix: Chat Highlight sounds are off by default now.
+  - qol: Chat Highlights won't trigger on self-actions or radio channel names.
+  SmArtKar:
+  - rscdel: Goldgrub no longer reproduce unless hand fed ores
+  Vishenka0704:
+  - rscadd: Condo's hotel upgrade
+  W0LF-101:
+  - bugfix: Reskinning the Laevateinn revolver no longer breaks its belt and suit
+      storage slot sprite.
+  levels0:
+  - rscadd: certain cursed mirrors might now talk
+  vinylspiders:
+  - spellcheck: fixes some grammar issues with the new job descriptions
+  - refactor: a number of clothing files have been picked through, please report any
+      missing icons

@@ -33,6 +33,9 @@
 	for(var/datum/action/action as anything in actions)
 		give_item_action(action, user)
 
+/obj/item/clothing/sextoy/create_moth_snack()
+	return null
+
 /obj/item/clothing/sextoy/dropped(mob/user)
 	..()
 

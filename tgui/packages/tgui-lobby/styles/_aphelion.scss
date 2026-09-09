@@ -118,6 +118,10 @@
     border: none;
     box-shadow: 2px 2px black;
   }
+
+  &--centered {
+    text-align: center;
+  }
 }
 
 .menu_button {
@@ -185,6 +189,11 @@
     margin-right: 1vmin;
     image-rendering: pixelated;
   }
+
+  &--centered {
+    text-align: center;
+    padding-left: 0;
+  }
 }
 
 @keyframes pollsbox {
@@ -246,6 +255,15 @@
   margin: 0;
   font-size: 3vmin;
   line-height: 2vmin;
+
+  &--centered {
+    text-align: center;
+  }
+
+  // For notices that aren't a refusal - the nav text colour, not the error red.
+  &--muted {
+    color: #cde;
+  }
 }
 
 .unchecked {

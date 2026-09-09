@@ -42,6 +42,8 @@
 	name = "head of personnel's turtleneck skirt"
 	desc = "A soft blue turtleneck and black skirt worn by Executives who prefer a bit more comfort over style."
 	icon_state = "hopturtle_skirt"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = CHEST|GROIN|ARMS
 	dying_key = DYE_REGISTRY_JUMPSKIRT
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY

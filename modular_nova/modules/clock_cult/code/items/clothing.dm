@@ -391,6 +391,7 @@
 	resistance_flags = FIRE_PROOF | ACID_PROOF
 	w_class = WEIGHT_CLASS_BULKY
 	flash_protect = FLASH_PROTECTION_FLASH
+	worn_icon_muzzled = null
 
 /datum/armor/helmet_clockwork
 	melee = 50

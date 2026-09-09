@@ -19,6 +19,7 @@
 	name = "crusader helmet"
 	desc = "Helfen, Wehren, Heilen."
 	icon_state = "knight_generic"
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/head/helmet/chaplain/bland/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/chaplain_bland)
@@ -60,6 +61,7 @@
 	desc = "A ragged, dusty set of robes."
 	icon = 'icons/obj/clothing/suits/armor.dmi'
 	worn_icon = 'icons/mob/clothing/suits/armor.dmi'
+	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/armor_digi.dmi'
 	icon_state = "cultrobes"
 	inhand_icon_state = "cultrobes"
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS

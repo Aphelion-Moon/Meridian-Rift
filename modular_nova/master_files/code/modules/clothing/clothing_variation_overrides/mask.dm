@@ -1,6 +1,6 @@
 /*
  * /obj/item/clothing/mask defaults to:
- * supports_variations_flags = CLOTHING_SNOUTED_VARIATION | CLOTHING_SNOUTED_VOX_VARIATION
+ * supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
  */
 
 /**
@@ -63,6 +63,7 @@
 /obj/item/clothing/mask/gas
 	//All gas masks show ears
 	visor_flags_inv = HIDEFACE|HIDEFACIALHAIR|HIDESNOUT
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/gas/explorer // HIDESNOUT is in visor toggle now
 	visor_flags_inv = HIDEFACIALHAIR|HIDESNOUT
@@ -72,3 +73,111 @@
 
 /obj/item/clothing/mask/balaclava // Now has SHOWSPRITEEARS
 	flags_inv = HIDEFACE|HIDEHAIR|HIDEFACIALHAIR|HIDESNOUT|SHOWSPRITEEARS
+
+/**
+ * TYPES WITH A SNOUTED VARIATION
+ */
+/obj/item/clothing/mask/balaclava
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/breath
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/chameleon
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/facehugger
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/facescarf
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/floortilebalaclava
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/atmos
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/atmosprop
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/clown_hat
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/cyborg
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/driscoll
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/explorer
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/hunter
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/mime
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/ninja
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/prop
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/sechailer
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/sexyclown
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/sexymime
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/syndicate
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/gas/welding
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/joy
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/luchador
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/madness_mask
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/mummy
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/muzzle
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/nobreath
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/rebellion
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/russian_balaclava
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/obj/item/clothing/mask/surgical
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+
+/**
+ * NO NEW ICON
+ */
+/obj/item/clothing/mask/gas/jonkler
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+
+/obj/item/clothing/mask/gas/plaguedoctor
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+
+/obj/item/clothing/mask/gas/sechailer/cyborg
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+
+/obj/item/clothing/mask/gas/syndicate/cybersun
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON

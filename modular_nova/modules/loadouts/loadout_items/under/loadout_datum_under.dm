@@ -604,12 +604,6 @@
 	group = "Guard"
 	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)
 
-/datum/loadout_item/under/secshorts
-	name = "Guard Shorts (Colorable)"
-	item_path = /obj/item/clothing/under/rank/security/nova/shorts
-	group = "Guard"
-	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)
-
 /datum/loadout_item/under/sectrousers
 	name = "Guard Trousers (Colorable)"
 	item_path = /obj/item/clothing/under/rank/security/nova/trousers
@@ -625,35 +619,5 @@
 /datum/loadout_item/under/secpantsuit
 	name = "Guard Pantsuit (Colorable)"
 	item_path = /obj/item/clothing/under/rank/security/nova/depgag_pantsuit
-	group = "Guard"
-	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)
-
-/datum/loadout_item/under/secshorts
-	name = "Guard Shorts (Colorable)"
-	item_path = /obj/item/clothing/under/rank/security/nova/shorts
-	group = "Guard"
-	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)
-
-/datum/loadout_item/under/secshorts
-	name = "Guard Shorts (Colorable)"
-	item_path = /obj/item/clothing/under/rank/security/nova/shorts
-	group = "Guard"
-	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)
-
-/datum/loadout_item/under/secshorts
-	name = "Guard Shorts (Colorable)"
-	item_path = /obj/item/clothing/under/rank/security/nova/shorts
-	group = "Guard"
-	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)
-
-/datum/loadout_item/under/secshorts
-	name = "Guard Shorts (Colorable)"
-	item_path = /obj/item/clothing/under/rank/security/nova/shorts
-	group = "Guard"
-	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)
-
-/datum/loadout_item/under/secshorts
-	name = "Guard Shorts (Colorable)"
-	item_path = /obj/item/clothing/under/rank/security/nova/shorts
 	group = "Guard"
 	restricted_roles = list(ALL_JOBS_SEC, ALL_JOBS_DEPTGUARD)

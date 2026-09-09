@@ -1,6 +1,7 @@
 /obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest"
+	worn_icon_digi = null
 	post_init_icon_state = "depgag_vest"
 	greyscale_config = /datum/greyscale_config/depgag_vest
 	greyscale_config_worn = /datum/greyscale_config/depgag_vest/worn
@@ -9,11 +10,13 @@
 
 /obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest/blue
 	icon_state = "/obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest/blue"
+	worn_icon_digi = null
 	greyscale_colors = "#39393F#3F6E9E"
 
 /obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest_slim
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest_slim"
+	worn_icon_digi = null
 	post_init_icon_state = "depgag_vest_slim"
 	greyscale_config = /datum/greyscale_config/depgag_vest_slim
 	greyscale_config_worn = /datum/greyscale_config/depgag_vest_slim/worn
@@ -22,6 +25,7 @@
 
 /obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest_slim/blue
 	icon_state = "/obj/item/clothing/suit/armor/vest/alt/sec/depgag_vest_slim/blue"
+	worn_icon_digi = null
 	greyscale_colors = "#252426#3F6E9E"
 
 /obj/item/clothing/suit/armor/vest/depgag_hazard
@@ -29,6 +33,7 @@
 	desc = "Oi bruv, you got a loicence for that?"
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/armor/vest/depgag_hazard"
+	worn_icon_digi = null
 	post_init_icon_state = "depgag_hazard"
 	greyscale_config = /datum/greyscale_config/depgag_hazard
 	greyscale_config_worn = /datum/greyscale_config/depgag_hazard/worn
@@ -37,10 +42,12 @@
 
 /obj/item/clothing/suit/armor/vest/depgag_hazard/red
 	icon_state = "/obj/item/clothing/suit/armor/vest/depgag_hazard/red"
+	worn_icon_digi = null
 	greyscale_colors = "#A52F29#EBEBEB"
 
 /obj/item/clothing/suit/armor/vest/depgag_hazard/blue
 	icon_state = "/obj/item/clothing/suit/armor/vest/depgag_hazard/blue"
+	worn_icon_digi = null
 	greyscale_colors = "#3F6E9E#EBEBEB"
 
 /obj/item/clothing/suit/armor/vest/depgag_hazard/Initialize(mapload)
@@ -51,6 +58,7 @@
 	name = "hi-vis guard jacket"
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/armor/vest/secjacket/depgag"
+	worn_icon_digi = null
 	post_init_icon_state = "depgag_hazard_jacket"
 	greyscale_config = /datum/greyscale_config/depgag_hazard_jacket
 	greyscale_config_worn = /datum/greyscale_config/depgag_hazard_jacket/worn
@@ -59,6 +67,7 @@
 
 /obj/item/clothing/suit/armor/vest/secjacket/depgag/blue
 	icon_state = "/obj/item/clothing/suit/armor/vest/secjacket/depgag/blue"
+	worn_icon_digi = null
 	greyscale_colors = "#3F6E9E#39393F#EBEBEB"
 
 /obj/item/clothing/suit/armor/vest/secjacket/depgag/Initialize(mapload)

@@ -247,3 +247,19 @@
 	name = "Chastity Cage"
 	icon_state = "chastcage"
 	erp_accessory = TRUE
+
+// These reuse TG's sprite verbatim, so they read it straight from TG's file
+/datum/sprite_accessory/clothing/underwear/male_kinky
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/male_mankini
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/swimsuit_onepiece
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/swimsuit_strapless_onepiece
+	icon = 'icons/mob/clothing/underwear.dmi'
+
+/datum/sprite_accessory/clothing/underwear/swimsuit_stripe
+	icon = 'icons/mob/clothing/underwear.dmi'

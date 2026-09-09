@@ -80,9 +80,7 @@
 
 		options[icon_object] = option
 
-	sort_list(options)
-
-	return options
+	return sort_list(options)
 
 /obj/item/summon_beacon/proc/area_check(area/target_area, turf/target_turf)
 	if(!target_turf)

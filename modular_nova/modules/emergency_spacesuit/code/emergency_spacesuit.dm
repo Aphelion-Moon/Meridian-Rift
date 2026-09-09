@@ -66,6 +66,7 @@
 	clothing_flags = STOPSPRESSUREDAMAGE | SNUG_FIT
 	min_cold_protection_temperature = EMERGENCY_HELMET_MIN_TEMP_PROTECT
 	max_heat_protection_temperature = EMERGENCY_HELMET_MAX_TEMP_PROTECT
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 #undef EMERGENCY_HELMET_MIN_TEMP_PROTECT
 #undef EMERGENCY_HELMET_MAX_TEMP_PROTECT

@@ -17,6 +17,7 @@
 		but only for so long."
 	icon = 'modular_nova/modules/specialist_armor/icons/armor.dmi'
 	icon_state = "hexagon"
+	worn_icon_digi = null
 	worn_icon = 'modular_nova/modules/specialist_armor/icons/armor_worn.dmi'
 	inhand_icon_state = "armor"
 	blood_overlay_type = "armor"
@@ -62,6 +63,7 @@
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 	resistance_flags = FIRE_PROOF
 	/// Holds the faceshield for quick reference
+	worn_icon_muzzled = null
 	var/obj/item/sacrificial_face_shield/face_shield
 
 /obj/item/clothing/head/helmet/sf_sacrificial/Initialize(mapload)

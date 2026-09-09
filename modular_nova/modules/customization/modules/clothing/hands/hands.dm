@@ -66,8 +66,6 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	armor_type = /datum/armor/none
 
-/obj/item/clothing/gloves
-	worn_icon_teshari = TESHARI_HANDS_ICON
 
 /obj/item/clothing/gloves/maid_arm_covers
 	name = "maid arm covers"

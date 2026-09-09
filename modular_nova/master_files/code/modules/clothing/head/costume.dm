@@ -15,4 +15,4 @@
 	resistance_flags = FIRE_PROOF
 	flags_inv = null
 	flags_cover = HEADCOVERSMOUTH | PEPPERPROOF
-
+	worn_icon_muzzled = null

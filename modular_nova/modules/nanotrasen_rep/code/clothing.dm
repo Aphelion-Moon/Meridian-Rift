@@ -7,6 +7,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
 	icon_state = "bladerunner"
+	worn_icon_digi = null
 	inhand_icon_state = "armor"
 	blood_overlay_type = "suit"
 	dog_fashion = null
@@ -24,6 +25,7 @@
 	icon = 'icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'icons/mob/clothing/suits/jacket.dmi'
 	icon_state = "centcom_coat"
+	worn_icon_digi = null
 
 /obj/item/clothing/head/nanotrasen_consultant
 	name = "nanotrasen consultant's hat"

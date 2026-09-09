@@ -15,7 +15,6 @@
 	gender = PLURAL //"That's some chaps."
 	greyscale_config = /datum/greyscale_config/chaps
 	greyscale_config_worn = /datum/greyscale_config/chaps/worn
-	greyscale_config_worn_digi = /datum/greyscale_config/chaps/worn/digi
 	greyscale_colors = "#787878#252525#2B2B2B"
 	flags_1 = IS_PLAYER_COLORABLE_1
 

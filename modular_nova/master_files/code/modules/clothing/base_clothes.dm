@@ -56,17 +56,17 @@
 	var/gets_cropped_on_taurs = TRUE
 
 /obj/item/clothing/head
-	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask
-	supports_variations_flags = CLOTHING_SNOUTED_VARIATION | CLOTHING_SNOUTED_VOX_VARIATION
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/glasses
-	supports_variations_flags = CLOTHING_SNOUTED_VOX_VARIATION
+	supports_variations_flags = NONE
 
 /obj/item/clothing/under
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/suit
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION

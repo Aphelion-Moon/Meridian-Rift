@@ -19,6 +19,7 @@
 	desc = "A 'tactical' skirtleneck fashioned to the likeness of a maid outfit"
 	has_sensor = HAS_SENSORS
 	icon_state = "syndimaid"
+	worn_icon_digi = null
 	armor_type = /datum/armor/clothing_under
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT

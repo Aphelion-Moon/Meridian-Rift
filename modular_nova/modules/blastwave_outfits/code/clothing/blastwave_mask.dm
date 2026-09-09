@@ -6,3 +6,4 @@
 	worn_icon_muzzled = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
 	icon_state = "gas_full"
 	flags_inv = HIDEEARS | HIDEEYES | HIDEFACE | HIDEHAIR | HIDEFACIALHAIR | HIDESNOUT
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION

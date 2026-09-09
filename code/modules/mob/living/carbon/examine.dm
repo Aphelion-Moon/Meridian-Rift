@@ -5,8 +5,12 @@
 	return null
 
 /mob/living/carbon/examine(mob/user)
-	if(HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE) && !isobserver(user))
+	if(HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE) && !isobserver(user) && !user.client?.holder) // APHELION EDIT CHANGE - ADMIN_TECH - ORIGINAL: if(HAS_TRAIT(src, TRAIT_UNKNOWN_APPEARANCE) && !isobserver(user))
 		return list(span_warning("You're struggling to make out any details..."))
+	// APHELION EDIT ADDITION START - ADMIN_TECH
+	if(HAS_TRAIT(src, TRAIT_ADMIN_STEALTH) && !isobserver(user) && !user.client?.holder)
+		return list(span_warning("That is an administrative technician. You should not acknowledge their presence unless they acknowledge you."))
+	// APHELION EDIT ADDITION END
 
 	var/t_He = p_They()
 	var/t_His = p_Their()

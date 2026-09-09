@@ -87,6 +87,7 @@
 	name = "suspicious tactical skirtleneck"
 	desc = "A non-descript and slightly suspicious looking skirtleneck."
 	icon_state = "syndicate_skirt"
+	worn_icon_digi = null
 	gets_cropped_on_taurs = FALSE
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT
@@ -111,6 +112,7 @@
 	name = "suspicious tactical skirtleneck"
 	desc = "A pair of spiffy overalls with a turtleneck underneath, this one is a skirt instead, breezy."
 	icon_state = "syndicate_red_skirt"
+	worn_icon_digi = null
 	gets_cropped_on_taurs = FALSE
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT
@@ -132,6 +134,7 @@
 	name = "suspicious utility overalls skirtleneck"
 	desc = "A pair of spiffy overalls with a turtleneck underneath, this one is a skirt instead, breezy."
 	icon_state = "syndicate_overallskirt"
+	worn_icon_digi = null
 	gets_cropped_on_taurs = FALSE
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT
@@ -205,6 +208,7 @@
 	name = "tactical skirtleneck"
 	desc = "A snug syndicate-red skirtleneck with a charcoal-black skirt. Good luck arguing allegiance with this on."
 	icon_state = "syndicate_red_skirt"
+	worn_icon_digi = null
 	inhand_icon_state = "r_suit"
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT
@@ -221,6 +225,8 @@
 	armor_type = /datum/armor/clothing_under/syndicate/coldres
 	cold_protection = CHEST|GROIN|ARMS|LEGS
 	min_cold_protection_temperature = FIRE_SUIT_MIN_TEMP_PROTECT
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 
 /*

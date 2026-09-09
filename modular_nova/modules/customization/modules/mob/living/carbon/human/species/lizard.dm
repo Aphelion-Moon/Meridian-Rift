@@ -1,6 +1,8 @@
 /datum/species/lizard
 	body_markings = list()
-	mutant_organs = list()
+	mutant_organs = list(
+		/obj/item/organ/fangs/lizard,
+	)
 	payday_modifier = 1.0
 
 /datum/species/lizard/get_default_mutant_bodyparts()
@@ -94,6 +96,9 @@
 	always_customizable = TRUE
 	inherent_traits = list(
 		TRAIT_MUTANT_COLORS,
+	)
+	mutant_organs = list(
+		/obj/item/organ/fangs/lizard/ash,
 	)
 
 /datum/species/lizard/ashwalker/prepare_human_for_preview(mob/living/carbon/human/lizard, lizard_color = "#990000")

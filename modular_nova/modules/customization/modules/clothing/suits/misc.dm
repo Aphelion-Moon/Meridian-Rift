@@ -21,7 +21,7 @@
 /obj/item/clothing/suit/toggle/trackjacket
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
-	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	name = "track jacket"
 	desc = "A black jacket with blue stripes for the athletic. It is also popular among russian delinquents."
 	icon_state = "trackjacket"
@@ -289,7 +289,8 @@
 	desc = "A basic apron."
 	worn_icon = 'modular_nova/modules/GAGS/icons/suit/suit.dmi'
 	worn_icon_teshari = 'modular_nova/modules/GAGS/icons/suit/suit_teshari.dmi'
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	bodyshapes_with_variations = NONE
 	gets_cropped_on_taurs = FALSE
 	greyscale_colors = "#ffffff"
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
@@ -373,6 +374,7 @@
 	slot_flags = ITEM_SLOT_OCLOTHING|ITEM_SLOT_NECK
 
 /obj/item/clothing/under/pants/nova/double_skirt_dress
+	worn_icon_digi = null
 	name = "double skirt dress"
 	desc = "A fashionable dress with two layers of skirts."
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
@@ -385,6 +387,7 @@
 	body_parts_covered = CHEST|GROIN
 	cold_protection = CHEST|GROIN
 	gets_cropped_on_taurs = FALSE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 
 /obj/item/clothing/suit/nova
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
@@ -410,7 +413,7 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	gets_cropped_on_taurs = FALSE
 	body_parts_covered = CHEST|GROIN
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 
 //ALL BUNNY STUFF BY DimWhat OF MONKEESTATION
@@ -420,6 +423,9 @@
 	desc = "A coat usually worn by bunny themed waiters and the like."
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
+	// Overrides the CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON inherited from /obj/item/clothing/suit/jacket -
+	// this type has real, distinct digi art for its "tailcoat" state (see worn_icon_digi above).
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/jacket/tailcoat"
 	post_init_icon_state = "tailcoat"
@@ -436,6 +442,7 @@
 	greyscale_colors = "#39393f#ffffff"
 	greyscale_config = /datum/greyscale_config/tailcoat_bar
 	greyscale_config_worn = /datum/greyscale_config/tailcoat_bar_worn
+	greyscale_config_worn_digi = /datum/greyscale_config/tailcoat_bar_worn/digi
 	armor_type = /datum/armor/suit_armor
 
 /obj/item/clothing/suit/jacket/tailcoat/bartender/Initialize(mapload) //so bartenders can use cram their shotgun inside
@@ -490,6 +497,9 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
 	icon_state = "tailcoat_wiz"
+	// Has real digi art for "tailcoat_wiz" - the CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON inherited
+	// from /obj/item/clothing/suit/wizrobe was hiding it.
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -543,6 +553,8 @@
 	desc = "A purple coat that looks to be the same purple used in several plasmaman evirosuits."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "tailcoat_plasma"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -554,6 +566,7 @@
 	name = "captain's tailcoat"
 	desc = "A nautical coat usually worn by bunny themed captains. It’s reinforced with genetically modified armored blue rabbit fluff."
 	icon_state = "captain"
+	worn_icon_digi = null
 	inhand_icon_state = null
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
@@ -568,6 +581,8 @@
 	desc = "A fancy brown coat worn by bunny themed quartermasters. The gold accents show everyone who's in charge."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "qm"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -578,6 +593,8 @@
 	desc = "A simple brown coat worn by bunny themed cargo technicians. Significantly less stripy than the quartermasters."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "cargo_tech"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -588,6 +605,8 @@
 	desc = "An adapted explorer suit worn by bunny themed shaft miners. It has attachment points for goliath plates but comparatively little armor."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "explorer"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -620,6 +639,8 @@
 	desc = "A black and gold coat worn by bunny themed cargo technicians. Open your Space Colas and let's fuckin' game!"
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "bitrunner"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -632,6 +653,8 @@
 	desc = "A high visibility tailcoat worn by bunny themed engineers. Great for working in low-light conditions."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "engi"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -659,7 +682,8 @@
 	icon_state = "atmos"
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
-	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	w_class = WEIGHT_CLASS_NORMAL
 	body_parts_covered = CHEST|GROIN|ARMS
 	slowdown = 0
@@ -687,7 +711,8 @@
 	icon_state = "ce"
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
-	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	w_class = WEIGHT_CLASS_NORMAL
 	body_parts_covered = CHEST|GROIN|ARMS
 	slowdown = 0
@@ -715,6 +740,8 @@
 	name = "medical tailcoat"
 	desc = "A sterile white and blue coat worn by bunny themed doctors. Great for keeping the blood off."
 	icon_state = "doctor"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 
@@ -722,6 +749,8 @@
 	name = "paramedic's tailcoat"
 	desc = "A heavy duty coat worn by bunny themed paramedics. Marked with high visibility lines for emergency operations in the dark."
 	icon_state = "paramedic"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 
@@ -729,6 +758,8 @@
 	name = "chemist's tailcoat"
 	desc = "A sterile white and orange coat worn by bunny themed chemists. The open chest isn't the greatest when working with dangerous substances."
 	icon_state = "chem"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	post_init_icon_state = null
@@ -740,6 +771,8 @@
 	name = "pathologist's tailcoat"
 	desc = "A sterile white and green coat worn by bunny themed pathologists. The more stylish and ineffective alternative to a biosuit."
 	icon_state = "virologist"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	post_init_icon_state = null
@@ -751,6 +784,8 @@
 	name = "coroner's tailcoat"
 	desc = "A sterile black and white coat worn by bunny themed coroners. Adorned with a skull on the back."
 	icon_state = "coroner"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	post_init_icon_state = null
@@ -762,6 +797,8 @@
 	name = "chief medical officer's tailcoat"
 	desc = "A sterile blue coat worn by bunny themed chief medical officers. The blue helps both the wearer and bloodstains stand out from other, lower ranked, and cleaner doctors."
 	icon_state = "cmo"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 
@@ -771,6 +808,8 @@
 	name = "scientist's tailcoat"
 	desc = "A smart white coat worn by bunny themed scientists. Decent protection against slimes."
 	icon_state = "science"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	post_init_icon_state = null
@@ -782,6 +821,8 @@
 	name = "roboticist's tailcoat"
 	desc = "A smart white coat with red pauldrons worn by bunny themed roboticists. Looks surprisingly good with oil stains on it."
 	icon_state = "roboticist"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	post_init_icon_state = null
@@ -794,6 +835,8 @@
 	name = "geneticist's tailcoat"
 	desc = "A smart white and blue coat worn by bunny themed geneticists. Nearly looks like a real doctor's lab coat."
 	icon_state = "genetics"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	post_init_icon_state = null
@@ -805,6 +848,8 @@
 	name = "research director's tailcoat"
 	desc = "A smart purple coat worn by bunny themed head researchers. Created from captured abductor technology, what looks like a coat is actually an advanced hologram emitted from the pauldrons. Feels exactly like the real thing, too."
 	icon_state = "rd"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	post_init_icon_state = null
@@ -821,7 +866,8 @@
 	inhand_icon_state = "armor"
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
-	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	cold_protection = CHEST|GROIN|ARMS
 	dog_fashion = null
@@ -831,16 +877,22 @@
 	name = "security assistant's tailcoat"
 	desc = "A reinforced tailcoat worn by bunny themed security assistants. The duller color scheme denotes a lower rank on the chain of bunny command."
 	icon_state = "sec_assistant"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/suit/armor/security_tailcoat/warden
 	name = "warden's tailcoat"
 	desc = "A reinforced tailcoat worn by bunny themed wardens. Stylishly holds hidden flak plates."
 	icon_state = "warden"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/suit/toggle/labcoat/nova/security_medic/doctor_tailcoat
 	name = "brig physician's tailcoat"
 	desc = "A mostly sterile red and grey coat worn by bunny themed brig physicians. It lacks the padding of the \"standard\" security tailcoat."
 	icon_state = "brig_phys"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
 	blood_overlay_type = "coat"
@@ -865,7 +917,8 @@
 	inhand_icon_state = "armor"
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
-	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	cold_protection = CHEST|GROIN|ARMS
 	dog_fashion = null
@@ -881,7 +934,8 @@
 	inhand_icon_state = "armor"
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/jacket.dmi'
-	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/jacket_digi.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	cold_protection = CHEST|GROIN|ARMS
 	dog_fashion = null
@@ -891,6 +945,8 @@
 	desc = "A clean looking coat usually worn by bunny themed janitors. The purple sleeves are a late 24th century style."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "janitor"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -901,6 +957,8 @@
 	desc = "A professional white coat worn by bunny themed chefs. The red accents pair nicely with the monkey blood that often stains this."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "chef"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -916,6 +974,8 @@
 	desc = "A green leather coat worn by bunny themed botanists. Great for keeping the sun off your back."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "botany"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -940,6 +1000,8 @@
 	desc = "An orange polkadot coat worn by bunny themed clowns. Shows everyone who the real ringmaster is."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "clown"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -950,6 +1012,8 @@
 	desc = "A stripy sleeved black coat worn by bunny themed mimes. The red accents mimic the suspenders seen in more standard mime outfits."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "mime"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -960,6 +1024,8 @@
 	desc = "A gilded black coat worn by bunny themed chaplains. Traditional vestments of the lagomorphic cults of Cairead."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "chaplain"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -978,6 +1044,8 @@
 	desc = "A red linen coat worn by bunny themed librarians. Keeps the dust off your shoulders during long shifts in the archives."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "curator_red"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -988,6 +1056,8 @@
 	desc = "A green linen coat worn by bunny themed librarians. Keeps the dust off your shoulders during long shifts in the archives."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "curator_green"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -998,6 +1068,8 @@
 	desc = "A teal linen coat worn by bunny themed librarians. Keeps the dust off your shoulders during long shifts in the archives."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "curator_teal"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -1008,6 +1080,8 @@
 	desc = "The staple of any bunny themed lawyers. EXTREMELY professional."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "lawyer_black"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -1018,6 +1092,8 @@
 	desc = "A blue linen coat worn by bunny themed lawyers. May or may not contain souls of the damned in suit pockets."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "lawyer_blue"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -1028,6 +1104,8 @@
 	desc = "A red linen coat worn by bunny themed lawyers. May or may not contain souls of the damned in suit pockets."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "lawyer_red"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -1038,6 +1116,8 @@
 	desc = "A beige linen coat worn by bunny themed lawyers. May or may not contain souls of the damned in suit pockets."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "lawyer_good"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
@@ -1048,9 +1128,9 @@
 	desc = "A black linen coat worn by bunny themed psychologists. A casual open coat for making you seem approachable, maybe too casual."
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/jacket.dmi'
 	icon_state = "psychologist"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 	post_init_icon_state = null
 	greyscale_config = null
 	greyscale_config_worn = null
 	greyscale_colors = null
-
-

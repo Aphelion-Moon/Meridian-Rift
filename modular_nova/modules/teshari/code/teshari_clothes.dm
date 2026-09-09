@@ -157,3 +157,4 @@
 
 /obj/item/clothing/under/dress/sundress
 	greyscale_config_worn_teshari = /datum/greyscale_config/sundress/worn/teshari
+	worn_icon_digi = null

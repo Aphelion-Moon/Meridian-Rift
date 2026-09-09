@@ -22,6 +22,7 @@
 	visor_flags_cover = MASKCOVERSMOUTH
 	flags_1 = IS_PLAYER_COLORABLE_1
 	interaction_flags_click = NEED_DEXTERITY|ALLOW_RESTING
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 
 /obj/item/clothing/mask/neck_gaiter/attack_self(mob/user)
 	adjust_visor(user)
@@ -39,4 +40,3 @@
 	. = ..()
 	. += span_notice("[src] can be worn above or below your suit. Alt-Right-click to toggle.")
 	. += span_notice("Alt-click [src] to adjust it.")
-

@@ -5,14 +5,15 @@
 	)
 
 /obj/item/clothing/suit/toggle/labcoat
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/suits/labcoat_digi.dmi'
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/suit/toggle/labcoat/nova
+	abstract_type = /obj/item/clothing/suit/toggle/labcoat/nova
 	name = "SR LABCOAT SUIT DEBUG"
 	desc = "REPORT THIS IF FOUND"
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/labcoat.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/labcoat.dmi'
-	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/suits/labcoat_teshari.dmi'
 	icon_state = null //Keeps this from showing up under the chameleon hat
 
 /obj/item/clothing/suit/toggle/labcoat/nova/fancy
@@ -20,6 +21,8 @@
 	desc = "Throughout the test of determination, many have sought after such a fancy labcoat, one that was filled with many colors and wears."
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/fancy"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	post_init_icon_state = "fancy_labcoat"
 	greyscale_config = /datum/greyscale_config/fancy_labcoat
 	greyscale_config_worn = /datum/greyscale_config/fancy_labcoat/worn
@@ -32,6 +35,8 @@
 	name = "research directors labcoat"
 	desc = "A Nanotrasen standard labcoat for certified Research Directors. It has an extra plastic-latex lining on the outside for more protection from chemical and viral hazards."
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/fancy/rd"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	greyscale_colors = "#620B73#EEEEEE"
 	gets_cropped_on_taurs = FALSE
 	body_parts_covered = CHEST|ARMS|LEGS
@@ -47,6 +52,8 @@
 	name = "researcher's labcoat"
 	desc = "A Nanotrasen standard labcoat for researchers in the scientific field."
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/fancy/regular"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	greyscale_colors = "#EEEEEE#B347A1"
 	gets_cropped_on_taurs = FALSE
 
@@ -58,6 +65,8 @@
 	name = "sleeveless buttoned coat"
 	desc = "A fashionable jacket bearing the La Lune insignia on the inside. It appears similar to a labcoat in design and materials, though the tag warns against it being a replacement for such."
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/lalunevest"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon_state = "labcoat_lalunevest"
 	gets_cropped_on_taurs = FALSE
 
@@ -65,6 +74,8 @@
 	name = "pharmacist's labcoat"
 	desc = "A standard labcoat for chemistry which protects the wearer from acid spills."
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/fancy/pharmacist"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	greyscale_colors = "#EEEEEE#E6935C"
 	gets_cropped_on_taurs = FALSE
 
@@ -72,6 +83,8 @@
 	name = "geneticist's labcoat"
 	desc = "A standard labcoat for geneticist."
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/fancy/geneticist"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	greyscale_colors = "#EEEEEE#7497C0"
 	gets_cropped_on_taurs = FALSE
 
@@ -79,6 +92,8 @@
 	name = "roboticist's labcoat"
 	desc = "A standard labcoat for roboticist."
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/fancy/roboticist"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	greyscale_colors = "#2F2E31#A52F29"
 	gets_cropped_on_taurs = FALSE
 
@@ -90,6 +105,8 @@
 	name = "high vis labcoat"
 	desc = "A high visibility vest for emergency responders, intended to draw attention away from the blood."
 	icon_state = "labcoat_highvis"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	blood_overlay_type = "armor"
 
 /obj/item/clothing/suit/toggle/labcoat/nova/highvis/worn_overlays(mutable_appearance/standing, isinhands, icon_file)
@@ -121,6 +138,8 @@
 	desc = "A suit that protects against minor chemical spills. Has a blue stripe on the shoulder."
 	icon = 'icons/map_icons/clothing/suit/_suit.dmi'
 	icon_state = "/obj/item/clothing/suit/toggle/labcoat/medical"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	post_init_icon_state = "labcoat_job"
 	greyscale_config = /datum/greyscale_config/labcoat
 	greyscale_config_worn = /datum/greyscale_config/labcoat/worn

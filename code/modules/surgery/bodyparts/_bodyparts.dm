@@ -750,6 +750,9 @@
 			wounding_type = WOUND_PIERCE
 
 	if(owner) // i tried to modularize the below, but the modifications to wounding_dmg and wounding_type cant be extracted to a proc
+		if(!forced)
+			brute *= GET_PHYSIOLOGY(owner, BRUTE)
+			burn *= GET_PHYSIOLOGY(owner, BURN)
 		var/easy_dismember = HAS_TRAIT(owner, TRAIT_EASYDISMEMBER) // if we have easydismember, we don't reduce damage when redirecting damage to different types (slashing weapons on mangled/skinless limbs attack at 100% instead of 50%)
 
 		var/has_exterior = (bio_status & ANATOMY_EXTERIOR)
@@ -1778,7 +1781,7 @@
 			continue
 		// Consider it contirubuted by the wound itself
 		// Not -surgery_bloodloss as this way clamping the vessels reduces the overall bleeding
-		cached_bleed_rate -= UNCLAMPED_VESSELS_BLEEDING
+		cached_bleed_rate -= min(iter_wound.blood_flow, UNCLAMPED_VESSELS_BLEEDING) // APHELION EDIT CHANGE - ORIGINAL: cached_bleed_rate -= UNCLAMPED_VESSELS_BLEEDING
 		surgery_bloodloss = 0
 
 	if(owner.body_position == LYING_DOWN)

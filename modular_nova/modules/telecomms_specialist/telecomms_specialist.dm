@@ -1,7 +1,7 @@
 /datum/job/telecomms_specialist
 	title = JOB_TELECOMMS_SPECIALIST
-	description = "Monitor, configure, and maintain all station communications \
-		and assist with light engineering work."
+	description = "Manage the vital telecommunications network that allows the Aphelion's departments to maintain contact. As an engineer, know how to repair the machines if anything goes wrong. \
+		Assist investigators if you suspect that the communications infrastructure was tampered with, especially if its components suddenly explode."
 	faction = FACTION_STATION
 	total_positions = 1
 	spawn_positions = 1
@@ -41,6 +41,7 @@
 	)
 	rpg_title = "Diviner"
 	job_flags = STATION_JOB_FLAGS
+	tgui_icon = FA_ICON_TOWER_CELL
 
 /obj/effect/landmark/start/telecomms_specialist
 	name = "Telecomms Specialist"
@@ -59,7 +60,7 @@
 	ears = /obj/item/radio/headset/headset_eng
 	head = /obj/item/clothing/head/utility/hardhat/dblue
 	shoes = /obj/item/clothing/shoes/laceup
-	l_pocket = /obj/item/modular_computer/pda/telecomms
+	l_pocket = /obj/item/modular_computer/pda/crew/telecomms
 	r_pocket = /obj/item/multitool
 
 	backpack = /obj/item/storage/backpack/industrial
@@ -77,11 +78,12 @@
 		/obj/item/holosign_creator/atmos,
 	)
 
-/obj/item/modular_computer/pda/telecomms
+/obj/item/modular_computer/pda/crew/telecomms
 	name = "telecomms PDA"
-	icon_state = "/obj/item/modular_computer/pda/telecomms"
+	icon_state = "/obj/item/modular_computer/pda/crew/telecomms"
 	greyscale_config = /datum/greyscale_config/tablet/stripe_split
 	greyscale_colors = "#3267B1#3D83E3#D99A2E"
+	painting_region = REGION_ENGINEERING
 	starting_programs = list(
 		/datum/computer_file/program/alarm_monitor,
 		/datum/computer_file/program/signal_commander,

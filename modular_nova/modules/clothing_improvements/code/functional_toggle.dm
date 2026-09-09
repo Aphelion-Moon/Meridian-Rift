@@ -11,13 +11,13 @@ Use CTRL + SHIFT + LEFT CLICK to turn them on and off.
 
 /obj/item/clothing/suit/Initialize(mapload)
 	. = ..()
-	
-	if(!(flags_1 & HAS_CONTEXTUAL_SCREENTIPS_1)) 
+
+	if(!(flags_1 & HAS_CONTEXTUAL_SCREENTIPS_1))
 		register_context()
 
 /obj/item/clothing/suit/examine(mob/user)
 	. = ..()
-	
+
 	if(!only_functional)
 		. += span_info("Ctrl + Shift + Left Click to swap between functional (suit) and non-functional (neck) mode, to allow for things such as wearing a (nonfunctional) jacket over a piece of armor for the visual effect.")
 
@@ -42,9 +42,9 @@ Use CTRL + SHIFT + LEFT CLICK to turn them on and off.
 	if(slot_flags & ITEM_SLOT_OCLOTHING)
 		functional_suit_values = list(
 			PREV_SLOT_FLAGS = slot_flags,
-			PREV_COLD_PROTECTION = cold_protection, 
-			PREV_HEAT_PROTECTION = heat_protection, 
-			PREV_SLOWDOWN = slowdown, 
+			PREV_COLD_PROTECTION = cold_protection,
+			PREV_HEAT_PROTECTION = heat_protection,
+			PREV_SLOWDOWN = slowdown,
 			PREV_ARMOR_DATUM = armor_type,
 		)
 		slot_flags = ITEM_SLOT_NECK
@@ -69,7 +69,7 @@ Use CTRL + SHIFT + LEFT CLICK to turn them on and off.
 #undef PREV_ARMOR_DATUM
 /obj/item/clothing/suit/add_context(atom/source, list/context, obj/item/held_item, mob/living/user)
 	. = ..()
-	
+
 	if(only_functional)
 		return
 	if(slot_flags == ITEM_SLOT_NECK)
@@ -96,6 +96,7 @@ Use CTRL + SHIFT + LEFT CLICK to turn them on and off.
 
 /obj/item/clothing/suit/armor/laserproof
 	only_functional = TRUE
+	worn_icon_digi = null
 
 /obj/item/clothing/suit/hooded/berserker
 	only_functional = TRUE
@@ -104,6 +105,7 @@ Use CTRL + SHIFT + LEFT CLICK to turn them on and off.
 	only_functional = TRUE
 
 /obj/item/clothing/suit/hooded/hostile_environment
+	greyscale_config_worn_digi = /datum/greyscale_config/heck_suit/worn/digi
 	only_functional = TRUE
 
 /obj/item/clothing/suit/utility/

@@ -45,6 +45,8 @@
 	name = "swept skirt"
 	desc = "Formal skirt."
 	icon_state = "skirt_swept"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = GROIN
 
 /obj/item/clothing/under/dress/skirt/nova/striped_skirt
@@ -155,22 +157,29 @@
 	greyscale_config_worn = /datum/greyscale_config/short_dress/worn
 	greyscale_colors = "#ff3636#363030"
 	flags_1 = IS_PLAYER_COLORABLE_1
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/pinktutu
 	name = "pink tutu"
 	desc = "A fluffy pink tutu."
 	icon_state = "pinktutu"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/under/dress/nova/flower
 	name = "flower dress"
 	desc = "Lovely dress. Colored like the autumn leaves."
 	icon_state = "flower_dress"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = CHEST|GROIN|LEGS
 
 /obj/item/clothing/under/dress/nova/redformal
 	name = "formal red dress"
 	desc = "Not too wide flowing, but big enough to make an impression."
 	icon_state = "formal_red"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS
 	flags_inv = HIDESHOES
 
@@ -186,6 +195,7 @@
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS
 	flags_inv = HIDESHOES
 	flags_1 = IS_PLAYER_COLORABLE_1
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/wedding_dress/ribbon
 	name = "wedding dress with ribbon"
@@ -196,6 +206,8 @@
 	post_init_icon_state = "wedding_dress_with_ribbon"
 	greyscale_config = /datum/greyscale_config/wedding_dress_ribbon
 	greyscale_config_worn = /datum/greyscale_config/wedding_dress_ribbon/worn
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/strapless
 	name = "strapless dress"
@@ -208,6 +220,7 @@
 	greyscale_config_worn = /datum/greyscale_config/strapless_dress/worn
 	greyscale_colors = "#cc0000#5f5f5f"
 	flags_1 = IS_PLAYER_COLORABLE_1
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/pentagram
 	name = "pentagram strapped dress"
@@ -220,6 +233,7 @@
 	greyscale_config_worn = /datum/greyscale_config/pentagram_dress/worn
 	greyscale_colors = "#403c46"
 	flags_1 = IS_PLAYER_COLORABLE_1
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/jute
 	name = "jacarta dress"
@@ -231,8 +245,8 @@
 	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/dress/wedding_dress
-	worn_icon = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 	icon = 'icons/map_icons/clothing/under/dress.dmi'
+	worn_icon = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 	icon_state = "/obj/item/clothing/under/dress/wedding_dress"
 	post_init_icon_state = "wedding_dress"
 	greyscale_config = /datum/greyscale_config/wedding_dress
@@ -241,18 +255,9 @@
 	body_parts_covered = CHEST|GROIN|LEGS
 	flags_inv = HIDESHOES
 	flags_1 = IS_PLAYER_COLORABLE_1
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 	bodyshapes_with_variations = NONE
-
-/obj/item/clothing/under/dress/wedding_dress/ribbon
-	name = "wedding dress with ribbon"
-	desc = "A luxurious gown for once-in-a-lifetime occasions. Now with a cute ribbon, because you deserve it!"
-	greyscale_colors = "#FFFFFF#FF0000"
-	icon = 'icons/map_icons/clothing/under/dress.dmi'
-	icon_state = "/obj/item/clothing/under/dress/wedding_dress/ribbon"
-	post_init_icon_state = "wedding_dress_with_ribbon"
-	greyscale_config = /datum/greyscale_config/wedding_dress_ribbon
-	greyscale_config_worn = /datum/greyscale_config/wedding_dress_ribbon/worn
+	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses_digi.dmi'
 
 /datum/atom_skin/giant_scarf
 	abstract_type = /datum/atom_skin/giant_scarf
@@ -314,6 +319,7 @@
 	greyscale_colors = "#EEEEEE#bbbbbb"
 	female_sprite_flags = NO_FEMALE_UNIFORM
 	flags_1 = IS_PLAYER_COLORABLE_1
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/giant_scarf/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/giant_scarf, initial_skin = "Plain")
@@ -330,6 +336,7 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	body_parts_covered = CHEST|GROIN
+	worn_icon_digi = null
 
 /datum/atom_skin/midnight_gown
 	abstract_type = /datum/atom_skin/midnight_gown
@@ -382,6 +389,7 @@
 	greyscale_colors = "#424242#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/windowed_dress/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/windowed_dress)
@@ -415,6 +423,7 @@
 	greyscale_colors = "#424242#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/slit_dress/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/slit_dress)
@@ -448,6 +457,7 @@
 	greyscale_colors = "#424242#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/nova/shorter_dress/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/shorter_dress)
@@ -481,6 +491,7 @@
 	greyscale_colors = "#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = GROIN|LEGS
+	worn_icon_digi = null
 
 // Formal Pen Skirt
 /obj/item/clothing/under/dress/nova/formal_pen_skirt
@@ -497,6 +508,7 @@
 	greyscale_colors = "#424242#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS
+	worn_icon_digi = null
 
 /*
  *	Others
@@ -516,6 +528,7 @@
 	has_sensor = NO_SENSORS
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/skirt/nova/loincloth/loincloth_alt
 	name = "shorter loincloth"

@@ -49,6 +49,7 @@
 	name = "supply skirtleneck"
 	desc = "A snug turtleneck sweater worn by Supply, this time with a skirt attached!"
 	icon_state = "skirtleneck"
+	worn_icon_digi = null
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	alt_covers_chest = TRUE
 	gets_cropped_on_taurs = FALSE
@@ -99,6 +100,8 @@
 	name = "quartermaster's skirtleneck"
 	desc = "A snug turtleneck sweater worn by the Quartermaster, as shown by the elegant double-lining of its silk skirt."
 	icon_state = "skirtleneckQM"
+	worn_icon_digi = null
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	gets_cropped_on_taurs = FALSE
 
@@ -125,6 +128,7 @@
 	name = "quartermaster's formal jumpskirt"
 	desc = "A western-like alternate uniform for the old fashioned QM. Skirt included!"
 	icon_state = "supply_chief_skirt"
+	worn_icon_digi = null
 	can_adjust = FALSE
 	body_parts_covered = CHEST|GROIN|ARMS
 	dying_key = DYE_REGISTRY_JUMPSKIRT

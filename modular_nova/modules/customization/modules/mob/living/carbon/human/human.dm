@@ -92,24 +92,74 @@
 /mob/living/carbon/human/species/shadekin
 	race = /datum/species/shadekin
 
+/// Every toggleable underwear slot, by menu label, mapped to the flag that hides it.
+GLOBAL_LIST_INIT(underwear_visibility_slots, list(
+	"Underwear" = UNDERWEAR_HIDE_UNDIES,
+	"Bra" = UNDERWEAR_HIDE_BRA,
+	"Undershirt" = UNDERWEAR_HIDE_SHIRT,
+	"Socks" = UNDERWEAR_HIDE_SOCKS,
+))
+
+/// Shows or hides a single underwear slot by its menu label.
+/mob/living/carbon/human/proc/set_underwear_visibility(label, hidden)
+	var/flag = GLOB.underwear_visibility_slots[label]
+	if(isnull(flag))
+		return FALSE
+	var/old_visibility = underwear_visibility
+	if(hidden)
+		underwear_visibility |= flag
+	else
+		underwear_visibility &= ~flag
+	if(underwear_visibility != old_visibility)
+		update_body()
+	return TRUE
+
+/// Shows or hides every underwear slot at once.
+/mob/living/carbon/human/proc/set_all_underwear_visibility(hidden)
+	var/new_visibility = hidden ? UNDERWEAR_HIDE_ALL : NONE
+	if(underwear_visibility != new_visibility)
+		underwear_visibility = new_visibility
+		update_body()
+	return TRUE
+
+/// The per-slot underwear entries every configuring UI sends to tgui.
+/mob/living/carbon/human/proc/get_underwear_ui_entries()
+	var/list/entries = list()
+	for(var/label, hidden_flag in GLOB.underwear_visibility_slots)
+		var/worn
+		switch(hidden_flag)
+			if(UNDERWEAR_HIDE_UNDIES)
+				worn = (underwear && underwear != "Nude")
+			if(UNDERWEAR_HIDE_BRA)
+				worn = (bra && bra != "Nude")
+			if(UNDERWEAR_HIDE_SHIRT)
+				worn = (undershirt && undershirt != "Nude")
+			if(UNDERWEAR_HIDE_SOCKS)
+				worn = (socks && socks != "Nude")
+		entries[++entries.len] = list(
+			"name" = label,
+			"hidden" = !!(underwear_visibility & hidden_flag),
+			"worn" = !!worn,
+		)
+	return entries
+
 GAME_VERB_DESC(/mob/living/carbon/human, toggle_undies, "Toggle underwear visibility", "Allows you to toggle which underwear should show or be hidden. Underwear will obscure genitals.", "IC")
 
 	if(IS_UNCONSCIOUS_OR_CRIT(src))
 		to_chat(usr, span_warning("You can't toggle underwear visibility right now..."))
 		return
 
-	var/underwear_button = underwear_visibility & UNDERWEAR_HIDE_UNDIES ? "Show underwear" : "Hide underwear"
-	var/undershirt_button = underwear_visibility & UNDERWEAR_HIDE_SHIRT ? "Show shirt" : "Hide shirt"
-	var/socks_button = underwear_visibility & UNDERWEAR_HIDE_SOCKS ? "Show socks" : "Hide socks"
-	var/bra_button = underwear_visibility & UNDERWEAR_HIDE_BRA ? "Show bra" : "Hide bra"
+	var/list/choice_list = list()
 
-	var/list/choice_list = list("[underwear_button]" = "underwear", "[bra_button]" = "bra", "[undershirt_button]" = "shirt", "[socks_button]" = "socks")
+	for(var/label, hidden_flag in GLOB.underwear_visibility_slots)
+		var/is_hidden = underwear_visibility & hidden_flag
+		choice_list["[is_hidden ? "Show" : "Hide"] [LOWER_TEXT(label)]"] = label
 
 	if(underwear_visibility != NONE)
-		choice_list += list("Show all" = "show")
+		choice_list["Show all"] = "show"
 
 	if(underwear_visibility != UNDERWEAR_HIDE_ALL)
-		choice_list += list("Hide all" = "hide")
+		choice_list["Hide all"] = "hide"
 
 	var/picked_visibility = tgui_input_list(src, "Choose visibility setting", "Show/Hide underwear", choice_list)
 
@@ -119,20 +169,12 @@ GAME_VERB_DESC(/mob/living/carbon/human, toggle_undies, "Toggle underwear visibi
 	var/picked_choice = choice_list[picked_visibility]
 
 	switch(picked_choice)
-		if("underwear")
-			underwear_visibility ^= UNDERWEAR_HIDE_UNDIES
-		if("bra")
-			underwear_visibility ^= UNDERWEAR_HIDE_BRA
-		if("shirt")
-			underwear_visibility ^= UNDERWEAR_HIDE_SHIRT
-		if("socks")
-			underwear_visibility ^= UNDERWEAR_HIDE_SOCKS
 		if("show")
-			underwear_visibility = NONE
+			set_all_underwear_visibility(FALSE)
 		if("hide")
-			underwear_visibility = UNDERWEAR_HIDE_ALL
-
-	update_body()
+			set_all_underwear_visibility(TRUE)
+		else
+			set_underwear_visibility(picked_choice, !(underwear_visibility & GLOB.underwear_visibility_slots[picked_choice]))
 
 /mob/living/carbon/human/revive(full_heal_flags = NONE, excess_healing = 0, force_grab_ghost = FALSE)
 	. = ..()

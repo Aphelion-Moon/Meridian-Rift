@@ -16,12 +16,14 @@
 		only a mount for a Shoredress's helm."
 	icon_state = "oldblood"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 /obj/item/clothing/under/rank/azulean/old_blood/skirt
 	name = "\improper Agurkrral Oldblood's royal regalia"
 	icon_state = "oldblood_skirt"
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/rank/azulean/upstart
 	name = "\improper Agurkrral Upstart's noble getup"
@@ -32,9 +34,11 @@
 		an extremely rare sight in these outfits; only the mount for a Shoredress's helm."
 	icon_state = "upstart"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
 
 /obj/item/clothing/under/rank/azulean/upstart/skirt
 	name = "\improper Agurkrral Upstart's noble getup"
 	icon_state = "upstart_skirt"
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	bodyshapes_with_variations = NONE

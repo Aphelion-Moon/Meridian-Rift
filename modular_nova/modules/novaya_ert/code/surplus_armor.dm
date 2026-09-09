@@ -45,6 +45,7 @@
 	greyscale_colors = CIN_WINTER_COLORS
 	armor_type = /datum/armor/cin_surplus_armor
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+	worn_icon_muzzled = null
 
 	/// Controls what helmet accessories will be present in a weighted format
 	var/static/list/accessories_weighted_list = list(

@@ -155,6 +155,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits/armor.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/armor.dmi'
 	icon_state = "exp_corps"
+	worn_icon_digi = null
 	body_parts_covered = CHEST|GROIN|ARMS
 	armor_type = /datum/armor/vest_expeditionary_corps
 	cold_protection = CHEST|GROIN|ARMS
@@ -194,6 +195,7 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/head/helmet.dmi'
 	armor_type = /datum/armor/helmet_expeditionary_corps
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+	worn_icon_muzzled = null
 	var/nightvision = FALSE
 	var/mob/living/carbon/current_user
 	actions_types = list(/datum/action/item_action/toggle_nv_helmet)

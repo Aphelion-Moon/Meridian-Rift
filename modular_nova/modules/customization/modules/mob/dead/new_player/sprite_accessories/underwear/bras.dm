@@ -25,10 +25,12 @@
 	icon_state = "bra_thin"
 
 /datum/sprite_accessory/clothing/bra/sports_bra
+	icon = 'icons/mob/clothing/underwear.dmi'
 	name = "Bra - Sports"
 	icon_state = "sports_bra"
 
 /datum/sprite_accessory/clothing/bra/sports_bra_alt
+	icon = 'icons/mob/clothing/underwear.dmi'
 	name = "Bra - Sports (Alt)"
 	icon_state = "sports_bra_alt"
 

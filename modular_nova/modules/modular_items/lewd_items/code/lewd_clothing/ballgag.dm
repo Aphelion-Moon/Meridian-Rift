@@ -51,3 +51,4 @@
 	worn_icon_muzzled = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_masks_muzzled.dmi'
 	icon_state = "ringgag"
 	obj_flags_nova = ERP_ITEM
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION

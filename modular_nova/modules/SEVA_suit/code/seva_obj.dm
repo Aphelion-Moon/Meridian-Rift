@@ -4,7 +4,6 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
 	worn_icon_muzzled = 'modular_nova/master_files/icons/mob/clothing/suit_digi.dmi'
-	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/species/teshari/suit.dmi'
 	icon_state = "seva"
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS
 	flags_inv = HIDEJUMPSUIT|HIDETAIL
@@ -39,7 +38,6 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/hats.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/head.dmi'
 	worn_icon_muzzled = 'modular_nova/master_files/icons/mob/clothing/head_muzzled.dmi'
-	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/species/teshari/head.dmi'
 	icon_state = "seva"
 	body_parts_covered = HEAD
 	flags_inv = HIDEHAIR|HIDEFACE|HIDEEARS|HIDESNOUT
@@ -56,8 +54,8 @@
 	desc = "A head-covering mask that can be connected to an external air supply. Intended for use with the SEVA Suit."
 	icon = 'modular_nova/master_files/icons/obj/clothing/masks.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/mask.dmi'
-	worn_icon_teshari = 'modular_nova/master_files/icons/mob/clothing/species/teshari/mask.dmi'
 	icon_state = "seva"
 	dirt_state = "gas_wide_dirt"
 	resistance_flags = FIRE_PROOF
 	flags_inv = HIDEFACIALHAIR|HIDEFACE|HIDEEYES|HIDEEARS|HIDEHAIR|HIDESNOUT
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION

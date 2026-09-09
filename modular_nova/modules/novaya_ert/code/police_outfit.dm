@@ -62,6 +62,7 @@
 	visor_flags_inv = NONE
 	flags_cover = MASKCOVERSMOUTH | MASKCOVERSEYES | PEPPERPROOF
 	visor_flags_cover = MASKCOVERSMOUTH | MASKCOVERSEYES | PEPPERPROOF
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/mask/gas/hc_police/Initialize(mapload)
 	. = ..()
@@ -73,6 +74,7 @@
 	icon_state = "police_helmet"
 	icon = 'modular_nova/modules/novaya_ert/icons/armor.dmi'
 	worn_icon = 'modular_nova/modules/novaya_ert/icons/wornarmor.dmi'
+	worn_icon_muzzled = null
 
 /obj/item/clothing/head/helmet/hc_police/Initialize(mapload)
 	. = ..()
@@ -82,6 +84,7 @@
 	name = "coalition police plate carrier"
 	desc = "A reasonably heavy, yet comfortable armor vest comprised of a bunch of dense plates. Colored dark blue and bears a reflective stripe on the front and back."
 	icon_state = "police_vest"
+	worn_icon_digi = null
 	icon = 'modular_nova/modules/novaya_ert/icons/armor.dmi'
 	worn_icon = 'modular_nova/modules/novaya_ert/icons/wornarmor.dmi'
 
@@ -95,6 +98,7 @@
 	icon = 'modular_nova/modules/food_replicator/icons/clothing.dmi'
 	worn_icon = 'modular_nova/modules/food_replicator/icons/clothing_worn.dmi'
 	icon_state = "jacket_police"
+	worn_icon_digi = null
 	inhand_icon_state = "overalls"
 	armor_type = /datum/armor/armor_secjacket
 	body_parts_covered = CHEST|GROIN|ARMS
@@ -120,6 +124,7 @@
 	desc = "A black uniform jacket with Zvirdnyan Colonial Militia's signature white rectangle on its right sleeve and backside. \
 		Letters inside the collar read: %RANK-%KINK. The jacket is of exceptional quality."
 	icon_state = "suit_police"
+	worn_icon_digi = null
 	inhand_icon_state = "ro_suit"
 
 /obj/item/clothing/suit/armor/vest/hc_police_jacket/suit/Initialize(mapload)

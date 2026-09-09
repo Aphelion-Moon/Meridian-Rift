@@ -1,19 +1,22 @@
 
 // Supported TG Masks
 /obj/item/clothing/mask/bandana
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	greyscale_config_worn_muzzled = /datum/greyscale_config/bandana/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/bandana/worn/vox
 
 /obj/item/clothing/mask/bandana/striped
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	greyscale_config_worn_muzzled = /datum/greyscale_config/bandana/striped/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/bandana/striped/worn/vox
 
 /obj/item/clothing/mask/bandana/skull
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	greyscale_config_worn_muzzled = /datum/greyscale_config/bandana/skull/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/bandana/skull/worn/vox
 
 /obj/item/clothing/mask/muzzle/tape
-	supports_variations_flags = CLOTHING_SNOUTED_VARIATION | CLOTHING_SNOUTED_VOX_VARIATION
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	greyscale_config_worn_muzzled = /datum/greyscale_config/tape_piece/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/tape_piece/worn/vox
 
@@ -22,11 +25,11 @@
 	greyscale_config_worn_vox = /datum/greyscale_config/tape_piece/worn/vox
 
 /obj/item/clothing/mask/cigarette
-	supports_variations_flags = CLOTHING_SNOUTED_VOX_VARIATION
+	supports_variations_flags = NONE
 
 /obj/item/vape
 	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
-	supports_variations_flags = CLOTHING_SNOUTED_VOX_VARIATION
+	supports_variations_flags = NONE
 	greyscale_config_worn_vox = /datum/greyscale_config/vape/worn/vox
 
 // Modular masks
@@ -96,7 +99,7 @@
 	post_init_icon_state = "sterile"
 	greyscale_config = /datum/greyscale_config/sterile_mask
 	greyscale_config_worn = /datum/greyscale_config/sterile_mask/worn
-	greyscale_config_worn_digi = /datum/greyscale_config/sterile_mask/worn/snouted
+	greyscale_config_worn_muzzled = /datum/greyscale_config/sterile_mask/worn/snouted
 	greyscale_config_worn_better_vox = /datum/greyscale_config/sterile_mask/worn/better_vox
 	greyscale_config_worn_vox = /datum/greyscale_config/sterile_mask/worn/vox
 	greyscale_config_worn_teshari = /datum/greyscale_config/sterile_mask/worn/teshari

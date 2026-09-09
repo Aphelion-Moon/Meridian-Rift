@@ -29,6 +29,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
 	icon_state = "armadyne_trench"
+	worn_icon_digi = null
 
 /obj/item/clothing/suit/armor/vest/armadyne
 	name = "armadyne jacket"
@@ -36,6 +37,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/suits.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suit.dmi'
 	icon_state = "armadyne_jacket"
+	worn_icon_digi = null
 	worn_icon_state = "armadyne_jacket"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
@@ -47,6 +49,7 @@
 	name = "armadyne armor vest"
 	desc = "A nanocarbon and high-grade polymer vest, with the worn-red Armadyne logo printed on the back. Used by Armadyne corporate when they need emergency armor."
 	icon_state = "armadyne_armor"
+	worn_icon_digi = null
 	worn_icon_state = "armadyne_armor"
 
 /obj/item/clothing/glasses/hud/security/sunglasses/armadyne
@@ -106,7 +109,7 @@
 /datum/outfit/armadyne_rep
 	name = "Armadyne Corporate Representative"
 
-	suit_store = /obj/item/modular_computer/pda/security
+	suit_store = /obj/item/modular_computer/pda/crew/security
 	ears = /obj/item/radio/headset/headset_cent/commander
 	uniform = /obj/item/clothing/under/rank/security/armadyne
 	gloves = /obj/item/clothing/gloves/combat/armadyne
@@ -143,7 +146,7 @@
 		/obj/item/storage/toolbox/guncase/nova/pistol/trappiste_small_case/wespe,
 		/obj/item/storage/box/handcuffs,
 		/obj/item/ammo_box/magazine/c35sol_pistol/stendo,
-		/obj/item/modular_computer/pda/security,
+		/obj/item/modular_computer/pda/crew/security,
 	)
 	back = /obj/item/storage/backpack/security
 	box = /obj/item/storage/box/survival/security
@@ -167,7 +170,7 @@
 		/obj/item/storage/toolbox/guncase/nova/pistol/trappiste_small_case/wespe,
 		/obj/item/storage/box/handcuffs,
 		/obj/item/ammo_box/magazine/c40sol_rifle/standard,
-		/obj/item/modular_computer/pda/security,
+		/obj/item/modular_computer/pda/crew/security,
 	)
 	back = /obj/item/storage/backpack/security
 	box = /obj/item/storage/box/survival/security

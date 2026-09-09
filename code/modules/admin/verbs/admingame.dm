@@ -139,12 +139,12 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(show_player_panel, R_ADMIN, "Show Player Panel", /m
 			else
 				body += "<A href='byond://?_src_=holder;[HrefToken()];simplemake=observer;mob=[REF(player)]'>Make Ghost</A> | "
 
-			if(ishuman(player) && !ismonkey(player))
+			if(ishuman(player) && !HAS_TRAIT(player, TRAIT_LESSER_HUMANOID))
 				body += "<b>Human</b> | "
 			else
 				body += "<A href='byond://?_src_=holder;[HrefToken()];simplemake=human;mob=[REF(player)]'>Make Human</A> | "
 
-			if(ismonkey(player))
+			if(HAS_TRAIT(player, TRAIT_LESSER_HUMANOID))
 				body += "<b>Monkey</b> | "
 			else
 				body += "<A href='byond://?_src_=holder;[HrefToken()];simplemake=monkey;mob=[REF(player)]'>Make Monkey</A> | "
@@ -472,6 +472,25 @@ ADMIN_VERB(combo_hud, R_ADMIN, "Toggle Combo HUD", "Toggles the Admin Combo HUD.
 
 #undef ADMIN_HUDS
 
+// APHELION EDIT ADDITION START - ADMIN_TECH
+ADMIN_VERB(wallhacks, R_ADMIN, "Admin Wallhacks", "Toggles full-bright, perfect vision (see mobs through walls), and hearing through walls.", ADMIN_CATEGORY_GAME)
+	if(!user.mob)
+		return
+
+	// State lives on the client rather than the mob, so aghosting or possessing a new body can't strand the old one
+	// with wallhacks on. See modular_aphelion/master_files/code/modules/admin/admin.dm for both halves of the toggle.
+	if(user.admin_wallhacks_enabled)
+		user.disable_admin_wallhacks()
+	else
+		user.enable_admin_wallhacks()
+
+	var/wallhacks_on = user.admin_wallhacks_enabled
+	to_chat(user, "You toggled Admin Wallhacks [wallhacks_on ? "ON" : "OFF"].", confidential = TRUE)
+	message_admins("[key_name_admin(user)] toggled Admin Wallhacks [wallhacks_on ? "ON" : "OFF"].")
+	log_admin("[key_name(user)] toggled Admin Wallhacks [wallhacks_on ? "ON" : "OFF"].")
+	SSblackbox.record_feedback("nested tally", "admin_toggle", 1, list("Admin Wallhacks", "[wallhacks_on ? "Enabled" : "Disabled"]"))
+
+// APHELION EDIT ADDITION END
 ADMIN_VERB(show_traitor_panel, R_ADMIN, "Show Traitor Panel", "Edit mobs's memory and role", ADMIN_CATEGORY_GAME)
 	VERB_ARG_TYPED(target_mob, VERB_ARG_TYPE_MOB, VERB_ARG_SOURCE_WORLD, /mob)
 	var/datum/mind/target_mind = target_mob.mind

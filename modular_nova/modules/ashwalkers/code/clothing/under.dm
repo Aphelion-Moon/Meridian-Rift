@@ -69,3 +69,4 @@
 	name = "ash walker waistcloth"
 	desc = "A unisex waistcloth to serve as a kilt or skirt."
 	icon_state = "legskirt_d"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION

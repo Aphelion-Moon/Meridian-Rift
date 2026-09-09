@@ -36,12 +36,15 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/head/akula.dmi'
 	icon_state = "skinsuithelmet"
 	flags_inv = HIDEEARS|HIDEHAIR
+	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+	worn_icon_muzzled = null
 
 /obj/item/clothing/head/helmet/space/skinsuit_helmet/Initialize(mapload)
 	. = ..()
 	AddComponent(/datum/component/wetsuit)
 
 /obj/item/clothing/suit/armor/riot/skinsuit_armor
+	worn_icon_digi = null
 	name = "\improper Shorebreaker plating"
 	desc = "'Shorebreaker'-pattern Stardress plating was developed for Azulean boarding teams in service of the New Principalities. \
 		Kept resilient and maneuverable, Shorebreaker armor is built predominantly close-quarters breaching. \n\n\
@@ -52,6 +55,7 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/suits/akula.dmi'
 	icon_state = "skinsuitarmor"
 	base_icon_state = "skinsuitarmor"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/armor/riot/skinsuit_armor/Initialize(mapload)
 	. = ..()
