@@ -1,4 +1,4 @@
-https://github.com/AphelionDevelopment/Meridian-Rift/pull/
+https://github.com/Aphelion-Moon/Meridian-Rift/pull/112
 
 ## Admin Notify
 
@@ -11,9 +11,14 @@ players a "Notify Admins" verb under the OOC tab that pings staff to come and ob
 optional hotkey paired to it.
 
 The hotkey is unbound by default and has to be held for two seconds before it fires, so a stray
-keypress does not ping the whole staff team. The verb itself is on a two minute cooldown, matching
-adminhelp's. Players can be role banned from it with the "Admin Notify ban" ban option, and admins
-who would rather not be pinged can turn the alert off in their game preferences.
+keypress does not ping the whole staff team. The module captures the initiating chord and validates
+its physical-key press timestamps, including modifiers, when the timer finishes. This avoids relying
+on combination-key release callbacks without changing TG's input handler. As these timestamps use
+`world.time`, a release and re-press within the same tick cannot be distinguished.
+The verb itself is on a two minute cooldown, matching adminhelp's, and reconnecting does not reset
+it. Requests appear in the Admin PMs chat category. Players can be role banned from it with the
+"Admin Notify ban" ban option, and admins who would rather not be pinged can turn the alert off in
+their game preferences.
 
 ### TG Proc/File Changes:
 
