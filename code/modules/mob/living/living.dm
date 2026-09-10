@@ -1563,14 +1563,14 @@ GAME_VERB_PROC(/mob/living, mob_sleep, "Sleep", null)
 		stamina.icon_state = "stamina_dead"
 		return
 
-	var/stam_crit_threshold = maxHealth - crit_threshold
+	var/stam_crit_threshold = get_stamina_crit_threshold() // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: var/stam_crit_threshold = maxHealth - crit_threshold
 	if(shown_stamina_loss == null)
 		shown_stamina_loss = get_stamina_loss()
 
 	if(shown_stamina_loss >= stam_crit_threshold)
 		stamina.icon_state = "stamina_crit"
-	else if(shown_stamina_loss > 0 && maxHealth > 0)
-		stamina.icon_state = "stamina_[ceil(shown_stamina_loss / (maxHealth * 0.2))]"
+	else if(shown_stamina_loss > 0 && stam_crit_threshold > 0) // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: else if(shown_stamina_loss > 0 && maxHealth > 0)
+		stamina.icon_state = "stamina_[ceil(shown_stamina_loss / (stam_crit_threshold * 0.2))]" // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: stamina.icon_state = "stamina_[ceil(shown_stamina_loss / (maxHealth * 0.2))]"
 	else
 		stamina.icon_state = "stamina_full"
 

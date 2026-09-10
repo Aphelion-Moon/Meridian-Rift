@@ -1,11 +1,11 @@
-/// Tests 100 stamina damage = stamcrit
+/// Tests stamcrit at the mob's configured stamina damage threshold.
 /datum/unit_test/stamcrit
 	priority = TEST_LONGER
 
 /datum/unit_test/stamcrit/Run()
 	var/mob/living/carbon/human/consistent/tider = allocate(__IMPLIED_TYPE__)
 	tider.stamina_regen_time = 0.2 SECONDS
-	var/stamloss_to_reach_crit_threshold = tider.maxHealth
+	var/stamloss_to_reach_crit_threshold = tider.get_stamina_crit_threshold()
 	tider.adjust_stamina_loss(stamloss_to_reach_crit_threshold - 1)
 	TEST_ASSERT(!tider.has_status_effect(/datum/status_effect/incapacitating/stamcrit), "Stamcrit should not be applied at [stamloss_to_reach_crit_threshold - 1] stamina damage")
 	tider.adjust_stamina_loss(1)

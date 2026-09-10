@@ -16,7 +16,7 @@
 
 	// This should be in on apply but we need it to happen AFTER being added to the mob
 	// (Because we need to wait until the status effect is in their status effect list, or we'll add two)
-	if(owner.get_stamina_loss() < 162) // NOVA EDIT CHANGE - Original: if(owner.get_stamina_loss() < 120)
+	if(owner.get_stamina_loss() < owner.max_stamina) // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: if(owner.get_stamina_loss() < 162) // NOVA EDIT CHANGE - Original: if(owner.get_stamina_loss() < 120)
 		// Puts you a little further into the initial stamcrit, makes stamcrit harder to outright counter with chems.
 		owner.adjust_stamina_loss(30, FALSE)
 
@@ -80,5 +80,5 @@
 			qdel(src)
 		return
 
-	if(owner.maxHealth - owner.get_stamina_loss() > owner.crit_threshold)
+	if(owner.get_stamina_loss() < owner.get_stamina_crit_threshold()) // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: if(owner.maxHealth - owner.get_stamina_loss() > owner.crit_threshold)
 		qdel(src)

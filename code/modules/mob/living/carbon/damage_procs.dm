@@ -109,7 +109,7 @@
 
 /mob/living/carbon/on_damage_loss_changed(amount, updating_health, forced, damage_type)
 	. = ..()
-	if(damage_type == STAMINA && amount > 0 && (maxHealth - staminaloss) <= crit_threshold && stat != DEAD)
+	if(damage_type == STAMINA && amount > 0 && staminaloss >= get_stamina_crit_threshold() && stat != DEAD) // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: if(damage_type == STAMINA && amount > 0 && (maxHealth - staminaloss) <= crit_threshold && stat != DEAD)
 		apply_status_effect(/datum/status_effect/incapacitating/stamcrit)
 
 /**

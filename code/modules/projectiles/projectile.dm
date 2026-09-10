@@ -508,7 +508,7 @@
 	var/effective_accuracy = HAS_TRAIT(target, TRAIT_DESIGNATED_TARGET) ? 0 : accuracy_falloff
 
 	// Lower accurancy/longer range tradeoff. 7 is a balanced number to use.
-	def_zone = ran_zone(def_zone, clamp(accurate_range - (effective_accuracy * get_dist(last_impact_turf, starting)), 5, 100))
+	def_zone = resolve_combat_hit_zone(clamp(accurate_range - (effective_accuracy * get_dist(last_impact_turf, starting)), 5, 100)) // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: def_zone = ran_zone(def_zone, clamp(accurate_range - (effective_accuracy * get_dist(last_impact_turf, starting)), 5, 100))
 	var/impact_result = process_hit_loop(select_target(last_impact_turf, target))
 	if (impact_result == PROJECTILE_IMPACT_PASSED)
 		return
@@ -536,7 +536,7 @@
 	while (target && !QDELETED(src) && !deletion_queued)
 		// Doublehitting can be an issue with slow projectiles or when the server is chugging
 		impacted[WEAKREF(target)] = TRUE
-		var/mode = prehit_pierce(target)
+		var/mode = misses_limb_target(target) ? PROJECTILE_PIERCE_PHASE : prehit_pierce(target) // APHELION EDIT CHANGE - REFORM_COMBAT - ORIGINAL: var/mode = prehit_pierce(target)
 		if(mode == PROJECTILE_DELETE_WITHOUT_HITTING)
 			return PROJECTILE_IMPACT_INTERRUPTED
 
