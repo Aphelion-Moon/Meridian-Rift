@@ -1,5 +1,60 @@
 # Windows server capture
 
+## One-click startup capture
+
+1. Extract the complete `dogmos-server-profiler-20260910.zip` on the main Windows
+   server. Keep its `bin`, `licenses`, `provenance` and `bundle.json` together.
+2. Right-click `START_CAPTURE.cmd` and choose **Run as administrator**. On first
+   use, enter the actual TGS deployment folder containing `tgstation.dmb` and
+   `data`, then the `DreamDaemon.exe` selected in TGS. These two paths are saved
+   in `capture-settings.json`; delete that file or pass new paths when TGS changes
+   the deployment or engine location.
+3. When the launcher says **Ready**, perform the normal TGS **hard restart**.
+   Leave the capture window open. It waits up to ten minutes and records five
+   120-second windows by default. It does not deploy code or restart TGS itself.
+4. Keep the entire `captures/startup-<UTC timestamp>` folder, matching round logs,
+   map, seed, player count, server hardware, deployed game commit, scenario and
+   action timestamps. `launch.json` and `capture.json` must both report completion
+   before treating a run as successful. Traces and samples still need review.
+
+The launcher verifies the bundle and collector startup, checks the deployed
+Windows shim/service against `dogmos.lock.json`, rejects an existing marker or
+profiler listener, and checks output write access before arming. The attached
+DreamDaemon must have started after arming, use the selected engine executable,
+and have the hook loaded from this deployment. Build/native hashes are compared
+before and after capture; deploy updates between capture runs, not during one.
+This launcher expects a Dogmos deployment. The manual collector below can also
+capture a separately prepared no-Dogmos reference.
+
+For a bundle/collector/deployed-native-pair check without arming a game:
+
+```powershell
+.\Start-DogmosCapture.ps1 -CheckOnly -GameDirectory 'D:\TGS\Instance\Game'
+```
+
+This check does not certify the selected engine or a live capture connection;
+those checks occur during the normal launcher flow. Override defaults when needed:
+
+```powershell
+.\Start-DogmosCapture.ps1 -GameDirectory 'D:\TGS\Instance\Game' `
+    -DreamDaemonPath 'D:\TGS\Byond\516.1687\byond\bin\DreamDaemon.exe' `
+    -OutputDirectory 'D:\Captures\dogmos-startup-01' -Windows 8
+```
+
+The one-click flow removes its own unconsumed empty marker on completion or a
+handled failure. It preserves a marker that changed ownership/content. Abruptly
+closing PowerShell or powering off can bypass cleanup; check `data/enable_tracy`
+before the next unprofiled round. The hook remains loaded until the game's next
+hard restart. No game, service, or TGS process is stopped by the collector.
+Preflight failures also save `capture-failure-<UTC timestamp>.json` beside the
+launcher when that directory is writable. Partial capture evidence is retained.
+
+Local qualification covers PowerShell 5.1/7 launcher fixtures and the real
+collector's empty-session startup check. Main-server attachment, trace coverage,
+and workload acceptance remain to be tested on that server.
+
+## Collector prerequisites and manual modes
+
 Run the portable bundle from a local administrator PowerShell session alongside TGS. The script targets Windows PowerShell 5.1 or PowerShell 7 on Windows Server 2022. Its pinned x86 hook supports BYOND **516.1685–516.1687**; the collector is x64 and uses Tracy v0.14.0/protocol 82. It does not require Codex or Meridian-MCP on the server.
 
 The collector requires the **x64 Microsoft Visual C++ v14 Redistributable**, at least as recent as its MSVC 14.44 build tools. Install the signed package directly from [Microsoft's supported downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist). Microsoft lists Windows Server 2022 as supported. The bundle does not redistribute Microsoft runtime DLLs or the BYOND installation. The hook itself imports only Windows system libraries.

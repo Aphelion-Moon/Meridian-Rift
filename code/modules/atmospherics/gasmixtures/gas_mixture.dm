@@ -20,12 +20,12 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/dogmos_immutable = FALSE
 	// APHELION EDIT ADDITION END
 
-/datum/gas_mixture/New(volume)
+/datum/gas_mixture/New(volume, datum/gas_mixture/copy_source) // APHELION EDIT CHANGE - DOGMOS_COPY_CREATION
 	if(!isnull(volume))
 		initial_volume = volume
 	if(initial_volume <= 0)
 		stack_trace("Created a gas mixture with zero volume!")
-	__gasmixture_register()
+	__gasmixture_register(copy_source) // APHELION EDIT CHANGE - DOGMOS_COPY_CREATION
 	reaction_results = new
 
 /datum/gas_mixture/Del()
@@ -205,6 +205,11 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 ///Creates new, identical gas mixture
 ///Returns: duplicate gas mixture
 /datum/gas_mixture/proc/copy()
+	// APHELION EDIT ADDITION START - DOGMOS_COPY_CREATION
+	// Exact types have no custom constructor or copy hook. Subtypes retain dynamic dispatch below.
+	if(type == /datum/gas_mixture || type == /datum/gas_mixture/turf)
+		return new type(return_volume(), src)
+	// APHELION EDIT ADDITION END
 	var/datum/gas_mixture/copy = new type(return_volume())
 	copy.copy_from(src)
 	return copy

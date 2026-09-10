@@ -1028,18 +1028,54 @@
 	var/original_pending_stage = SSair.dogmos_pending_stage
 	var/list/original_pending_frontier = SSair.dogmos_pending_frontier_epoch
 	var/turf/open/target = run_loc_floor_bottom_left
+	if(!target?.init_air || target.thermal_conductivity <= 0 || target.heat_capacity <= 0 || isnull(target.dogmos_registration_generation) || !target.dogmos_air_registration_is_current(FALSE))
+		return Fail("The failure-latch heat admission test requires a current registered heat turf.", __FILE__, __LINE__)
 	var/datum/gas_mixture/mixture = target.air
 	var/mixture_slot = mixture.dogmos_slot
 	var/mixture_generation = mixture.dogmos_generation
 	var/mixture_slot_count = length(SSdogmos.dogmos_mixture_slots)
-	var/turf_key = "[target.dogmos_service_slot()]"
+	var/turf_slot = target.dogmos_service_slot()
+	var/turf_key = "[turf_slot]"
 	var/list/original_turf_lifecycle = SSdogmos.dogmos_pending_turf_lifecycle[turf_key]
+	var/turf_generation = target.dogmos_service_generation()
+	var/registered_mixture_slot = target.dogmos_registered_mixture_slot
+	var/registered_mixture_generation = target.dogmos_registered_mixture_generation
+	var/list/original_pending_heat = SSdogmos.dogmos_pending_turf_heat
+	var/list/original_pending_heat_entry = original_pending_heat[turf_key]
+	var/had_pending_heat_entry = islist(original_pending_heat_entry)
+	var/original_pending_heat_length = length(original_pending_heat)
+	var/list/isolated_pending_heat = original_pending_heat.Copy()
+	var/original_temperature = target.temperature
+	var/local_fallback_temperature = original_temperature + 17
+	var/original_temperature_authority = SSair.dogmos_blocked_turf_temperature_authority
+	var/raw_heat_temperature
+	var/public_heat_temperature
+	var/blocked_heat_temperature
+	var/heat_read_error
+	var/heat_queue_isolated
+	var/heat_entry_absent
+	var/heat_queue_length_unchanged
 	SSdogmos.service_ready = FALSE
 	SSdogmos.service_failure_latched = TRUE
 	var/stage_stopped = SSair.dogmos_run_stage(DOGMOS_TEST_STAGE_EQUALIZE, 1)
 	var/list/failed_response = SSdogmos.mixture_command(list(), DOGMOS_TEST_RESPONSE_APPLIED)
 	SSdogmos.evict_mixture_snapshot_cache(mixture_slot, mixture_generation)
 	var/list/failed_gases = mixture.__get_gases()
+	try
+		// Isolate only this registered turf's pending value so the raw getter must choose its FFI path.
+		SSdogmos.dogmos_pending_turf_heat = isolated_pending_heat
+		isolated_pending_heat.Remove(turf_key)
+		target.temperature = local_fallback_temperature
+		SSair.dogmos_blocked_turf_temperature_authority = DOGMOS_TEMPERATURE_AUTHORITY_RUST
+		raw_heat_temperature = target.__dogmos_heat_temperature()
+		public_heat_temperature = target.return_temperature()
+		blocked_heat_temperature = target.get_dogmos_blocked_temperature()
+		heat_queue_isolated = SSdogmos.dogmos_pending_turf_heat == isolated_pending_heat
+		heat_entry_absent = isnull(SSdogmos.dogmos_pending_turf_heat[turf_key])
+		heat_queue_length_unchanged = length(SSdogmos.dogmos_pending_turf_heat) == original_pending_heat_length - (had_pending_heat_entry ? 1 : 0)
+	catch(var/exception/heat_read_exception)
+		heat_read_error = heat_read_exception.name
+	SSdogmos.dogmos_pending_turf_heat = original_pending_heat
 	SSdogmos.register_mixture(mixture)
 	target.update_air_ref(DOGMOS_SIMULATION_ALL)
 	var/stage_changed = SSair.dogmos_pending_stage != original_pending_stage || SSair.dogmos_pending_frontier_epoch != original_pending_frontier
@@ -1047,6 +1083,12 @@
 	var/turf_changed = SSdogmos.dogmos_pending_turf_lifecycle[turf_key] != original_turf_lifecycle
 	SSdogmos.service_ready = original_service_ready
 	SSdogmos.service_failure_latched = original_failure_latched
+	SSair.dogmos_blocked_turf_temperature_authority = original_temperature_authority
+	target.temperature = original_temperature
+	var/heat_identity_unchanged = target.dogmos_service_slot() == turf_slot && target.dogmos_service_generation() == turf_generation \
+		&& target.dogmos_registered_mixture_slot == registered_mixture_slot && target.dogmos_registered_mixture_generation == registered_mixture_generation
+	var/heat_entry_restored = had_pending_heat_entry ? SSdogmos.dogmos_pending_turf_heat[turf_key] == original_pending_heat_entry : isnull(SSdogmos.dogmos_pending_turf_heat[turf_key])
+	var/heat_queue_restored = SSdogmos.dogmos_pending_turf_heat == original_pending_heat && length(SSdogmos.dogmos_pending_turf_heat) == original_pending_heat_length && heat_entry_restored
 	if(!stage_stopped)
 		return Fail("Dogmos reported a failed service stage as complete.", __FILE__, __LINE__)
 	if(stage_changed)
@@ -1059,6 +1101,16 @@
 		return Fail("Dogmos mutated mixture registration after the service failure latch was set.", __FILE__, __LINE__)
 	if(turf_changed)
 		return Fail("Dogmos queued a turf lifecycle mutation after the service failure latch was set.", __FILE__, __LINE__)
+	if(heat_read_error)
+		return Fail("Dogmos failure-latch heat admission read raised [heat_read_error].", __FILE__, __LINE__)
+	if(!isnull(raw_heat_temperature))
+		return Fail("Dogmos failure-latch heat admission reached the raw TurfHeat snapshot path.", __FILE__, __LINE__)
+	if(public_heat_temperature != local_fallback_temperature || blocked_heat_temperature != local_fallback_temperature)
+		return Fail("Dogmos failure-latch heat admission did not return local-temperature fallbacks.", __FILE__, __LINE__)
+	if(!heat_queue_isolated || !heat_entry_absent || !heat_queue_length_unchanged || !heat_queue_restored)
+		return Fail("Dogmos failure-latch heat admission changed pending heat outside its isolated entry.", __FILE__, __LINE__)
+	if(!heat_identity_unchanged)
+		return Fail("Dogmos failure-latch heat admission changed the registered turf identity.", __FILE__, __LINE__)
 
 /** Late map-loading producers must not submit native work after intentional shutdown begins. */
 /datum/unit_test/dogmos_service_shutdown_stops_producers/Run()
@@ -2838,6 +2890,153 @@
 #undef DOGMOS_TEST_SNAPSHOT_REVISION_LOW
 #undef DOGMOS_TEST_SNAPSHOT_REVISION_HIGH
 
+/** Test constructor whose extra state and copy hook must retain dynamic subtype dispatch. */
+/datum/gas_mixture/dogmos_copy_constructor_test
+	/// Number of arguments delivered to the custom constructor.
+	var/constructor_arguments
+	/// Calls through the subtype's normal copy hook.
+	var/copy_calls = 0
+
+/datum/gas_mixture/dogmos_copy_constructor_test/New(volume)
+	constructor_arguments = length(args)
+	. = ..()
+	last_share = 7
+	pipeline_cycle = 91
+	reaction_results["constructor"] = 1
+	set_min_heat_capacity(88)
+
+/datum/gas_mixture/dogmos_copy_constructor_test/copy_from(datum/gas_mixture/sample)
+	copy_calls++
+	return ..()
+
+/** Copy construction must preserve the old constructor sequence and independent mutable state. */
+/datum/unit_test/dogmos_service_copy_construction
+
+/datum/unit_test/dogmos_service_copy_construction/Run()
+	for(var/mixture_type in list(/datum/gas_mixture, /datum/gas_mixture/turf))
+		for(var/volume in list(CELL_VOLUME, 125))
+			for(var/with_gas in list(FALSE, TRUE))
+				var/datum/gas_mixture/source = allocate(mixture_type, volume)
+				if(with_gas)
+					source.set_temperature(321.5)
+					source.set_moles(/datum/gas/oxygen, 7.25)
+					source.set_moles(/datum/gas/nitrogen, 3)
+				source.set_min_heat_capacity(17)
+				source.last_share = 53
+				source.pipeline_cycle = 9
+				source.reaction_results["source"] = 7
+				var/list/source_before = source.dogmos_snapshot()
+				var/datum/gas_mixture/copied = source.copy()
+				allocated += copied
+				if((copied.type) != (mixture_type))
+					return Fail("copy changed the exact mixture type", __FILE__, __LINE__)
+				if((SSdogmos.lookup_mixture_snapshot_cache(source.dogmos_slot, source.dogmos_generation)) != (source_before))
+					return Fail("read-only copy evicted the source snapshot", __FILE__, __LINE__)
+				if((copied.initial_volume) != (volume))
+					return Fail("copy lost constructor volume", __FILE__, __LINE__)
+				if((copied.last_share) != (0))
+					return Fail("copy inherited source share metadata", __FILE__, __LINE__)
+				if((copied.pipeline_cycle) != (-1))
+					return Fail("copy inherited source pipeline metadata", __FILE__, __LINE__)
+				if((copied.reaction_results) == (source.reaction_results))
+					return Fail("copy shares the reaction result list", __FILE__, __LINE__)
+				if((length(copied.reaction_results)) != (0))
+					return Fail("copy inherited reaction results", __FILE__, __LINE__)
+				if(!(SSdogmos.mixture_identity_matches(copied, copied.dogmos_slot, copied.dogmos_generation)))
+					return Fail("copy was returned before its identity became live", __FILE__, __LINE__)
+				var/datum/gas_mixture/control = allocate(mixture_type, volume)
+				control.copy_from(source)
+				var/list/expected = control.dogmos_snapshot()
+				var/list/actual = copied.dogmos_snapshot()
+				if((length(actual)) != (length(expected)))
+					return Fail("copy snapshot width changed", __FILE__, __LINE__)
+				for(var/field in 1 to length(expected))
+					if((actual[field]) != (expected[field]))
+						return Fail("copy changed native snapshot field [field]", __FILE__, __LINE__)
+				copied.set_moles(/datum/gas/oxygen, 99)
+				var/list/source_after = source.dogmos_snapshot()
+				for(var/field in 1 to length(source_before))
+					if((source_after[field]) != (source_before[field]))
+						return Fail("mutating copy changed source field [field]", __FILE__, __LINE__)
+				source.set_temperature(700)
+				if((copied.return_temperature()) != (with_gas ? 321.5 : TCMB))
+					return Fail("mutating source changed copied temperature", __FILE__, __LINE__)
+
+/** A copied mixture retires through the ordinary identity lifecycle before its slot is reused. */
+/datum/unit_test/dogmos_service_copy_identity_reuse
+
+/datum/unit_test/dogmos_service_copy_identity_reuse/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/datum/gas_mixture/source = allocate(/datum/gas_mixture, CELL_VOLUME)
+	source.set_moles(/datum/gas/oxygen, 7.25)
+	var/datum/gas_mixture/first = source.copy()
+	allocated += first
+	var/retired_slot = first.dogmos_slot
+	var/retired_generation = first.dogmos_generation
+	first.dogmos_snapshot()
+	first.__gasmixture_unregister()
+	if(!isnull(first._extools_pointer_gasmixture))
+		return Fail("retired copy kept its native registration marker", __FILE__, __LINE__)
+	if(!isnull(SSdogmos.lookup_mixture_snapshot_cache(retired_slot, retired_generation)))
+		return Fail("retired copy kept its cached state", __FILE__, __LINE__)
+	var/datum/gas_mixture/replacement = source.copy()
+	allocated += replacement
+	if((replacement.dogmos_slot) != (retired_slot))
+		return Fail("copy did not reuse the released slot", __FILE__, __LINE__)
+	if(!(replacement.dogmos_generation > retired_generation))
+		return Fail("copy reused a retired generation", __FILE__, __LINE__)
+	if((replacement.get_moles(/datum/gas/oxygen)) != (7.25))
+		return Fail("reused copy lost source gas", __FILE__, __LINE__)
+	if(!(SSdogmos.mixture_identity_matches(replacement, replacement.dogmos_slot, replacement.dogmos_generation)))
+		return Fail("replacement copy identity is not live", __FILE__, __LINE__)
+	if(!(!SSdogmos.mixture_identity_matches(first, retired_slot, retired_generation)))
+		return Fail("retired copy identity resolved after slot reuse", __FILE__, __LINE__)
+
+/** Custom and immutable constructors keep their old New and copy_from behavior. */
+/datum/unit_test/dogmos_service_copy_subtypes
+
+/datum/unit_test/dogmos_service_copy_subtypes/Run()
+	var/datum/gas_mixture/dogmos_copy_constructor_test/custom = allocate(/datum/gas_mixture/dogmos_copy_constructor_test, 125)
+	custom.set_temperature(321.5)
+	custom.set_moles(/datum/gas/oxygen, 7.25)
+	var/datum/gas_mixture/dogmos_copy_constructor_test/copied = custom.copy()
+	allocated += copied
+	if((copied.type) != (custom.type))
+		return Fail("custom copy changed type", __FILE__, __LINE__)
+	if((copied.constructor_arguments) != (1))
+		return Fail("custom constructor received an internal copy argument", __FILE__, __LINE__)
+	if((copied.copy_calls) != (1))
+		return Fail("custom copy hook was skipped", __FILE__, __LINE__)
+	if((copied.last_share) != (7))
+		return Fail("custom constructor share state was lost", __FILE__, __LINE__)
+	if((copied.pipeline_cycle) != (91))
+		return Fail("custom constructor pipeline state was lost", __FILE__, __LINE__)
+	if((copied.reaction_results["constructor"]) != (1))
+		return Fail("custom constructor reaction result was lost", __FILE__, __LINE__)
+	if((copied.reaction_results) == (custom.reaction_results))
+		return Fail("custom copies share reaction results", __FILE__, __LINE__)
+	if((copied.return_temperature()) != (321.5))
+		return Fail("custom copy changed temperature", __FILE__, __LINE__)
+	if((copied.get_moles(/datum/gas/oxygen)) != (7.25))
+		return Fail("custom copy changed gas", __FILE__, __LINE__)
+	for(var/mixture_type in list(/datum/gas_mixture/immutable/space, /datum/gas_mixture/immutable/planetary))
+		var/datum/gas_mixture/immutable/source = allocate(mixture_type, 125)
+		if(istype(source, /datum/gas_mixture/immutable/planetary))
+			var/datum/gas_mixture/immutable/planetary/planetary = source
+			planetary.parse_string_immutable("o2=7.25;TEMP=321.5")
+		var/datum/gas_mixture/immutable/duplicate = source.copy()
+		allocated += duplicate
+		var/datum/gas_mixture/immutable/control = allocate(mixture_type, source.return_volume())
+		control.copy_from(source)
+		if((duplicate.type) != (mixture_type))
+			return Fail("immutable subtype changed", __FILE__, __LINE__)
+		var/list/actual = duplicate.dogmos_snapshot()
+		var/list/expected = control.dogmos_snapshot()
+		for(var/field in 1 to length(expected))
+			if((actual[field]) != (expected[field]))
+				return Fail("immutable fallback changed snapshot field [field]", __FILE__, __LINE__)
+
 #endif
 
 #if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
@@ -3510,5 +3709,827 @@
 	qdel(replacement)
 	if(failure)
 		return Fail(failure, __FILE__, __LINE__)
+
+/** Pending topology keeps the first directional record only for identical canonical payloads. */
+/datum/unit_test/dogmos_service_pending_topology_payload_dedup
+
+/datum/unit_test/dogmos_service_pending_topology_payload_dedup/Run()
+	if(!hascall(SSdogmos, "queue_pending_gas_adjacency") || !hascall(SSdogmos, "queue_pending_heat_adjacency"))
+		// The adjacent measurement fixture is intentionally source-compatible with the old backend.
+		return
+	var/list/original_gas_edges = SSdogmos.dogmos_pending_turf_adjacency
+	var/list/original_gas_index = SSdogmos.dogmos_pending_turf_adjacency_index
+	var/list/original_heat_edges = SSdogmos.dogmos_pending_turf_heat_adjacency
+	var/list/original_heat_index = SSdogmos.dogmos_pending_turf_heat_adjacency_index
+	var/gas_key = "10:5:20:7"
+	var/heat_key = gas_key
+	var/failure_message
+
+	try
+		SSdogmos.dogmos_pending_turf_adjacency = list()
+		SSdogmos.dogmos_pending_turf_adjacency_index = list()
+		SSdogmos.dogmos_pending_turf_heat_adjacency = list()
+		SSdogmos.dogmos_pending_turf_heat_adjacency_index = list()
+
+		if(!call(SSdogmos, "queue_pending_gas_adjacency")(10, 5, 20, 7, TRUE, FALSE, gas_key))
+			failure_message = "The first pending gas edge was not queued."
+		var/list/first_gas_edge = SSdogmos.dogmos_pending_turf_adjacency[gas_key]
+		if(!failure_message && call(SSdogmos, "queue_pending_gas_adjacency")(20, 7, 10, 5, TRUE, FALSE))
+			failure_message = "A reverse gas edge with matching payload replaced the pending record."
+		var/original_gas_slot = first_gas_edge?[1]
+		if(!failure_message && first_gas_edge)
+			first_gas_edge[1] = -101
+			if(SSdogmos.dogmos_pending_turf_adjacency[gas_key]?[1] != -101)
+				failure_message = "A matching reverse gas edge did not retain its original pending record."
+			first_gas_edge[1] = original_gas_slot
+		var/list/reversed_gas_edge = SSdogmos.dogmos_pending_turf_adjacency[gas_key]
+		if(!failure_message && (!islist(reversed_gas_edge) || length(reversed_gas_edge) != 6 || reversed_gas_edge[5] != TRUE || reversed_gas_edge[6] != FALSE \
+			|| !((reversed_gas_edge[1] == 20 && reversed_gas_edge[2] == 7 && reversed_gas_edge[3] == 10 && reversed_gas_edge[4] == 5) \
+				|| (reversed_gas_edge[1] == 10 && reversed_gas_edge[2] == 5 && reversed_gas_edge[3] == 20 && reversed_gas_edge[4] == 7))))
+			failure_message = "The retained gas edge changed its canonical state."
+		if(!failure_message && !call(SSdogmos, "queue_pending_gas_adjacency")(20, 7, 10, 5, TRUE, TRUE))
+			failure_message = "A changed gas firelock payload was not replaced."
+		if(!failure_message)
+			first_gas_edge[1] = -101
+			if(SSdogmos.dogmos_pending_turf_adjacency[gas_key]?[1] == -101)
+				failure_message = "A changed gas payload updated the old pending record instead of replacing it."
+			first_gas_edge[1] = original_gas_slot
+		var/list/replaced_gas_edge = SSdogmos.dogmos_pending_turf_adjacency[gas_key]
+		if(!failure_message && (!islist(replaced_gas_edge) || length(replaced_gas_edge) != 6 || replaced_gas_edge[5] != TRUE || replaced_gas_edge[6] != TRUE \
+			|| !((replaced_gas_edge[1] == 10 && replaced_gas_edge[2] == 5 && replaced_gas_edge[3] == 20 && replaced_gas_edge[4] == 7) \
+				|| (replaced_gas_edge[1] == 20 && replaced_gas_edge[2] == 7 && replaced_gas_edge[3] == 10 && replaced_gas_edge[4] == 5))))
+			failure_message = "Gas replacement did not retain the changed connected/firelock payload."
+		if(!failure_message && (length(SSdogmos.dogmos_pending_turf_adjacency) != 1 || length(SSdogmos.dogmos_pending_turf_adjacency_index["10"]) != 1 || length(SSdogmos.dogmos_pending_turf_adjacency_index["20"]) != 1))
+			failure_message = "Gas replacement did not retain one canonical edge and reverse-index entry per endpoint."
+
+		SSdogmos.dogmos_pending_turf_adjacency = list()
+		SSdogmos.dogmos_pending_turf_adjacency_index = list()
+		if(!failure_message && !call(SSdogmos, "queue_pending_gas_adjacency")(10, 5, 20, 7, TRUE, FALSE))
+			failure_message = "The gas-only topology record was not queued."
+		if(!failure_message && (length(SSdogmos.dogmos_pending_turf_adjacency) != 1 || length(SSdogmos.dogmos_pending_turf_heat_adjacency)))
+			failure_message = "A gas-only update affected the heat queue."
+		SSdogmos.dogmos_pending_turf_adjacency = list()
+		SSdogmos.dogmos_pending_turf_adjacency_index = list()
+		if(!failure_message && !call(SSdogmos, "queue_pending_heat_adjacency")(10, 5, 20, 7, TRUE, heat_key))
+			failure_message = "The heat-only topology record was not queued."
+		var/list/first_heat_edge = SSdogmos.dogmos_pending_turf_heat_adjacency[heat_key]
+		if(!failure_message && call(SSdogmos, "queue_pending_heat_adjacency")(20, 7, 10, 5, TRUE))
+			failure_message = "A reverse heat edge with matching payload replaced the pending record."
+		var/original_heat_slot = first_heat_edge?[1]
+		if(!failure_message && first_heat_edge)
+			first_heat_edge[1] = -101
+			if(SSdogmos.dogmos_pending_turf_heat_adjacency[heat_key]?[1] != -101)
+				failure_message = "A matching reverse heat edge did not retain its original pending record."
+			first_heat_edge[1] = original_heat_slot
+		if(!failure_message && !call(SSdogmos, "queue_pending_heat_adjacency")(20, 7, 10, 5, FALSE))
+			failure_message = "A changed heat connectivity payload was not replaced."
+		if(!failure_message)
+			first_heat_edge[1] = -101
+			if(SSdogmos.dogmos_pending_turf_heat_adjacency[heat_key]?[1] == -101)
+				failure_message = "A changed heat payload updated the old pending record instead of replacing it."
+			first_heat_edge[1] = original_heat_slot
+		var/list/replaced_heat_edge = SSdogmos.dogmos_pending_turf_heat_adjacency[heat_key]
+		if(!failure_message && (!islist(replaced_heat_edge) || length(replaced_heat_edge) != 5 || replaced_heat_edge[5] != FALSE \
+			|| !((replaced_heat_edge[1] == 10 && replaced_heat_edge[2] == 5 && replaced_heat_edge[3] == 20 && replaced_heat_edge[4] == 7) \
+				|| (replaced_heat_edge[1] == 20 && replaced_heat_edge[2] == 7 && replaced_heat_edge[3] == 10 && replaced_heat_edge[4] == 5))))
+			failure_message = "Heat replacement did not retain the changed connectivity payload."
+		if(!failure_message && (length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat_adjacency) != 1))
+			failure_message = "A heat-only update affected the gas queue or lost its canonical heat edge."
+
+		var/turf/target = run_loc_floor_bottom_left
+		var/target_slot = target.dogmos_service_slot()
+		var/target_generation = target.dogmos_service_generation()
+		var/rebuild_slot = target_slot + 500
+		SSdogmos.dogmos_pending_turf_heat_adjacency = list()
+		SSdogmos.dogmos_pending_turf_heat_adjacency_index = list()
+		call(SSdogmos, "queue_pending_gas_adjacency")(target_slot, target_generation, rebuild_slot, 1, TRUE, FALSE)
+		call(SSdogmos, "queue_pending_heat_adjacency")(target_slot, target_generation, rebuild_slot, 1, TRUE)
+		SSdogmos.discard_pending_turf_adjacencies(target)
+		if(!failure_message && (length(SSdogmos.dogmos_pending_turf_adjacency) || length(SSdogmos.dogmos_pending_turf_heat_adjacency) || length(SSdogmos.dogmos_pending_turf_adjacency_index) || length(SSdogmos.dogmos_pending_turf_heat_adjacency_index)))
+			failure_message = "Discard did not remove both gas and heat records for the old generation."
+		var/rebuild_gas = call(SSdogmos, "queue_pending_gas_adjacency")(target_slot, target_generation + 1, rebuild_slot, 1, TRUE, FALSE)
+		var/rebuild_heat = call(SSdogmos, "queue_pending_heat_adjacency")(target_slot, target_generation + 1, rebuild_slot, 1, TRUE)
+		if(!failure_message && (!rebuild_gas || !rebuild_heat || length(SSdogmos.dogmos_pending_turf_adjacency) != 1 || length(SSdogmos.dogmos_pending_turf_heat_adjacency) != 1))
+			failure_message = "A replacement generation did not rebuild independent gas and heat topology."
+	catch(var/exception/error)
+		failure_message = "The pending topology payload test raised [error.name]."
+
+	SSdogmos.dogmos_pending_turf_adjacency = original_gas_edges
+	SSdogmos.dogmos_pending_turf_adjacency_index = original_gas_index
+	SSdogmos.dogmos_pending_turf_heat_adjacency = original_heat_edges
+	SSdogmos.dogmos_pending_turf_heat_adjacency_index = original_heat_index
+	if(failure_message)
+		return Fail(failure_message, __FILE__, __LINE__)
+
+/**
+ * Reports reverse-pass record retention using only queued-list identity, so this exact fixture
+ * can compare an old service_backend.dm against the staged candidate without production counters.
+ */
+/datum/unit_test/dogmos_service_pending_topology_dedup_measurement
+
+/datum/unit_test/dogmos_service_pending_topology_dedup_measurement/proc/gas_state_matches(list/edge, first_slot, first_generation, second_slot, second_generation, connected, firelock)
+	if(!islist(edge) || length(edge) != 6 || edge[5] != !!connected || edge[6] != !!firelock)
+		return FALSE
+	return (edge[1] == first_slot && edge[2] == first_generation && edge[3] == second_slot && edge[4] == second_generation) \
+		|| (edge[1] == second_slot && edge[2] == second_generation && edge[3] == first_slot && edge[4] == first_generation)
+
+/datum/unit_test/dogmos_service_pending_topology_dedup_measurement/proc/heat_state_matches(list/edge, first_slot, first_generation, second_slot, second_generation, connected)
+	if(!islist(edge) || length(edge) != 5 || edge[5] != !!connected)
+		return FALSE
+	return (edge[1] == first_slot && edge[2] == first_generation && edge[3] == second_slot && edge[4] == second_generation) \
+		|| (edge[1] == second_slot && edge[2] == second_generation && edge[3] == first_slot && edge[4] == first_generation)
+
+/datum/unit_test/dogmos_service_pending_topology_dedup_measurement/proc/registration_ring_is_current(turf/first, turf/second)
+	for(var/turf/source as anything in list(first, second))
+		for(var/direction in GLOB.cardinals)
+			var/turf/neighbor = get_step(source, direction)
+			if((neighbor?.init_air || isspaceturf(neighbor)) && !neighbor.dogmos_air_registration_is_current(isspaceturf(neighbor)))
+				return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_service_pending_topology_dedup_measurement/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/turf/open/target = run_loc_floor_bottom_left
+	var/turf/open/neighbor = get_step(target, EAST)
+	if(!target?.air || !neighbor?.air || isnull(target.dogmos_registration_generation) || isnull(neighbor.dogmos_registration_generation) || !target.dogmos_air_registration_is_current(FALSE) || !neighbor.dogmos_air_registration_is_current(FALSE) || !registration_ring_is_current(target, neighbor))
+		return Fail("The topology retention measurement needs two registered open atmosphere turfs with current cardinal rings.", __FILE__, __LINE__)
+	var/list/original_pending_frontier = SSair.dogmos_pending_frontier_epoch
+	var/original_runtime_batching = SSdogmos.runtime_topology_batching
+	var/list/original_lifecycle = SSdogmos.dogmos_pending_turf_lifecycle
+	var/list/original_heat = SSdogmos.dogmos_pending_turf_heat
+	var/list/original_gas_edges = SSdogmos.dogmos_pending_turf_adjacency
+	var/list/original_gas_index = SSdogmos.dogmos_pending_turf_adjacency_index
+	var/list/original_heat_edges = SSdogmos.dogmos_pending_turf_heat_adjacency
+	var/list/original_heat_index = SSdogmos.dogmos_pending_turf_heat_adjacency_index
+	var/list/original_adjacency_retry = SSdogmos.dogmos_pending_adjacency_retry
+	var/original_max_queued = SSdogmos.dogmos_runtime_topology_max_queued
+	var/target_slot = target.dogmos_service_slot()
+	var/target_generation = target.dogmos_service_generation()
+	var/neighbor_slot = neighbor.dogmos_service_slot()
+	var/neighbor_generation = neighbor.dogmos_service_generation()
+	var/edge_key = target_slot < neighbor_slot ? "[target_slot]:[target_generation]:[neighbor_slot]:[neighbor_generation]" : "[neighbor_slot]:[neighbor_generation]:[target_slot]:[target_generation]"
+	var/failure_message
+	var/list/measurement = list()
+
+	try
+		SSair.dogmos_pending_frontier_epoch = null
+		SSdogmos.runtime_topology_batching = TRUE
+		SSdogmos.dogmos_pending_turf_adjacency = list()
+		SSdogmos.dogmos_pending_turf_adjacency_index = list()
+		SSdogmos.dogmos_pending_turf_heat_adjacency = list()
+		SSdogmos.dogmos_pending_turf_heat_adjacency_index = list()
+		target.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy, TRUE)
+		var/list/first_gas_edge = SSdogmos.dogmos_pending_turf_adjacency[edge_key]
+		var/list/first_heat_edge = SSdogmos.dogmos_pending_turf_heat_adjacency[edge_key]
+		if(!first_gas_edge || !first_heat_edge)
+			failure_message = "The forward topology pass did not queue both gas and heat records."
+		else
+			var/first_gas_connected = first_gas_edge[5]
+			var/first_gas_firelock = first_gas_edge[6]
+			var/first_heat_connected = first_heat_edge[5]
+			neighbor.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy, TRUE)
+			measurement["gas_state_matches_reverse"] = gas_state_matches(SSdogmos.dogmos_pending_turf_adjacency[edge_key], target_slot, target_generation, neighbor_slot, neighbor_generation, first_gas_connected, first_gas_firelock)
+			measurement["heat_state_matches_reverse"] = heat_state_matches(SSdogmos.dogmos_pending_turf_heat_adjacency[edge_key], target_slot, target_generation, neighbor_slot, neighbor_generation, first_heat_connected)
+			if(measurement["gas_state_matches_reverse"] && measurement["heat_state_matches_reverse"])
+				var/original_gas_slot = first_gas_edge[1]
+				var/original_heat_slot = first_heat_edge[1]
+				first_gas_edge[1] = -101
+				first_heat_edge[1] = -101
+				measurement["gas_record_retained"] = SSdogmos.dogmos_pending_turf_adjacency[edge_key]?[1] == -101
+				measurement["heat_record_retained"] = SSdogmos.dogmos_pending_turf_heat_adjacency[edge_key]?[1] == -101
+				first_gas_edge[1] = original_gas_slot
+				first_heat_edge[1] = original_heat_slot
+			else
+				failure_message = "The forward and reverse topology passes did not agree on canonical gas/heat payloads."
+			measurement["gas_edge_count"] = length(SSdogmos.dogmos_pending_turf_adjacency)
+			measurement["heat_edge_count"] = length(SSdogmos.dogmos_pending_turf_heat_adjacency)
+			measurement["gas_index_has_edge"] = !!(SSdogmos.dogmos_pending_turf_adjacency_index["[target_slot]"]?[edge_key] && SSdogmos.dogmos_pending_turf_adjacency_index["[neighbor_slot]"]?[edge_key])
+			measurement["heat_index_has_edge"] = !!(SSdogmos.dogmos_pending_turf_heat_adjacency_index["[target_slot]"]?[edge_key] && SSdogmos.dogmos_pending_turf_heat_adjacency_index["[neighbor_slot]"]?[edge_key])
+			if(!failure_message && (!measurement["gas_index_has_edge"] || !measurement["heat_index_has_edge"]))
+				failure_message = "The reverse topology pass changed canonical gas/heat state or lost its reverse-index membership."
+	catch(var/exception/error)
+		failure_message = "The topology retention measurement raised [error.name]."
+
+	SSair.dogmos_pending_frontier_epoch = original_pending_frontier
+	SSdogmos.runtime_topology_batching = original_runtime_batching
+	SSdogmos.dogmos_pending_turf_lifecycle = original_lifecycle
+	SSdogmos.dogmos_pending_turf_heat = original_heat
+	SSdogmos.dogmos_pending_turf_adjacency = original_gas_edges
+	SSdogmos.dogmos_pending_turf_adjacency_index = original_gas_index
+	SSdogmos.dogmos_pending_turf_heat_adjacency = original_heat_edges
+	SSdogmos.dogmos_pending_turf_heat_adjacency_index = original_heat_index
+	SSdogmos.dogmos_pending_adjacency_retry = original_adjacency_retry
+	SSdogmos.dogmos_runtime_topology_max_queued = original_max_queued
+	file("[GLOB.log_directory]/dogmos-pending-topology-dedup.json") << json_encode(measurement)
+	if(failure_message)
+		return Fail(failure_message, __FILE__, __LINE__)
+
+#define DOGMOS_MULTIZ_TEST_STAGE_TURFS 4
+
+/** A mutable vertical gate: closing it must not replace the turf or its air datum. */
+/turf/open/floor/plating/dogmos_multiz_vertical_gate
+	var/dogmos_multiz_open = TRUE
+
+/turf/open/floor/plating/dogmos_multiz_vertical_gate/zAirOut(direction, turf/source)
+	return dogmos_multiz_open && ..()
+
+/turf/open/floor/plating/dogmos_multiz_vertical_gate/zAirIn(direction, turf/source)
+	return dogmos_multiz_open && ..()
+
+/datum/unit_test/dogmos_multiz_gas_adjacency
+	var/turf/open/floor/plating/dogmos_multiz_vertical_gate/lower
+	var/turf/open/openspace/upper
+	var/lower_z
+	var/upper_z
+	var/saved_lower_multiz_row
+	var/saved_upper_multiz_row
+	var/cache_active = FALSE
+	var/list/saved_turfs
+	var/list/cleanup_failures
+	var/last_rebuild_error
+	var/last_restore_link_error
+	var/list/saved_active_turfs
+	var/list/saved_frontier
+	var/list/saved_frontier_tickers
+	var/list/saved_owned_turfs
+	var/cleanup_attempted = FALSE
+	var/saved_max_queued
+	var/datum/gas_mixture/immutable/space/canonical_space_gas
+	var/list/canonical_space_snapshot
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/edge_key(turf/first, turf/second)
+	var/first_slot = first.dogmos_service_slot()
+	var/first_generation = first.dogmos_service_generation()
+	var/second_slot = second.dogmos_service_slot()
+	var/second_generation = second.dogmos_service_generation()
+	return first_slot < second_slot ? "[first_slot]:[first_generation]:[second_slot]:[second_generation]" : "[second_slot]:[second_generation]:[first_slot]:[first_generation]"
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/pending_topology_empty()
+	return !length(SSdogmos.dogmos_pending_turf_lifecycle) && !length(SSdogmos.dogmos_pending_turf_adjacency) \
+		&& !length(SSdogmos.dogmos_pending_turf_adjacency_index) && !length(SSdogmos.dogmos_pending_turf_heat) \
+		&& !length(SSdogmos.dogmos_pending_turf_heat_adjacency) && !length(SSdogmos.dogmos_pending_turf_heat_adjacency_index) \
+		&& !length(SSdogmos.dogmos_pending_adjacency_retry) && !length(SSdogmos.dogmos_pending_mixture_unregistrations)
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/record_cleanup_failure(phase, detail)
+	if(!cleanup_failures)
+		cleanup_failures = list()
+	cleanup_failures += detail ? "[phase]: [detail]" : phase
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/cleanup_failure_summary()
+	return length(cleanup_failures) ? cleanup_failures.Join("; ") : "no cleanup diagnostic was recorded"
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/pending_topology_counts()
+	return "lifecycle=[length(SSdogmos.dogmos_pending_turf_lifecycle)], gas_adjacency=[length(SSdogmos.dogmos_pending_turf_adjacency)], gas_index=[length(SSdogmos.dogmos_pending_turf_adjacency_index)], turf_heat=[length(SSdogmos.dogmos_pending_turf_heat)], heat_adjacency=[length(SSdogmos.dogmos_pending_turf_heat_adjacency)], heat_index=[length(SSdogmos.dogmos_pending_turf_heat_adjacency_index)], retry=[length(SSdogmos.dogmos_pending_adjacency_retry)], unregister=[length(SSdogmos.dogmos_pending_mixture_unregistrations)]"
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/open_turf_state_detail(turf/open/target)
+	var/list/content_types = list()
+	for(var/atom/contained as anything in target.contents)
+		content_types += "[contained.type]"
+	var/content_detail = length(content_types) ? content_types.Join(", ") : "none"
+	var/reservation_flags = target.turf_flags & (RESERVATION_TURF | UNUSED_RESERVATION_TURF)
+	return "type=[target.type], flags_1=[target.flags_1], turf_flags=[target.turf_flags], reservation_flags=[reservation_flags], contents=[length(target.contents)] ([content_detail]), active=[target in SSair.active_turfs], currentrun=[SSair.currentrun && (target in SSair.currentrun)], excited=[target.excited], group=[!!target.excited_group], canonical_air=[target.air == canonical_space_gas]"
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/is_dormant_initialized_space(turf/target)
+	if(!istype(target, /turf/open/space))
+		return FALSE
+	var/turf/open/space/open_space = target
+	return (open_space.type == /turf/open/space || open_space.type == /turf/open/space/basic) \
+		&& (open_space.flags_1 & INITIALIZED_1) && !(open_space.turf_flags & (RESERVATION_TURF | UNUSED_RESERVATION_TURF)) && !length(open_space.contents) \
+		&& !(open_space in SSair.active_turfs) && !open_space.excited && !open_space.excited_group
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/is_dormant_frontier_turf(turf/target)
+	if(!istype(target, /turf/open))
+		return FALSE
+	var/turf/open/open_turf = target
+	return (open_turf.flags_1 & INITIALIZED_1) && open_turf.air && !length(open_turf.contents) \
+		&& !(open_turf in SSair.active_turfs) && !open_turf.excited && !open_turf.excited_group \
+		&& !(SSair.currentrun && (open_turf in SSair.currentrun))
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/build_fixture_frontier(list/owned_turfs)
+	var/list/frontier = list()
+	for(var/turf/open/owned as anything in owned_turfs)
+		if(!(owned in frontier))
+			frontier += owned
+		for(var/turf/neighbor as anything in owned.atmos_adjacent_turfs)
+			if(!(neighbor in frontier))
+				frontier += neighbor
+	return frontier
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/frontier_is_safe(list/frontier)
+	if(!islist(frontier) || !length(frontier))
+		return FALSE
+	for(var/target as anything in frontier)
+		if(!is_dormant_frontier_turf(target))
+			return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/capture_fixture_frontier(list/owned_turfs)
+	var/list/frontier = build_fixture_frontier(owned_turfs)
+	if(!frontier_is_safe(frontier))
+		return FALSE
+	saved_owned_turfs = list()
+	for(var/turf/owned_turf as anything in owned_turfs)
+		saved_owned_turfs += list(list(owned_turf.x, owned_turf.y, owned_turf.z))
+	saved_frontier = list()
+	saved_active_turfs = SSair.active_turfs.Copy()
+	saved_frontier_tickers = list()
+	for(var/turf/open/frontier_turf as anything in frontier)
+		var/frontier_key = "[frontier_turf.x],[frontier_turf.y],[frontier_turf.z]"
+		saved_frontier += list(list(frontier_turf.x, frontier_turf.y, frontier_turf.z))
+		saved_frontier_tickers[frontier_key] = frontier_turf.significant_share_ticker
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/active_turfs_match_snapshot()
+	if(!islist(saved_active_turfs) || length(SSair.active_turfs) != length(saved_active_turfs))
+		return FALSE
+	for(var/index in 1 to length(saved_active_turfs))
+		if(SSair.active_turfs[index] != saved_active_turfs[index])
+			return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/restore_fixture_frontier()
+	var/success = TRUE
+	for(var/list/state as anything in saved_frontier)
+		var/turf/frontier_target = locate(state[1], state[2], state[3])
+		if(!istype(frontier_target, /turf/open))
+			record_cleanup_failure("active frontier", "[state[1]],[state[2]],[state[3]] lost open-turf identity")
+			success = FALSE
+			continue
+		var/turf/open/frontier_turf = frontier_target
+		var/frontier_key = "[frontier_turf.x],[frontier_turf.y],[frontier_turf.z]"
+		try
+			if(frontier_turf.excited || (frontier_turf in SSair.active_turfs) || (SSair.currentrun && (frontier_turf in SSair.currentrun)))
+				SSair.sleep_active_turf(frontier_turf)
+			frontier_turf.significant_share_ticker = saved_frontier_tickers[frontier_key]
+		catch(var/exception/restore_frontier_error)
+			record_cleanup_failure("active frontier", "[frontier_turf.x],[frontier_turf.y],[frontier_turf.z] restoration raised [restore_frontier_error.name]")
+			success = FALSE
+			continue
+		if(!is_dormant_frontier_turf(frontier_turf) || frontier_turf.significant_share_ticker != saved_frontier_tickers[frontier_key])
+			record_cleanup_failure("active frontier", "[frontier_turf.x],[frontier_turf.y],[frontier_turf.z] [open_turf_state_detail(frontier_turf)], ticker=[frontier_turf.significant_share_ticker], saved_ticker=[saved_frontier_tickers[frontier_key]]")
+			success = FALSE
+	if(!active_turfs_match_snapshot())
+		record_cleanup_failure("active frontier", "SSair.active_turfs identities or order differ from the pre-mutation snapshot")
+		success = FALSE
+	return success
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/owned_turfs_are_dormant()
+	for(var/list/state as anything in saved_owned_turfs)
+		var/turf/target = locate(state[1], state[2], state[3])
+		if(!is_dormant_initialized_space(target))
+			return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/empty_space_ring(turf/center, list/result)
+	for(var/direction in GLOB.cardinals)
+		var/turf/neighbor = get_step(center, direction)
+		if(!is_dormant_initialized_space(neighbor))
+			return FALSE
+		result += neighbor
+	return TRUE
+
+/** Physical stacking locates candidates; map-cache rows are the only logical z-link authority. */
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/find_fixture_pair()
+	if(world.maxz < 2)
+		return FALSE
+	for(var/z_index in 1 to world.maxz - 1)
+		for(var/turf/candidate as anything in Z_TURFS(z_index))
+			// This search precedes all fixture mutation; yielding here cannot expose temporary links.
+			CHECK_TICK
+			if(!istype(candidate, /turf/open/space))
+				continue
+			var/turf/open/space/space_candidate = candidate
+			if(!is_dormant_initialized_space(space_candidate))
+				continue
+			var/turf/candidate_above = locate(candidate.x, candidate.y, candidate.z + 1)
+			if(!istype(candidate_above, /turf/open/space))
+				continue
+			var/turf/open/space/space_candidate_above = candidate_above
+			if(!is_dormant_initialized_space(space_candidate_above))
+				continue
+			var/list/ring = list()
+			if(!empty_space_ring(candidate, ring) || !empty_space_ring(candidate_above, ring))
+				continue
+			var/list/owned_turfs = list(candidate, candidate_above)
+			owned_turfs += ring
+			if(!frontier_is_safe(build_fixture_frontier(owned_turfs)))
+				continue
+			lower = candidate
+			upper = candidate_above
+			lower_z = candidate.z
+			upper_z = candidate_above.z
+			return ring
+	return FALSE
+
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/save_turf(turf/open/space/target)
+	if(!is_dormant_initialized_space(target) || target.air != canonical_space_gas)
+		return FALSE
+	var/original_baseturfs = islist(target.baseturfs) ? target.baseturfs.Copy() : target.baseturfs
+	saved_turfs += list(list(
+		target.x, target.y, target.z, target.type, original_baseturfs, target.turf_flags, get_area(target), target.blocks_air,
+		target.current_cycle, target.archived_cycle, target.pressure_difference, target.pressure_direction, target.temperature))
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/baseturfs_match(current_baseturfs, saved_baseturfs)
+	if(!islist(saved_baseturfs))
+		return current_baseturfs == saved_baseturfs
+	if(!islist(current_baseturfs) || length(current_baseturfs) != length(saved_baseturfs))
+		return FALSE
+	for(var/index in 1 to length(saved_baseturfs))
+		if(current_baseturfs[index] != saved_baseturfs[index])
+			return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/canonical_space_is_unchanged()
+	if(!canonical_space_gas?.is_immutable())
+		return FALSE
+	var/list/current_snapshot = canonical_space_gas.dogmos_snapshot()
+	if(!islist(current_snapshot) || length(current_snapshot) != length(canonical_space_snapshot))
+		return FALSE
+	for(var/index in 1 to length(current_snapshot))
+		if(current_snapshot[index] != canonical_space_snapshot[index])
+			return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/activate_fixture_link()
+	saved_lower_multiz_row = SSmapping.multiz_levels[lower_z]
+	saved_upper_multiz_row = SSmapping.multiz_levels[upper_z]
+	// Replace both rows, retaining no external vertical route during the measured interval.
+	var/list/lower_row = new /list(LARGEST_Z_LEVEL_INDEX)
+	var/list/upper_row = new /list(LARGEST_Z_LEVEL_INDEX)
+	lower_row[Z_LEVEL_UP] = TRUE
+	upper_row[Z_LEVEL_DOWN] = TRUE
+	SSmapping.multiz_levels[lower_z] = lower_row
+	SSmapping.multiz_levels[upper_z] = upper_row
+	cache_active = TRUE
+	if(get_step_multiz(lower, UP) == upper && get_step_multiz(upper, DOWN) == lower)
+		return TRUE
+	// No turf changed yet; undo this failed logical-link attempt before returning to Run().
+	restore_fixture_link()
+	saved_turfs = null
+	return FALSE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/restore_fixture_link()
+	if(!cache_active)
+		return TRUE
+	last_restore_link_error = null
+	var/success = TRUE
+	try
+		SSmapping.multiz_levels[lower_z] = saved_lower_multiz_row
+	catch(var/exception/restore_lower_row_error)
+		last_restore_link_error = "lower cache row raised [restore_lower_row_error.name]"
+		success = FALSE
+	try
+		SSmapping.multiz_levels[upper_z] = saved_upper_multiz_row
+	catch(var/exception/restore_upper_row_error)
+		last_restore_link_error = last_restore_link_error ? "[last_restore_link_error], upper cache row raised [restore_upper_row_error.name]" : "upper cache row raised [restore_upper_row_error.name]"
+		success = FALSE
+	if(success)
+		cache_active = FALSE
+	return success
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/fixture_link_is_restored()
+	return !cache_active && SSmapping.multiz_levels[lower_z] == saved_lower_multiz_row \
+		&& SSmapping.multiz_levels[upper_z] == saved_upper_multiz_row
+
+/** Uses the DM adjacency path; retry is the maintained deferred publication path. */
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/rebuild_deferred(reverse_order = FALSE)
+	last_rebuild_error = null
+	if(SSdogmos.turf_registration_batching || SSdogmos.runtime_topology_batching || !lower || !upper)
+		last_rebuild_error = "precondition failed: registration_batching=[SSdogmos.turf_registration_batching], runtime_batching=[SSdogmos.runtime_topology_batching], lower=[!!lower], upper=[!!upper]"
+		return FALSE
+	SSdogmos.runtime_topology_batching = TRUE
+	try
+		if(reverse_order)
+			upper.immediate_calculate_adjacent_turfs()
+			lower.immediate_calculate_adjacent_turfs()
+		else
+			lower.immediate_calculate_adjacent_turfs()
+			upper.immediate_calculate_adjacent_turfs()
+	catch(var/exception/rebuild_error)
+		SSdogmos.runtime_topology_batching = FALSE
+		last_rebuild_error = "immediate adjacency raised [rebuild_error.name]"
+		return FALSE
+	SSdogmos.runtime_topology_batching = FALSE
+	try
+		SSdogmos.retry_pending_turf_adjacencies()
+	catch(var/exception/rebuild_retry_error)
+		last_rebuild_error = "retry publication raised [rebuild_retry_error.name]"
+		return FALSE
+	if(!lower.dogmos_air_registration_is_current(FALSE) || !upper.dogmos_air_registration_is_current(FALSE))
+		last_rebuild_error = "air registrations were not current"
+		return FALSE
+	return TRUE
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/edge_matches(list/edge, turf/first, turf/second, connected)
+	if(!islist(edge) || length(edge) != 6 || edge[5] != !!connected || edge[6])
+		return FALSE
+	var/first_slot = first.dogmos_service_slot()
+	var/first_generation = first.dogmos_service_generation()
+	var/second_slot = second.dogmos_service_slot()
+	var/second_generation = second.dogmos_service_generation()
+	return (edge[1] == first_slot && edge[2] == first_generation && edge[3] == second_slot && edge[4] == second_generation) \
+		|| (edge[1] == second_slot && edge[2] == second_generation && edge[3] == first_slot && edge[4] == first_generation)
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/pending_pair_matches(turf/first, turf/second, connected)
+	var/key = edge_key(first, second)
+	var/list/edge = SSdogmos.dogmos_pending_turf_adjacency[key]
+	if(!edge_matches(edge, first, second, connected))
+		return FALSE
+	var/list/first_index = SSdogmos.dogmos_pending_turf_adjacency_index["[first.dogmos_service_slot()]"]
+	var/list/second_index = SSdogmos.dogmos_pending_turf_adjacency_index["[second.dogmos_service_slot()]"]
+	if(!first_index?[key] || !second_index?[key] || SSdogmos.dogmos_pending_turf_heat_adjacency[key])
+		return FALSE
+	var/matches = 0
+	for(var/other_key in SSdogmos.dogmos_pending_turf_adjacency)
+		if(edge_matches(SSdogmos.dogmos_pending_turf_adjacency[other_key], first, second, connected))
+			matches++
+	return matches == 1
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/flush_topology()
+	return !SSdogmos.runtime_topology_batching && !SSdogmos.turf_registration_batching && SSdogmos.flush_turf_registration_batch()
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/restore_saved_turfs(turf/only_turf = null)
+	var/success = TRUE
+	for(var/list/state as anything in saved_turfs)
+		var/turf/current = locate(state[1], state[2], state[3])
+		if(only_turf && current != only_turf)
+			continue
+		var/turf/restored_turf
+		try
+			// ChangeTurf deliberately rewrites loader-only /space/basic to initialized runtime /space.
+			restored_turf = current?.ChangeTurf(/turf/open/space, state[5], CHANGETURF_RECALC_ADJACENT | CHANGETURF_NO_AREA_CHANGE)
+		catch(var/exception/restore_turf_error)
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]]", "ChangeTurf raised [restore_turf_error.name]")
+			success = FALSE
+			continue
+		if(!restored_turf)
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]]", "ChangeTurf returned null")
+			success = FALSE
+			continue
+		if(restored_turf.type != /turf/open/space)
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] identity", "got [restored_turf.type], expected /turf/open/space")
+			success = FALSE
+			continue
+		var/turf/open/space/restored = restored_turf
+		if(get_area(restored) != state[7])
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] area", "area identity changed")
+			success = FALSE
+		if(!baseturfs_match(restored.baseturfs, state[5]))
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] baseturfs", "saved baseturfs values were not restored")
+			success = FALSE
+		if(!(restored.flags_1 & INITIALIZED_1))
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] initialization", "INITIALIZED_1 is absent")
+			success = FALSE
+		if(restored.air != canonical_space_gas)
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] canonical air", "restored air identity differs")
+			success = FALSE
+		if(restored.air != canonical_space_gas)
+			continue
+		// No INHERIT_AIR: /space Initialize restores its shared immutable space_gas.
+		restored.turf_flags = state[6]
+		restored.blocks_air = state[8]
+		try
+			restored.immediate_calculate_adjacent_turfs()
+		catch(var/exception/restore_adjacency_error)
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] adjacency", "rebuild raised [restore_adjacency_error.name]")
+			success = FALSE
+		// Selection requires dormant source space; normalize rather than revive a stale group pointer.
+		try
+			SSair.sleep_active_turf(restored)
+			restored.excited_group = null
+			restored.current_cycle = state[9]
+			restored.archived_cycle = state[10]
+			restored.pressure_difference = state[11]
+			restored.pressure_direction = state[12]
+			restored.set_temperature(state[13])
+		catch(var/exception/restore_state_error)
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] state", "normalization raised [restore_state_error.name]")
+			success = FALSE
+			continue
+		try
+			if(!is_dormant_initialized_space(restored) || restored.air != canonical_space_gas)
+				record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] dormant witness", open_turf_state_detail(restored))
+				success = FALSE
+		catch(var/exception/restore_witness_error)
+			record_cleanup_failure("restore turf [state[1]],[state[2]],[state[3]] dormant witness", "check raised [restore_witness_error.name]")
+			success = FALSE
+	return success
+
+/** No sleep is legal after activate_fixture_link(): immediate/retry/flush are synchronous. */
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/cleanup_fixture()
+	if(!cache_active && !length(saved_turfs))
+		return TRUE
+	cleanup_failures = list()
+	var/was_runtime_batching = SSdogmos.runtime_topology_batching
+	var/was_registration_batching = SSdogmos.turf_registration_batching
+	try
+		if(cache_active && !was_runtime_batching && !was_registration_batching && SSdogmos.service_ready)
+			if(!istype(lower, /turf/open/floor/plating/dogmos_multiz_vertical_gate) || !istype(upper, /turf/open/openspace))
+				record_cleanup_failure("failed close", "fixture gate or upper turf identity was lost")
+			else
+				SSdogmos.runtime_topology_batching = TRUE
+				lower.dogmos_multiz_open = FALSE
+				lower.immediate_calculate_adjacent_turfs()
+				upper.immediate_calculate_adjacent_turfs()
+				SSdogmos.runtime_topology_batching = FALSE
+				SSdogmos.retry_pending_turf_adjacencies()
+				if(!flush_topology())
+					record_cleanup_failure("failed close", "closure topology flush returned false")
+		else if(cache_active)
+			record_cleanup_failure("failed close", "runtime_batching=[was_runtime_batching], registration_batching=[was_registration_batching], service_ready=[SSdogmos.service_ready]")
+	catch(var/exception/close_error)
+		record_cleanup_failure("failed close", "raised [close_error.name]")
+	SSdogmos.runtime_topology_batching = was_runtime_batching
+	SSdogmos.turf_registration_batching = was_registration_batching
+	// Restore the upper openspace center while temporary rows still resolve its maintained transparency cleanup.
+	if(cache_active)
+		SSdogmos.runtime_topology_batching = TRUE
+		SSdogmos.turf_registration_batching = was_registration_batching
+		try
+			if(!restore_saved_turfs(upper))
+				record_cleanup_failure("restore upper center", "the upper openspace center failed restoration before cache-row removal")
+		catch(var/exception/restore_upper_center_error)
+			record_cleanup_failure("restore upper center", "raised [restore_upper_center_error.name]")
+	// Keep publication batched through map-row and turf restoration; never publish the temporary upper replacement.
+	var/link_was_active = cache_active
+	try
+		if(!restore_fixture_link())
+			record_cleanup_failure("restore link", last_restore_link_error || "cache-row restoration returned false")
+	catch(var/exception/restore_link_error)
+		record_cleanup_failure("restore link", "raised [restore_link_error.name]")
+	try
+		if(link_was_active && !fixture_link_is_restored())
+			record_cleanup_failure("restore link", "saved multiz cache-row identities were not restored")
+	catch(var/exception/restore_link_witness_error)
+		record_cleanup_failure("restore link", "identity witness raised [restore_link_witness_error.name]")
+	SSdogmos.runtime_topology_batching = TRUE
+	SSdogmos.turf_registration_batching = was_registration_batching
+	try
+		if(!restore_saved_turfs())
+			record_cleanup_failure("restore turfs", "one or more saved turf witnesses failed")
+	catch(var/exception/restore_turfs_error)
+		record_cleanup_failure("restore turfs", "raised [restore_turfs_error.name]")
+	SSdogmos.runtime_topology_batching = was_runtime_batching
+	SSdogmos.turf_registration_batching = was_registration_batching
+	if(!was_runtime_batching && !was_registration_batching && SSdogmos.service_ready)
+		try
+			SSdogmos.retry_pending_turf_adjacencies()
+			if(!flush_topology())
+				record_cleanup_failure("final topology", "flush returned false")
+		catch(var/exception/final_topology_error)
+			record_cleanup_failure("final topology", "retry or flush raised [final_topology_error.name]")
+	else
+		record_cleanup_failure("final topology", "skipped with runtime_batching=[was_runtime_batching], registration_batching=[was_registration_batching], service_ready=[SSdogmos.service_ready]")
+	SSdogmos.runtime_topology_batching = was_runtime_batching
+	SSdogmos.turf_registration_batching = was_registration_batching
+	try
+		if(!restore_fixture_frontier())
+			record_cleanup_failure("active frontier", "one or more frontier members did not return to the pre-mutation dormant state")
+	catch(var/exception/restore_frontier_cleanup_error)
+		record_cleanup_failure("active frontier", "restoration raised [restore_frontier_cleanup_error.name]")
+	if(!owned_turfs_are_dormant())
+		record_cleanup_failure("owned dormancy", "one or more of the ten owned turfs did not return to dormant initialized space")
+	if(!pending_topology_empty())
+		record_cleanup_failure("final pending queues", pending_topology_counts())
+	try
+		if(!canonical_space_is_unchanged())
+			record_cleanup_failure("canonical witness", "immutable space gas identity or snapshot changed")
+	catch(var/exception/canonical_witness_error)
+		record_cleanup_failure("canonical witness", "snapshot check raised [canonical_witness_error.name]")
+	SSdogmos.dogmos_runtime_topology_max_queued = saved_max_queued
+	var/success = !length(cleanup_failures)
+	if(success)
+		saved_turfs = null
+		saved_active_turfs = null
+		saved_frontier = null
+		saved_frontier_tickers = null
+		saved_owned_turfs = null
+		lower = null
+		upper = null
+	return success
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/proc/run_fixture()
+	var/list/ring = find_fixture_pair()
+	if(!islist(ring))
+		return "No empty, physically stacked space cells with sealed cardinal rings are available for the bounded multiz fixture."
+	// CHECK_TICK may have yielded while searching. Re-establish the boundary before any global mutation.
+	if(!dogmos_wait_for_stage_boundary() || dogmos_fixture_aborted)
+		return null
+	if(SSdogmos.runtime_topology_batching || SSdogmos.turf_registration_batching || !pending_topology_empty())
+		return "The multiz fixture did not regain an empty Dogmos topology boundary after its search."
+	saved_max_queued = SSdogmos.dogmos_runtime_topology_max_queued
+	canonical_space_gas = lower.air
+	var/list/initial_space_snapshot = canonical_space_gas?.dogmos_snapshot()
+	canonical_space_snapshot = initial_space_snapshot?.Copy()
+	if(!canonical_space_gas?.is_immutable() || !islist(canonical_space_snapshot) || upper.air != canonical_space_gas)
+		return "The selected initialized base/basic space cells did not share one immutable canonical space mixture."
+	for(var/turf/open/space/ring_turf as anything in ring)
+		if(!is_dormant_initialized_space(ring_turf) || ring_turf.air != canonical_space_gas)
+			return "A selected cardinal ring turf did not retain the canonical space-air witness."
+	var/list/owned_turfs = list(lower, upper)
+	owned_turfs += ring
+	// Capture after a fresh stage boundary and before mutation. No later fixture operation sleeps.
+	if(!capture_fixture_frontier(owned_turfs))
+		return "The selected turfs or their pre-mutation adjacency frontier were active, grouped, nonempty, uninitialized, or queued in the current air run."
+	// Capture only after all ten inputs validate, so a pre-activation failure leaves no turf touched.
+	if(!save_turf(lower) || !save_turf(upper))
+		return "The selected base/basic space cells could not retain their canonical space-air witness."
+	for(var/turf/open/space/ring_turf as anything in ring)
+		if(!save_turf(ring_turf))
+			return "The validated cardinal ring could not retain its canonical space-air witness."
+	if(!activate_fixture_link())
+		return "Temporary multiz cache rows did not make the selected pair resolve through get_step_multiz()."
+	SSdogmos.runtime_topology_batching = TRUE
+	try
+		for(var/turf/open/space/ring_turf as anything in ring)
+			ring_turf.ChangeTurf(/turf/closed/indestructible, flags = CHANGETURF_RECALC_ADJACENT | CHANGETURF_NO_AREA_CHANGE)
+		lower = lower.ChangeTurf(/turf/open/floor/plating/dogmos_multiz_vertical_gate, flags = CHANGETURF_RECALC_ADJACENT | CHANGETURF_NO_AREA_CHANGE)
+		upper = upper.ChangeTurf(/turf/open/openspace, flags = CHANGETURF_RECALC_ADJACENT | CHANGETURF_NO_AREA_CHANGE)
+	catch(var/exception/fixture_conversion_error)
+		SSdogmos.runtime_topology_batching = FALSE
+		return "The multiz fixture could not create its contained mutable-air pair: [fixture_conversion_error.name]."
+	SSdogmos.runtime_topology_batching = FALSE
+	if(!lower?.air || !upper?.air || !rebuild_deferred())
+		var/rebuild_detail = last_rebuild_error || "missing lower or upper air"
+		return "The multiz fixture could not rebuild current native registrations through the DM adjacency path: [rebuild_detail]."
+	if(!CANATMOSPASS(lower, upper, TRUE) || !CANATMOSPASS(upper, lower, TRUE) || !(upper in lower.atmos_adjacent_turfs) || !(lower in upper.atmos_adjacent_turfs))
+		return "The linked open pair did not form reciprocal DM vertical gas adjacency."
+	if(!pending_pair_matches(lower, upper, TRUE))
+		return "The open vertical pair did not produce one literal six-field gas edge with both reverse-index memberships and no heat edge."
+	if(!flush_topology())
+		return "The multiz fixture could not publish its open topology."
+	lower.air.clear()
+	upper.air.clear()
+	lower.air.set_moles(GAS_O2, 200)
+	upper.air.set_moles(GAS_O2, 0)
+	var/open_lower_before = lower.air.get_moles(GAS_O2)
+	var/open_upper_before = upper.air.get_moles(GAS_O2)
+	if(!dogmos_run_fixture_stage(DOGMOS_MULTIZ_TEST_STAGE_TURFS, list(lower, upper)))
+		return "The bounded native stage did not complete."
+	var/open_lower_after = lower.air.get_moles(GAS_O2)
+	var/open_upper_after = upper.air.get_moles(GAS_O2)
+	if(open_lower_after >= open_lower_before || open_upper_after <= open_upper_before || open_lower_after <= open_upper_after || abs((open_lower_after + open_upper_after) - (open_lower_before + open_upper_before)) > 0.02)
+		return "The published open vertical gas edge did not mix oxygen within the bounded native stage."
+	var/lower_turf_generation = lower.dogmos_service_generation()
+	var/lower_mix_slot = lower.air.dogmos_slot
+	var/lower_mix_generation = lower.air.dogmos_generation
+	var/upper_turf_generation = upper.dogmos_service_generation()
+	var/upper_mix_slot = upper.air.dogmos_slot
+	var/upper_mix_generation = upper.air.dogmos_generation
+	lower.dogmos_multiz_open = FALSE
+	if(CANATMOSPASS(lower, upper, TRUE) || CANATMOSPASS(upper, lower, TRUE))
+		return "The retained-air z gate left one vertical CANATMOSPASS direction open."
+	if(!rebuild_deferred(TRUE))
+		return "The retained-air z gate could not rebuild through reverse DM endpoint order: [last_rebuild_error]."
+	if(!rebuild_deferred())
+		return "The retained-air z gate could not rebuild through forward DM endpoint order: [last_rebuild_error]."
+	if(lower.dogmos_service_generation() != lower_turf_generation || lower.air.dogmos_slot != lower_mix_slot || lower.air.dogmos_generation != lower_mix_generation || upper.dogmos_service_generation() != upper_turf_generation || upper.air.dogmos_slot != upper_mix_slot || upper.air.dogmos_generation != upper_mix_generation)
+		return "Closing the z gate replaced a turf or mixture identity instead of exercising adjacency publication."
+	if((upper in lower.atmos_adjacent_turfs) || (lower in upper.atmos_adjacent_turfs) || !pending_pair_matches(lower, upper, FALSE))
+		return "The retained-air z gate did not publish one stable disconnected vertical gas edge through both DM rebuild orders."
+	if(!flush_topology())
+		return "The multiz fixture could not publish its closed topology."
+	var/closed_lower_before = lower.air.get_moles(GAS_O2)
+	var/closed_upper_before = upper.air.get_moles(GAS_O2)
+	if(!dogmos_run_fixture_stage(DOGMOS_MULTIZ_TEST_STAGE_TURFS, list(lower, upper)))
+		return "The bounded closed native stage did not complete."
+	if(abs(lower.air.get_moles(GAS_O2) - closed_lower_before) > 0.0001 || abs(upper.air.get_moles(GAS_O2) - closed_upper_before) > 0.0001)
+		return "A rebuilt closed vertical edge transferred oxygen while both mixtures retained their identities."
+	return null
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/Run()
+	saved_turfs = list()
+	cleanup_failures = list()
+	cleanup_attempted = FALSE
+	var/failure
+	try
+		failure = run_fixture()
+	catch(var/exception/run_fixture_error)
+		failure = "The multiz fixture raised [run_fixture_error.name]."
+	var/cleanup_succeeded
+	try
+		cleanup_attempted = TRUE
+		cleanup_succeeded = cleanup_fixture()
+	catch(var/exception/run_cleanup_error)
+		record_cleanup_failure("cleanup", "cleanup_fixture raised [run_cleanup_error.name]")
+		cleanup_succeeded = FALSE
+	if(!cleanup_succeeded)
+		var/primary_failure = failure || "The multiz fixture run completed without returning a failure string."
+		return dogmos_abort_fixture("The multiz fixture run failure: [primary_failure] Cleanup diagnostics: [cleanup_failure_summary()].")
+	if(dogmos_fixture_aborted)
+		return
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/datum/unit_test/dogmos_multiz_gas_adjacency/Destroy()
+	// RunUnitTest invokes restore_atmos() before Destroy(); never retry a failed Run cleanup afterwards.
+	if(!cleanup_attempted && (cache_active || length(saved_turfs)) && !cleanup_fixture())
+		dogmos_abort_fixture("The multiz fixture fallback cleanup failed after Run() returned early.")
+	return ..()
+
+#undef DOGMOS_MULTIZ_TEST_STAGE_TURFS
 
 #endif

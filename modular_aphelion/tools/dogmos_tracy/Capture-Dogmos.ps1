@@ -6,6 +6,8 @@ param(
     [string]$DreamDaemonPath,
     [string]$BundleDirectory,
     [string]$OutputDirectory,
+    [string]$ExpectedDreamDaemonPath,
+    [string]$NotBeforeUtc,
     [ValidateRange(1, 65535)][int]$ProfilerPort = 8086,
     [ValidateRange(1, 300)][int]$WindowSeconds = 120,
     [ValidateRange(1, 8)][int]$Windows = 5,
@@ -73,6 +75,7 @@ if ($Mode -eq 'ArmNextRound') {
         throw 'This hook supports only DreamDaemon 516.1685 through 516.1687. No profiling marker was created.'
     }
     if (-not (Test-Path -LiteralPath (Join-Path $gameRoot 'data') -PathType Container)) { throw 'The game data directory is missing.' }
+    if (Test-Path -LiteralPath $marker) { throw 'Next-round profiling is already armed.' }
     if (Test-Path -LiteralPath $installedHook) {
         if ((Get-FileHash -LiteralPath $installedHook -Algorithm SHA256).Hash -ne $hookHash) {
             throw 'A different prof.dll is installed. Review and remove it manually while the game is stopped.'
@@ -103,8 +106,10 @@ $script:collector = $null
 $script:errorRead = $null
 $script:nextDiscovery = [DateTime]::MinValue
 $script:daemonId = 0
+$primaryCaptureError = $null
 $run = [ordered]@{ schema = 1; started_utc = [DateTime]::UtcNow.ToString('o'); finished_utc = $null;
     completed = $false; reason = $null; byond = $null; hook_sha256 = $hookHash; windows = @();
+    dreamdaemon = $null; cleanup_errors = @(); retained_collector_pid = $null;
     limitations = @('Instrumented run; compare with matched instrumented controls.',
         'Capture windows have attachment gaps; early startup before the first window is not captured.',
         'Process sampling excludes address-space region maps and native per-operation timing.') }
@@ -207,10 +212,22 @@ try {
             if ($listeners[0].LocalAddress -ne '127.0.0.1') { throw 'Profiler must bind only to 127.0.0.1; check TGS inherited UTRACY_BIND_ADDRESS.' }
             $daemon = Get-Process -Id $listeners[0].OwningProcess
             if ($daemon.ProcessName -ne 'DreamDaemon') { throw 'Profiler listener is not owned by DreamDaemon.' }
+            $daemonBirth = $daemon.StartTime.ToUniversalTime()
+            if ($NotBeforeUtc -and $daemonBirth -lt ([DateTimeOffset]::Parse($NotBeforeUtc)).UtcDateTime) {
+                throw 'Profiler listener belongs to a round started before this capture was armed.'
+            }
+            $daemonIdentity = Get-CimInstance Win32_Process -Filter "ProcessId = $($daemon.Id)"
+            if (-not $daemonIdentity.ExecutablePath -or [Math]::Abs(($daemonIdentity.CreationDate.ToUniversalTime() - $daemonBirth).TotalMilliseconds) -gt 1) {
+                throw 'DreamDaemon executable and process lifetime could not be verified.'
+            }
+            if ($ExpectedDreamDaemonPath -and -not [IO.Path]::GetFullPath($daemonIdentity.ExecutablePath).Equals([IO.Path]::GetFullPath($ExpectedDreamDaemonPath), [StringComparison]::OrdinalIgnoreCase)) {
+                throw 'DreamDaemon executable differs from the configured TGS engine.'
+            }
             $loadedHook = Get-ProfilerModulePath $daemon.Id
             if ([string]::IsNullOrEmpty($loadedHook) -or -not [IO.Path]::GetFullPath($loadedHook).Equals([IO.Path]::GetFullPath($installedHook), [StringComparison]::OrdinalIgnoreCase)) {
                 throw 'Listener belongs to a different game directory or its hook cannot be verified.'
             }
+            $run.dreamdaemon = @{pid=$daemon.Id;start_utc=$daemonBirth.ToString('o');executable=$daemonIdentity.ExecutablePath;sha256=(Get-FileHash -LiteralPath $daemonIdentity.ExecutablePath -Algorithm SHA256).Hash;hook_path=$loadedHook}
             break
         }
         if ($wait.Elapsed.TotalSeconds -gt $WaitSeconds) { throw 'Timed out waiting for the next profiled round.' }
@@ -247,19 +264,43 @@ try {
     $run.completed = $true
 } catch {
     $run.reason = $_.Exception.Message
-    throw
+    $primaryCaptureError = $_
 } finally {
-    $run.finished_utc = [DateTime]::UtcNow.ToString('o')
     if ($null -ne $script:collector) {
-        $script:collector.StandardInput.Close()
-        if (-not $script:collector.WaitForExit(5000)) { $script:collector.Kill(); $script:collector.WaitForExit() }
-        if ($null -ne $script:errorRead) { [IO.File]::WriteAllText((Join-Path $outputRoot 'collector.log'), $script:errorRead.GetAwaiter().GetResult()) }
-        $script:collector.Dispose()
+        try { $script:collector.StandardInput.Close() } catch { $run.cleanup_errors += "collector input: $($_.Exception.Message)" }
+        try {
+            if (-not $script:collector.WaitForExit(5000)) {
+                $script:collector.Kill()
+                if (-not $script:collector.WaitForExit(5000)) { throw 'Owned collector did not exit after termination.' }
+            }
+        } catch {
+            $run.retained_collector_pid = $script:collector.Id
+            $run.cleanup_errors += "collector exit: $($_.Exception.Message)"
+        }
+        try {
+            if ($null -ne $script:errorRead) {
+                if (-not $script:errorRead.Wait(5000)) { throw 'Collector diagnostic stream did not finish.' }
+                [IO.File]::WriteAllText((Join-Path $outputRoot 'collector.log'), $script:errorRead.GetAwaiter().GetResult())
+            }
+        } catch { $run.cleanup_errors += "collector log: $($_.Exception.Message)" }
+        try { $script:collector.Dispose() } catch { $run.cleanup_errors += "collector handle: $($_.Exception.Message)" }
     }
-    $script:sampleWriter.Dispose()
-    [IO.File]::WriteAllText((Join-Path $outputRoot 'capture.json'), ($run | ConvertTo-Json -Depth 15))
+    try { $script:sampleWriter.Dispose() } catch { $run.cleanup_errors += "process samples: $($_.Exception.Message)" }
     foreach ($name in @('dogmos.lock.json')) {
         $source = Join-Path $gameRoot $name
-        if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination (Join-Path $outputRoot $name) }
+        try {
+            if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination (Join-Path $outputRoot $name) }
+        } catch { $run.cleanup_errors += "deployment evidence: $($_.Exception.Message)" }
+    }
+    if ($run.cleanup_errors.Count) { $run.completed = $false }
+    $run.finished_utc = [DateTime]::UtcNow.ToString('o')
+    try {
+        [IO.File]::WriteAllText((Join-Path $outputRoot 'capture.json'), ($run | ConvertTo-Json -Depth 15))
+    } catch {
+        $run.completed = $false
+        $run.cleanup_errors += "capture evidence: $($_.Exception.Message)"
+        Write-Warning "Could not save capture.json: $($_.Exception.Message)"
     }
 }
+if ($null -ne $primaryCaptureError) { throw $primaryCaptureError }
+if ($run.cleanup_errors.Count) { throw "Capture cleanup failed: $($run.cleanup_errors -join '; ')" }

@@ -1,4 +1,4 @@
-#define DOGMOS_REQUIRED_PROTOCOL_VERSION 13
+#define DOGMOS_REQUIRED_PROTOCOL_VERSION 14
 #define DOGMOS_MAX_EXACT_INTEGER 16777216
 #define DOGMOS_PROCESS_METRICS_WORDS 28
 #define DOGMOS_PROCESS_METRICS_LAYOUT_VERSION 1
@@ -116,6 +116,7 @@
 #define DOGMOS_COMMAND_TRANSFER_BY_FLAGS 34
 #define DOGMOS_COMMAND_SHARE_RATIO 35
 #define DOGMOS_COMMAND_REACT 36
+#define DOGMOS_COMMAND_CREATE_FROM_SOURCE 37
 
 #define DOGMOS_CALLBACK_REACTION_FINISHED 2
 #define DOGMOS_CALLBACK_PRESSURE_DIFFERENCE 3
@@ -346,8 +347,9 @@
 	if(isnull(retry_turfs))
 		if(!length(dogmos_pending_adjacency_retry))
 			return
-		retry_turfs = dogmos_pending_adjacency_retry.Copy()
-		dogmos_pending_adjacency_retry.Cut()
+		// Transfer the queue so requeues have a separate owner without copying every source.
+		retry_turfs = dogmos_pending_adjacency_retry
+		dogmos_pending_adjacency_retry = list()
 	if(!length(retry_turfs))
 		return
 	var/original_runtime_batching = runtime_topology_batching
@@ -435,6 +437,34 @@
 	if(!length(entries))
 		index -= slot_key
 
+/** Queues a gas edge only when its canonical slot/generation key has changed meaningful payload. */
+/datum/controller/subsystem/dogmos/proc/queue_pending_gas_adjacency(first_slot, first_generation, second_slot, second_generation, connected, firelock, edge_key = null)
+	if(isnull(edge_key))
+		edge_key = first_slot < second_slot ? "[first_slot]:[first_generation]:[second_slot]:[second_generation]" : "[second_slot]:[second_generation]:[first_slot]:[first_generation]"
+	var/list/existing = dogmos_pending_turf_adjacency[edge_key]
+	if(islist(existing) && length(existing) == 6 && existing[5] == !!connected && existing[6] == !!firelock \
+		&& ((existing[1] == first_slot && existing[2] == first_generation && existing[3] == second_slot && existing[4] == second_generation) \
+			|| (existing[1] == second_slot && existing[2] == second_generation && existing[3] == first_slot && existing[4] == first_generation)))
+		return FALSE
+	dogmos_pending_turf_adjacency[edge_key] = list(first_slot, first_generation, second_slot, second_generation, !!connected, !!firelock)
+	index_pending_edge(dogmos_pending_turf_adjacency_index, "[first_slot]", edge_key)
+	index_pending_edge(dogmos_pending_turf_adjacency_index, "[second_slot]", edge_key)
+	return TRUE
+
+/** Queues a heat edge only when its canonical slot/generation key has changed meaningful payload. */
+/datum/controller/subsystem/dogmos/proc/queue_pending_heat_adjacency(first_slot, first_generation, second_slot, second_generation, connected, edge_key = null)
+	if(isnull(edge_key))
+		edge_key = first_slot < second_slot ? "[first_slot]:[first_generation]:[second_slot]:[second_generation]" : "[second_slot]:[second_generation]:[first_slot]:[first_generation]"
+	var/list/existing = dogmos_pending_turf_heat_adjacency[edge_key]
+	if(islist(existing) && length(existing) == 5 && existing[5] == !!connected \
+		&& ((existing[1] == first_slot && existing[2] == first_generation && existing[3] == second_slot && existing[4] == second_generation) \
+			|| (existing[1] == second_slot && existing[2] == second_generation && existing[3] == first_slot && existing[4] == first_generation)))
+		return FALSE
+	dogmos_pending_turf_heat_adjacency[edge_key] = list(first_slot, first_generation, second_slot, second_generation, !!connected)
+	index_pending_edge(dogmos_pending_turf_heat_adjacency_index, "[first_slot]", edge_key)
+	index_pending_edge(dogmos_pending_turf_heat_adjacency_index, "[second_slot]", edge_key)
+	return TRUE
+
 /** Removes one pending gas-adjacency edge from both the batch and its reverse index. */
 /datum/controller/subsystem/dogmos/proc/remove_pending_gas_edge(edge_key)
 	var/list/edge = dogmos_pending_turf_adjacency[edge_key]
@@ -480,8 +510,9 @@
 	// Every turf has now had its Initalize_Atmos() pass, so retry any turf whose own adjacency
 	// pass bailed earlier on an unregistered self or neighbor - both sides should be registered
 	// by now, so this is the last chance to pick up edges the slot-ordered boot walk dropped.
-	var/list/retry_turfs = dogmos_pending_adjacency_retry.Copy()
-	dogmos_pending_adjacency_retry.Cut()
+	// The local drain owns this snapshot; late retries go into the new pending queue.
+	var/list/retry_turfs = dogmos_pending_adjacency_retry
+	dogmos_pending_adjacency_retry = list()
 	// Only startup may yield. Runtime flushes also run inside non-sleeping lifecycle hooks.
 	for(var/retry_index = 1; retry_index <= length(retry_turfs); retry_index += DOGMOS_TURF_BATCH_OPERATIONS)
 		retry_pending_turf_adjacencies(retry_turfs.Copy(retry_index, min(retry_index + DOGMOS_TURF_BATCH_OPERATIONS, length(retry_turfs) + 1)))
@@ -504,7 +535,7 @@
  * * mixture - Mixture receiving the accepted service identity.
  * * slot - Allocated service slot.
  * * generation - Allocated service generation.
- * * response - Native lifecycle response for this registration.
+ * * response - Accepted registration count from a lifecycle or create response.
  * * schedule_reboot - Whether rejection schedules the production reboot.
  */
 /datum/controller/subsystem/dogmos/proc/finalize_mixture_registration(datum/gas_mixture/mixture, slot, generation, response, schedule_reboot = TRUE)
@@ -518,12 +549,20 @@
 	mixture._extools_pointer_gasmixture = TRUE
 	return TRUE
 
-/** Registers one gas mixture with a stale-handle-safe numeric identity. */
-/datum/controller/subsystem/dogmos/proc/register_mixture(datum/gas_mixture/mixture)
+/** Registers one gas mixture, optionally copying a source in the same native transaction.
+ *
+ * Arguments:
+ * * mixture - Newly constructed datum receiving a fresh service identity.
+ * * copy_source - Optional live source; only its gases and temperature are copied.
+ */
+/datum/controller/subsystem/dogmos/proc/register_mixture(datum/gas_mixture/mixture, datum/gas_mixture/copy_source)
 	if(!service_ready)
 		if(!service_failure_latched && !service_shutdown_requested)
 			CRASH("Attempted to register a gas mixture while dogmosd is unavailable.")
 		return
+
+	if(!isnull(copy_source) && !mixture_identity_matches(copy_source, copy_source.dogmos_slot, copy_source.dogmos_generation))
+		CRASH("Attempted to copy a stale Dogmos mixture identity before registration.")
 
 	var/slot
 	if(length(dogmos_free_mixture_slots))
@@ -540,8 +579,18 @@
 	if(generation > DOGMOS_MAX_EXACT_INTEGER)
 		CRASH("Dogmos mixture generation exhausted for slot [slot].")
 
-	var/response = dogmos_mixture_lifecycle_batch(list(DOGMOS_LIFECYCLE_REGISTER, slot, generation))
+	var/response
+	if(copy_source)
+		// Use the provisional destination directly. It must not become a DM identity until accepted.
+		// A rejected or ambiguous create quarantines this slot through the same fail-closed path.
+		var/list/created_response = dogmos_mixture_command(list(DOGMOS_COMMAND_CREATE_FROM_SOURCE, 0, slot, generation, copy_source.dogmos_slot, copy_source.dogmos_generation, mixture.initial_volume, 0, 0, 0, 0))
+		if(islist(created_response) && length(created_response) == 4 && created_response[1] == DOGMOS_RESPONSE_APPLIED)
+			response = created_response[2]
+	else
+		response = dogmos_mixture_lifecycle_batch(list(DOGMOS_LIFECYCLE_REGISTER, slot, generation))
 	if(!finalize_mixture_registration(mixture, slot, generation, response))
+		return
+	if(copy_source)
 		return
 	// The service creates a mixture already at its own default volume, so sending that same value
 	// back is a wasted round trip - and it is the common case, because every turf uses it.
@@ -1270,9 +1319,9 @@
 /datum/controller/subsystem/air/proc/thread_running()
 	return SSdogmos.service_ready && dogmos_service_health()
 
-/// Registers this mixture in dogmosd.
-/datum/gas_mixture/proc/__gasmixture_register()
-	return SSdogmos.register_mixture(src)
+/// Registers this mixture in dogmosd, optionally copying gases and temperature atomically.
+/datum/gas_mixture/proc/__gasmixture_register(datum/gas_mixture/copy_source)
+	return SSdogmos.register_mixture(src, copy_source)
 
 /// Unregisters this mixture from dogmosd.
 /datum/gas_mixture/proc/__gasmixture_unregister()
@@ -1306,7 +1355,7 @@
 /** Returns whether a mutating command only reads its secondary mixture. */
 /datum/gas_mixture/proc/is_read_only_dogmos_secondary(kind)
 	switch(kind)
-		if(DOGMOS_COMMAND_COPY_FROM, DOGMOS_COMMAND_EQUALIZE_WITH, DOGMOS_COMMAND_MERGE)
+		if(DOGMOS_COMMAND_COPY_FROM, DOGMOS_COMMAND_CREATE_FROM_SOURCE, DOGMOS_COMMAND_EQUALIZE_WITH, DOGMOS_COMMAND_MERGE)
 			return TRUE
 	return FALSE
 
@@ -2175,6 +2224,8 @@
 
 /** Returns the service-owned turf temperature. */
 /turf/proc/__dogmos_heat_temperature()
+	if(!SSdogmos.service_ready)
+		return null
 	if(!init_air || thermal_conductivity <= 0 || heat_capacity <= 0 || isnull(dogmos_registration_generation))
 		return null
 	var/slot = dogmos_service_slot()
@@ -2221,8 +2272,10 @@
 	var/slot = dogmos_service_slot()
 	var/generation = dogmos_service_generation()
 	var/heat_present = thermal_conductivity > 0 && heat_capacity > 0
-	for(var/direction in GLOB.cardinals)
-		var/turf/neighbor = get_step(src, direction)
+	for(var/direction in GLOB.cardinals_multiz)
+		var/is_vertical = direction & (UP | DOWN)
+		// Vertical gas links follow both map-cache and reservation routing.
+		var/turf/neighbor = is_vertical ? get_step_multiz(src, direction) : get_step(src, direction)
 		if(!neighbor)
 			continue
 		var/neighbor_slot = neighbor.dogmos_service_slot()
@@ -2241,21 +2294,18 @@
 		var/turf/open/open_neighbor = isopenturf(neighbor) ? neighbor : null
 		var/source_has_gas = (init_air || isspaceturf(src)) && open_turf?.air
 		var/neighbor_has_gas = (neighbor.init_air || isspaceturf(neighbor)) && open_neighbor?.air
+		var/edge_key = null
 		if(source_has_gas && neighbor_has_gas && open_turf.air != open_neighbor.air && !blocks_air && !neighbor.blocks_air)
+			edge_key = slot < neighbor_slot ? "[slot]:[generation]:[neighbor_slot]:[neighbor_generation]" : "[neighbor_slot]:[neighbor_generation]:[slot]:[generation]"
 			var/connected = (neighbor in atmos_adjacent_turfs)
 			var/firelock = !!(connected && (atmos_adjacent_turfs[neighbor] & DOGMOS_ADJACENT_FIRELOCK))
-			var/list/gas_edge = list(slot, generation, neighbor_slot, neighbor_generation, connected, firelock)
-			var/gas_edge_key = slot < neighbor_slot ? "[slot]:[generation]:[neighbor_slot]:[neighbor_generation]" : "[neighbor_slot]:[neighbor_generation]:[slot]:[generation]"
-			SSdogmos.dogmos_pending_turf_adjacency[gas_edge_key] = gas_edge
-			SSdogmos.index_pending_edge(SSdogmos.dogmos_pending_turf_adjacency_index, "[slot]", gas_edge_key)
-			SSdogmos.index_pending_edge(SSdogmos.dogmos_pending_turf_adjacency_index, "[neighbor_slot]", gas_edge_key)
-		if(heat_present && neighbor.thermal_conductivity > 0 && neighbor.heat_capacity > 0 && init_air && neighbor.init_air && !isspaceturf(src) && !isspaceturf(neighbor))
+			SSdogmos.queue_pending_gas_adjacency(slot, generation, neighbor_slot, neighbor_generation, connected, firelock, edge_key)
+		// Turf heat conduction remains horizontal.
+		if(!is_vertical && heat_present && neighbor.thermal_conductivity > 0 && neighbor.heat_capacity > 0 && init_air && neighbor.init_air && !isspaceturf(src) && !isspaceturf(neighbor))
+			if(isnull(edge_key))
+				edge_key = slot < neighbor_slot ? "[slot]:[generation]:[neighbor_slot]:[neighbor_generation]" : "[neighbor_slot]:[neighbor_generation]:[slot]:[generation]"
 			var/heat_connected = !(conductivity_blocked_directions & direction) && !(neighbor.conductivity_blocked_directions & turn(direction, 180))
-			var/list/heat_edge = list(slot, generation, neighbor_slot, neighbor_generation, heat_connected)
-			var/heat_edge_key = slot < neighbor_slot ? "[slot]:[generation]:[neighbor_slot]:[neighbor_generation]" : "[neighbor_slot]:[neighbor_generation]:[slot]:[generation]"
-			SSdogmos.dogmos_pending_turf_heat_adjacency[heat_edge_key] = heat_edge
-			SSdogmos.index_pending_edge(SSdogmos.dogmos_pending_turf_heat_adjacency_index, "[slot]", heat_edge_key)
-			SSdogmos.index_pending_edge(SSdogmos.dogmos_pending_turf_heat_adjacency_index, "[neighbor_slot]", heat_edge_key)
+			SSdogmos.queue_pending_heat_adjacency(slot, generation, neighbor_slot, neighbor_generation, heat_connected, edge_key)
 
 	var/queued_topology = length(SSdogmos.dogmos_pending_turf_adjacency) + length(SSdogmos.dogmos_pending_turf_heat_adjacency)
 	SSdogmos.dogmos_runtime_topology_max_queued = max(SSdogmos.dogmos_runtime_topology_max_queued, queued_topology)
@@ -2446,6 +2496,7 @@
 #undef DOGMOS_COMMAND_TRANSFER_BY_FLAGS
 #undef DOGMOS_COMMAND_SHARE_RATIO
 #undef DOGMOS_COMMAND_REACT
+#undef DOGMOS_COMMAND_CREATE_FROM_SOURCE
 #undef DOGMOS_CALLBACK_REACTION_FINISHED
 #undef DOGMOS_CALLBACK_PRESSURE_DIFFERENCE
 #undef DOGMOS_CALLBACK_DECOMPRESSION_FLOOR_RIP
