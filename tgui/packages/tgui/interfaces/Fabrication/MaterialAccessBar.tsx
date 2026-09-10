@@ -21,6 +21,8 @@ const MATERIAL_RARITY: Record<string, number> = {
   diamond: 8,
   'bluespace crystal': 9,
   bananium: 10,
+  aluminum: 11, // APHELION EDIT ADDITION - SHIPBREAKING - LETS MATERIALS PROPERLY DISPLAY
+  nanocarbon: 12, // APHELION EDIT ADDITION - SHIPBREAKING - LETS MATERIALS PROPERLY DISPLAY
 };
 
 export type MaterialAccessBarProps = {

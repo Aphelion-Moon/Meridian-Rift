@@ -474,7 +474,11 @@
 	var/prebuilt = FALSE
 	/// If the core is removable once socketed.
 	var/core_removable = TRUE
+	// APHELION EDIT ADDITION START - SHIPBREAKING - Coreless anomalock modules
+	/// Skips the anomaly core requirement entirely. Passed to the anomalock component.
+	var/coreless = FALSE
+	// APHELION EDIT ADDITION END
 
 /obj/item/mod/module/anomaly_locked/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/anomaly_locked_module, accepted_anomalies, prebuilt, core_removable)
+	AddComponent(/datum/component/anomaly_locked_module, accepted_anomalies, prebuilt, core_removable, coreless = coreless) // APHELION EDIT CHANGE - SHIPBREAKING - Pass coreless flag - ORIGINAL: AddComponent(/datum/component/anomaly_locked_module, accepted_anomalies, prebuilt, core_removable)

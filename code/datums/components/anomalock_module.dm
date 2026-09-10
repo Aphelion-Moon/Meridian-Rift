@@ -4,6 +4,10 @@
 	var/list/accepted_anomalies
 	/// If the core is removable once socketed.
 	var/core_removable
+	// APHELION EDIT ADDITION START - SHIPBREAKING - Coreless anomalock modules
+	/// Skips the anomaly core requirement entirely. The module works without a core and ignores core insertion.
+	var/coreless = FALSE
+	// APHELION EDIT ADDITION END
 	/// A proc to call before the core is inserted. Returns an ITEM_INTERACT define, which the component will itself return.
 	var/pre_insert_callback
 	/// A proc to call when the core is inserted.
@@ -11,12 +15,13 @@
 	/// A proc to call when the core is removed.
 	var/core_remove_callback
 
-/datum/component/anomaly_locked_module/Initialize(list/anomaly_types, prebuilt = FALSE, removable = TRUE, pre_insert_callback, insert_callback, remove_callback)
+/datum/component/anomaly_locked_module/Initialize(list/anomaly_types, prebuilt = FALSE, removable = TRUE, pre_insert_callback, insert_callback, remove_callback, coreless = FALSE)
 	. = ..()
 	if(!istype(parent, /obj/item/mod/module))
 		return COMPONENT_INCOMPATIBLE
 	accepted_anomalies = typecacheof(anomaly_types)
 	core_removable = removable
+	src.coreless = coreless
 	src.pre_insert_callback = pre_insert_callback
 	core_insert_callback = insert_callback
 	core_remove_callback = remove_callback
@@ -47,12 +52,16 @@
 
 /datum/component/anomaly_locked_module/proc/on_module_triggered(obj/item/mod/module/source, mob/living/wearer)
 	SIGNAL_HANDLER
-	if(!core)
+	if(!core && !coreless) // APHELION EDIT CHANGE - SHIPBREAKING - Coreless modules work without a core - ORIGINAL: if(!core)
 		source.balloon_alert(wearer, "no core!")
 		return MOD_ABORT_USE
 
 /datum/component/anomaly_locked_module/proc/on_item_interact(obj/item/mod/module/source, mob/living/user, obj/item/tool, list/modifiers)
 	SIGNAL_HANDLER
+	// APHELION EDIT ADDITION START - SHIPBREAKING - Coreless modules ignore core insertion
+	if(coreless)
+		return 0
+	// APHELION EDIT ADDITION END
 	if(!is_type_in_typecache(tool, accepted_anomalies))
 		return 0
 	if(core)
@@ -87,6 +96,10 @@
 
 /datum/component/anomaly_locked_module/proc/on_screwdriver_act(obj/item/mod/module/source, mob/living/user, obj/item/tool)
 	SIGNAL_HANDLER
+	// APHELION EDIT ADDITION START - SHIPBREAKING - Coreless modules use default screwdriver behavior
+	if(coreless)
+		return 0
+	// APHELION EDIT ADDITION END
 	if(!core)
 		source.balloon_alert(user, "no core!")
 		return ITEM_INTERACT_FAILURE
@@ -114,7 +127,7 @@
 
 /datum/component/anomaly_locked_module/proc/on_examine(obj/item/mod/module/source, mob/viewer, list/examine_list)
 	SIGNAL_HANDLER
-	if(!length(accepted_anomalies))
+	if(!length(accepted_anomalies) || coreless) // APHELION EDIT CHANGE - SHIPBREAKING - Coreless modules hide core text - ORIGINAL: if(!length(accepted_anomalies))
 		return
 	if(core)
 		examine_list += span_notice("There is a [core.name] installed in it. [core_removable ? "You could remove it with a <b>screwdriver</b>..." : "Unfortunately, due to a design quirk, it's unremovable."]")

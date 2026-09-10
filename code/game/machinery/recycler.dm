@@ -107,6 +107,10 @@
 
 /obj/machinery/recycler/CanAllowThrough(atom/movable/mover, border_dir)
 	. = ..()
+// APHELION EDIT ADDITION START - SHIPBREAKING - Salvage structures can be shoved in from any side, not just the front
+	if(isobj(mover) && !isitem(mover) && HAS_TRAIT(mover, TRAIT_RECYCLE_LIKE_ITEM))
+		return TRUE
+// APHELION EDIT ADDITION END
 	if(!anchored)
 		return
 	if(border_dir == dir)
@@ -203,7 +207,7 @@
 		var/full_power_usage = TRUE
 		var/obj/nom_obj = nom[i]
 
-		if(isitem(nom_obj))
+		if(isitem(nom_obj) || HAS_TRAIT(nom_obj, TRAIT_RECYCLE_LIKE_ITEM)) // APHELION EDIT CHANGE - SHIPBREAKING - Lets non-items get their custom materials recycled - ORIGINAL: if(isitem(nom_obj))
 			// Whether or not items consume full power depends on if they produced a material when recycled.
 			full_power_usage = recycle_item(nom_obj)
 		else

@@ -205,7 +205,8 @@
 /datum/storage/bag/construction
 	max_total_storage = 100
 	max_slots = 50
-	max_specific_storage = WEIGHT_CLASS_SMALL
+	// APHELION EDIT CHANGE - SHIPBREAKING - Construction bags hold shipbreaking scrap items - ORIGINAL: max_specific_storage = WEIGHT_CLASS_SMALL
+	max_specific_storage = WEIGHT_CLASS_NORMAL
 
 /datum/storage/bag/construction/New(atom/parent, max_slots, max_specific_storage, max_total_storage, rustle_sound, remove_rustle_sound)
 	. = ..()
@@ -219,6 +220,12 @@
 		/obj/item/stock_parts,
 		/obj/item/wallframe/camera,
 		/obj/item/rcd_ammo,
+		// APHELION EDIT ADDITION START - SHIPBREAKING - Construction bags hold shipbreaking scrap items
+		/obj/item/epic_loot,
+		/obj/item/nanocarbon_shard,
+		/obj/item/demo_charge_detonator,
+		/obj/item/grenade/c4/demo_charge,
+		// APHELION EDIT ADDITION END
 	), exception_hold_list = list(
 		/obj/item/stack/sheet,
 		/obj/item/stack/rods,
