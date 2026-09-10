@@ -9710,6 +9710,7 @@
 #include "modular_nova\modules\psionics\code\mutation.dm"
 #include "modular_nova\modules\psionics\code\opfor.dm"
 #include "modular_nova\modules\psionics\code\profile.dm"
+#include "modular_nova\modules\psionics\code\psionic_mod_core.dm"
 #include "modular_nova\modules\psionics\code\quirk.dm"
 #include "modular_nova\modules\psionics\code\reality_anchor.dm"
 #include "modular_nova\modules\psionics\code\power\_catalog.dm"
