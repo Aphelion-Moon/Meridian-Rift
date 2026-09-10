@@ -1,0 +1,7 @@
+help: "Condo exit boundaries must use /turf/open/space/bluespace so the reservation can link them to the room exit."
+=/turf/open/space:
+  banned_neighbors:
+    - /area/misc/condo
+=/turf/open/space/basic:
+  banned_neighbors:
+    - /area/misc/condo

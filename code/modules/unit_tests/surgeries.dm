@@ -379,3 +379,55 @@
 	var/obj/item/pillow/pillow = EASY_ALLOCATE()
 	var/pillow_quality = UNLINT(surgery.get_tool_quality(pillow))
 	TEST_ASSERT_EQUAL(pillow_quality, 0, "Incise skin surgery returned a non-zero tool quality for a pillow, which is not a valid generic scalpel substitute")
+
+// APHELION EDIT ADDITION START - DETACHED_SURGERY_PATIENT
+/// Cancels at the supported pre-operation hook, after the real patient and stasis checks.
+/// Abstract so the fixture never enters the global operation registry.
+/datum/surgery_operation/limb/incise_skin/unit_test_patient_guard
+	abstract_type = /datum/surgery_operation/limb/incise_skin/unit_test_patient_guard
+	/// Whether try_perform allowed this operation to reach its cancellation hook.
+	var/preop_called = FALSE
+
+/datum/surgery_operation/limb/incise_skin/unit_test_patient_guard/pre_preop(atom/movable/operating_on, mob/living/surgeon, tool, list/operation_args)
+	preop_called = TRUE
+	return FALSE
+
+/// Detached limbs have no patient, but remain valid targets for an incision.
+/datum/unit_test/surgery_detached_patient/Run()
+	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
+	var/mob/living/carbon/human/surgeon = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/scalpel/scalpel = allocate(/obj/item/scalpel)
+	var/obj/item/bodypart/head/head = patient.get_bodypart(BODY_ZONE_HEAD)
+	var/datum/surgery_operation/limb/incise_skin/unit_test_patient_guard/operation = allocate(/datum/surgery_operation/limb/incise_skin/unit_test_patient_guard)
+	head.drop_limb()
+	surgeon.put_in_active_hand(scalpel)
+
+	TEST_ASSERT(isnull(head.owner), "Detached head retained its patient")
+	TEST_ASSERT(operation.check_availability(null, head, surgeon, scalpel, BODY_ZONE_HEAD), "Detached head is not available for the incision fixture")
+	var/result = operation.try_perform(head, surgeon, scalpel, list(OPERATION_TARGET_ZONE = BODY_ZONE_HEAD))
+	TEST_ASSERT_EQUAL(result, ITEM_INTERACT_BLOCKING, "Cancelled detached operation did not block the interaction")
+	TEST_ASSERT(operation.preop_called, "Detached operation did not reach its pre-operation hook")
+
+/// Real patients remain protected by enabled stasis beds; disabled beds allow surgery.
+/datum/unit_test/surgery_stasis_patient/Run()
+	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
+	var/mob/living/carbon/human/surgeon = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/scalpel/scalpel = allocate(/obj/item/scalpel)
+	var/obj/item/bodypart/chest/chest = patient.get_bodypart(BODY_ZONE_CHEST)
+	var/obj/machinery/stasis/stasis_bed = allocate(/obj/machinery/stasis)
+	var/datum/surgery_operation/limb/incise_skin/unit_test_patient_guard/operation = allocate(/datum/surgery_operation/limb/incise_skin/unit_test_patient_guard)
+	surgeon.put_in_active_hand(scalpel)
+	stasis_bed.buckle_mob(patient, force = TRUE)
+
+	TEST_ASSERT_EQUAL(patient.buckled, stasis_bed, "Patient did not buckle to the stasis fixture")
+	TEST_ASSERT(stasis_bed.stasis_enabled, "Stasis fixture is not enabled")
+	TEST_ASSERT(operation.check_availability(patient, chest, surgeon, scalpel, BODY_ZONE_CHEST), "Attached chest is not available for the incision fixture")
+	var/result = operation.try_perform(chest, surgeon, scalpel, list(OPERATION_TARGET_ZONE = BODY_ZONE_CHEST))
+	TEST_ASSERT_EQUAL(result, ITEM_INTERACT_BLOCKING, "Enabled stasis bed did not block surgery")
+	TEST_ASSERT(!operation.preop_called, "Enabled stasis bed allowed surgery to start")
+
+	stasis_bed.stasis_enabled = FALSE
+	result = operation.try_perform(chest, surgeon, scalpel, list(OPERATION_TARGET_ZONE = BODY_ZONE_CHEST))
+	TEST_ASSERT_EQUAL(result, ITEM_INTERACT_BLOCKING, "Cancelled operation on a disabled stasis bed did not block the interaction")
+	TEST_ASSERT(operation.preop_called, "Disabled stasis bed prevented surgery from reaching its pre-operation hook")
+// APHELION EDIT ADDITION END
