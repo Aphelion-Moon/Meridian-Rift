@@ -1,0 +1,12 @@
+{
+	"pants": [
+		{
+			"type": "icon_state",
+			"icon_state": "pants",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	]
+}
