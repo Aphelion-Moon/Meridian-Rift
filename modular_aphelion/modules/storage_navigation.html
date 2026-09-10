@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/storage_navigation/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/storage_navigation/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/da49ddcde780df92785bd86e08f53f60786d3c32/modular_aphelion/modules/storage_navigation/readme.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/storage_navigation/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>https://github.com/AphelionDevelopment/Meridian-Rift/pull/</p>
+<h2 id="storage-ui-back-navigation">Storage UI back navigation</h2>
+<p>Module ID: STORAGE_NAVIGATION</p>
+<h3 id="description">Description:</h3>
+<p>The storage UI's arrow used to close the UI outright. It now steps back out into the container
+holding the one you are looking at, so browsing a box inside a backpack and clicking the arrow puts
+you back in the backpack. If there is nothing to step back into, it closes as before.</p>
+<p>A new X button sits next to the arrow. It always closes the storage UI, however deep you have
+browsed. Its sprite is derived from each UI style's own <code>storage_close</code> button, so it themes with
+the rest of the HUD.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>code/_onclick/hud/screen_objects/screen_objects.dm</code>: <code>/atom/movable/screen/close/Click()</code></li>
+<li><code>code/datums/storage/storage_interface.dm</code>: <code>var/exit_button</code>, <code>New()</code>, <code>proc/list_ui_elements()</code>,
+<code>Destroy()</code>, <code>proc/update_position()</code></li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/__DEFINES/~aphelion_defines/hud.dm</code>: <code>STORAGE_UI_BUTTON_WIDTH</code></li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<ul>
+<li>@Happyowl93</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/da49ddcde780df92785bd86e08f53f60786d3c32">da49ddc</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

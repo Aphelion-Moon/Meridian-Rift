@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/department_ooc/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/department_ooc/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/da49ddcde780df92785bd86e08f53f60786d3c32/modular_aphelion/modules/department_ooc/readme.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/department_ooc/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>https://github.com/AphelionDevelopment/Meridian-Rift/pull/</p>
+<h2 id="departmental-ooc-channels">Departmental OOC channels</h2>
+<p>Module ID: DEPARTMENT_OOC</p>
+<h3 id="description">Description:</h3>
+<p>Staff need to be able to talk to a department directly, and a department should be able to talk
+policy or its own problems over OOCly amongst itself and staff. This replaces Nova's two hand-rolled
+OOC channels, SOOC and AOOC, with one channel table that covers every department.</p>
+<p>A single &quot;Department OOC&quot; verb under the OOC tab asks which of the channels you have access to you
+want to speak on, then what you want to say. Access comes from your job's department bitflags, so a
+role joining or leaving a department carries its OOC access with it and no job list needs
+maintaining. Channels shipped: security, medical, engineering, research, service, command, supply,
+silicon, central command, antagonist, and a &quot;Backstage&quot; channel that puts command, security and
+antagonists in one room together.</p>
+<p>Speakers are given a stable per-channel codename (&quot;Deputy Foxtrot 12&quot;) rather than their ckey, which
+players can turn off in game preferences. Admins see the ckey behind the codename either way, hear
+every channel, and can speak on any of them. Deadminned admins are anonymised alongside players.</p>
+<p>Adding, removing or recolouring a channel is one entry in <code>GLOB.department_ooc_channels</code>.</p>
+<p>Admins toggle individual channels off through &quot;Toggle Department OOC&quot; under the Server category,
+which replaces the separate Toggle Security OOC and Toggle Antag OOC verbs.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>modular_nova/modules/admin/code/sooc.dm</code> - removed, superseded by this module's security channel</li>
+<li><code>modular_nova/modules/admin/code/aooc.dm</code> - removed, superseded by this module's antagonist channel</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/aphelion/department_ooc_anon.tsx</code></li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<ul>
+<li>Moonridden</li>
+<li>Ported from https://github.com/NovaSector/NovaSector/pull/7242</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/da49ddcde780df92785bd86e08f53f60786d3c32">da49ddc</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

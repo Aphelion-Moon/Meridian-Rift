@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_nova/modules/icspawning/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_nova/modules/icspawning/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/da49ddcde780df92785bd86e08f53f60786d3c32/modular_nova/modules/icspawning/readme.md"><img src="git.png" width="16" height="16" title="modular_nova/modules/icspawning/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>https://github.com/Skyrat-SS13/Skyrat-tg/pull/104</p>
+<h2 id="title-ic-spawning-for-admins">Title: IC Spawning for admins</h2>
+<p>MODULE ID: ICSPAWNING</p>
+<h3 id="description">Description:</h3>
+<p>Adds a control click function to ghosts which allows an admin to spawn the player in via a supply pod or teleportation with effects.
+Extended to allow admins to save preferred spawn methods and outfits to custom slots.</p>
+<h3 id="tg-proc-changes">TG Proc Changes:</h3>
+<p>N/A</p>
+<h3 id="defines">Defines:</h3>
+<p>N/A</p>
+<h3 id="included-files">Included files:</h3>
+<ul>
+<li>./observer.dm</li>
+<li>./spell.dm</li>
+</ul>
+<h3 id="core-code-changes">Core Code Changes:</h3>
+<ul>
+<li><code>code/modules/client/preferences_savefile.dm</code>: Added saving and loading for <code>preferred_spawn_methods</code> and <code>preferred_spawn_outfits</code>.</li>
+<li><code>modular_nova/master_files/code/modules/client/preferences.dm</code>: Added variables to <code>/datum/preferences</code> to store custom spawn slots.</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p>Gandalf2k15 - Porting
+BunBun - Cration
+Moonridden - Partially gutted this and included it in nova module admin_tech. Migrated outfits + custom bst brped
+Moonridden - Admin custom slots</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/da49ddcde780df92785bd86e08f53f60786d3c32">da49ddc</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

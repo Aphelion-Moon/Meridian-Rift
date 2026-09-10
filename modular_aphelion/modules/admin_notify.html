@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/admin_notify/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/admin_notify/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/da49ddcde780df92785bd86e08f53f60786d3c32/modular_aphelion/modules/admin_notify/readme.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/admin_notify/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>https://github.com/Aphelion-Moon/Meridian-Rift/pull/112</p>
+<h2 id="admin-notify">Admin Notify</h2>
+<p>Module ID: ADMIN_NOTIFY</p>
+<h3 id="description">Description:</h3>
+<p>Sometimes things move too quickly, or are too surprising, to write a proper adminhelp. This gives
+players a &quot;Notify Admins&quot; verb under the OOC tab that pings staff to come and observe, and an
+optional hotkey paired to it.</p>
+<p>The hotkey is unbound by default and has to be held for two seconds before it fires, so a stray
+keypress does not ping the whole staff team. The module captures the initiating chord and validates
+its physical-key press timestamps, including modifiers, when the timer finishes. This avoids relying
+on combination-key release callbacks without changing TG's input handler. As these timestamps use
+<code>world.time</code>, a release and re-press within the same tick cannot be distinguished.
+The verb itself is on a two minute cooldown, matching adminhelp's, and reconnecting does not reset
+it. Requests appear in the Admin PMs chat category. Players can be role banned from it with the
+&quot;Admin Notify ban&quot; ban option, and admins who would rather not be pinged can turn the alert off in
+their game preferences.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>code/modules/admin/sql_ban_system.dm</code>: <code>/datum/admins/proc/ban_panel()</code> - adds
+<code>BAN_ADMIN_NOTIFY</code> to the Nova ban options group</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/__DEFINES/~aphelion_defines/banning.dm</code>: <code>BAN_ADMIN_NOTIFY</code></li>
+<li><code>code/__DEFINES/~aphelion_defines/keybindings.dm</code>: <code>COMSIG_KB_NOTIFYADMINS_DOWN</code></li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/aphelion/admin_notify.tsx</code></li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<ul>
+<li>Moonridden</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/da49ddcde780df92785bd86e08f53f60786d3c32">da49ddc</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
