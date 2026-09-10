@@ -7345,6 +7345,7 @@
 #include "modular_aphelion\modules\department_ooc\code\department_ooc.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
 #include "modular_aphelion\modules\job_desc_overrides\job_desc_overrides.dm"
+#include "modular_aphelion\modules\medical_projection_system\code\medical_projection_system.dm"
 #include "modular_aphelion\modules\storage_navigation\code\storage_exit.dm"
 #include "modular_nova\master_files\code\_globalvars\configuration.dm"
 #include "modular_nova\master_files\code\_globalvars\regexes.dm"
