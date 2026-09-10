@@ -1,6 +1,6 @@
 # Parallax modular ballistics
 
-A magnetic accelerator assembled from physical, removable parts. Shared overlays
+A lethal armory magnetic accelerator assembled from physical, removable parts. Shared overlays
 compose world and held sprites without a separate sprite for every configuration.
 
 ## Source layout
@@ -40,6 +40,11 @@ gun HUD also has changes required by this module:
 
 Preserve these hooks and resets when merging upstream gun HUD changes.
 
+`code/datums/storage/subtypes/holsters.dm` includes Parallax in the standard,
+detective and chameleon handgun whitelists, marked `MODULAR_BALLISTICS`.
+Existing storage size limits still reject bulky assemblies; energy-only holsters
+retain their existing restrictions.
+
 ## Use
 
 Order **Parallax Modular Ballistics Kit** from armory cargo, or spawn
@@ -56,6 +61,14 @@ Servicing requires a fully unloaded, held gun outside a burst or firing cooldown
 The barrel and controller are required; stocks and optics are optional. Examine
 the weapon and parts for current performance values.
 
+Complete compact assemblies can be worn on a belt. Long barrels, stocks, heavy
+or bullpup receivers, and suppressors make assemblies bulky and back-worn instead.
+Incomplete frames have neither equipment slot. Standard handgun holsters accept
+compact assemblies; bulky builds require storage that supports their size.
+Servicing requires holding the gun, and storage ejects assemblies that outgrow it
+if parts are changed externally. Belt and back appearances use the existing generic
+pistol and battle-rifle sprites; ground and held appearances remain modular.
+
 Compact, compact heat-sink, and carbine barrels accept a suppressor. Suppression
 uses the existing quiet-shot behavior and makes compact weapons bulky, without
 changing damage or cycle time, but multiplies heat by 1.25. Assault, marksman and
@@ -69,29 +82,46 @@ The standard receiver supports compact sidearms and all optional parts. Heavy
 and bullpup receivers always require both hands and use the bulky rifle profile.
 Their modifiers apply to every compatible assembly:
 
-| Receiver | Dispersion | Recoil multiplier | Added shot cycle | Heat multiplier | Stock socket |
-| -------- | ---------- | ----------------- | ---------------- | --------------- | ------------ |
-| Standard | 0 | 1 | 0 s | 1 | Yes |
-| Heavy | -2 | 0.55 | +0.1 s | 0.8 | Yes |
-| Bullpup | -1 | 0.85 | -0.1 s | 1.25 | No; integrated stock |
+| Receiver | Dispersion | Recoil multiplier | Added shot cycle | Heat multiplier | Stock socket         |
+| -------- | ---------- | ----------------- | ---------------- | --------------- | -------------------- |
+| Standard | 0          | 1                 | 0 s              | 1               | Yes                  |
+| Heavy    | -2         | 0.55              | +0.1 s           | 0.8             | Yes                  |
+| Bullpup  | -1         | 0.85              | -0.1 s           | 1.25            | No; integrated stock |
 
 Spawn `/obj/item/gun/ballistic/parallax/heavy` for an assault/automatic build or
 `/obj/item/gun/ballistic/parallax/bullpup` for a carbine/automatic build. Both have
 `/empty` variants. Standard-frame presets are `/machine_pistol`, `/carbine`,
 `/assault`, `/shotgun` and `/marksman`, alongside the base sidearm and `/empty`.
-Cargo supplies standard sidearms and conversion parts, not alternative receivers.
+Cargo supplies standard sidearms, conversion parts and all three empty receivers.
+The base sidearm includes a reflex optic. The compact stock is the standard rifle
+support; the precision stock trades shot cadence for stronger recoil control and
+scoped accuracy. Optics and stocks remain physically optional.
+
+### Intended roles
+
+Parallax is lethal armory equipment, with no nonlethal firing mode. Presets provide
+starting configurations; replacing their parts changes their performance and role.
+
+| Build          | Advantage                                            | Cost                                          |
+| -------------- | ---------------------------------------------------- | --------------------------------------------- |
+| Sidearm        | Heat-efficient, portable, leaves the other hand free | Limited ranged accuracy                       |
+| Machine pistol | Compact automatic fire                               | Wide dispersion and low damage per shaving    |
+| Carbine        | Accurate, suppressible generalist                    | Lower damage per hit                          |
+| Assault        | Heavier individual hits                              | More heat and recoil; no suppressor mount     |
+| Marksman       | Accurate ranged damage                               | Requires both hands; few shots before cooling |
+| Shotgun        | Close-range six-projectile volley                    | Fixed pellet spread and slow recovery         |
 
 Barrel values below precede frame, controller and accessory modifiers. Damage
 multiplies the projectile's base 20 damage; heat multiplies 5 heat per projectile.
 
-| Accelerator | Shot cycle | Damage multiplier | Heat multiplier | Dispersion | Recoil |
-| ----------- | ---------- | ----------------- | --------------- | ---------- | ------ |
-| Compact | 0.5 s | 1 | 1 | 6 | 0.5 |
-| Compact heat-sink | 0.3 s | 0.4 | 0.6 | 8 | 0.7 |
-| Carbine | 0.3 s | 0.6 | 0.8 | 5 | 0.9 |
-| Assault | 0.6 s | 1.2 | 1.6 | 6 | 1.2 |
-| Marksman | 1.6 s | 2.25 | 6 | 4 | 2 |
-| Shotgun (six projectiles) | 1.8 s | 0.4 per projectile | 0.8 | 4 | 1.6 |
+| Accelerator               | Shot cycle | Damage multiplier  | Heat multiplier | Dispersion | Recoil |
+| ------------------------- | ---------- | ------------------ | --------------- | ---------- | ------ |
+| Compact                   | 0.5 s      | 1                  | 1               | 6          | 0.5    |
+| Compact heat-sink         | 0.3 s      | 0.4                | 0.6             | 8          | 0.7    |
+| Carbine                   | 0.3 s      | 0.6                | 0.8             | 5          | 0.9    |
+| Assault                   | 0.6 s      | 1.2                | 1.6             | 6          | 1.2    |
+| Marksman                  | 1.6 s      | 2.25               | 6               | 4          | 2      |
+| Shotgun (six projectiles) | 1.8 s      | 0.4 per projectile | 0.8             | 4          | 1.6    |
 
 The marksman's configured projectile velocity multiplier is 1.5; other barrels
 use 1. Projectiles are weak against armour, have a -10 wound bonus and a 0.1

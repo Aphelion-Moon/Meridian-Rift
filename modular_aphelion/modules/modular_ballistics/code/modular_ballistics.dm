@@ -1,8 +1,9 @@
 // Parallax frame definition, initialization, cleanup and ready-made configurations.
 
+/** A lethal armory platform with physical interchangeable parts and reusable heatsinks. */
 /obj/item/gun/ballistic/parallax
 	name = "Parallax modular sidearm"
-	desc = "A modular magnetic accelerator with sculpted ceramic housings. Slices rice-sized projectiles from an effectively inexhaustible metal block, shedding firing heat into a removable heatsink."
+	desc = "A lethal armory magnetic accelerator with interchangeable parts and sculpted ceramic housings. Slices rice-sized projectiles from an effectively inexhaustible metal block, shedding firing heat into a removable heatsink."
 	icon = 'modular_aphelion/modules/modular_ballistics/icons/modular_ballistics.dmi'
 	icon_state = "frame"
 	inhand_icon_state = "frame"
@@ -60,7 +61,8 @@
 	var/attachment_inhand_profile = "compact"
 	/// Cached because the direction-change signal runs before the wearer's dir updates.
 	var/attachment_inhand_direction = SOUTH
-	var/list/starting_modules = list(/obj/item/ballistic_module/barrel, /obj/item/ballistic_module/control)
+	/// Parts supplied with this preset; the standard sidearm includes a reflex optic.
+	var/list/starting_modules = list(/obj/item/ballistic_module/barrel, /obj/item/ballistic_module/control, /obj/item/ballistic_module/optic)
 	var/service_open = FALSE
 	var/datum/component/scope/installed_scope
 	var/aimed_accuracy = 0

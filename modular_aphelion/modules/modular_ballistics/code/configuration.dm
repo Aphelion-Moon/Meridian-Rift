@@ -1,6 +1,6 @@
 // Derive gun performance from its assembly, then enforce firing and aiming rules.
 
-/// Assembly changes always derive from the current parts, avoiding stacked bonuses.
+/** Derive performance and carrying permissions from the current assembly without stacking bonuses. */
 /obj/item/gun/ballistic/parallax/proc/rebuild_configuration()
 	QDEL_NULL(controller_autofire)
 	QDEL_NULL(installed_scope)
@@ -30,7 +30,13 @@
 		fire_delay = fire_delay * burst_size + controller.burst_recovery
 	var/obj/item/ballistic_module/silencer/sound_suppressor = barrel?.attachments["silencer"]
 	suppressed = istype(sound_suppressor) ? SUPPRESSED_QUIET : SUPPRESSED_NONE
-	update_weight_class((long_profile || suppressed) ? WEIGHT_CLASS_BULKY : WEIGHT_CLASS_NORMAL)
+	var/bulky_profile = long_profile || suppressed
+	slot_flags = (barrel && controller) ? (bulky_profile ? ITEM_SLOT_BACK : ITEM_SLOT_BELT) : NONE
+	// Use existing equipment sprites; ground and held appearances retain the physical module overlays.
+	worn_icon = bulky_profile ? 'icons/mob/clothing/back.dmi' : 'icons/mob/clothing/belt.dmi'
+	worn_icon_state = bulky_profile ? "battle_rifle" : "gun"
+	// Storage listens to this setter and ejects assemblies that outgrow their holster.
+	update_weight_class(bulky_profile ? WEIGHT_CLASS_BULKY : WEIGHT_CLASS_NORMAL)
 	attachment_inhand_profile = long_profile ? "rifle" : "compact"
 	// Compact sidearms use the small angled pose of other pistols. A long barrel
 	// or stock switches every component together to the horizontal rifle pose.
@@ -45,6 +51,8 @@
 		name = "[frame_name_prefix] modular marksman weapon"
 	else if(istype(barrel, /obj/item/ballistic_module/barrel/shotgun))
 		name = "[frame_name_prefix] modular shotgun"
+	else if(istype(barrel, /obj/item/ballistic_module/barrel/carbine/assault))
+		name = "[frame_name_prefix] modular assault rifle"
 	else if(long_profile)
 		name = "[frame_name_prefix] modular carbine"
 	else
@@ -56,6 +64,12 @@
 	var/obj/item/ballistic_module/optic/optic = modules["optic"]
 	if(optic?.scope_range && assembly_ready())
 		installed_scope = AddComponent(/datum/component/scope, range_modifier = optic.scope_range)
+	// External part removal can change the profile while the gun is worn.
+	if(ismob(loc))
+		var/mob/holder = loc
+		var/equipped_slot = holder.get_slot_by_item(src)
+		if((equipped_slot & (ITEM_SLOT_BACK|ITEM_SLOT_BELT)) && !(equipped_slot & slot_flags))
+			holder.dropItemToGround(src)
 	update_appearance()
 
 /obj/item/gun/ballistic/parallax/proc/assembly_ready()

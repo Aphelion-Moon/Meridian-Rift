@@ -5,6 +5,9 @@
 	open_sound = 'sound/items/handling/holster_open.ogg'
 	open_sound_vary = TRUE
 
+// APHELION EDIT ADDITION START - MODULAR_BALLISTICS
+/** Configure the default handgun whitelist, or use a subtype's supplied whitelist. */
+// APHELION EDIT ADDITION END
 /datum/storage/holster/New(atom/parent, max_slots, max_specific_storage, max_total_storage, rustle_sound, remove_rustle_sound, list/holdables)
 	. = ..()
 	if(length(holdables))
@@ -13,6 +16,9 @@
 
 	set_holdable(list(
 		/obj/item/gun/ballistic/automatic/pistol,
+		// APHELION EDIT ADDITION START - MODULAR_BALLISTICS
+		/obj/item/gun/ballistic/parallax, // Assembly size still determines whether it fits.
+		// APHELION EDIT ADDITION END
 		/obj/item/gun/ballistic/revolver,
 		/obj/item/gun/energy/e_gun/mini,
 		/obj/item/gun/energy/disabler,
@@ -67,9 +73,15 @@
 /datum/storage/holster/detective
 	max_slots = 3
 
+// APHELION EDIT ADDITION START - MODULAR_BALLISTICS
+/** Configure the detective holster's handgun and ammunition whitelist. */
+// APHELION EDIT ADDITION END
 /datum/storage/holster/detective/New(atom/parent, max_slots, max_specific_storage, max_total_storage, rustle_sound, remove_rustle_sound, list/holdables)
 	holdables = list(
 		/obj/item/gun/ballistic/automatic/pistol,
+		// APHELION EDIT ADDITION START - MODULAR_BALLISTICS
+		/obj/item/gun/ballistic/parallax,
+		// APHELION EDIT ADDITION END
 		/obj/item/ammo_box/magazine/m9mm, // Pistol magazines.
 		/obj/item/ammo_box/magazine/m9mm_aps,
 		/obj/item/ammo_box/magazine/m10mm,
@@ -104,9 +116,15 @@
 	max_slots = 2
 	silent = TRUE
 
+// APHELION EDIT ADDITION START - MODULAR_BALLISTICS
+/** Configure the chameleon holster's handgun and ammunition whitelist. */
+// APHELION EDIT ADDITION END
 /datum/storage/holster/chameleon/New(atom/parent, max_slots, max_specific_storage, max_total_storage, rustle_sound, remove_rustle_sound, list/holdables)
 	holdables = list(
 		/obj/item/gun/ballistic/automatic/pistol,
+		// APHELION EDIT ADDITION START - MODULAR_BALLISTICS
+		/obj/item/gun/ballistic/parallax,
+		// APHELION EDIT ADDITION END
 		/obj/item/ammo_box/magazine/m9mm,
 		/obj/item/ammo_box/magazine/m9mm_aps,
 		/obj/item/ammo_box/magazine/m10mm,

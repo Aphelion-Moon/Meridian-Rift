@@ -41,9 +41,10 @@
 	dispersion = 2
 	heat_multiplier = 1
 
+/** General-purpose rifle stock that improves control without delaying shots. */
 /obj/item/ballistic_module/stock
 	name = "Parallax compact stock"
-	desc = "A curved shoulder support that reduces dispersion and recoil, at the cost of a bulkier profile."
+	desc = "The standard Parallax rifle stock. Reduces dispersion and recoil without slowing the firing cycle, at the cost of a bulkier profile."
 	socket = "stock"
 	icon_state = "stock_compact"
 	dispersion = -2
@@ -59,9 +60,10 @@
 	kick = -0.6
 	cycle_cost = 0.1 SECONDS
 
+/** Standard reflex sight and shared scope configuration for interchangeable optics. */
 /obj/item/ballistic_module/optic
 	name = "Parallax reflex optic"
-	desc = "A recessed holographic aiming window that reduces shot dispersion."
+	desc = "The standard Parallax sight: a recessed holographic aiming window that reduces shot dispersion without slowing the firing cycle."
 	socket = "optic"
 	icon_state = "optic_reflex"
 	dispersion = -1
