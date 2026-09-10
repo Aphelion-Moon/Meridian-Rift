@@ -1,6 +1,0 @@
-author: "Moonridden"
-delete-after: True
-changes:
-  - refactor: "Full restructuring of how Department OOC code is stacked, allowing for much easier additions and removals."
-  - admin: "Updates Departmental Out Of Character verbs for Research, Engineering, Medical, Service, Command, Supply, Central Command, and Silicons. Now uses a list selector for the department to speak into, and a list for toggling channels off."
-  - admin: "Also adds a unique Backstage OOC channel which blends Command, Security, and our Antags together into one group."
