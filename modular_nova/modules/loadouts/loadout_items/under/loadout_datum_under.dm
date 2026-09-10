@@ -56,7 +56,6 @@
 
 /datum/loadout_item/under/jumpsuit/random/insert_path_into_outfit(datum/outfit/outfit, mob/living/carbon/human/equipper, visuals_only = FALSE, override_items = LOADOUT_OVERRIDE_BACKPACK)
 	. = ..()
-	// APHELION EDIT ADDITION - Explicit jumpsuit loadouts must not follow the skirt preference.
 	outfit.uniform = get_random_jumpsuit()
 
 /datum/loadout_item/under/jumpsuit/random/get_item_information()

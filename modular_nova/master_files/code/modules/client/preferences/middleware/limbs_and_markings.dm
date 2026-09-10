@@ -37,20 +37,25 @@
 		if(skin_tone_toggle.is_accessible(preferences))
 			should_greyscale_limbs = TRUE
 
+	var/limbs_changed = FALSE
 	for(var/body_zone in GLOB.all_body_zones)
 		if(body_zone in visited_body_zones)
 			continue
 		var/obj/item/bodypart/target_bodypart = target.get_bodypart(body_zone, include_stumps = TRUE)
 		if(isnull(target_bodypart)) // Not every body configuration has a bodypart in every zone, even as a stump
 			continue
+		limbs_changed = TRUE
 		target_bodypart.bodypart_flags = initial(target_bodypart.bodypart_flags) // Reset bodypart flags so stumps can clear out when we select 'None'
 		target_bodypart.bodyshape      = initial(target_bodypart.bodyshape)
 		target_bodypart.limb_id        = initial(target_bodypart.limb_id)
 		target_bodypart.is_dimorphic   = initial(target_bodypart.is_dimorphic)
 		if(should_greyscale_limbs)
-			target_bodypart?.change_appearance(icon = BODYPART_ICON_HUMANOID, id = SPECIES_HUMANOID, greyscale = TRUE)
+			target_bodypart.change_appearance(icon = BODYPART_ICON_HUMANOID, id = SPECIES_HUMANOID, greyscale = TRUE, update_owner = FALSE)
 		else
-			target_bodypart?.reset_appearance()
+			target_bodypart.reset_appearance(update_owner = FALSE)
+
+	if(limbs_changed && !(target.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+		target.update_body_parts()
 
 /// Builds the unified augment_items list in render order and returns it
 /datum/preference_middleware/limbs_and_markings/proc/build_augment_choices()

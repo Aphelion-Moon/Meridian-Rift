@@ -3,7 +3,7 @@
 	layer = UNDER_UNIFORM_LAYER
 
 /datum/sprite_accessory/clothing/underwear/make_appearance(color = COLOR_WHITE, physique = MALE, bodyshape = BODYSHAPE_HUMANOID, atom/wearer)
-	// APHELION EDIT ADDITION - Primalis use custom limbs but need digitigrade underwear.
+	// Primalis use custom limbs but need digitigrade underwear.
 	if(ishuman(wearer) && isvoxprimalis(wearer))
 		bodyshape |= BODYSHAPE_DIGITIGRADE
 	return ..(color, physique, bodyshape, wearer)

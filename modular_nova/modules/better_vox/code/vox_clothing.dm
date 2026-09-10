@@ -4,7 +4,6 @@
 /obj/item/clothing/under/rank/prisoner
 	greyscale_config_worn_better_vox = /datum/greyscale_config/jumpsuit/prison/worn/better_vox
 
-// APHELION EDIT ADDITION START - Generated pants for uniforms without a Vox sprite.
 /datum/greyscale_config/vox_primalis_pants
 	name = "Vox Primalis Pants"
 	icon_file = 'modular_nova/modules/better_vox/icons/clothing/pants_template.dmi'
@@ -43,4 +42,4 @@
 	result = fcopy_rsc(result)
 	set_custom_worn_icon_cached(source_file, source_state, cache_key, result)
 	return result
-// APHELION EDIT ADDITION END
+	
