@@ -51,7 +51,7 @@
 	var/stored_heat = 0
 	var/heat_capacity = 100
 	/// Heat dissipated per second, installed or loose.
-	var/cooling_rate = 1
+	var/cooling_rate = 0.5
 	var/burnt_out = FALSE
 
 /obj/item/ammo_box/magazine/parallax/Destroy(force)
