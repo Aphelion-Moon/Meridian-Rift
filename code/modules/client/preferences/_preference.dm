@@ -65,6 +65,11 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 
 /// Returns a flat list of preferences in order of their priority
 /proc/get_preferences_in_priority_order()
+	// APHELION EDIT ADDITION START - Preference priorities are fixed after registry initialization.
+	var/static/list/ordered_preferences
+	if(ordered_preferences)
+		return ordered_preferences
+	// APHELION EDIT ADDITION END
 	var/list/preferences[MAX_PREFERENCE_PRIORITY]
 
 	for (var/preference_type in GLOB.preference_entries)
@@ -75,6 +80,10 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	for (var/index in 1 to MAX_PREFERENCE_PRIORITY)
 		if(preferences[index])
 			flattened += preferences[index]
+	// APHELION EDIT ADDITION START - Do not retain an early call before entries exist.
+	if(length(flattened))
+		ordered_preferences = flattened
+	// APHELION EDIT ADDITION END
 	return flattened
 
 /// Represents an individual preference.

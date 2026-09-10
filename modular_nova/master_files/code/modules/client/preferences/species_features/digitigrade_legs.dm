@@ -39,6 +39,11 @@
 
 	target.dna.features[FEATURE_LEGS] = value
 
+	// Avoid rebuilding the outgoing preview species.
+	// Species runs after legs and will replace this body itself. Other callers may apply only some preferences.
+	if(target == preferences.character_preview_view?.body && target.dna.species.type != preferences.read_preference(/datum/preference/choiced/species))
+		return TRUE
+
 	target.update_body()
 	target.dna.species.replace_body(target, target.dna.species) // TODO: Replace this with something less stupidly expensive.
 	return TRUE
