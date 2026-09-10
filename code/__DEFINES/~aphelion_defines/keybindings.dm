@@ -1,0 +1,1 @@
+#define COMSIG_KB_NOTIFYADMINS_DOWN "keybinding_notify_admins_down"
