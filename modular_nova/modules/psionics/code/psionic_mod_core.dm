@@ -4,6 +4,11 @@
 	desc = "A psionic transducer fitted into a MOD core housing. It powers the suit by building strain in its wearer's mind. \
 		It requires a conscious psion and cuts out before causing burnout."
 	icon_state = "mod-core-plasma"
+	custom_materials = list(
+		/datum/material/silver = SHEET_MATERIAL_AMOUNT * 2,
+		/datum/material/iron = SHEET_MATERIAL_AMOUNT * 1.05,
+		/datum/material/glass = SHEET_MATERIAL_AMOUNT * 1.05,
+	)
 	/// Power supplied per whole point of strain; basic suit upkeep costs one strain per second.
 	var/charge_per_strain = DEFAULT_CHARGE_DRAIN
 	/// Unspent power already paid for with a whole strain point, always less than charge_per_strain.
