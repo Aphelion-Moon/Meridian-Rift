@@ -93,6 +93,12 @@
 		LAZYADD(SSeconomy.bank_accounts_by_job[new_job.type], src)
 
 /datum/bank_account/vv_edit_var(var_name, var_value) // just so you don't have to do it manually
+	// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+	if(var_name == NAMEOF(src, account_balance) && savings_ledger?.resolve())
+		if(!isnum(var_value) || var_value < 0)
+			return FALSE
+		return var_value == account_balance || adjust_money(var_value - account_balance, "Account adjustment")
+	// APHELION EDIT ADDITION END
 	var/old_id = account_id
 	var/datum/job/old_job = account_job
 	var/old_balance = account_balance
@@ -113,6 +119,9 @@
 				SSeconomy.bank_accounts_by_job[account_job.type] -= src
 		if(NAMEOF(src, account_balance))
 			add_log_to_history(var_value - old_balance, "Nanotrasen: Moderator Action")
+			// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+			record_round_transaction(account_balance - old_balance, "Administrator variable edit")
+			// APHELION EDIT ADDITION END
 
 /**
  * Sets the bank_account to behave as though a CRAB-17 event is happening.
@@ -142,6 +151,14 @@
  * * amount - the quantity of credits that will be reconciled with the account balance.
  */
 /datum/bank_account/proc/has_money(amount)
+	// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+	var/datum/savings_ledger/ledger = savings_ledger?.resolve()
+	if(ledger && amount > account_balance - savings_cleared_balance)
+		var/list/account = ledger.find_account(savings_owner, savings_character)
+		var/list/settings = ledger.data["settings"]
+		if(ledger.storage_error || !settings["enabled"] || !account || account["frozen"])
+			return FALSE
+	// APHELION EDIT ADDITION END
 	return account_balance >= amount
 
 /**
@@ -151,11 +168,19 @@
  * * reason - the reason for the appearance or loss of money
  */
 /datum/bank_account/proc/adjust_money(amount, reason)
+	// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+	var/datum/savings_ledger/ledger = savings_ledger?.resolve()
+	if(ledger)
+		return ledger.adjust_bank(src, amount, reason)
+	// APHELION EDIT ADDITION END
 	if((amount < 0 && has_money(-amount)) || amount > 0)
 		var/debt_collected = 0
 		if(account_debt > 0 && amount > 0)
 			debt_collected = min(ceil(amount*DEBT_COLLECTION_COEFF), account_debt)
 		account_balance += amount - debt_collected
+		// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+		record_round_transaction(amount - debt_collected, reason, debt_collected)
+		// APHELION EDIT ADDITION END
 		if(reason)
 			add_log_to_history(amount, reason)
 		if(debt_collected)
@@ -184,6 +209,11 @@
  * * transfer_reason - override for adjust_money reason. Use if no default reason(Transfer to/from Name Surname).
  */
 /datum/bank_account/proc/transfer_money(datum/bank_account/from, amount, transfer_reason)
+	// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+	var/datum/savings_ledger/ledger = savings_ledger?.resolve() || from.savings_ledger?.resolve()
+	if(ledger)
+		return ledger.transfer_banks(src, from, amount, transfer_reason)
+	// APHELION EDIT ADDITION END
 	if(from.has_money(amount))
 		var/reason_to = "Transfer: From [from.account_holder]"
 		var/reason_from = "Transfer: To [account_holder]"
@@ -333,6 +363,9 @@
 	account_balance = budget
 	account_holder = SSeconomy.department_accounts[dep_id]
 	SSeconomy.departmental_accounts += src
+	// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+	record_round_transaction(budget, "Opening department budget")
+	// APHELION EDIT ADDITION END
 
 /datum/bank_account/department/adjust_money(amount, reason)
 	. = ..()

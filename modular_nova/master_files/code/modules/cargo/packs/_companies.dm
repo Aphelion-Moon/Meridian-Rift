@@ -12,7 +12,7 @@
 /datum/supply_pack/companies/generate(atom/A, datum/bank_account/paying_account, crate_override)
 	. = ..()
 	var/datum/bank_account/cargo_dep = SSeconomy.get_dep_account(ACCOUNT_CAR)
-	cargo_dep.account_balance += round(cost * CARGO_CUT)
+	cargo_dep.adjust_money(round(cost * CARGO_CUT), "Cargo: Company purchase commission") // NOVA EDIT CHANGE - PERSISTENT_ECONOMY - ORIGINAL: cargo_dep.account_balance += round(cost * CARGO_CUT)
 	if(!(CONFIG_GET(flag/permit_pins)))
 		return
 	var/obj/structure/container = .

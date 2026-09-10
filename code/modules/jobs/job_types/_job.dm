@@ -218,6 +218,9 @@
 	if(equipping.paycheck_department)
 		var/datum/bank_account/bank_account = new(real_name, equipping, dna.species.payday_modifier)
 		bank_account.payday(STARTING_PAYCHECKS, free = TRUE)
+		// APHELION EDIT ADDITION START - PERSISTENT_ECONOMY
+		bank_account.bind_savings(player_client, mind)
+		// APHELION EDIT ADDITION END
 		account_id = bank_account.account_id
 		bank_account.replaceable = FALSE
 		add_mob_memory(/datum/memory/key/account, remembered_id = account_id)
