@@ -4,7 +4,7 @@
 	desc = "It's an auto-injecting syringe with a universal refill port on the side."
 	icon = 'modular_nova/modules/lathe_medipens/icons/syringe.dmi'
 	lefthand_file = 'modular_nova/modules/lathe_medipens/icons/medical_lefthand.dmi'
-	righthand_file = 'modular_nova/modules/lathe_medipens/icons//medical_righthand.dmi'
+	righthand_file = 'modular_nova/modules/lathe_medipens/icons/medical_righthand.dmi'
 	icon_state = "medipen_blue_unused"
 	base_icon_state = "medipen_blue"
 	inhand_icon_state = "medipen_blue"

@@ -3,13 +3,12 @@ import { assetMap } from './assets';
 import { BootTerminal } from './components/BootTerminal';
 import { NavMenu } from './components/NavMenu';
 import { NoticeBanner } from './components/NoticeBanner';
+import { WhitelistGate } from './components/WhitelistGate';
 import type { ServerState } from './LobbyMenu';
 
 /**
- * Aphelion's own lobby layout - plain-text/Fixedsys nav menu and boot terminal, ported
- * from config/nova/title_html.txt, in place of upstream's sprite buttons and TV panel.
- * Kept in its own file so LobbyMenu.tsx (the vanilla-tracked state shell) stays small
- * and easy to diff against upstream.
+ * Aphelion's own lobby layout - plain-text/Fixedsys nav menu and boot terminal,
+ * in place of upstream's sprite buttons and TV panel.
  */
 export function AphelionLobbyMenu({
   serverState,
@@ -29,6 +28,11 @@ export function AphelionLobbyMenu({
           messages={serverState.startupMessages}
           progressCurrent={serverState.progressCurrent}
           progressTotal={serverState.progressTotal}
+        />
+      ) : serverState.whitelistGate !== 'open' ? (
+        <WhitelistGate
+          state={serverState.whitelistGate}
+          canSwapServers={serverState.canSwapServers}
         />
       ) : (
         <>

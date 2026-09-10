@@ -303,6 +303,10 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 		GLOB.preferences_datums[ckey] = prefs
 	prefs.last_ip = address //these are gonna be used for banning
 	prefs.last_id = computer_id //these are gonna be used for banning
+	// APHELION EDIT ADDITION START - import pass 2, has to run after migration
+	prefs.prefs_import_finalise()
+	aphelion_offer_preferences_import()
+	// APHELION EDIT ADDITION END
 
 	if(fexists(roundend_report_file()))
 		ASSIGN_GAME_VERB(src, /client, show_previous_roundend_report)
