@@ -33,6 +33,7 @@
 	order_flags = ORDER_COMPANY
 	contains = list(/obj/item/gun/ballistic/shotgun/doublebarrel)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/ballistics/nt/shotgun_automatic
 	cost = CARGO_CRATE_VALUE * 5
 	contains = list(/obj/item/gun/ballistic/shotgun/automatic/combat)
@@ -61,14 +62,17 @@
 	access_view = FALSE
 	express_lock = FALSE
 	order_flags = ORDER_COMPANY
+*/ // APHELION EDIT REMOVAL END
 
 // Aethon and HHI Weapons
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/ballistics/atheon/rapier
 	name = "M94 'Rapier' Submachinegun"
 	desc = "Big and mean, spits hot lead and fills halls with casings. Perfect for when collateral damage is on the table. Chambered in 4.6mm."
 	cost = CARGO_CRATE_VALUE * 4
 	contains = list(/obj/item/gun/ballistic/automatic/rapier)
+*/ // APHELION EDIT REMOVAL END
 
 // Sol Fed Weapons
 /datum/supply_pack/companies/ballistics/sol_fed
@@ -86,6 +90,7 @@
 /datum/supply_pack/companies/ballistics/sol_fed/sidearm/wespe
 	contains = list(/obj/item/gun/ballistic/automatic/pistol/sol)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/ballistics/sol_fed/sidearm/type207
 	contains = list(/obj/item/gun/ballistic/automatic/pistol/type207)
 
@@ -156,6 +161,7 @@
 /datum/supply_pack/companies/ballistics/sol_fed/longarm/infanterie
 	contains = list(/obj/item/gun/ballistic/automatic/sol_classic)
 	cost = CARGO_CRATE_VALUE * 7
+*/ // APHELION EDIT REMOVAL END
 
 /* //
 /datum/supply_pack/companies/ballistics/sol_fed/longarm/outomaties
@@ -163,12 +169,15 @@
 	cost = CARGO_CRATE_VALUE * 11.5
 */ //Commented out due to a severe lack of balance regarding it.
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/ballistics/sol_fed/longarm/kiboko
 	contains = list(/obj/item/gun/ballistic/automatic/sol_grenade_launcher)
 	cost = CARGO_CRATE_VALUE * 23
+*/ // APHELION EDIT REMOVAL END
 
 // HC Surplus
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/ballistics/hc_surplus
 	cost = CARGO_CRATE_VALUE * 3
 
@@ -205,9 +214,11 @@
 /datum/supply_pack/companies/ballistics/hc_surplus/anti_materiel_rifle
 	contains = list(/obj/item/gun/ballistic/automatic/wylom)
 	cost = CARGO_CRATE_VALUE * 8
+*/ // APHELION EDIT REMOVAL END
 
 // Donk
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/ballistics/donk
 	access = FALSE
 	access_view = FALSE
@@ -238,11 +249,14 @@
 /datum/supply_pack/companies/ballistics/donk/foam_lmg
 	contains = list(/obj/item/gun/ballistic/automatic/l6_saw/toy/unrestricted)
 	cost = CARGO_CRATE_VALUE * 2.5
+*/ // APHELION EDIT REMOVAL END
 
 // Blacksteel
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/ballistics/blacksteel
 
 /datum/supply_pack/companies/ballistics/blacksteel/longbow
 	contains = list(/obj/item/gun/ballistic/bow/longbow)
 	cost = CARGO_CRATE_VALUE * 1.5
+*/ // APHELION EDIT REMOVAL END

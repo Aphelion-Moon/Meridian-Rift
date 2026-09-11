@@ -7,6 +7,7 @@
 /datum/supply_pack/companies/mags_and_ammo/nt
 	cost = CARGO_CRATE_VALUE * 0.25
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/nt/dumdum38
 	name = ".38 DumDum Speedloader Single-Pack"
 	desc = "Contains one speedloader of .38 DumDum ammunition, good for embedding in soft targets."
@@ -54,6 +55,7 @@
 	desc = "Contains one stripper clip that fits standard 9mm ammunition, considered 'disposable'."
 	auto_name = FALSE
 	contains = list(/obj/item/ammo_box/speedloader/c96/empty)
+*/ // APHELION EDIT REMOVAL END
 
 // Sol Fed Mags
 
@@ -63,6 +65,7 @@
 /datum/supply_pack/companies/mags_and_ammo/c35_mag
 	contains = list(/obj/item/ammo_box/magazine/c35sol_pistol/starts_empty)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/c35_extended
 	contains = list(/obj/item/ammo_box/magazine/c35sol_pistol/stendo/starts_empty)
 
@@ -119,12 +122,14 @@
 	access_view = ACCESS_WEAPONS
 	express_lock = TRUE
 	order_flags = ORDER_GOODY
+*/ // APHELION EDIT REMOVAL END
 
 // HC Mags
 
 /datum/supply_pack/companies/mags_and_ammo/hc_surplus
 	cost = CARGO_CRATE_VALUE * 0.25
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/hc_surplus/plasma_battery
 	contains = list(/obj/item/ammo_box/magazine/recharge/plasma_battery)
 
@@ -150,12 +155,14 @@
 /datum/supply_pack/companies/mags_and_ammo/hc_surplus/amr_magazine
 	contains = list(/obj/item/ammo_box/magazine/wylom)
 	cost = CARGO_CRATE_VALUE * 0.75
+*/ // APHELION EDIT REMOVAL END
 
 // Vitezstv★ Boxes of non-shotgun ammo
 
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/ammo_boxes
 	cost = CARGO_CRATE_VALUE * 0.25
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/ammo_boxes/peacekeeper_lethal
 	contains = list(/obj/item/ammo_box/c9mm)
 
@@ -250,6 +257,7 @@
 
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/ammo_boxes/kineticballs
 	contains = list(/obj/item/ammo_box/advanced/kineticballs)
+*/ // APHELION EDIT REMOVAL END
 
 // Revolver speedloaders
 
@@ -259,6 +267,7 @@
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/speedloader/detective_lethal
 	contains = list(/obj/item/ammo_box/speedloader/c38)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/speedloader/detective_dumdum
 	contains = list(/obj/item/ammo_box/speedloader/c38/dumdum)
 	access = ACCESS_WEAPONS
@@ -272,6 +281,7 @@
 
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/speedloader/c585trappiste
 	contains = list(/obj/item/ammo_box/speedloader/c585trappiste)
+*/ // APHELION EDIT REMOVAL END
 
 // Vitezstv★ Shotgun boxes
 
@@ -290,6 +300,7 @@
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/shot_shells/rubbershot
 	contains = list(/obj/item/ammo_box/advanced/s12gauge/rubber)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/shot_shells/magnum_buckshot
 	contains = list(/obj/item/ammo_box/advanced/s12gauge/magnum)
 	access = ACCESS_WEAPONS
@@ -299,10 +310,12 @@
 	contains = list(/obj/item/ammo_box/advanced/s12gauge/express)
 	access = ACCESS_WEAPONS
 	access_view = ACCESS_WEAPONS
+*/ // APHELION EDIT REMOVAL END
 
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/shot_shells/hunter_slug
 	contains = list(/obj/item/ammo_box/advanced/s12gauge/hunter)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/shot_shells/flechettes
 	contains = list(/obj/item/ammo_box/advanced/s12gauge/flechette)
 	access = ACCESS_WEAPONS
@@ -316,12 +329,14 @@
 
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/shot_shells/confetti
 	contains = list(/obj/item/ammo_box/advanced/s12gauge/honkshot)
+*/ // APHELION EDIT REMOVAL END
 
 // Boxes of kiboko launcher ammo
 
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/grenade_shells
 	cost = CARGO_CRATE_VALUE * 0.5
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/vitezstvi/grenade_shells/practice
 	contains = list(/obj/item/ammo_box/c980grenade)
 
@@ -349,23 +364,27 @@
 	access_view = ACCESS_WEAPONS
 	express_lock = TRUE
 	order_flags = ORDER_GOODY
+*/ // APHELION EDIT REMOVAL END
 
 //Blacksteel Ammo
 
 /datum/supply_pack/companies/mags_and_ammo/blacksteel
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/blacksteel/quiver
 	contains = list(/obj/item/storage/bag/quiver/full)
 	name = "Quiver"
 	desc = "Holds arrows for your bow. Good, because while pocketing arrows is possible, it surely can't be pleasant. Comes with 10 arrows!"
 	cost = CARGO_CRATE_VALUE * 1.5
 	auto_name = FALSE
+*/ // APHELION EDIT REMOVAL END
 
 // Donk
 
 /datum/supply_pack/companies/mags_and_ammo/donk/foamforce_ammo
 	cost = CARGO_CRATE_VALUE * 0.25
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/mags_and_ammo/donk/foamforce_ammo/darts
 	contains = list(/obj/item/ammo_box/foambox)
 	cost = CARGO_CRATE_VALUE * 0.2
@@ -385,3 +404,4 @@
 
 /datum/supply_pack/companies/mags_and_ammo/donk/foamforce_ammo/m762_mag
 	contains = list(/obj/item/ammo_box/magazine/toy/m762)
+*/ // APHELION EDIT REMOVAL END
