@@ -177,6 +177,13 @@
 
 // TG Sprites - re-overridden back to point to their icon file
 
+// Base floors need the upstream states for mapped variants such as asteroid8.
+/turf/open/floor/iron
+	icon = 'icons/turf/floors.dmi'
+
+/turf/open/floor/plating
+	icon = 'icons/turf/floors.dmi'
+
 /turf/open/floor/plating/reinforced
 	icon = 'icons/turf/floors.dmi'
 
