@@ -33,6 +33,8 @@
 	var/oth_h
 	///This is the custom indicator sprite that will appear in the box at the bottom of the ammo hud, use this for something like semi/auto toggle on a gun.
 	var/indicator
+	/// Optional weapon-specific appearance, managed alongside the standard overlays.
+	var/mutable_appearance/custom_overlay
 	// is the ui on or off?
 	var/on
 
@@ -46,6 +48,7 @@
 	oth_t = ""
 	oth_h = ""
 	indicator = ""
+	custom_overlay = null
 	update_appearance()
 	on = FALSE
 
@@ -55,18 +58,22 @@
 	on = TRUE
 
 ///This is the main proc for altering the hud's appeareance, it controls the setting of the overlays. Use the OTH and below variables to set it accordingly.
-/atom/movable/screen/ammo_counter/proc/set_hud(_backing_color, _oth_o, _oth_t, _oth_h, _indicator, _oth_backing = "oth_light")
+/atom/movable/screen/ammo_counter/proc/set_hud(_backing_color, _oth_o, _oth_t, _oth_h, _indicator, _oth_backing = "oth_light", mutable_appearance/_custom_overlay = null)
 	backing_color = _backing_color
 	oth_backing = _oth_backing
 	oth_o = _oth_o
 	oth_t = _oth_t
 	oth_h = _oth_h
 	indicator = _indicator
+	custom_overlay = _custom_overlay
 
 	update_appearance()
 
 /atom/movable/screen/ammo_counter/update_overlays()
 	. = ..()
+	if(custom_overlay)
+		. += custom_overlay
+		return
 	if(oth_backing)
 		var/mutable_appearance/oth_backing_overlay = mutable_appearance(icon, oth_backing)
 		oth_backing_overlay.color = backing_color
@@ -87,4 +94,3 @@
 		var/mutable_appearance/indicator_overlay = mutable_appearance(icon, indicator)
 		indicator_overlay.color = backing_color
 		. += indicator_overlay
-

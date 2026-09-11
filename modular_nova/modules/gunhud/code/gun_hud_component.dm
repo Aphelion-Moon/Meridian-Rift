@@ -217,6 +217,9 @@
 	if(isnull(hud))
 		return
 
+	if(to_update.update_custom_ammo_hud(hud))
+		return
+
 	hud.maptext = null
 	hud.icon_state = "backing"
 	var/backing_color = COLOR_CYAN
@@ -271,6 +274,8 @@
 	if(isnull(hud))
 		return
 
+	// Reset managed overlays too, so returning to an unchanged custom HUD redraws it.
+	hud.set_hud(null, null, null, null, null, null)
 	hud.icon_state = "eammo_counter"
 	hud.cut_overlays()
 	hud.maptext_x = -12
@@ -313,6 +318,7 @@
 	if(isnull(hud))
 		return
 
+	hud.set_hud(null, null, null, null, null, null)
 	if(isnull(to_update.phase_emitter) || isnull(to_update.cell) || !to_update.cell.charge)
 		hud.icon_state = "microfusion_counter_no_emitter"
 		hud.maptext = null
@@ -411,6 +417,10 @@
 		return get_ammo(countchambered = FALSE)
 	else
 		return get_ammo(countchambered = TRUE)
+
+/// Return TRUE when a weapon has supplied its own ammo HUD appearance.
+/obj/item/gun/ballistic/proc/update_custom_ammo_hud(atom/movable/screen/ammo_counter/hud)
+	return FALSE
 
 // Handle pulse rifle's unique ammo system
 /obj/item/gun/ballistic/automatic/pulse_rifle/get_accurate_ammo_count()
