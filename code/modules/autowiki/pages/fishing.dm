@@ -393,10 +393,13 @@
 		var/datum/fish_evolution/evolution = GLOB.fish_evolutions[evo_type]
 		if(!evolution.show_on_wiki)
 			continue
+		var/candidate_fish = get_fish(evo_type)
+		if(!candidate_fish)
+			continue // Skip internal evolution definitions with no visible candidate species.
 
 		output += "\n\n" + include_template("Autowiki/FishEvolution", list(
 			"name" = escape_value(evolution.name),
-			"fish" = get_fish(evo_type),
+			"fish" = candidate_fish,
 			"min_max_temp" = "[evolution.required_temperature_min] - [evolution.required_temperature_max] K",
 			"notes" = escape_value(evolution.conditions_note),
 			"result_icon" = evolution.show_result_on_wiki ? FISH_AUTOWIKI_FILENAME(evolution.new_fish_type) : FISH_SOURCE_AUTOWIKI_QUESTIONMARK,

@@ -11,6 +11,8 @@
 
 		if (!valid_node(node))
 			continue
+		if (!node.display_name)
+			continue // Internal nodes have no reader-facing entry.
 
 		output += "\n\n" + include_template("Autowiki/TechwebEntry", list(
 			"name" = escape_value(node.display_name),

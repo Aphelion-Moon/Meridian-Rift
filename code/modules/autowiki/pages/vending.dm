@@ -15,6 +15,9 @@
 		if(initial(parent_machine.name) == initial(vending_type.name))
 			continue //Same name, likely just a slightly touched up subtype for specific maps.
 		var/obj/machinery/vending/vending_machine = new vending_type(parent)
+		if(!length(vending_machine.products) && !length(vending_machine.contraband) && !length(vending_machine.premium))
+			qdel(vending_machine)
+			continue // No fixed inventory to document.
 		vending_machine.use_power = FALSE
 		vending_machine.update_icon(UPDATE_ICON_STATE)
 

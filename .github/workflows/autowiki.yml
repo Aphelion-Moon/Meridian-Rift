@@ -5,42 +5,67 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: meridian-autowiki
+  cancel-in-progress: false
 
 jobs:
   autowiki:
+    if: github.repository == 'Aphelion-Moon/Meridian-Rift'
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - name: "Check for AUTOWIKI_USERNAME"
-        id: secrets_set
-        env:
-          ENABLER_SECRET: ${{ secrets.AUTOWIKI_USERNAME }}
-        run: |
-          unset SECRET_EXISTS
-          if [ -n "$ENABLER_SECRET" ]; then SECRET_EXISTS=true ; fi
-          echo "SECRETS_ENABLED=$SECRET_EXISTS" >> $GITHUB_OUTPUT
       - name: Checkout
-        if: steps.secrets_set.outputs.SECRETS_ENABLED
         uses: actions/checkout@v7
-      - name: Install BYOND
-        if: steps.secrets_set.outputs.SECRETS_ENABLED
-        uses: ./.github/actions/restore_or_install_byond
-      - name: Install rust-g
-        if: steps.secrets_set.outputs.SECRETS_ENABLED
-        run: |
-          bash tools/ci/install_rust_g.sh
-      - name: Compile and generate Autowiki files
-        if: steps.secrets_set.outputs.SECRETS_ENABLED
-        run: |
-          source $HOME/BYOND/byond/bin/byondsetup
-          tools/build/build.sh --ci autowiki
-      - name: Run Autowiki
-        if: steps.secrets_set.outputs.SECRETS_ENABLED
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install publisher and check configuration
         env:
           USERNAME: ${{ secrets.AUTOWIKI_USERNAME }}
           PASSWORD: ${{ secrets.AUTOWIKI_PASSWORD }}
           WIKI_API_URL: ${{ vars.WIKI_API_URL }}
         run: |
           cd tools/autowiki
-          npm install
-          cd ../..
-          node tools/autowiki/autowiki.js data/autowiki_edits.txt data/autowiki_files/
+          npm ci --ignore-scripts
+          npm test
+          node autowiki.js --check-config
+      - name: Install BYOND
+        uses: ./.github/actions/restore_or_install_byond
+      - name: Install rust-g
+        run: |
+          bash tools/ci/install_rust_g.sh
+      - name: Compile and generate Autowiki files
+        run: |
+          source $HOME/BYOND/byond/bin/byondsetup
+          tools/build/build.sh --ci autowiki
+      - name: Preview Autowiki changes
+        env:
+          WIKI_API_URL: ${{ vars.WIKI_API_URL }}
+        run: node tools/autowiki/autowiki.js data/autowiki_edits.txt data/autowiki_files/ data/autowiki-report/preview --dry-run
+      - name: Preserve generated inputs and preview
+        uses: actions/upload-artifact@v7
+        with:
+          name: autowiki-inputs-${{ github.sha }}
+          retention-days: 14
+          path: |
+            data/autowiki_edits.txt
+            data/autowiki_files/
+            data/autowiki-report/preview/
+      - name: Publish Autowiki
+        if: github.ref == 'refs/heads/master'
+        env:
+          USERNAME: ${{ secrets.AUTOWIKI_USERNAME }}
+          PASSWORD: ${{ secrets.AUTOWIKI_PASSWORD }}
+          WIKI_API_URL: ${{ vars.WIKI_API_URL }}
+        run: node tools/autowiki/autowiki.js data/autowiki_edits.txt data/autowiki_files/ data/autowiki-report/publish --publish
+      - name: Preserve publication results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: autowiki-results-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: data/autowiki-report/

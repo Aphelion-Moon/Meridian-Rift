@@ -95,7 +95,7 @@
 
 		if(!already_generated_tools[tool_icon])
 			already_generated_tools[tool_icon] = TRUE
-			var/image/tool_image = get_tool_icon(tool)
+			var/image/tool_image = get_tool_icon(tool, operation)
 			upload_icon(getFlatIcon(tool_image, no_anim = TRUE),  tool_icon)
 
 		output += include_template("Autowiki/SurgeryToolTemplate", tool_info)
@@ -109,12 +109,15 @@
 		return operation.get_any_tool()
 	return capitalize(format_text(tool::name))
 
-/datum/autowiki/surgery/proc/get_tool_icon(obj/item/tool)
+/datum/autowiki/surgery/proc/get_tool_icon(obj/item/tool, datum/surgery_operation/operation)
 	if(tool == IMPLEMENT_HAND)
 		return image(/obj/item/hand_item)
 	if(istext(tool))
 		return GLOB.tool_to_image[tool] || image('icons/effects/random_spawners.dmi', "questionmark")
 	if(tool == /obj/item)
+		// Generic heat sources need a representative icon instead of the unknown-tool fallback.
+		if(LOWER_TEXT(operation.get_any_tool()) == "any heat source")
+			return image('icons/obj/cigarettes.dmi', "zippo")
 		return image('icons/effects/random_spawners.dmi', "questionmark")
 	if(ispath(tool, /obj/item/melee/energy)) // snowflake for soul reasons
 		return image(tool::icon, "[tool::icon_state]_on")
