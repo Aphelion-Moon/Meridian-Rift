@@ -10,12 +10,14 @@
 	var/result_path
 	/// For frames that are external to the wall they are placed on, like light fixtures and cameras.
 	var/wall_external = FALSE
-	/// The amount of pixels to shift when mounted.
+	// The amount of pixels to shift when mounted
 	var/pixel_shift
+	// NOVA EDIT ADDITION START
 	/// Whether the user must stand on a floor turf to mount this frame.
-	var/requires_floor = TRUE // NOVA EDIT ADDITION
+	var/requires_floor = TRUE
 	/// Whether a successful placement consumes this frame.
-	var/consume_after_attach = TRUE // NOVA EDIT ADDITION
+	var/consume_after_attach = TRUE
+	// NOVA EDIT ADDITION END
 
 /obj/item/wallframe/Initialize(mapload)
 	. = ..()

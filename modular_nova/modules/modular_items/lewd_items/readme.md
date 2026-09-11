@@ -79,9 +79,3 @@ on Windows or `tools/build/build.sh dm-test` on Linux. For a focused local run,
 temporarily add `TEST_FOCUS(/datum/unit_test/portal_device)` and
 `TEST_FOCUS(/datum/unit_test/portal_lifecycle)` after the test includes; remove
 those focus declarations when finished.
-
-To check a deployment's complete interaction configuration as well, place its
-JSON files in `config/nova/interactions/` and add `-DTEST_PORTAL_LIVE_CONFIG` to
-the DM test command. This explicitly enables the optional configuration test,
-which checks the mapped definitions and their private message templates. Merely
-having an interaction directory does not enable this test.

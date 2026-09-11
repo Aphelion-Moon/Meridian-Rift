@@ -27,6 +27,7 @@
 
 /obj/item/clothing/mask/kitsune
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+	greyscale_config_worn_better_vox = /datum/greyscale_config/kitsune/worn/better_vox
 
 /**
  * NONE(Squash)
@@ -160,6 +161,7 @@
 
 /obj/item/clothing/mask/rebellion
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
+	greyscale_config_worn_better_vox = /datum/greyscale_config/rebellion_mask/worn/better_vox
 
 /obj/item/clothing/mask/russian_balaclava
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION

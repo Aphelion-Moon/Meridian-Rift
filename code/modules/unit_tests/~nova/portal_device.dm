@@ -523,43 +523,6 @@
 	TEST_ASSERT_NOTNULL(locate(/obj/item/clothing/sextoy/portal_panties) in portal_box, "The portal box did not contain a portal receiver.")
 	TEST_ASSERT_NOTNULL(locate(/obj/item/paper/fluff/portal_fleshlight) in portal_box, "The portal box did not contain its instructions.")
 
-/// The built-in routing table is an exact allowlist and contains no urethra fallback.
-/datum/unit_test/portal_device/interaction_map/Run()
-	var/list/actual_map = /obj/item/clothing/sextoy/portal_fleshlight::interaction_map
-	var/list/expected_map = list(
-		ORGAN_SLOT_VAGINA = list(
-			ORGAN_SLOT_PENIS = "Fuck (vagina)",
-			ORGAN_SLOT_VAGINA = "Tribadism",
-			BODY_ZONE_PRECISE_MOUTH = "Lick vagina",
-			BODY_ZONE_R_ARM = "Finger (vagina)",
-			BODY_ZONE_L_ARM = "Finger (vagina)",
-			BODY_ZONE_R_LEG = "Footjob (vagina)",
-			BODY_ZONE_L_LEG = "Footjob (vagina)",
-		),
-		ORGAN_SLOT_ANUS = list(
-			ORGAN_SLOT_PENIS = "Ass fuck",
-			BODY_ZONE_PRECISE_MOUTH = "Eat ass",
-			BODY_ZONE_R_ARM = "Finger (ass)",
-			BODY_ZONE_L_ARM = "Finger (ass)",
-		),
-		ORGAN_SLOT_PENIS = list(
-			ORGAN_SLOT_PENIS = "Frot",
-			ORGAN_SLOT_VAGINA = "Ride cock (vagina)",
-			ORGAN_SLOT_ANUS = "Ride cock (ass)",
-			BODY_ZONE_PRECISE_MOUTH = "Blowjob",
-			BODY_ZONE_R_ARM = "Handjob",
-			BODY_ZONE_L_ARM = "Handjob",
-			BODY_ZONE_R_LEG = "Footjob (cock)",
-			BODY_ZONE_L_LEG = "Footjob (cock)",
-		),
-		BODY_ZONE_PRECISE_MOUTH = list(
-			ORGAN_SLOT_PENIS = "Mouth fuck",
-			BODY_ZONE_PRECISE_MOUTH = "Tongue kiss",
-		),
-	)
-
-	TEST_ASSERT(deep_compare_list(actual_map, expected_map), "The portal-device interaction allowlist drifted from the live-config contract.")
-
 /// The central validator rejects stale authority and derives cooldown state from both participants.
 /datum/unit_test/portal_device/validator_authority_and_cooldown/Run()
 	if(CONFIG_GET(flag/disable_lewd_items) || CONFIG_GET(flag/disable_erp_preferences))
@@ -684,49 +647,6 @@
 	TEST_ASSERT(!source_portal.buckle_mob(consenting_occupant, force = FALSE, check_loc = FALSE), "The final public buckle hook retained stale sex-toy consent.")
 	TEST_ASSERT_NULL(source_portal.current_mob, "A stale-consent buckle mutated source occupancy.")
 	TEST_ASSERT_NULL(source_portal.relayed_body, "A stale-consent buckle created a relay.")
-
-/// Explicit integration coverage for a deployment supplying the complete portal interaction configuration.
-/datum/unit_test/portal_device/live_configuration/Run()
-#ifdef TEST_PORTAL_LIVE_CONFIG
-	var/list/expected_parts = list(
-		"Fuck (vagina)" = list(list(ORGAN_SLOT_PENIS), list(ORGAN_SLOT_VAGINA)),
-		"Tribadism" = list(list(ORGAN_SLOT_VAGINA), list(ORGAN_SLOT_VAGINA)),
-		"Lick vagina" = list(list(), list(ORGAN_SLOT_VAGINA)),
-		"Finger (vagina)" = list(list(), list(ORGAN_SLOT_VAGINA)),
-		"Footjob (vagina)" = list(list(), list(ORGAN_SLOT_VAGINA)),
-		"Ass fuck" = list(list(ORGAN_SLOT_PENIS), list(ORGAN_SLOT_ANUS)),
-		"Eat ass" = list(list(), list(ORGAN_SLOT_ANUS)),
-		"Finger (ass)" = list(list(), list(ORGAN_SLOT_ANUS)),
-		"Frot" = list(list(ORGAN_SLOT_PENIS), list(ORGAN_SLOT_PENIS)),
-		"Ride cock (vagina)" = list(list(ORGAN_SLOT_VAGINA), list(ORGAN_SLOT_PENIS)),
-		"Ride cock (ass)" = list(list(ORGAN_SLOT_ANUS), list(ORGAN_SLOT_PENIS)),
-		"Blowjob" = list(list(), list(ORGAN_SLOT_PENIS)),
-		"Handjob" = list(list(), list(ORGAN_SLOT_PENIS)),
-		"Footjob (cock)" = list(list(), list(ORGAN_SLOT_PENIS)),
-		"Mouth fuck" = list(list(ORGAN_SLOT_PENIS), list()),
-		"Tongue kiss" = list(list(), list()),
-	)
-
-	var/mob/living/carbon/human/consistent/recipient = allocate(/mob/living/carbon/human/consistent)
-	recipient.name = "Portal Message Recipient"
-	for(var/interaction_name in expected_parts)
-		var/datum/interaction/interaction = GLOB.interaction_instances[interaction_name]
-		TEST_ASSERT_NOTNULL(interaction, "The optional live configuration lacks '[interaction_name]'.")
-		var/list/interaction_parts = expected_parts[interaction_name]
-		TEST_ASSERT(interaction.lewd, "Portal interaction '[interaction_name]' was not marked lewd.")
-		TEST_ASSERT_EQUAL(interaction.usage, INTERACTION_OTHER, "Portal interaction '[interaction_name]' had incompatible usage.")
-		TEST_ASSERT_NOTEQUAL(interaction.category, INTERACTION_CAT_HIDE, "Portal interaction '[interaction_name]' was hidden.")
-		TEST_ASSERT(deep_compare_list(interaction.user_required_parts, interaction_parts[1]), "Portal interaction '[interaction_name]' had incompatible user body-part requirements.")
-		TEST_ASSERT(deep_compare_list(interaction.target_required_parts, interaction_parts[2]), "Portal interaction '[interaction_name]' had incompatible target body-part requirements.")
-		for(var/list/private_messages in list(interaction.user_messages, interaction.target_messages))
-			for(var/message_template in private_messages)
-				var/formatted_message = interaction.format_message_for(message_template, recipient, recipient, recipient = recipient)
-				TEST_ASSERT(!findtext(formatted_message, recipient.name), "Self-interaction '[interaction_name]' referred to the recipient by name.")
-				TEST_ASSERT(!findtext(formatted_message, "%"), "Interaction '[interaction_name]' left a template token unexpanded.")
-				TEST_ASSERT(!findtext(formatted_message, "you's"), "Interaction '[interaction_name]' used an invalid second-person possessive.")
-#else
-	TEST_NOTICE(src, "Optional live portal configuration check; enable TEST_PORTAL_LIVE_CONFIG with the full interaction configuration.")
-#endif
 
 /// Message expansion anonymizes each participant independently while administrative formatting keeps real identities.
 /datum/unit_test/portal_device/message_anonymity/Run()

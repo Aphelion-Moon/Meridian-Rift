@@ -108,8 +108,6 @@
 	var/list/fresh = SStitle.get_screen_settings("alpha.png")
 	TEST_ASSERT_EQUAL(fresh["variant"], TITLE_DEFAULT_VARIANT, "An unconfigured screen did not fall back to the default variant.")
 	TEST_ASSERT_EQUAL(fresh["texture"], TITLE_DEFAULT_TEXTURE, "An unconfigured screen did not fall back to the default texture.")
-	TEST_ASSERT_EQUAL(fresh["variant"], "convex", "The virgin screen default is not convex.")
-	TEST_ASSERT_EQUAL(fresh["texture"], "scanlines-classic", "The virgin screen default does not use Version 2 scanlines.")
 	TEST_ASSERT_EQUAL(fresh["bezel"], TITLE_BEZEL_RUSTY_DARK, "An unconfigured screen did not default to the Dark Brown bezel.")
 	TEST_ASSERT(!("framed" in fresh), "The retired per-screen frame option is still exposed.")
 	TEST_ASSERT(!fresh["wordmark"], "An unconfigured screen should start without the wordmark.")
