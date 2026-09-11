@@ -64,8 +64,9 @@
 	icon_state = "red_skirt"
 	body_parts_covered = CHEST|GROIN|LEGS
 	can_adjust = TRUE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/skirt/nova/black_skirt
 	name = "black bra and skirt"
@@ -73,8 +74,9 @@
 	icon_state = "black_skirt"
 	body_parts_covered = CHEST|GROIN|LEGS
 	can_adjust = TRUE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
+	worn_icon_digi = null
 
 /obj/item/clothing/under/dress/skirt/nova/jean
 	name = "jean skirt"

@@ -104,6 +104,7 @@
 /obj/item/clothing/head/helmet/space/beret
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
 	worn_icon_muzzled = null
+	greyscale_config_worn_teshari = /datum/greyscale_config/beret_badge/worn/teshari
 
 /obj/item/clothing/head/helmet/swat
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
@@ -456,3 +457,7 @@
 
 /obj/item/clothing/head/helmet/toggleable/justice
 	worn_icon_muzzled = null
+
+/obj/item/clothing/head/beret/bridgeofficer
+	greyscale_config_worn_vox = /datum/greyscale_config/beret_badge/worn/vox
+	greyscale_config_worn_teshari = /datum/greyscale_config/beret_badge/worn/teshari

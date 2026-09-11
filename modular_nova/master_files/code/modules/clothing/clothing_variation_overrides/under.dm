@@ -133,8 +133,10 @@
 	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/civilian/lawyer/bluesuit/skirt
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
+	worn_icon_digi = null
+	greyscale_config_worn_digi = null // inherited from /bluesuit, but the slacks template has no buttondown_skirt state
 
 /obj/item/clothing/under/rank/civilian/lawyer/purpsuit/skirt
 	gets_cropped_on_taurs = FALSE
@@ -228,8 +230,10 @@
 	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/rank/rnd/research_director/alt/skirt
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
+	worn_icon_digi = null
+	greyscale_config_worn_digi = null // inherited from /alt, but the slacks template has no buttondown_skirt state
 
 /obj/item/clothing/under/costume/buttondown/skirt
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
@@ -304,6 +308,7 @@
 
 /obj/item/clothing/under/rank/prisoner
 	greyscale_config_worn_digi = /datum/greyscale_config/jumpsuit/prison/worn/digi
+	greyscale_config_worn_teshari = /datum/greyscale_config/jumpsuit/prison/worn/teshari
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
 	bodyshapes_with_variations = NONE
 
@@ -541,3 +546,81 @@
 
 /obj/item/clothing/under/rank/medical/chemist/skirt
 	worn_icon_digi = null
+
+/obj/item/clothing/under/color/rainbow
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_better_vox = null
+	greyscale_config_worn_teshari = null
+
+/obj/item/clothing/under/color/jumpskirt/rainbow
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_better_vox = null
+	greyscale_config_worn_teshari = null
+
+/obj/item/clothing/under/color/grey/ancient
+	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/color_digi.dmi'
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_better_vox = null
+	greyscale_config_worn_teshari = null
+
+/obj/item/clothing/under/rank/prisoner/classic
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_better_vox = null
+	greyscale_config_worn_teshari = null
+
+// Wired to the digi art.
+/obj/item/clothing/under/rank/captain/nova/kilt
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/command_digi.dmi'
+
+/obj/item/clothing/under/costume/kilt
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/costume_digi.dmi'
+
+/obj/item/clothing/under/pants/nova/kilt
+	greyscale_config_worn_better_vox = /datum/greyscale_config/kilt/worn/digi
+
+/obj/item/clothing/under/suit/nova/inferno/skirt
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
+// Wired to the human art - the skirt reads the same on any legs
+/obj/item/clothing/under/dress/skirt/nova/black_skirt
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+
+/obj/item/clothing/under/dress/skirt/nova/red_skirt
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+
+/obj/item/clothing/under/dress/nova/flower
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+
+/obj/item/clothing/under/rank/civilian/lawyer/black/skirt
+	worn_icon_better_vox = 'icons/mob/clothing/under/suits.dmi'
+
+/obj/item/clothing/under/rank/civilian/lawyer/blue/skirt
+	worn_icon_better_vox = 'icons/mob/clothing/under/suits.dmi'
+
+/obj/item/clothing/under/rank/civilian/lawyer/red/skirt
+	worn_icon_better_vox = 'icons/mob/clothing/under/suits.dmi'
+
+/obj/item/clothing/under/costume/nova/qipao
+	greyscale_config_worn_better_vox = /datum/greyscale_config/qipao/worn
+
+/obj/item/clothing/under/costume/nova/qipao/customtrim
+	greyscale_config_worn_better_vox = /datum/greyscale_config/qipao_customtrim/worn
+
+/obj/item/clothing/under/rank/medical/doctor/nurse
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/medical_digi.dmi'
+
+/obj/item/clothing/under/costume/nova/maid_uniform
+	greyscale_config_worn_better_vox = /datum/greyscale_config/maid_uniform/worn
+
+/obj/item/clothing/under/costume/nova/maid_uniform_alt
+	greyscale_config_worn_better_vox = /datum/greyscale_config/maid_uniform_alt/worn
+
+/obj/item/clothing/under/maid_costume
+	greyscale_config_worn_better_vox = /datum/greyscale_config/maid_costume/worn
+
+/obj/item/clothing/under/dress/nova/giant_scarf
+	greyscale_config_worn_better_vox = /datum/greyscale_config/giant_scarf/worn

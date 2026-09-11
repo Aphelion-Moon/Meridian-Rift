@@ -73,6 +73,7 @@
 	greyscale_config = /datum/greyscale_config/pencilskirt_withshirt
 	greyscale_config_worn = /datum/greyscale_config/pencilskirt_withshirt/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/pencilskirt_withshirt/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/pencilskirt_withshirt/worn/better_vox
 	flags_1 = IS_PLAYER_COLORABLE_1
 
 /obj/item/clothing/under/suit/nova/pencil/noshirt
@@ -85,6 +86,7 @@
 	greyscale_config = /datum/greyscale_config/pencilskirt
 	greyscale_config_worn = /datum/greyscale_config/pencilskirt/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/pencilskirt/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/pencilskirt/worn/better_vox
 	body_parts_covered = GROIN|LEGS
 
 /obj/item/clothing/under/suit/nova/pencil/charcoal
@@ -127,6 +129,7 @@
 	greyscale_config = /datum/greyscale_config/pencilskirt_withsuit
 	greyscale_config_worn = /datum/greyscale_config/pencilskirt_withsuit/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/pencilskirt_withsuit/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/pencilskirt_withsuit/worn/better_vox
 
 /obj/item/clothing/under/suit/nova/pencil/checkered
 	name = "checkered pencilskirt and shirt"
@@ -138,6 +141,7 @@
 	greyscale_config = /datum/greyscale_config/pencilskirt_checkers_withshirt
 	greyscale_config_worn = /datum/greyscale_config/pencilskirt_checkers_withshirt/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/pencilskirt_checkers_withshirt/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/pencilskirt_checkers_withshirt/worn/better_vox
 
 /obj/item/clothing/under/suit/nova/pencil/checkered/noshirt
 	name = "checkered pencilskirt"
@@ -149,6 +153,7 @@
 	greyscale_config = /datum/greyscale_config/pencilskirt_checkers
 	greyscale_config_worn = /datum/greyscale_config/pencilskirt_checkers/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/pencilskirt_checkers/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/pencilskirt_checkers/worn/better_vox
 	body_parts_covered = GROIN|LEGS
 
 /*

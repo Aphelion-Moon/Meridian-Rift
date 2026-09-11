@@ -65,3 +65,13 @@
 
 /obj/item/clothing/shoes/bhop/rocket/jet
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+
+/obj/item/clothing/shoes/sneakers/rainbow
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_teshari = null
+
+/obj/item/clothing/shoes/sneakers/mikuleggings
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_teshari = null

@@ -9,7 +9,7 @@
 	post_init_icon_state = "ballgag"
 	greyscale_config = /datum/greyscale_config/ball_gag
 	greyscale_config_worn = /datum/greyscale_config/ball_gag/worn
-	greyscale_config_worn_muzzled = /datum/greyscale_config/dorms_mask/worn/muzzled
+	greyscale_config_worn_muzzled = /datum/greyscale_config/ball_gag/worn/muzzled
 	flags_1 = IS_PLAYER_COLORABLE_1
 	w_class = WEIGHT_CLASS_SMALL
 	flags_cover = MASKCOVERSMOUTH

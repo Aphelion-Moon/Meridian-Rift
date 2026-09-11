@@ -335,6 +335,14 @@
 	name = "Tape Piece (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 
+/datum/greyscale_config/tape_piece/worn/spikes/vox
+	name = "Spiked Tape Piece (Worn, Vox)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
+
+/datum/greyscale_config/tape_piece/worn/spikes/muzzled
+	name = "Spiked Tape Piece (Worn, Muzzled)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
+
 /datum/greyscale_config/vape/worn/vox
 	name = "Vape (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
@@ -744,6 +752,10 @@
 	name = "Pencilskirt (Worn, Digi)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
+/datum/greyscale_config/pencilskirt/worn/better_vox
+	name = "Pencilskirt (Worn, Vox Primalis)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
 /datum/greyscale_config/pencilskirt_withshirt
 	name = "Pencilskirt + Shirt"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/suits.dmi'
@@ -755,6 +767,10 @@
 
 /datum/greyscale_config/pencilskirt_withshirt/worn/digi
 	name = "Pencilskirt + Shirt (Worn, Digi)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
+/datum/greyscale_config/pencilskirt_withshirt/worn/better_vox
+	name = "Pencilskirt + Shirt (Worn, Vox Primalis)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
 /datum/greyscale_config/pencilskirt_checkers
@@ -770,6 +786,10 @@
 	name = "Checkered Pencilskirt (Worn, Digi)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
+/datum/greyscale_config/pencilskirt_checkers/worn/better_vox
+	name = "Checkered Pencilskirt (Worn, Vox Primalis)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
 /datum/greyscale_config/pencilskirt_checkers_withshirt
 	name = "Checkered Pencilskirt + Shirt"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/suits.dmi'
@@ -783,6 +803,10 @@
 	name = "Checkered Pencilskirt + Shirt (Worn, Digi)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
+/datum/greyscale_config/pencilskirt_checkers_withshirt/worn/better_vox
+	name = "Checkered Pencilskirt + Shirt (Worn, Vox Primalis)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
 /datum/greyscale_config/pencilskirt_withsuit
 	name = "Pencilskirt + Suit"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/suits.dmi'
@@ -794,6 +818,10 @@
 
 /datum/greyscale_config/pencilskirt_withsuit/worn/digi
 	name = "Pencilskirt + Suit (Worn, Digi)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
+/datum/greyscale_config/pencilskirt_withsuit/worn/better_vox
+	name = "Pencilskirt + Suit (Worn, Vox Primalis)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
 //Officer's Naval Uniform
