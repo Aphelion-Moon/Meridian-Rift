@@ -128,10 +128,8 @@
 	savefile_identifier = PREFERENCE_PLAYER
 
 /datum/preference/numeric/volume/sound_lobby_volume/apply_to_client_updated(client/client, value)
-	if (value && isnewplayer(client.mob))
-		client.playtitlemusic()
-	else
-		client.mob.stop_sound_channel(CHANNEL_LOBBYMUSIC)
+	// APHELION EDIT: Adjust ongoing lobby music without restarting it or stopping it outside the lobby.
+	client.get_lobby_music_player().update_volume()
 
 /// Controls hearing admin music
 /datum/preference/numeric/volume/sound_midi

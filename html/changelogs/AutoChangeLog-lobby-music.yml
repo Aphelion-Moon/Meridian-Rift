@@ -1,0 +1,5 @@
+author: "Aphelion-Moon"
+delete-after: true
+changes:
+  - qol: "Lobby music loops while in the lobby and finishes its current track when you join or observe. Returning to the title screen starts it again if it has stopped."
+  - rscadd: "The chat Music player now has title music controls for play, stop, restart, volume, and a saved favorite track. Server selection is the default and the fallback if your chosen file changes or disappears."

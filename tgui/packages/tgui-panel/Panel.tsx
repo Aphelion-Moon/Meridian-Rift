@@ -8,6 +8,7 @@ import { useAtom, useAtomValue } from 'jotai';
 import { Pane } from 'tgui/layouts';
 import { Button, Section, Stack } from 'tgui-core/components';
 import { visibleAtom } from './audio/atoms';
+import { LobbyMusicControls } from './audio/LobbyMusicControls';
 import { NowPlayingWidget } from './audio/NowPlayingWidget';
 import { ChatPanel } from './chat/ChatPanel';
 import { ChatTabs } from './chat/ChatTabs';
@@ -66,7 +67,8 @@ export function Panel(props) {
         </Stack.Item>
         {audioVisible && (
           <Stack.Item>
-            <Section>
+            <LobbyMusicControls />
+            <Section title="Broadcast music">
               <NowPlayingWidget />
             </Section>
           </Stack.Item>

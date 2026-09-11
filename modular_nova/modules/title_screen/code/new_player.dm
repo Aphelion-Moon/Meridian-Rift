@@ -13,6 +13,7 @@
 	if(client.interviewee)
 		return
 
+	client.playtitlemusic() // APHELION EDIT: Resume title music only when it is no longer playing.
 	client.lobby_menu?.update_visibility()
 
 /**

@@ -1,6 +1,6 @@
 import { loadStyleSheet } from 'common/assets';
 import { EventBus } from 'tgui-core/eventbus';
-import { playMusic, stopMusic } from '../audio/handlers';
+import { playMusic, setLobbyMusicState, stopMusic } from '../audio/handlers';
 import { chatMessage } from '../chat/handlers';
 import { pingReply, pingSoft } from '../ping/handlers';
 import {
@@ -33,6 +33,7 @@ const listeners = {
   'asset/mappings': handleLoadAssets,
   'audio/playMusic': playMusic,
   'audio/stopMusic': stopMusic,
+  'audio/lobby/state': setLobbyMusicState,
   'chat/message': chatMessage,
   'player/set': playerSet,
   'ping/reply': pingReply,

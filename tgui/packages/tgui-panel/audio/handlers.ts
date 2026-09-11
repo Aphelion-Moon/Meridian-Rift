@@ -1,5 +1,12 @@
 import { store } from '../events/store';
-import { type Meta, metaAtom, playingAtom, visibleAtom } from './atoms';
+import {
+  type LobbyMusicState,
+  lobbyMusicAtom,
+  type Meta,
+  metaAtom,
+  playingAtom,
+  visibleAtom,
+} from './atoms';
 import { AudioPlayer } from './player';
 
 export const player = new AudioPlayer();
@@ -11,9 +18,12 @@ player.onPlay(() => {
 
 player.onStop(() => {
   store.set(playingAtom, false);
-  store.set(visibleAtom, false);
   store.set(metaAtom, null);
 });
+
+export function setLobbyMusicState(payload: LobbyMusicState): void {
+  store.set(lobbyMusicAtom, payload);
+}
 
 type PlayPayload = {
   url: string;
