@@ -928,7 +928,6 @@
 		return FALSE
 	var/mob/living/living_owner = owner
 	var/datum/component/psionic_profile/profile = living_owner.get_psionic_profile()
-	profile.decay_strain()
 	if(profile.strain <= 0)
 		if(feedback)
 			living_owner.balloon_alert(living_owner, "already rested!")

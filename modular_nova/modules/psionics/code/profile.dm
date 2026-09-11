@@ -217,6 +217,7 @@ GLOBAL_LIST_INIT(psionic_rank_descriptions, list(
 	psion?.hud_used?.remove_screen_object(HUD_PSIONIC_STRAIN)
 
 /datum/component/psionic_profile/proc/update_strain_hud()
+	update_psionic_action_buttons()
 	var/atom/movable/screen/psionic/strain/strain_hud = psion?.hud_used?.screen_objects[HUD_PSIONIC_STRAIN]
 	if(!strain_hud)
 		return
@@ -838,7 +839,6 @@ GLOBAL_LIST_INIT(psionic_rank_descriptions, list(
 	if(istype(armed_psionic) && !armed_psionic.can_use_during_burnout)
 		armed_psionic.unset_click_ability(psion, refund_cooldown = FALSE)
 	update_strain_hud()
-	update_psionic_action_buttons()
 	addtimer(CALLBACK(src, PROC_REF(end_burnout)), PSIONIC_BURNOUT_TIME, TIMER_UNIQUE|TIMER_OVERRIDE|TIMER_DELETE_ME)
 	to_chat(psion, span_userdanger("Your psionic focus collapses into static."))
 	psion.Knockdown(2 SECONDS)
@@ -866,7 +866,6 @@ GLOBAL_LIST_INIT(psionic_rank_descriptions, list(
 	// burn out again on their next cast.
 	strain = min(strain, round(max_strain * PSIONIC_BURNOUT_RECOVERY_RATIO))
 	update_strain_hud()
-	update_psionic_action_buttons()
 	to_chat(psion, span_notice("The static behind your eyes clears."))
 
 /datum/mood_event/psionic_burnout
