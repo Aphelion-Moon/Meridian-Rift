@@ -21,7 +21,7 @@
 			cached_prefix = prefix
 
 	if(SSticker.HasRoundStarted())
-		features += "Open | [round_timestamp()]"
+		features += "Open | [round_timestamp("hh:mm")]"
 	else
 		features += "Starting"
 
