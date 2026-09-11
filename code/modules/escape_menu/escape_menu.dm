@@ -245,7 +245,7 @@ GAME_VERB_HIDDEN(/client, reset_held_keys_verb, "Reset Held Keys")
 			living_user?.opposing_force()
 		if("respawn")
 			client?.mob?.abandon_mob()
-			qdel(src)
+			// qdel(src) // APHELION EDIT REMOVAL - The escape menu now persists for the client's lifetime and closes client-side; deleting it broke every server action until reconnect.
 		// NOVA EDIT ADDITION END
 		if("quit")
 			winset(usr, null, list("command"=".quit"))
