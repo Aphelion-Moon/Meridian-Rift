@@ -6,15 +6,12 @@ SUBSYSTEM_DEF(title)
 	ss_flags = SS_NO_FIRE
 	init_stage = INITSTAGE_FIRST
 
-	var/file_path
 	var/icon/startup_splash
 
 	/// The current title screen being displayed, as a file path text.
 	var/current_title_screen
 	/// The current notice text, or null.
 	var/current_notice
-	/// The preamble html that includes all styling and layout.
-	var/title_html
 	/// The list of possible title screens to rotate through, as file path texts.
 	var/title_screens = list()
 
@@ -138,7 +135,6 @@ SUBSYSTEM_DEF(title)
 
 /datum/controller/subsystem/title/Recover()
 	startup_splash = SStitle.startup_splash
-	file_path = SStitle.file_path
 
 	current_title_screen = SStitle.current_title_screen
 	current_notice = SStitle.current_notice

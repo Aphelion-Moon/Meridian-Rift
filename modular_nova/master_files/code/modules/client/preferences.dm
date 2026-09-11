@@ -86,3 +86,19 @@
 	GLOB.chat_colors_by_mob_name[character.name] = list(character.chat_color, character.chat_color_darkened) // by now the mob has had its prefs applied to it
 
 #undef MAX_MUTANT_ROWS
+
+/**
+ * The player's chosen alt title for a job
+ *
+ * Always use this rather than indexing alt_job_titles directly - the load path can't check the title against the job, so this is where a made-up one gets caught. Falls back to the real title.
+ */
+/datum/preferences/proc/get_alt_job_title(job_title)
+	if(!istext(job_title))
+		return job_title
+	var/chosen = LAZYACCESS(alt_job_titles, job_title)
+	if(!istext(chosen) || chosen == job_title)
+		return job_title
+	var/datum/job/job = SSjob?.get_job(job_title)
+	if(isnull(job) || !(chosen in job.alt_titles))
+		return job_title
+	return chosen

@@ -29,3 +29,169 @@
   - qol: '"PDA" in the PDA painter is now called "Assistant PDA", which it is.'
   PapaMichael:
   - bugfix: Chat should scroll properly on some messages that wrap now.
+2026-09-07:
+  ArcaneMusic:
+  - bugfix: Mushroom hallucinogen does not apply it's drug effect if the target has
+      no client.
+  FalloutFalcon:
+  - admin: Painting and Trophy manager no longer permanently deletes itself after
+      the first close
+  - bugfix: sawnoff recoil is ADDED to existing recoil rather then setting it
+  - code_imp: Adds support for pre-sawnoff guns and cleans up sawnoff behavoir
+  - image: landmarks for job icons refreshed with programmatic generation
+  FlufflesTheDog:
+  - bugfix: Stoat fangs properly exist
+  Ghommie:
+  - balance: Other apes, like gorillas, can have fun popping balloons with foam darts
+      as well. They can also perform some monkey emotes now.
+  - refactor: Refactored the code for damage and types of damage a little (also armor
+      but not as much). Make sure to report any oddity with it.
+  Happyowl93:
+  - code_imp: fix sqrt(-x) runtime related to bloodloss.
+  Hatterhat:
+  - bugfix: Crew manifests should no longer break when adding new entries.
+  Iajret:
+  - bugfix: 'Snowglobe: removed stray labor shuttle, replaced coffee seed pack with
+      actual beans at medbay''s breakroom, connected stray air vent in front of Bar'
+  - bugfix: '[Nova] Kilostation: connected disposals at NTC office, connected Captain''s
+      office back to powergrid, clightly changed tiling in front of NTC office.'
+  JohnFulpWillard:
+  - refactor: Changed how TGUI icons for jobs are set, please make a report if any
+      are missing.
+  - qol: Command bar's last used mode is now persistent between rounds.
+  LemonInTheDark:
+  - rscadd: Space parallax now works through cameras and other "external maps"
+  - rscadd: Cameras and friends will no longer be incorrectly culled/shrunk when displaying
+      a z level other then your own.
+  - refactor: Fucked with how space parallax/the renderer thinks about "where" it
+      is being displayed pretty heavily. Please report any weird visuals!
+  - bugfix: Parallax draws as expected again
+  Melbert:
+  - qol: Upon scanning a target with a gas analyzer, its UI will update constantly
+      as the target's gas mixture changes (so long as you stay in range). No more
+      spam clicking to see the status of your gas canister.
+  - qol: Gas analyzer and gas chamber UIs both received facelifts. Both now list out
+      all available gases and gas reactions, and now contain some additional info
+      like export value.
+  - spellcheck: '"Dumbed down" some atmos tooltips, for lack of a better word.'
+  - spellcheck: Grammar pass on a lot of atmos related content.
+  - spellcheck: Hyper-noblium renamed to Hyper-Noblium
+  - spellcheck: Proto Nitrate renamed to Proto-Nitrate
+  - spellcheck: Antinoblium renamed to Anti-Noblium
+  - refactor: Refactored how gas reactions and electrolyzer reactions are setup, report
+      anything weird with them
+  - refactor: Refactored buying and selling gas from cargo a tiny bit, report anything
+      weird with them
+  - qol: Gas chamber UIs now default to showing information pertaining to whichever
+      gas is held within
+  - qol: Blind players can access the gas analyzer UI
+  - qol: Atmos mix tank output starts disabled.
+  - rscadd: Adds two item acts - one to portable wind turbines, and one to propeller
+      hats - that does something when you act with the items. No spoilers.
+  - code_imp: Cleaned up atmos color adapter pipe code a tiny bit, report any oddities
+  - bugfix: Atmos multi-z pipes rendering weirdly when connecting with omni-pipes
+  - bugfix: Atmos airlock pumps disregarding color of connected pipes
+  - bugfix: Atmos layer adapter color is more consistent
+  - qol: Thermo machines input pipe takes on pipe color (visually, mechanically no
+      changes)
+  - qol: Pipes leading into floor objects take on pipe color (visually, mechanically
+      no changes)
+  - code_imp: Cleaned up code that stops you from removing cuffs while removing cuffs.
+      Report any oddities
+  - code_imp: Cleaned up code involving Bluespace bags interfering with teleports.
+      Report any oddities
+  - code_imp: Cleaned up code that prevents tinfoil hats from being equipped on throw.
+      Report any oddities
+  - code_imp: Cleaned up code that determines if masks should filter toxins out of
+      breathed air. Report any oddities
+  - code_imp: Cleaned up code that prevents moths from eating certain foods. Report
+      any oddities
+  Metek:
+  - bugfix: Fixed a missing wire in Ice Box education chamber.
+  Moonridden:
+  - bugfix: Removes an E
+  Moonridden, see readme.md:
+  - refactor: Updates the Observer Ctrl + Click IC Spawning System to 'Modern' standards
+      with tguilists, a new silent spawn method, and a kinda funky save-slot system
+      which reduces clicks-to-spawn down to two.
+  - admin: Over 140 new Bluespace and 'Subspace' themed items, covering everything
+      from event tools, specialized clothing with unique functions, updates of old
+      debug and administrative tools, to fun objects.
+  - admin: New Bluespace and Subspace Technician outfits, custom tailored to provide
+      you as many IC solutions to problems as possible
+  - admin: New Admin cyborgs, and new tachikoma models, thank you ERIS you are beautiful
+  - admin: New Debug Box with a list based item population system.
+  - admin: Adds a new wallhacks verb, updates combohud, adds keybind options for both
+  - code_imp: New checks for widescreen settings on storage ui width expansion
+  - code_imp: New privacy sign management system and verb, respecting user preferences
+  - refactor: Cellguns, like the Veymed, now have a special click interact to choose
+      between processional interacts for cell selection, or a radial, saving per gun.
+  - map: Nova specific plushie boxes and spawners
+  - image: Lots of new codersprite icons.
+  Neocloudy:
+  - bugfix: '[NOVA] Fixed the west-facing Sheathed pair size 2 (non-skintone) testicles
+      sprite being offset.'
+  - bugfix: '[NOVA] Delayed unrestricted access on airlocks now works on TG maps,
+      and any Nova maps that may implement it.'
+  PapaMichael:
+  - bugfix: Face decals (like pie) now appear on monkeys' faces instead of above it
+  - bugfix: Radio encryption keys can once again be inserted into pAI cards
+  - bugfix: Firefighting foam no longer immediately burns away in heat without getting
+      a chance to do its firefighting foam effects
+  QuiteLiterallyAnything:
+  - rscadd: Added subtle tooltips to speaker names in chat in order to make distinguishing
+      gender over the radio easier.
+  SmArtKar:
+  - admin: Improved OverFlayer previews by allowing to edit preview plane/backdrop
+      color
+  - rscadd: Added "Candela" navigation networks and beacons, acting as a way for miners
+      to mark their paths, boost vent outputs and protect their routes from fauna
+      respawns
+  - rscdel: Miners no longer spawn with marker beacons
+  - balance: Mining fultons can now transport miners to tapped ore vents within nearby
+      Candela networks in addition to extraction beacons, and both cost significantly
+      less points
+  - balance: Syndicate extraction beacons can only be reached by syndicate fultons
+  TheBoondock:
+  - rscadd: Added pillow lance and mattress shield
+  - rscadd: Pillow lance deals stamina damage and allows user to charge once wielded,
+      to charge simply contiously run in a direction and it consumes stamina the more
+      you run
+  - rscadd: Mattress shield deals stamina damage and allows user yto fortify, gaining
+      more  block chance and more stamina damage, the shield breaks easily as it is
+      still a mattress
+  - rscadd: You can now buy lance and mattress from toy vendor
+  - rscadd: Maintenance now have a chance to spawn lance and mattress shield
+  ZeWaka:
+  - bugfix: Fixed more TGUI window resize/white flashing
+  lelandkemble:
+  - bugfix: The greed of miners no longer clogs the runtime logs
+  necromanceranne:
+  - bugfix: Biting now actually works again.
+  - rscadd: Fangs, which now handle the functionality of pseudo-fang tongues. Felinids,
+      lizardpeople, vampires, carp-infused and stout-infused people now have their
+      own fangs.
+  - code_imp: Vampire fangs now handle all vampire blood-draining effects.
+  - rscadd: Cybernetic fangs, unlocked via the Cybernetics tech node.
+  san7890:
+  - bugfix: The pizza reward from the Bitrunning Pizzeria is now "edible", but it
+      is a fool's errand to try and eat it.
+  sqnztb:
+  - rscadd: Underwear can now be adjusted via the ctrl-shift-click interaction menu.
+  timothymtorres:
+  - rscadd: Add reworked vending shortage negative station trait. All station snack,
+      soda, and coffee vending machines start empty.
+  vinylspiders:
+  - spellcheck: fixes a typo in diluted regenerative jelly description
+2026-09-10:
+  Moonridden:
+  - refactor: Full restructuring of how Department OOC code is stacked, allowing for
+      much easier additions and removals.
+  - admin: Updates Departmental Out Of Character verbs for Research, Engineering,
+      Medical, Service, Command, Supply, Central Command, and Silicons. Now uses a
+      list selector for the department to speak into, and a list for toggling channels
+      off.
+  - admin: Also adds a unique Backstage OOC channel which blends Command, Security,
+      and our Antags together into one group.
+  - admin: Adds Admin Notify, a hotkey and verb pairing to quickly draw admin attention
+      to you. Use with care, don't cry wolf lest the wolves show themselves.
