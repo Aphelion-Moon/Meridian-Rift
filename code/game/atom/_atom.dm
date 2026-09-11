@@ -621,8 +621,20 @@
  *
  * Default behaviour is to send the [COMSIG_ATOM_ENTERED]
  */
+/* // APHELION EDIT REMOVAL START - TURF_SIGNAL_INITIALIZATION
 /atom/Entered(atom/movable/arrived, atom/old_loc, list/atom/old_locs)
 	SEND_SIGNAL(src, COMSIG_ATOM_ENTERED, arrived, old_loc, old_locs)
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - TURF_SIGNAL_INITIALIZATION
+/atom/Entered(atom/movable/arrived, atom/old_loc, list/atom/old_locs, list/entered_exclusions)
+	// Turf initialization can replay resident entries without notifying inherited turf listeners.
+	// Actual movement passes no exclusions, including arrivals from nullspace during Initialize.
+	if(!entered_exclusions)
+		SEND_SIGNAL(src, COMSIG_ATOM_ENTERED, arrived, old_loc, old_locs)
+	else if(_listen_lookup?[COMSIG_ATOM_ENTERED])
+		_SendSignal(COMSIG_ATOM_ENTERED, list(src, arrived, old_loc, old_locs), entered_exclusions)
+	// Keep the resident's entering signal: elevation uses it to rebuild state after turf replacement.
+// APHELION EDIT ADDITION END
 	SEND_SIGNAL(arrived, COMSIG_ATOM_ENTERING, src, old_loc, old_locs)
 
 /**

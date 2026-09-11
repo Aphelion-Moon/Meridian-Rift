@@ -113,9 +113,16 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	var/list/old_listen_lookup = _listen_lookup?.Copy()
 	var/list/old_signal_procs = _signal_procs?.Copy()
 	var/carryover_turf_flags = (RESERVATION_TURF | UNUSED_RESERVATION_TURF) & turf_flags
+	/* // APHELION EDIT REMOVAL START - TURF_SIGNAL_TRANSFER
 	var/turf/new_turf = new path(src)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - TURF_SIGNAL_TRANSFER
+	// Turf references survive replacement, but their signal tables must be installed before Initialize.
+	var/turf/new_turf = new path(src, old_listen_lookup, old_signal_procs)
+	// APHELION EDIT ADDITION END
 	new_turf.turf_flags |= carryover_turf_flags
 
+	/* // APHELION EDIT REMOVAL START - TURF_SIGNAL_TRANSFER
 	// WARNING WARNING
 	// Turfs DO NOT lose their signals when they get replaced, REMEMBER THIS
 	// It's possible because turfs are fucked, and if you have one in a list and it's replaced with another one, the list ref points to the new turf
@@ -124,6 +131,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 	if(old_signal_procs)
 		LAZYOR(new_turf._signal_procs, old_signal_procs)
 
+	*/ // APHELION EDIT REMOVAL END
 	for(var/datum/callback/callback as anything in post_change_callbacks)
 		callback.InvokeAsync(new_turf)
 

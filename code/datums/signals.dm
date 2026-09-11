@@ -110,10 +110,20 @@
  *
  * Use the [SEND_SIGNAL] define instead
  */
+/* // APHELION EDIT REMOVAL START - TURF_SIGNAL_INITIALIZATION
 /datum/proc/_SendSignal(sigtype, list/arguments)
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - TURF_SIGNAL_INITIALIZATION
+/// Optional exclusions affect this dispatch only; the signal tables remain available for unregistration.
+/datum/proc/_SendSignal(sigtype, list/arguments, list/excluded_listeners)
+// APHELION EDIT ADDITION END
 	var/target = _listen_lookup[sigtype]
 	if(!length(target))
 		var/datum/listening_datum = target
+		// APHELION EDIT ADDITION START - TURF_SIGNAL_INITIALIZATION
+		if(listening_datum in excluded_listeners)
+			return NONE
+		// APHELION EDIT ADDITION END
 		return NONE | call(listening_datum, listening_datum._signal_procs[src][sigtype])(arglist(arguments))
 	. = NONE
 	// This exists so that even if one of the signal receivers unregisters the signal,
@@ -123,6 +133,10 @@
 	// This should be faster than doing `var/datum/listening_datum as anything in target` as it does not implicitly copy the list
 	for(var/i in 1 to length(target))
 		var/datum/listening_datum = target[i]
+		// APHELION EDIT ADDITION START - TURF_SIGNAL_INITIALIZATION
+		if(listening_datum in excluded_listeners)
+			continue
+		// APHELION EDIT ADDITION END
 		queued_calls.Add(listening_datum, listening_datum._signal_procs[src][sigtype])
 	for(var/i in 1 to length(queued_calls) step 2)
 		. |= call(queued_calls[i], queued_calls[i + 1])(arglist(arguments))

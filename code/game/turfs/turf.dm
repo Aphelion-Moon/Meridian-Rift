@@ -112,8 +112,28 @@ GLOBAL_LIST_EMPTY(station_turfs)
 
 	/// If TRUE, then this turf will be skipped entirely by minimap rendering.
 	var/skip_minimap_rendering = FALSE
+	// APHELION EDIT ADDITION START - TURF_SIGNAL_INITIALIZATION
+	/// Existing entry listeners excluded from resident replay while the replacement's New is running.
+	var/tmp/list/initialization_entered_exclusions
+	// APHELION EDIT ADDITION END
 
 
+// APHELION EDIT ADDITION START - TURF_SIGNAL_TRANSFER
+// ChangeTurf passes the old signal tables here so initialization can update them directly.
+// In particular, Entered() can move or delete existing contents before New() returns.
+/turf/New(loc, list/inherited_listen_lookup, list/inherited_signal_procs)
+	// These listeners already observed the residents entering the old turf. Keep their registrations
+	// live for cleanup, but do not replay those entries merely because the turf was replaced.
+	var/list/inherited_entered = inherited_listen_lookup?[COMSIG_ATOM_ENTERED]
+	if(inherited_entered)
+		initialization_entered_exclusions = islist(inherited_entered) ? inherited_entered.Copy() : list(inherited_entered)
+	_listen_lookup = inherited_listen_lookup
+	_signal_procs = inherited_signal_procs
+	. = ..(loc)
+	// Deferred Initialize runs after New returns and retains its usual resident notifications.
+	initialization_entered_exclusions = null
+
+// APHELION EDIT ADDITION END
 /turf/vv_edit_var(var_name, new_value)
 	var/static/list/banned_edits = list(NAMEOF_STATIC(src, x), NAMEOF_STATIC(src, y), NAMEOF_STATIC(src, z))
 	if(var_name in banned_edits)
@@ -131,6 +151,10 @@ GLOBAL_LIST_EMPTY(station_turfs)
  */
 /turf/Initialize(mapload)
 	SHOULD_CALL_PARENT(FALSE)
+	// APHELION EDIT ADDITION START - TURF_SIGNAL_INITIALIZATION
+	// A nested ChangeTurf can replace our fields before this Initialize finishes its contents loop.
+	var/list/entered_exclusions = initialization_entered_exclusions
+	// APHELION EDIT ADDITION END
 	if(flags_1 & INITIALIZED_1)
 		stack_trace("Warning: [src]([type]) initialized multiple times!")
 	flags_1 |= INITIALIZED_1
@@ -162,7 +186,12 @@ GLOBAL_LIST_EMPTY(station_turfs)
 		QUEUE_SMOOTH(src)
 
 	for(var/atom/movable/content as anything in src)
+		/* // APHELION EDIT REMOVAL START - TURF_SIGNAL_INITIALIZATION
 		Entered(content, null)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - TURF_SIGNAL_INITIALIZATION
+		Entered(content, null, null, entered_exclusions)
+		// APHELION EDIT ADDITION END
 
 	var/area/our_area = loc
 	if(!our_area.area_has_base_lighting && space_lit) //Only provide your own lighting if the area doesn't for you
@@ -224,7 +253,12 @@ GLOBAL_LIST_EMPTY(station_turfs)
 /// It's possible because turfs are fucked, and if you have one in a list and it's replaced with another one, the list ref points to the new turf
 /// We do it because moving signals over was needlessly expensive, and bloated a very commonly used bit of code
 /turf/_clear_signal_refs()
+	/* // APHELION EDIT REMOVAL START - TURF_SIGNAL_TRANSFER
 	return
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - TURF_SIGNAL_TRANSFER
+	UnregisterSignal(src, _signal_procs?[src])
+	// APHELION EDIT ADDITION END
 
 /turf/attack_hand(mob/user, list/modifiers)
 	. = ..()
