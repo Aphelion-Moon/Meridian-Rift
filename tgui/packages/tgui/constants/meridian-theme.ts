@@ -27,12 +27,9 @@ const MERIDIAN_BASE_THEME_ID_SET = new Set<string>(MERIDIAN_BASE_THEME_IDS);
 const SPECIALTY_THEME_ID_SET = new Set([
   'Heretic',
   'abductor',
-  'admin',
   'armament',
   'cardtable',
   'clockwork',
-  'dark',
-  'generic',
   'hackerman',
   'heretic',
   'malfunction',
@@ -54,6 +51,9 @@ const SPECIALTY_THEME_ID_SET = new Set([
 ]);
 
 const LEGACY_THEME_ALIASES: Readonly<Record<string, MeridianBaseThemeId>> = {
+  admin: 'meridian_electra',
+  dark: 'meridian_electra',
+  generic: 'meridian_electra',
   nanotrasen: 'meridian_electra',
   ntos: 'meridian_electra',
 };

@@ -58,7 +58,8 @@ use it.
 specialty theme, the saved player base theme, an ordinary requested/device
 theme, and finally Aphelion. It reconciles only the classes it owns, so
 unrelated root modifiers and multi-class specialty themes survive updates.
-Upstream `nanotrasen` and `ntos` requests resolve to Electra; new devices request
+Upstream `nanotrasen`, `ntos`, and default-paint recolor (`admin`, `dark`,
+`generic`) requests resolve to Electra; new devices request
 `meridian_electra`.
 
 ## Skin catalog
