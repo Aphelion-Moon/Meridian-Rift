@@ -457,7 +457,3 @@
 
 /obj/item/clothing/head/helmet/toggleable/justice
 	worn_icon_muzzled = null
-
-/obj/item/clothing/head/beret/bridgeofficer
-	greyscale_config_worn_vox = /datum/greyscale_config/beret_badge/worn/vox
-	greyscale_config_worn_teshari = /datum/greyscale_config/beret_badge/worn/teshari

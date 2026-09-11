@@ -10,6 +10,8 @@
 	can_adjust = TRUE
 	alt_covers_chest = TRUE
 	alternate_worn_layer = ABOVE_SHOES_LAYER
+	bodyshapes_with_variations = NONE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/medical_digi.dmi'
 
 /obj/item/clothing/under/rank/medical/doctor/nurse/seriouser
 	icon_state = "nursesuit_alt"

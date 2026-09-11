@@ -54,6 +54,7 @@
 	alt_covers_chest = TRUE
 	gets_cropped_on_taurs = FALSE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/cargo.dmi'
 
 /obj/item/clothing/under/rank/cargo/tech/nova/evil
 	name = "black cargo uniform"
@@ -104,6 +105,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	gets_cropped_on_taurs = FALSE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/cargo.dmi'
 
 /obj/item/clothing/under/rank/cargo/qm/nova/interdyne
 	name = "deck officer's jumpsuit"

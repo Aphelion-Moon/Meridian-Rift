@@ -70,8 +70,3 @@
 	greyscale_config_worn_digi = null
 	greyscale_config_worn_vox = null
 	greyscale_config_worn_teshari = null
-
-/obj/item/clothing/shoes/sneakers/mikuleggings
-	greyscale_config_worn_digi = null
-	greyscale_config_worn_vox = null
-	greyscale_config_worn_teshari = null

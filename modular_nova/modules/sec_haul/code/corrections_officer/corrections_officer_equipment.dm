@@ -19,6 +19,7 @@
 	worn_icon_digi = null
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	gets_cropped_on_taurs = FALSE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/security.dmi'
 
 /obj/item/clothing/under/rank/security/corrections_officer/sweater
 	desc = "A black combat sweater thrown over the standard issue shirt, perfect for wake up calls."

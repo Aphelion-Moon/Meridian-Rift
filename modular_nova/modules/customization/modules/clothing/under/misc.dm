@@ -62,6 +62,7 @@
 	greyscale_colors = "#874f16"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
+	greyscale_config_worn_better_vox = /datum/greyscale_config/big_pants/worn
 
 /obj/item/clothing/under/pants/nova/loose_pants
 	worn_icon_digi = null
@@ -72,6 +73,7 @@
 	post_init_icon_state = "loose_pants"
 	greyscale_config = /datum/greyscale_config/loose_pants
 	greyscale_config_worn = /datum/greyscale_config/loose_pants/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/loose_pants/worn
 	greyscale_colors = "#4d4d4d#666633#c0c0c0"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
@@ -90,3 +92,4 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	greyscale_config_worn_better_vox = /datum/greyscale_config/hakama/worn

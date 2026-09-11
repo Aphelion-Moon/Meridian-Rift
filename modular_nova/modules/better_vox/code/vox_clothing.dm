@@ -1,19 +1,23 @@
 /obj/item/clothing/under/color
 	greyscale_config_worn_better_vox = /datum/greyscale_config/jumpsuit/worn/better_vox
 
-/obj/item/clothing/under/rank/prisoner
-	greyscale_config_worn_better_vox = /datum/greyscale_config/jumpsuit/prison/worn/better_vox
-
 /datum/greyscale_config/vox_primalis_pants
 	name = "Vox Primalis Pants"
 	icon_file = 'modular_nova/modules/better_vox/icons/clothing/pants_template.dmi'
 	json_config = 'modular_nova/modules/GAGS/json_configs/vox_primalis_pants.json'
 
+/obj/item/clothing/under
+	/// Vox Primalis always get generated pants for this uniform, even if a sprite exists for its state or it leaves the legs bare.
+	var/vox_primalis_force_pants = FALSE
+
 /datum/species/vox_primalis/generate_custom_worn_icon(item_slot, obj/item/item, mob/living/carbon/human/human_owner)
-	. = ..()
-	if(.)
-		return
-	if(item_slot != LOADOUT_ITEM_UNIFORM || !istype(item, /obj/item/clothing/under) || !(item.body_parts_covered & LEGS))
+	var/obj/item/clothing/under/uniform = item
+	var/force_pants = item_slot == LOADOUT_ITEM_UNIFORM && istype(uniform) && uniform.vox_primalis_force_pants
+	if(!force_pants)
+		. = ..()
+		if(.)
+			return
+	if(item_slot != LOADOUT_ITEM_UNIFORM || !istype(uniform) || (!force_pants && !(item.body_parts_covered & LEGS)))
 		return null
 
 	var/source_file = item.worn_icon || DEFAULT_UNIFORM_FILE
@@ -42,4 +46,3 @@
 	result = fcopy_rsc(result)
 	set_custom_worn_icon_cached(source_file, source_state, cache_key, result)
 	return result
-	

@@ -20,7 +20,6 @@
 	greyscale_config_worn_muzzled = /datum/greyscale_config/tape_piece/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/tape_piece/worn/vox
 
-// Draws "tape_piece_spikes_worn", so it needs the spiked configs rather than the plain tape ones it used to inherit.
 /obj/item/clothing/mask/muzzle/tape/pointy
 	greyscale_config_worn_muzzled = /datum/greyscale_config/tape_piece/worn/spikes/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/tape_piece/worn/spikes/vox

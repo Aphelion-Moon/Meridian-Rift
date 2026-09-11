@@ -3040,6 +3040,10 @@ Departmental Gags
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/neck.dmi'
 	json_config = 'modular_nova/modules/GAGS/json_configs/neck/depgag_caped_gauntlet_worn.json'
 
+/datum/greyscale_config/depgag_caped_gauntlet/worn/better_vox
+	name = "Department Protection Caped Gauntlet (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/neck.dmi'
+
 /*
 Modular PDAs
 */
