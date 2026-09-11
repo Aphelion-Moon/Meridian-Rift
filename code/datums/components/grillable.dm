@@ -105,7 +105,7 @@
 		return
 	listening_turf = current_turf
 	RegisterSignal(current_turf, COMSIG_TURF_EXPOSE, PROC_REF(on_turf_atmos_changed))
-	on_turf_atmos_changed(current_turf, current_turf.air, current_turf.air?.temperature || 0)
+	on_turf_atmos_changed(current_turf, current_turf.air, current_turf.air?.return_temperature() || 0)
 
 /// Signal proc for [COMSIG_ITEM_GRILL_PLACED], item is placed on the grill.
 /datum/component/grillable/proc/on_grill_placed(datum/source, mob/griller)

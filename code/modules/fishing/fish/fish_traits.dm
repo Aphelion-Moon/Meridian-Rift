@@ -344,8 +344,8 @@ GLOBAL_LIST_INIT(spontaneous_fish_traits, populate_spontaneous_fish_traits())
 
 	var/datum/gas_mixture/stench = new
 
-	stench.set_gas(/datum/gas/miasma, MIASMA_CORPSE_MOLES * 2 * seconds_per_tick)
-	stench.temperature = mob.bodytemperature
+	stench.set_moles(/datum/gas/miasma, MIASMA_CORPSE_MOLES * 2 * seconds_per_tick)
+	stench.set_temperature(mob.bodytemperature)
 	our_turf.assume_air(stench)
 
 /datum/fish_trait/emulsijack/psychic

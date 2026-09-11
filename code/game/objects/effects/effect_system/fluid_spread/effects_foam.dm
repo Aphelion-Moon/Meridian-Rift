@@ -296,13 +296,12 @@
 
 	QDEL_NULL(hotspot)
 	var/datum/gas_mixture/air = location.air
-	if (air.moles[/datum/gas/plasma])
-		var/scrub_amt = min(30, air.moles[/datum/gas/plasma]) //Absorb some plasma
-		air.adjust_gas(/datum/gas/plasma, -scrub_amt)
+	if (air.get_moles(/datum/gas/plasma))
+		var/scrub_amt = min(30, air.get_moles(/datum/gas/plasma)) //Absorb some plasma
+		air.adjust_moles(/datum/gas/plasma, -scrub_amt)
 		absorbed_plasma += scrub_amt
-	if (air.temperature > T20C)
-		air.temperature = max(air.temperature / 2, T20C)
-	air.garbage_collect()
+	if (air.return_temperature() > T20C)
+		air.set_temperature(max(air.return_temperature() / 2, T20C))
 	location.air_update_turf(FALSE, FALSE)
 
 /obj/effect/particle_effect/fluid/foam/firefighting/make_result()
@@ -445,18 +444,16 @@
 		return
 
 	location.ClearWet()
-	location.temperature = T20C
+	location.set_temperature(T20C)
 	if(location.air)
 		var/datum/gas_mixture/air = location.air
-		air.temperature = T20C
+		air.set_temperature(T20C)
 		for(var/obj/effect/hotspot/fire in location)
 			qdel(fire)
 
-		var/list/cached_moles = air.moles
-		for(var/gas_id in cached_moles)
+		for(var/gas_id in air.get_gases())
 			if(!(ignored_gases[gas_id]))
-				cached_moles[gas_id] = 0
-		air.garbage_collect()
+				air.set_moles(gas_id, 0)
 
 	for(var/obj/machinery/atmospherics/components/unary/comp in location)
 		if(!comp.welded)

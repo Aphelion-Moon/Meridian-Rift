@@ -43,11 +43,11 @@
 		return
 	var/list/cached_gas_id = GAS_META[META_GAS_ID]
 	var/list/cached_gas_name = GAS_META[META_GAS_NAME]
-	for(var/gas_path, amount in gasmix.moles)
+	for(var/gas_path in gasmix.get_gases())
 		.["gases"] += list(list(
 			cached_gas_id[gas_path],
 			cached_gas_name[gas_path],
-			amount,
+			gasmix.get_moles(gas_path),
 		))
 	for(var/datum/gas_reaction/standard/reaction_result as anything in gasmix.reaction_results)
 		.["reactions"] += list(list(
@@ -56,8 +56,8 @@
 			gasmix.reaction_results[reaction_result],
 		))
 	.["total_moles"] = gasmix.total_moles()
-	.["temperature"] = gasmix.temperature
-	.["volume"] = gasmix.volume
+	.["temperature"] = gasmix.return_temperature()
+	.["volume"] = gasmix.return_volume()
 	.["pressure"] = gasmix.return_pressure()
 	.["reference"] = REF(gasmix)
 
@@ -145,8 +145,8 @@ GLOBAL_LIST_EMPTY(gas_handbook)
 	return null
 
 /proc/print_gas_mixture(datum/gas_mixture/gas_mixture)
-	var/message = "TEMPERATURE: [gas_mixture.temperature]K, QUANTITY: [gas_mixture.total_moles()] mols, VOLUME: [gas_mixture.volume]L; "
+	var/message = "TEMPERATURE: [gas_mixture.return_temperature()]K, QUANTITY: [gas_mixture.total_moles()] mols, VOLUME: [gas_mixture.return_volume()]L; "
 	var/list/cached_gas_id = GAS_META[META_GAS_ID]
-	for(var/gas_id, amount in gas_mixture.moles)
-		message += "[cached_gas_id[gas_id]]=[amount] mols;"
+	for(var/gas_id in gas_mixture.get_gases())
+		message += "[cached_gas_id[gas_id]]=[gas_mixture.get_moles(gas_id)] mols;"
 	return message

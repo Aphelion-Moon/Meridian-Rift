@@ -47,3 +47,35 @@
 		return
 
 	qdel(arrived)
+
+/** Movement can delete the mover and its loop before Move() returns. */
+/datum/unit_test/jps_loop_deleted_during_move/Run()
+	var/turf/destination = get_step(run_loc_floor_bottom_left, EAST)
+	var/obj/movement_tester/mover = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/datum/move_loop/has_target/jps/loop = GLOB.move_manager.jps_move(mover, destination,
+		delay = 1 HOURS, timeout = 1 HOURS, repath_delay = 0, max_path_length = 30,
+		minimum_distance = 0, access = list(), simulated_only = TRUE, skip_first = TRUE,
+		subsystem = SSmovement, diagonal_handling = DIAGONAL_REMOVE_CLUNKY, initial_path = list(destination))
+	TEST_ASSERT(istype(loop), "Could not create the normal JPS movement control.")
+	TEST_ASSERT_EQUAL(loop.move(), MOVELOOP_SUCCESS, "The normal JPS control did not move.")
+	TEST_ASSERT_EQUAL(get_turf(mover), destination, "The normal JPS control did not reach its destination.")
+	TEST_ASSERT_EQUAL(length(loop.movement_path), 0, "The normal JPS control did not consume its path step.")
+	qdel(loop)
+
+	mover.forceMove(run_loc_floor_bottom_left)
+	allocate(/obj/movement_interceptor, destination)
+	loop = GLOB.move_manager.jps_move(mover, destination,
+		delay = 1 HOURS, timeout = 1 HOURS, repath_delay = 0, max_path_length = 30,
+		minimum_distance = 0, access = list(), simulated_only = TRUE, skip_first = TRUE,
+		subsystem = SSmovement, diagonal_handling = DIAGONAL_REMOVE_CLUNKY, initial_path = list(destination))
+	TEST_ASSERT(istype(loop), "Could not create the JPS deletion regression loop.")
+	var/paths_before = length(SSpathfinder.active_pathing)
+	var/result = loop.move()
+	TEST_ASSERT(QDELETED(mover), "The interception fixture did not delete the mover during Move().")
+	TEST_ASSERT(QDELETED(loop), "Deleting the mover did not delete its owned loop.")
+	TEST_ASSERT_EQUAL(result, MOVELOOP_FAILURE, "A deleted JPS loop reported a successful move.")
+	// An already dispatched callback must also be harmless after loop destruction.
+	loop.repath_cooldown = 0
+	loop.recalculate_path()
+	TEST_ASSERT_EQUAL(loop.repath_cooldown, 0, "A deleted loop started a new repath cooldown.")
+	TEST_ASSERT_EQUAL(length(SSpathfinder.active_pathing), paths_before, "A deleted loop queued another pathfinding request.")

@@ -98,7 +98,7 @@
 
 ///Checks if the reaction temperature is inside the range of temperature + a little deviation
 /obj/machinery/atmospherics/components/binary/crystallizer/proc/check_temp_requirements()
-	if(internal.temperature >= selected_recipe.min_temp * MIN_DEVIATION_RATE && internal.temperature <= selected_recipe.max_temp * MAX_DEVIATION_RATE)
+	if(internal.return_temperature() >= selected_recipe.min_temp * MIN_DEVIATION_RATE && internal.return_temperature() <= selected_recipe.max_temp * MAX_DEVIATION_RATE)
 		return TRUE
 	return FALSE
 
@@ -106,19 +106,19 @@
 /obj/machinery/atmospherics/components/binary/crystallizer/proc/inject_gases()
 	var/datum/gas_mixture/contents = airs[2]
 	for(var/gas_type in selected_recipe.requirements)
-		if(!contents.moles[gas_type])
+		if(!contents.get_moles(gas_type))
 			continue
-		if(internal.moles[gas_type] >= selected_recipe.requirements[gas_type] * 2)
+		if(internal.get_moles(gas_type) >= selected_recipe.requirements[gas_type] * 2)
 			continue
-		internal.merge(contents.remove_specific(gas_type, contents.moles[gas_type] * gas_input))
+		internal.merge(contents.remove_specific(gas_type, contents.get_moles(gas_type) * gas_input))
 
 ///Checks if the gases required are all inside
 /obj/machinery/atmospherics/components/binary/crystallizer/proc/internal_check()
 	var/gas_check = 0
 	for(var/gas_type in selected_recipe.requirements)
-		if(!internal.moles[gas_type])
+		if(!internal.get_moles(gas_type))
 			return FALSE
-		if(internal.moles[gas_type] >= selected_recipe.requirements[gas_type])
+		if(internal.get_moles(gas_type) >= selected_recipe.requirements[gas_type])
 			gas_check++
 	if(gas_check == selected_recipe.requirements.len)
 		return TRUE
@@ -127,15 +127,15 @@
 ///Calculation for the heat of the various gas mixes and controls the quality of the item
 /obj/machinery/atmospherics/components/binary/crystallizer/proc/heat_calculations()
 	var/progress_amount_to_quality = MIN_PROGRESS_AMOUNT * 4.5 / (round(log(10, total_recipe_moles * 0.1), 0.01))
-	if((internal.temperature >= (selected_recipe.min_temp * MIN_DEVIATION_RATE) && internal.temperature <= selected_recipe.min_temp) || \
-		(internal.temperature >= selected_recipe.max_temp && internal.temperature <= (selected_recipe.max_temp * MAX_DEVIATION_RATE)))
+	if((internal.return_temperature() >= (selected_recipe.min_temp * MIN_DEVIATION_RATE) && internal.return_temperature() <= selected_recipe.min_temp) || \
+		(internal.return_temperature() >= selected_recipe.max_temp && internal.return_temperature() <= (selected_recipe.max_temp * MAX_DEVIATION_RATE)))
 		quality_loss = min(quality_loss + progress_amount_to_quality, 100)
 
 	var/median_temperature = (selected_recipe.max_temp + selected_recipe.min_temp) / 2
-	if(internal.temperature >= (median_temperature * MIN_DEVIATION_RATE) && internal.temperature <= (median_temperature * MAX_DEVIATION_RATE))
+	if(internal.return_temperature() >= (median_temperature * MIN_DEVIATION_RATE) && internal.return_temperature() <= (median_temperature * MAX_DEVIATION_RATE))
 		quality_loss = max(quality_loss - progress_amount_to_quality, -85)
 
-	internal.temperature = max(internal.temperature + (selected_recipe.energy_release / internal.heat_capacity()), TCMB)
+	internal.set_temperature(max(internal.return_temperature() + (selected_recipe.energy_release / internal.heat_capacity()), TCMB))
 	update_parents()
 
 ///Conduction between the internal gasmix and the moderating (cooling/heating) gasmix.
@@ -143,12 +143,12 @@
 	var/datum/gas_mixture/cooling_port = airs[1]
 	if(cooling_port.total_moles() > MINIMUM_MOLE_COUNT)
 		if(internal.total_moles() > 0)
-			var/coolant_temperature_delta = cooling_port.temperature - internal.temperature
+			var/coolant_temperature_delta = cooling_port.return_temperature() - internal.return_temperature()
 			var/cooling_heat_capacity = cooling_port.heat_capacity()
 			var/internal_heat_capacity = internal.heat_capacity()
 			var/cooling_heat_amount = HIGH_CONDUCTIVITY_RATIO * coolant_temperature_delta * (cooling_heat_capacity * internal_heat_capacity / (cooling_heat_capacity + internal_heat_capacity))
-			cooling_port.temperature = max(cooling_port.temperature - cooling_heat_amount / cooling_heat_capacity, TCMB)
-			internal.temperature = max(internal.temperature + cooling_heat_amount / internal_heat_capacity, TCMB)
+			cooling_port.set_temperature(max(cooling_port.return_temperature() - cooling_heat_amount / cooling_heat_capacity, TCMB))
+			internal.set_temperature(max(internal.return_temperature() + cooling_heat_amount / internal_heat_capacity, TCMB))
 			update_parents()
 
 ///Calculate the total moles needed for the recipe
@@ -162,7 +162,6 @@
 /obj/machinery/atmospherics/components/binary/crystallizer/proc/dump_gases()
 	var/datum/gas_mixture/remove = internal.remove(internal.total_moles())
 	airs[2].merge(remove)
-	internal.garbage_collect()
 
 /obj/machinery/atmospherics/components/binary/crystallizer/process_atmos()
 	if(!on || !is_operational || selected_recipe == null)
@@ -190,7 +189,7 @@
 	for(var/gas_type in selected_recipe.requirements)
 		var/required_gas_moles = selected_recipe.requirements[gas_type]
 		var/amount_consumed = required_gas_moles + (required_gas_moles * (quality_loss * 0.01))
-		if(internal.moles[gas_type] < amount_consumed)
+		if(internal.get_moles(gas_type) < amount_consumed)
 			quality_loss = min(quality_loss + 10, 100)
 		internal.remove_specific(gas_type, amount_consumed)
 
@@ -260,14 +259,15 @@
 	var/list/cached_gas_name = GAS_META[META_GAS_NAME]
 	var/list/cached_gas_id = GAS_META[META_GAS_ID]
 	if(internal.total_moles())
-		for(var/gasid, amount in internal.moles)
+		for(var/gasid in internal.get_gases())
+			var/amount = internal.get_moles(gasid)
 			internal_gas_data.Add(list(list(
 			"name"= cached_gas_name[gasid],
 			"id" = cached_gas_id[gasid],
 			"amount" = round(amount, 0.01),
 			)))
 	else
-		for(var/gasid in internal.moles)
+		for(var/gasid in internal.get_gases())
 			internal_gas_data.Add(list(list(
 				"name"= cached_gas_name[gasid],
 				"id" = cached_gas_id[gasid],
@@ -290,7 +290,7 @@
 
 	var/temperature
 	if(internal.total_moles())
-		temperature = internal.temperature
+		temperature = internal.return_temperature()
 	else
 		temperature = 0
 	data["internal_temperature"] = temperature

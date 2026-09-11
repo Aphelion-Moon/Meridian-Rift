@@ -108,11 +108,6 @@
 #define MINIMUM_TEMPERATURE_DELTA_TO_SUSPEND 4
 /// Minimum temperature difference before the gas temperatures are just set to be equal
 #define MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER 0.5
-///Minimum temperature to continue superconduction once started
-#define MINIMUM_TEMPERATURE_FOR_SUPERCONDUCTION (T20C+80)
-///Minimum temperature to start doing superconduction calculations
-#define MINIMUM_TEMPERATURE_START_SUPERCONDUCTION (T20C+400)
-
 //HEAT TRANSFER COEFFICIENTS
 //Must be between 0 and 1. Values closer to 1 equalize temperature faster
 //Should not exceed 0.4 else strange heat flow occur
@@ -138,8 +133,6 @@
 
 ///moles in a 2.5 m^3 cell at 101.325 Pa and 20 degC (103 or so)
 #define MOLES_CELLSTANDARD (ONE_ATMOSPHERE*CELL_VOLUME/(T20C*R_IDEAL_GAS_EQUATION))
-///compared against for superconductivity
-#define M_CELL_WITH_RATIO (MOLES_CELLSTANDARD * 0.005)
 /// percentage of oxygen in a normal mixture of air
 #define O2STANDARD 0.21
 /// same but for nitrogen

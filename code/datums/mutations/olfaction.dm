@@ -51,7 +51,7 @@
 	// Can we sniff? is there miasma in the air?
 	var/datum/gas_mixture/air = cast_on.loc.return_air()
 
-	if(air.moles[/datum/gas/miasma])
+	if(air.get_moles(/datum/gas/miasma))
 		cast_on.adjust_disgust(sensitivity * 45)
 		to_chat(cast_on, span_warning("With your overly sensitive nose, \
 			you get a whiff of stench and feel sick! Try moving to a cleaner area!"))

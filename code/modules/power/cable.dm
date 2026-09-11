@@ -161,8 +161,18 @@ GLOBAL_LIST_INIT(wire_node_generating_types, typecacheof(list(
 	if(!powernet || damage_flag != BOMB)
 		return ..()
 
+	/* // APHELION EDIT REMOVAL START - RUNTIME_CORRECTNESS
 	powernet.propagate_light_flicker(src)
 	return ..()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - RUNTIME_CORRECTNESS
+	var/datum/powernet/affected_powernet = powernet
+	var/turf/flicker_source = get_turf(src)
+	. = ..()
+	if(!QDELETED(affected_powernet))
+		affected_powernet.propagate_light_flicker(flicker_source)
+	return .
+	// APHELION EDIT ADDITION END
 
 /obj/structure/cable/run_atom_armor(damage_amount, damage_type, damage_flag, attack_dir, armour_penetration)
 	if(damage_flag == BOMB && HAS_TRAIT(src, TRAIT_UNDERFLOOR))

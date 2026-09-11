@@ -207,9 +207,9 @@ GAME_VERB_PROC(/mob, Cell, "Cell", "Admin")
 	var/datum/gas_mixture/environment = loc.return_air()
 
 	var/t = "[span_notice("Coordinates: [x],[y] ")]\n"
-	t += "[span_danger("Temperature: [environment.temperature] ")]\n"
+	t += "[span_danger("Temperature: [environment.return_temperature()] ")]\n"
 	var/list/cached_gas_name = GAS_META[META_GAS_NAME]
-	for(var/gas_id, gas_moles in environment.moles)
+	for(var/gas_id, gas_moles in environment.get_moles_list())
 		if(gas_moles)
 			t += "[span_notice("[cached_gas_name[gas_id]]: [gas_moles] ")]\n"
 

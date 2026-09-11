@@ -225,6 +225,13 @@
 		var/area/underlying_area = underlying_areas[i]
 		underlying_area.lateShuttleMove()
 
+	// lateShuttleMove() -> air_update_turf(TRUE, ...) -> immediate_calculate_adjacent_turfs()
+	// synchronously rebuilds and flushes each turf's Dogmos adjacency one at a time, unbatched -
+	// the same nested per-neighbor registration cost the startup path already avoids by wrapping
+	// its own equivalent loop (SSair.process_adjacent_rebuild()) in runtime_topology_batching.
+	// Unnoticeable for a single turf; a shuttle's whole tile set doing this unbatched at every
+	// dock/undock (including the shuttles docking at round start) was seconds of real time.
+	SSdogmos.runtime_topology_batching = TRUE
 	for(var/i in 1 to old_turfs.len)
 		CHECK_TICK
 		if(!(old_turfs[old_turfs[i]] & (MOVE_CONTENTS|MOVE_TURF)))
@@ -232,6 +239,8 @@
 		var/turf/oldT = old_turfs[i]
 		var/turf/newT = new_turfs[i]
 		newT.lateShuttleMove(oldT)
+	SSdogmos.runtime_topology_batching = FALSE
+	SSdogmos.flush_turf_registration_batch()
 
 	for(var/i in 1 to moved_atoms.len)
 		CHECK_TICK

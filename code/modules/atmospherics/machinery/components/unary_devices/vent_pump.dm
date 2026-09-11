@@ -19,6 +19,7 @@
 	// vents are more complex machinery and so are less resistant to damage
 	max_integrity = 100
 	interaction_flags_click = NEED_VENTCRAWL
+	wake_on_turf_atmos = TRUE // NOVA EDIT ADDITION - DOGMOS
 
 	///Direction of pumping the gas (ATMOS_DIRECTION_RELEASING or ATMOS_DIRECTION_SIPHONING)
 	var/pump_direction = ATMOS_DIRECTION_RELEASING
@@ -239,12 +240,16 @@
 
 	update_appearance(UPDATE_ICON)
 
+/** Transfers gas while a pressure bound permits work, then sleeps until an input changes. */
 /obj/machinery/atmospherics/components/unary/vent_pump/process_atmos()
 	if(!is_operational)
 		return
 	if(!nodes[1])
 		set_on(FALSE)
-	if(!on || welded)
+		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
+	if(!on) // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: if(!on || welded)
+		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
+	if(welded) // NOVA EDIT ADDITION - DOGMOS
 		return
 	var/turf/open/us = loc
 	if(!istype(us))
@@ -270,21 +275,22 @@
 			pressure_delta = min(pressure_delta, (air_contents.return_pressure() - internal_pressure_bound))
 
 		if(pressure_delta > 0)
-			if(air_contents.temperature > 0)
+			if(air_contents.return_temperature() > 0)
 				if(!fan_overclocked && (environment_pressure >= 50 * ONE_ATMOSPHERE))
-					return FALSE
+					return PROCESS_KILL // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: return FALSE
 
-				var/transfer_moles = (pressure_delta * environment.volume) / (air_contents.temperature * R_IDEAL_GAS_EQUATION)
+				var/transfer_moles = (pressure_delta * environment.return_volume()) / (air_contents.return_temperature() * R_IDEAL_GAS_EQUATION)
 				if(!fan_overclocked && (percent_integrity < 1))
 					transfer_moles *= percent_integrity
 
 				var/datum/gas_mixture/removed = air_contents.remove(transfer_moles)
 
 				if(!removed || !removed.total_moles())
-					return
+					return fan_overclocked ? null : PROCESS_KILL // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: return
 
 				loc.assume_air(removed)
 				update_parents()
+				return // NOVA EDIT ADDITION - DOGMOS
 
 	else // external -> internal
 		var/pressure_delta = 10000
@@ -293,21 +299,25 @@
 		if(pressure_checks&ATMOS_INTERNAL_BOUND)
 			pressure_delta = min(pressure_delta, (internal_pressure_bound - air_contents.return_pressure()))
 
-		if(pressure_delta > 0 && environment.temperature > 0)
+		if(pressure_delta > 0 && environment.return_temperature() > 0)
 			if(!fan_overclocked && (air_contents.return_pressure() >= 50 * ONE_ATMOSPHERE))
-				return FALSE
+				return PROCESS_KILL // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: return FALSE
 
-			var/transfer_moles = (pressure_delta * air_contents.volume) / (environment.temperature * R_IDEAL_GAS_EQUATION)
+			var/transfer_moles = (pressure_delta * air_contents.return_volume()) / (environment.return_temperature() * R_IDEAL_GAS_EQUATION)
 			if(!fan_overclocked && (percent_integrity < 1))
 				transfer_moles *= percent_integrity
 
 			var/datum/gas_mixture/removed = loc.remove_air(transfer_moles)
 
 			if(!removed || !removed.total_moles()) //No venting from space 4head
-				return
+				return fan_overclocked ? null : PROCESS_KILL // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: return
 
 			air_contents.merge(removed)
 			update_parents()
+			return // NOVA EDIT ADDITION - DOGMOS
+
+	if(!fan_overclocked) // NOVA EDIT ADDITION - DOGMOS
+		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
 
 /obj/machinery/atmospherics/components/unary/vent_pump/update_name()
 	. = ..()
@@ -366,7 +376,7 @@
 /obj/machinery/atmospherics/components/unary/vent_pump/high_volume/Initialize(mapload)
 	. = ..()
 	var/datum/gas_mixture/air_contents = airs[1]
-	air_contents.volume = 1000
+	air_contents.set_volume(1000)
 
 // mapping
 

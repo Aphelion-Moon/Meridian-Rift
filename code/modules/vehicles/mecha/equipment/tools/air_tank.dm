@@ -32,11 +32,11 @@
 /obj/item/mecha_parts/mecha_equipment/air_tank/Initialize(mapload)
 	. = ..()
 	internal_tank = new(src)
-	internal_tank.air_contents.volume = volume
+	internal_tank.air_contents.set_volume(volume)
 	internal_tank.maximum_pressure = maximum_pressure
 	if(start_full)
 		internal_tank.air_contents.set_temperature(T20C)
-		internal_tank.air_contents.set_gas(/datum/gas/oxygen, maximum_pressure * volume / (R_IDEAL_GAS_EQUATION * internal_tank.air_contents.temperature))
+		internal_tank.air_contents.set_moles(/datum/gas/oxygen, maximum_pressure * volume / (R_IDEAL_GAS_EQUATION * internal_tank.air_contents.return_temperature()))
 
 /obj/item/mecha_parts/mecha_equipment/air_tank/Destroy()
 	if(chassis)

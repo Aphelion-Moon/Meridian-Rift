@@ -292,11 +292,10 @@
 /obj/structure/closet/body_bag/environmental/proc/refresh_air()
 	air_contents = null
 	air_contents = new(50) //liters
-	air_contents.temperature = T20C
+	air_contents.set_temperature(T20C)
 
-	air_contents.assert_gases(/datum/gas/oxygen, /datum/gas/nitrogen)
-	air_contents.adjust_gas(/datum/gas/oxygen, (ONE_ATMOSPHERE*50)/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD)
-	air_contents.adjust_gas(/datum/gas/nitrogen, (ONE_ATMOSPHERE*50)/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
+	air_contents.adjust_moles(/datum/gas/oxygen, (ONE_ATMOSPHERE*50)/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD)
+	air_contents.adjust_moles(/datum/gas/nitrogen, (ONE_ATMOSPHERE*50)/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
 
 /obj/structure/closet/body_bag/environmental/nanotrasen
 	name = "elite environmental protection bag"
@@ -423,9 +422,8 @@
 /obj/structure/closet/body_bag/environmental/prisoner/pressurized/syndicate/refresh_air()
 	air_contents = null
 	air_contents = new(50) //liters
-	air_contents.temperature = T20C
+	air_contents.set_temperature(T20C)
 
-	air_contents.assert_gases(/datum/gas/oxygen, /datum/gas/nitrous_oxide)
 	air_contents.adjust_gas(/datum/gas/oxygen, (ONE_ATMOSPHERE*50)/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD)
 	air_contents.adjust_gas(/datum/gas/nitrous_oxide, (ONE_ATMOSPHERE*50)/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
 
@@ -509,8 +507,8 @@
 	air_contents = new(mol_count)
 	air_contents.set_temperature(inner_temp)
 
-	air_contents.set_gas(/datum/gas/oxygen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * O2STANDARD))
-	air_contents.set_gas(/datum/gas/nitrogen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * N2STANDARD))
+	air_contents.set_moles(/datum/gas/oxygen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * O2STANDARD))
+	air_contents.set_moles(/datum/gas/nitrogen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * N2STANDARD))
 
 /obj/structure/closet/body_bag/environmental/stasis/examine_status(mob/user)
 	switch(100 * get_integrity_percentage())

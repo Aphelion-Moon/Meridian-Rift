@@ -51,6 +51,10 @@
 	var/pipe_state
 	///Check if the device should be on or off (mostly used in processing for machines)
 	var/on = FALSE
+	///Whether turf atmosphere activity should wake this machine after it becomes dormant.
+	var/wake_on_turf_atmos = FALSE // NOVA EDIT ADDITION - DOGMOS
+	///Whether a dirty parent pipeline should wake this dormant pipe member.
+	var/wake_on_pipeline_atmos = FALSE // NOVA EDIT ADDITION - DOGMOS
 
 	///Whether it can be painted
 	var/paintable = TRUE
@@ -160,12 +164,12 @@
 	var/datum/gas_mixture/turf_gas = open_loc.air
 	if(isnull(turf_gas))
 		return
-	check_atmos_process(open_loc, turf_gas, turf_gas.temperature)
+	check_atmos_process(open_loc, turf_gas, turf_gas.return_temperature())
 
 /turf/open/atmos_conditions_changed()
 	if(isnull(air))
 		return
-	check_atmos_process(src, air, air.temperature)
+	check_atmos_process(src, air, air.return_temperature())
 
 /**
  * Called by the machinery disconnect(), custom for each type
@@ -186,8 +190,16 @@
 		return
 
 	on = active
+	if(on) // NOVA EDIT ADDITION - DOGMOS
+		SSair.start_processing_machine(src) // NOVA EDIT ADDITION - DOGMOS
 	update_appearance(UPDATE_ICON)
 	SEND_SIGNAL(src, COMSIG_ATMOS_MACHINE_SET_ON, on)
+
+/** Wakes enabled atmosphere machinery when it becomes operational. */
+/obj/machinery/atmospherics/on_set_is_operational(old_value)
+	. = ..()
+	if(is_operational && on)
+		SSair.start_processing_machine(src) // NOVA EDIT ADDITION - DOGMOS
 
 /// This should only be called by SSair as part of the rebuild queue.
 /// Handles rebuilding pipelines after init or they've been changed.

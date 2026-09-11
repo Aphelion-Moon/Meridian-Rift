@@ -150,8 +150,13 @@
 	if(hotspot && !isspaceturf(exposed_turf)) // the water evaporates in an endothermic reaction
 		if(exposed_turf.air)
 			var/datum/gas_mixture/air = exposed_turf.air
-			air.temperature = min(max(min(air.temperature-(cool_temp*1000), air.temperature/cool_temp), T0C), air.temperature) // the outer min temperature check is for weird phenomena like freon combustion
-			exposed_turf.temperature = clamp(min(exposed_turf.temperature-(cool_temp*1000), exposed_turf.temperature/cool_temp), T20C, exposed_turf.temperature) // turfs normally don't go below T20C so I'll just clamp it to that in case of weird phenomena.
+			// APHELION EDIT ADDITION START - DOGMOS
+			// Open-turf temperature consumers use the gas mixture, but this value must be captured before
+			// the cooling write below.
+			var/exposed_turf_temperature = exposed_turf.GetTemperature()
+			// APHELION EDIT ADDITION END - DOGMOS
+			air.set_temperature(min(max(min(air.return_temperature()-(cool_temp*1000), air.return_temperature()/cool_temp), T0C), air.return_temperature())) // the outer min temperature check is for weird phenomena like freon combustion
+			exposed_turf.set_temperature(clamp(min(exposed_turf_temperature-(cool_temp*1000), exposed_turf_temperature/cool_temp), T20C, exposed_turf_temperature)) // APHELION EDIT CHANGE - ORIGINAL: exposed_turf.set_temperature(clamp(min(exposed_turf.temperature-(cool_temp*1000), exposed_turf.temperature/cool_temp), T20C, exposed_turf.temperature)) // turfs normally don't go below T20C so I'll just clamp it to that in case of weird phenomena.
 			air.react(src)
 			qdel(hotspot)
 

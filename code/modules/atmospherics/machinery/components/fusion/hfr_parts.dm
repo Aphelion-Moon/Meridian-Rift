@@ -218,36 +218,20 @@
 
 	//Internal Fusion gases
 	var/list/fusion_gasdata = list()
-	if(connected_core.internal_fusion.total_moles())
-		for(var/gas_type in connected_core.internal_fusion.moles)
-			var/datum/gas/gas = gas_type
-			fusion_gasdata.Add(list(list(
-			"id"= initial(gas.id),
-			"amount" = round(connected_core.internal_fusion.moles[gas], 0.01),
-			)))
-	else
-		for(var/gas_type in connected_core.internal_fusion.moles)
-			var/datum/gas/gas = gas_type
-			fusion_gasdata.Add(list(list(
-				"id"= initial(gas.id),
-				"amount" = 0,
-				)))
+	for(var/gas_type in connected_core.internal_fusion.get_gases())
+		var/datum/gas/gas = gas_type
+		fusion_gasdata.Add(list(list(
+		"id"= initial(gas.id),
+		"amount" = round(connected_core.internal_fusion.get_moles(gas), 0.01),
+		)))
 	//Moderator gases
 	var/list/moderator_gasdata = list()
-	if(connected_core.moderator_internal.total_moles())
-		for(var/gas_type in connected_core.moderator_internal.moles)
-			var/datum/gas/gas = gas_type
-			moderator_gasdata.Add(list(list(
-			"id"= initial(gas.id),
-			"amount" = round(connected_core.moderator_internal.moles[gas], 0.01),
-			)))
-	else
-		for(var/gas_type in connected_core.moderator_internal.moles)
-			var/datum/gas/gas = gas_type
-			moderator_gasdata.Add(list(list(
-				"id"= initial(gas.id),
-				"amount" = 0,
-				)))
+	for(var/gas_type in connected_core.moderator_internal.get_gases())
+		var/datum/gas/gas = gas_type
+		moderator_gasdata.Add(list(list(
+		"id"= initial(gas.id),
+		"amount" = round(connected_core.moderator_internal.get_moles(gas), 0.01),
+		)))
 
 	data["fusion_gases"] = fusion_gasdata
 	data["moderator_gases"] = moderator_gasdata
@@ -296,7 +280,8 @@
 			"enabled" = (path in connected_core.moderator_scrubbing)
 		))
 
-	data["cooling_volume"] = connected_core.airs[1].volume
+	var/datum/gas_mixture/core_coolant = connected_core.airs[1]
+	data["cooling_volume"] = core_coolant.return_volume()
 	data["mod_filtering_rate"] = connected_core.moderator_filtering_rate
 
 	return data
@@ -375,7 +360,8 @@
 		if("cooling_volume")
 			var/cooling_volume = text2num(params["cooling_volume"])
 			if(cooling_volume != null)
-				connected_core.airs[1].volume = clamp(cooling_volume, 50, 2000)
+				var/datum/gas_mixture/core_coolant = connected_core.airs[1]
+				core_coolant.set_volume(clamp(cooling_volume, 50, 2000))
 				. = TRUE
 
 /obj/machinery/hypertorus/corner

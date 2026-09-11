@@ -24,3 +24,18 @@
 	water_reagent = target_reagents.reagent_list[1]
 	TEST_ASSERT(istype(water_reagent), "Incorrect reagent type detected in target reagents after transfer: [water_reagent.type] (should be /datum/reagent/water).")
 	TEST_ASSERT_EQUAL(water_reagent.volume, 10, "Target reagents has [water_reagent.volume] reagent volume (expected 10)")
+
+// APHELION EDIT ADDITION START - RUNTIME_CORRECTNESS
+/// Verifies that an exposure scaled to zero is a harmless no-op.
+/datum/unit_test/reagent_zero_volume_exposure
+
+/datum/unit_test/reagent_zero_volume_exposure/Run()
+	var/datum/reagents/source_reagents = allocate(/datum/reagents, 100)
+	var/obj/target = allocate(/obj)
+	var/initial_integrity = target.get_integrity()
+
+	source_reagents.add_reagent(/datum/reagent/water, 10)
+	source_reagents.expose(target, volume_modifier = 0, show_message = FALSE)
+
+	TEST_ASSERT_EQUAL(target.get_integrity(), initial_integrity, "A zero-volume reagent exposure changed its target.")
+// APHELION EDIT ADDITION END

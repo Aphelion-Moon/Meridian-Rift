@@ -61,6 +61,8 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/static/datum/space_level/reservation
 	/// If this unit test requires a normal turf to run.
 	var/normal_floor_required = FALSE
+	/// Stop the suite if an isolated native fixture cannot release its authoritative stage.
+	var/dogmos_fixture_aborted = FALSE
 
 /proc/cmp_unit_test_priority(datum/unit_test/a, datum/unit_test/b)
 	return initial(a.priority) - initial(b.priority)
@@ -134,14 +136,160 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	allocated += instance
 	return instance
 
+/** Returns two adjacent open turfs from the shared atmos test room.
+ * Arguments: * direction - direction from run_loc_floor_bottom_left for the second turf.
+ */
+/datum/unit_test/proc/allocate_turf_pair(direction = EAST)
+	var/turf/open/turf_a = run_loc_floor_bottom_left
+	var/turf/open/turf_b = get_step(turf_a, direction)
+	TEST_ASSERT(istype(turf_a), "run_loc_floor_bottom_left is not an open turf - this test needs one.")
+	TEST_ASSERT(istype(turf_b), "The turf [direction] of run_loc_floor_bottom_left is not an open turf - this test needs two real, adjacent turfs.")
+	// Previous tests may have replaced a turf with deferred adjacency recalculation.
+	// Establish this fixture's topology before asserting its preconditions.
+	turf_a.immediate_calculate_adjacent_turfs()
+	turf_b.immediate_calculate_adjacent_turfs()
+	TEST_ASSERT(turf_a in turf_b.atmos_adjacent_turfs, \
+		"turf_a and turf_b are not gas-adjacent (atmos_adjacent_turfs) - this test needs two turfs Dogmos will actually share gas between.")
+	return list(turf_a, turf_b)
+
+/** Waits a bounded number of subsystem fires before beginning an isolated native-stage fixture. */
+/datum/unit_test/proc/dogmos_wait_for_stage_boundary()
+	var/failure = "Dogmos did not establish a healthy fixture boundary within its bound."
+	try
+		for(var/attempt in 1 to 100)
+			if(!SSdogmos.service_ready)
+				break
+			if(isnull(SSair.dogmos_pending_stage) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
+				if(dogmos_drain_fixture_callbacks())
+					return TRUE
+				break
+			sleep(SSair.wait)
+	catch(var/exception/error)
+		failure = "Dogmos fixture boundary raised [error.name]."
+	return dogmos_abort_fixture(failure)
+
+/// Record an unrecoverable fixture failure and suppress unsafe restoration and later tests.
+/datum/unit_test/proc/dogmos_abort_fixture(reason)
+	dogmos_fixture_aborted = TRUE
+	SSair.dogmos_fail_closed_stage("unit test fixture", schedule_reboot = FALSE)
+	Fail(reason, __FILE__, __LINE__)
+	return FALSE
+
+/// Drain through the maintained sequence-checking path without running another gas stage.
+/datum/unit_test/proc/dogmos_drain_fixture_callbacks()
+	for(var/batch in 1 to 4096)
+		if(!SSdogmos.service_ready)
+			return FALSE
+		// Dispatching a reaction can enqueue new service events after the batch's
+		// remaining-count snapshot. Require an observed empty batch before returning.
+		if(!SSair.finish_turf_processing_auxtools(100) && !SSdogmos.dogmos_pending_callback_count)
+			return TRUE
+	return FALSE
+
+/** Runs only the requested stage from fixture turfs, then restores the normal frontier.
+ * There are no sleeps between publication, stage calls and restoration: another SSair
+ * stage cannot move gas during the measured before/after interval.
+ */
+/datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE, chunk_budget_ms = 100, require_budget_use = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE)
+	if(!isnull(SSair.dogmos_pending_stage) || SSair.dogmos_pending_frontier_epoch)
+		return FALSE
+	var/list/original_active = SSair.active_turfs
+	var/list/original_pressure_queue = SSair.high_pressure_delta.Copy()
+	var/list/original_pressure = list()
+	for(var/turf/open/fixture_turf as anything in turfs)
+		original_pressure[fixture_turf] = list(fixture_turf.pressure_difference, fixture_turf.pressure_direction)
+	var/pending = TRUE
+	var/restored = FALSE
+	var/failure = "Native fixture stage [stage] exceeded its completion bound."
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/unused_budget_ms = 0
+	// APHELION EDIT ADDITION END
+	try
+		SSair.active_turfs = turfs.Copy()
+		for(var/chunk in 1 to 4096)
+			// APHELION EDIT ADDITION START - DOGMOS
+			var/chunk_start = TICK_USAGE
+			// APHELION EDIT ADDITION END
+			pending = use_fdm_cadence ? SSair.process_turfs_auxtools(chunk_budget_ms) : SSair.dogmos_run_stage(stage, chunk_budget_ms) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: pending = use_fdm_cadence ? SSair.process_turfs_auxtools(100) : SSair.dogmos_run_stage(stage, 100)
+			// APHELION EDIT ADDITION START - DOGMOS
+			if(require_budget_use && pending)
+				unused_budget_ms = max(unused_budget_ms, chunk_budget_ms - TICK_DELTA_TO_MS(TICK_USAGE - chunk_start))
+			// APHELION EDIT ADDITION END
+			if(!pending || !SSdogmos.service_ready)
+				break
+		if(!pending && SSdogmos.service_ready)
+			// Equalization publishes pressure events. Consume them before gas restoration,
+			// then remove only this fixture's effects on the DM pressure queue and fields.
+			pending = !dogmos_drain_fixture_callbacks()
+		SSair.active_turfs = original_active
+		if(!pending && SSdogmos.service_ready)
+			SSair.dogmos_pending_frontier_epoch = null
+			restored = SSair.sync_dogmos_frontier()
+			SSair.dogmos_pending_frontier_epoch = null
+	catch(var/exception/error)
+		failure = "Native fixture stage [stage] raised [error.name]."
+	// Restore local state even when an IPC call runtimes. An incomplete native cursor
+	// has no safe DM cancellation API: freeze atmos and end the suite after recording failure.
+	SSair.active_turfs = original_active
+	SSair.high_pressure_delta.Cut()
+	SSair.high_pressure_delta += original_pressure_queue
+	for(var/turf/open/fixture_turf as anything in turfs)
+		var/list/pressure = original_pressure[fixture_turf]
+		fixture_turf.pressure_difference = pressure[1]
+		fixture_turf.pressure_direction = pressure[2]
+	if(!restored)
+		return dogmos_abort_fixture(failure)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(unused_budget_ms > 0)
+		Fail("Native stage yielded with [unused_budget_ms] ms of its [chunk_budget_ms] ms allocation unused.", __FILE__, __LINE__)
+		return FALSE
+	// APHELION EDIT ADDITION END
+	return restored
+
+/** Re-registers a turf and rebuilds its Dogmos heat-graph adjacency. */
+/datum/unit_test/proc/resync_turf_for_dogmos(turf/open/target)
+	target.register_dogmos_air()
+	target.immediate_calculate_adjacent_turfs()
+
+/** Converts an adjacent turf to space and returns list(vacuum_neighbor, original_type).
+ * Restore the original type from Destroy(), including after failed assertions.
+ */
+/datum/unit_test/proc/convert_neighbor_to_space(turf/open/interior, direction = EAST)
+	var/turf/neighbor_loc = get_step(interior, direction)
+	TEST_ASSERT(istype(neighbor_loc, /turf/open), \
+		"The turf [direction] of the interior turf is not an open turf - this test needs a real neighbor to convert to space.")
+	var/original_type = neighbor_loc.type
+
+	// Rebuild adjacency synchronously so the new edge exists when the test continues.
+	var/turf/open/space/vacuum_neighbor = neighbor_loc.ChangeTurf(/turf/open/space, flags = CHANGETURF_INHERIT_AIR | CHANGETURF_RECALC_ADJACENT)
+	TEST_ASSERT(istype(vacuum_neighbor), \
+		"ChangeTurf to /turf/open/space did not produce a space turf - test setup is broken, not the thing under test.")
+	TEST_ASSERT(interior in vacuum_neighbor.atmos_adjacent_turfs, \
+		"The interior turf and its new space neighbor are not gas-adjacent - test setup is broken, not the thing under test.")
+	return list(vacuum_neighbor, original_type)
+
+/// Restores whatever convert_neighbor_to_space() replaced. Safe to call unconditionally from Destroy() -
+/// a null/empty original_type (never converted, or already restored) is a no-op.
+/datum/unit_test/proc/restore_neighbor_from_space(turf/open/interior, original_type, direction = EAST)
+	if(!original_type || !istype(interior))
+		return
+	var/turf/neighbor_loc = get_step(interior, direction)
+	if(istype(neighbor_loc, /turf/open/space))
+		neighbor_loc.ChangeTurf(original_type, flags = CHANGETURF_INHERIT_AIR | CHANGETURF_RECALC_ADJACENT)
+
 /// Resets the air of our testing room to its default
 /datum/unit_test/proc/restore_atmos()
+	if(dogmos_fixture_aborted)
+		return
 	var/area/working_area = run_loc_floor_bottom_left.loc
 	var/list/turf/to_restore = working_area.get_turfs_from_all_zlevels()
 	for(var/turf/open/restore in to_restore)
 		var/datum/gas_mixture/GM = SSair.parse_gas_string(restore.initial_gas_mix, /datum/gas_mixture/turf)
 		restore.copy_air(GM)
-		restore.temperature = initial(restore.temperature)
+		// set_temperature(), not a direct var write - Dogmos owns turf temperature (TurfHeat) now, and
+		// a direct restore.temperature = ... write only touches the DM var, leaving Rust's copy stale
+		// for every subsequent test. See modular_aphelion/master_files/code/game/turfs/turf.dm.
+		restore.set_temperature(initial(restore.temperature))
 		restore.air_update_turf(update = FALSE, remove = FALSE)
 
 /datum/unit_test/proc/test_screenshot(name, icon/icon)
@@ -217,6 +365,12 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/skip_test = (test_path in SSmapping.current_map.skipped_tests)
 	var/test_output_desc = "[test_path]"
 	var/message = ""
+	// GLOB.total_runtimes is bumped by /world/Error (code\modules\error_handler\error_handler.dm).
+	// Snapshotting it around the test attributes each runtime to whichever test was running, which
+	// the suite could not previously do: a test that runtimed but never called TEST_FAIL was
+	// recorded as PASSED with no trace of the runtime anywhere but the global aggregate.
+	var/runtimes_before = GLOB.total_runtimes
+	var/runtimes_during = 0
 
 	log_world("::group::[test_path]")
 
@@ -228,6 +382,9 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		test.Run()
 		if(test.priority < TEST_CREATE_AND_DESTROY) //We shouldn't care about restoring atmos after create_and_destroy.
 			test.restore_atmos()
+
+		// Restore-time runtimes are attributed to the test that dirtied the turf, not the next one.
+		runtimes_during = GLOB.total_runtimes - runtimes_before
 
 		duration = REALTIMEOFDAY - duration
 		GLOB.current_test = null
@@ -250,6 +407,9 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 			message = log_entry.Join("\n")
 			log_test(message)
 
+		if(runtimes_during)
+			log_world("[TEST_OUTPUT_YELLOW("RUNTIMES")] [test_path] logged [runtimes_during] runtime error(s)")
+
 		test_output_desc += " [duration / 10]s"
 		if(duration > 10)
 			GLOB.test_run_times[test_path] = duration
@@ -262,9 +422,12 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		log_world("::error::[TEST_OUTPUT_RED("FAIL")] [test_output_desc]")
 
 	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
-	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path)
+	// Record elapsed duration for timing checks; skipped tests report zero.
+	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path, "runtimes" = runtimes_during, "duration" = skip_test ? 0 : duration)
 
+	var/abort_suite = test.dogmos_fixture_aborted
 	qdel(test)
+	return abort_suite
 
 /// Builds (and returns) a list of atoms that we shouldn't initialize in generic testing, like Create and Destroy.
 /// It is appreciated to add the reason why the atom shouldn't be initialized if you add it to this list.
@@ -437,11 +600,16 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 
 	//Hell code, we're bound to end the round somehow so let's stop if from ending while we work
 	SSticker.delay_end = TRUE
+	var/abort_suite = FALSE
 	for(var/datum/unit_test/unit_path as anything in tests_to_run)
 		var/loop_count = unit_path::times_to_run
 		for(var/i in 1 to loop_count)
 			CHECK_TICK //We check tick first because the unit test we run last may be so expensive that checking tick will lock up this loop forever
-			RunUnitTest(unit_path, test_results)
+			if(RunUnitTest(unit_path, test_results))
+				abort_suite = TRUE
+				break
+		if(abort_suite)
+			break
 	SSticker.delay_end = FALSE
 
 	log_world("::group::Expensive Unit Test Times")

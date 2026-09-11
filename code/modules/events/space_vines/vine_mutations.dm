@@ -172,13 +172,13 @@
 	var/heat_capacity = air.heat_capacity()
 	if(!heat_capacity) // No heating up space or vacuums
 		return
-	var/energy_used = min(abs(air.temperature - T20C) * heat_capacity, TEMP_STABILISATION_MUTATION_MAXIMUM_ENERGY)
+	var/energy_used = min(abs(air.return_temperature() - T20C) * heat_capacity, TEMP_STABILISATION_MUTATION_MAXIMUM_ENERGY)
 	var/delta_temperature = energy_used / heat_capacity
 	if(delta_temperature < 0.1)
 		return
-	if(air.temperature > T20C)
+	if(air.return_temperature() > T20C)
 		delta_temperature *= -1
-	air.temperature += delta_temperature
+	air.set_temperature(air.return_temperature() + delta_temperature)
 	holder.air_update_turf(FALSE, FALSE)
 
 /datum/spacevine_mutation/vine_eating
@@ -285,11 +285,10 @@
 		return
 
 	var/datum/gas_mixture/gas_mix = turf.air
-	if(!gas_mix.moles[gas_type])
+	if(!gas_mix.get_moles(gas_type))
 		return
 
-	gas_mix.set_gas(gas_type, max(gas_mix.moles[gas_type] - GAS_MUTATION_REMOVAL_MULTIPLIER * holder.growth_stage, 0))
-	gas_mix.garbage_collect()
+	gas_mix.set_moles(gas_type, max(gas_mix.get_moles(gas_type) - GAS_MUTATION_REMOVAL_MULTIPLIER * holder.growth_stage, 0))
 
 /datum/spacevine_mutation/gas_eater/oxy_eater
 	name = "Oxygen consuming"

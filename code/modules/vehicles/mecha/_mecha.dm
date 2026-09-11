@@ -592,7 +592,7 @@
 		if(cabin_air && cabin_sealed && cabin_air.return_volume()>0)
 			if(cabin_air.return_pressure() > (PUMP_DEFAULT_PRESSURE * 30) && !(internal_damage & MECHA_CABIN_AIR_BREACH))
 				set_internal_damage(MECHA_CABIN_AIR_BREACH)
-			cabin_air.temperature = min(6000+T0C, cabin_air.temperature+rand(5,7.5)*seconds_per_tick)
+			cabin_air.set_temperature(min(6000+T0C, cabin_air.return_temperature()+rand(5,7.5)*seconds_per_tick))
 			if(cabin_air.return_temperature() > max_temperature/2)
 				take_damage(seconds_per_tick*2/round(max_temperature/cabin_air.return_temperature(),0.1), BURN, 0, 0)
 
@@ -612,16 +612,16 @@
 /obj/vehicle/sealed/mecha/proc/process_cabin_air(seconds_per_tick)
 	if(!(internal_damage & MECHA_INT_TEMP_CONTROL) && cabin_air && cabin_air.return_volume() > 0)
 		var/heat_capacity = cabin_air.heat_capacity()
-		var/required_energy = abs(T20C - cabin_air.temperature) * heat_capacity
+		var/required_energy = abs(T20C - cabin_air.return_temperature()) * heat_capacity
 		required_energy = min(required_energy, 1000)
 		if(required_energy < 1)
 			return
 		var/delta_temperature = required_energy / heat_capacity
 		if(delta_temperature)
-			if(cabin_air.temperature < T20C)
-				cabin_air.temperature += delta_temperature
+			if(cabin_air.return_temperature() < T20C)
+				cabin_air.set_temperature(cabin_air.return_temperature() + delta_temperature)
 			else
-				cabin_air.temperature -= delta_temperature
+				cabin_air.set_temperature(cabin_air.return_temperature() - delta_temperature)
 
 /obj/vehicle/sealed/mecha/proc/process_occupants(seconds_per_tick)
 	for(var/mob/living/occupant as anything in occupants)

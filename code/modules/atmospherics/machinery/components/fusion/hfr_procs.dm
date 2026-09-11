@@ -162,18 +162,6 @@
 		corners = list()
 	QDEL_NULL(soundloop)
 
-/obj/machinery/atmospherics/components/unary/hypertorus/core/proc/assert_gases()
-	//Assert the gases that will be used/created during the process
-
-	internal_fusion.assert_gas(/datum/gas/antinoblium)
-
-	moderator_internal.assert_gases(arglist(GLOB.meta_gas_info[META_GAS_ID]))
-
-	if (!selected_fuel)
-		return
-
-	internal_fusion.assert_gases(arglist(selected_fuel.requirements | selected_fuel.primary_products))
-
 /**
  * Updates all related pipenets from all connected components
  */
@@ -185,13 +173,13 @@
 
 /obj/machinery/atmospherics/components/unary/hypertorus/core/proc/update_temperature_status(seconds_per_tick)
 	fusion_temperature_archived = fusion_temperature
-	fusion_temperature = internal_fusion.temperature
+	fusion_temperature = internal_fusion.return_temperature()
 	moderator_temperature_archived = moderator_temperature
-	moderator_temperature = moderator_internal.temperature
+	moderator_temperature = moderator_internal.return_temperature()
 	coolant_temperature_archived = coolant_temperature
-	coolant_temperature = airs[1].temperature
+	coolant_temperature = airs[1].return_temperature()
 	output_temperature_archived = output_temperature
-	output_temperature = linked_output.airs[1].temperature
+	output_temperature = linked_output.airs[1].return_temperature()
 	temperature_period = seconds_per_tick
 
 	//Set the power level of the fusion process
@@ -240,8 +228,7 @@
 	if(!internal_fusion.total_moles())
 		return FALSE
 	for(var/gas_type in selected_fuel.requirements)
-		internal_fusion.assert_gas(gas_type)
-		if(internal_fusion.moles[gas_type] < FUSION_MOLE_THRESHOLD)
+		if(internal_fusion.get_moles(gas_type) < FUSION_MOLE_THRESHOLD)
 			return FALSE
 	return TRUE
 
@@ -261,7 +248,7 @@
 /obj/machinery/atmospherics/components/unary/hypertorus/core/proc/check_gas_requirements()
 	var/datum/gas_mixture/contents = linked_input.airs[1]
 	for(var/gas_type in selected_fuel.requirements)
-		if(!contents.moles[gas_type])
+		if(!contents.get_moles(gas_type))
 			return FALSE
 	return TRUE
 
@@ -269,8 +256,6 @@
 /obj/machinery/atmospherics/components/unary/hypertorus/core/proc/dump_gases()
 	var/datum/gas_mixture/remove = internal_fusion.remove(internal_fusion.total_moles())
 	linked_output.airs[1].merge(remove)
-	internal_fusion.garbage_collect()
-	linked_input.airs[1].garbage_collect()
 
 /**
  * Called by alarm() in this file

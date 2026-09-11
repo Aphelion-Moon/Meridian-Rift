@@ -355,6 +355,9 @@
 	. += filling
 
 /obj/item/reagent_containers/proc/reagent_container_sound_chain(filled_sound, empty_sound, target, volume)
+	// Unequipping a destroyed container can reach this after its holder is deleted.
+	if(!reagents)
+		return FALSE
 	if(reagents.total_volume <= round((reagents.maximum_volume * 0.2), 1))
 		if(empty_sound)
 			playsound(target, empty_sound, volume, vary = sound_vary, ignore_walls = FALSE)

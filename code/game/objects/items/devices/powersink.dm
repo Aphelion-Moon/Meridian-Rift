@@ -147,7 +147,7 @@
 	var/datum/gas_mixture/environment = our_turf.return_air()
 	var/delta_temperature = temp_to_give / environment.heat_capacity()
 	if(delta_temperature)
-		environment.temperature += delta_temperature
+		environment.set_temperature(environment.return_temperature() + delta_temperature)
 		air_update_turf(FALSE, FALSE)
 	if(warning_given && internal_heat < max_heat * 0.75)
 		warning_given = FALSE

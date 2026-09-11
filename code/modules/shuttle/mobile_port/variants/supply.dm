@@ -366,7 +366,7 @@ GLOBAL_LIST_INIT(blacklisted_cargo_types, typecacheof(list(
 				continue
 			var/datum/gas_mixture/GM = SSair.parse_gas_string(shuttle_floor.initial_gas_mix, /datum/gas_mixture/turf)
 			shuttle_floor.copy_air(GM)
-			shuttle_floor.temperature = initial(shuttle_floor.temperature)
+			shuttle_floor.set_temperature(initial(shuttle_floor.temperature))
 			shuttle_floor.update_visuals()
 
 #undef GOODY_FREE_SHIPPING_MAX

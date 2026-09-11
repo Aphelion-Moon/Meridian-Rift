@@ -57,7 +57,7 @@ SUBSYSTEM_DEF(minor_mapping)
 	if(!istype(proposed_turf))
 		return FALSE
 	var/datum/gas_mixture/turf/turf_gasmix = proposed_turf.air
-	var/turf_temperature = proposed_turf.temperature
+	var/turf_temperature = proposed_turf.GetTemperature() // APHELION EDIT CHANGE - ORIGINAL: var/turf_temperature = proposed_turf.temperature
 	return turf_gasmix.has_gas(/datum/gas/oxygen, 5) && turf_temperature < NPC_DEFAULT_MAX_TEMP && turf_temperature > NPC_DEFAULT_MIN_TEMP
 
 /datum/controller/subsystem/minor_mapping/proc/place_satchels(satchel_amount)

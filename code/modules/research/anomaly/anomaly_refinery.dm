@@ -260,7 +260,7 @@
 		var/datum/gas_mixture/second_gasmix = inserted_bomb.tank_two.return_air()
 
 		combined_gasmix = new(70)
-		combined_gasmix.volume = first_gasmix.volume + second_gasmix.volume
+		combined_gasmix.set_volume(first_gasmix.return_volume() + second_gasmix.return_volume())
 		combined_gasmix.merge(first_gasmix.copy())
 		combined_gasmix.merge(second_gasmix.copy())
 	else

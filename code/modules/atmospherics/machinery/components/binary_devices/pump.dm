@@ -54,8 +54,13 @@
 /obj/machinery/atmospherics/components/binary/pump/update_icon_nopipes()
 	icon_state = (on && is_operational) ? "pump_on-[set_overlay_offset(piping_layer)]" : "pump_off-[set_overlay_offset(piping_layer)]"
 
+/** Transfers gas toward the configured output pressure while work remains. */
 /obj/machinery/atmospherics/components/binary/pump/process_atmos()
-	if(!on || !is_operational)
+	// NOVA EDIT ADDITION START - DOGMOS
+	if(!on)
+		return PROCESS_KILL
+	// NOVA EDIT ADDITION END
+	if(!is_operational) // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: if(!on || !is_operational)
 		return
 
 	var/datum/gas_mixture/input_air = airs[1]
@@ -64,6 +69,8 @@
 
 	if(input_air.pump_gas_to(output_air, target_pressure, output_pipenet_air = output_pipenet_air))
 		update_parents()
+		return
+	return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
 
 /obj/machinery/atmospherics/components/binary/pump/ui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)

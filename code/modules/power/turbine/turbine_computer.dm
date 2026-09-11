@@ -74,7 +74,7 @@
 	//running parameters
 	.["max_rpm"] = main_control.max_allowed_rpm
 	.["max_temperature"] = main_control.max_allowed_temperature
-	.["temp"] = main_control.compressor.input_turf?.air.temperature || 0
+	.["temp"] = main_control.compressor.input_turf?.air.return_temperature() || 0
 	.["regulator"] = main_control.compressor.intake_regulator
 
 /obj/machinery/computer/turbine_computer/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)

@@ -183,6 +183,9 @@
 
 	var/list/turf/attachable_turfs = get_turfs_to_mount_on()
 	for(var/turf/target as anything in attachable_turfs)
+		// Directional lookups at a map edge can have no neighboring turf.
+		if(isnull(target))
+			continue
 		var/atom/attachable_atom
 		if(is_mountable_turf(target))
 			attachable_atom = target //your usual wallmount

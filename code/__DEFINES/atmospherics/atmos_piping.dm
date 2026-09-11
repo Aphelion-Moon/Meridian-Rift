@@ -49,9 +49,10 @@
 /// The maximum pressure an gas tanks release valve can be set to.
 #define TANK_MAX_RELEASE_PRESSURE (ONE_ATMOSPHERE*3)
 /// The default initial value gas tanks release valves are set to. (At least the ones containing pure plasma/oxygen.)
-#define TANK_DEFAULT_RELEASE_PRESSURE 16
+/// Raised from 16 to keep f32 rounding above safe_oxygen_min.
+#define TANK_DEFAULT_RELEASE_PRESSURE 17
 /// The default initial value gas plasmamen tanks releases valves are set to.
-#define TANK_PLASMAMAN_RELEASE_PRESSURE 4
+#define TANK_PLASMAMAN_RELEASE_PRESSURE 5
 /// The default initial value gas flown tanks releases valves are set to.
 #define TANK_CLOWN_RELEASE_PRESSURE 20
 /// The internal temperature in kelvins at which a handheld gas tank begins to take damage.

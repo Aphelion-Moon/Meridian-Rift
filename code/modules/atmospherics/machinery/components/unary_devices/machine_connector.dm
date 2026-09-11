@@ -12,7 +12,8 @@
 
 	gas_connector = new(location)
 	gas_connector.dir = connected_machine.dir
-	gas_connector.airs[1].volume = gas_volume
+	var/datum/gas_mixture/connector_air = gas_connector.airs[1]
+	connector_air.set_volume(gas_volume)
 
 	SSair.start_processing_machine(connected_machine)
 	register_with_machine()

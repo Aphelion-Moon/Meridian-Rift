@@ -50,9 +50,6 @@
 		T.pixel_z = (PipingLayer - PIPING_LAYER_DEFAULT) * PIPING_LAYER_P_Y; \
 	}
 
-///Calculate the thermal energy of the selected gas (J)
-#define THERMAL_ENERGY(gas) (gas.temperature * gas.heat_capacity())
-
 GLOBAL_LIST_INIT(nonoverlaying_gases, typecache_of_gases_with_no_overlays())
 ///Returns a list of overlays of every gas in the mixture
 #define GAS_OVERLAYS(moles, out_var, z_layer_turf)\
@@ -79,14 +76,15 @@ GLOBAL_LIST_INIT(atmos_adjacent_savings, list(0,0))
 #endif
 
 //If you're doing spreading things related to atmos, DO NOT USE CANATMOSPASS, IT IS NOT CHEAP. use this instead, the info is cached after all. it's tweaked just a bit to allow for circular checks
-#define TURFS_CAN_SHARE(T1, T2) (LAZYACCESS(T2.atmos_adjacent_turfs, T1) || LAZYLEN(T1.atmos_adjacent_turfs & T2.atmos_adjacent_turfs))
+// Ordinary Dogmos edges have NONE flags; connectivity depends on key membership.
+#define TURFS_CAN_SHARE(T1, T2) ((T1 in T2.atmos_adjacent_turfs) || LAZYLEN(T1.atmos_adjacent_turfs & T2.atmos_adjacent_turfs))
 //Use this to see if a turf is fully blocked or not, think windows or firelocks. Fails with 1x1 non full tile windows, but it's not worth the cost.
 #define TURF_SHARES(T) (LAZYLEN(T.atmos_adjacent_turfs))
 
+// Rust owns turf-to-turf heat conduction, so only the gas archive remains here.
 #define LINDA_CYCLE_ARCHIVE(turf)\
 	turf.air.archive();\
-	turf.archived_cycle = SSair.times_fired;\
-	turf.temperature_archived = turf.temperature;
+	turf.archived_cycle = SSair.times_fired;
 
 /* Fetch the energy transferred when two gas mixtures' temperature equalize.
  *

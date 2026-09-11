@@ -42,6 +42,10 @@ DECLARE_LOG_NAMED(test_log, "tests", START_LOG)
 #endif
 
 DECLARE_LOG_NAMED(reta_log, "reta", START_LOG)
+/// Round-scoped, append-only durability log for the Dogmos Kennel (code/controllers/subsystem/
+/// dogmos_kennel_events.dm) - every recent_* event, one JSON line each, beyond what the in-memory
+/// KENNEL_EVENT_HISTORY_CAP keeps.
+DECLARE_LOG_NAMED(dogmos_kennel_log, "dogmos_kennel", START_LOG)
 
 
 /// Picture logging

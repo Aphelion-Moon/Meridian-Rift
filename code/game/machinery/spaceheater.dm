@@ -146,9 +146,9 @@
 	var/datum/gas_mixture/enviroment = local_turf.return_air()
 
 	var/new_mode = HEATER_MODE_STANDBY
-	if(set_mode != HEATER_MODE_COOL && enviroment.temperature < target_temperature - temperature_tolerance)
+	if(set_mode != HEATER_MODE_COOL && enviroment.return_temperature() < target_temperature - temperature_tolerance)
 		new_mode = HEATER_MODE_HEAT
-	else if(set_mode != HEATER_MODE_HEAT && enviroment.temperature > target_temperature + temperature_tolerance)
+	else if(set_mode != HEATER_MODE_HEAT && enviroment.return_temperature() > target_temperature + temperature_tolerance)
 		new_mode = HEATER_MODE_COOL
 
 	if(mode != new_mode)
@@ -159,7 +159,7 @@
 		return
 
 	var/list/turfs = (local_turf.atmos_adjacent_turfs || list()) + local_turf
-	var/required_energy = abs(enviroment.temperature - target_temperature) * enviroment.heat_capacity()
+	var/required_energy = abs(enviroment.return_temperature() - target_temperature) * enviroment.heat_capacity()
 	required_energy = min(required_energy, heating_energy, (cell.charge * efficiency) / length(turfs))
 	if(required_energy < 1)
 		return
@@ -172,7 +172,7 @@
 
 	for(var/turf/open/turf in turfs)
 		var/datum/gas_mixture/turf_gasmix = turf.return_air()
-		turf_gasmix.temperature += delta_energy / turf_gasmix.heat_capacity()
+		turf_gasmix.set_temperature(turf_gasmix.return_temperature() + delta_energy / turf_gasmix.heat_capacity())
 		air_update_turf(FALSE, FALSE)
 	cell.use((required_energy * length(turfs)) / efficiency, force = TRUE)
 
@@ -266,10 +266,16 @@
 	var/turf/local_turf = get_turf(loc)
 	var/current_temperature
 	if(istype(local_turf))
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		var/datum/gas_mixture/enviroment = local_turf.return_air()
-		current_temperature = enviroment.temperature
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		current_temperature = local_turf.GetTemperature()
+		// APHELION EDIT ADDITION END
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	else if(isturf(local_turf))
 		current_temperature = local_turf.temperature
+	*/ // APHELION EDIT REMOVAL END
 	if(isnull(current_temperature))
 		data["currentTemp"] = "N/A"
 	else

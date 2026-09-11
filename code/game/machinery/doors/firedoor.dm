@@ -1,7 +1,11 @@
 #define CONSTRUCTION_NO_CIRCUIT 1 //Empty frame, can safely weld apart or install circuit
 #define CONSTRUCTION_PANEL_OPEN 2 //Circuit panel exposed for removal or securing
 #define DEFAULT_STEP_TIME 20 /// default time for each step
-#define REACTIVATION_DELAY (3 SECONDS) // Delay on reactivation, used to prevent dumb crowbar things. Just trust me
+#define REACTIVATION_DELAY (3 SECONDS) // Prevents repeated crowbar reactivation.
+/// How often an idle firelock re-checks atmos pressure and temperature.
+#define FIRELOCK_ATMOS_RECHECK_INTERVAL (4 SECONDS)
+/// Minimum alarm duration to prevent threshold flapping during pressure settling.
+#define FIRELOCK_MIN_ALARM_HOLD (2 SECONDS)
 
 /obj/machinery/door/firedoor
 	name = "firelock"
@@ -23,6 +27,10 @@
 	interaction_flags_machine = INTERACT_MACHINE_WIRES_IF_OPEN | INTERACT_MACHINE_ALLOW_SILICON | INTERACT_MACHINE_OPEN_SILICON | INTERACT_MACHINE_REQUIRES_SILICON | INTERACT_MACHINE_OPEN
 	can_open_with_hands = FALSE
 	COOLDOWN_DECLARE(activation_cooldown)
+	/// See FIRELOCK_ATMOS_RECHECK_INTERVAL.
+	COOLDOWN_DECLARE(atmos_recheck_cooldown)
+	/// See FIRELOCK_MIN_ALARM_HOLD.
+	COOLDOWN_DECLARE(alarm_min_hold)
 
 	///X offset for the overlay lights, so that they line up with the thin border firelocks
 	var/light_xoffset = 0
@@ -97,6 +105,7 @@
 	RegisterSignal(src, COMSIG_MERGER_REMOVING, PROC_REF(merger_removing))
 	GetMergeGroup(merger_id, merger_typecache)
 	register_adjacent_turfs()
+	START_PROCESSING(SSmachines, src)
 
 	if(alarm_type) // Fucking subtypes fucking mappers fucking hhhhhhhh
 		start_activation_process(alarm_type)
@@ -110,10 +119,31 @@
 	return
 
 /obj/machinery/door/firedoor/Destroy()
+	STOP_PROCESSING(SSmachines, src)
 	remove_from_areas()
 	unregister_adjacent_turfs(loc)
 	QDEL_NULL(soundloop)
 	return ..()
+
+/**
+ * Periodic, active_turfs-independent atmos re-check - see FIRELOCK_ATMOS_RECHECK_INTERVAL. Cheap: at
+ * most 5 turf reads (this turf + 4 cardinal neighbors, the same set register_adjacent_turfs() already
+ * watches reactively), gated to once every FIRELOCK_ATMOS_RECHECK_INTERVAL regardless of how often
+ * SSmachines actually calls process().
+ */
+/obj/machinery/door/firedoor/process(seconds_per_tick)
+	if(!COOLDOWN_FINISHED(src, atmos_recheck_cooldown))
+		return
+	COOLDOWN_START(src, atmos_recheck_cooldown, FIRELOCK_ATMOS_RECHECK_INTERVAL)
+	var/turf/our_turf = get_turf(src)
+	if(!our_turf)
+		return
+	process_results(our_turf)
+	for(var/dir in GLOB.cardinals)
+		var/turf/checked_turf = get_step(our_turf, dir)
+		if(!checked_turf || !isopenturf(checked_turf))
+			continue
+		process_results(checked_turf)
 
 /obj/machinery/door/firedoor/examine(mob/user)
 	. = ..()
@@ -280,12 +310,12 @@
 	if(!environment)
 		CRASH("We tried to check a gas_mixture that doesn't exist for its firetype, what are you DOING")
 
-	var/pressure = environment?.return_pressure() //NOVA EDIT ADDITION - Micro optimisation
-	if(environment.temperature >= FIRE_MINIMUM_TEMPERATURE_TO_EXIST || pressure > WARNING_HIGH_PRESSURE) //NOVA EDIT CHANGE ADDITION - ORIGINAL: if(environment.temperature >= FIRE_MINIMUM_TEMPERATURE_TO_EXIST)
+	var/pressure = environment.return_pressure() // APHELION EDIT ADDITION - Cache pressure for both checks.
+	if(environment.return_temperature() >= FIRE_MINIMUM_TEMPERATURE_TO_EXIST || pressure > WARNING_HIGH_PRESSURE) // APHELION EDIT CHANGE - ORIGINAL: if(environment.temperature >= FIRE_MINIMUM_TEMPERATURE_TO_EXIST)
 		return FIRELOCK_ALARM_TYPE_HOT
-	if(environment.moles[/datum/gas/antinoblium] > MINIMUM_MOLE_COUNT)
+	if(environment.get_moles(/datum/gas/antinoblium) > MINIMUM_MOLE_COUNT)
 		return FIRELOCK_ALARM_TYPE_HOT
-	if(environment.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT || pressure < WARNING_LOW_PRESSURE) //NOVA EDIT CHANGE ADDITION - ORIGINAL: if(environment.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT)
+	if(environment.return_temperature() <= BODYTEMP_COLD_DAMAGE_LIMIT || pressure < WARNING_LOW_PRESSURE) // APHELION EDIT CHANGE - ORIGINAL: if(environment.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT)
 		return FIRELOCK_ALARM_TYPE_COLD
 	return
 
@@ -312,6 +342,8 @@
 	else if(length(issue_turfs))
 		issue_turfs -= checked_turf
 		if(length(issue_turfs) && alarm_type != FIRELOCK_ALARM_TYPE_GENERIC)
+			return
+		if(!COOLDOWN_FINISHED(src, alarm_min_hold)) // still within FIRELOCK_MIN_ALARM_HOLD - see its define comment
 			return
 		alarm_type = null
 		if(!ignore_alarms)
@@ -373,6 +405,7 @@
 		return
 	active = TRUE
 	alarm_type = code
+	COOLDOWN_START(src, alarm_min_hold, FIRELOCK_MIN_ALARM_HOLD)
 	reset_reopen_pending = FALSE // NOVA EDIT ADDITION - AESTHETICS - clear any leftover suppression from a previous reset, we're genuinely alarmed again
 	add_as_source()
 	correct_state()
@@ -1025,3 +1058,5 @@
 #undef CONSTRUCTION_NO_CIRCUIT
 #undef REACTIVATION_DELAY
 #undef DEFAULT_STEP_TIME
+#undef FIRELOCK_ATMOS_RECHECK_INTERVAL
+#undef FIRELOCK_MIN_ALARM_HOLD

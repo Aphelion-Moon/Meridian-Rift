@@ -1235,7 +1235,7 @@ GLOBAL_LIST_INIT(fish_compatible_fluid_types, list(
 		return FALSE
 	if(safe_air_limits && !mixture.check_gases(safe_air_limits))
 		return FALSE
-	if(!ISINRANGE(mixture.temperature, required_temperature_min, required_temperature_max))
+	if(!ISINRANGE(mixture.return_temperature(), required_temperature_min, required_temperature_max))
 		return FALSE
 	var/pressure = mixture.return_pressure()
 	if(!ISINRANGE(pressure, min_pressure, max_pressure))

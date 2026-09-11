@@ -79,7 +79,6 @@
 	if (env.return_pressure() >= max_pressure)
 		return FALSE
 	var/datum/gas_mixture/merger = new
-	merger.assert_gas(spawn_id)
-	merger.moles[spawn_id] = spawn_mol
-	merger.temperature = spawn_temp
+	merger.set_moles(spawn_id, spawn_mol)
+	merger.set_temperature(spawn_temp)
 	our_open_turf.assume_air(merger)

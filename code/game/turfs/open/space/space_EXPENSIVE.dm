@@ -12,6 +12,8 @@
  */
 /turf/open/space/Initialize(mapload)
 	SHOULD_CALL_PARENT(FALSE)
+	if(isnull(space_gas))
+		space_gas = new
 	air = space_gas
 
 	if (PERFORM_ALL_TESTS(focus_only/multiple_space_initialization))

@@ -1419,7 +1419,7 @@ GAME_VERB_PROC(/mob/living, mob_sleep, "Sleep", null)
 		step_towards(src, singularity)
 
 /mob/living/proc/get_temperature(datum/gas_mixture/environment)
-	var/loc_temp = environment ? environment.temperature : T0C
+	var/loc_temp = environment ? environment.return_temperature() : T0C
 	if(isobj(loc))
 		var/obj/oloc = loc
 		var/obj_temp = oloc.return_temperature()
@@ -1427,7 +1427,7 @@ GAME_VERB_PROC(/mob/living, mob_sleep, "Sleep", null)
 			loc_temp = obj_temp
 	else if(isspaceturf(get_turf(src)))
 		var/turf/heat_turf = get_turf(src)
-		loc_temp = heat_turf.temperature
+		loc_temp = heat_turf.GetTemperature() // APHELION EDIT CHANGE - ORIGINAL: loc_temp = heat_turf.temperature
 	if(ismovable(loc))
 		var/atom/movable/occupied_space = loc
 		loc_temp = ((1 - occupied_space.contents_thermal_insulation) * loc_temp) + (occupied_space.contents_thermal_insulation * bodytemperature)

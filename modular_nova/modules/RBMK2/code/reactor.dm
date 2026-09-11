@@ -128,15 +128,15 @@
 			var/mutable_appearance/heat_overlay = mutable_appearance(icon, "platform_heat")
 			heat_overlay.appearance_flags |= RESET_COLOR
 			if(vent_reverse_direction)
-				heat_overlay.color = heat2colour(buffer_gases.temperature)
-				heat_overlay.alpha = min( (rod_mix.temperature - T0C) * (1/500) * 255, 255)
+				heat_overlay.color = heat2colour(buffer_gases.return_temperature())
+				heat_overlay.alpha = min( (rod_mix.return_temperature() - T0C) * (1/500) * 255, 255)
 			else
-				heat_overlay.color = heat2colour(rod_mix.temperature)
-				heat_overlay.alpha = min( (rod_mix.temperature - T0C) * (1/500) * 255, 255)
+				heat_overlay.color = heat2colour(rod_mix.return_temperature())
+				heat_overlay.alpha = min( (rod_mix.return_temperature() - T0C) * (1/500) * 255, 255)
 			. += heat_overlay
 
-		if(!active && !jammed && rod_mix.moles[/datum/gas/tritium])
-			var/meter_icon_num = ceil( min(rod_mix.moles[/datum/gas/tritium] / 10, 1) * 5)
+		if(!active && !jammed && rod_mix.get_moles(/datum/gas/tritium))
+			var/meter_icon_num = ceil( min(rod_mix.get_moles(/datum/gas/tritium) / 10, 1) * 5)
 			if(meter_icon_num > 0)
 				var/rod_mix_pressure = rod_mix.return_pressure()
 				var/mutable_appearance/meter_overlay = mutable_appearance(icon, "platform_rod_glow_[meter_icon_num]")
@@ -443,9 +443,9 @@
 	// Used as a comparison point for the progress bar
 	data["rod_pressure_limit"] = stored_rod?.pressure_limit || 0
 	// Look for specifically tritium, don't need to show moderators.
-	data["rod_trit_moles"] = stored_rod?.air_contents.moles[/datum/gas/tritium] || 0
+	data["rod_trit_moles"] = stored_rod?.air_contents.get_moles(/datum/gas/tritium) || 0
 	// rod temperature
-	data["rod_mix_temperature"] = stored_rod?.air_contents.temperature || 0
+	data["rod_mix_temperature"] = stored_rod?.air_contents.return_temperature() || 0
 
 	// This variable and the next allows our limits in the UI to change based on part tiers.
 	data["safeties_max_power_generation"] = safeties_max_power_generation
@@ -568,8 +568,8 @@
 	if(gas_source_heat_capacity <= 0)
 		return FALSE
 
-	var/rod_mix_temperature = rod_mix.temperature
-	var/gas_source_temperature = gas_source.temperature
+	var/rod_mix_temperature = rod_mix.return_temperature()
+	var/gas_source_temperature = gas_source.return_temperature()
 
 	var/delta_temperature = rod_mix_temperature - gas_source_temperature
 	if(delta_temperature == 0)
@@ -581,8 +581,8 @@
 	if(allow_cooling_limiter && temperature_change > 0) //Cooling!
 		temperature_change *= clamp(1 - cooling_limiter*0.01, 0, 1) //Clamped in case of adminbus fuckery.
 
-	rod_mix.temperature -= temperature_change*0.85
-	gas_source.temperature += temperature_change
+	rod_mix.set_temperature(rod_mix.return_temperature() - (temperature_change*0.85))
+	gas_source.set_temperature(gas_source.return_temperature() + (temperature_change))
 
 	return TRUE
 

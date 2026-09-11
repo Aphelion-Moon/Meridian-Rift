@@ -187,6 +187,54 @@
 	EX_ACT(test_object, EXPLODE_DEVASTATE) // does an INFINITE amount of damage, will trigger a qdel()
 	TEST_ASSERT(QDELETED(test_object), "EX_ACT() with EXPLODE_DEVASTATE severity should have deleted the target, but instead saw no change!")
 
+// APHELION EDIT ADDITION START - RUNTIME_CORRECTNESS
+/** Records whether cable destruction starts slow powernet work before deleting the cable. */
+/datum/powernet/unit_test/cable_destruction_order
+	/// Whether propagation received a live cable whose integrity had already reached zero.
+	var/saw_live_destroyed_cable = FALSE
+
+/datum/powernet/unit_test/cable_destruction_order/propagate_light_flicker(atom/flicker_source, falloff_distance = 32)
+	if(istype(flicker_source, /obj/structure/cable) && !QDELETED(flicker_source) && flicker_source.get_integrity() <= 0)
+		saw_live_destroyed_cable = TRUE
+
+/// Verifies that destroyed cables leave the world before powernet flicker propagation can yield.
+/datum/unit_test/cable_destruction_order
+
+/datum/unit_test/cable_destruction_order/Run()
+	var/obj/structure/cable/test_cable = allocate(/obj/structure/cable)
+	var/datum/powernet/unit_test/cable_destruction_order/test_powernet = allocate(/datum/powernet/unit_test/cable_destruction_order)
+	var/obj/machinery/power/test_node = allocate(/obj/machinery/power)
+
+	if(test_cable.powernet)
+		test_cable.powernet.remove_cable(test_cable)
+	test_powernet.add_cable(test_cable)
+	test_powernet.add_machine(test_node)
+
+	test_cable.take_damage(test_cable.max_integrity, BRUTE, BOMB, sound_effect = FALSE)
+
+	TEST_ASSERT(QDELETED(test_cable), "A cable was not deleted after reaching zero integrity.")
+	TEST_ASSERT(!test_powernet.saw_live_destroyed_cable, "Cable destruction began powernet propagation while the zero-integrity cable was still live.")
+
+/// Verifies that violently destroyed paintings do not create zero-integrity wallframes.
+/datum/unit_test/painting_destruction
+
+/** Exposes destructive teardown to its unit test without weakening the protected production proc. */
+/obj/structure/sign/painting/unit_test/proc/test_destructive_deconstruction()
+	atom_deconstruct(FALSE)
+
+/datum/unit_test/painting_destruction/Run()
+	var/obj/structure/sign/painting/unit_test/test_painting = allocate(/obj/structure/sign/painting/unit_test)
+	var/turf/test_turf = get_turf(test_painting)
+
+	test_painting.update_integrity(0)
+	test_painting.test_destructive_deconstruction()
+
+	var/obj/item/wallframe/painting/dropped_frame = locate() in test_turf
+	TEST_ASSERT_NULL(dropped_frame, "Violently destroying a painting created a zero-integrity wallframe.")
+	if(dropped_frame)
+		qdel(dropped_frame)
+// APHELION EDIT ADDITION END
+
 /// Sets up a fully armored corgi for testing purposes. Split out into its own proc as to not clutter up the main test.
 /datum/unit_test/explosion_action/proc/set_up_test_dog()
 	var/mob/living/basic/pet/dog/corgi/returnable_dog = allocate(/mob/living/basic/pet/dog/corgi)

@@ -22,14 +22,14 @@
 	var/datum/gas_mixture/first_mix = allocate(/datum/gas_mixture)
 	var/datum/gas_mixture/second_mix = allocate(/datum/gas_mixture)
 
-	first_mix.volume = 200
-	second_mix.volume = 200
+	first_mix.set_volume(200)
+	second_mix.set_volume(200)
 
-	first_mix.moles[/datum/gas/hypernoblium] = nob_moles
-	first_mix.temperature = nob_temp
+	first_mix.set_moles(/datum/gas/hypernoblium, nob_moles)
+	first_mix.set_temperature(nob_temp)
 
-	second_mix.moles[/datum/gas/tritium] = trit_moles
-	second_mix.temperature = trit_temp
+	second_mix.set_moles(/datum/gas/tritium, trit_moles)
+	second_mix.set_temperature(trit_temp)
 
 	var/initial_pressure = second_mix.return_pressure()
 	// A fixed number would mean transfer is too small for high temps. So we make it scaled.

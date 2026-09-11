@@ -44,8 +44,8 @@
 
 /datum/disease/gastritium/proc/tritium_burp(hot_chance = FALSE)
 	var/datum/gas_mixture/burp = new
-	burp.set_gas(/datum/gas/tritium, MOLES_GAS_VISIBLE)
-	burp.temperature = affected_mob.bodytemperature
+	burp.set_moles(/datum/gas/tritium, MOLES_GAS_VISIBLE)
+	burp.set_temperature(affected_mob.bodytemperature)
 	if(hot_chance && prob(tritium_burp_hot_chance))
 		burp.set_temperature(TRITIUM_MINIMUM_BURN_TEMPERATURE)
 		if(!IS_UNCONSCIOUS_OR_CRIT(affected_mob))

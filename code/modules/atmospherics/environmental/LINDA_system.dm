@@ -53,6 +53,20 @@
 /atom/movable/proc/block_superconductivity() // objects that block air and don't let superconductivity act
 	return FALSE
 
+/**
+ * The AdjacentFlags value Dogmos expects for an edge between src and other (DOGMOS_ADJACENT_FIRELOCK,
+ * or NONE for an ordinary edge). Shared by both adjacency-calculation procs below rather than
+ * duplicated, since they already exist as two near-identical implementations of the same walk.
+ *
+ * A firelock on either side of the edge is enough to flag it: consider_firelocks()/explosive
+ * decompression (aphelion-dogmos src/turfs/katmos.rs) only needs "is there a firelock that could
+ * seal this edge", not which side it's actually mounted on.
+ */
+/turf/proc/atmos_adjacency_flags_with(turf/other)
+	if((locate(/obj/machinery/door/firedoor) in src) || (locate(/obj/machinery/door/firedoor) in other))
+		return DOGMOS_ADJACENT_FIRELOCK
+	return NONE
+
 /// This proc is a more deeply optimized version of immediate_calculate_adjacent_turfs
 /// It contains dumbshit, and also stuff I just can't do at runtime
 /// If you're not editing behavior, just read that proc. It's less bad
@@ -95,18 +109,21 @@
 		// (direction & (UP | DOWN)) is just "is this vertical" by the by
 		if(canpass && CANATMOSPASS(current_turf, src, (direction & (UP|DOWN))) && !(blocks_air || current_turf.blocks_air))
 			LAZYINITLIST(current_turf.atmos_adjacent_turfs)
-			atmos_adjacent_turfs[current_turf] = TRUE
-			current_turf.atmos_adjacent_turfs[src] = TRUE
+			var/adjacency_flags = atmos_adjacency_flags_with(current_turf)
+			atmos_adjacent_turfs[current_turf] = adjacency_flags
+			current_turf.atmos_adjacent_turfs[src] = adjacency_flags
 		else
 			atmos_adjacent_turfs -= current_turf
 			if (current_turf.atmos_adjacent_turfs)
 				current_turf.atmos_adjacent_turfs -= src
 			UNSETEMPTY(current_turf.atmos_adjacent_turfs)
 		SEND_SIGNAL(current_turf, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
+		current_turf.sync_dogmos_adjacency()
 
 	UNSETEMPTY(atmos_adjacent_turfs)
 	src.atmos_adjacent_turfs = atmos_adjacent_turfs
 	SEND_SIGNAL(src, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
+	sync_dogmos_adjacency()
 
 /turf/proc/immediate_calculate_adjacent_turfs()
 	LAZYINITLIST(src.atmos_adjacent_turfs)
@@ -121,20 +138,37 @@
 		// (direction & (UP | DOWN)) is just "is this vertical" by the by
 		if(canpass && CANATMOSPASS(current_turf, src, (direction & (UP|DOWN))) && !(blocks_air || current_turf.blocks_air))
 			LAZYINITLIST(current_turf.atmos_adjacent_turfs)
-			atmos_adjacent_turfs[current_turf] = TRUE
-			current_turf.atmos_adjacent_turfs[src] = TRUE
+			var/adjacency_flags = atmos_adjacency_flags_with(current_turf)
+			atmos_adjacent_turfs[current_turf] = adjacency_flags
+			current_turf.atmos_adjacent_turfs[src] = adjacency_flags
 		else
 			atmos_adjacent_turfs -= current_turf
 			if (current_turf.atmos_adjacent_turfs)
 				current_turf.atmos_adjacent_turfs -= src
 			UNSETEMPTY(current_turf.atmos_adjacent_turfs)
 		SEND_SIGNAL(current_turf, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
+		current_turf.sync_dogmos_adjacency()
 
 	UNSETEMPTY(atmos_adjacent_turfs)
 	src.atmos_adjacent_turfs = atmos_adjacent_turfs
 	SEND_SIGNAL(src, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
+	sync_dogmos_adjacency()
 
 	update_adjacent_pollutants() //NOVA EDIT ADDITION //Atmos adjacency could unlock/block adjacent pollutants, this is dirty flags anyway so its fine having it here
+
+/** Refreshes Dogmos' gas and heat adjacency graphs after a structural change.
+ * Re-registration is required because a breach changes the heat graph's space-boundary flag as well
+ * as its edges. This runs only on adjacency changes, not on the processing hot path.
+ */
+/turf/proc/sync_dogmos_adjacency()
+	// Space is not registered through the normal air path. The adjacency hook is also called during
+	// map setup, before SSair.initialized is true.
+	if(!init_air || !DOGMOS)
+		return
+	conductivity_blocked_directions = ALL_CARDINALS & ~conductivity_directions()
+	if(!SSdogmos.turf_registration_batching || !dogmos_air_registration_is_current())
+		register_dogmos_air()
+	__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
 
 /**
  * returns a list of adjacent turfs that can share air with this one.
@@ -161,10 +195,11 @@
 
 		for (var/check_direction in GLOB.cardinals_multiz)
 			var/turf/secondary_turf = get_step(checked_turf, check_direction)
-			if(!checked_turf.atmos_adjacent_turfs || !checked_turf.atmos_adjacent_turfs[secondary_turf])
+			if(!(secondary_turf in checked_turf.atmos_adjacent_turfs))
 				continue
 
-			if (adjacent_turfs[secondary_turf])
+			// Count original cardinal routes, not diagonals already added to the result.
+			if (secondary_turf in atmos_adjacent_turfs)
 				matching_directions++
 
 			if (matching_directions >= 2)
@@ -174,7 +209,7 @@
 	return adjacent_turfs
 
 /atom/proc/air_update_turf(update = FALSE, remove = FALSE)
-	if(!SSair.initialized) // I'm sorry for polutting user code, I'll do 10 hail giacom's
+	if(!SSair.initialized)
 		return
 	var/turf/local_turf = get_turf(loc)
 	if(!local_turf)
@@ -191,8 +226,10 @@
  * * remove - Are you removing an active turf (Read wall), or adding one
 */
 /turf/air_update_turf(update = FALSE, remove = FALSE)
-	if(!SSair.initialized) // I'm sorry for polutting user code, I'll do 10 hail giacom's
+	if(!SSair.initialized)
 		return
+	// Retry registration for turfs whose air datum was not ready during map setup.
+	register_dogmos_air()
 	if(update)
 		immediate_calculate_adjacent_turfs()
 	if(remove)

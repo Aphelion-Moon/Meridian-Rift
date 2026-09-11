@@ -3,10 +3,6 @@
 	var/thermal_conductivity = 0.05
 	///Amount of heat necessary to activate some atmos processes (there is a weird usage of this var because is compared directly to the temperature instead of heat energy)
 	var/heat_capacity = INFINITY //This should be opt in rather then opt out
-	///Archived version of the temperature on a turf
-	var/temperature_archived
-	///All currently stored conductivities changes
-	var/list/thermal_conductivities
 
 	///list of turfs adjacent to us that air can flow onto
 	var/list/atmos_adjacent_turfs
@@ -31,6 +27,8 @@
 	var/pressure_difference = 0
 	///Where the difference come from (from higher pressure to lower pressure)
 	var/pressure_direction = 0
+	/// Scratch target written by Dogmos while tracing a hull breach's path to space.
+	var/turf/pressure_specific_target
 
 	///Excited group we are part of
 	var/datum/excited_group/excited_group
@@ -84,7 +82,7 @@
 	//acounts for changes in temperature
 	var/turf/parent = parent_type
 	if(temperature != initial(temperature) || temperature != initial(parent.temperature))
-		mix.temperature = temperature
+		mix.set_temperature(temperature)
 
 	return mix
 
@@ -154,28 +152,29 @@
 	SEND_SIGNAL(src, COMSIG_TURF_EXPOSE, air, exposed_temperature)
 	check_atmos_process(src, air, exposed_temperature) //Manually do this to avoid needing to use elements, don't want 200 second atom init times
 
-/turf/proc/archive()
-	temperature_archived = temperature
-
-/turf/open/archive()
+/turf/open/proc/archive()
 	LINDA_CYCLE_ARCHIVE(src)
 
 /////////////////////////GAS OVERLAYS//////////////////////////////
 
 
 /turf/open/proc/update_visuals()
+	if(!air) // 2019-05-14: was not able to get this path to fire in testing. Consider removing/looking at callers -Naksu
+		apply_visual_overlays(null)
+		return
+
+	apply_visual_overlays(air.return_visuals(src))
+
+/** Applies the gas-overlay diff produced by DM or Dogmos and caches the result. */
+/turf/open/proc/apply_visual_overlays(list/new_overlay_types)
 	var/list/atmos_overlay_types = src.atmos_overlay_types // Cache for free performance
 
-	if(!air) // 2019-05-14: was not able to get this path to fire in testing. Consider removing/looking at callers -Naksu
-		if (atmos_overlay_types)
+	if(isnull(new_overlay_types))
+		if(atmos_overlay_types)
 			for(var/overlay in atmos_overlay_types)
 				vis_contents -= overlay
 			src.atmos_overlay_types = null
 		return
-
-	var/list/moles = air.moles
-	var/list/new_overlay_types
-	GAS_OVERLAYS(moles, new_overlay_types, src)
 
 	if (atmos_overlay_types)
 		for(var/overlay in atmos_overlay_types-new_overlay_types) //doesn't remove overlays that would only be added
@@ -190,187 +189,16 @@
 	UNSETEMPTY(new_overlay_types)
 	src.atmos_overlay_types = new_overlay_types
 
+/// Receives the overlay list computed by Dogmos' gas-processing callback.
+/turf/open/proc/set_visuals(list/new_overlay_types)
+	apply_visual_overlays(new_overlay_types)
+
 /proc/typecache_of_gases_with_no_overlays()
 	. = list()
 	for (var/gastype in subtypesof(/datum/gas))
 		var/datum/gas/gasvar = gastype
 		if (!initial(gasvar.gas_overlay))
 			.[gastype] = TRUE
-
-/////////////////////////////SIMULATION///////////////////////////////////
-#ifdef TRACK_MAX_SHARE
-#define LAST_SHARE_CHECK \
-	var/last_share = our_air.last_share;\
-	max_share = max(last_share, max_share);\
-	if(last_share > MINIMUM_AIR_TO_SUSPEND){\
-		our_excited_group.reset_cooldowns();\
-		cached_ticker = 0;\
-		enemy_tile.significant_share_ticker = 0;\
-	} else if(last_share > MINIMUM_MOLES_DELTA_TO_MOVE) {\
-		our_excited_group.dismantle_cooldown = 0;\
-		cached_ticker = 0;\
-		enemy_tile.significant_share_ticker = 0;\
-	}
-#else
-#define LAST_SHARE_CHECK \
-	var/last_share = our_air.last_share;\
-	if(last_share > MINIMUM_AIR_TO_SUSPEND){\
-		our_excited_group.reset_cooldowns();\
-		cached_ticker = 0;\
-		enemy_tile.significant_share_ticker = 0;\
-	} else if(last_share > MINIMUM_MOLES_DELTA_TO_MOVE) {\
-		our_excited_group.dismantle_cooldown = 0;\
-		cached_ticker = 0;\
-		enemy_tile.significant_share_ticker = 0;\
-	}
-#endif
-#ifdef TRACK_MAX_SHARE
-#define PLANET_SHARE_CHECK \
-	var/last_share = our_air.last_share;\
-	max_share = max(last_share, max_share);\
-	if(last_share > MINIMUM_AIR_TO_SUSPEND){\
-		our_excited_group.reset_cooldowns();\
-		cached_ticker = 0;\
-	} else if(last_share > MINIMUM_MOLES_DELTA_TO_MOVE) {\
-		our_excited_group.dismantle_cooldown = 0;\
-		cached_ticker = 0;\
-	}
-#else
-#define PLANET_SHARE_CHECK \
-	var/last_share = our_air.last_share;\
-	if(last_share > MINIMUM_AIR_TO_SUSPEND){\
-		our_excited_group.reset_cooldowns();\
-		cached_ticker = 0;\
-	} else if(last_share > MINIMUM_MOLES_DELTA_TO_MOVE) {\
-		our_excited_group.dismantle_cooldown = 0;\
-		cached_ticker = 0;\
-	}
-#endif
-
-/turf/proc/process_cell(fire_count)
-	SSair.remove_from_active(src)
-
-/turf/open/process_cell(fire_count)
-	if(archived_cycle < fire_count) //archive self if not already done
-		LINDA_CYCLE_ARCHIVE(src)
-
-	current_cycle = fire_count
-	var/cached_ticker = significant_share_ticker
-	cached_ticker += 1
-
-	//cache for sanic speed
-	var/list/adjacent_turfs = atmos_adjacent_turfs
-	var/datum/excited_group/our_excited_group = excited_group
-	var/our_share_coeff = 1/(LAZYLEN(adjacent_turfs) + 1)
-
-	var/datum/gas_mixture/our_air = air
-
-	var/list/share_end
-
-	#ifdef TRACK_MAX_SHARE
-	max_share = 0 //Gotta reset our tracker
-	#endif
-
-	for(var/turf/open/enemy_tile as anything in adjacent_turfs)
-		#ifdef UNIT_TESTS
-		if(!istype(enemy_tile))
-			stack_trace("closed turf inside of adjacent turfs")
-			continue
-		#endif
-
-		// This var is only rarely set, exists so turfs can request to share at the end of our sharing
-		// We need this so we can assume share is communative, which we need to do to avoid a hellish amount of garbage_collect()s
-		if(enemy_tile.run_later)
-			LAZYADD(share_end, enemy_tile)
-
-		if(fire_count <= enemy_tile.current_cycle)
-			continue
-		LINDA_CYCLE_ARCHIVE(enemy_tile)
-
-	/******************* GROUP HANDLING START *****************************************************************/
-
-		var/should_share_air = FALSE
-		var/datum/gas_mixture/enemy_air = enemy_tile.air
-
-		//cache for sanic speed
-		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
-		//If we are both in an excited group, and they aren't the same, merge.
-		//If we are both in an excited group, and you're active, share
-		//If we pass compare, and if we're not already both in a group, lets join up
-		//If we both pass compare, add to active and share
-		if(our_excited_group && enemy_excited_group)
-			if(our_excited_group != enemy_excited_group)
-				//combine groups (this also handles updating the excited_group var of all involved turfs)
-				our_excited_group.merge_groups(enemy_excited_group)
-				our_excited_group = excited_group //update our cache
-		if(our_excited_group && enemy_excited_group && enemy_tile.excited) //If you're both excited, no need to compare right?
-			should_share_air = TRUE
-		else if(our_air.compare(enemy_air, /*cmp_archive = */ TRUE)) //Lets see if you're up for it
-			SSair.add_to_active(enemy_tile) //Add yourself young man
-			var/datum/excited_group/existing_group = our_excited_group || enemy_excited_group || new
-			if(!our_excited_group)
-				existing_group.add_turf(src)
-			if(!enemy_excited_group)
-				existing_group.add_turf(enemy_tile)
-			our_excited_group = excited_group
-			should_share_air = TRUE
-
-		//air sharing
-		if(should_share_air)
-			var/difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
-			if(difference)
-				if(difference > 0)
-					consider_pressure_difference(enemy_tile, difference)
-				else
-					enemy_tile.consider_pressure_difference(src, -difference)
-			//This acts effectivly as a very slow timer, the max deltas of the group will slowly lower until it breaksdown, they then pop up a bit, and fall back down until irrelevant
-			LAST_SHARE_CHECK
-
-
-	/******************* GROUP HANDLING FINISH *********************************************************************/
-
-	if (planetary_atmos) //share our air with the "atmosphere" "above" the turf
-		var/datum/gas_mixture/planetary_mix = SSair.planetary[initial_gas_mix]
-		// archive ourself again so we don't accidentally share more gas than we currently have
-		LINDA_CYCLE_ARCHIVE(src)
-		if(our_air.compare(planetary_mix, /*cmp_archive = */ TRUE))
-			if(!our_excited_group)
-				var/datum/excited_group/new_group = new
-				new_group.add_turf(src)
-				our_excited_group = excited_group
-			// shares 4/5 of our difference in moles with the atmosphere
-			our_air.share(planetary_mix, 0.8, 0.8)
-			// temperature share with the atmosphere with an inflated heat capacity to simulate faster sharing with a large atmosphere
-			our_air.temperature_share(planetary_mix, OPEN_HEAT_TRANSFER_COEFFICIENT, planetary_mix.temperature_archived, planetary_mix.heat_capacity() * 5)
-			planetary_mix.garbage_collect()
-			PLANET_SHARE_CHECK
-
-	for(var/turf/open/enemy_tile as anything in share_end)
-		var/datum/gas_mixture/enemy_mix = enemy_tile.air
-		archive()
-		// We share 100% of our mix in this step. Let's jive
-		var/difference = our_air.share(enemy_mix, 1, 1)
-		LAST_SHARE_CHECK
-		if(!difference)
-			continue
-		if(difference > 0)
-			consider_pressure_difference(enemy_tile, difference)
-		else
-			enemy_tile.consider_pressure_difference(src, difference)
-
-	var/reacting = our_air.react(src)
-	if(our_excited_group)
-		our_excited_group.turf_reactions |= reacting //Adds the flag to turf_reactions so excited groups can check for them before dismantling.
-
-	update_visuals()
-	if(!consider_superconductivity(starting = TRUE) && !active_hotspot && !(reacting & (REACTING | STOP_REACTIONS)))
-		if(!our_excited_group) //If nothing of interest is happening, kill the active turf
-			SSair.remove_from_active(src) //This will kill any connected excited group, be careful (This broke atmos for 4 years)
-		if(cached_ticker > EXCITED_GROUP_DISMANTLE_CYCLES) //If you're stalling out, take a rest
-			SSair.sleep_active_turf(src)
-
-	significant_share_ticker = cached_ticker //Save our changes
-	temperature_expose(our_air, our_air.temperature)
 
 //////////////////////////SPACEWIND/////////////////////////////
 
@@ -409,6 +237,63 @@
 	if (move_prob > PROBABILITY_OFFSET && prob(move_prob) && (move_resist != INFINITY) && (!anchored && (max_force >= (move_resist * MOVE_FORCE_PUSH_RATIO))) || (anchored && (max_force >= (move_resist * MOVE_FORCE_FORCEPUSH_RATIO))))
 		step(src, direction)
 		last_high_pressure_movement_air_cycle = SSair.times_fired
+
+/// Minimum moles a neighbor turf had before a hull breach sucked it dry for handle_decompression_floor_rip()
+/// to consider the loss violent enough to tear up the floor, rather than a minor pressure settle.
+#define DECOMPRESSION_FLOOR_RIP_MIN_MOLES (MOLES_CELLSTANDARD * 0.25)
+
+/**
+ * Called by Dogmos' katmos equalizer (explosively_depressurize(), aphelion-dogmos
+ * src/turfs/katmos.rs) when flood-filling a hull breach finds a firelock-flagged edge
+ * (DOGMOS_ADJACENT_FIRELOCK, see atmos_adjacency_flags_with()) between src and adjacent - a chance to
+ * slam the firelock shut immediately rather than waiting for its own reactive alarm check
+ * (/obj/machinery/door/firedoor/proc/process_results(), signal-driven off COMSIG_TURF_EXPOSE) to
+ * catch up, which could let a tick's worth of extra air escape first during an active breach.
+ */
+/turf/proc/consider_firelocks(turf/adjacent)
+	var/obj/machinery/door/firedoor/lock = locate(/obj/machinery/door/firedoor) in src
+	if(!lock)
+		lock = locate(/obj/machinery/door/firedoor) in adjacent
+	lock?.start_activation_process(FIRELOCK_ALARM_TYPE_GENERIC)
+
+/* // APHELION EDIT REMOVAL START - DOGMOS
+ * Called by Dogmos' katmos equalizer when a hull breach's flood-fill actually drained air
+ * from (aphelion-dogmos src/turfs/katmos.rs explosively_depressurize(), amount = the neighbor's moles
+ * just before it was pulled toward space). This codebase has no prior "decompression damages the floor"
+ * mechanic - ScrapeAway() (baseturfs.dm) is the existing general-purpose "strip this turf down to its
+ * next baseturf" proc already used by explosions and similar forceful events, reused here rather than
+ * inventing a parallel one. Gated on amount so an ordinary, minor pressure settle doesn't rip up every
+ * floor tile it touches - only a turf that actually lost a meaningful fraction of a standard cell's
+ * worth of gas counts as violent enough.
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/** Damages a breach-mouth floor when Dogmos reports a meaningful gas loss. */
+// APHELION EDIT ADDITION END
+/turf/proc/handle_decompression_floor_rip(amount)
+	if(amount < DECOMPRESSION_FLOOR_RIP_MIN_MOLES || !isfloorturf(src) || decompression_floor_rip_resistant) // APHELION EDIT CHANGE - ORIGINAL: if(amount < DECOMPRESSION_FLOOR_RIP_MIN_MOLES)
+		return
+	var/area/breach_area = get_area(src)
+	SSair.record_kennel_event(SSair.recent_breaches, list(
+		"time" = round_timestamp(),
+		"jump_to" = REF(src),
+		"area" = breach_area ? breach_area.name : null,
+		"moles_lost" = round(amount, 0.1),
+	), src)
+	for(var/obj/machinery/breach_adjacent_machine in src)
+		SSair.kennel_pin_structure(breach_adjacent_machine, "breach-adjacent", SSair.kennel_auto_pin_duration)
+	SSair.kennel_mark_overlay_recent(SSair.kennel_overlay_breach_turfs, KENNEL_OVERLAY_BREACH, src)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(SSair.kennel_decompression_feedback_available(src))
+		visible_message(
+			span_danger("The hull tears open as pressure rips away the floor!"),
+			span_userdanger("The floor tears open under the pressure!"),
+			span_hear("You hear a violent rush of escaping air!"),
+		)
+		playsound(src, 'sound/effects/space_wind.ogg', 50, TRUE)
+	// APHELION EDIT ADDITION END
+	ScrapeAway(1, flags = CHANGETURF_INHERIT_AIR)
+
+#undef DECOMPRESSION_FLOOR_RIP_MIN_MOLES
 
 ///////////////////////////EXCITED GROUPS/////////////////////////////
 
@@ -469,8 +354,6 @@
 /datum/excited_group/proc/self_breakdown(roundstart = FALSE, poke_turfs = FALSE)
 	var/datum/gas_mixture/shared_mix = new
 
-	//make local for sanic speed
-	var/list/shared_cached_moles = shared_mix.moles
 	var/list/turf_list = src.turf_list
 	var/turflen = turf_list.len
 	var/imumutable_in_group = FALSE
@@ -484,29 +367,26 @@
 			if(istype(group_member.air, /datum/gas_mixture/immutable))
 				imumutable_in_group = TRUE
 				shared_mix.copy_from(group_member.air) //This had better be immutable young man
-				shared_cached_moles = shared_mix.moles //update the cache
 				break
 			// If we're planetary use THAT mix, and stop here
 			if(group_member.planetary_atmos)
 				imumutable_in_group = TRUE
 				var/datum/gas_mixture/planetary_mix = SSair.planetary[group_member.initial_gas_mix]
 				shared_mix.copy_from(planetary_mix)
-				shared_cached_moles = shared_mix.moles // Cache update
 				break
 		//"borrowing" this code from merge(), I need to play with the temp portion. Lets expand it out
 		//temperature = (giver.temperature * giver_heat_capacity + temperature * self_heat_capacity) / combined_heat_capacity
 		var/capacity = mix.heat_capacity()
-		energy += mix.temperature * capacity
+		energy += mix.return_temperature() * capacity
 		heat_cap += capacity
 
-		for(var/gas_id, amount in mix.moles)
-			shared_cached_moles[gas_id] += amount
+		for(var/gas_id in mix.get_gases())
+			shared_mix.adjust_moles(gas_id, mix.get_moles(gas_id))
 
 	if(!imumutable_in_group)
-		shared_mix.temperature = energy / heat_cap
-		for(var/gas_id in shared_cached_moles)
-			shared_cached_moles[gas_id] /= turflen
-		shared_mix.garbage_collect()
+		shared_mix.set_temperature(energy / heat_cap)
+		for(var/gas_id in shared_mix.get_gases())
+			shared_mix.set_moles(gas_id, shared_mix.get_moles(gas_id) / turflen)
 
 	for(var/turf/open/group_member as anything in turf_list)
 		if(group_member.planetary_atmos) //We do this as a hack to try and minimize unneeded excited group spread over planetary turfs
@@ -567,27 +447,18 @@
 	var/offset = GET_Z_PLANE_OFFSET(thing.z) + 1
 	thing.vis_contents += GLOB.colored_turfs[display_id][offset]
 
-////////////////////////SUPERCONDUCTIVITY/////////////////////////////
-
+////////////////////////SUPERCONDUCTIVITY (Dogmos, aphelion-dogmos src/turfs/superconduct.rs)/////////////////////////////
 /**
-ALLLLLLLLLLLLLLLLLLLLRIGHT HERE WE GOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-
-Read the code for more details, but first, a brief concept discussion/area
-
-Our goal here is to "model" heat moving through solid objects, so walls, windows, and sometimes doors.
-We do this by heating up the floor itself with the heat of the gasmix ontop of it, this is what the coeffs are for here, they slow that movement
-Then we go through the process below.
-
-If an active turf is fitting, we add it to processing, conduct with any covered tiles, (read windows and sometimes walls)
-Then we space some of our heat, and think about if we should stop conducting.
-**/
-
-/turf/proc/conductivity_directions()
-	if(archived_cycle < SSair.times_fired)
-		archive()
-	return ALL_CARDINALS
+ * The DM-side heat-conduction walk (super_conduct(), neighbor_conduct_with_src(), radiate_to_spess(),
+ * consider_superconductivity(), etc.) is deleted - Rust owns turf-to-turf heat conduction now
+ * (process_turf_heat, SSair.process_super_conductivity(), controllers/subsystem/air.dm). What remains
+ * here are the two procs Rust still calls into directly and can't do without:
+ */
 
 ///Returns a set of directions that we should be conducting in, NOTE, atmos_supeconductivity is ACTUALLY inversed, don't worrry about it
+/turf/proc/conductivity_directions()
+	return ALL_CARDINALS
+
 /turf/open/conductivity_directions()
 	if(blocks_air)
 		return ..()
@@ -596,104 +467,15 @@ Then we space some of our heat, and think about if we should stop conducting.
 		if(!(checked_turf in atmos_adjacent_turfs) && !(atmos_supeconductivity & direction))
 			. |= direction
 
-///These two procs are a bit of a web, I belive in you
-/turf/proc/neighbor_conduct_with_src(turf/open/other)
-	if(!other.blocks_air) //Solid but neighbor is open
-		other.temperature_share_open_to_solid(src)
-	else //Both tiles are solid
-		other.share_temperature_mutual_solid(src, thermal_conductivity)
-	temperature_expose(null, temperature)
-
-/turf/open/neighbor_conduct_with_src(turf/other)
-	if(blocks_air)
-		return ..()
-
-	if(!other.blocks_air) //Both tiles are open
-		var/turf/open/open_other = other
-		open_other.air.temperature_share(air, WINDOW_HEAT_TRANSFER_COEFFICIENT)
-	else //Open but neighbor is solid
-		temperature_share_open_to_solid(other)
-	SSair.add_to_active(src)
-
-/turf/proc/super_conduct()
-	var/conductivity_directions = conductivity_directions()
-
-	if(conductivity_directions)
-		//Conduct with tiles around me
-		for(var/direction in GLOB.cardinals)
-			if(!(conductivity_directions & direction))
-				continue
-			var/turf/neighbor = get_step(src, direction)
-
-			if(!neighbor?.thermal_conductivity)
-				continue
-
-			if(neighbor.archived_cycle < SSair.times_fired)
-				neighbor.archive()
-
-			neighbor.neighbor_conduct_with_src(src)
-
-			neighbor.consider_superconductivity()
-
-	radiate_to_spess()
-
-	finish_superconduction()
-
-/turf/proc/finish_superconduction(temp = temperature)
-	//Make sure still hot enough to continue conducting heat
-	if(temp < MINIMUM_TEMPERATURE_FOR_SUPERCONDUCTION)
-		SSair.active_super_conductivity -= src
-		return FALSE
-
-/turf/open/finish_superconduction()
-	//Conduct with air on my tile if I have it
-	if(..((blocks_air ? temperature : air.temperature)) != FALSE && !blocks_air)
-		temperature = air.temperature_share(null, thermal_conductivity, temperature, heat_capacity)
-
-///Should we attempt to superconduct?
-/turf/proc/consider_superconductivity(starting)
-	if(!thermal_conductivity)
-		return FALSE
-
-	SSair.active_super_conductivity |= src
-	return TRUE
-
-/turf/open/consider_superconductivity(starting)
-	if(air.temperature < (starting?MINIMUM_TEMPERATURE_START_SUPERCONDUCTION:MINIMUM_TEMPERATURE_FOR_SUPERCONDUCTION))
-		return FALSE
-	if(air.heat_capacity() < M_CELL_WITH_RATIO) // Was: MOLES_CELLSTANDARD*0.1*0.05 Since there are no variables here we can make this a constant.
-		return FALSE
-	return ..()
-
-/turf/closed/consider_superconductivity(starting)
-	if(temperature < (starting?MINIMUM_TEMPERATURE_START_SUPERCONDUCTION:MINIMUM_TEMPERATURE_FOR_SUPERCONDUCTION))
-		return FALSE
-	return ..()
-
-/// Radiate excess tile heat to space.
-/turf/proc/radiate_to_spess()
-	if(temperature <= T0C) // Considering 0 degC as the break even point for radiation in and out.
-		return
-	// Because we keep losing energy, makes more sense for us to be the T2 here.
-	var/delta_temperature = temperature_archived - TCMB //hardcoded space temperature
-	if(heat_capacity <= 0 || abs(delta_temperature) <= MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
-		return
-	// Heat should be positive in most cases
-	// coefficient applied first because some turfs have very big heat caps.
-	var/heat = CALCULATE_CONDUCTION_ENERGY(thermal_conductivity * delta_temperature, HEAT_CAPACITY_VACUUM, heat_capacity)
-	temperature -= heat / heat_capacity
-
-/turf/open/proc/temperature_share_open_to_solid(turf/sharer)
-	sharer.temperature = air.temperature_share(null, sharer.thermal_conductivity, sharer.temperature, sharer.heat_capacity)
-
-/turf/proc/share_temperature_mutual_solid(turf/sharer, conduction_coefficient) //This is all just heat sharing, don't get freaked out
-	var/delta_temperature = sharer.temperature_archived - temperature_archived
-	if(abs(delta_temperature) <= MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER || !heat_capacity || !sharer.heat_capacity)
-		return
-	var/heat = conduction_coefficient * CALCULATE_CONDUCTION_ENERGY(delta_temperature, heat_capacity, sharer.heat_capacity)
-	temperature += heat / heat_capacity //The higher your own heat cap the less heat you get from this arrangement
-	sharer.temperature -= heat / sharer.heat_capacity
-
-
-#undef LAST_SHARE_CHECK
-#undef PLANET_SHARE_CHECK
+/**
+ * Answers Dogmos' `should_conduct_to_space` FFI call (aphelion-dogmos src/turfs/superconduct.rs,
+ * supercond_update_ref) - "is this turf directly adjacent to space", read once at registration into
+ * ThermalInfo.adjacent_to_space, and called synchronously with errors propagating, so this proc must
+ * always exist. Pure adjacency check, not a radiation calculation - Rust does its own space-radiation
+ * math entirely on its side now.
+ */
+/turf/proc/should_conduct_to_space()
+	for(var/direction in GLOB.cardinals)
+		if(isspaceturf(get_step(src, direction)))
+			return TRUE
+	return FALSE

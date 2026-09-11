@@ -119,8 +119,8 @@
 			if(on)
 				SSair.start_processing_machine(src)
 			if(on && !holding)
-				var/plasma_moles = air_contents.moles[/datum/gas/plasma]
-				var/n2o_moles = air_contents.moles[/datum/gas/nitrous_oxide]
+				var/plasma_moles = air_contents.get_moles(/datum/gas/plasma)
+				var/n2o_moles = air_contents.get_moles(/datum/gas/nitrous_oxide)
 				if(n2o_moles || plasma_moles)
 					message_admins("[ADMIN_LOOKUPFLW(usr)] turned on a pump that contains [n2o_moles ? "N2O" : ""][n2o_moles && plasma_moles ? " & " : ""][plasma_moles ? "Plasma" : ""] at [ADMIN_VERBOSEJMP(src)]")
 					log_admin("[key_name(usr)] turned on a pump that contains [n2o_moles ? "N2O" : ""][n2o_moles && plasma_moles ? " & " : ""][plasma_moles ? "Plasma" : ""] at [AREACOORD(src)]")

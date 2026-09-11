@@ -161,7 +161,7 @@ GLOBAL_LIST_EMPTY_TYPED(air_alarms, /obj/machinery/airalarm)
 	var/datum/gas_mixture/environment = our_turf.return_air()
 	if(isnull(environment))
 		return
-	check_danger(our_turf, environment, environment.temperature)
+	check_danger(our_turf, environment, environment.return_temperature())
 
 /obj/machinery/airalarm/proc/get_enviroment()
 	var/turf/our_turf = connected_sensor ? get_turf(connected_sensor) : get_turf(src)
@@ -262,7 +262,7 @@ GLOBAL_LIST_EMPTY_TYPED(air_alarms, /obj/machinery/airalarm)
 
 	var/datum/gas_mixture/environment = get_enviroment()
 	var/total_moles = environment.total_moles()
-	var/temp = environment.temperature
+	var/temp = environment.return_temperature()
 	var/pressure = environment.return_pressure()
 
 	data["envData"] = list()
@@ -282,7 +282,7 @@ GLOBAL_LIST_EMPTY_TYPED(air_alarms, /obj/machinery/airalarm)
 		"danger" = tlv_collection["temperature"].check_value(temp),
 	))
 	if(total_moles)
-		for(var/gas_path, moles in environment.moles)
+		for(var/gas_path, moles in environment.get_moles_list())
 			var/portion = moles / total_moles
 			data["envData"] += list(list(
 				"name" = GLOB.meta_gas_info[META_GAS_NAME][gas_path],
@@ -592,7 +592,7 @@ GLOBAL_LIST_EMPTY_TYPED(air_alarms, /obj/machinery/airalarm)
 	if(total_moles)
 		var/list/cached_gas_info = GLOB.meta_gas_info
 		for(var/datum/gas/gas_path as anything in cached_gas_info[META_GAS_ID])
-			var/moles = environment.moles[gas_path] || 0
+			var/moles = environment.get_moles(gas_path) || 0
 			danger_level = max(danger_level, tlv_collection[gas_path].check_value(pressure * moles / total_moles))
 
 	if(danger_level)

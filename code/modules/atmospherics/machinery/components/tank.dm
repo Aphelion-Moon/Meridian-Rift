@@ -102,8 +102,8 @@
 	RegisterSignal(src, COMSIG_ATOM_SMOOTHED_ICON, PROC_REF(smoothed))
 
 	air_contents = new
-	air_contents.temperature = T20C
-	air_contents.volume = volume
+	air_contents.set_temperature(T20C)
+	air_contents.set_volume(volume)
 
 	if(gas_type && starting_pressure_percent > 0)
 		fill_to_pressure(gas_type, starting_pressure_percent)
@@ -153,21 +153,26 @@
 /obj/machinery/atmospherics/components/tank/proc/fill_to_pressure(gastype, safety_margin = 0.5)
 	var/pressure_limit = max_pressure * safety_margin
 
-	var/moles_to_add = (pressure_limit * air_contents.volume) / (R_IDEAL_GAS_EQUATION * air_contents.temperature)
+	var/moles_to_add = (pressure_limit * air_contents.return_volume()) / (R_IDEAL_GAS_EQUATION * air_contents.return_temperature())
 
 	air_contents.adjust_gas(gastype, moles_to_add)
 	air_contents.archive()
 
+/** Processes gas reactions and pressure damage, sleeping while the tank is stable. */
 /obj/machinery/atmospherics/components/tank/process_atmos()
-	if(air_contents.react(src))
+	var/reaction_occurred = air_contents.react(src)
+	if(reaction_occurred)
 		update_parents()
 
-	if(air_contents.return_pressure() > max_pressure)
+	var/overpressure = air_contents.return_pressure() > max_pressure
+	if(overpressure)
 		take_damage(0.1, BRUTE, sound_effect = FALSE)
 		if(prob(40))
 			playsound(src, pick(breaking_sounds), 30, vary = TRUE)
 
 	refresh_window()
+	if(!reaction_occurred && !overpressure)
+		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
 
 ///////////////////////////////////////////////////////////////////
 // Port stuff
@@ -287,7 +292,7 @@
 	var/shares = length(merger.members) + length(leaving_members) - length(joining_members)
 	for(var/obj/machinery/atmospherics/components/tank/leaver as anything in leaving_members)
 		var/datum/gas_mixture/gas_share = air_contents.remove_ratio(1 / shares--)
-		air_contents.volume -= leaver.volume
+		air_contents.set_volume(air_contents.return_volume() - leaver.volume)
 		leaver.air_contents = gas_share
 		leaver.update_appearance(UPDATE_ICON)
 
@@ -298,7 +303,7 @@
 		if(joiner_share)
 			air_contents.merge(joiner_share)
 		joiner.air_contents = air_contents
-		air_contents.volume += joiner.volume
+		air_contents.set_volume(air_contents.return_volume() + joiner.volume)
 		joiner.update_appearance(UPDATE_ICON)
 
 	for(var/dir in GLOB.cardinals)

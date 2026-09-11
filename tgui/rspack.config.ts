@@ -96,6 +96,10 @@ export default defineConfig({
           filename: '[name][ext]',
         },
       },
+      {
+        test: /\.md$/,
+        type: 'asset/source',
+      },
     ],
   },
   optimization: {

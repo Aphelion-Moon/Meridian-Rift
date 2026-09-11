@@ -238,4 +238,3 @@ These are basically advanced cells.
 	icon_state = "microfusion_nanocarbon"
 	maxcharge = STANDARD_CELL_CHARGE * 30 //300 shots
 	max_attachments = 420
-

@@ -162,9 +162,9 @@
 /obj/machinery/atmospherics/components/unary/hypertorus/core/Initialize(mapload)
 	. = ..()
 	internal_fusion = new
-	internal_fusion.volume = 5000
+	internal_fusion.set_volume(5000)
 	moderator_internal = new
-	moderator_internal.volume = 10000
+	moderator_internal.set_volume(10000)
 
 	radio = new(src)
 	radio.keyslot = new radio_key

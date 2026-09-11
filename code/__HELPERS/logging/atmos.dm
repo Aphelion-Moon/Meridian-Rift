@@ -2,7 +2,7 @@
 /proc/log_atmos(text, datum/gas_mixture/gas_mixture)
 	var/message = "[text]\"[print_gas_mixture(gas_mixture)]\""
 	//Cache commonly accessed information.
-	var/list/cached_moles = gas_mixture.moles
+	var/list/cached_moles = gas_mixture.get_moles_list()
 	var/heat_capacity = gas_mixture.heat_capacity()
 	var/temperature = gas_mixture.return_temperature()
 	var/thermal_energy = temperature * heat_capacity

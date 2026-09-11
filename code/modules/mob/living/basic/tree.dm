@@ -66,10 +66,10 @@
 	if(!isopenturf(loc))
 		return
 	var/turf/open/our_turf = src.loc
-	if(!our_turf.air || !our_turf.air.moles[/datum/gas/carbon_dioxide])
+	if(!our_turf.air || !our_turf.air.get_moles(/datum/gas/carbon_dioxide))
 		return
 	var/datum/gas_mixture/our_air = our_turf.air
-	var/co2 = our_air.moles[/datum/gas/carbon_dioxide]
+	var/co2 = our_air.get_moles(/datum/gas/carbon_dioxide)
 	if(co2 > 0 && SPT_PROB(13, seconds_per_tick))
 		var/amt = min(co2, 9)
 		our_air.adjust_gas(/datum/gas/carbon_dioxide, -amt)

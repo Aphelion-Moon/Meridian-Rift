@@ -32,7 +32,7 @@
 	SSair.networks -= src
 	if(building)
 		SSair.remove_from_expansion(src)
-	if(air?.volume)
+	if(air?.return_volume())
 		temporarily_store_air()
 	for(var/obj/machinery/atmospherics/pipe/considered_pipe in members)
 		considered_pipe.replace_pipenet(considered_pipe.parent, null)
@@ -43,9 +43,19 @@
 		considered_component.nullify_pipenet(src)
 	return ..()
 
+/** Reconciles a dirty pipeline and wakes machinery whose inputs may have changed. */
 /datum/pipeline/process()
 	if(!update || building)
 		return
+	// NOVA EDIT ADDITION START - DOGMOS
+	for(var/obj/machinery/atmospherics/components/atmos_machine as anything in other_atmos_machines)
+		SSair.start_processing_machine(atmos_machine)
+	for(var/obj/machinery/atmospherics/pipe/atmos_pipe as anything in members)
+		if(atmos_pipe.wake_on_pipeline_atmos)
+			SSair.start_processing_machine(atmos_pipe)
+		for(var/obj/machinery/meter/pipe_meter as anything in atmos_pipe.dogmos_pipeline_meters)
+			SSair.start_processing_machine(pipe_meter)
+	// NOVA EDIT ADDITION END
 	reconcile_air()
 	//Only react if the mix has changed, and don't keep updating if it hasn't
 	update = air.react(src)
@@ -74,7 +84,7 @@
 	if(!air)
 		set_air(new /datum/gas_mixture)
 
-	air.volume = volume
+	air.set_volume(volume)
 	SSair.add_to_expansion(src, base)
 
 ///Has the same effect as build_pipeline(), but this doesn't queue its work, so overrun abounds. It's useful for the pregame
@@ -127,7 +137,7 @@
 
 			possible_expansions -= borderline
 
-	air.volume = volume
+	air.set_volume(volume)
 
 	/**
 	 *  For a machine to properly "connect" to a pipeline and share gases,
@@ -165,12 +175,12 @@
 			merge(parent_pipeline)
 		if(!members.Find(reference_pipe))
 			members += reference_pipe
-			air.volume += reference_pipe.volume
+			air.set_volume(air.return_volume() + reference_pipe.volume)
 
 /datum/pipeline/proc/merge(datum/pipeline/parent_pipeline)
 	if(parent_pipeline == src)
 		return
-	air.volume += parent_pipeline.air.volume
+	air.set_volume(air.return_volume() + parent_pipeline.air.return_volume())
 	members.Add(parent_pipeline.members)
 	for(var/obj/machinery/atmospherics/pipe/reference_pipe in parent_pipeline.members)
 		reference_pipe.replace_pipenet(reference_pipe.parent, src)
@@ -204,15 +214,21 @@
 	//Update individual gas_mixtures by volume ratio
 
 	for(var/obj/machinery/atmospherics/pipe/member in members)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		member.air_temporary = new
-		member.air_temporary.volume = member.volume
-		member.air_temporary.copy_from_ratio(air, member.volume / air.volume)
+		member.air_temporary.set_volume(member.volume)
+		member.air_temporary.copy_from_ratio(air, member.volume / air.return_volume())
 
-		member.air_temporary.temperature = air.temperature
+		member.air_temporary.set_temperature(air.return_temperature())
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		member.air_temporary = new(member.volume)
+		member.air_temporary.equalize_with(air)
+		// APHELION EDIT ADDITION END
 
 /datum/pipeline/proc/temperature_interact(turf/target, share_volume, thermal_conductivity)
 	var/total_heat_capacity = air.heat_capacity()
-	var/partial_heat_capacity = total_heat_capacity * (share_volume / air.volume)
+	var/partial_heat_capacity = total_heat_capacity * (share_volume / air.return_volume())
 
 	var/turf_temperature = target.GetTemperature()
 	var/turf_heat_capacity = target.GetHeatCapacity()
@@ -221,28 +237,28 @@
 	if(target.liquids?.liquid_state >= LIQUID_STATE_FOR_HEAT_EXCHANGERS)
 		turf_temperature = target.liquids.temp
 		turf_heat_capacity = target.liquids.total_reagents * REAGENT_HEAT_CAPACITY
-		var/delta_temperature = (air.temperature - turf_temperature)
+		var/delta_temperature = (air.return_temperature() - turf_temperature)
 
 		if(turf_heat_capacity <= 0 || partial_heat_capacity <= 0)
 			return TRUE
 
 		var/heat = CALCULATE_CONDUCTION_ENERGY(thermal_conductivity * delta_temperature, turf_heat_capacity, partial_heat_capacity)
 
-		air.temperature -= heat / total_heat_capacity
+		air.set_temperature(air.return_temperature() - (heat / total_heat_capacity))
 		if(!target.liquids.immutable)
 			target.liquids.temp += heat / turf_heat_capacity
 	else //NOVA EDIT END
 		if(turf_heat_capacity <= 0 || partial_heat_capacity <= 0)
 			return TRUE
 
-		var/delta_temperature = turf_temperature - air.temperature
+		var/delta_temperature = turf_temperature - air.return_temperature()
 
 		var/heat = thermal_conductivity * CALCULATE_CONDUCTION_ENERGY(delta_temperature, partial_heat_capacity, turf_heat_capacity)
-		air.temperature += heat / total_heat_capacity
+		air.set_temperature(air.return_temperature() + (heat / total_heat_capacity))
 		target.TakeTemperature(-1 * heat / turf_heat_capacity)
 
 		if(target.blocks_air)
-			target.temperature_expose(air, target.temperature)
+			target.temperature_expose(air, target.return_temperature())
 		update = TRUE
 
 /datum/pipeline/proc/return_air()
@@ -266,6 +282,7 @@
 			pipeline_list |= atmos_machine.return_pipenets_for_reconcilation(src)
 			gas_mixture_list += atmos_machine.return_airs_for_reconcilation(src)
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/total_thermal_energy = 0
 	var/total_heat_capacity = 0
 
@@ -274,7 +291,6 @@
 	var/static/process_id = 0
 	process_id = WRAP_UID(process_id + 1)
 	var/datum/gas_mixture/total_gas_mixture = new
-	var/list/total_cached_moles = total_gas_mixture.moles
 	var/list/cached_specific_heat = GAS_META[META_GAS_SPECIFIC_HEAT]
 
 	for(var/datum/gas_mixture/gas_mixture as anything in gas_mixture_list)
@@ -283,29 +299,38 @@
 			gas_mixture_list -= gas_mixture
 			continue
 		gas_mixture.pipeline_cycle = process_id
-		volume_sum += gas_mixture.volume
+		volume_sum += gas_mixture.return_volume()
 
 		// This is sort of a combined merge + heat_capacity calculation
 
-		var/list/giver_cached_moles = gas_mixture.moles
+		var/list/giver_cached_moles = gas_mixture.get_moles_list()
 		var/heat_capacity = values_dot(giver_cached_moles, cached_specific_heat)
 		//gas transfer
+		// Batched into one dogmosd round trip instead of one adjust_moles() IPC call per gas type -
+		// this loop runs per member, per pipe network, every tick, and each adjust_moles() used to be
+		// its own cross-process call.
+		var/list/gas_deltas = list()
 		for(var/gas_id, amount in giver_cached_moles)
-			total_cached_moles[gas_id] += amount
+			gas_deltas += list(gas_id, amount)
+		if(length(gas_deltas))
+			total_gas_mixture.adjust_multi(arglist(gas_deltas))
 
 		total_heat_capacity += heat_capacity
-		total_thermal_energy += gas_mixture.temperature * heat_capacity
+		total_thermal_energy += gas_mixture.return_temperature() * heat_capacity
 
 	if(volume_sum == 0)
 		return
 
-	total_gas_mixture.volume = volume_sum
-	total_gas_mixture.temperature = total_heat_capacity ? (total_thermal_energy / total_heat_capacity) : 0
-	total_gas_mixture.garbage_collect()
+	total_gas_mixture.set_volume(volume_sum)
+	total_gas_mixture.set_temperature(total_heat_capacity ? (total_thermal_energy / total_heat_capacity) : 0)
 
 	//Update individual gas_mixtures by volume ratio
 	for(var/datum/gas_mixture/gas_mixture as anything in gas_mixture_list)
-		gas_mixture.copy_from_ratio(total_gas_mixture, gas_mixture.volume / volume_sum)
+		gas_mixture.copy_from_ratio(total_gas_mixture, gas_mixture.return_volume() / volume_sum)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	dogmos_reconcile_pipeline_mixtures(gas_mixture_list)
+	// APHELION EDIT ADDITION END
 
 //--------------------
 // GAS VISUALS STUFF
@@ -342,8 +367,8 @@
 
 	var/current_weight = 0
 	var/current_color
-	for(var/datum/gas/gas_path as anything in air.moles)
-		var/gas_weight = air.moles[gas_path]
+	for(var/datum/gas/gas_path as anything in air.get_gases())
+		var/gas_weight = air.get_moles(gas_path)
 		if(!gas_weight)
 			continue
 		var/gas_color = initial(gas_path.primary_color)
@@ -357,7 +382,7 @@
 		current_color = COLOR_BLACK
 	else
 		// Empty weight is prety much arbitrary, just tuned to make the color change from black reasonably quickly without hitting max color immediately
-		var/empty_weight = (air.volume * 1.5 - current_weight) / 10
+		var/empty_weight = (air.return_volume() * 1.5 - current_weight) / 10
 		if(empty_weight > 0)
 			current_color = BlendHSV(COLOR_BLACK, current_color, current_weight / (empty_weight + current_weight))
 

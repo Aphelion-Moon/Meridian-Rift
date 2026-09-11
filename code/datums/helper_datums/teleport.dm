@@ -137,7 +137,9 @@
  * **BUT** there is a chance of it being null if an extremely large portion of a z-level is unsafe or blocked.
  */
 /proc/find_safe_turf(zlevel_or_levels, extended_safety_checks = FALSE, dense_atoms = FALSE) as /turf/open/floor
+	/* // APHELION EDIT REMOVAL START - DOGMOS - Gas reads update snapshot caches and telemetry.
 	SHOULD_BE_PURE(TRUE)
+	*/ // APHELION EDIT REMOVAL END
 	RETURN_TYPE(/turf/open/floor)
 
 	var/list/zlevels
@@ -172,7 +174,9 @@
  * Returns TRUE if all conditions pass, FALSE otherwise.
  */
 /proc/is_safe_turf(turf/random_location, extended_safety_checks = FALSE, dense_atoms = FALSE, no_teleport = FALSE)
+	/* // APHELION EDIT REMOVAL START - DOGMOS - Gas reads update snapshot caches and telemetry.
 	SHOULD_BE_PURE(TRUE)
+	*/ // APHELION EDIT REMOVAL END
 
 	. = FALSE
 	if(!isfloorturf(random_location))
@@ -196,7 +200,7 @@
 		return FALSE
 
 	// Aim for goldilocks temperatures and pressure
-	if((floor_gas_mixture.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT) || (floor_gas_mixture.temperature >= BODYTEMP_HEAT_DAMAGE_LIMIT))
+	if((floor_gas_mixture.return_temperature() <= BODYTEMP_COLD_DAMAGE_LIMIT) || (floor_gas_mixture.return_temperature() >= BODYTEMP_HEAT_DAMAGE_LIMIT))
 		return
 	var/pressure = floor_gas_mixture.return_pressure()
 	if((pressure <= HAZARD_LOW_PRESSURE) || (pressure >= HAZARD_HIGH_PRESSURE))

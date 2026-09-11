@@ -70,6 +70,12 @@
  */
 /datum/proc/UnregisterSignal(datum/target, sig_type_or_types)
 	var/list/lookup = target._listen_lookup
+	// APHELION EDIT ADDITION START - TURF_CONTEXT
+	// A replacement constructor can delete a subscriber before ChangeTurf restores
+	// the old target lookup. Its own callback metadata must still be retired.
+	if(!lookup && isturf(target))
+		unregister_replaced_turf_signals(target, sig_type_or_types)
+	// APHELION EDIT ADDITION END
 	if(!_signal_procs || !_signal_procs[target] || !lookup)
 		return
 	if(!islist(sig_type_or_types))

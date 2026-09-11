@@ -16,7 +16,7 @@ export const AtmosControlPanel = (props) => {
     [(group) => group.id],
   );
   return (
-    <Window title="SSAir Control Panel" width={900} height={500}>
+    <Window title="SSAir Control Panel" width={900} height={560}>
       <Section m={1}>
         <Flex justify="space-between" align="baseline">
           <Flex.Item>
@@ -48,11 +48,39 @@ export const AtmosControlPanel = (props) => {
               Display all
             </Button.Checkbox>
           </Flex.Item>
+          <Flex.Item>
+            <Button.Checkbox
+              checked={data.realistic_space_radiation}
+              onClick={() => act('toggle_realistic_space_radiation')}
+              tooltip="ON: real Stefan-Boltzmann blackbody radiation (physically correct, weak near room temperature). OFF: fake vacuum sink (not physical, fast and legible)."
+            >
+              Realistic Space Radiation
+            </Button.Checkbox>
+          </Flex.Item>
         </Flex>
       </Section>
-      <Box fillPositionedParent top="45px">
+      <Section m={1} title="Dogmos (Rust) live activity">
+        <Flex justify="space-between" align="baseline" wrap>
+          <Flex.Item>Low Pressure Turfs: {data.low_pressure_turfs}</Flex.Item>
+          <Flex.Item>High Pressure Turfs: {data.high_pressure_turfs}</Flex.Item>
+          <Flex.Item>Group Turfs Processed: {data.group_turfs_processed}</Flex.Item>
+          <Flex.Item>Equalize Processed: {data.equalize_processed}</Flex.Item>
+          <Flex.Item>Space Boundary Nodes: {data.space_boundary_size}</Flex.Item>
+        </Flex>
+        <Flex justify="space-between" align="baseline" wrap mt={1}>
+          <Flex.Item>FDM: {data.dogmos_costs?.turfs}ms</Flex.Item>
+          <Flex.Item>Groups: {data.dogmos_costs?.groups}ms</Flex.Item>
+          <Flex.Item>High Pressure: {data.dogmos_costs?.highpressure}ms</Flex.Item>
+          <Flex.Item>Equalize: {data.dogmos_costs?.equalize}ms</Flex.Item>
+          <Flex.Item>
+            Superconductivity: {data.dogmos_costs?.superconductivity}ms
+          </Flex.Item>
+          <Flex.Item>Post Process: {data.dogmos_costs?.post_process}ms</Flex.Item>
+        </Flex>
+      </Section>
+      <Box fillPositionedParent top="115px">
         <Window.Content scrollable>
-          <Section>
+          <Section title="Excited Groups (roundstart snapshot only - Rust's per-cycle equalization doesn't keep these updated)">
             <Table>
               <Table.Row header>
                 <Table.Cell>Area Name</Table.Cell>

@@ -37,7 +37,7 @@
 		if(airs[i])
 			continue
 		var/datum/gas_mixture/component_mixture = new
-		component_mixture.volume = 200
+		component_mixture.set_volume(200)
 		airs[i] = component_mixture
 
 	update_appearance()
@@ -264,7 +264,7 @@
 		var/datum/gas_mixture/inside_air = airs[i]
 		if(inside_air.total_moles() > 0 || internal_pressure)
 			filled_pipe = TRUE
-		if(!nodes[i] || (istype(nodes[i], /obj/machinery/atmospherics/components/unary/portables_connector) && !portable_device_connected(i)))
+		if(!nodes[i] || !parents[i] || (istype(nodes[i], /obj/machinery/atmospherics/components/unary/portables_connector) && !portable_device_connected(i))) // APHELION EDIT CHANGE - ORIGINAL: if(!nodes[i] || (istype(nodes[i], /obj/machinery/atmospherics/components/unary/portables_connector) && !portable_device_connected(i)))
 			internal_pressure = internal_pressure > airs[i].return_pressure() ? internal_pressure : airs[i].return_pressure()
 
 	if(!filled_pipe)
@@ -371,7 +371,7 @@
 	var/turf/local_turf = get_turf(src)
 	for(var/i in 1 to device_type)
 		var/datum/gas_mixture/air = airs[i]
-		if(!nodes[i] || (istype(nodes[i], /obj/machinery/atmospherics/components/unary/portables_connector) && !portable_device_connected(i)))
+		if(!nodes[i] || (istype(nodes[i], /obj/machinery/atmospherics/components/unary/portables_connector) && !portable_device_connected(i)) || !parents[i]) // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: if(!nodes[i] || (istype(nodes[i], /obj/machinery/atmospherics/components/unary/portables_connector) && !portable_device_connected(i)))
 			if(!to_release)
 				to_release = air
 				continue

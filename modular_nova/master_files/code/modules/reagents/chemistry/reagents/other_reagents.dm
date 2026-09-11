@@ -9,14 +9,11 @@
 
 	var/turf/open/open_exposed_turf = exposed_turf
 	var/datum/gas_mixture/turf/air = open_exposed_turf.air
-	air.assert_gases(/datum/gas/miasma, /datum/gas/oxygen)
-	var/list/moles = air.moles
-	var/miasma_moles = moles[/datum/gas/miasma]
+	var/miasma_moles = air.get_moles(/datum/gas/miasma)
 
 	if(!miasma_moles)
 		return
 
-	moles[/datum/gas/miasma] -= miasma_moles
-	moles[/datum/gas/oxygen] += miasma_moles
-	air.garbage_collect()
+	air.adjust_moles(/datum/gas/miasma, -miasma_moles)
+	air.adjust_moles(/datum/gas/oxygen, miasma_moles)
 	exposed_turf.air_update_turf(FALSE, FALSE)

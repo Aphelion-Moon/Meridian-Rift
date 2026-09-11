@@ -30,14 +30,38 @@
 			fill += gas
 	return to_return
 
+GLOBAL_DATUM_INIT(gas_data, /datum/gas_data, new)
+
+/**
+ * The gas registry handed to Dogmos at SSair init.
+ *
+ * Dogmos reads gas properties off live datum instances rather than through initial(), so unlike
+ * meta_gas_list() this holds one instantiated singleton per gas type. That is a deliberate
+ * departure from the "these should never be instantiated" note above - the instances are inert
+ * singletons that exist purely to be read across the FFI boundary.
+ */
+/datum/gas_data
+	/// Gas type path -> gas datum instance. Dogmos iterates the values of this list.
+	var/list/datums = list()
+	/// Gas id -> per-visible-state overlays. Only read by Dogmos' turf visuals, so empty until
+	/// turf processing lands and set_visuals is wired up.
+	var/list/overlays = list()
+
+/datum/gas_data/New()
+	. = ..()
+	for(var/datum/gas/gas_path as anything in subtypesof(/datum/gas))
+		datums[gas_path] = new gas_path
+
 /proc/gas_id2path(id)
 	var/list/meta_gas_id = GLOB.meta_gas_info[META_GAS_ID]
 	if(id in meta_gas_id)
 		return id
-	for(var/path, meta_id in meta_gas_id)
-		if(meta_id == id)
-			return path
-	return ""
+	var/static/list/id_to_path
+	if(isnull(id_to_path))
+		id_to_path = list()
+		for(var/path, meta_id in meta_gas_id)
+			id_to_path[meta_id] = path
+	return id_to_path[id] || ""
 
 /**
  * # Gas datums

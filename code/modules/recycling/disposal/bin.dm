@@ -672,11 +672,11 @@ GLOBAL_VAR_INIT(disposals_animals_spawned, 0)
 	var/atom/L = loc //recharging from loc turf
 
 	var/datum/gas_mixture/env = L.return_air()
-	if(!env.temperature)
+	if(!env.return_temperature())
 		return
 	var/pressure_delta = (SEND_PRESSURE*1.01) - air_contents.return_pressure()
 
-	var/transfer_moles = 0.05 * seconds_per_tick * (pressure_delta*air_contents.volume)/(env.temperature * R_IDEAL_GAS_EQUATION)
+	var/transfer_moles = 0.05 * seconds_per_tick * (pressure_delta*air_contents.return_volume())/(env.return_temperature() * R_IDEAL_GAS_EQUATION)
 
 	//Actually transfer the gas
 	var/datum/gas_mixture/removed = env.remove(transfer_moles)

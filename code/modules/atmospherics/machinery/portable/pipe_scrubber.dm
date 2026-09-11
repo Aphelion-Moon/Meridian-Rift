@@ -83,20 +83,17 @@
 	if(internal_tank.air_contents.return_pressure() >= PUMP_MAX_PRESSURE)
 		return
 
-	var/transfer_moles = min(1, volume_rate / air_contents.volume) * air_contents.total_moles()
+	var/transfer_moles = min(1, volume_rate / air_contents.return_volume()) * air_contents.total_moles()
 
 	var/datum/gas_mixture/filtering = air_contents.remove(transfer_moles) // Remove part of the mixture to filter.
 	var/datum/gas_mixture/filtered = new
 	if(!filtering)
 		return
 
-	filtered.temperature = filtering.temperature
-	for(var/gas in filtering.moles & scrubbing)
-		filtered.add_gas(gas)
-
-		filtered.moles[gas] = filtering.moles[gas] // Shuffle the "bad" gasses to the filtered mixture.
-		filtering.moles[gas] = 0
-	filtering.garbage_collect() // Now that the gasses are set to 0, clean up the mixture.
+	filtered.set_temperature(filtering.return_temperature())
+	for(var/gas in filtering.get_gases() & scrubbing)
+		filtered.set_moles(gas, filtering.get_moles(gas)) // Shuffle the "bad" gasses to the filtered mixture.
+		filtering.set_moles(gas, 0)
 
 	internal_tank.air_contents.merge(filtered) // Store filtered out gasses.
 	air_contents.merge(filtering) // Returned the cleaned gas.

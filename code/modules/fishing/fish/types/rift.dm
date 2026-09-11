@@ -202,11 +202,11 @@
 	//gas check
 	var/datum/gas_mixture/turf_gasmix = onturf.return_air()
 	// likes water, gets sleepy, gets very sleepy
-	if(turf_gasmix.moles[/datum/gas/water_vapor] >= 5)
+	if(turf_gasmix.get_moles(/datum/gas/water_vapor) >= 5)
 		patience_reduction *= 0.5
-	if(turf_gasmix.moles[/datum/gas/nitrous_oxide] >= 5)
+	if(turf_gasmix.get_moles(/datum/gas/nitrous_oxide) >= 5)
 		patience_reduction *= 0.25
-	if(turf_gasmix.moles[/datum/gas/healium] >= 5)
+	if(turf_gasmix.get_moles(/datum/gas/healium) >= 5)
 		patience_reduction *= 0.1
 
 	if(!ismob(loc))
@@ -396,7 +396,7 @@
 	visible_message(span_suicide("[user] swallows [src] whole! It looks like they're trying to commit suicide!"))
 	forceMove(user)
 	var/datum/gas_mixture/environment = user.loc.return_air()
-	var/oxygen_in_air = locate(/datum/gas/oxygen) in environment.moles
+	var/oxygen_in_air = environment.get_moles(/datum/gas/oxygen)
 	if(!oxygen_in_air || (status == FISH_DEAD))
 		visible_message(span_suicide("[user] chokes and dies! (Wait, from the fish or from lack of air?)"))
 		return OXYLOSS

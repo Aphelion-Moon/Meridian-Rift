@@ -1,5 +1,7 @@
 GLOBAL_VAR_INIT(total_runtimes, GLOB.total_runtimes || 0)
 GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
+// runtimes_at_init_complete lives in modular_aphelion/modules/dogmos/code/dogmos.dm - it exists
+// solely to support /datum/unit_test/no_runtimes_during_init, so it moved with the rest of that module.
 
 #ifdef USE_CUSTOM_ERROR_HANDLER
 #define ERROR_USEFUL_LEN 2

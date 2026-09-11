@@ -284,7 +284,7 @@
 	other_mix = (target == tank_one ? tank_two : tank_one).return_air()
 
 	if(change_volume)
-		target_mix.volume += other_mix.volume
+		target_mix.set_volume(target_mix.return_volume() + other_mix.return_volume())
 
 	target_mix.merge(other_mix.remove_ratio(1))
 	return TRUE
@@ -295,11 +295,11 @@
 	var/datum/gas_mixture/mix_one = tank_one.return_air()
 	var/datum/gas_mixture/mix_two = tank_two.return_air()
 
-	var/volume_ratio = mix_one.volume/mix_two.volume
+	var/volume_ratio = mix_one.return_volume()/mix_two.return_volume()
 	var/datum/gas_mixture/temp
 	temp = mix_two.remove_ratio(volume_ratio)
 	mix_one.merge(temp)
-	mix_two.volume -= mix_one.volume
+	mix_two.set_volume(mix_two.return_volume() - mix_one.return_volume())
 
 /*
 	Exadv1: I know this isn't how it's going to work, but this was just to check

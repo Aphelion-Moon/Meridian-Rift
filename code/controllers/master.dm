@@ -458,6 +458,9 @@ ADMIN_VERB(cmd_controller_view_ui, R_SERVER|R_DEBUG, "Controller Overview", "Vie
 	var/msg = "Initializations complete within [time] second[time == 1 ? "" : "s"]!"
 	to_chat(world, span_boldannounce("[msg]"), MESSAGE_TYPE_DEBUG)
 	log_world(msg)
+	// Snapshotted so a unit test can ask "was the boot clean?" without being polluted by runtimes
+	// the tests themselves cause later. See /datum/unit_test/no_runtimes_during_init.
+	GLOB.runtimes_at_init_complete = GLOB.total_runtimes
 	SSticker.timeLeft = SSticker.start_at
 
 

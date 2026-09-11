@@ -24,7 +24,7 @@
 	. = ..()
 
 	machine_gasmix = new
-	machine_gasmix.volume = gas_theoretical_volume
+	machine_gasmix.set_volume(gas_theoretical_volume)
 
 	if(mapload)
 		installed_part = new part_path(src)
@@ -149,7 +149,7 @@
 		return 0
 
 	//compute work done
-	var/work_done = QUANTIZE(transferred_gases.total_moles()) * R_IDEAL_GAS_EQUATION * transferred_gases.temperature * log((transferred_gases.volume * PRESSURE_MAX(transferred_gases.return_pressure())) / (output_mix.volume * output_pressure)) * TURBINE_WORK_CONVERSION_MULTIPLIER
+	var/work_done = QUANTIZE(transferred_gases.total_moles()) * R_IDEAL_GAS_EQUATION * transferred_gases.return_temperature() * log((transferred_gases.return_volume() * PRESSURE_MAX(transferred_gases.return_pressure())) / (output_mix.return_volume() * output_pressure)) * TURBINE_WORK_CONVERSION_MULTIPLIER
 	if(work_amount_to_remove)
 		work_done = work_done - work_amount_to_remove
 
@@ -157,8 +157,8 @@
 	var/output_mix_heat_capacity = output_mix.heat_capacity()
 	if(!output_mix_heat_capacity)
 		return 0
-	work_done = min(work_done, (output_mix_heat_capacity * output_mix.temperature - output_mix_heat_capacity * TCMB) / TURBINE_HEAT_CONVERSION_MULTIPLIER)
-	output_mix.temperature = max((output_mix.temperature * output_mix_heat_capacity + work_done * TURBINE_HEAT_CONVERSION_MULTIPLIER) / output_mix_heat_capacity, TCMB)
+	work_done = min(work_done, (output_mix_heat_capacity * output_mix.return_temperature() - output_mix_heat_capacity * TCMB) / TURBINE_HEAT_CONVERSION_MULTIPLIER)
+	output_mix.set_temperature(max((output_mix.return_temperature() * output_mix_heat_capacity + work_done * TURBINE_HEAT_CONVERSION_MULTIPLIER) / output_mix_heat_capacity, TCMB))
 	return work_done
 
 /obj/machinery/power/turbine/block_superconductivity()
@@ -329,7 +329,7 @@
 	input_turf.update_visuals()
 	compressor_pressure = PRESSURE_MAX(machine_gasmix.return_pressure())
 
-	return input_turf_mixture.temperature
+	return input_turf_mixture.return_temperature()
 
 //===========================OUTLET==============================================
 /obj/machinery/power/turbine/turbine_outlet
@@ -674,7 +674,7 @@
 		rpm = 0
 		produced_energy = 0
 		return
-	var/work_done =  QUANTIZE(ejected_gases.total_moles()) * R_IDEAL_GAS_EQUATION * ejected_gases.temperature * log(compressor.compressor_pressure / PRESSURE_MAX(ejected_gases.return_pressure()))
+	var/work_done =  QUANTIZE(ejected_gases.total_moles()) * R_IDEAL_GAS_EQUATION * ejected_gases.return_temperature() * log(compressor.compressor_pressure / PRESSURE_MAX(ejected_gases.return_pressure()))
 	//removing the work needed to move the compressor but adding back the turbine work that is the one generating most of the power.
 	work_done = max(work_done - compressor.compressor_work * TURBINE_COMPRESSOR_STATOR_INTERACTION_MULTIPLIER - turbine_work, 0)
 	//calculate final acheived rpm

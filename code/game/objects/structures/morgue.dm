@@ -280,15 +280,15 @@ GLOBAL_LIST_EMPTY(bodycontainers) //Let them act as spawnpoints for revenants an
 		if(!current_exposed_air)
 			return
 		// The internal air won't cool down the external air when the freezer is opened.
-		internal_air.temperature = max(current_exposed_air.temperature, internal_air.temperature)
+		internal_air.set_temperature(max(current_exposed_air.return_temperature(), internal_air.return_temperature()))
 		if(current_exposed_air.equalize(internal_air))
 			var/turf/location = get_turf(src)
 			location.air_update_turf()
 	else
-		if(internal_air.temperature <= minimum_temperature)
+		if(internal_air.return_temperature() <= minimum_temperature)
 			return
-		var/temperature_decrease_this_tick = min(cooling_rate_per_second * seconds_per_tick, internal_air.temperature - minimum_temperature)
-		internal_air.temperature -= temperature_decrease_this_tick
+		var/temperature_decrease_this_tick = min(cooling_rate_per_second * seconds_per_tick, internal_air.return_temperature() - minimum_temperature)
+		internal_air.set_temperature(internal_air.return_temperature() - temperature_decrease_this_tick)
 
 /obj/structure/bodycontainer/morgue/beeper_off
 	name = "secure morgue"

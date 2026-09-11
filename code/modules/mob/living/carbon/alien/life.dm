@@ -17,28 +17,23 @@
 
 	var/plasma_used = 0
 	var/plas_detect_threshold = 0.02
-	var/breath_pressure = (breath.total_moles()*R_IDEAL_GAS_EQUATION*breath.temperature)/BREATH_VOLUME
-	var/list/breath_moles = breath.moles
-
-	breath.assert_gases(/datum/gas/plasma, /datum/gas/oxygen)
+	var/breath_pressure = (breath.total_moles()*R_IDEAL_GAS_EQUATION*breath.return_temperature())/BREATH_VOLUME
 
 	//Partial pressure of the plasma in our breath
-	var/plasma_pp = (breath_moles[/datum/gas/plasma] / breath.total_moles()) * breath_pressure
+	var/plasma_pp = (breath.get_moles(/datum/gas/plasma) / breath.total_moles()) * breath_pressure
 
 	if(plasma_pp > plas_detect_threshold) // Detect plasma in air
-		adjustPlasma(breath_moles[/datum/gas/plasma] * 250)
+		adjustPlasma(breath.get_moles(/datum/gas/plasma) * 250)
 		throw_alert(ALERT_XENO_PLASMA, /atom/movable/screen/alert/alien_plas)
 
-		plasma_used = breath_moles[/datum/gas/plasma]
+		plasma_used = breath.get_moles(/datum/gas/plasma)
 
 	else
 		clear_alert(ALERT_XENO_PLASMA)
 
 	//Breathe in plasma and out oxygen
-	breath_moles[/datum/gas/plasma] -= plasma_used
-	breath_moles[/datum/gas/oxygen] += plasma_used
-
-	breath.garbage_collect()
+	breath.adjust_moles(/datum/gas/plasma, -plasma_used)
+	breath.adjust_moles(/datum/gas/oxygen, plasma_used)
 
 	//BREATH TEMPERATURE
 	handle_breath_temperature(breath)

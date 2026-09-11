@@ -317,6 +317,9 @@ ADMIN_VERB(set_dynex_scale, R_FUN, "Set DynEx Scale", "Set the scale multiplier 
 ADMIN_VERB(atmos_control, R_DEBUG|R_SERVER, "Atmos Control Panel", "Open the atmospherics control panel.", ADMIN_CATEGORY_DEBUG)
 	SSair.ui_interact(user.mob)
 
+ADMIN_VERB(dogmos_kennel, R_DEBUG|R_SERVER, "Dogmos Kennel", "Open the Dogmos Kennel - where the subsystem keeps all its data heeled.", ADMIN_CATEGORY_DEBUG)
+	GLOB.dogmos_kennel.ui_interact(user.mob)
+
 ADMIN_VERB(reload_cards, R_DEBUG, "Reload Cards", "Reload all TCG cards.", ADMIN_CATEGORY_DEBUG)
 	if(!SStrading_card_game.loaded)
 		message_admins("The card subsystem is not currently loaded")

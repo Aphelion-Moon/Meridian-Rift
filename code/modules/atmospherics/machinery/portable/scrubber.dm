@@ -88,15 +88,15 @@
 	if(air_contents.return_pressure() >= overpressure_m * ONE_ATMOSPHERE)
 		return FALSE
 
-	var/list/cached_moles = environment.moles
+	var/list/cached_moles = environment.get_moles_list()
 
 	//contains all of the gas we're sucking out of the tile, gets put into our parent pipenet
 	var/datum/gas_mixture/filtered_out = new
 
-	filtered_out.temperature = environment.temperature
+	filtered_out.set_temperature(environment.return_temperature())
 
 	//maximum percentage of the turfs gas we can filter
-	var/removal_ratio =  min(1, volume_rate / environment.volume)
+	var/removal_ratio =  min(1, volume_rate / environment.return_volume())
 
 	var/total_moles_to_remove = 0
 	for(var/gas_id, value in cached_moles & scrubbing)
@@ -108,10 +108,9 @@
 	for(var/gas_id, value in cached_moles & scrubbing)
 		var/transferred_moles = max(QUANTIZE(value * removal_ratio * (value / total_moles_to_remove)), min(MOLAR_ACCURACY*1000, value))
 
-		filtered_out.moles[gas_id] += transferred_moles
-		cached_moles[gas_id] -= transferred_moles
+		filtered_out.adjust_moles(gas_id, transferred_moles)
+		environment.adjust_moles(gas_id, -transferred_moles)
 
-	environment.garbage_collect()
 	//Remix the resulting gases
 	air_contents.merge(filtered_out)
 	return TRUE

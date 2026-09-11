@@ -203,7 +203,8 @@
 				return TRUE
 			target = clamp(target, 0, MAX_TRANSFER_RATE)
 
-			input.volume_rate = clamp(target, 0, min(input.airs[1].volume, MAX_TRANSFER_RATE))
+			var/datum/gas_mixture/input_air = input.airs[1]
+			input.volume_rate = clamp(target, 0, min(input_air.return_volume(), MAX_TRANSFER_RATE))
 			return TRUE
 
 		if("adjust_output")

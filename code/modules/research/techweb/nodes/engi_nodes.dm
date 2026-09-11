@@ -171,6 +171,9 @@
 		/datum/design/inducerengi,
 		/datum/design/welding_goggles,
 		/datum/design/tray_goggles,
+		// NOVA EDIT ADDITION START - DOGMOS
+		/datum/design/dogmos_goggles,
+		// NOVA EDIT ADDITION END
 		/datum/design/geiger,
 	)
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = TECHWEB_TIER_1_POINTS)

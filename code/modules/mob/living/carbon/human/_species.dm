@@ -1364,7 +1364,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	if((suit_flags & STOPSPRESSUREDAMAGE) && (head_flags & STOPSPRESSUREDAMAGE))
 		return
 
-	var/antinoblium_moles = environment.moles[/datum/gas/antinoblium]
+	var/antinoblium_moles = environment.get_moles(/datum/gas/antinoblium)
 	if (antinoblium_moles >= MOLES_GAS_VISIBLE && SPT_PROB(1, antinoblium_moles * seconds_per_tick))
 		SSradiation.irradiate(human)
 

@@ -29,8 +29,7 @@
 /datum/element/death_gases/proc/on_death(mob/living/target, gibbed)
 	SIGNAL_HANDLER
 	var/datum/gas_mixture/mix_to_spawn = new()
-	mix_to_spawn.add_gas(gas_type)
-	mix_to_spawn.set_gas(gas_type, amount_of_gas)
+	mix_to_spawn.set_moles(gas_type, amount_of_gas)
 	mix_to_spawn.set_temperature(T20C)
 	var/turf/open/our_turf = get_turf(target)
 	our_turf.assume_air(mix_to_spawn)

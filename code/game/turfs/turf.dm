@@ -190,12 +190,19 @@ GLOBAL_LIST_EMPTY(station_turfs)
 /turf/proc/Initalize_Atmos(time)
 	CALCULATE_ADJACENT_TURFS(src, NORMAL_TURF)
 
+// APHELION EDIT ADDITION START - TURF_CONTEXT
+/** Releases type-owned turf state while preserving external listeners across replacement. */
+// APHELION EDIT ADDITION END
 /turf/Destroy(force)
 	. = QDEL_HINT_IWILLGC
 	if(!changing_turf)
 		stack_trace("Incorrect turf deletion")
 
 	changing_turf = FALSE
+	// APHELION EDIT ADDITION START - TURF_CONTEXT
+	// This type's screentip callback must not be copied into the replacement turf.
+	UnregisterSignal(src, COMSIG_ATOM_REQUESTING_CONTEXT_FROM_ITEM)
+	// APHELION EDIT ADDITION END
 	if(GET_LOWEST_STACK_OFFSET(z))
 		var/turf/T = GET_TURF_ABOVE(src)
 		if(T)
@@ -776,10 +783,13 @@ GLOBAL_LIST_EMPTY(station_turfs)
 	. = heat_capacity
 
 /turf/proc/GetTemperature()
-	. = temperature
+	. = blocks_air ? get_dogmos_blocked_temperature() : temperature // APHELION EDIT CHANGE - ORIGINAL: . = temperature
 
 /turf/proc/TakeTemperature(temp)
-	temperature += temp
+	// set_temperature(), not a direct var write - a blocks_air turf (e.g. a wall an H/E pipe runs
+	// through, datum_pipeline.dm's temperature_interact()) reaches this base version, and a direct
+	// write here would silently desync Rust's TurfHeat copy of that turf's temperature.
+	set_temperature(temperature + temp)
 
 // I'm sorry, this is the only way that both makes sense and is cheap
 /turf/set_explosion_block(explosion_block)

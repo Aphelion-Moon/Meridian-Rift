@@ -288,12 +288,12 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 	// PART 2: GAS PROCESSING
 	var/datum/gas_mixture/env = local_turf.return_air()
 	absorbed_gasmix = env?.remove_ratio(absorption_ratio) || new()
-	absorbed_gasmix.volume = (env?.volume || CELL_VOLUME) * absorption_ratio // To match the pressure.
+	absorbed_gasmix.set_volume((env?.return_volume() || CELL_VOLUME) * absorption_ratio) // To match the pressure.
 	calculate_gases()
 	// Extra effects should always fire after the compositions are all finished
 	// Some extra effects like [/datum/sm_gas/carbon_dioxide/extra_effects]
 	// needs more than one gas and rely on a fully parsed gas_percentage.
-	for (var/gas_path in absorbed_gasmix.moles)
+	for (var/gas_path in absorbed_gasmix.get_gases())
 		var/datum/sm_gas/sm_gas = current_gas_behavior[gas_path]
 		sm_gas?.extra_effects(src)
 
@@ -338,12 +338,10 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 
 	/// Do waste on another gasmix so we can keep a copy of the gasmix we use for processing.
 	var/datum/gas_mixture/merged_gasmix = absorbed_gasmix.copy()
-	merged_gasmix.temperature += device_energy * waste_multiplier / THERMAL_RELEASE_MODIFIER
-	merged_gasmix.temperature = clamp(merged_gasmix.temperature, TCMB, 2500 * waste_multiplier)
-	merged_gasmix.assert_gases(/datum/gas/plasma, /datum/gas/oxygen)
-	merged_gasmix.moles[/datum/gas/plasma] += max(device_energy * waste_multiplier / PLASMA_RELEASE_MODIFIER, 0)
-	merged_gasmix.moles[/datum/gas/oxygen] += max(((device_energy + merged_gasmix.temperature * waste_multiplier) - T0C) / OXYGEN_RELEASE_MODIFIER, 0)
-	merged_gasmix.garbage_collect()
+	merged_gasmix.set_temperature(merged_gasmix.return_temperature() + (device_energy * waste_multiplier / THERMAL_RELEASE_MODIFIER))
+	merged_gasmix.set_temperature(clamp(merged_gasmix.return_temperature(), TCMB, 2500 * waste_multiplier))
+	merged_gasmix.adjust_moles(/datum/gas/plasma, max(device_energy * waste_multiplier / PLASMA_RELEASE_MODIFIER, 0))
+	merged_gasmix.adjust_moles(/datum/gas/oxygen, max(((device_energy + merged_gasmix.return_temperature() * waste_multiplier) - T0C) / OXYGEN_RELEASE_MODIFIER, 0))
 	env.merge(merged_gasmix)
 	air_update_turf(FALSE, FALSE)
 
@@ -475,7 +473,7 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 	for (var/datum/gas/gas_path as anything in subtypesof(/datum/gas))
 		formatted_gas_percentage[gas_path] = gas_percentage?[gas_path] || 0
 	data["gas_composition"] = formatted_gas_percentage
-	data["gas_temperature"] = absorbed_gasmix.temperature
+	data["gas_temperature"] = absorbed_gasmix.return_temperature()
 	data["gas_total_moles"] = absorbed_gasmix.total_moles()
 	return data
 
@@ -496,7 +494,7 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 		return SUPERMATTER_DANGER
 	if(damage >= warning_point)
 		return SUPERMATTER_WARNING
-	if(absorbed_gasmix.temperature > temp_limit * 0.8)
+	if(absorbed_gasmix.return_temperature() > temp_limit * 0.8)
 		return SUPERMATTER_NOTIFY
 	if(internal_energy)
 		return SUPERMATTER_NORMAL
@@ -662,7 +660,8 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 	var/total_moles = absorbed_gasmix.total_moles()
 	if(total_moles < MINIMUM_MOLE_COUNT) //it's not worth processing small amounts like these, total_moles can also be 0 in vacuume
 		return
-	for (var/gas_path, mole_count in absorbed_gasmix.moles)
+	for (var/gas_path in absorbed_gasmix.get_gases())
+		var/mole_count = absorbed_gasmix.get_moles(gas_path)
 		if(mole_count < MINIMUM_MOLE_COUNT) //save processing power from small amounts like these
 			continue
 		gas_percentage[gas_path] = mole_count / total_moles
@@ -699,7 +698,7 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 	external_power_trickle -= min(additive_power[SM_POWER_EXTERNAL_TRICKLE], external_power_trickle)
 	additive_power[SM_POWER_EXTERNAL_IMMEDIATE] = external_power_immediate
 	external_power_immediate = 0
-	additive_power[SM_POWER_HEAT] = gas_heat_power_generation * absorbed_gasmix.temperature * GAS_HEAT_POWER_SCALING_COEFFICIENT
+	additive_power[SM_POWER_HEAT] = gas_heat_power_generation * absorbed_gasmix.return_temperature() * GAS_HEAT_POWER_SCALING_COEFFICIENT
 	additive_power[SM_POWER_HEAT] && log_activation(who = "environmental factors")
 
 	// I'm sorry for this, but we need to calculate power lost immediately after power gain.
@@ -842,7 +841,7 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 	additive_damage[SM_DAMAGE_EXTERNAL] = external_damage_immediate * clamp((emergency_point - damage) / emergency_point, 0, 1)
 	external_damage_immediate = 0
 
-	additive_damage[SM_DAMAGE_HEAT] = clamp((absorbed_gasmix.temperature - temp_limit) / 24000, 0, 0.15)
+	additive_damage[SM_DAMAGE_HEAT] = clamp((absorbed_gasmix.return_temperature() - temp_limit) / 24000, 0, 0.15)
 	additive_damage[SM_DAMAGE_POWER] = clamp((internal_energy - POWER_PENALTY_THRESHOLD) / 40000, 0, 0.1)
 	additive_damage[SM_DAMAGE_MOLES] = clamp((total_moles - MOLE_PENALTY_THRESHOLD) / 3200, 0, 0.1)
 
@@ -855,7 +854,7 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 			break
 
 	if(total_moles > 0 && !is_spaced)
-		additive_damage[SM_DAMAGE_HEAL_HEAT] = clamp((absorbed_gasmix.temperature - temp_limit) / 6000, -0.1, 0)
+		additive_damage[SM_DAMAGE_HEAL_HEAT] = clamp((absorbed_gasmix.return_temperature() - temp_limit) / 6000, -0.1, 0)
 
 	var/total_damage = 0
 	for (var/damage_type in additive_damage)

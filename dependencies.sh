@@ -25,9 +25,14 @@ export DREAMLUAU_REPO="tgstation/dreamluau"
 #dreamluau git tag
 export DREAMLUAU_VERSION=0.1.2
 
+#dogmos repo - our fork of Putnam3145/auxmos
+export DOGMOS_REPO="AphelionDevelopment/aphelion-dogmos"
+
+#dogmos git ref. Branch for now; cut a tag once the fork stabilises.
+export DOGMOS_VERSION=dogmos
+
 #hypnagogic repo
 export CUTTER_REPO=spacestation13/hypnagogic
 
 #hypnagogic git tag
 export CUTTER_VERSION=v5.0.1
-
