@@ -76,7 +76,7 @@ GAME_VERB_DESC(/client, reportissue, "report-issue", "Report an issue", null)
 
 	// We still use tg_alert here because some people were concerned that if someone wanted to report that tgui wasn't working
 	// then the report issue button being tgui-based would be problematic.
-	if(tg_alert(src, message, "Report Issue", "Yes", "No") != "Yes")
+	if(tgui_alert(src, message, "Report Issue", list("Yes", "No")) != "Yes") // APHELION EDIT CHANGE - NO we don't. - ORIGINAL: if(tg_alert(src, message, "Report Issue", "Yes", "No") != "Yes")
 		return
 
 	var/base_link = githuburl + "/issues/new?template=bug_report_form.yml"
