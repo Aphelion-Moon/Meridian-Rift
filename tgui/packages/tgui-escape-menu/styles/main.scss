@@ -27,6 +27,7 @@ body,
 .Tooltip {
   font-family: 'Pixellari', monospace;
   transform: translateY(-1.5rem);
+  z-index: 3; // APHELION EDIT ADDITION - Tooltips portal outside the menu, so they need to stack above .escape-menu__content and __details.
 }
 
 .escape-menu {
