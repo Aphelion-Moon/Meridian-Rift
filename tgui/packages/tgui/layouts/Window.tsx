@@ -29,6 +29,7 @@ import {
 } from '../drag';
 import { suspendStart } from '../events/handlers/suspense';
 import { createLogger } from '../logging';
+import { IconResourceNotice } from './IconResourceNotice';
 import { Layout } from './Layout';
 import { TitleBar } from './TitleBar';
 
@@ -167,6 +168,12 @@ type ContentProps = Partial<{
 function WindowContent(props: ContentProps) {
   const { className, fitted, children, ...rest } = props;
   const [altDown, setAltDown] = useState(false);
+  const content = (
+    <>
+      <IconResourceNotice />
+      {children}
+    </>
+  );
 
   function dragStartIfAltHeld(event: React.MouseEvent<HTMLDivElement>): void {
     if (altDown) {
@@ -198,9 +205,9 @@ function WindowContent(props: ContentProps) {
         }}
       />
       {fitted ? (
-        children
+        content
       ) : (
-        <div className="Window__contentPadding">{children}</div>
+        <div className="Window__contentPadding">{content}</div>
       )}
     </Layout.Content>
   );
