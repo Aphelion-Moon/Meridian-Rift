@@ -25,7 +25,8 @@
 	magazine_wording = "heatsink"
 	click_on_low_ammo = FALSE
 	var/heat_per_projectile = 5
-	var/overheat_burn_damage = 5
+	/// Arm damage per discharge after the heatsink has burnt out.
+	var/overheat_burn_damage = 2.5
 	/// One-time thermal failure cue when the installed sink becomes ruined.
 	var/overheat_sound = 'modular_aphelion/modules/modular_ballistics/sound/overheat.ogg'
 	var/overheat_sound_volume = 75

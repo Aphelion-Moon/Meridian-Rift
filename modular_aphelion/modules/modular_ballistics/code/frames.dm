@@ -2,14 +2,14 @@
 
 /obj/item/gun/ballistic/parallax/heavy
 	name = "Parallax heavy-frame prototype"
-	desc = "An armored Parallax receiver built for steady sustained fire. Reduces dispersion by 2, recoil by 45% and generated heat by 20%, but adds 0.1 seconds between shots. Always bulky and requires two hands. Uses standard Parallax modules."
+	desc = "An armored Parallax receiver built for steady sustained fire. Reduces dispersion by 2, recoil by 45% and generated heat by 20%, but adds 0.05 seconds between shots. Always bulky and requires two hands. Uses standard Parallax modules."
 	frame_name_prefix = "Parallax heavy"
 	frame_icon_state = "frame_heavy"
 	icon_state = "frame_heavy"
 	inhand_icon_state = "frame_heavy"
 	frame_recoil_multiplier = 0.55
 	frame_dispersion = -2
-	frame_cycle_cost = 0.1 SECONDS
+	frame_cycle_cost = 0.05 SECONDS
 	frame_heat_multiplier = 0.8
 	frame_requires_two_hands = TRUE
 	starting_modules = list(/obj/item/ballistic_module/barrel/carbine/assault, /obj/item/ballistic_module/control/automatic, /obj/item/ballistic_module/stock, /obj/item/ballistic_module/optic)
@@ -55,11 +55,11 @@
 
 /obj/item/gun/ballistic/parallax/bullpup
 	name = "Parallax bullpup prototype"
-	desc = "A rear-action Parallax receiver for aggressive close-range fire. Its integrated stock reduces dispersion by 1 and recoil by 15%; its shortened action cuts 0.1 seconds off the shot cycle but generates 25% more heat. Requires both hands and cannot accept a separate stock."
+	desc = "A rear-action Parallax receiver for aggressive close-range fire. Its integrated stock reduces dispersion by 1 and recoil by 15%; its shortened action cuts 0.05 seconds off the shot cycle but generates 25% more heat. Requires both hands and cannot accept a separate stock."
 	frame_name_prefix = "Parallax bullpup"
 	frame_recoil_multiplier = 0.85
 	frame_dispersion = -1
-	frame_cycle_cost = -0.1 SECONDS
+	frame_cycle_cost = -0.05 SECONDS
 	frame_heat_multiplier = 1.25
 	frame_icon_state = "frame_bullpup"
 	icon_state = "frame_bullpup"

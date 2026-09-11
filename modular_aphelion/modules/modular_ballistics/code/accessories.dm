@@ -26,10 +26,10 @@
 
 /obj/item/ballistic_module/control/burst
 	name = "Parallax burst controller"
-	desc = "A fire-control cartridge that commits to three rounds per trigger pull. Reduces dispersion by 1, but adds 0.3 seconds of recovery between bursts and lacks semi-auto heat savings."
+	desc = "A fire-control cartridge that commits to three rounds per trigger pull. Reduces dispersion by 1, but adds 0.15 seconds of recovery between bursts and lacks semi-auto heat savings."
 	icon_state = "control_burst"
 	shots_per_burst = 3
-	burst_recovery = 0.3 SECONDS
+	burst_recovery = 0.15 SECONDS
 	dispersion = -1
 	heat_multiplier = 1
 
@@ -48,17 +48,17 @@
 	socket = "stock"
 	icon_state = "stock_compact"
 	dispersion = -2
-	kick = -0.3
+	kick = -0.15
 	is_long = TRUE
 
 /obj/item/ballistic_module/stock/precision
 	name = "Parallax precision stock"
-	desc = "An extended shoulder support for scoped fire. Reduces hip dispersion by 1 and scoped dispersion by a further 3, with stronger recoil control than the compact stock. Adds 0.1 seconds between shots."
+	desc = "An extended shoulder support for scoped fire. Reduces hip dispersion by 1 and scoped dispersion by a further 3, with stronger recoil control than the compact stock. Adds 0.05 seconds between shots."
 	icon_state = "stock_precision"
 	dispersion = -1
 	scoped_accuracy = 3
-	kick = -0.6
-	cycle_cost = 0.1 SECONDS
+	kick = -0.3
+	cycle_cost = 0.05 SECONDS
 
 /** Standard reflex sight and shared scope configuration for interchangeable optics. */
 /obj/item/ballistic_module/optic
@@ -79,6 +79,6 @@
 	desc = "An elongated ballistic sight with a cyan objective. Right-click to scope in. Excellent aimed accuracy, but awkward hip fire and a slower firing cycle."
 	icon_state = "optic_scope"
 	dispersion = 2
-	cycle_cost = 0.1 SECONDS
+	cycle_cost = 0.05 SECONDS
 	scope_range = 2
 	scoped_accuracy = 4

@@ -7,7 +7,7 @@
 	aimed_accuracy = 0
 	var/obj/item/ballistic_module/barrel/barrel = modules["barrel"]
 	var/obj/item/ballistic_module/control/controller = modules["controller"]
-	fire_delay = barrel ? barrel.shot_delay : 0.5 SECONDS
+	fire_delay = barrel ? barrel.shot_delay : 0.25 SECONDS
 	fire_delay += frame_cycle_cost
 	projectile_damage_multiplier = barrel ? barrel.damage_factor : 1
 	projectile_speed_multiplier = barrel ? barrel.projectile_velocity_multiplier : initial(projectile_speed_multiplier)
@@ -22,8 +22,8 @@
 		long_profile ||= part.is_long
 	spread = max(0, spread)
 	// Preserve a minimum cycle
-	fire_delay = max(0.15 SECONDS, fire_delay)
-	recoil = max(0.1, recoil * frame_recoil_multiplier)
+	fire_delay = max(0.1 SECONDS, fire_delay)
+	recoil = max(0.05, recoil * frame_recoil_multiplier)
 	burst_size = controller ? controller.shots_per_burst : 1
 	burst_delay = fire_delay
 	if(burst_size > 1)
