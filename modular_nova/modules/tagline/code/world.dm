@@ -1,7 +1,5 @@
 /world/proc/update_status()
-	var/hostedby
 	var/list/features = list()
-	var/players = GLOB.clients.len
 
 	var/static/cached_prefix
 	var/prefix = cached_prefix || ""
