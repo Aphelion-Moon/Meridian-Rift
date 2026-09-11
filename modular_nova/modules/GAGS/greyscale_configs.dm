@@ -219,6 +219,12 @@
 /datum/greyscale_config/standalone_hood/worn/oldvox
 	icon_file = 'modular_nova/modules/GAGS/icons/head/head_oldvox.dmi'
 
+// BEANIE
+
+/datum/greyscale_config/beanie/worn/better_vox
+	name = "Beanie (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/head.dmi'
+
 // CATEAR HEADPHONES
 
 /datum/greyscale_config/catear_headphone

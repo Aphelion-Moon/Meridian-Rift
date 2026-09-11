@@ -44,6 +44,7 @@
 
 /obj/item/clothing/head/beanie
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
+	greyscale_config_worn_better_vox = /datum/greyscale_config/beanie/worn/better_vox
 
 /obj/item/clothing/head/helmet/abductor
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION_NO_NEW_ICON
