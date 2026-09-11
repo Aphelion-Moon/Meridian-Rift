@@ -32,8 +32,8 @@
 	suppressed = istype(sound_suppressor) ? SUPPRESSED_QUIET : SUPPRESSED_NONE
 	var/bulky_profile = long_profile || suppressed
 	slot_flags = (barrel && controller) ? (bulky_profile ? ITEM_SLOT_BACK : ITEM_SLOT_BELT) : NONE
-	// Use existing equipment sprites; ground and held appearances retain the physical module overlays.
-	worn_icon = bulky_profile ? 'icons/mob/clothing/back.dmi' : 'icons/mob/clothing/belt.dmi'
+	// White rifle equipment sprites match the modular housings; compact builds retain the belt sprite.
+	worn_icon = bulky_profile ? 'modular_aphelion/modules/modular_ballistics/icons/worn.dmi' : 'icons/mob/clothing/belt.dmi'
 	worn_icon_state = bulky_profile ? "battle_rifle" : "gun"
 	// Storage listens to this setter and ejects assemblies that outgrow their holster.
 	update_weight_class(bulky_profile ? WEIGHT_CLASS_BULKY : WEIGHT_CLASS_NORMAL)
