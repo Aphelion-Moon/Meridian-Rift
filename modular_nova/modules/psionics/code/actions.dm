@@ -907,3 +907,62 @@
 
 	profile.open_power_menu(living_owner)
 	return TRUE
+
+// NOVA EDIT ADDITION START - PSIONICS
+/** A free recovery action shared by all awakened psions. */
+/datum/action/cooldown/psionic/meditate
+	name = "Meditate"
+	desc = "Remain still and meditate for 10 seconds to relieve strain equal to 50% of your maximum. Cannot be used during burnout or while maintaining powers that prevent recovery. Recharges in 30 seconds."
+	button_icon_state = "psi_meditate"
+	psionic_flags = NONE
+	point_cost = 0
+	cooldown_time = 30 SECONDS
+	/// Uninterrupted time needed to finish meditating.
+	var/meditation_time = 10 SECONDS
+	/// Fraction of maximum strain relieved by a completed meditation.
+	var/strain_recovery_fraction = 0.5
+
+/** Requires accumulated strain and no maintained effect that prevents recovery. */
+/datum/action/cooldown/psionic/meditate/IsAvailable(feedback = FALSE)
+	if(!..())
+		return FALSE
+	var/mob/living/living_owner = owner
+	var/datum/component/psionic_profile/profile = living_owner.get_psionic_profile()
+	profile.decay_strain()
+	if(profile.strain <= 0)
+		if(feedback)
+			living_owner.balloon_alert(living_owner, "already rested!")
+		return FALSE
+	if(profile.is_strain_recovery_blocked())
+		if(feedback)
+			living_owner.balloon_alert(living_owner, "release maintained powers!")
+		return FALSE
+	return TRUE
+
+/** Checks ownership and recovery eligibility throughout the interruptible channel. */
+/datum/action/cooldown/psionic/meditate/proc/can_continue_meditating(mob/living/meditator, datum/component/psionic_profile/profile)
+	return !QDELETED(src) && !QDELETED(meditator) && !QDELETED(profile) && owner == meditator && meditator.get_psionic_profile() == profile && IsAvailable()
+
+/** Relieves strain only after an uninterrupted channel with the original owner and profile. */
+/datum/action/cooldown/psionic/meditate/psionic_activate(atom/target)
+	var/mob/living/meditator = owner
+	var/datum/component/psionic_profile/profile = meditator.get_psionic_profile()
+	meditator.balloon_alert(meditator, "meditating...")
+	if(!do_after(
+		meditator,
+		meditation_time,
+		target = meditator,
+		timed_action_flags = IGNORE_HELD_ITEM,
+		extra_checks = CALLBACK(src, PROC_REF(can_continue_meditating), meditator, profile),
+		interaction_key = REF(src),
+	))
+		if(!QDELETED(meditator))
+			meditator.balloon_alert(meditator, "meditation interrupted!")
+		return FALSE
+	if(!can_continue_meditating(meditator, profile))
+		return FALSE
+
+	profile.recover_strain(profile.max_strain * strain_recovery_fraction)
+	meditator.balloon_alert(meditator, "mind rested")
+	return TRUE
+// NOVA EDIT ADDITION END

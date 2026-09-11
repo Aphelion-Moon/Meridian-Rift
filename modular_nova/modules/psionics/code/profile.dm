@@ -179,8 +179,10 @@ GLOBAL_LIST_INIT(psionic_rank_descriptions, list(
 	psion = null
 	return ..()
 
+/** Grants utility actions and the current rank's baseline disciplines. */
 /datum/component/psionic_profile/proc/awaken()
 	grant_action(/datum/action/cooldown/psionic/open_menu)
+	grant_action(/datum/action/cooldown/psionic/meditate) // NOVA EDIT ADDITION - PSIONICS
 	reconcile_baseline_powers()
 	install_strain_hud()
 	to_chat(psion, span_purple("Your psionic potential awakens."))
@@ -804,15 +806,27 @@ GLOBAL_LIST_INIT(psionic_rank_descriptions, list(
 
 	return roll_psionic_backlash(tier, psion, src)
 
-/// Returns strain charged through try_gain_strain() for a cast that never resolved.
-/// Applies the same school discount so the refund matches what was actually gained.
+/** Returns an unresolved cast's strain, applying the same school discount as its charge. */
 /datum/component/psionic_profile/proc/refund_strain(amount, datum/action/cooldown/psionic/source_action)
 	amount = get_action_strain_gain(amount, source_action)
+	recover_strain(amount) // NOVA EDIT ADDITION - PSIONICS
+/* // NOVA EDIT REMOVAL START - PSIONICS
 	if(amount <= 0)
 		return
 
 	strain = max(strain - amount, 0)
 	update_strain_hud()
+*/ // NOVA EDIT REMOVAL END
+
+// NOVA EDIT ADDITION START - PSIONICS
+/** Relieves an undiscounted amount of strain, clamped to zero, and refreshes the HUD. */
+/datum/component/psionic_profile/proc/recover_strain(amount)
+	if(amount <= 0)
+		return
+
+	strain = max(strain - amount, 0)
+	update_strain_hud()
+// NOVA EDIT ADDITION END
 
 /datum/component/psionic_profile/proc/is_burned_out()
 	return burnout_until > world.time
