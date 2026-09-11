@@ -13,6 +13,8 @@ and a body relay for their occupant. Both use the generic
   or equip it as a mask for the mouth endpoint.
 - Activate the handheld device in hand to cycle the target used when selecting
   the groin. Other selected body zones choose their corresponding endpoint.
+- Use the handheld device on yourself to open the interaction panel of the
+  receiver's wearer, listing what your own parts can do through the portal.
 - Right-click the device or receiver to toggle that item's anonymity. Alt-click
   either linked item to unlink it.
 - Use the bore on two supported walls to create its portal pair. Activate an
@@ -37,8 +39,10 @@ Participant access checks belong in `portal_target_is_accessible()` in
 [the human helpers](code/lewd_helpers/human.dm). Slot and link checks stay with
 the items that own those relationships. Physical access and visible sprite state
 are distinct: rendering checks native appearances separately and copies them
-before filtering. A temporary visibility change used during a render is restored
-within that render; it is not a session-long preference snapshot.
+before filtering. The occupant's preferences are never changed: a gloryhole
+occupant's penis overlay refuses to draw for the session, and a wallstuck occupant
+has body layers stripped as they are applied. Both keep a rebuild between queued
+refreshes from showing the hidden body for a tick.
 
 Routes in [portal_interaction_routes.dm](code/lewd_machinery/portal_interaction_routes.dm)
 bind interactions to their current endpoints using weak references. Revalidate

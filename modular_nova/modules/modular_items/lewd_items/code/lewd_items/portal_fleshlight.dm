@@ -120,21 +120,27 @@
 	if(.)
 		return
 	if(target_mob == user)
-		var/datum/component/interactable/interaction_component = target_mob.GetComponent(/datum/component/interactable)
-		interaction_component?.open_interaction_menu(target_mob, user)
+		// Someone else's receiver puts their panel in the operator's hands, offering the operator's own parts.
+		var/mob/living/carbon/human/menu_owner = user
+		if(is_portal_open())
+			var/mob/living/carbon/human/receiver_wearer = linked_panties.get_equipped_wearer()
+			if(user.allows_portal_use() && receiver_wearer.allows_portal_use())
+				menu_owner = receiver_wearer
+		var/datum/component/interactable/interaction_component = menu_owner.GetComponent(/datum/component/interactable)
+		interaction_component?.open_interaction_menu(menu_owner, user)
 		return TRUE
 
 	var/local_target = user.zone_selected == BODY_ZONE_PRECISE_GROIN ? current_target : user.zone_selected
 	perform_interaction(user, target_mob, linked_panties, local_target, src)
 	return TRUE
 
-/// Routes matching menu actions through the receiver when its wearer uses the device on themselves.
+/// Routes matching menu actions from the holder's own parts through the receiver to its wearer, who may be the holder.
 /obj/item/clothing/sextoy/portal_fleshlight/interaction_route_for(
 	mob/living/carbon/human/represented,
 	datum/interaction/interaction,
 	mob/living/carbon/human/user,
 )
-	if(represented != user || user.get_active_held_item() != src || !interaction || !is_link_valid())
+	if(user.get_active_held_item() != src || !interaction || !is_link_valid())
 		return null
 	var/obj/item/clothing/sextoy/portal_panties/receiver = linked_panties
 	if(receiver.get_equipped_wearer() != represented)
@@ -143,9 +149,12 @@
 	for(var/local_target in local_targets)
 		if(local_targets[local_target] != interaction.name)
 			continue
-		if(validate_interaction(user, represented, receiver, local_target, src, ignore_cooldown = TRUE) != interaction)
+		if(validate_interaction(user, user, receiver, local_target, src, ignore_cooldown = TRUE) != interaction)
 			continue
 		return new /datum/interaction_route/portal_device(src, user, receiver, src, local_target)
+	// The menu acts as its viewer, so only a wearer holding the device can also drive the receiver end.
+	if(represented != user)
+		return null
 	// The same wearer can also use the receiver end as the interaction's active part.
 	for(var/local_target in interaction_map)
 		if(interaction_map[local_target]?[receiver.current_target] != interaction.name)

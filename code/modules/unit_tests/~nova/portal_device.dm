@@ -938,6 +938,42 @@
 		local_participant,
 	), "A third party could make one wearer fill both portal roles.")
 
+/// A device held by someone other than the receiver's wearer offers the holder's parts on the wearer's panel.
+/datum/unit_test/portal_device/remote_wearer_menu_route/Run()
+	if(CONFIG_GET(flag/disable_lewd_items) || CONFIG_GET(flag/disable_erp_preferences))
+		TEST_NOTICE(src, "Portal-device menu route tests require lewd items and ERP preferences to be enabled by the test configuration.")
+		return
+
+	var/datum/interaction/tongue_kiss = install_interaction_fixture()
+	var/mob/living/carbon/human/consistent/operator = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
+	var/mob/living/carbon/human/consistent/wearer = allocate(/mob/living/carbon/human/consistent, run_loc_floor_top_right)
+	attach_portal_preferences(operator)
+	attach_portal_preferences(wearer)
+	var/obj/item/clothing/sextoy/portal_fleshlight/device = allocate(/obj/item/clothing/sextoy/portal_fleshlight, run_loc_floor_bottom_left)
+	var/obj/item/clothing/sextoy/portal_panties/receiver = allocate(/obj/item/clothing/sextoy/portal_panties, run_loc_floor_bottom_left)
+	link_pair(device, receiver)
+
+	TEST_ASSERT(operator.put_in_active_hand(device, forced = TRUE), "The operator could not hold the portal device.")
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The remote wearer could not equip the receiver as a mask.")
+	TEST_ASSERT(!operator.Adjacent(wearer), "The remote menu fixture placed the operator next to the wearer.")
+	var/datum/component/interactable/operator_component = operator.GetComponent(/datum/component/interactable)
+	var/datum/component/interactable/wearer_component = wearer.GetComponent(/datum/component/interactable)
+	TEST_ASSERT_NOTNULL(operator_component, "The operator lacked an interaction component.")
+	TEST_ASSERT_NOTNULL(wearer_component, "The remote wearer lacked an interaction component.")
+	if(!operator_component || !wearer_component)
+		return
+	operator_component.interact_next = world.time - 1
+	wearer_component.interact_next = world.time - 1
+
+	var/datum/interaction_route/portal_device/route = wearer_component.get_interaction_route(tongue_kiss, operator)
+	TEST_ASSERT(istype(route), "The wearer's panel did not route the operator's held device.")
+	TEST_ASSERT(wearer_component.can_interact(tongue_kiss, operator), "The wearer's panel hid an interaction the operator's device can perform.")
+	TEST_ASSERT(!operator_component.can_interact(tongue_kiss, operator), "The operator's own panel offered an other-person interaction through someone else's receiver.")
+
+	operator.dropItemToGround(device, force = TRUE)
+	TEST_ASSERT_NULL(wearer_component.get_interaction_route(tongue_kiss, operator), "A dropped device kept routing to its remote wearer.")
+	TEST_ASSERT(!wearer_component.can_interact(tongue_kiss, operator), "The wearer's panel kept a remote interaction after its device was dropped.")
+
 /// Relay genital reveals require the active session and both participants' sex-toy preferences.
 /datum/unit_test/portal_device/relay_reveal_authority/Run()
 	if(CONFIG_GET(flag/disable_lewd_items) || CONFIG_GET(flag/disable_erp_preferences))

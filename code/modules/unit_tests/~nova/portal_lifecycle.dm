@@ -652,5 +652,41 @@
 	TEST_ASSERT_EQUAL(torch_mount_component?.hanging_support_atom, north_support, "The floorless torch result mounted to the wrong support.")
 	TEST_ASSERT(QDELETED(torch_mount) && !QDELETED(mounted_torch), "The torch mount did not consume into its configured result on a floorless turf.")
 
+/// A wallstuck occupant's rebuilt body layers never reach the screen before the queued refresh runs.
+/datum/unit_test/portal_lifecycle/wallstuck_rebuild_stays_hidden/Run()
+	var/list/portal_pair = make_portal_pair(PORTAL_TEST_WALLSTUCK)
+	var/obj/structure/lewd_portal/source_portal = portal_pair[1]
+	var/mob/living/carbon/human/consistent/occupant = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
+	TEST_ASSERT(source_portal.buckle_mob(occupant, force = TRUE, check_loc = FALSE), "The wallstuck rebuild session could not start.")
+
+	var/obj/item/clothing/shoes/sneakers/black/test_shoes = allocate(/obj/item/clothing/shoes/sneakers/black, occupant.loc)
+	TEST_ASSERT(occupant.equip_to_slot_if_possible(test_shoes, ITEM_SLOT_FEET), "The wallstuck occupant could not equip the rebuild-test shoes.")
+	var/shoes_cache = occupant.overlays_standing[SHOES_LAYER]
+	TEST_ASSERT_NOTNULL(shoes_cache, "Equipping shoes during the wallstuck session did not populate the standing-overlay cache.")
+	TEST_ASSERT(source_portal.current_mob_visual_refresh_queued, "Equipping shoes did not queue the wallstuck refresh.")
+	TEST_ASSERT(!contains_overlay_cache(occupant.overlays, shoes_cache), "A wallstuck occupant showed rebuilt shoes before the queued refresh.")
+
+/// A gloryhole occupant's own body never draws the penis its relay shows, so a rebuild between refreshes cannot flash it.
+/datum/unit_test/portal_lifecycle/gloryhole_rebuild_stays_hidden/Run()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return
+
+	var/list/portal_pair = make_portal_pair(PORTAL_TEST_GLORYHOLE)
+	var/obj/structure/lewd_portal/source_portal = portal_pair[1]
+	var/mob/living/carbon/human/consistent/occupant = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
+	var/obj/item/organ/genital/penis/test_penis = configure_test_penis(occupant)
+	TEST_ASSERT_NOTNULL(test_penis, "The gloryhole rebuild test could not create its exposed penis.")
+	if(isnull(test_penis))
+		return
+	var/datum/bodypart_overlay/mutant/genital/penis/penis_overlay = test_penis.bodypart_overlay
+	TEST_ASSERT(penis_overlay.can_draw_on_bodypart(test_penis.bodypart_owner, occupant), "The exposed fixture penis could not draw before its session.")
+
+	TEST_ASSERT(source_portal.buckle_mob(occupant, force = TRUE, check_loc = FALSE), "The gloryhole rebuild session could not start.")
+	TEST_ASSERT(!penis_overlay.can_draw_on_bodypart(test_penis.bodypart_owner, occupant), "An active gloryhole session let the occupant's body draw its relayed penis.")
+	TEST_ASSERT(!QDELETED(source_portal.relayed_body), "Hiding the occupant's penis stopped its relay from rendering.")
+
+	source_portal.unbuckle_mob(occupant, force = TRUE, can_fall = FALSE)
+	TEST_ASSERT(penis_overlay.can_draw_on_bodypart(test_penis.bodypart_owner, occupant), "Ending the gloryhole session left the occupant's penis hidden.")
+
 #undef PORTAL_TEST_WALLSTUCK
 #undef PORTAL_TEST_GLORYHOLE

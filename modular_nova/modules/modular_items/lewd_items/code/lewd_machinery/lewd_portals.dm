@@ -2,11 +2,10 @@
 #define WALLSTUCK "wallstuck"
 #define PORTAL_ICON 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_structures/lewd_portals.dmi'
 
-/// Appearance changes on the occupant which mean the relay has to be re-rendered.
+/// Appearance changes on the occupant which mean the relay has to be re-rendered. Applied overlays have their own handler.
 GLOBAL_LIST_INIT(portal_visual_signals, list(
 	COMSIG_MOB_EQUIPPED_ITEM,
 	COMSIG_MOB_UNEQUIPPED_ITEM,
-	COMSIG_CARBON_APPLY_OVERLAY,
 	COMSIG_CARBON_REMOVE_OVERLAY,
 	COMSIG_HUMAN_GENITAL_UPDATED,
 ))
@@ -133,6 +132,7 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	if(!apply_current_mob_visuals())
 		return
 	RegisterSignals(current_mob, GLOB.portal_visual_signals, PROC_REF(on_current_mob_visual_changed))
+	RegisterSignal(current_mob, COMSIG_CARBON_APPLY_OVERLAY, PROC_REF(on_current_mob_overlay_applied))
 	current_mob_visual_signals_registered = TRUE
 
 /obj/structure/lewd_portal/post_unbuckle_mob(mob/living/unbuckled_mob)
@@ -236,6 +236,32 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	current_mob_visual_refresh_queued = TRUE
 	addtimer(CALLBACK(src, PROC_REF(flush_current_mob_visual_refresh)), 0)
 
+/**
+ * Signal handler which strips a wallstuck occupant's body layers the moment a rebuild applies them.
+ *
+ * The full render only runs on the queued refresh, which lands a tick later. Without this, anything that rebuilds the
+ * occupant mid-session (an arousal change, equipment, damage) shows their whole body at this portal for that tick.
+ *
+ * Arguments
+ * * `cache_index` - The standing-overlay layer that was applied.
+ * * `applied_overlay` - What that layer now draws, if anything.
+ */
+/obj/structure/lewd_portal/proc/on_current_mob_overlay_applied(mob/living/carbon/human/source, cache_index, applied_overlay)
+	SIGNAL_HANDLER
+	// Exactly the layers render_only_head() leaves visible.
+	var/static/list/wallstuck_visible_layers = list(HEAD_LAYER, FACEMASK_LAYER, EYES_LAYER, HAIR_LAYER)
+	if(portal_mode == WALLSTUCK && applied_overlay && !refreshing_current_mob && !(cache_index in wallstuck_visible_layers))
+		source.cut_overlay(applied_overlay)
+	on_current_mob_visual_changed()
+
+/// A gloryhole occupant's penis is drawn only by their relay, so no body rebuild during the session can show it here.
+/datum/bodypart_overlay/mutant/genital/penis/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
+	. = ..()
+	var/mob/living/carbon/human/human = owner || bodypart_owner.owner
+	var/obj/structure/lewd_portal/portal = human?.buckled
+	if(. && istype(portal) && portal.portal_mode == GLORYHOLE && portal.current_mob == human)
+		return FALSE
+
 /// Performs one render pass after a complete equipment/body overlay rebuild.
 /obj/structure/lewd_portal/proc/flush_current_mob_visual_refresh()
 	if(!current_mob_visual_refresh_queued)
@@ -243,7 +269,7 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	apply_current_mob_visuals()
 	current_mob_visual_refresh_queued = FALSE
 
-/// Applies the active mode without permanently changing genital preferences.
+/// Applies the active mode without changing genital preferences.
 /obj/structure/lewd_portal/proc/apply_current_mob_visuals()
 	if(refreshing_current_mob || ending_session || QDELETED(current_mob))
 		return FALSE
@@ -254,13 +280,8 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 		return FALSE
 
 	if(portal_mode == GLORYHOLE)
-		var/obj/item/organ/genital/penis/affected_penis = current_mob.get_organ_slot(ORGAN_SLOT_PENIS)
-		if(affected_penis)
-			var/old_visibility = affected_penis.visibility_preference
-			affected_penis.visibility_preference = GENITAL_NEVER_SHOW
-			current_mob.update_body()
-			if(!QDELETED(affected_penis))
-				affected_penis.visibility_preference = old_visibility
+		// The penis overlay refuses to draw for the session; this redraws the body to match.
+		current_mob.update_body()
 		current_mob.setDir(dir)
 		current_mob.transform = matrix(initial_mob_transform)
 		current_mob.pixel_x = initial_mob_pixel_x
@@ -338,7 +359,7 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/obj/effect/lewd_portal_relay/session_relay = relayed_body
 
 	if(session_mob && current_mob_visual_signals_registered)
-		UnregisterSignal(session_mob, GLOB.portal_visual_signals)
+		UnregisterSignal(session_mob, GLOB.portal_visual_signals + COMSIG_CARBON_APPLY_OVERLAY)
 	current_mob_visual_signals_registered = FALSE
 	current_mob_visual_refresh_queued = FALSE
 
@@ -597,6 +618,10 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	if(!istype(owner_portal) || !owner_portal.is_active_session(owner, src))
 		return FALSE
 	return owner.allows_portal_use() && viewer.allows_portal_use()
+
+/// Whether this relay shows its owner's lower body, rather than only their penis.
+/obj/effect/lewd_portal_relay/proc/shows_lower_body()
+	return portal_mode == WALLSTUCK
 
 /// Rebuilds relay overlays from live owner state. Failure always leaves a blank relay.
 /obj/effect/lewd_portal_relay/proc/update_visuals()

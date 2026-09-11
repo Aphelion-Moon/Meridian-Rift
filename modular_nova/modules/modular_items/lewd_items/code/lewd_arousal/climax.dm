@@ -69,6 +69,23 @@
 		return null
 	return resolved_organ
 
+/**
+ * Resolves a partner offered before a climax prompt, only while they are still in reach and consenting.
+ *
+ * The reference is either a nearby human, or a wall portal relay standing in for the occupant it projects.
+ */
+/mob/living/carbon/human/proc/resolve_climax_partner(datum/weakref/partner_ref)
+	var/atom/movable/partner = partner_ref?.resolve()
+	if(QDELETED(partner) || !(partner in view(1, src)))
+		return null
+	if(istype(partner, /obj/effect/lewd_portal_relay))
+		var/obj/effect/lewd_portal_relay/partner_relay = partner
+		return partner_relay.can_reveal_to(src) ? partner_relay.owner : null
+	var/mob/living/carbon/human/partner_human = partner
+	if(!ishuman(partner_human) || !partner_human.client?.prefs?.read_preference(/datum/preference/toggle/erp))
+		return null
+	return partner_human
+
 /mob/living/carbon/human/proc/climax(manual = TRUE)
 	if (CONFIG_GET(flag/disable_erp_preferences))
 		return
@@ -166,6 +183,12 @@
 					continue
 				interactable_inrange_humans[iterating_human.name] = WEAKREF(iterating_human)
 
+			// Wall portal occupants are reached through their relay, and offered under its name.
+			for(var/obj/effect/lewd_portal_relay/iterating_relay in view(1, src))
+				if(iterating_relay.owner == src || !iterating_relay.can_reveal_to(src))
+					continue
+				interactable_inrange_humans["\the [iterating_relay.name]"] = WEAKREF(iterating_relay)
+
 			// Every open container in reach, to offer as a destination.
 			for(var/obj/item/reagent_containers/cup/iterating_open_container in (view(1, src)))
 				if(!iterating_open_container.is_refillable() || !iterating_open_container.is_drainable())
@@ -259,18 +282,24 @@
 						span_userlove("You shoot string after string of hot cum, hitting the floor!"), pref_to_check = /datum/preference/toggle/erp)
 				else
 					var/datum/weakref/target_human_ref = interactable_inrange_humans[target_choice]
-					var/mob/living/carbon/human/target_human = target_human_ref?.resolve()
-					if(QDELETED(target_human) || !(target_human in view(1, src)) || !target_human.client?.prefs?.read_preference(/datum/preference/toggle/erp))
+					var/mob/living/carbon/human/target_human = resolve_climax_partner(target_human_ref)
+					if(!target_human)
 						return FALSE
-					var/target_human_them = target_human.p_them()
+					// A portal occupant stays anonymous, and only the part of them their relay shows is in reach.
+					var/obj/effect/lewd_portal_relay/target_relay = target_human_ref.resolve()
+					var/through_portal = istype(target_relay)
+					var/target_name = through_portal ? "\the [target_relay.name]" : "[target_human]"
+					var/target_human_them = through_portal ? "them" : target_human.p_them()
+					var/lower_body_in_reach = !through_portal || target_relay.shows_lower_body()
+					target_relay = null
 
 					var/list/target_buttons = list()
 
-					if(!target_human.wear_mask)
+					if(!through_portal && !target_human.wear_mask)
 						target_buttons += CLIMAX_TARGET_MOUTH
-					if(target_human.has_vagina(REQUIRE_GENITAL_EXPOSED))
+					if(lower_body_in_reach && target_human.has_vagina(REQUIRE_GENITAL_EXPOSED))
 						target_buttons += ORGAN_SLOT_VAGINA
-					if(target_human.has_anus(REQUIRE_GENITAL_EXPOSED))
+					if(lower_body_in_reach && target_human.has_anus(REQUIRE_GENITAL_EXPOSED))
 						target_buttons += CLIMAX_TARGET_ASSHOLE
 					if(target_human.has_penis(REQUIRE_GENITAL_EXPOSED))
 						var/obj/item/organ/genital/penis/other_penis = target_human.get_organ_slot(ORGAN_SLOT_PENIS)
@@ -278,14 +307,14 @@
 							target_buttons += "sheath"
 					target_buttons += "On [target_human_them]"
 
-					var/target_prompt = "Where on or in [target_human] do you wish to cum?"
+					var/target_prompt = "Where on or in [target_name] do you wish to cum?"
 					target_human = null
 					organs.release()
 					var/climax_into_choice = tgui_input_list(src, target_prompt, "Final frontier!", target_buttons)
 					if(!organs.reacquire(src) || !organs.penis || !organs.testicles)
 						return FALSE
-					target_human = target_human_ref.resolve()
-					if(QDELETED(target_human) || !(target_human in view(1, src)) || !target_human.client?.prefs?.read_preference(/datum/preference/toggle/erp))
+					target_human = resolve_climax_partner(target_human_ref)
+					if(!target_human)
 						return FALSE
 					if(!isnull(climax_into_choice) && !(climax_into_choice in target_buttons))
 						return FALSE
@@ -306,13 +335,17 @@
 							span_userlove("You shoot string after string of hot cum, hitting the floor!"), pref_to_check = /datum/preference/toggle/erp)
 					else if(climax_into_choice == "On [target_human_them]")
 						create_cum_decal = TRUE
-						visible_message(span_userlove("[src] shoots their sticky load onto [target_human]!"), \
-							span_userlove("You shoot string after string of hot cum onto [target_human]!"), pref_to_check = /datum/preference/toggle/erp)
+						visible_message(span_userlove("[src] shoots their sticky load onto [target_name]!"), \
+							span_userlove("You shoot string after string of hot cum onto [target_name]!"), pref_to_check = /datum/preference/toggle/erp)
+						if(through_portal)
+							to_chat(target_human, span_userlove("Someone on the other side of the portal shoots their load onto you."))
 					else
-						visible_message(span_userlove("[src] hilts [self_their] cock into [target_human]'s [climax_into_choice], shooting cum into [target_human_them]!"), \
-							span_userlove("You hilt your cock into [target_human]'s [climax_into_choice], shooting cum into [target_human_them]!"), pref_to_check = /datum/preference/toggle/erp)
-						to_chat(target_human, span_userlove("Your [climax_into_choice] fills with warm cum as [src] shoots [self_their] load into it."))
-						try_knot(target_human, climax_into_choice)
+						visible_message(span_userlove("[src] hilts [self_their] cock into [target_name]'s [climax_into_choice], shooting cum into [target_human_them]!"), \
+							span_userlove("You hilt your cock into [target_name]'s [climax_into_choice], shooting cum into [target_human_them]!"), pref_to_check = /datum/preference/toggle/erp)
+						to_chat(target_human, span_userlove("Your [climax_into_choice] fills with warm cum as [through_portal ? "someone" : src] shoots [through_portal ? "their" : self_their] load into it."))
+						// A knot can't lock through a portal, and its messages would name the occupant.
+						if(!through_portal)
+							try_knot(target_human, climax_into_choice)
 
 			organs.testicles.transfer_internal_fluid(null, organs.testicles.internal_fluid_count * 0.6) // yep. we are sending semen to nullspace
 			if(create_cum_decal)

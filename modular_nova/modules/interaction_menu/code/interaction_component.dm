@@ -79,11 +79,10 @@
 
 /// Resolves a route from the viewer's active item or this component's current body relay.
 /datum/component/interactable/proc/get_interaction_route(datum/interaction/interaction, mob/living/carbon/human/user)
-	if(user == self)
-		var/obj/item/active_item = user.get_active_held_item()
-		return active_item?.interaction_route_for(self, interaction, user)
-	if(user.Adjacent(self))
-		return null
+	var/obj/item/active_item = user.get_active_held_item()
+	var/datum/interaction_route/item_route = active_item?.interaction_route_for(self, interaction, user)
+	if(item_route || user == self || user.Adjacent(self))
+		return item_route
 	var/atom/movable/resolved_relay = resolve_body_relay()
 	if(resolved_relay && user.Adjacent(resolved_relay))
 		return resolved_relay.interaction_route_for(self, interaction, user)
