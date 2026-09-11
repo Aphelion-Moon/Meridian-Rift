@@ -311,6 +311,11 @@
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	json_config = 'code/datums/greyscale/json_configs/bandana.json'
 
+/datum/greyscale_config/bandana/worn/better_vox
+	name = "Bandana (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+	json_config = 'code/datums/greyscale/json_configs/bandana.json'
+
 /datum/greyscale_config/bandana/striped/worn/muzzled
 	name = "Striped Bandana (Worn, Muzzled)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
@@ -319,6 +324,10 @@
 	name = "Striped Bandana (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 
+/datum/greyscale_config/bandana/striped/worn/better_vox
+	name = "Striped Bandana (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
 /datum/greyscale_config/bandana/skull/worn/muzzled
 	name = "Skull Bandana (Worn, Muzzled)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
@@ -326,6 +335,10 @@
 /datum/greyscale_config/bandana/skull/worn/vox
 	name = "Skull Bandana (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
+
+/datum/greyscale_config/bandana/skull/worn/better_vox
+	name = "Skull Bandana (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
 
 /datum/greyscale_config/tape_piece/worn/muzzled
 	name = "Tape Piece (Worn, Muzzled)"
