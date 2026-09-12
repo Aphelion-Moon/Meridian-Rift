@@ -349,6 +349,22 @@
 	name = "Facescarf (Worn, Muzzled)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
 
+/datum/greyscale_config/facescarf/worn/better_vox
+	name = "Facescarf (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
+/datum/greyscale_config/neck_gaiter/worn/better_vox
+	name = "Neck Gaiter (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
+/datum/greyscale_config/kitsune/worn/better_vox
+	name = "Kitsune mask (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
+/datum/greyscale_config/rebellion_mask/worn/better_vox
+	name = "Rebellion mask (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
 // Duct Tape
 /datum/greyscale_config/tape_piece/worn/vox
 	name = "Tape Piece (Worn, Vox)"
