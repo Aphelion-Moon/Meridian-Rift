@@ -32,6 +32,7 @@ const SPECIALTY_THEME_ID_SET = new Set([
   'clockwork',
   'hackerman',
   'heretic',
+  'light',
   'malfunction',
   'neutral',
   'ntOS95',

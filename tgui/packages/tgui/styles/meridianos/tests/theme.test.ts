@@ -270,4 +270,19 @@ describe('MeridianOS theme resolution', () => {
       isConsole: false,
     });
   });
+
+  // The chat panel passes its own light/dark setting through Layout.
+  it('leaves the chat panel light theme alone', () => {
+    expect(normalizeMeridianTheme('light')).toBe('light');
+    expect(
+      resolveMeridianTheme({
+        requested: 'light',
+        preferred: 'meridian_hotline',
+      }),
+    ).toEqual({
+      base: 'light',
+      classes: ['theme-light'],
+      isConsole: false,
+    });
+  });
 });
