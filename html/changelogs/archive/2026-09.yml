@@ -183,3 +183,15 @@
       soda, and coffee vending machines start empty.
   vinylspiders:
   - spellcheck: fixes a typo in diluted regenerative jelly description
+2026-09-10:
+  Moonridden:
+  - refactor: Full restructuring of how Department OOC code is stacked, allowing for
+      much easier additions and removals.
+  - admin: Updates Departmental Out Of Character verbs for Research, Engineering,
+      Medical, Service, Command, Supply, Central Command, and Silicons. Now uses a
+      list selector for the department to speak into, and a list for toggling channels
+      off.
+  - admin: Also adds a unique Backstage OOC channel which blends Command, Security,
+      and our Antags together into one group.
+  - admin: Adds Admin Notify, a hotkey and verb pairing to quickly draw admin attention
+      to you. Use with care, don't cry wolf lest the wolves show themselves.
