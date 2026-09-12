@@ -19,6 +19,11 @@
 		offset_x = list("north" = 0, "south" = 0, "east" = 5, "west" = -5),
 		offset_y = list("north" = 0, "south" = 0, "east" = 1, "west" = 0),
 	)
+	worn_glasses_offset = new(
+		attached_part = src,
+		feature_key = OFFSET_GLASSES,
+		offset_x = list("north" = 0, "south" = 0, "east" = 5, "west" = -5),
+	)
 	return ..()
 
 /obj/item/bodypart/chest/mutant/vox_primalis
