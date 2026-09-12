@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="48" viewBox="0 0 640 48" fill="none">
+  <defs>
+    <linearGradient id="primary-liquid" x1="0" y1="16" x2="0" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#bc328f"/>
+      <stop offset=".16" stop-color="#ff64cc"/>
+      <stop offset=".38" stop-color="#ff9cdd"/>
+      <stop offset=".62" stop-color="#ff9cdd"/>
+      <stop offset=".85" stop-color="#ff64cc"/>
+      <stop offset="1" stop-color="#bc328f"/>
+    </linearGradient>
+    <linearGradient id="accent-liquid" x1="0" y1="16" x2="0" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#bd203e"/>
+      <stop offset=".16" stop-color="#ff3d4b"/>
+      <stop offset=".38" stop-color="#ff8790"/>
+      <stop offset=".62" stop-color="#ff8790"/>
+      <stop offset=".85" stop-color="#ff3d4b"/>
+      <stop offset="1" stop-color="#bd203e"/>
+    </linearGradient>
+    <linearGradient id="sleeve" x1="0" y1="14" x2="0" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#211127"/>
+      <stop offset=".16" stop-color="#583445"/>
+      <stop offset=".35" stop-color="#21101f"/>
+      <stop offset=".7" stop-color="#100c15"/>
+      <stop offset="1" stop-color="#30162d"/>
+    </linearGradient>
+    <filter id="halo" filterUnits="userSpaceOnUse" x="0" y="0" width="640" height="48" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="7.5"/>
+    </filter>
+    <filter id="bloom" filterUnits="userSpaceOnUse" x="0" y="0" width="640" height="48" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.8"/>
+    </filter>
+    <!-- Broad, blurred clouds modulate the colored liquid without gritty grain. -->
+    <filter id="liquid-clouds" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".017 .075" numOctaves="1" seed="73" result="clouds"/>
+      <feGaussianBlur in="clouds" stdDeviation="1.5"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncR type="linear" slope=".7" intercept=".15"/>
+        <feFuncG type="linear" slope=".7" intercept=".15"/>
+        <feFuncB type="linear" slope=".7" intercept=".15"/>
+      </feComponentTransfer>
+      <feBlend in2="SourceGraphic" mode="soft-light"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+  </defs>
+
+  <!-- Diffuse spill surrounds a broad colored core, without a pale filament. -->
+  <g filter="url(#halo)" stroke-linecap="round">
+    <path d="M35 24H388" stroke="#ff35d0" stroke-opacity=".74" stroke-width="10"/>
+    <path d="M406 24H605" stroke="#ff2347" stroke-opacity=".94" stroke-width="12"/>
+  </g>
+  <g filter="url(#bloom)" stroke-linecap="round">
+    <path d="M35 24H388" stroke="#ff64cc" stroke-opacity=".82" stroke-width="7"/>
+    <path d="M406 24H605" stroke="#ff3d4b" stroke-opacity=".97" stroke-width="8"/>
+  </g>
+
+  <!-- Smooth rounded plastic carries a cloudy liquid glow across the full tube. -->
+  <rect x="31" y="16" width="361" height="16" rx="8" fill="url(#primary-liquid)" filter="url(#liquid-clouds)"/>
+  <rect x="402" y="16" width="207" height="16" rx="8" fill="url(#accent-liquid)" filter="url(#liquid-clouds)"/>
+
+  <!-- Small electrode collars ground the light as an installed object. -->
+  <g fill="url(#sleeve)" stroke="#72334f" stroke-opacity=".6" stroke-width=".6">
+    <rect x="25" y="15" width="9" height="18" rx="3"/>
+    <rect x="390" y="14.5" width="14" height="19" rx="3"/>
+    <rect x="606" y="15" width="9" height="18" rx="3"/>
+  </g>
+  <g stroke-width=".75">
+    <path d="M33 18V30M391 18V30" stroke="#f4a1d9" stroke-opacity=".74"/>
+    <path d="M403 18V30M607 18V30" stroke="#ff8b73" stroke-opacity=".85"/>
+    <path d="M28 18V30M394 17.5V30.5M400 17.5V30.5M612 18V30" stroke="#a74e72" stroke-opacity=".27"/>
+  </g>
+</svg>

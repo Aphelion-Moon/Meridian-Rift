@@ -4,6 +4,8 @@
 /obj/item/clothing/under/shorts
 	worn_icon_digi = SHORTS_PANTS_SHIRTS_DIGIFILE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION //That's right, TG, I have icons for ALL of these!! Mwahahaha!!!!
+	greyscale_config_worn_digi = /datum/greyscale_config/shorts/worn/digi
+	vox_primalis_force_pants = TRUE
 
 /obj/item/clothing/under/pants/nova
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/shorts_pants_shirts.dmi'
@@ -110,6 +112,7 @@
 	greyscale_colors = "#ba917d"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
+	greyscale_config_worn_better_vox = /datum/greyscale_config/wide_leg/worn
 
 /*
 *	SHORTS
@@ -159,6 +162,7 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	greyscale_config_worn_better_vox = /datum/greyscale_config/kilt/worn/digi
 
 /obj/item/clothing/under/pants/nova/vicvest //there's no way I'm typing out a path called double_breasted 10 times over, too complex and everyone will be scared of it
 	name = "buttondown shirt with double-breasted vest"
@@ -176,9 +180,6 @@
 /*
 *	Shorts that were previously using nonmodular edits to add their greyscale data, pulled from code/modules/clothing/under/shorts.dm
 */
-
-/obj/item/clothing/under/shorts
-	greyscale_config_worn_digi = /datum/greyscale_config/shorts/worn/digi
 
 /obj/item/clothing/under/shorts/jeanshorts
 	greyscale_config_worn_digi = /datum/greyscale_config/jeanshorts/worn/digi

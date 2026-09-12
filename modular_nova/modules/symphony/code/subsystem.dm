@@ -5,6 +5,29 @@ SUBSYSTEM_DEF(symphony)
 	ss_flags = SS_BACKGROUND | SS_NO_INIT
 	runlevels = RUNLEVEL_LOBBY | RUNLEVEL_SETUP | RUNLEVEL_GAME
 
+	/// BYOND version string, formatted once for status responses.
+	var/byond_version
+
+	// Config entries populate these on default/reset and successful ValidateAndSet().
+	/// Enables whitelist enforcement and role-based perks.
+	var/enabled
+	/// Base URL of the Symphony panel.
+	var/url
+	/// Seconds between losing the whitelist role and returning to the lobby.
+	var/grace_seconds
+	/// Allows Discord mappings to grant admin ranks when enabled.
+	var/discord_admin_sync
+	/// Restricts Symphony topics to local and explicitly allowed addresses.
+	var/topics_local_only
+	/// Additional addresses accepted by the topic gate.
+	var/list/topics_allowed_addresses
+	/// Shared server settings used by panel responses and ban notices.
+	var/server_name
+	var/ban_appeals
+	var/admin_legacy_system
+	/// Status needs only the presence of a comms key, never the credential itself.
+	var/comms_key_set
+
 	// Static state survives subsystem replacement, including queries still waiting on the database.
 	/// Admission answers keyed by ckey, shared by lobby updates and enforcement.
 	var/static/list/whitelist_cache = list()
@@ -17,14 +40,29 @@ SUBSYSTEM_DEF(symphony)
 	/// Last authenticated contact refused by the address gate, kept separate for diagnostics.
 	var/static/list/panel_refused = list()
 
+/datum/controller/subsystem/symphony/PreInit()
+	byond_version = "[world.byond_version].[world.byond_build]"
+
+/datum/controller/subsystem/symphony/Recover()
+	enabled = SSsymphony.enabled
+	url = SSsymphony.url
+	grace_seconds = SSsymphony.grace_seconds
+	discord_admin_sync = SSsymphony.discord_admin_sync
+	topics_local_only = SSsymphony.topics_local_only
+	topics_allowed_addresses = SSsymphony.topics_allowed_addresses
+	server_name = SSsymphony.server_name
+	ban_appeals = SSsymphony.ban_appeals
+	admin_legacy_system = SSsymphony.admin_legacy_system
+	comms_key_set = SSsymphony.comms_key_set
+
 /datum/controller/subsystem/symphony/fire()
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return
 	// One query for the lot. null means we couldn't check, an empty list means nobody holds it.
 	var/epoch = SSsymphony.whitelist_epoch
 	var/list/holders = symphony_ingame_role_ckeys("whitelist")
 	// A panel notification or config change during the query makes the whole snapshot obsolete.
-	if(isnull(holders) || !CONFIG_GET(flag/symphony_enabled) || epoch != SSsymphony.whitelist_epoch)
+	if(isnull(holders) || !SSsymphony.enabled || epoch != SSsymphony.whitelist_epoch)
 		return
 	// A copy, because revoking can qdel a client out from under the loop.
 	for(var/client/checked as anything in GLOB.clients.Copy())
@@ -33,9 +71,7 @@ SUBSYSTEM_DEF(symphony)
 		// We've got the real answer in bulk, so write it over whatever the per-ckey cache held. Blanking it instead just forces everyone to re-query for something we already know.
 		var/whitelisted = holders[checked.ckey] ? TRUE : FALSE
 		symphony_seed_whitelist_cache(checked.ckey, whitelisted)
-		if(whitelisted)
-			continue
-		if(checked.holder)
+		if(whitelisted || checked.holder)
 			continue
 		// Lobby players need unreadying too, or a missed revoke still spawns them.
 		if(isnewplayer(checked.mob))

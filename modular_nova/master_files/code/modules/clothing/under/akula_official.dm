@@ -24,6 +24,7 @@
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	bodyshapes_with_variations = NONE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/centcom.dmi'
 
 /obj/item/clothing/under/rank/azulean/upstart
 	name = "\improper Agurkrral Upstart's noble getup"
@@ -42,3 +43,4 @@
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	bodyshapes_with_variations = NONE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/centcom.dmi'

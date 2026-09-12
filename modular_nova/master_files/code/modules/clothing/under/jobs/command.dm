@@ -14,6 +14,7 @@
 	name = "captain's kilt"
 	desc = "A midnight blue kilt, padded with nano-kevlar and adorned with gold and a tartan sash."
 	icon_state = "capkilt"
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/command_digi.dmi'
 
 /obj/item/clothing/under/imperial/captain
 	name = "captain's naval jumpsuit"
@@ -200,6 +201,7 @@
 	worn_icon_digi = null
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	gets_cropped_on_taurs = FALSE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/command.dmi'
 
 /obj/item/clothing/under/rank/bridge_officer/turtle
 	name = "bridge officer's turtleneck"
@@ -213,6 +215,7 @@
 	worn_icon_digi = null
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	gets_cropped_on_taurs = FALSE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/command.dmi'
 
 /obj/item/clothing/under/imperial/bridge_officer
 	name = "bridge officer's naval uniform"
@@ -273,6 +276,7 @@
 	greyscale_config_worn = /datum/greyscale_config/officersnavalskirt/worn
 	flags_1 = IS_PLAYER_COLORABLE_1
 	can_adjust = FALSE
+	greyscale_config_worn_better_vox = /datum/greyscale_config/officersnavalskirt/worn
 
 /obj/item/clothing/under/imperialvest
 	post_init_icon_state = "officersnavalvest"
@@ -296,6 +300,7 @@
 	bodyshapes_with_variations = NONE
 	armor_type = /datum/armor/clothing_under/security_head_of_security
 	can_adjust = FALSE
+	greyscale_config_worn_better_vox = /datum/greyscale_config/officersnavalskirtvest/worn
 
 /obj/item/clothing/under/imperial/red
 	name = "red naval jumpsuit"

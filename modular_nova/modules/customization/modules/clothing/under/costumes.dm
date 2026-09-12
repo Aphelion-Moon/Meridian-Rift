@@ -30,6 +30,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
 	gets_cropped_on_taurs = FALSE
+	greyscale_config_worn_better_vox = /datum/greyscale_config/maid_costume/worn
 
 //ALL BUNNY STUFF BY DimWhat OF MONKEESTATION
 

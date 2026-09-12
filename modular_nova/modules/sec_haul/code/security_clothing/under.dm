@@ -78,6 +78,7 @@
 	gets_cropped_on_taurs = FALSE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	worn_icon_digi = null
+	greyscale_config_worn_better_vox = /datum/greyscale_config/depgag_skirt/worn
 
 /obj/item/clothing/under/rank/security/nova/skirt/blue
 	worn_icon_digi = null
@@ -98,6 +99,7 @@
 	gets_cropped_on_taurs = FALSE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	worn_icon_digi = null
+	greyscale_config_worn_better_vox = /datum/greyscale_config/depgag_skirt_plain/worn
 
 /obj/item/clothing/under/rank/security/nova/plainskirt/blue
 	worn_icon_digi = null
@@ -117,6 +119,7 @@
 	gets_cropped_on_taurs = FALSE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	worn_icon_digi = null
+	greyscale_config_worn_better_vox = /datum/greyscale_config/depgag_mini/worn
 
 /obj/item/clothing/under/rank/security/nova/miniskirt/blue
 	worn_icon_digi = null
@@ -144,6 +147,7 @@
 	greyscale_colors = "#A52F29#39393F#A52F29"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	worn_icon_digi = null
+	greyscale_config_worn_better_vox = /datum/greyscale_config/depgag_dress/worn
 
 /obj/item/clothing/under/rank/security/nova/dress/blue
 	worn_icon_digi = null

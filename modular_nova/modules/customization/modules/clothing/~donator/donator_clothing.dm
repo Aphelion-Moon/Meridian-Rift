@@ -341,6 +341,7 @@
 	icon_state = "paddeddress"
 	inhand_icon_state = "paddeddress"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	worn_icon_better_vox = 'modular_nova/master_files/icons/donator/mob/clothing/suit.dmi'
 
 // Donation reward for snailomi
 /obj/item/clothing/neck/padded/alt
@@ -385,6 +386,7 @@
 	icon_state = "clowndress"
 	supports_variations_flags = NONE
 	resistance_flags = FIRE_PROOF
+	worn_icon_better_vox = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 
 // Donation reward for Bloodrite
 /obj/item/clothing/mask/gas/britches
@@ -715,6 +717,7 @@
 	worn_icon_digi = null
 	supports_variations_flags = NONE
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
+	worn_icon_better_vox = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 
 // Donation reward for NetraKyram
 /obj/item/clothing/gloves/netra
@@ -899,6 +902,7 @@
 	can_adjust = TRUE
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	body_parts_covered = CHEST|GROIN|LEGS|FEET
+	worn_icon_better_vox = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 
 /obj/item/clothing/under/custom/lannese/vambrace
 	desc = "An alien cultural garment for women, coming from a distant planet named Cantalan. Shiny vambraces included!"
@@ -982,6 +986,9 @@
 	worn_icon = 'modular_nova/master_files/icons/donator/mob/clothing/feet.dmi'
 	worn_icon_state = "mikuleggings"
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_teshari = null
 
 // Donation reward for CandleJax
 /obj/item/clothing/mask/gas/cmcp_mask
@@ -2474,6 +2481,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	icon_state = "dagmardress_a"
 	worn_icon_digi = null
+	worn_icon_better_vox = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 
 /obj/item/clothing/under/dress/neoflapperdagmar
 	name = "neo-flapper dress"
@@ -2486,6 +2494,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	icon_state = "dagmardress_b"
 	worn_icon_digi = null
+	worn_icon_better_vox = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 
 /obj/item/clothing/under/dress/ambassadordagmar
 	name = "ambassador's dress"
@@ -2498,6 +2507,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	icon_state = "dagmardress_c"
 	worn_icon_digi = null
+	worn_icon_better_vox = 'modular_nova/master_files/icons/donator/mob/clothing/uniform.dmi'
 
 /obj/item/clothing/under/ecologist
 	name = "ecologist's garb"

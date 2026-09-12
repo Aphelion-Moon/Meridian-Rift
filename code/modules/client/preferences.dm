@@ -450,6 +450,10 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/image/canvas
 	var/last_canvas_size
 	var/last_canvas_state
+	// APHELION EDIT ADDITION START - Explicit bounds for first-use preview resources.
+	/// A transparent tiled rectangle sizes the map before the canvas icon reaches the client.
+	var/atom/movable/screen/background/preview_bounds
+	// APHELION EDIT ADDITION END
 	// NOVA EDIT ADDITION END
 
 /atom/movable/screen/map_view/char_preview/Initialize(mapload, datum/hud/hud_owner, datum/preferences/preferences)
@@ -457,6 +461,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	src.preferences = preferences
 
 /atom/movable/screen/map_view/char_preview/Destroy()
+	QDEL_NULL(preview_bounds) // APHELION EDIT ADDITION - Owned preview map bounds.
 	// NOVA EDIT ADDITION START: Better character preview
 	canvas?.cut_overlays()
 	canvas = null
@@ -466,6 +471,13 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	preferences = null
 	return ..()
 
+// APHELION EDIT ADDITION START - Register bounds through the normal map lifecycle.
+/atom/movable/screen/map_view/char_preview/display_to_client(client/show_to)
+	. = ..()
+	if(preview_bounds)
+		show_to.register_map_obj(preview_bounds)
+
+// APHELION EDIT ADDITION END
 /// Updates the currently displayed body
 /atom/movable/screen/map_view/char_preview/proc/update_body()
 	if (isnull(body))
@@ -498,6 +510,13 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 
 	// Update the map view bounds when canvas size changes to properly display the scaled preview
 	set_position(1, 1)
+	// APHELION EDIT ADDITION START - Do not depend on downloaded icon dimensions for map sizing.
+	if(isnull(preview_bounds))
+		preview_bounds = new
+		preview_bounds.del_on_map_removal = FALSE
+	preview_bounds.assigned_map = assigned_map
+	preview_bounds.fill_rect(1, 1, canvas_size + 1, canvas_size + 1)
+	// APHELION EDIT ADDITION END
 	last_canvas_size = canvas_size
 	last_canvas_state = canvas_state
 

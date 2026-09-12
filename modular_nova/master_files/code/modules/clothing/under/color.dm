@@ -1,5 +1,9 @@
 /obj/item/clothing/under/color/rainbow
 	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/color_digi.dmi'
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_better_vox = null
+	greyscale_config_worn_teshari = null
 
 /**
  * Random jumpsuit is the preferred style of the wearer if loaded as an outfit.

@@ -53,6 +53,7 @@
 	post_init_icon_state = "depgag_gauntlet"
 	greyscale_config = /datum/greyscale_config/depgag_caped_gauntlet
 	greyscale_config_worn = /datum/greyscale_config/depgag_caped_gauntlet/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/depgag_caped_gauntlet/worn/better_vox
 	greyscale_colors = "#A52F29"
 
 /obj/item/clothing/neck/security_cape/armplate_caped/blue

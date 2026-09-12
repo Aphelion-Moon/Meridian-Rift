@@ -54,6 +54,10 @@
 	item_path = /obj/item/clothing/under/color/random
 	loadout_flags = parent_type::loadout_flags | LOADOUT_FLAG_BLOCK_GREYSCALING
 
+/datum/loadout_item/under/jumpsuit/random/insert_path_into_outfit(datum/outfit/outfit, mob/living/carbon/human/equipper, visuals_only = FALSE, override_items = LOADOUT_OVERRIDE_BACKPACK)
+	. = ..()
+	outfit.uniform = get_random_jumpsuit()
+
 /datum/loadout_item/under/jumpsuit/random/get_item_information()
 	. = ..()
 	.[FA_ICON_DICE] = TOOLTIP_RANDOM_COLOR

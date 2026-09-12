@@ -76,13 +76,7 @@
 	return markings
 
 /datum/species/vox/get_custom_worn_icon(item_slot, obj/item/item)
-	// snowflakey but vox legs weird.
-	if(item_slot == LOADOUT_ITEM_SHOES)
-		var/obj/item/bodypart/leg = bodypart_overrides[BODY_ZONE_L_LEG] || bodypart_overrides[BODY_ZONE_R_LEG]
-		if(leg && !(initial(leg.bodyshape) & BODYSHAPE_DIGITIGRADE))
-			// normal legs, use normal human shoes
-			return DEFAULT_SHOES_FILE
-
+	// APHELION EDIT CHANGE - Current leg shape is checked by generate_custom_worn_icon().
 	return item.worn_icon_vox
 
 /datum/species/vox/set_custom_worn_icon(item_slot, obj/item/item, icon/icon)

@@ -100,6 +100,7 @@
 	alternate_worn_layer = UNDER_SUIT_LAYER
 	flags_1 = IS_PLAYER_COLORABLE_1
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	greyscale_config_worn_better_vox = /datum/greyscale_config/maid_uniform/worn
 
 /obj/item/clothing/under/costume/nova/maid_uniform_alt
 	worn_icon_digi = null
@@ -116,6 +117,7 @@
 	can_adjust = TRUE
 	flags_1 = IS_PLAYER_COLORABLE_1
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	greyscale_config_worn_better_vox = /datum/greyscale_config/maid_uniform_alt/worn
 
 /*
 *	LUNAR AND JAPANESE CLOTHES
@@ -135,6 +137,7 @@
 	greyscale_config_worn_digi = /datum/greyscale_config/qipao/worn/digi
 	flags_1 = IS_PLAYER_COLORABLE_1
 	gets_cropped_on_taurs = FALSE
+	greyscale_config_worn_better_vox = /datum/greyscale_config/qipao/worn
 
 /obj/item/clothing/under/costume/nova/qipao/customtrim
 	greyscale_colors = "#2b2b2b#ffce5b"
@@ -144,6 +147,7 @@
 	greyscale_config = /datum/greyscale_config/qipao_customtrim
 	greyscale_config_worn = /datum/greyscale_config/qipao_customtrim/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/qipao_customtrim/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/qipao_customtrim/worn
 
 /obj/item/clothing/under/costume/nova/cheongsam
 	name = "cheongsam"
@@ -158,6 +162,7 @@
 	greyscale_config_worn = /datum/greyscale_config/cheongsam/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/cheongsam/worn/digi
 	flags_1 = IS_PLAYER_COLORABLE_1
+	greyscale_config_worn_better_vox = /datum/greyscale_config/cheongsam/worn
 
 /obj/item/clothing/under/costume/nova/cheongsam/customtrim
 	greyscale_colors = "#2b2b2b#ffce5b#353535"
@@ -167,6 +172,7 @@
 	greyscale_config = /datum/greyscale_config/cheongsam_customtrim
 	greyscale_config_worn = /datum/greyscale_config/cheongsam_customtrim/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/cheongsam_customtrim/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/cheongsam_customtrim/worn
 
 /obj/item/clothing/under/costume/nova/yukata
 	name = "yukata"
@@ -222,6 +228,7 @@
 	bodyshapes_with_variations = NONE
 	flags_1 = IS_PLAYER_COLORABLE_1
 	worn_icon_digi = null
+	greyscale_config_worn_better_vox = /datum/greyscale_config/chima_jeogori/worn
 
 /*
 *	CHRISTMAS CLOTHES

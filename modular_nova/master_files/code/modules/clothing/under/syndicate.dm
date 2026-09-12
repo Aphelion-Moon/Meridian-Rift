@@ -117,6 +117,7 @@
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	dying_key = DYE_REGISTRY_JUMPSKIRT
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/syndicate.dmi'
 
 /obj/item/clothing/under/syndicate/nova/tactical/unarmoured/examine_more(mob/user)
 	. = ..()
@@ -140,6 +141,7 @@
 	dying_key = DYE_REGISTRY_JUMPSKIRT
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/syndicate.dmi'
 
 /obj/item/clothing/under/syndicate/nova/overalls/unarmoured/examine_more(mob/user)
 	. = ..()
@@ -215,6 +217,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
 	gets_cropped_on_taurs = FALSE
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/syndicate.dmi'
 
 /obj/item/clothing/under/syndicate/nova/tactical/skirt/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/tactical_skirtleneck)

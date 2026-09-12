@@ -1,0 +1,228 @@
+// THIS IS AN APHELION UI FILE
+// Shared readable menu geometry; each instrument profile supplies its materials.
+// Existing Wastelander, Highline, and Aphelion menus keep their authored layouts.
+.lobby[data-menu-treatment='instrument'] {
+  --menu-panel: var(--lobby-panel);
+  --menu-raised: var(--console-surface-raised, var(--lobby-panel));
+  --menu-text: var(--lobby-text);
+  --menu-muted: var(--lobby-text-muted);
+  --menu-accent: var(--lobby-accent);
+  --menu-secondary: var(--lobby-accent-secondary);
+  --menu-focus: var(--lobby-focus);
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 45%, var(--lobby-panel));
+  --menu-frame: var(--lobby-boundary);
+  --menu-border-top: 1px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 1px;
+  --menu-border-left: 1px;
+  --menu-radius: 0;
+  --menu-shadow: 0 4px 12px rgb(0 0 0 / 28%);
+  --menu-rule: linear-gradient(90deg, var(--menu-accent) 0 72%, transparent 72% 80%, var(--menu-frame) 80%);
+  --menu-rule-height: 2px;
+  --menu-rule-width: 96px;
+  --menu-heading-font: 'VCR OSD Mono', Consolas, monospace;
+  --menu-heading-tracking: 0.12em;
+  --menu-body-font: 'VCR OSD Mono', Consolas, monospace;
+  --menu-body-tracking: 0.03em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 8%, var(--lobby-recessed));
+  --menu-control-rail: 2px;
+  --menu-inset: clamp(14px, 1.6vmin, 22px);
+  --menu-gutter: clamp(24px, 2.4vmin, 32px);
+
+  .container_nav {
+    padding: var(--menu-inset);
+    scrollbar-color: var(--menu-frame) var(--lobby-recessed);
+    border-style: solid;
+    border-width: var(--menu-border-top) var(--menu-border-right)
+      var(--menu-border-bottom) var(--menu-border-left);
+    border-color: var(--menu-frame);
+    border-radius: var(--menu-radius);
+    color: var(--menu-text);
+    background: var(--menu-panel);
+    box-shadow: var(--menu-shadow);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: var(--menu-inset);
+      width: min(var(--menu-rule-width), calc(100% - 2 * var(--menu-inset)));
+      height: var(--menu-rule-height);
+      background: var(--menu-rule);
+      pointer-events: none;
+    }
+
+    &::after {
+      pointer-events: none;
+    }
+
+    hr {
+      margin: clamp(7px, 0.85vmin, 12px) 0;
+      background: var(--menu-line);
+    }
+  }
+
+  .lobby-terminal-heading {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 3px 4px clamp(10px, 1.3vmin, 17px);
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--menu-line);
+    color: var(--menu-muted);
+    font-family: var(--menu-heading-font);
+    font-size: clamp(13px, 1.25vmin, 17px);
+    font-weight: 400;
+    letter-spacing: var(--menu-heading-tracking);
+    line-height: 1.4;
+  }
+
+  .lobby-terminal-phase {
+    padding: 3px 6px;
+    border-left: 1px solid var(--menu-frame);
+    color: var(--menu-secondary);
+    font-size: 0.9em;
+    letter-spacing: 0.05em;
+  }
+
+  .menu_button {
+    min-height: clamp(32px, 3.5vmin, 46px);
+    padding: 5px 12px 5px var(--menu-gutter);
+    border-left: var(--menu-control-rail) solid transparent;
+    border-radius: var(--menu-radius);
+    color: var(--menu-text);
+    font-family: var(--menu-body-font);
+    font-size: clamp(16px, 2vmin, 26px);
+    letter-spacing: var(--menu-body-tracking);
+    line-height: 1.4;
+
+    &:first-of-type {
+      color: var(--menu-secondary);
+    }
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      padding-left: var(--menu-gutter);
+      border-left-color: var(--menu-focus);
+      color: var(--menu-text);
+      background: var(--menu-hover-face);
+    }
+
+    &:hover:not(:disabled)::before,
+    &:focus-visible::before {
+      left: 6px;
+      color: var(--menu-focus);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--menu-focus);
+    }
+
+    &:active:not(:disabled) {
+      padding-left: var(--menu-gutter);
+      background: var(--menu-raised);
+    }
+
+    &.info_display {
+      color: var(--menu-muted);
+    }
+
+    &.menu_readout {
+      font-family: Consolas, monospace;
+      font-size: clamp(12px, 1.45vmin, 18px);
+      letter-spacing: 0.03em;
+    }
+  }
+
+  #character_slot,
+  .unchecked {
+    color: var(--menu-muted);
+  }
+
+  .checked {
+    color: var(--menu-secondary);
+  }
+
+  .trait_list {
+    padding-left: var(--menu-gutter);
+  }
+
+  .trait_button {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 32px;
+    color: var(--menu-text);
+    font-family: var(--menu-body-font);
+    font-size: clamp(16px, 1.8vmin, 24px);
+    line-height: 1.4;
+
+    &:hover {
+      color: var(--menu-secondary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--menu-focus);
+      outline-offset: -2px;
+    }
+  }
+
+  .trait_name {
+    min-width: 0;
+  }
+
+  .trait_feedback {
+    padding-left: var(--menu-gutter);
+    color: var(--menu-muted);
+    font-family: Consolas, monospace;
+    font-size: clamp(12px, 1.3vmin, 17px);
+    line-height: 1.5;
+    text-align: left;
+    text-shadow: none;
+    overflow-wrap: anywhere;
+  }
+
+  .menu_newpoll {
+    padding-left: var(--menu-gutter);
+    border-left-color: var(--menu-secondary);
+  }
+}
+
+@media (max-width: 600px) {
+  .lobby[data-menu-treatment='instrument'] .container_nav {
+    max-height: min(70vh, calc(100% - 28vmin));
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root .lobby[data-menu-treatment='instrument'] {
+    --menu-line: var(--menu-frame);
+
+    .container_nav {
+      box-shadow: none;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  :root .lobby[data-menu-treatment='instrument'] {
+    --menu-text: CanvasText;
+    --menu-muted: CanvasText;
+    --menu-accent: Highlight;
+    --menu-secondary: CanvasText;
+    --menu-focus: Highlight;
+    --menu-line: CanvasText;
+    --menu-frame: CanvasText;
+    --menu-hover-face: Canvas;
+    --menu-raised: Canvas;
+
+    .container_nav {
+      background: Canvas;
+      border-color: CanvasText;
+      box-shadow: none;
+    }
+
+    .container_nav::before,
+    .container_nav::after {
+      display: none;
+    }
+  }
+}

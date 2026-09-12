@@ -22,11 +22,11 @@ ADMIN_VERB(symphony_status, R_ADMIN, "Symphony Status", "Version and link state 
 		out += span_warning("A topic from [html_encode(barred["addr"])] was refused [symphony_ago(barred["at"])], not an allowed address.")
 
 	out += "&nbsp;"
-	out += "Whitelist enforcement: [CONFIG_GET(flag/symphony_enabled) ? "on" : "<b>off</b>"]"
-	out += "Panel URL: [CONFIG_GET(string/symphony_url) || "<b>not set</b>"]"
-	out += "Comms key: [CONFIG_GET(string/comms_key) ? "set" : "<b>not set</b>, every topic is refused"]"
-	var/list/allowed = CONFIG_GET(str_list/symphony_topics_allowed_addresses)
-	if(!CONFIG_GET(flag/symphony_topics_local_only))
+	out += "Whitelist enforcement: [SSsymphony.enabled ? "on" : "<b>off</b>"]"
+	out += "Panel URL: [SSsymphony.url || "<b>not set</b>"]"
+	out += "Comms key: [SSsymphony.comms_key_set ? "set" : "<b>not set</b>, every topic is refused"]"
+	var/list/allowed = SSsymphony.topics_allowed_addresses
+	if(!SSsymphony.topics_local_only)
 		out += "Topics: any address with the key"
 	else
 		out += "Topics: local only[length(allowed) ? ", plus [length(allowed)] allowed" : ""]"

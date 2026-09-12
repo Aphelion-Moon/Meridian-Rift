@@ -116,7 +116,9 @@ export function CharacterPreferenceWindow(props: {
   onAugmentsTabChange?: (tab: import('./LimbsPage').AugmentsTab | null) => void;
 }) {
   const { act, data } = useBackend<PreferencesMenuData>();
+  /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
+  */ // APHELION EDIT REMOVAL END
   const [currentPage, setCurrentPageRaw] = useState(Page.Main);
   const setCurrentPage = (page: Page) => {
     if (page !== Page.Limbs) props.onAugmentsTabChange?.(null);
@@ -160,7 +162,7 @@ export function CharacterPreferenceWindow(props: {
         <LimbsPage
           onTabChange={(tab) => {
             props.onAugmentsTabChange?.(tab);
-            setAugmentsTab(tab);
+            // setAugmentsTab(tab); // APHELION EDIT REMOVAL - MERIDIAN_UI
           }}
         />
       );

@@ -9,6 +9,7 @@
 	worn_icon = 'modular_nova/modules/kahraman_equipment/icons/clothes/clothing_worn.dmi'
 	worn_icon_digi = 'modular_nova/modules/kahraman_equipment/icons/clothes/clothing_worn_digi.dmi'
 	worn_icon_teshari = 'modular_nova/modules/kahraman_equipment/icons/clothes/clothing_worn_teshari.dmi'
+	vox_primalis_force_pants = TRUE
 	worn_icon_state = "jumpsuit"
 	sensor_mode = SENSOR_COORDS
 	random_sensor = FALSE

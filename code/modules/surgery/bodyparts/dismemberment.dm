@@ -116,9 +116,17 @@
 					to_chat(phantom_owner, span_warning("You feel your [mutation] deactivating from the loss of your [body_zone]!"))
 					phantom_owner.dna.remove_mutation(mutation, mutation.sources)
 
-	update_icon_dropped()
+	//update_icon_dropped() // APHELION EDIT REMOVAL - Nullspace drops below delete the limb without displaying it.
+	// APHELION EDIT ADDITION START - Nullspace drops below delete the limb without displaying it.
+	if(!move_to_floor || drop_loc)
+		update_icon_dropped()
+	// APHELION EDIT ADDITION END
 	phantom_owner.update_health_hud() //update the healthdoll
-	phantom_owner.update_body()
+	//phantom_owner.update_body() // APHELION EDIT REMOVAL - Honor the existing species-change render batch.
+	// APHELION EDIT ADDITION START - Honor the existing species-change render batch.
+	if(!(phantom_owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+		phantom_owner.update_body()
+	// APHELION EDIT ADDITION END
 	if(!special)
 		phantom_owner.hud_used?.update_locked_slots()
 
@@ -308,8 +316,15 @@
 		// behavior within said bodyparts list. We sort it here, as it's the only place we make changes to bodyparts.
 		new_limb_owner.bodyparts = sort_list(new_limb_owner.bodyparts, GLOBAL_PROC_REF(cmp_bodypart_by_body_part_asc))
 		new_limb_owner.updatehealth()
-		new_limb_owner.update_body() // updates lips + hair + eyes
-		new_limb_owner.update_damage_overlays()
+		/* // APHELION EDIT REMOVAL START - Honor the existing species-change render batch.
+		//new_limb_owner.update_body() // updates lips + hair + eyes
+		//new_limb_owner.update_damage_overlays()
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - Honor the existing species-change render batch.
+		if(!(new_limb_owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+			new_limb_owner.update_body() // updates lips + hair + eyes
+			new_limb_owner.update_damage_overlays()
+		// APHELION EDIT ADDITION END
 		if(!special)
 			new_limb_owner.hud_used?.update_locked_slots()
 
@@ -352,8 +367,15 @@
 		sexy_chad.lip_color = lip_color
 
 	new_head_owner.updatehealth()
-	new_head_owner.update_body() // updates lips + hair + eyes
-	new_head_owner.update_damage_overlays()
+	/* // APHELION EDIT REMOVAL START - Honor the existing species-change render batch.
+	//new_head_owner.update_body() // updates lips + hair + eyes
+	//new_head_owner.update_damage_overlays()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Honor the existing species-change render batch.
+	if(!(new_head_owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+		new_head_owner.update_body() // updates lips + hair + eyes
+		new_head_owner.update_damage_overlays()
+	// APHELION EDIT ADDITION END
 
 /obj/item/bodypart/arm/try_attach_limb(mob/living/carbon/new_arm_owner, special, lazy)
 	. = ..()

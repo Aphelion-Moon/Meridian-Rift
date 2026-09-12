@@ -7,6 +7,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/civilian.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/under/civilian.dmi'
 	icon_state = "pink_clown_outfit"
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/civilian.dmi'
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
 	worn_icon_digi = null

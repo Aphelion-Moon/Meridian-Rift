@@ -20,6 +20,7 @@
 	icon_state = "under_police_skirt"
 	can_adjust = TRUE
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
+	worn_icon_better_vox = 'modular_nova/modules/food_replicator/icons/clothing_digi.dmi'
 
 /obj/item/clothing/neck/cloak/colonial/hc_police
 	name = "coalition police cloak"

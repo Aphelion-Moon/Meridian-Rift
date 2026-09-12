@@ -1,15 +1,15 @@
 import {
   Box,
   Button,
-  ByondUi,
+  // ByondUi, // APHELION EDIT REMOVAL - native UI menu avoidance
   NumberInput,
   Section,
   Stack,
 } from 'tgui-core/components';
 import { toFixed } from 'tgui-core/math';
-
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
+import { ByondUi } from '../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 
 type Data = {
   mapRef: string;

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="64" viewBox="0 0 640 64" preserveAspectRatio="none" fill="none">
+  <defs>
+    <linearGradient id="color" x1="0" y1="0" x2="640" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#41f4ff"/>
+      <stop offset="0.2" stop-color="#79ff79"/>
+      <stop offset="0.4" stop-color="#ffe675"/>
+      <stop offset="0.6" stop-color="#ffa966"/>
+      <stop offset="0.8" stop-color="#ff697b"/>
+      <stop offset="1" stop-color="#e596f3"/>
+    </linearGradient>
+    <linearGradient id="liquid" x1="0" y1="0" x2="640" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#91f9ff"/>
+      <stop offset="0.2" stop-color="#b1ffb1"/>
+      <stop offset="0.4" stop-color="#fff1af"/>
+      <stop offset="0.6" stop-color="#ffcda6"/>
+      <stop offset="0.8" stop-color="#ffa8b2"/>
+      <stop offset="1" stop-color="#f0c2f8"/>
+    </linearGradient>
+    <linearGradient id="gas" x1="0" y1="0" x2="640" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ddfdff"/>
+      <stop offset="0.2" stop-color="#e7ffe7"/>
+      <stop offset="0.4" stop-color="#fffbe6"/>
+      <stop offset="0.6" stop-color="#fff0e3"/>
+      <stop offset="0.8" stop-color="#ffe4e7"/>
+      <stop offset="1" stop-color="#faecfd"/>
+    </linearGradient>
+    <filter id="halo" filterUnits="userSpaceOnUse" x="0" y="0" width="640" height="64" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5.8"/>
+    </filter>
+    <filter id="bloom" filterUnits="userSpaceOnUse" x="0" y="0" width="640" height="64" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.65"/>
+    </filter>
+    <filter id="soft-core" filterUnits="userSpaceOnUse" x="0" y="0" width="640" height="64" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.17"/>
+    </filter>
+    <!-- Low-frequency cloudy liquid, without dust, speckle, or broken edges. -->
+    <filter id="clouds" filterUnits="userSpaceOnUse" x="0" y="0" width="640" height="64" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".024 .05" numOctaves="1" seed="41"/>
+      <feGaussianBlur stdDeviation="1.4"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncR type="linear" slope=".65" intercept=".175"/>
+        <feFuncG type="linear" slope=".65" intercept=".175"/>
+        <feFuncB type="linear" slope=".65" intercept=".175"/>
+      </feComponentTransfer>
+      <feBlend in2="SourceGraphic" mode="soft-light"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <path id="tube" d="M0 32H640"/>
+  </defs>
+  <!-- A saturated envelope wraps the milky core; all light remains transparent. -->
+  <g stroke-linecap="butt" stroke-linejoin="round">
+    <use href="#tube" stroke="url(#color)" stroke-width="5" stroke-opacity=".58" filter="url(#halo)"/>
+    <use href="#tube" stroke="url(#color)" stroke-width="3.6" stroke-opacity=".85" filter="url(#bloom)"/>
+    <use href="#tube" stroke="url(#color)" stroke-width="2"/>
+    <use href="#tube" stroke="url(#liquid)" stroke-width="1.44" filter="url(#clouds)"/>
+    <use href="#tube" stroke="url(#gas)" stroke-width="0.64" stroke-opacity=".94" filter="url(#soft-core)"/>
+  </g>
+</svg>

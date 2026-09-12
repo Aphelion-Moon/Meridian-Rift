@@ -94,7 +94,7 @@
  */
 
 ///Default NtOS PDA theme
-#define PDA_THEME_NTOS "ntos"
+#define PDA_THEME_NTOS "meridian_classic" // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: #define PDA_THEME_NTOS "ntos"
 #define PDA_THEME_DARK_MODE "ntos_darkmode"
 #define PDA_THEME_RETRO "ntOS95"
 #define PDA_THEME_SYNTH "ntos_synth"
@@ -125,7 +125,7 @@
 #define PDA_THEME_ID_ABDUCTOR "abductor"
 
 //Defines for the names of all the themes
-#define PDA_THEME_NTOS_NAME "NtOS"
+#define PDA_THEME_NTOS_NAME "MeridianOS" // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: #define PDA_THEME_NTOS_NAME "NtOS"
 #define PDA_THEME_DARK_MODE_NAME "NtOS Dark Mode"
 #define PDA_THEME_RETRO_NAME "Retro"
 #define PDA_THEME_SYNTH_NAME "Synth"

@@ -28,10 +28,6 @@
 	bodyshapes_with_variations = NONE
 	worn_icon_digi = null
 
-/obj/item/clothing/under/rank/medical/doctor/nurse
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
-
 /obj/item/clothing/under/rank/engineering/chief_engineer/skirt
 	gets_cropped_on_taurs = FALSE
 	worn_icon_digi = null
@@ -116,25 +112,31 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
 	worn_icon_digi = null
+	worn_icon_better_vox = 'icons/mob/clothing/under/suits.dmi'
 
 /obj/item/clothing/under/rank/civilian/lawyer/beige/skirt
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
 	worn_icon_digi = null
+	worn_icon_better_vox = 'icons/mob/clothing/under/suits.dmi'
 
 /obj/item/clothing/under/rank/civilian/lawyer/red/skirt
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
 	worn_icon_digi = null
+	worn_icon_better_vox = 'icons/mob/clothing/under/suits.dmi'
 
 /obj/item/clothing/under/rank/civilian/lawyer/blue/skirt
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
 	worn_icon_digi = null
+	worn_icon_better_vox = 'icons/mob/clothing/under/suits.dmi'
 
 /obj/item/clothing/under/rank/civilian/lawyer/bluesuit/skirt
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
+	worn_icon_digi = null
+	greyscale_config_worn_digi = null
 
 /obj/item/clothing/under/rank/civilian/lawyer/purpsuit/skirt
 	gets_cropped_on_taurs = FALSE
@@ -228,8 +230,10 @@
 	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/rank/rnd/research_director/alt/skirt
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
 	gets_cropped_on_taurs = FALSE
+	worn_icon_digi = null
+	greyscale_config_worn_digi = null
 
 /obj/item/clothing/under/costume/buttondown/skirt
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
@@ -262,6 +266,7 @@
 /obj/item/clothing/under/rank/civilian/lawyer/galaxy/skirt
 	gets_cropped_on_taurs = FALSE
 	worn_icon_digi = null
+	worn_icon_better_vox = 'icons/mob/clothing/under/lawyer_galaxy.dmi'
 
 /obj/item/clothing/under/rank/civilian/lawyer/galaxy/red
 	gets_cropped_on_taurs = FALSE
@@ -304,8 +309,11 @@
 
 /obj/item/clothing/under/rank/prisoner
 	greyscale_config_worn_digi = /datum/greyscale_config/jumpsuit/prison/worn/digi
+	greyscale_config_worn_teshari = /datum/greyscale_config/jumpsuit/prison/worn/teshari
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
 	bodyshapes_with_variations = NONE
+	greyscale_config_worn_better_vox = /datum/greyscale_config/jumpsuit/prison/worn/better_vox
+	greyscale_config_worn_vox = /datum/greyscale_config/jumpsuit/prison/worn/vox
 
 /obj/item/clothing/under/rank/security/officer
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
@@ -326,6 +334,8 @@
 /obj/item/clothing/under/dress/skirt/plaid
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	greyscale_config_worn_teshari = /datum/greyscale_config/plaidskirt/worn/teshari
+	greyscale_config_worn_better_vox = /datum/greyscale_config/plaidskirt/worn/digi
 
 /obj/item/clothing/under/rank/civilian/clown/jester
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
@@ -512,6 +522,7 @@
 
 /obj/item/clothing/under/rank/civilian/lawyer/galaxy/red/skirt
 	worn_icon_digi = null
+	worn_icon_better_vox = 'icons/mob/clothing/under/lawyer_galaxy.dmi'
 
 /obj/item/clothing/under/costume/geisha
 	worn_icon_digi = null
@@ -541,3 +552,21 @@
 
 /obj/item/clothing/under/rank/medical/chemist/skirt
 	worn_icon_digi = null
+
+/obj/item/clothing/under/color/jumpskirt/rainbow
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_better_vox = null
+	greyscale_config_worn_teshari = null
+	worn_icon_better_vox = 'icons/mob/clothing/under/color.dmi'
+
+/obj/item/clothing/under/color/grey/ancient
+	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/color_digi.dmi'
+	greyscale_config_worn_digi = null
+	greyscale_config_worn_vox = null
+	greyscale_config_worn_better_vox = null
+	greyscale_config_worn_teshari = null
+	vox_primalis_force_pants = TRUE
+
+/obj/item/clothing/under/costume/kilt
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/costume_digi.dmi'

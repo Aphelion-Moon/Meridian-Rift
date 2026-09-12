@@ -23,13 +23,14 @@ export const CrewManifest = (props) => {
     <Window title="Crew Manifest" width={350} height={500}>
       <Window.Content scrollable>
         {Object.entries(manifest).map(([dept, crew]) => (
+          // APHELION EDIT CHANGE - CREW_MANIFEST - ORIGINAL: positions[dept].color, dept !== 'Misc', positions[dept].open
           <Section
             className={`CrewManifest--Section`}
             key={dept}
-            style={{'--department-color': positions[dept].color}}
+            style={{'--department-color': positions[dept]?.color}}
             title={
               dept +
-              (dept !== 'Misc'
+              (positions[dept]
                 ? ` (${positions[dept].open} positions open)`
                 : '')
             }
@@ -54,7 +55,8 @@ export const CrewManifest = (props) => {
                     minWidth="40px"
                     width="40px"
                   >
-                    {positions[dept].exceptions.includes(crewMember.rank) && (
+                    {/* APHELION EDIT CHANGE - CREW_MANIFEST - ORIGINAL: positions[dept].exceptions */}
+                    {positions[dept]?.exceptions.includes(crewMember.rank) && (
                       <Tooltip content="No position limit" position="bottom">
                         <Icon className="CrewManifest__Icon" name="infinity" />
                       </Tooltip>

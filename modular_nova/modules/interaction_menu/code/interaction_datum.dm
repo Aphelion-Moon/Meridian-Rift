@@ -53,8 +53,13 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	/// What sexuality preference do we display for.
 	var/sexuality = ""
 
-/datum/interaction/proc/allow_act(mob/living/carbon/human/user, mob/living/carbon/human/target)
-	if(target == user && usage == INTERACTION_OTHER)
+/datum/interaction/proc/allow_act(
+	mob/living/carbon/human/user,
+	mob/living/carbon/human/target,
+	allow_same_participant = FALSE,
+	check_part_exposure = TRUE,
+)
+	if(target == user && usage == INTERACTION_OTHER && !allow_same_participant)
 		return FALSE
 
 	if(target != user && usage == INTERACTION_SELF)
@@ -65,7 +70,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			var/obj/item/organ/genital/required_part = user.get_organ_slot(thing)
 			if(isnull(required_part))
 				return FALSE
-			if(!required_part.is_exposed())
+			if(check_part_exposure && !required_part.is_exposed())
 				return FALSE
 
 	if(length(target_required_parts))
@@ -73,7 +78,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			var/obj/item/organ/genital/required_part = target.get_organ_slot(thing)
 			if(isnull(required_part))
 				return FALSE
-			if(!required_part.is_exposed())
+			if(check_part_exposure && !required_part.is_exposed())
 				return FALSE
 
 	for(var/requirement in interaction_requires)
@@ -89,26 +94,98 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 				CRASH("Unimplemented interaction requirement '[requirement]'")
 	return TRUE
 
-/datum/interaction/proc/act(mob/living/carbon/human/user, mob/living/carbon/human/target, use_subtler)
-	if(!allow_act(user, target))
-		return
+/// Returns TRUE only while both participants can consciously take part in an interaction.
+/datum/interaction/proc/participants_are_actionable(mob/living/carbon/human/user, mob/living/carbon/human/target)
+	return ishuman(user) \
+		&& ishuman(target) \
+		&& !QDELETED(user) \
+		&& !QDELETED(target) \
+		&& !IS_UNCONSCIOUS_OR_CRIT(user) \
+		&& !IS_UNCONSCIOUS_OR_CRIT(target) \
+		&& !user.incapacitated \
+		&& !target.incapacitated
+
+/// Revalidates whichever route supplied this interaction. A null route is a plain face-to-face interaction.
+/datum/interaction/proc/interaction_route_is_valid(
+	datum/interaction_route/route,
+	mob/living/carbon/human/user,
+	mob/living/carbon/human/target,
+	ignore_cooldown = FALSE,
+)
+	if(isnull(route))
+		return distance_allowed || user.Adjacent(target)
+	return route.is_still_valid(src, user, target, ignore_cooldown)
+
+/// Checks the preferences required at both execution boundaries.
+/datum/interaction/proc/participants_accept_interaction(
+	mob/living/carbon/human/user,
+	mob/living/carbon/human/target,
+	datum/interaction_route/route,
+)
+	if(route && !route.participants_accept(user, target))
+		return FALSE
+	if(!lewd)
+		return TRUE
+	var/datum/client_interface/user_client = GET_CLIENT(user)
+	var/datum/client_interface/target_client = GET_CLIENT(target)
+	if(!user_client?.prefs?.read_preference(/datum/preference/toggle/erp) \
+		|| !target_client?.prefs?.read_preference(/datum/preference/toggle/erp))
+		return FALSE
+	return TRUE
+
+/// Shared authority checks for the menu, immediate execution, and deferred effects.
+/datum/interaction/proc/can_execute(
+	mob/living/carbon/human/user,
+	mob/living/carbon/human/target,
+	datum/interaction_route/route = null,
+	ignore_cooldown = FALSE,
+)
+	if(!participants_are_actionable(user, target))
+		return FALSE
+	if(!interaction_route_is_valid(route, user, target, ignore_cooldown))
+		return FALSE
+	if(!participants_accept_interaction(user, target, route))
+		return FALSE
+	return allow_act(
+		user,
+		target,
+		allow_same_participant = route?.allows_same_participant(),
+		check_part_exposure = !route?.validates_part_access(),
+	)
+
+/datum/interaction/proc/act(
+	mob/living/carbon/human/user,
+	mob/living/carbon/human/target,
+	use_subtler = TRUE,
+	datum/interaction_route/route = null,
+)
+	if(!can_execute(user, target, route))
+		return FALSE
+	var/user_anonymous = route?.user_is_anonymous()
+	var/target_anonymous = isnull(route) ? !can_see(user, target) : route.target_is_anonymous()
 	if(!message)
 		message_admins("Interaction had a null message list. '[html_encode(name)]'")
-		return
+		return FALSE
 	if(!islist(message) && istext(message))
 		message_admins("Deprecated message handling for '[html_encode(name)]'. Correct format is a list with one entry. This message will only show once.")
 		message = list(message)
-	var/msg = pick(message)
-	// We replace %USER% with nothing because manual_emote already prepends it.
-	msg = trim(replacetext(replacetext(msg, "%TARGET%", "[target]"), "%USER%", ""), INTERACTION_MAX_CHAR)
-	msg = replacetext(replacetext(msg, "%TARGET_PRONOUN_THEIR%", target.p_their()), "%TARGET_PRONOUN_THEIRS%", target.p_theirs())
-	msg = replacetext(replacetext(msg, "%USER_PRONOUN_THEIR%", user.p_their()), "%USER_PRONOUN_THEIRS%", user.p_theirs())
-	msg = replacetext(replacetext(msg, "%TARGET_PRONOUN_THEM%", target.p_them()), "%USER_PRONOUN_THEM%", user.p_them())
-	msg = replacetext(replacetext(msg, "%TARGET_PRONOUN_THEY%", target.p_they()), "%USER_PRONOUN_THEY%", user.p_they())
+	var/message_template = pick(message)
+	// %USER% is blanked here because the emote procs below already prepend the user's name.
+	var/msg = format_message_for(
+		message_template,
+		user,
+		target,
+		route = route,
+		omit_user = TRUE,
+		target_anonymous = target_anonymous,
+	)
 
 	if(lewd)
 		if(use_subtler)
-			user.emote("subtler", type_override = /datum/emote/living/subtler::emote_type | EMOTE_LEWD, message = msg, intentional = TRUE)
+			if(!user.can_send_subtler_emote())
+				return FALSE
+			if(!user.emote("subtler", type_override = /datum/emote/living/subtler::emote_type | EMOTE_LEWD, message = msg, intentional = TRUE))
+				return FALSE
 		else
 			var/list/ignoring_mobs = list()
 			for(var/mob/not_interested in get_hearers_in_view(DEFAULT_MESSAGE_RANGE, user))
@@ -119,22 +196,30 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	else
 		user.manual_emote(msg)
 
+	// Player-facing anonymity never removes the real participants from administrative logs.
+	if(user_anonymous || target_anonymous)
+		var/admin_msg = format_message_for(message_template, user, target, omit_user = TRUE)
+		user.log_message("[admin_msg] (interaction target: [key_name(target)]; user anonymous: [user_anonymous]; target anonymous: [target_anonymous])", LOG_GAME)
+
 	if(user_messages.len)
-		var/user_msg = pick(user_messages)
-		user_msg = replacetext(replacetext(user_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
-		user_msg = replacetext(replacetext(user_msg, "%TARGET_PRONOUN_THEIR%", target.p_their()), "%TARGET_PRONOUN_THEIRS%", target.p_theirs())
-		user_msg = replacetext(replacetext(user_msg, "%USER_PRONOUN_THEIR%", user.p_their()), "%USER_PRONOUN_THEIRS%", user.p_theirs())
-		user_msg = replacetext(replacetext(user_msg, "%TARGET_PRONOUN_THEM%", target.p_them()), "%USER_PRONOUN_THEM%", user.p_them())
-		user_msg = replacetext(replacetext(user_msg, "%TARGET_PRONOUN_THEY%", target.p_they()), "%USER_PRONOUN_THEY%", user.p_they())
+		var/user_msg = format_message_for(
+			pick(user_messages),
+			user,
+			target,
+			route = route,
+			target_anonymous = target_anonymous,
+			recipient = user,
+		)
 		to_chat(user, user_msg)
 
 	if(target_messages.len)
-		var/target_msg = pick(target_messages)
-		target_msg = replacetext(replacetext(target_msg, "%TARGET%", "[target]"), "%USER%", "[user]")
-		target_msg = replacetext(replacetext(target_msg, "%TARGET_PRONOUN_THEIR%", target.p_their()), "%TARGET_PRONOUN_THEIRS%", target.p_theirs())
-		target_msg = replacetext(replacetext(target_msg, "%USER_PRONOUN_THEIR%", user.p_their()), "%USER_PRONOUN_THEIRS%", user.p_theirs())
-		target_msg = replacetext(replacetext(target_msg, "%TARGET_PRONOUN_THEM%", target.p_them()), "%USER_PRONOUN_THEM%", user.p_them())
-		target_msg = replacetext(replacetext(target_msg, "%TARGET_PRONOUN_THEY%", target.p_they()), "%USER_PRONOUN_THEY%", user.p_they())
+		var/target_msg = format_message_for(
+			pick(target_messages),
+			user,
+			target,
+			user_anonymous = user_anonymous,
+			recipient = target,
+		)
 		to_chat(target, target_msg)
 
 	if(sound_use)
@@ -150,10 +235,71 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		else
 			playsound(target.loc, sound_cache, 50, sound_vary, max(0, -SOUND_RANGE + sound_range))
 
-	INVOKE_ASYNC(src, PROC_REF(apply_effects), user, target)
+	INVOKE_ASYNC(src, PROC_REF(apply_effects), WEAKREF(user), WEAKREF(target), route)
+	return TRUE
 
-/// Applies side effects to the user and/or target of the interaction.
-/datum/interaction/proc/apply_effects(mob/living/carbon/human/user, mob/living/carbon/human/target)
+/// Expands a message for an observer by default, or for the recipient of a private notice.
+/// Anonymity takes precedence over recipient identity, including when both roles belong to one mob.
+/datum/interaction/proc/format_message_for(
+	message_template,
+	mob/living/carbon/human/user,
+	mob/living/carbon/human/target,
+	datum/interaction_route/route = null,
+	omit_user = FALSE,
+	user_anonymous = FALSE,
+	target_anonymous = FALSE,
+	mob/living/carbon/human/recipient = null,
+)
+	var/known_self_interaction = recipient == user && user == target && !user_anonymous && !target_anonymous
+	var/formatted_message = message_template
+	for(var/role in list("USER", "TARGET"))
+		var/is_user = role == "USER"
+		var/mob/living/carbon/human/participant = is_user ? user : target
+		var/anonymous = is_user ? user_anonymous : target_anonymous
+		var/is_recipient = participant == recipient && !anonymous
+		var/participant_name = "[participant]"
+		if(anonymous)
+			participant_name = (is_user ? null : route?.get_target_name()) || "Unknown"
+		else if(is_recipient)
+			participant_name = "you"
+		if(is_user && omit_user)
+			participant_name = ""
+
+		var/possessive = is_recipient ? (known_self_interaction ? "your own" : "your") : "[participant_name]'s"
+		var/object_name = is_recipient && known_self_interaction ? "yourself" : participant_name
+		var/their = is_recipient ? "your" : (anonymous ? "their" : participant.p_their())
+		var/theirs = is_recipient ? "yours" : (anonymous ? "theirs" : participant.p_theirs())
+		var/them = is_recipient ? (known_self_interaction ? "yourself" : "you") : (anonymous ? "them" : participant.p_them())
+		var/they = is_recipient ? "you" : (anonymous ? "they" : participant.p_they())
+		var/themselves = is_recipient ? "yourself" : (anonymous ? "themselves" : participant.p_themselves())
+
+		// Expand possessives before bare names so a recipient never becomes "you's".
+		formatted_message = replacetext(formatted_message, "%[role]%'s", possessive)
+		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%'s", capitalize(possessive))
+		formatted_message = replacetext(formatted_message, "%[role]%", participant_name)
+		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%", capitalize(participant_name))
+		formatted_message = replacetext(formatted_message, "%[role]_OBJECT%", object_name)
+		// Templates supply agreement explicitly; do not guess how to conjugate arbitrary prose.
+		formatted_message = replacetext(formatted_message, "%[role]_VERB_S%", is_recipient ? "" : "s")
+		formatted_message = replacetext(formatted_message, "%[role]_VERB_ES%", is_recipient ? "" : "es")
+		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIR%", their)
+		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIRS%", theirs)
+		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEM%", them)
+		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEY%", they)
+		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
+	return trim(formatted_message, INTERACTION_MAX_CHAR)
+
+/// Applies side effects only while the interaction's original authority remains valid.
+/datum/interaction/proc/apply_effects(
+	datum/weakref/user_ref,
+	datum/weakref/target_ref,
+	datum/interaction_route/route = null,
+)
+	var/mob/living/carbon/human/user = user_ref?.resolve()
+	var/mob/living/carbon/human/target = target_ref?.resolve()
+	// The successful caller already paid the cooldown for these queued effects.
+	if(!can_execute(user, target, route, ignore_cooldown = TRUE))
+		return
 	if(user_pain)
 		user.adjust_pain(user_pain)
 	if(target_pain)
@@ -168,6 +314,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		target.adjust_pleasure(target_pleasure)
 	if(target_arousal)
 		target.adjust_arousal(target_arousal)
+	route?.after_effects(user, target)
 
 /datum/interaction/proc/load_from_json(path)
 	var/fpath = path
@@ -246,17 +393,14 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	populate_interaction_jsons(INTERACTION_JSON_FOLDER)
 
 /proc/populate_interaction_jsons(directory)
-	for(var/file in flist(directory))
-		if(flist(directory + file) && !findlasttext(directory + file, ".json"))
-			populate_interaction_instances(directory + file)
-			continue
-		if(findlasttext(directory + file, ".master.json")) // This is a master json which has special handling
-			populate_interaction_jsons_master(directory + file)
+	for(var/path in pathwalk(directory, ".json"))
+		if(endswith(path, ".master.json"))
+			populate_interaction_jsons_master(path)
 			continue
 		var/datum/interaction/interaction = new()
-		if(interaction.load_from_json(directory + file))
+		if(interaction.load_from_json(path))
 			GLOB.interaction_instances[interaction.name] = interaction
-		else message_admins("Error loading interaction from file: '[html_encode(directory + file)]'. Inform coders.")
+		else message_admins("Error loading interaction from file: '[html_encode(path)]'. Inform coders.")
 
 /proc/populate_interaction_jsons_master(path)
 	if(!fexists(path))

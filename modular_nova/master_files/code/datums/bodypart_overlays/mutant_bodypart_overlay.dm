@@ -11,8 +11,6 @@
 	var/list/emissive_eligibility_by_color_index
 	/// A simple list of indexes to color (as we don't want to color emissives, MOD overlays or inner ears)
 	var/list/overlay_indexes_to_color
-	/// Whether or not this overlay can be affected by MODsuit-related procs.
-	var/modsuit_affected = FALSE
 	/// A simple cache of what the last icon_states built were.
 	/// It's really only there to help with debugging what's happening.
 	var/list/last_built_icon_states
@@ -36,7 +34,6 @@
 		return FALSE
 	var/datum/mutant_bodypart/mutant_part = mutantparts_list[feature_key]
 	sprite_datum = fetch_sprite_datum_from_name(accessory_name ? accessory_name : mutant_part.name)
-	modsuit_affected = sprite_datum.use_custom_mod_icon
 	draw_color = mutant_part.get_colors()
 	emissive_eligibility_by_color_index = mutant_part.get_emissive_tri_bool_list()
 	return TRUE
@@ -52,14 +49,16 @@
 /// Generate a unique key based on our sprites. So that if we've aleady drawn these sprites,
 /// they can be found in the cache and wont have to be drawn again (blessing and curse, but mostly curse)
 /datum/bodypart_overlay/mutant/icon_render_key(obj/item/bodypart/limb)
+	RETURN_TYPE(/list)
 	. = list()
 	. += "[get_base_icon_state()]"
 	. += "[get_feature_key_for_overlay()]"
 	. += "[sprite_datum.get_special_icon(limb?.owner)]"
 
 	// MOD overlays on mutant parts
-	if(modsuit_affected && sprite_datum?.mod_overlay_active(limb?.owner))
-		. += "MOD_[sprite_datum.get_hardlight_theme_key(limb?.owner)]"
+	var/hardlight_theme = sprite_datum?.get_hardlight_theme_key(limb?.owner)
+	if(hardlight_theme)
+		. += "MOD_[hardlight_theme]"
 
 	if(islist(draw_color))
 		for(var/sub_color in draw_color)
@@ -114,7 +113,8 @@
 	last_built_icon_states = list()
 
 	var/mutable_appearance/mod_overlay
-	if(sprite_datum.mod_overlay_active(owner))
+	var/datum/mod_theme/mod_theme = sprite_datum.get_mod_overlay_theme(owner)
+	if(mod_theme)
 		mod_overlay = mutable_appearance(layer = layer_real)
 		if(sprite_datum.center)
 			center_image(mod_overlay, sprite_datum.special_x_dimension ? sprite_datum.get_special_x_dimension(owner) : sprite_datum.dimension_x, sprite_datum.dimension_y)
@@ -130,9 +130,8 @@
 				index++
 
 				if(mod_overlay)
-					var/icon/mod_icon = sprite_datum.get_custom_mod_icon(owner, color_layer_image)
-					if(mod_icon)
-						mod_overlay.add_overlay(mutable_appearance(mod_icon))
+					var/mod_icon = sprite_datum.get_custom_mod_icon(color_layer_image, mod_theme)
+					mod_overlay.add_overlay(mutable_appearance(mod_icon))
 
 		else
 			var/mutable_appearance/image_to_return = get_singular_image(build_icon_state_nova(gender, layer_index), layer_index, layer_real, owner, limb = limb)
@@ -140,9 +139,8 @@
 			overlay_indexes_to_color += index
 
 			if(mod_overlay)
-				var/icon/mod_icon = sprite_datum.get_custom_mod_icon(owner, image_to_return)
-				if(mod_icon)
-					mod_overlay.add_overlay(mutable_appearance(mod_icon))
+				var/mod_icon = sprite_datum.get_custom_mod_icon(image_to_return, mod_theme)
+				mod_overlay.add_overlay(mutable_appearance(mod_icon))
 
 	if(sprite_datum.has_inner)
 		returned_images += get_singular_image(build_icon_state_nova(gender, layer_index, feature_key_suffix = "inner"), layer_index, layer_real, owner, limb = limb)
@@ -252,7 +250,7 @@
 
 
 /**
- * Helper proc to add the appropriate emissives to the overlays, based on the preferences.
+ * Adds glow or blockers to the emissive plane in the same order as the visible color layers.
  *
  * Arguments:
  * * overlays - The list of mutable appearances previously generated and colored.
@@ -261,21 +259,30 @@
  * add them if the limb is missing, somehow.
  */
 /datum/bodypart_overlay/mutant/proc/add_emissives(list/mutable_appearance/overlays, obj/item/bodypart/limb)
-	if(!limb || !length(emissive_eligibility_by_color_index))
+	if(!limb)
 		return overlays
 
-	var/list/mutable_appearance/emissives
-	var/max = min(MAX_MATRIXED_COLORS, length(overlays)) // only care about the first 3 indexes
-	for(var/index = 1 to max)
-		if(emissive_eligibility_by_color_index[index])
-			var/mutable_appearance/overlay = overlays[index]
-			var/mutable_appearance/new_emissive = emissive_appearance(overlay.icon, overlay.icon_state, offset_spokesman = limb, layer = overlay.layer)
-			// emissive_appearance() builds a fresh appearance from scratch, so it doesn't inherit the pixel_w/pixel_z offset center_image() applies to wide sprites (taur, wings, etc.) - without
-			new_emissive.pixel_w = overlay.pixel_w
-			new_emissive.pixel_z = overlay.pixel_z
-			LAZYADD(emissives, new_emissive)
+	var/list/mutable_appearance/emissive_overlays
+	var/max_emissive_index = min(MAX_MATRIXED_COLORS, length(emissive_eligibility_by_color_index))
+	for(var/index = 1 to length(overlays))
+		var/mutable_appearance/overlay = overlays[index]
+		if(!overlay.icon) // The MOD texture container has no sprite of its own.
+			continue
+		var/mutable_appearance/emissive_overlay
+		if(index <= max_emissive_index && emissive_eligibility_by_color_index[index])
+			emissive_overlay = emissive_appearance(overlay.icon, overlay.icon_state, offset_spokesman = limb, layer = overlay.layer)
+		else if(blocks_emissive != EMISSIVE_BLOCK_NONE)
+			// Restore the parent builder's blocking for non-emitting parts, including taur bodies.
+			// An emitting layer already covers lower emissives; an extra blocker would double-mask translucent edges.
+			emissive_overlay = emissive_blocker(overlay.icon, overlay.icon_state, limb, layer = overlay.layer, alpha = overlay.alpha)
+		else
+			continue
+		// These helpers create fresh appearances and do not inherit center_image()'s offsets.
+		emissive_overlay.pixel_w = overlay.pixel_w
+		emissive_overlay.pixel_z = overlay.pixel_z
+		LAZYADD(emissive_overlays, emissive_overlay)
 
-	return emissives ? (overlays + emissives) : overlays
+	return emissive_overlays ? (overlays + emissive_overlays) : overlays
 
 
 #undef MAX_MATRIXED_COLORS
