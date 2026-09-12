@@ -1,6 +1,7 @@
 /datum/techweb_node/cyber/cyber_implants/New()
 	unlocked_designs += list(
 		/datum/design/cyberimp_scanner,
+		/datum/design/cyberimp_psionic_limiter,
 		/datum/design/cyberimp_botany,
 		/datum/design/cyberimp_janitor,
 		/datum/design/cyberimp_lighter,

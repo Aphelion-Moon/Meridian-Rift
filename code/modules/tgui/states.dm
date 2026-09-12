@@ -105,6 +105,11 @@
  * return UI_state The state of the UI.
  */
 /mob/living/proc/shared_living_ui_distance(atom/movable/src_object, viewcheck = TRUE, allow_tk = TRUE)
+	// APHELION EDIT ADDITION START - PSIONICS
+	var/remote_distance = psionic_ui_distance(src_object)
+	if(allow_tk && !isnull(remote_distance))
+		return remote_distance
+	// APHELION EDIT ADDITION END
 	// APHELION EDIT ADDITION START - ADMIN_TECH
 	if(HAS_TRAIT(src, TRAIT_ADMIN_REACHABLE))
 		return UI_INTERACTIVE
@@ -129,6 +134,11 @@
 	return UI_INTERACTIVE
 
 /mob/living/carbon/human/shared_living_ui_distance(atom/movable/src_object, viewcheck = TRUE, allow_tk = TRUE)
+	// APHELION EDIT ADDITION START - PSIONICS - An invalid maintained link must close even on a TK mutant.
+	var/remote_distance = psionic_ui_distance(src_object)
+	if(allow_tk && !isnull(remote_distance))
+		return remote_distance
+	// APHELION EDIT ADDITION END
 	if(allow_tk && dna.check_mutation(/datum/mutation/telekinesis) && tkMaxRangeCheck(src, src_object))
 		return UI_INTERACTIVE
 	return ..()

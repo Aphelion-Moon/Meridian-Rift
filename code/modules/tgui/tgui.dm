@@ -393,5 +393,10 @@
 /datum/tgui/proc/on_act_message(act_type, payload, state)
 	if(QDELETED(src) || QDELETED(src_object))
 		return
+	// APHELION EDIT ADDITION START - PSIONICS - Recheck a remote connection after queued input resumes.
+	process_status()
+	if(status != UI_INTERACTIVE)
+		return
+	// APHELION EDIT ADDITION END
 	if(src_object.ui_act(act_type, payload, src, state))
 		SStgui.update_uis(src_object)

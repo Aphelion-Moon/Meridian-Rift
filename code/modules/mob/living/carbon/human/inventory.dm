@@ -436,6 +436,8 @@
 	return
 
 /mob/living/carbon/human/change_number_of_hands(amt)
+	// NOVA EDIT ADDITION - Remove temporary slots before another source changes the hand layout.
+	psychic_hands_action?.stop_maintaining(src, silent = TRUE)
 	var/old_limbs = held_items.len
 	if(amt < old_limbs)
 		for(var/i in hand_bodyparts.len to amt step -1)

@@ -237,6 +237,11 @@
 	if(!tkMaxRangeCheck(tk_user, target) || target.anchored || !isturf(target.loc))
 		qdel(src)
 		return
+	// APHELION EDIT ADDITION START - PSIONICS - First holder wins across telekinetic systems.
+	if(HAS_TRAIT_NOT_FROM(target, TRAIT_TELEKINESIS_CONTROLLED, REF(tk_user)))
+		qdel(src)
+		return
+	// APHELION EDIT ADDITION END
 	return TRUE
 
 /obj/item/tk_grab/proc/apply_focus_overlay()

@@ -126,6 +126,10 @@
 	COOLDOWN_START(src, hit_cooldown, hit_cooldown_time)
 
 /obj/item/mod/module/anomaly_locked/kinesis/proc/can_grab(atom/target)
+	// APHELION EDIT ADDITION START - PSIONICS
+	if(HAS_TRAIT(target, TRAIT_TELEKINESIS_CONTROLLED))
+		return FALSE
+	// APHELION EDIT ADDITION END
 	if(mod.wearer == target)
 		return FALSE
 	if(!ismovable(target))
@@ -157,6 +161,7 @@
 
 /obj/item/mod/module/anomaly_locked/kinesis/proc/grab_atom(atom/movable/target)
 	grabbed_atom = target
+	ADD_TRAIT(grabbed_atom, TRAIT_TELEKINESIS_CONTROLLED, REF(src)) // APHELION EDIT ADDITION - PSIONICS
 	if(isliving(grabbed_atom))
 		grabbed_atom.add_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED), REF(src))
 		RegisterSignal(grabbed_atom, COMSIG_MOB_STATCHANGE, PROC_REF(on_statchange))
@@ -188,6 +193,7 @@
 	if(isliving(grabbed_atom))
 		grabbed_atom.remove_traits(list(TRAIT_IMMOBILIZED, TRAIT_HANDS_BLOCKED), REF(src))
 	REMOVE_TRAIT(grabbed_atom, TRAIT_NO_FLOATING_ANIM, REF(src))
+	REMOVE_TRAIT(grabbed_atom, TRAIT_TELEKINESIS_CONTROLLED, REF(src)) // APHELION EDIT ADDITION - PSIONICS
 	if(!isitem(grabbed_atom))
 		animate(grabbed_atom, 0.2 SECONDS, pixel_x = grabbed_atom.base_pixel_x, pixel_y = grabbed_atom.base_pixel_y)
 	grabbed_atom = null

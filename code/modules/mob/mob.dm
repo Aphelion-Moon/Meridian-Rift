@@ -1108,6 +1108,10 @@ GAME_VERB_NATIVE(/mob, DisDblClick, ".dblclick", null, argu = null as anything, 
 		return TRUE
 	if (Adjacent(A))
 		return TRUE
+	// APHELION EDIT ADDITION START - PSIONICS
+	if(can_psionically_reach(A))
+		return TRUE
+	// APHELION EDIT ADDITION END
 	var/datum/dna/mob_dna = has_dna()
 	if(mob_dna?.check_mutation(/datum/mutation/telekinesis) && tkMaxRangeCheck(src, A))
 		return TRUE

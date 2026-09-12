@@ -566,6 +566,10 @@ There are several things that need to be remembered:
 /mob/living/carbon/human/get_held_overlays()
 	hud_used?.update_inventory_slot(ITEM_SLOT_HANDS)
 	var/list/hands = list()
+	// NOVA EDIT ADDITION - Clear displays belonging to psychic slots that are now empty.
+	for(var/obj/item/bodypart/arm/psychic/psychic_hand in hand_bodyparts)
+		psychic_hand.held_effect?.overlays.Cut()
+		psychic_hand.held_effect?.underlays.Cut()
 	// NOVA EDIT ADDITION START
 	if(held_left)
 		held_left.overlays.Cut()
@@ -585,6 +589,11 @@ There are several things that need to be remembered:
 		var/mutable_appearance/hand_overlay = worn_item.build_worn_icon(default_layer = HANDS_LAYER, default_icon_file = icon_file, isinhands = TRUE, bodyshape = bodyshape)
 		apply_height(hand_overlay, LOWER_BODY)
 		var/obj/item/bodypart/arm/held_in_hand = hand_bodyparts[held_index]
+		// NOVA EDIT ADDITION - Psychic hands have a separate floating display for every slot.
+		if(istype(held_in_hand, /obj/item/bodypart/arm/psychic))
+			var/obj/item/bodypart/arm/psychic/psychic_hand = held_in_hand
+			hands += psychic_hand.build_held_overlay(src, hand_overlay)
+			continue
 		/* // NOVA EDIT REMOVAL START - Moved down below psionic holding, after an else block
 		held_in_hand?.held_hand_offset?.apply_offset(hand_overlay)
 

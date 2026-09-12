@@ -1,2 +1,74 @@
-// makes it so held items float by their head
-#define TRAIT_FLOATING_HELD "held_items_float"
+#define PSIONIC_TRAIT_SOURCE "psionic_gifted"
+#define PSIONIC_LEVITATION_TRAIT_SOURCE "psionic_levitation"
+#define PSIONIC_SOURCE_MUTATION "psionic_mutation"
+#define PSIONIC_SOURCE_QUIRK "psionic_quirk"
+#define PSIONIC_SOURCE_ADMIN "psionic_admin"
+#define PSIONIC_SOURCE_OPFOR "psionic_opfor"
+#define ORGAN_SLOT_PSIONIC_IMPLANT "psionic_implant"
+
+#define PSIONIC_DEFAULT_POINTS 3
+#define PSIONIC_DEFAULT_MAX_STRAIN 100
+#define PSIONIC_DEFAULT_STRAIN_DECAY 2
+#define PSIONIC_DEFAULT_COLOR "#34e6ff"
+#define PSIONIC_BURNOUT_TIME (20 SECONDS)
+#define PSIONIC_BURNOUT_RECOVERY_RATIO 0.25
+#define PSIONIC_WARP_DURATION (8 SECONDS)
+#define PSIONIC_EXTRA_HAND_COUNT 2
+
+#define PSIONIC_RANK_LAMBDA "Lambda"
+#define PSIONIC_RANK_EPSILON "Epsilon"
+#define PSIONIC_RANK_GAMMA "Gamma"
+#define PSIONIC_RANK_DELTA "Delta"
+#define PSIONIC_RANK_BETA "Beta"
+#define PSIONIC_RANK_ALPHA "Alpha"
+#define PSIONIC_DEFAULT_RANK PSIONIC_RANK_GAMMA
+#define PSIONIC_ROUNDSTART_LIMIT_RANK PSIONIC_RANK_GAMMA
+#define PSIONIC_ROUNDSTART_LIMIT_POINTS PSIONIC_DEFAULT_POINTS
+#define PSIONIC_ALPHA_MAX_STRAIN 200
+#define PSIONIC_BRANCH_COMMITMENT_POINTS 3
+#define PSIONIC_BRANCH_COMMITMENT_STRAIN_DISCOUNT 15
+#define PSIONIC_CORE_ATTUNEMENT_STRAIN_DISCOUNT 20
+#define PSIONIC_MAX_STRAIN_DISCOUNT 50
+#define PSIONIC_CONCENTRATION_PAIN_THRESHOLD 30
+
+#define HUD_PSIONIC_STRAIN "psionic_strain"
+#define UI_PSIONIC_STRAIN "WEST,CENTER+1:15"
+#define PSIONIC_HUD_COLOR_CALM "#8dd8ff"
+#define PSIONIC_HUD_COLOR_WARNING "#ec6cff"
+#define PSIONIC_HUD_COLOR_BURNOUT "#ff5cc6"
+
+#define PSIONIC_INTRUSIVE (1<<0)
+#define PSIONIC_KINETIC (1<<1)
+#define PSIONIC_SENSORY (1<<2)
+#define PSIONIC_PROTECTIVE (1<<3)
+#define PSIONIC_SPATIAL (1<<4)
+#define PSIONIC_THERMAL (1<<5)
+#define PSIONIC_ALL (PSIONIC_INTRUSIVE|PSIONIC_KINETIC|PSIONIC_SENSORY|PSIONIC_PROTECTIVE|PSIONIC_SPATIAL|PSIONIC_THERMAL)
+
+#define PSIONIC_SCHOOL_BIOSCRAMBLER /datum/psionic_school/bioscrambler
+#define PSIONIC_SCHOOL_GRAVITY /datum/psionic_school/gravity
+#define PSIONIC_SCHOOL_BLUESPACE /datum/psionic_school/bluespace
+#define PSIONIC_SCHOOL_FLUX /datum/psionic_school/flux
+#define PSIONIC_SCHOOL_HALLUCINATION /datum/psionic_school/hallucination
+
+#define COMSIG_MOB_RECEIVE_PSIONICS "mob_receive_psionics"
+#define COMSIG_MOB_RESTRICT_PSIONICS "mob_restrict_psionics"
+/// Sent to an atom being forcibly stripped of psionic effects: (atom/dispeller)
+#define COMSIG_ATOM_PSIONIC_DISPEL "atom_psionic_dispel"
+
+#define COMPONENT_PSIONIC_BLOCKED (1<<0)
+#define COMPONENT_PSIONIC_DISPELLED (1<<0)
+
+#define PSIONIC_BACKLASH_MILD "mild"
+#define PSIONIC_BACKLASH_SEVERE "severe"
+#define PSIONIC_BACKLASH_CATASTROPHIC "catastrophic"
+/// Fraction of max strain at which mild backlash begins rolling.
+#define PSIONIC_BACKLASH_MILD_RATIO 0.5
+/// Fraction of max strain at which severe backlash begins rolling.
+#define PSIONIC_BACKLASH_SEVERE_RATIO 0.75
+/// Minimum spacing between two backlashes of the same tier.
+#define PSIONIC_BACKLASH_COOLDOWN (90 SECONDS)
+
+#define PSIONIC_BACKLASH_WEIGHT_COMMON 10
+#define PSIONIC_BACKLASH_WEIGHT_UNCOMMON 5
+#define PSIONIC_BACKLASH_WEIGHT_RARE 2

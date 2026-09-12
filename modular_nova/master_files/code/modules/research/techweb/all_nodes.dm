@@ -235,6 +235,10 @@
 	unlocked_designs += list(
 		/datum/design/ammo_workbench_module_gimmick,
 		/datum/design/pin_standard,
+		/datum/design/psionic_dampener_cuffs,
+		/datum/design/psionic_nullification_headband,
+		/datum/design/psionic_resonance_scanner,
+		/datum/design/psionic_reality_anchor,
 	)
 	return ..()
 
