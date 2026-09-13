@@ -35,9 +35,9 @@ export function LoadoutPage(props) {
   const erp_pref = useBackend<LoadoutManagerData>().data.erp_pref;
 
   const [searchLoadout, setSearchLoadout] = useState('');
-  const [selectedTabName, setSelectedTab] = useState(
-    loadout_tabs?.[0].name || '',
-  );
+  const [selectedTab, setSelectedTab] = useState('');
+  // Categories arrive asynchronously; resolve the default from the current data.
+  const selectedTabName = selectedTab || loadout_tabs[0]?.name || '';
   const [modifyItemDimmer, setModifyItemDimmer] = useState<LoadoutItem | null>(
     null,
   );
