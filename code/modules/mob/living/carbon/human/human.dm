@@ -1,3 +1,4 @@
+/** Initialize the human body, equipment systems, and owned medical state. */
 /mob/living/carbon/human/Initialize(mapload, datum/species/species)
 	ASSIGN_GAME_VERB(src, /mob/living, mob_sleep)
 	add_verb(src, /mob/living/proc/toggle_resting)
@@ -36,6 +37,10 @@
 	GLOB.human_list += src
 	ADD_TRAIT(src, TRAIT_CAN_MOUNT_HUMANS, INNATE_TRAIT)
 	ADD_TRAIT(src, TRAIT_CAN_MOUNT_CYBORGS, INNATE_TRAIT)
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain = new(src)
+	medical_pain.recalculate()
+	// APHELION EDIT ADDITION END
 
 /mob/living/carbon/human/get_unconscious_appearance()
 	return get_generic_humanoid_static_appearance()
@@ -65,7 +70,11 @@
 /mob/living/carbon/human/proc/setup_human_dna()
 	randomize_human_normie(src, randomize_mutations = TRUE, update_body = FALSE)
 
+/** Release human-owned datums before the carbon body is dismantled. */
 /mob/living/carbon/human/Destroy()
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	QDEL_NULL(medical_pain)
+	// APHELION EDIT ADDITION END
 	GLOB.human_list -= src
 
 	if (mob_mood)
@@ -1072,13 +1081,22 @@
 		return FALSE
 	return ..()
 
+/** Update health and the combined injury, physiological and exhaustion movement penalty. */
 /mob/living/carbon/human/updatehealth()
 	. = ..()
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	var/health_deficiency = max((maxHealth - health), staminaloss)
 	if(health_deficiency >= 40)
 		add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/damage_slowdown, TRUE, multiplicative_slowdown = health_deficiency / 75)
 	else
 		remove_movespeed_modifier(/datum/movespeed_modifier/damage_slowdown)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	if(medical_pain)
+		medical_pain.recalculate()
+	else
+		update_medical_pain_slowdown()
+	// APHELION EDIT ADDITION END
 
 /mob/living/carbon/human/get_exp_list(minutes)
 	. = ..()

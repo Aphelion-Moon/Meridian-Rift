@@ -751,7 +751,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 			total_mod *= 1.5
 	return round(total_mod, 0.01)
 
-/// Returns a time modifier based on the mob's status
+/** Returns a time modifier based on the mob's status */
 /datum/surgery_operation/proc/get_mob_surgery_speed_mod(mob/living/patient, mob/living/surgeon, tool)
 	PROTECTED_PROC(TRUE)
 	var/basemod = 1.0
@@ -759,7 +759,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 		basemod *= mod_amt
 	if(HAS_TRAIT(patient, TRAIT_SURGICALLY_ANALYZED))
 		basemod *= 0.8
-	if(HAS_TRAIT(patient, TRAIT_ANALGESIA))
+	if(patient.has_surgical_analgesia()) // APHELION EDIT CHANGE - ORIGINAL: if(HAS_TRAIT(patient, TRAIT_ANALGESIA))
 		basemod *= 0.8
 		to_chat(surgeon, span_notice("You are able to work faster due to the patient's calm attitude!")) // NOVA EDIT ADDITION - Better feedback for the use of analgesia
 	return basemod
@@ -1018,7 +1018,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 		alt_msg = span_notice("You feel [you_feel] as you are operated on."),
 	)
 
-/// Display pain message to the target based on their traits and condition
+/** Display pain message to the target based on their traits and condition */
 /datum/surgery_operation/proc/display_pain(mob/living/target, pain_message, mechanical_surgery = FALSE)
 	SHOULD_NOT_OVERRIDE(TRUE)
 	PROTECTED_PROC(TRUE)
@@ -1038,7 +1038,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 
 	if(IS_UNCONSCIOUS(target))
 		return
-	if(HAS_TRAIT(target, TRAIT_ANALGESIA) || drunken_patient && prob(drunken_ignorance_probability))
+	if(target.has_surgical_analgesia() || drunken_patient && prob(drunken_ignorance_probability)) // APHELION EDIT CHANGE - ORIGINAL: if(HAS_TRAIT(target, TRAIT_ANALGESIA) || drunken_patient && prob(drunken_ignorance_probability))
 		to_chat(target, span_notice("You feel a dull, numb sensation as your body is surgically operated on."))
 		return
 	to_chat(target, span_userdanger(pain_message))
@@ -1088,7 +1088,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 
 	return operating_computer
 
-/// Updates a patient's mood based on the surgery state and their traits
+/** Updates a patient's mood based on the surgery state and their traits */
 /datum/surgery_operation/proc/update_surgery_mood(mob/living/patient, surgery_state)
 	PROTECTED_PROC(TRUE)
 	if(!(operation_flags & OPERATION_AFFECTS_MOOD))
@@ -1097,7 +1097,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 	// Create a probability to ignore the pain based on drunkenness level
 	var/drunk_ignore_prob = clamp(patient.get_drunk_amount(), 0, 90)
 
-	if(HAS_TRAIT(patient, TRAIT_ANALGESIA) || prob(drunk_ignore_prob))
+	if(patient.has_surgical_analgesia() || prob(drunk_ignore_prob)) // APHELION EDIT CHANGE - ORIGINAL: if(HAS_TRAIT(patient, TRAIT_ANALGESIA) || prob(drunk_ignore_prob))
 		patient.clear_mood_event(SURGERY_MOOD_CATEGORY) //incase they gained the trait mid-surgery (or became drunk). has the added side effect that if someone has a bad surgical memory/mood and gets drunk & goes back to surgery, they'll forget they hated it, which is kinda funny imo.
 		return
 	if(IS_UNCONSCIOUS(patient))

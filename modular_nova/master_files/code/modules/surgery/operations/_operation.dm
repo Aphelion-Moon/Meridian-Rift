@@ -1,8 +1,9 @@
+/** Warns the surgeon when a conscious patient lacks adequate surgical numbing. */
 /datum/surgery_operation/on_preop(atom/movable/operating_on, mob/living/surgeon, tool, list/operation_args)
 	. = ..()
 	// warning for unanesthetized surgery
 	var/mob/living/patient = get_patient(operating_on)
-	if(!(HAS_TRAIT(patient, TRAIT_ANALGESIA) || IS_UNCONSCIOUS(patient)))
+	if(!(patient?.has_surgical_analgesia() || IS_UNCONSCIOUS(patient))) // NOVA EDIT CHANGE - ORIGINAL: if(!(HAS_TRAIT(patient, TRAIT_ANALGESIA) || IS_UNCONSCIOUS(patient)))
 		patient.balloon_alert(surgeon, "not numbed!")
 
 /// Makes the organ operable again

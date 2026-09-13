@@ -111,7 +111,7 @@
 		to_chat(victim, span_green("Your [limb.plaintext_zone] has recovered from its [LOWER_TEXT(undiagnosed_name || name)]!"))
 		remove_wound()
 
-/// If we're a human who's punching something with a broken arm, we might hurt ourselves doing so
+/** If we're a human who's punching something with a broken arm, we might hurt ourselves doing so */
 /datum/wound/blunt/bone/proc/attack_with_hurt_hand(mob/M, atom/target, proximity)
 	SIGNAL_HANDLER
 
@@ -121,8 +121,8 @@
 	// With a severe or critical wound, you have a 15% or 30% chance to proc pain on hit
 	if(prob((severity - 1) * 15))
 		// And you have a 70% or 50% chance to actually land the blow, respectively
-		if(HAS_TRAIT(victim, TRAIT_ANALGESIA) || prob(70 - 20 * (severity - 1)))
-			if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
+		if(victim.has_surgical_analgesia() || prob(70 - 20 * (severity - 1))) // APHELION EDIT CHANGE - ORIGINAL: if(HAS_TRAIT(victim, TRAIT_ANALGESIA) || prob(70 - 20 * (severity - 1)))
+			if(!victim.has_surgical_analgesia()) // APHELION EDIT CHANGE - ORIGINAL: if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
 				to_chat(victim, span_danger("The fracture in your [limb.plaintext_zone] shoots with pain as you strike [target]!"))
 			victim.apply_damage(rand(1, 5), BRUTE, limb, wound_bonus = CANT_WOUND, wound_clothing = FALSE)
 		else
@@ -135,7 +135,7 @@
 
 	return NONE
 
-/// If we're a human who's firing a gun with a broken arm, we might hurt ourselves doing so
+/** If we're a human who's firing a gun with a broken arm, we might hurt ourselves doing so */
 /datum/wound/blunt/bone/proc/firing_with_messed_up_hand(datum/source, obj/item/gun/gun, atom/firing_at, params, zone, bonus_spread_values)
 	SIGNAL_HANDLER
 
@@ -157,11 +157,11 @@
 			return
 
 	if(gun.calculate_recoil(victim, gun.recoil) > 1 && severity >= WOUND_SEVERITY_SEVERE && prob(25 * (severity - 1)))
-		if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
+		if(!victim.has_surgical_analgesia()) // APHELION EDIT CHANGE - ORIGINAL: if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
 			to_chat(victim, span_danger("The fracture in your [limb.plaintext_zone] explodes with pain as [gun] kicks back!"))
 		victim.apply_damage(rand(1, 3) * (severity - 1) * gun.weapon_weight, BRUTE, limb, wound_bonus = CANT_WOUND, wound_clothing = FALSE)
 
-	if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
+	if(!victim.has_surgical_analgesia()) // APHELION EDIT CHANGE - ORIGINAL: if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
 		bonus_spread_values[MAX_BONUS_SPREAD_INDEX] += (15 * severity * limb.get_splint_factor())
 
 /datum/wound/blunt/bone/receive_damage(wounding_type, wounding_dmg, wound_bonus)
@@ -453,7 +453,7 @@
 		examine_desc = "has an unsettling indent, with bits of skull poking out"
 	. = ..()
 
-/// if someone is using bone gel on our wound
+/** if someone is using bone gel on our wound */
 /datum/wound/blunt/bone/proc/gel(obj/item/stack/medical/bone_gel/I, mob/user)
 	// skellies get treated nicer with bone gel since their "reattach dismembered limbs by hand" ability sucks when it's still critically wounded
 	if((limb.biological_state & BIO_BONE) && !(limb.biological_state & (BIO_FLESH|BIO_CHITIN)))
@@ -474,7 +474,7 @@
 		user.visible_message(span_notice("[user] finishes applying [I] to [victim]'s [limb.plaintext_zone], emitting a fizzing noise!"), span_notice("You finish applying [I] to [victim]'s [limb.plaintext_zone]!"), ignored_mobs=victim)
 		to_chat(victim, span_userdanger("[user] finishes applying [I] to your [limb.plaintext_zone], and you can feel the bones exploding with pain as they begin melting and reforming!"))
 	else
-		if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
+		if(!victim.has_surgical_analgesia()) // APHELION EDIT CHANGE - ORIGINAL: if(!HAS_TRAIT(victim, TRAIT_ANALGESIA))
 			if(prob(25 + (20 * (severity - 2)) - min(victim.get_drunk_amount(), 10))) // 25%/45% chance to fail self-applying with severe and critical wounds, modded by drunkenness
 				victim.visible_message(span_danger("[victim] fails to finish applying [I] to [victim.p_their()] [limb.plaintext_zone], passing out from the pain!"), span_notice("You pass out from the pain of applying [I] to your [limb.plaintext_zone] before you can finish!"))
 				victim.AdjustUnconscious(5 SECONDS)

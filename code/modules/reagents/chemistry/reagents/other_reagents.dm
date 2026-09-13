@@ -3121,10 +3121,17 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
 	self_consuming = TRUE
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_DETERMINATION
+	surgical_analgesia = TRUE
+	// APHELION EDIT ADDITION END
 	/// Whether we've had at least WOUND_DETERMINATION_SEVERE (2.5u) of determination at any given time. No damage slowdown immunity or indication we're having a second wind if it's just a single moderate wound
 	var/significant = FALSE
 
+/** Ends the second wind with a bounded stamina crash as finite pain relief wears off. */
 /datum/reagent/determination/on_mob_end_metabolize(mob/living/carbon/affected_mob)
 	. = ..()
 	if(significant)
@@ -3132,7 +3139,7 @@
 		for(var/thing in affected_mob.all_wounds)
 			var/datum/wound/W = thing
 			stam_crash += (W.severity + 1) * 3 // spike of 3 stam damage per wound severity (moderate = 6, severe = 9, critical = 12) when the determination wears off if it was a combat rush
-		affected_mob.adjust_stamina_loss(stam_crash)
+		affected_mob.adjust_stamina_loss(min(stam_crash, MEDICAL_PAIN_DETERMINATION_CRASH_CAP)) // APHELION EDIT CHANGE - ORIGINAL: affected_mob.adjust_stamina_loss(stam_crash)
 	affected_mob.remove_status_effect(/datum/status_effect/determined)
 
 /datum/reagent/determination/on_mob_life(mob/living/carbon/affected_mob, seconds_per_tick, metabolization_ratio)

@@ -248,6 +248,7 @@
 #include "mecha_build.dm"
 #include "mecha_damage.dm"
 #include "mecha_equipment.dm"
+#include "medical_pain.dm"
 #include "medical_wounds.dm"
 #include "merge_type.dm"
 #include "metabolizing.dm"

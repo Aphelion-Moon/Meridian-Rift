@@ -1,13 +1,13 @@
 /datum/quirk/numb
 	name = "Numb"
-	desc = "You can't feel pain at all."
+	desc = "You cannot feel pain and suffer no medical pain symptoms, but your health display hides injuries. Bleeding, exhaustion and physically disabled limbs still affect you." // APHELION EDIT CHANGE - ORIGINAL: desc = "You can't feel pain at all."
 	icon = FA_ICON_STAR_OF_LIFE
-	value = -4
+	value = 0 // APHELION EDIT CHANGE - ORIGINAL: value = -4
 	gain_text = "You feel your body becoming numb."
 	lose_text = "The numbness subsides."
 	medical_record_text = "The patient exhibits congenital hypoesthesia, making them insensitive to pain stimuli."
 	medical_symptom_text = "Exhibits an inability to perceive pain, which may lead to unintentional self-injury and delayed response to harmful stimuli."
-	hardcore_value = 4
+	hardcore_value = 0 // APHELION EDIT CHANGE - ORIGINAL: hardcore_value = 4
 	quirk_flags = QUIRK_TRAUMALIKE
 
 /datum/quirk/numb/add(client/client_source)

@@ -373,7 +373,12 @@
 	ph = 2.6
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED|REAGENT_AFFECTS_WOUNDS
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_MODERATE
+	// APHELION EDIT ADDITION END
 
 /datum/reagent/medicine/mine_salve/on_mob_life(mob/living/carbon/affected_mob, seconds_per_tick, metabolization_ratio)
 	. = ..()
@@ -749,7 +754,7 @@
 
 /datum/reagent/medicine/morphine
 	name = "Morphine"
-	description = "A painkiller that allows the patient to move at full speed even when injured. Causes drowsiness and eventually unconsciousness in high doses. Overdose will cause a variety of effects, ranging from minor to lethal."
+	description = "A strong painkiller that reduces injury pain and numbs surgical procedures. Causes drowsiness and eventually unconsciousness in high doses. Overdose will cause a variety of effects, ranging from minor to lethal." // APHELION EDIT CHANGE - ORIGINAL: description = "A painkiller that allows the patient to move at full speed even when injured. Causes drowsiness and eventually unconsciousness in high doses. Overdose will cause a variety of effects, ranging from minor to lethal."
 	color = "#A9FBFB"
 	taste_description = "a perfumy, bitter vanilla"
 	metabolization_rate = 0.5 * REAGENTS_METABOLISM
@@ -758,8 +763,15 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
 	addiction_types = list(/datum/addiction/opioids = 30)
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_STRONG
+	surgical_analgesia = TRUE
+	// APHELION EDIT ADDITION END
 
+/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 /datum/reagent/medicine/morphine/on_mob_metabolize(mob/living/affected_mob)
 	. = ..()
 	affected_mob.add_movespeed_mod_immunities(type, /datum/movespeed_modifier/damage_slowdown)
@@ -767,6 +779,7 @@
 /datum/reagent/medicine/morphine/on_mob_end_metabolize(mob/living/affected_mob)
 	. = ..()
 	affected_mob.remove_movespeed_mod_immunities(type, /datum/movespeed_modifier/damage_slowdown)
+*/ // APHELION EDIT REMOVAL END
 
 /datum/reagent/medicine/morphine/on_mob_life(mob/living/carbon/affected_mob, seconds_per_tick, metabolization_ratio)
 	. = ..()
@@ -1355,7 +1368,14 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED|REAGENT_NO_RANDOM_RECIPE
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
 	addiction_types = list(/datum/addiction/stimulants = 150)
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_BATON_RESISTANCE, TRAIT_ANALGESIA, TRAIT_STIMULATED)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	metabolized_traits = list(TRAIT_BATON_RESISTANCE, TRAIT_STIMULATED)
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_STRONG
+	surgical_analgesia = TRUE
+	// APHELION EDIT ADDITION END
 
 /datum/reagent/medicine/stimulants/on_mob_metabolize(mob/living/affected_mob)
 	. = ..()
@@ -1668,7 +1688,13 @@
 	description = "A potent chemical that allows someone under its influence to be at full physical ability even when under massive amounts of pain."
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED|REAGENT_NO_RANDOM_RECIPE
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_STRONG
+	surgical_analgesia = TRUE
+	// APHELION EDIT ADDITION END
 
 /datum/reagent/medicine/muscle_stimulant/on_mob_metabolize(mob/living/affected_mob)
 	. = ..()
@@ -1842,7 +1868,12 @@
 	metabolization_rate = 0.5 * REAGENTS_METABOLISM //same as C2s
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_MILD
+	// APHELION EDIT ADDITION END
 
 /datum/reagent/medicine/granibitaluri/on_mob_life(mob/living/carbon/affected_mob, seconds_per_tick, metabolization_ratio)
 	. = ..()
