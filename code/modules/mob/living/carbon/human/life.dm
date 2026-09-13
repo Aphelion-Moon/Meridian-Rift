@@ -18,7 +18,7 @@
 #define THERMAL_PROTECTION_HAND_LEFT 0.025
 #define THERMAL_PROTECTION_HAND_RIGHT 0.025
 
-/** Process the human body after carbon metabolism, wounds, and organs. */
+// Process the human body after carbon metabolism, wounds, and organs.
 /mob/living/carbon/human/Life(seconds_per_tick = SSMOBS_DT)
 	if(HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return

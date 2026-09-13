@@ -1,4 +1,4 @@
-/** Injury-derived medical pain, owned by a human independently of roleplay preferences. */
+// Injury-derived medical pain, owned by a human independently of roleplay preferences.
 /datum/medical_pain
 	/// The patient owns this datum and deletes it before human teardown.
 	var/mob/living/carbon/human/patient
@@ -32,7 +32,7 @@
 	patient = null
 	return ..()
 
-/** Pure injury query. Does not transition stages, consume medicine, or apply symptoms. */
+// Pure injury query. Does not transition stages, consume medicine, or apply symptoms.
 /datum/medical_pain/proc/calculate_raw_pain()
 	if(!patient.uses_medical_pain())
 		return 0
@@ -44,7 +44,7 @@
 		organ_pain += organ.get_medical_pain()
 	return injury_pain + min(organ_pain, MEDICAL_PAIN_ORGAN_CAP)
 
-/**
+/*
  * Sample current injuries and active treatment, recovering promptly with hysteresis.
  * Only life processing advances stages. current_time permits deterministic timing tests.
  */
@@ -73,7 +73,7 @@
 	update_symptoms()
 	patient.update_medical_pain_slowdown()
 
-/** Change only the symptom state belonging to medical pain. */
+// Change only the symptom state belonging to medical pain.
 /datum/medical_pain/proc/set_stage(new_stage)
 	if(stage == new_stage)
 		return
@@ -85,7 +85,7 @@
 	else if(stage >= 4 && old_stage < 4 && !IS_UNCONSCIOUS(patient) && patient.stat != DEAD)
 		to_chat(patient, span_warning("The pain is making it difficult to move. You need medical attention."))
 
-/** Keep a non-processing alert/status only while symptoms exist. */
+// Keep a non-processing alert/status only while symptoms exist.
 /datum/medical_pain/proc/update_symptoms()
 	if(!stage)
 		patient.remove_status_effect(/datum/status_effect/medical_pain)
@@ -95,7 +95,7 @@
 		symptoms = patient.apply_status_effect(/datum/status_effect/medical_pain)
 	symptoms?.update_stage(stage_names[stage + 1])
 
-/** Clear symptoms immediately at death, stasis entry, or species loss. */
+// Clear symptoms immediately at death, stasis entry, or species loss.
 /datum/medical_pain/proc/on_suspended(datum/source)
 	SIGNAL_HANDLER
 	effective_pain = 0
@@ -103,12 +103,12 @@
 	next_stage_change = world.time
 	patient.update_medical_pain_slowdown()
 
-/** Re-evaluate after a completed lifecycle or pain-immunity change without escalating. */
+// Re-evaluate after a completed lifecycle or pain-immunity change without escalating.
 /datum/medical_pain/proc/on_changed(datum/source)
 	SIGNAL_HANDLER
 	recalculate()
 
-/** Scanner reads current injury and drug values without changing symptom progression. */
+// Scanner reads current injury and drug values without changing symptom progression.
 /datum/medical_pain/proc/on_healthscan(datum/source, list/render_list, scanpower, mob/user, mode, tochat)
 	SIGNAL_HANDLER
 	if(!patient.uses_medical_pain() || patient.stat == DEAD)
@@ -119,13 +119,13 @@
 	var/current_effective = suppressed ? 0 : max(0, current_raw - current_relief)
 	render_list += "<span class='notice'>Estimated pain: [round(clamp(100 * current_effective / capacity, 0, 100))]% of capacity; symptoms: [stage_names[stage + 1]]. Active analgesic relief: [current_relief][suppressed ? " (pain suppressed)" : ""]. Injury treatment is still required.</span><br>"
 
-/** Non-processing patient feedback. The human's combined modifier owns movement. */
+// Non-processing patient feedback. The human's combined modifier owns movement.
 /datum/status_effect/medical_pain
 	id = "medical_pain"
 	tick_interval = STATUS_EFFECT_NO_TICK
 	alert_type = /atom/movable/screen/alert/status_effect/medical_pain
 
-/** Update the alert's text without replacing the status on every life tick. */
+// Update the alert's text without replacing the status on every life tick.
 /datum/status_effect/medical_pain/proc/update_stage(stage_name)
 	if(linked_alert)
 		linked_alert.name = "Pain: [stage_name]"
@@ -136,7 +136,7 @@
 		return span_warning("[owner] appears to be struggling with severe pain.")
 	return null
 
-/** Reuses the established injury alert artwork. */
+// Reuses the established injury alert artwork.
 /atom/movable/screen/alert/status_effect/medical_pain
 	name = "Pain"
 	desc = "Injuries are causing pain. Painkillers temporarily ease symptoms; wounds, damaged organs, and open incisions need treatment."

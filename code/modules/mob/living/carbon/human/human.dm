@@ -1,4 +1,4 @@
-/** Initialize the human body, equipment systems, and owned medical state. */
+// Initialize the human body, equipment systems, and owned medical state.
 /mob/living/carbon/human/Initialize(mapload, datum/species/species)
 	ASSIGN_GAME_VERB(src, /mob/living, mob_sleep)
 	add_verb(src, /mob/living/proc/toggle_resting)
@@ -70,7 +70,7 @@
 /mob/living/carbon/human/proc/setup_human_dna()
 	randomize_human_normie(src, randomize_mutations = TRUE, update_body = FALSE)
 
-/** Release human-owned datums before the carbon body is dismantled. */
+/// Release human-owned datums before the carbon body is dismantled.
 /mob/living/carbon/human/Destroy()
 	// APHELION EDIT ADDITION START - MEDICAL_PAIN
 	QDEL_NULL(medical_pain)
@@ -1081,7 +1081,7 @@
 		return FALSE
 	return ..()
 
-/** Update health and the combined injury, physiological and exhaustion movement penalty. */
+/// Update health and the combined injury, physiological and exhaustion movement penalty.
 /mob/living/carbon/human/updatehealth()
 	. = ..()
 	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN

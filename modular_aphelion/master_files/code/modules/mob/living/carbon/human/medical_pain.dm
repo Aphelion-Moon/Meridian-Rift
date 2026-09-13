@@ -6,11 +6,11 @@
 	/// Independent capacity for medical pain; zero opts the species out.
 	var/medical_pain_capacity = MEDICAL_PAIN_CAPACITY
 
-/** Organic human bodies feel injury pain; synthetic and nonorganic bodies retain their original impairment. */
+// Organic human bodies feel injury pain; synthetic and nonorganic bodies retain their original impairment.
 /mob/living/carbon/human/proc/uses_medical_pain()
 	return dna?.species?.medical_pain_capacity > 0 && (mob_biotypes & MOB_ORGANIC) && !(mob_biotypes & MOB_ROBOTIC)
 
-/**
+/*
  * Preserve the strongest of physiological damage, exhaustion and pain in the existing modifier.
  * Keeping its type preserves deliberate mobility exemptions from equipment and abilities.
  */

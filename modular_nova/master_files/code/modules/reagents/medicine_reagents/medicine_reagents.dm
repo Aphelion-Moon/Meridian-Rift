@@ -1,6 +1,6 @@
 // Numbing effects
 /datum/reagent/consumable/ethanol/drunken_espatier
-	medical_pain_relief = MEDICAL_PAIN_RELIEF_MILD // NOVA EDIT CHANGE - MEDICAL_PAIN: formerly granted binary analgesia in New().
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_MILD // APHELION EDIT CHANGE - MEDICAL_PAIN: formerly granted binary analgesia in New().
 
 // Changeling balancing
 // Allowing us to cure husks created by changeling without a brain transplant. Requires slightly more reagents to cure than a normal husk

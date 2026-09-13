@@ -3131,7 +3131,7 @@
 	/// Whether we've had at least WOUND_DETERMINATION_SEVERE (2.5u) of determination at any given time. No damage slowdown immunity or indication we're having a second wind if it's just a single moderate wound
 	var/significant = FALSE
 
-/** Ends the second wind with a bounded stamina crash as finite pain relief wears off. */
+// Ends the second wind with a bounded stamina crash as finite pain relief wears off.
 /datum/reagent/determination/on_mob_end_metabolize(mob/living/carbon/affected_mob)
 	. = ..()
 	if(significant)

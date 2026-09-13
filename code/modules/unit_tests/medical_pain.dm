@@ -1,7 +1,7 @@
-/** Regression coverage for injury-derived pain, treatment, and independent symptom timing. */
+// Regression coverage for injury-derived pain, treatment, and independent symptom timing.
 /datum/unit_test/medical_pain
 
-/** Exercise the medical paths without yielding to natural mob processing. */
+// Exercise the medical paths without yielding to natural mob processing.
 /datum/unit_test/medical_pain/Run()
 	test_injury_healing()
 	test_organs()
@@ -11,7 +11,7 @@
 	test_lifecycle()
 	test_synthetic_bodies()
 
-/** Stored limb damage heals directly; oxygen and exhaustion must not create pain. */
+// Stored limb damage heals directly; oxygen and exhaustion must not create pain.
 /datum/unit_test/medical_pain/proc/test_injury_healing()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT_NOTNULL(patient.medical_pain, "Humans must initialize their medical pain state.")
@@ -31,7 +31,7 @@
 	patient.medical_pain.recalculate()
 	TEST_ASSERT(patient.has_movespeed_modifier(/datum/movespeed_modifier/damage_slowdown), "Pain immunity must not erase oxygen or stamina impairment.")
 
-/** Organ-only damage must be sampled independently of health and have an aggregate cap. */
+// Organ-only damage must be sampled independently of health and have an aggregate cap.
 /datum/unit_test/medical_pain/proc/test_organs()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/organ/liver = patient.get_organ_slot(ORGAN_SLOT_LIVER)
@@ -47,7 +47,7 @@
 	patient.medical_pain.recalculate()
 	TEST_ASSERT_EQUAL(patient.medical_pain.raw_pain, 60, "Multiple organ injuries must respect the aggregate cap.")
 
-/** A fracture persists after brute healing and responds to actual limb dressing state. */
+// A fracture persists after brute healing and responds to actual limb dressing state.
 /datum/unit_test/medical_pain/proc/test_fracture()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/bodypart/arm = patient.get_bodypart(BODY_ZONE_R_ARM)
@@ -70,7 +70,7 @@
 	patient.medical_pain.recalculate()
 	TEST_ASSERT_EQUAL(patient.medical_pain.raw_pain, 0, "Removing the repaired wound must clear the persistent surcharge.")
 
-/** Relief follows active metabolism, uses the strongest source, and disappears on purge. */
+// Relief follows active metabolism, uses the strongest source, and disappears on purge.
 /datum/unit_test/medical_pain/proc/test_analgesia()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
 	patient.reagents.add_reagent(/datum/reagent/medicine/granibitaluri, 10)
@@ -91,7 +91,7 @@
 	patient.reagents.clear_reagents()
 	TEST_ASSERT_EQUAL(patient.get_medical_pain_relief(), 0, "Purging all drugs must leave no stale relief.")
 
-/** Extra reads cannot accelerate stages, and recovery uses a separate threshold. */
+// Extra reads cannot accelerate stages, and recovery uses a separate threshold.
 /datum/unit_test/medical_pain/proc/test_stage_timing()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
 	patient.adjust_tox_loss(160)
@@ -118,7 +118,7 @@
 	TEST_ASSERT_EQUAL(pain_state.effective_pain, 0, "Explicit pain immunity must suppress effective pain.")
 	TEST_ASSERT_EQUAL(pain_state.stage, 0, "Complete relief must clear symptom stage immediately.")
 
-/** Stasis, death and healing clear owned symptoms while preserving unrelated modifiers. */
+// Stasis, death and healing clear owned symptoms while preserving unrelated modifiers.
 /datum/unit_test/medical_pain/proc/test_lifecycle()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/bodypart/arm = patient.get_bodypart(BODY_ZONE_R_ARM)
@@ -144,7 +144,7 @@
 	TEST_ASSERT_EQUAL(pain_state.raw_pain, 0, "Full healing must resample the repaired body.")
 	TEST_ASSERT_EQUAL(pain_state.stage, 0, "Full healing must clear pain symptoms.")
 
-/** Prosthetic injury is painless and synthetic species retain their original damage slowdown. */
+// Prosthetic injury is painless and synthetic species retain their original damage slowdown.
 /datum/unit_test/medical_pain/proc/test_synthetic_bodies()
 	var/mob/living/carbon/human/patient = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/bodypart/old_arm = patient.get_bodypart(BODY_ZONE_R_ARM)
