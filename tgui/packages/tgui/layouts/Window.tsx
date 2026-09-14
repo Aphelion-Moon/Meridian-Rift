@@ -29,7 +29,7 @@ import {
 } from '../drag';
 import { suspendStart } from '../events/handlers/suspense';
 import { createLogger } from '../logging';
-import { IconResourceNotice } from './IconResourceNotice';
+import { IconResourceNotice } from './IconResourceNotice'; // APHELION EDIT ADDITION
 import { Layout } from './Layout';
 import { TitleBar } from './TitleBar';
 
@@ -168,12 +168,14 @@ type ContentProps = Partial<{
 function WindowContent(props: ContentProps) {
   const { className, fitted, children, ...rest } = props;
   const [altDown, setAltDown] = useState(false);
+  // APHELION EDIT ADDITION START
   const content = (
     <>
       <IconResourceNotice />
       {children}
     </>
   );
+  // APHELION EDIT ADDITION END
 
   function dragStartIfAltHeld(event: React.MouseEvent<HTMLDivElement>): void {
     if (altDown) {
@@ -205,9 +207,9 @@ function WindowContent(props: ContentProps) {
         }}
       />
       {fitted ? (
-        content
+        content // APHELION EDIT CHANGE - ORIGINAL: children
       ) : (
-        <div className="Window__contentPadding">{content}</div>
+        <div className="Window__contentPadding">{content}</div> // APHELION EDIT CHANGE - ORIGINAL: <div className="Window__contentPadding">{children}</div>
       )}
     </Layout.Content>
   );
