@@ -29,6 +29,17 @@
 		examine_panel_screen.del_on_map_removal = FALSE
 		examine_panel_screen.screen_loc = "[examine_panel_screen.assigned_map]:1,1"
 
+	examine_panel_screen.cut_overlays()
+	examine_panel_screen.add_overlay(preview_appearance())
+
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "ExaminePanel")
+		ui.open()
+		examine_panel_screen.display_to(user, ui.window)
+
+/// Build the portrait independently of opening a client window.
+/datum/examine_panel/proc/preview_appearance()
 	// Awful snowflake fix for holosynth previews - scanlines mess them up
 	var/mutable_appearance/current_mob_appearance
 	if(isholosynth(holder))
@@ -40,20 +51,19 @@
 		current_mob_appearance = new(holder)
 
 	current_mob_appearance.setDir(SOUTH)
-	current_mob_appearance.transform = matrix() // We reset their rotation, in case they're lying down.
+	// The map view contains one tile. Center the full sprite canvas and fit it
+	// inside that tile, independently of world position, size, or lying rotation.
+	var/list/dimensions = get_icon_dimensions(holder.icon)
+	var/width = dimensions["width"]
+	var/height = dimensions["height"]
+	var/portrait_scale = min(1, world.icon_size / max(1, width), world.icon_size / max(1, height))
+	current_mob_appearance.transform = matrix().Scale(portrait_scale)
+	current_mob_appearance.pixel_x = (world.icon_size - width) / 2
+	current_mob_appearance.pixel_y = (world.icon_size - height) / 2
+	current_mob_appearance.pixel_w = 0
+	current_mob_appearance.pixel_z = 0
 
-	// In case they're pixel-shifted, we bring 'em back!
-	current_mob_appearance.pixel_x = 0
-	current_mob_appearance.pixel_y = 0
-
-	examine_panel_screen.cut_overlays()
-	examine_panel_screen.add_overlay(current_mob_appearance)
-
-	ui = SStgui.try_update_ui(user, src, ui)
-	if(!ui)
-		ui = new(user, src, "ExaminePanel")
-		ui.open()
-		examine_panel_screen.display_to(user, ui.window)
+	return current_mob_appearance
 
 /datum/examine_panel/ui_data(mob/user)
 
@@ -71,6 +81,7 @@
 	var/ideal_conflict_optin_status
 	var/current_conflict_optin_status
 	var/headshot = ""
+	var/headshot_nsfw = ""
 
 	// OOC notes go first
 	if(preferences)
@@ -111,9 +122,16 @@
 		if(preferences)
 			flavor_text = preferences.read_preference(/datum/preference/text/silicon_flavor_text)
 			flavor_text_nsfw = preferences.read_preference(/datum/preference/text/silicon_flavor_text_nsfw)
-			ooc_notes += preferences.read_preference(/datum/preference/text/ooc_notes)
-			ooc_notes_nsfw += preferences.read_preference(/datum/preference/text/ooc_notes_nsfw)
 			headshot += preferences.read_preference(/datum/preference/text/headshot/silicon)
+			if(iscyborg(holder))
+				headshot_nsfw = preferences.read_preference(/datum/preference/text/headshot/silicon_nsfw)
+				custom_species = cyborg_identity_model(holder, preferences, custom_species)
+				custom_species_lore = cyborg_identity_lore(preferences, custom_species_lore)
+				ooc_notes += cyborg_identity_text(preferences, /datum/preference/text/ooc_notes_silicon, /datum/preference/text/ooc_notes)
+				ooc_notes_nsfw += cyborg_identity_text(preferences, /datum/preference/text/ooc_notes_silicon/nsfw, /datum/preference/text/ooc_notes_nsfw)
+			else
+				ooc_notes += preferences.read_preference(/datum/preference/text/ooc_notes)
+				ooc_notes_nsfw += preferences.read_preference(/datum/preference/text/ooc_notes_nsfw)
 
 	if(ishuman(holder))
 		var/mob/living/carbon/human/holder_human = holder
@@ -134,6 +152,7 @@
 		// Identity
 		"character_name" = obscured ? "Unknown" : holder.name,
 		"headshot" = headshot,
+		"headshot_nsfw" = headshot_nsfw,
 		"obscured" = obscured ? TRUE : FALSE,
 		// Descriptions
 		"flavor_text" = flavor_text,
@@ -158,4 +177,3 @@
 		"conflict_opt_in_colors" = GLOB.conflict_opt_in_colors,
 	)
 	return data
-

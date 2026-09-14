@@ -257,6 +257,8 @@ GAME_VERB_DESC(/client, show_character_directory, "Character Directory", "Shows 
 			var/mob/living/silicon/silicon = mob
 			//If the target is a silicon, we want it to show its brain as its species
 			species = READ_PREFS(silicon, choiced/brain_type)
+			if(iscyborg(silicon))
+				species = cyborg_identity_model(silicon, silicon.client.prefs, species)
 			//Load silicon flavor text in place of normal flavor text
 			flavor_text = READ_PREFS(silicon, text/silicon_flavor_text) || ""
 			flavor_text_nsfw = READ_PREFS(silicon, text/silicon_flavor_text_nsfw) || ""
@@ -276,6 +278,8 @@ GAME_VERB_DESC(/client, show_character_directory, "Character Directory", "Shows 
 		hypno = READ_PREFS(mob, choiced/erp_status_hypno) || "Ask"
 		character_ad = READ_PREFS(mob, text/character_ad) || ""
 		ooc_notes = READ_PREFS(mob, text/ooc_notes) || ""
+		if(iscyborg(mob))
+			ooc_notes = cyborg_identity_text(mob.client.prefs, /datum/preference/text/ooc_notes_silicon, /datum/preference/text/ooc_notes)
 		ooc_notes_nsfw = READ_PREFS(mob, text/ooc_notes_nsfw) || ""
 		nova_star_status = mob.client && SSplayer_ranks.is_nova_star(mob.client, admin_bypass = FALSE)
 		// And finally, we want to get the mob's name, taking into account disguised names.

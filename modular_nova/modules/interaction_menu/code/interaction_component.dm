@@ -3,7 +3,7 @@
 
 /datum/component/interactable
 	/// A hard reference to the parent
-	var/mob/living/carbon/human/self = null
+	var/mob/living/self = null
 	/// A list of interactions that the user can engage in.
 	var/list/datum/interaction/interactions
 	var/interact_last = 0
@@ -18,7 +18,7 @@
 		qdel(src)
 		return
 
-	if(!ishuman(parent))
+	if(!cyborg_interaction_participant(parent))
 		return COMPONENT_INCOMPATIBLE
 
 	self = parent
@@ -30,6 +30,8 @@
 	for(var/iterating_interaction_id in GLOB.interaction_instances)
 		var/datum/interaction/interaction = GLOB.interaction_instances[iterating_interaction_id]
 		if(interaction.lewd)
+			if(istype(self, /mob/living/silicon/robot))
+				continue
 			if(!self.client?.prefs?.read_preference(/datum/preference/toggle/erp))
 				continue
 			if(interaction.sexuality != "" && interaction.sexuality != self.client?.prefs?.read_preference(/datum/preference/choiced/erp_sexuality))
@@ -50,13 +52,16 @@
 /datum/component/interactable/proc/open_interaction_menu(datum/source, mob/user)
 	SIGNAL_HANDLER
 
-	if(!ishuman(user))
+	if(!cyborg_interaction_participant(user))
 		return
 	build_interactions_list()
 	INVOKE_ASYNC(src, PROC_REF(ui_interact), user)
 	return CLICK_ACTION_SUCCESS
 
-/datum/component/interactable/proc/can_interact(datum/interaction/interaction, mob/living/carbon/human/target)
+
+/datum/component/interactable/proc/can_interact(datum/interaction/interaction, mob/living/target)
+	if(istype(self, /mob/living/silicon/robot) || istype(target, /mob/living/silicon/robot))
+		return cyborg_message_interaction_allowed(interaction, target, self)
 	if(!interaction.allow_act(target, self))
 		return FALSE
 	if(interaction.lewd && !target.client?.prefs?.read_preference(/datum/preference/toggle/erp))
@@ -77,7 +82,7 @@
 		ui.open()
 
 /datum/component/interactable/ui_status(mob/user, datum/ui_state/state)
-	if(!ishuman(user))
+	if(!cyborg_interaction_participant(user))
 		return UI_CLOSE
 
 	return UI_INTERACTIVE // This UI is always interactive as we handle distance flags via can_interact
@@ -119,7 +124,7 @@
 		colors[interaction.name] = interaction.color
 
 	// Main check to see if the user is even opted into bellies on this character.
-	if(TRAIT_PREDATORY in user._status_traits)
+	if(ishuman(user) && ishuman(self) && (TRAIT_PREDATORY in user._status_traits))
 		var/mob/living/carbon/human/human_user = user
 		// Pull the belly helper from the pred's belly quirk, if present.
 		var/datum/quirk/belly/bellyquirk = locate() in human_user.quirks
@@ -152,49 +157,59 @@
 	data["self"] = self.name
 	data["block_interact"] = interact_next >= world.time
 	data["use_subtler"] = use_subtler
-	data["erp_interaction"] = self.client?.prefs?.read_preference(/datum/preference/toggle/erp)
+	data["erp_interaction"] = ishuman(self) && self.client?.prefs?.read_preference(/datum/preference/toggle/erp)
 	data["has_erp_interaction"] = has_erp_interaction
-
-	var/mob/living/carbon/human/human_user = user
 
 	data["isTargetSelf"] = (user == self)
 
 	// user (the one who opened the ui)
-	if(user)
+	if(ishuman(user))
+		var/mob/living/carbon/human/human_user = user
 		data["pleasure"] = human_user.pleasure
 		data["arousal"] = human_user.arousal
 		data["pain"] = human_user.pain
 
 	// self - the one who the interaction component belongs to, aka who it's opened on (confusing var name yep)
-	if(user != self)
-		data["theirPleasure"] = self.pleasure
-		data["theirArousal"] = self.arousal
-		data["theirPain"] = self.pain
+	if(user != self && ishuman(self))
+		var/mob/living/carbon/human/human_self = self
+		data["theirPleasure"] = human_self.pleasure
+		data["theirArousal"] = human_self.arousal
+		data["theirPain"] = human_self.pain
 
 	var/list/parts = list()
 
-	if(ishuman(user) && can_lewd_strip(user, self))
-		if(self.client?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy))
-			if(self.has_vagina())
-				parts += list(generate_strip_entry(ORGAN_SLOT_VAGINA, self, user, self.vagina))
-			if(self.has_penis())
-				parts += list(generate_strip_entry(ORGAN_SLOT_PENIS, self, user, self.penis))
-			if(self.has_anus())
-				parts += list(generate_strip_entry(ORGAN_SLOT_ANUS, self, user, self.anus))
-			parts += list(generate_strip_entry(ORGAN_SLOT_NIPPLES, self, user, self.nipples))
+	if(ishuman(user) && ishuman(self) && can_lewd_strip(user, self))
+		var/mob/living/carbon/human/human_user = user
+		var/mob/living/carbon/human/human_self = self
+		if(human_self.client?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy))
+			if(human_self.has_vagina())
+				parts += list(generate_strip_entry(ORGAN_SLOT_VAGINA, human_self, human_user, human_self.vagina))
+			if(human_self.has_penis())
+				parts += list(generate_strip_entry(ORGAN_SLOT_PENIS, human_self, human_user, human_self.penis))
+			if(human_self.has_anus())
+				parts += list(generate_strip_entry(ORGAN_SLOT_ANUS, human_self, human_user, human_self.anus))
+			parts += list(generate_strip_entry(ORGAN_SLOT_NIPPLES, human_self, human_user, human_self.nipples))
 
 	data["lewd_slots"] = parts
 
 	// Genital visibility/layering config - only for your own body, so it only
 	// populates (and the tab only appears) when the panel is opened on yourself.
 	var/list/genital_config = list()
-	if(user == self)
-		for(var/obj/item/organ/genital/genital as anything in self.get_configurable_genitals())
+	if(user == self && ishuman(self))
+		var/mob/living/carbon/human/human_self = self
+		for(var/obj/item/organ/genital/genital as anything in human_self.get_configurable_genitals())
 			genital_config += list(genital.get_layering_ui_entry())
 	data["genital_config"] = genital_config
 
 	// Underwear visibility, same deal.
-	data["underwear_config"] = (user == self) ? self.get_underwear_ui_entries() : list()
+	var/list/underwear_config = list()
+	if(user == self && ishuman(self))
+		var/mob/living/carbon/human/human_self = self
+		underwear_config = human_self.get_underwear_ui_entries()
+	data["underwear_config"] = underwear_config
+	if(user == self && istype(self, /mob/living/silicon/robot))
+		var/mob/living/silicon/robot/robot_self = self
+		data["cyborg_runtime"] = robot_self.cyborg_runtime_data()
 
 	return data
 
@@ -219,14 +234,24 @@
 	if(.)
 		return
 
-	if(!ishuman(ui.user))
+	if(!cyborg_interaction_participant(ui.user))
 		return
+
+	if(action == "cyborg_runtime")
+		if(!istype(self, /mob/living/silicon/robot) || ui.user != self)
+			return FALSE
+		var/mob/living/silicon/robot/robot_self = self
+		if(!cyborg_runtime_actor_is_owner(robot_self, ui.user, params["character_slot"]))
+			return FALSE
+		return robot_self.cyborg_runtime_action(params, ui.user)
 
 	if(action == "toggle_subtler")
 		use_subtler = !use_subtler
 		return TRUE
 
 	if(action == "set_genital_visibility" || action == "set_genital_layering" || action == "set_genital_arousal")
+		if(!ishuman(ui.user) || !ishuman(self))
+			return FALSE
 		var/mob/living/carbon/human/actor = ui.user
 		if(actor != self) // You configure your own body, nobody else's.
 			return
@@ -245,6 +270,8 @@
 		return success
 
 	if(action == "set_underwear_visibility" || action == "set_all_underwear_visibility")
+		if(!ishuman(ui.user) || !ishuman(self))
+			return FALSE
 		var/mob/living/carbon/human/actor = ui.user
 		if(actor != self)
 			return
@@ -258,11 +285,25 @@
 
 	if(params["interaction"])
 		var/interaction_id = params["interaction"]
+		var/mob/living/actor = ui.user
+		if((istype(actor, /mob/living/silicon/robot) || istype(self, /mob/living/silicon/robot)))
+			var/datum/interaction/cyborg_interaction = GLOB.interaction_instances[interaction_id]
+			if(interact_next >= world.time || !can_interact(cyborg_interaction, actor) || !cyborg_message_interaction_act(cyborg_interaction, actor, self))
+				return FALSE
+			interact_last = world.time
+			interact_next = interact_last + INTERACTION_COOLDOWN
+			var/datum/component/interactable/actor_component = actor.GetComponent(/datum/component/interactable)
+			if(actor_component && actor_component != src)
+				actor_component.interact_last = interact_last
+				actor_component.interact_next = interact_next
+			return TRUE
 		// Vore is a bespoke interaction added programmatically until such time as a better setup is figured out.
 		if(interaction_id == VORE_ACT)
+			if(!ishuman(actor) || !ishuman(self))
+				return FALSE
 			// Grab the associated player mobs.
-			var/mob/living/carbon/human/source = locate(params["userref"])
-			var/mob/living/carbon/human/target = locate(params["selfref"])
+			var/mob/living/carbon/human/source = actor
+			var/mob/living/carbon/human/target = self
 			if(!source.Adjacent(target))
 				source.show_message(span_warning("You can't eat someone with your mind- get next to them!"))
 				return FALSE
@@ -277,10 +318,12 @@
 				source.show_message(span_warning("Couldn't find the belly helper to try to do vore with- yell at an admin!"))
 				return
 		else if(GLOB.interaction_instances[interaction_id])
-			var/mob/living/carbon/human/user = locate(params["userref"])
+			if(!ishuman(actor) || !ishuman(self))
+				return FALSE
+			var/mob/living/carbon/human/user = actor
 			if(!can_interact(GLOB.interaction_instances[interaction_id], user))
 				return FALSE
-			GLOB.interaction_instances[interaction_id].act(user, locate(params["selfref"]), use_subtler)
+			GLOB.interaction_instances[interaction_id].act(user, self, use_subtler)
 			var/datum/component/interactable/interaction_component = user.GetComponent(/datum/component/interactable)
 			interaction_component.interact_last = world.time
 			interact_next = interaction_component.interact_last + INTERACTION_COOLDOWN
@@ -288,10 +331,12 @@
 			return TRUE
 
 	if(params["item_slot"])
+		if(!ishuman(ui.user) || !ishuman(self))
+			return FALSE
 		// This code should be easy enough to follow... I hope.
 		var/item_index = params["item_slot"]
-		var/mob/living/carbon/human/source = locate(params["userref"])
-		var/mob/living/carbon/human/target = locate(params["selfref"])
+		var/mob/living/carbon/human/source = ui.user
+		var/mob/living/carbon/human/target = self
 
 		var/obj/item/clothing/sextoy/new_item = source.get_active_held_item()
 		var/obj/item/clothing/sextoy/existing_item = target.vars[item_index]

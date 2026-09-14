@@ -295,6 +295,7 @@
 			to_chat(cyborg, span_warning("You can't make yourself into a larger frame when you've already used an expander!"))
 			return FALSE
 		//NOVA EDIT END
+		cyborg_customization_skin = borg_skin
 		if(!isnull(details[SKIN_ICON_STATE]))
 			cyborg_base_icon = details[SKIN_ICON_STATE]
 		if(!isnull(details[SKIN_ICON]))
