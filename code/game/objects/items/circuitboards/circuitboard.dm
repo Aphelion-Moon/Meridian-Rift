@@ -73,6 +73,26 @@
 	return TRUE
 
 // Circuitboard/machine
+/// Canonical item type accepted for a machine component, shared by construction and documentation.
+/proc/machine_component_item_type(component_type)
+	if(ispath(component_type, /obj/item))
+		return component_type
+	if(ispath(component_type, /datum/stock_part))
+		var/datum/stock_part/part_type = component_type
+		return initial(part_type.physical_object_type)
+	return null
+
+/// One bluespace sheet substitutes for one ore crystal during machine construction.
+/proc/machine_component_alternative_type(component_type)
+	if(ispath(machine_component_item_type(component_type), /obj/item/stack/ore/bluespace_crystal))
+		return /obj/item/stack/sheet/bluespace_crystal
+	return null
+
+/proc/machine_component_accepts(component_type, item_type)
+	var/primary_type = machine_component_item_type(component_type)
+	var/alternative_type = machine_component_alternative_type(component_type)
+	return (primary_type && ispath(item_type, primary_type)) || (alternative_type && ispath(item_type, alternative_type))
+
 /*Common Parts: Parts List: Ignitor, Timer, Infra-red laser, Infra-red sensor, t_scanner, Capacitor, Valve, sensor unit,
 micro-manipulator, console screen, beaker, Microlaser, matter bin, power cells.
 */

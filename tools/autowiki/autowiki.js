@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { Mwn } from 'mwn';
+import { inspectPng } from './png.js';
 
 export const API_URL = 'https://meridian-wiki.a13.info/api.php';
 export const GENERATED_TITLES = [
@@ -12,7 +13,6 @@ export const GENERATED_TITLES = [
   'Techweb/Experimental', 'VendingMachines',
 ].map((name) => `Template:Autowiki/Content/${name}`);
 const WARNING = '<noinclude><b>This page is automated by Autowiki. Do NOT edit it manually.</b></noinclude>';
-const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
 const sha1 = (bytes) => createHash('sha1').update(bytes).digest('hex');
 const normalizeTitle = (title) => title.replaceAll('_', ' ');
 // Match MediaWiki TextContent normalization and Parser's removal of NULs.
@@ -61,9 +61,7 @@ export async function loadManifest(editFilename, imageDirectory) {
     const stat = await fs.lstat(filename);
     if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error(`Invalid generated image: ${name}`);
     const bytes = await fs.readFile(filename);
-    if (bytes.length < 24 || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)) {
-      throw new Error(`Image is not a PNG: ${name}`);
-    }
+    try { inspectPng(bytes); } catch { throw new Error(`Image is not a PNG or is corrupt: ${name}`); }
     const title = `File:Autowiki-${name}`;
     const key = normalizeTitle(title);
     if (imageNames.has(key)) throw new Error(`Duplicate normalized image name: ${name}`);
@@ -104,7 +102,22 @@ export async function buildPlan(bot, manifest, config) {
     version: 1, apiUrl: config.apiUrl, sourceSha: config.sourceSha,
     checkedAt: new Date().toISOString(),
     pages: manifest.pages.map((page) => ({ ...page, before: before(page.title), changed: page.text !== before(page.title).text })),
-    images: manifest.images.map((image) => ({ ...image, before: before(image.title), changed: image.sha1 !== before(image.title).sha1 })),
+    images: manifest.images.map((image) => {
+      const old = before(image.title);
+      let description;
+      if (image.provenance) {
+        if (old.text.includes('<!-- Meridian asset provenance -->')) {
+          if (!old.text.includes('== Earlier Revisions ==')) throw new Error(`Unrecognized provenance layout: ${image.title}`);
+          const managed = /<!-- Meridian asset provenance -->[\s\S]*?(?=== Earlier Revisions ==)/;
+          const materialMetadata = text => normalizeWikitext(text.replace(/\/blob\/[a-f0-9]{40}\//g, '/blob/{commit}/').replace(/Source revision: <code>[a-f0-9]{40}<\/code>/g, 'Source revision: <code>{commit}</code>'));
+          const prior = old.text.match(managed)[0];
+          // The publication journal records validation. File history records material asset changes.
+          description = image.sha1 === old.sha1 && materialMetadata(prior) === materialMetadata(image.provenance) ? old.text : old.text.replace(managed, image.provenance);
+        } else description = image.provenance + '== Earlier Revisions ==\n' + old.text + '\n<!-- End Meridian asset provenance -->';
+        description = normalizeWikitext(description);
+      }
+      return { ...image, description, before: old, changed: image.sha1 !== old.sha1, metadataChanged: description !== undefined && description !== old.text };
+    }),
   };
 }
 
@@ -122,6 +135,7 @@ export async function writeReport(plan, reportDirectory) {
   const summary = {
     sourceSha: plan.sourceSha, pages: plan.pages.length, images: plan.images.length,
     changedPages: changedPages.length, changedImages: plan.images.filter((image) => image.changed).length,
+    changedImageDescriptions: plan.images.filter((image) => image.metadataChanged).length,
   };
   await fs.writeFile(path.join(reportDirectory, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
   return summary;
@@ -144,11 +158,12 @@ export async function publishPlan(bot, plan, reportDirectory) {
   const record = () => fs.writeFile(path.join(reportDirectory, 'published.json'), JSON.stringify(completed, null, 2) + '\n');
   await record();
   // Files first. Their revision history preserves replaced images if a later operation fails.
-  for (const image of plan.images.filter((entry) => entry.changed)) {
+  for (const image of plan.images.filter((entry) => entry.changed || entry.metadataChanged)) {
     const bytes = await fs.readFile(image.filename);
     if (sha1(bytes) !== image.sha1) throw new Error(`Image changed since planning: ${image.title}`);
     const latestImage = (await snapshot(bot, [image.title])).get(normalizeTitle(image.title));
-    if (latestImage.sha1 === image.sha1) continue;
+    if (image.description !== undefined && latestImage.text !== image.before.text) throw new Error(`Image description changed on wiki: ${image.title}`);
+    if (latestImage.sha1 !== image.sha1) {
     if (latestImage.sha1 !== image.before.sha1) throw new Error(`Image changed on wiki: ${image.title}`);
     const upload = await bot.upload(image.filename, image.title.substring('File:'.length),
       `Generated from Meridian-Rift commit ${plan.sourceSha}.`, {
@@ -157,6 +172,16 @@ export async function publishPlan(bot, plan, reportDirectory) {
     if (upload.result !== 'Success') throw new Error(`Upload did not succeed: ${image.title}`);
     completed.images.push(image.title);
     await record();
+    }
+    if (image.metadataChanged) {
+      const after = (await snapshot(bot, [image.title])).get(normalizeTitle(image.title));
+      if (after.sha1 !== image.sha1 || (after.text !== image.before.text && after.text !== image.description)) throw new Error(`Image changed during upload: ${image.title}`);
+      if (after.text !== image.description) {
+        const saved = await bot.save(image.title, image.description, `Autowiki asset provenance from ${plan.sourceSha}`, {bot:true,assert:'user',watchlist:'nochange',baserevid:after.revision,nocreate:true});
+        if (saved.result !== 'Success') throw new Error(`Image description update failed: ${image.title}`);
+        completed.pages.push({title:image.title,revision:saved.newrevid});await record();
+      }
+    }
   }
   for (const page of plan.pages.filter((entry) => entry.changed)) {
     const result = await bot.save(page.title, page.text, `Autowiki data from ${plan.sourceSha}`, {
@@ -174,7 +199,7 @@ export async function publishPlan(bot, plan, reportDirectory) {
 
 export async function main(args = process.argv.slice(2), env = process.env) {
   const publish = args.includes('--publish');
-  const config = readConfig(env, publish || args.includes('--check-config'));
+  const config = readConfig(env, publish);
   if (args.includes('--check-config')) return;
   const positional = args.filter((arg) => !['--publish', '--dry-run'].includes(arg));
   if (positional.length !== 3) throw new Error('Usage: node autowiki.js <edits.jsonl> <image-directory> <report-directory> [--dry-run|--publish]');

@@ -116,6 +116,7 @@
 	..()
 
 /datum/chemical_reaction/reagent_explosion/tatp
+	documentation_dynamic_fields = list("required_temp")
 	results = list(/datum/reagent/tatp= 1)
 	required_reagents = list(/datum/reagent/acetone_oxide = 1, /datum/reagent/toxin/acid/nitracid = 1, /datum/reagent/pentaerythritol = 1 )
 	required_temp = 450
@@ -132,6 +133,7 @@
 	..()
 
 /datum/chemical_reaction/reagent_explosion/tatp_explosion
+	documentation_dynamic_fields = list("required_temp")
 	required_reagents = list(/datum/reagent/tatp = 1)
 	required_temp = 550 // this makes making tatp before pyro nades, and extreme pain in the ass to make
 	strengthdiv = 3

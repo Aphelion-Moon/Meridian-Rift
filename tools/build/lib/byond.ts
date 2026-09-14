@@ -233,7 +233,7 @@ export async function DreamDaemon(
   const dmPath = await getDmPath(options.namedDmVersion);
   const baseDir = path.dirname(dmPath);
   const ddExeName =
-    process.platform === 'win32' ? 'dreamdaemon.exe' : 'DreamDaemon';
+    process.platform === 'win32' ? 'dd.exe' : 'DreamDaemon';
   const ddExePath = baseDir === '.' ? ddExeName : path.join(baseDir, ddExeName);
 
   return Juke.exec(ddExePath, [options.dmbFile, ...args]);

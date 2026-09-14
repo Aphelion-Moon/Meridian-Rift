@@ -1,0 +1,1230 @@
+{
+  "version": 2,
+  "profile": "source-defaults",
+  "fields": {
+    "entity": {
+      "name": [
+        "string"
+      ],
+      "parent": [
+        "string"
+      ],
+      "appearance_scope": [
+        "string"
+      ],
+      "description": [
+        "string",
+        "null"
+      ],
+      "icon_source": [
+        "string",
+        "null"
+      ],
+      "icon_state": [
+        "string",
+        "null"
+      ],
+      "greyscale_config": [
+        "string",
+        "null"
+      ],
+      "greyscale_colors": [
+        "string",
+        "null"
+      ],
+      "icon_file": [
+        "string",
+        "null"
+      ],
+      "icon_status": [
+        "string",
+        "null"
+      ],
+      "color": [
+        "string",
+        "array",
+        "null"
+      ],
+      "density": [
+        "number"
+      ],
+      "weight_class": [
+        "number"
+      ],
+      "force": [
+        "number"
+      ],
+      "throwforce": [
+        "number"
+      ],
+      "tool_speed": [
+        "number"
+      ],
+      "tool_behavior": [
+        "string",
+        "number",
+        "null"
+      ],
+      "documentation_visibility": [
+        "string",
+        "null"
+      ],
+      "documentation_family": [
+        "string",
+        "null"
+      ],
+      "documentation_id": [
+        "string",
+        "null"
+      ],
+      "armor_type": [
+        "string",
+        "null"
+      ],
+      "ammo_type": [
+        "string",
+        "null"
+      ],
+      "mag_type": [
+        "string",
+        "null"
+      ],
+      "projectile_type": [
+        "string",
+        "null"
+      ],
+      "max_ammo": [
+        "number",
+        "null"
+      ],
+      "use_power": [
+        "number",
+        "null"
+      ],
+      "idle_power_usage": [
+        "number",
+        "null"
+      ],
+      "active_power_usage": [
+        "number",
+        "null"
+      ],
+      "req_access": [
+        "array",
+        "null"
+      ],
+      "req_one_access": [
+        "array",
+        "null"
+      ],
+      "deferred_fields": [
+        "array"
+      ],
+      "render_profiles": [
+        "array"
+      ],
+      "circuitboard_type": [
+        "string",
+        "null"
+      ],
+      "stock_part_tier": [
+        "number"
+      ],
+      "stock_part_energy_rating": [
+        "number"
+      ],
+      "stock_part_base_type": [
+        "string",
+        "null"
+      ],
+      "construction_result": [
+        "string",
+        "null"
+      ],
+      "construction_components": [
+        "array"
+      ],
+      "construction_alternatives": [
+        "array"
+      ],
+      "construction_needs_anchored": [
+        "number"
+      ],
+      "construction_specific_parts": [
+        "number"
+      ],
+      "construction_scope": [
+        "string"
+      ]
+    },
+    "research_node": {
+      "display_name": [
+        "string"
+      ],
+      "description": [
+        "string"
+      ],
+      "node_flags": [
+        "number"
+      ],
+      "prerequisite_nodes": [
+        "array",
+        "null"
+      ],
+      "unlocked_designs": [
+        "array",
+        "null"
+      ],
+      "research_costs": [
+        "array",
+        "null"
+      ],
+      "required_experiments": [
+        "array",
+        "null"
+      ],
+      "discount_experiments": [
+        "array",
+        "null"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "design": {
+      "name": [
+        "string"
+      ],
+      "desc": [
+        "string",
+        "null"
+      ],
+      "build_path": [
+        "string",
+        "null"
+      ],
+      "make_reagent": [
+        "string",
+        "null"
+      ],
+      "build_type": [
+        "number",
+        "null"
+      ],
+      "construction_time": [
+        "number"
+      ],
+      "lathe_time_factor": [
+        "number"
+      ],
+      "departmental_flags": [
+        "number"
+      ],
+      "fixed_cost_efficiency": [
+        "number"
+      ],
+      "materials": [
+        "array",
+        "null"
+      ],
+      "reagents_list": [
+        "array",
+        "null"
+      ],
+      "unlocked_by": [
+        "array",
+        "null"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "reagent": {
+      "name": [
+        "string"
+      ],
+      "description": [
+        "string"
+      ],
+      "color": [
+        "string"
+      ],
+      "color_scope": [
+        "string"
+      ],
+      "inverse_chem": [
+        "string",
+        "null"
+      ],
+      "ph": [
+        "number"
+      ],
+      "metabolization_rate": [
+        "number"
+      ],
+      "overdose_threshold": [
+        "number"
+      ],
+      "chemical_flags": [
+        "number"
+      ],
+      "inverse_chem_val": [
+        "number"
+      ],
+      "addiction_types": [
+        "array",
+        "null"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "reaction": {
+      "results": [
+        "array",
+        "null"
+      ],
+      "required_reagents": [
+        "array",
+        "null"
+      ],
+      "required_catalysts": [
+        "array",
+        "null"
+      ],
+      "dynamic_fields": [
+        "array",
+        "null"
+      ],
+      "required_container": [
+        "string",
+        "null"
+      ],
+      "is_cold_recipe": [
+        "number",
+        "null"
+      ],
+      "required_temp": [
+        "number",
+        "null"
+      ],
+      "optimal_temp": [
+        "number",
+        "null"
+      ],
+      "overheat_temp": [
+        "number",
+        "null"
+      ],
+      "optimal_ph_min": [
+        "number",
+        "null"
+      ],
+      "optimal_ph_max": [
+        "number",
+        "null"
+      ],
+      "purity_min": [
+        "number",
+        "null"
+      ],
+      "required_container_accepts_subtypes": [
+        "number"
+      ],
+      "mob_react": [
+        "number"
+      ],
+      "determin_ph_range": [
+        "number"
+      ],
+      "rate_up_lim": [
+        "number"
+      ],
+      "reaction_flags": [
+        "number"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "crafting_recipe": {
+      "name": [
+        "string"
+      ],
+      "result": [
+        "string"
+      ],
+      "desc": [
+        "string",
+        "null"
+      ],
+      "category": [
+        "string",
+        "null"
+      ],
+      "time": [
+        "number"
+      ],
+      "crafting_flags": [
+        "number"
+      ],
+      "result_amount": [
+        "number",
+        "null"
+      ],
+      "reqs": [
+        "array",
+        "null"
+      ],
+      "tool_behaviors": [
+        "array",
+        "null"
+      ],
+      "tool_paths": [
+        "array",
+        "null"
+      ],
+      "parts": [
+        "array",
+        "null"
+      ],
+      "chem_catalysts": [
+        "array",
+        "null"
+      ],
+      "machinery": [
+        "array",
+        "null"
+      ],
+      "structures": [
+        "array",
+        "null"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "supply_pack": {
+      "name": [
+        "string"
+      ],
+      "desc": [
+        "string"
+      ],
+      "group": [
+        "string"
+      ],
+      "crate_type": [
+        "string",
+        "null"
+      ],
+      "cost": [
+        "number"
+      ],
+      "order_flags": [
+        "number"
+      ],
+      "test_ignored": [
+        "number"
+      ],
+      "access": [
+        "string",
+        "number",
+        "null"
+      ],
+      "access_view": [
+        "string",
+        "number",
+        "null"
+      ],
+      "access_any": [
+        "array",
+        "number",
+        "null"
+      ],
+      "contains": [
+        "array"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "job": {
+      "title": [
+        "string"
+      ],
+      "description": [
+        "string"
+      ],
+      "exp_required_type": [
+        "string"
+      ],
+      "config_tag": [
+        "string"
+      ],
+      "outfit": [
+        "string",
+        "null"
+      ],
+      "paycheck_department": [
+        "string",
+        "null"
+      ],
+      "exp_requirements": [
+        "number"
+      ],
+      "minimal_player_age": [
+        "number"
+      ],
+      "job_flags": [
+        "number"
+      ],
+      "paycheck": [
+        "number",
+        "null"
+      ],
+      "departments_list": [
+        "array",
+        "null"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "outfit": {
+      "name": [
+        "string",
+        "null"
+      ],
+      "uniform": [
+        "string",
+        "null"
+      ],
+      "suit": [
+        "string",
+        "null"
+      ],
+      "back": [
+        "string",
+        "null"
+      ],
+      "belt": [
+        "string",
+        "null"
+      ],
+      "gloves": [
+        "string",
+        "null"
+      ],
+      "shoes": [
+        "string",
+        "null"
+      ],
+      "head": [
+        "string",
+        "null"
+      ],
+      "mask": [
+        "string",
+        "null"
+      ],
+      "neck": [
+        "string",
+        "null"
+      ],
+      "ears": [
+        "string",
+        "null"
+      ],
+      "glasses": [
+        "string",
+        "null"
+      ],
+      "l_pocket": [
+        "string",
+        "null"
+      ],
+      "r_pocket": [
+        "string",
+        "null"
+      ],
+      "suit_store": [
+        "string",
+        "null"
+      ],
+      "l_hand": [
+        "string",
+        "null"
+      ],
+      "r_hand": [
+        "string",
+        "null"
+      ],
+      "backpack_contents": [
+        "array",
+        "null"
+      ],
+      "belt_contents": [
+        "array",
+        "null"
+      ],
+      "implants": [
+        "array",
+        "null"
+      ],
+      "scope": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "vending": {
+      "name": [
+        "string",
+        "null"
+      ],
+      "desc": [
+        "string",
+        "null"
+      ],
+      "products": [
+        "array",
+        "null"
+      ],
+      "product_categories": [
+        "array",
+        "null"
+      ],
+      "contraband": [
+        "array",
+        "null"
+      ],
+      "premium": [
+        "array",
+        "null"
+      ],
+      "default_price": [
+        "number",
+        "null"
+      ],
+      "extra_price": [
+        "number",
+        "null"
+      ],
+      "scope": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ],
+      "dynamic_fields": [
+        "array"
+      ]
+    },
+    "species": {
+      "name": [
+        "string",
+        "null"
+      ],
+      "id": [
+        "string",
+        "null"
+      ],
+      "coldmod": [
+        "number",
+        "null"
+      ],
+      "heatmod": [
+        "number",
+        "null"
+      ],
+      "bodytemp_heat_damage_limit": [
+        "number",
+        "null"
+      ],
+      "bodytemp_cold_damage_limit": [
+        "number",
+        "null"
+      ],
+      "inherent_traits": [
+        "array",
+        "null"
+      ],
+      "mutant_organs": [
+        "array",
+        "null"
+      ],
+      "scope": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "projectile": {
+      "name": [
+        "string",
+        "null"
+      ],
+      "damage": [
+        "number",
+        "null"
+      ],
+      "damage_type": [
+        "string",
+        "null"
+      ],
+      "armor_flag": [
+        "string",
+        "number",
+        "null"
+      ],
+      "range": [
+        "number",
+        "null"
+      ],
+      "speed": [
+        "number",
+        "null"
+      ],
+      "stamina": [
+        "number",
+        "null"
+      ],
+      "scope": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "material": {
+      "name": [
+        "string",
+        "null"
+      ],
+      "desc": [
+        "string",
+        "null"
+      ],
+      "scope": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "surgery": {
+      "name": [
+        "string",
+        "null"
+      ],
+      "desc": [
+        "string",
+        "null"
+      ],
+      "implements": [
+        "array",
+        "null"
+      ],
+      "operation_flags": [
+        "number",
+        "null"
+      ],
+      "requirements": [
+        "array",
+        "null"
+      ],
+      "scope": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "armor": {
+      "ratings": [
+        "array"
+      ],
+      "scope": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "scenario": {
+      "name": [
+        "string"
+      ],
+      "subject": [
+        "string"
+      ],
+      "result": [
+        "string"
+      ],
+      "conditions": [
+        "string"
+      ],
+      "evidence": [
+        "string"
+      ],
+      "documentation_visibility": [
+        "string"
+      ],
+      "deferred_fields": [
+        "array"
+      ]
+    },
+    "dictionary": {
+      "name": [
+        "string"
+      ],
+      "category": [
+        "string"
+      ],
+      "value": [
+        "string",
+        "number"
+      ],
+      "documentation_visibility": [
+        "string"
+      ]
+    }
+  },
+  "optionalEntity": [
+    "weight_class",
+    "force",
+    "throwforce",
+    "tool_behavior",
+    "tool_speed",
+    "icon_status",
+    "documentation_visibility",
+    "documentation_family",
+    "documentation_id",
+    "armor_type",
+    "ammo_type",
+    "mag_type",
+    "projectile_type",
+    "max_ammo",
+    "use_power",
+    "idle_power_usage",
+    "active_power_usage",
+    "req_access",
+    "req_one_access",
+    "deferred_fields",
+    "render_profiles",
+    "circuitboard_type",
+    "stock_part_tier",
+    "stock_part_energy_rating",
+    "stock_part_base_type",
+    "construction_result",
+    "construction_components",
+    "construction_alternatives",
+    "construction_needs_anchored",
+    "construction_specific_parts",
+    "construction_scope"
+  ],
+  "relations": {
+    "research_node": {
+      "prerequisite_nodes": "research_node",
+      "unlocked_designs": "design"
+    },
+    "design": {
+      "build_path": "entity",
+      "unlocked_by": "research_node",
+      "make_reagent": "reagent",
+      "materials": "material"
+    },
+    "reaction": {
+      "results": "reagent",
+      "required_reagents": "reagent",
+      "required_catalysts": "reagent"
+    },
+    "reagent": {
+      "inverse_chem": "reagent"
+    },
+    "crafting_recipe": {
+      "result": "entity",
+      "reqs": "auto",
+      "tool_paths": "entity",
+      "machinery": "entity",
+      "structures": "entity"
+    },
+    "supply_pack": {
+      "contains": "entity",
+      "crate_type": "entity"
+    },
+    "outfit": {
+      "uniform": "entity",
+      "suit": "entity",
+      "back": "entity",
+      "belt": "entity",
+      "gloves": "entity",
+      "shoes": "entity",
+      "head": "entity",
+      "mask": "entity",
+      "neck": "entity",
+      "ears": "entity",
+      "glasses": "entity",
+      "l_pocket": "entity",
+      "r_pocket": "entity",
+      "suit_store": "entity",
+      "l_hand": "entity",
+      "r_hand": "entity",
+      "backpack_contents": "entity",
+      "belt_contents": "entity",
+      "implants": "entity"
+    },
+    "vending": {
+      "products": "entity",
+      "contraband": "entity",
+      "premium": "entity"
+    },
+    "species": {
+      "mutant_organs": "entity"
+    },
+    "surgery": {
+      "implements": "entity"
+    },
+    "job": {
+      "outfit": "outfit"
+    },
+    "entity": {
+      "ammo_type": "entity",
+      "mag_type": "entity",
+      "projectile_type": "projectile",
+      "armor_type": "armor",
+      "circuitboard_type": "entity",
+      "stock_part_base_type": "entity",
+      "construction_result": "entity",
+      "construction_components": "entity",
+      "construction_alternatives": "entity"
+    },
+    "scenario": {
+      "subject": "auto"
+    }
+  },
+  "units": {
+    "construction_time": "ds",
+    "time": "ds",
+    "required_temp": "K",
+    "optimal_temp": "K",
+    "overheat_temp": "K",
+    "cost": "base credits",
+    "minimal_player_age": "days",
+    "default_price": "base credits",
+    "extra_price": "base credits",
+    "bodytemp_heat_damage_limit": "K",
+    "bodytemp_cold_damage_limit": "K",
+    "range": "tiles",
+    "speed": "projectile speed multiplier",
+    "stock_part_energy_rating": "multiplier"
+  },
+  "legacyDatasets": [
+    "entity",
+    "research_node",
+    "design",
+    "reagent",
+    "reaction",
+    "crafting_recipe",
+    "supply_pack",
+    "job"
+  ],
+  "optionalFields": {
+    "research_node": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "design": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "reagent": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "reaction": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "crafting_recipe": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "supply_pack": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "job": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "outfit": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "vending": [
+      "documentation_visibility",
+      "deferred_fields",
+      "dynamic_fields"
+    ],
+    "species": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "projectile": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "material": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "surgery": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "armor": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "scenario": [
+      "documentation_visibility",
+      "deferred_fields"
+    ],
+    "dictionary": []
+  },
+  "labels": {
+    "name": "Name",
+    "parent": "Parent",
+    "appearance_scope": "Appearance scope",
+    "description": "Description",
+    "icon_source": "Icon source",
+    "icon_state": "Icon state",
+    "greyscale_config": "Greyscale config",
+    "greyscale_colors": "Greyscale colors",
+    "icon_file": "Icon file",
+    "icon_status": "Icon status",
+    "color": "Color",
+    "density": "Density",
+    "weight_class": "Weight class",
+    "force": "Force",
+    "throwforce": "Throwforce",
+    "tool_speed": "Tool speed",
+    "tool_behavior": "Tool behavior",
+    "documentation_visibility": "Documentation visibility",
+    "documentation_family": "Documentation family",
+    "documentation_id": "Documentation id",
+    "armor_type": "Armor type",
+    "ammo_type": "Ammo type",
+    "mag_type": "Mag type",
+    "projectile_type": "Projectile type",
+    "max_ammo": "Max ammo",
+    "use_power": "Use power",
+    "idle_power_usage": "Idle power usage",
+    "active_power_usage": "Active power usage",
+    "req_access": "Req access",
+    "req_one_access": "Req one access",
+    "display_name": "Display name",
+    "node_flags": "Node flags",
+    "prerequisite_nodes": "Prerequisite nodes",
+    "unlocked_designs": "Unlocked designs",
+    "research_costs": "Research costs",
+    "required_experiments": "Required experiments",
+    "discount_experiments": "Discount experiments",
+    "desc": "Desc",
+    "build_path": "Build path",
+    "make_reagent": "Make reagent",
+    "build_type": "Build type",
+    "construction_time": "Construction time",
+    "lathe_time_factor": "Lathe time factor",
+    "departmental_flags": "Departmental flags",
+    "fixed_cost_efficiency": "Fixed cost efficiency",
+    "materials": "Materials",
+    "reagents_list": "Reagents list",
+    "unlocked_by": "Unlocked by",
+    "color_scope": "Color scope",
+    "inverse_chem": "Inverse chem",
+    "ph": "Ph",
+    "metabolization_rate": "Metabolization rate",
+    "overdose_threshold": "Overdose threshold",
+    "chemical_flags": "Chemical flags",
+    "inverse_chem_val": "Inverse chem val",
+    "addiction_types": "Addiction types",
+    "results": "Results",
+    "required_reagents": "Required reagents",
+    "required_catalysts": "Required catalysts",
+    "dynamic_fields": "Dynamic fields",
+    "required_container": "Required container",
+    "is_cold_recipe": "Is cold recipe",
+    "required_temp": "Required temp",
+    "optimal_temp": "Optimal temp",
+    "overheat_temp": "Overheat temp",
+    "optimal_ph_min": "Optimal ph min",
+    "optimal_ph_max": "Optimal ph max",
+    "purity_min": "Purity min",
+    "required_container_accepts_subtypes": "Required container accepts subtypes",
+    "mob_react": "Mob react",
+    "determin_ph_range": "Determin ph range",
+    "rate_up_lim": "Rate up lim",
+    "reaction_flags": "Reaction flags",
+    "result": "Result",
+    "category": "Category",
+    "time": "Time",
+    "crafting_flags": "Crafting flags",
+    "result_amount": "Result amount",
+    "reqs": "Reqs",
+    "tool_behaviors": "Tool behaviors",
+    "tool_paths": "Tool paths",
+    "parts": "Parts",
+    "chem_catalysts": "Chem catalysts",
+    "machinery": "Machinery",
+    "structures": "Structures",
+    "group": "Group",
+    "crate_type": "Crate type",
+    "cost": "Cost",
+    "order_flags": "Order flags",
+    "test_ignored": "Test ignored",
+    "access": "Access",
+    "access_view": "Access view",
+    "access_any": "Access any",
+    "contains": "Contains",
+    "title": "Title",
+    "exp_required_type": "Exp required type",
+    "config_tag": "Config tag",
+    "outfit": "Outfit",
+    "paycheck_department": "Paycheck department",
+    "exp_requirements": "Exp requirements",
+    "minimal_player_age": "Minimal player age",
+    "job_flags": "Job flags",
+    "paycheck": "Paycheck",
+    "departments_list": "Departments list",
+    "uniform": "Uniform",
+    "suit": "Suit",
+    "back": "Back",
+    "belt": "Belt",
+    "gloves": "Gloves",
+    "shoes": "Shoes",
+    "head": "Head",
+    "mask": "Mask",
+    "neck": "Neck",
+    "ears": "Ears",
+    "glasses": "Glasses",
+    "l_pocket": "L pocket",
+    "r_pocket": "R pocket",
+    "suit_store": "Suit store",
+    "l_hand": "L hand",
+    "r_hand": "R hand",
+    "backpack_contents": "Backpack contents",
+    "belt_contents": "Belt contents",
+    "implants": "Implants",
+    "scope": "Scope",
+    "products": "Products",
+    "product_categories": "Product categories",
+    "contraband": "Contraband",
+    "premium": "Premium",
+    "default_price": "Default price",
+    "extra_price": "Extra price",
+    "id": "Id",
+    "coldmod": "Coldmod",
+    "heatmod": "Heatmod",
+    "bodytemp_heat_damage_limit": "Bodytemp heat damage limit",
+    "bodytemp_cold_damage_limit": "Bodytemp cold damage limit",
+    "inherent_traits": "Inherent traits",
+    "mutant_organs": "Mutant organs",
+    "damage": "Damage",
+    "damage_type": "Damage type",
+    "armor_flag": "Armor flag",
+    "range": "Range",
+    "speed": "Speed",
+    "stamina": "Stamina",
+    "implements": "Implements",
+    "operation_flags": "Operation flags",
+    "requirements": "Requirements",
+    "ratings": "Ratings",
+    "subject": "Subject",
+    "conditions": "Conditions",
+    "evidence": "Evidence",
+    "circuitboard_type": "Circuit board",
+    "stock_part_tier": "Part tier",
+    "stock_part_energy_rating": "Stock-part power multiplier",
+    "stock_part_base_type": "Part family",
+    "construction_result": "Builds",
+    "construction_components": "Required components",
+    "construction_alternatives": "One-for-one component alternatives",
+    "construction_needs_anchored": "Frame must be anchored",
+    "construction_specific_parts": "Board declares specific parts",
+    "construction_scope": "Construction conditions"
+  },
+  "ownership": {
+    "generated": "build",
+    "annotation": "human",
+    "correction": "human",
+    "visibility": "human or explicit source declaration"
+  },
+  "identityPrefixes": {
+    "/datum/chemical_reaction": "reaction",
+    "/datum/reagent": "reagent",
+    "/datum/material": "material",
+    "/datum/outfit": "outfit",
+    "/datum/species": "species",
+    "/datum/armor": "armor",
+    "/datum/surgery_operation": "surgery",
+    "/datum/techweb_node": "research_node",
+    "/datum/design": "design",
+    "/datum/supply_pack": "supply_pack",
+    "/datum/job": "job"
+  },
+  "renderProfiles": {
+    "initial-south-first-frame": "Initial world appearance",
+    "worn-layer-south": "Worn equipment layer",
+    "left-hand-layer-south": "Left hand equipment layer",
+    "right-hand-layer-south": "Right hand equipment layer",
+    "initialized-vendor-south": "Initialized vendor",
+    "initialized-machine-board-south": "Initialized machine circuit board"
+  }
+}

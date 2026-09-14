@@ -44,8 +44,11 @@ SUBSYSTEM_DEF(condos)
 
 /datum/controller/subsystem/condos/Initialize()
 	preload_condo_templates()
+	// Source-data generation needs template definitions, not asynchronous room simulations.
+#ifndef AUTOWIKI
 	// render the preview photos in the background so it doesn't hold up init
 	INVOKE_ASYNC(src, PROC_REF(prerender_previews))
+#endif
 	return SS_INIT_SUCCESS
 
 /// Registers every /datum/map_template/condo subtype as a pickable interior.

@@ -1,5 +1,7 @@
 name: Autowiki
 on:
+  push:
+    branches: [master]
   schedule:
     - cron: "5 4 * * *"
   workflow_dispatch:
@@ -16,22 +18,21 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Set up Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: Install publisher and check configuration
-        env:
-          USERNAME: ${{ secrets.AUTOWIKI_USERNAME }}
-          PASSWORD: ${{ secrets.AUTOWIKI_PASSWORD }}
-          WIKI_API_URL: ${{ vars.WIKI_API_URL }}
+      - name: Install and validate the documentation contract
         run: |
-          cd tools/autowiki
-          npm ci --ignore-scripts
-          npm test
-          node autowiki.js --check-config
+          npm ci --ignore-scripts --prefix tools/autowiki
+          npm test --prefix tools/autowiki
+          python3 -I tools/autowiki/extract-artifact.test.py
+          node tools/autowiki/sync-contract.js
+          node tools/autowiki/generate-contract.js --check
       - name: Install BYOND
         uses: ./.github/actions/restore_or_install_byond
       - name: Install rust-g
@@ -39,14 +40,38 @@ jobs:
           bash tools/ci/install_rust_g.sh
       - name: Compile and generate Autowiki files
         run: |
+          node tools/autowiki/check-cutter.js data/autowiki-cutter-report.json
           source $HOME/BYOND/byond/bin/byondsetup
+          echo "DM_EXE=$(command -v DreamMaker)" >> "$GITHUB_ENV"
+          export DM_EXE="$(command -v DreamMaker)"
           tools/build/build.sh --ci autowiki
       - name: Preview Autowiki changes
+        continue-on-error: true
         env:
           WIKI_API_URL: ${{ vars.WIKI_API_URL }}
         run: node tools/autowiki/autowiki.js data/autowiki_edits.txt data/autowiki_files/ data/autowiki-report/preview --dry-run
+      - name: Validate and package structured game facts
+        run: node tools/autowiki/data-contract.js data/autowiki-data.jsonl data/autowiki-entity-icons data/autowiki-package data/autowiki-provenance.json
+      - name: Validate semantics
+        run: node tools/autowiki/semantic-check.js data/autowiki-package data/autowiki-report/semantic.json
+      - name: Review structured coverage and asset aliases
+        continue-on-error: true
+        env:
+          WIKI_API_URL: ${{ vars.WIKI_API_URL }}
+        run: |
+          node tools/autowiki/coverage.js data/autowiki-package data/autowiki-report/coverage.json
+          node tools/autowiki/reviewed-assets.js data/autowiki-package data/autowiki-report/assets-preview --dry-run
+      - name: Pass the unsigned package to independent validation
+        if: success() && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: autowiki-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          path: data/autowiki-package/
       - name: Preserve generated inputs and preview
-        uses: actions/upload-artifact@v7
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: autowiki-inputs-${{ github.sha }}
           retention-days: 14
@@ -54,18 +79,60 @@ jobs:
             data/autowiki_edits.txt
             data/autowiki_files/
             data/autowiki-report/preview/
-      - name: Publish Autowiki
-        if: github.ref == 'refs/heads/master'
-        env:
-          USERNAME: ${{ secrets.AUTOWIKI_USERNAME }}
-          PASSWORD: ${{ secrets.AUTOWIKI_PASSWORD }}
-          WIKI_API_URL: ${{ vars.WIKI_API_URL }}
-        run: node tools/autowiki/autowiki.js data/autowiki_edits.txt data/autowiki_files/ data/autowiki-report/publish --publish
+            data/autowiki-package/
+            data/autowiki-report/coverage.json
+            data/autowiki-report/assets-preview/
+      # The deployment receiver verifies this manifest against the active game build.
+      # CI never overwrites the wiki merely because master or the daily schedule ran.
       - name: Preserve publication results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: autowiki-results-${{ github.sha }}
           retention-days: 14
           if-no-files-found: ignore
-          path: data/autowiki-report/
+          path: |
+            data/autowiki-report/
+            data/autowiki-provenance.json
+            data/autowiki-cutter-report.json
+
+  sign:
+    needs: autowiki
+    if: github.repository == 'Aphelion-Moon/Meridian-Rift' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout trusted validation code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Download this attempt's unsigned data
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: autowiki-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: candidate
+          digest-mismatch: error
+      # No build scripts, game binaries or code from the artifact run in this job.
+      - name: Independently validate package inventory and committed source inputs
+        run: node tools/autowiki/check-signing-input.js candidate "$GITHUB_SHA"
+      - name: Attest the checked manifest and its complete content inventory
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: candidate/manifest.json
+      - name: Preserve the attested publication package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: autowiki-publication-${{ github.sha }}
+          retention-days: 90
+          if-no-files-found: error
+          path: candidate/

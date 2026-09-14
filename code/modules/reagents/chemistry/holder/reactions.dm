@@ -70,18 +70,8 @@
 			else if(reaction.required_container)
 				continue
 
-			//do we have the required temps?
-			var/required_temp = reaction.required_temp
-			var/is_cold_recipe = reaction.is_cold_recipe
-			if(required_temp != 0 && (is_cold_recipe && chem_temp > required_temp) || (!is_cold_recipe && chem_temp < required_temp))
-				continue
-
-			//do we have the required ph? in range of min - ph_range & max + ph_range
-			if(ph < reaction.optimal_ph_min - reaction.determin_ph_range && ph > reaction.optimal_ph_max + reaction.determin_ph_range)
-				continue
-
-			//user defined checks
-			if(!reaction.pre_reaction_other_checks(src))
+			// Temperature, pH and recipe-specific conditions have one gameplay predicate.
+			if(!reaction.meets_start_conditions(src))
 				continue
 
 			//do the actual reactions

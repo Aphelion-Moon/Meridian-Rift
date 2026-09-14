@@ -68,13 +68,7 @@
 				for(var/component in req_components)
 					if(!req_components[component])
 						continue
-					var/stock_part_path
-					if(ispath(component, /obj/item))
-						stock_part_path = component
-					else if(ispath(component, /datum/stock_part))
-						var/datum/stock_part/stock_part_datum_type = component
-						stock_part_path = initial(stock_part_datum_type.physical_object_type)
-					if(istype(held_item, stock_part_path))
+					if(machine_component_accepts(component, held_item.type))
 						context[SCREENTIP_CONTEXT_LMB] = "Insert part"
 						return CONTEXTUAL_SCREENTIP_SET
 
@@ -224,15 +218,12 @@
 	var/play_sound = FALSE
 	var/list/part_list = replacer.get_sorted_parts() //parts sorted in order of tier
 	for(var/path in req_components)
-		var/target_path
-		if(ispath(path, /datum/stock_part))
-			var/datum/stock_part/datum_part = path
-			target_path = initial(datum_part.physical_object_base_type)
-		else
-			target_path = path
+		var/target_path = machine_component_item_type(path)
+		if(!target_path)
+			continue
 
 		var/obj/item/part
-		while(req_components[path] > 0 && (part = look_for(part_list, target_path, ispath(path, /obj/item/stack/ore/bluespace_crystal) ? /obj/item/stack/sheet/bluespace_crystal : null)))
+		while(req_components[path] > 0 && (part = look_for(part_list, target_path, machine_component_alternative_type(path))))
 			part_list -= part
 			if(istype(part, /obj/item/stack))
 				var/obj/item/stack/S = part
@@ -328,28 +319,14 @@
 		if (req_components[stock_part_base] == 0)
 			continue
 
-		var/stock_part_path
-
-		if(ispath(stock_part_base, /obj/item))
-			stock_part_path = stock_part_base
-		else if(ispath(stock_part_base, /datum/stock_part))
-			var/datum/stock_part/stock_part_datum_type = stock_part_base
-			stock_part_path = initial(stock_part_datum_type.physical_object_type)
-		else
-			stack_trace("Bad stock part in req_components: [stock_part_base]")
-			continue
-
-		//if we require an bluespace crystall and we have an full sheet of them we can allow that
-		if(ispath(stock_part_path, /obj/item/stack/ore/bluespace_crystal) && istype(tool, /obj/item/stack/sheet/bluespace_crystal))
-			pass() //allow it
-		else if(!istype(tool, stock_part_path))
+		if(!machine_component_accepts(stock_part_base, tool.type))
 			continue
 
 		if(isstack(tool))
 			var/obj/item/stack/S = tool
-			var/used_amt = min(round(S.get_amount()), req_components[stock_part_path])
+			var/used_amt = min(round(S.get_amount()), req_components[stock_part_base])
 			if(used_amt && S.use(used_amt))
-				req_components[stock_part_path] -= used_amt
+				req_components[stock_part_base] -= used_amt
 				// No balloon alert here so they can look back and see what they added
 				to_chat(user, span_notice("You add [tool] to [src]."))
 			return

@@ -4106,6 +4106,8 @@
 #include "code\modules\atmospherics\machinery\portable\pump.dm"
 #include "code\modules\atmospherics\machinery\portable\scrubber.dm"
 #include "code\modules\autowiki\autowiki.dm"
+#include "code\modules\autowiki\structured.dm"
+#include "code\modules\autowiki\definitions.dm"
 #include "code\modules\autowiki\pages\base.dm"
 #include "code\modules\autowiki\pages\fishing.dm"
 #include "code\modules\autowiki\pages\soup.dm"

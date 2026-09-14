@@ -1,0 +1,42 @@
+The [[Special:Autowiki|Autowiki Workshop]] connects game definitions to wiki references. Sign in to review records, compare images, explain behavior, or report a problem. [[Special:GameReference|Game Reference]] shows published records. A staged build is available for review before it becomes public.
+
+== Review a Record ==
+Choose a build and find the record by name. Open its source fields, conditions, appearance, and relationships. An initial appearance or source default can differ from an equipped item, an upgraded machine, or a particular round. Read the recorded scope before using a number as a gameplay rule.
+
+Add an annotation to explain behavior. Use an alias for a clearer display name, a family to group known variants, or visibility to decide whether a record belongs in the public reference. A factual correction must name the affected field, provide a typed value, and explain the evidence. Corrections remain visibly editorial. Use the image controls for artwork and the identity controls for mappings.
+
+Human decisions are wiki revisions. Imports retain them. A decision can watch the source fields on which it depends; an unrelated change does not invalidate it. If those fields change, review the new evidence before updating the decision. Revoke a decision to stop applying it while retaining its history. Build rollback does not undo human edits.
+
+== Resolve Issues and Images ==
+Open '''Needs Attention''' and group issues by cause. Search within that view to narrow the queue. Read the observation and its first and latest occurrence. Acknowledge, assign, resolve, or dismiss an issue with a reason. Bulk review shows the selected scope before saving and rejects rows whose evidence or human revision changed after preview.
+
+For an image, compare the current wiki file with candidate source appearances. Check identity, state, context, and attribution. Matching names or pixels alone do not establish that two things are the same. Search for another source when the proposed candidates are unsuitable. Accept or reject a candidate with an explanation. Rejected candidates remain in decision history. Approved mappings follow validated publications; an intervening manual image change requires another review.
+
+== Reconnect Missing Identities ==
+When a source address disappears, open it from its issue or editorial history. '''Reconnect a Missing Identity''' shows the retained source and lets you compare a current record of the same kind. Check the source addresses, names, description, parent, and documentation identity. Explain why they represent the same definition, then save the reviewed link.
+
+The link keeps the original notes and revisions in place. Notes already attached to the current record remain separate. Each note still checks its own watched facts; a link does not approve changed facts. Changes to the identity evidence stop the link until another review. Conflicting links do not choose a winner. Use '''Revoke Identity Link''' to separate the records again. A source address that reappears takes precedence over its historical link.
+
+== Use Facts in Guides ==
+Keep tutorials, instructions, and explanations in ordinary wiki pages. Embed reusable references where a fact should follow the published game data. Copy the stable record ID from the workshop. These templates also provide named parameters in the visual editor.
+
+{| class="wikitable"
+! Component !! Example !! Purpose
+|-
+| Game Fact || <code><nowiki>{{Game Fact|id=RECORD_ID|field=force}}</nowiki></code> || One value with its unit.
+|-
+| Game Item || <code><nowiki>{{Game Item|id=RECORD_ID}}</nowiki></code> || A compact linked reference.
+|-
+| Game Icon || <code><nowiki>{{Game Icon|id=RECORD_ID}}</nowiki></code> || The published appearance.
+|-
+| Game Recipe || <code><nowiki>{{Game Recipe|id=RECIPE_ID}}</nowiki></code> || Inputs, results, and available conditions.
+|-
+| Game Table || <code><nowiki>{{Game Table|ids=FIRST_ID,SECOND_ID|fields=name,force,weight_class}}</nowiki></code> || A compact comparison of selected records.
+|}
+
+Embedded references register guide dependencies when the page is saved. '''Guide Impact''' lists those uses so reviewers can find affected explanations. Removing an embed removes its dependency after the page updates. For human-written instructions, add <code><nowiki>{{Game Dependency|id=RECORD_ID|field=FIELD|section=Section_anchor}}</nowiki></code> beside the relevant section. The template is available in the visual editor and registers a dependency without inserting visible content or changing the prose. Leave field blank to depend on the whole record or a tested scenario. Use the section's actual URL anchor, or leave section blank to link to the guide. The system does not infer dependencies from arbitrary prose.
+
+== Publish and Recover ==
+'''Publications''' shows imported builds and queued work. Prepare a build to derive its public records and search index, then review the activation preview. Publication requires the relevant permission, a clean verified package, and evidence that it matches the deployed game. A failure remains visible and can be retried. The previous build remains active until activation succeeds.
+
+To report a reference problem, use its '''Report an Issue or Add an Explanation''' link. It opens the affected record and build. Explain what you observed and under which conditions. Do not post account secrets or private round information in a report.

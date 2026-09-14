@@ -1,0 +1,122 @@
+name: Autowiki Test Merges
+run-name: Autowiki source ${{ inputs.request_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      source_plan:
+        description: Exact origin commit, ordered merge heads and expected source tree from the receiver
+        required: true
+        type: string
+      builder_commit:
+        description: Approved builder commit from the receiver
+        required: true
+        type: string
+      builder_ref:
+        description: Approved builder release tag or master reference
+        required: true
+        default: refs/heads/master
+        type: string
+      request_id:
+        description: Receiver correlation ID (64 lowercase hexadecimal characters)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: meridian-autowiki-test-merges
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    if: github.repository == 'Aphelion-Moon/Meridian-Rift' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/autowiki-builder-')) && github.ref == inputs.builder_ref && github.sha == inputs.builder_commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Read bounded data input
+        env:
+          SOURCE_PLAN: ${{ inputs.source_plan }}
+          REQUEST_ID: ${{ inputs.request_id }}
+        run: node -e 'const fs=require("node:fs");const s=process.env.SOURCE_PLAN;if(Buffer.byteLength(s)>65536||!/^[a-f0-9]{64}$/.test(process.env.REQUEST_ID))throw Error("Invalid request");fs.writeFileSync("source-plan.json",JSON.stringify(JSON.parse(s)));'
+      - name: Reconstruct and check the exact tree
+        id: source
+        run: node tools/autowiki/prepare-merged-source.js source-plan.json merged
+      - name: Install required BYOND using trusted setup code
+        uses: ./.github/actions/restore_or_install_byond
+        with:
+          major: ${{ steps.source.outputs.byond-major }}
+          minor: ${{ steps.source.outputs.byond-minor }}
+      - name: Install game dependencies
+        working-directory: merged/source
+        run: |
+          npm ci --ignore-scripts --prefix tools/autowiki
+          bash tools/ci/install_rust_g.sh
+      - name: Generate from the reconstructed source
+        working-directory: merged/source
+        run: |
+          node tools/autowiki/check-cutter.js data/autowiki-cutter-report.json
+          source "$HOME/BYOND/byond/bin/byondsetup"
+          export DM_EXE="$(command -v DreamMaker)"
+          tools/build/build.sh --ci autowiki
+          # GitHub's workflow commit identifies the builder, not this reconstructed source.
+          unset GITHUB_SHA SOURCE_SHA
+          node tools/autowiki/data-contract.js data/autowiki-data.jsonl data/autowiki-entity-icons data/autowiki-package data/autowiki-provenance.json
+      - name: Preserve unsigned candidate for this attempt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: autowiki-merged-candidate-${{ github.run_attempt }}
+          path: merged/source/data/autowiki-package/
+          if-no-files-found: error
+          retention-days: 7
+
+  sign:
+    needs: generate
+    if: github.repository == 'Aphelion-Moon/Meridian-Rift' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/autowiki-builder-')) && github.ref == inputs.builder_ref && github.sha == inputs.builder_commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      # Read the original workflow input, never an input file or source archive from the build job.
+      - name: Read bounded data input
+        env:
+          SOURCE_PLAN: ${{ inputs.source_plan }}
+          REQUEST_ID: ${{ inputs.request_id }}
+        run: node -e 'const fs=require("node:fs");const s=process.env.SOURCE_PLAN;if(Buffer.byteLength(s)>65536||!/^[a-f0-9]{64}$/.test(process.env.REQUEST_ID))throw Error("Invalid request");fs.writeFileSync("source-plan.json",JSON.stringify(JSON.parse(s)));'
+      - name: Independently reconstruct source without executing the game
+        id: source
+        run: node tools/autowiki/prepare-merged-source.js source-plan.json merged
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: autowiki-merged-candidate-${{ github.run_attempt }}
+          path: candidate
+          digest-mismatch: error
+      - name: Validate candidate and create its source binding
+        run: node tools/autowiki/bind-merged-package.js candidate merged/source source-plan.json "$GITHUB_SHA" "$GITHUB_REF"
+      - name: Attest the source binding and its manifest digest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: candidate/source-binding.json
+      - name: Preserve signed merged-source package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: autowiki-merged-${{ steps.source.outputs.plan-digest }}
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 90

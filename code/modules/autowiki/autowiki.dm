@@ -9,9 +9,19 @@
 	CONFIG_SET(number/round_end_countdown, 0)
 
 /proc/generate_autowiki()
+	// Round-start callbacks can run while the ticker is still initializing. Let normal
+	// subsystem startup finish before initialized adapters and behavioral fixtures run.
+	for(var/attempt in 1 to 300)
+		if(MC_RUNNING())
+			break
+		sleep(1)
+	if(!MC_RUNNING())
+		CRASH("Autowiki requires a running initialized fixture world")
 	var/output = generate_autowiki_output()
+	var/datum/autowiki_export/structured_export = new
+	structured_export.generate()
 	rustg_file_write(output, "data/autowiki_edits.txt")
-	qdel(world)
+	world.FinishTestRun()
 #endif
 
 /// Returns a string of the autowiki output file

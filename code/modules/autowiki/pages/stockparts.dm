@@ -24,37 +24,36 @@
 
 		var/obj/item/stock_parts/stock_part = new part_type()
 
-		var/datum/design/recipe = find_design(stock_part)
-
-		if(!recipe)
+		var/list/recipes = list()
+		for(var/path in SSresearch.techweb_designs)
+			var/datum/design/recipe = SSresearch.techweb_designs[path]
+			if(recipe.build_path == stock_part.type)
+				recipes += recipe
+		if(!length(recipes))
+			qdel(stock_part)
 			continue
-
-		var/datum/techweb_node/required_node = find_research(recipe)
-
-		var/list/entry_contents = list()
-
-		entry_contents["name"] = escape_value(format_text(stock_part.name))
-		entry_contents["icon"] = escape_value(format_text(create_icon(stock_part)))
-		entry_contents["desc"] = escape_value(format_text(stock_part.desc))
-		entry_contents["tier"] = escape_value(format_text("[stock_part.rating]"))
-		entry_contents["sources"] = escape_value(format_text(generate_source_list(recipe)))
-		entry_contents["node"] = escape_value(format_text(required_node.display_name))
-		entry_contents["materials"] = escape_value(format_text(generate_material_list(recipe)))
-
+		var/list/nodes = list()
+		var/list/sources = list()
+		var/list/material_options = list()
+		for(var/datum/design/recipe as anything in recipes)
+			sources |= generate_source_list(recipe)
+			material_options |= generate_material_list(recipe)
+			for(var/node_path in SSresearch.techweb_nodes)
+				var/datum/techweb_node/node = SSresearch.techweb_nodes[node_path]
+				if(recipe.type in node.unlocked_designs)
+					nodes |= node.display_name
+		var/list/entry_contents = list(
+			"name" = escape_text(stock_part.name),
+			"icon" = create_icon(stock_part),
+			"desc" = escape_text(stock_part.desc),
+			"tier" = stock_part.rating,
+			"sources" = escape_text(sources.Join("; ")),
+			"node" = escape_text(length(nodes) ? nodes.Join("; ") : "No research node required or registered"),
+			"materials" = material_options.Join("<br>OR<br>"),
+		)
 		output += include_template("Autowiki/StockPart", entry_contents)
-
+		qdel(stock_part)
 	return output
-
-/datum/autowiki/stock_parts/proc/find_design(obj/item/stock_parts/stock_part)
-	for(var/datum/design/design_type as anything in valid_subtypesof(/datum/design))
-		if(ispath(design_type::build_path, stock_part.type))
-			return new design_type()
-
-/datum/autowiki/stock_parts/proc/find_research(datum/design/recipe)
-	for(var/datum/techweb_node/node_type as anything in valid_subtypesof(/datum/techweb_node))
-		var/datum/techweb_node/node = new node_type()
-		if(LAZYACCESS(node.unlocked_designs, recipe.type))
-			return node
 
 /datum/autowiki/stock_parts/proc/create_icon(obj/item/stock_parts/stock_part)
 	var/filename = SANITIZE_FILENAME(escape_value(stock_part.icon_state))

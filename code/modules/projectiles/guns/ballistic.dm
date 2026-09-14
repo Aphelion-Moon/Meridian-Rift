@@ -504,8 +504,12 @@
 	update_appearance()
 
 ///Handles all the logic needed for magazine insertion
+/obj/item/gun/ballistic/proc/accepts_magazine(candidate)
+	// Share compatibility between gameplay, inspection and documentation fixtures.
+	return ispath(candidate) ? ispath(candidate, accepted_magazine_type) : istype(candidate, accepted_magazine_type)
+
 /obj/item/gun/ballistic/proc/insert_magazine(mob/user, obj/item/ammo_box/magazine/AM, display_message = TRUE)
-	if(!istype(AM, accepted_magazine_type))
+	if(!accepts_magazine(AM))
 		balloon_alert(user, "[AM.name] doesn't fit!")
 		return FALSE
 	if(user.transferItemToLoc(AM, src))

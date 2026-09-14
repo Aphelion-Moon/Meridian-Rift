@@ -1,0 +1,102 @@
+{
+  "name": "MeridianAutowiki",
+  "version": "0.2.0",
+  "author": [
+    "Moonridden"
+  ],
+  "license-name": "GPL-2.0-or-later",
+  "type": "other",
+  "requires": {
+    "MediaWiki": ">= 1.46.0",
+    "platform": {
+      "php": ">= 8.2"
+    }
+  },
+  "AutoloadNamespaces": {
+    "Meridian\\Autowiki\\": "src/"
+  },
+  "MessagesDirs": {
+    "MeridianAutowiki": [
+      "i18n"
+    ]
+  },
+  "ExtensionMessagesFiles": {
+    "MeridianAutowikiMagic": "Magic.php"
+  },
+  "Namespaces": [
+    {
+      "id": 4300,
+      "constant": "NS_AUTOWIKI_DECISION",
+      "name": "Autowiki_Decision",
+      "content": false,
+      "defaultcontentmodel": "meridian-decision",
+      "capitallinkoverride": false
+    }
+  ],
+  "ContentHandlers": {
+    "meridian-decision": "Meridian\\Autowiki\\DecisionHandler"
+  },
+  "SpecialPages": {
+    "Autowiki": "Meridian\\Autowiki\\Dashboard",
+    "GameReference": "Meridian\\Autowiki\\Reference",
+    "AutowikiImage": "Meridian\\Autowiki\\Image"
+  },
+  "APIModules": {
+    "autowikidata": "Meridian\\Autowiki\\ApiData",
+    "autowikidecision": "Meridian\\Autowiki\\ApiDecision"
+  },
+  "JobClasses": {"meridianAutowikiDelivery": "Meridian\\Autowiki\\DeliveryJob"},
+  "AvailableRights": [
+    "autowiki-review",
+    "autowiki-publish"
+  ],
+  "GroupPermissions": {
+    "user": {
+      "autowiki-review": true
+    },
+    "sysop": {
+      "autowiki-publish": true
+    }
+  },
+  "Hooks": {
+    "getUserPermissionsErrors": "Meridian\\Autowiki\\Hooks::permissions",
+    "PageSaveComplete": "Meridian\\Autowiki\\Hooks::saved",
+    "LinksUpdateComplete": "Meridian\\Autowiki\\Hooks::linksUpdated",
+    "ParserFirstCallInit": "Meridian\\Autowiki\\Hooks::parser",
+    "ContentModelCanBeUsedOn": "Meridian\\Autowiki\\Hooks::model",
+    "SpecialSearchResultsPrepend": "Meridian\\Autowiki\\Hooks::searchResults"
+  },
+  "ResourceModules": {
+    "ext.meridianAutowiki": {
+      "scripts": [
+        "resources/dashboard.js"
+      ],
+      "styles": [
+        "resources/style.css"
+      ],
+      "dependencies": [
+        "mediawiki.api",
+        "mediawiki.util",
+        "@wikimedia/codex"
+      ],
+      "localBasePath": "",
+      "remoteExtPath": "MeridianAutowiki"
+    }
+  },
+  "config": {
+    "MeridianAutowikiOperationsNotifications": {"value": {"enabled": false}},
+    "MeridianAutowikiReceiverStatus": {"value": ""},
+    "MeridianAutowikiRequireVerifiedRelease": {"value": true},
+    "MeridianAutowikiDeploymentFile": {"value": ""},
+    "MeridianAutowikiPackageRoot": {
+      "value": ""
+    },
+    "MeridianAutowikiSearchEnabled": {
+      "value": false
+    },
+    "MeridianAutowikiSearchKeyFile": {
+      "value": ""
+    }
+  },
+  "manifest_version": 2
+}

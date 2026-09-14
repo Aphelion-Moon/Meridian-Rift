@@ -34,6 +34,8 @@
  * Captalism in the year 2525, everything in a vending machine, even love
  */
 /obj/machinery/vending
+	/// Fields initialized randomly or procedurally that must not be documented as fixed inventory.
+	var/list/documentation_dynamic_fields = list()
 	name = "\improper Vendomat"
 	desc = "A generic vending machine."
 	icon = 'icons/obj/machines/vending.dmi'

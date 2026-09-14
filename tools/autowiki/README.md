@@ -1,37 +1,45 @@
-# Meridian Autowiki publisher
+# Meridian Autowiki
 
-Autowiki generates 16 data templates and their PNG icons from the checked-out game source. The [wiki reference hub](https://meridian-wiki.a13.info/wiki/Meridian_Rift:Autowiki) connects these datasets to the practical guides. Presentation templates live on the wiki; generated `Template:Autowiki/Content/*` pages are replaced by the workflow.
+Autowiki exports versioned game definitions, qualified appearances and executable documentation checks. The MediaWiki adapter imports immutable packages. People own explanations, policy, image mappings and editorial decisions in normal wiki revision history.
 
-## Configuration and deployment
+The [Autowiki Workshop](https://meridian-wiki.a13.info/wiki/Special:Autowiki) provides record inspection, image comparison, assignment, bulk review, human history, guide impact and publication status. Imports retain human decisions. See [coverage and remaining work](MODERNIZATION.md) and [operations](OPERATIONS.md).
 
-Use Node 24 (minimum 22) and `npm ci --ignore-scripts` in this directory. `npm test` exercises planning, validation, conflict detection, and failure handling without contacting a wiki.
+## Generate and validate
 
-The workflow requires these repository settings:
-
-| Setting | Value |
-| --- | --- |
-| Actions variable `WIKI_API_URL` | `https://meridian-wiki.a13.info/api.php` exactly |
-| Actions secret `AUTOWIKI_USERNAME` | A dedicated bot's BotPassword login, such as `MeridianAutowiki@Autowiki` |
-| Actions secret `AUTOWIKI_PASSWORD` | That BotPassword, never the administrator password |
-
-Before activating this publisher, create the dedicated wiki account, add only the `bot` group, and issue a [BotPassword](https://www.mediawiki.org/wiki/Manual:Bot_passwords) with the `basic`, `highvolume`, `editpage`, `createeditmovepage`, and `uploadeditmovefile` grants. Verify its effective rights include `edit`, `createpage`, `upload`, and `reupload`. Grant scopes are still limited by the account's actual rights. No administrator, interface-editor, delete, user-management, or site-configuration rights are needed. Test the BotPassword login and update both Actions secrets before merging; the publisher deliberately refuses administrator and non-bot accounts. Do not revoke the old automation credential until the replacement has completed a successful run and no other consumer needs it.
-
-The schedule remains 04:05 UTC daily. The workflow only runs in `Aphelion-Moon/Meridian-Rift`, allows one publication at a time, and preserves generated inputs, preview, and progress artifacts for 14 days. Only `master` can reach the publication step; manual runs on other branches stop after generation and preview. Do not enable `AUTOWIKI` in a live TGS world: the build target runs a dedicated generation process that exits when complete.
-
-## Preview and publication
-
-Supply `WIKI_API_URL` and the 40-character `SOURCE_SHA` for the exact commit used to generate the inputs (`GITHUB_SHA` is used in Actions). Credentials are unnecessary for a preview:
+Use Node 24 (minimum 22), the BYOND version in `dependencies.sh`, and the repository build prerequisites. Set `DM_EXE` to the compiler. Never enable `AUTOWIKI` on the running game; this target starts a dedicated process that exits on completion.
 
 ```sh
-node tools/autowiki/autowiki.js data/autowiki_edits.txt data/autowiki_files/ data/autowiki-report/preview --dry-run
+npm ci --ignore-scripts --prefix tools/autowiki
+npm test --prefix tools/autowiki
+node tools/autowiki/sync-contract.js
+node tools/autowiki/generate-contract.js --check
+node tools/autowiki/check-cutter.js data/autowiki-cutter-report.json
+tools/build/build.sh --ci autowiki
+node tools/autowiki/data-contract.js data/autowiki-data.jsonl data/autowiki-entity-icons data/autowiki-package data/autowiki-provenance.json
+node tools/autowiki/semantic-check.js data/autowiki-package data/autowiki-report/semantic.json
 ```
 
-The default is also a dry run. Review `summary.json`, `pages.diff`, and `plan.json`. The plan records previous page text/revisions and image hashes, proposed changes, destination, and source commit. Images must be PNGs and are always uploaded under `Autowiki-`; only the 16 explicitly listed generated page titles are accepted. A new dataset requires an intentional allowlist update.
+On Windows use `tools/build/build` and BYOND's CLI `dd.exe`. Use a new package destination and keep source files unchanged between generation and packaging. Packages record source changes, configuration hashes, compiler/runtime identity, counts and full image checksums. Dirty checkouts produce review packages that cannot become authoritative public releases.
 
-To publish, also supply `USERNAME` and `PASSWORD` through the process environment and replace `--dry-run` with `--publish`. Publication builds a fresh plan, checks the bot identity, rechecks page revisions, uploads changed images, and then saves changed pages with revision guards. Identical content and image hashes are skipped. Errors exit nonzero; `published.json` records each completed write and the source commit. Logs and artifacts do not contain credentials.
+`contract.json`, `fields.js` and `appearances.js` define the consumer contract. `sync-contract.js` copies it into the extension; `generate-contract.js` produces [CONTRACT.md](CONTRACT.md) and `record.schema.json`. Update the exporter and both consumers together.
 
-## Recovery and limitations
+## Inspect and use
 
-MediaWiki does not provide a transaction spanning multiple pages and files. A failed run can have completed earlier writes. Inspect `published.json`, resolve the failure, and rerun the same generated inputs; completed identical changes will be skipped. Wiki history retains replaced content. For rollback, compare current revisions to the recorded publication and restore the previous revisions only after checking for intervening edits. Image writes have a final hash check, but MediaWiki's upload API has no atomic compare-and-swap guard; avoid concurrent manual changes to managed `Autowiki-` files.
+```sh
+node tools/autowiki/coverage.js data/autowiki-package data/autowiki-report/coverage.json
+node tools/autowiki/explore.js data/autowiki-package data/autowiki-report/review.html
+```
 
-The publisher validates the manifest and file headers, not gameplay semantics or every rendered wiki template. Review new generator output and rendered pages before rollout. Hidden fishing results intentionally use question-mark icons. The wiki's surgery tool wrapper temporarily retains the curated heat-source icon until the generated lighter replacement is visually verified. Core game compilation and generation should run in CI rather than consume the production host's resources.
+Readers validate integrity before using records. Relationships outside the exported scope remain visible debt. Null, deferred, runtime-dependent and missing values must not silently become zero or invented gameplay claims.
+
+There are 17 structured datasets and five appearance profiles. Existing generation of 16 legacy presentation templates remains compatible. `catalog_icons.py`, `icon-crosswalk.py` and the reviewed alias catalogue support incremental image migration. Pixel equality is candidate evidence, not permission to overwrite artwork.
+
+Human guides use `Game Fact`, `Game Item`, `Game Icon`, `Game Recipe` and `Game Table`. `Game Dependency` tracks facts or scenarios used by human-written instructions without inserting visible content. Saved components register anchors and dependencies. Imports preserve surrounding prose and review history.
+
+## Publication
+
+The workflow runs on master pushes, daily at 04:05 UTC, and manual dispatch. It validates and preserves packages; master builds receive a GitHub artifact attestation. CI does not directly update the wiki when a build completes.
+
+`publish.js` verifies the attestation and independently produced TGS active-deployment evidence, compares the previous package, stages immutable files, imports and prepares the release, then rechecks TGS before guarded activation. A protected inbox receiver now runs through the existing wiki job schedule and reports its status in Publications. Trusted artifact retrieval and a clean end-to-end release remain outstanding; see [the handoff](OPERATIONS.md#tgs-handoff).
+
+The legacy `autowiki.js` defaults to a dry run and accepts only allowlisted generated templates and `Autowiki-` PNGs. It requires an exact `WIKI_API_URL` and source SHA. Its optional write mode requires a restricted bot account and revision/hash checks. It is retained for compatibility; the current workflow does not invoke that write mode. Do not enable competing publication paths for the same content.

@@ -1,0 +1,104 @@
+[
+  {
+    "filename": "Wrench.png",
+    "entity": "/obj/item/wrench",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "modular_nova/modules/aesthetics/tools/icons/tools.dmi"
+  },
+  {
+    "filename": "Crowbar.png",
+    "entity": "/obj/item/crowbar",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/tools.dmi"
+  },
+  {
+    "filename": "Hemostat.png",
+    "entity": "/obj/item/hemostat",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/medical/surgery_tools.dmi"
+  },
+  {
+    "filename": "Retractor.png",
+    "entity": "/obj/item/retractor",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/medical/surgery_tools.dmi"
+  },
+  {
+    "filename": "Cautery.png",
+    "entity": "/obj/item/cautery",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/medical/surgery_tools.dmi"
+  },
+  {
+    "filename": "Scalpel.png",
+    "entity": "/obj/item/scalpel",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/medical/surgery_tools.dmi"
+  },
+  {
+    "filename": "Multitool.png",
+    "entity": "/obj/item/multitool",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "modular_nova/master_files/icons/obj/devices/tools.dmi"
+  },
+  {
+    "filename": "Knife.png",
+    "entity": "/obj/item/knife",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/service/kitchen.dmi"
+  },
+  {
+    "filename": "Gavel.png",
+    "entity": "/obj/item/gavelhammer",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/weapons/hammer.dmi"
+  },
+  {
+    "filename": "Fireaxe.png",
+    "entity": "/obj/item/fireaxe",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/weapons/fireaxe.dmi"
+  },
+  {
+    "filename": "Bucket.png",
+    "entity": "/obj/item/reagent_containers/cup/bucket",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/service/janitor.dmi"
+  },
+  {
+    "filename": "Fork.png",
+    "entity": "/obj/item/kitchen/fork",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/service/kitchen.dmi"
+  },
+  {
+    "filename": "Power_cell.png",
+    "entity": "/obj/item/stock_parts/power_store/cell",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "modular_nova/modules/aesthetics/cells/icons/cell.dmi"
+  },
+  {
+    "filename": "Powercell.png",
+    "entity": "/obj/item/stock_parts/power_store/cell",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "modular_nova/modules/aesthetics/cells/icons/cell.dmi"
+  },
+  {
+    "filename": "WeldingHelmet.png",
+    "entity": "/obj/item/clothing/head/utility/welding",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/clothing/head/utility.dmi"
+  },
+  {
+    "filename": "Science_Goggles.png",
+    "entity": "/obj/item/clothing/glasses/science",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/clothing/glasses.dmi"
+  },
+  {
+    "filename": "Scannergate.png",
+    "entity": "/obj/machinery/scanner_gate",
+    "appearanceProfile": "initial-south-first-frame",
+    "source": "icons/obj/machines/scangate.dmi"
+  }
+]

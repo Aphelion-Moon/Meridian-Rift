@@ -1,0 +1,22 @@
+{
+  "fields": {
+    "appearance_scope": "initial appearance; initialization, components and runtime overlays can differ",
+    "color": null,
+    "density": 0,
+    "description": "A wrench with common uses. Can be found in your hand.",
+    "force": 5,
+    "greyscale_colors": null,
+    "greyscale_config": null,
+    "icon_file": "entity-58916400cfebc91a6b9866a0ffcec73a.png",
+    "icon_source": "modular_nova/modules/aesthetics/tools/icons/tools.dmi",
+    "icon_state": "wrench",
+    "name": "wrench",
+    "parent": "/obj/item",
+    "throwforce": 7,
+    "tool_behavior": "wrench",
+    "tool_speed": 1,
+    "weight_class": 2
+  },
+  "id": "/obj/item/wrench",
+  "kind": "entity"
+}

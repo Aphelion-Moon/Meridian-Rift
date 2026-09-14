@@ -57,3 +57,11 @@
 /datum/autowiki/proc/escape_value(parameter)
 	// | is a special character in MediaWiki, and must be escaped by...using another template.
 	return replacetextEx(parameter, "|", "{{!}}")
+
+/// Source prose is plain text. Use escape_value only for intentional generated wiki fragments.
+/datum/autowiki/proc/escape_text(parameter)
+	var/text = html_encode("[parameter]")
+	text = replacetextEx(text, "|", "&#124;")
+	text = replacetextEx(text, "{", "&#123;")
+	text = replacetextEx(text, "}", "&#125;")
+	return text

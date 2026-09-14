@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { API_URL, GENERATED_TITLES, readConfig, loadManifest, buildPlan, writeReport, publishPlan } from './autowiki.js';
 
 const config = { apiUrl: API_URL, sourceSha: 'a'.repeat(40) };
-const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jY9sAAAAASUVORK5CYII=', 'base64');
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFUlEQVR4nGP8z8Dwn4GBgYEJRIAwAB8XAgICR7MUAAAAAElFTkSuQmCC', 'base64');
 async function fixture(t) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'meridian-autowiki-'));
   t.after(async () => {
@@ -38,6 +38,25 @@ function fakeWiki(manifest, { identical = false, groups = ['bot'], revision = 1 
     save: async (...args) => { writes.push(['save', ...args]); return { result: 'Success', newrevid: 2 }; },
   };
 }
+
+test('reviewed image metadata preserves editorial text and uses the post-upload revision', async t => {
+ const f=await fixture(t), manifest=await loadManifest(f.edits,f.images);manifest.pages=[];
+ const image=manifest.images[0];image.provenance='<!-- Meridian asset provenance -->\n== Current Image ==\nNew source.\n\n';
+ const bot=fakeWiki(manifest), old='<!-- Meridian asset provenance -->\n== Current Image ==\nOld source.\n\n== Earlier Revisions ==\nContributor attribution and editor notes.\n<!-- End Meridian asset provenance -->';
+ bot.records.get(image.title).revisions=[{revid:1,slots:{main:{content:old}}}];
+ bot.upload=async(...args)=>{bot.writes.push(['upload',...args]);bot.records.set(image.title,{title:image.title,imageinfo:[{sha1:image.sha1}],revisions:[{revid:2,slots:{main:{content:old}}}]});return {result:'Success'}};
+ const plan=await buildPlan(bot,manifest,config);assert.ok(plan.images[0].description.includes('Contributor attribution and editor notes.'));assert.ok(!plan.images[0].description.includes('Old source.'));
+ await publishPlan(bot,plan,f.directory);
+ assert.equal(bot.writes.length,2);assert.equal(bot.writes[1][4].baserevid,2);assert.equal(bot.writes[1][4].nocreate,true);
+});
+
+test('reviewed metadata refuses concurrent edits after an upload', async t => {
+ const f=await fixture(t),manifest=await loadManifest(f.edits,f.images);manifest.pages=[];
+ const image=manifest.images[0];image.provenance='<!-- Meridian asset provenance -->\n== Current Image ==\nSource.\n';
+ const bot=fakeWiki(manifest),plan=await buildPlan(bot,manifest,config);
+ bot.upload=async(...args)=>{bot.writes.push(['upload',...args]);bot.records.set(image.title,{title:image.title,imageinfo:[{sha1:image.sha1}],revisions:[{revid:7,slots:{main:{content:'A concurrent human edit.'}}}]});return {result:'Success'}};
+ await assert.rejects(publishPlan(bot,plan,f.directory),/changed during upload/);assert.equal(bot.writes.length,1);
+});
 
 test('requires the exact destination and a source revision before any network work', () => {
   for (const url of [undefined, 'https://wiki.tgstation13.org/api.php', API_URL + '?redirect=1', 'http://meridian-wiki.a13.info/api.php']) {
@@ -180,4 +199,16 @@ test('MediaWiki whitespace normalization does not cause repeated publication', a
   assert.ok(plan.pages.every(page => !page.changed));
   await publishPlan(bot, plan, f.directory);
   assert.deepEqual(bot.writes, []);
+});
+
+test('unchanged pixels retain material-change provenance across unrelated source commits', async t => {
+  const f = await fixture(t), manifest = await loadManifest(f.edits, f.images);
+  const provenance = sha => `<!-- Meridian asset provenance -->\n== Current Image ==\nSource: https://github.com/example/game/blob/${sha}/icons/tool.dmi\nSource revision: <code>${sha}</code>.\n\n`;
+  manifest.images[0].provenance = provenance('b'.repeat(40));
+  const bot = fakeWiki(manifest, { identical: true });
+  const text = provenance('a'.repeat(40)) + '== Earlier Revisions ==\nHuman attribution\n<!-- End Meridian asset provenance -->';
+  bot.records.get(manifest.images[0].title).revisions = [{revid: 7, slots:{main:{content:text}}}];
+  const plan = await buildPlan(bot, manifest, config);
+  assert.equal(plan.images[0].metadataChanged,false);
+  assert.equal(plan.images[0].description,text);
 });

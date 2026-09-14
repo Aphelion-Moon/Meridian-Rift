@@ -4,7 +4,7 @@
 	"description": "Validate, preview, and publish generated references to Meridian Rift's wiki",
 	"type": "module",
 	"engines": { "node": ">=22" },
-	"scripts": { "test": "node --test autowiki.test.js" },
+	"scripts": { "test": "node --test *.test.js" },
 	"main": "autowiki.js",
 	"author": "Mothblocks",
 	"dependencies": {

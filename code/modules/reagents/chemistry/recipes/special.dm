@@ -5,6 +5,7 @@
 
 /datum/chemical_reaction/randomized
 	abstract_type = /datum/chemical_reaction/randomized
+	documentation_dynamic_fields = list("required_reagents", "required_catalysts", "required_container", "is_cold_recipe", "required_temp", "optimal_temp", "overheat_temp", "optimal_ph_min", "optimal_ph_max", "purity_min")
 
 	//Increase default leniency because these are already hard enough
 	optimal_ph_min = 1

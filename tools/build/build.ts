@@ -343,8 +343,9 @@ export const AutowikiTarget = new Juke.Target({
     get(DefineParameter).includes('NOVA_TEMPLATES') && DmMapsIncludeTarget, // NOVA EDIT ADDITION
     IconCutterTarget,
   ],
-  outputs: ['data/autowiki_edits.txt'],
+  outputs: ['data/autowiki_edits.txt', 'data/autowiki-data.jsonl', 'data/autowiki-provenance.json'],
   executes: async ({ get }) => {
+    await Juke.exec(process.execPath, ['tools/autowiki/provenance.js', 'capture', 'data/autowiki-provenance.json', JSON.stringify({ defines: ['CBT', 'AUTOWIKI', ...get(DefineParameter)], warningsAsErrors: get(WarningParameter).includes('error'), ignoreWarningCodes: get(NoWarningParameter), namedDmVersion: get(DmVersionParameter) ?? null, runtimeParameters: ['log-directory=ci'] })]);
     fs.copyFileSync(`${DME_NAME}.dme`, `${DME_NAME}.test.dme`);
     await DreamMaker(`${DME_NAME}.test.dme`, {
       defines: ['CBT', 'AUTOWIKI', ...get(DefineParameter)],
@@ -354,6 +355,8 @@ export const AutowikiTarget = new Juke.Target({
     });
     Juke.rm('data/autowiki_edits.txt');
     Juke.rm('data/autowiki_files', { recursive: true });
+    Juke.rm('data/autowiki-data.jsonl');
+    Juke.rm('data/autowiki-entity-icons', { recursive: true });
     Juke.rm('data/logs/ci', { recursive: true });
 
     const options = {
@@ -369,10 +372,11 @@ export const AutowikiTarget = new Juke.Target({
       'log-directory=ci',
     );
     Juke.rm('*.test.*');
-    if (!fs.existsSync('data/autowiki_edits.txt')) {
+    if (!fs.existsSync('data/autowiki_edits.txt') || !fs.existsSync('data/autowiki-data.jsonl') || !fs.existsSync('data/logs/ci/clean_run.lk')) {
       Juke.logger.error('Autowiki did not generate an output, exiting');
       throw new Juke.ExitCode(1);
     }
+    await Juke.exec(process.execPath, ['tools/autowiki/provenance.js', 'verify', 'data/autowiki-provenance.json']);
   },
 });
 

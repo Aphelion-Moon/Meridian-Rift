@@ -6,6 +6,8 @@
  * Chemical reactions is a class that is instantiated and stored in a global list 'chemical_reactions_list'
  */
 /datum/chemical_reaction
+	/// Values generated at runtime; documentation must not publish one sampled recipe as a fixed rule.
+	var/list/documentation_dynamic_fields = list()
 	///Results of the chemical reactions
 	var/list/results = list()
 	///Required chemicals that are USED in the reaction
@@ -59,6 +61,14 @@
 	var/reaction_tags = NONE
 
 ///REACTION PROCS
+
+/// Shared start conditions used by gameplay and bounded documentation fixtures.
+/datum/chemical_reaction/proc/meets_start_conditions(datum/reagents/holder)
+	if(required_temp && ((is_cold_recipe && holder.chem_temp > required_temp) || (!is_cold_recipe && holder.chem_temp < required_temp)))
+		return FALSE
+	if(holder.ph < optimal_ph_min - determin_ph_range || holder.ph > optimal_ph_max + determin_ph_range)
+		return FALSE
+	return pre_reaction_other_checks(holder)
 
 /**
  * Checks if this reaction can occur.

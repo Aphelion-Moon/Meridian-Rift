@@ -1,0 +1,3310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Meridian Autowiki record",
+  "description": "Version 2. Generated from contract.json. Application validators enforce domain rules and provenance.",
+  "$defs": {
+    "dmValue": {
+      "oneOf": [
+        {
+          "type": [
+            "null",
+            "string",
+            "number"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "value"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/dmValue"
+              },
+              "value": {
+                "$ref": "#/$defs/dmValue"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "entity"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "parent",
+            "appearance_scope",
+            "description",
+            "icon_source",
+            "icon_state",
+            "greyscale_config",
+            "greyscale_colors",
+            "icon_file",
+            "color",
+            "density"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "parent": {
+              "title": "Parent",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "appearance_scope": {
+              "title": "Appearance scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "description": {
+              "title": "Description",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "icon_source": {
+              "title": "Icon source",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "icon_state": {
+              "title": "Icon state",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "greyscale_config": {
+              "title": "Greyscale config",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "greyscale_colors": {
+              "title": "Greyscale colors",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "icon_file": {
+              "title": "Icon file",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "icon_status": {
+              "title": "Icon status",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "color": {
+              "title": "Color",
+              "type": [
+                "string",
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "density": {
+              "title": "Density",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "weight_class": {
+              "title": "Weight class",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "force": {
+              "title": "Force",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "throwforce": {
+              "title": "Throwforce",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "tool_speed": {
+              "title": "Tool speed",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "tool_behavior": {
+              "title": "Tool behavior",
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_family": {
+              "title": "Documentation family",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_id": {
+              "title": "Documentation id",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "armor_type": {
+              "title": "Armor type",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "ammo_type": {
+              "title": "Ammo type",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "mag_type": {
+              "title": "Mag type",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "projectile_type": {
+              "title": "Projectile type",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "max_ammo": {
+              "title": "Max ammo",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "use_power": {
+              "title": "Use power",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "idle_power_usage": {
+              "title": "Idle power usage",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "active_power_usage": {
+              "title": "Active power usage",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "req_access": {
+              "title": "Req access",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "req_one_access": {
+              "title": "Req one access",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "render_profiles": {
+              "title": "render profiles",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "circuitboard_type": {
+              "title": "Circuit board",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "stock_part_tier": {
+              "title": "Part tier",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "stock_part_energy_rating": {
+              "title": "Stock-part power multiplier",
+              "description": "Unit: multiplier",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "multiplier"
+            },
+            "stock_part_base_type": {
+              "title": "Part family",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "construction_result": {
+              "title": "Builds",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "construction_components": {
+              "title": "Required components",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "construction_alternatives": {
+              "title": "One-for-one component alternatives",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "construction_needs_anchored": {
+              "title": "Frame must be anchored",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "construction_specific_parts": {
+              "title": "Board declares specific parts",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "construction_scope": {
+              "title": "Construction conditions",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "research_node"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "display_name",
+            "description",
+            "node_flags",
+            "prerequisite_nodes",
+            "unlocked_designs",
+            "research_costs",
+            "required_experiments",
+            "discount_experiments"
+          ],
+          "properties": {
+            "display_name": {
+              "title": "Display name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "description": {
+              "title": "Description",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "node_flags": {
+              "title": "Node flags",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "prerequisite_nodes": {
+              "title": "Prerequisite nodes",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "unlocked_designs": {
+              "title": "Unlocked designs",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "research_costs": {
+              "title": "Research costs",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "required_experiments": {
+              "title": "Required experiments",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "discount_experiments": {
+              "title": "Discount experiments",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "design"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "desc",
+            "build_path",
+            "make_reagent",
+            "build_type",
+            "construction_time",
+            "lathe_time_factor",
+            "departmental_flags",
+            "fixed_cost_efficiency",
+            "materials",
+            "reagents_list",
+            "unlocked_by"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "desc": {
+              "title": "Desc",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "build_path": {
+              "title": "Build path",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "make_reagent": {
+              "title": "Make reagent",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "build_type": {
+              "title": "Build type",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "construction_time": {
+              "title": "Construction time",
+              "description": "Unit: ds",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "ds"
+            },
+            "lathe_time_factor": {
+              "title": "Lathe time factor",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "departmental_flags": {
+              "title": "Departmental flags",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "fixed_cost_efficiency": {
+              "title": "Fixed cost efficiency",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "materials": {
+              "title": "Materials",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "reagents_list": {
+              "title": "Reagents list",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "unlocked_by": {
+              "title": "Unlocked by",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "reagent"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "description",
+            "color",
+            "color_scope",
+            "inverse_chem",
+            "ph",
+            "metabolization_rate",
+            "overdose_threshold",
+            "chemical_flags",
+            "inverse_chem_val",
+            "addiction_types"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "description": {
+              "title": "Description",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "color": {
+              "title": "Color",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "color_scope": {
+              "title": "Color scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "inverse_chem": {
+              "title": "Inverse chem",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "ph": {
+              "title": "Ph",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "metabolization_rate": {
+              "title": "Metabolization rate",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "overdose_threshold": {
+              "title": "Overdose threshold",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "chemical_flags": {
+              "title": "Chemical flags",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "inverse_chem_val": {
+              "title": "Inverse chem val",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "addiction_types": {
+              "title": "Addiction types",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "reaction"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "results",
+            "required_reagents",
+            "required_catalysts",
+            "dynamic_fields",
+            "required_container",
+            "is_cold_recipe",
+            "required_temp",
+            "optimal_temp",
+            "overheat_temp",
+            "optimal_ph_min",
+            "optimal_ph_max",
+            "purity_min",
+            "required_container_accepts_subtypes",
+            "mob_react",
+            "determin_ph_range",
+            "rate_up_lim",
+            "reaction_flags"
+          ],
+          "properties": {
+            "results": {
+              "title": "Results",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "required_reagents": {
+              "title": "Required reagents",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "required_catalysts": {
+              "title": "Required catalysts",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "dynamic_fields": {
+              "title": "Dynamic fields",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "required_container": {
+              "title": "Required container",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "is_cold_recipe": {
+              "title": "Is cold recipe",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "required_temp": {
+              "title": "Required temp",
+              "description": "Unit: K",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "K"
+            },
+            "optimal_temp": {
+              "title": "Optimal temp",
+              "description": "Unit: K",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "K"
+            },
+            "overheat_temp": {
+              "title": "Overheat temp",
+              "description": "Unit: K",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "K"
+            },
+            "optimal_ph_min": {
+              "title": "Optimal ph min",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "optimal_ph_max": {
+              "title": "Optimal ph max",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "purity_min": {
+              "title": "Purity min",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "required_container_accepts_subtypes": {
+              "title": "Required container accepts subtypes",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "mob_react": {
+              "title": "Mob react",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "determin_ph_range": {
+              "title": "Determin ph range",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "rate_up_lim": {
+              "title": "Rate up lim",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "reaction_flags": {
+              "title": "Reaction flags",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "crafting_recipe"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "result",
+            "desc",
+            "category",
+            "time",
+            "crafting_flags",
+            "result_amount",
+            "reqs",
+            "tool_behaviors",
+            "tool_paths",
+            "parts",
+            "chem_catalysts",
+            "machinery",
+            "structures"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "result": {
+              "title": "Result",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "desc": {
+              "title": "Desc",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "category": {
+              "title": "Category",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "time": {
+              "title": "Time",
+              "description": "Unit: ds",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "ds"
+            },
+            "crafting_flags": {
+              "title": "Crafting flags",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "result_amount": {
+              "title": "Result amount",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "reqs": {
+              "title": "Reqs",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "tool_behaviors": {
+              "title": "Tool behaviors",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "tool_paths": {
+              "title": "Tool paths",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "parts": {
+              "title": "Parts",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "chem_catalysts": {
+              "title": "Chem catalysts",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "machinery": {
+              "title": "Machinery",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "structures": {
+              "title": "Structures",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "supply_pack"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "desc",
+            "group",
+            "crate_type",
+            "cost",
+            "order_flags",
+            "test_ignored",
+            "access",
+            "access_view",
+            "access_any",
+            "contains"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "desc": {
+              "title": "Desc",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "group": {
+              "title": "Group",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "crate_type": {
+              "title": "Crate type",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "cost": {
+              "title": "Cost",
+              "description": "Unit: base credits",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "base credits"
+            },
+            "order_flags": {
+              "title": "Order flags",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "test_ignored": {
+              "title": "Test ignored",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "access": {
+              "title": "Access",
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "access_view": {
+              "title": "Access view",
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "access_any": {
+              "title": "Access any",
+              "type": [
+                "array",
+                "number",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "contains": {
+              "title": "Contains",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "job"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "description",
+            "exp_required_type",
+            "config_tag",
+            "outfit",
+            "paycheck_department",
+            "exp_requirements",
+            "minimal_player_age",
+            "job_flags",
+            "paycheck",
+            "departments_list"
+          ],
+          "properties": {
+            "title": {
+              "title": "Title",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "description": {
+              "title": "Description",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "exp_required_type": {
+              "title": "Exp required type",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "config_tag": {
+              "title": "Config tag",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "outfit": {
+              "title": "Outfit",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "paycheck_department": {
+              "title": "Paycheck department",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "exp_requirements": {
+              "title": "Exp requirements",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "minimal_player_age": {
+              "title": "Minimal player age",
+              "description": "Unit: days",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "days"
+            },
+            "job_flags": {
+              "title": "Job flags",
+              "type": [
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "paycheck": {
+              "title": "Paycheck",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "departments_list": {
+              "title": "Departments list",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "outfit"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "uniform",
+            "suit",
+            "back",
+            "belt",
+            "gloves",
+            "shoes",
+            "head",
+            "mask",
+            "neck",
+            "ears",
+            "glasses",
+            "l_pocket",
+            "r_pocket",
+            "suit_store",
+            "l_hand",
+            "r_hand",
+            "backpack_contents",
+            "belt_contents",
+            "implants",
+            "scope"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "uniform": {
+              "title": "Uniform",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "suit": {
+              "title": "Suit",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "back": {
+              "title": "Back",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "belt": {
+              "title": "Belt",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "gloves": {
+              "title": "Gloves",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "shoes": {
+              "title": "Shoes",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "head": {
+              "title": "Head",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "mask": {
+              "title": "Mask",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "neck": {
+              "title": "Neck",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "ears": {
+              "title": "Ears",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "glasses": {
+              "title": "Glasses",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "l_pocket": {
+              "title": "L pocket",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "r_pocket": {
+              "title": "R pocket",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "suit_store": {
+              "title": "Suit store",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "l_hand": {
+              "title": "L hand",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "r_hand": {
+              "title": "R hand",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "backpack_contents": {
+              "title": "Backpack contents",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "belt_contents": {
+              "title": "Belt contents",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "implants": {
+              "title": "Implants",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "vending"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "desc",
+            "products",
+            "product_categories",
+            "contraband",
+            "premium",
+            "default_price",
+            "extra_price",
+            "scope"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "desc": {
+              "title": "Desc",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "products": {
+              "title": "Products",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "product_categories": {
+              "title": "Product categories",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "contraband": {
+              "title": "Contraband",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "premium": {
+              "title": "Premium",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "default_price": {
+              "title": "Default price",
+              "description": "Unit: base credits",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "base credits"
+            },
+            "extra_price": {
+              "title": "Extra price",
+              "description": "Unit: base credits",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "base credits"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "dynamic_fields": {
+              "title": "Dynamic fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "species"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "id",
+            "coldmod",
+            "heatmod",
+            "bodytemp_heat_damage_limit",
+            "bodytemp_cold_damage_limit",
+            "inherent_traits",
+            "mutant_organs",
+            "scope"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "id": {
+              "title": "Id",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "coldmod": {
+              "title": "Coldmod",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "heatmod": {
+              "title": "Heatmod",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "bodytemp_heat_damage_limit": {
+              "title": "Bodytemp heat damage limit",
+              "description": "Unit: K",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "K"
+            },
+            "bodytemp_cold_damage_limit": {
+              "title": "Bodytemp cold damage limit",
+              "description": "Unit: K",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "K"
+            },
+            "inherent_traits": {
+              "title": "Inherent traits",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "mutant_organs": {
+              "title": "Mutant organs",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "projectile"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "damage",
+            "damage_type",
+            "armor_flag",
+            "range",
+            "speed",
+            "stamina",
+            "scope"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "damage": {
+              "title": "Damage",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "damage_type": {
+              "title": "Damage type",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "armor_flag": {
+              "title": "Armor flag",
+              "type": [
+                "string",
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "range": {
+              "title": "Range",
+              "description": "Unit: tiles",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "tiles"
+            },
+            "speed": {
+              "title": "Speed",
+              "description": "Unit: projectile speed multiplier",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build",
+              "x-unit": "projectile speed multiplier"
+            },
+            "stamina": {
+              "title": "Stamina",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "material"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "desc",
+            "scope"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "desc": {
+              "title": "Desc",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "surgery"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "desc",
+            "implements",
+            "operation_flags",
+            "requirements",
+            "scope"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "desc": {
+              "title": "Desc",
+              "type": [
+                "string",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "implements": {
+              "title": "Implements",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "operation_flags": {
+              "title": "Operation flags",
+              "type": [
+                "number",
+                "null"
+              ],
+              "x-owner": "game-build"
+            },
+            "requirements": {
+              "title": "Requirements",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "armor"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ratings",
+            "scope"
+          ],
+          "properties": {
+            "ratings": {
+              "title": "Ratings",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            },
+            "scope": {
+              "title": "Scope",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "scenario"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "subject",
+            "result",
+            "conditions",
+            "evidence"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "subject": {
+              "title": "Subject",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "result": {
+              "title": "Result",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "conditions": {
+              "title": "Conditions",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "evidence": {
+              "title": "Evidence",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "deferred_fields": {
+              "title": "deferred fields",
+              "type": [
+                "array"
+              ],
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "value"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "$ref": "#/$defs/dmValue"
+                  },
+                  "value": {
+                    "$ref": "#/$defs/dmValue"
+                  }
+                }
+              },
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "dictionary"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 1024
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "category",
+            "value",
+            "documentation_visibility"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "category": {
+              "title": "Category",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            },
+            "value": {
+              "title": "value",
+              "type": [
+                "string",
+                "number"
+              ],
+              "x-owner": "game-build"
+            },
+            "documentation_visibility": {
+              "title": "Documentation visibility",
+              "type": [
+                "string"
+              ],
+              "x-owner": "game-build"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
