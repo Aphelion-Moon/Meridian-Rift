@@ -7,6 +7,7 @@
 /datum/supply_pack/companies/medical/first_aid_kit
 	discountable = SUPPLY_PACK_UNCOMMON_DISCOUNTABLE
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/medical/first_aid_kit/comfort
 	contains = list(/obj/item/storage/medkit/civil_defense/comfort/stocked)
 	cost = CARGO_CRATE_VALUE
@@ -14,11 +15,13 @@
 /datum/supply_pack/companies/medical/first_aid_kit/civil_defense
 	contains = list(/obj/item/storage/medkit/civil_defense/stocked)
 	cost = CARGO_CRATE_VALUE * 1.25
+*/ // APHELION EDIT REMOVAL END
 
 /datum/supply_pack/companies/medical/first_aid_kit/frontier
 	contains = list(/obj/item/storage/medkit/frontier/stocked)
 	cost = CARGO_CRATE_VALUE * 1.75
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/medical/first_aid_kit/combat_surgeon
 	contains = list(/obj/item/storage/medkit/combat_surgeon/stocked)
 	cost = CARGO_CRATE_VALUE * 1.75
@@ -30,11 +33,13 @@
 /datum/supply_pack/companies/medical/first_aid_kit/robo_repair_super
 	contains = list(/obj/item/storage/medkit/robotic_repair/preemo/stocked)
 	cost = CARGO_CRATE_VALUE * 4
+*/ // APHELION EDIT REMOVAL END
 
 
 
 
 // Basic first aid supplies like gauze, sutures, mesh, so on
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/medical/first_aid
 
 /datum/supply_pack/companies/medical/first_aid/coagulant
@@ -100,6 +105,7 @@
 /datum/supply_pack/companies/medical/first_aid/mannitol // Bitrunners and Degenerative players should not be out of a job if med is slow, gone or bad
 	contains = list(/obj/item/storage/pill_bottle/mannitol)
 	cost = CARGO_CRATE_VALUE * 2 // pricey to not obsolete med if they ARE here
+*/ // APHELION EDIT REMOVAL END
 
 // Autoinjectors for healing
 /datum/supply_pack/companies/medical/medpens
@@ -141,6 +147,7 @@
 /datum/supply_pack/companies/medical/medpens/pentibinin
 	contains = list(/obj/item/reagent_containers/hypospray/medipen/deforest/pentibinin)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/medical/neuroware
 	cost = CARGO_CRATE_VALUE * 0.375
 
@@ -294,3 +301,4 @@
 
 /datum/supply_pack/companies/medical/donk/neuroware/thc
 	contains = list(/obj/item/disk/neuroware/thc)
+*/ // APHELION EDIT REMOVAL END
