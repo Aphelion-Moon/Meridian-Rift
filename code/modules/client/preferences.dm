@@ -100,6 +100,8 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/list/cached_character_profiles
 
 /datum/preferences/Destroy(force)
+	close_custom_sprite_editors() // APHELION EDIT ADDITION
+	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
 	QDEL_NULL(character_preview_view)
 	QDEL_LIST(middleware)
 	value_cache = null
@@ -377,6 +379,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	return FALSE
 
 /datum/preferences/ui_close(mob/user)
+	close_custom_sprite_editors() // APHELION EDIT ADDITION - Flush before the parent preview disappears
 	save_character()
 	save_preferences()
 	QDEL_NULL(character_preview_view)

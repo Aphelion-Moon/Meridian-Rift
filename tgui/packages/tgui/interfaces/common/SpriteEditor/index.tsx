@@ -44,6 +44,7 @@ import {
   type SpriteData,
   SpriteEditorToolFlags,
 } from './Types/types';
+import { useSpriteEditorHotkeys } from './useSpriteEditorHotkeys';
 
 type ToolbarButtonProps = Omit<
   Parameters<typeof Button>[0],
@@ -85,7 +86,7 @@ const HistoryButton = (props: HistoryButtonProps) => {
                   width="100%"
                   ellipsis
                   onClick={() => {
-                    action(i);
+                    action(stack.length - i);
                     setHistoryOpen(false);
                   }}
                 >
@@ -128,9 +129,9 @@ const HistoryButton = (props: HistoryButtonProps) => {
 
 type ServerColorProps = {
   serverPalette: string[];
-  maxServerColors: number;
-  onAddServerColor: string;
-  onRemoveServerColor: string;
+  maxServerColors?: number;
+  onAddServerColor?: string;
+  onRemoveServerColor?: string;
 };
 
 type PaletteProps = IncludeOrOmitEntireType<
@@ -290,6 +291,7 @@ export namespace SpriteEditor {
 
   export const Canvas = (props: CanvasProps) => {
     const { data, disabled, ...rest } = props;
+    useSpriteEditorHotkeys(!!disabled);
     const { width, height, backdrop } = data;
     const [currentColor, setCurrentColor] = useAtom(currentColorAtom);
     const currentTool = useAtomValue(currentToolAtom);
@@ -310,10 +312,14 @@ export namespace SpriteEditor {
         currentTool.cancel?.(toolContext);
       }
     }, [disabled]);
+    useEffect(
+      () => () => currentTool.cancel?.(toolContext),
+      [currentTool, selectedDir, selectedLayer],
+    );
     useEffect(() => {
       setPreviewLayer(undefined);
       setPreviewData(undefined);
-    }, [JSON.stringify(data)]);
+    }, [JSON.stringify(data), selectedDir, selectedLayer]);
     return (
       <AdvancedCanvas
         data={getFlattenedSpriteDir(

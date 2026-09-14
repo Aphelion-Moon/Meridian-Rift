@@ -3,6 +3,10 @@
 
 /datum/config_entry/flag/russian_text_formation
 
+/// Editing can be disabled without removing any saved appearance.
+/datum/config_entry/flag/allow_custom_sprite_editing
+	default = TRUE
+
 // DISCORD GAME ALERT CONFIGS
 // Role id to ping
 /datum/config_entry/string/game_alert_role_id

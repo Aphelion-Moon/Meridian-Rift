@@ -168,8 +168,9 @@ export function bresenhamLine(
   const dy = Math.abs(y1 - y0);
   const sy = Math.sign(y1 - y0);
   let error = dx - dy;
-  do {
+  while (true) {
     plot(x0, y0);
+    if (x0 === x1 && y0 === y1) break;
     const e2 = 2 * error;
     if (e2 > -dy) {
       error -= dy;
@@ -179,5 +180,5 @@ export function bresenhamLine(
       error += dx;
       y0 += sy;
     }
-  } while (!(x0 === x1 && y0 === y1));
+  }
 }

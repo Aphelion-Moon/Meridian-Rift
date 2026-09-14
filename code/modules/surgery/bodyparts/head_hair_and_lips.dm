@@ -4,6 +4,7 @@
 	lip_style = target.lip_style
 	lip_color = target.lip_color
 	hairstyle = target.hairstyle
+	custom_hair = target.dna.custom_hair ? deep_copy_list(target.dna.custom_hair) : null // APHELION EDIT ADDITION - Detached heads retain their paint
 	hair_alpha = target.hair_alpha ? target.hair_alpha : target_species.hair_alpha // NOVA EDIT CHANGE - Customization - Hair alpha - ORIGINAL: hair_alpha = owner_species.hair_alpha
 	hair_color = target.hair_color
 	facial_hairstyle = target.facial_hairstyle
@@ -117,7 +118,7 @@
 	PRIVATE_PROC(TRUE)
 	. = list()
 	var/datum/sprite_accessory/hair/hair_sprite_accessory = SSaccessories.hairstyles_list[hairstyle]
-	if(!hair_sprite_accessory || hair_sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE)
+	if(!hair_sprite_accessory || (hair_sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE && !custom_hair)) // APHELION EDIT CHANGE - Allow paint on otherwise bald heads
 		return .
 
 	var/atom/location = loc || owner || src
@@ -126,6 +127,13 @@
 	var/list/all_hair_overlays = list()
 	// Hair masks
 	var/icon/base_icon = icon(hair_sprite_accessory.getCachedIcon(owner?.hair_masks))
+	// APHELION EDIT ADDITION START - Blend before colour/gradient processing on this private icon.
+	if(hair_sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE)
+		base_icon = custom_sprite_blank_icon()
+	var/icon/custom_paint = get_custom_hair_paint(hair_sprite_accessory)
+	if(custom_paint && !custom_hair["tint"])
+		base_icon.Blend(custom_paint, ICON_OVERLAY)
+	// APHELION EDIT ADDITION END
 	// Overlay
 	all_hair_overlays += image(base_icon, layer = -HAIR_LAYER, dir = image_dir)
 	// If we have any hair appendages (ponytails, etc.) sticking out on a particular side,
@@ -192,6 +200,7 @@
 		shared_holder.overlays += hair_overlay
 		shared_holder.overlays += hair_gradient_overlay
 		. += shared_holder
+	append_custom_hair_tint_overlays(., custom_paint, hair_sprite_accessory, dropped) // APHELION EDIT ADDITION
 	return .
 
 /// Helper for setting hair color of an overlay appropriately

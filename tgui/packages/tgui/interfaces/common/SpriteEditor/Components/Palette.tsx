@@ -16,6 +16,7 @@ export type PaletteProps = {
     Exclude<BooleanStyleMap, 'inline'> & StringStyleMap
   >;
   maxColors?: number;
+  readOnly?: boolean;
 } & Parameters<typeof Stack>[0];
 
 export const Palette = (props: PaletteProps) => {
@@ -27,6 +28,7 @@ export const Palette = (props: PaletteProps) => {
     onRemoveColor,
     paletteButtonProps,
     maxColors = Infinity,
+    readOnly = false,
     style,
     ...rest
   } = props;
@@ -44,7 +46,7 @@ export const Palette = (props: PaletteProps) => {
               onClick={() => onClickColor(color, false)}
               onMouseOver={(ev) => ev.currentTarget.focus()}
               onKeyDown={(ev) => {
-                if (ev.keyCode === KEY_DELETE) {
+                if (!readOnly && ev.keyCode === KEY_DELETE) {
                   onRemoveColor(i + 1);
                   ev.preventDefault();
                 }
@@ -59,7 +61,7 @@ export const Palette = (props: PaletteProps) => {
             />
           </Stack.Item>
         ))}
-        {maxColors > 1 && (
+        {!readOnly && maxColors > 1 && (
           <Stack.Item m={0}>
             <Button
               inline

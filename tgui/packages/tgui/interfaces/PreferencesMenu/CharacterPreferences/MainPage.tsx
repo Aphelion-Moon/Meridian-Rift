@@ -7,8 +7,8 @@ import {
   Box,
   Button,
   Floating,
-  Input,
   Icon, // NOVA EDIT ADDITION
+  Input,
   LabeledList,
   Section,
   Stack,
@@ -135,6 +135,7 @@ type ChoicedSelectionProps = {
 };
 
 function ChoicedSelection(props: ChoicedSelectionProps) {
+  const { data, act } = useBackend<PreferencesMenuData>();
   const { catalog, supplementalFeature, supplementalValue } = props;
   const [searchText, setSearchText] = useState('');
 
@@ -174,6 +175,19 @@ function ChoicedSelection(props: ChoicedSelectionProps) {
               placeholder="Search..."
               onChange={setSearchText}
             />
+            {!!data.allow_custom_sprite_editing &&
+              supplementalFeature === 'hair_color' && (
+                <Button
+                  mt={1}
+                  fluid
+                  icon="paintbrush"
+                  onClick={() =>
+                    act('open_custom_sprite_editor', { target: 'hair' })
+                  }
+                >
+                  Custom hair drawing
+                </Button>
+              )}
           </Section>
         </Stack.Item>
         <Stack.Item grow>
@@ -569,18 +583,18 @@ export function MainPage(props: MainPageProps) {
       );
       break;
     case PrefPage.ERP:
-    prefPageContents = (
-      <PreferenceList
-        randomizations={getRandomization(
-          erpPreferences,
-          serverData,
-          randomBodyEnabled,
-        )}
-        preferences={erpPreferences}
-        maxHeight="auto"
-      />
-    );
-    break;
+      prefPageContents = (
+        <PreferenceList
+          randomizations={getRandomization(
+            erpPreferences,
+            serverData,
+            randomBodyEnabled,
+          )}
+          preferences={erpPreferences}
+          maxHeight="auto"
+        />
+      );
+      break;
     default:
       exhaustiveCheck(filteredCurrentPrefPage);
   }
@@ -779,17 +793,17 @@ export function MainPage(props: MainPageProps) {
                   Character Profile
                 </PageButton>
               </Stack.Item>
-             {erpEnabled && (
-              <Stack.Item grow={0.5}>
-                <PageButton
-                  currentPage={currentPrefPage}
-                  page={PrefPage.ERP}
-                  setPage={setCurrentPrefPage}
-                >
-                <Icon name="heart" />
-                </PageButton>
-              </Stack.Item>
-            )}
+              {erpEnabled && (
+                <Stack.Item grow={0.5}>
+                  <PageButton
+                    currentPage={currentPrefPage}
+                    page={PrefPage.ERP}
+                    setPage={setCurrentPrefPage}
+                  >
+                    <Icon name="heart" />
+                  </PageButton>
+                </Stack.Item>
+              )}
             </Stack>
             {prefPageContents}
           </Stack>

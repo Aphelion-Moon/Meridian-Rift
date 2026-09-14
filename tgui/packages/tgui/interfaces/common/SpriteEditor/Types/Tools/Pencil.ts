@@ -125,6 +125,7 @@ export class Pencil extends Tool {
     y: number,
   ) {
     if (!this.currentTransaction) return;
+    this.onMouseMove(context, data, x, y);
     if (this.currentTransaction.points.size !== 0) {
       this.currentTransaction.commit();
     }

@@ -221,7 +221,6 @@ export enum PrefsWindow {
 }
 
 export type CharacterPreferencesData = {
-
   clothing: Record<string, string>;
   features: Record<string, string>;
   game_preferences: Record<string, unknown>;
@@ -251,6 +250,7 @@ export type CharacterPreferencesData = {
 };
 
 export type PreferencesMenuData = {
+  allow_custom_sprite_editing?: BooleanLike;
   character_preview_view: string;
   character_profiles: (string | null)[];
 

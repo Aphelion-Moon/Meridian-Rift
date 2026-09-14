@@ -913,6 +913,18 @@ export const LimbsPage = ({
             </Stack.Item>
           </Stack>
         </Stack.Item>
+        {tab === AugmentsTab.Markings && !!data.allow_custom_sprite_editing && (
+          <Stack.Item>
+            <Button
+              icon="paintbrush"
+              onClick={() =>
+                act('open_custom_sprite_editor', { target: 'markings' })
+              }
+            >
+              Custom marking drawing
+            </Button>
+          </Stack.Item>
+        )}
         <Stack.Item grow>
           <Stack fill>
             {/* Left column */}

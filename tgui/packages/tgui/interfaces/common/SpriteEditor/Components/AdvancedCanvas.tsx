@@ -40,6 +40,7 @@ export type AdvancedCanvasPropsBase = {
   border?: BorderStyleProps;
   background?: string | string[];
   backdropColor?: string;
+  drawBounds?: [number, number, number, number];
 } & Partial<BooleanStyleMap & StringStyleMap & InlineStyle>;
 
 type AdvancedCanvasProps = IncludeOrOmitEntireType<
@@ -80,6 +81,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     border: borderProps,
     background,
     backdropColor,
+    drawBounds,
     ...rest
   } = extractBaseProps(props);
   const { onClick } = propsHaveClickHandler(props) ? props : {};
@@ -136,6 +138,22 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
         );
       });
     });
+    if (drawBounds) {
+      const [left, top, right, bottom] = drawBounds;
+      context.fillStyle = 'rgba(50, 50, 50, 0.75)';
+      data.forEach((row, y) => {
+        row.forEach((_, x) => {
+          if (x < left || x > right || y < top || y > bottom) {
+            context.fillRect(
+              x * scalingFactor,
+              y * scalingFactor,
+              scalingFactor,
+              scalingFactor,
+            );
+          }
+        });
+      });
+    }
     if (showGrid && scalingFactor >= 5) {
       context.beginPath();
       context.strokeStyle = 'black';
@@ -157,6 +175,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     canvasRef,
     showGrid,
     backdropColor,
+    JSON.stringify(drawBounds),
   ]);
   return (
     <div
@@ -183,6 +202,9 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
                 : []),
             `url(${transparency_checkerboard})`,
           ].join(','),
+          backgroundSize: background ? '100% 100%' : undefined,
+          backgroundRepeat: background ? 'no-repeat' : undefined,
+          imageRendering: 'pixelated',
           outline: '2px solid black',
           ...borderProps,
         }}
