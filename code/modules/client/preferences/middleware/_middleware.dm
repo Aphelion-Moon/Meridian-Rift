@@ -51,6 +51,22 @@
 /datum/preference_middleware/proc/on_new_character(mob/user)
 	return
 
+/// Called when the preferences UI closes, before the current character is saved.
+/datum/preference_middleware/proc/on_ui_close()
+	return
+
+/// Called before the active character slot is serialized.
+/datum/preference_middleware/proc/before_character_save()
+	return
+
+/// Called before a character slot replaces the currently loaded values.
+/datum/preference_middleware/proc/before_character_load(slot, replacing_current_slot)
+	return
+
+/// Called while the owning preferences datum is being destroyed.
+/datum/preference_middleware/proc/on_preferences_destroy()
+	return
+
 /// Called after every update_preference
 /datum/preference_middleware/proc/post_set_preference(mob/user, preference, value)
 	return

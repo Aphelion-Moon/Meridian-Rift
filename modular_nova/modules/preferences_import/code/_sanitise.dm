@@ -98,6 +98,7 @@
 		slot["augments"] = prefs_import_clean_assoc_paths(slot["augments"])
 		slot["augment_limb_styles"] = prefs_import_clean_assoc_paths(slot["augment_limb_styles"])
 		slot["languages"] = prefs_import_clean_assoc_paths(slot["languages"], allow_numeric = TRUE)
+		cyborg_layout_import_sanitize_slot(slot, json_tree)
 	json_tree[PREFS_IMPORT_PENDING_KEY] = TRUE
 	return json_tree
 
@@ -188,6 +189,7 @@
 		return FALSE
 	if(!savefile.get_entry(PREFS_IMPORT_PENDING_KEY))
 		return FALSE
+	var/cyborg_layout_notice = savefile.get_entry("aphelion_cyborg_layout_import_notice")
 
 	var/list/player_prefs = list()
 	var/list/character_prefs = list()
@@ -234,7 +236,10 @@
 
 	prefs_import_prune_unknown()
 	savefile.remove_entry(PREFS_IMPORT_PENDING_KEY)
+	savefile.remove_entry("aphelion_cyborg_layout_import_notice")
 	savefile.save()
+	if(cyborg_layout_notice)
+		to_chat(parent?.mob, span_warning(cyborg_layout_notice))
 
 	log_game("Preferences import finalised for [parent?.ckey]: [slots] slot\s, [counts["rebuilt"]] preferences rebuilt, [counts["reset"]] reset to defaults.")
 	return TRUE
@@ -242,6 +247,8 @@
 /// Round-trips each pref through the write path, tallying as we go.
 /datum/preferences/proc/prefs_import_rebuild(list/preferences, list/counts)
 	for(var/datum/preference/preference as anything in preferences)
+		if(istype(preference, /datum/preference/cyborg_layout) && cyborg_layout_import_is_future(get_save_data_for_savefile_identifier(PREFERENCE_CHARACTER)?[preference.savefile_key]))
+			continue
 		var/value
 		var/usable = FALSE
 		try

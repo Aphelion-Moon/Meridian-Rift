@@ -324,6 +324,12 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 	return TRUE
 
+/// Preference-level export boundary, separate from the generic JSON file transport.
+/datum/preferences/proc/export_to_client(mob/requester, account_name)
+	save_character()
+	save_preferences()
+	savefile.export_json_to_client(requester, account_name)
+
 /datum/preferences/proc/save_preferences()
 	if(!savefile)
 		CRASH("Attempted to save the preferences of [parent] without a savefile. This should have been handled by load_preferences()")
@@ -372,6 +378,13 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 /datum/preferences/proc/load_character(slot = default_slot)
 	SHOULD_NOT_SLEEP(TRUE)
 	slot = sanitize_integer(slot, 1, max_save_slots, initial(default_slot))
+	if(cyborg_layout_draft)
+		if(slot == default_slot)
+			cyborg_layout_discard_draft("load")
+		else
+			cyborg_layout_flush_draft("slot_switch")
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.before_character_load(slot, slot == default_slot)
 	var/original_default_slot = default_slot
 	if(slot != default_slot)
 		default_slot = slot
@@ -436,6 +449,9 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 /datum/preferences/proc/save_character()
 	SHOULD_NOT_SLEEP(TRUE)
+	cyborg_layout_flush_draft("save")
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.before_character_save()
 	if(!path)
 		return FALSE
 	var/tree_key = "character[default_slot]"
@@ -500,6 +516,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 /datum/preferences/proc/remove_current_slot()
 	PRIVATE_PROC(TRUE)
+	cyborg_layout_discard_draft("delete")
 
 	var/closest_slot
 	for (var/other_slot in default_slot - 1 to 1 step -1)

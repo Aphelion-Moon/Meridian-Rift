@@ -380,6 +380,8 @@
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
 #include "~nova\clothing_variation_icons.dm"
+#include "~nova\cyborg_appearance.dm"
+#include "~nova\cyborg_customization.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\liver_nova.dm"
 #include "~nova\neuroware_chips.dm"

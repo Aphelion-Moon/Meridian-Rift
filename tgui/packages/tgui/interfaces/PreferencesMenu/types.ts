@@ -1,6 +1,6 @@
 import type { BooleanLike } from 'tgui-core/react';
-
 import type { sendAct } from '../../events/act';
+import type { CyborgCustomizationData } from '../common/CyborgCustomization/types';
 import type {
   LoadoutCategory,
   LoadoutList,
@@ -221,7 +221,6 @@ export enum PrefsWindow {
 }
 
 export type CharacterPreferencesData = {
-
   clothing: Record<string, string>;
   features: Record<string, string>;
   game_preferences: Record<string, unknown>;
@@ -251,6 +250,7 @@ export type CharacterPreferencesData = {
 };
 
 export type PreferencesMenuData = {
+  cyborg_customization?: CyborgCustomizationData;
   character_preview_view: string;
   character_profiles: (string | null)[];
 

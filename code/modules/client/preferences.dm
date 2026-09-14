@@ -94,12 +94,24 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	/// Used to avoid expensive READ_FILE every time a preference is retrieved.
 	var/value_cache = list()
 
+	/// Debounced cyborg layout input is bound to the character slot that opened it.
+	var/list/cyborg_layout_draft
+	var/cyborg_layout_draft_slot
+	var/cyborg_layout_draft_revision = 0
+	var/cyborg_layout_draft_timer
+
 	/// If set to TRUE, will update cached_character_profiles on the next ui_data tick.
 	var/tainted_character_profiles = FALSE
 	/// The character profiles, saved so we can cheaply recompute them in ui_data only when necessary, without having to use expensive update_static_data calls.
 	var/list/cached_character_profiles
 
 /datum/preferences/Destroy(force)
+	cyborg_layout_flush_draft("destroy")
+	if(path && load_and_save)
+		save_character()
+		save_preferences()
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.on_preferences_destroy()
 	QDEL_NULL(character_preview_view)
 	QDEL_LIST(middleware)
 	value_cache = null
@@ -377,6 +389,9 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	return FALSE
 
 /datum/preferences/ui_close(mob/user)
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.on_ui_close()
+	cyborg_layout_flush_draft("ui_close")
 	save_character()
 	save_preferences()
 	QDEL_NULL(character_preview_view)
