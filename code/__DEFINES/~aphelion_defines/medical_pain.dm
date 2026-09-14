@@ -26,3 +26,9 @@
 #define MEDICAL_PAIN_RELIEF_DETERMINATION 60
 /// Maximum determination withdrawal stamina damage alongside returning pain.
 #define MEDICAL_PAIN_DETERMINATION_CRASH_CAP 20
+/// Effective pain percent of capacity at which stock injury crit resumes.
+#define MEDICAL_PAIN_CRIT_PERCENT 100
+/// Share of post-mitigation brute plus burn overflowing to one head or chest organ at or below softcrit health.
+#define MEDICAL_PAIN_OVERFLOW_SOFT_SHARE 0.25
+/// Share of post-mitigation brute plus burn overflowing to one head or chest organ at or below hardcrit health.
+#define MEDICAL_PAIN_OVERFLOW_HARD_SHARE 0.5

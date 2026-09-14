@@ -47,6 +47,9 @@
 /*
  * Sample current injuries and active treatment, recovering promptly with hysteresis.
  * Only life processing advances stages. current_time permits deterministic timing tests.
+ * Re-evaluates stat after medicine, organ, or injury changes so deferred crit tracks
+ * fresh pain. Safe from recursion because the stat gate only pure-queries raw pain
+ * minus relief and never recalculates.
  */
 /datum/medical_pain/proc/recalculate(advance_stage = FALSE, current_time = world.time)
 	capacity = patient.dna?.species?.medical_pain_capacity > 0 ? patient.dna.species.medical_pain_capacity : MEDICAL_PAIN_CAPACITY
@@ -57,6 +60,7 @@
 		set_stage(0)
 		next_stage_change = current_time
 		patient.update_medical_pain_slowdown()
+		update_pain_crit()
 		return
 	effective_pain = max(0, raw_pain - relief)
 	var/pain_percent = clamp(100 * effective_pain / capacity, 0, 100)
@@ -72,6 +76,15 @@
 	// Restore presentation if an external status clear left an untreated injury.
 	update_symptoms()
 	patient.update_medical_pain_slowdown()
+	update_pain_crit()
+
+/** Re-evaluate crit after pain-only changes, including the movement state normally refreshed by updatehealth. */
+/datum/medical_pain/proc/update_pain_crit()
+	patient.update_stat()
+	if(patient.stat == SOFT_CRIT)
+		patient.add_movespeed_modifier(/datum/movespeed_modifier/carbon_softcrit)
+	else
+		patient.remove_movespeed_modifier(/datum/movespeed_modifier/carbon_softcrit)
 
 // Change only the symptom state belonging to medical pain.
 /datum/medical_pain/proc/set_stage(new_stage)

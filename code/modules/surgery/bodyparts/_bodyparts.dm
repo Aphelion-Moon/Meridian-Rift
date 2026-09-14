@@ -806,6 +806,11 @@
 	// END WOUND HANDLING
 	*/
 
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	// Post-mitigation hook before this limb's damage is stored or capped.
+	apply_medical_pain_overflow(brute + burn)
+	// APHELION EDIT ADDITION END
+
 	//back to our regularly scheduled program, we now actually apply damage if there's room below limb damage cap
 	var/can_inflict = max_damage - get_damage()
 	var/total_damage = brute + burn

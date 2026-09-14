@@ -78,11 +78,15 @@ still require full immunity.
 
 The initial version adds patient alerts and severe-pain examine feedback, with
 estimated pain and active relief in health scans. It does not add blur, forced
-speech, oxygen damage, paralysis, collapse, or persistent stump trauma.
+speech, oxygen damage, paralysis, or persistent stump trauma. Injury collapse is
+deferred until pain reaches full capacity, not removed; regional overflow adds
+internal injury on head/chest hits taken while already in crit-range health.
 
 ## TG proc/file changes
 
 - Human `Initialize`, `Destroy`, `updatehealth` and `Life`: ownership and sampling.
+- Carbon `update_stat` with human `defers_injury_crit`: fresh-pain crit gate.
+- Bodypart damage hook forwarding post-mitigation head/chest hits to human organ overflow.
 - Reagent definitions: finite relief instead of binary drug analgesia.
 - Morphine metabolism overrides: remove the general movement exemption.
 - Determination end metabolism: cap withdrawal exhaustion.
@@ -94,7 +98,9 @@ speech, oxygen damage, paralysis, collapse, or persistent stump trauma.
 ## Modular overrides
 
 - `modular_aphelion/master_files/code/modules/mob/living/carbon/human/medical_pain.dm`:
-  species capacity, human eligibility and combined movement calculation.
+  species capacity, human eligibility, combined movement calculation, crit
+  deferral query, and regional organ overflow.
+- Bodypart overflow forwarding in `code/contributions.dm`.
 - Existing Nova reagent and surgery files: finite relief and surgical adequacy.
 
 ## Defines
@@ -107,7 +113,8 @@ Contribution-specific constants are local to `code/contributions.dm`.
 
 - The human master file and shared defines above.
 - `code/modules/unit_tests/medical_pain.dm` (under unit-test configuration).
-- Existing `injury` alert artwork; no new assets.
+- Existing `injury` alert artwork; no new assets. Crit deferral and regional
+  overflow add no new includes or assets.
 
 ## Credits
 
