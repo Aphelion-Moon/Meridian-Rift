@@ -169,12 +169,14 @@ function WindowContent(props: ContentProps) {
   const { className, fitted, children, ...rest } = props;
   const [altDown, setAltDown] = useState(false);
   // APHELION EDIT ADDITION START
+  // APHELION EDIT ADDITION START
   const content = (
     <>
       <IconResourceNotice />
       {children}
     </>
   );
+  // APHELION EDIT ADDITION END
   // APHELION EDIT ADDITION END
 
   function dragStartIfAltHeld(event: React.MouseEvent<HTMLDivElement>): void {
