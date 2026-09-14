@@ -1,0 +1,48 @@
+// THIS IS AN APHELION UI FILE
+.theme-console {
+  :is(.Button, .Tab, .Input, .TextArea, .Dropdown__control, .NumberInput) {
+    transition-duration: 80ms;
+    transition-property: background-color, border-color, color, transform;
+  }
+
+  .Button:active:not(.Button--disabled) {
+    transform: translateY(1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-console *,
+  .theme-console *::before,
+  .theme-console *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-console {
+    --console-motif-opacity: 0;
+    --console-surface-canvas: Canvas;
+    --console-surface-base: Canvas;
+    --console-surface-raised: Canvas;
+    --console-surface-recessed: Canvas;
+    --console-border-control: CanvasText;
+    --console-text-primary: CanvasText;
+    --console-text-secondary: CanvasText;
+    --console-interaction-accent: Highlight;
+    --console-interaction-selected: Highlight;
+    --console-interaction-focus: Highlight;
+  }
+
+  .theme-console .Window::after,
+  .theme-console .Section::before,
+  .theme-console .Section__title::after {
+    display: none;
+  }
+
+  .theme-console :is(.Button, .Tab, .Input, .TextArea, .NumberInput) {
+    forced-color-adjust: auto;
+  }
+}

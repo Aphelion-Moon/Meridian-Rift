@@ -1,0 +1,145 @@
+// THIS IS AN APHELION UI FILE
+// Original mechanical instruments for the Hammered Forge and Iron Cathedral
+// materials. The crown and inner rotor turn independently of the progress arc,
+// with the shared visibility and reduced-motion gates governing both layers.
+@media (forced-colors: none) {
+  :is(.theme-meridian_foundry, .theme-meridian_hephaestus) {
+    .DiagnosticLoader__instrument {
+      --console-loader-turn-duration: 12s;
+      --forge-loader-gear-duration: 18s;
+      --forge-loader-track: #251a10;
+      --forge-loader-amber: #e7ad52;
+      --forge-loader-track-width: clamp(1.5px, calc(var(--diagnostic-loader-size) * 0.026), 4px);
+    }
+
+    .DiagnosticLoader__tickCrown {
+      inset: 0;
+      clip-path: none;
+      background: var(--forge-loader-bezel) center / contain no-repeat;
+      -webkit-mask: none;
+      mask: none;
+    }
+
+    .DiagnosticLoader__outerCage {
+      inset: 21%;
+      background: var(--forge-loader-rotor) center / contain no-repeat;
+      -webkit-mask: none;
+      mask: none;
+    }
+
+    .DiagnosticLoader__progressTrack,
+    .DiagnosticLoader__progressFill {
+      inset: 13%;
+      -webkit-mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - var(--forge-loader-track-width)),
+        #000 calc(100% - var(--forge-loader-track-width) + 0.5px)
+      );
+      mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - var(--forge-loader-track-width)),
+        #000 calc(100% - var(--forge-loader-track-width) + 0.5px)
+      );
+    }
+
+    .DiagnosticLoader__progressTrack {
+      background: var(--forge-loader-track);
+    }
+
+    .DiagnosticLoader__progressFill {
+      background: conic-gradient(
+        from -90deg,
+        var(--forge-loader-amber) 0deg var(--diagnostic-loader-angle),
+        transparent var(--diagnostic-loader-angle) 360deg
+      );
+    }
+
+    // An unknown duration has a fixed lit sector; only the metalwork rotates.
+    // Real progress keeps its own unmodified angle.
+    .DiagnosticLoader--indeterminate .DiagnosticLoader__progressFill {
+      background: conic-gradient(
+        from -36deg,
+        var(--forge-loader-amber) 0deg 102deg,
+        transparent 102deg 360deg
+      );
+    }
+
+    .DiagnosticLoader__innerMarks {
+      inset: 20.5%;
+      border: 1px solid #a17c45;
+      border-right-color: #3d2b1b;
+      border-bottom-color: #25190f;
+      border-radius: 50%;
+      transform: none;
+      box-shadow: 0 0 0 1px #0d0b08, inset 0 0 0 1px #17110b;
+    }
+
+    .DiagnosticLoader__nodes,
+    .DiagnosticLoader__origin {
+      display: none;
+    }
+
+    .DiagnosticLoader__core {
+      box-sizing: border-box;
+      width: 13%;
+      height: 13%;
+      border: 1px solid #d09e54;
+      border-right-color: #674522;
+      border-bottom-color: #422813;
+      border-radius: 50%;
+      clip-path: none;
+      background:
+        radial-gradient(ellipse at 36% 27%, #ffe2a2 0 3%, transparent 27%),
+        radial-gradient(circle at 43% 42%, #edb455, #ad671f 66%, #4d2d10 100%);
+      box-shadow: 0 0 0 1px #1b1007, 0 0 3px rgb(222 137 41 / 30%);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .DiagnosticLoader[data-motion='running']:not(.DiagnosticLoader--motion-reduced) {
+        .DiagnosticLoader__tickCrown {
+          animation: meridian-loader-turn var(--forge-loader-gear-duration, 18s) linear infinite reverse;
+          will-change: transform;
+        }
+
+        // The shared rotor already turns for unknown durations. Startup has
+        // real progress, so keep its iris/turbine turning here as well.
+        &.DiagnosticLoader--determinate .DiagnosticLoader__outerCage {
+          animation: meridian-loader-turn var(--console-loader-turn-duration, 12s) linear infinite;
+          will-change: transform;
+        }
+      }
+    }
+  }
+
+  .theme-meridian_foundry .DiagnosticLoader__instrument {
+    --forge-loader-bezel: url('tgui/styles/meridianos/assets/forge/foundry-bezel.svg');
+    --forge-loader-rotor: url('tgui/styles/meridianos/assets/forge/foundry-iris.svg');
+  }
+
+  .theme-meridian_hephaestus {
+    .DiagnosticLoader__instrument {
+      --console-loader-turn-duration: 15s;
+      --forge-loader-gear-duration: 20s;
+      --forge-loader-bezel: url('tgui/styles/meridianos/assets/forge/hephaestus-bezel.svg');
+      --forge-loader-rotor: url('tgui/styles/meridianos/assets/forge/hephaestus-turbine.svg');
+      --forge-loader-track: #152127;
+      --forge-loader-amber: #dcad62;
+    }
+
+    .DiagnosticLoader__innerMarks {
+      border-color: #8b784f #302a20 #302a20 #b5a17a;
+    }
+
+    .DiagnosticLoader__core {
+      width: 23%;
+      height: 23%;
+      border: clamp(1px, calc(var(--diagnostic-loader-size) * 0.019), 3px) solid #8e7953;
+      border-right-color: #554c36;
+      border-bottom-color: #3c392c;
+      background:
+        radial-gradient(ellipse at 34% 23%, rgb(222 236 209 / 75%) 0 2%, transparent 24%),
+        radial-gradient(ellipse at 47% 41%, #72816b, #394b3f 53%, #17241f 78%);
+      box-shadow: 0 0 0 1px #121710, inset 0 0 0 1px #99a188;
+    }
+  }
+}

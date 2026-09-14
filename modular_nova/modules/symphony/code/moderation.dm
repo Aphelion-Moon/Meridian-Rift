@@ -24,7 +24,7 @@
 	var/is_server_ban = (role == "Server")
 	var/how_long = minutes ? "temporary, it will be removed in [DisplayTimeText(minutes MINUTES)]." : "permanent."
 	var/where = is_server_ban ? "the server" : " Roles: [html_encode(role)]"
-	var/appeal = CONFIG_GET(string/banappeals) || "No ban appeal url set!"
+	var/appeal = SSsymphony.ban_appeals || "No ban appeal url set!"
 
 	// Refresh cached role bans so the existing session enforces this ban immediately.
 	build_ban_cache(found)

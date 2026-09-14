@@ -25,7 +25,7 @@
 		if(deployed_shell)
 			. += "The wireless networking light is blinking."
 		else if (!shunted && !client)
-			. += "[src]Core.exe has stopped responding! NTOS is searching for a solution to the problem..."
+			. += "[src]Core.exe has stopped responding! MeridianOS is searching for a solution to the problem..." // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: . += "[src]Core.exe has stopped responding! NTOS is searching for a solution to the problem..."
 	//NOVA EDIT ADDITION BEGIN - CUSTOMIZATION
 	. += get_silicon_flavortext(user)
 	//NOVA EDIT ADDITION END

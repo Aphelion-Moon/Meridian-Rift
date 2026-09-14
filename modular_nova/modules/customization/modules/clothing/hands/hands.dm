@@ -68,6 +68,7 @@
 
 
 /obj/item/clothing/gloves/maid_arm_covers
+	greyscale_config_worn_vox = /datum/greyscale_config/maid_arm_covers/worn/vox
 	name = "maid arm covers"
 	desc = "Maid for you."
 	icon = 'icons/map_icons/clothing/_clothing.dmi'
@@ -81,6 +82,7 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 
 /obj/item/clothing/gloves/pink_clown
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/hands.dmi'
 	name = "pink clown gloves"
 	desc = "A pair of gloves dyed a bright candy-pink, ending in cuffs striped in every color of the rainbow."
 	icon = 'modular_nova/master_files/icons/obj/clothing/gloves.dmi'

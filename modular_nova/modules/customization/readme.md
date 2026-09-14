@@ -8,6 +8,33 @@ IF YOU WANT TO ADD AN EXTRA FEATURE TO SOMEONES DNA LOOK AT "`code\__DEFINES\~no
 
 Re-writes how mutant bodyparts exist and how they're handled. Adds in a per limb body marking system. Adds in loadout, with lots of clothing ported over. Adds in all the missing species. Adds in flavor text and OOC prefs. Adds in special rendering cases for digitigrades, taurs, snouts, voxes etc. Adds in changeable PDA ringtone message.
 
+### Accessory canvases:
+
+The final bodypart preparation in `modular_aphelion/modules/worn_emissives/` groups
+standard emissive masks so their offsets rotate with the body, independently of DMI
+canvas size. `dimension_x` and `dimension_y` control visible sprite placement; they
+may intentionally differ from the canvas dimensions for existing artwork.
+
+TG wings use `icons/mob/human/species/wings.dmi` with their original centering values.
+Nova wings and the harpy reshade/dual-tone variants use their respective original
+`wings.dmi` and `species/harpy_wings.dmi` sheets. No padded TG or harpy copies are
+kept in the Nova wing sheet. Preserve the source sheet's positioning when changing
+these paths; matching the canvas dimensions alone can move the artwork.
+
+The corrected sheets in `modular_nova/master_files/icons/mob/sprite_accessory/` preserve
+their original standing positions and animation metadata:
+
+- `ears_big`, `horns_big`, `halo`, and `moogle_pom`: artwork shifted north eight pixels
+  within the 32x48 canvas, paired with `center = TRUE` and `dimension_y = 48`.
+- `moth_fluff`: unused top/right margins removed to make a 32x32 canvas. `moth_antennae`
+  and `moth_markings` use similarly cropped copies of the upstream moth sheets.
+
+Fish infusion tails and the xenomorph queen tail also retain their original TG sheets
+and offsets, using the same final preparation for standard bodypart emissive masks.
+
+When updating these assets from upstream, preserve the paired artwork and centering
+changes. The upstream sheets remain available to their non-accessory consumers.
+
 ### TG Proc Changes:
 
 `.\code\__HELPERS\global_lists.dm > \proc\make_datum_references_lists()`

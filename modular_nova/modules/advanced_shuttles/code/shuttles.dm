@@ -14,8 +14,6 @@
 
 	movement_force = list("KNOCKDOWN" = 3, "THROW" = 0)
 
-	///Our shuttle's control console
-	var/obj/machinery/computer/shuttle/arrivals/console
 	///How much time are we waiting before returning to interlink. Sets itself automatically from config file
 	var/wait_time
 	///State variable. True when our shuttle is waiting before autoreturn
@@ -24,10 +22,6 @@
 /obj/docking_port/mobile/arrivals_nova/Initialize(mapload)
 	. = ..()
 	wait_time = CONFIG_GET(number/arrivals_wait)
-	return INITIALIZE_HINT_LATELOAD
-
-/obj/docking_port/mobile/arrivals_nova/LateInitialize()
-	console = get_control_console()
 
 /obj/docking_port/mobile/arrivals_nova/check()
 	. = ..()
@@ -46,6 +40,9 @@
 	if (current_dock != ARRIVALS_STATION)
 		return
 
+	// Look up the current console without retaining one that may be removed or replaced.
+	var/obj/machinery/computer/shuttle/arrivals/console = get_control_console()
+
 	if(check_occupied())
 		if(!waiting)
 			return
@@ -53,7 +50,7 @@
 		timer = 0
 		waiting = FALSE
 
-		if(console && console.last_cancel_announce + CONSOLE_ANNOUNCE_COOLDOWN <= world.time)
+		if(istype(console) && console.last_cancel_announce + CONSOLE_ANNOUNCE_COOLDOWN <= world.time)
 			console.say("Lifesigns detected onboard, automatic return aborted.")
 			console.last_cancel_announce = world.time
 
@@ -65,7 +62,7 @@
 	setTimer(wait_time)
 	waiting = TRUE
 
-	if(console && console.last_depart_announce + CONSOLE_ANNOUNCE_COOLDOWN <= world.time)
+	if(istype(console) && console.last_depart_announce + CONSOLE_ANNOUNCE_COOLDOWN <= world.time)
 		console.say("Commencing automatic return subroutine in [wait_time / 10] seconds.")
 		console.last_depart_announce = world.time
 

@@ -1,10 +1,11 @@
 import {
   Button,
-  ByondUi,
+  // ByondUi, // APHELION EDIT REMOVAL - native UI menu avoidance
   LabeledList,
   Section,
   Tooltip,
 } from 'tgui-core/components';
+import { ByondUi } from '../../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 import { getReadableLayer, getReadablePlane } from '.';
 import { type Appearance, AppearanceType, DIR, MOUSE_OPACITY } from './types';
 import { useAppearanceDebugContext } from './useAppearanceDebug';

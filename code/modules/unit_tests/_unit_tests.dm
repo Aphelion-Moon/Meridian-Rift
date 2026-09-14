@@ -375,21 +375,28 @@
 #include "washing.dm"
 #include "weird_food.dm"
 #include "wizard_loadout.dm"
-// NOVA EDIT START
+// NOVA EDIT ADDITION START
 #include "~nova\accessory_layers.dm"
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\liver_nova.dm"
+#include "~nova\meridian_preferences.dm"
+#include "~nova\mod_accessories.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
+#include "~nova\portal_device.dm"
+#include "~nova\portal_lifecycle.dm"
+#include "~nova\portal_routes.dm"
+#include "~nova\portal_test_helpers.dm"
 #include "~nova\preferences_import.dm"
 #include "~nova\shuttle.dm"
 #include "~nova\symphony_moderation.dm"
 #include "~nova\symphony_whitelist.dm"
+#include "~nova\title_screen_settings.dm"
 #include "~nova\world_topic_log_redaction.dm"
-// NOVA EDIT END
+// NOVA EDIT ADDITION END
 // END_INCLUDE
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter
 #include "find_reference_sanity.dm"

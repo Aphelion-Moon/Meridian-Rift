@@ -103,22 +103,22 @@
 /// Admission check: allow access when enforcement is disabled; deny on a database failure.
 /// Use symphony_whitelist_lookup() when the caller must distinguish a denial from an outage.
 /proc/is_symphony_whitelisted(target_ckey)
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return TRUE
-	return symphony_whitelist_lookup(target_ckey) ? TRUE : FALSE
+	return !!symphony_whitelist_lookup(target_ckey)
 
 /// Check a current role entitlement, bypassing the admission cache.
 /// Unlike admission, perks and imports require an enabled module and a confirmed grant.
 /proc/symphony_holds_whitelist_role(target_ckey)
-	while(CONFIG_GET(flag/symphony_enabled))
+	while(SSsymphony.enabled)
 		var/epoch = SSsymphony.whitelist_epoch
 		var/answer = symphony_has_ingame_role(target_ckey, "whitelist")
-		if(!CONFIG_GET(flag/symphony_enabled))
+		if(!SSsymphony.enabled)
 			return FALSE
 		// Imports and perks need a current entitlement too, while retaining their uncached lookup.
 		if(epoch != SSsymphony.whitelist_epoch)
 			continue
-		return answer ? TRUE : FALSE
+		return !!answer
 	return FALSE
 
 #undef SYMPHONY_WHITELIST_CACHE_TIME
