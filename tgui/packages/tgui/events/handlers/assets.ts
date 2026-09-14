@@ -1,6 +1,10 @@
 import { loadMappings } from 'common/assets';
+import { fetchRetry } from 'tgui-core/http';
+/* // APHELION EDIT REMOVAL START
+import { loadedMappings } from '../../assets';
+*/ // APHELION EDIT REMOVAL END
 import { loadedMappings } from '../../assets'; // APHELION EDIT ADDITION
-import { loadIconMap } from '../../iconMap';
+import { loadIconMap } from '../../iconMap'; // APHELION EDIT ADDITION
 
 /// --------- Handlers ------------------------------------------------------///
 
