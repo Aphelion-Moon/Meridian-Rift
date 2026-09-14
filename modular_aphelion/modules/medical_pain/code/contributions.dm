@@ -1,5 +1,7 @@
-/// Burns contribute more pain than an equal amount of stored brute damage.
-#define MEDICAL_PAIN_BURN_FACTOR 1.2
+/// Pain per point of stored brute damage.
+#define MEDICAL_PAIN_BRUTE_FACTOR 1.2
+/// Pain per point of stored burn damage.
+#define MEDICAL_PAIN_BURN_FACTOR 1.5
 /// Persistent surcharge for a moderate wound or incision.
 #define MEDICAL_PAIN_WOUND_MODERATE 5
 /// Persistent surcharge for a severe wound or opened incision.
@@ -33,7 +35,7 @@
 	if(HAS_ANY_SURGERY_STATE(reported_state, SURGERY_BONE_SAWED|SURGERY_BONE_DRILLED|SURGERY_ORGANS_CUT))
 		injury_surcharge = max(injury_surcharge, MEDICAL_PAIN_WOUND_CRITICAL)
 
-	return max(0, brute_dam) + MEDICAL_PAIN_BURN_FACTOR * max(0, burn_dam) + injury_surcharge
+	return MEDICAL_PAIN_BRUTE_FACTOR * max(0, brute_dam) + MEDICAL_PAIN_BURN_FACTOR * max(0, burn_dam) + injury_surcharge
 
 // Return persistent wound pain independently of the limb's remaining brute/burn damage.
 /datum/wound/proc/get_medical_pain()
@@ -81,6 +83,7 @@
 /obj/item/organ/ears
 	max_medical_pain = MEDICAL_PAIN_SENSORY_ORGAN
 
+#undef MEDICAL_PAIN_BRUTE_FACTOR
 #undef MEDICAL_PAIN_BURN_FACTOR
 #undef MEDICAL_PAIN_WOUND_MODERATE
 #undef MEDICAL_PAIN_WOUND_SEVERE

@@ -9,7 +9,7 @@ nonorganic bodies retain the previous health-based movement penalty. Species can
 set `medical_pain_capacity` to zero to opt out; ordinary capacity is 200, separate
 from maximum health. Nova's preference-controlled roleplay pain is independent.
 
-Pain equals organic limb brute damage plus 1.2 times burn damage, half toxin
+Pain equals 1.2 times organic limb brute damage plus 1.5 times burn damage, half toxin
 damage, wound/surgery surcharges, and capped organ contributions. Oxygen loss and
 stamina add no pain. Limb damage is deliberately unweighted by body damage
 coefficients. Each limb uses its strongest wound/surgery surcharge. Wounds add
