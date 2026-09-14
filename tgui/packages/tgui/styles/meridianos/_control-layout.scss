@@ -1,0 +1,137 @@
+// THIS IS AN APHELION UI FILE
+// Opt-in adapters preserve upstream markup and override its fixed inline sizing.
+.MeridianControlRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s);
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 !important;
+  }
+
+  > :is(.Stack__item, .Flex__item) {
+    padding: 0 !important;
+  }
+
+  > .MeridianControlRow__fill {
+    flex: 1 1 var(--meridian-control-basis, 8rem) !important;
+    width: auto !important;
+    overflow-wrap: anywhere;
+  }
+
+  > :is(.Input, .NumberInput, .Dropdown) {
+    flex: 1 1 8rem;
+    width: 0 !important;
+  }
+
+  > :is(.Button, .Input, .NumberInput, .Dropdown),
+  > :is(.Stack__item, .Flex__item) > :is(.Button, .Input, .NumberInput, .Dropdown) {
+    max-width: 100%;
+    margin: 0 !important;
+  }
+
+  > .MeridianControlRow__fill > :is(.Button, .Input, .NumberInput, .Dropdown) {
+    width: 100% !important;
+  }
+
+  .Button {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .Button__content--ellipsis {
+    white-space: nowrap;
+  }
+}
+
+.MeridianControlRow__fill--small {
+  --meridian-control-basis: 5rem;
+}
+
+.MeridianControlRow__fill--wide {
+  --meridian-control-basis: 20rem;
+}
+
+.MeridianControlRow--top {
+  align-items: flex-start;
+}
+
+.Stack.MeridianControlGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-m);
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+  }
+
+  > .Stack__item > .Section {
+    width: auto !important;
+    height: auto !important;
+    margin: 0;
+  }
+}
+
+.MeridianControlForm > .Section__rest > .Section__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s);
+
+  > div {
+    flex: 1 0 100%;
+    min-width: 0;
+  }
+
+  > .Input {
+    flex: 1 1 5rem;
+    width: 0 !important;
+  }
+
+  > .Button {
+    margin: 0;
+  }
+
+  .Input {
+    max-width: 100%;
+  }
+
+  > div .Input {
+    width: 100% !important;
+  }
+}
+
+.MeridianControlDialog {
+  max-width: calc(100vw - 4rem);
+}
+
+// Header actions share their bounds across all player themes.
+:is(.theme-console, .theme-meridian_classic) {
+  .Section > .Section__title {
+    flex-wrap: wrap;
+  }
+
+  .Section__buttons {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .Section__buttons > :is(.Button, .Dropdown, .NumberInput) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .Section__buttons > .Button {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .Section__buttons .Button__content--ellipsis {
+    white-space: nowrap;
+  }
+}

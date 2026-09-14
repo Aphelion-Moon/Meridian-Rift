@@ -60,7 +60,6 @@
  * * human_owner: The human wearing the item.
  */
 /datum/species/proc/generate_custom_worn_icon(item_slot, obj/item/item, mob/living/carbon/human/human_owner)
-	var/static/list/states_cache = list() // cache these so we are not calling the expensive icon_states proc.
 	// If already set (possibly by us, or manually, use it.)
 	var/icon/final_icon = get_custom_worn_icon(item_slot, item)
 	if(final_icon && icon_exists(final_icon, item.worn_icon_state || item.icon_state)) // TODO: UNIT TEST teshari_worn_icon beforehand
@@ -71,14 +70,9 @@
 		return null
 
 	var/icon/species_worn_icon = custom_worn_icons[item_slot]
-	var/static/list/state_cache = list()
-	var/list/states = state_cache[species_worn_icon]
-	if(!states)
-		states = icon_states(species_worn_icon)
-		state_cache[species_worn_icon] = states
 
 	var/state = item.worn_icon_state || item.icon_state
-	if(!(state in states))
+	if(!icon_exists(species_worn_icon, state))
 		return null
 
 	// Remember and use icon.

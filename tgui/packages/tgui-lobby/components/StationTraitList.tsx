@@ -10,7 +10,10 @@ export type StationTrait = {
   overlays: string[];
 };
 
-function icon(assetMap: Record<string, string>, name: string): string | undefined {
+function icon(
+  assetMap: Record<string, string>,
+  name: string,
+): string | undefined {
   return assetMap[`${name}.png`];
 }
 
@@ -32,12 +35,17 @@ export function StationTraitList({
     <div className="trait_list">
       {traits.map((trait) => (
         <Tooltip key={trait.ref} content={trait.description} position="top">
-          <div
+          <button
             className="trait_button"
             onClick={() => sendAction('sign_up', { ref: trait.ref })}
+            type="button"
           >
             <span className="trait_icon_wrapper">
-              <img className="trait_icon" src={icon(assetMap, trait.iconState)} alt="" />
+              <img
+                alt=""
+                className="trait_icon"
+                src={icon(assetMap, trait.iconState)}
+              />
               {trait.overlays.map((overlay) => (
                 <img
                   key={overlay}
@@ -48,7 +56,7 @@ export function StationTraitList({
               ))}
             </span>
             <span className="trait_name">{trait.name}</span>
-          </div>
+          </button>
         </Tooltip>
       ))}
     </div>

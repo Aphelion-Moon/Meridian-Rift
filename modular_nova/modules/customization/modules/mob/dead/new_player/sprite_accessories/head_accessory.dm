@@ -31,6 +31,8 @@
 
 /datum/sprite_accessory/head_accessory/moogle_pom
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/moogle_pom.dmi'
+	center = TRUE
+	dimension_y = 48
 	recommended_species = list(
 		SPECIES_MAMMAL = 1,
 		SPECIES_HUMAN = 1,
@@ -62,6 +64,8 @@
 
 /datum/sprite_accessory/head_accessory/halo
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/halo.dmi'
+	center = TRUE
+	dimension_y = 48
 	color_src = USE_ONE_COLOR
 	recommended_species = list(
 		SPECIES_MAMMAL = 1,

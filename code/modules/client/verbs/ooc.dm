@@ -17,7 +17,7 @@ GAME_VERB(/client, ooc, VERB_OOC, null)
 		return
 
 	// APHELION EDIT ADDITION START - DISCORD WHITELIST GATE
-	if(!holder && isnewplayer(mob) && CONFIG_GET(flag/symphony_enabled) && !is_symphony_whitelisted(ckey))
+	if(!holder && isnewplayer(mob) && SSsymphony.enabled && !is_symphony_whitelisted(ckey))
 		to_chat(src, span_danger("You must be whitelisted to use OOC. Ahelp if you need help getting whitelisted."))
 		return
 	// APHELION EDIT ADDITION END

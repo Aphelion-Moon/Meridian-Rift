@@ -4,6 +4,8 @@
 /obj/item/clothing/under/shorts
 	worn_icon_digi = SHORTS_PANTS_SHIRTS_DIGIFILE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION //That's right, TG, I have icons for ALL of these!! Mwahahaha!!!!
+	greyscale_config_worn_digi = /datum/greyscale_config/shorts/worn/digi
+	vox_primalis_force_pants = TRUE
 
 /obj/item/clothing/under/pants/nova
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/shorts_pants_shirts.dmi'
@@ -48,6 +50,8 @@
 	greyscale_colors = "#787878#723E0E#4D7EAC"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	can_adjust = TRUE
+	greyscale_config_worn_vox = /datum/greyscale_config/jeans_ripped/worn/vox
+	greyscale_config_worn_better_vox = /datum/greyscale_config/jeans_ripped/worn/better_vox
 
 /obj/item/clothing/under/pants/nova/yoga
 	name = "yoga pants"
@@ -110,6 +114,8 @@
 	greyscale_colors = "#ba917d"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
+	greyscale_config_worn_better_vox = /datum/greyscale_config/wide_leg/worn
+	greyscale_config_worn_vox = /datum/greyscale_config/wide_leg/worn
 
 /*
 *	SHORTS
@@ -159,6 +165,8 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	greyscale_config_worn_vox = /datum/greyscale_config/kilt/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/kilt/worn/digi
 
 /obj/item/clothing/under/pants/nova/vicvest //there's no way I'm typing out a path called double_breasted 10 times over, too complex and everyone will be scared of it
 	name = "buttondown shirt with double-breasted vest"
@@ -177,11 +185,11 @@
 *	Shorts that were previously using nonmodular edits to add their greyscale data, pulled from code/modules/clothing/under/shorts.dm
 */
 
-/obj/item/clothing/under/shorts
-	greyscale_config_worn_digi = /datum/greyscale_config/shorts/worn/digi
-
 /obj/item/clothing/under/shorts/jeanshorts
+	vox_primalis_force_pants = FALSE
 	greyscale_config_worn_digi = /datum/greyscale_config/jeanshorts/worn/digi
+	greyscale_config_worn_vox = /datum/greyscale_config/jeanshorts/worn/vox
+	greyscale_config_worn_better_vox = /datum/greyscale_config/jeanshorts/worn/better_vox
 
 /*
 *	Pants that were previously using nonmodular edits to add their greyscale data, pulled from code/modules/clothing/under/pants.dm
@@ -192,6 +200,8 @@
 
 /obj/item/clothing/under/pants/jeans
 	greyscale_config_worn_digi = /datum/greyscale_config/jeans/worn/digi
+	greyscale_config_worn_vox = /datum/greyscale_config/jeans/worn/vox
+	greyscale_config_worn_better_vox = /datum/greyscale_config/jeans/worn/better_vox
 
 /obj/item/clothing/under/pants/camo
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
@@ -218,3 +228,5 @@
 	bodyshapes_with_variations = NONE
 	can_adjust = FALSE
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/overalls/shorted_overall/worn/vox
+	greyscale_config_worn_better_vox = /datum/greyscale_config/overalls/shorted_overall/worn/better_vox

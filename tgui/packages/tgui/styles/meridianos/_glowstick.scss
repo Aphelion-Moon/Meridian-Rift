@@ -1,0 +1,130 @@
+// THIS IS AN APHELION UI FILE
+// Shared clouded liquid-plastic material for controls and loading instruments.
+// Callers own palette, geometry and accessible control states.
+
+@mixin texture {
+  // A URL token paints nothing by itself. Plain grouped selectors avoid the
+  // compatibility copies emitted for :is(), each with another embedded image.
+  .theme-meridian_aphelion,
+  .theme-meridian_electra,
+  .theme-meridian_vector,
+  .theme-meridian_diagnostic,
+  .theme-meridian_hotline,
+  .theme-meridian_synapse,
+  .theme-meridian_cyberpunk,
+  .theme-meridian_augmentation {
+    --glowstick-texture: url('tgui/styles/meridianos/assets/glowstick-liquid.png');
+  }
+}
+
+@mixin surface($color, $image: linear-gradient(180deg,
+  color-mix(in srgb, #{$color} 73%, black),
+  $color 17%, color-mix(in srgb, #{$color} 74%, white) 38%,
+  color-mix(in srgb, #{$color} 86%, white) 64%,
+  $color 84%, color-mix(in srgb, #{$color} 78%, black))) {
+  background-color: $color;
+  background-image: var(--glowstick-texture), $image;
+  background-blend-mode: soft-light, normal;
+  background-size: 100% 100%;
+  background-position: center;
+}
+
+@mixin halo($color) {
+  box-shadow: 0 0 3px color-mix(in srgb, #{$color} 70%, transparent),
+    0 0 9px color-mix(in srgb, #{$color} 42%, transparent),
+    0 0 20px color-mix(in srgb, #{$color} 16%, transparent);
+}
+
+@mixin control($color) {
+  @include surface($color);
+  --button-color: var(--console-text-on-accent);
+  color: var(--button-color);
+  // Keep border dimensions while letting the luminous face reach the edge.
+  background-clip: border-box;
+  border-color: transparent;
+  border-radius: 3px;
+  text-shadow: none;
+  box-shadow: inset 0 0 7px color-mix(in srgb, #{$color} 48%, transparent),
+    0 0 4px color-mix(in srgb, #{$color} 76%, transparent),
+    0 0 12px color-mix(in srgb, #{$color} 48%, transparent),
+    0 0 28px color-mix(in srgb, #{$color} 18%, transparent);
+}
+
+@mixin tab($color) {
+  background-image: var(--glowstick-texture),
+    linear-gradient(180deg,
+      color-mix(in srgb, #{$color} 24%, var(--console-surface-base)),
+      var(--console-surface-base) 85%);
+  background-size: 100% 100%;
+  background-blend-mode: soft-light, normal;
+  border-color: $color;
+  color: var(--console-text-primary);
+  box-shadow: inset 0 -1px 0 $color,
+    0 0 6px color-mix(in srgb, #{$color} 35%, transparent),
+    0 2px 14px color-mix(in srgb, #{$color} 16%, transparent);
+}
+
+@mixin progress-face($color) {
+  // Labelled progress faces remain dark enough for their light foreground.
+  @include surface($color,
+    linear-gradient(180deg,
+      color-mix(in srgb, #{$color} 42%, black),
+      color-mix(in srgb, #{$color} 28%, black) 38%,
+      color-mix(in srgb, #{$color} 34%, black) 68%,
+      color-mix(in srgb, #{$color} 42%, black)));
+  box-shadow: inset 0 0 6px color-mix(in srgb, #{$color} 22%, transparent),
+    0 0 5px color-mix(in srgb, #{$color} 24%, transparent);
+}
+
+@mixin ring($sectors, $width) {
+  // Keep the parent's radial mask. Mask the material separately by angle so
+  // the opaque texture cannot light empty cage sectors or the 0% progress arc.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: var(--glowstick-texture),
+      radial-gradient(farthest-side,
+        #555 calc(100% - #{$width}),
+        #bcbcbc calc(100% - #{$width} * 0.7),
+        #d4d4d4 calc(100% - #{$width} * 0.4),
+        #888 100%);
+    background-blend-mode: soft-light, normal;
+    background-size: 100% 100%;
+    -webkit-mask-image: $sectors;
+    mask-image: $sectors;
+    mix-blend-mode: soft-light;
+    pointer-events: none;
+  }
+}
+
+@mixin progress {
+  @include ring(
+    conic-gradient(from -90deg, #000 0deg var(--diagnostic-loader-angle),
+      transparent var(--diagnostic-loader-angle)),
+    var(--console-loader-track-width, 3px)
+  );
+}
+
+@mixin core($color) {
+  // Broad internal light replaces the sharp diagonal glass reflection.
+  @include surface($color,
+    radial-gradient(ellipse at 42% 36%,
+      color-mix(in srgb, #{$color} 74%, white), $color 42%,
+      color-mix(in srgb, #{$color} 74%, black) 78%,
+      color-mix(in srgb, #{$color} 57%, black)));
+}
+
+@mixin boot($color) {
+  .container_terminal__lamp,
+  .boot_terminal__cursor,
+  .container_progress .progress_bar {
+    @include surface($color);
+    @include halo($color);
+  }
+
+  .container_progress .progress_bar {
+    border-radius: 3px;
+  }
+}

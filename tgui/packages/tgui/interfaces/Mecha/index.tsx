@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import {
   Button,
-  ByondUi,
+  // ByondUi, // APHELION EDIT REMOVAL - native UI menu avoidance
   LabeledList,
   ProgressBar,
   Section,
   Stack,
 } from 'tgui-core/components';
 import { formatSiUnit } from 'tgui-core/format';
-
 import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
+import { ByondUi } from '../../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 import { logger } from '../../logging';
 import { AccessConfig } from '../common/AccessConfig';
 import { AlertPane } from './AlertPane';

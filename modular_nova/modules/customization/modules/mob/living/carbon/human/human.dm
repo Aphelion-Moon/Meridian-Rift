@@ -1,26 +1,42 @@
 //	This DMI holds our radial icons for the 'hide mutant parts' verb
 #define HIDING_RADIAL_DMI 'modular_nova/modules/customization/modules/mob/living/carbon/human/MOD_sprite_accessories/icons/radial.dmi'
 
+/// Returns TRUE if any genital outside `skipped_slots` is currently exposed. Backs the "\[Look closer...\]" examine link.
+/mob/living/carbon/human/proc/has_exposed_genitals(list/skipped_slots)
+	for(var/genital_slot in GLOB.possible_genitals)
+		if(genital_slot in skipped_slots)
+			continue
+		var/obj/item/organ/genital/genital = get_organ_slot(genital_slot)
+		if(genital?.is_exposed())
+			return TRUE
+	return FALSE
+
+/// Builds the per-genital description lines shown behind the "\[Look closer...\]" link, skipping `skipped_slots`.
+/mob/living/carbon/human/proc/get_genital_description_lines(list/skipped_slots)
+	var/list/lines = list()
+	for(var/genital_slot in GLOB.possible_genitals)
+		if(genital_slot in skipped_slots)
+			continue
+		var/datum/mutant_bodypart/genital_part = dna?.mutant_bodyparts[genital_slot]
+		if(isnull(genital_part))
+			continue
+		var/list/genital_accessories = SSaccessories.sprite_accessories[genital_slot]
+		var/datum/sprite_accessory/genital/genital_accessory = genital_accessories?[genital_part.name]
+		if(isnull(genital_accessory) || genital_accessory.is_hidden(src))
+			continue
+		var/obj/item/organ/genital/genital_organ = get_organ_slot(genital_accessory.associated_organ_slot)
+		if(isnull(genital_organ))
+			continue
+		lines += genital_organ.get_description_string(genital_accessory)
+	return lines
+
 /mob/living/carbon/human/Topic(href, href_list)
 	. = ..()
 
 	if(href_list["lookup_info"])
 		switch(href_list["lookup_info"])
 			if("genitals")
-				var/list/line = list()
-				for(var/genital in GLOB.possible_genitals)
-					var/datum/mutant_bodypart/genital_part = dna.mutant_bodyparts[genital]
-					if(isnull(genital_part))
-						continue
-					var/datum/sprite_accessory/genital/genital_accessory = SSaccessories.sprite_accessories[genital][genital_part.name]
-					if(isnull(genital_accessory))
-						continue
-					if(genital_accessory.is_hidden(src))
-						continue
-					var/obj/item/organ/genital/genital_organ = get_organ_slot(genital_accessory.associated_organ_slot)
-					if(isnull(genital_organ))
-						continue
-					line += genital_organ.get_description_string(genital_accessory)
+				var/list/line = get_genital_description_lines()
 				if(length(line))
 					to_chat(usr, span_notice("[jointext(line, "\n")]"))
 			if("open_examine_panel")

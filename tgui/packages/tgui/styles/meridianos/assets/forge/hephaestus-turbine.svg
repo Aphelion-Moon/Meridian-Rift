@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Original six broad, bronze-edged turbine vanes over blue-black steel. -->
+  <defs>
+    <linearGradient id="bronze" x1="76" y1="9" x2="127" y2="91" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c1aa7b"/><stop offset=".12" stop-color="#8d7953"/>
+      <stop offset=".51" stop-color="#706044"/><stop offset="1" stop-color="#423c2b"/>
+    </linearGradient>
+    <radialGradient id="steel"><stop stop-color="#273638"/><stop offset="1" stop-color="#111a1d"/></radialGradient>
+    <pattern id="casting" width="13" height="17" patternUnits="userSpaceOnUse">
+      <path d="M2 4h1m7 7h1M5 16h1" stroke="#dbc69f" stroke-opacity=".24"/>
+      <path d="M3 5h1m7 7h1M6 17h1" stroke="#100f0b" stroke-opacity=".35"/>
+    </pattern>
+    <g id="vane">
+      <path d="M82 13 101 8 121 13 119 68 110 80 91 78 85 65Z" fill="url(#bronze)" stroke="#1b1a12" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M82 13 101 8 121 13 119 68 110 80 91 78 85 65Z" fill="url(#casting)"/>
+      <path d="m86 62-2-47 17-4 17 4" fill="none" stroke="#d1bd91" stroke-width="1.3"/>
+      <path d="m115 18-1 42-7 13" fill="none" stroke="#29271d" stroke-width="1.4"/>
+      <path d="m90 25 4-1m13 12 5 1m-19 14 3-1" fill="none" stroke="#d1b986" stroke-opacity=".35"/>
+    </g>
+  </defs>
+  <circle cx="100" cy="100" r="96" fill="url(#steel)" stroke="#afa17b" stroke-width="1.3"/>
+  <circle cx="100" cy="100" r="89" fill="none" stroke="#47514c" stroke-width=".8"/>
+  <use href="#vane"/><use href="#vane" transform="rotate(60 100 100)"/>
+  <use href="#vane" transform="rotate(120 100 100)"/><use href="#vane" transform="rotate(180 100 100)"/>
+  <use href="#vane" transform="rotate(240 100 100)"/><use href="#vane" transform="rotate(300 100 100)"/>
+  <circle cx="100" cy="100" r="39" fill="#554c35" stroke="#bcaa80" stroke-width="1.5"/>
+  <circle cx="100" cy="100" r="33" fill="#16211c" stroke="#25281b" stroke-width="3"/>
+</svg>
