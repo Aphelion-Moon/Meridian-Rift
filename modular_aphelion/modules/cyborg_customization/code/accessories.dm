@@ -29,11 +29,13 @@
 /proc/cyborg_accessory_size_values(slot, choice)
 	var/static/list/size_cache = list()
 	var/cache_key = "[slot]|[choice]"
-	if(size_cache[cache_key])
-		return size_cache[cache_key].Copy()
+	var/list/cached_sizes = size_cache[cache_key]
+	if(cached_sizes)
+		return cached_sizes.Copy()
 	var/list/direct = cyborg_direct_accessories(slot)[choice]
 	if(direct)
-		var/list/direct_sizes = direct["sizes"] ? direct["sizes"].Copy() : list(cyborg_layout_default_sprite_size(slot))
+		var/list/direct_sizes = direct["sizes"]
+		direct_sizes = direct_sizes ? direct_sizes.Copy() : list(cyborg_layout_default_sprite_size(slot))
 		size_cache[cache_key] = direct_sizes
 		return direct_sizes.Copy()
 	var/datum/sprite_accessory/genital/accessory = SSaccessories.sprite_accessories[slot]?[choice]

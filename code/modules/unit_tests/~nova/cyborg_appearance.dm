@@ -211,7 +211,7 @@
 							if("[state]_[channel]" in states)
 								found = TRUE
 					else
-						found = state in states
+						found = (state in states)
 					TEST_ASSERT(found, "[slot] direct accessory [name] size [sprite_size] declares no authored state for [arousal].")
 					for(var/direction in list(NORTH, SOUTH, EAST, WEST))
 						TEST_ASSERT(cyborg_direct_accessory_render(descriptor, colors, arousal, direction, sprite_size), "[slot] direct accessory [name] size [sprite_size] did not render [dir2text(direction)].")

@@ -494,10 +494,35 @@
 	var/datum/preference/choiced/cyborg_size/size_preference = GLOB.preference_entries[/datum/preference/choiced/cyborg_size]
 	TEST_ASSERT_EQUAL(size_preference.deserialize("1.6", preferences), 1.6, "Serialized cyborg size choices must remain numeric.")
 
+/// Loads authored interaction data independently of the deployment's server configuration.
+/datum/unit_test/cyborg_interaction_component_lists_safe_actions
+	/// Restored even if an assertion exits Run early.
+	var/list/datum/interaction/previous_interactions
+	/// The JSON loader requires a filesystem path, not an embedded resource.
+	var/interaction_fixture_path
+
+/datum/unit_test/cyborg_interaction_component_lists_safe_actions/New()
+	..()
+	previous_interactions = GLOB.interaction_instances
+	GLOB.interaction_instances = list()
+
+/datum/unit_test/cyborg_interaction_component_lists_safe_actions/Destroy()
+	GLOB.interaction_instances = previous_interactions
+	previous_interactions = null
+	if(interaction_fixture_path)
+		fdel(interaction_fixture_path)
+	return ..()
+
 /datum/unit_test/cyborg_interaction_component_lists_safe_actions/Run()
+	var/datum/interaction/cheer = allocate(/datum/interaction)
+	// A resource literal bundles the existing JSON in the test RSC. CI does not
+	// deploy config/nova/interactions, and this must not depend on a live registry.
+	interaction_fixture_path = "[GLOB.log_directory]/cyborg_cheer_[REF(src)].json"
+	TEST_ASSERT(fcopy('config/nova/interactions/cheer.json', interaction_fixture_path), "The authored Cheer interaction resource failed to extract.")
+	TEST_ASSERT(cheer.load_from_json(interaction_fixture_path), "The authored Cheer interaction fixture failed to load.")
+	GLOB.interaction_instances[cheer.name] = cheer
 	var/mob/living/carbon/human/consistent/human = EASY_ALLOCATE()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
-	var/datum/interaction/cheer = GLOB.interaction_instances["Cheer"]
 	TEST_ASSERT(cheer && !cheer.lewd, "The authored non-lewd Cheer interaction was unavailable for the cyborg integration test.")
 	TEST_ASSERT(!cheer.sound_use && length(cheer.sound_possible) == 1 && cheer.sound_possible[1] == "json error", "The actual empty-sound Cheer JSON fixture no longer reaches the loader sentinel path.")
 	TEST_ASSERT(cyborg_message_interaction_allowed(cheer, human, robot), "The authored no-sound Cheer interaction was rejected before UI assembly.")

@@ -82,7 +82,7 @@
 	if(!cyborg_visuals_allowed(preferences))
 		status_message = "Enable the relevant character preferences first."
 		return TRUE
-	if(preview_layout_source == "model_default" && params["operation"] in list("set", "place", "reset", "reset_position", "reset_colors", "reset_overrides", "save", "save_default"))
+	if(preview_layout_source == "model_default" && (params["operation"] in list("set", "place", "reset", "reset_position", "reset_colors", "reset_overrides", "save", "save_default")))
 		status_message = "Load this model default into the active layout before editing it."
 		return TRUE
 	var/list/store = preferences.cyborg_layout_begin_draft()
@@ -206,7 +206,7 @@
 	var/group = params["placement_group"]
 	if(!isnull(group) && !(group in list("north", "south", "side")))
 		return list("message" = "Unknown placement group.")
-	if(operation in list("set", "place", "reset_position", "reset_colors", "reset_overrides") && !(slot in cyborg_layout_supported_slots()))
+	if((operation in list("set", "place", "reset_position", "reset_colors", "reset_overrides")) && !(slot in cyborg_layout_supported_slots()))
 		return list("message" = "Choose a valid layout slot.")
 	if(operation == "reset" && !isnull(slot) && !(slot in cyborg_layout_supported_slots()))
 		return list("message" = "Choose a valid layout slot.")
@@ -219,7 +219,7 @@
 				return list("message" = "The directional layout is too large or contains unsupported entries.")
 			if(field == "colors" && (!islist(params["value"]) || length(params["value"]) > 3))
 				return list("message" = "Choose up to three colors.")
-			if(group && field in list("pixel_x", "pixel_y", "rotation"))
+			if(group && (field in list("pixel_x", "pixel_y", "rotation")))
 				var/list/position = cyborg_layout_edit_position(next["active"][slot], group)
 				position[field] = params["value"]
 			else

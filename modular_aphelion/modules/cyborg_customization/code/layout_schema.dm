@@ -115,7 +115,7 @@
 	if(allow_legacy_aliases)
 		// Donor files used one pose-wide entry. Import expands only recognized aliases.
 		for(var/legacy_pose in list("rest", "sit", "bellyup", "belly_up", "rest_deep", "deep_rest", "rest_alt", "sit_alt"))
-			if(legacy_pose in supported || !islist(raw[legacy_pose]))
+			if((legacy_pose in supported) || !islist(raw[legacy_pose]))
 				continue
 			var/pose = legacy_pose
 			if(pose == "belly_up")
