@@ -689,6 +689,16 @@
 			REMOVE_TRAIT(src, TRAIT_SIXTHSENSE, "near-death")
 
 
+// APHELION EDIT ADDITION START - MEDICAL_PAIN
+/**
+ * Whether injury-driven crit is deferred while effective pain remains below capacity.
+ *
+ * Base carbons never defer. Human override pure-queries fresh injury minus analgesia.
+ */
+/mob/living/carbon/proc/defers_injury_crit()
+	return FALSE
+// APHELION EDIT ADDITION END
+
 /mob/living/carbon/update_stat()
 	if(HAS_TRAIT(src, TRAIT_GODMODE))
 		return
@@ -696,12 +706,24 @@
 		if(health <= HEALTH_THRESHOLD_DEAD && !HAS_TRAIT(src, TRAIT_NODEATH))
 			death()
 			return
+		/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 		if(health <= hardcrit_threshold && !HAS_TRAIT(src, TRAIT_NOHARDCRIT))
 			set_stat(HARD_CRIT)
 		else if(health <= crit_threshold && !HAS_TRAIT(src, TRAIT_NOSOFTCRIT))
 			set_stat(SOFT_CRIT)
 		else
 			set_stat(STABLE)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - MEDICAL_PAIN
+		if(defers_injury_crit())
+			set_stat(STABLE)
+		else if(health <= hardcrit_threshold && !HAS_TRAIT(src, TRAIT_NOHARDCRIT))
+			set_stat(HARD_CRIT)
+		else if(health <= crit_threshold && !HAS_TRAIT(src, TRAIT_NOSOFTCRIT))
+			set_stat(SOFT_CRIT)
+		else
+			set_stat(STABLE)
+		// APHELION EDIT ADDITION END
 	update_damage_hud()
 	update_health_hud()
 	update_stamina_hud()

@@ -725,7 +725,13 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
 	glass_price = DRINK_PRICE_EASY
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_FEARLESS, TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	metabolized_traits = list(TRAIT_FEARLESS)
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_MILD
+	// APHELION EDIT ADDITION END
 	var/tough_text
 
 /datum/reagent/consumable/ethanol/brave_bull/on_mob_metabolize(mob/living/drinker)
@@ -2394,7 +2400,12 @@
 	taste_description = "sugary tartness"
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	randomized_spawns = REAGENT_SPAWN_ALL_RANDOM_SPAWNS
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_MILD
+	// APHELION EDIT ADDITION END
 
 /datum/reagent/consumable/ethanol/pina_colada
 	name = "Pina Colada"

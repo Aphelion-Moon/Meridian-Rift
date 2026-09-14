@@ -8,7 +8,13 @@
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	inverse_chem_val = 0.55
 	inverse_chem = /datum/reagent/inverse/lidocaine
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_SURGICAL
+	surgical_analgesia = TRUE
+	// APHELION EDIT ADDITION END
 
 /datum/reagent/medicine/lidocaine/overdose_process(mob/living/carbon/affected_mob, seconds_per_tick, metabolization_ratio)
 	. = ..()

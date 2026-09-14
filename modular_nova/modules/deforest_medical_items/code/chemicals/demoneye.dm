@@ -28,7 +28,14 @@
 	overdose_threshold = 15
 	chemical_flags = REAGENT_CAN_BE_SYNTHESIZED
 	addiction_types = list(/datum/addiction/stimulants = 50)
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_UNNATURAL_RED_GLOWY_EYES, TRAIT_NOSOFTCRIT, TRAIT_NOHARDCRIT, TRAIT_FEARLESS, TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	metabolized_traits = list(TRAIT_UNNATURAL_RED_GLOWY_EYES, TRAIT_NOSOFTCRIT, TRAIT_NOHARDCRIT, TRAIT_FEARLESS)
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_STRONG
+	surgical_analgesia = TRUE
+	// APHELION EDIT ADDITION END
 	/// How much time has the drug been in them?
 	var/constant_dose_time = 0
 	/// What the original color of the user's left eye is

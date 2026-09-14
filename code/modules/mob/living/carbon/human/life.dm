@@ -18,6 +18,7 @@
 #define THERMAL_PROTECTION_HAND_LEFT 0.025
 #define THERMAL_PROTECTION_HAND_RIGHT 0.025
 
+// Process the human body after carbon metabolism, wounds, and organs.
 /mob/living/carbon/human/Life(seconds_per_tick = SSMOBS_DT)
 	if(HAS_TRAIT(src, TRAIT_NO_TRANSFORM))
 		return
@@ -28,6 +29,9 @@
 
 	// Body temperature stability and damage
 	dna.species.handle_body_temperature(src, seconds_per_tick)
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain?.recalculate(advance_stage = TRUE)
+	// APHELION EDIT ADDITION END
 	if(HAS_TRAIT(src, TRAIT_STASIS))
 		for(var/datum/wound/iter_wound as anything in all_wounds)
 			iter_wound.on_stasis(seconds_per_tick)

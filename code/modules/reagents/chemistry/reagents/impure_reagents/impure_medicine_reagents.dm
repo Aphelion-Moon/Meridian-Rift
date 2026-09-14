@@ -937,7 +937,13 @@ Basically, we fill the time between now and 2s from now with hands based off the
 	overdose_threshold = 20
 	ph = 2.5
 	addiction_types = list(/datum/addiction/opioids = 10)
+	/* // APHELION EDIT REMOVAL START - MEDICAL_PAIN
 	metabolized_traits = list(TRAIT_ANALGESIA)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - MEDICAL_PAIN
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_SURGICAL
+	surgical_analgesia = TRUE
+	// APHELION EDIT ADDITION END
 	tox_damage = 0
 
 /datum/reagent/inverse/krokodil/expose_mob(mob/living/exposed_mob, methods=TOUCH, reac_volume)

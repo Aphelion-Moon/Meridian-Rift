@@ -1,7 +1,6 @@
 // Numbing effects
-/datum/reagent/consumable/ethanol/drunken_espatier/New(list/data)
-	metabolized_traits += list(TRAIT_ANALGESIA) // adding it this way so that should upstream ever add their own metabolized_traits, we don't override them
-	return ..()
+/datum/reagent/consumable/ethanol/drunken_espatier
+	medical_pain_relief = MEDICAL_PAIN_RELIEF_MILD // APHELION EDIT CHANGE - MEDICAL_PAIN: formerly granted binary analgesia in New().
 
 // Changeling balancing
 // Allowing us to cure husks created by changeling without a brain transplant. Requires slightly more reagents to cure than a normal husk
