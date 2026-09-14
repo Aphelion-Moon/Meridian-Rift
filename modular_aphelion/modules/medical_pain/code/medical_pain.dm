@@ -6,8 +6,6 @@
 	var/raw_pain = 0
 	/// Current score after analgesia.
 	var/effective_pain = 0
-	/// Strongest actively metabolizing finite analgesic.
-	var/relief = 0
 	/// Capacity copied from stateless species configuration when recalculating.
 	var/capacity = MEDICAL_PAIN_CAPACITY
 	/// Current symptom stage; zero means no symptoms.
@@ -54,7 +52,6 @@
 /datum/medical_pain/proc/recalculate(advance_stage = FALSE, current_time = world.time)
 	capacity = patient.dna?.species?.medical_pain_capacity > 0 ? patient.dna.species.medical_pain_capacity : MEDICAL_PAIN_CAPACITY
 	raw_pain = calculate_raw_pain()
-	relief = patient.get_medical_pain_relief()
 	if(patient.stat == DEAD || HAS_TRAIT(patient, TRAIT_STASIS) || !patient.uses_medical_pain() || HAS_TRAIT(patient, TRAIT_ANALGESIA))
 		effective_pain = 0
 		set_stage(0)
@@ -62,22 +59,18 @@
 		patient.update_medical_pain_slowdown()
 		update_pain_crit()
 		return
-	effective_pain = max(0, raw_pain - relief)
+	effective_pain = max(0, raw_pain - patient.get_medical_pain_relief())
 	var/pain_percent = clamp(100 * effective_pain / capacity, 0, 100)
 	var/new_stage = stage
 	while(new_stage > 0 && pain_percent < stage_thresholds[new_stage] - MEDICAL_PAIN_RECOVERY_MARGIN)
 		new_stage--
-	if(new_stage < stage)
+	if(new_stage == stage && advance_stage && current_time >= next_stage_change)
+		var/stage_limit = min(stage + MEDICAL_PAIN_MAX_STAGE_ADVANCE, length(stage_thresholds))
+		while(new_stage < stage_limit && pain_percent >= stage_thresholds[new_stage + 1])
+			new_stage++
+	if(new_stage != stage)
 		set_stage(new_stage)
 		next_stage_change = current_time + MEDICAL_PAIN_STAGE_INTERVAL
-	else if(advance_stage && current_time >= next_stage_change)
-		var/target_stage = stage
-		var/stage_limit = min(stage + MEDICAL_PAIN_MAX_STAGE_ADVANCE, length(stage_thresholds))
-		while(target_stage < stage_limit && pain_percent >= stage_thresholds[target_stage + 1])
-			target_stage++
-		if(target_stage > stage)
-			set_stage(target_stage)
-			next_stage_change = current_time + MEDICAL_PAIN_STAGE_INTERVAL
 	// Restore presentation if an external status clear left an untreated injury.
 	update_symptoms()
 	patient.update_medical_pain_slowdown()

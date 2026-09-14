@@ -47,12 +47,9 @@
 			return FALSE
 	if(isnull(medical_pain))
 		return FALSE
-	var/capacity = dna?.species?.medical_pain_capacity > 0 ? dna.species.medical_pain_capacity : MEDICAL_PAIN_CAPACITY
-	if(capacity <= 0)
-		return FALSE
 	var/raw_pain = medical_pain.calculate_raw_pain()
 	var/effective_pain = HAS_TRAIT(src, TRAIT_ANALGESIA) ? 0 : max(0, raw_pain - get_medical_pain_relief())
-	return (100 * effective_pain / capacity) < MEDICAL_PAIN_CRIT_PERCENT
+	return (100 * effective_pain / dna.species.medical_pain_capacity) < MEDICAL_PAIN_CRIT_PERCENT
 
 /**
  * Overflow part of a head or chest hit into one present organic internal organ.

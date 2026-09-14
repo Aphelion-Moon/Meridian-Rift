@@ -108,7 +108,6 @@ internal injury on head/chest hits taken while already in crit-range health.
 - `modular_aphelion/master_files/code/modules/mob/living/carbon/human/medical_pain.dm`:
   species capacity, human eligibility, combined movement calculation with the
   hardcrit-health floor, crit deferral query, and regional organ overflow.
-- Bodypart overflow forwarding in `code/contributions.dm`.
 - Existing Nova reagent and surgery files: finite relief and surgical adequacy.
 
 ## Defines

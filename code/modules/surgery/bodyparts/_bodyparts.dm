@@ -808,7 +808,9 @@
 
 	// APHELION EDIT ADDITION START - MEDICAL_PAIN
 	// Post-mitigation hook before this limb's damage is stored or capped.
-	apply_medical_pain_overflow(brute + burn)
+	if(ishuman(owner))
+		var/mob/living/carbon/human/human_owner = owner
+		human_owner.overflow_medical_pain_to_organs(brute + burn, body_zone)
 	// APHELION EDIT ADDITION END
 
 	//back to our regularly scheduled program, we now actually apply damage if there's room below limb damage cap

@@ -205,10 +205,7 @@
 /datum/unit_test/medical_pain/proc/organ_pool_damage(mob/living/carbon/human/patient, list/slots)
 	var/total = 0
 	for(var/slot in slots)
-		var/slot_damage = patient.get_organ_loss(slot)
-		if(isnull(slot_damage))
-			slot_damage = 0
-		total += slot_damage
+		total += patient.get_organ_loss(slot) || 0
 	return total
 
 // Bearable injury below full capacity defers stock crit; pain at capacity restores it from fresh sampling, not visual stage.
@@ -387,6 +384,8 @@
 	damage_chest_to_softcrit(brain_failing)
 	var/obj/item/organ/brain/failing_brain = brain_failing.get_organ_slot(ORGAN_SLOT_BRAIN)
 	brain_failing.set_organ_loss(ORGAN_SLOT_BRAIN, failing_brain.maxHealth)
+	// Random damage traumas such as Tenacity can independently disable health crit.
+	failing_brain.cure_all_traumas(TRAUMA_RESILIENCE_ABSOLUTE)
 	brain_failing.medical_pain.recalculate()
 	TEST_ASSERT(!brain_failing.defers_injury_crit(), "Failing brain must not defer.")
 	TEST_ASSERT_EQUAL(brain_failing.stat, SOFT_CRIT, "Failing brain must use stock softcrit.")
@@ -481,24 +480,23 @@
 	damage_chest_to_softcrit(soft_share)
 	TEST_ASSERT(soft_share.health <= soft_share.crit_threshold, "Chest fixture must reach softcrit pre-hit health.")
 	TEST_ASSERT(soft_share.health > soft_share.hardcrit_threshold, "Chest fixture must stay above hardcrit pre-hit health.")
-	var/list/soft_pool = list(ORGAN_SLOT_BRAIN, ORGAN_SLOT_EYES, ORGAN_SLOT_EARS)
 	var/soft_pool_before = 0
 	var/list/soft_slot_before = list()
-	for(var/slot in soft_pool)
+	for(var/slot in head_slots)
 		var/slot_damage = soft_share.get_organ_loss(slot)
 		soft_slot_before[slot] = slot_damage
 		soft_pool_before += slot_damage
 	soft_share.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
 	var/soft_pool_after = 0
 	var/list/soft_pool_changed = list()
-	for(var/slot in soft_pool)
+	for(var/slot in head_slots)
 		var/slot_damage = soft_share.get_organ_loss(slot)
 		soft_pool_after += slot_damage
 		if(slot_damage != soft_slot_before[slot])
 			soft_pool_changed += slot
 	TEST_ASSERT_EQUAL(soft_pool_after - soft_pool_before, round(40 * MEDICAL_PAIN_OVERFLOW_SOFT_SHARE, DAMAGE_PRECISION), "Softcrit head overflow must use the twenty-five percent share.")
 	TEST_ASSERT_EQUAL(length(soft_pool_changed), 1, "Head overflow must damage exactly one eligible head organ.")
-	TEST_ASSERT(soft_pool_changed[1] in soft_pool, "Head overflow must stay within brain, eyes, and ears.")
+	TEST_ASSERT(soft_pool_changed[1] in head_slots, "Head overflow must stay within brain, eyes, and ears.")
 	var/mob/living/carbon/human/hard_share = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_hardcrit(hard_share)
 	TEST_ASSERT(hard_share.health <= hard_share.hardcrit_threshold, "Chest fixture must reach hardcrit pre-hit health.")
@@ -522,9 +520,7 @@
 	TEST_ASSERT(hard_pool_changed[1] in chest_pool, "Chest overflow must stay within heart, lungs, liver, stomach, and appendix.")
 	var/mob/living/carbon/human/healthy = allocate(/mob/living/carbon/human/consistent)
 	healthy.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
-	var/healthy_head_total = 0
-	for(var/slot in head_slots)
-		healthy_head_total += healthy.get_organ_loss(slot)
+	var/healthy_head_total = organ_pool_damage(healthy, head_slots)
 	TEST_ASSERT_EQUAL(healthy_head_total, 0, "Healthy head hits must not overflow.")
 	var/mob/living/carbon/human/limb_hit = allocate(/mob/living/carbon/human/consistent)
 	limb_hit.get_bodypart(BODY_ZONE_R_ARM).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
@@ -532,24 +528,16 @@
 	limb_hit.get_bodypart(BODY_ZONE_R_LEG).receive_damage(brute = 30, wound_bonus = CANT_WOUND)
 	limb_hit.get_bodypart(BODY_ZONE_L_LEG).receive_damage(brute = 30, wound_bonus = CANT_WOUND)
 	limb_hit.get_bodypart(BODY_ZONE_R_ARM).receive_damage(brute = 20, wound_bonus = CANT_WOUND)
-	var/limb_head_total = 0
-	var/limb_chest_total = 0
-	for(var/slot in head_slots)
-		limb_head_total += limb_hit.get_organ_loss(slot)
-	for(var/slot in chest_pool)
-		limb_chest_total += limb_hit.get_organ_loss(slot)
+	var/limb_head_total = organ_pool_damage(limb_hit, head_slots)
+	var/limb_chest_total = organ_pool_damage(limb_hit, chest_pool)
 	TEST_ASSERT_EQUAL(limb_head_total, 0, "Limb hits must not overflow to head organs.")
 	TEST_ASSERT_EQUAL(limb_chest_total, 0, "Limb hits must not overflow to chest organs.")
 	var/mob/living/carbon/human/unconscious_share = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_softcrit(unconscious_share)
 	unconscious_share.Unconscious(20 SECONDS)
-	var/unconscious_before = 0
-	for(var/slot in head_slots)
-		unconscious_before += unconscious_share.get_organ_loss(slot)
+	var/unconscious_before = organ_pool_damage(unconscious_share, head_slots)
 	unconscious_share.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
-	var/unconscious_after = 0
-	for(var/slot in head_slots)
-		unconscious_after += unconscious_share.get_organ_loss(slot)
+	var/unconscious_after = organ_pool_damage(unconscious_share, head_slots)
 	TEST_ASSERT(unconscious_share.IsUnconscious(), "Overflow fixture must stay unconscious.")
 	TEST_ASSERT_EQUAL(unconscious_after - unconscious_before, round(40 * MEDICAL_PAIN_OVERFLOW_SOFT_SHARE, DAMAGE_PRECISION), "Unconscious crit must still apply overflow.")
 
@@ -559,35 +547,27 @@
 	var/mob/living/carbon/human/blocked = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_softcrit(blocked)
 	blocked.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, blocked = 100, wound_bonus = CANT_WOUND)
-	var/blocked_total = 0
-	for(var/slot in head_slots)
-		blocked_total += blocked.get_organ_loss(slot)
+	var/blocked_total = organ_pool_damage(blocked, head_slots)
 	TEST_ASSERT_EQUAL(blocked_total, 0, "Fully blocked hits must not overflow.")
 	var/mob/living/carbon/human/godmode = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_softcrit(godmode)
 	ADD_TRAIT(godmode, TRAIT_GODMODE, TRAIT_SOURCE_UNIT_TESTS)
 	godmode.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
-	var/godmode_total = 0
-	for(var/slot in head_slots)
-		godmode_total += godmode.get_organ_loss(slot)
+	var/godmode_total = organ_pool_damage(godmode, head_slots)
 	TEST_ASSERT_EQUAL(godmode_total, 0, "Godmode hits must not overflow.")
 	REMOVE_TRAIT(godmode, TRAIT_GODMODE, TRAIT_SOURCE_UNIT_TESTS)
 	var/mob/living/carbon/human/stasis = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_softcrit(stasis)
 	ADD_TRAIT(stasis, TRAIT_STASIS, TRAIT_SOURCE_UNIT_TESTS)
 	stasis.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
-	var/stasis_total = 0
-	for(var/slot in head_slots)
-		stasis_total += stasis.get_organ_loss(slot)
+	var/stasis_total = organ_pool_damage(stasis, head_slots)
 	TEST_ASSERT_EQUAL(stasis_total, 0, "Stasis hits must not overflow.")
 	REMOVE_TRAIT(stasis, TRAIT_STASIS, TRAIT_SOURCE_UNIT_TESTS)
 	var/mob/living/carbon/human/synthetic = allocate(/mob/living/carbon/human/consistent)
 	synthetic.set_species(/datum/species/android)
 	damage_chest_to_softcrit(synthetic)
 	synthetic.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
-	var/synthetic_total = 0
-	for(var/slot in head_slots)
-		synthetic_total += synthetic.get_organ_loss(slot)
+	var/synthetic_total = organ_pool_damage(synthetic, head_slots)
 	TEST_ASSERT(!synthetic.uses_medical_pain(), "Android fixture must opt out of medical pain.")
 	TEST_ASSERT_EQUAL(synthetic_total, 0, "Nonorganic hits must not overflow.")
 	var/mob/living/carbon/human/isolated = allocate(/mob/living/carbon/human/consistent)
@@ -657,30 +637,22 @@
 	var/mob/living/carbon/human/mitigated = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_softcrit(mitigated)
 	mitigated.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, blocked = 50, wound_bonus = CANT_WOUND)
-	var/mitigated_total = 0
-	for(var/slot in head_slots)
-		mitigated_total += mitigated.get_organ_loss(slot)
+	var/mitigated_total = organ_pool_damage(mitigated, head_slots)
 	TEST_ASSERT_EQUAL(mitigated_total, round(20 * MEDICAL_PAIN_OVERFLOW_SOFT_SHARE, DAMAGE_PRECISION), "Partial block must overflow from post-mitigation damage.")
 	var/cancel_before = mitigated_total
 	mitigated.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, required_bodytype = BODYTYPE_ROBOTIC, wound_bonus = CANT_WOUND)
-	var/cancel_after = 0
-	for(var/slot in head_slots)
-		cancel_after += mitigated.get_organ_loss(slot)
+	var/cancel_after = organ_pool_damage(mitigated, head_slots)
 	TEST_ASSERT_EQUAL(cancel_after - cancel_before, 0, "Bodytype-cancelled limb damage must not overflow.")
 	var/mob/living/carbon/human/burn_share = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_softcrit(burn_share)
 	burn_share.get_bodypart(BODY_ZONE_HEAD).receive_damage(burn = 40, wound_bonus = CANT_WOUND)
-	var/burn_total = 0
-	for(var/slot in head_slots)
-		burn_total += burn_share.get_organ_loss(slot)
+	var/burn_total = organ_pool_damage(burn_share, head_slots)
 	TEST_ASSERT_EQUAL(burn_total, round(40 * MEDICAL_PAIN_OVERFLOW_SOFT_SHARE, DAMAGE_PRECISION), "Burn overflow must share the same post-mitigation pool as brute.")
 	var/mob/living/carbon/human/relieved_share = allocate(/mob/living/carbon/human/consistent)
 	damage_chest_to_softcrit(relieved_share)
 	ADD_TRAIT(relieved_share, TRAIT_ANALGESIA, TRAIT_SOURCE_UNIT_TESTS)
 	relieved_share.get_bodypart(BODY_ZONE_HEAD).receive_damage(brute = 40, wound_bonus = CANT_WOUND)
-	var/relieved_total = 0
-	for(var/slot in head_slots)
-		relieved_total += relieved_share.get_organ_loss(slot)
+	var/relieved_total = organ_pool_damage(relieved_share, head_slots)
 	TEST_ASSERT_EQUAL(relieved_total, round(40 * MEDICAL_PAIN_OVERFLOW_SOFT_SHARE, DAMAGE_PRECISION), "Overflow must ignore analgesia.")
 	TEST_ASSERT_EQUAL(relieved_share.stat, STABLE, "Analgesia must defer despite overflow injury.")
 	REMOVE_TRAIT(relieved_share, TRAIT_ANALGESIA, TRAIT_SOURCE_UNIT_TESTS)

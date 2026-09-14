@@ -81,27 +81,6 @@
 /obj/item/organ/ears
 	max_medical_pain = MEDICAL_PAIN_SENSORY_ORGAN
 
-/**
- * Forward post-mitigation limb damage for possible head or chest organ overflow.
- *
- * Called from the limb damage hook after armor, config, limb, wound, and physiology
- * mitigation and before limb capping, so saturated limbs still overflow. Uses owner
- * health before this limb's damage is stored. Forwards the actual struck part only;
- * region filtering and eligibility live on the human overflow proc. Causes no limb
- * damage itself and never recurses into limb damage.
- * Arguments:
- * * damage_amount - post-mitigation brute plus burn for this part.
- */
-/obj/item/bodypart/proc/apply_medical_pain_overflow(damage_amount)
-	if(damage_amount <= 0)
-		return
-	if(isnull(owner))
-		return
-	if(!ishuman(owner))
-		return
-	var/mob/living/carbon/human/human_owner = owner
-	human_owner.overflow_medical_pain_to_organs(damage_amount, body_zone)
-
 #undef MEDICAL_PAIN_BURN_FACTOR
 #undef MEDICAL_PAIN_WOUND_MODERATE
 #undef MEDICAL_PAIN_WOUND_SEVERE
