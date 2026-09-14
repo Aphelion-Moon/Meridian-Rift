@@ -1,0 +1,27 @@
+// THIS IS AN APHELION UI FILE
+// Swatches show drawing colors; theme materials must not recolor them.
+.Button.SpriteEditor__plainSwatch {
+  background-color: transparent !important;
+  background-blend-mode: normal !important;
+  background-clip: padding-box !important;
+  border: 1px solid #555 !important;
+  border-image: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+
+  &[aria-pressed='true'] {
+    border-color: #ddd !important;
+  }
+
+  &:focus-visible {
+    outline: 1px solid #ddd !important;
+    outline-offset: 1px;
+  }
+
+  &::before,
+  &::after,
+  .Button__content {
+    display: none !important;
+  }
+}

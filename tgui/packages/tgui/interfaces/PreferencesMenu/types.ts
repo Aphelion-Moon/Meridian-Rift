@@ -270,6 +270,7 @@ export type PreferencesMenuData = {
   job_preferences: JobPreference[];
 
   // NOVA EDIT ADDITION START
+  allow_custom_sprite_editing?: BooleanLike;
   preview_options: string[];
   preview_selection: string;
 

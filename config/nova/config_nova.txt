@@ -1,3 +1,8 @@
+## APHELION EDIT ADDITION START
+## Custom hair and body-marking pixel editors (enabled by default).
+## Set to 0 to hide the buttons and block editing. Saved drawings still render.
+# ALLOW_CUSTOM_SPRITE_EDITING 1
+## APHELION EDIT ADDITION END
 ## Extra Alerts
 ALERT_AMBER_UPTO A major security emergency has developed. Random searches are allowed and advised. Non-security personnel are required to obey all relevant instructions from security staff.
 ALERT_AMBER_DOWNTO A major security emergency is still underway. Non-security personnel are required to obey all relevant instructions from security staff.

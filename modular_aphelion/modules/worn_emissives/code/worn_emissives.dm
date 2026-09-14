@@ -9,7 +9,7 @@
 /// apply_overlay stores the result in overlays_standing; normal human rendering/resting reuses it.
 /// This is not a memoization lookup: explicitly preparing a cached tree still checks its visible branches.
 /mob/living/carbon/proc/prepare_worn_emissive_overlays(cache_index, worn_overlays)
-	if(cache_index == BODYPARTS_LAYER)
+	if(cache_index == BODYPARTS_LAYER || cache_index == HAIR_LAYER)
 		return prepare_bodypart_emissive_overlays(worn_overlays)
 	var/static/list/worn_layers = list(HANDS_LAYER, LEGCUFF_LAYER, HANDCUFF_LAYER, HEAD_LAYER, FACEMASK_LAYER, BACK_LAYER, NECK_LAYER, SUIT_STORE_LAYER, BELT_LAYER, GLASSES_LAYER, SUIT_LAYER, EARS_LAYER, SHOES_LAYER, GLOVES_LAYER, ID_LAYER, UNIFORM_LAYER, BODY_LAYER)
 	if(!(cache_index in worn_layers))
@@ -37,7 +37,7 @@
 			result += worn
 	return isnull(result) ? worn_overlays : result
 
-/// Bodypart masks are already siblings, with final centering and height adjustments applied.
+/// Bodypart and hair masks are already siblings, with final centering and height adjustments applied.
 /// Keep those adjustments inside a neutral plane boundary so rotation does not depend on icon size.
 /// Copy shared limb-cache appearances; iconless prepared roots make this pass idempotent.
 /proc/prepare_bodypart_emissive_overlays(bodypart_overlays)

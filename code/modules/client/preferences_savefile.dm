@@ -478,6 +478,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 /datum/preferences/proc/switch_to_slot(new_slot)
 	if(new_slot == default_slot) // sanity check, nothing to do here.
 		return
+	close_custom_sprite_editors() // APHELION EDIT ADDITION - Commit to the old slot before switching
 	// SAFETY: `load_character` performs sanitization on the slot number
 	if (!load_character(new_slot))
 		tainted_character_profiles = TRUE
@@ -519,6 +520,8 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		stack_trace("remove_current_slot() being called when there are no slots to go to, the client should prevent this")
 		return
 
+	close_custom_sprite_editors(FALSE) // APHELION EDIT ADDITION
+	remove_custom_sprite_slot(default_slot) // APHELION EDIT ADDITION - A reused slot starts empty
 	savefile.remove_entry("character[default_slot]")
 	tainted_character_profiles = TRUE
 	switch_to_slot(closest_slot)

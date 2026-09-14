@@ -104,12 +104,12 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 				if("toggleVisible")
 					current_workspace.toggle_layer_visible(params["layer"])
 				if("undo")
-					current_workspace.undo()
+					current_workspace.undo(isnull(params["count"]) ? 1 : params["count"]) // APHELION EDIT CHANGE - ORIGINAL: current_workspace.undo()
 					if(!length(current_workspace.undo_stack))
 						source_photo_or_painting = source_on_undo_all
 						source_on_undo_all = null
 				if("redo")
-					current_workspace.redo()
+					current_workspace.redo(isnull(params["count"]) ? 1 : params["count"]) // APHELION EDIT CHANGE - ORIGINAL: current_workspace.redo()
 					if(!source_on_undo_all && source_photo_or_painting)
 						source_on_undo_all = source_photo_or_painting
 						source_photo_or_painting = null
@@ -279,7 +279,14 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 			backing_file = WEAKREF(project_file)
 		if(/datum/computer_file/image)
 			var/datum/computer_file/image/image_file = file
-			image_file.stored_icon = current_workspace.to_icon()
+			// image_file.stored_icon = current_workspace.to_icon() // APHELION EDIT REMOVAL
+			// APHELION EDIT ADDITION START - Keep the previous image if export fails.
+			var/icon/exported = current_workspace.to_icon()
+			if(!exported)
+				dialog = list("type" = "error", "message" = "Could not create the image. Please try saving again.")
+				return FALSE
+			image_file.stored_icon = exported
+			// APHELION EDIT ADDITION END
 			image_file.image_name = null
 			image_file.assign_path()
 			image_file.ref_appearance = null
@@ -290,6 +297,7 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 				message_admins("[ADMIN_LOOKUP(user)] has saved a custom image to [computer] as [file.filename].[file.filetype].")
 				log_player_image_creation("[key_name(user)] has saved a custom image to [computer] as [file.filename].[file.filetype]", user, image_file.stored_icon)
 
+	return TRUE // APHELION EDIT ADDITION - Report export failure to new-file saves.
 /datum/computer_file/program/nanopaint/proc/save_file(mob/user, name, file_type, obj/item/disk/computer/target_disk)
 	var/datum/computer_file/file = new file_type()
 	file.filename = name
@@ -299,7 +307,15 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 	else
 		file_stored = computer.store_file(file)
 	if(file_stored)
-		write_to_file(user, file)
+		// write_to_file(user, file) // APHELION EDIT REMOVAL
+		// APHELION EDIT ADDITION START - Do not retain an empty file after a failed image export.
+		if(!write_to_file(user, file))
+			if(target_disk)
+				target_disk.remove_file(file)
+			else
+				computer.remove_file(file)
+			SStgui.update_uis(computer)
+		// APHELION EDIT ADDITION END
 	else
 		dialog = list("type" = "error", "message" = "[name] - Unable to save file")
 		SStgui.update_uis(computer)

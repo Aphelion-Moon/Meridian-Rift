@@ -273,6 +273,7 @@ const Markings = (props: {
   act: (action: string, params?: Record<string, unknown>) => void;
 }) => {
   const { body_zone, chosen_markings, marking_choices, act } = props;
+  const { data } = useBackend<PreferencesMenuData>(); // APHELION EDIT ADDITION
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
@@ -349,6 +350,21 @@ const Markings = (props: {
         >
           +
         </Button>
+        {/* APHELION EDIT ADDITION START */}
+        {!!data.allow_custom_sprite_editing && (
+          <Button
+            icon="paintbrush"
+            onClick={() =>
+              act('open_custom_sprite_editor', {
+                target: 'markings',
+                body_zone,
+              })
+            }
+          >
+            Custom
+          </Button>
+        )}
+        {/* APHELION EDIT ADDITION END */}
       </Stack.Item>
     </Stack>
   );
@@ -925,6 +941,20 @@ export const LimbsPage = ({
             </Stack.Item>
           </Stack>
         </Stack.Item>
+        {/* APHELION EDIT ADDITION START */}
+        {tab === AugmentsTab.Markings && !!data.allow_custom_sprite_editing && (
+          <Stack.Item>
+            <Button
+              icon="paintbrush"
+              onClick={() =>
+                act('open_custom_sprite_editor', { target: 'markings' })
+              }
+            >
+              Custom marking drawing
+            </Button>
+          </Stack.Item>
+        )}
+        {/* APHELION EDIT ADDITION END */}
         <Stack.Item grow>
           <Stack fill>
             {/* Left column */}

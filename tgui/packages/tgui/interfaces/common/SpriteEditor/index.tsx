@@ -1,7 +1,9 @@
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useEffect, useState } from 'react';
+// APHELION EDIT CHANGE - ORIGINAL: import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom, useStore } from 'jotai';
+// APHELION EDIT CHANGE - ORIGINAL: import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useBackend } from 'tgui/backend';
-import { Box, Button, Floating, Stack } from 'tgui-core/components';
+import { Button, Stack } from 'tgui-core/components'; // APHELION EDIT CHANGE - ORIGINAL: import { Box, Button, Floating, Stack } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 import { capitalize } from 'tgui-core/string';
 import {
@@ -14,6 +16,7 @@ import {
   onSelectServerColorAtom,
   previewDataAtom,
   previewLayerAtom,
+  selectionBoundsAtom, // APHELION EDIT ADDITION
   tools,
 } from './atoms';
 import {
@@ -44,7 +47,13 @@ import {
   type SpriteData,
   SpriteEditorToolFlags,
 } from './Types/types';
+// APHELION EDIT ADDITION START
+import {
+  useSpriteEditorHistory,
+  useSpriteEditorHotkeys,
+} from './useSpriteEditorHotkeys';
 
+// APHELION EDIT ADDITION END
 type ToolbarButtonProps = Omit<
   Parameters<typeof Button>[0],
   'icon' | 'onClick' | 'selected' | 'ellipsis'
@@ -63,6 +72,7 @@ type HistoryButtonProps = {
   type: TransactionType;
 };
 
+/* // APHELION EDIT REMOVAL START
 const HistoryButton = (props: HistoryButtonProps) => {
   const { stack, type } = props;
   const { act } = useBackend();
@@ -126,11 +136,34 @@ const HistoryButton = (props: HistoryButtonProps) => {
   );
 };
 
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START
+const HistoryButton = (props: HistoryButtonProps) => {
+  const { stack, type } = props;
+  const history = useSpriteEditorHistory();
+  const stackEmpty = stack.length < 1;
+  return (
+    <Button
+      icon={type}
+      disabled={stackEmpty}
+      tooltip={`${capitalize(type)}${stackEmpty ? '' : ` ${stack[stack.length - 1]}`}`}
+      onClick={() => history(type)}
+    />
+  );
+};
+// APHELION EDIT ADDITION END
 type ServerColorProps = {
   serverPalette: string[];
+  /* // APHELION EDIT REMOVAL START
   maxServerColors: number;
   onAddServerColor: string;
   onRemoveServerColor: string;
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START
+  maxServerColors?: number;
+  onAddServerColor?: string;
+  onRemoveServerColor?: string;
+  // APHELION EDIT ADDITION END
 };
 
 type PaletteProps = IncludeOrOmitEntireType<
@@ -146,15 +179,21 @@ type PaletteProps = IncludeOrOmitEntireType<
   >
 >;
 
+/* // APHELION EDIT REMOVAL START
 const hasServerColorProps = (
   props: PaletteProps,
 ): props is PaletteProps & ServerColorProps => {
   return Object.hasOwn(props, 'serverPalette');
 };
 
+*/ // APHELION EDIT REMOVAL END
 type CanvasProps = {
   data: SpriteData;
   disabled?: BooleanLike;
+  // APHELION EDIT ADDITION START
+  onSave?: () => void;
+  onSampleBackdrop?: (x: number, y: number) => void;
+  // APHELION EDIT ADDITION END
 } & Omit<AdvancedCanvasPropsBase, 'data' | 'backdropColor'>;
 
 export namespace SpriteEditor {
@@ -162,7 +201,11 @@ export namespace SpriteEditor {
     onSelectServerColor?: string,
     serverSelectedColor?: string,
   ) => {
-    const [currentColor, setCurrentColor] = useAtom(currentColorInternalAtom);
+    // const [currentColor, setCurrentColor] = useAtom(currentColorInternalAtom); // APHELION EDIT REMOVAL
+    // APHELION EDIT ADDITION START
+    const store = useStore();
+    const setCurrentColor = useSetAtom(currentColorInternalAtom);
+    // APHELION EDIT ADDITION END
     const setOnSelectServerColor = useSetAtom(onSelectServerColorAtom);
     useEffect(
       () => setOnSelectServerColor(onSelectServerColor),
@@ -171,6 +214,7 @@ export namespace SpriteEditor {
     useEffect(() => {
       if (serverSelectedColor) {
         const parsedColor = parseHexColorString(serverSelectedColor);
+        const currentColor = store.get(currentColorInternalAtom); // APHELION EDIT ADDITION
         if (!colorsAreEqual(parsedColor, currentColor)) {
           setCurrentColor(parsedColor);
         }
@@ -199,7 +243,11 @@ export namespace SpriteEditor {
       maxServerColors,
       onAddServerColor,
       onRemoveServerColor,
-    } = hasServerColorProps(props) ? props : {};
+      // } = hasServerColorProps(props) ? props : {}; // APHELION EDIT REMOVAL
+      // APHELION EDIT ADDITION START
+      ...rest
+    } = props as PaletteProps & Partial<ServerColorProps>;
+    // APHELION EDIT ADDITION END
     const { act } = useBackend();
     const parsedServerColors = serverPalette?.map(parseHexColorString);
     useEffect(() => {
@@ -234,7 +282,7 @@ export namespace SpriteEditor {
           }
         }}
         maxColors={maxServerColors}
-        {...props}
+        {...rest} // APHELION EDIT CHANGE - ORIGINAL: {...props}
       />
     );
   };
@@ -253,7 +301,15 @@ export namespace SpriteEditor {
     const [currentTool, setCurrentTool] = useAtom(currentToolAtom);
     const setPreviewLayer = useSetAtom(previewLayerAtom);
     const setPreviewData = useSetAtom(previewDataAtom);
-    const cancelContext = { setPreviewLayer, setPreviewData };
+    // const cancelContext = { setPreviewLayer, setPreviewData }; // APHELION EDIT REMOVAL
+    // APHELION EDIT ADDITION START
+    const setSelectionBounds = useSetAtom(selectionBoundsAtom);
+    const cancelContext = {
+      setPreviewLayer,
+      setPreviewData,
+      setSelectionBounds,
+    };
+    // APHELION EDIT ADDITION END
     const {
       toolButtonProps,
       perButtonProps,
@@ -270,6 +326,7 @@ export namespace SpriteEditor {
     }, [toolFlags]);
     return (
       <Stack {...rest}>
+        {/* APHELION EDIT REMOVAL START
         {tools.map(
           (tool, i) =>
             !!(toolFlags & (1 << i)) && (
@@ -284,12 +341,32 @@ export namespace SpriteEditor {
               </Stack.Item>
             ),
         )}
+        APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START - Display order does not change tool flags. */}
+        {[tools[4], ...tools.slice(0, 4)].map((tool) => {
+          const i = tools.indexOf(tool);
+          return (
+            !!(toolFlags & (1 << i)) && (
+              <Stack.Item key={i}>
+                <Button
+                  icon={tool.icon}
+                  selected={currentTool === tool}
+                  onClick={() => setCurrentTool(tool, cancelContext)}
+                  {...toolButtonProps}
+                  {...perButtonProps?.(tool, i)}
+                />
+              </Stack.Item>
+            )
+          );
+        })}
+        {/* APHELION EDIT ADDITION END */}
       </Stack>
     );
   };
 
   export const Canvas = (props: CanvasProps) => {
-    const { data, disabled, ...rest } = props;
+    const { data, disabled, onSave, onSampleBackdrop, ...rest } = props; // APHELION EDIT CHANGE - ORIGINAL: const { data, disabled, ...rest } = props;
+    useSpriteEditorHotkeys(!!disabled, onSave); // APHELION EDIT ADDITION
     const { width, height, backdrop } = data;
     const [currentColor, setCurrentColor] = useAtom(currentColorAtom);
     const currentTool = useAtomValue(currentToolAtom);
@@ -297,7 +374,35 @@ export namespace SpriteEditor {
     const selectedLayer = useAtomValue(layerAtom);
     const [previewLayer, setPreviewLayer] = useAtom(previewLayerAtom);
     const [previewData, setPreviewData] = useAtom(previewDataAtom);
+    // APHELION EDIT ADDITION START
+    const [selectionBounds, setSelectionBounds] = useAtom(selectionBoundsAtom);
+    const spriteKey = JSON.stringify(data);
+    const renderedData = useMemo(() => {
+      // These editors normally have one layer; no pixel compositing is needed.
+      if (
+        data.layers.length === 1 &&
+        (data.layers[0].visible || selectedLayer === 0)
+      ) {
+        return previewLayer === 0
+          ? previewData!
+          : data.layers[0].data[selectedDir]!;
+      }
+      return getFlattenedSpriteDir(
+        data,
+        selectedDir,
+        selectedLayer,
+        previewLayer,
+        previewData,
+      );
+    }, [spriteKey, selectedDir, selectedLayer, previewLayer, previewData]);
+    // APHELION EDIT ADDITION END
     const toolContext = {
+      // APHELION EDIT ADDITION START
+      drawBounds: props.drawBounds,
+      drawMask: props.drawMask,
+      onSampleBackdrop,
+      setSelectionBounds,
+      // APHELION EDIT ADDITION END
       currentColor,
       setCurrentColor,
       selectedDir,
@@ -310,12 +415,47 @@ export namespace SpriteEditor {
         currentTool.cancel?.(toolContext);
       }
     }, [disabled]);
+    // APHELION EDIT ADDITION START
+    useEffect(
+      () => () => currentTool.cancel?.(toolContext),
+      [
+        currentTool,
+        selectedDir,
+        selectedLayer,
+        width,
+        height,
+        JSON.stringify(props.drawBounds),
+        JSON.stringify(props.drawMask),
+      ],
+    );
+    // APHELION EDIT ADDITION END
     useEffect(() => {
       setPreviewLayer(undefined);
       setPreviewData(undefined);
-    }, [JSON.stringify(data)]);
+      currentTool.reconcile?.(toolContext, data); // APHELION EDIT ADDITION
+    }, [spriteKey, selectedDir, selectedLayer]); // APHELION EDIT CHANGE - ORIGINAL: }, [JSON.stringify(data)]);
+    // APHELION EDIT ADDITION START
+    useEffect(() => {
+      if (disabled || !selectionBounds) return;
+      const deselect = (event: KeyboardEvent) => {
+        const target = event.target;
+        if (
+          event.key !== 'Escape' ||
+          (target instanceof HTMLElement &&
+            (target.closest('input, textarea, select') ||
+              target.isContentEditable))
+        )
+          return;
+        currentTool.cancel?.(toolContext);
+        event.preventDefault();
+      };
+      document.addEventListener('keydown', deselect);
+      return () => document.removeEventListener('keydown', deselect);
+    }, [disabled, !!selectionBounds, currentTool]);
+    // APHELION EDIT ADDITION END
     return (
       <AdvancedCanvas
+        /* APHELION EDIT REMOVAL START
         data={getFlattenedSpriteDir(
           data,
           selectedDir,
@@ -323,6 +463,11 @@ export namespace SpriteEditor {
           previewLayer,
           previewData,
         )}
+        APHELION EDIT REMOVAL END */
+        // APHELION EDIT ADDITION START
+        data={renderedData}
+        selectionBounds={selectionBounds}
+        // APHELION EDIT ADDITION END
         backdropColor={backdrop}
         {...(disabled
           ? {}

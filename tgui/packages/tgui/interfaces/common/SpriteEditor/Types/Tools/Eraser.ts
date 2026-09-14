@@ -5,6 +5,7 @@ import {
   constrainToIconGrid,
   copyLayer,
   getDataPixel,
+  isWithinDrawBounds, // APHELION EDIT ADDITION
 } from '../../helpers';
 import { Tool } from '../Tool';
 import type { LayerTransaction } from '../Transaction';
@@ -75,7 +76,13 @@ export class Eraser extends Tool {
     const [px, py, inBounds] = constrainToIconGrid(x, y, width, height);
     if (isRightClick) return;
     this.currentTransaction = new EraserTransaction(selectedDir, selectedLayer);
-    if (inBounds) {
+    // if (inBounds) { // APHELION EDIT REMOVAL
+    // APHELION EDIT ADDITION START
+    if (
+      inBounds &&
+      isWithinDrawBounds(px, py, context.drawBounds, context.drawMask)
+    ) {
+      // APHELION EDIT ADDITION END
       this.currentTransaction.addPoint(
         px,
         py,
@@ -105,10 +112,27 @@ export class Eraser extends Tool {
     const { dir, layer } = currentTransaction;
     const [px, py] = constrainToIconGrid(x, y, width, height);
     const [opx, opy] = lastPoint!;
+    // APHELION EDIT ADDITION START
+    if (px === opx && py === opy) return;
+    const previousSize = currentTransaction.points.size;
+    // APHELION EDIT ADDITION END
     bresenhamLine(opx, opy, px, py, (x, y) => {
+      /* // APHELION EDIT REMOVAL START
       if (x < 0 || x >= width || y < 0 || y >= height) {
         return;
       }
+      */ // APHELION EDIT REMOVAL END
+      // APHELION EDIT ADDITION START
+      if (
+        x < 0 ||
+        x >= width ||
+        y < 0 ||
+        y >= height ||
+        !isWithinDrawBounds(x, y, context.drawBounds, context.drawMask)
+      ) {
+        return;
+      }
+      // APHELION EDIT ADDITION END
       currentTransaction.addPoint(
         x,
         y,
@@ -116,6 +140,7 @@ export class Eraser extends Tool {
       );
     });
     this.lastPoint = [px, py];
+    if (currentTransaction.points.size === previousSize) return; // APHELION EDIT ADDITION
     setPreviewData(
       currentTransaction.getPreviewLayer(layers[layer].data[dir]!),
     );
@@ -128,11 +153,17 @@ export class Eraser extends Tool {
     y: number,
   ) {
     if (!this.currentTransaction) return;
+    this.onMouseMove(context, data, x, y); // APHELION EDIT ADDITION
     if (this.currentTransaction.points.size !== 0) {
       this.currentTransaction.commit();
+    // APHELION EDIT ADDITION START
+    } else {
+      this.cancel(context);
+    // APHELION EDIT ADDITION END
     }
-    this.currentTransaction.commit();
+    // this.currentTransaction.commit(); // APHELION EDIT REMOVAL
     this.currentTransaction = null;
+    this.lastPoint = null; // APHELION EDIT ADDITION
   }
 
   cancel(context: SpriteEditorToolCancelContext) {

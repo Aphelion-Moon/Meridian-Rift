@@ -135,6 +135,7 @@ type ChoicedSelectionProps = {
 };
 
 function ChoicedSelection(props: ChoicedSelectionProps) {
+  const { data, act } = useBackend<PreferencesMenuData>(); // APHELION EDIT ADDITION
   const { catalog, supplementalFeature, supplementalValue } = props;
   const [searchText, setSearchText] = useState('');
 
@@ -174,6 +175,21 @@ function ChoicedSelection(props: ChoicedSelectionProps) {
               placeholder="Search..."
               onChange={setSearchText}
             />
+            {/* APHELION EDIT ADDITION START */}
+            {!!data.allow_custom_sprite_editing &&
+              supplementalFeature === 'hair_color' && (
+                <Button
+                  mt={1}
+                  fluid
+                  icon="paintbrush"
+                  onClick={() =>
+                    act('open_custom_sprite_editor', { target: 'hair' })
+                  }
+                >
+                  Custom hair drawing
+                </Button>
+              )}
+            {/* APHELION EDIT ADDITION END */}
           </Section>
         </Stack.Item>
         <Stack.Item grow>

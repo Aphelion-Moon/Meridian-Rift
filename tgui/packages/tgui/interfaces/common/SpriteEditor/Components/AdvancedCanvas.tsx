@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+// APHELION EDIT CHANGE - ORIGINAL: import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import {
   type BooleanStyleMap,
@@ -6,6 +7,7 @@ import {
   type StringStyleMap,
 } from 'tgui-core/ui';
 import { colorToCssString } from '../colorSpaces';
+import { getShadedAreas } from '../drawBounds'; // APHELION EDIT ADDITION
 import { useClickAndDragEventHandler, useDimensions } from '../helpers';
 import type {
   BorderStyleProps,
@@ -13,6 +15,7 @@ import type {
   IncludeOrOmitEntireType,
   InlineStyle,
   Layer,
+  SelectionBounds, // APHELION EDIT ADDITION
   StringLayer,
 } from '../Types/types';
 
@@ -39,7 +42,11 @@ export type AdvancedCanvasPropsBase = {
   showGrid?: boolean;
   border?: BorderStyleProps;
   background?: string | string[];
+  backgroundImage?: HTMLImageElement; // APHELION EDIT ADDITION
   backdropColor?: string;
+  drawBounds?: [number, number, number, number]; // APHELION EDIT ADDITION
+  drawMask?: string[]; // APHELION EDIT ADDITION
+  selectionBounds?: SelectionBounds; // APHELION EDIT ADDITION
 } & Partial<BooleanStyleMap & StringStyleMap & InlineStyle>;
 
 type AdvancedCanvasProps = IncludeOrOmitEntireType<
@@ -79,12 +86,27 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     showGrid,
     border: borderProps,
     background,
+    backgroundImage, // APHELION EDIT ADDITION
     backdropColor,
+    drawBounds, // APHELION EDIT ADDITION
+    drawMask, // APHELION EDIT ADDITION
+    selectionBounds, // APHELION EDIT ADDITION
     ...rest
   } = extractBaseProps(props);
   const { onClick } = propsHaveClickHandler(props) ? props : {};
   const imageHeight = data.length;
   const imageWidth = data.at(0)?.length ?? 0;
+  // APHELION EDIT ADDITION START
+  const shadedAreas = useMemo(
+    () => getShadedAreas(imageWidth, imageHeight, drawBounds, drawMask),
+    [
+      imageWidth,
+      imageHeight,
+      JSON.stringify(drawBounds),
+      JSON.stringify(drawMask),
+    ],
+  );
+  // APHELION EDIT ADDITION END
   const parentRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [parentWidth, parentHeight] = useDimensions(parentRef);
@@ -120,6 +142,12 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     const scalingFactor = canvasWidth / imageWidth;
     const context = canvas.getContext('2d')!;
     context.clearRect(0, 0, canvasWidth, canvasHeight);
+    // APHELION EDIT ADDITION START
+    if (backgroundImage) {
+      context.imageSmoothingEnabled = false;
+      context.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight);
+    }
+    // APHELION EDIT ADDITION END
     if (backdropColor) {
       context.fillStyle = backdropColor;
       context.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -136,6 +164,19 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
         );
       });
     });
+    // APHELION EDIT ADDITION START
+    if (shadedAreas.length) {
+      context.fillStyle = 'rgba(50, 50, 50, 0.75)';
+      for (const [x, y, width, height] of shadedAreas) {
+        context.fillRect(
+          x * scalingFactor,
+          y * scalingFactor,
+          width * scalingFactor,
+          height * scalingFactor,
+        );
+      }
+    }
+    // APHELION EDIT ADDITION END
     if (showGrid && scalingFactor >= 5) {
       context.beginPath();
       context.strokeStyle = 'black';
@@ -157,6 +198,8 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     canvasRef,
     showGrid,
     backdropColor,
+    backgroundImage, // APHELION EDIT ADDITION
+    shadedAreas, // APHELION EDIT ADDITION
   ]);
   return (
     <div
@@ -168,25 +211,65 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
         verticalAlign: 'middle',
       })}
     >
-      <canvas
-        width={canvasWidth}
-        height={canvasHeight}
-        ref={canvasRef}
-        onClick={onClick && ((ev) => onClick(ev.nativeEvent, canvasRef))}
-        onMouseDown={mouseDownHandler}
+      {/* APHELION EDIT ADDITION START */}
+      <div
         style={{
-          backgroundImage: [
-            ...(Array.isArray(background)
-              ? background
-              : background
-                ? [background]
-                : []),
-            `url(${transparency_checkerboard})`,
-          ].join(','),
-          outline: '2px solid black',
-          ...borderProps,
+          position: 'relative',
+          display: 'inline-block',
+          width: canvasWidth,
+          height: canvasHeight,
         }}
-      />
+      >
+        {/* APHELION EDIT ADDITION END */}
+        <canvas
+          width={canvasWidth}
+          height={canvasHeight}
+          ref={canvasRef}
+          onClick={onClick && ((ev) => onClick(ev.nativeEvent, canvasRef))}
+          onMouseDown={mouseDownHandler}
+          style={{
+            backgroundImage: [
+              ...(Array.isArray(background)
+                ? background
+                : background
+                  ? [background]
+                  : []),
+              `url(${transparency_checkerboard})`,
+            ].join(','),
+            // APHELION EDIT ADDITION START
+            backgroundSize:
+              background || backgroundImage ? '100% 100%' : undefined,
+            backgroundRepeat:
+              background || backgroundImage ? 'no-repeat' : undefined,
+            imageRendering: 'pixelated',
+            // APHELION EDIT ADDITION END
+            outline: '2px solid black',
+            ...borderProps,
+          }}
+        />
+        {/* APHELION EDIT ADDITION START */}
+        {selectionBounds && (
+          <div
+            data-selection-bounds={selectionBounds.join(',')}
+            style={{
+              position: 'absolute',
+              pointerEvents: 'none',
+              boxSizing: 'border-box',
+              border: '1px dashed white',
+              boxShadow: '0 0 0 1px black',
+              left: (selectionBounds[0] * canvasWidth) / imageWidth,
+              top: (selectionBounds[1] * canvasHeight) / imageHeight,
+              width:
+                ((selectionBounds[2] - selectionBounds[0] + 1) * canvasWidth) /
+                imageWidth,
+              height:
+                ((selectionBounds[3] - selectionBounds[1] + 1) * canvasHeight) /
+                imageHeight,
+            }}
+          />
+        )}
+      </div>
+      {/* APHELION EDIT ADDITION END */}
     </div>
   );
 };

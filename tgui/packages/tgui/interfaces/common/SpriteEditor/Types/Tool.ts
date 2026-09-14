@@ -27,4 +27,5 @@ export abstract class Tool {
     y?: number,
   ): void;
   cancel?(context: SpriteEditorToolCancelContext);
+  reconcile?(context: SpriteEditorToolContext, data: SpriteData): void; // APHELION EDIT ADDITION
 }
