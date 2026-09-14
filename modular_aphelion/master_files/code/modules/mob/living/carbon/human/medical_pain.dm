@@ -110,7 +110,7 @@
 	// Organ setter never updates health; resample pain and re-evaluate stat without touching pre-hit health.
 	medical_pain?.recalculate()
 
-/*
+/**
  * Preserve the strongest of physiological damage, exhaustion and pain in the existing modifier.
  * Keeping its type preserves deliberate mobility exemptions from equipment and abilities.
  */
@@ -120,6 +120,9 @@
 	if(medical_pain && uses_medical_pain())
 		health_deficiency = max(get_oxy_loss() + get_tox_loss(), staminaloss)
 		pain_slowdown = medical_pain.stage_slowdowns[medical_pain.stage + 1]
+		// Pain relief does not restore mobility to a critically injured body.
+		if(health <= hardcrit_threshold && stat != DEAD && !HAS_TRAIT(src, TRAIT_GODMODE) && !HAS_TRAIT(src, TRAIT_STASIS))
+			pain_slowdown = max(pain_slowdown, MEDICAL_PAIN_HARDCRIT_SLOWDOWN)
 	var/physiological_slowdown = health_deficiency >= MEDICAL_PAIN_DAMAGE_SLOW_THRESHOLD ? health_deficiency / MEDICAL_PAIN_DAMAGE_SLOW_DIVISOR : 0
 	var/combined_slowdown = max(pain_slowdown, physiological_slowdown)
 	if(combined_slowdown > 0)

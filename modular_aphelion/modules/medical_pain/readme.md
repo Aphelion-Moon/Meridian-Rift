@@ -24,13 +24,21 @@ that contribution without repairing the bone. An isolated healed fracture is
 below the first general symptom threshold but still appears in the estimated
 scanner score and retains its existing wound penalties.
 
-Symptoms start at 20/30/40/60/70/80 percent. Life processing permits one upward
-transition every two seconds. Recovery crosses five percentage points below
-each onset boundary. Movement slowdown by stage is 0/0.3/0.6/1/1.5/2; the first
-stage only informs the patient. The existing `damage_slowdown` modifier uses the
+Symptoms start at 20/30/40/60/70/80 percent. Life processing permits up to two
+upward transitions every two seconds, so severe pain sets in faster without
+shortening the life cadence. Recovery crosses five percentage points below
+each onset boundary. Movement slowdown from no pain through overwhelming pain
+is 0/0/0.3/0.8/1.5/2.25/3; the first symptom stage only informs the patient.
+The existing `damage_slowdown` modifier uses the
 strongest of pain, oxygen-plus-toxin deficiency, and exhaustion, preserving its
 existing threshold of 40 and divisor of 75 for non-pain damage. Limping and other
 physical wound/organ effects remain separate.
+
+Hardcrit-range health keeps a minimum movement slowdown of 1.5 even under
+analgesia, because near-death patients stay impaired whether or not they feel
+it. The dead, godmode, stasis, and nonorganic bodies stay exempt, and the
+modifier type is unchanged so stimulants, equipment, and ability exemptions
+keep their broader behavior.
 
 Health updates recalculate immediately without advancing symptoms. Life samples
 all injury and treatment state on the existing two-second cadence, including
@@ -98,8 +106,8 @@ internal injury on head/chest hits taken while already in crit-range health.
 ## Modular overrides
 
 - `modular_aphelion/master_files/code/modules/mob/living/carbon/human/medical_pain.dm`:
-  species capacity, human eligibility, combined movement calculation, crit
-  deferral query, and regional organ overflow.
+  species capacity, human eligibility, combined movement calculation with the
+  hardcrit-health floor, crit deferral query, and regional organ overflow.
 - Bodypart overflow forwarding in `code/contributions.dm`.
 - Existing Nova reagent and surgery files: finite relief and surgical adequacy.
 

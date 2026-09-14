@@ -19,7 +19,7 @@
 	/// Patient-facing stage names, indexed by stage plus one.
 	var/static/list/stage_names = list("none", "mild", "moderate", "distressing", "severe", "intense", "overwhelming")
 	/// Bounded movement penalties indexed by stage plus one.
-	var/static/list/stage_slowdowns = list(0, 0, 0.3, 0.6, 1, 1.5, MEDICAL_PAIN_MAX_SLOWDOWN)
+	var/static/list/stage_slowdowns = list(0, 0, 0.3, 0.8, 1.5, 2.25, MEDICAL_PAIN_MAX_SLOWDOWN)
 
 /datum/medical_pain/New(mob/living/carbon/human/patient)
 	..()
@@ -44,7 +44,7 @@
 		organ_pain += organ.get_medical_pain()
 	return injury_pain + min(organ_pain, MEDICAL_PAIN_ORGAN_CAP)
 
-/*
+/**
  * Sample current injuries and active treatment, recovering promptly with hysteresis.
  * Only life processing advances stages. current_time permits deterministic timing tests.
  * Re-evaluates stat after medicine, organ, or injury changes so deferred crit tracks
@@ -70,9 +70,14 @@
 	if(new_stage < stage)
 		set_stage(new_stage)
 		next_stage_change = current_time + MEDICAL_PAIN_STAGE_INTERVAL
-	else if(advance_stage && stage < length(stage_thresholds) && pain_percent >= stage_thresholds[stage + 1] && current_time >= next_stage_change)
-		set_stage(stage + 1)
-		next_stage_change = current_time + MEDICAL_PAIN_STAGE_INTERVAL
+	else if(advance_stage && current_time >= next_stage_change)
+		var/target_stage = stage
+		var/stage_limit = min(stage + MEDICAL_PAIN_MAX_STAGE_ADVANCE, length(stage_thresholds))
+		while(target_stage < stage_limit && pain_percent >= stage_thresholds[target_stage + 1])
+			target_stage++
+		if(target_stage > stage)
+			set_stage(target_stage)
+			next_stage_change = current_time + MEDICAL_PAIN_STAGE_INTERVAL
 	// Restore presentation if an external status clear left an untreated injury.
 	update_symptoms()
 	patient.update_medical_pain_slowdown()

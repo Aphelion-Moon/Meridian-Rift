@@ -6,10 +6,14 @@
 #define MEDICAL_PAIN_TOXIN_FACTOR 0.5
 /// Minimum interval between escalating symptom stages.
 #define MEDICAL_PAIN_STAGE_INTERVAL (2 SECONDS)
+/// Maximum symptom stages advanced in one permitted life update.
+#define MEDICAL_PAIN_MAX_STAGE_ADVANCE 2
 /// Recovery crosses five percentage points below a stage's onset threshold.
 #define MEDICAL_PAIN_RECOVERY_MARGIN 5
 /// Upper bound on pain's contribution to the combined movement modifier.
-#define MEDICAL_PAIN_MAX_SLOWDOWN 2
+#define MEDICAL_PAIN_MAX_SLOWDOWN 3
+/// Minimum movement slowdown at hardcrit-range health, independent of analgesia.
+#define MEDICAL_PAIN_HARDCRIT_SLOWDOWN 1.5
 /// Existing physiological/stamina threshold for general damage slowdown.
 #define MEDICAL_PAIN_DAMAGE_SLOW_THRESHOLD 40
 /// Existing conversion from damage deficiency to movement slowdown.
