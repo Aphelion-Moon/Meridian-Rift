@@ -1,4 +1,4 @@
-#define NOVA_ALERTS_ICON_FILE 'modular_nova/master_files/icons/obj/machines/status_display.dmi'
+#define NOVA_ALERTS_ICON_FILE 'modular_aphelion/master_files/icons/obj/machines/status_display.dmi' // APHELION EDIT CHANGE - ORIGINAL: #define NOVA_ALERTS_ICON_FILE 'modular_nova/master_files/icons/obj/machines/status_display.dmi'
 
 // Additional alert levels
 GLOBAL_LIST_INIT(alert_picture_options_nova, list(

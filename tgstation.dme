@@ -7321,6 +7321,7 @@
 #include "modular_aphelion\master_files\code\datums\wires\_wires.dm"
 #include "modular_aphelion\master_files\code\game\objects\objs.dm"
 #include "modular_aphelion\master_files\code\game\objects\items\plushes.dm"
+#include "modular_aphelion\master_files\code\game\objects\structures\signs\signs_misc.dm"
 #include "modular_aphelion\master_files\code\modules\admin\admin.dm"
 #include "modular_aphelion\master_files\code\modules\power\lighting\light_items.dm"
 #include "modular_aphelion\master_files\code\modules\research\techweb\techweb_types.dm"
