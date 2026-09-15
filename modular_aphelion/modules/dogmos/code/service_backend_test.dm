@@ -3771,7 +3771,7 @@
 				return Fail("Owner transfer changed the sentinel mixture.", __FILE__, __LINE__)
 		var/cost_ms = TICK_USAGE_TO_MS(start_tick_usage)
 		var/list/after = dogmos_process_metrics_snapshot()
-		log_test("Dogmos recovery batch [batch]: 20 replacements, [cost_ms]ms; DreamDaemon private [before["dreamdaemon"]["private_bytes"]] -> [after["dreamdaemon"]["private_bytes"]], virtual [before["dreamdaemon"]["virtual_bytes"]] -> [after["dreamdaemon"]["virtual_bytes"]]; dogmosd RSS [before["dogmosd"]["rss_bytes"]] -> [after["dogmosd"]["rss_bytes"]].")
+		log_test("Dogmos recovery batch [batch]: 20 replacements, [cost_ms]ms; DreamDaemon private [before["dreamdaemon"]["private_bytes"]] -> [after["dreamdaemon"]["private_bytes"]], virtual [before["dreamdaemon"]["virtual_bytes"]] -> [after["dreamdaemon"]["virtual_bytes"]]; deltas: DreamDaemon private [after["dreamdaemon"]["private_bytes"] - before["dreamdaemon"]["private_bytes"]], virtual [after["dreamdaemon"]["virtual_bytes"] - before["dreamdaemon"]["virtual_bytes"]]; dogmosd RSS [before["dogmosd"]["rss_bytes"]] -> [after["dogmosd"]["rss_bytes"]], delta [after["dogmosd"]["rss_bytes"] - before["dogmosd"]["rss_bytes"]].")
 
 #endif
 
