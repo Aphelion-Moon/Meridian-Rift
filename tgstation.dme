@@ -7353,6 +7353,7 @@
 #include "modular_aphelion\modules\dogmos\code\service_backend.dm"
 #include "modular_aphelion\modules\dogmos\code\service_backend_test.dm"
 #include "modular_aphelion\modules\job_desc_overrides\job_desc_overrides.dm"
+#include "modular_aphelion\modules\runtime_ownership\code\runtime_ownership_test.dm"
 #include "modular_aphelion\modules\storage_navigation\code\storage_exit.dm"
 #include "modular_aphelion\modules\turf_context\code\turf_context.dm"
 #include "modular_aphelion\modules\turf_context\code\turf_context_test.dm"
