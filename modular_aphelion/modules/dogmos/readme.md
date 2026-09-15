@@ -14,7 +14,9 @@ differs from a non-Dogmos installation, see the [Dogmos Tech Memo](../../../docs
 - `code/dogmos.dm`: Dogmos subsystem initialization and shutdown entry points.
 - `code/dogmos_service_state.dm`: recoverable service state and explicit adoption/release.
 - `code/dogmos_goggles.dm`: goggles, mode selection and research design.
-- `code/service_backend.dm`: identity translation, topology, callbacks and service operations.
+- `code/service_backend/`: identity, cache, callbacks, mixtures, lifecycle, topology, frontier,
+  stages, turf hooks, observations and compatibility entry points, each in its named file.
+- `code/tests/`: contract-focused fixture and test families.
 - `master_files/code/game/turfs/`: turf registration, temperature authority, adjacency, and space
   boundary overrides.
 - `tgui/packages/tgui/interfaces/DogmosKennel/docs/`: Markdown source for the Kennel's About,
@@ -35,7 +37,14 @@ must preserve their include order and existing call sites.
 
 `code/modules/atmospherics/machinery/other/meter.dm` removes pipeline wakeup references only for
 pipe targets during deletion; turf meters share the same cleanup path. Regression tests for both
-target types live in `code/service_backend_test.dm` in this module.
+target types live in `code/tests/machinery_test.dm` in this module.
+
+Backend includes use the maintained DME generator. `_defines.dm` opens the backend's local
+constant scope and `zz_undef.dm` closes it before the test directory. Keep those delimiters and
+the generated alphabetical include order; files do not include one another. Public proc paths
+are independent of filenames. Test files independently open the unit-test/parser guard and
+close their local macros, so test discovery and macro lifetime do not depend on sibling files.
+Regenerate module includes with `python -B modular_aphelion/tools/update_module_includes.py --write`.
 
 ## Ownership and process boundary
 
