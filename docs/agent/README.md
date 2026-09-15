@@ -9,7 +9,6 @@
 | Aphelion/Nova placement and markers                  | [Placement and markers](placement-and-markers.md), [Nova handbook](../../modular_nova/readme.md)                                   |
 | General verification                                 | [Verification](verification.md)                                                                                                    |
 | Agent compile, boot, test, and soak control          | [RIFT controller](rift-controller.md)                                                                                              |
-| Dogmos RIFT migration evidence                       | [Dogmos harness verification](2026-08-31-dogmos-harness-verification.md)                                                           |
 | DreamMaker navigation                                | [Meridian-MCP](meridian-mcp.md)                                                                                                    |
 | Lore and generated artifacts                         | [Generated content](generated-content.md)                                                                                          |
 | tg/Nova merge review                                 | [Upstream drift](upstream-drift.md)                                                                                                |
@@ -22,3 +21,5 @@
 | Public Dogmos architecture and status                | [Dogmos Tech Memo](../tech-memos/dogmos.md)                                                                                        |
 
 The root [AGENTS.md](../../AGENTS.md) is the concise mandatory entry point. These guides add Meridian and Dogmos decisions without replacing inherited tgstation, Nova, Rust, or BYOND documentation.
+
+Generated Dogmos plans, reports and verification artifacts are stored centrally under `GitHub/.agent_docs/meridian-rift/dogmos/`. The archive index maps their original repository paths.

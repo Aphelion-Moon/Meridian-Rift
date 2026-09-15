@@ -2,6 +2,12 @@
 
 Meridian-Rift is a BYOND/DreamMaker SS13 codebase downstream of Nova Sector and tgstation. Be direct, inspect existing implementations before editing, preserve unrelated work, and do not commit, push, reset, checkout, merge, or change branches without explicit authorization.
 
+## Generated documentation and verification outputs
+
+Store generated plans, audits, handoffs, patch archives, profiles and verification artifacts in the central `GitHub/.agent_docs/meridian-rift/` directory, grouped by work area. Dogmos work uses its `dogmos/` subdirectory. This location is shared across checkouts; do not create another `.agent_docs` inside a repository or worktree.
+
+Keep maintained source documentation, agent instructions, workload definitions, build caches and required shipped artifacts with their code. When maintained verification tooling requires a repository-local output directory, move completed outputs to the central archive at handoff, preserving their manifests and hashes. Move registered qualification worktrees with `git worktree move` so their Git metadata remains valid.
+
 ## Required reading
 
 - All DM work: [.github/guides/STYLE.md](.github/guides/STYLE.md), [.github/guides/AUTODOC.md](.github/guides/AUTODOC.md), and [.github/guides/STANDARDS.md](.github/guides/STANDARDS.md).
