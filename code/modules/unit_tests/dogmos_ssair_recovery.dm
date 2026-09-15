@@ -2,7 +2,9 @@
 /datum/unit_test/dogmos_ssair_recovery
 	/// Synthetic recovery fields must never be used by subsequent live IPC or test teardown.
 	var/list/recovery_air_state
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/recovery_dogmos_state
+	*/ // APHELION EDIT REMOVAL END
 	var/datum/controller/subsystem/air/recovery_test_copy/recovered_air
 	var/datum/controller/subsystem/dogmos/recovery_test_copy/recovered_dogmos
 
@@ -200,9 +202,22 @@
 	TEST_ASSERT_EQUAL(recovered_air.resolve_kennel_jump_target(jump_key), jump_target, \
 		"SSair recovery did not rebuild the bounded Kennel jump-target index.")
 
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Copy an explicit test inventory into an inert source: adoption must never revoke
+	// the running owner's registry or expose synthetic queue entries to live IPC.
+	var/datum/controller/subsystem/dogmos/recovery_test_copy/recovery_source = allocate(/datum/controller/subsystem/dogmos/recovery_test_copy)
+	// APHELION EDIT ADDITION END
 	var/list/dogmos_recovery_fields = list(
+		// APHELION EDIT ADDITION START - DOGMOS
+		"initialized",
+		// APHELION EDIT ADDITION END
 		"gases_registered",
 		"service_ready",
+		// APHELION EDIT ADDITION START - DOGMOS
+		"service_failure_latched",
+		"service_shutdown_requested",
+		"dogmos_runtime_state_released",
+		// APHELION EDIT ADDITION END
 		"dogmos_mixture_slots",
 		"dogmos_mixture_generations",
 		"dogmos_free_mixture_slots",
@@ -242,42 +257,47 @@
 	)
 	var/list/original_dogmos_state = list()
 	for(var/field_name in dogmos_recovery_fields)
-		original_dogmos_state[field_name] = SSdogmos.vars[field_name]
+		original_dogmos_state[field_name] = original_dogmos.vars[field_name] // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: original_dogmos_state[field_name] = SSdogmos.vars[field_name]
+		// APHELION EDIT ADDITION START - DOGMOS
+		recovery_source.vars[field_name] = original_dogmos.vars[field_name]
+		// APHELION EDIT ADDITION END
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	recovery_dogmos_state = original_dogmos_state
+	*/ // APHELION EDIT REMOVAL END
 
-	SSdogmos.dogmos_pending_mixture_unregistrations = list("recovery mixture unregistration") // APHELION EDIT ADDITION - DOGMOS
-	SSdogmos.dogmos_pending_callback_batch = list("recovery callback")
-	SSdogmos.dogmos_pending_callback_index = 1
-	SSdogmos.dogmos_pending_callback_count = 1
-	SSdogmos.dogmos_pending_service_callbacks = 2
-	SSdogmos.dogmos_stale_callback_count += 11
-	SSdogmos.dogmos_health_preflight_count += 12
-	SSdogmos.dogmos_pending_turf_lifecycle = list("recovery lifecycle")
-	SSdogmos.dogmos_pending_turf_adjacency = list("recovery adjacency")
-	SSdogmos.dogmos_pending_turf_adjacency_index = list("recovery adjacency index")
-	SSdogmos.dogmos_pending_turf_heat = list("recovery heat")
-	SSdogmos.dogmos_pending_turf_heat_adjacency = list("recovery heat adjacency")
-	SSdogmos.dogmos_pending_turf_heat_adjacency_index = list("recovery heat adjacency index")
-	SSdogmos.dogmos_pending_adjacency_retry = list("recovery retry")
-	SSdogmos.dogmos_runtime_topology_records += 13
-	SSdogmos.dogmos_runtime_topology_calls += 14
-	SSdogmos.dogmos_runtime_topology_max_queued += 15
-	SSdogmos.dogmos_runtime_topology_deferrals += 16
-	SSdogmos.dogmos_mixture_cache = list("recovery cache")
-	SSdogmos.dogmos_mixture_cache_epoch += 17
-	SSdogmos.dogmos_mixture_cache_hits += 18
-	SSdogmos.dogmos_mixture_cache_misses += 19
-	SSdogmos.dogmos_mixture_cache_collisions += 20
-	SSdogmos.dogmos_mixture_cache_epoch_invalidations += 21
+	recovery_source.dogmos_pending_mixture_unregistrations = list("recovery mixture unregistration") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_mixture_unregistrations = list("recovery mixture unregistration")
+	recovery_source.dogmos_pending_callback_batch = list("recovery callback") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_callback_batch = list("recovery callback")
+	recovery_source.dogmos_pending_callback_index = 1 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_callback_index = 1
+	recovery_source.dogmos_pending_callback_count = 1 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_callback_count = 1
+	recovery_source.dogmos_pending_service_callbacks = 2 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_service_callbacks = 2
+	recovery_source.dogmos_stale_callback_count += 11 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_stale_callback_count += 11
+	recovery_source.dogmos_health_preflight_count += 12 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_health_preflight_count += 12
+	recovery_source.dogmos_pending_turf_lifecycle = list("recovery lifecycle") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_turf_lifecycle = list("recovery lifecycle")
+	recovery_source.dogmos_pending_turf_adjacency = list("recovery adjacency") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_turf_adjacency = list("recovery adjacency")
+	recovery_source.dogmos_pending_turf_adjacency_index = list("recovery adjacency index") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_turf_adjacency_index = list("recovery adjacency index")
+	recovery_source.dogmos_pending_turf_heat = list("recovery heat") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_turf_heat = list("recovery heat")
+	recovery_source.dogmos_pending_turf_heat_adjacency = list("recovery heat adjacency") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_turf_heat_adjacency = list("recovery heat adjacency")
+	recovery_source.dogmos_pending_turf_heat_adjacency_index = list("recovery heat adjacency index") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_turf_heat_adjacency_index = list("recovery heat adjacency index")
+	recovery_source.dogmos_pending_adjacency_retry = list("recovery retry") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_pending_adjacency_retry = list("recovery retry")
+	recovery_source.dogmos_runtime_topology_records += 13 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_runtime_topology_records += 13
+	recovery_source.dogmos_runtime_topology_calls += 14 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_runtime_topology_calls += 14
+	recovery_source.dogmos_runtime_topology_max_queued += 15 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_runtime_topology_max_queued += 15
+	recovery_source.dogmos_runtime_topology_deferrals += 16 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_runtime_topology_deferrals += 16
+	recovery_source.dogmos_mixture_cache = list("recovery cache") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_mixture_cache = list("recovery cache")
+	recovery_source.dogmos_mixture_cache_epoch += 17 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_mixture_cache_epoch += 17
+	recovery_source.dogmos_mixture_cache_hits += 18 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_mixture_cache_hits += 18
+	recovery_source.dogmos_mixture_cache_misses += 19 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_mixture_cache_misses += 19
+	recovery_source.dogmos_mixture_cache_collisions += 20 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_mixture_cache_collisions += 20
+	recovery_source.dogmos_mixture_cache_epoch_invalidations += 21 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSdogmos.dogmos_mixture_cache_epoch_invalidations += 21
 	var/list/expected_dogmos_state = list()
 	for(var/field_name in dogmos_recovery_fields)
-		expected_dogmos_state[field_name] = SSdogmos.vars[field_name]
+		expected_dogmos_state[field_name] = recovery_source.vars[field_name] // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: expected_dogmos_state[field_name] = SSdogmos.vars[field_name]
 
 	recovered_dogmos = new
 	// Boot-discovered copies need SS_NO_INIT, but this local copy must prove that
-	// Recover itself sets the flag rather than inheriting a passing precondition.
+	// Adoption itself sets the flag rather than inheriting a passing precondition.
 	recovered_dogmos.ss_flags &= ~SS_NO_INIT
-	recovered_dogmos.Recover()
+	recovered_dogmos.adopt_runtime_state(recovery_source) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: recovered_dogmos.Recover()
 
 	TEST_ASSERT_NOTEQUAL(recovered_dogmos, original_dogmos, \
 		"Dogmos recovery needs an independent destination datum.")
@@ -299,7 +319,13 @@
 	TEST_ASSERT(dogmos_service_health(), \
 		"dogmosd was unhealthy after Dogmos recovery.")
 	for(var/field_name in dogmos_recovery_fields)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		SSdogmos.vars[field_name] = original_dogmos_state[field_name]
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		TEST_ASSERT_EQUAL(original_dogmos.vars[field_name], original_dogmos_state[field_name], \
+			"The inert recovery fixture changed the live owner's [field_name].")
+		// APHELION EDIT ADDITION END
 	TEST_ASSERT_EQUAL(sentinel.return_temperature(), 321.5, \
 		"Dogmos recovery invalidated the sentinel mixture temperature.")
 	TEST_ASSERT_EQUAL(sentinel.get_moles(/datum/gas/oxygen), 7.25, \
@@ -324,9 +350,11 @@
 /datum/unit_test/dogmos_ssair_recovery/proc/restore_recovery_state()
 	QDEL_NULL(recovered_air)
 	QDEL_NULL(recovered_dogmos)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	for(var/field_name in recovery_dogmos_state)
 		SSdogmos.vars[field_name] = recovery_dogmos_state[field_name]
 	recovery_dogmos_state = null
+	*/ // APHELION EDIT REMOVAL END
 	for(var/field_name in recovery_air_state)
 		SSair.vars[field_name] = recovery_air_state[field_name]
 	recovery_air_state = null

@@ -55,7 +55,7 @@ SUBSYSTEM_DEF(dogmos)
 
 /** Stops Dogmos workers and releases its Rust-side arenas. */
 /datum/controller/subsystem/dogmos/Shutdown()
-	if(gases_registered)
+	if(src == SSdogmos && gases_registered)
 		dogmos_shutdown()
 	gases_registered = FALSE
 	return ..()

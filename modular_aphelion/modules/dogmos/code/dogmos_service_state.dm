@@ -1,5 +1,9 @@
 /** Service-owned Dogmos state retained by Dream Maker only for identity translation. */
 /datum/controller/subsystem/dogmos
+	/// TRUE once this controller has permanently relinquished its service state.
+	var/dogmos_runtime_state_released = FALSE
+	/// TRUE after this destination has adopted once, including an uninitialized failed session.
+	var/dogmos_runtime_state_adopted = FALSE
 	/// Whether the production service passed identity and health checks.
 	var/service_ready = FALSE
 	/// Whether the first authoritative service failure has already emitted its diagnostic.
@@ -84,48 +88,103 @@
 	/// Number of stage-wide cache epoch invalidations.
 	var/dogmos_mixture_cache_epoch_invalidations = 0
 
-/** Preserves the live service session and every DM-side identity boundary across MC recovery. */
+/** Preserves the live service session and transfers its DM identity boundary during MC recovery. */
 /datum/controller/subsystem/dogmos/Recover()
-	ss_flags |= SS_NO_INIT
-	initialized = SSdogmos.initialized
-	gases_registered = SSdogmos.gases_registered
-	service_ready = SSdogmos.service_ready
-	service_failure_latched = SSdogmos.service_failure_latched
-	service_shutdown_requested = SSdogmos.service_shutdown_requested
-	dogmos_mixture_slots = SSdogmos.dogmos_mixture_slots
-	dogmos_mixture_generations = SSdogmos.dogmos_mixture_generations
-	dogmos_free_mixture_slots = SSdogmos.dogmos_free_mixture_slots
-	dogmos_pending_mixture_unregistrations = SSdogmos.dogmos_pending_mixture_unregistrations
-	dogmos_gas_ids = SSdogmos.dogmos_gas_ids
-	dogmos_gas_paths = SSdogmos.dogmos_gas_paths
-	dogmos_reaction_ids = SSdogmos.dogmos_reaction_ids
-	dogmos_holder_slots = SSdogmos.dogmos_holder_slots
-	dogmos_holder_generations = SSdogmos.dogmos_holder_generations
-	dogmos_free_holder_slots = SSdogmos.dogmos_free_holder_slots
-	dogmos_next_callback_sequence = SSdogmos.dogmos_next_callback_sequence
-	dogmos_pending_callback_batch = SSdogmos.dogmos_pending_callback_batch
-	dogmos_pending_callback_index = SSdogmos.dogmos_pending_callback_index
-	dogmos_pending_callback_count = SSdogmos.dogmos_pending_callback_count
-	dogmos_pending_service_callbacks = SSdogmos.dogmos_pending_service_callbacks
-	dogmos_stale_callback_count = SSdogmos.dogmos_stale_callback_count
-	dogmos_health_preflight_count = SSdogmos.dogmos_health_preflight_count
-	turf_registration_batching = SSdogmos.turf_registration_batching
-	dogmos_pending_turf_lifecycle = SSdogmos.dogmos_pending_turf_lifecycle
-	dogmos_pending_turf_adjacency = SSdogmos.dogmos_pending_turf_adjacency
-	dogmos_pending_turf_adjacency_index = SSdogmos.dogmos_pending_turf_adjacency_index
-	dogmos_pending_turf_heat = SSdogmos.dogmos_pending_turf_heat
-	dogmos_pending_turf_heat_adjacency = SSdogmos.dogmos_pending_turf_heat_adjacency
-	dogmos_pending_turf_heat_adjacency_index = SSdogmos.dogmos_pending_turf_heat_adjacency_index
-	dogmos_pending_adjacency_retry = SSdogmos.dogmos_pending_adjacency_retry
-	runtime_topology_batching = SSdogmos.runtime_topology_batching
-	dogmos_runtime_topology_records = SSdogmos.dogmos_runtime_topology_records
-	dogmos_runtime_topology_calls = SSdogmos.dogmos_runtime_topology_calls
-	dogmos_runtime_topology_max_queued = SSdogmos.dogmos_runtime_topology_max_queued
-	dogmos_runtime_topology_deferrals = SSdogmos.dogmos_runtime_topology_deferrals
-	dogmos_mixture_cache = SSdogmos.dogmos_mixture_cache
-	dogmos_mixture_cache_epoch = SSdogmos.dogmos_mixture_cache_epoch
-	dogmos_mixture_cache_hits = SSdogmos.dogmos_mixture_cache_hits
-	dogmos_mixture_cache_misses = SSdogmos.dogmos_mixture_cache_misses
-	dogmos_mixture_cache_collisions = SSdogmos.dogmos_mixture_cache_collisions
-	dogmos_mixture_cache_epoch_invalidations = SSdogmos.dogmos_mixture_cache_epoch_invalidations
+	adopt_runtime_state(SSdogmos)
 
+/**
+ * Adopts every recoverable field, then revokes the previous owner without yielding.
+ *
+ * Only a fresh, inactive controller may adopt. Failure and shutdown state are preserved;
+ * this operation never starts a service, recreates gas state or modifies a transferred list.
+ * Arguments:
+ * * previous_owner - Controller relinquishing the same live or failed service session.
+ */
+/datum/controller/subsystem/dogmos/proc/adopt_runtime_state(datum/controller/subsystem/dogmos/previous_owner)
+	if(!previous_owner || previous_owner == src || previous_owner.dogmos_runtime_state_released || QDELETED(previous_owner))
+		CRASH("Dogmos recovery requires an unreleased previous owner.")
+	if(gases_registered || service_ready || dogmos_runtime_state_released || dogmos_runtime_state_adopted)
+		CRASH("Dogmos recovery requires a fresh inactive destination.")
+	dogmos_runtime_state_adopted = TRUE
+	ss_flags |= SS_NO_INIT
+	initialized = previous_owner.initialized
+	gases_registered = previous_owner.gases_registered
+	service_ready = previous_owner.service_ready
+	service_failure_latched = previous_owner.service_failure_latched
+	service_shutdown_requested = previous_owner.service_shutdown_requested
+	dogmos_mixture_slots = previous_owner.dogmos_mixture_slots
+	dogmos_mixture_generations = previous_owner.dogmos_mixture_generations
+	dogmos_free_mixture_slots = previous_owner.dogmos_free_mixture_slots
+	dogmos_pending_mixture_unregistrations = previous_owner.dogmos_pending_mixture_unregistrations
+	dogmos_gas_ids = previous_owner.dogmos_gas_ids
+	dogmos_gas_paths = previous_owner.dogmos_gas_paths
+	dogmos_reaction_ids = previous_owner.dogmos_reaction_ids
+	dogmos_holder_slots = previous_owner.dogmos_holder_slots
+	dogmos_holder_generations = previous_owner.dogmos_holder_generations
+	dogmos_free_holder_slots = previous_owner.dogmos_free_holder_slots
+	dogmos_next_callback_sequence = previous_owner.dogmos_next_callback_sequence
+	dogmos_pending_callback_batch = previous_owner.dogmos_pending_callback_batch
+	dogmos_pending_callback_index = previous_owner.dogmos_pending_callback_index
+	dogmos_pending_callback_count = previous_owner.dogmos_pending_callback_count
+	dogmos_pending_service_callbacks = previous_owner.dogmos_pending_service_callbacks
+	dogmos_stale_callback_count = previous_owner.dogmos_stale_callback_count
+	dogmos_health_preflight_count = previous_owner.dogmos_health_preflight_count
+	turf_registration_batching = previous_owner.turf_registration_batching
+	dogmos_pending_turf_lifecycle = previous_owner.dogmos_pending_turf_lifecycle
+	dogmos_pending_turf_adjacency = previous_owner.dogmos_pending_turf_adjacency
+	dogmos_pending_turf_adjacency_index = previous_owner.dogmos_pending_turf_adjacency_index
+	dogmos_pending_turf_heat = previous_owner.dogmos_pending_turf_heat
+	dogmos_pending_turf_heat_adjacency = previous_owner.dogmos_pending_turf_heat_adjacency
+	dogmos_pending_turf_heat_adjacency_index = previous_owner.dogmos_pending_turf_heat_adjacency_index
+	dogmos_pending_adjacency_retry = previous_owner.dogmos_pending_adjacency_retry
+	runtime_topology_batching = previous_owner.runtime_topology_batching
+	dogmos_runtime_topology_records = previous_owner.dogmos_runtime_topology_records
+	dogmos_runtime_topology_calls = previous_owner.dogmos_runtime_topology_calls
+	dogmos_runtime_topology_max_queued = previous_owner.dogmos_runtime_topology_max_queued
+	dogmos_runtime_topology_deferrals = previous_owner.dogmos_runtime_topology_deferrals
+	dogmos_mixture_cache = previous_owner.dogmos_mixture_cache
+	dogmos_mixture_cache_epoch = previous_owner.dogmos_mixture_cache_epoch
+	dogmos_mixture_cache_hits = previous_owner.dogmos_mixture_cache_hits
+	dogmos_mixture_cache_misses = previous_owner.dogmos_mixture_cache_misses
+	dogmos_mixture_cache_collisions = previous_owner.dogmos_mixture_cache_collisions
+	dogmos_mixture_cache_epoch_invalidations = previous_owner.dogmos_mixture_cache_epoch_invalidations
+	previous_owner.release_runtime_state()
+
+/**
+ * Relinquishes references and admission after transfer; repeated release is harmless.
+ *
+ * Assign null rather than clearing lists: the new owner now holds their exact contents.
+ * No native call or SSair mutation belongs here, including begin_service_shutdown().
+ */
+/datum/controller/subsystem/dogmos/proc/release_runtime_state()
+	dogmos_runtime_state_released = TRUE
+	gases_registered = FALSE
+	service_ready = FALSE
+	service_shutdown_requested = TRUE
+	ss_flags |= SS_NO_INIT | SS_NO_FIRE
+	can_fire = FALSE
+	turf_registration_batching = FALSE
+	runtime_topology_batching = FALSE
+	dogmos_pending_callback_index = 0
+	dogmos_pending_callback_count = 0
+	dogmos_pending_service_callbacks = 0
+	dogmos_mixture_slots = null
+	dogmos_mixture_generations = null
+	dogmos_free_mixture_slots = null
+	dogmos_pending_mixture_unregistrations = null
+	dogmos_gas_ids = null
+	dogmos_gas_paths = null
+	dogmos_reaction_ids = null
+	dogmos_holder_slots = null
+	dogmos_holder_generations = null
+	dogmos_free_holder_slots = null
+	dogmos_next_callback_sequence = null
+	dogmos_pending_callback_batch = null
+	dogmos_pending_turf_lifecycle = null
+	dogmos_pending_turf_adjacency = null
+	dogmos_pending_turf_adjacency_index = null
+	dogmos_pending_turf_heat = null
+	dogmos_pending_turf_heat_adjacency = null
+	dogmos_pending_turf_heat_adjacency_index = null
+	dogmos_pending_adjacency_retry = null
+	dogmos_mixture_cache = null
