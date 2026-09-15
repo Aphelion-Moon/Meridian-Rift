@@ -19,7 +19,7 @@
 	if(!dogmos_wait_for_stage_boundary())
 		return
 	var/original_tick_limit = Master.current_ticklimit
-	var/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe)
 	var/list/obj/machinery/atmospherics/components/unary/vent_pump/dogmos_prefetch_probe/machines = list()
 	var/failure
 	try
@@ -108,7 +108,7 @@
 	if(!dogmos_wait_for_stage_boundary())
 		return
 	var/original_tick_limit = Master.current_ticklimit
-	var/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe)
 	var/obj/machinery/atmospherics/components/unary/vent_pump/dogmos_prefetch_probe/machine = allocate(/obj/machinery/atmospherics/components/unary/vent_pump/dogmos_prefetch_probe)
 	SSair.stop_processing_machine(machine)
 	var/list/original_airs = machine.airs
@@ -156,7 +156,7 @@
 	if(!dogmos_wait_for_stage_boundary())
 		return
 	var/original_tick_limit = Master.current_ticklimit
-	var/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/machinery_prefetch_probe)
 	var/obj/machinery/atmospherics/components/unary/vent_pump/dogmos_prefetch_probe/machine = allocate(/obj/machinery/atmospherics/components/unary/vent_pump/dogmos_prefetch_probe)
 	SSair.stop_processing_machine(machine)
 	var/datum/component/gas_leaker/dogmos_prefetch_probe/leaker = machine.AddComponent(/datum/component/gas_leaker/dogmos_prefetch_probe)

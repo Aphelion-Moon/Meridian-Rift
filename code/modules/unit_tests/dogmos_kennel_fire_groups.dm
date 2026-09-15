@@ -37,7 +37,7 @@
 	SSair.kennel_fire_group_notable_size = 2
 
 	// Below-notable-size group: one probe, added then removed. Must never be recorded.
-	var/datum/hot_group/small_group = new
+	var/datum/hot_group/small_group = allocate(/datum/hot_group) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/hot_group/small_group = new
 	var/obj/effect/dogmos_kennel_fire_group_probe/small_a = allocate(/obj/effect/dogmos_kennel_fire_group_probe)
 	small_group.add_to_group(small_a)
 	TEST_ASSERT_EQUAL(small_group.peak_size, 1, \
@@ -47,7 +47,7 @@
 		"A fire group with peak_size 1, below kennel_fire_group_notable_size (2), was recorded anyway.")
 
 	// At-notable-size group: two probes. Must be recorded exactly once.
-	var/datum/hot_group/big_group = new
+	var/datum/hot_group/big_group = allocate(/datum/hot_group) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/hot_group/big_group = new
 	var/obj/effect/dogmos_kennel_fire_group_probe/big_a = allocate(/obj/effect/dogmos_kennel_fire_group_probe)
 	var/obj/effect/dogmos_kennel_fire_group_probe/big_b = allocate(/obj/effect/dogmos_kennel_fire_group_probe)
 	big_group.add_to_group(big_a)

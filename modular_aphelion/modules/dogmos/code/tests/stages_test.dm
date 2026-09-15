@@ -298,7 +298,7 @@
 	var/original_part = SSair.currentpart
 	var/original_cycle = SSair.times_fired
 	var/original_tick_limit = Master.current_ticklimit
-	var/datum/controller/subsystem/air/recovery_test_copy/phase_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/phase_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/phase_probe)
 	var/failure
 	try
 		SSair.state = SS_PAUSED

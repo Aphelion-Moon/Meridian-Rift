@@ -17,7 +17,7 @@
 	// ui_act() reads ui.user, so it needs a real /datum/tgui rather than the null the base call defaults to.
 	// Not calling ui.open() - nothing here needs a client, and the test mob has none.
 	var/mob/living/carbon/human/operator = allocate(/mob/living/carbon/human/consistent)
-	var/datum/tgui/ui = new(operator, panel, "Hypertorus")
+	var/datum/tgui/ui = allocate(/datum/tgui, operator, panel, "Hypertorus") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/tgui/ui = new(operator, panel, "Hypertorus")
 
 	panel.ui_act("cooling_volume", list("cooling_volume" = "900"), ui)
 	TEST_ASSERT_EQUAL(core_coolant.return_volume(), 900, "ui_act(\"cooling_volume\") did not apply the requested volume to the core's coolant mixture")
@@ -49,7 +49,7 @@
 
 	// ui_act() reads ui.user, so it needs a real /datum/tgui rather than the null the base call defaults to.
 	var/mob/living/carbon/human/operator = allocate(/mob/living/carbon/human/consistent)
-	var/datum/tgui/ui = new(operator, computer, "AtmosControl")
+	var/datum/tgui/ui = allocate(/datum/tgui, operator, computer, "AtmosControl") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/tgui/ui = new(operator, computer, "AtmosControl")
 
 	computer.ui_act("adjust_input", list("chamber" = "unit_test_chamber", "rate" = "[MAX_TRANSFER_RATE]"), ui)
 	TEST_ASSERT_EQUAL(input.volume_rate, 75, "adjust_input did not clamp volume_rate to the injector's actual air volume")

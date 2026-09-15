@@ -2,7 +2,7 @@
 
 /** Controlled job replies exercise actual SSair scheduling and its fresh MC budget. */
 /datum/unit_test/dogmos_runtime_scheduling/Run()
-	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/job_probe)
 	var/original_limit = Master.current_ticklimit
 	var/failure
 	try
@@ -88,8 +88,8 @@
 	var/test_queue_flags = NONE
 
 /datum/unit_test/dogmos_runtime_scheduling/mc_wait/Run()
-	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/mc_wait/probe = new
-	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/mc_sentinel/sentinel = new
+	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/mc_wait/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/job_probe/mc_wait)
+	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/mc_sentinel/sentinel = allocate(/datum/controller/subsystem/air/recovery_test_copy/job_probe/mc_sentinel)
 	var/list/master_fields = list("queue_head", "queue_tail", "queue_priority_count", "queue_priority_count_bg", "current_ticklimit", "skip_ticks", "use_rolling_usage", "last_type_processed")
 	var/list/saved_master = list()
 	var/failure
@@ -191,13 +191,13 @@
 
 /** Exact receipts cannot publish during Poll, regress counts, or invalidate twice. */
 /datum/unit_test/dogmos_runtime_scheduling/receipts/Run()
-	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/job_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/job_probe)
 	var/datum/gas_mixture/mixture = allocate(/datum/gas_mixture, CELL_VOLUME)
 	mixture.set_moles(/datum/gas/oxygen, 12)
 	mixture.dogmos_snapshot()
 	var/epoch_before = SSdogmos.dogmos_mixture_cache_epoch
 	var/list/sequence_before = SSdogmos.dogmos_next_callback_sequence.Copy()
-	probe.dogmos_job = new(4)
+	probe.dogmos_job = allocate(/datum/dogmos_stage_job, 4)
 	var/list/accepted = list(1, 2, 3, 65535, 1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 	var/list/ready = accepted.Copy()
 	ready[5] = 3
@@ -429,7 +429,7 @@
 	var/original_sequence = SSdogmos.dogmos_next_callback_sequence.Copy()
 	var/failure
 	for(var/failure_point in list("submit", "poll", "commit", "mixed mode", "missing identity", "wrong stage"))
-		var/datum/controller/subsystem/air/recovery_test_copy/job_probe/failure_probe/probe = new
+		var/datum/controller/subsystem/air/recovery_test_copy/job_probe/failure_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/job_probe/failure_probe)
 		try
 			Master.current_ticklimit = TICK_USAGE + 1000
 			SSdogmos.service_ready = original_ready
@@ -437,7 +437,7 @@
 			probe.can_fire = TRUE
 			if(failure_point != "submit")
 				probe.dogmos_pending_stage = 4
-				probe.dogmos_job = new(4)
+				probe.dogmos_job = allocate(/datum/dogmos_stage_job, 4)
 				if(!probe.dogmos_accept_job_response(probe.dogmos_job_request("submit", list()), "submit"))
 					CRASH("Could not establish the controlled job before [failure_point].")
 				probe.dogmos_job_last_poll_tick = -1
@@ -501,7 +501,7 @@
 	for(var/field in list("dogmos_async_stages", "dogmos_job", "dogmos_job_last_poll_tick"))
 		saved[field] = SSair.vars[field]
 	var/datum/controller/subsystem/air/recovery_test_copy/recovered
-	var/datum/dogmos_stage_job/fixture_job = new(4)
+	var/datum/dogmos_stage_job/fixture_job = allocate(/datum/dogmos_stage_job, 4)
 	fixture_job.id = list(1, 2, 3, 65535)
 	fixture_job.committed_units = list(65535, 65535, 0, 0)
 	fixture_job.committed_unit = list(8, 7, 6, 65535)
@@ -517,7 +517,7 @@
 			SSair.dogmos_async_stages = TRUE
 			SSair.dogmos_job = fixture_job
 			SSair.dogmos_job_last_poll_tick = world.time
-			recovered = new
+			recovered = allocate(/datum/controller/subsystem/air/recovery_test_copy)
 			recovered.Recover()
 			if(!recovered.dogmos_async_stages || recovered.dogmos_job != fixture_job || recovered.dogmos_job_last_poll_tick != SSair.dogmos_job_last_poll_tick)
 				CRASH("Job status [job_status] lost its owner, mode or poll fence during recovery.")

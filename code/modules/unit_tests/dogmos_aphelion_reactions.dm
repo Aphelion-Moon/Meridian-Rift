@@ -2,7 +2,7 @@
 /datum/unit_test/dogmos_aphelion_reactions
 
 /datum/unit_test/dogmos_aphelion_reactions/Run()
-	var/datum/gas_mixture/plasma_air = new(CELL_VOLUME)
+	var/datum/gas_mixture/plasma_air = allocate(/datum/gas_mixture, CELL_VOLUME) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/gas_mixture/plasma_air = new(CELL_VOLUME)
 	// Stay below PLASMA_OXYGEN_FULLBURN to exercise the water-vapor branch.
 	plasma_air.set_moles(/datum/gas/plasma, 50)
 	plasma_air.set_moles(/datum/gas/oxygen, 200)
@@ -28,7 +28,7 @@
 
 	qdel(plasma_air)
 
-	var/datum/gas_mixture/trit_air = new(CELL_VOLUME)
+	var/datum/gas_mixture/trit_air = allocate(/datum/gas_mixture, CELL_VOLUME) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/gas_mixture/trit_air = new(CELL_VOLUME)
 	trit_air.set_moles(/datum/gas/tritium, 20)
 	trit_air.set_moles(/datum/gas/oxygen, 200)
 	trit_air.set_temperature(TRITIUM_MINIMUM_BURN_TEMPERATURE + 500)
@@ -53,7 +53,7 @@
 
 	qdel(trit_air)
 
-	var/datum/gas_mixture/h2_air = new(CELL_VOLUME)
+	var/datum/gas_mixture/h2_air = allocate(/datum/gas_mixture, CELL_VOLUME) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/gas_mixture/h2_air = new(CELL_VOLUME)
 	h2_air.set_moles(/datum/gas/hydrogen, 20)
 	h2_air.set_moles(/datum/gas/oxygen, 200)
 	h2_air.set_temperature(HYDROGEN_MINIMUM_BURN_TEMPERATURE + 500)
@@ -78,7 +78,7 @@
 
 	qdel(h2_air)
 
-	var/datum/gas_mixture/freon_air = new(CELL_VOLUME)
+	var/datum/gas_mixture/freon_air = allocate(/datum/gas_mixture, CELL_VOLUME) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/gas_mixture/freon_air = new(CELL_VOLUME)
 	freon_air.set_moles(/datum/gas/freon, 50)
 	freon_air.set_moles(/datum/gas/oxygen, 200)
 	// Within freonfire's [FREON_TERMINAL_TEMPERATURE, FREON_MAXIMUM_BURN_TEMPERATURE] = [20, 283]

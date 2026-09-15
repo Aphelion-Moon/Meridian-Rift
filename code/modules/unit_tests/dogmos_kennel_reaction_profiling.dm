@@ -5,7 +5,7 @@
 	var/list/original_bucket
 
 /datum/unit_test/dogmos_kennel_reaction_profiling/proc/seed_plasmafire_mix()
-	var/datum/gas_mixture/mix = new(CELL_VOLUME)
+	var/datum/gas_mixture/mix = allocate(/datum/gas_mixture, CELL_VOLUME) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/gas_mixture/mix = new(CELL_VOLUME)
 	mix.set_moles(/datum/gas/plasma, 50)
 	mix.set_moles(/datum/gas/oxygen, 200)
 	mix.set_temperature(PLASMA_MINIMUM_BURN_TEMPERATURE + 500)

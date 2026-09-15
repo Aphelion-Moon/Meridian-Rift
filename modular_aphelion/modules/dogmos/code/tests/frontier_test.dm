@@ -153,7 +153,7 @@
 
 /** Literal ordering and rejected-acknowledgment oracles for the bounded frontier journal. */
 /datum/unit_test/dogmos_runtime_frontier_journal/Run()
-	var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe)
 	var/failure
 	try
 		if(!hascall(probe, "dogmos_note_frontier_add") || !hascall(probe, "dogmos_note_frontier_remove"))
@@ -377,7 +377,7 @@
 
 /** The 513th distinct change falls back to bounded reconciliation with exact last-add order. */
 /datum/unit_test/dogmos_runtime_frontier_journal/overflow/Run()
-	var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe)
 	var/failure
 	try
 		var/list/turfs = block(locate(1, 1, 1), locate(23, 23, 1))
@@ -432,7 +432,7 @@
 /** Legacy lists can contain duplicate turfs within a slice or across the 512-entry boundary. */
 /datum/unit_test/dogmos_runtime_frontier_journal/duplicate_members/Run()
 	for(var/unique_count in list(0, 1, 513))
-		var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = new
+		var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe)
 		var/list/turfs = block(locate(1, 1, 1), locate(23, 23, 1))
 		var/list/expected = list()
 		for(var/index in 1 to unique_count)
@@ -463,7 +463,7 @@
 
 /** A mutation after an accepted wire slice must abandon it and use a new epoch. */
 /datum/unit_test/dogmos_runtime_frontier_journal/upload_mutation/Run()
-	var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = new
+	var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe)
 	var/list/turfs = block(locate(1, 1, 1), locate(23, 23, 1))
 	for(var/index in 1 to 513)
 		var/turf/entry = turfs[index]
@@ -542,7 +542,7 @@
 /datum/unit_test/dogmos_runtime_frontier_journal/rejected_upload/Run()
 	var/failure
 	for(var/phase in list("begin", "append", "commit"))
-		var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = new
+		var/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe/probe = allocate(/datum/controller/subsystem/air/recovery_test_copy/frontier_journal_probe)
 		var/turf/entry = run_loc_floor_bottom_left
 		probe.fixture_pairs[entry] = list(1, 1)
 		probe.dogmos_add_frontier_member(entry)
