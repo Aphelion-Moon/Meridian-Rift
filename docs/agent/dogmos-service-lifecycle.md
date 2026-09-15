@@ -15,9 +15,23 @@ A startup mismatch returns exact expected/actual diagnostics, cleans the child/t
 
 After initialization, `dogmosd` is authoritative for atmosphere state. Timeout, corrupt response, service death, or protocol mismatch fails closed and initiates the approved controlled server-shutdown path. Never restart an empty service mid-round or fall back to an in-process arena. Safe restart requires a separately reviewed checksummed snapshot/journal design.
 
-DreamDaemon shutdown closes the client and terminates the exact owned service process. Windows uses kill-on-close job containment when available plus validated parent-process monitoring; Linux uses parent-death signaling with a PID/start-identity check. Linux exact-child cleanup does not establish arbitrary descendant containment. Repeated shutdown is idempotent. Scratch fault tests must check for remaining owned processes and workers explicitly.
+DreamDaemon shutdown closes the client and terminates the exact owned service and its contained
+processes. Windows releases its owned kill-on-close job on forced, clean, health-observed and
+partial-start cleanup paths. Job assignment precedes delivery of the real dogmosd startup
+handshake; the service blocks on that payload before creating listeners or workers and has no
+process-spawn path. The job cannot retroactively contain descendants created by an arbitrary
+executable before assignment.
 
-Normal shutdown allows one second for an acknowledged service to exit before exact-child termination and reaping. Diagnostic capture stops without requiring writer EOF, and request-worker cancellation retains ownership until the worker joins. OS termination/reaping and exceptional failed I/O cancellation can exceed normal deadlines; this is not an unconditional total wall-time guarantee.
+Linux starts the service in an owned process group. Cleanup observes leader exit without reaping
+it, terminates the group, then reaps the exact child; it never signals a stored group identity
+after leader reap. This covers descendants remaining in that group, including inherited
+stderr writers. Descendants that deliberately leave the group remain outside the contract.
+The production shim is not a subreaper: it reaps its direct child while the OS reaper handles
+other descendants. Service parent-death signaling and parent PID/start-identity validation remain
+separate lifetime protections. Repeated shutdown is idempotent. Scratch fault tests must check
+for remaining owned processes and workers explicitly.
+
+Normal shutdown allows one second for an acknowledged service to exit before owned-process termination and direct-child reaping. Diagnostic capture stops without requiring writer EOF, and request-worker cancellation retains ownership until the worker joins. OS termination/reaping and exceptional failed I/O cancellation can exceed normal deadlines; this is not an unconditional total wall-time guarantee.
 
 Master-controller recovery transfers DM-owned settings, histories, bounded queues, pins/weakrefs, counters, reaction ordering, and healthy service-session metadata. Rebuild derived overlays/cursors. Rebind to the same service PID/world generation; do not initialize a second world. An unhealthy session remains fatal.
 
