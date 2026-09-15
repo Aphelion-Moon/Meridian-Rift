@@ -15,7 +15,9 @@ A startup mismatch returns exact expected/actual diagnostics, cleans the child/t
 
 After initialization, `dogmosd` is authoritative for atmosphere state. Timeout, corrupt response, service death, or protocol mismatch fails closed and initiates the approved controlled server-shutdown path. Never restart an empty service mid-round or fall back to an in-process arena. Safe restart requires a separately reviewed checksummed snapshot/journal design.
 
-DreamDaemon shutdown closes the client and terminates the exact service process tree. On Windows use kill-on-close job containment when available plus validated parent-process monitoring; on Linux use parent-death signaling with a PID/start-identity check. Repeated shutdown is idempotent. Killing either process in a scratch fault test must not leave an orphan.
+DreamDaemon shutdown closes the client and terminates the exact owned service process. Windows uses kill-on-close job containment when available plus validated parent-process monitoring; Linux uses parent-death signaling with a PID/start-identity check. Linux exact-child cleanup does not establish arbitrary descendant containment. Repeated shutdown is idempotent. Scratch fault tests must check for remaining owned processes and workers explicitly.
+
+Normal shutdown allows one second for an acknowledged service to exit before exact-child termination and reaping. Diagnostic capture stops without requiring writer EOF, and request-worker cancellation retains ownership until the worker joins. OS termination/reaping and exceptional failed I/O cancellation can exceed normal deadlines; this is not an unconditional total wall-time guarantee.
 
 Master-controller recovery transfers DM-owned settings, histories, bounded queues, pins/weakrefs, counters, reaction ordering, and healthy service-session metadata. Rebuild derived overlays/cursors. Rebind to the same service PID/world generation; do not initialize a second world. An unhealthy session remains fatal.
 
