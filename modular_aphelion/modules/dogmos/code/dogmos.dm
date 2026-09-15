@@ -53,51 +53,6 @@ SUBSYSTEM_DEF(dogmos)
 	#endif
 	return SS_INIT_SUCCESS
 
-/** Preserves the live service session and every DM-side identity boundary across MC recovery. */
-/datum/controller/subsystem/dogmos/Recover()
-	ss_flags |= SS_NO_INIT
-	initialized = SSdogmos.initialized
-	gases_registered = SSdogmos.gases_registered
-	service_ready = SSdogmos.service_ready
-	service_failure_latched = SSdogmos.service_failure_latched
-	service_shutdown_requested = SSdogmos.service_shutdown_requested
-	dogmos_mixture_slots = SSdogmos.dogmos_mixture_slots
-	dogmos_mixture_generations = SSdogmos.dogmos_mixture_generations
-	dogmos_free_mixture_slots = SSdogmos.dogmos_free_mixture_slots
-	dogmos_pending_mixture_unregistrations = SSdogmos.dogmos_pending_mixture_unregistrations
-	dogmos_gas_ids = SSdogmos.dogmos_gas_ids
-	dogmos_gas_paths = SSdogmos.dogmos_gas_paths
-	dogmos_reaction_ids = SSdogmos.dogmos_reaction_ids
-	dogmos_holder_slots = SSdogmos.dogmos_holder_slots
-	dogmos_holder_generations = SSdogmos.dogmos_holder_generations
-	dogmos_free_holder_slots = SSdogmos.dogmos_free_holder_slots
-	dogmos_next_callback_sequence = SSdogmos.dogmos_next_callback_sequence
-	dogmos_pending_callback_batch = SSdogmos.dogmos_pending_callback_batch
-	dogmos_pending_callback_index = SSdogmos.dogmos_pending_callback_index
-	dogmos_pending_callback_count = SSdogmos.dogmos_pending_callback_count
-	dogmos_pending_service_callbacks = SSdogmos.dogmos_pending_service_callbacks
-	dogmos_stale_callback_count = SSdogmos.dogmos_stale_callback_count
-	dogmos_health_preflight_count = SSdogmos.dogmos_health_preflight_count
-	turf_registration_batching = SSdogmos.turf_registration_batching
-	dogmos_pending_turf_lifecycle = SSdogmos.dogmos_pending_turf_lifecycle
-	dogmos_pending_turf_adjacency = SSdogmos.dogmos_pending_turf_adjacency
-	dogmos_pending_turf_adjacency_index = SSdogmos.dogmos_pending_turf_adjacency_index
-	dogmos_pending_turf_heat = SSdogmos.dogmos_pending_turf_heat
-	dogmos_pending_turf_heat_adjacency = SSdogmos.dogmos_pending_turf_heat_adjacency
-	dogmos_pending_turf_heat_adjacency_index = SSdogmos.dogmos_pending_turf_heat_adjacency_index
-	dogmos_pending_adjacency_retry = SSdogmos.dogmos_pending_adjacency_retry
-	runtime_topology_batching = SSdogmos.runtime_topology_batching
-	dogmos_runtime_topology_records = SSdogmos.dogmos_runtime_topology_records
-	dogmos_runtime_topology_calls = SSdogmos.dogmos_runtime_topology_calls
-	dogmos_runtime_topology_max_queued = SSdogmos.dogmos_runtime_topology_max_queued
-	dogmos_runtime_topology_deferrals = SSdogmos.dogmos_runtime_topology_deferrals
-	dogmos_mixture_cache = SSdogmos.dogmos_mixture_cache
-	dogmos_mixture_cache_epoch = SSdogmos.dogmos_mixture_cache_epoch
-	dogmos_mixture_cache_hits = SSdogmos.dogmos_mixture_cache_hits
-	dogmos_mixture_cache_misses = SSdogmos.dogmos_mixture_cache_misses
-	dogmos_mixture_cache_collisions = SSdogmos.dogmos_mixture_cache_collisions
-	dogmos_mixture_cache_epoch_invalidations = SSdogmos.dogmos_mixture_cache_epoch_invalidations
-
 /** Stops Dogmos workers and releases its Rust-side arenas. */
 /datum/controller/subsystem/dogmos/Shutdown()
 	if(gases_registered)
