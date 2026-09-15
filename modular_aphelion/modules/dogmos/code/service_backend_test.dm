@@ -147,18 +147,13 @@
 /** Verifies service-backed mixture identities are live, bounded, and generational. */
 /datum/unit_test/dogmos_service_mixture_identity
 
+/** Exercises slot reuse while base teardown owns both mixture datums on early failure. */
 /datum/unit_test/dogmos_service_mixture_identity/Run()
 	if(!SSdogmos.service_ready)
 		return Fail("dogmosd did not pass startup identity and health checks.", __FILE__, __LINE__)
-	var/reached_stage_boundary = FALSE
-	for(var/attempt in 1 to DOGMOS_TEST_STAGE_BOUNDARY_ATTEMPTS)
-		if(isnull(SSair.dogmos_pending_stage) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
-			reached_stage_boundary = TRUE
-			break
-		sleep(SSair.wait)
-	if(!reached_stage_boundary)
-		return Fail("Dogmos did not reach a safe stage boundary before the mixture identity test.", __FILE__, __LINE__)
-	var/datum/gas_mixture/first = new(CELL_VOLUME)
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/datum/gas_mixture/first = allocate(/datum/gas_mixture, CELL_VOLUME)
 	var/first_slot = first.dogmos_slot
 	var/first_generation = first.dogmos_generation
 	if(first_slot <= 0 || first_slot > 16777216)
@@ -172,7 +167,9 @@
 		return Fail("Unregistering a mixture retained its cached snapshot.", __FILE__, __LINE__)
 	qdel(first)
 
-	var/datum/gas_mixture/second = new(CELL_VOLUME)
+	// The first datum has relinquished its token before this slot is reused. Base teardown
+	// owns the datums, never a saved slot/generation that could unregister the replacement.
+	var/datum/gas_mixture/second = allocate(/datum/gas_mixture, CELL_VOLUME)
 	if(second.dogmos_slot != first_slot)
 		return Fail("Dogmos did not reuse the released bounded mixture slot.", __FILE__, __LINE__)
 	if(second.dogmos_generation <= first_generation)
@@ -494,6 +491,7 @@
 	/// Service-backed mixtures released during teardown.
 	var/list/test_mixtures
 
+/** Registers each fixture before mutation so a rejected native call cannot leak its mixture. */
 /datum/unit_test/dogmos_service_oversized_pipeline_batch_reconcile/Run()
 	if(!SSdogmos.service_ready)
 		return Fail("dogmosd did not pass startup identity and health checks.", __FILE__, __LINE__)
@@ -501,9 +499,9 @@
 	test_mixtures = list()
 	for(var/mixture_index in 1 to DOGMOS_TEST_OVERSIZED_PIPELINE_MIXTURES)
 		var/datum/gas_mixture/mixture = new(100)
+		test_mixtures += mixture
 		mixture.set_temperature(300)
 		mixture.set_moles(/datum/gas/oxygen, 1)
-		test_mixtures += mixture
 
 	test_pipeline = new
 	test_pipeline.set_air(test_mixtures[1])
@@ -4299,8 +4297,9 @@
 /** Registration must not allocate a reverse weak reference before any callback needs it. */
 /datum/unit_test/dogmos_mixture_registration_without_weakref
 
+/** Checks registration without giving the fixture an extra weak reference. */
 /datum/unit_test/dogmos_mixture_registration_without_weakref/Run()
-	var/datum/gas_mixture/mixture = new(CELL_VOLUME)
+	var/datum/gas_mixture/mixture = allocate(/datum/gas_mixture, CELL_VOLUME)
 	var/allocated_weakref = !isnull(mixture.weak_reference)
 	qdel(mixture)
 	if(allocated_weakref)
@@ -4316,6 +4315,7 @@
 /** Token retention must not prevent ordinary BYOND collection and native unregistration. */
 /datum/unit_test/dogmos_identity_token_gc
 
+/** Leaves the GC subject unowned and tracks only the replacement for failure-safe teardown. */
 /datum/unit_test/dogmos_identity_token_gc/Run()
 	if(!dogmos_wait_for_stage_boundary())
 		return
@@ -4325,7 +4325,7 @@
 		return Fail("Registration did not create an opaque empty ownership token.", __FILE__, __LINE__)
 	if(!isnull(SSdogmos.dogmos_mixture_slots[slot]) || !(slot in SSdogmos.dogmos_free_mixture_slots))
 		return Fail("The retained ownership token prevented mixture GC and native unregistration.", __FILE__, __LINE__)
-	var/datum/gas_mixture/reused = new(CELL_VOLUME)
+	var/datum/gas_mixture/reused = allocate(/datum/gas_mixture, CELL_VOLUME)
 	var/failure
 	if(reused.dogmos_slot != slot || reused.dogmos_generation != identity[2] + 1 || reused.dogmos_identity_token == identity[3])
 		failure = "Collected mixture reuse did not advance generation and replace its ownership token."
@@ -4336,9 +4336,10 @@
 /** Matching numeric handles cannot impersonate a different mixture's ownership token. */
 /datum/unit_test/dogmos_identity_token_foreign
 
+/** Restores forged identity fields before base teardown can release either real mixture. */
 /datum/unit_test/dogmos_identity_token_foreign/Run()
-	var/datum/gas_mixture/first = new(CELL_VOLUME)
-	var/datum/gas_mixture/second = new(CELL_VOLUME / 2)
+	var/datum/gas_mixture/first = allocate(/datum/gas_mixture, CELL_VOLUME)
+	var/datum/gas_mixture/second = allocate(/datum/gas_mixture, CELL_VOLUME / 2)
 	var/second_slot = second.dogmos_slot
 	var/second_generation = second.dogmos_generation
 	var/failure
@@ -4374,10 +4375,11 @@
 /** General callbacks must resolve the exact turf and its current mixture together. */
 /datum/unit_test/dogmos_identity_token_turf_context
 
+/** Restores turf ownership before releasing the callback fixture's replacement mixture. */
 /datum/unit_test/dogmos_identity_token_turf_context/Run()
 	var/turf/open/target = run_loc_floor_bottom_left
 	var/datum/gas_mixture/original = target.air
-	var/datum/gas_mixture/replacement = new(CELL_VOLUME)
+	var/datum/gas_mixture/replacement = allocate(/datum/gas_mixture, CELL_VOLUME)
 	var/list/callback = encode_subject(original, target)
 	var/failure
 	try
@@ -5756,5 +5758,70 @@
 	qdel(fixture_job)
 	if(failure)
 		return Fail(failure, __FILE__, __LINE__)
+
+/** Recovery keeps partially consumed callback, topology and invalidated-cache state together. */
+/datum/unit_test/dogmos_recovery_partial_state
+
+/** Uses inert subsystem copies; synthetic handles never enter the real service. */
+/datum/unit_test/dogmos_recovery_partial_state/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/datum/controller/subsystem/dogmos/live_owner = SSdogmos
+	var/service_pid = dogmos_service_pid()
+	var/list/world_generation = dogmos_service_world_generation()
+	var/datum/gas_mixture/sentinel = allocate(/datum/gas_mixture, CELL_VOLUME)
+	sentinel.set_temperature(321.5)
+	sentinel.set_moles(/datum/gas/oxygen, 7.25)
+	var/datum/controller/subsystem/dogmos/recovery_test_copy/source = allocate(/datum/controller/subsystem/dogmos/recovery_test_copy)
+	var/datum/controller/subsystem/dogmos/recovery_test_copy/recovered = allocate(/datum/controller/subsystem/dogmos/recovery_test_copy)
+	source.initialized = TRUE
+	source.gases_registered = TRUE
+	source.service_ready = TRUE
+	source.dogmos_mixture_generations = list(17, 29)
+	source.dogmos_free_mixture_slots = list(2)
+	source.dogmos_pending_mixture_unregistrations = list(list(2, 1, 17))
+	source.dogmos_holder_generations = list(31)
+	source.dogmos_next_callback_sequence = list(65535, 42, 9, 1)
+	source.dogmos_pending_callback_batch = new/list(120) // 12 header fields plus three 36-field events.
+	source.dogmos_pending_callback_count = 3
+	source.dogmos_pending_service_callbacks = 7
+	source.runtime_topology_batching = 2
+	source.dogmos_pending_turf_lifecycle = list("1" = list(1, 1, 17, 1, 17, 0))
+	source.dogmos_pending_turf_adjacency = list(list(1, 17, 2, 29, 1, 0))
+	source.dogmos_pending_turf_adjacency_index = list("1:2" = 1)
+	source.dogmos_pending_turf_heat = list("1" = list(1, 17, 300, 10, 0.5, 0, 0))
+	source.dogmos_pending_turf_heat_adjacency = list(list(1, 17, 2, 29, 1))
+	source.dogmos_pending_turf_heat_adjacency_index = list("1:2" = 1)
+	source.reset_mixture_snapshot_cache()
+	source.store_mixture_snapshot_cache(1, 17, new/list(42))
+	source.invalidate_mixture_snapshot_epoch()
+	var/failure
+	try
+		// No yielding or native calls while the synthetic source occupies the global.
+		SSdogmos = source
+		for(var/consumed in list(0, 1, 2))
+			source.dogmos_pending_callback_index = consumed
+			recovered.ss_flags &= ~SS_NO_INIT
+			recovered.Recover()
+			if(!recovered.initialized || !recovered.gases_registered || !recovered.service_ready || !(recovered.ss_flags & SS_NO_INIT))
+				CRASH("Recovery lost initialized admission state or allowed cold initialization.")
+			if(recovered.dogmos_pending_callback_batch != source.dogmos_pending_callback_batch || recovered.dogmos_pending_callback_index != consumed || recovered.dogmos_pending_callback_count != 3 || recovered.dogmos_pending_service_callbacks != 7 || recovered.dogmos_next_callback_sequence != source.dogmos_next_callback_sequence)
+				CRASH("Recovery after [consumed] callbacks changed the batch, cursor or exact sequence.")
+			if(recovered.dogmos_mixture_generations != source.dogmos_mixture_generations || recovered.dogmos_free_mixture_slots != source.dogmos_free_mixture_slots || recovered.dogmos_pending_mixture_unregistrations != source.dogmos_pending_mixture_unregistrations || recovered.dogmos_holder_generations != source.dogmos_holder_generations)
+				CRASH("Recovery lost a generation or reused a pending retirement.")
+			if(recovered.runtime_topology_batching != 2 || recovered.dogmos_pending_turf_lifecycle != source.dogmos_pending_turf_lifecycle || recovered.dogmos_pending_turf_adjacency != source.dogmos_pending_turf_adjacency || recovered.dogmos_pending_turf_adjacency_index != source.dogmos_pending_turf_adjacency_index || recovered.dogmos_pending_turf_heat != source.dogmos_pending_turf_heat || recovered.dogmos_pending_turf_heat_adjacency != source.dogmos_pending_turf_heat_adjacency || recovered.dogmos_pending_turf_heat_adjacency_index != source.dogmos_pending_turf_heat_adjacency_index)
+				CRASH("Recovery lost nested batching or separated queued topology from its index.")
+			if(recovered.dogmos_mixture_cache != source.dogmos_mixture_cache || recovered.dogmos_mixture_cache_epoch != 2 || recovered.lookup_mixture_snapshot_cache(1, 17))
+				CRASH("Recovery revived a snapshot invalidated before recovery.")
+	catch(var/exception/error)
+		failure = "Partial-state recovery fixture raised [error.name]."
+	SSdogmos = live_owner
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+	var/list/current_generation = dogmos_service_world_generation()
+	if(dogmos_service_pid() != service_pid || current_generation[1] != world_generation[1] || current_generation[2] != world_generation[2])
+		return Fail("Recovery replaced the service PID or world generation.", __FILE__, __LINE__)
+	if(sentinel.return_temperature() != 321.5 || sentinel.get_moles(/datum/gas/oxygen) != 7.25)
+		return Fail("Recovery changed authoritative sentinel gas state.", __FILE__, __LINE__)
 
 #endif
