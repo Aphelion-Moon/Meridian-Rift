@@ -22,9 +22,10 @@ not authorize a second gameplay queue or a second gas store in DreamMaker.
 ## Fixed event envelope
 
 Protocol v2's 40-byte diagnostic event has only one scalar and cannot represent the callbacks in the
-current source. Protocol v3 introduced the exact 64-byte envelope retained by current protocol v4.
-Meridian-Rift integration must regenerate and verify the paired contract before loading those
-artifacts:
+current source. Protocol v3 introduced the 64-byte envelope retained by the current protocol.
+These historical version references do not select the active ABI or protocol; those come from
+the generated `code/__DEFINES/dogmos_contract.dm` and `dogmos.lock.json`.
+Meridian-Rift integration must regenerate and verify the paired contract before loading artifacts:
 
 | Offset | Size | Field | Rule |
 | ---: | ---: | --- | --- |

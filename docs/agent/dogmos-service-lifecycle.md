@@ -1,6 +1,6 @@
 # Dogmos service lifecycle
 
-The paired Dogmos build selects a thin 32-bit shim and an adjacent 64-bit `dogmosd` service. The retained root Rust crate is a separate legacy in-process implementation. The [Rust architecture guide](https://github.com/Aphelion-Moon/aphelion-dogmos/blob/6f4ce8b42ca488ce4a6b88a3d005ffd47c65f251/docs/agent/architecture-and-ownership.md) owns the component/state map; this guide owns the DM lifecycle contract.
+The paired Dogmos build selects a thin 32-bit shim and an adjacent 64-bit `dogmosd` service. The retained root Rust crate is a separate legacy in-process implementation. The [Rust architecture guide](https://github.com/Aphelion-Moon/aphelion-dogmos/blob/e947d849e93ac5891d42d3cc472c93e260116d29/docs/agent/architecture-and-ownership.md) owns the component/state map and contract glossary; this guide owns the DM lifecycle contract.
 
 Source implementation, installed artifact selection and runtime qualification are distinct. Read the generated contract and [native artifact guidance](native-artifacts.md) to identify the selected pair. Use [Dogmos verification](dogmos-verification.md) for qualification evidence. Optional asynchronous SSair stages default off pending controlled qualification; the presence of service code does not enable them.
 
