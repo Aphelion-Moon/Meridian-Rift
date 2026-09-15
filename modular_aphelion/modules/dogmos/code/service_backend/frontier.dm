@@ -190,17 +190,20 @@
 
 /** Registers stale active turfs, flushes their topology, and returns validated frontier pairs. */
 /datum/controller/subsystem/air/proc/dogmos_prepare_frontier_pairs(list/frontier_turfs)
-	var/original_runtime_batching = SSdogmos.runtime_topology_batching
-	SSdogmos.runtime_topology_batching = TRUE
-	for(var/turf/open/active_turf as anything in frontier_turfs)
-		if(!active_turf || !active_turf.air)
-			SSdogmos.runtime_topology_batching = original_runtime_batching
-			stack_trace("SSair active frontier contains an invalid turf reference.")
-			return null
-		if(!dogmos_frontier_turf_registration_is_current(active_turf))
-			active_turf.register_dogmos_air()
-		active_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
-	SSdogmos.runtime_topology_batching = original_runtime_batching
+	var/original_runtime_batching = SSdogmos.begin_runtime_topology_scope()
+	try
+		for(var/turf/open/active_turf as anything in frontier_turfs)
+			if(!active_turf || !active_turf.air)
+				SSdogmos.restore_runtime_topology_scope(original_runtime_batching)
+				stack_trace("SSair active frontier contains an invalid turf reference.")
+				return null
+			if(!dogmos_frontier_turf_registration_is_current(active_turf))
+				active_turf.register_dogmos_air()
+			active_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+	catch(var/exception/error)
+		SSdogmos.restore_runtime_topology_scope(original_runtime_batching)
+		throw error
+	SSdogmos.restore_runtime_topology_scope(original_runtime_batching)
 	if(!SSdogmos.flush_turf_registration_batch())
 		stack_trace("Dogmos topology remained blocked before active-frontier publication.")
 		return null

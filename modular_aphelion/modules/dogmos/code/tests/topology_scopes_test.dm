@@ -231,16 +231,18 @@
 		if(!SSdogmos.flush_turf_registration_batch())
 			CRASH("Exception fixture setup could not reach the service.")
 		for(var/outer_owner in list(FALSE, TRUE))
-			for(var/helper in list("template", "retry"))
+			for(var/helper in list("template", "retry", "frontier"))
 				SSdogmos.runtime_topology_batching = outer_owner
 				target.dogmos_probe_throw = TRUE
 				var/caught_expected = FALSE
 				try
 					if(helper == "template")
 						SSdogmos.update_template_border(list(target))
-					else
+					else if(helper == "retry")
 						SSdogmos.dogmos_pending_adjacency_retry[target] = TRUE
 						SSdogmos.retry_pending_turf_adjacencies()
+					else
+						SSair.dogmos_prepare_frontier_pairs(list(target))
 				catch(var/helper_error)
 					caught_expected = helper_error == "dogmos batch exception sentinel"
 				target.dogmos_probe_throw = FALSE

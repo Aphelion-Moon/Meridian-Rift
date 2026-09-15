@@ -167,14 +167,14 @@
 		var/neighbor_has_gas = (neighbor.init_air || isspaceturf(neighbor)) && open_neighbor?.air
 		var/edge_key = null
 		if(source_has_gas && neighbor_has_gas && open_turf.air != open_neighbor.air && !blocks_air && !neighbor.blocks_air)
-			edge_key = slot < neighbor_slot ? "[slot]:[generation]:[neighbor_slot]:[neighbor_generation]" : "[neighbor_slot]:[neighbor_generation]:[slot]:[generation]"
+			edge_key = SSdogmos.pending_edge_key(slot, generation, neighbor_slot, neighbor_generation)
 			var/connected = (neighbor in atmos_adjacent_turfs)
 			var/firelock = !!(connected && (atmos_adjacent_turfs[neighbor] & DOGMOS_ADJACENT_FIRELOCK))
 			SSdogmos.queue_pending_gas_adjacency(slot, generation, neighbor_slot, neighbor_generation, connected, firelock, edge_key)
 		// Turf heat conduction remains horizontal.
 		if(!is_vertical && heat_present && neighbor.thermal_conductivity > 0 && neighbor.heat_capacity > 0 && init_air && neighbor.init_air && !isspaceturf(src) && !isspaceturf(neighbor))
 			if(isnull(edge_key))
-				edge_key = slot < neighbor_slot ? "[slot]:[generation]:[neighbor_slot]:[neighbor_generation]" : "[neighbor_slot]:[neighbor_generation]:[slot]:[generation]"
+				edge_key = SSdogmos.pending_edge_key(slot, generation, neighbor_slot, neighbor_generation)
 			var/heat_connected = !(conductivity_blocked_directions & direction) && !(neighbor.conductivity_blocked_directions & turn(direction, 180))
 			SSdogmos.queue_pending_heat_adjacency(slot, generation, neighbor_slot, neighbor_generation, heat_connected, edge_key)
 

@@ -7380,6 +7380,7 @@
 #include "modular_aphelion\modules\dogmos\code\tests\stages_test.dm"
 #include "modular_aphelion\modules\dogmos\code\tests\startup_cache_test.dm"
 #include "modular_aphelion\modules\dogmos\code\tests\topology_dedup_test.dm"
+#include "modular_aphelion\modules\dogmos\code\tests\topology_frontier_exception_test.dm"
 #include "modular_aphelion\modules\dogmos\code\tests\topology_multiz_test.dm"
 #include "modular_aphelion\modules\dogmos\code\tests\topology_runtime_test.dm"
 #include "modular_aphelion\modules\dogmos\code\tests\topology_scopes_test.dm"

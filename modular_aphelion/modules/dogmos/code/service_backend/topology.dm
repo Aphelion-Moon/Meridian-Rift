@@ -1,3 +1,35 @@
+/** Opens a synchronous scope and returns the caller's previous publication ownership.
+ * Callers must restore this value on normal return and in catch; this helper never yields or flushes.
+ */
+/datum/controller/subsystem/dogmos/proc/begin_runtime_topology_scope()
+	SHOULD_NOT_SLEEP(TRUE)
+	var/previous_owner = runtime_topology_batching
+	runtime_topology_batching = TRUE
+	return previous_owner
+
+/** Restores scope ownership only. The caller still decides whether and when to publish. */
+/datum/controller/subsystem/dogmos/proc/restore_runtime_topology_scope(previous_owner)
+	SHOULD_NOT_SLEEP(TRUE)
+	runtime_topology_batching = previous_owner
+
+/** Canonical undirected key; generations distinguish reused endpoint slots. */
+/datum/controller/subsystem/dogmos/proc/pending_edge_key(first_slot, first_generation, second_slot, second_generation)
+	return first_slot < second_slot ? "[first_slot]:[first_generation]:[second_slot]:[second_generation]" : "[second_slot]:[second_generation]:[first_slot]:[first_generation]"
+
+/** Compares either endpoint order after the caller validates its family's record width. */
+/datum/controller/subsystem/dogmos/proc/pending_edge_endpoints_match(list/edge, first_slot, first_generation, second_slot, second_generation)
+	return (edge[1] == first_slot && edge[2] == first_generation && edge[3] == second_slot && edge[4] == second_generation) \
+		|| (edge[1] == second_slot && edge[2] == second_generation && edge[3] == first_slot && edge[4] == first_generation)
+
+/** Removes one complete edge and both reverse-index memberships without scanning the batch. */
+/datum/controller/subsystem/dogmos/proc/remove_pending_edge(list/edges, list/index, edge_key)
+	var/list/edge = edges[edge_key]
+	if(!edge)
+		return
+	edges.Remove(edge_key)
+	unindex_pending_edge(index, "[edge[1]]", edge_key)
+	unindex_pending_edge(index, "[edge[3]]", edge_key)
+
 /** Starts bounded accumulation of startup turf mutations. */
 /datum/controller/subsystem/dogmos/proc/begin_turf_registration_batch()
 	if(turf_registration_batching)
@@ -116,17 +148,16 @@
 		dogmos_pending_adjacency_retry = list()
 	if(!length(retry_turfs))
 		return
-	var/original_runtime_batching = runtime_topology_batching
-	runtime_topology_batching = TRUE
+	var/original_runtime_batching = begin_runtime_topology_scope()
 	try
 		for(var/turf/retry_turf as anything in retry_turfs)
 			if(!retry_turf)
 				continue
 			retry_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy, startup_flush = TRUE)
 	catch(var/exception/error)
-		runtime_topology_batching = original_runtime_batching
+		restore_runtime_topology_scope(original_runtime_batching)
 		throw error
-	runtime_topology_batching = original_runtime_batching
+	restore_runtime_topology_scope(original_runtime_batching)
 
 /**
  * Blocks the destination and source of one shuttle turf move in their original order.
@@ -141,17 +172,16 @@
  */
 /datum/controller/subsystem/dogmos/proc/block_shuttle_turfs(turf/source_turf, turf/destination_turf)
 	SHOULD_NOT_SLEEP(TRUE)
-	var/original_runtime_batching = runtime_topology_batching
-	runtime_topology_batching = TRUE
+	var/original_runtime_batching = begin_runtime_topology_scope()
 	try
 		destination_turf.blocks_air = TRUE
 		destination_turf.air_update_turf(TRUE, FALSE)
 		source_turf.blocks_air = TRUE
 		source_turf.air_update_turf(TRUE, TRUE)
 	catch(var/exception/error)
-		runtime_topology_batching = original_runtime_batching
+		restore_runtime_topology_scope(original_runtime_batching)
 		throw error
-	runtime_topology_batching = original_runtime_batching
+	restore_runtime_topology_scope(original_runtime_batching)
 	if(!original_runtime_batching && !turf_registration_batching && SSair.initialized)
 		flush_turf_registration_batch()
 
@@ -163,16 +193,15 @@
  */
 /datum/controller/subsystem/dogmos/proc/update_template_border(list/turfs)
 	SHOULD_NOT_SLEEP(TRUE)
-	var/original_runtime_batching = runtime_topology_batching
-	runtime_topology_batching = TRUE
+	var/original_runtime_batching = begin_runtime_topology_scope()
 	try
 		for(var/turf/affected_turf as anything in turfs)
 			affected_turf.air_update_turf(TRUE, TRUE)
 			affected_turf.levelupdate()
 	catch(var/exception/error)
-		runtime_topology_batching = original_runtime_batching
+		restore_runtime_topology_scope(original_runtime_batching)
 		throw error
-	runtime_topology_batching = original_runtime_batching
+	restore_runtime_topology_scope(original_runtime_batching)
 	if(!original_runtime_batching && !turf_registration_batching)
 		flush_turf_registration_batch()
 
@@ -204,11 +233,10 @@
 /** Queues a gas edge only when its canonical slot/generation key has changed meaningful payload. */
 /datum/controller/subsystem/dogmos/proc/queue_pending_gas_adjacency(first_slot, first_generation, second_slot, second_generation, connected, firelock, edge_key = null)
 	if(isnull(edge_key))
-		edge_key = first_slot < second_slot ? "[first_slot]:[first_generation]:[second_slot]:[second_generation]" : "[second_slot]:[second_generation]:[first_slot]:[first_generation]"
+		edge_key = pending_edge_key(first_slot, first_generation, second_slot, second_generation)
 	var/list/existing = dogmos_pending_turf_adjacency[edge_key]
 	if(islist(existing) && length(existing) == 6 && existing[5] == !!connected && existing[6] == !!firelock \
-		&& ((existing[1] == first_slot && existing[2] == first_generation && existing[3] == second_slot && existing[4] == second_generation) \
-			|| (existing[1] == second_slot && existing[2] == second_generation && existing[3] == first_slot && existing[4] == first_generation)))
+		&& pending_edge_endpoints_match(existing, first_slot, first_generation, second_slot, second_generation))
 		return FALSE
 	dogmos_pending_turf_adjacency[edge_key] = list(first_slot, first_generation, second_slot, second_generation, !!connected, !!firelock)
 	index_pending_edge(dogmos_pending_turf_adjacency_index, "[first_slot]", edge_key)
@@ -218,11 +246,10 @@
 /** Queues a heat edge only when its canonical slot/generation key has changed meaningful payload. */
 /datum/controller/subsystem/dogmos/proc/queue_pending_heat_adjacency(first_slot, first_generation, second_slot, second_generation, connected, edge_key = null)
 	if(isnull(edge_key))
-		edge_key = first_slot < second_slot ? "[first_slot]:[first_generation]:[second_slot]:[second_generation]" : "[second_slot]:[second_generation]:[first_slot]:[first_generation]"
+		edge_key = pending_edge_key(first_slot, first_generation, second_slot, second_generation)
 	var/list/existing = dogmos_pending_turf_heat_adjacency[edge_key]
 	if(islist(existing) && length(existing) == 5 && existing[5] == !!connected \
-		&& ((existing[1] == first_slot && existing[2] == first_generation && existing[3] == second_slot && existing[4] == second_generation) \
-			|| (existing[1] == second_slot && existing[2] == second_generation && existing[3] == first_slot && existing[4] == first_generation)))
+		&& pending_edge_endpoints_match(existing, first_slot, first_generation, second_slot, second_generation))
 		return FALSE
 	dogmos_pending_turf_heat_adjacency[edge_key] = list(first_slot, first_generation, second_slot, second_generation, !!connected)
 	index_pending_edge(dogmos_pending_turf_heat_adjacency_index, "[first_slot]", edge_key)
@@ -231,21 +258,11 @@
 
 /** Removes one pending gas-adjacency edge from both the batch and its reverse index. */
 /datum/controller/subsystem/dogmos/proc/remove_pending_gas_edge(edge_key)
-	var/list/edge = dogmos_pending_turf_adjacency[edge_key]
-	if(!edge)
-		return
-	dogmos_pending_turf_adjacency.Remove(edge_key)
-	unindex_pending_edge(dogmos_pending_turf_adjacency_index, "[edge[1]]", edge_key)
-	unindex_pending_edge(dogmos_pending_turf_adjacency_index, "[edge[3]]", edge_key)
+	remove_pending_edge(dogmos_pending_turf_adjacency, dogmos_pending_turf_adjacency_index, edge_key)
 
 /** Removes one pending heat-adjacency edge from both the batch and its reverse index. */
 /datum/controller/subsystem/dogmos/proc/remove_pending_heat_edge(edge_key)
-	var/list/edge = dogmos_pending_turf_heat_adjacency[edge_key]
-	if(!edge)
-		return
-	dogmos_pending_turf_heat_adjacency.Remove(edge_key)
-	unindex_pending_edge(dogmos_pending_turf_heat_adjacency_index, "[edge[1]]", edge_key)
-	unindex_pending_edge(dogmos_pending_turf_heat_adjacency_index, "[edge[3]]", edge_key)
+	remove_pending_edge(dogmos_pending_turf_heat_adjacency, dogmos_pending_turf_heat_adjacency_index, edge_key)
 
 /**
  * Removes pending topology that predates a turf's latest registration state.
