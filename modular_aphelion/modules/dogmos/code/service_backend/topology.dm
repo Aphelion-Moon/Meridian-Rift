@@ -65,7 +65,7 @@
 			lifecycle_batch += lifecycle_records
 			lifecycle_keys += turf_slot
 			lifecycle_count += record_count
-		if(dogmos_turf_lifecycle_batch(lifecycle_batch) != lifecycle_count)
+		if(publish_turf_lifecycle_records(lifecycle_batch) != lifecycle_count)
 			CRASH("dogmosd rejected a turf lifecycle batch.")
 		for(var/lifecycle_key in lifecycle_keys)
 			dogmos_pending_turf_lifecycle.Remove(lifecycle_key)
@@ -78,7 +78,7 @@
 			if(length(heat_keys) >= DOGMOS_TURF_BATCH_OPERATIONS)
 				break
 		var/heat_count = length(heat_keys)
-		if(dogmos_turf_heat_batch(heat_batch) != heat_count)
+		if(publish_turf_heat_records(heat_batch) != heat_count)
 			CRASH("dogmosd rejected a turf heat batch.")
 		for(var/heat_key in heat_keys)
 			dogmos_pending_turf_heat.Remove(heat_key)
@@ -91,7 +91,7 @@
 			if(length(adjacency_keys) >= DOGMOS_TURF_BATCH_OPERATIONS)
 				break
 		var/adjacency_count = length(adjacency_keys)
-		if(dogmos_turf_adjacency_batch(adjacency_batch) != adjacency_count)
+		if(publish_turf_gas_edges(adjacency_batch) != adjacency_count)
 			CRASH("dogmosd rejected a turf adjacency batch.")
 		for(var/adjacency_key in adjacency_keys)
 			remove_pending_gas_edge(adjacency_key)
@@ -107,7 +107,7 @@
 			if(length(heat_adjacency_keys) >= DOGMOS_TURF_BATCH_OPERATIONS)
 				break
 		var/heat_adjacency_count = length(heat_adjacency_keys)
-		if(dogmos_turf_heat_adjacency_batch(heat_adjacency_batch) != heat_adjacency_count)
+		if(publish_turf_heat_edges(heat_adjacency_batch) != heat_adjacency_count)
 			CRASH("dogmosd rejected a turf heat-adjacency batch.")
 		for(var/heat_adjacency_key in heat_adjacency_keys)
 			remove_pending_heat_edge(heat_adjacency_key)
@@ -115,6 +115,22 @@
 			dogmos_runtime_topology_records += heat_adjacency_count
 			dogmos_runtime_topology_calls++
 	return TRUE
+
+/** Submits lifecycle records synchronously; the acknowledged count permits queue retirement. */
+/datum/controller/subsystem/dogmos/proc/publish_turf_lifecycle_records(list/records)
+	return dogmos_turf_lifecycle_batch(records)
+
+/** Submits heat-property records synchronously; errors leave their pending queue owned by DM. */
+/datum/controller/subsystem/dogmos/proc/publish_turf_heat_records(list/records)
+	return dogmos_turf_heat_batch(records)
+
+/** Submits gas edges synchronously; the caller retires both reverse indexes only after acknowledgement. */
+/datum/controller/subsystem/dogmos/proc/publish_turf_gas_edges(list/records)
+	return dogmos_turf_adjacency_batch(records)
+
+/** Submits heat edges synchronously with their independent five-field representation. */
+/datum/controller/subsystem/dogmos/proc/publish_turf_heat_edges(list/records)
+	return dogmos_turf_heat_adjacency_batch(records)
 
 /** Retires deferred mixture identities before applying dependent turf topology mutations. */
 /datum/controller/subsystem/dogmos/proc/flush_pending_mixture_unregistrations()
