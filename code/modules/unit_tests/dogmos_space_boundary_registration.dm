@@ -90,7 +90,7 @@
 
 	interior.excited = FALSE
 	vacuum_neighbor.excited = TRUE
-	SSair.active_turfs = list(vacuum_neighbor)
+	SSair.dogmos_replace_active_frontier(list(vacuum_neighbor))
 	SSair.active_turfs_walk_cursor = 0
 	var/list/original_snapshot = SSair.dogmos_visual_refresh_batch
 	var/list/original_reacted_turfs = SSair.dogmos_reacted_turfs
@@ -128,7 +128,7 @@
 /** Restores the temporary active-turf queue and converted space turf. */
 /datum/unit_test/dogmos_space_boundary_frontier_settlement/proc/restore_frontier_test_state()
 	if(!isnull(original_active_turfs))
-		SSair.active_turfs = original_active_turfs
+		SSair.dogmos_replace_active_frontier(original_active_turfs)
 		SSair.active_turfs_walk_cursor = original_active_turfs_walk_cursor
 		original_active_turfs = null
 	if(interior)

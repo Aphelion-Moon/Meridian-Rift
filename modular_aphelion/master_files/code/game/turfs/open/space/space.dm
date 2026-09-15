@@ -3,7 +3,7 @@
 	if(!DOGMOS)
 		return
 	if(isnull(dogmos_registration_generation))
-		mark_dogmos_turf_replacement()
+		mark_dogmos_turf_replacement(initial_registration = TRUE)
 	if(!air)
 		// Map loading can reach this before the shared space mixture exists.
 		return

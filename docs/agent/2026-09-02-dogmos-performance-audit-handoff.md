@@ -24,7 +24,7 @@ Read before editing:
 - `docs/agent/{source-authority,dogmos-integration,dogmos-performance-and-memory,dogmos-verification,native-artifacts,rift-controller}.md`.
 - The sibling repository's `docs/agent/README.md` and its routed performance, numerical-invariant, protocol, verification, and release guidance before changing Rust.
 
-Do not dispatch subagents without explicit user approval. Protected native, dependency, workflow, release, transport, or deployment files require the exact approval described by the owning repository.
+Do not dispatch subagents without explicit user approval. Follow the owning repository's current `AGENTS.md` policy: authorized work includes native artifact rebuilds, generated outputs and verified local synchronization without separate per-file approval, including necessary in-scope protocol, generator and synchronizer updates. Unrelated dependency, workflow, release, transport and deployment changes retain their applicable authorization requirements.
 
 ## Current implementation boundary
 
@@ -141,7 +141,7 @@ Focused evidence already obtained:
 
 ## Stop conditions and reporting
 
-Stop and request direction before changing atmosphere coefficients, public DM contracts, generated bindings, native artifact pins, transport, dependencies, workflow/release files, or deployment tooling. Do not commit or push unless explicitly authorized for the current audit.
+Stop and request direction before changing atmosphere coefficients or public DM contracts, or making unrelated transport, dependency, workflow/release or deployment changes. Regenerate required bindings and artifact lock data through maintained tooling and synchronize the complete verified local pair under task authorization; do not request another protected-artifact approval. Do not commit or push unless explicitly authorized for the current audit.
 
 Report findings in this order:
 

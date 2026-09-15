@@ -1,4 +1,17 @@
-#define DOGMOS_REQUIRED_PROTOCOL_VERSION 14
+#define DOGMOS_REQUIRED_PROTOCOL_VERSION 16
+#define DOGMOS_SERVICE_TELEMETRY_WORDS 236
+#define DOGMOS_JOB_TELEMETRY_START 183
+#define DOGMOS_JOB_TELEMETRY_STATUS 187
+#define DOGMOS_JOB_TELEMETRY_COUNTERS 189
+#define DOGMOS_JOB_RESPONSE_FIELDS 26
+#define DOGMOS_JOB_STATUS 5
+#define DOGMOS_JOB_STAGE 6
+#define DOGMOS_JOB_ACCEPTED 1
+#define DOGMOS_JOB_RUNNING 2
+#define DOGMOS_JOB_READY 3
+#define DOGMOS_JOB_RETRYING 4
+#define DOGMOS_JOB_DONE 5
+#define DOGMOS_JOB_QUANTUM_US 500
 #define DOGMOS_MAX_EXACT_INTEGER 16777216
 #define DOGMOS_PROCESS_METRICS_WORDS 28
 #define DOGMOS_PROCESS_METRICS_LAYOUT_VERSION 1
@@ -859,6 +872,47 @@
 		CRASH("dogmosd returned malformed process metrics.")
 	return decoded
 
+/** Decodes bounded protocol-16 job observations, retaining exact words alongside display durations. */
+/datum/controller/subsystem/dogmos/proc/decode_job_observations(list/words)
+	if(!islist(words) || length(words) != DOGMOS_SERVICE_TELEMETRY_WORDS)
+		return null
+	for(var/index in DOGMOS_JOB_TELEMETRY_START to DOGMOS_SERVICE_TELEMETRY_WORDS)
+		var/word = words[index]
+		if(!isnum(word) || !IS_FINITE(word) || word < 0 || word > DOGMOS_PROCESS_WORD_MAX || round(word) != word)
+			return null
+	var/list/job_words = words.Copy(DOGMOS_JOB_TELEMETRY_START, DOGMOS_JOB_TELEMETRY_STATUS)
+	var/status = join_u32_words(words[DOGMOS_JOB_TELEMETRY_STATUS], words[DOGMOS_JOB_TELEMETRY_STATUS + 1])
+	var/has_job = job_words[1] || job_words[2] || job_words[3] || job_words[4]
+	if(status > 6 || (!has_job != !status))
+		return null
+	if(!has_job && (words[189] || words[190] || words[191] || words[192]))
+		return null
+	var/list/decoded = list(
+		"job_words" = job_words,
+		"status" = status,
+		"raw_words" = words.Copy(DOGMOS_JOB_TELEMETRY_START),
+	)
+	var/static/list/counter_names = list(
+		"age", "prepare_calls", "prepare_total", "prepare_max", "prepare_last",
+		"commit_calls", "commit_total", "commit_max", "commit_last",
+		"publication_retries", "completed_jobs", "cancelled_jobs",
+	)
+	var/static/list/duration_names = list("age", "prepare_total", "prepare_max", "prepare_last", "commit_total", "commit_max", "commit_last")
+	for(var/index in 1 to length(counter_names))
+		var/name = counter_names[index]
+		var/start = DOGMOS_JOB_TELEMETRY_COUNTERS + (index - 1) * 4
+		decoded["[name]_words"] = words.Copy(start, start + 4)
+		if(name in duration_names)
+			decoded["[name]_ms"] = join_u64_words(words[start], words[start + 1], words[start + 2], words[start + 3]) / 1000000
+	return decoded
+
+/** Collects one on-demand observation; this RPC is never added to normal atmosphere ticking. */
+/proc/dogmos_job_observations_snapshot()
+	var/list/decoded = SSdogmos.decode_job_observations(dogmos_service_telemetry())
+	if(!decoded)
+		CRASH("dogmosd returned malformed job observations.")
+	return decoded
+
 /** Resolves a coordinate-derived turf identity without accepting a stale generation. */
 /datum/controller/subsystem/dogmos/proc/resolve_turf(slot, generation)
 	if(slot <= 0 || slot > DOGMOS_MAX_EXACT_INTEGER || generation <= 0 || generation > DOGMOS_MAX_EXACT_INTEGER)
@@ -1309,6 +1363,7 @@
 /datum/controller/subsystem/dogmos/proc/begin_service_shutdown()
 	service_shutdown_requested = TRUE
 	service_ready = FALSE
+	SSair?.dogmos_clear_machinery_prefetch()
 
 /** Stops the production service without attempting a mid-round restart. */
 /proc/dogmos_shutdown()
@@ -1730,63 +1785,195 @@
 /proc/dogmos_perf_set_detailed(enabled)
 	return TRUE
 
-/** Publishes the full active-turf order as one atomic bounded service frontier. Used only for
- * the first-ever publish; every later call goes through sync_dogmos_frontier()'s incremental
- * add/remove path instead. See sync_dogmos_frontier() for why.
+/** Adds an already validated, inactive member without repeating activation side effects. */
+/datum/controller/subsystem/air/proc/dogmos_add_frontier_member(turf/active_turf)
+	active_turfs += active_turf
+	dogmos_note_frontier_add(active_turf)
+
+/** Removes membership only; callers retain ownership of excited groups, visuals and walk cursors. */
+/datum/controller/subsystem/air/proc/dogmos_remove_frontier_member(turf/active_turf)
+	var/previous_count = length(active_turfs)
+	active_turfs -= active_turf
+	if(length(active_turfs) == previous_count)
+		return FALSE
+	dogmos_note_frontier_remove(active_turf)
+	return TRUE
+
+/** Clears the canonical list during setup while preserving existing list aliases. */
+/datum/controller/subsystem/air/proc/dogmos_clear_active_frontier()
+	active_turfs.Cut()
+	dogmos_note_frontier_reset()
+
+/** Replaces the desired frontier and schedules a bounded atomic publication. */
+/datum/controller/subsystem/air/proc/dogmos_replace_active_frontier(list/replacement)
+	active_turfs = replacement
+	dogmos_note_frontier_reset()
+
+/** Invalidates unpublished reconciliation without dropping world-sized scratch on this caller. */
+/datum/controller/subsystem/air/proc/dogmos_note_frontier_reset()
+	dogmos_frontier_source = active_turfs
+	dogmos_frontier_revision = SSdogmos.increment_u64_words(dogmos_frontier_revision)
+	dogmos_frontier_needs_rescan = TRUE
+	dogmos_frontier_journal.Cut()
+
+/** Records last-add order in bounded scratch; an acknowledged member must be removed before re-add. */
+/datum/controller/subsystem/air/proc/dogmos_note_frontier_add(turf/active_turf)
+	dogmos_frontier_revision = SSdogmos.increment_u64_words(dogmos_frontier_revision)
+	if(dogmos_frontier_needs_rescan)
+		return
+	var/list/entry = dogmos_frontier_journal[active_turf]
+	if(!entry)
+		if(length(dogmos_frontier_journal) >= DOGMOS_TURF_BATCH_OPERATIONS)
+			dogmos_frontier_needs_rescan = TRUE
+			return
+		var/list/old_pair = dogmos_committed_frontier?[active_turf]
+		entry = list(old_pair?.Copy(), TRUE, !isnull(old_pair))
+	else
+		entry[2] = TRUE
+		entry[3] = !isnull(entry[1])
+		// A repeated add after removal takes the latest addition's position.
+		dogmos_frontier_journal -= active_turf
+	dogmos_frontier_journal[active_turf] = entry
+
+/** Preserves the accepted handle even if ChangeTurf has already changed the referenced turf. */
+/datum/controller/subsystem/air/proc/dogmos_note_frontier_remove(turf/active_turf)
+	dogmos_frontier_revision = SSdogmos.increment_u64_words(dogmos_frontier_revision)
+	if(dogmos_frontier_needs_rescan)
+		return
+	var/list/entry = dogmos_frontier_journal[active_turf]
+	var/list/old_pair = entry ? entry[1] : dogmos_committed_frontier?[active_turf]
+	if(!old_pair)
+		// An unpublished insertion followed by removal has no service-visible effect.
+		dogmos_frontier_journal -= active_turf
+		return
+	if(!entry)
+		if(length(dogmos_frontier_journal) >= DOGMOS_TURF_BATCH_OPERATIONS)
+			dogmos_frontier_needs_rescan = TRUE
+			return
+		entry = list(old_pair.Copy(), FALSE, FALSE)
+	else
+		entry[2] = FALSE
+	dogmos_frontier_journal[active_turf] = entry
+
+/** Allocates an epoch above both acknowledged state and abandoned upload attempts. */
+/datum/controller/subsystem/air/proc/dogmos_next_frontier_epoch()
+	var/list/high_water = dogmos_frontier_epoch
+	for(var/word_index = 4; word_index >= 1; word_index--)
+		if(dogmos_frontier_upload_epoch[word_index] > dogmos_frontier_epoch[word_index])
+			high_water = dogmos_frontier_upload_epoch
+			break
+		if(dogmos_frontier_upload_epoch[word_index] < dogmos_frontier_epoch[word_index])
+			break
+	return SSdogmos.increment_u64_words(high_water)
+
+/** Starts an upload and validates its exact epoch receipt. */
+/datum/controller/subsystem/air/proc/dogmos_begin_frontier_upload(list/epoch, total)
+	var/list/fields = epoch.Copy()
+	fields += SSdogmos.split_u32_words(total)
+	if(!SSdogmos.equal_u64_words(dogmos_frontier_begin(fields), epoch))
+		stack_trace("dogmosd rejected or returned a malformed active-frontier begin response.")
+		return FALSE
+	return TRUE
+
+/** Appends one bounded ordered handle batch and validates the exact accepted count. */
+/datum/controller/subsystem/air/proc/dogmos_append_frontier_upload(list/epoch, offset, list/pairs)
+	var/list/fields = epoch.Copy()
+	fields += SSdogmos.split_u32_words(offset)
+	for(var/turf/active_turf as anything in pairs)
+		var/list/pair = pairs[active_turf]
+		if(!dogmos_frontier_pair_is_valid(pair))
+			return FALSE
+		fields += SSdogmos.split_u32_words(pair[1])
+		fields += SSdogmos.split_u32_words(pair[2])
+	var/list/accepted = dogmos_frontier_append(fields)
+	if(!SSdogmos.u32_words_are_valid(accepted) || SSdogmos.join_u32_words(accepted[1], accepted[2]) != length(pairs))
+		stack_trace("dogmosd rejected an active-frontier append at offset [offset].")
+		return FALSE
+	return TRUE
+
+/** Publishes only a complete upload with a matching epoch and member count. */
+/datum/controller/subsystem/air/proc/dogmos_commit_frontier_upload(list/epoch, total)
+	var/list/committed = dogmos_frontier_commit(epoch.Copy())
+	if(!islist(committed) || length(committed) != 6 || !SSdogmos.equal_u64_words(committed.Copy(1, 5), epoch) || !SSdogmos.u32_words_are_valid(committed.Copy(5, 7)) || SSdogmos.join_u32_words(committed[5], committed[6]) != total)
+		stack_trace("dogmosd returned a malformed active-frontier commit for candidate epoch [json_encode(epoch)].")
+		return FALSE
+	return TRUE
+
+/** Visits at most max_entries members in one reconciliation step.
+ * Returns null on failure, FALSE while pending, TRUE when reconciliation and retired cleanup finish.
+ * Native Begin/Commit and topology flush retain their existing service-side costs.
  */
+/datum/controller/subsystem/air/proc/dogmos_reconcile_frontier_chunk(max_entries = DOGMOS_TURF_BATCH_OPERATIONS)
+	if(!isnum(max_entries) || !IS_FINITE(max_entries) || max_entries < 1 || max_entries > DOGMOS_TURF_BATCH_OPERATIONS || round(max_entries) != max_entries)
+		return null
+	if(length(dogmos_frontier_retired))
+		// Removing from the tail avoids repeatedly shifting the entire remaining snapshot.
+		var/retained = max(0, length(dogmos_frontier_retired) - max_entries)
+		dogmos_frontier_retired.Cut(retained + 1)
+		if(!retained)
+			dogmos_frontier_retired = null
+		return FALSE
+	if(!dogmos_frontier_needs_rescan)
+		return TRUE
+	if(!isnull(dogmos_frontier_candidate) && !SSdogmos.equal_u64_words(dogmos_frontier_scan_revision, dogmos_frontier_revision))
+		dogmos_frontier_retired = dogmos_frontier_candidate
+		dogmos_frontier_candidate = null
+		dogmos_frontier_scan_revision = null
+		dogmos_frontier_upload_cursor = null
+		return FALSE
+	if(isnull(dogmos_frontier_candidate))
+		dogmos_frontier_scan_revision = dogmos_frontier_revision.Copy()
+		dogmos_frontier_scan_total = length(active_turfs)
+		dogmos_frontier_scan_cursor = 0
+		dogmos_frontier_upload_cursor = null
+		dogmos_frontier_candidate = list()
+		return FALSE
+	if(dogmos_frontier_scan_cursor < dogmos_frontier_scan_total)
+		var/end = min(dogmos_frontier_scan_cursor + max_entries, dogmos_frontier_scan_total)
+		var/list/chunk = active_turfs.Copy(dogmos_frontier_scan_cursor + 1, end + 1)
+		var/list/pairs = dogmos_prepare_frontier_pairs(chunk)
+		if(isnull(pairs))
+			return null
+		// Registration can invalidate a replacement's identity. Do not collect a mixed snapshot.
+		if(!SSdogmos.equal_u64_words(dogmos_frontier_scan_revision, dogmos_frontier_revision))
+			return FALSE
+		for(var/turf/active_turf as anything in pairs)
+			dogmos_frontier_candidate[active_turf] = pairs[active_turf]
+		dogmos_frontier_scan_cursor = end
+		return FALSE
+	// Source entries may repeat. Declare the unique count only after bounded collection finishes.
+	var/unique_total = length(dogmos_frontier_candidate)
+	if(isnull(dogmos_frontier_upload_cursor))
+		dogmos_frontier_upload_epoch = dogmos_next_frontier_epoch()
+		if(!dogmos_begin_frontier_upload(dogmos_frontier_upload_epoch, unique_total))
+			return null
+		dogmos_frontier_upload_cursor = 0
+		return FALSE
+	if(dogmos_frontier_upload_cursor < unique_total)
+		var/end = min(dogmos_frontier_upload_cursor + max_entries, unique_total)
+		var/list/pairs = dogmos_frontier_candidate.Copy(dogmos_frontier_upload_cursor + 1, end + 1)
+		if(!dogmos_append_frontier_upload(dogmos_frontier_upload_epoch, dogmos_frontier_upload_cursor, pairs))
+			return null
+		dogmos_frontier_upload_cursor = end
+		return FALSE
+	if(!dogmos_commit_frontier_upload(dogmos_frontier_upload_epoch, unique_total))
+		return null
+	dogmos_frontier_epoch = dogmos_frontier_upload_epoch.Copy()
+	dogmos_frontier_retired = dogmos_committed_frontier
+	dogmos_committed_frontier = dogmos_frontier_candidate
+	dogmos_frontier_candidate = null
+	dogmos_frontier_scan_revision = null
+	dogmos_frontier_upload_cursor = null
+	dogmos_frontier_needs_rescan = FALSE
+	dogmos_frontier_journal.Cut()
+	return !length(dogmos_frontier_retired)
+
+/** Compatibility entry point: bootstrap now advances one bounded reconciliation slice. */
 /datum/controller/subsystem/air/proc/bootstrap_dogmos_frontier()
 	if(dogmos_pending_frontier_epoch)
 		CRASH("Attempted to replace the Dogmos frontier while a simulation cycle is pending.")
-	var/list/frontier_pairs = dogmos_prepare_frontier_pairs(active_turfs)
-	if(isnull(frontier_pairs))
-		return FALSE
-	var/list/candidate_epoch = SSdogmos.increment_u64_words(dogmos_frontier_epoch)
-	var/list/count_words = SSdogmos.split_u32_words(length(active_turfs))
-	var/list/begin_fields = candidate_epoch.Copy()
-	begin_fields += count_words
-	var/list/accepted_epoch = dogmos_frontier_begin(begin_fields)
-	if(!SSdogmos.equal_u64_words(accepted_epoch, candidate_epoch))
-		stack_trace("dogmosd rejected or returned a malformed active-frontier begin response.")
-		return FALSE
+	return sync_dogmos_frontier()
 
-	var/offset = 0
-	var/list/append_fields = candidate_epoch.Copy()
-	append_fields += SSdogmos.split_u32_words(offset)
-	for(var/turf/open/active_turf as anything in active_turfs)
-		var/list/pair = frontier_pairs[active_turf]
-		append_fields += SSdogmos.split_u32_words(pair[1])
-		append_fields += SSdogmos.split_u32_words(pair[2])
-		offset++
-		if((offset % DOGMOS_TURF_BATCH_OPERATIONS) != 0)
-			continue
-		var/list/accepted_count = dogmos_frontier_append(append_fields)
-		if(!SSdogmos.u32_words_are_valid(accepted_count) || SSdogmos.join_u32_words(accepted_count[1], accepted_count[2]) != DOGMOS_TURF_BATCH_OPERATIONS)
-			stack_trace("dogmosd rejected a full active-frontier append at offset [offset - DOGMOS_TURF_BATCH_OPERATIONS].")
-			return FALSE
-		append_fields = candidate_epoch.Copy()
-		append_fields += SSdogmos.split_u32_words(offset)
-
-	var/trailing_count = offset % DOGMOS_TURF_BATCH_OPERATIONS
-	if(trailing_count)
-		var/list/accepted_trailing = dogmos_frontier_append(append_fields)
-		if(!SSdogmos.u32_words_are_valid(accepted_trailing) || SSdogmos.join_u32_words(accepted_trailing[1], accepted_trailing[2]) != trailing_count)
-			stack_trace("dogmosd rejected the trailing active-frontier append at offset [offset - trailing_count].")
-			return FALSE
-
-	var/list/committed = dogmos_frontier_commit(candidate_epoch.Copy())
-	if(!islist(committed) || length(committed) != 6 || !SSdogmos.equal_u64_words(committed.Copy(1, 5), candidate_epoch) || !SSdogmos.u32_words_are_valid(committed.Copy(5, 7)) || SSdogmos.join_u32_words(committed[5], committed[6]) != offset)
-		stack_trace("dogmosd returned a malformed active-frontier commit for candidate epoch [json_encode(candidate_epoch)].")
-		return FALSE
-	dogmos_frontier_epoch = candidate_epoch
-	dogmos_pending_frontier_epoch = dogmos_frontier_epoch.Copy()
-
-	// Stores the exact (slot, generation) pair committed for each turf, not just TRUE - removals
-	// need to send back the pair dogmosd actually has, not whatever the turf's identity happens
-	// to be later (see sync_dogmos_frontier()'s removal comment).
-	dogmos_committed_frontier = list()
-	for(var/turf/open/active_turf as anything in active_turfs)
-		dogmos_committed_frontier[active_turf] = frontier_pairs[active_turf]
-	return TRUE
 
 /** Registers stale active turfs, flushes their topology, and returns validated frontier pairs. */
 /datum/controller/subsystem/air/proc/dogmos_prepare_frontier_pairs(list/frontier_turfs)
@@ -1844,77 +2031,63 @@
 		&& committed_pair[1] == active_turf.dogmos_service_slot() \
 		&& committed_pair[2] == active_turf.dogmos_registration_generation
 
-/** Publishes the current active-turf set to dogmosd. The first call bootstraps the frontier via
- * the full begin/append/commit path above; every later call diffs active_turfs against
- * dogmos_committed_frontier (the last-known-committed snapshot) and sends only the delta via the
- * incremental frontier_add/frontier_remove ops. Re-uploading the entire active-turf set every
- * tick (the original design) made per-tick publish cost scale with active_turfs size on every
- * single fire() - with diffusion actually propagating turf-to-turf, active_turfs legitimately
- * reaches the hundreds, and that dominated Atmospherics MC cost.
+/** Publishes journaled membership in last-add order; unchanged cycles do no full-frontier discovery.
+ * TRUE means no failure. Callers must pause while dogmos_frontier_sync_pending is set.
  */
 /datum/controller/subsystem/air/proc/sync_dogmos_frontier()
+	dogmos_frontier_sync_pending = FALSE
+	if(dogmos_pending_frontier_epoch || !isnull(dogmos_pending_stage))
+		return TRUE
+	if(dogmos_frontier_source != active_turfs)
+		dogmos_note_frontier_reset()
 	if(isnull(dogmos_committed_frontier))
-		return bootstrap_dogmos_frontier()
-
-	var/list/active_set = list()
-	for(var/turf/open/active_turf as anything in active_turfs)
-		active_set[active_turf] = TRUE
-
+		dogmos_frontier_needs_rescan = TRUE
+	if(dogmos_frontier_needs_rescan || length(dogmos_frontier_retired))
+		var/reconciled = dogmos_reconcile_frontier_chunk()
+		if(isnull(reconciled))
+			return FALSE
+		if(!reconciled)
+			dogmos_frontier_sync_pending = TRUE
+			return TRUE
+	if(!length(dogmos_frontier_journal))
+		dogmos_pending_frontier_epoch = dogmos_frontier_epoch.Copy()
+		return TRUE
 	var/list/added = list()
 	var/list/removed_pairs = list()
 	var/list/removed_turfs = list()
-	for(var/turf/open/active_turf as anything in active_set)
-		var/list/committed_pair = dogmos_committed_frontier[active_turf]
-		if(dogmos_frontier_pair_is_current(active_turf, committed_pair))
-			continue
-		added += active_turf
-		if(committed_pair)
-			removed_pairs += list(committed_pair)
-			removed_turfs += active_turf
-
-	// Removals must use the exact (slot, generation) pair captured when the turf was added, not
-	// its current identity. This includes active turfs whose generation changed in place: remove
-	// the committed pair before adding the replacement or dogmosd keeps processing the retired
-	// handle while DM incorrectly treats the turf reference as unchanged.
-	for(var/turf/open/committed_turf as anything in dogmos_committed_frontier)
-		if(!active_set[committed_turf])
-			removed_pairs += list(dogmos_committed_frontier[committed_turf])
-			removed_turfs += committed_turf
-
-	if(!length(added) && !length(removed_pairs))
-		// Nothing changed since the last commit, so dogmosd's committed epoch is still whatever
-		// dogmos_frontier_epoch already holds - but dogmos_pending_frontier_epoch was reset to
-		// null by the previous pass's completion (process_turf_heat()), and dogmos_run_stage()
-		// unconditionally appends it into the stage request fields. Leaving it null here sends a
-		// null field into dogmos_simulation_stage_ffi and crashes with "Value is not a number".
-		dogmos_pending_frontier_epoch = dogmos_frontier_epoch.Copy()
-		return TRUE
-
-	if(dogmos_pending_frontier_epoch)
-		return TRUE
+	for(var/turf/changed_turf as anything in dogmos_frontier_journal)
+		var/list/entry = dogmos_frontier_journal[changed_turf]
+		if(entry[1] && (!entry[2] || entry[3]))
+			removed_pairs += list(entry[1])
+			removed_turfs += changed_turf
+		if(entry[2])
+			added += changed_turf
 	var/list/added_pairs_by_turf = list()
 	if(length(added))
+		var/list/preparation_revision = dogmos_frontier_revision.Copy()
 		added_pairs_by_turf = dogmos_prepare_frontier_pairs(added)
 		if(isnull(added_pairs_by_turf))
 			return FALSE
-
+		if(!SSdogmos.equal_u64_words(preparation_revision, dogmos_frontier_revision))
+			dogmos_frontier_sync_pending = TRUE
+			return TRUE
 	if(length(removed_pairs))
 		if(!dogmos_frontier_send_chunks(/proc/dogmos_frontier_remove, removed_pairs, "remove"))
 			return FALSE
-		for(var/turf/open/removed_turf as anything in removed_turfs)
+		for(var/turf/removed_turf as anything in removed_turfs)
 			dogmos_committed_frontier -= removed_turf
-		dogmos_pending_frontier_epoch = dogmos_frontier_epoch.Copy()
-
 	if(length(added))
 		var/list/added_pairs = list()
-		for(var/turf/open/added_turf as anything in added)
+		for(var/turf/added_turf as anything in added)
 			added_pairs += list(added_pairs_by_turf[added_turf])
 		if(!dogmos_frontier_send_chunks(/proc/dogmos_frontier_add, added_pairs, "add"))
 			return FALSE
-		for(var/index in 1 to length(added))
-			dogmos_committed_frontier[added[index]] = added_pairs[index]
-		dogmos_pending_frontier_epoch = dogmos_frontier_epoch.Copy()
+		for(var/turf/added_turf as anything in added)
+			dogmos_committed_frontier[added_turf] = added_pairs_by_turf[added_turf]
+	dogmos_frontier_journal.Cut()
+	dogmos_pending_frontier_epoch = dogmos_frontier_epoch.Copy()
 	return TRUE
+
 
 /** Sends one incremental frontier mutation (add or remove) to dogmosd in bounded chunks. Each
  * chunk is its own atomic add/remove call (no begin/append/commit two-phase for this path), and
@@ -1940,7 +2113,7 @@
 		var/chunk_size = offset % DOGMOS_TURF_BATCH_OPERATIONS
 		if(!chunk_size)
 			chunk_size = DOGMOS_TURF_BATCH_OPERATIONS
-		var/list/candidate_epoch = SSdogmos.increment_u64_words(dogmos_frontier_epoch)
+		var/list/candidate_epoch = dogmos_next_frontier_epoch()
 		var/list/chunk_fields = candidate_epoch.Copy()
 		chunk_fields += fields
 		var/list/response = call(mutate_proc)(chunk_fields)
@@ -1990,6 +2163,8 @@
  * * schedule_reboot - Whether to schedule the production reboot; FALSE is reserved for unit tests.
  */
 /datum/controller/subsystem/air/proc/dogmos_fail_closed_stage(stage, schedule_reboot = TRUE)
+	dogmos_clear_machinery_prefetch()
+	QDEL_NULL(dogmos_job)
 	dogmos_pending_stage = null
 	dogmos_pending_frontier_epoch = null
 	dogmos_stage_remaining_estimate = 0
@@ -2013,6 +2188,189 @@
 		SSticker.Reboot(reason, "dogmos service failure", 1 SECONDS)
 	return TRUE
 
+/// Fixed-size DM ownership for one service job. It never retains turfs or mixtures.
+/datum/dogmos_stage_job
+	/// Simulation stage selected at admission.
+	var/stage
+	/// Exact service job identity, assigned by Submit.
+	var/list/id
+	/// Exact unpublished unit waiting for a fresh MC budget.
+	var/list/ready_unit
+	/// Last service status; preparation does not authorize publication.
+	var/status = 0
+	/// Exact cumulative publication count already acknowledged by DM.
+	var/list/committed_units = list(0, 0, 0, 0)
+	/// Last committed token, retained for receipt replay validation.
+	var/list/committed_unit = list(0, 0, 0, 0)
+	/// Exact cumulative equalize/group/heat/callback u32 word pairs.
+	var/list/committed_counts = list(0, 0, 0, 0, 0, 0, 0, 0)
+	/// Admission time for diagnostic age; it does not change simulated seconds.
+	var/started_at
+
+/datum/dogmos_stage_job/New(stage)
+	src.stage = stage
+	started_at = world.time
+
+/** Validates publication ownership before the caller invalidates or consumes anything. */
+/datum/dogmos_stage_job/proc/response_is_valid(list/response, operation)
+	if(!islist(response) || length(response) != DOGMOS_JOB_RESPONSE_FIELDS)
+		return FALSE
+	for(var/word in response)
+		if(!isnum(word) || !IS_FINITE(word) || word < 0 || word > 65535 || round(word) != word)
+			return FALSE
+	if(response[DOGMOS_JOB_STAGE] != stage || !word_group_nonzero(response, 1, 4))
+		return FALSE
+	var/next_status = response[DOGMOS_JOB_STATUS]
+	if(next_status < DOGMOS_JOB_ACCEPTED || next_status > DOGMOS_JOB_DONE)
+		return FALSE
+	if(next_status == DOGMOS_JOB_DONE && (response[13] || response[14]))
+		return FALSE
+	if(operation == "submit")
+		if(id || next_status != DOGMOS_JOB_ACCEPTED)
+			return FALSE
+		for(var/index in 7 to DOGMOS_JOB_RESPONSE_FIELDS)
+			if(response[index])
+				return FALSE
+		return TRUE
+	if(!SSdogmos.equal_u64_words(id, response.Copy(1, 5)))
+		return FALSE
+	if(operation != "poll" && operation != "commit")
+		return FALSE
+	var/same_count = SSdogmos.equal_u64_words(committed_units, response.Copy(15, 19))
+	var/list/unit = response.Copy(7, 11)
+	if(operation == "commit" && (next_status == DOGMOS_JOB_RUNNING || next_status == DOGMOS_JOB_DONE))
+		if(!word_group_nonzero(response, 7, 4))
+			return FALSE
+		if(same_count)
+			// Replaying the last receipt cannot reset a newer prepared unit.
+			return SSdogmos.equal_u64_words(unit, committed_unit) && counts_match(response)
+		if(!SSdogmos.equal_u64_words(unit, ready_unit) || SSdogmos.equal_u64_words(unit, committed_unit))
+			return FALSE
+		var/list/next_count = committed_units.Copy()
+		var/advanced = FALSE
+		for(var/index in 1 to 4)
+			if(next_count[index] < 65535)
+				next_count[index]++
+				advanced = TRUE
+				break
+			next_count[index] = 0
+		if(!advanced || !SSdogmos.equal_u64_words(next_count, response.Copy(15, 19)))
+			return FALSE
+		for(var/index = 1; index <= 8; index += 2)
+			if(response[index + 19] < committed_counts[index + 1] \
+				|| (response[index + 19] == committed_counts[index + 1] && response[index + 18] < committed_counts[index]))
+				return FALSE
+		return TRUE
+	if(operation == "commit" && next_status != DOGMOS_JOB_RETRYING)
+		return FALSE
+	if(!same_count || !counts_match(response))
+		return FALSE
+	if(next_status == DOGMOS_JOB_READY)
+		return word_group_nonzero(response, 7, 4) && !SSdogmos.equal_u64_words(unit, committed_unit)
+	if(next_status == DOGMOS_JOB_ACCEPTED && status != DOGMOS_JOB_ACCEPTED)
+		return FALSE
+	return SSdogmos.equal_u64_words(unit, committed_unit)
+
+/// Checks a bounded word group without converting a u64 identity to a DM float.
+/datum/dogmos_stage_job/proc/word_group_nonzero(list/words, start, count)
+	for(var/index in start to (start + count - 1))
+		if(words[index])
+			return TRUE
+	return FALSE
+
+/// Polls and retries must preserve every already acknowledged publication count.
+/datum/dogmos_stage_job/proc/counts_match(list/response)
+	for(var/index in 1 to 8)
+		if(response[index + 18] != committed_counts[index])
+			return FALSE
+	return TRUE
+
+/** Sends one bounded control request. No session lock survives this proc's return. */
+/datum/controller/subsystem/air/proc/dogmos_job_request(operation, list/fields)
+	switch(operation)
+		if("submit")
+			return dogmos_stage_job_submit(fields)
+		if("poll")
+			return dogmos_stage_job_poll(fields)
+		if("commit")
+			return dogmos_stage_job_commit(fields)
+		if("cancel")
+			return dogmos_stage_job_cancel(fields)
+	CRASH("Invalid internal Dogmos job operation [operation].")
+
+/** Uses both the caller's remaining allowance and the current MC allocation. */
+/datum/controller/subsystem/air/proc/dogmos_job_budget_ms(remaining_ms, started_tick_usage)
+	return min(remaining_ms - TICK_DELTA_TO_MS(TICK_USAGE - started_tick_usage), \
+		TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE))
+
+/** Invalidates caches at the publication boundary before counters, callbacks or a pause. */
+/datum/controller/subsystem/air/proc/dogmos_accept_job_response(list/response, operation)
+	if(!dogmos_job?.response_is_valid(response, operation))
+		return FALSE
+	var/new_publication = !SSdogmos.equal_u64_words(dogmos_job.committed_units, response.Copy(15, 19))
+	if(new_publication)
+		SSdogmos.invalidate_mixture_snapshot_epoch()
+		num_equalize_processed += (response[19] - dogmos_job.committed_counts[1]) \
+			+ 65536 * (response[20] - dogmos_job.committed_counts[2])
+		num_group_turfs_processed += (response[21] - dogmos_job.committed_counts[3]) \
+			+ 65536 * (response[22] - dogmos_job.committed_counts[4])
+		dogmos_job.committed_units = response.Copy(15, 19)
+		dogmos_job.committed_unit = response.Copy(7, 11)
+		dogmos_job.committed_counts = response.Copy(19, 27)
+	else if(operation == "commit" && response[DOGMOS_JOB_STATUS] != DOGMOS_JOB_RETRYING)
+		return TRUE // Exact receipt replay: no second invalidation or cursor rewind.
+	if(operation == "submit")
+		dogmos_job.id = response.Copy(1, 5)
+	dogmos_job.status = response[DOGMOS_JOB_STATUS]
+	dogmos_job.ready_unit = dogmos_job.status == DOGMOS_JOB_READY ? response.Copy(7, 11) : null
+	dogmos_stage_remaining_estimate = SSdogmos.join_u32_words(response[13], response[14])
+	return TRUE
+
+/** Admits once, polls once per game tick, and publishes only under a fresh MC budget. */
+/datum/controller/subsystem/air/proc/dogmos_run_async_stage(stage, remaining_ms, started_tick_usage)
+	if(!dogmos_job)
+		if(!isnull(dogmos_pending_stage))
+			return dogmos_fail_closed_stage(stage)
+		var/work_limit = dogmos_work_limit_for_budget(dogmos_job_budget_ms(remaining_ms, started_tick_usage))
+		if(!work_limit)
+			return dogmos_defer_stage_for_budget()
+		dogmos_stage_epoch = SSdogmos.increment_u64_words(dogmos_stage_epoch)
+		dogmos_pending_stage = stage
+		dogmos_job = new(stage)
+		var/list/request = list(stage)
+		request += dogmos_pending_frontier_epoch
+		request += dogmos_stage_epoch
+		request += SSdogmos.split_u32_words(work_limit)
+		request += wait * 0.1
+		request += DOGMOS_JOB_QUANTUM_US
+		dogmos_job_last_poll_tick = world.time
+		if(!dogmos_accept_job_response(dogmos_job_request("submit", request), "submit"))
+			return dogmos_fail_closed_stage(stage)
+		return pause_until_next_tick()
+	if(dogmos_job.stage != stage || !dogmos_job.id)
+		return dogmos_fail_closed_stage(stage)
+	if(!dogmos_job.ready_unit)
+		if(dogmos_job_last_poll_tick == world.time)
+			return pause_until_next_tick()
+		if(dogmos_job_budget_ms(remaining_ms, started_tick_usage) <= 0)
+			return dogmos_defer_stage_for_budget()
+		dogmos_job_last_poll_tick = world.time
+		if(!dogmos_accept_job_response(dogmos_job_request("poll", dogmos_job.id), "poll"))
+			return dogmos_fail_closed_stage(stage)
+	if(dogmos_job.ready_unit)
+		if(dogmos_job_budget_ms(remaining_ms, started_tick_usage) <= 0)
+			return dogmos_defer_stage_for_budget()
+		var/list/request = dogmos_job.id.Copy()
+		request += dogmos_job.ready_unit
+		if(!dogmos_accept_job_response(dogmos_job_request("commit", request), "commit"))
+			return dogmos_fail_closed_stage(stage)
+	if(dogmos_job.status == DOGMOS_JOB_DONE)
+		QDEL_NULL(dogmos_job)
+		dogmos_pending_stage = null
+		dogmos_stage_remaining_estimate = 0
+		return FALSE
+	return pause_until_next_tick()
+
 /** Runs bounded continuations until this stage completes or the caller's time budget is spent. */
 /datum/controller/subsystem/air/proc/dogmos_run_stage(stage, remaining_ms)
 	var/start_tick_usage = TICK_USAGE
@@ -2022,11 +2380,17 @@
 		return TRUE
 	if(!isnull(dogmos_pending_stage) && dogmos_pending_stage != stage)
 		return TRUE
+	if(dogmos_job && !dogmos_async_stages)
+		return dogmos_fail_closed_stage(stage)
 	if(!dogmos_work_limit_for_budget(remaining_ms))
 		return dogmos_defer_stage_for_budget()
 	if(!dogmos_pending_frontier_epoch)
 		if(!sync_dogmos_frontier())
 			return dogmos_fail_closed_stage(stage)
+		if(dogmos_frontier_sync_pending)
+			return TRUE
+	if(dogmos_async_stages)
+		return dogmos_run_async_stage(stage, remaining_ms, start_tick_usage)
 	while(TRUE)
 		// Include frontier publication and all prior chunks in this invocation's budget.
 		var/budget_left_ms = remaining_ms - TICK_DELTA_TO_MS(TICK_USAGE - start_tick_usage)
@@ -2523,3 +2887,16 @@
 #undef DOGMOS_STAGE_RESPONSE_GROUP_SEEDS_LOW
 #undef DOGMOS_STAGE_RESPONSE_GROUP_SEEDS_HIGH
 #undef DOGMOS_STAGE_FULL_BUDGET_MS
+#undef DOGMOS_JOB_RESPONSE_FIELDS
+#undef DOGMOS_JOB_STATUS
+#undef DOGMOS_JOB_STAGE
+#undef DOGMOS_JOB_ACCEPTED
+#undef DOGMOS_JOB_RUNNING
+#undef DOGMOS_JOB_READY
+#undef DOGMOS_JOB_RETRYING
+#undef DOGMOS_JOB_DONE
+#undef DOGMOS_JOB_QUANTUM_US
+#undef DOGMOS_SERVICE_TELEMETRY_WORDS
+#undef DOGMOS_JOB_TELEMETRY_START
+#undef DOGMOS_JOB_TELEMETRY_STATUS
+#undef DOGMOS_JOB_TELEMETRY_COUNTERS

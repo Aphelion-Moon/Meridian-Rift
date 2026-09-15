@@ -67,7 +67,11 @@
 			"cache_collisions" = dogmos_mixture_cache_collisions,
 			"topology_calls" = dogmos_runtime_topology_calls,
 			"service_ready" = service_ready,
+			"async_stages" = SSair.dogmos_async_stages,
 		)
+		// One diagnostic RPC per sample, in both cohorts. Raw counter words retain exact values.
+		if(service_ready)
+			sample["job_observations"] = dogmos_job_observations_snapshot()
 		if(sample_index % 10 == 0)
 			var/list/locations = list()
 			for(var/turf/active as anything in SSair.active_turfs.Copy(1, min(17, length(SSair.active_turfs) + 1)))

@@ -5,6 +5,7 @@ param(
 	[string] $DestinationRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
 	[string] $ManifestPath,
 	[string] $BundleRoot,
+	[switch] $AllowLocalQualification,
 	[switch] $VerifyOnly
 )
 
@@ -51,7 +52,11 @@ if (-not $BundleRoot) {
 $resolvedManifest = (Resolve-Path -LiteralPath $ManifestPath).Path
 $resolvedBundle = (Resolve-Path -LiteralPath $BundleRoot).Path
 
-& python $verifier validate-release --manifest $resolvedManifest --bundle-root $resolvedBundle
+$qualificationArguments = @()
+if ($AllowLocalQualification) {
+	$qualificationArguments += '--allow-local-qualification'
+}
+& python $verifier validate-release --manifest $resolvedManifest --bundle-root $resolvedBundle @qualificationArguments
 Assert-NativeExitCode 'Dogmos release contract validation'
 $manifest = Get-Content -LiteralPath $resolvedManifest -Raw | ConvertFrom-Json
 if ($manifest.source_revision -notmatch '^[0-9a-f]{40}$') {
@@ -62,10 +67,15 @@ Assert-NativeExitCode 'Dogmos source revision lookup'
 if ($head -cne $manifest.source_revision) {
 	throw "Dogmos source revision mismatch: contract=$($manifest.source_revision) repository=$head"
 }
-$status = @(& git -C $resolvedDogmos status --porcelain=v1 --untracked-files=all 2>&1)
-Assert-NativeExitCode 'Dogmos source cleanliness check'
-if ($status.Count -gt 0) {
-	throw 'Dogmos source repository is dirty; contract sync requires an exact clean revision'
+if ($manifest.PSObject.Properties.Name -contains 'qualification') {
+	& python $verifier verify-local-source --manifest $resolvedManifest --bundle-root $resolvedBundle --repository-root $resolvedDogmos
+	Assert-NativeExitCode 'Dogmos local qualification source verification'
+} else {
+	$status = @(& git -C $resolvedDogmos status --porcelain=v1 --untracked-files=all)
+	Assert-NativeExitCode 'Dogmos source cleanliness check'
+	if ($status.Count -gt 0) {
+		throw 'Dogmos source repository is dirty; contract sync requires an exact clean revision'
+	}
 }
 
 if ($VerifyOnly) {
@@ -112,7 +122,7 @@ try {
 		[System.IO.File]::Copy($stagedFiles[$relativePath], $destination, $true)
 	}
 	$contractDefines = Join-Path $stageRoot 'code\__DEFINES\dogmos_contract.dm'
-	& python $verifier render-defines --manifest $resolvedManifest --bundle-root $resolvedBundle --output $contractDefines
+	& python $verifier render-defines --manifest $resolvedManifest --bundle-root $resolvedBundle --output $contractDefines @qualificationArguments
 	Assert-NativeExitCode 'Dogmos contract define generation'
 	& python $verifier verify-installed --root $stageRoot
 	Assert-NativeExitCode 'Staged Dogmos contract verification'
@@ -127,6 +137,10 @@ try {
 		'dogmos.lock.json'
 	)
 	$backupRoot = Join-Path $stageRoot 'backup'
+	if ($manifest.PSObject.Properties.Name -contains 'qualification') {
+		& python $verifier verify-local-source --manifest $resolvedManifest --bundle-root $resolvedBundle --repository-root $resolvedDogmos
+		Assert-NativeExitCode 'Dogmos local source recheck before install'
+	}
 	$existing = @{}
 	foreach ($relativePath in $installOrder) {
 		$destination = Join-Path $resolvedDestination $relativePath

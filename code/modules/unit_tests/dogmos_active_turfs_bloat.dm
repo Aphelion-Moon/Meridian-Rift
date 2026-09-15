@@ -15,7 +15,7 @@
 	for(var/i in 1 to 1900)
 		bloated += turf_a
 		bloated += turf_b
-	SSair.active_turfs = bloated
+	SSair.dogmos_replace_active_frontier(bloated) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = bloated
 	var/original_cursor = SSair.active_turfs_walk_cursor
 	SSair.active_turfs_walk_cursor = 0
 	// APHELION EDIT ADDITION START - DOGMOS
@@ -43,7 +43,7 @@
 	// APHELION EDIT ADDITION END
 	var/cost_ms = TICK_USAGE_TO_MS(start_tick_usage)
 
-	SSair.active_turfs = original_active_turfs
+	SSair.dogmos_replace_active_frontier(original_active_turfs) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = original_active_turfs
 	SSair.active_turfs_walk_cursor = original_cursor
 	// APHELION EDIT ADDITION START - DOGMOS
 	SSair.dogmos_visual_refresh_batch = original_snapshot

@@ -6,6 +6,7 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 import struct
+import subprocess
 from typing import Any
 
 
@@ -112,7 +113,7 @@ def _validate_record(record: Any, description: str) -> None:
         raise ContractError(f"invalid {description} size")
 
 
-def _validate_structure(manifest: dict[str, Any]) -> None:
+def _validate_structure(manifest: dict[str, Any], *, allow_local_qualification: bool = False) -> None:
     if manifest.get("schema_version") != 1:
         raise ContractError("unsupported Dogmos contract schema")
     if manifest.get("build_profile") != "release":
@@ -129,6 +130,21 @@ def _validate_structure(manifest: dict[str, Any]) -> None:
     fingerprint = capabilities.get("feature_fingerprint")
     if not isinstance(fingerprint, str) or not HEX_64.fullmatch(fingerprint):
         raise ContractError("Dogmos feature fingerprint is invalid")
+    if "qualification" in manifest:
+        if not allow_local_qualification:
+            raise ContractError("local qualification bundles are not production releases")
+        qualification = manifest["qualification"]
+        if (not isinstance(qualification, dict)
+                or set(qualification) != {"kind", "source_snapshot"}
+                or qualification["kind"] != "local-source-snapshot-v1"):
+            raise ContractError("invalid local qualification marker")
+        record = qualification["source_snapshot"]
+        _validate_record(record, "local source snapshot")
+        if record["file"] != "dogmos-source-snapshot.json":
+            raise ContractError("invalid local source snapshot filename")
+        expected = _sha256(b"dogmos-local-qualification-v1\0" + bytes.fromhex(record["sha256"]))
+        if fingerprint != expected:
+            raise ContractError("local source snapshot handshake fingerprint mismatch")
     toolchain = manifest.get("toolchain")
     if not isinstance(toolchain, dict):
         raise ContractError("Dogmos contract has no toolchain")
@@ -190,10 +206,76 @@ def _verify_record(record: dict[str, Any], root: Path, description: str) -> byte
     return data
 
 
-def validate_release(data: bytes, bundle_root: Path) -> dict[str, Any]:
+def _local_source_snapshot(manifest: dict[str, Any], bundle_root: Path) -> dict[str, Any]:
+    record = manifest["qualification"]["source_snapshot"]
+    encoded = _verify_record(record, bundle_root, "local source snapshot")
+    try:
+        snapshot = json.loads(encoded.decode("utf-8"), object_pairs_hook=_duplicate_guard)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ContractError(f"invalid local source snapshot: {error}") from error
+    if (not isinstance(snapshot, dict)
+            or set(snapshot) != {"schema_version", "source_revision", "files"}
+            or snapshot["schema_version"] != 1
+            or snapshot["source_revision"] != manifest["source_revision"]
+            or (json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode() != encoded):
+        raise ContractError("invalid local source snapshot schema, base revision or canonical bytes")
+    entries = snapshot["files"]
+    if not isinstance(entries, list) or not entries:
+        raise ContractError("empty local source snapshot")
+    names = []
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != {"path", "size", "sha256"}:
+            raise ContractError("invalid local source record")
+        name = _safe_name(entry["path"], "source")
+        if ":" in name or ".git" in PurePosixPath(name).parts or any(ord(c) < 32 for c in name):
+            raise ContractError("unsafe local source path")
+        if (type(entry["size"]) is not int or entry["size"] < 0
+                or not isinstance(entry["sha256"], str) or not HEX_64.fullmatch(entry["sha256"])):
+            raise ContractError("invalid local source size or digest")
+        names.append(name)
+    if names != sorted(set(names)):
+        raise ContractError("local source paths must be sorted and unique")
+    return snapshot
+
+
+def verify_local_source(manifest: dict[str, Any], bundle_root: Path, repository_root: Path) -> None:
+    snapshot = _local_source_snapshot(manifest, bundle_root)
+    root = repository_root.resolve(strict=True)
+
+    def git(*arguments: str) -> bytes:
+        return subprocess.run(["git", *arguments], cwd=root, check=True, capture_output=True).stdout
+
+    if Path(git("rev-parse", "--show-toplevel").decode().strip()).resolve() != root:
+        raise ContractError("local source verification requires the repository root")
+    if git("rev-parse", "--verify", "HEAD").decode().strip() != snapshot["source_revision"]:
+        raise ContractError("local source base revision changed")
+    listed = git("ls-files", "-z", "--cached", "--others", "--exclude-standard")
+    current = []
+    for name in sorted(set(listed.decode("utf-8").rstrip("\0").split("\0"))):
+        if ":" in name or ".git" in PurePosixPath(name).parts or any(ord(c) < 32 for c in name):
+            raise ContractError("unsafe local source inventory path")
+        path = root / PurePosixPath(_safe_name(name, "source"))
+        for ancestor in (path, *path.parents):
+            if ancestor == root:
+                break
+            if ancestor.is_symlink() or (hasattr(ancestor, "is_junction") and ancestor.is_junction()):
+                raise ContractError(f"local source link is unsupported: {name}")
+        if not path.exists():
+            continue
+        if not path.is_file():
+            raise ContractError(f"local source entry is not a regular file: {name}")
+        data = path.read_bytes()
+        current.append({"path": name, "size": len(data), "sha256": _sha256(data)})
+    if current != snapshot["files"]:
+        raise ContractError("local source inventory changed since the qualification snapshot")
+
+
+def validate_release(data: bytes, bundle_root: Path, *, allow_local_qualification: bool = False) -> dict[str, Any]:
     manifest = _decode_manifest(data)
-    _validate_structure(manifest)
+    _validate_structure(manifest, allow_local_qualification=allow_local_qualification)
     bundle_root = Path(bundle_root)
+    if "qualification" in manifest:
+        _local_source_snapshot(manifest, bundle_root)
     _verify_record(manifest["bindings"], bundle_root, "bindings")
     for artifact in manifest["artifacts"]:
         binary = _verify_record(artifact, bundle_root, "artifact")
@@ -231,6 +313,8 @@ def render_contract_defines(manifest: dict[str, Any]) -> bytes:
         artifact = _artifact(manifest, platform, role)
         macro = f"DOGMOS_CONTRACT_{platform}_{role}_SHA256".upper()
         lines.append(f'#define {macro} "{artifact["sha256"]}"')
+    if "qualification" in manifest:
+        lines.append("#define DOGMOS_CONTRACT_LOCAL_QUALIFICATION 1")
     return ("\n".join(lines) + "\n").encode()
 
 
@@ -238,7 +322,10 @@ def verify_installed(root: Path) -> dict[str, Any]:
     root = Path(root)
     lock_bytes = _required_file(root / "dogmos.lock.json", "Dogmos lock")
     manifest = _decode_manifest(lock_bytes)
-    _validate_structure(manifest)
+    # Installed verification checks bytes and identity for local development/test
+    # runners too. Accepting a local install is an explicit synchronization action;
+    # release validation continues to reject it by default.
+    _validate_structure(manifest, allow_local_qualification=True)
     bindings_path = root / "code" / "__DEFINES" / "dogmos_bindings.dm"
     bindings = _required_file(bindings_path, "installed bindings")
     if (
@@ -271,10 +358,16 @@ def _parser() -> argparse.ArgumentParser:
     release = commands.add_parser("validate-release")
     release.add_argument("--manifest", type=Path, required=True)
     release.add_argument("--bundle-root", type=Path, required=True)
+    release.add_argument("--allow-local-qualification", action="store_true")
+    local_source = commands.add_parser("verify-local-source")
+    local_source.add_argument("--manifest", type=Path, required=True)
+    local_source.add_argument("--bundle-root", type=Path, required=True)
+    local_source.add_argument("--repository-root", type=Path, required=True)
     render = commands.add_parser("render-defines")
     render.add_argument("--manifest", type=Path, required=True)
     render.add_argument("--bundle-root", type=Path, required=True)
     render.add_argument("--output", type=Path, required=True)
+    render.add_argument("--allow-local-qualification", action="store_true")
     installed = commands.add_parser("verify-installed")
     installed.add_argument("--root", type=Path, required=True)
     return parser
@@ -287,11 +380,17 @@ def main() -> int:
             verify_installed(arguments.root)
             return 0
         manifest_bytes = arguments.manifest.read_bytes()
-        manifest = validate_release(manifest_bytes, arguments.bundle_root)
+        manifest = validate_release(manifest_bytes, arguments.bundle_root,
+                                    allow_local_qualification=arguments.command == "verify-local-source"
+                                    or arguments.allow_local_qualification)
+        if arguments.command == "verify-local-source":
+            if "qualification" not in manifest:
+                raise ContractError("local source verification requires a qualification bundle")
+            verify_local_source(manifest, arguments.bundle_root, arguments.repository_root)
         if arguments.command == "render-defines":
             arguments.output.write_bytes(render_contract_defines(manifest))
         return 0
-    except (ContractError, OSError) as error:
+    except (ContractError, OSError, subprocess.CalledProcessError) as error:
         print(f"Dogmos contract verification failed: {error}")
         return 1
 

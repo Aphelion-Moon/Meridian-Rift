@@ -14,8 +14,14 @@
 	/// Whether decompression may strip this turf's floor surface.
 	var/decompression_floor_rip_resistant = FALSE
 
-/// Advances the callback generation used to fence ChangeTurf() replacements.
-/turf/proc/mark_dogmos_turf_replacement()
+/** Advances callback identity and records replacement order, even after ChangeTurf resets fields.
+ * initial_registration skips membership changes unless an acknowledged old handle needs repair.
+ */
+/turf/proc/mark_dogmos_turf_replacement(initial_registration = FALSE)
+	// Keep generation replacement in canonical last-add order without repeating activation effects.
+	// First registration has no retired identity and must not restart a bootstrap scan.
+	if((!initial_registration || SSair?.dogmos_committed_frontier?[src]) && SSair?.dogmos_remove_frontier_member(src))
+		SSair.dogmos_add_frontier_member(src)
 	dogmos_registration_generation = ++next_dogmos_registration_generation
 	dogmos_registered_mixture_slot = null
 	dogmos_registered_mixture_generation = null
@@ -52,7 +58,7 @@
 			update_air_ref(DOGMOS_SIMULATION_REMOVE)
 		return
 	if(isnull(dogmos_registration_generation))
-		mark_dogmos_turf_replacement()
+		mark_dogmos_turf_replacement(initial_registration = TRUE)
 	if(isnull(initial_temperature))
 		initial_temperature = temperature
 	// Map-load turfs without air use heat-only registration until their gas datum exists.

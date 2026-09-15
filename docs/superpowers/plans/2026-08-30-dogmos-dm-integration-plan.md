@@ -14,7 +14,7 @@
 
 - Work in the existing `dogmos` checkout; do not create a worktree or change branches.
 - Use Meridian-MCP for DM discovery, exact symbol inspection, references, parse, diagnostics, and Tracy. Use PowerShell for builds, tests, processes, and memory measurement.
-- Do not edit protocol constants, generated bindings, native artifacts, dependencies, workflows, build/bootstrap files, Docker, TGS, or deployment configuration without separate explicit approval.
+- Rebuild native artifacts, regenerate bindings/contracts/manifests/artifact lock data, and synchronize the complete verified pair into a local development or test checkout under the authorized task. Necessary in-scope protocol, generator and synchronizer updates use the same authorization; no separate protected-artifact approval is required. Never hand-edit generated outputs. Unrelated dependency, workflow, build/bootstrap, Docker, TGS and deployment changes follow the infrastructure rules in `AGENTS.md`.
 - Do not author or materially rewrite protected creative content or user-facing Kennel names/copy.
 - Preserve all unrelated working-tree changes. Do not commit, push, reset, checkout, merge, or clean.
 - Every DM edit follows the current STYLE, AUTODOC, STANDARDS, placement, and marker guides.
@@ -133,7 +133,7 @@
 1. Reparse `tgstation.dme` with Meridian-MCP after all DM edits.
 2. Run changed-file diagnostics and exact symbol/reference checks for recovery, callback dispatch, cache invalidation, and Kennel producer changes.
 3. Run all new focused tests plus existing Dogmos recovery, callback, topology, cache/golden-mixture, reaction, and Kennel tests.
-4. Run `tools/dogmos/sync_contract.ps1 -VerifyOnly` only after a current identity-locked release manifest and bundle exist. If absent, report the gate unavailable and do not synthesize artifacts without authorization.
+4. Produce a current identity-locked release manifest and bundle with the maintained build/generation tooling when needed, then run `tools/dogmos/sync_contract.ps1 -VerifyOnly`. This rebuilding and regeneration is included in task authorization; do not request another protected-artifact approval. Report the gate unavailable if required tools or inputs are missing, and never fabricate manifests or verification evidence.
 5. Run `tools/dogmos/test_compile_check.ps1` and require a fresh compile with 0 errors.
 6. Run `tools/dogmos/boot_probe.ps1` with identity-matched shim and service artifacts; verify both processes, initialization completion, service health, and clean shutdown.
 7. Run the wider maintained Dogmos/DM unit suite and require a final runner result with no runtime signatures.

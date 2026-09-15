@@ -162,6 +162,22 @@ class ContractFixture:
             text=True,
         )
 
+    def qualify_local(self):
+        # Literal inventory is an oracle independent of the installer's scanner.
+        snapshot_path = self.bundle / "dogmos-source-snapshot.json"
+        snapshot = {"schema_version": 1, "source_revision": self.revision, "files": []}
+        for name in (".gitignore", "source.txt"):
+            data = (self.repository / name).read_bytes()
+            snapshot["files"].append({"path": name, "size": len(data), "sha256": sha256(data)})
+        encoded = (json.dumps(snapshot, indent=2, sort_keys=True) + "\n").encode()
+        snapshot_path.write_bytes(encoded)
+        self.manifest["qualification"] = {
+            "kind": "local-source-snapshot-v1",
+            "source_snapshot": {"file": "dogmos-source-snapshot.json", "sha256": sha256(encoded), "size": len(encoded)},
+        }
+        self.manifest["capabilities"]["feature_fingerprint"] = sha256(b"dogmos-local-qualification-v1\0" + hashlib.sha256(encoded).digest())
+        self.manifest_path.write_bytes((json.dumps(self.manifest, indent=2, sort_keys=True) + "\n").encode())
+
 
 class GameContractTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -243,6 +259,59 @@ class GameContractTests(unittest.TestCase):
         (self.fixture.repository / "source.txt").write_text("dirty\n", encoding="utf-8")
         failed = self.fixture.sync()
         self.assertNotEqual(failed.returncode, 0, failed.stdout + failed.stderr)
+        self.assertEqual(list(self.fixture.destination.rglob("*")), [])
+
+    def test_local_sync_requires_opt_in_and_exact_snapshot_then_remains_idempotent(self):
+        self.fixture.qualify_local()
+        with self.assertRaisesRegex(ContractError, "local qualification"):
+            validate_release(self.fixture.manifest_path.read_bytes(), self.fixture.bundle)
+        rejected = self.fixture.sync()
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertEqual(list(self.fixture.destination.rglob("*")), [])
+        installed = self.fixture.sync("-AllowLocalQualification")
+        self.assertEqual(installed.returncode, 0, installed.stdout + installed.stderr)
+        defines = (self.fixture.destination / "code/__DEFINES/dogmos_contract.dm").read_text()
+        self.assertIn("#define DOGMOS_CONTRACT_LOCAL_QUALIFICATION 1", defines)
+        verified = self.fixture.sync("-AllowLocalQualification", "-VerifyOnly")
+        self.assertEqual(verified.returncode, 0, verified.stdout + verified.stderr)
+        (self.fixture.repository / "source.txt").write_bytes(b"changed after build")
+        stale = self.fixture.sync("-AllowLocalQualification")
+        self.assertNotEqual(stale.returncode, 0, stale.stdout + stale.stderr)
+        self.assertIn("changed", stale.stdout + stale.stderr)
+
+    def test_local_marker_cannot_bypass_release_cleanliness_or_identity(self):
+        (self.fixture.repository / "source.txt").write_bytes(b"dirty")
+        failed = self.fixture.sync("-AllowLocalQualification")
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertEqual(list(self.fixture.destination.rglob("*")), [])
+
+    def test_local_sync_rejects_added_deleted_and_corrupt_snapshot_inputs(self):
+        self.fixture.qualify_local()
+        for mutation in ("add", "delete", "snapshot"):
+            with self.subTest(mutation=mutation):
+                source = self.fixture.repository / "source.txt"
+                original = source.read_bytes()
+                extra = self.fixture.repository / "untracked.rs"
+                snapshot = self.fixture.bundle / "dogmos-source-snapshot.json"
+                original_snapshot = snapshot.read_bytes()
+                if mutation == "add":
+                    extra.write_bytes(b"new source")
+                elif mutation == "delete":
+                    source.unlink()
+                else:
+                    snapshot.write_bytes(original_snapshot + b" ")
+                failed = self.fixture.sync("-AllowLocalQualification")
+                self.assertNotEqual(failed.returncode, 0, failed.stdout + failed.stderr)
+                self.assertEqual(list(self.fixture.destination.rglob("*")), [])
+                if extra.exists():
+                    extra.unlink()
+                source.write_bytes(original)
+                snapshot.write_bytes(original_snapshot)
+        self.fixture.qualify_local()
+        self.fixture.manifest["capabilities"]["feature_fingerprint"] = "0" * 64
+        self.fixture.manifest_path.write_bytes((json.dumps(self.fixture.manifest, indent=2, sort_keys=True) + "\n").encode())
+        failed = self.fixture.sync("-AllowLocalQualification")
+        self.assertNotEqual(failed.returncode, 0)
         self.assertEqual(list(self.fixture.destination.rglob("*")), [])
 
 

@@ -18,6 +18,7 @@
 		"kennel_push_cursor", "active_turfs_walk_cursor", "recent_breaches", "active_turfs",
 		"kennel_jump_targets", "kennel_jump_target_counts", "can_fire",
 		"dogmos_frontier_epoch", "dogmos_stage_epoch", "dogmos_pending_stage",
+		"dogmos_async_stages", "dogmos_job", "dogmos_job_last_poll_tick", // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_pending_frontier_epoch", "dogmos_committed_frontier",
 		"dogmos_stage_remaining_estimate", "dogmos_stage_work_limit",
 		"dogmos_active_turf_stages_complete", "dogmos_fdm_steps_completed",
@@ -25,6 +26,14 @@
 		"dogmos_active_walk_complete", "dogmos_visual_refresh_cursor", "dogmos_visual_refresh_batch", // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_reacted_turfs", "dogmos_resume_recovered_cycle", // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_walk_prefetch_end", "dogmos_visual_prefetch_end", // APHELION EDIT ADDITION - DOGMOS
+		// APHELION EDIT ADDITION START - DOGMOS
+		"dogmos_machine_prefetch_start", "dogmos_machine_prefetch_end", "dogmos_machine_prefetch_cursor",
+		"dogmos_machine_prefetch_air_cursor", "dogmos_machine_prefetch_ready", "dogmos_machine_prefetch_mixtures",
+		"dogmos_frontier_source", "dogmos_frontier_revision", "dogmos_frontier_upload_epoch",
+		"dogmos_frontier_journal", "dogmos_frontier_needs_rescan", "dogmos_frontier_candidate",
+		"dogmos_frontier_retired", "dogmos_frontier_scan_revision", "dogmos_frontier_scan_cursor",
+		"dogmos_frontier_scan_total", "dogmos_frontier_sync_pending", "dogmos_frontier_upload_cursor",
+		// APHELION EDIT ADDITION END
 	)
 	recovery_air_state = list()
 	for(var/field_name in air_recovery_fields)
@@ -49,6 +58,17 @@
 	SSair.dogmos_pending_frontier_epoch = list(1, 2, 3, 4)
 	SSair.dogmos_stage_remaining_estimate = 17
 	SSair.dogmos_stage_work_limit = 128
+	// APHELION EDIT ADDITION START - DOGMOS
+	SSair.dogmos_async_stages = TRUE
+	SSair.dogmos_job = allocate(/datum/dogmos_stage_job, 4)
+	SSair.dogmos_job.id = list(5, 6, 7, 65535)
+	SSair.dogmos_job.ready_unit = list(8, 9, 10, 65535)
+	SSair.dogmos_job.status = 3
+	SSair.dogmos_job.committed_units = list(65535, 65535, 0, 0)
+	SSair.dogmos_job.committed_unit = list(7, 9, 10, 65535)
+	SSair.dogmos_job.committed_counts = list(11, 12, 13, 14, 15, 16, 17, 18)
+	SSair.dogmos_job_last_poll_tick = world.time
+	// APHELION EDIT ADDITION END
 	SSair.dogmos_equalize_stage_complete = TRUE // APHELION EDIT ADDITION - DOGMOS
 	// APHELION EDIT ADDITION START - DOGMOS
 	SSair.dogmos_active_walk_complete = TRUE
@@ -75,6 +95,19 @@
 	var/datum/gas_mixture/sentinel = allocate(/datum/gas_mixture, CELL_VOLUME)
 	sentinel.set_temperature(321.5)
 	sentinel.set_moles(/datum/gas/oxygen, 7.25)
+	// APHELION EDIT ADDITION START - DOGMOS
+	SSair.dogmos_machine_prefetch_start = 65
+	SSair.dogmos_machine_prefetch_end = 34
+	SSair.dogmos_machine_prefetch_cursor = 60
+	SSair.dogmos_machine_prefetch_air_cursor = 257
+	SSair.dogmos_machine_prefetch_ready = FALSE
+	SSair.dogmos_machine_prefetch_mixtures = list(sentinel)
+	SSair.dogmos_frontier_upload_epoch = list(9, 10, 11, 12)
+	SSair.dogmos_frontier_upload_cursor = 512
+	SSair.dogmos_frontier_candidate = list(jump_target)
+	SSair.dogmos_frontier_retired = list(jump_target)
+	SSair.dogmos_frontier_needs_rescan = FALSE
+	// APHELION EDIT ADDITION END
 	var/sentinel_slot = sentinel.dogmos_slot
 	var/sentinel_generation = sentinel.dogmos_generation
 
@@ -82,6 +115,12 @@
 	// by the running Master's cached scheduler lists.
 	recovered_air = new
 	recovered_air.Recover()
+	TEST_ASSERT(isnull(recovered_air.dogmos_frontier_upload_cursor), "Recovery retained an upload cursor without its captured revision.") // APHELION EDIT ADDITION - DOGMOS
+	// APHELION EDIT ADDITION START - DOGMOS
+	TEST_ASSERT(recovered_air.dogmos_async_stages, "SSair recovery changed the boot-selected job mode.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_job, SSair.dogmos_job, "SSair recovery lost exact job/publication ownership.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_job_last_poll_tick, SSair.dogmos_job_last_poll_tick, "SSair recovery would poll twice in the same tick.")
+	// APHELION EDIT ADDITION END
 	TEST_ASSERT_EQUAL(recovered_air.initialized, original_air_initialized, "SSair recovery lost its completed initialization state.")
 
 	TEST_ASSERT_EQUAL(SSdogmos, original_dogmos, \
@@ -126,6 +165,20 @@
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_resume_recovered_cycle, TRUE, "SSair recovery lost its pending cycle continuation.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_walk_prefetch_end, 25, "SSair recovery lost its prefetched maintenance chunk.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_visual_prefetch_end, 25, "SSair recovery lost its prefetched visual chunk.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_machine_prefetch_start, 65, "Recovery lost the reverse machinery range start.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_machine_prefetch_end, 34, "Recovery lost the reverse machinery range end.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_machine_prefetch_cursor, 60, "Recovery restarted machinery collection.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_machine_prefetch_air_cursor, 257, "Recovery restarted an oversized component.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_machine_prefetch_ready, FALSE, "Recovery skipped incomplete machinery collection.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_machine_prefetch_mixtures[1], sentinel, "Recovery lost the bounded pending mixture request.")
+	recovered_air.dogmos_clear_machinery_prefetch()
+	TEST_ASSERT_EQUAL(length(SSair.dogmos_machine_prefetch_mixtures), 1, "Recovered machinery scratch aliases the old subsystem.")
+	TEST_ASSERT(recovered_air.dogmos_frontier_needs_rescan, "Recovery did not schedule a bounded frontier reconciliation.")
+	TEST_ASSERT_EQUAL(length(recovered_air.dogmos_frontier_journal), 0, "Recovery trusted an incomplete membership journal.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_committed_frontier, SSair.dogmos_committed_frontier, "Recovery copied the world-sized acknowledged frontier.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_frontier_candidate, SSair.dogmos_frontier_candidate, "Recovery discarded unpublished scratch before bounded retirement.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_frontier_retired, SSair.dogmos_frontier_retired, "Recovery lost pending snapshot retirement.")
+	TEST_ASSERT(SSdogmos.equal_u64_words(recovered_air.dogmos_frontier_upload_epoch, list(9, 10, 11, 12)), "Recovery lost the attempted upload epoch high water.")
 	// APHELION EDIT ADDITION END
 	for(var/word_index in 1 to 4)
 		TEST_ASSERT_EQUAL(recovered_air.dogmos_frontier_epoch[word_index], word_index, \

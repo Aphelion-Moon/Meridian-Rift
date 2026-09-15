@@ -15,7 +15,7 @@
 
 Use PowerShell for Windows build/test orchestration and inspect `$LASTEXITCODE` after native commands. Do not describe parser success, process liveness, a direct compiler gate, or focused tests as equivalent to the complete repository path.
 
-Any proposed edit to `BUILD.cmd`, inherited bootstrap/build implementation, workflows, release/deployment scripts, Docker, TGS, or native artifact authority requires a new exact-file/effect explanation and explicit approval. Prefer a Meridian-owned wrapper that delegates to the human entry point and detects contract drift.
+Authorized implementation and verification work includes running maintained build tools, rebuilding native artifacts, regenerating bindings/contracts/manifests/artifact lock data, and synchronizing the complete verified pair into a local development or test checkout. Necessary in-scope protocol, generator and synchronizer updates use the same authorization; do not request another exact-file approval for protected artifacts. All build and contract verification gates still apply. Prefer a Meridian-owned wrapper that delegates to the human entry point and detects contract drift when extending build orchestration. Unrelated infrastructure changes, publication and live production operations follow the separate authorization rules in `AGENTS.md`.
 
 Report:
 

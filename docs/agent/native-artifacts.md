@@ -13,4 +13,6 @@ The game validates ABI, protocol version, exact source revision, feature fingerp
 
 Generated bindings/contract defines are never hand-edited. A maintained synchronizer verifies a scratch staging directory and installs the complete platform set atomically. Production Docker/TGS paths fetch an exact revision or verified release, never a mutable branch.
 
-Native artifacts, lockfiles, generators/synchronizers, Docker, TGS, release workflows, and dependency authority are protected infrastructure. Name exact files/effects and obtain explicit user approval before changing them.
+Rebuilding native artifacts, regenerating bindings, contract defines, manifests and artifact lock data, and synchronizing the complete verified pair into a local development or test checkout are included in authorized implementation and verification work. Do not request separate per-file approval because these outputs are protected. Necessary in-scope protocol, generator and synchronizer changes follow the same task authorization and required verification gates.
+
+Use maintained tooling and preserve staging validation and atomic installation. Unrelated dependency, Docker, TGS, workflow or deployment changes remain subject to the infrastructure policy in `AGENTS.md`. Release publication, live deployment and production restarts retain their own authorization requirements.

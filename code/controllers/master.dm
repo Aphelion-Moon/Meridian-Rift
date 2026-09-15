@@ -876,6 +876,15 @@ ADMIN_VERB(cmd_controller_view_ui, R_SERVER|R_DEBUG, "Controller Overview", "Vie
 				bg_calc = FALSE
 
 
+			// APHELION EDIT ADDITION START - DOGMOS
+			if (queue_node.resume_after > world.time && (queue_node.state == SS_PAUSED || queue_node.state == SS_PAUSING))
+				// Keep the unfinished run queued, but give later work its share of this pass.
+				current_tick_budget -= queue_node_priority
+				queue_node = queue_node.queue_next
+				continue
+			queue_node.resume_after = 0
+			// APHELION EDIT ADDITION END
+
 			tick_remaining = TICK_LIMIT_RUNNING - TICK_USAGE
 
 			if (queue_node_priority >= 0 && current_tick_budget > 0 && current_tick_budget >= queue_node_priority)

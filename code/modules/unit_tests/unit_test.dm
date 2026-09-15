@@ -186,6 +186,17 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 			return TRUE
 	return FALSE
 
+// APHELION EDIT ADDITION START - DOGMOS
+/** Drains bounded frontier slices without allowing another atmosphere stage into a fixture interval. */
+/datum/unit_test/proc/dogmos_sync_fixture_frontier()
+	for(var/chunk in 1 to 4096)
+		if(!SSair.sync_dogmos_frontier())
+			return FALSE
+		if(!SSair.dogmos_frontier_sync_pending)
+			return TRUE
+	return FALSE
+// APHELION EDIT ADDITION END
+
 /** Runs only the requested stage from fixture turfs, then restores the normal frontier.
  * There are no sleeps between publication, stage calls and restoration: another SSair
  * stage cannot move gas during the measured before/after interval.
@@ -205,14 +216,14 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/unused_budget_ms = 0
 	// APHELION EDIT ADDITION END
 	try
-		SSair.active_turfs = turfs.Copy()
+		SSair.dogmos_replace_active_frontier(turfs.Copy()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = turfs.Copy()
 		for(var/chunk in 1 to 4096)
 			// APHELION EDIT ADDITION START - DOGMOS
 			var/chunk_start = TICK_USAGE
 			// APHELION EDIT ADDITION END
 			pending = use_fdm_cadence ? SSair.process_turfs_auxtools(chunk_budget_ms) : SSair.dogmos_run_stage(stage, chunk_budget_ms) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: pending = use_fdm_cadence ? SSair.process_turfs_auxtools(100) : SSair.dogmos_run_stage(stage, 100)
 			// APHELION EDIT ADDITION START - DOGMOS
-			if(require_budget_use && pending)
+			if(require_budget_use && pending && !SSair.dogmos_frontier_sync_pending)
 				unused_budget_ms = max(unused_budget_ms, chunk_budget_ms - TICK_DELTA_TO_MS(TICK_USAGE - chunk_start))
 			// APHELION EDIT ADDITION END
 			if(!pending || !SSdogmos.service_ready)
@@ -221,16 +232,16 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 			// Equalization publishes pressure events. Consume them before gas restoration,
 			// then remove only this fixture's effects on the DM pressure queue and fields.
 			pending = !dogmos_drain_fixture_callbacks()
-		SSair.active_turfs = original_active
+		SSair.dogmos_replace_active_frontier(original_active) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = original_active
 		if(!pending && SSdogmos.service_ready)
 			SSair.dogmos_pending_frontier_epoch = null
-			restored = SSair.sync_dogmos_frontier()
+			restored = dogmos_sync_fixture_frontier() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: restored = SSair.sync_dogmos_frontier()
 			SSair.dogmos_pending_frontier_epoch = null
 	catch(var/exception/error)
 		failure = "Native fixture stage [stage] raised [error.name]."
 	// Restore local state even when an IPC call runtimes. An incomplete native cursor
 	// has no safe DM cancellation API: freeze atmos and end the suite after recording failure.
-	SSair.active_turfs = original_active
+	SSair.dogmos_replace_active_frontier(original_active) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = original_active
 	SSair.high_pressure_delta.Cut()
 	SSair.high_pressure_delta += original_pressure_queue
 	for(var/turf/open/fixture_turf as anything in turfs)

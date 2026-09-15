@@ -27,8 +27,10 @@ class AgentDocumentTests(unittest.TestCase):
 		(root / "AGENTS.md").write_text(
 			"# Meridian-Rift agent instructions\n\n"
 			f"{links}\n\n"
-			"Protected infrastructure requires explicit user approval naming the exact file: "
-			"BUILD.cmd, Cargo.toml, .github/workflows, release, Docker, TGS, and artifact tooling.\n",
+			"Unrelated infrastructure changes require explicit user approval naming the exact file: "
+			"BUILD.cmd, Cargo.toml, .github/workflows, release, Docker, and TGS. "
+			"Authorized work includes rebuilding artifacts, regenerating bindings and lock data, "
+			"and verified local synchronization without separate per-file approval.\n",
 			encoding="utf-8",
 		)
 		guides = {guide: f"# {Path(guide).stem}\n" for guide in REQUIRED_GUIDES}

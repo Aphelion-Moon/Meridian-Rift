@@ -18,7 +18,7 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 | `RIFT.cmd` | Non-interactive controller for agents and developers. It validates offline mode before Bun starts. |
 | `RIFT_BUILD.cmd` | No-argument Meridian-MCP compatibility shim. It delegates to `RIFT.cmd compile --mode full --format result`. |
 
-Changing `BUILD.cmd`, `RUN_SERVER.cmd`, inherited bootstrap/build implementation, release/deployment scripts, or CI still requires the protected-infrastructure review and explicit approval described in `AGENTS.md`.
+Rebuilding artifacts, regenerating bindings/contracts/manifests/artifact lock data, and synchronizing a verified matching artifact set into a local development or test checkout are included in authorized implementation and verification work. Necessary in-scope protocol, generator and synchronizer updates use the same authorization. Do not request a separate protected-artifact approval. The infrastructure rules in `AGENTS.md` still apply to unrelated changes to `BUILD.cmd`, `RUN_SERVER.cmd`, inherited bootstrap/build implementation, release/deployment scripts or CI, and to release publication and live production operations.
 
 ## Commands
 

@@ -139,8 +139,10 @@ three matched candidates with a fixed `share_max_steps` value. If lifecycle reti
 dominant, investigate a topology-aware reuse or initialized-allocation batch that preserves slot
 generation, read-after-write ordering, stage barriers, bounded queues, and fail-closed errors.
 
-Any new native command, protocol change, generated binding change, artifact update, or lifecycle
-batch contract requires separate approval under the protected native boundary.
+Necessary in-scope native command, protocol and lifecycle batch changes use the authorized task's
+review and verification gates. Regenerate bindings and rebuild and synchronize the complete verified
+artifact set into a local development or test checkout through maintained tooling, without another
+protected-artifact approval, as specified by the current root `AGENTS.md` policy.
 
 The current protocol already exposes lifecycle and complete mixture-state batch operations. A
 DM-side design can reserve all temporary mixture identities for one pipeline, register them in one

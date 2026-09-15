@@ -405,7 +405,7 @@
 	for(var/turf/open/current_turf as anything in turf_list)
 		current_turf.excited = FALSE
 		current_turf.significant_share_ticker = 0
-		SSair.active_turfs -= current_turf
+		SSair.dogmos_remove_frontier_member(current_turf)
 		#ifdef VISUALIZE_ACTIVE_TURFS //Use this when you want details about how the turfs are moving, display_all_groups should work for normal operation
 		current_turf.remove_atom_colour(TEMPORARY_COLOUR_PRIORITY, COLOR_VIBRANT_LIME)
 		#endif
