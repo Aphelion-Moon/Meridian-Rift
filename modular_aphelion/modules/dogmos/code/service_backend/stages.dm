@@ -88,28 +88,28 @@
 	for(var/word in response)
 		if(!isnum(word) || !IS_FINITE(word) || word < 0 || word > 65535 || round(word) != word)
 			return FALSE
-	if(response[DOGMOS_JOB_STAGE] != stage || !word_group_nonzero(response, 1, 4))
+	if(response[DOGMOS_JOB_STAGE] != stage || !word_group_nonzero(response, DOGMOS_DM_JOB_RESPONSE_JOB, 4))
 		return FALSE
 	var/next_status = response[DOGMOS_JOB_STATUS]
 	if(next_status < DOGMOS_JOB_ACCEPTED || next_status > DOGMOS_JOB_DONE)
 		return FALSE
-	if(next_status == DOGMOS_JOB_DONE && (response[13] || response[14]))
+	if(next_status == DOGMOS_JOB_DONE && (response[DOGMOS_DM_JOB_RESPONSE_REMAINING] || response[DOGMOS_DM_JOB_RESPONSE_REMAINING + 1]))
 		return FALSE
 	if(operation == "submit")
 		if(id || next_status != DOGMOS_JOB_ACCEPTED)
 			return FALSE
-		for(var/index in 7 to DOGMOS_JOB_RESPONSE_FIELDS)
+		for(var/index in DOGMOS_DM_JOB_RESPONSE_UNIT to DOGMOS_JOB_RESPONSE_FIELDS)
 			if(response[index])
 				return FALSE
 		return TRUE
-	if(!SSdogmos.equal_u64_words(id, response.Copy(1, 5)))
+	if(!SSdogmos.equal_u64_words(id, response.Copy(DOGMOS_DM_JOB_RESPONSE_JOB, DOGMOS_DM_JOB_RESPONSE_STATUS)))
 		return FALSE
 	if(operation != "poll" && operation != "commit")
 		return FALSE
-	var/same_count = SSdogmos.equal_u64_words(committed_units, response.Copy(15, 19))
-	var/list/unit = response.Copy(7, 11)
+	var/same_count = SSdogmos.equal_u64_words(committed_units, response.Copy(DOGMOS_DM_JOB_RESPONSE_COMMITTED_UNITS, DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS))
+	var/list/unit = response.Copy(DOGMOS_DM_JOB_RESPONSE_UNIT, DOGMOS_DM_JOB_RESPONSE_WORK_ITEMS)
 	if(operation == "commit" && (next_status == DOGMOS_JOB_RUNNING || next_status == DOGMOS_JOB_DONE))
-		if(!word_group_nonzero(response, 7, 4))
+		if(!word_group_nonzero(response, DOGMOS_DM_JOB_RESPONSE_UNIT, 4))
 			return FALSE
 		if(same_count)
 			// Replaying the last receipt cannot reset a newer prepared unit.
@@ -124,11 +124,11 @@
 				advanced = TRUE
 				break
 			next_count[index] = 0
-		if(!advanced || !SSdogmos.equal_u64_words(next_count, response.Copy(15, 19)))
+		if(!advanced || !SSdogmos.equal_u64_words(next_count, response.Copy(DOGMOS_DM_JOB_RESPONSE_COMMITTED_UNITS, DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS)))
 			return FALSE
 		for(var/index = 1; index <= 8; index += 2)
-			if(response[index + 19] < committed_counts[index + 1] \
-				|| (response[index + 19] == committed_counts[index + 1] && response[index + 18] < committed_counts[index]))
+			if(response[index + DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS] < committed_counts[index + 1] \
+				|| (response[index + DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS] == committed_counts[index + 1] && response[index + DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS - 1] < committed_counts[index]))
 				return FALSE
 		return TRUE
 	if(operation == "commit" && next_status != DOGMOS_JOB_RETRYING)
@@ -136,7 +136,7 @@
 	if(!same_count || !counts_match(response))
 		return FALSE
 	if(next_status == DOGMOS_JOB_READY)
-		return word_group_nonzero(response, 7, 4) && !SSdogmos.equal_u64_words(unit, committed_unit)
+		return word_group_nonzero(response, DOGMOS_DM_JOB_RESPONSE_UNIT, 4) && !SSdogmos.equal_u64_words(unit, committed_unit)
 	if(next_status == DOGMOS_JOB_ACCEPTED && status != DOGMOS_JOB_ACCEPTED)
 		return FALSE
 	return SSdogmos.equal_u64_words(unit, committed_unit)
@@ -151,7 +151,7 @@
 /// Polls and retries must preserve every already acknowledged publication count.
 /datum/dogmos_stage_job/proc/counts_match(list/response)
 	for(var/index in 1 to 8)
-		if(response[index + 18] != committed_counts[index])
+		if(response[index + DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS - 1] != committed_counts[index])
 			return FALSE
 	return TRUE
 
@@ -177,23 +177,23 @@
 /datum/controller/subsystem/air/proc/dogmos_accept_job_response(list/response, operation)
 	if(!dogmos_job?.response_is_valid(response, operation))
 		return FALSE
-	var/new_publication = !SSdogmos.equal_u64_words(dogmos_job.committed_units, response.Copy(15, 19))
+	var/new_publication = !SSdogmos.equal_u64_words(dogmos_job.committed_units, response.Copy(DOGMOS_DM_JOB_RESPONSE_COMMITTED_UNITS, DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS))
 	if(new_publication)
 		SSdogmos.invalidate_mixture_snapshot_epoch()
-		num_equalize_processed += (response[19] - dogmos_job.committed_counts[1]) \
-			+ 65536 * (response[20] - dogmos_job.committed_counts[2])
-		num_group_turfs_processed += (response[21] - dogmos_job.committed_counts[3]) \
-			+ 65536 * (response[22] - dogmos_job.committed_counts[4])
-		dogmos_job.committed_units = response.Copy(15, 19)
-		dogmos_job.committed_unit = response.Copy(7, 11)
-		dogmos_job.committed_counts = response.Copy(19, 27)
+		num_equalize_processed += (response[DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS] - dogmos_job.committed_counts[1]) \
+			+ 65536 * (response[DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS + 1] - dogmos_job.committed_counts[2])
+		num_group_turfs_processed += (response[DOGMOS_DM_JOB_RESPONSE_GROUP_SEEDS] - dogmos_job.committed_counts[3]) \
+			+ 65536 * (response[DOGMOS_DM_JOB_RESPONSE_GROUP_SEEDS + 1] - dogmos_job.committed_counts[4])
+		dogmos_job.committed_units = response.Copy(DOGMOS_DM_JOB_RESPONSE_COMMITTED_UNITS, DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS)
+		dogmos_job.committed_unit = response.Copy(DOGMOS_DM_JOB_RESPONSE_UNIT, DOGMOS_DM_JOB_RESPONSE_WORK_ITEMS)
+		dogmos_job.committed_counts = response.Copy(DOGMOS_DM_JOB_RESPONSE_EQUALIZE_SEEDS, DOGMOS_DM_JOB_RESPONSE_FIELDS + 1)
 	else if(operation == "commit" && response[DOGMOS_JOB_STATUS] != DOGMOS_JOB_RETRYING)
 		return TRUE // Exact receipt replay: no second invalidation or cursor rewind.
 	if(operation == "submit")
-		dogmos_job.id = response.Copy(1, 5)
+		dogmos_job.id = response.Copy(DOGMOS_DM_JOB_RESPONSE_JOB, DOGMOS_DM_JOB_RESPONSE_STATUS)
 	dogmos_job.status = response[DOGMOS_JOB_STATUS]
-	dogmos_job.ready_unit = dogmos_job.status == DOGMOS_JOB_READY ? response.Copy(7, 11) : null
-	dogmos_stage_remaining_estimate = SSdogmos.join_u32_words(response[13], response[14])
+	dogmos_job.ready_unit = dogmos_job.status == DOGMOS_JOB_READY ? response.Copy(DOGMOS_DM_JOB_RESPONSE_UNIT, DOGMOS_DM_JOB_RESPONSE_WORK_ITEMS) : null
+	dogmos_stage_remaining_estimate = SSdogmos.join_u32_words(response[DOGMOS_DM_JOB_RESPONSE_REMAINING], response[DOGMOS_DM_JOB_RESPONSE_REMAINING + 1])
 	return TRUE
 
 /** Admits once, polls once per game tick, and publishes only under a fresh MC budget. */
@@ -299,7 +299,7 @@
 		// Diffusion publishes atomically on completion; pending preparation and retries
 		// leave authoritative mixtures unchanged. Other stages retain conservative
 		// invalidation because component stages can publish while still pending.
-		var/executed_work = SSdogmos.join_u32_words(response[1], response[2])
+		var/executed_work = SSdogmos.join_u32_words(response[DOGMOS_DM_STAGE_RESPONSE_WORK_ITEMS], response[DOGMOS_DM_STAGE_RESPONSE_WORK_ITEMS + 1])
 #if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
 		if(dogmos_stage_test_samples)
 			var/list/work_sample = dogmos_stage_test_samples["[stage]"]
@@ -308,9 +308,9 @@
 #endif
 		if(executed_work && (stage != DOGMOS_SIMULATION_TURFS || !response[DOGMOS_STAGE_RESPONSE_PENDING]))
 			SSdogmos.invalidate_mixture_snapshot_epoch()
-		num_equalize_processed += SSdogmos.join_u32_words(response[DOGMOS_STAGE_RESPONSE_EQUALIZE_SEEDS_LOW], response[DOGMOS_STAGE_RESPONSE_EQUALIZE_SEEDS_HIGH])
-		num_group_turfs_processed += SSdogmos.join_u32_words(response[DOGMOS_STAGE_RESPONSE_GROUP_SEEDS_LOW], response[DOGMOS_STAGE_RESPONSE_GROUP_SEEDS_HIGH])
-		dogmos_stage_remaining_estimate = SSdogmos.join_u32_words(response[DOGMOS_STAGE_RESPONSE_REMAINING_LOW], response[DOGMOS_STAGE_RESPONSE_REMAINING_HIGH])
+		num_equalize_processed += SSdogmos.join_u32_words(response[DOGMOS_DM_STAGE_RESPONSE_EQUALIZE_SEEDS], response[DOGMOS_DM_STAGE_RESPONSE_EQUALIZE_SEEDS + 1])
+		num_group_turfs_processed += SSdogmos.join_u32_words(response[DOGMOS_DM_STAGE_RESPONSE_GROUP_SEEDS], response[DOGMOS_DM_STAGE_RESPONSE_GROUP_SEEDS + 1])
+		dogmos_stage_remaining_estimate = SSdogmos.join_u32_words(response[DOGMOS_DM_STAGE_RESPONSE_REMAINING], response[DOGMOS_DM_STAGE_RESPONSE_REMAINING + 1])
 		if(!response[DOGMOS_STAGE_RESPONSE_PENDING])
 			dogmos_pending_stage = null
 			dogmos_stage_remaining_estimate = 0
