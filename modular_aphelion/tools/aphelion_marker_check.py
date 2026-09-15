@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Validate ownership markers added by a diff without rewriting history."""
+"""Validate added markers and file-level ownership hints without rewriting history.
+
+This additions-only check does not prove that every changed hunk is enclosed by
+markers: existing surrounding markers and deletion-only edits need source review.
+"""
 
 from __future__ import annotations
 
@@ -64,6 +68,8 @@ def parse_diff(diff_text: str) -> list[DiffFile]:
 	target_path: str | None = None
 	line_number = 0
 	new_file = False
+	old_remaining = 0
+	new_remaining = 0
 	file_added_lines: list[tuple[int, str]] = []
 
 	def finish_file() -> None:
@@ -78,6 +84,21 @@ def parse_diff(diff_text: str) -> list[DiffFile]:
 		file_added_lines.clear()
 
 	for raw_line in diff_text.splitlines():
+		if raw_line.startswith("\\ No newline at end of file"):
+			continue
+		# Hunk counts distinguish content such as `--- text` from file headers.
+		if old_remaining or new_remaining:
+			if raw_line.startswith("+"):
+				line_number += 1
+				new_remaining -= 1
+				file_added_lines.append((line_number, raw_line[1:]))
+			elif raw_line.startswith("-"):
+				old_remaining -= 1
+			elif raw_line.startswith(" "):
+				line_number += 1
+				old_remaining -= 1
+				new_remaining -= 1
+			continue
 		if raw_line.startswith("--- "):
 			finish_file()
 			source_path = _header_path(raw_line[4:])
@@ -87,17 +108,11 @@ def parse_diff(diff_text: str) -> list[DiffFile]:
 			target_path = _header_path(raw_line[4:])
 			line_number = 0
 			continue
-		if raw_line.startswith("@@"):
-			match = re.search(r"\+(\d+)", raw_line)
-			if match:
-				line_number = int(match.group(1)) - 1
-			continue
-		if raw_line.startswith("+") and not raw_line.startswith("+++"):
-			line_number += 1
-			line = raw_line[1:]
-			file_added_lines.append((line_number, line))
-		elif not raw_line.startswith("-"):
-			line_number += 1
+		match = re.match(r"^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", raw_line)
+		if match and target_path is not None:
+			old_remaining = int(match.group(1) or "1")
+			line_number = int(match.group(2)) - 1
+			new_remaining = int(match.group(3) or "1")
 	finish_file()
 	return files
 

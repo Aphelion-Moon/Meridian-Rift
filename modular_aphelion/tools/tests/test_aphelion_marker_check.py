@@ -1,6 +1,7 @@
 import unittest
+from itertools import permutations
 
-from modular_aphelion.tools.aphelion_marker_check import validate_diff
+from modular_aphelion.tools.aphelion_marker_check import parse_diff, validate_diff
 
 
 def diff(*lines: str, path: str = "code/example.dm", new_file: bool = False) -> str:
@@ -9,6 +10,33 @@ def diff(*lines: str, path: str = "code/example.dm", new_file: bool = False) -> 
 
 
 class MarkerCheckTests(unittest.TestCase):
+	def test_header_like_hunk_lines_remain_file_content(self) -> None:
+		patch = "\n".join([
+			"--- a/code/existing.dm",
+			"+++ b/code/existing.dm",
+			"@@ -10,2 +10,2 @@",
+			"--- removed_text",
+			"+++ added_text",
+			" unchanged()",
+			diff("/datum/new_example", path="code/new.dm", new_file=True),
+		])
+		files = parse_diff(patch)
+		self.assertEqual([(item.path, item.new_file) for item in files], [
+			("code/existing.dm", False), ("code/new.dm", True),
+		])
+		self.assertEqual(files[0].added_lines, ((10, "++ added_text"),))
+		self.assertEqual([(error.code, error.path, error.line) for error in validate_diff(patch)], [
+			("unmarked_core_edit", "code/existing.dm", 10),
+		])
+
+	def test_no_newline_marker_does_not_advance_destination_line(self) -> None:
+		patch = "\n".join([
+			"--- a/code/existing.dm", "+++ b/code/existing.dm",
+			"@@ -8 +8 @@", "-old_behavior()", "\\ No newline at end of file",
+			"+changed_behavior()", "\\ No newline at end of file",
+		])
+		self.assertEqual(parse_diff(patch)[0].added_lines, ((8, "changed_behavior()"),))
+
 	def test_modified_then_new_file_keeps_previous_file_status(self) -> None:
 		patch = "\n".join([
 			diff("changed_behavior()", path="code/existing.dm"),
@@ -79,6 +107,17 @@ class MarkerCheckTests(unittest.TestCase):
 		])
 		errors = {(error.code, error.path) for error in validate_diff(patch)}
 		self.assertEqual(errors, {("unmarked_core_edit", "code/existing.dm")})
+
+	def test_mixed_file_classification_is_independent_of_order(self) -> None:
+		patches = (
+			diff("changed_behavior()", path="code/existing.dm"),
+			diff("/datum/new_example", path="code/new.dm", new_file=True),
+			"--- a/code/deleted.dm\n+++ /dev/null\n@@ -1 +0,0 @@\n-deleted_behavior()",
+		)
+		for ordered in permutations(patches):
+			with self.subTest(order=ordered):
+				errors = {(error.code, error.path) for error in validate_diff("\n".join(ordered))}
+				self.assertEqual(errors, {("unmarked_core_edit", "code/existing.dm")})
 
 	def test_rename_uses_destination_path_and_preserves_line_number(self) -> None:
 		patch = "\n".join([
