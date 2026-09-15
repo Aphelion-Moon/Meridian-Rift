@@ -11,7 +11,10 @@ differs from a non-Dogmos installation, see the [Dogmos Tech Memo](../../../docs
 ## Contents
 
 - `AGENTS.md`: scoped instructions for agents changing the Dogmos boundary.
-- `code/dogmos.dm`: Dogmos subsystem and integration state.
+- `code/dogmos.dm`: Dogmos subsystem initialization and shutdown entry points.
+- `code/dogmos_service_state.dm`: recoverable service state and explicit adoption/release.
+- `code/dogmos_goggles.dm`: goggles, mode selection and research design.
+- `code/service_backend.dm`: identity translation, topology, callbacks and service operations.
 - `master_files/code/game/turfs/`: turf registration, temperature authority, adjacency, and space
   boundary overrides.
 - `tgui/packages/tgui/interfaces/DogmosKennel/docs/`: Markdown source for the Kennel's About,
@@ -24,7 +27,7 @@ is not a station research design.
 
 Related core includes are `code/__DEFINES/dogmos_defines.dm` and the generated
 `code/__DEFINES/dogmos_bindings.dm`; they must remain in core for include-order compatibility. The
-planned paired shim/service contract also generates `code/__DEFINES/dogmos_contract.dm`. Never
+paired shim/service contract also generates `code/__DEFINES/dogmos_contract.dm`. Never
 hand-edit either generated file.
 
 The remaining gas and turf processing implementation stays in the core atmospherics files because it
@@ -43,9 +46,9 @@ edits outside that exception use `APHELION EDIT`; inherited `NOVA EDIT` remains 
 atmos machinery under `code/modules/atmospherics/machinery/**`, gameplay, UI, subsystem, build, and
 deployment files are not exempt.
 
-The current `dogmos.dll` is a 32-bit in-process library, so its allocations consume DreamDaemon's
-address space. The target architecture keeps only a bounded BYOND/IPC shim in-process and moves
-growing simulation state to 64-bit `dogmosd`. DreamDaemon memory is the footprint target; service
+The paired build selects `dogmos.dll` as a 32-bit BYOND/IPC shim, so its allocations consume
+DreamDaemon's address space. Growing simulation state lives in the separate 64-bit `dogmosd`
+service; the root Rust crate remains a separate legacy implementation. DreamDaemon memory is the footprint target; service
 memory is reported separately. See `docs/agent/dogmos-integration.md`,
 `docs/agent/dogmos-gameplay-events.md`, `docs/agent/dogmos-service-lifecycle.md`, and
 `docs/agent/native-artifacts.md` before changing the boundary.
