@@ -7349,6 +7349,7 @@
 #include "modular_aphelion\modules\department_ooc\code\department_ooc.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
 #include "modular_aphelion\modules\dogmos\code\dogmos.dm"
+#include "modular_aphelion\modules\dogmos\code\dogmos_goggles.dm"
 #include "modular_aphelion\modules\dogmos\code\legacy_mixture_transcript.dm"
 #include "modular_aphelion\modules\dogmos\code\service_backend.dm"
 #include "modular_aphelion\modules\dogmos\code\service_backend_test.dm"
