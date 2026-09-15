@@ -89,8 +89,8 @@
 	name = "advanced atmospherics uniform"
 	desc = "A jumpsuit worn by advanced atmospherics crews."
 	icon_state = "util_atmos"
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
 	armor_type = /datum/armor/clothing_under/atmos_adv
-	icon_state = "util_eng"
 	can_adjust = FALSE
 
 /*
