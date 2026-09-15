@@ -14,10 +14,69 @@
 #define DOGMOS_TEST_SNAPSHOT_REVISION_LOW 1
 #define DOGMOS_TEST_SNAPSHOT_REVISION_HIGH 2
 
+/**
+ * Owns live topology fixture queues after a drained boundary. Original lists are
+ * protected from in-place cuts. Successful bodies keep their publication order;
+ * an unexpected exception cannot prove which native mutations were accepted, so
+ * it uses the maintained fatal-fixture path instead of reviving old queue state.
+ */
+/datum/unit_test/dogmos_topology_fixture
+	abstract_type = /datum/unit_test/dogmos_topology_fixture
+	parent_type = /datum/unit_test/dogmos_admission_fixture
+
+/datum/unit_test/dogmos_topology_fixture/Run()
+	if(!dogmos_wait_for_stage_boundary())
+		return
+	var/list/queue_fields = list("dogmos_pending_mixture_unregistrations", "dogmos_pending_turf_lifecycle", "dogmos_pending_turf_heat", "dogmos_pending_turf_adjacency", "dogmos_pending_turf_adjacency_index", "dogmos_pending_turf_heat_adjacency", "dogmos_pending_turf_heat_adjacency_index", "dogmos_pending_adjacency_retry")
+	save_admission_fixture(queue_fields + list("turf_registration_batching", "runtime_topology_batching", "dogmos_runtime_topology_max_queued"), list("dogmos_pending_frontier_epoch", "can_fire"))
+	try
+		for(var/field in queue_fields)
+			SSdogmos.vars[field] = deep_copy_list(SSdogmos.vars[field])
+		run_topology_fixture()
+		restore_topology_fixture()
+	catch(var/error)
+		abandon_topology_fixture("Topology fixture [type] raised [error]; accepted native publication cannot be safely rolled back.")
+
+/** The original test body, invoked inside the fixture's exceptional-exit boundary. */
+/datum/unit_test/dogmos_topology_fixture/proc/run_topology_fixture()
+	return
+
+/** Restore fixture-owned turf properties before the framework restores gas. */
+/datum/unit_test/dogmos_topology_fixture/proc/restore_topology_turfs()
+	return
+
+/** Complete healthy reconstruction before returning the exact original list owners. */
+/datum/unit_test/dogmos_topology_fixture/proc/restore_topology_fixture()
+	if(!admission_service_state)
+		return
+	if(!SSdogmos.service_ready || SSdogmos.service_failure_latched || admission_service_owner != SSdogmos || admission_air_owner != SSair)
+		return abandon_topology_fixture("Topology fixture [type] lost its healthy original service owner.")
+	restore_topology_turfs()
+	if(!SSdogmos.flush_turf_registration_batch())
+		return abandon_topology_fixture("Topology fixture [type] could not drain its reconstructed topology.")
+	restore_admission_fixture()
+
+/** Leave uncertain publication failed closed; no old queue or admission state is resurrected. */
+/datum/unit_test/dogmos_topology_fixture/proc/abandon_topology_fixture(reason)
+	admission_service_state = null
+	admission_air_state = null
+	admission_service_owner = null
+	admission_air_owner = null
+	return dogmos_abort_fixture(reason)
+
+/datum/unit_test/dogmos_topology_fixture/restore_atmos()
+	restore_topology_fixture()
+	return ..()
+
+/datum/unit_test/dogmos_topology_fixture/Destroy()
+	restore_topology_fixture()
+	return ..()
+
 /** Verifies startup coalesces repeated turf visits until all endpoints are initialized. */
 /datum/unit_test/dogmos_service_startup_adjacency_coalesces
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_service_startup_adjacency_coalesces/Run()
+/datum/unit_test/dogmos_service_startup_adjacency_coalesces/run_topology_fixture()
 	if(!dogmos_wait_for_stage_boundary())
 		return
 	var/turf/target = run_loc_floor_bottom_left
@@ -38,8 +97,9 @@
 
 /** Verifies repeated deferred adjacency updates coalesce and drain completely. */
 /datum/unit_test/dogmos_service_topology_pressure
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_service_topology_pressure/Run()
+/datum/unit_test/dogmos_service_topology_pressure/run_topology_fixture()
 	var/reached_stage_boundary = FALSE
 	for(var/attempt in 1 to DOGMOS_TEST_STAGE_BOUNDARY_ATTEMPTS)
 		if(isnull(SSair.dogmos_pending_stage) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
@@ -103,8 +163,9 @@
 
 /** Verifies a deferred adjacency retry refreshes its own late-created gas registration. */
 /datum/unit_test/dogmos_service_adjacency_retry_late_air
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_service_adjacency_retry_late_air/Run()
+/datum/unit_test/dogmos_service_adjacency_retry_late_air/run_topology_fixture()
 	if(!dogmos_wait_for_stage_boundary())
 		return
 	var/list/pair = allocate_turf_pair()
@@ -130,8 +191,9 @@
 
 /** Verifies the real template finalizer coalesces border edges without resetting live air or heat. */
 /datum/unit_test/dogmos_template_border_batch
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_template_border_batch/Run()
+/datum/unit_test/dogmos_template_border_batch/run_topology_fixture()
 	var/reached_stage_boundary = FALSE
 	for(var/attempt in 1 to DOGMOS_TEST_STAGE_BOUNDARY_ATTEMPTS)
 		if(isnull(SSair.dogmos_pending_stage) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
@@ -183,8 +245,9 @@
 
 /** Verifies template border updates respect an outer batch and a frozen simulation frontier. */
 /datum/unit_test/dogmos_template_border_batch_ownership
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_template_border_batch_ownership/Run()
+/datum/unit_test/dogmos_template_border_batch_ownership/run_topology_fixture()
 	if(!dogmos_wait_for_stage_boundary())
 		return
 	var/list/pair = allocate_turf_pair()
@@ -222,8 +285,9 @@
 
 /** Verifies runtime topology coalescing does not re-register current neighbor state. */
 /datum/unit_test/dogmos_service_runtime_topology_batch_preserves_neighbor_state
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_service_runtime_topology_batch_preserves_neighbor_state/Run()
+/datum/unit_test/dogmos_service_runtime_topology_batch_preserves_neighbor_state/run_topology_fixture()
 	var/list/original_pending_frontier = SSair.dogmos_pending_frontier_epoch
 	var/original_runtime_batching = SSdogmos.runtime_topology_batching
 	var/list/original_lifecycle = SSdogmos.dogmos_pending_turf_lifecycle
@@ -262,8 +326,9 @@
 
 /** Verifies turf replacement discards queued topology from an older generation. */
 /datum/unit_test/dogmos_service_stale_topology_discard
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_service_stale_topology_discard/Run()
+/datum/unit_test/dogmos_service_stale_topology_discard/run_topology_fixture()
 	var/list/original_gas_edges = SSdogmos.dogmos_pending_turf_adjacency
 	var/list/original_gas_index = SSdogmos.dogmos_pending_turf_adjacency_index
 	var/list/original_heat_edges = SSdogmos.dogmos_pending_turf_heat_adjacency

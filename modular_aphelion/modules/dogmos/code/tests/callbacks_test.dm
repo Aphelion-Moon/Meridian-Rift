@@ -14,12 +14,53 @@
 #define DOGMOS_TEST_SNAPSHOT_REVISION_LOW 1
 #define DOGMOS_TEST_SNAPSHOT_REVISION_HIGH 2
 
+/** Owns synthetic stale-callback state, restoring before assertions or atmospheric cleanup. */
+/datum/unit_test/dogmos_callback_fixture
+	abstract_type = /datum/unit_test/dogmos_callback_fixture
+	parent_type = /datum/unit_test/dogmos_admission_fixture
+	/// Optional world turf whose identity the synthetic callback fixture overrides.
+	var/turf/callback_identity_turf
+	var/callback_original_generation
+
+/datum/unit_test/dogmos_callback_fixture/Run()
+	save_admission_fixture(list("dogmos_next_callback_sequence", "dogmos_pending_callback_batch", "dogmos_pending_callback_index", "dogmos_pending_callback_count", "dogmos_pending_service_callbacks", "dogmos_stale_callback_count"), list())
+	var/failure
+	try
+		run_callback_fixture()
+	catch(var/error)
+		failure = "Synthetic callback fixture [type] raised [error]."
+	restore_callback_fixture()
+	if(failure)
+		return Fail(failure, __FILE__, __LINE__)
+
+/** The existing stale-callback assertion body, with cleanup owned by its caller. */
+/datum/unit_test/dogmos_callback_fixture/proc/run_callback_fixture()
+	return
+
+/** Restore turf identity and the exact original callback batch and sequence list owners once. */
+/datum/unit_test/dogmos_callback_fixture/proc/restore_callback_fixture()
+	if(callback_identity_turf)
+		callback_identity_turf.dogmos_registration_generation = callback_original_generation
+		callback_identity_turf = null
+	restore_admission_fixture()
+
+/datum/unit_test/dogmos_callback_fixture/restore_atmos()
+	restore_callback_fixture()
+	return ..()
+
+/datum/unit_test/dogmos_callback_fixture/Destroy()
+	restore_callback_fixture()
+	return ..()
+
 /** Verifies callback turf resolution rejects stale generations without invoking gameplay handlers. */
 /datum/unit_test/dogmos_service_callback_identity
+	parent_type = /datum/unit_test/dogmos_callback_fixture
 
-/datum/unit_test/dogmos_service_callback_identity/Run()
+/datum/unit_test/dogmos_service_callback_identity/run_callback_fixture()
 	var/turf/target = run_loc_floor_bottom_left
 	var/original_generation = target.dogmos_registration_generation
+	callback_identity_turf = target
+	callback_original_generation = original_generation
 	var/list/original_sequence = SSdogmos.dogmos_next_callback_sequence.Copy()
 	var/original_stale_callbacks = SSdogmos.dogmos_stale_callback_count
 	target.dogmos_registration_generation = 41
@@ -81,8 +122,9 @@
 
 /** Verifies exhausted SSair budget prevents the first retained callback from dispatching. */
 /datum/unit_test/dogmos_service_callback_budget
+	parent_type = /datum/unit_test/dogmos_callback_fixture
 
-/datum/unit_test/dogmos_service_callback_budget/Run()
+/datum/unit_test/dogmos_service_callback_budget/run_callback_fixture()
 	var/list/original_sequence = SSdogmos.dogmos_next_callback_sequence
 	var/list/original_pending_batch = SSdogmos.dogmos_pending_callback_batch
 	var/original_pending_index = SSdogmos.dogmos_pending_callback_index
@@ -152,8 +194,9 @@
 
 /** Verifies general reaction callbacks reject stale mixture generations at the identity boundary. */
 /datum/unit_test/dogmos_service_general_reaction_subject
+	parent_type = /datum/unit_test/dogmos_callback_fixture
 
-/datum/unit_test/dogmos_service_general_reaction_subject/Run()
+/datum/unit_test/dogmos_service_general_reaction_subject/run_callback_fixture()
 	var/turf/open/target = run_loc_floor_bottom_left
 	var/datum/gas_mixture/mixture = target.air
 	var/list/callback = new/list(48)

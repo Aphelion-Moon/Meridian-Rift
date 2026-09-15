@@ -16,6 +16,7 @@
 
 /** Verifies non-conducting turfs remain absent from the service heat graph. */
 /datum/unit_test/dogmos_service_turf_heat_absence
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 	/// Turf restored after the assertion run.
 	var/turf/target
 	/// Original thermal conductivity restored during teardown.
@@ -23,7 +24,7 @@
 	/// Original heat capacity restored during teardown.
 	var/original_heat_capacity
 
-/datum/unit_test/dogmos_service_turf_heat_absence/Run()
+/datum/unit_test/dogmos_service_turf_heat_absence/run_topology_fixture()
 	if(!SSdogmos.service_ready)
 		return Fail("dogmosd did not pass startup identity and health checks.", __FILE__, __LINE__)
 	var/reached_stage_boundary = FALSE
@@ -48,15 +49,17 @@
 	if(heat_snapshot[1] != FALSE)
 		return Fail("Dogmos retained a heat-graph node for a turf with zero conductivity and heat capacity.", __FILE__, __LINE__)
 
-/datum/unit_test/dogmos_service_turf_heat_absence/Destroy()
+/datum/unit_test/dogmos_service_turf_heat_absence/restore_topology_turfs()
 	if(target)
 		target.thermal_conductivity = original_thermal_conductivity
 		target.heat_capacity = original_heat_capacity
 		target.register_dogmos_air()
-	return ..()
+	target = null
+	return
 
 /** Verifies startup turf mutations remain deferred until the bounded batch flush. */
 /datum/unit_test/dogmos_service_turf_batching
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 	/// Turf restored after the assertion run.
 	var/turf/target
 	/// Adjacent turf restored after the assertion run.
@@ -68,7 +71,7 @@
 	/// Original adjacent-turf atmosphere initialization state restored during teardown.
 	var/original_neighbor_init_air
 
-/datum/unit_test/dogmos_service_turf_batching/Run()
+/datum/unit_test/dogmos_service_turf_batching/run_topology_fixture()
 	if(!SSdogmos.service_ready)
 		return Fail("dogmosd did not pass startup identity and health checks.", __FILE__, __LINE__)
 	var/reached_stage_boundary = FALSE
@@ -98,9 +101,10 @@
 	if(flushed_snapshot[1] != TRUE)
 		return Fail("Dogmos did not apply a startup turf mutation during its explicit batch flush.", __FILE__, __LINE__)
 
-	neighbor = get_step(target, EAST)
-	if(!isopenturf(neighbor) || !neighbor.init_air)
+	var/turf/candidate_neighbor = get_step(target, EAST)
+	if(!isopenturf(candidate_neighbor) || !candidate_neighbor.init_air)
 		return Fail("The Dogmos batching test requires an atmosphere-enabled open turf to the east.", __FILE__, __LINE__)
+	neighbor = candidate_neighbor
 	original_neighbor_init_air = neighbor.init_air
 	neighbor.init_air = FALSE
 	neighbor.register_dogmos_air(remove_uninitialized = TRUE)
@@ -110,7 +114,7 @@
 	if(neighbor_snapshot[1] != TRUE)
 		return Fail("Dogmos adjacency synchronization did not re-register an atmosphere-enabled endpoint.", __FILE__, __LINE__)
 
-/datum/unit_test/dogmos_service_turf_batching/Destroy()
+/datum/unit_test/dogmos_service_turf_batching/restore_topology_turfs()
 	if(SSdogmos.turf_registration_batching)
 		SSdogmos.finish_turf_registration_batch()
 	if(target)
@@ -120,12 +124,15 @@
 	if(neighbor)
 		neighbor.init_air = original_neighbor_init_air
 		neighbor.register_dogmos_air()
-	return ..()
+	target = null
+	neighbor = null
+	return
 
 /** Verifies startup adjacency rebuilds do not re-register current turfs. */
 /datum/unit_test/dogmos_service_startup_registration_deduplication
+	parent_type = /datum/unit_test/dogmos_topology_fixture
 
-/datum/unit_test/dogmos_service_startup_registration_deduplication/Run()
+/datum/unit_test/dogmos_service_startup_registration_deduplication/run_topology_fixture()
 	var/turf/target = run_loc_floor_bottom_left
 	var/turf/neighbor = get_step(target, EAST)
 	if(!target.init_air || isnull(target.dogmos_registration_generation) || !neighbor?.init_air || isnull(neighbor.dogmos_registration_generation))

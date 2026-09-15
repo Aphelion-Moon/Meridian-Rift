@@ -678,6 +678,7 @@
 
 /** Verifies malformed stage responses are rejected before SSair reads their fields. */
 /datum/unit_test/dogmos_service_stage_response_failure
+	parent_type = /datum/unit_test/dogmos_admission_fixture
 
 /datum/unit_test/dogmos_service_stage_response_failure/Run()
 	var/list/valid_response = new/list(DOGMOS_TEST_STAGE_RESPONSE_FIELDS)
@@ -711,6 +712,7 @@
 	var/original_can_fire = SSair.can_fire
 	var/original_service_ready = SSdogmos.service_ready
 	var/original_failure_latched = SSdogmos.service_failure_latched
+	save_rejected_admission_fixture()
 	SSair.dogmos_pending_stage = DOGMOS_TEST_STAGE_REACTIONS
 	SSair.dogmos_pending_frontier_epoch = list(1, 0, 0, 0)
 	SSair.dogmos_stage_remaining_estimate = 77
@@ -745,6 +747,7 @@
 	SSair.can_fire = original_can_fire
 	SSdogmos.service_ready = original_service_ready
 	SSdogmos.service_failure_latched = original_failure_latched
+	restore_admission_fixture()
 	if(failure_message)
 		return Fail(failure_message, __FILE__, __LINE__)
 
