@@ -36,4 +36,4 @@ Authorized implementation and verification work includes rebuilding native binar
 
 Use the maintained build, generation and synchronization tools, preserve unrelated changes, and verify the complete shim/service contract. Generated outputs must never be hand-edited. This rule supersedes older local plans that require exact-file approval to regenerate protected outputs.
 
-Dogmos optimization targets DreamDaemon's constrained address space. Rust allocations in the currently loaded 32-bit DLL are DreamDaemon allocations. The planned 64-bit `dogmosd` service is measured separately; do not add its memory to DreamDaemon or optimize stable service RSS as a footprint goal.
+Dogmos optimization targets DreamDaemon's constrained address space. Rust allocations in the currently loaded 32-bit DLL are DreamDaemon allocations. The paired build selects a 32-bit shim and 64-bit `dogmosd` service; source ownership is documented in the Rust architecture guide linked from the service-lifecycle guide. The service is measured separately; do not add its memory to DreamDaemon or optimize stable service RSS as a footprint goal.

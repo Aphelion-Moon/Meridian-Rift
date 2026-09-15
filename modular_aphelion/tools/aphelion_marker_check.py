@@ -31,6 +31,13 @@ class MarkerError:
 	message: str
 
 
+@dataclass(frozen=True)
+class DiffFile:
+	path: str
+	new_file: bool
+	added_lines: tuple[tuple[int, str], ...]
+
+
 def is_dogmos_owned(path: str) -> bool:
 	return any(path == candidate or path.startswith(candidate) for candidate in DOGMOS_OWNED_PATHS)
 
@@ -43,33 +50,41 @@ def requires_aphelion_marker(path: str, *, new_file: bool) -> bool:
 	return path.startswith(("code/", "tgui/")) and path.endswith(CORE_SUFFIXES)
 
 
-def validate_diff(diff_text: str, *, allow_nova_sync: bool = False) -> list[MarkerError]:
-	errors: list[MarkerError] = []
-	path = "<diff>"
+def _header_path(value: str) -> str:
+	if value == "/dev/null":
+		return value
+	if value.startswith(("a/", "b/")):
+		return value[2:]
+	return value
+
+
+def parse_diff(diff_text: str) -> list[DiffFile]:
+	files: list[DiffFile] = []
+	source_path: str | None = None
+	target_path: str | None = None
 	line_number = 0
 	new_file = False
-	open_markers: list[tuple[str, str, int]] = []
 	file_added_lines: list[tuple[int, str]] = []
 
 	def finish_file() -> None:
-		for kind, module, opened_at in open_markers:
-			errors.append(MarkerError("unclosed_marker", path, opened_at, f"unclosed {kind} marker for {module}"))
-		open_markers.clear()
-		if not requires_aphelion_marker(path, new_file=new_file):
-			file_added_lines.clear()
+		nonlocal source_path, target_path, new_file
+		if source_path is None and target_path is None:
 			return
-		substantive = [(line, text) for line, text in file_added_lines if text.strip() and not text.lstrip().startswith(("//", "/*", "*", "*/"))]
-		if substantive and not any("APHELION EDIT" in text for _, text in file_added_lines):
-			errors.append(MarkerError("unmarked_core_edit", path, substantive[0][0], "existing core edits require APHELION EDIT"))
+		path = target_path if target_path != "/dev/null" else source_path
+		files.append(DiffFile(path or "<diff>", new_file, tuple(file_added_lines)))
+		source_path = None
+		target_path = None
+		new_file = False
 		file_added_lines.clear()
 
 	for raw_line in diff_text.splitlines():
 		if raw_line.startswith("--- "):
-			new_file = raw_line == "--- /dev/null"
-			continue
-		if raw_line.startswith("+++ b/"):
 			finish_file()
-			path = raw_line[6:]
+			source_path = _header_path(raw_line[4:])
+			new_file = source_path == "/dev/null"
+			continue
+		if raw_line.startswith("+++ ") and source_path is not None and target_path is None:
+			target_path = _header_path(raw_line[4:])
 			line_number = 0
 			continue
 		if raw_line.startswith("@@"):
@@ -81,6 +96,18 @@ def validate_diff(diff_text: str, *, allow_nova_sync: bool = False) -> list[Mark
 			line_number += 1
 			line = raw_line[1:]
 			file_added_lines.append((line_number, line))
+		elif not raw_line.startswith("-"):
+			line_number += 1
+	finish_file()
+	return files
+
+
+def validate_diff(diff_text: str, *, allow_nova_sync: bool = False) -> list[MarkerError]:
+	errors: list[MarkerError] = []
+	for changed_file in parse_diff(diff_text):
+		path = changed_file.path
+		open_markers: list[tuple[str, str, int]] = []
+		for line_number, line in changed_file.added_lines:
 			if path.endswith(IGNORED_SUFFIXES):
 				continue
 			if "NOVA EDIT" in line and not path.startswith("modular_nova/") and not allow_nova_sync:
@@ -104,9 +131,14 @@ def validate_diff(diff_text: str, *, allow_nova_sync: bool = False) -> list[Mark
 				continue
 			if "APHELION EDIT CHANGE" in line and not CHANGE.search(line):
 				errors.append(MarkerError("invalid_change_marker", path, line_number, "change marker requires module ID and ORIGINAL text"))
-		elif not raw_line.startswith("-"):
-			line_number += 1
-	finish_file()
+
+		for kind, module, opened_at in open_markers:
+			errors.append(MarkerError("unclosed_marker", path, opened_at, f"unclosed {kind} marker for {module}"))
+		if not requires_aphelion_marker(path, new_file=changed_file.new_file):
+			continue
+		substantive = [(line, text) for line, text in changed_file.added_lines if text.strip() and not text.lstrip().startswith(("//", "/*", "*", "*/"))]
+		if substantive and not any("APHELION EDIT" in text for _, text in changed_file.added_lines):
+			errors.append(MarkerError("unmarked_core_edit", path, substantive[0][0], "existing core edits require APHELION EDIT"))
 	return errors
 
 

@@ -9,6 +9,26 @@ def diff(*lines: str, path: str = "code/example.dm", new_file: bool = False) -> 
 
 
 class MarkerCheckTests(unittest.TestCase):
+	def test_modified_then_new_file_keeps_previous_file_status(self) -> None:
+		patch = "\n".join([
+			diff("changed_behavior()", path="code/existing.dm"),
+			diff("/datum/new_example", path="code/new.dm", new_file=True),
+		])
+		errors = {(error.code, error.path) for error in validate_diff(patch)}
+		self.assertIn(("unmarked_core_edit", "code/existing.dm"), errors)
+
+	def test_new_then_marked_modified_file_keeps_new_file_status(self) -> None:
+		patch = "\n".join([
+			diff("/datum/new_example", path="code/new.dm", new_file=True),
+			diff(
+				"// APHELION EDIT ADDITION START - DOGMOS",
+				"changed_behavior()",
+				"// APHELION EDIT ADDITION END",
+				path="code/existing.dm",
+			),
+		])
+		self.assertEqual(validate_diff(patch), [])
+
 	def test_accepts_canonical_aphelion_markers(self) -> None:
 		self.assertEqual(validate_diff(diff(
 			"// APHELION EDIT ADDITION START - DOGMOS",
@@ -44,6 +64,59 @@ class MarkerCheckTests(unittest.TestCase):
 	def test_reports_invalid_or_unclosed_aphelion_markers(self) -> None:
 		errors = validate_diff(diff("// APHELION EDIT ADDITION START - bad-id"))
 		self.assertEqual({error.code for error in errors}, {"invalid_module_id", "unclosed_marker"})
+
+	def test_handles_mixed_modification_addition_and_deletion(self) -> None:
+		deletion = "\n".join([
+			"--- a/code/deleted.dm",
+			"+++ /dev/null",
+			"@@ -4,1 +0,0 @@",
+			"-deleted_behavior()",
+		])
+		patch = "\n".join([
+			diff("changed_behavior()", path="code/existing.dm"),
+			diff("/datum/new_example", path="code/new.dm", new_file=True),
+			deletion,
+		])
+		errors = {(error.code, error.path) for error in validate_diff(patch)}
+		self.assertEqual(errors, {("unmarked_core_edit", "code/existing.dm")})
+
+	def test_rename_uses_destination_path_and_preserves_line_number(self) -> None:
+		patch = "\n".join([
+			"diff --git a/code/old.dm b/code/renamed.dm",
+			"similarity index 90%",
+			"rename from code/old.dm",
+			"rename to code/renamed.dm",
+			"--- a/code/old.dm",
+			"+++ b/code/renamed.dm",
+			"@@ -20,0 +21,1 @@",
+			"+changed_behavior()",
+		])
+		errors = validate_diff(patch)
+		self.assertEqual([(error.code, error.path, error.line) for error in errors], [
+			("unmarked_core_edit", "code/renamed.dm", 21),
+		])
+
+	def test_multiple_hunks_are_classified_at_file_level(self) -> None:
+		patch = "\n".join([
+			"--- a/code/example.dm",
+			"+++ b/code/example.dm",
+			"@@ -2,0 +3,1 @@",
+			"+// APHELION EDIT CHANGE - DOGMOS - ORIGINAL: old_behavior()",
+			"@@ -99,0 +101,1 @@",
+			"+changed_elsewhere()",
+		])
+		self.assertEqual(validate_diff(patch), [])
+
+	def test_incomplete_marker_is_closed_only_within_its_file(self) -> None:
+		patch = "\n".join([
+			diff("// APHELION EDIT ADDITION START - DOGMOS", path="code/first.dm"),
+			diff("// APHELION EDIT ADDITION END", path="code/second.dm"),
+		])
+		errors = {(error.code, error.path) for error in validate_diff(patch)}
+		self.assertEqual(errors, {
+			("unclosed_marker", "code/first.dm"),
+			("mismatched_marker", "code/second.dm"),
+		})
 
 
 if __name__ == "__main__":
