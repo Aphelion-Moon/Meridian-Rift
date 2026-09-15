@@ -3732,37 +3732,46 @@
 /datum/unit_test/dogmos_recovery_owner_transfer/Run()
 	if(!dogmos_wait_for_stage_boundary())
 		return
-	var/datum/controller/subsystem/dogmos/previous_owner = SSdogmos
-	var/master_index = Master.subsystems.Find(previous_owner)
-	if(!master_index)
-		return Fail("The current Dogmos owner is missing from the Master.", __FILE__, __LINE__)
 	var/service_pid = dogmos_service_pid()
 	var/list/world_generation = dogmos_service_world_generation()
 	var/datum/gas_mixture/sentinel = allocate(/datum/gas_mixture, CELL_VOLUME)
 	sentinel.set_temperature(321.5)
 	sentinel.set_moles(/datum/gas/oxygen, 7.25)
-	var/list/identities = previous_owner.dogmos_mixture_slots
-	var/list/generations = previous_owner.dogmos_mixture_generations
-	var/list/callback_sequence = previous_owner.dogmos_next_callback_sequence
-	var/list/adjacency_queue = previous_owner.dogmos_pending_turf_adjacency
-	var/list/adjacency_index = previous_owner.dogmos_pending_turf_adjacency_index
-	var/list/snapshot_cache = previous_owner.dogmos_mixture_cache
-	// NEW_SS_GLOBAL calls Recover, deletes the prior subsystem, then installs this one.
-	// The Master owns the replacement; base fixture teardown must not delete it.
-	var/datum/controller/subsystem/dogmos/replacement = new
-	Master.subsystems.Insert(master_index, replacement)
-	if(SSdogmos != replacement || !QDELETED(previous_owner) || replacement.dogmos_mixture_slots != identities || replacement.dogmos_mixture_generations != generations)
-		return Fail("Subsystem replacement did not preserve identity ownership.", __FILE__, __LINE__)
-	if(previous_owner.gases_registered || previous_owner.service_ready || previous_owner.dogmos_mixture_slots || previous_owner.dogmos_pending_callback_batch)
-		return Fail("The retired Dogmos owner still retains native admission or transferred references.", __FILE__, __LINE__)
-	previous_owner.Shutdown()
-	if(replacement.dogmos_next_callback_sequence != callback_sequence || replacement.dogmos_pending_turf_adjacency != adjacency_queue || replacement.dogmos_pending_turf_adjacency_index != adjacency_index || replacement.dogmos_mixture_cache != snapshot_cache)
-		return Fail("Old-owner shutdown changed transferred queues, indexes or cache identity.", __FILE__, __LINE__)
-	var/list/current_generation = dogmos_service_world_generation()
-	if(!dogmos_service_health() || dogmos_service_pid() != service_pid || current_generation[1] != world_generation[1] || current_generation[2] != world_generation[2])
-		return Fail("Retiring the old owner replaced or stopped the authoritative service world.", __FILE__, __LINE__)
-	if(sentinel.return_temperature() != 321.5 || sentinel.get_moles(/datum/gas/oxygen) != 7.25)
-		return Fail("Owner transfer changed the sentinel mixture.", __FILE__, __LINE__)
+	// Repeat the same bounded transfer without yielding or duplicating the service world.
+	// Report process roles separately; allocator noise is not a performance pass threshold.
+	for(var/batch in 1 to 3)
+		var/list/before = dogmos_process_metrics_snapshot()
+		var/start_tick_usage = world.tick_usage
+		for(var/iteration in 1 to 20)
+			var/datum/controller/subsystem/dogmos/previous_owner = SSdogmos
+			var/master_index = Master.subsystems.Find(previous_owner)
+			if(!master_index)
+				return Fail("The current Dogmos owner is missing from the Master.", __FILE__, __LINE__)
+			var/list/identities = previous_owner.dogmos_mixture_slots
+			var/list/generations = previous_owner.dogmos_mixture_generations
+			var/list/callback_sequence = previous_owner.dogmos_next_callback_sequence
+			var/list/adjacency_queue = previous_owner.dogmos_pending_turf_adjacency
+			var/list/adjacency_index = previous_owner.dogmos_pending_turf_adjacency_index
+			var/list/snapshot_cache = previous_owner.dogmos_mixture_cache
+			// NEW_SS_GLOBAL calls Recover, deletes the prior subsystem, then installs this one.
+			// The Master owns the replacement; base fixture teardown must not delete it.
+			var/datum/controller/subsystem/dogmos/replacement = new
+			Master.subsystems.Insert(master_index, replacement)
+			if(SSdogmos != replacement || !QDELETED(previous_owner) || replacement.dogmos_mixture_slots != identities || replacement.dogmos_mixture_generations != generations)
+				return Fail("Subsystem replacement did not preserve identity ownership.", __FILE__, __LINE__)
+			if(previous_owner.gases_registered || previous_owner.service_ready || previous_owner.dogmos_mixture_slots || previous_owner.dogmos_pending_callback_batch)
+				return Fail("The retired Dogmos owner still retains native admission or transferred references.", __FILE__, __LINE__)
+			previous_owner.Shutdown()
+			if(replacement.dogmos_next_callback_sequence != callback_sequence || replacement.dogmos_pending_turf_adjacency != adjacency_queue || replacement.dogmos_pending_turf_adjacency_index != adjacency_index || replacement.dogmos_mixture_cache != snapshot_cache)
+				return Fail("Old-owner shutdown changed transferred queues, indexes or cache identity.", __FILE__, __LINE__)
+			var/list/current_generation = dogmos_service_world_generation()
+			if(!dogmos_service_health() || dogmos_service_pid() != service_pid || current_generation[1] != world_generation[1] || current_generation[2] != world_generation[2])
+				return Fail("Retiring the old owner replaced or stopped the authoritative service world.", __FILE__, __LINE__)
+			if(sentinel.return_temperature() != 321.5 || sentinel.get_moles(/datum/gas/oxygen) != 7.25)
+				return Fail("Owner transfer changed the sentinel mixture.", __FILE__, __LINE__)
+		var/cost_ms = TICK_USAGE_TO_MS(start_tick_usage)
+		var/list/after = dogmos_process_metrics_snapshot()
+		log_test("Dogmos recovery batch [batch]: 20 replacements, [cost_ms]ms; DreamDaemon private [before["dreamdaemon"]["private_bytes"]] -> [after["dreamdaemon"]["private_bytes"]], virtual [before["dreamdaemon"]["virtual_bytes"]] -> [after["dreamdaemon"]["virtual_bytes"]]; dogmosd RSS [before["dogmosd"]["rss_bytes"]] -> [after["dogmosd"]["rss_bytes"]].")
 
 #endif
 
