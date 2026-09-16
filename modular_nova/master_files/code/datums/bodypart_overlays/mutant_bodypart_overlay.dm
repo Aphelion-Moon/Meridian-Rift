@@ -54,6 +54,8 @@
 	. += "[get_base_icon_state()]"
 	. += "[get_feature_key_for_overlay()]"
 	. += "[sprite_datum.get_special_icon(limb?.owner)]"
+	for(var/layer_postfix, layer_number in layers)
+		. += "layer=[layer_postfix]:[layer_number]"
 
 	// MOD overlays on mutant parts
 	var/hardlight_theme = sprite_datum?.get_hardlight_theme_key(limb?.owner)
