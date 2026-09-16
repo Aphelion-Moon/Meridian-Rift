@@ -7,6 +7,7 @@
 import { useAtomValue } from 'jotai';
 import { KitchenSink } from './debug/KitchenSink';
 import { backendStateAtom } from './events/store';
+import { iconMapStateAtom } from './iconMap'; // APHELION EDIT ADDITION
 import { LoadingScreen } from './interfaces/common/LoadingScreen';
 import { Window } from './layouts';
 
@@ -99,6 +100,7 @@ export function getRoutedComponent(name: string) {
 
 export function RoutedComponent() {
   const { suspended, config, debug } = useAtomValue(backendStateAtom);
+  useAtomValue(iconMapStateAtom); // APHELION EDIT ADDITION - DmIcon reads a BYOND global; redraw the interface when its map becomes ready.
 
   if (suspended) {
     return <SuspendedWindow />;
