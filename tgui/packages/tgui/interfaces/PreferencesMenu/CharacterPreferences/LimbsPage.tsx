@@ -274,6 +274,11 @@ const Markings = (props: {
 }) => {
   const { body_zone, chosen_markings, marking_choices, act } = props;
   const { data } = useBackend<PreferencesMenuData>(); // APHELION EDIT ADDITION
+  // APHELION EDIT ADDITION START - Taur legs have no paintable pixels.
+  const showCustom =
+    !!data.allow_custom_sprite_editing &&
+    !(data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone));
+  // APHELION EDIT ADDITION END
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
@@ -351,7 +356,7 @@ const Markings = (props: {
           +
         </Button>
         {/* APHELION EDIT ADDITION START */}
-        {!!data.allow_custom_sprite_editing && (
+        {showCustom && (
           <Button
             icon="paintbrush"
             onClick={() =>
@@ -952,6 +957,19 @@ export const LimbsPage = ({
             >
               Custom marking drawing
             </Button>
+            {!!data.hasCustomTaur && (
+              <Button
+                icon="paintbrush"
+                onClick={() =>
+                  act('open_custom_sprite_editor', {
+                    target: 'markings',
+                    body_zone: 'taur',
+                  })
+                }
+              >
+                Taur body
+              </Button>
+            )}
           </Stack.Item>
         )}
         {/* APHELION EDIT ADDITION END */}

@@ -57,6 +57,7 @@ const preferences = {
   augment_styles: {},
   allow_mismatched_parts: false,
   allow_custom_sprite_editing: true,
+  hasCustomTaur: false,
   digi_legs: false,
   taur_legs: false,
   quirk_points_enabled: 0,
@@ -104,17 +105,48 @@ it('opens one custom drawing per marking zone alongside existing markings and th
   });
 });
 
+it('hides custom drawing on taur legs, which have no paintable pixels', () => {
+  backendStore.set(gameDataAtom, { ...preferences, taur_legs: true });
+  renderPage();
+  for (const label of ['Left leg', 'Right leg']) {
+    const section = screen.queryByText(label)?.closest('.Section');
+    if (section)
+      expect(within(section as HTMLElement).queryByText('Custom')).toBeNull();
+  }
+  expect(screen.getAllByText('Custom')).toHaveLength(4);
+});
+
 it('keeps ordinary marking controls when custom editing is unavailable', () => {
   backendStore.set(gameDataAtom, {
     ...preferences,
     allow_custom_sprite_editing: false,
+    hasCustomTaur: true,
   });
   renderPage();
   expect(screen.queryByText('Custom')).toBeNull();
   expect(screen.queryByText('Custom marking drawing')).toBeNull();
+  expect(screen.queryAllByText('Taur body')).toHaveLength(0);
   const leftArm = within(screen.getByText('Left arm').closest('.Section')!);
   fireEvent.click(leftArm.getByText('+'));
   expect(send).toHaveBeenLastCalledWith('add_marking', {
     bodypart_slot: 'l_arm',
   });
+});
+
+it('offers the taur drawing only when the character has a supported taur body', () => {
+  const view = renderPage();
+  expect(screen.queryAllByText('Taur body')).toHaveLength(0);
+  backendStore.set(gameDataAtom, { ...preferences, hasCustomTaur: 1 });
+  view.rerender(
+    <ServerPrefs.Provider value={serverData}>
+      <LimbsPage />
+    </ServerPrefs.Provider>,
+  );
+  fireEvent.click(screen.getByText('Taur body'));
+  expect(send).toHaveBeenLastCalledWith('open_custom_sprite_editor', {
+    target: 'markings',
+    body_zone: 'taur',
+  });
+  expect(screen.getAllByText('Custom')).toHaveLength(6);
+  expect(screen.getByText('Custom marking drawing')).toBeTruthy();
 });

@@ -1,6 +1,7 @@
 #if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
 
 /datum/json_savefile/custom_sprites/counting_test
+	/// Save calls observed by the persistence fixture, including failed attempts.
 	var/writes = 0
 
 /datum/json_savefile/custom_sprites/counting_test/save()
@@ -8,9 +9,13 @@
 	return ..()
 
 /datum/json_savefile/custom_sprites/counting_test/failing
+	/// Exact destination at which to simulate a failed write.
 	var/fail_destination
+	/// Whether the failed attempt truncates the destination.
 	var/short_write = TRUE
+	/// Matching write number to fail.
 	var/fail_on_match = 1
+	/// Number of writes observed for the selected destination.
 	var/matching_writes = 0
 
 /datum/json_savefile/custom_sprites/counting_test/failing/write_file(contents, destination)
@@ -37,11 +42,11 @@
 	preferences.create_character_preview_view(mock_client.mob)
 	var/preferences_before = json_encode(preferences.savefile.get_entry())
 	var/list/drawing = custom_sprite_test_drawing()
-	if(!preferences.save_custom_sprite("hair", drawing) || store.writes != 1)
+	if(preferences.commit_custom_style(custom_style_package("hair", null, drawing, null), preferences.default_slot) || store.writes != 1)
 		Fail("A changed drawing should write the sidecar once.", __FILE__, __LINE__)
 	if(json_encode(preferences.savefile.get_entry()) != preferences_before)
 		Fail("Drawing data must not grow preferences.json or character exports.", __FILE__, __LINE__)
-	preferences.save_custom_sprite("hair", drawing)
+	preferences.commit_custom_style(custom_style_package("hair", null, drawing, null), preferences.default_slot)
 	preferences.save_preferences()
 	if(store.writes != 1)
 		Fail("Unchanged drawings and ordinary preference saves must not rewrite the sidecar.", __FILE__, __LINE__)
@@ -49,7 +54,7 @@
 	preferences.load_custom_sprites()
 	if(preferences.custom_hair || preferences.custom_markings)
 		Fail("A new slot must have a blank canvas.", __FILE__, __LINE__)
-	preferences.save_custom_sprite("markings", drawing)
+	preferences.commit_custom_style(custom_style_package("markings", null, drawing, null), preferences.default_slot)
 	// Exercise the private UI action without requiring a live browser.
 	call(preferences, "remove_current_slot")()
 	if(store.get_entry("character2"))
@@ -76,8 +81,8 @@
 	preferences.custom_sprite_savefile = new(test_path)
 	preferences.custom_sprite_slot = null
 	preferences.load_and_save = TRUE
-	preferences.save_custom_sprite("hair", custom_sprite_test_drawing())
-	preferences.save_custom_sprite("markings", custom_sprite_test_drawing("2"), preferences.default_slot, BODY_ZONE_L_ARM)
+	preferences.commit_custom_style(custom_style_package("hair", null, custom_sprite_test_drawing(), null), preferences.default_slot)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_drawing("2"), null), preferences.default_slot)
 	GLOB.preferences_datums[test_key] = preferences
 	custom_sprites_after_import(test_key)
 	GLOB.preferences_datums -= test_key
@@ -100,16 +105,16 @@
 	var/list/arm = custom_sprite_test_drawing("2")
 	var/list/leg = custom_sprite_test_drawing()
 	leg["emissive"] = custom_sprite_emissive_settings(list("1" = TRUE))
-	preferences.save_custom_sprite("hair", hair)
-	preferences.save_custom_sprite("markings", whole)
-	preferences.save_custom_sprite("markings", arm, preferences.default_slot, BODY_ZONE_L_ARM)
-	preferences.save_custom_sprite("markings", leg, preferences.default_slot, BODY_ZONE_R_LEG)
+	preferences.commit_custom_style(custom_style_package("hair", null, hair, null), preferences.default_slot)
+	preferences.commit_custom_style(custom_style_package("markings", null, whole, null), preferences.default_slot)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_R_LEG, leg, null), preferences.default_slot)
 	if(json_encode(preferences.custom_markings) != json_encode(whole))
 		Fail("A zone drawing must not replace the whole-body marking.", __FILE__, __LINE__)
 	var/list/saved = store.get_entry("character[preferences.default_slot]")
 	if(json_encode(saved?["limb_markings"]?[BODY_ZONE_L_ARM]) != json_encode(arm))
 		Fail("A zone drawing must be saved independently in the same character slot.", __FILE__, __LINE__)
-	if(store.writes != 4 || !preferences.save_custom_sprite("markings", arm, preferences.default_slot, BODY_ZONE_L_ARM) || store.writes != 4)
+	if(store.writes != 4 || preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot) || store.writes != 4)
 		Fail("Only a changed zone drawing should write the sidecar.", __FILE__, __LINE__)
 	var/datum/json_savefile/custom_sprites/reloaded = allocate(/datum/json_savefile/custom_sprites, test_path)
 	if(json_encode(reloaded.get_entry("character[preferences.default_slot]")) != json_encode(saved))
@@ -121,11 +126,11 @@
 	preferences.load_custom_sprites()
 	if(json_encode(preferences.custom_hair) != json_encode(hair) || json_encode(preferences.custom_limb_markings?[BODY_ZONE_R_LEG]) != json_encode(leg))
 		Fail("Reloading preferences must recover each drawing and its own emissive settings.", __FILE__, __LINE__)
-	preferences.save_custom_sprite("markings", null, preferences.default_slot, BODY_ZONE_L_ARM)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, null, null), preferences.default_slot)
 	saved = store.get_entry("character[preferences.default_slot]")
 	if(saved?["limb_markings"]?[BODY_ZONE_L_ARM] || json_encode(saved?["limb_markings"]?[BODY_ZONE_R_LEG]) != json_encode(leg) || json_encode(preferences.custom_hair) != json_encode(hair) || json_encode(preferences.custom_markings) != json_encode(whole))
 		Fail("Clearing an arm must preserve hair, whole-body markings, and the leg drawing.", __FILE__, __LINE__)
-	preferences.save_custom_sprite("markings", null, preferences.default_slot, BODY_ZONE_R_LEG)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_R_LEG, null, null), preferences.default_slot)
 	saved = store.get_entry("character[preferences.default_slot]")
 	if(saved?["limb_markings"] || length(preferences.custom_limb_markings))
 		Fail("Clearing the final zone must omit the empty zone map.", __FILE__, __LINE__)
@@ -137,13 +142,20 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/list/drawing = custom_sprite_test_drawing()
-	preferences.save_custom_sprite("markings", drawing)
-	preferences.save_custom_sprite("markings", drawing, preferences.default_slot, BODY_ZONE_L_ARM)
+	preferences.commit_custom_style(custom_style_package("markings", null, drawing, null), preferences.default_slot)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, drawing, null), preferences.default_slot)
 	var/before = json_encode(preferences.custom_sprite_savefile.get_entry())
+	var/list/valid = custom_style_validate_package(custom_style_package("markings", BODY_ZONE_L_ARM, null, null))
+	if(valid["error"] || !valid["package"])
+		return Fail("The empty zone package must pass validation before testing invalid zones.", __FILE__, __LINE__)
 	for(var/bad_zone in list("", "tail", "Left arm", 1, list(BODY_ZONE_L_ARM)))
-		if(preferences.save_custom_sprite("markings", null, preferences.default_slot, bad_zone))
+		var/list/result = custom_style_validate_package(list("target" = "markings", "zone" = bad_zone, "drawing" = null))
+		if(result["package"])
+			preferences.commit_custom_style(result["package"], preferences.default_slot)
+		if(!result["error"] || !findtext(result["error"], "body zone is invalid"))
 			Fail("Invalid zones must be rejected instead of clearing a drawing.", __FILE__, __LINE__)
-	if(preferences.save_custom_sprite("hair", drawing, preferences.default_slot, BODY_ZONE_HEAD))
+	var/list/hair_result = custom_style_validate_package(list("target" = "hair", "zone" = BODY_ZONE_HEAD, "drawing" = drawing, "hair" = custom_style_test_hair()))
+	if(!hair_result["error"] || !findtext(hair_result["error"], "Hair styles cannot have a body zone"))
 		Fail("Hair cannot be saved to a marking zone.", __FILE__, __LINE__)
 	if(json_encode(preferences.custom_sprite_savefile.get_entry()) != before)
 		Fail("Rejected zone actions must leave all existing drawings untouched.", __FILE__, __LINE__)
@@ -177,14 +189,14 @@
 	preferences.create_character_preview_view(mock_client.mob)
 	var/list/first = custom_sprite_test_drawing()
 	var/list/second = custom_sprite_test_drawing("2")
-	preferences.save_custom_sprite("markings", first, preferences.default_slot, BODY_ZONE_HEAD)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_HEAD, first, null), preferences.default_slot)
 	preferences.switch_to_slot(2)
 	preferences.load_custom_sprites()
 	if(length(preferences.custom_limb_markings))
 		Fail("A new slot must not inherit another slot's limb drawings.", __FILE__, __LINE__)
-	if(preferences.save_custom_sprite("markings", second, 1, BODY_ZONE_HEAD))
+	if(!preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_HEAD, second, null), 1))
 		Fail("An old editor must not save into an inactive slot.", __FILE__, __LINE__)
-	preferences.save_custom_sprite("markings", second, 2, BODY_ZONE_HEAD)
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_HEAD, second, null), 2)
 	preferences.switch_to_slot(1)
 	preferences.load_custom_sprites()
 	if(json_encode(preferences.custom_limb_markings?[BODY_ZONE_HEAD]) != json_encode(first))
@@ -208,16 +220,23 @@
 	var/list/zones = list()
 	for(var/body_zone in list(BODY_ZONE_HEAD, BODY_ZONE_CHEST, BODY_ZONE_L_ARM, BODY_ZONE_R_ARM, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG))
 		zones[body_zone] = drawing
+	var/list/wide = custom_sprite_resize_drawing(drawing, 64)
+	for(var/direction in directions)
+		wide["dirs"][direction] = "f[repeat_string(1024, "12")]"
+	zones[CUSTOM_MARKING_ZONE_TAUR] = wide
+	var/list/previous = list("hair" = custom_style_package("hair", null, drawing, null), "markings" = custom_style_package("markings", null, wide, null))
+	for(var/zone in zones)
+		previous[custom_style_key("markings", zone)] = custom_style_package("markings", zone, zones[zone], null)
 	var/list/all_slots = list()
 	for(var/slot in 1 to MAX_SAVE_SLOTS_SUBSCRIBER)
-		all_slots["character[slot]"] = list("hair" = drawing, "markings" = drawing, "limb_markings" = zones)
+		all_slots["character[slot]"] = list("hair" = drawing, "markings" = wide, "limb_markings" = zones, "previous_styles" = previous)
 	text2file(json_encode(all_slots), test_path)
 	var/datum/json_savefile/custom_sprites/store = allocate(/datum/json_savefile/custom_sprites, test_path)
 	if(length(store.get_entry()) != MAX_SAVE_SLOTS_SUBSCRIBER || json_encode(store.get_entry("character[MAX_SAVE_SLOTS_SUBSCRIBER]")) != json_encode(all_slots["character[MAX_SAVE_SLOTS_SUBSCRIBER]"]))
-		Fail("A full account with hair, whole-body markings, and six full limb drawings per slot must reload.", __FILE__, __LINE__)
+		Fail("A full account must reload every drawing and its previous style, including both wide taur targets.", __FILE__, __LINE__)
 	custom_sprite_test_remove_sidecar(test_path)
 	var/padding = "0"
-	for(var/i in 1 to 23)
+	for(var/i in 1 to 24)
 		padding += padding
 	text2file(json_encode(list("character1" = all_slots["character1"], "padding" = padding)), test_path)
 	if(store.load() || length(store.get_entry()))
@@ -264,7 +283,7 @@
 	var/original = file2text(test_path)
 	var/original_backup = file2text("[test_path].bak")
 	var/padding = "0"
-	for(var/i in 1 to 23)
+	for(var/i in 1 to 24)
 		padding += padding
 	store.set_entry("padding", padding)
 	if(store.save() || !store.dirty || !store.last_save_failed || file2text(test_path) != original || file2text("[test_path].bak") != original_backup || fexists("[test_path].new"))
@@ -314,33 +333,42 @@
 	preferences.load_and_save = TRUE
 	var/list/hair = custom_sprite_test_drawing()
 	var/list/arm = custom_sprite_test_drawing("2")
-	preferences.save_custom_sprite("hair", hair)
+	preferences.commit_custom_style(custom_style_package("hair", null, hair, null), preferences.default_slot)
+	var/before_disk = file2text(test_path)
+	var/before_sidecar = json_encode(store.get_entry())
 	store.fail_destination = "[test_path].new"
-	if(preferences.save_custom_sprite("markings", arm, preferences.default_slot, BODY_ZONE_L_ARM) || !store.dirty || json_encode(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]) != json_encode(arm))
-		Fail("A failed save must report failure and retain the limb draft in memory.", __FILE__, __LINE__)
+	if(!preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot) || !store.dirty || preferences.custom_limb_markings?[BODY_ZONE_L_ARM])
+		Fail("A failed commit must report failure and restore the previous in-memory drawing.", __FILE__, __LINE__)
+	if(file2text(test_path) != before_disk || json_encode(store.get_entry()) != before_sidecar)
+		Fail("A failed commit must preserve the saved file and restore the sidecar tree.", __FILE__, __LINE__)
 	store.fail_destination = null
-	if(!preferences.save_custom_sprite("hair", hair) || store.dirty || store.last_save_failed)
-		Fail("Saving an unchanged other target must retry every pending sidecar change.", __FILE__, __LINE__)
+	if(preferences.commit_custom_style(custom_style_package("hair", null, hair, null), preferences.default_slot) || store.dirty || store.last_save_failed)
+		Fail("Saving an unchanged other target must clear the rolled-back sidecar's pending retry.", __FILE__, __LINE__)
 	var/list/disk = json_decode(file2text(test_path))
+	if(disk["character1"]["limb_markings"] || json_encode(disk["character1"]["hair"]) != json_encode(hair))
+		Fail("A retry from another target must preserve saved hair without publishing the rejected limb draft.", __FILE__, __LINE__)
+	if(preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot))
+		Fail("Submitting the limb draft again must succeed after disk writes recover.", __FILE__, __LINE__)
+	disk = json_decode(file2text(test_path))
 	if(json_encode(disk["character1"]["limb_markings"][BODY_ZONE_L_ARM]) != json_encode(arm))
-		Fail("A retry from another target must flush the failed limb save.", __FILE__, __LINE__)
+		Fail("A successful retry must publish the submitted limb drawing to disk.", __FILE__, __LINE__)
 	var/writes = store.writes
-	if(!preferences.save_custom_sprite("markings", arm, preferences.default_slot, BODY_ZONE_L_ARM) || store.writes != writes)
+	if(preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot) || store.writes != writes)
 		Fail("An unchanged, clean save must succeed without writing again.", __FILE__, __LINE__)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, "hair")
-	preferences.custom_sprite_editors[editor.editor_key] = editor
+	LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
 	editor.workspace.clear_direction("2")
 	store.fail_destination = "[test_path].new"
 	if(editor.save_drawing() || editor.save_revision || !editor.save_error)
 		Fail("A failed editor save must report an error without acknowledging a new revision.", __FILE__, __LINE__)
 	editor.finish(TRUE)
-	if(QDELETED(editor) || editor.closing || !preferences.custom_sprite_editors["hair"])
+	if(QDELETED(editor) || editor.closing || !preferences.custom_sprite_editors?["hair"])
 		Fail("Save and close must retain the editor and workspace after a disk failure.", __FILE__, __LINE__)
 	store.fail_destination = null
 	if(!editor.save_drawing() || editor.save_revision != 1 || editor.save_error)
 		Fail("Successful retry must acknowledge the saved revision and clear the error.", __FILE__, __LINE__)
 	editor.finish(TRUE)
-	if(preferences.custom_sprite_editors["hair"])
+	if(preferences.custom_sprite_editors?["hair"])
 		Fail("After a successful retry, closing must release the editor.", __FILE__, __LINE__)
 	store.path = null
 	preferences.load_and_save = FALSE

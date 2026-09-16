@@ -6,12 +6,15 @@
 	action_delegations = list("open_custom_sprite_editor" = PROC_REF(open_editor))
 
 /datum/preference_middleware/custom_sprites/get_ui_data(mob/user)
-	return list("allow_custom_sprite_editing" = CONFIG_GET(flag/allow_custom_sprite_editing))
+	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	var/datum/sprite_accessory/taur/taur = SSaccessories.sprite_accessories[FEATURE_TAUR][preferences.read_preference(/datum/preference/choiced/mutant_choice/taur)]
+	return list("allow_custom_sprite_editing" = CONFIG_GET(flag/allow_custom_sprite_editing), "hasCustomTaur" = !!taur?.factual && taur_choice.is_accessible(preferences))
 
 /datum/preference_middleware/custom_sprites/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
 	preferences.load_custom_sprites()
 	var/allow_emissives = preferences.read_preference(/datum/preference/toggle/allow_emissives)
 	target.dna.custom_hair = custom_sprite_appearance_drawing(preferences.custom_hair, allow_emissives)
+	target.dna.custom_facial_hair = custom_sprite_appearance_drawing(preferences.custom_facial_hair, allow_emissives)
 	target.dna.custom_markings = custom_sprite_appearance_drawing(preferences.custom_markings, allow_emissives)
 	target.dna.custom_limb_markings = null
 	for(var/body_zone in preferences.custom_limb_markings)
@@ -31,107 +34,113 @@
 		return FALSE
 	var/target = params["target"]
 	var/body_zone = params["body_zone"]
-	if(!(target in list("hair", "markings")) || (!isnull(body_zone) && (target != "markings" || !istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels))))
+	if(!(target in GLOB.custom_style_hair_targets + list("markings")) || (!isnull(body_zone) && (target != "markings" || !istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels))))
 		return FALSE
-	var/editor_key = body_zone ? "[target]:[body_zone]" : target
-	var/datum/custom_sprite_editor/editor = preferences.custom_sprite_editors[editor_key]
+	var/editor_key = custom_style_key(target, body_zone)
+	var/datum/custom_sprite_editor/editor = preferences.custom_sprite_editors?[editor_key]
 	if(!editor)
 		editor = new(preferences, target, body_zone)
-		preferences.custom_sprite_editors[editor_key] = editor
+		LAZYSET(preferences.custom_sprite_editors, editor_key, editor)
 	editor.ui_interact(user)
 	return TRUE
 
-/// One slot-bound, short-lived owner for each independent editor window.
+/**
+ * One draft and its window. This base type is the character preferences context: it is bound
+ * to its owner, slot and saved drawing, and saves to the character.
+ *
+ * Other contexts, such as the salon, reuse the same workspace, tools, palette, history,
+ * blending, preview renderer, import and export by overriding the context hooks below.
+ */
 /datum/custom_sprite_editor
+	/// Selects preferences or salon actions and window wording.
+	var/context = "preferences"
+	/// Supplies Custom swatches. In the preferences context it is also the saved character.
 	var/datum/preferences/preferences
+	/// Editable pixels, palette and undo history for this draft.
 	var/datum/sprite_editor_workspace/custom_sprite/workspace
+	/// Private dummy used to build guides and previews; released on close.
 	var/mob/living/carbon/human/dummy/preview_body
+	/// Drawing kind: hair or markings.
 	var/target
+	/// Edited limb or taur zone, or null for hair and whole-body markings.
 	var/body_zone
+	/// Target and zone key in the preferences editor registry.
 	var/editor_key
+	/// Character slot bound when this editor opened.
 	var/slot
+	/// Most recently serialized workspace drawing used by saves and previews.
 	var/list/draft
+	/// Appearance identity of the last rendered preview.
 	var/preview_hash
+	/// Pending preview debounce timer, cancelled when the editor closes.
 	var/preview_timer
+	/// Prevents actions and duplicate saves during teardown.
 	var/closing = FALSE
+	/// Successful save counter used for the UI's acknowledgement flash.
 	var/save_revision = 0
+	/// Failure message from the last attempted save.
 	var/save_error
+	/// Effective brush color after any Custom color blending.
 	var/selected_color
+	/// Original Custom swatch, retained when blended colors coincide.
 	var/selected_custom_color
+	/// Brush blending mode: literal, hair or custom.
 	var/color_mode = "literal"
+	/// Chosen multiplier for Blend with color; white has no effect.
 	var/custom_tint = "#ffffff"
+	/// Direction -> native guide icon used by the eyedropper.
 	var/list/guide_icons = list()
+	/// Direction -> private guide image sent to the editor.
 	var/list/guide_urls = list()
+	/// Direction -> private preview image sent to the editor.
 	var/list/preview_urls = list()
-	var/list/unsupported_zones = list()
+	/// Colors sampled from the current hair or native markings.
 	var/list/sampled_palette
+	/// Eyedropper colors retained as literal palette choices.
 	var/list/guide_palette = list()
+	/// The hair look the current guides and palette were built from.
+	var/resources_hair
+	/// The native markings the current guides and sampled palette were built from.
+	var/resources_markings
+	/// Whether guide geometry and images are available for this draft.
+	var/resources_ready = FALSE
+	/// Increments on every draft change. Dialogs that yield compare it before changing anything.
+	var/draft_revision = 0
+	/// An import or restoration waiting for the owner to confirm its preview.
+	var/list/candidate
+	/// Safe import or export failure message for the owner.
+	var/transfer_error
+	/// Import or export completion message for the owner.
+	var/transfer_notice
+	/// Set by import and restoration: the next changed save keeps the old saved style as the previous one.
+	var/rotate_saved_style = FALSE
+	/// Whether guides, previews and the sampled palette include the base look's gradient.
+	var/show_gradient = TRUE
+	/// Drawing bounds as the body allows them, before any views are locked.
+	var/list/unlocked_bounds
+	/// Whether hair and parts that hang over the drawing are left out of guides and previews.
+	var/hide_parts = TRUE
 
 /datum/custom_sprite_editor/New(datum/preferences/preferences, target, body_zone)
 	src.preferences = preferences
 	src.target = target
 	src.body_zone = body_zone
-	editor_key = body_zone ? "[target]:[body_zone]" : target
-	slot = preferences.default_slot
-	preferences.load_custom_sprites()
-	preview_body = new
-	preferences.apply_prefs_to(preview_body, TRUE, visuals_only = TRUE)
-	var/list/saved = target == "hair" ? preferences.custom_hair : preferences.custom_markings
-	if(body_zone)
-		saved = preferences.custom_limb_markings?[body_zone]
-	var/list/palette
-	var/list/bounds
-	var/list/mask
-	if(target == "hair")
-		var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[preview_body.hairstyle]
-		palette = custom_sprite_sample_hair_palette(hairstyle, preview_body.get_bodypart(BODY_ZONE_HEAD))
-		bounds = custom_sprite_hair_draw_bounds(hairstyle)
-		preview_body.dna.custom_hair = null
-	else
-		bounds = custom_sprite_body_draw_bounds(preview_body, body_zone)
-		if(body_zone)
-			mask = custom_sprite_body_draw_mask(preview_body, body_zone)
-		palette = sample_marking_palette()
-		preview_body.dna.custom_markings = null
-		preview_body.dna.custom_limb_markings = null
-		for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
-			if(limb.bodyshape & BODYSHAPE_TAUR)
-				unsupported_zones += limb.body_zone
-	sampled_palette = palette
-	workspace = new(saved, palette | preferences.read_preference(/datum/preference/custom_sprite_palette), bounds, mask)
-	// Explicit tints already render as a separate overlay: bake their RGB while retaining its alpha.
-	if(workspace.tint && workspace.tint != "#ffffff")
-		var/list/colors = list()
-		for(var/color in workspace.palette)
-			colors["[color]ff"] = "[custom_sprite_tint_color(color, workspace.tint)]ff"
-		for(var/direction in workspace.layers[1]["data"])
-			var/list/frame = workspace.layers[1]["data"][direction]
-			for(var/list/row as anything in frame)
-				for(var/x in 1 to length(row))
-					if(colors[row[x]])
-						row[x] = colors[row[x]]
-		workspace.palette = workspace.used_colors()
-		workspace.update_palette(palette | preferences.read_preference(/datum/preference/custom_sprite_palette))
+	if(custom_style_hair_target(target))
+		hide_parts = FALSE
+	editor_key = custom_style_key(target, body_zone)
+	slot = preferences?.default_slot
+	var/list/package = initial_package()
+	preview_body = create_preview_body()
+	var/wide_body = target == "markings" && (!body_zone || body_zone == CUSTOM_MARKING_ZONE_TAUR) && preview_body && custom_sprite_taur_overlay(preview_body)
+	workspace = new(package["drawing"], list(), null, null, wide_body || body_zone == CUSTOM_MARKING_ZONE_TAUR ? CUSTOM_SPRITE_TAUR_WIDTH : 32)
+	workspace.owner_ref = WEAKREF(src)
+	workspace.hair_context = package["hair"]
+	workspace.markings_context = package["markings"]
+	workspace.bake_tint()
+	if(!package["drawing"] || target == "markings")
 		workspace.tint = "#ffffff"
-	else if(!saved || target == "markings")
-		workspace.tint = "#ffffff"
-	selected_color = workspace.palette[1]
-	// This dummy has preference underwear but no equipped outfit. Hide underwear only for the guides.
-	var/preview_underwear_visibility = preview_body.underwear_visibility
-	preview_body.underwear_visibility = UNDERWEAR_HIDE_ALL
-	preview_body.sync_custom_sprite_appearance(refresh_body = TRUE)
-	for(var/direction in GLOB.cardinals)
-		var/icon/guide = getFlatIcon(preview_body, defdir = direction, no_anim = TRUE)
-		guide.Crop(1, 1, 32, 32)
-		if(target == "hair")
-			var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[preview_body.hairstyle]
-			guide.Shift(SOUTH, hairstyle?.y_offset || 0)
-			if(LAZYFIND(preview_body.dna.species.offset_features, OFFSET_HAIR))
-				guide.Shift(WEST, preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_W])
-				guide.Shift(SOUTH, preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_Z])
-		guide_icons["[direction]"] = guide
-		guide_urls["[direction]"] = publish_icon(guide)
-	preview_body.underwear_visibility = preview_underwear_visibility
+	rebuild_resources(reuse_body = TRUE)
+	selected_color = length(workspace.palette) ? workspace.palette[1] : null
 	refresh_preview()
 
 /datum/custom_sprite_editor/Destroy()
@@ -143,7 +152,225 @@
 	preferences = null
 	draft = null
 	guide_icons = null
+	candidate = null
 	return ..()
+
+/// Context hook: the package the draft starts from.
+/datum/custom_sprite_editor/proc/initial_package()
+	return preferences.custom_style_saved_package(target, body_zone)
+
+/// Context hook: a private body showing the appearance being drawn on, or null when unavailable.
+/datum/custom_sprite_editor/proc/create_preview_body()
+	var/mob/living/carbon/human/dummy/body = new
+	preferences.apply_prefs_to(body, TRUE, visuals_only = TRUE)
+	return body
+
+/// Context hook: whether this destination may use emissive paint.
+/datum/custom_sprite_editor/proc/emissives_allowed()
+	return preferences.read_preference(/datum/preference/toggle/allow_emissives)
+
+/**
+ * Applies the context's current view locks to the drawing bounds.
+ *
+ * Locks can change while the window is open, so this runs on every update and before every action
+ * rather than only when the preview body is rebuilt.
+ *
+ * Returns TRUE when the locks changed.
+ */
+/datum/custom_sprite_editor/proc/sync_locked_views(push = TRUE)
+	if(!length(unlocked_bounds) || !islist(workspace.draw_bounds))
+		return FALSE
+	var/list/locked = locked_directions()
+	var/changed = FALSE
+	for(var/direction in unlocked_bounds)
+		var/list/allowed = (direction in locked) ? list(0, 0, -1, -1) : unlocked_bounds[direction]
+		if(json_encode(workspace.draw_bounds[direction]) == json_encode(allowed))
+			continue
+		workspace.draw_bounds[direction] = allowed.Copy()
+		changed = TRUE
+	if(changed && push)
+		SStgui.update_uis(src)
+	return changed
+
+/// Context hook: views that can't be painted right now, beyond the drawing's own bounds.
+/datum/custom_sprite_editor/proc/locked_directions()
+	return null
+
+/// Context hook: whether this context may change the base hair look from inside the editor.
+/datum/custom_sprite_editor/proc/can_change_hair()
+	return custom_style_hair_target(target) && !!preferences
+
+/// Context hook: why an imported hair look can't be used here, or null.
+/datum/custom_sprite_editor/proc/hair_context_problem(list/hair)
+	return preferences.custom_style_hair_problem(hair, target)
+
+/// Context hook: the appearance guides and previews render, and any extra overlays to add.
+/datum/custom_sprite_editor/proc/render_appearance(mob/living/carbon/human/body)
+	if(custom_style_hair_target(target) || !hide_parts)
+		return body
+	return custom_sprite_limb_appearance(body)
+
+/// Markings can hide parts that cover the body; hair editors always keep the full look visible.
+/datum/custom_sprite_editor/proc/can_hide_parts()
+	return !custom_style_hair_target(target)
+
+/**
+ * Drops wings, tails and other parts that hang over the limb from the preview body.
+ *
+ * The body is rebuilt whenever the toggle changes, so they come back by being drawn again rather
+ * than by being restored here. A taur body carries its own drawing, so it always stays.
+ */
+/datum/custom_sprite_editor/proc/hide_obstructing_parts()
+	var/hidden = FALSE
+	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
+		for(var/datum/bodypart_overlay/mutant/part in LAZYCOPY(limb.bodypart_overlays))
+			if(istype(part, /datum/bodypart_overlay/mutant/taur_body))
+				continue
+			limb.remove_bodypart_overlay(part, FALSE)
+			hidden = TRUE
+	if(hidden)
+		preview_body.update_body_parts()
+
+/datum/custom_sprite_editor/proc/render_overlays()
+	return null
+
+/// Context hook: called after every change to the draft.
+/datum/custom_sprite_editor/proc/draft_changed()
+	draft_revision++
+
+/// Context hook: extra actions owned by the context.
+/datum/custom_sprite_editor/proc/context_act(action, list/params, mob/user)
+	switch(action)
+		if("save")
+			finish(TRUE)
+			return TRUE
+		if("saveDraft")
+			if(save_drawing())
+				preferences.character_preview_view?.update_body()
+			return TRUE
+		if("discard")
+			finish(FALSE)
+			return TRUE
+		if("restorePrevious")
+			var/list/previous = restorable_package()
+			if(!previous)
+				return FALSE
+			show_candidate(previous, "restore")
+			return TRUE
+	return FALSE
+
+/// The previous saved style, or null when the draft already is that style.
+/datum/custom_sprite_editor/proc/restorable_package()
+	var/list/previous = preferences.custom_style_previous_package(target, body_zone)
+	if(!previous || custom_style_matches(previous, current_package()))
+		return null
+	return previous
+
+/// Context hook: extra window data owned by the context.
+/datum/custom_sprite_editor/proc/context_ui_data()
+	return list("canRestorePrevious" = !!restorable_package())
+
+/**
+ * Rebuilds the preview body, guides, sampled palette and drawing bounds.
+ *
+ * Runs on opening, after the hair look changes through import or history, and when a closed
+ * salon draft resumes. Heavyweight preview resources can be released while a window is closed.
+ *
+ * Returns:
+ * - TRUE: Resources are ready.
+ * - FALSE: The context has no body to draw on right now. The draft is kept.
+ */
+/datum/custom_sprite_editor/proc/rebuild_resources(reuse_body = FALSE)
+	if(!reuse_body)
+		QDEL_NULL(preview_body)
+		preview_body = create_preview_body()
+	guide_icons = list()
+	guide_urls = list()
+	preview_urls = list()
+	preview_hash = null
+	resources_hair = json_encode(workspace.hair_context)
+	resources_markings = json_encode(workspace.markings_context)
+	if(!preview_body)
+		resources_ready = FALSE
+		sampled_palette = list()
+		workspace.draw_bounds = list()
+		workspace.draw_mask = null
+		refresh_custom_palette()
+		return FALSE
+	if(!isnull(workspace.markings_context))
+		custom_style_apply_base_markings(preview_body, body_zone, workspace.markings_context, emissives_allowed())
+		preview_body.update_body()
+	if(can_hide_parts() && hide_parts)
+		hide_obstructing_parts()
+	if(custom_style_hair_target(target) && workspace.hair_context)
+		// Hiding the gradient leaves the saved look alone; only this preview body drops it.
+		var/list/context = workspace.hair_context
+		if(!show_gradient)
+			context = context.Copy()
+			context["gradient_style"] = SPRITE_ACCESSORY_NONE
+		custom_style_apply_hair_context(preview_body, context, update = FALSE, target = target)
+	var/obj/item/bodypart/head/head = preview_body.get_bodypart(BODY_ZONE_HEAD)
+	var/list/head_drawing = head?.custom_head_drawing(target)
+	var/list/hidden_markings
+	var/list/palette
+	if(custom_style_hair_target(target))
+		var/datum/sprite_accessory/hair/hairstyle = custom_style_hair_accessories(target)[target == "facial_hair" ? preview_body.facial_hairstyle : preview_body.hairstyle]
+		palette = custom_sprite_sample_hair_palette(hairstyle, head, target)
+		workspace.draw_bounds = custom_sprite_canvas_bounds(workspace.width)
+		workspace.draw_mask = null
+		if(head)
+			if(target == "facial_hair")
+				head.custom_facial_hair = null
+			else
+				head.custom_hair = null
+		preview_body.update_hair()
+	else
+		workspace.draw_bounds = custom_sprite_body_draw_bounds(preview_body, body_zone, workspace.width)
+		workspace.draw_mask = body_zone || workspace.width > 32 ? custom_sprite_body_draw_mask(preview_body, body_zone, workspace.width) : null
+		palette = sample_marking_palette()
+		for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
+			// Hide paint only while rendering guides, retaining every donor layer's exact snapshot.
+			for(var/datum/bodypart_overlay/custom_marking/marking in LAZYCOPY(limb.bodypart_overlays))
+				LAZYSET(hidden_markings, marking, limb)
+				limb.remove_bodypart_overlay(marking, FALSE)
+		// The limbs the body already drew still carry that paint until they're composed again.
+		if(hidden_markings)
+			preview_body.update_body_parts()
+	unlocked_bounds = deep_copy_list(workspace.draw_bounds)
+	// Markings clip to the body: paint stranded by a changed body or zone is dropped, not kept.
+	if(target == "markings")
+		workspace.clip_to_allowed()
+	// Temporary view locks restrict edits, never the pixels retained by the draft.
+	sync_locked_views(push = FALSE)
+	sampled_palette = palette
+	refresh_custom_palette()
+	var/mutable_appearance/rendered = render_appearance(preview_body)
+	var/list/worn = render_overlays()
+	if(length(worn))
+		rendered = new(rendered)
+		rendered.overlays += worn
+	for(var/direction in GLOB.cardinals)
+		var/icon/guide = custom_sprite_flat_icon(rendered, direction, workspace.width)
+		if(target == "hair")
+			var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[preview_body.hairstyle]
+			guide.Shift(SOUTH, hairstyle?.y_offset || 0)
+			if(LAZYFIND(preview_body.dna.species.offset_features, OFFSET_HAIR))
+				guide.Shift(WEST, preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_W])
+				guide.Shift(SOUTH, preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_Z])
+		guide_icons["[direction]"] = guide
+		guide_urls["[direction]"] = publish_icon(guide)
+	if(head)
+		if(target == "facial_hair")
+			head.custom_facial_hair = head_drawing
+		else
+			head.custom_hair = head_drawing
+	for(var/datum/bodypart_overlay/custom_marking/marking as anything in hidden_markings)
+		var/obj/item/bodypart/limb = hidden_markings[marking]
+		limb.add_bodypart_overlay(marking, FALSE)
+	if(hidden_markings)
+		preview_body.update_body_parts()
+	resources_ready = TRUE
+	return TRUE
 
 /datum/custom_sprite_editor/proc/sample_marking_palette()
 	var/list/colors = list()
@@ -165,8 +392,9 @@
 	return palette
 
 /datum/custom_sprite_editor/proc/sample_marking_shades()
+	var/limb_zone = (body_zone && GLOB.custom_marking_hand_arms[body_zone]) || body_zone
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
-		if(body_zone && limb.body_zone != body_zone)
+		if(body_zone && limb.body_zone != limb_zone)
 			continue
 		for(var/marking_name in limb.markings)
 			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
@@ -193,24 +421,63 @@
 /datum/custom_sprite_editor/ui_interact(mob/user, datum/tgui/ui)
 	if(!can_edit(user))
 		return
+	if(!resources_ready && rebuild_resources())
+		refresh_preview(push = FALSE)
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, target == "hair" ? "CustomHairEditor" : "CustomMarkingsEditor", target == "hair" ? "Custom Hair" : "Custom Markings")
+		var/interface = "CustomMarkingsEditor"
+		var/title = "Custom Markings"
+		if(target == "hair")
+			interface = "CustomHairEditor"
+			title = "Custom Hair"
+		else if(target == "facial_hair")
+			interface = "CustomFacialHairEditor"
+			title = "Custom Facial Hair"
+		ui = new(user, src, interface, title)
 		ui.set_autoupdate(FALSE)
 		ui.open()
 
+/datum/custom_sprite_editor/ui_static_data(mob/user)
+	. = list()
+	if(can_change_hair())
+		.["hairStyles"] = available_hairstyles()
+	if(can_change_markings())
+		.["baseMarkingChoices"] = GLOB.body_markings_per_limb[body_zone]
+		.["maxBaseMarkings"] = MAXIMUM_MARKINGS_PER_LIMB
+
 /datum/custom_sprite_editor/ui_data(mob/user)
+	sync_locked_views(push = FALSE)
 	var/list/editor_data = workspace.sprite_editor_ui_data()
-	var/list/custom_palette = preferences.read_preference(/datum/preference/custom_sprite_palette)
+	var/list/custom_palette = preferences?.read_preference(/datum/preference/custom_sprite_palette) || list()
 	// Paint/history admission must not add swatches; only style shades and explicit guide picks do.
 	editor_data["serverPalette"] = (sampled_palette | guide_palette) & workspace.palette
 	editor_data["serverSelectedColor"] = selected_color
-	return list("editorData" = editor_data, "customTint" = custom_tint, "displayTint" = custom_palette_tint(), "colorMode" = color_mode, "emissive" = workspace.emissive, "emissiveAllowed" = preferences.read_preference(/datum/preference/toggle/allow_emissives), "saveRevision" = save_revision, "saveError" = save_error, "customPalette" = custom_palette, "availableColors" = workspace.palette, "maxCustomColors" = CUSTOM_SPRITE_MAX_CUSTOM_COLORS, "guides" = guide_urls, "previews" = preview_urls, "edited" = workspace.edited_directions, "drawBounds" = workspace.draw_bounds, "drawMask" = workspace.draw_mask, "bodyZone" = body_zone, "bodyZoneLabel" = GLOB.custom_marking_zone_labels[body_zone], "unsupportedZones" = unsupported_zones)
+	var/list/data = list("editorData" = editor_data, "context" = context, "customTint" = custom_tint, "displayTint" = custom_palette_tint(), "colorMode" = color_mode, "emissive" = workspace.emissive, "emissiveAllowed" = emissives_allowed(), "saveRevision" = save_revision, "saveError" = save_error, "customPalette" = custom_palette, "availableColors" = workspace.palette, "maxCustomColors" = CUSTOM_SPRITE_MAX_CUSTOM_COLORS, "guides" = guide_urls, "previews" = preview_urls, "edited" = workspace.edited_directions, "drawBounds" = workspace.draw_bounds, "drawMask" = workspace.draw_mask, "bodyZone" = body_zone, "bodyZoneLabel" = GLOB.custom_marking_zone_labels[body_zone], "resourcesReady" = resources_ready, "transferError" = transfer_error, "transferNotice" = transfer_notice)
+	if(custom_style_hair_target(target))
+		data["hairStyle"] = workspace.hair_context?["style"]
+		data["hairColor"] = workspace.hair_context?["color"]
+		data["canChangeHair"] = can_change_hair()
+	data["lockedDirections"] = locked_directions()
+	if(custom_style_hair_target(target))
+		data["hasGradient"] = workspace.hair_context?["gradient_style"] && workspace.hair_context["gradient_style"] != SPRITE_ACCESSORY_NONE
+		data["showGradient"] = show_gradient
+	if(can_change_markings())
+		data["baseMarkings"] = base_markings()
+	data["canChangeMarkings"] = can_change_markings()
+	data["canHideParts"] = can_hide_parts()
+	data["hideParts"] = hide_parts
+	// TGUI merges updates, so an absent candidate must explicitly clear the previous preview.
+	data["candidate"] = null
+	if(candidate)
+		data["candidate"] = list("source" = candidate["source"], "previews" = candidate["previews"], "summary" = candidate["summary"])
+	return data + context_ui_data()
 
 /datum/custom_sprite_editor/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(. || !can_edit(ui.user))
 		return
+	// A mirror can be picked up or dropped while this window is open.
+	sync_locked_views(push = FALSE)
 	switch(action)
 		if("selectColor")
 			if(!workspace.is_valid_color(params["color"]))
@@ -227,6 +494,86 @@
 				return FALSE
 			selected_custom_color = color
 			selected_color = transformed
+			return TRUE
+		if("setBaseMarking")
+			var/name = params["name"]
+			if(!can_change_markings() || !isnum(params["index"]) || !istext(name) || !(name in GLOB.body_markings_per_limb[body_zone]))
+				return FALSE
+			if(custom_style_marking_data(workspace.markings_context)[name])
+				return FALSE
+			return write_base_marking(params["index"], name, null)
+		if("addBaseMarking")
+			var/list/markings = custom_style_marking_data(workspace.markings_context)
+			if(!can_change_markings() || length(markings) >= MAXIMUM_MARKINGS_PER_LIMB)
+				return FALSE
+			var/list/choices = GLOB.body_markings_per_limb[body_zone].Copy()
+			for(var/name in markings)
+				choices -= name
+			if(!length(choices))
+				return FALSE
+			var/datum/body_marking/marking = GLOB.body_markings[choices[1]]
+			// Default colors come from the body being drawn on, not the character setup preview.
+			var/list/features = list(
+				FEATURE_MUTANT_COLOR = preview_body?.dna.features[FEATURE_MUTANT_COLOR],
+				FEATURE_MUTANT_COLOR_TWO = preview_body?.dna.features[FEATURE_MUTANT_COLOR_TWO],
+				FEATURE_MUTANT_COLOR_THREE = preview_body?.dna.features[FEATURE_MUTANT_COLOR_THREE],
+				FEATURE_SKIN_COLOR = skintone2hex(preview_body?.skin_tone),
+			)
+			return write_base_marking(null, choices[1], marking.get_default_color(features, preview_body?.dna.species))
+		if("removeBaseMarking")
+			if(!can_change_markings() || !isnum(params["index"]))
+				return FALSE
+			return write_base_marking(params["index"], null, null)
+		if("pickBaseMarkingColor")
+			var/index = params["index"]
+			if(!can_change_markings() || !isnum(index))
+				return FALSE
+			var/list/entries = base_markings()
+			if(index < 1 || index > length(entries))
+				return FALSE
+			var/list/entry = entries[index]
+			var/color = tgui_color_picker(ui.user, "Choose a color for [entry["name"]].", "Limb markings", entry["color"])
+			if(!can_edit(ui.user) || !custom_sprite_color(color))
+				return FALSE
+			// The list may have changed while the picker was open.
+			entries = base_markings()
+			if(index > length(entries) || entries[index]["name"] != entry["name"])
+				return FALSE
+			return write_base_marking(index, entry["name"], custom_sprite_color(color))
+		if("toggleParts")
+			if(!can_hide_parts())
+				return FALSE
+			hide_parts = !hide_parts
+			rebuild_resources()
+			refresh_preview(push = FALSE)
+			return TRUE
+		if("toggleGradient")
+			if(!custom_style_hair_target(target))
+				return FALSE
+			show_gradient = !show_gradient
+			rebuild_resources()
+			refresh_preview(push = FALSE)
+			return TRUE
+		if("setHairStyle")
+			var/list/hair = workspace.hair_context?.Copy()
+			if(!can_change_hair() || !hair || !istext(params["style"]) || params["style"] == hair["style"])
+				return FALSE
+			hair["style"] = params["style"]
+			apply_hair_context(hair, "Change hairstyle")
+			return TRUE
+		if("pickHairColor")
+			var/list/hair = workspace.hair_context?.Copy()
+			if(!can_change_hair() || !hair)
+				return FALSE
+			var/color = tgui_color_picker(ui.user, "Choose this character's base hair color.", "Hair color", hair["color"] || "#000000")
+			if(!can_edit(ui.user) || !custom_sprite_color(color))
+				return FALSE
+			// The draft may have moved on while the picker was open.
+			hair = workspace.hair_context?.Copy()
+			if(!hair || custom_style_normal_color(color) == hair["color"])
+				return FALSE
+			hair["color"] = custom_style_normal_color(color)
+			apply_hair_context(hair, "Change hair color")
 			return TRUE
 		if("sampleGuide")
 			return sample_guide(params["dir"], params["x"], params["y"])
@@ -264,13 +611,15 @@
 						return TRUE
 				else
 					return FALSE
+			if((workspace.hair_context && resources_hair != json_encode(workspace.hair_context)) || (!isnull(workspace.markings_context) && resources_markings != json_encode(workspace.markings_context)))
+				rebuild_resources()
 		if("clear")
 			if(!workspace.clear_direction(params["dir"]))
 				return FALSE
 		if("setEmissive")
 			var/direction = params["dir"]
 			var/enabled = params["enabled"]
-			if(!istext(direction) || !(direction in workspace.emissive) || !isnum(enabled) || !(enabled in list(TRUE, FALSE)) || (enabled && !preferences.read_preference(/datum/preference/toggle/allow_emissives)))
+			if(!istext(direction) || !(direction in workspace.emissive) || !isnum(enabled) || !(enabled in list(TRUE, FALSE)) || (enabled && !emissives_allowed()))
 				return FALSE
 			if(workspace.emissive[direction] == enabled)
 				return TRUE
@@ -286,26 +635,35 @@
 			return TRUE
 		if("setColorMode")
 			var/mode = params["mode"]
-			if(!(mode in list("literal", "hair", "tint")) || (mode == "hair" && target != "hair"))
+			if(!(mode in list("literal", "hair", "tint")) || (mode == "hair" && !custom_style_hair_target(target)))
 				return FALSE
 			if(mode == color_mode)
 				return TRUE
 			color_mode = mode
 			refresh_custom_palette()
 			return TRUE
-		if("save")
-			finish(TRUE)
+		if("exportStyle")
+			transfer_notice = null
+			transfer_error = custom_style_send(ui.user.client, current_package())
+			if(!transfer_error)
+				transfer_notice = "Style exported."
 			return TRUE
-		if("saveDraft")
-			if(!save_drawing())
+		if("importStyle")
+			begin_import(ui.user)
+			return TRUE
+		if("confirmCandidate")
+			if(!apply_candidate())
 				return TRUE
-			preferences.character_preview_view?.update_body()
+		if("cancelCandidate")
+			candidate = null
 			return TRUE
-		if("discard")
-			finish(FALSE)
+		if("dismissTransfer")
+			transfer_error = null
+			transfer_notice = null
 			return TRUE
 		else
-			return FALSE
+			return context_act(action, params, ui.user)
+	draft_changed()
 	if(preview_timer)
 		deltimer(preview_timer)
 	preview_timer = addtimer(CALLBACK(src, PROC_REF(refresh_preview)), 0.6 SECONDS, TIMER_STOPPABLE)
@@ -313,13 +671,13 @@
 
 /// Prefer current paint over the retained native guide, including strokes newer than the browser's view.
 /datum/custom_sprite_editor/proc/sample_guide(direction, x, y)
-	if(!istext(direction) || !(direction in workspace.layers[1]["data"]) || !workspace.valid_point_pair(list(x, y)) || x < 0 || x > 31 || y < 0 || y > 31)
+	if(!istext(direction) || !(direction in workspace.layers[1]["data"]) || !workspace.valid_point_pair(list(x, y)) || x < 0 || x >= workspace.width || y < 0 || y >= workspace.height)
 		return FALSE
 	var/list/frame = workspace.layers[1]["data"][direction]
 	var/list/channels = split_color(frame[y + 1][x + 1])
 	if(!channels[4])
 		var/icon/guide = guide_icons[direction]
-		var/pixel = guide?.GetPixel(x + 1, 32 - y)
+		var/pixel = guide?.GetPixel(x + 1, workspace.height - y)
 		if(!pixel)
 			return FALSE
 		channels = split_color(pixel)
@@ -338,16 +696,106 @@
 	if(color_mode == "tint")
 		return custom_tint
 	if(color_mode == "hair")
+		if(!preview_body)
+			return workspace.hair_context?["color"]
 		var/obj/item/bodypart/head/head = preview_body.get_bodypart(BODY_ZONE_HEAD)
-		return head?.override_hair_color || head?.fixed_hair_color || head?.hair_color
+		return target == "facial_hair" ? head?.facial_hair_color : (head?.override_hair_color || head?.fixed_hair_color || head?.hair_color)
 	return null
 
 /datum/custom_sprite_editor/proc/transformed_custom_palette()
 	var/list/colors = list()
 	var/tint = custom_palette_tint()
-	for(var/color in preferences.read_preference(/datum/preference/custom_sprite_palette))
+	for(var/color in preferences?.read_preference(/datum/preference/custom_sprite_palette))
 		colors |= custom_sprite_tint_color(color, tint)
 	return colors
+
+/// Whether this context may change the limb's own markings from inside the editor.
+/datum/custom_sprite_editor/proc/can_change_markings()
+	return target == "markings" && body_zone && (body_zone in GLOB.body_markings_per_limb)
+
+/// This limb's native markings in layer order, as the editor's own control shows them.
+/datum/custom_sprite_editor/proc/base_markings()
+	var/list/entries = list()
+	var/index = 0
+	for(var/list/entry as anything in workspace.markings_context)
+		index++
+		entries += list(list("index" = index, "name" = entry["name"], "color" = entry["color"]))
+	return entries
+
+/**
+ * Rewrites this draft's native markings, keeping their order and leaving the live body alone.
+ *
+ * Markings are stored by name, so one limb cannot wear the same marking twice.
+ *
+ * Arguments:
+ * - index: Which marking to act on, or null when adding.
+ * - name: The marking to use, or null to remove the one at `index`.
+ * - color: A new color, or null to keep the marking's current one.
+ */
+/datum/custom_sprite_editor/proc/write_base_marking(index, name, color)
+	if(!can_change_markings())
+		return FALSE
+	var/list/markings = custom_style_marking_data(workspace.markings_context)
+	var/list/rebuilt = list()
+	var/position = 0
+	var/handled = FALSE
+	for(var/entry in markings)
+		position++
+		if(position != index)
+			rebuilt[entry] = markings[entry]
+			continue
+		handled = TRUE
+		if(!name)
+			continue
+		rebuilt[name] = list(color || markings[entry][1], markings[entry][2])
+	if(!handled)
+		if(isnull(index) && name)
+			rebuilt[name] = list(color, FALSE)
+		else
+			return FALSE
+	if(!workspace.replace_drawing(workspace.serialize_drawing(), workspace.hair_context, "Change base markings", new_markings_context = custom_style_marking_entries(rebuilt)))
+		return FALSE
+	draft_changed()
+	rebuild_resources()
+	refresh_preview(push = FALSE)
+	return TRUE
+
+/// Hairstyles this character may pick from the editor's own base-hair control.
+/datum/custom_sprite_editor/proc/available_hairstyles()
+	/// Accessory choices are fixed after initialization and shared by both editor contexts.
+	var/static/list/choices_by_target
+	var/list/choices = LAZYACCESS(choices_by_target, target)
+	if(isnull(choices))
+		var/datum/preference/choiced/entry = GLOB.preference_entries[GLOB.custom_style_hair_preferences[target]["style"]]
+		choices = sort_list(entry.get_choices())
+		LAZYSET(choices_by_target, target, choices)
+	return choices
+
+/**
+ * Swaps the base hair look under the drawing as one undoable action.
+ *
+ * A recolor of the same hairstyle carries painted hair shades to the matching new shade, so the
+ * drawing keeps its relationship to the hair. Custom palette colors and unrelated paint stay put.
+ *
+ * Returns TRUE when the look changed; otherwise `transfer_error` says why.
+ */
+/datum/custom_sprite_editor/proc/apply_hair_context(list/hair, name)
+	transfer_error = hair_context_problem(hair)
+	if(transfer_error)
+		return FALSE
+	var/list/drawing = workspace.serialize_drawing()
+	var/list/color_map = custom_style_hair_color_map(workspace.hair_context, hair, preferences?.read_preference(/datum/preference/custom_sprite_palette), target)
+	var/list/recolored = color_map ? custom_style_recolor_drawing(drawing, color_map) : drawing
+	if(isnull(recolored) && drawing)
+		transfer_error = "This drawing couldn't be recolored. Save or reopen the editor, then try again."
+		return FALSE
+	if(!workspace.replace_drawing(recolored, hair, name, TRUE))
+		transfer_error = "This change and your undo history need more than [CUSTOM_SPRITE_MAX_COLORS] colors. Save or reopen the editor, then try again."
+		return FALSE
+	draft_changed()
+	rebuild_resources()
+	refresh_preview(push = FALSE)
+	return TRUE
 
 /datum/custom_sprite_editor/proc/refresh_custom_palette()
 	var/list/available = sampled_palette | transformed_custom_palette()
@@ -357,7 +805,7 @@
 	workspace.update_palette(available)
 	if(selected_custom_color)
 		var/transformed = custom_sprite_tint_color(selected_custom_color, custom_palette_tint())
-		if((selected_custom_color in preferences.read_preference(/datum/preference/custom_sprite_palette)) && (transformed in workspace.palette))
+		if((selected_custom_color in preferences?.read_preference(/datum/preference/custom_sprite_palette)) && (transformed in workspace.palette))
 			selected_color = transformed
 		else
 			selected_custom_color = null
@@ -371,51 +819,79 @@
 		return FALSE
 	preferences.update_preference(preference, colors)
 	preferences.save_preferences()
-	for(var/editor_target in preferences.custom_sprite_editors)
-		var/datum/custom_sprite_editor/editor = preferences.custom_sprite_editors[editor_target]
+	for(var/datum/custom_sprite_editor/editor as anything in preferences.custom_sprite_open_editors())
 		// A full drawing keeps its admitted colors; other saved swatches remain visible but disabled.
 		editor.refresh_custom_palette()
 		SStgui.update_uis(editor)
 	return TRUE
 
-/datum/custom_sprite_editor/proc/refresh_preview()
+/// Every editor using this account's Custom swatches, including a retained salon draft.
+/datum/preferences/proc/custom_sprite_open_editors()
+	. = list()
+	for(var/editor_target in custom_sprite_editors)
+		. += custom_sprite_editors[editor_target]
+	for(var/datum/custom_sprite_salon/session as anything in custom_sprite_salon_sessions_for(parent?.ckey))
+		if(session.editor)
+			. += session.editor
+
+/// Timer callbacks push immediately; synchronous UI actions let TGUI send their single final update.
+/datum/custom_sprite_editor/proc/refresh_preview(push = TRUE)
 	preview_timer = null
-	if(closing)
+	if(closing || !resources_ready)
 		return
 	draft = workspace.serialize_drawing()
 	var/new_hash = custom_sprite_hash(draft)
 	if(preview_hash == new_hash)
 		return
-	var/allow_emissives = preferences.read_preference(/datum/preference/toggle/allow_emissives)
-	var/list/appearance_draft = custom_sprite_appearance_drawing(draft, allow_emissives)
-	if(target == "hair")
-		preview_body.dna.custom_hair = appearance_draft
-	else
-		preview_body.dna.custom_markings = body_zone ? custom_sprite_appearance_drawing(preferences.custom_markings, allow_emissives) : appearance_draft
-		preview_body.dna.custom_limb_markings = null
-		for(var/zone in preferences.custom_limb_markings)
-			LAZYSET(preview_body.dna.custom_limb_markings, zone, custom_sprite_appearance_drawing(preferences.custom_limb_markings[zone], allow_emissives))
-		if(body_zone)
-			if(appearance_draft)
-				LAZYSET(preview_body.dna.custom_limb_markings, body_zone, appearance_draft)
-			else
-				LAZYREMOVE(preview_body.dna.custom_limb_markings, body_zone)
-	preview_body.sync_custom_sprite_appearance(refresh_body = TRUE)
-	for(var/direction in GLOB.cardinals)
-		var/icon/rendered = getFlatIcon(preview_body, defdir = direction, no_anim = TRUE)
-		rendered.Crop(1, 1, 32, 32)
-		preview_urls["[direction]"] = publish_icon(rendered)
+	preview_urls = render_previews(draft, workspace.hair_context)
 	preview_hash = new_hash
-	SStgui.update_uis(src)
+	if(push)
+		SStgui.update_uis(src)
 
+/**
+ * Renders the preview body with a drawing in its edited layer and returns Front/Back/Right/Left data URLs.
+ *
+ * The preview body keeps the given drawing afterwards. Other base looks are restored to the
+ * draft before returning, so resources stay consistent with the guides.
+ */
+/datum/custom_sprite_editor/proc/render_previews(list/drawing, list/hair, list/markings)
+	var/hair_swapped = custom_style_hair_target(target) && hair && json_encode(hair) != json_encode(workspace.hair_context)
+	var/markings_swapped = !isnull(markings) && json_encode(markings) != json_encode(workspace.markings_context)
+	custom_sprite_apply_round_style(preview_body, list("target" = target, "zone" = body_zone, "drawing" = drawing, "hair" = hair_swapped ? hair : null, "markings" = markings_swapped ? markings : null), emissives_allowed())
+	// Hair-only updates don't rebuild the underwear that was hidden for the guides.
+	if(custom_style_hair_target(target))
+		preview_body.update_body()
+	var/list/urls = custom_sprite_render_directions(preview_body, publish = CALLBACK(src, PROC_REF(publish_icon)), hide_hair = !custom_style_hair_target(target) && hide_parts, worn_overlays = render_overlays())
+	if(hair_swapped)
+		custom_style_apply_hair_context(preview_body, workspace.hair_context, update = FALSE, target = target)
+	if(markings_swapped)
+		custom_style_apply_base_markings(preview_body, body_zone, workspace.markings_context, emissives_allowed())
+		preview_body.update_body()
+	return urls
+
+/// Closing keeps the unsaved draft and its history; only saving writes. Preview resources are rebuilt on reopening.
 /datum/custom_sprite_editor/ui_close(mob/user)
-	finish(TRUE)
+	if(preview_timer)
+		deltimer(preview_timer)
+		preview_timer = null
+	candidate = null
+	QDEL_NULL(preview_body)
+	guide_icons = list()
+	guide_urls = list()
+	preview_urls = list()
+	preview_hash = null
+	resources_ready = FALSE
+
+/datum/custom_sprite_editor/proc/current_package()
+	return custom_style_package(target, body_zone, workspace.serialize_drawing(), workspace.hair_context, workspace.markings_context)
 
 /datum/custom_sprite_editor/proc/save_drawing()
-	if(!preferences.save_custom_sprite(target, workspace.serialize_drawing(), slot, body_zone))
-		save_error = "Couldn't save to disk. Your drawing is kept in this session. Press Ctrl+S to retry."
+	var/error = preferences.commit_custom_style(current_package(), slot, rotate_saved_style)
+	if(error)
+		save_error = "[error] Your drawing is kept in this session. Press Ctrl+S to retry."
 		SStgui.update_uis(src)
 		return FALSE
+	rotate_saved_style = FALSE
 	save_error = null
 	save_revision++
 	return TRUE
@@ -430,7 +906,106 @@
 		deltimer(preview_timer)
 		preview_timer = null
 	if(preferences)
-		preferences.custom_sprite_editors -= editor_key
+		LAZYREMOVE(preferences.custom_sprite_editors, editor_key)
 	SStgui.close_uis(src)
 	preferences?.character_preview_view?.update_body()
 	qdel(src)
+
+/**
+ * Imports a style file into a confirmable preview. Sleeps while the file dialog is open.
+ *
+ * Nothing in the draft or preferences changes here. After the dialog returns, ownership, slot,
+ * context and draft revision are all checked again before the file is even considered.
+ */
+/datum/custom_sprite_editor/proc/begin_import(mob/user)
+	var/revision = draft_revision
+	var/owner_slot = slot
+	transfer_error = null
+	transfer_notice = null
+	candidate = null
+	var/list/result = custom_style_receive(user)
+	if(QDELETED(src))
+		return
+	if(!can_edit(user) || revision != draft_revision || owner_slot != slot)
+		transfer_error = "The drawing changed while you were choosing a file. Nothing was imported."
+	else if(result?["error"])
+		transfer_error = result["error"]
+	else if(result)
+		var/list/package = result["package"]
+		if(result["legacy"])
+			package = custom_style_package(target, body_zone, package["drawing"], workspace.hair_context)
+		transfer_error = candidate_problem(package)
+		if(transfer_error)
+			log_game("[key_name(user)] had a custom style import rejected ([result["bytes"]] bytes): [transfer_error]")
+		else
+			show_candidate(package, "import")
+
+/// Returns why a package can't replace this draft, or null when it can.
+/datum/custom_sprite_editor/proc/candidate_problem(list/package)
+	if(package["target"] != target || package["zone"] != body_zone)
+		var/label = custom_style_hair_target(package["target"]) ? (package["target"] == "facial_hair" ? "facial hair" : "hair") : (package["zone"] ? "[lowertext(GLOB.custom_marking_zone_labels[package["zone"]])] markings" : "whole-body markings")
+		return "That style is for [label], not this drawing."
+	if(!resources_ready)
+		return "The preview isn't available right now."
+	var/list/bounds = workspace.draw_bounds
+	if(custom_style_hair_target(target))
+		var/hair_problem = hair_context_problem(package["hair"])
+		if(hair_problem)
+			return hair_problem
+		bounds = custom_sprite_canvas_bounds(workspace.width)
+	if(custom_style_has_emission(package["drawing"]) && !emissives_allowed())
+		return "This style glows, but emissive appearance is disabled for this character."
+	if(!emissives_allowed())
+		for(var/list/entry as anything in package["markings"])
+			if(entry["emissive"])
+				return "This style has glowing base markings, but emissive appearance is disabled for this character."
+	var/list/drawing = package["drawing"]
+	if(drawing && custom_sprite_width(drawing) > workspace.width)
+		return "This style needs the wider taur canvas."
+	drawing = custom_sprite_resize_drawing(drawing, workspace.width)
+	var/outside = custom_style_paint_outside(drawing, bounds, custom_style_hair_target(target) ? null : workspace.draw_mask)
+	if(outside)
+		return "The [outside] view has paint outside the area this [custom_style_hair_target(target) ? "hairstyle" : "body zone"] allows."
+	return null
+
+/datum/custom_sprite_editor/proc/show_candidate(list/package, source)
+	var/problem = candidate_problem(package)
+	if(problem)
+		transfer_error = problem
+		return FALSE
+	// Preview the same centered pixels that replacement will put into the workspace.
+	package = package.Copy()
+	package["drawing"] = custom_sprite_resize_drawing(package["drawing"], workspace.width)
+	var/list/hair = package["hair"]
+	var/summary = hair ? "[hair["style"]], [hair["color"]]" : null
+	candidate = list("package" = custom_style_copy_package(package), "source" = source, "revision" = draft_revision, "summary" = summary, "previews" = render_previews(package["drawing"], hair, package["markings"]))
+	// The body now shows the candidate; the next refresh restores the draft.
+	preview_hash = null
+	refresh_preview(push = FALSE)
+	return TRUE
+
+/// Replaces the draft with the confirmed candidate as one undoable action.
+/datum/custom_sprite_editor/proc/apply_candidate()
+	if(!candidate)
+		return FALSE
+	var/list/package = candidate["package"]
+	var/source = candidate["source"]
+	if(candidate["revision"] != draft_revision)
+		candidate = null
+		transfer_error = "The drawing changed after the preview. Import the style again."
+		return FALSE
+	candidate = null
+	transfer_error = candidate_problem(package)
+	if(transfer_error)
+		return FALSE
+	if(!workspace.replace_drawing(package["drawing"], package["hair"], source == "restore" ? "Restore saved style" : "Import style", custom_style_hair_target(target), package["markings"]))
+		transfer_error = "This style and your undo history need more than [CUSTOM_SPRITE_MAX_COLORS] colors. Save or reopen the editor, then import again."
+		return FALSE
+	if(context == "preferences")
+		rotate_saved_style = TRUE
+	if(resources_hair != json_encode(workspace.hair_context) || resources_markings != json_encode(workspace.markings_context))
+		rebuild_resources()
+	else
+		refresh_custom_palette()
+	transfer_notice = source == "restore" ? "Previous saved style restored. Save to keep it." : "Style imported."
+	return TRUE

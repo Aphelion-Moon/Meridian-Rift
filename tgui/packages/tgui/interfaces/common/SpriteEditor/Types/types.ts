@@ -126,6 +126,7 @@ export type SpriteEditorToolContext = {
   drawBounds?: [number, number, number, number];
   drawMask?: string[];
   onSampleBackdrop?: (x: number, y: number) => void;
+  onDraw?: (x: number, y: number, erasing?: boolean) => void;
   setSelectionBounds?: Dispatch<SetStateAction<SelectionBounds | undefined>>;
   // APHELION EDIT ADDITION END
   currentColor: EditorColor;

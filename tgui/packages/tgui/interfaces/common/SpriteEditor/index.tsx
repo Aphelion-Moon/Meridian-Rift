@@ -49,8 +49,10 @@ import {
 } from './Types/types';
 // APHELION EDIT ADDITION START
 import {
+  toolTooltip,
   useSpriteEditorHistory,
   useSpriteEditorHotkeys,
+  useSpriteEditorToolHotkeys,
 } from './useSpriteEditorHotkeys';
 
 // APHELION EDIT ADDITION END
@@ -146,7 +148,7 @@ const HistoryButton = (props: HistoryButtonProps) => {
     <Button
       icon={type}
       disabled={stackEmpty}
-      tooltip={`${capitalize(type)}${stackEmpty ? '' : ` ${stack[stack.length - 1]}`}`}
+      tooltip={`${capitalize(type)} (${type === 'undo' ? 'Ctrl+Z' : 'Ctrl+Y or Ctrl+Shift+Z'})${stackEmpty ? '' : `: ${stack[stack.length - 1]}`}`}
       onClick={() => history(type)}
     />
   );
@@ -193,6 +195,7 @@ type CanvasProps = {
   // APHELION EDIT ADDITION START
   onSave?: () => void;
   onSampleBackdrop?: (x: number, y: number) => void;
+  onDraw?: (x: number, y: number, erasing?: boolean) => void;
   // APHELION EDIT ADDITION END
 } & Omit<AdvancedCanvasPropsBase, 'data' | 'backdropColor'>;
 
@@ -316,6 +319,7 @@ export namespace SpriteEditor {
       toolFlags = SpriteEditorToolFlags.All,
       ...rest
     } = props;
+    useSpriteEditorToolHotkeys(toolFlags); // APHELION EDIT ADDITION
     useEffect(() => {
       if (!(toolFlags & (1 << tools.indexOf(currentTool)))) {
         setCurrentTool(
@@ -351,6 +355,7 @@ export namespace SpriteEditor {
                 <Button
                   icon={tool.icon}
                   selected={currentTool === tool}
+                  tooltip={toolTooltip(tool)}
                   onClick={() => setCurrentTool(tool, cancelContext)}
                   {...toolButtonProps}
                   {...perButtonProps?.(tool, i)}
@@ -365,7 +370,7 @@ export namespace SpriteEditor {
   };
 
   export const Canvas = (props: CanvasProps) => {
-    const { data, disabled, onSave, onSampleBackdrop, ...rest } = props; // APHELION EDIT CHANGE - ORIGINAL: const { data, disabled, ...rest } = props;
+    const { data, disabled, onSave, onSampleBackdrop, onDraw, ...rest } = props; // APHELION EDIT CHANGE - ORIGINAL: const { data, disabled, ...rest } = props;
     useSpriteEditorHotkeys(!!disabled, onSave); // APHELION EDIT ADDITION
     const { width, height, backdrop } = data;
     const [currentColor, setCurrentColor] = useAtom(currentColorAtom);
@@ -401,6 +406,7 @@ export namespace SpriteEditor {
       drawBounds: props.drawBounds,
       drawMask: props.drawMask,
       onSampleBackdrop,
+      onDraw,
       setSelectionBounds,
       // APHELION EDIT ADDITION END
       currentColor,
@@ -474,6 +480,14 @@ export namespace SpriteEditor {
           : {
               onMouseDown: (ev, ref) => {
                 const [x, y] = localizeCoords(ev, ref, width, height);
+                // APHELION EDIT ADDITION START
+                // Eyedropper prevents drag setup without changing the selected tool.
+                if (ev.altKey && ev.button === 0) {
+                  tools[2].onMouseDown(toolContext, data, x, y);
+                  ev.preventDefault();
+                  return;
+                }
+                // APHELION EDIT ADDITION END
                 if (
                   !currentTool.onMouseDown(
                     toolContext,

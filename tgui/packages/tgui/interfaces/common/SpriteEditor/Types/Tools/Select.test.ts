@@ -61,7 +61,7 @@ beforeEach(() => {
 });
 afterEach(() => send.mockRestore());
 
-it('moves editable pixels across mask holes without moving hidden pixels or leaving the limb', () => {
+it('moves hidden paint with the selection, but only onto the limb', () => {
   const frame = [[red, blue, clear, clear]];
   const { data, context, tool, select } = fixture(frame);
   context.drawMask = ['1011'];
@@ -71,13 +71,13 @@ it('moves editable pixels across mask holes without moving hidden pixels or leav
   expect(context.setPreviewData).not.toHaveBeenCalled();
   tool.onMouseUp(context, data, 2, 0);
   expect(context.setPreviewData).toHaveBeenLastCalledWith([
-    [clear, blue, red, clear],
+    [clear, clear, red, blue],
   ]);
   expect(send).toHaveBeenCalledTimes(1);
   expect(send.mock.calls[0][1].transaction.offset).toEqual([2, 0]);
 });
 
-it('starts and grabs a selection in shaded pixels while moving only allowed paint', () => {
+it('grabs a selection in shaded pixels and brings hidden paint back inside the bounds', () => {
   const frame = [
     [blue, clear, clear, clear, clear, clear, clear, clear],
     [clear, clear, red, clear, clear, clear, clear, clear],
@@ -91,9 +91,9 @@ it('starts and grabs a selection in shaded pixels while moving only allowed pain
   tool.onMouseDown(context, data, 0, 0);
   tool.onMouseMove(context, data, 1, 0);
   expect(context.setPreviewData).toHaveBeenLastCalledWith([
-    frame[0],
-    [clear, clear, clear, red, clear, clear, clear, clear],
-    frame[2],
+    Array(8).fill(clear),
+    [clear, clear, blue, clear, clear, clear, clear, clear],
+    [clear, clear, clear, clear, red, clear, clear, clear],
   ]);
   const updates = (context.setPreviewData as ReturnType<typeof mock>).mock.calls
     .length;
@@ -101,7 +101,7 @@ it('starts and grabs a selection in shaded pixels while moving only allowed pain
   expect(context.setPreviewData).toHaveBeenCalledTimes(updates);
   tool.onMouseUp(context, data, 1, 0);
   expect(send.mock.calls[0][1].transaction.rect).toEqual([0, 0, 2, 1]);
-  expect(send.mock.calls[0][1].transaction.offset).toEqual([1, 0]);
+  expect(send.mock.calls[0][1].transaction.offset).toEqual([2, 1]);
   expect(frame[0][0]).toBe(blue);
 });
 

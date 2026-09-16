@@ -30,10 +30,9 @@
 		return FALSE
 	var/list/frame = layers[transaction["layer"]]["data"][direction]
 	var/list/changes = list()
+	// Painted pixels outside changed bounds may be moved back in; their destinations are still checked.
 	for(var/y in top to bottom)
 		for(var/x in left to right)
-			if(!is_point_allowed(x, y, direction))
-				continue
 			var/color = frame[y + 1][x + 1]
 			if(istext(color) && !(length(color) == 9 && endswith(color, "00")))
 				if(!is_point_allowed(x + dx, y + dy, direction))
@@ -41,8 +40,6 @@
 				changes["[x],[y]"] = list(x, y, color, "#00000000")
 	for(var/y in top to bottom)
 		for(var/x in left to right)
-			if(!is_point_allowed(x, y, direction))
-				continue
 			var/color = frame[y + 1][x + 1]
 			if(!istext(color) || (length(color) == 9 && endswith(color, "00")))
 				continue
@@ -63,18 +60,33 @@
 	return length(points) > 0
 
 /datum/sprite_editor_workspace/custom_sprite
+	/// Opaque brush colors available to this workspace.
 	var/list/palette
+	/// Direction -> inclusive rectangle of editable pixels.
 	var/list/draw_bounds
+	/// Direction -> limb silhouette rows, or null for rectangular bounds.
 	var/list/draw_mask
+	/// Set while an eraser stroke is validated, so already-painted pixels outside the bounds can be removed.
+	var/erasing = FALSE
+	/// The editor this workspace belongs to, so view locks are checked as they are now.
+	var/datum/weakref/owner_ref
+	/// Legacy drawing multiplier retained until it is baked into the palette.
 	var/tint
+	/// Direction -> whether this drawing emits instead of blocking light.
 	var/list/emissive
+	/// The whitelisted base hair look this draft belongs to. Null for markings.
+	var/list/hair_context
+	/// Ordered native marking records for this zone; null when this workspace has no base markings.
+	var/list/markings_context
+	/// Direction -> whether that canvas currently contains paint.
 	var/list/edited_directions = list()
 	/// Serialized pixels are immutable until the next edit; appearance settings only replace metadata.
 	var/list/drawing_cache
+	/// Whether serialization must rebuild the cached pixel payload.
 	var/pixels_dirty = TRUE
 
-/datum/sprite_editor_workspace/custom_sprite/New(list/drawing, list/sampled_palette, list/bounds, list/mask)
-	..(32, 32, 4, null, SPRITE_EDITOR_COLOR_MODE_RGB, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
+/datum/sprite_editor_workspace/custom_sprite/New(list/drawing, list/sampled_palette, list/bounds, list/mask, canvas_width = null)
+	..(max(custom_sprite_width(drawing), canvas_width == CUSTOM_SPRITE_TAUR_WIDTH ? CUSTOM_SPRITE_TAUR_WIDTH : 32), 32, 4, null, SPRITE_EDITOR_COLOR_MODE_RGB, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
 	palette = list()
 	tint = drawing?["tint"]
 	emissive = custom_sprite_emissive_settings(drawing?["emissive"])
@@ -99,6 +111,11 @@
 				var/old_color = point[3]
 				if(!endswith(old_color, "00"))
 					combined |= lowertext(copytext(old_color, 1, 8))
+			for(var/direction in transaction["replaced"])
+				for(var/list/point as anything in transaction["replaced"][direction])
+					for(var/replaced_color in list(point[3], point[4]))
+						if(!endswith(replaced_color, "00"))
+							combined |= lowertext(copytext(replaced_color, 1, 8))
 	for(var/raw_color in available_palette)
 		var/color = custom_sprite_color(raw_color)
 		if(!color)
@@ -110,15 +127,17 @@
 	return TRUE
 
 /datum/sprite_editor_workspace/custom_sprite/proc/used_colors()
-	var/list/colors = list()
+	var/list/pixels = list()
 	for(var/direction in layers[1]["data"])
 		if(!edited_directions[direction])
 			continue
 		var/list/frame = layers[1]["data"][direction]
 		for(var/list/row as anything in frame)
-			for(var/pixel in row)
-				if(istext(pixel) && !endswith(pixel, "00"))
-					colors |= lowertext(copytext(pixel, 1, 8))
+			pixels |= row
+	var/list/colors = list()
+	for(var/pixel in pixels)
+		if(istext(pixel) && !endswith(pixel, "00"))
+			colors |= lowertext(copytext(pixel, 1, 8))
 	return colors
 
 /datum/sprite_editor_workspace/custom_sprite/proc/validate_palette_color(datum/source, color)
@@ -129,6 +148,8 @@
 /datum/sprite_editor_workspace/custom_sprite/is_point_allowed(x, y, direction)
 	if(!..())
 		return FALSE
+	if(erasing && is_painted(x, y, direction))
+		return TRUE
 	if(!isnull(draw_bounds))
 		var/list/bounds = draw_bounds[direction]
 		if(!bounds || x < bounds[1] || y < bounds[2] || x > bounds[3] || y > bounds[4])
@@ -138,8 +159,45 @@
 	var/list/rows = draw_mask[direction]
 	return rows && copytext(rows[y + 1], x + 1, x + 2) == "1"
 
+/**
+ * Drops paint outside the current bounds and mask.
+ *
+ * Markings clip to the body, so paint left outside by a changed body or zone is removed instead of
+ * kept. This is a cleanup pass, not an edit: it is not added to the undo history.
+ *
+ * Returns TRUE when pixels were removed.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/clip_to_allowed()
+	var/changed = FALSE
+	for(var/direction in layers[1]["data"])
+		var/list/frame = layers[1]["data"][direction]
+		var/direction_changed = FALSE
+		for(var/y in 1 to height)
+			for(var/x in 1 to width)
+				if(endswith(frame[y][x], "00") || is_point_allowed(x - 1, y - 1, direction))
+					continue
+				frame[y][x] = "#00000000"
+				direction_changed = TRUE
+		if(direction_changed)
+			update_edited_direction(direction)
+			changed = TRUE
+	if(changed)
+		pixels_dirty = TRUE
+	return changed
+
+/datum/sprite_editor_workspace/custom_sprite/proc/is_painted(x, y, direction)
+	var/list/frame = layers[1]["data"][direction]
+	var/color = frame?[y + 1][x + 1]
+	return istext(color) && !endswith(color, "00")
+
+/// Existing paint left outside changed bounds can always be erased; new paint stays inside.
 /datum/sprite_editor_workspace/custom_sprite/new_transaction(transaction)
+	// A mirror can be picked up or dropped between strokes.
+	var/datum/custom_sprite_editor/editor = owner_ref?.resolve()
+	editor?.sync_locked_views(push = FALSE)
+	erasing = islist(transaction) && transaction["type"] == "eraser"
 	. = ..()
+	erasing = FALSE
 	if(length(undo_stack) > 100)
 		undo_stack.Cut(1, 2)
 		undo_names.Cut(1, 2)
@@ -162,14 +220,116 @@
 	transaction -= "point"
 
 /datum/sprite_editor_workspace/custom_sprite/transact(list/transaction)
+	if(transaction["type"] == "replace")
+		apply_replacement(transaction, TRUE)
+		return
 	..()
 	pixels_dirty = TRUE
 	update_edited_direction(transaction["dir"])
 
 /datum/sprite_editor_workspace/custom_sprite/reverse_transact(list/transaction)
+	if(transaction["type"] == "replace")
+		apply_replacement(transaction, FALSE)
+		return
 	..()
 	pixels_dirty = TRUE
 	update_edited_direction(transaction["dir"])
+
+/// Explicit saved tints already render as a separate overlay: bake their RGB into literal colors.
+/datum/sprite_editor_workspace/custom_sprite/proc/bake_tint()
+	if(!tint || tint == "#ffffff")
+		return
+	var/list/colors = list()
+	for(var/color in palette)
+		colors["[color]ff"] = "[custom_sprite_tint_color(color, tint)]ff"
+	for(var/direction in layers[1]["data"])
+		var/list/frame = layers[1]["data"][direction]
+		for(var/list/row as anything in frame)
+			for(var/x in 1 to length(row))
+				if(colors[row[x]])
+					row[x] = colors[row[x]]
+	tint = "#ffffff"
+	pixels_dirty = TRUE
+	palette = used_colors()
+
+/**
+ * Replaces every view, emission setting and native base look as one undoable action.
+ *
+ * The caller has already validated the drawing for this destination, so this bypasses the
+ * per-stroke bounds checks. Colors needed by the replacement and by undo history share the
+ * normal 63-color limit.
+ *
+ * Arguments:
+ * - drawing: Canonical drawing, or null for empty art.
+ * - new_hair_context: The base hair look that goes with it.
+ * - name: The undo history label.
+ * - keep_legacy_tint: Hair drawings without an explicit tint keep the old hair-color filter.
+ * - new_markings_context: Ordered native markings, an empty list to clear, or null to keep them.
+ *
+ * Returns:
+ * - TRUE: Replaced, or already identical.
+ * - FALSE: The drawing is too wide or combined colors would exceed the limit. Nothing changed.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/replace_drawing(list/drawing, list/new_hair_context, name, keep_legacy_tint = FALSE, list/new_markings_context)
+	if(isnull(new_markings_context))
+		new_markings_context = markings_context
+	if(drawing)
+		drawing = custom_sprite_resize_drawing(drawing, width)
+		if(!drawing)
+			return FALSE
+	var/datum/sprite_editor_workspace/custom_sprite/replacement = new(drawing, list(), null, null, width)
+	replacement.bake_tint()
+	if(!drawing || !keep_legacy_tint)
+		replacement.tint = "#ffffff"
+	var/list/replaced = list()
+	var/changed = json_encode(hair_context) != json_encode(new_hair_context) || json_encode(markings_context) != json_encode(new_markings_context) || json_encode(emissive) != json_encode(replacement.emissive) || tint != replacement.tint
+	for(var/direction in layers[1]["data"])
+		var/list/old_frame = layers[1]["data"][direction]
+		var/list/new_frame = replacement.layers[1]["data"][direction]
+		var/list/points = list()
+		for(var/y in 1 to height)
+			for(var/x in 1 to width)
+				var/old_color = old_frame[y][x]
+				var/new_color = new_frame[y][x]
+				if(old_color != new_color && !(endswith(old_color, "00") && endswith(new_color, "00")))
+					points += list(list(x - 1, y - 1, old_color, new_color))
+		if(length(points))
+			replaced[direction] = points
+			changed = TRUE
+	var/list/transaction = list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = new_hair_context, "emissive_old" = emissive, "emissive_new" = replacement.emissive, "tint_old" = tint, "tint_new" = replacement.tint)
+	transaction["markings_old"] = markings_context
+	transaction["markings_new"] = new_markings_context
+	qdel(replacement)
+	if(!changed)
+		return TRUE
+	var/list/previous_palette = palette
+	transact(transaction)
+	undo_stack += list(transaction)
+	undo_names += name
+	if(!update_palette(list()))
+		pop(undo_names)
+		pop(undo_stack)
+		reverse_transact(transaction)
+		palette = previous_palette
+		return FALSE
+	redo_stack.Cut()
+	redo_names.Cut()
+	if(length(undo_stack) > 100)
+		undo_stack.Cut(1, 2)
+		undo_names.Cut(1, 2)
+	return TRUE
+
+/datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement(list/transaction, forward)
+	for(var/direction in transaction["replaced"])
+		var/list/frame = layers[1]["data"][direction]
+		for(var/list/point as anything in transaction["replaced"][direction])
+			frame[point[2] + 1][point[1] + 1] = forward ? point[4] : point[3]
+		update_edited_direction(direction)
+	hair_context = forward ? transaction["hair_new"] : transaction["hair_old"]
+	markings_context = forward ? transaction["markings_new"] : transaction["markings_old"]
+	emissive = forward ? transaction["emissive_new"] : transaction["emissive_old"]
+	tint = forward ? transaction["tint_new"] : transaction["tint_old"]
+	pixels_dirty = TRUE
 
 /// Update only the affected direction, without serializing the drawing for its UI marker.
 /datum/sprite_editor_workspace/custom_sprite/proc/update_edited_direction(direction)
@@ -192,6 +352,7 @@
 	drawing_cache = null
 	var/list/directions = list()
 	var/list/indices = list()
+	var/list/pixel_indices = list()
 	var/list/saved_palette = used_colors()
 	if(!length(saved_palette) || length(saved_palette) > CUSTOM_SPRITE_MAX_COLORS)
 		return null
@@ -201,23 +362,26 @@
 		if(!edited_directions[direction])
 			continue
 		var/list/frame = layers[1]["data"][direction]
-		var/grid = ""
+		var/list/pixels = list()
 		for(var/list/row as anything in frame)
 			for(var/pixel in row)
-				var/index = istext(pixel) && !endswith(pixel, "00") ? indices[lowertext(copytext(pixel, 1, 8))] : null
-				grid += index || "0"
-		directions[direction] = custom_sprite_encode_grid(grid, length(saved_palette))
-	drawing_cache = list("version" = length(saved_palette) > 15 ? 2 : 1, "palette" = saved_palette, "tint" = tint, "dirs" = directions, "emissive" = emissive)
+				var/index = istext(pixel) ? pixel_indices[pixel] : "0"
+				if(!index)
+					index = !endswith(pixel, "00") ? indices[lowertext(copytext(pixel, 1, 8))] : null
+					pixel_indices[pixel] = index || "0"
+				pixels += index || "0"
+		directions[direction] = custom_sprite_encode_grid(jointext(pixels, ""), length(saved_palette), width * height)
+	drawing_cache = list("version" = width == CUSTOM_SPRITE_TAUR_WIDTH ? 3 : (length(saved_palette) > 15 ? 2 : 1), "palette" = saved_palette, "tint" = tint, "dirs" = directions, "emissive" = emissive)
 	return drawing_cache
 
-/// An explicit clear can erase old pixels outside the bounds of a newly selected hairstyle/body.
+/// An explicit clear erases the whole view, including pixels outside the current body bounds.
 /datum/sprite_editor_workspace/custom_sprite/proc/clear_direction(direction)
 	if(!istext(direction) || !edited_directions[direction])
 		return FALSE
 	var/list/points = list()
 	var/list/frame = layers[1]["data"][direction]
-	for(var/y in 0 to 31)
-		for(var/x in 0 to 31)
+	for(var/y in 0 to height - 1)
+		for(var/x in 0 to width - 1)
 			if(!endswith(frame[y + 1][x + 1], "00"))
 				points += list(list(x, y))
 	if(!length(points))

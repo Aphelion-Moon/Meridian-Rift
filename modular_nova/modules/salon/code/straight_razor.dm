@@ -2,6 +2,8 @@
 	name = "straight razor"
 	desc = "A very sharp blade, mostly used for shaving faces..."
 	icon = 'modular_nova/modules/salon/icons/items.dmi'
+	lefthand_file = 'modular_nova/modules/salon/icons/items_lefthand.dmi'
+	righthand_file = 'modular_nova/modules/salon/icons/items_righthand.dmi'
 	icon_state = "straight_razor"
 	force = 12
 	throw_speed = 3

@@ -27,6 +27,7 @@ export class Bucket extends Tool {
       !isWithinDrawBounds(px, py, context.drawBounds, context.drawMask)
     )
       return undefined;
+    context.onDraw?.(px, py);
     // APHELION EDIT ADDITION END
     act('spriteEditorCommand', {
       command: 'transaction',

@@ -12,7 +12,7 @@
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	for(var/target in list("hair", "markings"))
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, target)
-		preferences.custom_sprite_editors[target] = editor
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
 		if(length(editor.guide_urls) != 4 || length(editor.preview_urls) != 4)
 			Fail("Each editor must publish all four guides and previews.", __FILE__, __LINE__)
 		var/list/bounds = editor.workspace.draw_bounds["2"]
@@ -26,11 +26,11 @@
 		rustg_file_write(json_encode(editor.ui_data(mock_client.mob)), "data/custom_sprite_checks/[target].json")
 		editor.finish(TRUE)
 		var/list/saved = target == "hair" ? preferences.custom_hair : preferences.custom_markings
-		if(!saved || preferences.custom_sprite_editors[target])
+		if(!saved || preferences.custom_sprite_editors?[target])
 			Fail("Closing must save the drawing and release its editor.", __FILE__, __LINE__)
 		var/saved_hash = custom_sprite_hash(saved)
 		editor = new /datum/custom_sprite_editor/qualification(preferences, target)
-		preferences.custom_sprite_editors[target] = editor
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
 		editor.workspace.clear_direction("2")
 		editor.finish(FALSE)
 		if(saved_hash != custom_sprite_hash(target == "hair" ? preferences.custom_hair : preferences.custom_markings))
@@ -47,7 +47,7 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/obj/item/bodypart/head/head = editor.preview_body.get_bodypart(BODY_ZONE_HEAD)
 	var/list/initial_data = editor.ui_data(mock_client.mob)
 	if(initial_data["colorMode"] != "literal" || initial_data["displayTint"] || editor.workspace.tint != "#ffffff")
@@ -81,13 +81,26 @@
 			Fail("The marking palette must include all three selected mutant colors: [color].", __FILE__, __LINE__)
 	editor.finish(FALSE)
 
+/datum/unit_test/custom_sprite_facial_brush_color/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new(preferences, "facial_hair")
+	var/obj/item/bodypart/head/head = editor.preview_body.get_bodypart(BODY_ZONE_HEAD)
+	head.hair_color = "#ff0000"
+	head.override_hair_color = "#0000ff"
+	head.facial_hair_color = "#00ff00"
+	editor.color_mode = "hair"
+	if(editor.custom_palette_tint() != "#00ff00")
+		Fail("Facial-hair brushes must follow beard color, including when scalp hair has an override.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
 /datum/unit_test/custom_sprite_editor_saved_colors/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/hair = new /datum/custom_sprite_editor/qualification(preferences, "hair")
 	var/datum/custom_sprite_editor/markings = new /datum/custom_sprite_editor/qualification(preferences, "markings")
-	preferences.custom_sprite_editors["hair"] = hair
-	preferences.custom_sprite_editors["markings"] = markings
+	LAZYSET(preferences.custom_sprite_editors, "hair", hair)
+	LAZYSET(preferences.custom_sprite_editors, "markings", markings)
 	if(!hair.set_custom_palette(list("#fe12ab")))
 		Fail("Adding a saved swatch through the editor must succeed.", __FILE__, __LINE__)
 	for(var/datum/custom_sprite_editor/editor as anything in list(hair, markings))
@@ -116,8 +129,49 @@
 /datum/custom_sprite_editor/optimization_test/can_edit(mob/user)
 	return !closing
 
+/datum/unit_test/custom_sprite_candidate_dismissal/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	for(var/target in list("hair", "markings"))
+		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
+		var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
+		var/list/empty_package = editor.current_package()
+		var/list/bounds = editor.workspace.draw_bounds["2"]
+		if(!bounds || !editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(list(bounds[1], bounds[2])))))
+			editor.finish(FALSE)
+			return Fail("The candidate dismissal fixture must start with a painted draft.", __FILE__, __LINE__)
+		var/draft_hash = custom_sprite_hash(editor.workspace.serialize_drawing())
+		for(var/action in list("cancelCandidate", "confirmCandidate"))
+			if(!editor.show_candidate(empty_package, "import"))
+				editor.finish(FALSE)
+				return Fail("An empty style must offer a confirmable preview: [editor.transfer_error]", __FILE__, __LINE__)
+			var/list/before = json_decode(json_encode(editor.ui_data(mock_client.mob)))
+			if(before["candidate"]?["source"] != "import" || length(before["candidate"]?["previews"]) != 4)
+				Fail("The UI payload must expose the pending import and its four previews.", __FILE__, __LINE__)
+			if(!editor.ui_act(action, list(), ui, null))
+				Fail("Candidate dismissal must request an immediate UI update.", __FILE__, __LINE__)
+			var/list/after = json_decode(json_encode(editor.ui_data(mock_client.mob)))
+			if(editor.candidate || !("candidate" in after) || !isnull(after["candidate"]))
+				Fail("[action] must explicitly send a null candidate so TGUI clears its previously merged preview.", __FILE__, __LINE__)
+			if(action == "cancelCandidate" && custom_sprite_hash(editor.workspace.serialize_drawing()) != draft_hash)
+				Fail("Cancelling the candidate must preserve the painted draft.", __FILE__, __LINE__)
+			if(action == "confirmCandidate" && (editor.workspace.serialize_drawing() || editor.transfer_error))
+				Fail("Confirming an empty candidate must replace the draft before dismissing the preview.", __FILE__, __LINE__)
+		if(!editor.show_candidate(empty_package, "restore"))
+			Fail("A restored style must also offer a confirmable preview.", __FILE__, __LINE__)
+		editor.draft_changed()
+		editor.ui_act("confirmCandidate", list(), ui, null)
+		var/list/rejected = json_decode(json_encode(editor.ui_data(mock_client.mob)))
+		if(!editor.transfer_error || !("candidate" in rejected) || !isnull(rejected["candidate"]))
+			Fail("Rejecting a stale candidate must also dismiss its previously merged preview.", __FILE__, __LINE__)
+		editor.finish(FALSE)
+
 /datum/sprite_editor_workspace/custom_sprite/serialization_test
+	/// Total serialization requests, including metadata-only updates.
 	var/serializations = 0
+	/// Requests that actually rescan pixel data instead of using the cache.
 	var/pixel_scans = 0
 
 /datum/sprite_editor_workspace/custom_sprite/serialization_test/serialize_drawing()
@@ -152,7 +206,7 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	QDEL_NULL(editor.workspace)
 	var/datum/sprite_editor_workspace/custom_sprite/serialization_test/workspace = new(null, list("#ffffff"), null)
 	editor.workspace = workspace
@@ -192,13 +246,13 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	QDEL_NULL(editor.workspace)
 	editor.workspace = new(null, list("#ffffff"), null)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 	editor.ui_act("spriteEditorCommand", list("command" = "transaction", "transaction" = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#ffffffff", "points" = list(list(0, 0)))), ui, null)
 	var/pending_timer = editor.preview_timer
-	if(!editor.ui_act("saveDraft", list(), ui, null) || editor.closing || preferences.custom_sprite_editors["hair"] != editor || !pending_timer || editor.preview_timer != pending_timer)
+	if(!editor.ui_act("saveDraft", list(), ui, null) || editor.closing || preferences.custom_sprite_editors?["hair"] != editor || !pending_timer || editor.preview_timer != pending_timer)
 		Fail("Saving a draft must keep the editor and pending preview timer alive.", __FILE__, __LINE__)
 	var/list/saved = preferences.custom_hair
 	if(custom_sprite_decode_grid(saved?["dirs"]?["2"], 1) != "1" + repeat_string(1023, "0"))
@@ -213,7 +267,7 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/list/guides = ("guide_icons" in editor.vars) ? editor.vars["guide_icons"] : null
 	if(length(guides) != 4)
 		editor.finish(FALSE)
@@ -281,9 +335,9 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/datum/custom_sprite_editor/other = new /datum/custom_sprite_editor/optimization_test(preferences, "markings")
-	preferences.custom_sprite_editors["markings"] = other
+	LAZYSET(preferences.custom_sprite_editors, "markings", other)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 	editor.sampled_palette |= "#12abef"
 	editor.workspace.update_palette(editor.sampled_palette)
@@ -313,29 +367,32 @@
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/underwear], /datum/sprite_accessory/clothing/underwear/male_briefs::name)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "markings")
-	preferences.custom_sprite_editors["markings"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
 	var/mob/living/carbon/human/body = editor.preview_body
 	var/previous_visibility = body.underwear_visibility
 	if(previous_visibility & UNDERWEAR_HIDE_UNDIES || !length(body.get_underwear_overlays()))
-		Fail("Generating guides must restore the preview body's visible underwear.", __FILE__, __LINE__)
+		Fail("Generating guides must leave the preview body's underwear visible.", __FILE__, __LINE__)
 	var/list/clothed_icons = list()
 	for(var/direction in GLOB.cardinals)
-		var/icon/clothed = getFlatIcon(body, defdir = direction, no_anim = TRUE)
+		// Marking guides leave hair out, so compare against the same appearance.
+		var/icon/clothed = getFlatIcon(editor.render_appearance(body), defdir = direction, no_anim = TRUE)
 		clothed.Crop(1, 1, 32, 32)
 		clothed_icons["[direction]"] = clothed
 		if(editor.preview_urls["[direction]"] != editor.publish_icon(clothed))
 			Fail("The ordinary preview must retain the clothed character appearance.", __FILE__, __LINE__)
+	// Guides show the body as it is; only the Hair toggle changes what they leave out.
+	for(var/direction in GLOB.cardinals)
+		if(!custom_sprite_test_same_pixels(clothed_icons["[direction]"], editor.guide_icons["[direction]"]))
+			Fail("Every guide direction must match the character's own underwear.", __FILE__, __LINE__)
 	body.underwear_visibility = UNDERWEAR_HIDE_ALL
 	body.update_body()
 	var/clothing_changed_pixels = FALSE
 	for(var/direction in GLOB.cardinals)
-		var/icon/naked = getFlatIcon(body, defdir = direction, no_anim = TRUE)
+		var/icon/naked = getFlatIcon(editor.render_appearance(body), defdir = direction, no_anim = TRUE)
 		naked.Crop(1, 1, 32, 32)
-		if(!custom_sprite_test_same_pixels(naked, editor.guide_icons["[direction]"]))
-			Fail("Every guide direction must match the character with all underwear hidden.", __FILE__, __LINE__)
 		clothing_changed_pixels ||= !custom_sprite_test_same_pixels(naked, clothed_icons["[direction]"])
 	if(!clothing_changed_pixels)
-		Fail("The nude-guide fixture must exercise visibly different clothed pixels.", __FILE__, __LINE__)
+		Fail("The underwear fixture must exercise visibly different pixels.", __FILE__, __LINE__)
 	body.underwear_visibility = previous_visibility
 	body.update_body()
 	editor.finish(FALSE)
@@ -345,7 +402,7 @@
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	for(var/target in list("hair", "markings"))
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-		preferences.custom_sprite_editors[target] = editor
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
 		var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 		var/list/data = editor.ui_data(mock_client.mob)
 		if(data["colorMode"] != "literal" || data["displayTint"] || data["customTint"] != "#ffffff" || editor.workspace.tint != "#ffffff")
@@ -373,7 +430,7 @@
 			Fail("Saving an unchanged drawing must acknowledge success again.", __FILE__, __LINE__)
 		editor.finish(TRUE)
 		editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-		preferences.custom_sprite_editors[target] = editor
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
 		data = editor.ui_data(mock_client.mob)
 		if(data["colorMode"] != "literal" || data["saveRevision"] != 0)
 			Fail("Reopening must retain literal colors and start a fresh save acknowledgement.", __FILE__, __LINE__)
@@ -390,9 +447,9 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/datum/custom_sprite_editor/other = new /datum/custom_sprite_editor/optimization_test(preferences, "markings")
-	preferences.custom_sprite_editors["markings"] = other
+	LAZYSET(preferences.custom_sprite_editors, "markings", other)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 	QDEL_NULL(editor.workspace)
 	editor.sampled_palette = list("#ffffff", "#123456")
@@ -460,7 +517,7 @@
 	var/saved_hash = custom_sprite_hash(preferences.custom_hair)
 	editor.finish(FALSE)
 	editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	if(custom_sprite_hash(editor.workspace.serialize_drawing()) != saved_hash || editor.color_mode != "literal" || editor.custom_tint != "#ffffff")
 		Fail("Reopening literal strokes must preserve their RGB and reset transient Custom effects.", __FILE__, __LINE__)
 	editor.finish(FALSE)
@@ -470,7 +527,7 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 	QDEL_NULL(editor.workspace)
 	editor.sampled_palette = list("#123456")
@@ -506,7 +563,7 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	preferences.custom_sprite_editors["hair"] = editor
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 	var/list/palette = list()
 	for(var/i in 1 to 63)
@@ -533,10 +590,10 @@
 		original["tint"] = "#80c040"
 		for(var/direction in original["dirs"])
 			original["dirs"][direction] = custom_sprite_encode_grid(repeat_string(512, "12"))
-		preferences.save_custom_sprite(target, original)
+		preferences.commit_custom_style(custom_style_package(target, null, original, null), preferences.default_slot)
 		var/original_hash = custom_sprite_hash(target == "hair" ? preferences.custom_hair : preferences.custom_markings)
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-		preferences.custom_sprite_editors[target] = editor
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
 		var/list/literal = editor.workspace.serialize_drawing()
 		if(literal?["tint"] != "#ffffff" || !("#80c040" in literal["palette"]) || custom_sprite_hash(target == "hair" ? preferences.custom_hair : preferences.custom_markings) != original_hash)
 			Fail("Opening an explicitly tinted drawing must bake exact RGB without saving or aliasing its stored data.", __FILE__, __LINE__)
@@ -571,7 +628,7 @@
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/hair_emissive], TRUE)
 	for(var/target in list("hair", "markings"))
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-		preferences.custom_sprite_editors[target] = editor
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
 		var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 		var/list/data = editor.ui_data(mock_client.mob)
 		if(json_encode(data["emissive"]) != json_encode(custom_sprite_emissive_settings(FALSE)) || !data["emissiveAllowed"])
@@ -603,7 +660,7 @@
 		editor.ui_act("saveDraft", list(), ui, null)
 		editor.finish(FALSE)
 		editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-		preferences.custom_sprite_editors[target] = editor
+		LAZYSET(preferences.custom_sprite_editors, target, editor)
 		if(editor.workspace.emissive[emissive_direction] != enabled || editor.workspace.emissive[target == "hair" ? "2" : "1"])
 			Fail("Reopening must restore only the custom views explicitly enabled in the drawing.", __FILE__, __LINE__)
 		editor.finish(FALSE)
@@ -644,7 +701,7 @@
 			Fail("Normal hair emission changes must not alter either custom drawing's saved or applied flags.", __FILE__, __LINE__)
 	var/list/legacy = deep_copy_list(preferences.custom_hair)
 	legacy -= "emissive"
-	preferences.save_custom_sprite("hair", legacy)
+	preferences.commit_custom_style(custom_style_package("hair", null, legacy, null), preferences.default_slot)
 	preferences.apply_prefs_to(body, TRUE, visuals_only = TRUE)
 	var/datum/custom_sprite_editor/legacy_editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
 	if(json_encode(body.dna.custom_hair["emissive"]) != json_encode(custom_sprite_emissive_settings(FALSE)) || json_encode(legacy_editor.workspace.emissive) != json_encode(custom_sprite_emissive_settings(FALSE)))
@@ -662,12 +719,12 @@
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
 	for(var/target in list("hair", "markings"))
 		var/other_target = target == "hair" ? "markings" : "hair"
-		preferences.save_custom_sprite(target, null)
-		preferences.save_custom_sprite(other_target, custom_sprite_reopen_test_drawing(15, 12, "#00ffff"))
+		preferences.commit_custom_style(custom_style_package(target, null, null, null), preferences.default_slot)
+		preferences.commit_custom_style(custom_style_package(other_target, null, custom_sprite_reopen_test_drawing(15, 12, "#00ffff"), null), preferences.default_slot)
 		var/other_hash = custom_sprite_hash(other_target == "hair" ? preferences.custom_hair : preferences.custom_markings)
 		for(var/tool in list("eraser", "clear"))
 			var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-			preferences.custom_sprite_editors[target] = editor
+			LAZYSET(preferences.custom_sprite_editors, target, editor)
 			var/list/clean_guides = editor.guide_urls.Copy()
 			var/list/clean_previews = editor.preview_urls.Copy()
 			var/list/bounds = editor.workspace.draw_bounds["2"]
@@ -695,7 +752,7 @@
 			if(!(target == "hair" ? preferences.custom_hair : preferences.custom_markings))
 				Fail("Fixture must save its drawing before reopening.", __FILE__, __LINE__)
 			editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-			preferences.custom_sprite_editors[target] = editor
+			LAZYSET(preferences.custom_sprite_editors, target, editor)
 			if(json_encode(editor.guide_urls) != json_encode(clean_guides))
 				Fail("Reopening [target] must not bake editable paint into its guide.", __FILE__, __LINE__)
 			if(tool == "clear")
@@ -738,11 +795,13 @@
 /datum/unit_test/custom_marking_zone_editor/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.save_custom_sprite("markings", custom_sprite_test_drawing())
+	preferences.commit_custom_style(custom_style_package("markings", null, custom_sprite_test_drawing(), null), preferences.default_slot)
 	var/whole_hash = custom_sprite_hash(preferences.custom_markings)
 	for(var/body_zone in GLOB.custom_marking_zone_labels)
+		if(body_zone == CUSTOM_MARKING_ZONE_TAUR)
+			continue // The real taur-organ fixture covers this separate geometry.
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, "markings", body_zone)
-		preferences.custom_sprite_editors[editor.editor_key] = editor
+		LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
 		var/list/data = editor.ui_data(mock_client.mob)
 		if(data["bodyZone"] != body_zone || data["bodyZoneLabel"] != GLOB.custom_marking_zone_labels[body_zone] || length(data["drawMask"]) != 4)
 			Fail("Zone buttons must scope the existing editor and expose four silhouette masks.", __FILE__, __LINE__)
@@ -761,10 +820,10 @@
 		if(body_zone == BODY_ZONE_L_ARM)
 			rustg_file_write(json_encode(editor.ui_data(mock_client.mob)), "data/custom_sprite_checks/limb-markings.json")
 		editor.finish(TRUE)
-		if(!preferences.custom_limb_markings?[body_zone] || custom_sprite_hash(preferences.custom_markings) != whole_hash || preferences.custom_sprite_editors["markings:[body_zone]"])
+		if(!preferences.custom_limb_markings?[body_zone] || custom_sprite_hash(preferences.custom_markings) != whole_hash || preferences.custom_sprite_editors?["markings:[body_zone]"])
 			Fail("Saving a zone must preserve whole-body paint and release only its own editor.", __FILE__, __LINE__)
 		editor = new /datum/custom_sprite_editor/qualification(preferences, "markings", body_zone)
-		preferences.custom_sprite_editors[editor.editor_key] = editor
+		LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
 		if(!editor.workspace.edited_directions["2"] || editor.workspace.edited_directions["1"])
 			Fail("Reopening must hydrate only the selected zone's saved directions.", __FILE__, __LINE__)
 		editor.workspace.clear_direction("2")
@@ -774,5 +833,367 @@
 		editor.finish(TRUE)
 		if(preferences.custom_limb_markings?[body_zone] || custom_sprite_hash(preferences.custom_markings) != whole_hash)
 			Fail("Clearing a reopened zone must preserve the whole-body marking.", __FILE__, __LINE__)
+
+/// Build a real wide organ through the same DNA path as character setup.
+/datum/custom_sprite_editor/taur_test/create_preview_body()
+	var/mob/living/carbon/human/dummy/body = ..()
+	body.dna.mutant_bodyparts[FEATURE_TAUR] = build_mutant_part("Cow (Spotted)", list("#654321", "#321654", "#213456"))
+	body.dna.species.regenerate_organs(body, visual_only = TRUE)
+	body.update_body(is_creating = TRUE)
+	return body
+
+/datum/unit_test/custom_sprite_taur_alignment/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/mutant_toggle/hair_opacity], FALSE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], /datum/sprite_accessory/hair/bedhead::name)
+	// Compare opaque hair to the full body without random gradients or beards blending into it.
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hair_gradient], SPRITE_ACCESSORY_NONE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/facial_hairstyle], "Shaved")
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/taur_test(preferences, "hair")
+	var/mob/living/carbon/human/body = editor.preview_body
+	if(!body.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR))
+		Fail("The alignment fixture must have a real taur organ.", __FILE__, __LINE__)
+	var/mutable_appearance/hair = new(body.appearance)
+	hair.icon = custom_sprite_blank_icon()
+	hair.icon_state = ""
+	hair.underlays = null
+	hair.overlays = body.overlays_standing[HAIR_LAYER]
+	for(var/direction in GLOB.cardinals)
+		var/icon/expected = getFlatIcon(hair, defdir = direction, no_anim = TRUE)
+		var/icon/guide = editor.guide_icons["[direction]"]
+		var/checked = 0
+		for(var/y in 1 to 32)
+			for(var/x in 1 to 32)
+				var/pixel = expected.GetPixel(x, y)
+				if(!pixel)
+					continue
+				checked++
+				if(guide.GetPixel(x, y) != pixel)
+					Fail("Taur hair guide pixel [x],[y] in direction [direction]: expected [pixel], got [guide.GetPixel(x, y)].", __FILE__, __LINE__)
+					break
+		if(!checked)
+			Fail("The alignment fixture must contain hair in every direction.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_fixed_origin/Run()
+	// Native offsets compose across containers. The outer dots lie beyond a normal mob tile.
+	var/icon/dots = custom_sprite_blank_icon(64)
+	dots.DrawBox("#ff0000", 1, 1, 1, 1)
+	dots.DrawBox("#00ff00", 31, 11, 31, 11)
+	dots.DrawBox("#0000ff", 62, 29, 62, 29)
+	var/mutable_appearance/child = mutable_appearance(dots)
+	child.pixel_x = 2
+	child.pixel_y = -1
+	var/mutable_appearance/container = mutable_appearance(custom_sprite_blank_icon(64))
+	container.pixel_w = -16
+	container.pixel_z = 3
+	container.overlays = list(child)
+	var/mutable_appearance/body = mutable_appearance(custom_sprite_blank_icon())
+	body.overlays = list(container)
+	for(var/direction in GLOB.cardinals)
+		// Insert-built icons can report 0x0 until reloaded. Check the PNG sent to the browser.
+		var/wide_path = "data/custom_sprite_checks/fixed-origin-wide-[direction].png"
+		var/narrow_path = "data/custom_sprite_checks/fixed-origin-narrow-[direction].png"
+		fcopy(custom_sprite_flat_icon(body, direction, 64), wide_path)
+		fcopy(custom_sprite_flat_icon(body, direction), narrow_path)
+		var/icon/wide = icon(file(wide_path))
+		var/icon/narrow = icon(file(narrow_path))
+		if(wide.Width() != 64 || wide.Height() != 32 || narrow.Width() != 32 || narrow.Height() != 32)
+			return Fail("Fixed viewports must retain their exact dimensions despite nested wide icons.", __FILE__, __LINE__)
+		for(var/y in 1 to 32)
+			for(var/x in 1 to 64)
+				var/expected = (x == 3 && y == 3) ? "#ff0000" : (x == 33 && y == 13) ? "#00ff00" : (x == 64 && y == 31) ? "#0000ff" : null
+				if(wide.GetPixel(x, y) != expected)
+					return Fail("Wide preview lost a native nested offset at [x],[y] in direction [direction].", __FILE__, __LINE__)
+				if(x <= 32 && narrow.GetPixel(x, y) != ((x == 17 && y == 13) ? "#00ff00" : null))
+					return Fail("The hair guide must keep the central tile's native pixel origin.", __FILE__, __LINE__)
+
+/datum/unit_test/custom_sprite_taur_canvas/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	for(var/zone in list(null, "taur"))
+		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/taur_test(preferences, "markings", zone)
+		if(editor.workspace.width != 64 || editor.workspace.height != 32)
+			Fail("Whole-body and taur-only drawings need the native 64 by 32 taur canvas.", __FILE__, __LINE__)
+		for(var/direction in GLOB.cardinals)
+			var/icon/guide = editor.guide_icons["[direction]"]
+			if(guide.Width() != 64 || guide.Height() != 32)
+				Fail("Wide guides must retain the same dimensions as their paint canvas.", __FILE__, __LINE__)
+		editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_taur_import_preview/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/taur_test(preferences, "markings")
+	var/icon/lower_body = custom_sprite_taur_silhouette(editor.preview_body)
+	var/list/point
+	for(var/y in 27 to 31)
+		for(var/x in 16 to 47)
+			if(lower_body.GetPixel(x + 1, 32 - y, "", SOUTH))
+				point = list(x - 16, y)
+	if(!point)
+		editor.finish(FALSE)
+		return Fail("The fixture needs uncovered taur pixels within the legacy canvas.", __FILE__, __LINE__)
+	var/position = point[2] * 32 + point[1]
+	var/grid = "[repeat_string(position, "0")]1[repeat_string(1023 - position, "0")]"
+	var/list/drawing = list("version" = 1, "palette" = list("#fe12ab"), "dirs" = list("2" = custom_sprite_encode_grid(grid)), "tint" = "#ffffff")
+	if(!editor.show_candidate(custom_style_package("markings", null, drawing, null), "import"))
+		Fail("A centered legacy marking inside the taur silhouette must be importable.", __FILE__, __LINE__)
+	else
+		var/list/proposed = editor.candidate["previews"]
+		if(!editor.apply_candidate())
+			Fail("The reviewed legacy marking must replace the draft.", __FILE__, __LINE__)
+		editor.refresh_preview()
+		if(json_encode(proposed) != json_encode(editor.preview_urls))
+			Fail("The import preview must show exactly the taur pixels applied by Replace draft.", __FILE__, __LINE__)
+		custom_sprite_apply_round_style(editor.preview_body, custom_style_package("markings", null, drawing, null), FALSE)
+		// Marking previews leave hair out, so render the comparison the same way.
+		if(json_encode(custom_sprite_render_directions(editor.preview_body, hide_hair = TRUE)) != json_encode(editor.preview_urls))
+			Fail("Opening and centering legacy whole-body paint must not change which taur pixels it covers.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
+
+/datum/unit_test/custom_sprite_editor_close_keeps_draft/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
+	var/list/bounds = editor.workspace.draw_bounds?["2"]
+	editor.workspace.update_palette(list("#ffffff"))
+	if(!length(bounds) || !editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#ffffffff", "points" = list(list(bounds[1] + 2, bounds[2] + 2)))))
+		return Fail("The fixture must accept a stroke inside the hair bounds.", __FILE__, __LINE__)
+	var/saved_hash = custom_sprite_hash(preferences.custom_hair)
+	editor.ui_close(mock_client.mob)
+	if(QDELETED(editor) || editor.closing || LAZYACCESS(preferences.custom_sprite_editors, "hair") != editor)
+		return Fail("Closing the window must keep the editor and its draft.", __FILE__, __LINE__)
+	if(custom_sprite_hash(preferences.custom_hair) != saved_hash || !editor.workspace.edited_directions["2"] || !length(editor.workspace.undo_stack))
+		Fail("Closing the window must not save, and must keep the unsaved paint and history.", __FILE__, __LINE__)
+	if(editor.resources_ready || editor.preview_body || length(editor.guide_urls))
+		Fail("Closing the window must release preview resources.", __FILE__, __LINE__)
+	editor.ui_interact(allocate(/mob/living/carbon/human/consistent))
+	if(!editor.resources_ready || length(editor.guide_urls) != 4 || !editor.workspace.edited_directions["2"])
+		Fail("Reopening must rebuild previews around the kept draft.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
+
+/datum/unit_test/custom_sprite_hair_canvas/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	for(var/target in GLOB.custom_style_hair_targets)
+		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
+		if(editor.can_hide_parts() || editor.ui_data(mock_client.mob)["canHideParts"])
+			Fail("Hair editors must not offer Hide Parts.", __FILE__, __LINE__)
+		for(var/direction in GLOB.cardinals)
+			for(var/list/point as anything in list(list(0, 0), list(31, 0), list(0, 31), list(31, 31)))
+				if(!editor.workspace.is_point_allowed(point[1], point[2], "[direction]"))
+					Fail("Every hair canvas corner must be editable in direction [direction].", __FILE__, __LINE__)
+		var/list/drawing = custom_sprite_reopen_test_drawing(31, 31, "#112233")
+		if(editor.candidate_problem(custom_style_package(target, null, drawing, editor.workspace.hair_context)))
+			Fail("Hair imports must allow the same full canvas as painting.", __FILE__, __LINE__)
+		editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_editor_hair_swap/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Short Hair")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_color], "#583820")
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	var/shade
+	for(var/color in custom_style_hair_shades(editor.workspace.hair_context))
+		if(color in editor.workspace.palette)
+			shade = color
+			break
+	var/list/bounds = editor.workspace.draw_bounds["2"]
+	if(!shade || !editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[shade]ff", "points" = list(list(bounds[1] + 2, bounds[2] + 2)))))
+		return Fail("The fixture must paint with one of the character's hair shades.", __FILE__, __LINE__)
+	var/list/frame = editor.workspace.get_first_layer_pixel_data()
+	var/painted_x = bounds[1] + 3
+	var/painted_y = bounds[2] + 3
+	if(!editor.can_change_hair())
+		Fail("Character preferences must be able to change the base hair look.", __FILE__, __LINE__)
+	var/list/recolor = editor.workspace.hair_context.Copy()
+	recolor["color"] = "#c0d0e0"
+	if(!editor.apply_hair_context(recolor, "Change hair color"))
+		return Fail("Changing the hair color failed: [editor.transfer_error]", __FILE__, __LINE__)
+	var/list/color_map = custom_style_hair_color_map(custom_style_test_hair(), recolor, null)
+	if(editor.workspace.hair_context["color"] != "#c0d0e0" || frame[painted_y][painted_x] != "[color_map[shade]]ff")
+		Fail("A hair recolor must update the look and carry painted shades with it.", __FILE__, __LINE__)
+	if(!(color_map[shade] in editor.workspace.palette))
+		Fail("The palette must follow the new hair color.", __FILE__, __LINE__)
+	editor.workspace.undo()
+	if(editor.workspace.hair_context["color"] != "#583820" || frame[painted_y][painted_x] != "[shade]ff")
+		Fail("Undo must restore the old look and its painted shades.", __FILE__, __LINE__)
+	editor.workspace.redo()
+	var/list/restyle = editor.workspace.hair_context.Copy()
+	restyle["style"] = /datum/sprite_accessory/hair/bedhead::name
+	if(!editor.apply_hair_context(restyle, "Change hairstyle"))
+		return Fail("Changing the hairstyle failed: [editor.transfer_error]", __FILE__, __LINE__)
+	if(editor.workspace.hair_context["style"] != /datum/sprite_accessory/hair/bedhead::name || frame[painted_y][painted_x] != "[color_map[shade]]ff")
+		Fail("A new hairstyle must keep the drawing exactly as painted.", __FILE__, __LINE__)
+	if(json_encode(editor.workspace.draw_bounds) != json_encode(custom_sprite_canvas_bounds()))
+		Fail("Changing hairstyles must leave the full canvas paintable.", __FILE__, __LINE__)
+	var/list/locked = editor.workspace.hair_context.Copy()
+	locked["style"] = "Definitely Not A Hairstyle"
+	if(editor.apply_hair_context(locked, "Change hairstyle") || !editor.transfer_error)
+		Fail("Unavailable hairstyles must be refused.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_clip/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "markings", BODY_ZONE_L_ARM)
+	var/list/frame = editor.workspace.get_first_layer_pixel_data()
+	var/allowed_x
+	var/allowed_y
+	var/stranded_x
+	var/stranded_y
+	for(var/y in 0 to 31)
+		for(var/x in 0 to 31)
+			if(editor.workspace.is_point_allowed(x, y, "2"))
+				if(isnull(allowed_x))
+					allowed_x = x
+					allowed_y = y
+			else if(isnull(stranded_x))
+				stranded_x = x
+				stranded_y = y
+	if(isnull(allowed_x) || isnull(stranded_x))
+		return Fail("The fixture needs both paintable and shaded pixels.", __FILE__, __LINE__)
+	editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(list(allowed_x, allowed_y))))
+	// Paint the body left behind: a changed zone or species can strand pixels outside the mask.
+	frame[stranded_y + 1][stranded_x + 1] = "#ff0000ff"
+	editor.rebuild_resources()
+	if(frame[stranded_y + 1][stranded_x + 1] != "#00000000")
+		Fail("Markings must drop paint outside the body instead of keeping it.", __FILE__, __LINE__)
+	if(frame[allowed_y + 1][allowed_x + 1] == "#00000000")
+		Fail("Clipping must leave paint on the body alone.", __FILE__, __LINE__)
+	if(custom_sprite_hash(editor.workspace.serialize_drawing()) != custom_sprite_hash(custom_sprite_validate(editor.workspace.serialize_drawing())))
+		Fail("The clipped drawing must still be canonical.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
+
+/datum/unit_test/custom_sprite_facial_hair_editor/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/style = custom_style_test_facial_style()
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/facial_hairstyle], style)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/facial_hair_color], "#583820")
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "facial_hair")
+	if(editor.workspace.hair_context["style"] != style || editor.workspace.hair_context["color"] != "#583820")
+		Fail("The facial hair editor must open on the character's own facial look.", __FILE__, __LINE__)
+	if(!editor.can_change_hair() || !(style in editor.available_hairstyles()))
+		Fail("The facial hair editor must offer facial hairstyles.", __FILE__, __LINE__)
+	var/list/bounds = editor.workspace.draw_bounds["2"]
+	if(json_encode(bounds) != json_encode(list(0, 0, 31, 31)))
+		Fail("Facial hair must have the same unrestricted canvas as head hair.", __FILE__, __LINE__)
+	if(!editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(list(bounds[1] + 2, bounds[2] + 2)))))
+		return Fail("The facial hair editor must accept paint inside its bounds.", __FILE__, __LINE__)
+	if(editor.save_drawing() != TRUE || custom_sprite_hash(preferences.custom_facial_hair) != custom_sprite_hash(editor.workspace.serialize_drawing()))
+		Fail("Saving must store the facial hair drawing on its own key: [editor.save_error]", __FILE__, __LINE__)
+	if(preferences.custom_hair)
+		Fail("Saving facial hair must not touch the head hair drawing.", __FILE__, __LINE__)
+	preferences.load_custom_sprites()
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_base_markings/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "markings", BODY_ZONE_L_ARM)
+	var/datum/custom_sprite_editor/whole_body = new /datum/custom_sprite_editor/optimization_test(preferences, "markings")
+	if(!editor.can_change_markings() || whole_body.can_change_markings())
+		Fail("Only a limb zone may change its own markings.", __FILE__, __LINE__)
+	whole_body.finish(FALSE)
+	var/marking = GLOB.body_markings_per_limb[BODY_ZONE_L_ARM][1]
+	var/before = json_encode(preferences.body_markings)
+	if(!editor.write_base_marking(null, marking, "#112233"))
+		return Fail("Adding a limb marking must succeed.", __FILE__, __LINE__)
+	if(json_encode(preferences.body_markings) != before)
+		Fail("Base markings must remain in the draft until saving.", __FILE__, __LINE__)
+	editor.workspace.undo()
+	if(length(editor.base_markings()))
+		Fail("Undo must remove a newly added base marking.", __FILE__, __LINE__)
+	editor.workspace.redo()
+	editor.rebuild_resources()
+	var/list/entries = editor.base_markings()
+	if(length(entries) != 1 || entries[1]["name"] != marking || entries[1]["color"] != "#112233")
+		return Fail("The editor must list the limb's markings with their colors.", __FILE__, __LINE__)
+	if(!editor.write_base_marking(1, marking, "#445566") || editor.base_markings()[1]["color"] != "#445566")
+		Fail("Recoloring a limb marking must keep its place.", __FILE__, __LINE__)
+	var/second = length(GLOB.body_markings_per_limb[BODY_ZONE_L_ARM]) > 1 ? GLOB.body_markings_per_limb[BODY_ZONE_L_ARM][2] : null
+	if(second && (!editor.write_base_marking(1, second, null) || editor.base_markings()[1]["name"] != second))
+		Fail("Changing which marking a slot uses must keep its color slot.", __FILE__, __LINE__)
+	if(!editor.write_base_marking(1, null, null) || length(editor.base_markings()))
+		Fail("Removing a limb marking must empty the list.", __FILE__, __LINE__)
+	if(editor.write_base_marking(4, null, null))
+		Fail("Acting on a marking that isn't there must fail.", __FILE__, __LINE__)
+	editor.workspace.undo()
+	editor.rebuild_resources()
+	if(editor.save_drawing() != TRUE || length(preferences.body_markings?[BODY_ZONE_L_ARM]) != 1)
+		Fail("Saving must persist the draft's base markings with its drawing.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
+
+/datum/unit_test/custom_sprite_gradient_toggle/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Short Hair")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_color], "#2244cc")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hair_gradient], "Full")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_gradient], "#22ddcc")
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	if(!("#22ddcc" in editor.sampled_palette))
+		Fail("A gradient's color must be offered while the gradient is shown.", __FILE__, __LINE__)
+	var/showing = json_encode(editor.guide_urls)
+	editor.show_gradient = FALSE
+	editor.rebuild_resources()
+	if("#22ddcc" in editor.sampled_palette)
+		Fail("Hiding the gradient must fall back to the plain hairstyle palette.", __FILE__, __LINE__)
+	if(json_encode(editor.guide_urls) == showing)
+		Fail("Hiding the gradient must change the guide.", __FILE__, __LINE__)
+	if(json_encode(editor.workspace.hair_context) != json_encode(preferences.custom_style_hair_context()))
+		Fail("Hiding the gradient must not change the look being saved.", __FILE__, __LINE__)
+	editor.show_gradient = TRUE
+	editor.rebuild_resources()
+	if(json_encode(editor.guide_urls) != showing || !("#22ddcc" in editor.sampled_palette))
+		Fail("Showing the gradient again must restore the guide and palette.", __FILE__, __LINE__)
+	editor.finish(FALSE)
+
+
+/datum/unit_test/custom_sprite_restore_offer/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.load_custom_sprites()
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "markings", BODY_ZONE_L_ARM)
+	if(editor.context_ui_data()["canRestorePrevious"])
+		Fail("Nothing to restore means no offer.", __FILE__, __LINE__)
+	var/list/bounds = editor.workspace.draw_bounds["2"]
+	var/painted = FALSE
+	for(var/y in bounds[2] to bounds[4])
+		for(var/x in bounds[1] to bounds[3])
+			if(!editor.workspace.is_point_allowed(x, y, "2"))
+				continue
+			painted = editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(list(x, y))))
+			break
+		if(painted)
+			break
+	if(!painted)
+		return Fail("The fixture must paint something on the limb.", __FILE__, __LINE__)
+	var/list/previous = editor.current_package()
+	LAZYSET(preferences.custom_style_previous, custom_style_key("markings", BODY_ZONE_L_ARM), previous)
+	if(editor.context_ui_data()["canRestorePrevious"])
+		Fail("A style the draft already matches must not be offered.", __FILE__, __LINE__)
+	editor.workspace.clear_direction("2")
+	if(!editor.context_ui_data()["canRestorePrevious"])
+		return Fail("A previous saved style must be offered.", __FILE__, __LINE__)
+	editor.show_candidate(custom_style_copy_package(previous), "restore")
+	if(!editor.apply_candidate())
+		return Fail("Restoring the previous style failed: [editor.transfer_error]", __FILE__, __LINE__)
+	if(editor.context_ui_data()["canRestorePrevious"])
+		Fail("Restoring the same style again must not be offered.", __FILE__, __LINE__)
+	editor.workspace.undo()
+	if(!editor.context_ui_data()["canRestorePrevious"])
+		Fail("Undoing the restore must offer it again.", __FILE__, __LINE__)
+	editor.finish(FALSE)
 
 #endif

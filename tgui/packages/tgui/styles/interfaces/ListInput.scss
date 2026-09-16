@@ -12,6 +12,10 @@
 
 .ListInput__Section .Section__titleText {
   font-size: 1rem;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .ListInput__Loader {

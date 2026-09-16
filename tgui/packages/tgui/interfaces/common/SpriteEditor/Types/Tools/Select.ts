@@ -154,18 +154,19 @@ export class Select extends Tool {
       for (let sy = top; sy <= bottom; sy++) {
         for (let sx = left; sx <= right; sx++) {
           const color = frame[sy][sx];
-          if (
-            isWithinDrawBounds(sx, sy, paintBounds, context.drawMask) &&
-            (parseHexColorString(color).a ?? 1) > 0
-          ) {
+          if ((parseHexColorString(color).a ?? 1) > 0) {
             pixels.push([sx, sy, color]);
-            // Shaded margins can be selected; only painted pixels must stay within drawing bounds.
+            // Painted pixels in shaded areas can move, but must land within drawing bounds.
             limits[0] = Math.max(limits[0], paintBounds[0] - sx);
             limits[1] = Math.max(limits[1], paintBounds[1] - sy);
             limits[2] = Math.min(limits[2], paintBounds[2] - sx);
             limits[3] = Math.min(limits[3], paintBounds[3] - sy);
           }
         }
+      }
+      // Paint that can't fit inside the bounds from any offset stays where it is.
+      if (limits[0] > limits[2] || limits[1] > limits[3]) {
+        limits.fill(0);
       }
       this.drag = {
         ...base,

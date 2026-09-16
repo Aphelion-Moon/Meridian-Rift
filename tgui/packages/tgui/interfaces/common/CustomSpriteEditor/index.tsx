@@ -3,7 +3,15 @@ import { useAtom, useSetAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Window } from 'tgui/layouts';
-import { Box, Button, Collapsible, Section, Stack } from 'tgui-core/components';
+import {
+  Box,
+  Button,
+  Collapsible,
+  Dropdown,
+  Modal,
+  Section,
+  Stack,
+} from 'tgui-core/components';
 import { SpriteEditor } from '../SpriteEditor';
 import {
   currentToolAtom,
@@ -15,8 +23,41 @@ import {
   tools,
 } from '../SpriteEditor/atoms';
 import { Dir } from '../SpriteEditor/Types/types';
+import { toolTooltip } from '../SpriteEditor/useSpriteEditorHotkeys';
 import { CustomSpritePalette } from './Palette';
 import type { CustomSpriteEditorData } from './types';
+
+/** Steps through a list of options with wraparound, for the cycle arrows. */
+function cycleOption(
+  options: readonly string[] | null | undefined,
+  current: string | null | undefined,
+  step: number,
+): string | null {
+  if (!options?.length) return null;
+  const index = current == null ? -1 : options.indexOf(current);
+  // Anything not in the list steps in from whichever end the arrow points at.
+  if (index < 0) return step > 0 ? options[0] : options[options.length - 1];
+  return options[(index + step + options.length) % options.length];
+}
+
+/** Thin chevron that steps a dropdown along without opening it. */
+function CycleButton(props: {
+  back?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  const { back, ...rest } = props;
+  return (
+    <Button
+      px={0.5}
+      // A button is as tall as its line height, vertical padding being zero,
+      // so this matches the 22px control height Dropdown sets for itself.
+      lineHeight="22px"
+      icon={back ? 'chevron-left' : 'chevron-right'}
+      {...rest}
+    />
+  );
+}
 
 const directions = [
   [Dir.SOUTH, 'Front'],
@@ -25,16 +66,37 @@ const directions = [
   [Dir.WEST, 'Left'],
 ] as const;
 
-const blendingTooltip =
-  'Uses Multiply blending on Custom colors for new strokes.';
+const blendingTooltip = 'Uses Multiply blending on Custom colors.';
 
 export const CustomSpriteEditor = ({
   target,
 }: {
-  target: 'hair' | 'markings';
+  target: 'hair' | 'facial_hair' | 'markings';
 }) => {
   const { data, act } = useBackend<CustomSpriteEditorData>();
   const {
+    context = 'preferences',
+    candidate,
+    transferError,
+    transferNotice,
+    canRestorePrevious,
+    canChangeHair,
+    hasGradient,
+    showGradient,
+    canHideParts,
+    hideParts,
+    canChangeMarkings,
+    baseMarkings,
+    baseMarkingChoices,
+    maxBaseMarkings,
+    lockedDirections,
+    hairStyle,
+    hairStyles,
+    hairColor,
+    recipientName,
+    selfWork,
+    salonState,
+    resourcesReady = true,
     bodyZoneLabel,
     editorData,
     colorMode,
@@ -52,7 +114,6 @@ export const CustomSpriteEditor = ({
     edited,
     drawBounds,
     drawMask,
-    unsupportedZones,
   } = data;
   const [direction, setDirection] = useAtom(dirAtom);
   const setLayer = useSetAtom(layerAtom);
@@ -69,7 +130,23 @@ export const CustomSpriteEditor = ({
   const [showGrid, setShowGrid] = useState(false);
   const [saved, setSaved] = useState(false);
   const lastSaveRevision = useRef(saveRevision);
+  const nextDrawingActivity = useRef(0);
   const paletteTint = colorMode === 'literal' ? null : displayTint;
+  const takenMarkings = new Set(
+    (baseMarkings ?? []).map((entry) => entry.name),
+  );
+  const salon = context === 'salon';
+  const locked = (dir: Dir) => !!lockedDirections?.includes(String(dir));
+  const savedLabel = salon ? 'Draft saved for this round' : 'Saved';
+  const hairTarget = target === 'hair' || target === 'facial_hair';
+  const drawingName =
+    target === 'hair'
+      ? 'Custom Hair'
+      : target === 'facial_hair'
+        ? 'Custom Facial Hair'
+        : bodyZoneLabel
+          ? `Custom ${bodyZoneLabel} ${salon ? 'tattoo' : 'markings'}`
+          : 'Custom Markings';
   SpriteEditor.syncBackend('selectColor', editorData.serverSelectedColor);
   useEffect(() => {
     if (!guideUrl || loadedGuide?.url === guideUrl) return;
@@ -110,17 +187,52 @@ export const CustomSpriteEditor = ({
 
   return (
     <Window
-      width={900}
+      width={1000}
       height={780}
-      title={
-        target === 'hair'
-          ? 'Custom Hair'
-          : bodyZoneLabel
-            ? `Custom ${bodyZoneLabel} markings`
-            : 'Custom Markings'
-      }
+      title={salon ? `${drawingName} for ${recipientName}` : drawingName}
     >
       <Window.Content>
+        {!!candidate && (
+          <Modal width="30rem">
+            <Section
+              title={
+                candidate.source === 'restore'
+                  ? 'Restore previous saved style?'
+                  : 'Import this style?'
+              }
+            >
+              <Box color="label" mb={1}>
+                {candidate.summary ? `Base hair: ${candidate.summary}. ` : ''}
+                This replaces the current draft. You can undo it.
+              </Box>
+              <Stack justify="space-around" mb={1}>
+                {directions.map(([dir, label]) => (
+                  <Stack.Item key={dir} textAlign="center">
+                    {!!candidate.previews[dir] && (
+                      <img
+                        src={candidate.previews[dir]}
+                        alt={`${label} preview`}
+                        width={96}
+                        style={{ height: 'auto', imageRendering: 'pixelated' }}
+                      />
+                    )}
+                    <Box color="label">{label}</Box>
+                  </Stack.Item>
+                ))}
+              </Stack>
+              <Stack justify="flex-end">
+                <Stack.Item>
+                  <Button onClick={() => act('cancelCandidate')}>Cancel</Button>
+                </Stack.Item>
+                <Stack.Item>
+                  <Button color="good" onClick={() => act('confirmCandidate')}>
+                    Replace draft
+                  </Button>
+                </Stack.Item>
+              </Stack>
+            </Section>
+          </Modal>
+        )}
         <Stack fill vertical>
           <Stack.Item>
             <Stack>
@@ -128,6 +240,12 @@ export const CustomSpriteEditor = ({
                 <Stack.Item key={dir} grow>
                   <Button
                     fluid
+                    icon={locked(dir) ? 'lock' : undefined}
+                    tooltip={
+                      locked(dir)
+                        ? 'You need a mirror to work on this view of your own body.'
+                        : undefined
+                    }
                     selected={direction === dir}
                     onClick={() => setDirection(dir)}
                   >
@@ -143,7 +261,14 @@ export const CustomSpriteEditor = ({
               <Stack.Item>
                 <SpriteEditor.Toolbar
                   toolFlags={editorData.toolFlags}
-                  perButtonProps={(tool) => ({ tooltip: tool.name })}
+                  perButtonProps={(tool) => ({
+                    tooltip: toolTooltip(
+                      tool,
+                      tool === tools[2]
+                        ? 'Alt+click with any tool'
+                        : undefined,
+                    ),
+                  })}
                 />
               </Stack.Item>
               <Stack.Item>
@@ -163,12 +288,46 @@ export const CustomSpriteEditor = ({
               </Stack.Item>
               <Stack.Item grow />
               <Stack.Item>
+                <Button
+                  icon="file-import"
+                  tooltip="Preview a style file before replacing this draft."
+                  onClick={() => act('importStyle')}
+                >
+                  Import
+                </Button>
+                <Button
+                  icon="file-export"
+                  tooltip="Download the current draft without saving it."
+                  onClick={() => act('exportStyle')}
+                >
+                  Export
+                </Button>
+              </Stack.Item>
+              <Stack.Item>
                 <Button.Checkbox
                   checked={showGuide}
                   onClick={() => setShowGuide(!showGuide)}
                 >
                   Guide
                 </Button.Checkbox>
+                {!!canHideParts && (
+                  <Button.Checkbox
+                    checked={!!hideParts}
+                    tooltip="Move parts that would obstruct view out of the way."
+                    onClick={() => act('toggleParts')}
+                  >
+                    Hide parts
+                  </Button.Checkbox>
+                )}
+                {!!hasGradient && (
+                  <Button.Checkbox
+                    checked={!!showGradient}
+                    tooltip="Show the base look's gradient in the guide, preview and palette."
+                    onClick={() => act('toggleGradient')}
+                  >
+                    Gradient
+                  </Button.Checkbox>
+                )}
                 <Button.Checkbox
                   checked={showGrid}
                   onClick={() => setShowGrid(!showGrid)}
@@ -182,6 +341,7 @@ export const CustomSpriteEditor = ({
             <Stack fill>
               <Stack.Item grow minWidth={0} minHeight={0}>
                 <Box
+                  className="CustomSpriteEditor__canvas"
                   height="100%"
                   backgroundColor="rgba(0, 0, 0, 0.2)"
                   p={1}
@@ -190,6 +350,21 @@ export const CustomSpriteEditor = ({
                   <SpriteEditor.Canvas
                     data={editorData.sprite}
                     onSave={() => act('saveDraft')}
+                    onDraw={
+                      salon
+                        ? (x, y, erasing = false) => {
+                            const now = Date.now();
+                            if (now < nextDrawingActivity.current) return;
+                            nextDrawingActivity.current = now + 1000;
+                            act('drawing', {
+                              dir: String(direction),
+                              x,
+                              y,
+                              erasing,
+                            });
+                          }
+                        : undefined
+                    }
                     onSampleBackdrop={(x, y) => {
                       if (showGuide) {
                         act('sampleGuide', { dir: String(direction), x, y });
@@ -208,10 +383,245 @@ export const CustomSpriteEditor = ({
                   />
                 </Box>
               </Stack.Item>
-              <Stack.Item width="15rem" overflowY="auto">
+              <Stack.Item width="18rem" overflowY="auto">
                 <Stack vertical>
+                  {!!canChangeHair && (
+                    <Stack.Item>
+                      <Section
+                        title={
+                          target === 'facial_hair'
+                            ? 'Base facial hair'
+                            : 'Base hair'
+                        }
+                      >
+                        <Stack fill vertical>
+                          <Stack.Item>
+                            <Stack align="center">
+                              <Stack.Item>
+                                <CycleButton
+                                  back
+                                  disabled={!hairStyles?.length}
+                                  onClick={() => {
+                                    const style = cycleOption(
+                                      hairStyles,
+                                      hairStyle,
+                                      -1,
+                                    );
+                                    if (style) act('setHairStyle', { style });
+                                  }}
+                                />
+                              </Stack.Item>
+                              <Stack.Item grow style={{ minWidth: 0 }}>
+                                <Dropdown
+                                  width="100%"
+                                  options={hairStyles ?? []}
+                                  menuWidth="max-content"
+                                  selected={hairStyle ?? undefined}
+                                  displayText={hairStyle ?? undefined}
+                                  searchInput
+                                  maxItems={8}
+                                  onSelected={(style) =>
+                                    act('setHairStyle', { style })
+                                  }
+                                />
+                              </Stack.Item>
+                              <Stack.Item>
+                                <CycleButton
+                                  disabled={!hairStyles?.length}
+                                  onClick={() => {
+                                    const style = cycleOption(
+                                      hairStyles,
+                                      hairStyle,
+                                      1,
+                                    );
+                                    if (style) act('setHairStyle', { style });
+                                  }}
+                                />
+                              </Stack.Item>
+                            </Stack>
+                          </Stack.Item>
+                          <Stack.Item>
+                            <Button
+                              fluid
+                              tooltip="Recoloring moves painted hair shades to the matching new shade."
+                              onClick={() => act('pickHairColor')}
+                            >
+                              Hair color
+                              <Box
+                                inline
+                                ml={1}
+                                width="1rem"
+                                height="0.8rem"
+                                backgroundColor={hairColor ?? '#000000'}
+                              />
+                            </Button>
+                          </Stack.Item>
+                        </Stack>
+                      </Section>
+                    </Stack.Item>
+                  )}
+                  {!!canChangeMarkings && (
+                    <Stack.Item>
+                      <Section
+                        title="Base markings"
+                        buttons={
+                          <Button
+                            icon="plus"
+                            disabled={
+                              (baseMarkings?.length ?? 0) >=
+                              (maxBaseMarkings ?? 0)
+                            }
+                            onClick={() => act('addBaseMarking')}
+                          />
+                        }
+                      >
+                        {(baseMarkings ?? []).map((marking) => {
+                          // A limb takes each marking at most once, so a row
+                          // offers its own name plus whatever no other row has
+                          // claimed. Leaving the taken ones listed would just
+                          // hand the backend a change it always rejects, and
+                          // would stall the arrows on the way past.
+                          const choices = (baseMarkingChoices ?? []).filter(
+                            (name) =>
+                              name === marking.name || !takenMarkings.has(name),
+                          );
+                          const step = (direction: number) => {
+                            const name = cycleOption(
+                              choices,
+                              marking.name,
+                              direction,
+                            );
+                            if (name && name !== marking.name)
+                              act('setBaseMarking', {
+                                index: marking.index,
+                                name,
+                              });
+                          };
+                          return (
+                          <Stack key={marking.index} mb={0.5} align="center">
+                            <Stack.Item>
+                              <CycleButton
+                                back
+                                disabled={choices.length <= 1}
+                                onClick={() => step(-1)}
+                              />
+                            </Stack.Item>
+                            <Stack.Item grow style={{ minWidth: 0 }}>
+                              <Dropdown
+                                width="100%"
+                                options={choices}
+                                menuWidth="max-content"
+                                selected={marking.name}
+                                displayText={marking.name}
+                                searchInput
+                                maxItems={8}
+                                onSelected={(name) =>
+                                  act('setBaseMarking', {
+                                    index: marking.index,
+                                    name,
+                                  })
+                                }
+                              />
+                            </Stack.Item>
+                            <Stack.Item>
+                              <CycleButton
+                                disabled={choices.length <= 1}
+                                onClick={() => step(1)}
+                              />
+                            </Stack.Item>
+                            <Stack.Item>
+                              <Button
+                                tooltip={`Color of ${marking.name}`}
+                                onClick={() =>
+                                  act('pickBaseMarkingColor', {
+                                    index: marking.index,
+                                  })
+                                }
+                              >
+                                <Box
+                                  inline
+                                  width="1rem"
+                                  height="0.8rem"
+                                  backgroundColor={marking.color}
+                                />
+                              </Button>
+                            </Stack.Item>
+                            <Stack.Item>
+                              <Button
+                                icon="trash"
+                                color="bad"
+                                tooltip={`Remove ${marking.name}`}
+                                onClick={() =>
+                                  act('removeBaseMarking', {
+                                    index: marking.index,
+                                  })
+                                }
+                              />
+                            </Stack.Item>
+                          </Stack>
+                          );
+                        })}
+                        {!baseMarkings?.length && (
+                          <Box color="label">
+                            This limb has no markings yet.
+                          </Box>
+                        )}
+                      </Section>
+                    </Stack.Item>
+                  )}
                   <Stack.Item>
                     <CustomSpritePalette
+                      blending={
+                        <Collapsible title="Blending options">
+                          {hairTarget && (
+                            <Button.Checkbox
+                              fluid
+                              checked={colorMode === 'hair'}
+                              tooltip={blendingTooltip}
+                              onClick={() =>
+                                act('setColorMode', {
+                                  mode:
+                                    colorMode === 'hair' ? 'literal' : 'hair',
+                                })
+                              }
+                            >
+                              Blend with hair color
+                            </Button.Checkbox>
+                          )}
+                          <Stack align="center" mt={0.5}>
+                            <Stack.Item grow>
+                              <Button.Checkbox
+                                fluid
+                                checked={colorMode === 'tint'}
+                                tooltip={blendingTooltip}
+                                onClick={() =>
+                                  act('setColorMode', {
+                                    mode:
+                                      colorMode === 'tint' ? 'literal' : 'tint',
+                                  })
+                                }
+                              >
+                                Blend with color
+                              </Button.Checkbox>
+                            </Stack.Item>
+                            {colorMode === 'tint' && (
+                              <Stack.Item>
+                                <Button
+                                  className="SpriteEditor__plainSwatch"
+                                  width="2em"
+                                  height="2em"
+                                  aria-label="Choose blending color"
+                                  tooltip="Choose blending color"
+                                  onClick={() => act('pickTint')}
+                                  style={{
+                                    backgroundImage: `linear-gradient(${customTint}, ${customTint})`,
+                                  }}
+                                />
+                              </Stack.Item>
+                            )}
+                          </Stack>
+                        </Collapsible>
+                      }
                       serverPalette={editorData.serverPalette}
                       customPalette={customPalette}
                       availableColors={availableColors}
@@ -220,85 +630,25 @@ export const CustomSpriteEditor = ({
                     />
                   </Stack.Item>
                   <Stack.Item>
-                    <Section>
-                      <Button.Checkbox
-                        fluid
-                        mb={1}
-                        checked={emissive[direction]}
-                        disabled={!emissiveAllowed}
-                        tooltip={
-                          !emissiveAllowed
-                            ? 'Enable emissive appearance in character preferences.'
-                            : 'Makes this direction glow in the dark.'
-                        }
-                        onClick={() =>
-                          act('setEmissive', {
-                            dir: String(direction),
-                            enabled: !emissive[direction],
-                          })
-                        }
-                      >
-                        Emissive
-                      </Button.Checkbox>
-                      <Collapsible title="Color blending">
-                        <Box color="label" mb={1}>
-                          Blending affects Custom colors for new strokes.
-                        </Box>
-                        {target === 'hair' && (
-                          <Button.Checkbox
-                            fluid
-                            checked={colorMode === 'hair'}
-                            tooltip={blendingTooltip}
-                            onClick={() =>
-                              act('setColorMode', {
-                                mode: colorMode === 'hair' ? 'literal' : 'hair',
-                              })
-                            }
-                          >
-                            Blend with hair color
-                          </Button.Checkbox>
-                        )}
-                        <Stack align="center" mt={0.5}>
-                          <Stack.Item grow>
-                            <Button.Checkbox
-                              fluid
-                              checked={colorMode === 'tint'}
-                              tooltip={blendingTooltip}
-                              onClick={() =>
-                                act('setColorMode', {
-                                  mode:
-                                    colorMode === 'tint' ? 'literal' : 'tint',
-                                })
-                              }
-                            >
-                              Blend with color
-                            </Button.Checkbox>
-                          </Stack.Item>
-                          {colorMode === 'tint' && (
-                            <Stack.Item>
-                              <Button
-                                className="SpriteEditor__plainSwatch"
-                                width="2em"
-                                height="2em"
-                                aria-label="Choose blending color"
-                                tooltip="Choose blending color"
-                                onClick={() => act('pickTint')}
-                                style={{
-                                  backgroundImage: `linear-gradient(${customTint}, ${customTint})`,
-                                }}
-                              />
-                            </Stack.Item>
-                          )}
-                        </Stack>
-                      </Collapsible>
-                    </Section>
+                    <Button.Checkbox
+                      fluid
+                      checked={emissive[direction]}
+                      disabled={!emissiveAllowed}
+                      tooltip={
+                        !emissiveAllowed
+                          ? 'Enable emissive appearance in character preferences.'
+                          : 'Makes this direction glow in the dark.'
+                      }
+                      onClick={() =>
+                        act('setEmissive', {
+                          dir: String(direction),
+                          enabled: !emissive[direction],
+                        })
+                      }
+                    >
+                      Emissive
+                    </Button.Checkbox>
                   </Stack.Item>
-                  {!!unsupportedZones.length && (
-                    <Stack.Item color="label">
-                      Taur legs do not display custom markings. Unavailable
-                      canvas rows are shaded.
-                    </Stack.Item>
-                  )}
                   <Stack.Item>
                     <Section title="Preview">
                       <Box textAlign="center">
@@ -307,8 +657,10 @@ export const CustomSpriteEditor = ({
                             src={previews[direction]}
                             alt="Character with your drawing"
                             width={128}
-                            height={128}
-                            style={{ imageRendering: 'pixelated' }}
+                            style={{
+                              height: 'auto',
+                              imageRendering: 'pixelated',
+                            }}
                           />
                         )}
                       </Box>
@@ -318,32 +670,85 @@ export const CustomSpriteEditor = ({
               </Stack.Item>
             </Stack>
           </Stack.Item>
-          <Stack.Item color="label">
-            Ctrl+S: save · Ctrl+Z: undo · Ctrl+Y / Ctrl+Shift+Z: redo. Shaded
-            areas cannot be painted. Select: drag a box, then drag inside it to
-            move. Escape: deselect.
-          </Stack.Item>
+          {locked(direction) && (
+            <Stack.Item color="average">
+              You can&apos;t see this view of yourself. Hold a hand mirror, or
+              stand next to a mirror, to work on it.
+            </Stack.Item>
+          )}
+          {!resourcesReady && (
+            <Stack.Item color="average">
+              The preview isn&apos;t available right now. Your draft is kept,
+              and you can still export it.
+            </Stack.Item>
+          )}
+          {salon && salonState === 'awaiting approval' && (
+            <Stack.Item color="average">
+              Waiting for {recipientName} to approve the mirror preview. Any
+              edit withdraws it.
+            </Stack.Item>
+          )}
           {!!saveError && (
             <Stack.Item color="bad">
               <div role="alert">{saveError}</div>
             </Stack.Item>
           )}
+          {!!transferError && (
+            <Stack.Item color="bad">
+              <div role="alert">{transferError}</div>
+            </Stack.Item>
+          )}
+          {!!transferNotice && !transferError && (
+            <Stack.Item color="good">{transferNotice}</Stack.Item>
+          )}
           <Stack.Item>
             <Stack align="center">
               <Stack.Item grow color="label">
-                Closing saves your drawing to this character slot.
+                {salon && !selfWork
+                  ? `Finish next to ${recipientName} with the tool in hand.`
+                  : ''}
               </Stack.Item>
               <Stack.Item>
                 <Box color="good">
-                  <span role="status">{saved ? 'Saved' : null}</span>
+                  <span role="status">{saved ? savedLabel : null}</span>
                 </Box>
               </Stack.Item>
+              {!!canRestorePrevious && (
+                <Stack.Item>
+                  <Button
+                    tooltip="Preview the style this slot had before its last import, restoration or salon save."
+                    onClick={() => act('restorePrevious')}
+                  >
+                    Restore previous saved style
+                  </Button>
+                </Stack.Item>
+              )}
               <Stack.Item>
-                <Button onClick={() => act('discard')}>Discard</Button>
+                {!salon && (
+                  <Button onClick={() => act('discard')}>Discard</Button>
+                )}
+                {salon && (
+                  <Button.Confirm
+                    confirmContent="Discard?"
+                    onClick={() => act('discardDraft')}
+                  >
+                    Discard draft
+                  </Button.Confirm>
+                )}
               </Stack.Item>
+              {salon && (
+                <Stack.Item>
+                  <Button onClick={() => act('closeEditor')}>Close</Button>
+                </Stack.Item>
+              )}
               <Stack.Item>
-                <Button color="good" onClick={() => act('save')}>
-                  Save and close
+                <Button
+                  color="good"
+                  disabled={salon && salonState !== 'drafting'}
+                  tooltip="Ctrl+S saves without closing."
+                  onClick={() => act(salon ? 'finishWork' : 'save')}
+                >
+                  {salon ? 'Finish' : 'Save and close'}
                 </Button>
               </Stack.Item>
             </Stack>

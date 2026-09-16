@@ -28,6 +28,19 @@
 	if(!validated || validated["palette"][1] != "#ffffff" || length(validated["dirs"]) != 1 || !validated["dirs"]["2"])
 		Fail("A corrupt direction must not discard a valid direction.", __FILE__, __LINE__)
 
+/datum/unit_test/custom_sprite_codec_canonical_runs/Run()
+	var/list/cases = list(
+		"[repeat_string(15, "1")][repeat_string(1009, "0")]" = "rf1[repeat_string(67, "f0")]40",
+		"[repeat_string(16, "1")][repeat_string(1008, "0")]" = "rf111[repeat_string(67, "f0")]30",
+		"[repeat_string(31, "1")][repeat_string(993, "0")]" = "rf1f111[repeat_string(66, "f0")]30",
+	)
+	for(var/grid in cases)
+		if(custom_sprite_encode_grid(grid, 1) != cases[grid] || custom_sprite_decode_grid(cases[grid], 1) != grid)
+			Fail("Runs crossing the 15-pixel limit must retain their exact saved representation.", __FILE__, __LINE__)
+	var/late_invalid = "[repeat_string(511, "12")]1!"
+	if(custom_sprite_encode_grid(late_invalid, 2) || custom_sprite_decode_grid("f[late_invalid]", 2))
+		Fail("A flat fallback must still reject an invalid final pixel.", __FILE__, __LINE__)
+
 /datum/unit_test/custom_sprite_extended_palette/Run()
 	var/list/palette = list()
 	for(var/i in 1 to 63)
@@ -70,6 +83,59 @@
 		Fail("Directional settings must remain bounded and admit only explicit true values.", __FILE__, __LINE__)
 	if(custom_sprite_hash(clean) != custom_sprite_hash(custom_sprite_validate(clean)))
 		Fail("Canonical directional metadata must retain a stable drawing hash on validation.", __FILE__, __LINE__)
+
+/datum/unit_test/custom_sprite_taur_codec/Run()
+	var/solid = repeat_string(2048, "1")
+	var/alternating = repeat_string(1024, "12")
+	for(var/grid in list(solid, alternating))
+		var/encoded = custom_sprite_encode_grid(grid, 2, 2048)
+		if(!encoded || length(encoded) > 2049 || custom_sprite_decode_grid(encoded, 2, 2048) != grid)
+			Fail("Wide grids must round-trip within the 2,049-character bound.", __FILE__, __LINE__)
+		if(custom_sprite_decode_grid("f[grid]", 2, 2048) != grid || custom_sprite_decode_grid("f[grid]", 2))
+			Fail("Wide flat data must require an explicit 2,048-pixel canvas.", __FILE__, __LINE__)
+	if(custom_sprite_decode_grid("r[repeat_string(136, "f1")]81", 1, 2048) != solid)
+		Fail("Wide RLE must accept exactly 2,048 pixels.", __FILE__, __LINE__)
+	for(var/bad in list("r[repeat_string(136, "f1")]91", "r[repeat_string(136, "f1")]71", "r[repeat_string(136, "f1")]01", "f[repeat_string(2047, "1")]!", "f[repeat_string(2049, "1")]"))
+		if(custom_sprite_decode_grid(bad, 2, 2048))
+			Fail("Wide data must reject overflow, underflow, invalid runs and invalid indices.", __FILE__, __LINE__)
+	if(custom_sprite_encode_grid("[repeat_string(1023, "12")]1!", 2, 2048))
+		Fail("Wide flat fallback must validate the final index before returning.", __FILE__, __LINE__)
+	for(var/bad_count in list(0, 1023, 1025, 2047, 2049, 4096, 1024.5, "2048"))
+		if(custom_sprite_encode_grid(repeat_string(1024, "1"), 2, bad_count) || custom_sprite_decode_grid("f[solid]", 2, bad_count))
+			Fail("Pixel counts must be limited to the two supported canvas sizes.", __FILE__, __LINE__)
+	var/list/drawing = list("version" = 3, "palette" = list("#FFFFFF"), "dirs" = list("2" = "f[solid]"))
+	var/list/clean = custom_sprite_validate(drawing)
+	if(!clean || clean["version"] != 3 || clean["palette"][1] != "#ffffff")
+		Fail("A one-color wide drawing must retain version 3 during canonical validation.", __FILE__, __LINE__)
+	for(var/version in list(1, 2))
+		drawing["version"] = version
+		if(custom_sprite_validate(drawing))
+			Fail("Legacy drawing versions must not accept wide pixel data.", __FILE__, __LINE__)
+	drawing["version"] = 3
+	drawing["dirs"]["2"] = "f[repeat_string(1024, "1")]"
+	if(custom_sprite_validate(drawing))
+		Fail("Version 3 must not accept a legacy-sized direction.", __FILE__, __LINE__)
+	var/list/legacy = custom_sprite_test_drawing()
+	var/list/wide_identity = deep_copy_list(legacy)
+	wide_identity["version"] = 3
+	if(custom_sprite_pixel_hash(legacy) == custom_sprite_pixel_hash(wide_identity))
+		Fail("Pixel cache identity must include the drawing's canvas width.", __FILE__, __LINE__)
+	var/list/zones = custom_limb_markings_validate(list("taur" = clean, BODY_ZONE_HEAD = legacy, BODY_ZONE_CHEST = clean))
+	if(length(zones) != 2 || zones?["taur"]?["version"] != 3 || !zones?[BODY_ZONE_HEAD] || zones?[BODY_ZONE_CHEST])
+		Fail("Stored zone drawings must retain valid taur and legacy art while rejecting wide ordinary-limb art.", __FILE__, __LINE__)
+	if(custom_limb_markings_validate(list("taur" = legacy)))
+		Fail("Stored taur-zone drawings must not accept a legacy-sized canvas.", __FILE__, __LINE__)
+	legacy["tint"] = "#abcdef"
+	legacy["emissive"] = custom_sprite_emissive_settings(list("2" = TRUE))
+	var/before_resize = custom_sprite_hash(legacy)
+	var/list/expanded = custom_sprite_resize_drawing(legacy, 64)
+	if(!expanded || custom_sprite_hash(legacy) != before_resize || expanded["tint"] != "#abcdef" || !expanded["emissive"]["2"])
+		Fail("Expanding legacy art must preserve its metadata without mutating the saved drawing.", __FILE__, __LINE__)
+	for(var/direction in GLOB.custom_style_directions)
+		if(custom_sprite_decode_grid(expanded?["dirs"]?[direction], 2, 2048) != repeat_string(32, "[repeat_string(16, "0")][repeat_string(32, "1")][repeat_string(16, "0")]"))
+			Fail("Expansion must center every legacy row with exactly sixteen empty pixels on each side.", __FILE__, __LINE__)
+	if(custom_sprite_resize_drawing(expanded, 32) || custom_sprite_resize_drawing(legacy, 128))
+		Fail("Canvas reframing must refuse shrinking and unsupported dimensions.", __FILE__, __LINE__)
 
 /datum/unit_test/custom_sprite_sidecar/Run()
 	var/test_path = "tmp/custom_sprites_[REF(src)].json"

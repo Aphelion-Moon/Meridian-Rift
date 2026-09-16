@@ -189,6 +189,19 @@ function ChoicedSelection(props: ChoicedSelectionProps) {
                   Custom hair drawing
                 </Button>
               )}
+            {!!data.allow_custom_sprite_editing &&
+              supplementalFeature === 'facial_hair_color' && (
+                <Button
+                  mt={1}
+                  fluid
+                  icon="paintbrush"
+                  onClick={() =>
+                    act('open_custom_sprite_editor', { target: 'facial_hair' })
+                  }
+                >
+                  Custom facial hair drawing
+                </Button>
+              )}
             {/* APHELION EDIT ADDITION END */}
           </Section>
         </Stack.Item>

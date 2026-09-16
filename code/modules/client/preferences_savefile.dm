@@ -219,7 +219,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 /datum/preferences/proc/load_savefile()
 	if(load_and_save && !path)
 		CRASH("Attempted to load savefile without first loading a path!")
-	savefile = new /datum/json_savefile(load_and_save ? path : null)
+	savefile = new /datum/json_savefile/preferences(load_and_save ? path : null) // APHELION EDIT CHANGE - ORIGINAL: savefile = new /datum/json_savefile(load_and_save ? path : null)
 
 /datum/preferences/proc/load_preferences()
 	if(!savefile)

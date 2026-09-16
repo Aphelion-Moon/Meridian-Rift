@@ -17,6 +17,11 @@ import type {
   StringLayer,
 } from '../types';
 
+// APHELION EDIT ADDITION START
+const isPainted = (color: string | undefined) =>
+  !!color && (parseHexColorString(color).a ?? 1) > 0;
+// APHELION EDIT ADDITION END
+
 class EraserTransaction implements LayerTransaction {
   name = 'Eraser';
   layer: number;
@@ -78,9 +83,11 @@ export class Eraser extends Tool {
     this.currentTransaction = new EraserTransaction(selectedDir, selectedLayer);
     // if (inBounds) { // APHELION EDIT REMOVAL
     // APHELION EDIT ADDITION START
+    // Paint left outside changed bounds can still be erased.
     if (
       inBounds &&
-      isWithinDrawBounds(px, py, context.drawBounds, context.drawMask)
+      (isWithinDrawBounds(px, py, context.drawBounds, context.drawMask) ||
+        isPainted(getDataPixel(data, selectedLayer, selectedDir, px, py)))
     ) {
       // APHELION EDIT ADDITION END
       this.currentTransaction.addPoint(
@@ -88,6 +95,7 @@ export class Eraser extends Tool {
         py,
         getDataPixel(data, selectedLayer, selectedDir, px, py),
       );
+      if (this.currentTransaction.points.size) context.onDraw?.(px, py, true); // APHELION EDIT ADDITION
     }
     this.lastPoint = [px, py];
     setPreviewLayer(selectedLayer);
@@ -128,7 +136,8 @@ export class Eraser extends Tool {
         x >= width ||
         y < 0 ||
         y >= height ||
-        !isWithinDrawBounds(x, y, context.drawBounds, context.drawMask)
+        (!isWithinDrawBounds(x, y, context.drawBounds, context.drawMask) &&
+          !isPainted(getDataPixel(data, selectedLayer, selectedDir, x, y)))
       ) {
         return;
       }
@@ -138,6 +147,10 @@ export class Eraser extends Tool {
         y,
         getDataPixel(data, selectedLayer, selectedDir, x, y),
       );
+      // APHELION EDIT ADDITION START
+      if (currentTransaction.points.size > previousSize)
+        context.onDraw?.(x, y, true);
+      // APHELION EDIT ADDITION END
     });
     this.lastPoint = [px, py];
     if (currentTransaction.points.size === previousSize) return; // APHELION EDIT ADDITION
@@ -156,10 +169,10 @@ export class Eraser extends Tool {
     this.onMouseMove(context, data, x, y); // APHELION EDIT ADDITION
     if (this.currentTransaction.points.size !== 0) {
       this.currentTransaction.commit();
-    // APHELION EDIT ADDITION START
+      // APHELION EDIT ADDITION START
     } else {
       this.cancel(context);
-    // APHELION EDIT ADDITION END
+      // APHELION EDIT ADDITION END
     }
     // this.currentTransaction.commit(); // APHELION EDIT REMOVAL
     this.currentTransaction = null;

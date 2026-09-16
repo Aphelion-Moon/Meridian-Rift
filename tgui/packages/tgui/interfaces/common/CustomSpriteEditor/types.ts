@@ -5,7 +5,14 @@ import type {
   SpriteEditorToolFlags,
 } from '../SpriteEditor/Types/types';
 
+export type CustomSpriteCandidate = {
+  source: 'import' | 'restore';
+  previews: Record<Dir, string>;
+  summary?: string | null;
+};
+
 export type CustomSpriteEditorData = {
+  context?: 'preferences' | 'salon';
   bodyZone: string | null;
   bodyZoneLabel: string | null;
   editorData: {
@@ -31,5 +38,25 @@ export type CustomSpriteEditorData = {
   edited: Record<Dir, boolean>;
   drawBounds: Record<Dir, [number, number, number, number] | null>;
   drawMask?: Partial<Record<Dir, string[]>> | null;
-  unsupportedZones: string[];
+  resourcesReady?: boolean;
+  transferError?: string | null;
+  transferNotice?: string | null;
+  candidate: CustomSpriteCandidate | null;
+  canRestorePrevious?: boolean;
+  canChangeHair?: boolean;
+  hasGradient?: boolean;
+  canHideParts?: boolean;
+  hideParts?: boolean;
+  showGradient?: boolean;
+  canChangeMarkings?: boolean;
+  baseMarkings?: { index: number; name: string; color: string }[];
+  baseMarkingChoices?: string[];
+  maxBaseMarkings?: number;
+  lockedDirections?: string[] | null;
+  hairStyle?: string | null;
+  hairStyles?: string[];
+  hairColor?: string | null;
+  recipientName?: string;
+  selfWork?: boolean;
+  salonState?: 'drafting' | 'awaiting approval' | 'applying' | 'completed';
 };

@@ -96,6 +96,7 @@ export class Pencil extends Tool {
     ) {
       // APHELION EDIT ADDITION END
       this.currentTransaction.addPoint(px, py);
+      context.onDraw?.(px, py); // APHELION EDIT ADDITION
     }
     this.lastPoint = [px, py];
     setPreviewLayer(selectedLayer);
@@ -142,6 +143,7 @@ export class Pencil extends Tool {
       }
       // APHELION EDIT ADDITION END
       currentTransaction.addPoint(x, y);
+      if (currentTransaction.points.size > previousSize) context.onDraw?.(x, y); // APHELION EDIT ADDITION
     });
     this.lastPoint = [px, py];
     if (currentTransaction.points.size === previousSize) return; // APHELION EDIT ADDITION
@@ -160,10 +162,10 @@ export class Pencil extends Tool {
     this.onMouseMove(context, data, x, y); // APHELION EDIT ADDITION
     if (this.currentTransaction.points.size !== 0) {
       this.currentTransaction.commit();
-    // APHELION EDIT ADDITION START
+      // APHELION EDIT ADDITION START
     } else {
       this.cancel(context);
-    // APHELION EDIT ADDITION END
+      // APHELION EDIT ADDITION END
     }
     this.currentTransaction = null;
     this.lastPoint = null;

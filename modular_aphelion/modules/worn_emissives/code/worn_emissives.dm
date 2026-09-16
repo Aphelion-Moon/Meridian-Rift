@@ -4,6 +4,13 @@
 /// The shared out-parameter's only slot; the proc's ordinary return value holds the emissive tree.
 #define WORN_EMISSIVE_VISIBLE_RESULT 1
 
+/// Clothing and held-item layers shared by worn-mask preparation and dressed previews.
+GLOBAL_LIST_INIT(worn_overlay_layers, list(
+	HANDS_LAYER, LEGCUFF_LAYER, HANDCUFF_LAYER, HEAD_LAYER, FACEMASK_LAYER, BACK_LAYER, NECK_LAYER,
+	SUIT_STORE_LAYER, BELT_LAYER, GLASSES_LAYER, SUIT_LAYER, EARS_LAYER, SHOES_LAYER, GLOVES_LAYER,
+	ID_LAYER, UNIFORM_LAYER, BODY_LAYER,
+))
+
 /// Finish worn masks after the slot has applied centering, limb offsets and height/missing-limb filters.
 /// Cache the actual sibling appearances: remove_overlay and multiz plane rebuilding must see them too.
 /// apply_overlay stores the result in overlays_standing; normal human rendering/resting reuses it.
@@ -11,8 +18,7 @@
 /mob/living/carbon/proc/prepare_worn_emissive_overlays(cache_index, worn_overlays)
 	if(cache_index == BODYPARTS_LAYER || cache_index == HAIR_LAYER)
 		return prepare_bodypart_emissive_overlays(worn_overlays)
-	var/static/list/worn_layers = list(HANDS_LAYER, LEGCUFF_LAYER, HANDCUFF_LAYER, HEAD_LAYER, FACEMASK_LAYER, BACK_LAYER, NECK_LAYER, SUIT_STORE_LAYER, BELT_LAYER, GLASSES_LAYER, SUIT_LAYER, EARS_LAYER, SHOES_LAYER, GLOVES_LAYER, ID_LAYER, UNIFORM_LAYER, BODY_LAYER)
-	if(!(cache_index in worn_layers))
+	if(!(cache_index in GLOB.worn_overlay_layers))
 		return worn_overlays
 
 	var/list/appearances = islist(worn_overlays) ? worn_overlays : null

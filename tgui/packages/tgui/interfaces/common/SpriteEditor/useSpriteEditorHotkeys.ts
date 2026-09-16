@@ -1,13 +1,30 @@
 // THIS IS AN APHELION UI FILE
 import { useStore } from 'jotai';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useBackend } from 'tgui/backend';
+import { listenForKeyEvents } from 'tgui-core/hotkeys';
 import {
   currentToolAtom,
   previewDataAtom,
   previewLayerAtom,
   selectionBoundsAtom,
+  tools,
 } from './atoms';
+import type { Tool } from './Types/Tool';
+
+/// Unmodified keys that pick a tool, keyed by the tool's name.
+export const toolHotkeys: Record<string, string> = {
+  Select: 'm',
+  Pencil: 'b',
+  Eraser: 'e',
+  Fill: 'g',
+};
+
+/** A tool's label with its shortcut, plus any extra hint worth listing. */
+export function toolTooltip(tool: Tool, extra?: string) {
+  const hints = [toolHotkeys[tool.name]?.toUpperCase(), extra].filter(Boolean);
+  return hints.length ? `${tool.name} (${hints.join(', ')})` : tool.name;
+}
 
 export function useSpriteEditorHistory() {
   const { act } = useBackend();
@@ -30,11 +47,19 @@ export function useSpriteEditorHistory() {
 
 export function useSpriteEditorHotkeys(disabled = false, onSave?: () => void) {
   const history = useSpriteEditorHistory();
+  const claimedKeys = useRef(new Set<string>());
   useEffect(() => {
-    if (disabled) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
+    // Native passthrough runs before document listeners installed by React effects.
+    return listenForKeyEvents((keyEvent) => {
+      const event = keyEvent.event;
+      const key = event.key.toLowerCase();
+      if (keyEvent.isUp()) {
+        if (claimedKeys.current.delete(key)) event.preventDefault();
+        return;
+      }
       const target = event.target;
       if (
+        disabled ||
         !event.ctrlKey ||
         event.altKey ||
         event.defaultPrevented ||
@@ -44,17 +69,60 @@ export function useSpriteEditorHotkeys(disabled = false, onSave?: () => void) {
       ) {
         return;
       }
-      const key = event.key.toLowerCase();
       if (key === 's' && !event.shiftKey && onSave) {
+        claimedKeys.current.add(key);
         event.preventDefault();
         onSave();
         return;
       }
       if (key !== 'z' && key !== 'y') return;
+      claimedKeys.current.add(key);
       event.preventDefault();
       history(key === 'y' || event.shiftKey ? 'redo' : 'undo');
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    });
   }, [history, disabled, onSave]);
+}
+
+/**
+ * Plain letter keys that switch tools.
+ *
+ * Kept apart from the ctrl chords above because tool choice belongs to the
+ * toolbar, which is the only thing that knows which tools an editor allows.
+ * Selecting a hidden tool would strand the canvas on something the user can't
+ * see or switch away from.
+ */
+export function useSpriteEditorToolHotkeys(toolFlags: number) {
+  const store = useStore();
+  const claimedKeys = useRef(new Set<string>());
+  useEffect(() => {
+    return listenForKeyEvents((keyEvent) => {
+      const event = keyEvent.event;
+      const key = event.key.toLowerCase();
+      if (keyEvent.isUp()) {
+        if (claimedKeys.current.delete(key)) event.preventDefault();
+        return;
+      }
+      const target = event.target;
+      if (
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey ||
+        event.defaultPrevented ||
+        (target instanceof HTMLElement &&
+          (target.closest('input, textarea, select') ||
+            target.isContentEditable))
+      ) {
+        return;
+      }
+      const index = tools.findIndex((tool) => toolHotkeys[tool.name] === key);
+      if (index < 0 || !(toolFlags & (1 << index))) return;
+      claimedKeys.current.add(key);
+      event.preventDefault();
+      store.set(currentToolAtom, tools[index], {
+        setPreviewData: (value) => store.set(previewDataAtom, value),
+        setPreviewLayer: (value) => store.set(previewLayerAtom, value),
+        setSelectionBounds: (value) => store.set(selectionBoundsAtom, value),
+      });
+    });
+  }, [store, toolFlags]);
 }

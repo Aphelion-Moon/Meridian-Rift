@@ -1,8 +1,9 @@
-#define CUSTOM_SPRITE_MAX_SIDECAR_BYTES (8 * 1024 * 1024)
+#define CUSTOM_SPRITE_MAX_SIDECAR_BYTES (16 * 1024 * 1024)
 
 /datum/json_savefile/custom_sprites
 	/// Includes changes from other targets/slots after a failed disk save.
 	var/dirty = FALSE
+	/// Whether the last write failed and still needs a retry.
 	var/last_save_failed = FALSE
 	/// The verified prior file, never replaced with a corrupt primary during recovery.
 	var/last_good_json = "\[]"
@@ -77,7 +78,7 @@
 	if(!dirty && !last_save_failed)
 		return TRUE
 	last_save_failed = TRUE
-	if(!path || isnull(last_good_json))
+	if(!path || isnull(last_good_json) || custom_style_writes_blocked(path))
 		return FALSE
 	var/serialized
 	var/staging_path = "[path].new"
@@ -112,12 +113,22 @@
 	return TRUE
 
 /datum/preferences
+	/// Lazily loaded drawing sidecar owned by these preferences.
 	var/datum/json_savefile/custom_sprites/custom_sprite_savefile
+	/// Character slot currently loaded from the drawing sidecar.
 	var/custom_sprite_slot
+	/// Saved hair drawing for the loaded character slot.
 	var/list/custom_hair
+	/// Saved facial hair drawing for the loaded character slot.
+	var/list/custom_facial_hair
+	/// Saved whole-body drawing for the loaded character slot.
 	var/list/custom_markings
+	/// Body zone -> saved drawing for the loaded character slot.
 	var/list/custom_limb_markings
-	var/list/custom_sprite_editors = list()
+	/// Editor key -> the one previous saved package for that drawing target.
+	var/list/custom_style_previous
+	/// Editor key -> open preferences editor; allocated on first use.
+	var/list/custom_sprite_editors
 
 /proc/custom_sprite_sidecar_path(preferences_path)
 	if(!istext(preferences_path))
@@ -133,44 +144,36 @@
 	custom_sprite_slot = default_slot
 	var/list/slot_data = custom_sprite_savefile.get_entry("character[default_slot]")
 	custom_hair = islist(slot_data) ? custom_sprite_validate(slot_data["hair"]) : null
+	if(custom_sprite_width(custom_hair) != 32)
+		custom_hair = null
+	custom_facial_hair = islist(slot_data) ? custom_sprite_validate(slot_data["facial_hair"]) : null
+	if(custom_sprite_width(custom_facial_hair) != 32)
+		custom_facial_hair = null
 	custom_markings = islist(slot_data) ? custom_sprite_validate(slot_data["markings"]) : null
 	custom_limb_markings = islist(slot_data) ? custom_limb_markings_validate(slot_data["limb_markings"]) : null
+	custom_style_previous = islist(slot_data) ? custom_style_previous_validate(slot_data["previous_styles"]) : null
 
-/// TRUE means saved or unchanged. Failures retain the draft and whole-store dirty state for retry.
-/// Ordinary preference saves never rewrite this sidecar.
-/datum/preferences/proc/save_custom_sprite(target, list/drawing, slot = default_slot, body_zone = null)
-	if(!(target in list("hair", "markings")) || slot != default_slot)
-		return FALSE
-	if(!isnull(body_zone) && (target != "markings" || !istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels)))
-		return FALSE
-	load_custom_sprites()
-	var/list/clean = custom_sprite_validate(drawing)
-	var/list/old_drawing = target == "hair" ? custom_hair : (body_zone ? custom_limb_markings?[body_zone] : custom_markings)
-	if(json_encode(old_drawing) == json_encode(clean))
-		return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save()
-	if(target == "hair")
-		custom_hair = clean
-	else if(body_zone)
-		if(clean)
-			LAZYSET(custom_limb_markings, body_zone, clean)
-		else
-			LAZYREMOVE(custom_limb_markings, body_zone)
-	else
-		custom_markings = clean
-	var/list/slot_data = list()
-	if(custom_hair)
-		slot_data["hair"] = deep_copy_list(custom_hair)
-	if(custom_markings)
-		slot_data["markings"] = deep_copy_list(custom_markings)
-	if(length(custom_limb_markings))
-		slot_data["limb_markings"] = deep_copy_list(custom_limb_markings)
+/// Writes the loaded slot's drawings and previous styles into the in-memory sidecar tree.
+/datum/preferences/proc/store_custom_sprite_slot(slot)
+	var/list/slot_data = custom_sprite_slot_data()
 	if(length(slot_data))
 		custom_sprite_savefile.set_entry("character[slot]", slot_data)
 	else
 		custom_sprite_savefile.remove_entry("character[slot]")
-	if(load_and_save)
-		return custom_sprite_savefile.save()
-	return TRUE
+
+/datum/preferences/proc/custom_sprite_slot_data()
+	var/list/slot_data = list()
+	if(custom_hair)
+		slot_data["hair"] = deep_copy_list(custom_hair)
+	if(custom_facial_hair)
+		slot_data["facial_hair"] = deep_copy_list(custom_facial_hair)
+	if(custom_markings)
+		slot_data["markings"] = deep_copy_list(custom_markings)
+	if(length(custom_limb_markings))
+		slot_data["limb_markings"] = deep_copy_list(custom_limb_markings)
+	if(length(custom_style_previous))
+		slot_data["previous_styles"] = custom_style_copy_previous(custom_style_previous)
+	return slot_data
 
 /datum/preferences/proc/remove_custom_sprite_slot(slot)
 	load_custom_sprites()
@@ -180,12 +183,14 @@
 	if(custom_sprite_slot == slot)
 		custom_sprite_slot = null
 		custom_hair = null
+		custom_facial_hair = null
 		custom_markings = null
 		custom_limb_markings = null
+		custom_style_previous = null
 	return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save()
 
 /datum/preferences/proc/close_custom_sprite_editors(save_changes = TRUE)
-	for(var/target in custom_sprite_editors.Copy())
+	for(var/target in LAZYCOPY(custom_sprite_editors))
 		var/datum/custom_sprite_editor/editor = custom_sprite_editors[target]
 		editor.finish(save_changes)
 
@@ -194,10 +199,13 @@
 	target_ckey = ckey(target_ckey)
 	if(!length(target_ckey))
 		return
-	var/sidecar = "data/player_saves/[target_ckey[1]]/[target_ckey]/custom_sprites.json"
-	for(var/drawing_file in list(sidecar, "[sidecar].bak", "[sidecar].new"))
+	var/folder = "data/player_saves/[target_ckey[1]]/[target_ckey]/"
+	var/sidecar = "[folder]custom_sprites.json"
+	// The imported preferences replace any interrupted style transaction, so it must never be replayed.
+	for(var/drawing_file in list(sidecar, "[sidecar].bak", "[sidecar].new") + custom_style_transaction_files(folder))
 		if(fexists(drawing_file))
 			fdel(drawing_file)
+	GLOB.custom_style_blocked_folders -= folder
 	var/client/connected = GLOB.directory[target_ckey]
 	for(var/datum/preferences/old_prefs as anything in list(GLOB.preferences_datums[target_ckey], connected?.prefs))
 		if(!old_prefs)
@@ -207,6 +215,8 @@
 			old_prefs.custom_sprite_savefile.path = null
 			old_prefs.custom_sprite_savefile.wipe()
 		old_prefs.custom_hair = null
+		old_prefs.custom_facial_hair = null
 		old_prefs.custom_markings = null
 		old_prefs.custom_limb_markings = null
+		old_prefs.custom_style_previous = null
 		old_prefs.custom_sprite_slot = null

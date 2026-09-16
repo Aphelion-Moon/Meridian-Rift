@@ -11,6 +11,11 @@ import {
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import * as actions from 'tgui/events/act';
+import {
+  releaseHeldKeys,
+  startKeyPassthrough,
+  stopKeyPassthrough,
+} from 'tgui-core/hotkeys';
 import { NanopaintMenuBar } from '../../NtosNanopaint/NanopaintMenuBar';
 import {
   currentColorInternalAtom,
@@ -31,8 +36,12 @@ import {
   Dir,
   type SpriteData,
   type SpriteEditorToolContext,
+  SpriteEditorToolFlags,
 } from './Types/types';
-import { useSpriteEditorHotkeys } from './useSpriteEditorHotkeys';
+import {
+  toolTooltip,
+  useSpriteEditorHotkeys,
+} from './useSpriteEditorHotkeys';
 
 const Hotkeys = ({
   disabled = false,
@@ -56,9 +65,108 @@ describe('sprite editor interactions', () => {
   let send: ReturnType<typeof spyOn>;
   beforeEach(() => {
     send = spyOn(actions, 'sendAct');
+    startKeyPassthrough();
   });
   afterEach(() => {
+    releaseHeldKeys();
+    stopKeyPassthrough();
     send.mockRestore();
+  });
+
+  it('switches tools with unmodified letter keys', () => {
+    const store = createStore();
+    render(
+      <Provider store={store}>
+        <SpriteEditor.Toolbar />
+      </Provider>,
+    );
+    for (const [key, name] of [
+      ['m', 'Select'],
+      ['e', 'Eraser'],
+      ['g', 'Fill'],
+      ['b', 'Pencil'],
+    ] as const) {
+      expect(fireEvent.keyDown(document, { key })).toBe(false);
+      expect(store.get(currentToolAtom).name).toBe(name);
+      fireEvent.keyUp(document, { key });
+    }
+  });
+
+  it('leaves tool keys alone when modified, typed into a field, or filtered out', () => {
+    const store = createStore();
+    store.set(currentToolAtom, tools[0], {
+      setPreviewLayer: () => {},
+      setPreviewData: () => {},
+      setSelectionBounds: () => {},
+    });
+    const view = render(
+      <Provider store={store}>
+        <input aria-label="Text" />
+        <SpriteEditor.Toolbar
+          toolFlags={SpriteEditorToolFlags.Pencil | SpriteEditorToolFlags.Eraser}
+        />
+      </Provider>,
+    );
+    // A tool this editor has switched off must stay unreachable by key.
+    fireEvent.keyDown(document, { key: 'm' });
+    expect(store.get(currentToolAtom).name).toBe('Pencil');
+    // Modifiers belong to the undo/redo/save chords.
+    for (const modifier of ['ctrlKey', 'altKey', 'shiftKey'] as const) {
+      fireEvent.keyDown(document, { key: 'e', [modifier]: true });
+      expect(store.get(currentToolAtom).name).toBe('Pencil');
+    }
+    // Searching a dropdown for an eraser marking should not swap the tool.
+    fireEvent.keyDown(view.getByLabelText('Text'), { key: 'e' });
+    expect(store.get(currentToolAtom).name).toBe('Pencil');
+    fireEvent.keyDown(document, { key: 'e' });
+    expect(store.get(currentToolAtom).name).toBe('Eraser');
+    fireEvent.keyUp(document, { key: 'e' });
+  });
+
+  it('names each tool shortcut in its tooltip', () => {
+    expect(toolTooltip(tools[0])).toBe('Pencil (B)');
+    expect(toolTooltip(tools[4])).toBe('Select (M)');
+    expect(toolTooltip(tools[2])).toBe('Eyedropper');
+    expect(toolTooltip(tools[2], 'Alt+click with any tool')).toBe(
+      'Eyedropper (Alt+click with any tool)',
+    );
+    expect(toolTooltip(tools[1], 'hint')).toBe('Eraser (E, hint)');
+  });
+
+  it('consumes editor shortcuts before native game key passthrough, including release', () => {
+    const native = spyOn(Byond, 'command');
+    try {
+      const view = render(<Hotkeys onSave={() => actions.sendAct('saveDraft')} />);
+      for (const [key, keyCode, shiftKey] of [
+        ['z', 90, false],
+        ['y', 89, false],
+        ['z', 90, true],
+        ['s', 83, false],
+      ] as const) {
+        view.rerender(<Hotkeys onSave={() => actions.sendAct('saveDraft')} />);
+        expect(
+          fireEvent.keyDown(document, { key, keyCode, ctrlKey: true, shiftKey }),
+        ).toBe(false);
+        // A backend update can disable editing, and Ctrl may be released first.
+        view.rerender(<Hotkeys disabled />);
+        expect(
+          fireEvent.keyUp(document, { key, keyCode, ctrlKey: false }),
+        ).toBe(false);
+      }
+      expect(send.mock.calls).toEqual([
+        ['spriteEditorCommand', { command: 'undo', count: 1 }],
+        ['spriteEditorCommand', { command: 'redo', count: 1 }],
+        ['spriteEditorCommand', { command: 'redo', count: 1 }],
+        ['saveDraft'],
+      ]);
+      expect(native).not.toHaveBeenCalled();
+      view.rerender(<Hotkeys />);
+      fireEvent.keyDown(document, { key: 'z', keyCode: 90 });
+      fireEvent.keyUp(document, { key: 'z', keyCode: 90 });
+      expect(native.mock.calls).toEqual([['KeyDown "Z"'], ['KeyUp "Z"']]);
+    } finally {
+      native.mockRestore();
+    }
   });
 
   it('maps undo and both redo shortcuts to one command', () => {
@@ -470,9 +578,48 @@ describe('sprite editor interactions', () => {
     expect(frame[0]).toEqual(Array(8).fill('#ffffffff'));
   });
 
+  it('erases existing paint outside the bounds without reaching unpainted shaded pixels', () => {
+    const frame = Array.from({ length: 32 }, () => Array(32).fill('#00000000'));
+    frame[0][0] = '#ffffffff';
+    for (let pixel = 8; pixel <= 23; pixel++) frame[pixel][pixel] = '#ffffffff';
+    const data: SpriteData = {
+      width: 32,
+      height: 32,
+      dirs: 1,
+      backdrop: '',
+      layers: [
+        {
+          name: 'Drawing',
+          visible: true,
+          data: {
+            [Dir.SOUTH]: frame,
+            [Dir.NORTH]: undefined,
+            [Dir.EAST]: undefined,
+            [Dir.WEST]: undefined,
+          },
+        },
+      ],
+    };
+    const context: SpriteEditorToolContext = {
+      currentColor: { r: 255, g: 255, b: 255 },
+      selectedDir: Dir.SOUTH,
+      selectedLayer: 0,
+      drawBounds: [8, 8, 23, 23],
+      setCurrentColor: () => {},
+      setPreviewLayer: () => {},
+      setPreviewData: () => {},
+    };
+    const eraser = new Eraser();
+    eraser.onMouseDown(context, data, 0, 0, false);
+    eraser.onMouseUp(context, data, 31, 31);
+    const points = send.mock.calls[0][1].transaction.points;
+    expect(points).toHaveLength(17);
+    expect(points[0]).toEqual([0, 0]);
+    expect(points).not.toContainEqual([31, 31]);
+  });
+
   it.each([
     Pencil,
-    Eraser,
   ])('clips forbidden pixels from previews and transactions for %p', (Tool) => {
     const initial = Tool === Pencil ? '#00000000' : '#ffffffff';
     const data: SpriteData = {
