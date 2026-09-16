@@ -14,9 +14,9 @@
 | Guide to Modularization          | [./modular_nova/readme.md](./modular_nova/readme.md)                   |
 | Guide to Mirroring               | [./modular_nova/mirroring_guide.md](./modular_nova/mirroring_guide.md) |
 | Code                             | https://github.com/AphelionDevelopment/Meridian-Rift                   |
-| Wiki                             | https://wiki.novasector13.com                                          |
+| Wiki                             | https://meridian-wiki.a13.info/wiki/Main_Page                          |
 | Codedocs                         | https://AphelionDevelopment.github.io/Meridian-Rift/                   |
-| Aphelion's Discord               | https://discord.gg/HsX9hYwJtm                                          |
+| Aphelion's Discord               | https://discord.gg/aphelion                                            |
 | Coderbus Discord                 | https://discord.gg/Vh8TJp9                                             |
 | Getting Started With Development | https://hackmd.io/@tgstation/HJ8OdjNBc#tgstation-Development-Guide     |
 | Maintainer-Approved Design Docs  | https://hackmd.io/@tgstation                                           |

@@ -192,7 +192,7 @@
 		<br>
 		Then add poll options and press Submit Poll to save and create the question and options. No options are required for Text Reply polls.
 		<br>
-		<a href='[CONFIG_GET(string/wikiurl)]/Guide_to_poll_types'>Which poll type should I use?</a>
+		<a href='[CONFIG_GET(string/wikiurl)]/Special:Search/poll_types'>Search the wiki for poll types</a>
 		"}
 	else
 		output += "<input type='hidden' name='submitpoll' value='[REF(poll)]'><input type='submit' value='Submit poll'>"

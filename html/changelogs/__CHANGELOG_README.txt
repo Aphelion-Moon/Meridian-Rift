@@ -18,4 +18,4 @@ TO MAKE A CHANGELOG .YML ENTRRY
 
 #######################################################
 
-If you have trouble ask for help in #coderbus or read https://tgstation13.org/wiki/Guide_to_Changelogs
+For a complete entry template and the supported change prefixes, see html/changelogs/example.yml.
