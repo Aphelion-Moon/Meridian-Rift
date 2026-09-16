@@ -1,0 +1,5 @@
+author: "vinylspiders"
+delete-after: True
+changes:
+  - bugfix: "fixes a few missing inhand icons"
+  - bugfix: "fixes the advanced advanced atmos uniform sprite being the same as the engineering one"
