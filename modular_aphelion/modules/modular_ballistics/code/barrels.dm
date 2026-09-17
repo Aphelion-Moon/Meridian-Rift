@@ -54,7 +54,7 @@
 	desc = "A fast-cycling medium-length accelerator for accurate mid-range fire. Fires lighter, cooler shavings than the assault accelerator at a faster cadence. Accepts a suppressor."
 	icon_state = "barrel_carbine"
 	shot_delay = 0.15 SECONDS
-	damage_factor = 0.3
+	damage_factor = 0.375
 	heat_multiplier = 0.4
 	dispersion = 5
 	kick = 0.45
@@ -90,7 +90,7 @@
 	desc = "A hard-hitting rifle accelerator. Fires heavier, hotter shavings than the carbine, with a slower cadence and wider dispersion. No suppressor mount."
 	icon_state = "barrel_assault"
 	shot_delay = 0.2 SECONDS
-	damage_factor = 0.4
+	damage_factor = 0.5
 	heat_multiplier = 1.6 / 3
 	dispersion = 6
 	kick = 0.4
@@ -102,7 +102,7 @@
 	desc = "A long accelerator for deliberate ranged shots. High damage and faster projectiles, but a slow firing cycle and extreme heat output allow only a few shots before cooling. Best paired with a precision stock and scope; requires both hands."
 	icon_state = "barrel_marksman"
 	shot_delay = 0.8 SECONDS
-	damage_factor = 1.125
+	damage_factor = 1.4
 	projectile_velocity_multiplier = 1.5
 	heat_multiplier = 3
 	dispersion = 4

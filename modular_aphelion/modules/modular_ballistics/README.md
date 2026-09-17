@@ -118,9 +118,9 @@ multiplies the projectile's base 20 damage; heat multiplies 5 heat per projectil
 | ------------------------- | ---------- | ------------------ | --------------- | ---------- | ------ |
 | Compact                   | 0.5 s      | 1                  | 1               | 6          | 0.5    |
 | Compact heat-sink         | 0.3 s      | 0.4                | 0.6             | 8          | 0.7    |
-| Carbine                   | 0.3 s      | 0.6                | 0.8             | 5          | 0.9    |
-| Assault                   | 0.6 s      | 1.2                | 1.6             | 6          | 1.2    |
-| Marksman                  | 1.6 s      | 2.25               | 6               | 4          | 2      |
+| Carbine                   | 0.15 s     | 0.375              | 0.4             | 5          | 0.45   |
+| Assault                   | 0.2 s      | 0.5                | 1.6 / 3         | 6          | 0.4    |
+| Marksman                  | 0.8 s      | 1.4                | 3               | 4          | 1      |
 | Shotgun (six projectiles) | 1.8 s      | 0.4 per projectile | 0.8             | 4          | 1.6    |
 
 The marksman's configured projectile velocity multiplier is 1.5; other barrels
