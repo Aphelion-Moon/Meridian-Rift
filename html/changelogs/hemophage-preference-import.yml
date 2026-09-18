@@ -1,4 +1,0 @@
-author: "Meridian Rift"
-delete-after: True
-changes:
-  - bugfix: "Player and admin preference imports now convert legacy Hemophage species into Humanoids with the Hemophagia quirk."
