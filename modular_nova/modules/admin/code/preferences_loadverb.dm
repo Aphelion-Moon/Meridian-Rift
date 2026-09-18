@@ -79,6 +79,8 @@ ADMIN_VERB(import_preferences, R_ADMIN, "Import Preferences", "Upload a characte
 		to_chat(user, span_warning("Failed to parse json savefile: Version ([savefile_version]) is below minimum"))
 		return
 
+	migrate_imported_hemophages(json_tree)
+
 	// Backup and delete the existing savefile if it exists
 	if(save_exists)
 		var/backup_limit = CONFIG_GET(number/savefile_backup_limit)
@@ -120,3 +122,14 @@ ADMIN_VERB(import_preferences, R_ADMIN, "Import Preferences", "Upload a characte
 	message_admins("Kicked [player_key] to complete preference file importing.")
 	// Delayed kick to give chat messages time to be delivered
 	QDEL_IN(target_client, 2)
+
+/// Converts legacy Hemophage species in imported character slots before preference deserialization can discard them.
+/proc/migrate_imported_hemophages(list/json_tree)
+	for(var/slot in json_tree)
+		if(!istext(slot) || copytext(slot, 1, 10) != "character")
+			continue
+		var/list/character_data = json_tree[slot]
+		if(!islist(character_data) || character_data["species"] != "hemophage")
+			continue
+		character_data["species"] = SPECIES_HUMANOID
+		character_data["all_quirks"] = SANITIZE_LIST(character_data["all_quirks"]) | /datum/quirk/hemophage::name
