@@ -13,6 +13,11 @@
 		connect_to_relay()
 		return TRUE
 
+	// APHELION EDIT ADDITION - link target for the import notice
+	if(href_list["aphelion_import_prefs"])
+		import_preferences()
+		return TRUE
+
 	if(href_list["mentor_msg"])
 		if(CONFIG_GET(flag/mentors_mobname_only))
 			var/mob/M = locate(href_list["mentor_msg"])

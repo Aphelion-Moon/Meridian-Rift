@@ -245,7 +245,6 @@ GAME_VERB_HIDDEN(/client, reset_held_keys_verb, "Reset Held Keys")
 			living_user?.opposing_force()
 		if("respawn")
 			client?.mob?.abandon_mob()
-			qdel(src)
 		// NOVA EDIT ADDITION END
 		if("quit")
 			winset(usr, null, list("command"=".quit"))

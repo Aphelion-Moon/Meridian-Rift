@@ -326,6 +326,9 @@ GLOBAL_PROTECT(protected_ranks)
 			if(skip)
 				continue
 			new /datum/admins(ranks_from_rank_name(backup_file_json["admins"]["[backup_admin_ckey]"]), ckey("[backup_admin_ckey]"))
+	// APHELION EDIT ADDITION BEGIN - Discord admin ranks, must be after the Cut() above
+	symphony_apply_discord_admins()
+	// APHELION EDIT ADDITION END
 	#ifdef TESTING
 	var/msg = "Admins Built:\n"
 	for(var/ckey in GLOB.admin_datums)

@@ -5,7 +5,7 @@
 	icon_state = "shot_caller"
 	inhand_icon_state = "shot_caller"
 	righthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/righthand.dmi'
-	lefthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/righthand.dmi'
+	lefthand_file = 'modular_nova/modules/magfed_turret/icons/inhands/lefthand.dmi'
 	worn_icon_state = "shot_caller"
 	worn_icon = 'modular_nova/modules/magfed_turret/icons/mob/belt.dmi'
 	scan_range = 15

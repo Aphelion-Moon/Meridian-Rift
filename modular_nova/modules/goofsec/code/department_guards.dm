@@ -551,7 +551,8 @@
 */
 /datum/job/science_guard
 	title = JOB_SCIENCE_GUARD
-	description = "Figure out why the emails aren't working, keep an eye on the eggheads, protect them from their latest mistakes."
+	description = "Ensure that the extremely volatile Science Department and its staff remain safe for an entire shift. \
+		Protect roboticists from subverted robots and angry customers, and protect scientists from themselves and their experiments."
 	faction = FACTION_STATION
 	total_positions = 2
 	spawn_positions = 2
@@ -581,6 +582,7 @@
 		/obj/item/melee/baton/security/boomerang/loaded = 1
 	)
 	job_flags = STATION_JOB_FLAGS | JOB_ANTAG_PROTECTED
+	tgui_icon = FA_ICON_SHIELD_HEART
 
 /datum/outfit/job/science_guard
 	name = "Science Guard"
@@ -593,7 +595,7 @@
 	head =  /obj/item/clothing/head/helmet/blueshirt/nova
 	suit = /obj/item/clothing/suit/armor/vest/blueshirt/nova
 	r_pocket = /obj/item/flashlight
-	l_pocket = /obj/item/modular_computer/pda/science
+	l_pocket = /obj/item/modular_computer/pda/crew/science
 
 	backpack = /obj/item/storage/backpack/science
 	satchel = /obj/item/storage/backpack/satchel/science
@@ -651,7 +653,8 @@
 */
 /datum/job/orderly
 	title = JOB_ORDERLY
-	description = "Defend the medical department, hold down idiots who refuse the vaccine, assist medical with prep and/or cleanup."
+	description = "Keeping the Medical Department operating smoothly is a full-time job. Move patients where they need to go, assisting with patch jobs and IVs. \
+		Keep the doctors up to date on patient histories and the details of each case. Escort unauthorised personnel out of the Trauma Centre, and ensure that no one endangers Medbay staff while they are busy saving lives."
 	faction = FACTION_STATION
 	total_positions = 2
 	spawn_positions = 2
@@ -682,6 +685,7 @@
 	)
 
 	job_flags = STATION_JOB_FLAGS | JOB_ANTAG_PROTECTED
+	tgui_icon = FA_ICON_SHIELD_HEART
 
 /datum/outfit/job/orderly
 	name = "Orderly"
@@ -694,7 +698,7 @@
 	head =  /obj/item/clothing/head/helmet/blueshirt/nova/guard
 	suit = /obj/item/clothing/suit/armor/vest/blueshirt/nova/orderly
 	r_pocket = /obj/item/flashlight
-	l_pocket = /obj/item/modular_computer/pda/medical
+	l_pocket = /obj/item/modular_computer/pda/crew/medical
 
 	backpack = /obj/item/storage/backpack/medic
 	satchel = /obj/item/storage/backpack/satchel/med
@@ -747,7 +751,8 @@
 */
 /datum/job/engineering_guard
 	title = JOB_ENGINEERING_GUARD
-	description = "Monitor the supermatter, keep an eye on atmospherics, make sure everyone is wearing Proper Protective Equipment."
+	description = "Secure the Engineering Department and ensure that its vital station apparatus remains safe at all times. \
+		Assist engineers with any tasks that need an extra pair of hands, and practise your core construction skills on the side."
 	faction = FACTION_STATION
 	total_positions = 2
 	spawn_positions = 2
@@ -777,6 +782,7 @@
 		/obj/item/melee/baton/security/boomerang/loaded = 1
 	)
 	job_flags = STATION_JOB_FLAGS | JOB_ANTAG_PROTECTED
+	tgui_icon = FA_ICON_SHIELD_HEART
 
 /datum/outfit/job/engineering_guard
 	name = "Engineering Guard"
@@ -789,7 +795,7 @@
 	head =  /obj/item/clothing/head/helmet/blueshirt/nova/guard
 	suit = /obj/item/clothing/suit/armor/vest/blueshirt/nova/engineering_guard
 	r_pocket = /obj/item/flashlight
-	l_pocket = /obj/item/modular_computer/pda/engineering
+	l_pocket = /obj/item/modular_computer/pda/crew/engineering
 
 	backpack = /obj/item/storage/backpack/industrial
 	satchel = /obj/item/storage/backpack/satchel/eng
@@ -848,7 +854,8 @@
 */
 /datum/job/customs_agent
 	title = JOB_CUSTOMS_AGENT
-	description = "Inspect the packages coming to and from the station, protect the cargo department, beat the shit out of people trying to ship Cocaine to the Spinward Stellar Coalition."
+	description = "Keep the Cargo Department, its Guild members, and the vital goods flowing through its supply lanes safe. \
+		Watch for contraband and anyone who would take advantage of the Aphelion's free-trade hub."
 	faction = FACTION_STATION
 	total_positions = 2
 	spawn_positions = 2
@@ -878,6 +885,7 @@
 		/obj/item/melee/baton/security/boomerang/loaded = 1
 	)
 	job_flags = STATION_JOB_FLAGS | JOB_ANTAG_PROTECTED
+	tgui_icon = FA_ICON_SHIELD_HEART
 
 /datum/outfit/job/customs_agent
 	name = "Customs Agent"
@@ -891,7 +899,7 @@
 	suit = /obj/item/clothing/suit/armor/vest/blueshirt/nova/customs_agent
 	glasses = /obj/item/clothing/glasses/hud/gun_permit
 	r_pocket = /obj/item/flashlight
-	l_pocket = /obj/item/modular_computer/pda/cargo
+	l_pocket = /obj/item/modular_computer/pda/crew/cargo
 
 	backpack = /obj/item/storage/backpack
 	satchel = /obj/item/storage/backpack/satchel
@@ -941,7 +949,8 @@
 */
 /datum/job/bouncer
 	title = JOB_BOUNCER
-	description = "Make sure people don't jump the kitchen counter, stop Chapel vandalism, check bargoer's IDs, prevent the dreaded \"food fight\"."
+	description = "Protect the Service Department from vandals and troublemakers. Help every Service discipline prepare for the day, and be ready to assist the public as a member of the Service team. \
+		Remember, the bar is not your only responsibility."
 	faction = FACTION_STATION
 	total_positions = 2
 	spawn_positions = 2
@@ -971,6 +980,7 @@
 		/obj/item/melee/baton/security/boomerang/loaded = 1
 	)
 	job_flags = STATION_JOB_FLAGS | JOB_ANTAG_PROTECTED
+	tgui_icon = FA_ICON_SHIELD_HEART
 
 /datum/outfit/job/bouncer
 	name = "Bouncer"
@@ -982,7 +992,7 @@
 	shoes = /obj/item/clothing/shoes/sneakers/black
 	head =  /obj/item/clothing/head/helmet/blueshirt/nova/guard
 	suit = /obj/item/clothing/suit/armor/vest/blueshirt/nova/guard
-	l_pocket = /obj/item/modular_computer/pda/bar
+	l_pocket = /obj/item/modular_computer/pda/crew/bar
 	r_pocket = /obj/item/flashlight
 	glasses = /obj/item/clothing/glasses/sunglasses
 

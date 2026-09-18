@@ -28,6 +28,7 @@ import {
   storeWindowGeometry,
 } from '../drag';
 import { suspendStart } from '../events/handlers/suspense';
+import { useWindowSizing } from '../hooks/useWindowSizing'; // APHELION EDIT ADDITION - window sizing
 import { createLogger } from '../logging';
 import { Layout } from './Layout';
 import { TitleBar } from './TitleBar';
@@ -57,6 +58,12 @@ export function Window(props: Props) {
   } = props;
 
   const { config, suspended, debug } = useBackend();
+  // APHELION EDIT ADDITION START - window sizing
+  const { promptClass, fitBeforeShow } = useWindowSizing(
+    config.interface?.name ?? '',
+    suspended,
+  );
+  // APHELION EDIT ADDITION END
 
   const [isReadyToRender, setIsReadyToRender] = useState(false);
 
@@ -72,8 +79,10 @@ export function Window(props: Props) {
   const { scale } = config?.window || false;
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!suspended && isReadyToRender) {
-      const updateGeometry = () => {
+      const updateGeometry = async () => {
         const options = {
           ...config.window,
           size: DEFAULT_SIZE,
@@ -85,7 +94,16 @@ export function Window(props: Props) {
         if (config.window?.key) {
           setWindowKey(config.window.key);
         }
-        recallWindowGeometry(options);
+        /* APHELION EDIT REMOVAL START - window sizing lifecycle
+        await recallWindowGeometry(options);
+        */ // APHELION EDIT REMOVAL END
+        // APHELION EDIT ADDITION START - window sizing lifecycle
+        await recallWindowGeometry(options, () => cancelled);
+        // APHELION EDIT ADDITION END
+        await fitBeforeShow(() => cancelled, options); // APHELION EDIT ADDITION - window sizing
+        if (cancelled) {
+          return;
+        }
         Byond.winset(Byond.windowId, {
           'is-visible': true,
         });
@@ -102,9 +120,15 @@ export function Window(props: Props) {
       updateGeometry();
     }
     return () => {
+      cancelled = true;
       logger.log('unmounting');
     };
-  }, [isReadyToRender, width, height, scale]);
+  /* APHELION EDIT REMOVAL START - prompt sizing lifecycle
+  }, [isReadyToRender, suspended, width, height, scale]);
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START - prompt sizing lifecycle
+  }, [isReadyToRender, suspended, width, height, scale, fitBeforeShow]);
+  // APHELION EDIT ADDITION END
 
   // Determine when to show dimmer
   const showDimmer =
@@ -114,7 +138,12 @@ export function Window(props: Props) {
       : config.status < UI_INTERACTIVE);
 
   return suspended ? null : (
+    /* APHELION EDIT REMOVAL START - prompt sizing
     <Layout className="Window" theme={theme}>
+    */ // APHELION EDIT REMOVAL END
+    // APHELION EDIT ADDITION START - prompt sizing
+    <Layout className={classes(['Window', promptClass])} theme={theme}>
+      {/* APHELION EDIT ADDITION END */}
       <TitleBar
         title={title || decodeHtmlEntities(config.title)}
         status={config.status}

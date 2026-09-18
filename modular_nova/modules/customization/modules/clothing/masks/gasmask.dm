@@ -225,7 +225,8 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
-	clothing_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS | GAS_FILTERING
-	visor_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS | GAS_FILTERING
+	clothing_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS
+	visor_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS
+	has_filter = TRUE
 	starting_filter_type = /obj/item/gas_filter/vox
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION

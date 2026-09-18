@@ -1,44 +1,90 @@
-// NOVA MODULE IC-SPAWNING https://github.com/Skyrat-SS13/Skyrat-tg/pull/104
+// NOVA MODULE ICSPAWNING https://github.com/Skyrat-SS13/Skyrat-tg/pull/104
+// todo: update spawn-in type to a list, add new spawn-in animations and types (particularly a totally silent one, similar to how ctrlshiftclick works).
+
+/// Prefix a saved spawn slot wears in the quick spawn menu, so the menu entry can be turned back into a slot name.
+#define SPAWN_SLOT_PREFIX "Slot: "
 
 /mob/dead/observer/CtrlClickOn(mob/user)
 	quickicspawn(user)
 
 /mob/dead/observer/proc/quickicspawn(mob/user)
 	if(isobserver(user) && check_rights(R_SPAWN))
-		var/list/outfits = list()
-		outfits["Bluespace Tech"] = /datum/outfit/debug/bst
-		outfits["Bluespace Tech (MODsuit)"] = /datum/outfit/admin/bst
-		outfits["Show All"] = "Show All"
+		var/datum/preferences/prefs = user.client?.prefs
+		if(!prefs)
+			return
+
+		var/list/spawn_options = list("Bluespace", "Pod", "Silent")
+		var/list/custom_slots = list()
+		for(var/slot_name in prefs.preferred_spawn_methods)
+			custom_slots += "[SPAWN_SLOT_PREFIX][slot_name]"
+
+		var/teleport_option = tgui_alert(usr, "How would you like to be spawned in?", "IC Quick Spawn", custom_slots + spawn_options + list("Make a Custom Slot", "Clear Slots", "Cancel"))
+
+		if (teleport_option == "Cancel" || !teleport_option)
+			return
 
 		var/dresscode
-		var/teleport_option = tgui_alert(usr, "How would you like to be spawned in?", "IC Quick Spawn", list("Bluespace", "Pod", "Cancel"))
-		if (teleport_option == "Cancel")
-			return
-		var/character_option = tgui_alert(usr, "Which character?", "IC Quick Spawn", list("Selected Character", "Randomly Created", "Cancel"))
-		if (character_option == "Cancel")
-			return
-		var/initial_outfits = tgui_alert(usr, "Select outfit", "Quick Dress", list("Bluespace Tech", "Show All", "Cancel"))
-		if (initial_outfits == "Cancel")
+		var/character_option
+
+		if (teleport_option == "Make a Custom Slot")
+			var/slot_name = tgui_input_text(usr, "Enter a name for this custom spawn slot", "Save Custom Slot")
+			if(!slot_name)
+				return
+			var/method = tgui_alert(usr, "Select spawn method for this slot", "Save Custom Slot", spawn_options)
+			if(!method)
+				return
+			var/outfit = client.robust_dress_shop_nova()
+			if(!outfit)
+				return
+
+			prefs.preferred_spawn_methods[slot_name] = method
+			prefs.preferred_spawn_outfits[slot_name] = outfit
+			prefs.save_preferences()
+			to_chat(usr, span_notice("Saved custom spawn slot '[slot_name]'."))
 			return
 
-		switch(initial_outfits)
-			if("Bluespace Tech")
-				dresscode = /datum/outfit/admin/bst
-			if("Show All")
-				dresscode = client.robust_dress_shop_skyrat()
-				if (!dresscode)
-					return
+		if (teleport_option == "Clear Slots")
+			if(tgui_alert(usr, "Are you sure you want to clear ALL custom spawn slots?", "Clear Slots", list("Yes", "No")) == "Yes")
+				prefs.preferred_spawn_methods = list()
+				prefs.preferred_spawn_outfits = list()
+				prefs.save_preferences()
+				to_chat(usr, span_notice("Cleared all custom spawn slots."))
+			return
+
+		if (findtext(teleport_option, SPAWN_SLOT_PREFIX) == 1)
+			var/slot_name = copytext(teleport_option, length(SPAWN_SLOT_PREFIX) + 1)
+			teleport_option = prefs.preferred_spawn_methods[slot_name]
+			dresscode = prefs.preferred_spawn_outfits[slot_name]
+			character_option = "Selected Character" // Default for slots
+		else
+			character_option = tgui_alert(usr, "Which character?", "IC Quick Spawn", list("Selected Character", "Randomly Created", "Cancel"))
+			if (character_option == "Cancel" || !character_option)
+				return
+
+			var/initial_outfits = tgui_input_list(usr, "Select outfit", "Quick Dress", list("Show All Outfits", "Bluespace Tech", "Subspace Tech", "Cancel"))
+			if (initial_outfits == "Cancel" || !initial_outfits)
+				return
+
+			switch(initial_outfits)
+				if("Bluespace Tech")
+					dresscode = /datum/outfit/admin/bluespace
+				if("Subspace Tech")
+					dresscode = /datum/outfit/admin/subspace
+				if("Show All Outfits")
+					dresscode = client.robust_dress_shop_nova()
+					if (!dresscode)
+						return
 
 		// We're spawning someone else
 		var/give_return
 		if (user != usr)
-			give_return = tgui_alert(usr, "Do you want to give them the power to return? Not recommended for non-admins.", "Give power?", list("Yes", "No"))
+			give_return = tgui_alert(usr, "Do you want to give them the Return spell? This lets them instantly erase their character, so be careful.", "Give power?", list("Yes", "No"))
 			if(!give_return)
 				return
 
 		var/addquirks
 		if(character_option == "Selected Character")
-			addquirks = tgui_input_list(src, "Include quirks?", "Quirky", list("Quirks & Loadout", "Quirks Only", "Loadout Only", "Neither"))
+			addquirks = tgui_input_list(src, "Include quirks?", "Quirky", list("Quirks Only", "Quirks & Loadout", "Loadout Only", "Neither"))
 			if(!addquirks)
 				return
 
@@ -95,8 +141,11 @@
 
 				new /obj/effect/pod_landingzone(current_turf, empty_pod)
 
-/client/proc/robust_dress_shop_skyrat()
-	var/list/baseoutfits = list("Naked","Custom","As Job...", "As Plasmaman...")
+			if("Silent")
+				spawned_player.forceMove(current_turf)
+
+/client/proc/robust_dress_shop_nova()
+	var/list/baseoutfits = list("Naked", "Custom", "As Job...", "As Plasmaman...")
 	var/list/outfits = list()
 	var/list/paths = subtypesof(/datum/outfit) - typesof(/datum/outfit/job) - typesof(/datum/outfit/plasmaman)
 
@@ -113,37 +162,41 @@
 	if (outfits[dresscode])
 		dresscode = outfits[dresscode]
 
+	// Each of the three submenus below maps display name -> outfit, so hold the picked name in its own variable and
+	// look the outfit up from it. Assigning the outfit back over dresscode and then indexing by that is how the
+	// Custom branch used to end up returning null.
 	if (dresscode == "As Job...")
-		var/list/job_paths = subtypesof(/datum/outfit/job)
 		var/list/job_outfits = list()
-		for(var/path in job_paths)
-			var/datum/outfit/O = path
-			job_outfits[initial(O.name)] = path
+		for(var/path in subtypesof(/datum/outfit/job))
+			var/datum/outfit/job_outfit = path
+			job_outfits[initial(job_outfit.name)] = path
 
-		dresscode = input("Select job equipment", "Robust quick dress shop") as null|anything in sort_list(job_outfits)
-		dresscode = job_outfits[dresscode]
-		if(isnull(dresscode))
+		var/selected_name = tgui_input_list(src, "Select job equipment", "Robust quick dress shop", sort_list(job_outfits))
+		if(isnull(selected_name))
 			return
+		return job_outfits[selected_name]
 
 	if (dresscode == "As Plasmaman...")
-		var/list/plasmaman_paths = typesof(/datum/outfit/plasmaman)
 		var/list/plasmaman_outfits = list()
-		for(var/path in plasmaman_paths)
-			var/datum/outfit/O = path
-			plasmaman_outfits[initial(O.name)] = path
+		for(var/path in typesof(/datum/outfit/plasmaman))
+			var/datum/outfit/plasmaman_outfit = path
+			plasmaman_outfits[initial(plasmaman_outfit.name)] = path
 
-		dresscode = input("Select plasmeme equipment", "Robust quick dress shop") as null|anything in sort_list(plasmaman_outfits)
-		dresscode = plasmaman_outfits[dresscode]
-		if(isnull(dresscode))
+		var/selected_name = tgui_input_list(src, "Select plasmeme equipment", "Robust quick dress shop", sort_list(plasmaman_outfits))
+		if(isnull(selected_name))
 			return
+		return plasmaman_outfits[selected_name]
 
 	if (dresscode == "Custom")
-		var/list/custom_names = list()
+		var/list/custom_outfits = list()
 		for(var/datum/outfit/req_outfit in GLOB.custom_outfits)
-			custom_names[req_outfit.name] = req_outfit
-		var/selected_name = input("Select outfit", "Robust quick dress shop") as null|anything in sort_list(custom_names)
-		dresscode = custom_names[selected_name]
-		if(isnull(dresscode))
+			custom_outfits[req_outfit.name] = req_outfit
+
+		var/selected_name = tgui_input_list(src, "Select outfit", "Robust quick dress shop", sort_list(custom_outfits))
+		if(isnull(selected_name))
 			return
+		return custom_outfits[selected_name]
 
 	return dresscode
+
+#undef SPAWN_SLOT_PREFIX

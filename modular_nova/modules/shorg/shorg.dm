@@ -12,7 +12,6 @@
 	held_state = "shorg"
 	butcher_results = list(/obj/item/food/fishmeat/quality = 3, /obj/item/food/meat/slab/corgi = 1)
 	gold_core_spawnable = FRIENDLY_SPAWN
-	collar_icon_state = "shorg"
 	held_state = "shorg"
 	faction = list(FACTION_NEUTRAL, FACTION_CARP) // Carps wont attack it
 	obj_damage = 5

@@ -128,6 +128,10 @@ export const IconCutterTarget = new Juke.Target({
       `modular_nova/**/*.png.toml`,
       `modular_nova/**/*.dmi.toml`,
       // NOVA EDIT ADDITION END
+      // APHELION EDIT ADDITION START - Include Aphelion icon cutter inputs
+      `modular_aphelion/**/*.png.toml`,
+      `modular_aphelion/**/*.dmi.toml`,
+      // APHELION EDIT ADDITION END
       cutter_path,
     ];
     // Alright we're gonna search out any existing toml files and convert
@@ -139,6 +143,10 @@ export const IconCutterTarget = new Juke.Target({
       ...Juke.glob(`modular_nova/**/*.png.toml`),
       ...Juke.glob(`modular_nova/**/*.dmi.toml`),
       // NOVA EDIT ADDITION END
+      // APHELION EDIT ADDITION START - Include Aphelion icon cutter inputs
+      ...Juke.glob(`modular_aphelion/**/*.png.toml`),
+      ...Juke.glob(`modular_aphelion/**/*.dmi.toml`),
+      // APHELION EDIT ADDITION END
     ];
     return [
       ...standard_inputs,
@@ -154,6 +162,10 @@ export const IconCutterTarget = new Juke.Target({
       ...Juke.glob(`modular_nova/**/*.png.toml`),
       ...Juke.glob(`modular_nova/**/*.dmi.toml`),
       // NOVA EDIT ADDITION END
+      // APHELION EDIT ADDITION START - Include Aphelion icon cutter inputs
+      ...Juke.glob(`modular_aphelion/**/*.png.toml`),
+      ...Juke.glob(`modular_aphelion/**/*.dmi.toml`),
+      // APHELION EDIT ADDITION END
     ];
     return folders
       .map((file) => file.replace(`.png.toml`, '.dmi'))
@@ -166,6 +178,7 @@ export const IconCutterTarget = new Juke.Target({
       'cutter_templates',
       'icons',
       'modular_nova', // NOVA EDIT ADDITION - Making the cutter actually work
+      'modular_aphelion', // APHELION EDIT ADDITION - Include Aphelion cutter sources
     ]);
   },
 });
@@ -255,6 +268,7 @@ export const DmTarget = new Juke.Target({
     'sound/**',
     'tgui/public/tgui.html',
     "modular_nova/**", ///NOVA EDIT ADDITION - Making the CBT work
+    'modular_aphelion/**', // APHELION EDIT ADDITION - Invalidate DM builds for Aphelion changes
     `${DME_NAME}.dme`,
     NamedVersionFile,
   ],

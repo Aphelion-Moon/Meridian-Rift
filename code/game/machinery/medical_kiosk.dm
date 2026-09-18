@@ -339,7 +339,7 @@
 		patient_status = pick(
 			"The only kiosk is kiosk, but is the only patient, patient?",
 			"Breathing manually.",
-			"Contact NTOS site admin.",
+			"Contact MeridianOS site admin.", // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: "Contact NTOS site admin.",
 			"97% carbon, 3% natural flavoring",
 			"The ebb and flow wears us all in time.",
 			"It's Lupus. You have Lupus.",

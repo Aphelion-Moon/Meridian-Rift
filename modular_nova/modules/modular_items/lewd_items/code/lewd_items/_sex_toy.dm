@@ -33,6 +33,9 @@
 	for(var/datum/action/action as anything in actions)
 		give_item_action(action, user)
 
+/obj/item/clothing/sextoy/create_moth_snack()
+	return null
+
 /obj/item/clothing/sextoy/dropped(mob/user)
 	..()
 
@@ -50,9 +53,11 @@
 		return ..()
 
 	var/mob/living/carbon/human/current_holder = loc
+	var/equipped_slot = current_equipped_slot
 
 	current_holder.dropItemToGround(src, force = TRUE) // Force is true, cause nodrop shouldn't affect lewd items.
-	current_holder.vars[current_equipped_slot] = null
+	if(current_holder.get_lewd_slot_item(equipped_slot) == src)
+		current_holder.set_lewd_slot_item(equipped_slot, null)
 	current_holder.update_inv_lewd()
 
 	return ..()

@@ -89,6 +89,7 @@
 /obj/item/summon_beacon/relax
 	name = "relaxation machine beacon"
 	icon_state = "sb_delivery"
+	inhand_icon_state = "sb_delivery"
 	desc = "Once a vending machine is selected, delivers it to the target location."
 
 	allowed_areas = list(

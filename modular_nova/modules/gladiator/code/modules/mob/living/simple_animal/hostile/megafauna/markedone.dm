@@ -127,18 +127,29 @@
 		. = ..()
 		. += span_boldwarning("They are currently in Phase [phase].")
 
-/// Gets him mad at you if you're a species he's not racist towards, and provides the 50% to block attacks in the first and fourth phases
-/mob/living/simple_animal/hostile/megafauna/gladiator/adjustHealth(amount, updating_health, forced)
-	get_angry()
-	if(prob(block_chance) && (phase == 1 || phase == 4) && !stunned)
-		var/our_turf = get_turf(src)
-		new /obj/effect/temp_visual/block(our_turf, COLOR_YELLOW)
-		playsound(src, 'sound/items/weapons/parry.ogg', BLOCK_SOUND_VOLUME * 2, vary = TRUE) // louder because lavaland low pressure maybe?
+/mob/living/simple_animal/hostile/megafauna/gladiator/proc/attack_blocked()
+	if(phase != 1 || phase != 4)
 		return FALSE
+	if(stunned || !prob(block_chance))
+		return FALSE
+	var/our_turf = get_turf(src)
+	new /obj/effect/temp_visual/block(our_turf, COLOR_YELLOW)
+	playsound(src, 'sound/items/weapons/parry.ogg', BLOCK_SOUND_VOLUME * 2, vary = TRUE) // louder because lavaland low pressure maybe?
+	return TRUE
+
+/mob/living/simple_animal/hostile/megafauna/gladiator/can_adjust_brute_loss(amount, forced, required_bodytype)
+	return ..() && !attack_blocked()
+
+/mob/living/simple_animal/hostile/megafauna/gladiator/can_adjust_fire_loss(amount, forced, required_bodytype)
+	return ..() && !attack_blocked()
+
+/// Gets him mad at you if you're a species he's not racist towards, and provides the 50% to block attacks in the first and fourth phases
+/mob/living/simple_animal/hostile/megafauna/gladiator/on_damage_loss(amount, updating_health, forced, damage_type, difference)
 	. = ..()
+	get_angry()
 	update_phase()
 	// Taking damage makes us unable to attack for a while
-	var/adjustment_amount = min(amount * 0.15, 15)
+	var/adjustment_amount = min(difference * 0.15, 15)
 	if((world.time + adjustment_amount) > next_move)
 		changeNext_move(adjustment_amount)
 

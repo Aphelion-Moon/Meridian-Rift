@@ -62,8 +62,8 @@ GAME_VERB_DESC(/client, reportissue, "report-issue", "Report an issue", null)
 
 	// NOVA EDIT ADDITION START
 	var/issue_source_message = "Are you reporting a TG issue, or an Aphelion issue?\
-		<br>If you are unsure whether the problem comes from upstream or not, choose 'Aphelion Issue'."
-	var/issue_source = tg_alert(src, issue_source_message, "Report Issue", "Aphelion Issue", "TG Upstream Issue")
+		If you are unsure whether the problem comes from upstream or not, choose 'Aphelion Issue'."
+	var/issue_source = tgui_alert(src, issue_source_message, "Report Issue", list("Aphelion Issue", "TG Upstream Issue"))
 	if(isnull(issue_source))
 		return
 	if(issue_source == "TG Upstream Issue")
@@ -76,7 +76,7 @@ GAME_VERB_DESC(/client, reportissue, "report-issue", "Report an issue", null)
 
 	// We still use tg_alert here because some people were concerned that if someone wanted to report that tgui wasn't working
 	// then the report issue button being tgui-based would be problematic.
-	if(tg_alert(src, message, "Report Issue", "Yes", "No") != "Yes")
+	if(tgui_alert(src, message, "Report Issue", list("Yes", "No")) != "Yes") // APHELION EDIT CHANGE - NO we don't. - ORIGINAL: if(tg_alert(src, message, "Report Issue", "Yes", "No") != "Yes")
 		return
 
 	var/base_link = githuburl + "/issues/new?template=bug_report_form.yml"

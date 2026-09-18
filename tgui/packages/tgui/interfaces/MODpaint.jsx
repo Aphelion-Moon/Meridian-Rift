@@ -1,16 +1,16 @@
 import {
   Box,
   Button,
-  ByondUi,
+  // ByondUi, // APHELION EDIT REMOVAL - native UI menu avoidance
   Flex,
   Section,
   Slider,
   Stack,
 } from 'tgui-core/components';
 import { capitalize } from 'tgui-core/string';
-
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
+import { ByondUi } from '../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 
 const colorToMatrix = (param) => {
   switch (param) {

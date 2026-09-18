@@ -39,6 +39,7 @@
 	)
 	rpg_title = "Plague Doctor"
 	job_flags = STATION_JOB_FLAGS
+	tgui_icon = FA_ICON_VIRUS
 
 
 /datum/outfit/job/virologist
@@ -49,7 +50,7 @@
 	uniform = /obj/item/clothing/under/rank/medical/virologist
 	suit = /obj/item/clothing/suit/toggle/labcoat/virologist
 	suit_store = /obj/item/flashlight/pen
-	belt = /obj/item/modular_computer/pda/viro
+	belt = /obj/item/modular_computer/pda/crew/medical/viro
 	ears = /obj/item/radio/headset/headset_med
 	mask = /obj/item/clothing/mask/surgical
 	shoes = /obj/item/clothing/shoes/sneakers/white
@@ -61,11 +62,12 @@
 
 	box = /obj/item/storage/box/survival/medical
 
-/obj/item/modular_computer/pda/viro
+/obj/item/modular_computer/pda/crew/medical/viro
 	name = "virology PDA"
-	icon_state = "/obj/item/modular_computer/pda/viro"
+	icon_state = "/obj/item/modular_computer/pda/crew/medical/viro"
 	greyscale_config = /datum/greyscale_config/tablet/stripe_double
 	greyscale_colors = "#FAFAFA#355FAC#57C451"
+	painting_region = REGION_MEDBAY
 	starting_programs = list(
 		/datum/computer_file/program/records/medical,
 		/datum/computer_file/program/robocontrol,

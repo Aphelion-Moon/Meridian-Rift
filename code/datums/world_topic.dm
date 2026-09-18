@@ -5,6 +5,10 @@
 	var/list/all_handlers = subtypesof(/datum/world_topic)
 	for(var/I in all_handlers)
 		var/datum/world_topic/WT = I
+		// APHELION EDIT ADDITION BEGIN - skip abstract parents, no keyword to warn about
+		if(initial(WT.abstract_type) == WT)
+			continue
+		// APHELION EDIT ADDITION END
 		var/keyword = initial(WT.keyword)
 		if(!keyword)
 			warning("[WT] has no keyword! Ignoring...")
@@ -26,13 +30,19 @@
 	/// If the comms.txt config key is required. If you flip this to false, ensure the code is correct and the query you receive is legit.
 	var/require_comms_key = TRUE
 
-/datum/world_topic/proc/TryRun(list/input)
+/datum/world_topic/proc/TryRun(list/input, addr) // APHELION EDIT CHANGE - addr, so a topic can see where it came from - ORIGINAL: /datum/world_topic/proc/TryRun(list/input)
 	key_valid = (CONFIG_GET(string/comms_key) == input["key"]) && CONFIG_GET(string/comms_key) && input["key"]
 	input -= "key"
 	if(require_comms_key && !key_valid)
 		. = "Bad Key"
 		if (input["format"] == "json")
 			. = list("error" = .)
+	// APHELION EDIT ADDITION BEGIN - Bad Address, told apart from Bad Key
+	else if(!AddressAllowed(addr))
+		. = "Bad Address"
+		if (input["format"] == "json")
+			. = list("error" = .)
+	// APHELION EDIT ADDITION END
 	else
 		. = Run(input)
 	if (input["format"] == "json")

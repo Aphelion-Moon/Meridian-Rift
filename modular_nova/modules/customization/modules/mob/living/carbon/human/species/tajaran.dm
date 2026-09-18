@@ -11,6 +11,9 @@
 		TRAIT_WATER_HATER,
 	)
 	mutanttongue = /obj/item/organ/tongue/cat/tajaran
+	mutant_organs = list(
+		/obj/item/organ/fangs/cat/tajaran,
+	)
 	inherent_biotypes = MOB_ORGANIC|MOB_HUMANOID
 
 	payday_modifier = 1.0
@@ -25,6 +28,9 @@
 		BODY_ZONE_L_LEG = /obj/item/bodypart/leg/left/mutant,
 		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/mutant,
 	)
+
+/obj/item/organ/fangs/cat/tajaran
+	name = "tajaran fangs"
 
 /datum/species/tajaran/get_default_mutant_bodyparts()
 	return list(

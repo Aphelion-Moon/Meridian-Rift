@@ -1,0 +1,12 @@
+{
+	"shorted_overall": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_shortalls",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	]
+}

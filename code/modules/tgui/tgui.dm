@@ -253,6 +253,7 @@
 		custom_data,
 		with_data = should_update_data))
 
+/* // APHELION EDIT REMOVAL START - Replaced proc with get_config() to allow for config-only updates
 /**
  * private
  *
@@ -263,6 +264,12 @@
 /datum/tgui/proc/get_payload(custom_data, with_data, with_static_data)
 	var/list/json_data = list()
 	json_data["config"] = list(
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START
+/// Build the configuration shared by full, partial, and config-only updates.
+/datum/tgui/proc/get_config()
+	return list(
+// APHELION EDIT ADDITION END
 		"title" = title,
 		"status" = status,
 		"interface" = list(
@@ -286,6 +293,19 @@
 			"observer" = isobserver(user),
 		),
 	)
+// APHELION EDIT ADDITION START
+
+/**
+ * private
+ *
+ * Package the data to send to the UI, as JSON.
+ *
+ * return list
+ */
+/datum/tgui/proc/get_payload(custom_data, with_data, with_static_data)
+	var/list/json_data = list()
+	json_data["config"] = get_config()
+// APHELION EDIT ADDITION END
 	var/data = custom_data || with_data && src_object.ui_data(user)
 	SEND_SIGNAL(src_object, COMSIG_UI_DATA, user, data)
 	if(data)

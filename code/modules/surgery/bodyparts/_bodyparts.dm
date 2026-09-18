@@ -750,6 +750,9 @@
 			wounding_type = WOUND_PIERCE
 
 	if(owner) // i tried to modularize the below, but the modifications to wounding_dmg and wounding_type cant be extracted to a proc
+		if(!forced)
+			brute *= GET_PHYSIOLOGY(owner, BRUTE)
+			burn *= GET_PHYSIOLOGY(owner, BURN)
 		var/easy_dismember = HAS_TRAIT(owner, TRAIT_EASYDISMEMBER) // if we have easydismember, we don't reduce damage when redirecting damage to different types (slashing weapons on mangled/skinless limbs attack at 100% instead of 50%)
 
 		var/has_exterior = (bio_status & ANATOMY_EXTERIOR)
@@ -1778,7 +1781,7 @@
 			continue
 		// Consider it contirubuted by the wound itself
 		// Not -surgery_bloodloss as this way clamping the vessels reduces the overall bleeding
-		cached_bleed_rate -= UNCLAMPED_VESSELS_BLEEDING
+		cached_bleed_rate -= min(iter_wound.blood_flow, UNCLAMPED_VESSELS_BLEEDING) // APHELION EDIT CHANGE - ORIGINAL: cached_bleed_rate -= UNCLAMPED_VESSELS_BLEEDING
 		surgery_bloodloss = 0
 
 	if(owner.body_position == LYING_DOWN)
@@ -1902,7 +1905,7 @@
 	return TRUE
 
 ///A multi-purpose setter for all things immediately important to the icon and iconstate of the limb.
-/obj/item/bodypart/proc/change_appearance(icon, id, greyscale, dimorphic)
+/obj/item/bodypart/proc/change_appearance(icon, id, greyscale, dimorphic, update_owner = TRUE) // APHELION EDIT CHANGE - ORIGINAL: /obj/item/bodypart/proc/change_appearance(icon, id, greyscale, dimorphic)
 	var/icon_holder
 	if(greyscale)
 		icon_greyscale = icon
@@ -1921,16 +1924,16 @@
 
 	if(!owner)
 		update_icon_dropped()
-	else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+	else if(update_owner && !(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS)) // APHELION EDIT CHANGE - ORIGINAL: else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		owner.update_body_parts()
 
 	//This foot gun needs a safety
 	if(!icon_exists(icon_holder, "[limb_id]_[body_zone][is_dimorphic ? "_[limb_gender]" : ""][(bodyshape & BODYSHAPE_DIGITIGRADE) ? "_[ICON_KEY_DIGI]" : ""]")) // NOVA EDIT CHANGE - ORIGINAL: if(!icon_exists(icon_holder, "[limb_id]_[body_zone][is_dimorphic ? "_[limb_gender]" : ""]"))
-		reset_appearance()
+		reset_appearance(update_owner = update_owner) // APHELION EDIT CHANGE - ORIGINAL: reset_appearance()
 		stack_trace("change_appearance([icon], [id], [greyscale], [dimorphic]) generated null icon")
 
 ///Resets the base appearance of a limb to it's default values.
-/obj/item/bodypart/proc/reset_appearance()
+/obj/item/bodypart/proc/reset_appearance(update_owner = TRUE) // APHELION EDIT CHANGE - ORIGINAL: /obj/item/bodypart/proc/reset_appearance()
 	icon_static = initial(icon_static)
 	icon_greyscale = initial(icon_greyscale)
 	limb_id = initial(limb_id)
@@ -1939,7 +1942,7 @@
 
 	if(!owner)
 		update_icon_dropped()
-	else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+	else if(update_owner && !(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS)) // APHELION EDIT CHANGE - ORIGINAL: else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		owner.update_body_parts()
 
 // Note: For effects on subtypes, use the emp_effect() proc instead

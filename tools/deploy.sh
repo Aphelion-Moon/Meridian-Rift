@@ -35,6 +35,11 @@ find modular_nova/modules/GAGS/json_configs -name \*.json -exec cp --parents {} 
 find modular_nova/modules/GAGS/nsfw/json_configs -name \*.json -exec cp --parents {} $1 \;
 # NOVA EDIT ADDITION END
 
+# APHELION EDIT ADDITION START - Include Aphelion runtime icon assets
+mkdir -p $1/modular_aphelion
+find modular_aphelion/ -name \*.dmi -exec cp --parents {} $1 \;
+
+# APHELION EDIT ADDITION END
 cp tgstation.dmb tgstation.rsc $1/
 cp -r _maps/* $1/_maps/
 cp -r build/behavior_trees/* $1/build/behavior_trees/

@@ -1,6 +1,7 @@
 /datum/job/corrections_officer
 	title = JOB_CORRECTIONS_OFFICER
-	description = "Guard the permabrig, stand around looking imposing, get fired for abusing the prisoners"
+	description = "Steward the inmates in the prison; they are under your protection while you are on shift. Ensure that they have proper food, safe lodgings, and enough enrichment to keep them from tearing their cells apart. \
+		Aid the Warden and Service personnel with paroles when necessary, and help prisoners who can reintegrate into Federation society get back on their feet."
 	auto_deadmin_role_flags = DEADMIN_POSITION_SECURITY
 	faction = FACTION_STATION
 	total_positions = 1
@@ -36,6 +37,7 @@
 	family_heirlooms = list(/obj/item/book/manual/wiki/security_space_law, /obj/item/clothing/head/security_cap, /obj/item/clothing/mask/whistle)
 
 	job_flags = STATION_JOB_FLAGS | JOB_ANTAG_PROTECTED
+	tgui_icon = FA_ICON_HANDS_BOUND
 
 // OUTFIT
 /datum/outfit/job/corrections_officer
@@ -54,9 +56,6 @@
 	messenger = /obj/item/storage/backpack/messenger/sec
 	head = /obj/item/clothing/head/security_garrison
 	box = /obj/item/storage/box/survival/security
-	belt = /obj/item/modular_computer/pda/security
+	belt = /obj/item/modular_computer/pda/crew/security
 
 	id_trim = /datum/id_trim/job/corrections_officer
-
-
-

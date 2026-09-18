@@ -3,7 +3,9 @@
 	desc = "Summons a thing. Probably shouldn't use this one, though."
 	icon = 'icons/obj/devices/remote.dmi'
 	icon_state = "self_delivery"
-	inhand_icon_state = null
+	inhand_icon_state = "self_delivery"
+	lefthand_file = 'icons/mob/inhands/items/devices_lefthand.dmi'
+	righthand_file = 'icons/mob/inhands/items/devices_righthand.dmi'
 	w_class = WEIGHT_CLASS_SMALL
 
 	/// How many uses the beacon has left
@@ -80,9 +82,7 @@
 
 		options[icon_object] = option
 
-	sort_list(options)
-
-	return options
+	return sort_list(options)
 
 /obj/item/summon_beacon/proc/area_check(area/target_area, turf/target_turf)
 	if(!target_turf)

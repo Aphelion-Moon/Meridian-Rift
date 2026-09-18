@@ -1,0 +1,21 @@
+// THIS IS AN APHELION UI FILE
+// Styles for the shared TimeoutBar instrument. These live with the component
+// rather than in AlertModal.scss so the upstream stylesheet stays untouched --
+// the bar is used by every blocking input window, not just the alert modal.
+
+.TimeoutBar {
+  position: relative;
+  width: 100%;
+  height: var(--border-thickness-large);
+  overflow: hidden;
+}
+
+.TimeoutBar__progress {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-primary);
+  transform-origin: left center;
+  transition-property: background-color, transform;
+  transition-duration: var(--transition-time-slow);
+  transition-timing-function: ease-out;
+}

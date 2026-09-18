@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 160" fill="none">
+  <!-- Meridian-authored range fan, registration ticks and a wire target. -->
+  <defs>
+    <filter id="blue-phosphor" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.6"/>
+    </filter>
+    <linearGradient id="field" x1="96" y1="82" x2="331" y2="127" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#277dff" stop-opacity=".02"/>
+      <stop offset="1" stop-color="#277dff" stop-opacity=".25"/>
+    </linearGradient>
+    <g id="plot-lines">
+      <path d="M24 20h306v122H24z" stroke="#568aca" stroke-width=".7"/>
+      <path d="M48 20v122m24-122v122m24-122v122m24-122v122m24-122v122m24-122v122m24-122v122m24-122v122m24-122v122m24-122v122m24-122v122m24-122v122M24 50h306M24 80h306M24 110h306" stroke="#194575" stroke-width=".7"/>
+      <path d="M96 80 330 20M96 80l234-37M96 80l234-14M96 80l234 14M96 80l234 37M96 80l234 62" stroke="#69a4ff" stroke-width="1"/>
+      <path d="m96 80 234-60M96 80l234 62" stroke="#b1d8ff" stroke-width="1.25"/>
+      <path d="M25 80h306" stroke="#527bb7" stroke-width=".8" stroke-dasharray="2 4"/>
+      <path d="m44 79 11-13 20 4 15 9-15 11-20 3-11-14Z" stroke="#a1d0ff" stroke-width="1.4"/>
+      <path d="m49 79 10-6 13 1 11 5-12 6-12 1-10-7Z" stroke="#6ca8f1" stroke-width=".9"/>
+      <path d="M96 69v22M89 80h14" stroke="#b2dcff" stroke-width="1.2"/>
+      <path d="M218 74v12m-6-6h12" stroke="#82b9ff" stroke-width="1.1"/>
+      <path d="m275 76 4 4-4 4-4-4z" stroke="#ff765d" stroke-width="1.1"/>
+      <path d="M34 10v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4m13-4v4" stroke="#497cad" stroke-width="1"/>
+      <path d="M12 22v8m0 19v8m0 19v8m0 19v8m0 19v8M342 22v8m0 19v8m0 19v8m0 19v8m0 19v8" stroke="#86c7ff" stroke-width="1.5"/>
+      <path d="M24 151h10m4 0h3m7 0h14m228 0h9m4 0h3m8 0h16" stroke="#539bf3" stroke-width="2"/>
+    </g>
+  </defs>
+  <path d="m96 80 234 37v25L96 80Z" fill="url(#field)"/>
+  <use href="#plot-lines" stroke="#357eff" filter="url(#blue-phosphor)" opacity=".64"/>
+  <use href="#plot-lines"/>
+</svg>

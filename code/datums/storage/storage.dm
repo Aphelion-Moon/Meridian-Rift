@@ -132,6 +132,13 @@
 	/// Stops updates from being called on insert or remove, useful for mass insertions/removals - just don't forget to update it manually afterwards
 	VAR_FINAL/block_insert_remove_updates = FALSE
 
+	// APHELION EDIT ADDITION START - ADMIN_TECH
+	/// Maximum columns for viewers with the widescreen preference on. Opt-in: left null so every existing storage keeps
+	/// the layout everyone is used to, including subtypes that narrow screen_max_columns. Set it per-storage, above that
+	/// storage's own screen_max_columns, when something is genuinely too wide to fit.
+	var/screen_max_columns_widescreen
+
+	// APHELION EDIT ADDITION END
 /datum/storage/New(
 	atom/parent,
 	max_slots = src.max_slots,
@@ -1156,15 +1163,31 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 		numbered_contents = process_numerical_display()
 		adjusted_contents = length(numbered_contents)
 
+	/* // APHELION EDIT REMOVAL START - ADMIN_TECH
 	//if the ammount of contents reaches some multiplier of the final column (and its not the last slot), let the player view an additional row
 	var/additional_row = (!(adjusted_contents % screen_max_columns) && adjusted_contents < max_slots)
 
 	var/columns = clamp(max_slots, 1, screen_max_columns)
 	var/rows = clamp(ceil(adjusted_contents / columns) + additional_row, 1, screen_max_rows)
 
+	*/ // APHELION EDIT REMOVAL END
 	for (var/mob/ui_user as anything in storage_interfaces)
 		if (isnull(storage_interfaces[ui_user]))
 			continue
+		// APHELION EDIT ADDITION START - ADMIN_TECH
+		// The column maths moved inside the per-viewer loop so widescreen players can be given more columns.
+		// Because this proc loops per viewer and calls update_position each proc call, we can pretty easily provide a check to insulate us in the future when exposing non-widescreen players to oversized storage elements.
+		// This is NOT a config edit because I can see applications where people might want to better adjust the sizing of a ui for some reason.
+		// If you ever need to reference the columns var, please use this instead.
+		// Storages that never widen skip the preference read entirely, which is most of them.
+		var/user_max_columns = screen_max_columns
+		if(screen_max_columns_widescreen > screen_max_columns && ui_user.client?.prefs?.read_preference(/datum/preference/toggle/widescreen))
+			user_max_columns = screen_max_columns_widescreen
+		// Math pass to handle the division of the ui
+		var/additional_row = (!(adjusted_contents % user_max_columns) && adjusted_contents < max_slots)
+		var/columns = clamp(max_slots, 1, user_max_columns)
+		var/rows = clamp(ceil(adjusted_contents / columns) + additional_row, 1, screen_max_rows)
+		// APHELION EDIT ADDITION END
 		storage_interfaces[ui_user].update_position(
 			screen_start_x,
 			screen_pixel_x,
