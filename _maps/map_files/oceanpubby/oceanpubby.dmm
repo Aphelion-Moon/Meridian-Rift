@@ -23991,6 +23991,7 @@
 	id = "starboardsolar";
 	name = "Starboard Solar Control"
 	},
+/obj/structure/cable,
 /turf/open/floor/catwalk_floor/iron_dark,
 /area/station/maintenance/solars/starboard)
 "eqR" = (
