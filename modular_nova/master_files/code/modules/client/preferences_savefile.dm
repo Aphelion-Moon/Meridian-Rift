@@ -3,7 +3,7 @@
  * You can't really use the non-modular version, least you eventually want asinine merge
  * conflicts and/or potentially disastrous issues to arise, so here's your own.
  */
-#define MODULAR_SAVEFILE_VERSION_MAX 19
+#define MODULAR_SAVEFILE_VERSION_MAX 20
 
 #define MODULAR_SAVEFILE_UP_TO_DATE -1
 
@@ -25,6 +25,7 @@
 #define VERSION_DONK_MIGRATION 17
 #define VERSION_AUGMENT_ITEMS_PATH_CHANGE 18
 #define VERSION_HEIGHT_UPDATE 19
+#define VERSION_HEMOPHAGE_SPECIES_REMOVAL 20
 
 #define INDEX_UNDERWEAR 1
 #define INDEX_BRA 2
@@ -335,6 +336,11 @@
 			if(migrated_label)
 				write_preference(GLOB.preference_entries[/datum/preference/choiced/mob_height], migrated_label)
 
+	if(current_version < VERSION_HEMOPHAGE_SPECIES_REMOVAL)
+		if(save_data["species"] == "hemophage")
+			write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMANOID)
+			LAZYADD(save_data["all_quirks"], "Hemophagia")
+
 /datum/preferences/proc/check_migration()
 	if(!tgui_prefs_migration)
 		to_chat(parent, boxed_message(span_redtext("CRITICAL FAILURE IN PREFERENCE MIGRATION, REPORT THIS IMMEDIATELY.")))
@@ -637,6 +643,7 @@
 #undef VERSION_FEATHERY_WINGS_FIX
 #undef VERSION_DONK_MIGRATION
 #undef VERSION_AUGMENT_ITEMS_PATH_CHANGE
+#undef VERSION_HEMOPHAGE_SPECIES_REMOVAL
 #undef INDEX_UNDERWEAR
 #undef INDEX_BRA
 #undef VERSION_HEIGHT_UPDATE

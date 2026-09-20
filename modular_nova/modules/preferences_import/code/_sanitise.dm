@@ -82,11 +82,6 @@
 		if(!islist(slot))
 			json_tree[key] = list()
 			continue
-		// Convert the removed species before native preference loading replaces it with a default.
-		// Foreign modular save versions are unrelated to ours, so inspect the species directly.
-		if(slot["species"] == "hemophage")
-			slot["species"] = SPECIES_HUMANOID
-			slot["all_quirks"] = SANITIZE_LIST(slot["all_quirks"]) | /datum/quirk/hemophage::name
 		// Pre-preset savefiles still carry the flat key; migration reads it.
 		if("loadout_list" in slot)
 			slot["loadout_list"] = prefs_import_clean_loadout(slot["loadout_list"])
