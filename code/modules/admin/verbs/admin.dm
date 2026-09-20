@@ -48,7 +48,8 @@ ADMIN_VERB(cmd_admin_check_player_exp, R_ADMIN, "Player Playtime", "View player 
 	for(var/client/client in sort_list(GLOB.clients, GLOBAL_PROC_REF(cmp_playtime_asc)))
 		msg += "<LI> [ADMIN_PP(client.mob)] [key_name_admin(client)]: <A href='byond://?_src_=holder;[HrefToken()];getplaytimewindow=[REF(client.mob)]'>" + client.get_exp_living() + "</a></LI>"
 	msg += "</UL></BODY></HTML>"
-	user << browse(msg.Join(), "window=Player_playtime_check")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(user, msg.Join(), "window=Player_playtime_check")
 
 /client/proc/trigger_centcom_recall()
 	if(!check_rights(R_ADMIN))

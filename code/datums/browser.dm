@@ -137,7 +137,7 @@
 		SSassets.transport.send_assets(user, stylesheets)
 	if (length(scripts))
 		SSassets.transport.send_assets(user, scripts)
-	DIRECT_OUTPUT(user, browse(get_content(), "window=[window_id];[window_size][window_options]"))
+	display_grade_browse(user, get_content(), "window=[window_id];[window_size][window_options]") // APHELION ADDITION
 	if (use_on_close)
 		setup_onclose()
 
@@ -155,7 +155,8 @@
 
 /datum/browser/proc/close()
 	if(!isnull(window_id))//null check because this can potentially nuke goonchat
-		user << browse(null, "window=[window_id]")
+		// APHELION ADDITION: shared display-grade browser lifecycle.
+		display_grade_browse(user, null, "window=[window_id]")
 	else
 		WARNING("Browser [title] tried to close with a null ID")
 
@@ -478,13 +479,19 @@
 	if(source)
 		param = "[REF(source)]"
 
-	winset(user, windowid, "on-close=\".windowclose [param]\"")
+	// APHELION ADDITION: release only this generation of a legacy window.
+	var/token = user.client.display_grade_browsers[windowid]?["token"] || "none"
+	winset(user, windowid, "on-close=\".windowclose [param] [url_encode(windowid)] [token]\"")
 
 /// the on-close client verb
 /// called when a browser popup window is closed after registering with proc/onclose()
 /// if a valid atom reference is supplied, call the atom's Topic() with "close=1"
 /// otherwise, just reset the client mob's machine var.
-GAME_VERB_NATIVE(/client, windowclose, ".windowclose", null, atomref as text)
+GAME_VERB_NATIVE(/client, windowclose, ".windowclose", null, atomref as text, grade_id as text, grade_token as text)
+	// APHELION ADDITION: closing must not leave an unbounded broadcast registration.
+	grade_id = url_decode(grade_id)
+	if(display_grade_browsers[grade_id]?["token"] == grade_token)
+		display_grade_browsers -= grade_id
 
 	if(atomref == "null")
 		return

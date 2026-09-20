@@ -472,7 +472,8 @@ GAME_VERB(/mob/living/silicon/ai, toggle_anchor, "Toggle Floor Bolts", "AI Comma
 #endif
 	if(href_list["show_tablet_note"])
 		if(last_tablet_note_seen)
-			src << browse(last_tablet_note_seen, "window=show_tablet")
+			// APHELION ADDITION: shared display-grade browser lifecycle.
+			display_grade_browse(src, last_tablet_note_seen, "window=show_tablet")
 	//Carn: holopad requests
 	if(href_list["jump_to_holopad"])
 		var/obj/machinery/holopad/Holopad = locate(href_list["jump_to_holopad"]) in SSmachines.get_machines_by_type_and_subtypes(/obj/machinery/holopad)

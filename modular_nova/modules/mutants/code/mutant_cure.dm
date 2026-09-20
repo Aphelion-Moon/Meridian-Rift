@@ -219,7 +219,8 @@
 	var/obj/item/process = locate(href_list["item"]) in src
 
 	if(href_list["close"])
-		usr << browse(null, "window=rna_recombinator")
+		// APHELION ADDITION: shared display-grade browser lifecycle.
+		display_grade_browse(usr, null, "window=rna_recombinator")
 		return
 	else if(operation == "eject")
 		ejectItem()

@@ -221,7 +221,8 @@
 				log_paper("[key_name(user)] held [last_shown_paper] up to [src], and [key_name(potential_viewer)] may read it.")
 				to_chat(potential_viewer, "[span_name("[user]")] holds <a href='byond://?_src_=usr;show_paper_note=[REF(last_shown_paper)];'>\a [title]</a> up to your camera...")
 			else
-				potential_viewer << browse("<HTML><HEAD><TITLE>[title]</TITLE></HEAD><BODY><TT>[text]</TT></BODY></HTML>", "window=[title]")
+				// APHELION ADDITION: shared display-grade browser lifecycle.
+				display_grade_browse(potential_viewer, "<HTML><HEAD><TITLE>[title]</TITLE></HEAD><BODY><TT>[text]</TT></BODY></HTML>", "window=[title]")
 
 /obj/machinery/camera/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
 	if(user.combat_mode)

@@ -7,7 +7,8 @@
 	var/data = "<b>Bombing List</b><hr>"
 	for(var/entry in GLOB.bombers)
 		data += "[entry]<br>"
-	usr << browse(data, "window=bombers;size=800x500")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, data, "window=bombers;size=800x500")
 
 /datum/admins/proc/list_signalers()
 	if(!SSticker.HasRoundStarted())
@@ -16,7 +17,8 @@
 	var/data = "<b>Showing last [length(GLOB.investigate_signaler)] signalers.</b><hr>"
 	for(var/entry in GLOB.investigate_signaler)
 		data += "[entry]<BR>"
-	usr << browse(data, "window=lastsignalers;size=800x500")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, data, "window=lastsignalers;size=800x500")
 
 /datum/admins/proc/list_law_changes()
 	if(!SSticker.HasRoundStarted())

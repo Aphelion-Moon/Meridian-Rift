@@ -402,7 +402,8 @@ GLOBAL_LIST_INIT(pp_limbs, list(
 
 				var/list/dat = list("Related accounts by [params["related_thing"]]:")
 				dat += related_accounts
-				adminClient << browse(dat.Join("<br>"), "window=related_[targetMob.client];size=420x300")
+				// APHELION ADDITION: shared display-grade browser lifecycle.
+				display_grade_browse(adminClient, dat.Join("<br>"), "window=related_[targetMob.client];size=420x300")
 
 		/// Transforms the selected mob
 		if ("transform")

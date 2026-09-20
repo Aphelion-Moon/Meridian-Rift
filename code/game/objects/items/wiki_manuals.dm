@@ -57,7 +57,7 @@
 			return
 		DIRECT_OUTPUT(user, link("[wiki_url]/[page_link]"))
 	else
-		DIRECT_OUTPUT(user, browse(WIKI_PAGE_IFRAME(name, wiki_url, page_link), "window=manual;size=[BOOK_WINDOW_BROWSE_SIZE]")) // if you change this GUARANTEE that it works.
+		display_grade_browse(user, WIKI_PAGE_IFRAME(name, wiki_url, page_link), "window=manual;size=[BOOK_WINDOW_BROWSE_SIZE]") // APHELION ADDITION // if you change this GUARANTEE that it works.
 
 /obj/item/book/manual/wiki/chemistry
 	name = "Chemistry Textbook"

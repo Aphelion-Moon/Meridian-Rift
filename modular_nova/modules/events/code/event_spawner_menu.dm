@@ -314,7 +314,8 @@
 				message_admins("[ADMIN_LOOKUPFLW(usr)] created an event character spawner for [ESI.job_name].")
 			if("export")
 				var/output = ESI.GetExport()
-				usr << browse("<code>[output]</code>", "window=export_spawner;size=500x600;border=1;can_resize=1;can_close=1;can_minimize=1")
+				// APHELION ADDITION: shared display-grade browser lifecycle.
+				display_grade_browse(usr, "<code>[output]</code>", "window=export_spawner;size=500x600;border=1;can_resize=1;can_close=1;can_minimize=1")
 				return
 			if("import")
 				var/input = input(usr, "Input the spawner savefile here.", "Import Spawner") as message|null

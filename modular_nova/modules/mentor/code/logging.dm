@@ -12,4 +12,5 @@ GLOBAL_PROTECT(mentorlog)
 
 	if(!GLOB.mentorlog.len)
 		dat += "No mentors have done anything this round!"
-	usr << browse(dat, "window=mentor_log")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, dat, "window=mentor_log")

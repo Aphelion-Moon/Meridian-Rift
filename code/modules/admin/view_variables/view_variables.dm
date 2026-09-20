@@ -347,7 +347,8 @@ datumrefresh=[refid];[HrefToken()]'>Refresh</a>
 	if(ui_scale && window_scaling)
 		size_string = "size=[475 * window_scaling]x[650 * window_scaling]"
 
-	src << browse(html, "window=variables[refid];[size_string]")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(src, html, "window=variables[refid];[size_string]")
 
 /client/proc/vv_update_display(datum/thing, span, content)
 	src << output("[span]:[content]", "variables[REF(thing)].browser:replace_span")

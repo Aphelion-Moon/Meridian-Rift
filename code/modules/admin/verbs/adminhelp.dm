@@ -89,7 +89,8 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		var/datum/admin_help/AH = I
 		dat += "[span_adminnotice("[span_adminhelp("Ticket #[AH.id]")]: <A href='byond://?_src_=holder;[HrefToken()];ahelp=[REF(AH)];ahelp_action=ticket'>[AH.initiator_key_name]: [AH.name]</A>")]<br>"
 
-	usr << browse(dat.Join(), "window=ahelp_list[state];size=600x480")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, dat.Join(), "window=ahelp_list[state];size=600x480")
 
 //Tickets statpanel
 /datum/admin_help_tickets/proc/stat_entry()
@@ -627,7 +628,8 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 			dat += "[related_ticket.TicketHref("#[related_ticket.id]")] ([related_ticket.ticket_status()]): [related_ticket.name]<br/>"
 	dat += "</html>"
 
-	usr << browse(dat.Join(), "window=ahelp[id];size=750x480")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, dat.Join(), "window=ahelp[id];size=750x480")
 
 /**
  * Renders the current status of the ticket into a displayable string

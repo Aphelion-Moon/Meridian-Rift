@@ -27,6 +27,8 @@ export default defineConfig({
   devtool: false,
   entry: {
     tgui: './packages/tgui',
+    // APHELION ADDITION: shared document grading, including legacy browse pages.
+    'display-grade': './packages/common/display-grade-bootstrap.ts',
     'tgui-panel': './packages/tgui-panel',
     'tgui-say': './packages/tgui-say',
     'tgui-chat-dark': './packages/tgui-chat-dark',

@@ -179,7 +179,8 @@ GLOBAL_DATUM_INIT(known_alts, /datum/known_alts, new)
 			[known_alts_html.Join("<br />")]
 	"}
 
-	client << browse(HTML_SKELETON_TITLE("Known Alts", html), "window=known_alts;size=700x400")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(client, HTML_SKELETON_TITLE("Known Alts", html), "window=known_alts;size=700x400")
 
 ADMIN_VERB(known_alts_panel, R_ADMIN, "Known Alts Panel", "View a panel of known alts.", ADMIN_CATEGORY_MAIN)
 	GLOB.known_alts.show_panel(user)

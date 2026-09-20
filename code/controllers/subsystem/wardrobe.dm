@@ -399,7 +399,8 @@ SUBSYSTEM_DEF(wardrobe)
 		wardrobe_info += "</ul></li>"
 	wardrobe_info += "</ol>"
 
-	usr << browse(wardrobe_info.Join(), "window=wardrobe_perf")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, wardrobe_info.Join(), "window=wardrobe_perf")
 
 /proc/cmp_wardrobe_performance(list/A, list/B)
 	var/create_delta_a = A[3] - A[2]

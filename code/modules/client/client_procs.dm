@@ -87,6 +87,10 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 			to_chat(src, span_danger("Your previous action was ignored because you've done too many in a second"))
 			return
 
+	// APHELION ADDITION: self-bound, token-checked legacy grade readiness.
+	if(href_list["display_grade_ready"])
+		display_grade_browser_ready(href_list["display_grade_ready"], href_list["display_grade_token"])
+		return
 	// Tgui Topic middleware
 	if(tgui_Topic(href_list))
 		return
@@ -301,6 +305,7 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 	else
 		prefs = new /datum/preferences(src)
 		GLOB.preferences_datums[ckey] = prefs
+	display_grade_refresh() // APHELION ADDITION: new preference constructors run before src.prefs is assigned.
 	prefs.last_ip = address //these are gonna be used for banning
 	prefs.last_id = computer_id //these are gonna be used for banning
 	// APHELION EDIT ADDITION START - import pass 2, has to run after migration
@@ -490,7 +495,8 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 			msg += "Your version: [byond_version].[byond_build]<br>"
 			msg += "Required version to remove this message: [warn_version].[warn_build] or later<br>"
 			msg += "Visit <a href=\"https://secure.byond.com/download\">BYOND's website</a> to get the latest version of BYOND.<br>"
-			src << browse(HTML_SKELETON(msg), "window=warning_popup")
+			// APHELION ADDITION: shared display-grade browser lifecycle.
+			display_grade_browse(src, HTML_SKELETON(msg), "window=warning_popup")
 		else
 			to_chat(src, span_danger("<b>Your version of byond may be getting out of date:</b>"))
 			to_chat(src, CONFIG_GET(string/client_warn_message))
@@ -622,6 +628,10 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 	return ..()
 
 /client/Destroy()
+	// APHELION ADDITION: discard drafts and all owned render resources on disconnect.
+	QDEL_NULL(display_grade_editor)
+	display_grade_clear_native()
+	display_grade_browsers.Cut()
 	if(mob)
 		var/stealth_admin = mob.client?.holder?.fakekey
 		var/announce_join = mob.client?.prefs?.read_preference(/datum/preference/toggle/broadcast_login_logout)
@@ -1314,6 +1324,7 @@ GAME_VERB(/client, toggle_fullscreen, "Toggle Fullscreen", "OOC")
 
 /// Clears the client's screen, aside from ones that opt out
 /client/proc/clear_screen()
+	display_grade_clear_native() // APHELION ADDITION: old HUD sources must release their targets.
 	for (var/object in screen)
 		if (istype(object, /atom/movable/screen))
 			var/atom/movable/screen/screen_object = object

@@ -105,6 +105,8 @@
 	if (inline_css)
 		inline_css = "<style>\n[isfile(inline_css) ? file2text(inline_css) : inline_css]\n</style>"
 		html = replacetextEx(html, "<!-- tgui:inline-css -->", inline_css)
+	// APHELION ADDITION: install before ready, with neutral editor controls.
+	html = replacetextEx(html, "<!-- aphelion:display-grade -->", client.display_grade_bootstrap(locked_by?.interface in list("DisplayGrade", "DisplayGradeProof")))
 	// Open the window
 	client << browse(html, "window=[id];[options]")
 	// Detect whether the control is a browser
@@ -168,6 +170,7 @@
 /datum/tgui_window/proc/acquire_lock(datum/tgui/ui)
 	locked = TRUE
 	locked_by = ui
+	display_grade_update() // APHELION ADDITION: pooled-window reuse, including editor neutrality.
 
 /**
  * public
@@ -180,6 +183,7 @@
 		sent_assets = list()
 	locked = FALSE
 	locked_by = null
+	display_grade_update() // APHELION ADDITION: release editor neutrality before reuse.
 
 /**
  * public
@@ -344,6 +348,9 @@
 	if(status != TGUI_WINDOW_READY)
 		status = TGUI_WINDOW_READY
 		flush_message_queue()
+	// APHELION ADDITION: reload/readiness must use the latest effective grade.
+	if(type == "ready")
+		display_grade_update()
 	// Pass message to UI that requested the lock
 	if(locked && locked_by)
 		var/prevent_default = locked_by.on_message(type, payload, href_list)

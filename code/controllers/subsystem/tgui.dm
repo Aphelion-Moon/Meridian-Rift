@@ -131,6 +131,7 @@ SUBSYSTEM_DEF(tgui)
 /datum/controller/subsystem/tgui/proc/force_close_all_windows(mob/user)
 	log_tgui(user, context = "SStgui/force_close_all_windows")
 	if(user.client)
+		user.client.display_grade_editor?.finish() // APHELION ADDITION: forced closure discards preview drafts.
 		user.client.tgui_windows = list()
 		var/window_limit = user.client.prefs.read_preference(/datum/preference/toggle/tgui_unlimited_windows) ? TGUI_WINDOW_UNLIMITED_LIMIT : TGUI_WINDOW_HARD_LIMIT
 		for(var/i in 1 to window_limit)

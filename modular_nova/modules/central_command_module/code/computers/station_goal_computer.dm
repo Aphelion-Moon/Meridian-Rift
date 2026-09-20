@@ -50,7 +50,8 @@
 	var/selected_goal = href_list["selected_goal"]
 
 	if(href_list["close"])
-		usr << browse(null, "window=station_goals")
+		// APHELION ADDITION: shared display-grade browser lifecycle.
+		display_grade_browse(usr, null, "window=station_goals")
 		return
 
 	for(var/datum/station_goal/iterating_goal as anything in station_goal_cache)

@@ -394,7 +394,8 @@
 		[banhtml.Join("")]
 	</body>
 	"}
-	usr << browse(html,"window=stickybans;size=700x400")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, html,"window=stickybans;size=700x400")
 
 /proc/sticky_banned_ckeys()
 	if (SSdbcore.Connect() || length(SSstickyban.dbcache))

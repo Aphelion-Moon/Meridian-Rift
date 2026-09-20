@@ -381,7 +381,8 @@ GLOBAL_LIST_INIT(permission_action_types, list(
 
 	if(QDELETED(usr))
 		return
-	usr << browse("<!DOCTYPE html><html>[jointext(output, "")]</html>","window=editrights;size=1000x650")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, "<!DOCTYPE html><html>[jointext(output, "")]</html>","window=editrights;size=1000x650")
 
 /datum/admins/proc/edit_rights_topic(list/href_list)
 	if(!check_rights(R_PERMISSIONS))

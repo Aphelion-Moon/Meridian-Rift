@@ -336,4 +336,5 @@
 	if(owner.window_scaling && ui_scale)
 		window_size = "size=[600 * owner.window_scaling]x[400 * owner.window_scaling]"
 
-	usr << browse(dat, "window=players;[window_size]")
+	// APHELION ADDITION: shared display-grade browser lifecycle.
+	display_grade_browse(usr, dat, "window=players;[window_size]")

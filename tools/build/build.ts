@@ -415,6 +415,7 @@ export const TguiTarget = new Juke.Target({
   outputs: [
     'tgui/public/tgui.bundle.css',
     'tgui/public/tgui.bundle.js',
+    'tgui/public/display-grade.bundle.js', // APHELION ADDITION: legacy/TGUI grade bootstrap.
     'tgui/public/tgui-panel.bundle.css',
     'tgui/public/tgui-panel.bundle.js',
     'tgui/public/tgui-say.bundle.css',

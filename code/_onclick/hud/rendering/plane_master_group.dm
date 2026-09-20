@@ -170,6 +170,7 @@
 	if(!SSmapping.max_plane_offset)
 		return
 
+	display_grade_before_offset() // APHELION ADDITION: restore targets before relays change.
 	var/old_offset = active_offset
 	active_offset = new_offset
 
@@ -236,6 +237,8 @@
 			continue
 
 		animate(plane, transform = offsets[visual_offset + offset_offset], 0.05 SECONDS, easing = LINEAR_EASING)
+
+	display_grade_after_offset() // APHELION ADDITION: attach only to the new displayed endpoint.
 
 /// Holds plane masters for popups, like camera windows
 /// Note: We do not scale this plane, even though we could

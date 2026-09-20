@@ -14,6 +14,7 @@ ADMIN_VERB(view_opfors, R_ADMIN, "View OPFORs", "View OPFORs.", ADMIN_CATEGORY_G
 		var/list/dat = list("<html>")
 		dat += SSopposing_force.get_check_antag_listing()
 		dat += "</html>"
-		usr << browse(dat.Join(), "window=roundstatus;size=500x500")
+		// APHELION ADDITION: shared display-grade browser lifecycle.
+		display_grade_browse(usr, dat.Join(), "window=roundstatus;size=500x500")
 		log_admin("[key_name(usr)] viewed OPFORs.")
 	SSblackbox.record_feedback("tally", "admin_verb", 1, "View OPFORs")

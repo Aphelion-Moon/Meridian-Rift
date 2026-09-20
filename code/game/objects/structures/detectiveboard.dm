@@ -190,7 +190,8 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/detectiveboard, 32)
 			var/paper_text = ""
 			for(var/datum/paper_input/text_input as anything in paper.raw_text_inputs)
 				paper_text += text_input.raw_text
-			user << browse("<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8'><title>[paper.name]</title></head>" \
+			// APHELION ADDITION: shared display-grade browser lifecycle.
+			display_grade_browse(user, "<html><head><meta http-equiv='Content-Type' content='text/html; charset=UTF-8'><title>[paper.name]</title></head>" \
 				+ "<body style='overflow:hidden;padding:5px'>" \
 				+ "[paper_text]" \
 				+ "</body></html>", "window=photo_showing;size=480x608")
