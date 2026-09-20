@@ -27,7 +27,7 @@
 	if(!length(scream_sounds))
 		return TRUE
 
-	playsound(user, pick(scream_sounds), 50, TRUE)
+	user.playsound_local(user, pick(scream_sounds), 50, TRUE)
 	COOLDOWN_START(src, scream_preview_cooldown, 2 SECONDS)
 	return TRUE
 
@@ -48,6 +48,6 @@
 	if(!length(laugh_sounds))
 		return TRUE
 
-	playsound(user, pick(laugh_sounds), 50, TRUE)
+	user.playsound_local(user, pick(laugh_sounds), 50, TRUE)
 	COOLDOWN_START(src, laugh_preview_cooldown, 2 SECONDS)
 	return TRUE

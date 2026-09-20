@@ -802,6 +802,10 @@
   // The same comfortable box the console skins use, so a 12px label is not
   // sitting in a 20px line box with its icon jammed against the edge.
   .Button:not(.Button--compact) {
+    // Keep larger-font buttons on upstream's em-based scale while giving the
+    // default text line the same height as the Classic control box.
+    --button-height: max(24px, 1.667em);
+
     min-height: 24px;
   }
 

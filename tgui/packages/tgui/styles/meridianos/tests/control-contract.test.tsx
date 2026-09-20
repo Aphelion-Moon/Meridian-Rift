@@ -18,6 +18,7 @@ import {
   MERIDIAN_THEME_IDS,
   resolveMeridianTheme,
 } from '../../../constants/theme';
+import { PriorityButton } from '../../../interfaces/PreferencesMenu/CharacterPreferences/JobsPage';
 import { LOADOUT_CATEGORY_TABS_CLASS } from '../../../interfaces/PreferencesMenu/CharacterPreferences/loadout';
 /** The stylesheets under test live one level up from this directory. */
 const styleRoot = join(import.meta.dir, '..');
@@ -109,6 +110,107 @@ afterEach(cleanup);
 afterAll(() => productionStyle.remove());
 
 describe('MeridianOS shared control geometry', () => {
+  it('centers text-only Classic buttons without changing their text layout', () => {
+    const view = render(
+      <div className="theme-meridian_classic">
+        <Button aria-label="Classic text action" fluid textAlign="center">
+          Transfer
+        </Button>
+        <Button aria-label="Classic compact action" compact>
+          Compact
+        </Button>
+      </div>,
+    );
+
+    const textButton = view.getByLabelText('Classic text action');
+    const textContent = textButton.querySelector(
+      '.Button__content',
+    ) as HTMLElement;
+    const compactContent = view
+      .getByLabelText('Classic compact action')
+      .querySelector('.Button__content') as HTMLElement;
+
+    expect(getComputedStyle(textButton).minHeight).toBe('24px');
+    // Happy DOM verifies the compiled cascade but does not resolve max() or
+    // perform pixel layout, so preserve the token and text layout separately.
+    expect(
+      getComputedStyle(textButton).getPropertyValue('--button-height').trim(),
+    ).toBe('max(24px, 1.667em)');
+    expect(getComputedStyle(textContent).display).toBe('block');
+    expect(getComputedStyle(textContent).textAlign).toBe('center');
+    expect(
+      getComputedStyle(compactContent)
+        .getPropertyValue('--button-height')
+        .trim(),
+    ).not.toBe('max(24px, 1.667em)');
+  });
+
+  it('preserves specialized Classic and legacy button layouts', () => {
+    const view = render(
+      <>
+        <div className="theme-meridian_classic">
+          <Button aria-label="Classic icon action" icon="eject">
+            Eject
+          </Button>
+          <Button aria-label="Classic ellipsis action" ellipsis fluid>
+            Long action label
+          </Button>
+          <Button
+            aria-label="Classic species action"
+            className="PreferencesMenu__SpeciesButton"
+          >
+            <span>Species preview</span>
+          </Button>
+          <PriorityButton
+            color="green"
+            enabled
+            name="Enabled priority"
+            onClick={() => undefined}
+          />
+          <PriorityButton
+            color="green"
+            enabled={false}
+            name="Empty priority"
+            onClick={() => undefined}
+          />
+        </div>
+        <div className="theme-nanotrasen">
+          <Button aria-label="Legacy text action">Legacy</Button>
+        </div>
+      </>,
+    );
+
+    const content = (label: string) =>
+      view
+        .getByLabelText(label)
+        .querySelector('.Button__content') as HTMLElement;
+    const enabledPriority = view.getByLabelText('Enabled priority');
+    const emptyPriority = view.getByLabelText('Empty priority');
+    const legacyButton = view.getByLabelText('Legacy text action');
+
+    expect(getComputedStyle(content('Classic icon action')).display).toBe(
+      'flex',
+    );
+    expect(getComputedStyle(content('Classic ellipsis action')).display).toBe(
+      'flex',
+    );
+    expect(getComputedStyle(content('Classic species action')).display).toBe(
+      'grid',
+    );
+    for (const priority of [enabledPriority, emptyPriority]) {
+      expect(getComputedStyle(priority).lineHeight).toBe('16px');
+      expect(getComputedStyle(priority).minHeight).toBe('0');
+      expect(
+        getComputedStyle(priority.querySelector('.Button__content')!).minHeight,
+      ).not.toBe('24px');
+    }
+    expect(
+      getComputedStyle(legacyButton)
+        .getPropertyValue('--button-height')
+        .trim(),
+    ).not.toBe('max(24px, 1.667em)');
+  });
+
   it('keeps dropdown arrows on the Stack control row', () => {
     for (const theme of MERIDIAN_THEME_IDS) {
       const view = render(
