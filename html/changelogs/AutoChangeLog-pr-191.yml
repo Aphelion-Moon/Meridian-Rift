@@ -1,4 +1,0 @@
-author: "MacaroniCritter"
-delete-after: True
-changes:
-  - bugfix: "fixed a single wire missing from a solar array console on Ocean Pubby"

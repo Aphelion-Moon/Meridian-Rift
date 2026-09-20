@@ -214,3 +214,11 @@
       the gear icon in the top right of the lobby or any tgui window
   - admin: adds an admin panel for changing the title screen which can be accessed
       using the picture icon in the top right of the lobby, or using the new verb
+2026-09-20:
+  Happyowl93:
+  - code_imp: Import prefs now switches hemophages to quirk automatically.
+  MacaroniCritter:
+  - bugfix: fixed a single wire missing from a solar array console on Ocean Pubby
+  vinylspiders:
+  - bugfix: fixes the ChemMaster 3000 buttons being slightly unaligned by a few pixels
+  - bugfix: fixes lobby scream/laugh preview being audible to other players

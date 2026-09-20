@@ -1,5 +1,0 @@
-author: "vinylspiders"
-delete-after: True
-changes:
-  - bugfix: "fixes the ChemMaster 3000 buttons being slightly unaligned by a few pixels"
-  - bugfix: "fixes lobby scream/laugh preview being audible to other players"
