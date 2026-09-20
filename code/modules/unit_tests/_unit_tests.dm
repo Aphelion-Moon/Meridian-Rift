@@ -196,6 +196,7 @@
 #include "geyser.dm"
 #include "gloves_and_shoes_armor.dm"
 #include "greyscale_config.dm"
+#include "grid_inventory.dm"
 #include "hallucination_icons.dm"
 #include "held_slowdown.dm"
 #include "heretic_knowledge.dm"

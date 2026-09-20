@@ -25,6 +25,8 @@
 
 	///The type of storage interface this datum uses.
 	var/datum/storage_interface/storage_type = /datum/storage_interface
+	/// Interfaces which own display proxies can refresh in place without exposing world items.
+	var/separate_item_displays = FALSE
 	/// Associated list that keeps track of all storage UI datums per person.
 	VAR_PRIVATE/list/datum/storage_interface/storage_interfaces
 
@@ -434,12 +436,7 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 				user.balloon_alert(user, "no room!")
 			return FALSE
 
-	if(real_location.contents.len >= max_slots)
-		if(messages && user && !silent_for_user)
-			user.balloon_alert(user, "no room!")
-		return FALSE
-
-	if(to_insert.w_class + get_total_weight() > max_total_storage)
+	if(!has_capacity(to_insert))
 		if(messages && user && !silent_for_user)
 			user.balloon_alert(user, "no room!")
 		return FALSE
@@ -478,6 +475,10 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 			return FALSE
 
 	return TRUE
+
+/// Capacity only; item restrictions and access remain in can_insert().
+/datum/storage/proc/has_capacity(obj/item/to_insert)
+	return real_location.contents.len < max_slots && to_insert.w_class + get_total_weight() <= max_total_storage
 
 /// Returns a count of how many items held due to exception_hold we have
 /datum/storage/proc/get_exception_count()
@@ -1084,7 +1085,8 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 				to_show.active_storage?.hide_contents(to_show)
 				return FALSE
 
-	to_show.active_storage?.hide_contents(to_show)
+	if(to_show.active_storage != src || !separate_item_displays)
+		to_show.active_storage?.hide_contents(to_show)
 
 	to_show.active_storage = src
 
@@ -1106,8 +1108,9 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 	// Don't add to screen_objects as that one gets its contents actually deleted
 	LAZYOR(to_show.hud_used.screen_groups[HUD_GROUP_STORAGE], storage_interfaces[to_show].list_ui_elements())
 	to_show.client.screen |= storage_interfaces[to_show].list_ui_elements()
-	LAZYOR(to_show.hud_used.screen_groups[HUD_GROUP_STORAGE], real_location.contents)
-	to_show.client.screen |= real_location.contents
+	if(!separate_item_displays)
+		LAZYOR(to_show.hud_used.screen_groups[HUD_GROUP_STORAGE], real_location.contents)
+		to_show.client.screen |= real_location.contents
 
 	return TRUE
 
