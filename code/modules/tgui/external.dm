@@ -103,9 +103,8 @@
 	if(!ui || ui.status != UI_INTERACTIVE)
 		return TRUE
 	if(action == "change_ui_state")
-		var/mob/living/user = ui.user
 		//write_preferences will make sure it's valid for href exploits.
-		user.client.prefs.write_preference(GLOB.preference_entries[layout_prefs_used], params["new_state"])
+		ui.uplink_ui_client().prefs.write_preference(GLOB.preference_entries[layout_prefs_used], params["new_state"])
 
 /**
  * public

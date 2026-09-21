@@ -86,6 +86,8 @@
 		return UI_INTERACTIVE
 	if(lacks_power())
 		return UI_DISABLED
+	if(shell_session?.brain)
+		return shell_session.services_available() ? UI_INTERACTIVE : UI_CLOSE
 	return ..()
 
 /mob/living/silicon/robot/shared_ui_interaction(src_object)

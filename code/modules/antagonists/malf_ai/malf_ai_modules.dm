@@ -728,9 +728,10 @@ GLOBAL_LIST_INIT(malf_modules, subtypesof(/datum/ai_module/malf))
 				success = FALSE
 		var/image/I = action.turfOverlays[n]
 		I.loc = T
-		client.images += I
+		var/mob/viewer = uplink_player()
+		viewer.client?.images += I
 		I.icon_state = "[success ? "green" : "red"]Overlay" //greenOverlay and redOverlay for success and failure respectively
-		addtimer(CALLBACK(src, PROC_REF(remove_transformer_image), client, I, T), 3 SECONDS)
+		addtimer(CALLBACK(src, PROC_REF(remove_transformer_image), viewer.client, I, T), 3 SECONDS)
 	if(!success)
 		to_chat(src, span_warning("[alert_msg]"))
 	return success

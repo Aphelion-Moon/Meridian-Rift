@@ -397,6 +397,15 @@ GLOBAL_LIST_EMPTY(radial_menus)
 	and list values are movables/icons/images used for element icons
 */
 /proc/show_radial_menu(mob/user, atom/anchor, list/choices, uniqueid, radius, datum/callback/custom_check, require_near = FALSE, tooltips = FALSE, no_repeat_close = FALSE, radial_slice_icon = "radial_slice", autopick_single_option = TRUE, button_animation_flags = BUTTON_SLIDE_IN, click_on_hover = FALSE, user_space = FALSE, check_delay = DEFAULT_CHECK_DELAY, display_close_button = TRUE, radial_menu_offset = list(0, 0))
+	var/datum/ai_shell_session/input_session
+	var/embodied_input = FALSE
+	if(isAI(user))
+		var/mob/living/silicon/ai/core = user
+		if(core.shell_session?.brain)
+			input_session = core.shell_session
+			embodied_input = TRUE
+			user = core.uplink_player()
+
 	if(!user || !anchor || !length(choices))
 		return
 
@@ -443,6 +452,8 @@ GLOBAL_LIST_EMPTY(radial_menus)
 	if(istype(custom_check))
 		if(!custom_check.Invoke())
 			return
+	if(embodied_input && !input_session?.matches())
+		return null
 	return answer
 
 /// Can be provided to choices in radial menus if you want to provide more information

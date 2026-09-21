@@ -1,0 +1,6 @@
+author: "Aphelion"
+delete-after: true
+changes:
+  - rscadd: "Added configurable personal AI Uplink issuance, preview, one-time loadout selection, and delayed replacement."
+  - rscadd: "Uplink shells can use an integrated engineering toolkit, AI services, and AI View with resume."
+  - bugfix: "AI shell returns now distinguish cyborgs and carbon Uplinks and isolate control-session cleanup."

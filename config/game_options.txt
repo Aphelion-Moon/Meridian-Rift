@@ -627,3 +627,8 @@ SPY_HARD_REWARD_TC_THRESHOLD 15
 
 ## Minimum time before a heretic can ascend, in minutes
 # MINIMUM_ASCENSION_TIME 3
+
+## Personal round-start AI Uplink shells. Disabled until explicitly enabled.
+# ENABLE_PERSONAL_UPLINK_SHELLS
+## Replacement delay in deciseconds; cancellation retains the original deadline.
+# UPLINK_REPLACEMENT_DELAY 3000

@@ -90,8 +90,11 @@
 				var/list/access = human_user.wear_id.GetAccess()
 				if(ACCESS_ROBOTICS in access)
 					consent_override = TRUE
-		if(mind)
-			consent = tgui_alert(src, "[user] is attempting to open your access panel, unlock the cover?", "AI Access Panel", list("Yes", "No"))
+		if(mind || shell_session?.matches())
+			var/mob/consenting_player = uplink_player()
+			consent = tgui_alert(consenting_player, "[user] is attempting to open your access panel, unlock the cover?", "AI Access Panel", list("Yes", "No"))
+			if(consenting_player != uplink_player())
+				return ITEM_INTERACT_SUCCESS
 			if(consent == "No" && !consent_override && !emagged)
 				to_chat(user, span_notice("[src] refuses to unlock its access panel."))
 				return ITEM_INTERACT_SUCCESS

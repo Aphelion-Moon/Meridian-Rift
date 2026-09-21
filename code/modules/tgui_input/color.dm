@@ -17,15 +17,27 @@
 			user = client.mob
 		else
 			return
+	var/datum/ai_shell_session/input_session
+	var/embodied_input = FALSE
+	if(isAI(user))
+		var/mob/living/silicon/ai/core = user
+		input_session = core.shell_session
+		embodied_input = !!input_session
+		user = core.uplink_player()
+	if(!user?.client)
+		return null
 	// Client does NOT have tgui_input on: Returns regular input
 	if(!user.client.prefs.read_preference(/datum/preference/toggle/tgui_input))
-		return input(user, message, title, default) as color|null
+		. = input(user, message, title, default) as color|null
+		return embodied_input && !input_session?.matches() ? null : .
 	var/datum/tgui_color_picker/picker = new(user, message, title, default, timeout, autofocus)
 	picker.ui_interact(user)
 	picker.wait()
 	if (picker)
 		. = picker.choice
 		qdel(picker)
+	if(embodied_input && !input_session?.matches())
+		return null
 
 /**
  * # tgui_color_picker

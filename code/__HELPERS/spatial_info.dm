@@ -216,6 +216,11 @@
 	// Returns a list of mobs who can hear any of the radios given in @radios
 	for(var/obj/item/radio/radio as anything in radios)
 		. |= get_hearers_in_LOS(radio.canhear_range, radio)
+		var/mob/living/silicon/ai/core = radio.loc
+		if(isAI(core) && core.radio == radio && core.shell_session?.brain)
+			. -= core
+			if(core.shell_session.services_available())
+				. |= core.uplink_player()
 
 /**
  * Returns a list of mobs who can hear any of the radios given in the given radio list, indexed by the radio.
@@ -226,6 +231,11 @@
 	// Returns a list of mobs who can hear any of the radios given in @radios, indexed by the radio. More expensive than get_hearers_in_radio_ranges()
 	for(var/obj/item/radio/radio as anything in radios)
 		var/list/possible_hearers = get_hearers_in_LOS(radio.canhear_range, radio)
+		var/mob/living/silicon/ai/core = radio.loc
+		if(isAI(core) && core.radio == radio && core.shell_session?.brain)
+			possible_hearers -= core
+			if(core.shell_session.services_available())
+				possible_hearers |= core.uplink_player()
 		if(length(possible_hearers))
 			.[radio] = possible_hearers
 

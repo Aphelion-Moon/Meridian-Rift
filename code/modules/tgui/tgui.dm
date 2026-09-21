@@ -60,6 +60,10 @@
 		"new [interface]",
 		src_object = src_object)
 	src.user = user
+	if(isAI(user))
+		var/mob/living/silicon/ai/core = user
+		if(core.shell_session?.brain && core.shell_session.matches())
+			uplink_session = core.shell_session
 	src.src_object = src_object
 	src.window_key = "[REF(src_object)]-main"
 	src.interface = interface
@@ -83,14 +87,14 @@
  * return bool - TRUE if a new pooled window is opened, FALSE in all other situations including if a new pooled window didn't open because one already exists.
  */
 /datum/tgui/proc/open()
-	if(!user.client)
+	if(!uplink_ui_client())
 		return FALSE
 	if(window)
 		return FALSE
 	process_status()
 	if(status < UI_UPDATE)
 		return FALSE
-	window = SStgui.request_pooled_window(user)
+	window = SStgui.request_pooled_window(uplink_ui_viewer())
 	if(!window)
 		return FALSE
 	opened_at = world.time
@@ -121,7 +125,7 @@
 	for(var/datum/asset/asset in src_object.ui_assets(user))
 		flush_queue |= window.send_asset(asset)
 	if (flush_queue)
-		user.client.browse_queue_flush()
+		uplink_ui_client().browse_queue_flush()
 
 /**
  * public
@@ -145,7 +149,7 @@
 		src_object.ui_close(user)
 		SStgui.on_close(src)
 
-		if(user.client)
+		if(uplink_ui_client())
 			terminate_byondui_elements()
 
 	state = null
@@ -176,7 +180,7 @@
 	set waitfor = FALSE
 
 	for(var/byondui_element in open_byondui_elements)
-		winset(user.client, byondui_element, list("parent" = ""))
+		winset(uplink_ui_client(), byondui_element, list("parent" = ""))
 
 /**
  * public
@@ -222,7 +226,7 @@
  * optional always_instant bool Send and update regardless of the cooldown.
  */
 /datum/tgui/proc/send_full_update(custom_data, force, always_instant)
-	if(!user.client || !initialized || closing)
+	if(!uplink_ui_client() || !initialized || closing)
 		return
 	if(!always_instant && !COOLDOWN_FINISHED(src, refresh_cooldown))
 		refreshing = TRUE
@@ -246,7 +250,7 @@
  * optional force bool Send an update even if UI is not interactive.
  */
 /datum/tgui/proc/send_update(custom_data, force)
-	if(!user.client || !initialized || closing)
+	if(!uplink_ui_client() || !initialized || closing)
 		return
 	var/should_update_data = force || status >= UI_UPDATE
 	window.send_message("update", get_payload(
@@ -274,19 +278,19 @@
 		"status" = status,
 		"interface" = list(
 			"name" = interface,
-			"layout" = user.client.prefs.read_preference(src_object.layout_prefs_used),
+			"layout" = uplink_ui_client().prefs.read_preference(src_object.layout_prefs_used),
 		),
 		"refreshing" = refreshing,
 		"window" = list(
 			"key" = window_key,
 			"size" = window_size,
-			"locked" = user.client.prefs.read_preference(/datum/preference/toggle/tgui_lock),
-			"scale" = user.client.prefs.read_preference(/datum/preference/toggle/ui_scale),
+			"locked" = uplink_ui_client().prefs.read_preference(/datum/preference/toggle/tgui_lock),
+			"scale" = uplink_ui_client().prefs.read_preference(/datum/preference/toggle/ui_scale),
 		),
 		"client" = list(
-			"ckey" = user.client.ckey,
-			"address" = user.client.address,
-			"computer_id" = user.client.computer_id,
+			"ckey" = uplink_ui_client().ckey,
+			"address" = uplink_ui_client().address,
+			"computer_id" = uplink_ui_client().computer_id,
 		),
 		"user" = list(
 			"name" = "[user]",
@@ -358,6 +362,8 @@
 /datum/tgui/proc/process_status()
 	var/prev_status = status
 	status = src_object.ui_status(user, state)
+	if(uplink_session && !uplink_session.services_available())
+		status = UI_CLOSE
 	return prev_status != status
 
 /**
@@ -412,6 +418,15 @@
 /// Wrapper for behavior to potentially wait until the next tick if the server is overloaded
 /datum/tgui/proc/on_act_message(act_type, payload, state)
 	if(QDELETED(src) || QDELETED(src_object))
+		return
+	process_status()
+	if(status != UI_INTERACTIVE)
+		return
+	if(uplink_session)
+		if(usr != uplink_ui_viewer())
+			return
+		if(world.push_usr(user, CALLBACK(src_object, TYPE_PROC_REF(/datum, ui_act), act_type, payload, src, state)))
+			SStgui.update_uis(src_object)
 		return
 	if(src_object.ui_act(act_type, payload, src, state))
 		SStgui.update_uis(src_object)

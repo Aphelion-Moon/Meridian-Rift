@@ -159,6 +159,8 @@
 	return ..()
 
 /mob/living/silicon/ai/Destroy()
+	QDEL_NULL(uplink_resume_action)
+	uplink_resume = null
 	GLOB.ai_list -= src
 	GLOB.shuttle_caller_list -= src
 	SSshuttle.autoEvac()
@@ -327,6 +329,8 @@ GAME_VERB_DESC(/mob/living/silicon/ai, pick_status_display, "Set AI Status Displ
 			C.post_status("shuttle")
 
 /mob/living/silicon/ai/can_interact_with(atom/A, treat_mob_as_adjacent)
+	if(shell_session?.brain)
+		return shell_session.local_target(A)
 	. = ..()
 	if (.)
 		return
@@ -522,6 +526,9 @@ GAME_VERB(/mob/living/silicon/ai, toggle_anchor, "Toggle Floor Bolts", "AI Comma
 
 
 /mob/living/silicon/ai/proc/switchCamera(obj/machinery/camera/C)
+	if(shell_session?.brain)
+		to_chat(uplink_player(), span_notice("Enter AI View to operate remote cameras."))
+		return FALSE
 	if(QDELETED(C))
 		return FALSE
 
@@ -544,6 +551,10 @@ GAME_VERB_PROC_DESC(/mob/living/silicon/ai, botcall, "Access Robot Control", "Wi
 
 /mob/living/silicon/ai/proc/set_waypoint(atom/A)
 	var/turf/turf_check = get_turf(A)
+	if(shell_session?.brain)
+		if(shell_session.local_target(A))
+			call_bot(turf_check)
+		return
 		//The target must be in view of a camera or near the core.
 	if(turf_check in range(get_turf(src)))
 		call_bot(turf_check)
@@ -677,13 +688,13 @@ GAME_VERB_PROC_DESC(/mob/living/silicon/ai, ai_hologram_change, "Change Hologram
 			if(CHARACTER_TYPE_SELF)
 				var/confirmation = tgui_alert(usr,
 					"WARNING: Your AI hologram will take the appearance of your currently selected character \
-					([usr.client.prefs?.read_preference(/datum/preference/name/real_name)]). \
+					([uplink_player().client.prefs?.read_preference(/datum/preference/name/real_name)]). \
 					Are you sure you want to proceed?", "Customize",
 					list("Yes","No")
 				)
 				if(confirmation == "Yes")
 					var/mob/living/carbon/human/dummy/ai_dummy = new()
-					var/mutable_appearance/dummy_appearance = usr.client.prefs.render_new_preview_appearance(ai_dummy)
+					var/mutable_appearance/dummy_appearance = uplink_player().client.prefs.render_new_preview_appearance(ai_dummy)
 					qdel(ai_dummy)
 					if(dummy_appearance)
 						hologram_appearance = dummy_appearance
@@ -832,6 +843,8 @@ GAME_VERB_PROC_DESC(/mob/living/silicon/ai, set_automatic_say_channel, "Set Auto
 	return can_see(target) && ..() //stop AIs from leaving windows open and using then after they lose vision
 
 /mob/living/silicon/ai/proc/can_see(atom/A)
+	if(shell_session?.brain)
+		return shell_session.local_target(A)
 	if(isturf(loc)) //AI in core, check if on cameras
 		//get_turf_pixel() is because APCs in maint aren't actually in view of the inner camera
 		//apc_override is needed here because AIs use their own APC when depowered
@@ -977,7 +990,8 @@ GAME_VERB_PROC_DESC(/mob/living/silicon/ai, set_automatic_say_channel, "Set Auto
 	if(doom_n_boom && (is_type_in_list (apcarea, doom_n_boom.discount_areas)) && !(is_type_in_list (apcarea, doom_n_boom.hacked_command_areas)))
 		doom_n_boom.hacked_command_areas += apcarea
 		doom_n_boom.cost = max(50, 130 - (length(doom_n_boom.hacked_command_areas) * 20))
-		var/datum/antagonist/malf_ai/malf_ai_datum = mind.has_antag_datum(/datum/antagonist/malf_ai)
+		var/datum/mind/ai_identity = shell_session?.identity || mind
+		var/datum/antagonist/malf_ai/malf_ai_datum = ai_identity?.has_antag_datum(/datum/antagonist/malf_ai)
 		if(malf_ai_datum)
 			malf_ai_datum.update_static_data_for_all_viewers()
 		else //combat software AIs use a different UI
@@ -1026,11 +1040,7 @@ GAME_VERB_DESC(/mob/living/silicon/ai, deploy_to_shell, "Deploy to Shell", "Tran
 		return
 
 	else if(mind)
-		RegisterSignal(target, COMSIG_LIVING_DEATH, PROC_REF(disconnect_shell))
-		deployed_shell = target
-		target.deploy_init(src)
-		mind.transfer_to(target)
-		ADD_TRAIT(target, TRAIT_LOUD_BINARY, REF(src))
+		connect_shell(target)
 	diag_hud_set_deployed()
 
 /datum/action/innate/deploy_shell
@@ -1065,11 +1075,11 @@ GAME_VERB_DESC(/mob/living/silicon/ai, deploy_to_shell, "Deploy to Shell", "Tran
 	else
 		Remove(owner) //If the last shell is blown, destroy it.
 
-/mob/living/silicon/ai/proc/disconnect_shell()
+/mob/living/silicon/ai/proc/disconnect_shell(datum/source)
 	SIGNAL_HANDLER
-	if(deployed_shell) //Forcibly call back AI in event of things such as damage, EMP or power loss.
-		to_chat(src, span_danger("Your remote connection has been reset!"))
-		deployed_shell.undeploy()
+	if(source && source != deployed_shell)
+		return
+	shell_session?.finish("Remote connection reset")
 	diag_hud_set_deployed()
 
 /mob/living/silicon/ai/resist()
@@ -1079,6 +1089,8 @@ GAME_VERB_DESC(/mob/living/silicon/ai, deploy_to_shell, "Deploy to Shell", "Tran
 	SScameras.update_eye_chunk(moved_eye)
 
 /mob/living/silicon/ai/forceMove(atom/destination)
+	if(shell_session && !isturf(destination))
+		disconnect_shell()
 	. = ..()
 	if(.)
 		end_multicam()
@@ -1143,6 +1155,8 @@ GAME_VERB_DESC(/mob/living/silicon/ai, deploy_to_shell, "Deploy to Shell", "Tran
 	return static_image
 
 /mob/living/silicon/ai/proc/set_control_disabled(control_disabled)
+	if(control_disabled)
+		disconnect_shell()
 	SEND_SIGNAL(src, COMSIG_SILICON_AI_SET_CONTROL_DISABLED, control_disabled)
 	src.control_disabled = control_disabled
 

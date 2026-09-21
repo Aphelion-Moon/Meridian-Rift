@@ -211,6 +211,17 @@
 
 	var/mob/living/carbon/human/patient = occupant
 	var/original_name = patient.dna.real_name
+	// Personal chassis customization is appearance-only, including while injured or depleted.
+	if(istype(patient, /mob/living/carbon/human/uplink))
+		var/mob/living/carbon/human/uplink/body = patient
+		if(body.client?.prefs)
+			var/datum/uplink_blueprint/appearance = new(body.client.prefs, body.real_name, FALSE)
+			appearance.apply_appearance(body)
+			qdel(appearance)
+			log_game("UPLINK live customization [key_name(body)] at [loc_name(src)]; replacement blueprint unchanged")
+		playsound(src, 'sound/machines/microwave/microwave-end.ogg', 100, FALSE)
+		open_machine()
+		return
 
 	// Check for AI-brain upload. If it was the brain before, then we should replace "new me"s brain with cybernetic one.
 	var/obj/item/organ/brain/cybernetic/ai/old_ai_brain = patient.get_organ_by_type(/obj/item/organ/brain/cybernetic/ai)

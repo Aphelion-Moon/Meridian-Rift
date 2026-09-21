@@ -28,7 +28,7 @@
 
 	// AI in carbon body should still have its real name
 	var/obj/item/organ/brain/cybernetic/ai/brain = get_organ_slot(ORGAN_SLOT_BRAIN)
-	if(istype(brain))
+	if(istype(brain) && brain.mainframe)
 		namepart = brain.mainframe.name
 		designation = brain.mainframe.job
 	for(var/mob/hearing_mob in GLOB.player_list)

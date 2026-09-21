@@ -50,8 +50,9 @@
 	return ..()
 
 /datum/antagonist/malf_ai/on_removal()
-	if(owner.current && isAI(owner.current))
-		var/mob/living/silicon/ai/malf_ai = owner.current
+	var/mob/living/silicon/ai/malf_ai = isAI(owner.current) ? owner.current : owner.current?.ai_shell_session?.core
+	if(malf_ai)
+		malf_ai.hack_software = FALSE
 		malf_ai.laws.clear_zeroth_law(force = TRUE)
 		malf_ai.remove_malf_abilities()
 		QDEL_NULL(malf_ai.malf_picker)
@@ -124,7 +125,7 @@
 /datum/antagonist/malf_ai/remove_innate_effects(mob/living/mob_override)
 	var/mob/living/silicon/ai/datum_owner = mob_override || owner.current
 
-	if(istype(datum_owner))
+	if(istype(datum_owner) && !datum_owner.shell_session)
 		datum_owner.hack_software = FALSE
 
 	for(var/datum/component/codeword_hearing/component as anything in datum_owner.GetComponents(/datum/component/codeword_hearing))
@@ -164,9 +165,11 @@
 
 
 /datum/antagonist/malf_ai/ui_data(mob/living/silicon/ai/malf_ai)
+	if(!isAI(malf_ai))
+		malf_ai = malf_ai.ai_shell_session?.core
 	var/list/data = list()
-	data["processingTime"] = malf_ai.malf_picker.processing_time
-	data["hackedAPCs"] = malf_ai.hacked_apcs.len
+	data["processingTime"] = malf_ai?.malf_picker?.processing_time
+	data["hackedAPCs"] = length(malf_ai?.hacked_apcs)
 	return data
 
 /datum/antagonist/malf_ai/ui_static_data(mob/living/silicon/ai/malf_ai)

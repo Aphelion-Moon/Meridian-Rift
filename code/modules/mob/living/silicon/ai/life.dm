@@ -59,7 +59,10 @@
 	diag_hud_set_health()
 
 	if(old_health > health || old_stat != stat) // only disconnect if we lose health or change stat
-		disconnect_shell()
+		if(shell_session?.brain && stat != DEAD)
+			to_chat(uplink_player(), span_warning("Core damage detected. Uplink control remains online."))
+		else
+			disconnect_shell()
 	SEND_SIGNAL(src, COMSIG_LIVING_HEALTH_UPDATE)
 
 /mob/living/silicon/ai/update_stat()
@@ -152,7 +155,10 @@
 		update_sight()
 
 /mob/living/silicon/ai/proc/ai_lose_power()
-	disconnect_shell()
+	if(shell_session?.brain)
+		to_chat(uplink_player(), span_warning("Core mains power lost. Backup supports Uplink control; network services are restricted."))
+	else
+		disconnect_shell()
 	setAiRestorePowerRoutine(POWER_RESTORATION_START)
 	adjust_temp_blindness(2 SECONDS)
 	update_sight()

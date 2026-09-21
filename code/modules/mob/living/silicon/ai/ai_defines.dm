@@ -124,8 +124,8 @@
 	VAR_FINAL/obj/controlled_equipment
 	/// AI core that this AI is linked to. See [proc/create_core_link] [proc/resolve_core_link] [proc/break_core_link]
 	VAR_FINAL/obj/structure/ai_core/linked_core
-	/// Robot that this AI is currently using
-	VAR_FINAL/mob/living/silicon/robot/deployed_shell
+	/// Active endpoint; connection operations dispatch through shell_session, never robot-only procs.
+	VAR_FINAL/mob/living/deployed_shell
 	/// Action to deploy to a shell from a list of options
 	VAR_FINAL/datum/action/innate/deploy_shell/deploy_action = new()
 	/// Action to deploy to the last shell the AI used

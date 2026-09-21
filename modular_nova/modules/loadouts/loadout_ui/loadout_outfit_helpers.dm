@@ -30,6 +30,7 @@
 	visuals_only = FALSE,
 	datum/job/equipping_job,
 	allow_mechanical_loadout_items = TRUE,
+	obj/item/storage/briefcase/uplink_container,
 )
 	if (!preference_source)
 		equipOutfit(outfit, visuals_only) // no prefs for loadout items, but we should still equip the outfit.
@@ -53,8 +54,10 @@
 	var/obj/item/storage/box/erp/erpbox
 	var/erp_enabled = !CONFIG_GET(flag/disable_erp_preferences)
 	if(override_preference == LOADOUT_OVERRIDE_CASE && !visuals_only)
-		briefcase = new(loc)
+		briefcase = uplink_container || new /obj/item/storage/briefcase/empty(loc)
 		for(var/datum/loadout_item/item as anything in loadout_datums)
+			if(uplink_container && ((item.erp_box && !erp_enabled) || !item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only) || !item.is_equippable(src, loadout_list?[item.item_path] || list())))
+				continue
 			if (erp_enabled && item.erp_box)
 				if (isnull(erpbox))
 					erpbox = new(loc)
@@ -66,7 +69,8 @@
 
 		briefcase.name = "[preference_source.read_preference(/datum/preference/name/real_name)]'s travel suitcase"
 		equipOutfit(equipped_outfit, visuals_only)
-		INVOKE_ASYNC(src, PROC_REF(put_in_hands), briefcase)
+		if(!uplink_container)
+			INVOKE_ASYNC(src, PROC_REF(put_in_hands), briefcase)
 	else
 		for(var/datum/loadout_item/item as anything in loadout_datums)
 			if (erp_enabled && item.erp_box)
@@ -87,7 +91,7 @@
 
 	var/update = NONE
 	for(var/datum/loadout_item/item as anything in loadout_datums)
-		if(!item.is_equippable(src, item_details?[item.item_path] || list()))
+		if(!item.is_equippable(src, loadout_list?[item.item_path] || list()))
 			loadout_datums -= item
 			continue
 		if(item.restricted_roles && equipping_job && !(equipping_job.title in item.restricted_roles))

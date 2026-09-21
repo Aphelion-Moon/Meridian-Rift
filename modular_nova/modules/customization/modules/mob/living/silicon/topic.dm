@@ -19,5 +19,5 @@
 	if(href_list["track"])
 		var/mob/living/silicon/ai/AI = src
 		if(AI.deployed_shell)
-			AI.deployed_shell.undeploy()
+			AI.disconnect_shell()
 		AI.ai_tracking_tool.track_name(src, href_list["track"])

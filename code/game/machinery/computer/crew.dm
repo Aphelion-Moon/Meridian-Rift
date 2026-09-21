@@ -331,6 +331,9 @@ GLOBAL_DATUM_INIT(crewmonitor, /datum/crewmonitor, new)
 			var/mob/living/silicon/ai/AI = usr
 			if(!istype(AI))
 				return
+			if(AI.shell_session?.brain)
+				to_chat(AI, span_notice("Enter AI View to track crew through remote cameras."))
+				return
 			// We need to do this because the ID might add an honorific and otherwise break tracking
 			var/mob/living/target = locate(params["ref"]) in GLOB.mob_living_list
 			if(isnull(target))

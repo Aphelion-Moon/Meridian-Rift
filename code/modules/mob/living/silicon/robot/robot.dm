@@ -960,6 +960,8 @@
 
 
 /mob/living/silicon/robot/proc/undeploy()
+	if(ai_shell_session)
+		return ai_shell_session.finish("Returned from cyborg shell", ai_view = TRUE)
 	if(!deployed || !mind || !mainframe)
 		return
 	mainframe.UnregisterSignal(src, COMSIG_LIVING_DEATH)

@@ -22,6 +22,11 @@
 	html = "[html]"
 	text = "[text]"
 
+	if(isAI(target))
+		var/mob/living/silicon/ai/core = target
+		if(core.shell_session?.brain)
+			target = core.uplink_player()
+
 	if(!target)
 		return
 	if(!html && !text)
@@ -67,6 +72,11 @@
 	// Useful where the integer 0 is the entire message. Use case is enabling to_chat(target, some_boolean) while preventing to_chat(target, "")
 	html = "[html]"
 	text = "[text]"
+
+	if(isAI(target))
+		var/mob/living/silicon/ai/core = target
+		if(core.shell_session?.brain)
+			target = core.uplink_player()
 
 	if(!target)
 		return

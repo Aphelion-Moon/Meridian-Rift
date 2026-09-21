@@ -42,6 +42,7 @@
 
 	ai_spawn.log_current_laws()
 	ai_spawn.show_laws(player_client.mob)
+	ai_spawn.initialize_personal_uplink()
 
 /datum/job/ai/get_roundstart_spawn_point()
 	return get_latejoin_spawn_point()

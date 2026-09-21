@@ -220,7 +220,7 @@
 		if(!isAI(src))
 			shell = src
 			AI = shell.mainframe
-			AI.deployed_shell.undeploy()
+			AI.disconnect_shell()
 		else
 			AI = src
 

@@ -20,25 +20,38 @@
 		else
 			return null
 
+	var/datum/ai_shell_session/input_session
+	var/embodied_input = FALSE
+	if(isAI(user))
+		var/mob/living/silicon/ai/core = user
+		input_session = core.shell_session
+		embodied_input = !!input_session
+		user = core.uplink_player()
+
 	if(isnull(user.client))
 		return null
 
 	// A gentle nudge - you should not be using TGUI alert for anything other than a simple message.
 	if(length(buttons) > 3)
 		log_tgui(user, "Error: TGUI Alert initiated with too many buttons. Use a list.", "TguiAlert")
-		return tgui_input_list(user, message, title, buttons, timeout=timeout)
+		. = tgui_input_list(user, message, title, buttons, timeout=timeout)
+		return embodied_input && !input_session?.matches() ? null : .
 	// Client does NOT have tgui_input on: Returns regular input
 	if(!user.client.prefs.read_preference(/datum/preference/toggle/tgui_input))
 		if(length(buttons) == 2)
-			return alert(user, message, title, buttons[1], buttons[2])
+			. = alert(user, message, title, buttons[1], buttons[2])
+			return embodied_input && !input_session?.matches() ? null : .
 		if(length(buttons) == 3)
-			return alert(user, message, title, buttons[1], buttons[2], buttons[3])
+			. = alert(user, message, title, buttons[1], buttons[2], buttons[3])
+			return embodied_input && !input_session?.matches() ? null : .
 	var/datum/tgui_alert/alert = new(user, message, title, buttons, timeout, autofocus, ui_state)
 	alert.ui_interact(user)
 	alert.wait()
 	if (alert)
 		. = alert.choice
 		qdel(alert)
+	if(embodied_input && !input_session?.matches())
+		return null
 
 /**
  * # tgui_alert

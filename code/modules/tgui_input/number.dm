@@ -25,19 +25,30 @@
 		else
 			return null
 
+	var/datum/ai_shell_session/input_session
+	var/embodied_input = FALSE
+	if(isAI(user))
+		var/mob/living/silicon/ai/core = user
+		input_session = core.shell_session
+		embodied_input = !!input_session
+		user = core.uplink_player()
+
 	if (isnull(user.client))
 		return null
 
 	// Client does NOT have tgui_input on: Returns regular input
 	if(!user.client.prefs.read_preference(/datum/preference/toggle/tgui_input))
 		var/input_number = input(user, message, title, default) as null|num
-		return clamp(round_value ? round(input_number) : input_number, min_value, max_value)
+		. = clamp(round_value ? round(input_number) : input_number, min_value, max_value)
+		return embodied_input && !input_session?.matches() ? null : .
 	var/datum/tgui_input_number/number_input = new(user, message, title, default, max_value, min_value, timeout, round_value, ui_state)
 	number_input.ui_interact(user)
 	number_input.wait()
 	if (number_input)
 		. = number_input.entry
 		qdel(number_input)
+	if(embodied_input && !input_session?.matches())
+		return null
 
 /**
  * # tgui_input_number

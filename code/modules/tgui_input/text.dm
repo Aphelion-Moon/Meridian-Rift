@@ -25,6 +25,14 @@
 		else
 			return null
 
+	var/datum/ai_shell_session/input_session
+	var/embodied_input = FALSE
+	if(isAI(user))
+		var/mob/living/silicon/ai/core = user
+		input_session = core.shell_session
+		embodied_input = !!input_session
+		user = core.uplink_player()
+
 	if(isnull(user.client))
 		return null
 
@@ -32,20 +40,26 @@
 	if(!user.client.prefs.read_preference(/datum/preference/toggle/tgui_input))
 		if(encode)
 			if(multiline)
-				return stripped_multiline_input(user, message, title, default, PREVENT_CHARACTER_TRIM_LOSS(max_length))
+				. = stripped_multiline_input(user, message, title, default, PREVENT_CHARACTER_TRIM_LOSS(max_length))
+				return embodied_input && !input_session?.matches() ? null : .
 			else
-				return stripped_input(user, message, title, default, PREVENT_CHARACTER_TRIM_LOSS(max_length))
+				. = stripped_input(user, message, title, default, PREVENT_CHARACTER_TRIM_LOSS(max_length))
+				return embodied_input && !input_session?.matches() ? null : .
 		else
 			if(multiline)
-				return input(user, message, title, default) as message|null
+				. = input(user, message, title, default) as message|null
+				return embodied_input && !input_session?.matches() ? null : .
 			else
-				return input(user, message, title, default) as text|null
+				. = input(user, message, title, default) as text|null
+				return embodied_input && !input_session?.matches() ? null : .
 	var/datum/tgui_input_text/text_input = new(user, message, title, default, max_length, multiline, encode, timeout, ui_state)
 	text_input.ui_interact(user)
 	text_input.wait()
 	if (text_input)
 		. = text_input.entry
 		qdel(text_input)
+	if(embodied_input && !input_session?.matches())
+		return null
 
 /**
  * tgui_input_text
