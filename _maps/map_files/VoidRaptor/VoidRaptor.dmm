@@ -273,6 +273,9 @@
 	name = "Secure Art Exhibition";
 	req_access = list("library")
 	},
+/obj/structure/sign/commemoration{
+	pixel_y = 32
+	},
 /turf/open/floor/carpet,
 /area/station/service/library)
 "aef" = (
@@ -34768,9 +34771,6 @@
 	},
 /area/station/commons/storage/primary)
 "jOT" = (
-/obj/structure/sign/painting/library{
-	pixel_y = 32
-	},
 /obj/effect/turf_decal/siding/wood,
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
@@ -34778,6 +34778,9 @@
 /obj/machinery/disposal/bin,
 /obj/structure/disposalpipe/trunk,
 /obj/effect/turf_decal/box,
+/obj/structure/sign/painting/large/library{
+	dir = 1
+	},
 /turf/open/floor/wood/tile,
 /area/station/service/library)
 "jOZ" = (
@@ -47088,9 +47091,6 @@
 /area/station/engineering/atmos)
 "nhJ" = (
 /obj/structure/table/wood,
-/obj/structure/sign/painting/library{
-	pixel_y = 32
-	},
 /obj/effect/turf_decal/siding/wood,
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
@@ -87243,8 +87243,8 @@
 	spawn_loot_chance = 35
 	},
 /obj/structure/table/wood/fancy,
-/obj/structure/sign/painting/large/library{
-	dir = 1
+/obj/structure/sign/painting/library_secure{
+	pixel_y = 32
 	},
 /turf/open/floor/wood,
 /area/station/service/library)

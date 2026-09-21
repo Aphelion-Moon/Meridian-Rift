@@ -8927,8 +8927,12 @@
 /turf/open/floor/circuit/green,
 /area/station/cargo/bitrunning/den)
 "bfJ" = (
-/obj/machinery/photocopier/prebuilt,
-/obj/item/radio/intercom/directional/south,
+/obj/structure/sign/painting/library_secure{
+	pixel_y = -32
+	},
+/obj/structure/chair/office{
+	dir = 4
+	},
 /turf/open/floor/wood,
 /area/station/service/library)
 "bfL" = (
@@ -23768,6 +23772,7 @@
 	req_access = list("library");
 	pixel_x = 3
 	},
+/obj/structure/extinguisher_cabinet/directional/south,
 /turf/open/floor/wood,
 /area/station/service/library)
 "enf" = (
@@ -31882,7 +31887,11 @@
 /turf/open/floor/iron,
 /area/station/cargo/miningfoundry)
 "hUU" = (
-/obj/machinery/vending/coffee,
+/obj/item/papercutter{
+	pixel_x = 4;
+	pixel_y = 2
+	},
+/obj/structure/table/wood,
 /turf/open/floor/wood,
 /area/station/service/library)
 "hVr" = (
@@ -35754,6 +35763,12 @@
 /obj/machinery/door/firedoor,
 /turf/open/floor/iron,
 /area/station/hallway/primary/central/fore)
+"jEW" = (
+/obj/structure/sign/commemoration{
+	pixel_y = 32
+	},
+/turf/open/floor/wood,
+/area/station/service/library)
 "jEX" = (
 /obj/effect/turf_decal/stripes/line,
 /obj/machinery/firealarm/directional/west,
@@ -38448,6 +38463,10 @@
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /turf/open/floor/iron/white,
 /area/station/medical/chemistry)
+"kRo" = (
+/obj/machinery/vending/coffee,
+/turf/open/floor/wood/wood_1,
+/area/station/service/library)
 "kRq" = (
 /obj/effect/decal/cleanable/dirt,
 /turf/open/floor/iron,
@@ -39534,6 +39553,7 @@
 /area/station/hallway/primary/aft)
 "log" = (
 /obj/machinery/libraryscanner,
+/obj/machinery/airalarm/directional/south,
 /turf/open/floor/carpet,
 /area/station/service/library)
 "lor" = (
@@ -41618,11 +41638,7 @@
 /turf/open/floor/iron,
 /area/station/cargo/sorting)
 "miY" = (
-/obj/structure/table/wood,
-/obj/item/papercutter{
-	pixel_x = 4;
-	pixel_y = 2
-	},
+/obj/effect/spawner/random/vending/snackvend,
 /turf/open/floor/wood/wood_1,
 /area/station/service/library)
 "mjk" = (
@@ -43555,8 +43571,9 @@
 /turf/open/floor/iron/smooth_large,
 /area/station/cargo/storage)
 "mXn" = (
-/obj/effect/spawner/random/vending/snackvend,
-/obj/machinery/camera/autoname/directional/south,
+/obj/structure/sign/painting/library_secure{
+	pixel_y = -32
+	},
 /turf/open/floor/wood,
 /area/station/service/library)
 "mXq" = (
@@ -47027,6 +47044,7 @@
 "oxh" = (
 /obj/machinery/newscaster/directional/south,
 /obj/structure/displaycase/trophy,
+/obj/item/radio/intercom/directional/east,
 /turf/open/floor/wood,
 /area/station/service/library)
 "oxx" = (
@@ -48062,6 +48080,10 @@
 	},
 /turf/open/floor/iron,
 /area/station/hallway/secondary/exit/departure_lounge)
+"oUF" = (
+/obj/machinery/camera/autoname/directional/west,
+/turf/open/floor/wood,
+/area/station/service/library)
 "oUH" = (
 /obj/machinery/duct,
 /turf/open/floor/iron/dark,
@@ -49800,7 +49822,11 @@
 /turf/open/floor/iron/dark,
 /area/station/service/library/artgallery)
 "pIz" = (
-/obj/structure/extinguisher_cabinet/directional/south,
+/obj/machinery/photocopier/prebuilt,
+/obj/structure/sign/painting/library_secure{
+	pixel_x = -32
+	},
+/obj/structure/sign/painting/large/library,
 /turf/open/floor/wood,
 /area/station/service/library)
 "pIN" = (
@@ -50642,9 +50668,11 @@
 /obj/structure/sign/painting/library_secure{
 	pixel_x = 32
 	},
-/obj/item/canvas/twentythree_twentythree,
-/obj/structure/easel,
-/obj/effect/turf_decal/bot_white,
+/obj/structure/table/wood,
+/obj/item/folder,
+/obj/item/folder,
+/obj/item/taperecorder,
+/obj/item/tape,
 /turf/open/floor/wood,
 /area/station/service/library)
 "pYr" = (
@@ -53089,6 +53117,16 @@
 /obj/machinery/camera/autoname/directional/west,
 /turf/open/floor/iron/dark,
 /area/station/command/bridge)
+"rdf" = (
+/obj/structure/sign/painting/library_secure{
+	pixel_x = 32
+	},
+/obj/structure/chair/comfy/black{
+	dir = 8
+	},
+/obj/effect/landmark/start/assistant,
+/turf/open/floor/wood,
+/area/station/service/library)
 "rdr" = (
 /obj/machinery/door/airlock/engineering{
 	name = "Starboard Solar Access"
@@ -53924,6 +53962,7 @@
 /obj/structure/table/wood/fancy,
 /obj/item/storage/photo_album,
 /obj/machinery/light/directional/north,
+/obj/machinery/firealarm/directional/north,
 /turf/open/floor/wood,
 /area/station/service/library)
 "ryB" = (
@@ -54048,9 +54087,10 @@
 /turf/open/floor/carpet/neon/simple/lime/nodots,
 /area/station/cargo/bitrunning/den)
 "rAP" = (
-/obj/effect/landmark/start/assistant,
-/obj/structure/chair/comfy/black,
-/obj/machinery/airalarm/directional/south,
+/obj/machinery/light/directional/south,
+/obj/structure/sign/painting/library_secure{
+	pixel_y = -32
+	},
 /turf/open/floor/wood,
 /area/station/service/library)
 "rBn" = (
@@ -58544,7 +58584,6 @@
 /obj/structure/sign/painting/large/library{
 	dir = 1
 	},
-/obj/structure/chair/office,
 /obj/machinery/light/directional/north,
 /turf/open/floor/wood,
 /area/station/service/library)
@@ -65350,13 +65389,10 @@
 /turf/open/floor/wood,
 /area/station/command/heads_quarters/captain)
 "wjX" = (
-/obj/item/folder,
-/obj/item/folder,
-/obj/structure/table/wood,
-/obj/item/taperecorder,
-/obj/item/tape,
-/obj/machinery/firealarm/directional/south,
-/obj/machinery/light/directional/south,
+/obj/item/canvas/twentythree_twentythree,
+/obj/structure/easel,
+/obj/effect/turf_decal/bot_white,
+/obj/structure/sign/painting/large/library,
 /turf/open/floor/wood,
 /area/station/service/library)
 "wjY" = (
@@ -69498,6 +69534,12 @@
 	},
 /turf/open/floor/iron/white,
 /area/station/medical/chemistry)
+"xLQ" = (
+/obj/structure/sign/painting/library_secure{
+	pixel_y = 32
+	},
+/turf/open/floor/wood,
+/area/station/service/library)
 "xLW" = (
 /obj/structure/chair/stool/bar/directional/west,
 /turf/open/floor/plating,
@@ -70136,6 +70178,15 @@
 /obj/effect/turf_decal/stripes/line,
 /turf/open/floor/iron/smooth_large,
 /area/station/cargo/storage)
+"ybn" = (
+/obj/effect/turf_decal/bot_white,
+/obj/item/canvas/twentythree_twentythree,
+/obj/structure/easel,
+/obj/structure/sign/painting/library_secure{
+	pixel_x = 32
+	},
+/turf/open/floor/wood,
+/area/station/service/library)
 "ybs" = (
 /obj/machinery/door/airlock/external/glass,
 /obj/effect/mapping_helpers/airlock/cyclelink_helper{
@@ -111030,7 +111081,7 @@ qpH
 rGq
 rGq
 evT
-evT
+oUF
 pIz
 cjp
 ylX
@@ -111543,8 +111594,8 @@ evT
 fZN
 xVA
 rGq
-evT
-evT
+cjp
+xLQ
 mXn
 cjp
 aLk
@@ -111800,8 +111851,8 @@ evT
 iiG
 feV
 rGq
-evT
-evT
+cjp
+jEW
 rAP
 cjp
 vuK
@@ -112057,8 +112108,8 @@ oOH
 fZN
 evT
 rGq
-evT
-evT
+cjp
+xLQ
 bfJ
 cjp
 eQj
@@ -112309,7 +112360,7 @@ xaX
 lbB
 fSN
 uNU
-oOH
+kRo
 oOH
 obs
 qyt
@@ -112567,13 +112618,13 @@ fPw
 rdA
 cjp
 ttW
-qXU
+evT
 jqI
 evT
 rGq
 jqI
-evT
-evT
+qXU
+ybn
 cjp
 tfz
 bbG
@@ -112823,7 +112874,7 @@ xaX
 fPw
 uYD
 cjp
-pYo
+rdf
 pYo
 gCO
 evT
