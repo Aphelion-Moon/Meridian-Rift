@@ -8,21 +8,25 @@
   overflow-y: auto;
 }
 
-// Natural height makes short prompts fit; screen-limited prompts remain scrollable.
+// Text wrapping remains active after measuring; screen-limited prompts can scroll.
 .Window.MeridianContentFit {
   .Window__content {
     overflow-y: auto;
   }
 
-  .Window__contentPadding,
-  .Window__contentPadding > .Section,
-  .Window__contentPadding > .Section > .Section__rest > .Section__content,
-  .Stack--fill {
-    height: auto;
-  }
+  // Only flatten fill layouts while measuring the hidden window. Visible
+  // lists and editors must inherit the viewport height so resizing can fill it.
+  &.MeridianContentFit--measuring {
+    .Window__contentPadding,
+    .Window__contentPadding > .Section,
+    .Window__contentPadding > .Section > .Section__rest > .Section__content,
+    .Stack--fill {
+      height: auto;
+    }
 
-  .Stack--vertical > .Stack__item {
-    flex-shrink: 0;
+    .Stack--vertical > .Stack__item {
+      flex-shrink: 0;
+    }
   }
 
   .Stack__item,
@@ -49,7 +53,7 @@
   }
 }
 
-.Window.MeridianChoicePrompt {
+.Window.MeridianChoicePrompt.MeridianContentFit--measuring {
   .Section--scrollable {
     height: 12rem;
   }
