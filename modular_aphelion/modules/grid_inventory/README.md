@@ -2,18 +2,34 @@
 
 Spawn `/obj/item/storage/backpack/grid_pilot` for an empty 7x3 backpack, or
 `/obj/item/storage/backpack/grid_pilot/sample` for the four artwork samples.
-No ordinary backpacks, loadouts, vendors, or maps opt into this feature.
-The ingested specification is [workplan.md](workplan.md).
+Its 21 cells hold 21 default tiny items, matching an ordinary backpack's tiny-item
+capacity. Larger items must fit their footprints. Only these pilot subtypes
+start a grid session; no loadouts, vendors, or maps select them.
+The implementation plan is [workplan.md](workplan.md).
 
-Click an empty cell with your active held item to place it. Click the panel's
-**R** button to toggle its orientation. Ctrl-click a stored item to rotate in
-place; drag from any of its cells to place its lower-left corner at the target
-cell. Invalid drops and drops outside this panel leave its placement unchanged.
-Normal item clicks, Shift-click examination, Alt-click nested storage navigation,
-the back arrow and close button retain their existing behavior.
+The compact native panel uses 24px cells, a dark flat background, subtle grid
+lines, a thin border, and a colored titlebar with an **X**. It starts at the
+existing backpack HUD position; drag the titlebar to move it. All nine HUD
+styles are supported, including live style changes.
+Items draw directly over the grid without individual borders. Panel titles use
+plain text without a black outline.
+
+Click an empty cell with your active held item to place it. Drag stored items to
+rearrange the grid or transfer between open containers. While dragging, **Q**
+rotates left, **E** rotates right, and the mouse wheel also rotates. Invalid
+drops and drops outside a panel leave the original placement intact.
+
+Double-click a nested container to open its own movable, closable panel.
+Ordinary nested storage keeps its original slot capacity and insertion rules.
+A plain single click on a container defers pickup by 0.5 seconds to allow the
+double-click; other item clicks and modified clicks retain their normal behavior.
+Closing a child panel leaves its parent open; closing a parent also closes its
+descendant panels. Compact hover tooltips show the item name, category, a short
+description preview, and relevant controls.
+Tooltip height follows the client's rendered text with equal 4px vertical padding.
 
 Orange overflow cells are take-only. Remove those items to enable insertion
-again. The **+** button cycles overflow pages so forced contents cannot become
+again. The **>** button cycles overflow pages so forced contents cannot become
 inaccessible because the panel runs out of screen space. Overflow does not
 automatically repack when space opens up.
 
@@ -29,12 +45,13 @@ automatically repack when space opens up.
   never move. Deletion and direct movement release occupied cells immediately.
 - The owner retains normal size limits, exceptions, allow/deny lists, locks,
   nesting and item transfer checks. Only the capacity predicate changes.
-  All HUD mutations check reach, active storage, mobility, ownership and fit.
+  All HUD mutations check reach, open-session membership, mobility, ownership and fit.
   Drag revision checks reject actions captured before another content change.
-- `/datum/storage_interface/grid` owns each viewer's cells and item displays.
-  Refreshes reuse them; closing deletes them and unregisters signals. Appearance
-  changes invalidate affected display caches. The world items never enter the
-  grid HUD's `client.screen` list.
+- `/datum/grid_inventory_session` coordinates the viewer's open panels and drag
+  input. Each `/datum/storage_interface/grid` owns its cells and item displays.
+  Refreshes reuse them; closing deletes the relevant displays and signals.
+  Appearance changes invalidate affected display caches. World items never
+  enter the grid HUD's `client.screen` list.
 - `get_storage_inventory_appearance()` returns a mutable copy for proportional
   pixel scaling and rotation. Ordinary appearances retain colors and overlays;
   the four sample subtypes demonstrate dedicated art. Changed icon states or
@@ -56,7 +73,9 @@ reports 1,000 insert/remove pairs, 100 layout updates for 20 synthetic interface
 and HUD object counts/cleanup. This measures server work without connected
 clients and does not measure dragging traffic or perceived responsiveness.
 
-Local measurements on BYOND 516.1687 (2026-09-21), one item per container:
+**Historical benchmark: the earlier 32px, single-panel implementation.** These
+local BYOND 516.1687 measurements (2026-09-21) used one item per container and do
+not establish performance for the current 24px implementation with multiple panels.
 
 | Operation | Ordinary backpack | Grid pilot |
 | --- | ---: | ---: |
@@ -69,17 +88,31 @@ These are single-run server measurements with coarse wall-clock timing. The
 layout comparison excludes ordinary storage's close/reopen refresh path and
 both variants' client screen traffic. The object comparison excludes ordinary
 storage's world items. It is not a client performance or memory-retention claim.
-The measured run passed all eight focused behavior tests plus the opt-in
+That earlier run passed all eight focused behavior tests plus the opt-in
 benchmark, produced `clean_run.lk`, and had no runtimes. Earlier runs hit
 unrelated atmosphere/decorative-burning runtimes during world setup; their
-focused assertions also passed. Compilation reports two existing warnings
-(reference tracking and disabled loop checks).
-The final appearance/interface recheck also completed cleanly, including all
-four dedicated sprites, the lighter's lit-state fallback and lighting-mask
-exclusion.
+focused assertions also passed. The earlier compile reported two existing
+warnings (reference tracking and disabled loop checks).
+
+The current implementation compiles under BYOND 516.1687 with zero errors and
+the same two warnings. All 12 focused behavior tests passed, including both
+Click/DblClick event orders, single-click pickup, stale callback cancellation,
+transfer rollback, and storage-first teardown. A connected-client fixture also
+passed nested-panel ownership, original starting position, HUD refresh/theme
+preservation, rotation-key release, and screen cleanup checks. That run produced
+`clean_run.lk` with no runtimes. The full unit suite and current performance
+benchmark were not run.
+
+DreamSeeker captures verified the original starting position, centered sample
+art, separate parent/child panels, Midnight and Plasmafire styling, and the
+borderless items, plain panel titles, and measured tooltip padding with its
+heading and controls visible. The double-click fix is
+covered by event-sequence regressions; these screenshots are not proof of
+physical mouse/key gestures or behavior under network latency.
 
 Before rollout, use DreamSeeker with two actual viewers to verify dragging,
-rotation, pickup, hover previews, nested navigation, close/reopen, artwork in
-every HUD theme, small and large views, and realistic latency. Measure traffic
+rotation and key release, delayed pickup and double-click opening, tooltips,
+hover previews, panel dragging, nested transfers, close/reopen, and live HUD
+style changes. Include small and large views and realistic latency. Measure traffic
 and client rendering there. Visual, usability, capacity/balance and performance
 acceptance remain required before converting any other storage.

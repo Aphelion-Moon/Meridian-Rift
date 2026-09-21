@@ -1048,14 +1048,33 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 
 /// Refresh the views of everyone currently viewing the storage.
 /datum/storage/proc/refresh_views()
+	var/list/proxy_viewers
 	for (var/mob/user in can_see_contents())
-		show_contents(user)
+		var/datum/storage_interface/view_interface = storage_interfaces[user]
+		if(!view_interface.uses_item_proxies())
+			show_contents(user)
+			continue
+		if(user.grid_inventory && !isobserver(user) && !user.grid_inventory.can_interact(src))
+			hide_contents(user)
+			continue
+		LAZYADD(proxy_viewers, user)
+	if(!length(proxy_viewers))
+		return
+	orient_storage()
+	for(var/mob/user as anything in proxy_viewers)
+		var/list/elements = storage_interfaces[user].list_ui_elements()
+		LAZYOR(user.hud_used.screen_groups[HUD_GROUP_STORAGE], elements)
+		user.client.screen |= elements
+
+/// The active storage is the default insertion target; a grid session can retain other panels.
+/datum/storage/proc/is_viewing(mob/user)
+	return user.active_storage == src || user.grid_inventory?.panels[src]
 
 /// Checks who is currently capable of viewing our storage (and is.)
 /datum/storage/proc/can_see_contents()
 	var/list/seeing = list()
 	for (var/mob/user in is_using)
-		if(user.active_storage == src && user.client)
+		if(is_viewing(user) && user.client)
 			seeing += user
 		else
 			hide_contents(user)
@@ -1079,13 +1098,20 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 	if(!isobserver(to_show) && !display_contents)
 		return FALSE
 
-	if(to_show.active_storage != src && (!IS_UNCONSCIOUS_OR_CRIT(to_show)))
+	var/datum/grid_inventory_session/grid_session = to_show.prepare_grid_inventory(src)
+	if(!is_viewing(to_show) && (!IS_UNCONSCIOUS_OR_CRIT(to_show)))
 		for(var/obj/item/thing in real_location)
 			if(thing.on_found(to_show))
 				to_show.active_storage?.hide_contents(to_show)
+				if(grid_session && !QDELETED(grid_session))
+					grid_session.close_all()
 				return FALSE
 
-	if(to_show.active_storage != src || !separate_item_displays)
+	var/datum/storage_interface/view_interface = LAZYACCESS(storage_interfaces, to_show)
+	if(grid_session)
+		if(to_show.active_storage && !grid_session.panels[to_show.active_storage])
+			to_show.active_storage.hide_contents(to_show)
+	else if(to_show.active_storage != src || !view_interface?.uses_item_proxies())
 		to_show.active_storage?.hide_contents(to_show)
 
 	to_show.active_storage = src
@@ -1099,16 +1125,19 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 	var/ui_style = ui_style2icon(to_show.client?.prefs?.read_preference(/datum/preference/choiced/ui_style))
 
 	if (isnull(storage_interfaces[to_show]))
-		storage_interfaces[to_show] = new storage_type(ui_style, src, to_show)
+		var/interface_type = grid_session ? /datum/storage_interface/grid : storage_type
+		storage_interfaces[to_show] = new interface_type(ui_style, src, to_show)
+	view_interface = storage_interfaces[to_show]
+	grid_session?.add_panel(src, view_interface)
 
 	orient_storage()
 
 	LAZYOR(is_using, to_show)
 
 	// Don't add to screen_objects as that one gets its contents actually deleted
-	LAZYOR(to_show.hud_used.screen_groups[HUD_GROUP_STORAGE], storage_interfaces[to_show].list_ui_elements())
-	to_show.client.screen |= storage_interfaces[to_show].list_ui_elements()
-	if(!separate_item_displays)
+	LAZYOR(to_show.hud_used.screen_groups[HUD_GROUP_STORAGE], view_interface.list_ui_elements())
+	to_show.client.screen |= view_interface.list_ui_elements()
+	if(!view_interface.uses_item_proxies())
 		LAZYOR(to_show.hud_used.screen_groups[HUD_GROUP_STORAGE], real_location.contents)
 		to_show.client.screen |= real_location.contents
 
@@ -1123,6 +1152,11 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 /datum/storage/proc/hide_contents(mob/to_hide)
 	if(to_hide.active_storage == src)
 		to_hide.active_storage = null
+	if(to_hide.grid_inventory?.panels[src])
+		to_hide.grid_inventory.remove_panel(src)
+
+	if(LAZYLEN(is_using))
+		is_using -= to_hide
 
 	if(!LAZYLEN(is_using) && ismovable(real_location))
 		var/atom/movable/movable_loc = real_location
@@ -1131,15 +1165,16 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 	if (!LAZYLEN(storage_interfaces) || isnull(storage_interfaces[to_hide]))
 		return TRUE
 
-	if(LAZYLEN(is_using))
-		is_using -= to_hide
-
+	var/datum/storage_interface/view_interface = storage_interfaces[to_hide]
+	var/list/elements = view_interface.list_ui_elements()
 	if(to_hide.client)
-		to_hide.client.screen -= storage_interfaces[to_hide].list_ui_elements()
-		to_hide.client.screen -= real_location.contents
-	if(to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE])
-		to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE] -= storage_interfaces[to_hide].list_ui_elements()
-		to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE] -= real_location.contents
+		to_hide.client.screen -= elements
+		if(!view_interface.uses_item_proxies())
+			to_hide.client.screen -= real_location.contents
+	if(to_hide.hud_used?.screen_groups?[HUD_GROUP_STORAGE])
+		to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE] -= elements
+		if(!view_interface.uses_item_proxies())
+			to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE] -= real_location.contents
 	QDEL_NULL(storage_interfaces[to_hide])
 	storage_interfaces -= to_hide
 

@@ -35,6 +35,10 @@ GAME_VERB_NATIVE_INSTANT(/client, keyDown, "keyDown", null, _key as text, mousep
 		qdel(src)
 		return
 
+	// APHELION EDIT ADDITION - GRID_INVENTORY
+	if(grid_inventory_key(_key, TRUE))
+		return
+
 	//Focus Chat failsafe. Overrides movement checks to prevent WASD.
 	if(!hotkeys && length(_key) == 1 && _key != "Alt" && _key != "Ctrl" && _key != "Shift")
 		winset(src, null, "input.focus=true ; input.text=[url_encode(_key)]")
@@ -81,6 +85,10 @@ GAME_VERB_NATIVE_INSTANT(/client, keyDown, "keyDown", null, _key as text, mousep
 	mob.update_mouse_pointer()
 
 GAME_VERB_NATIVE_INSTANT(/client, keyUp, "keyUp", null, _key as text, mousepos_x as num, mousepos_y as num, sizex as num, sizey as num)
+
+	// APHELION EDIT ADDITION - GRID_INVENTORY
+	if(grid_inventory_key(_key, FALSE))
+		return
 
 	var/key_combo = key_combos_held[_key]
 	if(key_combo)

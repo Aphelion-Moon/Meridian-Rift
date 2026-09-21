@@ -97,6 +97,9 @@
 /// Does the logic for checking if a drag counts as a click or not
 /// Returns true if it does, false otherwise
 /client/proc/is_drag_clickable(atom/dragging, atom/over, params)
+	// APHELION EDIT ADDITION - GRID_INVENTORY
+	if(mob?.grid_inventory?.is_dragging())
+		return FALSE
 	if(dragging == over)
 		return TRUE
 	if(world.time - drag_start > LENIENCY_TIME) // Time's up bestie
@@ -189,7 +192,16 @@
 	if (IS_WEAKREF_OF(src_object, middle_drag_atom_ref))
 		middragtime = 0
 		middle_drag_atom_ref = null
+	// APHELION EDIT ADDITION START - GRID_INVENTORY
+	var/datum/grid_inventory_session/grid_session = mob?.grid_inventory
+	var/grid_gesture_id = grid_session?.gesture_id
+	// APHELION EDIT ADDITION END - GRID_INVENTORY
 	..()
+	// APHELION EDIT ADDITION START - GRID_INVENTORY
+	// Removal hooks can sleep while another gesture starts in the same session.
+	if(grid_session && mob?.grid_inventory == grid_session && grid_session.gesture_id == grid_gesture_id)
+		grid_session.cancel_drag()
+	// APHELION EDIT ADDITION END - GRID_INVENTORY
 	drag_start = 0
 	drag_details = null
 

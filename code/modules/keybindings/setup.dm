@@ -37,6 +37,10 @@
 
 /// Manually clears any held keys, in case due to lag or other undefined behavior a key gets stuck.
 /client/proc/reset_held_keys()
+	// APHELION EDIT ADDITION START - GRID_INVENTORY
+	grid_inventory_keys_held = null
+	mob?.grid_inventory?.cancel_drag()
+	// APHELION EDIT ADDITION END - GRID_INVENTORY
 	for(var/key in keys_held)
 		keyUp(key)
 

@@ -4,6 +4,7 @@
 	var/y
 	var/width
 	var/height
+	/// Clockwise quarter turns, 0 through 3. Parity determines the physical footprint.
 	var/rotated
 
 /datum/grid_placement/New(x, y, width, height, rotated = FALSE)
@@ -51,8 +52,10 @@
 /// Checks only the proposed rectangle; ignoring an item makes moves atomic.
 /datum/storage/backpack/grid/proc/fits(obj/item/item, x, y, rotated = FALSE)
 	var/list/size = item.get_storage_footprint()
-	var/width = size[rotated ? 2 : 1]
-	var/height = size[rotated ? 1 : 2]
+	if(rotated != round(rotated) || rotated < 0 || rotated > 3)
+		return FALSE
+	var/width = size[rotated % 2 ? 2 : 1]
+	var/height = size[rotated % 2 ? 1 : 2]
 	if(width < 1 || height < 1 || width != round(width) || height != round(height))
 		return FALSE
 	if(x != round(x) || y != round(y) || x < 1 || y < 1 || x + width - 1 > grid_width || y + height - 1 > grid_height)
@@ -73,7 +76,7 @@
 
 /datum/storage/backpack/grid/proc/make_placement(obj/item/item, x, y, rotated)
 	var/list/size = item.get_storage_footprint()
-	return new /datum/grid_placement(x, y, size[rotated ? 2 : 1], size[rotated ? 1 : 2], rotated)
+	return new /datum/grid_placement(x, y, size[rotated % 2 ? 2 : 1], size[rotated % 2 ? 1 : 2], rotated)
 
 /datum/storage/backpack/grid/proc/clear_placement(obj/item/item)
 	var/datum/grid_placement/old = placements[item]
@@ -164,6 +167,8 @@
 
 /// All HUD mutations recheck access and ownership at the time of the action.
 /datum/storage/backpack/grid/proc/can_grid_interact(mob/user)
+	if(user.grid_inventory)
+		return user.grid_inventory.can_interact(src)
 	if(!isliving(user) || user.active_storage != src || locked || ismecha(user.loc))
 		return FALSE
 	var/mob/living/living_user = user

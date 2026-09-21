@@ -53,7 +53,7 @@
 
 /obj/item/storage/backpack/grid_pilot
 	name = "grid inventory pilot backpack"
-	desc = "An experimental backpack with a 7 by 3 packing grid. Rotate held items with R on the panel; Ctrl-click stored items to rotate them."
+	desc = "An experimental backpack with a 7 by 3 packing grid. Drag items to arrange them, and rotate during the drag with Q, E or the mouse wheel. Double-click containers to open them."
 	storage_type = /datum/storage/backpack/grid
 
 /// Explicitly spawnable showcase. No loadouts, vendors or ordinary backpacks are converted.

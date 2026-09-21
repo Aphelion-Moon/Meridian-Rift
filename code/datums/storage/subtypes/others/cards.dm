@@ -18,7 +18,7 @@
 /datum/storage/tcg/show_contents(mob/to_show)
 	// sometimes, show contents is called when the mob is already seeing the contents of the deck, to refresh the view.
 	// to avoid spam, we only show the message if they weren't already seeing the contents.
-	var/was_already_seeing = to_show.active_storage == src
+	var/was_already_seeing = is_viewing(to_show)
 	. = ..()
 	if(!.)
 		return .
@@ -31,7 +31,7 @@
 
 /datum/storage/tcg/hide_contents(mob/to_hide)
 	// see above
-	var/was_actually_seeing = to_hide.active_storage == src
+	var/was_actually_seeing = is_viewing(to_hide)
 	. = ..()
 	if(!.)
 		return .

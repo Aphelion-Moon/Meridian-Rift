@@ -37,6 +37,10 @@
 /datum/storage_interface/proc/list_ui_elements(initializing = FALSE)
 	return list(cells, corner_top_left, corner_top_right, corner_bottom_left, corner_bottom_right, rowjoin_left, rowjoin_right, closer, exit_button) // APHELION EDIT CHANGE - STORAGE_NAVIGATION - ORIGINAL: return list(cells, corner_top_left, corner_top_right, corner_bottom_left, corner_bottom_right, rowjoin_left, rowjoin_right, closer)
 
+/// Whether this viewer sees proxies instead of the physical contents.
+/datum/storage_interface/proc/uses_item_proxies()
+	return parent_storage.separate_item_displays
+
 /datum/storage_interface/Destroy(force)
 	QDEL_NULL(closer)
 	QDEL_NULL(exit_button) // APHELION EDIT ADDITION - STORAGE_NAVIGATION

@@ -365,7 +365,7 @@ GLOBAL_LIST_INIT(available_erp_ui_styles, list(
 			if (length(group_info))
 				screenmob.client.screen += group_info
 			// Do not show open storages to viewers, they get their own storage UIs
-			if (length(group_storage) && viewmob == mymob)
+			if (length(group_storage) && screenmob == mymob)
 				screenmob.client.screen += group_storage
 
 			screenmob.client.screen += palette
@@ -456,6 +456,7 @@ GLOBAL_LIST_INIT(available_erp_ui_styles, list(
 			item.icon = new_ui_style
 
 	ui_style = new_ui_style
+	mymob.grid_inventory?.update_ui_style(new_ui_style)
 	build_hand_slots(update_hud = TRUE)
 
 /datum/hud/proc/register_reuse(atom/movable/screen/reuse)

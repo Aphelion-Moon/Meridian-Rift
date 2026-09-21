@@ -502,6 +502,9 @@
 
 /// MouseWheelOn
 /mob/proc/MouseWheelOn(atom/A, delta_x, delta_y, params)
+	// APHELION EDIT ADDITION - GRID_INVENTORY
+	if(client?.grid_inventory_scroll(delta_y))
+		return
 	SEND_SIGNAL(src, COMSIG_MOUSE_SCROLL_ON, A, delta_x, delta_y, params)
 
 /mob/dead/observer/MouseWheelOn(atom/A, delta_x, delta_y, params)
