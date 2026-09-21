@@ -32,12 +32,19 @@ SUBSYSTEM_DEF(dogmos)
 	var/gases_registered = FALSE
 
 /datum/controller/subsystem/dogmos/Initialize()
+#ifdef DOGMOS_IN_PROCESS
+	var/native_identity = dogmos_in_process_identity()
+	if(native_identity != DOGMOS_IN_PROCESS_IDENTITY)
+		stack_trace("Dogmos native identity mismatch: expected [DOGMOS_IN_PROCESS_IDENTITY], got [native_identity].")
+		return SS_INIT_FAILURE
+#endif
 	// Build the reaction table before the Rust registry starts.
 	SSair.gas_reactions = init_gas_reactions()
 	SSair.dogmos_reactions = init_dogmos_reactions(SSair.gas_reactions)
 
 	if(!length(SSair.dogmos_reactions))
-		stack_trace("init_dogmos_reactions() produced an empty list - Dogmos will run with no reactions at all.")
+		stack_trace("init_dogmos_reactions() produced an empty list - Dogmos initialization failed.")
+		return SS_INIT_FAILURE
 
 	populate_gas_data_overlays()
 
@@ -46,7 +53,7 @@ SUBSYSTEM_DEF(dogmos)
 		return SS_INIT_FAILURE
 
 	gases_registered = TRUE
-	#ifdef UNIT_TESTS
+	#if defined(UNIT_TESTS) && !defined(DOGMOS_IN_PROCESS)
 	if(GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
 		|| GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile))
 		INVOKE_ASYNC(src, PROC_REF(record_shift_start_performance))
@@ -75,4 +82,3 @@ SUBSYSTEM_DEF(dogmos)
 
 /turf/open/floor/plating/reinforced
 	decompression_floor_rip_resistant = TRUE
-

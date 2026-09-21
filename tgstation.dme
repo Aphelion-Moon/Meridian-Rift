@@ -7350,6 +7350,10 @@
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
 #include "modular_aphelion\modules\dogmos\code\dogmos.dm"
 #include "modular_aphelion\modules\dogmos\code\dogmos_goggles.dm"
+#ifdef DOGMOS_IN_PROCESS
+#include "modular_aphelion\modules\dogmos\code\in_process_backend.dm"
+#include "modular_aphelion\modules\dogmos\code\legacy_mixture_transcript.dm"
+#else
 #include "modular_aphelion\modules\dogmos\code\dogmos_service_state.dm"
 #include "modular_aphelion\modules\dogmos\code\legacy_mixture_transcript.dm"
 #include "modular_aphelion\modules\dogmos\code\service_backend\_defines.dm"
@@ -7386,6 +7390,7 @@
 #include "modular_aphelion\modules\dogmos\code\tests\topology_runtime_test.dm"
 #include "modular_aphelion\modules\dogmos\code\tests\topology_scopes_test.dm"
 #include "modular_aphelion\modules\dogmos\code\tests\topology_startup_test.dm"
+#endif
 #include "modular_aphelion\modules\job_desc_overrides\job_desc_overrides.dm"
 #include "modular_aphelion\modules\runtime_ownership\code\runtime_ownership_test.dm"
 #include "modular_aphelion\modules\storage_navigation\code\storage_exit.dm"

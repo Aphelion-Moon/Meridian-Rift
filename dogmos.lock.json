@@ -1,102 +1,40 @@
 {
-  "artifacts": [
-    {
-      "architecture": "x86_64",
-      "file": "linux/dogmosd",
-      "format": "elf",
-      "platform": "linux",
-      "role": "service",
-      "sha256": "9da56de301a5bd66d38547e362cc7e6063fb5517278b0325572d525cae309ad2",
-      "size": 1379720,
-      "symbols": {
-        "file": "linux/dogmosd.debug",
-        "sha256": "b6b46c19a48a238e71ea84c39bf4855e537de1db564d60ff4ed3fd2f9ca1a0c3",
-        "size": 15437976
-      },
-      "target": "x86_64-unknown-linux-gnu"
-    },
-    {
-      "architecture": "i686",
-      "file": "linux/libdogmos.so",
-      "format": "elf",
-      "platform": "linux",
-      "role": "shim",
-      "sha256": "6a1f8d05b347c6e807729db5fb6773e17d7d343789155cd6fef63d67833e4e32",
-      "size": 1295592,
-      "symbols": {
-        "file": "linux/libdogmos.so.debug",
-        "sha256": "5b079df8863ee340c6cab5ec57ba409d9b11b13db62f24fc9a70c436a93f1d19",
-        "size": 11698092
-      },
-      "target": "i686-unknown-linux-gnu"
-    },
-    {
-      "architecture": "x86_64",
-      "file": "windows/dogmosd.exe",
-      "format": "pe",
-      "platform": "windows",
-      "role": "service",
-      "sha256": "56de62e18b524b67e67c2b0e6e4f9d28718be827940cb967dc7d025a473570f4",
-      "size": 1085952,
-      "symbols": {
-        "file": "windows/dogmosd.pdb",
-        "sha256": "d98e0adf34c2ddb6e86470226beffd597dec176ef3e8bf34d261198eaaeb6bbf",
-        "size": 16502784
-      },
-      "target": "x86_64-pc-windows-msvc"
-    },
-    {
-      "architecture": "i686",
-      "file": "windows/dogmos.dll",
-      "format": "pe",
-      "platform": "windows",
-      "role": "shim",
-      "sha256": "af0e390c340dbbd6e53d612b4a97e050ccf6c3788d59fefb0f11cc5eb3770d64",
-      "size": 760832,
-      "symbols": {
-        "file": "windows/dogmos.pdb",
-        "sha256": "e8cd1c6a857682408d961443175e29b4534352fd444fdcec84f611cac655e2fe",
-        "size": 10784768
-      },
-      "target": "i686-pc-windows-msvc"
-    }
+  "artifacts": {
+    "dogmos-source-snapshot.json": "afaa3befb9af6f971c6b26c08f46b7242835980cd3f2b8b5b7ec6f7c428592e9",
+    "dogmos.dll": "6e9a06a13fc15ce8f0a637a41743ff8a6c6fe5a1bf2777853ae0fe8139048f6a",
+    "dogmos.pdb": "28dfabff4089e53709658f5fe6f5824cd06d6f9a53e1fee29e77c17b1d1ec38c",
+    "dogmos_bindings.dm": "4220fc4ac35859b43d058fc42864b62a470cb4d3f1eed2a6b51c25728d18aced"
+  },
+  "backend": "in-process",
+  "cargo_arguments": [
+    "+1.98.0",
+    "build",
+    "-p",
+    "dogmos",
+    "--lib",
+    "--example",
+    "generate_bindings",
+    "--release",
+    "--locked",
+    "--target",
+    "i686-pc-windows-msvc",
+    "--no-default-features",
+    "--features",
+    "aphelion_reactions,katmos,katmos_slow_decompression,superconductivity,turf_processing"
   ],
-  "bindings": {
-    "file": "dogmos_bindings.dm",
-    "sha256": "7c9d4e08019dda8b0e21cb1c922c2c4c16fc17925418134b39a3d32246ce0070",
-    "size": 43101
-  },
-  "build_profile": "release",
-  "capabilities": {
-    "feature_fingerprint": "0e286740196c6db278ed9f6ff3b40a3bd688389526f84e6489e5871a333405f6",
-    "features": [
-      "aphelion_reactions",
-      "katmos",
-      "katmos_slow_decompression",
-      "superconductivity",
-      "turf_processing"
-    ]
-  },
-  "qualification": {
-    "kind": "local-source-snapshot-v1",
-    "source_snapshot": {
-      "file": "dogmos-source-snapshot.json",
-      "sha256": "14aeb52a99c355809f18543060d8c7d9c578279362311f2d46a618ce12673936",
-      "size": 43804
-    }
-  },
+  "features": [
+    "aphelion_reactions",
+    "katmos",
+    "katmos_slow_decompression",
+    "superconductivity",
+    "turf_processing"
+  ],
+  "kind": "unqualified-in-process-playtest",
+  "runtime_qualified": false,
   "schema_version": 1,
-  "source_revision": "fc70f567a9c8131184460052c135210775f10ab8",
-  "toolchain": {
-    "byond": "516.1687",
-    "byondapi_revision": "721dd4690b60954687e41d8691d0040f398d91a6",
-    "rust": "1.98.0"
-  },
-  "versions": {
-    "abi": 2,
-    "dogmos-byond": "2.3.0",
-    "dogmos-server": "2.3.0",
-    "protocol": 16,
-    "workspace": "2.3.0"
-  }
+  "source_revision": "9d3d2c16078ffe9e462c554a76f6f705dc1c69cb",
+  "source_sha256": "afaa3befb9af6f971c6b26c08f46b7242835980cd3f2b8b5b7ec6f7c428592e9",
+  "target": "i686-pc-windows-msvc",
+  "tests_run": false,
+  "toolchain": "1.98.0"
 }

@@ -25,7 +25,13 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		initial_volume = volume
 	if(initial_volume <= 0)
 		stack_trace("Created a gas mixture with zero volume!")
+#ifdef DOGMOS_IN_PROCESS
+	__gasmixture_register()
+	if(copy_source)
+		copy_from(copy_source)
+#else
 	__gasmixture_register(copy_source) // APHELION EDIT CHANGE - DOGMOS_COPY_CREATION
+#endif
 	reaction_results = new
 
 /datum/gas_mixture/Del()
