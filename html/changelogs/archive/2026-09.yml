@@ -195,3 +195,30 @@
       and our Antags together into one group.
   - admin: Adds Admin Notify, a hotkey and verb pairing to quickly draw admin attention
       to you. Use with care, don't cry wolf lest the wolves show themselves.
+2026-09-16:
+  DriftingSkies:
+  - rscadd: ourtable.ogg
+  Hollandasie:
+  - image: Resprited the nurse outfit and hat
+  - code_imp: Code tweaks to the nurse outfits
+  MacaroniCritter:
+  - rscadd: Adds the new Ocean Pubby changes.
+  vinylspiders:
+  - bugfix: fixes snouts not rendering in some cases
+  - bugfix: fixes a few missing inhand icons
+  - bugfix: fixes the advanced advanced atmos uniform sprite being the same as the
+      engineering one
+  - rscadd: adds portal panties and the portal borer device, which can be found at
+      your local LustWish vendor
+  - refactor: adds a number of new selectable ui themes, which can be accessed using
+      the gear icon in the top right of the lobby or any tgui window
+  - admin: adds an admin panel for changing the title screen which can be accessed
+      using the picture icon in the top right of the lobby, or using the new verb
+2026-09-20:
+  Happyowl93:
+  - code_imp: Import prefs now switches hemophages to quirk automatically.
+  MacaroniCritter:
+  - bugfix: fixed a single wire missing from a solar array console on Ocean Pubby
+  vinylspiders:
+  - bugfix: fixes the ChemMaster 3000 buttons being slightly unaligned by a few pixels
+  - bugfix: fixes lobby scream/laugh preview being audible to other players
