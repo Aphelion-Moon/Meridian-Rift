@@ -253,15 +253,7 @@ describe('profile document', () => {
     expect(profiles.get('dogmos')).toMatchObject({
       config_source: 'repository',
       default_map: '_maps/runtimestation.json',
-      required_children: [
-        {
-          role: 'dogmosd',
-          process_name: 'dogmosd.exe',
-          min_count: 1,
-          max_count: 1,
-          continuous_after_readiness: true,
-        },
-      ],
+      required_children: [],
     });
     expect(profiles.get('dogmos-ci')).toMatchObject({
       config_source: 'ci',
@@ -277,14 +269,7 @@ describe('profile document', () => {
         .get('dogmos')
         ?.fatal_log_rules.map(({ id }) => id)
         .sort(),
-    ).toEqual([
-      'dogmos_lifecycle_rejection',
-      'dogmos_malformed_stage',
-      'dogmos_panic',
-      'dogmos_pending_stage',
-      'dogmos_stage_conflict',
-      'runtime_error',
-    ]);
+    ).toEqual(['dogmos_panic', 'runtime_error']);
     expect(RIFT_SCHEMA_VERSION).toBe(1);
   });
 
@@ -828,7 +813,7 @@ describe('run report', () => {
     });
   });
 
-  test('keeps DreamDaemon and dogmosd memory separate in Dogmos results', async () => {
+  test('reports only host memory in Dogmos results', async () => {
     await withTempDirectory(async (root) => {
       const recorder = await RunRecorder.create({
         runDir: root,
@@ -846,7 +831,7 @@ describe('run report', () => {
           samples: 3,
         },
         {
-          role: 'dogmosd',
+          role: 'fixture-child',
           private_bytes_max: 300,
           working_set_bytes_max: 400,
           samples: 3,
@@ -861,11 +846,6 @@ describe('run report', () => {
         dreamdaemon: {
           private_bytes_max: 100,
           working_set_bytes_max: 200,
-          samples: 3,
-        },
-        service: {
-          private_bytes_max: 300,
-          working_set_bytes_max: 400,
           samples: 3,
         },
         runtime_signatures: [],
@@ -1036,60 +1016,16 @@ describe('CLI and preflight qualification', () => {
     });
   });
 
-  test('accepts paired native overlays for every runtime workflow', () => {
-    for (const argv of [
-      ['run', '--shim', 'shim.dll', '--service', 'service.exe'],
-      ['test', '--shim', 'shim.dll', '--service', 'service.exe'],
-      [
-        'soak',
-        '--run-seconds',
-        '30',
-        '--shim',
-        'shim.dll',
-        '--service',
-        'service.exe',
-      ],
-    ]) {
-      expect(parseCli(argv, {})).toMatchObject({
-        shim: 'shim.dll',
-        service: 'service.exe',
-      });
-    }
+  test('accepts one native overlay and installed Dogmos profiles', () => {
     for (const command of ['run', 'test', 'soak']) {
-      const argv =
-        command === 'soak'
-          ? [command, '--run-seconds', '30', '--shim', 'shim.dll']
-          : [command, '--shim', 'shim.dll'];
-      expect(() => parseCli(argv, {})).toThrow(
-        '--shim and --service must be supplied together',
-      );
+      const duration = command === 'soak' ? ['--run-seconds', '30'] : [];
+      expect(
+        parseCli([command, ...duration, '--native', 'native.dll'], {}),
+      ).toMatchObject({ native: 'native.dll' });
+      expect(() =>
+        parseCli([command, ...duration, '--profile', 'dogmos'], {}),
+      ).not.toThrow();
     }
-  });
-
-  test('requires explicit native overlays for Dogmos runtime workflows', () => {
-    for (const argv of [
-      ['run', '--profile', 'dogmos'],
-      ['test', '--profile', 'dogmos-ci'],
-      ['soak', '--profile', 'dogmos', '--run-seconds', '30'],
-    ]) {
-      expect(() => parseCli(argv, {})).toThrow(
-        'Dogmos runtime profiles require --shim and --service',
-      );
-    }
-    expect(() =>
-      parseCli(
-        [
-          'run',
-          '--profile',
-          'dogmos',
-          '--shim',
-          'dogmos.dll',
-          '--service',
-          'dogmosd.exe',
-        ],
-        {},
-      ),
-    ).not.toThrow();
   });
 
   test('runs the installed Dogmos contract verifier as a supervised preflight', async () => {
@@ -2187,14 +2123,13 @@ describe('compile workflows', () => {
 });
 
 describe('isolated deployment', () => {
-  test('copies paired native overlays only into the isolated workspace', async () => {
+  test('copies native overlays only into the isolated workspace', async () => {
     await withTempDirectory(async (root) => {
       const rift = (await import('./rift')) as typeof import('./rift') & {
         applyNativeOverlays?: (
           repositoryRoot: string,
           deployment: { root: string },
-          shim: string | null,
-          service: string | null,
+          native: string | null,
           enforceInstalledContract?: boolean,
         ) => Promise<void>;
       };
@@ -2204,28 +2139,19 @@ describe('isolated deployment', () => {
       }
       const deployment = { root: path.join(root, 'workspace') };
       await fs.mkdir(deployment.root);
-      await Bun.write(path.join(root, 'candidate.dll'), 'shim-v2');
-      await Bun.write(path.join(root, 'candidate.exe'), 'service-v2');
+      await Bun.write(path.join(root, 'candidate.dll'), 'native-v2');
 
-      await rift.applyNativeOverlays(
-        root,
-        deployment,
-        'candidate.dll',
-        'candidate.exe',
-      );
+      await rift.applyNativeOverlays(root, deployment, 'candidate.dll');
 
       expect(
         await Bun.file(path.join(deployment.root, 'dogmos.dll')).text(),
-      ).toBe('shim-v2');
-      expect(
-        await Bun.file(path.join(deployment.root, 'dogmosd.exe')).text(),
-      ).toBe('service-v2');
+      ).toBe('native-v2');
       expect(await Bun.file(path.join(root, 'dogmos.dll')).exists()).toBe(
         false,
       );
-      expect(await Bun.file(path.join(root, 'dogmosd.exe')).exists()).toBe(
-        false,
-      );
+      expect(
+        await Bun.file(path.join(root, 'fixture-child.exe')).exists(),
+      ).toBe(false);
     });
   });
 
@@ -2233,19 +2159,11 @@ describe('isolated deployment', () => {
     await withTempDirectory(async (root) => {
       const deployment = { root: path.join(root, 'workspace') };
       await fs.mkdir(deployment.root);
-      await Bun.write(path.join(root, 'dogmos.dll'), 'installed-shim');
-      await Bun.write(path.join(root, 'dogmosd.exe'), 'installed-service');
-      await Bun.write(path.join(root, 'candidate.dll'), 'different-shim');
-      await Bun.write(path.join(root, 'candidate.exe'), 'installed-service');
+      await Bun.write(path.join(root, 'dogmos.dll'), 'installed-native');
+      await Bun.write(path.join(root, 'candidate.dll'), 'different-native');
 
       await expect(
-        applyNativeOverlays(
-          root,
-          deployment,
-          'candidate.dll',
-          'candidate.exe',
-          true,
-        ),
+        applyNativeOverlays(root, deployment, 'candidate.dll', true),
       ).rejects.toThrow('dogmos_overlay_contract_mismatch: dogmos.dll');
     });
   });
@@ -3009,7 +2927,7 @@ describe('bounded soak workflow', () => {
         },
         {
           timestamp: '2026-08-31T00:00:00.000Z',
-          role: 'dogmosd',
+          role: 'fixture-child',
           pid: 200,
           private_bytes: 300,
           working_set_bytes: 400,
@@ -3018,16 +2936,16 @@ describe('bounded soak workflow', () => {
       ]),
     ).toEqual([
       {
-        role: 'dogmosd',
-        private_bytes_max: 300,
-        working_set_bytes_max: 400,
-        samples: 1,
-      },
-      {
         role: 'dreamdaemon',
         private_bytes_max: 150,
         working_set_bytes_max: 200,
         samples: 3,
+      },
+      {
+        role: 'fixture-child',
+        private_bytes_max: 300,
+        working_set_bytes_max: 400,
+        samples: 1,
       },
     ]);
   });

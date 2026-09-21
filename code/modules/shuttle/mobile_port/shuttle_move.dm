@@ -231,9 +231,6 @@
 	// its own equivalent loop (SSair.process_adjacent_rebuild()) in runtime_topology_batching.
 	// Unnoticeable for a single turf; a shuttle's whole tile set doing this unbatched at every
 	// dock/undock (including the shuttles docking at round start) was seconds of real time.
-#ifndef DOGMOS_IN_PROCESS
-	SSdogmos.runtime_topology_batching = TRUE
-#endif
 	for(var/i in 1 to old_turfs.len)
 		CHECK_TICK
 		if(!(old_turfs[old_turfs[i]] & (MOVE_CONTENTS|MOVE_TURF)))
@@ -241,10 +238,6 @@
 		var/turf/oldT = old_turfs[i]
 		var/turf/newT = new_turfs[i]
 		newT.lateShuttleMove(oldT)
-#ifndef DOGMOS_IN_PROCESS
-	SSdogmos.runtime_topology_batching = FALSE
-	SSdogmos.flush_turf_registration_batch()
-#endif
 
 	for(var/i in 1 to moved_atoms.len)
 		CHECK_TICK

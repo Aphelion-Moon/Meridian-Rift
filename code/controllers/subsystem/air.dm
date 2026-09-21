@@ -1,25 +1,9 @@
-/// Maximum turfs prefetched by one maintenance or visual chunk.
+/// Maximum turfs visited by one maintenance or visual chunk.
 #define ACTIVE_TURFS_WALK_BATCH_SIZE 100 // NOVA EDIT CHANGE - DOGMOS - ORIGINAL: #define ACTIVE_TURFS_WALK_BATCH_SIZE 400
 
 /// Fire cycles between shared Dogmos Kennel UI updates while slow mode is enabled.
 #define KENNEL_SLOW_MODE_PUSH_INTERVAL 4
 
-// APHELION EDIT ADDITION START - DOGMOS
-/// Initial maximum service work items requested by one resumable atmosphere chunk.
-#define DOGMOS_STAGE_INITIAL_WORK_LIMIT 256
-/// Maximum processing entries covered by one machinery prefetch range.
-#define DOGMOS_MACHINE_PREFETCH_ENTRIES 32
-/// Bound input visits and retained mixture references below the 381-record wire limit.
-#define DOGMOS_MACHINE_PREFETCH_MIXTURES 256
-/// Service stage id for pressure equalization.
-#define DOGMOS_SIMULATION_TURF_EQUALIZE 2
-/// Service stage id for active-turf diffusion.
-#define DOGMOS_SIMULATION_TURFS 4
-/// Service stage id for active-turf reactions.
-#define DOGMOS_SIMULATION_REACTIONS 5
-/// Largest exactly representable bounded health-preflight counter.
-#define DOGMOS_HEALTH_COUNTER_MAX 16777216
-// APHELION EDIT ADDITION END
 
 SUBSYSTEM_DEF(air)
 	name = "Atmospherics"
@@ -132,78 +116,18 @@ SUBSYSTEM_DEF(air)
 	/// Number of initial snapshot entries visited by this cycle's resumable maintenance walk.
 	var/active_turfs_walk_cursor = 0
 	// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-	/// Four exact little-endian words identifying the latest published active frontier.
-	var/list/dogmos_frontier_epoch = list(0, 0, 0, 0)
-	/// Four exact little-endian words identifying the latest started service stage.
-	var/list/dogmos_stage_epoch = list(0, 0, 0, 0)
-	/// Service stage retained across SSair fires, or null between chunks.
-	var/dogmos_pending_stage
-	/// Boot-selected preparation jobs; kept off until controlled qualification.
-	var/dogmos_async_stages = FALSE
-	/// Fixed-size identity and publication receipt for the one admitted service job.
-	var/datum/dogmos_stage_job/dogmos_job
-	/// Last submit/poll game tick, retained across MC recovery and stage boundaries.
-	var/dogmos_job_last_poll_tick = -1
-	/// Exact frontier epoch retained while any service stage remains in this cycle.
-	var/list/dogmos_pending_frontier_epoch
-	/// Turf -> exact acknowledged (slot, generation); null before the first publication.
-	var/list/dogmos_committed_frontier
-	/// Ordered turf -> (acknowledged old pair, desired membership, reinsert) journal, capped at 512.
-	var/list/dogmos_frontier_journal = list()
-	/// Reset/overflow/recovery requires bounded publication of the canonical active list.
-	var/dogmos_frontier_needs_rescan = TRUE
-	/// List identity whose membership changes are owned by the journal helpers.
-	var/list/dogmos_frontier_source
-	/// Exact membership revision, advanced even when an overflowed journal stops retaining entries.
-	var/list/dogmos_frontier_revision = list(0, 0, 0, 0)
-	/// Latest attempted upload epoch, including abandoned uploads that cannot reuse an epoch.
-	var/list/dogmos_frontier_upload_epoch = list(0, 0, 0, 0)
-	/// Unpublished reconciliation snapshot and its captured revision.
-	var/list/dogmos_frontier_candidate
-	/// Membership revision captured before the current upload began.
-	var/list/dogmos_frontier_scan_revision
-	/// Number of source entries visited while collecting the unique candidate.
-	var/dogmos_frontier_scan_cursor = 0
-	/// Source length captured before candidate collection began; may include duplicates.
-	var/dogmos_frontier_scan_total = 0
-	/// Unique entries accepted by Append, or null while collecting/before an accepted Begin.
-	var/dogmos_frontier_upload_cursor
-	/// Retired snapshot released from the tail in bounded batches before further reconciliation.
-	var/list/dogmos_frontier_retired
-	/// A successful sync call still needs another MC slice before a simulation stage may start.
-	var/dogmos_frontier_sync_pending = FALSE
-	/// Service estimate of work items remaining in the pending stage.
-	var/dogmos_stage_remaining_estimate = 0
-	/// Maximum service work items requested by the next stage chunk.
-	var/dogmos_stage_work_limit = DOGMOS_STAGE_INITIAL_WORK_LIMIT
-#endif
 	/// Whether native simulation completed before a callback-drain resume.
 	var/dogmos_active_turf_stages_complete = FALSE
 	/// Whether equalization finished before a pressure-queue continuation.
 	var/dogmos_equalize_stage_complete = FALSE
-	/// Number of FDM passes completed in the current active-turf service cycle.
-	var/dogmos_fdm_steps_completed = 0
 	/// Whether this cycle's complete maintenance walk has published its frontier.
 	var/dogmos_active_walk_complete = FALSE
 	/// Number of initial snapshot entries whose post-simulation visuals have been refreshed.
 	var/dogmos_visual_refresh_cursor = 0
-	/// End of the already-prefetched maintenance chunk, retained across budget pauses.
+	/// End of the current maintenance chunk, retained across budget pauses.
 	var/dogmos_walk_prefetch_end = 0
-	/// End of the already-prefetched settlement chunk, retained across budget pauses.
+	/// End of the current settlement chunk, retained across budget pauses.
 	var/dogmos_visual_prefetch_end = 0
-	/// Upper index captured for the selected range, adjusted for removals; zero when absent.
-	var/dogmos_machine_prefetch_start = 0
-	/// Lowest remaining index included in that range.
-	var/dogmos_machine_prefetch_end = 0
-	/// Next entry to collect, descending through the retained machinery range.
-	var/dogmos_machine_prefetch_cursor = 0
-	/// Next component mixture position, retained when one component spans collection slices.
-	var/dogmos_machine_prefetch_air_cursor = 1
-	/// Whether collection and bounded snapshot requests completed for the current range.
-	var/dogmos_machine_prefetch_ready = FALSE
-	/// At most DOGMOS_MACHINE_PREFETCH_MIXTURES references, retained only until their request completes.
-	var/list/datum/gas_mixture/dogmos_machine_prefetch_mixtures = list()
 	/// One-use continuation override after the Master replaces this subsystem and rebuilds its queue.
 	var/dogmos_resume_recovered_cycle = FALSE
 	/// Turfs that reacted during this active phase and must remain active for another evaluation.
@@ -281,11 +205,6 @@ SUBSYSTEM_DEF(air)
 
 /datum/controller/subsystem/air/Initialize()
 	map_loading = FALSE
-	// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-	dogmos_async_stages = CONFIG_GET(flag/dogmos_async_stages)
-#endif
-	// APHELION EDIT ADDITION END
 	// gas_reactions, dogmos_reactions and the Dogmos gas registry are built by SSdogmos at
 	// INITSTAGE_EARLY - they have to exist before the first turf builds its air. See dogmos.dm.
 	hotspot_reactions = init_hotspot_reactions()
@@ -312,13 +231,6 @@ SUBSYSTEM_DEF(air)
 	if(dogmos_resume_recovered_cycle)
 		resumed = TRUE
 		dogmos_resume_recovered_cycle = FALSE
-#ifndef DOGMOS_IN_PROCESS
-	if(dogmos_health_preflight_required(resumed))
-		SSdogmos.dogmos_health_preflight_count = min(SSdogmos.dogmos_health_preflight_count + 1, DOGMOS_HEALTH_COUNTER_MAX)
-		if(!SSdogmos.service_ready || !dogmos_service_health())
-			dogmos_fail_closed_stage("health preflight")
-			return
-#endif
 	// APHELION EDIT ADDITION END
 	var/timer = TICK_USAGE_REAL
 
@@ -418,12 +330,7 @@ SUBSYSTEM_DEF(air)
 		currentpart = SSAIR_SUPERCONDUCTIVITY
 
 	if(currentpart == SSAIR_SUPERCONDUCTIVITY)
-		// Was never actually measured: the removed comment here claimed a Rust background thread
-		// wrote cost_superconductivity asynchronously (superconduct.rs), but that describes the
-		// legacy in-process DLL path (docs/agent/architecture-and-ownership.md puts turf heat
-		// there) - nothing in the current out-of-process service pipeline produces that write, so
-		// Kennel showed a permanent 0 regardless of whether this stage was running. Measured the
-		// same way as every other stage now.
+		// Measure the synchronous native heat work within this stage.
 		timer = TICK_USAGE_REAL
 		if(!resumed)
 			cached_cost = 0
@@ -431,9 +338,6 @@ SUBSYSTEM_DEF(air)
 		cached_cost += TICK_USAGE_REAL - timer
 		if(state != SS_RUNNING)
 			return
-#ifndef DOGMOS_IN_PROCESS
-		cost_superconductivity = MC_AVERAGE(cost_superconductivity, TICK_DELTA_TO_MS(cached_cost))
-#endif
 		resumed = FALSE
 		currentpart = SSAIR_PROCESS_ATOMS
 
@@ -486,14 +390,7 @@ SUBSYSTEM_DEF(air)
 	// Preserve the phase and cycle separately so its first fire(FALSE) can resume.
 	currentpart = SSair.currentpart
 	times_fired = SSair.times_fired
-#ifdef DOGMOS_IN_PROCESS
 	dogmos_resume_recovered_cycle = initialized && (SSair.dogmos_resume_recovered_cycle || SSair.state == SS_RUNNING || SSair.state == SS_PAUSED || length(SSair.dogmos_visual_refresh_batch))
-#else
-	dogmos_resume_recovered_cycle = initialized && (SSair.dogmos_resume_recovered_cycle \
-		|| SSair.state == SS_RUNNING || SSair.state == SS_PAUSED \
-		|| ((SSair.state == SS_IDLE || SSair.state == SS_QUEUED) \
-			&& (!isnull(SSair.dogmos_pending_stage) || SSair.dogmos_pending_frontier_epoch || length(SSair.dogmos_visual_refresh_batch))))
-#endif
 	share_max_steps = SSair.share_max_steps
 	equalize_enabled = SSair.equalize_enabled
 	realistic_space_radiation = SSair.realistic_space_radiation
@@ -503,40 +400,13 @@ SUBSYSTEM_DEF(air)
 	equalize_hard_turf_limit = SSair.equalize_hard_turf_limit
 	dogmos_blocked_turf_temperature_authority = SSair.dogmos_blocked_turf_temperature_authority
 	dogmos_equalize_performance_profile = SSair.dogmos_equalize_performance_profile
-#ifndef DOGMOS_IN_PROCESS
-	dogmos_frontier_epoch = SSair.dogmos_frontier_epoch.Copy()
-	dogmos_stage_epoch = SSair.dogmos_stage_epoch.Copy()
-	dogmos_pending_stage = SSair.dogmos_pending_stage
-	dogmos_async_stages = SSair.dogmos_async_stages
-	// The job holds only fixed-width words. Transfer its receipt and ready token
-	// together; SSdogmos retains the callback cursor and authoritative service.
-	dogmos_job = SSair.dogmos_job
-	dogmos_job_last_poll_tick = SSair.dogmos_job_last_poll_tick
-	dogmos_pending_frontier_epoch = SSair.dogmos_pending_frontier_epoch?.Copy()
-	// Transfer frontier ownership without copying a world-sized map in Recover().
-	dogmos_committed_frontier = SSair.dogmos_committed_frontier
-	dogmos_frontier_candidate = SSair.dogmos_frontier_candidate
-	dogmos_frontier_retired = SSair.dogmos_frontier_retired
-	dogmos_frontier_upload_epoch = SSair.dogmos_frontier_upload_epoch.Copy()
-	dogmos_frontier_revision = SSair.dogmos_frontier_revision.Copy()
-	dogmos_note_frontier_reset()
-	dogmos_stage_remaining_estimate = SSair.dogmos_stage_remaining_estimate
-	dogmos_stage_work_limit = SSair.dogmos_stage_work_limit
-#endif
 	dogmos_active_turf_stages_complete = SSair.dogmos_active_turf_stages_complete
 	dogmos_equalize_stage_complete = SSair.dogmos_equalize_stage_complete
-	dogmos_fdm_steps_completed = SSair.dogmos_fdm_steps_completed
 	dogmos_visual_refresh_batch = SSair.dogmos_visual_refresh_batch?.Copy() || list()
 	dogmos_active_walk_complete = SSair.dogmos_active_walk_complete
 	dogmos_visual_refresh_cursor = SSair.dogmos_visual_refresh_cursor
 	dogmos_walk_prefetch_end = SSair.dogmos_walk_prefetch_end
 	dogmos_visual_prefetch_end = SSair.dogmos_visual_prefetch_end
-	dogmos_machine_prefetch_start = SSair.dogmos_machine_prefetch_start
-	dogmos_machine_prefetch_end = SSair.dogmos_machine_prefetch_end
-	dogmos_machine_prefetch_cursor = SSair.dogmos_machine_prefetch_cursor
-	dogmos_machine_prefetch_air_cursor = SSair.dogmos_machine_prefetch_air_cursor
-	dogmos_machine_prefetch_ready = SSair.dogmos_machine_prefetch_ready
-	dogmos_machine_prefetch_mixtures = SSair.dogmos_machine_prefetch_mixtures.Copy()
 	dogmos_reacted_turfs = SSair.dogmos_reacted_turfs.Copy()
 
 	kennel_slow_mode = SSair.kennel_slow_mode
@@ -582,16 +452,11 @@ SUBSYSTEM_DEF(air)
 	dogmos_reactions = init_dogmos_reactions(gas_reactions)
 	recover_kennel_derived_state(SSair)
 	RegisterSignal(SSdcs, COMSIG_GLOB_EXPLOSION, PROC_REF(on_kennel_explosion))
-	// SSdogmos owns the service session and all atmosphere state; recovery must not copy or restart it.
+	// SSdogmos owns the native atmosphere arena; recovery must not initialize it twice.
 	// APHELION EDIT ADDITION END
 
 /datum/controller/subsystem/air/proc/process_adjacent_rebuild(init = FALSE)
 	var/list/queue = adjacent_rebuild
-	// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-	SSdogmos.runtime_topology_batching = TRUE
-#endif
-	// APHELION EDIT ADDITION END
 
 	while (length(queue))
 		var/turf/currT = queue[1]
@@ -609,12 +474,6 @@ SUBSYSTEM_DEF(air)
 		else
 			if(MC_TICK_CHECK)
 				break
-	// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-	SSdogmos.runtime_topology_batching = FALSE
-	SSdogmos.flush_turf_registration_batch()
-#endif
-	// APHELION EDIT ADDITION END
 
 /datum/controller/subsystem/air/proc/process_pipenets(resumed = FALSE)
 	if (!resumed)
@@ -672,35 +531,20 @@ SUBSYSTEM_DEF(air)
 		if(MC_TICK_CHECK)
 			return
 
-/// Prefetches bounded reverse ranges before invoking the unchanged atmosphere-processing API. // APHELION EDIT ADDITION - DOGMOS
+/// Processes atmosphere machinery with bounded tick checks. // APHELION EDIT ADDITION - DOGMOS
 /datum/controller/subsystem/air/proc/process_atmos_machinery(resumed = FALSE)
 	if (!resumed)
 		src.currentrun = atmos_machinery.Copy()
-		// APHELION EDIT ADDITION START - DOGMOS
-		dogmos_clear_machinery_prefetch()
-		// APHELION EDIT ADDITION END
 	//cache for sanic speed (lists are references anyways)
 	var/list/currentrun = src.currentrun
 	while(currentrun.len)
 		// APHELION EDIT ADDITION START - DOGMOS
 		if(MC_TICK_CHECK)
 			return
-#ifndef DOGMOS_IN_PROCESS
-		if(!dogmos_machine_prefetch_ready)
-			dogmos_machine_prefetch_ready = dogmos_prefetch_machinery_snapshots(currentrun)
-			if(!dogmos_machine_prefetch_ready)
-				pause()
-				return
-#endif
-		// The request itself can consume the remaining budget. Preserve the range on yield.
-		if(MC_TICK_CHECK)
-			return
 		var/datum/processing_entry = currentrun[currentrun.len]
 		// APHELION EDIT ADDITION END
 		currentrun.len--
 		// APHELION EDIT ADDITION START - DOGMOS
-		if(currentrun.len < dogmos_machine_prefetch_end)
-			dogmos_clear_machinery_prefetch()
 		if(!istype(processing_entry, /obj/machinery) && !istype(processing_entry, /datum/component/gas_leaker))
 			atmos_machinery -= processing_entry
 			continue
@@ -713,7 +557,7 @@ SUBSYSTEM_DEF(air)
 			var/datum/component/gas_leaker/gas_leaker = processing_entry
 			process_result = gas_leaker.process_atmos(wait * 0.1)
 		if(process_result == PROCESS_KILL)
-			stop_processing_machine(processing_entry)
+			stop_processing_machine(processing_entry, currentrun_entry_removed = TRUE)
 		if(ismachinery(processing_entry))
 			var/obj/machinery/profiled_machine = processing_entry
 			check_kennel_machine_cost(profiled_machine, TICK_USAGE_TO_MS(kennel_tick_start))
@@ -722,15 +566,10 @@ SUBSYSTEM_DEF(air)
 			return
 
 
-/** Requests native heat work; only the service backend reports a resumable synchronous stage. */ // APHELION EDIT CHANGE - DOGMOS
+/** Requests native heat work. */ // APHELION EDIT CHANGE - DOGMOS
 /datum/controller/subsystem/air/proc/process_super_conductivity(resumed = FALSE)
 	// APHELION EDIT ADDITION START - DOGMOS
-#ifdef DOGMOS_IN_PROCESS
 	process_turf_heat()
-#else
-	if(process_turf_heat())
-		pause()
-#endif
 	// APHELION EDIT ADDITION END
 
 /datum/controller/subsystem/air/proc/process_hotspots(resumed = FALSE)
@@ -754,7 +593,7 @@ SUBSYSTEM_DEF(air)
 	if(!resumed)
 		dogmos_equalize_stage_complete = FALSE
 	// A budget deferral can happen before a native cursor exists. Only successful
-	// completion permits pressure-only resumes to skip the service stage.
+	// completion permits pressure-only resumes to skip the native stage.
 	if(!dogmos_equalize_stage_complete)
 		var/remaining_ms = TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)
 		if(process_turf_equalize_auxtools(remaining_ms))
@@ -779,17 +618,9 @@ SUBSYSTEM_DEF(air)
  * New activations join the published frontier; their exposure waits until the next cycle.
  */
 /datum/controller/subsystem/air/proc/process_active_turfs(resumed = FALSE)
-	// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-	if(!SSdogmos.service_ready)
-		pause()
-		return
-#endif
-	// APHELION EDIT ADDITION END
 	if(!resumed)
 		// APHELION EDIT ADDITION START - DOGMOS
 		dogmos_active_turf_stages_complete = FALSE
-		dogmos_fdm_steps_completed = 0
 		dogmos_active_walk_complete = FALSE
 		active_turfs_walk_cursor = 0
 		dogmos_visual_refresh_cursor = 0
@@ -806,32 +637,13 @@ SUBSYSTEM_DEF(air)
 				return
 		if(MC_TICK_CHECK)
 			return
-#ifndef DOGMOS_IN_PROCESS
-		if(!sync_dogmos_frontier())
-			dogmos_fail_closed_stage(DOGMOS_SIMULATION_TURFS)
-			return
-		if(dogmos_frontier_sync_pending)
-			pause()
-			return
-#endif
 		dogmos_active_walk_complete = TRUE
 	// APHELION EDIT ADDITION END
 
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(!dogmos_active_turf_stages_complete)
-#ifdef DOGMOS_IN_PROCESS
 		// Native diffusion queues reactions and callbacks in the same stage.
 		process_turfs_auxtools(TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE))
-#else
-		if(isnull(dogmos_pending_stage) || dogmos_pending_stage == DOGMOS_SIMULATION_TURFS)
-			if(process_turfs_auxtools(TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)))
-				pause()
-				return
-		if(isnull(dogmos_pending_stage) || dogmos_pending_stage == DOGMOS_SIMULATION_REACTIONS)
-			if(process_reactions_auxtools(TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)))
-				pause()
-				return
-#endif
 		dogmos_active_turf_stages_complete = TRUE
 	// APHELION EDIT ADDITION END
 
@@ -840,51 +652,6 @@ SUBSYSTEM_DEF(air)
 		return
 	refresh_dogmos_visuals()
 
-/** Processes a bounded round-robin batch without iterating the live list while removing entries. */
-/* // APHELION EDIT REMOVAL START - DOGMOS - superseded by the fixed per-cycle snapshot below
-/datum/controller/subsystem/air/proc/walk_active_turfs_batch()
-	var/list/turfs = active_turfs
-	var/turf_count = length(turfs)
-	if(!turf_count)
-		active_turfs_walk_cursor = 0
-		return
-
-	if(active_turfs_walk_cursor >= turf_count)
-		active_turfs_walk_cursor = 0
-
-	var/batch_end = min(active_turfs_walk_cursor + ACTIVE_TURFS_WALK_BATCH_SIZE, turf_count)
-	var/list/batch = turfs.Copy(active_turfs_walk_cursor + 1, batch_end + 1)
-	dogmos_visual_refresh_batch = batch
-
-	// APHELION EDIT ADDITION START - DOGMOS
-	dogmos_prefetch_walk_snapshots(batch)
-	var/removed_count = 0
-	// APHELION EDIT ADDITION END
-
-	for(var/turf/open/T as anything in batch)
-		if(!T || !T.air)
-			continue
-		if(T.archived_cycle < times_fired)
-			LINDA_CYCLE_ARCHIVE(T)
-		T.current_cycle = times_fired
-		T.temperature_expose(T.air, T.air.return_temperature())
-		if(turf_settled(T))
-			// APHELION EDIT ADDITION START - DOGMOS
-			var/count_before_removal = length(turfs)
-			// APHELION EDIT ADDITION END
-			remove_from_active(T)
-			// APHELION EDIT ADDITION START - DOGMOS
-			removed_count += count_before_removal - length(turfs)
-			// APHELION EDIT ADDITION END
-
-	// Removals may have shortened the list since batch_end was computed.
-	// APHELION EDIT ADDITION START - DOGMOS
-	// Count removals directly: waking neighbors can append entries during the same walk.
-	var/next_cursor = max(0, batch_end - removed_count)
-	// APHELION EDIT ADDITION END
-	active_turfs_walk_cursor = (next_cursor >= length(active_turfs)) ? 0 : next_cursor // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: active_turfs_walk_cursor = (batch_end >= length(active_turfs)) ? 0 : batch_end
-*/ // APHELION EDIT REMOVAL END
-
 // APHELION EDIT ADDITION START - DOGMOS
 /** Visits at most one snapshot chunk, returning TRUE while maintenance remains.
  * The cursor advances before exposure callbacks, so resuming never repeats an emitted exposure.
@@ -892,11 +659,6 @@ SUBSYSTEM_DEF(air)
  */
 /datum/controller/subsystem/air/proc/walk_active_turfs_batch()
 	var/list/snapshot = dogmos_visual_refresh_batch
-#ifndef DOGMOS_IN_PROCESS
-	if(!SSdogmos.service_ready)
-		pause()
-		return TRUE
-#endif
 	var/turf_count = length(snapshot)
 	if(active_turfs_walk_cursor >= turf_count)
 		return FALSE
@@ -904,15 +666,7 @@ SUBSYSTEM_DEF(air)
 		return TRUE
 	if(active_turfs_walk_cursor >= dogmos_walk_prefetch_end)
 		dogmos_walk_prefetch_end = min(active_turfs_walk_cursor + ACTIVE_TURFS_WALK_BATCH_SIZE, turf_count)
-#ifndef DOGMOS_IN_PROCESS
-		dogmos_prefetch_walk_snapshots(snapshot.Copy(active_turfs_walk_cursor + 1, dogmos_walk_prefetch_end + 1))
-#endif
-#ifndef DOGMOS_IN_PROCESS
-		if(!SSdogmos.service_ready)
-			pause()
-			return TRUE
-#endif
-		// Retain the prefetched end even if this request consumed the entire budget.
+		// Retain the chunk end when the tick budget is exhausted.
 		if(MC_TICK_CHECK)
 			return TRUE
 	var/batch_end = dogmos_walk_prefetch_end
@@ -925,11 +679,6 @@ SUBSYSTEM_DEF(air)
 				LINDA_CYCLE_ARCHIVE(active_turf)
 			active_turf.current_cycle = times_fired
 			active_turf.temperature_expose(active_turf.air, active_turf.air.return_temperature())
-#ifndef DOGMOS_IN_PROCESS
-			if(!SSdogmos.service_ready)
-				pause()
-				return TRUE
-#endif
 			if(!QDELETED(active_turf) && isopenturf(active_turf) && active_turf.air)
 				// Wake differing neighbors before publication, but matching gas may
 				// still react. Retirement belongs after native reactions and callbacks.
@@ -937,75 +686,6 @@ SUBSYSTEM_DEF(air)
 		if(MC_TICK_CHECK)
 			return TRUE
 	return active_turfs_walk_cursor < turf_count
-
-/** Batch-fetches turf air snapshots for the active-turf walk batch and their neighbors.
- * compare() reads both the turf and each adjacent turf's air; prefetching them in one IPC call
- * replaces one per unique mixture the walk will access.
- */
-#ifndef DOGMOS_IN_PROCESS
-/datum/controller/subsystem/air/proc/dogmos_prefetch_walk_snapshots(list/batch)
-	var/list/datum/gas_mixture/prefetch = list()
-	for(var/turf/open/T as anything in batch)
-		if(QDELETED(T) || !isopenturf(T))
-			continue
-		if(T?.air)
-			prefetch += T.air
-		for(var/turf/neighbor as anything in T.atmos_adjacent_turfs)
-			if(QDELETED(neighbor) || !isopenturf(neighbor))
-				continue
-			var/turf/open/open_neighbor = neighbor
-			if(open_neighbor.air)
-				prefetch += open_neighbor.air
-	if(length(prefetch))
-		SSdogmos.prefetch_mixture_snapshots(prefetch)
-
-#endif
-
-/** Releases bounded preparation state at a range boundary, new run or fatal shutdown. */
-/datum/controller/subsystem/air/proc/dogmos_clear_machinery_prefetch()
-	dogmos_machine_prefetch_start = 0
-	dogmos_machine_prefetch_end = 0
-	dogmos_machine_prefetch_cursor = 0
-	dogmos_machine_prefetch_air_cursor = 1
-	dogmos_machine_prefetch_ready = FALSE
-	dogmos_machine_prefetch_mixtures.Cut()
-
-/** Resumes collection in processing order, including within oversized component air lists.
- * Returns TRUE once the selected range has completed its bounded snapshot requests.
- * Snapshot caching remains advisory: normal gas writes invalidate it and getters fetch current state.
- */
-#ifndef DOGMOS_IN_PROCESS
-/datum/controller/subsystem/air/proc/dogmos_prefetch_machinery_snapshots(list/machines)
-	if(!dogmos_machine_prefetch_start)
-		dogmos_machine_prefetch_start = length(machines)
-		dogmos_machine_prefetch_end = max(1, length(machines) - DOGMOS_MACHINE_PREFETCH_ENTRIES + 1)
-		dogmos_machine_prefetch_cursor = length(machines)
-	var/list/datum/gas_mixture/prefetch = dogmos_machine_prefetch_mixtures
-	var/visited = 0
-	while(dogmos_machine_prefetch_cursor >= dogmos_machine_prefetch_end \
-		&& visited < DOGMOS_MACHINE_PREFETCH_MIXTURES && length(prefetch) < DOGMOS_MACHINE_PREFETCH_MIXTURES)
-		if(MC_TICK_CHECK)
-			return FALSE
-		visited++
-		var/obj/machinery/atmospherics/components/component = machines[dogmos_machine_prefetch_cursor]
-		if(istype(component) && !QDELETED(component))
-			if(dogmos_machine_prefetch_air_cursor <= length(component.airs))
-				var/datum/gas_mixture/mix = component.airs[dogmos_machine_prefetch_air_cursor++]
-				if(mix)
-					prefetch += mix
-				continue
-			var/turf/open/component_turf = component.loc
-			if(istype(component_turf) && component_turf.air)
-				prefetch += component_turf.air
-		dogmos_machine_prefetch_cursor--
-		dogmos_machine_prefetch_air_cursor = 1
-	if(MC_TICK_CHECK)
-		return FALSE
-	if(length(prefetch))
-		SSdogmos.prefetch_mixture_snapshots(prefetch)
-		prefetch.Cut()
-	return dogmos_machine_prefetch_cursor < dogmos_machine_prefetch_end
-#endif
 
 // APHELION EDIT ADDITION END
 
@@ -1024,24 +704,11 @@ SUBSYSTEM_DEF(air)
 /** Resumes post-simulation visuals without repeating native stages or completed refreshes. */
 /datum/controller/subsystem/air/proc/refresh_dogmos_visuals()
 	var/list/snapshot = dogmos_visual_refresh_batch
-#ifndef DOGMOS_IN_PROCESS
-	if(!SSdogmos.service_ready)
-		pause()
-		return
-#endif
 	while(dogmos_visual_refresh_cursor < length(snapshot))
 		if(MC_TICK_CHECK)
 			return
 		if(dogmos_visual_refresh_cursor >= dogmos_visual_prefetch_end)
 			dogmos_visual_prefetch_end = min(dogmos_visual_refresh_cursor + ACTIVE_TURFS_WALK_BATCH_SIZE, length(snapshot))
-#ifndef DOGMOS_IN_PROCESS
-			dogmos_prefetch_walk_snapshots(snapshot.Copy(dogmos_visual_refresh_cursor + 1, dogmos_visual_prefetch_end + 1))
-#endif
-#ifndef DOGMOS_IN_PROCESS
-			if(!SSdogmos.service_ready)
-				pause()
-				return
-#endif
 			if(MC_TICK_CHECK)
 				return
 		var/batch_end = dogmos_visual_prefetch_end
@@ -1051,11 +718,6 @@ SUBSYSTEM_DEF(air)
 				if(active_turf.excited && turf_settled(active_turf) && !dogmos_reacted_turfs[active_turf])
 					remove_from_active(active_turf)
 				active_turf.update_visuals()
-#ifndef DOGMOS_IN_PROCESS
-				if(!SSdogmos.service_ready)
-					pause()
-					return
-#endif
 				check_kennel_reaction_of_interest(active_turf)
 			if(MC_TICK_CHECK)
 				return
@@ -1074,19 +736,28 @@ SUBSYSTEM_DEF(air)
  */
 /datum/controller/subsystem/air/proc/turf_settled(turf/open/T)
 	// APHELION EDIT ADDITION START - DOGMOS
-	var/source_is_immutable = T.air.is_immutable()
-	// APHELION EDIT ADDITION END
-	var/settled = source_is_immutable || !T.active_hotspot // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/settled = !T.active_hotspot
-	for(var/turf/neighbor as anything in T.atmos_adjacent_turfs)
-		if(!isopenturf(neighbor))
-			continue
-		var/turf/open/open_neighbor = neighbor
-		var/differs = T.air.compare(open_neighbor.air)
-		if(differs)
-			settled = source_is_immutable // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: settled = FALSE
-			if(!open_neighbor.air.is_immutable())
-				add_to_active(open_neighbor)
+	// One bounded native query replaces per-neighbor compare/immutability crossings.
+	// Neither this result nor the wake decision survives the current call.
+	var/list/neighbors = list()
+	var/list/mixtures = list()
+	for(var/turf/open/neighbor as anything in T.atmos_adjacent_turfs)
+		if(isopenturf(neighbor))
+			neighbors += neighbor
+			mixtures += neighbor.air
+	var/list/settlement = T.air.__settlement_batch(mixtures)
+	if(length(settlement) != length(neighbors) + 1)
+		CRASH("Dogmos returned an invalid settlement batch.")
+	var/source_is_immutable = settlement[1]
+	var/settled = source_is_immutable || !T.active_hotspot
+	for(var/index in 1 to length(neighbors))
+		var/neighbor_state = settlement[index + 1]
+		if(neighbor_state)
+			settled = source_is_immutable
+			// State 1 is a differing fixed boundary; state 2 is a mutable neighbor.
+			if(neighbor_state == 2)
+				add_to_active(neighbors[index])
 	return settled
+	// APHELION EDIT ADDITION END
 
 /** Runs Rust's low-pressure equalizer within the current tick budget. */
 /datum/controller/subsystem/air/proc/process_excited_groups(resumed = FALSE)
@@ -1140,7 +811,7 @@ SUBSYSTEM_DEF(air)
 				net.add_machinery_member(considered_device)
 				continue
 			var/obj/machinery/atmospherics/pipe/item = considered_device
-			if(net.members.Find(item))
+			if(item.parent == net) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(net.members.Find(item))
 				continue
 			if(item.parent)
 				var/static/pipenetwarnings = 10
@@ -1209,7 +880,7 @@ SUBSYSTEM_DEF(air)
 	if(istype(activate) && activate.air)
 		// NOVA EDIT ADDITION START - DOGMOS
 		for(var/obj/machinery/atmospherics/atmos_machine in activate)
-			if(atmos_machine.wake_on_turf_atmos)
+			if(atmos_machine.wake_on_turf_atmos && !atmos_machine.atmos_processing) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(atmos_machine.wake_on_turf_atmos)
 				start_processing_machine(atmos_machine)
 		// NOVA EDIT ADDITION END
 		activate.significant_share_ticker = 0
@@ -1248,13 +919,6 @@ SUBSYSTEM_DEF(air)
 // APHELION EDIT ADDITION START - DOGMOS
 /** Prefetches own gas before initialization reads its visuals, preserving turf order and cycle stamps. */
 /datum/controller/subsystem/air/proc/dogmos_initialize_turf_batch(list/batch, list/difference_check, time)
-#ifndef DOGMOS_IN_PROCESS
-	var/list/mixtures = list()
-	for(var/turf/open/setup as anything in batch)
-		if(!QDELETED(setup) && isopenturf(setup) && setup.init_air && setup.air)
-			mixtures += setup.air
-	SSdogmos.prefetch_mixture_snapshots(mixtures)
-#endif
 	for(var/turf/setup as anything in batch)
 		if(QDELETED(setup) || !setup.init_air)
 			continue
@@ -1268,12 +932,6 @@ SUBSYSTEM_DEF(air)
 /datum/controller/subsystem/air/proc/setup_allturfs()
 	var/list/active_turfs = src.active_turfs
 	times_fired++
-	// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-	if(DOGMOS)
-		SSdogmos.begin_turf_registration_batch()
-#endif
-	// APHELION EDIT ADDITION END
 
 	// Clear active turfs - faster than removing every single turf in the world
 	// one-by-one, and Initalize_Atmos only ever adds `src` back in.
@@ -1313,34 +971,15 @@ SUBSYSTEM_DEF(air)
 	if(DOGMOS)
 		if(length(initialization_batch))
 			time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
-#ifdef DOGMOS_IN_PROCESS
 		// Rebuild edges after every endpoint has registered, independent of map order.
 		for(var/turf/registered_turf as anything in difference_check)
 			registered_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
 			CHECK_TICK
-#else
-		SSdogmos.retry_startup_turf_adjacencies()
-		SSdogmos.finish_turf_registration_batch()
-#endif
 	// APHELION EDIT ADDITION END
 
 	// Now we're gonna compare for differences
 	// Taking advantage of current cycle being set to negative before this run to do A->B B->A prevention
-	// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-	var/difference_index = 0
-#endif
-	// Startup comparisons need the same bounded snapshot prefetch as the runtime walk.
-	// Fetching each mixture on demand otherwise turns map setup into one IPC per cache miss.
-	// APHELION EDIT ADDITION END
 	for(var/turf/open/potential_diff as anything in difference_check)
-		// APHELION EDIT ADDITION START - DOGMOS
-#ifndef DOGMOS_IN_PROCESS
-		difference_index++
-		if(DOGMOS && (difference_index - 1) % ACTIVE_TURFS_WALK_BATCH_SIZE == 0)
-			dogmos_prefetch_walk_snapshots(difference_check.Copy(difference_index, min(difference_index + ACTIVE_TURFS_WALK_BATCH_SIZE, length(difference_check) + 1)))
-#endif
-		// APHELION EDIT ADDITION END
 		// I can't use 0 here, so we're gonna do this instead. If it ever breaks I'll eat my shoe
 		potential_diff.current_cycle = -INFINITY
 		for(var/turf/open/enemy_tile as anything in potential_diff.atmos_adjacent_turfs)
@@ -1635,8 +1274,9 @@ GLOBAL_LIST_EMPTY(colored_images)
  *
  * Arguments:
  * * machine - The atmosphere-processing machine or gas-leaker component to stop.
+ * * currentrun_entry_removed - The processing loop has already popped this entry; other callers leave FALSE.
  */
-/datum/controller/subsystem/air/proc/stop_processing_machine(datum/machine) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /datum/controller/subsystem/air/proc/stop_processing_machine(obj/machinery/machine)
+/datum/controller/subsystem/air/proc/stop_processing_machine(datum/machine, currentrun_entry_removed = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /datum/controller/subsystem/air/proc/stop_processing_machine(obj/machinery/machine)
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(!istype(machine, /obj/machinery) && !istype(machine, /datum/component/gas_leaker))
 		return
@@ -1664,24 +1304,18 @@ GLOBAL_LIST_EMPTY(colored_images)
 	// If we're currently processing atmos machines, there's a chance this machine is in
 	// the currentrun list, which is a cache of atmos_machinery. Remove it from that list
 	// as well to prevent processing qdeleted objects in the cache.
-	if(currentpart == SSAIR_ATMOSMACHINERY)
+	if(currentpart == SSAIR_ATMOSMACHINERY && !currentrun_entry_removed) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(currentpart == SSAIR_ATMOSMACHINERY)
 		// APHELION EDIT ADDITION START - DOGMOS
-		// Removal shifts lower ranges and a partially collected component's index.
+		// Find the entry once before removing it from the continuation.
 		var/removed_index = currentrun.Find(machine)
-		if(removed_index && dogmos_machine_prefetch_start)
-			if(removed_index <= dogmos_machine_prefetch_start)
-				dogmos_machine_prefetch_start--
-			if(removed_index < dogmos_machine_prefetch_end)
-				dogmos_machine_prefetch_end--
-			if(removed_index == dogmos_machine_prefetch_cursor)
-				dogmos_machine_prefetch_air_cursor = 1
-			if(removed_index <= dogmos_machine_prefetch_cursor)
-				dogmos_machine_prefetch_cursor--
 		// APHELION EDIT ADDITION END
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		currentrun -= machine
+		*/ // APHELION EDIT REMOVAL END
 		// APHELION EDIT ADDITION START - DOGMOS
-		if(length(currentrun) < dogmos_machine_prefetch_end)
-			dogmos_clear_machinery_prefetch()
+		// Reuse the lookup above instead of scanning this continuation a second time.
+		if(removed_index)
+			currentrun.Cut(removed_index, removed_index + 1)
 		// APHELION EDIT ADDITION END
 
 /datum/controller/subsystem/air/ui_state(mob/user)
@@ -1799,10 +1433,3 @@ GLOBAL_LIST_EMPTY(colored_images)
 			return TRUE
 
 #undef KENNEL_SLOW_MODE_PUSH_INTERVAL
-#undef DOGMOS_STAGE_INITIAL_WORK_LIMIT
-#undef DOGMOS_MACHINE_PREFETCH_ENTRIES
-#undef DOGMOS_MACHINE_PREFETCH_MIXTURES
-#undef DOGMOS_SIMULATION_TURF_EQUALIZE
-#undef DOGMOS_SIMULATION_TURFS
-#undef DOGMOS_SIMULATION_REACTIONS
-#undef DOGMOS_HEALTH_COUNTER_MAX

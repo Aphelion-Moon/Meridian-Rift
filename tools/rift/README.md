@@ -27,16 +27,16 @@ RIFT.cmd doctor
 RIFT.cmd compile --mode fast|full [--force]
 RIFT.cmd run [--compile-mode fast|full] [--map <_maps/file.json>]
     [--port <1-65535>] [--readiness-timeout-seconds <n>]
-    [--run-seconds <0-1800>] [--shim <dogmos.dll>]
-    [--service <dogmosd.exe>]
+    [--run-seconds <0-1800>] [--native <dogmos.dll>]
+
 RIFT.cmd test [--focus </datum/unit_test/name>]...
     [--map <_maps/file.json>] [--minimum-tests <n>]
-    [--readiness-timeout-seconds <n>] [--shim <dogmos.dll>]
-    [--service <dogmosd.exe>]
+    [--readiness-timeout-seconds <n>] [--native <dogmos.dll>]
+
 RIFT.cmd soak --run-seconds <30-1800>
     [--compile-mode fast|full] [--map <_maps/file.json>]
     [--readiness-timeout-seconds <n>]
-    [--shim <dogmos.dll>] [--service <dogmosd.exe>]
+    [--native <dogmos.dll>]
 RIFT.cmd report <run-id> [--format human|jsonl|result]
 ```
 
@@ -58,8 +58,8 @@ The checked-in profiles are:
 
 - `default`: repository configuration, suitable for normal boot/soak work.
 - `ci`: `tools/ci/ci_config.txt`, `-close`, required clean-run and unit-test artifacts, and `_maps/metastation.json` by default.
-- `dogmos`: repository configuration, full RuntimeStation, Dogmos fatal rules, and exactly one continuous `dogmosd.exe` child.
-- `dogmos-ci`: CI configuration, MetaStation with full CentCom, skipped Lavaland/space levels, Dogmos fatal rules, and exactly one continuous `dogmosd.exe` child. `MINIMAL_CENTCOM` is incompatible with this representative-map profile.
+- `dogmos`: repository configuration, full RuntimeStation, Dogmos fatal rules, and native panic detection.
+- `dogmos-ci`: CI configuration, MetaStation with full CentCom, skipped Lavaland/space levels, Dogmos fatal rules, and native panic detection. `MINIMAL_CENTCOM` is incompatible with this representative-map profile.
 
 `test` selects `ci` when `--profile` is omitted; other commands select `default`. A test profile is rejected unless it uses the CI config, requests natural `-close` shutdown, and requires nonempty unit-test and clean-run artifacts.
 
@@ -97,9 +97,9 @@ The MCP shim accepts validated `MERIDIAN_RIFT_WALL_TIMEOUT_SECONDS` and `MERIDIA
 
 `test` performs a `CIBUILDING` compile and validates `data/unit_tests.json`, minimum counts, failures, profile artifacts, and natural DreamDaemon termination. BYOND 516.1687/Bun 1.3.5 on Windows produced different native exit values (224 and 176) for otherwise identical clean MetaStation test shutdowns. RIFT therefore records the native value but does not use it as the success classifier after natural termination; fresh passing result JSON, minimum counts, zero runtime failures, and required clean artifacts are authoritative. The CI profile uses MetaStation by default. Database-backed game tests still require the repository's configured MariaDB service. A disposable local MariaDB container is one optional way to supply it, but Docker is not configured or managed by RIFT.
 
-`soak` requires a bounded 30-1800 second window, monitors fatal logs and continuous child rules, samples private and working-set bytes by stable role, and records normalized runtime signatures. When both Dogmos overlay arguments are supplied, their nonempty inputs are copied only into the isolated workspace as `dogmos.dll` and `dogmosd.exe`.
+`soak` requires a bounded 30-1800 second window, monitors fatal logs and continuous child rules, samples private and working-set bytes by stable role, and records normalized runtime signatures. An optional native overlay is copied only into the isolated workspace.
 
-Dogmos runtime profiles require both overlay arguments. Before compile or launch, RIFT runs the checked-in installed-contract verifier against `dogmos.lock.json`, bindings, contract defines, and all four platform binaries. The supplied Windows overlay pair must byte-match that verified installed contract. Source-to-game release synchronization remains an explicit `tools/dogmos/sync_contract.ps1` operation.
+Dogmos profiles verify the installed platform library, lock, bindings and contract defines. An optional `--native` overlay must byte-match that contract. Synchronize source-bound bundles with `tools/dogmos/sync_in_process.py`.
 
 Ctrl+C and Ctrl+Break mark the workflow cancelled, terminate only active owned process trees, perform normal collection/cleanup, write the final summary, and return 130.
 

@@ -32,12 +32,10 @@ SUBSYSTEM_DEF(dogmos)
 	var/gases_registered = FALSE
 
 /datum/controller/subsystem/dogmos/Initialize()
-#ifdef DOGMOS_IN_PROCESS
 	var/native_identity = dogmos_in_process_identity()
 	if(native_identity != DOGMOS_IN_PROCESS_IDENTITY)
 		stack_trace("Dogmos native identity mismatch: expected [DOGMOS_IN_PROCESS_IDENTITY], got [native_identity].")
 		return SS_INIT_FAILURE
-#endif
 	// Build the reaction table before the Rust registry starts.
 	SSair.gas_reactions = init_gas_reactions()
 	SSair.dogmos_reactions = init_dogmos_reactions(SSair.gas_reactions)
@@ -53,11 +51,6 @@ SUBSYSTEM_DEF(dogmos)
 		return SS_INIT_FAILURE
 
 	gases_registered = TRUE
-	#if defined(UNIT_TESTS) && !defined(DOGMOS_IN_PROCESS)
-	if(GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
-		|| GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile))
-		INVOKE_ASYNC(src, PROC_REF(record_shift_start_performance))
-	#endif
 	return SS_INIT_SUCCESS
 
 /** Stops Dogmos workers and releases its Rust-side arenas. */

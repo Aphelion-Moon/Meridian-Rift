@@ -222,7 +222,7 @@
 		var/datum/gas/gas = gas_type
 		fusion_gasdata.Add(list(list(
 		"id"= initial(gas.id),
-		"amount" = round(connected_core.internal_fusion.get_moles(gas), 0.01),
+		"amount" = round(connected_core.internal_fusion.get_moles(gas), DOGMOS_MOLE_DISPLAY_PRECISION), // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: "amount" = round(connected_core.internal_fusion.get_moles(gas), 0.01),
 		)))
 	//Moderator gases
 	var/list/moderator_gasdata = list()
@@ -230,7 +230,7 @@
 		var/datum/gas/gas = gas_type
 		moderator_gasdata.Add(list(list(
 		"id"= initial(gas.id),
-		"amount" = round(connected_core.moderator_internal.get_moles(gas), 0.01),
+		"amount" = round(connected_core.moderator_internal.get_moles(gas), DOGMOS_MOLE_DISPLAY_PRECISION), // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: "amount" = round(connected_core.moderator_internal.get_moles(gas), 0.01),
 		)))
 
 	data["fusion_gases"] = fusion_gasdata

@@ -1,7 +1,7 @@
 # About Dogmos
 
 Dogmos is Meridian Rift's atmospheric simulation backend. Dream Maker owns subsystem scheduling,
-machinery, gameplay effects, and the public gas-mixture API. The Rust service owns gas-mixture
+machinery, gameplay effects, and the public gas-mixture API. The Rust engine owns gas-mixture
 storage and performs the repeated numerical work for turf flow, reactions, pressure equalization,
 and blocked-path heat conduction.
 
@@ -18,12 +18,12 @@ configuration control is used.
 - **Group / Equalize Components** are work counts reported by the latest native processing cycle.
   They are not counts of unique station turfs.
 - **Atmospherics Stage Costs** are smoothed wall-clock measurements around controller stages. They
-  include Dream Maker work, IPC waits, and native processing inside the measured envelope; they are
+  include Dream Maker work, native boundary calls and processing inside the measured envelope; they are
   not Rust-only timings. Uninstrumented legacy rows are omitted.
 - A **negative** or non-finite stage cost is an invalid timing sample. It does not represent saved
   time or negative work. The Kennel displays such a value as an instrumentation error instead of
   drawing it on the cost scale.
-- **DreamDaemon** and **dogmosd** memory belong to different processes. Do not add their values
+- **DreamDaemon** and **native engine** memory belong to different processes. Do not add their values
   together when evaluating DreamDaemon's 32-bit address-space pressure.
 
 Idle performance should be judged with no players and no active atmospheric event on Runtime

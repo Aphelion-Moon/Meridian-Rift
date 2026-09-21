@@ -26,7 +26,7 @@ function Test-CaptureAdministrator {
 
 function Get-CaptureDeployment([string]$Root) {
     $records = @()
-    $files = @('tgstation.dmb','dogmos.lock.json','dogmos.dll','dogmosd.exe')
+    $files = @('tgstation.dmb','dogmos.lock.json','dogmos.dll')
     if (Test-Path -LiteralPath (Join-Path $Root 'tgstation.rsc') -PathType Leaf) { $files += 'tgstation.rsc' }
     foreach ($name in $files) {
         $file = Join-Path $Root $name
@@ -36,15 +36,9 @@ function Get-CaptureDeployment([string]$Root) {
     }
     $lock = Get-Content -LiteralPath (Join-Path $Root 'dogmos.lock.json') -Raw | ConvertFrom-Json
     if ($lock.schema_version -ne 1) { throw 'Unsupported Dogmos lock schema.' }
-    foreach ($role in @('shim','service')) {
-        $expected = @($lock.artifacts | Where-Object { $_.platform -eq 'windows' -and $_.role -eq $role })
-        $name = if ($role -eq 'shim') {'dogmos.dll'} else {'dogmosd.exe'}
-        $architecture = if ($role -eq 'shim') {'i686'} else {'x86_64'}
-        $actual = @($records | Where-Object { $_.path -eq $name })[0]
-        if ($expected.Count -ne 1 -or $expected[0].file -ne ('windows/'+$name) -or $expected[0].architecture -ne $architecture -or $expected[0].size -ne $actual.bytes -or $expected[0].sha256 -ne $actual.sha256) {
-            throw "The deployed $name does not match dogmos.lock.json."
-        }
-    }
+    $verifier = Join-Path $Root 'tools/dogmos/verify_contract.py'
+    & python -B $verifier verify-installed --root $Root
+    if ($LASTEXITCODE -ne 0) { throw 'The deployed native artifact contract failed verification.' }
     return $records
 }
 

@@ -2,7 +2,7 @@
 
 ## One-click startup capture
 
-1. Extract the complete `dogmos-server-profiler-20260910.zip` on the main Windows
+1. Extract the complete prepared profiler bundle on the main Windows
    server. Keep its `bin`, `licenses`, `provenance` and `bundle.json` together.
 2. Right-click `START_CAPTURE.cmd` and choose **Run as administrator**. On first
    use, enter the actual TGS deployment folder containing `tgstation.dmb` and
@@ -18,7 +18,7 @@
    before treating a run as successful. Traces and samples still need review.
 
 The launcher verifies the bundle and collector startup, checks the deployed
-Windows shim/service against `dogmos.lock.json`, rejects an existing marker or
+Windows native library against `dogmos.lock.json`, rejects an existing marker or
 profiler listener, and checks output write access before arming. The attached
 DreamDaemon must have started after arming, use the selected engine executable,
 and have the hook loaded from this deployment. Build/native hashes are compared
@@ -45,7 +45,7 @@ The one-click flow removes its own unconsumed empty marker on completion or a
 handled failure. It preserves a marker that changed ownership/content. Abruptly
 closing PowerShell or powering off can bypass cleanup; check `data/enable_tracy`
 before the next unprofiled round. The hook remains loaded until the game's next
-hard restart. No game, service, or TGS process is stopped by the collector.
+hard restart. No game or TGS process is stopped by the collector.
 Preflight failures also save `capture-failure-<UTC timestamp>.json` beside the
 launcher when that directory is writable. Partial capture evidence is retained.
 
@@ -55,7 +55,7 @@ and workload acceptance remain to be tested on that server.
 
 ## Collector prerequisites and manual modes
 
-Run the portable bundle from a local administrator PowerShell session alongside TGS. The script targets Windows PowerShell 5.1 or PowerShell 7 on Windows Server 2022. Its pinned x86 hook supports BYOND **516.1685–516.1687**; the collector is x64 and uses Tracy v0.14.0/protocol 82. It does not require Codex or Meridian-MCP on the server.
+Run the portable bundle from a local administrator PowerShell session alongside TGS. The script targets Windows PowerShell 5.1 or PowerShell 7 on Windows Server 2022. Its pinned x86 hook supports BYOND **516.1685â€“516.1687**; the collector is x64 and uses Tracy v0.14.0/protocol 82. It does not require Codex or Meridian-MCP on the server.
 
 The collector requires the **x64 Microsoft Visual C++ v14 Redistributable**, at least as recent as its MSVC 14.44 build tools. Install the signed package directly from [Microsoft's supported downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist). Microsoft lists Windows Server 2022 as supported. The bundle does not redistribute Microsoft runtime DLLs or the BYOND installation. The hook itself imports only Windows system libraries.
 
@@ -74,11 +74,11 @@ $game = 'D:\TGS\Instance\Game'
 
 The hook defaults to `127.0.0.1:8086`. If TGS inherits `UTRACY_BIND_ADDRESS` or `UTRACY_BIND_PORT`, ensure those select loopback and the chosen profiler port. Changing variables in an administrator shell does not change an already-running TGS service's environment. The script rejects non-loopback listeners and listeners whose loaded hook comes from another game directory. No firewall opening is needed.
 
-`capture.json` records validation, window hashes and completion/failure. `response-*.json` retains collector responses, including capture failures. `processes.csv` samples DreamDaemon, its direct `dogmosd` child, and the collector separately at a nominal 250 ms interval; process discovery occurs once per second. Actual sample timestamps capture scheduling delays. Private bytes, working set, virtual bytes and cumulative CPU seconds are reported separately for each process. These are not address-space region maps or native procedure timings. Keep the round logs and add the map, seed, exact deployed merge SHA, hardware description, scenario and timestamps of actions alongside the capture.
+`capture.json` records validation, window hashes and completion/failure. `response-*.json` retains collector responses, including capture failures. `processes.csv` samples DreamDaemon and the collector separately at a nominal 250 ms interval; process discovery occurs once per second. Actual sample timestamps capture scheduling delays. Private bytes, working set, virtual bytes and cumulative CPU seconds are reported separately for each process. These are not address-space region maps or native procedure timings. Keep the round logs and add the map, seed, exact deployed merge SHA, hardware description, scenario and timestamps of actions alongside the capture.
 
-Windows have short attachment gaps and omit early startup before the first capture window. Do not sum overlapping inclusive procedure costs. Profiling itself adds overhead: compare repeated runs using the same instrumented setup and workload. The BYOND hook profiles DM procedure execution; it cannot split a synchronous Dogmos call into service-internal Rust procedures. Separate native instrumentation would need a reviewed native release.
+Windows have short attachment gaps and omit early startup before the first capture window. Do not sum overlapping inclusive procedure costs. Profiling itself adds overhead: compare repeated runs using the same instrumented setup and workload. The BYOND hook profiles DM procedure execution; it cannot split a synchronous Dogmos call into native Rust procedures. Separate native instrumentation would need a reviewed native release.
 
-The capture stops only its own collector. It never stops DreamDaemon, `dogmosd`, or TGS. The hook drains/discards events when no collector is connected. Its instrumentation remains loaded until the next hard restart. The existing game consumes the one-shot marker at startup; verify it is gone before the next round. If abandoning an armed capture before startup, remove only the `data/enable_tracy` marker you created. Do not replace or delete a loaded `prof.dll`; stop the profiled game normally before removing it.
+The capture stops only its own collector. It never stops DreamDaemon or TGS. The hook drains/discards events when no collector is connected. Its instrumentation remains loaded until the next hard restart. The existing game consumes the one-shot marker at startup; verify it is gone before the next round. If abandoning an armed capture before startup, remove only the `data/enable_tracy` marker you created. Do not replace or delete a loaded `prof.dll`; stop the profiled game normally before removing it.
 
 Redistribution is permitted under the included licenses: [Tracy BSD-3-Clause](https://github.com/wolfpld/tracy/blob/099df3de3dc37eca4712c06b8320fb9c53596edd/LICENSE), [byond-tracy and its LZ4 BSD-2-Clause notices](https://github.com/spacestation13/byond-tracy/blob/d1ec404737b04b1ea73d6df4a1b477deacdb1900/LICENSE), and the bundled Meridian helper and dependency notices. Keep `licenses` and `provenance` with the binaries. Do not claim upstream endorsement. The hook includes the Meridian empty-queue and health patches; the collector includes the Meridian clock-access patch and fixed-command wrapper. Exact hashes are recorded in `bundle.json` and the original helper manifest.
 

@@ -277,7 +277,7 @@
 		"time" = round_timestamp(),
 		"jump_to" = REF(src),
 		"area" = breach_area ? breach_area.name : null,
-		"moles_lost" = round(amount, 0.1),
+		"moles_lost" = round(amount, DOGMOS_MOLE_DISPLAY_PRECISION), // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: "moles_lost" = round(amount, 0.1),
 	), src)
 	for(var/obj/machinery/breach_adjacent_machine in src)
 		SSair.kennel_pin_structure(breach_adjacent_machine, "breach-adjacent", SSair.kennel_auto_pin_duration)

@@ -115,7 +115,7 @@
 					add_machinery_member(considered_device)
 					continue
 				var/obj/machinery/atmospherics/pipe/item = considered_device
-				if(members.Find(item))
+				if(item.parent == src) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(members.Find(item))
 					continue
 				if(item.parent)
 					var/static/pipenetwarnings = 10
@@ -306,7 +306,7 @@
 		var/list/giver_cached_moles = gas_mixture.get_moles_list()
 		var/heat_capacity = values_dot(giver_cached_moles, cached_specific_heat)
 		//gas transfer
-		// Batched into one dogmosd round trip instead of one adjust_moles() IPC call per gas type -
+		// Batched into one native call instead of one adjust_moles() call per gas type -
 		// this loop runs per member, per pipe network, every tick, and each adjust_moles() used to be
 		// its own cross-process call.
 		var/list/gas_deltas = list()

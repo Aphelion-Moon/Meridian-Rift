@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { runProbeProcess } from '../../../tools/rift/process';
+import { hashArtifact, RunRecorder } from '../../../tools/rift/report';
 import {
   acquireRunLock,
   allocateRun,
@@ -9,15 +11,13 @@ import {
   parseDependencyPins,
   preflightOffline,
   qualifyRepository,
+  type RiftCommand,
+  type RiftProfile,
   resolveByond,
   runTestWorkflow,
   validateMapPath,
   verifyDogmosInstalledContract,
-  type RiftProfile,
-  type RiftCommand,
 } from '../../../tools/rift/rift';
-import { runProbeProcess } from '../../../tools/rift/process';
-import { hashArtifact, RunRecorder } from '../../../tools/rift/report';
 
 const OBSERVER_FOCUS = '/datum/unit_test/dogmos_shared_baseline_observer';
 const DEFAULT_MAP = '_maps/metastation.json';
@@ -63,7 +63,9 @@ const parseArguments = (argv: string[]): Arguments => {
     if (option === '--cache-mode') {
       const value = argv[++index] as Arguments['cacheMode'] | undefined;
       if (value !== 'shared-pinned' && value !== 'cold-isolated') {
-        throw new Error(`${usage()}\ncache mode must be shared-pinned or cold-isolated`);
+        throw new Error(
+          `${usage()}\ncache mode must be shared-pinned or cold-isolated`,
+        );
       }
       cacheMode = value;
       continue;
@@ -84,7 +86,9 @@ const parseArguments = (argv: string[]): Arguments => {
     throw new Error(`${usage()}\ncold-isolated mode requires --cache-root`);
   }
   if (cacheMode === 'shared-pinned' && cacheRoot !== null) {
-    throw new Error(`${usage()}\n--cache-root requires --cache-mode cold-isolated`);
+    throw new Error(
+      `${usage()}\n--cache-root requires --cache-mode cold-isolated`,
+    );
   }
   return { repository: path.resolve(repository), map, cacheMode, cacheRoot };
 };
@@ -129,29 +133,23 @@ const fileIsNonempty = async (filePath: string) => {
   return Boolean(stat?.isFile() && stat.size > 0);
 };
 
-type NativePair = { shim: string; service: string };
+type NativeLibrary = { native: string };
 
-const detectDogmosPair = async (repositoryRoot: string): Promise<NativePair | null> => {
-  const verifier = path.join(repositoryRoot, 'tools', 'dogmos', 'verify_contract.py');
-  const lock = path.join(repositoryRoot, 'dogmos.lock.json');
-  const marker = (await fileIsNonempty(verifier)) || (await fileIsNonempty(lock));
-  const pairs: NativePair[] = process.platform === 'win32'
-    ? [{ shim: path.join(repositoryRoot, 'dogmos.dll'), service: path.join(repositoryRoot, 'dogmosd.exe') }]
-    : [{ shim: path.join(repositoryRoot, 'libdogmos.so'), service: path.join(repositoryRoot, 'dogmosd') }];
-  const present = await Promise.all(pairs.map(async (pair) => ({
-    pair,
-    shim: await fileIsNonempty(pair.shim),
-    service: await fileIsNonempty(pair.service),
-  })));
-  const complete = present.filter((entry) => entry.shim && entry.service);
-  const anyNative = present.some((entry) => entry.shim || entry.service);
-  if (!marker && !anyNative) {
-    return null;
-  }
-  if (complete.length !== 1 || !marker) {
-    throw new Error('Dogmos markers or native files are incomplete; refusing to treat the checkout as a no-Dogmos baseline.');
-  }
-  return complete[0].pair;
+const detectDogmosNative = async (
+  repositoryRoot: string,
+): Promise<NativeLibrary | null> => {
+  const marker = await fileIsNonempty(
+    path.join(repositoryRoot, 'dogmos.lock.json'),
+  );
+  const native = path.join(
+    repositoryRoot,
+    process.platform === 'win32' ? 'dogmos.dll' : 'libdogmos_in_process.so',
+  );
+  const present = await fileIsNonempty(native);
+  if (!marker && !present) return null;
+  if (!marker || !present)
+    throw new Error('Dogmos native contract is incomplete.');
+  return { native };
 };
 
 const mergeById = <T extends { id: string }>(...groups: T[][]): T[] => {
@@ -195,9 +193,13 @@ const writeScratchDme = async (
 ): Promise<string> => {
   const scratch = path.join(repositoryRoot, `.rift-${runId}.observer.dme`);
   if (await Bun.file(scratch).exists()) {
-    throw new Error(`observer scratch already exists: ${path.basename(scratch)}`);
+    throw new Error(
+      `observer scratch already exists: ${path.basename(scratch)}`,
+    );
   }
-  const source = await Bun.file(path.join(repositoryRoot, 'tgstation.dme')).text();
+  const source = await Bun.file(
+    path.join(repositoryRoot, 'tgstation.dme'),
+  ).text();
   const includePath = OBSERVER_FILE.replaceAll('\\', '/');
   let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
   let created = false;
@@ -235,8 +237,7 @@ const removeScratchDme = async (repositoryRoot: string, runId: string) => {
 const makeCommand = (
   map: string,
   profileName: string,
-  shim: string | null,
-  service: string | null,
+  native: string | null,
 ): Extract<RiftCommand, { command: 'test' }> => ({
   command: 'test',
   focus: [OBSERVER_FOCUS],
@@ -250,8 +251,7 @@ const makeCommand = (
   idleTimeoutSeconds: 300,
   waitForLockSeconds: 0,
   keepWorkspace: false,
-  shim,
-  service,
+  native,
 });
 
 export const runComparison = async (argv: string[]): Promise<number> => {
@@ -260,18 +260,16 @@ export const runComparison = async (argv: string[]): Promise<number> => {
   const pins = parseDependencyPins(
     await fs.readFile(baseRepository.dependencies, 'utf8'),
   );
-  const profiles = await loadProfiles(
-    RIFT_PROFILE_FILE,
-  );
+  const profiles = await loadProfiles(RIFT_PROFILE_FILE);
   const ciProfile = profiles.get('ci');
   const dogmosCiProfile = profiles.get('dogmos-ci');
   if (!ciProfile || !dogmosCiProfile) {
     throw new Error('RIFT ci profile is missing');
   }
   const selectedMap = validateMapPath(baseRepository.root, args.map, true);
-  const nativePair = await detectDogmosPair(baseRepository.root);
-  const profileName = nativePair ? 'dogmos-comparison' : 'ci';
-  const profile = nativePair
+  const nativeLibrary = await detectDogmosNative(baseRepository.root);
+  const profileName = nativeLibrary ? 'dogmos-comparison' : 'ci';
+  const profile = nativeLibrary
     ? makeDogmosComparisonProfile(ciProfile, dogmosCiProfile)
     : ciProfile;
   profiles.set(profileName, profile);
@@ -308,7 +306,12 @@ export const runComparison = async (argv: string[]): Promise<number> => {
       if (cancellation.wasCancelled()) {
         throw new Error('comparison cancelled during preflight');
       }
-      const result = await runProbeProcess(executable, probeArgs, cwd, environment);
+      const result = await runProbeProcess(
+        executable,
+        probeArgs,
+        cwd,
+        environment,
+      );
       if (cancellation.wasCancelled()) {
         throw new Error('comparison cancelled during preflight');
       }
@@ -333,7 +336,11 @@ export const runComparison = async (argv: string[]): Promise<number> => {
     if (cancellation.wasCancelled()) {
       throw new Error('comparison cancelled during preflight');
     }
-    const git = await readGitMetadata(baseRepository.root, environment, runProbe);
+    const git = await readGitMetadata(
+      baseRepository.root,
+      environment,
+      runProbe,
+    );
     if (cancellation.wasCancelled()) {
       throw new Error('comparison cancelled during preflight');
     }
@@ -342,7 +349,9 @@ export const runComparison = async (argv: string[]): Promise<number> => {
       bun: Bun.version,
       byond: byond.version,
       byond_resolver: byond.source,
-      comparison_mode: nativePair ? 'dogmos-candidate' : 'no-dogmos-baseline',
+      comparison_mode: nativeLibrary
+        ? 'dogmos-candidate'
+        : 'no-dogmos-baseline',
       cache_mode: args.cacheMode,
     });
     await copyAndRecordArtifact(
@@ -363,18 +372,12 @@ export const runComparison = async (argv: string[]): Promise<number> => {
       path.join(baseRepository.root, selectedMap),
       path.basename(selectedMap),
     );
-    if (nativePair) {
+    if (nativeLibrary) {
       await copyAndRecordArtifact(
         recorder,
         runDir,
-        nativePair.shim,
-        path.basename(nativePair.shim),
-      );
-      await copyAndRecordArtifact(
-        recorder,
-        runDir,
-        nativePair.service,
-        path.basename(nativePair.service),
+        nativeLibrary.native,
+        path.basename(nativeLibrary.native),
       );
       await recorder.emit('stage_started', 'dogmos-contract', {});
       await verifyDogmosInstalledContract({
@@ -394,18 +397,24 @@ export const runComparison = async (argv: string[]): Promise<number> => {
         'Source revisions are recorded verbatim; no post-base source normalization is performed.',
       selected_map: selectedMap,
       profile: profileName,
-      comparison_mode: nativePair ? 'dogmos-candidate' : 'no-dogmos-baseline',
+      comparison_mode: nativeLibrary
+        ? 'dogmos-candidate'
+        : 'no-dogmos-baseline',
       observer: OBSERVER_FOCUS,
       observer_window_seconds: 180,
       seed_source: 'Master.random_seed recorded by the observer',
       procedure_profiling: null,
       diagnostic_procedure_profiling: false,
       cache_mode: args.cacheMode,
-      runtime_cache: 'fresh run-owned deployment; no existing data or condo previews copied',
+      runtime_cache:
+        'fresh run-owned deployment; no existing data or condo previews copied',
       cache_provenance: {
         requested_mode: args.cacheMode,
         cold_isolated: args.cacheMode === 'cold-isolated',
-        root: args.cacheRoot ?? inheritedEnvironment.TG_BOOTSTRAP_CACHE ?? 'repository-relative tools/bootstrap/.cache',
+        root:
+          args.cacheRoot ??
+          inheritedEnvironment.TG_BOOTSTRAP_CACHE ??
+          'repository-relative tools/bootstrap/.cache',
         note: 'Dependency cache is recorded as configured; no cache warming or normalization is performed by this wrapper.',
       },
     });
@@ -431,12 +440,7 @@ export const runComparison = async (argv: string[]): Promise<number> => {
         buildProcessRunner: cancellation.runner,
         wasCancelled: cancellation.wasCancelled,
       },
-      makeCommand(
-        selectedMap,
-        profileName,
-        nativePair?.shim ?? null,
-        nativePair?.service ?? null,
-      ),
+      makeCommand(selectedMap, profileName, nativeLibrary?.native ?? null),
     );
     workflowFinished = true;
     process.stdout.write(`${JSON.stringify(summary)}\n`);
@@ -468,8 +472,15 @@ export const runComparison = async (argv: string[]): Promise<number> => {
       preflight?.cleanup() ?? Promise.resolve(),
     ]);
     const cleanupErrors = cleanupResults
-      .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-      .map((result) => result.reason instanceof Error ? result.reason.message : String(result.reason));
+      .filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === 'rejected',
+      )
+      .map((result) =>
+        result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason),
+      );
     if (cleanupErrors.length > 0) {
       throw new Error(`comparison cleanup failed: ${cleanupErrors.join('; ')}`);
     }

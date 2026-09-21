@@ -264,7 +264,7 @@
 			internal_gas_data.Add(list(list(
 			"name"= cached_gas_name[gasid],
 			"id" = cached_gas_id[gasid],
-			"amount" = round(amount, 0.01),
+			"amount" = round(amount, DOGMOS_MOLE_DISPLAY_PRECISION), // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: "amount" = round(amount, 0.01),
 			)))
 	else
 		for(var/gasid in internal.get_gases())

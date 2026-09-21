@@ -221,6 +221,12 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:mark_immutable_hook_ffi")
 	return call_ext(loaded)(src)
 
+/// Read-only, per-turf batch. Returns source immutability followed by neighbor states:
+/// 0 = matching, 1 = differing immutable, 2 = differing mutable. No state is cached.
+/datum/gas_mixture/proc/__settlement_batch(neighbors)
+	var/static/loaded = load_ext(DOGMOS, "byond:settlement_batch_hook_ffi")
+	return call_ext(loaded)(src, neighbors)
+
 /// Refreshes the reaction cache after DM changes the reaction table.
 /datum/controller/subsystem/air/proc/auxtools_update_reactions()
 	var/static/loaded = load_ext(DOGMOS, "byond:update_reactions_ffi")
@@ -232,7 +238,7 @@
 	return call_ext(loaded)(gas_data)
 
 /// Returns Dogmos' Rust-side operation and arena telemetry as JSON. Process memory is sampled
-/// externally so DreamDaemon and any future Dogmos service remain separate measurements.
+/// externally to measure complete DreamDaemon memory.
 /proc/dogmos_perf_snapshot()
 	var/static/loaded = load_ext(DOGMOS, "byond:dogmos_perf_snapshot_ffi")
 	return call_ext(loaded)()
@@ -364,7 +370,7 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:parse_gas_string_ffi")
 	return call_ext(loaded)(src, string)
 
-/// Samples the host directly without scanning the gas arena or claiming a service is running.
+/// Samples the host directly without scanning the gas arena.
 /proc/dogmos_in_process_metrics()
 	var/static/loaded = load_ext(DOGMOS, "byond:dogmos_in_process_metrics_ffi")
 	return call_ext(loaded)()
@@ -402,4 +408,4 @@
 #define DOGMOS_IN_PROCESS
 
 // Local in-process build identity; generated with the matching DLL.
-#define DOGMOS_IN_PROCESS_IDENTITY "in-process:afaa3befb9af6f971c6b26c08f46b7242835980cd3f2b8b5b7ec6f7c428592e9"
+#define DOGMOS_IN_PROCESS_IDENTITY "in-process:202ab0172031706aacd00e0ffe73691a969cac8a4096fa98fa79a5a93d847972"

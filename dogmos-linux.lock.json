@@ -1,9 +1,9 @@
 {
   "artifacts": {
     "dogmos-source-snapshot.json": "202ab0172031706aacd00e0ffe73691a969cac8a4096fa98fa79a5a93d847972",
-    "dogmos.dll": "1d5fafb7a3644fe3e61fce10b16bc79e606acd704d90e22928957f395c484c5e",
-    "dogmos.pdb": "40c8b728de670d98d64fc335637945292cd6090a33649b83dcf077dfea2c7c0f",
-    "dogmos_bindings.dm": "cbd46a72f7ba2c6464ca257119e70ae1ce9cb58f749ee3de7fc5696e8ac6e810"
+    "dogmos_bindings.dm": "cbd46a72f7ba2c6464ca257119e70ae1ce9cb58f749ee3de7fc5696e8ac6e810",
+    "libdogmos_in_process.so": "8b58f4d2128295b1840508bdf50838d6b1ce85eb2496c2569882555640bd85a4",
+    "libdogmos_in_process.so.debug": "10d277ecde891988a4dcb9246ea2a0385d118036ed096a9a393f36c085d89898"
   },
   "backend": "in-process",
   "cargo_arguments": [
@@ -17,7 +17,7 @@
     "--release",
     "--locked",
     "--target",
-    "i686-pc-windows-msvc",
+    "i686-unknown-linux-gnu",
     "--no-default-features",
     "--features",
     "aphelion_reactions,katmos,katmos_slow_decompression,superconductivity,turf_processing"
@@ -34,7 +34,7 @@
   "schema_version": 1,
   "source_revision": "722b9b9ef844fd13d835fa468963183168773e67",
   "source_sha256": "202ab0172031706aacd00e0ffe73691a969cac8a4096fa98fa79a5a93d847972",
-  "target": "i686-pc-windows-msvc",
+  "target": "i686-unknown-linux-gnu",
   "tests_run": false,
   "toolchain": "1.98.0"
 }

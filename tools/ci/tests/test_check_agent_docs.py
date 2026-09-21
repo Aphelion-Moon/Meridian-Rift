@@ -43,7 +43,7 @@ class AgentDocumentTests(unittest.TestCase):
 		)
 		guides["docs/agent/native-artifacts.md"] = (
 			"# Native artifacts\n\n"
-			"dogmos.lock.json pairs dogmos.dll, libdogmos.so, dogmosd.exe, dogmosd, and protocol version.\n"
+			"dogmos.lock.json selects dogmos.dll or libdogmos_in_process.so with exact source and i686 target.\n"
 		)
 		guides["docs/agent/dogmos-integration.md"] = (
 			"# Dogmos integration\n\n"
@@ -54,14 +54,14 @@ class AgentDocumentTests(unittest.TestCase):
 		)
 		guides["docs/agent/dogmos-gameplay-events.md"] = (
 			"# Dogmos gameplay events\n\n"
-			"Use a 64-byte envelope so the 64 KiB shim buffer holds 1,023 complete records. "
+			"Use main-thread callbacks. "
 			"Required kinds include reaction finished, pressure difference, decompression floor rip, "
 			"and visual state changed. Reject the complete simulation-stage result under backpressure. "
 			"Only DreamDaemon memory is the footprint target.\n"
 		)
 		guides["docs/agent/dogmos-performance-and-memory.md"] = (
 			"# Dogmos performance and memory\n\n"
-			"Only DreamDaemon memory is the footprint target. Report dogmosd separately. "
+			"Only DreamDaemon memory is the footprint target. The engine runs in-process. "
 			"A DLL allocation remains a DreamDaemon allocation.\n"
 		)
 		guides["docs/agent/dogmos-verification.md"] = (
@@ -86,14 +86,14 @@ class AgentDocumentTests(unittest.TestCase):
 			self.initialize_repository(root)
 			(root / "AGENTS.md").write_text("# Meridian Rift\n", encoding="utf-8")
 			errors = check_repository(root)
-			self.assertTrue(any("dogmos-service-lifecycle.md" in error for error in errors))
+			self.assertTrue(any("dogmos-integration.md" in error for error in errors))
 
 	def test_native_artifact_contract_is_required(self) -> None:
 		root, errors = self.valid_fixture()
 		self.assertEqual(errors, [])
 		guide = root / "docs" / "agent" / "native-artifacts.md"
 		guide.write_text("# Native artifacts\n\nOnly dogmos.dll is required.\n", encoding="utf-8")
-		self.assertTrue(any("paired native artifact contract" in error for error in check_repository(root)))
+		self.assertTrue(any("in-process native artifact contract" in error for error in check_repository(root)))
 
 	def test_source_authority_requires_full_revisions(self) -> None:
 		root, errors = self.valid_fixture()

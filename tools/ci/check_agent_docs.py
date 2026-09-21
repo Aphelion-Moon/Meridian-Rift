@@ -18,7 +18,6 @@ REQUIRED_GUIDES = (
 	"docs/agent/upstream-drift.md",
 	"docs/agent/dogmos-integration.md",
 	"docs/agent/dogmos-gameplay-events.md",
-	"docs/agent/dogmos-service-lifecycle.md",
 	"docs/agent/dogmos-performance-and-memory.md",
 	"docs/agent/dogmos-verification.md",
 	"docs/agent/native-artifacts.md",
@@ -92,9 +91,9 @@ def check_repository(root: Path) -> list[str]:
 	artifacts = root / "docs/agent/native-artifacts.md"
 	if artifacts.is_file():
 		text = artifacts.read_text(encoding="utf-8").lower()
-		required = ("dogmos.lock.json", "dogmos.dll", "libdogmos.so", "dogmosd.exe", "dogmosd", "protocol version")
+		required = ("dogmos.lock.json", "dogmos.dll", "libdogmos_in_process.so", "source", "i686")
 		if any(term not in text for term in required):
-			errors.append("docs/agent/native-artifacts.md lacks the paired native artifact contract")
+			errors.append("docs/agent/native-artifacts.md lacks the in-process native artifact contract")
 
 	integration = root / "docs/agent/dogmos-integration.md"
 	if integration.is_file():
@@ -113,16 +112,7 @@ def check_repository(root: Path) -> list[str]:
 	events = root / "docs/agent/dogmos-gameplay-events.md"
 	if events.is_file():
 		text = events.read_text(encoding="utf-8").lower()
-		required = (
-			"64-byte envelope",
-			"1,023 complete records",
-			"reaction finished",
-			"pressure difference",
-			"decompression floor rip",
-			"visual state changed",
-			"complete simulation-stage result",
-			"only dreamdaemon memory",
-		)
+		required = ("main-thread", "reaction", "pressure difference", "decompression floor rip")
 		if any(term not in text for term in required):
 			errors.append("docs/agent/dogmos-gameplay-events.md lacks the bounded gameplay-event contract")
 
@@ -136,7 +126,7 @@ def check_repository(root: Path) -> list[str]:
 	memory = root / "docs/agent/dogmos-performance-and-memory.md"
 	if memory.is_file():
 		text = memory.read_text(encoding="utf-8").lower()
-		required = ("only dreamdaemon memory", "dogmosd", "separately", "dll allocation", "dreamdaemon allocation")
+		required = ("only dreamdaemon memory", "in-process", "dll allocation", "dreamdaemon allocation")
 		if any(term not in text for term in required):
 			errors.append("docs/agent/dogmos-performance-and-memory.md lacks the DreamDaemon memory policy")
 

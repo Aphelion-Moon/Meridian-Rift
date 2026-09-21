@@ -9,17 +9,17 @@ settle and leave the queue.
 ## Atmospherics MC
 
 The Master Controller subsystem that schedules atmospheric work in DreamDaemon. Its tick duration
-includes Dream Maker processing, waits for dogmosd, and native work completed before control
+includes Dream Maker processing, native boundary calls, and native work completed before control
 returns.
 
 ## Auxmos
 
-The Rust atmospheric project from which Dogmos descends. Dogmos changes the integration, service
+The Rust atmospheric project from which Dogmos descends. Dogmos changes the integration, native
 boundary, scheduling, telemetry, and gameplay callbacks for Meridian Rift.
 
 ## Callback
 
-A bounded message from dogmosd asking Dream Maker to apply a gameplay-side effect or continue a
+A queued native callback asking Dream Maker to apply a gameplay-side effect or continue a
 reaction. Handles and generations are checked before a callback target is used.
 
 ## Component count
@@ -29,19 +29,14 @@ necessarily a count of unique turfs and should be read together with the current
 
 ## Dogmos
 
-Meridian Rift's service-backed atmospheric implementation. It stores gas mixtures in a native arena
+Meridian Rift's in-process atmospheric implementation. It stores gas mixtures in a native arena
 and runs numerical atmosphere stages while preserving Dream Maker's public mixture and gameplay
 contracts.
-
-## dogmosd
-
-The 64-bit service process that owns the native world and performs Dogmos operations. Its memory and
-CPU telemetry are separate from the 32-bit DreamDaemon host.
 
 ## DreamDaemon
 
 BYOND's game-server process. Meridian Rift's DreamDaemon is 32-bit, so private bytes and virtual
-address-space pressure are operational limits distinct from dogmosd RSS.
+address-space pressure include every native atmosphere allocation.
 
 ## EWMA
 
@@ -92,7 +87,7 @@ stage performed negative work.
 ## Pipenet
 
 A connected atmospheric machinery network whose member gas mixtures are reconciled to a common
-composition and temperature. Pipenet cost includes mixture snapshots, service IPC, and network
+composition and temperature. Pipenet cost includes mixture snapshots, native calls, and network
 reaction work.
 
 ## Reaction event
@@ -108,7 +103,7 @@ high-cost samples. Profiling adds overhead and should be enabled only during a b
 ## Stage cost
 
 A smoothed wall-clock duration measured around one Atmospherics controller stage. It may include
-Dream Maker code, service IPC, and native execution. It is not a pure Rust benchmark.
+Dream Maker code, native calls, and native execution. It is not a pure Rust benchmark.
 
 ## TIDI
 

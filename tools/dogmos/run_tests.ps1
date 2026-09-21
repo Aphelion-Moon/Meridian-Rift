@@ -3,9 +3,7 @@ param(
 	[string[]]$Focus,
 	[ValidateRange(1, 7200)][int]$TimeoutSeconds = 2400,
 	[ValidateRange(0, 10000)][int]$MinimumTests = 400,
-	[ValidateSet('RuntimeStation', 'MetaStation')][string]$Map = 'RuntimeStation',
-	[string]$ShimPath,
-	[string]$ServicePath
+	[ValidateSet('RuntimeStation', 'MetaStation')][string]$Map = 'RuntimeStation'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,8 +21,6 @@ $originalDme = $null
 $originalMapPreview = $null
 $originalNextMap = $null
 $originalNextMapExists = $false
-$originalShim = $null
-$originalService = $null
 
 if ($Focus) {
 	$Focus = @($Focus | Sort-Object -Unique)
@@ -36,19 +32,8 @@ if ($Focus) {
 }
 
 try {
-	if (($ShimPath -and -not $ServicePath) -or ($ServicePath -and -not $ShimPath)) {
-		throw '-ShimPath and -ServicePath must be supplied together.'
-	}
-	if ($ShimPath) {
-		$resolvedShim = (Resolve-Path -LiteralPath $ShimPath).Path
-		$resolvedService = (Resolve-Path -LiteralPath $ServicePath).Path
-		$installedShim = Join-Path $gameRepository 'dogmos.dll'
-		$installedService = Join-Path $gameRepository 'dogmosd.exe'
-		$originalShim = [System.IO.File]::ReadAllBytes($installedShim)
-		$originalService = [System.IO.File]::ReadAllBytes($installedService)
-		Copy-Item -LiteralPath $resolvedShim -Destination $installedShim -Force
-		Copy-Item -LiteralPath $resolvedService -Destination $installedService -Force
-	}
+	& python -B (Join-Path $PSScriptRoot 'verify_contract.py') verify-installed --root $gameRepository
+	if ($LASTEXITCODE -ne 0) { throw 'Installed native contract failed verification.' }
 	if ($Focus) {
 		$originalDme = [System.IO.File]::ReadAllBytes($dmePath)
 		$focusText = (@($Focus | ForEach-Object { "TEST_FOCUS($_)" }) -join "`n") + "`n"
@@ -120,11 +105,5 @@ try {
 		Write-DogmosFileBytesWithRetry -Path $nextMapPath -Bytes $originalNextMap
 	} elseif (-not $originalNextMapExists) {
 		Remove-DogmosScratchPaths -Paths @($nextMapPath)
-	}
-	if ($null -ne $originalShim) {
-		Write-DogmosFileBytesWithRetry -Path (Join-Path $gameRepository 'dogmos.dll') -Bytes $originalShim
-	}
-	if ($null -ne $originalService) {
-		Write-DogmosFileBytesWithRetry -Path (Join-Path $gameRepository 'dogmosd.exe') -Bytes $originalService
 	}
 }

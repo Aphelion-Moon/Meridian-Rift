@@ -286,7 +286,7 @@ GLOBAL_LIST_EMPTY_TYPED(air_alarms, /obj/machinery/airalarm)
 			var/portion = moles / total_moles
 			data["envData"] += list(list(
 				"name" = GLOB.meta_gas_info[META_GAS_NAME][gas_path],
-				"value" = "[round(moles, 0.01)] moles / [round(100 * portion, 0.01)] % / [round(portion * pressure, 0.01)] kPa",
+				"value" = "[round(moles, DOGMOS_MOLE_DISPLAY_PRECISION)] moles / [round(100 * portion, 0.01)] % / [round(portion * pressure, 0.01)] kPa", // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: "value" = "[round(moles, 0.01)] moles / [round(100 * portion, 0.01)] % / [round(portion * pressure, 0.01)] kPa",
 				"danger" = tlv_collection[gas_path].check_value(portion * pressure),
 			))
 

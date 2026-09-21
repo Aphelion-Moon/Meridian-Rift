@@ -69,3 +69,6 @@
 /// Maximum turfs lit per Kennel event overlay category.
 #define KENNEL_OVERLAY_RECENT_CAP 15
 // APHELION EDIT ADDITION END
+
+/// Display resolution matching the native gas floor; does not quantize simulation state.
+#define DOGMOS_MOLE_DISPLAY_PRECISION 0.0001

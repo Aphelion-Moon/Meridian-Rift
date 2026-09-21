@@ -34,7 +34,7 @@ if($Mode -eq 'Capture'){
     @{completed=($scenario -ne 'incomplete');windows=$windows}|ConvertTo-Json -Depth 4|Set-Content -LiteralPath (Join-Path $OutputDirectory 'capture.json')
 }
 '@
-foreach($scenario in @('check-only','not-admin','check-failure','missing-pair','mismatched-pair','already-armed','occupied-port','output-exists','timeout','cleanup-failure','replacement-marker','settings-write-failure','incomplete','deployment-changed','success')){
+foreach($scenario in @('check-only','not-admin','check-failure','missing-native','mismatched-native','already-armed','occupied-port','output-exists','timeout','cleanup-failure','replacement-marker','settings-write-failure','incomplete','deployment-changed','success')){
     $caseRoot=Join-Path $EvidenceRoot $scenario
     $game=Join-Path $caseRoot 'game with spaces'
     New-Item -ItemType Directory -Path $caseRoot,(Join-Path $game 'data')|Out-Null
@@ -44,17 +44,14 @@ foreach($scenario in @('check-only','not-admin','check-failure','missing-pair','
     Set-Content -LiteralPath (Join-Path $caseRoot 'scenario.txt') -Value $scenario
     Set-Content -LiteralPath (Join-Path $caseRoot 'bundle.json') -Value '{}'
     [IO.File]::WriteAllText((Join-Path $game 'tgstation.dmb'),'fixture build')
-    $artifacts=@()
-    foreach($role in @('shim','service')){
-        $nativeName=if($role -eq 'shim'){'dogmos.dll'}else{'dogmosd.exe'}
-        $architecture=if($role -eq 'shim'){'i686'}else{'x86_64'}
-        $nativePath=Join-Path $game $nativeName
-        [IO.File]::WriteAllText($nativePath,'fixture native bytes; never executed')
-        $artifacts+=@{platform='windows';role=$role;file=('windows/'+$nativeName);architecture=$architecture;size=(Get-Item -LiteralPath $nativePath).Length;sha256=(Get-FileHash -LiteralPath $nativePath).Hash}
-    }
-    @{schema_version=1;artifacts=$artifacts}|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $game 'dogmos.lock.json')
-    if($scenario -eq 'missing-pair'){Remove-Item -LiteralPath (Join-Path $game 'dogmosd.exe')}
-    if($scenario -eq 'mismatched-pair'){[IO.File]::WriteAllText((Join-Path $game 'dogmos.dll'),'wrong bytes')}
+    $verifierDirectory = Join-Path $game 'tools/dogmos'
+    New-Item -ItemType Directory -Path $verifierDirectory -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../../tools/dogmos/verify_contract.py') -Destination $verifierDirectory
+    $fixtureModule = (Resolve-Path (Join-Path $PSScriptRoot '../../../tools/dogmos/tests')).Path
+    & python -B -c 'import sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); from test_contract import fixture; fixture(Path(sys.argv[2]))' $fixtureModule $game
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to prepare native contract fixture.' }
+    if($scenario -eq 'missing-native'){Remove-Item -LiteralPath (Join-Path $game 'dogmos.dll')}
+    if($scenario -eq 'mismatched-native'){[IO.File]::WriteAllText((Join-Path $game 'dogmos.dll'),'wrong bytes')}
     $engine=Join-Path $caseRoot 'DreamDaemon.exe'
     [IO.File]::WriteAllText($engine,'fixture path only; never executed')
     $marker=Join-Path $game 'data/enable_tracy'
@@ -82,7 +79,7 @@ foreach($scenario in @('check-only','not-admin','check-failure','missing-pair','
     $calls=@();if(Test-Path -LiteralPath $callsPath){$calls=@(Get-Content -LiteralPath $callsPath)}
     $expectCalls=switch($scenario){
         'not-admin' {@()}
-        {$_ -in @('check-only','check-failure','missing-pair','mismatched-pair','already-armed','occupied-port','output-exists')} {@('Check')}
+        {$_ -in @('check-only','check-failure','missing-native','mismatched-native','already-armed','occupied-port','output-exists')} {@('Check')}
         'settings-write-failure' {@('Check','ArmNextRound')}
         default {@('Check','ArmNextRound','Capture')}
     }

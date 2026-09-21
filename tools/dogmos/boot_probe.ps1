@@ -3,7 +3,6 @@ param(
 	[ValidateRange(1, 1800)][int]$TimeoutSeconds = 300,
 	[string]$DmPath = 'dm.exe',
 	[string]$DreamDaemonPath = 'dreamdaemon.exe',
-	[string]$DogmosRepository = (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'aphelion-dogmos'),
 	[switch]$SkipCompile
 )
 
@@ -14,11 +13,10 @@ $gameRepository = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $runtimeLog = Join-Path $gameRepository 'data\logs\dogmos_boot_probe\runtime.log'
 $panicLog = Join-Path $gameRepository 'dogmos_panic.log'
 $handle = $null
-$serviceProcessIds = @()
 $exitCode = 1
 
 try {
-	& (Join-Path $PSScriptRoot 'sync_contract.ps1') -DogmosRepository $DogmosRepository -VerifyOnly
+	& python -B (Join-Path $PSScriptRoot 'verify_contract.py') verify-installed --root $gameRepository
 	if ($LASTEXITCODE -ne 0) {
 		throw 'Dogmos contract verification failed.'
 	}
@@ -50,11 +48,7 @@ try {
 		if ($handle.Process.HasExited) {
 			break
 		}
-		$serviceProcessIds = @(Get-DogmosProcessTreeIds -ProcessId $handle.ProcessId | Where-Object {
-			$process = Get-Process -Id $_ -ErrorAction SilentlyContinue
-			$process -and $process.ProcessName -eq 'dogmosd'
-		})
-		if ((Test-DogmosLogMarker -Path $runtimeLog -Marker 'Initializations complete within') -and $serviceProcessIds.Count -eq 1) {
+		if ((Test-DogmosLogMarker -Path $runtimeLog -Marker 'Initializations complete within')) {
 			$initialized = $true
 			break
 		}
@@ -63,7 +57,7 @@ try {
 
 	if (-not $initialized) {
 		$state = if ($handle.Process.HasExited) { "DreamDaemon exited with $($handle.Process.ExitCode)" } else { 'initialization timed out' }
-		throw "Dogmos two-process boot failed: $state; dogmosd descendants=$($serviceProcessIds.Count)."
+		throw "Dogmos native boot failed: $state."
 	}
 	$logText = Read-DogmosFileShared -Path $runtimeLog
 	$runtimeSignatures = @(Get-DogmosRuntimeSignatures -LogText $logText)
@@ -75,20 +69,13 @@ try {
 			throw 'Dogmos wrote a panic log during the boot probe.'
 		}
 	}
-	Write-Host "Dogmos initialized with DreamDaemon PID $($handle.ProcessId) and dogmosd PID $($serviceProcessIds[0])." -ForegroundColor Green
+	Write-Host "Dogmos initialized with DreamDaemon PID $($handle.ProcessId)." -ForegroundColor Green
 	$exitCode = 0
 } finally {
 	if ($null -ne $handle) {
 		Stop-DogmosProcess -Handle $handle -Force | Out-Null
 	}
-	$orphanIds = @($serviceProcessIds | Where-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue })
-	if ($orphanIds.Count -ne 0) {
-		foreach ($orphanId in $orphanIds) {
-			Stop-DogmosOwnedProcessTree -ProcessId $orphanId
-		}
-		$exitCode = 1
-		Write-Error "dogmosd did not exit with DreamDaemon: $($orphanIds -join ', ')" -ErrorAction Continue
-	}
+
 }
 
 exit $exitCode

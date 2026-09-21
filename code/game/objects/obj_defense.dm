@@ -12,7 +12,8 @@
 		return FALSE
 
 	. = ..() //contents explosion
-	if(QDELETED(src))
+	// APHELION EDIT CHANGE - pellet clouds can defer deletion of destroyed grenades.
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
 		return TRUE
 	if(target == src)
 		take_damage(INFINITY, BRUTE, BOMB, 0)
@@ -124,13 +125,21 @@
 
 ///Called when the obj is exposed to fire.
 /obj/fire_act(exposed_temperature, exposed_volume)
+	// APHELION EDIT ADDITION START - destroyed objects may still be retained by callbacks.
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
+		return
+	// APHELION EDIT ADDITION END
 	if(HAS_TRAIT(src, TRAIT_UNDERFLOOR))
 		return
 	SEND_SIGNAL(src, COMSIG_ATOM_PRE_FIRE_ACT, exposed_temperature, exposed_volume) // NOVA EDIT ADDITION
+	// APHELION EDIT ADDITION START - a pre-fire handler may consume or delete the object.
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
+		return
+	// APHELION EDIT ADDITION END
 	var/potential_damage = 0.02 * exposed_temperature
 	if(exposed_temperature && !(resistance_flags & FIRE_PROOF) && (potential_damage > damage_deflection))
 		take_damage(clamp(potential_damage, 0, 20), BURN, FIRE, 0)
-	if(QDELETED(src)) // take_damage() can send our obj to an early grave, let's stop here if that happens
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0)) // APHELION EDIT CHANGE - also stop when deletion is deferred.
 		return
 	if(!(resistance_flags & ON_FIRE) && (resistance_flags & FLAMMABLE) && !(resistance_flags & FIRE_PROOF))
 		AddComponent(/datum/component/burning, custom_fire_overlay() || GLOB.fire_overlay, burning_particles)

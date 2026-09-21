@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 
 from verify_contract import (ContractError, _duplicate_guard, render_contract_defines,
-                             validate_in_process_manifest, verify_in_process_bytes, verify_installed)
+                             validate_in_process_manifest, verify_in_process_bytes, verify_installed, native_files)
 
 
 def atomic_write(path: Path, data: bytes) -> None:
@@ -39,7 +39,8 @@ def main() -> None:
     for name, data in artifacts.items():
         if hashlib.sha256(data).hexdigest() != manifest["artifacts"][name]:
             raise ContractError(f"bundle hash mismatch: {name}")
-    verify_in_process_bytes(manifest, artifacts["dogmos.dll"], artifacts["dogmos_bindings.dm"])
+    library = native_files(manifest)[0]
+    verify_in_process_bytes(manifest, artifacts[library], artifacts["dogmos_bindings.dm"])
     # Validate against the actual source checkout, not merely a self-consistent manifest.
     import sys
     subprocess.run([sys.executable, "-B", str(args.native_root / "tools/dogmos_source_snapshot.py"),
@@ -47,17 +48,24 @@ def main() -> None:
                     "--snapshot", str(bundle / "dogmos-source-snapshot.json")], check=True)
     if not (root / "tgstation.dme").is_file():
         raise ContractError("destination is not a Meridian-Rift checkout")
+    lock_name = "dogmos.lock.json" if manifest["target"] == "i686-pc-windows-msvc" else "dogmos-linux.lock.json"
+    other_lock = root / ("dogmos-linux.lock.json" if lock_name == "dogmos.lock.json" else "dogmos.lock.json")
+    if other_lock.exists():
+        other = json.loads(other_lock.read_text(encoding="utf-8-sig"), object_pairs_hook=_duplicate_guard)
+        if (other.get("source_sha256") != manifest["source_sha256"]
+                or other.get("artifacts", {}).get("dogmos_bindings.dm") != manifest["artifacts"]["dogmos_bindings.dm"]):
+            raise ContractError("other installed platform differs; archive its lock and library before updating both platforms")
     replacements = {
-        root / "dogmos.dll": artifacts["dogmos.dll"],
+        root / library: artifacts[library],
         root / "code/__DEFINES/dogmos_bindings.dm": artifacts["dogmos_bindings.dm"],
         root / "code/__DEFINES/dogmos_contract.dm": render_contract_defines(manifest),
-        root / "dogmos.lock.json": (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
+        root / lock_name: (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
     }
     previous = {path: path.read_bytes() if path.exists() else None for path in replacements}
     try:
         for path, data in replacements.items():
             atomic_write(path, data)
-        verify_installed(root)
+        verify_installed(root, target=manifest["target"])
     except BaseException:
         for path, data in previous.items():
             if data is None:
@@ -65,7 +73,7 @@ def main() -> None:
             else:
                 atomic_write(path, data)
         raise
-    print(f"Installed Windows in-process candidate {manifest['source_sha256']}; runtime qualification deferred.")
+    print(f"Installed in-process candidate {manifest['source_sha256']}; runtime qualification deferred.")
 
 
 if __name__ == "__main__":

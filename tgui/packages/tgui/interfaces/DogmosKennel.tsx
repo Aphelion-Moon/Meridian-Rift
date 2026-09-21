@@ -19,11 +19,10 @@ import { createSearch } from 'tgui-core/string';
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
-import { MarkdownRenderer } from './MarkdownViewer';
-
 import aboutContent from './DogmosKennel/docs/about.md';
 import creditsContent from './DogmosKennel/docs/credits.md';
 import glossaryContent from './DogmosKennel/docs/glossary.md';
+import { MarkdownRenderer } from './MarkdownViewer';
 
 type DogmosCosts = {
   turfs: number;
@@ -43,11 +42,6 @@ type ProcessMetrics = {
     private_bytes: number;
     virtual_bytes: number;
     working_set_bytes: number;
-    available: BooleanLike;
-  };
-  dogmosd: {
-    rss_bytes: number;
-    cpu_total_milliseconds: number;
     available: BooleanLike;
   };
 };
@@ -215,7 +209,15 @@ const StageCostRow = (props: StageCostRowProps) => {
       ? inactiveTooltip
       : undefined;
   // APHELION EDIT ADDITION END
-  const color = !validCost ? 'bad' : !active ? 'grey' : cost >= 10 ? 'bad' : cost >= 5 ? 'average' : 'good';
+  const color = !validCost
+    ? 'bad'
+    : !active
+      ? 'grey'
+      : cost >= 10
+        ? 'bad'
+        : cost >= 5
+          ? 'average'
+          : 'good';
   return (
     <Table.Row>
       <Table.Cell collapsing align="center">
@@ -255,11 +257,11 @@ const formatBinaryBytes = (bytes: number) => {
 
 const ProcessMetricsPanel = () => {
   const { data } = useBackend<Data>();
-  const { dreamdaemon, dogmosd } = data.process_metrics;
+  const { dreamdaemon } = data.process_metrics;
   return (
     <Section title="Process Snapshots (operational only)">
       <Stack>
-        <Stack.Item grow basis="50%">
+        <Stack.Item grow>
           <Section title="DreamDaemon (32-bit host)" fill>
             {!dreamdaemon.available ? (
               <NoticeBox>Unavailable</NoticeBox>
@@ -273,22 +275,6 @@ const ProcessMetricsPanel = () => {
                 </LabeledList.Item>
                 <LabeledList.Item label="Working-set bytes">
                   {formatBinaryBytes(dreamdaemon.working_set_bytes)}
-                </LabeledList.Item>
-              </LabeledList>
-            )}
-          </Section>
-        </Stack.Item>
-        <Stack.Item grow basis="50%">
-          <Section title="dogmosd (64-bit service)" fill>
-            {!dogmosd.available ? (
-              <NoticeBox>Unavailable</NoticeBox>
-            ) : (
-              <LabeledList>
-                <LabeledList.Item label="Resident-set bytes">
-                  {formatBinaryBytes(dogmosd.rss_bytes)}
-                </LabeledList.Item>
-                <LabeledList.Item label="Cumulative CPU">
-                  {dogmosd.cpu_total_milliseconds.toLocaleString()} ms
                 </LabeledList.Item>
               </LabeledList>
             )}
@@ -396,7 +382,11 @@ const OverviewPanel = (props) => {
       {/* APHELION EDIT ADDITION END */}
       <Section title="Atmospherics Stage Costs (smoothed wall time)">
         <Table>
-          <StageCostRow label="Active Turfs / FDM" cost={costs.turfs ?? 0} active />
+          <StageCostRow
+            label="Active Turfs / FDM"
+            cost={costs.turfs ?? 0}
+            active
+          />
           <StageCostRow
             label="Excited Groups"
             cost={costs.groups ?? 0}
@@ -420,8 +410,8 @@ const OverviewPanel = (props) => {
       </Section>
       {!!data.kennel_slow_mode && (
         <NoticeBox>
-          Slow mode is on - the machinery browse is gated and refresh cadence
-          is reduced. All bounded event histories remain available.
+          Slow mode is on - the machinery browse is gated and refresh cadence is
+          reduced. All bounded event histories remain available.
         </NoticeBox>
       )}
       <Section title="Configuration">
@@ -547,9 +537,7 @@ function EventHistoryTable<T extends { jump_to?: string | null }>(props: {
                 {col.label}
               </Table.Cell>
             ))}
-            {hasTargets && (
-              <Table.Cell collapsing>Track</Table.Cell>
-            )}
+            {hasTargets && <Table.Cell collapsing>Track</Table.Cell>}
           </Table.Row>
           {filtered.map((entry, i) => (
             <tr key={i}>
@@ -606,15 +594,16 @@ const HighCostZonesPanel = (props) => {
       {!data.kennel_profile_reactions && (
         <NoticeBox>
           Reaction profiling is off in the Profiling tab - this list stays empty
-          until it's enabled. It has a real, opt-in Rust-side cost per
-          reaction call, so it defaults off.
+          until it's enabled. It has a real, opt-in Rust-side cost per reaction
+          call, so it defaults off.
         </NoticeBox>
       )}
-      {!!data.kennel_profile_reactions && !data.recent_high_cost_zones.length && (
-        <NoticeBox>
-          Profiling is on - no reactions have crossed the threshold yet.
-        </NoticeBox>
-      )}
+      {!!data.kennel_profile_reactions &&
+        !data.recent_high_cost_zones.length && (
+          <NoticeBox>
+            Profiling is on - no reactions have crossed the threshold yet.
+          </NoticeBox>
+        )}
       <EventHistoryTable
         entries={data.recent_high_cost_zones}
         searchKeys={(entry) => `${entry.area} ${entry.reaction}`}
@@ -681,14 +670,16 @@ const ProfilingPanel = (props) => {
         <Box mb={1}>
           The Reaction Events table answers a different question: which reaction
           amounts changed enough to be operationally interesting. It is an event
-          history, not a timing measurement, and remains available when profiling
-          is off. Use the amount threshold to reduce noise in that history; use
-          the profiling threshold to find expensive individual calls.
+          history, not a timing measurement, and remains available when
+          profiling is off. Use the amount threshold to reduce noise in that
+          history; use the profiling threshold to find expensive individual
+          calls.
         </Box>
         <Box>
-          Profiling adds real work to every reaction call, so leave it off during
-          ordinary station operation. Turn it on for a bounded investigation,
-          inspect the recorded areas and reactions, then turn it off again.
+          Profiling adds real work to every reaction call, so leave it off
+          during ordinary station operation. Turn it on for a bounded
+          investigation, inspect the recorded areas and reactions, then turn it
+          off again.
         </Box>
       </Section>
       <Section
@@ -786,17 +777,13 @@ const StructuresPanel = (props) => {
                 <td>
                   <Button
                     icon="crosshairs"
-                    onClick={() =>
-                      act('move-to-target', { spot: entry.ref })
-                    }
+                    onClick={() => act('move-to-target', { spot: entry.ref })}
                   />
                   <Button
                     icon="times"
                     color="bad"
                     tooltip="Unleash"
-                    onClick={() =>
-                      act('kennel_unpin', { ref: entry.ref })
-                    }
+                    onClick={() => act('kennel_unpin', { ref: entry.ref })}
                   />
                 </td>
               </tr>
@@ -900,13 +887,19 @@ export const DogmosKennel = (props) => {
       componentShown = <BreachesPanel />;
       break;
     case TABS.About:
-      componentShown = <DocumentationPanel title="About Dogmos" content={aboutContent} />;
+      componentShown = (
+        <DocumentationPanel title="About Dogmos" content={aboutContent} />
+      );
       break;
     case TABS.Glossary:
-      componentShown = <DocumentationPanel title="Dogmos Glossary" content={glossaryContent} />;
+      componentShown = (
+        <DocumentationPanel title="Dogmos Glossary" content={glossaryContent} />
+      );
       break;
     case TABS.Credits:
-      componentShown = <DocumentationPanel title="Dogmos Credits" content={creditsContent} />;
+      componentShown = (
+        <DocumentationPanel title="Dogmos Credits" content={creditsContent} />
+      );
       break;
     default:
       componentShown = <OverviewPanel />;

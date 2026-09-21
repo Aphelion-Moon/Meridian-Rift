@@ -14,11 +14,9 @@
 | tg/Nova merge review                                 | [Upstream drift](upstream-drift.md)                                                                                                |
 | Dogmos DM/Rust ownership                             | [Dogmos integration](dogmos-integration.md)                                                                                        |
 | Rust-to-DM gameplay effects and callback replacement | [Dogmos gameplay events](dogmos-gameplay-events.md)                                                                                |
-| Service startup, failure, recovery, shutdown         | [Dogmos service lifecycle](dogmos-service-lifecycle.md)                                                                            |
 | Dogmos memory and performance                        | [Dogmos performance and memory](dogmos-performance-and-memory.md)                                                                  |
 | Dogmos compile, boot, and tests                      | [Dogmos verification](dogmos-verification.md)                                                                                      |
 | Shim/service/bindings contract                       | [Native artifacts](native-artifacts.md)                                                                                            |
-| Public Dogmos architecture and status                | [Dogmos Tech Memo](../tech-memos/dogmos.md)                                                                                        |
 
 The root [AGENTS.md](../../AGENTS.md) is the concise mandatory entry point. These guides add Meridian and Dogmos decisions without replacing inherited tgstation, Nova, Rust, or BYOND documentation.
 

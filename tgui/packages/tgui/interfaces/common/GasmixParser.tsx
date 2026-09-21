@@ -67,7 +67,7 @@ export const GasmixParser = (props: GasmixParserProps) => {
                 }
                 key={gas[1]}
               >
-                {gas[2].toFixed(2) +
+                {gas[2].toFixed(4) +
                   ' mol (' +
                   ((gas[2] / total_moles) * 100).toFixed(2) +
                   ' %)'}

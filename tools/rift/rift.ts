@@ -457,8 +457,7 @@ type CommonOptions = {
 };
 
 type NativeOverlayOptions = {
-  shim: string | null;
-  service: string | null;
+  native: string | null;
 };
 
 export type RiftCommand =
@@ -492,8 +491,7 @@ export type RiftCommand =
       map: string | null;
       runSeconds: number;
       readinessTimeoutSeconds: number | null;
-      shim: string | null;
-      service: string | null;
+      native: string | null;
     } & CommonOptions)
   | ({ command: 'report'; runId: string } & Pick<CommonOptions, 'format'>);
 
@@ -577,8 +575,7 @@ export const parseCli = (
   let readinessTimeoutSeconds: number | null = null;
   let runSeconds: number | null = null;
   let minimumTests: number | null = null;
-  let shim: string | null = null;
-  let service: string | null = null;
+  let native: string | null = null;
   let reportRunId: string | null = null;
   const focus: string[] = [];
   const seenOptions = new Set<string>();
@@ -597,8 +594,7 @@ export const parseCli = (
     '--run-seconds',
     '--minimum-tests',
     '--focus',
-    '--shim',
-    '--service',
+    '--native',
   ]);
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -766,16 +762,11 @@ export const parseCli = (
           focus.push(optionValue!);
         }
         break;
-      case '--shim':
-      case '--service':
+      case '--native':
         if (command !== 'run' && command !== 'test' && command !== 'soak') {
           throw new Error(`${option} is valid only for run, test, or soak`);
         }
-        if (option === '--shim') {
-          shim = optionValue!;
-        } else {
-          service = optionValue!;
-        }
+        native = optionValue!;
         break;
       default:
         throw new Error(`unknown option: ${option}`);
@@ -811,17 +802,7 @@ export const parseCli = (
     waitForLockSeconds,
     keepWorkspace,
   };
-  const overlays: NativeOverlayOptions = { shim, service };
-  if ((shim === null) !== (service === null)) {
-    throw new Error('--shim and --service must be supplied together');
-  }
-  if (
-    (command === 'run' || command === 'test' || command === 'soak') &&
-    common.profile.startsWith('dogmos') &&
-    shim === null
-  ) {
-    throw new Error('Dogmos runtime profiles require --shim and --service');
-  }
+  const overlays: NativeOverlayOptions = { native };
   switch (command) {
     case 'doctor':
       return { command, ...common };
@@ -2370,8 +2351,7 @@ export const runServerWorkflow = async (
     await applyNativeOverlays(
       context.repository.root,
       deployment,
-      command.shim,
-      command.service,
+      command.native,
       context.profileName.startsWith('dogmos'),
     );
     await context.recorder.emit('stage_finished', 'deploy', {}, 'passed');
@@ -2660,16 +2640,17 @@ const captureSoakResources = async (options: {
 export const applyNativeOverlays = async (
   repositoryRoot: string,
   deployment: Deployment,
-  shim: string | null,
-  service: string | null,
+  native: string | null,
   enforceInstalledContract = false,
 ) => {
-  if (shim === null || service === null) {
+  if (native === null) {
     return;
   }
   for (const [source, destination] of [
-    [shim, 'dogmos.dll'],
-    [service, 'dogmosd.exe'],
+    [
+      native,
+      process.platform === 'win32' ? 'dogmos.dll' : 'libdogmos_in_process.so',
+    ],
   ] as const) {
     const resolvedSource = path.isAbsolute(source)
       ? path.resolve(source)
@@ -2798,8 +2779,7 @@ export const runSoakWorkflow = async (
     await applyNativeOverlays(
       context.repository.root,
       deployment,
-      command.shim,
-      command.service,
+      command.native,
       context.profileName.startsWith('dogmos'),
     );
     await context.recorder.emit('stage_finished', 'deploy', {}, 'passed');
@@ -3354,8 +3334,7 @@ export const runTestWorkflow = async (
     await applyNativeOverlays(
       context.repository.root,
       deployment,
-      command.shim,
-      command.service,
+      command.native,
       context.profileName.startsWith('dogmos'),
     );
     await context.recorder.emit('stage_finished', 'deploy', {}, 'passed');
@@ -4131,7 +4110,6 @@ export const renderMachineResult = (summary: RiftSummary): string => {
       ? {
           dogmos: {
             dreamdaemon: resourceMaximum('dreamdaemon'),
-            service: resourceMaximum('dogmosd'),
             runtime_signatures: summary.runtime_signatures,
           },
         }

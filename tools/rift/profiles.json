@@ -100,38 +100,6 @@
 					"max_occurrences": 0
 				},
 				{
-					"id": "dogmos_stage_conflict",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "StageConflict",
-					"case_insensitive": false,
-					"max_occurrences": 0
-				},
-				{
-					"id": "dogmos_malformed_stage",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "malformed stage response",
-					"case_insensitive": true,
-					"max_occurrences": 0
-				},
-				{
-					"id": "dogmos_pending_stage",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "remains pending",
-					"case_insensitive": true,
-					"max_occurrences": 0
-				},
-				{
-					"id": "dogmos_lifecycle_rejection",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "lifecycle.*rejected",
-					"case_insensitive": true,
-					"max_occurrences": 0
-				},
-				{
 					"id": "dogmos_panic",
 					"file": "dogmos_panic.log",
 					"category": null,
@@ -140,15 +108,7 @@
 					"max_occurrences": 0
 				}
 			],
-			"required_children": [
-				{
-					"role": "dogmosd",
-					"process_name": "dogmosd.exe",
-					"min_count": 1,
-					"max_count": 1,
-					"continuous_after_readiness": true
-				}
-			],
+			"required_children": [],
 			"artifact_rules": [],
 			"default_timeouts": {
 				"wall_seconds": 1800,
@@ -180,38 +140,6 @@
 					"max_occurrences": 0
 				},
 				{
-					"id": "dogmos_stage_conflict",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "StageConflict",
-					"case_insensitive": false,
-					"max_occurrences": 0
-				},
-				{
-					"id": "dogmos_malformed_stage",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "malformed stage response",
-					"case_insensitive": true,
-					"max_occurrences": 0
-				},
-				{
-					"id": "dogmos_pending_stage",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "remains pending",
-					"case_insensitive": true,
-					"max_occurrences": 0
-				},
-				{
-					"id": "dogmos_lifecycle_rejection",
-					"file": "data/logs/rift/runtime.log.json",
-					"category": "runtime",
-					"message_pattern": "lifecycle.*rejected",
-					"case_insensitive": true,
-					"max_occurrences": 0
-				},
-				{
 					"id": "dogmos_panic",
 					"file": "dogmos_panic.log",
 					"category": null,
@@ -220,15 +148,7 @@
 					"max_occurrences": 0
 				}
 			],
-			"required_children": [
-				{
-					"role": "dogmosd",
-					"process_name": "dogmosd.exe",
-					"min_count": 1,
-					"max_count": 1,
-					"continuous_after_readiness": true
-				}
-			],
+			"required_children": [],
 			"artifact_rules": [
 				{
 					"id": "clean_run",

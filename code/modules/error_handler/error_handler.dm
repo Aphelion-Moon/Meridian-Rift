@@ -10,7 +10,17 @@ GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
 	GLOB.total_runtimes++
 
 	if(!istype(E)) //Something threw an unusual exception
-		log_world("uncaught runtime error: [E]")
+		// APHELION EDIT ADDITION START - preserve evidence for non-exception throws.
+		var/list/throw_stack = list()
+		try
+			var/callee/frame = caller
+			while(frame && length(throw_stack) < 32)
+				throw_stack += "[frame.proc]"
+				frame = frame.caller
+		catch
+			throw_stack += "<stack unavailable>"
+		log_world("uncaught runtime error: [E]; source: [e_src?.type]; stack: [jointext(throw_stack, " -> ")]")
+		// APHELION EDIT ADDITION END
 		return ..()
 
 	//this is snowflake because of a byond bug (ID:2306577), do not attempt to call non-builtin procs in this block OR BEFORE IT

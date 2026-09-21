@@ -25,13 +25,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		initial_volume = volume
 	if(initial_volume <= 0)
 		stack_trace("Created a gas mixture with zero volume!")
-#ifdef DOGMOS_IN_PROCESS
 	__gasmixture_register()
 	if(copy_source)
 		copy_from(copy_source)
-#else
-	__gasmixture_register(copy_source) // APHELION EDIT CHANGE - DOGMOS_COPY_CREATION
-#endif
 	reaction_results = new
 
 /datum/gas_mixture/Del()
@@ -255,9 +251,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/abs_moved_moles = 0
 
 	var/list/cached_specific_heat = GAS_META[META_GAS_SPECIFIC_HEAT]
-	// Deltas are collected and applied as two batched IPC calls after the loop instead of two
+	// Deltas are collected and applied as two batched native calls after the loop instead of two
 	// adjust_moles() round trips per gas type inside it - share() is called per machine, per tick,
-	// so an unbatched loop here was doubling the pipenet reconciliation IPC cost.
+	// so an unbatched loop here was doubling the pipenet reconciliation boundary cost.
 	var/list/self_deltas = list()
 	var/list/sharer_deltas = list()
 	for(var/gas_id in gas_list) //transfer gases

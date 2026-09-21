@@ -61,8 +61,6 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/static/datum/space_level/reservation
 	/// If this unit test requires a normal turf to run.
 	var/normal_floor_required = FALSE
-	/// Stop the suite if an isolated native fixture cannot release its authoritative stage.
-	var/dogmos_fixture_aborted = FALSE
 
 /proc/cmp_unit_test_priority(datum/unit_test/a, datum/unit_test/b)
 	return initial(a.priority) - initial(b.priority)
@@ -152,111 +150,6 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		"turf_a and turf_b are not gas-adjacent (atmos_adjacent_turfs) - this test needs two turfs Dogmos will actually share gas between.")
 	return list(turf_a, turf_b)
 
-/** Waits a bounded number of subsystem fires before beginning an isolated native-stage fixture. */
-/datum/unit_test/proc/dogmos_wait_for_stage_boundary()
-	var/failure = "Dogmos did not establish a healthy fixture boundary within its bound."
-	try
-		for(var/attempt in 1 to 100)
-			if(!SSdogmos.service_ready)
-				break
-			if(isnull(SSair.dogmos_pending_stage) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
-				if(dogmos_drain_fixture_callbacks())
-					return TRUE
-				break
-			sleep(SSair.wait)
-	catch(var/exception/error)
-		failure = "Dogmos fixture boundary raised [error.name]."
-	return dogmos_abort_fixture(failure)
-
-/// Record an unrecoverable fixture failure and suppress unsafe restoration and later tests.
-/datum/unit_test/proc/dogmos_abort_fixture(reason)
-	dogmos_fixture_aborted = TRUE
-	SSair.dogmos_fail_closed_stage("unit test fixture", schedule_reboot = FALSE)
-	Fail(reason, __FILE__, __LINE__)
-	return FALSE
-
-/// Drain through the maintained sequence-checking path without running another gas stage.
-/datum/unit_test/proc/dogmos_drain_fixture_callbacks()
-	for(var/batch in 1 to 4096)
-		if(!SSdogmos.service_ready)
-			return FALSE
-		// Dispatching a reaction can enqueue new service events after the batch's
-		// remaining-count snapshot. Require an observed empty batch before returning.
-		if(!SSair.finish_turf_processing_auxtools(100) && !SSdogmos.dogmos_pending_callback_count)
-			return TRUE
-	return FALSE
-
-// APHELION EDIT ADDITION START - DOGMOS
-/** Drains bounded frontier slices without allowing another atmosphere stage into a fixture interval. */
-/datum/unit_test/proc/dogmos_sync_fixture_frontier()
-	for(var/chunk in 1 to 4096)
-		if(!SSair.sync_dogmos_frontier())
-			return FALSE
-		if(!SSair.dogmos_frontier_sync_pending)
-			return TRUE
-	return FALSE
-// APHELION EDIT ADDITION END
-
-/** Runs only the requested stage from fixture turfs, then restores the normal frontier.
- * There are no sleeps between publication, stage calls and restoration: another SSair
- * stage cannot move gas during the measured before/after interval.
- */
-/datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE, chunk_budget_ms = 100, require_budget_use = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE)
-	if(!isnull(SSair.dogmos_pending_stage) || SSair.dogmos_pending_frontier_epoch)
-		return FALSE
-	var/list/original_active = SSair.active_turfs
-	var/list/original_pressure_queue = SSair.high_pressure_delta.Copy()
-	var/list/original_pressure = list()
-	for(var/turf/open/fixture_turf as anything in turfs)
-		original_pressure[fixture_turf] = list(fixture_turf.pressure_difference, fixture_turf.pressure_direction)
-	var/pending = TRUE
-	var/restored = FALSE
-	var/failure = "Native fixture stage [stage] exceeded its completion bound."
-	// APHELION EDIT ADDITION START - DOGMOS
-	var/unused_budget_ms = 0
-	// APHELION EDIT ADDITION END
-	try
-		SSair.dogmos_replace_active_frontier(turfs.Copy()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = turfs.Copy()
-		for(var/chunk in 1 to 4096)
-			// APHELION EDIT ADDITION START - DOGMOS
-			var/chunk_start = TICK_USAGE
-			// APHELION EDIT ADDITION END
-			pending = use_fdm_cadence ? SSair.process_turfs_auxtools(chunk_budget_ms) : SSair.dogmos_run_stage(stage, chunk_budget_ms) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: pending = use_fdm_cadence ? SSair.process_turfs_auxtools(100) : SSair.dogmos_run_stage(stage, 100)
-			// APHELION EDIT ADDITION START - DOGMOS
-			if(require_budget_use && pending && !SSair.dogmos_frontier_sync_pending)
-				unused_budget_ms = max(unused_budget_ms, chunk_budget_ms - TICK_DELTA_TO_MS(TICK_USAGE - chunk_start))
-			// APHELION EDIT ADDITION END
-			if(!pending || !SSdogmos.service_ready)
-				break
-		if(!pending && SSdogmos.service_ready)
-			// Equalization publishes pressure events. Consume them before gas restoration,
-			// then remove only this fixture's effects on the DM pressure queue and fields.
-			pending = !dogmos_drain_fixture_callbacks()
-		SSair.dogmos_replace_active_frontier(original_active) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = original_active
-		if(!pending && SSdogmos.service_ready)
-			SSair.dogmos_pending_frontier_epoch = null
-			restored = dogmos_sync_fixture_frontier() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: restored = SSair.sync_dogmos_frontier()
-			SSair.dogmos_pending_frontier_epoch = null
-	catch(var/exception/error)
-		failure = "Native fixture stage [stage] raised [error.name]."
-	// Restore local state even when an IPC call runtimes. An incomplete native cursor
-	// has no safe DM cancellation API: freeze atmos and end the suite after recording failure.
-	SSair.dogmos_replace_active_frontier(original_active) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = original_active
-	SSair.high_pressure_delta.Cut()
-	SSair.high_pressure_delta += original_pressure_queue
-	for(var/turf/open/fixture_turf as anything in turfs)
-		var/list/pressure = original_pressure[fixture_turf]
-		fixture_turf.pressure_difference = pressure[1]
-		fixture_turf.pressure_direction = pressure[2]
-	if(!restored)
-		return dogmos_abort_fixture(failure)
-	// APHELION EDIT ADDITION START - DOGMOS
-	if(unused_budget_ms > 0)
-		Fail("Native stage yielded with [unused_budget_ms] ms of its [chunk_budget_ms] ms allocation unused.", __FILE__, __LINE__)
-		return FALSE
-	// APHELION EDIT ADDITION END
-	return restored
-
 /** Re-registers a turf and rebuilds its Dogmos heat-graph adjacency. */
 /datum/unit_test/proc/resync_turf_for_dogmos(turf/open/target)
 	target.register_dogmos_air()
@@ -290,8 +183,6 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 
 /// Resets the air of our testing room to its default
 /datum/unit_test/proc/restore_atmos()
-	if(dogmos_fixture_aborted)
-		return
 	var/area/working_area = run_loc_floor_bottom_left.loc
 	var/list/turf/to_restore = working_area.get_turfs_from_all_zlevels()
 	for(var/turf/open/restore in to_restore)
@@ -436,9 +327,8 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	// Record elapsed duration for timing checks; skipped tests report zero.
 	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path, "runtimes" = runtimes_during, "duration" = skip_test ? 0 : duration)
 
-	var/abort_suite = test.dogmos_fixture_aborted
 	qdel(test)
-	return abort_suite
+	return FALSE
 
 /// Builds (and returns) a list of atoms that we shouldn't initialize in generic testing, like Create and Destroy.
 /// It is appreciated to add the reason why the atom shouldn't be initialized if you add it to this list.

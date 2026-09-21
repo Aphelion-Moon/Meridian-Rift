@@ -1,39 +1,6 @@
-# Initialization and first-three-minute measurements
+# Native and baseline performance comparison
 
-Run only the opt-in observation case through the existing RIFT controller:
-
-```powershell
-.\RIFT.cmd test --profile ci --map _maps/metastation.json `
-    --focus /datum/unit_test/dogmos_shift_start_performance `
-    --shim dogmos.dll --service dogmosd.exe `
-    --wall-timeout-seconds 1800 --readiness-timeout-seconds 900 --format result
-python modular_aphelion/tools/dogmos_performance/analyze.py `
-    data/rift-runs/<run-id> --output data/performance-qualification/<label>.json
-```
-
-The CI configuration needs its local database. The `ci` profile retains the full map's
-auxiliary levels; `dogmos-ci` deliberately skips Lavaland and space levels, so it is a
-different workload. Do not combine those profiles in a timing comparison.
-
-The ordinary test build already fixes the random seed, disables offline suspension, and
-starts actual gameplay. Including the observer starts its no-fire sampler before atom
-initialization; the focused unit test waits for that already-running sampler. It observes from
-early subsystem initialization through three wall-clock minutes after the first observed
-playing state. Actual timestamps record scheduling delays. The record is streamed to the run's
-`dogmos-performance.jsonl` log; no history is retained in DreamDaemon.
-
-These are controlled test-build observations. The unit-test framework adds a fixture room
-about ten seconds into gameplay, and its debug instrumentation differs from production.
-Use identical builds, map, seed, population, configuration and sampling for each comparison.
-They do not replace a production server Tracy capture. A passing observation case establishes
-coverage and service availability, not acceptable speed or settled turfs.
-
-An unfocused full unit suite is also a different initialization workload, even with
-the same map JSON. `PERFORM_ALL_TESTS(maptest_log_mapping)` forces eligible ruins
-to load for map coverage, while the focused observer uses ordinary ruin selection.
-Unfocused mode also enables extra element-argument checks. Keep the actual loaded
-ruins and focus selection with the evidence; do not treat full-suite initialization
-as another timing repeat of the focused observer.
+Use `compare-repository.ts` to stage the opt-in shared observer in an isolated RIFT workspace. The wrapper detects the installed platform native library and verifies its contract. Compare identical maps, workloads, duration, configuration and BYOND versions; report initialization and gameplay separately. The archived observation case is not part of the active unit suite.
 
 For 250 ms process samples, start this read-only helper in another administrator PowerShell
 session after RIFT creates its run directory, while compilation is still in progress:
@@ -55,7 +22,7 @@ if Windows reuses a PID. CPU before the first sample in a phase is not included.
 
 Inspect initialization phase durations, first-three-minute turf activity, last-minute
 activity, rolling stage costs, and sparse active coordinates. The analyzer reports
-DreamDaemon and `dogmosd` memory separately. It does not sum overlapping procedure costs
+DreamDaemon and `native engine` memory separately. It does not sum overlapping procedure costs
 or infer CPU usage from private bytes. Record at least three matched controls and candidates
 before reporting a performance change.
 
