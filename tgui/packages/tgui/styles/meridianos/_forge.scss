@@ -19,7 +19,6 @@
     }
 
     .Window::after,
-    .TitleBar::after,
     .Section > .Section__title::after {
       display: none;
     }
@@ -31,8 +30,23 @@
         var(--forge-texture);
       background-size: auto, 384px 384px;
       border-top-color: transparent;
-      border-bottom-color: var(--forge-edge);
-      box-shadow: inset 0 -2px 0 rgb(0 0 0 / 55%);
+      border-bottom-color: transparent;
+      box-shadow: none;
+    }
+
+    // Keep the separator inside the metal frame, including its shadow.
+    .TitleBar::after {
+      display: block;
+      left: var(--console-chrome-safe-left);
+      right: var(--console-chrome-safe-right);
+      bottom: -1px;
+      width: auto;
+      height: 3px;
+      background: linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 55%) 0 2px,
+        var(--forge-edge) 2px 3px
+      );
     }
 
     .TitleBar__utilities {
