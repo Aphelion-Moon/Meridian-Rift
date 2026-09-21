@@ -136,6 +136,11 @@
     overflow-x: hidden;
   }
 
+  &__SpeciesPreview {
+    // The native character canvas is square; description height is unrelated.
+    aspect-ratio: 1 / 1;
+  }
+
   &__SpeciesButton {
     box-sizing: border-box;
     overflow: hidden;
