@@ -25,9 +25,18 @@
 /turf/open/proc/dogmos_react()
 	if(QDELETED(src) || !air)
 		return
+	var/obj/effect/hotspot/previous_hotspot = active_hotspot
 	. = air.react(src)
 	if(. && !QDELETED(src))
 		SSair.dogmos_reacted_turfs[src] = TRUE
+		// A previous exposure may have exhausted the hotspot before diffusion
+		// supplied new fuel. Keep the same effect when this cycle burned again.
+		if((. & REACTING) && previous_hotspot && active_hotspot == previous_hotspot && !QDELETED(previous_hotspot) && previous_hotspot.volume <= 1)
+			previous_hotspot.refresh_exhausted_fire(air)
+
+/obj/machinery
+	/// Stable text identity for frequent Kennel cost samples; never owns another datum.
+	var/dogmos_kennel_cost_ref
 
 /** Preserves the shuttle's destination-before-source atmosphere update ordering. */
 /datum/controller/subsystem/dogmos/proc/block_shuttle_turfs(turf/source_turf, turf/destination_turf)

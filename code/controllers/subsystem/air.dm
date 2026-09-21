@@ -561,7 +561,8 @@ SUBSYSTEM_DEF(air)
 			process_result = gas_leaker.process_atmos(wait * 0.1)
 		if(process_result == PROCESS_KILL)
 			stop_processing_machine(processing_entry, currentrun_entry_removed = TRUE)
-		if(ismachinery(processing_entry))
+			continue
+		if(ismachinery(processing_entry) && !QDELETED(processing_entry))
 			var/obj/machinery/profiled_machine = processing_entry
 			check_kennel_machine_cost(profiled_machine, TICK_USAGE_TO_MS(kennel_tick_start))
 		// APHELION EDIT ADDITION END

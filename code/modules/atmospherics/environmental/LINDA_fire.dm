@@ -218,6 +218,23 @@
 			AT.fire_act(temperature, volume)
 	return TRUE
 
+/** Refreshes an exhausted effect only after its turf's current reaction produced fire.
+ * Ordinary hotspot_expose calls intentionally leave an existing hotspot alone.
+ * Without this handoff, process() deletes a zero-volume effect from the previous
+ * cycle even when diffusion has replenished the turf and combustion has resumed.
+ * This reads actual reaction output; it does not react a second sample or add fuel.
+ */
+/obj/effect/hotspot/proc/refresh_exhausted_fire(datum/gas_mixture/reacted_air)
+	if(volume > 1)
+		return
+	var/current_fire_volume = 0
+	for(var/reaction in SSair.hotspot_reactions)
+		current_fire_volume += reacted_air.reaction_results[reaction] * FIRE_GROWTH_RATE
+	if(current_fire_volume <= 1)
+		return
+	volume = current_fire_volume
+	temperature = reacted_air.return_temperature()
+
 /// Mathematics to be used for color calculation.
 /obj/effect/hotspot/proc/gauss_lerp(x, x1, x2)
 	var/b = (x1 + x2) * 0.5

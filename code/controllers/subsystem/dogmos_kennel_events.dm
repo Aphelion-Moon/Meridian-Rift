@@ -259,7 +259,12 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 /datum/controller/subsystem/air/proc/check_kennel_machine_cost(obj/machinery/M, cost_ms)
 	if(!M)
 		return
-	var/key = REF(M)
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Cache the stable engine identity, but honor mutable tags just as REF() does.
+	if(isnull(M.dogmos_kennel_cost_ref))
+		M.dogmos_kennel_cost_ref = text_ref(M)
+	var/key = (M.datum_flags & DF_USE_TAG) ? REF(M) : M.dogmos_kennel_cost_ref // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/key = REF(M)
+	// APHELION EDIT ADDITION END
 	var/previous = kennel_machine_cost_ewma[key]
 	var/ewma = isnull(previous) ? cost_ms : MC_AVERAGE(previous, cost_ms)
 	kennel_machine_cost_ewma[key] = ewma
