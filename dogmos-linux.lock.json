@@ -1,9 +1,9 @@
 {
   "artifacts": {
-    "dogmos-source-snapshot.json": "202ab0172031706aacd00e0ffe73691a969cac8a4096fa98fa79a5a93d847972",
-    "dogmos_bindings.dm": "cbd46a72f7ba2c6464ca257119e70ae1ce9cb58f749ee3de7fc5696e8ac6e810",
-    "libdogmos_in_process.so": "8b58f4d2128295b1840508bdf50838d6b1ce85eb2496c2569882555640bd85a4",
-    "libdogmos_in_process.so.debug": "10d277ecde891988a4dcb9246ea2a0385d118036ed096a9a393f36c085d89898"
+    "dogmos-source-snapshot.json": "ffb7ce25fb5fa903e07d60009423f0d9b8d363c053b9cfbdbab1481c5e97a287",
+    "dogmos_bindings.dm": "4b6ba8bd8f88070b41bcd61f7dedd2f7ed2703b58518b58f11780aa12e3b1efb",
+    "libdogmos_in_process.so": "aa05aac74cafef330c5cc892b7de487eba3e01ea6634ab870bf834815bb1fef1",
+    "libdogmos_in_process.so.debug": "74c79694ce7f012b3acbe178c828bb41bdec321bfca554ae0617fcd635441ad0"
   },
   "backend": "in-process",
   "cargo_arguments": [
@@ -33,7 +33,7 @@
   "runtime_qualified": false,
   "schema_version": 1,
   "source_revision": "722b9b9ef844fd13d835fa468963183168773e67",
-  "source_sha256": "202ab0172031706aacd00e0ffe73691a969cac8a4096fa98fa79a5a93d847972",
+  "source_sha256": "ffb7ce25fb5fa903e07d60009423f0d9b8d363c053b9cfbdbab1481c5e97a287",
   "target": "i686-unknown-linux-gnu",
   "tests_run": false,
   "toolchain": "1.98.0"

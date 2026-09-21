@@ -21,6 +21,8 @@ SUBSYSTEM_DEF(air)
 
 	var/cost_atoms = 0
 	var/cost_turfs = 0
+	/// Native diffusion only, included in cost_turfs (never an additive stage).
+	var/cost_fdm = 0 // APHELION EDIT ADDITION - DOGMOS
 	var/cost_hotspots = 0
 	var/cost_groups = 0
 	var/cost_highpressure = 0
@@ -243,7 +245,7 @@ SUBSYSTEM_DEF(air)
 		timer = TICK_USAGE_REAL
 		process_adjacent_rebuild()
 		//This does mean that the apperent rebuild costs fluctuate very quickly, this is just the cost of having them always process, no matter what
-		cost_adjacent = TICK_USAGE_REAL - timer
+		cost_adjacent = TICK_DELTA_TO_MS(TICK_USAGE_REAL - timer) // APHELION EDIT CHANGE - DOGMOS - report milliseconds
 		if(state != SS_RUNNING)
 			return
 
@@ -253,7 +255,7 @@ SUBSYSTEM_DEF(air)
 		timer = TICK_USAGE_REAL
 		process_rebuilds()
 		//This does mean that the apperent rebuild costs fluctuate very quickly, this is just the cost of having them always process, no matter what
-		cost_rebuilds = TICK_USAGE_REAL - timer
+		cost_rebuilds = TICK_DELTA_TO_MS(TICK_USAGE_REAL - timer) // APHELION EDIT CHANGE - DOGMOS - report milliseconds
 		if(state != SS_RUNNING)
 			return
 
@@ -429,6 +431,7 @@ SUBSYSTEM_DEF(air)
 	cached_cost = SSair.cached_cost
 	cost_atoms = SSair.cost_atoms
 	cost_turfs = SSair.cost_turfs
+	cost_fdm = SSair.cost_fdm // APHELION EDIT ADDITION - DOGMOS
 	cost_hotspots = SSair.cost_hotspots
 	cost_groups = SSair.cost_groups
 	cost_highpressure = SSair.cost_highpressure
@@ -736,27 +739,9 @@ SUBSYSTEM_DEF(air)
  */
 /datum/controller/subsystem/air/proc/turf_settled(turf/open/T)
 	// APHELION EDIT ADDITION START - DOGMOS
-	// One bounded native query replaces per-neighbor compare/immutability crossings.
-	// Neither this result nor the wake decision survives the current call.
-	var/list/neighbors = list()
-	var/list/mixtures = list()
-	for(var/turf/open/neighbor as anything in T.atmos_adjacent_turfs)
-		if(isopenturf(neighbor))
-			neighbors += neighbor
-			mixtures += neighbor.air
-	var/list/settlement = T.air.__settlement_batch(mixtures)
-	if(length(settlement) != length(neighbors) + 1)
-		CRASH("Dogmos returned an invalid settlement batch.")
-	var/source_is_immutable = settlement[1]
-	var/settled = source_is_immutable || !T.active_hotspot
-	for(var/index in 1 to length(neighbors))
-		var/neighbor_state = settlement[index + 1]
-		if(neighbor_state)
-			settled = source_is_immutable
-			// State 1 is a differing fixed boundary; state 2 is a mutable neighbor.
-			if(neighbor_state == 2)
-				add_to_active(neighbors[index])
-	return settled
+	// Classify live neighbors in one crossing; native code releases its locks
+	// before invoking the existing DM wake path, including dormant machinery.
+	return __turf_settled(T)
 	// APHELION EDIT ADDITION END
 
 /** Runs Rust's low-pressure equalizer within the current tick budget. */

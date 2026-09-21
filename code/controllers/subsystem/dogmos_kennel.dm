@@ -157,10 +157,17 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 		"superconductivity" = SSair.cost_superconductivity,
 		// APHELION EDIT ADDITION START - DOGMOS
 		"pipenets" = SSair.cost_pipenets,
+		"atmos_machinery" = SSair.cost_atmos_machinery,
+		"hotspots" = SSair.cost_hotspots,
+		"atoms" = SSair.cost_atoms,
+		"rebuilds" = SSair.cost_rebuilds,
+		"adjacent" = SSair.cost_adjacent,
+		"fdm" = SSair.cost_fdm,
+		"mc_total" = SSair.cost,
 		// APHELION EDIT ADDITION END
 		"post_process" = SSair.cost_post_process,
 	)
-	data["frozen"] = SSair.can_fire
+	data["frozen"] = !SSair.can_fire // APHELION EDIT CHANGE - DOGMOS
 	data["realistic_space_radiation"] = SSair.realistic_space_radiation
 	data["equalize_enabled"] = SSair.equalize_enabled
 	data["fire_count"] = SSair.times_fired

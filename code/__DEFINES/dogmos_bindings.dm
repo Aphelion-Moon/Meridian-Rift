@@ -185,6 +185,12 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:set_volume_hook_ffi")
 	return call_ext(loaded)(src, vol_arg)
 
+/// Classifies the live adjacency without constructing three temporary DM lists per visit.
+/// Numerical locks are released before invoking DM's ordinary neighbor/machinery wake path.
+/datum/controller/subsystem/air/proc/__turf_settled(turf)
+	var/static/loaded = load_ext(DOGMOS, "byond:turf_settled_hook_ffi")
+	return call_ext(loaded)(src, turf)
+
 /// Clears the gas mixture my removing all of its gases.
 /datum/gas_mixture/proc/clear()
 	var/static/loaded = load_ext(DOGMOS, "byond:clear_hook_ffi")
@@ -389,6 +395,17 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:hook_infos_ffi")
 	return call_ext(loaded)(src, _max_x, _max_y)
 
+/// Updates the visual overlays for the given turf.
+/// Will use a cached overlay list if one exists.
+///
+/// Gas overlays are indexed by gas id, plane offset, and visibility factor because each z-level uses
+/// a distinct render plane. The overlay objects are shared with the DM gas metadata.
+/// # Errors
+/// If auxgm wasn't implemented properly or there's an invalid gas mixture.
+/turf/open/proc/__update_dogmos_visuals()
+	var/static/loaded = load_ext(DOGMOS, "byond:update_visuals_ffi")
+	return call_ext(loaded)(src)
+
 /datum/controller/subsystem/air/proc/process_turf_heat()
 	var/static/loaded = load_ext(DOGMOS, "byond:process_heat_notify_ffi")
 	return call_ext(loaded)(src)
@@ -408,4 +425,4 @@
 #define DOGMOS_IN_PROCESS
 
 // Local in-process build identity; generated with the matching DLL.
-#define DOGMOS_IN_PROCESS_IDENTITY "in-process:202ab0172031706aacd00e0ffe73691a969cac8a4096fa98fa79a5a93d847972"
+#define DOGMOS_IN_PROCESS_IDENTITY "in-process:ffb7ce25fb5fa903e07d60009423f0d9b8d363c053b9cfbdbab1481c5e97a287"

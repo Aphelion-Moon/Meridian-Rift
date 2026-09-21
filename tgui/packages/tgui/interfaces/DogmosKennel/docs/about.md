@@ -17,14 +17,18 @@ configuration control is used.
   grows continuously at idle warrants investigation.
 - **Group / Equalize Components** are work counts reported by the latest native processing cycle.
   They are not counts of unique station turfs.
-- **Atmospherics Stage Costs** are smoothed wall-clock measurements around controller stages. They
-  include Dream Maker work, native boundary calls and processing inside the measured envelope; they are
-  not Rust-only timings. Uninstrumented legacy rows are omitted.
+- **Atmospherics Costs** include Dream Maker work and native calls. Active Turfs includes maintenance,
+  diffusion, reaction callbacks and visuals. Native FDM, post-process and equalizer counters are
+  subtotals of their parent stages and must not be added a second time.
+- **MC total** uses a faster moving average than the stage counters and includes UI updates and
+  scheduling overhead. Rebuild counters show the latest resume slice in milliseconds. Values need
+  not sum exactly during a changing workload or between display updates.
+- **Atmos Cycles** is the subsystem's cycle count; **Hotspots** counts current fire objects.
 - A **negative** or non-finite stage cost is an invalid timing sample. It does not represent saved
   time or negative work. The Kennel displays such a value as an instrumentation error instead of
   drawing it on the cost scale.
-- **DreamDaemon** and **native engine** memory belong to different processes. Do not add their values
-  together when evaluating DreamDaemon's 32-bit address-space pressure.
+- **DreamDaemon** includes the in-process native engine's allocations. Its private, virtual and
+  working-set byte counts measure different properties of the same 32-bit process.
 
 Idle performance should be judged with no players and no active atmospheric event on Runtime
 Station or MetaStation. The engineering target is an Atmospherics MC tick below 20 ms at idle, or as

@@ -1,6 +1,11 @@
 
+/** Applies thrown damage only while the target still has an intact damage lifecycle. */
 /obj/hitby(atom/movable/hit_by, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
 	..()
+	// APHELION EDIT ADDITION START - DOGMOS - liquid release can move debris during destruction.
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
+		return
+	// APHELION EDIT ADDITION END
 	var/damage_taken = hit_by.throwforce
 	if(isitem(hit_by))
 		var/obj/item/as_item = hit_by

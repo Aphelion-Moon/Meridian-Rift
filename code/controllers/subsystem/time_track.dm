@@ -59,6 +59,13 @@ SUBSYSTEM_DEF(time_track)
 			"maptick",
 			"num_timers",
 			"air_turf_cost",
+			// APHELION EDIT ADDITION START - DOGMOS
+			"air_fdm_cost",
+			"air_mc_cost",
+			"air_atmos_machinery_cost",
+			"air_atoms_cost",
+			"air_adjacent_cost",
+			// APHELION EDIT ADDITION END
 			"air_eg_cost",
 			"air_highpressure_cost",
 			"air_hotspots_cost",
@@ -160,6 +167,13 @@ SUBSYSTEM_DEF(time_track)
 			MAPTICK_LAST_INTERNAL_TICK_USAGE,
 			length(SStimer.timer_id_dict),
 			SSair.cost_turfs,
+			// APHELION EDIT ADDITION START - DOGMOS
+			SSair.cost_fdm,
+			SSair.cost,
+			SSair.cost_atmos_machinery,
+			SSair.cost_atoms,
+			SSair.cost_adjacent,
+			// APHELION EDIT ADDITION END
 			SSair.cost_groups,
 			SSair.cost_highpressure,
 			SSair.cost_hotspots,

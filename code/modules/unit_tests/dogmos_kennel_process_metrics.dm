@@ -38,6 +38,14 @@
 	TEST_ASSERT_EQUAL(producer_telemetry["machinery_candidates_inspected"], 0, "Kennel inspected machinery while slow mode was enabled.")
 	TEST_ASSERT_EQUAL(producer_telemetry["browse_pages_built"], 0, "Kennel built a machinery page while slow mode was enabled.")
 	TEST_ASSERT_EQUAL(producer_telemetry["active_viewers"], 0, "Kennel reported viewers for an empty UI registry.")
+	// APHELION EDIT ADDITION START - DOGMOS
+	TEST_ASSERT_EQUAL(data["frozen"], !SSair.can_fire, "Kennel reverses the atmosphere run state.")
+	var/list/costs = data["dogmos_costs"]
+	for(var/key in list("turfs", "fdm", "groups", "highpressure", "superconductivity", "pipenets", "atmos_machinery", "hotspots", "atoms", "rebuilds", "adjacent", "mc_total"))
+		TEST_ASSERT(key in costs, "Kennel omitted cost [key].")
+	TEST_ASSERT_EQUAL(costs["mc_total"], SSair.cost, "Kennel differs from the MC counter.")
+	TEST_ASSERT_EQUAL(costs["atmos_machinery"], SSair.cost_atmos_machinery, "Kennel differs from the machinery counter.")
+	// APHELION EDIT ADDITION END
 	var/list/payload = data["process_metrics"]
 	TEST_ASSERT_NOTNULL(payload, "The Dogmos Kennel omitted process_metrics from its live payload.")
 	TEST_ASSERT_EQUAL(length(payload), 1, "The Dogmos Kennel exposed a combined or unexpected process role.")

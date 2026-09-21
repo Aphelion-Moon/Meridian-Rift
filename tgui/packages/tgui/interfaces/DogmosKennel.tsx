@@ -32,6 +32,13 @@ type DogmosCosts = {
   superconductivity: number;
   // APHELION EDIT ADDITION START - DOGMOS
   pipenets: number;
+  atmos_machinery: number;
+  hotspots: number;
+  atoms: number;
+  rebuilds: number;
+  adjacent: number;
+  fdm: number;
+  mc_total: number;
   // APHELION EDIT ADDITION END
   post_process: number;
 };
@@ -325,14 +332,13 @@ const KennelControls = () => {
 const OverviewPanel = (props) => {
   const { act, data } = useBackend<Data>();
   const costs = data.dogmos_costs || ({} as DogmosCosts);
-  const equalizeActive = !!data.equalize_enabled;
   return (
     <>
       <Section title="Kennel Overview">
         <Stack fill>
           <Stack.Item grow>
             <LabeledList>
-              <LabeledList.Item label="Fire Count">
+              <LabeledList.Item label="Atmos Cycles">
                 {data.fire_count}
               </LabeledList.Item>
               <LabeledList.Item label="Active Turfs">
@@ -380,10 +386,10 @@ const OverviewPanel = (props) => {
       {/* APHELION EDIT ADDITION START - DOGMOS */}
       <ProcessMetricsPanel />
       {/* APHELION EDIT ADDITION END */}
-      <Section title="Atmospherics Stage Costs (smoothed wall time)">
+      <Section title="Atmospherics Costs (milliseconds)">
         <Table>
           <StageCostRow
-            label="Active Turfs / FDM"
+            label="Active Turfs (whole phase)"
             cost={costs.turfs ?? 0}
             active
           />
@@ -393,10 +399,9 @@ const OverviewPanel = (props) => {
             active
           />
           <StageCostRow
-            label="Pressure Equalization"
+            label="Pressure / Equalization"
             cost={costs.highpressure ?? 0}
-            active={equalizeActive}
-            inactiveTooltip="Katmos Pressure Equalizer is off (below)"
+            active
           />
           <StageCostRow
             label="Superconductivity"
@@ -405,8 +410,48 @@ const OverviewPanel = (props) => {
           />
           {/* APHELION EDIT ADDITION START - DOGMOS */}
           <StageCostRow label="Pipenets" cost={costs.pipenets ?? 0} active />
+          <StageCostRow
+            label="Atmos Machinery"
+            cost={costs.atmos_machinery ?? 0}
+            active
+          />
+          <StageCostRow label="Hotspots" cost={costs.hotspots ?? 0} active />
+          <StageCostRow label="Atom Exposure" cost={costs.atoms ?? 0} active />
+          <StageCostRow
+            label="Pipenet Rebuilds (last slice)"
+            cost={costs.rebuilds ?? 0}
+            active
+          />
+          <StageCostRow
+            label="Adjacency Rebuilds (last slice)"
+            cost={costs.adjacent ?? 0}
+            active
+          />
           {/* APHELION EDIT ADDITION END */}
         </Table>
+        {/* APHELION EDIT ADDITION START - DOGMOS */}
+        <LabeledList>
+          <LabeledList.Item label="MC total (smoothed)">
+            {(costs.mc_total ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+          <LabeledList.Item label="Native FDM (within Active Turfs)">
+            {(costs.fdm ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+          <LabeledList.Item label="Native post-process (within Active Turfs)">
+            {(costs.post_process ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+          <LabeledList.Item label="Native equalizer (within Pressure Equalization)">
+            {(costs.equalize ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+        </LabeledList>
+        <Box color="label" mt={1}>
+          Active Turfs includes maintenance, diffusion, reactions, callbacks and
+          visuals. Native subtotals are already included. MC also includes UI
+          updates and scheduling overhead, and smooths faster than the stage
+          counters. Rebuilds show the latest slice; values can differ while a
+          cycle is paused or the display refreshes.
+        </Box>
+        {/* APHELION EDIT ADDITION END */}
       </Section>
       {!!data.kennel_slow_mode && (
         <NoticeBox>

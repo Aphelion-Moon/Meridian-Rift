@@ -163,7 +163,8 @@
 		apply_visual_overlays(null)
 		return
 
-	apply_visual_overlays(air.return_visuals(src))
+	// Use the same native overlay inventory as the simulation callback.
+	__update_dogmos_visuals()
 
 /** Applies the gas-overlay diff produced by DM or Dogmos and caches the result. */
 /turf/open/proc/apply_visual_overlays(list/new_overlay_types)
