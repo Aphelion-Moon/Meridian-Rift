@@ -217,7 +217,7 @@ These integration edits retain their original code in `APHELION EDIT` comments; 
 
 - [code/art_galaxy.dm](code/art_galaxy.dm): portrait printer `New`, `Destroy`, `ui_interact`, and `ui_close`.
 - The remaining `code/` files add subsystem, canvas, preference, admin, asset, and
-  achievement helpers; [tests/painting_gallery.dm](tests/painting_gallery.dm) isolates
+  achievement helpers; [painting_gallery.dm](../../../code/modules/unit_tests/~nova/painting_gallery.dm) isolates
   consent, migration, and transaction behavior.
 
 ### Defines:

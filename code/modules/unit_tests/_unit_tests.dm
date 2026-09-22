@@ -375,9 +375,6 @@
 #include "washing.dm"
 #include "weird_food.dm"
 #include "wizard_loadout.dm"
-// APHELION EDIT ADDITION START
-#include "..\..\..\modular_aphelion\modules\painting_gallery\tests\painting_gallery.dm"
-// APHELION EDIT ADDITION END
 // NOVA EDIT ADDITION START
 #include "~nova\accessory_layers.dm"
 #include "~nova\augment_items.dm"
@@ -389,6 +386,7 @@
 #include "~nova\mod_accessories.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
+#include "~nova\painting_gallery.dm"
 #include "~nova\portal_device.dm"
 #include "~nova\portal_lifecycle.dm"
 #include "~nova\portal_routes.dm"
