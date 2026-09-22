@@ -38,9 +38,11 @@ Hover fills the item's occupied cells with translucent white. Dragging fills
 the proposed placement green when it fits, or red when it does not; grid lines
 remain visible through the fill, underneath the item artwork.
 
-Double-click a nested container to open its own movable, closable panel beside
-its parent. A panel that would open exactly on another open panel steps down
-and right until it is clear.
+Double-click a nested container to open its own movable, closable panel. It
+opens beside its parent, or in the nearest spot 8 pixels clear of the open
+panels' edges that covers no other panel, and starts above them. Double-click
+or right-click a container whose panel is open to close it; right-clicking a
+closed container opens it through its storage as before.
 Nested storage keeps its original owner and insertion restrictions. Its grid
 has a fixed number of usable cells based on its capacity for tiny items (seven
 cells for a medkit). Incoming items try both orientations in that existing
@@ -183,10 +185,12 @@ clicks, locks, and closed-container content changes. A connected-client fixture 
 passed nested-panel ownership, original starting position, HUD refresh/theme
 preservation, tooltip show/hide, rotation-key release, and screen cleanup checks. That run produced
 `clean_run.lk` with no runtimes. On 2026-09-22, after the cross-panel
-eligibility and frame-only drag changes, the 16 focused behavior tests (now
-including `grid_inventory_cross_panel_highlights`) and both opt-in benchmarks
-passed again with `clean_run.lk` and no runtimes. The connected-client fixture
-was not rerun, and the full unit suite was not run.
+eligibility, frame-only drag, panel placement and close-toggle changes, the 17
+focused behavior tests (now including `grid_inventory_cross_panel_highlights`
+and `grid_inventory_container_toggle`) passed with `clean_run.lk` and no
+runtimes. Both opt-in benchmarks passed on the frame-only drag change, which
+the later placement and toggle changes do not touch. The connected-client
+fixture was not rerun, and the full unit suite was not run.
 
 DreamSeeker captures verified the original starting position, centered sample
 art, separate parent/child panels, Midnight and Plasmafire styling, borderless

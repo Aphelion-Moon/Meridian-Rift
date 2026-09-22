@@ -32,6 +32,8 @@
 	var/clicked_page
 	var/clicked_columns
 	var/clicked_rows
+	/// The clicked container's panel was open, so a double-click closes it instead of opening it.
+	var/clicked_panel_open = FALSE
 	var/click_opened = FALSE
 	var/suppress_click = FALSE
 
@@ -101,14 +103,20 @@
 /datum/storage_interface/grid/proc/get_placement(obj/item/item)
 	return grid.placements[item]
 
+/**
+ * Sizes the panel to its storage's fixed grid, plus a take-only row when anything overflows.
+ */
+/datum/storage_interface/grid/proc/fit_grid_size()
+	columns = grid.grid_width
+	rows = grid.grid_height + !!length(grid.overflow)
+
 /datum/storage_interface/grid/update_position(screen_start_x, screen_pixel_x, screen_start_y, screen_pixel_y, unused_columns, unused_rows, mob/user_looking, atom/real_location, list/datum/numbered_display/numbered_contents)
 	if(isnull(position_x))
 		// Start at the existing storage HUD anchor; later refreshes preserve dragged positions.
 		position_x = screen_start_x * 32 + screen_pixel_x
 		position_y = screen_start_y * 32 + screen_pixel_y
-	columns = grid.grid_width
-	rows = grid.grid_height + !!length(grid.overflow)
-	overflow_page = min(overflow_page, max(0, ceil(length(grid.overflow) / columns) - 1))
+	fit_grid_size()
+	overflow_page =min(overflow_page, max(0, ceil(length(grid.overflow) / columns) - 1))
 	var/list/visible_items = grid.placements.Copy()
 	for(var/index in overflow_page * columns + 1 to min(length(grid.overflow), (overflow_page + 1) * columns))
 		visible_items[grid.overflow[index]] = null
@@ -436,6 +444,7 @@
 	clicked_page = null
 	clicked_columns = null
 	clicked_rows = null
+	clicked_panel_open = FALSE
 	click_opened = FALSE
 	suppress_click = FALSE
 
@@ -459,6 +468,8 @@
 	clicked_page = overflow_page
 	clicked_columns = columns
 	clicked_rows = rows
+	// Recorded before the pickup, which closes the panel of a container leaving its storage.
+	clicked_panel_open = !!viewer.grid_inventory?.panels[item.atom_storage]
 	var/datum/grid_placement/placement = get_placement(item)
 	if(placement)
 		clicked_placement = new(placement.x, placement.y, placement.width, placement.height, placement.rotated)
@@ -468,7 +479,13 @@
 	if(!can_interact() || QDELETED(item) || item.loc != parent_storage.real_location)
 		return
 	var/list/modifiers = params2list(params)
-	if(item.atom_storage && LAZYACCESS(modifiers, BUTTON) == LEFT_CLICK && !LAZYACCESS(modifiers, SHIFT_CLICK) && !LAZYACCESS(modifiers, ALT_CLICK) && !LAZYACCESS(modifiers, CTRL_CLICK))
+	var/plain = !LAZYACCESS(modifiers, SHIFT_CLICK) && !LAZYACCESS(modifiers, ALT_CLICK) && !LAZYACCESS(modifiers, CTRL_CLICK)
+	// Right-click opens a container through its storage; on one that is already open, it closes it.
+	if(plain && LAZYACCESS(modifiers, BUTTON) == RIGHT_CLICK && viewer.grid_inventory?.panels[item.atom_storage])
+		cancel_click()
+		item.atom_storage.hide_contents(viewer)
+		return
+	if(item.atom_storage && plain && LAZYACCESS(modifiers, BUTTON) == LEFT_CLICK)
 		remember_click(item, cell)
 	else
 		cancel_click()
@@ -528,6 +545,9 @@
 	var/obj/item/item = clicked_item_ref.resolve()
 	click_opened = TRUE
 	suppress_click = TRUE
+	if(clicked_panel_open)
+		item.atom_storage.hide_contents(viewer)
+		return TRUE
 	return open_container(item)
 
 /datum/storage_interface/grid/proc/open_container(obj/item/item)

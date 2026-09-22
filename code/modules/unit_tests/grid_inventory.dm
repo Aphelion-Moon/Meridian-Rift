@@ -156,7 +156,9 @@
 	TEST_ASSERT_EQUAL(length(display.overlays), 1, "Inventory display should contain only the item art")
 	qdel(placement)
 
-/// Every object the client draws for a storage interface, following visual contents down from its screen objects.
+/**
+ * Returns every object the client draws for a storage interface, following visual contents down from its screen objects.
+ */
 /proc/grid_inventory_drawn_objects(datum/storage_interface/interface)
 	var/list/objects = list()
 	for(var/atom/movable/element in interface.list_ui_elements())
@@ -717,7 +719,11 @@
 	var/datum/storage_interface/grid/sibling = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', other_kit.atom_storage, user)
 	session.add_panel(other_kit.atom_storage, sibling)
 	sibling.update_position(4, 16, 2, 16, 7, 3, user, other_kit)
-	TEST_ASSERT(sibling.frame.pixel_x != nested.frame.pixel_x || sibling.frame.pixel_y != nested.frame.pixel_y, "A second nested panel opened on top of the first")
+	TEST_ASSERT(sibling.z_order > nested.z_order && sibling.z_order > backpack.z_order, "A newly opened panel did not start above the others")
+	for(var/datum/storage_interface/grid/other as anything in list(backpack, nested))
+		var/overlap_width = min(sibling.position_x + sibling.panel_width(), other.position_x + other.panel_width()) - max(sibling.position_x, other.position_x)
+		var/overlap_height = min(sibling.position_y + sibling.panel_height(), other.position_y + other.panel_height()) - max(sibling.position_y, other.position_y)
+		TEST_ASSERT(overlap_width <= 0 || overlap_height <= 0, "A second nested panel opened over another panel")
 	qdel(session)
 	qdel(sibling)
 	qdel(nested)
@@ -909,6 +915,45 @@
 	TEST_ASSERT_EQUAL(blocker.loc, bag, "Failed click rollback displaced another item")
 	qdel(panel)
 	user.active_storage = null
+
+/datum/unit_test/grid_inventory_container_toggle/Run()
+	var/plain_click = "button=left;left=1"
+	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, user)
+	var/obj/item/storage/grid_inventory_click_fixture/container = allocate(__IMPLIED_TYPE__, bag)
+	var/datum/storage/grid_inventory_click_fixture/storage = container.atom_storage
+	var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+	var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', bag.atom_storage, user)
+	session.add_panel(bag.atom_storage, panel)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/atom/movable/screen/grid_inventory/cell = panel.grid_cells[1]
+	TEST_ASSERT_EQUAL(cell.item, container, "Toggle fixture has no container cell")
+	var/datum/storage_interface/grid/nested = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', storage, user)
+	session.add_panel(storage, nested)
+	var/old_usr = usr
+	usr = user
+	cell.Click(null, null, "button=right;right=1")
+	usr = old_usr
+	TEST_ASSERT_NULL(session.panels[storage], "Right-clicking an open container did not close its panel")
+	TEST_ASSERT_EQUAL(container.loc, bag, "Closing a container by right-click moved it")
+	// The first click still picks the container up; the double-click puts it back and closes it.
+	session.add_panel(storage, nested)
+	usr = user
+	cell.Click(null, null, plain_click)
+	usr = old_usr
+	TEST_ASSERT(user.is_holding(container), "Toggle fixture was not picked up by the first click")
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	panel.begin_click(cell, params2list(plain_click))
+	usr = user
+	cell.DblClick(null, null, plain_click)
+	cell.Click(null, null, plain_click)
+	usr = old_usr
+	TEST_ASSERT_EQUAL(container.loc, bag, "Double-clicking an open container left it in hand")
+	TEST_ASSERT_NULL(session.panels[storage], "Double-clicking an open container left its panel open")
+	TEST_ASSERT_EQUAL(storage.open_requests, 0, "Double-clicking an open container opened it again")
+	qdel(session)
+	qdel(nested)
+	qdel(panel)
 
 /datum/unit_test/grid_inventory_manual_insert/Run()
 	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)

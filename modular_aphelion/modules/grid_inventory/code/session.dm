@@ -82,23 +82,74 @@
 	var/datum/storage/parent_storage = container?.atom_storage
 	if(panels[parent_storage])
 		enclosing[storage] = parent_storage
-		var/datum/storage_interface/grid/parent_panel = panels[parent_storage]
-		panel.position_x = parent_panel.position_x + parent_panel.panel_width() + 8
-		panel.position_y = parent_panel.position_y + 16
-		// Siblings from the same parent would share that spot; step down and right past open panels.
-		var/occupied = TRUE
-		while(occupied)
-			occupied = FALSE
-			for(var/datum/storage/open as anything in panels)
-				var/datum/storage_interface/grid/other = panels[open]
-				if(other.position_x == panel.position_x && other.position_y == panel.position_y)
-					panel.position_x += 24
-					panel.position_y -= 24
-					occupied = TRUE
+		place_panel(panel, panels[parent_storage])
 	panels[storage] = panel
+	// A new panel keeps the default z_order until raised, which can tie it with an older panel.
+	panel.raise_panel()
 	RegisterSignal(storage, COMSIG_QDELETING, PROC_REF(storage_deleted))
 	RegisterSignal(storage.parent, COMSIG_MOVABLE_MOVED, PROC_REF(validate_on_signal))
 	RegisterSignal(storage.real_location, COMSIG_ATOM_EXITED, PROC_REF(contents_exited))
+
+/**
+ * Places a newly opened nested panel beside its parent, or as close to that as it can without covering another panel.
+ *
+ * Candidates are the spot beside the parent plus spots 8 pixels clear of each open panel's edges, clamped to the view.
+ * The candidate covering the least panel area wins, then the one nearest the spot beside the parent. If every
+ * candidate overlaps something, the panel still opens in the least crowded of them.
+ *
+ * Arguments:
+ * - panel: The panel being opened. It is not in panels yet and has not been laid out, so its size comes from its storage.
+ * - parent_panel: The open panel of the storage that holds it.
+ */
+/datum/grid_inventory_session/proc/place_panel(datum/storage_interface/grid/panel, datum/storage_interface/grid/parent_panel)
+	panel.fit_grid_size()
+	var/width = panel.panel_width()
+	var/height = panel.panel_height()
+	var/list/view_size = view_to_pixels(viewer_client?.view || world.view)
+	var/max_x = max(32, view_size[1] + 32 - width)
+	var/max_y = max(32, view_size[2] + 32 - height)
+	var/preferred_x = parent_panel.position_x + parent_panel.panel_width() + 8
+	var/preferred_y = parent_panel.position_y + 16
+	var/list/candidates = list(list(preferred_x, preferred_y))
+	for(var/datum/storage/open as anything in panels)
+		var/datum/storage_interface/grid/other = panels[open]
+		var/right = other.position_x + other.panel_width() + 8
+		var/top = other.position_y + other.panel_height() + 8
+		candidates += list(
+			list(right, other.position_y),
+			list(right, top - 8 - height),
+			list(other.position_x, top),
+			list(other.position_x, other.position_y - 8 - height),
+			list(other.position_x - 8 - width, other.position_y),
+		)
+	var/best_overlap
+	var/best_distance
+	for(var/list/candidate as anything in candidates)
+		var/candidate_x = clamp(candidate[1], 32, max_x)
+		var/candidate_y = clamp(candidate[2], 32, max_y)
+		var/overlap = overlap_area(candidate_x, candidate_y, width, height)
+		var/distance = (candidate_x - preferred_x) ** 2 + (candidate_y - preferred_y) ** 2
+		if(isnull(best_overlap) || overlap < best_overlap || (overlap == best_overlap && distance < best_distance))
+			best_overlap = overlap
+			best_distance = distance
+			panel.position_x = candidate_x
+			panel.position_y = candidate_y
+
+/**
+ * Returns the pixel area of open panels that a rectangle would cover.
+ *
+ * Arguments:
+ * - x, y: The rectangle's bottom-left corner, in the same coordinates as panel positions.
+ * - width, height: The rectangle's size in pixels.
+ */
+/datum/grid_inventory_session/proc/overlap_area(x, y, width, height)
+	. = 0
+	for(var/datum/storage/open as anything in panels)
+		var/datum/storage_interface/grid/other = panels[open]
+		var/overlap_width = min(x + width, other.position_x + other.panel_width()) - max(x, other.position_x)
+		var/overlap_height = min(y + height, other.position_y + other.panel_height()) - max(y, other.position_y)
+		if(overlap_width > 0 && overlap_height > 0)
+			. += overlap_width * overlap_height
 
 /// Close before storage Destroy clears the parent and real-location signal owners.
 /datum/grid_inventory_session/proc/storage_deleted(datum/storage/source)
