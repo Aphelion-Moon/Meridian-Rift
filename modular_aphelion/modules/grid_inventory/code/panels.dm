@@ -337,7 +337,8 @@
 			if(ancestor == item)
 				return FALSE
 		automatic.enable_grid()
-		return item.loc != automatic.real_location && automatic.can_insert(item, viewer, messages = FALSE)
+		// The current container already holds the item; can_insert() would count it twice.
+		return item.loc == automatic.real_location || automatic.can_insert(item, viewer, messages = FALSE)
 	if(target.action || !parent_storage.can_insert(item, viewer, messages = FALSE))
 		return FALSE
 	return grid.fits(item, target.cell_x, target.cell_y, rotation)
@@ -358,6 +359,9 @@
 		return
 	// Cross-container transfers use the existing pickup/removal path and insertion restrictions.
 	if(!can_receive(target, item, rotation, automatic))
+		return
+	// The current container is a valid target, but there is nothing to transfer.
+	if(automatic && item.loc == automatic.real_location)
 		return
 	var/target_x = target.cell_x
 	var/target_y = target.cell_y

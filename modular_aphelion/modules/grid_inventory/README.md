@@ -43,12 +43,14 @@ Item footprints and 24px cells stay consistent across containers. Positions
 and rotations belong to the storage owner and survive closing its panel.
 An active-hand item previews placement when hovering over the grid. Q/E and
 the mouse wheel rotate that preview; clicking places it at the shown position.
-Eligible containers in the open panels have blue backgrounds while holding or
-dragging an item. Hovering one turns its whole footprint green if the item can
-fit, or red if it cannot. The payload stays visible without its own placement
-fill over a container; no rejection X is shown. A panel header uses the same
-automatic insertion check and colors its grid. Dragging a stored item takes
-precedence over the held-item preview until the drag ends.
+Eligible containers in every open panel have blue backgrounds while holding or
+dragging an item, including the container a dragged item is already in.
+Hovering one turns its whole footprint green if the item can fit, or red if it
+cannot. Dropping an item onto its current container leaves it in place. The
+payload stays visible without its own placement fill over a container; no
+rejection X is shown. A panel header uses the same automatic insertion check
+and colors its grid. Dragging a stored item takes precedence over the
+held-item preview until the drag ends.
 A plain single click takes the item immediately through the normal pickup path.
 A native double-click reverses that pickup, restores the original anchor and
 rotation, and opens the container. The following click-release is consumed;
@@ -156,7 +158,8 @@ clicks, locks, and closed-container content changes. A connected-client fixture 
 passed nested-panel ownership, original starting position, HUD refresh/theme
 preservation, tooltip show/hide, rotation-key release, and screen cleanup checks. That run produced
 `clean_run.lk` with no runtimes. The full unit suite and current performance
-benchmark were not run.
+benchmark were not run. The later cross-panel eligibility test
+(`grid_inventory_cross_panel_highlights`) has not been run yet.
 
 DreamSeeker captures verified the original starting position, centered sample
 art, separate parent/child panels, Midnight and Plasmafire styling, borderless

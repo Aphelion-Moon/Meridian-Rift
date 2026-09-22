@@ -649,6 +649,50 @@
 	qdel(session)
 	qdel(panel)
 
+/datum/unit_test/grid_inventory_cross_panel_highlights/Run()
+	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, user)
+	var/obj/item/storage/medkit/grid_sample/kit = allocate(__IMPLIED_TYPE__, bag)
+	var/obj/item/storage/medkit/grid_sample/other_kit = allocate(__IMPLIED_TYPE__, bag)
+	var/obj/item/crowbar/grid_sample/bar = allocate(__IMPLIED_TYPE__, kit)
+	var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+	var/datum/storage_interface/grid/backpack = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', bag.atom_storage, user)
+	session.add_panel(bag.atom_storage, backpack)
+	backpack.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/datum/storage_interface/grid/nested = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', kit.atom_storage, user)
+	session.add_panel(kit.atom_storage, nested)
+	nested.update_position(4, 16, 2, 16, 7, 3, user, kit)
+	var/atom/movable/screen/grid_inventory/source_cell = nested.grid_cells[1]
+	TEST_ASSERT_EQUAL(source_cell.item, bar, "Cross-panel fixture has no source item")
+	var/atom/movable/screen/grid_inventory/kit_cell
+	var/atom/movable/screen/grid_inventory/other_kit_cell
+	for(var/atom/movable/screen/grid_inventory/cell as anything in backpack.grid_cells)
+		if(cell.item == kit)
+			kit_cell = cell
+		else if(cell.item == other_kit)
+			other_kit_cell = cell
+	// Drag out of the open medkit and across the backpack that holds it.
+	var/params = "button=left;left=1;screen-loc=5:16,3:16"
+	session.mouse_down(null, source_cell, null, null, params)
+	session.mouse_drag(null, source_cell, backpack.grid_cells[19], null, null, null, null, params)
+	var/icon/blue_icon = grid_inventory_cell_icon("#66b8df60", filled = TRUE)
+	var/icon/kit_icon = icon(kit_cell.icon)
+	TEST_ASSERT_EQUAL(kit_icon.GetPixel(12, 12), blue_icon.GetPixel(12, 12), "The container holding the dragged item was not marked eligible")
+	var/icon/other_kit_icon = icon(other_kit_cell.icon)
+	TEST_ASSERT_EQUAL(other_kit_icon.GetPixel(12, 12), blue_icon.GetPixel(12, 12), "A container outside the source panel was not marked eligible")
+	session.mouse_drag(null, source_cell, kit_cell, null, null, null, null, params)
+	var/icon/green_icon = grid_inventory_cell_icon("#75bf9160", filled = TRUE)
+	kit_icon = icon(kit_cell.icon)
+	TEST_ASSERT_EQUAL(kit_icon.GetPixel(12, 12), green_icon.GetPixel(12, 12), "Hovering the container holding the dragged item rejected it")
+	var/revision = kit.atom_storage.revision
+	backpack.receive_drop(kit_cell)
+	TEST_ASSERT_EQUAL(bar.loc, kit, "Dropping onto its current container moved the item")
+	TEST_ASSERT_EQUAL(kit.atom_storage.revision, revision, "Dropping onto its current container reinserted the item")
+	session.cancel_drag()
+	qdel(session)
+	qdel(nested)
+	qdel(backpack)
+
 /datum/unit_test/grid_inventory_slot_proxy/Run()
 	var/obj/item/storage/medkit/regular/medkit = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 	var/datum/storage/storage = medkit.atom_storage
