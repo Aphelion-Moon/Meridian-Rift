@@ -74,6 +74,8 @@
 	bio = 50
 
 /obj/item/clothing/gloves/color/rainbow
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/hands.dmi'
+	worn_icon_better_vox = 'modular_nova/modules/better_vox/icons/clothing/hands.dmi'
 	name = "rainbow gloves"
 	desc = "A pair of gloves, they don't look special in any way."
 	icon_state = "rainbow"

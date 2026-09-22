@@ -26,7 +26,7 @@ the rest of the HUD.
 
 ### Defines:
 
-- `code/__DEFINES/~nova_defines/hud.dm`: `STORAGE_UI_BUTTON_WIDTH`
+- `code/__DEFINES/~aphelion_defines/hud.dm`: `STORAGE_UI_BUTTON_WIDTH`
 
 ### Included files that are not contained in this module:
 

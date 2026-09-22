@@ -95,8 +95,11 @@ GLOBAL_LIST_INIT(genital_arousal_options, list(
 	return
 
 /obj/item/organ/genital/proc/set_size(size)
+	var/old_sprite_suffix = sprite_suffix
 	genital_size = size
 	update_sprite_suffix()
+	if(sprite_suffix != old_sprite_suffix && ishuman(owner))
+		SEND_SIGNAL(owner, COMSIG_HUMAN_GENITAL_UPDATED, src)
 
 /obj/item/organ/genital/Initialize(mapload)
 	. = ..()

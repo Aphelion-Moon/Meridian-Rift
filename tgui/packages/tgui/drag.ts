@@ -178,8 +178,14 @@ type RecallOptions = Partial<{
 // Recall window geometry from local storage and apply it
 export async function recallWindowGeometry(
   options: RecallOptions = {},
+  // APHELION EDIT ADDITION START - cancel geometry from closed or reused windows
+  cancelled: () => boolean = () => false,
+  // APHELION EDIT ADDITION END
 ): Promise<void> {
   const geometry = await storage.get(windowKey);
+  // APHELION EDIT ADDITION START - window sizing lifecycle
+  if (cancelled()) return;
+  // APHELION EDIT ADDITION END
   if (geometry) {
     logger.log('recalled geometry:', geometry);
   }
@@ -204,6 +210,9 @@ export async function recallWindowGeometry(
 
   // Wait until screen offset gets resolved
   await screenOffsetPromise;
+  // APHELION EDIT ADDITION START - window sizing lifecycle
+  if (cancelled()) return;
+  // APHELION EDIT ADDITION END
   const areaAvailable = getScreenSize();
   // Set window size
   if (size) {

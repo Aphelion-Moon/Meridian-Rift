@@ -48,19 +48,22 @@
 	alert_type = null
 
 /datum/status_effect/climax_cooldown/tick(seconds_between_ticks)
-	var/obj/item/organ/genital/vagina/vagina = owner.get_organ_slot(ORGAN_SLOT_VAGINA)
-	var/obj/item/organ/genital/testicles/balls = owner.get_organ_slot(ORGAN_SLOT_TESTICLES)
-	var/obj/item/organ/genital/penis/penis = owner.get_organ_slot(ORGAN_SLOT_PENIS)
-	var/obj/item/organ/genital/anus/anus = owner.get_organ_slot(ORGAN_SLOT_ANUS)
-
-	if(penis)
-		penis.aroused = AROUSAL_NONE
-	if(vagina)
-		vagina.aroused = AROUSAL_NONE
-	if(balls)
-		balls.aroused = AROUSAL_NONE
-	if(anus)
-		anus.aroused = AROUSAL_NONE
+	var/mob/living/carbon/human/affected_mob = owner
+	var/list/affected_genitals = list(
+		affected_mob.get_organ_slot(ORGAN_SLOT_VAGINA),
+		affected_mob.get_organ_slot(ORGAN_SLOT_TESTICLES),
+		affected_mob.get_organ_slot(ORGAN_SLOT_PENIS),
+		affected_mob.get_organ_slot(ORGAN_SLOT_ANUS),
+	)
+	var/changed_visuals = FALSE
+	for(var/obj/item/organ/genital/genital as anything in affected_genitals)
+		if(!genital || genital.aroused == AROUSAL_CANT || genital.aroused == AROUSAL_NONE)
+			continue
+		genital.aroused = AROUSAL_NONE
+		genital.update_sprite_suffix()
+		changed_visuals = TRUE
+	if(changed_visuals)
+		affected_mob.update_body()
 
 #undef AROUSAL_REMOVAL_AMOUNT
 #undef STAMINA_REMOVAL_AMOUNT_EXTERNAL

@@ -1,0 +1,111 @@
+// THIS IS AN APHELION UI FILE
+// CDPR's settings reference uses dark surfaces, red outlines, and cyan states:
+// https://www.cyberpunk.net/en/news/49591/update-2-1-accessibility-features
+// Cyberpunk RED's character sheets inform the segmented label and module rules:
+// https://rtalsoriangames.com/wp-content/uploads/2021/02/RTG-CPRed-SingleShotPackv1.1.pdf
+// These profiles retain the existing theme palettes and draw original CSS rules.
+
+.theme-meridian_cyberpunk .lobby {
+  --menu-panel: var(--lobby-panel);
+  --menu-raised: var(--console-surface-raised);
+  --menu-frame: var(--lobby-boundary);
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 42%, var(--lobby-panel));
+  --menu-border-top: 2px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 1px;
+  --menu-border-left: 4px;
+  --menu-radius: 0;
+  --menu-shadow: 3px 3px 0 var(--lobby-recessed), inset -2px 0 0 var(--lobby-recessed);
+  --menu-rule: linear-gradient(
+    90deg,
+    var(--lobby-accent) 0 66%,
+    transparent 66% 69%,
+    var(--lobby-accent) 69% 82%,
+    transparent 82% 86%,
+    var(--lobby-accent-secondary) 86% 100%
+  );
+  --menu-rule-height: 3px;
+  --menu-rule-width: 94%;
+  --menu-heading-tracking: 0.09em;
+  --menu-body-tracking: 0.025em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 8%, var(--lobby-panel));
+  --menu-control-rail: 3px;
+
+  .lobby-terminal-phase {
+    color: var(--lobby-accent-secondary);
+    border-color: var(--lobby-accent-secondary);
+  }
+}
+
+.theme-meridian_augmentation .lobby {
+  --menu-panel: var(--lobby-panel);
+  --menu-raised: var(--lobby-recessed);
+  --menu-frame: color-mix(in srgb, var(--lobby-accent) 48%, var(--lobby-panel));
+  --menu-line: color-mix(in srgb, var(--lobby-accent) 22%, var(--lobby-panel));
+  --menu-border-top: 2px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 2px;
+  --menu-border-left: 1px;
+  --menu-radius: 0;
+  --menu-shadow: inset 0 0 0 3px var(--lobby-recessed), 0 5px 12px rgb(0 0 0 / 24%);
+  --menu-rule: linear-gradient(
+    90deg,
+    var(--lobby-accent) 0 22%,
+    transparent 22% 24%,
+    var(--menu-frame) 24% 47%,
+    transparent 47% 49%,
+    var(--lobby-accent-secondary) 49% 51%,
+    transparent 51% 53%,
+    var(--menu-frame) 53% 76%,
+    transparent 76% 78%,
+    var(--lobby-accent) 78% 100%
+  );
+  --menu-rule-height: 2px;
+  --menu-rule-width: 100%;
+  --menu-heading-tracking: 0.12em;
+  --menu-body-tracking: 0.035em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 6%, var(--lobby-panel));
+  --menu-control-rail: 2px;
+
+  .lobby-terminal-heading {
+    color: var(--lobby-accent);
+  }
+}
+
+// Hotline Miami's official art pairs violet/pink lettering with cool accents:
+// https://hotlinemiami.com/
+// https://store.steampowered.com/app/219150/Hotline_Miami/
+// Synapse confines that contrast to a short sign rule and a quiet offset edge.
+.theme-meridian_synapse .lobby,
+.theme-meridian_hotline .lobby {
+  --menu-panel: var(--lobby-panel);
+  --menu-raised: var(--console-surface-raised);
+  --menu-frame: var(--lobby-boundary);
+  --menu-line: color-mix(in srgb, var(--lobby-boundary) 35%, var(--lobby-panel));
+  --menu-border-top: 1px;
+  --menu-border-right: 1px;
+  --menu-border-bottom: 1px;
+  --menu-border-left: 3px;
+  --menu-radius: 0;
+  --menu-shadow: 3px 3px 0 color-mix(in srgb, var(--lobby-accent-secondary) 18%, var(--lobby-recessed));
+  --menu-rule: linear-gradient(
+    90deg,
+    var(--lobby-accent) 0 64%,
+    transparent 64% 70%,
+    var(--lobby-accent-secondary) 70% 100%
+  );
+  --menu-rule-height: 3px;
+  --menu-rule-width: 46%;
+  --menu-heading-tracking: 0.15em;
+  --menu-body-tracking: 0.025em;
+  --menu-hover-face: color-mix(in srgb, var(--lobby-accent) 8%, var(--lobby-panel));
+  --menu-control-rail: 2px;
+
+  .lobby-terminal-heading {
+    color: var(--lobby-accent);
+  }
+
+  .lobby-terminal-phase {
+    color: var(--lobby-accent-secondary);
+  }
+}
