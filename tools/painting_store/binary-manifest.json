@@ -10,6 +10,6 @@
     "rust-toolchain.toml": "af97a255440d84ccd35ba218937b58a1a5345687a9ae1a4293f45c570eae35a2",
     "src/lib.rs": "2057ec0ffde1414d8dde3ecf826cd03801a825ed6b13b2bb3921e9340bec6df0",
     "src/store.rs": "80f32903e3cd566e3c660d8765252803690019c35b4cd3f61daa860e3123bd59",
-    "src/store/tests.rs": "5d1c70d85d9804d18ec3f27c1bf0134f6cba5adc02ab0f7f71b4e7cc42ff6cbd"
+    "src/store/tests.rs": "709a1027d24f1afe0d2c95ed16f143daeed98743484e71a516de2db4a5b2d9b6"
   }
 }
