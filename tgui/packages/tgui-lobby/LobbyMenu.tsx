@@ -1,4 +1,4 @@
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - ORIGINAL imports
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - ORIGINAL imports
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Tooltip } from 'tgui-core/components';
 import { assetMap } from './assets';
@@ -15,7 +15,7 @@ import { AphelionLobbyMenu } from './AphelionLobbyMenu';
 import type { StartupMessage, StartupStatus } from './components/BootTerminal';
 import type { StationTrait } from './components/StationTraitList';
 // APHELION EDIT ADDITION END
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - moved to components/StationTraitList.tsx
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - moved to components/StationTraitList.tsx
 type StationTrait = {
   ref: string;
   name: string;
@@ -63,7 +63,7 @@ export type ServerState = MeridianLobbyState &
     // APHELION EDIT ADDITION END
   };
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - isCollapsed dropped along with the shutter/collapse feature
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - isCollapsed dropped along with the shutter/collapse feature
 type LobbyState = {
   isCollapsed: boolean;
   serverState: ServerState | null;
@@ -75,7 +75,7 @@ type LobbyState = {
 };
 // APHELION EDIT ADDITION END
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
 type LobbyAction =
   | { type: 'serverInit'; payload: ServerState }
   | { type: 'serverUpdate'; payload: Partial<ServerState> }
@@ -87,7 +87,7 @@ type LobbyAction =
   | { type: 'serverUpdate'; payload: Partial<ServerState> };
 // APHELION EDIT ADDITION END
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
 const DEFAULT_STATE: LobbyState = {
   isCollapsed: false,
   serverState: null,
@@ -109,7 +109,7 @@ function lobbyReducer(state: LobbyState, action: LobbyAction): LobbyState {
         ...state,
         serverState: { ...state.serverState, ...action.payload },
       };
-    /* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
+    /* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
     case 'setCollapsed':
       return { ...state, isCollapsed: action.collapsed };
     */ // APHELION EDIT REMOVAL END
@@ -336,7 +336,7 @@ function getLobbyScale(): number {
 }
 */ // APHELION EDIT REMOVAL END
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - the entire component body, replaced below
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - the entire component body, replaced below
 export function LobbyMenu() {
   const [state, dispatch] = useReducer(lobbyReducer, DEFAULT_STATE);
   const [animating, setAnimating] = useState(false);

@@ -23,7 +23,7 @@
 	spawn_text.layer = FLY_LAYER
 	spawn_text.plane = FULLSCREEN_PLANE
 	spawn_text.appearance_flags = APPEARANCE_UI_IGNORE_ALPHA
-	spawn_text.screen_loc = "LEFT+1,TOP-3"
+	spawn_text.screen_loc = "LEFT+1,BOTTOM+2"
 
 	screen += spawn_text
 	animate(spawn_text, alpha = 255, time = 1 SECONDS)
@@ -31,7 +31,7 @@
 	for(var/i in 1 to length_char(text) + 1)
 		if(QDELETED(spawn_text) || QDELETED(src))
 			return
-		spawn_text.maptext = MAPTEXT_PIXELLARI(copytext_char(text, 1, i))
+		spawn_text.maptext = MAPTEXT_FIXEDSYS(copytext_char(text, 1, i)) // APHELION EDIT CHANGE - Fixedsys maptext.
 		sleep(1)
 
 	addtimer(CALLBACK(src, PROC_REF(fade_spawn_text_overlay), src, spawn_text), duration)

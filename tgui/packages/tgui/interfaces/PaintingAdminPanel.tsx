@@ -27,6 +27,8 @@ type PaintingData = {
   medium: string | null;
 };
 
+// APHELION EDIT ADDITION - Function documentation.
+/** Display archived paintings and administrator controls for metadata, tags, and deletion. */
 export const PaintingAdminPanel = (props) => {
   const { act, data } = useBackend<PaintingAdminPanelData>();
   const [chosenPaintingRef, setChosenPaintingRef] = useState<
@@ -48,7 +50,8 @@ export const PaintingAdminPanel = (props) => {
             }
           >
             <img
-              src={resolveAsset(`paintings_${chosenPainting.md5}`)}
+              // src={resolveAsset(`paintings_${chosenPainting.md5}`)} // APHELION EDIT REMOVAL
+              src={resolveAsset(`paintings_${chosenPainting.md5}.png`)} // APHELION EDIT ADDITION - Match the PNG asset name.
               height="96px"
               width="96px"
               style={{
@@ -160,7 +163,8 @@ export const PaintingAdminPanel = (props) => {
                 <Table.Cell>{painting.creator_ckey}</Table.Cell>
                 <Table.Cell>
                   <img
-                    src={resolveAsset(`paintings_${painting.md5}`)}
+                    // src={resolveAsset(`paintings_${painting.md5}`)} // APHELION EDIT REMOVAL
+                    src={resolveAsset(`paintings_${painting.md5}.png`)} // APHELION EDIT ADDITION - Match the PNG asset name.
                     height="36px"
                     width="36px"
                     style={{

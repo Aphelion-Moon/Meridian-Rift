@@ -77,7 +77,7 @@
 		qdel(src)
 		return
 
-	var/datum/mod_theme/new_theme = new /datum/mod_theme/entombed()
+	var/datum/mod_theme/new_theme = new /datum/mod_theme/standard/entombed()
 	modsuit.theme = new_theme
 
 	var/lock_deploy = client_source?.prefs.read_preference(/datum/preference/toggle/entombed_deploy_lock)

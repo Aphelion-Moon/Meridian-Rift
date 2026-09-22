@@ -30,6 +30,10 @@
 		BODY_ZONE_L_LEG = /obj/item/bodypart/leg/left/mutant/vox,
 		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/mutant/vox,
 	)
+	survival_box_overrides = list(
+		SURVIVAL_INTERNALS_TYPE = /obj/item/tank/internals/nitrogen/belt/emergency,
+		SURVIVAL_MEDIPEN_TYPE = /obj/item/reagent_containers/hypospray/medipen,
+	)
 	custom_worn_icons = list(
 		LOADOUT_ITEM_HEAD = VOX_HEAD_ICON,
 		LOADOUT_ITEM_MASK = VOX_MASK_ICON,

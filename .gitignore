@@ -4,6 +4,14 @@
 /config/dev_overrides.txt
 /config/dev_preferences.json
 /config/dev_preferences.json.updatebac
+# APHELION EDIT ADDITION START - Private artwork source and native build output.
+# Private Nova artwork backup, staged separately from the source repository.
+/config/nova/paintings.json
+/config/nova/paintings/
+
+# Native painting-store build output (release DLL follows native dependency packaging).
+/tools/painting_store/target/
+# APHELION EDIT ADDITION END
 
 #Ignore everything in datafolder and subdirectories
 /data/**/*
