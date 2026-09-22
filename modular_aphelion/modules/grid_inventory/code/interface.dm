@@ -36,6 +36,9 @@
 	dirty = TRUE
 	if(interface)
 		render(interface.get_placement(item), last_cell_size)
+		// Container appearance updates also announce locks and changed insertion rules.
+		if(item.atom_storage && interface.viewer.grid_inventory)
+			addtimer(CALLBACK(interface.viewer.grid_inventory, TYPE_PROC_REF(/datum/grid_inventory_session, refresh_hover)), 0, TIMER_UNIQUE)
 		return
 	var/datum/storage/backpack/grid/storage = item.loc?.atom_storage
 	if(istype(storage))

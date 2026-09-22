@@ -29,6 +29,14 @@ The agreed implementation starts with **one opt-in backpack using the native gam
 
 ## Native HUD and artwork
 
+Current interaction refinement: measure wrapped titles with the native client
+font, grow the header with equal vertical padding, and center its controls.
+Keep measurement off the drag path. Translate panels without repeating chrome,
+layer, highlight, or tooltip updates. For held and dragged items, mark eligible
+visible containers blue; the hovered destination becomes green/red while the
+payload remains visible without its own fill. Remove the rejection X. Retain
+the existing fixed capacity, automatic rotation, and insertion restrictions.
+
 - Extend Meridian’s [storage interface](/code/datums/storage/storage_interface.dm:1) with a grid presentation using **separate HUD objects for item displays**. Scaling, rotation, and highlights affect those displays only.
 - Use a dark flat background, subtle 1px grid lines, a thin outer border, and a flat colored header with an **X**. Match all nine HUD styles and update open panels when the HUD style changes.
 - Drag a panel by its titlebar. Double-click a nested container to open a separate movable, closable panel. Single-click pickup is immediate; a native double-click reverses that pickup and opens the container. Preserve normal modified clicks and examination. Closing a parent also closes its descendant panels.

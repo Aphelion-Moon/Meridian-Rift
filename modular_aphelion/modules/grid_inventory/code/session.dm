@@ -160,12 +160,14 @@
 	for(var/datum/storage/storage as anything in panels)
 		var/datum/storage_interface/grid/panel = panels[storage]
 		panel.reposition()
+	refresh_hover()
 
 /datum/grid_inventory_session/proc/update_ui_style(ui_style)
 	clear_preview()
 	for(var/datum/storage/storage as anything in panels)
 		var/datum/storage_interface/grid/panel = panels[storage]
 		panel.update_ui_style(ui_style)
+	refresh_hover()
 
 /// Inventory slots can receive mouse events on either their item or their HUD background.
 /datum/grid_inventory_session/proc/inventory_item(atom/object)
@@ -274,16 +276,17 @@
 	// Ordinary inventory drags retain their normal behavior until they enter this workspace.
 	if(!drag_panel && !dragging && !target)
 		return
+	if(!dragging)
+		drag_panel?.cancel_click()
+		clear_preview()
 	dragging = TRUE
 	pointer_dragged = TRUE
-	drag_panel?.cancel_click()
-	drag_panel?.hide_tooltip()
 	if(!drag_item)
 		var/list/modifiers = params2list(params)
 		var/list/offset = screen_loc_to_offset(LAZYACCESS(modifiers, SCREEN_LOC), viewer_client?.view || world.view)
 		drag_panel.position_x = panel_start_x + offset[1] - drag_origin[1]
 		drag_panel.position_y = panel_start_y + offset[2] - drag_origin[2]
-		drag_panel.reposition()
+		drag_panel.reposition(moving = TRUE)
 		return
 	update_preview(target)
 
@@ -301,6 +304,7 @@
 			drag_panel?.receive_drop(drag_source)
 			cancel_drag(drag_source, params)
 		return COMPONENT_CLIENT_MOUSEUP_INTERCEPT
+	refresh_hover()
 
 /datum/grid_inventory_session/proc/is_dragging()
 	return dragging
@@ -336,12 +340,16 @@
 /datum/grid_inventory_session/proc/update_preview(atom/movable/screen/grid_inventory/target)
 	var/obj/item/item = dragging ? drag_item : held_preview_item()
 	var/rotation = dragging ? drag_rotation : held_rotation
-	var/key = "[REF(target)]-[REF(item)]-[rotation]-[dragging]-[target?.interface?.grid?.revision]"
+	var/key = "[REF(target)]-[REF(item)]-[rotation]-[dragging]-[target?.interface?.grid?.revision]-[target?.item?.atom_storage?.revision]"
 	if(preview_key == key)
 		return
 	clear_preview()
 	preview_key = key
 	hover_cell = target
+	if(can_preview_item(item))
+		for(var/datum/storage/storage as anything in panels)
+			var/datum/storage_interface/grid/panel = panels[storage]
+			panel.highlight_containers(item, rotation)
 	if(QDELETED(target) || (target.action && target.action != "title" && target.action != "frame") || QDELETED(target.interface) || panels[target.interface.parent_storage] != target.interface)
 		return
 	if(item)
@@ -362,13 +370,15 @@
 	dragging = FALSE
 	pointer_dragged = FALSE
 	mouse_held = FALSE
-	// A completed drop returns to ordinary hover; cancellation and teardown pass no target.
+	if(closing)
+		return
+	// Restore eligible containers for the active hand even when the pointer is outside the UI.
+	update_preview(drop_target(over))
 	if(!istype(over, /atom/movable/screen/grid_inventory))
 		return
 	var/atom/movable/screen/grid_inventory/cell = over
 	var/datum/storage_interface/grid/panel = cell.interface
 	if(QDELETED(panel) || (cell.action && cell.action != "title" && cell.action != "frame") || !can_interact(panel.parent_storage))
 		return
-	update_preview(cell)
 	if(!held_preview_item())
 		panel.show_tooltip(cell, params)

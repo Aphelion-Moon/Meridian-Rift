@@ -109,6 +109,14 @@
 	else
 		overflow |= item
 	revision++
+	refresh_parent_grid_previews()
+
+/// A closed container can change eligibility without refreshing any panel of its own.
+/datum/storage/proc/refresh_parent_grid_previews()
+	var/datum/storage/enclosing_storage = parent?.loc?.atom_storage
+	for(var/mob/user as anything in enclosing_storage?.storage_interfaces)
+		if(user.grid_inventory)
+			addtimer(CALLBACK(user.grid_inventory, TYPE_PROC_REF(/datum/grid_inventory_session, refresh_hover)), 0, TIMER_UNIQUE)
 
 /datum/storage/backpack/grid/has_capacity(obj/item/to_insert)
 	return grid_has_capacity(to_insert)
@@ -143,6 +151,7 @@
 	clear_placement(item)
 	overflow -= item
 	revision++
+	refresh_parent_grid_previews()
 
 /datum/storage/proc/item_deleted(obj/item/source)
 	SIGNAL_HANDLER

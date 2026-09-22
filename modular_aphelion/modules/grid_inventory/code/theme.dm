@@ -78,20 +78,20 @@
 	return themes[ui_style] || themes['icons/hud/screen_midnight.dmi']
 
 /// Shared read-only panel icon. Cell origins are 4px from the panel's left/bottom, with a 24px pitch.
-/proc/grid_inventory_panel_icon(columns, rows, ui_style)
+/proc/grid_inventory_panel_icon(columns, rows, ui_style, header_height = 24)
 	var/static/list/panel_cache = list()
 	var/list/theme = grid_inventory_theme(ui_style)
 	var/list/style_cache = panel_cache[theme]
 	if(isnull(style_cache))
 		style_cache = list()
 		panel_cache[theme] = style_cache
-	var/size_key = "[columns]x[rows]"
+	var/size_key = "[columns]x[rows]x[header_height]"
 	var/icon/panel = style_cache[size_key]
 	if(panel)
 		return panel
 
 	var/width = columns * 24 + 8
-	var/height = rows * 24 + 32
+	var/height = rows * 24 + 8 + header_height
 	panel = icon('icons/blanks/32x32.dmi', "nothing")
 	panel.Crop(1, 1, width, height)
 	panel.DrawBox(theme["border"], 1, 1, width, height)
@@ -144,20 +144,20 @@
 	return background
 
 /// Shared read-only title mouse target; its opaque fill merges with the panel's flat header.
-/proc/grid_inventory_title_icon(width, ui_style)
+/proc/grid_inventory_title_icon(width, ui_style, height = 23)
 	var/static/list/title_cache = list()
 	var/list/theme = grid_inventory_theme(ui_style)
 	var/list/style_cache = title_cache[theme]
 	if(isnull(style_cache))
 		style_cache = list()
 		title_cache[theme] = style_cache
-	var/size_key = "[width]"
+	var/size_key = "[width]x[height]"
 	var/icon/title = style_cache[size_key]
 	if(title)
 		return title
 	title = icon('icons/blanks/32x32.dmi', "nothing")
-	title.Crop(1, 1, width, 18)
-	title.DrawBox(theme["header"], 1, 1, width, 18)
+	title.Crop(1, 1, width, height)
+	title.DrawBox(theme["header"], 1, 1, width, height)
 	style_cache[size_key] = title
 	return title
 

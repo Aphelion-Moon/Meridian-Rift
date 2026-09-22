@@ -8,6 +8,11 @@
 	var/list/item_displays = list()
 	var/columns = 7
 	var/rows = 3
+	var/header_height = 24
+	/// Measure only when the title or available width changes, never during a drag.
+	var/title_measurement_key
+	var/last_position_x
+	var/last_position_y
 	var/overflow_page = 0
 	var/position_x
 	var/position_y
@@ -17,7 +22,6 @@
 	var/atom/movable/screen/grid_inventory/close_button
 	var/atom/movable/screen/grid_inventory/page_button
 	var/atom/movable/screen/grid_inventory_art/preview_display
-	var/atom/movable/screen/grid_inventory/blocked_indicator
 	var/atom/movable/screen/grid_inventory/hovered_cell
 	/// A completed pickup can be reversed by the client's native double-click event.
 	var/datum/weakref/clicked_item_ref
@@ -50,16 +54,13 @@
 	page_button.name = "Next page"
 	preview_display = new(null, user.hud_used)
 	preview_display.alpha = 0
-	blocked_indicator = new(null, user.hud_used)
-	blocked_indicator.mouse_opacity = MOUSE_OPACITY_TRANSPARENT
-	blocked_indicator.alpha = 0
 	update_ui_style(new_style)
 
 /datum/storage_interface/grid/uses_item_proxies()
 	return TRUE
 
 /datum/storage_interface/grid/list_ui_elements(initializing = FALSE)
-	. = list(frame, titlebar, close_button, page_button, preview_display, blocked_indicator) + grid_cells
+	. = list(frame, titlebar, close_button, page_button, preview_display) + grid_cells
 	for(var/obj/item/item as anything in item_displays)
 		. += item_displays[item]
 
@@ -74,7 +75,6 @@
 	QDEL_NULL(close_button)
 	QDEL_NULL(page_button)
 	QDEL_NULL(preview_display)
-	QDEL_NULL(blocked_indicator)
 	viewer = null
 	grid = null
 	return ..()
@@ -83,7 +83,7 @@
 	return columns * 24 + 8
 
 /datum/storage_interface/grid/proc/panel_height()
-	return rows * 24 + 32
+	return rows * 24 + 8 + header_height
 
 /datum/storage_interface/grid/proc/can_interact()
 	if(!viewer || QDELETED(parent_storage))
@@ -146,27 +146,60 @@
 			display.bind(item)
 			item_displays[item] = display
 		display.render(get_placement(item))
-	frame.icon = grid_inventory_panel_icon(columns, rows, ui_style)
 	page_button.alpha = length(grid.overflow) > columns ? 255 : 0
 	page_button.mouse_opacity = page_button.alpha ? MOUSE_OPACITY_OPAQUE : MOUSE_OPACITY_TRANSPARENT
+	update_title()
+	reposition()
+	if(viewer.grid_inventory)
+		addtimer(CALLBACK(viewer.grid_inventory, TYPE_PROC_REF(/datum/grid_inventory_session, refresh_hover)), 0, TIMER_UNIQUE)
+
+/// BYOND measures the actual HUD font and wrapping. Its client round trip must not block input.
+/datum/storage_interface/grid/proc/update_title()
 	titlebar.name = parent_storage.parent.name
 	titlebar.maptext_width = panel_width() - 30 - (page_button.alpha ? 16 : 0)
-	titlebar.maptext = "<span class='maptext' style='-dm-text-outline:0px;color:[palette["text"]]'>[html_encode(capitalize(parent_storage.parent.name))]</span>"
-	reposition()
+	titlebar.maptext = "<span class='maptext' style='-dm-text-outline:0px;color:[palette["text"]]'>[html_encode(capitalize(titlebar.name))]</span>"
+	var/key = "[titlebar.name]-[titlebar.maptext_width]"
+	if(title_measurement_key == key)
+		return
+	title_measurement_key = key
+	titlebar.maptext_height = 14
+	header_height = 24
+	if(viewer.client)
+		INVOKE_ASYNC(src, PROC_REF(measure_title), key, titlebar.maptext, titlebar.maptext_width)
 
-/datum/storage_interface/grid/proc/reposition()
+/datum/storage_interface/grid/proc/measure_title(key, text, width)
+	var/text_height
+	WXH_TO_HEIGHT(viewer.client?.MeasureText(text, null, width), text_height)
+	// A rename, resize or close may have happened while the client was measuring.
+	if(QDELETED(src) || title_measurement_key != key || !text_height)
+		return
+	titlebar.maptext_height = text_height
+	header_height = max(24, text_height + 11)
+	reposition()
+	viewer.grid_inventory?.refresh_hover()
+
+/// Moving an existing panel only translates its mouse targets and artwork.
+/datum/storage_interface/grid/proc/reposition(moving = FALSE)
 	if(isnull(position_x))
 		return
 	var/list/view_size = view_to_pixels(viewer.client?.view || world.view)
 	position_x = clamp(round(position_x), 32, max(32, view_size[1] + 32 - panel_width()))
 	position_y = clamp(round(position_y), 32, max(32, view_size[2] + 32 - panel_height()))
+	if(moving && position_x == last_position_x && position_y == last_position_y)
+		return
+	last_position_x = position_x
+	last_position_y = position_y
 	frame.screen_loc = offset_to_screen_loc(position_x, position_y)
-	titlebar.screen_loc = offset_to_screen_loc(position_x + 4, position_y + rows * 24 + 10)
-	titlebar.icon = grid_inventory_title_icon(panel_width() - 28, ui_style)
-	titlebar.maptext_x = 2
-	titlebar.maptext_y = 3
-	close_button.screen_loc = offset_to_screen_loc(position_x + panel_width() - 21, position_y + panel_height() - 23)
-	page_button.screen_loc = offset_to_screen_loc(position_x + panel_width() - 39, position_y + panel_height() - 23)
+	var/header_bottom = position_y + rows * 24 + 7
+	titlebar.screen_loc = offset_to_screen_loc(position_x + 4, header_bottom)
+	if(!moving)
+		frame.icon = grid_inventory_panel_icon(columns, rows, ui_style, header_height)
+		titlebar.icon = grid_inventory_title_icon(panel_width() - 28, ui_style, header_height - 1)
+		titlebar.maptext_x = 2
+		titlebar.maptext_y = round((header_height - 1 - titlebar.maptext_height) / 2)
+	var/button_y = header_bottom + round((header_height - 1 - 16) / 2)
+	close_button.screen_loc = offset_to_screen_loc(position_x + panel_width() - 21, button_y)
+	page_button.screen_loc = offset_to_screen_loc(position_x + panel_width() - 39, button_y)
 	for(var/atom/movable/screen/grid_inventory/cell as anything in grid_cells)
 		cell.screen_loc = offset_to_screen_loc(position_x + 4 + (cell.cell_x - 1) * 24, position_y + 4 + (cell.cell_y - 1) * 24)
 	for(var/obj/item/item as anything in item_displays)
@@ -175,9 +208,10 @@
 		var/cell_y = placement ? placement.y : grid.grid_height + 1
 		var/atom/movable/screen/grid_inventory_art/display = item_displays[item]
 		display.screen_loc = offset_to_screen_loc(position_x + 4 + (cell_x - 1) * 24, position_y + 4 + (cell_y - 1) * 24)
-	apply_layers()
-	clear_preview()
-	hide_tooltip()
+	if(!moving)
+		apply_layers()
+		clear_preview()
+		hide_tooltip()
 
 /datum/storage_interface/grid/proc/raise_panel()
 	var/datum/grid_inventory_session/session = viewer.grid_inventory
@@ -204,20 +238,17 @@
 		var/atom/movable/screen/grid_inventory_art/display = item_displays[item]
 		display.layer = base_layer + 2
 	preview_display.layer = base_layer + 3
-	blocked_indicator.layer = base_layer + 4
 
 /datum/storage_interface/grid/proc/update_ui_style(new_style)
 	ui_style = new_style
 	palette = grid_inventory_theme(new_style)
-	frame.icon = grid_inventory_panel_icon(columns, rows, ui_style)
 	close_button.icon = grid_inventory_close_icon(ui_style)
 	page_button.icon = grid_inventory_tooltip_icon(16, 16, ui_style)
 	page_button.maptext = MAPTEXT("<center><span style='color:[palette["text"]]'>&gt;</span></center>")
-	titlebar.maptext = "<span class='maptext' style='-dm-text-outline:0px;color:[palette["text"]]'>[html_encode(capitalize(parent_storage.parent.name))]</span>"
+	update_title()
 	reposition()
 
 /datum/storage_interface/grid/proc/clear_preview()
-	blocked_indicator.alpha = 0
 	preview_display.alpha = 0
 	hovered_cell = null
 	var/datum/grid_inventory_session/session = viewer.grid_inventory
@@ -242,29 +273,27 @@
 		return
 	var/datum/grid_inventory_session/session = viewer.grid_inventory
 	var/datum/storage/automatic = automatic_destination(target, item)
+	var/valid
 	if(automatic)
-		var/valid = session?.can_preview_item(item) && can_receive(target, item, rotation, automatic)
-		// Automatic insertion targets do not claim cells in this panel.
-		if(!valid)
-			blocked_indicator.icon = grid_inventory_close_icon(ui_style)
-			blocked_indicator.color = "#cf7777"
-			blocked_indicator.screen_loc = target.screen_loc
-			blocked_indicator.pixel_x = 16
-			blocked_indicator.pixel_y = 8
-			blocked_indicator.alpha = 255
-		return
-	var/valid = session?.can_preview_item(item) && !target.take_only && can_interact() && grid.fits(item, target.cell_x, target.cell_y, rotation)
-	if(item.loc != parent_storage.real_location)
-		valid = valid && parent_storage.can_insert(item, viewer, messages = FALSE)
-	else if(grid && session?.drag_panel == src)
-		valid = valid && session.drag_revision == grid.revision
+		valid = session?.can_preview_item(item) && can_receive(target, item, rotation, automatic)
+	else
+		valid = session?.can_preview_item(item) && !target.take_only && can_interact() && grid.fits(item, target.cell_x, target.cell_y, rotation)
+		if(item.loc != parent_storage.real_location)
+			valid = valid && parent_storage.can_insert(item, viewer, messages = FALSE)
+		else if(grid && session?.drag_panel == src)
+			valid = valid && session.drag_revision == grid.revision
 	var/list/size = item.get_storage_footprint()
 	var/width = size[rotation % 2 ? 2 : 1]
 	var/height = size[rotation % 2 ? 1 : 2]
 	var/preview_color = valid ? "#75bf9160" : "#cf777760"
 	for(var/atom/movable/screen/grid_inventory/cell as anything in grid_cells)
-		if(cell.cell_x >= target.cell_x && cell.cell_y >= target.cell_y && cell.cell_x < target.cell_x + width && cell.cell_y < target.cell_y + height)
-			cell.icon = grid_inventory_cell_icon(preview_color, filled = TRUE)
+		// Over a container, color its footprint and leave the payload's footprint unfilled.
+		if(automatic)
+			if(target.action ? cell.take_only : cell.item != target.item)
+				continue
+		else if(cell.cell_x < target.cell_x || cell.cell_y < target.cell_y || cell.cell_x >= target.cell_x + width || cell.cell_y >= target.cell_y + height)
+			continue
+		cell.icon = grid_inventory_cell_icon(preview_color, filled = TRUE)
 	if(preview_display.item != item)
 		preview_display.bind(item)
 	var/datum/grid_placement/placement = new(1, 1, width, height, rotation)
@@ -272,6 +301,21 @@
 	qdel(placement)
 	preview_display.screen_loc = target.screen_loc
 	preview_display.alpha = 130
+
+/// Check each visible container once, even when its artwork spans multiple cells.
+/datum/storage_interface/grid/proc/highlight_containers(obj/item/item, rotation)
+	var/list/eligible = list()
+	var/list/checked = list()
+	for(var/atom/movable/screen/grid_inventory/cell as anything in grid_cells)
+		var/datum/storage/storage = cell.item?.atom_storage
+		if(!storage || cell.item == item || cell.take_only || (storage in checked))
+			continue
+		checked += storage
+		if(can_receive(cell, item, rotation, storage))
+			eligible += cell.item
+	for(var/atom/movable/screen/grid_inventory/cell as anything in grid_cells)
+		if(cell.item in eligible)
+			cell.icon = grid_inventory_cell_icon("#66b8df60", filled = TRUE)
 
 /// Container artwork and panel chrome are automatic targets; empty cells retain exact placement.
 /datum/storage_interface/grid/proc/automatic_destination(atom/movable/screen/grid_inventory/target, obj/item/item)

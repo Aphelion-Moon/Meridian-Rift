@@ -12,7 +12,13 @@ lines, a thin border, and a colored titlebar with an **X**. It starts at the
 existing backpack HUD position; drag the titlebar to move it. All nine HUD
 styles are supported, including live style changes.
 Items draw directly over the grid without individual borders. Panel titles use
-plain text without a black outline.
+plain text without a black outline. Wrapped titles grow the header while keeping
+equal vertical padding and a centered close button. Text measurement runs
+asynchronously only when the title or available width changes.
+Window dragging translates existing HUD objects without rebuilding the chrome,
+reapplying layers, or clearing highlights on every mouse event. Repeated clamped
+positions are skipped. Movement still travels through the server; this change
+does not add client prediction.
 
 Click an empty cell with your active held item to place it. Drag stored items to
 rearrange the grid or transfer between open containers. Items dragged from either
@@ -37,9 +43,12 @@ Item footprints and 24px cells stay consistent across containers. Positions
 and rotations belong to the storage owner and survive closing its panel.
 An active-hand item previews placement when hovering over the grid. Q/E and
 the mouse wheel rotate that preview; clicking places it at the shown position.
-Hovering over a container or its header uses automatic insertion without a
-background fill, and shows a red X when the item cannot fit. Dragging a stored
-item takes precedence over the held-item preview until the drag ends.
+Eligible containers in the open panels have blue backgrounds while holding or
+dragging an item. Hovering one turns its whole footprint green if the item can
+fit, or red if it cannot. The payload stays visible without its own placement
+fill over a container; no rejection X is shown. A panel header uses the same
+automatic insertion check and colors its grid. Dragging a stored item takes
+precedence over the held-item preview until the drag ends.
 A plain single click takes the item immediately through the normal pickup path.
 A native double-click reverses that pickup, restores the original anchor and
 rotation, and opens the container. The following click-release is consumed;
@@ -140,8 +149,10 @@ The nested-storage regressions check fixed capacity while closed, automatic
 rotation, full-container rejection, partial final rows, equal artwork scale,
 full-footprint mouse targets, persistent positioning, collisions, and access to
 take-only forced contents. Held-item tests cover green/red previews, rotation,
-click insertion, unfilled container targets, rejection indicators, stored-item
-drag priority, hand swaps, and rotation after a container pickup. A connected-client fixture also
+click insertion, blue eligibility limited to storage items, full-footprint green/red
+container hover with a visible payload, stored-item drag priority, hand swaps,
+and rotation after a container pickup. Eligibility refreshes after outside
+clicks, locks, and closed-container content changes. A connected-client fixture also
 passed nested-panel ownership, original starting position, HUD refresh/theme
 preservation, tooltip show/hide, rotation-key release, and screen cleanup checks. That run produced
 `clean_run.lk` with no runtimes. The full unit suite and current performance
@@ -153,9 +164,13 @@ items, plain panel titles, and translucent hover/valid/invalid placement fills.
 A side-by-side native capture also verified equal crowbar size in the backpack
 and an ordinary nested medkit.
 Current DreamSeeker captures verify the fixed medkit row, red/green active-hand
-previews, container rejection X without a background fill, and stored-item drag
-priority. These are controlled rendering checks, rather than full mouse-gesture
-playtests.
+previews, blue behind eligible container items only, green/red container hover
+with the payload still visible, and stored-item drag priority. A wrapped wallet
+title measured 32px high inside a 43px header, with 5px of padding on both sides.
+These are controlled rendering checks, rather than full mouse-gesture playtests.
+Title-drag regressions check grab offsets, aligned item artwork, and unchanged
+HUD object counts. The reduction in drag work has not been measured as client
+latency or smoothness.
 An isolated DreamSeeker WebView2 capture verified the tooltip renderer's sharp
 14px text, 15px heading, and equal 6px vertical padding. Browser checks covered
 placement at all four viewport corners and cancellation of a pending show.
