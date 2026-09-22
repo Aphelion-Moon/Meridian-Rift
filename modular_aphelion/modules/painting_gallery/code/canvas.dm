@@ -26,7 +26,9 @@
 		return
 	var/list/result = SSpersistent_paintings.run_store_operation("archive", list("canvas" = src, "tag" = tag))
 	if(!result["ok"])
-		to_chat(user, span_warning("The painting could not be saved. Place it in an archive-enabled frame to retry, or contact an administrator."))
+		var/list/error = result["error"]
+		var/message = error?["code"] == "owner_limit" ? error["message"] : "The painting could not be saved. Place it in an archive-enabled frame to retry, or contact an administrator."
+		to_chat(user, span_warning(message))
 	else if(result["changed"])
 		var/message = tag ? "Painting saved to My Artwork and the station's frame rotation." : "Painting saved to My Artwork. You can share it on the web gallery from Art Galaxy."
 		to_chat(user, span_notice(message))

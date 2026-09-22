@@ -124,7 +124,9 @@
 	refresh_gallery_uis()
 	var/list/result = run_store_operation("import", list("owner" = owner, "snapshot" = source["snapshot"], "sha256" = source["sha256"], "public" = make_public))
 	if(!result["ok"])
-		LAZYSET(nova_import_status, owner, "The import failed. Your answer was saved; use Retry to try again.")
+		var/list/error = result["error"]
+		var/message = error?["code"] == "owner_limit" ? error["message"] : "The import failed."
+		LAZYSET(nova_import_status, owner, "[message] Your answer was saved; use Retry to try again.")
 		log_game("Nova painting import failed for [owner]: [store_result_message(result)]")
 	else
 		var/imported = result["imported"] || 0

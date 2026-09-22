@@ -89,7 +89,7 @@
 	new_data["height"] = height
 	new_data["medium"] = medium
 	new_data["frame_type"] = frame_type
-	new_data["show_in_webgallery"] = show_in_webgallery == TRUE ? TRUE : FALSE // APHELION EDIT ADDITION
+	new_data["show_in_webgallery"] = show_in_webgallery == TRUE // APHELION EDIT ADDITION
 	return new_data
 
 /datum/painting/proc/get_icon()

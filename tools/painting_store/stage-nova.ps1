@@ -9,7 +9,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$maxJson = 32MB
+$maxJson = 64MB
 $maxPng = 1MB
 $utf8 = [Text.UTF8Encoding]::new($false, $true)
 if (-not $RepositoryRoot) { $RepositoryRoot = Join-Path $PSScriptRoot '../..' }
@@ -182,7 +182,7 @@ catch { throw 'The backup metadata is not a valid UTF-8 JSON document.' }
 if ($catalog -isnot [pscustomobject] -or -not (Test-Integer (Get-Field $catalog 'version')) -or
     (Get-Field $catalog 'version') -ne 3) { throw 'The backup must be a version-3 painting catalog.' }
 $rows = Get-Field $catalog 'paintings'
-if ($rows -isnot [array] -or $rows.Count -gt 10000) { throw 'The backup must contain a painting array with at most 10000 records.' }
+if ($rows -isnot [array] -or $rows.Count -gt 100000) { throw 'The backup must contain a painting array with at most 100000 records.' }
 $ids = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 $plan = [Collections.Generic.List[object]]::new()
 $dimensions = @('11x11', '19x19', '23x19', '23x23', '24x24', '36x24', '45x27')

@@ -20,6 +20,14 @@ from account ownership. **A Brush with Greatness** rewards successfully enabling
 publication for an owned saved painting; imports and loading existing records do
 not award it.
 
+Accounts can store **500 unique paintings**, counting personal, framed, imported,
+and website-public artwork together. Copies and additional frames do not consume
+extra slots. The native transaction checks the final collection under its writer
+lock; oversized imports fail in full with a player-facing explanation. Deleting
+artwork frees capacity. Historical collections above the cap remain readable and
+editable, including visibility changes and deletion, but cannot grow further.
+Legacy migrations preserve their existing artwork.
+
 Personal saves carry no station rotation tags. An archive-enabled frame adds its
 tag immediately, including when framing an already saved or printed painting.
 Display-only frames never add rotation tags. Round-end archiving remains a fallback;
@@ -99,7 +107,7 @@ initial copy can be rerun. Never commit the real backup or stage into a running
 server's source tree. Restrict filesystem access to trusted operators.
 
 The native helper validates the complete source and decoded PNG pixels before
-importing. Limits are 32 MiB/10,000 metadata records and 1 MiB per PNG; supported
+importing. Limits are 64 MiB/100,000 metadata records and 1 MiB per PNG; supported
 sizes are 11x11, 19x19, 23x19, 23x23, 24x24, 36x24, and 45x27. The game's MD5
 identifies artwork; it is not a checksum of the PNG file.
 

@@ -8,8 +8,10 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Cursor, Read, Write};
 use std::path::{Component, Path, PathBuf};
 
-pub const MAX_JSON: usize = 32 * 1024 * 1024;
-const MAX_ROWS: usize = 10_000;
+pub const MAX_JSON: usize = 64 * 1024 * 1024;
+const MAX_ROWS: usize = 100_000;
+/// Maximum saved paintings per creator account; existing larger collections remain editable.
+const MAX_PAINTINGS_PER_OWNER: usize = 500;
 const MAX_PNG: usize = 1024 * 1024;
 const DIMENSIONS: &[(u64, u64)] = &[
     (11, 11),
@@ -297,6 +299,41 @@ fn rows(value: &Value) -> HashMap<String, &Value> {
                 .map(|id| (id.to_owned(), row))
         })
         .collect()
+}
+
+/// Reject account growth beyond the cap, while allowing edits and withdrawals of older collections.
+fn validate_owner_growth(
+    old: &HashMap<String, &Value>,
+    new: &HashMap<String, &Value>,
+) -> Result<()> {
+    let mut counts = HashMap::new();
+    for (previous, records) in [(true, old), (false, new)] {
+        for row in records.values() {
+            let Some(owner) = row
+                .get("creator_ckey")
+                .and_then(Value::as_str)
+                .filter(|owner| !owner.is_empty())
+            else {
+                continue;
+            };
+            let count = counts.entry(owner).or_insert((0usize, 0usize));
+            if previous {
+                count.0 += 1;
+            } else {
+                count.1 += 1;
+            }
+        }
+    }
+    if counts
+        .values()
+        .any(|(before, after)| *after > MAX_PAINTINGS_PER_OWNER && after > before)
+    {
+        return Err(Error::new(
+            "owner_limit",
+            format!("This account can store up to {MAX_PAINTINGS_PER_OWNER} paintings. Delete artwork from My Artwork before saving or importing more."),
+        ));
+    }
+    Ok(())
 }
 
 /// BYOND JSON decoding erases booleans and the empty-object/empty-list distinction.
@@ -786,6 +823,10 @@ impl Store {
             return Ok(json!({"changed":false,"sha256":hash(before),"snapshot":old}));
         }
         let new_rows = rows(&candidate);
+        // Migration preserves historical collections; enforce account limits on later growth.
+        if !legacy {
+            validate_owner_growth(&old_rows, &new_rows)?;
+        }
         for (id, row) in &old_rows {
             if let Some(next) = new_rows.get(id) {
                 if row.get("show_in_webgallery") != next.get("show_in_webgallery") {
