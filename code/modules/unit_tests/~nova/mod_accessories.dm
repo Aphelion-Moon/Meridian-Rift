@@ -89,7 +89,7 @@
 /datum/unit_test/mod_accessory_icon_cache/Run()
 	var/datum/sprite_accessory/ears/cat/ears = allocate(__IMPLIED_TYPE__)
 	var/mutable_appearance/source = mutable_appearance(ears.icon, "m_ears_cat_ADJ")
-	var/datum/mod_theme/blue = GLOB.mod_themes[/datum/mod_theme]
+	var/datum/mod_theme/blue = GLOB.mod_themes[/datum/mod_theme/standard]
 	var/first_icon = ears.get_custom_mod_icon(source, blue)
 	var/second_icon = ears.get_custom_mod_icon(source, blue)
 	TEST_ASSERT_NOTNULL(first_icon, "No hardlight icon was generated.")
