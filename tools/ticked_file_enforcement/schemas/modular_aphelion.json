@@ -3,5 +3,7 @@
 	"scannable_directory": "modular_aphelion/",
 	"subdirectories": true,
 	"excluded_files": [],
-	"forbidden_includes": []
+	"forbidden_includes": [
+		"modular_aphelion/modules/painting_gallery/tests/painting_gallery.dm"
+	]
 }

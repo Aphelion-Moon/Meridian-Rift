@@ -1,3 +1,4 @@
+/* // APHELION EDIT REMOVAL START - ART_GALAXY - Original application moved to the modular implementation.
 import { useState } from 'react';
 import {
   Button,
@@ -170,3 +171,5 @@ export const NtosPortraitPrinter = (props) => {
     </NtosWindow>
   );
 };
+*/ // APHELION EDIT REMOVAL END
+export { NtosPortraitPrinter } from './ArtGalaxy'; // APHELION EDIT ADDITION - ART_GALAXY - modular application entry point

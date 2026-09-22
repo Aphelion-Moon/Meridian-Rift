@@ -374,7 +374,7 @@ export function SmartPipeBlockSection(props) {
           </Stack>
         </Stack.Item>
         <Stack.Item>
-          {/* APHELION EDIT REMOVAL START - MERIDIAN_UI
+          {/* // APHELION EDIT REMOVAL START - MERIDIAN_UI
           <Button
             icon="arrow-down"
             selected={init_directions.south}
