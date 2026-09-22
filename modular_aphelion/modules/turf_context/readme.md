@@ -1,43 +1,32 @@
 # Turf context lifecycle
 
-The marked hook in `code/game/turfs/turf.dm` removes a turf's own contextual screentip
-handler during destruction. `ChangeTurf()` can then carry external listeners into the
-replacement without retaining the old type's handler. Reusing condo reservations exposed
-the stale handler when deferred initialization registered context on a new door.
+This module retains regression coverage for turf replacement. The lifecycle itself is
+now handled by the core implementation merged from `master`:
 
-Cleanup must happen before `ChangeTurf()` copies the signal tables, so a narrow hook in
-the existing destruction path is required. No contextual text or map content is changed.
+- `code/game/turfs/turf.dm` clears the outgoing turf's self-subscriptions in
+  `_clear_signal_refs()`, while preserving external listeners.
+- `code/game/turfs/change_turf.dm` passes surviving signal tables into the replacement
+  constructor. `/turf/New()` installs them before initialization can move or delete
+  existing occupants.
+- Normal `UnregisterSignal()` therefore updates both sides of each subscription
+  during construction. Saved tables must not be restored again after initialization.
 
-The marked restoration hook in `code/game/turfs/change_turf.dm` also filters subscribers
-deleted during replacement construction. Their destruction can run before the saved
-listener table is restored; blindly restoring it retains a deleted object. This caused
-the old-gibs hard delete reported by SerenityStation's `create_and_destroy` CI test.
-Deleted subscribers are filtered; live subscriptions and the existing merge behavior
-are preserved. The regression `turf_context_deleted_subscriber` checks deletion during
-construction and signal delivery to a surviving listener in the same signal bucket.
+The former restoration/filter helpers, missing-table unregister fallback, and
+context- and lava-specific unregister hooks are superseded by this core lifecycle.
+No contextual text or map content is changed.
 
-A second marked hook in `code/datums/signals.dm` handles `UnregisterSignal` while a
-replacement turf's lookup is temporarily unavailable. It retires the listener-side
-callback metadata, including shared elements that remain alive after their host is
-deleted. Restoration then skips subscriptions whose callbacks were withdrawn. The
-turf's own outgoing signal table is restored afterward, so its pending entries retain
-the previous restoration behavior.
+The retained regressions cover:
 
-`turf_context_elevation_constructor` reproduced stale table trait and footstep
-registrations after constructor-time deletion. `turf_context_elevation_reservation`
-checks ordinary empty/reload cycles while retaining ownership of the reserved tile.
-Both check that an unrelated external turf-change listener survives. The subsequent
-full-suite retry rendered the previously failing Arrivals condo preview and passed
-both fixtures, including direct checks of the shared elements' signal metadata.
+- `turf_context_replacement`: retiring an old door's contextual handler while
+  preserving an external context listener.
+- `turf_context_deleted_subscriber`: removing a subscriber deleted during
+  construction while delivering signals to its surviving peer.
+- `turf_context_elevation_constructor`: retiring table trait and footstep
+  subscriptions during constructor-time deletion.
+- `turf_context_elevation_reservation`: ordinary reservation empty/reload cycles.
+- `turf_context_lava_replacement`: retiring lava's trait-removal handler while
+  retaining an external listener.
 
-The full suite then exposed a separate missing cleanup in `code/game/turfs/open/lava.dm`:
-lava retained its own lava-stopping trait-removal listener after replacement. Deleting
-a catwalk on the new floor could dispatch that obsolete callback. A narrow marked
-unregister in lava's destructor retires this type-owned registration. The regression
-`turf_context_lava_replacement` checks both its removal and continued delivery to an
-external listener. This does not change the general turf signal-persistence contract.
-
-Upstream status: prepared locally, not submitted. Remove the local hook when upstream
-provides equivalent cleanup that also preserves external subscribers. The context regression is
-`/datum/unit_test/turf_context_replacement`; pair it with the existing
-`/datum/unit_test/connect_loc_change_turf` when verifying listener preservation.
+Pair these tests with `/datum/unit_test/connect_loc_change_turf` when verifying
+listener preservation. Focused regression results do not replace full-suite or
+populated-map verification.
