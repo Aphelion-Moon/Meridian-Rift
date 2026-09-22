@@ -195,9 +195,9 @@
 	// APHELION EDIT ADDITION START - GRID_INVENTORY
 	var/datum/grid_inventory_session/grid_session = mob?.grid_inventory
 	var/grid_gesture_id = grid_session?.gesture_id
-	// APHELION EDIT ADDITION END - GRID_INVENTORY
-	..()
-	// APHELION EDIT ADDITION START - GRID_INVENTORY
+	// APHELION EDIT CHANGE - GRID_INVENTORY: resolve an open bag's inventory icon as an automatic target.
+	if(!grid_session?.receive_inventory_drop(src_object, over_object))
+		..()
 	// Removal hooks can sleep while another gesture starts in the same session.
 	if(grid_session && mob?.grid_inventory == grid_session && grid_session.gesture_id == grid_gesture_id)
 		grid_session.cancel_drag(over_object, params)

@@ -6,8 +6,6 @@
 	var/height
 	/// Clockwise quarter turns, 0 through 3. Parity determines the physical footprint.
 	var/rotated
-	/// Display page for ordinary storage; physical backpack placements stay on page zero.
-	var/page = 0
 
 /datum/grid_placement/New(x, y, width, height, rotated = FALSE)
 	src.x = x
@@ -19,40 +17,47 @@
 /datum/storage/backpack/grid
 	storage_type = /datum/storage_interface/grid
 	separate_item_displays = TRUE
+
+/// Packing belongs to the original storage owner, including ordinary nested containers.
+/datum/storage
+	var/grid_enabled = FALSE
 	var/grid_width = 7
 	var/grid_height = 3
-	var/list/occupancy = list()
-	var/list/placements = list()
+	var/grid_capacity
+	var/list/occupancy
+	var/list/placements
 	/// Forced/preloaded items which cannot fit stay accessible, but cannot be rearranged.
-	var/list/overflow = list()
+	var/list/overflow
 	var/revision = 0
 	var/obj/item/pending_item
 	var/datum/grid_placement/pending_placement
 
 /datum/storage/backpack/grid/New()
-	occupancy.len = grid_width * grid_height
 	..()
+	enable_grid(grid_width, grid_height)
 
-/datum/storage/backpack/grid/set_real_location(atom/new_real_location, should_drop = FALSE)
-	if(real_location == new_real_location)
+/datum/storage/proc/enable_grid(width, height)
+	if(grid_enabled)
 		return
-	for(var/obj/item/item as anything in placements + overflow)
-		untrack_item(item)
-	. = ..()
-	if(!new_real_location)
-		return
+	grid_enabled = TRUE
+	// Keep the compact panel's original capacity; never grow it to fit its contents.
+	grid_capacity = isnull(width) ? max(0, min(max_slots, round(max_total_storage / WEIGHT_CLASS_TINY), 21)) : width * height
+	grid_width = width || clamp(grid_capacity, 1, 7)
+	grid_height = height || max(1, ceil(grid_capacity / grid_width))
+	occupancy = new /list(grid_width * grid_height)
+	placements = list()
+	overflow = list()
 	for(var/obj/item/item in real_location)
 		track_item(item)
 
-/datum/storage/backpack/grid/Destroy()
+/datum/storage/proc/clear_grid()
 	for(var/obj/item/item as anything in placements + overflow)
 		untrack_item(item)
 	QDEL_NULL(pending_placement)
 	pending_item = null
-	return ..()
 
 /// Checks only the proposed rectangle; ignoring an item makes moves atomic.
-/datum/storage/backpack/grid/proc/fits(obj/item/item, x, y, rotated = FALSE)
+/datum/storage/proc/fits(obj/item/item, x, y, rotated = FALSE)
 	var/list/size = item.get_storage_footprint()
 	if(rotated != round(rotated) || rotated < 0 || rotated > 3)
 		return FALSE
@@ -64,23 +69,26 @@
 		return FALSE
 	for(var/cell_y in y to y + height - 1)
 		for(var/cell_x in x to x + width - 1)
-			var/obj/item/occupant = occupancy[(cell_y - 1) * grid_width + cell_x]
+			var/index = (cell_y - 1) * grid_width + cell_x
+			if(index > grid_capacity)
+				return FALSE
+			var/obj/item/occupant = occupancy[index]
 			if(occupant && occupant != item)
 				return FALSE
 	return TRUE
 
-/datum/storage/backpack/grid/proc/first_fit(obj/item/item)
+/datum/storage/proc/first_fit(obj/item/item, rotation = 0)
 	for(var/cell_y in 1 to grid_height)
 		for(var/cell_x in 1 to grid_width)
-			for(var/rotated in 0 to 1)
+			for(var/rotated in list(rotation, (rotation + 1) % 4))
 				if(fits(item, cell_x, cell_y, rotated))
 					return make_placement(item, cell_x, cell_y, rotated)
 
-/datum/storage/backpack/grid/proc/make_placement(obj/item/item, x, y, rotated)
+/datum/storage/proc/make_placement(obj/item/item, x, y, rotated)
 	var/list/size = item.get_storage_footprint()
 	return new /datum/grid_placement(x, y, size[rotated % 2 ? 2 : 1], size[rotated % 2 ? 1 : 2], rotated)
 
-/datum/storage/backpack/grid/proc/clear_placement(obj/item/item)
+/datum/storage/proc/clear_placement(obj/item/item)
 	var/datum/grid_placement/old = placements[item]
 	if(!old)
 		return
@@ -90,7 +98,7 @@
 	placements -= item
 	qdel(old)
 
-/datum/storage/backpack/grid/proc/commit_placement(obj/item/item, datum/grid_placement/placement)
+/datum/storage/proc/commit_placement(obj/item/item, datum/grid_placement/placement)
 	clear_placement(item)
 	overflow -= item
 	if(placement)
@@ -103,6 +111,9 @@
 	revision++
 
 /datum/storage/backpack/grid/has_capacity(obj/item/to_insert)
+	return grid_has_capacity(to_insert)
+
+/datum/storage/proc/grid_has_capacity(obj/item/to_insert)
 	if(length(overflow))
 		return FALSE
 	if(to_insert == pending_item && pending_placement)
@@ -111,8 +122,12 @@
 	. = !isnull(free)
 	qdel(free)
 
-/datum/storage/backpack/grid/proc/track_item(obj/item/item)
-	if(QDELETED(item) || placements[item] || item in overflow)
+/datum/storage/proc/track_item(obj/item/item)
+	if(QDELETED(item))
+		return
+	// The after-initialize callback also catches storage created during item initialization.
+	item.atom_storage?.enable_grid()
+	if(placements[item] || item in overflow)
 		return
 	RegisterSignal(item, COMSIG_ITEM_WEIGHT_CLASS_CHANGED, PROC_REF(item_resized))
 	RegisterSignal(item, COMSIG_QDELETING, PROC_REF(item_deleted))
@@ -123,34 +138,18 @@
 		placement = first_fit(item)
 	commit_placement(item, placement)
 
-/datum/storage/backpack/grid/proc/untrack_item(obj/item/item)
+/datum/storage/proc/untrack_item(obj/item/item)
 	UnregisterSignal(item, list(COMSIG_ITEM_WEIGHT_CLASS_CHANGED, COMSIG_QDELETING))
 	clear_placement(item)
 	overflow -= item
 	revision++
 
-/datum/storage/backpack/grid/item_init(datum/source, obj/item/inited)
-	..()
-	if(istype(inited))
-		track_item(inited)
-		refresh_views()
-
-/datum/storage/backpack/grid/handle_enter(datum/source, obj/item/arrived)
-	if(istype(arrived))
-		track_item(arrived)
-	return ..()
-
-/datum/storage/backpack/grid/handle_exit(datum/source, obj/item/gone)
-	if(istype(gone))
-		untrack_item(gone)
-	return ..()
-
-/datum/storage/backpack/grid/proc/item_deleted(obj/item/source)
+/datum/storage/proc/item_deleted(obj/item/source)
 	SIGNAL_HANDLER
 	untrack_item(source)
 	refresh_views()
 
-/datum/storage/backpack/grid/proc/item_resized(obj/item/source)
+/datum/storage/proc/item_resized(obj/item/source)
 	SIGNAL_HANDLER
 	var/datum/grid_placement/old = placements[source]
 	// Retain the player's anchor and orientation; never repack unrelated items.
@@ -160,7 +159,7 @@
 	commit_placement(source, replacement)
 	refresh_views()
 
-/datum/storage/backpack/grid/contents_changed_w_class(datum/source, obj/item/changed, old_w_class, new_w_class)
+/datum/storage/proc/grid_contents_changed_w_class(obj/item/changed, new_w_class)
 	SIGNAL_HANDLER
 	// Geometry changes are handled above. Oversized contents remain take-only as well.
 	if(new_w_class > max_specific_storage && !is_type_in_typecache(changed, exception_hold))
@@ -168,7 +167,7 @@
 		refresh_views()
 
 /// All HUD mutations recheck access and ownership at the time of the action.
-/datum/storage/backpack/grid/proc/can_grid_interact(mob/user)
+/datum/storage/proc/can_grid_interact(mob/user)
 	if(user.grid_inventory)
 		return user.grid_inventory.can_interact(src)
 	if(!isliving(user) || user.active_storage != src || locked || ismecha(user.loc))
@@ -176,7 +175,7 @@
 	var/mob/living/living_user = user
 	return (living_user.mobility_flags & MOBILITY_STORAGE) && user.can_perform_action(parent, FORBID_TELEKINESIS_REACH)
 
-/datum/storage/backpack/grid/proc/move_item(mob/user, obj/item/item, x, y, rotated, expected_revision)
+/datum/storage/proc/move_item(mob/user, obj/item/item, x, y, rotated, expected_revision)
 	if(!can_grid_interact(user) || QDELETED(item) || item.loc != real_location || !placements[item])
 		return FALSE
 	if(expected_revision != revision || !fits(item, x, y, rotated))
@@ -185,7 +184,7 @@
 	refresh_views()
 	return TRUE
 
-/datum/storage/backpack/grid/proc/insert_at(mob/user, obj/item/item, x, y, rotated)
+/datum/storage/proc/insert_at(mob/user, obj/item/item, x, y, rotated)
 	if(!can_grid_interact(user) || QDELETED(item) || item != user.get_active_held_item() || pending_item)
 		return FALSE
 	if(!fits(item, x, y, rotated))

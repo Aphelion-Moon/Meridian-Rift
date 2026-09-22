@@ -18,7 +18,7 @@
 	var/list/enclosing = list()
 	var/closing = FALSE
 	var/removal_depth = 0
-	var/atom/movable/screen/grid_inventory/drag_source
+	var/atom/drag_source
 	var/datum/storage_interface/grid/drag_panel
 	var/obj/item/drag_item
 	var/drag_revision
@@ -32,6 +32,8 @@
 	var/atom/movable/screen/grid_inventory/hover_cell
 	var/preview_key
 	var/gesture_id = 0
+	var/datum/weakref/held_preview_ref
+	var/held_rotation = 0
 
 /datum/grid_inventory_session/New(mob/user)
 	viewer = user
@@ -41,6 +43,7 @@
 	RegisterSignals(user, list(COMSIG_MOB_LOGOUT, COMSIG_QDELETING, SIGNAL_ADDTRAIT(TRAIT_HANDS_BLOCKED)), PROC_REF(close_on_signal))
 	RegisterSignal(user, COMSIG_MOVABLE_MOVED, PROC_REF(validate_on_signal))
 	RegisterSignal(user, COMSIG_VIEWDATA_UPDATE, PROC_REF(view_changed))
+	RegisterSignals(user, list(COMSIG_MOB_SWAP_HANDS, COMSIG_MOB_EQUIPPED_ITEM, COMSIG_MOB_UNEQUIPPED_ITEM, COMSIG_MOB_DROPPED_ITEM), PROC_REF(hand_changed))
 	RegisterSignal(viewer_hud, COMSIG_QDELETING, PROC_REF(close_on_signal))
 	RegisterSignal(viewer_client, COMSIG_CLIENT_MOUSEDOWN, PROC_REF(mouse_down))
 	RegisterSignal(viewer_client, COMSIG_CLIENT_MOUSEDRAG, PROC_REF(mouse_drag))
@@ -53,6 +56,7 @@
 		storage.hide_contents(viewer)
 	if(viewer)
 		UnregisterSignal(viewer, list(COMSIG_MOB_LOGOUT, COMSIG_QDELETING, SIGNAL_ADDTRAIT(TRAIT_HANDS_BLOCKED), COMSIG_MOVABLE_MOVED, COMSIG_VIEWDATA_UPDATE))
+		UnregisterSignal(viewer, list(COMSIG_MOB_SWAP_HANDS, COMSIG_MOB_EQUIPPED_ITEM, COMSIG_MOB_UNEQUIPPED_ITEM, COMSIG_MOB_DROPPED_ITEM))
 		if(viewer.grid_inventory == src)
 			viewer.grid_inventory = null
 	if(viewer_hud)
@@ -163,6 +167,69 @@
 		var/datum/storage_interface/grid/panel = panels[storage]
 		panel.update_ui_style(ui_style)
 
+/// Inventory slots can receive mouse events on either their item or their HUD background.
+/datum/grid_inventory_session/proc/inventory_item(atom/object)
+	if(isitem(object))
+		var/obj/item/item = object
+		return item.loc == viewer && viewer.get_slot_by_item(item) ? item : null
+	if(!istype(object, /atom/movable/screen/inventory))
+		return null
+	var/atom/movable/screen/inventory/slot = object
+	if(slot.hud?.mymob != viewer)
+		return null
+	if(istype(slot, /atom/movable/screen/inventory/hand))
+		var/atom/movable/screen/inventory/hand/hand = slot
+		return viewer.get_item_for_held_index(hand.held_index)
+	return viewer.get_item_by_slot(slot.slot_id)
+
+/datum/grid_inventory_session/proc/can_drag_item()
+	if(QDELETED(drag_item))
+		return FALSE
+	if(drag_panel)
+		return drag_panel.can_interact() && drag_item.loc == drag_panel.parent_storage.real_location
+	return inventory_item(drag_item) && drag_item.can_mob_unequip(viewer) && viewer.can_perform_action(drag_item, FORBID_TELEKINESIS_REACH)
+
+/// A real panel drag owns the preview until it ends, even with an occupied active hand.
+/datum/grid_inventory_session/proc/held_preview_item()
+	var/obj/item/item = viewer.get_active_held_item()
+	if(item != held_preview_ref?.resolve())
+		held_preview_ref = item ? WEAKREF(item) : null
+		held_rotation = 0
+	return item
+
+/datum/grid_inventory_session/proc/can_preview_item(obj/item/item)
+	if(dragging)
+		return item == drag_item && can_drag_item()
+	return item && item == viewer.get_active_held_item() && inventory_item(item) && item.can_mob_unequip(viewer) && viewer.can_perform_action(item, FORBID_TELEKINESIS_REACH)
+
+/datum/grid_inventory_session/proc/hand_changed()
+	SIGNAL_HANDLER
+	// Equipment signals can precede the final hand/location update.
+	addtimer(CALLBACK(src, PROC_REF(refresh_hover)), 0, TIMER_UNIQUE)
+
+/datum/grid_inventory_session/proc/refresh_hover()
+	preview_key = null
+	update_preview(hover_cell)
+
+/// An open bag's inventory icon is also an automatic destination for this workspace.
+/datum/grid_inventory_session/proc/drop_target(atom/object)
+	if(istype(object, /atom/movable/screen/grid_inventory))
+		return object
+	var/obj/item/container = inventory_item(object)
+	if(!container)
+		return null
+	var/datum/storage_interface/grid/panel = panels[container.atom_storage]
+	return panel?.titlebar
+
+/datum/grid_inventory_session/proc/receive_inventory_drop(atom/source, atom/over)
+	if(source != drag_source || !dragging || istype(over, /atom/movable/screen/grid_inventory))
+		return FALSE
+	var/atom/movable/screen/grid_inventory/target = drop_target(over)
+	if(!target)
+		return FALSE
+	target.interface.receive_drop(target)
+	return TRUE
+
 /datum/grid_inventory_session/proc/mouse_down(datum/source, atom/object, location, control, params)
 	SIGNAL_HANDLER
 	var/list/modifiers = params2list(params)
@@ -173,6 +240,10 @@
 		return
 	cancel_drag()
 	if(!istype(object, /atom/movable/screen/grid_inventory))
+		drag_item = inventory_item(object)
+		if(drag_item)
+			drag_source = object
+			mouse_held = TRUE
 		return
 	var/atom/movable/screen/grid_inventory/cell = object
 	if(panels[cell.interface?.parent_storage] != cell.interface || !can_interact(cell.interface.parent_storage))
@@ -180,37 +251,41 @@
 	viewer.active_storage = cell.interface.parent_storage
 	cell.interface.raise_panel()
 	if(cell.action != "title" && (!cell.item || cell.take_only))
+		update_preview(cell)
 		return
 	drag_source = cell
 	drag_panel = cell.interface
 	mouse_held = TRUE
-	drag_origin = screen_loc_to_offset(LAZYACCESS(modifiers, SCREEN_LOC), viewer_client.view)
+	drag_origin = screen_loc_to_offset(LAZYACCESS(modifiers, SCREEN_LOC), viewer_client?.view || world.view)
 	panel_start_x = drag_panel.position_x
 	panel_start_y = drag_panel.position_y
 	if(cell.item)
-		cell.interface.show_hover(cell)
 		drag_item = cell.item
 		var/datum/grid_placement/placement = drag_panel.get_placement(drag_item)
 		drag_rotation = placement ? placement.rotated : 0
 		drag_revision = drag_panel.grid?.revision
+	update_preview(cell)
 
 /datum/grid_inventory_session/proc/mouse_drag(datum/source, atom/object, atom/over, src_location, over_location, src_control, over_control, params)
 	SIGNAL_HANDLER
-	if(!mouse_held || object != drag_source || !can_interact(drag_panel.parent_storage))
+	if(!mouse_held || object != drag_source || (drag_item ? !can_drag_item() : !drag_panel?.can_interact()))
+		return
+	var/atom/movable/screen/grid_inventory/target = drop_target(over)
+	// Ordinary inventory drags retain their normal behavior until they enter this workspace.
+	if(!drag_panel && !dragging && !target)
 		return
 	dragging = TRUE
 	pointer_dragged = TRUE
-	drag_panel.cancel_click()
-	drag_panel.hide_tooltip()
-	var/list/modifiers = params2list(params)
-	var/list/offset = screen_loc_to_offset(LAZYACCESS(modifiers, SCREEN_LOC), viewer_client.view)
+	drag_panel?.cancel_click()
+	drag_panel?.hide_tooltip()
 	if(!drag_item)
+		var/list/modifiers = params2list(params)
+		var/list/offset = screen_loc_to_offset(LAZYACCESS(modifiers, SCREEN_LOC), viewer_client?.view || world.view)
 		drag_panel.position_x = panel_start_x + offset[1] - drag_origin[1]
 		drag_panel.position_y = panel_start_y + offset[2] - drag_origin[2]
 		drag_panel.reposition()
 		return
-	var/atom/movable/screen/grid_inventory/target = over
-	update_preview(istype(target) ? target : null)
+	update_preview(target)
 
 /datum/grid_inventory_session/proc/mouse_up(datum/source, atom/object, location, control, params)
 	SIGNAL_HANDLER
@@ -223,7 +298,7 @@
 	if(dragging)
 		if(!pointer_dragged)
 			// A stationary press-and-rotate does not generate a native MouseDrop.
-			drag_panel.receive_drop(drag_source)
+			drag_panel?.receive_drop(drag_source)
 			cancel_drag(drag_source, params)
 		return COMPONENT_CLIENT_MOUSEUP_INTERCEPT
 
@@ -231,12 +306,23 @@
 	return dragging
 
 /datum/grid_inventory_session/proc/rotate_drag(turns)
-	if(!mouse_held || !drag_item || !can_interact(drag_panel.parent_storage))
+	if(!mouse_held && !dragging)
+		var/obj/item/held = held_preview_item()
+		if(QDELETED(hover_cell) || !can_preview_item(held) || !can_interact(hover_cell.interface?.parent_storage))
+			return FALSE
+		// Rotating the pickup starts a new action, not the second half of a double-click.
+		for(var/datum/storage/storage as anything in panels)
+			var/datum/storage_interface/grid/panel = panels[storage]
+			panel.cancel_click()
+		held_rotation = (held_rotation + turns + 4) % 4
+		update_preview(hover_cell)
+		return TRUE
+	if(!mouse_held || !can_drag_item() || (!drag_panel && !dragging))
 		return FALSE
 	dragging = TRUE
-	drag_panel.cancel_click()
+	drag_panel?.cancel_click()
 	drag_rotation = (drag_rotation + turns + 4) % 4
-	drag_panel.hide_tooltip()
+	drag_panel?.hide_tooltip()
 	update_preview(hover_cell || (!pointer_dragged ? drag_source : null))
 	return TRUE
 
@@ -248,15 +334,20 @@
 		panel.hide_tooltip()
 
 /datum/grid_inventory_session/proc/update_preview(atom/movable/screen/grid_inventory/target)
-	var/key = "[REF(target)]-[REF(drag_item)]-[drag_rotation]-[target?.interface?.grid?.revision]"
+	var/obj/item/item = dragging ? drag_item : held_preview_item()
+	var/rotation = dragging ? drag_rotation : held_rotation
+	var/key = "[REF(target)]-[REF(item)]-[rotation]-[dragging]-[target?.interface?.grid?.revision]"
 	if(preview_key == key)
 		return
 	clear_preview()
 	preview_key = key
 	hover_cell = target
-	if(QDELETED(target) || target.action || QDELETED(target.interface) || panels[target.interface.parent_storage] != target.interface)
+	if(QDELETED(target) || (target.action && target.action != "title" && target.action != "frame") || QDELETED(target.interface) || panels[target.interface.parent_storage] != target.interface)
 		return
-	target.interface.preview_item(drag_item, target, drag_rotation)
+	if(item)
+		target.interface.preview_item(item, target, rotation)
+	else if(!dragging && !target.action)
+		target.interface.show_hover(target)
 
 /datum/grid_inventory_session/proc/cancel_drag(atom/over, params)
 	gesture_id++
@@ -264,6 +355,8 @@
 	drag_source = null
 	drag_panel = null
 	drag_item = null
+	drag_rotation = 0
+	drag_revision = null
 	hover_cell = null
 	drag_origin = null
 	dragging = FALSE
@@ -274,7 +367,8 @@
 		return
 	var/atom/movable/screen/grid_inventory/cell = over
 	var/datum/storage_interface/grid/panel = cell.interface
-	if(QDELETED(panel) || cell.action || !can_interact(panel.parent_storage))
+	if(QDELETED(panel) || (cell.action && cell.action != "title" && cell.action != "frame") || !can_interact(panel.parent_storage))
 		return
-	panel.show_hover(cell)
-	panel.show_tooltip(cell, params)
+	update_preview(cell)
+	if(!held_preview_item())
+		panel.show_tooltip(cell, params)

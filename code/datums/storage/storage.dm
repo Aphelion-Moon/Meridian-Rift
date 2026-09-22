@@ -165,6 +165,8 @@
 	src.remove_rustle_sound = remove_rustle_sound
 
 /datum/storage/Destroy()
+	if(grid_enabled)
+		clear_grid()
 
 	for(var/mob/person as anything in is_using)
 		hide_contents(person)
@@ -191,6 +193,9 @@
 
 	inited.item_flags |= IN_STORAGE
 	RegisterSignal(inited, COMSIG_MOUSEDROPPED_ONTO, PROC_REF(mousedrop_receive))
+	if(grid_enabled)
+		track_item(inited)
+		refresh_views()
 
 /// Automatically ran on all object insertions: flag marking and view refreshing.
 /datum/storage/proc/handle_enter(datum/source, obj/item/arrived)
@@ -200,6 +205,8 @@
 		return
 
 	arrived.item_flags |= IN_STORAGE
+	if(grid_enabled)
+		track_item(arrived)
 	arrived.on_enter_storage(src)
 	RegisterSignal(arrived, COMSIG_MOUSEDROPPED_ONTO, PROC_REF(mousedrop_receive))
 	SEND_SIGNAL(arrived, COMSIG_ITEM_STORED, src)
@@ -215,6 +222,8 @@
 		return
 
 	gone.item_flags &= ~IN_STORAGE
+	if(grid_enabled)
+		untrack_item(gone)
 	gone.on_exit_storage(src)
 	UnregisterSignal(gone, COMSIG_MOUSEDROPPED_ONTO)
 	SEND_SIGNAL(gone, COMSIG_ITEM_UNSTORED, src)
@@ -273,6 +282,10 @@
  * * should_drop - if TRUE, all the items in the old real location will be dropped.
  */
 /datum/storage/proc/set_real_location(atom/new_real_location, should_drop = FALSE)
+	if(grid_enabled)
+		if(real_location == new_real_location)
+			return
+		clear_grid()
 	if(!isnull(real_location))
 		UnregisterSignal(real_location, list(
 			COMSIG_ATOM_ENTERED,
@@ -293,6 +306,9 @@
 	RegisterSignal(real_location, COMSIG_ATOM_ENTERED, PROC_REF(handle_enter))
 	RegisterSignal(real_location, COMSIG_ATOM_EXITED, PROC_REF(handle_exit))
 	RegisterSignal(real_location, COMSIG_QDELETING, PROC_REF(real_location_deleted))
+	if(grid_enabled)
+		for(var/obj/item/item in real_location)
+			track_item(item)
 
 /// Signal handler for when the real location is deleted.
 /datum/storage/proc/real_location_deleted(datum/deleting_real_location)
@@ -478,7 +494,7 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 
 /// Capacity only; item restrictions and access remain in can_insert().
 /datum/storage/proc/has_capacity(obj/item/to_insert)
-	return real_location.contents.len < max_slots && to_insert.w_class + get_total_weight() <= max_total_storage
+	return real_location.contents.len < max_slots && to_insert.w_class + get_total_weight() <= max_total_storage && (!grid_enabled || grid_has_capacity(to_insert))
 
 /// Returns a count of how many items held due to exception_hold we have
 /datum/storage/proc/get_exception_count()
@@ -1262,6 +1278,9 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 /// Signal proc for [COMSIG_ATOM_CONTENTS_WEIGHT_CLASS_CHANGED] to drop items out of our storage if they're suddenly too heavy.
 /datum/storage/proc/contents_changed_w_class(datum/source, obj/item/changed, old_w_class, new_w_class)
 	SIGNAL_HANDLER
+	if(grid_enabled)
+		grid_contents_changed_w_class(changed, new_w_class)
+		return
 
 	// If old weight already overloaded the storage, don't drop the item out just in case we're inside of a premade box
 	if(new_w_class <= max_specific_storage && (get_total_weight() <= max_total_storage || get_total_weight() - new_w_class + old_w_class > max_total_storage))

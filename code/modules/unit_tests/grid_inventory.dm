@@ -253,6 +253,264 @@
 	TEST_ASSERT_NULL(user.grid_inventory, "Deleted session remained attached to its viewer")
 	qdel(panel)
 
+/datum/unit_test/grid_inventory_external_drag/Run()
+	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, user)
+	TEST_ASSERT(user.equip_to_slot_if_possible(bag, ITEM_SLOT_BACK), "Could not equip the drag target bag")
+	var/datum/storage/backpack/grid/grid = bag.atom_storage
+	var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', grid, user)
+	var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+	session.add_panel(grid, panel)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/obj/item/crowbar/item = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	TEST_ASSERT(user.put_in_hands(item), "External drag fixture could not hold its item")
+	var/params = "button=left;left=1;screen-loc=5:16,3:16"
+	session.mouse_down(null, item, null, null, params)
+	TEST_ASSERT_EQUAL(session.drag_item, item, "Inventory item did not become the drag payload")
+	var/atom/movable/screen/grid_inventory/target = panel.grid_cells[12]
+	session.mouse_drag(null, item, target, null, null, null, null, params)
+	TEST_ASSERT(session.dragging && panel.preview_display.alpha, "Inventory drag did not show a placement preview")
+	TEST_ASSERT(session.rotate_drag(1), "Inventory drag could not rotate")
+	session.mouse_up(null, target, null, null, params)
+	panel.receive_drop(target)
+	TEST_ASSERT_EQUAL(item.loc, bag, "Inventory drop did not insert into the bag")
+	var/datum/grid_placement/placement = grid.placements[item]
+	TEST_ASSERT_EQUAL(placement.x, 5, "Inventory drop ignored the target column")
+	TEST_ASSERT_EQUAL(placement.y, 2, "Inventory drop ignored the target row")
+	TEST_ASSERT_EQUAL(placement.rotated, 1, "Inventory drop lost the preview rotation")
+	session.cancel_drag()
+	// A worn item follows the same path and must still obey unequip restrictions.
+	var/obj/item/clothing/glasses/regular/glasses = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	TEST_ASSERT(user.equip_to_slot_if_possible(glasses, ITEM_SLOT_EYES), "Could not equip the drag fixture")
+	session.mouse_down(null, glasses, null, null, params)
+	session.mouse_drag(null, glasses, panel.grid_cells[1], null, null, null, null, params)
+	ADD_TRAIT(glasses, TRAIT_NODROP, TRAIT_GENERIC)
+	panel.receive_drop(panel.grid_cells[1])
+	TEST_ASSERT_EQUAL(user.get_item_by_slot(ITEM_SLOT_EYES), glasses, "Inventory drag bypassed no-drop")
+	REMOVE_TRAIT(glasses, TRAIT_NODROP, TRAIT_GENERIC)
+	TEST_ASSERT(session.dragging && session.can_drag_item(), "Worn drag lost its gesture or source access")
+	TEST_ASSERT(grid.can_insert(glasses, user, messages = FALSE), "Unlocked glasses failed storage restrictions")
+	TEST_ASSERT(grid.fits(glasses, 1, 1, session.drag_rotation), "Glasses do not fit their drop target")
+	panel.receive_drop(panel.grid_cells[1])
+	TEST_ASSERT_EQUAL(glasses.loc, bag, "Worn inventory item did not transfer")
+	TEST_ASSERT_NULL(user.get_item_by_slot(ITEM_SLOT_EYES), "Worn drag left a stale equipment slot")
+	session.cancel_drag()
+	var/obj/item/crowbar/held = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	user.put_in_hands(held)
+	var/atom/movable/screen/inventory/hand/hand = allocate(__IMPLIED_TYPE__)
+	// HUD backgrounds and the real item sprite must resolve to the same payload.
+	var/datum/hud/test_hud = allocate(/datum/hud, user)
+	hand.hud = test_hud
+	hand.held_index = user.active_hand_index
+	session.mouse_down(null, hand, null, null, params)
+	TEST_ASSERT_EQUAL(session.drag_item, held, "Hand-slot background did not resolve its held item")
+	session.mouse_drag(null, hand, panel.grid_cells[21], null, null, null, null, params)
+	panel.receive_drop(panel.grid_cells[21])
+	TEST_ASSERT(user.is_holding(held), "Out-of-bounds inventory drop lost its item")
+	session.mouse_drag(null, hand, bag, null, null, null, null, params)
+	TEST_ASSERT(session.receive_inventory_drop(hand, bag), "Open bag inventory icon did not receive the drop")
+	TEST_ASSERT_EQUAL(held.loc, bag, "Open bag inventory icon failed to auto-place the item")
+	session.cancel_drag()
+	hand.hud = null
+	qdel(session)
+	qdel(panel)
+	qdel(test_hud)
+
+/datum/unit_test/grid_inventory_container_drop/Run()
+	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, user)
+	var/datum/storage/backpack/grid/grid = bag.atom_storage
+	var/obj/item/storage/backpack/grid_pilot/nested = allocate(__IMPLIED_TYPE__, bag)
+	nested.w_class = WEIGHT_CLASS_NORMAL
+	var/datum/storage/backpack/grid/inner = nested.atom_storage
+	inner.grid_height = 1
+	inner.occupancy.len = inner.grid_width
+	var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', grid, user)
+	var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+	session.add_panel(grid, panel)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/atom/movable/screen/grid_inventory/target = panel.grid_cells[1]
+	TEST_ASSERT_EQUAL(target.item, nested, "Container drop fixture has no target")
+	var/obj/item/crowbar/grid_sample/item = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	user.put_in_hands(item)
+	var/params = "button=left;left=1;screen-loc=5:16,3:16"
+	session.mouse_down(null, item, null, null, params)
+	session.mouse_drag(null, item, target, null, null, null, null, params)
+	panel.receive_drop(target)
+	TEST_ASSERT_EQUAL(item.loc, nested, "Dropping onto a closed nested container did not insert")
+	var/datum/grid_placement/placement = inner.placements[item]
+	TEST_ASSERT_EQUAL(placement.height, 1, "Automatic insertion did not rotate to fit")
+	TEST_ASSERT_EQUAL(placement.width, 3, "Automatic insertion changed the item footprint")
+	session.cancel_drag()
+	// Repeat from another grid, with no free hand involved.
+	var/obj/item/crowbar/grid_sample/second = allocate(__IMPLIED_TYPE__, bag)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/atom/movable/screen/grid_inventory/source_cell
+	for(var/atom/movable/screen/grid_inventory/cell as anything in panel.grid_cells)
+		if(cell.item == second)
+			source_cell = cell
+			break
+	session.mouse_down(null, source_cell, null, null, params)
+	session.mouse_drag(null, source_cell, target, null, null, null, null, params)
+	inner.set_locked(STORAGE_FULLY_LOCKED)
+	panel.receive_drop(target)
+	TEST_ASSERT_EQUAL(second.loc, bag, "Container drop ignored the destination lock")
+	inner.set_locked(STORAGE_NOT_LOCKED)
+	panel.receive_drop(target)
+	TEST_ASSERT_EQUAL(second.loc, nested, "Grid-to-container drop did not transfer")
+	TEST_ASSERT_NULL(grid.placements[second], "Grid-to-container drop retained source occupancy")
+	session.cancel_drag()
+	var/obj/item/crowbar/grid_sample/third = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	user.put_in_hands(third)
+	session.mouse_down(null, third, null, null, params)
+	session.mouse_drag(null, third, target, null, null, null, null, params)
+	panel.receive_drop(target)
+	TEST_ASSERT(user.is_holding(third), "Full destination lost the held item")
+	TEST_ASSERT_EQUAL(length(inner.overflow), 0, "Container drop overflowed the grid")
+	qdel(session)
+	qdel(panel)
+	// Ordinary nested storage must reject footprints that cannot fit its fixed cells,
+	// even while closed. The slot count alone is not a geometric capacity check.
+	var/obj/item/storage/medkit/grid_sample/kit = allocate(__IMPLIED_TYPE__, bag)
+	var/obj/item/too_wide = allocate(/obj/item, run_loc_floor_bottom_left)
+	too_wide.w_class = WEIGHT_CLASS_SMALL
+	too_wide.storage_footprint = list(2, 2)
+	TEST_ASSERT(!kit.atom_storage.attempt_insert(too_wide, messages = FALSE), "Closed 7x1 medkit accepted a 2x2 item by expanding its grid")
+	var/datum/storage/kit_storage = kit.atom_storage
+	TEST_ASSERT(kit_storage.grid_enabled, "Closed nested storage did not acquire packing constraints")
+	panel = allocate(/datum/storage_interface/grid, 'icons/hud/screen_midnight.dmi', grid, user)
+	session = allocate(/datum/grid_inventory_session, user)
+	session.add_panel(grid, panel)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	for(var/atom/movable/screen/grid_inventory/cell as anything in panel.grid_cells)
+		if(cell.item == kit)
+			target = cell
+			break
+	session.mouse_down(null, third, null, null, params)
+	session.mouse_drag(null, third, target, null, null, null, null, params)
+	panel.receive_drop(target)
+	TEST_ASSERT_EQUAL(third.loc, kit, "Closed ordinary medkit rejected a fitting container drop")
+	placement = kit_storage.placements[third]
+	TEST_ASSERT_EQUAL(placement.width, 3, "Ordinary medkit did not auto-rotate the incoming crowbar")
+	TEST_ASSERT_EQUAL(placement.height, 1, "Ordinary medkit grew instead of rotating")
+	var/obj/item/crowbar/grid_sample/fourth = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	TEST_ASSERT(kit_storage.attempt_insert(fourth, messages = FALSE), "Ordinary insertion rejected a remaining three-cell gap")
+	var/obj/item/lighter/grid_sample/tiny = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	TEST_ASSERT(kit_storage.attempt_insert(tiny, messages = FALSE), "Ordinary insertion rejected the last free cell")
+	var/obj/item/lighter/grid_sample/no_room = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	TEST_ASSERT(!kit_storage.attempt_insert(no_room, messages = FALSE), "Seven occupied cells accepted another item")
+	TEST_ASSERT_EQUAL(no_room.loc, run_loc_floor_bottom_left, "Failed ordinary insertion moved its source item")
+	TEST_ASSERT_EQUAL(kit_storage.grid_height, 1, "Inserting into ordinary storage expanded its rows")
+	TEST_ASSERT_EQUAL(length(kit_storage.overflow), 0, "Normal insertion used forced-content overflow as capacity")
+	qdel(session)
+	qdel(panel)
+	// A partial final row is not extra capacity.
+	var/obj/item/storage/medkit/grid_sample/partial = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	partial.atom_storage.max_slots = 8
+	partial.atom_storage.enable_grid()
+	TEST_ASSERT(partial.atom_storage.fits(no_room, 1, 2), "Eighth cell was unavailable")
+	TEST_ASSERT(!partial.atom_storage.fits(no_room, 2, 2), "Partial final row added a ninth cell")
+
+/datum/unit_test/grid_inventory_held_preview/Run()
+	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, user)
+	var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', bag.atom_storage, user)
+	var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+	session.add_panel(bag.atom_storage, panel)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/obj/item/crowbar/grid_sample/held = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	user.put_in_hands(held)
+	var/atom/movable/screen/grid_inventory/cell = panel.grid_cells[1]
+	var/old_usr = usr
+	usr = user
+	cell.MouseEntered()
+	usr = old_usr
+	TEST_ASSERT(panel.preview_display.alpha > 0, "Hovering with an active-hand item did not show a placement preview")
+	TEST_ASSERT(session.rotate_drag(1), "Held-item hover did not support rotation")
+	TEST_ASSERT_EQUAL(panel.preview_display.last_width, 3, "Held preview did not rotate its footprint")
+	TEST_ASSERT(!session.dragging && !session.mouse_held, "Held preview started a mouse drag")
+	var/icon/valid_icon = icon(cell.icon)
+	var/valid_fill = valid_icon.GetPixel(12, 12)
+	TEST_ASSERT(valid_fill, "Held preview did not fill valid cells")
+	var/atom/movable/screen/grid_inventory/edge = panel.grid_cells[7]
+	usr = user
+	edge.MouseEntered()
+	usr = old_usr
+	var/icon/invalid_icon = icon(edge.icon)
+	TEST_ASSERT(invalid_icon.GetPixel(12, 12) != valid_fill, "Out-of-bounds held preview stayed green")
+	usr = user
+	edge.Click(null, null, "button=left;left=1")
+	usr = old_usr
+	TEST_ASSERT_EQUAL(user.get_active_held_item(), held, "Invalid held placement lost the item")
+	session.mouse_down(null, cell, null, null, "button=left;left=1")
+	session.mouse_up(null, cell, null, null, "button=left;left=1")
+	usr = user
+	cell.Click(null, null, "button=left;left=1")
+	usr = old_usr
+	TEST_ASSERT_EQUAL(held.loc, bag, "Click did not insert the held preview")
+	var/datum/grid_placement/placement = bag.atom_storage.placements[held]
+	TEST_ASSERT_EQUAL(placement.rotated, 1, "Held-item click discarded the preview rotation")
+	user.put_in_hands(held)
+	var/obj/item/lighter/grid_sample/stored = allocate(__IMPLIED_TYPE__, bag)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/atom/movable/screen/grid_inventory/destination = panel.grid_cells[11]
+	session.mouse_down(null, cell, null, null, "button=left;left=1")
+	session.mouse_drag(null, cell, destination, null, null, null, null, "button=left;left=1")
+	TEST_ASSERT_EQUAL(panel.preview_display.item, stored, "A stored-item drag displayed the active-hand item")
+	panel.receive_drop(destination)
+	placement = bag.atom_storage.placements[stored]
+	TEST_ASSERT_EQUAL(placement.x, 4, "Stored-item drag did not reposition while a hand was occupied")
+	TEST_ASSERT_EQUAL(user.get_active_held_item(), held, "Stored-item drag moved the held item")
+	session.cancel_drag(destination)
+	TEST_ASSERT_EQUAL(panel.preview_display.item, held, "Ending a stored-item drag did not restore the held preview")
+	var/obj/item/storage/medkit/grid_sample/kit = allocate(__IMPLIED_TYPE__, bag)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/atom/movable/screen/grid_inventory/container_cell
+	for(var/atom/movable/screen/grid_inventory/candidate as anything in panel.grid_cells)
+		if(candidate.item == kit)
+			container_cell = candidate
+			break
+	usr = user
+	container_cell.MouseEntered()
+	usr = old_usr
+	TEST_ASSERT_EQUAL(panel.preview_display.alpha, 0, "Container hover retained an exact-placement ghost")
+	TEST_ASSERT_EQUAL(panel.blocked_indicator.alpha, 0, "Fitting container hover displayed an X")
+	for(var/atom/movable/screen/grid_inventory/candidate as anything in panel.grid_cells)
+		var/icon/cell_icon = icon(candidate.icon)
+		TEST_ASSERT_NULL(cell_icon.GetPixel(12, 12), "Container hover filled the background grid")
+	for(var/index in 1 to 2)
+		var/obj/item/crowbar/grid_sample/filler = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+		TEST_ASSERT(kit.atom_storage.attempt_insert(filler, messages = FALSE), "Could not fill the container preview fixture")
+	usr = user
+	container_cell.MouseExited()
+	container_cell.MouseEntered()
+	container_cell.Click(null, null, "button=left;left=1")
+	usr = old_usr
+	TEST_ASSERT_EQUAL(panel.blocked_indicator.alpha, 255, "Non-fitting container hover did not display an X")
+	TEST_ASSERT_EQUAL(user.get_active_held_item(), held, "Blocked container click lost the held item")
+	user.swap_hand()
+	sleep(1)
+	TEST_ASSERT_EQUAL(panel.blocked_indicator.alpha, 0, "Swapping to an empty hand retained the rejection X")
+	TEST_ASSERT_EQUAL(panel.preview_display.alpha, 0, "Swapping to an empty hand retained a held preview")
+	TEST_ASSERT(!session.rotate_drag(1), "Rotation was consumed without a held or dragged item")
+	// A deliberate rotation must not be undone by the preceding pickup's click record.
+	user.next_click = -1
+	user.next_move = -1
+	usr = user
+	container_cell.Click(null, null, "button=left;left=1")
+	usr = old_usr
+	TEST_ASSERT_EQUAL(user.get_active_held_item(), kit, "Could not pick up the container rotation fixture")
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	session.update_preview(container_cell)
+	TEST_ASSERT(session.rotate_drag(1), "Picked-up container could not rotate in hover")
+	usr = user
+	container_cell.Click(null, null, "button=left;left=1")
+	usr = old_usr
+	placement = bag.atom_storage.placements[kit]
+	TEST_ASSERT(placement && placement.rotated == 1, "Click rollback replaced the chosen held rotation with the old placement")
+	qdel(session)
+	qdel(panel)
+
 /datum/unit_test/grid_inventory_highlights/Run()
 	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 	var/datum/storage/backpack/grid/grid = bag.atom_storage
@@ -354,7 +612,7 @@
 	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 	var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', storage, user)
 	panel.update_position(4, 16, 2, 16, 7, 3, user, medkit)
-	TEST_ASSERT(panel.uses_item_proxies() && !panel.grid, "Ordinary medkit did not use its slot proxy interface")
+	TEST_ASSERT(panel.uses_item_proxies() && panel.grid == storage, "Nested medkit did not retain its original storage owner")
 	TEST_ASSERT_EQUAL(length(panel.item_displays), length(medkit.contents), "Medkit contents were missing from its panel")
 	TEST_ASSERT_EQUAL(storage.max_slots, original_capacity, "Slot proxy changed ordinary storage capacity")
 	var/obj/item/item = medkit.contents[1]
@@ -367,7 +625,7 @@
 	qdel(panel)
 	for(var/atom/movable/screen/element as anything in elements)
 		TEST_ASSERT(QDELETED(element), "Closing medkit proxy retained a screen object")
-	TEST_ASSERT(QDELETED(placement), "Closing medkit proxy retained a slot placement")
+	TEST_ASSERT(!QDELETED(placement) && storage.placements[item] == placement, "Closing medkit discarded its physical placement")
 	TEST_ASSERT_EQUAL(item.loc, medkit, "Closing medkit proxy moved its contents")
 	TEST_ASSERT_EQUAL(medkit.atom_storage, storage, "Closing medkit proxy replaced its storage owner")
 
@@ -391,6 +649,8 @@
 	TEST_ASSERT(abs(after_scale - before_scale) < 0.001, "Moving a crowbar into a nested medkit changed its artwork scale")
 	var/datum/grid_placement/bar_placement = nested.get_placement(bar)
 	TEST_ASSERT_EQUAL(bar_placement.width * bar_placement.height, 3, "Nested crowbar did not occupy three cells")
+	TEST_ASSERT_EQUAL(bar_placement.height, 1, "Nested crowbar was not rotated to fit the existing row")
+	TEST_ASSERT_EQUAL(nested.rows, 1, "Nested medkit grew a row to fit the crowbar")
 	var/occupied_cells = 0
 	for(var/atom/movable/screen/grid_inventory/cell as anything in nested.grid_cells)
 		if(cell.item == bar)
@@ -399,29 +659,39 @@
 	nested.preview_item(bar, nested.grid_cells[1], 1)
 	TEST_ASSERT_EQUAL(nested.preview_display.last_width, 3, "Nested drag preview shrank a rotated crowbar")
 	TEST_ASSERT_EQUAL(nested.preview_display.last_height, 1, "Nested drag preview lost the rotated footprint")
-	nested.place_slot_item(bar, 3, 1, 1)
+	user.active_storage = empty_kit.atom_storage
+	TEST_ASSERT(nested.grid.move_item(user, bar, 3, 1, 1, nested.grid.revision), "Could not reposition the nested crowbar")
 	nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
 	bar_placement = nested.get_placement(bar)
 	TEST_ASSERT_EQUAL(bar_placement.x, 3, "Refreshing nested storage moved a manually placed item")
 	TEST_ASSERT_EQUAL(bar_placement.rotated, 1, "Refreshing nested storage lost item rotation")
 	var/obj/item/lighter/grid_sample/lighter = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
-	TEST_ASSERT(!nested.slot_fits(lighter, 4, 1, 0), "Nested placement accepted an overlap")
-	TEST_ASSERT(!nested.slot_fits(bar, 6, 1, 1), "Nested placement crossed the panel edge")
-	// Forced contents page at full scale, rather than disappearing or reverting to small icons.
+	TEST_ASSERT(!nested.grid.fits(lighter, 4, 1, 0), "Nested placement accepted an overlap")
+	TEST_ASSERT(!nested.grid.fits(bar, 6, 1, 1), "Nested placement crossed the panel edge")
+	qdel(nested)
+	nested = allocate(/datum/storage_interface/grid, 'icons/hud/screen_midnight.dmi', empty_kit.atom_storage, user)
+	nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
+	TEST_ASSERT_EQUAL(nested.get_placement(bar), bar_placement, "Reopening nested storage repacked its contents")
+	nested.grid.set_real_location(empty_kit)
+	TEST_ASSERT_EQUAL(nested.get_placement(bar), bar_placement, "Reassigning the same storage location repacked its contents")
+	// Forced contents remain recoverable, but cannot add usable capacity.
 	for(var/index in 1 to 15)
 		allocate(/obj/item/crowbar/grid_sample, empty_kit)
 	nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
-	TEST_ASSERT(nested.slot_page_count > 1, "Full-size forced contents did not create another page")
+	TEST_ASSERT_EQUAL(nested.grid.grid_height, 1, "Forced contents expanded usable storage")
+	TEST_ASSERT_EQUAL(length(nested.grid.placements), 1, "Forced contents occupied nonexistent cells")
+	TEST_ASSERT(!nested.grid.can_insert(lighter, messages = FALSE), "Overflow allowed another insertion")
 	var/list/seen = list()
-	for(var/page in 0 to nested.slot_page_count - 1)
+	for(var/page in 0 to ceil(length(nested.grid.overflow) / nested.columns) - 1)
 		nested.overflow_page = page
 		nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
 		for(var/obj/item/visible as anything in nested.item_displays)
-			TEST_ASSERT(!(visible in seen), "Nested item appeared on more than one page")
-			seen += visible
-			var/datum/grid_placement/visible_placement = nested.get_placement(visible)
-			TEST_ASSERT_EQUAL(visible_placement.width * visible_placement.height, 3, "Paged crowbar shrank to one cell")
+			seen |= visible
+		for(var/atom/movable/screen/grid_inventory/cell as anything in nested.grid_cells)
+			if(cell.item in nested.grid.overflow)
+				TEST_ASSERT(cell.take_only, "Forced contents became a placement destination")
 	TEST_ASSERT_EQUAL(length(seen), length(empty_kit.contents), "Nested pagination made an item inaccessible")
+	user.active_storage = null
 
 /// Observe open requests without requiring a client; pickup still uses the real item path.
 /obj/item/storage/grid_inventory_click_fixture
@@ -442,6 +712,8 @@
 		for(var/double_before_second in list(TRUE, FALSE))
 			var/obj/item/storage/bag = allocate(use_grid ? /obj/item/storage/backpack/grid_pilot : /obj/item/storage/medkit/grid_sample, run_loc_floor_bottom_left)
 			var/datum/storage/owner = bag.atom_storage
+			if(!use_grid)
+				owner.max_slots = 14 // A fixed two-row container exercises clicks above the first row.
 			var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 			user.active_storage = owner
 			var/obj/item/storage/grid_inventory_click_fixture/container = allocate(__IMPLIED_TYPE__, bag)
@@ -450,10 +722,7 @@
 			var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
 			session.add_panel(owner, panel)
 			panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
-			if(use_grid)
-				TEST_ASSERT(panel.grid.move_item(user, container, 3, 1, 1, panel.grid.revision), "Could not arrange click fixture")
-			else
-				panel.place_slot_item(container, 3, 1, 1)
+			TEST_ASSERT(panel.grid.move_item(user, container, 3, 1, 1, panel.grid.revision), "Could not arrange click fixture")
 			panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
 			var/cell_index = panel.columns + 3
 			var/atom/movable/screen/grid_inventory/cell = panel.grid_cells[cell_index]
@@ -462,7 +731,7 @@
 			cell.Click(null, null, plain_click)
 			usr = old_usr
 			TEST_ASSERT_EQUAL(user.get_active_held_item(), container, "Single-click pickup waited for a double-click timeout")
-			// Reproduce the real removal refresh, including an ordinary panel that would shrink.
+			// Reproduce the real removal refresh without moving the second click's target.
 			panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
 			TEST_ASSERT(panel.rows >= 2 && !QDELETED(cell) && panel.grid_cells[cell_index] == cell, "Pickup destroyed the second click's target")
 			TEST_ASSERT_NULL(cell.item, "Pickup refresh left the item in its old cell")
