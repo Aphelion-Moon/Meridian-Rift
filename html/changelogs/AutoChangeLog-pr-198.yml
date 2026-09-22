@@ -1,0 +1,6 @@
+author: "vinylspiders"
+delete-after: True
+changes:
+  - rscadd: "adds the ability to manage and publish your paintings to the web gallery, along with a new achievement for it"
+  - rscadd: "Art Galaxy app got an upgrade"
+  - qol: "art can now be saved instantaneously and without a frame. Adding to the station rotation frames still happens the normal way though using the library frames"
