@@ -200,7 +200,7 @@
 	// APHELION EDIT ADDITION START - GRID_INVENTORY
 	// Removal hooks can sleep while another gesture starts in the same session.
 	if(grid_session && mob?.grid_inventory == grid_session && grid_session.gesture_id == grid_gesture_id)
-		grid_session.cancel_drag()
+		grid_session.cancel_drag(over_object, params)
 	// APHELION EDIT ADDITION END - GRID_INVENTORY
 	drag_start = 0
 	drag_details = null

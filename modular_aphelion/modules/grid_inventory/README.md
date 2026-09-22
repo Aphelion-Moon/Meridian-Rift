@@ -18,15 +18,34 @@ Click an empty cell with your active held item to place it. Drag stored items to
 rearrange the grid or transfer between open containers. While dragging, **Q**
 rotates left, **E** rotates right, and the mouse wheel also rotates. Invalid
 drops and drops outside a panel leave the original placement intact.
+Hover fills the item's occupied cells with translucent white. Dragging fills
+the proposed placement green when it fits, or red when it does not; grid lines
+remain visible through the fill, underneath the item artwork.
 
 Double-click a nested container to open its own movable, closable panel.
 Ordinary nested storage keeps its original slot capacity and insertion rules.
-A plain single click on a container defers pickup by 0.5 seconds to allow the
-double-click; other item clicks and modified clicks retain their normal behavior.
+Its display uses the same item footprints and 24px cells as the backpack,
+expanding into additional rows or pages instead of shrinking item artwork.
+Item positions and rotations remain stable when the panel refreshes.
+A plain single click takes the item immediately through the normal pickup path.
+A native double-click reverses that pickup, restores the original anchor and
+rotation, and opens the container. The following click-release is consumed;
+a new mouse press starts a fresh action. No pickup timer or server-side
+double-click threshold is used. The item can briefly appear in hand between
+the two clicks. Rollback respects access, ownership and insertion checks;
+it never reclaims an item that the player has dropped or moved elsewhere.
+This uses Microsoft's documented
+[click rollback pattern](https://learn.microsoft.com/en-us/dotnet/desktop/winforms/input-mouse/how-to-distinguish-between-clicks-and-double-clicks)
+for incompatible single/double-click actions. Removing the artificial wait also
+follows [NN/g's response-time guidance](https://www.nngroup.com/articles/response-times-3-important-limits/)
+for direct manipulation. Network latency and normal gameplay restrictions still
+apply; there is no client prediction or bypass of pickup checks.
 Closing a child panel leaves its parent open; closing a parent also closes its
 descendant panels. Compact hover tooltips show the item name, category, a short
 description preview, and relevant controls.
-Tooltip height follows the client's rendered text with equal 4px vertical padding.
+Tooltips use the game's existing HUD tooltip browser, independently of TGUI,
+so their text stays sharp at different map zooms. They use the panel's palette,
+14px body text, and equal 6px vertical padding, with a 300px maximum width.
 
 Orange overflow cells are take-only. Remove those items to enable insertion
 again. The **>** button cycles overflow pages so forced contents cannot become
@@ -95,23 +114,33 @@ focused assertions also passed. The earlier compile reported two existing
 warnings (reference tracking and disabled loop checks).
 
 The current implementation compiles under BYOND 516.1687 with zero errors and
-the same two warnings. All 12 focused behavior tests passed, including both
-Click/DblClick event orders, single-click pickup, stale callback cancellation,
-transfer rollback, and storage-first teardown. A connected-client fixture also
+the same two warnings. All 13 focused behavior tests passed, including both
+Click/DblClick event orders, immediate single-click pickup, stale rollback rejection,
+transfer rollback, storage-first teardown, and highlight cleanup after rotation,
+leaving the grid, refreshing the panel, or closing a drop destination, plus
+restoring ordinary hover after a drop.
+The nested-storage regression checks equal artwork scale across containers,
+full-footprint mouse targets and previews, persistent positioning, collisions,
+and accessibility of paged contents. A connected-client fixture also
 passed nested-panel ownership, original starting position, HUD refresh/theme
-preservation, rotation-key release, and screen cleanup checks. That run produced
+preservation, tooltip show/hide, rotation-key release, and screen cleanup checks. That run produced
 `clean_run.lk` with no runtimes. The full unit suite and current performance
 benchmark were not run.
 
 DreamSeeker captures verified the original starting position, centered sample
-art, separate parent/child panels, Midnight and Plasmafire styling, and the
-borderless items, plain panel titles, and measured tooltip padding with its
-heading and controls visible. The double-click fix is
+art, separate parent/child panels, Midnight and Plasmafire styling, borderless
+items, plain panel titles, and translucent hover/valid/invalid placement fills.
+A side-by-side native capture also verified equal crowbar size in the backpack
+and an ordinary nested medkit.
+An isolated DreamSeeker WebView2 capture verified the tooltip renderer's sharp
+14px text, 15px heading, and equal 6px vertical padding. Browser checks covered
+placement at all four viewport corners and cancellation of a pending show.
+The double-click fix is
 covered by event-sequence regressions; these screenshots are not proof of
 physical mouse/key gestures or behavior under network latency.
 
 Before rollout, use DreamSeeker with two actual viewers to verify dragging,
-rotation and key release, delayed pickup and double-click opening, tooltips,
+rotation and key release, immediate pickup and double-click opening, tooltips,
 hover previews, panel dragging, nested transfers, close/reopen, and live HUD
 style changes. Include small and large views and realistic latency. Measure traffic
 and client rendering there. Visual, usability, capacity/balance and performance

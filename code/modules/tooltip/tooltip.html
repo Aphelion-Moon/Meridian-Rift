@@ -43,6 +43,42 @@
         line-height: 1.2;
       }
 
+      .grid-inventory .wrap {
+        box-sizing: border-box;
+        max-width: 300px;
+        overflow: auto;
+      }
+
+      .grid-inventory .content {
+        padding: 6px 10px;
+        border: 0;
+        font:
+          14px/1.3 Verdana,
+          sans-serif;
+        overflow-wrap: anywhere;
+      }
+
+      .grid-inventory h1 {
+        margin: 0 0 3px;
+        font-size: 15px;
+        line-height: 1.3;
+      }
+
+      .grid-inventory p {
+        line-height: inherit;
+      }
+
+      .grid-tooltip-category,
+      .grid-tooltip-description,
+      .grid-tooltip-hint {
+        display: block;
+      }
+
+      .grid-tooltip-description,
+      .grid-tooltip-hint {
+        margin-top: 4px;
+      }
+
       /* Custom Themes */
       .blob .wrap {
         border-color: #2e2e2e;
@@ -212,16 +248,91 @@
         text: "",
         theme: "",
         padding: 2,
+        active: false,
         init: function (tileSize, control) {
           tooltip.tileSize = parseInt(tileSize);
           tooltip.control = control;
         },
         hide: function () {
+          tooltip.cancel();
           window.location =
             "byond://winset?id=" + tooltip.control + ";is-visible=false";
         },
+        cancel: function () {
+          tooltip.active = false;
+        },
+        showGrid: function (map, parameters) {
+          var cursor = /^(-?\d+):(\d+),(-?\d+):(\d+)$/.exec(
+            parameters["screen-loc"],
+          );
+          if (!cursor) {
+            return false;
+          }
+
+          var pixelRatio = window.devicePixelRatio || 1,
+            mapWidth = map["view-size"].x,
+            mapHeight = map["view-size"].y,
+            scaleX = mapWidth / (tooltip.client_view_w * tooltip.tileSize),
+            scaleY = mapHeight / (tooltip.client_view_h * tooltip.tileSize),
+            cursorX =
+              (map.size.x - mapWidth) / 2 +
+              ((Number(cursor[1]) - 1) * tooltip.tileSize +
+                Number(cursor[2]) -
+                1) *
+                scaleX,
+            cursorY =
+              (map.size.y - mapHeight) / 2 +
+              mapHeight -
+              ((Number(cursor[3]) - 1) * tooltip.tileSize + Number(cursor[4])) *
+                scaleY,
+            $wrap = $("#wrap"),
+            $content = $("#content");
+
+          $("body").attr("class", "grid-inventory");
+          $wrap.attr("style", "").css({
+            "max-width": Math.min(300, map.size.x / pixelRatio) + "px",
+            "max-height": map.size.y / pixelRatio + "px",
+          });
+          $content.attr("style", "").off("mouseover").html(tooltip.text);
+          var $palette = $content.find(".grid-tooltip");
+          $wrap.css("border-color", $palette.attr("data-border"));
+          $content.css({
+            "background-color": $palette.attr("data-background"),
+            color: $palette.attr("data-color"),
+          });
+          $content
+            .find(".grid-tooltip-category, .grid-tooltip-hint")
+            .css("color", $palette.attr("data-accent"));
+
+          var width = Math.ceil($wrap.outerWidth() * pixelRatio),
+            height = Math.ceil($wrap.outerHeight() * pixelRatio),
+            posX = cursorX + 12,
+            posY = cursorY + 12;
+          // Flip at the edges so the popup does not cover the pointer and hide itself.
+          if (posX + width > map.size.x) {
+            posX = cursorX - width - 12;
+          }
+          if (posY + height > map.size.y) {
+            posY = cursorY - height - 12;
+          }
+          posX = Math.max(0, Math.min(posX, map.size.x - width));
+          posY = Math.max(0, Math.min(posY, map.size.y - height));
+          window.location =
+            "byond://winset?id=" +
+            tooltip.control +
+            ";size=" +
+            width +
+            "x" +
+            height +
+            ";pos=" +
+            Math.round(posX) +
+            "," +
+            Math.round(posY) +
+            ";is-visible=true";
+          $content.on("mouseover", tooltip.hide);
+        },
         updateCallback: function (map) {
-          if (typeof map === "undefined" || !map) {
+          if (!tooltip.active || typeof map === "undefined" || !map) {
             return false;
           }
 
@@ -260,6 +371,10 @@
             var entry = paramsA[i];
             var nameAndValue = entry.split("=");
             parameters[nameAndValue[0]] = nameAndValue[1];
+          }
+
+          if (tooltip.special === "grid-inventory") {
+            return tooltip.showGrid(map, parameters);
           }
 
           //Sometimes screen-loc is never sent ahaha fuck you byond
@@ -364,6 +479,7 @@
           var $content = $("#content"),
             $wrap = $("#wrap");
           $wrap.attr("style", "");
+          $content.attr("style", "");
           $content.off("mouseover");
           $content.html(tooltip.text);
 
@@ -402,6 +518,7 @@
         },
         update: function (params, client_vw, clien_vh, text, theme, special) {
           //Assign our global object
+          tooltip.active = true;
           tooltip.params = $.parseJSON(params);
           tooltip.client_view_w = parseInt(client_vw);
           tooltip.client_view_h = parseInt(clien_vh);

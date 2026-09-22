@@ -109,17 +109,19 @@
 	style_cache[size_key] = panel
 	return panel
 
-/// Shared read-only 24px cell outline; the transparent interior leaves the panel and item artwork visible.
-/proc/grid_inventory_cell_icon(color)
+/// Shared read-only cell feedback. Translucent fills leave the grid visible beneath the item art.
+/proc/grid_inventory_cell_icon(color, filled = FALSE)
 	var/static/list/cell_cache = list()
-	var/icon/cell = cell_cache[color]
+	var/cache_key = "[color]-[filled]"
+	var/icon/cell = cell_cache[cache_key]
 	if(cell)
 		return cell
 	cell = icon('icons/blanks/32x32.dmi', "nothing")
 	cell.Crop(1, 1, 24, 24)
 	cell.DrawBox(color, 1, 1, 24, 24)
-	cell.DrawBox(null, 2, 2, 23, 23)
-	cell_cache[color] = cell
+	if(!filled)
+		cell.DrawBox(null, 2, 2, 23, 23)
+	cell_cache[cache_key] = cell
 	return cell
 
 /// Shared read-only tooltip backing; width/height are pixel dimensions chosen by the interface.

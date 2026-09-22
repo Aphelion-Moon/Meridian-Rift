@@ -6,6 +6,8 @@
 	var/height
 	/// Clockwise quarter turns, 0 through 3. Parity determines the physical footprint.
 	var/rotated
+	/// Display page for ordinary storage; physical backpack placements stay on page zero.
+	var/page = 0
 
 /datum/grid_placement/New(x, y, width, height, rotated = FALSE)
 	src.x = x

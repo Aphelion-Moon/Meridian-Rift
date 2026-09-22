@@ -97,6 +97,8 @@
 	removal_depth++
 	if(drag_panel == panels[storage])
 		cancel_drag()
+	else if(hover_cell?.interface == panels[storage])
+		update_preview(null)
 	UnregisterSignal(storage, COMSIG_QDELETING)
 	UnregisterSignal(storage.parent, COMSIG_MOVABLE_MOVED)
 	UnregisterSignal(storage.real_location, COMSIG_ATOM_EXITED)
@@ -156,6 +158,7 @@
 		panel.reposition()
 
 /datum/grid_inventory_session/proc/update_ui_style(ui_style)
+	clear_preview()
 	for(var/datum/storage/storage as anything in panels)
 		var/datum/storage_interface/grid/panel = panels[storage]
 		panel.update_ui_style(ui_style)
@@ -163,6 +166,9 @@
 /datum/grid_inventory_session/proc/mouse_down(datum/source, atom/object, location, control, params)
 	SIGNAL_HANDLER
 	var/list/modifiers = params2list(params)
+	for(var/datum/storage/storage as anything in panels)
+		var/datum/storage_interface/grid/panel = panels[storage]
+		panel.begin_click(object, modifiers)
 	if(LAZYACCESS(modifiers, BUTTON) != LEFT_CLICK)
 		return
 	cancel_drag()
@@ -182,6 +188,7 @@
 	panel_start_x = drag_panel.position_x
 	panel_start_y = drag_panel.position_y
 	if(cell.item)
+		cell.interface.show_hover(cell)
 		drag_item = cell.item
 		var/datum/grid_placement/placement = drag_panel.get_placement(drag_item)
 		drag_rotation = placement ? placement.rotated : 0
@@ -217,7 +224,7 @@
 		if(!pointer_dragged)
 			// A stationary press-and-rotate does not generate a native MouseDrop.
 			drag_panel.receive_drop(drag_source)
-			cancel_drag()
+			cancel_drag(drag_source, params)
 		return COMPONENT_CLIENT_MOUSEUP_INTERCEPT
 
 /datum/grid_inventory_session/proc/is_dragging()
@@ -230,7 +237,7 @@
 	drag_panel.cancel_click()
 	drag_rotation = (drag_rotation + turns + 4) % 4
 	drag_panel.hide_tooltip()
-	update_preview(hover_cell || drag_source)
+	update_preview(hover_cell || (!pointer_dragged ? drag_source : null))
 	return TRUE
 
 /datum/grid_inventory_session/proc/clear_preview()
@@ -238,6 +245,7 @@
 	for(var/datum/storage/storage as anything in panels)
 		var/datum/storage_interface/grid/panel = panels[storage]
 		panel.clear_preview()
+		panel.hide_tooltip()
 
 /datum/grid_inventory_session/proc/update_preview(atom/movable/screen/grid_inventory/target)
 	var/key = "[REF(target)]-[REF(drag_item)]-[drag_rotation]-[target?.interface?.grid?.revision]"
@@ -246,11 +254,11 @@
 	clear_preview()
 	preview_key = key
 	hover_cell = target
-	if(!target || target.action || target.take_only || panels[target.interface?.parent_storage] != target.interface)
+	if(QDELETED(target) || target.action || QDELETED(target.interface) || panels[target.interface.parent_storage] != target.interface)
 		return
 	target.interface.preview_item(drag_item, target, drag_rotation)
 
-/datum/grid_inventory_session/proc/cancel_drag()
+/datum/grid_inventory_session/proc/cancel_drag(atom/over, params)
 	gesture_id++
 	clear_preview()
 	drag_source = null
@@ -261,3 +269,12 @@
 	dragging = FALSE
 	pointer_dragged = FALSE
 	mouse_held = FALSE
+	// A completed drop returns to ordinary hover; cancellation and teardown pass no target.
+	if(!istype(over, /atom/movable/screen/grid_inventory))
+		return
+	var/atom/movable/screen/grid_inventory/cell = over
+	var/datum/storage_interface/grid/panel = cell.interface
+	if(QDELETED(panel) || cell.action || !can_interact(panel.parent_storage))
+		return
+	panel.show_hover(cell)
+	panel.show_tooltip(cell, params)

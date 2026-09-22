@@ -253,6 +253,100 @@
 	TEST_ASSERT_NULL(user.grid_inventory, "Deleted session remained attached to its viewer")
 	qdel(panel)
 
+/datum/unit_test/grid_inventory_highlights/Run()
+	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/datum/storage/backpack/grid/grid = bag.atom_storage
+	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/obj/item/item = allocate(/obj/item, bag)
+	item.storage_footprint = list(1, 2)
+	item.storage_footprint_changed()
+	var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', grid, user)
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+	session.add_panel(grid, panel)
+	var/atom/movable/screen/grid_inventory/lower = panel.grid_cells[1]
+	var/atom/movable/screen/grid_inventory/upper = panel.grid_cells[8]
+	var/atom/movable/screen/grid_inventory/empty = panel.grid_cells[2]
+	var/old_usr = usr
+	usr = user
+	lower.MouseEntered()
+	usr = old_usr
+	var/icon/lower_icon = icon(lower.icon)
+	var/hover_fill = lower_icon.GetPixel(12, 12)
+	TEST_ASSERT(hover_fill, "Hover did not fill the cell behind the item")
+	var/icon/upper_icon = icon(upper.icon)
+	TEST_ASSERT_EQUAL(upper_icon.GetPixel(12, 12), hover_fill, "Hover did not fill the whole item footprint")
+	var/icon/empty_icon = icon(empty.icon)
+	TEST_ASSERT_NULL(empty_icon.GetPixel(12, 12), "Hover highlighted an unrelated empty cell")
+	usr = user
+	upper.MouseEntered()
+	lower.MouseExited()
+	usr = old_usr
+	upper_icon = icon(upper.icon)
+	TEST_ASSERT_EQUAL(upper_icon.GetPixel(12, 12), hover_fill, "A late exit cleared the newly hovered item cell")
+	usr = user
+	upper.MouseExited()
+	usr = old_usr
+	upper_icon = icon(upper.icon)
+	TEST_ASSERT_NULL(upper_icon.GetPixel(12, 12), "Hover fill survived leaving the item")
+	session.drag_panel = panel
+	session.drag_source = lower
+	session.drag_item = item
+	session.drag_revision = grid.revision
+	session.mouse_held = TRUE
+	TEST_ASSERT(session.rotate_drag(1), "Highlight fixture did not start rotating")
+	lower_icon = icon(lower.icon)
+	var/valid_fill = lower_icon.GetPixel(12, 12)
+	TEST_ASSERT(valid_fill && valid_fill != hover_fill, "Valid drag did not replace hover with a filled placement highlight")
+	upper_icon = icon(upper.icon)
+	TEST_ASSERT_NULL(upper_icon.GetPixel(12, 12), "Rotation left the old footprint highlighted")
+	var/atom/movable/screen/grid_inventory/edge = panel.grid_cells[7]
+	session.update_preview(edge)
+	var/icon/edge_icon = icon(edge.icon)
+	var/invalid_fill = edge_icon.GetPixel(12, 12)
+	TEST_ASSERT(invalid_fill && invalid_fill != valid_fill, "Out-of-bounds drag did not use the invalid placement fill")
+	lower_icon = icon(lower.icon)
+	TEST_ASSERT_NULL(lower_icon.GetPixel(12, 12), "Moving the drag left the previous placement highlighted")
+	usr = user
+	session.pointer_dragged = TRUE
+	edge.MouseExited()
+	usr = old_usr
+	edge_icon = icon(edge.icon)
+	TEST_ASSERT_NULL(edge_icon.GetPixel(12, 12), "Leaving the grid retained the drag fill")
+	TEST_ASSERT_EQUAL(panel.preview_display.alpha, 0, "Leaving the grid retained the preview sprite")
+	TEST_ASSERT(session.rotate_drag(1), "Rotation outside the grid was not consumed")
+	TEST_ASSERT_EQUAL(panel.preview_display.alpha, 0, "Rotation outside the grid resurrected the source preview")
+	session.update_preview(empty)
+	panel.reposition()
+	session.update_preview(empty)
+	TEST_ASSERT(panel.preview_display.alpha > 0, "Panel refresh left the same-cell drag preview hidden")
+	session.cancel_drag()
+	for(var/atom/movable/screen/grid_inventory/cell as anything in panel.grid_cells)
+		var/icon/cell_icon = icon(cell.icon)
+		TEST_ASSERT_NULL(cell_icon.GetPixel(12, 12), "Cancelling a drag retained a placement highlight")
+	var/obj/item/storage/backpack/grid_pilot/other_bag = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/datum/storage_interface/grid/other_panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', other_bag.atom_storage, user)
+	other_panel.update_position(4, 16, 2, 16, 7, 3, user, other_bag)
+	session.add_panel(other_bag.atom_storage, other_panel)
+	session.drag_panel = panel
+	session.drag_item = item
+	session.drag_source = lower
+	session.dragging = TRUE
+	session.mouse_held = TRUE
+	session.pointer_dragged = TRUE
+	session.update_preview(other_panel.grid_cells[1])
+	session.remove_panel(other_bag.atom_storage)
+	TEST_ASSERT_NULL(session.hover_cell, "Closing the destination retained its hovered cell")
+	qdel(other_panel)
+	TEST_ASSERT(session.rotate_drag(1), "Closing the destination incorrectly cancelled the source drag")
+	TEST_ASSERT_EQUAL(panel.preview_display.alpha, 0, "Closing the destination redirected its preview to the source")
+	session.cancel_drag(lower)
+	lower_icon = icon(lower.icon)
+	TEST_ASSERT_EQUAL(lower_icon.GetPixel(12, 12), hover_fill, "Ending a drag over an item did not restore ordinary hover")
+	TEST_ASSERT(!session.dragging && !session.mouse_held, "Restoring hover retained the completed drag")
+	qdel(session)
+	qdel(panel)
+
 /datum/unit_test/grid_inventory_slot_proxy/Run()
 	var/obj/item/storage/medkit/regular/medkit = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 	var/datum/storage/storage = medkit.atom_storage
@@ -265,8 +359,8 @@
 	TEST_ASSERT_EQUAL(storage.max_slots, original_capacity, "Slot proxy changed ordinary storage capacity")
 	var/obj/item/item = medkit.contents[1]
 	var/datum/grid_placement/placement = panel.get_placement(item)
-	TEST_ASSERT_EQUAL(placement.width, 1, "Ordinary slot item acquired a grid footprint")
-	TEST_ASSERT_EQUAL(placement.height, 1, "Ordinary slot item acquired a grid footprint")
+	var/list/footprint = item.get_storage_footprint()
+	TEST_ASSERT_EQUAL(placement.width * placement.height, footprint[1] * footprint[2], "Nested container squeezed an item's footprint into one cell")
 	var/list/elements = panel.list_ui_elements()
 	TEST_ASSERT(!(item in elements), "Slot proxy exposed the world item as a screen object")
 	TEST_ASSERT_NULL(item.screen_loc, "Slot proxy moved the world item onto the HUD")
@@ -277,10 +371,63 @@
 	TEST_ASSERT_EQUAL(item.loc, medkit, "Closing medkit proxy moved its contents")
 	TEST_ASSERT_EQUAL(medkit.atom_storage, storage, "Closing medkit proxy replaced its storage owner")
 
-/// Observe open requests without requiring a client; delayed pickup still uses the real item path.
+	// A long item's artwork must retain its scale when it moves into a smaller container.
+	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	var/obj/item/crowbar/grid_sample/bar = allocate(__IMPLIED_TYPE__, bag)
+	var/datum/storage_interface/grid/backpack = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', bag.atom_storage, user)
+	backpack.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/atom/movable/screen/grid_inventory_art/display = backpack.item_displays[bar]
+	var/mutable_appearance/before = display.overlays[1]
+	var/matrix/before_transform = before.transform
+	var/before_scale = abs(before_transform.a * before_transform.e - before_transform.b * before_transform.d)
+	var/obj/item/storage/medkit/grid_sample/empty_kit = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	bar.forceMove(empty_kit)
+	var/datum/storage_interface/grid/nested = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', empty_kit.atom_storage, user)
+	nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
+	display = nested.item_displays[bar]
+	var/mutable_appearance/after = display.overlays[1]
+	var/matrix/after_transform = after.transform
+	var/after_scale = abs(after_transform.a * after_transform.e - after_transform.b * after_transform.d)
+	TEST_ASSERT(abs(after_scale - before_scale) < 0.001, "Moving a crowbar into a nested medkit changed its artwork scale")
+	var/datum/grid_placement/bar_placement = nested.get_placement(bar)
+	TEST_ASSERT_EQUAL(bar_placement.width * bar_placement.height, 3, "Nested crowbar did not occupy three cells")
+	var/occupied_cells = 0
+	for(var/atom/movable/screen/grid_inventory/cell as anything in nested.grid_cells)
+		if(cell.item == bar)
+			occupied_cells++
+	TEST_ASSERT_EQUAL(occupied_cells, 3, "Nested crowbar artwork and mouse targets disagree")
+	nested.preview_item(bar, nested.grid_cells[1], 1)
+	TEST_ASSERT_EQUAL(nested.preview_display.last_width, 3, "Nested drag preview shrank a rotated crowbar")
+	TEST_ASSERT_EQUAL(nested.preview_display.last_height, 1, "Nested drag preview lost the rotated footprint")
+	nested.place_slot_item(bar, 3, 1, 1)
+	nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
+	bar_placement = nested.get_placement(bar)
+	TEST_ASSERT_EQUAL(bar_placement.x, 3, "Refreshing nested storage moved a manually placed item")
+	TEST_ASSERT_EQUAL(bar_placement.rotated, 1, "Refreshing nested storage lost item rotation")
+	var/obj/item/lighter/grid_sample/lighter = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+	TEST_ASSERT(!nested.slot_fits(lighter, 4, 1, 0), "Nested placement accepted an overlap")
+	TEST_ASSERT(!nested.slot_fits(bar, 6, 1, 1), "Nested placement crossed the panel edge")
+	// Forced contents page at full scale, rather than disappearing or reverting to small icons.
+	for(var/index in 1 to 15)
+		allocate(/obj/item/crowbar/grid_sample, empty_kit)
+	nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
+	TEST_ASSERT(nested.slot_page_count > 1, "Full-size forced contents did not create another page")
+	var/list/seen = list()
+	for(var/page in 0 to nested.slot_page_count - 1)
+		nested.overflow_page = page
+		nested.update_position(4, 16, 2, 16, 7, 3, user, empty_kit)
+		for(var/obj/item/visible as anything in nested.item_displays)
+			TEST_ASSERT(!(visible in seen), "Nested item appeared on more than one page")
+			seen += visible
+			var/datum/grid_placement/visible_placement = nested.get_placement(visible)
+			TEST_ASSERT_EQUAL(visible_placement.width * visible_placement.height, 3, "Paged crowbar shrank to one cell")
+	TEST_ASSERT_EQUAL(length(seen), length(empty_kit.contents), "Nested pagination made an item inaccessible")
+
+/// Observe open requests without requiring a client; pickup still uses the real item path.
 /obj/item/storage/grid_inventory_click_fixture
 	storage_type = /datum/storage/grid_inventory_click_fixture
-	storage_footprint = list(1, 1)
+	storage_footprint = list(2, 1)
+	w_class = WEIGHT_CLASS_SMALL
 
 /datum/storage/grid_inventory_click_fixture
 	var/open_requests = 0
@@ -290,52 +437,89 @@
 	return TRUE
 
 /datum/unit_test/grid_inventory_double_click/Run()
+	var/plain_click = "button=left;left=1"
+	for(var/use_grid in list(TRUE, FALSE))
+		for(var/double_before_second in list(TRUE, FALSE))
+			var/obj/item/storage/bag = allocate(use_grid ? /obj/item/storage/backpack/grid_pilot : /obj/item/storage/medkit/grid_sample, run_loc_floor_bottom_left)
+			var/datum/storage/owner = bag.atom_storage
+			var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+			user.active_storage = owner
+			var/obj/item/storage/grid_inventory_click_fixture/container = allocate(__IMPLIED_TYPE__, bag)
+			var/datum/storage/grid_inventory_click_fixture/storage = container.atom_storage
+			var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', owner, user)
+			var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+			session.add_panel(owner, panel)
+			panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+			if(use_grid)
+				TEST_ASSERT(panel.grid.move_item(user, container, 3, 1, 1, panel.grid.revision), "Could not arrange click fixture")
+			else
+				panel.place_slot_item(container, 3, 1, 1)
+			panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+			var/cell_index = panel.columns + 3
+			var/atom/movable/screen/grid_inventory/cell = panel.grid_cells[cell_index]
+			var/old_usr = usr
+			usr = user
+			cell.Click(null, null, plain_click)
+			usr = old_usr
+			TEST_ASSERT_EQUAL(user.get_active_held_item(), container, "Single-click pickup waited for a double-click timeout")
+			// Reproduce the real removal refresh, including an ordinary panel that would shrink.
+			panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+			TEST_ASSERT(panel.rows >= 2 && !QDELETED(cell) && panel.grid_cells[cell_index] == cell, "Pickup destroyed the second click's target")
+			TEST_ASSERT_NULL(cell.item, "Pickup refresh left the item in its old cell")
+			panel.begin_click(cell, params2list(plain_click))
+			usr = user
+			if(double_before_second)
+				cell.DblClick(null, null, plain_click)
+				cell.Click(null, null, plain_click)
+			else
+				cell.Click(null, null, plain_click)
+				cell.DblClick(null, null, plain_click)
+			usr = old_usr
+			TEST_ASSERT_EQUAL(storage.open_requests, 1, "Double-click order [double_before_second] did not open exactly once")
+			TEST_ASSERT_EQUAL(container.loc, bag, "Double-click order [double_before_second] left the container in hand")
+			var/datum/grid_placement/restored = panel.get_placement(container)
+			TEST_ASSERT_EQUAL(restored.x, 3, "Double-click changed the original anchor")
+			TEST_ASSERT_EQUAL(restored.y, 1, "Double-click used the clicked cell as the item's anchor")
+			TEST_ASSERT_EQUAL(restored.rotated, 1, "Double-click lost the item's rotation")
+			panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+			usr = user
+			cell.DblClick(null, null, plain_click)
+			cell.Click(null, null, "button=left;left=1;shift=1")
+			cell.DblClick(null, null, "button=left;left=1;shift=1")
+			usr = old_usr
+			TEST_ASSERT_EQUAL(storage.open_requests, 1, "Duplicate double-click or double-examine reopened the container")
+			// A new physical click is not swallowed by an arbitrary post-double-click timeout.
+			panel.begin_click(cell, params2list(plain_click))
+			user.next_click = -1
+			user.next_move = -1
+			usr = user
+			cell.Click(null, null, plain_click)
+			usr = old_usr
+			TEST_ASSERT_EQUAL(user.get_active_held_item(), container, "A new single click after opening was suppressed")
+			user.dropItemToGround(container)
+			usr = user
+			cell.DblClick(null, null, plain_click)
+			usr = old_usr
+			TEST_ASSERT_EQUAL(container.loc, run_loc_floor_bottom_left, "Stale double-click reclaimed a dropped item")
+			TEST_ASSERT_EQUAL(storage.open_requests, 1, "Stale double-click opened a dropped item")
+			qdel(session)
+			qdel(panel)
+
+	// Another item may occupy the vacated cells before the second event arrives.
 	var/obj/item/storage/backpack/grid_pilot/bag = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 	var/datum/storage/backpack/grid/grid = bag.atom_storage
 	var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 	user.active_storage = grid
 	var/obj/item/storage/grid_inventory_click_fixture/container = allocate(__IMPLIED_TYPE__, bag)
-	var/datum/storage/grid_inventory_click_fixture/storage = container.atom_storage
-	var/plain_click = "button=left;left=1"
-	for(var/double_before_second in list(TRUE, FALSE))
-		var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', grid, user)
-		panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
-		var/atom/movable/screen/grid_inventory/cell = panel.grid_cells[1]
-		var/opens_before = storage.open_requests
-		var/old_usr = usr
-		usr = user
-		cell.Click(null, null, plain_click)
-		var/cancelled_generation = panel.click_generation
-		if(double_before_second)
-			cell.DblClick(null, null, plain_click)
-			cell.Click(null, null, plain_click)
-		else
-			cell.Click(null, null, plain_click)
-			cell.DblClick(null, null, plain_click)
-		usr = old_usr
-		panel.finish_click(container, plain_click, cancelled_generation)
-		sleep(0.6 SECONDS)
-		TEST_ASSERT_EQUAL(storage.open_requests, opens_before + 1, "Double-click order [double_before_second] did not open exactly once")
-		TEST_ASSERT_EQUAL(container.loc, bag, "Double-click order [double_before_second] picked up the container")
-		TEST_ASSERT_NULL(panel.pending_click, "Double-click order [double_before_second] left a delayed pickup armed")
-		usr = user
-		cell.Click(null, null, "button=left;left=1;shift=1")
-		cell.DblClick(null, null, "button=left;left=1;shift=1")
-		usr = old_usr
-		TEST_ASSERT_EQUAL(storage.open_requests, opens_before + 1, "Double-examine opened the container")
-		qdel(panel)
-
 	var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', grid, user)
-	panel.item_click(container, plain_click)
-	var/cancelled_generation = panel.click_generation
-	panel.cancel_click()
-	panel.item_click(container, plain_click)
-	panel.finish_click(container, plain_click, cancelled_generation)
-	TEST_ASSERT_EQUAL(container.loc, bag, "Cancelled callback picked up a newly clicked container")
-	user.next_click = -1
-	user.next_move = -1
-	sleep(0.6 SECONDS)
-	TEST_ASSERT_EQUAL(user.get_active_held_item(), container, "Standalone delayed click did not pick up the container")
+	panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+	var/atom/movable/screen/grid_inventory/cell = panel.grid_cells[1]
+	panel.item_click(container, plain_click, cell)
+	TEST_ASSERT_EQUAL(user.get_active_held_item(), container, "Conflict fixture did not pick up immediately")
+	var/obj/item/blocker = allocate(/obj/item, bag)
+	TEST_ASSERT(!panel.double_click(cell), "Double-click ignored a newly occupied footprint")
+	TEST_ASSERT_EQUAL(user.get_active_held_item(), container, "Failed click rollback lost the held item")
+	TEST_ASSERT_EQUAL(blocker.loc, bag, "Failed click rollback displaced another item")
 	qdel(panel)
 	user.active_storage = null
 

@@ -66,8 +66,7 @@ Notes:
 	title = replacetext(title, "\proper", "")
 	title = replacetext(title, "\improper", "")
 
-	//Make our dumb param object
-	params = {"{ "cursor": "[params]", "screenLoc": "[thing.screen_loc]" }"}
+	params = json_encode(list("cursor" = params, "screenLoc" = thing.screen_loc))
 
 	//Send stuff to the tooltip
 	var/view_size = getviewsize(owner.view)
@@ -98,6 +97,8 @@ Notes:
 	last_target = null
 
 /datum/tooltip/proc/do_hide()
+	// Cancel a pending browser measurement before it can show the tooltip again.
+	owner << output(null, "[control]:tooltip.cancel")
 	winshow(owner, control, FALSE)
 
 /datum/tooltip/Destroy(force)
@@ -124,5 +125,4 @@ Notes:
 	if(!istype(user) || !user.client?.tooltips)
 		return
 	user.client.tooltips.hide()
-
 
