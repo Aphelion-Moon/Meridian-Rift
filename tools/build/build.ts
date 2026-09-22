@@ -94,6 +94,23 @@ export const NoWarningParameter = new Juke.Parameter({
   type: 'string[]',
   alias: 'I',
 });
+// APHELION EDIT ADDITION START - Verify/build the only persistent-painting writer.
+export const PaintingStoreTarget = new Juke.Target({
+  executes: async () => {
+    if (process.platform === 'win32') {
+      await Juke.exec('powershell.exe', [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        'tools/painting_store/verify.ps1',
+      ]);
+    } else {
+      await Juke.exec('bash', ['tools/painting_store/build.sh']);
+    }
+  },
+});
+// APHELION EDIT ADDITION END
 
 export const CutterTarget = new Juke.Target({
   onlyWhen: () => {
@@ -297,6 +314,7 @@ export const DmTestTarget = new Juke.Target({
     NoWarningParameter,
   ],
   dependsOn: ({ get }) => [
+    PaintingStoreTarget, // APHELION EDIT ADDITION - Test with the same native writer as production.
     get(DefineParameter).includes('ALL_MAPS') && DmMapsIncludeTarget,
     IconCutterTarget,
   ],
@@ -462,7 +480,7 @@ export const LintTarget = new Juke.Target({
 });
 
 export const BuildTarget = new Juke.Target({
-  dependsOn: [TguiTarget, TgFontTarget, DmTarget],
+  dependsOn: [TguiTarget, TgFontTarget, DmTarget, PaintingStoreTarget], // APHELION EDIT CHANGE - ORIGINAL: dependsOn: [TguiTarget, TgFontTarget, DmTarget],
 });
 
 export const ServerTarget = new Juke.Target({
@@ -514,7 +532,7 @@ export const CleanAllTarget = new Juke.Target({
 });
 
 export const TgsTarget = new Juke.Target({
-  dependsOn: [TguiTarget, TgFontTarget],
+  dependsOn: [TguiTarget, TgFontTarget, PaintingStoreTarget], // APHELION EDIT CHANGE - ORIGINAL: dependsOn: [TguiTarget, TgFontTarget],
   executes: async () => {
     Juke.logger.info('Prepending TGS define');
     prependDefines('TGS');

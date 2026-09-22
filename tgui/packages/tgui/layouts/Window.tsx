@@ -94,7 +94,7 @@ export function Window(props: Props) {
         if (config.window?.key) {
           setWindowKey(config.window.key);
         }
-        /* APHELION EDIT REMOVAL START - window sizing lifecycle
+        /* // APHELION EDIT REMOVAL START - window sizing lifecycle
         await recallWindowGeometry(options);
         */ // APHELION EDIT REMOVAL END
         // APHELION EDIT ADDITION START - window sizing lifecycle
@@ -123,7 +123,7 @@ export function Window(props: Props) {
       cancelled = true;
       logger.log('unmounting');
     };
-  /* APHELION EDIT REMOVAL START - prompt sizing lifecycle
+  /* // APHELION EDIT REMOVAL START - prompt sizing lifecycle
   }, [isReadyToRender, suspended, width, height, scale]);
   */ // APHELION EDIT REMOVAL END
   // APHELION EDIT ADDITION START - prompt sizing lifecycle
@@ -138,7 +138,7 @@ export function Window(props: Props) {
       : config.status < UI_INTERACTIVE);
 
   return suspended ? null : (
-    /* APHELION EDIT REMOVAL START - prompt sizing
+    /* // APHELION EDIT REMOVAL START - prompt sizing
     <Layout className="Window" theme={theme}>
     */ // APHELION EDIT REMOVAL END
     // APHELION EDIT ADDITION START - prompt sizing
