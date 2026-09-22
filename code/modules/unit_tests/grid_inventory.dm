@@ -156,6 +156,16 @@
 	TEST_ASSERT_EQUAL(length(display.overlays), 1, "Inventory display should contain only the item art")
 	qdel(placement)
 
+/// Every object the client draws for a storage interface, following visual contents down from its screen objects.
+/proc/grid_inventory_drawn_objects(datum/storage_interface/interface)
+	var/list/objects = list()
+	for(var/atom/movable/element in interface.list_ui_elements())
+		objects |= element
+	for(var/index = 1, index <= length(objects), index++)
+		var/atom/movable/element = objects[index]
+		objects |= element.vis_contents
+	return objects
+
 /datum/unit_test/grid_inventory_interface/Run()
 	var/obj/item/storage/backpack/grid_pilot/sample/bag = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
 	var/datum/storage/backpack/grid/grid = bag.atom_storage
@@ -172,33 +182,45 @@
 	var/atom/movable/screen/grid_inventory_art/display = first.item_displays[item]
 	TEST_ASSERT_NOTEQUAL(display, second.item_displays[item], "Viewer displays are shared")
 	var/datum/grid_placement/placement = grid.placements[item]
-	var/list/elements = first.list_ui_elements()
+	// Screen objects ignore pixel offsets, so the positioned frame must be drawn through the holder.
+	TEST_ASSERT_EQUAL(length(first.list_ui_elements()), 1, "Panel contents joined the client screen instead of the holder")
+	TEST_ASSERT(first.frame in first.holder.vis_contents, "The frame is not drawn through its holder")
+	TEST_ASSERT(display in first.frame.vis_contents, "Item artwork is not drawn through the frame")
+	TEST_ASSERT(first.frame.pixel_x == first.position_x - 32 && first.frame.pixel_y == first.position_y - 32, "The panel position was not applied to its frame")
+	var/list/elements = grid_inventory_drawn_objects(first)
+	var/panel_objects = length(first.frame.vis_contents)
 	first.update_position(4, 16, 2, 16, 7, 3, user, bag)
 	TEST_ASSERT_EQUAL(first.item_displays[item], display, "Refresh replaced a display")
-	TEST_ASSERT_EQUAL(length(first.list_ui_elements()), length(elements), "Refresh grew HUD object count")
+	TEST_ASSERT_EQUAL(length(first.frame.vis_contents), panel_objects, "Refresh grew HUD object count")
 	first.position_x = 72
 	first.position_y = 64
 	first.reposition()
-	var/frame_location = first.frame.screen_loc
-	var/art_location = display.screen_loc
+	var/frame_x = first.frame.pixel_x
+	var/frame_y = first.frame.pixel_y
+	var/art_x = display.pixel_x
+	var/art_y = display.pixel_y
 	first.update_ui_style('icons/hud/screen_retro.dmi')
 	var/icon/updated_frame = icon(first.frame.icon)
 	TEST_ASSERT_NOTEQUAL(updated_frame.GetPixel(10, 10), original_frame.GetPixel(10, 10), "Theme switch did not change the visible panel background")
-	TEST_ASSERT_EQUAL(first.frame.screen_loc, frame_location, "Theme switch reset the moved panel position")
+	TEST_ASSERT(first.frame.pixel_x == frame_x && first.frame.pixel_y == frame_y, "Theme switch reset the moved panel position")
 	TEST_ASSERT_EQUAL(first.item_displays[item], display, "Theme switch replaced an item display")
-	TEST_ASSERT_EQUAL(display.screen_loc, art_location, "Theme switch displaced item artwork")
-	TEST_ASSERT_EQUAL(length(first.list_ui_elements()), length(elements), "Theme switch grew HUD object count")
+	TEST_ASSERT(display.pixel_x == art_x && display.pixel_y == art_y, "Theme switch displaced item artwork")
+	TEST_ASSERT_EQUAL(length(first.frame.vis_contents), panel_objects, "Theme switch grew HUD object count")
 	var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
 	session.add_panel(grid, first)
-	var/list/old_art_position = screen_loc_to_offset(display.screen_loc, world.view)
 	session.mouse_down(null, first.titlebar, null, null, "button=left;left=1;screen-loc=3:0,3:0")
+	var/list/child_appearances = list()
+	for(var/atom/movable/element as anything in first.frame.vis_contents)
+		child_appearances[element] = element.appearance
 	session.mouse_drag(null, first.titlebar, null, null, null, null, null, "button=left;left=1;screen-loc=4:0,4:0")
 	TEST_ASSERT_EQUAL(first.position_x, 104, "Title drag lost its horizontal grab offset")
 	TEST_ASSERT_EQUAL(first.position_y, 96, "Title drag lost its vertical grab offset")
-	var/list/new_art_position = screen_loc_to_offset(display.screen_loc, world.view)
-	TEST_ASSERT_EQUAL(new_art_position[1] - old_art_position[1], 32, "Title drag separated item artwork from the panel horizontally")
-	TEST_ASSERT_EQUAL(new_art_position[2] - old_art_position[2], 32, "Title drag separated item artwork from the panel vertically")
-	TEST_ASSERT_EQUAL(length(first.list_ui_elements()), length(elements), "Title drag allocated new HUD objects")
+	TEST_ASSERT_EQUAL(first.frame.pixel_x - frame_x, 32, "Title drag did not move the panel horizontally")
+	TEST_ASSERT_EQUAL(first.frame.pixel_y - frame_y, 32, "Title drag did not move the panel vertically")
+	// The frame carries its contents, so dragging must not resend any of them.
+	for(var/atom/movable/element as anything in first.frame.vis_contents)
+		TEST_ASSERT(element.appearance == child_appearances[element], "Title drag changed [element.name || element.type] instead of only the frame")
+	TEST_ASSERT_EQUAL(length(first.frame.vis_contents), panel_objects, "Title drag allocated new HUD objects")
 	session.cancel_drag()
 	qdel(session)
 	qdel(first)
@@ -689,7 +711,15 @@
 	TEST_ASSERT_EQUAL(bar.loc, kit, "Dropping onto its current container moved the item")
 	TEST_ASSERT_EQUAL(kit.atom_storage.revision, revision, "Dropping onto its current container reinserted the item")
 	session.cancel_drag()
+	// A nested panel opens beside its parent, and a sibling never opens on top of it.
+	TEST_ASSERT_EQUAL(nested.position_x, backpack.position_x + backpack.panel_width() + 8, "Nested panel did not open beside its parent")
+	TEST_ASSERT_EQUAL(nested.frame.pixel_x, nested.position_x - 32, "Nested panel position was not applied to its frame")
+	var/datum/storage_interface/grid/sibling = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', other_kit.atom_storage, user)
+	session.add_panel(other_kit.atom_storage, sibling)
+	sibling.update_position(4, 16, 2, 16, 7, 3, user, other_kit)
+	TEST_ASSERT(sibling.frame.pixel_x != nested.frame.pixel_x || sibling.frame.pixel_y != nested.frame.pixel_y, "A second nested panel opened on top of the first")
 	qdel(session)
+	qdel(sibling)
 	qdel(nested)
 	qdel(backpack)
 
@@ -707,7 +737,7 @@
 	var/datum/grid_placement/placement = panel.get_placement(item)
 	var/list/footprint = item.get_storage_footprint()
 	TEST_ASSERT_EQUAL(placement.width * placement.height, footprint[1] * footprint[2], "Nested container squeezed an item's footprint into one cell")
-	var/list/elements = panel.list_ui_elements()
+	var/list/elements = grid_inventory_drawn_objects(panel)
 	TEST_ASSERT(!(item in elements), "Slot proxy exposed the world item as a screen object")
 	TEST_ASSERT_NULL(item.screen_loc, "Slot proxy moved the world item onto the HUD")
 	qdel(panel)
@@ -928,7 +958,7 @@
 		log_world("GRID BENCHMARK [bag_type]: 100 refreshes of 20 synthetic interfaces, [(REALTIMEOFDAY - start) * 100] ms (no clients/network)")
 		var/list/elements = list()
 		for(var/datum/storage_interface/interface as anything in interfaces)
-			elements |= interface.list_ui_elements()
+			elements |= grid_inventory_drawn_objects(interface)
 		log_world("GRID BENCHMARK [bag_type]: [length(elements)] HUD objects across 20 synthetic interfaces")
 		QDEL_LIST(interfaces)
 		var/retained = 0
@@ -936,6 +966,42 @@
 			if(!QDELETED(element))
 				retained++
 		TEST_ASSERT_EQUAL(retained, 0, "Benchmark close retained HUD objects")
+
+/// Server-side cost of dragging a panel by its title bar. Network traffic and client rendering are not measured.
+/datum/unit_test/grid_inventory_drag_benchmark/Run()
+	for(var/full in list(FALSE, TRUE))
+		var/mob/living/carbon/human/consistent/user = allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left)
+		var/obj/item/storage/backpack/grid_pilot/bag = allocate(full ? /obj/item/storage/backpack/grid_pilot : /obj/item/storage/backpack/grid_pilot/sample, user)
+		if(full)
+			for(var/index in 1 to 21)
+				allocate(/obj/item/lighter/grid_sample, bag)
+		var/datum/storage_interface/grid/panel = allocate(__IMPLIED_TYPE__, 'icons/hud/screen_midnight.dmi', bag.atom_storage, user)
+		var/datum/grid_inventory_session/session = allocate(__IMPLIED_TYPE__, user)
+		session.add_panel(bag.atom_storage, panel)
+		panel.update_position(4, 16, 2, 16, 7, 3, user, bag)
+		session.mouse_down(null, panel.titlebar, null, null, "button=left;left=1;screen-loc=3:0,3:0")
+		// Alternate between two positions so every step moves the panel.
+		var/list/positions = list("button=left;left=1;screen-loc=4:0,4:0", "button=left;left=1;screen-loc=3:0,3:0")
+		session.mouse_drag(null, panel.titlebar, null, null, null, null, null, positions[1])
+		var/list/objects = grid_inventory_drawn_objects(panel)
+		var/changed = 0
+		for(var/step in 1 to 100)
+			var/list/before = list()
+			for(var/atom/movable/element as anything in objects)
+				before[element] = element.appearance
+			session.mouse_drag(null, panel.titlebar, null, null, null, null, null, positions[step % 2 + 1])
+			for(var/atom/movable/element as anything in objects)
+				if(element.appearance != before[element])
+					changed++
+		TEST_ASSERT(changed, "Drag benchmark did not move the panel")
+		var/start = TICK_USAGE_REAL
+		for(var/step in 1 to 1000)
+			session.mouse_drag(null, panel.titlebar, null, null, null, null, null, positions[step % 2 + 1])
+		var/elapsed = TICK_USAGE_TO_MS(start)
+		log_world("GRID DRAG BENCHMARK [full ? "full" : "sample"] backpack: [length(objects)] panel objects, [changed / 100] appearance changes per drag step, [round(elapsed, 0.01)] ms per 1000 drag steps (server only)")
+		session.cancel_drag()
+		qdel(session)
+		qdel(panel)
 #endif
 
 /// Exercise invalidation during the real removal callback, including storage-first teardown.

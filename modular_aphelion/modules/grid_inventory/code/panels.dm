@@ -17,6 +17,7 @@
 	var/position_x
 	var/position_y
 	var/z_order = 1
+	var/atom/movable/screen/grid_inventory_holder/holder
 	var/atom/movable/screen/grid_inventory/frame
 	var/atom/movable/screen/grid_inventory/titlebar
 	var/atom/movable/screen/grid_inventory/close_button
@@ -54,15 +55,19 @@
 	page_button.name = "Next page"
 	preview_display = new(null, user.hud_used)
 	preview_display.alpha = 0
+	// Screen objects ignore pixel offsets, but visual contents apply them. The holder stays put
+	// on the screen, the frame's offsets place the panel, and everything else is drawn from the frame.
+	holder = new(null, user.hud_used)
+	holder.vis_contents += frame
+	frame.vis_contents += list(titlebar, close_button, page_button, preview_display)
 	update_ui_style(new_style)
 
 /datum/storage_interface/grid/uses_item_proxies()
 	return TRUE
 
+/// Only the holder joins the client's screen, so a drag updates one object: the frame.
 /datum/storage_interface/grid/list_ui_elements(initializing = FALSE)
-	. = list(frame, titlebar, close_button, page_button, preview_display) + grid_cells
-	for(var/obj/item/item as anything in item_displays)
-		. += item_displays[item]
+	return list(holder)
 
 /datum/storage_interface/grid/Destroy()
 	cancel_click()
@@ -70,6 +75,7 @@
 	hovered_cell = null
 	QDEL_LIST(grid_cells)
 	QDEL_LIST_ASSOC_VAL(item_displays)
+	QDEL_NULL(holder)
 	QDEL_NULL(frame)
 	QDEL_NULL(titlebar)
 	QDEL_NULL(close_button)
@@ -112,12 +118,13 @@
 	while(length(grid_cells) > columns * rows)
 		var/atom/movable/screen/grid_inventory/old_cell = grid_cells[length(grid_cells)]
 		grid_cells -= old_cell
-		viewer.client?.screen -= old_cell
+		frame.vis_contents -= old_cell
 		qdel(old_cell)
 	while(length(grid_cells) < columns * rows)
 		var/atom/movable/screen/grid_inventory/cell = new(null, viewer.hud_used)
 		cell.interface = src
 		grid_cells += cell
+		frame.vis_contents += cell
 	for(var/index in 1 to length(grid_cells))
 		var/atom/movable/screen/grid_inventory/cell = grid_cells[index]
 		cell.cell_x = (index - 1) % columns + 1
@@ -136,7 +143,7 @@
 		if(!(item in visible_items) || QDELETED(item))
 			var/atom/movable/screen/grid_inventory_art/old = item_displays[item]
 			item_displays -= item
-			viewer.client?.screen -= old
+			frame.vis_contents -= old
 			qdel(old)
 	for(var/obj/item/item as anything in visible_items)
 		var/atom/movable/screen/grid_inventory_art/display = item_displays[item]
@@ -145,6 +152,7 @@
 			display.interface = src
 			display.bind(item)
 			item_displays[item] = display
+			frame.vis_contents += display
 		display.render(get_placement(item))
 	page_button.alpha = length(grid.overflow) > columns ? 255 : 0
 	page_button.mouse_opacity = page_button.alpha ? MOUSE_OPACITY_OPAQUE : MOUSE_OPACITY_TRANSPARENT
@@ -178,7 +186,7 @@
 	reposition()
 	viewer.grid_inventory?.refresh_hover()
 
-/// Moving an existing panel only translates its mouse targets and artwork.
+/// Only the frame moves. A drag glides it on the client between network updates.
 /datum/storage_interface/grid/proc/reposition(moving = FALSE)
 	if(isnull(position_x))
 		return
@@ -189,29 +197,38 @@
 		return
 	last_position_x = position_x
 	last_position_y = position_y
-	frame.screen_loc = offset_to_screen_loc(position_x, position_y)
-	var/header_bottom = position_y + rows * 24 + 7
-	titlebar.screen_loc = offset_to_screen_loc(position_x + 4, header_bottom)
-	if(!moving)
-		frame.icon = grid_inventory_panel_icon(columns, rows, ui_style, header_height)
-		titlebar.icon = grid_inventory_title_icon(panel_width() - 28, ui_style, header_height - 1)
-		titlebar.maptext_x = 2
-		titlebar.maptext_y = round((header_height - 1 - titlebar.maptext_height) / 2)
+	// Offsets from the holder's fixed 1,1 anchor, which is position 32,32.
+	if(moving)
+		// The server sends one update per tick; interpolate across it instead of stepping.
+		animate(frame, pixel_x = position_x - 32, pixel_y = position_y - 32, time = world.tick_lag)
+		return
+	frame.pixel_x = position_x - 32
+	frame.pixel_y = position_y - 32
+	frame.icon = grid_inventory_panel_icon(columns, rows, ui_style, header_height)
+	var/header_bottom = rows * 24 + 7
+	titlebar.pixel_x = 4
+	titlebar.pixel_y = header_bottom
+	titlebar.icon = grid_inventory_title_icon(panel_width() - 28, ui_style, header_height - 1)
+	titlebar.maptext_x = 2
+	titlebar.maptext_y = round((header_height - 1 - titlebar.maptext_height) / 2)
 	var/button_y = header_bottom + round((header_height - 1 - 16) / 2)
-	close_button.screen_loc = offset_to_screen_loc(position_x + panel_width() - 21, button_y)
-	page_button.screen_loc = offset_to_screen_loc(position_x + panel_width() - 39, button_y)
+	close_button.pixel_x = panel_width() - 21
+	close_button.pixel_y = button_y
+	page_button.pixel_x = panel_width() - 39
+	page_button.pixel_y = button_y
 	for(var/atom/movable/screen/grid_inventory/cell as anything in grid_cells)
-		cell.screen_loc = offset_to_screen_loc(position_x + 4 + (cell.cell_x - 1) * 24, position_y + 4 + (cell.cell_y - 1) * 24)
+		cell.pixel_x = 4 + (cell.cell_x - 1) * 24
+		cell.pixel_y = 4 + (cell.cell_y - 1) * 24
 	for(var/obj/item/item as anything in item_displays)
 		var/datum/grid_placement/placement = get_placement(item)
 		var/cell_x = placement ? placement.x : (grid.overflow.Find(item) - 1) % columns + 1
 		var/cell_y = placement ? placement.y : grid.grid_height + 1
 		var/atom/movable/screen/grid_inventory_art/display = item_displays[item]
-		display.screen_loc = offset_to_screen_loc(position_x + 4 + (cell_x - 1) * 24, position_y + 4 + (cell_y - 1) * 24)
-	if(!moving)
-		apply_layers()
-		clear_preview()
-		hide_tooltip()
+		display.pixel_x = 4 + (cell_x - 1) * 24
+		display.pixel_y = 4 + (cell_y - 1) * 24
+	apply_layers()
+	clear_preview()
+	hide_tooltip()
 
 /datum/storage_interface/grid/proc/raise_panel()
 	var/datum/grid_inventory_session/session = viewer.grid_inventory
@@ -299,7 +316,9 @@
 	var/datum/grid_placement/placement = new(1, 1, width, height, rotation)
 	preview_display.render(placement)
 	qdel(placement)
-	preview_display.screen_loc = target.screen_loc
+	// Offsets are relative to the frame, so the frame itself is the origin.
+	preview_display.pixel_x = target == frame ? 0 : target.pixel_x
+	preview_display.pixel_y = target == frame ? 0 : target.pixel_y
 	preview_display.alpha = 130
 
 /// Check each visible container once, even when its artwork spans multiple cells.
@@ -532,6 +551,15 @@
 	var/atom/movable/screen/grid_inventory/target = viewer.client?.tooltips?.last_target
 	if(istype(target) && target.interface == src)
 		viewer.client.tooltips.hide()
+
+/// Invisible screen anchor. Screen objects are placed only by screen_loc, so movement happens in its frame.
+/atom/movable/screen/grid_inventory_holder
+	icon = 'icons/blanks/32x32.dmi'
+	icon_state = "nothing"
+	screen_loc = "1,1"
+	plane = ABOVE_HUD_PLANE
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	hud_group_key = HUD_GROUP_STORAGE
 
 /atom/movable/screen/grid_inventory
 	plane = ABOVE_HUD_PLANE

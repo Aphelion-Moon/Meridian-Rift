@@ -15,10 +15,16 @@ Items draw directly over the grid without individual borders. Panel titles use
 plain text without a black outline. Wrapped titles grow the header while keeping
 equal vertical padding and a centered close button. Text measurement runs
 asynchronously only when the title or available width changes.
-Window dragging translates existing HUD objects without rebuilding the chrome,
-reapplying layers, or clearing highlights on every mouse event. Repeated clamped
-positions are skipped. Movement still travels through the server; this change
-does not add client prediction.
+Each panel reaches the client as one invisible screen object, its holder, at a
+fixed anchor. BYOND places screen objects only by `screen_loc` and ignores their
+pixel offsets, so the visible frame is drawn through the holder's `vis_contents`
+and placed by its own pixel offsets. The title bar, cells, item art and previews
+are drawn through the frame's `vis_contents` at fixed offsets. Dragging a panel
+therefore changes one appearance per update, the frame's, instead of every
+element's position. The client glides the frame across each server tick (50 ms
+at the configured 20 ticks per second) rather than stepping, which trails the
+pointer by up to one tick. Repeated clamped positions are skipped. Movement
+still travels through the server; there is no client prediction.
 
 Click an empty cell with your active held item to place it. Drag stored items to
 rearrange the grid or transfer between open containers. Items dragged from either
@@ -32,7 +38,9 @@ Hover fills the item's occupied cells with translucent white. Dragging fills
 the proposed placement green when it fits, or red when it does not; grid lines
 remain visible through the fill, underneath the item artwork.
 
-Double-click a nested container to open its own movable, closable panel.
+Double-click a nested container to open its own movable, closable panel beside
+its parent. A panel that would open exactly on another open panel steps down
+and right until it is clear.
 Nested storage keeps its original owner and insertion restrictions. Its grid
 has a fixed number of usable cells based on its capacity for tiny items (seven
 cells for a medkit). Incoming items try both orientations in that existing
@@ -95,6 +103,10 @@ automatically repack when space opens up.
 - `/datum/grid_inventory_session` coordinates the viewer's open panels and drag
   input. Each `/datum/storage_interface/grid` owns its cells and item displays.
   Refreshes reuse them; closing deletes the relevant displays and signals.
+  They are drawn through the frame's `vis_contents` at frame-relative pixel
+  offsets. Only an invisible holder is in `client.screen`; the frame is in the
+  holder's `vis_contents`, and its pixel offset from the holder's fixed `1,1`
+  anchor is the panel position. Screen objects themselves ignore pixel offsets.
   Appearance changes invalidate affected display caches. World items never
   enter the grid HUD's `client.screen` list.
 - `get_storage_inventory_appearance()` returns a mutable copy for proportional
@@ -113,10 +125,11 @@ first-fit fragments, preloading, direct moves, deletion, size/stack changes,
 overflow recovery, restrictions, access loss, held-item insertion, stale viewer
 actions, display reuse, cleanup and separation from world appearance.
 
-`GRID_INVENTORY_BENCHMARK` additionally enables the opt-in benchmark test. It
-reports 1,000 insert/remove pairs, 100 layout updates for 20 synthetic interfaces,
-and HUD object counts/cleanup. This measures server work without connected
-clients and does not measure dragging traffic or perceived responsiveness.
+`GRID_INVENTORY_BENCHMARK` additionally enables the opt-in benchmark tests. They
+report 1,000 insert/remove pairs, 100 layout updates for 20 synthetic interfaces,
+HUD object counts/cleanup, and, for title-bar drags, the appearances resent per
+drag step and the server time. This measures server work without connected
+clients. It does not measure bytes sent, client rendering or perceived responsiveness.
 
 **Historical benchmark: the earlier 32px, single-panel implementation.** These
 local BYOND 516.1687 measurements (2026-09-21) used one item per container and do
@@ -139,6 +152,18 @@ unrelated atmosphere/decorative-burning runtimes during world setup; their
 focused assertions also passed. The earlier compile reported two existing
 warnings (reference tracking and disabled loop checks).
 
+**Panel drag, before and after moving only the frame (2026-09-22, BYOND 516.1687,
+1,000 title-bar drag steps).** Before, every element's `screen_loc` changed on
+every step. After, the only change is the frame's offset inside its holder.
+
+| Panel | Objects drawn | Appearances resent per step | Server time per step |
+| --- | ---: | ---: | ---: |
+| Sample backpack (4 items) | 30 → 31 | 29 → 1 | 0.25 → 0.08 ms |
+| Full backpack (21 items) | 47 → 48 | 46 → 1 | 0.41 → 0.08 ms |
+
+These are single-run server measurements. The client-side glide was not measured;
+its smoothness and its trail of up to one tick need an in-game check.
+
 The current implementation compiles under BYOND 516.1687 with zero errors and
 the same two warnings. All 16 focused behavior tests passed, including both
 Click/DblClick event orders, immediate single-click pickup, stale rollback rejection,
@@ -157,9 +182,11 @@ and rotation after a container pickup. Eligibility refreshes after outside
 clicks, locks, and closed-container content changes. A connected-client fixture also
 passed nested-panel ownership, original starting position, HUD refresh/theme
 preservation, tooltip show/hide, rotation-key release, and screen cleanup checks. That run produced
-`clean_run.lk` with no runtimes. The full unit suite and current performance
-benchmark were not run. The later cross-panel eligibility test
-(`grid_inventory_cross_panel_highlights`) has not been run yet.
+`clean_run.lk` with no runtimes. On 2026-09-22, after the cross-panel
+eligibility and frame-only drag changes, the 16 focused behavior tests (now
+including `grid_inventory_cross_panel_highlights`) and both opt-in benchmarks
+passed again with `clean_run.lk` and no runtimes. The connected-client fixture
+was not rerun, and the full unit suite was not run.
 
 DreamSeeker captures verified the original starting position, centered sample
 art, separate parent/child panels, Midnight and Plasmafire styling, borderless
@@ -171,9 +198,9 @@ previews, blue behind eligible container items only, green/red container hover
 with the payload still visible, and stored-item drag priority. A wrapped wallet
 title measured 32px high inside a 43px header, with 5px of padding on both sides.
 These are controlled rendering checks, rather than full mouse-gesture playtests.
-Title-drag regressions check grab offsets, aligned item artwork, and unchanged
-HUD object counts. The reduction in drag work has not been measured as client
-latency or smoothness.
+Title-drag regressions check grab offsets, that a drag changes only the frame's
+appearance, and unchanged HUD object counts. The reduction in drag work has not
+been measured as client latency or smoothness.
 An isolated DreamSeeker WebView2 capture verified the tooltip renderer's sharp
 14px text, 15px heading, and equal 6px vertical padding. Browser checks covered
 placement at all four viewport corners and cancellation of a pending show.

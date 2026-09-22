@@ -85,6 +85,16 @@
 		var/datum/storage_interface/grid/parent_panel = panels[parent_storage]
 		panel.position_x = parent_panel.position_x + parent_panel.panel_width() + 8
 		panel.position_y = parent_panel.position_y + 16
+		// Siblings from the same parent would share that spot; step down and right past open panels.
+		var/occupied = TRUE
+		while(occupied)
+			occupied = FALSE
+			for(var/datum/storage/open as anything in panels)
+				var/datum/storage_interface/grid/other = panels[open]
+				if(other.position_x == panel.position_x && other.position_y == panel.position_y)
+					panel.position_x += 24
+					panel.position_y -= 24
+					occupied = TRUE
 	panels[storage] = panel
 	RegisterSignal(storage, COMSIG_QDELETING, PROC_REF(storage_deleted))
 	RegisterSignal(storage.parent, COMSIG_MOVABLE_MOVED, PROC_REF(validate_on_signal))
