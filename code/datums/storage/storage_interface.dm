@@ -2,9 +2,6 @@
 /datum/storage_interface
 	/// UI elements for this theme
 	var/atom/movable/screen/close/closer
-	// APHELION EDIT ADDITION START - STORAGE_NAVIGATION
-	var/atom/movable/screen/storage_exit/exit_button
-	// APHELION EDIT ADDITION END
 	var/atom/movable/screen/storage_up/upper
 	var/atom/movable/screen/storage/cell/cells
 	var/atom/movable/screen/storage/corner/corner_top_left
@@ -32,7 +29,6 @@
 	rowjoin_right = new(null, owner_hud, parent_storage)
 	for (var/atom/movable/screen/ui_elem as anything in list_ui_elements(initializing = TRUE))
 		ui_elem.icon = ui_style
-	exit_button.set_ui_style(ui_style) // APHELION EDIT ADDITION - STORAGE_NAVIGATION - it themes out of its own icon, not the style sheet
 
 /// Returns all UI elements under this theme
 /datum/storage_interface/proc/list_ui_elements(initializing = FALSE)
@@ -40,7 +36,6 @@
 
 /datum/storage_interface/Destroy(force)
 	QDEL_NULL(closer)
-	QDEL_NULL(exit_button) // APHELION EDIT ADDITION - STORAGE_NAVIGATION
 	QDEL_NULL(cells)
 	QDEL_NULL(corner_top_left)
 	QDEL_NULL(corner_top_right)
@@ -92,7 +87,6 @@
 	upper.invisibility = parent_storage.parent.loc?.atom_storage ? 0 : INVISIBILITY_MAXIMUM
 
 	closer.screen_loc = "[screen_start_x + columns]:[screen_pixel_x - 5],[screen_start_y]:[screen_pixel_y]"
-	exit_button.screen_loc = "[screen_start_x + columns]:[screen_pixel_x - 5 + STORAGE_UI_BUTTON_WIDTH],[screen_start_y]:[screen_pixel_y]" // APHELION EDIT ADDITION - STORAGE_NAVIGATION - sits flush against the right of the closer
 
 	add_items(arglist(args))
 

@@ -43,7 +43,7 @@
 	inherit_color(limb) // If draw_color is not set yet, go ahead and do that (matches upstream, needed for ORGAN_COLOR_INHERIT overlays)
 	. = get_images(limb, layer_index, layer_real)
 	color_images(., limb, layer_index)
-	. = add_emissives(., limb)
+	. = add_emissives(., limb, layer_index)
 
 
 /// Generate a unique key based on our sprites. So that if we've aleady drawn these sprites,
@@ -259,19 +259,22 @@
  * * limb - The limb containing this bodypart_overlay. Cannot be null, otherwise
  * there's going to be issues with how the emissives are generated, so it won't
  * add them if the limb is missing, somehow.
+ * * layer_index - The icon state postfix of the layer being drawn. Every sprite on a
+ * layer listed in the sprite accessory's `emissive_layers` glows, regardless of prefs.
  */
-/datum/bodypart_overlay/mutant/proc/add_emissives(list/mutable_appearance/overlays, obj/item/bodypart/limb)
+/datum/bodypart_overlay/mutant/proc/add_emissives(list/mutable_appearance/overlays, obj/item/bodypart/limb, layer_index)
 	if(!limb)
 		return overlays
 
 	var/list/mutable_appearance/emissive_overlays
 	var/max_emissive_index = min(MAX_MATRIXED_COLORS, length(emissive_eligibility_by_color_index))
+	var/emissive_layer = (layer_index in sprite_datum.emissive_layers)
 	for(var/index = 1 to length(overlays))
 		var/mutable_appearance/overlay = overlays[index]
 		if(!overlay.icon) // The MOD texture container has no sprite of its own.
 			continue
 		var/mutable_appearance/emissive_overlay
-		if(index <= max_emissive_index && emissive_eligibility_by_color_index[index])
+		if(emissive_layer || (index <= max_emissive_index && emissive_eligibility_by_color_index[index]))
 			emissive_overlay = emissive_appearance(overlay.icon, overlay.icon_state, offset_spokesman = limb, layer = overlay.layer)
 		else if(blocks_emissive != EMISSIVE_BLOCK_NONE)
 			// Restore the parent builder's blocking for non-emitting parts, including taur bodies.

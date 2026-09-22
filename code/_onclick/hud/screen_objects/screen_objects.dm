@@ -325,10 +325,6 @@ INITIALIZE_IMMEDIATE(/atom/movable/screen) // I hate this place
 	var/datum/storage/storage = master_ref?.resolve()
 	if(!storage)
 		return
-	// APHELION EDIT ADDITION START - STORAGE_NAVIGATION - step back out to the containing storage instead of closing
-	if(storage.open_enclosing_storage(usr))
-		return TRUE
-	// APHELION EDIT ADDITION END
 	storage.hide_contents(usr)
 	return TRUE
 
