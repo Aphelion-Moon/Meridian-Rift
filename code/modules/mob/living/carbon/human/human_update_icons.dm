@@ -1280,7 +1280,7 @@ generate/load female uniform sprites matching all previously decided variables
 	var/i = 1
 	while (i <= length(parsed_overlays))
 		var/mutable_appearance/overlay = parsed_overlays[i]
-		if (!isimage(overlay)) // Malformed overlays, etc
+		if (!isimage(overlay) && !isappearance(overlay)) // Malformed overlays, etc // APHELION EDIT CHANGE - WORN_EMISSIVES - nested sprites read back as appearances - ORIGINAL: if (!isimage(overlay)) // Malformed overlays, etc
 			i += 1
 			continue
 		var/overlay_x = overlay.pixel_x + overlay.pixel_w
@@ -1288,8 +1288,11 @@ generate/load female uniform sprites matching all previously decided variables
 		if (!isnull(parsed_overlays[overlay])) // Nested overlay
 			overlay_x += parsed_overlays[overlay][SUB_OVERLAY_X_INDEX]
 			overlay_y += parsed_overlays[overlay][SUB_OVERLAY_Y_INDEX]
-		cached_body_width = max(cached_body_width, overlay.get_cached_width())
-		cached_body_height = max(cached_body_height, overlay.get_cached_height())
+		// APHELION EDIT CHANGE START - WORN_EMISSIVES - appearances have no procs - ORIGINAL: max(cached_body_width, overlay.get_cached_width()) and the same for height
+		var/list/dimensions = isnull(overlay.icon) ? null : get_icon_dimensions(overlay.icon)
+		cached_body_width = max(cached_body_width, dimensions?["width"] || 0)
+		cached_body_height = max(cached_body_height, dimensions?["height"] || 0)
+		// APHELION EDIT CHANGE END
 		cached_body_min_x_offset = min(cached_body_min_x_offset, overlay_x)
 		cached_body_min_y_offset = min(cached_body_min_y_offset, overlay_y)
 		for (var/sub_overlay in overlay.overlays)
