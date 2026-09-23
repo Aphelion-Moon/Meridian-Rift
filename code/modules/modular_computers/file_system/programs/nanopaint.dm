@@ -296,7 +296,6 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 				image_file.author_ckey = user.ckey
 				message_admins("[ADMIN_LOOKUP(user)] has saved a custom image to [computer] as [file.filename].[file.filetype].")
 				log_player_image_creation("[key_name(user)] has saved a custom image to [computer] as [file.filename].[file.filetype]", user, image_file.stored_icon)
-
 	return TRUE // APHELION EDIT ADDITION - Report export failure to new-file saves.
 
 /datum/computer_file/program/nanopaint/proc/save_file(mob/user, name, file_type, obj/item/disk/computer/target_disk)
