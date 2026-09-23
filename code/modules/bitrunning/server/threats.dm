@@ -59,11 +59,15 @@
 /// Removes a specific threat - used when station spawning
 /obj/machinery/quantum_server/proc/remove_threat(mob/living/threat)
 	spawned_threat_refs.Remove(WEAKREF(threat))
+	mutation_candidate_refs.Remove(WEAKREF(threat))
+	if(generated_domain)
+		LAZYREMOVE(generated_domain.ghost_mobs, threat)
 
 
 /// Selects the role and waits for a ghost orbiter
 /obj/machinery/quantum_server/proc/setup_glitch(datum/antagonist/bitrunning_glitch/forced_role)
-	if(!validate_mutation_candidates())
+	var/datum/lazy_template/virtual_domain/session = generated_domain
+	if(!is_current_domain(session) || !validate_mutation_candidates())
 		return
 
 	var/mob/living/mutation_target = get_mutation_target()
@@ -85,6 +89,10 @@
 		alert_pic = mutation_target,
 		role_name_text = "Malfunction: [role_name]",
 	)
+	if(!is_current_domain(session))
+		if(!QDELETED(mutation_target))
+			mutation_target.remove_digital_aura()
+		return
 	spawn_glitch(chosen_role, mutation_target, chosen_one)
 	return mutation_target
 
@@ -94,7 +102,7 @@
 	if(QDELETED(mutation_target))
 		return
 
-	if(QDELETED(src) || isnull(ghost) || isnull(generated_domain) || !is_ready || !is_operational)
+	if(QDELETED(src) || !ghost?.client || mutation_target.mind || !generated_domain?.contains_atom(mutation_target) || !is_ready || !is_operational)
 		var/atom/thing = mutation_target
 		thing.remove_digital_aura()
 		return
@@ -129,6 +137,9 @@
 
 /// Oh boy - transports the antag station side
 /obj/machinery/quantum_server/proc/station_spawn(mob/living/antag, obj/machinery/byteforge/chosen_forge, turf/goal_turf)
+	var/datum/lazy_template/virtual_domain/session = generated_domain
+	if(!is_current_domain(session) || QDELETED(chosen_forge))
+		return
 	antag.balloon_alert(antag, "scanning...")
 	chosen_forge.setup_particles(angry = TRUE)
 	var/obj/machinery/announcement_system/aas = get_announcement_system(null, src, list(RADIO_CHANNEL_SUPPLY))
@@ -163,20 +174,18 @@
 	if(!do_after(antag, 0.5 SECONDS, timed_action_flags = IGNORE_USER_LOC_CHANGE) || QDELETED(antag) || antag.loc != goal_turf || QDELETED(chosen_forge) || QDELETED(src))
 		return
 	if(!do_after(antag, timeout) || QDELETED(chosen_forge) || QDELETED(antag) || QDELETED(src) || !is_ready || !is_operational)
-		chosen_forge.setup_particles()
+		if(!QDELETED(chosen_forge))
+			chosen_forge.setup_particles()
 		return
-
-	var/datum/component/glitch/effect = antag.AddComponent(/datum/component/glitch, \
-		server = src, \
-		forge = chosen_forge, \
-	)
 
 	chosen_forge.flicker(angry = TRUE)
-	if(!do_after(antag, 1 SECONDS))
-		chosen_forge.setup_particles()
-		qdel(effect)
+	if(!do_after(antag, 1 SECONDS) || !is_current_domain(session) || QDELETED(antag) || antag.loc != goal_turf || QDELETED(chosen_forge) || !chosen_forge.is_operational)
+		if(!QDELETED(chosen_forge))
+			chosen_forge.setup_particles()
 		return
 
+	// Conversion removes threat tracking and grants health, so it must not precede a cancellable wait.
+	antag.AddComponent(/datum/component/glitch, server = src, forge = chosen_forge)
 	chosen_forge.flash()
 
 	if(ishuman(antag))

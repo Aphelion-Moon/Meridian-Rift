@@ -14,6 +14,12 @@ SUBSYSTEM_DEF(bitrunning)
 	for(var/path in subtypesof(/datum/lazy_template/virtual_domain))
 		all_domains += new path()
 
+/// Find the active server hosting this location, never an unrelated spare server.
+/datum/controller/subsystem/bitrunning/proc/get_domain_server(atom/location)
+	for(var/obj/machinery/quantum_server/server as anything in SSmachines.get_machines_by_type(/obj/machinery/quantum_server))
+		if(server.is_current_domain(server.generated_domain) && server.generated_domain.contains_atom(location))
+			return server
+
 /// Compiles a list of available domains.
 /datum/controller/subsystem/bitrunning/proc/get_available_domains(scanner_tier, points)
 	var/list/levels = list()

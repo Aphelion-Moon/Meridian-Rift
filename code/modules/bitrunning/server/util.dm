@@ -2,7 +2,10 @@
 
 
 /// Resets the cooldown state and updates icons
-/obj/machinery/quantum_server/proc/cool_off()
+/obj/machinery/quantum_server/proc/cool_off(expected_generation)
+	if(!isnull(expected_generation) && expected_generation != domain_generation)
+		return
+	shutting_down = FALSE
 	is_ready = TRUE
 	update_appearance()
 	aas_config_announce(/datum/aas_config_entry/bitrunning_QS_ready_announcement, list(), src, list(RADIO_CHANNEL_SUPPLY))
@@ -15,7 +18,7 @@
 	for(var/datum/weakref/avatar_ref in avatar_connection_refs)
 		var/datum/component/avatar_connection/connection = avatar_ref.resolve()
 		if(isnull(connection))
-			avatar_connection_refs.Remove(connection)
+			avatar_connection_refs.Remove(avatar_ref)
 			continue
 
 		var/mob/living/creature = connection.parent
@@ -40,7 +43,7 @@
 	if(length(generated_domain.custom_spawns))
 		var/atom/valid_spawner
 
-		while(isnull(valid_spawner))
+		while(length(generated_domain.custom_spawns))
 			var/atom/chosen = pick(generated_domain.custom_spawns)
 			if(QDELETED(chosen))
 				generated_domain.custom_spawns -= chosen
@@ -55,7 +58,7 @@
 	if(!length(exit_turfs))
 		return
 
-	if(retries_spent >= length(exit_turfs))
+	if(available_retries() <= 0)
 		return
 
 	var/turf/exit_tile
@@ -190,12 +193,22 @@
 
 /// Returns a turf if it's not dense, else will find a neighbor.
 /obj/machinery/quantum_server/proc/validate_turf(turf/chosen_turf)
+	if(!chosen_turf)
+		return
 	if(!chosen_turf.is_blocked_turf())
 		return chosen_turf
 
 	for(var/turf/tile in get_adjacent_open_turfs(chosen_turf))
-		if(!tile.is_blocked_turf())
-			return chosen_turf
+		if(!tile.is_blocked_turf() && (!generated_domain || generated_domain.contains_atom(tile)))
+			return tile
 
+
+/// Capacity committed to an in-flight help request cannot also admit a new avatar.
+/obj/machinery/quantum_server/proc/available_retries()
+	return max(0, length(exit_turfs) - retries_spent - reserved_retries)
+
+/// Revalidate a captured session after any player interaction or ghost poll yields.
+/obj/machinery/quantum_server/proc/is_current_domain(datum/lazy_template/virtual_domain/session)
+	return !QDELETED(src) && !QDELETED(session) && generated_domain == session && !session.cancelled && is_ready && is_operational
 
 #undef MAX_DISTANCE

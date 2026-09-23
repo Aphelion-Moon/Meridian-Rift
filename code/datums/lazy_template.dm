@@ -69,6 +69,9 @@
 	if(!reservation)
 		CRASH("Failed to reserve a block for lazy template: '[key]'")
 
+	// Own the allocation before loading yields or invokes domain callbacks.
+	reservations += reservation
+
 	// lists kept for overall loading
 	var/list/loaded_atom_movables = list()
 	var/list/loaded_turfs = list()
@@ -124,7 +127,6 @@
 	SSair.setup_template_machinery(loaded_atmospherics)
 
 	SEND_SIGNAL(src, COMSIG_LAZY_TEMPLATE_LOADED, loaded_atom_movables, loaded_turfs, loaded_areas)
-	reservations += reservation
 	return reservation
 
 /datum/lazy_template/nukie_elevator

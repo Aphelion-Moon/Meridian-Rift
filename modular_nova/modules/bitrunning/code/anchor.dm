@@ -10,20 +10,27 @@
 	. += span_notice("Use in-hand to create a new spawn point.")
 
 /obj/item/domain_anchor/attack_self(mob/user, modifiers)
-	for(var/obj/machinery/quantum_server/server in SSmachines.get_machines_by_type(/obj/machinery/quantum_server))
-		if(server.current_anchors >= server.max_anchors)
-			user.balloon_alert(user, "bandwidth limit reached!")
-			return FALSE
-		server.exit_turfs += get_turf(src)
-		server.retries_spent -= 1
-		server.threat += 1
-		server.current_anchors += 1
-		var/obj/machinery/announcement_system/aas = get_announcement_system(source = server)
-		if(aas)
-			aas.broadcast("Potential secure datastream detected. Locking on the new spawn point.", list(RADIO_CHANNEL_SUPPLY, RADIO_CHANNEL_FACTION))
-	new /obj/effect/landmark/bitrunning/domain_anchor(drop_location())
+	var/obj/machinery/quantum_server/server = SSbitrunning.get_domain_server(src)
+	if(!server)
+		user.balloon_alert(user, "no active domain!")
+		return FALSE
+	if(server.current_anchors >= server.max_anchors)
+		user.balloon_alert(user, "bandwidth limit reached!")
+		return FALSE
+	var/turf/destination = get_turf(src)
+	if(destination.is_blocked_turf(exclude_mobs = TRUE) || (destination in server.exit_turfs))
+		user.balloon_alert(user, "unsuitable location!")
+		return FALSE
+	server.exit_turfs += destination
+	server.threat += 1
+	server.current_anchors += 1
+	var/obj/machinery/announcement_system/aas = get_announcement_system(source = server)
+	if(aas)
+		aas.broadcast("Potential secure datastream detected. Locking on the new spawn point.", list(RADIO_CHANNEL_SUPPLY, RADIO_CHANNEL_FACTION))
+	new /obj/effect/landmark/bitrunning/domain_anchor(destination)
 	user.balloon_alert(user, "connection stabilized!")
 	qdel(src)
+	return TRUE
 
 /obj/effect/landmark/bitrunning/domain_anchor
 	name = "anchored secure connection"

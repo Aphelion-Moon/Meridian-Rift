@@ -72,7 +72,8 @@
 	if(can_generate_tech_disk(grade))
 		SSblackbox.record_feedback("tally", "bitrunning_bepis_rewarded", 1, generated_domain.key)
 		new /obj/item/disk/design_disk/bepis/remove_tech(reward_cache)
-		generated_domain.disk_reward_spawned = TRUE
+		var/datum/lazy_template/virtual_domain/record = generated_domain.reward_record()
+		record.disk_reward_spawned = TRUE
 
 	chosen_forge.start_to_spawn(reward_cache)
 
@@ -146,7 +147,8 @@
 
 /// Checks if the players should get a bepis reward
 /obj/machinery/quantum_server/proc/can_generate_tech_disk(grade)
-	if(generated_domain.disk_reward_spawned)
+	var/datum/lazy_template/virtual_domain/record = generated_domain.reward_record()
+	if(record.disk_reward_spawned)
 		return FALSE
 
 	if(!LAZYLEN(SSresearch.techweb_nodes_experimental))

@@ -14,6 +14,31 @@
 	var/turf/spawn_location
 	/// Check to prevent request spamming
 	var/polling = FALSE
+	/// Reservation belongs to this run, so late cancellation cannot debit a replacement run.
+	var/datum/weakref/reserved_server
+	var/datum/weakref/reserved_domain
+
+/obj/item/antag_spawner/bitrunning_help/Destroy()
+	release_reservation()
+	return ..()
+
+/// Reserve before polling so simultaneous requests cannot promise the same retry.
+/obj/item/antag_spawner/bitrunning_help/proc/reserve_bandwidth(obj/machinery/quantum_server/server)
+	if(reserved_server || get_available_server() != server)
+		return FALSE
+	if(spends_retries)
+		server.reserved_retries++
+		reserved_server = WEAKREF(server)
+		reserved_domain = WEAKREF(server.generated_domain)
+	return TRUE
+
+/obj/item/antag_spawner/bitrunning_help/proc/release_reservation()
+	var/obj/machinery/quantum_server/server = reserved_server?.resolve()
+	var/datum/lazy_template/virtual_domain/session = reserved_domain?.resolve()
+	if(server && session && server.generated_domain == session)
+		server.reserved_retries = max(0, server.reserved_retries - 1)
+	reserved_server = null
+	reserved_domain = null
 
 /// Checks whether the request beacon can be used
 /// Checks if the user is a domain ghost actor or bitrunning glitch and electrocutes them if they are.
@@ -21,7 +46,7 @@
 /// * user - The mob attempting to use the beacon
 /// Returns TRUE if the beacon can be used, FALSE otherwise
 /obj/item/antag_spawner/bitrunning_help/proc/check_usability(mob/user)
-	if(user.mind.has_antag_datum(/datum/antagonist/domain_ghost_actor, TRUE) || user.mind.has_antag_datum(/datum/antagonist/bitrunning_glitch, TRUE))
+	if(user.mind?.has_antag_datum(/datum/antagonist/domain_ghost_actor, TRUE) || user.mind?.has_antag_datum(/datum/antagonist/bitrunning_glitch, TRUE))
 		to_chat(user, span_danger("Listen here hacker. Your interest will be terminated. Bitrunner will be retained."))
 		if(isliving(user))
 			var/mob/living/intruder = user
@@ -57,6 +82,11 @@
 		polling = FALSE
 		return
 
+	var/datum/lazy_template/virtual_domain/session = server.generated_domain
+	if(!reserve_bandwidth(server))
+		polling = FALSE
+		return
+
 	// Poll for a ghost candidate
 	var/mob/chosen_one = SSpolling.poll_ghost_candidates(
 		"Do you want to play as a reinforcement subcontracted Bitrunner?",
@@ -69,10 +99,18 @@
 		amount_to_pick = 1
 	)
 
-	// Process the chosen candidate
-	if(chosen_one)
-		if(QDELETED(src))
-			return
+	if(QDELETED(src))
+		return
+	release_reservation()
+	polling = FALSE
+	if(QDELETED(user) || !server.is_current_domain(session) || get_available_server() != server)
+		return
+	var/turf/destination = spawn_location || get_turf(src)
+	if(!session.contains_atom(destination))
+		return
+
+	// Commit the reserved capacity immediately before possession, without another yield.
+	if(chosen_one?.client && isobserver(chosen_one))
 
 		if(spends_retries)
 			server.retries_spent += 1
@@ -84,7 +122,7 @@
 			aas.broadcast("Subcontractor query successful, bitrunner connecting.", list(RADIO_CHANNEL_SUPPLY, RADIO_CHANNEL_FACTION))
 
 		// Spawn the antag and clean up
-		spawn_antag(chosen_one.client, get_turf(src), "subrunner", user.mind, server)
+		spawn_antag(chosen_one.client, destination, "subrunner", user.mind, server)
 		do_sparks(4, TRUE, get_turf(src))
 		qdel(src)
 	else
@@ -92,27 +130,26 @@
 		to_chat(user, span_warning("Unable to detect spooling quantum servers. Please wait and try again later."))
 
 /// Finds an available quantum server
-/// Iterates through all quantum servers to find one that has available retries or doesn't require retries to be spent.
-/// Returns the first available quantum server or null if none are found
+/// Uses only the active server owning this beacon's turf and its unreserved bandwidth.
 /obj/item/antag_spawner/bitrunning_help/proc/get_available_server()
-	// Find an available quantum server
-	for(var/obj/machinery/quantum_server/server as anything in SSmachines.get_machines_by_type(/obj/machinery/quantum_server))
-		if(server.retries_spent < length(server.exit_turfs) || !spends_retries)
-			return server
+	var/obj/machinery/quantum_server/server = SSbitrunning.get_domain_server(src)
+	if(server && (!spends_retries || server.available_retries() > 0))
+		return server
 	return null
 
 /obj/item/antag_spawner/bitrunning_help/spawn_antag(client/our_client, turf/T, kind, datum/mind/user, obj/machinery/quantum_server/connected_server)
-	// Create and equip the subcontractor
+	// Possession replaces client.mob and its mind; preserve the original first.
+	var/datum/mind/ghost_mind = our_client.mob?.mind
 	var/mob/living/carbon/human/subcontractor = create_subcontractor(our_client)
 
 	// Set up mind and antagonist status
-	var/datum/mind/ghost_mind = subcontractor.mind
 	if(ghost_mind)
-		subcontractor.AddComponent(/datum/component/temporary_body, ghost_mind, ghost_mind.current, TRUE)
+		subcontractor.AddComponent(/datum/component/temporary_body, ghost_mind, return_on_death = TRUE, return_on_revive = TRUE)
 	subcontractor.mind.add_antag_datum(/datum/antagonist/bitrunning_reinforcement)
 
-	// Move to a safe location
-	move_to_safe_location(subcontractor)
+	// Keep the helper owned by the domain, including the pending pod landing.
+	subcontractor.forceMove(T)
+	LAZYADD(connected_server.generated_domain.ghost_mobs, subcontractor)
 
 	// Equip the subcontractor
 	equip_subcontractor(subcontractor, connected_server)
@@ -126,7 +163,7 @@
 	// Create and prepare the drop pod
 	var/obj/structure/closet/supplypod/pod = setup_pod()
 	subcontractor.forceMove(pod)
-	new /obj/effect/pod_landingzone(spawn_location ? spawn_location : get_turf(src), pod)
+	new /obj/effect/pod_landingzone(T, pod)
 
 /// Creates a new human subcontractor from a client
 /// Creates a new human mob, transfers the client's preferences, sets the ckey, and assigns a name from either preferences or a list of hacker aliases.
@@ -140,16 +177,6 @@
 	subcontractor.real_name = subcontractor.client?.prefs?.read_preference(/datum/preference/name/hacker_alias) || pick(GLOB.hacker_aliases)
 	return subcontractor
 
-/// Moves the subcontractor to a safe starting location
-/// Moves the subcontractor to a new player start location if available, otherwise moves them to coordinates 1,1,1 as a fallback.
-/// Arguments:
-/// * subcontractor - The human subcontractor to be moved
-/obj/item/antag_spawner/bitrunning_help/proc/move_to_safe_location(mob/living/carbon/human/subcontractor)
-	if(length(GLOB.newplayer_start))
-		subcontractor.forceMove(pick(GLOB.newplayer_start))
-	else
-		subcontractor.forceMove(locate(1,1,1))
-
 /// Equips the subcontractor with appropriate gear
 /// Creates and customizes the outfit for the subcontractor, sets armor values for clothing, and adds custom items to the backpack if not using a forced outfit.
 /// Arguments:
@@ -160,19 +187,10 @@
 	var/outfit_path = server.generated_domain.forced_outfit || subcontractor_outfit
 	var/datum/outfit/to_wear = new outfit_path()
 
-	// Set armor values for clothing in the outfit
-	if(istype(to_wear.uniform, /obj/item/clothing/under))
-		var/obj/item/clothing/under/uniform = to_wear.uniform
-		uniform.set_armor(/datum/armor/clothing_under)
-
-	if(istype(to_wear.head, /obj/item/clothing/head))
-		var/obj/item/clothing/head/headwear = to_wear.head
-		headwear.set_armor(/datum/armor/none)
-
 	// If not using forced outfit, customize the backpack contents
 	if(!server.generated_domain.forced_outfit)
 		// Clear existing backpack contents and add our custom items
-		if(istype(to_wear.back, /obj/item/storage/backpack))
+		if(ispath(to_wear.back, /obj/item/storage/backpack))
 			LAZYNULL(to_wear.backpack_contents)
 			to_wear.backpack_contents = list(
 				/obj/item/storage/box/survival = 1,
@@ -183,7 +201,14 @@
 			)
 
 	// Apply the customized outfit
-	subcontractor.equipOutfit(to_wear, visuals_only = TRUE)
+	subcontractor.equipOutfit(to_wear)
+	qdel(to_wear)
+	var/obj/item/clothing/under/uniform = subcontractor.w_uniform
+	if(istype(uniform))
+		uniform.set_armor(/datum/armor/clothing_under)
+	var/obj/item/clothing/head/headwear = subcontractor.head
+	if(istype(headwear))
+		headwear.set_armor(/datum/armor/none)
 
 /// Sets up the subcontractor's ID card
 /// Creates a new account for the ID card, sets it as non-replaceable, registers the subcontractor's name, updates the label, and applies the bit avatar trim to the card.

@@ -1,16 +1,13 @@
-/// Attempts to spawn a crate twice based on the list of available locations
+/// Consume candidates until a crate can be placed on an open turf.
 /obj/machinery/quantum_server/proc/attempt_spawn_cache(list/possible_turfs)
 	if(!length(possible_turfs))
 		return TRUE
 
-	shuffle_inplace(possible_turfs)
-	var/turf/chosen_turf = validate_turf(pick(possible_turfs))
-
-	if(isnull(chosen_turf))
-		possible_turfs.Remove(chosen_turf)
-		chosen_turf = validate_turf(pick(possible_turfs))
-		if(isnull(chosen_turf))
-			CRASH("vdom: after two attempts, could not find a valid turf for cache")
+	var/turf/chosen_turf
+	while(length(possible_turfs) && !chosen_turf)
+		chosen_turf = validate_turf(pick_n_take(possible_turfs))
+	if(!chosen_turf)
+		return FALSE
 
 	new /obj/structure/closet/crate/secure/bitrunning/encrypted(chosen_turf)
 	return TRUE
@@ -24,14 +21,11 @@
 	if(generated_domain.secondary_loot_generated >= counterlist_sum(generated_domain.secondary_loot)) // Out of curiosities to place
 		return FALSE
 
-	shuffle_inplace(possible_turfs)
-	var/turf/chosen_turf = validate_turf(pick(possible_turfs))
-
-	if(isnull(chosen_turf))
-		possible_turfs.Remove(chosen_turf)
-		chosen_turf = validate_turf(pick(possible_turfs))
-		if(isnull(chosen_turf))
-			CRASH("vdom: after two attempts, could not find a valid turf for curiosity")
+	var/turf/chosen_turf
+	while(length(possible_turfs) && !chosen_turf)
+		chosen_turf = validate_turf(pick_n_take(possible_turfs))
+	if(!chosen_turf)
+		return FALSE
 
 	new /obj/item/storage/lockbox/bitrunning/encrypted(chosen_turf)
 	return chosen_turf
@@ -115,6 +109,8 @@
 	shuffle_inplace(generated_domain.mob_modules)
 
 	for(var/obj/effect/landmark/bitrunning/mob_segment/landmark in GLOB.landmarks_list)
+		if(!generated_domain.contains_atom(landmark))
+			continue
 		if(current_index > length(generated_domain.mob_modules))
 			stack_trace("vdom: mobs segments are set to unique, but there are more landmarks than available segments")
 			return FALSE

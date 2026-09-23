@@ -92,7 +92,7 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/health_station, 32)
 	qdel(src)
 
 /obj/machinery/health_station/proc/open_options_menu(mob/living/carbon/user)
-	if(!ishuman(user) && (machine_stat & NOPOWER))
+	if(!ishuman(user) || !is_operational)
 		return
 
 	var/choice = show_radial_menu(user, src, radial_options, require_near = !issilicon(user), tooltips = TRUE)
@@ -116,67 +116,68 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/health_station, 32)
 	addtimer(CALLBACK(src, PROC_REF(charge)), charge_rate)
 
 /obj/machinery/health_station/proc/refill_pen(attacking_item, mob/living/carbon/user)
-	if(istype(attacking_item, /obj/item/reagent_containers/hypospray/medipen))
-		var/obj/item/reagent_containers/hypospray/medipen/medipen = attacking_item
-		if(!(LAZYFIND(refillable_pens, medipen.type)))
-			balloon_alert(user, "medipen incompatible!")
-			return
-		if(medipen.reagents?.reagent_list.len)
-			balloon_alert(user, "medipen full!")
-			return
-		var/charge_taken = is_type_in_list(medipen, refillable_pens, zebra = TRUE)
-		if(charge_amount < charge_taken)
-			balloon_alert(user, "no biomass!")
-			return
-		if(do_after(user, 2 SECONDS, src))
-			medipen.used_up = FALSE
-			medipen.add_initial_reagents()
-			charge_amount -= charge_taken
-		balloon_alert(user, "medipen refilled!")
-		playsound(src, 'sound/items/hypospray.ogg', 40, TRUE)
-		update_appearance()
+	if(!istype(attacking_item, /obj/item/reagent_containers/hypospray/medipen) || !is_operational)
+		return FALSE
+	var/obj/item/reagent_containers/hypospray/medipen/medipen = attacking_item
+	var/charge_taken = refillable_pens[medipen.type]
+	if(!charge_taken)
+		balloon_alert(user, "medipen incompatible!")
+		return FALSE
+	if(medipen.reagents?.total_volume)
+		balloon_alert(user, "medipen full!")
+		return FALSE
+	if(charge_amount < charge_taken)
+		balloon_alert(user, "no biomass!")
+		return FALSE
+	if(!do_after(user, 2 SECONDS, src) || QDELETED(src) || QDELETED(medipen) || !is_operational || !user.is_holding(medipen) || !medipen.reagents || medipen.reagents.total_volume || charge_amount < charge_taken)
+		return FALSE
+	charge_amount -= charge_taken
+	medipen.used_up = FALSE
+	medipen.add_initial_reagents()
+	balloon_alert(user, "medipen refilled!")
+	playsound(src, 'sound/items/hypospray.ogg', 40, TRUE)
+	update_appearance()
 	return TRUE
 
 /obj/machinery/health_station/proc/heal_wound(mob/living/carbon/user)
-	if(charge_amount < 20)
+	if(!is_operational || charge_amount < 20)
 		balloon_alert(user, "no biomass!")
 		return FALSE
-
-	if(!user.all_wounds)
+	if(!length(user.all_wounds))
 		balloon_alert(user, "no wounds!")
 		return FALSE
-
-	if(do_after(user, 5 SECONDS, src))
-		var/datum/wound/wound2fix = user.all_wounds[1]
-		wound2fix.remove_wound()
-		balloon_alert(user, "wound treated")
-		charge_amount -= 20
-		playsound(src, 'sound/items/handling/surgery/saw.ogg', 40, TRUE)
-		update_appearance()
+	if(!do_after(user, 5 SECONDS, src) || QDELETED(src) || QDELETED(user) || !is_operational || charge_amount < 20 || !length(user.all_wounds))
+		return FALSE
+	var/datum/wound/wound2fix = user.all_wounds[1]
+	charge_amount -= 20
+	wound2fix.remove_wound()
+	balloon_alert(user, "wound treated")
+	playsound(src, 'sound/items/handling/surgery/saw.ogg', 40, TRUE)
+	update_appearance()
 	return TRUE
 
 /obj/machinery/health_station/proc/heal_damage(mob/living/carbon/user)
-	var/overall_damage = (user.get_tox_loss() + user.get_oxy_loss() + user.get_fire_loss() + user.get_brute_loss())
-	if(charge_amount < 15)
+	if(!is_operational || charge_amount < 15)
 		balloon_alert(user, "no biomass!")
 		return FALSE
-
-	if(overall_damage)
-		if(do_after(user, 2.5 SECONDS, src))
-			var/need_mob_update
-			need_mob_update += user.heal_overall_damage(overall_damage/2, overall_damage/2, updating_health = FALSE) //gee i wish overall damage included all types of damage instead of just brute and burn
-			need_mob_update += user.adjust_tox_loss(-overall_damage/2, updating_health = FALSE)
-			need_mob_update += user.adjust_oxy_loss(-overall_damage/2, updating_health = FALSE)
-			if(need_mob_update)
-				user.updatehealth()
-			balloon_alert(user, "damage treated")
-			charge_amount -= 15
-			playsound(src, 'sound/items/handling/surgery/retractor1.ogg', 40, TRUE)
-			update_appearance()
-	else
+	var/overall_damage = user.get_tox_loss() + user.get_oxy_loss() + user.get_fire_loss() + user.get_brute_loss()
+	if(!overall_damage)
 		balloon_alert(user, "no damage!")
 		return FALSE
-
+	if(!do_after(user, 2.5 SECONDS, src) || QDELETED(src) || QDELETED(user) || !is_operational || charge_amount < 15)
+		return FALSE
+	overall_damage = user.get_tox_loss() + user.get_oxy_loss() + user.get_fire_loss() + user.get_brute_loss()
+	if(!overall_damage)
+		return FALSE
+	charge_amount -= 15
+	var/need_mob_update = user.heal_overall_damage(overall_damage/2, overall_damage/2, updating_health = FALSE)
+	need_mob_update += user.adjust_tox_loss(-overall_damage/2, updating_health = FALSE)
+	need_mob_update += user.adjust_oxy_loss(-overall_damage/2, updating_health = FALSE)
+	if(need_mob_update)
+		user.updatehealth()
+	balloon_alert(user, "damage treated")
+	playsound(src, 'sound/items/handling/surgery/retractor1.ogg', 40, TRUE)
+	update_appearance()
 	return TRUE
 
 /obj/item/wallframe/health_station

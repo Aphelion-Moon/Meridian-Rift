@@ -86,7 +86,7 @@
 	// Re-enable hand interactions after loading attempt
 	REMOVE_TRAIT(neo, TRAIT_HANDS_BLOCKED, TRAIT_GENERIC)
 
-	if(!connection_successful)
+	if(!connection_successful || QDELETED(src) || QDELETED(neo) || occupant != neo || !is_operational || !server.is_current_domain(generated_domain))
 		open_machine()
 		return
 

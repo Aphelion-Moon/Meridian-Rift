@@ -19,9 +19,10 @@
 		span_danger("You hear frantic keying on a keyboard."),
 	)
 
+	var/datum/lazy_template/virtual_domain/shutdown_domain = generated_domain
 	SEND_SIGNAL(src, COMSIG_BITRUNNER_SHUTDOWN_ALERT, user)
 
-	if(!do_after(user, 20 SECONDS, src))
+	if(!do_after(user, 20 SECONDS, src) || generated_domain != shutdown_domain)
 		return
 
 	reset()
@@ -29,7 +30,7 @@
 
 /// Links all the loading processes together - does validation for booting a map
 /obj/machinery/quantum_server/proc/cold_boot_map(map_key, was_random_selection)
-	if(!is_ready)
+	if(!is_ready || !is_operational)
 		return FALSE
 
 	if(isnull(map_key))
@@ -44,11 +45,27 @@
 		balloon_alert_to_viewers("all clients must disconnect!")
 		return FALSE
 
+	var/datum/lazy_template/virtual_domain/selected
+	for(var/datum/lazy_template/virtual_domain/available as anything in SSbitrunning.all_domains)
+		if(available.key == map_key)
+			selected = available
+			break
+	if(!selected || selected.cost > points || (selected.domain_flags & DOMAIN_TEST_ONLY))
+		return FALSE
+
 	is_ready = FALSE
 	playsound(src, 'sound/machines/terminal/terminal_processing.ogg', 30, 2)
 
 	/// If any one of these fail, it reverts the entire process
-	if(!load_domain(map_key) || !load_map_items() || !load_mob_segments())
+	var/boot_generation = domain_generation + 1
+	var/loaded = FALSE
+	try
+		loaded = load_domain(map_key) && load_map_items() && load_mob_segments()
+	catch(var/exception/error)
+		log_runtime("Virtual domain startup failed: [error.name]")
+	if(QDELETED(src) || shutting_down || domain_generation != boot_generation)
+		return FALSE
+	if(!loaded || !is_operational)
 		balloon_alert_to_viewers("initialization failed!")
 		scrub_vdom()
 		is_ready = TRUE
@@ -70,10 +87,6 @@
 
 	is_ready = TRUE
 
-	var/spawn_chance = clamp((threat * glitch_chance), 5, threat_prob_max)
-	if(prob(spawn_chance))
-		setup_glitch()
-
 	playsound(src, 'sound/machines/terminal/terminal_insert_disc.ogg', 30, vary = TRUE)
 	balloon_alert_to_viewers("domain loaded.")
 	generated_domain.start_time = world.time
@@ -90,14 +103,20 @@
 			"Matrix Glitch",
 		)
 
+	var/spawn_chance = clamp((threat * glitch_chance), 5, threat_prob_max)
+	if(prob(spawn_chance))
+		INVOKE_ASYNC(src, PROC_REF(setup_glitch))
 	return TRUE
 
 
 /// Initializes a new domain if the given key is valid and the user has enough points
 /obj/machinery/quantum_server/proc/load_domain(map_key)
+	if(generated_domain)
+		return FALSE
 	for(var/datum/lazy_template/virtual_domain/available in SSbitrunning.all_domains)
 		if(map_key == available.key && points >= available.cost)
-			generated_domain = available
+			generated_domain = available.create_session()
+			domain_generation++
 			break
 
 	if(!generated_domain)
@@ -108,12 +127,15 @@
 		playsound(src, "sound/machines/buzz-[pick("sigh", "two")].ogg", 50, TRUE)
 		return FALSE
 
+	var/datum/lazy_template/virtual_domain/session = generated_domain
 	var/list/mob/lucky_ghosts
 	if(generated_domain.mission_min_candidates)
 		playsound(src, 'sound/machines/chime.ogg', 50, TRUE)
 		say("Loading advanced NPCs...")
 		var/list/mob/candidates = SSpolling.poll_ghost_candidates("Do you want to play as a virtual [generated_domain.spawner_role] in a bitrunner domain?", ROLE_GHOST_ROLE, ROLE_GHOST_ROLE, 15 SECONDS, POLL_IGNORE_SHUTTLE_DENIZENS, TRUE)
-		for(var/amount in 1 to generated_domain.mission_max_candidates)
+		if(QDELETED(src) || QDELETED(session) || session.cancelled || generated_domain != session)
+			return FALSE
+		for(var/amount in 1 to session.mission_max_candidates)
 			if(length(candidates)) // If no candidates, fails in code below anyways
 				LAZYADD(lucky_ghosts, pick_n_take(candidates))
 
@@ -127,19 +149,31 @@
 		playsound(src, 'sound/machines/ping.ogg', 50, TRUE)
 		say("Success!")
 
-	generated_domain.load_advanced_npcs(lucky_ghosts)
-	RegisterSignal(generated_domain, COMSIG_LAZY_TEMPLATE_LOADED, PROC_REF(on_template_loaded))
-	generated_domain.lazy_load()
-
+	RegisterSignal(session, COMSIG_LAZY_TEMPLATE_LOADED, PROC_REF(on_template_loaded))
+	session.loading = TRUE
+	var/datum/turf_reservation/reservation
+	try
+		reservation = session.lazy_load()
+	catch(var/exception/error)
+		log_runtime("Failed to load virtual domain [map_key]: [error.name]")
+	session.loading = FALSE
+	if(QDELETED(src) || session.cancelled || generated_domain != session)
+		qdel(session)
+		return FALSE
+	if(!reservation)
+		scrub_vdom()
+		return FALSE
+	session.load_advanced_npcs(lucky_ghosts)
 	return TRUE
 
 /// Loads in necessary map items like hololadder spawns, caches, etc
 /obj/machinery/quantum_server/proc/load_map_items()
-	var/turf/goal_turfs = list()
 	var/turf/cache_turfs = list()
 	var/turf/curiosity_turfs = list()
 
 	for(var/obj/effect/landmark/bitrunning/thing in GLOB.landmarks_list)
+		if(!generated_domain.contains_atom(thing))
+			continue
 		if(istype(thing, /obj/effect/landmark/bitrunning/hololadder_spawn))
 			exit_turfs += get_turf(thing)
 			qdel(thing) // i'm worried about multiple servers getting confused so lets clean em up
@@ -158,10 +192,6 @@
 			qdel(thing)
 			continue
 
-		if(istype(thing, /obj/effect/mob_spawn))
-			generated_domain.ghost_spawners += thing
-			continue
-
 		if(istype(thing, /obj/effect/landmark/bitrunning/curiosity_spawn))
 			curiosity_turfs += get_turf(thing)
 			qdel(thing)
@@ -177,7 +207,7 @@
 			exit_turfs += tile
 			qdel(thing)
 
-			new /obj/structure/hololadder(tile)
+			new /obj/structure/hololadder(tile, src)
 
 	if(!length(exit_turfs))
 		CRASH("Failed to find exit turfs on generated domain.")
@@ -199,17 +229,20 @@
 /// Stops the current virtual domain and disconnects all users
 /obj/machinery/quantum_server/proc/reset(fast = FALSE)
 	is_ready = FALSE
+	shutting_down = TRUE
+	if(generated_domain)
+		generated_domain.cancelled = TRUE
 	domain_complete = FALSE
 
 	sever_connections()
 
 	if(!fast)
 		notify_spawned_threats()
-		addtimer(CALLBACK(src, PROC_REF(scrub_vdom)), 15 SECONDS, TIMER_UNIQUE|TIMER_STOPPABLE)
+		addtimer(CALLBACK(src, PROC_REF(scrub_vdom), domain_generation), 15 SECONDS, TIMER_UNIQUE|TIMER_STOPPABLE)
 	else
 		scrub_vdom() // used in unit testing, no need to wait for callbacks
 
-	addtimer(CALLBACK(src, PROC_REF(cool_off)), ROUND_UP(server_cooldown_time * capacitor_coefficient), TIMER_UNIQUE|TIMER_STOPPABLE|TIMER_DELETE_ME)
+	addtimer(CALLBACK(src, PROC_REF(cool_off), domain_generation), ROUND_UP(server_cooldown_time * capacitor_coefficient), TIMER_UNIQUE|TIMER_STOPPABLE|TIMER_DELETE_ME)
 	update_appearance()
 
 	update_use_power(IDLE_POWER_USE)
@@ -220,13 +253,20 @@
 
 
 /// Tries to clean up everything in the domain
-/obj/machinery/quantum_server/proc/scrub_vdom()
+/obj/machinery/quantum_server/proc/scrub_vdom(expected_generation)
+	if(!isnull(expected_generation) && expected_generation != domain_generation)
+		return
 	sever_connections() /// just in case someone's connected
 	SEND_SIGNAL(src, COMSIG_BITRUNNER_DOMAIN_SCRUBBED) // avatar cleanup just in case
 
-	if(length(generated_domain.reservations))
-		var/datum/turf_reservation/res = generated_domain.reservations[1]
-		res.Release()
+	var/datum/lazy_template/virtual_domain/session = generated_domain
+	generated_domain = null
+	if(session)
+		session.cancelled = TRUE
+		UnregisterSignal(session, COMSIG_LAZY_TEMPLATE_LOADED)
+	for(var/turf/tile as anything in goal_turfs)
+		UnregisterSignal(tile, list(COMSIG_ATOM_ENTERED, COMSIG_ATOM_EXAMINE))
+	goal_turfs.Cut()
 
 	var/list/creatures = spawned_threat_refs + mutation_candidate_refs
 	for(var/datum/weakref/creature_ref as anything in creatures)
@@ -236,8 +276,13 @@
 
 		qdel(creature)
 
-	generated_domain.secondary_loot_generated = 0
-	generated_domain.main_crate_points = 0
+	// A yielding loader retains ownership until it finishes, then deletes its cancelled session.
+	if(session && !session.loading)
+		qdel(session)
+	reserved_retries = 0
+	retries_spent = 0
+	current_anchors = 0
+	domain_complete = FALSE
 
 	avatar_connection_refs.Cut()
 	exit_turfs = list()

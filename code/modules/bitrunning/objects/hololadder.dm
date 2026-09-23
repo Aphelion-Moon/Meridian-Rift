@@ -30,7 +30,7 @@
 /obj/structure/hololadder/examine(mob/user)
 	. = ..()
 
-	if(isnull(server_ref.resolve()))
+	if(isnull(server_ref?.resolve()))
 		. += span_infoplain("It's not connected to anything.")
 		return
 
@@ -65,7 +65,9 @@
 	if(isnull(user.mind))
 		return
 
-	var/obj/machinery/quantum_server/our_server = server_ref.resolve()
+	var/obj/machinery/quantum_server/our_server = server_ref?.resolve()
+	if(isnull(our_server))
+		return
 	if(!our_server.domain_complete)
 		for(var/datum/weakref/ghostrole_weakref as anything in our_server.spawned_threat_refs)
 			var/mob/living/ghostrole = ghostrole_weakref.resolve()

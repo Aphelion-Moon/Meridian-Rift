@@ -13,6 +13,11 @@
 	var/filename = "virtual_domain.dmm"
 	/// The start time of the map. Used to calculate time taken
 	var/start_time
+	/// Shared catalog record; only reward stock and achievements persist between runs.
+	var/datum/lazy_template/virtual_domain/catalog
+	/// Loading can yield. Cancelled sessions stay alive until their loader returns.
+	var/loading = FALSE
+	var/cancelled = FALSE
 
 	/**
 	 * Generic settings / UI
@@ -105,9 +110,26 @@
 	return difficulty < (scanner_tier + 1) && cost <= server_points + 3
 
 /datum/lazy_template/virtual_domain/Destroy(force)
-	QDEL_NULL(ghost_spawners)
-	QDEL_NULL(ghost_mobs)
-	. = ..()
+	if(!catalog && !force)
+		return ..()
+	QDEL_LIST(ghost_spawners)
+	QDEL_LIST(ghost_mobs)
+	return ..(TRUE)
+
+/// Allocate mutable run state independently of the catalog and other servers.
+/datum/lazy_template/virtual_domain/proc/create_session()
+	var/datum/lazy_template/virtual_domain/session = new type()
+	session.catalog = src
+	session.secondary_loot = secondary_loot
+	return session
+
+/// Turf reservations are the authority for which server owns an object.
+/datum/lazy_template/virtual_domain/proc/contains_atom(atom/thing)
+	var/turf/tile = get_turf(thing)
+	return tile && (SSmapping.used_turfs[tile] in reservations)
+
+/datum/lazy_template/virtual_domain/proc/reward_record()
+	return catalog || src
 
 /// Sends a point to any loot signals on the map
 /datum/lazy_template/virtual_domain/proc/add_points(points_to_add = 1)
@@ -142,5 +164,6 @@
 	return
 
 /datum/lazy_template/virtual_domain/proc/submit_grade(new_grade)
-	if(GLOB.bitrunning_grades.Find(new_grade) > GLOB.bitrunning_grades.Find(best_grade))
-		best_grade = new_grade
+	var/datum/lazy_template/virtual_domain/record = reward_record()
+	if(GLOB.bitrunning_grades.Find(new_grade) > GLOB.bitrunning_grades.Find(record.best_grade))
+		record.best_grade = new_grade

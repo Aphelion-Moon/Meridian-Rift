@@ -33,6 +33,8 @@
 /obj/machinery/quantum_server/proc/on_goal_turf_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
 	SIGNAL_HANDLER
 
+	if(!is_ready || !is_operational || !generated_domain?.contains_atom(source))
+		return
 	var/obj/machinery/byteforge/chosen_forge = get_random_nearby_forge()
 	if(isnull(chosen_forge))
 		return
@@ -67,6 +69,9 @@
 /obj/machinery/quantum_server/proc/on_template_loaded(datum/lazy_template/source, list/created_atoms)
 	SIGNAL_HANDLER
 
+	if(source != generated_domain || generated_domain.cancelled)
+		return
+
 	for(var/thing in created_atoms)
 		if(isliving(thing)) // so we can mutate them
 			var/mob/living/creature = thing
@@ -85,6 +90,7 @@
 			continue
 
 		if(istype(thing, /obj/effect/mob_spawn/ghost_role)) // so we get threat alerts
+			LAZYADD(generated_domain.ghost_spawners, thing)
 			RegisterSignal(thing, COMSIG_GHOSTROLE_SPAWNED, PROC_REF(on_threat_created))
 			continue
 

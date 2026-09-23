@@ -36,6 +36,14 @@
 	var/points = 0
 	/// Keeps track of the number of times someone has built a hololadder
 	var/retries_spent = 0
+	/// Help requests reserve bandwidth while polling ghosts.
+	var/reserved_retries = 0
+	/// Identifies a run to delayed shutdown callbacks.
+	var/domain_generation = 0
+	/// A shutdown must not be undone by a yielding startup finishing late.
+	var/shutting_down = FALSE
+	/// Turfs whose goal signals we own.
+	var/list/turf/goal_turfs = list()
 	/// Changes how much info is available on the domain
 	var/scanner_tier = 1
 	/// Length of time it takes for the server to cool down after resetting. Here to give runners downtime so their faces don't get stuck like that
