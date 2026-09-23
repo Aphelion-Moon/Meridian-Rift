@@ -273,6 +273,12 @@
 		var/mutable_appearance/overlay = overlays[index]
 		if(!overlay.icon) // The MOD texture container has no sprite of its own.
 			continue
+		// APHELION EDIT ADDITION START - CUSTOMIZATION_CI_FIXES
+		// Matrixed accessories may have a color channel on only some layers.
+		// Keep its slot for color indexing, but an absent sprite has no glow or blocker.
+		if(sprite_datum.color_src == USE_MATRIXED_COLORS && !icon_exists(overlay.icon, overlay.icon_state))
+			continue
+		// APHELION EDIT ADDITION END
 		var/mutable_appearance/emissive_overlay
 		if(emissive_layer || (index <= max_emissive_index && emissive_eligibility_by_color_index[index]))
 			emissive_overlay = emissive_appearance(overlay.icon, overlay.icon_state, offset_spokesman = limb, layer = overlay.layer)

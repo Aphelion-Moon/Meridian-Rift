@@ -198,6 +198,7 @@
 #include "dogmos_kennel_slow_mode_payload.dm"
 #include "dogmos_kennel_structures.dm"
 #include "dogmos_kennel_thresholds.dm"
+#include "dogmos_playtest_regressions.dm"
 #include "dogmos_registration.dm"
 #include "dogmos_temperature_authority.dm"
 #include "dogmos_turf_adjacency_sync.dm"
@@ -439,6 +440,10 @@
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter
 #include "find_reference_sanity.dm"
 #endif
+
+// APHELION EDIT ADDITION START - CUSTOMIZATION_CI_FIXES
+#include "../../../modular_aphelion/modules/customization_fixes/code/regressions.dm"
+// APHELION EDIT ADDITION END
 
 #undef TEST_ASSERT
 #undef TEST_ASSERT_EQUAL

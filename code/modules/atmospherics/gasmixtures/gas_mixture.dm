@@ -453,7 +453,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/solution
 	if(IS_FINITE(a) && IS_FINITE(b) && IS_FINITE(c))
 		solution = max(SolveQuadratic(a, b, c))
-		if(solution > lower_limit && solution < upper_limit) //SolveQuadratic can return empty lists so be careful here
+		// At large mole counts the absolute tolerance rounds away; the physical bounds are inclusive.
+		// SolveQuadratic can return no roots, so do not let null compare as a valid zero.
+		if(isnum(solution) && IS_FINITE(solution) && solution >= lower_limit && solution <= upper_limit)
 			return solution
 	stack_trace("Failed to solve pressure quadratic equation. A: [a]. B: [b]. C:[c]. Current value = [solution]. Expected lower limit: [lower_limit]. Expected upper limit: [upper_limit].")
 	return FALSE
@@ -469,7 +471,7 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		for (var/iteration in 1 to ATMOS_PRESSURE_APPROXIMATION_ITERATIONS)
 			var/diff = (a*solution**2 + b*solution + c) / (2*a*solution + b) // f(sol) / f'(sol)
 			solution -= diff // xn+1 = xn - f(sol) / f'(sol)
-			if(abs(diff) < MOLAR_ACCURACY && (solution > lower_limit) && (solution < upper_limit))
+			if(abs(diff) < MOLAR_ACCURACY && IS_FINITE(solution) && (solution >= lower_limit) && (solution <= upper_limit))
 				return solution
 	stack_trace("Newton's Approximation for pressure failed after [ATMOS_PRESSURE_APPROXIMATION_ITERATIONS] iterations. A: [a]. B: [b]. C:[c]. Current value: [solution]. Expected lower limit: [lower_limit]. Expected upper limit: [upper_limit].")
 	return FALSE

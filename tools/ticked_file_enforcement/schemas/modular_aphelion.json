@@ -5,6 +5,7 @@
 	"excluded_files": [],
 	"forbidden_includes": [
 		"modular_aphelion/tools/dogmos_performance/shared_baseline_observer.dm",
-		"modular_aphelion/modules/dogmos/code/shift_start_performance_test.dm"
+		"modular_aphelion/modules/dogmos/code/shift_start_performance_test.dm",
+		"modular_aphelion/modules/customization_fixes/code/regressions.dm"
 	]
 }

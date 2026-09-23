@@ -10,6 +10,9 @@
 		SPECIES_LIZARD_ASH = 1,
 		SPECIES_LIZARD_SILVER = 1,
 		SPECIES_KOBOLD = 1,
+		// APHELION EDIT ADDITION START - CUSTOMIZATION_CI_FIXES
+		SPECIES_KOBOLD_PRIMITIVE = 1,
+		// APHELION EDIT ADDITION END
 	)
 
 /datum/sprite_accessory/snouts/is_hidden(mob/living/carbon/human/human, datum/bodypart_overlay/mutant/bodypart_overlay)
