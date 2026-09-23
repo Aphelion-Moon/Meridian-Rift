@@ -15,7 +15,8 @@
 /obj/structure/hololadder/Initialize(mapload, obj/machinery/quantum_server/origin)
 	. = ..()
 
-	RegisterSignal(loc, COMSIG_ATOM_ENTERED, PROC_REF(on_enter))
+	// Start after COMSIG_MOVABLE_MOVED so arriving does not cancel the disconnect's do_after.
+	RegisterSignal(loc, COMSIG_ATOM_ABSTRACT_ENTERED, PROC_REF(on_enter))
 	server_ref = WEAKREF(origin)
 	register_context()
 
