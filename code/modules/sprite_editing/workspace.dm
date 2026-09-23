@@ -118,7 +118,7 @@
 	// APHELION EDIT ADDITION START - split_color must not receive malformed UI input.
 	if(!istext(color) || !(length(color) in list(7, 9)) || copytext(color, 1, 2) != "#")
 		return FALSE
-	if(sanitize_hexcolor(color, length(color) - 1, TRUE, "invalid") != lowertext(color))
+	if(sanitize_hexcolor(color, length(color) - 1, TRUE, "invalid") != LOWER_TEXT(color))
 		return FALSE
 	// APHELION EDIT ADDITION END
 	if(SEND_SIGNAL(src, COMSIG_SPRITE_EDITOR_VALIDATE_COLOR, color))

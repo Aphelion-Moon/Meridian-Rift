@@ -34,7 +34,7 @@
 		return FALSE
 	var/target = params["target"]
 	var/body_zone = params["body_zone"]
-	if(!(target in GLOB.custom_style_hair_targets + list("markings")) || (!isnull(body_zone) && (target != "markings" || !istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels))))
+	if(!(target in (GLOB.custom_style_hair_targets + list("markings"))) || (!isnull(body_zone) && (target != "markings" || !istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels))))
 		return FALSE
 	var/editor_key = custom_style_key(target, body_zone)
 	var/datum/custom_sprite_editor/editor = preferences.custom_sprite_editors?[editor_key]
@@ -473,7 +473,7 @@
 		if("selectColor")
 			if(!workspace.is_valid_color(params["color"]))
 				return FALSE
-			selected_color = lowertext(copytext(params["color"], 1, 8))
+			selected_color = LOWER_TEXT(copytext(params["color"], 1, 8))
 			selected_custom_color = null
 			return TRUE
 		if("selectCustomColor")
@@ -572,7 +572,7 @@
 			if(!workspace.is_valid_color(params["color"]))
 				return FALSE
 			var/list/colors = preferences.read_preference(/datum/preference/custom_sprite_palette)
-			return set_custom_palette(colors | lowertext(copytext(params["color"], 1, 8)))
+			return set_custom_palette(colors | LOWER_TEXT(copytext(params["color"], 1, 8)))
 		if("addPaletteColor")
 			var/list/colors = preferences.read_preference(/datum/preference/custom_sprite_palette)
 			if(length(colors) >= CUSTOM_SPRITE_MAX_CUSTOM_COLORS)
@@ -672,7 +672,7 @@
 		channels = split_color(pixel)
 		if(!channels[4])
 			return FALSE
-	var/color = lowertext(rgb(channels[1], channels[2], channels[3]))
+	var/color = LOWER_TEXT(rgb(channels[1], channels[2], channels[3]))
 	if(!(color in workspace.palette) && !workspace.update_palette(sampled_palette | transformed_custom_palette() | list(color)))
 		return FALSE
 	selected_color = color
@@ -923,7 +923,7 @@
 /// Returns why a package can't replace this draft, or null when it can.
 /datum/custom_sprite_editor/proc/candidate_problem(list/package)
 	if(package["target"] != target || package["zone"] != body_zone)
-		var/label = custom_style_hair_target(package["target"]) ? (package["target"] == "facial_hair" ? "facial hair" : "hair") : (package["zone"] ? "[lowertext(GLOB.custom_marking_zone_labels[package["zone"]])] markings" : "whole-body markings")
+		var/label = custom_style_hair_target(package["target"]) ? (package["target"] == "facial_hair" ? "facial hair" : "hair") : (package["zone"] ? "[LOWER_TEXT(GLOB.custom_marking_zone_labels[package["zone"]])] markings" : "whole-body markings")
 		return "That style is for [label], not this drawing."
 	if(!resources_ready)
 		return "The preview isn't available right now."

@@ -108,7 +108,7 @@
 	for(var/i in 1 to 16)
 		TEST_ASSERT(workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[palette[i]]ff", "points" = list(list(i, 0)))), "A saved drawing must allow all 16 newly available colors.")
 	var/list/saved = workspace.serialize_drawing()
-	TEST_ASSERT(!(saved?["version"] != 2 || length(saved?["palette"]) != 17 || "#999999" in saved?["palette"]), "Save must retain all used colors and omit unused stored colors.")
+	TEST_ASSERT(!(saved?["version"] != 2 || length(saved?["palette"]) != 17 || ("#999999" in saved?["palette"])), "Save must retain all used colors and omit unused stored colors.")
 	var/datum/sprite_editor_workspace/custom_sprite/reloaded = allocate(/datum/sprite_editor_workspace/custom_sprite, saved, list("#ffffff"), null)
 	var/list/frame = reloaded.get_first_layer_pixel_data()
 	TEST_ASSERT(!(frame[1][1] != "#123456ff" || frame[1][17] != "#100000ff" || !reloaded.is_valid_color("#ffffffff")), "Reloading must preserve old pixels and allow the current palette.")

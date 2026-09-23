@@ -105,16 +105,16 @@
 		for(var/list/transaction as anything in stack)
 			var/color = transaction["color"]
 			if(color)
-				combined |= lowertext(copytext(color, 1, 8))
+				combined |= LOWER_TEXT(copytext(color, 1, 8))
 			for(var/list/point as anything in transaction["points"])
 				var/old_color = point[3]
 				if(!endswith(old_color, "00"))
-					combined |= lowertext(copytext(old_color, 1, 8))
+					combined |= LOWER_TEXT(copytext(old_color, 1, 8))
 			for(var/direction in transaction["replaced"])
 				for(var/list/point as anything in transaction["replaced"][direction])
 					for(var/replaced_color in list(point[3], point[4]))
 						if(!endswith(replaced_color, "00"))
-							combined |= lowertext(copytext(replaced_color, 1, 8))
+							combined |= LOWER_TEXT(copytext(replaced_color, 1, 8))
 	for(var/raw_color in available_palette)
 		var/color = custom_sprite_color(raw_color)
 		if(!color)
@@ -136,12 +136,12 @@
 	var/list/colors = list()
 	for(var/pixel in pixels)
 		if(istext(pixel) && !endswith(pixel, "00"))
-			colors |= lowertext(copytext(pixel, 1, 8))
+			colors |= LOWER_TEXT(copytext(pixel, 1, 8))
 	return colors
 
 /datum/sprite_editor_workspace/custom_sprite/proc/validate_palette_color(datum/source, color)
 	SIGNAL_HANDLER
-	if(!(lowertext(copytext(color, 1, 8)) in palette))
+	if(!(LOWER_TEXT(copytext(color, 1, 8)) in palette))
 		return COLOR_IS_INVALID
 
 /datum/sprite_editor_workspace/custom_sprite/is_point_allowed(x, y, direction)
@@ -214,7 +214,7 @@
 	if(transaction["type"] != "bucket" || !draw_mask)
 		return ..()
 	var/direction = transaction["dir"]
-	var/list/frame = layers[transaction["layer"]]["data"][direction]
+	var/list/list/frame = layers[transaction["layer"]]["data"][direction]
 	var/list/masked = list()
 	for(var/y in 0 to height - 1)
 		var/list/row = frame[y + 1].Copy()
@@ -372,7 +372,7 @@
 			for(var/pixel in row)
 				var/index = istext(pixel) ? pixel_indices[pixel] : "0"
 				if(!index)
-					index = !endswith(pixel, "00") ? indices[lowertext(copytext(pixel, 1, 8))] : null
+					index = !endswith(pixel, "00") ? indices[LOWER_TEXT(copytext(pixel, 1, 8))] : null
 					pixel_indices[pixel] = index || "0"
 				pixels += index || "0"
 		directions[direction] = custom_sprite_encode_grid(jointext(pixels, ""), length(saved_palette), width * height)

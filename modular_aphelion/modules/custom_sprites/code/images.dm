@@ -48,7 +48,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 					var/list/channels = split_color(pixel)
 					if(channels[4] < 128)
 						continue
-					var/color = lowertext(rgb(channels[1], channels[2], channels[3]))
+					var/color = LOWER_TEXT(rgb(channels[1], channels[2], channels[3]))
 					counts[color]++
 	var/list/palette = list()
 	while(length(counts) && length(palette) < 15)

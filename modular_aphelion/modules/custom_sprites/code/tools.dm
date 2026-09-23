@@ -105,7 +105,6 @@
 	return ..()
 
 /datum/looping_sound/salon_snipping/handle_parent_del(datum/source)
-	SIGNAL_HANDLER
 	stop()
 	..()
 

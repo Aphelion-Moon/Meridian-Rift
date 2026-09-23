@@ -53,7 +53,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		return "hairstyle"
 	if(isnull(zone))
 		return "whole-body tattoo"
-	return "[lowertext(GLOB.custom_marking_zone_labels[zone])] tattoo"
+	return "[LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] tattoo"
 
 /// The recipient's live style for one target. Hair includes the whitelisted base hair look.
 /proc/custom_sprite_live_package(mob/living/carbon/human/body, target, zone)
@@ -309,11 +309,11 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 				continue
 			has_bodyparts = TRUE
 			if(limb.is_husked)
-				return "[whose] [lowertext(GLOB.custom_marking_zone_labels[limb.body_zone])] can't be tattooed."
+				return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[limb.body_zone])] can't be tattooed."
 			if(custom_sprite_zone_covered(recipient, limb.body_zone, covered_flags))
-				return "[whose] [lowertext(GLOB.custom_marking_zone_labels[limb.body_zone])] is covered."
+				return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[limb.body_zone])] is covered."
 			if(limb.aux_zone && custom_sprite_zone_covered(recipient, limb.aux_zone, covered_flags))
-				return "[whose] [lowertext(GLOB.custom_marking_zone_labels[limb.aux_zone])] is covered."
+				return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[limb.aux_zone])] is covered."
 			if((limb.body_zone == BODY_ZONE_L_LEG && (covered_flags & FOOT_LEFT)) || (limb.body_zone == BODY_ZONE_R_LEG && (covered_flags & FOOT_RIGHT)))
 				return "[whose] feet are covered."
 		if(!has_bodyparts)
@@ -331,9 +331,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		return null
 	var/obj/item/bodypart/limb = recipient.get_bodypart(custom_marking_zone_limb(zone))
 	if(!limb || IS_STUMP(limb) || (limb.bodyshape & BODYSHAPE_TAUR) || limb.is_husked || ((zone in GLOB.custom_marking_hand_arms) && !limb.aux_zone))
-		return "[whose] [lowertext(GLOB.custom_marking_zone_labels[zone])] can't be tattooed."
+		return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] can't be tattooed."
 	if(custom_sprite_zone_covered(recipient, zone))
-		return "[whose] [lowertext(GLOB.custom_marking_zone_labels[zone])] is covered."
+		return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] is covered."
 	return null
 
 /**
@@ -667,7 +667,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 			if(original_limb?.resolve() != limb)
 				return "[whose] body parts changed. Export the draft and start again."
 	else if(recipient.get_bodypart(custom_marking_zone_limb(body_zone) || BODY_ZONE_HEAD) != bodypart_ref?.resolve())
-		return "[whose] [body_zone ? lowertext(GLOB.custom_marking_zone_labels[body_zone]) : "head"] was replaced. Export the draft and start again."
+		return "[whose] [body_zone ? LOWER_TEXT(GLOB.custom_marking_zone_labels[body_zone]) : "head"] was replaced. Export the draft and start again."
 	if(custom_style_package_hash(custom_sprite_live_package(recipient, target, body_zone)) != original["hash"])
 		return "[whose] [label()] changed since work started. Export the draft and start again."
 	return custom_sprite_salon_target_problem(recipient, target, body_zone, self_work)

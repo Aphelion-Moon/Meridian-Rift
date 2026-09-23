@@ -27,4 +27,5 @@
 
 /// The custom editor owns this preference's UI.
 /datum/preference/custom_sprite_palette/is_accessible(datum/preferences/preferences)
+	. = ..()
 	return FALSE

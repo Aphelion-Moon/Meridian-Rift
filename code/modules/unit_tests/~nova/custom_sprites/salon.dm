@@ -387,7 +387,7 @@
 	TEST_ASSERT(mirror.save_style(recipient), "A character spawned without a recorded slot must still be able to save: [mirror.save_message]")
 	recipient.mind.original_character_slot_index = preferences.default_slot + 1
 	TEST_ASSERT(!(mirror.save_style(recipient) || mirror.save_state != "error"), "Saves must stay bound to the slot the character spawned with.")
-	TEST_ASSERT(!findtext(lowertext(mirror.save_message), "export"), "The completed result must not direct players to an export action it no longer offers.")
+	TEST_ASSERT(!findtext(LOWER_TEXT(mirror.save_message), "export"), "The completed result must not direct players to an export action it no longer offers.")
 	recipient.mind.original_character_slot_index = preferences.default_slot
 	mirror.slot = preferences.default_slot
 	recipient.real_name = "Someone Else Entirely"

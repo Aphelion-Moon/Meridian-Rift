@@ -121,7 +121,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	if(!istext(color) || length(color) != 7 || copytext(color, 1, 2) != "#")
 		return null
 	var/clean = sanitize_hexcolor(color, 6, TRUE, "invalid")
-	return clean == lowertext(color) ? clean : null
+	return clean == LOWER_TEXT(color) ? clean : null
 
 /// Older drawings used one boolean; each view now owns its own saved choice.
 /proc/custom_sprite_emissive_settings(value)

@@ -180,7 +180,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(custom_style_unknown_key(raw, list("format", "version", "target", "zone", "drawing", "hair", "markings")))
 		return list("error" = "The style has an unsupported field.")
 	var/target = raw["target"]
-	if(!(target in GLOB.custom_style_hair_targets + list("markings")))
+	if(!(target in (GLOB.custom_style_hair_targets + list("markings"))))
 		return list("error" = "The style's drawing target is invalid.")
 	var/zone = raw["zone"]
 	if(target == "markings")
