@@ -511,6 +511,15 @@
 	TEST_ASSERT(wait_for_appearance_timers(), "Appearance timers did not run after arousal decreased.")
 	TEST_ASSERT_EQUAL(portal_penis_icon_state(device), "m_penis_human_5_0_FRONT_UNDER", "A body-driven arousal decrease retained the portal's erect shaft.")
 
+	// A covered penis never redraws the body, so the portal has to hear about it from the genital itself.
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(allocate(/obj/item/clothing/under/color/grey), ITEM_SLOT_ICLOTHING), "The appearance-test wearer could not get dressed.")
+	TEST_ASSERT(wait_for_appearance_timers(), "Appearance timers did not run after dressing the wearer.")
+	var/covered_body_key = wearer.icon_render_keys[BODY_ZONE_CHEST]
+	TEST_ASSERT(test_penis.apply_arousal_label("Very aroused"), "The covered appearance-test penis could not be made erect.")
+	TEST_ASSERT_EQUAL(wearer.icon_render_keys[BODY_ZONE_CHEST], covered_body_key, "The covered arousal fixture redrew the body, so it no longer tests a hidden genital.")
+	TEST_ASSERT(wait_for_appearance_timers(), "Appearance timers did not run after the covered arousal change.")
+	TEST_ASSERT_EQUAL(portal_penis_icon_state(device), "m_penis_human_5_1_FRONT_UNDER", "Arousing a penis covered by clothing did not refresh the portal's shaft.")
+
 /// The public box path uses its dedicated storage datum and contains exactly one complete kit.
 /datum/unit_test/portal_device/packaging_and_disabled_enforcement/Run()
 	var/obj/item/storage/box/erp/portal_fleshlight/portal_box = allocate(/obj/item/storage/box/erp/portal_fleshlight)
@@ -858,11 +867,11 @@
 	local_participant.dropItemToGround(device, force = TRUE)
 	TEST_ASSERT(decoy_participant.put_in_active_hand(device, forced = TRUE), "The third-party operator could not hold the portal device.")
 	var/datum/interaction_route/portal_device/third_party_self_route = new(device, decoy_participant, receiver, device, BODY_ZONE_PRECISE_MOUTH)
-	TEST_ASSERT(!third_party_self_route.is_still_valid(
+	TEST_ASSERT(third_party_self_route.is_still_valid(
 		tongue_kiss,
 		local_participant,
 		local_participant,
-	), "A third party could make one wearer fill both portal roles.")
+	), "A third party working the device could not bring the wearer's own two ends together.")
 
 /// A device within reach of someone other than the receiver's wearer offers their parts on the wearer's panel.
 /datum/unit_test/portal_device/remote_wearer_menu_route/Run()

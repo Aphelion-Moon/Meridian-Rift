@@ -78,12 +78,16 @@
 
 //This translates the float size into a sprite string
 /obj/item/organ/genital/proc/update_sprite_suffix()
+	var/old_sprite_suffix = sprite_suffix
 	sprite_suffix = "[get_sprite_size_string()]"
 
 	var/datum/bodypart_overlay/mutant/genital/our_overlay = bodypart_overlay
 
 	our_overlay.sprite_suffix = sprite_suffix
 	our_overlay.organ_slot = src.slot
+	// A genital hidden by clothing never redraws the body, so anything drawing it elsewhere needs telling directly.
+	if(sprite_suffix != old_sprite_suffix && ishuman(owner))
+		SEND_SIGNAL(owner, COMSIG_HUMAN_GENITAL_UPDATED, src)
 
 /obj/item/organ/genital/proc/get_description_string(datum/sprite_accessory/genital/genital)
 	return "You see genitals."
@@ -92,11 +96,8 @@
 	return
 
 /obj/item/organ/genital/proc/set_size(size)
-	var/old_sprite_suffix = sprite_suffix
 	genital_size = size
 	update_sprite_suffix()
-	if(sprite_suffix != old_sprite_suffix && ishuman(owner))
-		SEND_SIGNAL(owner, COMSIG_HUMAN_GENITAL_UPDATED, src)
 
 /obj/item/organ/genital/Initialize(mapload)
 	. = ..()

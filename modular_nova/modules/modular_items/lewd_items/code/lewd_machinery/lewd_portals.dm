@@ -193,6 +193,9 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 
 /// Captures all mob state that this portal changes.
 /obj/structure/lewd_portal/proc/snapshot_current_mob(mob/living/carbon/human/candidate)
+	// A tilt is temporary, so straighten up before remembering the transform we hand back at the end.
+	var/datum/component/pixel_tilt/tilt = candidate.GetComponent(/datum/component/pixel_tilt)
+	tilt?.reset_tilt_and_remove()
 	initial_mob_dir = candidate.dir
 	initial_mob_transform = matrix(candidate.transform)
 	initial_mob_pixel_x = candidate.pixel_x
@@ -415,6 +418,8 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	session_mob.regenerate_icons()
 	session_mob.add_overlay(initial_mob_overlays)
 	session_mob.setDir(initial_mob_dir)
+	// A tilt started in the portal turned our transform, not theirs; drop it without its reverse turn.
+	qdel(session_mob.GetComponent(/datum/component/pixel_tilt))
 	session_mob.transform = matrix(initial_mob_transform)
 	session_mob.pixel_x = initial_mob_pixel_x
 	session_mob.pixel_y = initial_mob_pixel_y

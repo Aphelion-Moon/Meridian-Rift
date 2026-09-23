@@ -310,9 +310,6 @@
 
 	if(receiver_is_user && local_participant != receiver_wearer)
 		return FALSE
-	// Only the wearer can put their own body on both ends of the portal.
-	if(local_participant == receiver_wearer && operator != local_participant)
-		return FALSE
 	if(!local_participant.allows_portal_use() || !receiver_wearer.allows_portal_use())
 		return FALSE
 
