@@ -11,9 +11,17 @@ appearance trees and internal mask ordering are preserved; the finished groups a
 `overlays_standing` for removal and multiz rebuilding.
 
 The same final hook prepares direct bodypart glow/blocker masks after centering and height
-adjustments. Each standard mask gets an iconless, unshifted emissive parent, with its original
+adjustments. Standard masks move into an iconless, unshifted emissive parent, with their original
 offsets, filters, alpha and inherited direction inside. This supports different accessory canvas
 sizes without changing artwork. The raw shared limb-cache appearances are copied, never modified.
+
+Only the mob's top-level overlays count toward `MAX_ATOM_OVERLAYS`, and every limb, marking and
+accessory colour slot brings a sprite plus a mask. So masks sharing a plane and layer share one
+parent, and plain floating sprites sharing a layer (limbs, markings, matrixed colour slots, inner-ear
+and MOD texture holders) share one iconless holder. Worn masks share a group per layer within a slot,
+which mostly matters for the two held items. An entry that cannot join keeps its place, and later
+entries at its layer start afresh, so draw order is unchanged. `overlays2text()` names the first
+sprite inside iconless wrappers, so an overflow printout shows what they hold.
 
 This covers ordinary worn slots and held overlays, not the separate psionic held-item
 `vis_contents`/render-source path. Absolute-layer effects and non-emissive planes are not moved.
@@ -41,11 +49,11 @@ remove the old slot, build a new worn appearance, apply wearer-specific offsets/
 call `apply_overlay()`. That new appearance needs preparation even if the item is unchanged.
 Other slot types exit at the layer guard; leaves and already-separated emissive roots skip recursion.
 
-Bodypart preparation scans the final slot list once. A changed limb can cause the complete bodypart
-slot to be assembled again, so masks from unchanged limbs are prepared too. Already prepared
-iconless roots are returned unchanged on repeat application, without another wrapper allocation.
-Each newly prepared mask requires two mutable appearances and adds one logical node to the final
-tree.
+Bodypart preparation scans the final slot list once and returns a new list. A changed limb can cause
+the complete bodypart slot to be assembled again, so masks from unchanged limbs are prepared too.
+Prepared roots cannot join again and single sprites are not wrapped, so repeat application adds no
+wrappers. Each newly prepared mask requires one copied mutable appearance; each plane-and-layer
+parent and each holder of two or more sprites requires one more.
 
 The cache stores the result, but there is no separate "already prepared" marker or memoization table.
 Explicitly preparing the same cached tree again returns it unchanged, although nested visible branches
@@ -57,6 +65,10 @@ but needs call-frequency evidence rather than another cache in this module.
 ### TG Proc/File Changes:
 
 - `code/modules/mob/living/carbon/carbon_update_icons.dm`: one call in `apply_overlay()` before `add_overlay()`.
+- `code/modules/mob/living/carbon/human/human_update_icons.dm`: `update_body_parts()` measures nested
+  sprites too (they read back as appearances, which have no procs), so accessories inside holders
+  still size the body for HUDs, immersion and similar effects.
+- `code/controllers/subsystem/overlays.dm`: `overlays2text()` names the first sprite inside iconless wrappers.
 - `code/modules/mob/living/carbon/human/human_update_icons.dm`: the four active garment builders in
   `get_underwear_overlays()` pass the wearer to `make_appearance()`.
 - `code/datums/sprite_accessories/clothing.dm`: `make_appearance()` adds a blocker when `em_block`
