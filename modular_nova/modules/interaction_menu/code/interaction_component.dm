@@ -77,12 +77,11 @@
 	interact_next = interact_last + INTERACTION_COOLDOWN
 	partner.interact_next = interact_next
 
-/// Resolves a route from the viewer's active item or this component's current body relay.
+/// Resolves a route through a portal device the viewer can reach, or this component's current body relay.
 /datum/component/interactable/proc/get_interaction_route(datum/interaction/interaction, mob/living/carbon/human/user)
-	var/obj/item/active_item = user.get_active_held_item()
-	var/datum/interaction_route/item_route = active_item?.interaction_route_for(self, interaction, user)
-	if(item_route || user == self || user.Adjacent(self))
-		return item_route
+	var/datum/interaction_route/device_route = self.get_worn_portal_route(interaction, user)
+	if(device_route || user == self || user.Adjacent(self))
+		return device_route
 	var/atom/movable/resolved_relay = resolve_body_relay()
 	if(resolved_relay && user.Adjacent(resolved_relay))
 		return resolved_relay.interaction_route_for(self, interaction, user)

@@ -300,7 +300,6 @@
 	var/obj/item/clothing/sextoy/portal_panties/receiver = allocate(/obj/item/clothing/sextoy/portal_panties)
 	receiver.forceMove(wearer)
 
-	receiver.current_equipped_slot = ITEM_SLOT_MASK
 	receiver.current_target = BODY_ZONE_PRECISE_MOUTH
 	TEST_ASSERT_NULL(receiver.get_equipped_wearer(), "A receiver loose in inventory was trusted as an equipped mask.")
 
@@ -309,7 +308,6 @@
 	wearer.wear_mask = null
 	TEST_ASSERT_NULL(receiver.get_equipped_wearer(), "A removed mask receiver retained authority from stale presentation state.")
 
-	receiver.current_equipped_slot = ORGAN_SLOT_PENIS
 	receiver.current_target = ORGAN_SLOT_PENIS
 	wearer.penis = receiver
 	TEST_ASSERT_EQUAL(receiver.get_equipped_wearer(), wearer, "The receiver rejected its authoritative genital-slot wearer.")
@@ -320,11 +318,10 @@
 	wearer.vagina = null
 
 	receiver.update_target(wearer)
-	TEST_ASSERT_NULL(receiver.current_equipped_slot, "Dropping a receiver retained its claimed equipped slot.")
 	TEST_ASSERT_NULL(receiver.current_target, "Dropping a receiver retained its claimed anatomy target.")
 	TEST_ASSERT_NULL(receiver.get_equipped_wearer(), "A dropped receiver still resolved an equipped wearer.")
 
-/// The local and receiver validators reject covered mouths, unavailable limbs, and sheathed penises.
+/// The device end follows face to face exposure rules, while a worn receiver stays open under clothing and sheaths.
 /datum/unit_test/portal_device/target_accessibility/Run()
 	if(CONFIG_GET(flag/disable_lewd_items) || CONFIG_GET(flag/disable_erp_preferences))
 		TEST_NOTICE(src, "Portal-device target tests require lewd items to be enabled by the test configuration.")
@@ -333,6 +330,10 @@
 	var/mob/living/carbon/human/consistent/local_participant = allocate(/mob/living/carbon/human/consistent)
 
 	TEST_ASSERT(local_participant.portal_target_is_accessible(BODY_ZONE_PRECISE_MOUTH), "An uncovered local mouth was rejected.")
+	var/obj/item/clothing/head/beanie/hat = allocate(/obj/item/clothing/head/beanie)
+	TEST_ASSERT(local_participant.equip_to_slot_if_possible(hat, ITEM_SLOT_HEAD), "The test participant could not equip a hat.")
+	TEST_ASSERT(local_participant.portal_target_is_accessible(BODY_ZONE_PRECISE_MOUTH), "A hat that leaves the mouth free blocked the local mouth.")
+	TEST_ASSERT(local_participant.transferItemToLoc(hat, local_participant.loc, force = TRUE, silent = TRUE), "The test participant could not remove the hat.")
 	var/obj/item/clothing/mask/gas/covering_mask = allocate(/obj/item/clothing/mask/gas)
 	TEST_ASSERT(local_participant.equip_to_slot_if_possible(covering_mask, ITEM_SLOT_MASK), "The test participant could not equip a mouth-covering mask.")
 	TEST_ASSERT(local_participant.is_mouth_covered(), "The test mask did not cover the local mouth.")
@@ -372,29 +373,29 @@
 	TEST_ASSERT_NOTNULL(local_penis, "Could not configure the local test penis.")
 	if(!local_penis)
 		return
-	TEST_ASSERT(local_participant.portal_target_is_accessible(ORGAN_SLOT_PENIS), "An exposed unsheathed local penis was rejected.")
+	TEST_ASSERT(local_participant.portal_target_is_accessible(ORGAN_SLOT_PENIS), "An exposed local penis was rejected.")
 	var/datum/bodypart_overlay/mutant/genital/penis/local_penis_overlay = local_penis.bodypart_overlay
 	local_penis_overlay.set_sheath_style(/datum/sprite_accessory/genital/sheath/normal::name)
 	local_penis.aroused = AROUSAL_NONE
 	local_penis.update_sprite_suffix()
 	TEST_ASSERT(local_penis.is_sheathed(), "The local test penis did not enter its configured sheath.")
-	TEST_ASSERT(!local_participant.portal_target_is_accessible(ORGAN_SLOT_PENIS), "A sheathed local penis was accepted.")
-	local_penis.aroused = AROUSAL_FULL
-	local_penis.update_sprite_suffix()
-	TEST_ASSERT(!local_penis.is_sheathed(), "The local test penis did not leave its sheath when fully aroused.")
-	TEST_ASSERT(local_participant.portal_target_is_accessible(ORGAN_SLOT_PENIS), "An exposed unsheathed local penis remained rejected.")
+	TEST_ASSERT(local_participant.portal_target_is_accessible(ORGAN_SLOT_PENIS), "An exposed but sheathed local penis was rejected.")
+	var/obj/item/clothing/under/color/grey/local_jumpsuit = allocate(/obj/item/clothing/under/color/grey)
+	TEST_ASSERT(local_participant.equip_to_slot_if_possible(local_jumpsuit, ITEM_SLOT_ICLOTHING), "The test participant could not equip a jumpsuit.")
+	TEST_ASSERT(!local_participant.portal_target_is_accessible(ORGAN_SLOT_PENIS), "A local penis under a jumpsuit was accepted.")
+	TEST_ASSERT(!local_participant.has_penis(REQUIRE_GENITAL_EXPOSED), "A penis under a jumpsuit was reachable for lewd slots.")
+	TEST_ASSERT(local_penis.apply_visibility_label("Custom") && local_penis.apply_layering_label("Above all clothing"), "Could not show the local penis above all clothing.")
+	TEST_ASSERT(local_participant.portal_target_is_accessible(ORGAN_SLOT_PENIS), "A local penis shown above all clothing was rejected.")
+	TEST_ASSERT(local_participant.has_penis(REQUIRE_GENITAL_EXPOSED), "A penis shown above all clothing was unreachable for lewd slots.")
 
 	var/mob/living/carbon/human/consistent/receiver_wearer = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/clothing/sextoy/portal_panties/mouth_receiver = allocate(/obj/item/clothing/sextoy/portal_panties)
 	TEST_ASSERT(receiver_wearer.equip_to_slot_if_possible(mouth_receiver, ITEM_SLOT_MASK), "The receiver wearer could not equip the mouth receiver.")
 	TEST_ASSERT_EQUAL(mouth_receiver.current_target, BODY_ZONE_PRECISE_MOUTH, "The equipped mask receiver selected the wrong target.")
-	TEST_ASSERT(mouth_receiver.receiver_configuration_valid(), "An uncovered receiver mouth was rejected.")
 	var/obj/item/clothing/head/utility/bomb_hood/covering_head = allocate(/obj/item/clothing/head/utility/bomb_hood)
 	TEST_ASSERT(receiver_wearer.equip_to_slot_if_possible(covering_head, ITEM_SLOT_HEAD), "The receiver wearer could not equip a mouth-covering head item.")
 	TEST_ASSERT(receiver_wearer.is_mouth_covered(), "The test head item did not cover the receiver mouth.")
-	TEST_ASSERT(!mouth_receiver.receiver_configuration_valid(), "A covered receiver mouth was accepted.")
-	TEST_ASSERT(receiver_wearer.transferItemToLoc(covering_head, receiver_wearer.loc, force = TRUE, silent = TRUE), "The receiver wearer could not remove the covering head item.")
-	TEST_ASSERT(mouth_receiver.receiver_configuration_valid(), "An uncovered receiver mouth remained rejected after head-item removal.")
+	TEST_ASSERT_EQUAL(mouth_receiver.get_equipped_wearer(), receiver_wearer, "Covering the receiver's mouth closed the receiver.")
 
 	var/obj/item/clothing/sextoy/portal_panties/penis_receiver = allocate(/obj/item/clothing/sextoy/portal_panties)
 	var/obj/item/organ/genital/penis/receiver_penis = configure_test_penis(receiver_wearer)
@@ -403,21 +404,18 @@
 		return
 	penis_receiver.forceMove(receiver_wearer)
 	receiver_wearer.penis = penis_receiver
-	penis_receiver.current_equipped_slot = ORGAN_SLOT_PENIS
 	penis_receiver.current_target = ORGAN_SLOT_PENIS
-	TEST_ASSERT(penis_receiver.receiver_configuration_valid(), "An exposed unsheathed receiver penis was rejected.")
 	var/datum/bodypart_overlay/mutant/genital/penis/receiver_penis_overlay = receiver_penis.bodypart_overlay
 	receiver_penis_overlay.set_sheath_style(/datum/sprite_accessory/genital/sheath/normal::name)
 	receiver_penis.aroused = AROUSAL_NONE
 	receiver_penis.update_sprite_suffix()
 	TEST_ASSERT(receiver_penis.is_sheathed(), "The receiver test penis did not enter its configured sheath.")
-	TEST_ASSERT(!penis_receiver.receiver_configuration_valid(), "A sheathed receiver penis was accepted.")
-	receiver_penis.aroused = AROUSAL_FULL
-	receiver_penis.update_sprite_suffix()
-	TEST_ASSERT(!receiver_penis.is_sheathed(), "The receiver test penis did not leave its sheath when fully aroused.")
-	TEST_ASSERT(penis_receiver.receiver_configuration_valid(), "An exposed unsheathed receiver penis remained rejected.")
+	var/obj/item/clothing/under/color/grey/receiver_jumpsuit = allocate(/obj/item/clothing/under/color/grey)
+	TEST_ASSERT(receiver_wearer.equip_to_slot_if_possible(receiver_jumpsuit, ITEM_SLOT_ICLOTHING), "The receiver wearer could not equip a jumpsuit.")
+	TEST_ASSERT(receiver_penis.covered_by_clothing(receiver_wearer), "The receiver's jumpsuit did not cover their penis.")
+	TEST_ASSERT_EQUAL(penis_receiver.get_equipped_wearer(), receiver_wearer, "A sheathed receiver penis under a jumpsuit closed the receiver.")
 
-/// Refreshes linked device appearance when receiver exposure changes.
+/// Covering a worn receiver keeps the device open; taking the receiver off closes it and clears its art.
 /datum/unit_test/portal_device/receiver_appearance_refresh/Run()
 	if(CONFIG_GET(flag/disable_lewd_items))
 		TEST_NOTICE(src, "Portal-device appearance tests require lewd items to be enabled by the test configuration.")
@@ -435,18 +433,20 @@
 
 	var/obj/item/clothing/head/utility/bomb_hood/covering_head = allocate(/obj/item/clothing/head/utility/bomb_hood, run_loc_floor_bottom_left)
 	TEST_ASSERT(wearer.equip_to_slot_if_possible(covering_head, ITEM_SLOT_HEAD), "The appearance-test wearer could not equip the mouth-covering head item.")
-	TEST_ASSERT(receiver.appearance_refresh_queued, "Covering the receiver mouth did not schedule a linked appearance refresh.")
-	receiver.flush_linked_appearance_refresh()
-	TEST_ASSERT(!device.is_portal_open(), "Covering the receiver mouth left the portal presentation open.")
+	TEST_ASSERT(wait_for_appearance_timers(), "Appearance timers did not run after covering the receiver.")
+	TEST_ASSERT(device.is_portal_open(), "Covering the receiver mouth closed the portal.")
+	TEST_ASSERT(has_portal_overlay_state(device, "portal_mouth"), "Covering the receiver mouth removed the portal-device mouth art.")
+	TEST_ASSERT(wearer.transferItemToLoc(covering_head, wearer.loc, force = TRUE, silent = TRUE), "The appearance-test wearer could not remove the mouth-covering head item.")
+
+	TEST_ASSERT(wearer.transferItemToLoc(receiver, wearer.loc, force = TRUE, silent = TRUE), "The appearance-test wearer could not take off the receiver.")
+	TEST_ASSERT(!device.is_portal_open(), "Taking off the receiver left the portal open.")
 	TEST_ASSERT_EQUAL(device.name, initial(device.name), "Closing the portal did not restore the device name.")
 	TEST_ASSERT(!has_portal_overlay_state(device, "portal_mouth"), "Closing the portal retained stale mouth art.")
 	TEST_ASSERT(!has_portal_overlay_state(device, "portal_mouth_lips"), "Closing the portal retained stale lip art.")
 
-	TEST_ASSERT(wearer.transferItemToLoc(covering_head, wearer.loc, force = TRUE, silent = TRUE), "The appearance-test wearer could not remove the mouth-covering head item.")
-	receiver.flush_linked_appearance_refresh()
-	TEST_ASSERT(device.is_portal_open(), "Uncovering the receiver mouth did not reopen the portal presentation.")
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The appearance-test wearer could not put the receiver back on.")
+	TEST_ASSERT(device.is_portal_open(), "Putting the receiver back on did not reopen the portal.")
 	TEST_ASSERT_EQUAL(device.name, "portal fleshlight", "Reopening the mouth receiver did not restore the device name.")
-	TEST_ASSERT(has_portal_overlay_state(device, "portal_mouth"), "Reopening the mouth receiver did not restore portal-device mouth art.")
 	TEST_ASSERT(has_portal_overlay_state(device, "portal_mouth_lips"), "Reopening the mouth receiver did not restore portal-device lip art.")
 
 /// Picking up, redrawing, and dropping unrelated held items must not rebuild the linked device.
@@ -858,7 +858,7 @@
 		local_participant,
 	), "A third party could make one wearer fill both portal roles.")
 
-/// A device held by someone other than the receiver's wearer offers the holder's parts on the wearer's panel.
+/// A device within reach of someone other than the receiver's wearer offers their parts on the wearer's panel.
 /datum/unit_test/portal_device/remote_wearer_menu_route/Run()
 	if(CONFIG_GET(flag/disable_lewd_items) || CONFIG_GET(flag/disable_erp_preferences))
 		TEST_NOTICE(src, "Portal-device menu route tests require lewd items and ERP preferences to be enabled by the test configuration.")
@@ -891,8 +891,10 @@
 	TEST_ASSERT(!operator_component.can_interact(tongue_kiss, operator), "The operator's own panel offered an other-person interaction through someone else's receiver.")
 
 	operator.dropItemToGround(device, force = TRUE)
-	TEST_ASSERT_NULL(wearer_component.get_interaction_route(tongue_kiss, operator), "A dropped device kept routing to its remote wearer.")
-	TEST_ASSERT(!wearer_component.can_interact(tongue_kiss, operator), "The wearer's panel kept a remote interaction after its device was dropped.")
+	TEST_ASSERT(istype(wearer_component.get_interaction_route(tongue_kiss, operator), /datum/interaction_route/portal_device), "A device at the operator's feet stopped routing to its remote wearer.")
+	device.forceMove(wearer.loc)
+	TEST_ASSERT_NULL(wearer_component.get_interaction_route(tongue_kiss, operator), "A device out of the operator's reach kept routing to its remote wearer.")
+	TEST_ASSERT(!wearer_component.can_interact(tongue_kiss, operator), "The wearer's panel kept a remote interaction after its device left the operator's reach.")
 
 /// Relay genital reveals require the active session and both participants' sex-toy preferences.
 /datum/unit_test/portal_device/relay_reveal_authority/Run()

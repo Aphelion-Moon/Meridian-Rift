@@ -135,6 +135,14 @@
 	var/obj/item/clothing/sextoy/portal_panties/receiver = receiver_ref?.resolve()
 	return !QDELETED(receiver) && receiver.anonymous
 
+/// A route to this mob through the device linked to a receiver they are wearing, when user can reach that device.
+/mob/living/carbon/human/proc/get_worn_portal_route(datum/interaction/interaction, mob/living/carbon/human/user)
+	for(var/obj/item/clothing/sextoy/portal_panties/receiver in list(wear_mask, penis, vagina, anus))
+		var/datum/interaction_route/route = receiver.linked_fleshlight?.interaction_route_for(src, interaction, user)
+		if(route)
+			return route
+	return null
+
 /// The relay currently projecting this mob, while the complete session and preferences still permit it.
 /mob/proc/get_portal_output()
 	var/obj/structure/lewd_portal/portal = buckled

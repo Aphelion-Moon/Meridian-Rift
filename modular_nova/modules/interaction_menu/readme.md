@@ -15,9 +15,10 @@ module implements two routes:
   parts. It also supports the receiver wearer filling both interaction roles.
 
 Movables that represent a participant can implement `interaction_route_for()`.
-The component asks the viewer's active item first, then a remote body relay. A held
-device offers its holder's own parts on the receiver wearer's panel, whether or not
-the holder is that wearer. Device attacks can also construct a route directly.
+The component asks the device linked to any receiver its parent wears first, then a
+remote body relay. A device the viewer holds or stands next to offers the viewer's own
+parts on the receiver wearer's panel, whether or not the viewer is that wearer. Device
+attacks can also construct a route directly.
 
 ### Validation and ownership:
 

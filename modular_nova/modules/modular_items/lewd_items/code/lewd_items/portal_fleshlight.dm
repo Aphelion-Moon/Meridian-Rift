@@ -76,21 +76,49 @@
 		context[SCREENTIP_CONTEXT_LMB] = "Pick up"
 		context[SCREENTIP_CONTEXT_RMB] = "Toggle anonymous mode"
 		context[SCREENTIP_CONTEXT_ALT_LMB] = linked_panties ? "Unlink panties" : "No panties linked"
+		if(is_portal_open())
+			context[SCREENTIP_CONTEXT_CTRL_SHIFT_LMB] = "Interact through the portal"
 		return CONTEXTUAL_SCREENTIP_SET
 
 	if(istype(held_item, /obj/item/clothing/sextoy/portal_panties))
 		context[SCREENTIP_CONTEXT_LMB] = "Link panties"
 		return CONTEXTUAL_SCREENTIP_SET
 
-	if(linked_panties?.loc && ishuman(linked_panties.loc))
+	if(istype(held_item, /obj/item/clothing/sextoy/portal_fleshlight) && is_portal_open())
 		context[SCREENTIP_CONTEXT_LMB] = "Use on target"
 		return CONTEXTUAL_SCREENTIP_SET
 
 	return NONE
 
-/// TRUE when the far end is worn, configured and exposed — i.e. the portal would actually go through right now.
+/// TRUE while the linked receiver is worn, which is all the far end needs for the portal to go through.
 /obj/item/clothing/sextoy/portal_fleshlight/proc/is_portal_open()
-	return is_link_valid() && linked_panties.receiver_configuration_valid()
+	return is_link_valid() && !!linked_panties.get_equipped_wearer()
+
+/**
+ * Returns whether user can put their body against this device right now.
+ *
+ * That is holding it, or standing within a tile of it while it lies out in the open or sits in someone's hands.
+ * A device packed away in storage is out of reach.
+ */
+/obj/item/clothing/sextoy/portal_fleshlight/proc/can_reach_device(mob/living/user)
+	if(user.is_holding(src))
+		return TRUE
+	var/mob/living/holder = loc
+	return (isturf(loc) || (istype(holder) && holder.is_holding(src))) && user.Adjacent(src)
+
+/// Opens the receiver wearer's interaction panel for user, listing what user's own parts can do through the portal.
+/obj/item/clothing/sextoy/portal_fleshlight/proc/open_wearer_panel(mob/living/carbon/human/user)
+	var/mob/living/carbon/human/panel_owner = is_link_valid() ? linked_panties.get_equipped_wearer() : null
+	if(!panel_owner || !user.allows_portal_use() || !panel_owner.allows_portal_use())
+		panel_owner = user
+	var/datum/component/interactable/interaction_component = panel_owner.GetComponent(/datum/component/interactable)
+	interaction_component?.open_interaction_menu(panel_owner, user)
+
+/obj/item/clothing/sextoy/portal_fleshlight/click_ctrl_shift(mob/user)
+	if(!ishuman(user) || !is_portal_open())
+		return NONE
+	open_wearer_panel(user)
+	return CLICK_ACTION_SUCCESS
 
 /obj/item/clothing/sextoy/portal_fleshlight/update_appearance(updates = ALL)
 	icon_state = is_link_valid() ? "paired" : "unpaired"
@@ -106,6 +134,8 @@
 	var/portal_open = is_portal_open()
 	. += span_notice("The status light is [portal_open ? "on" : "off"]. The portal is [portal_open ? "open" : "closed"].")
 	. += span_notice("The current target is set to: [current_target]")
+	if(portal_open)
+		. += span_notice("Use it on yourself, or Ctrl-Shift-click it from up to a tile away, to interact through the portal.")
 
 /obj/item/clothing/sextoy/portal_fleshlight/attack_self(mob/user)
 	. = ..()
@@ -120,48 +150,36 @@
 	if(.)
 		return
 	if(target_mob == user)
-		// Someone else's receiver puts their panel in the operator's hands, offering the operator's own parts.
-		var/mob/living/carbon/human/menu_owner = user
-		if(is_portal_open())
-			var/mob/living/carbon/human/receiver_wearer = linked_panties.get_equipped_wearer()
-			if(user.allows_portal_use() && receiver_wearer.allows_portal_use())
-				menu_owner = receiver_wearer
-		var/datum/component/interactable/interaction_component = menu_owner.GetComponent(/datum/component/interactable)
-		interaction_component?.open_interaction_menu(menu_owner, user)
+		open_wearer_panel(user)
 		return TRUE
 
 	var/local_target = user.zone_selected == BODY_ZONE_PRECISE_GROIN ? current_target : user.zone_selected
 	perform_interaction(user, target_mob, linked_panties, local_target, src)
 	return TRUE
 
-/// Routes matching menu actions from the holder's own parts through the receiver to its wearer, who may be the holder.
+/**
+ * Routes a menu action on the receiver wearer's panel through this device, using the viewer's own part at this end.
+ *
+ * The viewer only needs to be able to reach the device, not hold it. When the viewer is the wearer, the receiver
+ * end can also act as the interaction's user side, so they get every pairing a third party would, and its mirror.
+ */
 /obj/item/clothing/sextoy/portal_fleshlight/interaction_route_for(
 	mob/living/carbon/human/represented,
 	datum/interaction/interaction,
 	mob/living/carbon/human/user,
 )
-	if(user.get_active_held_item() != src || !interaction || !is_link_valid())
+	if(!interaction || !is_link_valid() || linked_panties.get_equipped_wearer() != represented || !can_reach_device(user))
 		return null
 	var/obj/item/clothing/sextoy/portal_panties/receiver = linked_panties
-	if(receiver.get_equipped_wearer() != represented)
-		return null
 	var/list/local_targets = interaction_map[receiver.current_target]
 	for(var/local_target in local_targets)
-		if(local_targets[local_target] != interaction.name)
-			continue
-		if(validate_interaction(user, user, receiver, local_target, src, ignore_cooldown = TRUE) != interaction)
-			continue
-		return new /datum/interaction_route/portal_device(src, user, receiver, src, local_target)
-	// The menu acts as its viewer, so only a wearer holding the device can also drive the receiver end.
+		if(local_targets[local_target] == interaction.name && validate_interaction(user, user, receiver, local_target, src, ignore_cooldown = TRUE) == interaction)
+			return new /datum/interaction_route/portal_device(src, user, receiver, src, local_target)
 	if(represented != user)
 		return null
-	// The same wearer can also use the receiver end as the interaction's active part.
 	for(var/local_target in interaction_map)
-		if(interaction_map[local_target]?[receiver.current_target] != interaction.name)
-			continue
-		if(validate_interaction(user, represented, receiver, local_target, src, ignore_cooldown = TRUE, receiver_is_user = TRUE) != interaction)
-			continue
-		return new /datum/interaction_route/portal_device(src, user, receiver, src, local_target, receiver_is_user = TRUE)
+		if(interaction_map[local_target][receiver.current_target] == interaction.name && validate_interaction(user, user, receiver, local_target, src, ignore_cooldown = TRUE, receiver_is_user = TRUE) == interaction)
+			return new /datum/interaction_route/portal_device(src, user, receiver, src, local_target, receiver_is_user = TRUE)
 	return null
 
 /obj/item/clothing/sextoy/portal_fleshlight/attackby(obj/item/used_item, mob/user, list/modifiers, list/attack_modifiers)
@@ -202,7 +220,21 @@
 	receiver_wearer.do_jitter_animation()
 	return TRUE
 
-/// Returns the configured interaction only while every authoritative precondition still holds.
+/**
+ * Returns the configured interaction while every precondition for this portal action still holds, or null.
+ *
+ * The menu, a direct use, and the deferred effects all come through here, so anything that can change
+ * mid-interaction (equipment, links, reach, preferences) is checked again every time.
+ *
+ * Arguments:
+ * - operator: Whoever is working the device. The same mob as local_participant unless they use it on someone else.
+ * - local_participant: Whose part is at the device end.
+ * - receiver: The worn receiver at the far end.
+ * - local_target: The local participant's part in play.
+ * - held_device: The device linked to receiver. When src is a different device, the local end is src's own receiver.
+ * - ignore_cooldown: Skips the shared cooldown, for listing the menu and for effects the action already paid for.
+ * - receiver_is_user: Whether the receiver supplies the interaction's user side part rather than its target side.
+ */
 /obj/item/clothing/sextoy/portal_fleshlight/proc/validate_interaction(
 	mob/living/carbon/human/operator,
 	mob/living/carbon/human/local_participant,
@@ -212,56 +244,45 @@
 	ignore_cooldown = FALSE,
 	receiver_is_user = FALSE,
 )
-	if(QDELETED(src) || QDELETED(held_device) || QDELETED(receiver))
+	if(QDELETED(src) || QDELETED(held_device) || QDELETED(receiver) || QDELETED(operator) || QDELETED(local_participant))
 		return null
 	if(!ishuman(operator) || !ishuman(local_participant) || IS_UNCONSCIOUS_OR_CRIT(operator) || operator.incapacitated)
 		return null
-	if(!(held_device in operator.held_items) || !operator.can_perform_action(held_device, NEED_DEXTERITY | NEED_HANDS | ALLOW_RESTING))
+	if(!held_device.can_reach_device(operator) || !held_device.is_link_valid() || receiver != held_device.linked_panties)
 		return null
-	if(!held_device.is_link_valid() || receiver != held_device.linked_panties)
+	var/mob/living/carbon/human/receiver_wearer = receiver.get_equipped_wearer()
+	if(!receiver_wearer || IS_UNCONSCIOUS_OR_CRIT(receiver_wearer) || receiver_wearer.incapacitated)
 		return null
-	if(QDELETED(local_participant) || IS_UNCONSCIOUS_OR_CRIT(local_participant) || local_participant.incapacitated)
+	if(IS_UNCONSCIOUS_OR_CRIT(local_participant) || local_participant.incapacitated)
 		return null
 
 	if(src == held_device)
-		if(!operator.Adjacent(local_participant))
+		if(!operator.Adjacent(local_participant) || !local_participant.portal_target_is_accessible(local_target))
 			return null
-	else
-		if(!operator.can_perform_action(src, NEED_DEXTERITY | NEED_HANDS | ALLOW_RESTING))
-			return null
-		if(!is_link_valid() || linked_panties.get_equipped_wearer() != local_participant || !linked_panties.receiver_configuration_valid())
-			return null
-		if(local_target != linked_panties.current_target)
-			return null
-
-	var/mob/living/carbon/human/receiver_wearer = receiver.get_equipped_wearer()
-	if(!receiver_wearer || IS_UNCONSCIOUS_OR_CRIT(receiver_wearer) || receiver_wearer.incapacitated || !receiver.receiver_configuration_valid())
+	// Device to device: the local end is src's own receiver, which is never covered either.
+	else if(!can_reach_device(operator) || !is_link_valid() || linked_panties.get_equipped_wearer() != local_participant || local_target != linked_panties.current_target)
 		return null
+
 	if(receiver_is_user && local_participant != receiver_wearer)
 		return null
+	// Only the wearer can put their own body on both ends of the portal.
 	if(local_participant == receiver_wearer && operator != local_participant)
 		return null
 	if(!local_participant.allows_portal_use() || !receiver_wearer.allows_portal_use())
 		return null
-	if(!local_participant.portal_target_is_accessible(local_target))
-		return null
 
-	var/interaction_user_part = receiver_is_user ? receiver.current_target : local_target
-	var/interaction_target_part = receiver_is_user ? local_target : receiver.current_target
-	var/interaction_name = interaction_map[interaction_target_part]?[interaction_user_part]
-	var/datum/interaction/interaction = GLOB.interaction_instances[interaction_name]
-	if(!interaction_name || !interaction || !interaction.lewd || interaction.category == INTERACTION_CAT_HIDE || interaction.usage != INTERACTION_OTHER)
+	var/user_part = receiver_is_user ? receiver.current_target : local_target
+	var/target_part = receiver_is_user ? local_target : receiver.current_target
+	var/interaction_name = interaction_map[target_part]?[user_part]
+	var/datum/interaction/interaction = interaction_name ? GLOB.interaction_instances[interaction_name] : null
+	if(!interaction?.lewd || interaction.category == INTERACTION_CAT_HIDE || interaction.usage != INTERACTION_OTHER)
 		return null
-	var/list/expected_user_parts = (interaction_user_part in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)) ? list(interaction_user_part) : list()
-	var/list/expected_target_parts = (interaction_target_part in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)) ? list(interaction_target_part) : list()
-	if(!deep_compare_list(interaction.user_required_parts, expected_user_parts) || !deep_compare_list(interaction.target_required_parts, expected_target_parts))
+	// A mapped definition must require exactly the genitals at the two ends, and nothing else.
+	var/static/list/genital_slots = list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)
+	if(!deep_compare_list(interaction.user_required_parts, (user_part in genital_slots) ? list(user_part) : list()) \
+		|| !deep_compare_list(interaction.target_required_parts, (target_part in genital_slots) ? list(target_part) : list()))
 		return null
-	if(!interaction.allow_act(
-		local_participant,
-		receiver_wearer,
-		allow_same_participant = TRUE,
-		check_part_exposure = FALSE,
-	))
+	if(!interaction.allow_act(local_participant, receiver_wearer, allow_same_participant = TRUE, check_part_exposure = FALSE))
 		return null
 
 	var/datum/component/interactable/local_component = local_participant.GetComponent(/datum/component/interactable)
@@ -308,12 +329,7 @@
 		to_chat(user, span_warning("[src] isn't linked to any portal panties!"))
 		return CLICK_ACTION_BLOCKING
 
-	var/datum/weakref/panties_ref = WEAKREF(linked_panties)
-	var/choice = tgui_alert(user, "Are you sure you want to unlink the portal panties?", "Unlink Portal Panties", list("Yes", "No"))
-	if(choice != "Yes")
-		return CLICK_ACTION_BLOCKING
-	var/obj/item/clothing/sextoy/portal_panties/panties = panties_ref.resolve()
-	if(QDELETED(src) || QDELETED(panties) || linked_panties != panties || panties.linked_fleshlight != src || !(src in user.held_items))
+	if(tgui_alert(user, "Are you sure you want to unlink the portal panties?", "Unlink Portal Panties", list("Yes", "No")) != "Yes" || QDELETED(src) || !user.Adjacent(src))
 		return CLICK_ACTION_BLOCKING
 
 	to_chat(user, span_notice("You unlink the portal panties from [src]."))
@@ -369,8 +385,6 @@
 				return
 			organ = mutable_appearance(PORTAL_DEVICE_ICON, vagina_state)
 			organ.color = portal_organ_color(vagina)
-			if(vagina.aroused == AROUSAL_FULL)
-				extra_overlay = mutable_appearance(PORTAL_DEVICE_ICON, "portal_vag_drip")
 		if(ORGAN_SLOT_ANUS)
 			if(!istype(target_organ, /obj/item/organ/genital/anus))
 				return
@@ -385,25 +399,24 @@
 			if(!istype(penis))
 				return
 			var/datum/bodypart_overlay/mutant/genital/penis/penis_overlay = penis.bodypart_overlay
-			var/datum/sprite_accessory/genital/penis/shaft = penis_overlay?.shaft_datum || penis_overlay?.sprite_datum
-			if(!shaft || !penis.bodypart_owner || penis.is_sheathed())
+			if(!penis_overlay?.sprite_datum || !penis.bodypart_owner)
 				return
 			var/portal_sprite_suffix = penis.get_sprite_size_string(minimum_sprite_affix = 4)
 			var/current_suffix_token = "_[penis.sprite_suffix]_"
 			var/portal_suffix_token = "_[portal_sprite_suffix]_"
 			var/list/penis_appearances = list()
-			var/mutable_appearance/alignment_appearance
 			for(var/mutable_appearance/penis_appearance as anything in penis_overlay.get_all_overlays(penis.bodypart_owner))
 				var/mutable_appearance/portal_penis = make_mutable_appearance_directional(penis_appearance, WEST)
 				portal_penis.icon_state = replacetext(portal_penis.icon_state, current_suffix_token, portal_suffix_token)
 				if(portal_penis.icon && !icon_exists(portal_penis.icon, portal_penis.icon_state))
 					continue
 				penis_appearances += portal_penis
-				if(portal_penis.icon && (isnull(alignment_appearance) || (!findtext(alignment_appearance.icon_state, "_FRONT_UNDER") && findtext(portal_penis.icon_state, "_FRONT_UNDER"))))
-					alignment_appearance = portal_penis
-			if(!alignment_appearance)
-				return
-			var/list/portal_offset = portal_penis_offset(alignment_appearance)
+			// Seat everything by the first layer with art facing west, front layers first. A sheath's primary layer has none.
+			var/list/portal_offset
+			for(var/front_first in list(TRUE, FALSE))
+				for(var/mutable_appearance/candidate as anything in penis_appearances)
+					if(!portal_offset && candidate.icon && !!findtext(candidate.icon_state, "_FRONT_UNDER") == front_first)
+						portal_offset = portal_penis_offset(candidate)
 			if(!portal_offset)
 				return
 			for(var/mutable_appearance/portal_penis as anything in penis_appearances)
@@ -429,14 +442,15 @@
 		. += extra_overlay
 	. += organ
 
-/// Seats a native WEST frame by the root that actually appears in its DMI state.
+/// Seats a native WEST frame by the root that actually appears in its DMI state. Null when the frame is empty.
 /obj/item/clothing/sextoy/portal_fleshlight/proc/portal_penis_offset(
 	mutable_appearance/penis_appearance,
 )
 	var/static/list/cached_offsets = list()
 	var/cache_key = "[penis_appearance.icon]#[penis_appearance.icon_state]#[penis_appearance.pixel_w]#[penis_appearance.pixel_z]"
-	if(cached_offsets[cache_key])
+	if(cache_key in cached_offsets)
 		return cached_offsets[cache_key]
+	cached_offsets[cache_key] = null
 
 	var/icon/west_frame = icon(penis_appearance.icon, penis_appearance.icon_state, WEST)
 	var/frame_width = west_frame.Width()
@@ -454,8 +468,6 @@
 		for(var/edge_y in 1 to frame_height)
 			if(west_frame.GetPixel(edge_x, edge_y))
 				root_rows += edge_y
-	if(!length(root_rows))
-		return null
 	sortTim(root_rows, GLOBAL_PROC_REF(cmp_numeric_dsc))
 	var/root_y = root_rows[floor(length(root_rows) / 2) + 1]
 

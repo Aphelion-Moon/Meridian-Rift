@@ -13,8 +13,10 @@ and a body relay for their occupant. Both use the generic
   or equip it as a mask for the mouth endpoint.
 - Activate the handheld device in hand to cycle the target used when selecting
   the groin. Other selected body zones choose their corresponding endpoint.
-- Use the handheld device on yourself to open the interaction panel of the
-  receiver's wearer, listing what your own parts can do through the portal.
+- Use the handheld device on yourself, or Ctrl-Shift-click it from up to a tile
+  away, to open the interaction panel of the receiver's wearer, listing what your
+  own parts can do through the portal. The wearer can do the same to reach their
+  own receiver.
 - Right-click the device or receiver to toggle that item's anonymity. Alt-click
   either linked item to unlink it.
 - Use the bore on two supported walls to create its portal pair. Activate an
@@ -35,7 +37,9 @@ the relay and restores the occupant's presentation. The interaction component
 only observes the relay through a weak reference. Keep teardown idempotent because
 endpoint, occupant, and relay deletion can enter the same cleanup path.
 
-Participant access checks belong in `portal_target_is_accessible()` in
+A worn receiver is always open: it sits on its part underneath any clothing, so
+clothing, masks and sheaths never close it. The device end follows face to face
+exposure rules through `portal_target_is_accessible()` in
 [the human helpers](code/lewd_helpers/human.dm). Slot and link checks stay with
 the items that own those relationships. Physical access and visible sprite state
 are distinct: rendering checks native appearances separately and copies them
