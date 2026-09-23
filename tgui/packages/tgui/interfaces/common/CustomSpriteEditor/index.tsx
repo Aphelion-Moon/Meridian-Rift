@@ -27,12 +27,12 @@ import { toolTooltip } from '../SpriteEditor/useSpriteEditorHotkeys';
 import { CustomSpritePalette } from './Palette';
 import type { CustomSpriteEditorData } from './types';
 
-/** Steps through a list of options with wraparound, for the cycle arrows. */
-function cycleOption(
-  options: readonly string[] | null | undefined,
-  current: string | null | undefined,
+/** Steps through a list of options with wraparound, for the cycle arrows and rotate buttons. */
+function cycleOption<T>(
+  options: readonly T[] | null | undefined,
+  current: T | null | undefined,
   step: number,
-): string | null {
+): T | null {
   if (!options?.length) return null;
   const index = current == null ? -1 : options.indexOf(current);
   // Anything not in the list steps in from whichever end the arrow points at.
@@ -90,6 +90,9 @@ const directions = [
   [Dir.WEST, 'Left'],
 ] as const;
 
+/** Views in the order the character preview's clockwise rotation turns through them. */
+const rotation = [Dir.SOUTH, Dir.WEST, Dir.NORTH, Dir.EAST];
+
 const blendingTooltip = 'Uses Multiply blending on Custom colors.';
 
 export const CustomSpriteEditor = ({
@@ -109,6 +112,9 @@ export const CustomSpriteEditor = ({
     showGradient,
     canHideParts,
     hideParts,
+    canHideUnderwear,
+    hideUnderwear,
+    wholeBodyTaur,
     canChangeMarkings,
     baseMarkings,
     baseMarkingChoices,
@@ -161,6 +167,8 @@ export const CustomSpriteEditor = ({
   );
   const salon = context === 'salon';
   const locked = (dir: Dir) => !!lockedDirections?.includes(String(dir));
+  const rotate = (step: number) =>
+    setDirection(cycleOption(rotation, direction, step) ?? direction);
   const savedLabel = salon ? 'Draft saved for this round' : 'Saved';
   const hairTarget = target === 'hair' || target === 'facial_hair';
   const drawingName =
@@ -339,6 +347,15 @@ export const CustomSpriteEditor = ({
                     onClick={() => act('toggleParts')}
                   >
                     Hide parts
+                  </Button.Checkbox>
+                )}
+                {!!canHideUnderwear && (
+                  <Button.Checkbox
+                    checked={!!hideUnderwear}
+                    tooltip="Leave underwear off the guide and preview."
+                    onClick={() => act('toggleUnderwear')}
+                  >
+                    Hide underwear
                   </Button.Checkbox>
                 )}
                 {!!hasGradient && (
@@ -601,6 +618,16 @@ export const CustomSpriteEditor = ({
                       Emissive
                     </Button.Checkbox>
                   </Stack.Item>
+                  {!!wholeBodyTaur && !!emissiveAllowed && (
+                    <Stack.Item color="average">
+                      Emissives drawn on the taur body won&apos;t glow from this
+                      drawing. Use the{' '}
+                      {salon
+                        ? 'Taur lower body tattoo'
+                        : 'Taur body custom marking'}{' '}
+                      instead.
+                    </Stack.Item>
+                  )}
                   <Stack.Item>
                     <Section title="Preview">
                       <Box textAlign="center">
@@ -615,6 +642,22 @@ export const CustomSpriteEditor = ({
                             }}
                           />
                         )}
+                        <Box mt={1}>
+                          <Button
+                            fontSize="22px"
+                            icon="redo"
+                            tooltip="Rotate Clockwise"
+                            tooltipPosition="bottom"
+                            onClick={() => rotate(1)}
+                          />
+                          <Button
+                            fontSize="22px"
+                            icon="undo"
+                            tooltip="Rotate Counter-Clockwise"
+                            tooltipPosition="bottom"
+                            onClick={() => rotate(-1)}
+                          />
+                        </Box>
                       </Box>
                     </Section>
                   </Stack.Item>

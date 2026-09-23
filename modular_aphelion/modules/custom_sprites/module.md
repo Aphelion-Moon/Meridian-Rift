@@ -20,8 +20,9 @@ face and saved under its own key, so the two never touch each other.
 Custom marking drawing is on the body customization page's Markings tab.
 Each marking section there also has a Custom button:
 Head, Torso, Left arm, Right arm, Left hand, Right hand, Left leg and Right leg.
-Taur legs have no Custom button, since they have no paintable pixels. A **Taur
-body** button appears when the character has a taur body selected and enabled.
+With a taur body selected and enabled, the legs have no paintable pixels and
+their markings never show, so both leg sections swap their + and Custom buttons
+for a **Taur body** button, and the server refuses new leg markings.
 These pass `body_zone` to the same editor. Whole-body, ordinary zone, hand and
 taur-zone drawings stay separate.
 
@@ -43,7 +44,7 @@ The wide canvas adds 16 columns on each side of the ordinary body. Existing
 taur. Guides, paint and previews share that origin, including hair, which stays
 32 by 32. Wide preview images retain their 64 by 32 proportions.
 
-`ALLOW_CUSTOM_SPRITE_EDITING` defaults to enabled. Set it to `0` in
+Uncomment `DISALLOW_CUSTOM_SPRITE_EDITING` at the end of
 `config/nova/config_nova.txt` to hide the buttons and reject editing actions.
 Saved drawings still render. Editors check the owning client, character slot,
 target and optional body zone on the server, including after color-picker dialogs.
@@ -72,10 +73,13 @@ target and optional body zone on the server, including after color-picker dialog
 - Clear layer sits beside undo/redo and clears the current direction. It can
   also remove old paint outside bounds that changed with the character's body
   shape. It is undoable. Clearing an empty view leaves redo alone.
-- Hide parts is available for markings. Gradient, Guide and Grid can be toggled
-  where applicable. The guide shows the body
-  as it is, underwear included, and excludes the drawing being edited. Guide and paint
-  share the same canvas and pixel grid. Preview comes last in the sidebar.
+- Hide parts is available for markings, and Hide underwear for markings in
+  character setup; it starts on when character setup previews the character
+  naked. Gradient, Guide and Grid can be toggled where applicable. The
+  guide shows the body as it is, underwear included unless hidden, and excludes
+  the drawing being edited. Guide and paint share the same canvas and pixel grid.
+  Preview comes last in the sidebar; its rotate buttons step through the views in
+  the same order as the character preview's.
 - The window opens at 900 by 780. Closing the window keeps the unsaved draft and
   its history; reopening continues it with the Pencil selected. Changing direction
   or using history cancels the current selection/drag.
@@ -170,7 +174,9 @@ other Custom color. The selected brush updates after server acknowledgement.
 Every drawing saves its own Emissive setting for each of the four views. The
 checkbox edits the current view and defaults off. It is independent of the
 normal hair emissive preference. The master emissive appearance preference can
-suppress glow without changing these saved choices.
+suppress glow without changing these saved choices. The whole-body editor on a
+taur warns that emissive paint on the taur body doesn't glow from that drawing;
+the Taur body drawing is the place for it.
 
 Emissive views get glow masks; non-emissive views get blockers. Both use the
 paint's masking, clipping, opacity and placement. Unused directions have explicit
@@ -684,7 +690,7 @@ All paths here are relative to this module unless stated otherwise.
 
 | File | Types, overrides and owned behavior |
 | --- | --- |
-| `code/editor.dm` | `/datum/config_entry/flag/allow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()` and `context_ui_data()`. |
+| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()` and `context_ui_data()`. |
 | `code/salon.dm` | `/datum/custom_sprite_salon` session, request/restore procs, live style packages and preview dummies, five-second round application, optional approved save and history on `/mob/living/carbon/human`. `/datum/custom_sprite_editor/salon` overrides the context hooks, `can_edit()` and UI lifecycle procs; validated brush activity starts cooldown-limited audio, and closing releases it. Recipient overlay signals coalesce guide refreshes; self-styling movement and equipment signals update mirror locks. |
 | `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images, approval-only export, result window and recipient saves. |
 | `code/tools.dm` | `/obj/item/tattoo_machine`; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
@@ -731,12 +737,13 @@ are also required.
 | `modular_nova/modules/salon/icons/items_lefthand.dmi`, `items_righthand.dmi` | Angled in-hands in all four directions for the tattoo machine, scissors, electric razor, hairspray and straight razor. |
 | `modular_nova/modules/salon/sound/haircut.ogg`, `tattoo_ambience.ogg`, `tattoo1.ogg` | Hair snips, looping machine ambience and the occasional pitch-varied needle sound. |
 | `config/nova/config_nova.txt` | Documents the editing switch. |
+| `modular_nova/master_files/code/modules/client/preferences/middleware/limbs_and_markings.dm` | Refuses new leg markings while a taur body replaces the legs. |
 | `modular_nova/modules/preferences_import/code/import_verb.dm` | `prefs_import_invalidate_cache()` calls the drawing cleanup after a successful import. |
 | `modular_aphelion/modules/worn_emissives/code/worn_emissives.dm` | Existing final appearance grouping keeps paint masks aligned with the character's pose. |
 | `tgui/packages/tgui/interfaces/CustomHairEditor.tsx`, `CustomMarkingsEditor.tsx` | The two interface entry points. |
 | `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, backend types and their tests. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | Hair editor button. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Whole-body and zone marking buttons, and their tests. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Whole-body, zone and taur marking buttons, and their tests. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Editing-availability flag. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/index.tsx`, `atoms.ts`, `helpers.ts`, `Types/types.ts`, `Types/Tool.ts` | Shared editor state, rendering/context hooks, gesture cancellation and selection types. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. |

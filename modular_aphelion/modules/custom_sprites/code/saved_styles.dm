@@ -259,13 +259,23 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		return "Character setup has unsaved base marking changes for this limb. Close character setup, then try again."
 	return null
 
+/**
+ * Redraws the character setup preview without waiting on it.
+ *
+ * Saves and teardown must not sleep, but the preview renderer can reach resolve_ai_icon(), whose
+ * Portrait branch opens a window. Character setup never offers Portrait, so in practice this runs
+ * straight through; detaching it keeps the no-sleep guarantee without editing the renderer.
+ */
+/datum/preferences/proc/refresh_custom_sprite_preview()
+	INVOKE_ASYNC(character_preview_view, TYPE_PROC_REF(/atom/movable/screen/map_view/char_preview, update_body))
+
 /// Publish only the committed zone, preserving native markings and pending edits on other limbs.
 /datum/preferences/proc/publish_custom_style_markings(slot, zone, list/markings)
 	var/list/slot_data = custom_style_markings_slot_data(savefile.get_entry("character[slot]"), zone, markings)
 	if(slot_data)
 		savefile.set_entry("character[slot]", slot_data)
 	LAZYSET(body_markings, zone, custom_style_marking_data(markings))
-	character_preview_view?.update_body()
+	refresh_custom_sprite_preview()
 
 /// Copy a character's saved native markings and replace exactly the selected zone, including Clear.
 /proc/custom_style_markings_slot_data(list/slot_data, zone, list/markings)
@@ -290,7 +300,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	if(target == "hair")
 		recently_updated_keys -= /datum/preference/toggle/mutant_toggle/hair_opacity
 		value_cache -= /datum/preference/toggle/mutant_toggle/hair_opacity
-	character_preview_view?.update_body()
+	refresh_custom_sprite_preview()
 
 /// Returns an updated copy of a character's save data, or null when that slot has no data.
 /proc/custom_style_hair_slot_data(list/slot_data, list/hair, target = "hair")

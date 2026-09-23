@@ -723,6 +723,7 @@
 	var/datum/custom_sprite_editor/salon/editor = session.editor
 	TEST_ASSERT(length(editor.preview_body.overlays_standing[HAIR_LAYER]), "The fixture must have hair to leave out of the guide.")
 	TEST_ASSERT(!(!editor.can_hide_parts() || !editor.hide_parts), "Tattoo guides must keep hair and parts out of the way by default.")
+	TEST_ASSERT(!editor.can_hide_underwear(), "Tattoo guides must show the recipient as they're dressed, underwear included.")
 	for(var/obj/item/bodypart/limb as anything in editor.preview_body.bodyparts)
 		for(var/datum/bodypart_overlay/mutant/part in limb.bodypart_overlays)
 			TEST_ASSERT(istype(part, /datum/bodypart_overlay/mutant/taur_body), "Wings and tails must be off the preview body while parts are hidden.")

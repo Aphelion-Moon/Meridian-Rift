@@ -271,7 +271,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
  * the right tool in hand. The drawing target must exist and be reachable.
  */
 /proc/custom_sprite_salon_start_problem(obj/item/tool, mob/living/carbon/human/artist, mob/living/carbon/human/recipient, target, zone)
-	if(!CONFIG_GET(flag/allow_custom_sprite_editing))
+	if(CONFIG_GET(flag/disallow_custom_sprite_editing))
 		return "Custom styling is disabled on this server."
 	if(!ishuman(artist) || !ishuman(recipient) || isdummy(recipient))
 		return "You can't style that."
@@ -1050,6 +1050,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 /datum/custom_sprite_editor/salon/render_overlays()
 	return custom_sprite_worn_overlays(session?.recipient())
 
+/datum/custom_sprite_editor/salon/can_hide_underwear()
+	return FALSE
+
 /datum/custom_sprite_editor/salon/create_preview_body()
 	var/mob/living/carbon/human/recipient = session.recipient_ref?.resolve()
 	if(QDELETED(recipient))
@@ -1070,7 +1073,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	return session.hair_problem(hair)
 
 /datum/custom_sprite_editor/salon/can_edit(mob/user)
-	return !closing && session && user?.ckey == session.artist_ckey && CONFIG_GET(flag/allow_custom_sprite_editing)
+	return !closing && session && user?.ckey == session.artist_ckey && !CONFIG_GET(flag/disallow_custom_sprite_editing)
 
 /datum/custom_sprite_editor/salon/draft_changed()
 	..()

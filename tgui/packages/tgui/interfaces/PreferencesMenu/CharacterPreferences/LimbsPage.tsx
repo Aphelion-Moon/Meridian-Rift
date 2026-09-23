@@ -273,12 +273,9 @@ const Markings = (props: {
   act: (action: string, params?: Record<string, unknown>) => void;
 }) => {
   const { body_zone, chosen_markings, marking_choices, act } = props;
-  const { data } = useBackend<PreferencesMenuData>(); // APHELION EDIT ADDITION
-  // APHELION EDIT ADDITION START - Taur legs have no paintable pixels.
-  const showCustom =
-    !!data.allow_custom_sprite_editing &&
-    !(data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone));
-  // APHELION EDIT ADDITION END
+  const { data } = useBackend<PreferencesMenuData>();
+  // A taur body takes the legs' place, so they get its drawing instead of markings.
+  const taurLeg = !!data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone);
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
@@ -349,27 +346,27 @@ const Markings = (props: {
         );
       })}
       <Stack.Item>
-        <Button
-          color="good"
-          onClick={() => act('add_marking', { bodypart_slot: body_zone })}
-        >
-          +
-        </Button>
-        {/* APHELION EDIT ADDITION START */}
-        {showCustom && (
+        {!taurLeg && (
+          <Button
+            color="good"
+            onClick={() => act('add_marking', { bodypart_slot: body_zone })}
+          >
+            +
+          </Button>
+        )}
+        {!!data.allow_custom_sprite_editing && (
           <Button
             icon="paintbrush"
             onClick={() =>
               act('open_custom_sprite_editor', {
                 target: 'markings',
-                body_zone,
+                body_zone: taurLeg ? 'taur' : body_zone,
               })
             }
           >
-            Custom
+            {taurLeg ? 'Taur body' : 'Custom'}
           </Button>
         )}
-        {/* APHELION EDIT ADDITION END */}
       </Stack.Item>
     </Stack>
   );
@@ -946,7 +943,6 @@ export const LimbsPage = ({
             </Stack.Item>
           </Stack>
         </Stack.Item>
-        {/* APHELION EDIT ADDITION START */}
         {tab === AugmentsTab.Markings && !!data.allow_custom_sprite_editing && (
           <Stack.Item>
             <Button
@@ -957,22 +953,8 @@ export const LimbsPage = ({
             >
               Custom marking drawing
             </Button>
-            {!!data.hasCustomTaur && (
-              <Button
-                icon="paintbrush"
-                onClick={() =>
-                  act('open_custom_sprite_editor', {
-                    target: 'markings',
-                    body_zone: 'taur',
-                  })
-                }
-              >
-                Taur body
-              </Button>
-            )}
           </Stack.Item>
         )}
-        {/* APHELION EDIT ADDITION END */}
         <Stack.Item grow>
           <Stack fill>
             {/* Left column */}

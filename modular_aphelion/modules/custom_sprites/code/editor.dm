@@ -1,14 +1,11 @@
 /// Editing can be disabled without removing any saved appearance.
-/datum/config_entry/flag/allow_custom_sprite_editing
-	default = TRUE
+/datum/config_entry/flag/disallow_custom_sprite_editing
 
 /datum/preference_middleware/custom_sprites
 	action_delegations = list("open_custom_sprite_editor" = PROC_REF(open_editor))
 
 /datum/preference_middleware/custom_sprites/get_ui_data(mob/user)
-	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
-	var/datum/sprite_accessory/taur/taur = SSaccessories.sprite_accessories[FEATURE_TAUR][preferences.read_preference(/datum/preference/choiced/mutant_choice/taur)]
-	return list("allow_custom_sprite_editing" = CONFIG_GET(flag/allow_custom_sprite_editing), "hasCustomTaur" = !!taur?.factual && taur_choice.is_accessible(preferences))
+	return list("allow_custom_sprite_editing" = !CONFIG_GET(flag/disallow_custom_sprite_editing))
 
 /datum/preference_middleware/custom_sprites/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
 	preferences.load_custom_sprites()
@@ -30,7 +27,7 @@
 	preferences.load_custom_sprites()
 
 /datum/preference_middleware/custom_sprites/proc/open_editor(list/params, mob/user)
-	if(!CONFIG_GET(flag/allow_custom_sprite_editing) || user?.client != preferences.parent)
+	if(CONFIG_GET(flag/disallow_custom_sprite_editing) || user?.client != preferences.parent)
 		return FALSE
 	var/target = params["target"]
 	var/body_zone = params["body_zone"]
@@ -120,6 +117,8 @@
 	var/list/unlocked_bounds
 	/// Whether hair and parts that hang over the drawing are left out of guides and previews.
 	var/hide_parts = TRUE
+	/// Whether underwear is left out of guides and previews.
+	var/hide_underwear = FALSE
 
 /datum/custom_sprite_editor/New(datum/preferences/preferences, target, body_zone)
 	src.preferences = preferences
@@ -127,6 +126,9 @@
 	src.body_zone = body_zone
 	if(custom_style_hair_target(target))
 		hide_parts = FALSE
+	// Start the way character setup is already previewing the character.
+	if(can_hide_underwear() && (preferences.preview_pref in list(PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)))
+		hide_underwear = TRUE
 	editor_key = custom_style_key(target, body_zone)
 	slot = preferences?.default_slot
 	var/list/package = initial_package()
@@ -211,6 +213,10 @@
 /// Markings can hide parts that cover the body; hair editors always keep the full look visible.
 /datum/custom_sprite_editor/proc/can_hide_parts()
 	return !custom_style_hair_target(target)
+
+/// Context hook: whether underwear can be left out of guides and previews.
+/datum/custom_sprite_editor/proc/can_hide_underwear()
+	return target == "markings"
 
 /**
  * Drops wings, tails and other parts that hang over the limb from the preview body.
@@ -297,6 +303,8 @@
 		preview_body.update_body()
 	if(can_hide_parts() && hide_parts)
 		hide_obstructing_parts()
+	if(can_hide_underwear() && hide_underwear)
+		preview_body.set_all_underwear_visibility(TRUE)
 	if(custom_style_hair_target(target) && workspace.hair_context)
 		// Hiding the gradient leaves the saved look alone; only this preview body drops it.
 		var/list/context = workspace.hair_context
@@ -404,7 +412,7 @@
 	return "data:image/png;base64,[icon2base64(rendered)]"
 
 /datum/custom_sprite_editor/proc/can_edit(mob/user)
-	return !closing && preferences && user?.client == preferences.parent && slot == preferences.default_slot && CONFIG_GET(flag/allow_custom_sprite_editing)
+	return !closing && preferences && user?.client == preferences.parent && slot == preferences.default_slot && !CONFIG_GET(flag/disallow_custom_sprite_editing)
 
 /datum/custom_sprite_editor/ui_state(mob/user)
 	return GLOB.always_state
@@ -459,6 +467,10 @@
 	data["canChangeMarkings"] = can_change_markings()
 	data["canHideParts"] = can_hide_parts()
 	data["hideParts"] = hide_parts
+	data["canHideUnderwear"] = can_hide_underwear()
+	data["hideUnderwear"] = hide_underwear
+	// Only a taur widens the whole-body canvas.
+	data["wholeBodyTaur"] = target == "markings" && !body_zone && workspace.width > 32
 	// TGUI merges updates, so an absent candidate must explicitly clear the previous preview.
 	data["candidate"] = candidate ? list("source" = candidate["source"], "previews" = candidate["previews"], "summary" = candidate["summary"]) : null
 	return data + context_ui_data()
@@ -535,6 +547,13 @@
 			if(!can_hide_parts())
 				return FALSE
 			hide_parts = !hide_parts
+			rebuild_resources()
+			refresh_preview(push = FALSE)
+			return TRUE
+		if("toggleUnderwear")
+			if(!can_hide_underwear())
+				return FALSE
+			hide_underwear = !hide_underwear
 			rebuild_resources()
 			refresh_preview(push = FALSE)
 			return TRUE
@@ -891,7 +910,7 @@
 	if(preferences)
 		LAZYREMOVE(preferences.custom_sprite_editors, editor_key)
 	SStgui.close_uis(src)
-	preferences?.character_preview_view?.update_body()
+	preferences?.refresh_custom_sprite_preview()
 	qdel(src)
 
 /**

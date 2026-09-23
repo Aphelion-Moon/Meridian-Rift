@@ -27,11 +27,11 @@
 		editor.workspace.clear_direction("2")
 		editor.finish(FALSE)
 		TEST_ASSERT(saved_hash == custom_sprite_hash(target == "hair" ? preferences.custom_hair : preferences.custom_markings), "Discard must preserve the last saved drawing.")
-	var/old_gate = CONFIG_GET(flag/allow_custom_sprite_editing)
-	CONFIG_SET(flag/allow_custom_sprite_editing, FALSE)
+	var/old_gate = CONFIG_GET(flag/disallow_custom_sprite_editing)
+	CONFIG_SET(flag/disallow_custom_sprite_editing, TRUE)
 	var/datum/preference_middleware/custom_sprites/middleware = locate() in preferences.middleware
 	var/list/ui_data = middleware.get_ui_data(mock_client.mob)
-	CONFIG_SET(flag/allow_custom_sprite_editing, old_gate)
+	CONFIG_SET(flag/disallow_custom_sprite_editing, old_gate)
 	TEST_ASSERT(!(ui_data["allow_custom_sprite_editing"] || !custom_sprite_paint_icon(preferences.custom_hair)), "Disabling editing must hide controls while saved drawings still render.")
 
 /datum/unit_test/custom_sprite_editor_colors/Run()
@@ -313,8 +313,7 @@
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "markings")
 	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
 	var/mob/living/carbon/human/body = editor.preview_body
-	var/previous_visibility = body.underwear_visibility
-	TEST_ASSERT(!(previous_visibility & UNDERWEAR_HIDE_UNDIES || !length(body.get_underwear_overlays())), "Generating guides must leave the preview body's underwear visible.")
+	TEST_ASSERT(!(body.underwear_visibility & UNDERWEAR_HIDE_UNDIES || !length(body.get_underwear_overlays())), "Generating guides must leave the preview body's underwear visible.")
 	var/list/clothed_icons = list()
 	for(var/direction in GLOB.cardinals)
 		// Marking guides leave hair out, so compare against the same appearance.
@@ -322,19 +321,19 @@
 		clothed.Crop(1, 1, 32, 32)
 		clothed_icons["[direction]"] = clothed
 		TEST_ASSERT(editor.preview_urls["[direction]"] == editor.publish_icon(clothed), "The ordinary preview must retain the clothed character appearance.")
-	// Guides show the body as it is; only the Hair toggle changes what they leave out.
+	// Guides show the body as it is until the owner hides the underwear.
 	for(var/direction in GLOB.cardinals)
 		TEST_ASSERT(custom_sprite_test_same_pixels(clothed_icons["[direction]"], editor.guide_icons["[direction]"]), "Every guide direction must match the character's own underwear.")
-	body.underwear_visibility = UNDERWEAR_HIDE_ALL
-	body.update_body()
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	TEST_ASSERT(editor.ui_act("toggleUnderwear", list(), ui, null), "Character setup must let markings hide underwear.")
+	TEST_ASSERT(editor.preview_body.underwear_visibility == UNDERWEAR_HIDE_ALL, "Hiding underwear must hide every underwear slot on the preview body.")
 	var/clothing_changed_pixels = FALSE
 	for(var/direction in GLOB.cardinals)
-		var/icon/naked = getFlatIcon(editor.render_appearance(body), defdir = direction, no_anim = TRUE)
-		naked.Crop(1, 1, 32, 32)
-		clothing_changed_pixels ||= !custom_sprite_test_same_pixels(naked, clothed_icons["[direction]"])
-	TEST_ASSERT(clothing_changed_pixels, "The underwear fixture must exercise visibly different pixels.")
-	body.underwear_visibility = previous_visibility
-	body.update_body()
+		clothing_changed_pixels ||= !custom_sprite_test_same_pixels(editor.guide_icons["[direction]"], clothed_icons["[direction]"])
+	TEST_ASSERT(clothing_changed_pixels, "Hiding underwear must change the guides.")
+	editor.ui_act("toggleUnderwear", list(), ui, null)
+	for(var/direction in GLOB.cardinals)
+		TEST_ASSERT(custom_sprite_test_same_pixels(clothed_icons["[direction]"], editor.guide_icons["[direction]"]), "Showing underwear again must restore the guides.")
 	editor.finish(FALSE)
 
 /datum/unit_test/custom_sprite_color_modes/Run()

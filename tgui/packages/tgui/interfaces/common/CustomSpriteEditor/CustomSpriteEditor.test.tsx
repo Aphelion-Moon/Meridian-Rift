@@ -19,6 +19,7 @@ import {
 import {
   currentColorAtom,
   currentToolAtom,
+  dirAtom,
   previewDataAtom,
   previewLayerAtom,
   tools,
@@ -1351,4 +1352,73 @@ it('groups blending with the custom colors and hides hair on demand', () => {
   expect(parts.classList).toContain('Button--selected');
   fireEvent.click(parts);
   expect(send).toHaveBeenLastCalledWith('toggleParts');
+});
+
+it('offers hiding underwear only where the backend allows it', () => {
+  const store = createStore();
+  const editor = () => (
+    <Provider store={store}>
+      <CustomSpriteEditor target="markings" />
+    </Provider>
+  );
+  const view = render(editor());
+  expect(screen.queryByText('Hide underwear')).toBeNull();
+  backendStore.set(gameDataAtom, {
+    ...fixture(),
+    canHideUnderwear: true,
+    hideUnderwear: false,
+  });
+  view.rerender(editor());
+  const underwear = screen.getByText('Hide underwear').closest('.Button')!;
+  expect(underwear.classList).not.toContain('Button--selected');
+  fireEvent.click(underwear);
+  expect(send).toHaveBeenLastCalledWith('toggleUnderwear');
+});
+
+it('rotates through the views in the same order as the character preview', () => {
+  const store = createStore();
+  render(
+    <Provider store={store}>
+      <CustomSpriteEditor target="markings" />
+    </Provider>,
+  );
+  const [clockwise, counterClockwise] = screen
+    .getByText('Preview')
+    .closest('.Section')!
+    .querySelectorAll('.Button');
+  const seen: Dir[] = [];
+  for (let turn = 0; turn < 4; turn++) {
+    fireEvent.click(clockwise);
+    seen.push(store.get(dirAtom));
+  }
+  expect(seen).toEqual([Dir.WEST, Dir.NORTH, Dir.EAST, Dir.SOUTH]);
+  fireEvent.click(counterClockwise);
+  expect(store.get(dirAtom)).toBe(Dir.EAST);
+  expect(screen.getByText('Right').closest('.Button')!.classList).toContain(
+    'Button--selected',
+  );
+  expect(send).not.toHaveBeenCalled();
+});
+
+it('points taur emissives at the taur drawing from the whole-body editor', () => {
+  const store = createStore();
+  const editor = () => (
+    <Provider store={store}>
+      <CustomSpriteEditor target="markings" />
+    </Provider>
+  );
+  const taur = { ...fixture(64), wholeBodyTaur: true };
+  backendStore.set(gameDataAtom, taur);
+  const view = render(editor());
+  expect(screen.getByText(/Use the Taur body custom marking/)).toBeTruthy();
+  backendStore.set(gameDataAtom, { ...taur, emissiveAllowed: false });
+  view.rerender(editor());
+  expect(screen.queryByText(/taur body/i)).toBeNull();
+  backendStore.set(gameDataAtom, {
+    ...taur,
+    context: 'salon',
+    recipientName: 'Leia',
+  });
+  view.rerender(editor());
+  expect(screen.getByText(/Use the Taur lower body tattoo/)).toBeTruthy();
 });
