@@ -153,6 +153,34 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/datum/component/interactable/interact_component = candidate.GetComponent(/datum/component/interactable)
 	return interact_component?.resolve_body_relay() == candidate_relay
 
+/**
+ * Returns whether interaction lands on the part of the occupant that this portal shows at its peer.
+ *
+ * A gloryhole relays only the penis and balls, and a wallstuck portal everything below the waist. Whatever is relayed
+ * can only be reached at the relay, and the rest of the occupant only in person, so each side offers its own half.
+ *
+ * Arguments:
+ * - interaction: The interaction being checked.
+ * - as_user: Whether the occupant performs it, rather than receives it.
+ */
+/obj/structure/lewd_portal/proc/relays_interaction(datum/interaction/interaction, as_user = FALSE)
+	var/static/list/relayed_parts = list(
+		GLORYHOLE = list(ORGAN_SLOT_PENIS, ORGAN_SLOT_TESTICLES),
+		WALLSTUCK = list(ORGAN_SLOT_PENIS, ORGAN_SLOT_TESTICLES, ORGAN_SLOT_VAGINA, ORGAN_SLOT_WOMB, ORGAN_SLOT_ANUS),
+	)
+	// Lower body contact that no part requirement describes, by which side of it the occupant is on.
+	var/static/list/lower_body_targets = list("Grab ass", "Slap ass", "Grope (ass)", "Grope (crotch)", "Thighjob")
+	var/static/list/lower_body_users = list("Facesit (ass)", "Footjob (cock)", "Footjob (vagina)", "Feet to Face")
+	for(var/part in (as_user ? interaction.user_required_parts : interaction.target_required_parts))
+		if(part in relayed_parts[portal_mode])
+			return TRUE
+	return portal_mode == WALLSTUCK && (interaction.name in (as_user ? lower_body_users : lower_body_targets))
+
+/// Whether interaction touches a part of this mob that a portal is showing somewhere else right now.
+/mob/living/carbon/human/proc/portal_relays_interaction(datum/interaction/interaction, as_user = FALSE)
+	var/obj/structure/lewd_portal/portal = buckled
+	return istype(portal) && portal.current_mob == src && !QDELETED(portal.relayed_body) && portal.relays_interaction(interaction, as_user)
+
 /// Whether candidate has everything we need to draw the current portal mode.
 /obj/structure/lewd_portal/proc/can_relay(mob/living/carbon/human/candidate)
 	if(QDELETED(candidate) || !candidate.dna?.species)
@@ -453,7 +481,7 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/inspect_mode = creation_mode == WALLSTUCK ? "stuck in wall" : "gloryhole"
 	. += span_notice("It is currently in [inspect_mode] mode.")
 	if(first_portal)
-		. += span_notice(second_portal ? "Use in hand to collapse its portals." : "Use in hand to remove its staged portal.")
+		. += span_notice("Use in hand to [second_portal ? "collapse its portals" : "remove its staged portal"].")
 	else
 		. += span_notice("Use in hand to change modes.")
 

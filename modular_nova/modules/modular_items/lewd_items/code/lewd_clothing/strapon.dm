@@ -220,7 +220,7 @@
 			if(!vagina)
 				to_chat(user, span_danger("[target_mob] doesn't have suitable genitalia for that!"))
 				return
-			if(!(target_mob.is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW))
+			if(!(target_mob.is_bottomless() || vagina.is_shown_over_clothing()))
 				to_chat(user, span_danger("[target_mob]'s groin is covered!"))
 				return
 			message = pick(

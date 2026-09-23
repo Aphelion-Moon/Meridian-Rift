@@ -131,7 +131,7 @@
 			var/obj/item/organ/genital/penis = target.get_organ_slot(ORGAN_SLOT_PENIS)
 			var/obj/item/organ/genital/vagina = target.get_organ_slot(ORGAN_SLOT_VAGINA)
 			if(vagina && penis)
-				if(target.is_bottomless() || (penis.visibility_preference == GENITAL_ALWAYS_SHOW && vagina.visibility_preference == GENITAL_ALWAYS_SHOW))
+				if(target.is_bottomless() || (penis.is_shown_over_clothing() && vagina.is_shown_over_clothing()))
 					message = (user == target) ? pick("leans [src] against [target.p_their()] penis, letting it shock it. Ouch...",
 												"shocks [target.p_their()] penis with [src]",
 												"leans [src] against [target.p_their()] vagina, letting it shock it. Ouch...",
@@ -141,13 +141,13 @@
 												"shocks [target]'s pussy with [src]",
 												"leans the shocker against [target]'s vagina, turning it on")
 
-				else if(target.is_bottomless() || penis.visibility_preference == GENITAL_ALWAYS_SHOW)
+				else if(target.is_bottomless() || penis.is_shown_over_clothing())
 					message = (user == target) ? pick("leans [src] against [target.p_their()] penis, letting it shock it. Ouch...",
 												"shocks [target.p_their()] penis with [src]") : pick("uses [src] to shock [target]'s penis",
 												"shocks [target]'s penis with [src]",
 												"leans [src] against [target]'s penis, turning shocker on")
 
-				else if(target.is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW)
+				else if(target.is_bottomless() || vagina.is_shown_over_clothing())
 					message = (user == target) ? pick("leans [src] against [target.p_their()] vagina, letting it shock it. Ouch...",
 												"shocks [target.p_their()] pussy with [src]") : pick("uses [src] to shock [target]'s vagina",
 												"shocks [target]'s pussy with [src]",
@@ -157,7 +157,7 @@
 					return
 
 			else if(penis)
-				if(target.is_bottomless() || penis.visibility_preference == GENITAL_ALWAYS_SHOW)
+				if(target.is_bottomless() || penis.is_shown_over_clothing())
 					message = (user == target) ? pick("leans [src] against [target.p_their()] penis, letting it shock it. Ouch...",
 												"shocks [target.p_their()] penis with [src]") : pick("uses [src] to shock [target]'s penis",
 												"shocks [target]'s penis with [src]",
@@ -167,7 +167,7 @@
 					return
 
 			else if(vagina)
-				if(target.is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW)
+				if(target.is_bottomless() || vagina.is_shown_over_clothing())
 					message = (user == target) ? pick("leans [src] against [target.p_their()] vagina, letting it shock it. Ouch...",
 												"shocks [target.p_their()] pussy with [src]") : pick("uses [src] to shock [target]'s vagina",
 												"shocks [target]'s pussy with [src]",
@@ -190,7 +190,7 @@
 			targetedsomewhere = TRUE
 			var/obj/item/organ/genital/breasts = target.get_organ_slot(ORGAN_SLOT_BREASTS)
 			if(breasts)
-				if(breasts.visibility_preference == GENITAL_ALWAYS_SHOW || target.is_topless())
+				if(breasts.is_shown_over_clothing() || target.is_topless())
 					message = (user == target) ? pick("leans [src] against [target.p_their()] breasts, letting it shock it.",
 												"shocks [target.p_their()] tits with [src]") : pick("uses [src] to shock [target]'s breasts",
 												"shocks [target]'s nipples with [src]",

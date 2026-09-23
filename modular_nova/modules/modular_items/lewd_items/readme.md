@@ -17,12 +17,17 @@ and a body relay for their occupant. Both use the generic
   away, to open the interaction panel of the receiver's wearer, listing what your
   own parts can do through the portal. The wearer can do the same to reach their
   own receiver.
+- Use one linked device on another to pick from the interactions between their
+  two wearers. The device in your hand is the active side.
 - Right-click the device or receiver to toggle that item's anonymity. Alt-click
   either linked item to unlink it.
 - Use the bore on two supported walls to create its portal pair. Activate an
   empty bore to change modes; activate it after placement to collapse its portals.
 - Right-click an unoccupied wall portal to change both endpoints' mode. Buckle
   into one endpoint to create the relay at its peer, then unbuckle to leave.
+  A gloryhole relays the penis and balls, and a wallstuck portal everything below
+  the waist. Interactions with the relayed half only work next to the relay, and
+  the rest of the occupant only in person.
 
 ## Ownership and validation
 
@@ -61,8 +66,9 @@ Handheld interactions resolve the names in the device's `interaction_map` throug
 definitions under `config/nova/interactions/` in the server's working directory.
 The repository's example interaction files do not supply that complete set.
 
-Each mapped definition must be lewd, have `usage = "other"`, use a visible category,
-and declare the exact genital requirements associated with its two endpoints.
+Each part pairing lists one or more names, default first. A mapped definition must
+be lewd, have `usage = "other"`, use a visible category, and may only require the
+genitals at its own two endpoints.
 The validator rejects absent or incompatible definitions. JSON filenames do not
 form the contract; the loaded interaction names and metadata do. See the
 [interaction datum](../../interaction_menu/code/interaction_datum.dm) for loading

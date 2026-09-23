@@ -3,7 +3,9 @@
  * for the LustWish portal device and receiver.
  */
 
-#define PORTAL_INTERACTION_STATE_TEST_ID "Portal interaction state test"
+/// A lower body touch with no part requirements, which a wallstuck relay carries.
+#define PORTAL_REAR_INTERACTION_NAME "Grope (ass)"
+#define PORTAL_INTERACTION_STATE_TEST_ID PORTAL_REAR_INTERACTION_NAME
 #define PORTAL_INTERACTION_STATE_TEST_TRAIT "portal_interaction_state_test"
 
 /// Lets public buckle tests reach the portal-specific guards without a real BYOND client.
@@ -552,34 +554,34 @@
 	local_component.interact_next = world.time - 1
 	remote_component.interact_next = world.time - 1
 
-	TEST_ASSERT_EQUAL(device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), tongue_kiss, "A fully authoritative mouth-to-mouth device route did not resolve its live interaction.")
-	TEST_ASSERT_NULL(device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_CHEST, device), "The validator accepted an unsupported local body-part combination.")
+	TEST_ASSERT(device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "A fully authoritative mouth-to-mouth device route did not resolve its live interaction.")
+	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_CHEST, device), "The validator accepted an unsupported local body-part combination.")
 
 	remote_participant.wear_mask = null
-	TEST_ASSERT_NULL(device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "A receiver merely retained in inventory was trusted after its authoritative slot was cleared.")
+	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "A receiver merely retained in inventory was trusted after its authoritative slot was cleared.")
 	remote_participant.wear_mask = receiver
 
 	TEST_ASSERT(remote_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp/sex_toy], FALSE), "Could not disable the remote sex-toy preference.")
-	TEST_ASSERT_NULL(device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator accepted a sex-toy preference refusal.")
+	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator accepted a sex-toy preference refusal.")
 	TEST_ASSERT(remote_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp/sex_toy], TRUE), "Could not restore the remote sex-toy preference.")
 	TEST_ASSERT(remote_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp], FALSE), "Could not disable the remote ERP preference.")
-	TEST_ASSERT_NULL(device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator accepted an ERP preference refusal.")
+	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator accepted an ERP preference refusal.")
 	TEST_ASSERT(remote_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp], TRUE), "Could not restore the remote ERP preference.")
 	TEST_ASSERT(local_client.prefs.read_preference(/datum/preference/toggle/erp/sex_toy), "The local participant lost its canonical sex-toy preference during validation.")
 
 	GLOB.interaction_instances["Tongue kiss"] = null
-	var/datum/interaction/missing_config_result = device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device)
+	var/missing_config_result = device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device)
 	GLOB.interaction_instances["Tongue kiss"] = tongue_kiss
-	TEST_ASSERT_NULL(missing_config_result, "The validator accepted a missing live interaction configuration.")
+	TEST_ASSERT(!missing_config_result, "The validator accepted a missing live interaction configuration.")
 
 	local_component.interact_next = world.time + INTERACTION_COOLDOWN
-	TEST_ASSERT_NULL(device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator accepted a local participant whose interaction cooldown was active.")
+	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator accepted a local participant whose interaction cooldown was active.")
 	local_component.interact_next = world.time - 1
 	remote_component.interact_next = world.time - 1
 	device.apply_interaction_cooldown(local_participant, remote_participant)
 	TEST_ASSERT(local_component.interact_next > world.time, "Applying a portal interaction did not start the local cooldown.")
 	TEST_ASSERT_EQUAL(remote_component.interact_next, local_component.interact_next, "Portal interaction cooldowns diverged between participants.")
-	TEST_ASSERT_NULL(device.validate_interaction(local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator ignored the shared cooldown it had just applied.")
+	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator ignored the shared cooldown it had just applied.")
 
 /// UI actions bind authority to the actual UI object, never forged reference parameters.
 /datum/unit_test/portal_device/ui_authority/Run()
@@ -734,6 +736,10 @@
 	var/pronoun_template = "%USER_PRONOUN_THEIR% / %USER_PRONOUN_THEIRS% / %USER_PRONOUN_THEM% / %USER_PRONOUN_THEY% / %USER_PRONOUN_THEMSELVES%"
 	TEST_ASSERT_EQUAL(interaction.format_message_for(pronoun_template, user, target, recipient = user), "your / yours / you / you / yourself", "Private pronouns should address the reader.")
 	TEST_ASSERT_EQUAL(interaction.format_message_for(pronoun_template, user, user, recipient = user), "your / yours / yourself / you / yourself", "Known self-interactions need reflexive object pronouns.")
+
+	var/self_template = "%USER_CAPITAL% rub%USER_VERB_S% %TARGET% with %TARGET%'s toy."
+	TEST_ASSERT_EQUAL(interaction.format_message_for(self_template, user, user, recipient = user), "You rub yourself with your own toy.", "A bare self target should read reflexively to its owner.")
+	TEST_ASSERT_EQUAL(interaction.format_message_for(self_template, user, user), "Portal User rubs herself with her own toy.", "Observers should see a self-interaction's target reflexively.")
 
 /// Addressing a private recipient must not reveal that an anonymous counterpart belongs to them.
 /datum/unit_test/portal_device/message_recipient_anonymity/Run()
@@ -953,12 +959,15 @@
 	TEST_ASSERT_NOTEQUAL(source_portal.relayed_body, first_relay, "The replacement Subtler session reused its deleted relay.")
 	TEST_ASSERT_NULL(owner.resolve_portal_output(first_relay_ref), "A prompt from the first Subtler session resolved through its replacement session.")
 
-/// Ordinary interactions accept direct adjacency or the exact current portal relay, never an unbound or stale relay.
+/// A relay carries only the half of its occupant it shows, the rest is reached in person, and stale or unbound relays carry nothing.
 /datum/unit_test/portal_device/ordinary_position_authority/Run()
-	var/datum/interaction/interaction = allocate(/datum/interaction)
+	var/datum/interaction/head_interaction = allocate(/datum/interaction)
+	var/datum/interaction/rear_interaction = allocate(/datum/interaction)
+	rear_interaction.name = PORTAL_REAR_INTERACTION_NAME
 	var/mob/living/carbon/human/consistent/direct_user = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
 	var/mob/living/carbon/human/consistent/direct_target = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
-	TEST_ASSERT(interaction.interaction_route_is_valid(null, direct_user, direct_target), "Directly adjacent ordinary participants were rejected.")
+	TEST_ASSERT(head_interaction.interaction_route_is_valid(null, direct_user, direct_target), "Directly adjacent ordinary participants were rejected.")
+	TEST_ASSERT(rear_interaction.interaction_route_is_valid(null, direct_user, direct_target), "A lower body touch was rejected between participants outside any portal.")
 
 	var/list/portal_pair = make_portal_pair()
 	var/obj/structure/lewd_portal/source_portal = portal_pair[1]
@@ -969,22 +978,25 @@
 	TEST_ASSERT(source_portal.buckle_mob(relay_target, force = TRUE, check_loc = FALSE), "The portal pair could not establish the relay session for position validation.")
 	var/obj/effect/lewd_portal_relay/current_relay = source_portal.relayed_body
 	TEST_ASSERT_NOTNULL(current_relay, "The portal pair did not create a relay for position validation.")
-	if(!current_relay)
-		return
 
-	TEST_ASSERT(!interaction.interaction_route_is_valid(null, relay_user, relay_target), "A nonadjacent ordinary interaction was accepted without a relay.")
-
+	TEST_ASSERT(!rear_interaction.interaction_route_is_valid(null, relay_user, relay_target), "A nonadjacent interaction was accepted without a relay.")
 	var/datum/interaction_route/portal_relay/current_route = new(current_relay)
-	TEST_ASSERT(interaction.interaction_route_is_valid(current_route, relay_user, relay_target), "The exact active portal relay was rejected for an ordinary interaction.")
+	TEST_ASSERT(rear_interaction.interaction_route_is_valid(current_route, relay_user, relay_target), "The active relay rejected the half of the body it shows.")
+	TEST_ASSERT(!head_interaction.interaction_route_is_valid(current_route, relay_user, relay_target), "The relay carried the half of the body it does not show.")
+
+	relay_user.forceMove(relay_target.loc)
+	TEST_ASSERT(head_interaction.interaction_route_is_valid(null, relay_user, relay_target), "Standing at the occupant blocked the half of the body they keep.")
+	TEST_ASSERT(!rear_interaction.interaction_route_is_valid(null, relay_user, relay_target), "Standing at the occupant reached the half of the body their portal relays.")
+	relay_user.forceMove(receiving_portal.loc)
 
 	var/mob/living/carbon/human/consistent/unbound_owner = allocate(/mob/living/carbon/human/consistent, source_portal.loc)
 	var/obj/effect/lewd_portal_relay/unbound_relay = allocate(/obj/effect/lewd_portal_relay, receiving_portal.loc, unbound_owner, receiving_portal)
 	var/datum/interaction_route/portal_relay/unbound_route = new(unbound_relay)
-	TEST_ASSERT(!interaction.interaction_route_is_valid(unbound_route, relay_user, relay_target), "An unbound relay was accepted for an ordinary interaction.")
-	TEST_ASSERT(interaction.interaction_route_is_valid(current_route, relay_user, relay_target), "Constructing an unbound relay invalidated the active relay fixture.")
+	TEST_ASSERT(!rear_interaction.interaction_route_is_valid(unbound_route, relay_user, relay_target), "An unbound relay was accepted.")
+	TEST_ASSERT(rear_interaction.interaction_route_is_valid(current_route, relay_user, relay_target), "Constructing an unbound relay invalidated the active relay fixture.")
 
 	qdel(current_relay)
-	TEST_ASSERT(!interaction.interaction_route_is_valid(current_route, relay_user, relay_target), "A stale relay was accepted after its session ended.")
+	TEST_ASSERT(!rear_interaction.interaction_route_is_valid(current_route, relay_user, relay_target), "A stale relay was accepted after its session ended.")
 
 /// Ordinary and relay interactions reject dead or independently incapacitated participants at every execution boundary.
 /datum/unit_test/portal_device/interaction_liveness_boundaries/Run()
@@ -1085,4 +1097,5 @@
 	owner_component.set_body_relay(relay)
 
 #undef PORTAL_INTERACTION_STATE_TEST_ID
+#undef PORTAL_REAR_INTERACTION_NAME
 #undef PORTAL_INTERACTION_STATE_TEST_TRAIT

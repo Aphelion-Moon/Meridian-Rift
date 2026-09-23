@@ -2,6 +2,7 @@
  * Reaching someone through the far end of a LustWish portal pair.
  *
  * The user is standing next to a relay; the target is buckled into the portal it belongs to, somewhere else.
+ * Only the part of the target the portal relays can be reached this way.
  */
 /datum/interaction_route/portal_relay
 	/// The relay standing in for the target.
@@ -16,7 +17,7 @@
 	datum/interaction/interaction,
 	mob/living/carbon/human/user,
 )
-	if(owner != represented)
+	if(owner != represented || !owner.portal_relays_interaction(interaction))
 		return null
 	return new /datum/interaction_route/portal_relay(src)
 
@@ -32,9 +33,9 @@
 	if(isnull(body_relay) || body_relay.owner != target)
 		return FALSE
 	var/obj/structure/lewd_portal/target_portal = target.buckled
-	if(!istype(target_portal) || !target_portal.is_active_session(target, body_relay))
+	if(!istype(target_portal) || !target_portal.is_active_session(target, body_relay) || !target_portal.relays_interaction(interaction))
 		return FALSE
-	return interaction.distance_allowed || user.Adjacent(target) || user.Adjacent(body_relay)
+	return user.Adjacent(body_relay)
 
 /datum/interaction_route/portal_relay/participants_accept(mob/living/carbon/human/user, mob/living/carbon/human/target)
 	return user.allows_portal_use() && target.allows_portal_use()
@@ -71,8 +72,8 @@
 	var/datum/weakref/operator_ref
 	/// The worn receiver on the far end.
 	var/datum/weakref/receiver_ref
-	/// The device actually in the operator's hands.
-	var/datum/weakref/held_device_ref
+	/// The device linked to the receiver, held or within the operator's reach.
+	var/datum/weakref/receiver_device_ref
 	/// Which part of the local participant is in play.
 	var/local_target
 	/// Whether the receiver supplies the interaction's user-side part.
@@ -82,7 +83,7 @@
 	obj/item/clothing/sextoy/portal_fleshlight/validator_device,
 	mob/living/carbon/human/operator,
 	obj/item/clothing/sextoy/portal_panties/receiver,
-	obj/item/clothing/sextoy/portal_fleshlight/held_device,
+	obj/item/clothing/sextoy/portal_fleshlight/receiver_device,
 	local_target,
 	receiver_is_user = FALSE,
 )
@@ -90,7 +91,7 @@
 	validator_device_ref = WEAKREF(validator_device)
 	operator_ref = WEAKREF(operator)
 	receiver_ref = WEAKREF(receiver)
-	held_device_ref = WEAKREF(held_device)
+	receiver_device_ref = WEAKREF(receiver_device)
 	src.local_target = local_target
 	src.receiver_is_user = receiver_is_user
 
@@ -100,18 +101,19 @@
 	var/obj/item/clothing/sextoy/portal_fleshlight/validator_device = validator_device_ref?.resolve()
 	var/mob/living/carbon/human/operator = operator_ref?.resolve()
 	var/obj/item/clothing/sextoy/portal_panties/receiver = receiver_ref?.resolve()
-	var/obj/item/clothing/sextoy/portal_fleshlight/held_device = held_device_ref?.resolve()
-	if(QDELETED(validator_device) || QDELETED(operator) || QDELETED(receiver) || QDELETED(held_device))
+	var/obj/item/clothing/sextoy/portal_fleshlight/receiver_device = receiver_device_ref?.resolve()
+	if(QDELETED(validator_device) || QDELETED(operator) || QDELETED(receiver) || QDELETED(receiver_device))
 		return FALSE
-	if(validator_device.validate_interaction(
+	if(!validator_device.validate_interaction(
+		interaction,
 		operator,
 		user,
 		receiver,
 		local_target,
-		held_device,
+		receiver_device,
 		ignore_cooldown = ignore_cooldown,
 		receiver_is_user = receiver_is_user,
-	) != interaction)
+	))
 		return FALSE
 	return receiver.get_equipped_wearer() == target
 

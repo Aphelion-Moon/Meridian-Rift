@@ -110,9 +110,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.get_effective_layer_mode() == GENITAL_LAYER_ABOVE_ALL || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.get_effective_layer_mode() != GENITAL_LAYER_ABOVE_ALL && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -126,9 +126,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.get_effective_layer_mode() == GENITAL_LAYER_ABOVE_ALL || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.get_effective_layer_mode() != GENITAL_LAYER_ABOVE_ALL && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -142,9 +142,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.get_effective_layer_mode() == GENITAL_LAYER_ABOVE_ALL || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.get_effective_layer_mode() != GENITAL_LAYER_ABOVE_ALL && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -158,9 +158,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.get_effective_layer_mode() == GENITAL_LAYER_ABOVE_ALL || is_topless()
+			return genital.is_shown_over_clothing() || is_topless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.get_effective_layer_mode() != GENITAL_LAYER_ABOVE_ALL && !is_topless()
+			return !genital.is_shown_over_clothing() && !is_topless()
 		else
 			return TRUE
 
@@ -176,9 +176,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.get_effective_layer_mode() == GENITAL_LAYER_ABOVE_ALL || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.get_effective_layer_mode() != GENITAL_LAYER_ABOVE_ALL && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
