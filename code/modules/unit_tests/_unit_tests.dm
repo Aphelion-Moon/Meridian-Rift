@@ -177,6 +177,9 @@
 #include "dna_infusion.dm"
 #include "dogmos_active_turfs_bloat.dm"
 #include "dogmos_aphelion_reactions.dm"
+// APHELION EDIT ADDITION START - DOGMOS
+#include "../../../modular_aphelion/modules/dogmos/code/mixture_fusion_tests.dm"
+// APHELION EDIT ADDITION END
 #include "dogmos_assimilate_air_temperature_sync.dm"
 #include "dogmos_callback_delivery.dm"
 #include "dogmos_decompression_feedback.dm"

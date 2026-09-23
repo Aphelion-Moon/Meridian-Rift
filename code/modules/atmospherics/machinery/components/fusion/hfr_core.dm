@@ -162,8 +162,14 @@
 /obj/machinery/atmospherics/components/unary/hypertorus/core/Initialize(mapload)
 	. = ..()
 	internal_fusion = new
+	// APHELION EDIT ADDITION START - DOGMOS
+	internal_fusion.dogmos_fusion_excluded = TRUE
+	// APHELION EDIT ADDITION END
 	internal_fusion.set_volume(5000)
 	moderator_internal = new
+	// APHELION EDIT ADDITION START - DOGMOS
+	moderator_internal.dogmos_fusion_excluded = TRUE
+	// APHELION EDIT ADDITION END
 	moderator_internal.set_volume(10000)
 
 	radio = new(src)

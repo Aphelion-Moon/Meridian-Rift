@@ -329,6 +329,9 @@
 
 	//Allow for reactions
 	excited = (excited | air_contents.react(src))
+	// APHELION EDIT ADDITION START - DOGMOS
+	excited ||= air_contents.dogmos_fusion_waiting(src)
+	// APHELION EDIT ADDITION END
 	excited = (excited | handle_tolerances(seconds_per_tick))
 	excited = (excited | leaking)
 

@@ -195,7 +195,15 @@
 		var/mix_name = capitalize(LOWER_TEXT(target.name))
 		if(airs.len != 1) //not a unary gas mixture
 			mix_name += " - Node [airs.Find(air)]"
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		new_gasmix_data += list(gas_mixture_parser(air, mix_name))
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		var/list/parsed_mix = gas_mixture_parser(air, mix_name)
+		parsed_mix["fusion_status"] = air.dogmos_fusion_display_status(target)
+		parsed_mix["fusion_instability"] = parsed_mix["fusion_status"] == "active" ? air.dogmos_fusion_instability : null
+		new_gasmix_data += list(parsed_mix)
+		// APHELION EDIT ADDITION END
 	last_gasmix_data = new_gasmix_data
 	last_scanned = WEAKREF(target)
 

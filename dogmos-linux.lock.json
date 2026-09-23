@@ -1,11 +1,24 @@
 {
   "artifacts": {
-    "dogmos-source-snapshot.json": "ffb7ce25fb5fa903e07d60009423f0d9b8d363c053b9cfbdbab1481c5e97a287",
-    "dogmos_bindings.dm": "4b6ba8bd8f88070b41bcd61f7dedd2f7ed2703b58518b58f11780aa12e3b1efb",
-    "libdogmos_in_process.so": "aa05aac74cafef330c5cc892b7de487eba3e01ea6634ab870bf834815bb1fef1",
-    "libdogmos_in_process.so.debug": "74c79694ce7f012b3acbe178c828bb41bdec321bfca554ae0617fcd635441ad0"
+    "dogmos-source-snapshot.json": "955167df6b1be4ea3dc84d3e888d88c6927980bf14f47aa23c2e0b144a29be20",
+    "dogmos_bindings.dm": "f2dd339a3851899c48de022205a000b87860bef76d73accb24789efe99c00099",
+    "libdogmos_in_process.so": "f7f09b896a95368e1776008e14beea9dee354a82bc923783261ba3bb4a7e5ee7",
+    "libdogmos_in_process.so.debug": "b3a1f3c27b270fb5c51361f9efd9bf303fd46742a43a958f8ad5e235f78a86b1"
   },
   "backend": "in-process",
+  "build_provenance": {
+    "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "cpu_requirements": [],
+    "flag_sha256": {},
+    "linker": {
+      "command": null,
+      "selection": "cargo-rustc-configuration",
+      "version": null
+    },
+    "objcopy_version": "GNU objcopy (GNU Binutils for Ubuntu) 2.42",
+    "profile_override_sha256": {},
+    "rustc_verbose": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.0\nLLVM version: 22.1.8"
+  },
   "cargo_arguments": [
     "+1.98.0",
     "build",
@@ -32,8 +45,8 @@
   "kind": "unqualified-in-process-playtest",
   "runtime_qualified": false,
   "schema_version": 1,
-  "source_revision": "722b9b9ef844fd13d835fa468963183168773e67",
-  "source_sha256": "ffb7ce25fb5fa903e07d60009423f0d9b8d363c053b9cfbdbab1481c5e97a287",
+  "source_revision": "d82f95abc447ac5ef152a91d1f841f1ff2f7cd88",
+  "source_sha256": "955167df6b1be4ea3dc84d3e888d88c6927980bf14f47aa23c2e0b144a29be20",
   "target": "i686-unknown-linux-gnu",
   "tests_run": false,
   "toolchain": "1.98.0"

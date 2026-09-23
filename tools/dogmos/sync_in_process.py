@@ -25,13 +25,8 @@ def atomic_write(path: Path, data: bytes) -> None:
             temporary.unlink(missing_ok=True)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--bundle", type=Path, required=True)
-    parser.add_argument("--native-root", type=Path, required=True)
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
-    args = parser.parse_args()
-    bundle, root = args.bundle.resolve(), args.root.resolve()
+def read_bundle(bundle: Path, native_root: Path) -> tuple[dict, dict]:
+    """Validate every candidate before any installation write."""
     manifest = json.loads((bundle / "dogmos-playtest.json").read_text(encoding="utf-8-sig"),
                           object_pairs_hook=_duplicate_guard)
     validate_in_process_manifest(manifest)
@@ -41,31 +36,60 @@ def main() -> None:
             raise ContractError(f"bundle hash mismatch: {name}")
     library = native_files(manifest)[0]
     verify_in_process_bytes(manifest, artifacts[library], artifacts["dogmos_bindings.dm"])
-    # Validate against the actual source checkout, not merely a self-consistent manifest.
     import sys
-    subprocess.run([sys.executable, "-B", str(args.native_root / "tools/dogmos_source_snapshot.py"),
-                    "verify", "--repository-root", str(args.native_root),
+    subprocess.run([sys.executable, "-B", str(native_root / "tools/dogmos_source_snapshot.py"),
+                    "verify", "--repository-root", str(native_root),
                     "--snapshot", str(bundle / "dogmos-source-snapshot.json")], check=True)
+    return manifest, artifacts
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument("--companion-bundle", type=Path,
+                        help="Update the second platform together from the same source, with failure rollback")
+    parser.add_argument("--native-root", type=Path, required=True)
+    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
+    args = parser.parse_args()
+    root = args.root.resolve()
+    bundles = [read_bundle(args.bundle.resolve(), args.native_root.resolve())]
+    if args.companion_bundle:
+        bundles.append(read_bundle(args.companion_bundle.resolve(), args.native_root.resolve()))
     if not (root / "tgstation.dme").is_file():
         raise ContractError("destination is not a Meridian-Rift checkout")
-    lock_name = "dogmos.lock.json" if manifest["target"] == "i686-pc-windows-msvc" else "dogmos-linux.lock.json"
-    other_lock = root / ("dogmos-linux.lock.json" if lock_name == "dogmos.lock.json" else "dogmos.lock.json")
-    if other_lock.exists():
+    manifest = bundles[0][0]
+    targets = set()
+    replacements = {}
+    for candidate, artifacts in bundles:
+        if candidate["target"] in targets:
+            raise ContractError("companion bundle must target the other platform")
+        targets.add(candidate["target"])
+        if (candidate["source_sha256"] != manifest["source_sha256"]
+                or candidate["artifacts"]["dogmos_bindings.dm"] != manifest["artifacts"]["dogmos_bindings.dm"]):
+            raise ContractError("paired bundles must have identical source and bindings")
+        library = native_files(candidate)[0]
+        lock_name = "dogmos.lock.json" if candidate["target"] == "i686-pc-windows-msvc" else "dogmos-linux.lock.json"
+        replacements.update({
+            root / library: artifacts[library],
+            root / "code/__DEFINES/dogmos_bindings.dm": artifacts["dogmos_bindings.dm"],
+            root / "code/__DEFINES/dogmos_contract.dm": render_contract_defines(candidate),
+            root / lock_name: (json.dumps(candidate, indent=2, sort_keys=True) + "\n").encode(),
+        })
+    for lock_name, target in (("dogmos.lock.json", "i686-pc-windows-msvc"),
+                              ("dogmos-linux.lock.json", "i686-unknown-linux-gnu")):
+        other_lock = root / lock_name
+        if target in targets or not other_lock.exists():
+            continue
         other = json.loads(other_lock.read_text(encoding="utf-8-sig"), object_pairs_hook=_duplicate_guard)
         if (other.get("source_sha256") != manifest["source_sha256"]
                 or other.get("artifacts", {}).get("dogmos_bindings.dm") != manifest["artifacts"]["dogmos_bindings.dm"]):
-            raise ContractError("other installed platform differs; archive its lock and library before updating both platforms")
-    replacements = {
-        root / library: artifacts[library],
-        root / "code/__DEFINES/dogmos_bindings.dm": artifacts["dogmos_bindings.dm"],
-        root / "code/__DEFINES/dogmos_contract.dm": render_contract_defines(manifest),
-        root / lock_name: (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
-    }
+            raise ContractError("other installed platform differs; supply its matching --companion-bundle")
     previous = {path: path.read_bytes() if path.exists() else None for path in replacements}
     try:
         for path, data in replacements.items():
             atomic_write(path, data)
-        verify_installed(root, target=manifest["target"])
+        for target in targets:
+            verify_installed(root, target=target)
     except BaseException:
         for path, data in previous.items():
             if data is None:

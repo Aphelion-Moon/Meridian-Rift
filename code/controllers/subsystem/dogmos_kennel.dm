@@ -133,6 +133,9 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 	producer_process_metric_samples = min(producer_process_metric_samples + 1, SHORT_REAL_LIMIT)
 	// APHELION EDIT ADDITION END
 	var/list/data = list()
+	// APHELION EDIT ADDITION START - DOGMOS
+	data["reaction_explanation"] = user.client?.dogmos_reaction_explanation
+	// APHELION EDIT ADDITION END
 	data["active_size"] = SSair.active_turfs.len
 	data["hotspots_size"] = SSair.hotspots.len
 	data["conducting_size"] = dogmos_heat_graph_count()
@@ -233,6 +236,28 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 		return
 	var/datum/tgui/dogmos_kennel/kennel_ui = ui
 	switch(action)
+		// APHELION EDIT ADDITION START - DOGMOS
+		if("kennel_explain_reactions")
+			var/atom/target = get_turf(user)
+			if(params["ref"])
+				target = locate(params["ref"]) in SSair.atmos_machinery
+			if(QDELETED(target))
+				return
+			var/mixtures = target.return_analyzable_air()
+			var/list/airs = islist(mixtures) ? mixtures : list(mixtures)
+			var/index = params["index"]
+			if(isnull(index))
+				index = 1
+			else if(istext(index))
+				index = text2num(index)
+			if(!dogmos_fusion_finite(index) || index != round(index) || index < 1 || index > min(length(airs), 8))
+				return
+			var/datum/gas_mixture/air = airs[index]
+			if(!istype(air) || QDELETED(air))
+				return
+			user.client.dogmos_reaction_explanation = list("target" = "[target]", "reference" = params["ref"], "index" = index, "count" = min(length(airs), 8), "time" = world.time, "fusion" = air.dogmos_fusion_display_status(target), "suppressed" = air.get_moles(/datum/gas/hypernoblium) >= REACTION_OPPRESSION_THRESHOLD && air.return_temperature() > REACTION_OPPRESSION_MIN_TEMP, "immutable" = air.is_immutable(), "rows" = air.dogmos_explain_reactions(), "loaded_build" = json_decode(dogmos_in_process_capabilities()))
+			return TRUE
+		// APHELION EDIT ADDITION END
 		if("move-to-target")
 			var/turf/target = SSair.resolve_kennel_jump_target(params["spot"])
 			if(!target || !user)

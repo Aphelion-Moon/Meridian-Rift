@@ -103,7 +103,7 @@
 
 /obj/machinery/portable_atmospherics/process_atmos()
 	excited = (!suppress_reactions && (excited || air_contents.react(src)))
-	if(!excited)
+	if(!excited && !air_contents.dogmos_fusion_waiting(src)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!excited)
 		return PROCESS_KILL
 	excited = FALSE
 

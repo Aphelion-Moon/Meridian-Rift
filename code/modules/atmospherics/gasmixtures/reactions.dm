@@ -17,6 +17,9 @@
 		if(initial(reaction.exclude))
 			continue
 		reaction = new reaction
+		if(!reaction.dogmos_registration_enabled())
+			qdel(reaction)
+			continue
 		var/datum/gas/reaction_key
 		for (var/req in reaction.requirements)
 			if (ispath(req))
@@ -82,8 +85,7 @@
 		if(ispath(requirement))
 			var/gas_id = meta_gas_id[requirement]
 			if(!gas_id)
-				stack_trace("Reaction requirement [requirement] has no registered gas id.")
-				continue
+				CRASH("Reaction requirement [requirement] has no registered gas id.")
 			translated[gas_id] = value
 			continue
 		if(requirement == "MIN_TEMP")
@@ -92,6 +94,10 @@
 		translated[requirement] = value
 
 	return translated
+
+/** Allows startup configuration to exclude a reaction entirely. */
+/datum/gas_reaction/proc/dogmos_registration_enabled()
+	return TRUE
 
 /datum/gas_reaction
 	abstract_type = /datum/gas_reaction

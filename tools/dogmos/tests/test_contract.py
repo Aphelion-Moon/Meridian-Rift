@@ -7,8 +7,10 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import verify_contract as contract
+import sync_in_process as sync
 
 
 def fixture(root: Path, target='i686-pc-windows-msvc'):
@@ -76,6 +78,64 @@ class NativeContractTests(unittest.TestCase):
             valid=fixture(root)
             (root/'dogmos.lock.json').write_text(json.dumps(valid),encoding='utf-8',newline='\n')
             with self.assertRaises(contract.ContractError):contract.verify_installed(root,target='i686-pc-windows-msvc')
+
+
+class PairedInstallTests(unittest.TestCase):
+    def bundles(self, root):
+        result = []
+        for target in ('i686-pc-windows-msvc', 'i686-unknown-linux-gnu'):
+            directory = root / target
+            directory.mkdir()
+            manifest = fixture(directory, target)
+            native = contract.native_files(manifest)[0]
+            result.append((manifest, {native: (directory / native).read_bytes(),
+                                     'dogmos_bindings.dm': (directory / 'code/__DEFINES/dogmos_bindings.dm').read_bytes()}))
+        return result
+
+    def invoke(self, root, bundles):
+        with patch.object(sys, 'argv', ['sync', '--bundle', 'windows', '--companion-bundle', 'linux',
+                                       '--native-root', str(root), '--root', str(root)]), \
+                patch.object(sync, 'read_bundle', side_effect=bundles):
+            sync.main()
+
+    def test_paired_install_validates_both_platforms(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bundles = self.bundles(root)
+            (root / 'tgstation.dme').touch()
+            (root / 'code/__DEFINES').mkdir(parents=True)
+            self.invoke(root, bundles)
+            for manifest, _ in bundles:
+                self.assertEqual(contract.verify_installed(root, target=manifest['target']), manifest)
+
+    def test_companion_mismatch_is_rejected_before_any_write(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bundles = self.bundles(root)
+            (root / 'tgstation.dme').touch()
+            bundles[1][0]['source_sha256'] = 'd' * 64
+            with patch.object(sync, 'atomic_write') as write:
+                with self.assertRaisesRegex(contract.ContractError, 'identical source'):
+                    self.invoke(root, bundles)
+                write.assert_not_called()
+
+    def test_failed_post_install_verification_restores_all_previous_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bundles = self.bundles(root)
+            (root / 'tgstation.dme').touch()
+            fixture(root)
+            # Preserve unrelated/preexisting bytes even when the second platform was absent.
+            (root / 'dogmos.dll').write_bytes(b'previous installed library')
+            paths = ['dogmos.dll', 'dogmos.lock.json', 'libdogmos_in_process.so',
+                     'dogmos-linux.lock.json', 'code/__DEFINES/dogmos_bindings.dm',
+                     'code/__DEFINES/dogmos_contract.dm']
+            before = {name: (root / name).read_bytes() if (root / name).exists() else None for name in paths}
+            with patch.object(sync, 'verify_installed', side_effect=contract.ContractError('injected verification failure')):
+                with self.assertRaisesRegex(contract.ContractError, 'injected'):
+                    self.invoke(root, bundles)
+            after = {name: (root / name).read_bytes() if (root / name).exists() else None for name in paths}
+            self.assertEqual(after, before)
 
 if __name__ == '__main__':
     unittest.main()

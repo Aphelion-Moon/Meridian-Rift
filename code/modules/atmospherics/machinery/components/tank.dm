@@ -171,7 +171,7 @@
 			playsound(src, pick(breaking_sounds), 30, vary = TRUE)
 
 	refresh_window()
-	if(!reaction_occurred && !overpressure)
+	if(!reaction_occurred && !overpressure && !air_contents.dogmos_fusion_waiting(src)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!reaction_occurred && !overpressure)
 		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
 
 ///////////////////////////////////////////////////////////////////

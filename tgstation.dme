@@ -7370,6 +7370,7 @@
 #include "modular_aphelion\modules\department_ooc\code\department_ooc.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
 #include "modular_aphelion\modules\dogmos\code\dogmos.dm"
+#include "modular_aphelion\modules\dogmos\code\mixture_fusion.dm"
 #include "modular_aphelion\modules\dogmos\code\dogmos_goggles.dm"
 #include "modular_aphelion\modules\dogmos\code\in_process_backend.dm"
 #include "modular_aphelion\modules\dogmos\code\legacy_mixture_transcript.dm"

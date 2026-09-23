@@ -50,6 +50,10 @@
 			gasmix.get_moles(gas_path),
 		))
 	for(var/datum/gas_reaction/standard/reaction_result as anything in gasmix.reaction_results)
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(reaction_result == /datum/gas_reaction/standard/meridian_fusion)
+			continue // The analyzer shows validated current fusion status separately.
+		// APHELION EDIT ADDITION END
 		.["reactions"] += list(list(
 			initial(reaction_result.id),
 			initial(reaction_result.name),

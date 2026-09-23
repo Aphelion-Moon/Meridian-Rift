@@ -13,6 +13,10 @@ export type Gasmix = {
   total_moles: number;
   reactions: ReactionEntry[]; // ID, name, and amount.
   reference: string;
+  // APHELION EDIT ADDITION START - DOGMOS
+  fusion_status?: string;
+  fusion_instability?: number | null;
+  // APHELION EDIT ADDITION END
 };
 
 type GasmixParserProps = {

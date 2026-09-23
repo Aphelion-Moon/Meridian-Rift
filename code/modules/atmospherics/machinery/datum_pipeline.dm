@@ -59,6 +59,9 @@
 	reconcile_air()
 	//Only react if the mix has changed, and don't keep updating if it hasn't
 	update = air.react(src)
+	// APHELION EDIT ADDITION START - DOGMOS
+	update ||= air.dogmos_fusion_waiting(src)
+	// APHELION EDIT ADDITION END
 	//CalculateGasmixColor(air) // NOVA EDIT REMOVAL - Pipe gas visuals removed
 
 /datum/pipeline/proc/set_air(datum/gas_mixture/new_air)

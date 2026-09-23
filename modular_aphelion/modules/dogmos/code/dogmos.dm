@@ -36,6 +36,10 @@ SUBSYSTEM_DEF(dogmos)
 	if(native_identity != DOGMOS_IN_PROCESS_IDENTITY)
 		stack_trace("Dogmos native identity mismatch: expected [DOGMOS_IN_PROCESS_IDENTITY], got [native_identity].")
 		return SS_INIT_FAILURE
+	mixture_fusion_enabled = CONFIG_GET(flag/dogmos_mixture_fusion)
+	if(mixture_fusion_enabled && !DOGMOS_FUSION_NATIVE_AVAILABLE)
+		stack_trace("Mixture fusion requires a matching Aphelion native build; disable dogmos_mixture_fusion or install the matching bundle.")
+		return SS_INIT_FAILURE
 	// Build the reaction table before the Rust registry starts.
 	SSair.gas_reactions = init_gas_reactions()
 	SSair.dogmos_reactions = init_dogmos_reactions(SSair.gas_reactions)
@@ -48,6 +52,7 @@ SUBSYSTEM_DEF(dogmos)
 
 	if(!auxtools_atmos_init(GLOB.gas_data))
 		stack_trace("auxtools_atmos_init() did not report success - Dogmos may hold an incomplete gas registry.")
+		dogmos_shutdown() // Release partial startup state; this does not retry or resume the world.
 		return SS_INIT_FAILURE
 
 	gases_registered = TRUE

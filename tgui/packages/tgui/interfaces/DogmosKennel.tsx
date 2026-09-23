@@ -110,7 +110,24 @@ type MachineBrowseEntry = {
   area: string;
 };
 
+// APHELION EDIT ADDITION START - DOGMOS
+type ReactionExplanation = {
+  target: string;
+  reference?: string;
+  index: number;
+  count: number;
+  time: number;
+  fusion: string;
+  suppressed: BooleanLike;
+  immutable: BooleanLike;
+  rows: [string, string, number, BooleanLike, string][];
+  loaded_build: { identity: string; fusion_profile: number };
+};
+// APHELION EDIT ADDITION END
 type Data = {
+  // APHELION EDIT ADDITION START - DOGMOS
+  reaction_explanation?: ReactionExplanation;
+  // APHELION EDIT ADDITION END
   active_size: number;
   hotspots_size: number;
   conducting_size: number;
@@ -867,6 +884,15 @@ const StructuresPanel = (props) => {
                       content="Leash"
                       onClick={() => act('kennel_pin', { ref: entry.ref })}
                     />
+                    {/* APHELION EDIT ADDITION START - DOGMOS */}
+                    <Button
+                      onClick={() =>
+                        act('kennel_explain_reactions', { ref: entry.ref })
+                      }
+                    >
+                      Inspect reactions
+                    </Button>
+                    {/* APHELION EDIT ADDITION END */}
                   </td>
                 </tr>
               ))}
@@ -906,6 +932,80 @@ const StructuresPanel = (props) => {
   );
 };
 
+// APHELION EDIT ADDITION START - DOGMOS
+const ReactionExplanationPanel = () => {
+  const { act, data } = useBackend<Data>();
+  const report = data.reaction_explanation;
+  return (
+    <Section
+      title="Reaction inspection"
+      buttons={
+        <Button onClick={() => act('kennel_explain_reactions')}>
+          Inspect local air
+        </Button>
+      }
+    >
+      {report && (
+        <>
+          <Box>
+            {report.target}, mixture {report.index}/{report.count}, sampled at
+            round time {report.time / 10}s
+          </Box>
+          <NoticeBox>
+            Present-state generic eligibility only. Reaction bodies were not
+            run; previous body declines and chain stops are not recorded here.
+            Up to 128 reactions.
+            {!!report.suppressed && ' Hypernoblium suppression is active.'}
+            {!!report.immutable && ' This mixture is immutable.'}
+          </NoticeBox>
+          <Box>Fusion: {report.fusion}</Box>
+          <Button
+            disabled={report.index <= 1}
+            onClick={() =>
+              act('kennel_explain_reactions', {
+                ref: report.reference,
+                index: report.index - 1,
+              })
+            }
+          >
+            Previous mixture
+          </Button>
+          <Button
+            disabled={report.index >= report.count}
+            onClick={() =>
+              act('kennel_explain_reactions', {
+                ref: report.reference,
+                index: report.index + 1,
+              })
+            }
+          >
+            Next mixture
+          </Button>
+          <Box color="label">
+            {report.loaded_build.identity}; profile{' '}
+            {report.loaded_build.fusion_profile}
+          </Box>
+          <Table>
+            {report.rows.map(
+              ([id, implementation, priority, eligible, detail]) => (
+                <Table.Row key={id}>
+                  <Table.Cell>
+                    {id} ({implementation}, {priority})
+                  </Table.Cell>
+                  <Table.Cell>
+                    {eligible ? 'Requirements met' : 'Requirements not met'}
+                  </Table.Cell>
+                  <Table.Cell>{detail}</Table.Cell>
+                </Table.Row>
+              ),
+            )}
+          </Table>
+        </>
+      )}
+    </Section>
+  );
+};
+// APHELION EDIT ADDITION END
 export const DogmosKennel = (props) => {
   const { data } = useBackend<Data>();
   const tabs = Object.keys(TABS) as TABS[];
@@ -954,6 +1054,9 @@ export const DogmosKennel = (props) => {
     <Window title="🐾 Dogmos Kennel" width={900} height={680}>
       <Window.Content scrollable>
         <KennelControls />
+        {/* APHELION EDIT ADDITION START - DOGMOS */}
+        <ReactionExplanationPanel />
+        {/* APHELION EDIT ADDITION END */}
         <Tabs>
           {tabs.map((tab) => {
             const eventCountKey = TAB_EVENT_COUNT_KEYS[tab];
