@@ -115,7 +115,10 @@ also available here.
 Custom holds up to 16 colors for the account, shared across character slots and
 all custom editors. The + opens a color picker and disappears when full.
 Right-click a Palette color, then click Save to keep it. Right-click a Custom
-color, then click Remove to delete it. Delete while hovering does the same thing.
+color, then click Remove to delete it (Delete while hovering does the same thing),
+or Edit to reopen the color picker at that color and adjust it. An edited swatch
+keeps its place, brushes using it follow it, and paint already drawn keeps the old
+color; editing it into a color that's already saved merges the two.
 The menus stay open while moving to the action; clicking outside or pressing
 Escape dismisses them.
 

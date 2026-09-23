@@ -1,11 +1,5 @@
-/// Bounded cache of palettes sampled from existing sprites.
-GLOBAL_LIST_EMPTY(custom_sprite_palettes)
-/// Bounded cache of decoded drawing icons shared by appearance renderers.
-GLOBAL_LIST_EMPTY(custom_sprite_paint_icons)
 /// Bounded cache of paint clipped to bodyparts and their split leg layers.
 GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
-/// Bounded cache of directional limb silhouettes used by editing masks.
-GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 
 /// A blank in every editable direction, including bald hairstyles without an icon state.
 /// Insert() alone leaves an empty icon reporting 0x0, so seed its dimensions from the blank.
@@ -32,8 +26,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 
 /// Sample the most frequent opaque shades from all four authored directions.
 /proc/custom_sprite_sample_palette(icon_file, icon_state)
+	// Bounded cache of palettes sampled from existing sprites.
+	var/static/list/palettes = list()
 	var/key = "[icon_file]|[icon_state]"
-	var/list/cached = GLOB.custom_sprite_palettes[key]
+	var/list/cached = palettes[key]
 	if(cached)
 		return cached.Copy()
 	var/list/counts = list()
@@ -60,7 +56,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 		counts -= most_frequent
 	if(!length(palette))
 		palette = list("#ffffff", "#d8d8d8", "#b0b0b0")
-	custom_sprite_cache_put(GLOB.custom_sprite_palettes, key, palette)
+	custom_sprite_cache_put(palettes, key, palette)
 	return palette.Copy()
 
 /// Match the Custom palette's frontend multiplication and nearest-integer channel rounding.
@@ -154,10 +150,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 
 /// Called by debounced previews and appearance rendering, never by the per-stroke UI payload.
 /proc/custom_sprite_paint_icon(list/drawing)
+	// Bounded cache of decoded drawing icons shared by appearance renderers.
+	var/static/list/paint_icons = list()
 	if(!drawing)
 		return null
 	var/key = custom_sprite_pixel_hash(drawing)
-	var/icon/cached = GLOB.custom_sprite_paint_icons[key]
+	var/icon/cached = paint_icons[key]
 	if(cached)
 		return cached
 	var/list/palette = drawing["palette"]
@@ -179,7 +177,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 					frame.DrawBox(palette[index], x, 32 - y, x + run - 1, 32 - y)
 				x += run
 		paint.Insert(frame, "", direction)
-	return custom_sprite_cache_put(GLOB.custom_sprite_paint_icons, key, paint)
+	return custom_sprite_cache_put(paint_icons, key, paint)
 
 /// Raw limb geometry, using exactly the state selection in get_limb_icon().
 /proc/custom_sprite_limb_state(obj/item/bodypart/limb, auxiliary = FALSE)
@@ -318,6 +316,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 
 /// Row strings keep the wire payload small and test the same silhouette used by rendering.
 /proc/custom_sprite_body_draw_mask(mob/living/carbon/human/body, body_zone, width = 32)
+	// Bounded cache of directional limb silhouettes used by editing masks.
+	var/static/list/limb_masks = list()
 	var/list/geometry = list(width, body_zone)
 	var/limb_zone = (body_zone && GLOB.custom_marking_hand_arms[body_zone]) || body_zone
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
@@ -330,8 +330,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 		if(taur && chest)
 			geometry += list(taur.icon_render_key(chest), chest.limb_gender)
 	var/key = json_encode(geometry)
-	if(GLOB.custom_sprite_limb_masks[key])
-		return GLOB.custom_sprite_limb_masks[key]
+	if(limb_masks[key])
+		return limb_masks[key]
 	var/icon/silhouette = custom_sprite_body_silhouette(body, body_zone, width)
 	var/list/mask = list()
 	for(var/direction in GLOB.cardinals)
@@ -342,4 +342,4 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 				row += silhouette.GetPixel(x + 1, 32 - y, "", direction) ? "1" : "0"
 			rows += row
 		mask["[direction]"] = rows
-	return custom_sprite_cache_put(GLOB.custom_sprite_limb_masks, key, mask)
+	return custom_sprite_cache_put(limb_masks, key, mask)

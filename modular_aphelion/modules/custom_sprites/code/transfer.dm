@@ -9,8 +9,6 @@ GLOBAL_LIST_EMPTY(custom_style_transfers)
 
 /// Exact fields allowed in an imported drawing.
 GLOBAL_LIST_INIT(custom_style_drawing_keys, list("version", "palette", "dirs", "tint", "emissive"))
-/// Exact fields allowed in an imported base hair look.
-GLOBAL_LIST_INIT(custom_style_hair_keys, list("style", "color", "gradient_style", "gradient_color", "opacity", "emissive"))
 /// Exact fields allowed in one imported native marking.
 GLOBAL_LIST_INIT(custom_style_marking_keys, list("name", "color", "emissive"))
 /// Direction labels used in validation errors.
@@ -107,9 +105,11 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  * - list("error" = message): Anything missing, unknown, locked or out of range.
  */
 /proc/custom_style_validate_hair(list/raw, target = "hair")
-	if(!islist(raw) || custom_style_unknown_key(raw, GLOB.custom_style_hair_keys))
+	// Exact fields allowed in an imported base hair look.
+	var/static/list/hair_keys = list("style", "color", "gradient_style", "gradient_color", "opacity", "emissive")
+	if(!islist(raw) || custom_style_unknown_key(raw, hair_keys))
 		return list("error" = "The hair settings are malformed.")
-	for(var/key in GLOB.custom_style_hair_keys)
+	for(var/key in hair_keys)
 		if(!(key in raw))
 			return list("error" = "The hair settings are missing \"[key]\".")
 	var/style = raw["style"]

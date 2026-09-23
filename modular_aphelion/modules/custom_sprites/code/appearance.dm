@@ -56,11 +56,10 @@
 	var/static/datum/sprite_accessory/facial_hair/custom_sprite_blank/blank = new
 	return blank
 
-/// Bounded cache of directional drawing emission and blocker masks.
-GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
-
 /// Include explicit blank frames: a missing facing would fall back to the South mask.
 /proc/custom_sprite_directional_mask(icon/source, geometry_key, list/directions, glowing)
+	// Bounded cache of directional drawing emission and blocker masks.
+	var/static/list/emissive_icons = list()
 	var/list/selected = list()
 	for(var/direction in GLOB.cardinals)
 		if((directions?["[direction]"] == TRUE) == glowing)
@@ -70,14 +69,14 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 	if(length(selected) == 4)
 		return source
 	var/key = "[geometry_key]|[jointext(selected, ",")]"
-	var/icon/cached = GLOB.custom_sprite_emissive_icons[key]
+	var/icon/cached = emissive_icons[key]
 	if(cached)
 		return cached
 	var/icon/source_icon = icon(source)
 	var/icon/masked = custom_sprite_blank_icon(source_icon.Width())
 	for(var/direction in selected)
 		masked.Insert(icon(source_icon, "", direction), "", direction)
-	return custom_sprite_cache_put(GLOB.custom_sprite_emissive_icons, key, masked)
+	return custom_sprite_cache_put(emissive_icons, key, masked)
 
 /// Each head gets a private masked copy; the shared accessory cache is never painted.
 /obj/item/bodypart/head/proc/get_custom_hair_paint(datum/sprite_accessory/hair/hairstyle, target = "hair")

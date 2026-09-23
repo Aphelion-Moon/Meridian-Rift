@@ -164,6 +164,30 @@ it('confirms removal of an unavailable custom swatch and dismisses menus without
   await waitFor(() => expect(screen.queryByText('Remove')).toBeNull());
 });
 
+it('offers editing a custom swatch below Remove, starting from its saved color', async () => {
+  const view = render(
+    <CustomSpritePalette
+      serverPalette={['#ffffff']}
+      customPalette={['#12abef']}
+      availableColors={['#ffffff', '#12abef']}
+      maxCustomColors={16}
+      displayTint="#ff0000"
+    />,
+  );
+  const [regular, saved] = view.container.querySelectorAll('.Button');
+  fireEvent.contextMenu(regular);
+  await screen.findByText('Save');
+  expect(screen.queryByText('Edit')).toBeNull();
+  fireEvent.contextMenu(saved);
+  const remove = (await screen.findByText('Remove')).closest('.Button')!;
+  const edit = screen.getByText('Edit').closest('.Button')!;
+  expect(remove.nextElementSibling).toBe(edit);
+  fireEvent.click(edit);
+  // The raw saved color, not its tinted display.
+  expect(send).toHaveBeenCalledWith('editPaletteColor', { color: '#12abef' });
+  await waitFor(() => expect(screen.queryByText('Edit')).toBeNull());
+});
+
 it.each([
   { customPalette: ['#12abef'], maxCustomColors: 16 },
   { customPalette: ['#ffffff'], maxCustomColors: 1 },

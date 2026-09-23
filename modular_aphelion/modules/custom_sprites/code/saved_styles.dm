@@ -267,7 +267,8 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
  * straight through; detaching it keeps the no-sleep guarantee without editing the renderer.
  */
 /datum/preferences/proc/refresh_custom_sprite_preview()
-	INVOKE_ASYNC(character_preview_view, TYPE_PROC_REF(/atom/movable/screen/map_view/char_preview, update_body))
+	if(character_preview_view)
+		INVOKE_ASYNC(character_preview_view, TYPE_PROC_REF(/atom/movable/screen/map_view/char_preview, update_body))
 
 /// Publish only the committed zone, preserving native markings and pending edits on other limbs.
 /datum/preferences/proc/publish_custom_style_markings(slot, zone, list/markings)

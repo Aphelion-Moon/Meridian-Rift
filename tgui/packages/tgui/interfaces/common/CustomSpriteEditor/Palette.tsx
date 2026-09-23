@@ -355,15 +355,28 @@ export const CustomSpritePalette = ({
             act('removePaletteColor', { color: customPalette[index] })
           }
           colorContextMenu={(index, close) => (
-            <Button
-              icon="trash"
-              onClick={() => {
-                act('removePaletteColor', { color: customPalette[index] });
-                close();
-              }}
-            >
-              Remove
-            </Button>
+            <>
+              <Button
+                fluid
+                icon="trash"
+                onClick={() => {
+                  act('removePaletteColor', { color: customPalette[index] });
+                  close();
+                }}
+              >
+                Remove
+              </Button>
+              <Button
+                fluid
+                icon="pen"
+                onClick={() => {
+                  act('editPaletteColor', { color: customPalette[index] });
+                  close();
+                }}
+              >
+                Edit
+              </Button>
+            </>
           )}
           canAddColor={customPalette.length < maxCustomColors}
           disabledColors={disabledColors}

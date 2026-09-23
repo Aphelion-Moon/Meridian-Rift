@@ -604,6 +604,14 @@
 		if("removePaletteColor")
 			var/list/colors = preferences.read_preference(/datum/preference/custom_sprite_palette)
 			return set_custom_palette(colors - custom_sprite_color(params["color"]))
+		if("editPaletteColor")
+			var/old_color = custom_sprite_color(params["color"])
+			if(!(old_color in preferences.read_preference(/datum/preference/custom_sprite_palette)))
+				return FALSE
+			var/color = tgui_color_picker(ui.user, "Adjust this saved color for all your characters.", "Custom palette", old_color)
+			if(!can_edit(ui.user) || !custom_sprite_color(color))
+				return FALSE
+			return edit_custom_palette_color(old_color, custom_sprite_color(color))
 		if("spriteEditorCommand")
 			switch(params["command"])
 				if("transaction")
@@ -832,6 +840,32 @@
 		editor.refresh_custom_palette()
 		SStgui.update_uis(editor)
 	return TRUE
+
+/**
+ * Replaces one saved Custom swatch with another color, keeping its place in the palette.
+ *
+ * Like removal, this never recolors paint: pixels already drawn with the old swatch keep it.
+ * Brushes in open editors that were using the old swatch follow it to the new color. Choosing a
+ * color that's already saved folds the two swatches into one.
+ *
+ * The picker yields, so the palette is read again here rather than trusted from before it opened.
+ *
+ * Returns TRUE when the palette changed.
+ */
+/datum/custom_sprite_editor/proc/edit_custom_palette_color(old_color, new_color)
+	var/list/colors = preferences.read_preference(/datum/preference/custom_sprite_palette)
+	var/index = colors.Find(old_color)
+	if(!index || new_color == old_color)
+		return FALSE
+	if(new_color in colors)
+		colors = colors - old_color
+	else
+		colors = colors.Copy()
+		colors[index] = new_color
+	for(var/datum/custom_sprite_editor/editor as anything in preferences.custom_sprite_open_editors())
+		if(editor.selected_custom_color == old_color)
+			editor.selected_custom_color = new_color
+	return set_custom_palette(colors)
 
 /// Every editor using this account's Custom swatches, including a retained salon draft.
 /datum/preferences/proc/custom_sprite_open_editors()
