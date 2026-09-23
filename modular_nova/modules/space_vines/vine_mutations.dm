@@ -91,11 +91,15 @@
 		return
 
 	var/datum/gas_mixture/gas_mix = current_turf.air
-	if(!gas_mix.get_moles(/datum/gas/carbon_dioxide))
+	if(!gas_mix.get_moles(/datum/gas/carbon_dioxide)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!gas_mix.moles[/datum/gas/carbon_dioxide])
 		return
 
 	var/moles_to_replace = GAS_MUTATION_REMOVAL_MULTIPLIER * vine_object.growth_stage
-	gas_mix.set_moles(/datum/gas/carbon_dioxide, max(gas_mix.get_moles(/datum/gas/carbon_dioxide) - moles_to_replace, 0))
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	gas_mix.moles[/datum/gas/carbon_dioxide] = max(gas_mix.moles[/datum/gas/carbon_dioxide] - moles_to_replace, 0)
+	gas_mix.garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
+	gas_mix.set_moles(/datum/gas/carbon_dioxide, max(gas_mix.get_moles(/datum/gas/carbon_dioxide) - moles_to_replace, 0)) // APHELION EDIT ADDITION - DOGMOS
 
 	var/happy_atmos = "oxygen=[moles_to_replace];TEMP=296"
 	current_turf.atmos_spawn_air(happy_atmos)

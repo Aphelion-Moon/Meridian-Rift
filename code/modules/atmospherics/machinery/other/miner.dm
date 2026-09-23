@@ -135,8 +135,15 @@
 	if(!isopenturf(O))
 		return FALSE
 	var/datum/gas_mixture/merger = new
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	merger.assert_gas(spawn_id)
+	merger.moles[spawn_id] = spawn_mol * seconds_per_tick
+	merger.temperature = spawn_temp
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	merger.set_moles(spawn_id, spawn_mol * seconds_per_tick)
 	merger.set_temperature(spawn_temp)
+	// APHELION EDIT ADDITION END
 	O.assume_air(merger)
 
 /obj/machinery/atmospherics/miner/attack_ai(mob/living/silicon/user)

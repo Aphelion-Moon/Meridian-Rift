@@ -170,7 +170,7 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 		// APHELION EDIT ADDITION END
 		"post_process" = SSair.cost_post_process,
 	)
-	data["frozen"] = !SSair.can_fire // APHELION EDIT CHANGE - DOGMOS
+	data["frozen"] = !SSair.can_fire
 	data["realistic_space_radiation"] = SSair.realistic_space_radiation
 	data["equalize_enabled"] = SSair.equalize_enabled
 	data["fire_count"] = SSair.times_fired

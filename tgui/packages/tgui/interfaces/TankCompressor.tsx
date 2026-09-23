@@ -277,7 +277,7 @@ const TankCompressorRecords = (props) => {
                     <LabeledList.Item label={gas_name} key={gas_name}>
                       {`${
                         activeRecord.gases[gas_name]
-                          ? activeRecord.gases[gas_name].toFixed(4)
+                          ? activeRecord.gases[gas_name].toFixed(4) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: ? activeRecord.gases[gas_name].toFixed(2)
                           : '-'
                       } moles`}
                     </LabeledList.Item>

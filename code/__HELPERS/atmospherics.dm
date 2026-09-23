@@ -43,11 +43,11 @@
 		return
 	var/list/cached_gas_id = GAS_META[META_GAS_ID]
 	var/list/cached_gas_name = GAS_META[META_GAS_NAME]
-	for(var/gas_path in gasmix.get_gases())
+	for(var/gas_path in gasmix.get_gases()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/gas_path, amount in gasmix.moles)
 		.["gases"] += list(list(
 			cached_gas_id[gas_path],
 			cached_gas_name[gas_path],
-			gasmix.get_moles(gas_path),
+			gasmix.get_moles(gas_path), // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: amount,
 		))
 	for(var/datum/gas_reaction/standard/reaction_result as anything in gasmix.reaction_results)
 		// APHELION EDIT ADDITION START - DOGMOS
@@ -60,8 +60,14 @@
 			gasmix.reaction_results[reaction_result],
 		))
 	.["total_moles"] = gasmix.total_moles()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	.["temperature"] = gasmix.temperature
+	.["volume"] = gasmix.volume
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	.["temperature"] = gasmix.return_temperature()
 	.["volume"] = gasmix.return_volume()
+	// APHELION EDIT ADDITION END
 	.["pressure"] = gasmix.return_pressure()
 	.["reference"] = REF(gasmix)
 
@@ -149,8 +155,14 @@ GLOBAL_LIST_EMPTY(gas_handbook)
 	return null
 
 /proc/print_gas_mixture(datum/gas_mixture/gas_mixture)
-	var/message = "TEMPERATURE: [gas_mixture.return_temperature()]K, QUANTITY: [gas_mixture.total_moles()] mols, VOLUME: [gas_mixture.return_volume()]L; "
+	var/message = "TEMPERATURE: [gas_mixture.return_temperature()]K, QUANTITY: [gas_mixture.total_moles()] mols, VOLUME: [gas_mixture.return_volume()]L; " // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/message = "TEMPERATURE: [gas_mixture.temperature]K, QUANTITY: [gas_mixture.total_moles()] mols, VOLUME: [gas_mixture.volume]L; "
 	var/list/cached_gas_id = GAS_META[META_GAS_ID]
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	for(var/gas_id, amount in gas_mixture.moles)
+		message += "[cached_gas_id[gas_id]]=[amount] mols;"
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	for(var/gas_id in gas_mixture.get_gases())
 		message += "[cached_gas_id[gas_id]]=[gas_mixture.get_moles(gas_id)] mols;"
+	// APHELION EDIT ADDITION END
 	return message

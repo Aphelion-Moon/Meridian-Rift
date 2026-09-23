@@ -1,7 +1,9 @@
 GLOBAL_VAR_INIT(total_runtimes, GLOB.total_runtimes || 0)
 GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
+// APHELION EDIT ADDITION START - DOGMOS
 // runtimes_at_init_complete lives in modular_aphelion/modules/dogmos/code/dogmos.dm - it exists
 // solely to support /datum/unit_test/no_runtimes_during_init, so it moved with the rest of that module.
+// APHELION EDIT ADDITION END
 
 #ifdef USE_CUSTOM_ERROR_HANDLER
 #define ERROR_USEFUL_LEN 2
@@ -10,7 +12,10 @@ GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
 	GLOB.total_runtimes++
 
 	if(!istype(E)) //Something threw an unusual exception
-		// APHELION EDIT ADDITION START - preserve evidence for non-exception throws.
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		log_world("uncaught runtime error: [E]")
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		var/list/throw_stack = list()
 		try
 			var/callee/frame = caller

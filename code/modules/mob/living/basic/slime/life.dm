@@ -21,7 +21,7 @@
 	var/datum/gas_mixture/environment = loc?.return_air() // APHELION EDIT CHANGE - DOGMOS_PLAYTEST_REGRESSIONS - ORIGINAL: var/datum/gas_mixture/environment = loc.return_air()
 
 	/* // APHELION EDIT REMOVAL START - DOGMOS_PLAYTEST_REGRESSIONS
-	var/bz_percentage = environment.get_moles(/datum/gas/bz) / environment.total_moles()
+	var/bz_percentage = environment.moles[/datum/gas/bz] / environment.total_moles()
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS_PLAYTEST_REGRESSIONS
 	// Vacuum and missing air contain no BZ; continue so existing stasis can end.

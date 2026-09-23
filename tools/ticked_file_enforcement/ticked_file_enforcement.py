@@ -4,6 +4,7 @@ import functools
 import glob
 import json
 import os
+import re
 import sys
 
 # simple way to check if we're running on github actions, or on a local machine
@@ -56,9 +57,7 @@ with open(file_reference, 'r') as file:
         elif not reading:
             continue
         # APHELION EDIT START - Modular unit tests. NOVA spellings kept so upstream ports don't break.
-        elif line in ("// APHELION EDIT ADDITION START", "// NOVA EDIT ADDITION START"):
-            continue
-        elif line in ("// APHELION EDIT ADDITION END", "// NOVA EDIT ADDITION END"):
+        elif re.fullmatch(r"// (?:APHELION|NOVA) EDIT ADDITION (?:START(?: - [A-Z][A-Z0-9_]*)?|END)", line):
             continue
         # APHELION EDIT END
 
@@ -85,7 +84,7 @@ for code_file in scannable_files:
     else:
         dm_path = os.path.basename(code_file)
         # NOVA EDIT START - Modular unit tests - have to append this again after it gets removed; this was not designed upstream with subfolders for unit tests in mind so we must cope.
-        if("~nova/" in code_file):
+        if("~nova/" in code_file.replace("\\", "/")):
             dm_path = "~nova\\" + dm_path
         # NOVA EDIT END
 

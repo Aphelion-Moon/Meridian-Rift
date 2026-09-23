@@ -28,3 +28,9 @@ upstream supplies equivalent deletion-tracked assignments, retaining regression 
 `modular_aphelion/tools/update_module_includes.py --write` regenerates module includes from
 the maintained source files. Run the repository ticked-file gate afterward.
 Tests are enabled only for `UNIT_TESTS` or `SPACEMAN_DMM`.
+
+## Queued JPS repath and teardown regression
+
+`code/controllers/subsystem/movement/movement_types.dm`, `/datum/move_loop/has_target/jps/proc/recalculate_path`, retains an early deleted-loop check. The upstream deletion-during-`move()` fix does not guard a repath invocation that reaches this proc after teardown. `code/modules/unit_tests/movement_order_sanity.dm` exercises normal movement, deletion during movement, and a late repath; the late call must not restart its cooldown or enqueue pathfinding. Remove the local guard when upstream provides the same late-call contract. No upstream issue or PR has been filed for this remaining case.
+
+Related existing corrections are marked in `code/datums/components/atom_mounted.dm`, `code/modules/unit_tests/wallmount.dm`, and `code/modules/unit_tests/reagent_container_defaults.dm`. They cover missing neighboring turfs at map edges and fixture behavior; the review correction only records their ownership.

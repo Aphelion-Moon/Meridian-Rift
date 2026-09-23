@@ -27,7 +27,6 @@
 	var/total_moles = environment.total_moles()
 	if(total_moles)
 		//If there's atmos, return temperature
-		result.set_output(round(environment.return_temperature(),1))
+		result.set_output(round(environment.return_temperature(),1)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: result.set_output(round(environment.temperature,1))
 	else
 		result.set_output(0)
-

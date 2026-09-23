@@ -203,8 +203,13 @@
 				return TRUE
 			target = clamp(target, 0, MAX_TRANSFER_RATE)
 
+			/* // APHELION EDIT REMOVAL START - DOGMOS
+			input.volume_rate = clamp(target, 0, min(input.airs[1].volume, MAX_TRANSFER_RATE))
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
 			var/datum/gas_mixture/input_air = input.airs[1]
 			input.volume_rate = clamp(target, 0, min(input_air.return_volume(), MAX_TRANSFER_RATE))
+			// APHELION EDIT ADDITION END
 			return TRUE
 
 		if("adjust_output")

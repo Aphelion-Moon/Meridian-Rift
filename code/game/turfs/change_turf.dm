@@ -53,9 +53,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 
 // Creates a new turf
 // new_baseturfs can be either a single type or list of types, formated the same as baseturfs. see turf.dm
-// APHELION EDIT ADDITION START - TURF_CONTEXT
-/** Replaces a turf while carrying surviving subscriptions and persistent tile state forward. */
-// APHELION EDIT ADDITION END
+/** Replaces a turf while carrying surviving subscriptions and persistent tile state forward. */ // APHELION EDIT ADDITION - DOGMOS
 /turf/proc/ChangeTurf(path, list/new_baseturfs, flags)
 	switch(path)
 		if(null)
@@ -294,18 +292,18 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 /turf/open/AfterChange(flags, oldType)
 	..()
 	RemoveLattice()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	if(!(flags & (CHANGETURF_IGNORE_AIR | CHANGETURF_INHERIT_AIR)))
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	if(flags & CHANGETURF_IGNORE_AIR)
 		// IGNORE_AIR reuses turf references. An existing TurfHeat node preserves temperature during
 		// re-registration, so reset it through the setter; unregistered map-load turfs are registered
 		// later and must wait for that registration.
-		/* // APHELION EDIT REMOVAL START - DOGMOS
-		set_temperature(temperature)
-		*/ // APHELION EDIT REMOVAL END
-		// APHELION EDIT ADDITION START - DOGMOS
 		if(air)
 			set_temperature(temperature)
-		// APHELION EDIT ADDITION END
 	else if(!(flags & CHANGETURF_INHERIT_AIR))
+		// APHELION EDIT ADDITION END
 		Assimilate_Air()
 
 //////Assimilate Air//////
@@ -327,20 +325,28 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 		//"borrowing" this code from merge(), I need to play with the temp portion. Lets expand it out
 		//temperature = (giver.temperature * giver_heat_capacity + temperature * self_heat_capacity) / combined_heat_capacity
 		var/capacity = mix.heat_capacity()
-		energy += mix.return_temperature() * capacity
+		energy += mix.return_temperature() * capacity // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: energy += mix.temperature * capacity
 		heat_cap += capacity
 
-		for(var/giver_id, amount in mix.get_moles_list())
+		for(var/giver_id, amount in mix.get_moles_list()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/giver_id, amount in mix.moles)
 			total.adjust_gas(giver_id, amount)
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	total.temperature = energy / heat_cap
+	var/list/cached_total_moles = total.moles
+	for(var/id in cached_total_moles)
+		cached_total_moles[id] /= turflen
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	total.set_temperature(energy / heat_cap)
 	for(var/id in total.get_gases())
 		total.set_moles(id, total.get_moles(id) / turflen)
+	// APHELION EDIT ADDITION END
 
-	// Keep the averaged gas temperature and the turf's separate TurfHeat temperature synchronized.
+	// Keep the averaged gas temperature and the turf's separate TurfHeat temperature synchronized. // APHELION EDIT ADDITION - DOGMOS
 	for(var/turf/open/turf in turf_list)
 		turf.air.copy_from(total)
-		turf.set_temperature(total.return_temperature())
+		turf.set_temperature(total.return_temperature()) // APHELION EDIT ADDITION - DOGMOS
 		turf.update_visuals()
 		SSair.add_to_active(turf)
 

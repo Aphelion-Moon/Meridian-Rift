@@ -76,10 +76,10 @@ SUBSYSTEM_DEF(time_track)
 			"air_pipenet_mixtures_reconciled",
 			// APHELION EDIT ADDITION END
 			"air_rebuilds_cost",
-			// NOVA EDIT ADDITION START - DOGMOS
+			// APHELION EDIT ADDITION START - DOGMOS
 			"air_equalize_cost",
 			"air_post_process_cost",
-			// NOVA EDIT ADDITION END
+			// APHELION EDIT ADDITION END
 			"air_turf_count",
 			"air_eg_count",
 			"air_hotspot_count",
@@ -92,14 +92,12 @@ SUBSYSTEM_DEF(time_track)
 			"air_heat_lock_contention",
 			"air_heat_registration_changes",
 			"air_heat_registration_total",
-			// APHELION EDIT ADDITION END
 			// Use Rust's per-cycle counters; the legacy DM lists are stale between samples.
 			"air_low_pressure_count",
 			"air_high_pressure_count",
 			"air_group_processed",
 			"air_equalize_processed",
 			"air_space_boundary_count",
-			// APHELION EDIT ADDITION START - DOGMOS
 			"air_equalize_enabled",
 			"air_equalize_performance_profile",
 			"air_realistic_space_radiation",
@@ -184,29 +182,30 @@ SUBSYSTEM_DEF(time_track)
 			SSair.dogmos_pipenet_mixtures_reconciled,
 			// APHELION EDIT ADDITION END
 			SSair.cost_rebuilds,
-			// NOVA EDIT ADDITION START - DOGMOS
+			// APHELION EDIT ADDITION START - DOGMOS
 			SSair.cost_equalize,
 			SSair.cost_post_process,
-			// NOVA EDIT ADDITION END
+			// APHELION EDIT ADDITION END
 			length(SSair.active_turfs),
 			length(SSair.excited_groups),
 			length(SSair.hotspots),
 			length(SSair.networks),
 			length(SSair.high_pressure_delta),
-			dogmos_heat_graph_count(),
+			/* // APHELION EDIT REMOVAL START - DOGMOS
+			length(SSair.active_super_conductivity),
+			*/ // APHELION EDIT REMOVAL END
 			// APHELION EDIT ADDITION START - DOGMOS
+			dogmos_heat_graph_count(),
 			SSair.dogmos_heat_edge_attempts,
 			SSair.dogmos_heat_edges_applied,
 			SSair.dogmos_heat_lock_contention,
 			SSair.dogmos_heat_registration_changes,
 			dogmos_heat_registration_total(),
-			// APHELION EDIT ADDITION END
 			SSair.low_pressure_turfs,
 			SSair.high_pressure_turfs,
 			SSair.num_group_turfs_processed,
 			SSair.num_equalize_processed,
 			dogmos_space_boundary_count(),
-			// APHELION EDIT ADDITION START - DOGMOS
 			SSair.equalize_enabled,
 			SSair.dogmos_equalize_performance_profile,
 			SSair.realistic_space_radiation,

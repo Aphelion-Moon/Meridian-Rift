@@ -418,9 +418,16 @@
 
 /obj/structure/chrono_field/return_air() //we always have nominal air and temperature
 	var/datum/gas_mixture/fresh_air = new
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	fresh_air.set_gas(/datum/gas/oxygen, MOLES_O2STANDARD)
+	fresh_air.set_gas(/datum/gas/nitrogen, MOLES_N2STANDARD)
+	fresh_air.temperature = T20C
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	fresh_air.set_moles(/datum/gas/oxygen, MOLES_O2STANDARD)
 	fresh_air.set_moles(/datum/gas/nitrogen, MOLES_N2STANDARD)
 	fresh_air.set_temperature(T20C)
+	// APHELION EDIT ADDITION END
 	return fresh_air
 
 /obj/structure/chrono_field/singularity_act()

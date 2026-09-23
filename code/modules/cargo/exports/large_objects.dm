@@ -129,14 +129,24 @@
 	var/datum/gas_mixture/canister_mix = canister.return_air()
 	if(!canister_mix.total_moles())
 		return 0
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/cached_moles = canister_mix.moles
+	*/ // APHELION EDIT REMOVAL END
 
 	var/worth = cost
 	for(var/datum/gas/gas as anything in GLOB.meta_gas_info[META_GAS_ID])
 		if(!(initial(gas.cargo_flags) & GAS_EXPORTABLE))
 			continue
-		var/moles = canister_mix.get_moles(gas) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: canister_mix.assert_gas(gas)
-		if(moles > 0) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(cached_moles[gas] > 0)
-			worth += get_gas_value(gas, moles) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: worth += get_gas_value(gas, cached_moles[gas])
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		canister_mix.assert_gas(gas)
+		if(cached_moles[gas] > 0)
+			worth += get_gas_value(gas, cached_moles[gas])
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		var/moles = canister_mix.get_moles(gas)
+		if(moles > 0)
+			worth += get_gas_value(gas, moles)
+			// APHELION EDIT ADDITION END
 			if(worth > MAX_GAS_CREDITS)
 				worth = MAX_GAS_CREDITS
 				break

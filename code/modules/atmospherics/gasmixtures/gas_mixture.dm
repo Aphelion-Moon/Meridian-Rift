@@ -18,9 +18,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	// APHELION EDIT ADDITION START - DOGMOS
 	/// Whether Dogmos has accepted this mixture's monotonic immutable finalization.
 	var/dogmos_immutable = FALSE
-	// APHELION EDIT ADDITION END
+// APHELION EDIT ADDITION END
 
-/datum/gas_mixture/New(volume, datum/gas_mixture/copy_source) // APHELION EDIT CHANGE - DOGMOS_COPY_CREATION
+/datum/gas_mixture/New(volume, datum/gas_mixture/copy_source)
 	if(!isnull(volume))
 		initial_volume = volume
 	if(initial_volume <= 0)

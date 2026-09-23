@@ -203,7 +203,7 @@
 		parsed_mix["fusion_status"] = air.dogmos_fusion_display_status(target)
 		parsed_mix["fusion_instability"] = parsed_mix["fusion_status"] == "active" ? air.dogmos_fusion_instability : null
 		new_gasmix_data += list(parsed_mix)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 	last_gasmix_data = new_gasmix_data
 	last_scanned = WEAKREF(target)
 
@@ -249,7 +249,7 @@
 			message += span_notice("Moles: [round(total_moles, DOGMOS_MOLE_DISPLAY_PRECISION)] mol") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: message += span_notice("Moles: [round(total_moles, 0.01)] mol")
 
 			var/list/cached_gas_name = GAS_META[META_GAS_NAME]
-			for(var/id, amount in air.get_moles_list())
+			for(var/id, amount in air.get_moles_list()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/id, amount in air.moles)
 				var/gas_concentration = amount / total_moles
 				message += span_notice("[cached_gas_name[id]]: [round(amount, DOGMOS_MOLE_DISPLAY_PRECISION)] mol ([round(gas_concentration*100, 0.01)] %)") // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: message += span_notice("[cached_gas_name[id]]: [round(amount, 0.01)] mol ([round(gas_concentration*100, 0.01)] %)")
 			message += span_notice("Temperature: [round(temperature - T0C,0.01)] &deg;C ([round(temperature, 0.01)] K)")

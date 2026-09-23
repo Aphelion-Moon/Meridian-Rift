@@ -134,6 +134,7 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	allocated += instance
 	return instance
 
+// APHELION EDIT ADDITION START - DOGMOS
 /** Returns two adjacent open turfs from the shared atmos test room.
  * Arguments: * direction - direction from run_loc_floor_bottom_left for the second turf.
  */
@@ -181,6 +182,7 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	if(istype(neighbor_loc, /turf/open/space))
 		neighbor_loc.ChangeTurf(original_type, flags = CHANGETURF_INHERIT_AIR | CHANGETURF_RECALC_ADJACENT)
 
+// APHELION EDIT ADDITION END
 /// Resets the air of our testing room to its default
 /datum/unit_test/proc/restore_atmos()
 	var/area/working_area = run_loc_floor_bottom_left.loc
@@ -188,10 +190,15 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	for(var/turf/open/restore in to_restore)
 		var/datum/gas_mixture/GM = SSair.parse_gas_string(restore.initial_gas_mix, /datum/gas_mixture/turf)
 		restore.copy_air(GM)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		restore.temperature = initial(restore.temperature)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		// set_temperature(), not a direct var write - Dogmos owns turf temperature (TurfHeat) now, and
 		// a direct restore.temperature = ... write only touches the DM var, leaving Rust's copy stale
 		// for every subsequent test. See modular_aphelion/master_files/code/game/turfs/turf.dm.
 		restore.set_temperature(initial(restore.temperature))
+		// APHELION EDIT ADDITION END
 		restore.air_update_turf(update = FALSE, remove = FALSE)
 
 /datum/unit_test/proc/test_screenshot(name, icon/icon)
@@ -267,12 +274,14 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/skip_test = (test_path in SSmapping.current_map.skipped_tests)
 	var/test_output_desc = "[test_path]"
 	var/message = ""
+	// APHELION EDIT ADDITION START - DOGMOS
 	// GLOB.total_runtimes is bumped by /world/Error (code\modules\error_handler\error_handler.dm).
 	// Snapshotting it around the test attributes each runtime to whichever test was running, which
 	// the suite could not previously do: a test that runtimed but never called TEST_FAIL was
 	// recorded as PASSED with no trace of the runtime anywhere but the global aggregate.
 	var/runtimes_before = GLOB.total_runtimes
 	var/runtimes_during = 0
+	// APHELION EDIT ADDITION END
 
 	log_world("::group::[test_path]")
 
@@ -284,9 +293,11 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		test.Run()
 		if(test.priority < TEST_CREATE_AND_DESTROY) //We shouldn't care about restoring atmos after create_and_destroy.
 			test.restore_atmos()
+		// APHELION EDIT ADDITION START - DOGMOS
 
 		// Restore-time runtimes are attributed to the test that dirtied the turf, not the next one.
 		runtimes_during = GLOB.total_runtimes - runtimes_before
+		// APHELION EDIT ADDITION END
 
 		duration = REALTIMEOFDAY - duration
 		GLOB.current_test = null
@@ -309,9 +320,11 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 			message = log_entry.Join("\n")
 			log_test(message)
 
+		// APHELION EDIT ADDITION START - DOGMOS
 		if(runtimes_during)
 			log_world("[TEST_OUTPUT_YELLOW("RUNTIMES")] [test_path] logged [runtimes_during] runtime error(s)")
 
+		// APHELION EDIT ADDITION END
 		test_output_desc += " [duration / 10]s"
 		if(duration > 10)
 			GLOB.test_run_times[test_path] = duration
@@ -324,11 +337,16 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		log_world("::error::[TEST_OUTPUT_RED("FAIL")] [test_output_desc]")
 
 	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	// Record elapsed duration for timing checks; skipped tests report zero.
 	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path, "runtimes" = runtimes_during, "duration" = skip_test ? 0 : duration)
+	// APHELION EDIT ADDITION END
 
 	qdel(test)
-	return FALSE
+	return FALSE // APHELION EDIT ADDITION - DOGMOS
 
 /// Builds (and returns) a list of atoms that we shouldn't initialize in generic testing, like Create and Destroy.
 /// It is appreciated to add the reason why the atom shouldn't be initialized if you add it to this list.
@@ -501,16 +519,21 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 
 	//Hell code, we're bound to end the round somehow so let's stop if from ending while we work
 	SSticker.delay_end = TRUE
-	var/abort_suite = FALSE
+	var/abort_suite = FALSE // APHELION EDIT ADDITION - DOGMOS
 	for(var/datum/unit_test/unit_path as anything in tests_to_run)
 		var/loop_count = unit_path::times_to_run
 		for(var/i in 1 to loop_count)
 			CHECK_TICK //We check tick first because the unit test we run last may be so expensive that checking tick will lock up this loop forever
+			/* // APHELION EDIT REMOVAL START - DOGMOS
+			RunUnitTest(unit_path, test_results)
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
 			if(RunUnitTest(unit_path, test_results))
 				abort_suite = TRUE
 				break
 		if(abort_suite)
 			break
+	// APHELION EDIT ADDITION END
 	SSticker.delay_end = FALSE
 
 	log_world("::group::Expensive Unit Test Times")

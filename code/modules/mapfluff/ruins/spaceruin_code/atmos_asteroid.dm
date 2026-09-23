@@ -1,11 +1,16 @@
 /// ## A bunch of turf subtypes used to really make this ruin work.
 
 /// Define of the specific gas mix we want across all of the turfs.
+/* // APHELION EDIT REMOVAL START - DOGMOS
+#define CO2_PRESSURIZED_MIX GAS_O2 + "=22;" + GAS_N2 + "=82;" + GAS_CO2 + "=500;TEMP=T20C"
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
 // TEMP=T20C was a literal string, not the T20C define - text2num() on it always returned null,
 // so these turfs were never actually room temperature. initial_gas_mix must be a compile-time
 // constant, so the define can't be concatenated in (DM won't fold string+number or "[T20C]" as
 // constant); this is T20C's literal value (code/__DEFINES/atmospherics/atmos_core.dm).
 #define CO2_PRESSURIZED_MIX GAS_O2 + "=22;" + GAS_N2 + "=82;" + GAS_CO2 + "=500;TEMP=293.15"
+// APHELION EDIT ADDITION END
 
 /turf/open/floor/iron/co2_pressurized
 	initial_gas_mix = CO2_PRESSURIZED_MIX

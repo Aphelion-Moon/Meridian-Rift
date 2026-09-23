@@ -271,7 +271,7 @@
 /** Damages a breach-mouth floor when Dogmos reports a meaningful gas loss. */
 // APHELION EDIT ADDITION END
 /turf/proc/handle_decompression_floor_rip(amount)
-	if(amount < DECOMPRESSION_FLOOR_RIP_MIN_MOLES || !isfloorturf(src) || decompression_floor_rip_resistant) // APHELION EDIT CHANGE - ORIGINAL: if(amount < DECOMPRESSION_FLOOR_RIP_MIN_MOLES)
+	if(amount < DECOMPRESSION_FLOOR_RIP_MIN_MOLES || !isfloorturf(src) || decompression_floor_rip_resistant)
 		return
 	var/area/breach_area = get_area(src)
 	SSair.record_kennel_event(SSair.recent_breaches, list(

@@ -104,7 +104,7 @@
 	data["weapons_safety"] = weapons_safety
 	data["enclosed"] = mecha_flags & IS_ENCLOSED
 	data["cabin_sealed"] = cabin_sealed
-	data["cabin_temp"] =  round(cabin_air.return_temperature() - T0C)
+	data["cabin_temp"] =  round(cabin_air.return_temperature() - T0C) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: data["cabin_temp"] =  round(cabin_air.temperature - T0C)
 	data["cabin_pressure"] = round(cabin_air.return_pressure())
 	data["mech_view"] = ui_view.assigned_map
 	data["modules"] = get_module_ui_data()
@@ -234,4 +234,3 @@
 			diagnostic.mech_data += src
 			ADD_TRAIT(src, TRAIT_MECHA_DIAGNOSTIC_CREATED, REF(src))
 	return TRUE
-

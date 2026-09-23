@@ -79,6 +79,13 @@
 	if (env.return_pressure() >= max_pressure)
 		return FALSE
 	var/datum/gas_mixture/merger = new
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	merger.assert_gas(spawn_id)
+	merger.moles[spawn_id] = spawn_mol
+	merger.temperature = spawn_temp
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	merger.set_moles(spawn_id, spawn_mol)
 	merger.set_temperature(spawn_temp)
+	// APHELION EDIT ADDITION END
 	our_open_turf.assume_air(merger)

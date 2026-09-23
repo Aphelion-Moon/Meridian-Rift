@@ -72,3 +72,6 @@
 
 /// Display resolution matching the native gas floor; does not quantize simulation state.
 #define DOGMOS_MOLE_DISPLAY_PRECISION 0.0001
+
+/// Maximum turfs visited by one Dogmos maintenance or visual chunk.
+#define DOGMOS_ACTIVE_TURFS_WALK_BATCH_SIZE 100

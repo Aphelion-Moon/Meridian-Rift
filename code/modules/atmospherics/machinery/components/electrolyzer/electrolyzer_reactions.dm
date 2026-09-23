@@ -37,8 +37,14 @@ GLOBAL_LIST_INIT(electrolyzer_reactions, electrolyzer_reactions_list())
  * * electrolyzer_args: Additional arguments for alternative methods of electrolysis.
  */
 /datum/gas_reaction/electrolyzer/proc/reaction_check(datum/gas_mixture/air_mixture, list/electrolyzer_args = list())
-	var/temp = air_mixture.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/temp = air_mixture.temperature
-	var/list/cached_moles = air_mixture.get_moles_list() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/list/cached_moles = air_mixture.moles
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/temp = air_mixture.temperature
+	var/list/cached_moles = air_mixture.moles
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/temp = air_mixture.return_temperature()
+	var/list/cached_moles = air_mixture.get_moles_list()
+	// APHELION EDIT ADDITION END
 	if((requirements["MIN_TEMP"] && temp < requirements["MIN_TEMP"]) || (requirements["MAX_TEMP"] && temp > requirements["MAX_TEMP"]))
 		return FALSE
 	for(var/id in requirements)
@@ -65,13 +71,13 @@ GLOBAL_LIST_INIT(electrolyzer_reactions, electrolyzer_reactions_list())
 
 	var/old_heat_capacity = air_mixture.heat_capacity()
 
-	var/proportion = min(air_mixture.get_moles(/datum/gas/water_vapor) * INVERSE(2), (2.5 * (working_power ** 2)))
+	var/proportion = min(air_mixture.get_moles(/datum/gas/water_vapor) * INVERSE(2), (2.5 * (working_power ** 2))) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/proportion = min(air_mixture.moles[/datum/gas/water_vapor] * INVERSE(2), (2.5 * (working_power ** 2)))
 	air_mixture.adjust_gas(/datum/gas/water_vapor, -proportion * 2)
 	air_mixture.adjust_gas(/datum/gas/oxygen, proportion)
 	air_mixture.adjust_gas(/datum/gas/hydrogen, proportion * 2)
 	var/new_heat_capacity = air_mixture.heat_capacity()
 	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
-		air_mixture.set_temperature(max(air_mixture.return_temperature() * old_heat_capacity / new_heat_capacity, TCMB))
+		air_mixture.set_temperature(max(air_mixture.return_temperature() * old_heat_capacity / new_heat_capacity, TCMB)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_mixture.temperature = max(air_mixture.temperature * old_heat_capacity / new_heat_capacity, TCMB)
 
 /datum/gas_reaction/electrolyzer/nob_conversion
 	name = "Hyper-Noblium Conversion"
@@ -94,8 +100,15 @@ GLOBAL_LIST_INIT(electrolyzer_reactions, electrolyzer_reactions_list())
 /datum/gas_reaction/electrolyzer/nob_conversion/react(datum/gas_mixture/air_mixture, working_power, list/electrolyzer_args = list())
 	/// The supermatter zap power_level.
 	var/supermatter_power = electrolyzer_args[ELECTROLYSIS_ARGUMENT_SUPERMATTER_POWER]
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/list/cached_moles = air_mixture.moles
+	*/ // APHELION EDIT REMOVAL END
 	var/old_heat_capacity = air_mixture.heat_capacity()
-	var/electrolysed = air_mixture.get_moles(/datum/gas/hypernoblium) * clamp(supermatter_power - POWER_PENALTY_THRESHOLD, 0, CRITICAL_POWER_PENALTY_THRESHOLD - POWER_PENALTY_THRESHOLD) / (CRITICAL_POWER_PENALTY_THRESHOLD - POWER_PENALTY_THRESHOLD)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	air_mixture.assert_gases(/datum/gas/hypernoblium, /datum/gas/antinoblium)
+	var/electrolysed = cached_moles[/datum/gas/hypernoblium] * clamp(supermatter_power - POWER_PENALTY_THRESHOLD, 0, CRITICAL_POWER_PENALTY_THRESHOLD - POWER_PENALTY_THRESHOLD) / (CRITICAL_POWER_PENALTY_THRESHOLD - POWER_PENALTY_THRESHOLD)
+	*/ // APHELION EDIT REMOVAL END
+	var/electrolysed = air_mixture.get_moles(/datum/gas/hypernoblium) * clamp(supermatter_power - POWER_PENALTY_THRESHOLD, 0, CRITICAL_POWER_PENALTY_THRESHOLD - POWER_PENALTY_THRESHOLD) / (CRITICAL_POWER_PENALTY_THRESHOLD - POWER_PENALTY_THRESHOLD) // APHELION EDIT ADDITION - DOGMOS
 
 	air_mixture.adjust_gas(/datum/gas/hypernoblium, -electrolysed)
 	air_mixture.adjust_gas(/datum/gas/antinoblium, electrolysed)
@@ -103,7 +116,7 @@ GLOBAL_LIST_INIT(electrolyzer_reactions, electrolyzer_reactions_list())
 	var/list/cached_specific_heat = GAS_META[META_GAS_SPECIFIC_HEAT]
 	var/new_heat_capacity = old_heat_capacity + electrolysed * (cached_specific_heat[/datum/gas/antinoblium] - cached_specific_heat[/datum/gas/hypernoblium])
 	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
-		air_mixture.set_temperature(max(air_mixture.return_temperature() * old_heat_capacity / new_heat_capacity, TCMB))
+		air_mixture.set_temperature(max(air_mixture.return_temperature() * old_heat_capacity / new_heat_capacity, TCMB)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_mixture.temperature = max(air_mixture.temperature * old_heat_capacity / new_heat_capacity, TCMB)
 
 /datum/gas_reaction/electrolyzer/halon_generation
 	name = "Halon Generation"
@@ -122,8 +135,15 @@ GLOBAL_LIST_INIT(electrolyzer_reactions, electrolyzer_reactions_list())
 
 /datum/gas_reaction/electrolyzer/halon_generation/react(datum/gas_mixture/air_mixture, working_power, list/electrolyzer_args = list())
 	var/old_heat_capacity = air_mixture.heat_capacity()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	air_mixture.assert_gases(/datum/gas/bz, /datum/gas/oxygen, /datum/gas/halon)
+	var/bz_moles = air_mixture.moles[/datum/gas/bz]
+	var/reaction_efficency = min(bz_moles * (1 - NUM_E ** (-0.5 * air_mixture.temperature * working_power / FIRE_MINIMUM_TEMPERATURE_TO_EXIST)), bz_moles)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	var/bz_moles = air_mixture.get_moles(/datum/gas/bz)
 	var/reaction_efficency = min(bz_moles * (1 - NUM_E ** (-0.5 * air_mixture.return_temperature() * working_power / FIRE_MINIMUM_TEMPERATURE_TO_EXIST)), bz_moles)
+	// APHELION EDIT ADDITION END
 
 	air_mixture.adjust_gas(/datum/gas/bz, -reaction_efficency)
 	air_mixture.adjust_gas(/datum/gas/oxygen, reaction_efficency * 0.2)
@@ -132,4 +152,4 @@ GLOBAL_LIST_INIT(electrolyzer_reactions, electrolyzer_reactions_list())
 	var/energy_used = reaction_efficency * HALON_FORMATION_ENERGY
 	var/new_heat_capacity = air_mixture.heat_capacity()
 	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
-		air_mixture.set_temperature(max(((air_mixture.return_temperature() * old_heat_capacity + energy_used) / new_heat_capacity), TCMB))
+		air_mixture.set_temperature(max(((air_mixture.return_temperature() * old_heat_capacity + energy_used) / new_heat_capacity), TCMB)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_mixture.temperature = max(((air_mixture.temperature * old_heat_capacity + energy_used) / new_heat_capacity), TCMB)

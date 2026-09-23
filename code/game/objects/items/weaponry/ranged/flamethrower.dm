@@ -241,15 +241,27 @@
 	var/datum/gas_mixture/tank_mix = ptank.return_air()
 	var/datum/gas_mixture/air_transfer = tank_mix.remove_ratio(release_amount)
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	if(air_transfer.moles[/datum/gas/plasma])
+		var/moles = air_transfer.moles[/datum/gas/plasma] * 5 //Suffering
+		air_transfer.set_gas(/datum/gas/plasma, moles)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	if(air_transfer.get_moles(/datum/gas/plasma))
 		var/moles = air_transfer.get_moles(/datum/gas/plasma) * 5 //Suffering
 		air_transfer.set_moles(/datum/gas/plasma, moles)
+	// APHELION EDIT ADDITION END
 	target.assume_air(air_transfer)
 	//Burn it based on transferred gas
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	target.hotspot_expose((tank_mix.temperature*2) + 380,500)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	var/hotspot_exposure_volume = DOGMOS_FLAMETHROWER_HOTSPOT_EXPOSURE_VOLUME
 	if(!SSair.flamethrower_directional_spread)
 		hotspot_exposure_volume = DOGMOS_FLAMETHROWER_LEGACY_HOTSPOT_EXPOSURE_VOLUME
-	target.hotspot_expose((tank_mix.return_temperature()*2) + 380, hotspot_exposure_volume) // APHELION EDIT CHANGE - ORIGINAL: target.hotspot_expose((tank_mix.return_temperature()*2) + 380,500)
+	target.hotspot_expose((tank_mix.return_temperature()*2) + 380, hotspot_exposure_volume)
+// APHELION EDIT ADDITION END
 	//location.hotspot_expose(1000,500,1)
 
 /obj/item/flamethrower/Initialize(mapload)
@@ -302,7 +314,7 @@
 	SIGNAL_HANDLER
 	if(ptank)
 		var/datum/gas_mixture/tank_mix = ptank.return_air()
-		tank_mix.set_moles(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*ptank.volume/(R_IDEAL_GAS_EQUATION*T20C))
+		tank_mix.set_moles(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*ptank.volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: tank_mix.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*ptank.volume/(R_IDEAL_GAS_EQUATION*T20C))
 	else
 		ptank = new /obj/item/tank/internals/plasma/full(src)
 	update_appearance()

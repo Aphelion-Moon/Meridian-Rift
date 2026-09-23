@@ -175,11 +175,9 @@
 #include "designs.dm"
 #include "dismemberment.dm"
 #include "dna_infusion.dm"
+// APHELION EDIT ADDITION START - DOGMOS
 #include "dogmos_active_turfs_bloat.dm"
 #include "dogmos_aphelion_reactions.dm"
-// APHELION EDIT ADDITION START - DOGMOS
-#include "../../../modular_aphelion/modules/dogmos/code/mixture_fusion_tests.dm"
-// APHELION EDIT ADDITION END
 #include "dogmos_assimilate_air_temperature_sync.dm"
 #include "dogmos_callback_delivery.dm"
 #include "dogmos_decompression_feedback.dm"
@@ -209,6 +207,7 @@
 #include "dogmos_turf_registration.dm"
 #include "dogmos_turf_temperature_setter.dm"
 #include "dogmos_volume_sites.dm"
+// APHELION EDIT ADDITION END
 #include "door_access.dm"
 #include "dragon_expiration.dm"
 #include "drink_icons.dm"
@@ -229,7 +228,9 @@
 #include "food_edibility_check.dm"
 #include "food_processor.dm"
 #include "full_heal.dm"
+// APHELION EDIT ADDITION START - DOGMOS
 #include "gas_mixture_golden.dm"
+// APHELION EDIT ADDITION END
 #include "gas_transfer.dm"
 #include "get_turf_pixel.dm"
 #include "geyser.dm"
@@ -419,7 +420,9 @@
 #include "~nova\accessory_layers.dm"
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
+// APHELION EDIT ADDITION START - DOGMOS
 #include "~nova\cigarettes.dm"
+// APHELION EDIT ADDITION END
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\liver_nova.dm"
@@ -440,14 +443,17 @@
 #include "~nova\world_topic_log_redaction.dm"
 // NOVA EDIT ADDITION END
 // END_INCLUDE
+// APHELION EDIT ADDITION START - DOGMOS
+#include "../../../modular_aphelion/modules/dogmos/code/mixture_fusion_tests.dm"
+// APHELION EDIT ADDITION END
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter
 #include "find_reference_sanity.dm"
 #endif
 
 // APHELION EDIT ADDITION START - CUSTOMIZATION_CI_FIXES
 #include "../../../modular_aphelion/modules/customization_fixes/code/regressions.dm"
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 #undef TEST_ASSERT
 #undef TEST_ASSERT_EQUAL
 #undef TEST_ASSERT_NOTEQUAL

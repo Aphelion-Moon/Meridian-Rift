@@ -57,8 +57,14 @@
 		air_contents = SSair.parse_gas_string(initial_gas_mix)
 	else
 		air_contents = new
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		air_contents.temperature = T20C
+	air_contents.volume = volume
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		air_contents.set_temperature(T20C)
 	air_contents.set_volume(volume)
+	// APHELION EDIT ADDITION END
 	SSair.start_processing_machine(src)
 	AddElement(/datum/element/climbable, climb_time = 3 SECONDS, climb_stun = 3 SECONDS)
 	AddElement(/datum/element/elevation, pixel_shift = 8)
@@ -140,7 +146,7 @@
 	var/pressure_damage = 1
 
 	if(temp_limit != PORTABLE_ATMOS_IGNORE_ATMOS_LIMIT)
-		temp_damage = air_contents.return_temperature() / temp_limit
+		temp_damage = air_contents.return_temperature() / temp_limit // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: temp_damage = air_contents.temperature / temp_limit
 		taking_damage = temp_damage > 1
 
 	if(pressure_limit != PORTABLE_ATMOS_IGNORE_ATMOS_LIMIT)

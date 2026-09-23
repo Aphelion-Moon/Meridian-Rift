@@ -163,7 +163,7 @@ export const SupermatterContent = (props: SupermatterProps) => {
                     {integrity_factors.map(({ name, amount }) => (
                       <LabeledList.Item
                         key={name}
-                        label={`${name} (âˆ†)`}
+                        label={`${name} (∆)`}
                         labelWrap
                       >
                         <Box color={amount > 0 ? 'green' : 'red'}>
@@ -199,7 +199,7 @@ export const SupermatterContent = (props: SupermatterProps) => {
                     {internal_energy_factors.map(({ name, amount, unit }) => (
                       <LabeledList.Item
                         key={name}
-                        label={`${name} (âˆ†)`}
+                        label={`${name} (∆)`}
                         labelWrap
                       >
                         <Box color={amount > 0 ? 'green' : 'red'}>
@@ -257,6 +257,7 @@ export const SupermatterContent = (props: SupermatterProps) => {
                     bad: [1800, Infinity],
                   }}
                 >
+                  {/* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {`${toFixed(gas_total_moles, 2)} Moles`} */}
                   {`${toFixed(gas_total_moles, 4)} Moles`}
                 </ProgressBar>
               }

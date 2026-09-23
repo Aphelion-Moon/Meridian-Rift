@@ -15,6 +15,7 @@ export const AtmosControlPanel = (props) => {
     })),
     [(group) => group.id],
   );
+  // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: <Window title="SSAir Control Panel" width={900} height={500}>
   return (
     <Window title="SSAir Control Panel" width={900} height={560}>
       <Section m={1}>
@@ -48,6 +49,7 @@ export const AtmosControlPanel = (props) => {
               Display all
             </Button.Checkbox>
           </Flex.Item>
+          {/* APHELION EDIT ADDITION START - DOGMOS */}
           <Flex.Item>
             <Button.Checkbox
               checked={data.realistic_space_radiation}
@@ -57,8 +59,10 @@ export const AtmosControlPanel = (props) => {
               Realistic Space Radiation
             </Button.Checkbox>
           </Flex.Item>
+          {/* APHELION EDIT ADDITION END */}
         </Flex>
       </Section>
+      {/* APHELION EDIT ADDITION START - DOGMOS */}
       <Section m={1} title="Dogmos (Rust) live activity">
         <Flex justify="space-between" align="baseline" wrap>
           <Flex.Item>Low Pressure Turfs: {data.low_pressure_turfs}</Flex.Item>
@@ -78,8 +82,11 @@ export const AtmosControlPanel = (props) => {
           <Flex.Item>Post Process: {data.dogmos_costs?.post_process}ms</Flex.Item>
         </Flex>
       </Section>
+      {/* APHELION EDIT ADDITION END */}
+      {/* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: <Box fillPositionedParent top="45px"> */}
       <Box fillPositionedParent top="115px">
         <Window.Content scrollable>
+          {/* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: <Section> */}
           <Section title="Excited Groups (roundstart snapshot only - Rust's per-cycle equalization doesn't keep these updated)">
             <Table>
               <Table.Row header>

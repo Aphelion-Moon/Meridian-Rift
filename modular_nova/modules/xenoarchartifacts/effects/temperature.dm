@@ -55,7 +55,7 @@
 	if(!.)
 		return
 	var/datum/gas_mixture/env = .
-	env.set_temperature(clamp(env.return_temperature() - 100, target_temp_low, target_temp_high))
+	env.set_temperature(clamp(env.return_temperature() - 100, target_temp_low, target_temp_high)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: env.temperature = clamp(env.temperature - 100, target_temp_low, target_temp_high)
 	holder.air_update_turf(FALSE, FALSE)
 	to_chat(user, span_warning("A chill passes up your spine!"))
 
@@ -64,8 +64,14 @@
 	if(!.)
 		return
 	var/datum/gas_mixture/env = .
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	if(env.temperature > target_temp)
+		env.temperature -= 50 * seconds_per_tick
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	if(env.return_temperature() > target_temp)
 		env.set_temperature(env.return_temperature() - (50 * seconds_per_tick))
+		// APHELION EDIT ADDITION END
 		holder.air_update_turf(FALSE, FALSE)
 
 /datum/artifact_effect/temperature/cold/do_effect_destroy()
@@ -73,7 +79,7 @@
 	if(!.)
 		return
 	var/datum/gas_mixture/env = .
-	env.set_temperature(target_temp_low)
+	env.set_temperature(target_temp_low) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: env.temperature = target_temp_low
 	holder.air_update_turf(FALSE, FALSE)
 
 /datum/artifact_effect/temperature/heat
@@ -90,8 +96,14 @@
 	if(!.)
 		return
 	var/datum/gas_mixture/env = .
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/amount_to_change = (target_temp_high - env.temperature) / 4
+	env.temperature = clamp(env.temperature + amount_to_change, target_temp_low, target_temp_high)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	var/amount_to_change = (target_temp_high - env.return_temperature()) / 4
 	env.set_temperature(clamp(env.return_temperature() + amount_to_change, target_temp_low, target_temp_high))
+	// APHELION EDIT ADDITION END
 	holder.air_update_turf(FALSE, FALSE)
 	to_chat(user, span_warning("You feel a wave of heat travel up your spine!"))
 
@@ -100,9 +112,16 @@
 	if(!.)
 		return
 	var/datum/gas_mixture/env = .
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/amount_to_change = (target_temp_high - env.temperature) / 8
+	if(env.temperature < target_temp)
+		env.temperature += amount_to_change * seconds_per_tick
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	var/amount_to_change = (target_temp_high - env.return_temperature()) / 8
 	if(env.return_temperature() < target_temp)
 		env.set_temperature(env.return_temperature() + (amount_to_change * seconds_per_tick))
+		// APHELION EDIT ADDITION END
 		holder.air_update_turf(FALSE, FALSE)
 
 /datum/artifact_effect/temperature/heat/do_effect_destroy()
@@ -110,5 +129,5 @@
 	if(!.)
 		return
 	var/datum/gas_mixture/env = .
-	env.set_temperature(target_temp_high)
+	env.set_temperature(target_temp_high) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: env.temperature = target_temp_high
 	holder.air_update_turf(FALSE, FALSE)

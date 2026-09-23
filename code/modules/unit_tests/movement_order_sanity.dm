@@ -47,6 +47,7 @@
 		return
 
 	qdel(arrived)
+// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
 
 /** Movement can delete the mover and its loop before Move() returns. */
 /datum/unit_test/jps_loop_deleted_during_move/Run()
@@ -79,3 +80,4 @@
 	loop.recalculate_path()
 	TEST_ASSERT_EQUAL(loop.repath_cooldown, 0, "A deleted loop started a new repath cooldown.")
 	TEST_ASSERT_EQUAL(length(SSpathfinder.active_pathing), paths_before, "A deleted loop queued another pathfinding request.")
+// APHELION EDIT ADDITION END

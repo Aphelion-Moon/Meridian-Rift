@@ -790,13 +790,18 @@ GLOBAL_LIST_EMPTY(station_turfs)
 	. = heat_capacity
 
 /turf/proc/GetTemperature()
-	. = blocks_air ? get_dogmos_blocked_temperature() : temperature // APHELION EDIT CHANGE - ORIGINAL: . = temperature
+	. = blocks_air ? get_dogmos_blocked_temperature() : temperature // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: . = temperature
 
 /turf/proc/TakeTemperature(temp)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	temperature += temp
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	// set_temperature(), not a direct var write - a blocks_air turf (e.g. a wall an H/E pipe runs
 	// through, datum_pipeline.dm's temperature_interact()) reaches this base version, and a direct
 	// write here would silently desync Rust's TurfHeat copy of that turf's temperature.
 	set_temperature(temperature + temp)
+// APHELION EDIT ADDITION END
 
 // I'm sorry, this is the only way that both makes sense and is cheap
 /turf/set_explosion_block(explosion_block)
