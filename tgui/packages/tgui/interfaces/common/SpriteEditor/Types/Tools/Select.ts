@@ -5,6 +5,7 @@ import { colorsAreEqual, parseHexColorString } from '../../colorSpaces';
 import {
   constrainToIconGrid,
   copyLayer,
+  isPainted,
   isWithinDrawBounds,
 } from '../../helpers';
 import { Tool } from '../Tool';
@@ -154,7 +155,7 @@ export class Select extends Tool {
       for (let sy = top; sy <= bottom; sy++) {
         for (let sx = left; sx <= right; sx++) {
           const color = frame[sy][sx];
-          if ((parseHexColorString(color).a ?? 1) > 0) {
+          if (isPainted(color)) {
             pixels.push([sx, sy, color]);
             // Painted pixels in shaded areas can move, but must land within drawing bounds.
             limits[0] = Math.max(limits[0], paintBounds[0] - sx);

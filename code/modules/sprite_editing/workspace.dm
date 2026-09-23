@@ -329,6 +329,7 @@
 			var/layer = transaction["layer"]
 			var/old_layer = transaction["oldLayer"]
 			layers.Insert(layer, list(old_layer)) // APHELION EDIT CHANGE - ORIGINAL: layers.Insert(layer, old_layer)
+
 /datum/sprite_editor_workspace/proc/sprite_editor_ui_data()
 	return list(
 		"colorMode" = color_mode,

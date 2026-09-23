@@ -87,7 +87,6 @@
 
 /datum/sprite_editor_workspace/custom_sprite/New(list/drawing, list/sampled_palette, list/bounds, list/mask, canvas_width = null)
 	..(max(custom_sprite_width(drawing), canvas_width == CUSTOM_SPRITE_TAUR_WIDTH ? CUSTOM_SPRITE_TAUR_WIDTH : 32), 32, 4, null, SPRITE_EDITOR_COLOR_MODE_RGB, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
-	palette = list()
 	tint = drawing?["tint"]
 	emissive = custom_sprite_emissive_settings(drawing?["emissive"])
 	draw_bounds = bounds
@@ -198,9 +197,17 @@
 	erasing = islist(transaction) && transaction["type"] == "eraser"
 	. = ..()
 	erasing = FALSE
-	if(length(undo_stack) > 100)
+	trim_history()
+
+#define CUSTOM_SPRITE_MAX_UNDO 100
+
+/// Keeps the undo history within CUSTOM_SPRITE_MAX_UNDO steps, dropping the oldest first.
+/datum/sprite_editor_workspace/custom_sprite/proc/trim_history()
+	if(length(undo_stack) > CUSTOM_SPRITE_MAX_UNDO)
 		undo_stack.Cut(1, 2)
 		undo_names.Cut(1, 2)
+
+#undef CUSTOM_SPRITE_MAX_UNDO
 
 /// Treat masked pixels as fill boundaries, so disconnected parts do not fill through the backdrop.
 /datum/sprite_editor_workspace/custom_sprite/preprocess_new_transaction(list/transaction)
@@ -314,9 +321,7 @@
 		return FALSE
 	redo_stack.Cut()
 	redo_names.Cut()
-	if(length(undo_stack) > 100)
-		undo_stack.Cut(1, 2)
-		undo_names.Cut(1, 2)
+	trim_history()
 	return TRUE
 
 /datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement(list/transaction, forward)
@@ -371,7 +376,7 @@
 					pixel_indices[pixel] = index || "0"
 				pixels += index || "0"
 		directions[direction] = custom_sprite_encode_grid(jointext(pixels, ""), length(saved_palette), width * height)
-	drawing_cache = list("version" = width == CUSTOM_SPRITE_TAUR_WIDTH ? 3 : (length(saved_palette) > 15 ? 2 : 1), "palette" = saved_palette, "tint" = tint, "dirs" = directions, "emissive" = emissive)
+	drawing_cache = list("version" = custom_sprite_version(width, length(saved_palette)), "palette" = saved_palette, "tint" = tint, "dirs" = directions, "emissive" = emissive)
 	return drawing_cache
 
 /// An explicit clear erases the whole view, including pixels outside the current body bounds.

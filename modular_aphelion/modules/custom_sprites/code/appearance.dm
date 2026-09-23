@@ -26,6 +26,13 @@
 /obj/item/bodypart/head/proc/custom_head_drawing(target)
 	return target == "facial_hair" ? custom_facial_hair : custom_hair
 
+/// Replaces the drawing this head carries for one head target.
+/obj/item/bodypart/head/proc/set_custom_head_drawing(target, list/drawing)
+	if(target == "facial_hair")
+		custom_facial_hair = drawing
+	else
+		custom_hair = drawing
+
 /// Hairstyles without an icon state, such as Bald, register no accessory datum. This nameless
 /// accessory is never selectable; it only lets those heads carry custom paint.
 /datum/sprite_accessory/hair/custom_sprite_blank
@@ -86,7 +93,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 		paint.Blend(mask_icon, ICON_ADD)
 	return paint
 
-/obj/item/bodypart/head/proc/append_custom_hair_tint_overlays(list/overlays, icon/paint, datum/sprite_accessory/hair/hairstyle, dropped, target = "hair")
+/obj/item/bodypart/head/proc/append_custom_hair_paint_overlays(list/hair_overlays, icon/paint, datum/sprite_accessory/hair/hairstyle, dropped, target = "hair")
 	if(!paint)
 		return
 	var/list/drawing = custom_head_drawing(target)
@@ -116,9 +123,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 		blocker.icon = blocking
 		if(dropped)
 			blocker = make_mutable_appearance_directional(blocker, SOUTH)
-		overlays += blocker
+		hair_overlays += blocker
 	if(drawing["tint"])
-		overlays += tinted
+		hair_overlays += tinted
 		// The base gradient is built from the accessory alone, so painted pixels need their own copy.
 		var/gradient_key = custom_style_gradient_key(target)
 		var/gradient_style = get_hair_gradient_style(gradient_key)
@@ -128,10 +135,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 			paint_gradient.pixel_x += offset_x
 			paint_gradient.pixel_z += offset_z
 			if(alpha_to_use == 255)
-				overlays += paint_gradient
+				hair_overlays += paint_gradient
 			else
 				// Match native hair composition: blend first, then apply opacity once.
-				overlays -= tinted
+				hair_overlays -= tinted
 				var/image/shared_holder = image(layer = -HAIR_LAYER, dir = dropped ? SOUTH : null)
 				shared_holder.alpha = alpha_to_use
 				shared_holder.appearance_flags |= KEEP_TOGETHER
@@ -139,20 +146,18 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 				opaque_paint.alpha = 255
 				shared_holder.overlays += opaque_paint
 				shared_holder.overlays += paint_gradient
-				overlays += shared_holder
+				hair_overlays += shared_holder
 	var/icon/emitting = custom_sprite_directional_mask(paint, geometry_key, drawing["emissive"], TRUE)
 	if(emitting)
 		var/mutable_appearance/glow = custom_sprite_emissive_mask(tinted, loc || owner || src, TRUE)
 		glow.icon = emitting
 		if(dropped)
 			glow = make_mutable_appearance_directional(glow, SOUTH)
-		overlays += glow
+		hair_overlays += glow
 
 /// Reuse the visible paint's placement; shared worn/bodypart preparation owns pose transforms.
 /proc/custom_sprite_emissive_mask(image/source, atom/location, glowing)
-	var/mutable_appearance/mask = glowing \
-		? emissive_appearance(source.icon, source.icon_state, location, source.layer, source.alpha) \
-		: emissive_blocker(source.icon, source.icon_state, location, source.layer, source.alpha)
+	var/mutable_appearance/mask = glowing ? emissive_appearance(source.icon, source.icon_state, location, source.layer, source.alpha) : emissive_blocker(source.icon, source.icon_state, location, source.layer, source.alpha)
 	// Leave dir unassigned so nested masks inherit the character's facing.
 	// Copying an image's default South fixes the frame inside the emissive group.
 	mask.pixel_x = source.pixel_x
@@ -175,7 +180,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 	var/drawing_pixel_hash
 
 /datum/bodypart_overlay/custom_marking/proc/set_drawing(list/new_drawing, obj/item/bodypart/limb)
-	drawing = new_drawing ? deep_copy_list(new_drawing) : null
+	drawing = deep_copy_list(new_drawing)
 	drawing_hash = custom_sprite_hash(drawing)
 	drawing_pixel_hash = custom_sprite_pixel_hash(drawing)
 	if(limb.aux_zone)
@@ -214,9 +219,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 /datum/bodypart_overlay/custom_marking/get_all_overlays(obj/item/bodypart/limb)
 	. = ..()
 	var/split_leg = !!limb.owner && (limb.body_zone in list(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG))
+	var/key = jointext(pixel_render_key(limb), "|")
 	if(split_leg)
 		var/list/split_overlays = list()
-		var/key = jointext(pixel_render_key(limb), "|")
 		var/overlay_index = 0
 		for(var/image/overlay as anything in .)
 			overlay_index++
@@ -242,7 +247,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 			continue
 		visible_overlays += overlay
 		index++
-		var/geometry_key = "marking|[jointext(pixel_render_key(limb), "|")]|split=[split_leg]|[index]|[overlay.layer]"
+		var/geometry_key = "marking|[key]|split=[split_leg]|[index]|[overlay.layer]"
 		var/icon/emitting = custom_sprite_directional_mask(overlay.icon, geometry_key, drawing?["emissive"], TRUE)
 		if(emitting)
 			var/mutable_appearance/glow = custom_sprite_emissive_mask(overlay, limb, TRUE)
@@ -308,7 +313,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 		return
 	var/has_taur = !!custom_sprite_taur_overlay(src)
 	chest.apply_custom_marking(has_taur ? dna.custom_markings : null, /datum/bodypart_overlay/custom_marking/taur)
-	chest.apply_custom_marking(has_taur ? dna.custom_limb_markings?["taur"] : null, /datum/bodypart_overlay/custom_marking/taur/zone)
+	chest.apply_custom_marking(has_taur ? dna.custom_limb_markings?[CUSTOM_MARKING_ZONE_TAUR] : null, /datum/bodypart_overlay/custom_marking/taur/zone)
 
 /// Separate overlay identity lets whole-body and limb drawings coexist.
 /datum/bodypart_overlay/custom_marking/zone
@@ -323,12 +328,14 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 		if(GLOB.custom_marking_hand_arms[hand_zone] == body_zone)
 			apply_custom_marking(zone_drawings?[hand_zone], /datum/bodypart_overlay/custom_marking/zone/hand)
 
-/obj/item/bodypart/proc/apply_custom_marking(list/drawing, overlay_type = /datum/bodypart_overlay/custom_marking)
-	var/datum/bodypart_overlay/custom_marking/overlay
+/// This limb's custom marking overlay of exactly this type. Hand paint is a subtype of zone paint on the same arm.
+/obj/item/bodypart/proc/get_custom_marking(overlay_type)
 	for(var/datum/bodypart_overlay/custom_marking/candidate in bodypart_overlays)
 		if(candidate.type == overlay_type)
-			overlay = candidate
-			break
+			return candidate
+
+/obj/item/bodypart/proc/apply_custom_marking(list/drawing, overlay_type = /datum/bodypart_overlay/custom_marking)
+	var/datum/bodypart_overlay/custom_marking/overlay = get_custom_marking(overlay_type)
 	if(!drawing)
 		if(overlay)
 			remove_bodypart_overlay(overlay, FALSE)
@@ -354,8 +361,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 	sync_custom_taur_markings()
 	var/obj/item/bodypart/head/head = get_bodypart(BODY_ZONE_HEAD)
 	if(head)
-		head.custom_hair = dna.custom_hair ? deep_copy_list(dna.custom_hair) : null
-		head.custom_facial_hair = dna.custom_facial_hair ? deep_copy_list(dna.custom_facial_hair) : null
+		head.custom_hair = deep_copy_list(dna.custom_hair)
+		head.custom_facial_hair = deep_copy_list(dna.custom_facial_hair)
 
 /mob/living/carbon/human/set_haircolor(hex_string, override, update = TRUE)
 	var/obj/item/bodypart/head/head = get_bodypart(BODY_ZONE_HEAD)
@@ -398,12 +405,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_emissive_icons)
 		return
 	if(facial)
 		dna.custom_facial_hair = custom_style_recolor_drawing(dna_drawing, color_map) || dna_drawing
-		if(head)
-			head.custom_facial_hair = custom_style_recolor_drawing(head_drawing, color_map) || head_drawing
 	else
 		dna.custom_hair = custom_style_recolor_drawing(dna_drawing, color_map) || dna_drawing
-		if(head)
-			head.custom_hair = custom_style_recolor_drawing(head_drawing, color_map) || head_drawing
+	head?.set_custom_head_drawing(target, custom_style_recolor_drawing(head_drawing, color_map) || head_drawing)
 
 /// Reapply on regenerated/species-replaced limbs; detached limbs retain their own snapshots.
 /datum/component/custom_sprite_appearance

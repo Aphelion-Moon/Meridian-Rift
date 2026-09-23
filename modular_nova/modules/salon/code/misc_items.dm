@@ -66,13 +66,6 @@
 	. = ..()
 	// A simple GUI with a list of hairstyles and a view, so people can choose a hairstyle!
 
-// APHELION EDIT CHANGE START - GAGS hair trimmings that take the cut hair's colour.
-// ORIGINAL:
-// /obj/effect/decal/cleanable/hair
-// 	name = "hair cuttings"
-// 	icon = 'modular_nova/modules/salon/icons/items.dmi'
-// 	icon_state = "cut_hair"
-
 /// How far the sheen highlight is lifted towards white from the hair's own
 /// colour. High enough that black hair still shows strands rather than reading
 /// as one flat silhouette.
@@ -124,8 +117,6 @@
 	icon = 'modular_nova/modules/GAGS/icons/hair_trimmings.dmi'
 	icon_state = "wisp_1"
 	/// Shapes a pile falls in when nothing has asked for a particular one.
-	/// The sheet also holds snip, clump and sweep; they're left out of the
-	/// random pool on purpose rather than deleted.
 	var/static/list/trimming_shapes = list("wisp", "tangle", "arc", "curl")
 	/// The hair colour this pile was cut from, kept so piles can compare it
 	/// without caring which of the two palettes they happened to roll.
@@ -141,7 +132,6 @@
 	trimming_shape = shape || pick(trimming_shapes)
 	src.pile_size = clamp(round(pile_size), 1, 3)
 	icon_state = "[trimming_shape]_[src.pile_size]"
-	base_icon_state = icon_state
 	trimming_color = hair_color || COLOR_BLACK
 	// Half of all piles catch the light, so a salon floor doesn't end up looking
 	// uniform. The sheen config lays a highlight over the frontmost strands.
@@ -165,7 +155,6 @@
 		return FALSE
 	pile_size = new_size
 	icon_state = "[trimming_shape]_[pile_size]"
-	base_icon_state = icon_state
 	return TRUE
 
 /// Two people cut over the same tile should leave two colours of hair on it,
@@ -176,7 +165,6 @@
 	return ..()
 
 #undef HAIR_TRIMMING_SHEEN_LIFT
-// APHELION EDIT CHANGE END
 
 /obj/item/razor
 	name = "electric razor"

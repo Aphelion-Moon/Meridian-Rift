@@ -193,4 +193,10 @@ export const isWithinDrawBounds = (
   (!bounds ||
     (x >= bounds[0] && y >= bounds[1] && x <= bounds[2] && y <= bounds[3])) &&
   (!mask || mask[y]?.[x] === '1');
+export const isPainted = (color: string | undefined) =>
+  !!color && (parseHexColorString(color).a ?? 1) > 0;
+/** Whether a key event is aimed at a text field, which keeps its own shortcuts. */
+export const isTextEntryTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (!!target.closest('input, textarea, select') || target.isContentEditable);
 // APHELION EDIT ADDITION END

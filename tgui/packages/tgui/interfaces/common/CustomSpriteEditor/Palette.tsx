@@ -22,6 +22,7 @@ import {
   isRgb,
   parseHexColorString,
 } from '../SpriteEditor/colorSpaces';
+import { isTextEntryTarget } from '../SpriteEditor/helpers';
 import type { EditorColor, RGBA } from '../SpriteEditor/Types/types';
 
 /** Multiply displayed RGB channels without changing the stored shade or alpha. */
@@ -77,15 +78,12 @@ const PaletteContextMenu = ({
 type CustomPaletteSectionProps = {
   colors: EditorColor[];
   selectedColor: EditorColor;
-  onClickColor: (
-    color: EditorColor,
-    rightClick: boolean,
-    index: number,
-  ) => void;
-  onClickAddColor: () => void;
-  onRemoveColor: (index: number) => void;
+  onClickColor: (index: number) => void;
+  /** Omitted for a read-only section. */
+  onClickAddColor?: () => void;
+  /** Omitted for a read-only section. */
+  onRemoveColor?: (index: number) => void;
   colorContextMenu: (index: number, close: () => void) => ReactNode;
-  readOnly?: boolean;
   title?: string;
   canAddColor?: boolean;
   disabledColors?: boolean[];
@@ -100,7 +98,6 @@ const CustomPaletteSection = ({
   onClickAddColor,
   onRemoveColor,
   colorContextMenu,
-  readOnly = false,
   title = 'Palette',
   canAddColor,
   disabledColors,
@@ -151,7 +148,7 @@ const CustomPaletteSection = ({
                   ? disabledColorTooltip
                   : 'Wheel or [ / ]: previous / next color.'
               }
-              onClick={() => onClickColor(color, false, i)}
+              onClick={() => onClickColor(i)}
               onMouseOver={(ev) => {
                 // Unavailable saved colors still support keyboard removal.
                 ev.currentTarget.tabIndex = 0;
@@ -172,8 +169,8 @@ const CustomPaletteSection = ({
               key={i}
               m={0}
               onKeyDown={(ev) => {
-                if (!readOnly && ev.keyCode === KEY_DELETE) {
-                  onRemoveColor(i + 1);
+                if (onRemoveColor && ev.keyCode === KEY_DELETE) {
+                  onRemoveColor(i);
                   setContextIndex(undefined);
                   ev.preventDefault();
                 }
@@ -190,7 +187,7 @@ const CustomPaletteSection = ({
             </Stack.Item>
           );
         })}
-        {!readOnly && canAddColor && (
+        {!!onClickAddColor && canAddColor && (
           <Stack.Item m={0}>
             <Button
               inline
@@ -281,7 +278,6 @@ export const CustomSpritePalette = ({
       return false;
     };
     const ignoresShortcut = (event: KeyboardEvent | WheelEvent) => {
-      const target = event.target;
       return (
         event.defaultPrevented ||
         event.ctrlKey ||
@@ -291,9 +287,7 @@ export const CustomSpritePalette = ({
         !!document.querySelector(
           '.Modal, [role="dialog"], [aria-modal="true"]',
         ) ||
-        (target instanceof HTMLElement &&
-          (target.closest('input, textarea, select') ||
-            target.isContentEditable))
+        isTextEntryTarget(event.target)
       );
     };
     const keyDown = (event: KeyboardEvent) => {
@@ -326,9 +320,7 @@ export const CustomSpritePalette = ({
         <CustomPaletteSection
           colors={colors}
           selectedColor={currentColor}
-          onClickColor={(_color, _rightClick, index) => selectSwatch(index)}
-          onClickAddColor={() => {}}
-          onRemoveColor={() => {}}
+          onClickColor={selectSwatch}
           colorContextMenu={(index, close) => {
             const color = serverPalette[index];
             const unavailable = customPalette.includes(color)
@@ -350,7 +342,6 @@ export const CustomSpritePalette = ({
               </Button>
             );
           }}
-          readOnly
         />
       </Stack.Item>
       <Stack.Item>
@@ -358,12 +349,10 @@ export const CustomSpritePalette = ({
           title="Custom"
           colors={savedColors}
           selectedColor={currentColor}
-          onClickColor={(_selected, _rightClick, index) => {
-            selectSwatch(colors.length + index);
-          }}
+          onClickColor={(index) => selectSwatch(colors.length + index)}
           onClickAddColor={() => act('addPaletteColor')}
           onRemoveColor={(index) =>
-            act('removePaletteColor', { color: customPalette[index - 1] })
+            act('removePaletteColor', { color: customPalette[index] })
           }
           colorContextMenu={(index, close) => (
             <Button

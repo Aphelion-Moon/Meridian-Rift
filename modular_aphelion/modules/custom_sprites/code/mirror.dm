@@ -67,8 +67,6 @@
 	var/list/after_urls
 	/// World time when an unanswered proposal expires.
 	var/expires_at
-	/// Cancellable timer for an unanswered proposal.
-	var/expiry_timer
 	/// Result mode: the applied package and the recipient's spawned character slot.
 	var/list/package
 	/// Recipient's spawned character slot eligible for a permanent save.
@@ -103,11 +101,9 @@
 	after_urls = custom_sprite_render_directions(body, worn_overlays = worn)
 	qdel(body)
 	expires_at = world.time + CUSTOM_SPRITE_MIRROR_TIMEOUT
-	expiry_timer = addtimer(CALLBACK(src, PROC_REF(expire)), CUSTOM_SPRITE_MIRROR_TIMEOUT, TIMER_STOPPABLE)
+	addtimer(CALLBACK(src, PROC_REF(expire)), CUSTOM_SPRITE_MIRROR_TIMEOUT)
 
 /datum/custom_sprite_mirror/Destroy()
-	if(expiry_timer)
-		deltimer(expiry_timer)
 	var/datum/custom_sprite_salon/owner = session
 	session = null
 	SStgui.close_uis(src)
@@ -115,7 +111,6 @@
 	return ..()
 
 /datum/custom_sprite_mirror/proc/expire()
-	expiry_timer = null
 	var/mob/recipient = recipient_ref?.resolve()
 	to_chat(recipient, span_warning("The mirror preview expired without approval."))
 	session?.decline(null, "didn't respond to")
@@ -204,22 +199,13 @@
  */
 /datum/custom_sprite_mirror/proc/save_style(mob/living/carbon/human/user)
 	var/datum/preferences/preferences = GLOB.preferences_datums[recipient_ckey]
-	var/error
-	var/datum/client_interface/player = GET_CLIENT(user)
-	// Characters spawned by an admin have no recorded slot, so the saved name decides who this is.
-	var/spawned_slot = user.mind?.original_character_slot_index
 	slot = preferences?.default_slot
-	if(!preferences || player?.prefs != preferences)
-		error = "Your character preferences aren't loaded."
-	else if(spawned_slot && spawned_slot != slot)
-		error = "Select the character slot you spawned with in character setup, then try again."
-	else if(preferences.read_preference(/datum/preference/name/real_name) != user.real_name)
-		error = "The selected character slot belongs to a different character."
-	else if(custom_style_package_hash(custom_sprite_live_package(user, target, body_zone)) != custom_style_package_hash(custom_sprite_live_package_from(package, user)))
+	var/error = custom_style_spawned_slot_problem(user, preferences)
+	if(!error && custom_style_package_hash(custom_sprite_live_package(user, target, body_zone)) != custom_style_package_hash(custom_sprite_live_package_from(package, user)))
 		error = "Your [custom_sprite_salon_label(target, body_zone)] changed after it was applied."
-	else if(preferences.custom_sprite_editors?[custom_style_key(target, body_zone)])
+	if(!error && preferences.custom_sprite_editors?[custom_style_key(target, body_zone)])
 		error = "Close the matching custom editor in character setup, then try again."
-	else
+	if(!error)
 		error = preferences.commit_custom_style(package, slot, rotate = TRUE, reject_pending_hair = TRUE, reject_pending_markings = TRUE)
 	if(error)
 		save_state = "error"
@@ -231,6 +217,24 @@
 	save_message = "Saved for future rounds."
 	log_game("[key_name(user)] saved a salon [custom_sprite_salon_label(target, body_zone)] to character slot [slot].")
 	return TRUE
+
+/**
+ * Returns why a body's style can't be saved to the selected character slot, or null when it can.
+ *
+ * Without these checks a save could land on whichever character happens to be selected in
+ * character setup instead of the one this body spawned as.
+ */
+/proc/custom_style_spawned_slot_problem(mob/living/carbon/human/body, datum/preferences/preferences)
+	var/datum/client_interface/player = GET_CLIENT(body)
+	if(!preferences || player?.prefs != preferences)
+		return "Your character preferences aren't loaded."
+	// Characters spawned by an admin have no recorded slot, so the saved name decides who this is.
+	var/spawned_slot = body.mind?.original_character_slot_index
+	if(spawned_slot && spawned_slot != preferences.default_slot)
+		return "Select the character slot you spawned with in character setup, then try again."
+	if(preferences.read_preference(/datum/preference/name/real_name) != body.real_name)
+		return "The selected character slot belongs to a different character."
+	return null
 
 /// The live form of an applied package: emission follows the body's current permission.
 /proc/custom_sprite_live_package_from(list/package, mob/living/carbon/human/body)

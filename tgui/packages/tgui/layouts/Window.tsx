@@ -64,6 +64,7 @@ export function Window(props: Props) {
     suspended,
   );
   // APHELION EDIT ADDITION END
+
   const [isReadyToRender, setIsReadyToRender] = useState(false);
 
   // We need to set the window to be invisible before we can set its geometry
@@ -128,6 +129,7 @@ export function Window(props: Props) {
   // APHELION EDIT ADDITION START - prompt sizing lifecycle
   }, [isReadyToRender, suspended, width, height, scale, fitBeforeShow]);
   // APHELION EDIT ADDITION END
+
   // Determine when to show dimmer
   const showDimmer =
     config.user &&

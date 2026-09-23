@@ -104,12 +104,12 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 				if("toggleVisible")
 					current_workspace.toggle_layer_visible(params["layer"])
 				if("undo")
-					current_workspace.undo(isnull(params["count"]) ? 1 : params["count"]) // APHELION EDIT CHANGE - ORIGINAL: current_workspace.undo()
+					current_workspace.undo(params["count"]) // APHELION EDIT CHANGE - ORIGINAL: current_workspace.undo()
 					if(!length(current_workspace.undo_stack))
 						source_photo_or_painting = source_on_undo_all
 						source_on_undo_all = null
 				if("redo")
-					current_workspace.redo(isnull(params["count"]) ? 1 : params["count"]) // APHELION EDIT CHANGE - ORIGINAL: current_workspace.redo()
+					current_workspace.redo(params["count"]) // APHELION EDIT CHANGE - ORIGINAL: current_workspace.redo()
 					if(!source_on_undo_all && source_photo_or_painting)
 						source_on_undo_all = source_photo_or_painting
 						source_photo_or_painting = null
@@ -298,6 +298,7 @@ GLOBAL_LIST_INIT(nanopaint_supported_filetypes, zebra_typecacheof(list(\
 				log_player_image_creation("[key_name(user)] has saved a custom image to [computer] as [file.filename].[file.filetype]", user, image_file.stored_icon)
 
 	return TRUE // APHELION EDIT ADDITION - Report export failure to new-file saves.
+
 /datum/computer_file/program/nanopaint/proc/save_file(mob/user, name, file_type, obj/item/disk/computer/target_disk)
 	var/datum/computer_file/file = new file_type()
 	file.filename = name

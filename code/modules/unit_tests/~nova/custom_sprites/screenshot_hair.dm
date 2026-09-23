@@ -1,13 +1,10 @@
-#if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
-
 /// A real saved hair file must render the same buns before and after an editor save/reopen.
 /datum/unit_test/custom_sprite_saved_hair_screenshot/Run()
-	var/fixture_path = "modular_aphelion/modules/custom_sprites/tests/fixtures/leia_buns.json"
+	var/fixture_path = "code/modules/unit_tests/~nova/custom_sprites/fixtures/leia_buns.json"
 	var/datum/json_savefile/custom_sprites/source = allocate(/datum/json_savefile/custom_sprites, fixture_path)
 	var/list/slot = source.get_entry("character1")
 	var/list/drawing = custom_sprite_validate(slot?["hair"])
-	if(!drawing || length(drawing["dirs"]) != 4)
-		return Fail("The saved Leia bun fixture must load four valid directional drawings.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!drawing || length(drawing["dirs"]) != 4), "The saved Leia bun fixture must load four valid directional drawings.")
 	var/mob/living/carbon/human/human = make_subject()
 	var/icon/without_buns = render_portraits(human)
 	human.dna.custom_hair = deep_copy_list(drawing)
@@ -19,12 +16,10 @@
 			for(var/y in 1 to 16)
 				if(first_render.GetPixel(x, y) != without_buns.GetPixel(x, y))
 					changed = TRUE
-		if(!changed)
-			Fail("The file-loaded buns must visibly extend Short Hair in view [view + 1].", __FILE__, __LINE__)
+		TEST_ASSERT(changed, "The file-loaded buns must visibly extend Short Hair in view [view + 1].")
 	var/datum/sprite_editor_workspace/custom_sprite/workspace = allocate(/datum/sprite_editor_workspace/custom_sprite, drawing, drawing["palette"], null)
 	var/list/serialized = custom_sprite_validate(workspace.serialize_drawing())
-	if(!serialized || !custom_sprite_test_same_pixels(custom_sprite_paint_icon(drawing), custom_sprite_paint_icon(serialized)))
-		return Fail("Hydrating and serializing the saved file must preserve every bun pixel.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!serialized || !custom_sprite_test_same_pixels(custom_sprite_paint_icon(drawing), custom_sprite_paint_icon(serialized))), "Hydrating and serializing the saved file must preserve every bun pixel.")
 	var/roundtrip_path = "data/custom_sprite_checks/leia_buns_[REF(src)].json"
 	var/datum/json_savefile/custom_sprites/saved = allocate(/datum/json_savefile/custom_sprites, roundtrip_path)
 	saved.set_entry("character1", list("hair" = serialized))
@@ -35,23 +30,18 @@
 	saved.path = null
 	reopened.path = null
 	custom_sprite_test_remove_sidecar(roundtrip_path)
-	if(!reopened_drawing)
-		return Fail("The serialized bun drawing must reopen through the real sidecar reader.", __FILE__, __LINE__)
+	TEST_ASSERT(reopened_drawing, "The serialized bun drawing must reopen through the real sidecar reader.")
 	var/mob/living/carbon/human/fresh_human = make_subject(reopened_drawing)
-	if(!same_portraits(first_render, render_portraits(fresh_human)))
-		Fail("A freshly loaded character must render identical bun pixels in all four views.", __FILE__, __LINE__)
+	TEST_ASSERT(same_portraits(first_render, render_portraits(fresh_human)), "A freshly loaded character must render identical bun pixels in all four views.")
 	human.dna.custom_hair = null
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
-	if(!same_portraits(without_buns, render_portraits(human)))
-		Fail("Removing the saved drawing must reveal the original short haircut without baked-in buns.", __FILE__, __LINE__)
+	TEST_ASSERT(same_portraits(without_buns, render_portraits(human)), "Removing the saved drawing must reveal the original short haircut without baked-in buns.")
 	human.dna.custom_hair = deep_copy_list(reopened_drawing)
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
-	if(!same_portraits(first_render, render_portraits(human)))
-		Fail("Reapplying the saved file with warm caches must restore the exact same hair.", __FILE__, __LINE__)
+	TEST_ASSERT(same_portraits(first_render, render_portraits(human)), "Reapplying the saved file with warm caches must restore the exact same hair.")
 	test_screenshot("leia_buns", first_render)
 	var/reference_path = "code/modules/unit_tests/screenshots/custom_sprite_saved_hair_screenshot_leia_buns.png"
-	if(fexists(reference_path) && !same_portraits(first_render, icon(file(reference_path))))
-		Fail("The file-loaded Leia bun portraits differ from the committed screenshot reference.", __FILE__, __LINE__)
+	TEST_ASSERT(!(fexists(reference_path) && !same_portraits(first_render, icon(file(reference_path)))), "The file-loaded Leia bun portraits differ from the committed screenshot reference.")
 
 /datum/unit_test/custom_sprite_saved_hair_screenshot/proc/make_subject(list/drawing)
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/dummy/consistent)
@@ -84,5 +74,3 @@
 			if(first.GetPixel(x, y) != second.GetPixel(x, y))
 				return FALSE
 	return TRUE
-
-#endif

@@ -1,5 +1,3 @@
-#if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
-
 /proc/custom_sprite_test_drawing(shade = "1")
 	var/list/dirs = list()
 	for(var/direction in GLOB.cardinals)
@@ -29,14 +27,12 @@
 		directions["[direction]"] = custom_sprite_encode_grid(grid, 63)
 	var/icon/paint = custom_sprite_paint_icon(list("version" = 2, "palette" = palette, "dirs" = directions))
 	var/list/states = icon_states(paint)
-	if(paint.Width() != 32 || paint.Height() != 32 || length(states) != 1 || !("" in states))
-		return Fail("Raw paint must be a 32 by 32 icon with one default state, including when built in memory.", __FILE__, __LINE__)
+	TEST_ASSERT(!(paint.Width() != 32 || paint.Height() != 32 || length(states) != 1 || !("" in states)), "Raw paint must be a 32 by 32 icon with one default state, including when built in memory.")
 	for(var/direction in GLOB.cardinals)
 		for(var/y in 1 to 32)
 			for(var/x in 1 to 32)
 				var/index = direction == NORTH ? 0 : ((y - 1) * 32 + x + direction) % 64
-				if(paint.GetPixel(x, 33 - y, "", direction) != (index ? palette[index] : null))
-					return Fail("Raw paint must preserve all 63 colors, transparent pixels, row orientation and missing directions.", __FILE__, __LINE__)
+				TEST_ASSERT(paint.GetPixel(x, 33 - y, "", direction) == (index ? palette[index] : null), "Raw paint must preserve all 63 colors, transparent pixels, row orientation and missing directions.")
 
 /datum/unit_test/custom_sprite_rendering/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -46,23 +42,17 @@
 	human.update_body(is_creating = TRUE)
 	var/list/bounds = custom_sprite_body_draw_bounds(human)
 	for(var/direction in GLOB.cardinals)
-		if(!bounds["[direction]"])
-			Fail("Body bounds must include every cardinal direction.", __FILE__, __LINE__)
+		TEST_ASSERT(bounds["[direction]"], "Body bounds must include every cardinal direction.")
 	for(var/obj/item/bodypart/limb as anything in human.bodyparts)
 		var/datum/bodypart_overlay/custom_marking/overlay = locate() in limb.bodypart_overlays
-		if(!overlay)
-			Fail("Every limb must receive its drawing snapshot.", __FILE__, __LINE__)
-			continue
+		TEST_ASSERT(overlay, "Every limb must receive its drawing snapshot.")
 		var/image/clipped = overlay.get_image(limb, "", -BODYPARTS_LAYER)
-		if(!custom_sprite_test_same_pixels(icon(clipped.icon), custom_sprite_silhouette(limb)))
-			Fail("Solid paint must be clipped exactly to [limb.body_zone]'s silhouette in every direction.", __FILE__, __LINE__)
+		TEST_ASSERT(custom_sprite_test_same_pixels(icon(clipped.icon), custom_sprite_silhouette(limb)), "Solid paint must be clipped exactly to [limb.body_zone]'s silhouette in every direction.")
 		var/first_key = json_encode(overlay.icon_render_key(limb))
 		overlay.set_drawing(custom_sprite_test_drawing("2"), limb)
-		if(first_key == json_encode(overlay.icon_render_key(limb)))
-			Fail("Different drawings collided in the limb cache.", __FILE__, __LINE__)
+		TEST_ASSERT(first_key != json_encode(overlay.icon_render_key(limb)), "Different drawings collided in the limb cache.")
 		var/image/different = overlay.get_image(limb, "", -BODYPARTS_LAYER)
-		if(custom_sprite_test_same_pixels(icon(clipped.icon), icon(different.icon)))
-			Fail("Different drawings reused another player's clipped pixels.", __FILE__, __LINE__)
+		TEST_ASSERT(!custom_sprite_test_same_pixels(icon(clipped.icon), icon(different.icon)), "Different drawings reused another player's clipped pixels.")
 		overlay.set_drawing(custom_sprite_test_drawing(), limb)
 		if(limb.body_zone in list(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG))
 			var/list/leg_overlays = overlay.get_all_overlays(limb)
@@ -74,27 +64,22 @@
 				upper ||= part.layer == -BODYPARTS_LAYER
 				lower ||= part.layer == -BODYPARTS_LOW_LAYER
 				recombined.Blend(icon(part.icon), ICON_OVERLAY)
-			if(!upper || !lower || !custom_sprite_test_same_pixels(recombined, icon(clipped.icon)))
-				Fail("The two leg layers must preserve the clipped drawing.", __FILE__, __LINE__)
+			TEST_ASSERT(!(!upper || !lower || !custom_sprite_test_same_pixels(recombined, icon(clipped.icon))), "The two leg layers must preserve the clipped drawing.")
 		limb.is_husked = HUSKED_BURN
-		if(overlay.can_draw_on_bodypart(limb, human))
-			Fail("Custom markings must stay hidden on husks.", __FILE__, __LINE__)
+		TEST_ASSERT(!overlay.can_draw_on_bodypart(limb, human), "Custom markings must stay hidden on husks.")
 		limb.is_husked = initial(limb.is_husked)
 		var/shape = limb.bodyshape
 		limb.bodyshape |= BODYSHAPE_TAUR
-		if(overlay.can_draw_on_bodypart(limb, human))
-			Fail("Taur limbs must not render unsupported markings.", __FILE__, __LINE__)
+		TEST_ASSERT(!overlay.can_draw_on_bodypart(limb, human), "Taur limbs must not render unsupported markings.")
 		limb.bodyshape = shape
 	var/obj/item/bodypart/arm = human.get_bodypart(BODY_ZONE_L_ARM)
 	arm.drop_limb(special = TRUE)
 	var/datum/bodypart_overlay/custom_marking/detached = locate() in arm.bodypart_overlays
-	if(!detached?.drawing)
-		Fail("Detached limbs must retain their own drawing.", __FILE__, __LINE__)
+	TEST_ASSERT(detached?.drawing, "Detached limbs must retain their own drawing.")
 	human.regenerate_limb(BODY_ZONE_L_ARM)
 	var/obj/item/bodypart/regrown = human.get_bodypart(BODY_ZONE_L_ARM)
 	var/datum/bodypart_overlay/custom_marking/regrown_overlay = locate() in regrown.bodypart_overlays
-	if(!regrown_overlay?.drawing)
-		Fail("Regenerated limbs must inherit DNA drawings.", __FILE__, __LINE__)
+	TEST_ASSERT(regrown_overlay?.drawing, "Regenerated limbs must inherit DNA drawings.")
 
 /datum/unit_test/custom_sprite_hair_gradient_palette/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -110,37 +95,28 @@
 	human.set_facial_hair_gradient_style(/datum/sprite_accessory/gradient/full::name, update = FALSE)
 	human.set_facial_hair_gradient_color("#fedcba", update = FALSE)
 	var/list/palette = custom_sprite_sample_hair_palette(style, head)
-	if(json_encode(palette) != source_before)
-		Fail("Inactive hair gradients and facial-only gradients must not add hair palette colors.", __FILE__, __LINE__)
+	TEST_ASSERT(json_encode(palette) == source_before, "Inactive hair gradients and facial-only gradients must not add hair palette colors.")
 	human.set_hair_gradient_style(/datum/sprite_accessory/gradient/full::name, update = FALSE)
 	palette = custom_sprite_sample_hair_palette(style, head)
-	if(!("#12abef" in palette) || ("#fedcba" in palette))
-		Fail("An active hair gradient must add its canonical color without the facial gradient.", __FILE__, __LINE__)
-	if(json_encode(source) != source_before || json_encode(custom_sprite_sample_palette(style.icon, style.icon_state)) != source_before)
-		Fail("Adding gradient swatches must not modify shared source palette lists.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!("#12abef" in palette) || ("#fedcba" in palette)), "An active hair gradient must add its canonical color without the facial gradient.")
+	TEST_ASSERT(!(json_encode(source) != source_before || json_encode(custom_sprite_sample_palette(style.icon, style.icon_state)) != source_before), "Adding gradient swatches must not modify shared source palette lists.")
 	human.set_hair_gradient_color(source[1], update = FALSE)
-	if(length(custom_sprite_sample_hair_palette(style, head)) != length(source))
-		Fail("Gradient colors already present among source shades must not be duplicated.", __FILE__, __LINE__)
+	TEST_ASSERT(length(custom_sprite_sample_hair_palette(style, head)) == length(source), "Gradient colors already present among source shades must not be duplicated.")
 	// Species presets use these same setters (for example the protean preview).
 	human.set_hair_gradient_style(/datum/sprite_accessory/gradient/reflected_inverse::name, update = FALSE)
 	human.set_hair_gradient_color("#685064", update = FALSE)
-	if(!(head.get_hair_gradient_color(GRADIENT_HAIR_KEY) in custom_sprite_sample_hair_palette(style, head)))
-		Fail("The palette must use the active head gradient, including species preset values.", __FILE__, __LINE__)
+	TEST_ASSERT((head.get_hair_gradient_color(GRADIENT_HAIR_KEY) in custom_sprite_sample_hair_palette(style, head)), "The palette must use the active head gradient, including species preset values.")
 	human.set_hair_gradient_style("invalid-gradient-fixture", update = FALSE)
-	if(json_encode(custom_sprite_sample_hair_palette(style, head)) != source_before)
-		Fail("An unregistered gradient style must not add a color.", __FILE__, __LINE__)
+	TEST_ASSERT(json_encode(custom_sprite_sample_hair_palette(style, head)) == source_before, "An unregistered gradient style must not add a color.")
 	head.hair_color = "#804020"
 	palette = custom_sprite_sample_hair_palette(null, head)
-	if(palette[1] != "#804020" || ("#ffffff" in palette))
-		Fail("Automatic hair swatches must contain the actual hair colors for literal painting.", __FILE__, __LINE__)
+	TEST_ASSERT(!(palette[1] != "#804020" || ("#ffffff" in palette)), "Automatic hair swatches must contain the actual hair colors for literal painting.")
 	head.fixed_hair_color = "#123456"
 	palette = custom_sprite_sample_hair_palette(null, head)
-	if(palette[1] != "#123456")
-		Fail("Automatic swatches must respect fixed species hair colors.", __FILE__, __LINE__)
+	TEST_ASSERT(palette[1] == "#123456", "Automatic swatches must respect fixed species hair colors.")
 	head.override_hair_color = "#abcdef"
 	palette = custom_sprite_sample_hair_palette(null, head)
-	if(palette[1] != "#abcdef")
-		Fail("Automatic swatches must respect hair color overrides.", __FILE__, __LINE__)
+	TEST_ASSERT(palette[1] == "#abcdef", "Automatic swatches must respect hair color overrides.")
 
 /datum/unit_test/custom_sprite_tint_cache_reuse/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -155,24 +131,19 @@
 	var/first_key = json_encode(overlay.icon_render_key(leg))
 	leg.markings_alpha = 123
 	var/opacity_key = json_encode(overlay.icon_render_key(leg))
-	if(opacity_key == first_key)
-		Fail("Changing opacity alone must invalidate the final body render key.", __FILE__, __LINE__)
+	TEST_ASSERT(opacity_key != first_key, "Changing opacity alone must invalidate the final body render key.")
 	drawing["tint"] = "#ff0000"
 	overlay.set_drawing(drawing, leg)
 	var/image/recolored = overlay.get_image(leg, "", -BODYPARTS_LAYER)
 	overlay.color_image(recolored, leg, "")
-	if(custom_sprite_paint_icon(drawing) != raw || recolored.icon != clipped.icon)
-		Fail("Tint and opacity changes must reuse the raw and clipped pixel caches.", __FILE__, __LINE__)
-	if(json_encode(overlay.icon_render_key(leg)) == opacity_key || recolored.color != "#ff0000" || recolored.alpha != 123)
-		Fail("Reusing pixel caches must still update the final tint, opacity and render key.", __FILE__, __LINE__)
+	TEST_ASSERT(!(custom_sprite_paint_icon(drawing) != raw || recolored.icon != clipped.icon), "Tint and opacity changes must reuse the raw and clipped pixel caches.")
+	TEST_ASSERT(!(json_encode(overlay.icon_render_key(leg)) == opacity_key || recolored.color != "#ff0000" || recolored.alpha != 123), "Reusing pixel caches must still update the final tint, opacity and render key.")
 	var/list/split_after = overlay.get_all_overlays(leg)
-	if(length(split_before) != length(split_after))
-		return Fail("Tint changes must preserve the leg overlay layers.", __FILE__, __LINE__)
+	TEST_ASSERT(length(split_before) == length(split_after), "Tint changes must preserve the leg overlay layers.")
 	for(var/i in 1 to length(split_before))
 		var/image/before = split_before[i]
 		var/image/after = split_after[i]
-		if(before.icon != after.icon || after.color != "#ff0000" || after.alpha != 123)
-			Fail("Leg split icons must be reused while their final color and opacity update.", __FILE__, __LINE__)
+		TEST_ASSERT(!(before.icon != after.icon || after.color != "#ff0000" || after.alpha != 123), "Leg split icons must be reused while their final color and opacity update.")
 
 /datum/unit_test/custom_sprite_head_snapshot/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -180,22 +151,18 @@
 	human.dna.custom_hair = custom_sprite_test_drawing()
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/list/snapshot = head.custom_hair
-	if(!snapshot || snapshot == human.dna.custom_hair || json_encode(snapshot) != json_encode(human.dna.custom_hair))
-		Fail("Synchronizing with a body refresh must create an independent head drawing snapshot.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!snapshot || snapshot == human.dna.custom_hair || json_encode(snapshot) != json_encode(human.dna.custom_hair)), "Synchronizing with a body refresh must create an independent head drawing snapshot.")
 	human.dna.custom_hair["tint"] = "#ff0000"
 	head.copy_appearance_from(human)
-	if(head.custom_hair == snapshot || snapshot["tint"] || head.custom_hair["tint"] != "#ff0000")
-		Fail("Changed DNA must replace the head snapshot without mutating the old data.", __FILE__, __LINE__)
+	TEST_ASSERT(!(head.custom_hair == snapshot || snapshot["tint"] || head.custom_hair["tint"] != "#ff0000"), "Changed DNA must replace the head snapshot without mutating the old data.")
 	head.drop_limb(special = TRUE)
 	human.dna.custom_hair["tint"] = "#0000ff"
 	human.regenerate_limb(BODY_ZONE_HEAD)
 	var/obj/item/bodypart/head/regrown = human.get_bodypart(BODY_ZONE_HEAD)
-	if(regrown?.custom_hair?["tint"] != "#0000ff" || head.custom_hair["tint"] != "#ff0000" || regrown.custom_hair == human.dna.custom_hair)
-		Fail("Detached and regenerated heads must retain independent drawing ownership.", __FILE__, __LINE__)
+	TEST_ASSERT(!(regrown?.custom_hair?["tint"] != "#0000ff" || head.custom_hair["tint"] != "#ff0000" || regrown.custom_hair == human.dna.custom_hair), "Detached and regenerated heads must retain independent drawing ownership.")
 	human.dna.custom_hair = null
 	human.sync_custom_sprite_appearance()
-	if(regrown.custom_hair)
-		Fail("Synchronizing a cleared drawing must clear the head snapshot without a body refresh.", __FILE__, __LINE__)
+	TEST_ASSERT(!regrown.custom_hair, "Synchronizing a cleared drawing must clear the head snapshot without a body refresh.")
 
 /datum/unit_test/custom_sprite_hair_emissive/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -215,36 +182,27 @@
 		head.custom_hair["tint"] = literal ? "#ffffff" : null
 		head.custom_hair["emissive"] = custom_sprite_emissive_settings(FALSE)
 		var/list/off = list()
-		head.append_custom_hair_tint_overlays(off, paint, style, FALSE)
-		if(length(off) != (literal ? 2 : 1))
-			Fail("Both legacy and literal non-emissive paint must receive an independent blocker.", __FILE__, __LINE__)
+		head.append_custom_hair_paint_overlays(off, paint, style, FALSE)
+		TEST_ASSERT(length(off) == (literal ? 2 : 1), "Both legacy and literal non-emissive paint must receive an independent blocker.")
 		var/image/blocker = off[1]
-		if(PLANE_TO_TRUE(blocker.plane) != EMISSIVE_PLANE || json_encode(blocker.color) != json_encode(_EM_BLOCK_COLOR(123 / 255)))
-			Fail("The OFF blocker must use the emissive plane and hair opacity.", __FILE__, __LINE__)
-		if(!custom_sprite_test_same_pixels(icon(blocker.icon), paint))
-			Fail("The OFF blocker must contain the exact masked painted pixels in every direction.", __FILE__, __LINE__)
+		TEST_ASSERT(!(PLANE_TO_TRUE(blocker.plane) != EMISSIVE_PLANE || json_encode(blocker.color) != json_encode(_EM_BLOCK_COLOR(123 / 255))), "The OFF blocker must use the emissive plane and hair opacity.")
+		TEST_ASSERT(custom_sprite_test_same_pixels(icon(blocker.icon), paint), "The OFF blocker must contain the exact masked painted pixels in every direction.")
 		var/list/dropped_off = list()
-		head.append_custom_hair_tint_overlays(dropped_off, paint, style, TRUE)
+		head.append_custom_hair_paint_overlays(dropped_off, paint, style, TRUE)
 		var/image/dropped_blocker = dropped_off[1]
 		var/mutable_appearance/fixed_blocker = make_mutable_appearance_directional(blocker, SOUTH)
-		if(dropped_blocker.appearance != fixed_blocker.appearance || blocker.appearance == fixed_blocker.appearance)
-			Fail("Dropped hair blockers must fix their direction while attached blockers inherit the owner's facing.", __FILE__, __LINE__)
+		TEST_ASSERT(!(dropped_blocker.appearance != fixed_blocker.appearance || blocker.appearance == fixed_blocker.appearance), "Dropped hair blockers must fix their direction while attached blockers inherit the owner's facing.")
 		head.custom_hair["emissive"] = custom_sprite_emissive_settings(TRUE)
 		head.blocks_emissive = EMISSIVE_BLOCK_UNIQUE
 		var/list/on = list()
-		head.append_custom_hair_tint_overlays(on, paint, style, TRUE)
-		if(length(on) != (literal ? 2 : 1))
-			Fail("Emitting paint must replace its blocker so partial opacity is applied only once.", __FILE__, __LINE__)
+		head.append_custom_hair_paint_overlays(on, paint, style, TRUE)
+		TEST_ASSERT(length(on) == (literal ? 2 : 1), "Emitting paint must replace its blocker so partial opacity is applied only once.")
 		var/image/glow = on[length(on)]
-		if(PLANE_TO_TRUE(glow.plane) != EMISSIVE_PLANE || glow.dir != SOUTH || json_encode(glow.color) != json_encode(_EMISSIVE_COLOR(123 / 255)))
-			Fail("The ON mask must use the emissive plane, hair opacity and detached-head direction.", __FILE__, __LINE__)
-		if(!custom_sprite_test_same_pixels(icon(glow.icon), paint))
-			Fail("The ON mask must contain the exact masked painted pixels in every direction.", __FILE__, __LINE__)
+		TEST_ASSERT(!(PLANE_TO_TRUE(glow.plane) != EMISSIVE_PLANE || glow.dir != SOUTH || json_encode(glow.color) != json_encode(_EMISSIVE_COLOR(123 / 255))), "The ON mask must use the emissive plane, hair opacity and detached-head direction.")
+		TEST_ASSERT(custom_sprite_test_same_pixels(icon(glow.icon), paint), "The ON mask must contain the exact masked painted pixels in every direction.")
 		var/mutable_appearance/fixed_glow = make_mutable_appearance_directional(glow, SOUTH)
-		if(glow.appearance != fixed_glow.appearance)
-			Fail("Dropped hair emission must preserve the visible paint's fixed South direction flag.", __FILE__, __LINE__)
-		if(glow.pixel_x != blocker.pixel_x || glow.pixel_z != blocker.pixel_z || custom_sprite_paint_icon(head.custom_hair) != raw)
-			Fail("Changing custom emission must retain offsets and reuse raw pixel caches.", __FILE__, __LINE__)
+		TEST_ASSERT(glow.appearance == fixed_glow.appearance, "Dropped hair emission must preserve the visible paint's fixed South direction flag.")
+		TEST_ASSERT(!(glow.pixel_x != blocker.pixel_x || glow.pixel_z != blocker.pixel_z || custom_sprite_paint_icon(head.custom_hair) != raw), "Changing custom emission must retain offsets and reuse raw pixel caches.")
 	// The normal base hair emission must use authored pixels even when legacy paint is merged visually.
 	head.custom_hair["tint"] = null
 	head.custom_hair["emissive"] = custom_sprite_emissive_settings(TRUE)
@@ -254,14 +212,11 @@
 	for(var/image/overlay as anything in hair_overlays)
 		if(PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE && json_encode(overlay.color) == json_encode(_EM_BLOCK_COLOR(123 / 255)))
 			found_authored_blocker = TRUE
-			if(!custom_sprite_test_same_pixels(icon(overlay.icon), style.getCachedIcon(human.hair_masks)))
-				Fail("The base blocker must not add another opacity mask for legacy custom paint.", __FILE__, __LINE__)
+			TEST_ASSERT(custom_sprite_test_same_pixels(icon(overlay.icon), style.getCachedIcon(human.hair_masks)), "The base blocker must not add another opacity mask for legacy custom paint.")
 		if(PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE && overlay.icon_state == "_e")
 			found_authored_emission = TRUE
-			if(!custom_sprite_test_same_pixels(icon(overlay.icon), style.getCachedIcon(human.hair_masks)))
-				Fail("Base emissive hair must not inherit the legacy custom drawing pixels.", __FILE__, __LINE__)
-	if(!found_authored_emission || !found_authored_blocker)
-		Fail("The fixture must exercise both authored base hair masks.", __FILE__, __LINE__)
+			TEST_ASSERT(custom_sprite_test_same_pixels(icon(overlay.icon), style.getCachedIcon(human.hair_masks)), "Base emissive hair must not inherit the legacy custom drawing pixels.")
+	TEST_ASSERT(!(!found_authored_emission || !found_authored_blocker), "The fixture must exercise both authored base hair masks.")
 
 /datum/unit_test/custom_sprite_marking_emissive/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -277,8 +232,7 @@
 		drawing["emissive"] = custom_sprite_emissive_settings(TRUE)
 		overlay.set_drawing(drawing, limb)
 		var/list/on = overlay.get_all_overlays(limb)
-		if(json_encode(overlay.icon_render_key(limb)) == old_key || custom_sprite_paint_icon(drawing) != raw)
-			Fail("Emission must invalidate the final limb key without rebuilding paint pixels.", __FILE__, __LINE__)
+		TEST_ASSERT(!(json_encode(overlay.icon_render_key(limb)) == old_key || custom_sprite_paint_icon(drawing) != raw), "Emission must invalidate the final limb key without rebuilding paint pixels.")
 		var/visible_count = 0
 		var/mask_count = 0
 		for(var/image/visible as anything in off)
@@ -292,13 +246,10 @@
 				if(glow.icon == visible.icon && glow.layer == visible.layer)
 					found = TRUE
 					mask_count++
-			if(!found)
-				Fail("Every clipped or split [zone] overlay must reuse its exact icon and layer for emission.", __FILE__, __LINE__)
-		if(!visible_count || mask_count != visible_count || length(on) != 2 * visible_count)
-			Fail("Emission must replace blockers with one mask per visible limb/leg layer.", __FILE__, __LINE__)
+			TEST_ASSERT(found, "Every clipped or split [zone] overlay must reuse its exact icon and layer for emission.")
+		TEST_ASSERT(!(!visible_count || mask_count != visible_count || length(on) != 2 * visible_count), "Emission must replace blockers with one mask per visible limb/leg layer.")
 		for(var/image/mask as anything in on)
-			if(PLANE_TO_TRUE(mask.plane) == EMISSIVE_PLANE && json_encode(mask.color) == json_encode(_EM_BLOCK_COLOR(123 / 255)))
-				Fail("Emitting markings must not retain a blocker that applies partial opacity twice.", __FILE__, __LINE__)
+			TEST_ASSERT(!(PLANE_TO_TRUE(mask.plane) == EMISSIVE_PLANE && json_encode(mask.color) == json_encode(_EM_BLOCK_COLOR(123 / 255))), "Emitting markings must not retain a blocker that applies partial opacity twice.")
 		drawing["emissive"] = custom_sprite_emissive_settings(FALSE)
 
 /datum/unit_test/custom_sprite_emissive_grouping/Run()
@@ -313,18 +264,14 @@
 	inherited_mask.pixel_x = visible.pixel_x
 	inherited_mask.pixel_z = visible.pixel_z
 	// BYOND reports South for both; assigning dir changes hidden inheritance state.
-	if(mask.appearance != inherited_mask.appearance)
-		Fail("Attached paint masks must inherit direction through the neutral group, not copy the image's default South.", __FILE__, __LINE__)
+	TEST_ASSERT(mask.appearance == inherited_mask.appearance, "Attached paint masks must inherit direction through the neutral group, not copy the image's default South.")
 	for(var/cache_layer in list(HAIR_LAYER, BODYPARTS_LAYER))
 		var/list/prepared = human.prepare_worn_emissive_overlays(cache_layer, list(visible, mask))
 		var/mutable_appearance/group = prepared[2]
-		if(length(prepared) != 2 || group.icon || length(group.overlays) != 1 || PLANE_TO_TRUE(group.plane) != EMISSIVE_PLANE || group.pixel_x || group.pixel_z)
-			Fail("Hair and marking masks must use the existing neutral plane boundary for standing/resting transforms.", __FILE__, __LINE__)
+		TEST_ASSERT(!(length(prepared) != 2 || group.icon || length(group.overlays) != 1 || PLANE_TO_TRUE(group.plane) != EMISSIVE_PLANE || group.pixel_x || group.pixel_z), "Hair and marking masks must use the existing neutral plane boundary for standing/resting transforms.")
 		var/mutable_appearance/inner = group.overlays[1]
-		if(inner.icon != visible.icon || inner.pixel_x != visible.pixel_x || inner.pixel_z != visible.pixel_z || inner.plane != FLOAT_PLANE || (inner.appearance_flags & KEEP_APART))
-			Fail("Paint placement must stay inside the shared emissive group so it rotates with the visible pixels.", __FILE__, __LINE__)
-		if(mask.pixel_x != 5 || mask.pixel_z != -3 || PLANE_TO_TRUE(mask.plane) != EMISSIVE_PLANE)
-			Fail("Shared grouping must not mutate the cached source mask.", __FILE__, __LINE__)
+		TEST_ASSERT(!(inner.icon != visible.icon || inner.pixel_x != visible.pixel_x || inner.pixel_z != visible.pixel_z || inner.plane != FLOAT_PLANE || (inner.appearance_flags & KEEP_APART)), "Paint placement must stay inside the shared emissive group so it rotates with the visible pixels.")
+		TEST_ASSERT(!(mask.pixel_x != 5 || mask.pixel_z != -3 || PLANE_TO_TRUE(mask.plane) != EMISSIVE_PLANE), "Shared grouping must not mutate the cached source mask.")
 
 /datum/unit_test/custom_sprite_directional_emission/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -342,7 +289,7 @@
 		drawing["emissive"] = settings
 		head.custom_hair = deep_copy_list(drawing)
 		var/list/hair_overlays = list()
-		head.append_custom_hair_tint_overlays(hair_overlays, paint, style, FALSE)
+		head.append_custom_hair_paint_overlays(hair_overlays, paint, style, FALSE)
 		leg.apply_custom_marking(drawing)
 		var/datum/bodypart_overlay/custom_marking/marking = locate() in leg.bodypart_overlays
 		var/list/leg_overlays = marking.get_all_overlays(leg)
@@ -362,34 +309,26 @@
 					if(PLANE_TO_TRUE(candidate.plane) != EMISSIVE_PLANE && candidate.layer == mask.layer)
 						visible = candidate
 						break
-				if(!visible)
-					Fail("Directional masks need a matching visible paint layer.", __FILE__, __LINE__)
-					continue
+				TEST_ASSERT(visible, "Directional masks need a matching visible paint layer.")
 				var/icon/mask_icon = icon(mask.icon)
 				var/icon/visible_icon = icon(visible.icon)
 				for(var/direction in GLOB.cardinals)
 					for(var/x in 1 to 32)
 						for(var/y in 1 to 32)
 							var/expected = ((direction == selected_direction) == glowing) ? visible_icon.GetPixel(x, y, "", direction) : null
-							if(mask_icon.GetPixel(x, y, "", direction) != expected)
-								return Fail("Hair and split-leg masks must emit only the selected facing and block only the other views.", __FILE__, __LINE__)
+							TEST_ASSERT(mask_icon.GetPixel(x, y, "", direction) == expected, "Hair and split-leg masks must emit only the selected facing and block only the other views.")
 				var/list/prepared = human.prepare_worn_emissive_overlays(overlays == hair_overlays ? HAIR_LAYER : BODYPARTS_LAYER, list(mask))
 				var/mutable_appearance/group = prepared[1]
-				if(length(prepared) != 1 || group.icon || length(group.overlays) != 1 || PLANE_TO_TRUE(group.plane) != EMISSIVE_PLANE)
-					return Fail("Directional masks must retain one inner appearance inside the neutral emissive group.", __FILE__, __LINE__)
+				TEST_ASSERT(!(length(prepared) != 1 || group.icon || length(group.overlays) != 1 || PLANE_TO_TRUE(group.plane) != EMISSIVE_PLANE), "Directional masks must retain one inner appearance inside the neutral emissive group.")
 				var/mutable_appearance/inner = group.overlays[1]
-				if(inner.plane != FLOAT_PLANE || !custom_sprite_test_same_pixels(icon(inner.icon), mask_icon))
-					return Fail("The prepared inner mask must preserve every selected and blank directional frame.", __FILE__, __LINE__)
+				TEST_ASSERT(!(inner.plane != FLOAT_PLANE || !custom_sprite_test_same_pixels(icon(inner.icon), mask_icon)), "The prepared inner mask must preserve every selected and blank directional frame.")
 				var/mutable_appearance/expected_inner = new(mask)
 				expected_inner.plane = FLOAT_PLANE
 				expected_inner.appearance_flags &= ~KEEP_APART
-				if(inner.appearance != expected_inner.appearance)
-					return Fail("Shared grouping must preserve the mask's directional inheritance, offsets and opacity.", __FILE__, __LINE__)
-			if(!emitting_masks || emitting_masks != blocking_masks)
-				Fail("Mixed per-view settings must generate complementary emission and blocker masks.", __FILE__, __LINE__)
+				TEST_ASSERT(inner.appearance == expected_inner.appearance, "Shared grouping must preserve the mask's directional inheritance, offsets and opacity.")
+			TEST_ASSERT(!(!emitting_masks || emitting_masks != blocking_masks), "Mixed per-view settings must generate complementary emission and blocker masks.")
 		var/icon/cached = custom_sprite_directional_mask(paint, "native-directional-cache", settings, TRUE)
-		if(custom_sprite_directional_mask(paint, "native-directional-cache", settings, TRUE) != cached || custom_sprite_paint_icon(drawing) != paint)
-			Fail("Repeated masks must reuse directional caches without replacing visible paint pixels.", __FILE__, __LINE__)
+		TEST_ASSERT(!(custom_sprite_directional_mask(paint, "native-directional-cache", settings, TRUE) != cached || custom_sprite_paint_icon(drawing) != paint), "Repeated masks must reuse directional caches without replacing visible paint pixels.")
 	// Attached upper/lower masks are warm. A dropped leg now needs its whole unsplit silhouette.
 	leg.drop_limb(special = TRUE)
 	var/datum/bodypart_overlay/custom_marking/detached = locate() in leg.bodypart_overlays
@@ -401,16 +340,14 @@
 			dropped_visible = overlay
 		else if(json_encode(overlay.color) == json_encode(GLOB.emissive_color))
 			dropped_glow = overlay
-	if(!dropped_visible || !dropped_glow)
-		return Fail("The detached leg fixture must retain visible paint and its selected emission.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!dropped_visible || !dropped_glow), "The detached leg fixture must retain visible paint and its selected emission.")
 	var/icon/dropped_paint = icon(dropped_visible.icon)
 	var/icon/dropped_mask = icon(dropped_glow.icon)
 	for(var/direction in GLOB.cardinals)
 		for(var/x in 1 to 32)
 			for(var/y in 1 to 32)
 				var/expected = detached.drawing["emissive"]["[direction]"] ? dropped_paint.GetPixel(x, y, "", direction) : null
-				if(dropped_mask.GetPixel(x, y, "", direction) != expected)
-					return Fail("A detached leg must not reuse its attached upper-half directional mask.", __FILE__, __LINE__)
+				TEST_ASSERT(dropped_mask.GetPixel(x, y, "", direction) == expected, "A detached leg must not reuse its attached upper-half directional mask.")
 
 /datum/unit_test/custom_sprite_emissive_ownership/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -432,8 +369,7 @@
 	var/datum/bodypart_overlay/custom_marking/detached = locate() in arm.bodypart_overlays
 	var/datum/bodypart_overlay/custom_marking/regrown = locate() in regrown_arm.bodypart_overlays
 	for(var/direction in GLOB.cardinals)
-		if(!head.custom_hair?["emissive"]?["[direction]"] || !detached?.drawing?["emissive"]?["[direction]"] || regrown_head.custom_hair?["emissive"]?["[direction]"] || regrown?.drawing?["emissive"]?["[direction]"])
-			Fail("Detached parts must retain their emission snapshots while regenerated parts inherit current DNA.", __FILE__, __LINE__)
+		TEST_ASSERT(!(!head.custom_hair?["emissive"]?["[direction]"] || !detached?.drawing?["emissive"]?["[direction]"] || regrown_head.custom_hair?["emissive"]?["[direction]"] || regrown?.drawing?["emissive"]?["[direction]"]), "Detached parts must retain their emission snapshots while regenerated parts inherit current DNA.")
 
 /datum/unit_test/custom_sprite_hair_cache/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -444,29 +380,23 @@
 	human.dna.custom_hair = custom_sprite_test_drawing()
 	head.copy_appearance_from(human)
 	var/icon/paint = head.get_custom_hair_paint(style)
-	if(!paint || paint.GetPixel(16, 16, "", SOUTH) != "#ffffff")
-		Fail("Stored paint must produce a directional icon.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!paint || paint.GetPixel(16, 16, "", SOUTH) != "#ffffff"), "Stored paint must produce a directional icon.")
 	head.get_hair_overlays()
-	if(!custom_sprite_test_same_pixels(shared_before, style.getCachedIcon()))
-		Fail("Drawing hair mutated the shared hairstyle cache.", __FILE__, __LINE__)
+	TEST_ASSERT(custom_sprite_test_same_pixels(shared_before, style.getCachedIcon()), "Drawing hair mutated the shared hairstyle cache.")
 	var/datum/hair_mask/mask = allocate(/datum/hair_mask/standard_hat_low)
 	human.hair_masks = list(mask)
 	var/icon/expected = icon(paint)
 	var/icon/mask_icon = icon(mask.icon, mask.icon_state)
 	mask_icon.Shift(SOUTH, style.y_offset)
 	expected.Blend(mask_icon, ICON_ADD)
-	if(!custom_sprite_test_same_pixels(expected, head.get_custom_hair_paint(style)))
-		Fail("Paint must receive the same hat mask as authored hair.", __FILE__, __LINE__)
+	TEST_ASSERT(custom_sprite_test_same_pixels(expected, head.get_custom_hair_paint(style)), "Paint must receive the same hat mask as authored hair.")
 	human.dna.custom_hair["tint"] = "#ff0000"
-	if(head.custom_hair["tint"])
-		Fail("Head snapshots must not alias mutable DNA data.", __FILE__, __LINE__)
+	TEST_ASSERT(!head.custom_hair["tint"], "Head snapshots must not alias mutable DNA data.")
 	var/mob/living/carbon/human/clone = allocate(/mob/living/carbon/human/consistent)
 	human.dna.copy_dna(clone.dna)
-	if(json_encode(clone.dna.custom_hair) != json_encode(human.dna.custom_hair))
-		Fail("DNA copies must preserve hair drawings.", __FILE__, __LINE__)
+	TEST_ASSERT(json_encode(clone.dna.custom_hair) == json_encode(human.dna.custom_hair), "DNA copies must preserve hair drawings.")
 	clone.dna.custom_hair["tint"] = "#0000ff"
-	if(human.dna.custom_hair["tint"] != "#ff0000")
-		Fail("DNA copies must own independent drawing data.", __FILE__, __LINE__)
+	TEST_ASSERT(human.dna.custom_hair["tint"] == "#ff0000", "DNA copies must own independent drawing data.")
 
 /datum/unit_test/custom_marking_zone_geometry/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -476,8 +406,7 @@
 			continue
 		var/obj/item/bodypart/limb = human.get_bodypart(body_zone)
 		var/list/mask = custom_sprite_body_draw_mask(human, body_zone)
-		if(mask != custom_sprite_body_draw_mask(human, body_zone))
-			Fail("Unchanged limb geometry must reuse its cached mask.", __FILE__, __LINE__)
+		TEST_ASSERT(mask == custom_sprite_body_draw_mask(human, body_zone), "Unchanged limb geometry must reuse its cached mask.")
 		var/icon/silhouette = custom_sprite_silhouette(limb)
 		if(limb.aux_zone)
 			silhouette.Blend(custom_sprite_silhouette(limb, TRUE), ICON_OVERLAY)
@@ -485,37 +414,31 @@
 		for(var/direction in GLOB.cardinals)
 			for(var/y in 0 to 31)
 				for(var/x in 0 to 31)
-					if(!!workspace.is_point_allowed(x, y, "[direction]") != !!silhouette.GetPixel(x + 1, 32 - y, "", direction))
-						return Fail("Editor pixels must match [body_zone]'s rendered silhouette in direction [direction].", __FILE__, __LINE__)
+					TEST_ASSERT(!!workspace.is_point_allowed(x, y, "[direction]") == !!silhouette.GetPixel(x + 1, 32 - y, "", direction), "Editor pixels must match [body_zone]'s rendered silhouette in direction [direction].")
 	human.dna.custom_markings = custom_sprite_test_drawing()
 	human.dna.custom_limb_markings = list(BODY_ZONE_L_ARM = custom_sprite_test_drawing("2"))
 	human.dna.custom_limb_markings[BODY_ZONE_L_ARM]["emissive"] = custom_sprite_emissive_settings(TRUE)
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/arm = human.get_bodypart(BODY_ZONE_L_ARM)
 	var/datum/bodypart_overlay/custom_marking/zone/zone_overlay = locate() in arm.bodypart_overlays
-	if(!zone_overlay || length(arm.bodypart_overlays) < 2)
-		return Fail("A limb needs separate whole-body and zone overlays.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!zone_overlay || length(arm.bodypart_overlays) < 2), "A limb needs separate whole-body and zone overlays.")
 	var/zone_hash = zone_overlay.drawing_hash
 	human.dna.custom_markings = null
 	human.sync_custom_sprite_appearance()
-	if(QDELETED(zone_overlay) || zone_overlay.drawing_hash != zone_hash)
-		return Fail("Removing whole-body paint must preserve the limb overlay.", __FILE__, __LINE__)
+	TEST_ASSERT(!(QDELETED(zone_overlay) || zone_overlay.drawing_hash != zone_hash), "Removing whole-body paint must preserve the limb overlay.")
 	var/datum/dna/copied_dna = allocate(/datum/dna)
 	human.dna.copy_dna(copied_dna)
 	copied_dna.custom_limb_markings[BODY_ZONE_L_ARM]["tint"] = "#ff0000"
-	if(human.dna.custom_limb_markings[BODY_ZONE_L_ARM]["tint"])
-		Fail("Copied DNA must own independent per-zone drawings.", __FILE__, __LINE__)
+	TEST_ASSERT(!human.dna.custom_limb_markings[BODY_ZONE_L_ARM]["tint"], "Copied DNA must own independent per-zone drawings.")
 	arm.drop_limb(special = TRUE)
 	human.dna.custom_limb_markings[BODY_ZONE_L_ARM]["emissive"] = custom_sprite_emissive_settings(FALSE)
 	human.regenerate_limb(BODY_ZONE_L_ARM)
 	var/obj/item/bodypart/regrown_arm = human.get_bodypart(BODY_ZONE_L_ARM)
 	var/datum/bodypart_overlay/custom_marking/zone/regrown_overlay = locate() in regrown_arm.bodypart_overlays
-	if(!zone_overlay.drawing["emissive"]["2"] || !regrown_overlay || regrown_overlay.drawing["emissive"]["2"])
-		Fail("Detached limb drawings keep their emission snapshot; regrowth inherits current DNA.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!zone_overlay.drawing["emissive"]["2"] || !regrown_overlay || regrown_overlay.drawing["emissive"]["2"]), "Detached limb drawings keep their emission snapshot; regrowth inherits current DNA.")
 	human.dna.custom_limb_markings = null
 	human.sync_custom_sprite_appearance()
-	if(locate(/datum/bodypart_overlay/custom_marking/zone) in regrown_arm.bodypart_overlays)
-		Fail("Clearing a limb drawing must remove its own overlay.", __FILE__, __LINE__)
+	TEST_ASSERT(!(locate(/datum/bodypart_overlay/custom_marking/zone) in regrown_arm.bodypart_overlays), "Clearing a limb drawing must remove its own overlay.")
 
 /// The real external organ path, including its hidden leg slots and matrixed sprite layers.
 /proc/custom_sprite_test_taur(mob/living/carbon/human/body)
@@ -533,8 +456,7 @@
 /datum/unit_test/custom_sprite_taur_rendering/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/organ/taur_body/organ = custom_sprite_test_taur(human)
-	if(!organ)
-		return Fail("The rendering fixture needs a real taur organ.", __FILE__, __LINE__)
+	TEST_ASSERT(organ, "The rendering fixture needs a real taur organ.")
 	human.dna.custom_markings = custom_sprite_test_wide_drawing()
 	human.dna.custom_limb_markings = list("taur" = custom_sprite_test_wide_drawing(repeat_string(64, "2")))
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
@@ -546,8 +468,7 @@
 			whole = marking
 		if(marking.type == text2path("/datum/bodypart_overlay/custom_marking/taur/zone"))
 			zone = marking
-	if(!whole || !zone)
-		return Fail("Whole-body and taur-zone paint need separate overlays on the taur organ's chest.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!whole || !zone), "Whole-body and taur-zone paint need separate overlays on the taur organ's chest.")
 	var/datum/bodypart_overlay/mutant/taur_body/native = organ.bodypart_overlay
 	var/list/native_layers = list(EXTERNAL_FRONT = BODY_FRONT_LAYER, EXTERNAL_ADJACENT = BODY_ADJ_LAYER, EXTERNAL_BEHIND = BODY_BEHIND_LAYER, EXTERNAL_FRONT_UNDER_CLOTHES = UNDER_UNIFORM_LAYER, EXTERNAL_FRONT_OVER = ABOVE_BODY_FRONT_HEAD_LAYER)
 	var/list/outer_pixels = list()
@@ -564,24 +485,20 @@
 		var/icon/zone_paint = icon(zoned.icon)
 		var/icon/zone_expected = icon(expected)
 		zone_expected.Blend("#123456", ICON_MULTIPLY)
-		if(paint.Width() != 64 || paint.Height() != 32 || painted.pixel_x + painted.pixel_w != -16 || zoned.pixel_x + zoned.pixel_w != -16 || painted.layer != -layer_number)
-			return Fail("Taur paint must use each native layer and its 64 by 32 canvas at offset -16.", __FILE__, __LINE__)
+		TEST_ASSERT(!(paint.Width() != 64 || paint.Height() != 32 || painted.pixel_x + painted.pixel_w != -16 || zoned.pixel_x + zoned.pixel_w != -16 || painted.layer != -layer_number), "Taur paint must use each native layer and its 64 by 32 canvas at offset -16.")
 		for(var/direction in GLOB.cardinals)
 			for(var/y in 1 to 32)
 				for(var/x in 1 to 64)
-					if(paint.GetPixel(x, y, "", direction) != expected.GetPixel(x, y, "", direction) || zone_paint.GetPixel(x, y, "", direction) != zone_expected.GetPixel(x, y, "", direction))
-						return Fail("Whole-body and taur-zone pixels must match the actual organ geometry in every layer and direction.", __FILE__, __LINE__)
+					TEST_ASSERT(!(paint.GetPixel(x, y, "", direction) != expected.GetPixel(x, y, "", direction) || zone_paint.GetPixel(x, y, "", direction) != zone_expected.GetPixel(x, y, "", direction)), "Whole-body and taur-zone pixels must match the actual organ geometry in every layer and direction.")
 					if(expected.GetPixel(x, y, "", direction))
 						painted_directions["[direction]"] = TRUE
 						if(x <= 16 || x > 48)
 							outer_pixels["[direction]"] = TRUE
-	if(length(painted_directions) != 4 || !outer_pixels["[EAST]"] || !outer_pixels["[WEST]"])
-		Fail("The taur fixture must exercise all four directions and the outer canvas on its wide side views.", __FILE__, __LINE__)
+	TEST_ASSERT(!(length(painted_directions) != 4 || !outer_pixels["[EAST]"] || !outer_pixels["[WEST]"]), "The taur fixture must exercise all four directions and the outer canvas on its wide side views.")
 	var/zone_hash = zone.drawing_hash
 	human.dna.custom_markings = null
 	human.sync_custom_sprite_appearance()
-	if(QDELETED(zone) || zone.drawing_hash != zone_hash || !QDELETED(whole))
-		Fail("Clearing whole-body paint must preserve the separate taur-zone snapshot.", __FILE__, __LINE__)
+	TEST_ASSERT(!(QDELETED(zone) || zone.drawing_hash != zone_hash || !QDELETED(whole)), "Clearing whole-body paint must preserve the separate taur-zone snapshot.")
 
 /datum/unit_test/custom_sprite_wide_limb_crop/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -591,8 +508,7 @@
 	var/datum/bodypart_overlay/custom_marking/marking = locate() in arm.bodypart_overlays
 	var/image/painted = marking.get_image(arm, "", -BODYPARTS_LAYER)
 	var/icon/paint = icon(painted.icon)
-	if(paint.Width() != 32 || paint.Height() != 32 || painted.pixel_x || painted.pixel_w || !custom_sprite_test_same_pixels(paint, custom_sprite_silhouette(arm)))
-		Fail("Ordinary limbs must crop columns 17 through 48 of wide paint before applying their unchanged 32-pixel masks.", __FILE__, __LINE__)
+	TEST_ASSERT(!(paint.Width() != 32 || paint.Height() != 32 || painted.pixel_x || painted.pixel_w || !custom_sprite_test_same_pixels(paint, custom_sprite_silhouette(arm))), "Ordinary limbs must crop columns 17 through 48 of wide paint before applying their unchanged 32-pixel masks.")
 
 /datum/unit_test/custom_sprite_taur_emission/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -602,8 +518,7 @@
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/chest = human.get_bodypart(BODY_ZONE_CHEST)
 	var/datum/bodypart_overlay/custom_marking/taur/marking = locate() in chest.bodypart_overlays
-	if(!marking)
-		return Fail("The emissive fixture needs a real taur marking overlay.", __FILE__, __LINE__)
+	TEST_ASSERT(marking, "The emissive fixture needs a real taur marking overlay.")
 	for(var/selected_direction in GLOB.cardinals)
 		drawing["emissive"] = custom_sprite_emissive_settings(FALSE)
 		drawing["emissive"]["[selected_direction]"] = TRUE
@@ -621,20 +536,16 @@
 					break
 			var/icon/mask_icon = icon(mask.icon)
 			var/icon/visible_icon = icon(visible?.icon)
-			if(!visible || mask_icon.Width() != 64 || mask_icon.Height() != 32 || mask.pixel_w != visible.pixel_w || mask.pixel_w != -16)
-				return Fail("Each taur emission/blocker layer must retain its visible layer's width and native offset.", __FILE__, __LINE__)
+			TEST_ASSERT(!(!visible || mask_icon.Width() != 64 || mask_icon.Height() != 32 || mask.pixel_w != visible.pixel_w || mask.pixel_w != -16), "Each taur emission/blocker layer must retain its visible layer's width and native offset.")
 			var/glowing = json_encode(mask.color) == json_encode(GLOB.emissive_color)
 			for(var/direction in GLOB.cardinals)
 				for(var/y in 1 to 32)
 					for(var/x in 1 to 64)
 						var/expected = ((direction == selected_direction) == glowing) ? visible_icon.GetPixel(x, y, "", direction) : null
-						if(mask_icon.GetPixel(x, y, "", direction) != expected)
-							return Fail("Taur emission must preserve outer pixels and emit/block only the selected directions.", __FILE__, __LINE__)
-		if(!mask_count)
-			Fail("Taur paint must create directional emission and blocker masks.", __FILE__, __LINE__)
+						TEST_ASSERT(mask_icon.GetPixel(x, y, "", direction) == expected, "Taur emission must preserve outer pixels and emit/block only the selected directions.")
+		TEST_ASSERT(mask_count, "Taur paint must create directional emission and blocker masks.")
 	organ.hide_self = TRUE
-	if(marking.can_draw_on_bodypart(chest, human))
-		Fail("Hidden taur bodies must also hide their custom paint.", __FILE__, __LINE__)
+	TEST_ASSERT(!marking.can_draw_on_bodypart(chest, human), "Hidden taur bodies must also hide their custom paint.")
 
 
 /// Two colors, split evenly, so a recolor can be checked on both the palette and the pixels.
@@ -651,25 +562,18 @@
 	bright["color"] = "#c0d0e0"
 	var/list/color_map = custom_style_hair_color_map(dark, bright, null)
 	var/list/shades = custom_style_hair_shades(dark)
-	if(!length(color_map) || !length(shades) || !color_map[shades[1]])
-		return Fail("Recoloring the same hairstyle must map its shades.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!length(color_map) || !length(shades) || !color_map[shades[1]]), "Recoloring the same hairstyle must map its shades.")
 	var/list/other_style = custom_style_test_hair(/datum/sprite_accessory/hair/bedhead::name)
-	if(custom_style_hair_color_map(dark, other_style, null))
-		Fail("A different hairstyle must leave painted colors alone.", __FILE__, __LINE__)
+	TEST_ASSERT(!custom_style_hair_color_map(dark, other_style, null), "A different hairstyle must leave painted colors alone.")
 	var/list/protected = custom_style_hair_color_map(dark, bright, list(shades[1]))
-	if(protected?[shades[1]])
-		Fail("Saved custom colors must be excluded from recolors.", __FILE__, __LINE__)
+	TEST_ASSERT(!protected?[shades[1]], "Saved custom colors must be excluded from recolors.")
 	var/list/drawing = custom_style_test_two_color_drawing(shades[1], "#123456")
 	var/list/recolored = custom_style_recolor_drawing(drawing, color_map)
-	if(!recolored || recolored["palette"][1] != color_map[shades[1]] || recolored["palette"][2] != "#123456")
-		return Fail("A recolor must move hair shades and keep other colors.", __FILE__, __LINE__)
-	if(json_encode(recolored["dirs"]) != json_encode(drawing["dirs"]))
-		Fail("A recolor must not move any pixels.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!recolored || recolored["palette"][1] != color_map[shades[1]] || recolored["palette"][2] != "#123456"), "A recolor must move hair shades and keep other colors.")
+	TEST_ASSERT(json_encode(recolored["dirs"]) == json_encode(drawing["dirs"]), "A recolor must not move any pixels.")
 	var/list/merged = custom_style_recolor_drawing(drawing, list("[shades[1]]" = "#112233", "#123456" = "#112233"))
-	if(!merged || length(merged["palette"]) != 1 || custom_sprite_decode_grid(merged["dirs"]["2"], 1) != repeat_string(1024, "1"))
-		Fail("Colors that collide after a recolor must merge into one palette slot.", __FILE__, __LINE__)
-	if(custom_style_recolor_drawing(drawing, list("#00ff00" = "#112233")) != drawing)
-		Fail("A map that touches nothing must leave the drawing untouched.", __FILE__, __LINE__)
+	TEST_ASSERT(!(!merged || length(merged["palette"]) != 1 || custom_sprite_decode_grid(merged["dirs"]["2"], 1) != repeat_string(1024, "1")), "Colors that collide after a recolor must merge into one palette slot.")
+	TEST_ASSERT(custom_style_recolor_drawing(drawing, list("#00ff00" = "#112233")) == drawing, "A map that touches nothing must leave the drawing untouched.")
 
 /datum/unit_test/custom_sprite_hair_dye/Run()
 	var/mob/living/carbon/human/consistent/human = allocate(/mob/living/carbon/human/consistent)
@@ -681,19 +585,14 @@
 	var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
 	human.set_haircolor("#c0d0e0", update = TRUE)
 	var/list/color_map = custom_style_hair_color_map(hair, custom_style_live_hair_context(human), null)
-	if(!color_map?[shades[1]])
-		return Fail("The fixture must produce a real recolor.", __FILE__, __LINE__)
-	if(human.dna.custom_hair?["palette"][1] != color_map[shades[1]] || human.dna.custom_hair?["palette"][2] != "#123456")
-		Fail("Dyeing hair must carry painted hair shades and keep other colors.", __FILE__, __LINE__)
-	if(head?.custom_hair?["palette"][1] != color_map[shades[1]])
-		Fail("The head's own paint snapshot must be recolored with it.", __FILE__, __LINE__)
+	TEST_ASSERT(color_map?[shades[1]], "The fixture must produce a real recolor.")
+	TEST_ASSERT(!(human.dna.custom_hair?["palette"][1] != color_map[shades[1]] || human.dna.custom_hair?["palette"][2] != "#123456"), "Dyeing hair must carry painted hair shades and keep other colors.")
+	TEST_ASSERT(head?.custom_hair?["palette"][1] == color_map[shades[1]], "The head's own paint snapshot must be recolored with it.")
 	var/list/dyed = deep_copy_list(human.dna.custom_hair)
 	human.set_haircolor("#ff0000", override = TRUE, update = TRUE)
-	if(json_encode(human.dna.custom_hair) != json_encode(dyed))
-		Fail("A temporary color override must not repaint the drawing.", __FILE__, __LINE__)
+	TEST_ASSERT(json_encode(human.dna.custom_hair) == json_encode(dyed), "A temporary color override must not repaint the drawing.")
 	human.set_hairstyle(/datum/sprite_accessory/hair/bedhead::name, update = TRUE)
-	if(json_encode(human.dna.custom_hair) != json_encode(dyed))
-		Fail("A new haircut must leave painted colors as they were drawn.", __FILE__, __LINE__)
+	TEST_ASSERT(json_encode(human.dna.custom_hair) == json_encode(dyed), "A new haircut must leave painted colors as they were drawn.")
 
 
 /proc/custom_style_test_facial_style()
@@ -706,40 +605,31 @@
 /datum/unit_test/custom_sprite_facial_hair/Run()
 	var/mob/living/carbon/human/consistent/human = allocate(/mob/living/carbon/human/consistent)
 	var/style = custom_style_test_facial_style()
-	if(!style)
-		return Fail("The fixture needs a facial hairstyle with a sprite.", __FILE__, __LINE__)
+	TEST_ASSERT(style, "The fixture needs a facial hairstyle with a sprite.")
 	human.set_facial_hairstyle(style, update = TRUE)
 	human.set_facial_haircolor("#583820", update = TRUE)
 	var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
 	var/hair_overlays = length(head.get_hair_overlays())
 	var/list/facial = custom_style_live_hair_context(human, "facial_hair")
-	if(facial["style"] != style || facial["color"] != "#583820" || !isnull(facial["opacity"]) || facial["emissive"])
-		Fail("A live facial hair look must read the head's own style and color.", __FILE__, __LINE__)
+	TEST_ASSERT(!(facial["style"] != style || facial["color"] != "#583820" || !isnull(facial["opacity"]) || facial["emissive"]), "A live facial hair look must read the head's own style and color.")
 	var/list/drawing = custom_sprite_test_drawing()
 	custom_sprite_apply_round_style(human, custom_style_package("facial_hair", null, drawing, facial))
-	if(custom_sprite_hash(human.dna.custom_facial_hair) != custom_sprite_hash(custom_sprite_validate(custom_sprite_appearance_drawing(drawing, FALSE))))
-		Fail("Applying facial hair paint must set it on the character.", __FILE__, __LINE__)
-	if(custom_sprite_hash(head.custom_facial_hair) != custom_sprite_hash(human.dna.custom_facial_hair))
-		Fail("The head must carry its own facial hair snapshot.", __FILE__, __LINE__)
-	if(human.dna.custom_hair)
-		Fail("Facial hair paint must stay separate from head hair paint.", __FILE__, __LINE__)
-	if(length(head.get_hair_overlays()) <= hair_overlays)
-		Fail("Facial hair paint must add overlays to the head.", __FILE__, __LINE__)
+	TEST_ASSERT(custom_sprite_hash(human.dna.custom_facial_hair) == custom_sprite_hash(custom_sprite_validate(custom_sprite_appearance_drawing(drawing, FALSE))), "Applying facial hair paint must set it on the character.")
+	TEST_ASSERT(custom_sprite_hash(head.custom_facial_hair) == custom_sprite_hash(human.dna.custom_facial_hair), "The head must carry its own facial hair snapshot.")
+	TEST_ASSERT(!human.dna.custom_hair, "Facial hair paint must stay separate from head hair paint.")
+	TEST_ASSERT(length(head.get_hair_overlays()) > hair_overlays, "Facial hair paint must add overlays to the head.")
 	// Shaved faces have no accessory datum, exactly like bald heads.
 	human.set_facial_hairstyle("Shaved", update = TRUE)
 	custom_sprite_apply_round_style(human, custom_style_package("facial_hair", null, drawing, custom_style_live_hair_context(human, "facial_hair")))
-	if(!length(head.get_hair_overlays()))
-		Fail("Facial hair paint must render on a shaved face.", __FILE__, __LINE__)
+	TEST_ASSERT(length(head.get_hair_overlays()), "Facial hair paint must render on a shaved face.")
 	var/list/exported = custom_style_parse(custom_style_export_text(custom_sprite_live_package(human, "facial_hair", null)))
-	if(exported["error"] || exported["package"]["target"] != "facial_hair")
-		Fail("Facial hair must export and import as its own target: [exported["error"]]", __FILE__, __LINE__)
+	TEST_ASSERT(!(exported["error"] || exported["package"]["target"] != "facial_hair"), "Facial hair must export and import as its own target: [exported["error"]]")
 	human.set_facial_hairstyle(style, update = TRUE)
 	var/list/shades = custom_style_hair_shades(custom_style_live_hair_context(human, "facial_hair"), "facial_hair")
 	custom_sprite_apply_round_style(human, custom_style_package("facial_hair", null, custom_style_test_two_color_drawing(shades[1], "#123456"), custom_style_live_hair_context(human, "facial_hair")))
 	human.set_facial_haircolor("#c0d0e0", update = TRUE)
 	var/list/color_map = custom_style_hair_color_map(facial, custom_style_live_hair_context(human, "facial_hair"), null, "facial_hair")
-	if(color_map?[shades[1]] && human.dna.custom_facial_hair?["palette"][1] != color_map[shades[1]])
-		Fail("Dyeing facial hair must carry its painted shades.", __FILE__, __LINE__)
+	TEST_ASSERT(!(color_map?[shades[1]] && human.dna.custom_facial_hair?["palette"][1] != color_map[shades[1]]), "Dyeing facial hair must carry its painted shades.")
 
 /// Observe real hair rebuilds without replacing their rendering behavior.
 /mob/living/carbon/human/consistent/custom_sprite_hair_update_probe
@@ -778,26 +668,22 @@
 					human.set_facial_haircolor(color, update = update)
 				else
 					human.set_haircolor(color, update = update)
-				if(human.hair_update_count != (update ? 1 : 0))
-					Fail("[target] color changes with painted=[painted], update=[update] must perform exactly [update ? 1 : 0] hair rebuilds, got [human.hair_update_count].", __FILE__, __LINE__)
+				TEST_ASSERT(human.hair_update_count == (update ? 1 : 0), "[target] color changes with painted=[painted], update=[update] must perform exactly [update ? 1 : 0] hair rebuilds, got [human.hair_update_count].")
 				var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
 				var/list/snapshot = head.custom_head_drawing(target)
-				if(painted && snapshot["palette"][1] == shades[1] && !update)
-					Fail("Batched [target] recoloring must still update the head drawing before its eventual redraw.", __FILE__, __LINE__)
+				TEST_ASSERT(!(painted && snapshot["palette"][1] == shades[1] && !update), "Batched [target] recoloring must still update the head drawing before its eventual redraw.")
 				var/snapshot_before = json_encode(snapshot)
 				human.hair_update_count = 0
 				if(facial)
 					human.set_facial_haircolor("#ff0000", override = TRUE, update = update)
 				else
 					human.set_haircolor("#ff0000", override = TRUE, update = update)
-				if(human.hair_update_count != (update ? 1 : 0) || json_encode(head.custom_head_drawing(target)) != snapshot_before)
-					Fail("Temporary [target] overrides must honor batching without repainting the drawing.", __FILE__, __LINE__)
+				TEST_ASSERT(!(human.hair_update_count != (update ? 1 : 0) || json_encode(head.custom_head_drawing(target)) != snapshot_before), "Temporary [target] overrides must honor batching without repainting the drawing.")
 
 /datum/unit_test/custom_sprite_legacy_hair_recolor/Run()
 	var/list/legacy = custom_sprite_test_drawing()
 	var/before = json_encode(legacy)
-	if(custom_style_recolor_drawing(legacy, list("#ffffff" = "#583820")) != legacy || json_encode(legacy) != before)
-		Fail("Legacy no-tint paint must retain raw shades because native hair coloring already tints it.", __FILE__, __LINE__)
+	TEST_ASSERT(!(custom_style_recolor_drawing(legacy, list("#ffffff" = "#583820")) != legacy || json_encode(legacy) != before), "Legacy no-tint paint must retain raw shades because native hair coloring already tints it.")
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	human.set_hairstyle("Short Hair", update = FALSE)
 	human.set_facial_hairstyle(custom_style_test_facial_style(), update = FALSE)
@@ -810,8 +696,7 @@
 	human.set_facial_haircolor("#583820", update = TRUE)
 	var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
 	for(var/list/snapshot as anything in list(human.dna.custom_hair, human.dna.custom_facial_hair, head.custom_hair, head.custom_facial_hair))
-		if(json_encode(snapshot) != before)
-			Fail("Dyeing must preserve legacy paint in both DNA and attached head snapshots.", __FILE__, __LINE__)
+		TEST_ASSERT(json_encode(snapshot) == before, "Dyeing must preserve legacy paint in both DNA and attached head snapshots.")
 
 /datum/unit_test/custom_sprite_hair_ambiguous_recolor/Run()
 	var/list/old_hair = custom_style_test_hair("Short Hair")
@@ -820,13 +705,10 @@
 	new_hair["color"] = "#010101"
 	var/list/old_shades = custom_style_hair_shades(old_hair)
 	var/list/new_shades = custom_style_hair_shades(new_hair)
-	if(length(old_shades) < 2 || !("#000000" in new_shades) || !("#010101" in new_shades))
-		return Fail("The fixture must contain collapsed black shades with both unchanged and changed destinations.", __FILE__, __LINE__)
+	TEST_ASSERT(!(length(old_shades) < 2 || !("#000000" in new_shades) || !("#010101" in new_shades)), "The fixture must contain collapsed black shades with both unchanged and changed destinations.")
 	var/list/map = custom_style_hair_color_map(old_hair, new_hair, null)
-	if(map?["#000000"])
-		Fail("An unchanged shade must participate in ambiguity detection so collapsed black paint stays unchanged.", __FILE__, __LINE__)
-	if(custom_style_hair_color_map(old_hair, old_hair, null))
-		Fail("Identity-only shade maps must be omitted.", __FILE__, __LINE__)
+	TEST_ASSERT(!map?["#000000"], "An unchanged shade must participate in ambiguity detection so collapsed black paint stays unchanged.")
+	TEST_ASSERT(!custom_style_hair_color_map(old_hair, old_hair, null), "Identity-only shade maps must be omitted.")
 
 /datum/unit_test/custom_sprite_hair_gradient_opacity/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -850,7 +732,7 @@
 		var/icon/paint = head.get_custom_hair_paint(style, target)
 		for(var/dropped in list(FALSE, TRUE))
 			var/list/overlays = list()
-			head.append_custom_hair_tint_overlays(overlays, paint, style, dropped, target)
+			head.append_custom_hair_paint_overlays(overlays, paint, style, dropped, target)
 			var/list/visible = list()
 			var/emissive_count = 0
 			for(var/image/overlay as anything in overlays)
@@ -858,19 +740,13 @@
 					visible += overlay
 					continue
 				emissive_count++
-				if(json_encode(overlay.color) != json_encode(_EMISSIVE_COLOR((facial ? 90 : 160) / 255)))
-					Fail("The separate [target] emission mask must retain the target's opacity after grouping visible paint.", __FILE__, __LINE__)
-			if(emissive_count != 1)
-				Fail("Grouped [target] paint must keep its emission mask outside the visible opacity group.", __FILE__, __LINE__)
-			if(length(visible) != 1)
-				Fail("Translucent [target] paint and gradient must form one visible opacity group.", __FILE__, __LINE__)
-				continue
+				TEST_ASSERT(json_encode(overlay.color) == json_encode(_EMISSIVE_COLOR((facial ? 90 : 160) / 255)), "The separate [target] emission mask must retain the target's opacity after grouping visible paint.")
+			TEST_ASSERT(emissive_count == 1, "Grouped [target] paint must keep its emission mask outside the visible opacity group.")
+			TEST_ASSERT(length(visible) == 1, "Translucent [target] paint and gradient must form one visible opacity group.")
 			var/image/group = visible[1]
-			if(!(group.appearance_flags & KEEP_TOGETHER) || group.alpha != (facial ? 90 : 160) || length(group.overlays) != 2)
-				Fail("[target] must apply its opacity once to the combined paint and gradient.", __FILE__, __LINE__)
+			TEST_ASSERT(!(!(group.appearance_flags & KEEP_TOGETHER) || group.alpha != (facial ? 90 : 160) || length(group.overlays) != 2), "[target] must apply its opacity once to the combined paint and gradient.")
 			for(var/image/child as anything in group.overlays)
-				if(child.alpha != 255)
-					Fail("Grouped [target] paint and gradient must remain opaque before group opacity is applied.", __FILE__, __LINE__)
+				TEST_ASSERT(child.alpha == 255, "Grouped [target] paint and gradient must remain opaque before group opacity is applied.")
 	// Native scalp hair must use the same opacity as its paint, independently of beard opacity.
 	head.custom_hair = null
 	head.custom_facial_hair = null
@@ -880,10 +756,8 @@
 		if(!(group.appearance_flags & KEEP_TOGETHER) || PLANE_TO_TRUE(group.plane) == EMISSIVE_PLANE)
 			continue
 		found_native_group = TRUE
-		if(group.alpha != 160)
-			Fail("Native scalp gradients must use scalp opacity, independently of facial hair opacity.", __FILE__, __LINE__)
-	if(!found_native_group)
-		Fail("The opacity fixture must exercise the native scalp gradient group.", __FILE__, __LINE__)
+		TEST_ASSERT(group.alpha == 160, "Native scalp gradients must use scalp opacity, independently of facial hair opacity.")
+	TEST_ASSERT(found_native_group, "The opacity fixture must exercise the native scalp gradient group.")
 
 /datum/unit_test/custom_sprite_unpainted_beard_resource/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -895,7 +769,4 @@
 	for(var/image/overlay as anything in head.get_hair_overlays())
 		if(PLANE_TO_TRUE(overlay.plane) != EMISSIVE_PLANE && overlay.icon == style.icon && overlay.icon_state == style.icon_state)
 			found_resource = TRUE
-	if(!found_resource)
-		Fail("Unpainted beards must use their authored icon resource and state without allocating a mutable icon.", __FILE__, __LINE__)
-
-#endif
+	TEST_ASSERT(found_resource, "Unpainted beards must use their authored icon resource and state without allocating a mutable icon.")

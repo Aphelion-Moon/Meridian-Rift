@@ -507,7 +507,7 @@ A file holds one drawing target:
   "version": 1,
   "target": "markings",
   "zone": "l_arm",
-  "drawing": { "version": 1, "palette": [...], "dirs": { "2": ..., "1": ..., "4": ..., "8": ... }, "tint": "#ffffff", "emissive": { "2": false, ... } }
+  "drawing": { "version": 1, "palette": [...], "dirs": { "2": ..., "1": ..., "4": ..., "8": ... }, "tint": "#ffffff", "emissive": { "2": 0, ... } }
 }
 ```
 
@@ -526,11 +526,9 @@ The server enforces the import boundary:
 - 16 KiB maximum, checked before the file is read. BYOND has already received the
   upload by then. The existing `/client/AllowUpload()` separately enforces
   `upload_limit` (512 KiB by default) or `upload_limit_admin` (5 MiB by default).
-- An iterative preflight before `json_decode`: top-level object, at most 8 levels
-  and 512 values, printable ASCII, valid strings, escapes and numbers, no
-  duplicate keys and no trailing content. Keys must be short lowercase names.
-- Exact field sets and JSON types. Current exports require true/false; only old
-  drawing-only files also accept numeric 0/1 emissive flags.
+- `rustg_json_is_valid()` before `json_decode()`, so malformed or deeply nested
+  JSON never reaches BYOND's decoder. The file must hold a top-level object.
+- Exact field sets and value types. Emission flags may be true/false or 0/1.
   Account sidecars, other formats and versions, and unknown fields are refused.
 - Four views at the drawing version's fixed size: 32 by 32 for versions 1/2,
   or 64 by 32 for version 3. Wide drawings are limited to whole-body and taur-zone
@@ -582,43 +580,15 @@ of known marking names, hex colors and boolean emission flags. It uses the
 existing per-limb limit and rejects duplicate names or unknown fields. An empty
 array clears that zone's native markings. Older files without the field keep the
 destination's current markings. Previous styles retain the native markings too.
-Native markings and painted pixels use the same recoverable two-file save below.
-
-Changing the base look writes both `preferences.json` and `custom_sprites.json`,
-through `/datum/custom_style_transaction`:
-
-1. Stage both new files and read them back.
-2. Keep verified `.txn-old` copies of both live files, and the sidecar's `.bak`.
-3. Write `custom_style_transaction.json` in the prepared state, with a
-   server-generated ID and content hashes. It names the two files by fixed keys,
-   never by path.
-4. Replace and verify both live files.
-5. Mark the journal committed, remove staging and recovery copies, then remove
-   the journal.
-
-Transaction staging, recovery copies and recovery reads use each file's own
-limit: 8 MiB for preferences and 16 MiB for the drawing sidecar. Journal reads
-are limited to 16 KiB.
-
-In-memory preferences and the success message are published only after that.
-An active save keeps its prepared journal in memory. If any write fails, even
-partway through the final journal write, rollback uses that copy to restore both
-old files. If restoration also fails, recovery files stay in place and further
-writes are blocked.
-
-Character preferences now load through `/datum/json_savefile/preferences`, which
-recovers first. A prepared journal restores both old files; a committed one only
-finishes cleanup once both files match. If the journal is unreadable, both files
-are compared with their staged and recovery copies instead. An existing but
-unreadable `.txn-old` copy blocks rollback; it does not mean the old live file
-was absent. If recovery fails, the recovery files are kept, writes to that
-account folder are blocked for the round, and the last verified preferences are
-loaded rather than a random character. A successful preferences import discards
-stale transaction files.
+Changing the base look writes two files. The drawing goes to `custom_sprites.json`
+first, through the verified sidecar writer above; if that fails, nothing changes.
+The base look is then published to the character and written to
+`preferences.json`. A crash between the two writes can only leave the new drawing
+on the old base look, and saving again fixes it.
 
 #### Tests and maintenance
 
-The native tests in `tests/` cover codec validation, input/history validation,
+The native tests in `code/modules/unit_tests/~nova/custom_sprites/` cover codec validation, input/history validation,
 selection overlap and shaded starts, limb masks, palette limits, drawing
 ownership, directional glow/blockers, persistence failures and recovery, slot
 changes, imports, save/reopen/erase, and preview caching. They also check exact
@@ -629,24 +599,21 @@ guide/candidate alignment and independent whole-body/zone snapshots. Capacity
 coverage fills all 100 slots with nine current targets and their previous styles.
 Keep the shared painting and NanoPaint paths working when changing SpriteEditor.
 
-`tests/transfer.dm` covers hostile JSON, strict fields and types, RLE and palette
-abuse, locked styles, account sidecars, geometry and transfer cooldowns. Mutation
-fixtures preserve JSON booleans, pass unchanged, and check the relevant rejection
-reason. Legacy numeric flags and canonical pixel encoding have separate checks.
-`tests/saved_styles.dm` covers previous-style rotation, zone isolation, empty
-styles, slot deletion, a complete hair save, a failed write at each file, partial
-final journal writes, preference-tab independence, pending opacity changes, a
-crash after each transaction phase with and without a readable journal, separate
-file-size limits, large-sidecar recovery, and blocked recovery when an existing
-copy exceeds its limit. `tests/appearance.dm` also covers hair shade maps, drawing recolors including
+`transfer.dm` covers hostile JSON, strict fields, RLE and palette abuse,
+locked styles, account sidecars, geometry and transfer cooldowns. Mutation
+fixtures pass unchanged, and check the relevant rejection reason. Legacy numeric flags and canonical pixel encoding have separate checks.
+`saved_styles.dm` covers previous-style rotation, zone isolation, empty
+styles, slot deletion, complete hair and native marking saves, a refused save
+without a verified sidecar, preference-tab independence and pending opacity
+changes. `appearance.dm` also covers hair shade maps, drawing recolors including
 merged palette slots, in-game dyeing, and facial hair from its live look through
-rendering, export and dyeing; `tests/editor.dm` covers the base-hair controls with
+rendering, export and dyeing; `editor.dm` covers the base-hair controls with
 undo, full-canvas hair painting and imports, markings clipping stranded paint,
-the facial hair editor's save key, and the limb markings controls. `tests/salon.dm` covers self-styling,
+the facial hair editor's save key, and the limb markings controls. `salon.dm` covers self-styling,
 the mirror-locked back view without losing saved paint, self haircuts, native
 marking ownership, and worn-item and underwear refreshes. Appearance tests also
 check legacy colors, ambiguous shades, batched redraws and gradient opacity.
-`tests/salon.dm` covers consent, withdrawal, cooldowns, stale tokens,
+`salon.dm` covers consent, withdrawal, cooldowns, stale tokens,
 distance, mirror closing, interrupted and replayed completion, achievements,
 restoration, limb replacement, changed controlling players, salon import limits,
 dressed guides, customized limb mask parity, closing and resuming, recipient saves,
@@ -656,17 +623,21 @@ Donor tests attach real transplanted limbs and heads, check their appearance and
 restoration history, and compare allowed hair-extension pixels in all four artist
 and mirror views.
 
-`tests/screenshot_hair.dm` loads `tests/fixtures/leia_buns.json` through the real
+Tests use `TEST_ASSERT`, which stops at the first failure. Anything a later test
+depends on is released in `Destroy()`: salon players and their registries, and
+sidecar files registered through `/datum/custom_sprite_test_files`.
+
+`screenshot_hair.dm` loads `fixtures/leia_buns.json` through the real
 sidecar reader. It adds brown side buns to Short Hair (`#583820`), checks
 save/reopen and cached rendering, and verifies that removal reveals the original
 hair. The screenshot shows Front, Back, Right and Left. Its reference is
 `code/modules/unit_tests/screenshots/custom_sprite_saved_hair_screenshot_leia_buns.png`.
 Review the native output before replacing that baseline. The
-[fixture notes](tests/fixtures/README.md) describe the sample artwork.
+[fixture notes](../../../code/modules/unit_tests/~nova/custom_sprites/fixtures/README.md) describe the sample artwork.
 
 Use the repository's [native unit-test instructions](../../../code/modules/unit_tests/README.md)
 and [screenshot test instructions](../../../code/modules/unit_tests/screenshots/README.md).
-The module tests are included by `tgstation.dme`. Temporary `TEST_FOCUS` entries
+The tests are included from `code/modules/unit_tests/_unit_tests.dm`, which provides `TEST_ASSERT`. Temporary `TEST_FOCUS` entries
 must stay out of committed source. `BUILD.cmd` is the normal Windows build entry
 point; there is no separate build command for this module.
 
@@ -696,7 +667,7 @@ These are the core hooks this module needs. Existing-file edits use
 | `code/__HELPERS/icons.dm` | `getFlatIcon()` accepts optional `clip_bounds` in appearance coordinates. The custom editor fixes the output origin and size even with nested wide overlays; callers that omit it keep the existing behavior. |
 | `code/datums/dna/dna.dm` | `/datum/dna/copy_dna()` copies all three drawing fields and synchronizes the recipient. |
 | `code/modules/client/preferences.dm` | `/datum/preferences/Destroy()` closes editors and deletes the sidecar datum; `ui_close()` saves editors before removing the preview. |
-| `code/modules/client/preferences_savefile.dm` | `/datum/preferences/load_savefile()` creates `/datum/json_savefile/preferences` so style transactions recover first; `switch_to_slot()` finishes the old slot's editors; `remove_current_slot()` discards editors and removes that slot's drawings. |
+| `code/modules/client/preferences_savefile.dm` | `switch_to_slot()` finishes the old slot's editors; `remove_current_slot()` discards editors and removes that slot's drawings. |
 | `code/modules/mob/living/carbon/carbon_update_icons.dm` | `/mob/living/carbon/update_body_parts()` still reaches forced hair/eye refreshes when the limb icons themselves are unchanged. |
 | `code/modules/surgery/bodyparts/head_hair_and_lips.dm` | `/obj/item/bodypart/head/copy_appearance_from()` snapshots hair and facial hair paint; `get_base_hair_overlays()` and `get_base_facial_hair_overlays()` apply it without modifying the shared accessory icon, add its separate masks, and use `custom_sprite_hair_accessory()`/`custom_sprite_facial_hair_accessory()` so bald heads and shaved faces can carry paint. `/mob/living/carbon/human/set_haircolor()` and `set_facial_haircolor()` are overridden in `code/appearance.dm` to recolor painted shades. |
 | `code/modules/sprite_editing/workspace.dm` | `/datum/sprite_editor_workspace/copy()`, `new_transaction()`, `undo()`, `redo()`, `can_transact()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `to_icon()`: preserve workspace configuration, validate/sanitize commands, support selection patches, repair layer/history handling and safely export runtime icons. |
@@ -717,8 +688,8 @@ All paths here are relative to this module unless stated otherwise.
 | `code/salon.dm` | `/datum/custom_sprite_salon` session, request/restore procs, live style packages and preview dummies, five-second round application, optional approved save and history on `/mob/living/carbon/human`. `/datum/custom_sprite_editor/salon` overrides the context hooks, `can_edit()` and UI lifecycle procs; validated brush activity starts cooldown-limited audio, and closing releases it. Recipient overlay signals coalesce guide refreshes; self-styling movement and equipment signals update mirror locks. |
 | `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images, approval-only export, result window and recipient saves. |
 | `code/tools.dm` | `/obj/item/tattoo_machine`; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
-| `code/transfer.dm` | Style package format, JSON preflight, strict validation, export text, geometry checks and transfer helpers. |
-| `code/saved_styles.dm` | Previous saved styles, complete hair saves, `/datum/custom_style_transaction`, recovery and `/datum/json_savefile/preferences` (`New()`, `load()`, `save()`). |
+| `code/transfer.dm` | Style package format, strict validation, export text, geometry checks and transfer helpers. |
+| `code/saved_styles.dm` | Previous saved styles and complete hair and native marking saves. |
 | `code/achievements.dm` | The four `/datum/award/achievement/misc/custom_*` awards. |
 | `code/persistence.dm` | `/datum/json_savefile/custom_sprites` overrides `New()`, `load()`, `save()`, `set_entry()`, `remove_entry()` and `wipe()` for verified sidecar writes and recovery. Adds the preferences-owned drawing fields and load/save/close/delete helpers, plus `custom_sprites_after_import()`. |
 | `code/palette.dm` | `/datum/preference/custom_sprite_palette` implements account storage, default/deserialize/serialize/validation and `is_accessible()`. Its UI is owned by the editor. |
@@ -731,16 +702,14 @@ All paths here are relative to this module unless stated otherwise.
 
 | File | Define | Purpose |
 | --- | --- | --- |
-| `code/codec.dm` | `CUSTOM_SPRITE_MAX_CUSTOM_COLORS` | 16 account swatches. |
-| `code/codec.dm` | `CUSTOM_SPRITE_MAX_COLORS` | 63 opaque drawing colors. |
-| `code/codec.dm` | `CUSTOM_SPRITE_INDEX_ALPHABET` | `0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_`; index 0 is transparent. |
-| `code/codec.dm` | `CUSTOM_SPRITE_TAUR_WIDTH`, `CUSTOM_MARKING_ZONE_TAUR` | 64-pixel canvas width and the `taur` zone key. |
-| `code/persistence.dm` | `CUSTOM_SPRITE_MAX_SIDECAR_BYTES` | 16 MiB drawing-file limit. |
+| `code/__DEFINES/~aphelion_defines/custom_sprites.dm` at repository root | `CUSTOM_SPRITE_MAX_CUSTOM_COLORS`, `CUSTOM_SPRITE_MAX_COLORS` | 16 account swatches; 63 opaque drawing colors. |
+| Same file | `CUSTOM_SPRITE_INDEX_ALPHABET` | `0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_`; index 0 is transparent. |
+| Same file | `CUSTOM_SPRITE_TAUR_WIDTH`, `CUSTOM_MARKING_ZONE_TAUR` | 64-pixel canvas width and the `taur` zone key. |
+| Same file | `CUSTOM_SPRITE_MAX_SIDECAR_BYTES`, `CUSTOM_STYLE_MAX_BYTES` | 16 MiB drawing-file limit; 16 KiB import limit. |
 | `code/transfer.dm` | `CUSTOM_STYLE_FORMAT`, `CUSTOM_STYLE_VERSION` | `aphelion-custom-style`, version 1. |
-| `code/transfer.dm` | `CUSTOM_STYLE_MAX_BYTES`, `CUSTOM_STYLE_MAX_DEPTH`, `CUSTOM_STYLE_MAX_TOKENS` | 16 KiB, 8 levels, 512 values. |
 | `code/transfer.dm` | `CUSTOM_STYLE_IMPORT_COOLDOWN`, `CUSTOM_STYLE_EXPORT_COOLDOWN` | 5 and 2 seconds. |
 | `code/transfer.dm` | `CUSTOM_STYLE_EXPORT_DIRECTORY` | `data/custom_style_exports/`. |
-| `code/saved_styles.dm` | `CUSTOM_STYLE_JOURNAL_NAME`, `CUSTOM_STYLE_JOURNAL_FORMAT` | Transaction journal file and format. File-local. |
+| `code/workspace.dm` | `CUSTOM_SPRITE_MAX_UNDO` | 100 undo steps. File-local. |
 | `code/salon.dm` | `SALON_*` | Session states, 120-second prompts, 10-second request cooldown, 5-second custom applications. File-local. |
 | `code/mirror.dm` | `CUSTOM_SPRITE_MIRROR_TIMEOUT` | 120-second approval countdown and expiry. File-local. |
 | `code/__DEFINES/sprite_editor.dm` at repository root | `SPRITE_EDITOR_TOOL_SELECT` | Shared Select tool bit, `1<<4`. |
@@ -752,7 +721,8 @@ are also required.
 
 | File or directory | Use |
 | --- | --- |
-| `tgstation.dme` | Includes this module's code and native tests. |
+| `tgstation.dme` | Includes this module's code. |
+| `code/modules/unit_tests/~nova/custom_sprites/`, `code/modules/unit_tests/_unit_tests.dm` | The native tests, their fixtures, and their includes. |
 | `modular_nova/modules/salon/code/scissors.dm` | `/obj/item/scissors/attack()` offers Custom Style, including for bald and shaved targets. Ordinary cuts use the same timed snipping sounds. |
 | `modular_nova/modules/salon/code/barber.dm`, `barbervend.dm` | Barber locker and vendor stock the tattoo machine and Nova's handheld mirror. |
 | `tgui/packages/tgui/interfaces/CustomSpriteMirror.tsx`, `CustomSpriteMirror.test.tsx`, `tgui/packages/tgui/styles/interfaces/CustomSpriteMirror.scss` | The recipient's mirror and its tests. |

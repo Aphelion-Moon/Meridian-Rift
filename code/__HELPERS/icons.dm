@@ -495,18 +495,10 @@ world
 
 		var/icon/add // Icon of overlay being added
 
-		/* // APHELION EDIT REMOVAL START
-		var/flatX1 = 1
-		var/flatX2 = flat.Width()
-		var/flatY1 = 1
-		var/flatY2 = flat.Height()
-		*/ // APHELION EDIT REMOVAL END
-		// APHELION EDIT ADDITION START
-		var/flatX1 = clip_bounds ? clip_bounds[1] : 1
-		var/flatX2 = flatX1 + flat.Width() - 1
-		var/flatY1 = clip_bounds ? clip_bounds[2] : 1
-		var/flatY2 = flatY1 + flat.Height() - 1
-		// APHELION EDIT ADDITION END
+		var/flatX1 = clip_bounds ? clip_bounds[1] : 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatX1 = 1
+		var/flatX2 = flatX1 + flat.Width() - 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatX2 = flat.Width()
+		var/flatY1 = clip_bounds ? clip_bounds[2] : 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatY1 = 1
+		var/flatY2 = flatY1 + flat.Height() - 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatY2 = flat.Height()
 
 		var/addX1 = 0
 		var/addX2 = 0

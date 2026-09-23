@@ -40,22 +40,46 @@ function cycleOption(
   return options[(index + step + options.length) % options.length];
 }
 
-/** Thin chevron that steps a dropdown along without opening it. */
-function CycleButton(props: {
-  back?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
+/** Dropdown with thin chevrons either side that step it along without opening it. */
+function CycleDropdown(props: {
+  options: string[];
+  selected: string | null | undefined;
+  onSelected: (value: string) => void;
 }) {
-  const { back, ...rest } = props;
+  const { options, selected, onSelected } = props;
+  const chevron = (step: number) => (
+    <Stack.Item>
+      <Button
+        px={0.5}
+        // A button is as tall as its line height, vertical padding being zero,
+        // so this matches the 22px control height Dropdown sets for itself.
+        lineHeight="22px"
+        icon={step < 0 ? 'chevron-left' : 'chevron-right'}
+        disabled={options.length <= 1}
+        onClick={() => {
+          const next = cycleOption(options, selected, step);
+          if (next && next !== selected) onSelected(next);
+        }}
+      />
+    </Stack.Item>
+  );
   return (
-    <Button
-      px={0.5}
-      // A button is as tall as its line height, vertical padding being zero,
-      // so this matches the 22px control height Dropdown sets for itself.
-      lineHeight="22px"
-      icon={back ? 'chevron-left' : 'chevron-right'}
-      {...rest}
-    />
+    <Stack align="center">
+      {chevron(-1)}
+      <Stack.Item grow style={{ minWidth: 0 }}>
+        <Dropdown
+          width="100%"
+          options={options}
+          menuWidth="max-content"
+          selected={selected ?? undefined}
+          displayText={selected ?? undefined}
+          searchInput
+          maxItems={8}
+          onSelected={onSelected}
+        />
+      </Stack.Item>
+      {chevron(1)}
+    </Stack>
   );
 }
 
@@ -264,9 +288,7 @@ export const CustomSpriteEditor = ({
                   perButtonProps={(tool) => ({
                     tooltip: toolTooltip(
                       tool,
-                      tool === tools[2]
-                        ? 'Alt+click with any tool'
-                        : undefined,
+                      tool === tools[2] ? 'Alt+click with any tool' : undefined,
                     ),
                   })}
                 />
@@ -396,49 +418,13 @@ export const CustomSpriteEditor = ({
                       >
                         <Stack fill vertical>
                           <Stack.Item>
-                            <Stack align="center">
-                              <Stack.Item>
-                                <CycleButton
-                                  back
-                                  disabled={!hairStyles?.length}
-                                  onClick={() => {
-                                    const style = cycleOption(
-                                      hairStyles,
-                                      hairStyle,
-                                      -1,
-                                    );
-                                    if (style) act('setHairStyle', { style });
-                                  }}
-                                />
-                              </Stack.Item>
-                              <Stack.Item grow style={{ minWidth: 0 }}>
-                                <Dropdown
-                                  width="100%"
-                                  options={hairStyles ?? []}
-                                  menuWidth="max-content"
-                                  selected={hairStyle ?? undefined}
-                                  displayText={hairStyle ?? undefined}
-                                  searchInput
-                                  maxItems={8}
-                                  onSelected={(style) =>
-                                    act('setHairStyle', { style })
-                                  }
-                                />
-                              </Stack.Item>
-                              <Stack.Item>
-                                <CycleButton
-                                  disabled={!hairStyles?.length}
-                                  onClick={() => {
-                                    const style = cycleOption(
-                                      hairStyles,
-                                      hairStyle,
-                                      1,
-                                    );
-                                    if (style) act('setHairStyle', { style });
-                                  }}
-                                />
-                              </Stack.Item>
-                            </Stack>
+                            <CycleDropdown
+                              options={hairStyles ?? []}
+                              selected={hairStyle}
+                              onSelected={(style) =>
+                                act('setHairStyle', { style })
+                              }
+                            />
                           </Stack.Item>
                           <Stack.Item>
                             <Button
@@ -476,89 +462,55 @@ export const CustomSpriteEditor = ({
                         }
                       >
                         {(baseMarkings ?? []).map((marking) => {
-                          // A limb takes each marking at most once, so a row
-                          // offers its own name plus whatever no other row has
-                          // claimed. Leaving the taken ones listed would just
-                          // hand the backend a change it always rejects, and
-                          // would stall the arrows on the way past.
+                          // A limb takes each marking once, so a row offers only names no other row has claimed.
                           const choices = (baseMarkingChoices ?? []).filter(
                             (name) =>
                               name === marking.name || !takenMarkings.has(name),
                           );
-                          const step = (direction: number) => {
-                            const name = cycleOption(
-                              choices,
-                              marking.name,
-                              direction,
-                            );
-                            if (name && name !== marking.name)
-                              act('setBaseMarking', {
-                                index: marking.index,
-                                name,
-                              });
-                          };
                           return (
-                          <Stack key={marking.index} mb={0.5} align="center">
-                            <Stack.Item>
-                              <CycleButton
-                                back
-                                disabled={choices.length <= 1}
-                                onClick={() => step(-1)}
-                              />
-                            </Stack.Item>
-                            <Stack.Item grow style={{ minWidth: 0 }}>
-                              <Dropdown
-                                width="100%"
-                                options={choices}
-                                menuWidth="max-content"
-                                selected={marking.name}
-                                displayText={marking.name}
-                                searchInput
-                                maxItems={8}
-                                onSelected={(name) =>
-                                  act('setBaseMarking', {
-                                    index: marking.index,
-                                    name,
-                                  })
-                                }
-                              />
-                            </Stack.Item>
-                            <Stack.Item>
-                              <CycleButton
-                                disabled={choices.length <= 1}
-                                onClick={() => step(1)}
-                              />
-                            </Stack.Item>
-                            <Stack.Item>
-                              <Button
-                                tooltip={`Color of ${marking.name}`}
-                                onClick={() =>
-                                  act('pickBaseMarkingColor', {
-                                    index: marking.index,
-                                  })
-                                }
-                              >
-                                <Box
-                                  inline
-                                  width="1rem"
-                                  height="0.8rem"
-                                  backgroundColor={marking.color}
+                            <Stack key={marking.index} mb={0.5} align="center">
+                              <Stack.Item grow style={{ minWidth: 0 }}>
+                                <CycleDropdown
+                                  options={choices}
+                                  selected={marking.name}
+                                  onSelected={(name) =>
+                                    act('setBaseMarking', {
+                                      index: marking.index,
+                                      name,
+                                    })
+                                  }
                                 />
-                              </Button>
-                            </Stack.Item>
-                            <Stack.Item>
-                              <Button
-                                icon="trash"
-                                color="bad"
-                                tooltip={`Remove ${marking.name}`}
-                                onClick={() =>
-                                  act('removeBaseMarking', {
-                                    index: marking.index,
-                                  })
-                                }
-                              />
-                            </Stack.Item>
-                          </Stack>
+                              </Stack.Item>
+                              <Stack.Item>
+                                <Button
+                                  tooltip={`Color of ${marking.name}`}
+                                  onClick={() =>
+                                    act('pickBaseMarkingColor', {
+                                      index: marking.index,
+                                    })
+                                  }
+                                >
+                                  <Box
+                                    inline
+                                    width="1rem"
+                                    height="0.8rem"
+                                    backgroundColor={marking.color}
+                                  />
+                                </Button>
+                              </Stack.Item>
+                              <Stack.Item>
+                                <Button
+                                  icon="trash"
+                                  color="bad"
+                                  tooltip={`Remove ${marking.name}`}
+                                  onClick={() =>
+                                    act('removeBaseMarking', {
+                                      index: marking.index,
+                                    })
+                                  }
+                                />
+                              </Stack.Item>
+                            </Stack>
                           );
                         })}
                         {!baseMarkings?.length && (
@@ -724,16 +676,15 @@ export const CustomSpriteEditor = ({
                 </Stack.Item>
               )}
               <Stack.Item>
-                {!salon && (
-                  <Button onClick={() => act('discard')}>Discard</Button>
-                )}
-                {salon && (
+                {salon ? (
                   <Button.Confirm
                     confirmContent="Discard?"
                     onClick={() => act('discardDraft')}
                   >
                     Discard draft
                   </Button.Confirm>
+                ) : (
+                  <Button onClick={() => act('discard')}>Discard</Button>
                 )}
               </Stack.Item>
               {salon && (

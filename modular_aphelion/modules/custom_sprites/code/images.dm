@@ -76,7 +76,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 	var/list/palette = custom_sprite_sample_palette(hairstyle?.icon, hairstyle?.icon_state)
 	if(!head)
 		return palette
-	var/list/hair_rgb = rgb2num(target == "facial_hair" ? head.facial_hair_color : (head.override_hair_color || head.fixed_hair_color || head.hair_color))
+	var/list/hair_rgb = rgb2num(target == "facial_hair" ? head.facial_hair_color : head.get_rendered_hair_color())
 	var/list/shades = palette
 	palette = list()
 	for(var/shade in shades)
@@ -206,7 +206,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 	return mask
 
 /// Inclusive bounds in the editor's top-left coordinate system.
-/proc/custom_sprite_icon_bounds(icon/source, direction, padding = 1)
+/proc/custom_sprite_icon_bounds(icon/source, direction)
 	var/width = source.Width()
 	var/height = source.Height()
 	var/min_x = width
@@ -223,7 +223,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 			max_y = max(max_y, y)
 	if(max_x < 0)
 		return null
-	return list(max(0, min_x - padding), max(0, min_y - padding), min(width - 1, max_x + padding), min(height - 1, max_y + padding))
+	return list(min_x, min_y, max_x, max_y)
 
 /// Full canvas for hair and facial hair; per-view locks are applied separately.
 /proc/custom_sprite_canvas_bounds(width = 32)
@@ -269,7 +269,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 	var/icon/arm = custom_sprite_silhouette(limb)
 	for(var/direction in GLOB.cardinals)
 		var/icon/frame = icon(hand, dir = direction)
-		var/list/hand_bounds = custom_sprite_icon_bounds(hand, direction, 0)
+		var/list/hand_bounds = custom_sprite_icon_bounds(hand, direction)
 		if(hand_bounds)
 			var/icon/arm_frame = icon(arm, dir = direction)
 			// Editor rows count down from the top; icon rows count up from the bottom.
@@ -302,11 +302,18 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_masks)
 		silhouette.Blend(custom_sprite_taur_silhouette(body), ICON_OVERLAY, offset_x - 15, 1)
 	return silhouette
 
+/// Each view's paintable area padded by one pixel, read from the cached mask rather than the icon.
 /proc/custom_sprite_body_draw_bounds(mob/living/carbon/human/body, body_zone, width = 32)
-	var/icon/silhouette = custom_sprite_body_silhouette(body, body_zone, width)
+	var/list/mask = custom_sprite_body_draw_mask(body, body_zone, width)
 	var/list/bounds = list()
-	for(var/direction in GLOB.cardinals)
-		bounds["[direction]"] = custom_sprite_icon_bounds(silhouette, direction)
+	for(var/direction in mask)
+		var/list/rows = mask[direction]
+		var/list/box = list(width, 32, -1, -1)
+		for(var/y in 1 to length(rows))
+			var/first = findtext(rows[y], "1")
+			if(first)
+				box = list(min(box[1], first - 1), min(box[2], y - 1), max(box[3], findlasttext(rows[y], "1") - 1), y - 1)
+		bounds[direction] = box[3] < 0 ? null : list(max(0, box[1] - 1), max(0, box[2] - 1), min(width - 1, box[3] + 1), min(31, box[4] + 1))
 	return bounds
 
 /// Row strings keep the wire payload small and test the same silhouette used by rendering.

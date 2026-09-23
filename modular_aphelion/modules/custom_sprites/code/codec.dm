@@ -1,9 +1,3 @@
-#define CUSTOM_SPRITE_MAX_CUSTOM_COLORS 16
-#define CUSTOM_SPRITE_MAX_COLORS 63
-#define CUSTOM_SPRITE_INDEX_ALPHABET "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_"
-#define CUSTOM_SPRITE_TAUR_WIDTH 64
-#define CUSTOM_MARKING_ZONE_TAUR "taur"
-
 /// Supported drawing zones and their editor labels.
 GLOBAL_LIST_INIT(custom_marking_zone_labels, list(
 	BODY_ZONE_HEAD = "Head",
@@ -16,6 +10,9 @@ GLOBAL_LIST_INIT(custom_marking_zone_labels, list(
 	BODY_ZONE_R_LEG = "Right leg",
 	CUSTOM_MARKING_ZONE_TAUR = "Taur lower body",
 ))
+
+/// Serialized cardinal direction keys: Front, Back, Right, Left.
+GLOBAL_LIST_INIT(custom_style_directions, list("2", "1", "4", "8"))
 
 /// Drawing targets that sit on a head accessory and carry its base look with the paint.
 GLOBAL_LIST_INIT(custom_style_hair_targets, list("hair", "facial_hair"))
@@ -61,10 +58,20 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 /proc/custom_sprite_origin_x(list/drawing)
 	return (32 - custom_sprite_width(drawing)) / 2
 
+/// Wide canvases are version 3. Otherwise version 1 holds up to 15 colors and version 2 the rest.
+/proc/custom_sprite_version(width, palette_length)
+	if(width == CUSTOM_SPRITE_TAUR_WIDTH)
+		return 3
+	return palette_length > 15 ? 2 : 1
+
+/// Grids are 32 rows of 32 or 64 pixels, indexing a palette of 1 to CUSTOM_SPRITE_MAX_COLORS colors.
+/proc/custom_sprite_grid_args_valid(palette_size, pixel_count)
+	return (pixel_count == 32 * 32 || pixel_count == CUSTOM_SPRITE_TAUR_WIDTH * 32) && isnum(palette_size) && palette_size == round(palette_size) && palette_size >= 1 && palette_size <= CUSTOM_SPRITE_MAX_COLORS
+
 /// Each run is a hex length (1-f), followed by one palette-index character.
 /// Coordinates are row-major from the top left, matching SpriteEditor.
 /proc/custom_sprite_encode_grid(grid, palette_size = 15, pixel_count = 1024)
-	if(!(pixel_count in list(1024, 2048)) || !istext(grid) || length(grid) != pixel_count || !isnum(palette_size) || palette_size != round(palette_size) || palette_size < 1 || palette_size > CUSTOM_SPRITE_MAX_COLORS)
+	if(!custom_sprite_grid_args_valid(palette_size, pixel_count) || !istext(grid) || length(grid) != pixel_count)
 		return null
 	// Validate the entire grid before allowing an early flat fallback.
 	if(spantext(grid, copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 1, palette_size + 2)) != pixel_count)
@@ -82,7 +89,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 
 /// Reject before expanding, and stop at the supported pixel count even for hostile runs.
 /proc/custom_sprite_decode_grid(encoded, palette_size = 15, pixel_count = 1024)
-	if(!(pixel_count in list(1024, 2048)) || !istext(encoded) || length(encoded) < 2 || length(encoded) > pixel_count + 1 || !isnum(palette_size) || palette_size != round(palette_size) || palette_size < 1 || palette_size > CUSTOM_SPRITE_MAX_COLORS)
+	if(!custom_sprite_grid_args_valid(palette_size, pixel_count) || !istext(encoded) || length(encoded) < 2 || length(encoded) > pixel_count + 1)
 		return null
 	var/hex_digits = "0123456789abcdef"
 	var/format = copytext(encoded, 1, 2)
@@ -120,7 +127,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 /proc/custom_sprite_emissive_settings(value)
 	var/list/settings = list()
 	var/list/directions = islist(value) ? value : null
-	for(var/direction in list("2", "1", "4", "8"))
+	for(var/direction in GLOB.custom_style_directions)
 		settings[direction] = directions ? directions[direction] == TRUE : value == TRUE
 	return settings
 
@@ -142,13 +149,13 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	var/tint = custom_sprite_color(drawing["tint"])
 	var/pixel_count = custom_sprite_width(drawing) * 32
 	var/list/directions = list()
-	for(var/direction in list("2", "1", "4", "8"))
+	for(var/direction in GLOB.custom_style_directions)
 		var/grid = custom_sprite_decode_grid(raw_dirs[direction], length(palette), pixel_count)
 		if(grid && spantext(grid, "0") != pixel_count)
 			directions[direction] = custom_sprite_encode_grid(grid, length(palette), pixel_count)
 	if(!length(directions))
 		return null
-	var/list/validated = list("version" = drawing["version"] == 3 ? 3 : (length(palette) > 15 ? 2 : 1), "palette" = palette, "tint" = tint, "dirs" = directions)
+	var/list/validated = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette)), "palette" = palette, "tint" = tint, "dirs" = directions)
 	// Preserve older payloads; the editor and appearance default missing emission settings to off.
 	if("emissive" in drawing)
 		validated["emissive"] = custom_sprite_emissive_settings(drawing["emissive"])

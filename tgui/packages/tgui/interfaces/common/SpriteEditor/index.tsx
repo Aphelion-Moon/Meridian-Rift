@@ -40,7 +40,12 @@ import {
   colorToHexString,
   parseHexColorString,
 } from './colorSpaces';
-import { getFlattenedSpriteDir, localizeCoords } from './helpers';
+// APHELION EDIT CHANGE - ORIGINAL: import { getFlattenedSpriteDir, localizeCoords } from './helpers';
+import {
+  getFlattenedSpriteDir,
+  isTextEntryTarget,
+  localizeCoords,
+} from './helpers';
 import type { Tool } from './Types/Tool';
 import {
   type IncludeOrOmitEntireType,
@@ -444,14 +449,7 @@ export namespace SpriteEditor {
     useEffect(() => {
       if (disabled || !selectionBounds) return;
       const deselect = (event: KeyboardEvent) => {
-        const target = event.target;
-        if (
-          event.key !== 'Escape' ||
-          (target instanceof HTMLElement &&
-            (target.closest('input, textarea, select') ||
-              target.isContentEditable))
-        )
-          return;
+        if (event.key !== 'Escape' || isTextEntryTarget(event.target)) return;
         currentTool.cancel?.(toolContext);
         event.preventDefault();
       };

@@ -10,7 +10,9 @@ import {
   selectionBoundsAtom,
   tools,
 } from './atoms';
+import { isTextEntryTarget } from './helpers';
 import type { Tool } from './Types/Tool';
+import type { SpriteEditorToolCancelContext } from './Types/types';
 
 /// Unmodified keys that pick a tool, keyed by the tool's name.
 export const toolHotkeys: Record<string, string> = {
@@ -26,6 +28,15 @@ export function toolTooltip(tool: Tool, extra?: string) {
   return hints.length ? `${tool.name} (${hints.join(', ')})` : tool.name;
 }
 
+/** A cancel context that writes straight to the store, for key handlers outside a render. */
+const cancelContextFor = (
+  store: ReturnType<typeof useStore>,
+): SpriteEditorToolCancelContext => ({
+  setPreviewData: (value) => store.set(previewDataAtom, value),
+  setPreviewLayer: (value) => store.set(previewLayerAtom, value),
+  setSelectionBounds: (value) => store.set(selectionBoundsAtom, value),
+});
+
 export function useSpriteEditorHistory() {
   const { act } = useBackend();
   const store = useStore();
@@ -33,11 +44,7 @@ export function useSpriteEditorHistory() {
     (command: 'undo' | 'redo') => {
       // History can return to identical server pixels before a move is acknowledged.
       if (store.get(selectionBoundsAtom)) {
-        store.get(currentToolAtom).cancel?.({
-          setPreviewData: (value) => store.set(previewDataAtom, value),
-          setPreviewLayer: (value) => store.set(previewLayerAtom, value),
-          setSelectionBounds: (value) => store.set(selectionBoundsAtom, value),
-        });
+        store.get(currentToolAtom).cancel?.(cancelContextFor(store));
       }
       act('spriteEditorCommand', { command, count: 1 });
     },
@@ -57,15 +64,12 @@ export function useSpriteEditorHotkeys(disabled = false, onSave?: () => void) {
         if (claimedKeys.current.delete(key)) event.preventDefault();
         return;
       }
-      const target = event.target;
       if (
         disabled ||
         !event.ctrlKey ||
         event.altKey ||
         event.defaultPrevented ||
-        (target instanceof HTMLElement &&
-          (target.closest('input, textarea, select') ||
-            target.isContentEditable))
+        isTextEntryTarget(event.target)
       ) {
         return;
       }
@@ -102,15 +106,12 @@ export function useSpriteEditorToolHotkeys(toolFlags: number) {
         if (claimedKeys.current.delete(key)) event.preventDefault();
         return;
       }
-      const target = event.target;
       if (
         event.ctrlKey ||
         event.altKey ||
         event.shiftKey ||
         event.defaultPrevented ||
-        (target instanceof HTMLElement &&
-          (target.closest('input, textarea, select') ||
-            target.isContentEditable))
+        isTextEntryTarget(event.target)
       ) {
         return;
       }
@@ -118,11 +119,7 @@ export function useSpriteEditorToolHotkeys(toolFlags: number) {
       if (index < 0 || !(toolFlags & (1 << index))) return;
       claimedKeys.current.add(key);
       event.preventDefault();
-      store.set(currentToolAtom, tools[index], {
-        setPreviewData: (value) => store.set(previewDataAtom, value),
-        setPreviewLayer: (value) => store.set(previewLayerAtom, value),
-        setSelectionBounds: (value) => store.set(selectionBoundsAtom, value),
-      });
+      store.set(currentToolAtom, tools[index], cancelContextFor(store));
     });
   }, [store, toolFlags]);
 }

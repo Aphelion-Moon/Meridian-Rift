@@ -1,21 +1,8 @@
 #define CUSTOM_STYLE_FORMAT "aphelion-custom-style"
 #define CUSTOM_STYLE_VERSION 1
-#define CUSTOM_STYLE_MAX_BYTES 16384
-#define CUSTOM_STYLE_MAX_DEPTH 8
-#define CUSTOM_STYLE_MAX_TOKENS 512
 #define CUSTOM_STYLE_IMPORT_COOLDOWN (5 SECONDS)
 #define CUSTOM_STYLE_EXPORT_COOLDOWN (2 SECONDS)
 #define CUSTOM_STYLE_EXPORT_DIRECTORY "data/custom_style_exports/"
-#define CUSTOM_STYLE_JSON_TRUE "@custom-style-true@"
-#define CUSTOM_STYLE_JSON_FALSE "@custom-style-false@"
-
-#define STYLE_JSON_VALUE 1
-#define STYLE_JSON_VALUE_OR_END 2
-#define STYLE_JSON_KEY 3
-#define STYLE_JSON_KEY_OR_END 4
-#define STYLE_JSON_COLON 5
-#define STYLE_JSON_COMMA_OR_END 6
-#define STYLE_JSON_DONE 7
 
 /// Account ckey -> list("busy", "import", "export"): one transfer at a time, with per-kind cooldowns.
 GLOBAL_LIST_EMPTY(custom_style_transfers)
@@ -26,189 +13,8 @@ GLOBAL_LIST_INIT(custom_style_drawing_keys, list("version", "palette", "dirs", "
 GLOBAL_LIST_INIT(custom_style_hair_keys, list("style", "color", "gradient_style", "gradient_color", "opacity", "emissive"))
 /// Exact fields allowed in one imported native marking.
 GLOBAL_LIST_INIT(custom_style_marking_keys, list("name", "color", "emissive"))
-/// Serialized cardinal direction keys required by current exports.
-GLOBAL_LIST_INIT(custom_style_directions, list("2", "1", "4", "8"))
 /// Direction labels used in validation errors.
 GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back", "4" = "Right", "8" = "Left"))
-
-/**
- * Checks untrusted JSON text before it reaches json_decode().
- *
- * The scanner is iterative, so hostile nesting cannot recurse. It is string and escape aware,
- * rejects duplicate object keys, trailing content, non-ASCII text and malformed numbers, and
- * limits nesting depth and token count. Object keys must be short lowercase identifiers, so
- * escaped spellings of the same key cannot slip past the duplicate check.
- *
- * Only a top-level object is accepted.
- *
- * Arguments:
- * - text: The raw file contents. The caller has already checked the byte size.
- *
- * Returns:
- * - list("types" = path -> JSON type): The file is structurally safe to decode. Paths look like
- *   `drawing.dirs.2`, `drawing.palette[]`, and `markings[1].name`. Array summaries with mixed
- *   element types record "mixed"; indexed paths retain each entry's own field types.
- * - list("error" = message): The file was rejected. The message is safe to show the player.
- */
-/proc/custom_style_preflight(text)
-	if(!istext(text) || !length(text))
-		return list("error" = "The file is empty.")
-	var/text_length = length(text)
-	if(text_length > CUSTOM_STYLE_MAX_BYTES)
-		return list("error" = "The file is larger than 16 KiB.")
-	var/static/whitespace = " \t\n[ascii2text(13)]"
-	var/static/key_characters = "abcdefghijklmnopqrstuvwxyz0123456789_"
-	var/static/number_characters = "-+.eE0123456789"
-	var/static/regex/number_format = regex(@"^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$")
-	var/static/string_characters
-	if(!string_characters)
-		string_characters = ""
-		for(var/code in 32 to 126)
-			if(code != 34 && code != 92)
-				string_characters += ascii2text(code)
-	var/list/types = list()
-	// Each container is list(is_object, path, keys, current key, array index).
-	var/list/containers = list()
-	var/expect = STYLE_JSON_VALUE
-	var/tokens = 0
-	var/position = 1
-	while(TRUE)
-		position += spantext(text, whitespace, position)
-		if(position > text_length)
-			break
-		var/character = copytext(text, position, position + 1)
-		var/list/container = length(containers) ? containers[length(containers)] : null
-		switch(expect)
-			if(STYLE_JSON_DONE)
-				return list("error" = "The file has extra content after the style.")
-			if(STYLE_JSON_COLON)
-				if(character != ":")
-					return list("error" = "The file is not valid JSON.")
-				expect = STYLE_JSON_VALUE
-				position++
-				continue
-			if(STYLE_JSON_COMMA_OR_END)
-				if(character == ",")
-					expect = container[1] ? STYLE_JSON_KEY : STYLE_JSON_VALUE
-					position++
-					continue
-				if(character != (container[1] ? "}" : "]"))
-					return list("error" = "The file is not valid JSON.")
-				containers.len--
-				expect = length(containers) ? STYLE_JSON_COMMA_OR_END : STYLE_JSON_DONE
-				position++
-				continue
-			if(STYLE_JSON_KEY, STYLE_JSON_KEY_OR_END)
-				if(expect == STYLE_JSON_KEY_OR_END && character == "}")
-					containers.len--
-					expect = length(containers) ? STYLE_JSON_COMMA_OR_END : STYLE_JSON_DONE
-					position++
-					continue
-				if(character != "\"")
-					return list("error" = "The file is not valid JSON.")
-				var/key_length = spantext(text, key_characters, position + 1)
-				if(!key_length || key_length > 32 || copytext(text, position + key_length + 1, position + key_length + 2) != "\"")
-					return list("error" = "The file has an unsupported field name.")
-				var/key = copytext(text, position + 1, position + key_length + 1)
-				var/list/keys = container[3]
-				if(keys[key])
-					return list("error" = "The file repeats the field \"[key]\".")
-				if(++tokens > CUSTOM_STYLE_MAX_TOKENS)
-					return list("error" = "The file has too many values.")
-				keys[key] = TRUE
-				container[4] = key
-				expect = STYLE_JSON_COLON
-				position += key_length + 2
-				continue
-		// Remaining states expect a value.
-		if(expect == STYLE_JSON_VALUE_OR_END && character == "]")
-			containers.len--
-			expect = length(containers) ? STYLE_JSON_COMMA_OR_END : STYLE_JSON_DONE
-			position++
-			continue
-		if(!container && character != "{")
-			return list("error" = "The file must contain a JSON object.")
-		if(++tokens > CUSTOM_STYLE_MAX_TOKENS)
-			return list("error" = "The file has too many values.")
-		var/path = ""
-		var/array_path
-		if(container)
-			if(container[1])
-				path = container[2] ? "[container[2]].[container[4]]" : container[4]
-			else
-				container[5]++
-				path = "[container[2]]\[[container[5]]]"
-				array_path = "[container[2]]\[]"
-		var/value_type
-		switch(character)
-			if("{", "\[")
-				if(length(containers) >= CUSTOM_STYLE_MAX_DEPTH)
-					return list("error" = "The file is nested too deeply.")
-				value_type = character == "{" ? "object" : "array"
-				containers += list(list(character == "{", path, list(), null, 0))
-				expect = character == "{" ? STYLE_JSON_KEY_OR_END : STYLE_JSON_VALUE_OR_END
-				position++
-			if("\"")
-				var/end = position + 1
-				while(TRUE)
-					end += spantext(text, string_characters, end)
-					if(end > text_length)
-						return list("error" = "The file has an unterminated string.")
-					var/string_character = copytext(text, end, end + 1)
-					if(string_character == "\"")
-						break
-					if(string_character != "\\")
-						return list("error" = "The file contains unsupported characters.")
-					var/escaped = copytext(text, end + 1, end + 2)
-					if(escaped == "u")
-						if(spantext(text, "0123456789abcdefABCDEF", end + 2) < 4)
-							return list("error" = "The file has an invalid escape sequence.")
-						end += 6
-					else if(escaped && findtextEx("\"\\/bfnrt", escaped))
-						end += 2
-					else
-						return list("error" = "The file has an invalid escape sequence.")
-				value_type = "string"
-				position = end + 1
-			if("t", "f", "n")
-				var/literal = character == "t" ? "true" : (character == "f" ? "false" : "null")
-				if(copytext(text, position, position + length(literal)) != literal)
-					return list("error" = "The file is not valid JSON.")
-				value_type = literal
-				position += length(literal)
-			else
-				var/number_length = spantext(text, number_characters, position)
-				if(!number_length || !number_format.Find(copytext(text, position, position + number_length)))
-					return list("error" = "The file is not valid JSON.")
-				value_type = "number"
-				position += number_length
-		if(array_path)
-			types[array_path] = types[array_path] && types[array_path] != value_type ? "mixed" : value_type
-		types[path] = value_type
-		if(value_type != "object" && value_type != "array")
-			expect = length(containers) ? STYLE_JSON_COMMA_OR_END : STYLE_JSON_DONE
-	if(expect != STYLE_JSON_DONE)
-		return list("error" = "The file ends before the style is complete.")
-	return list("types" = types)
-
-/// Without preflight types, trusted decoded data uses the equivalent DM value kinds.
-/proc/custom_style_has_type(value, list/types, path, expected)
-	if(types)
-		if(expected == "boolean")
-			return types[path] == "true" || types[path] == "false"
-		return types[path] == expected
-	switch(expected)
-		if("object", "array")
-			return islist(value)
-		if("string")
-			return istext(value)
-		if("number")
-			return isnum(value)
-		if("boolean")
-			return isnum(value) && (value == TRUE || value == FALSE)
-		if("null")
-			return isnull(value)
-	return FALSE
 
 /// Returns the first unsupported key, or null when every key is allowed.
 /proc/custom_style_unknown_key(list/object, list/allowed)
@@ -222,18 +28,16 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  *
  * Arguments:
  * - raw: The decoded drawing object.
- * - types: Preflight types, or null for trusted decoded data such as the sidecar.
- * - path: The drawing's preflight path.
- * - legacy: Accepts old drawing-only files, where tint, emission and empty directions may be absent.
+ * - legacy: Accepts old drawing-only files and stored drawings, where tint, emission and empty
+ *   directions may be absent.
  *
  * Returns:
  * - list("drawing" = canonical drawing): Valid paint in at least one direction.
  * - list("error" = message): Anything malformed, including a drawing with no paint. Empty art
  *   must be written as an explicit null drawing, so invalid data can never become Clear.
  */
-/proc/custom_style_validate_drawing(list/raw, list/types, path, legacy = FALSE)
-	var/prefix = path ? "[path]." : ""
-	if(!custom_style_has_type(raw, types, path, "object") || !islist(raw))
+/proc/custom_style_validate_drawing(list/raw, legacy = FALSE)
+	if(!islist(raw))
 		return list("error" = "The drawing is malformed.")
 	if(custom_style_unknown_key(raw, GLOB.custom_style_drawing_keys))
 		return list("error" = "The drawing has an unsupported field.")
@@ -242,14 +46,12 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		if(!(key in raw))
 			return list("error" = "The drawing is missing \"[key]\".")
 	var/version = raw["version"]
-	if(!custom_style_has_type(version, types, "[prefix]version", "number") || !(version in list(1, 2, 3)))
+	if(!(version in list(1, 2, 3)))
 		return list("error" = "The drawing uses an unsupported version.")
 	var/list/raw_palette = raw["palette"]
 	var/palette_limit = version == 1 ? 15 : CUSTOM_SPRITE_MAX_COLORS
-	if(!custom_style_has_type(raw_palette, types, "[prefix]palette", "array") || !islist(raw_palette) || !length(raw_palette) || length(raw_palette) > palette_limit)
+	if(!islist(raw_palette) || !length(raw_palette) || length(raw_palette) > palette_limit)
 		return list("error" = "The drawing's palette is invalid or has more than [palette_limit] colors.")
-	if(types && types["[prefix]palette\[]"] != "string")
-		return list("error" = "The drawing's palette must only contain colors.")
 	var/list/palette = list()
 	for(var/raw_color in raw_palette)
 		var/color = custom_sprite_color(raw_color)
@@ -257,7 +59,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			return list("error" = "The drawing's palette has an invalid or repeated color.")
 		palette += color
 	var/list/raw_dirs = raw["dirs"]
-	if(!custom_style_has_type(raw_dirs, types, "[prefix]dirs", "object") || !islist(raw_dirs) || custom_style_unknown_key(raw_dirs, GLOB.custom_style_directions))
+	if(!islist(raw_dirs) || custom_style_unknown_key(raw_dirs, GLOB.custom_style_directions))
 		return list("error" = "The drawing's views are malformed.")
 	var/pixel_count = custom_sprite_width(raw) * 32
 	var/list/directions = list()
@@ -266,8 +68,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			if(!legacy)
 				return list("error" = "The drawing is missing its [GLOB.custom_style_direction_labels[direction]] view.")
 			continue
-		var/encoded = raw_dirs[direction]
-		var/grid = custom_style_has_type(encoded, types, "[prefix]dirs.[direction]", "string") ? custom_sprite_decode_grid(encoded, length(palette), pixel_count) : null
+		var/grid = custom_sprite_decode_grid(raw_dirs[direction], length(palette), pixel_count)
 		if(!grid)
 			return list("error" = "The [GLOB.custom_style_direction_labels[direction]] view has invalid pixel data.")
 		if(spantext(grid, "0") != pixel_count)
@@ -275,27 +76,24 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(!length(directions))
 		return list("error" = "The drawing has no paint. Empty styles must use a null drawing.")
 	var/tint = raw["tint"]
-	if(!isnull(tint) && (!custom_style_has_type(tint, types, "[prefix]tint", "string") || !custom_sprite_color(tint)))
-		return list("error" = "The drawing's color filter is invalid.")
-	if(("tint" in raw) && isnull(tint) && !custom_style_has_type(tint, types, "[prefix]tint", "null"))
+	if(!isnull(tint) && !custom_sprite_color(tint))
 		return list("error" = "The drawing's color filter is invalid.")
 	var/raw_emissive = raw["emissive"]
-	// Persisted legacy flags are numeric 0/1; current exports must use JSON booleans.
-	var/list/emissive_types = legacy ? null : types
 	if("emissive" in raw)
 		if(islist(raw_emissive))
-			if(!custom_style_has_type(raw_emissive, types, "[prefix]emissive", "object") || custom_style_unknown_key(raw_emissive, GLOB.custom_style_directions))
+			if(custom_style_unknown_key(raw_emissive, GLOB.custom_style_directions))
 				return list("error" = "The drawing's emissive settings are malformed.")
 			for(var/direction in GLOB.custom_style_directions)
 				if(!(direction in raw_emissive))
 					if(!legacy)
 						return list("error" = "The drawing's emissive settings are incomplete.")
 					continue
-				if(!custom_style_has_type(raw_emissive[direction], emissive_types, "[prefix]emissive.[direction]", "boolean"))
+				if(!(raw_emissive[direction] in list(TRUE, FALSE)))
 					return list("error" = "The drawing's emissive settings must be true or false.")
-		else if(!legacy || !custom_style_has_type(raw_emissive, emissive_types, "[prefix]emissive", "boolean"))
+		// Older drawings saved one flag for every view.
+		else if(!legacy || !(raw_emissive in list(TRUE, FALSE)))
 			return list("error" = "The drawing's emissive settings are malformed.")
-	var/list/canonical = list("version" = version == 3 ? 3 : (length(palette) > 15 ? 2 : 1), "palette" = palette, "tint" = custom_sprite_color(tint), "dirs" = directions, "emissive" = custom_sprite_emissive_settings(raw_emissive))
+	var/list/canonical = list("version" = custom_sprite_version(custom_sprite_width(raw), length(palette)), "palette" = palette, "tint" = custom_sprite_color(tint), "dirs" = directions, "emissive" = custom_sprite_emissive_settings(raw_emissive))
 	return list("drawing" = canonical)
 
 /**
@@ -308,8 +106,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  * - list("hair" = canonical context): A complete, valid base look.
  * - list("error" = message): Anything missing, unknown, locked or out of range.
  */
-/proc/custom_style_validate_hair(list/raw, list/types, path = "hair", target = "hair")
-	if(!custom_style_has_type(raw, types, path, "object") || !islist(raw) || custom_style_unknown_key(raw, GLOB.custom_style_hair_keys))
+/proc/custom_style_validate_hair(list/raw, target = "hair")
+	if(!islist(raw) || custom_style_unknown_key(raw, GLOB.custom_style_hair_keys))
 		return list("error" = "The hair settings are malformed.")
 	for(var/key in GLOB.custom_style_hair_keys)
 		if(!(key in raw))
@@ -317,47 +115,45 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	var/style = raw["style"]
 	// Hairstyles without an icon state, such as Bald, are registered by name with no datum.
 	var/list/accessories = custom_style_hair_accessories(target)
-	var/registered = istext(style) && custom_style_has_type(style, types, "[path].style", "string") && (style in accessories)
+	var/registered = istext(style) && (style in accessories)
 	var/datum/sprite_accessory/hair/hairstyle = registered ? accessories[style] : null
 	if(!registered || hairstyle?.locked)
-		return list("error" = "The [target == "facial_hair" ? "facial hairstyle" : "hairstyle"] isn't available.")
+		return list("error" = "The [custom_sprite_salon_label(target)] isn't available.")
 	var/gradient_style = raw["gradient_style"]
-	if(!istext(gradient_style) || !custom_style_has_type(gradient_style, types, "[path].gradient_style", "string") || !custom_style_hair_gradients(target)[gradient_style])
+	if(!istext(gradient_style) || !custom_style_hair_gradients(target)[gradient_style])
 		return list("error" = "The hair gradient isn't available.")
-	var/color = custom_style_has_type(raw["color"], types, "[path].color", "string") ? custom_sprite_color(raw["color"]) : null
-	var/gradient_color = custom_style_has_type(raw["gradient_color"], types, "[path].gradient_color", "string") ? custom_sprite_color(raw["gradient_color"]) : null
+	var/color = custom_sprite_color(raw["color"])
+	var/gradient_color = custom_sprite_color(raw["gradient_color"])
 	if(!color || !gradient_color)
 		return list("error" = "The hair colors are invalid.")
 	var/opacity = raw["opacity"]
-	if(!isnull(opacity) && (!custom_style_has_type(opacity, types, "[path].opacity", "number") || !isnum(opacity) || round(opacity) != opacity || opacity < 40 || opacity > 255))
-		return list("error" = "The hair opacity must be a whole number from 40 to 255.")
-	if(isnull(opacity) && !custom_style_has_type(opacity, types, "[path].opacity", "null"))
-		return list("error" = "The hair opacity is invalid.")
-	if(!custom_style_has_type(raw["emissive"], types, "[path].emissive", "boolean"))
+	var/min_opacity = /datum/preference/numeric/hair_opacity::minimum
+	var/max_opacity = /datum/preference/numeric/hair_opacity::maximum
+	if(!isnull(opacity) && (!isnum(opacity) || round(opacity) != opacity || opacity < min_opacity || opacity > max_opacity))
+		return list("error" = "The hair opacity must be a whole number from [min_opacity] to [max_opacity].")
+	if(!(raw["emissive"] in list(TRUE, FALSE)))
 		return list("error" = "The hair emissive setting must be true or false.")
 	return list("hair" = list("style" = style, "color" = color, "gradient_style" = gradient_style, "gradient_color" = gradient_color, "opacity" = custom_style_normal_opacity(opacity), "emissive" = raw["emissive"] ? TRUE : FALSE))
 
 /// Strictly validates the ordered native markings for one supported limb.
-/proc/custom_style_validate_markings(list/raw, list/types, path = "markings", zone)
-	if(!(zone in GLOB.body_markings_per_limb) || !islist(raw) || !custom_style_has_type(raw, types, path, "array") || length(raw) > MAXIMUM_MARKINGS_PER_LIMB)
+/proc/custom_style_validate_markings(list/raw, zone)
+	if(!(zone in GLOB.body_markings_per_limb) || !islist(raw) || length(raw) > MAXIMUM_MARKINGS_PER_LIMB)
 		return list("error" = "The base markings are invalid or exceed the limb's marking limit.")
 	var/list/markings = list()
 	var/list/names = list()
-	for(var/index in 1 to length(raw))
-		var/list/entry = raw[index]
-		var/entry_path = "[path]\[[index]]"
-		if(!islist(entry) || !custom_style_has_type(entry, types, entry_path, "object") || custom_style_unknown_key(entry, GLOB.custom_style_marking_keys))
+	for(var/list/entry as anything in raw)
+		if(!islist(entry) || custom_style_unknown_key(entry, GLOB.custom_style_marking_keys))
 			return list("error" = "The base marking settings are malformed.")
 		for(var/key in GLOB.custom_style_marking_keys)
 			if(!(key in entry))
 				return list("error" = "The base marking settings are incomplete.")
 		var/name = entry["name"]
-		if(!custom_style_has_type(name, types, "[entry_path].name", "string") || !istext(name) || !(name in GLOB.body_markings_per_limb[zone]) || (name in names))
+		if(!istext(name) || !(name in GLOB.body_markings_per_limb[zone]) || (name in names))
 			return list("error" = "The base markings contain an unavailable or repeated marking.")
-		var/color = custom_style_has_type(entry["color"], types, "[entry_path].color", "string") ? custom_sprite_color(entry["color"]) : null
+		var/color = custom_sprite_color(entry["color"])
 		if(!color)
 			return list("error" = "The base marking colors are invalid.")
-		if(!custom_style_has_type(entry["emissive"], types, "[entry_path].emissive", "boolean"))
+		if(!(entry["emissive"] in list(TRUE, FALSE)))
 			return list("error" = "The base marking emissive settings must be true or false.")
 		names += name
 		markings += list(list("name" = name, "color" = color, "emissive" = entry["emissive"] ? TRUE : FALSE))
@@ -370,26 +166,27 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  * previous saved styles: list("target", "zone", "drawing", "hair", optional "markings").
  * A null drawing is valid empty art; absent markings preserve the destination's native markings.
  *
+ * Arguments:
+ * - raw: The decoded package.
+ * - trusted: Stored data rather than an upload. Its drawing may predate per-view emission settings.
+ *
  * Returns:
  * - list("package" = canonical package)
  * - list("error" = message)
  */
-/proc/custom_style_validate_package(list/raw, list/types, root = "")
+/proc/custom_style_validate_package(list/raw, trusted = FALSE)
 	if(!islist(raw))
 		return list("error" = "The style is malformed.")
 	if(custom_style_unknown_key(raw, list("format", "version", "target", "zone", "drawing", "hair", "markings")))
 		return list("error" = "The style has an unsupported field.")
-	var/prefix = root ? "[root]." : ""
 	var/target = raw["target"]
-	if(!custom_style_has_type(target, types, "[prefix]target", "string") || !(target in GLOB.custom_style_hair_targets + list("markings")))
+	if(!(target in GLOB.custom_style_hair_targets + list("markings")))
 		return list("error" = "The style's drawing target is invalid.")
 	var/zone = raw["zone"]
 	if(target == "markings")
 		if(!("zone" in raw))
 			return list("error" = "The style is missing its body zone.")
-		if(!isnull(zone) && (!custom_style_has_type(zone, types, "[prefix]zone", "string") || !istext(zone) || !(zone in GLOB.custom_marking_zone_labels)))
-			return list("error" = "The style's body zone is invalid.")
-		if(isnull(zone) && !custom_style_has_type(zone, types, "[prefix]zone", "null"))
+		if(!isnull(zone) && !(zone in GLOB.custom_marking_zone_labels))
 			return list("error" = "The style's body zone is invalid.")
 	else if(!isnull(zone))
 		return list("error" = "Hair styles cannot have a body zone.")
@@ -397,8 +194,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return list("error" = "The style is missing its drawing.")
 	var/list/drawing
 	if(!isnull(raw["drawing"]))
-		// Trusted stored drawings may predate per-view emission settings; uploads must be complete.
-		var/list/drawing_result = custom_style_validate_drawing(raw["drawing"], types, "[prefix]drawing", legacy = isnull(types))
+		var/list/drawing_result = custom_style_validate_drawing(raw["drawing"], legacy = trusted)
 		if(drawing_result["error"])
 			return drawing_result
 		drawing = drawing_result["drawing"]
@@ -407,11 +203,9 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 				return list("error" = "Wide drawings require whole-body or taur markings.")
 		else if(zone == CUSTOM_MARKING_ZONE_TAUR)
 			return list("error" = "Taur markings require a wide drawing.")
-	else if(!custom_style_has_type(null, types, "[prefix]drawing", "null"))
-		return list("error" = "The style's drawing is malformed.")
 	var/list/hair
 	if(custom_style_hair_target(target))
-		var/list/hair_result = custom_style_validate_hair(raw["hair"], types, "[prefix]hair", target)
+		var/list/hair_result = custom_style_validate_hair(raw["hair"], target)
 		if(hair_result["error"])
 			return hair_result
 		hair = hair_result["hair"]
@@ -422,16 +216,14 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		if(target != "markings" || !(zone in GLOB.body_markings_per_limb))
 			return list("error" = "Base markings require a supported body zone.")
 		if(!isnull(raw["markings"]))
-			var/list/markings_result = custom_style_validate_markings(raw["markings"], types, "[prefix]markings", zone)
+			var/list/markings_result = custom_style_validate_markings(raw["markings"], zone)
 			if(markings_result["error"])
 				return markings_result
 			markings = markings_result["markings"]
-		else if(!custom_style_has_type(null, types, "[prefix]markings", "null"))
-			return list("error" = "The base markings are malformed.")
 	return list("package" = custom_style_package(target, zone, drawing, hair, markings))
 
 /proc/custom_style_package(target, zone, list/drawing, list/hair, list/markings)
-	. = list("target" = target, "zone" = target == "markings" ? zone : null, "drawing" = drawing ? deep_copy_list(drawing) : null, "hair" = hair ? hair.Copy() : null)
+	. = list("target" = target, "zone" = target == "markings" ? zone : null, "drawing" = deep_copy_list(drawing), "hair" = hair?.Copy())
 	if(!isnull(markings))
 		.["markings"] = custom_style_copy_markings(markings)
 
@@ -474,16 +266,19 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  * - list("error" = message): Safe to show the player. Never includes uploaded content.
  */
 /proc/custom_style_parse(text)
-	var/list/preflight = custom_style_preflight(text)
-	if(preflight["error"])
-		return preflight
-	var/list/types = preflight["types"]
+	if(!istext(text) || !length(text))
+		return list("error" = "The file is empty.")
+	if(length(text) > CUSTOM_STYLE_MAX_BYTES)
+		return list("error" = "The file is larger than 16 KiB.")
+	// rust-g rejects malformed and deeply nested JSON before BYOND's recursive decoder sees it.
+	if(!rustg_json_is_valid(text))
+		return list("error" = "The file is not valid JSON.")
 	var/list/decoded
 	try
 		decoded = json_decode(text)
 	catch
 		return list("error" = "The file is not valid JSON.")
-	if(!islist(decoded))
+	if(!islist(decoded) || copytext(trim_left(text), 1, 2) != "{")
 		return list("error" = "The file must contain a JSON object.")
 	if(!("format" in decoded))
 		for(var/key in decoded)
@@ -491,24 +286,21 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 				return list("error" = "That is an account drawing file, not a style export.")
 		if(custom_style_unknown_key(decoded, GLOB.custom_style_drawing_keys))
 			return list("error" = "The file isn't a custom style export.")
-		var/list/legacy = custom_style_validate_drawing(decoded, types, "", TRUE)
+		var/list/legacy = custom_style_validate_drawing(decoded, legacy = TRUE)
 		if(legacy["error"])
 			return legacy
 		return list("package" = custom_style_package(null, null, legacy["drawing"], null), "legacy" = TRUE)
-	if(decoded["format"] != CUSTOM_STYLE_FORMAT || !custom_style_has_type(decoded["format"], types, "format", "string"))
+	if(decoded["format"] != CUSTOM_STYLE_FORMAT)
 		return list("error" = "The file isn't a custom style export.")
-	if(!custom_style_has_type(decoded["version"], types, "version", "number") || decoded["version"] != CUSTOM_STYLE_VERSION)
+	if(decoded["version"] != CUSTOM_STYLE_VERSION)
 		return list("error" = "The style file uses an unsupported version.")
-	if(custom_style_unknown_key(decoded, list("format", "version", "target", "zone", "drawing", "hair", "markings")))
-		return list("error" = "The style file has an unsupported field.")
-	var/list/result = custom_style_validate_package(decoded, types)
+	var/list/result = custom_style_validate_package(decoded)
 	if(result["error"])
 		return result
 	result["legacy"] = FALSE
 	return result
 
 /// The export format always includes all four views and their emission settings.
-/// BYOND encodes TRUE as 1, so booleans are written through markers that become JSON true/false.
 /proc/custom_style_export_text(list/package)
 	var/list/envelope = list("format" = CUSTOM_STYLE_FORMAT, "version" = CUSTOM_STYLE_VERSION, "target" = package["target"])
 	if(package["target"] == "markings")
@@ -520,24 +312,14 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		var/list/dirs = list()
 		for(var/direction in GLOB.custom_style_directions)
 			dirs[direction] = drawing["dirs"][direction] || custom_sprite_encode_grid(repeat_string(pixel_count, "0"), length(palette), pixel_count)
-		var/list/emissive = list()
-		for(var/direction in GLOB.custom_style_directions)
-			emissive[direction] = custom_sprite_emissive_settings(drawing["emissive"])[direction] ? CUSTOM_STYLE_JSON_TRUE : CUSTOM_STYLE_JSON_FALSE
-		envelope["drawing"] = list("version" = drawing["version"] == 3 ? 3 : (length(palette) > 15 ? 2 : 1), "palette" = palette.Copy(), "dirs" = dirs, "tint" = drawing["tint"], "emissive" = emissive)
+		envelope["drawing"] = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette)), "palette" = palette, "dirs" = dirs, "tint" = drawing["tint"], "emissive" = custom_sprite_emissive_settings(drawing["emissive"]))
 	else
 		envelope["drawing"] = null
 	if(custom_style_hair_target(package["target"]))
-		var/list/hair = package["hair"]
-		hair = hair.Copy()
-		hair["emissive"] = hair["emissive"] ? CUSTOM_STYLE_JSON_TRUE : CUSTOM_STYLE_JSON_FALSE
-		envelope["hair"] = hair
+		envelope["hair"] = package["hair"]
 	if("markings" in package)
-		var/list/markings = custom_style_copy_markings(package["markings"])
-		for(var/list/entry as anything in markings)
-			entry["emissive"] = entry["emissive"] ? CUSTOM_STYLE_JSON_TRUE : CUSTOM_STYLE_JSON_FALSE
-		envelope["markings"] = markings
-	var/text = json_encode(envelope, JSON_PRETTY_PRINT)
-	return replacetext(replacetext(text, "\"[CUSTOM_STYLE_JSON_TRUE]\"", "true"), "\"[CUSTOM_STYLE_JSON_FALSE]\"", "false")
+		envelope["markings"] = package["markings"]
+	return json_encode(envelope, JSON_PRETTY_PRINT)
 
 /**
  * Returns the first view with paint outside the destination's allowed pixels.
@@ -681,10 +463,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	custom_style_transfer_end(ckey)
 	return result
 
-#undef STYLE_JSON_VALUE
-#undef STYLE_JSON_VALUE_OR_END
-#undef STYLE_JSON_KEY
-#undef STYLE_JSON_KEY_OR_END
-#undef STYLE_JSON_COLON
-#undef STYLE_JSON_COMMA_OR_END
-#undef STYLE_JSON_DONE
+#undef CUSTOM_STYLE_FORMAT
+#undef CUSTOM_STYLE_VERSION
+#undef CUSTOM_STYLE_IMPORT_COOLDOWN
+#undef CUSTOM_STYLE_EXPORT_COOLDOWN
+#undef CUSTOM_STYLE_EXPORT_DIRECTORY

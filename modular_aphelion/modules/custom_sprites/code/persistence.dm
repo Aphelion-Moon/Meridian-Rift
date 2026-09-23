@@ -1,5 +1,3 @@
-#define CUSTOM_SPRITE_MAX_SIDECAR_BYTES (16 * 1024 * 1024)
-
 /datum/json_savefile/custom_sprites
 	/// Includes changes from other targets/slots after a failed disk save.
 	var/dirty = FALSE
@@ -78,7 +76,7 @@
 	if(!dirty && !last_save_failed)
 		return TRUE
 	last_save_failed = TRUE
-	if(!path || isnull(last_good_json) || custom_style_writes_blocked(path))
+	if(!path || isnull(last_good_json))
 		return FALSE
 	var/serialized
 	var/staging_path = "[path].new"
@@ -106,7 +104,6 @@
 			pending_removed_entries = null
 	catch
 		return FALSE
-	last_good_json = serialized
 	dirty = FALSE
 	last_save_failed = FALSE
 	fdel(staging_path)
@@ -143,15 +140,26 @@
 		return
 	custom_sprite_slot = default_slot
 	var/list/slot_data = custom_sprite_savefile.get_entry("character[default_slot]")
-	custom_hair = islist(slot_data) ? custom_sprite_validate(slot_data["hair"]) : null
+	if(!islist(slot_data))
+		slot_data = list()
+	custom_hair = custom_sprite_validate(slot_data["hair"])
 	if(custom_sprite_width(custom_hair) != 32)
 		custom_hair = null
-	custom_facial_hair = islist(slot_data) ? custom_sprite_validate(slot_data["facial_hair"]) : null
+	custom_facial_hair = custom_sprite_validate(slot_data["facial_hair"])
 	if(custom_sprite_width(custom_facial_hair) != 32)
 		custom_facial_hair = null
-	custom_markings = islist(slot_data) ? custom_sprite_validate(slot_data["markings"]) : null
-	custom_limb_markings = islist(slot_data) ? custom_limb_markings_validate(slot_data["limb_markings"]) : null
-	custom_style_previous = islist(slot_data) ? custom_style_previous_validate(slot_data["previous_styles"]) : null
+	custom_markings = custom_sprite_validate(slot_data["markings"])
+	custom_limb_markings = custom_limb_markings_validate(slot_data["limb_markings"])
+	custom_style_previous = custom_style_previous_validate(slot_data["previous_styles"])
+
+/// Forgets the loaded slot's drawings, so the next load_custom_sprites() reads them again.
+/datum/preferences/proc/clear_custom_sprite_slot()
+	custom_sprite_slot = null
+	custom_hair = null
+	custom_facial_hair = null
+	custom_markings = null
+	custom_limb_markings = null
+	custom_style_previous = null
 
 /// Writes the loaded slot's drawings and previous styles into the in-memory sidecar tree.
 /datum/preferences/proc/store_custom_sprite_slot(slot)
@@ -181,12 +189,7 @@
 	if(!isnull(custom_sprite_savefile.get_entry(key)))
 		custom_sprite_savefile.remove_entry(key)
 	if(custom_sprite_slot == slot)
-		custom_sprite_slot = null
-		custom_hair = null
-		custom_facial_hair = null
-		custom_markings = null
-		custom_limb_markings = null
-		custom_style_previous = null
+		clear_custom_sprite_slot()
 	return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save()
 
 /datum/preferences/proc/close_custom_sprite_editors(save_changes = TRUE)
@@ -199,13 +202,9 @@
 	target_ckey = ckey(target_ckey)
 	if(!length(target_ckey))
 		return
-	var/folder = "data/player_saves/[target_ckey[1]]/[target_ckey]/"
-	var/sidecar = "[folder]custom_sprites.json"
-	// The imported preferences replace any interrupted style transaction, so it must never be replayed.
-	for(var/drawing_file in list(sidecar, "[sidecar].bak", "[sidecar].new") + custom_style_transaction_files(folder))
-		if(fexists(drawing_file))
-			fdel(drawing_file)
-	GLOB.custom_style_blocked_folders -= folder
+	var/sidecar = "data/player_saves/[target_ckey[1]]/[target_ckey]/custom_sprites.json"
+	for(var/drawing_file in list(sidecar, "[sidecar].bak", "[sidecar].new"))
+		fdel(drawing_file)
 	var/client/connected = GLOB.directory[target_ckey]
 	for(var/datum/preferences/old_prefs as anything in list(GLOB.preferences_datums[target_ckey], connected?.prefs))
 		if(!old_prefs)
@@ -214,9 +213,4 @@
 		if(old_prefs.custom_sprite_savefile)
 			old_prefs.custom_sprite_savefile.path = null
 			old_prefs.custom_sprite_savefile.wipe()
-		old_prefs.custom_hair = null
-		old_prefs.custom_facial_hair = null
-		old_prefs.custom_markings = null
-		old_prefs.custom_limb_markings = null
-		old_prefs.custom_style_previous = null
-		old_prefs.custom_sprite_slot = null
+		old_prefs.clear_custom_sprite_slot()

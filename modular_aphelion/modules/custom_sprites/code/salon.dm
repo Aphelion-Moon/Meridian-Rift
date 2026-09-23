@@ -16,6 +16,12 @@
 /// Artist ckey -> style key -> that artist's retained draft for that drawing.
 /// Hair, facial hair and each tattoo zone are separate drafts, so one never discards another.
 GLOBAL_LIST_EMPTY(custom_sprite_salon_sessions)
+/// Artist ckey -> an in-progress restoration. Restorations have no draft to retain.
+GLOBAL_LIST_EMPTY(custom_sprite_salon_restorations)
+/// Recipient ckey -> TRUE while they have an incoming salon prompt.
+GLOBAL_LIST_EMPTY(custom_sprite_salon_prompts)
+/// "artist ckey|recipient ckey" -> world.time when that pair may send another request.
+GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 
 /// The artist's retained draft for one drawing, or null.
 /proc/custom_sprite_salon_session(artist_ckey, target, zone)
@@ -35,12 +41,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_sessions)
 	for(var/datum/custom_sprite_salon/session as anything in custom_sprite_salon_sessions_for(artist_ckey))
 		if(istype(tool, session.tool_type))
 			. += session
-/// Artist ckey -> an in-progress restoration. Restorations have no draft to retain.
-GLOBAL_LIST_EMPTY(custom_sprite_salon_restorations)
-/// Recipient ckey -> TRUE while they have an incoming salon prompt.
-GLOBAL_LIST_EMPTY(custom_sprite_salon_prompts)
-/// "artist ckey|recipient ckey" -> world.time when that pair may send another request.
-GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 
 /mob/living/carbon/human
 	/// Style key -> the style this body had before its last salon change. Drawings may be explicitly null.
@@ -61,16 +61,13 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	var/list/markings
 	if(custom_style_hair_target(target))
 		var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
-		drawing = target == "facial_hair" ? head?.custom_facial_hair : head?.custom_hair
+		drawing = head?.custom_head_drawing(target)
 	else if(zone)
 		var/obj/item/bodypart/limb = body.get_bodypart(custom_marking_zone_limb(zone))
 		if(zone in GLOB.body_markings_per_limb)
 			markings = custom_style_marking_entries(zone == limb?.aux_zone ? limb?.aux_zone_markings : limb?.markings)
-		var/overlay_type = custom_marking_zone_overlay_type(zone)
-		// Exact types: hand paint is a subtype of zone paint on the same arm.
-		for(var/datum/bodypart_overlay/custom_marking/marking in limb?.bodypart_overlays)
-			if(marking.type == overlay_type)
-				drawing = marking.drawing
+		var/datum/bodypart_overlay/custom_marking/marking = limb?.get_custom_marking(custom_marking_zone_overlay_type(zone))
+		drawing = marking?.drawing
 	else
 		drawing = body.dna.custom_markings
 	return custom_style_package(target, zone, custom_sprite_validate(drawing), custom_style_hair_target(target) ? custom_style_live_hair_context(body, target) : null, markings)
@@ -147,15 +144,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(custom_style_hair_target(target))
 		if(package["hair"])
 			custom_style_apply_hair_context(body, package["hair"], update = FALSE, target = target)
-		var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
 		if(target == "facial_hair")
 			body.dna.custom_facial_hair = drawing
-			if(head)
-				head.custom_facial_hair = drawing ? deep_copy_list(drawing) : null
 		else
 			body.dna.custom_hair = drawing
-			if(head)
-				head.custom_hair = drawing ? deep_copy_list(drawing) : null
+		var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
+		head?.set_custom_head_drawing(target, deep_copy_list(drawing))
 		body.update_hair()
 		return
 	if(zone)
@@ -214,8 +208,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		var/datum/bodypart_overlay/mutant/taur_body/source_overlay = source_taur.bodypart_overlay
 		var/datum/bodypart_overlay/mutant/taur_body/preview_overlay = preview_taur.bodypart_overlay
 		preview_overlay.sprite_datum = source_overlay.sprite_datum
-		var/list/source_colors = islist(source_overlay.draw_color) ? source_overlay.draw_color : null
-		preview_overlay.draw_color = source_colors ? source_colors.Copy() : source_overlay.draw_color
+		preview_overlay.draw_color = deep_copy_list(source_overlay.draw_color)
 		preview_overlay.dye_color = source_overlay.dye_color
 		preview_overlay.emissive_eligibility_by_color_index = LAZYCOPY(source_overlay.emissive_eligibility_by_color_index)
 		preview_overlay.imprint_on_next_insertion = FALSE
@@ -250,8 +243,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		// Customization can change a limb's sprite without changing its type.
 		limb.change_appearance(source_limb.custom_sprite_icon_file(), source_limb.limb_id, source_limb.should_draw_greyscale, source_limb.is_dimorphic, update_owner = FALSE)
 		limb.alpha = source_limb.alpha
-		limb.markings = source_limb.markings ? deep_copy_list(source_limb.markings) : null
-		limb.aux_zone_markings = source_limb.aux_zone_markings ? deep_copy_list(source_limb.aux_zone_markings) : null
+		limb.markings = deep_copy_list(source_limb.markings)
+		limb.aux_zone_markings = deep_copy_list(source_limb.aux_zone_markings)
 		limb.markings_alpha = source_limb.markings_alpha
 		limb.apply_custom_marking(null)
 		limb.apply_custom_marking(null, /datum/bodypart_overlay/custom_marking/zone)
@@ -261,8 +254,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 			limb.apply_custom_marking(marking.drawing, marking.type)
 	var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
 	if(head && source_head)
-		head.custom_hair = source_head.custom_hair ? deep_copy_list(source_head.custom_hair) : null
-		head.custom_facial_hair = source_head.custom_facial_hair ? deep_copy_list(source_head.custom_facial_hair) : null
+		head.custom_hair = deep_copy_list(source_head.custom_hair)
+		head.custom_facial_hair = deep_copy_list(source_head.custom_facial_hair)
 		head.hair_alpha = source_head.hair_alpha
 		head.facial_hair_alpha = source_head.facial_hair_alpha
 		head.fixed_hair_color = source_head.fixed_hair_color
@@ -374,9 +367,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(locate(/obj/item/hhmirror) in user.held_items)
 		return TRUE
 	for(var/obj/structure/mirror/mirror in range(1, user))
-		if(istype(mirror, /obj/structure/mirror/broken))
-			continue
-		return TRUE
+		if(!mirror.broken)
+			return TRUE
 	return FALSE
 
 /// Claims the recipient's single incoming prompt and the pair's request cooldown.
@@ -516,7 +508,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	var/datum/weakref/taur_ref
 	/// Required tool family when checking or resuming the work.
 	var/tool_type
-	/// Drawing kind: hair or markings.
+	/// Drawing kind: hair, facial_hair or markings.
 	var/target
 	/// Tattoo zone, or null for a hairstyle or whole-body tattoo.
 	var/body_zone
@@ -526,7 +518,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	var/recipient_emissives = FALSE
 	/// A restoration proposes this package instead of a draft.
 	var/list/restoration
-	/// list("token", "revision", "package", "hash") for the reviewed revision.
+	/// list("token", "revision", "package") for the reviewed revision.
 	var/list/proposal
 	/// Recipient requested a permanent save after this exact proposal is successfully applied.
 	var/save_on_completion = FALSE
@@ -586,11 +578,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		drafts -= style_key
 		if(!length(drafts))
 			GLOB.custom_sprite_salon_sessions -= artist_ckey
-	watch_artist(null)
-	if(dress_timer)
-		deltimer(dress_timer)
-	if(trimming_timer)
-		deltimer(trimming_timer)
 	if(GLOB.custom_sprite_salon_restorations[artist_ckey] == src)
 		GLOB.custom_sprite_salon_restorations -= artist_ckey
 	close_mirror()
@@ -767,12 +754,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		return "The style has no hair settings."
 	var/list/current = original["package"]["hair"]
 	for(var/field in list("gradient_style", "gradient_color", "opacity", "emissive"))
-		if(json_encode(hair[field]) != json_encode(current[field]))
+		if(hair[field] != current[field])
 			return "A haircut can only change the style and its color."
 	var/list/accessories = custom_style_hair_accessories(target)
 	var/datum/sprite_accessory/hair/hairstyle = accessories[hair["style"]]
 	if(!(hair["style"] in accessories) || hairstyle?.locked)
-		return "That [target == "facial_hair" ? "facial hairstyle" : "hairstyle"] isn't available."
+		return "That [label()] isn't available."
 	if(!custom_sprite_color(hair["color"]))
 		return "That hair color isn't valid."
 	return null
@@ -799,7 +786,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(problem)
 		return problem
 	var/list/package = proposed_package()
-	var/hash = custom_style_package_hash(package)
 	if(custom_style_matches(package, original["package"]))
 		return restoration ? "[self_work ? "You already have" : "[recipient_name] already has"] that style." : "Nothing has changed yet."
 	if(custom_style_has_emission(package["drawing"]) && !recipient_emissives)
@@ -809,18 +795,16 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 			if(entry["emissive"])
 				return "This style has glowing base markings, but [self_work ? "you have" : "[recipient_name] has"] emissive appearance disabled."
 	problem = locked_view_problem(package)
+	if(!problem && !self_work)
+		problem = custom_sprite_salon_claim_request(artist_ckey, recipient_ckey)
 	if(problem)
 		return problem
+	proposal = list("token" = md5("[world.time]-[rand(1, 1e9)]-[REF(src)]"), "revision" = editor?.draft_revision, "package" = package)
 	if(self_work)
 		// Nobody to ask: the timed work starts straight away.
-		proposal = list("token" = md5("[world.time]-[rand(1, 1e9)]-[REF(src)]"), "revision" = editor?.draft_revision, "package" = package, "hash" = hash)
 		state = SALON_APPLYING
 		INVOKE_ASYNC(src, PROC_REF(apply_proposal), proposal["token"])
 		return null
-	problem = custom_sprite_salon_claim_request(artist_ckey, recipient_ckey)
-	if(problem)
-		return problem
-	proposal = list("token" = md5("[world.time]-[rand(1, 1e9)]-[REF(src)]"), "revision" = editor?.draft_revision, "package" = package, "hash" = hash)
 	state = SALON_AWAITING_APPROVAL
 	var/mob/living/carbon/human/recipient = recipient()
 	mirror = new(src, recipient)
@@ -890,11 +874,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 
 /// Runs the timed action and applies the approved package once. Duplicate or stale calls do nothing.
 /datum/custom_sprite_salon/proc/apply_proposal(token)
+	if(!application_valid(token))
+		return
 	var/mob/living/carbon/human/artist = artist()
 	var/mob/living/carbon/human/recipient = recipient()
-	if(!application_valid(token) || !artist || !recipient)
-		if(!QDELETED(src) && application_valid(token))
-			return_to_drafting("The work couldn't be applied.")
+	if(!artist || !recipient)
+		return_to_drafting("The work couldn't be applied.")
 		return
 	artist.visible_message(span_notice("[artist] adds the finishing touches to [recipient]'s [label()]."), span_notice("You add the finishing touches to [recipient]'s [label()]."))
 	editor?.stop_drawing_sounds()
@@ -965,6 +950,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 			var/datum/custom_sprite_salon/other = other_drafts[1]
 			to_chat(user, span_warning("Your [other.work_phrase()] needs [other.tool_type == /obj/item/scissors ? "scissors" : "a tattoo machine"]."))
 			return TRUE
+		tool.balloon_alert(user, "no custom work!")
 		return FALSE
 	if(length(drafts) > 1)
 		INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(custom_sprite_salon_choose_draft), tool, user, drafts)
@@ -1006,8 +992,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	COOLDOWN_DECLARE(drawing_sound_cooldown)
 	/// Steady tattoo-machine ambience, separate from the varied needle bursts.
 	var/datum/looping_sound/drawing_ambience
-	/// Stops tattoo ambience three seconds after the last brush activity.
-	var/ambience_stop_timer
 
 /datum/custom_sprite_editor/salon/New(datum/custom_sprite_salon/session)
 	src.session = session
@@ -1039,7 +1023,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		stop_drawing_sounds()
 	var/tattoo = session.tool_type == /obj/item/tattoo_machine
 	if(!drawing_sound)
-		var/sound_type = tattoo ? /datum/looping_sound/salon_snipping/tattoo : /datum/looping_sound/salon_snipping/drawing
+		var/sound_type = tattoo ? /datum/looping_sound/salon_snipping/drawing/tattoo : /datum/looping_sound/salon_snipping/drawing
 		drawing_sound = new sound_type(user)
 	if(COOLDOWN_FINISHED(src, drawing_sound_cooldown))
 		drawing_sound.stop()
@@ -1048,17 +1032,14 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(tattoo)
 		if(!drawing_ambience)
 			drawing_ambience = new /datum/looping_sound/salon_tattoo_ambience(user, TRUE)
-		ambience_stop_timer = addtimer(CALLBACK(src, PROC_REF(stop_drawing_ambience)), 3 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_STOPPABLE)
+		// Let the machine settle briefly after the last brush movement.
+		addtimer(CALLBACK(src, PROC_REF(stop_drawing_ambience)), 3 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE)
 
-/// Let the machine settle briefly after the last brush movement.
 /datum/custom_sprite_editor/salon/proc/stop_drawing_ambience()
-	ambience_stop_timer = null
 	QDEL_NULL(drawing_ambience)
 
-/// Closing keeps the draft but silences both channels and cancels the ambience tail.
+/// Closing keeps the draft but silences both channels.
 /datum/custom_sprite_editor/salon/proc/stop_drawing_sounds()
-	if(ambience_stop_timer)
-		deltimer(ambience_stop_timer)
 	stop_drawing_ambience()
 	QDEL_NULL(drawing_sound)
 

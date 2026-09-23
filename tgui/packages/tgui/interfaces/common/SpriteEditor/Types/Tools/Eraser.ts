@@ -5,6 +5,7 @@ import {
   constrainToIconGrid,
   copyLayer,
   getDataPixel,
+  isPainted, // APHELION EDIT ADDITION
   isWithinDrawBounds, // APHELION EDIT ADDITION
 } from '../../helpers';
 import { Tool } from '../Tool';
@@ -16,11 +17,6 @@ import type {
   SpriteEditorToolContext,
   StringLayer,
 } from '../types';
-
-// APHELION EDIT ADDITION START
-const isPainted = (color: string | undefined) =>
-  !!color && (parseHexColorString(color).a ?? 1) > 0;
-// APHELION EDIT ADDITION END
 
 class EraserTransaction implements LayerTransaction {
   name = 'Eraser';

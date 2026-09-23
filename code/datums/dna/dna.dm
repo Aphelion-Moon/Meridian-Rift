@@ -87,10 +87,10 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 	new_dna.features = features.Copy()
 	new_dna.real_name = real_name
 	// APHELION EDIT ADDITION START - Drawings follow copied appearance without sharing mutable lists.
-	new_dna.custom_hair = custom_hair ? deep_copy_list(custom_hair) : null
-	new_dna.custom_facial_hair = custom_facial_hair ? deep_copy_list(custom_facial_hair) : null
-	new_dna.custom_markings = custom_markings ? deep_copy_list(custom_markings) : null
-	new_dna.custom_limb_markings = custom_limb_markings ? deep_copy_list(custom_limb_markings) : null
+	new_dna.custom_hair = deep_copy_list(custom_hair)
+	new_dna.custom_facial_hair = deep_copy_list(custom_facial_hair)
+	new_dna.custom_markings = deep_copy_list(custom_markings)
+	new_dna.custom_limb_markings = deep_copy_list(custom_limb_markings)
 	// APHELION EDIT ADDITION END
 	//NOVA EDIT ADDITION BEGIN - CUSTOMIZATION
 	new_dna.mutant_bodyparts = LAZYCOPY(mutant_bodyparts)

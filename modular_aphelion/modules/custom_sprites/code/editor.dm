@@ -60,7 +60,7 @@
 	var/datum/sprite_editor_workspace/custom_sprite/workspace
 	/// Private dummy used to build guides and previews; released on close.
 	var/mob/living/carbon/human/dummy/preview_body
-	/// Drawing kind: hair or markings.
+	/// Drawing kind: hair, facial_hair or markings.
 	var/target
 	/// Edited limb or taur zone, or null for hair and whole-body markings.
 	var/body_zone
@@ -84,7 +84,7 @@
 	var/selected_color
 	/// Original Custom swatch, retained when blended colors coincide.
 	var/selected_custom_color
-	/// Brush blending mode: literal, hair or custom.
+	/// Brush blending mode: literal, hair or tint.
 	var/color_mode = "literal"
 	/// Chosen multiplier for Blend with color; white has no effect.
 	var/custom_tint = "#ffffff"
@@ -144,8 +144,6 @@
 	refresh_preview()
 
 /datum/custom_sprite_editor/Destroy()
-	if(preview_timer)
-		deltimer(preview_timer)
 	SStgui.close_uis(src)
 	QDEL_NULL(workspace)
 	QDEL_NULL(preview_body)
@@ -184,7 +182,7 @@
 	var/changed = FALSE
 	for(var/direction in unlocked_bounds)
 		var/list/allowed = (direction in locked) ? list(0, 0, -1, -1) : unlocked_bounds[direction]
-		if(json_encode(workspace.draw_bounds[direction]) == json_encode(allowed))
+		if(compare_list(workspace.draw_bounds[direction], allowed))
 			continue
 		workspace.draw_bounds[direction] = allowed.Copy()
 		changed = TRUE
@@ -284,10 +282,7 @@
 	if(!reuse_body)
 		QDEL_NULL(preview_body)
 		preview_body = create_preview_body()
-	guide_icons = list()
-	guide_urls = list()
-	preview_urls = list()
-	preview_hash = null
+	release_resources()
 	resources_hair = json_encode(workspace.hair_context)
 	resources_markings = json_encode(workspace.markings_context)
 	if(!preview_body)
@@ -318,11 +313,7 @@
 		palette = custom_sprite_sample_hair_palette(hairstyle, head, target)
 		workspace.draw_bounds = custom_sprite_canvas_bounds(workspace.width)
 		workspace.draw_mask = null
-		if(head)
-			if(target == "facial_hair")
-				head.custom_facial_hair = null
-			else
-				head.custom_hair = null
+		head?.set_custom_head_drawing(target, null)
 		preview_body.update_hair()
 	else
 		workspace.draw_bounds = custom_sprite_body_draw_bounds(preview_body, body_zone, workspace.width)
@@ -359,11 +350,7 @@
 				guide.Shift(SOUTH, preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_Z])
 		guide_icons["[direction]"] = guide
 		guide_urls["[direction]"] = publish_icon(guide)
-	if(head)
-		if(target == "facial_hair")
-			head.custom_facial_hair = head_drawing
-		else
-			head.custom_hair = head_drawing
+	head?.set_custom_head_drawing(target, head_drawing)
 	for(var/datum/bodypart_overlay/custom_marking/marking as anything in hidden_markings)
 		var/obj/item/bodypart/limb = hidden_markings[marking]
 		limb.add_bodypart_overlay(marking, FALSE)
@@ -371,6 +358,13 @@
 		preview_body.update_body_parts()
 	resources_ready = TRUE
 	return TRUE
+
+/// Drops the guides and previews built from the preview body.
+/datum/custom_sprite_editor/proc/release_resources()
+	guide_icons = list()
+	guide_urls = list()
+	preview_urls = list()
+	preview_hash = null
 
 /datum/custom_sprite_editor/proc/sample_marking_palette()
 	var/list/colors = list()
@@ -457,19 +451,16 @@
 		data["hairStyle"] = workspace.hair_context?["style"]
 		data["hairColor"] = workspace.hair_context?["color"]
 		data["canChangeHair"] = can_change_hair()
-	data["lockedDirections"] = locked_directions()
-	if(custom_style_hair_target(target))
 		data["hasGradient"] = workspace.hair_context?["gradient_style"] && workspace.hair_context["gradient_style"] != SPRITE_ACCESSORY_NONE
 		data["showGradient"] = show_gradient
+	data["lockedDirections"] = locked_directions()
 	if(can_change_markings())
 		data["baseMarkings"] = base_markings()
 	data["canChangeMarkings"] = can_change_markings()
 	data["canHideParts"] = can_hide_parts()
 	data["hideParts"] = hide_parts
 	// TGUI merges updates, so an absent candidate must explicitly clear the previous preview.
-	data["candidate"] = null
-	if(candidate)
-		data["candidate"] = list("source" = candidate["source"], "previews" = candidate["previews"], "summary" = candidate["summary"])
+	data["candidate"] = candidate ? list("source" = candidate["source"], "previews" = candidate["previews"], "summary" = candidate["summary"]) : null
 	return data + context_ui_data()
 
 /datum/custom_sprite_editor/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
@@ -601,12 +592,12 @@
 						return FALSE
 				if("undo")
 					var/history_length = length(workspace.undo_stack)
-					workspace.undo(isnull(params["count"]) ? 1 : params["count"])
+					workspace.undo(params["count"])
 					if(length(workspace.undo_stack) == history_length)
 						return TRUE
 				if("redo")
 					var/history_length = length(workspace.redo_stack)
-					workspace.redo(isnull(params["count"]) ? 1 : params["count"])
+					workspace.redo(params["count"])
 					if(length(workspace.redo_stack) == history_length)
 						return TRUE
 				else
@@ -664,9 +655,7 @@
 		else
 			return context_act(action, params, ui.user)
 	draft_changed()
-	if(preview_timer)
-		deltimer(preview_timer)
-	preview_timer = addtimer(CALLBACK(src, PROC_REF(refresh_preview)), 0.6 SECONDS, TIMER_STOPPABLE)
+	preview_timer = addtimer(CALLBACK(src, PROC_REF(refresh_preview)), 0.6 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_STOPPABLE)
 	return TRUE
 
 /// Prefer current paint over the retained native guide, including strokes newer than the browser's view.
@@ -699,7 +688,7 @@
 		if(!preview_body)
 			return workspace.hair_context?["color"]
 		var/obj/item/bodypart/head/head = preview_body.get_bodypart(BODY_ZONE_HEAD)
-		return target == "facial_hair" ? head?.facial_hair_color : (head?.override_hair_color || head?.fixed_hair_color || head?.hair_color)
+		return target == "facial_hair" ? head?.facial_hair_color : head?.get_rendered_hair_color()
 	return null
 
 /datum/custom_sprite_editor/proc/transformed_custom_palette()
@@ -876,10 +865,7 @@
 		preview_timer = null
 	candidate = null
 	QDEL_NULL(preview_body)
-	guide_icons = list()
-	guide_urls = list()
-	preview_urls = list()
-	preview_hash = null
+	release_resources()
 	resources_ready = FALSE
 
 /datum/custom_sprite_editor/proc/current_package()
@@ -902,9 +888,6 @@
 	if(save_changes && preferences && preferences.default_slot == slot && !save_drawing())
 		return
 	closing = TRUE
-	if(preview_timer)
-		deltimer(preview_timer)
-		preview_timer = null
 	if(preferences)
 		LAZYREMOVE(preferences.custom_sprite_editors, editor_key)
 	SStgui.close_uis(src)
@@ -934,11 +917,8 @@
 		var/list/package = result["package"]
 		if(result["legacy"])
 			package = custom_style_package(target, body_zone, package["drawing"], workspace.hair_context)
-		transfer_error = candidate_problem(package)
-		if(transfer_error)
+		if(!show_candidate(package, "import"))
 			log_game("[key_name(user)] had a custom style import rejected ([result["bytes"]] bytes): [transfer_error]")
-		else
-			show_candidate(package, "import")
 
 /// Returns why a package can't replace this draft, or null when it can.
 /datum/custom_sprite_editor/proc/candidate_problem(list/package)

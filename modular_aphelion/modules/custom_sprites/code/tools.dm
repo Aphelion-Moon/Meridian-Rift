@@ -3,7 +3,7 @@
  *
  * Arguments:
  * - tool: The scissors or tattoo machine in the artist's hand.
- * - target: "hair" or "markings".
+ * - target: "hair", "facial_hair" or "markings".
  * - zone: The marking body zone, or null for hair or whole-body markings.
  */
 /proc/custom_sprite_salon_tool_menu(obj/item/tool, mob/living/carbon/human/artist, mob/living/carbon/human/recipient, target, zone)
@@ -25,8 +25,7 @@
 	. = ..()
 	if(.)
 		return
-	if(!custom_sprite_salon_resume(src, user))
-		balloon_alert(user, "no custom work!")
+	custom_sprite_salon_resume(src, user)
 	return TRUE
 
 /obj/item/tattoo_machine
@@ -44,8 +43,7 @@
 	. = ..()
 	if(.)
 		return
-	if(!custom_sprite_salon_resume(src, user))
-		balloon_alert(user, "no custom work!")
+	custom_sprite_salon_resume(src, user)
 	return TRUE
 
 /obj/item/tattoo_machine/interact_with_atom(atom/interacting_with, mob/living/user, list/modifiers)
@@ -76,7 +74,7 @@
 
 /// The finishing action stays audible too; interruption and completion release both channels.
 /proc/do_salon_work(mob/living/user, duration, atom/recipient, tattoo = FALSE, datum/callback/extra_checks)
-	var/sound_type = tattoo ? /datum/looping_sound/salon_snipping/tattoo : /datum/looping_sound/salon_snipping
+	var/sound_type = tattoo ? /datum/looping_sound/salon_snipping/drawing/tattoo : /datum/looping_sound/salon_snipping
 	var/datum/looping_sound/work_sound = new sound_type(recipient, TRUE)
 	var/datum/looping_sound/ambience
 	if(tattoo)
@@ -120,8 +118,7 @@
 	play(get_sound())
 	timer_id = addtimer(CALLBACK(src, PROC_REF(stop)), mid_length, TIMER_CLIENT_TIME | TIMER_DELETE_ME | TIMER_STOPPABLE, SSsound_loops)
 
-/datum/looping_sound/salon_snipping/tattoo
-	parent_type = /datum/looping_sound/salon_snipping/drawing
+/datum/looping_sound/salon_snipping/drawing/tattoo
 	mid_sounds = 'modular_nova/modules/salon/sound/tattoo1.ogg'
 	mid_length = 12 SECONDS
 	volume = 60

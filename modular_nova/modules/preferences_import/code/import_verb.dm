@@ -146,7 +146,7 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 
 /// After successful replacement, old UI/disconnect callbacks must only write to memory.
 /proc/prefs_import_invalidate_cache(target_ckey)
-	custom_sprites_after_import(target_ckey) // APHELION EDIT ADDITION
+	custom_sprites_after_import(target_ckey)
 	var/client/connected = GLOB.directory[target_ckey]
 	for(var/datum/preferences/old_prefs as anything in list(GLOB.preferences_datums[target_ckey], connected?.prefs))
 		if(!old_prefs)
