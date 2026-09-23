@@ -12,7 +12,9 @@ and disabled emission in every view. Grid coordinates start at the upper left of
 the 32 by 32 canvas. The screenshot shows Front, Back, Right, Left in that order.
 
 `custom_sprite_saved_hair_screenshot` loads this file through the normal sidecar
-reader, hydrates and serializes the editor workspace, writes/reopens that result,
+reader. CI runs a deployed copy of the game without `code/`, so the test embeds the
+file in the resource file and copies it into `data/` first. It then hydrates and
+serializes the editor workspace, writes/reopens that result,
 and checks exact rendered-pixel parity. It also calls the repository's
 `test_screenshot` helper. Its committed reference belongs at
 `code/modules/unit_tests/screenshots/custom_sprite_saved_hair_screenshot_leia_buns.png`.

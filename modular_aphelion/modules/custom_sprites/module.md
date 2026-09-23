@@ -94,8 +94,9 @@ target and optional body zone on the server, including after color-picker dialog
 | Escape | Deselect, or dismiss an open swatch menu. |
 | Delete while hovering a Custom swatch | Remove that saved color. |
 
-Save and close, Undo, Redo, Eyedropper and palette swatches show their shortcuts
-in their tooltips. Scrolling elsewhere still scrolls the window.
+Save and close, Undo, Redo and Eyedropper show their shortcuts in their tooltips.
+Swatches have no tooltips, so nothing covers their right-click menus; the Palette
+title explains color cycling instead. Scrolling elsewhere still scrolls the window.
 
 The keyboard handlers leave text inputs alone. Canvas gestures claim their own
 mouse events so drawing does not turn into dragging the window. The shared
@@ -115,8 +116,8 @@ also available here.
 Custom holds up to 16 colors for the account, shared across character slots and
 all custom editors. The + opens a color picker and disappears when full.
 Right-click a Palette color, then click Save to keep it. Right-click a Custom
-color, then click Remove to delete it (Delete while hovering does the same thing),
-or Edit to reopen the color picker at that color and adjust it. An edited swatch
+color, then click Edit to reopen the color picker at that color and adjust it, or
+Remove to delete it (Delete while hovering does the same thing). An edited swatch
 keeps its place, brushes using it follow it, and paint already drawn keeps the old
 color; editing it into a color that's already saved merges the two.
 The menus stay open while moving to the action; clicking outside or pressing
@@ -125,7 +126,8 @@ Escape dismisses them.
 Custom colors save immediately through the normal account preference writer.
 Discarding a drawing does not discard palette changes. Removing a swatch does
 not remove painted pixels or colors still needed by undo/redo. If a drawing has
-no room for another color, unavailable Custom swatches stay visible but disabled.
+no room for another color, unavailable Custom swatches stay visible but disabled,
+and the Custom title says why.
 Themes cannot paint over the swatches; selection uses a border.
 
 Each hair editor also owns its base look. A **Base hair** (or **Base facial

@@ -1,3 +1,7 @@
+/// Custom markings supply their own paint: their layer keys pick a limb silhouette, not an accessory icon state postfix.
+/datum/bodypart_overlay/custom_marking/get_layer_postfixes()
+	return list()
+
 /proc/custom_sprite_test_drawing(shade = "1")
 	var/list/dirs = list()
 	for(var/direction in GLOB.cardinals)

@@ -164,7 +164,7 @@ it('confirms removal of an unavailable custom swatch and dismisses menus without
   await waitFor(() => expect(screen.queryByText('Remove')).toBeNull());
 });
 
-it('offers editing a custom swatch below Remove, starting from its saved color', async () => {
+it('offers editing a custom swatch above Remove, starting from its saved color', async () => {
   const view = render(
     <CustomSpritePalette
       serverPalette={['#ffffff']}
@@ -179,13 +179,41 @@ it('offers editing a custom swatch below Remove, starting from its saved color',
   await screen.findByText('Save');
   expect(screen.queryByText('Edit')).toBeNull();
   fireEvent.contextMenu(saved);
-  const remove = (await screen.findByText('Remove')).closest('.Button')!;
-  const edit = screen.getByText('Edit').closest('.Button')!;
-  expect(remove.nextElementSibling).toBe(edit);
+  const edit = (await screen.findByText('Edit')).closest('.Button')!;
+  const remove = screen.getByText('Remove').closest('.Button')!;
+  expect(edit.nextElementSibling).toBe(remove);
   fireEvent.click(edit);
   // The raw saved color, not its tinted display.
   expect(send).toHaveBeenCalledWith('editPaletteColor', { color: '#12abef' });
   await waitFor(() => expect(screen.queryByText('Edit')).toBeNull());
+});
+
+it('explains shortcuts and greyed-out colors on the section titles, clear of swatch menus', async () => {
+  const view = render(
+    <CustomSpritePalette
+      serverPalette={['#ffffff']}
+      customPalette={['#12abef']}
+      availableColors={['#ffffff']}
+      maxCustomColors={16}
+      displayTint={null}
+    />,
+  );
+  const hover = (element: Element) => {
+    fireEvent.mouseEnter(element);
+    fireEvent.mouseMove(element);
+  };
+  const shortcuts = 'Wheel or [ / ]: previous / next color.';
+  const limit = 'Greyed-out colors: this drawing has reached its color limit.';
+  for (const swatch of view.container.querySelectorAll('.Button')) {
+    hover(swatch);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  expect(screen.queryByText(shortcuts)).toBeNull();
+  expect(screen.queryByText(limit)).toBeNull();
+  hover(screen.getByText('Palette'));
+  await screen.findByText(shortcuts);
+  hover(screen.getByText('Custom'));
+  await screen.findByText(limit);
 });
 
 it.each([

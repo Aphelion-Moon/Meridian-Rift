@@ -1,6 +1,9 @@
 /// A real saved hair file must render the same buns before and after an editor save/reopen.
 /datum/unit_test/custom_sprite_saved_hair_screenshot/Run()
-	var/fixture_path = "code/modules/unit_tests/~nova/custom_sprites/fixtures/leia_buns.json"
+	// CI runs a deployed copy of the game without code/, so the fixture travels in the resource file.
+	var/fixture_path = "data/custom_sprite_checks/leia_buns_fixture_[REF(src)].json"
+	allocate(/datum/custom_sprite_test_files, fixture_path)
+	fcopy('code/modules/unit_tests/~nova/custom_sprites/fixtures/leia_buns.json', fixture_path)
 	var/datum/json_savefile/custom_sprites/source = allocate(/datum/json_savefile/custom_sprites, fixture_path)
 	var/list/slot = source.get_entry("character1")
 	var/list/drawing = custom_sprite_validate(slot?["hair"])

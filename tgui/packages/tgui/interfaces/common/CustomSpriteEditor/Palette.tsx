@@ -12,7 +12,7 @@ import { useAtom } from 'jotai';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import { useBackend } from 'tgui/backend';
-import { Button, Divider, Section, Stack } from 'tgui-core/components';
+import { Button, Divider, Section, Stack, Tooltip } from 'tgui-core/components';
 import { KEY_DELETE } from 'tgui-core/keycodes';
 import { currentColorAtom } from '../SpriteEditor/atoms';
 import {
@@ -85,9 +85,10 @@ type CustomPaletteSectionProps = {
   onRemoveColor?: (index: number) => void;
   colorContextMenu: (index: number, close: () => void) => ReactNode;
   title?: string;
+  /** Shown on the section title, so it can't cover a swatch's menu. */
+  titleTooltip?: string;
   canAddColor?: boolean;
   disabledColors?: boolean[];
-  disabledColorTooltip?: string;
   footer?: ReactNode;
 };
 
@@ -99,9 +100,9 @@ const CustomPaletteSection = ({
   onRemoveColor,
   colorContextMenu,
   title = 'Palette',
+  titleTooltip,
   canAddColor,
   disabledColors,
-  disabledColorTooltip,
   footer,
 }: CustomPaletteSectionProps) => {
   const [contextIndex, setContextIndex] = useState<number>();
@@ -127,7 +128,17 @@ const CustomPaletteSection = ({
     };
   }, [contextIndex]);
   return (
-    <Section title={title}>
+    <Section
+      title={
+        titleTooltip ? (
+          <Tooltip content={titleTooltip} position="bottom-start">
+            <span>{title}</span>
+          </Tooltip>
+        ) : (
+          title
+        )
+      }
+    >
       <Stack
         className="CustomSpriteEditor__colors"
         style={{ flexWrap: 'wrap', gap: '0.5rem' }}
@@ -143,11 +154,6 @@ const CustomPaletteSection = ({
               width="2em"
               height="2em"
               disabled={disabled}
-              tooltip={
-                disabled
-                  ? disabledColorTooltip
-                  : 'Wheel or [ / ]: previous / next color.'
-              }
               onClick={() => onClickColor(i)}
               onMouseOver={(ev) => {
                 // Unavailable saved colors still support keyboard removal.
@@ -318,6 +324,7 @@ export const CustomSpritePalette = ({
     <Stack vertical>
       <Stack.Item>
         <CustomPaletteSection
+          titleTooltip="Wheel or [ / ]: previous / next color."
           colors={colors}
           selectedColor={currentColor}
           onClickColor={selectSwatch}
@@ -358,16 +365,6 @@ export const CustomSpritePalette = ({
             <>
               <Button
                 fluid
-                icon="trash"
-                onClick={() => {
-                  act('removePaletteColor', { color: customPalette[index] });
-                  close();
-                }}
-              >
-                Remove
-              </Button>
-              <Button
-                fluid
                 icon="pen"
                 onClick={() => {
                   act('editPaletteColor', { color: customPalette[index] });
@@ -376,11 +373,25 @@ export const CustomSpritePalette = ({
               >
                 Edit
               </Button>
+              <Button
+                fluid
+                icon="trash"
+                onClick={() => {
+                  act('removePaletteColor', { color: customPalette[index] });
+                  close();
+                }}
+              >
+                Remove
+              </Button>
             </>
           )}
           canAddColor={customPalette.length < maxCustomColors}
           disabledColors={disabledColors}
-          disabledColorTooltip="This drawing has reached its color limit."
+          titleTooltip={
+            disabledColors.some(Boolean)
+              ? 'Greyed-out colors: this drawing has reached its color limit.'
+              : undefined
+          }
           footer={blending}
         />
       </Stack.Item>

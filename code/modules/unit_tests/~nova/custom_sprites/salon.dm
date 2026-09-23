@@ -335,7 +335,8 @@
 	for(var/species_id in list(SPECIES_ETHEREAL, SPECIES_SLIMESTART))
 		var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 		var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-		preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], species_id)
+		// Species choices follow the roundstart config, which CI doesn't load, so pin the species directly.
+		preferences.value_cache[/datum/preference/choiced/species] = GLOB.species_list[species_id]
 		preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Short Hair")
 		preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], FALSE)
 		preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/mutant_toggle/hair_opacity], FALSE)
