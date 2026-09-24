@@ -95,7 +95,7 @@ The MCP shim accepts validated `MERIDIAN_RIFT_WALL_TIMEOUT_SECONDS` and `MERIDIA
 
 `run`, `test`, and `soak` deploy required inputs into the run's `workspace` directory. Repository configuration and map files are copied; they are never rewritten for a run. DreamDaemon starts in that isolated directory, and readiness and fatal rules are monitored continuously until natural completion or requested stop. Process cleanup targets only descendants captured with matching PID, executable name, and creation time; a PID without verified instance identity is never force-killed. `run` returns `ready_then_stopped` after readiness or the requested bounded window.
 
-`test` performs a `CIBUILDING` compile and validates `data/unit_tests.json`, minimum counts, failures, profile artifacts, and natural DreamDaemon termination. BYOND 516.1687/Bun 1.3.5 on Windows produced different native exit values (224 and 176) for otherwise identical clean MetaStation test shutdowns. RIFT therefore records the native value but does not use it as the success classifier after natural termination; fresh passing result JSON, minimum counts, zero runtime failures, and required clean artifacts are authoritative. The CI profile uses MetaStation by default. Database-backed game tests still require the repository's configured MariaDB service. A disposable local MariaDB container is one optional way to supply it, but Docker is not configured or managed by RIFT.
+`test` performs a `CIBUILDING` compile and validates exact selected test identities, failures, profile artifacts, runtime logs and natural DreamDaemon termination. Nonzero exits require the narrow version-specific classification described below. The CI profile uses MetaStation by default. Database-backed game tests still require the configured MariaDB service; RIFT does not manage it.
 
 `soak` requires a bounded 30-1800 second window, monitors fatal logs and continuous child rules, samples private and working-set bytes by stable role, and records normalized runtime signatures. An optional native overlay is copied only into the isolated workspace.
 
@@ -149,3 +149,36 @@ exit $LASTEXITCODE
 ```
 
 Leave the worktree uncommitted unless the user explicitly requests a commit. Preserve stale scratch evidence and unrelated processes; `doctor` reports stale RIFT scratch names but does not delete them.
+
+## Test completeness and bounded supervision
+
+The compiled test driver writes `data/unit_test_inventory.json` before execution.
+RIFT requires a fresh result for every concrete selected identity and rejects
+unexpected results. Focused requests must match the normalized selected inventory
+exactly. Full runs use that inventory rather than an arbitrary minimum count.
+Runtime errors fail their owning test, including synchronous teardown errors.
+Full Windows DreamDaemon exit 176 on BYOND 516.1687 is accepted only after complete passing results,
+required artifacts and clean runtime logs; other nonzero exits remain failures.
+
+Wall/idle deadlines and cancellation run independently of process sampling.
+PowerShell helpers have a five-second bound; only one sample is in flight.
+A query-only Windows process handle preserves the full 32-bit exit status because
+the pinned Bun runtime truncates its reported exit code to one byte. The handle
+is captured synchronously after spawn and closed on every terminal path.
+Cleanup authenticates process creation identities, stops owned survivors before
+draining inherited output, and bounds the final drain. Failed inspection means
+unknown cleanup and a failed result. Process records retain both supervision and
+cleanup failures, including in the terminal report.
+
+`tools/dogmos/boot_probe.ps1`, `test_compile_check.ps1`, `run_tests.ps1`, and
+`run_liveness_soak.ps1` translate arguments to the pinned RIFT entry point.
+`-SkipCompile` is retired: a fresh RIFT build provides verifiable artifact identity.
+Select BYOND through `DM_EXE`/the wrapper's `DmPath`; DreamDaemon must be its sibling.
+The boot wrapper accepts `-CompileMode full` to exercise the authoritative build before booting.
+The `dogmos-test-compile` profile compiles the CIBUILDING configuration without running it.
+
+The explicitly selected `dogmos-qualification` profile permits Icebox and up to
+10,800 seconds of observation with a 12,600-second wall bound. Ordinary profiles
+retain their existing short-run limits. A long idle soak is still only a soak;
+the profile does not simulate players or confer qualification. Arrange any
+representative live workload and human review separately.

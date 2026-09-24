@@ -218,3 +218,54 @@ The following inherited files adapt their listed symbols to native gas access, D
 | `modular_nova/modules/xenoarchartifacts/artifacts/artifact_machine.dm` | `/obj/machinery/artifact/process` |
 | `modular_nova/modules/xenoarchartifacts/effects/gas.dm` | `/datum/artifact_effect/gas/proc/assume_gas` |
 | `modular_nova/modules/xenoarchartifacts/effects/temperature.dm` | `/datum/artifact_effect/temperature/cold/do_effect_aura`, `/datum/artifact_effect/temperature/cold/do_effect_destroy`, `/datum/artifact_effect/temperature/cold/do_effect_touch`, `/datum/artifact_effect/temperature/heat/do_effect_aura`, `/datum/artifact_effect/temperature/heat/do_effect_destroy`, `/datum/artifact_effect/temperature/heat/do_effect_touch` |
+
+## Diagnostics and cycle ownership
+
+`SSair.diagnostics` owns bounded Kennel histories, weak pin membership, cost/jump
+indices and diagnostic policy. Subsystem recovery transfers this single datum.
+The stable SSair explosion and reaction-cost callbacks are thin adapters; native
+reaction profiling reads policy from the diagnostics owner. This dependency is
+part of the source-bound native/game pairing. Diagnostics are not independently scheduled.
+
+Each Kennel UI owns its selected tab and browse request. Overview and hidden
+machinery panels do not build browse results. A page inspects at most 250 registry
+candidates once, filters within that page, and caches until an explicit page,
+search or tab action. Page counts describe candidate ranges; match counts describe
+the current page. Process metrics are sampled at most once per second across viewers.
+Slow mode changes diagnostic cadence only. Permanent manual pins override automatic
+expiry; overlay membership survives co-located pin removal, movement and deletion.
+
+| Active-turf phase | Completion / next phase |
+| --- | --- |
+| `DOGMOS_ACTIVE_MAINTENANCE` | Walk the active list with its resume cursor and chunk boundary, then select native work. |
+| `DOGMOS_ACTIVE_NATIVE` | Complete selected native stages, then settle callbacks and visuals. |
+| `DOGMOS_ACTIVE_SETTLEMENT` | Drain bounded callbacks and visual work before the cycle advances. |
+
+Equalization dispatch and asynchronous heat-worker completion are independent
+states. Their flags and required cursors remain separate. Chunk boundaries are
+iteration bounds, not external-worker prefetch state. `REALTIMEOFDAY` already
+accounts for midnight rollover and remains the elapsed-time source.
+
+## Dormant machinery wake ownership
+
+| Device / path | Wake and cleanup coverage |
+| --- | --- |
+| Atmos components (including pressure pumps) | `set_on` and control changes start processing; pipeline `update_reconcile` wakes components after gas/network changes. Machinery area power handling and node rebuilds remain in the existing owners. |
+| Heat-exchange pipes | Opt into both turf-atmos and pipeline wakes; initialization starts processing. Turf registration/adjacency and pipeline rebuilds own relocation/topology effects. |
+| Pipe meters | `set_target` registers once on the target pipe's lazy meter list; pipeline reconciliation wakes meters. Target QDELETING drops registration; retargeting unregisters the old pipe. |
+| Firelocks | Existing close/hold polling remains. No claim that an equivalent complete signal-only wake path exists. |
+
+This pass changes the phase representation and meter allocation, not dormant-device
+behavior. Existing gas, frontier, lifetime, topology and machinery tests remain the
+acceptance route. Keep their runtime results distinct from this source-level matrix.
+
+Native teardown occurs immediately before the terminal world deletion/reboot,
+after yielding shutdown work. `Master.Shutdown()` alone is not that boundary:
+asynchronous map work can still resume, and `FinishTestRun()` yields before deleting
+the world. Releasing the native arenas in a subsystem Shutdown hook would reject
+those still-valid callers. The terminal helper is idempotent and retains the native
+shutdown admission guard.
+
+Fusion tests remain in the existing unit-test-only include route. The experimental
+feature stays default-off; its source is retained while a separate feature review
+and qualified recipe remain outstanding.

@@ -109,27 +109,6 @@ def check_repository(root: Path) -> list[str]:
 		if any(term not in text for term in required):
 			errors.append("docs/agent/dogmos-integration.md lacks the narrow Dogmos ownership exception")
 
-	events = root / "docs/agent/dogmos-gameplay-events.md"
-	if events.is_file():
-		text = events.read_text(encoding="utf-8").lower()
-		required = ("main-thread", "reaction", "pressure difference", "decompression floor rip")
-		if any(term not in text for term in required):
-			errors.append("docs/agent/dogmos-gameplay-events.md lacks the bounded gameplay-event contract")
-
-	verification = root / "docs/agent/dogmos-verification.md"
-	if verification.is_file():
-		text = verification.read_text(encoding="utf-8")
-		required = ("dm_parse_environment", "Meridian-MCP", "PowerShell", "DreamMaker", "DreamDaemon")
-		if any(term not in text for term in required):
-			errors.append("docs/agent/dogmos-verification.md lacks the MCP/PowerShell boundary")
-
-	memory = root / "docs/agent/dogmos-performance-and-memory.md"
-	if memory.is_file():
-		text = memory.read_text(encoding="utf-8").lower()
-		required = ("only dreamdaemon memory", "in-process", "dll allocation", "dreamdaemon allocation")
-		if any(term not in text for term in required):
-			errors.append("docs/agent/dogmos-performance-and-memory.md lacks the DreamDaemon memory policy")
-
 	return errors
 
 

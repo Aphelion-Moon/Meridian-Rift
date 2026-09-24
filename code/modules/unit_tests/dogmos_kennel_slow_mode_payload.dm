@@ -1,13 +1,6 @@
-/** Slow mode keeps bounded event history visible while gating the large machinery browse. */
+/** Slow mode keeps bounded histories visible; hidden machinery panels remain unbuilt. */
 /datum/unit_test/dogmos_kennel_slow_mode_payload
-	var/original_slow_mode
-	var/list/original_bucket
-	var/list/original_explosion_bucket
-	var/list/original_reaction_bucket
-	var/list/original_high_cost_bucket
-	var/list/original_breach_bucket
-	var/list/original_structures
-
+	parent_type = /datum/unit_test/dogmos_diagnostics_fixture
 /datum/unit_test/dogmos_kennel_slow_mode_payload/Run()
 	var/mob/living/carbon/human/observer = allocate(/mob/living/carbon/human/consistent)
 	// create_mob_hud() no-ops without a real client (this test mob has none) - build the HUD directly,
@@ -15,20 +8,13 @@
 	// user.hud_used.atmos_debug_overlays regardless of what this test is actually checking.
 	observer.set_hud_used(new observer.hud_type(observer))
 
-	original_slow_mode = SSair.kennel_slow_mode
-	original_bucket = SSair.recent_fire_groups
-	original_explosion_bucket = SSair.recent_explosions
-	original_reaction_bucket = SSair.recent_reactions_of_interest
-	original_high_cost_bucket = SSair.recent_high_cost_zones
-	original_breach_bucket = SSair.recent_breaches
-	original_structures = SSair.structures_of_interest
-	SSair.recent_fire_groups = list(list(
+	SSair.diagnostics.recent_fire_groups = list(list(
 		"time" = "00:00:00",
 		"jump_to" = null,
 		"area" = "Test",
 		"peak_size" = 99,
 	))
-	SSair.recent_explosions = list(list(
+	SSair.diagnostics.recent_explosions = list(list(
 		"time" = "00:00:00",
 		"jump_to" = null,
 		"area" = "Test",
@@ -38,35 +24,30 @@
 		"cause" = "Test",
 		"index" = 1,
 	))
-	SSair.recent_reactions_of_interest = list(list(
+	SSair.diagnostics.recent_reactions_of_interest = list(list(
 		"time" = "00:00:00",
 		"jump_to" = null,
 		"area" = "Test",
 		"reaction" = "plasmafire",
 		"amount" = 99,
 	))
-	SSair.recent_high_cost_zones = list(list(
+	SSair.diagnostics.recent_high_cost_zones = list(list(
 		"time" = "00:00:00",
 		"jump_to" = null,
 		"area" = "Test",
 		"reaction" = "plasmafire",
 		"cost_ms" = 1,
 	))
-	SSair.recent_breaches = list(list(
+	SSair.diagnostics.recent_breaches = list(list(
 		"time" = "00:00:00",
 		"jump_to" = null,
 		"area" = "Test",
 		"moles_lost" = 99,
 	))
-	SSair.structures_of_interest = list(list(
-		"ref" = "[0x1]",
-		"name" = "Test machine",
-		"area" = "Test",
-		"reason" = "test",
-		"pinned_at" = "00:00:00",
-	))
+	var/obj/machinery/pinned = allocate(/obj/machinery)
+	SSair.diagnostics.kennel_pin_structure(pinned, "test", null)
 
-	SSair.kennel_slow_mode = TRUE
+	SSair.diagnostics.kennel_slow_mode = TRUE
 	var/list/data_slow = GLOB.dogmos_kennel.ui_data(observer)
 	TEST_ASSERT(islist(data_slow["recent_fire_groups"]), \
 		"ui_data()'s recent_fire_groups is not a list at all while slow mode is on - the frontend has nothing safe to render.")
@@ -91,7 +72,7 @@
 	TEST_ASSERT_NULL(data_slow["atmos_machinery_browse"], \
 		"ui_data() sent atmos_machinery_browse while kennel_slow_mode is TRUE - that key should be entirely absent, not just empty, matching its optional frontend type.")
 
-	SSair.kennel_slow_mode = FALSE
+	SSair.diagnostics.kennel_slow_mode = FALSE
 	var/list/data_live = GLOB.dogmos_kennel.ui_data(observer)
 	TEST_ASSERT_NULL(data_live["equalize_performance_profile"], \
 		"ui_data() still exposes the round-static Equalize performance profile - it does not belong on the live Kennel page.")
@@ -105,30 +86,3 @@
 		"ui_data() did not send the real reaction history while kennel_slow_mode is FALSE.")
 	TEST_ASSERT_EQUAL(data_live["event_counts"]["reactions_of_interest"], 1, \
 		"ui_data()'s reaction count does not match the real reaction history while kennel_slow_mode is FALSE.")
-
-	SSair.kennel_slow_mode = original_slow_mode
-	SSair.recent_fire_groups = original_bucket
-	SSair.recent_explosions = original_explosion_bucket
-	SSair.recent_reactions_of_interest = original_reaction_bucket
-	SSair.recent_high_cost_zones = original_high_cost_bucket
-	SSair.recent_breaches = original_breach_bucket
-	SSair.structures_of_interest = original_structures
-
-/datum/unit_test/dogmos_kennel_slow_mode_payload/Destroy()
-	// Unconditional, not just on success: a TEST_ASSERT abort in Run() skips its own restore above and
-	// would otherwise leave SSair's real slow-mode toggle/bucket dirty for the rest of the suite.
-	if(!isnull(original_slow_mode))
-		SSair.kennel_slow_mode = original_slow_mode
-	if(!isnull(original_bucket))
-		SSair.recent_fire_groups = original_bucket
-	if(!isnull(original_explosion_bucket))
-		SSair.recent_explosions = original_explosion_bucket
-	if(!isnull(original_reaction_bucket))
-		SSair.recent_reactions_of_interest = original_reaction_bucket
-	if(!isnull(original_high_cost_bucket))
-		SSair.recent_high_cost_zones = original_high_cost_bucket
-	if(!isnull(original_breach_bucket))
-		SSair.recent_breaches = original_breach_bucket
-	if(!isnull(original_structures))
-		SSair.structures_of_interest = original_structures
-	return ..()

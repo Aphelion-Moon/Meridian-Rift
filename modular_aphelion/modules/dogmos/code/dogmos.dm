@@ -58,12 +58,11 @@ SUBSYSTEM_DEF(dogmos)
 	gases_registered = TRUE
 	return SS_INIT_SUCCESS
 
-/** Stops Dogmos workers and releases its Rust-side arenas. */
-/datum/controller/subsystem/dogmos/Shutdown()
+/** Releases native state at the terminal world boundary, after any yielding shutdown work. */
+/datum/controller/subsystem/dogmos/proc/shutdown_native()
 	if(src == SSdogmos && gases_registered)
 		dogmos_shutdown()
 	gases_registered = FALSE
-	return ..()
 
 /** Shares gas overlay lists with Dogmos' visual callback. */
 /datum/controller/subsystem/dogmos/proc/populate_gas_data_overlays()

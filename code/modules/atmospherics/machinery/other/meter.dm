@@ -32,7 +32,7 @@
 		UnregisterSignal(target, COMSIG_QDELETING)
 		// APHELION EDIT ADDITION START - DOGMOS
 		if(istype(target, /obj/machinery/atmospherics/pipe))
-			target.dogmos_pipeline_meters -= src
+			LAZYREMOVE(target.dogmos_pipeline_meters, src)
 		// APHELION EDIT ADDITION END
 		target = null
 	return ..()
@@ -59,7 +59,7 @@
 			candidate = pipe
 	if(candidate)
 		target = candidate
-		target.dogmos_pipeline_meters |= src // APHELION EDIT ADDITION - DOGMOS
+		LAZYOR(target.dogmos_pipeline_meters, src) // APHELION EDIT ADDITION - DOGMOS
 		RegisterSignal(target, COMSIG_QDELETING, PROC_REF(drop_meter))
 		setAttachLayer(candidate.piping_layer)
 

@@ -172,6 +172,7 @@ type Data = {
   atmos_machinery_browse?: MachineBrowseEntry[];
   atmos_machinery_browse_page?: number;
   atmos_machinery_browse_pages?: number;
+  selected_tab?: TABS;
   atmos_machinery_browse_total?: number;
   atmos_machinery_browse_search?: string;
   kennel_browse_page_size: number;
@@ -182,6 +183,13 @@ type Data = {
   kennel_profile_reactions: BooleanLike;
   kennel_high_cost_ms_threshold: number;
 };
+
+const KENNEL_THRESHOLDS = [
+  ['fire_group_notable_size', 'Fire Group Notable Size'],
+  ['reaction_magnitude_threshold', 'Reaction Event Threshold'],
+  ['machine_cost_ms_threshold', 'Machine Auto-Pin Threshold (ms)'],
+  ['high_cost_ms_threshold', 'High-Cost Reaction Threshold (ms)'],
+] as const;
 
 enum TABS {
   Overview = 'Overview',
@@ -346,6 +354,19 @@ const KennelControls = () => {
   );
 };
 
+const STAGE_COSTS = [
+  ['turfs', 'Active Turfs (whole phase)'],
+  ['groups', 'Excited Groups'],
+  ['highpressure', 'Pressure / Equalization'],
+  ['superconductivity', 'Superconductivity'],
+  ['pipenets', 'Pipenets'],
+  ['atmos_machinery', 'Atmos Machinery'],
+  ['hotspots', 'Hotspots'],
+  ['atoms', 'Atom Exposure'],
+  ['rebuilds', 'Pipenet Rebuilds (last slice)'],
+  ['adjacent', 'Adjacency Rebuilds (last slice)'],
+] as const;
+
 const OverviewPanel = (props) => {
   const { act, data } = useBackend<Data>();
   const costs = data.dogmos_costs || ({} as DogmosCosts);
@@ -405,46 +426,14 @@ const OverviewPanel = (props) => {
       {/* APHELION EDIT ADDITION END */}
       <Section title="Atmospherics Costs (milliseconds)">
         <Table>
-          <StageCostRow
-            label="Active Turfs (whole phase)"
-            cost={costs.turfs ?? 0}
-            active
-          />
-          <StageCostRow
-            label="Excited Groups"
-            cost={costs.groups ?? 0}
-            active
-          />
-          <StageCostRow
-            label="Pressure / Equalization"
-            cost={costs.highpressure ?? 0}
-            active
-          />
-          <StageCostRow
-            label="Superconductivity"
-            cost={costs.superconductivity ?? 0}
-            active
-          />
-          {/* APHELION EDIT ADDITION START - DOGMOS */}
-          <StageCostRow label="Pipenets" cost={costs.pipenets ?? 0} active />
-          <StageCostRow
-            label="Atmos Machinery"
-            cost={costs.atmos_machinery ?? 0}
-            active
-          />
-          <StageCostRow label="Hotspots" cost={costs.hotspots ?? 0} active />
-          <StageCostRow label="Atom Exposure" cost={costs.atoms ?? 0} active />
-          <StageCostRow
-            label="Pipenet Rebuilds (last slice)"
-            cost={costs.rebuilds ?? 0}
-            active
-          />
-          <StageCostRow
-            label="Adjacency Rebuilds (last slice)"
-            cost={costs.adjacent ?? 0}
-            active
-          />
-          {/* APHELION EDIT ADDITION END */}
+          {STAGE_COSTS.map(([key, label]) => (
+            <StageCostRow
+              key={key}
+              label={label}
+              cost={costs[key] ?? 0}
+              active
+            />
+          ))}
         </Table>
         {/* APHELION EDIT ADDITION START - DOGMOS */}
         <LabeledList>
@@ -472,8 +461,8 @@ const OverviewPanel = (props) => {
       </Section>
       {!!data.kennel_slow_mode && (
         <NoticeBox>
-          Slow mode is on - the machinery browse is gated and refresh cadence is
-          reduced. All bounded event histories remain available.
+          Slow mode reduces diagnostic refresh cadence. Machinery browsing is
+          available on the Structures/Machines panel.
         </NoticeBox>
       )}
       <Section title="Configuration">
@@ -505,54 +494,17 @@ const OverviewPanel = (props) => {
           </Stack.Item>
           <Stack.Item grow basis="45%">
             <LabeledList>
-              <LabeledList.Item label="Fire Group Notable Size">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_fire_group_notable_size}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'fire_group_notable_size',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
-              <LabeledList.Item label="Reaction Event Threshold">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_reaction_magnitude_threshold}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'reaction_magnitude_threshold',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
-              <LabeledList.Item label="Machine Auto-Pin Threshold (ms)">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_machine_cost_ms_threshold}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'machine_cost_ms_threshold',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
-              <LabeledList.Item label="High-Cost Reaction Threshold (ms)">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_high_cost_ms_threshold}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'high_cost_ms_threshold',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
+              {KENNEL_THRESHOLDS.map(([threshold, label]) => (
+                <LabeledList.Item key={threshold} label={label}>
+                  <Input
+                    width="4em"
+                    value={`${data[`kennel_${threshold}`]}`}
+                    onChange={(value) =>
+                      act('kennel_set_threshold', { threshold, value })
+                    }
+                  />
+                </LabeledList.Item>
+              ))}
             </LabeledList>
           </Stack.Item>
         </Stack>
@@ -856,9 +808,7 @@ const StructuresPanel = (props) => {
       <Section title="Leash a Machine">
         {!data.atmos_machinery_browse && (
           <NoticeBox>
-            Turn off Kennel Slow Mode in Kennel Controls to browse and manually
-            leash any registered atmos machine/canister - this list can be
-            large, so it's not sent while slow mode is on.
+            Select this panel to load a bounded page of registered machinery.
           </NoticeBox>
         )}
         {!!data.atmos_machinery_browse && (
@@ -910,8 +860,9 @@ const StructuresPanel = (props) => {
                 </Button>
               </Stack.Item>
               <Stack.Item grow textAlign="center" color="label">
-                Page {browsePage} of {browsePages}; {browseTotal} matching
-                machines; at most {data.kennel_browse_page_size} rows per page
+                Page {browsePage} of {browsePages}; {browseTotal} matches on
+                this page; at most {data.kennel_browse_page_size} candidates
+                inspected
               </Stack.Item>
               <Stack.Item>
                 <Button
@@ -1007,9 +958,9 @@ const ReactionExplanationPanel = () => {
 };
 // APHELION EDIT ADDITION END
 export const DogmosKennel = (props) => {
-  const { data } = useBackend<Data>();
+  const { act, data } = useBackend<Data>();
   const tabs = Object.keys(TABS) as TABS[];
-  const [currentTab, setCurrentTab] = useState<TABS>(tabs[0]);
+  const currentTab = data.selected_tab || TABS.Overview;
 
   let componentShown;
   switch (currentTab) {
@@ -1067,7 +1018,7 @@ export const DogmosKennel = (props) => {
               <Tabs.Tab
                 key={tab}
                 selected={currentTab === tab}
-                onClick={() => setCurrentTab(tab)}
+                onClick={() => act('kennel_select_tab', { tab })}
               >
                 {tab}
                 {!!eventCount && ` (${eventCount})`}

@@ -52,8 +52,8 @@
 	second_gasmix.set_gas(/datum/gas/oxygen, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	first_gasmix.set_moles(/datum/gas/plasma, calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
-	second_gasmix.set_moles(/datum/gas/oxygen, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
+	first_gasmix.set_gas(/datum/gas/plasma, calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
+	second_gasmix.set_gas(/datum/gas/oxygen, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 // APHELION EDIT ADDITION END
 
 /obj/effect/spawner/newbomb/tritium
@@ -66,15 +66,15 @@
 	first_gasmix.set_temperature(8000)
 	second_gasmix.set_temperature(43)
 
-	first_gasmix.set_moles(/datum/gas/plasma,  calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: first_gasmix.set_gas(/datum/gas/plasma,  calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
+	first_gasmix.set_gas(/datum/gas/plasma,  calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
 
 	/* // APHELION EDIT REMOVAL START - DOGMOS
 	second_gasmix.set_gas(/datum/gas/oxygen, 0.67 * calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 	second_gasmix.set_gas(/datum/gas/tritium, 0.33 * calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	second_gasmix.set_moles(/datum/gas/oxygen, 0.67 * calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
-	second_gasmix.set_moles(/datum/gas/tritium, 0.33 * calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
+	second_gasmix.set_gas(/datum/gas/oxygen, 0.67 * calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
+	second_gasmix.set_gas(/datum/gas/tritium, 0.33 * calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 // APHELION EDIT ADDITION END
 
 /obj/effect/spawner/newbomb/isolated_tritium
@@ -92,11 +92,11 @@
 	first_gasmix.set_gas( /datum/gas/tritium, 0.5 * calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	first_gasmix.set_moles(/datum/gas/hypernoblium, REACTION_OPPRESSION_THRESHOLD - 0.01,)
-	first_gasmix.set_moles( /datum/gas/tritium, 0.5 * calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
+	first_gasmix.set_gas(/datum/gas/hypernoblium, REACTION_OPPRESSION_THRESHOLD - 0.01,)
+	first_gasmix.set_gas( /datum/gas/tritium, 0.5 * calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
 	// APHELION EDIT ADDITION END
 
-	second_gasmix.set_moles(/datum/gas/oxygen, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE-1)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: second_gasmix.set_gas(/datum/gas/oxygen, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE-1))
+	second_gasmix.set_gas(/datum/gas/oxygen, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE-1))
 
 /obj/effect/spawner/newbomb/noblium
 
@@ -113,8 +113,8 @@
 	second_gasmix.set_gas(/datum/gas/tritium, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	first_gasmix.set_moles(/datum/gas/nitrogen, calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
-	second_gasmix.set_moles(/datum/gas/tritium, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
+	first_gasmix.set_gas(/datum/gas/nitrogen, calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
+	second_gasmix.set_gas(/datum/gas/tritium, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 // APHELION EDIT ADDITION END
 
 /obj/effect/spawner/newbomb/pressure
@@ -132,6 +132,6 @@
 	second_gasmix.set_gas(/datum/gas/tritium, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	first_gasmix.set_moles(/datum/gas/hypernoblium, calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
-	second_gasmix.set_moles(/datum/gas/tritium, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
+	first_gasmix.set_gas(/datum/gas/hypernoblium, calculate_pressure(first_gasmix, TANK_LEAK_PRESSURE - 1))
+	second_gasmix.set_gas(/datum/gas/tritium, calculate_pressure(second_gasmix, TANK_LEAK_PRESSURE - 1))
 // APHELION EDIT ADDITION END

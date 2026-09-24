@@ -71,3 +71,4 @@
 		/obj/item/gun/microfusion/mcr01,
 		/obj/item/gun/microfusion/mcr01,
 	)
+

@@ -20,8 +20,8 @@
 	SSair.active_turfs_walk_cursor = 0
 	// APHELION EDIT ADDITION START - DOGMOS
 	var/list/original_snapshot = SSair.dogmos_visual_refresh_batch
-	var/original_prefetch_end = SSair.dogmos_walk_prefetch_end
-	SSair.dogmos_walk_prefetch_end = 0
+	var/original_prefetch_end = SSair.dogmos_walk_chunk_end
+	SSair.dogmos_walk_chunk_end = 0
 	var/original_state = SSair.state
 	var/original_tick_limit = Master.current_ticklimit
 	var/list/original_turf_states = list()
@@ -39,7 +39,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	var/more_work = SSair.walk_active_turfs_batch()
 	var/visited_entries = SSair.active_turfs_walk_cursor
-	var/prefetched_entries = SSair.dogmos_walk_prefetch_end
+	var/chunk_entries = SSair.dogmos_walk_chunk_end
 	// APHELION EDIT ADDITION END
 	var/cost_ms = TICK_USAGE_TO_MS(start_tick_usage)
 
@@ -47,7 +47,7 @@
 	SSair.active_turfs_walk_cursor = original_cursor
 	// APHELION EDIT ADDITION START - DOGMOS
 	SSair.dogmos_visual_refresh_batch = original_snapshot
-	SSair.dogmos_walk_prefetch_end = original_prefetch_end
+	SSair.dogmos_walk_chunk_end = original_prefetch_end
 	SSair.state = original_state
 	Master.current_ticklimit = original_tick_limit
 	for(var/turf/open/fixture_turf as anything in pair)
@@ -59,12 +59,12 @@
 	// APHELION EDIT ADDITION END
 
 	// APHELION EDIT ADDITION START - DOGMOS
-	// Shared CI runner speed and IPC latency are observations, not a work-bound contract.
-	log_test("Active-turf bloat walk: [visited_entries] visited, [prefetched_entries] prefetched, [cost_ms]ms.")
-	TEST_ASSERT(prefetched_entries > 0 && prefetched_entries <= ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES, \
-		"Active-turf maintenance must prefetch at most [ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES] entries, got [prefetched_entries].")
-	TEST_ASSERT(visited_entries >= 0 && visited_entries <= prefetched_entries, \
-		"Active-turf maintenance walked outside its prefetched chunk: [visited_entries] visited, [prefetched_entries] prefetched.")
+	// Shared CI runner speed and native-call overhead are observations, not a work-bound contract.
+	log_test("Active-turf bloat walk: [visited_entries] visited, [chunk_entries] chunked, [cost_ms]ms.")
+	TEST_ASSERT(chunk_entries > 0 && chunk_entries <= ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES, \
+		"Active-turf maintenance must visit at most [ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES] entries, got [chunk_entries].")
+	TEST_ASSERT(visited_entries >= 0 && visited_entries <= chunk_entries, \
+		"Active-turf maintenance walked outside its chunked chunk: [visited_entries] visited, [chunk_entries] chunked.")
 	TEST_ASSERT(more_work, "A single bounded maintenance call must leave work pending in the bloated snapshot.")
 	// APHELION EDIT ADDITION END
 

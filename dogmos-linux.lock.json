@@ -1,9 +1,9 @@
 {
   "artifacts": {
-    "dogmos-source-snapshot.json": "955167df6b1be4ea3dc84d3e888d88c6927980bf14f47aa23c2e0b144a29be20",
-    "dogmos_bindings.dm": "f2dd339a3851899c48de022205a000b87860bef76d73accb24789efe99c00099",
-    "libdogmos_in_process.so": "f7f09b896a95368e1776008e14beea9dee354a82bc923783261ba3bb4a7e5ee7",
-    "libdogmos_in_process.so.debug": "b3a1f3c27b270fb5c51361f9efd9bf303fd46742a43a958f8ad5e235f78a86b1"
+    "dogmos-source-snapshot.json": "97065488169d26687c3b2b429f832aa516f9a5a6c93147cd47611a86f32c182b",
+    "dogmos_bindings.dm": "503b51dd7f4228c76ab0e45f038e54db6d791347ae611210e6e18069e0284e6c",
+    "libdogmos_in_process.so": "8ebb8abc5e03df66ea23ade57b9d2e9c00682d595344e1e68a2969607bf45b1b",
+    "libdogmos_in_process.so.debug": "b905e3b0f69f05c22192c7c9cb8be3ada661093a7346360fcd688e2e180b91a5"
   },
   "backend": "in-process",
   "build_provenance": {
@@ -45,8 +45,8 @@
   "kind": "unqualified-in-process-playtest",
   "runtime_qualified": false,
   "schema_version": 1,
-  "source_revision": "d82f95abc447ac5ef152a91d1f841f1ff2f7cd88",
-  "source_sha256": "955167df6b1be4ea3dc84d3e888d88c6927980bf14f47aa23c2e0b144a29be20",
+  "source_revision": "739cd17f7bbf70cf2804425891e619f3ffb39c9f",
+  "source_sha256": "97065488169d26687c3b2b429f832aa516f9a5a6c93147cd47611a86f32c182b",
   "target": "i686-unknown-linux-gnu",
   "tests_run": false,
   "toolchain": "1.98.0"

@@ -349,7 +349,7 @@ GLOBAL_LIST_INIT(spontaneous_fish_traits, populate_spontaneous_fish_traits())
 	stench.temperature = mob.bodytemperature
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	stench.set_moles(/datum/gas/miasma, MIASMA_CORPSE_MOLES * 2 * seconds_per_tick)
+	stench.set_gas(/datum/gas/miasma, MIASMA_CORPSE_MOLES * 2 * seconds_per_tick)
 	stench.set_temperature(mob.bodytemperature)
 	// APHELION EDIT ADDITION END
 	our_turf.assume_air(stench)

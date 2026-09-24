@@ -25,6 +25,9 @@ function Test-CaptureAdministrator {
 }
 
 function Get-CaptureDeployment([string]$Root) {
+    if (-not (Test-Path -LiteralPath (Join-Path $Root 'tgstation.dme') -PathType Leaf)) {
+        throw 'The one-click launcher requires a developer checkout with native contract verification sources. Use Capture-Dogmos.ps1 for a separately verified deployed game.'
+    }
     $records = @()
     $files = @('tgstation.dmb','dogmos.lock.json','dogmos.dll')
     if (Test-Path -LiteralPath (Join-Path $Root 'tgstation.rsc') -PathType Leaf) { $files += 'tgstation.rsc' }
@@ -67,7 +70,7 @@ if (Test-Path -LiteralPath $settingsPath) {
     if (-not $GameDirectory) { $GameDirectory = [string]$settings.GameDirectory }
     if (-not $DreamDaemonPath) { $DreamDaemonPath = [string]$settings.DreamDaemonPath }
 }
-$GameDirectory = Read-CapturePath $GameDirectory 'TGS deployment folder containing tgstation.dmb and data'
+$GameDirectory = Read-CapturePath $GameDirectory 'Developer checkout containing tgstation.dme, tgstation.dmb and data'
 $gameRoot = (Resolve-Path -LiteralPath $GameDirectory).Path
 $captureScript = Join-Path $PSScriptRoot 'Capture-Dogmos.ps1'
 $check = & $captureScript -Mode Check -GameDirectory $gameRoot -BundleDirectory $PSScriptRoot

@@ -5,12 +5,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
+  authenticatedDescendants,
   type OwnedProcess,
   type ProcessHooks,
   type ProcessResult,
   type ProcessSpec,
+  runEncodedPowerShell,
   runProbeProcess,
   startOwnedProcess,
+  stopOwnedProcessTree,
+  unresolvedDescendants,
 } from './process';
 import {
   hashArtifact,
@@ -26,7 +30,9 @@ import {
   allocateRun,
   applyNativeOverlays,
   assertDmDiagnostics,
+  assertTestCompleteness,
   classifyFailure,
+  classifyTestExit,
   collectDeploymentArtifacts,
   compileFast,
   compileFull,
@@ -248,6 +254,8 @@ describe('profile document', () => {
       'ci',
       'dogmos',
       'dogmos-ci',
+      'dogmos-qualification',
+      'dogmos-test-compile',
     ]);
     expect(profiles.get('default')?.minimum_tests).toBe(1);
     expect(profiles.get('dogmos')).toMatchObject({
@@ -1522,7 +1530,7 @@ describe('Windows launchers', () => {
         'result',
       ]);
     });
-  });
+  }, 20000);
 });
 
 describe('run allocation and locking', () => {
@@ -1752,6 +1760,32 @@ describe('run allocation and locking', () => {
 });
 
 describe('Windows process supervision', () => {
+  test.skipIf(process.platform !== 'win32')(
+    'preserves complete Windows exit codes, including a zero low byte',
+    async () => {
+      await withTempDirectory(async (root) => {
+        for (const exitCode of [256, 0xc00000fd]) {
+          const result = await startOwnedProcess(
+            {
+              ...processSpec(path.join(root, 'unused.ts')),
+              executable: 'powershell.exe',
+              args: [
+                '-NoProfile',
+                '-NonInteractive',
+                '-Command',
+                `[Environment]::Exit(${exitCode | 0})`,
+              ],
+            },
+            processHooks(),
+          ).result;
+          expect(result.termination).toBe('natural');
+          expect(result.exitCode).toBe(exitCode);
+        }
+      });
+    },
+    20_000,
+  );
+
   test('distinguishes a reused PID from the owned process instance', async () => {
     const processModule = (await import(
       './process'
@@ -3309,6 +3343,11 @@ describe('isolated unit-test workflow', () => {
         },
       }),
     ).toEqual({
+      identities: [
+        '/datum/unit_test/fail',
+        '/datum/unit_test/pass',
+        '/datum/unit_test/skip',
+      ],
       recorded: 3,
       passed: 1,
       failed: 1,
@@ -3532,6 +3571,10 @@ describe('isolated unit-test workflow', () => {
               },
             }),
           );
+          await Bun.write(
+            path.join(data, 'unit_test_inventory.json'),
+            JSON.stringify(['/datum/unit_test/simple_animal_freeze']),
+          );
           await Bun.write(path.join(logs, 'clean_run.lk'), 'clean');
           await Bun.sleep(150);
           resolveResult({
@@ -3642,4 +3685,170 @@ describe('isolated unit-test workflow', () => {
       ).toEqual([]);
     });
   });
+});
+
+describe('maintainability evidence contracts', () => {
+  test('long Icebox observations require explicit qualification profile selection', () => {
+    expect(
+      parseCli(
+        [
+          'soak',
+          '--run-seconds',
+          '10800',
+          '--wall-timeout-seconds',
+          '12600',
+          '--profile',
+          'dogmos-qualification',
+        ],
+        {},
+      ),
+    ).toMatchObject({ runSeconds: 10800, wallTimeoutSeconds: 12600 });
+    expect(() =>
+      parseCli(['soak', '--profile', 'dogmos', '--run-seconds', '10800'], {}),
+    ).toThrow('run seconds');
+    expect(() =>
+      parseCli(
+        ['soak', '--profile', 'dogmos-qualification', '--run-seconds', '10801'],
+        {},
+      ),
+    ).toThrow();
+    expect(() =>
+      validateMapPath(process.cwd(), '_maps/icebox.json', true),
+    ).toThrow('representative map');
+    expect(
+      validateMapPath(process.cwd(), '_maps/icebox.json', true, true),
+    ).toBe('_maps/icebox.json');
+  });
+
+  test('failed inspection cannot certify empty cleanup', async () => {
+    await expect(
+      stopOwnedProcessTree(999999, [], undefined, new Map(), async () => {
+        throw new Error('fixture inspection denied');
+      }),
+    ).rejects.toThrow('cleanup verification unknown');
+  });
+
+  test('natural parent exit cleans authenticated children before inherited output drain', async () => {
+    await withTempDirectory(async (root) => {
+      const script = path.join(root, 'parent.ts');
+      const release = path.join(root, 'release');
+      await Bun.write(
+        script,
+        `
+        Bun.spawn({cmd: [process.execPath, '-e', "console.log('child-ready'); setInterval(() => {}, 1000)"], stdout: 'inherit', stderr: 'inherit', windowsHide: true});
+        while (!(await Bun.file(${JSON.stringify(release)}).exists())) await Bun.sleep(25);
+        console.log('parent-exit'); process.exit(0);
+      `,
+      );
+      const lines: string[] = [];
+      const owner = startOwnedProcess(
+        processSpec(script, { wallTimeoutMs: 20000, idleTimeoutMs: 20000 }),
+        {
+          ...processHooks(lines),
+          onOwnedPids: async (pids) => {
+            if (pids.length > 1) await Bun.write(release, 'authenticated');
+          },
+        },
+      );
+      const result = await owner.result;
+      expect(result.termination).toBe('natural');
+      expect(result.ownedPids.length).toBeGreaterThan(1);
+      expect(result.cleanupErrors).toEqual([]);
+      expect(lines).toContain('stdout:parent-exit');
+    });
+  }, 30000);
+
+  test('rejects unrelated focus, partial full suite, duplicate inventory and unclassified exits', () => {
+    const name = '/datum/unit_test/one';
+    const tests = parseUnitTestResults({
+      [name]: { name, duration: 1, message: '', runtimes: 0, status: 0 },
+    });
+    expect(() => assertTestCompleteness(tests, [name], [name])).not.toThrow();
+    expect(() =>
+      assertTestCompleteness(tests, ['/datum/unit_test/two'], [name]),
+    ).toThrow('focus_mismatch');
+    expect(() =>
+      assertTestCompleteness(tests, [], [name, '/datum/unit_test/two']),
+    ).toThrow('inventory_mismatch');
+    expect(() => assertTestCompleteness(tests, [], [name, name])).toThrow(
+      'inventory_mismatch',
+    );
+    for (const exitCode of [0, 176])
+      expect(
+        classifyTestExit(
+          { termination: 'natural', exitCode } as ProcessResult,
+          '516.1687',
+        ),
+      ).toBeTruthy();
+    for (const exitCode of [1, 7, 255, 256, 0xc00000b0, 0xc00000fd, null])
+      expect(() =>
+        classifyTestExit(
+          { termination: 'natural', exitCode } as ProcessResult,
+          '516.1687',
+        ),
+      ).toThrow('process_failed');
+    for (const version of ['515.1647', '516.1688']) {
+      expect(() =>
+        classifyTestExit(
+          { termination: 'natural', exitCode: 176 } as ProcessResult,
+          version,
+        ),
+      ).toThrow('process_failed');
+    }
+  });
+
+  test('does not adopt a reused root or descendants without an authenticated live parent', () => {
+    const root = {
+      pid: 1,
+      parentPid: null,
+      name: 'parent.exe',
+      creationTime: '2026-09-23T01:00:00Z',
+    };
+    const child = {
+      pid: 2,
+      parentPid: 1,
+      name: 'child.exe',
+      creationTime: '2026-09-23T01:00:01Z',
+    };
+    const known = new Map([[root.pid, root]]);
+    expect(authenticatedDescendants([root, child], known)).toEqual([
+      root,
+      child,
+    ]);
+    expect(
+      authenticatedDescendants(
+        [{ ...root, creationTime: '2026-09-23T02:00:00Z' }, child],
+        known,
+      ),
+    ).toEqual([]);
+    expect(authenticatedDescendants([child], known)).toEqual([]);
+    expect(unresolvedDescendants([child], known, root.pid)).toEqual([child]);
+    const reusedRoot = { ...root, creationTime: '2026-09-23T02:00:00Z' };
+    expect(unresolvedDescendants([reusedRoot, child], known, root.pid)).toEqual(
+      [child],
+    );
+    expect(
+      unresolvedDescendants(
+        [reusedRoot, { ...child, creationTime: '2026-09-23T02:00:01Z' }],
+        known,
+        root.pid,
+      ),
+    ).toEqual([]);
+  });
+
+  test('bounds and cancels a hung PowerShell helper', async () => {
+    const started = Date.now();
+    await expect(
+      runEncodedPowerShell('Start-Sleep -Seconds 30'),
+    ).rejects.toThrow('timed out');
+    expect(Date.now() - started).toBeLessThan(8000);
+    const abort = new AbortController();
+    const helper = runEncodedPowerShell(
+      'Start-Sleep -Seconds 30',
+      {},
+      abort.signal,
+    );
+    abort.abort();
+    await expect(helper).rejects.toThrow('cancelled');
+  }, 15000);
 });

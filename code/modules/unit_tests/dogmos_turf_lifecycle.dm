@@ -8,6 +8,14 @@
 	TEST_ASSERT(istype(test_turf, /turf/open), "The unit test run location is not an open turf - this test needs one.")
 
 	original_type = test_turf.type
+	var/turf/open/open_turf = test_turf
+	var/datum/gas_mixture/air = open_turf.air
+	var/air_refs_before = refcount(air)
+	for(var/iteration in 1 to 20)
+		open_turf.update_air_ref(DOGMOS_SIMULATION_ALL)
+	TEST_ASSERT_EQUAL(refcount(air), air_refs_before, "Native turf registration retained persistent references to the air mixture.")
+	air = null
+	open_turf = null
 	test_turf.set_temperature(700)
 	var/turf/closed/wall = test_turf.ChangeTurf(/turf/closed/wall)
 	TEST_ASSERT(istype(wall), "Changing the test turf to a wall did not produce a closed turf.")

@@ -22,7 +22,7 @@ if Windows reuses a PID. CPU before the first sample in a phase is not included.
 
 Inspect initialization phase durations, first-three-minute turf activity, last-minute
 activity, rolling stage costs, and sparse active coordinates. The analyzer reports
-DreamDaemon and `native engine` memory separately. It does not sum overlapping procedure costs
+whole DreamDaemon memory, which includes all native engine allocations. It does not sum overlapping procedure costs
 or infer CPU usage from private bytes. Record at least three matched controls and candidates
 before reporting a performance change.
 

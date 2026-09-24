@@ -35,7 +35,7 @@
 
 
 /obj/item/tank/internals/oxygen/populate_gas()
-	air_contents.set_moles(/datum/gas/oxygen, (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.set_gas(/datum/gas/oxygen, (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+	air_contents.set_gas(/datum/gas/oxygen, (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
 
 
 /obj/item/tank/internals/oxygen/yellow
@@ -72,8 +72,8 @@
 	air_contents.set_gas(/datum/gas/nitrous_oxide, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	air_contents.set_moles(/datum/gas/oxygen, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD)
-	air_contents.set_moles(/datum/gas/nitrous_oxide, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
+	air_contents.set_gas(/datum/gas/oxygen, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD)
+	air_contents.set_gas(/datum/gas/nitrous_oxide, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
 // APHELION EDIT ADDITION END
 
 
@@ -105,7 +105,7 @@
 
 
 /obj/item/tank/internals/plasma/populate_gas()
-	air_contents.set_moles(/datum/gas/plasma, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.set_gas(/datum/gas/plasma, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+	air_contents.set_gas(/datum/gas/plasma, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
 
 /obj/item/tank/internals/plasma/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
 	if(!istype(tool, /obj/item/flamethrower))
@@ -121,7 +121,7 @@
 	return ITEM_INTERACT_SUCCESS
 
 /obj/item/tank/internals/plasma/full/populate_gas()
-	air_contents.set_moles(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+	air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
 
 /obj/item/tank/internals/plasma/empty/populate_gas()
 	return
@@ -140,10 +140,10 @@
 	distribute_pressure = TANK_PLASMAMAN_RELEASE_PRESSURE
 
 /obj/item/tank/internals/plasmaman/populate_gas()
-	air_contents.set_moles(/datum/gas/plasma, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.set_gas(/datum/gas/plasma, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+	air_contents.set_gas(/datum/gas/plasma, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
 
 /obj/item/tank/internals/plasmaman/full/populate_gas()
-	air_contents.set_moles(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+	air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
 
 
 /obj/item/tank/internals/plasmaman/belt
@@ -159,7 +159,7 @@
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 0.8)
 
 /obj/item/tank/internals/plasmaman/belt/full/populate_gas()
-	air_contents.set_moles(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+	air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
 
 /obj/item/tank/internals/plasmaman/belt/empty/populate_gas()
 	return
@@ -186,7 +186,7 @@
 	custom_materials = list(/datum/material/iron = HALF_SHEET_MATERIAL_AMOUNT)
 
 /obj/item/tank/internals/emergency_oxygen/populate_gas()
-	air_contents.set_moles(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+	air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
 
 
 /obj/item/tank/internals/emergency_oxygen/empty/populate_gas()
@@ -253,8 +253,8 @@
 	air_contents.set_gas(/datum/gas/nitrous_oxide, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.05)
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	air_contents.set_moles(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.95)
-	air_contents.set_moles(/datum/gas/nitrous_oxide, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.05)
+	air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.95)
+	air_contents.set_gas(/datum/gas/nitrous_oxide, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.05)
 // APHELION EDIT ADDITION END
 
 /obj/item/tank/internals/emergency_oxygen/engi/clown/bz
@@ -265,8 +265,8 @@
 	air_contents.set_gas(/datum/gas/bz,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.1)
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	air_contents.set_moles(/datum/gas/oxygen,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.9)
-	air_contents.set_moles(/datum/gas/bz,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.1)
+	air_contents.set_gas(/datum/gas/oxygen,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.9)
+	air_contents.set_gas(/datum/gas/bz,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.1)
 // APHELION EDIT ADDITION END
 
 /obj/item/tank/internals/emergency_oxygen/engi/clown/helium
@@ -278,6 +278,6 @@
 	air_contents.set_gas(/datum/gas/helium, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.25)
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	air_contents.set_moles(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.75)
-	air_contents.set_moles(/datum/gas/helium, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.25)
+	air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.75)
+	air_contents.set_gas(/datum/gas/helium, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.25)
 // APHELION EDIT ADDITION END

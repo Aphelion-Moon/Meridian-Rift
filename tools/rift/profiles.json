@@ -170,6 +170,99 @@
 			},
 			"minimum_tests": 1,
 			"resource_sample_seconds": 5
+		},
+		"dogmos-qualification": {
+			"config_source": "repository",
+			"default_map": "_maps/icebox.json",
+			"compile_defines": [],
+			"dreamdaemon_flags": ["-trusted", "-verbose"],
+			"readiness_rule": {
+				"id": "initialization_complete",
+				"file": "data/logs/rift/runtime.log.json",
+				"category": "runtime",
+				"message_pattern": "^Initializations complete within ",
+				"case_insensitive": false
+			},
+			"fatal_log_rules": [
+				{
+					"id": "runtime_error",
+					"file": "data/logs/rift/runtime.log.json",
+					"category": "runtime",
+					"message_pattern": "runtime error:",
+					"case_insensitive": true,
+					"max_occurrences": 0
+				},
+				{
+					"id": "dogmos_panic",
+					"file": "dogmos_panic.log",
+					"category": null,
+					"message_pattern": ".+",
+					"case_insensitive": false,
+					"max_occurrences": 0
+				}
+			],
+			"required_children": [],
+			"artifact_rules": [],
+			"default_timeouts": {
+				"wall_seconds": 12600,
+				"idle_seconds": 900,
+				"readiness_seconds": 600
+			},
+			"minimum_tests": 1,
+			"resource_sample_seconds": 5
+		},
+		"dogmos-test-compile": {
+			"config_source": "ci",
+			"default_map": "_maps/metastation.json",
+			"compile_defines": ["CIBUILDING", "SKIP_LAVALAND", "SKIP_SPACE_LEVELS"],
+			"dreamdaemon_flags": ["-close", "-trusted", "-verbose"],
+			"readiness_rule": {
+				"id": "initialization_complete",
+				"file": "data/logs/rift/runtime.log.json",
+				"category": "runtime",
+				"message_pattern": "^Initializations complete within ",
+				"case_insensitive": false
+			},
+			"fatal_log_rules": [
+				{
+					"id": "runtime_error",
+					"file": "data/logs/rift/runtime.log.json",
+					"category": "runtime",
+					"message_pattern": "runtime error:",
+					"case_insensitive": true,
+					"max_occurrences": 0
+				},
+				{
+					"id": "dogmos_panic",
+					"file": "dogmos_panic.log",
+					"category": null,
+					"message_pattern": ".+",
+					"case_insensitive": false,
+					"max_occurrences": 0
+				}
+			],
+			"required_children": [],
+			"artifact_rules": [
+				{
+					"id": "clean_run",
+					"path": "data/logs/rift/clean_run.lk",
+					"required": true,
+					"nonempty": true
+				},
+				{
+					"id": "unit_tests",
+					"path": "data/unit_tests.json",
+					"required": true,
+					"nonempty": true
+				}
+			],
+			"default_timeouts": {
+				"wall_seconds": 2400,
+				"idle_seconds": 300,
+				"readiness_seconds": 600
+			},
+			"minimum_tests": 1,
+			"resource_sample_seconds": 5
 		}
 	}
 }

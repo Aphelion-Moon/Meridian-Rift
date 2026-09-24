@@ -115,21 +115,12 @@ class AgentDocumentTests(unittest.TestCase):
 		guide.write_text("# Dogmos integration\n", encoding="utf-8")
 		self.assertTrue(any("Dogmos ownership exception" in error for error in check_repository(root)))
 
-	def test_gameplay_event_contract_is_required(self) -> None:
+	def test_narrative_rewording_does_not_require_literal_policy_phrases(self) -> None:
 		root, errors = self.valid_fixture()
 		self.assertEqual(errors, [])
-		guide = root / "docs" / "agent" / "dogmos-gameplay-events.md"
-		guide.write_text("# Dogmos gameplay events\n", encoding="utf-8")
-		self.assertTrue(any("bounded gameplay-event contract" in error for error in check_repository(root)))
-
-	def test_mcp_powershell_and_memory_boundaries_are_required(self) -> None:
-		root, errors = self.valid_fixture()
-		self.assertEqual(errors, [])
-		(root / "docs" / "agent" / "dogmos-verification.md").write_text("# Verification\n", encoding="utf-8")
-		(root / "docs" / "agent" / "dogmos-performance-and-memory.md").write_text("# Memory\n", encoding="utf-8")
-		fixture_errors = check_repository(root)
-		self.assertTrue(any("MCP/PowerShell boundary" in error for error in fixture_errors))
-		self.assertTrue(any("DreamDaemon memory policy" in error for error in fixture_errors))
+		for name in ("dogmos-gameplay-events", "dogmos-verification", "dogmos-performance-and-memory"):
+			(root / "docs" / "agent" / f"{name}.md").write_text("# Reviewed narrative\n", encoding="utf-8")
+		self.assertEqual(check_repository(root), [])
 
 	def test_public_tech_memo_links_are_checked(self) -> None:
 		root, errors = self.valid_fixture()

@@ -75,3 +75,12 @@
 
 /// Maximum turfs visited by one Dogmos maintenance or visual chunk.
 #define DOGMOS_ACTIVE_TURFS_WALK_BATCH_SIZE 100
+
+// APHELION EDIT ADDITION START - DOGMOS
+/// Resumable active-turf pass before native dispatch.
+#define DOGMOS_ACTIVE_MAINTENANCE 0
+/// Maintenance complete; native gas/reactions have not yet been dispatched.
+#define DOGMOS_ACTIVE_NATIVE 1
+/// Native dispatch complete; callbacks and visual settlement may still be pending.
+#define DOGMOS_ACTIVE_SETTLEMENT 2
+// APHELION EDIT ADDITION END

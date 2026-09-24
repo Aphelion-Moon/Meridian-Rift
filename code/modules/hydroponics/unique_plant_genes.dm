@@ -687,7 +687,7 @@
 	stank.temperature = T20C // without this the room would eventually freeze and miasma mining would be easier
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	stank.set_moles(/datum/gas/miasma, (seed.yield + 6) * 3.5 * MIASMA_CORPSE_MOLES * seconds_per_tick) // this process is only being called about 2/7 as much as corpses so this is 12-32 times a corpses
+	stank.set_gas(/datum/gas/miasma, (seed.yield + 6) * 3.5 * MIASMA_CORPSE_MOLES * seconds_per_tick) // this process is only being called about 2/7 as much as corpses so this is 12-32 times a corpses
 	stank.set_temperature(T20C) // without this the room would eventually freeze and miasma mining would be easier
 	// APHELION EDIT ADDITION END
 	tray_turf.assume_air(stank)

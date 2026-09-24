@@ -42,5 +42,7 @@
 		"Kennel's first machinery page did not enforce the 250-row server maximum.")
 	TEST_ASSERT_EQUAL(length(second_page["rows"]), 1, \
 		"Kennel's second machinery page did not contain the one remaining row.")
-	TEST_ASSERT_EQUAL(first_page["total"], 251, \
-		"Kennel's machinery page did not report the complete matching-row count.")
+	TEST_ASSERT_EQUAL(first_page["total"], 250, \
+		"Kennel's count must describe matches within this candidate page.")
+	TEST_ASSERT_EQUAL(second_page["total"], 1, "The second page count included other candidate pages.")
+	TEST_ASSERT_EQUAL(first_page["pages"], 2, "The candidate page count changed while filtering.")

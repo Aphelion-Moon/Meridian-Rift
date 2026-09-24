@@ -235,7 +235,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/list/sharer_gases = sharer.get_gases()
 	var/list/gas_list = our_gases | sharer_gases
 
-	var/temperature_delta = return_temperature() - sharer.return_temperature()
+	var/self_temperature_before = return_temperature()
+	var/sharer_temperature_before = sharer.return_temperature()
+	var/temperature_delta = self_temperature_before - sharer_temperature_before
 	var/temp_delta_threshold = abs(temperature_delta) > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER
 
 	var/old_self_heat_capacity = 0
@@ -295,12 +297,18 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		var/new_self_heat_capacity = old_self_heat_capacity + heat_capacity_sharer_to_self - heat_capacity_self_to_sharer
 		var/new_sharer_heat_capacity = old_sharer_heat_capacity + heat_capacity_self_to_sharer - heat_capacity_sharer_to_self
 
-		//transfer of thermal energy (via changed heat capacity) between self and sharer
+		// Both energy balances use the same pre-transfer state.
+		var/self_temperature_after = self_temperature_before
+		var/sharer_temperature_after = sharer_temperature_before
 		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
-			set_temperature((old_self_heat_capacity*return_temperature() - heat_capacity_self_to_sharer*return_temperature() + heat_capacity_sharer_to_self*sharer.return_temperature())/new_self_heat_capacity)
+			self_temperature_after = (old_self_heat_capacity*self_temperature_before - heat_capacity_self_to_sharer*self_temperature_before + heat_capacity_sharer_to_self*sharer_temperature_before)/new_self_heat_capacity
 
 		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
-			sharer.set_temperature((old_sharer_heat_capacity*sharer.return_temperature()-heat_capacity_sharer_to_self*sharer.return_temperature() + heat_capacity_self_to_sharer*return_temperature())/new_sharer_heat_capacity)
+			sharer_temperature_after = (old_sharer_heat_capacity*sharer_temperature_before - heat_capacity_sharer_to_self*sharer_temperature_before + heat_capacity_self_to_sharer*self_temperature_before)/new_sharer_heat_capacity
+		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			set_temperature(self_temperature_after)
+		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			sharer.set_temperature(sharer_temperature_after)
 		//thermal energy of the system (self and sharer) is unchanged
 
 			if(abs(old_sharer_heat_capacity) > MINIMUM_HEAT_CAPACITY)

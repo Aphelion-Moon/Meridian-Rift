@@ -13,7 +13,7 @@
 	var/datum/pipeline/parent = null
 	// APHELION EDIT ADDITION START - DOGMOS
 	/// Pipe meters that wake when this pipe's pipeline reconciles.
-	var/list/obj/machinery/meter/dogmos_pipeline_meters = list()
+	var/list/obj/machinery/meter/dogmos_pipeline_meters
 	// APHELION EDIT ADDITION END
 
 	paintable = TRUE

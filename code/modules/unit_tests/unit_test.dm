@@ -301,7 +301,7 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 
 		duration = REALTIMEOFDAY - duration
 		GLOB.current_test = null
-		GLOB.failed_any_test |= !test.succeeded
+		GLOB.failed_any_test |= !test.succeeded || runtimes_during // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: GLOB.failed_any_test |= !test.succeeded
 
 		var/list/log_entry = list()
 		var/list/fail_reasons = test.fail_reasons
@@ -328,15 +328,15 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		test_output_desc += " [duration / 10]s"
 		if(duration > 10)
 			GLOB.test_run_times[test_path] = duration
-		if (test.succeeded)
+		if (test.succeeded && !runtimes_during) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if (test.succeeded)
 			log_world("[TEST_OUTPUT_GREEN("PASS")] [test_output_desc]")
 
 	log_world("::endgroup::")
 
-	if (!test.succeeded && !skip_test)
+	if ((!test.succeeded || runtimes_during) && !skip_test) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if (!test.succeeded && !skip_test)
 		log_world("::error::[TEST_OUTPUT_RED("FAIL")] [test_output_desc]")
 
-	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
+	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded && !runtimes_during ? UNIT_TEST_PASSED : UNIT_TEST_FAILED) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
 	/* // APHELION EDIT REMOVAL START - DOGMOS
 	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path)
 	*/ // APHELION EDIT REMOVAL END
@@ -345,8 +345,16 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path, "runtimes" = runtimes_during, "duration" = skip_test ? 0 : duration)
 	// APHELION EDIT ADDITION END
 
+	// APHELION EDIT ADDITION START - DOGMOS - attribute synchronous teardown errors
+	var/runtimes_before_teardown = GLOB.total_runtimes
 	qdel(test)
-	return FALSE // APHELION EDIT ADDITION - DOGMOS
+	var/teardown_runtimes = GLOB.total_runtimes - runtimes_before_teardown
+	if(teardown_runtimes)
+		var/list/result = test_results[test_path]
+		result["runtimes"] += teardown_runtimes
+		result["status"] = UNIT_TEST_FAILED
+		GLOB.failed_any_test = TRUE
+	// APHELION EDIT ADDITION END
 
 /// Builds (and returns) a list of atoms that we shouldn't initialize in generic testing, like Create and Destroy.
 /// It is appreciated to add the reason why the atom shouldn't be initialized if you add it to this list.
@@ -517,23 +525,23 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 
 	var/list/test_results = list()
 
+	// APHELION EDIT ADDITION START - DOGMOS - authoritative selected-suite inventory
+	var/list/test_inventory = list()
+	for(var/datum/unit_test/unit_path as anything in tests_to_run)
+		if(ispath(unit_path, /datum/unit_test/focus_only) || unit_path::abstract_type == unit_path || unit_path::times_to_run <= 0)
+			continue
+		test_inventory += "[unit_path]"
+	fdel("data/unit_test_inventory.json")
+	file("data/unit_test_inventory.json") << json_encode(test_inventory)
+	// APHELION EDIT ADDITION END
+
 	//Hell code, we're bound to end the round somehow so let's stop if from ending while we work
 	SSticker.delay_end = TRUE
-	var/abort_suite = FALSE // APHELION EDIT ADDITION - DOGMOS
 	for(var/datum/unit_test/unit_path as anything in tests_to_run)
 		var/loop_count = unit_path::times_to_run
 		for(var/i in 1 to loop_count)
 			CHECK_TICK //We check tick first because the unit test we run last may be so expensive that checking tick will lock up this loop forever
-			/* // APHELION EDIT REMOVAL START - DOGMOS
 			RunUnitTest(unit_path, test_results)
-			*/ // APHELION EDIT REMOVAL END
-			// APHELION EDIT ADDITION START - DOGMOS
-			if(RunUnitTest(unit_path, test_results))
-				abort_suite = TRUE
-				break
-		if(abort_suite)
-			break
-	// APHELION EDIT ADDITION END
 	SSticker.delay_end = FALSE
 
 	log_world("::group::Expensive Unit Test Times")

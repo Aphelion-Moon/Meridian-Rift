@@ -34,7 +34,7 @@ if($Mode -eq 'Capture'){
     @{completed=($scenario -ne 'incomplete');windows=$windows}|ConvertTo-Json -Depth 4|Set-Content -LiteralPath (Join-Path $OutputDirectory 'capture.json')
 }
 '@
-foreach($scenario in @('check-only','not-admin','check-failure','missing-native','mismatched-native','already-armed','occupied-port','output-exists','timeout','cleanup-failure','replacement-marker','settings-write-failure','incomplete','deployment-changed','success')){
+foreach($scenario in @('check-only','deployment-only','not-admin','check-failure','missing-native','mismatched-native','already-armed','occupied-port','output-exists','timeout','cleanup-failure','replacement-marker','settings-write-failure','incomplete','deployment-changed','success')){
     $caseRoot=Join-Path $EvidenceRoot $scenario
     $game=Join-Path $caseRoot 'game with spaces'
     New-Item -ItemType Directory -Path $caseRoot,(Join-Path $game 'data')|Out-Null
@@ -44,6 +44,7 @@ foreach($scenario in @('check-only','not-admin','check-failure','missing-native'
     Set-Content -LiteralPath (Join-Path $caseRoot 'scenario.txt') -Value $scenario
     Set-Content -LiteralPath (Join-Path $caseRoot 'bundle.json') -Value '{}'
     [IO.File]::WriteAllText((Join-Path $game 'tgstation.dmb'),'fixture build')
+    if($scenario -ne 'deployment-only'){[IO.File]::WriteAllText((Join-Path $game 'tgstation.dme'),'fixture source checkout')}
     $verifierDirectory = Join-Path $game 'tools/dogmos'
     New-Item -ItemType Directory -Path $verifierDirectory -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot '../../../tools/dogmos/verify_contract.py') -Destination $verifierDirectory
@@ -79,7 +80,7 @@ foreach($scenario in @('check-only','not-admin','check-failure','missing-native'
     $calls=@();if(Test-Path -LiteralPath $callsPath){$calls=@(Get-Content -LiteralPath $callsPath)}
     $expectCalls=switch($scenario){
         'not-admin' {@()}
-        {$_ -in @('check-only','check-failure','missing-native','mismatched-native','already-armed','occupied-port','output-exists')} {@('Check')}
+        {$_ -in @('check-only','check-failure','deployment-only','missing-native','mismatched-native','already-armed','occupied-port','output-exists')} {@('Check')}
         'settings-write-failure' {@('Check','ArmNextRound')}
         default {@('Check','ArmNextRound','Capture')}
     }

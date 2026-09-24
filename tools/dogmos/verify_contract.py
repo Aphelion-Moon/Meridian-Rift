@@ -154,16 +154,62 @@ def verify_installed(root: Path, *, target: str | None = None) -> dict[str, Any]
     return manifest
 
 
+def verify_qualification(root: Path, record_path: Path) -> dict[str, Any]:
+    """Validate an external evidence record without promoting the artifact identity manifest."""
+    record = json.loads(record_path.read_text(encoding="utf-8"), object_pairs_hook=_duplicate_guard)
+    if not isinstance(record, dict) or record.get("schema_version") != 1 or record.get("kind") != "dogmos-qualification":
+        raise ContractError("unsupported qualification record")
+    manifest = verify_installed(root, target=record.get("target"))
+    library = native_files(manifest)[0]
+    identity = {
+        "native_revision": manifest["source_revision"],
+        "source_sha256": manifest["source_sha256"],
+        "binary_sha256": manifest["artifacts"][library],
+        "bindings_sha256": manifest["artifacts"]["dogmos_bindings.dm"],
+        "features": manifest["features"],
+        "target": manifest["target"],
+    }
+    if any(record.get(key) != value for key, value in identity.items()):
+        raise ContractError("qualification does not match installed artifact identity")
+    if not isinstance(record.get("game_revision"), str) or not HEX_40.fullmatch(record["game_revision"]):
+        raise ContractError("qualification requires an exact game revision")
+    if _sha256(_required_file(root / "tgstation.dmb", "qualified game binary")) != record.get("game_binary_sha256"):
+        raise ContractError("qualification does not match the compiled game")
+    workload = record.get("workload")
+    if not isinstance(workload, dict) or not isinstance(workload.get("id"), str) or not workload["id"]:
+        raise ContractError("qualification requires a named workload")
+    if record.get("acceptance") != "human-reviewed":
+        raise ContractError("qualification requires recorded human review of workload and results")
+    evidence = record.get("evidence")
+    if not isinstance(evidence, list) or not evidence:
+        raise ContractError("qualification requires hashed evidence files")
+    for entry in evidence:
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            raise ContractError("invalid qualification evidence entry")
+        path = (record_path.parent / entry["path"]).resolve()
+        if not path.is_relative_to(record_path.parent.resolve()):
+            raise ContractError("qualification evidence escapes record directory")
+        if _sha256(_required_file(path, "qualification evidence")) != entry.get("sha256"):
+            raise ContractError("qualification evidence digest mismatch")
+    return record
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify the installed in-process Dogmos artifacts")
     commands = parser.add_subparsers(dest="command", required=True)
     installed = commands.add_parser("verify-installed")
     installed.add_argument("--root", type=Path, required=True)
+    qualification = commands.add_parser("verify-qualification")
+    qualification.add_argument("--root", type=Path, required=True)
+    qualification.add_argument("--record", type=Path, required=True)
     args = parser.parse_args()
     try:
-        verify_installed(args.root)
+        if args.command == "verify-qualification":
+            verify_qualification(args.root, args.record)
+        else:
+            verify_installed(args.root)
         return 0
-    except (ContractError, OSError) as error:
+    except (ContractError, OSError, ValueError) as error:
         print(f"Dogmos contract verification failed: {error}")
         return 1
 

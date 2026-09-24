@@ -5,10 +5,7 @@
 	///negative for faster, positive for slower
 	var/slowdown = 0
 	// APHELION EDIT ADDITION START - DOGMOS
-	/// Dogmos Kennel (code/controllers/subsystem/dogmos_kennel_events.dm): last-seen value per reaction
-	/// type from air.reaction_results, so check_kennel_reaction_of_interest() can tell a genuinely new
-	/// reaction result from air.reaction_results' cumulative, never-cleared old entries. Null until this
-	/// turf's first reaction - LAZYACCESS/LAZYSET only, never read/written directly.
+	/// Last observed reaction invocation's list identity; equal yields in a new invocation still log.
 	var/list/kennel_last_reaction_results
 	// APHELION EDIT ADDITION END
 

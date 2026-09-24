@@ -25,3 +25,5 @@ The reviewed game revision is a source baseline and must remain an ancestor of c
 When authorities disagree, identify the contract first. A tg bugfix should normally go upstream. A deliberate Meridian behavior belongs in Aphelion-owned code. Compiler behavior outranks parser acceptance. The repository's complete build/test path outranks a direct compile or focused-test claim. A generated binding or native artifact is authoritative only as part of the verified paired contract in [native artifacts](native-artifacts.md).
 
 Do not invent remote identity or infer parity from branch names. Record exact revisions and paths. Preserve human-authored creative content and protected critical infrastructure as required by the root guidance.
+
+The reviewed revisions above are historical review anchors. For a current build, inspect the working tree and the source snapshot identified by both Dogmos locks; a revision alone does not identify uncommitted native edits.

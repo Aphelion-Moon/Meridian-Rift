@@ -11,6 +11,27 @@
  * Changes to the expected values are behavior changes and need explicit review.
  */
 
+/** Bidirectional exchange must conserve energy and give the same result in either argument order. */
+/datum/unit_test/gas_mixture_golden_share
+
+/datum/unit_test/gas_mixture_golden_share/Run()
+	for(var/reversed in list(FALSE, TRUE))
+		var/datum/gas_mixture/hot = allocate(/datum/gas_mixture)
+		var/datum/gas_mixture/cold = allocate(/datum/gas_mixture)
+		hot.set_moles(/datum/gas/oxygen, 10)
+		cold.set_moles(/datum/gas/nitrogen, 10)
+		hot.set_temperature(1000)
+		cold.set_temperature(300)
+		if(reversed)
+			cold.share(hot, 0.5, 0.5)
+		else
+			hot.share(cold, 0.5, 0.5)
+		TEST_ASSERT(abs(hot.return_temperature() - 650) < 0.01, "Hot mixture temperature depended on write/argument order.")
+		TEST_ASSERT(abs(cold.return_temperature() - 650) < 0.01, "Cold mixture temperature depended on write/argument order.")
+		TEST_ASSERT(abs(hot.thermal_energy() + cold.thermal_energy() - 260000) < 1, "Bidirectional sharing did not conserve thermal energy.")
+		for(var/gas in list(/datum/gas/oxygen, /datum/gas/nitrogen))
+			TEST_ASSERT_EQUAL(hot.get_moles(gas) + cold.get_moles(gas), 10, "Sharing changed the total amount of a species.")
+
 /// Builds a standard-atmosphere mixture: O2 + N2 at T20C in one cell's worth of volume.
 /datum/unit_test/proc/allocate_standard_mix()
 	var/datum/gas_mixture/mix = allocate(/datum/gas_mixture)
@@ -112,6 +133,16 @@
 	// A copy is independent of its source.
 	target.adjust_moles(/datum/gas/oxygen, 100)
 	TEST_ASSERT(target.total_moles() > source.total_moles(), "Modifying a copy must not affect the original")
+
+	var/list/members = list(source, target)
+	var/list/neighbors = list(target)
+	var/source_refs_before = refcount(source)
+	var/target_refs_before = refcount(target)
+	for(var/iteration in 1 to 20)
+		dogmos_reconcile_pipeline_mixtures(members)
+		source.__settlement_batch(neighbors)
+	TEST_ASSERT_EQUAL(refcount(source), source_refs_before, "Native batch operations retained the source mixture.")
+	TEST_ASSERT_EQUAL(refcount(target), target_refs_before, "Native batch operations retained a member mixture.")
 
 /// Reaction gating: hypernoblium suppresses reactions outright before any of them run.
 /datum/unit_test/gas_mixture_golden_reactions

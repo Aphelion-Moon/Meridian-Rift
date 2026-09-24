@@ -115,7 +115,7 @@ SUBSYSTEM_DEF(air)
 	setup_atmos_machinery()
 	setup_pipenets()
 	setup_turf_visuals()
-	setup_kennel_overlays() // APHELION EDIT ADDITION - DOGMOS
+	diagnostics.setup_kennel_overlays() // APHELION EDIT ADDITION - DOGMOS
 	process_adjacent_rebuild()
 	atmos_handbooks_init()
 	RegisterSignal(SSdcs, COMSIG_GLOB_EXPLOSION, PROC_REF(on_kennel_explosion)) // APHELION EDIT ADDITION - DOGMOS
@@ -258,11 +258,11 @@ SUBSYSTEM_DEF(air)
 	// Cadence half of Kennel slow mode (payload half is in /datum/dogmos_kennel/ui_data()): pushed every
 	// cycle when off, every KENNEL_SLOW_MODE_PUSH_INTERVAL-th cycle when on (~2s at wait = 0.5s) via a
 	// small round-robin cursor, so multiple simultaneous viewers don't multiply real per-cycle push cost.
-	if(!kennel_slow_mode)
+	if(!diagnostics.kennel_slow_mode)
 		SStgui.update_uis(GLOB.dogmos_kennel)
 	else
-		kennel_push_cursor = (kennel_push_cursor + 1) % KENNEL_SLOW_MODE_PUSH_INTERVAL
-		if(!kennel_push_cursor)
+		diagnostics.kennel_push_cursor = (diagnostics.kennel_push_cursor + 1) % KENNEL_SLOW_MODE_PUSH_INTERVAL
+		if(!diagnostics.kennel_push_cursor)
 			SStgui.update_uis(GLOB.dogmos_kennel)
 
 // APHELION EDIT ADDITION END
@@ -403,7 +403,7 @@ SUBSYSTEM_DEF(air)
 			continue
 		if(ismachinery(processing_entry) && !QDELETED(processing_entry))
 			var/obj/machinery/profiled_machine = processing_entry
-			check_kennel_machine_cost(profiled_machine, TICK_USAGE_TO_MS(kennel_tick_start))
+			diagnostics.check_kennel_machine_cost(profiled_machine, TICK_USAGE_TO_MS(kennel_tick_start))
 		// APHELION EDIT ADDITION END
 		if(MC_TICK_CHECK)
 			return
@@ -489,29 +489,28 @@ SUBSYSTEM_DEF(air)
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(!resumed)
-		dogmos_active_turf_stages_complete = FALSE
-		dogmos_active_walk_complete = FALSE
+		dogmos_active_phase = DOGMOS_ACTIVE_MAINTENANCE
 		active_turfs_walk_cursor = 0
 		dogmos_visual_refresh_cursor = 0
-		dogmos_walk_prefetch_end = 0
-		dogmos_visual_prefetch_end = 0
+		dogmos_walk_chunk_end = 0
+		dogmos_visual_chunk_end = 0
 		dogmos_visual_refresh_batch = active_turfs.Copy()
 		dogmos_reacted_turfs = list()
 
-	if(!dogmos_active_walk_complete)
+	if(dogmos_active_phase == DOGMOS_ACTIVE_MAINTENANCE)
 		while(walk_active_turfs_batch())
 			if(state != SS_RUNNING)
 				return
 		if(MC_TICK_CHECK)
 			// APHELION EDIT ADDITION END
 			return
-		dogmos_active_walk_complete = TRUE // APHELION EDIT ADDITION - DOGMOS
+		dogmos_active_phase = DOGMOS_ACTIVE_NATIVE // APHELION EDIT ADDITION - DOGMOS
 
 	// APHELION EDIT ADDITION START - DOGMOS
-	if(!dogmos_active_turf_stages_complete)
+	if(dogmos_active_phase == DOGMOS_ACTIVE_NATIVE)
 		// Native diffusion queues reactions and callbacks in the same stage.
 		process_turfs_auxtools(TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE))
-		dogmos_active_turf_stages_complete = TRUE
+		dogmos_active_phase = DOGMOS_ACTIVE_SETTLEMENT
 
 	if(finish_turf_processing_auxtools(TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)))
 		pause() // still draining queued reactions/visuals/pressure-difference callbacks - resume next fire()
@@ -1110,7 +1109,7 @@ GLOBAL_LIST_EMPTY(colored_images)
 		gas_leaker.atmos_processing = FALSE
 	// APHELION EDIT ADDITION END
 	atmos_machinery -= machine
-	kennel_machine_cost_ewma -= REF(machine) // APHELION EDIT ADDITION - DOGMOS
+	diagnostics.kennel_machine_cost_ewma -= REF(machine) // APHELION EDIT ADDITION - DOGMOS
 
 	// If we're currently processing atmos machines, there's a chance this machine is in
 	// the currentrun list, which is a cache of atmos_machinery. Remove it from that list
@@ -1168,24 +1167,9 @@ GLOBAL_LIST_EMPTY(colored_images)
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
 	data["conducting_size"] = dogmos_heat_graph_count()
-	// The legacy excited_groups snapshot is not updated by Rust; expose live counters below instead.
-	data["low_pressure_turfs"] = low_pressure_turfs
-	data["high_pressure_turfs"] = high_pressure_turfs
-	data["group_turfs_processed"] = num_group_turfs_processed
-	data["equalize_processed"] = num_equalize_processed
-	data["space_boundary_size"] = dogmos_space_boundary_count()
-	data["dogmos_costs"] = list(
-		"turfs" = cost_turfs,
-		"groups" = cost_groups,
-		"highpressure" = cost_highpressure,
-		"equalize" = cost_equalize,
-		"superconductivity" = cost_superconductivity,
-		"post_process" = cost_post_process,
-	)
 	// APHELION EDIT ADDITION END
 	data["frozen"] = can_fire
 	data["show_all"] = display_all_groups
-	data["realistic_space_radiation"] = realistic_space_radiation // APHELION EDIT ADDITION - DOGMOS
 	data["fire_count"] = times_fired
 	#ifdef TRACK_MAX_SHARE
 	data["display_max"] = TRUE

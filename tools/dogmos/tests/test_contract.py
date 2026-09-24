@@ -137,5 +137,40 @@ class PairedInstallTests(unittest.TestCase):
             after = {name: (root / name).read_bytes() if (root / name).exists() else None for name in paths}
             self.assertEqual(after, before)
 
+class QualificationTests(unittest.TestCase):
+    def test_external_record_binds_all_identity_and_evidence_without_promoting_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = fixture(root)
+            (root / 'tgstation.dmb').write_bytes(b'fixture game')
+            evidence = root / 'evidence.txt'
+            evidence.write_bytes(b'fixture evidence, not actual qualification')
+            record = dict(schema_version=1, kind='dogmos-qualification',
+                target=manifest['target'], native_revision=manifest['source_revision'],
+                source_sha256=manifest['source_sha256'], binary_sha256=manifest['artifacts']['dogmos.dll'],
+                bindings_sha256=manifest['artifacts']['dogmos_bindings.dm'], features=manifest['features'],
+                game_revision='d' * 40, game_binary_sha256=hashlib.sha256(b'fixture game').hexdigest(),
+                workload={'id': 'fixture-only'}, acceptance='human-reviewed',
+                evidence=[{'path': 'evidence.txt', 'sha256': hashlib.sha256(evidence.read_bytes()).hexdigest()}])
+            record_path = root / 'qualification.json'
+            def verify(value):
+                record_path.write_text(json.dumps(value), encoding='utf-8')
+                return contract.verify_qualification(root, record_path)
+            lock_before = (root / 'dogmos.lock.json').read_bytes()
+            self.assertEqual(verify(record), record)
+            for key, value in [('native_revision', 'e' * 40), ('source_sha256', 'e' * 64),
+                               ('binary_sha256', 'e' * 64), ('bindings_sha256', 'e' * 64),
+                               ('features', []), ('game_revision', 'short'), ('target', None),
+                               ('game_binary_sha256', 'e' * 64), ('workload', {}),
+                               ('acceptance', 'not-reviewed'), ('evidence', []),
+                               ('evidence', [{'path': '../outside.txt', 'sha256': 'a' * 64}])]:
+                with self.subTest(field=key), self.assertRaises(contract.ContractError):
+                    verify({**record, key: value})
+            evidence.write_bytes(b'changed')
+            with self.assertRaisesRegex(contract.ContractError, 'digest mismatch'):
+                verify(record)
+            self.assertEqual((root / 'dogmos.lock.json').read_bytes(), lock_before)
+
+
 if __name__ == '__main__':
     unittest.main()

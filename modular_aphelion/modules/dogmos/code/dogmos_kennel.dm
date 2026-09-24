@@ -1,5 +1,4 @@
-/** Shared admin panel for Dogmos telemetry and controls. State remains on SSair so all viewers see the
- * same values while this facade stays independent from AtmosControlPanel. */
+/** Shared admin panel; diagnostics own histories and each UI session owns its browse request. */
 GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 
 #define KENNEL_BROWSE_PAGE_SIZE 250
@@ -11,8 +10,15 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 	var/browse_page = 1
 	/// Bounded machinery browse search requested by this UI session.
 	var/browse_search = ""
+	/// Panel requested by this viewer; unused panels do not build expensive datasets.
+	var/selected_tab = "Overview"
+	/// Last explicit browse request result; refreshed by page/search actions.
+	var/list/browse_result
 
 /datum/dogmos_kennel
+	/// Shared cheap sample, refreshed at most once per second across all viewers.
+	var/list/process_metrics
+	var/process_metrics_sampled_at = -INFINITY
 	// APHELION EDIT ADDITION START - DOGMOS
 	/// Number of process-metric snapshots requested by Kennel UI production.
 	var/producer_process_metric_samples = 0
@@ -75,62 +81,29 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 	if(!isnum(requested_page) || requested_page != requested_page || requested_page == INFINITY || requested_page == -INFINITY)
 		requested_page = 1
 
-	var/total = 0
-	for(var/datum/candidate as anything in candidates)
-		// APHELION EDIT ADDITION START - DOGMOS
-		candidates_inspected++
-		// APHELION EDIT ADDITION END
-		if(!ismachinery(candidate))
-			continue
-		var/obj/machinery/machine = candidate
-		var/area/candidate_area = get_area(machine)
-		if(length(search) && !findtext("[machine.name] [candidate_area?.name]", search))
-			continue
-		total++
-
-	var/total_pages = max(1, CEILING(total / KENNEL_BROWSE_PAGE_SIZE, 1))
+	// Pages partition candidates, not matches: even a no-match search has bounded work.
+	var/total_pages = max(1, CEILING(length(candidates) / KENNEL_BROWSE_PAGE_SIZE, 1))
 	var/page = clamp(round(requested_page), 1, total_pages)
 	var/first_row = (page - 1) * KENNEL_BROWSE_PAGE_SIZE + 1
-	var/last_row = min(first_row + KENNEL_BROWSE_PAGE_SIZE - 1, total)
-	var/matched_row = 0
+	var/last_row = min(first_row + KENNEL_BROWSE_PAGE_SIZE - 1, length(candidates))
 	var/list/rows = list()
-	for(var/datum/candidate as anything in candidates)
-		// APHELION EDIT ADDITION START - DOGMOS
+	for(var/index in first_row to last_row)
+		var/datum/candidate = candidates[index]
 		candidates_inspected++
-		// APHELION EDIT ADDITION END
-		if(!ismachinery(candidate))
+		if(!ismachinery(candidate) || QDELETED(candidate))
 			continue
 		var/obj/machinery/machine = candidate
 		var/area/candidate_area = get_area(machine)
 		if(length(search) && !findtext("[machine.name] [candidate_area?.name]", search))
 			continue
-		matched_row++
-		if(matched_row < first_row)
-			continue
-		if(matched_row > last_row)
-			break
-		rows += list(list(
-			"ref" = REF(machine),
-			"name" = machine.name,
-			"area" = candidate_area?.name,
-		))
-
-	// APHELION EDIT ADDITION START - DOGMOS
+		rows += list(list("ref" = REF(machine), "name" = machine.name, "area" = candidate_area?.name))
 	producer_machinery_candidates_inspected = min(producer_machinery_candidates_inspected + candidates_inspected, SHORT_REAL_LIMIT)
-	// APHELION EDIT ADDITION END
-	return list(
-		"rows" = rows,
-		"page" = page,
-		"pages" = total_pages,
-		"total" = total,
-		"search" = search,
-	)
+	return list("rows" = rows, "page" = page, "pages" = total_pages, "total" = length(rows), "search" = search)
 
 /** Returns live Dogmos telemetry and bounded Kennel histories for the Overview tab. */
 /datum/dogmos_kennel/ui_data(mob/user)
 	// APHELION EDIT ADDITION START - DOGMOS
 	producer_active_viewers = length(open_uis)
-	producer_process_metric_samples = min(producer_process_metric_samples + 1, SHORT_REAL_LIMIT)
 	// APHELION EDIT ADDITION END
 	var/list/data = list()
 	// APHELION EDIT ADDITION START - DOGMOS
@@ -175,35 +148,42 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 	data["equalize_enabled"] = SSair.equalize_enabled
 	data["fire_count"] = SSair.times_fired
 	data["showing_user"] = user.hud_used.atmos_debug_overlays
-	data["kennel_slow_mode"] = SSair.kennel_slow_mode
+	data["kennel_slow_mode"] = SSair.diagnostics.kennel_slow_mode
 	// APHELION EDIT ADDITION START - DOGMOS
 	data["flamethrower_directional_spread"] = SSair.flamethrower_directional_spread
-	data["process_metrics"] = dogmos_process_metrics_snapshot()
+	if(world.time >= process_metrics_sampled_at + 1 SECONDS)
+		process_metrics = dogmos_process_metrics_snapshot()
+		process_metrics_sampled_at = world.time
+		producer_process_metric_samples = min(producer_process_metric_samples + 1, SHORT_REAL_LIMIT)
+	data["process_metrics"] = process_metrics
 	data["event_counts"] = list(
-		"fire_groups" = length(SSair.recent_fire_groups),
-		"high_cost_zones" = length(SSair.recent_high_cost_zones),
-		"explosions" = length(SSair.recent_explosions),
-		"reactions_of_interest" = length(SSair.recent_reactions_of_interest),
-		"breaches" = length(SSair.recent_breaches),
+		"fire_groups" = length(SSair.diagnostics.recent_fire_groups),
+		"high_cost_zones" = length(SSair.diagnostics.recent_high_cost_zones),
+		"explosions" = length(SSair.diagnostics.recent_explosions),
+		"reactions_of_interest" = length(SSair.diagnostics.recent_reactions_of_interest),
+		"breaches" = length(SSair.diagnostics.recent_breaches),
 	)
 	// APHELION EDIT ADDITION END
 
-	// Slow mode gates only the potentially large machinery browse.
-	SSair.kennel_prune_expired_pins()
-	data["recent_fire_groups"] = SSair.recent_fire_groups
-	data["recent_explosions"] = SSair.recent_explosions
-	data["recent_high_cost_zones"] = SSair.recent_high_cost_zones
-	data["recent_reactions_of_interest"] = SSair.recent_reactions_of_interest
-	data["recent_breaches"] = SSair.recent_breaches
-	data["structures_of_interest"] = SSair.structures_of_interest
+	// Histories are already bounded; browsing is produced only on an explicit viewer request.
+	SSair.diagnostics.kennel_prune_expired_pins()
+	data["recent_fire_groups"] = SSair.diagnostics.recent_fire_groups
+	data["recent_explosions"] = SSair.diagnostics.recent_explosions
+	data["recent_high_cost_zones"] = SSair.diagnostics.recent_high_cost_zones
+	data["recent_reactions_of_interest"] = SSair.diagnostics.recent_reactions_of_interest
+	data["recent_breaches"] = SSair.diagnostics.recent_breaches
+	data["structures_of_interest"] = SSair.diagnostics.structures_of_interest
 
-	if(!SSair.kennel_slow_mode)
-		var/datum/tgui/dogmos_kennel/kennel_ui = SStgui.get_open_ui(user, src)
-		var/list/browse_page = build_machinery_browse_page(
+	var/datum/tgui/dogmos_kennel/kennel_ui = SStgui.get_open_ui(user, src)
+	data["selected_tab"] = kennel_ui?.selected_tab || "Overview"
+	if(kennel_ui?.selected_tab == "Structures/Machines")
+		if(!kennel_ui.browse_result)
+			kennel_ui.browse_result = build_machinery_browse_page(
 			SSair.atmos_machinery,
 			kennel_ui?.browse_search,
 			kennel_ui?.browse_page,
 		)
+		var/list/browse_page = kennel_ui.browse_result
 		if(kennel_ui)
 			kennel_ui.browse_search = browse_page["search"]
 			kennel_ui.browse_page = browse_page["page"]
@@ -222,11 +202,11 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 	)
 	// APHELION EDIT ADDITION END
 
-	data["kennel_fire_group_notable_size"] = SSair.kennel_fire_group_notable_size
-	data["kennel_reaction_magnitude_threshold"] = SSair.kennel_reaction_magnitude_threshold
-	data["kennel_machine_cost_ms_threshold"] = SSair.kennel_machine_cost_ms_threshold
-	data["kennel_profile_reactions"] = SSair.kennel_profile_reactions
-	data["kennel_high_cost_ms_threshold"] = SSair.kennel_high_cost_ms_threshold
+	data["kennel_fire_group_notable_size"] = SSair.diagnostics.kennel_fire_group_notable_size
+	data["kennel_reaction_magnitude_threshold"] = SSair.diagnostics.kennel_reaction_magnitude_threshold
+	data["kennel_machine_cost_ms_threshold"] = SSair.diagnostics.kennel_machine_cost_ms_threshold
+	data["kennel_profile_reactions"] = SSair.diagnostics.kennel_profile_reactions
+	data["kennel_high_cost_ms_threshold"] = SSair.diagnostics.kennel_high_cost_ms_threshold
 	return data
 
 /datum/dogmos_kennel/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
@@ -236,6 +216,12 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 		return
 	var/datum/tgui/dogmos_kennel/kennel_ui = ui
 	switch(action)
+		if("kennel_select_tab")
+			if(!istype(kennel_ui) || !(params["tab"] in list("Overview", "Fire Groups", "High-Cost Zones", "Explosions", "Profiling", "Structures/Machines", "Breaches", "About", "Glossary", "Credits")))
+				return
+			kennel_ui.selected_tab = params["tab"]
+			kennel_ui.browse_result = null
+			return TRUE
 		// APHELION EDIT ADDITION START - DOGMOS
 		if("kennel_explain_reactions")
 			var/atom/target = get_turf(user)
@@ -259,7 +245,7 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 			return TRUE
 		// APHELION EDIT ADDITION END
 		if("move-to-target")
-			var/turf/target = SSair.resolve_kennel_jump_target(params["spot"])
+			var/turf/target = SSair.diagnostics.resolve_kennel_jump_target(params["spot"])
 			if(!target || !user)
 				return
 			user.forceMove(target)
@@ -278,10 +264,10 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 			return TRUE
 		// APHELION EDIT ADDITION END
 		if("toggle_kennel_slow_mode")
-			SSair.kennel_slow_mode = !SSair.kennel_slow_mode
+			SSair.diagnostics.kennel_slow_mode = !SSair.diagnostics.kennel_slow_mode
 			return TRUE
 		if("toggle_kennel_profile_reactions")
-			SSair.kennel_profile_reactions = !SSair.kennel_profile_reactions
+			SSair.diagnostics.kennel_profile_reactions = !SSair.diagnostics.kennel_profile_reactions
 			return TRUE
 		if("toggle_user_display")
 			user.hud_used.atmos_debug_overlays = !user.hud_used.atmos_debug_overlays
@@ -303,16 +289,17 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 			var/obj/machinery/target = locate(params["ref"]) in SSair.atmos_machinery
 			if(!target)
 				return
-			SSair.kennel_pin_structure(target, "manually leashed", null)
+			SSair.diagnostics.kennel_pin_structure(target, "manually leashed", null)
 			return TRUE
 		if("kennel_unpin")
-			SSair.kennel_unpin_structure(params["ref"])
+			SSair.diagnostics.kennel_unpin_structure(params["ref"])
 			return TRUE
 		if("kennel_set_browse_search")
 			if(!istype(kennel_ui))
 				return
 			kennel_ui.browse_search = normalize_browse_search(params["search"])
 			kennel_ui.browse_page = 1
+			kennel_ui.browse_result = null
 			return TRUE
 		if("kennel_set_browse_page")
 			if(!istype(kennel_ui))
@@ -321,6 +308,7 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 			if(!isnum(page) || page != page || page == INFINITY || page == -INFINITY)
 				return
 			kennel_ui.browse_page = max(1, round(page))
+			kennel_ui.browse_result = null
 			return TRUE
 		if("kennel_set_threshold")
 			var/value = normalize_threshold(params["threshold"], params["value"])
@@ -328,13 +316,13 @@ GLOBAL_DATUM_INIT(dogmos_kennel, /datum/dogmos_kennel, new())
 				return
 			switch(params["threshold"])
 				if("fire_group_notable_size")
-					SSair.kennel_fire_group_notable_size = value
+					SSair.diagnostics.kennel_fire_group_notable_size = value
 				if("reaction_magnitude_threshold")
-					SSair.kennel_reaction_magnitude_threshold = value
+					SSair.diagnostics.kennel_reaction_magnitude_threshold = value
 				if("machine_cost_ms_threshold")
-					SSair.kennel_machine_cost_ms_threshold = value
+					SSair.diagnostics.kennel_machine_cost_ms_threshold = value
 				if("high_cost_ms_threshold")
-					SSair.kennel_high_cost_ms_threshold = value
+					SSair.diagnostics.kennel_high_cost_ms_threshold = value
 				else
 					return
 			return TRUE

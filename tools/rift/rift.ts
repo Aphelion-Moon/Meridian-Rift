@@ -270,7 +270,10 @@ const validateLogRule = (value: unknown, includeMaximum: boolean): LogRule => {
   };
 };
 
-const validateProfile = (value: unknown): RiftProfile => {
+const validateProfile = (
+  value: unknown,
+  qualification = false,
+): RiftProfile => {
   const profile = assertRecord(value, 'profile');
   assertKnownKeys(profile, PROFILE_KEYS, 'profile');
 
@@ -378,7 +381,7 @@ const validateProfile = (value: unknown): RiftProfile => {
         timeouts.wall_seconds,
         'wall_seconds',
         1,
-        MAX_WALL_TIMEOUT_SECONDS,
+        qualification ? 12600 : MAX_WALL_TIMEOUT_SECONDS,
       ),
       idle_seconds: requireInteger(
         timeouts.idle_seconds,
@@ -431,7 +434,10 @@ export const parseProfileDocument = (text: string): ProfileDocument => {
     if (!/^[a-z][a-z0-9_-]*$/.test(name)) {
       throw new Error(`invalid profile name: ${name}`);
     }
-    validatedProfiles[name] = validateProfile(value);
+    validatedProfiles[name] = validateProfile(
+      value,
+      name === 'dogmos-qualification',
+    );
   }
 
   return { schema_version: 1, profiles: validatedProfiles };
@@ -554,7 +560,7 @@ export const parseCli = (
           environment.MERIDIAN_RIFT_WALL_TIMEOUT_SECONDS,
           'wall timeout',
           1,
-          MAX_WALL_TIMEOUT_SECONDS,
+          12600,
         );
   let idleTimeoutSeconds: number | null =
     environment.MERIDIAN_RIFT_IDLE_TIMEOUT_SECONDS === undefined
@@ -666,7 +672,7 @@ export const parseCli = (
           optionValue!,
           'wall timeout',
           1,
-          MAX_WALL_TIMEOUT_SECONDS,
+          12600,
         );
         break;
       case '--idle-timeout-seconds':
@@ -745,7 +751,7 @@ export const parseCli = (
           optionValue!,
           'run duration',
           command === 'soak' ? 30 : 0,
-          1800,
+          10800,
         );
         break;
       case '--minimum-tests':
@@ -793,6 +799,11 @@ export const parseCli = (
     return { command, runId: reportRunId, format };
   }
 
+  if (profile !== 'dogmos-qualification') {
+    if ((wallTimeoutSeconds ?? 0) > MAX_WALL_TIMEOUT_SECONDS)
+      throw new Error('wall timeout must be 1-3600');
+    if ((runSeconds ?? 0) > 1800) throw new Error('run seconds must be 0-1800');
+  }
   const common: CommonOptions = {
     format,
     networkMode,
@@ -977,6 +988,7 @@ export const validateMapPath = (
   repositoryRoot: string,
   value: string,
   completionEvidence = false,
+  qualification = false,
 ): string => {
   const mapsRoot = fsSync.realpathSync(path.join(repositoryRoot, '_maps'));
   const candidate = path.resolve(repositoryRoot, value);
@@ -1001,7 +1013,8 @@ export const validateMapPath = (
   if (
     completionEvidence &&
     relativePath.toLowerCase() !== '_maps/metastation.json' &&
-    relativePath.toLowerCase() !== '_maps/runtimestation.json'
+    relativePath.toLowerCase() !== '_maps/runtimestation.json' &&
+    !(qualification && relativePath.toLowerCase() === '_maps/icebox.json')
   ) {
     throw new Error(
       'completion evidence requires a representative map: _maps/metastation.json or _maps/runtimestation.json',
@@ -1529,8 +1542,11 @@ const collectCompileArtifacts = async (
   return { dmb, rsc, artifacts };
 };
 
-export const compileFast = async (
+type CompilePlan = { defines: string[]; focus: string[] };
+
+const executeCompilePlan = async (
   request: CompileRequest,
+  plan: CompilePlan,
 ): Promise<CompileOutcome> => {
   const scratchBase = path.join(
     request.repository.root,
@@ -1547,9 +1563,22 @@ export const compileFast = async (
     }
   }
 
-  await fs.copyFile(request.repository.dme, scratchDme);
   const output: string[] = [];
+  let ownsScratch = false;
   try {
+    await fs.copyFile(
+      request.repository.dme,
+      scratchDme,
+      fsSync.constants.COPYFILE_EXCL,
+    );
+    ownsScratch = true;
+    if (plan.focus.length > 0) {
+      await fs.appendFile(
+        scratchDme,
+        `${plan.focus.map((value) => `TEST_FOCUS(${validateFocusType(value)})`).join('\n')}\n`,
+        'utf8',
+      );
+    }
     const runner = request.processRunner ?? startOwnedProcess;
     const processResult = await runner(
       {
@@ -1557,7 +1586,7 @@ export const compileFast = async (
         executable: request.byond.dm,
         args: [
           '-DCBT',
-          ...request.defines.map((value) => `-D${value}`),
+          ...plan.defines.map((value) => `-D${value}`),
           scratchDme,
         ],
         cwd: request.repository.root,
@@ -1584,13 +1613,17 @@ export const compileFast = async (
     );
     return { evidence: 'compiler', ...collected, reused: false };
   } finally {
-    await Promise.all(
-      [scratchDme, scratchDmb, scratchRsc].map((scratch) =>
-        fs.rm(scratch, { force: true }),
-      ),
-    );
+    if (ownsScratch)
+      await Promise.all(
+        [scratchDme, scratchDmb, scratchRsc].map((scratch) =>
+          fs.rm(scratch, { force: true }),
+        ),
+      );
   }
 };
+
+export const compileFast = (request: CompileRequest): Promise<CompileOutcome> =>
+  executeCompilePlan(request, { defines: request.defines, focus: [] });
 
 const ALLOWED_BUILD_TARGETS = new Set([
   'build',
@@ -1850,6 +1883,7 @@ export const createDeployment = async (
 const COLLECTION_GLOBS = [
   'data/logs/rift/**/*',
   'data/unit_tests.json',
+  'data/unit_test_inventory.json',
   'data/screenshots_new/**/*',
   'dogmos_panic.log',
 ] as const;
@@ -2292,6 +2326,41 @@ const serverHooks = (recorder: RunRecorder): ProcessHooks => ({
   },
 });
 
+/** The owned run context assembles server execution; workflows supply their completion policy. */
+const startServerInContext = (
+  context: WorkflowContext,
+  deployment: Deployment,
+  command: CommonOptions,
+  port: number,
+  activityPaths: string[],
+): OwnedProcess =>
+  (context.processRunner ?? startOwnedProcess)(
+    {
+      role: 'dreamdaemon',
+      executable: context.byond.dreamDaemon,
+      args: [
+        'tgstation.dmb',
+        String(port),
+        ...context.profile.dreamdaemon_flags,
+        '-params',
+        'log-directory=rift',
+      ],
+      cwd: deployment.root,
+      env: context.environment,
+      wallTimeoutMs:
+        (command.wallTimeoutSeconds ??
+          context.profile.default_timeouts.wall_seconds) * 1000,
+      idleTimeoutMs:
+        (command.idleTimeoutSeconds ??
+          context.profile.default_timeouts.idle_seconds) * 1000,
+      activityPaths: [
+        path.join(deployment.gameLogDir, 'runtime.log.json'),
+        ...activityPaths,
+      ],
+    },
+    serverHooks(context.recorder),
+  );
+
 export const runServerWorkflow = async (
   context: WorkflowContext,
   command: Extract<RiftCommand, { command: 'run' }>,
@@ -2359,33 +2428,9 @@ export const runServerWorkflow = async (
       port: command.port,
     });
 
-    const runner = context.processRunner ?? startOwnedProcess;
-    server = runner(
-      {
-        role: 'dreamdaemon',
-        executable: context.byond.dreamDaemon,
-        args: [
-          'tgstation.dmb',
-          String(command.port),
-          ...context.profile.dreamdaemon_flags,
-          '-params',
-          'log-directory=rift',
-        ],
-        cwd: deployment.root,
-        env: context.environment,
-        wallTimeoutMs:
-          (command.wallTimeoutSeconds ??
-            context.profile.default_timeouts.wall_seconds) * 1000,
-        idleTimeoutMs:
-          (command.idleTimeoutSeconds ??
-            context.profile.default_timeouts.idle_seconds) * 1000,
-        activityPaths: [
-          path.join(deployment.gameLogDir, 'runtime.log.json'),
-          path.join(deployment.gameLogDir, 'runtime.log'),
-        ],
-      },
-      serverHooks(context.recorder),
-    );
+    server = startServerInContext(context, deployment, command, command.port, [
+      path.join(deployment.gameLogDir, 'runtime.log'),
+    ]);
     const observation = await waitForReadiness({
       deployment,
       profile: context.profile,
@@ -2712,7 +2757,11 @@ export const runSoakWorkflow = async (
   context: WorkflowContext,
   command: Extract<RiftCommand, { command: 'soak' }>,
 ): Promise<RiftSummary> => {
-  if (command.runSeconds < 30 || command.runSeconds > 1800) {
+  if (
+    command.runSeconds < 30 ||
+    command.runSeconds >
+      (context.profileName === 'dogmos-qualification' ? 10800 : 1800)
+  ) {
     throw new Error('soak duration must be 30-1800 seconds');
   }
   let deployment: Deployment | null = null;
@@ -2788,33 +2837,9 @@ export const runSoakWorkflow = async (
     });
 
     const serverPort = context.serverPort ?? (await findAvailableTcpPort());
-    const runner = context.processRunner ?? startOwnedProcess;
-    server = runner(
-      {
-        role: 'dreamdaemon',
-        executable: context.byond.dreamDaemon,
-        args: [
-          'tgstation.dmb',
-          String(serverPort),
-          ...context.profile.dreamdaemon_flags,
-          '-params',
-          'log-directory=rift',
-        ],
-        cwd: deployment.root,
-        env: context.environment,
-        wallTimeoutMs:
-          (command.wallTimeoutSeconds ??
-            context.profile.default_timeouts.wall_seconds) * 1000,
-        idleTimeoutMs:
-          (command.idleTimeoutSeconds ??
-            context.profile.default_timeouts.idle_seconds) * 1000,
-        activityPaths: [
-          path.join(deployment.gameLogDir, 'runtime.log.json'),
-          path.join(deployment.gameLogDir, 'runtime.log'),
-        ],
-      },
-      serverHooks(context.recorder),
-    );
+    server = startServerInContext(context, deployment, command, serverPort, [
+      path.join(deployment.gameLogDir, 'runtime.log'),
+    ]);
     const readiness = await waitForReadiness({
       deployment,
       profile: context.profile,
@@ -3073,6 +3098,65 @@ export type UnitTestSummary = {
   failed: number;
   skipped: number;
   failures: UnitTestResult[];
+  identities: string[];
+};
+
+export const normalizeTestIdentity = (value: string): string => {
+  const identity = value.startsWith('/') ? value : `/${value}`;
+  try {
+    return validateFocusType(identity);
+  } catch {
+    throw new Error('unit_test_result_invalid: invalid test identity');
+  }
+};
+
+/** Results must cover the concrete suite selected by the compiled test driver. */
+export const assertTestCompleteness = (
+  tests: UnitTestSummary,
+  requested: string[],
+  inventory: unknown,
+) => {
+  if (
+    !Array.isArray(inventory) ||
+    inventory.length === 0 ||
+    inventory.some((name) => typeof name !== 'string')
+  ) {
+    throw new Error('unit_test_inventory_invalid');
+  }
+  const expected = inventory.map(normalizeTestIdentity).sort();
+  if (
+    new Set(expected).size !== expected.length ||
+    JSON.stringify(expected) !== JSON.stringify(tests.identities)
+  ) {
+    throw new Error('unit_test_inventory_mismatch');
+  }
+  if (requested.length > 0) {
+    const focus = [...new Set(requested.map(normalizeTestIdentity))].sort();
+    if (JSON.stringify(focus) !== JSON.stringify(expected)) {
+      throw new Error('unit_test_focus_mismatch');
+    }
+  }
+};
+
+/** BYOND 516 may return 176 at natural -close shutdown, after complete clean evidence. */
+export const classifyTestExit = (
+  result: ProcessResult,
+  byondVersion: string,
+): string => {
+  if (
+    result.termination !== 'natural' ||
+    !(
+      result.exitCode === 0 ||
+      (result.exitCode === 176 && byondVersion === '516.1687')
+    )
+  ) {
+    throw new Error(
+      `unit_test_process_failed: ${result.termination} ${String(result.exitCode)}`,
+    );
+  }
+  return result.exitCode === 176
+    ? 'byond_516_close_after_complete_clean_evidence'
+    : 'zero_exit';
 };
 
 export const parseUnitTestResults = (value: unknown): UnitTestSummary => {
@@ -3081,7 +3165,7 @@ export const parseUnitTestResults = (value: unknown): UnitTestSummary => {
   }
   const results: UnitTestResult[] = [];
   const names = new Set<string>();
-  for (const result of Object.values(value)) {
+  for (const [key, result] of Object.entries(value)) {
     if (!isRecord(result) || Array.isArray(result)) {
       throw new Error('unit_test_result_invalid: expected test result');
     }
@@ -3103,14 +3187,19 @@ export const parseUnitTestResults = (value: unknown): UnitTestSummary => {
       (result.runtimes as number) < 0 ||
       !Number.isInteger(result.status) ||
       ![0, 1, 2].includes(result.status as number) ||
-      names.has(result.name)
+      names.has(normalizeTestIdentity(result.name)) ||
+      normalizeTestIdentity(key) !== normalizeTestIdentity(result.name)
     ) {
       throw new Error('unit_test_result_invalid: malformed test result');
     }
-    names.add(result.name);
-    results.push(result as UnitTestResult);
+    names.add(normalizeTestIdentity(result.name));
+    results.push({
+      ...result,
+      status: result.runtimes > 0 ? 1 : result.status,
+    } as UnitTestResult);
   }
   return {
+    identities: [...names].sort(),
     recorded: results.length,
     passed: results.filter((result) => result.status === 0).length,
     failed: results.filter((result) => result.status === 1).length,
@@ -3176,71 +3265,10 @@ export const prepareUnitTestCompile = async (
   focus: string[],
 ): Promise<CompileOutcome> => {
   await invokeTestBuildPrerequisites(request);
-  const scratchBase = path.join(
-    request.repository.root,
-    `.rift-${request.runId}.test`,
-  );
-  const scratchDme = `${scratchBase}.dme`;
-  const scratchDmb = `${scratchBase}.dmb`;
-  const scratchRsc = `${scratchBase}.rsc`;
-  for (const scratch of [scratchDme, scratchDmb, scratchRsc]) {
-    if (fsSync.existsSync(scratch)) {
-      throw new Error(
-        `scratch artifact already exists: ${path.basename(scratch)}`,
-      );
-    }
-  }
-  await fs.copyFile(request.repository.dme, scratchDme);
-  if (focus.length > 0) {
-    await fs.appendFile(
-      scratchDme,
-      `${focus.map((value) => `TEST_FOCUS(${validateFocusType(value)})`).join('\n')}\n`,
-      'utf8',
-    );
-  }
-  const output: string[] = [];
-  try {
-    const runner = request.processRunner ?? startOwnedProcess;
-    const processResult = await runner(
-      {
-        role: 'dreammaker',
-        executable: request.byond.dm,
-        args: [
-          '-DCBT',
-          '-DCIBUILDING',
-          ...request.defines.map((value) => `-D${value}`),
-          scratchDme,
-        ],
-        cwd: request.repository.root,
-        env: request.environment,
-        wallTimeoutMs: request.wallTimeoutMs,
-        idleTimeoutMs: request.idleTimeoutMs,
-      },
-      compileHooks(request.recorder, 'compile', output),
-    ).result;
-    throwForProcessTermination(processResult, 'compile');
-    if (processResult.exitCode !== 0) {
-      throw new Error(
-        `compile_process_failed: ${processResult.termination} ${String(processResult.exitCode)}`,
-      );
-    }
-    assertDmDiagnostics(output.join('\n'));
-    await requireFreshArtifact(scratchDmb);
-    await requireFreshArtifact(scratchRsc);
-    const collected = await collectCompileArtifacts(
-      scratchDmb,
-      scratchRsc,
-      request,
-      'new',
-    );
-    return { evidence: 'compiler', ...collected, reused: false };
-  } finally {
-    await Promise.all(
-      [scratchDme, scratchDmb, scratchRsc].map((scratch) =>
-        fs.rm(scratch, { force: true }),
-      ),
-    );
-  }
+  return executeCompilePlan(request, {
+    defines: ['CIBUILDING', ...request.defines],
+    focus,
+  });
 };
 
 const requireProfileArtifacts = async (
@@ -3349,33 +3377,9 @@ export const runTestWorkflow = async (
     ) {
       throw new Error('usage_error: invalid test server port');
     }
-    const runner = context.processRunner ?? startOwnedProcess;
-    server = runner(
-      {
-        role: 'dreamdaemon',
-        executable: context.byond.dreamDaemon,
-        args: [
-          'tgstation.dmb',
-          String(serverPort),
-          ...context.profile.dreamdaemon_flags,
-          '-params',
-          'log-directory=rift',
-        ],
-        cwd: deployment.root,
-        env: context.environment,
-        wallTimeoutMs:
-          (command.wallTimeoutSeconds ??
-            context.profile.default_timeouts.wall_seconds) * 1000,
-        idleTimeoutMs:
-          (command.idleTimeoutSeconds ??
-            context.profile.default_timeouts.idle_seconds) * 1000,
-        activityPaths: [
-          path.join(deployment.gameLogDir, 'runtime.log.json'),
-          path.join(deployment.data, 'unit_tests.json'),
-        ],
-      },
-      serverHooks(context.recorder),
-    );
+    server = startServerInContext(context, deployment, command, serverPort, [
+      path.join(deployment.data, 'unit_tests.json'),
+    ]);
     const observation = await waitForReadiness({
       deployment,
       profile: context.profile,
@@ -3409,6 +3413,10 @@ export const runTestWorkflow = async (
         throw new Error('unit_test_result_invalid: unreadable JSON');
       });
     const tests = parseUnitTestResults(rawResults);
+    const inventory = await Bun.file(
+      path.join(deployment.data, 'unit_test_inventory.json'),
+    ).json();
+    assertTestCompleteness(tests, command.focus, inventory);
     await context.recorder.setTests({
       recorded: tests.recorded,
       passed: tests.passed,
@@ -3431,10 +3439,18 @@ export const runTestWorkflow = async (
       );
     }
     await requireProfileArtifacts(deployment, context.profile);
+    const exitClassification = classifyTestExit(
+      processResult,
+      context.byond.version,
+    );
     await context.recorder.emit(
       'stage_finished',
       'test',
-      { recorded: tests.recorded },
+      {
+        recorded: tests.recorded,
+        identities: tests.identities,
+        exitClassification,
+      },
       'passed',
     );
     await collectDeploymentArtifacts(
@@ -4321,7 +4337,12 @@ export const runMain = async (
         );
       }
       try {
-        command.map = validateMapPath(repository.root, selectedMap, true);
+        command.map = validateMapPath(
+          repository.root,
+          selectedMap,
+          true,
+          command.profile === 'dogmos-qualification',
+        );
       } catch (error) {
         throw new RiftError(
           'usage_error',

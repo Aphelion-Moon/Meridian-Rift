@@ -49,7 +49,7 @@
 	burp.temperature = affected_mob.bodytemperature
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	burp.set_moles(/datum/gas/tritium, MOLES_GAS_VISIBLE)
+	burp.set_gas(/datum/gas/tritium, MOLES_GAS_VISIBLE)
 	burp.set_temperature(affected_mob.bodytemperature)
 	// APHELION EDIT ADDITION END
 	if(hot_chance && prob(tritium_burp_hot_chance))

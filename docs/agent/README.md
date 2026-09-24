@@ -16,7 +16,7 @@
 | Rust-to-DM gameplay effects and callback replacement | [Dogmos gameplay events](dogmos-gameplay-events.md)                                                                                |
 | Dogmos memory and performance                        | [Dogmos performance and memory](dogmos-performance-and-memory.md)                                                                  |
 | Dogmos compile, boot, and tests                      | [Dogmos verification](dogmos-verification.md)                                                                                      |
-| Shim/service/bindings contract                       | [Native artifacts](native-artifacts.md)                                                                                            |
+| In-process native/bindings contract                       | [Native artifacts](native-artifacts.md)                                                                                            |
 
 The root [AGENTS.md](../../AGENTS.md) is the concise mandatory entry point. These guides add Meridian and Dogmos decisions without replacing inherited tgstation, Nova, Rust, or BYOND documentation.
 

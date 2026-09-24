@@ -417,8 +417,8 @@
 	/// Largest spot_list has ever been over this group's lifetime (including any groups merged into it -
 	/// merge_hot_groups() carries the sacrificial group's peak forward). Dogmos Kennel
 	/// (code/controllers/subsystem/dogmos_kennel_events.dm) records the group into
-	/// SSair.recent_fire_groups when it's about to be deleted, gated on this being at least
-	/// SSair.kennel_fire_group_notable_size, so single-tile flare-ups don't spam the list.
+	/// SSair.diagnostics.recent_fire_groups when it's about to be deleted, gated on this being at least
+	/// SSair.diagnostics.kennel_fire_group_notable_size, so single-tile flare-ups don't spam the list.
 	var/peak_size = 0
 
 
@@ -435,9 +435,9 @@
 		x_coord -= target_turf.x
 		y_coord -= target_turf.y
 	if(!length(spot_list))
-		if(peak_size >= SSair.kennel_fire_group_notable_size)
+		if(peak_size >= SSair.diagnostics.kennel_fire_group_notable_size)
 			var/area/group_area = target_turf ? get_area(target_turf) : null
-			SSair.record_kennel_event(SSair.recent_fire_groups, list(
+			SSair.diagnostics.record_kennel_event(SSair.diagnostics.recent_fire_groups, list(
 				"time" = round_timestamp(),
 				"jump_to" = target_turf ? REF(target_turf) : null,
 				"area" = group_area ? group_area.name : null,

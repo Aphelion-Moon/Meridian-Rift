@@ -274,17 +274,17 @@
 	if(amount < DECOMPRESSION_FLOOR_RIP_MIN_MOLES || !isfloorturf(src) || decompression_floor_rip_resistant)
 		return
 	var/area/breach_area = get_area(src)
-	SSair.record_kennel_event(SSair.recent_breaches, list(
+	SSair.diagnostics.record_kennel_event(SSair.diagnostics.recent_breaches, list(
 		"time" = round_timestamp(),
 		"jump_to" = REF(src),
 		"area" = breach_area ? breach_area.name : null,
 		"moles_lost" = round(amount, DOGMOS_MOLE_DISPLAY_PRECISION), // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: "moles_lost" = round(amount, 0.1),
 	), src)
 	for(var/obj/machinery/breach_adjacent_machine in src)
-		SSair.kennel_pin_structure(breach_adjacent_machine, "breach-adjacent", SSair.kennel_auto_pin_duration)
-	SSair.kennel_mark_overlay_recent(SSair.kennel_overlay_breach_turfs, KENNEL_OVERLAY_BREACH, src)
+		SSair.diagnostics.kennel_pin_structure(breach_adjacent_machine, "breach-adjacent", SSair.diagnostics.kennel_auto_pin_duration)
+	SSair.diagnostics.kennel_mark_overlay_recent(SSair.diagnostics.kennel_overlay_breach_turfs, KENNEL_OVERLAY_BREACH, src)
 	// APHELION EDIT ADDITION START - DOGMOS
-	if(SSair.kennel_decompression_feedback_available(src))
+	if(SSair.diagnostics.kennel_decompression_feedback_available(src))
 		visible_message(
 			span_danger("The hull tears open as pressure rips away the floor!"),
 			span_userdanger("The floor tears open under the pressure!"),

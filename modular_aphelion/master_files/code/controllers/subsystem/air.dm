@@ -15,31 +15,16 @@
 	equalize_hard_turf_limit = SSair.equalize_hard_turf_limit
 	dogmos_blocked_turf_temperature_authority = SSair.dogmos_blocked_turf_temperature_authority
 	dogmos_equalize_performance_profile = SSair.dogmos_equalize_performance_profile
-	dogmos_active_turf_stages_complete = SSair.dogmos_active_turf_stages_complete
+	dogmos_active_phase = SSair.dogmos_active_phase
 	dogmos_equalize_stage_complete = SSair.dogmos_equalize_stage_complete
 	dogmos_visual_refresh_batch = SSair.dogmos_visual_refresh_batch?.Copy() || list()
-	dogmos_active_walk_complete = SSair.dogmos_active_walk_complete
 	dogmos_visual_refresh_cursor = SSair.dogmos_visual_refresh_cursor
-	dogmos_walk_prefetch_end = SSair.dogmos_walk_prefetch_end
-	dogmos_visual_prefetch_end = SSair.dogmos_visual_prefetch_end
+	dogmos_walk_chunk_end = SSair.dogmos_walk_chunk_end
+	dogmos_visual_chunk_end = SSair.dogmos_visual_chunk_end
 	dogmos_reacted_turfs = SSair.dogmos_reacted_turfs.Copy()
 
-	kennel_slow_mode = SSair.kennel_slow_mode
-	kennel_profile_reactions = SSair.kennel_profile_reactions
-	kennel_high_cost_ms_threshold = SSair.kennel_high_cost_ms_threshold
-	kennel_fire_group_notable_size = SSair.kennel_fire_group_notable_size
-	kennel_reaction_magnitude_threshold = SSair.kennel_reaction_magnitude_threshold
-	kennel_machine_cost_ms_threshold = SSair.kennel_machine_cost_ms_threshold
-	kennel_auto_pin_duration = SSair.kennel_auto_pin_duration
-	kennel_push_cursor = 0
 	active_turfs_walk_cursor = SSair.active_turfs_walk_cursor
 
-	recent_fire_groups = SSair.recent_fire_groups
-	recent_high_cost_zones = SSair.recent_high_cost_zones
-	recent_explosions = SSair.recent_explosions
-	recent_reactions_of_interest = SSair.recent_reactions_of_interest
-	recent_breaches = SSair.recent_breaches
-	structures_of_interest = SSair.structures_of_interest
 
 	cached_cost = SSair.cached_cost
 	cost_atoms = SSair.cost_atoms
@@ -66,6 +51,8 @@
 	dogmos_heat_registration_changes = SSair.dogmos_heat_registration_changes
 
 	dogmos_reactions = init_dogmos_reactions(gas_reactions)
-	recover_kennel_derived_state(SSair)
+	QDEL_NULL(diagnostics)
+	diagnostics = SSair.diagnostics
+	SSair.diagnostics = null
 	RegisterSignal(SSdcs, COMSIG_GLOB_EXPLOSION, PROC_REF(on_kennel_explosion))
 	// SSdogmos owns the native atmosphere arena; recovery must not initialize it twice.

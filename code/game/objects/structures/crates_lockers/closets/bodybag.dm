@@ -521,8 +521,8 @@
 	air_contents.set_gas(/datum/gas/nitrogen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * N2STANDARD))
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
-	air_contents.set_moles(/datum/gas/oxygen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * O2STANDARD))
-	air_contents.set_moles(/datum/gas/nitrogen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * N2STANDARD))
+	air_contents.set_gas(/datum/gas/oxygen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * O2STANDARD))
+	air_contents.set_gas(/datum/gas/nitrogen, ((ONE_ATMOSPHERE * mol_count) / (R_IDEAL_GAS_EQUATION * inner_temp) * N2STANDARD))
 // APHELION EDIT ADDITION END
 
 /obj/structure/closet/body_bag/environmental/stasis/examine_status(mob/user)

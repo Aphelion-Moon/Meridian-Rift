@@ -645,7 +645,7 @@
 			*/ // APHELION EDIT REMOVAL END
 			// APHELION EDIT ADDITION START - DOGMOS
 			for(var/gas_id in breath.get_gases())
-				breath.set_moles(gas_id, 0) //cant filter gas out of the air unless wet
+				breath.set_gas(gas_id, 0) //cant filter gas out of the air unless wet
 	// APHELION EDIT ADDITION END
 	// NOVA EDIT ADDITION END
 	// Indicates if there are moles of gas in the breath.

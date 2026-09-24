@@ -1,5 +1,16 @@
 /** Verifies the multiz gas-overlay table consumed by Rust visual updates. */
 /datum/unit_test/dogmos_gas_overlays
+	/// Borrowed turf and gas restored before fixture allocations are deleted.
+	var/turf/open/site
+	var/datum/gas_mixture/saved_air
+
+/datum/unit_test/dogmos_gas_overlays/Destroy()
+	if(site)
+		site.air = saved_air
+		site.update_visuals()
+	site = null
+	saved_air = null
+	return ..()
 
 /datum/unit_test/dogmos_gas_overlays/Run()
 	TEST_ASSERT(length(GLOB.gas_data.overlays), \
@@ -32,8 +43,8 @@
 
 	// APHELION EDIT ADDITION START - DOGMOS
 	// Exercise the renderer at and above the old native 20-state cap.
-	var/turf/open/site = run_loc_floor_bottom_left
-	var/datum/gas_mixture/saved_air = site.air
+	site = run_loc_floor_bottom_left
+	saved_air = site.air
 	var/datum/gas_mixture/sample = allocate(/datum/gas_mixture)
 	site.air = sample
 	var/sample_references = refcount(sample)
@@ -48,6 +59,28 @@
 	site.update_visuals()
 	TEST_ASSERT_EQUAL(length(site.atmos_overlay_types), 0, "Consumed gas left a stale overlay.")
 	TEST_ASSERT_EQUAL(refcount(sample), sample_references, "Visual updates retained native gas references.")
-	site.air = saved_air
-	site.update_visuals()
 	// APHELION EDIT ADDITION END
+
+/** Probe only; the surrounding test verifies cleanup after its expected early failure. */
+/datum/unit_test/dogmos_gas_overlays/cleanup_probe
+	abstract_type = /datum/unit_test/dogmos_gas_overlays/cleanup_probe
+
+/datum/unit_test/dogmos_gas_overlays/cleanup_probe/Run()
+	site = run_loc_floor_bottom_left
+	saved_air = site.air
+	site.air = allocate(/datum/gas_mixture)
+	TEST_ASSERT(site.air == saved_air, "expected fixture early-exit probe")
+
+/** Borrowed turf air is restored even when an assertion skips the test body tail. */
+/datum/unit_test/dogmos_gas_overlay_cleanup
+
+/datum/unit_test/dogmos_gas_overlay_cleanup/Run()
+	var/turf/open/site = run_loc_floor_bottom_left
+	var/datum/gas_mixture/original_air = site.air
+	var/datum/unit_test/dogmos_gas_overlays/cleanup_probe/probe = allocate(/datum/unit_test/dogmos_gas_overlays/cleanup_probe)
+	probe.Run()
+	var/probe_failed = !probe.succeeded
+	qdel(probe)
+	TEST_ASSERT(probe_failed, "The fixture did not take its expected early-failure path.")
+	TEST_ASSERT_EQUAL(site.air, original_air, "An early fixture exit retained borrowed test air.")
+	TEST_ASSERT(!QDELETED(site.air), "Fixture cleanup deleted the restored mixture.")
