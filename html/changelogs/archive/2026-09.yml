@@ -497,3 +497,11 @@
   - rscadd: Adds two new pinup bunny contraband posters
   - bugfix: fixes an issue where the tooltips on the escape menu buttons would be
       render behind the buttons themselves
+2026-09-24:
+  vinylspiders:
+  - rscadd: adds the ability to manage and publish your paintings to the web gallery,
+      along with a new achievement for it
+  - rscadd: Art Galaxy app got an upgrade
+  - qol: art can now be saved instantaneously and without a frame. Adding to the station
+      rotation frames still happens the normal way though using the library frames
+  - bugfix: fixes a few issue with the funny portal devices
