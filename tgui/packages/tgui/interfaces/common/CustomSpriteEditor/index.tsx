@@ -48,8 +48,9 @@ function CycleDropdown(props: {
   options: string[];
   selected: string | null | undefined;
   onSelected: (value: string) => void;
+  disabled?: boolean;
 }) {
-  const { options, selected, onSelected } = props;
+  const { options, selected, onSelected, disabled } = props;
   const chevron = (step: number) => (
     <Stack.Item>
       <Button
@@ -58,7 +59,7 @@ function CycleDropdown(props: {
         // so this matches the 22px control height Dropdown sets for itself.
         lineHeight="22px"
         icon={step < 0 ? 'chevron-left' : 'chevron-right'}
-        disabled={options.length <= 1}
+        disabled={disabled || options.length <= 1}
         onClick={() => {
           const next = cycleOption(options, selected, step);
           if (next && next !== selected) onSelected(next);
@@ -72,6 +73,7 @@ function CycleDropdown(props: {
       <Stack.Item grow style={{ minWidth: 0 }}>
         <Dropdown
           width="100%"
+          disabled={disabled}
           options={options}
           menuWidth="max-content"
           selected={selected ?? undefined}
@@ -154,6 +156,7 @@ export const CustomSpriteEditor = ({
     regionMarkings,
     regionMarkingChoices,
     regionEmissive,
+    lockedRegions,
     paletteNotice,
     backgrounds,
     defaultBackground,
@@ -187,6 +190,10 @@ export const CustomSpriteEditor = ({
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
   useEffect(() => setSelectedZone(serverZone ?? null), [focusRevision]);
   const regionLabel = (selectedZone && regionLabels?.[selectedZone]) || '';
+  // Regions the server won't change right now, each with the reason, such as clothing covering it.
+  const lockReason = (zone?: string | null) =>
+    (zone && lockedRegions?.[zone]) || null;
+  const selectedLock = lockReason(selectedZone);
   const viewLabel =
     directions.find(([dir]) => dir === direction)?.[1] ?? 'Front';
   const regionRows = regions?.[direction];
@@ -194,7 +201,7 @@ export const CustomSpriteEditor = ({
   const selectRegionAt = (x: number, y: number) => {
     if (!regionMode) return;
     const zone = regionAt(regionRows, zones, x, y);
-    if (!zone || zone === selectedZone) return;
+    if (!zone || zone === selectedZone || lockReason(zone)) return;
     setSelectedZone(zone);
     act('selectRegion', { zone });
   };
@@ -210,7 +217,9 @@ export const CustomSpriteEditor = ({
       Math.floor(((event.clientX - rect.left) / rect.width) * width),
       Math.floor(((event.clientY - rect.top) / rect.height) * height),
     );
-    if (zone !== hoveredZone) setHoveredZone(zone);
+    // Locked regions can't be picked, so they don't light up either.
+    const hovered = lockReason(zone) ? null : zone;
+    if (hovered !== hoveredZone) setHoveredZone(hovered);
   };
   const lastSaveRevision = useRef(saveRevision);
   const nextDrawingActivity = useRef(0);
@@ -230,8 +239,10 @@ export const CustomSpriteEditor = ({
       : target === 'facial_hair'
         ? 'Custom Facial Hair'
         : bodyZoneLabel
-          ? `Custom ${bodyZoneLabel} ${salon ? 'tattoo' : 'markings'}`
-          : 'Custom Markings';
+          ? `Custom ${bodyZoneLabel} markings`
+          : salon
+            ? 'Custom Tattoo'
+            : 'Custom Markings';
   SpriteEditor.syncBackend('selectColor', editorData.serverSelectedColor);
   useEffect(() => {
     if (!guideUrl || loadedGuide?.url === guideUrl) return;
@@ -292,7 +303,7 @@ export const CustomSpriteEditor = ({
                   ? `Replaces: ${candidate.regions.join(', ')}. `
                   : ''}
                 {candidate.skipped?.length
-                  ? `Skipped: ${candidate.skipped.join(', ')} (not on this body). `
+                  ? `Skipped: ${candidate.skipped.join(', ')}. `
                   : ''}
                 This replaces the current draft. You can undo it.
               </Box>
@@ -385,7 +396,7 @@ export const CustomSpriteEditor = ({
                 <Button
                   color="bad"
                   icon="eraser"
-                  disabled={regionMode && !selectedZone}
+                  disabled={regionMode && (!selectedZone || !!selectedLock)}
                   onClick={() =>
                     regionMode
                       ? act('clear', {
@@ -541,7 +552,9 @@ export const CustomSpriteEditor = ({
                           <span> (not in this view)</span>
                         ) : null}
                       </span>
-                      <Box color="label">Click the body to choose a region</Box>
+                      <Box color={selectedLock ? 'average' : 'label'}>
+                        {selectedLock ?? 'Click the body to choose a region'}
+                      </Box>
                     </Stack.Item>
                   )}
                 </Stack>
@@ -596,8 +609,9 @@ export const CustomSpriteEditor = ({
                             <Button
                               icon="plus"
                               disabled={
+                                !!selectedLock ||
                                 (regionMarkings?.[selectedZone]?.length ?? 0) >=
-                                (maxBaseMarkings ?? 0)
+                                  (maxBaseMarkings ?? 0)
                               }
                               onClick={() =>
                                 act('addBaseMarking', { zone: selectedZone })
@@ -630,6 +644,7 @@ export const CustomSpriteEditor = ({
                                     <Stack.Item grow style={{ minWidth: 0 }}>
                                       <CycleDropdown
                                         options={choices}
+                                        disabled={!!selectedLock}
                                         selected={marking.name}
                                         onSelected={(name) =>
                                           act('setBaseMarking', {
@@ -642,6 +657,7 @@ export const CustomSpriteEditor = ({
                                     </Stack.Item>
                                     <Stack.Item>
                                       <Button
+                                        disabled={!!selectedLock}
                                         tooltip={`Color of ${marking.name}`}
                                         onClick={() =>
                                           act('pickBaseMarkingColor', {
@@ -661,6 +677,7 @@ export const CustomSpriteEditor = ({
                                     <Stack.Item>
                                       <Button
                                         icon="trash"
+                                        disabled={!!selectedLock}
                                         color="bad"
                                         tooltip={`Remove ${marking.name}`}
                                         onClick={() =>
@@ -839,7 +856,8 @@ export const CustomSpriteEditor = ({
                           : emissive[direction]
                       }
                       disabled={
-                        !emissiveAllowed || (regionMode && !selectedZone)
+                        !emissiveAllowed ||
+                        (regionMode && (!selectedZone || !!selectedLock))
                       }
                       tooltip={
                         !emissiveAllowed

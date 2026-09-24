@@ -221,8 +221,8 @@
 	)
 	for(var/list/replacement as anything in invalid)
 		var/list/transaction = deep_copy_list(valid)
-		for(var/key in replacement)
-			transaction[key] = replacement[key]
+		for(var/key, value in replacement)
+			transaction[key] = value
 		TEST_ASSERT(!workspace.new_transaction(transaction), "Rejected move metadata must not enter history: [json_encode(replacement)].")
 	TEST_ASSERT(!(workspace.new_transaction(deep_copy_list(valid)) || length(workspace.undo_stack) || length(workspace.redo_stack) != 1), "Empty moves and malformed moves must preserve redo without recording history.")
 	workspace.redo()

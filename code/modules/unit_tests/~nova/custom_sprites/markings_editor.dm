@@ -63,9 +63,9 @@
 		owned[zone] = points
 	probe.finish(FALSE)
 	var/placed = 0
-	for(var/zone in owned)
+	for(var/zone, owned_points in owned)
 		var/list/points = list()
-		for(var/list/point as anything in owned[zone])
+		for(var/list/point as anything in owned_points)
 			if(placed >= count)
 				break
 			placed++
@@ -234,7 +234,7 @@
 	arm["dirs"] = list("2" = arm["dirs"]["2"])
 	var/list/regions = list(BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), CUSTOM_MARKING_ZONE_TAUR = custom_style_package("markings", CUSTOM_MARKING_ZONE_TAUR, null, null))
 	TEST_ASSERT(editor.show_region_candidate(regions, "import"), "A whole-body import must preview: [editor.transfer_error]")
-	TEST_ASSERT(!(length(editor.candidate["regions"]) != 1 || !("Taur lower body" in editor.candidate["skipped"])), "Regions this body doesn't have are skipped and named.")
+	TEST_ASSERT(!(length(editor.candidate["regions"]) != 1 || !("Taur lower body (not on this body)" in editor.candidate["skipped"])), "Regions this body doesn't have are skipped and named.")
 	TEST_ASSERT(editor.apply_candidate(), "Confirming the import must apply it: [editor.transfer_error]")
 	TEST_ASSERT(editor.workspace.layers[1]["data"]["2"][point[2] + 1][point[1] + 1] == "#fe12abff", "The imported region must replace its pixels.")
 	TEST_ASSERT((BODY_ZONE_L_ARM in editor.workspace.unsaved_rotations()), "Saving after an import rotates the imported regions' previous styles.")
@@ -374,6 +374,7 @@
 	ui.status = UI_UPDATE
 	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_R_LEG), ui, null)
 	TEST_ASSERT(editor.selected_zone == BODY_ZONE_CHEST, "Region actions must respect the window's state, like every other action.")
+	TEST_ASSERT(editor.window_title() == "Custom Markings", "Character setup's whole-body window is titled Custom Markings: [editor.window_title()]")
 	editor.finish(FALSE)
 
 /datum/unit_test/custom_sprite_markings_editor_selection_authority/Run()
@@ -523,4 +524,72 @@
 	TEST_ASSERT(editor.save_drawing(), "Saving an emission-only change must succeed: [editor.save_error]")
 	TEST_ASSERT(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]?["emissive"]?["2"], "An emission change alone must rewrite the painted region.")
 	TEST_ASSERT(json_encode(preferences.custom_limb_markings[BODY_ZONE_R_LEG]) == leg_json, "An emission change must leave other regions alone.")
+	editor.finish(FALSE)
+
+/// A whole-body editor that locks the left arm, as the salon does with a covered region.
+/datum/custom_sprite_editor/markings/unified_test/locking
+	/// Whether the left arm is locked right now.
+	var/arm_locked = TRUE
+
+/datum/custom_sprite_editor/markings/unified_test/locking/locked_regions()
+	. = list()
+	if(arm_locked)
+		.[BODY_ZONE_L_ARM] = "The left arm is covered."
+
+/datum/unit_test/custom_sprite_markings_editor_locked_regions/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
+	// A first editor maps the body, so the saved arm paint lands on a pixel the arm owns.
+	var/datum/custom_sprite_editor/markings/unified_test/probe = new(preferences, BODY_ZONE_CHEST)
+	var/list/arm_point = custom_sprite_test_region_pixel(probe, BODY_ZONE_L_ARM)
+	var/list/chest_point = custom_sprite_test_region_pixel(probe, BODY_ZONE_CHEST)
+	probe.finish(FALSE)
+	LAZYSET(preferences.custom_limb_markings, BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm_point, "#fe12ab"))
+	var/datum/custom_sprite_editor/markings/unified_test/locking/editor = new(preferences, BODY_ZONE_L_ARM)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	TEST_ASSERT(editor.selected_zone == BODY_ZONE_CHEST, "Opening on a locked region must select the torso instead: [editor.selected_zone]")
+	TEST_ASSERT(editor.transfer_notice == "The left arm is covered.", "Opening on a locked region must say why: [editor.transfer_notice]")
+	var/list/mask = editor.workspace.draw_mask["2"]
+	TEST_ASSERT(copytext(mask[arm_point[2] + 1], arm_point[1] + 1, arm_point[1] + 2) == "0", "A locked region's pixels must leave the paintable mask, so the canvas shades them.")
+	TEST_ASSERT(!editor.workspace.is_point_allowed(arm_point[1], arm_point[2], "2"), "No tool may paint a locked region.")
+	TEST_ASSERT(editor.workspace.is_point_allowed(chest_point[1], chest_point[2], "2"), "Other regions stay paintable.")
+	var/list/frame = editor.workspace.layers[1]["data"]["2"]
+	TEST_ASSERT(frame[arm_point[2] + 1][arm_point[1] + 1] == "#fe12abff", "A locked region keeps showing its paint.")
+	TEST_ASSERT(!editor.workspace.new_transaction(list("type" = "eraser", "layer" = 1, "dir" = "2", "points" = list(arm_point))), "The eraser must not reach a locked region.")
+	TEST_ASSERT(!editor.workspace.new_transaction(list("type" = "bucket", "layer" = 1, "dir" = "2", "color" = "#ffffffff", "point" = arm_point)), "Fill must not start in a locked region.")
+	var/list/move = list("type" = "move", "layer" = 1, "dir" = "2", "rect" = list(arm_point[1], arm_point[2], arm_point[1], arm_point[2]), "offset" = list(chest_point[1] - arm_point[1], chest_point[2] - arm_point[2]))
+	TEST_ASSERT(!editor.workspace.new_transaction(move), "A move must not carry paint out of a locked region.")
+	var/revision = editor.draft_revision
+	TEST_ASSERT(editor.ui_act("spriteEditorCommand", list("command" = "transaction", "transaction" = list("type" = "eraser", "layer" = 1, "dir" = "2", "points" = list(arm_point))), ui, null), "A refused stroke must resend the canvas so the window drops it.")
+	TEST_ASSERT(editor.draft_revision == revision, "A refused stroke must not count as an edit.")
+	TEST_ASSERT(!editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null), "A locked region can't be selected.")
+	// A region can lock while it's selected; its actions are refused until it unlocks.
+	editor.selected_zone = BODY_ZONE_L_ARM
+	TEST_ASSERT(!editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null), "Clear must refuse a locked region.")
+	TEST_ASSERT(!editor.ui_act("setEmissive", list("zone" = BODY_ZONE_L_ARM, "dir" = "2", "enabled" = TRUE), ui, null), "Emission can't change on a locked region.")
+	TEST_ASSERT(!editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "Base markings can't change on a locked region.")
+	var/list/results = editor.region_results()
+	var/list/arm_result = results[BODY_ZONE_L_ARM]
+	TEST_ASSERT(!arm_result["changed"], "Nothing may have changed the locked region.")
+	var/list/data = editor.ui_data(mock_client.mob)
+	var/list/reasons = data["lockedRegions"]
+	TEST_ASSERT(reasons[BODY_ZONE_L_ARM] == "The left arm is covered.", "The window must learn which regions are locked and why.")
+	var/list/arm_package = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm_point, "#123456"), null)
+	var/list/chest_package = custom_style_package("markings", BODY_ZONE_CHEST, custom_sprite_test_front_drawing(chest_point, "#123456"), null)
+	TEST_ASSERT(editor.show_region_candidate(list(BODY_ZONE_L_ARM = arm_package, BODY_ZONE_CHEST = chest_package), "import"), "An import that also covers a locked region must still preview: [editor.transfer_error]")
+	var/list/candidate_regions = editor.candidate["regions"]
+	TEST_ASSERT(!((BODY_ZONE_L_ARM in candidate_regions) || !(BODY_ZONE_CHEST in candidate_regions)), "An import must skip locked regions and keep the rest.")
+	TEST_ASSERT(("Left arm (not available right now)" in editor.candidate["skipped"]), "The preview must name the skipped locked region: [json_encode(editor.candidate["skipped"])]")
+	editor.candidate = null
+	TEST_ASSERT(!editor.show_region_candidate(list(BODY_ZONE_L_ARM = arm_package), "import"), "An import of only locked regions has nothing to preview.")
+	TEST_ASSERT(editor.transfer_error == "None of that style's regions can be changed right now.", "It must say why: [editor.transfer_error]")
+	TEST_ASSERT(editor.region_candidate_problem(list(BODY_ZONE_L_ARM = arm_package)) == "The left arm is covered.", "A region that locks after its preview must be refused when confirmed.")
+	// Unlocking frees the region at once.
+	editor.arm_locked = FALSE
+	editor.sync_locked_views(push = FALSE)
+	TEST_ASSERT(editor.workspace.is_point_allowed(arm_point[1], arm_point[2], "2"), "An unlocked region must be paintable again.")
+	TEST_ASSERT(editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null), "An unlocked region's actions must work again.")
 	editor.finish(FALSE)

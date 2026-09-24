@@ -11,9 +11,9 @@
 	if(!islist(input) || length(input) > CUSTOM_SPRITE_MAX_CUSTOM_COLORS)
 		return null
 	var/list/colors = list()
-	for(var/raw_color in input)
+	for(var/raw_color, associated in input)
 		var/color = custom_sprite_color(raw_color)
-		if(!color || (color in colors) || !isnull(input[raw_color]))
+		if(!color || (color in colors) || !isnull(associated))
 			return null
 		colors += color
 	return colors

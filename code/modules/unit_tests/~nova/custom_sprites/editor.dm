@@ -696,13 +696,13 @@
 /datum/unit_test/custom_marking_zone_editor/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	for(var/body_zone in GLOB.custom_marking_zone_labels)
+	for(var/body_zone, label in GLOB.custom_marking_zone_labels)
 		if(body_zone == CUSTOM_MARKING_ZONE_TAUR)
 			continue // The real taur-organ fixture covers this separate geometry.
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, "markings", body_zone)
 		LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
 		var/list/data = editor.ui_data(mock_client.mob)
-		TEST_ASSERT(!(data["bodyZone"] != body_zone || data["bodyZoneLabel"] != GLOB.custom_marking_zone_labels[body_zone] || length(data["drawMask"]) != 4), "Zone buttons must scope the existing editor and expose four silhouette masks.")
+		TEST_ASSERT(!(data["bodyZone"] != body_zone || data["bodyZoneLabel"] != label || length(data["drawMask"]) != 4), "Zone buttons must scope the existing editor and expose four silhouette masks.")
 		var/list/point
 		for(var/y in 0 to 31)
 			for(var/x in 0 to 31)

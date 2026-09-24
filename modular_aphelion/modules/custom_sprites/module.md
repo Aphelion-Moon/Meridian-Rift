@@ -116,10 +116,9 @@ region outlines it faintly, just outside its pixels.
 - Markings clip to the body instead. The whole-body canvas only holds paint
   inside its regions; saved paint outside them, or hidden under another limb,
   stays in the save untouched until Clear, an import or a restoration replaces
-  that region (see Saving and loading). The salon's tattoo editor
-  still drops paint stranded outside its zone's current mask when it opens or its
-  geometry is rebuilt. Imports that paint outside the destination are refused
-  rather than trimmed.
+  that region (see Saving and loading). In the salon, regions the recipient
+  can't be tattooed on right now are locked; see Custom haircuts and tattoos.
+  Imports that paint outside the destination are refused rather than trimmed.
 - The eyedropper takes painted color first. If there is no paint at that pixel,
   it samples the visible guide. Sampling a color does not use a Custom slot.
 - Undo and redo each step through one action in the current draft; they never
@@ -239,9 +238,9 @@ selected region's section, titled "Left arm base markings" with "Click the body
 to choose a region." underneath, adds, swaps, recolors and removes them, in layer
 order, with the drawing on top. The taur region carries no native limb markings
 and says so. These changes stay in the draft and support undo/redo. Saving
-writes them with the drawings. The salon's tattoo editor keeps its per-zone
-**Base markings** section. Salon work uses the recipient's markings and waits
-for their approval; it never edits the artist's character preferences.
+writes them with the drawings. The salon's tattoo canvas has the same section.
+Salon work uses the recipient's markings and waits for their approval; it never
+edits the artist's character preferences.
 
 **Blending options**, inside the Custom box, starts with both options off:
 
@@ -461,17 +460,21 @@ changes.
   holding a handheld mirror or standing within a tile of a mounted mirror. A hand
   mirror dropped at your feet doesn't count, and a wallframe still waiting to be
   hung isn't a mirror yet. Picking one up, putting it down or walking to a mirror
-  locks and unlocks that view immediately, without reopening the editor, and the
-  lock is rechecked when you finish, so losing the mirror mid-draft refuses that
-  change rather than applying it. The barber locker and vendor stock one.
-- `/obj/item/tattoo_machine`: use it on someone, then pick a body zone they
-  actually have, including Taur lower body. Missing limbs, stumps and invisible
-  taur leg slots aren't offered. It still opens the per-zone editor; moving
-  tattoos to the whole-body canvas is planned as a later phase. It's reusable,
-  needs no ink and works for anyone holding it. The barber locker has one and the barber vendor stocks three.
+  locks and unlocks that view immediately, without reopening the editor. The
+  lock is rechecked when you finish and again when the finishing touches end, so
+  putting the mirror down refuses that change rather than applying it. The barber
+  locker and vendor stock one.
+- `/obj/item/tattoo_machine`: use it on someone to open the whole-body canvas on
+  their current look. There's no zone to pick: draw anywhere on the body, and only
+  the regions you change are proposed. It's reusable, needs no ink and works for
+  anyone holding it. The barber locker has one and the barber vendor stocks three.
 
 If the recipient has a previous round style for that target, the tool first asks
-whether to draw something new or **Restore previous**.
+whether to draw something new or **Restore previous**. For a tattoo with more than
+one region to restore, it then asks whether to restore the whole body or one
+region. The whole body leaves out regions that can't be tattooed right now, such
+as covered ones, tells the artist which and why, and restores the rest.
+Restoring only such a region is refused with the reason.
 
 The flow:
 
@@ -479,15 +482,29 @@ The flow:
    have a drawing there, **Export current style and continue** downloads it to
    the recipient first. Prompts expire after 120 seconds.
 2. The artist's editor opens on the recipient's current look. Hair adds to the
-   current haircut; a tattoo starts with that zone's current drawing and can
-   only paint inside the selected zone's silhouette. The artist's guides and
-   previews show the recipient's whole body, dressed as they are.
+   current haircut; a tattoo starts with every region's current paint and base
+   markings, read from the body. The artist's guides and previews show the
+   recipient's whole body, dressed as they are. The window is titled for the
+   work and the person, such as "Custom Tattoo for Leia", from the moment it
+   opens.
    Drawing, erasing or filling plays a work sound immediately, with a five-second
    cooldown for snips and twelve seconds for the pitch-varied tattoo needle.
    Tattoo ambience stays on while drawing and lingers for three seconds after
    the last brush movement. An idle window is quiet. Sounds come from the artist
    and stop when the editor closes. Brush activity sends at most one small
    message a second; it doesn't send pixels or trigger UI updates.
+
+   Regions the recipient can't be tattooed on right now are greyed out under
+   scanlines and can't be selected, painted, cleared or given base markings. That
+   means regions their clothing covers, husked limbs, a hidden taur body, limbs
+   that are missing or were replaced since work started, and regions whose look
+   changed on the body since then. The window's status line gives the reason for
+   a greyed-out selection. Putting clothes on or taking them off, or rolling a
+   jumpsuit up or down, updates this at once.
+   Paint already drafted in a region stays there, visible under the scanlines,
+   until it's free again. Undo and redo still step through your own history, and
+   finishing never applies a region that's greyed out. The canvas keeps the
+   regions it opened with, so a limb attached later needs a new draft.
 3. Drawing doesn't need the artist to stay nearby. Closing the window keeps the
    draft, and using the tool in hand (**Resume custom work**) reopens it with the
    Pencil selected. Ctrl+S shows "Draft saved for this round" and writes nothing
@@ -495,9 +512,13 @@ The flow:
 4. **Finish** needs the artist next to the recipient, holding the tool. It opens
    the recipient's mirror: Front, Back, Right and Left, a draggable Before/After
    divider, **Accept for this round**, **Accept permanently**, **Export** and
-   **Decline**. Export downloads the reviewed design without accepting it. The
+   **Decline**. For a tattoo it also names the regions that change, for example
+   "This changes: Torso, Left arm." Export downloads the reviewed design without
+   accepting it. The
    usual TGUI countdown bar shows the time left; expiry still declines on the
-   server. The images are sent once, separately from the small countdown updates.
+   server. The images are sent separately from the small countdown updates, and
+   redrawn when the recipient's look changes while they decide, so both pictures
+   show them as they are.
 5. Accepting starts five seconds of finishing touches for custom hair, facial
    hair and tattoos alike. The drawing was the work. Snips or tattoo sounds and
    ambience play during these finishing touches too, and stop on completion or
@@ -518,28 +539,33 @@ letting the mirror expire declines. Any edit withdraws a pending mirror.
 Declining, a failed check or an interrupted timed action returns to drafting with
 the paint kept.
 
-Each artist account keeps one draft per drawing for the round, including across
-reconnects: hair, facial hair and each tattoo zone are separate, so starting a
-tattoo never threatens a haircut. Starting the same drawing again asks whether to
-keep that draft, export and discard it, or discard it; **Keep it** reopens that
-exact drawing and zone without another picker. The
-tool in hand decides what it can resume, and asks which when it matches more than
-one. Preview bodies and guides are released while the window is closed and
+Each artist account keeps one draft per drawing target and person for the round,
+including across reconnects: hair, facial hair and tattoos are separate, and so
+is each person, so starting a tattoo never threatens a haircut or someone else's
+tattoo. Starting the same drawing on the same person again asks whether to keep
+that draft, export and discard it, or discard it; **Keep it** reopens that exact
+draft. The tool in hand decides what it can resume, and asks which when it
+matches more than one. Preview bodies and guides are released while the window is closed and
 rebuilt on resume.
 
 `/datum/custom_sprite_salon` owns the session. It holds weak references to both
-players, the tool and the bodypart, the starting appearance and the reviewed
-proposal. Taur work binds to both the chest and the external taur organ. Its
+players and the tool, the reviewed proposal, and each drawing's starting look and
+bodypart: one for hair, one per region for a tattoo. The taur region also binds to
+the external taur organ. A tattoo's proposal carries a package for each region the
+draft changes (a touched region); regions it doesn't touch may change freely. Its
 states are drafting, awaiting approval, applying and completed.
 
 - Starting needs two different connected players, a human recipient, adjacency,
   the right tool in hand, and a reachable target. Hats that hide hair block
-  hair work, so clothing never hides the part being worked on. Tattoos use worn clothing's coverage flags for that zone, so a
-  rolled-up jumpsuit exposes the arms and gloves only cover the hands.
+  hair work, so clothing never hides the part being worked on. Tattoos use worn
+  clothing's coverage flags per region, so a rolled-up jumpsuit exposes the arms
+  and gloves only cover the hands. A tattoo can start while any region can take
+  one.
 - Editing only checks that the artist's account owns the draft.
 - Finish, accept and completion each recheck both players and their controlling
   accounts, consciousness, the held tool, adjacency, reachability, bodypart
-  identity and the target's appearance since work started.
+  identity and the target's appearance since work started. For a tattoo these
+  checks cover only the touched regions.
 - Approval binds to a token for one immutable copy of the reviewed revision.
 - One incoming prompt per recipient, and a ten-second cooldown per artist and
   recipient pair.
@@ -549,9 +575,10 @@ states are drafting, awaiting approval, applying and completed.
 - Completion runs once. Replayed or stale actions do nothing.
 
 Unchanged submissions are rejected. Salon hair imports may change the style and
-color, but keep the recipient's opacity, glow and gradients. Zone tattoo imports
-may also carry that zone's native markings. Imported changes go through the same
-draft, preview and approval as changes made in the editor.
+color, but keep the recipient's opacity, glow and gradients. Tattoo imports use
+the same Whole body or region prompts as character setup, may carry native
+markings, and skip regions that are greyed out, naming them. Imported changes go
+through the same draft, preview and approval as changes made in the editor.
 
 Salon guides and previews show the whole body, wearing what the recipient is
 actually wearing, so the artist works on the person in front of them. Dressing or
@@ -587,15 +614,18 @@ with the same color, opacity and placement as the recipient's preview. Guides
 temporarily hide paint, redraw the limbs without it, and then restore the existing
 snapshots.
 
-Application updates only the selected head or marking layer, leaving unrelated
-donor parts alone. DNA also records the change for regenerated limbs. Each target
-keeps one previous round style on the body, including an explicit empty drawing
-and, for hair, the base look. Restoring swaps them, so it can be reversed the same
-way. Restoring never saves; saving is still the recipient's separate choice.
+Application updates only the head layer, or only the touched tattoo regions,
+leaving unrelated donor parts alone. A tattoo's regions go on together, with one
+redraw of the body. DNA also records the change for regenerated
+limbs. Each drawing keeps one previous round style on the body: hair under its
+target, each tattoo region under its own key (`markings:l_arm`), including an
+explicit empty drawing and, for hair, the base look. Restoring swaps them, so it
+can be reversed the same way. Restoring never saves; saving is still the
+recipient's separate choice.
 
 Achievements go to both players after a successful, changed application between
-different players. Imports, previews, restorations and failed attempts don't
-count.
+different players, once per application however many regions it changes.
+Imports, previews, restorations and failed attempts don't count.
 
 | Achievement | Database ID | Trigger |
 | --- | --- | --- |
@@ -646,12 +676,12 @@ A whole-body file wraps region packages under `"target": "body"`:
 
 Each region entry validates exactly like a single-target package for that zone.
 Importing one replaces the regions it contains; the preview lists them, and lists
-any regions this body doesn't have as skipped. A single-target file replaces its
+regions this body doesn't have, or that are greyed out in the salon, as skipped,
+with the reason. A single-target file replaces its
 own region, and a legacy drawing-only file goes into the selected region; the
 taur region centres an old 32-wide one, as its single-zone editor did.
 Confirmed regions replace the old ones outright: neither the file's paint nor the
-old paint under other limbs on this body is kept. A single-zone editor, such as
-the salon's, takes its own zone from a whole-body file; hair editors refuse one.
+old paint under other limbs on this body is kept. Hair editors refuse one.
 
 Import shows a preview first. **Replace draft** is one undoable action that also
 covers the hair look; Cancel changes nothing. Strictly valid old drawing-only
@@ -701,7 +731,8 @@ disappears once it has been restored and returns if you undo. Saving it swaps
 current and previous. Deleting a slot removes its
 previous styles; preference imports remove them with the rest of the sidecar.
 
-A salon save writes to the character slot selected in character setup. A body that
+A salon save writes to the character slot selected in character setup. A tattoo
+save writes only the regions the tattoo changed, in one write. A body that
 records the slot it spawned with must have that slot selected; bodies created by an
 admin record none and save normally. The slot must belong to the same character
 name, have no open editor for that drawing (for markings, the whole-body editor), and have no unsaved changes to the
@@ -753,7 +784,10 @@ marking ownership, and worn-item and underwear refreshes. Appearance tests also
 check legacy colors, ambiguous shades, batched redraws and gradient opacity.
 `salon.dm` covers consent, withdrawal, cooldowns, stale tokens,
 distance, mirror closing, interrupted and replayed completion, achievements,
-restoration, limb replacement, changed controlling players, salon import limits,
+the whole-body tattoo canvas, touched regions and the mirror's change list,
+one-write permanent saves, per-region history and whole-body or single-region
+restore, live clothing coverage, husked limbs, hidden taur bodies, missing or
+replaced limbs mid-draft, self-tattooing the back, restoration, limb replacement, changed controlling players, salon import limits,
 dressed guides, customized limb mask parity, closing and resuming, recipient saves,
 and taur-organ replacement while the chest remains attached.
 Donor tests attach real transplanted limbs and heads, check their appearance and
@@ -764,7 +798,7 @@ and mirror views.
 their hands, and wide taur maps. `composite.dm` covers composing and splitting,
 including tints, hidden paint and arm/hand partners. `markings_editor.dm` covers
 saving only changed regions in one write, selection and focus, palette overflow
-and pooling, routing from the Custom buttons, imports (whole-body, single-region
+and pooling, locked regions, routing from the Custom buttons, imports (whole-body, single-region
 and drawing-only, including the taur's centring), undo side effects, paint moved
 between regions, emission-only saves, map rebuilds, window state and selection
 checks, regions over their own color limit, setup changes waiting on a drawing
@@ -804,7 +838,8 @@ The UI tests cover tool gestures, guide alignment, selection acknowledgement,
 save feedback, color blending, swatch menus, theme styling and the zone buttons.
 `regions.test.ts` covers the overlay geometry, and
 `CustomSpriteEditor.regions.test.tsx` covers region mode: selecting with every
-tool, the region labels and actions, focus, scanlines and import notices.
+tool, the region labels and actions, focus, scanlines, locked regions and import
+notices. `CustomSpriteMirror.test.tsx` also covers the tattoo change list.
 Keep each tgui test file under 50 KB. Bun 1.3.13 serves larger files from its
 runtime transpiler cache, and on those cached runs it parses
 `transparency_checkerboard.svg` as JSX, failing the whole file from the second run
@@ -845,18 +880,18 @@ All paths here are relative to this module unless stated otherwise.
 | File | Types, overrides and owned behavior |
 | --- | --- |
 | `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()` and `context_ui_data()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. |
-| `code/markings_editor.dm` | `/datum/custom_sprite_editor/markings`: the whole-body window, region selection and focus, per-region emissive, Clear and base markings, changed-region saves, previews, export/restore prompts and region imports. Also `custom_sprite_apply_region_results()`. |
+| `code/markings_editor.dm` | `/datum/custom_sprite_editor/markings`: the whole-body window, region selection and focus, per-region emissive, Clear and base markings, changed-region saves, previews, export/restore prompts and region imports. Also `custom_sprite_apply_region_results()`. Context hooks `reference_packages()`, `locked_regions()` and `map_follows_body()`; region locks shade and refuse locked regions. |
 | `code/regions.dm` | Present regions in draw order, region ID colors, the cached per-view region map composed through the real overlay types, region lookup and the paintable mask. |
 | `code/composite.dm` | Composes region drawings into one canvas and splits an edited canvas back into per-region drawings by the save rule. |
-| `code/salon.dm` | `/datum/custom_sprite_salon` session, request/restore procs, live style packages and preview dummies, five-second round application, optional approved save and history on `/mob/living/carbon/human`. `/datum/custom_sprite_editor/salon` overrides the context hooks, `can_edit()` and UI lifecycle procs; validated brush activity starts cooldown-limited audio, and closing releases it. Recipient overlay signals coalesce guide refreshes; self-styling movement and equipment signals update mirror locks. |
-| `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images, approval-only export, result window and recipient saves. |
-| `code/tools.dm` | `/obj/item/tattoo_machine`; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
+| `code/salon.dm` | `/datum/custom_sprite_salon` session over a set of drawings (one for hair, one per region for a tattoo), request/restore procs including the whole-body-or-region restore choice, live style packages and preview dummies, five-second round application of the touched drawings, optional approved save and per-drawing history on `/mob/living/carbon/human`. Brush sounds and the salon's window actions live on the session. `/datum/custom_sprite_editor/salon` (hair) and `/datum/custom_sprite_editor/markings/salon` (the tattoo canvas, which locks regions the recipient can't be tattooed on) override the context hooks, `can_edit()` and UI lifecycle procs. Recipient overlay signals coalesce guide refreshes; equipment signals resync region and mirror locks at once. |
+| `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images, approval-only export, result window and recipient saves, the tattoo change list and one-write saves of every applied region. |
+| `code/tools.dm` | `/obj/item/tattoo_machine`, which opens the tool menu on the whole body; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
 | `code/transfer.dm` | Style package format, strict validation, export text, geometry checks and transfer helpers, including the whole-body `"target": "body"` file. |
 | `code/saved_styles.dm` | Previous saved styles and complete hair and native marking saves. `commit_custom_styles()` validates and writes several regions in one sidecar write. |
 | `code/achievements.dm` | The four `/datum/award/achievement/misc/custom_*` awards. |
 | `code/persistence.dm` | `/datum/json_savefile/custom_sprites` overrides `New()`, `load()`, `save()`, `set_entry()`, `remove_entry()` and `wipe()` for verified sidecar writes and recovery. Adds the preferences-owned drawing fields and load/save/close/delete helpers, plus `custom_sprites_after_import()`. |
 | `code/palette.dm` | `/datum/preference/custom_sprite_palette` implements account storage, default/deserialize/serialize/validation and `is_accessible()`. Its UI is owned by the editor. |
-| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()` and `reverse_transact()`. Owns palette validation, mask-aware fill, history limits, serialization, Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` and `sanitize_transaction()` helpers. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. |
+| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()` and `reverse_transact()`. Owns palette validation, mask-aware fill, history limits, serialization, Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` and `sanitize_transaction()` helpers. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. The region canvas refuses locked regions for every tool and selection move. |
 | `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers. Re-creating an arm's zone overlay moves its hand overlays back above it. |
 | `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. |
 | `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization, content hashes, arm/hand partners and zone widths. |

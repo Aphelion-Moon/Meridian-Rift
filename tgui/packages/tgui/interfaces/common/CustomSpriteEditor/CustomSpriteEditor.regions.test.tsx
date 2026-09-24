@@ -204,11 +204,13 @@ it('lists replaced and skipped regions when previewing an import', () => {
       source: 'import',
       previews: { 1: '', 2: '', 4: '', 8: '' },
       regions: ['Left arm'],
-      skipped: ['Taur lower body'],
+      skipped: ['Taur lower body (not on this body)'],
     },
   });
   expect(screen.getByText(/Replaces: Left arm\./)).toBeTruthy();
-  expect(screen.getByText(/Skipped: Taur lower body/)).toBeTruthy();
+  expect(
+    screen.getByText(/Skipped: Taur lower body \(not on this body\)\. /),
+  ).toBeTruthy();
 });
 
 it('selects regions with the primary button only', () => {
@@ -227,4 +229,86 @@ it('selects regions with the primary button only', () => {
   } finally {
     getBounds.mockRestore();
   }
+});
+
+it('keeps the selection off locked regions and explains a locked selection', () => {
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const lockedRegions = { l_arm: "Leia's left arm is covered." };
+    const { view, editor } = renderRegions({
+      ...regionFixture(),
+      lockedRegions,
+    });
+    const canvas = view.container.querySelector('canvas')!;
+    send.mockClear();
+    fireEvent.mouseDown(canvas, { clientX: 25, clientY: 5, button: 0 });
+    fireEvent.mouseUp(window, { clientX: 25, clientY: 5, button: 0 });
+    expect(send).not.toHaveBeenCalledWith('selectRegion', expect.anything());
+    expect(screen.getByText('Torso base markings')).toBeTruthy();
+    // The server's selection can lock after it was made, when clothing goes on.
+    backendStore.set(gameDataAtom, {
+      ...regionFixture(),
+      lockedRegions,
+      selectedZone: 'l_arm',
+      focusRevision: 2,
+    });
+    view.rerender(editor());
+    expect(screen.getByText("Leia's left arm is covered.")).toBeTruthy();
+    const disabled = (button?: Element | null) =>
+      !!button?.classList.contains('Button--disabled');
+    expect(
+      disabled(screen.getByText('Clear left arm').closest('.Button')),
+    ).toBe(true);
+    expect(
+      disabled(
+        screen.getByText('Emissives - (Left arm, Front)').closest('.Button'),
+      ),
+    ).toBe(true);
+    const section = screen
+      .getByText('Left arm base markings')
+      .closest('.Section')! as HTMLElement;
+    expect(disabled(section.querySelectorAll('.Button')[0])).toBe(true);
+    expect(
+      disabled(section.querySelector('.fa-trash')?.closest('.Button')),
+    ).toBe(true);
+    send.mockClear();
+    fireEvent.click(screen.getByText('Clear left arm'));
+    expect(send).not.toHaveBeenCalled();
+  } finally {
+    getBounds.mockRestore();
+  }
+});
+
+it('outlines hovered regions, but not locked ones', () => {
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    for (const [lockedRegions, outlined] of [
+      [undefined, true],
+      [{ l_arm: 'Covered.' }, false],
+    ] as const) {
+      const { view } = renderRegions({ ...regionFixture(), lockedRegions });
+      const box = view.container.querySelector('.CustomSpriteEditor__canvas')!;
+      fireEvent.mouseMove(box, { clientX: 25, clientY: 5 });
+      expect(painted.includes('rgba(255, 255, 255, 0.35)')).toBe(outlined);
+      view.unmount();
+    }
+  } finally {
+    getBounds.mockRestore();
+  }
+});
+
+it('calls the salon canvas a tattoo', () => {
+  renderRegions({
+    ...regionFixture(),
+    context: 'salon',
+    recipientName: 'Leia',
+    salonState: 'drafting',
+  });
+  expect(screen.getByText('Custom Tattoo for Leia')).toBeTruthy();
 });

@@ -129,3 +129,19 @@ it('offers recipient save without a redundant export after application and repor
   fireEvent.click(screen.getByText('Save for future rounds'));
   expect(send).toHaveBeenLastCalledWith('save');
 });
+
+it('names the regions a tattoo changes', () => {
+  backendStore.set(gameDataAtom, {
+    ...approval(),
+    label: 'tattoo',
+    changes: ['Torso', 'Left arm'],
+  });
+  render(<CustomSpriteMirror />);
+  expect(screen.getByText('This changes: Torso, Left arm.')).toBeTruthy();
+});
+
+it('leaves the change list out when nothing names a region', () => {
+  backendStore.set(gameDataAtom, approval());
+  render(<CustomSpriteMirror />);
+  expect(screen.queryByText(/This changes/)).toBeNull();
+});

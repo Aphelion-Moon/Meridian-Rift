@@ -587,8 +587,8 @@
 
 
 /proc/custom_style_test_facial_style()
-	for(var/name in SSaccessories.facial_hairstyles_list)
-		var/datum/sprite_accessory/facial_hair/accessory = SSaccessories.facial_hairstyles_list[name]
+	for(var/name, accessory_untyped in SSaccessories.facial_hairstyles_list)
+		var/datum/sprite_accessory/facial_hair/accessory = accessory_untyped
 		if(accessory?.icon_state)
 			return name
 	return null

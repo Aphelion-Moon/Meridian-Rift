@@ -54,8 +54,8 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 /proc/custom_marking_partner(zone)
 	if(GLOB.custom_marking_hand_arms[zone])
 		return GLOB.custom_marking_hand_arms[zone]
-	for(var/hand in GLOB.custom_marking_hand_arms)
-		if(GLOB.custom_marking_hand_arms[hand] == zone)
+	for(var/hand, arm in GLOB.custom_marking_hand_arms)
+		if(arm == zone)
 			return hand
 	return null
 
@@ -186,8 +186,8 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	var/list/resized = deep_copy_list(drawing)
 	var/padding = repeat_string((width - source_width) / 2, "0")
 	var/palette_size = length(drawing["palette"])
-	for(var/direction in drawing["dirs"])
-		var/grid = custom_sprite_decode_grid(drawing["dirs"][direction], palette_size, source_width * 32)
+	for(var/direction, encoded in drawing["dirs"])
+		var/grid = custom_sprite_decode_grid(encoded, palette_size, source_width * 32)
 		if(!grid)
 			return null
 		var/list/rows = list()
@@ -244,8 +244,8 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		return drawing
 	var/pixel_count = custom_sprite_width(drawing) * 32
 	var/list/directions = list()
-	for(var/direction in drawing["dirs"])
-		var/grid = custom_sprite_decode_grid(drawing["dirs"][direction], length(old_palette), pixel_count)
+	for(var/direction, encoded in drawing["dirs"])
+		var/grid = custom_sprite_decode_grid(encoded, length(old_palette), pixel_count)
 		if(!grid)
 			return null
 		var/recolored = ""

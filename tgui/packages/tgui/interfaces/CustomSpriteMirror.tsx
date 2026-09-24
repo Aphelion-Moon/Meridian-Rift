@@ -10,6 +10,7 @@ type Direction = '2' | '1' | '4' | '8';
 export type CustomSpriteMirrorData = {
   mode: 'approval' | 'result';
   label: string;
+  changes?: string[] | null;
   artistName?: string | null;
   restoration: boolean;
   token?: string | null;
@@ -31,7 +32,16 @@ const directions: [Direction, string][] = [
 
 export const CustomSpriteMirror = () => {
   const { act, data } = useBackend<CustomSpriteMirrorData>();
-  const { mode, label, artistName, restoration, token, before, after } = data;
+  const {
+    mode,
+    label,
+    changes,
+    artistName,
+    restoration,
+    token,
+    before,
+    after,
+  } = data;
   const approval = mode === 'approval';
 
   return (
@@ -47,6 +57,9 @@ export const CustomSpriteMirror = () => {
                   : `${artistName} finished a custom ${label} for you.`
                 : `Your new ${label} is applied for this round.`}
             </Box>
+            {approval && !!changes?.length && (
+              <Box>{`This changes: ${changes.join(', ')}.`}</Box>
+            )}
             {approval && (
               <Box color="label">
                 Nothing changes unless you accept. Closing the mirror declines.

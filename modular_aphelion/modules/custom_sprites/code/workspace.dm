@@ -52,8 +52,7 @@
 			else
 				changes[key] = list(destination_x, destination_y, frame[destination_y + 1][destination_x + 1], color)
 	var/list/points = list()
-	for(var/key in changes)
-		var/list/change = changes[key]
+	for(var/_key, change in changes)
 		if(change[3] != change[4])
 			points += list(change)
 	transaction["points"] = points
@@ -114,8 +113,8 @@
 				var/old_color = point[3]
 				if(!endswith(old_color, "00"))
 					. |= LOWER_TEXT(copytext(old_color, 1, 8))
-			for(var/direction in transaction["replaced"])
-				for(var/list/point as anything in transaction["replaced"][direction])
+			for(var/_direction, points in transaction["replaced"])
+				for(var/list/point as anything in points)
 					for(var/replaced_color in list(point[3], point[4]))
 						if(!endswith(replaced_color, "00"))
 							. |= LOWER_TEXT(copytext(replaced_color, 1, 8))
@@ -150,10 +149,9 @@
 
 /datum/sprite_editor_workspace/custom_sprite/proc/used_colors()
 	var/list/pixels = list()
-	for(var/direction in layers[1]["data"])
+	for(var/direction, frame in layers[1]["data"])
 		if(!edited_directions[direction])
 			continue
-		var/list/frame = layers[1]["data"][direction]
 		for(var/list/row as anything in frame)
 			pixels |= row
 	var/list/colors = list()
@@ -191,8 +189,7 @@
  */
 /datum/sprite_editor_workspace/custom_sprite/proc/clip_to_allowed()
 	var/changed = FALSE
-	for(var/direction in layers[1]["data"])
-		var/list/frame = layers[1]["data"][direction]
+	for(var/direction, frame in layers[1]["data"])
 		var/direction_changed = FALSE
 		for(var/y in 1 to height)
 			for(var/x in 1 to width)
@@ -296,8 +293,7 @@
 	var/list/colors = list()
 	for(var/color in palette)
 		colors["[color]ff"] = "[custom_sprite_tint_color(color, tint)]ff"
-	for(var/direction in layers[1]["data"])
-		var/list/frame = layers[1]["data"][direction]
+	for(var/_direction, frame in layers[1]["data"])
 		for(var/list/row as anything in frame)
 			for(var/x in 1 to length(row))
 				if(colors[row[x]])
@@ -348,8 +344,7 @@
 /// Pixel changes that turn each current frame into the matching new frame, as list(x, y, old, new).
 /datum/sprite_editor_workspace/custom_sprite/proc/frame_changes(list/new_frames)
 	. = list()
-	for(var/direction in layers[1]["data"])
-		var/list/old_frame = layers[1]["data"][direction]
+	for(var/direction, old_frame in layers[1]["data"])
 		var/list/new_frame = new_frames[direction]
 		var/list/points = list()
 		for(var/y in 1 to height)
@@ -383,9 +378,9 @@
 	emissive = forward ? transaction["emissive_new"] : transaction["emissive_old"]
 
 /datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement(list/transaction, forward)
-	for(var/direction in transaction["replaced"])
+	for(var/direction, points in transaction["replaced"])
 		var/list/frame = layers[1]["data"][direction]
-		for(var/list/point as anything in transaction["replaced"][direction])
+		for(var/list/point as anything in points)
 			frame[point[2] + 1][point[1] + 1] = forward ? point[4] : point[3]
 		update_edited_direction(direction)
 	hair_context = forward ? transaction["hair_new"] : transaction["hair_old"]
@@ -421,10 +416,9 @@
 		return null
 	for(var/i in 1 to length(saved_palette))
 		indices[saved_palette[i]] = copytext(CUSTOM_SPRITE_INDEX_ALPHABET, i + 1, i + 2)
-	for(var/direction in layers[1]["data"])
+	for(var/direction, frame in layers[1]["data"])
 		if(!edited_directions[direction])
 			continue
-		var/list/frame = layers[1]["data"][direction]
 		var/list/pixels = list()
 		for(var/list/row as anything in frame)
 			for(var/pixel in row)
@@ -492,6 +486,8 @@
 	var/list/region_map
 	/// Zone -> views ("2" -> TRUE) that Clear, an import or a restoration replaced outright. Paint other limbs cover there goes too.
 	var/list/resets
+	/// Region characters no tool may change right now, such as regions worn clothing covers.
+	var/list/locked
 
 /// Regions may hold more than CUSTOM_SPRITE_MAX_COLORS colors between them, as saves and imports can; only new colors wait for room.
 /datum/sprite_editor_workspace/custom_sprite/regions/update_palette(list/available_palette)
@@ -506,11 +502,11 @@
 /datum/sprite_editor_workspace/custom_sprite/regions/apply_replacement_emissive(list/transaction, forward)
 	var/list/changes = forward ? transaction["emissive_new"] : transaction["emissive_old"]
 	var/list/merged = emissive.Copy()
-	for(var/zone in changes)
-		if(isnull(changes[zone]))
+	for(var/zone, change in changes)
+		if(isnull(change))
 			merged -= zone
 		else
-			merged[zone] = changes[zone]
+			merged[zone] = change
 	emissive = merged
 
 /// The region character at a canvas pixel in one view, "0" when no region owns it.
@@ -525,7 +521,19 @@
 		var/list/bounds = draw_bounds[direction]
 		if(!bounds || x < bounds[1] || y < bounds[2] || x > bounds[3] || y > bounds[4])
 			return FALSE
-	return region_at(x, y, direction) != "0"
+	var/region = region_at(x, y, direction)
+	return region != "0" && !(region in locked)
+
+/// A move can't carry paint out of a locked region. Destinations are already checked through is_point_allowed().
+/datum/sprite_editor_workspace/custom_sprite/regions/prepare_selection_move(list/transaction)
+	if(!..())
+		return FALSE
+	if(!length(locked))
+		return TRUE
+	for(var/list/change as anything in transaction["points"])
+		if(region_at(change[1], change[2], transaction["dir"]) in locked)
+			return FALSE
+	return TRUE
 
 /// Fill floods only the region under the clicked pixel; other regions are boundaries.
 /datum/sprite_editor_workspace/custom_sprite/regions/preprocess_new_transaction(list/transaction)
@@ -547,8 +555,7 @@
 
 /// Fills the canvas as a draft opens, without history.
 /datum/sprite_editor_workspace/custom_sprite/regions/proc/load_frames(list/frames)
-	for(var/direction in layers[1]["data"])
-		var/list/frame = layers[1]["data"][direction]
+	for(var/direction, frame in layers[1]["data"])
 		var/list/source = frames[direction]
 		for(var/y in 1 to height)
 			for(var/x in 1 to width)
@@ -598,10 +605,10 @@
 	var/list/replaced = frame_changes(frames)
 	var/list/emissive_old = list()
 	var/list/emissive_new = list()
-	for(var/zone in new_emissive)
-		if(json_encode(emissive[zone]) != json_encode(new_emissive[zone]))
+	for(var/zone, settings in new_emissive)
+		if(json_encode(emissive[zone]) != json_encode(settings))
 			emissive_old[zone] = emissive[zone]
-			emissive_new[zone] = new_emissive[zone]
+			emissive_new[zone] = settings
 	if(!length(replaced) && !length(emissive_new) && json_encode(markings_context) == json_encode(new_markings_context) && json_encode(resets) == json_encode(new_resets))
 		return TRUE
 	return commit_replacement(list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = hair_context, "emissive_old" = emissive_old, "emissive_new" = emissive_new, "tint_old" = tint, "tint_new" = tint, "markings_old" = markings_context, "markings_new" = new_markings_context, "resets_old" = resets, "resets_new" = new_resets))

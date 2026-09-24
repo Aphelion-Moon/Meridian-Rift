@@ -49,8 +49,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/list/palette = list()
 	while(length(counts) && length(palette) < 15)
 		var/most_frequent
-		for(var/color in counts)
-			if(isnull(most_frequent) || counts[color] > counts[most_frequent])
+		for(var/color, count in counts)
+			if(isnull(most_frequent) || count > counts[most_frequent])
 				most_frequent = color
 		palette += most_frequent
 		counts -= most_frequent
@@ -137,8 +137,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/list/palette = drawing["palette"]
 	var/width = custom_sprite_width(drawing)
 	var/offset_x = (workspace.width - width) / 2
-	for(var/direction in drawing["dirs"])
-		var/grid = custom_sprite_decode_grid(drawing["dirs"][direction], length(palette), width * 32)
+	for(var/direction, encoded in drawing["dirs"])
+		var/grid = custom_sprite_decode_grid(encoded, length(palette), width * 32)
 		if(!grid)
 			continue
 		var/list/frame = workspace.layers[1]["data"][direction]
@@ -246,10 +246,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		return cached
 	var/icon/silhouette = custom_sprite_blank_icon(CUSTOM_SPRITE_TAUR_WIDTH)
 	var/list/native_layers = taur.custom_sprite_layers()
-	for(var/native_layer in native_layers)
+	for(var/native_layer, layer_value in native_layers)
 		if(!isnull(layer_index) && native_layer != layer_index)
 			continue
-		for(var/image/part as anything in taur.get_images(chest, native_layer, -native_layers[native_layer]))
+		for(var/image/part as anything in taur.get_images(chest, native_layer, -layer_value))
 			var/icon/shape = icon(part.icon, part.icon_state)
 			shape.MapColors(0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1, 1,1,1,0)
 			silhouette.Blend(shape, ICON_OVERLAY, part.pixel_x + part.pixel_w + 17, part.pixel_y + part.pixel_z + 1)
@@ -303,8 +303,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 /// Each view's paintable area padded by one pixel, from row-string masks.
 /proc/custom_sprite_mask_bounds(list/mask, width = 32)
 	. = list()
-	for(var/direction in mask)
-		var/list/rows = mask[direction]
+	for(var/direction, rows in mask)
 		var/list/box = list(width, 32, -1, -1)
 		for(var/y in 1 to length(rows))
 			var/first = findtext(rows[y], "1")

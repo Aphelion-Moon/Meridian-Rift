@@ -202,8 +202,8 @@
 		wide["dirs"][direction] = "f[repeat_string(1024, "12")]"
 	zones[CUSTOM_MARKING_ZONE_TAUR] = wide
 	var/list/previous = list("hair" = custom_style_package("hair", null, drawing, null))
-	for(var/zone in zones)
-		previous[custom_style_key("markings", zone)] = custom_style_package("markings", zone, zones[zone], null)
+	for(var/zone, zone_drawing in zones)
+		previous[custom_style_key("markings", zone)] = custom_style_package("markings", zone, zone_drawing, null)
 	var/list/all_slots = list()
 	for(var/slot in 1 to MAX_SAVE_SLOTS_SUBSCRIBER)
 		all_slots["character[slot]"] = list("hair" = drawing, "limb_markings" = zones, "previous_styles" = previous)

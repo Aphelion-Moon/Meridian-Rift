@@ -55,8 +55,8 @@
 	var/token
 	/// Drawing kind shown in this mirror.
 	var/target
-	/// Tattoo zone, or null for a hairstyle.
-	var/body_zone
+	/// Region labels the proposal or result changes, for a tattoo.
+	var/list/changes
 	/// Whether the proposal restores the previous round style.
 	var/restoration = FALSE
 	/// Display name captured for the recipient's prompt.
@@ -67,8 +67,8 @@
 	var/list/after_urls
 	/// World time when an unanswered proposal expires.
 	var/expires_at
-	/// Result mode: the applied package and the recipient's spawned character slot.
-	var/list/package
+	/// Result mode: style key -> each applied package.
+	var/list/packages
 	/// Recipient's spawned character slot eligible for a permanent save.
 	var/slot
 	/// Result status shown after a permanent save attempt.
@@ -77,29 +77,30 @@
 	var/save_message
 	/// Whether the latest save or export message reports a failure.
 	var/message_error = FALSE
+	/// Pending redraw after the recipient's look changed while they decide.
+	var/refresh_timer
 
-/datum/custom_sprite_mirror/New(datum/custom_sprite_salon/session, mob/living/carbon/human/recipient, list/applied_package, slot)
+/datum/custom_sprite_mirror/New(datum/custom_sprite_salon/session, mob/living/carbon/human/recipient, list/applied_packages, slot)
 	recipient_ckey = recipient.ckey
 	recipient_ref = WEAKREF(recipient)
 	if(!session)
-		package = custom_style_copy_package(applied_package)
-		target = package["target"]
-		body_zone = package["zone"]
+		packages = list()
+		for(var/key, package in applied_packages)
+			packages[key] = custom_style_copy_package(package)
+		var/list/first = packages[packages[1]]
+		target = first["target"]
+		changes = custom_sprite_salon_changes(packages)
 		src.slot = slot
 		return
 	src.session = session
 	token = session.proposal["token"]
-	var/list/worn = custom_sprite_worn_overlays(recipient)
 	target = session.target
-	body_zone = session.body_zone
+	var/list/proposed = session.proposal["packages"]
+	changes = custom_sprite_salon_changes(proposed)
 	restoration = !!session.restoration
 	var/mob/artist = session.artist()
 	artist_name = "[artist || "The artist"]"
-	var/mob/living/carbon/human/dummy/body = custom_sprite_salon_dummy(recipient)
-	before_urls = custom_sprite_render_directions(body, worn_overlays = worn)
-	custom_sprite_apply_round_style(body, session.proposal["package"], session.recipient_emissives)
-	after_urls = custom_sprite_render_directions(body, worn_overlays = worn)
-	qdel(body)
+	render_proposal(recipient)
 	expires_at = world.time + CUSTOM_SPRITE_MIRROR_TIMEOUT
 	addtimer(CALLBACK(src, PROC_REF(expire)), CUSTOM_SPRITE_MIRROR_TIMEOUT)
 
@@ -109,6 +110,29 @@
 	SStgui.close_uis(src)
 	owner?.close_mirror()
 	return ..()
+
+/// Draws the recipient as they look now beside the same body wearing the proposal, from every side.
+/datum/custom_sprite_mirror/proc/render_proposal(mob/living/carbon/human/recipient)
+	var/list/worn = custom_sprite_worn_overlays(recipient)
+	var/mob/living/carbon/human/dummy/body = custom_sprite_salon_dummy(recipient)
+	before_urls = custom_sprite_render_directions(body, worn_overlays = worn)
+	custom_sprite_apply_round_styles(body, session.proposal["packages"], session.recipient_emissives)
+	after_urls = custom_sprite_render_directions(body, worn_overlays = worn)
+	qdel(body)
+
+/// Redraws both pictures shortly after the recipient's look changes, once for a burst of changes.
+/datum/custom_sprite_mirror/proc/schedule_refresh()
+	if(session && !refresh_timer)
+		refresh_timer = addtimer(CALLBACK(src, PROC_REF(refresh)), 0.1 SECONDS, TIMER_STOPPABLE)
+
+/// Redraws both pictures and sends them to the open window.
+/datum/custom_sprite_mirror/proc/refresh()
+	refresh_timer = null
+	var/mob/living/carbon/human/recipient = recipient()
+	if(!session || !recipient)
+		return
+	render_proposal(recipient)
+	update_static_data_for_all_viewers()
 
 /datum/custom_sprite_mirror/proc/expire()
 	var/mob/recipient = recipient_ref?.resolve()
@@ -137,7 +161,8 @@
 /datum/custom_sprite_mirror/ui_static_data(mob/user)
 	return list(
 		"mode" = session ? "approval" : "result",
-		"label" = custom_sprite_salon_label(target, body_zone),
+		"label" = custom_sprite_salon_label(target),
+		"changes" = changes,
 		"artistName" = artist_name,
 		"restoration" = restoration,
 		"token" = token,
@@ -176,7 +201,7 @@
 		if("export")
 			if(!session || params["token"] != token || session.proposal?["token"] != token)
 				return TRUE
-			var/error = custom_style_send(ui.user.client, session.proposal["package"])
+			var/error = session.export_proposal(ui.user.client)
 			save_message = error || "Style exported."
 			message_error = !!error
 			return TRUE
@@ -192,22 +217,29 @@
 		qdel(src)
 
 /**
- * Saves the applied style to the recipient's spawned character slot.
+ * Saves the applied styles to the recipient's spawned character slot, in one write.
  *
- * The slot must still be selected and still be this character. Unsaved hair edits in character
- * setup are rejected rather than overwritten. Failure leaves the round appearance applied.
+ * The slot must still be selected and still be this character. Unsaved hair or marking edits in
+ * character setup are rejected rather than overwritten. Failure leaves the round appearance applied.
  */
 /datum/custom_sprite_mirror/proc/save_style(mob/living/carbon/human/user)
 	var/datum/preferences/preferences = GLOB.preferences_datums[recipient_ckey]
 	slot = preferences?.default_slot
+	var/label = custom_sprite_salon_label(target)
 	var/error = custom_style_spawned_slot_problem(user, preferences)
-	if(!error && custom_style_package_hash(custom_sprite_live_package(user, target, body_zone)) != custom_style_package_hash(custom_sprite_live_package_from(package, user)))
-		error = "Your [custom_sprite_salon_label(target, body_zone)] changed after it was applied."
+	if(!error)
+		for(var/_key, package in packages)
+			if(custom_style_package_hash(custom_sprite_live_package(user, package["target"], package["zone"])) != custom_style_package_hash(custom_sprite_live_package_from(package, user)))
+				error = "Your [label] changed after it was applied."
+				break
 	// Character setup keeps one editor per target: every markings region shares the whole-body editor.
 	if(!error && preferences.custom_sprite_editors?[target])
 		error = "Close the matching custom editor in character setup, then try again."
 	if(!error)
-		error = preferences.commit_custom_style(package, slot, rotate = TRUE, reject_pending_hair = TRUE, reject_pending_markings = TRUE)
+		var/list/saved = list()
+		for(var/_key, package in packages)
+			saved += list(package)
+		error = preferences.commit_custom_styles(saved, slot, assoc_to_keys(packages), reject_pending_hair = TRUE, reject_pending_markings = TRUE)
 	if(error)
 		save_state = "error"
 		message_error = TRUE
@@ -216,7 +248,7 @@
 	save_state = "saved"
 	message_error = FALSE
 	save_message = "Saved for future rounds."
-	log_game("[key_name(user)] saved a salon [custom_sprite_salon_label(target, body_zone)] to character slot [slot].")
+	log_game("[key_name(user)] saved a salon [label][length(changes) ? " ([jointext(changes, ", ")])" : ""] to character slot [slot].")
 	return TRUE
 
 /**

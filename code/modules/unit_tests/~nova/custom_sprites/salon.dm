@@ -9,6 +9,24 @@
 /datum/custom_sprite_salon/test/award(mob/player, award_type)
 	awards += award_type
 
+/// Counts part checks, so one window action can be shown to work out the region locks once.
+/datum/custom_sprite_salon/test/lock_counting
+	/// part_problem() calls so far.
+	var/part_checks = 0
+
+/datum/custom_sprite_salon/test/lock_counting/part_problem(mob/living/carbon/human/recipient, key)
+	part_checks++
+	return ..()
+
+/// Counts body redraws, so applying several regions can be shown to redraw once.
+/mob/living/carbon/human/consistent/redraw_counting
+	/// update_body() calls so far.
+	var/redraws = 0
+
+/mob/living/carbon/human/consistent/redraw_counting/update_body(is_creating = FALSE)
+	redraws++
+	return ..()
+
 /// Records stop packets without requiring a real sound-capable client.
 /mob/living/carbon/human/consistent/salon_sound_listener
 	/// Most recent channel silenced for this listener.
@@ -39,9 +57,9 @@
 	/// Artist's held tattoo tool.
 	var/obj/item/tattoo_machine/machine
 
-/datum/unit_test/custom_sprite_salon/proc/setup_players()
+/datum/unit_test/custom_sprite_salon/proc/setup_players(recipient_type = /mob/living/carbon/human/consistent)
 	artist = allocate(/mob/living/carbon/human/consistent)
-	recipient = allocate(/mob/living/carbon/human/consistent, locate(run_loc_floor_bottom_left.x + 1, run_loc_floor_bottom_left.y, run_loc_floor_bottom_left.z))
+	recipient = allocate(recipient_type, locate(run_loc_floor_bottom_left.x + 1, run_loc_floor_bottom_left.y, run_loc_floor_bottom_left.z))
 	artist.mock_client = new
 	recipient.mock_client = new
 	artist.ckey = "salontestartist"
@@ -87,6 +105,17 @@
 	editor.draft_changed()
 	return TRUE
 
+/// Paints one pixel a region owns on the tattoo canvas with a new color, as a stroke from the window would.
+/datum/unit_test/custom_sprite_salon/proc/paint_region(datum/custom_sprite_salon/session, zone, direction = "2")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/point = custom_sprite_test_region_pixel(canvas, zone, direction)
+	var/color = "#[copytext(md5("[zone][length(canvas.workspace.undo_stack)]"), 1, 7)]"
+	canvas.workspace.update_palette(canvas.workspace.palette | color)
+	if(!point || !canvas.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = direction, "color" = "[color]ff", "points" = list(point))))
+		return FALSE
+	canvas.draft_changed()
+	return TRUE
+
 /datum/unit_test/custom_sprite_salon/timed_sounds
 	/// Number of do_after checks observed with sound channels reserved.
 	var/sound_checks = 0
@@ -110,7 +139,7 @@
 	setup_players()
 	TEST_ASSERT(!custom_sprite_salon_start_problem(scissors, artist, recipient, "hair"), "Adjacent distinct players with scissors must be able to start: [custom_sprite_salon_start_problem(scissors, artist, recipient, "hair")]")
 	TEST_ASSERT(!custom_sprite_salon_start_problem(scissors, artist, artist, "hair"), "Working on yourself must be allowed.")
-	TEST_ASSERT(!custom_sprite_salon_start_problem(machine, artist, recipient, "markings", BODY_ZONE_L_ARM), "An exposed limb must be tattooable with a held tattoo machine.")
+	TEST_ASSERT(!custom_sprite_salon_start_problem(machine, artist, recipient, "markings"), "An exposed body must be tattooable with a held tattoo machine.")
 	var/datum/client_interface/recipient_client = recipient.mock_client
 	recipient.mock_client = null
 	TEST_ASSERT(custom_sprite_salon_start_problem(scissors, artist, recipient, "hair"), "A disconnected recipient must be rejected.")
@@ -129,7 +158,7 @@
 	recipient.set_hairstyle("Short Hair", update = TRUE)
 
 	var/datum/custom_sprite_salon/test/session = new(scissors, artist, recipient, "hair", null)
-	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "hair", null) != session || session.editor?.context != "salon"), "A salon session must own the artist's single retained draft.")
+	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "hair", recipient.ckey) != session || session.editor?.context != "salon"), "A salon session must own the artist's retained draft for this recipient.")
 	TEST_ASSERT(session.propose(artist) == "Nothing has changed yet.", "Unchanged submissions must not be proposed.")
 	var/icon/guide = session.editor.guide_icons["2"]
 	var/body_pixels = 0
@@ -171,14 +200,15 @@
 	session.propose(artist)
 	token = session.proposal["token"]
 	session.accept(recipient, token)
-	var/list/applied = session.proposal["package"]
+	var/list/applied = session.proposal["packages"]["hair"]
 	TEST_ASSERT(!(!session.complete_application(token) || !QDELETED(session)), "A valid completion must apply and end the session.")
 	TEST_ASSERT(!(session.complete_application(token) || length(session.awards) != 2), "Replayed completion must not apply or award twice.")
 	TEST_ASSERT(custom_sprite_hash(custom_sprite_validate(recipient.dna.custom_hair)) == custom_sprite_hash(custom_sprite_validate(custom_sprite_appearance_drawing(applied["drawing"], FALSE))), "The approved revision must become the recipient's round hair.")
 	var/list/history = recipient.custom_sprite_round_history?["hair"]
 	TEST_ASSERT(!(!history || !("drawing" in history) || history["drawing"] || !history["hair"]), "Application must keep the previous style, including an explicit empty drawing and base look.")
 
-	var/datum/custom_sprite_salon/test/restore = new(scissors, artist, recipient, "hair", null, deep_copy_list(history))
+	var/list/restored = list("hair" = deep_copy_list(history))
+	var/datum/custom_sprite_salon/test/restore = new(scissors, artist, recipient, "hair", restored)
 	GLOB.custom_sprite_salon_cooldowns.Cut()
 	error = restore.propose(artist)
 	TEST_ASSERT(!error, "Restoration must open the mirror: [error]")
@@ -186,17 +216,16 @@
 	TEST_ASSERT(!(!restore.accept(recipient, token) || !restore.complete_application(token)), "Restoration must use the same approval and application flow.")
 	TEST_ASSERT(!(recipient.dna.custom_hair || !recipient.custom_sprite_round_history["hair"]["drawing"] || length(restore.awards)), "Restoration must swap current and previous styles without awarding achievements.")
 
-	var/datum/custom_sprite_salon/test/tattoo = new(machine, artist, recipient, "markings", BODY_ZONE_L_ARM)
-	TEST_ASSERT(paint(tattoo), "The tattoo editor must accept paint inside the limb silhouette.")
+	var/datum/custom_sprite_salon/test/tattoo = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(istype(tattoo.editor, /datum/custom_sprite_editor/markings/salon), "Tattoo work must use the whole-body canvas.")
+	TEST_ASSERT(paint_region(tattoo, BODY_ZONE_L_ARM), "The tattoo canvas must accept paint on the left arm.")
 	var/obj/item/bodypart/arm/left/replacement = new
 	replacement.replace_limb(recipient)
-	TEST_ASSERT(findtext(tattoo.propose(artist), "replaced"), "A replaced limb must invalidate the tattoo.")
-	TEST_ASSERT(!(!tattoo.editor || tattoo.editor.workspace.edited_directions["2"] != TRUE), "Invalidation must keep the tattoo draft for export.")
-	var/list/other_hair = custom_style_test_hair("Mohawk")
-	TEST_ASSERT(tattoo.editor.candidate_problem(custom_style_package("markings", BODY_ZONE_R_ARM, null, null)), "Salon imports must reject a different body zone.")
+	TEST_ASSERT(findtext(tattoo.propose(artist), "replaced"), "A replaced limb must invalidate a tattoo that changes it.")
+	TEST_ASSERT(!(!tattoo.editor || !tattoo.editor.workspace.edited_directions["2"]), "Invalidation must keep the tattoo draft for export.")
 	qdel(tattoo)
 	var/datum/custom_sprite_salon/test/hair_session = new(scissors, artist, recipient, "hair", null)
-	other_hair = hair_session.editor.workspace.hair_context.Copy()
+	var/list/other_hair = hair_session.editor.workspace.hair_context.Copy()
 	other_hair["style"] = "Mohawk"
 	TEST_ASSERT(!hair_session.editor.candidate_problem(custom_style_package("hair", null, null, other_hair)), "Salon imports must allow another unlocked base haircut.")
 	other_hair["opacity"] = other_hair["opacity"] == 0.5 ? 1 : 0.5
@@ -261,14 +290,20 @@
 	var/obj/item/bodypart/arm = transplant_donor(BODY_ZONE_L_ARM)
 	var/datum/bodypart_overlay/custom_marking/zone = locate(/datum/bodypart_overlay/custom_marking/zone) in arm.bodypart_overlays
 	var/original_hash = zone.drawing_hash
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", BODY_ZONE_L_ARM)
-	TEST_ASSERT(!(custom_sprite_hash(session.original["package"]["drawing"]) != original_hash || !session.editor.workspace.serialize_drawing()), "A transplanted limb's draft must start from its paint snapshot, even when recipient DNA has no tattoo.")
-	TEST_ASSERT(paint(session), "The donor tattoo draft must be editable.")
+	var/key = custom_style_key("markings", BODY_ZONE_L_ARM)
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/list/start = session.original[key]
+	var/list/start_package = start["package"]
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/results = canvas.region_results()
+	var/list/arm_result = results[BODY_ZONE_L_ARM]
+	TEST_ASSERT(!(custom_sprite_hash(start_package["drawing"]) != original_hash || custom_sprite_hash(arm_result["drawing"]) != original_hash), "A transplanted limb's region must start from its paint snapshot, even when recipient DNA has no tattoo.")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The donor arm must be paintable on the tattoo canvas.")
 	var/error = session.propose(artist)
 	TEST_ASSERT(!error, "The donor tattoo must be proposable: [error]")
 	var/token = session.proposal["token"]
 	TEST_ASSERT(!(!session.accept(recipient, token) || !session.complete_application(token)), "Approved work on the donor arm must complete.")
-	var/list/history = recipient.custom_sprite_round_history?[custom_style_key("markings", BODY_ZONE_L_ARM)]
+	var/list/history = recipient.custom_sprite_round_history?[key]
 	TEST_ASSERT(custom_sprite_hash(history?["drawing"]) == original_hash, "Round history must retain the actual donor tattoo for restoration.")
 	custom_sprite_apply_round_style(recipient, history)
 	var/datum/bodypart_overlay/custom_marking/restored = locate(/datum/bodypart_overlay/custom_marking/zone) in arm.bodypart_overlays
@@ -372,7 +407,9 @@
 	recipient.real_name = preferences.read_preference(/datum/preference/name/real_name)
 	var/list/package = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_drawing(), null)
 	custom_sprite_apply_round_style(recipient, package)
-	var/datum/custom_sprite_mirror/mirror = new(null, recipient, package, preferences.default_slot)
+	var/list/applied = list()
+	applied[custom_style_key("markings", BODY_ZONE_L_ARM)] = package
+	var/datum/custom_sprite_mirror/mirror = new(null, recipient, applied, preferences.default_slot)
 	var/datum/tgui/ui = new(recipient, mirror, "CustomSpriteMirror")
 	mirror.ui_act("export", list(), ui)
 	TEST_ASSERT(!mirror.save_message, "The completed result must not offer a second export: [mirror.save_message]")
@@ -424,15 +461,18 @@
 		TEST_ASSERT(!custom_sprite_live_package(recipient, "markings", "taur")?["drawing"], "Clearing a salon taur tattoo must remove its paint.")
 		custom_sprite_apply_round_style(recipient, current, FALSE)
 		TEST_ASSERT(custom_sprite_hash(custom_sprite_live_package(recipient, "markings", "taur")?["drawing"]) == custom_sprite_hash(custom_sprite_appearance_drawing(current["drawing"], FALSE)), "Salon application must restore the independent taur paint snapshot.")
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", "taur", current)
-	TEST_ASSERT(!session.participant_problem(), "Taur consent must bind to the existing chest and external organ.")
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	TEST_ASSERT(!(canvas.workspace.width != CUSTOM_SPRITE_TAUR_WIDTH || !(CUSTOM_MARKING_ZONE_TAUR in canvas.region_zones) || (BODY_ZONE_L_LEG in canvas.region_zones)), "A taur's tattoo canvas must be wide, with a taur region and no leg regions.")
+	TEST_ASSERT(paint_region(session, CUSTOM_MARKING_ZONE_TAUR), "The taur region must be paintable.")
+	TEST_ASSERT(!session.participant_problem(), "Taur consent must bind to the existing chest and external organ: [session.participant_problem()]")
 	var/obj/item/organ/taur_body/replacement = allocate(organ.type)
 	var/datum/bodypart_overlay/mutant/taur_body/replacement_overlay = replacement.bodypart_overlay
 	replacement_overlay.set_appearance_from_name("Cow (Spotted)")
 	replacement_overlay.imprint_on_next_insertion = FALSE
 	allocated += organ
 	replacement.Insert(recipient, special = TRUE)
-	TEST_ASSERT(findtext(session.participant_problem(), "replaced"), "Replacing the taur organ while retaining the chest must invalidate salon consent.")
+	TEST_ASSERT(findtext(session.participant_problem(), "replaced"), "Replacing the taur organ while retaining the chest must invalidate a tattoo that changes it.")
 
 
 /proc/custom_sprite_test_mask_count(list/rows)
@@ -471,17 +511,17 @@
 			zone_overlays++
 	TEST_ASSERT(!(hand_overlays != 1 || zone_overlays != 1), "Hand and arm paint must be independent overlays on the arm.")
 	TEST_ASSERT(!(custom_style_package_hash(custom_sprite_live_package(recipient, "markings", BODY_ZONE_PRECISE_L_HAND)) != custom_style_package_hash(custom_sprite_live_package_from(hand_package, recipient)) || custom_style_package_hash(custom_sprite_live_package(recipient, "markings", BODY_ZONE_L_ARM)) != custom_style_package_hash(custom_sprite_live_package_from(arm_package, recipient))), "Live hand and arm styles must read back their own drawings.")
-	TEST_ASSERT(!custom_sprite_salon_start_problem(machine, artist, recipient, "markings", BODY_ZONE_PRECISE_L_HAND), "A bare hand must be tattooable.")
+	TEST_ASSERT(!custom_sprite_salon_target_problem(recipient, "markings", BODY_ZONE_PRECISE_L_HAND), "A bare hand must be tattooable.")
 	var/obj/item/clothing/gloves/gloves = allocate(/obj/item/clothing/gloves/color/black)
 	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
 	TEST_ASSERT(!(!custom_sprite_zone_covered(recipient, BODY_ZONE_PRECISE_L_HAND) || custom_sprite_zone_covered(recipient, BODY_ZONE_L_ARM)), "Gloves must cover hands without covering arms.")
-	TEST_ASSERT(findtext(custom_sprite_salon_start_problem(machine, artist, recipient, "markings", BODY_ZONE_PRECISE_L_HAND), "covered"), "Tattooing a gloved hand must be refused.")
+	TEST_ASSERT(findtext(custom_sprite_salon_target_problem(recipient, "markings", BODY_ZONE_PRECISE_L_HAND), "covered"), "Tattooing a gloved hand must be refused.")
 	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
 	recipient.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING)
 	TEST_ASSERT(!(!custom_sprite_zone_covered(recipient, BODY_ZONE_L_ARM) || !custom_sprite_zone_covered(recipient, BODY_ZONE_CHEST)), "A jumpsuit must cover the arms and torso.")
-	if(uniform.can_adjust && !uniform.alt_covers_chest)
-		uniform.toggle_jumpsuit_adjust()
-		TEST_ASSERT(!(custom_sprite_zone_covered(recipient, BODY_ZONE_L_ARM) || custom_sprite_salon_start_problem(machine, artist, recipient, "markings", BODY_ZONE_L_ARM)), "Rolled-up sleeves must expose the arms for tattooing.")
+	TEST_ASSERT(uniform.can_adjust && !uniform.alt_covers_chest, "The fixture jumpsuit must roll down to bare the torso and arms.")
+	uniform.toggle_jumpsuit_adjust()
+	TEST_ASSERT(!(custom_sprite_zone_covered(recipient, BODY_ZONE_L_ARM) || custom_sprite_salon_target_problem(recipient, "markings", BODY_ZONE_L_ARM)), "Rolled-up sleeves must expose the arms for tattooing.")
 
 
 /datum/unit_test/custom_sprite_salon/locked_paint/Run()
@@ -498,43 +538,54 @@
 	drawing["dirs"]["1"] = drawing["dirs"]["2"]
 	drawing["dirs"] -= "2"
 	custom_sprite_apply_round_style(artist, custom_style_package("markings", BODY_ZONE_CHEST, drawing, null))
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, artist, "markings", BODY_ZONE_CHEST)
-	var/original_hash = custom_sprite_hash(session.original["package"]["drawing"])
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, artist, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/start = session.original[custom_style_key("markings", BODY_ZONE_CHEST)]
+	var/list/start_package = start["package"]
+	var/original_hash = custom_sprite_hash(start_package["drawing"])
 	for(var/rebuild in 1 to 2)
-		TEST_ASSERT(custom_sprite_hash(session.editor.workspace.serialize_drawing()) == original_hash, "Opening or rebuilding a mirror-locked view must preserve its existing tattoo.")
-		TEST_ASSERT(!session.editor.workspace.is_point_allowed(point[1], point[2], "1"), "Preserving locked paint must not make the back view editable.")
-		session.editor.rebuild_resources()
+		var/list/results = canvas.region_results()
+		var/list/chest_result = results[BODY_ZONE_CHEST]
+		TEST_ASSERT(!(chest_result["changed"] || custom_sprite_hash(chest_result["drawing"]) != original_hash), "Opening or rebuilding a mirror-locked view must preserve its existing tattoo.")
+		TEST_ASSERT(!canvas.workspace.is_point_allowed(point[1], point[2], "1"), "Preserving locked paint must not make the back view editable.")
+		canvas.rebuild_resources()
 
 /datum/unit_test/custom_sprite_salon/marking_ownership/Run()
 	setup_players()
 	var/previous_preferences = GLOB.preferences_datums[artist.ckey]
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, artist.mock_client)
 	GLOB.preferences_datums[artist.ckey] = preferences
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", BODY_ZONE_CHEST)
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
 	var/before = json_encode(preferences.body_markings)
 	var/name = GLOB.body_markings_per_limb[BODY_ZONE_CHEST][1]
 	var/recipient_before = json_encode(recipient.dna.body_markings)
-	TEST_ASSERT(!(!session.editor.can_change_markings() || !session.editor.write_base_marking(null, name, "#112233")), "The tattoo editor must offer native markings as part of its draft.")
+	TEST_ASSERT(canvas.write_region_marking(BODY_ZONE_CHEST, null, name, "#112233"), "The tattoo canvas must offer the torso's native markings as part of its draft.")
 	TEST_ASSERT(json_encode(preferences.body_markings) == before, "Salon base-marking actions must leave the artist's preferences untouched.")
 	TEST_ASSERT(json_encode(recipient.dna.body_markings) == recipient_before, "Changing a tattoo preset must not change the recipient before approval.")
-	session.editor.workspace.undo()
-	TEST_ASSERT(!length(session.editor.base_markings()), "Undo must remove the draft's new tattoo preset.")
-	session.editor.workspace.redo()
-	session.editor.rebuild_resources()
-	session.editor.workspace.markings_context[1]["emissive"] = TRUE
+	canvas.workspace.undo()
+	TEST_ASSERT(!length(canvas.workspace.markings_context[BODY_ZONE_CHEST]), "Undo must remove the draft's new tattoo preset.")
+	canvas.workspace.redo()
+	canvas.rebuild_resources()
+	var/list/chest_markings = canvas.workspace.markings_context[BODY_ZONE_CHEST]
+	var/list/entry = chest_markings[1]
+	// Emission set behind the window's back: results are cached by history position, so drop them.
+	entry["emissive"] = TRUE
+	canvas.results_cache = null
 	TEST_ASSERT(findtext(session.propose(artist), "emissive appearance disabled"), "Disallowed native emission must be rejected before approval, not after applying.")
-	session.editor.workspace.markings_context[1]["emissive"] = FALSE
+	entry["emissive"] = FALSE
+	canvas.results_cache = null
 	var/problem = session.propose(artist)
 	TEST_ASSERT(!problem, "A native-marking-only change must be reviewable: [problem]")
 	var/token = session.proposal["token"]
-	session.editor.write_base_marking(1, name, "#445566")
+	canvas.write_region_marking(BODY_ZONE_CHEST, 1, name, "#445566")
 	TEST_ASSERT(!(session.proposal || session.accept(recipient, token)), "Changing base markings must withdraw an existing approval.")
 	GLOB.custom_sprite_salon_cooldowns.Cut()
 	session.propose(artist)
 	token = session.proposal["token"]
 	session.accept(recipient, token)
 	session.complete_application(token)
-	TEST_ASSERT(recipient.dna.body_markings?[BODY_ZONE_CHEST]?[name]?[MARKING_INDEX_COLOR] == "#445566", "Approved tattoo presets must apply to the recipient's selected zone.")
+	TEST_ASSERT(recipient.dna.body_markings?[BODY_ZONE_CHEST]?[name]?[MARKING_INDEX_COLOR] == "#445566", "Approved tattoo presets must apply to the recipient's torso.")
 	GLOB.preferences_datums[artist.ckey] = previous_preferences
 
 /datum/unit_test/custom_sprite_salon/hair_controls/Run()
@@ -602,16 +653,16 @@
 	TEST_ASSERT(!(bounds[3] >= bounds[1] || session.editor.workspace.is_point_allowed(16, 10, "1")), "A locked view must have no paintable pixels.")
 	TEST_ASSERT(paint(session), "The front view must stay paintable without a mirror.")
 	var/list/package = session.editor.current_package()
-	TEST_ASSERT(!session.locked_view_problem(package), "Painting only the front must pass the mirror check.")
+	TEST_ASSERT(!session.locked_view_problem(list("hair" = package)), "Painting only the front must pass the mirror check.")
 	var/list/back_painted = deep_copy_list(package)
 	back_painted["drawing"] = custom_sprite_test_drawing()
-	TEST_ASSERT(findtext(session.locked_view_problem(back_painted), "mirror"), "Changing a locked view must need a mirror.")
+	TEST_ASSERT(findtext(session.locked_view_problem(list("hair" = back_painted)), "mirror"), "Changing a locked view must need a mirror.")
 	var/obj/item/hhmirror/mirror = allocate(/obj/item/hhmirror)
 	artist.dropItemToGround(machine)
 	TEST_ASSERT(artist.put_in_inactive_hand(mirror), "The fixture must be able to hold the mirror.")
 	// Picking the mirror up must free the view without reopening the editor.
 	var/list/back_stroke = list("type" = "pencil", "layer" = 1, "dir" = "1", "color" = "[session.editor.workspace.palette[1]]ff", "points" = list(list(16, 10)))
-	TEST_ASSERT(!(session.locked_directions() || session.locked_view_problem(back_painted) || !session.editor.workspace.new_transaction(deep_copy_list(back_stroke))), "A held hand mirror must unlock the back view at once.")
+	TEST_ASSERT(!(session.locked_directions() || session.locked_view_problem(list("hair" = back_painted)) || !session.editor.workspace.new_transaction(deep_copy_list(back_stroke))), "A held hand mirror must unlock the back view at once.")
 	artist.dropItemToGround(mirror)
 	TEST_ASSERT(!(!session.locked_directions() || session.editor.workspace.new_transaction(deep_copy_list(back_stroke))), "Dropping the mirror must lock the back view again at once.")
 	artist.put_in_inactive_hand(mirror)
@@ -650,8 +701,8 @@
 	var/datum/sprite_accessory/hair/current = SSaccessories.hairstyles_list[session.editor.workspace.hair_context["style"]]
 	var/list/current_bounds = custom_sprite_icon_bounds(icon(current.icon, current.icon_state), SOUTH)
 	var/longer
-	for(var/name in SSaccessories.hairstyles_list)
-		var/datum/sprite_accessory/hair/candidate = SSaccessories.hairstyles_list[name]
+	for(var/name, candidate_untyped in SSaccessories.hairstyles_list)
+		var/datum/sprite_accessory/hair/candidate = candidate_untyped
 		if(!candidate?.icon_state || candidate.locked)
 			continue
 		var/list/bounds = custom_sprite_icon_bounds(icon(candidate.icon, candidate.icon_state), SOUTH)
@@ -674,43 +725,49 @@
 
 /datum/unit_test/custom_sprite_salon/separate_drafts/Run()
 	setup_players()
-	var/datum/custom_sprite_salon/test/haircut = new(scissors, artist, recipient, "hair", null)
-	var/datum/custom_sprite_salon/test/tattoo = new(machine, artist, recipient, "markings", BODY_ZONE_L_ARM)
-	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "hair", null) != haircut || custom_sprite_salon_session(artist.ckey, "markings", BODY_ZONE_L_ARM) != tattoo), "Each drawing must keep its own draft.")
-	TEST_ASSERT(length(custom_sprite_salon_sessions_for(artist.ckey)) == 2, "An artist may hold a draft per drawing.")
+	var/datum/custom_sprite_salon/test/haircut = new(scissors, artist, recipient, "hair")
+	var/datum/custom_sprite_salon/test/tattoo = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "hair", recipient.ckey) != haircut || custom_sprite_salon_session(artist.ckey, "markings", recipient.ckey) != tattoo), "Hair and the whole-body tattoo must keep separate drafts.")
+	TEST_ASSERT(length(custom_sprite_salon_sessions_for(artist.ckey)) == 2, "An artist may hold a draft per drawing target.")
 	TEST_ASSERT(!(length(custom_sprite_salon_sessions_for_tool(artist.ckey, scissors)) != 1 || custom_sprite_salon_sessions_for_tool(artist.ckey, scissors)[1] != haircut), "Scissors must resume hair work, not tattoo work.")
 	TEST_ASSERT(!(length(custom_sprite_salon_sessions_for_tool(artist.ckey, machine)) != 1 || custom_sprite_salon_sessions_for_tool(artist.ckey, machine)[1] != tattoo), "A tattoo machine must resume tattoo work, not hair work.")
-	// Starting the same drawing again is what warns about discarding a draft.
-	TEST_ASSERT(custom_sprite_salon_session(artist.ckey, "hair", null), "The hair draft must still be there.")
 	qdel(haircut)
-	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "hair", null) || custom_sprite_salon_session(artist.ckey, "markings", BODY_ZONE_L_ARM) != tattoo), "Discarding one draft must leave the others alone.")
-	var/datum/custom_sprite_salon/test/facial = new(scissors, artist, recipient, "facial_hair", null)
+	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "hair", recipient.ckey) || custom_sprite_salon_session(artist.ckey, "markings", recipient.ckey) != tattoo), "Discarding one draft must leave the others alone.")
+	var/datum/custom_sprite_salon/test/facial = new(scissors, artist, recipient, "facial_hair")
 	TEST_ASSERT(!(length(custom_sprite_salon_sessions_for_tool(artist.ckey, scissors)) != 1 || custom_sprite_salon_sessions_for_tool(artist.ckey, scissors)[1] != facial), "Hair and facial hair must be separate drafts.")
-
+	// Each person worked on keeps their own draft, so tattooing one never discards another's.
+	var/datum/custom_sprite_salon/test/own = new(machine, artist, artist, "markings")
+	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "markings", recipient.ckey) != tattoo || custom_sprite_salon_session(artist.ckey, "markings", artist.ckey) != own), "Tattoo drafts for two people must be kept apart.")
+	TEST_ASSERT(length(custom_sprite_salon_sessions_for_tool(artist.ckey, machine)) == 2, "The tattoo machine must offer both tattoo drafts.")
+	qdel(own)
+	TEST_ASSERT(custom_sprite_salon_session(artist.ckey, "markings", recipient.ckey) == tattoo, "Discarding one person's draft must keep the other's.")
 
 /datum/unit_test/custom_sprite_salon/tattoo_geometry/Run()
 	setup_players()
 	var/obj/item/bodypart/limb = recipient.get_bodypart(BODY_ZONE_L_ARM)
 	// Same bodypart type, but a different sprite selected through character customization.
 	limb.change_appearance(BODYPART_ICON_HUMANOID, SPECIES_HUMANOID, TRUE, FALSE)
-	var/list/expected = custom_sprite_body_draw_mask(recipient, BODY_ZONE_L_ARM)
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", BODY_ZONE_L_ARM)
-	TEST_ASSERT(json_encode(session.editor.workspace.draw_mask) == json_encode(expected), "Tattoo masks must cover the recipient's full customized limb, exactly like character setup.")
-	var/obj/item/bodypart/preview_limb = session.editor.preview_body.get_bodypart(BODY_ZONE_L_ARM)
+	var/list/zones = custom_sprite_present_regions(recipient)
+	var/list/expected = custom_sprite_region_map(recipient, zones, 32)
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	TEST_ASSERT(!(json_encode(canvas.region_zones) != json_encode(zones) || json_encode(canvas.region_map) != json_encode(expected)), "The tattoo canvas must map the recipient's own regions, customized limbs included.")
+	var/obj/item/bodypart/preview_limb = canvas.preview_body.get_bodypart(BODY_ZONE_L_ARM)
 	TEST_ASSERT(!(preview_limb.custom_sprite_icon_file() != limb.custom_sprite_icon_file() || preview_limb.limb_id != limb.limb_id), "Salon previews must preserve custom limb sprite files and state IDs.")
+	var/index = "[canvas.region_zones.Find(BODY_ZONE_L_ARM)]"
 	for(var/direction in GLOB.cardinals)
 		var/list/rows = expected["[direction]"]
 		for(var/y in 0 to 31)
 			for(var/x in 0 to 31)
-				TEST_ASSERT(!(copytext(rows[y + 1], x + 1, x + 2) == "1" && !session.editor.workspace.is_point_allowed(x, y, "[direction]")), "Tattoo bounds must include every limb pixel in direction [direction].")
+				TEST_ASSERT(!(copytext(rows[y + 1], x + 1, x + 2) == index && !canvas.workspace.is_point_allowed(x, y, "[direction]")), "Every left arm pixel must be paintable in direction [direction].")
 
 /datum/unit_test/custom_sprite_salon/tattoo_hair_layer/Run()
 	setup_players()
 	// A style long enough to hang over the chest.
 	var/long_style
 	var/lowest = 0
-	for(var/name in SSaccessories.hairstyles_list)
-		var/datum/sprite_accessory/hair/candidate = SSaccessories.hairstyles_list[name]
+	for(var/name, candidate_untyped in SSaccessories.hairstyles_list)
+		var/datum/sprite_accessory/hair/candidate = candidate_untyped
 		if(!candidate?.icon_state || candidate.locked)
 			continue
 		var/list/extent = custom_sprite_icon_bounds(icon(candidate.icon, candidate.icon_state), SOUTH)
@@ -720,8 +777,8 @@
 	recipient.set_hairstyle(long_style, update = TRUE)
 	var/obj/item/organ/wings/moth/wings = new
 	wings.Insert(recipient, special = TRUE)
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", BODY_ZONE_CHEST)
-	var/datum/custom_sprite_editor/salon/editor = session.editor
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/editor = session.editor
 	TEST_ASSERT(length(editor.preview_body.overlays_standing[HAIR_LAYER]), "The fixture must have hair to leave out of the guide.")
 	TEST_ASSERT(!(!editor.can_hide_parts() || !editor.hide_parts), "Tattoo guides must keep hair and parts out of the way by default.")
 	TEST_ASSERT(!editor.can_hide_underwear(), "Tattoo guides must show the recipient as they're dressed, underwear included.")
@@ -769,13 +826,14 @@
 	for(var/permanent in list(FALSE, TRUE))
 		GLOB.custom_sprite_salon_cooldowns.Cut()
 		custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_L_ARM, null, null))
-		var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", BODY_ZONE_L_ARM)
-		paint(session)
+		var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+		paint_region(session, BODY_ZONE_L_ARM)
 		session.propose(artist)
 		var/datum/custom_sprite_mirror/mirror = session.mirror
 		var/list/static_data = mirror.ui_static_data(recipient)
 		var/list/data = mirror.ui_data(recipient)
 		TEST_ASSERT(!(length(static_data["before"]) != 4 || length(static_data["after"]) != 4 || data["before"] || data["after"] || data["timeout"] <= 0), "Mirror images must be static while the small timeout payload updates.")
+		TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Left arm")), "The mirror must name the region the tattoo changes: [json_encode(static_data["changes"])]")
 		var/list/prior = preferences.custom_style_saved_package("markings", BODY_ZONE_L_ARM)
 		var/old_hash = custom_style_package_hash(prior)
 		var/token = session.proposal["token"]
@@ -789,7 +847,7 @@
 		qdel(ui)
 		TEST_ASSERT(!(session.state != "applying" || session.save_on_completion != permanent), "The recipient's acceptance choice must bind to the reviewed proposal.")
 		TEST_ASSERT(custom_style_package_hash(preferences.custom_style_saved_package("markings", BODY_ZONE_L_ARM)) == old_hash, "Approval must not save before application completes.")
-		var/list/applied = session.proposal["package"]
+		var/list/applied = session.proposal["packages"][custom_style_key("markings", BODY_ZONE_L_ARM)]
 		TEST_ASSERT(session.complete_application(token), "Valid reviewed work must still apply.")
 		var/saved_hash = custom_style_package_hash(preferences.custom_style_saved_package("markings", BODY_ZONE_L_ARM))
 		TEST_ASSERT(saved_hash == (permanent ? custom_style_package_hash(applied) : old_hash), "Only permanent acceptance may save the applied proposal.")
@@ -812,17 +870,17 @@
 	setup_players()
 	for(var/target in list("hair", "markings"))
 		var/tattoo = target == "markings"
-		var/datum/custom_sprite_salon/test/session = new(tattoo ? machine : scissors, artist, recipient, target, tattoo ? BODY_ZONE_L_ARM : null)
-		var/datum/custom_sprite_editor/salon/editor = session.editor
+		var/datum/custom_sprite_salon/test/session = new(tattoo ? machine : scissors, artist, recipient, target)
+		var/datum/custom_sprite_editor/editor = session.editor
 		var/channels_before = length(SSsounds.reserved_channels)
 		// Register the open UI without needing a DreamSeeker window in a native test.
 		var/datum/tgui/ui = new(artist, editor, "CustomHairEditor")
 		editor.open_uis = list(ui)
 		editor.ui_interact(artist, ui)
-		TEST_ASSERT(!(editor.drawing_sound || editor.drawing_ambience), "An idle open editor must stay silent.")
+		TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "An idle open editor must stay silent.")
 		for(var/list/invalid as anything in list(list("dir" = "2", "x" = -1, "y" = 0, "erasing" = TRUE), list("dir" = "2", "x" = 9999, "y" = 0, "erasing" = TRUE), list("dir" = "invalid", "x" = 1, "y" = 1), list("dir" = "2", "x" = "text", "y" = 1)))
 			editor.ui_act("drawing", invalid, ui)
-		TEST_ASSERT(!(editor.drawing_sound || editor.drawing_ambience), "Malformed or off-canvas activity must not start sounds.")
+		TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "Malformed or off-canvas activity must not start sounds.")
 		var/list/activity
 		for(var/y in 0 to editor.workspace.height - 1)
 			for(var/x in 0 to editor.workspace.width - 1)
@@ -833,12 +891,12 @@
 				break
 		var/revision = editor.draft_revision
 		TEST_ASSERT(!(editor.ui_act("drawing", activity, ui) || editor.draft_revision != revision), "Brush activity must not change pixels or request a UI update.")
-		var/datum/looping_sound/sound = editor.drawing_sound
+		var/datum/looping_sound/sound = session.drawing_sound
 		TEST_ASSERT(!(!sound?.is_active() || sound.parent != artist || length(SSsounds.reserved_channels) != channels_before + (tattoo ? 2 : 1)), "The first brush movement must immediately start sounds on the artist.")
-		TEST_ASSERT(!(tattoo && (!sound.vary || !editor.drawing_ambience?.native_repeat_active)), "Tattooing needs varied needle bursts and steady native-looped ambience.")
+		TEST_ASSERT(!(tattoo && (!sound.vary || !session.drawing_ambience?.native_repeat_active)), "Tattooing needs varied needle bursts and steady native-looped ambience.")
 		var/sound_timer = sound.timer_id
 		editor.ui_act("drawing", activity, ui)
-		TEST_ASSERT(!(editor.drawing_sound != sound || sound.timer_id != sound_timer), "Drawing during the cooldown must not restart or duplicate the clip.")
+		TEST_ASSERT(!(session.drawing_sound != sound || sound.timer_id != sound_timer), "Drawing during the cooldown must not restart or duplicate the clip.")
 		TEST_ASSERT(!(!istype(sound, /datum/looping_sound/salon_snipping/drawing) || sound.mid_length_vary || sound.mid_length != (tattoo ? 12 SECONDS : 5 SECONDS)), "Brush clips must play once with a fixed five/twelve-second cooldown.")
 		artist.forceMove(get_step(artist, NORTH))
 		TEST_ASSERT(sound.is_active(), "Drawing sounds must survive movement while the editor stays open.")
@@ -846,22 +904,429 @@
 			sleep(2 SECONDS)
 			editor.ui_act("drawing", activity, ui)
 			sleep(2 SECONDS)
-			TEST_ASSERT(editor.drawing_ambience?.is_active(), "Continued drawing must extend the ambience tail.")
+			TEST_ASSERT(session.drawing_ambience?.is_active(), "Continued drawing must extend the ambience tail.")
 			sleep(2 SECONDS)
-			TEST_ASSERT(!editor.drawing_ambience, "Tattoo ambience must stop after drawing has been idle for three seconds.")
+			TEST_ASSERT(!session.drawing_ambience, "Tattoo ambience must stop after drawing has been idle for three seconds.")
 		else
 			sleep(6 SECONDS)
 			TEST_ASSERT(!sound.is_active(), "A snip must not loop while the drawing is idle.")
 		// Advance only the cooldown, avoiding a twelve-second sleep for a repeated clip.
-		editor.drawing_sound_cooldown = 0
+		session.drawing_sound_cooldown = 0
 		editor.ui_act("drawing", activity, ui)
 		TEST_ASSERT(!(!sound.is_active() || sound.timer_id == sound_timer), "The next brush movement after cooldown must start another clip.")
 		editor.ui_close(artist)
-		TEST_ASSERT(!(!QDELETED(sound) || editor.drawing_sound || editor.drawing_ambience || length(SSsounds.reserved_channels) != channels_before), "Closing the editor must silence and release both sound channels.")
+		TEST_ASSERT(!(!QDELETED(sound) || session.drawing_sound || session.drawing_ambience || length(SSsounds.reserved_channels) != channels_before), "Closing the editor must silence and release both sound channels.")
 		editor.ui_interact(artist, ui)
-		TEST_ASSERT(!(editor.drawing_sound || editor.drawing_ambience), "Reopening a retained draft must stay silent until drawing resumes.")
-		editor.drawing_sound_cooldown = 0
+		TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "Reopening a retained draft must stay silent until drawing resumes.")
+		session.drawing_sound_cooldown = 0
 		editor.ui_act("drawing", activity, ui)
 		qdel(session)
 		TEST_ASSERT(length(SSsounds.reserved_channels) == channels_before, "Discarding open work must release its sound channels.")
 		artist.forceMove(run_loc_floor_bottom_left)
+
+/// Only regions the draft changes are proposed, named in the mirror, applied and remembered.
+/datum/unit_test/custom_sprite_salon/touched_regions/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	TEST_ASSERT(session.propose(artist) == "Nothing has changed yet.", "An untouched canvas must not be proposed.")
+	var/list/before = custom_sprite_live_packages(recipient, "markings")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
+	var/name = GLOB.body_markings_per_limb[BODY_ZONE_CHEST][1]
+	TEST_ASSERT(canvas.write_region_marking(BODY_ZONE_CHEST, null, name, "#112233"), "The fixture must give the torso a base marking.")
+	var/error = session.propose(artist)
+	TEST_ASSERT(!error, "Touched regions must be proposable: [error]")
+	var/arm_key = custom_style_key("markings", BODY_ZONE_L_ARM)
+	var/chest_key = custom_style_key("markings", BODY_ZONE_CHEST)
+	var/list/packages = session.proposal["packages"]
+	TEST_ASSERT(!(length(packages) != 2 || !packages[arm_key] || !packages[chest_key]), "The proposal must carry exactly the touched regions: [json_encode(assoc_to_keys(packages))]")
+	var/list/static_data = session.mirror.ui_static_data(recipient)
+	TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Torso", "Left arm")), "The mirror must name the touched regions in body order: [json_encode(static_data["changes"])]")
+	TEST_ASSERT(static_data["label"] == "tattoo", "Whole-body work is a tattoo: [static_data["label"]]")
+	var/token = session.proposal["token"]
+	TEST_ASSERT(!(!session.accept(recipient, token) || !session.complete_application(token)), "Approved touched regions must apply.")
+	var/list/after = custom_sprite_live_packages(recipient, "markings")
+	for(var/key, package in before)
+		var/changed = custom_style_package_hash(package) != custom_style_package_hash(after[key])
+		TEST_ASSERT(changed == (key in list(arm_key, chest_key)), "Only touched regions may change on the recipient: [key]")
+	TEST_ASSERT(json_encode(sort_list(assoc_to_keys(recipient.custom_sprite_round_history))) == json_encode(sort_list(list(arm_key, chest_key))), "Each applied region must keep its own history entry.")
+	TEST_ASSERT(length(session.awards) == 2, "One application awards the pair once, however many regions it changes.")
+
+/// Only the regions a tattoo changes are checked and applied; the rest may change, or be covered, while it waits.
+/datum/unit_test/custom_sprite_salon/untouched_changes/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
+	var/obj/item/clothing/gloves/gloves = allocate(/obj/item/clothing/gloves/color/black)
+	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
+	var/obj/item/bodypart/leg/right/new_leg = allocate(/obj/item/bodypart/leg/right)
+	new_leg.replace_limb(recipient)
+	var/error = session.propose(artist)
+	TEST_ASSERT(!error, "Covered or replaced regions the tattoo doesn't touch must not block it: [error]")
+	// Someone else changes the leg while the recipient is still looking at the mirror.
+	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_R_LEG, custom_sprite_test_drawing(), null))
+	var/leg_hash = custom_style_package_hash(custom_sprite_live_package(recipient, "markings", BODY_ZONE_R_LEG))
+	var/token = session.proposal["token"]
+	TEST_ASSERT(!(!session.accept(recipient, token) || !session.complete_application(token)), "The touched arm must still apply after an untouched region changed.")
+	TEST_ASSERT(custom_style_package_hash(custom_sprite_live_package(recipient, "markings", BODY_ZONE_R_LEG)) == leg_hash, "Applying must leave an untouched region's newer look alone.")
+	// A second draft touches the hand, which the gloves then cover.
+	recipient.dropItemToGround(gloves)
+	var/datum/custom_sprite_salon/test/second = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(paint_region(second, BODY_ZONE_PRECISE_L_HAND), "The fixture must paint the left hand.")
+	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
+	GLOB.custom_sprite_salon_cooldowns.Cut()
+	TEST_ASSERT(findtext(second.propose(artist), "covered"), "A touched region under clothing must block finishing.")
+	recipient.dropItemToGround(gloves)
+	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_PRECISE_L_HAND, custom_sprite_test_drawing(), null))
+	TEST_ASSERT(findtext(second.propose(artist), "changed since work started"), "A touched region that changed on the body must block finishing.")
+
+/// Counts multi-region commits, so a salon save can be shown to write once.
+/datum/preferences/preferences_import_test/counting_commits
+	/// commit_custom_styles() calls so far.
+	var/commits = 0
+
+/datum/preferences/preferences_import_test/counting_commits/commit_custom_styles(list/packages, slot, list/rotate_keys, reject_pending_hair = FALSE, reject_pending_markings = FALSE)
+	commits++
+	return ..()
+
+/// Accepting permanently saves only the touched regions, in one write, rotating only their previous styles.
+/datum/unit_test/custom_sprite_salon/permanent_regions/Run()
+	setup_players()
+	var/datum/client_interface/player = recipient.mock_client
+	var/datum/preferences/preferences_import_test/counting_commits/preferences = allocate(/datum/preferences/preferences_import_test/counting_commits, player)
+	player.prefs = preferences
+	GLOB.preferences_datums[recipient.ckey] = preferences
+	recipient.real_name = preferences.read_preference(/datum/preference/name/real_name)
+	recipient.mind_initialize()
+	recipient.mind.original_character_slot_index = preferences.default_slot
+	var/list/leg = preferences.custom_style_saved_package("markings", BODY_ZONE_R_LEG)
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_R_ARM), "The fixture must paint the right arm.")
+	var/error = session.propose(artist)
+	TEST_ASSERT(!error, "Two touched regions must be proposable: [error]")
+	var/token = session.proposal["token"]
+	session.accept(recipient, token, save_permanently = TRUE)
+	TEST_ASSERT(session.complete_application(token), "The approved regions must apply.")
+	TEST_ASSERT(preferences.commits == 1, "Saving permanently must write every touched region in one commit: [preferences.commits]")
+	for(var/zone in list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM))
+		TEST_ASSERT(preferences.custom_limb_markings?[zone], "Saving permanently must save the touched [zone].")
+		TEST_ASSERT(preferences.custom_style_previous_package("markings", zone), "Saving permanently must keep the replaced [zone] as its previous style.")
+	TEST_ASSERT(custom_style_package_hash(preferences.custom_style_saved_package("markings", BODY_ZONE_R_LEG)) == custom_style_package_hash(leg), "Untouched regions must stay as saved.")
+	TEST_ASSERT(!preferences.custom_style_previous_package("markings", BODY_ZONE_R_LEG), "Untouched regions must not rotate.")
+
+/// Tattooing your own back needs a mirror, and the mirror is checked again when you finish.
+/datum/unit_test/custom_sprite_salon/self_tattoo/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, artist, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/back_point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_CHEST, "1")
+	TEST_ASSERT(!canvas.workspace.is_point_allowed(back_point[1], back_point[2], "1"), "Without a mirror, your own back is locked.")
+	var/obj/item/hhmirror/mirror = allocate(/obj/item/hhmirror)
+	artist.dropItemToGround(scissors)
+	TEST_ASSERT(artist.put_in_active_hand(mirror), "The fixture must be able to hold the mirror.")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_CHEST, "1"), "A held mirror must unlock your back.")
+	artist.dropItemToGround(mirror)
+	TEST_ASSERT(findtext(session.propose(artist), "mirror"), "Finishing a change to your back without a mirror must be refused.")
+	artist.put_in_active_hand(mirror)
+	var/error = session.propose(artist)
+	TEST_ASSERT(!(error || session.state != "applying" || session.mirror), "Your own tattoo applies without a consent mirror: [error]")
+	// The mirror can be put down during the finishing touches.
+	artist.dropItemToGround(mirror)
+	TEST_ASSERT(!(session.complete_application(session.proposal["token"]) || session.state != "drafting" || !session.editor), "Putting the mirror down before your back is finished must stop the tattoo and keep the draft.")
+	artist.put_in_active_hand(mirror)
+	error = session.propose(artist)
+	TEST_ASSERT(!error, "Picking the mirror up again must let you finish: [error]")
+	TEST_ASSERT(session.complete_application(session.proposal["token"]), "Your own tattoo must apply.")
+	TEST_ASSERT(!length(session.awards), "Tattooing yourself awards nothing.")
+
+/// Restore previous offers the whole body or one region, and restores only what was chosen.
+/datum/unit_test/custom_sprite_salon/restore_regions/Run()
+	setup_players()
+	var/arm_key = custom_style_key("markings", BODY_ZONE_L_ARM)
+	var/leg_key = custom_style_key("markings", BODY_ZONE_R_LEG)
+	var/list/before = custom_sprite_live_packages(recipient, "markings")
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(!(!paint_region(session, BODY_ZONE_L_ARM) || !paint_region(session, BODY_ZONE_R_LEG)), "The fixture must paint the left arm and right leg.")
+	session.propose(artist)
+	var/token = session.proposal["token"]
+	session.accept(recipient, token)
+	TEST_ASSERT(session.complete_application(token), "The fixture tattoo must apply.")
+	var/list/tattooed = custom_sprite_live_packages(recipient, "markings")
+	var/list/previous = custom_sprite_salon_previous(recipient, "markings")
+	TEST_ASSERT(!(length(previous) != 2 || !previous[arm_key] || !previous[leg_key]), "Both applied regions must have a previous look to restore.")
+	var/list/choices = custom_sprite_salon_restore_choices(previous)
+	TEST_ASSERT(json_encode(choices) == json_encode(list("Whole body" = list(arm_key, leg_key), "Left arm" = list(arm_key), "Right leg" = list(leg_key))), "Restore must offer the whole body, then each region: [json_encode(choices)]")
+	GLOB.custom_sprite_salon_cooldowns.Cut()
+	var/datum/custom_sprite_salon/test/one = new(machine, artist, recipient, "markings", custom_sprite_salon_previous(recipient, "markings", choices["Left arm"]))
+	var/error = one.propose(artist)
+	TEST_ASSERT(!error, "Restoring one region must open the mirror: [error]")
+	var/list/static_data = one.mirror.ui_static_data(recipient)
+	TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Left arm")), "A one-region restoration must name only that region.")
+	token = one.proposal["token"]
+	TEST_ASSERT(!(!one.accept(recipient, token) || !one.complete_application(token)), "The one-region restoration must apply.")
+	var/list/after = custom_sprite_live_packages(recipient, "markings")
+	TEST_ASSERT(custom_style_package_hash(after[arm_key]) == custom_style_package_hash(before[arm_key]), "The chosen region must get its previous look back.")
+	TEST_ASSERT(custom_style_package_hash(after[leg_key]) == custom_style_package_hash(tattooed[leg_key]), "Regions not chosen must keep their tattoo.")
+	TEST_ASSERT(!length(one.awards), "Restorations award nothing.")
+	GLOB.custom_sprite_salon_cooldowns.Cut()
+	var/datum/custom_sprite_salon/test/whole = new(machine, artist, recipient, "markings", custom_sprite_salon_previous(recipient, "markings", choices["Whole body"]))
+	error = whole.propose(artist)
+	TEST_ASSERT(!error, "Restoring the whole body must open the mirror: [error]")
+	static_data = whole.mirror.ui_static_data(recipient)
+	TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Left arm", "Right leg")), "A whole-body restoration must name every region with history: [json_encode(static_data["changes"])]")
+	token = whole.proposal["token"]
+	TEST_ASSERT(!(!whole.accept(recipient, token) || !whole.complete_application(token)), "The whole-body restoration must apply.")
+	after = custom_sprite_live_packages(recipient, "markings")
+	TEST_ASSERT(!(custom_style_package_hash(after[arm_key]) != custom_style_package_hash(tattooed[arm_key]) || custom_style_package_hash(after[leg_key]) != custom_style_package_hash(before[leg_key])), "A whole-body restoration must swap every region with history.")
+
+/// Gloves grey the hands out the moment they go on and free them when they come off. Drafted paint under them stays.
+/datum/unit_test/custom_sprite_salon/live_coverage/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/locked = canvas.locked_regions()
+	TEST_ASSERT(!length(locked), "An undressed recipient has nothing locked: [json_encode(locked)]")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_PRECISE_L_HAND), "The fixture must paint the left hand.")
+	var/list/point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_PRECISE_L_HAND)
+	var/list/frame = canvas.workspace.layers[1]["data"]["2"]
+	var/painted = frame[point[2] + 1][point[1] + 1]
+	var/obj/item/clothing/gloves/gloves = allocate(/obj/item/clothing/gloves/color/black)
+	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
+	locked = canvas.locked_regions()
+	TEST_ASSERT(!(!findtext(locked[BODY_ZONE_PRECISE_L_HAND], "covered") || !locked[BODY_ZONE_PRECISE_R_HAND] || locked[BODY_ZONE_L_ARM]), "Gloves must lock both hands and nothing else: [json_encode(locked)]")
+	TEST_ASSERT(!canvas.workspace.is_point_allowed(point[1], point[2], "2"), "Putting gloves on must lock the hand at once.")
+	var/list/mask = canvas.workspace.draw_mask["2"]
+	TEST_ASSERT(copytext(mask[point[2] + 1], point[1] + 1, point[1] + 2) == "0", "A covered region must be shaded on the canvas.")
+	frame = canvas.workspace.layers[1]["data"]["2"]
+	TEST_ASSERT(frame[point[2] + 1][point[1] + 1] == painted, "Drafted paint under clothing must be kept.")
+	var/list/data = canvas.ui_data(artist)
+	var/list/reasons = data["lockedRegions"]
+	TEST_ASSERT(findtext(reasons[BODY_ZONE_PRECISE_L_HAND], "covered"), "The window must say why the hand is locked.")
+	TEST_ASSERT(findtext(session.propose(artist), "covered"), "The covered, touched hand must block finishing.")
+	// A whole-body import skips the covered hand and names it.
+	var/list/arm_point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_L_ARM)
+	var/list/regions = list(BODY_ZONE_PRECISE_L_HAND = custom_style_package("markings", BODY_ZONE_PRECISE_L_HAND, custom_sprite_test_front_drawing(point, "#123456"), null), BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm_point, "#123456"), null))
+	TEST_ASSERT(canvas.show_region_candidate(regions, "import"), "An import must preview around a covered region: [canvas.transfer_error]")
+	TEST_ASSERT(("Left hand (not available right now)" in canvas.candidate["skipped"]), "The preview must name the covered hand: [json_encode(canvas.candidate["skipped"])]")
+	TEST_ASSERT(canvas.apply_candidate(), "The rest of the import must apply: [canvas.transfer_error]")
+	canvas.draft_changed()
+	// Undo is the artist's own history, even across a covered region; finishing still never applies one.
+	canvas.workspace.undo(2)
+	canvas.draft_changed()
+	var/list/results = canvas.region_results()
+	var/list/hand = results[BODY_ZONE_PRECISE_L_HAND]
+	TEST_ASSERT(!hand["changed"], "Undo may take back a stroke on a covered region.")
+	TEST_ASSERT(session.propose(artist) == "Nothing has changed yet.", "With the covered stroke undone, nothing is left to propose.")
+	recipient.dropItemToGround(gloves)
+	TEST_ASSERT(canvas.workspace.is_point_allowed(point[1], point[2], "2"), "Taking the gloves off must unlock the hand at once.")
+
+/// Clothing on at the start keeps the selection off covered regions. A rolled-down jumpsuit frees the torso and arms once the guides refresh.
+/datum/unit_test/custom_sprite_salon/covered_start/Run()
+	setup_players()
+	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
+	recipient.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING)
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/locked = canvas.locked_regions()
+	TEST_ASSERT(!(!locked[BODY_ZONE_CHEST] || !locked[BODY_ZONE_L_ARM] || !locked[BODY_ZONE_L_LEG]), "A jumpsuit must lock the torso, arms and legs: [json_encode(locked)]")
+	TEST_ASSERT(!(!canvas.selected_zone || (canvas.selected_zone in locked)), "Opening must select a region that isn't covered: [canvas.selected_zone]")
+	TEST_ASSERT(uniform.can_adjust && !uniform.alt_covers_chest, "The fixture jumpsuit must roll down to bare the torso and arms.")
+	var/list/arm_point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_L_ARM)
+	// Adjusting the jumpsuit without redrawing it still frees the arms at once.
+	uniform.toggle_jumpsuit_adjust()
+	locked = canvas.locked_regions()
+	TEST_ASSERT(!(locked[BODY_ZONE_L_ARM] || locked[BODY_ZONE_CHEST] || !locked[BODY_ZONE_L_LEG] || !canvas.workspace.is_point_allowed(arm_point[1], arm_point[2], "2")), "A rolled-down jumpsuit must free the torso and arms at once and keep the legs covered: [json_encode(locked)]")
+	TEST_ASSERT(session.dress_timer, "Adjusting the jumpsuit must schedule a guide refresh.")
+	deltimer(session.dress_timer)
+	session.refresh_editor_body()
+	TEST_ASSERT(canvas.workspace.is_point_allowed(arm_point[1], arm_point[2], "2"), "Refreshing the guides must keep the arms free.")
+	for(var/obj/item/bodypart/limb as anything in recipient.bodyparts)
+		limb.is_husked = TRUE
+	TEST_ASSERT(findtext(custom_sprite_salon_start_problem(machine, artist, recipient, "markings"), "nowhere to tattoo"), "A body with nothing tattooable can't start tattoo work.")
+
+/// Body changes keep the canvas's regions. A missing or replaced part greys out with the reason and blocks finishing only when touched.
+/datum/unit_test/custom_sprite_salon/body_changes/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/zones = json_encode(canvas.region_zones)
+	var/list/map = canvas.region_map
+	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
+	var/list/point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_L_ARM)
+	var/list/frame = canvas.workspace.layers[1]["data"]["2"]
+	var/painted = frame[point[2] + 1][point[1] + 1]
+	var/obj/item/bodypart/arm = recipient.get_bodypart(BODY_ZONE_L_ARM)
+	arm.drop_limb(TRUE)
+	allocated += arm
+	if(session.dress_timer)
+		deltimer(session.dress_timer)
+	session.rebuild_preview_body = TRUE
+	session.refresh_editor_body()
+	TEST_ASSERT(!(json_encode(canvas.region_zones) != zones || canvas.region_map != map), "A body change must keep the canvas's regions, so paint never changes region.")
+	var/list/locked = canvas.locked_regions()
+	TEST_ASSERT(!(!findtext(locked[BODY_ZONE_L_ARM], "can't be tattooed") || !locked[BODY_ZONE_PRECISE_L_HAND]), "A missing arm must lock its region and its hand's: [json_encode(locked)]")
+	frame = canvas.workspace.layers[1]["data"]["2"]
+	TEST_ASSERT(frame[point[2] + 1][point[1] + 1] == painted, "Paint drafted on a missing arm must be kept.")
+	TEST_ASSERT(findtext(session.propose(artist), "can't be tattooed"), "A touched region that's gone must block finishing with the reason.")
+	var/obj/item/bodypart/arm/left/replacement = allocate(/obj/item/bodypart/arm/left)
+	replacement.replace_limb(recipient)
+	locked = canvas.locked_regions()
+	TEST_ASSERT(findtext(locked[BODY_ZONE_L_ARM], "replaced"), "A different arm must lock the region as replaced: [json_encode(locked)]")
+	TEST_ASSERT(findtext(session.propose(artist), "replaced"), "A touched region on a replaced arm must block finishing.")
+	var/obj/item/bodypart/right_arm = recipient.get_bodypart(BODY_ZONE_R_ARM)
+	right_arm.is_husked = TRUE
+	locked = canvas.locked_regions()
+	TEST_ASSERT(!(!locked[BODY_ZONE_R_ARM] || !locked[BODY_ZONE_PRECISE_R_HAND]), "A husked arm must lock its region and its hand's: [json_encode(locked)]")
+
+/// A taur body hidden by clothing or choice greys out, and is tattooable again once it shows.
+/datum/unit_test/custom_sprite_salon/hidden_taur/Run()
+	setup_players()
+	var/obj/item/organ/taur_body/organ = custom_sprite_test_taur(recipient)
+	TEST_ASSERT(organ, "The salon fixture needs a real taur organ.")
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/locked = canvas.locked_regions()
+	TEST_ASSERT(!locked[CUSTOM_MARKING_ZONE_TAUR], "A visible taur body is tattooable: [json_encode(locked)]")
+	var/list/point = custom_sprite_test_region_pixel(canvas, CUSTOM_MARKING_ZONE_TAUR)
+	organ.hide_self = TRUE
+	canvas.sync_locked_views()
+	locked = canvas.locked_regions()
+	TEST_ASSERT(findtext(locked[CUSTOM_MARKING_ZONE_TAUR], "covered"), "A hidden taur body must be locked: [json_encode(locked)]")
+	TEST_ASSERT(!canvas.workspace.is_point_allowed(point[1], point[2], "2"), "A hidden taur body can't be painted.")
+	organ.hide_self = FALSE
+	canvas.sync_locked_views()
+	TEST_ASSERT(canvas.workspace.is_point_allowed(point[1], point[2], "2"), "A taur body that shows again is paintable.")
+	// Taken off rather than swapped for another, it wasn't replaced.
+	organ.Remove(recipient, special = TRUE)
+	allocated += organ
+	locked = canvas.locked_regions()
+	TEST_ASSERT(findtext(locked[CUSTOM_MARKING_ZONE_TAUR], "can't be tattooed"), "A removed taur body must lock as untattooable, not replaced: [json_encode(locked)]")
+
+/// The mirror redraws both pictures when the recipient's look changes while they decide.
+/datum/unit_test/custom_sprite_salon/mirror_refresh/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
+	var/error = session.propose(artist)
+	TEST_ASSERT(!error, "The fixture must open the mirror: [error]")
+	var/datum/custom_sprite_mirror/mirror = session.mirror
+	var/list/before = mirror.before_urls.Copy()
+	var/list/after = mirror.after_urls.Copy()
+	// Someone else tattoos a region the proposal doesn't touch.
+	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_R_LEG, custom_sprite_test_drawing(), null))
+	TEST_ASSERT(mirror.refresh_timer, "A change to the recipient's look must schedule a mirror redraw.")
+	deltimer(mirror.refresh_timer)
+	mirror.refresh()
+	TEST_ASSERT(!(mirror.before_urls["2"] == before["2"] || mirror.after_urls["2"] == after["2"]), "Both pictures must show the recipient's new look.")
+
+/// Restoring the whole body leaves out regions that can't be worked on right now, and restores the rest.
+/datum/unit_test/custom_sprite_salon/restore_covered/Run()
+	setup_players()
+	var/arm_key = custom_style_key("markings", BODY_ZONE_L_ARM)
+	var/hand_key = custom_style_key("markings", BODY_ZONE_PRECISE_L_HAND)
+	var/list/history = list()
+	history[arm_key] = custom_sprite_live_package(recipient, "markings", BODY_ZONE_L_ARM)
+	history[hand_key] = custom_sprite_live_package(recipient, "markings", BODY_ZONE_PRECISE_L_HAND)
+	recipient.custom_sprite_round_history = history
+	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_drawing(), null))
+	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_PRECISE_L_HAND, custom_sprite_test_drawing(), null))
+	var/obj/item/clothing/gloves/gloves = allocate(/obj/item/clothing/gloves/color/black)
+	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
+	custom_sprite_salon_start_restore(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_salon/session = GLOB.custom_sprite_salon_restorations[artist.ckey]
+	TEST_ASSERT(session?.proposal, "Restoring the whole body must go ahead without the covered hand.")
+	TEST_ASSERT(json_encode(assoc_to_keys(session.proposal["packages"])) == json_encode(list(arm_key)), "Only the uncovered region may be restored: [json_encode(assoc_to_keys(session.proposal["packages"]))]")
+	qdel(session)
+	GLOB.custom_sprite_salon_cooldowns.Cut()
+	custom_sprite_salon_start_restore(machine, artist, recipient, "markings", list(hand_key))
+	TEST_ASSERT(!GLOB.custom_sprite_salon_restorations[artist.ckey], "Restoring only a covered region must be refused.")
+
+/// The BYOND window starts with the title the interface gives it, so it doesn't flash another.
+/datum/unit_test/custom_sprite_salon/window_titles/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/haircut = new(scissors, artist, recipient, "hair")
+	var/datum/custom_sprite_salon/test/facial = new(scissors, artist, recipient, "facial_hair")
+	var/datum/custom_sprite_salon/test/tattoo = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(haircut.editor.window_title() == "Custom Hair for [recipient]", "Salon hair titles name the recipient: [haircut.editor.window_title()]")
+	TEST_ASSERT(facial.editor.window_title() == "Custom Facial Hair for [recipient]", "Salon facial hair titles name the recipient: [facial.editor.window_title()]")
+	TEST_ASSERT(tattoo.editor.window_title() == "Custom Tattoo for [recipient]", "Tattoo work is titled as a tattoo: [tattoo.editor.window_title()]")
+
+/// A region whose look changes on the body while work goes on greys out with the reason; the rest stay free.
+/datum/unit_test/custom_sprite_salon/changed_regions/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/list/point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_R_LEG)
+	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_R_LEG, custom_sprite_test_drawing(), null))
+	canvas.sync_locked_views()
+	var/list/locked = canvas.locked_regions()
+	TEST_ASSERT(findtext(locked[BODY_ZONE_R_LEG], "changed since work started"), "A region changed on the body must lock with the reason: [json_encode(locked)]")
+	TEST_ASSERT(length(locked) == 1, "Only the changed region may lock: [json_encode(locked)]")
+	TEST_ASSERT(!canvas.workspace.is_point_allowed(point[1], point[2], "2"), "A changed region can't take paint.")
+	// Putting the look back frees it again.
+	var/list/start = session.original[custom_style_key("markings", BODY_ZONE_R_LEG)]
+	custom_sprite_apply_round_style(recipient, start["package"])
+	canvas.sync_locked_views()
+	TEST_ASSERT(canvas.workspace.is_point_allowed(point[1], point[2], "2"), "A region whose look is back as it was can take paint again.")
+
+/// Applying a tattoo over several regions redraws the body once.
+/datum/unit_test/custom_sprite_salon/one_redraw/Run()
+	setup_players(/mob/living/carbon/human/consistent/redraw_counting)
+	var/mob/living/carbon/human/consistent/redraw_counting/counting = recipient
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(!(!paint_region(session, BODY_ZONE_L_ARM) || !paint_region(session, BODY_ZONE_R_LEG)), "The fixture must paint two regions.")
+	var/error = session.propose(artist)
+	TEST_ASSERT(!error, "The fixture must open the mirror: [error]")
+	var/token = session.proposal["token"]
+	TEST_ASSERT(session.accept(recipient, token), "The fixture tattoo must be approved.")
+	counting.redraws = 0
+	TEST_ASSERT(session.complete_application(token), "The fixture tattoo must apply.")
+	TEST_ASSERT(counting.redraws == 1, "Applying two regions must redraw the body once: [counting.redraws]")
+
+/// One window update, or one region action, works out the region locks once.
+/datum/unit_test/custom_sprite_salon/lock_checks/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/lock_counting/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/datum/tgui/ui = new(artist, canvas, "CustomMarkingsEditor")
+	var/regions = length(canvas.region_zones)
+	session.part_checks = 0
+	canvas.ui_data(artist)
+	TEST_ASSERT(session.part_checks == regions, "A window update must check each region once: [session.part_checks] checks for [regions] regions")
+	session.part_checks = 0
+	TEST_ASSERT(canvas.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui), "The fixture must select the left arm.")
+	TEST_ASSERT(session.part_checks == regions, "Selecting a region must check each region once: [session.part_checks] checks for [regions] regions")
+	qdel(ui)
+
+/// Covering a region stops its base markings changing too, such as a recolour that waited on the colour picker.
+/datum/unit_test/custom_sprite_salon/covered_markings/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	var/name = GLOB.body_markings_per_limb[BODY_ZONE_CHEST][1]
+	TEST_ASSERT(canvas.write_region_marking(BODY_ZONE_CHEST, null, name, "#112233"), "The fixture must give the torso a base marking.")
+	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
+	recipient.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING)
+	TEST_ASSERT(!canvas.write_region_marking(BODY_ZONE_CHEST, 1, name, "#445566"), "A covered torso must refuse a base-marking recolour.")
+	var/list/entries = canvas.workspace.markings_context[BODY_ZONE_CHEST]
+	var/list/entry = entries[1]
+	TEST_ASSERT(entry["color"] == "#112233", "The torso's drafted base marking must stay as it was: [entry["color"]]")
+
+/// Erasing over paint in a covered region makes no sound, since the stroke is refused.
+/datum/unit_test/custom_sprite_salon/locked_erasing/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	TEST_ASSERT(paint_region(session, BODY_ZONE_PRECISE_L_HAND), "The fixture must paint the left hand.")
+	var/list/point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_PRECISE_L_HAND)
+	var/obj/item/clothing/gloves/gloves = allocate(/obj/item/clothing/gloves/color/black)
+	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
+	var/datum/tgui/ui = new(artist, canvas, "CustomMarkingsEditor")
+	var/list/activity = list("dir" = "2", "x" = point[1], "y" = point[2], "erasing" = TRUE)
+	canvas.ui_act("drawing", activity, ui)
+	TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "Erasing paint in a covered region must stay silent.")
+	recipient.dropItemToGround(gloves)
+	canvas.ui_act("drawing", activity, ui)
+	TEST_ASSERT(session.drawing_sound, "Erasing paint in an uncovered region must sound.")
+	qdel(ui)

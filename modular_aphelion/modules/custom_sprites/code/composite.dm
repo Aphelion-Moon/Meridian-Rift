@@ -168,10 +168,10 @@
 					var/list/view = custom_sprite_private_view(pixels, private, target, direction)
 					view[position] = value
 					changed[target] = TRUE
-	for(var/zone in resets)
+	for(var/zone, views in resets)
 		if(!pixels[zone])
 			continue
-		for(var/direction in resets[zone])
+		for(var/direction in views)
 			var/list/covered = custom_sprite_covered_positions(pixels[zone][direction], zone, region_map[direction], zones, width)
 			if(!length(covered))
 				continue
@@ -219,6 +219,6 @@
 	if(!length(grids))
 		return list("drawing" = null)
 	var/list/directions = list()
-	for(var/direction in grids)
-		directions[direction] = custom_sprite_encode_grid(grids[direction], length(palette), width * 32)
+	for(var/direction, grid in grids)
+		directions[direction] = custom_sprite_encode_grid(grid, length(palette), width * 32)
 	return list("drawing" = list("version" = custom_sprite_version(width, length(palette)), "palette" = palette, "tint" = null, "dirs" = directions, "emissive" = custom_sprite_emissive_settings(emissive)))

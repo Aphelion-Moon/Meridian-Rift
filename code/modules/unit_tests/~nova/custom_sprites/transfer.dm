@@ -91,8 +91,8 @@
 		"oversized" = "{\"a\":\"[repeat_string(CUSTOM_STYLE_MAX_BYTES, "a")]\"}",
 		"empty" = "",
 	)
-	for(var/name in cases)
-		TEST_ASSERT(custom_style_parse(cases[name])["error"], "The parser accepted hostile JSON: [name].")
+	for(var/name, json in cases)
+		TEST_ASSERT(custom_style_parse(json)["error"], "The parser accepted hostile JSON: [name].")
 
 /datum/unit_test/custom_style_parse_strict_fields/Run()
 	var/list/base = json_decode(custom_style_test_export())
@@ -107,9 +107,8 @@
 		"hair zone" = list("zone", BODY_ZONE_HEAD, "body zone"),
 		"missing hair" = list("hair", null, "hair settings"),
 	)
-	for(var/name in mutations)
+	for(var/name, change in mutations)
 		var/list/envelope = deep_copy_list(base)
-		var/list/change = mutations[name]
 		envelope[change[1]] = change[2]
 		var/error = custom_style_parse(json_encode(envelope))["error"]
 		TEST_ASSERT(findtext(error, change[3]), "Import must reject [name] for the changed envelope field, got: [error]")
@@ -122,9 +121,8 @@
 		"bad color" = list("palette", list("red"), "palette"),
 		"bad tint" = list("tint", "#12345", "color filter"),
 	)
-	for(var/name in drawing_mutations)
+	for(var/name, change in drawing_mutations)
 		var/list/envelope = deep_copy_list(base)
-		var/list/change = drawing_mutations[name]
 		envelope["drawing"][change[1]] = change[2]
 		var/error = custom_style_parse(json_encode(envelope))["error"]
 		TEST_ASSERT(findtext(error, change[3]), "Import must reject [name] for the changed drawing field, got: [error]")
@@ -145,9 +143,8 @@
 		"fractional opacity" = list("opacity", 100.5, "opacity"),
 		"extra field" = list("facial_style", "Beard", "hair settings"),
 	)
-	for(var/name in hair_mutations)
+	for(var/name, change in hair_mutations)
 		envelope = deep_copy_list(base)
-		var/list/change = hair_mutations[name]
 		envelope["hair"][change[1]] = change[2]
 		var/error = custom_style_parse(json_encode(envelope))["error"]
 		TEST_ASSERT(findtext(error, change[3]), "Import must reject [name] for the changed hair field, got: [error]")
@@ -198,9 +195,8 @@
 		"null boolean" = list("emissive", null),
 		"extra field" = list("icon", "injected.dmi"),
 	)
-	for(var/name in mutations)
+	for(var/name, change in mutations)
 		var/list/envelope = json_decode(json_encode(base))
-		var/list/change = mutations[name]
 		envelope["markings"][1][change[1]] = change[2]
 		TEST_ASSERT(custom_style_parse(json_encode(envelope))["error"], "Native import must reject [name] in an earlier array entry even when the later entry is valid.")
 	for(var/field in GLOB.custom_style_marking_keys)
@@ -245,9 +241,9 @@
 	bounds["2"] = list(5, 5, 31, 31)
 	TEST_ASSERT(custom_style_paint_outside(drawing, bounds, null) == "Front", "Paint outside the bounds must name the offending view.")
 	var/list/mask = list("2" = list(), "1" = list(), "4" = list(), "8" = list())
-	for(var/direction in mask)
+	for(var/_direction, rows in mask)
 		for(var/y in 1 to 32)
-			mask[direction] += repeat_string(32, "0")
+			rows += repeat_string(32, "0")
 	TEST_ASSERT(custom_style_paint_outside(drawing, null, mask) == "Front", "Paint outside a limb silhouette must be rejected.")
 	var/test_key = "customstyletransfer[REF(src)]"
 	TEST_ASSERT(!(custom_style_transfer_begin(test_key, "import") || !custom_style_transfer_begin(test_key, "export")), "Only one transfer may run per account.")
@@ -268,8 +264,8 @@
 	var/text = custom_style_body_export_text(regions)
 	var/list/result = custom_style_parse(text)
 	TEST_ASSERT(!(result["error"] || result["legacy"] || length(result["body"]) != 2), "A whole-body export must import: [result["error"]]")
-	for(var/zone in regions)
-		TEST_ASSERT(custom_style_package_hash(result["body"][zone]) == custom_style_package_hash(regions[zone]), "Each region must round-trip unchanged: [zone].")
+	for(var/zone, package in regions)
+		TEST_ASSERT(custom_style_package_hash(result["body"][zone]) == custom_style_package_hash(package), "Each region must round-trip unchanged: [zone].")
 	var/list/envelope = json_decode(text)
 	envelope["regions"]["tail"] = envelope["regions"][BODY_ZONE_HEAD]
 	TEST_ASSERT(findtext(custom_style_parse(json_encode(envelope))["error"], "unknown region"), "Unknown regions must be refused.")

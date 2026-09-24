@@ -81,5 +81,6 @@ export type CustomSpriteEditorData = {
   regionMarkings?: Record<string, RegionMarking[]>;
   regionMarkingChoices?: Record<string, string[]>;
   regionEmissive?: Record<string, Record<Dir, boolean>>;
+  lockedRegions?: Record<string, string> | null;
   paletteNotice?: string | null;
 };

@@ -26,6 +26,8 @@
 	var/list/results_cache
 	/// Which draft state results_cache belongs to.
 	var/results_revision
+	/// locked_regions() as apply_region_locks() last worked it out, which the canvas enforces.
+	var/list/lock_reasons
 
 /datum/custom_sprite_editor/markings/New(datum/preferences/preferences, focus_zone)
 	..(preferences, "markings", null)
@@ -36,7 +38,6 @@
 	return list()
 
 /datum/custom_sprite_editor/markings/create_workspace(list/package)
-	preferences.load_custom_sprites()
 	build_region_map()
 	load_saved_state()
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = new(null, list(), null, null, region_width())
@@ -44,8 +45,8 @@
 	canvas.tint = "#ffffff"
 	canvas.load_frames(custom_sprite_compose_regions(saved_drawings, region_map, region_zones, canvas.width))
 	var/list/markings = list()
-	for(var/zone in saved_markings)
-		markings[zone] = custom_style_copy_markings(saved_markings[zone])
+	for(var/zone, entries in saved_markings)
+		markings[zone] = custom_style_copy_markings(entries)
 	canvas.markings_context = markings
 	var/list/emissive = list()
 	for(var/zone in region_zones)
@@ -54,25 +55,49 @@
 	baseline = deep_copy_list(canvas.layers[1]["data"])
 	return canvas
 
-/// Reads what every region has saved: the reference for spotting changes.
+/// Reads what every region is measured against: the reference for spotting changes.
 /datum/custom_sprite_editor/markings/proc/load_saved_state()
-	saved_drawings = deep_copy_list(preferences.custom_limb_markings) || list()
+	var/list/references = reference_packages()
+	saved_drawings = list()
 	saved_pixels = list()
-	for(var/zone in saved_drawings)
-		saved_pixels[zone] = custom_sprite_drawing_pixels(saved_drawings[zone], custom_marking_zone_width(zone))
+	for(var/zone, reference in references)
+		var/list/drawing = reference["drawing"]
+		if(!drawing)
+			continue
+		saved_drawings[zone] = deep_copy_list(drawing)
+		saved_pixels[zone] = custom_sprite_drawing_pixels(drawing, custom_marking_zone_width(zone))
 	saved_markings = list()
 	for(var/zone in region_zones)
 		if(zone in GLOB.body_markings_per_limb)
-			saved_markings[zone] = custom_style_marking_entries(preferences.body_markings?[zone])
+			saved_markings[zone] = custom_style_copy_markings(references[zone]?["markings"])
 	results_cache = null
+
+/**
+ * Context hook: zone -> the package each region is measured against, for every marking zone.
+ *
+ * Character setup measures against the character's saved drawings and base markings.
+ */
+/datum/custom_sprite_editor/markings/proc/reference_packages()
+	preferences.load_custom_sprites()
+	. = list()
+	for(var/zone in GLOB.custom_marking_zone_labels)
+		.[zone] = preferences.custom_style_saved_package("markings", zone)
+
+/// Context hook: zone -> why that region can't be changed right now. Character setup locks nothing.
+/datum/custom_sprite_editor/markings/proc/locked_regions()
+	return list()
 
 /**
  * Rebuilds which region owns each pixel from the preview body.
  *
  * A changed map drops results worked out on the old one. A region that appeared since the draft
- * opened gets its saved emission and base markings.
+ * opened gets its saved emission and base markings. A context whose map doesn't follow the body
+ * keeps the first one.
  */
 /datum/custom_sprite_editor/markings/proc/build_region_map()
+	// Body changes then only lock regions, through locked_regions().
+	if(region_map && !map_follows_body())
+		return
 	var/list/old_map = region_map
 	region_zones = custom_sprite_present_regions(preview_body)
 	region_map = custom_sprite_region_map(preview_body, region_zones, region_width())
@@ -83,11 +108,13 @@
 		return
 	var/list/emissive = canvas.emissive.Copy()
 	var/list/markings = canvas.markings_context.Copy()
+	var/list/references
 	for(var/zone in region_zones)
 		if(!emissive[zone])
 			emissive[zone] = custom_sprite_emissive_settings(saved_drawings?[zone]?["emissive"])
 		if(!(zone in markings) && (zone in GLOB.body_markings_per_limb))
-			saved_markings[zone] = custom_style_marking_entries(preferences.body_markings?[zone])
+			references ||= reference_packages()
+			saved_markings[zone] = custom_style_copy_markings(references[zone]?["markings"])
 			markings[zone] = custom_style_copy_markings(saved_markings[zone])
 	canvas.emissive = emissive
 	canvas.markings_context = markings
@@ -96,36 +123,82 @@
 /datum/custom_sprite_editor/markings/proc/region_width()
 	return custom_sprite_taur_overlay(preview_body) ? CUSTOM_SPRITE_TAUR_WIDTH : 32
 
+/// Context hook: whether the region map follows the preview body after the draft opens. The salon keeps its first map, so paint never changes region.
+/datum/custom_sprite_editor/markings/proc/map_follows_body()
+	return TRUE
+
 /datum/custom_sprite_editor/markings/update_draw_area()
 	build_region_map()
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
 	canvas.region_map = region_map
-	workspace.draw_mask = custom_sprite_region_mask(region_map)
-	workspace.draw_bounds = custom_sprite_mask_bounds(workspace.draw_mask, workspace.width)
+	// Bounds cover every region, locked or not; the mask decides what can be painted.
+	workspace.draw_bounds = custom_sprite_mask_bounds(custom_sprite_region_mask(region_map), workspace.width)
+	canvas.locked = null
+	apply_region_locks()
+
+/**
+ * Keeps locked regions out of the paintable mask, so the canvas shades them and every tool refuses them.
+ *
+ * Locks can change while the window is open, such as when clothing goes on, so this also runs
+ * whenever the view locks are synced.
+ *
+ * Returns TRUE when the locks changed.
+ */
+/datum/custom_sprite_editor/markings/proc/apply_region_locks()
+	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
+	var/list/reasons = locked_regions()
+	lock_reasons = reasons
+	var/list/locked = list()
+	for(var/index in 1 to length(region_zones))
+		if(reasons[region_zones[index]])
+			locked += "[index]"
+	if(canvas.locked && compare_list(canvas.locked, locked))
+		return FALSE
+	canvas.locked = locked
+	canvas.draw_mask = custom_sprite_region_mask(region_map, locked)
+	return TRUE
+
+/// Zone -> why it's locked, as the canvas enforces it. Worked out afresh only while the canvas isn't built.
+/datum/custom_sprite_editor/markings/proc/current_locks()
+	return resources_ready ? lock_reasons : locked_regions()
+
+/datum/custom_sprite_editor/markings/sync_locked_views(push = TRUE)
+	var/regions_changed = resources_ready && apply_region_locks()
+	var/views_changed = ..(FALSE)
+	if(push && (regions_changed || views_changed))
+		SStgui.update_uis(src)
+	return regions_changed || views_changed
 
 /// The canvas never holds paint outside its regions, so there's nothing stranded to drop.
 /datum/custom_sprite_editor/markings/clip_stranded_paint()
 	return
 
 /datum/custom_sprite_editor/markings/apply_draft_base_markings()
-	for(var/zone in workspace.markings_context)
-		custom_style_apply_base_markings(preview_body, zone, workspace.markings_context[zone], emissives_allowed())
+	for(var/zone, entries in workspace.markings_context)
+		custom_style_apply_base_markings(preview_body, zone, entries, emissives_allowed())
 	preview_body.update_body()
 
 /**
  * Selects a region from outside the window, such as a limb's Custom button.
  *
- * A region this body doesn't have keeps the current selection and says why. With nothing selected
- * yet, the torso is picked, or the first region when there's no torso.
+ * A region this body doesn't have, or one that's locked, keeps the current selection and says why.
+ * With nothing usable selected, the torso is picked, or else the first region that isn't locked.
+ * When every region is locked one is still selected, so the window can name it and say why.
  */
 /datum/custom_sprite_editor/markings/proc/focus_region(zone)
-	if(zone in region_zones)
+	var/list/locked = locked_regions()
+	if((zone in region_zones) && !(zone in locked))
 		selected_zone = zone
 	else
-		if(zone in GLOB.custom_marking_zone_labels)
+		if(zone in locked)
+			transfer_notice = locked[zone]
+		else if(zone in GLOB.custom_marking_zone_labels)
 			transfer_notice = "This body has no [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] right now."
-		if(!(selected_zone in region_zones))
-			selected_zone = (BODY_ZONE_CHEST in region_zones) ? BODY_ZONE_CHEST : (length(region_zones) ? region_zones[1] : null)
+		if(!(selected_zone in region_zones) || (selected_zone in locked))
+			var/list/available = region_zones - locked
+			if(!length(available))
+				available = region_zones
+			selected_zone = (BODY_ZONE_CHEST in available) ? BODY_ZONE_CHEST : (length(available) ? available[1] : null)
 	focus_revision++
 	SStgui.update_uis(src)
 
@@ -142,8 +215,7 @@
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
 	var/list/split = custom_sprite_split_regions(canvas.layers[1]["data"], baseline, saved_drawings, region_map, region_zones, canvas.width, saved_pixels, canvas.resets)
 	. = list()
-	for(var/zone in split)
-		var/list/entry = split[zone]
+	for(var/zone, entry in split)
 		var/list/drawing = entry["drawing"]
 		var/changed = entry["changed"]
 		var/list/emissive = workspace.emissive[zone]
@@ -162,6 +234,13 @@
 /datum/custom_sprite_editor/markings/proc/region_package(zone, list/results)
 	return custom_style_package("markings", zone, results[zone]?["drawing"], null, results[zone]?["markings"])
 
+/// Every present region's would-be-saved package, zone -> package, as a whole-body export holds them.
+/datum/custom_sprite_editor/markings/proc/body_packages()
+	. = list()
+	var/list/results = region_results()
+	for(var/zone in region_zones)
+		.[zone] = region_package(zone, results)
+
 /datum/custom_sprite_editor/markings/current_package()
 	return region_package(selected_zone, region_results())
 
@@ -171,8 +250,7 @@
 	var/list/packages = list()
 	var/list/rotate_keys = list()
 	var/list/rotations = workspace.unsaved_rotations()
-	for(var/zone in results)
-		var/list/result = results[zone]
+	for(var/zone, result in results)
 		if(!result["changed"])
 			continue
 		if(result["error"])
@@ -215,8 +293,8 @@
 /// Renders the preview body wearing exactly what saving would write. A region too colorful to save shows its saved paint.
 /datum/custom_sprite_editor/markings/proc/render_region_previews(list/results)
 	var/list/shown = results.Copy()
-	for(var/zone in results)
-		var/list/entry = results[zone]
+	for(var/zone, entry_untyped in results)
+		var/list/entry = entry_untyped
 		if(entry["error"])
 			entry = entry.Copy()
 			entry["drawing"] = saved_drawings[zone]
@@ -227,8 +305,7 @@
 /// Puts every region's drawing and base markings on a body, then redraws it once.
 /proc/custom_sprite_apply_region_results(mob/living/carbon/human/body, list/results, allow_emissives)
 	body.AddComponent(/datum/component/custom_sprite_appearance)
-	for(var/zone in results)
-		var/list/result = results[zone]
+	for(var/zone, result in results)
 		if(!isnull(result["markings"]))
 			custom_style_apply_base_markings(body, zone, result["markings"], allow_emissives)
 		var/list/drawing = custom_sprite_appearance_drawing(result["drawing"], allow_emissives)
@@ -258,6 +335,7 @@
 	.["selectedZone"] = selected_zone
 	.["focusRevision"] = focus_revision
 	.["regionEmissive"] = workspace.emissive
+	.["lockedRegions"] = current_locks()
 	var/list/markings = list()
 	for(var/zone in workspace.markings_context)
 		markings[zone] = region_marking_rows(zone)
@@ -311,8 +389,8 @@
 	if(!(action in region_actions))
 		return null
 	var/zone = params["zone"]
-	// The server's selection decides which region these act on; a window out of step is refused.
-	if(!(zone in region_zones) || (action != "selectRegion" && zone != selected_zone))
+	// The server's selection decides which region these act on; a window out of step is refused, and so is a locked region.
+	if(!(zone in region_zones) || (zone in current_locks()) || (action != "selectRegion" && zone != selected_zone))
 		return FALSE
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
 	switch(action)
@@ -374,14 +452,15 @@
 /datum/custom_sprite_editor/markings/proc/write_region_marking(zone, index, name, color)
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
 	var/list/context = canvas.markings_context
-	if(!(zone in context))
+	// Checked afresh: the colour picker may have waited while the region was covered.
+	if(!(zone in context) || (zone in locked_regions()))
 		return FALSE
 	var/list/entries = custom_style_rewrite_markings(context[zone], index, name, color)
 	if(isnull(entries))
 		return FALSE
 	var/list/new_context = list()
-	for(var/region in context)
-		new_context[region] = custom_style_copy_markings(context[region])
+	for(var/region, region_markings in context)
+		new_context[region] = custom_style_copy_markings(region_markings)
 	new_context[zone] = entries
 	if(!canvas.replace_frames(canvas.layers[1]["data"], "Change base markings", new_context, canvas.emissive))
 		return FALSE
@@ -406,14 +485,10 @@
 		transfer_error = export_problem(choice == "Whole body" ? region_zones : list(zone))
 		if(transfer_error)
 			return TRUE
-		var/list/results = region_results()
 		if(choice == "Whole body")
-			var/list/regions = list()
-			for(var/region in region_zones)
-				regions[region] = region_package(region, results)
-			transfer_error = custom_style_send_body(user.client, regions)
+			transfer_error = custom_style_send_body(user.client, body_packages())
 		else
-			transfer_error = custom_style_send(user.client, region_package(zone, results))
+			transfer_error = custom_style_send(user.client, region_package(zone, region_results()))
 		if(!transfer_error)
 			transfer_notice = "Style exported."
 		return TRUE
@@ -459,9 +534,9 @@
 	if(!length(previous))
 		return
 	var/list/results = region_results()
-	for(var/zone in previous)
-		if(!custom_style_matches(previous[zone], region_package(zone, results)))
-			.[zone] = previous[zone]
+	for(var/zone, package in previous)
+		if(!custom_style_matches(package, region_package(zone, results)))
+			.[zone] = package
 
 /datum/custom_sprite_editor/markings/context_ui_data()
 	return list("canRestorePrevious" = length(restorable_regions()) > 0)
@@ -488,21 +563,27 @@
 /**
  * Previews regions from an import or restoration before they replace anything.
  *
- * Regions this body doesn't have are skipped and named in the preview. Nothing in the draft
- * changes until the candidate is confirmed.
+ * Regions this body doesn't have, and regions that are locked, are skipped and named in the
+ * preview with the reason. Nothing in the draft changes until the candidate is confirmed.
  *
  * Returns TRUE when a preview is waiting for confirmation; otherwise transfer_error says why.
  */
 /datum/custom_sprite_editor/markings/proc/show_region_candidate(list/regions, source)
 	var/list/usable = list()
 	var/list/skipped = list()
-	for(var/zone in regions)
-		if(zone in region_zones)
-			usable[zone] = custom_style_copy_package(regions[zone])
+	var/list/locked = locked_regions()
+	var/only_locked = TRUE
+	for(var/zone, package in regions)
+		var/label = GLOB.custom_marking_zone_labels[zone] || zone
+		if(!(zone in region_zones))
+			skipped += "[label] (not on this body)"
+			only_locked = FALSE
+		else if(zone in locked)
+			skipped += "[label] (not available right now)"
 		else
-			skipped += GLOB.custom_marking_zone_labels[zone] || zone
+			usable[zone] = custom_style_copy_package(package)
 	if(!length(usable))
-		transfer_error = "That style has no regions this body has."
+		transfer_error = length(skipped) && only_locked ? "None of that style's regions can be changed right now." : "That style has no regions this body has."
 		return FALSE
 	var/problem = region_candidate_problem(usable)
 	if(problem)
@@ -518,8 +599,10 @@
 /datum/custom_sprite_editor/markings/proc/region_candidate_problem(list/regions)
 	if(!resources_ready)
 		return "The preview isn't available right now."
-	for(var/zone in regions)
-		var/list/package = regions[zone]
+	for(var/zone, reason in locked_regions())
+		if(zone in regions)
+			return reason
+	for(var/zone, package in regions)
 		var/label = LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])
 		var/list/drawing = package["drawing"]
 		if(custom_style_has_emission(drawing) && !emissives_allowed())
@@ -539,11 +622,10 @@
 /datum/custom_sprite_editor/markings/proc/candidate_results(list/regions)
 	. = list()
 	var/list/results = region_results()
-	for(var/zone in results)
-		var/list/entry = results[zone]
+	for(var/zone, entry_untyped in results)
+		var/list/entry = entry_untyped
 		.[zone] = entry.Copy()
-	for(var/zone in regions)
-		var/list/package = regions[zone]
+	for(var/zone, package in regions)
 		var/list/entry = .[zone] || list()
 		entry["drawing"] = package["drawing"]
 		if(!isnull(package["markings"]))
@@ -566,17 +648,17 @@
 		return FALSE
 	var/list/results = candidate_results(regions)
 	var/list/drawings = list()
-	for(var/zone in results)
-		drawings[zone] = results[zone]["drawing"]
+	for(var/zone, result in results)
+		drawings[zone] = result["drawing"]
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
 	var/list/new_markings = list()
-	for(var/zone in canvas.markings_context)
-		new_markings[zone] = custom_style_copy_markings(results[zone]?["markings"] || canvas.markings_context[zone])
+	for(var/zone, entries in canvas.markings_context)
+		new_markings[zone] = custom_style_copy_markings(results[zone]?["markings"] || entries)
 	var/list/new_emissive = canvas.emissive.Copy()
 	// A confirmed region replaces the old one outright, paint other limbs cover included.
 	var/list/new_resets = canvas.resets ? canvas.resets.Copy() : list()
-	for(var/zone in regions)
-		new_emissive[zone] = custom_sprite_emissive_settings(regions[zone]["drawing"]?["emissive"])
+	for(var/zone, package in regions)
+		new_emissive[zone] = custom_sprite_emissive_settings(package["drawing"]?["emissive"])
 		var/list/views = list()
 		for(var/direction in GLOB.custom_style_directions)
 			views[direction] = TRUE

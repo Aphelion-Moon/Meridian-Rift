@@ -23,8 +23,8 @@
 		"[repeat_string(16, "1")][repeat_string(1008, "0")]" = "rf111[repeat_string(67, "f0")]30",
 		"[repeat_string(31, "1")][repeat_string(993, "0")]" = "rf1f111[repeat_string(66, "f0")]30",
 	)
-	for(var/grid in cases)
-		TEST_ASSERT(!(custom_sprite_encode_grid(grid, 1) != cases[grid] || custom_sprite_decode_grid(cases[grid], 1) != grid), "Runs crossing the 15-pixel limit must retain their exact saved representation.")
+	for(var/grid, encoded in cases)
+		TEST_ASSERT(!(custom_sprite_encode_grid(grid, 1) != encoded || custom_sprite_decode_grid(encoded, 1) != grid), "Runs crossing the 15-pixel limit must retain their exact saved representation.")
 	var/late_invalid = "[repeat_string(511, "12")]1!"
 	TEST_ASSERT(!(custom_sprite_encode_grid(late_invalid, 2) || custom_sprite_decode_grid("f[late_invalid]", 2)), "A flat fallback must still reject an invalid final pixel.")
 

@@ -51,9 +51,9 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(!islist(raw_palette) || !length(raw_palette) || length(raw_palette) > palette_limit)
 		return list("error" = "The drawing's palette is invalid or has more than [palette_limit] colors.")
 	var/list/palette = list()
-	for(var/raw_color in raw_palette)
+	for(var/raw_color, associated in raw_palette)
 		var/color = custom_sprite_color(raw_color)
-		if(!color || (color in palette) || !isnull(raw_palette[raw_color]))
+		if(!color || (color in palette) || !isnull(associated))
 			return list("error" = "The drawing's palette has an invalid or repeated color.")
 		palette += color
 	var/list/raw_dirs = raw["dirs"]
@@ -322,10 +322,9 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(!islist(regions) || !length(regions))
 		return list("error" = "The style has no regions.")
 	var/list/body = list()
-	for(var/zone in regions)
+	for(var/zone, entry in regions)
 		if(!istext(zone) || !(zone in GLOB.custom_marking_zone_labels))
 			return list("error" = "The style has an unknown region.")
-		var/list/entry = regions[zone]
 		var/label = GLOB.custom_marking_zone_labels[zone]
 		if(!islist(entry) || custom_style_unknown_key(entry, list("drawing", "markings")))
 			return list("error" = "The [LOWER_TEXT(label)] region is malformed.")
@@ -364,8 +363,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 /// Whole-body export: every region's drawing and base markings in one file.
 /proc/custom_style_body_export_text(list/regions)
 	var/list/entries = list()
-	for(var/zone in regions)
-		var/list/package = regions[zone]
+	for(var/zone, package in regions)
 		var/list/entry = list("drawing" = custom_style_export_drawing(package["drawing"]))
 		if("markings" in package)
 			entry["markings"] = package["markings"]

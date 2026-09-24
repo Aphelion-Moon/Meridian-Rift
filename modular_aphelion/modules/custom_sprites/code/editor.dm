@@ -18,8 +18,8 @@
 	target.dna.custom_hair = custom_sprite_appearance_drawing(preferences.custom_hair, allow_emissives)
 	target.dna.custom_facial_hair = custom_sprite_appearance_drawing(preferences.custom_facial_hair, allow_emissives)
 	target.dna.custom_limb_markings = null
-	for(var/body_zone in preferences.custom_limb_markings)
-		LAZYSET(target.dna.custom_limb_markings, body_zone, custom_sprite_appearance_drawing(preferences.custom_limb_markings[body_zone], allow_emissives))
+	for(var/body_zone, drawing in preferences.custom_limb_markings)
+		LAZYSET(target.dna.custom_limb_markings, body_zone, custom_sprite_appearance_drawing(drawing, allow_emissives))
 	target.sync_custom_sprite_appearance()
 
 /datum/preference_middleware/custom_sprites/pre_set_preference(mob/user, preference, value)
@@ -208,8 +208,8 @@
 		return FALSE
 	var/list/locked = locked_directions()
 	var/changed = FALSE
-	for(var/direction in unlocked_bounds)
-		var/list/allowed = (direction in locked) ? list(0, 0, -1, -1) : unlocked_bounds[direction]
+	for(var/direction, bounds in unlocked_bounds)
+		var/list/allowed = (direction in locked) ? list(0, 0, -1, -1) : bounds
 		if(compare_list(workspace.draw_bounds[direction], allowed))
 			continue
 		workspace.draw_bounds[direction] = allowed.Copy()
@@ -217,6 +217,15 @@
 	if(changed && push)
 		SStgui.update_uis(src)
 	return changed
+
+/// Context hook: the window's title. BYOND shows it until the interface draws its own, so the two match.
+/datum/custom_sprite_editor/proc/window_title()
+	if(target == "hair")
+		return "Custom Hair"
+	if(target == "facial_hair")
+		return "Custom Facial Hair"
+	var/label = GLOB.custom_marking_zone_labels[body_zone]
+	return label ? "Custom [label] markings" : "Custom Markings"
 
 /// Context hook: views that can't be painted right now, beyond the drawing's own bounds.
 /datum/custom_sprite_editor/proc/locked_directions()
@@ -483,14 +492,11 @@
 			winset(user, ui.window.id, "focus=true")
 		return
 	var/interface = "CustomMarkingsEditor"
-	var/title = "Custom Markings"
 	if(target == "hair")
 		interface = "CustomHairEditor"
-		title = "Custom Hair"
 	else if(target == "facial_hair")
 		interface = "CustomFacialHairEditor"
-		title = "Custom Facial Hair"
-	ui = new(user, src, interface, title)
+	ui = new(user, src, interface, window_title())
 	ui.set_autoupdate(FALSE)
 	ui.open()
 
@@ -665,8 +671,9 @@
 		if("spriteEditorCommand")
 			switch(params["command"])
 				if("transaction")
+					// A refused stroke still resends the canvas, so the window drops what it drew ahead of the server.
 					if(!workspace.new_transaction(params["transaction"]))
-						return FALSE
+						return TRUE
 				if("undo")
 					var/history_length = length(workspace.undo_stack)
 					workspace.undo(params["count"])
@@ -830,15 +837,15 @@
 	var/list/rebuilt = list()
 	var/position = 0
 	var/handled = FALSE
-	for(var/entry in markings)
+	for(var/entry, marking in markings)
 		position++
 		if(position != index)
-			rebuilt[entry] = markings[entry]
+			rebuilt[entry] = marking
 			continue
 		handled = TRUE
 		if(!name)
 			continue
-		rebuilt[name] = list(color || markings[entry][1], markings[entry][2])
+		rebuilt[name] = list(color || marking[1], marking[2])
 	if(!handled)
 		if(isnull(index) && name)
 			rebuilt[name] = list(color, FALSE)
@@ -941,8 +948,8 @@
 /// Every editor using this account's Custom swatches, including a retained salon draft.
 /datum/preferences/proc/custom_sprite_open_editors()
 	. = list()
-	for(var/editor_target in custom_sprite_editors)
-		. += custom_sprite_editors[editor_target]
+	for(var/_editor_target, editor in custom_sprite_editors)
+		. += editor
 	for(var/datum/custom_sprite_salon/session as anything in custom_sprite_salon_sessions_for(parent?.ckey))
 		if(session.editor)
 			. += session.editor

@@ -320,8 +320,8 @@
 /// Applies this limb's zone drawing and, for arms, its hand drawing.
 /obj/item/bodypart/proc/sync_custom_zone_markings(list/zone_drawings)
 	apply_custom_marking(zone_drawings?[body_zone], /datum/bodypart_overlay/custom_marking/zone)
-	for(var/hand_zone in GLOB.custom_marking_hand_arms)
-		if(GLOB.custom_marking_hand_arms[hand_zone] == body_zone)
+	for(var/hand_zone, arm_zone in GLOB.custom_marking_hand_arms)
+		if(arm_zone == body_zone)
 			apply_custom_marking(zone_drawings?[hand_zone], /datum/bodypart_overlay/custom_marking/zone/hand)
 
 /// This limb's custom marking overlay of exactly this type. Hand paint is a subtype of zone paint on the same arm.

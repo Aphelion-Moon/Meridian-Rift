@@ -53,14 +53,13 @@
 	var/list/map = custom_sprite_region_map(human, zones, CUSTOM_SPRITE_TAUR_WIDTH)
 	var/index = "[length(zones)]"
 	var/owned = FALSE
-	for(var/direction in map)
-		TEST_ASSERT(length(map[direction][1]) == CUSTOM_SPRITE_TAUR_WIDTH, "Taur maps are 64 pixels wide.")
-		for(var/row in map[direction])
+	for(var/_direction, rows in map)
+		TEST_ASSERT(length(rows[1]) == CUSTOM_SPRITE_TAUR_WIDTH, "Taur maps are 64 pixels wide.")
+		for(var/row in rows)
 			owned ||= !!findtext(row, index)
 	TEST_ASSERT(owned, "The taur region must own pixels.")
 	// Each owned pixel lies in its owner's own mask; ordinary regions sit in the central 32 columns.
-	for(var/direction in map)
-		var/list/rows = map[direction]
+	for(var/direction, rows in map)
 		for(var/y in 1 to 32)
 			for(var/x in 1 to CUSTOM_SPRITE_TAUR_WIDTH)
 				var/owner = custom_sprite_region_owner(rows, zones, x - 1, y - 1)

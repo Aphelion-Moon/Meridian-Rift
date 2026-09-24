@@ -14,8 +14,8 @@
 		if(!limb || IS_STUMP(limb) || (limb.bodyshape & BODYSHAPE_TAUR) || !(zone in GLOB.custom_marking_zone_labels))
 			continue
 		. += zone
-		for(var/hand in GLOB.custom_marking_hand_arms)
-			if(GLOB.custom_marking_hand_arms[hand] == zone && limb.aux_zone == hand)
+		for(var/hand, arm in GLOB.custom_marking_hand_arms)
+			if(arm == zone && limb.aux_zone == hand)
 				. += hand
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
@@ -35,8 +35,8 @@
 /// A solid drawing of region N's ID color across one editing mask, or null when the mask is empty.
 /proc/custom_sprite_region_id_drawing(index, list/mask, width)
 	var/list/directions = list()
-	for(var/direction in mask)
-		var/grid = jointext(mask[direction], "")
+	for(var/direction, rows in mask)
+		var/grid = jointext(rows, "")
 		if(findtext(grid, "1"))
 			directions[direction] = custom_sprite_encode_grid(grid, 1, width * 32)
 	if(!length(directions))
@@ -143,9 +143,9 @@
 		showing *= 1 - alpha
 	. = "0"
 	var/best = 0
-	for(var/region in shares)
-		if(shares[region] > best)
-			best = shares[region]
+	for(var/region, share in shares)
+		if(share > best)
+			best = share
 			. = region
 
 /// The region owning a canvas pixel (0-based), or null.
@@ -153,13 +153,16 @@
 	var/index = text2num(copytext(rows[y + 1], x + 1, x + 2))
 	return index ? zones[index] : null
 
-/// The paintable mask of a region map: every owned pixel.
-/proc/custom_sprite_region_mask(list/region_map)
+/// The paintable mask of a region map: every pixel an unlocked region owns. `locked` holds region characters.
+/proc/custom_sprite_region_mask(list/region_map, list/locked)
 	. = list()
-	for(var/direction in region_map)
+	for(var/direction, map_rows in region_map)
 		var/list/rows = list()
-		for(var/row in region_map[direction])
+		for(var/row in map_rows)
 			var/owned = row
+			// Locked regions go first, so region 1 can be locked before 2-9 become "1".
+			for(var/region in locked)
+				owned = replacetext(owned, region, "0")
 			for(var/index in 2 to 9)
 				owned = replacetext(owned, "[index]", "1")
 			rows += owned

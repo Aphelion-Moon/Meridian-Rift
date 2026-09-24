@@ -26,8 +26,8 @@
 	if(isnull(previous))
 		return null
 	. = list()
-	for(var/key in previous)
-		.[key] = custom_style_copy_package(previous[key])
+	for(var/key, package in previous)
+		.[key] = custom_style_copy_package(package)
 
 /// Preference types in each whitelisted base look, keyed by package field.
 /// Facial hair has no opacity or glow preference of its own, so those fields stay empty.
@@ -270,8 +270,8 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		if(reject_pending_hair)
 			var/list/fields = GLOB.custom_style_hair_preferences[target]
 			var/pending_hair = target == "hair" && (/datum/preference/toggle/mutant_toggle/hair_opacity in recently_updated_keys)
-			for(var/field in fields)
-				if(fields[field] in recently_updated_keys)
+			for(var/_field, preference_type in fields)
+				if(preference_type in recently_updated_keys)
 					pending_hair = TRUE
 					break
 			if(pending_hair)
@@ -330,8 +330,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	if(slot_data)
 		savefile.set_entry("character[slot]", slot_data)
 	var/list/fields = GLOB.custom_style_hair_preferences[target]
-	for(var/field in fields)
-		var/preference_type = fields[field]
+	for(var/_field, preference_type in fields)
 		recently_updated_keys -= preference_type
 		value_cache -= preference_type
 	if(target == "hair")
@@ -345,8 +344,8 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		return null
 	slot_data = deep_copy_list(slot_data)
 	var/list/fields = GLOB.custom_style_hair_preferences[target]
-	for(var/field in fields)
-		var/datum/preference/preference = GLOB.preference_entries[fields[field]]
+	for(var/field, preference_type in fields)
+		var/datum/preference/preference = GLOB.preference_entries[preference_type]
 		var/value = hair[field]
 		if(field == "opacity")
 			var/datum/preference/opacity_toggle = GLOB.preference_entries[/datum/preference/toggle/mutant_toggle/hair_opacity]
