@@ -213,13 +213,18 @@
 	var/list/hair_overlays = head.get_hair_overlays()
 	var/found_authored_emission = FALSE
 	var/found_authored_blocker = FALSE
+	// The paint's own glow shares the base emission's color, so the base one is told apart by its pixels.
+	var/icon/merged = icon(style.getCachedIcon(human.hair_masks))
+	merged.Blend(head.get_custom_hair_paint(style), ICON_OVERLAY)
+	TEST_ASSERT(!custom_sprite_test_same_pixels(merged, style.getCachedIcon(human.hair_masks)), "The fixture's paint must change the base hair's pixels.")
 	for(var/image/overlay as anything in hair_overlays)
 		if(PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE && json_encode(overlay.color) == json_encode(_EM_BLOCK_COLOR(123 / 255)))
 			found_authored_blocker = TRUE
 			TEST_ASSERT(custom_sprite_test_same_pixels(icon(overlay.icon), style.getCachedIcon(human.hair_masks)), "The base blocker must not add another opacity mask for legacy custom paint.")
-		if(PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE && overlay.icon_state == "_e")
-			found_authored_emission = TRUE
-			TEST_ASSERT(custom_sprite_test_same_pixels(icon(overlay.icon), style.getCachedIcon(human.hair_masks)), "Base emissive hair must not inherit the legacy custom drawing pixels.")
+		if(PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE && json_encode(overlay.color) == json_encode(_EMISSIVE_COLOR(123 / 255)))
+			TEST_ASSERT(!custom_sprite_test_same_pixels(icon(overlay.icon), merged), "Base emissive hair must not inherit the legacy custom drawing pixels.")
+			if(custom_sprite_test_same_pixels(icon(overlay.icon), style.getCachedIcon(human.hair_masks)))
+				found_authored_emission = TRUE
 	TEST_ASSERT(!(!found_authored_emission || !found_authored_blocker), "The fixture must exercise both authored base hair masks.")
 
 /datum/unit_test/custom_sprite_marking_emissive/Run()

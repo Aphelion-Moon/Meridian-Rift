@@ -266,6 +266,26 @@ const buildInternalImplantData = (
 
 // Markings
 
+/** Opens a custom drawing, lit up once it has paint; an empty canvas saves nothing. */
+const CustomDrawingButton = (props: {
+  label: string;
+  area: string;
+  drawn: boolean;
+  onClick: () => void;
+}) => (
+  <Button
+    icon="paintbrush"
+    selected={props.drawn}
+    tooltip={`Lets you draw a custom marking over ${props.area}.${
+      props.drawn ? ' You have one drawn; click to edit it.' : ''
+    }`}
+    onClick={props.onClick}
+  >
+    {props.label}
+    {props.drawn && <Icon name="check" ml={0.5} />}
+  </Button>
+);
+
 const Markings = (props: {
   body_zone: string;
   chosen_markings: Marking[] | null;
@@ -274,19 +294,27 @@ const Markings = (props: {
 }) => {
   const { body_zone, chosen_markings, marking_choices, act } = props;
   const { data } = useBackend<PreferencesMenuData>();
+  const maxMarkings = useServerPrefs()?.limbs_and_markings?.max_markings ?? 0;
+  const markings = chosen_markings ?? [];
+  const takenMarkings = new Set(markings.map((marking) => marking.name));
   // A taur body takes the legs' place, so they get its drawing instead of markings.
   const taurLeg = !!data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone);
+  const drawingZone = taurLeg ? 'taur' : body_zone;
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
-      {(chosen_markings ?? []).map((marking) => {
+      {markings.map((marking) => {
+        // A limb takes each marking once, so a row offers only names no other row has claimed.
+        const choices = marking_choices.filter(
+          (name) => name === marking.name || !takenMarkings.has(name),
+        );
         return (
           <Stack.Item key={marking.marking_id}>
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
                 <Dropdown
                   width="100%"
-                  options={marking_choices}
+                  options={choices}
                   selected={marking.name}
                   displayText={marking.name}
                   maxItems={7}
@@ -345,29 +373,31 @@ const Markings = (props: {
           </Stack.Item>
         );
       })}
-      <Stack.Item>
-        {!taurLeg && (
+      {!taurLeg && markings.length < maxMarkings && (
+        <Stack.Item>
           <Button
             color="good"
             onClick={() => act('add_marking', { bodypart_slot: body_zone })}
           >
             +
           </Button>
-        )}
-        {!!data.allow_custom_sprite_editing && (
-          <Button
-            icon="paintbrush"
+        </Stack.Item>
+      )}
+      {!!data.allow_custom_sprite_editing && (
+        <Stack.Item>
+          <CustomDrawingButton
+            label={taurLeg ? 'Taur body' : 'Custom'}
+            area={taurLeg ? 'your taur body' : 'this limb'}
+            drawn={!!data.custom_marking_zones?.includes(drawingZone)}
             onClick={() =>
               act('open_custom_sprite_editor', {
                 target: 'markings',
-                body_zone: taurLeg ? 'taur' : body_zone,
+                body_zone: drawingZone,
               })
             }
-          >
-            {taurLeg ? 'Taur body' : 'Custom'}
-          </Button>
-        )}
-      </Stack.Item>
+          />
+        </Stack.Item>
+      )}
     </Stack>
   );
 };
@@ -945,14 +975,14 @@ export const LimbsPage = ({
         </Stack.Item>
         {tab === AugmentsTab.Markings && !!data.allow_custom_sprite_editing && (
           <Stack.Item>
-            <Button
-              icon="paintbrush"
+            <CustomDrawingButton
+              label="Full body marking"
+              area="your entire body"
+              drawn={!!data.custom_body_marking}
               onClick={() =>
                 act('open_custom_sprite_editor', { target: 'markings' })
               }
-            >
-              Custom marking drawing
-            </Button>
+            />
           </Stack.Item>
         )}
         <Stack.Item grow>

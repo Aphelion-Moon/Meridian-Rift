@@ -725,34 +725,37 @@
 	TEST_ASSERT(length(editor.preview_body.overlays_standing[HAIR_LAYER]), "The fixture must have hair to leave out of the guide.")
 	TEST_ASSERT(!(!editor.can_hide_parts() || !editor.hide_parts), "Tattoo guides must keep hair and parts out of the way by default.")
 	TEST_ASSERT(!editor.can_hide_underwear(), "Tattoo guides must show the recipient as they're dressed, underwear included.")
+	// Only the guide leaves parts out; the preview body keeps them once the guides are drawn.
+	var/obj/item/bodypart/wings_limb
+	var/datum/bodypart_overlay/mutant/wings/wings_overlay
 	for(var/obj/item/bodypart/limb as anything in editor.preview_body.bodyparts)
-		for(var/datum/bodypart_overlay/mutant/part in limb.bodypart_overlays)
-			TEST_ASSERT(istype(part, /datum/bodypart_overlay/mutant/taur_body), "Wings and tails must be off the preview body while parts are hidden.")
+		wings_overlay = locate() in limb.bodypart_overlays
+		if(wings_overlay)
+			wings_limb = limb
+			break
+	TEST_ASSERT(wings_overlay, "Hiding parts from the guide must leave the wings on the preview body.")
+	TEST_ASSERT(json_encode(custom_sprite_render_directions(editor.preview_body, worn_overlays = editor.render_overlays())) == json_encode(editor.preview_urls), "Hiding parts from the guide must leave hair and wings on the preview.")
 	// Hidden means gone from the whole canvas: hair hanging beside the body counts too.
 	var/icon/hidden = editor.guide_icons["2"]
-	// Build the comparison through the mob itself, not the helper this is checking.
+	// Build the comparison through the mob itself, not the helpers this is checking.
+	wings_limb.remove_bodypart_overlay(wings_overlay)
 	var/list/hair = editor.preview_body.overlays_standing[HAIR_LAYER]
 	editor.preview_body.remove_overlay(HAIR_LAYER)
-	var/icon/without_hair = custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)
+	var/icon/bare = custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)
 	editor.preview_body.overlays_standing[HAIR_LAYER] = hair
 	editor.preview_body.apply_overlay(HAIR_LAYER)
-	var/icon/with_hair = custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)
-	TEST_ASSERT(!custom_sprite_test_same_pixels(without_hair, with_hair), "The fixture's hair must be visible on the body it's drawn on.")
+	wings_limb.add_bodypart_overlay(wings_overlay)
+	var/icon/whole = custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)
+	TEST_ASSERT(!custom_sprite_test_same_pixels(bare, whole), "The fixture's hair and wings must be visible on the body it's drawn on.")
 	// Guides are built while other renders read the same body, so hiding hair must not touch it.
 	custom_sprite_limb_appearance(editor.preview_body)
-	TEST_ASSERT(custom_sprite_test_same_pixels(with_hair, custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)), "Hiding hair must leave the body it was taken from alone.")
+	TEST_ASSERT(custom_sprite_test_same_pixels(whole, custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)), "Hiding hair must leave the body it was taken from alone.")
 	for(var/y in 1 to 32)
 		for(var/x in 1 to 32)
-			TEST_ASSERT(hidden.GetPixel(x, y) == without_hair.GetPixel(x, y), "Hidden hair must leave the guide alone at [x],[y].")
+			TEST_ASSERT(hidden.GetPixel(x, y) == bare.GetPixel(x, y), "Hidden hair and parts must leave the guide alone at [x],[y].")
 	editor.hide_parts = FALSE
 	editor.rebuild_resources()
 	TEST_ASSERT(!custom_sprite_test_same_pixels(hidden, editor.guide_icons["2"]), "Putting hair and parts back on must change the guide.")
-	var/wings_back = FALSE
-	for(var/obj/item/bodypart/limb as anything in editor.preview_body.bodyparts)
-		for(var/datum/bodypart_overlay/mutant/part in limb.bodypart_overlays)
-			if(istype(part, /datum/bodypart_overlay/mutant/wings))
-				wings_back = TRUE
-	TEST_ASSERT(wings_back, "Showing parts again must put the recipient's wings back.")
 
 /datum/unit_test/custom_sprite_salon/mirror_choices/Run()
 	setup_players()

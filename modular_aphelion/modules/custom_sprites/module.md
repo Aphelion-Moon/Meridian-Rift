@@ -17,9 +17,15 @@ custom facial hair drawing is in the facial hairstyle picker. Both work exactly
 alike: the same editor, tools, bounds, palette, base-look controls, import and
 export, salon work and saved previous style. Facial hair is drawn on the lower
 face and saved under its own key, so the two never touch each other.
-Custom marking drawing is on the body customization page's Markings tab.
-Each marking section there also has a Custom button:
+The **Full body marking** button is on the body customization page's Markings tab.
+Each marking section there also has a **Custom** button, below its **+**:
 Head, Torso, Left arm, Right arm, Left hand, Right hand, Left leg and Right leg.
+Their tooltips say what each one draws over. A button is lit up, with a check
+mark, once its drawing has paint; an empty canvas saves as no drawing, so it
+stays plain. The **+** disappears once a limb has its three markings. A limb
+can't wear the same marking twice: **+** picks at random from the ones it doesn't
+have, and each row's dropdown leaves out names the other rows use, the same way
+the editor's Base markings section does. The server refuses duplicates from either.
 With a taur body selected and enabled, the legs have no paintable pixels and
 their markings never show, so both leg sections swap their + and Custom buttons
 for a **Taur body** button, and the server refuses new leg markings.
@@ -77,7 +83,8 @@ target and optional body zone on the server, including after color-picker dialog
   character setup; it starts on when character setup previews the character
   naked. Gradient, Guide and Grid can be toggled where applicable. The
   guide shows the body as it is, underwear included unless hidden, and excludes
-  the drawing being edited. Guide and paint share the same canvas and pixel grid.
+  the drawing being edited. Hide parts only changes the guide; the preview always
+  shows hair and parts. Guide and paint share the same canvas and pixel grid.
   Preview comes last in the sidebar; its rotate buttons step through the views in
   the same order as the character preview's.
 - The window opens at 900 by 780. Closing the window keeps the unsaved draft and
@@ -456,10 +463,11 @@ draft, preview and approval as changes made in the editor.
 
 Salon guides and previews show the whole body, wearing what the recipient is
 actually wearing, so the artist works on the person in front of them. Dressing or
-undressing rebuilds them shortly after. Marking guides and previews leave hair, wings,
-tails and other hanging parts out, so they can't cover the limb; a **Hide parts**
-toggle beside Guide and Grid puts them back on. Hair editors keep those parts visible
-and don't offer this toggle.
+undressing rebuilds them shortly after. Marking guides leave hair, wings, tails and
+other hanging parts out, so they can't cover the limb; a **Hide parts** toggle beside
+Guide and Grid puts them back on. The preview body only loses them while the guides
+are drawn, so previews always show the whole look. Hair editors keep those parts
+visible and don't offer this toggle.
 A taur body always stays, since
 it carries a drawing of its own. The area that can be painted still follows the
 drawing's own bounds, which are taken from the limb itself and don't change with
@@ -680,7 +688,7 @@ These are the core hooks this module needs. Existing-file edits use
 | `code/modules/client/preferences.dm` | `/datum/preferences/Destroy()` closes editors and deletes the sidecar datum; `ui_close()` saves editors before removing the preview. |
 | `code/modules/client/preferences_savefile.dm` | `switch_to_slot()` finishes the old slot's editors; `remove_current_slot()` discards editors and removes that slot's drawings. |
 | `code/modules/mob/living/carbon/carbon_update_icons.dm` | `/mob/living/carbon/update_body_parts()` still reaches forced hair/eye refreshes when the limb icons themselves are unchanged. |
-| `code/modules/surgery/bodyparts/head_hair_and_lips.dm` | `/obj/item/bodypart/head/copy_appearance_from()` snapshots hair and facial hair paint; `get_base_hair_overlays()` and `get_base_facial_hair_overlays()` apply it without modifying the shared accessory icon, add its separate masks, and use `custom_sprite_hair_accessory()`/`custom_sprite_facial_hair_accessory()` so bald heads and shaved faces can carry paint. `/mob/living/carbon/human/set_haircolor()` and `set_facial_haircolor()` are overridden in `code/appearance.dm` to recolor painted shades. |
+| `code/modules/surgery/bodyparts/head_hair_and_lips.dm` | `/obj/item/bodypart/head/copy_appearance_from()` snapshots hair and facial hair paint; `get_base_hair_overlays()` and `get_base_facial_hair_overlays()` apply it without modifying the shared accessory icon, add its separate masks, and use `custom_sprite_hair_accessory()`/`custom_sprite_facial_hair_accessory()` so bald heads and shaved faces can carry paint. Nova's emissive hair glows from the hair overlay's own state; hair sheets have no `_e` states. `/mob/living/carbon/human/set_haircolor()` and `set_facial_haircolor()` are overridden in `code/appearance.dm` to recolor painted shades. |
 | `code/modules/sprite_editing/workspace.dm` | `/datum/sprite_editor_workspace/copy()`, `new_transaction()`, `undo()`, `redo()`, `can_transact()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `to_icon()`: preserve workspace configuration, validate/sanitize commands, support selection patches, repair layer/history handling and safely export runtime icons. |
 | `code/modules/art/paintings.dm` | `/obj/item/canvas/Initialize()` enables Select alongside its existing tools. |
 | `code/modules/modular_computers/file_system/programs/nanopaint.dm` | `/datum/computer_file/program/nanopaint/ui_act()` forwards history counts; `write_to_file()` and `save_file()` preserve the old image or remove a newly created empty file when export fails. |
@@ -742,7 +750,8 @@ are also required.
 | `modular_nova/modules/salon/icons/items_lefthand.dmi`, `items_righthand.dmi` | Angled in-hands in all four directions for the tattoo machine, scissors, electric razor, hairspray and straight razor. |
 | `modular_nova/modules/salon/sound/haircut.ogg`, `tattoo_ambience.ogg`, `tattoo1.ogg` | Hair snips, looping machine ambience and the occasional pitch-varied needle sound. |
 | `config/nova/config_nova.txt` | Documents the editing switch. |
-| `modular_nova/master_files/code/modules/client/preferences/middleware/limbs_and_markings.dm` | Refuses new leg markings while a taur body replaces the legs. |
+| `modular_nova/master_files/code/modules/client/preferences/middleware/limbs_and_markings.dm` | Refuses new leg markings while a taur body replaces the legs, and markings a limb already wears. Sends the per-limb marking cap. |
+| `code/modules/unit_tests/~nova/limb_markings.dm` | Adding and renaming limb markings never duplicates one. |
 | `modular_nova/modules/preferences_import/code/import_verb.dm` | `prefs_import_invalidate_cache()` calls the drawing cleanup after a successful import. |
 | `modular_aphelion/modules/worn_emissives/code/worn_emissives.dm` | Existing final appearance grouping keeps paint masks aligned with the character's pose. |
 | `tgui/packages/tgui/interfaces/CustomHairEditor.tsx`, `CustomMarkingsEditor.tsx` | The two interface entry points. |

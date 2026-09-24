@@ -316,11 +316,14 @@
 	TEST_ASSERT(!(body.underwear_visibility & UNDERWEAR_HIDE_UNDIES || !length(body.get_underwear_overlays())), "Generating guides must leave the preview body's underwear visible.")
 	var/list/clothed_icons = list()
 	for(var/direction in GLOB.cardinals)
-		// Marking guides leave hair out, so compare against the same appearance.
+		// Previews show the whole look.
+		var/icon/whole = getFlatIcon(new /mutable_appearance(body.appearance), defdir = direction, no_anim = TRUE)
+		whole.Crop(1, 1, 32, 32)
+		TEST_ASSERT(editor.preview_urls["[direction]"] == editor.publish_icon(whole), "The ordinary preview must retain the clothed character appearance.")
+		// Marking guides leave hair out, so compare them against the same appearance.
 		var/icon/clothed = getFlatIcon(editor.render_appearance(body), defdir = direction, no_anim = TRUE)
 		clothed.Crop(1, 1, 32, 32)
 		clothed_icons["[direction]"] = clothed
-		TEST_ASSERT(editor.preview_urls["[direction]"] == editor.publish_icon(clothed), "The ordinary preview must retain the clothed character appearance.")
 	// Guides show the body as it is until the owner hides the underwear.
 	for(var/direction in GLOB.cardinals)
 		TEST_ASSERT(custom_sprite_test_same_pixels(clothed_icons["[direction]"], editor.guide_icons["[direction]"]), "Every guide direction must match the character's own underwear.")
@@ -809,8 +812,7 @@
 	editor.refresh_preview()
 	TEST_ASSERT(json_encode(proposed) == json_encode(editor.preview_urls), "The import preview must show exactly the taur pixels applied by Replace draft.")
 	custom_sprite_apply_round_style(editor.preview_body, custom_style_package("markings", null, drawing, null), FALSE)
-	// Marking previews leave hair out, so render the comparison the same way.
-	TEST_ASSERT(json_encode(custom_sprite_render_directions(editor.preview_body, hide_hair = TRUE)) == json_encode(editor.preview_urls), "Opening and centering legacy whole-body paint must not change which taur pixels it covers.")
+	TEST_ASSERT(json_encode(custom_sprite_render_directions(editor.preview_body)) == json_encode(editor.preview_urls), "Opening and centering legacy whole-body paint must not change which taur pixels it covers.")
 	editor.finish(FALSE)
 
 

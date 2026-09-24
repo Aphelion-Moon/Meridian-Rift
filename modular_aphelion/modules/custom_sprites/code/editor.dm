@@ -5,7 +5,13 @@
 	action_delegations = list("open_custom_sprite_editor" = PROC_REF(open_editor))
 
 /datum/preference_middleware/custom_sprites/get_ui_data(mob/user)
-	return list("allow_custom_sprite_editing" = !CONFIG_GET(flag/disallow_custom_sprite_editing))
+	preferences.load_custom_sprites()
+	// An empty canvas saves as no drawing, so any saved drawing has paint on it.
+	return list(
+		"allow_custom_sprite_editing" = !CONFIG_GET(flag/disallow_custom_sprite_editing),
+		"custom_body_marking" = !!preferences.custom_markings,
+		"custom_marking_zones" = assoc_to_keys(preferences.custom_limb_markings),
+	)
 
 /datum/preference_middleware/custom_sprites/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
 	preferences.load_custom_sprites()
@@ -115,7 +121,7 @@
 	var/show_gradient = TRUE
 	/// Drawing bounds as the body allows them, before any views are locked.
 	var/list/unlocked_bounds
-	/// Whether hair and parts that hang over the drawing are left out of guides and previews.
+	/// Whether hair and parts that hang over the drawing are left out of the guide. Previews always show them.
 	var/hide_parts = TRUE
 	/// Whether underwear is left out of guides and previews.
 	var/hide_underwear = FALSE
@@ -219,21 +225,24 @@
 	return target == "markings"
 
 /**
- * Drops wings, tails and other parts that hang over the limb from the preview body.
+ * Takes wings, tails and other parts that hang over the limb off the preview body while the guide is drawn.
  *
- * The body is rebuilt whenever the toggle changes, so they come back by being drawn again rather
- * than by being restored here. A taur body carries its own drawing, so it always stays.
+ * Only the guide leaves them out: rebuild_resources() puts them back once the guides are rendered,
+ * so previews still show the whole look. A taur body carries its own drawing, so it always stays.
+ *
+ * Returns the removed overlays, each mapped to the limb it came off, or null when nothing was removed.
  */
 /datum/custom_sprite_editor/proc/hide_obstructing_parts()
-	var/hidden = FALSE
+	var/list/hidden
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
 		for(var/datum/bodypart_overlay/mutant/part in LAZYCOPY(limb.bodypart_overlays))
 			if(istype(part, /datum/bodypart_overlay/mutant/taur_body))
 				continue
 			limb.remove_bodypart_overlay(part, FALSE)
-			hidden = TRUE
+			LAZYSET(hidden, part, limb)
 	if(hidden)
 		preview_body.update_body_parts()
+	return hidden
 
 /datum/custom_sprite_editor/proc/render_overlays()
 	return null
@@ -246,11 +255,15 @@
 /datum/custom_sprite_editor/proc/context_act(action, list/params, mob/user)
 	switch(action)
 		if("save")
+			var/datum/preferences/owner = preferences
 			finish(TRUE)
+			// Character setup marks which markings have a drawing.
+			SStgui.update_uis(owner)
 			return TRUE
 		if("saveDraft")
 			if(save_drawing())
 				preferences.character_preview_view?.update_body()
+				SStgui.update_uis(preferences)
 			return TRUE
 		if("discard")
 			finish(FALSE)
@@ -301,8 +314,10 @@
 	if(!isnull(workspace.markings_context))
 		custom_style_apply_base_markings(preview_body, body_zone, workspace.markings_context, emissives_allowed())
 		preview_body.update_body()
+	// Everything taken off the body for the guides, mapped to its limb, to put back afterwards.
+	var/list/hidden_overlays
 	if(can_hide_parts() && hide_parts)
-		hide_obstructing_parts()
+		hidden_overlays = hide_obstructing_parts()
 	if(can_hide_underwear() && hide_underwear)
 		preview_body.set_all_underwear_visibility(TRUE)
 	if(custom_style_hair_target(target) && workspace.hair_context)
@@ -314,7 +329,6 @@
 		custom_style_apply_hair_context(preview_body, context, update = FALSE, target = target)
 	var/obj/item/bodypart/head/head = preview_body.get_bodypart(BODY_ZONE_HEAD)
 	var/list/head_drawing = head?.custom_head_drawing(target)
-	var/list/hidden_markings
 	var/list/palette
 	if(custom_style_hair_target(target))
 		var/datum/sprite_accessory/hair/hairstyle = custom_style_hair_accessories(target)[target == "facial_hair" ? preview_body.facial_hairstyle : preview_body.hairstyle]
@@ -327,13 +341,15 @@
 		workspace.draw_bounds = custom_sprite_body_draw_bounds(preview_body, body_zone, workspace.width)
 		workspace.draw_mask = body_zone || workspace.width > 32 ? custom_sprite_body_draw_mask(preview_body, body_zone, workspace.width) : null
 		palette = sample_marking_palette()
+		var/hid_paint = FALSE
 		for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
 			// Hide paint only while rendering guides, retaining every donor layer's exact snapshot.
 			for(var/datum/bodypart_overlay/custom_marking/marking in LAZYCOPY(limb.bodypart_overlays))
-				LAZYSET(hidden_markings, marking, limb)
+				LAZYSET(hidden_overlays, marking, limb)
 				limb.remove_bodypart_overlay(marking, FALSE)
+				hid_paint = TRUE
 		// The limbs the body already drew still carry that paint until they're composed again.
-		if(hidden_markings)
+		if(hid_paint)
 			preview_body.update_body_parts()
 	unlocked_bounds = deep_copy_list(workspace.draw_bounds)
 	// Markings clip to the body: paint stranded by a changed body or zone is dropped, not kept.
@@ -359,10 +375,10 @@
 		guide_icons["[direction]"] = guide
 		guide_urls["[direction]"] = publish_icon(guide)
 	head?.set_custom_head_drawing(target, head_drawing)
-	for(var/datum/bodypart_overlay/custom_marking/marking as anything in hidden_markings)
-		var/obj/item/bodypart/limb = hidden_markings[marking]
-		limb.add_bodypart_overlay(marking, FALSE)
-	if(hidden_markings)
+	for(var/datum/bodypart_overlay/overlay as anything in hidden_overlays)
+		var/obj/item/bodypart/limb = hidden_overlays[overlay]
+		limb.add_bodypart_overlay(overlay, FALSE)
+	if(hidden_overlays)
 		preview_body.update_body_parts()
 	resources_ready = TRUE
 	return TRUE
@@ -903,7 +919,7 @@
 	// Hair-only updates don't rebuild the underwear that was hidden for the guides.
 	if(custom_style_hair_target(target))
 		preview_body.update_body()
-	var/list/urls = custom_sprite_render_directions(preview_body, publish = CALLBACK(src, PROC_REF(publish_icon)), hide_hair = !custom_style_hair_target(target) && hide_parts, worn_overlays = render_overlays())
+	var/list/urls = custom_sprite_render_directions(preview_body, publish = CALLBACK(src, PROC_REF(publish_icon)), worn_overlays = render_overlays())
 	if(hair_swapped)
 		custom_style_apply_hair_context(preview_body, workspace.hair_context, update = FALSE, target = target)
 	if(markings_swapped)

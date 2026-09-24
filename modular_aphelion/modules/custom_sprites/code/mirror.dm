@@ -26,8 +26,8 @@
 	return appearance
 
 /// Front, Back, Right and Left data URLs for a preview body, without flipping any view.
-/proc/custom_sprite_render_directions(mob/living/carbon/human/body, datum/callback/publish, hide_hair = FALSE, list/worn_overlays)
-	var/mutable_appearance/appearance = hide_hair ? custom_sprite_limb_appearance(body) : new(body.appearance)
+/proc/custom_sprite_render_directions(mob/living/carbon/human/body, datum/callback/publish, list/worn_overlays)
+	var/mutable_appearance/appearance = new(body.appearance)
 	if(length(worn_overlays))
 		appearance.overlays += worn_overlays
 	var/list/urls = list()

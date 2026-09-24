@@ -472,6 +472,17 @@ pub struct Store {
     live: PathBuf,
     nova: PathBuf,
 }
+/// Exclusive writer lock that is released explicitly when dropped.
+///
+/// Windows releases a lock left on a closed handle only when the system gets to it, so the next
+/// writer could briefly find the database busy. Unlocking first makes the release immediate.
+struct WriterLock(File);
+impl Drop for WriterLock {
+    fn drop(&mut self) {
+        // Closing the handle still releases the lock if this fails.
+        let _ = FileExt::unlock(&self.0);
+    }
+}
 impl Store {
     /// Resolve storage from the game working directory, never from caller-supplied roots.
     pub fn production() -> Result<Self> {
@@ -500,8 +511,8 @@ impl Store {
         require(hex(id, 32), "Invalid image identity")?;
         child(&self.live, &format!("paintings/images/{id}.png"))
     }
-    /// Acquire a nonblocking OS writer lock held until the returned file is dropped.
-    fn lock(&self) -> Result<File> {
+    /// Acquire a nonblocking OS writer lock held until the returned guard is dropped.
+    fn lock(&self) -> Result<WriterLock> {
         fs::create_dir_all(self.private("")?)?;
         let file = OpenOptions::new()
             .read(true)
@@ -509,9 +520,15 @@ impl Store {
             .create(true)
             .truncate(false)
             .open(self.private("lock")?)?;
-        FileExt::try_lock_exclusive(&file)
-            .map_err(|_| Error::new("busy", "Another painting writer holds the database lock"))?;
-        Ok(file)
+        FileExt::try_lock_exclusive(&file).map_err(|error| {
+            // Only contention means another writer; any other failure keeps its real cause.
+            if error.raw_os_error() == fs2::lock_contended_error().raw_os_error() {
+                Error::new("busy", "Another painting writer holds the database lock")
+            } else {
+                error.into()
+            }
+        })?;
+        Ok(WriterLock(file))
     }
     /// Read bounded live database bytes while distinguishing a missing file from an empty one.
     fn live_bytes(&self) -> Result<(Vec<u8>, bool)> {

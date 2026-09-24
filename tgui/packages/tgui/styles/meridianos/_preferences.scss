@@ -181,6 +181,12 @@
   }
 }
 
+// The faded character menu lets drags through, but tgui-core's Floating
+// wrapper around it (portaled outside .PreferencesMenu) would still catch them.
+.Floating:has(> .PreferencesMenu__Jobs__characterMenu--hidden) {
+  pointer-events: none;
+}
+
 @media (forced-colors: active) {
   .PreferencesMenu__Jobs__departments__priority.Button {
     border-color: ButtonText !important;

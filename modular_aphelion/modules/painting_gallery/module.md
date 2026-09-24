@@ -151,6 +151,9 @@ then atomically replaces JSON as the commit point. Deletions commit metadata
 before removing images; unfinished cleanup is retried. Explicit field changes
 preserve untouched native JSON values and unknown fields. Nova commits recheck
 the confirmed source hash and copy original records with only visibility changed.
+Each call unlocks storage explicitly when it ends, rather than leaving Windows to
+release the lock with the closed handle, so the next call never finds it held.
+Only real contention reports `busy`; other lock failures report their I/O error.
 
 Recovery runs before loading paintings. It completes committed cleanup or restores
 the verified prior snapshot, using transaction-owned image evidence. An unexpected

@@ -343,7 +343,7 @@ export const CustomSpriteEditor = ({
                 {!!canHideParts && (
                   <Button.Checkbox
                     checked={!!hideParts}
-                    tooltip="Move parts that would obstruct view out of the way."
+                    tooltip="Leave hair, wings, tails and other parts that cover the body out of the guide. The preview still shows them."
                     onClick={() => act('toggleParts')}
                   >
                     Hide parts
