@@ -33,6 +33,13 @@
 	var/can_lay_down = FALSE
 	/// The offset we get from laying down. Negative values move us down
 	var/laydown_offset = 0
+	/// Icon file holding this taur's separate tail states. Null means the tail is baked into the body sprite.
+	var/tail_icon
+
+/datum/sprite_accessory/taur/get_special_icon(mob/living/carbon/human/target, datum/bodypart_overlay/mutant/bodypart_overlay)
+	if(istype(bodypart_overlay, /datum/bodypart_overlay/mutant/tail/taur))
+		return tail_icon
+	return ..()
 
 /datum/sprite_accessory/taur/is_hidden(mob/living/carbon/human/target, datum/bodypart_overlay/mutant/bodypart_overlay)
 	var/obj/item/organ/taur_body/taur_body = target.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR)
@@ -232,6 +239,7 @@
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -4
+	tail_icon = 'modular_nova/master_files/icons/mob/sprite_accessory/taur_tails.dmi'
 
 /datum/sprite_accessory/taur/goop
 	name = "Goop"

@@ -195,6 +195,18 @@
 	relevant_mutant_bodypart = FEATURE_TAIL
 	type_to_check = /datum/preference/toggle/mutant_toggle/tail
 
+/datum/preference/toggle/mutant_toggle/tail/is_accessible(datum/preferences/preferences)
+	return ..() && !preferences.has_taur_tail()
+
+/datum/preference/choiced/mutant_choice/tail/is_part_enabled(datum/preferences/preferences)
+	return ..() && !preferences.has_taur_tail()
+
+/datum/preference/tri_color/tail/is_accessible(datum/preferences/preferences)
+	return ..() && !preferences.has_taur_tail()
+
+/datum/preference/tri_bool/tail/is_accessible(datum/preferences/preferences)
+	return ..() && !preferences.has_taur_tail()
+
 /// Snouts
 
 /datum/preference/toggle/mutant_toggle/snout
@@ -749,6 +761,23 @@
 	savefile_key = "taur_emissive"
 	relevant_mutant_bodypart = FEATURE_TAUR
 	type_to_check = /datum/preference/toggle/mutant_toggle/taur
+
+/**
+ * Returns whether these preferences give the character a taur body that brings its own tail.
+ *
+ * That tail fills the tail slot, so the tail preferences step aside while it is chosen. Their saved
+ * values are kept for when the character goes back to a taur without one.
+ *
+ * Returns:
+ * - TRUE: The taur choice will be applied and its accessory has a tail_icon.
+ * - FALSE: No taur will be applied, or it is a monolith with its tail baked in.
+ */
+/datum/preferences/proc/has_taur_tail()
+	var/datum/preference/choiced/mutant_choice/taur/taur_preference = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	if(!taur_preference.is_visible(preferences = src))
+		return FALSE
+	var/datum/sprite_accessory/taur/taur = SSaccessories.sprite_accessories[FEATURE_TAUR][read_preference(/datum/preference/choiced/mutant_choice/taur)]
+	return !isnull(taur?.tail_icon)
 
 /// Xenodorsal
 

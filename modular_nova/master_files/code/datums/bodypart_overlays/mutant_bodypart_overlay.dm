@@ -56,7 +56,7 @@
 	. = list()
 	. += "[get_base_icon_state()]"
 	. += "[get_feature_key_for_overlay()]"
-	. += "[sprite_datum.get_special_icon(limb?.owner)]"
+	. += "[sprite_datum.get_special_icon(limb?.owner, src)]"
 	for(var/layer_postfix, layer_number in layers)
 		. += "layer=[layer_postfix]:[layer_number]"
 
@@ -114,7 +114,7 @@
 	overlay_slots = list()
 
 	var/mob/living/carbon/human/owner = limb?.owner
-	var/sprite_icon = sprite_datum.get_special_icon(owner)
+	var/sprite_icon = sprite_datum.get_special_icon(owner, src)
 	// Every state in each icon file, read once for the round.
 	var/static/list/sprite_states_by_icon = list()
 	var/list/sprite_states = sprite_icon && sprite_states_by_icon[sprite_icon]

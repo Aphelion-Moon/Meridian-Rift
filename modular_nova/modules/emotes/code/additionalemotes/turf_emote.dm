@@ -56,11 +56,10 @@
 			user.allowed_turfs += "dust" //moth's dust ✨
 
 		//body parts
-		if(istype(user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL), /obj/item/organ/tail))
-			var/datum/mutant_bodypart/our_tail = human_user.dna.mutant_bodyparts[FEATURE_TAIL]
-			var/datum/sprite_accessory/tails/tail = SSaccessories.sprite_accessories[FEATURE_TAIL][our_tail.name]
-			if(tail.fluffy)
-				user.allowed_turfs += "tails"
+		var/obj/item/organ/tail/tail = human_user.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
+		var/datum/sprite_accessory/tails/tail_accessory = tail?.bodypart_overlay?.sprite_datum
+		if(istype(tail_accessory) && tail_accessory.fluffy)
+			user.allowed_turfs += "tails"
 
 		var/taur_mode = human_user.get_taur_mode()
 		if(taur_mode & BODYSHAPE_TAUR_SNAKE)

@@ -71,6 +71,9 @@
 		if(!tail_snip_candidate)
 			to_chat(user, span_warning("[patient] does not have a tail."))
 			return
+		if(tail_snip_candidate.organ_flags & ORGAN_UNREMOVABLE)
+			to_chat(user, span_warning("[patient]'s [tail_snip_candidate.name] is part of [patient.p_their()] body. You can't saw it off!"))
+			return
 		candidate_name = tail_snip_candidate.name
 
 	else
