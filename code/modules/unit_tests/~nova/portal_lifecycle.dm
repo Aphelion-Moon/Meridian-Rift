@@ -210,6 +210,31 @@
 		for(var/endpoint_direction in list(NORTH, SOUTH, EAST, WEST))
 			check_exact_state_restoration(portal_mode, endpoint_direction)
 
+/// Leaving a portal always hands the occupant back upright, whatever they tilted before entering or while inside.
+/datum/unit_test/portal_lifecycle/tilt_restoration/Run()
+	var/list/portal_pair = make_portal_pair(PORTAL_TEST_WALLSTUCK)
+	var/obj/structure/lewd_portal/source_portal = portal_pair[1]
+	source_portal.dir = SOUTH
+	var/mob/living/carbon/human/consistent/occupant = allocate(/mob/living/carbon/human/consistent, run_loc_floor_bottom_left)
+	var/matrix/upright = matrix(occupant.transform)
+
+	var/datum/component/pixel_tilt/tilt = occupant.AddComponent(/datum/component/pixel_tilt)
+	tilt.apply_tilt(occupant, EAST)
+	TEST_ASSERT(!matrices_close(occupant.transform, upright), "The tilt fixture did not turn the occupant.")
+	TEST_ASSERT(source_portal.buckle_mob(occupant, force = TRUE, check_loc = FALSE), "The tilted occupant could not enter the portal.")
+	TEST_ASSERT_NULL(occupant.GetComponent(/datum/component/pixel_tilt), "Entering the portal left the occupant's tilt running.")
+
+	tilt = occupant.AddComponent(/datum/component/pixel_tilt)
+	tilt.apply_tilt(occupant, WEST)
+	source_portal.unbuckle_mob(occupant, force = TRUE, can_fall = FALSE)
+	TEST_ASSERT_NULL(occupant.GetComponent(/datum/component/pixel_tilt), "Leaving the portal left a tilt behind to undo later.")
+	TEST_ASSERT(matrices_close(occupant.transform, upright), "Leaving the portal did not hand the occupant back upright.")
+
+/// Whether two matrices match to within rounding, for transforms that were turned and turned back.
+/datum/unit_test/portal_lifecycle/proc/matrices_close(matrix/left, matrix/right)
+	return abs(left.a - right.a) < 0.001 && abs(left.b - right.b) < 0.001 && abs(left.c - right.c) < 0.001 \
+		&& abs(left.d - right.d) < 0.001 && abs(left.e - right.e) < 0.001 && abs(left.f - right.f) < 0.001
+
 /// A preference changed through its real setter survives teardown before the queued refresh.
 /datum/unit_test/portal_lifecycle/live_visibility_teardown/Run()
 	if(CONFIG_GET(flag/disable_lewd_items))

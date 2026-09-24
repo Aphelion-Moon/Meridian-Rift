@@ -11,6 +11,9 @@
 	var/list/emissive_eligibility_by_color_index
 	/// A simple list of indexes to color (as we don't want to color emissives, MOD overlays or inner ears)
 	var/list/overlay_indexes_to_color
+	/// Where each overlay from get_images() would sit if every layer had art for every color.
+	/// Colors and emissive prefs are looked up by this, as layers skip the colors they have no art for.
+	var/list/overlay_slots
 	/// A simple cache of what the last icon_states built were.
 	/// It's really only there to help with debugging what's happening.
 	var/list/last_built_icon_states
@@ -108,9 +111,18 @@
 	var/gender = (limb?.limb_gender == FEMALE) ? "f" : "m"
 
 	overlay_indexes_to_color = list()
-	var/index = 1
+	overlay_slots = list()
 
 	var/mob/living/carbon/human/owner = limb?.owner
+	var/sprite_icon = sprite_datum.get_special_icon(owner)
+	// Every state in each icon file, read once for the round.
+	var/static/list/sprite_states_by_icon = list()
+	var/list/sprite_states = sprite_icon && sprite_states_by_icon[sprite_icon]
+	if(sprite_icon && !sprite_states)
+		sprite_states = list()
+		for(var/state in icon_states(sprite_icon))
+			sprite_states[state] = TRUE
+		sprite_states_by_icon[sprite_icon] = sprite_states
 
 	last_built_icon_states = list()
 
@@ -121,35 +133,40 @@
 		if(sprite_datum.center)
 			center_image(mod_overlay, sprite_datum.special_x_dimension ? sprite_datum.get_special_x_dimension(owner) : sprite_datum.dimension_x, sprite_datum.dimension_y)
 
-	switch(sprite_datum.color_src)
-		if(USE_MATRIXED_COLORS)
-			for (var/color_index in sprite_datum.color_layer_names)
+	var/list/color_layer_states = list()
+	if(sprite_datum.color_src == USE_MATRIXED_COLORS)
+		for(var/_color_index, color_layer_name in sprite_datum.color_layer_names)
+			color_layer_states += build_icon_state_nova(gender, layer_index, color_layer_name)
+	else
+		color_layer_states += build_icon_state_nova(gender, layer_index)
 
-				var/mutable_appearance/color_layer_image = get_singular_image(build_icon_state_nova(gender, layer_index, sprite_datum.color_layer_names[color_index]), layer_index, layer_real, owner, limb = limb)
-				returned_images += color_layer_image
+	var/slot = 0
+	for(var/color_layer_state in color_layer_states)
+		slot++
+		// A layer may lack art for some colors; drawing those would only make blank overlays and bad emissives.
+		if(!sprite_states?[color_layer_state])
+			continue
 
-				overlay_indexes_to_color += index
-				index++
+		var/mutable_appearance/color_layer_image = get_singular_image(color_layer_state, layer_index, layer_real, owner, icon_override = sprite_icon, limb = limb)
+		returned_images += color_layer_image
+		overlay_indexes_to_color += length(returned_images)
+		overlay_slots += slot
 
-				if(mod_overlay)
-					var/mod_icon = sprite_datum.get_custom_mod_icon(color_layer_image, mod_theme)
-					mod_overlay.add_overlay(mutable_appearance(mod_icon))
-
-		else
-			var/mutable_appearance/image_to_return = get_singular_image(build_icon_state_nova(gender, layer_index), layer_index, layer_real, owner, limb = limb)
-			returned_images = list(image_to_return)
-			overlay_indexes_to_color += index
-
-			if(mod_overlay)
-				var/mod_icon = sprite_datum.get_custom_mod_icon(image_to_return, mod_theme)
-				mod_overlay.add_overlay(mutable_appearance(mod_icon))
+		if(mod_overlay)
+			var/mod_icon = sprite_datum.get_custom_mod_icon(color_layer_image, mod_theme)
+			mod_overlay.add_overlay(mutable_appearance(mod_icon))
 
 	if(sprite_datum.has_inner)
-		returned_images += get_singular_image(build_icon_state_nova(gender, layer_index, feature_key_suffix = "inner"), layer_index, layer_real, owner, limb = limb)
+		slot++
+		var/inner_state = build_icon_state_nova(gender, layer_index, feature_key_suffix = "inner")
+		if(sprite_states?[inner_state])
+			returned_images += get_singular_image(inner_state, layer_index, layer_real, owner, icon_override = sprite_icon, limb = limb)
+			overlay_slots += slot
 
 	// Gets the icon_state of a single or matrix colored accessory and overlays it with a texture
 	if(mod_overlay)
 		returned_images += mod_overlay
+		overlay_slots += slot + 1
 
 	return returned_images
 
@@ -173,7 +190,6 @@
 		else
 			draw_color = "#AAA" //The gray husk color
 
-	var/i = 1 // Starts at 1 for color layers.
 	alpha = limb?.alpha || ALPHA_OPAQUE
 
 	for(var/index_to_color in overlay_indexes_to_color)
@@ -181,17 +197,17 @@
 			break
 
 		var/image/overlay = overlays[index_to_color]
+		var/color_slot = overlay_slots[index_to_color]
 
 		switch(sprite_datum.color_src)
 			if(USE_ONE_COLOR)
-				overlay.color = islist(draw_color) ? draw_color[i] : draw_color
+				overlay.color = islist(draw_color) ? draw_color[color_slot] : draw_color
 
 			if(USE_MATRIXED_COLORS)
-				if (i > length(draw_color))
+				if (color_slot > length(draw_color))
 					overlay.color = islist(draw_color) ? draw_color[length(draw_color)] : draw_color
 				else
-					overlay.color = islist(draw_color) ? draw_color[i] : draw_color
-				i++
+					overlay.color = islist(draw_color) ? draw_color[color_slot] : draw_color
 
 			else
 				overlay.color = limb?.color
@@ -273,14 +289,9 @@
 		var/mutable_appearance/overlay = overlays[index]
 		if(!overlay.icon) // The MOD texture container has no sprite of its own.
 			continue
-		// APHELION EDIT ADDITION START - CUSTOMIZATION_CI_FIXES
-		// Matrixed accessories may have a color channel on only some layers.
-		// Keep its slot for color indexing, but an absent sprite has no glow or blocker.
-		if(sprite_datum.color_src == USE_MATRIXED_COLORS && !icon_exists(overlay.icon, overlay.icon_state))
-			continue
-		// APHELION EDIT ADDITION END
+		var/color_index = overlay_slots[index]
 		var/mutable_appearance/emissive_overlay
-		if(emissive_layer || (index <= max_emissive_index && emissive_eligibility_by_color_index[index]))
+		if(emissive_layer || (color_index <= max_emissive_index && emissive_eligibility_by_color_index[color_index]))
 			emissive_overlay = emissive_appearance(overlay.icon, overlay.icon_state, offset_spokesman = limb, layer = overlay.layer)
 		else if(blocks_emissive != EMISSIVE_BLOCK_NONE)
 			// Restore the parent builder's blocking for non-emitting parts, including taur bodies.
