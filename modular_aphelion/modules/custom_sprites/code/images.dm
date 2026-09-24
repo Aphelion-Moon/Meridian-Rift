@@ -148,8 +148,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 				var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1)) - 1
 				frame[y][x + offset_x] = index > 0 ? "[palette[index]]ff" : "#00000000"
 
-/// Called by debounced previews and appearance rendering, never by the per-stroke UI payload.
-/proc/custom_sprite_paint_icon(list/drawing)
+/// Called by debounced previews and appearance rendering, never by the per-stroke UI payload. Throwaway drawings skip the cache.
+/proc/custom_sprite_paint_icon(list/drawing, cache = TRUE)
 	// Bounded cache of decoded drawing icons shared by appearance renderers.
 	var/static/list/paint_icons = list()
 	if(!drawing)
@@ -177,7 +177,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 					frame.DrawBox(palette[index], x, 32 - y, x + run - 1, 32 - y)
 				x += run
 		paint.Insert(frame, "", direction)
-	return custom_sprite_cache_put(paint_icons, key, paint)
+	return cache ? custom_sprite_cache_put(paint_icons, key, paint) : paint
 
 /// Raw limb geometry, using exactly the state selection in get_limb_icon().
 /proc/custom_sprite_limb_state(obj/item/bodypart/limb, auxiliary = FALSE)

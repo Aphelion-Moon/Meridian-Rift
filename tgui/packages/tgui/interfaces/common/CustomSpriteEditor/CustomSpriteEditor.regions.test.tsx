@@ -210,3 +210,21 @@ it('lists replaced and skipped regions when previewing an import', () => {
   expect(screen.getByText(/Replaces: Left arm\./)).toBeTruthy();
   expect(screen.getByText(/Skipped: Taur lower body/)).toBeTruthy();
 });
+
+it('selects regions with the primary button only', () => {
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const { view } = renderRegions();
+    const canvas = view.container.querySelector('canvas')!;
+    send.mockClear();
+    fireEvent.mouseDown(canvas, { clientX: 25, clientY: 5, button: 2 });
+    fireEvent.mouseUp(window, { clientX: 25, clientY: 5, button: 2 });
+    expect(send).not.toHaveBeenCalledWith('selectRegion', expect.anything());
+    expect(screen.getByText('Torso base markings')).toBeTruthy();
+  } finally {
+    getBounds.mockRestore();
+  }
+});

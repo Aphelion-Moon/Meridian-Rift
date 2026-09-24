@@ -32,7 +32,7 @@ their markings never show, so both leg sections swap their + and Custom buttons
 for a **Taur body** button, and the server refuses new leg markings.
 Every Custom button, and the Taur body button, opens the same whole-body
 **Custom Markings** window with that region selected. If the window is already
-open, the button selects that region and the window follows; a region the body
+open, the button brings it forward and selects that region; a region the body
 doesn't have leaves the selection alone and says so. Drawings are still stored
 per zone: ordinary zone, hand and taur-zone drawings stay separate, and only the
 editor shows them as one body.
@@ -71,15 +71,18 @@ region's editing mask with an ID color, pushes it through that region's real
 overlay type, and composes the results in the game's draw order: the body's limb
 order, each hand above its arm, the leg layer split and the taur organ's native
 layers. The region on top owns the pixel; a blended edge pixel goes to the
-topmost image covering it. Maps are cached by the geometry that produced them.
+region that shows most in it. ID colors sit on a circle, so a blend of two
+regions never reads as a third. Maps are cached by the geometry that produced
+them, and building one leaves the shared icon caches alone.
 Whenever an arm's drawing overlay is created again, its hand overlays move back
 above it, so hand paint draws over arm paint on shared pixels, in game and on the
 canvas.
 
-- Pressing on the body selects the region under the cursor, with any tool and
-  with Alt-click sampling. Pressing unavailable space keeps the selection. The
-  window highlights at once and tells the server; region actions name the
-  region, and the server checks it's present.
+- Pressing on the body with the primary button selects the region under the
+  cursor, with any tool and with Alt-click sampling. Pressing unavailable space
+  keeps the selection. The window highlights at once and tells the server, whose
+  selection the region actions work on; an action naming any other region is
+  refused. Region actions pass the same window checks as every other action.
 - The selection drives the region's Base markings section ("Left arm base
   markings"), its Emissive checkbox (`Emissives - (Left arm, Front)`) and Clear
   ("Clear left arm"). A status line under the canvas names the region, adds
@@ -144,7 +147,7 @@ region outlines it faintly, just outside its pixels.
   The row starts on the character's own background, or the artist's in the
   salon. The choice is never saved, since writing a preference would save and
   close the editor.
-- The window opens at 900 by 780. Closing the window keeps the unsaved draft and
+- The window opens at 1000 by 780. Closing the window keeps the unsaved draft and
   its history; reopening continues it with the Pencil selected. Changing direction
   or using history cancels the current selection/drag.
 
@@ -201,7 +204,9 @@ The markings canvas shares one palette across every region. Regions may use more
 than 63 colors between them, as old saves and imports can: the editor keeps them
 all and base marking changes still work, but new colors wait until some are gone,
 and a notice under the canvas says why. Each changed region is checked against
-the 63-color limit when saving.
+the 63-color limit when saving. A region over its own limit is named in that
+notice before a save fails; export refuses it, and the preview keeps showing its
+saved paint until it's back under.
 
 Each hair editor also owns its base look. A **Base hair** (or **Base facial
 hair**) section picks the style and color for this character; the drawing always
@@ -302,7 +307,9 @@ window doesn't save: the draft stays open in memory until you save or discard it
 Slot switches, style or species changes, and closing character setup still save
 open drafts, so work isn't silently lost. Markings, augment and randomize actions
 in character setup also save and close open editors first, as preference changes
-do, so an open draft can't write stale base markings back afterwards. Discard drops changes since the last
+do, so an open draft can't write stale base markings back afterwards. If an open
+drawing can't be saved, the change waits: the setting or tab action isn't made,
+the editor keeps its error, and chat says why. Discard drops changes since the last
 successful save. Deleting a character slot discards its editor
 and removes its drawings. Character exports exclude the drawing file;
 successful preference imports remove old drawings and their recovery files.
@@ -640,7 +647,8 @@ A whole-body file wraps region packages under `"target": "body"`:
 Each region entry validates exactly like a single-target package for that zone.
 Importing one replaces the regions it contains; the preview lists them, and lists
 any regions this body doesn't have as skipped. A single-target file replaces its
-own region, and a legacy drawing-only file goes into the selected region.
+own region, and a legacy drawing-only file goes into the selected region; the
+taur region centres an old 32-wide one, as its single-zone editor did.
 Confirmed regions replace the old ones outright: neither the file's paint nor the
 old paint under other limbs on this body is kept. A single-zone editor, such as
 the salon's, takes its own zone from a whole-body file; hair editors refuse one.
@@ -683,7 +691,9 @@ never file contents.
 Each character slot keeps one previous saved package per drawing target in the
 sidecar's `previous_styles`. Only import, **Restore previous saved style** in the
 preferences editor, and a salon save replace it, and only when the saved style
-actually changes. Strokes, Ctrl+S and ordinary save and close don't.
+actually changes. Strokes, Ctrl+S and ordinary save and close don't, and neither
+does an import or restoration that was undone before saving. Undoing one also
+leaves emission changes made since on other regions alone.
 
 **Restore previous saved style** opens the old package as a preview, the same way
 as an import. It only appears while the draft differs from that style, so it
@@ -753,8 +763,14 @@ and mirror views.
 `regions.dm` covers region maps: draw order, hands over arms, missing arms taking
 their hands, and wide taur maps. `composite.dm` covers composing and splitting,
 including tints, hidden paint and arm/hand partners. `markings_editor.dm` covers
-saving only changed regions in one write, selection and focus, palette overflow,
-routing from the Custom buttons, and imports. `saved_styles.dm`, `workspace.dm`,
+saving only changed regions in one write, selection and focus, palette overflow
+and pooling, routing from the Custom buttons, imports (whole-body, single-region
+and drawing-only, including the taur's centring), undo side effects, paint moved
+between regions, emission-only saves, map rebuilds, window state and selection
+checks, regions over their own color limit, setup changes waiting on a drawing
+that can't be saved, and ui_data skipping region work when nothing needs it.
+`regions.dm` also covers ID colors, blended edges, the wrist band, taur maps and
+the icon caches. `saved_styles.dm`, `workspace.dm`,
 `transfer.dm` and `appearance.dm` cover multi-region commits, region-bounded fill
 and clear, whole-body files, and hand paint staying above re-created arm paint.
 

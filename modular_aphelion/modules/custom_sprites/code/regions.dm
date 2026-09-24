@@ -22,9 +22,15 @@
 	if(taur && chest && taur.can_draw_on_bodypart(chest, body))
 		. += CUSTOM_MARKING_ZONE_TAUR
 
-/// Region N's ID color. Regions paint nothing else, so a pixel of this color is unambiguous.
+/**
+ * Region N's ID color. Regions paint nothing else, so a pixel of this color is unambiguous.
+ *
+ * The colors sit on a circle, so a blend of two regions at an antialiased edge falls inside it and
+ * never reads as a third region.
+ */
 /proc/custom_sprite_region_color(index)
-	return LOWER_TEXT(rgb(index * 20, 180, 90))
+	var/angle = (index - 1) * 40
+	return LOWER_TEXT(rgb(round(128 + 100 * cos(angle), 1), round(128 + 100 * sin(angle), 1), 64))
 
 /// A solid drawing of region N's ID color across one editing mask, or null when the mask is empty.
 /proc/custom_sprite_region_id_drawing(index, list/mask, width)
@@ -43,8 +49,8 @@
  * Every region's current editing mask is filled with its ID color and pushed through its real
  * overlay type, so the hand/arm layering, the leg split and the taur's native layers all apply as
  * they do in game. The images are composed in draw order (by layer, then region order) and the
- * result is read once per view. A blended edge pixel falls back to the topmost image covering it.
- * Maps are cached by the geometry that produced them.
+ * result is read once per view. A blended edge pixel goes to the region that dominates it. Maps are
+ * cached by the geometry that produced them.
  *
  * Arguments:
  * - body: The body whose limbs and taur organ define the regions.
@@ -78,6 +84,7 @@
 		var/overlay_type = custom_marking_zone_overlay_type(zone)
 		var/datum/bodypart_overlay/custom_marking/scratch = new overlay_type
 		scratch.blocks_emissive = EMISSIVE_BLOCK_NONE
+		scratch.cache_icons = FALSE
 		scratch.set_drawing(drawing, limb)
 		for(var/image/part as anything in scratch.get_all_overlays(limb))
 			if(PLANE_TO_TRUE(part.plane) == EMISSIVE_PLANE)
@@ -111,18 +118,35 @@
 		result["[direction]"] = rows
 	return custom_sprite_cache_put(maps, key, result)
 
-/// The topmost region image covering one blended pixel, as its region character.
+/**
+ * The region that dominates one blended pixel, as its region character.
+ *
+ * Images composite from the top down, so each one's share of the pixel is its alpha times what the
+ * images above it left showing. A tie goes to the higher image.
+ */
 /proc/custom_sprite_region_fallback(list/ordered, x, y, direction)
-	for(var/position = length(ordered); position >= 1; position--)
+	var/list/shares = list()
+	var/showing = 1
+	for(var/position = length(ordered); position >= 1 && showing > 0; position--)
 		var/list/entry = ordered[position]
 		var/icon/shape = entry[5]
 		var/image_x = x + 2 - entry[3]
 		var/image_y = 33 - y - entry[4]
 		if(image_x < 1 || image_y < 1 || image_x > shape.Width() || image_y > shape.Height())
 			continue
-		if(shape.GetPixel(image_x, image_y, "", direction))
-			return "[entry[2]]"
-	return "0"
+		var/pixel = shape.GetPixel(image_x, image_y, "", direction)
+		if(!pixel)
+			continue
+		var/list/channels = rgb2num(pixel)
+		var/alpha = (length(channels) > 3 ? channels[4] : 255) / 255
+		shares["[entry[2]]"] += alpha * showing
+		showing *= 1 - alpha
+	. = "0"
+	var/best = 0
+	for(var/region in shares)
+		if(shares[region] > best)
+			best = shares[region]
+			. = region
 
 /// The region owning a canvas pixel (0-based), or null.
 /proc/custom_sprite_region_owner(list/rows, list/zones, x, y)

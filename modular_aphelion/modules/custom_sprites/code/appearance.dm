@@ -175,6 +175,8 @@
 	var/drawing_hash
 	/// Pixel identity shared by cached masks with different appearance settings.
 	var/drawing_pixel_hash
+	/// Whether built icons go into the shared caches. Throwaway overlays, such as region-map scratch, skip them.
+	var/cache_icons = TRUE
 
 /datum/bodypart_overlay/custom_marking/proc/set_drawing(list/new_drawing, obj/item/bodypart/limb)
 	drawing = deep_copy_list(new_drawing)
@@ -197,10 +199,11 @@
 	var/key = "[jointext(pixel_render_key(limb), "|")]|[layer_index]"
 	var/icon/clipped = GLOB.custom_sprite_limb_icons[key]
 	if(!clipped)
-		var/icon/paint = custom_sprite_paint_icon(drawing)
+		var/icon/paint = custom_sprite_paint_icon(drawing, cache_icons)
 		clipped = paint ? icon(paint) : icon('icons/blanks/32x32.dmi', "nothing")
 		clipped.Blend(custom_sprite_silhouette(limb, layer_index == "aux"), ICON_MULTIPLY)
-		custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
+		if(cache_icons)
+			custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
 	var/image/result = image(clipped, layer = layer_real)
 	result.appearance_flags |= RESET_COLOR
 	result.alpha = limb.markings_alpha
@@ -227,7 +230,8 @@
 					masked = icon(overlay.icon, overlay.icon_state)
 					var/leg = limb.body_zone == BODY_ZONE_R_LEG ? "right_leg" : "left_leg"
 					masked.Blend(icon('icons/mob/leg_masks.dmi', "[leg][lower_layer ? "_lower" : ""]"), ICON_MULTIPLY)
-					custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, cache_key, masked)
+					if(cache_icons)
+						custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, cache_key, masked)
 				var/image/split_overlay = image(overlay)
 				split_overlay.icon = masked
 				split_overlay.icon_state = ""
@@ -286,10 +290,11 @@
 	var/key = "[jointext(pixel_render_key(limb), "|")]|[layer_index]"
 	var/icon/clipped = GLOB.custom_sprite_limb_icons[key]
 	if(!clipped)
-		var/icon/paint = custom_sprite_paint_icon(drawing)
+		var/icon/paint = custom_sprite_paint_icon(drawing, cache_icons)
 		clipped = paint ? icon(paint) : custom_sprite_blank_icon(64)
 		clipped.Blend(custom_sprite_taur_silhouette(limb.owner, layer_index), ICON_MULTIPLY)
-		custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
+		if(cache_icons)
+			custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
 	var/image/result = image(clipped, layer = layer_real)
 	result.appearance_flags |= RESET_COLOR
 	center_image(result, 64, 32)

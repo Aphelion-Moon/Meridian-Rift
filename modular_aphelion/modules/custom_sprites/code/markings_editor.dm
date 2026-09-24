@@ -22,8 +22,6 @@
 	var/selected_zone
 	/// Bumped when character setup moves the selection, so the open window follows.
 	var/focus_revision = 0
-	/// Zones whose drawing came from an import or restore since the last save.
-	var/list/rotate_zones
 	/// region_results() for the draft state in results_revision.
 	var/list/results_cache
 	/// Which draft state results_cache belongs to.
@@ -68,10 +66,31 @@
 			saved_markings[zone] = custom_style_marking_entries(preferences.body_markings?[zone])
 	results_cache = null
 
-/// Rebuilds which region owns each pixel from the preview body.
+/**
+ * Rebuilds which region owns each pixel from the preview body.
+ *
+ * A changed map drops results worked out on the old one. A region that appeared since the draft
+ * opened gets its saved emission and base markings.
+ */
 /datum/custom_sprite_editor/markings/proc/build_region_map()
+	var/list/old_map = region_map
 	region_zones = custom_sprite_present_regions(preview_body)
 	region_map = custom_sprite_region_map(preview_body, region_zones, region_width())
+	if(region_map != old_map)
+		results_cache = null
+	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
+	if(!canvas)
+		return
+	var/list/emissive = canvas.emissive.Copy()
+	var/list/markings = canvas.markings_context.Copy()
+	for(var/zone in region_zones)
+		if(!emissive[zone])
+			emissive[zone] = custom_sprite_emissive_settings(saved_drawings?[zone]?["emissive"])
+		if(!(zone in markings) && (zone in GLOB.body_markings_per_limb))
+			saved_markings[zone] = custom_style_marking_entries(preferences.body_markings?[zone])
+			markings[zone] = custom_style_copy_markings(saved_markings[zone])
+	canvas.emissive = emissive
+	canvas.markings_context = markings
 
 /// A taur organ widens the canvas, even while hidden, so it doesn't change size.
 /datum/custom_sprite_editor/markings/proc/region_width()
@@ -151,6 +170,7 @@
 	var/list/results = region_results()
 	var/list/packages = list()
 	var/list/rotate_keys = list()
+	var/list/rotations = workspace.unsaved_rotations()
 	for(var/zone in results)
 		var/list/result = results[zone]
 		if(!result["changed"])
@@ -160,7 +180,7 @@
 			SStgui.update_uis(src)
 			return FALSE
 		packages += list(region_package(zone, results))
-		if(zone in rotate_zones)
+		if(zone in rotations)
 			rotate_keys += custom_style_key("markings", zone)
 	if(length(packages))
 		var/error = preferences.commit_custom_styles(packages, slot, rotate_keys)
@@ -177,7 +197,7 @@
 /datum/custom_sprite_editor/markings/proc/mark_saved()
 	load_saved_state()
 	baseline = deep_copy_list(workspace.layers[1]["data"])
-	rotate_zones = null
+	workspace.mark_saved()
 
 /datum/custom_sprite_editor/markings/refresh_preview(push = TRUE)
 	preview_timer = null
@@ -192,9 +212,16 @@
 	if(push)
 		SStgui.update_uis(src)
 
-/// Renders the preview body wearing exactly what saving would write.
+/// Renders the preview body wearing exactly what saving would write. A region too colorful to save shows its saved paint.
 /datum/custom_sprite_editor/markings/proc/render_region_previews(list/results)
-	custom_sprite_apply_region_results(preview_body, results, emissives_allowed())
+	var/list/shown = results.Copy()
+	for(var/zone in results)
+		var/list/entry = results[zone]
+		if(entry["error"])
+			entry = entry.Copy()
+			entry["drawing"] = saved_drawings[zone]
+			shown[zone] = entry
+	custom_sprite_apply_region_results(preview_body, shown, emissives_allowed())
 	return custom_sprite_render_directions(preview_body, publish = CALLBACK(src, PROC_REF(publish_icon)), worn_overlays = render_overlays())
 
 /// Puts every region's drawing and base markings on a body, then redraws it once.
@@ -242,7 +269,21 @@
 		var/list/shown = .["candidate"]
 		shown["regions"] = names
 		shown["skipped"] = candidate["skipped"]
-	.["paletteNotice"] = length(workspace.palette) > CUSTOM_SPRITE_MAX_COLORS ? "Your markings already use more than [CUSTOM_SPRITE_MAX_COLORS] colors between them, so new colors can't be added until some are gone." : null
+	.["paletteNotice"] = palette_notice()
+
+/**
+ * Explains colors the window can't take: a region over its own limit first, then a canvas over the shared one.
+ *
+ * Only a canvas over the shared limit can hold a region over its own, so ordinary strokes skip the check.
+ */
+/datum/custom_sprite_editor/markings/proc/palette_notice()
+	if(length(workspace.palette) <= CUSTOM_SPRITE_MAX_COLORS)
+		return null
+	var/list/results = region_results()
+	for(var/zone in region_zones)
+		if(results[zone]?["error"])
+			return "The [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] uses more than [CUSTOM_SPRITE_MAX_COLORS] colors on its own, so it can't be saved or exported until some are gone."
+	return "Your markings already use more than [CUSTOM_SPRITE_MAX_COLORS] colors between them, so new colors can't be added until some are gone."
 
 /// A region's native markings in layer order, as its Base markings section shows them.
 /datum/custom_sprite_editor/markings/proc/region_marking_rows(zone)
@@ -263,16 +304,15 @@
 	var/list/rows = region_map[direction]
 	return colors && rows && length(custom_sprite_covered_positions(colors, zone, rows, region_zones, workspace.width)) > 0
 
-/datum/custom_sprite_editor/markings/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+/datum/custom_sprite_editor/markings/editor_act(action, list/params, datum/tgui/ui)
 	var/static/list/region_actions = list("selectRegion", "setEmissive", "clear", "setBaseMarking", "addBaseMarking", "removeBaseMarking", "pickBaseMarkingColor")
 	if(action in list("exportStyle", "restorePrevious"))
-		return can_edit(ui.user) && prompt_action(action, ui.user)
+		return prompt_action(action, ui.user)
 	if(!(action in region_actions))
-		return ..()
-	if(!can_edit(ui.user))
-		return FALSE
+		return null
 	var/zone = params["zone"]
-	if(!(zone in region_zones))
+	// The server's selection decides which region these act on; a window out of step is refused.
+	if(!(zone in region_zones) || (action != "selectRegion" && zone != selected_zone))
 		return FALSE
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
 	switch(action)
@@ -363,6 +403,9 @@
 		if(!can_edit(user) || !choice || choice == "Cancel")
 			return FALSE
 		transfer_notice = null
+		transfer_error = export_problem(choice == "Whole body" ? region_zones : list(zone))
+		if(transfer_error)
+			return TRUE
 		var/list/results = region_results()
 		if(choice == "Whole body")
 			var/list/regions = list()
@@ -396,49 +439,51 @@
 	show_region_candidate(previous, "restore")
 	return TRUE
 
+/// Why these regions can't be exported right now, or null.
+/datum/custom_sprite_editor/markings/proc/export_problem(list/zones)
+	var/list/results = region_results()
+	for(var/zone in zones)
+		var/error = results[zone]?["error"]
+		if(error)
+			return "The [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] [error] Remove some before exporting it."
+
 /// Each region's previous saved style that differs from what it would save now.
 /datum/custom_sprite_editor/markings/proc/restorable_regions()
 	. = list()
-	var/list/results = region_results()
+	var/list/previous = list()
 	for(var/zone in region_zones)
-		var/list/previous = preferences.custom_style_previous_package("markings", zone)
-		if(previous && !custom_style_matches(previous, region_package(zone, results)))
-			.[zone] = previous
+		var/list/package = preferences.custom_style_previous_package("markings", zone)
+		if(package)
+			previous[zone] = package
+	// Most bodies have none, and working out what every region would save isn't free.
+	if(!length(previous))
+		return
+	var/list/results = region_results()
+	for(var/zone in previous)
+		if(!custom_style_matches(previous[zone], region_package(zone, results)))
+			.[zone] = previous[zone]
 
 /datum/custom_sprite_editor/markings/context_ui_data()
 	return list("canRestorePrevious" = length(restorable_regions()) > 0)
 
-/// Imports a style file into a confirmable preview. Sleeps while the file dialog is open.
-/datum/custom_sprite_editor/markings/begin_import(mob/user)
-	var/revision = draft_revision
-	var/owner_slot = slot
-	var/zone = selected_zone
-	transfer_error = null
-	transfer_notice = null
-	candidate = null
-	var/list/result = custom_style_receive(user)
-	if(QDELETED(src))
-		return
-	if(!can_edit(user) || revision != draft_revision || owner_slot != slot)
-		transfer_error = "The drawing changed while you were choosing a file. Nothing was imported."
-		return
-	if(result?["error"])
-		transfer_error = result["error"]
-		return
-	if(!result)
-		return
+/// A whole-body file previews its regions; a single-region file its own; a drawing-only file goes into the selected region.
+/datum/custom_sprite_editor/markings/preview_received(list/result)
 	var/list/regions = result["body"]
 	if(!regions)
 		var/list/package = result["package"]
 		if(result["legacy"])
-			package = custom_style_package("markings", zone, package["drawing"], null)
+			var/list/drawing = package["drawing"]
+			var/width = custom_marking_zone_width(selected_zone)
+			// Old files are 32 wide; the taur region centres them, as its single-zone editor did.
+			if(drawing && custom_sprite_width(drawing) < width)
+				drawing = custom_sprite_resize_drawing(drawing, width)
+			package = custom_style_package("markings", selected_zone, drawing, null)
 		if(package["target"] != "markings")
 			transfer_error = "That style is for [package["target"] == "facial_hair" ? "facial hair" : "hair"], not markings."
-			return
+			return FALSE
 		regions = list()
 		regions[package["zone"]] = package
-	if(!show_region_candidate(regions, "import"))
-		log_game("[key_name(user)] had a custom style import rejected ([result["bytes"]] bytes): [transfer_error]")
+	return show_region_candidate(regions, "import")
 
 /**
  * Previews regions from an import or restoration before they replace anything.
@@ -536,11 +581,14 @@
 		for(var/direction in GLOB.custom_style_directions)
 			views[direction] = TRUE
 		new_resets[zone] = views
+	var/list/before = canvas.last_transaction()
 	if(!canvas.replace_frames(custom_sprite_compose_regions(drawings, region_map, region_zones, canvas.width), source == "restore" ? "Restore saved style" : "Import style", new_markings, new_emissive, new_resets))
 		transfer_error = "This style and your undo history need more than [CUSTOM_SPRITE_MAX_COLORS] colors. Save or reopen the editor, then import again."
 		return FALSE
-	for(var/zone in regions)
-		LAZYOR(rotate_zones, zone)
+	var/list/applied = canvas.last_transaction()
+	// Saving keeps each replaced style as the previous one, unless the import is undone first.
+	if(applied != before)
+		applied["rotate"] = assoc_to_keys(regions)
 	rebuild_resources()
 	transfer_notice = source == "restore" ? "Previous saved style restored. Save to keep it." : "Style imported."
 	return TRUE

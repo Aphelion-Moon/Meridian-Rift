@@ -186,10 +186,21 @@
 		clear_custom_sprite_slot()
 	return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save()
 
+/// Saves and closes every open editor. Returns FALSE when one couldn't be saved; it stays open with its error.
 /datum/preferences/proc/close_custom_sprite_editors(save_changes = TRUE)
+	. = TRUE
 	for(var/target in LAZYCOPY(custom_sprite_editors))
 		var/datum/custom_sprite_editor/editor = custom_sprite_editors[target]
 		editor.finish(save_changes)
+		if(!QDELETED(editor))
+			. = FALSE
+
+/// Saves and closes open editors before a setup change. When one can't be saved, the change waits and the player is told why.
+/datum/preferences/proc/finish_custom_sprite_editors_for_change(mob/user)
+	if(close_custom_sprite_editors())
+		return TRUE
+	to_chat(user, span_warning("Your custom drawing couldn't be saved, so that change wasn't made. Save or discard the drawing first."))
+	return FALSE
 
 /// Imports replace the character identities, so an old slot's drawings cannot carry across.
 /proc/custom_sprites_after_import(target_ckey)

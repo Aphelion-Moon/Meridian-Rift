@@ -24,14 +24,13 @@
 
 /datum/preference_middleware/custom_sprites/pre_set_preference(mob/user, preference, value)
 	// A style/species change must not leave an editor using the old palette or geometry.
-	preferences.close_custom_sprite_editors()
-	return FALSE
+	return !preferences.finish_custom_sprite_editors_for_change(user)
 
 /// Setup actions that change the body or its markings outside set_preference save and close open editors first, as preference changes do.
 /datum/preferences/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "remove_marking", "change_emissive", "set_preset", "randomize_character")
-	if(action in body_actions)
-		close_custom_sprite_editors()
+	if((action in body_actions) && !finish_custom_sprite_editors_for_change(ui?.user))
+		return TRUE
 	return ..()
 
 /datum/preference_middleware/custom_sprites/on_new_character(mob/user)
@@ -134,8 +133,6 @@
 	var/transfer_error
 	/// Import or export completion message for the owner.
 	var/transfer_notice
-	/// Set by import and restoration: the next changed save keeps the old saved style as the previous one.
-	var/rotate_saved_style = FALSE
 	/// Whether guides, previews and the sampled palette include the base look's gradient.
 	var/show_gradient = TRUE
 	/// Drawing bounds as the body allows them, before any views are locked.
@@ -273,6 +270,10 @@
 /// Context hook: called after every change to the draft.
 /datum/custom_sprite_editor/proc/draft_changed()
 	draft_revision++
+
+/// Hook: actions a subtype handles itself, after the shared checks. Returns null for actions it leaves to the base.
+/datum/custom_sprite_editor/proc/editor_act(action, list/params, datum/tgui/ui)
+	return null
 
 /// Context hook: extra actions owned by the context.
 /datum/custom_sprite_editor/proc/context_act(action, list/params, mob/user)
@@ -476,18 +477,22 @@
 	if(!resources_ready && rebuild_resources())
 		refresh_preview(push = FALSE)
 	ui = SStgui.try_update_ui(user, src, ui)
-	if(!ui)
-		var/interface = "CustomMarkingsEditor"
-		var/title = "Custom Markings"
-		if(target == "hair")
-			interface = "CustomHairEditor"
-			title = "Custom Hair"
-		else if(target == "facial_hair")
-			interface = "CustomFacialHairEditor"
-			title = "Custom Facial Hair"
-		ui = new(user, src, interface, title)
-		ui.set_autoupdate(FALSE)
-		ui.open()
+	if(ui)
+		// Opening an editor that's already open brings its window forward.
+		if(ui.window)
+			winset(user, ui.window.id, "focus=true")
+		return
+	var/interface = "CustomMarkingsEditor"
+	var/title = "Custom Markings"
+	if(target == "hair")
+		interface = "CustomHairEditor"
+		title = "Custom Hair"
+	else if(target == "facial_hair")
+		interface = "CustomFacialHairEditor"
+		title = "Custom Facial Hair"
+	ui = new(user, src, interface, title)
+	ui.set_autoupdate(FALSE)
+	ui.open()
 
 /datum/custom_sprite_editor/ui_static_data(mob/user)
 	. = list()
@@ -531,6 +536,9 @@
 		return
 	// A mirror can be picked up or dropped while this window is open.
 	sync_locked_views(push = FALSE)
+	var/handled = editor_act(action, params, ui)
+	if(!isnull(handled))
+		return handled
 	switch(action)
 		if("selectColor")
 			if(!workspace.is_valid_color(params["color"]))
@@ -988,12 +996,12 @@
 	return custom_style_package(target, body_zone, workspace.serialize_drawing(), workspace.hair_context, workspace.markings_context)
 
 /datum/custom_sprite_editor/proc/save_drawing()
-	var/error = preferences.commit_custom_style(current_package(), slot, rotate_saved_style)
+	var/error = preferences.commit_custom_style(current_package(), slot, length(workspace.unsaved_rotations()) > 0)
 	if(error)
 		save_error = "[error] Your drawing is kept in this session. Press Ctrl+S to retry."
 		SStgui.update_uis(src)
 		return FALSE
-	rotate_saved_style = FALSE
+	workspace.mark_saved()
 	save_error = null
 	save_revision++
 	return TRUE
@@ -1103,11 +1111,14 @@
 	transfer_error = candidate_problem(package)
 	if(transfer_error)
 		return FALSE
+	var/list/before = workspace.last_transaction()
 	if(!workspace.replace_drawing(package["drawing"], package["hair"], source == "restore" ? "Restore saved style" : "Import style", custom_style_hair_target(target), package["markings"]))
 		transfer_error = "This style and your undo history need more than [CUSTOM_SPRITE_MAX_COLORS] colors. Save or reopen the editor, then import again."
 		return FALSE
-	if(context == "preferences")
-		rotate_saved_style = TRUE
+	var/list/applied = workspace.last_transaction()
+	// Saving keeps the replaced style as the previous one, unless the import is undone first.
+	if(context == "preferences" && applied != before)
+		applied["rotate"] = TRUE
 	if(resources_hair != json_encode(workspace.hair_context) || resources_markings != json_encode(workspace.markings_context))
 		rebuild_resources()
 	else

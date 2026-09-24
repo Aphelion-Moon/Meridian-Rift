@@ -54,12 +54,15 @@
 
 // Background tiles stay pixel-sharp and fill their preview or swatch.
 .CustomSpriteEditor__tile {
+  max-width: 100%;
   background-size: 100% 100%;
   image-rendering: pixelated;
 
-  // Flush on the tile: no inline descender gap under the preview.
+  // Flush on the tile, with no inline descender gap, and shrinking to fit a narrow window.
   img {
     display: block;
+    max-width: 100%;
+    height: auto;
   }
 }
 

@@ -84,6 +84,10 @@
 	var/list/drawing_cache
 	/// Whether serialization must rebuild the cached pixel payload.
 	var/pixels_dirty = TRUE
+	/// History entries already applied when the draft was last saved.
+	var/list/saved_transactions = list()
+	/// Rotation markers of unsaved imports and restorations that fell off the end of the history.
+	var/list/trimmed_rotations = list()
 
 /datum/sprite_editor_workspace/custom_sprite/New(list/drawing, list/sampled_palette, list/bounds, list/mask, canvas_width = null)
 	..(max(custom_sprite_width(drawing), canvas_width == CUSTOM_SPRITE_TAUR_WIDTH ? CUSTOM_SPRITE_TAUR_WIDTH : 32), 32, 4, null, SPRITE_EDITOR_COLOR_MODE_RGB, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
@@ -223,8 +227,32 @@
 /// Keeps the undo history within CUSTOM_SPRITE_MAX_UNDO steps, dropping the oldest first.
 /datum/sprite_editor_workspace/custom_sprite/proc/trim_history()
 	if(length(undo_stack) > CUSTOM_SPRITE_MAX_UNDO)
+		var/list/oldest = undo_stack[1]
+		// An unsaved import that can no longer be undone still keeps the replaced style.
+		if(oldest["rotate"] && !(oldest in saved_transactions))
+			trimmed_rotations |= oldest["rotate"]
 		undo_stack.Cut(1, 2)
 		undo_names.Cut(1, 2)
+
+/// The last applied history entry, or null.
+/datum/sprite_editor_workspace/custom_sprite/proc/last_transaction()
+	return length(undo_stack) ? undo_stack[length(undo_stack)] : null
+
+/// Remembers the history as it stands at a save, so later imports and restorations can be told apart.
+/datum/sprite_editor_workspace/custom_sprite/proc/mark_saved()
+	saved_transactions = undo_stack.Copy()
+	trimmed_rotations = list()
+
+/**
+ * Rotation markers of imports and restorations applied since the last save and not undone.
+ *
+ * Saving with any keeps the replaced saved style as the previous one.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/unsaved_rotations()
+	. = trimmed_rotations.Copy()
+	for(var/list/transaction as anything in undo_stack)
+		if(transaction["rotate"] && !(transaction in saved_transactions))
+			. |= transaction["rotate"]
 
 #undef CUSTOM_SPRITE_MAX_UNDO
 
@@ -350,6 +378,10 @@
 	trim_history()
 	return TRUE
 
+/// Restores emission as a replacement recorded it.
+/datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement_emissive(list/transaction, forward)
+	emissive = forward ? transaction["emissive_new"] : transaction["emissive_old"]
+
 /datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement(list/transaction, forward)
 	for(var/direction in transaction["replaced"])
 		var/list/frame = layers[1]["data"][direction]
@@ -358,7 +390,7 @@
 		update_edited_direction(direction)
 	hair_context = forward ? transaction["hair_new"] : transaction["hair_old"]
 	markings_context = forward ? transaction["markings_new"] : transaction["markings_old"]
-	emissive = forward ? transaction["emissive_new"] : transaction["emissive_old"]
+	apply_replacement_emissive(transaction, forward)
 	tint = forward ? transaction["tint_new"] : transaction["tint_old"]
 	pixels_dirty = TRUE
 
@@ -470,6 +502,17 @@
 	if("resets_new" in transaction)
 		resets = forward ? transaction["resets_new"] : transaction["resets_old"]
 
+/// Region replacements record only the regions whose emission they change, so undo leaves later toggles elsewhere alone.
+/datum/sprite_editor_workspace/custom_sprite/regions/apply_replacement_emissive(list/transaction, forward)
+	var/list/changes = forward ? transaction["emissive_new"] : transaction["emissive_old"]
+	var/list/merged = emissive.Copy()
+	for(var/zone in changes)
+		if(isnull(changes[zone]))
+			merged -= zone
+		else
+			merged[zone] = changes[zone]
+	emissive = merged
+
 /// The region character at a canvas pixel in one view, "0" when no region owns it.
 /datum/sprite_editor_workspace/custom_sprite/regions/proc/region_at(x, y, direction)
 	var/list/rows = region_map?[direction]
@@ -553,6 +596,12 @@
 	if(isnull(new_resets))
 		new_resets = resets
 	var/list/replaced = frame_changes(frames)
-	if(!length(replaced) && json_encode(markings_context) == json_encode(new_markings_context) && json_encode(emissive) == json_encode(new_emissive) && json_encode(resets) == json_encode(new_resets))
+	var/list/emissive_old = list()
+	var/list/emissive_new = list()
+	for(var/zone in new_emissive)
+		if(json_encode(emissive[zone]) != json_encode(new_emissive[zone]))
+			emissive_old[zone] = emissive[zone]
+			emissive_new[zone] = new_emissive[zone]
+	if(!length(replaced) && !length(emissive_new) && json_encode(markings_context) == json_encode(new_markings_context) && json_encode(resets) == json_encode(new_resets))
 		return TRUE
-	return commit_replacement(list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = hair_context, "emissive_old" = emissive, "emissive_new" = new_emissive, "tint_old" = tint, "tint_new" = tint, "markings_old" = markings_context, "markings_new" = new_markings_context, "resets_old" = resets, "resets_new" = new_resets))
+	return commit_replacement(list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = hair_context, "emissive_old" = emissive_old, "emissive_new" = emissive_new, "tint_old" = tint, "tint_new" = tint, "markings_old" = markings_context, "markings_new" = new_markings_context, "resets_old" = resets, "resets_new" = new_resets))

@@ -11,6 +11,33 @@
 		if(x)
 			return list(x - 1, y - 1)
 
+/// A whole-body editor on a body with a real taur organ.
+/datum/custom_sprite_editor/markings/unified_test/taur/create_preview_body()
+	var/mob/living/carbon/human/dummy/body = ..()
+	body.dna.mutant_bodyparts[FEATURE_TAUR] = build_mutant_part("Cow (Spotted)", list("#654321", "#321654", "#213456"))
+	body.dna.species.regenerate_organs(body, visual_only = TRUE)
+	body.update_body(is_creating = TRUE)
+	return body
+
+/// A whole-body editor whose saves always fail, as a full disk would make them.
+/datum/custom_sprite_editor/markings/unified_test/failing/save_drawing()
+	save_error = "The disk is full."
+	return FALSE
+
+/// Counts how often the whole-body editor works out what saving would write.
+/datum/custom_sprite_editor/markings/unified_test/counting
+	var/result_builds = 0
+
+/datum/custom_sprite_editor/markings/unified_test/counting/region_results()
+	result_builds++
+	return ..()
+
+/// A drawing with one painted pixel, in the Front view only.
+/proc/custom_sprite_test_front_drawing(list/point, color)
+	var/list/drawing = custom_sprite_test_region_drawing(list(list(point[1], point[2], color)))
+	drawing["dirs"] = list("2" = drawing["dirs"]["2"])
+	return drawing
+
 /// Paints one pixel a region owns with the first color the canvas offers.
 /proc/custom_sprite_test_paint_region(datum/custom_sprite_editor/markings/editor, zone, direction = "2")
 	var/list/point = custom_sprite_test_region_pixel(editor, zone, direction)
@@ -107,12 +134,14 @@
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
 	TEST_ASSERT(!editor.ui_act("selectRegion", list("zone" = "tail"), ui, null), "Unknown regions can't be selected.")
 	TEST_ASSERT(!(!editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_LEG), ui, null) || editor.selected_zone != BODY_ZONE_L_LEG), "Selecting a present region must work.")
+	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null)
 	TEST_ASSERT(editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "Adding a base marking to a region must work.")
 	TEST_ASSERT(editor.save_drawing(), "Saving a base-marking-only change must succeed: [editor.save_error]")
 	TEST_ASSERT(length(preferences.body_markings?[BODY_ZONE_L_ARM]) == 1, "The region's base markings must be saved.")
 	TEST_ASSERT(!preferences.custom_limb_markings?[BODY_ZONE_L_ARM], "A base marking change alone must not create a drawing.")
 	custom_sprite_test_paint_region(editor, BODY_ZONE_L_ARM)
 	TEST_ASSERT(editor.ui_act("setEmissive", list("zone" = BODY_ZONE_L_ARM, "dir" = "2", "enabled" = TRUE), ui, null), "Turning on a region's emission must work.")
+	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_CHEST), ui, null)
 	editor.ui_act("setEmissive", list("zone" = BODY_ZONE_CHEST, "dir" = "2", "enabled" = TRUE), ui, null)
 	TEST_ASSERT(editor.save_drawing(), "Saving emission must succeed: [editor.save_error]")
 	TEST_ASSERT(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]?["emissive"]?["2"], "A painted region saves its emission per view.")
@@ -159,6 +188,7 @@
 	TEST_ASSERT(editor.save_drawing(), "An over-full but unedited canvas must still save as a no-op.")
 	// Base markings add no colors, and imports hold each region to its own limit, as saves do.
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null)
 	TEST_ASSERT(editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "An over-full canvas must still take base marking changes.")
 	var/list/point = custom_sprite_test_region_pixel(editor, BODY_ZONE_L_ARM)
 	var/list/arm = custom_sprite_test_region_drawing(list(list(point[1], point[2], "#fe12ab")))
@@ -207,7 +237,7 @@
 	TEST_ASSERT(!(length(editor.candidate["regions"]) != 1 || !("Taur lower body" in editor.candidate["skipped"])), "Regions this body doesn't have are skipped and named.")
 	TEST_ASSERT(editor.apply_candidate(), "Confirming the import must apply it: [editor.transfer_error]")
 	TEST_ASSERT(editor.workspace.layers[1]["data"]["2"][point[2] + 1][point[1] + 1] == "#fe12abff", "The imported region must replace its pixels.")
-	TEST_ASSERT((BODY_ZONE_L_ARM in editor.rotate_zones), "Saving after an import rotates the imported regions' previous styles.")
+	TEST_ASSERT((BODY_ZONE_L_ARM in editor.workspace.unsaved_rotations()), "Saving after an import rotates the imported regions' previous styles.")
 	TEST_ASSERT(editor.save_drawing(), "Saving the import must succeed: [editor.save_error]")
 	TEST_ASSERT(preferences.custom_style_previous_package("markings", BODY_ZONE_L_ARM), "The imported region's previous style is kept.")
 	TEST_ASSERT(length(editor.restorable_regions()) == 1, "The imported region can be restored.")
@@ -263,4 +293,234 @@
 	TEST_ASSERT(editor.save_drawing(), "Saving the import must succeed: [editor.save_error]")
 	var/list/pixels = custom_sprite_drawing_pixels(preferences.custom_limb_markings?[BODY_ZONE_CHEST])
 	TEST_ASSERT(!(pixels[direction][hidden[3] * 32 + hidden[2] + 1] || !pixels["2"][owned[2] * 32 + owned[1] + 1]), "An imported region must replace the old one, paint other limbs cover included.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_import_scope/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/probe = new(preferences, BODY_ZONE_CHEST)
+	var/list/arm = custom_sprite_test_region_pixel(probe, BODY_ZONE_L_ARM)
+	var/list/leg = custom_sprite_test_region_pixel(probe, BODY_ZONE_R_LEG)
+	var/list/head = custom_sprite_test_region_pixel(probe, BODY_ZONE_HEAD)
+	probe.finish(FALSE)
+	LAZYSET(preferences.custom_limb_markings, BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm, "#111111"))
+	LAZYSET(preferences.custom_limb_markings, BODY_ZONE_R_LEG, custom_sprite_test_front_drawing(leg, "#222222"))
+	var/leg_json = json_encode(preferences.custom_limb_markings[BODY_ZONE_R_LEG])
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_L_ARM)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	// A single-region file replaces only its own region.
+	TEST_ASSERT(editor.show_region_candidate(list(BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm, "#333333"), null)), "import"), "The arm import must preview: [editor.transfer_error]")
+	TEST_ASSERT(editor.apply_candidate(), "Confirming the arm import must apply it: [editor.transfer_error]")
+	TEST_ASSERT(editor.save_drawing(), "Saving the arm import must succeed: [editor.save_error]")
+	TEST_ASSERT(json_encode(preferences.custom_limb_markings[BODY_ZONE_R_LEG]) == leg_json, "A single-region import must leave every other region alone.")
+	// A whole-body file replaces every region it lists, clearing the ones it has empty.
+	TEST_ASSERT(editor.show_region_candidate(list(BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, null, null), BODY_ZONE_HEAD = custom_style_package("markings", BODY_ZONE_HEAD, custom_sprite_test_front_drawing(head, "#444444"), null)), "import"), "The whole-body import must preview: [editor.transfer_error]")
+	TEST_ASSERT(editor.apply_candidate(), "Confirming the whole-body import must apply it: [editor.transfer_error]")
+	TEST_ASSERT(editor.save_drawing(), "Saving the whole-body import must succeed: [editor.save_error]")
+	TEST_ASSERT(!(preferences.custom_limb_markings?[BODY_ZONE_L_ARM] || !preferences.custom_limb_markings?[BODY_ZONE_HEAD]), "A whole-body import clears the regions it has empty and paints the ones it has painted.")
+	TEST_ASSERT(json_encode(preferences.custom_limb_markings[BODY_ZONE_R_LEG]) == leg_json, "Regions a whole-body file doesn't list are left alone.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_failed_close/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.create_character_preview_view(mock_client.mob)
+	var/datum/custom_sprite_editor/markings/unified_test/failing/editor = new(preferences, BODY_ZONE_L_ARM)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	var/datum/preference_middleware/custom_sprites/middleware = locate() in preferences.middleware
+	TEST_ASSERT(middleware.pre_set_preference(mock_client.mob, "species", SPECIES_LIZARD), "A setting change must wait while an open drawing can't be saved.")
+	TEST_ASSERT(preferences.custom_sprite_editors?["markings"] == editor, "The drawing that couldn't be saved stays open.")
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, preferences, "PreferencesMenu")
+	preferences.ui_act("add_marking", list("bodypart_slot" = BODY_ZONE_L_ARM), ui, null)
+	TEST_ASSERT(!length(preferences.body_markings?[BODY_ZONE_L_ARM]), "A Markings tab change must wait too.")
+	TEST_ASSERT(preferences.custom_sprite_editors?["markings"] == editor, "The drawing that couldn't be saved stays open after a refused tab change.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_rebuild/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_L_ARM)
+	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = editor.workspace
+	editor.region_results()
+	TEST_ASSERT(editor.results_cache, "The fixture must have cached results.")
+	// As if the arm appeared after the draft opened.
+	var/list/emissive = canvas.emissive.Copy()
+	emissive -= BODY_ZONE_L_ARM
+	canvas.emissive = emissive
+	var/list/markings = canvas.markings_context.Copy()
+	markings -= BODY_ZONE_L_ARM
+	canvas.markings_context = markings
+	var/obj/item/bodypart/leg = editor.preview_body.get_bodypart(BODY_ZONE_R_LEG)
+	leg.drop_limb(special = TRUE)
+	qdel(leg)
+	editor.update_draw_area()
+	TEST_ASSERT(!(BODY_ZONE_R_LEG in editor.region_zones), "The fixture must change the body's regions.")
+	TEST_ASSERT(isnull(editor.results_cache), "A new region map must drop results worked out on the old one.")
+	TEST_ASSERT(!(!canvas.emissive[BODY_ZONE_L_ARM] || !(BODY_ZONE_L_ARM in canvas.markings_context)), "Every present region needs emissive settings and base markings, including one that appeared later.")
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	TEST_ASSERT(editor.ui_act("setEmissive", list("zone" = BODY_ZONE_L_ARM, "dir" = "2", "enabled" = TRUE), ui, null), "A region that appeared later must take emissive changes.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_ui_state/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	ui.status = UI_UPDATE
+	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_R_LEG), ui, null)
+	TEST_ASSERT(editor.selected_zone == BODY_ZONE_CHEST, "Region actions must respect the window's state, like every other action.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_selection_authority/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	TEST_ASSERT(custom_sprite_test_paint_region(editor, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
+	var/list/point = custom_sprite_test_region_pixel(editor, BODY_ZONE_L_ARM)
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null)
+	TEST_ASSERT(editor.workspace.layers[1]["data"]["2"][point[2] + 1][point[1] + 1] != "#00000000", "Region actions act on the server's selection; a different zone from the window is refused.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_undo_side_effects/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
+	var/datum/custom_sprite_editor/markings/unified_test/probe = new(preferences, BODY_ZONE_CHEST)
+	var/list/arm = custom_sprite_test_region_pixel(probe, BODY_ZONE_L_ARM)
+	probe.finish(FALSE)
+	LAZYSET(preferences.custom_limb_markings, BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm, "#111111"))
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = editor.workspace
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	TEST_ASSERT(editor.show_region_candidate(list(BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm, "#333333"), null)), "import"), "The arm import must preview: [editor.transfer_error]")
+	TEST_ASSERT(editor.apply_candidate(), "Confirming the arm import must apply it: [editor.transfer_error]")
+	TEST_ASSERT(editor.ui_act("setEmissive", list("zone" = BODY_ZONE_CHEST, "dir" = "2", "enabled" = TRUE), ui, null), "Turning on the torso's emission must work.")
+	canvas.undo()
+	TEST_ASSERT(canvas.emissive[BODY_ZONE_CHEST]["2"], "Undoing an import must not undo a later emission change on another region.")
+	// The undone import must not rotate the arm's saved style away either.
+	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null)
+	TEST_ASSERT(editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null), "Clearing the arm must work.")
+	TEST_ASSERT(editor.save_drawing(), "Saving must succeed: [editor.save_error]")
+	TEST_ASSERT(!preferences.custom_style_previous_package("markings", BODY_ZONE_L_ARM), "An undone import must not make the next save keep the replaced style as previous.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_region_color_limit/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	TEST_ASSERT(custom_sprite_test_pool_colors(preferences, 100) > CUSTOM_SPRITE_MAX_COLORS, "The fixture needs more than [CUSTOM_SPRITE_MAX_COLORS] colors across its regions.")
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	// Move 64 of the canvas's colors into the torso: more than one region can save.
+	var/index = "[editor.region_zones.Find(BODY_ZONE_CHEST)]"
+	var/list/rows = editor.region_map["2"]
+	var/list/colors = editor.workspace.palette.Copy()
+	var/painted = 0
+	for(var/y in 1 to 32)
+		for(var/x in 1 to 32)
+			if(painted >= CUSTOM_SPRITE_MAX_COLORS + 1 || copytext(rows[y], x, x + 1) != index)
+				continue
+			painted++
+			editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[colors[painted]]ff", "points" = list(list(x - 1, y - 1))))
+	TEST_ASSERT(painted == CUSTOM_SPRITE_MAX_COLORS + 1, "The fixture needs [CUSTOM_SPRITE_MAX_COLORS + 1] torso pixels.")
+	TEST_ASSERT(editor.region_results()[BODY_ZONE_CHEST]["error"], "The fixture's torso must be over the limit.")
+	TEST_ASSERT(findtext(editor.export_problem(list(BODY_ZONE_CHEST)), "torso"), "Exporting a region that can't be saved must say which region and why.")
+	TEST_ASSERT(findtext(editor.ui_data(mock_client.mob)["paletteNotice"], "torso"), "The window must warn about a region that can't be saved before a save fails.")
+	editor.render_region_previews(editor.region_results())
+	TEST_ASSERT(editor.preview_body.dna.custom_limb_markings?[BODY_ZONE_CHEST], "The preview keeps showing the torso's saved paint instead of an empty torso.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_legacy_import/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	// A drawing-only file goes into the selected region.
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_L_ARM)
+	var/list/arm = custom_sprite_test_region_pixel(editor, BODY_ZONE_L_ARM)
+	var/list/legacy = custom_style_parse(json_encode(custom_style_export_drawing(custom_sprite_test_front_drawing(arm, "#fe12ab"))))
+	TEST_ASSERT(legacy["legacy"], "The fixture must be a drawing-only file: [legacy["error"]]")
+	TEST_ASSERT(editor.preview_received(legacy), "A drawing-only file must preview in the selected region: [editor.transfer_error]")
+	TEST_ASSERT(!(length(editor.candidate["regions"]) != 1 || !editor.candidate["regions"][BODY_ZONE_L_ARM]), "A drawing-only file goes into the selected region only.")
+	editor.finish(FALSE)
+	// The taur region centres an old 32-wide file, as the single-zone taur editor did.
+	var/datum/custom_sprite_editor/markings/unified_test/taur/wide = new(preferences, CUSTOM_MARKING_ZONE_TAUR)
+	TEST_ASSERT(wide.selected_zone == CUSTOM_MARKING_ZONE_TAUR, "The fixture needs a taur body with its region selected.")
+	var/index = "[wide.region_zones.Find(CUSTOM_MARKING_ZONE_TAUR)]"
+	var/list/rows = wide.region_map["2"]
+	var/list/centre
+	for(var/y in 1 to 32)
+		for(var/x in 17 to 48)
+			if(!centre && copytext(rows[y], x, x + 1) == index)
+				centre = list(x - 1, y - 1)
+	TEST_ASSERT(centre, "The fixture needs a taur pixel in the central 32 columns.")
+	legacy = custom_style_parse(json_encode(custom_style_export_drawing(custom_sprite_test_front_drawing(list(centre[1] - 16, centre[2]), "#fe12ab"))))
+	TEST_ASSERT(wide.preview_received(legacy), "An old 32-wide file must preview in the taur region: [wide.transfer_error]")
+	var/list/drawing = wide.candidate["regions"][CUSTOM_MARKING_ZONE_TAUR]["drawing"]
+	TEST_ASSERT(custom_sprite_width(drawing) == CUSTOM_SPRITE_TAUR_WIDTH, "The taur region must centre the old file on its wide canvas.")
+	TEST_ASSERT(custom_sprite_drawing_pixels(drawing, CUSTOM_SPRITE_TAUR_WIDTH)["2"][centre[2] * CUSTOM_SPRITE_TAUR_WIDTH + centre[1] + 1], "The centred paint must land where the old taur editor put it.")
+	wide.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_restorable_cost/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/counting/editor = new(preferences, BODY_ZONE_CHEST)
+	custom_sprite_test_paint_region(editor, BODY_ZONE_CHEST)
+	editor.result_builds = 0
+	editor.ui_data(mock_client.mob)
+	TEST_ASSERT(!editor.result_builds, "With no previous styles, a stroke's window update must not work out what every region would save.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_move_between_regions/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	// A torso pixel with a different region straight to its right.
+	var/chest = "[editor.region_zones.Find(BODY_ZONE_CHEST)]"
+	var/list/rows = editor.region_map["2"]
+	var/list/from
+	var/landing_zone
+	for(var/y in 1 to 32)
+		for(var/x in 1 to 31)
+			var/next = copytext(rows[y], x + 1, x + 2)
+			if(!from && copytext(rows[y], x, x + 1) == chest && next != "0" && next != chest)
+				from = list(x - 1, y - 1)
+				landing_zone = editor.region_zones[text2num(next)]
+	TEST_ASSERT(from, "The fixture needs a torso pixel next to another region.")
+	TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(from))), "The fixture must paint the torso pixel.")
+	TEST_ASSERT(editor.workspace.new_transaction(list("type" = "move", "layer" = 1, "dir" = "2", "rect" = list(from[1], from[2], from[1], from[2]), "offset" = list(1, 0))), "Moving paint across a region edge must work.")
+	TEST_ASSERT(editor.save_drawing(), "Saving the move must succeed: [editor.save_error]")
+	var/list/landed = custom_sprite_drawing_pixels(preferences.custom_limb_markings?[landing_zone])
+	TEST_ASSERT(landed["2"][from[2] * 32 + from[1] + 2], "Moved paint belongs to the region it lands in ([landing_zone]).")
+	TEST_ASSERT(!preferences.custom_limb_markings?[BODY_ZONE_CHEST], "The region the paint left no longer has it.")
+	editor.finish(FALSE)
+
+/datum/unit_test/custom_sprite_markings_editor_emissive_only/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
+	var/datum/custom_sprite_editor/markings/unified_test/probe = new(preferences, BODY_ZONE_CHEST)
+	var/list/arm = custom_sprite_test_region_pixel(probe, BODY_ZONE_L_ARM)
+	var/list/leg = custom_sprite_test_region_pixel(probe, BODY_ZONE_R_LEG)
+	probe.finish(FALSE)
+	LAZYSET(preferences.custom_limb_markings, BODY_ZONE_L_ARM, custom_sprite_test_front_drawing(arm, "#111111"))
+	LAZYSET(preferences.custom_limb_markings, BODY_ZONE_R_LEG, custom_sprite_test_front_drawing(leg, "#222222"))
+	var/leg_json = json_encode(preferences.custom_limb_markings[BODY_ZONE_R_LEG])
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_L_ARM)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	TEST_ASSERT(editor.ui_act("setEmissive", list("zone" = BODY_ZONE_L_ARM, "dir" = "2", "enabled" = TRUE), ui, null), "Turning on the arm's emission must work.")
+	TEST_ASSERT(editor.save_drawing(), "Saving an emission-only change must succeed: [editor.save_error]")
+	TEST_ASSERT(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]?["emissive"]?["2"], "An emission change alone must rewrite the painted region.")
+	TEST_ASSERT(json_encode(preferences.custom_limb_markings[BODY_ZONE_R_LEG]) == leg_json, "An emission change must leave other regions alone.")
 	editor.finish(FALSE)

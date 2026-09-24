@@ -488,8 +488,10 @@ export namespace SpriteEditor {
               onMouseDown: (ev, ref) => {
                 const [x, y] = localizeCoords(ev, ref, width, height);
                 // APHELION EDIT ADDITION START
-                // Region pickers learn where every press lands, whatever the tool.
-                onPointerDown?.(Math.floor(x), Math.floor(y));
+                // Region pickers learn where every primary press lands, whatever the tool.
+                if (ev.button === 0) {
+                  onPointerDown?.(Math.floor(x), Math.floor(y));
+                }
                 // Eyedropper prevents drag setup without changing the selected tool.
                 if (ev.altKey && ev.button === 0) {
                   tools[2].onMouseDown(toolContext, data, x, y);

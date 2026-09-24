@@ -58,6 +58,18 @@
 		for(var/row in map[direction])
 			owned ||= !!findtext(row, index)
 	TEST_ASSERT(owned, "The taur region must own pixels.")
+	// Each owned pixel lies in its owner's own mask; ordinary regions sit in the central 32 columns.
+	for(var/direction in map)
+		var/list/rows = map[direction]
+		for(var/y in 1 to 32)
+			for(var/x in 1 to CUSTOM_SPRITE_TAUR_WIDTH)
+				var/owner = custom_sprite_region_owner(rows, zones, x - 1, y - 1)
+				if(!owner)
+					continue
+				var/zone_width = custom_marking_zone_width(owner)
+				var/zone_x = x - (CUSTOM_SPRITE_TAUR_WIDTH - zone_width) / 2
+				TEST_ASSERT(!(zone_x < 1 || zone_x > zone_width), "[owner] owns [x],[y] in view [direction], outside its [zone_width]-wide area.")
+				TEST_ASSERT(copytext(custom_sprite_body_draw_mask(human, owner, zone_width)[direction][y], zone_x, zone_x + 1) == "1", "[owner] owns [x],[y] in view [direction], which its own mask doesn't cover.")
 
 /datum/unit_test/custom_sprite_region_mask/Run()
 	var/list/map = list("2" = list("0120" + repeat_string(28, "0")))
@@ -66,3 +78,61 @@
 	var/list/bounds = custom_sprite_mask_bounds(mask, 32)
 	TEST_ASSERT(json_encode(bounds["2"]) == json_encode(list(0, 0, 3, 1)), "Mask bounds pad the painted box by one pixel.")
 	TEST_ASSERT(custom_marking_partner(BODY_ZONE_L_ARM) == BODY_ZONE_PRECISE_L_HAND && custom_marking_partner(BODY_ZONE_PRECISE_R_HAND) == BODY_ZONE_R_ARM && !custom_marking_partner(BODY_ZONE_CHEST), "Arms and hands pair up; other regions have no partner.")
+
+/datum/unit_test/custom_sprite_region_map_wrist/Run()
+	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
+	var/list/zones = custom_sprite_present_regions(human)
+	var/list/map = custom_sprite_region_map(human, zones, 32)
+	for(var/hand in list(BODY_ZONE_PRECISE_L_HAND, BODY_ZONE_PRECISE_R_HAND))
+		var/list/mask = custom_sprite_body_draw_mask(human, hand, 32)
+		var/icon/palm = custom_sprite_silhouette(human.get_bodypart(GLOB.custom_marking_hand_arms[hand]), TRUE)
+		var/wrist = 0
+		// Front and back only: the torso can cover the wrist band in side views.
+		for(var/direction in list("[SOUTH]", "[NORTH]"))
+			for(var/y in 1 to 32)
+				for(var/x in 1 to 32)
+					if(copytext(mask[direction][y], x, x + 1) != "1" || palm.GetPixel(x, 33 - y, "", text2num(direction)))
+						continue
+					wrist++
+					TEST_ASSERT(custom_sprite_region_owner(map[direction], zones, x - 1, y - 1) == hand, "[hand] must own its wrist band at [x],[y] in view [direction].")
+		TEST_ASSERT(wrist, "The fixture needs [hand]'s wrist band.")
+
+/datum/unit_test/custom_sprite_region_colors/Run()
+	var/list/colors = list()
+	for(var/index in 1 to 9)
+		var/color = custom_sprite_region_color(index)
+		TEST_ASSERT(!(length(color) != 7 || color != LOWER_TEXT(color)), "Region ID colors are lowercase #rrggbb, as the map reads them back.")
+		TEST_ASSERT(!(color in colors), "Region ID colors must be distinct.")
+		colors += color
+	// An antialiased edge blends two regions; the blend must never read as a third one.
+	for(var/first in 1 to 9)
+		for(var/second in 1 to 9)
+			if(first == second)
+				continue
+			var/list/a = rgb2num(colors[first])
+			var/list/b = rgb2num(colors[second])
+			for(var/weight in list(0.25, 0.5, 0.75))
+				var/blend = LOWER_TEXT(rgb(round(a[1] * weight + b[1] * (1 - weight), 1), round(a[2] * weight + b[2] * (1 - weight), 1), round(a[3] * weight + b[3] * (1 - weight), 1)))
+				var/found = colors.Find(blend)
+				TEST_ASSERT(!(found && found != first && found != second), "A [weight] blend of regions [first] and [second] must not read as region [found].")
+
+/datum/unit_test/custom_sprite_region_fallback/Run()
+	// A faint edge of region 1 drawn over solid region 3.
+	var/icon/faint = custom_sprite_blank_icon(32)
+	faint.DrawBox(rgb(0, 0, 0, 77), 5, 28)
+	var/icon/solid = custom_sprite_blank_icon(32)
+	solid.DrawBox(rgb(0, 0, 0, 255), 5, 28)
+	TEST_ASSERT(custom_sprite_region_fallback(list(list(1, 3, 1, 1, solid), list(2, 1, 1, 1, faint)), 4, 4, SOUTH) == "3", "A blended edge pixel goes to the region that dominates it, not just the topmost one.")
+	TEST_ASSERT(custom_sprite_region_fallback(list(list(1, 3, 1, 1, faint), list(2, 1, 1, 1, solid)), 4, 4, SOUTH) == "1", "A solid region on top still owns the pixel.")
+
+/datum/unit_test/custom_sprite_region_map_uncached/Run()
+	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/bodypart/limb = human.get_bodypart(BODY_ZONE_L_ARM)
+	var/datum/bodypart_overlay/custom_marking/zone/scratch = new
+	scratch.blocks_emissive = EMISSIVE_BLOCK_NONE
+	scratch.cache_icons = FALSE
+	scratch.set_drawing(custom_sprite_region_id_drawing(1, custom_sprite_body_draw_mask(human, BODY_ZONE_L_ARM, 32), 32), limb)
+	scratch.get_all_overlays(limb)
+	for(var/key in GLOB.custom_sprite_limb_icons)
+		TEST_ASSERT(!findtext(key, scratch.drawing_pixel_hash), "Region-map scratch overlays must not fill the shared limb icon cache.")
+	qdel(scratch)

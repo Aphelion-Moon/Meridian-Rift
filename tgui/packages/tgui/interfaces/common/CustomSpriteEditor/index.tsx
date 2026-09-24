@@ -298,7 +298,13 @@ export const CustomSpriteEditor = ({
               </Box>
               <Stack justify="space-around" mb={1}>
                 {directions.map(([dir, label]) => (
-                  <Stack.Item key={dir} textAlign="center">
+                  <Stack.Item
+                    key={dir}
+                    grow
+                    basis={0}
+                    minWidth={0}
+                    textAlign="center"
+                  >
                     {!!candidate.previews[dir] && (
                       <Box
                         inline
