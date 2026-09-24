@@ -203,7 +203,8 @@
 	var/error = custom_style_spawned_slot_problem(user, preferences)
 	if(!error && custom_style_package_hash(custom_sprite_live_package(user, target, body_zone)) != custom_style_package_hash(custom_sprite_live_package_from(package, user)))
 		error = "Your [custom_sprite_salon_label(target, body_zone)] changed after it was applied."
-	if(!error && preferences.custom_sprite_editors?[custom_style_key(target, body_zone)])
+	// Character setup keeps one editor per target: every markings region shares the whole-body editor.
+	if(!error && preferences.custom_sprite_editors?[target])
 		error = "Close the matching custom editor in character setup, then try again."
 	if(!error)
 		error = preferences.commit_custom_style(package, slot, rotate = TRUE, reject_pending_hair = TRUE, reject_pending_markings = TRUE)

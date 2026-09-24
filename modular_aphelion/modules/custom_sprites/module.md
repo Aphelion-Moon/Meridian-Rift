@@ -5,7 +5,9 @@ Module ID: CUSTOM_SPRITES
 ### Description:
 
 Adds pixel editors for custom hair and markings in character preferences. You can
-add to an existing haircut or give individual body zones their own drawings. Barbers and tattoo artists can use the same editor on
+add to an existing haircut or give individual body zones their own drawings.
+Markings are drawn on one whole-body canvas that saves each region into its own
+per-zone drawing. Barbers and tattoo artists can use the same editor on
 other players, with consent, a mirror preview and an optional save. Everything
 uses the existing SpriteEditor.
 
@@ -28,21 +30,27 @@ the editor's Base markings section does. The server refuses duplicates from eith
 With a taur body selected and enabled, the legs have no paintable pixels and
 their markings never show, so both leg sections swap their + and Custom buttons
 for a **Taur body** button, and the server refuses new leg markings.
-These pass `body_zone` to the same editor. Ordinary zone, hand and taur-zone
-drawings stay separate.
+Every Custom button, and the Taur body button, opens the same whole-body
+**Custom Markings** window with that region selected. If the window is already
+open, the button selects that region and the window follows; a region the body
+doesn't have leaves the selection alone and says so. Drawings are still stored
+per zone: ordinary zone, hand and taur-zone drawings stay separate, and only the
+editor shows them as one body.
 
 Hands aren't limbs of their own: they're the arm's auxiliary zone. A hand drawing
 covers the hand plus the three arm rows just above it, so it can't climb the arm,
 and renders as its own overlay on that arm.
 
-Hair and ordinary limb drawings use a 32 by 32 canvas. The Taur body editor uses
-64 by 32. All have Front, Back, Right and Left
+Hair and ordinary limb drawings are 32 by 32, and taur-zone drawings 64 by 32.
+The markings canvas is 64 by 32 whenever the body has a taur organ, even a hidden
+one, so it doesn't change size with clothing; otherwise it's 32 by 32. All have
+Front, Back, Right and Left
 views; a dot beside a view means it contains paint. Hair and facial hair can be
 drawn anywhere on their canvas, regardless of the base style. Markings use
-the actual body or selected zone's
-silhouette in each direction. The taur zone follows the external taur organ on
+the actual body's silhouette in each direction, divided into regions (below).
+The taur zone follows the external taur organ on
 the chest; its invisible leg slots remain unavailable. Missing limbs and stumps
-have no editable zone pixels.
+have no editable zone pixels, and a missing arm takes its hand with it.
 
 The wide canvas adds 16 columns on each side of the ordinary body. Existing
 32-pixel paint stays centered at the same physical position when opened on a
@@ -54,6 +62,44 @@ Uncomment `DISALLOW_CUSTOM_SPRITE_EDITING` at the end of
 Saved drawings still render. Editors check the owning client, character slot,
 target and optional body zone on the server, including after color-picker dialogs.
 
+#### Regions and selection
+
+Every pixel of the markings canvas belongs to one region or none: Head, Torso,
+Left arm, Right arm, Left hand, Right hand, Left leg, Right leg or Taur lower
+body. The server builds a region map for each view. It fills every present
+region's editing mask with an ID color, pushes it through that region's real
+overlay type, and composes the results in the game's draw order: the body's limb
+order, each hand above its arm, the leg layer split and the taur organ's native
+layers. The region on top owns the pixel; a blended edge pixel goes to the
+topmost image covering it. Maps are cached by the geometry that produced them.
+Whenever an arm's drawing overlay is created again, its hand overlays move back
+above it, so hand paint draws over arm paint on shared pixels, in game and on the
+canvas.
+
+- Pressing on the body selects the region under the cursor, with any tool and
+  with Alt-click sampling. Pressing unavailable space keeps the selection. The
+  window highlights at once and tells the server; region actions name the
+  region, and the server checks it's present.
+- The selection drives the region's Base markings section ("Left arm base
+  markings"), its Emissive checkbox (`Emissives - (Left arm, Front)`) and Clear
+  ("Clear left arm"). A status line under the canvas names the region, adds
+  "(not in this view)" when it has no pixels in the current view, and says
+  "Click the body to choose a region".
+- Fill floods only the region you click; other regions' pixels are boundaries.
+  Every other tool follows the paintable mask, which is the union of all regions.
+  Moved pixels belong to whichever region they land in.
+- The canvas shows each region's saved paint at the pixels it owns. At an arm or
+  hand pixel it shows the hand's paint when there is any, otherwise the arm's,
+  as the game draws them. Paint hidden under a different limb isn't shown.
+
+The overlays are black and white and drawn at screen resolution. They never cover
+the highlighted region's own pixels: brackets, tag and outline sit just outside
+it, at most over the edge of a neighbouring region. Unavailable pixels get a dark
+wash with faint horizontal scanlines, in every custom editor. The selected region
+gets target-lock corner brackets and a small name tag (`L. ARM`, `TORSO`) above
+the top-left bracket, or below the box when there's no room. Hovering another
+region outlines it faintly, just outside its pixels.
+
 #### Tools and controls
 
 - Select comes first in the toolbar. Drag a box, then drag inside it to move the
@@ -64,10 +110,13 @@ target and optional body zone on the server, including after color-picker dialog
 - Pencil, eraser, eyedropper and fill use the same canvas. Pencil and eraser
   include the release position and send one transaction per stroke. Fill stops
   at holes in a zone's silhouette.
-- Markings clip to the body instead. Paint stranded outside the current mask, by
-  a changed body or zone, is dropped when the editor opens or its geometry is
-  rebuilt, so what saves is what you can see. Imports that paint outside the
-  destination are refused rather than trimmed.
+- Markings clip to the body instead. The whole-body canvas only holds paint
+  inside its regions; saved paint outside them, or hidden under another limb,
+  stays in the save untouched until Clear, an import or a restoration replaces
+  that region (see Saving and loading). The salon's tattoo editor
+  still drops paint stranded outside its zone's current mask when it opens or its
+  geometry is rebuilt. Imports that paint outside the destination are refused
+  rather than trimmed.
 - The eyedropper takes painted color first. If there is no paint at that pixel,
   it samples the visible guide. Sampling a color does not use a Custom slot.
 - Undo and redo each step through one action in the current draft; they never
@@ -77,7 +126,10 @@ target and optional body zone on the server, including after color-picker dialog
   keeps up to 100 actions and lasts only for that editor session.
 - Clear layer sits beside undo/redo and clears the current direction. It can
   also remove old paint outside bounds that changed with the character's body
-  shape. It is undoable. Clearing an empty view leaves redo alone.
+  shape. It is undoable. Clearing an empty view leaves redo alone. In the
+  markings editor it reads **Clear left arm** and clears only the selected region
+  in the current view, including its saved paint other limbs cover there, which
+  the canvas can't show.
 - Hide parts is available for markings, and Hide underwear for markings in
   character setup; it starts on when character setup previews the character
   naked. Gradient, Guide and Grid can be toggled where applicable. The
@@ -86,6 +138,12 @@ target and optional body zone on the server, including after color-picker dialog
   shows hair and parts. Guide and paint share the same canvas and pixel grid.
   Preview comes last in the sidebar; its rotate buttons step through the views in
   the same order as the character preview's.
+- Tile swatches under the preview pick the backdrop behind the canvas, the
+  preview and the import/restore previews: **Transparent** (the checkerboard),
+  then Nova's `background_state` tiles, doubled side by side on a wide canvas.
+  The row starts on the character's own background, or the artist's in the
+  salon. The choice is never saved, since writing a preference would save and
+  close the editor.
 - The window opens at 900 by 780. Closing the window keeps the unsaved draft and
   its history; reopening continues it with the Pencil selected. Changing direction
   or using history cancels the current selection/drag.
@@ -136,6 +194,15 @@ no room for another color, unavailable Custom swatches stay visible but disabled
 and the Custom title says why.
 Themes cannot paint over the swatches; selection uses a border.
 
+Sampled shades, then Custom colors, fill whatever room a drawing's own colors
+leave, so a full drawing loses Custom swatches before shades.
+
+The markings canvas shares one palette across every region. Regions may use more
+than 63 colors between them, as old saves and imports can: the editor keeps them
+all and base marking changes still work, but new colors wait until some are gone,
+and a notice under the canvas says why. Each changed region is checked against
+the 63-color limit when saving.
+
 Each hair editor also owns its base look. A **Base hair** (or **Base facial
 hair**) section picks the style and color for this character; the drawing always
 stays on top of it. Changing either rebuilds the guide and the palette.
@@ -162,11 +229,13 @@ whenever the base look has one: turning it off drops the gradient from the guide
 the sidebar preview and the sampled palette, leaving the plain style shades. It
 changes nothing that gets saved.
 
-The markings editor owns that limb's own markings the same way. A **Base
-markings** section adds, swaps, recolors and removes them, in layer order, with
-the drawing on top. The Taur body editor has no such section, since the taur
-body carries no native limb markings. These changes stay in the draft and support undo/redo. Saving
-writes them with the drawing. Salon work uses the recipient's markings and waits
+The markings editor owns each region's native markings the same way. The
+selected region's section, titled "Left arm base markings" with "Click the body
+to choose a region." underneath, adds, swaps, recolors and removes them, in layer
+order, with the drawing on top. The taur region carries no native limb markings
+and says so. These changes stay in the draft and support undo/redo. Saving
+writes them with the drawings. The salon's tattoo editor keeps its per-zone
+**Base markings** section. Salon work uses the recipient's markings and waits
 for their approval; it never edits the artist's character preferences.
 
 **Blending options**, inside the Custom box, starts with both options off:
@@ -183,7 +252,10 @@ other Custom color. The selected brush updates after server acknowledgement.
 #### Emissive drawings
 
 Every drawing saves its own Emissive setting for each of the four views. The
-checkbox edits the current view and defaults off. It is independent of the
+checkbox edits the current view and defaults off. In the markings editor each
+region keeps its own settings, and the checkbox reads `Emissives - (Left arm,
+Front)` for the selected region and view; a region with no paint saves as no
+drawing, so its settings only count once it has paint. It is independent of the
 normal hair emissive preference. The master emissive appearance preference can
 suppress glow without changing these saved choices.
 
@@ -228,10 +300,38 @@ The decoder checks lengths, indexes and expanded size before accepting data.
 Save and close and Ctrl+S save the drawing; Ctrl+S keeps editing. Closing the
 window doesn't save: the draft stays open in memory until you save or discard it.
 Slot switches, style or species changes, and closing character setup still save
-open drafts, so work isn't silently lost. Discard drops changes since the last
+open drafts, so work isn't silently lost. Markings, augment and randomize actions
+in character setup also save and close open editors first, as preference changes
+do, so an open draft can't write stale base markings back afterwards. Discard drops changes since the last
 successful save. Deleting a character slot discards its editor
 and removes its drawings. Character exports exclude the drawing file;
 successful preference imports remove old drawings and their recovery files.
+
+The markings editor saves regions, not a canvas. Opening it composes the canvas
+from every region's saved drawing and keeps that composite as the baseline.
+Saving splits the canvas back into regions. A pixel is edited when it differs
+from the baseline, and for each region:
+
+| Pixel | The region's result |
+| --- | --- |
+| Not edited | Its saved value, byte for byte, including paint hidden under another limb or outside every region. |
+| Edited, and the region owns it | The canvas value. |
+| Edited, and the region's arm or hand partner owns it | Cleared, so it can't draw over the new value. |
+| Edited, and another limb owns it | Its saved value; that paint is hidden there. |
+
+Clear, an import or a restoration replaces a region outright in the views it
+touches: the region's saved paint under other limbs or outside every region goes
+too, so it saves exactly what the canvas showed.
+
+A region whose result has no paint saves as no drawing, which is how Clear and
+erasing a region's pixels work. Only regions whose pixels, base markings or
+emissive settings (while it has paint) differ from their save are written; the
+rest aren't validated, rewritten or rotated. Every changed region is validated
+first, then all of them are applied with one sidecar write. If that write fails,
+every region rolls back and the draft stays open. Their base markings are then
+published, and the character and `preferences.json` are saved once. Previous
+saved styles still rotate per zone (`markings:l_arm`), and only for regions an
+import or restoration changed. The saved canvas becomes the next baseline.
 
 The sidecar writer uses rust-g and caps the file at 16 MiB. This accommodates the
 100-slot account limit with all nine drawing targets and a previous saved style
@@ -279,6 +379,7 @@ by its content hash. Turning uses the icon's existing direction frames.
 | Directional glow/blocker icons | Paint/mask geometry and the enabled directions. |
 | Sampled palettes | Source icon file and state. |
 | Body/zone editing masks | Canvas width, zone and contributing limb geometry; taur geometry includes the organ's current render key and chest gender. |
+| Region maps | Canvas width, the present regions, each region's editing mask and the taur organ's render key. |
 
 Each of these caches is shared server-wide and capped at 256 entries, with the
 oldest inserted entry evicted first. Cached icons and lists are treated as
@@ -358,8 +459,9 @@ changes.
   change rather than applying it. The barber locker and vendor stock one.
 - `/obj/item/tattoo_machine`: use it on someone, then pick a body zone they
   actually have, including Taur lower body. Missing limbs, stumps and invisible
-  taur leg slots aren't offered. It's reusable, needs no ink and works for anyone
-  holding it. The barber locker has one and the barber vendor stocks three.
+  taur leg slots aren't offered. It still opens the per-zone editor; moving
+  tattoos to the whole-body canvas is planned as a later phase. It's reusable,
+  needs no ink and works for anyone holding it. The barber locker has one and the barber vendor stocks three.
 
 If the recipient has a previous round style for that target, the tool first asks
 whether to draw something new or **Restore previous**.
@@ -501,6 +603,12 @@ Both editor contexts have **Import** and **Export**. Export downloads the curren
 draft without saving it. The recipient's approval mirror can export the reviewed
 proposal without accepting it.
 
+In the markings editor, **Export** asks whether you mean the whole body or just
+the selected region, naming it. A region export is the single-target file below,
+holding that region's would-be-saved drawing and base markings. **Restore previous
+saved style** asks the same: every region whose previous style differs, or just the
+selected one. Both then use the usual preview.
+
 A file holds one drawing target:
 
 ```json
@@ -518,6 +626,25 @@ Hair files use `"target": "hair"`, have no zone, and add `hair`: `style`, `color
 `drawing` is null for empty art. Exports never contain account names, slots,
 paths, runtime references, other preferences or recovery history.
 
+A whole-body file wraps region packages under `"target": "body"`:
+
+```json
+{
+  "format": "aphelion-custom-style",
+  "version": 1,
+  "target": "body",
+  "regions": { "l_arm": { "drawing": { ... }, "markings": [ ... ] } }
+}
+```
+
+Each region entry validates exactly like a single-target package for that zone.
+Importing one replaces the regions it contains; the preview lists them, and lists
+any regions this body doesn't have as skipped. A single-target file replaces its
+own region, and a legacy drawing-only file goes into the selected region.
+Confirmed regions replace the old ones outright: neither the file's paint nor the
+old paint under other limbs on this body is kept. A single-zone editor, such as
+the salon's, takes its own zone from a whole-body file; hair editors refuse one.
+
 Import shows a preview first. **Replace draft** is one undoable action that also
 covers the hair look; Cancel changes nothing. Strictly valid old drawing-only
 files still import into the open editor and keep its current hair look. Their
@@ -525,8 +652,8 @@ emissive flags may be numeric 0/1, as written by the old save format.
 
 The server enforces the import boundary:
 
-- 16 KiB maximum, checked before the file is read. BYOND has already received the
-  upload by then. The existing `/client/AllowUpload()` separately enforces
+- 160 KiB maximum, checked before the file is read, and 16 KiB for anything but
+  a whole-body file. BYOND has already received the upload by then. The existing `/client/AllowUpload()` separately enforces
   `upload_limit` (512 KiB by default) or `upload_limit_admin` (5 MiB by default).
 - `rustg_json_is_valid()` before `json_decode()`, so malformed or deeply nested
   JSON never reaches BYOND's decoder. The file must hold a top-level object.
@@ -567,7 +694,7 @@ previous styles; preference imports remove them with the rest of the sidecar.
 A salon save writes to the character slot selected in character setup. A body that
 records the slot it spawned with must have that slot selected; bodies created by an
 admin record none and save normally. The slot must belong to the same character
-name, have no open editor for that drawing, and have no unsaved changes to the
+name, have no open editor for that drawing (for markings, the whole-body editor), and have no unsaved changes to the
 same base look in character setup, including hair opacity or that limb's native
 markings. Otherwise the save explains why and
 the round appearance stays.
@@ -623,6 +750,14 @@ Donor tests attach real transplanted limbs and heads, check their appearance and
 restoration history, and compare allowed hair-extension pixels in all four artist
 and mirror views.
 
+`regions.dm` covers region maps: draw order, hands over arms, missing arms taking
+their hands, and wide taur maps. `composite.dm` covers composing and splitting,
+including tints, hidden paint and arm/hand partners. `markings_editor.dm` covers
+saving only changed regions in one write, selection and focus, palette overflow,
+routing from the Custom buttons, and imports. `saved_styles.dm`, `workspace.dm`,
+`transfer.dm` and `appearance.dm` cover multi-region commits, region-bounded fill
+and clear, whole-body files, and hand paint staying above re-created arm paint.
+
 Tests use `TEST_ASSERT`, which stops at the first failure. Anything a later test
 depends on is released in `Destroy()`: salon players and their registries, and
 sidecar files registered through `/datum/custom_sprite_test_files`.
@@ -651,6 +786,15 @@ bun run tgui:build
 
 The UI tests cover tool gestures, guide alignment, selection acknowledgement,
 save feedback, color blending, swatch menus, theme styling and the zone buttons.
+`regions.test.ts` covers the overlay geometry, and
+`CustomSpriteEditor.regions.test.tsx` covers region mode: selecting with every
+tool, the region labels and actions, focus, scanlines and import notices.
+Keep each tgui test file under 50 KB. Bun 1.3.13 serves larger files from its
+runtime transpiler cache, and on those cached runs it parses
+`transparency_checkerboard.svg` as JSX, failing the whole file from the second run
+on. `tgui/packages/tgui/__mocks__/customSpriteEditor.ts` holds the fixture and
+setup the editor's test files share. It sits outside `interfaces/` because the
+interface bundle takes in every non-test file there.
 Native icon tests and browser fixtures do not cover every live-client case.
 Check real drawing/dragging, hats, turning/resting, limb changes, save/relog and
 slot/import behavior in DreamSeeker when changing those paths.
@@ -684,19 +828,22 @@ All paths here are relative to this module unless stated otherwise.
 
 | File | Types, overrides and owned behavior |
 | --- | --- |
-| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()` and `context_ui_data()`. |
+| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()` and `context_ui_data()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. |
+| `code/markings_editor.dm` | `/datum/custom_sprite_editor/markings`: the whole-body window, region selection and focus, per-region emissive, Clear and base markings, changed-region saves, previews, export/restore prompts and region imports. Also `custom_sprite_apply_region_results()`. |
+| `code/regions.dm` | Present regions in draw order, region ID colors, the cached per-view region map composed through the real overlay types, region lookup and the paintable mask. |
+| `code/composite.dm` | Composes region drawings into one canvas and splits an edited canvas back into per-region drawings by the save rule. |
 | `code/salon.dm` | `/datum/custom_sprite_salon` session, request/restore procs, live style packages and preview dummies, five-second round application, optional approved save and history on `/mob/living/carbon/human`. `/datum/custom_sprite_editor/salon` overrides the context hooks, `can_edit()` and UI lifecycle procs; validated brush activity starts cooldown-limited audio, and closing releases it. Recipient overlay signals coalesce guide refreshes; self-styling movement and equipment signals update mirror locks. |
 | `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images, approval-only export, result window and recipient saves. |
 | `code/tools.dm` | `/obj/item/tattoo_machine`; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
-| `code/transfer.dm` | Style package format, strict validation, export text, geometry checks and transfer helpers. |
-| `code/saved_styles.dm` | Previous saved styles and complete hair and native marking saves. |
+| `code/transfer.dm` | Style package format, strict validation, export text, geometry checks and transfer helpers, including the whole-body `"target": "body"` file. |
+| `code/saved_styles.dm` | Previous saved styles and complete hair and native marking saves. `commit_custom_styles()` validates and writes several regions in one sidecar write. |
 | `code/achievements.dm` | The four `/datum/award/achievement/misc/custom_*` awards. |
 | `code/persistence.dm` | `/datum/json_savefile/custom_sprites` overrides `New()`, `load()`, `save()`, `set_entry()`, `remove_entry()` and `wipe()` for verified sidecar writes and recovery. Adds the preferences-owned drawing fields and load/save/close/delete helpers, plus `custom_sprites_after_import()`. |
 | `code/palette.dm` | `/datum/preference/custom_sprite_palette` implements account storage, default/deserialize/serialize/validation and `is_accessible()`. Its UI is owned by the editor. |
-| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()` and `reverse_transact()`. Owns palette validation, mask-aware fill, history limits, serialization, Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` and `sanitize_transaction()` helpers. |
-| `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers. |
-| `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas bounds, native limb/taur silhouettes and directional editing masks. |
-| `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization and content hashes. |
+| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()` and `reverse_transact()`. Owns palette validation, mask-aware fill, history limits, serialization, Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` and `sanitize_transaction()` helpers. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. |
+| `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers. Re-creating an arm's zone overlay moves its hand overlays back above it. |
+| `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. |
+| `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization, content hashes, arm/hand partners and zone widths. |
 
 ### Defines:
 
@@ -705,7 +852,8 @@ All paths here are relative to this module unless stated otherwise.
 | `code/__DEFINES/~aphelion_defines/custom_sprites.dm` at repository root | `CUSTOM_SPRITE_MAX_CUSTOM_COLORS`, `CUSTOM_SPRITE_MAX_COLORS` | 16 account swatches; 63 opaque drawing colors. |
 | Same file | `CUSTOM_SPRITE_INDEX_ALPHABET` | `0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_`; index 0 is transparent. |
 | Same file | `CUSTOM_SPRITE_TAUR_WIDTH`, `CUSTOM_MARKING_ZONE_TAUR` | 64-pixel canvas width and the `taur` zone key. |
-| Same file | `CUSTOM_SPRITE_MAX_SIDECAR_BYTES`, `CUSTOM_STYLE_MAX_BYTES` | 16 MiB drawing-file limit; 16 KiB import limit. |
+| Same file | `CUSTOM_SPRITE_MAX_SIDECAR_BYTES`, `CUSTOM_STYLE_MAX_BYTES` | 16 MiB drawing-file limit; 16 KiB single-target import limit. |
+| Same file | `CUSTOM_STYLE_MAX_BODY_BYTES` | 160 KiB whole-body import limit, checked before any file is read. |
 | `code/transfer.dm` | `CUSTOM_STYLE_FORMAT`, `CUSTOM_STYLE_VERSION` | `aphelion-custom-style`, version 1. |
 | `code/transfer.dm` | `CUSTOM_STYLE_IMPORT_COOLDOWN`, `CUSTOM_STYLE_EXPORT_COOLDOWN` | 5 and 2 seconds. |
 | `code/transfer.dm` | `CUSTOM_STYLE_EXPORT_DIRECTORY` | `data/custom_style_exports/`. |
@@ -736,14 +884,15 @@ are also required.
 | `modular_nova/modules/preferences_import/code/import_verb.dm` | `prefs_import_invalidate_cache()` calls the drawing cleanup after a successful import. |
 | `modular_aphelion/modules/worn_emissives/code/worn_emissives.dm` | Existing final appearance grouping keeps paint masks aligned with the character's pose. |
 | `tgui/packages/tgui/interfaces/CustomHairEditor.tsx`, `CustomMarkingsEditor.tsx` | The two interface entry points. |
-| `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, backend types and their tests. |
+| `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, the region overlay (`regions.ts`, `RegionOverlay.tsx`), backend types and their tests. |
+| `tgui/packages/tgui/__mocks__/customSpriteEditor.ts` | The fixture and per-test setup the editor's test files share. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | Hair editor button. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Zone and taur marking buttons, and their tests. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Editing-availability flag. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/index.tsx`, `atoms.ts`, `helpers.ts`, `Types/types.ts`, `Types/Tool.ts` | Shared editor state, rendering/context hooks, gesture cancellation and selection types. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/index.tsx`, `atoms.ts`, `helpers.ts`, `Types/types.ts`, `Types/Tool.ts` | Shared editor state, rendering/context hooks, gesture cancellation and selection types. The canvas's `onPointerDown` reports where every press lands, whatever the tool. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. `shade` replaces the flat grey over unavailable pixels, and `overlay` draws over the canvas at its size. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Types/Tools/` | Pencil, Eraser, Eyedropper and Bucket updates; the Select tool and focused tool tests. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/drawBounds.ts`, `useSpriteEditorHotkeys.ts`, `SpriteEditor.test.tsx` | Cached shading geometry, shared shortcuts/history cancellation and editor interaction tests. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/drawBounds.ts`, `useSpriteEditorHotkeys.ts`, `SpriteEditor.test.tsx` | Cached shading geometry and the `ShadeRenderer` type, shared shortcuts/history cancellation and editor interaction tests. |
 | `tgui/packages/tgui/interfaces/NtosNanopaint/NanopaintMenuBar.tsx` | Uses the same history cancellation as toolbar and keyboard actions. |
 | `tgui/packages/tgui/layouts/Window.tsx`, `Window.test.tsx` | Current-event Alt handling and respecting gestures already claimed by a control. |
 | `tgui/packages/tgui/styles/interfaces/CustomSpriteEditor.scss`, `tgui/packages/tgui/styles/main.scss` | Custom editor styling and its stylesheet registration. |

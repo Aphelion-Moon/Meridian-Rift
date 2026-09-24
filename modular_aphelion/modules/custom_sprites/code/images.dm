@@ -300,10 +300,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		silhouette.Blend(custom_sprite_taur_silhouette(body), ICON_OVERLAY, offset_x - 15, 1)
 	return silhouette
 
-/// Each view's paintable area padded by one pixel, read from the cached mask rather than the icon.
-/proc/custom_sprite_body_draw_bounds(mob/living/carbon/human/body, body_zone, width = 32)
-	var/list/mask = custom_sprite_body_draw_mask(body, body_zone, width)
-	var/list/bounds = list()
+/// Each view's paintable area padded by one pixel, from row-string masks.
+/proc/custom_sprite_mask_bounds(list/mask, width = 32)
+	. = list()
 	for(var/direction in mask)
 		var/list/rows = mask[direction]
 		var/list/box = list(width, 32, -1, -1)
@@ -311,8 +310,11 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 			var/first = findtext(rows[y], "1")
 			if(first)
 				box = list(min(box[1], first - 1), min(box[2], y - 1), max(box[3], findlasttext(rows[y], "1") - 1), y - 1)
-		bounds[direction] = box[3] < 0 ? null : list(max(0, box[1] - 1), max(0, box[2] - 1), min(width - 1, box[3] + 1), min(31, box[4] + 1))
-	return bounds
+		.[direction] = box[3] < 0 ? null : list(max(0, box[1] - 1), max(0, box[2] - 1), min(width - 1, box[3] + 1), min(31, box[4] + 1))
+
+/// Each view's paintable area padded by one pixel, read from the cached mask rather than the icon.
+/proc/custom_sprite_body_draw_bounds(mob/living/carbon/human/body, body_zone, width = 32)
+	return custom_sprite_mask_bounds(custom_sprite_body_draw_mask(body, body_zone, width), width)
 
 /// Row strings keep the wire payload small and test the same silhouette used by rendering.
 /proc/custom_sprite_body_draw_mask(mob/living/carbon/human/body, body_zone, width = 32)
@@ -343,3 +345,17 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 			rows += row
 		mask["[direction]"] = rows
 	return custom_sprite_cache_put(limb_masks, key, mask)
+
+/// Nova's character preview backgrounds as tiles for the custom editors' background swatches.
+/proc/custom_sprite_background_tiles()
+	var/static/list/tiles
+	if(tiles)
+		return tiles
+	tiles = list()
+	for(var/name in GLOB.background_state_options)
+		var/icon/tile = icon('modular_nova/modules/character_preview_background/icons/background_32x32.dmi', name, SOUTH)
+		var/icon/wide = icon(tile)
+		wide.Crop(1, 1, CUSTOM_SPRITE_TAUR_WIDTH, 32)
+		wide.Blend(tile, ICON_OVERLAY, 33, 1)
+		tiles += list(list("name" = name, "url" = "data:image/png;base64,[icon2base64(tile)]", "wideUrl" = "data:image/png;base64,[icon2base64(wide)]"))
+	return tiles

@@ -305,3 +305,41 @@
 		for(var/x in 0 to 31)
 			TEST_ASSERT(!(!workspace.is_point_allowed(x, y, "2") && frame[y + 1][x + 1] != "#00000000"), "Fill must never paint outside the limb silhouette.")
 	TEST_ASSERT(!workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "1", "color" = "#ff0000ff", "points" = list(list(0, 0)))), "An absent direction mask must reject paint.")
+
+/// A region workspace over two regions on the first row: "1" at x 0-3, "2" at x 4-7.
+/proc/custom_sprite_test_region_workspace()
+	var/datum/sprite_editor_workspace/custom_sprite/regions/workspace = new(null, list("#ffffff", "#123456"), null, null, 32)
+	workspace.region_map = custom_sprite_test_region_rows("11112222")
+	workspace.draw_mask = custom_sprite_region_mask(workspace.region_map)
+	workspace.draw_bounds = custom_sprite_mask_bounds(workspace.draw_mask, 32)
+	return workspace
+
+/datum/unit_test/custom_sprite_region_workspace/Run()
+	var/datum/sprite_editor_workspace/custom_sprite/regions/workspace = custom_sprite_test_region_workspace()
+	TEST_ASSERT(!(workspace.is_point_allowed(8, 0, "2") || !workspace.is_point_allowed(7, 0, "2")), "Only region pixels are paintable.")
+	TEST_ASSERT(workspace.new_transaction(list("type" = "bucket", "layer" = 1, "dir" = "2", "color" = "#ffffffff", "point" = list(1, 0))), "Filling a region must succeed.")
+	var/list/row = workspace.layers[1]["data"]["2"][1]
+	TEST_ASSERT(!(row[4] != "#ffffffff" || row[5] != "#00000000"), "Fill must stop at the region edge.")
+	workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#123456ff", "points" = list(list(5, 0))))
+	TEST_ASSERT(!workspace.new_transaction(list("type" = "eraser", "layer" = 1, "dir" = "2", "points" = list(list(20, 0)))), "The eraser can't reach outside the regions either.")
+	TEST_ASSERT(workspace.clear_region("2", "1"), "Clearing a painted region must succeed.")
+	TEST_ASSERT(!(row[1] != "#00000000" || row[6] != "#123456ff"), "Clear must erase only the chosen region.")
+	workspace.undo()
+	TEST_ASSERT(row[1] == "#ffffffff", "Undo must restore a cleared region.")
+	qdel(workspace)
+
+/datum/unit_test/custom_sprite_region_workspace_replace/Run()
+	var/datum/sprite_editor_workspace/custom_sprite/regions/workspace = custom_sprite_test_region_workspace()
+	workspace.markings_context = list(BODY_ZONE_L_ARM = list())
+	workspace.emissive = list(BODY_ZONE_L_ARM = custom_sprite_emissive_settings(FALSE))
+	var/list/frames = deep_copy_list(workspace.layers[1]["data"])
+	frames["2"][1][2] = "#ffffffff"
+	var/list/markings = list(BODY_ZONE_L_ARM = list(list("name" = "Stripe", "color" = "#112233", "emissive" = FALSE)))
+	var/list/emissive = list(BODY_ZONE_L_ARM = custom_sprite_emissive_settings(TRUE))
+	TEST_ASSERT(workspace.replace_frames(frames, "Import style", markings, emissive), "Replacing the canvas must succeed.")
+	TEST_ASSERT(!(workspace.layers[1]["data"]["2"][1][2] != "#ffffffff" || json_encode(workspace.markings_context) != json_encode(markings) || json_encode(workspace.emissive) != json_encode(emissive)), "Replacement must apply pixels, base markings and emission together.")
+	workspace.undo()
+	TEST_ASSERT(!(workspace.layers[1]["data"]["2"][1][2] != "#00000000" || length(workspace.markings_context[BODY_ZONE_L_ARM]) || workspace.emissive[BODY_ZONE_L_ARM]["2"]), "Undo must restore all three.")
+	workspace.load_frames(frames)
+	TEST_ASSERT(!(!workspace.edited_directions["2"] || !("#ffffff" in workspace.palette)), "Loading frames must mark edited views and admit their colors.")
+	qdel(workspace)

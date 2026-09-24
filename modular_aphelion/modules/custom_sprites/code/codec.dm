@@ -50,6 +50,19 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		return /datum/bodypart_overlay/custom_marking/zone/hand
 	return /datum/bodypart_overlay/custom_marking/zone
 
+/// The other half of an arm/hand pair, which share one limb, or null.
+/proc/custom_marking_partner(zone)
+	if(GLOB.custom_marking_hand_arms[zone])
+		return GLOB.custom_marking_hand_arms[zone]
+	for(var/hand in GLOB.custom_marking_hand_arms)
+		if(GLOB.custom_marking_hand_arms[hand] == zone)
+			return hand
+	return null
+
+/// A zone's own drawing width: the taur spans the wide canvas, everything else the body's 32 pixels.
+/proc/custom_marking_zone_width(zone)
+	return zone == CUSTOM_MARKING_ZONE_TAUR ? CUSTOM_SPRITE_TAUR_WIDTH : 32
+
 /// The format owns the canvas dimensions; legacy drawings always remain 32 by 32.
 /proc/custom_sprite_width(list/drawing)
 	return drawing?["version"] == 3 ? CUSTOM_SPRITE_TAUR_WIDTH : 32

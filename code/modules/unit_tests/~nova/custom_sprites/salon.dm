@@ -379,6 +379,11 @@
 	qdel(ui)
 	TEST_ASSERT(!(!mirror.save_style(recipient) || custom_sprite_hash(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]) != custom_sprite_hash(package["drawing"])), "The recipient must be able to save an applied style: [mirror.save_message]")
 	TEST_ASSERT(preferences.custom_style_previous_package("markings", BODY_ZONE_L_ARM), "A salon save must keep the replaced style as previous.")
+	// Character setup's whole-body editor holds a draft of every region, so any markings save waits for it.
+	var/datum/custom_sprite_editor/markings/unified_test/setup_editor = new(preferences, BODY_ZONE_R_LEG)
+	LAZYSET(preferences.custom_sprite_editors, "markings", setup_editor)
+	TEST_ASSERT(!(mirror.save_style(recipient) || !findtext(mirror.save_message, "Close the matching custom editor")), "A salon markings save must wait while the whole-body editor is open in character setup.")
+	setup_editor.finish(FALSE)
 	// Admin-spawned bodies record no slot, but they are still this player's character.
 	recipient.mind.original_character_slot_index = null
 	custom_sprite_apply_round_style(recipient, package)

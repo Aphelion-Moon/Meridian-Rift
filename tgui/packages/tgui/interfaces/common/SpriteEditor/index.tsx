@@ -201,6 +201,7 @@ type CanvasProps = {
   onSave?: () => void;
   onSampleBackdrop?: (x: number, y: number) => void;
   onDraw?: (x: number, y: number, erasing?: boolean) => void;
+  onPointerDown?: (x: number, y: number) => void;
   // APHELION EDIT ADDITION END
 } & Omit<AdvancedCanvasPropsBase, 'data' | 'backdropColor'>;
 
@@ -375,7 +376,15 @@ export namespace SpriteEditor {
   };
 
   export const Canvas = (props: CanvasProps) => {
-    const { data, disabled, onSave, onSampleBackdrop, onDraw, ...rest } = props; // APHELION EDIT CHANGE - ORIGINAL: const { data, disabled, ...rest } = props;
+    const {
+      data,
+      disabled,
+      onSave,
+      onSampleBackdrop,
+      onDraw,
+      onPointerDown,
+      ...rest
+    } = props; // APHELION EDIT CHANGE - ORIGINAL: const { data, disabled, ...rest } = props;
     useSpriteEditorHotkeys(!!disabled, onSave); // APHELION EDIT ADDITION
     const { width, height, backdrop } = data;
     const [currentColor, setCurrentColor] = useAtom(currentColorAtom);
@@ -479,6 +488,8 @@ export namespace SpriteEditor {
               onMouseDown: (ev, ref) => {
                 const [x, y] = localizeCoords(ev, ref, width, height);
                 // APHELION EDIT ADDITION START
+                // Region pickers learn where every press lands, whatever the tool.
+                onPointerDown?.(Math.floor(x), Math.floor(y));
                 // Eyedropper prevents drag setup without changing the selected tool.
                 if (ev.altKey && ev.button === 0) {
                   tools[2].onMouseDown(toolContext, data, x, y);

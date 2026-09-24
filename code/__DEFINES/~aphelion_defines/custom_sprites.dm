@@ -12,3 +12,5 @@
 #define CUSTOM_SPRITE_MAX_SIDECAR_BYTES (16 * 1024 * 1024)
 /// Size limit of an imported style file.
 #define CUSTOM_STYLE_MAX_BYTES 16384
+/// Size limit of an imported whole-body style file, which carries up to one drawing per region.
+#define CUSTOM_STYLE_MAX_BODY_BYTES 163840

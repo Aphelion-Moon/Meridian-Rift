@@ -28,6 +28,7 @@ import {
 } from './atoms';
 import { AdvancedCanvas } from './Components/AdvancedCanvas';
 import { Palette } from './Components/Palette';
+import type { ShadeRenderer } from './drawBounds';
 import { SpriteEditor } from './index';
 import { Bucket } from './Types/Tools/Bucket';
 import { Eraser } from './Types/Tools/Eraser';
@@ -966,4 +967,38 @@ describe('sprite editor interactions', () => {
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][1].transaction.points).toHaveLength(32);
   });
+});
+
+it('lets a canvas replace the flat shade and draw an overlay at its size', () => {
+  const context = { fillStyle: '', clearRect: () => {}, fillRect: () => {} };
+  const getContext = spyOn(
+    HTMLCanvasElement.prototype,
+    'getContext',
+  ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  const shade = mock<ShadeRenderer>(() => {});
+  const overlay = mock((width: number, height: number) => (
+    <div data-testid="overlay">{`${width}x${height}`}</div>
+  ));
+  try {
+    render(
+      <AdvancedCanvas
+        data={[['#00000000', '#00000000']]}
+        drawBounds={[0, 0, 0, 0]}
+        shade={shade}
+        overlay={overlay}
+      />,
+    );
+    expect(shade).toHaveBeenCalled();
+    expect(shade.mock.calls.at(-1)?.[1]).toEqual([[1, 0, 1, 1]]);
+    expect(shade.mock.calls.at(-1)?.[2]).toBe(160);
+    expect(overlay).toHaveBeenLastCalledWith(320, 160);
+    expect(screen.getByTestId('overlay').textContent).toBe('320x160');
+  } finally {
+    getContext.mockRestore();
+    getBounds.mockRestore();
+  }
 });

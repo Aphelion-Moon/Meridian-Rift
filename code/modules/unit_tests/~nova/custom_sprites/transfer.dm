@@ -256,3 +256,30 @@
 	TEST_ASSERT(!custom_style_transfer_begin(test_key, "export"), "Import and export cooldowns are independent.")
 	custom_style_transfer_end(test_key)
 	GLOB.custom_style_transfers -= test_key
+
+/datum/unit_test/custom_style_body_transfer/Run()
+	// Exports always carry per-view emission, so the fixture does too for an exact round trip.
+	var/list/drawing = custom_sprite_test_drawing()
+	drawing["emissive"] = custom_sprite_emissive_settings(FALSE)
+	var/list/regions = list(
+		BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_validate(drawing), null, list(list("name" = GLOB.body_markings_per_limb[BODY_ZONE_L_ARM][1], "color" = "#123456", "emissive" = FALSE))),
+		BODY_ZONE_HEAD = custom_style_package("markings", BODY_ZONE_HEAD, null, null),
+	)
+	var/text = custom_style_body_export_text(regions)
+	var/list/result = custom_style_parse(text)
+	TEST_ASSERT(!(result["error"] || result["legacy"] || length(result["body"]) != 2), "A whole-body export must import: [result["error"]]")
+	for(var/zone in regions)
+		TEST_ASSERT(custom_style_package_hash(result["body"][zone]) == custom_style_package_hash(regions[zone]), "Each region must round-trip unchanged: [zone].")
+	var/list/envelope = json_decode(text)
+	envelope["regions"]["tail"] = envelope["regions"][BODY_ZONE_HEAD]
+	TEST_ASSERT(findtext(custom_style_parse(json_encode(envelope))["error"], "unknown region"), "Unknown regions must be refused.")
+	envelope = json_decode(text)
+	envelope["regions"][BODY_ZONE_L_ARM]["drawing"]["palette"] = list("not a color")
+	TEST_ASSERT(findtext(custom_style_parse(json_encode(envelope))["error"], "Left arm:"), "Region errors must name the region.")
+	envelope = json_decode(text)
+	envelope["regions"] = list()
+	TEST_ASSERT(custom_style_parse(json_encode(envelope))["error"], "A whole-body file needs at least one region.")
+	var/padding = repeat_string(CUSTOM_STYLE_MAX_BYTES, " ")
+	var/list/single = json_decode(custom_style_export_text(regions[BODY_ZONE_L_ARM]))
+	TEST_ASSERT(findtext(custom_style_parse("[json_encode(single)][padding]")["error"], "16 KiB"), "Single-region files keep their 16 KiB cap.")
+	TEST_ASSERT(findtext(custom_style_parse(repeat_string(CUSTOM_STYLE_MAX_BODY_BYTES + 1, " "))["error"], "160 KiB"), "Every file keeps the 160 KiB cap.")

@@ -9,6 +9,16 @@ export type CustomSpriteCandidate = {
   source: 'import' | 'restore';
   previews: Record<Dir, string>;
   summary?: string | null;
+  regions?: string[];
+  skipped?: string[];
+};
+
+export type RegionMarking = { index: number; name: string; color: string };
+
+export type CustomSpriteBackground = {
+  name: string;
+  url: string;
+  wideUrl: string;
 };
 
 export type CustomSpriteEditorData = {
@@ -61,4 +71,15 @@ export type CustomSpriteEditorData = {
   recipientName?: string;
   selfWork?: boolean;
   salonState?: 'drafting' | 'awaiting approval' | 'applying' | 'completed';
+  backgrounds?: CustomSpriteBackground[];
+  defaultBackground?: string | null;
+  regions?: Partial<Record<Dir, string[]>> | null;
+  regionZones?: string[];
+  regionLabels?: Record<string, string>;
+  selectedZone?: string | null;
+  focusRevision?: number;
+  regionMarkings?: Record<string, RegionMarking[]>;
+  regionMarkingChoices?: Record<string, string[]>;
+  regionEmissive?: Record<string, Record<Dir, boolean>>;
+  paletteNotice?: string | null;
 };

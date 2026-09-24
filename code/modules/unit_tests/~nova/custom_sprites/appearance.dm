@@ -752,3 +752,18 @@
 		if(PLANE_TO_TRUE(overlay.plane) != EMISSIVE_PLANE && overlay.icon == style.icon && overlay.icon_state == style.icon_state)
 			found_resource = TRUE
 	TEST_ASSERT(found_resource, "Unpainted beards must use their authored icon resource and state without allocating a mutable icon.")
+
+/datum/unit_test/custom_sprite_hand_over_arm/Run()
+	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/bodypart/arm = human.get_bodypart(BODY_ZONE_L_ARM)
+	arm.apply_custom_marking(custom_sprite_test_drawing("2"), /datum/bodypart_overlay/custom_marking/zone/hand)
+	arm.apply_custom_marking(custom_sprite_test_drawing(), /datum/bodypart_overlay/custom_marking/zone)
+	var/hand_position = 0
+	var/arm_position = 0
+	for(var/position in 1 to length(arm.bodypart_overlays))
+		var/datum/bodypart_overlay/overlay = arm.bodypart_overlays[position]
+		if(overlay.type == /datum/bodypart_overlay/custom_marking/zone/hand)
+			hand_position = position
+		else if(overlay.type == /datum/bodypart_overlay/custom_marking/zone)
+			arm_position = position
+	TEST_ASSERT(!(!hand_position || !arm_position || hand_position < arm_position), "A hand overlay must stay after its arm's overlay, even when the arm's is created later.")

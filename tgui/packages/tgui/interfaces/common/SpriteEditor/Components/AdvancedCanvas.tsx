@@ -7,7 +7,7 @@ import {
   type StringStyleMap,
 } from 'tgui-core/ui';
 import { colorToCssString } from '../colorSpaces';
-import { getShadedAreas } from '../drawBounds'; // APHELION EDIT ADDITION
+import { getShadedAreas, type ShadeRenderer } from '../drawBounds'; // APHELION EDIT ADDITION
 import { useClickAndDragEventHandler, useDimensions } from '../helpers';
 import type {
   BorderStyleProps,
@@ -47,6 +47,8 @@ export type AdvancedCanvasPropsBase = {
   drawBounds?: [number, number, number, number]; // APHELION EDIT ADDITION
   drawMask?: string[]; // APHELION EDIT ADDITION
   selectionBounds?: SelectionBounds; // APHELION EDIT ADDITION
+  shade?: ShadeRenderer; // APHELION EDIT ADDITION
+  overlay?: (canvasWidth: number, canvasHeight: number) => React.ReactNode; // APHELION EDIT ADDITION
 } & Partial<BooleanStyleMap & StringStyleMap & InlineStyle>;
 
 type AdvancedCanvasProps = IncludeOrOmitEntireType<
@@ -91,6 +93,8 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     drawBounds, // APHELION EDIT ADDITION
     drawMask, // APHELION EDIT ADDITION
     selectionBounds, // APHELION EDIT ADDITION
+    shade, // APHELION EDIT ADDITION
+    overlay, // APHELION EDIT ADDITION
     ...rest
   } = extractBaseProps(props);
   const { onClick } = propsHaveClickHandler(props) ? props : {};
@@ -166,14 +170,18 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     });
     // APHELION EDIT ADDITION START
     if (shadedAreas.length) {
-      context.fillStyle = 'rgba(50, 50, 50, 0.75)';
-      for (const [x, y, width, height] of shadedAreas) {
-        context.fillRect(
-          x * scalingFactor,
-          y * scalingFactor,
-          width * scalingFactor,
-          height * scalingFactor,
-        );
+      if (shade) {
+        shade(context, shadedAreas, scalingFactor);
+      } else {
+        context.fillStyle = 'rgba(50, 50, 50, 0.75)';
+        for (const [x, y, width, height] of shadedAreas) {
+          context.fillRect(
+            x * scalingFactor,
+            y * scalingFactor,
+            width * scalingFactor,
+            height * scalingFactor,
+          );
+        }
       }
     }
     // APHELION EDIT ADDITION END
@@ -200,6 +208,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     backdropColor,
     backgroundImage, // APHELION EDIT ADDITION
     shadedAreas, // APHELION EDIT ADDITION
+    shade, // APHELION EDIT ADDITION
   ]);
   return (
     <div
@@ -268,6 +277,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
             }}
           />
         )}
+        {overlay?.(canvasWidth, canvasHeight)}
       </div>
       {/* APHELION EDIT ADDITION END */}
     </div>

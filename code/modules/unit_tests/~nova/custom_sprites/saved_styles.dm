@@ -183,3 +183,69 @@
 	var/error = preferences.commit_custom_style(custom_style_package("hair", null, custom_sprite_test_drawing(), hair), preferences.default_slot, rotate = TRUE, reject_pending_hair = TRUE)
 	TEST_ASSERT(!(!error || !findtext(error, "unsaved hair changes")), "A pending hair opacity toggle must reject a salon save as an unsaved hair conflict.")
 	TEST_ASSERT(!(json_encode(preferences.savefile.get_entry()) != before_preferences || json_encode(preferences.custom_sprite_savefile.get_entry()) != before_sidecar || json_encode(preferences.custom_style_hair_context()) != before_hair || !(/datum/preference/toggle/mutant_toggle/hair_opacity in preferences.recently_updated_keys)), "Rejecting a pending opacity toggle must preserve the saved package and pending character edits.")
+
+/datum/unit_test/custom_sprite_commit_regions/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/test_path = "tmp/custom_sprite_commit_regions_[REF(src)].json"
+	allocate(/datum/custom_sprite_test_files, test_path)
+	var/datum/json_savefile/custom_sprites/counting_test/store = new(test_path)
+	QDEL_NULL(preferences.custom_sprite_savefile)
+	preferences.custom_sprite_savefile = store
+	preferences.custom_sprite_slot = null
+	preferences.load_and_save = TRUE
+	var/list/leg = custom_sprite_test_drawing()
+	TEST_ASSERT(!preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_LEG, leg, null), preferences.default_slot), "The fixture leg must save.")
+	var/writes = store.writes
+	var/list/arm = custom_sprite_test_drawing("2")
+	var/list/head = custom_sprite_test_drawing()
+	var/error = preferences.commit_custom_styles(list(
+		custom_style_package("markings", BODY_ZONE_L_ARM, arm, null),
+		custom_style_package("markings", BODY_ZONE_HEAD, head, null),
+		custom_style_package("markings", BODY_ZONE_L_LEG, leg, null),
+	), preferences.default_slot, list(custom_style_key("markings", BODY_ZONE_L_ARM)))
+	TEST_ASSERT(!error, "Saving several regions failed: [error]")
+	TEST_ASSERT(store.writes == writes + 1, "Several regions must be written in one sidecar write.")
+	TEST_ASSERT(!(json_encode(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]) != json_encode(custom_sprite_validate(arm)) || json_encode(preferences.custom_limb_markings?[BODY_ZONE_HEAD]) != json_encode(custom_sprite_validate(head))), "Every changed region must be saved.")
+	TEST_ASSERT(preferences.custom_style_previous_package("markings", BODY_ZONE_L_ARM), "Listed keys rotate their previous style.")
+	TEST_ASSERT(!(preferences.custom_style_previous_package("markings", BODY_ZONE_HEAD) || preferences.custom_style_previous_package("markings", BODY_ZONE_L_LEG)), "Unlisted and identical regions must not rotate.")
+	writes = store.writes
+	TEST_ASSERT(!preferences.commit_custom_styles(list(custom_style_package("markings", BODY_ZONE_L_LEG, leg, null)), preferences.default_slot, null), "Identical packages save as a no-op.")
+	TEST_ASSERT(store.writes == writes, "Identical packages must not write.")
+	store.path = null
+	preferences.load_and_save = FALSE
+
+/datum/unit_test/custom_sprite_commit_regions_rollback/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/test_path = "tmp/custom_sprite_commit_rollback_[REF(src)].json"
+	allocate(/datum/custom_sprite_test_files, test_path)
+	var/datum/json_savefile/custom_sprites/counting_test/failing/store = new(test_path)
+	store.fail_destination = test_path
+	store.short_write = FALSE
+	QDEL_NULL(preferences.custom_sprite_savefile)
+	preferences.custom_sprite_savefile = store
+	preferences.custom_sprite_slot = null
+	preferences.load_and_save = TRUE
+	var/error = preferences.commit_custom_styles(list(
+		custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_drawing(), null),
+		custom_style_package("markings", BODY_ZONE_HEAD, custom_sprite_test_drawing("2"), null),
+	), preferences.default_slot, list(custom_style_key("markings", BODY_ZONE_L_ARM)))
+	TEST_ASSERT(error, "A failed sidecar write must be reported.")
+	TEST_ASSERT(!(length(preferences.custom_limb_markings) || preferences.custom_style_previous), "A failed write must roll back every region and every rotation.")
+	store.path = null
+	preferences.load_and_save = FALSE
+
+/datum/unit_test/custom_sprite_commit_regions_markings/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.load_custom_sprites()
+	var/marking = GLOB.body_markings_per_limb[BODY_ZONE_L_ARM][1]
+	var/list/markings = list(list("name" = marking, "color" = "#123456", "emissive" = FALSE))
+	var/error = preferences.commit_custom_styles(list(
+		custom_style_package("markings", BODY_ZONE_L_ARM, null, null, markings),
+		custom_style_package("markings", BODY_ZONE_HEAD, custom_sprite_test_drawing(), null),
+	), preferences.default_slot, null)
+	TEST_ASSERT(!error, "Saving a base marking with another region's drawing failed: [error]")
+	TEST_ASSERT(preferences.body_markings?[BODY_ZONE_L_ARM]?[marking], "The changed region's base markings must be published.")
+	TEST_ASSERT(!preferences.custom_limb_markings?[BODY_ZONE_L_ARM], "A base-marking-only region must not gain a drawing.")

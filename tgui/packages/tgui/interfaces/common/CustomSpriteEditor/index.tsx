@@ -1,6 +1,7 @@
 // THIS IS AN APHELION UI FILE
 import { useAtom, useSetAtom } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
+import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import { useBackend } from 'tgui/backend';
 import { Window } from 'tgui/layouts';
 import {
@@ -25,6 +26,8 @@ import {
 import { Dir } from '../SpriteEditor/Types/types';
 import { toolTooltip } from '../SpriteEditor/useSpriteEditorHotkeys';
 import { CustomSpritePalette } from './Palette';
+import { RegionOverlay } from './RegionOverlay';
+import { drawScanlines, regionAt, regionBounds } from './regions';
 import type { CustomSpriteEditorData } from './types';
 
 /** Steps through a list of options with wraparound, for the cycle arrows and rotate buttons. */
@@ -143,6 +146,17 @@ export const CustomSpriteEditor = ({
     edited,
     drawBounds,
     drawMask,
+    regions,
+    regionZones,
+    regionLabels,
+    selectedZone: serverZone,
+    focusRevision,
+    regionMarkings,
+    regionMarkingChoices,
+    regionEmissive,
+    paletteNotice,
+    backgrounds,
+    defaultBackground,
   } = data;
   const [direction, setDirection] = useAtom(dirAtom);
   const setLayer = useSetAtom(layerAtom);
@@ -158,6 +172,46 @@ export const CustomSpriteEditor = ({
   }>();
   const [showGrid, setShowGrid] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [background, setBackground] = useState(
+    defaultBackground ?? 'Transparent',
+  );
+  const wide = editorData.sprite.width > 32;
+  const tile = backgrounds?.find((entry) => entry.name === background);
+  const tileUrl = tile ? (wide ? tile.wideUrl : tile.url) : null;
+  const tileStyle = {
+    backgroundImage: `url(${tileUrl ?? transparency_checkerboard})`,
+  };
+  const regionMode = target === 'markings' && !!regions;
+  const zones = regionZones ?? [];
+  const [selectedZone, setSelectedZone] = useState(serverZone ?? null);
+  const [hoveredZone, setHoveredZone] = useState<string | null>(null);
+  useEffect(() => setSelectedZone(serverZone ?? null), [focusRevision]);
+  const regionLabel = (selectedZone && regionLabels?.[selectedZone]) || '';
+  const viewLabel =
+    directions.find(([dir]) => dir === direction)?.[1] ?? 'Front';
+  const regionRows = regions?.[direction];
+  const selectedInView = !!regionBounds(regionRows, zones, selectedZone);
+  const selectRegionAt = (x: number, y: number) => {
+    if (!regionMode) return;
+    const zone = regionAt(regionRows, zones, x, y);
+    if (!zone || zone === selectedZone) return;
+    setSelectedZone(zone);
+    act('selectRegion', { zone });
+  };
+  const trackHover = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!regionMode) return;
+    const canvas = event.currentTarget.querySelector('canvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const { width, height } = editorData.sprite;
+    const zone = regionAt(
+      regionRows,
+      zones,
+      Math.floor(((event.clientX - rect.left) / rect.width) * width),
+      Math.floor(((event.clientY - rect.top) / rect.height) * height),
+    );
+    if (zone !== hoveredZone) setHoveredZone(zone);
+  };
   const lastSaveRevision = useRef(saveRevision);
   const nextDrawingActivity = useRef(0);
   const paletteTint = colorMode === 'literal' ? null : displayTint;
@@ -234,18 +288,33 @@ export const CustomSpriteEditor = ({
             >
               <Box color="label" mb={1}>
                 {candidate.summary ? `Base hair: ${candidate.summary}. ` : ''}
+                {candidate.regions?.length
+                  ? `Replaces: ${candidate.regions.join(', ')}. `
+                  : ''}
+                {candidate.skipped?.length
+                  ? `Skipped: ${candidate.skipped.join(', ')} (not on this body). `
+                  : ''}
                 This replaces the current draft. You can undo it.
               </Box>
               <Stack justify="space-around" mb={1}>
                 {directions.map(([dir, label]) => (
                   <Stack.Item key={dir} textAlign="center">
                     {!!candidate.previews[dir] && (
-                      <img
-                        src={candidate.previews[dir]}
-                        alt={`${label} preview`}
-                        width={96}
-                        style={{ height: 'auto', imageRendering: 'pixelated' }}
-                      />
+                      <Box
+                        inline
+                        className="CustomSpriteEditor__tile"
+                        style={tileStyle}
+                      >
+                        <img
+                          src={candidate.previews[dir]}
+                          alt={`${label} preview`}
+                          width={96}
+                          style={{
+                            height: 'auto',
+                            imageRendering: 'pixelated',
+                          }}
+                        />
+                      </Box>
                     )}
                     <Box color="label">{label}</Box>
                   </Stack.Item>
@@ -310,9 +379,19 @@ export const CustomSpriteEditor = ({
                 <Button
                   color="bad"
                   icon="eraser"
-                  onClick={() => act('clear', { dir: String(direction) })}
+                  disabled={regionMode && !selectedZone}
+                  onClick={() =>
+                    regionMode
+                      ? act('clear', {
+                          dir: String(direction),
+                          zone: selectedZone,
+                        })
+                      : act('clear', { dir: String(direction) })
+                  }
                 >
-                  Clear layer
+                  {regionMode
+                    ? `Clear ${regionLabel.toLowerCase()}`
+                    : 'Clear layer'}
                 </Button>
               </Stack.Item>
               <Stack.Item grow />
@@ -378,48 +457,88 @@ export const CustomSpriteEditor = ({
           <Stack.Item grow basis={0} minHeight={0}>
             <Stack fill>
               <Stack.Item grow minWidth={0} minHeight={0}>
-                <Box
-                  className="CustomSpriteEditor__canvas"
-                  height="100%"
-                  backgroundColor="rgba(0, 0, 0, 0.2)"
-                  p={1}
-                  style={{ overflow: 'hidden', boxSizing: 'border-box' }}
-                >
-                  <SpriteEditor.Canvas
-                    data={editorData.sprite}
-                    onSave={() => act('saveDraft')}
-                    onDraw={
-                      salon
-                        ? (x, y, erasing = false) => {
-                            const now = Date.now();
-                            if (now < nextDrawingActivity.current) return;
-                            nextDrawingActivity.current = now + 1000;
-                            act('drawing', {
+                <Stack vertical fill>
+                  <Stack.Item grow minHeight={0}>
+                    <Box
+                      className="CustomSpriteEditor__canvas"
+                      height="100%"
+                      backgroundColor="rgba(0, 0, 0, 0.2)"
+                      p={1}
+                      style={{ overflow: 'hidden', boxSizing: 'border-box' }}
+                      onMouseMove={trackHover}
+                      onMouseLeave={() => setHoveredZone(null)}
+                    >
+                      <SpriteEditor.Canvas
+                        data={editorData.sprite}
+                        onSave={() => act('saveDraft')}
+                        onDraw={
+                          salon
+                            ? (x, y, erasing = false) => {
+                                const now = Date.now();
+                                if (now < nextDrawingActivity.current) return;
+                                nextDrawingActivity.current = now + 1000;
+                                act('drawing', {
+                                  dir: String(direction),
+                                  x,
+                                  y,
+                                  erasing,
+                                });
+                              }
+                            : undefined
+                        }
+                        onSampleBackdrop={(x, y) => {
+                          if (showGuide) {
+                            act('sampleGuide', {
                               dir: String(direction),
                               x,
                               y,
-                              erasing,
                             });
                           }
-                        : undefined
-                    }
-                    onSampleBackdrop={(x, y) => {
-                      if (showGuide) {
-                        act('sampleGuide', { dir: String(direction), x, y });
-                      }
-                    }}
-                    width="100%"
-                    height="100%"
-                    showGrid={showGrid}
-                    drawBounds={drawBounds[direction] ?? [0, 0, -1, -1]}
-                    drawMask={drawMask?.[direction]}
-                    backgroundImage={
-                      loadedGuide?.url === guideUrl
-                        ? loadedGuide?.image
-                        : undefined
-                    }
-                  />
-                </Box>
+                        }}
+                        width="100%"
+                        height="100%"
+                        showGrid={showGrid}
+                        drawBounds={drawBounds[direction] ?? [0, 0, -1, -1]}
+                        drawMask={drawMask?.[direction]}
+                        backgroundImage={
+                          loadedGuide?.url === guideUrl
+                            ? loadedGuide?.image
+                            : undefined
+                        }
+                        background={tileUrl ? `url(${tileUrl})` : undefined}
+                        shade={drawScanlines}
+                        onPointerDown={selectRegionAt}
+                        overlay={
+                          regionMode
+                            ? (canvasWidth, canvasHeight) => (
+                                <RegionOverlay
+                                  rows={regionRows}
+                                  zones={zones}
+                                  imageWidth={editorData.sprite.width}
+                                  canvasWidth={canvasWidth}
+                                  canvasHeight={canvasHeight}
+                                  selected={selectedZone}
+                                  hovered={hoveredZone}
+                                  labels={regionLabels ?? {}}
+                                />
+                              )
+                            : undefined
+                        }
+                      />
+                    </Box>
+                  </Stack.Item>
+                  {regionMode && (
+                    <Stack.Item className="CustomSpriteEditor__status">
+                      <span>
+                        <b>{regionLabel}</b>
+                        {!selectedInView && selectedZone ? (
+                          <span> (not in this view)</span>
+                        ) : null}
+                      </span>
+                      <Box color="label">Click the body to choose a region</Box>
+                    </Stack.Item>
+                  )}
+                </Stack>
               </Stack.Item>
               <Stack.Item width="18rem" overflowY="auto">
                 <Stack vertical>
@@ -459,6 +578,111 @@ export const CustomSpriteEditor = ({
                             </Button>
                           </Stack.Item>
                         </Stack>
+                      </Section>
+                    </Stack.Item>
+                  )}
+                  {regionMode && !!selectedZone && (
+                    <Stack.Item>
+                      <Section
+                        title={`${regionLabel} base markings`}
+                        buttons={
+                          !!regionMarkingChoices?.[selectedZone] && (
+                            <Button
+                              icon="plus"
+                              disabled={
+                                (regionMarkings?.[selectedZone]?.length ?? 0) >=
+                                (maxBaseMarkings ?? 0)
+                              }
+                              onClick={() =>
+                                act('addBaseMarking', { zone: selectedZone })
+                              }
+                            />
+                          )
+                        }
+                      >
+                        {regionMarkingChoices?.[selectedZone] ? (
+                          <>
+                            {(regionMarkings?.[selectedZone] ?? []).map(
+                              (marking) => {
+                                const taken = new Set(
+                                  (regionMarkings?.[selectedZone] ?? []).map(
+                                    (entry) => entry.name,
+                                  ),
+                                );
+                                const choices = regionMarkingChoices[
+                                  selectedZone
+                                ].filter(
+                                  (name) =>
+                                    name === marking.name || !taken.has(name),
+                                );
+                                return (
+                                  <Stack
+                                    key={marking.index}
+                                    mb={0.5}
+                                    align="center"
+                                  >
+                                    <Stack.Item grow style={{ minWidth: 0 }}>
+                                      <CycleDropdown
+                                        options={choices}
+                                        selected={marking.name}
+                                        onSelected={(name) =>
+                                          act('setBaseMarking', {
+                                            zone: selectedZone,
+                                            index: marking.index,
+                                            name,
+                                          })
+                                        }
+                                      />
+                                    </Stack.Item>
+                                    <Stack.Item>
+                                      <Button
+                                        tooltip={`Color of ${marking.name}`}
+                                        onClick={() =>
+                                          act('pickBaseMarkingColor', {
+                                            zone: selectedZone,
+                                            index: marking.index,
+                                          })
+                                        }
+                                      >
+                                        <Box
+                                          inline
+                                          width="1rem"
+                                          height="0.8rem"
+                                          backgroundColor={marking.color}
+                                        />
+                                      </Button>
+                                    </Stack.Item>
+                                    <Stack.Item>
+                                      <Button
+                                        icon="trash"
+                                        color="bad"
+                                        tooltip={`Remove ${marking.name}`}
+                                        onClick={() =>
+                                          act('removeBaseMarking', {
+                                            zone: selectedZone,
+                                            index: marking.index,
+                                          })
+                                        }
+                                      />
+                                    </Stack.Item>
+                                  </Stack>
+                                );
+                              },
+                            )}
+                            {!regionMarkings?.[selectedZone]?.length && (
+                              <Box color="label">
+                                {regionLabel} has no markings yet.
+                              </Box>
+                            )}
+                          </>
+                        ) : (
+                          <Box color="label">
+                            {regionLabel} has no base markings.
+                          </Box>
+                        )}
+                        <Box color="label" italic mt={0.5}>
+                          Click the body to choose a region.
+                        </Box>
                       </Section>
                     </Stack.Item>
                   )}
@@ -600,36 +824,88 @@ export const CustomSpriteEditor = ({
                   <Stack.Item>
                     <Button.Checkbox
                       fluid
-                      checked={emissive[direction]}
-                      disabled={!emissiveAllowed}
+                      checked={
+                        regionMode
+                          ? !!(
+                              selectedZone &&
+                              regionEmissive?.[selectedZone]?.[direction]
+                            )
+                          : emissive[direction]
+                      }
+                      disabled={
+                        !emissiveAllowed || (regionMode && !selectedZone)
+                      }
                       tooltip={
                         !emissiveAllowed
                           ? 'Enable emissive appearance in character preferences.'
                           : 'Makes this direction glow in the dark.'
                       }
                       onClick={() =>
-                        act('setEmissive', {
-                          dir: String(direction),
-                          enabled: !emissive[direction],
-                        })
+                        regionMode
+                          ? act('setEmissive', {
+                              zone: selectedZone,
+                              dir: String(direction),
+                              enabled:
+                                !regionEmissive?.[selectedZone!]?.[direction],
+                            })
+                          : act('setEmissive', {
+                              dir: String(direction),
+                              enabled: !emissive[direction],
+                            })
                       }
                     >
-                      Emissive
+                      {regionMode
+                        ? `Emissives - (${regionLabel}, ${viewLabel})`
+                        : 'Emissive'}
                     </Button.Checkbox>
                   </Stack.Item>
                   <Stack.Item>
                     <Section title="Preview">
                       <Box textAlign="center">
                         {previews[direction] && (
-                          <img
-                            src={previews[direction]}
-                            alt="Character with your drawing"
-                            width={128}
-                            style={{
-                              height: 'auto',
-                              imageRendering: 'pixelated',
-                            }}
-                          />
+                          <Box
+                            inline
+                            className="CustomSpriteEditor__tile"
+                            style={tileStyle}
+                          >
+                            <img
+                              src={previews[direction]}
+                              alt="Character with your drawing"
+                              width={128}
+                              style={{
+                                height: 'auto',
+                                imageRendering: 'pixelated',
+                              }}
+                            />
+                          </Box>
+                        )}
+                        {!!backgrounds?.length && (
+                          <Stack
+                            justify="center"
+                            wrap
+                            mt={1}
+                            className="CustomSpriteEditor__swatches"
+                          >
+                            {[
+                              { name: 'Transparent', url: '' },
+                              ...backgrounds,
+                            ].map((entry) => (
+                              <Stack.Item key={entry.name}>
+                                <Button
+                                  className="SpriteEditor__plainSwatch CustomSpriteEditor__backgroundSwatch"
+                                  width="24px"
+                                  height="24px"
+                                  aria-label={entry.name}
+                                  aria-pressed={background === entry.name}
+                                  tooltip={entry.name}
+                                  onClick={() => setBackground(entry.name)}
+                                  style={{
+                                    backgroundImage: `url(${entry.url || transparency_checkerboard})`,
+                                  }}
+                                />
+                              </Stack.Item>
+                            ))}
+                          </Stack>
                         )}
                         <Box mt={1}>
                           <Button
@@ -671,6 +947,9 @@ export const CustomSpriteEditor = ({
               Waiting for {recipientName} to approve the mirror preview. Any
               edit withdraws it.
             </Stack.Item>
+          )}
+          {!!paletteNotice && (
+            <Stack.Item color="average">{paletteNotice}</Stack.Item>
           )}
           {!!saveError && (
             <Stack.Item color="bad">

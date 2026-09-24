@@ -140,42 +140,109 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		LAZYREMOVE(custom_limb_markings, zone)
 
 /**
- * Saves a complete style package to a character slot.
- *
- * The drawing is written first, through the verified sidecar writer. If that fails, nothing in
- * memory changes. A changed native base look is then published to the character and written to
- * preferences.json, so an interruption between the two writes can only leave the new drawing on
- * the old base look.
+ * Saves one style package to a character slot. See commit_custom_styles().
  *
  * Arguments:
- * - package: A validated package for this character.
- * - slot: The slot the caller bound the save to. It must still be selected.
  * - rotate: Keeps the currently saved package as the previous style. Only whole-style
  *   replacement, import, restoration and salon saves rotate it.
- * - reject_pending_hair: Refuses when the character setup menu has unsaved hair edits, rather
- *   than silently replacing them.
- * - reject_pending_markings: Refuses when the target zone has unsaved native marking edits.
+ */
+/datum/preferences/proc/commit_custom_style(list/package, slot, rotate = FALSE, reject_pending_hair = FALSE, reject_pending_markings = FALSE)
+	SHOULD_NOT_SLEEP(TRUE)
+	return commit_custom_styles(list(package), slot, rotate ? list(custom_style_key(package["target"], package["zone"])) : null, reject_pending_hair, reject_pending_markings)
+
+/**
+ * Saves several style packages to a character slot in one sidecar write.
+ *
+ * Every package is validated before anything changes. Packages identical to what's saved are
+ * skipped and never rotate. The drawings are written first, through the verified sidecar writer,
+ * once; if that fails, every package is rolled back and nothing in memory changes. Changed native
+ * base looks are then published and preferences.json written once, so an interruption between the
+ * two writes can only leave new drawings on old base looks.
+ *
+ * Arguments:
+ * - packages: Canonical packages, at most one per target and zone.
+ * - slot: The slot the caller bound the save to. It must still be selected.
+ * - rotate_keys: Style keys (custom_style_key()) whose saved package becomes the previous style.
+ * - reject_pending_hair: Refuses when character setup has unsaved hair edits.
+ * - reject_pending_markings: Refuses when a target zone has unsaved native marking edits.
  *
  * Returns:
  * - null: Saved, or already identical.
  * - text: Why nothing was saved. Safe to show the player.
  */
-/datum/preferences/proc/commit_custom_style(list/package, slot, rotate = FALSE, reject_pending_hair = FALSE, reject_pending_markings = FALSE)
+/datum/preferences/proc/commit_custom_styles(list/packages, slot, list/rotate_keys, reject_pending_hair = FALSE, reject_pending_markings = FALSE)
 	SHOULD_NOT_SLEEP(TRUE)
 	if(slot != default_slot)
 		return "That character slot is no longer selected in character setup."
+	load_custom_sprites()
+	var/list/prepared = list()
+	for(var/list/package as anything in packages)
+		var/list/result = prepare_custom_style(package, slot, reject_pending_hair, reject_pending_markings)
+		if(result["error"])
+			return result["error"]
+		if(result["package"])
+			prepared += list(result)
+	if(!length(prepared))
+		return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save() ? null : "Couldn't save to disk."
+	var/list/old_previous = custom_style_previous
+	var/list/new_previous = custom_style_copy_previous(custom_style_previous) || list()
+	for(var/list/entry as anything in prepared)
+		var/list/package = entry["package"]
+		var/key = custom_style_key(package["target"], package["zone"])
+		if(key in rotate_keys)
+			new_previous[key] = entry["current"]
+		set_custom_style_drawing(package["target"], package["zone"], deep_copy_list(package["drawing"]))
+	custom_style_previous = length(new_previous) ? new_previous : null
+	var/sidecar_key = "character[slot]"
+	var/list/old_sidecar_entry = custom_sprite_savefile.get_entry(sidecar_key)
+	store_custom_sprite_slot(slot)
+	if(load_and_save && !custom_sprite_savefile.save())
+		for(var/list/entry as anything in prepared)
+			var/list/package = entry["package"]
+			set_custom_style_drawing(package["target"], package["zone"], entry["current"]["drawing"])
+		custom_style_previous = old_previous
+		if(isnull(old_sidecar_entry))
+			custom_sprite_savefile.remove_entry(sidecar_key)
+		else
+			custom_sprite_savefile.set_entry(sidecar_key, old_sidecar_entry)
+		return "Couldn't save to disk."
+	var/write_base = FALSE
+	for(var/list/entry as anything in prepared)
+		write_base ||= entry["hair_changed"] || entry["markings_changed"]
+	write_base = write_base && load_and_save
+	if(write_base)
+		// Keeps pending character setup edits, and creates the slot's entry if it has none.
+		save_character()
+	for(var/list/entry as anything in prepared)
+		var/list/package = entry["package"]
+		if(entry["hair_changed"])
+			publish_custom_style_hair(slot, package["hair"], package["target"])
+		if(entry["markings_changed"])
+			publish_custom_style_markings(slot, package["zone"], package["markings"])
+	if(write_base)
+		savefile.save()
+	return null
+
+/**
+ * Validates one package against the saved character without changing anything.
+ *
+ * Returns:
+ * - list("error" = text): Nothing may be saved.
+ * - list("package" = null): Identical to what's saved.
+ * - list("package", "current", "hair_changed", "markings_changed"): Ready to write.
+ */
+/datum/preferences/proc/prepare_custom_style(list/package, slot, reject_pending_hair, reject_pending_markings)
 	var/target = package["target"]
 	var/zone = package["zone"]
 	var/list/markings
 	if(!isnull(package["markings"]))
 		if(target != "markings")
-			return "Base markings require a supported body zone."
+			return list("error" = "Base markings require a supported body zone.")
 		var/list/markings_result = custom_style_validate_markings(package["markings"], zone)
 		if(markings_result["error"])
-			return markings_result["error"]
+			return markings_result
 		markings = markings_result["markings"]
 	package = custom_style_package(target, zone, custom_sprite_validate(package["drawing"]), package["hair"], markings)
-	load_custom_sprites()
 	var/list/current = custom_style_saved_package(target, zone)
 	// A drawing-only hair package keeps the saved base look.
 	if(custom_style_hair_target(target) && !package["hair"])
@@ -186,23 +253,20 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	if(reject_pending_markings && ("markings" in package))
 		var/problem = custom_style_pending_markings_problem(slot, zone)
 		if(problem)
-			return problem
+			return list("error" = problem)
 	// Identical packages never rotate, so repeated saves can't overwrite the real previous style.
 	if(custom_style_package_hash(current) == custom_style_package_hash(package))
-		return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save() ? null : "Couldn't save to disk."
-	var/list/new_previous = custom_style_copy_previous(custom_style_previous) || list()
-	if(rotate)
-		new_previous[custom_style_key(target, zone)] = current
+		return list("package" = null)
 	var/hair_changed = custom_style_hair_target(target) && json_encode(package["hair"]) != json_encode(current["hair"])
 	var/markings_changed = ("markings" in package) && json_encode(package["markings"]) != json_encode(current["markings"])
 	if(markings_changed && !read_preference(/datum/preference/toggle/allow_emissives))
 		for(var/list/entry as anything in package["markings"])
 			if(entry["emissive"])
-				return "This style glows, but emissive appearance is disabled for this character."
+				return list("error" = "This style glows, but emissive appearance is disabled for this character.")
 	if(hair_changed)
 		var/problem = custom_style_hair_problem(package["hair"], target)
 		if(problem)
-			return problem
+			return list("error" = problem)
 		if(reject_pending_hair)
 			var/list/fields = GLOB.custom_style_hair_preferences[target]
 			var/pending_hair = target == "hair" && (/datum/preference/toggle/mutant_toggle/hair_opacity in recently_updated_keys)
@@ -211,33 +275,8 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 					pending_hair = TRUE
 					break
 			if(pending_hair)
-				return "Character setup has unsaved hair changes. Close character setup, then try again."
-	var/list/old_drawing = current["drawing"]
-	var/list/old_previous = custom_style_previous
-	set_custom_style_drawing(target, zone, deep_copy_list(package["drawing"]))
-	custom_style_previous = length(new_previous) ? new_previous : null
-	var/sidecar_key = "character[slot]"
-	var/list/old_sidecar_entry = custom_sprite_savefile.get_entry(sidecar_key)
-	store_custom_sprite_slot(slot)
-	if(load_and_save && !custom_sprite_savefile.save())
-		set_custom_style_drawing(target, zone, old_drawing)
-		custom_style_previous = old_previous
-		if(isnull(old_sidecar_entry))
-			custom_sprite_savefile.remove_entry(sidecar_key)
-		else
-			custom_sprite_savefile.set_entry(sidecar_key, old_sidecar_entry)
-		return "Couldn't save to disk."
-	var/write_base = load_and_save && (hair_changed || markings_changed)
-	if(write_base)
-		// Keeps pending character setup edits, and creates the slot's entry if it has none.
-		save_character()
-	if(hair_changed)
-		publish_custom_style_hair(slot, package["hair"], target)
-	if(markings_changed)
-		publish_custom_style_markings(slot, zone, package["markings"])
-	if(write_base)
-		savefile.save()
-	return null
+				return list("error" = "Character setup has unsaved hair changes. Close character setup, then try again.")
+	return list("package" = package, "current" = current, "hair_changed" = hair_changed, "markings_changed" = markings_changed)
 
 /// Native marking lists may alias the save tree; compare the actual saved file for recipient saves.
 /datum/preferences/proc/custom_style_pending_markings_problem(slot, zone)

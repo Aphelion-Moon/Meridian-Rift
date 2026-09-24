@@ -338,6 +338,11 @@
 	if(!overlay)
 		overlay = new overlay_type
 		add_bodypart_overlay(overlay, FALSE)
+		// Hand paint draws over arm paint on the same limb, whichever was created first.
+		if(overlay_type == /datum/bodypart_overlay/custom_marking/zone)
+			for(var/datum/bodypart_overlay/custom_marking/zone/hand/hand in LAZYCOPY(bodypart_overlays))
+				remove_bodypart_overlay(hand, FALSE)
+				add_bodypart_overlay(hand, FALSE)
 	overlay.set_drawing(drawing, src)
 
 /mob/living/carbon/human/proc/sync_custom_sprite_appearance(refresh_body = FALSE)

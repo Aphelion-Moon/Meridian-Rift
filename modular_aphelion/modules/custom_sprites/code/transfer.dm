@@ -263,13 +263,14 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  *
  * Returns:
  * - list("package" = package, "legacy" = TRUE/FALSE)
+ * - list("body" = zone -> package, "legacy" = FALSE): A whole-body style.
  * - list("error" = message): Safe to show the player. Never includes uploaded content.
  */
 /proc/custom_style_parse(text)
 	if(!istext(text) || !length(text))
 		return list("error" = "The file is empty.")
-	if(length(text) > CUSTOM_STYLE_MAX_BYTES)
-		return list("error" = "The file is larger than 16 KiB.")
+	if(length(text) > CUSTOM_STYLE_MAX_BODY_BYTES)
+		return list("error" = "The file is larger than 160 KiB.")
 	// rust-g rejects malformed and deeply nested JSON before BYOND's recursive decoder sees it.
 	if(!rustg_json_is_valid(text))
 		return list("error" = "The file is not valid JSON.")
@@ -281,6 +282,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(!islist(decoded) || copytext(trim_left(text), 1, 2) != "{")
 		return list("error" = "The file must contain a JSON object.")
 	if(!("format" in decoded))
+		if(length(text) > CUSTOM_STYLE_MAX_BYTES)
+			return list("error" = "The file is larger than 16 KiB.")
 		for(var/key in decoded)
 			if(istext(key) && findtext(key, "character") == 1)
 				return list("error" = "That is an account drawing file, not a style export.")
@@ -294,32 +297,80 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return list("error" = "The file isn't a custom style export.")
 	if(decoded["version"] != CUSTOM_STYLE_VERSION)
 		return list("error" = "The style file uses an unsupported version.")
+	if(decoded["target"] == "body")
+		var/list/body = custom_style_validate_body(decoded)
+		if(!body["error"])
+			body["legacy"] = FALSE
+		return body
+	if(length(text) > CUSTOM_STYLE_MAX_BYTES)
+		return list("error" = "The file is larger than 16 KiB.")
 	var/list/result = custom_style_validate_package(decoded)
 	if(result["error"])
 		return result
 	result["legacy"] = FALSE
 	return result
 
+/**
+ * Strictly validates a whole-body style: one region package per zone it contains.
+ *
+ * Returns list("body" = zone -> canonical package) or list("error" = message).
+ */
+/proc/custom_style_validate_body(list/raw)
+	if(custom_style_unknown_key(raw, list("format", "version", "target", "regions")))
+		return list("error" = "The style has an unsupported field.")
+	var/list/regions = raw["regions"]
+	if(!islist(regions) || !length(regions))
+		return list("error" = "The style has no regions.")
+	var/list/body = list()
+	for(var/zone in regions)
+		if(!istext(zone) || !(zone in GLOB.custom_marking_zone_labels))
+			return list("error" = "The style has an unknown region.")
+		var/list/entry = regions[zone]
+		var/label = GLOB.custom_marking_zone_labels[zone]
+		if(!islist(entry) || custom_style_unknown_key(entry, list("drawing", "markings")))
+			return list("error" = "The [LOWER_TEXT(label)] region is malformed.")
+		var/list/package = list("target" = "markings", "zone" = zone, "drawing" = entry["drawing"])
+		if("markings" in entry)
+			package["markings"] = entry["markings"]
+		var/list/result = custom_style_validate_package(package)
+		if(result["error"])
+			return list("error" = "[label]: [result["error"]]")
+		body[zone] = result["package"]
+	return list("body" = body)
+
 /// The export format always includes all four views and their emission settings.
 /proc/custom_style_export_text(list/package)
 	var/list/envelope = list("format" = CUSTOM_STYLE_FORMAT, "version" = CUSTOM_STYLE_VERSION, "target" = package["target"])
 	if(package["target"] == "markings")
 		envelope["zone"] = package["zone"]
-	var/list/drawing = package["drawing"]
-	if(drawing)
-		var/list/palette = drawing["palette"]
-		var/pixel_count = custom_sprite_width(drawing) * 32
-		var/list/dirs = list()
-		for(var/direction in GLOB.custom_style_directions)
-			dirs[direction] = drawing["dirs"][direction] || custom_sprite_encode_grid(repeat_string(pixel_count, "0"), length(palette), pixel_count)
-		envelope["drawing"] = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette)), "palette" = palette, "dirs" = dirs, "tint" = drawing["tint"], "emissive" = custom_sprite_emissive_settings(drawing["emissive"]))
-	else
-		envelope["drawing"] = null
+	envelope["drawing"] = custom_style_export_drawing(package["drawing"])
 	if(custom_style_hair_target(package["target"]))
 		envelope["hair"] = package["hair"]
 	if("markings" in package)
 		envelope["markings"] = package["markings"]
 	return json_encode(envelope, JSON_PRETTY_PRINT)
+
+/// A drawing in export form: all four views and their emission settings, or null for empty art.
+/proc/custom_style_export_drawing(list/drawing)
+	if(!drawing)
+		return null
+	var/list/palette = drawing["palette"]
+	var/pixel_count = custom_sprite_width(drawing) * 32
+	var/list/dirs = list()
+	for(var/direction in GLOB.custom_style_directions)
+		dirs[direction] = drawing["dirs"][direction] || custom_sprite_encode_grid(repeat_string(pixel_count, "0"), length(palette), pixel_count)
+	return list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette)), "palette" = palette, "dirs" = dirs, "tint" = drawing["tint"], "emissive" = custom_sprite_emissive_settings(drawing["emissive"]))
+
+/// Whole-body export: every region's drawing and base markings in one file.
+/proc/custom_style_body_export_text(list/regions)
+	var/list/entries = list()
+	for(var/zone in regions)
+		var/list/package = regions[zone]
+		var/list/entry = list("drawing" = custom_style_export_drawing(package["drawing"]))
+		if("markings" in package)
+			entry["markings"] = package["markings"]
+		entries[zone] = entry
+	return json_encode(list("format" = CUSTOM_STYLE_FORMAT, "version" = CUSTOM_STYLE_VERSION, "target" = "body", "regions" = entries), JSON_PRETTY_PRINT)
 
 /**
  * Returns the first view with paint outside the destination's allowed pixels.
@@ -397,31 +448,38 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return "custom-hair-style"
 	return package["zone"] ? "custom-tattoo-[replacetext(package["zone"], "_", "-")]" : "custom-markings"
 
+/// Sends one package to a client as a downloaded file.
+/proc/custom_style_send(client/receiver, list/package)
+	return custom_style_send_text(receiver, custom_style_export_text(package), custom_style_file_label(package), "custom [package["target"]] style")
+
+/// Sends a whole-body style to a client as a downloaded file.
+/proc/custom_style_send_body(client/receiver, list/regions)
+	return custom_style_send_text(receiver, custom_style_body_export_text(regions), "custom-markings-body", "whole-body markings style")
+
 /**
- * Sends a package to a client as a downloaded file.
+ * Sends export text to a client as a downloaded file.
  *
  * The temporary file uses a fixed directory and a server-generated name; nothing from the
- * package becomes a path. It is removed on every exit path.
+ * contents becomes a path. It is removed on every exit path.
  *
  * Returns:
  * - null: The download was sent.
  * - text: Why it wasn't.
  */
-/proc/custom_style_send(client/receiver, list/package)
+/proc/custom_style_send_text(client/receiver, contents, label, description)
 	if(!receiver)
 		return "You need to be connected to export."
 	var/transfer_error = custom_style_transfer_begin(receiver.ckey, "export")
 	if(transfer_error)
 		return transfer_error
-	var/temporary_path = "[CUSTOM_STYLE_EXPORT_DIRECTORY][md5("[world.realtime]-[world.time]-[rand(1, 1e9)]-[REF(package)]")].json"
+	var/temporary_path = "[CUSTOM_STYLE_EXPORT_DIRECTORY][md5("[world.realtime]-[world.time]-[rand(1, 1e9)]-[label]")].json"
 	var/result
 	try
-		var/contents = custom_style_export_text(package)
 		if(length(rustg_file_write(contents, temporary_path)) || rustg_file_read(temporary_path) != contents)
 			result = "The export couldn't be prepared. Try again later."
 		else
-			DIRECT_OUTPUT(receiver, ftp(file(temporary_path), "[custom_style_file_label(package)].json"))
-			log_game("[key_name(receiver)] exported a custom [package["target"]] style ([length(contents)] bytes).")
+			DIRECT_OUTPUT(receiver, ftp(file(temporary_path), "[label].json"))
+			log_game("[key_name(receiver)] exported a [description] ([length(contents)] bytes).")
 	catch
 		result = "The export couldn't be prepared. Try again later."
 	fdel(temporary_path)
@@ -437,7 +495,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  *
  * Returns:
  * - null: The player cancelled.
- * - list("package", "legacy", "bytes") or list("error"): See custom_style_parse().
+ * - list("package", "legacy", "bytes"), list("body", "legacy", "bytes") or list("error"): See custom_style_parse().
  */
 /proc/custom_style_receive(mob/user)
 	var/ckey = user?.ckey
@@ -451,8 +509,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			var/bytes = isfile(uploaded) ? length(uploaded) : 0
 			if(!bytes)
 				result = list("error" = "The file is empty or unreadable.")
-			else if(bytes > CUSTOM_STYLE_MAX_BYTES)
-				result = list("error" = "The file is larger than 16 KiB.")
+			else if(bytes > CUSTOM_STYLE_MAX_BODY_BYTES)
+				result = list("error" = "The file is larger than 160 KiB.")
 			else
 				result = custom_style_parse(file2text(uploaded))
 			result["bytes"] = bytes

@@ -27,6 +27,13 @@
 	preferences.close_custom_sprite_editors()
 	return FALSE
 
+/// Setup actions that change the body or its markings outside set_preference save and close open editors first, as preference changes do.
+/datum/preferences/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "remove_marking", "change_emissive", "set_preset", "randomize_character")
+	if(action in body_actions)
+		close_custom_sprite_editors()
+	return ..()
+
 /datum/preference_middleware/custom_sprites/on_new_character(mob/user)
 	preferences.load_custom_sprites()
 
@@ -37,6 +44,10 @@
 	var/body_zone = params["body_zone"]
 	if(target == "markings" ? (!istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels)) : (!custom_style_hair_target(target) || !isnull(body_zone)))
 		return FALSE
+	if(target == "markings")
+		var/datum/custom_sprite_editor/markings/whole_body = markings_editor(body_zone)
+		whole_body.ui_interact(user)
+		return TRUE
 	var/editor_key = custom_style_key(target, body_zone)
 	var/datum/custom_sprite_editor/editor = preferences.custom_sprite_editors?[editor_key]
 	if(!editor)
@@ -44,6 +55,16 @@
 		LAZYSET(preferences.custom_sprite_editors, editor_key, editor)
 	editor.ui_interact(user)
 	return TRUE
+
+/// The character's one whole-body markings editor, opened on a limb or moved to it.
+/datum/preference_middleware/custom_sprites/proc/markings_editor(body_zone)
+	var/datum/custom_sprite_editor/markings/editor = preferences.custom_sprite_editors?["markings"]
+	if(editor)
+		editor.focus_region(body_zone)
+		return editor
+	editor = new(preferences, body_zone)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	return editor
 
 /**
  * One draft and its window. This base type is the character preferences context: it is bound
@@ -137,13 +158,8 @@
 	slot = preferences?.default_slot
 	var/list/package = initial_package()
 	preview_body = create_preview_body()
-	workspace = new(package["drawing"], list(), null, null, body_zone == CUSTOM_MARKING_ZONE_TAUR ? CUSTOM_SPRITE_TAUR_WIDTH : 32)
+	workspace = create_workspace(package)
 	workspace.owner_ref = WEAKREF(src)
-	workspace.hair_context = package["hair"]
-	workspace.markings_context = package["markings"]
-	workspace.bake_tint()
-	if(!package["drawing"] || target == "markings")
-		workspace.tint = "#ffffff"
 	rebuild_resources(reuse_body = TRUE)
 	selected_color = length(workspace.palette) ? workspace.palette[1] : null
 	refresh_preview()
@@ -161,6 +177,16 @@
 /// Context hook: the package the draft starts from.
 /datum/custom_sprite_editor/proc/initial_package()
 	return preferences.custom_style_saved_package(target, body_zone)
+
+/// Context hook: the draft's workspace, built from the starting package.
+/datum/custom_sprite_editor/proc/create_workspace(list/package)
+	var/datum/sprite_editor_workspace/custom_sprite/new_workspace = new(package["drawing"], list(), null, null, body_zone == CUSTOM_MARKING_ZONE_TAUR ? CUSTOM_SPRITE_TAUR_WIDTH : 32)
+	new_workspace.hair_context = package["hair"]
+	new_workspace.markings_context = package["markings"]
+	new_workspace.bake_tint()
+	if(!package["drawing"] || target == "markings")
+		new_workspace.tint = "#ffffff"
+	return new_workspace
 
 /// Context hook: a private body showing the appearance being drawn on, or null when unavailable.
 /datum/custom_sprite_editor/proc/create_preview_body()
@@ -309,8 +335,7 @@
 		refresh_custom_palette()
 		return FALSE
 	if(!isnull(workspace.markings_context))
-		custom_style_apply_base_markings(preview_body, body_zone, workspace.markings_context, emissives_allowed())
-		preview_body.update_body()
+		apply_draft_base_markings()
 	// Everything taken off the body for the guides, mapped to its limb, to put back afterwards.
 	var/list/hidden_overlays
 	if(can_hide_parts() && hide_parts)
@@ -335,8 +360,7 @@
 		head?.set_custom_head_drawing(target, null)
 		preview_body.update_hair()
 	else
-		workspace.draw_bounds = custom_sprite_body_draw_bounds(preview_body, body_zone, workspace.width)
-		workspace.draw_mask = custom_sprite_body_draw_mask(preview_body, body_zone, workspace.width)
+		update_draw_area()
 		palette = sample_marking_palette()
 		var/hid_paint = FALSE
 		for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
@@ -349,9 +373,7 @@
 		if(hid_paint)
 			preview_body.update_body_parts()
 	unlocked_bounds = deep_copy_list(workspace.draw_bounds)
-	// Markings clip to the body: paint stranded by a changed body or zone is dropped, not kept.
-	if(target == "markings")
-		workspace.clip_to_allowed()
+	clip_stranded_paint()
 	// Temporary view locks restrict edits, never the pixels retained by the draft.
 	sync_locked_views(push = FALSE)
 	sampled_palette = palette
@@ -380,6 +402,21 @@
 	resources_ready = TRUE
 	return TRUE
 
+/// Context hook: puts the draft's native base markings on the preview body.
+/datum/custom_sprite_editor/proc/apply_draft_base_markings()
+	custom_style_apply_base_markings(preview_body, body_zone, workspace.markings_context, emissives_allowed())
+	preview_body.update_body()
+
+/// Context hook: sets a markings draft's drawing bounds and mask from the preview body.
+/datum/custom_sprite_editor/proc/update_draw_area()
+	workspace.draw_bounds = custom_sprite_body_draw_bounds(preview_body, body_zone, workspace.width)
+	workspace.draw_mask = custom_sprite_body_draw_mask(preview_body, body_zone, workspace.width)
+
+/// Context hook: markings clip to the body, so paint stranded by a changed body or zone is dropped.
+/datum/custom_sprite_editor/proc/clip_stranded_paint()
+	if(target == "markings")
+		workspace.clip_to_allowed()
+
 /// Drops the guides and previews built from the preview body.
 /datum/custom_sprite_editor/proc/release_resources()
 	guide_icons = list()
@@ -407,9 +444,9 @@
 	return palette
 
 /datum/custom_sprite_editor/proc/sample_marking_shades()
-	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
+	var/limb_zone = body_zone && (GLOB.custom_marking_hand_arms[body_zone] || body_zone)
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
-		if(limb.body_zone != limb_zone)
+		if(limb_zone && limb.body_zone != limb_zone)
 			continue
 		for(var/marking_name in limb.markings)
 			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
@@ -459,6 +496,8 @@
 	if(can_change_markings())
 		.["baseMarkingChoices"] = GLOB.body_markings_per_limb[body_zone]
 		.["maxBaseMarkings"] = MAXIMUM_MARKINGS_PER_LIMB
+	.["backgrounds"] = custom_sprite_background_tiles()
+	.["defaultBackground"] = preferences?.read_preference(/datum/preference/choiced/background_state)
 
 /datum/custom_sprite_editor/ui_data(mob/user)
 	sync_locked_views(push = FALSE)
@@ -525,15 +564,7 @@
 				choices -= name
 			if(!length(choices))
 				return FALSE
-			var/datum/body_marking/marking = GLOB.body_markings[choices[1]]
-			// Default colors come from the body being drawn on, not the character setup preview.
-			var/list/features = list(
-				FEATURE_MUTANT_COLOR = preview_body?.dna.features[FEATURE_MUTANT_COLOR],
-				FEATURE_MUTANT_COLOR_TWO = preview_body?.dna.features[FEATURE_MUTANT_COLOR_TWO],
-				FEATURE_MUTANT_COLOR_THREE = preview_body?.dna.features[FEATURE_MUTANT_COLOR_THREE],
-				FEATURE_SKIN_COLOR = skintone2hex(preview_body?.skin_tone),
-			)
-			return write_base_marking(null, choices[1], marking.get_default_color(features, preview_body?.dna.species))
+			return write_base_marking(null, choices[1], default_marking_color(choices[1]))
 		if("removeBaseMarking")
 			if(!can_change_markings() || !isnum(params["index"]))
 				return FALSE
@@ -711,8 +742,10 @@
 		if(!channels[4])
 			return FALSE
 	var/color = LOWER_TEXT(rgb(channels[1], channels[2], channels[3]))
-	if(!(color in workspace.palette) && !workspace.update_palette(sampled_palette | transformed_custom_palette() | list(color)))
-		return FALSE
+	if(!(color in workspace.palette))
+		workspace.update_palette(list(color) | sampled_palette | transformed_custom_palette())
+		if(!(color in workspace.palette))
+			return FALSE
 	selected_color = color
 	selected_custom_color = null
 	guide_palette = (guide_palette | color) & workspace.palette
@@ -749,20 +782,43 @@
 		entries += list(list("index" = index, "name" = entry["name"], "color" = entry["color"]))
 	return entries
 
-/**
- * Rewrites this draft's native markings, keeping their order and leaving the live body alone.
- *
- * Markings are stored by name, so one limb cannot wear the same marking twice.
- *
- * Arguments:
- * - index: Which marking to act on, or null when adding.
- * - name: The marking to use, or null to remove the one at `index`.
- * - color: A new color, or null to keep the marking's current one.
- */
+/// Rewrites this draft's native markings, keeping their order and leaving the live body alone.
 /datum/custom_sprite_editor/proc/write_base_marking(index, name, color)
 	if(!can_change_markings())
 		return FALSE
-	var/list/markings = custom_style_marking_data(workspace.markings_context)
+	var/list/entries = custom_style_rewrite_markings(workspace.markings_context, index, name, color)
+	if(isnull(entries) || !workspace.replace_drawing(workspace.serialize_drawing(), workspace.hair_context, "Change base markings", new_markings_context = entries))
+		return FALSE
+	draft_changed()
+	rebuild_resources()
+	refresh_preview(push = FALSE)
+	return TRUE
+
+/// A new base marking's starting color, from the body being drawn on rather than the setup preview.
+/datum/custom_sprite_editor/proc/default_marking_color(name)
+	var/datum/body_marking/marking = GLOB.body_markings[name]
+	var/list/features = list(
+		FEATURE_MUTANT_COLOR = preview_body?.dna.features[FEATURE_MUTANT_COLOR],
+		FEATURE_MUTANT_COLOR_TWO = preview_body?.dna.features[FEATURE_MUTANT_COLOR_TWO],
+		FEATURE_MUTANT_COLOR_THREE = preview_body?.dna.features[FEATURE_MUTANT_COLOR_THREE],
+		FEATURE_SKIN_COLOR = skintone2hex(preview_body?.skin_tone),
+	)
+	return marking.get_default_color(features, preview_body?.dna.species)
+
+/**
+ * Rewrites a limb's native marking records. Markings are stored by name, so one limb can't wear
+ * the same marking twice, and their order is kept.
+ *
+ * Arguments:
+ * - entries: Ordered records.
+ * - index: Which marking to act on, or null when adding.
+ * - name: The marking to use, or null to remove the one at `index`.
+ * - color: A new color, or null to keep the marking's current one.
+ *
+ * Returns the new ordered records, or null when there's no marking at `index`.
+ */
+/proc/custom_style_rewrite_markings(list/entries, index, name, color)
+	var/list/markings = custom_style_marking_data(entries)
 	var/list/rebuilt = list()
 	var/position = 0
 	var/handled = FALSE
@@ -779,13 +835,8 @@
 		if(isnull(index) && name)
 			rebuilt[name] = list(color, FALSE)
 		else
-			return FALSE
-	if(!workspace.replace_drawing(workspace.serialize_drawing(), workspace.hair_context, "Change base markings", new_markings_context = custom_style_marking_entries(rebuilt)))
-		return FALSE
-	draft_changed()
-	rebuild_resources()
-	refresh_preview(push = FALSE)
-	return TRUE
+			return null
+	return custom_style_marking_entries(rebuilt)
 
 /// Hairstyles this character may pick from the editor's own base-hair control.
 /datum/custom_sprite_editor/proc/available_hairstyles()
@@ -826,9 +877,10 @@
 
 /datum/custom_sprite_editor/proc/refresh_custom_palette()
 	var/list/available = sampled_palette | transformed_custom_palette()
-	// An unpainted guide brush is still active even though no drawing/history pixel uses it yet.
+	// An unpainted guide brush is still active even though no drawing/history pixel uses it yet, so it goes first.
 	if(!selected_custom_color && selected_color)
-		available |= selected_color
+		available = list(selected_color) | available
+	// The rest fill whatever room the drawing leaves, sampled shades before Custom colors.
 	workspace.update_palette(available)
 	if(selected_custom_color)
 		var/transformed = custom_sprite_tint_color(selected_custom_color, custom_palette_tint())
@@ -977,12 +1029,21 @@
 		transfer_error = "The drawing changed while you were choosing a file. Nothing was imported."
 	else if(result?["error"])
 		transfer_error = result["error"]
-	else if(result)
-		var/list/package = result["package"]
-		if(result["legacy"])
-			package = custom_style_package(target, body_zone, package["drawing"], workspace.hair_context)
-		if(!show_candidate(package, "import"))
-			log_game("[key_name(user)] had a custom style import rejected ([result["bytes"]] bytes): [transfer_error]")
+	else if(result && !preview_received(result))
+		log_game("[key_name(user)] had a custom style import rejected ([result["bytes"]] bytes): [transfer_error]")
+
+/// Previews a received style file. Returns FALSE with transfer_error saying why it can't replace this draft.
+/datum/custom_sprite_editor/proc/preview_received(list/result)
+	var/list/package = result["package"]
+	if(result["body"])
+		// A whole-body file offers this drawing's own region, when it has one.
+		package = body_zone && result["body"][body_zone]
+		if(!package)
+			transfer_error = body_zone ? "That whole-body style has no [LOWER_TEXT(GLOB.custom_marking_zone_labels[body_zone])] markings." : "That style is for whole-body markings, not this drawing."
+			return FALSE
+	else if(result["legacy"])
+		package = custom_style_package(target, body_zone, package["drawing"], workspace.hair_context)
+	return show_candidate(package, "import")
 
 /// Returns why a package can't replace this draft, or null when it can.
 /datum/custom_sprite_editor/proc/candidate_problem(list/package)

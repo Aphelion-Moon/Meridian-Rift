@@ -49,3 +49,10 @@ export const getShadedAreas = (
   }
   return areas;
 };
+
+/** Paints shaded (unavailable) areas; `areas` are pixel rects, `scale` screen pixels per pixel. */
+export type ShadeRenderer = (
+  context: CanvasRenderingContext2D,
+  areas: [number, number, number, number][],
+  scale: number,
+) => void;

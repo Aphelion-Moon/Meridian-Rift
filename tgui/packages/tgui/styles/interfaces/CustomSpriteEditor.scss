@@ -25,3 +25,45 @@
     display: none !important;
   }
 }
+
+// The region overlay and tag draw over the canvas without catching the pointer.
+.CustomSpriteEditor__overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.CustomSpriteEditor__regionTag {
+  position: absolute;
+  pointer-events: none;
+  padding: 0 4px;
+  line-height: 13px; // TAG_HEIGHT in regions.ts
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.72);
+  white-space: nowrap;
+}
+
+.CustomSpriteEditor__status {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+}
+
+// Background tiles stay pixel-sharp and fill their preview or swatch.
+.CustomSpriteEditor__tile {
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+
+  // Flush on the tile: no inline descender gap under the preview.
+  img {
+    display: block;
+  }
+}
+
+.Button.SpriteEditor__plainSwatch.CustomSpriteEditor__backgroundSwatch {
+  background-size: 100% 100% !important;
+  image-rendering: pixelated;
+}

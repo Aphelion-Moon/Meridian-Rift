@@ -1,20 +1,13 @@
 // THIS IS AN APHELION UI FILE
 
-import { afterEach, beforeEach, expect, it, jest, spyOn } from 'bun:test';
+import { expect, it, jest, spyOn } from 'bun:test';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
-import * as actions from 'tgui/events/act';
-import {
-  releaseHeldKeys,
-  startKeyPassthrough,
-  stopKeyPassthrough,
-} from 'tgui-core/hotkeys';
 import { update } from 'tgui/events/handlers/update';
 import {
   backendStateAtom,
   store as backendStore,
   gameDataAtom,
-  suspendedAtom,
 } from 'tgui/events/store';
 import {
   currentColorAtom,
@@ -28,97 +21,18 @@ import {
   colorToHexString,
   parseHexColorString,
 } from '../SpriteEditor/colorSpaces';
-import { Dir, SpriteEditorToolFlags } from '../SpriteEditor/Types/types';
+import { Dir } from '../SpriteEditor/Types/types';
 import { CustomSpriteEditor } from './index';
+import {
+  fixture,
+  getContext,
+  painted,
+  send,
+  setupEditorTests,
+} from '../../../__mocks__/customSpriteEditor';
 import type { CustomSpriteEditorData } from './types';
 
-const fixture = (width = 32, height = 32): CustomSpriteEditorData => {
-  const frame = () =>
-    Array.from({ length: height }, () => Array(width).fill('#ffffffff'));
-  return {
-    bodyZone: null,
-    bodyZoneLabel: null,
-    candidate: null,
-    editorData: {
-      sprite: {
-        width,
-        height,
-        dirs: 4,
-        backdrop: '',
-        layers: [
-          {
-            name: 'Drawing',
-            visible: true,
-            data: {
-              [Dir.SOUTH]: frame(),
-              [Dir.NORTH]: frame(),
-              [Dir.EAST]: frame(),
-              [Dir.WEST]: frame(),
-            },
-          },
-        ],
-      },
-      undoStack: ['Pencil'],
-      redoStack: [],
-      toolFlags: SpriteEditorToolFlags.All,
-      serverPalette: ['#ffffff'],
-      serverSelectedColor: '#ffffff',
-    },
-    colorMode: 'literal',
-    emissive: { 1: false, 2: false, 4: false, 8: false },
-    emissiveAllowed: true,
-    saveRevision: 0,
-    customTint: '#ffffff',
-    displayTint: '#ff0000',
-    customPalette: [],
-    availableColors: ['#ffffff'],
-    maxCustomColors: 16,
-    guides: { 1: '', 2: '', 4: '', 8: '' },
-    previews: { 1: '', 2: '', 4: '', 8: '' },
-    edited: { 1: false, 2: true, 4: false, 8: false },
-    drawBounds: {
-      1: [0, 0, width - 1, height - 1],
-      2: [0, 0, width - 1, height - 1],
-      4: [0, 0, width - 1, height - 1],
-      8: [0, 0, width - 1, height - 1],
-    },
-  };
-};
-
-let send: ReturnType<typeof spyOn>;
-let getContext: ReturnType<typeof spyOn>;
-let previousData: Record<string, unknown>;
-let previousSuspended: number | false;
-const painted: string[] = [];
-beforeEach(() => {
-  previousData = backendStore.get(gameDataAtom);
-  previousSuspended = backendStore.get(suspendedAtom);
-  backendStore.set(suspendedAtom, false);
-  backendStore.set(gameDataAtom, fixture());
-  send = spyOn(actions, 'sendAct');
-  startKeyPassthrough();
-  const context = {
-    fillStyle: '',
-    clearRect: () => {
-      painted.length = 0;
-    },
-    fillRect: () => {
-      painted.push(context.fillStyle);
-    },
-  };
-  getContext = spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
-    context as unknown as CanvasRenderingContext2D,
-  );
-});
-afterEach(() => {
-  releaseHeldKeys();
-  stopKeyPassthrough();
-  jest.useRealTimers();
-  send.mockRestore();
-  getContext.mockRestore();
-  backendStore.set(gameDataAtom, previousData);
-  backendStore.set(suspendedAtom, previousSuspended);
-});
+setupEditorTests();
 
 it.each([
   'hair',
@@ -1397,5 +1311,33 @@ it('rotates through the views in the same order as the character preview', () =>
   expect(screen.getByText('Right').closest('.Button')!.classList).toContain(
     'Button--selected',
   );
+  expect(send).not.toHaveBeenCalled();
+});
+
+it('switches the canvas and preview backdrop with the tile swatches, without touching preferences', () => {
+  const data = fixture();
+  data.backgrounds = [
+    { name: 'Plating', url: 'data:plating', wideUrl: 'data:plating-wide' },
+    { name: 'Grey', url: 'data:grey', wideUrl: 'data:grey-wide' },
+  ];
+  data.defaultBackground = 'Plating';
+  data.previews = { 1: 'a', 2: 'a', 4: 'a', 8: 'a' };
+  backendStore.set(gameDataAtom, data);
+  const view = render(
+    <Provider store={createStore()}>
+      <CustomSpriteEditor target="hair" />
+    </Provider>,
+  );
+  const canvas = view.container.querySelector('canvas')!;
+  expect(canvas.style.backgroundImage).toContain('data:plating');
+  send.mockClear();
+  fireEvent.click(screen.getByLabelText('Grey'));
+  expect(canvas.style.backgroundImage).toContain('data:grey');
+  expect(
+    (view.container.querySelector('.CustomSpriteEditor__tile') as HTMLElement)
+      .style.backgroundImage,
+  ).toContain('data:grey');
+  fireEvent.click(screen.getByLabelText('Transparent'));
+  expect(canvas.style.backgroundImage).not.toContain('data:grey');
   expect(send).not.toHaveBeenCalled();
 });

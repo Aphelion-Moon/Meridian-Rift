@@ -98,32 +98,51 @@
 	palette = used_colors()
 	update_palette(sampled_palette)
 
-/// Keep current and undoable pixels paintable while replacing unused sample/account colors.
-/datum/sprite_editor_workspace/custom_sprite/proc/update_palette(list/available_palette)
-	var/list/combined = used_colors()
+/// Colors the current and undoable pixels use, which must stay paintable.
+/datum/sprite_editor_workspace/custom_sprite/proc/kept_colors()
+	. = used_colors()
 	for(var/list/stack as anything in list(undo_stack, redo_stack))
 		for(var/list/transaction as anything in stack)
 			var/color = transaction["color"]
 			if(color)
-				combined |= LOWER_TEXT(copytext(color, 1, 8))
+				. |= LOWER_TEXT(copytext(color, 1, 8))
 			for(var/list/point as anything in transaction["points"])
 				var/old_color = point[3]
 				if(!endswith(old_color, "00"))
-					combined |= LOWER_TEXT(copytext(old_color, 1, 8))
+					. |= LOWER_TEXT(copytext(old_color, 1, 8))
 			for(var/direction in transaction["replaced"])
 				for(var/list/point as anything in transaction["replaced"][direction])
 					for(var/replaced_color in list(point[3], point[4]))
 						if(!endswith(replaced_color, "00"))
-							combined |= LOWER_TEXT(copytext(replaced_color, 1, 8))
+							. |= LOWER_TEXT(copytext(replaced_color, 1, 8))
+
+/**
+ * Keeps current and undoable colors paintable, then admits available colors in order while there's room.
+ *
+ * Returns TRUE when every available color fit. When the kept colors alone need more than
+ * CUSTOM_SPRITE_MAX_COLORS, or an available color is invalid, the palette is left alone.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/update_palette(list/available_palette)
+	var/list/kept = kept_colors()
+	if(length(kept) > CUSTOM_SPRITE_MAX_COLORS)
+		return FALSE
+	return admit_colors(kept, available_palette)
+
+/// Sets the palette to the kept colors plus as many available ones, in order, as fit. Returns TRUE when all fit.
+/datum/sprite_editor_workspace/custom_sprite/proc/admit_colors(list/kept, list/available_palette)
+	. = TRUE
+	var/list/combined = kept.Copy()
 	for(var/raw_color in available_palette)
 		var/color = custom_sprite_color(raw_color)
 		if(!color)
 			return FALSE
-		combined |= color
-	if(length(combined) > CUSTOM_SPRITE_MAX_COLORS)
-		return FALSE
+		if(color in combined)
+			continue
+		if(length(combined) >= CUSTOM_SPRITE_MAX_COLORS)
+			. = FALSE
+			continue
+		combined += color
 	palette = combined
-	return TRUE
 
 /datum/sprite_editor_workspace/custom_sprite/proc/used_colors()
 	var/list/pixels = list()
@@ -288,11 +307,22 @@
 	replacement.bake_tint()
 	if(!drawing || !keep_legacy_tint)
 		replacement.tint = "#ffffff"
-	var/list/replaced = list()
-	var/changed = json_encode(hair_context) != json_encode(new_hair_context) || json_encode(markings_context) != json_encode(new_markings_context) || json_encode(emissive) != json_encode(replacement.emissive) || tint != replacement.tint
+	var/list/replaced = frame_changes(replacement.layers[1]["data"])
+	var/changed = length(replaced) || json_encode(hair_context) != json_encode(new_hair_context) || json_encode(markings_context) != json_encode(new_markings_context) || json_encode(emissive) != json_encode(replacement.emissive) || tint != replacement.tint
+	var/list/transaction = list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = new_hair_context, "emissive_old" = emissive, "emissive_new" = replacement.emissive, "tint_old" = tint, "tint_new" = replacement.tint)
+	transaction["markings_old"] = markings_context
+	transaction["markings_new"] = new_markings_context
+	qdel(replacement)
+	if(!changed)
+		return TRUE
+	return commit_replacement(transaction)
+
+/// Pixel changes that turn each current frame into the matching new frame, as list(x, y, old, new).
+/datum/sprite_editor_workspace/custom_sprite/proc/frame_changes(list/new_frames)
+	. = list()
 	for(var/direction in layers[1]["data"])
 		var/list/old_frame = layers[1]["data"][direction]
-		var/list/new_frame = replacement.layers[1]["data"][direction]
+		var/list/new_frame = new_frames[direction]
 		var/list/points = list()
 		for(var/y in 1 to height)
 			for(var/x in 1 to width)
@@ -301,18 +331,14 @@
 				if(old_color != new_color && !(endswith(old_color, "00") && endswith(new_color, "00")))
 					points += list(list(x - 1, y - 1, old_color, new_color))
 		if(length(points))
-			replaced[direction] = points
-			changed = TRUE
-	var/list/transaction = list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = new_hair_context, "emissive_old" = emissive, "emissive_new" = replacement.emissive, "tint_old" = tint, "tint_new" = replacement.tint)
-	transaction["markings_old"] = markings_context
-	transaction["markings_new"] = new_markings_context
-	qdel(replacement)
-	if(!changed)
-		return TRUE
+			.[direction] = points
+
+/// Applies and records a replacement; rolls it back when current and undoable colors wouldn't fit the palette.
+/datum/sprite_editor_workspace/custom_sprite/proc/commit_replacement(list/transaction)
 	var/list/previous_palette = palette
 	transact(transaction)
 	undo_stack += list(transaction)
-	undo_names += name
+	undo_names += transaction["name"]
 	if(!update_palette(list()))
 		pop(undo_names)
 		pop(undo_stack)
@@ -421,3 +447,112 @@
 	var/static/list/transaction_names = list("pencil" = "Pencil", "eraser" = "Eraser", "bucket" = "Flood Fill", "move" = "Move selection", "renameLayer" = "Rename Layer", "moveLayerUp" = "Move Layer Up", "moveLayerDown" = "Move Layer Down", "flattenLayer" = "Flatten Layer", "addLayer" = "Add Layer", "deleteLayer" = "Delete Layer")
 	transaction["name"] = transaction_names[transaction["type"]]
 	return transaction
+
+/**
+ * The whole-body markings canvas.
+ *
+ * Every pixel of paint belongs to a region, so every tool, the eraser included, stays inside the
+ * regions. Fill stops at region edges and Clear works on one region. markings_context and emissive
+ * are zone-keyed maps here; replace transactions swap them whole, so undo restores them.
+ */
+/datum/sprite_editor_workspace/custom_sprite/regions
+	/// Direction -> row strings naming the region that owns each pixel, "0" for none.
+	var/list/region_map
+	/// Zone -> views ("2" -> TRUE) that Clear, an import or a restoration replaced outright. Paint other limbs cover there goes too.
+	var/list/resets
+
+/// Regions may hold more than CUSTOM_SPRITE_MAX_COLORS colors between them, as saves and imports can; only new colors wait for room.
+/datum/sprite_editor_workspace/custom_sprite/regions/update_palette(list/available_palette)
+	return admit_colors(kept_colors(), available_palette)
+
+/datum/sprite_editor_workspace/custom_sprite/regions/apply_replacement(list/transaction, forward)
+	..()
+	if("resets_new" in transaction)
+		resets = forward ? transaction["resets_new"] : transaction["resets_old"]
+
+/// The region character at a canvas pixel in one view, "0" when no region owns it.
+/datum/sprite_editor_workspace/custom_sprite/regions/proc/region_at(x, y, direction)
+	var/list/rows = region_map?[direction]
+	return rows ? copytext(rows[y + 1], x + 1, x + 2) : "0"
+
+/datum/sprite_editor_workspace/custom_sprite/regions/is_point_allowed(x, y, direction)
+	if(x < 0 || x >= width || y < 0 || y >= height)
+		return FALSE
+	if(!isnull(draw_bounds))
+		var/list/bounds = draw_bounds[direction]
+		if(!bounds || x < bounds[1] || y < bounds[2] || x > bounds[3] || y > bounds[4])
+			return FALSE
+	return region_at(x, y, direction) != "0"
+
+/// Fill floods only the region under the clicked pixel; other regions are boundaries.
+/datum/sprite_editor_workspace/custom_sprite/regions/preprocess_new_transaction(list/transaction)
+	if(transaction["type"] != "bucket")
+		return ..()
+	var/direction = transaction["dir"]
+	var/list/point = transaction["point"]
+	var/region = region_at(point[1], point[2], direction)
+	var/list/list/frame = layers[transaction["layer"]]["data"][direction]
+	var/list/masked = list()
+	for(var/y in 0 to height - 1)
+		var/list/row = frame[y + 1].Copy()
+		for(var/x in 0 to width - 1)
+			if(!is_point_allowed(x, y, direction) || region_at(x, y, direction) != region)
+				row[x + 1] = null
+		masked += list(row)
+	transaction["points"] = flood_fill(masked, point[1] + 1, point[2] + 1, width, height)
+	transaction -= "point"
+
+/// Fills the canvas as a draft opens, without history.
+/datum/sprite_editor_workspace/custom_sprite/regions/proc/load_frames(list/frames)
+	for(var/direction in layers[1]["data"])
+		var/list/frame = layers[1]["data"][direction]
+		var/list/source = frames[direction]
+		for(var/y in 1 to height)
+			for(var/x in 1 to width)
+				frame[y][x] = source[y][x]
+		update_edited_direction(direction)
+	pixels_dirty = TRUE
+	palette = used_colors()
+
+/**
+ * Erases one region's pixels in one view as a single undoable step.
+ *
+ * With covered_zone, that region's saved paint under other limbs in this view goes too when it saves.
+ */
+/datum/sprite_editor_workspace/custom_sprite/regions/proc/clear_region(direction, region, covered_zone)
+	if(!istext(direction) || !(direction in layers[1]["data"]) || !istext(region) || region == "0")
+		return FALSE
+	var/list/frames = deep_copy_list(layers[1]["data"])
+	var/list/frame = frames[direction]
+	var/erased = FALSE
+	for(var/y in 0 to height - 1)
+		for(var/x in 0 to width - 1)
+			if(region_at(x, y, direction) == region && !endswith(frame[y + 1][x + 1], "00"))
+				frame[y + 1][x + 1] = "#00000000"
+				erased = TRUE
+	var/list/new_resets = resets
+	if(covered_zone && !resets?[covered_zone]?[direction])
+		new_resets = resets ? resets.Copy() : list()
+		var/list/views = new_resets[covered_zone]
+		views = views ? views.Copy() : list()
+		views[direction] = TRUE
+		new_resets[covered_zone] = views
+	else if(!erased)
+		return FALSE
+	return replace_frames(frames, "Clear", markings_context, emissive, new_resets)
+
+/**
+ * Replaces the canvas, the per-region base markings and emission as one undoable action.
+ *
+ * new_resets, when given, also changes which regions are replaced outright in which views.
+ *
+ * Returns TRUE when replaced or already identical, FALSE when the colors and undo history would
+ * need more than CUSTOM_SPRITE_MAX_COLORS colors. Nothing changes then.
+ */
+/datum/sprite_editor_workspace/custom_sprite/regions/proc/replace_frames(list/frames, name, list/new_markings_context, list/new_emissive, list/new_resets)
+	if(isnull(new_resets))
+		new_resets = resets
+	var/list/replaced = frame_changes(frames)
+	if(!length(replaced) && json_encode(markings_context) == json_encode(new_markings_context) && json_encode(emissive) == json_encode(new_emissive) && json_encode(resets) == json_encode(new_resets))
+		return TRUE
+	return commit_replacement(list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = hair_context, "emissive_old" = emissive, "emissive_new" = new_emissive, "tint_old" = tint, "tint_new" = tint, "markings_old" = markings_context, "markings_new" = new_markings_context, "resets_old" = resets, "resets_new" = new_resets))
