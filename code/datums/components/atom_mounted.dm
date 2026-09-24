@@ -106,6 +106,10 @@
 	PRIVATE_PROC(TRUE)
 
 	var/obj/hanging_parent = parent
+	// APHELION EDIT ADDITION START - Another mount on the same support can delete us earlier in the same turf change signal.
+	if(QDELETED(hanging_parent))
+		return
+	// APHELION EDIT ADDITION END
 	hanging_parent.visible_message(message = span_warning("\The [hanging_parent] falls apart!"), vision_distance = 5)
 	hanging_parent.deconstruct(FALSE)
 

@@ -39,24 +39,29 @@
 			return FALSE
 	return TRUE
 
-/// Whether a portal can physically reach the selected organ, mouth, active hand, or leg.
+/**
+ * Returns whether this mob can put one of their own parts against a portal device.
+ *
+ * This is the device end only. The receiver end sits on its part underneath any clothing, so it never
+ * checks this. Genitals follow the same exposure rule as a face to face interaction, sheathed or not.
+ * The mouth only needs to be free of a mask or helmet that covers it, so oral works while clothed.
+ *
+ * Arguments:
+ * - target_part: An ORGAN_SLOT_ genital, BODY_ZONE_PRECISE_MOUTH, or an arm or leg zone.
+ */
 /mob/living/carbon/human/proc/portal_target_is_accessible(target_part)
-	if(target_part in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS))
-		var/obj/item/organ/genital/genital = get_organ_slot(target_part)
-		if(!genital || genital.covered_by_clothing(src))
-			return FALSE
-		if(target_part == ORGAN_SLOT_PENIS)
-			var/obj/item/organ/genital/penis/penis = genital
-			return !penis.is_sheathed()
-		return TRUE
-	if(target_part == BODY_ZONE_PRECISE_MOUTH)
-		return !!get_bodypart(BODY_ZONE_HEAD) && is_location_accessible(BODY_ZONE_PRECISE_MOUTH)
-	if(target_part in list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM))
-		var/obj/item/bodypart/active_hand = has_hand_for_held_index(active_hand_index)
-		return active_hand && active_hand.body_zone == target_part
-	if(target_part in list(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG))
-		var/obj/item/bodypart/leg = get_bodypart(target_part)
-		return leg && !leg.bodypart_disabled
+	switch(target_part)
+		if(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)
+			var/obj/item/organ/genital/genital = get_organ_slot(target_part)
+			return genital?.is_exposed()
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return get_bodypart(BODY_ZONE_HEAD) && !is_mouth_covered()
+		if(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM)
+			var/obj/item/bodypart/active_hand = has_hand_for_held_index(active_hand_index)
+			return active_hand && active_hand.body_zone == target_part
+		if(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG)
+			var/obj/item/bodypart/leg = get_bodypart(target_part)
+			return leg && !leg.bodypart_disabled
 	return FALSE
 
 
@@ -105,9 +110,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -121,9 +126,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -137,9 +142,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -153,9 +158,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_topless()
+			return genital.is_shown_over_clothing() || is_topless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_topless()
+			return !genital.is_shown_over_clothing() && !is_topless()
 		else
 			return TRUE
 
@@ -171,9 +176,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 

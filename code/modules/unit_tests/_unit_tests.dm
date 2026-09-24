@@ -383,6 +383,7 @@
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\liver_nova.dm"
+#include "~nova\matrixed_accessories.dm"
 #include "~nova\meridian_preferences.dm"
 #include "~nova\mod_accessories.dm"
 #include "~nova\neuroware_chips.dm"
