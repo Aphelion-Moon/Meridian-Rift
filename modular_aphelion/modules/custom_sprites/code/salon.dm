@@ -51,8 +51,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		return "facial hairstyle"
 	if(target == "hair")
 		return "hairstyle"
-	if(isnull(zone))
-		return "whole-body tattoo"
 	return "[LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] tattoo"
 
 /// The recipient's live style for one target. Hair includes the whitelisted base hair look.
@@ -62,14 +60,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(custom_style_hair_target(target))
 		var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
 		drawing = head?.custom_head_drawing(target)
-	else if(zone)
+	else
 		var/obj/item/bodypart/limb = body.get_bodypart(custom_marking_zone_limb(zone))
 		if(zone in GLOB.body_markings_per_limb)
 			markings = custom_style_marking_entries(zone == limb?.aux_zone ? limb?.aux_zone_markings : limb?.markings)
 		var/datum/bodypart_overlay/custom_marking/marking = limb?.get_custom_marking(custom_marking_zone_overlay_type(zone))
 		drawing = marking?.drawing
-	else
-		drawing = body.dna.custom_markings
 	return custom_style_package(target, zone, custom_sprite_validate(drawing), custom_style_hair_target(target) ? custom_style_live_hair_context(body, target) : null, markings)
 
 /// Ordered, portable records for a limb's existing native markings.
@@ -152,20 +148,13 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		head?.set_custom_head_drawing(target, deep_copy_list(drawing))
 		body.update_hair()
 		return
-	if(zone)
-		custom_style_apply_base_markings(body, zone, package["markings"], allow_emissives)
-		if(drawing)
-			LAZYSET(body.dna.custom_limb_markings, zone, drawing)
-		else
-			LAZYREMOVE(body.dna.custom_limb_markings, zone)
-		var/obj/item/bodypart/limb = body.get_bodypart(custom_marking_zone_limb(zone))
-		limb?.apply_custom_marking(drawing, custom_marking_zone_overlay_type(zone))
+	custom_style_apply_base_markings(body, zone, package["markings"], allow_emissives)
+	if(drawing)
+		LAZYSET(body.dna.custom_limb_markings, zone, drawing)
 	else
-		body.dna.custom_markings = drawing
-		for(var/obj/item/bodypart/limb as anything in body.bodyparts)
-			limb.apply_custom_marking(drawing)
-		var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
-		chest?.apply_custom_marking(custom_sprite_taur_overlay(body) ? drawing : null, /datum/bodypart_overlay/custom_marking/taur)
+		LAZYREMOVE(body.dna.custom_limb_markings, zone)
+	var/obj/item/bodypart/limb = body.get_bodypart(custom_marking_zone_limb(zone))
+	limb?.apply_custom_marking(drawing, custom_marking_zone_overlay_type(zone))
 	body.update_body()
 
 /**
@@ -246,9 +235,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		limb.markings = deep_copy_list(source_limb.markings)
 		limb.aux_zone_markings = deep_copy_list(source_limb.aux_zone_markings)
 		limb.markings_alpha = source_limb.markings_alpha
-		limb.apply_custom_marking(null)
 		limb.apply_custom_marking(null, /datum/bodypart_overlay/custom_marking/zone)
-		limb.apply_custom_marking(null, /datum/bodypart_overlay/custom_marking/taur)
 		limb.apply_custom_marking(null, /datum/bodypart_overlay/custom_marking/taur/zone)
 		for(var/datum/bodypart_overlay/custom_marking/marking in source_limb.bodypart_overlays)
 			limb.apply_custom_marking(marking.drawing, marking.type)
@@ -300,27 +287,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		if(recipient.obscured_slots & (facial ? HIDEFACIALHAIR : HIDEHAIR))
 			return "[whose] [facial ? "facial hair" : "hair"] is covered."
 		return null
-	if(isnull(zone))
-		var/covered_flags = recipient.get_all_covered_flags()
-		var/has_bodyparts = FALSE
-		for(var/obj/item/bodypart/limb as anything in recipient.bodyparts)
-			// Stumps and invisible taur leg slots have no editable marking pixels.
-			if(IS_STUMP(limb) || (limb.bodyshape & BODYSHAPE_TAUR))
-				continue
-			has_bodyparts = TRUE
-			if(limb.is_husked)
-				return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[limb.body_zone])] can't be tattooed."
-			if(custom_sprite_zone_covered(recipient, limb.body_zone, covered_flags))
-				return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[limb.body_zone])] is covered."
-			if(limb.aux_zone && custom_sprite_zone_covered(recipient, limb.aux_zone, covered_flags))
-				return "[whose] [LOWER_TEXT(GLOB.custom_marking_zone_labels[limb.aux_zone])] is covered."
-			if((limb.body_zone == BODY_ZONE_L_LEG && (covered_flags & FOOT_LEFT)) || (limb.body_zone == BODY_ZONE_R_LEG && (covered_flags & FOOT_RIGHT)))
-				return "[whose] feet are covered."
-		if(!has_bodyparts)
-			return "[whose] body can't be tattooed."
-		if(custom_sprite_taur_overlay(recipient))
-			return custom_sprite_salon_target_problem(recipient, target, CUSTOM_MARKING_ZONE_TAUR, self_work)
-		return null
 	if(zone == CUSTOM_MARKING_ZONE_TAUR)
 		var/obj/item/bodypart/chest = recipient.get_bodypart(BODY_ZONE_CHEST)
 		var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(recipient)
@@ -341,9 +307,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
  *
  * This reads the same worn coverage flags as other clothing checks, but per zone: a rolled-up
  * jumpsuit exposes the arms, and gloves only cover the hands rather than the whole arm.
- * Whole-body checks can pass one coverage snapshot for all of their zones.
  */
-/proc/custom_sprite_zone_covered(mob/living/carbon/human/body, zone, covered_flags)
+/proc/custom_sprite_zone_covered(mob/living/carbon/human/body, zone)
 	var/static/list/zone_flags = list(
 		BODY_ZONE_HEAD = HEAD,
 		BODY_ZONE_CHEST = CHEST,
@@ -354,9 +319,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		BODY_ZONE_L_LEG = LEG_LEFT,
 		BODY_ZONE_R_LEG = LEG_RIGHT,
 	)
-	if(isnull(covered_flags))
-		covered_flags = body.get_all_covered_flags()
-	return !!(covered_flags & zone_flags[zone])
+	return !!(body.get_all_covered_flags() & zone_flags[zone])
 
 /**
  * Whether someone can see the parts of themselves they can't look at directly.
@@ -502,15 +465,13 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	var/datum/weakref/tool_ref
 	/// Original target limb; replacement invalidates finalization.
 	var/datum/weakref/bodypart_ref
-	/// Whole-body work's original zone-to-limb weakrefs; adding, losing or replacing a limb invalidates consent.
-	var/list/bodypart_refs
-	/// Original taur organ for taur-zone or whole-body consent; replacement invalidates the approved target.
+	/// Original taur organ for taur-zone consent; replacement invalidates the approved target.
 	var/datum/weakref/taur_ref
 	/// Required tool family when checking or resuming the work.
 	var/tool_type
 	/// Drawing kind: hair, facial_hair or markings.
 	var/target
-	/// Tattoo zone, or null for a hairstyle or whole-body tattoo.
+	/// Tattoo zone, or null for a hairstyle.
 	var/body_zone
 	/// The package and identity captured when work started. Changes invalidate proposals.
 	var/list/original
@@ -550,12 +511,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	src.target = target
 	body_zone = zone
 	self_work = artist == recipient
-	if(target == "markings" && isnull(zone))
-		for(var/obj/item/bodypart/limb as anything in recipient.bodyparts)
-			LAZYSET(bodypart_refs, limb.body_zone, WEAKREF(limb))
-	else
-		bodypart_ref = WEAKREF(recipient.get_bodypart(custom_marking_zone_limb(zone) || BODY_ZONE_HEAD))
-	if(zone == CUSTOM_MARKING_ZONE_TAUR || (target == "markings" && isnull(zone)))
+	bodypart_ref = WEAKREF(recipient.get_bodypart(custom_marking_zone_limb(zone) || BODY_ZONE_HEAD))
+	if(zone == CUSTOM_MARKING_ZONE_TAUR)
 		taur_ref = WEAKREF(recipient.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR))
 	var/list/package = custom_sprite_live_package(recipient, target, zone)
 	original = list("package" = package, "hash" = custom_style_package_hash(package))
@@ -656,17 +613,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(!self_work && !artist.Adjacent(recipient))
 		return "The artist needs to be next to [recipient_name]."
 	var/whose = self_work ? "Your" : "[recipient_name]'s"
-	var/whole_body = target == "markings" && isnull(body_zone)
-	if((body_zone == CUSTOM_MARKING_ZONE_TAUR || whole_body) && recipient.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR) != taur_ref?.resolve())
+	if(body_zone == CUSTOM_MARKING_ZONE_TAUR && recipient.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR) != taur_ref?.resolve())
 		return "[whose] taur body was replaced. Export the draft and start again."
-	if(whole_body)
-		if(length(recipient.bodyparts) != length(bodypart_refs))
-			return "[whose] body parts changed. Export the draft and start again."
-		for(var/obj/item/bodypart/limb as anything in recipient.bodyparts)
-			var/datum/weakref/original_limb = bodypart_refs[limb.body_zone]
-			if(original_limb?.resolve() != limb)
-				return "[whose] body parts changed. Export the draft and start again."
-	else if(recipient.get_bodypart(custom_marking_zone_limb(body_zone) || BODY_ZONE_HEAD) != bodypart_ref?.resolve())
+	if(recipient.get_bodypart(custom_marking_zone_limb(body_zone) || BODY_ZONE_HEAD) != bodypart_ref?.resolve())
 		return "[whose] [body_zone ? LOWER_TEXT(GLOB.custom_marking_zone_labels[body_zone]) : "head"] was replaced. Export the draft and start again."
 	if(custom_style_package_hash(custom_sprite_live_package(recipient, target, body_zone)) != original["hash"])
 		return "[whose] [label()] changed since work started. Export the draft and start again."

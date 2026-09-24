@@ -9,7 +9,6 @@
 	// An empty canvas saves as no drawing, so any saved drawing has paint on it.
 	return list(
 		"allow_custom_sprite_editing" = !CONFIG_GET(flag/disallow_custom_sprite_editing),
-		"custom_body_marking" = !!preferences.custom_markings,
 		"custom_marking_zones" = assoc_to_keys(preferences.custom_limb_markings),
 	)
 
@@ -18,7 +17,6 @@
 	var/allow_emissives = preferences.read_preference(/datum/preference/toggle/allow_emissives)
 	target.dna.custom_hair = custom_sprite_appearance_drawing(preferences.custom_hair, allow_emissives)
 	target.dna.custom_facial_hair = custom_sprite_appearance_drawing(preferences.custom_facial_hair, allow_emissives)
-	target.dna.custom_markings = custom_sprite_appearance_drawing(preferences.custom_markings, allow_emissives)
 	target.dna.custom_limb_markings = null
 	for(var/body_zone in preferences.custom_limb_markings)
 		LAZYSET(target.dna.custom_limb_markings, body_zone, custom_sprite_appearance_drawing(preferences.custom_limb_markings[body_zone], allow_emissives))
@@ -37,7 +35,7 @@
 		return FALSE
 	var/target = params["target"]
 	var/body_zone = params["body_zone"]
-	if(!(target in (GLOB.custom_style_hair_targets + list("markings"))) || (!isnull(body_zone) && (target != "markings" || !istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels))))
+	if(target == "markings" ? (!istext(body_zone) || !(body_zone in GLOB.custom_marking_zone_labels)) : (!custom_style_hair_target(target) || !isnull(body_zone)))
 		return FALSE
 	var/editor_key = custom_style_key(target, body_zone)
 	var/datum/custom_sprite_editor/editor = preferences.custom_sprite_editors?[editor_key]
@@ -65,7 +63,7 @@
 	var/mob/living/carbon/human/dummy/preview_body
 	/// Drawing kind: hair, facial_hair or markings.
 	var/target
-	/// Edited limb or taur zone, or null for hair and whole-body markings.
+	/// Edited limb or taur zone, or null for hair.
 	var/body_zone
 	/// Target and zone key in the preferences editor registry.
 	var/editor_key
@@ -139,8 +137,7 @@
 	slot = preferences?.default_slot
 	var/list/package = initial_package()
 	preview_body = create_preview_body()
-	var/wide_body = target == "markings" && (!body_zone || body_zone == CUSTOM_MARKING_ZONE_TAUR) && preview_body && custom_sprite_taur_overlay(preview_body)
-	workspace = new(package["drawing"], list(), null, null, wide_body || body_zone == CUSTOM_MARKING_ZONE_TAUR ? CUSTOM_SPRITE_TAUR_WIDTH : 32)
+	workspace = new(package["drawing"], list(), null, null, body_zone == CUSTOM_MARKING_ZONE_TAUR ? CUSTOM_SPRITE_TAUR_WIDTH : 32)
 	workspace.owner_ref = WEAKREF(src)
 	workspace.hair_context = package["hair"]
 	workspace.markings_context = package["markings"]
@@ -339,7 +336,7 @@
 		preview_body.update_hair()
 	else
 		workspace.draw_bounds = custom_sprite_body_draw_bounds(preview_body, body_zone, workspace.width)
-		workspace.draw_mask = body_zone || workspace.width > 32 ? custom_sprite_body_draw_mask(preview_body, body_zone, workspace.width) : null
+		workspace.draw_mask = custom_sprite_body_draw_mask(preview_body, body_zone, workspace.width)
 		palette = sample_marking_palette()
 		var/hid_paint = FALSE
 		for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
@@ -410,9 +407,9 @@
 	return palette
 
 /datum/custom_sprite_editor/proc/sample_marking_shades()
-	var/limb_zone = (body_zone && GLOB.custom_marking_hand_arms[body_zone]) || body_zone
+	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
-		if(body_zone && limb.body_zone != limb_zone)
+		if(limb.body_zone != limb_zone)
 			continue
 		for(var/marking_name in limb.markings)
 			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
@@ -485,8 +482,6 @@
 	data["hideParts"] = hide_parts
 	data["canHideUnderwear"] = can_hide_underwear()
 	data["hideUnderwear"] = hide_underwear
-	// Only a taur widens the whole-body canvas.
-	data["wholeBodyTaur"] = target == "markings" && !body_zone && workspace.width > 32
 	// TGUI merges updates, so an absent candidate must explicitly clear the previous preview.
 	data["candidate"] = candidate ? list("source" = candidate["source"], "previews" = candidate["previews"], "summary" = candidate["summary"]) : null
 	return data + context_ui_data()
@@ -992,7 +987,7 @@
 /// Returns why a package can't replace this draft, or null when it can.
 /datum/custom_sprite_editor/proc/candidate_problem(list/package)
 	if(package["target"] != target || package["zone"] != body_zone)
-		var/label = custom_style_hair_target(package["target"]) ? (package["target"] == "facial_hair" ? "facial hair" : "hair") : (package["zone"] ? "[LOWER_TEXT(GLOB.custom_marking_zone_labels[package["zone"]])] markings" : "whole-body markings")
+		var/label = custom_style_hair_target(package["target"]) ? (package["target"] == "facial_hair" ? "facial hair" : "hair") : "[LOWER_TEXT(GLOB.custom_marking_zone_labels[package["zone"]])] markings"
 		return "That style is for [label], not this drawing."
 	if(!resources_ready)
 		return "The preview isn't available right now."

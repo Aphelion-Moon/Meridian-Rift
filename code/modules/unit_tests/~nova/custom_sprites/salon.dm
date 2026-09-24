@@ -228,7 +228,6 @@
 	donor.set_hair_gradient_color("#123456", update = FALSE)
 	// Live preferences apply the emissive permission before placing drawings in DNA.
 	donor.dna.custom_hair = custom_sprite_appearance_drawing(custom_sprite_test_drawing("2"), FALSE)
-	donor.dna.custom_markings = custom_sprite_appearance_drawing(custom_sprite_test_drawing("2"), FALSE)
 	donor.dna.custom_limb_markings = list()
 	donor.dna.custom_limb_markings[zone] = custom_sprite_appearance_drawing(custom_sprite_test_drawing(), FALSE)
 	donor.dna.body_markings[zone] = list("Tiger Stripe" = list("#ff0000", 0))
@@ -245,11 +244,9 @@
 	var/obj/item/bodypart/arm = transplant_donor(BODY_ZONE_L_ARM)
 	var/original_markings = json_encode(arm.markings)
 	var/original_draw_color = arm.draw_color
-	var/datum/bodypart_overlay/custom_marking/whole = locate(/datum/bodypart_overlay/custom_marking) in arm.bodypart_overlays
 	var/datum/bodypart_overlay/custom_marking/zone = locate(/datum/bodypart_overlay/custom_marking/zone) in arm.bodypart_overlays
-	var/whole_hash = whole?.drawing_hash
 	var/zone_hash = zone?.drawing_hash
-	TEST_ASSERT(!(arm.skin_tone != "african2" || arm.skin_tone == recipient.skin_tone || !whole_hash || !zone_hash || !length(arm.markings)), "The attached fixture must retain differently colored skin, native markings and both donor paint layers.")
+	TEST_ASSERT(!(arm.skin_tone != "african2" || arm.skin_tone == recipient.skin_tone || !zone_hash || !length(arm.markings)), "The attached fixture must retain differently colored skin, native markings and donor paint.")
 	var/mob/living/carbon/human/dummy/preview = custom_sprite_salon_dummy(recipient)
 	var/obj/item/bodypart/preview_arm = preview.get_bodypart(BODY_ZONE_L_ARM)
 	var/datum/bodypart_overlay/custom_marking/preview_zone = locate(/datum/bodypart_overlay/custom_marking/zone) in preview_arm.bodypart_overlays
@@ -257,7 +254,7 @@
 	qdel(preview)
 	for(var/list/package as anything in list(custom_style_package("hair", null, custom_sprite_test_drawing(), custom_style_live_hair_context(recipient)), custom_style_package("markings", BODY_ZONE_R_ARM, custom_sprite_test_drawing(), null)))
 		custom_sprite_apply_round_style(recipient, package)
-		TEST_ASSERT(!(recipient.get_bodypart(BODY_ZONE_L_ARM) != arm || arm.owner != recipient || arm.draw_color != original_draw_color || json_encode(arm.markings) != original_markings || QDELETED(whole) || whole.drawing_hash != whole_hash || QDELETED(zone) || zone.drawing_hash != zone_hash), "Editing [package["target"]] on another part must preserve the donor arm and both paint layers.")
+		TEST_ASSERT(!(recipient.get_bodypart(BODY_ZONE_L_ARM) != arm || arm.owner != recipient || arm.draw_color != original_draw_color || json_encode(arm.markings) != original_markings || QDELETED(zone) || zone.drawing_hash != zone_hash), "Editing [package["target"]] on another part must preserve the donor arm and its paint.")
 
 /datum/unit_test/custom_sprite_salon/donor_history/Run()
 	setup_players()
@@ -408,7 +405,6 @@
 	TEST_ASSERT(custom_sprite_salon_target_problem(recipient, "markings", BODY_ZONE_L_LEG), "Hidden taur leg slots must remain unsupported tattoo targets.")
 	var/icon/silhouette = custom_sprite_body_silhouette(recipient, CUSTOM_MARKING_ZONE_TAUR, CUSTOM_SPRITE_TAUR_WIDTH)
 	TEST_ASSERT(!(silhouette.Width() != 64 || silhouette.Height() != 32), "The taur drawing geometry must retain the entire 64-pixel lower body.")
-	recipient.dna.custom_markings = custom_sprite_test_wide_drawing()
 	recipient.dna.custom_limb_markings = list("taur" = custom_sprite_test_wide_drawing(repeat_string(64, "2")))
 	recipient.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/chest = recipient.get_bodypart(BODY_ZONE_CHEST)
@@ -419,9 +415,8 @@
 	allocated += preview
 	TEST_ASSERT(!(!preview.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR) || custom_style_package_hash(custom_sprite_live_package(preview, "markings", "taur")) != custom_style_package_hash(current)), "Salon dummies must preserve the actual taur organ and its independent paint snapshot.")
 	if(current?["drawing"])
-		var/whole_hash = custom_sprite_hash(recipient.dna.custom_markings)
 		custom_sprite_apply_round_style(recipient, custom_style_package("markings", "taur", null, null), FALSE)
-		TEST_ASSERT(!(custom_sprite_live_package(recipient, "markings", "taur")?["drawing"] || custom_sprite_hash(recipient.dna.custom_markings) != whole_hash), "Clearing a salon taur tattoo must preserve whole-body paint.")
+		TEST_ASSERT(!custom_sprite_live_package(recipient, "markings", "taur")?["drawing"], "Clearing a salon taur tattoo must remove its paint.")
 		custom_sprite_apply_round_style(recipient, current, FALSE)
 		TEST_ASSERT(custom_sprite_hash(custom_sprite_live_package(recipient, "markings", "taur")?["drawing"]) == custom_sprite_hash(custom_sprite_appearance_drawing(current["drawing"], FALSE)), "Salon application must restore the independent taur paint snapshot.")
 	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", "taur", current)
@@ -865,94 +860,3 @@
 		qdel(session)
 		TEST_ASSERT(length(SSsounds.reserved_channels) == channels_before, "Discarding open work must release its sound channels.")
 		artist.forceMove(run_loc_floor_bottom_left)
-
-/datum/unit_test/custom_sprite_salon/whole_body/Run()
-	setup_players()
-	var/datum/client_interface/player = recipient.mock_client
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, player)
-	player.prefs = preferences
-	GLOB.preferences_datums[recipient.ckey] = preferences
-	recipient.real_name = preferences.read_preference(/datum/preference/name/real_name)
-	recipient.mind_initialize()
-	recipient.mind.original_character_slot_index = preferences.default_slot
-	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_drawing(), null))
-	var/arm_hash = custom_style_package_hash(custom_sprite_live_package(recipient, "markings", BODY_ZONE_L_ARM))
-	var/hair_hash = custom_style_package_hash(custom_sprite_live_package(recipient, "hair"))
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", null)
-	TEST_ASSERT(!(session.label() != "whole-body tattoo" || session.participant_problem() || custom_sprite_salon_start_problem(machine, artist, recipient, "markings", null)), "The whole-body marking slot must be a named, supported salon target.")
-	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "markings", null) != session || session.editor.workspace.width != 32 || !paint(session)), "Whole-body work must retain a separate, paintable 32-pixel draft.")
-	var/list/exported = custom_style_parse(custom_style_export_text(session.editor.current_package()))
-	TEST_ASSERT(!(exported["error"] || session.editor.candidate_problem(exported["package"]) || !isnull(exported["package"]["zone"])), "A whole-body salon draft must round-trip through the shared style transfer format.")
-	var/problem = session.propose(artist)
-	TEST_ASSERT(!problem, "Whole-body work must reach recipient approval: [problem]")
-	var/token = session.proposal["token"]
-	var/list/applied = session.proposal["package"]
-	TEST_ASSERT(!(recipient.dna.custom_markings || preferences.custom_markings), "Proposing whole-body work must leave the recipient and saved character unchanged.")
-	TEST_ASSERT(!(!session.accept(recipient, token, save_permanently = TRUE) || !session.complete_application(token)), "Reviewed whole-body work must apply and honor permanent acceptance.")
-	TEST_ASSERT(!(!recipient.dna.custom_markings || custom_style_package_hash(preferences.custom_style_saved_package("markings", null)) != custom_style_package_hash(applied)), "Whole-body application must update the live and saved whole-body marking slots.")
-	var/list/history = recipient.custom_sprite_round_history?[custom_style_key("markings", null)]
-	TEST_ASSERT(!(!history || history["drawing"]), "Whole-body history must preserve an explicitly empty previous drawing.")
-	GLOB.custom_sprite_salon_cooldowns.Cut()
-	var/datum/custom_sprite_salon/test/restore = new(machine, artist, recipient, "markings", null, custom_style_copy_package(history))
-	problem = restore.propose(artist)
-	token = restore.proposal?["token"]
-	TEST_ASSERT(!(problem || !restore.accept(recipient, token) || !restore.complete_application(token) || recipient.dna.custom_markings), "Whole-body restoration must use approval and restore the previous empty drawing.")
-	TEST_ASSERT(!(custom_style_package_hash(custom_sprite_live_package(recipient, "markings", BODY_ZONE_L_ARM)) != arm_hash || custom_style_package_hash(custom_sprite_live_package(recipient, "hair")) != hair_hash), "Whole-body work and restoration must preserve independent limb tattoos and hair.")
-	GLOB.preferences_datums -= recipient.ckey
-
-/datum/unit_test/custom_sprite_salon/whole_body_coverage/Run()
-	setup_players()
-	TEST_ASSERT(!custom_sprite_salon_target_problem(recipient, "markings", null), "An exposed body must support whole-body tattooing.")
-	var/obj/item/clothing/gloves/gloves = allocate(/obj/item/clothing/gloves/color/black)
-	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
-	TEST_ASSERT(findtext(custom_sprite_salon_target_problem(recipient, "markings", null), "covered"), "Whole-body work must reject covered hands even when their arms are exposed.")
-	recipient.dropItemToGround(gloves)
-	var/obj/item/clothing/shoes/shoes = allocate(/obj/item/clothing/shoes/sneakers/black)
-	recipient.equip_to_slot_if_possible(shoes, ITEM_SLOT_FEET)
-	TEST_ASSERT(findtext(custom_sprite_salon_target_problem(recipient, "markings", null), "covered"), "Whole-body work must reject covered feet even when their legs are exposed.")
-	recipient.dropItemToGround(shoes)
-	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
-	recipient.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING)
-	TEST_ASSERT(findtext(custom_sprite_salon_target_problem(recipient, "markings", null), "covered"), "Whole-body work must reject covered limbs and torso.")
-	recipient.dropItemToGround(uniform)
-	var/obj/item/bodypart/arm = recipient.get_bodypart(BODY_ZONE_L_ARM)
-	arm.is_husked = TRUE
-	TEST_ASSERT(custom_sprite_salon_target_problem(recipient, "markings", null), "Whole-body work must reject an existing husked limb.")
-	arm.is_husked = FALSE
-	arm.drop_limb(TRUE)
-	allocated += arm
-	TEST_ASSERT(!custom_sprite_salon_target_problem(recipient, "markings", null), "An already missing limb must not prevent work on the remaining body.")
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", null)
-	arm.try_attach_limb(recipient, special = TRUE)
-	TEST_ASSERT(findtext(session.participant_problem(), "changed"), "Attaching a limb after whole-body consent must invalidate its anatomy snapshot.")
-	qdel(session)
-	session = new(machine, artist, recipient, "markings", null)
-	var/obj/item/bodypart/arm/left/replacement = allocate(/obj/item/bodypart/arm/left)
-	replacement.replace_limb(recipient)
-	TEST_ASSERT(findtext(session.participant_problem(), "changed"), "Replacing a limb without changing limb count must invalidate whole-body consent.")
-	qdel(session)
-	session = new(machine, artist, recipient, "markings", null)
-	replacement.drop_limb(TRUE)
-	TEST_ASSERT(findtext(session.participant_problem(), "changed"), "Removing a limb after whole-body consent must invalidate its anatomy snapshot.")
-
-/datum/unit_test/custom_sprite_salon/whole_body_taur/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings", null)
-	var/obj/item/organ/taur_body/organ = custom_sprite_test_taur(recipient)
-	TEST_ASSERT(organ, "The whole-body fixture needs a real taur organ.")
-	TEST_ASSERT(findtext(session.participant_problem(), "replaced"), "Adding a taur body must invalidate existing whole-body consent.")
-	qdel(session)
-	session = new(machine, artist, recipient, "markings", null)
-	TEST_ASSERT(!(session.participant_problem() || session.editor.workspace.width != 64 || session.editor.workspace.height != 32 || !paint(session)), "Whole-body taur work must expose its complete 64 by 32 canvas despite invisible leg slots.")
-	organ.hide_self = TRUE
-	TEST_ASSERT(findtext(session.participant_problem(), "covered"), "Whole-body work must not change a concealed taur body.")
-	organ.hide_self = FALSE
-	var/list/exported = custom_style_parse(custom_style_export_text(session.editor.current_package()))
-	TEST_ASSERT(!(exported["error"] || session.editor.candidate_problem(exported["package"]) || custom_sprite_width(exported["package"]["drawing"]) != 64), "Whole-body taur exports must preserve the wide canvas and reimport into the same target.")
-	var/obj/item/organ/taur_body/replacement = allocate(organ.type)
-	var/datum/bodypart_overlay/mutant/taur_body/replacement_overlay = replacement.bodypart_overlay
-	replacement_overlay.set_appearance_from_name("Cow (Spotted)")
-	replacement_overlay.imprint_on_next_insertion = FALSE
-	allocated += organ
-	replacement.Insert(recipient, special = TRUE)
-	TEST_ASSERT(findtext(session.participant_problem(), "replaced"), "Replacing the taur organ while keeping every limb must invalidate whole-body consent.")

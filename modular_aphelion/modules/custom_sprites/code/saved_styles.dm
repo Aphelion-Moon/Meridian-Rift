@@ -8,7 +8,7 @@
 	if(!islist(raw))
 		return null
 	var/list/clean = list()
-	for(var/key in GLOB.custom_style_hair_targets + list("markings") + GLOB.custom_marking_zone_labels)
+	for(var/key in GLOB.custom_style_hair_targets + GLOB.custom_marking_zone_labels)
 		var/target = custom_style_hair_target(key) ? key : "markings"
 		var/zone = (key in GLOB.custom_marking_zone_labels) ? key : null
 		var/storage_key = custom_style_key(target, zone)
@@ -120,7 +120,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 /// The currently saved package for a target, including its native base look.
 /datum/preferences/proc/custom_style_saved_package(target, zone)
 	load_custom_sprites()
-	var/list/drawing = custom_style_hair_target(target) ? (target == "facial_hair" ? custom_facial_hair : custom_hair) : (zone ? custom_limb_markings?[zone] : custom_markings)
+	var/list/drawing = custom_style_hair_target(target) ? (target == "facial_hair" ? custom_facial_hair : custom_hair) : custom_limb_markings?[zone]
 	var/list/markings = target == "markings" && (zone in GLOB.body_markings_per_limb) ? custom_style_marking_entries(body_markings?[zone]) : null
 	return custom_style_package(target, zone, drawing, custom_style_hair_target(target) ? custom_style_hair_context(target) : null, markings)
 
@@ -134,13 +134,10 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		custom_facial_hair = drawing
 	else if(target == "hair")
 		custom_hair = drawing
-	else if(zone)
-		if(drawing)
-			LAZYSET(custom_limb_markings, zone, drawing)
-		else
-			LAZYREMOVE(custom_limb_markings, zone)
+	else if(drawing)
+		LAZYSET(custom_limb_markings, zone, drawing)
 	else
-		custom_markings = drawing
+		LAZYREMOVE(custom_limb_markings, zone)
 
 /**
  * Saves a complete style package to a character slot.

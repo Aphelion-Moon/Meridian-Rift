@@ -3,8 +3,6 @@
 	var/list/custom_hair
 	/// This owner's facial hair drawing; DNA and head snapshots are copied independently.
 	var/list/custom_facial_hair
-	/// Whole-body paint inherited by newly created limbs.
-	var/list/custom_markings
 	/// Body zone -> paint inherited by newly created limbs.
 	var/list/custom_limb_markings
 
@@ -201,8 +199,6 @@
 	if(!clipped)
 		var/icon/paint = custom_sprite_paint_icon(drawing)
 		clipped = paint ? icon(paint) : icon('icons/blanks/32x32.dmi', "nothing")
-		if(custom_sprite_width(drawing) > 32)
-			clipped.Crop(1 - custom_sprite_origin_x(drawing), 1, 32 - custom_sprite_origin_x(drawing), 32)
 		clipped.Blend(custom_sprite_silhouette(limb, layer_index == "aux"), ICON_MULTIPLY)
 		custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
 	var/image/result = image(clipped, layer = layer_real)
@@ -292,8 +288,6 @@
 	if(!clipped)
 		var/icon/paint = custom_sprite_paint_icon(drawing)
 		clipped = paint ? icon(paint) : custom_sprite_blank_icon(64)
-		if(custom_sprite_width(drawing) == 32)
-			clipped.Crop(-15, 1, 48, 32)
 		clipped.Blend(custom_sprite_taur_silhouette(limb.owner, layer_index), ICON_MULTIPLY)
 		custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
 	var/image/result = image(clipped, layer = layer_real)
@@ -302,19 +296,17 @@
 	result.alpha = limb.markings_alpha
 	return result
 
-/// Taur-only paint remains independent of wide whole-body paint on the same chest.
+/// The taur zone's own paint on the chest.
 /datum/bodypart_overlay/custom_marking/taur/zone
 
-/// Refresh only the two lower-body snapshots; ordinary limb and donor paint remain independent.
+/// Refresh only the lower-body snapshot; ordinary limb and donor paint remain independent.
 /mob/living/carbon/human/proc/sync_custom_taur_markings()
 	var/obj/item/bodypart/chest = get_bodypart(BODY_ZONE_CHEST)
 	if(!chest)
 		return
-	var/has_taur = !!custom_sprite_taur_overlay(src)
-	chest.apply_custom_marking(has_taur ? dna.custom_markings : null, /datum/bodypart_overlay/custom_marking/taur)
-	chest.apply_custom_marking(has_taur ? dna.custom_limb_markings?[CUSTOM_MARKING_ZONE_TAUR] : null, /datum/bodypart_overlay/custom_marking/taur/zone)
+	chest.apply_custom_marking(custom_sprite_taur_overlay(src) ? dna.custom_limb_markings?[CUSTOM_MARKING_ZONE_TAUR] : null, /datum/bodypart_overlay/custom_marking/taur/zone)
 
-/// Separate overlay identity lets whole-body and limb drawings coexist.
+/// A limb zone's own paint.
 /datum/bodypart_overlay/custom_marking/zone
 
 /// Hand paint belongs to the arm limb, alongside that arm's own zone drawing.
@@ -333,7 +325,7 @@
 		if(candidate.type == overlay_type)
 			return candidate
 
-/obj/item/bodypart/proc/apply_custom_marking(list/drawing, overlay_type = /datum/bodypart_overlay/custom_marking)
+/obj/item/bodypart/proc/apply_custom_marking(list/drawing, overlay_type = /datum/bodypart_overlay/custom_marking/zone)
 	var/datum/bodypart_overlay/custom_marking/overlay = get_custom_marking(overlay_type)
 	if(!drawing)
 		if(overlay)
@@ -355,7 +347,6 @@
 		update_body(is_creating = TRUE)
 		return
 	for(var/obj/item/bodypart/limb as anything in bodyparts)
-		limb.apply_custom_marking(dna.custom_markings)
 		limb.sync_custom_zone_markings(dna.custom_limb_markings)
 	sync_custom_taur_markings()
 	var/obj/item/bodypart/head/head = get_bodypart(BODY_ZONE_HEAD)
@@ -426,7 +417,6 @@
 /datum/component/custom_sprite_appearance/proc/on_limb_updated(mob/living/carbon/human/source, obj/item/bodypart/limb, dropping_limb, is_creating)
 	SIGNAL_HANDLER
 	if(!dropping_limb && is_creating)
-		limb.apply_custom_marking(source.dna.custom_markings)
 		limb.sync_custom_zone_markings(source.dna.custom_limb_markings)
 		if(limb.body_zone == BODY_ZONE_CHEST)
 			source.sync_custom_taur_markings()

@@ -40,13 +40,14 @@
 
 /datum/unit_test/custom_sprite_rendering/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
-	human.dna.custom_markings = custom_sprite_test_drawing()
+	for(var/obj/item/bodypart/limb as anything in human.bodyparts)
+		LAZYSET(human.dna.custom_limb_markings, limb.body_zone, custom_sprite_test_drawing())
 	human.dna.custom_hair = custom_sprite_test_drawing()
 	human.sync_custom_sprite_appearance()
 	human.update_body(is_creating = TRUE)
-	var/list/bounds = custom_sprite_body_draw_bounds(human)
+	var/list/bounds = custom_sprite_body_draw_bounds(human, BODY_ZONE_CHEST)
 	for(var/direction in GLOB.cardinals)
-		TEST_ASSERT(bounds["[direction]"], "Body bounds must include every cardinal direction.")
+		TEST_ASSERT(bounds["[direction]"], "Torso bounds must include every cardinal direction.")
 	for(var/obj/item/bodypart/limb as anything in human.bodyparts)
 		var/datum/bodypart_overlay/custom_marking/overlay = locate() in limb.bodypart_overlays
 		TEST_ASSERT(overlay, "Every limb must receive its drawing snapshot.")
@@ -361,16 +362,16 @@
 /datum/unit_test/custom_sprite_emissive_ownership/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	human.dna.custom_hair = custom_sprite_test_drawing()
-	human.dna.custom_markings = custom_sprite_test_drawing()
+	human.dna.custom_limb_markings = list(BODY_ZONE_L_ARM = custom_sprite_test_drawing())
 	human.dna.custom_hair["emissive"] = custom_sprite_emissive_settings(TRUE)
-	human.dna.custom_markings["emissive"] = custom_sprite_emissive_settings(TRUE)
+	human.dna.custom_limb_markings[BODY_ZONE_L_ARM]["emissive"] = custom_sprite_emissive_settings(TRUE)
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
 	var/obj/item/bodypart/arm = human.get_bodypart(BODY_ZONE_L_ARM)
 	head.drop_limb(special = TRUE)
 	arm.drop_limb(special = TRUE)
 	human.dna.custom_hair["emissive"] = custom_sprite_emissive_settings(FALSE)
-	human.dna.custom_markings["emissive"] = custom_sprite_emissive_settings(FALSE)
+	human.dna.custom_limb_markings[BODY_ZONE_L_ARM]["emissive"] = custom_sprite_emissive_settings(FALSE)
 	human.regenerate_limb(BODY_ZONE_HEAD)
 	human.regenerate_limb(BODY_ZONE_L_ARM)
 	var/obj/item/bodypart/head/regrown_head = human.get_bodypart(BODY_ZONE_HEAD)
@@ -424,17 +425,12 @@
 			for(var/y in 0 to 31)
 				for(var/x in 0 to 31)
 					TEST_ASSERT(!!workspace.is_point_allowed(x, y, "[direction]") == !!silhouette.GetPixel(x + 1, 32 - y, "", direction), "Editor pixels must match [body_zone]'s rendered silhouette in direction [direction].")
-	human.dna.custom_markings = custom_sprite_test_drawing()
 	human.dna.custom_limb_markings = list(BODY_ZONE_L_ARM = custom_sprite_test_drawing("2"))
 	human.dna.custom_limb_markings[BODY_ZONE_L_ARM]["emissive"] = custom_sprite_emissive_settings(TRUE)
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/arm = human.get_bodypart(BODY_ZONE_L_ARM)
 	var/datum/bodypart_overlay/custom_marking/zone/zone_overlay = locate() in arm.bodypart_overlays
-	TEST_ASSERT(!(!zone_overlay || length(arm.bodypart_overlays) < 2), "A limb needs separate whole-body and zone overlays.")
-	var/zone_hash = zone_overlay.drawing_hash
-	human.dna.custom_markings = null
-	human.sync_custom_sprite_appearance()
-	TEST_ASSERT(!(QDELETED(zone_overlay) || zone_overlay.drawing_hash != zone_hash), "Removing whole-body paint must preserve the limb overlay.")
+	TEST_ASSERT(zone_overlay, "A limb zone drawing needs its own overlay.")
 	var/datum/dna/copied_dna = allocate(/datum/dna)
 	human.dna.copy_dna(copied_dna)
 	copied_dna.custom_limb_markings[BODY_ZONE_L_ARM]["tint"] = "#ff0000"
@@ -466,18 +462,11 @@
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/organ/taur_body/organ = custom_sprite_test_taur(human)
 	TEST_ASSERT(organ, "The rendering fixture needs a real taur organ.")
-	human.dna.custom_markings = custom_sprite_test_wide_drawing()
 	human.dna.custom_limb_markings = list("taur" = custom_sprite_test_wide_drawing(repeat_string(64, "2")))
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/chest = human.get_bodypart(BODY_ZONE_CHEST)
-	var/datum/bodypart_overlay/custom_marking/whole
-	var/datum/bodypart_overlay/custom_marking/zone
-	for(var/datum/bodypart_overlay/custom_marking/marking in chest.bodypart_overlays)
-		if(marking.type == text2path("/datum/bodypart_overlay/custom_marking/taur"))
-			whole = marking
-		if(marking.type == text2path("/datum/bodypart_overlay/custom_marking/taur/zone"))
-			zone = marking
-	TEST_ASSERT(!(!whole || !zone), "Whole-body and taur-zone paint need separate overlays on the taur organ's chest.")
+	var/datum/bodypart_overlay/custom_marking/taur/zone/zone = locate() in chest.bodypart_overlays
+	TEST_ASSERT(zone, "Taur-zone paint needs its own overlay on the taur organ's chest.")
 	var/datum/bodypart_overlay/mutant/taur_body/native = organ.bodypart_overlay
 	var/list/native_layers = list(EXTERNAL_FRONT = BODY_FRONT_LAYER, EXTERNAL_ADJACENT = BODY_ADJ_LAYER, EXTERNAL_BEHIND = BODY_BEHIND_LAYER, EXTERNAL_FRONT_UNDER_CLOTHES = UNDER_UNIFORM_LAYER, EXTERNAL_FRONT_OVER = ABOVE_BODY_FRONT_HEAD_LAYER)
 	var/list/outer_pixels = list()
@@ -488,42 +477,26 @@
 		for(var/image/native_image as anything in native.get_images(chest, layer_index, -layer_number))
 			expected.Blend(icon(native_image.icon, native_image.icon_state), ICON_OVERLAY)
 		expected.MapColors(0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1, 1,1,1,0)
-		var/image/painted = whole.get_image(chest, layer_index, -layer_number)
 		var/image/zoned = zone.get_image(chest, layer_index, -layer_number)
-		var/icon/paint = icon(painted.icon)
 		var/icon/zone_paint = icon(zoned.icon)
 		var/icon/zone_expected = icon(expected)
 		zone_expected.Blend("#123456", ICON_MULTIPLY)
-		TEST_ASSERT(!(paint.Width() != 64 || paint.Height() != 32 || painted.pixel_x + painted.pixel_w != -16 || zoned.pixel_x + zoned.pixel_w != -16 || painted.layer != -layer_number), "Taur paint must use each native layer and its 64 by 32 canvas at offset -16.")
+		TEST_ASSERT(!(zone_paint.Width() != 64 || zone_paint.Height() != 32 || zoned.pixel_x + zoned.pixel_w != -16 || zoned.layer != -layer_number), "Taur paint must use each native layer and its 64 by 32 canvas at offset -16.")
 		for(var/direction in GLOB.cardinals)
 			for(var/y in 1 to 32)
 				for(var/x in 1 to 64)
-					TEST_ASSERT(!(paint.GetPixel(x, y, "", direction) != expected.GetPixel(x, y, "", direction) || zone_paint.GetPixel(x, y, "", direction) != zone_expected.GetPixel(x, y, "", direction)), "Whole-body and taur-zone pixels must match the actual organ geometry in every layer and direction.")
+					TEST_ASSERT(zone_paint.GetPixel(x, y, "", direction) == zone_expected.GetPixel(x, y, "", direction), "Taur-zone pixels must match the actual organ geometry in every layer and direction.")
 					if(expected.GetPixel(x, y, "", direction))
 						painted_directions["[direction]"] = TRUE
 						if(x <= 16 || x > 48)
 							outer_pixels["[direction]"] = TRUE
 	TEST_ASSERT(!(length(painted_directions) != 4 || !outer_pixels["[EAST]"] || !outer_pixels["[WEST]"]), "The taur fixture must exercise all four directions and the outer canvas on its wide side views.")
-	var/zone_hash = zone.drawing_hash
-	human.dna.custom_markings = null
-	human.sync_custom_sprite_appearance()
-	TEST_ASSERT(!(QDELETED(zone) || zone.drawing_hash != zone_hash || !QDELETED(whole)), "Clearing whole-body paint must preserve the separate taur-zone snapshot.")
-
-/datum/unit_test/custom_sprite_wide_limb_crop/Run()
-	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
-	var/list/drawing = custom_sprite_test_wide_drawing("[repeat_string(16, "2")][repeat_string(32, "1")][repeat_string(16, "2")]")
-	var/obj/item/bodypart/arm = human.get_bodypart(BODY_ZONE_L_ARM)
-	arm.apply_custom_marking(drawing)
-	var/datum/bodypart_overlay/custom_marking/marking = locate() in arm.bodypart_overlays
-	var/image/painted = marking.get_image(arm, "", -BODYPARTS_LAYER)
-	var/icon/paint = icon(painted.icon)
-	TEST_ASSERT(!(paint.Width() != 32 || paint.Height() != 32 || painted.pixel_x || painted.pixel_w || !custom_sprite_test_same_pixels(paint, custom_sprite_silhouette(arm))), "Ordinary limbs must crop columns 17 through 48 of wide paint before applying their unchanged 32-pixel masks.")
 
 /datum/unit_test/custom_sprite_taur_emission/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/organ/taur_body/organ = custom_sprite_test_taur(human)
 	var/list/drawing = custom_sprite_test_wide_drawing()
-	human.dna.custom_markings = drawing
+	human.dna.custom_limb_markings = list("taur" = drawing)
 	human.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/chest = human.get_bodypart(BODY_ZONE_CHEST)
 	var/datum/bodypart_overlay/custom_marking/taur/marking = locate() in chest.bodypart_overlays

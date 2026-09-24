@@ -89,7 +89,7 @@ const renderPage = () =>
     </ServerPrefs.Provider>,
   );
 
-it('opens one custom drawing per marking zone alongside existing markings and the whole-body editor', () => {
+it('opens one custom drawing per marking zone alongside existing markings', () => {
   renderPage();
   expect(screen.getAllByText('Custom')).toHaveLength(6);
   for (const [label, body_zone] of zones) {
@@ -104,10 +104,7 @@ it('opens one custom drawing per marking zone alongside existing markings and th
       bodypart_slot: body_zone,
     });
   }
-  fireEvent.click(screen.getByText('Full body marking'));
-  expect(send).toHaveBeenLastCalledWith('open_custom_sprite_editor', {
-    target: 'markings',
-  });
+  expect(screen.queryByText('Full body marking')).toBeNull();
   expect(screen.queryByText('Taur body')).toBeNull();
 });
 
@@ -126,7 +123,6 @@ it('swaps adding and drawing leg markings for the taur drawing on taur legs', ()
   }
   expect(screen.getAllByText('+')).toHaveLength(4);
   expect(screen.getAllByText('Custom')).toHaveLength(4);
-  expect(screen.getByText('Full body marking')).toBeTruthy();
 });
 
 it('drops the add button once a limb is full', () => {
@@ -167,7 +163,6 @@ it('hides markings another row on the limb already uses', () => {
 it('lights up the drawing buttons that already have paint', () => {
   backendStore.set(gameDataAtom, {
     ...preferences,
-    custom_body_marking: true,
     custom_marking_zones: ['l_arm'],
   });
   renderPage();
@@ -178,12 +173,6 @@ it('lights up the drawing buttons that already have paint', () => {
       .classList.contains('Button--selected');
   expect(drawn('Left arm')).toBe(true);
   expect(drawn('Right arm')).toBe(false);
-  expect(
-    screen
-      .getByText('Full body marking')
-      .closest('.Button')!
-      .classList.contains('Button--selected'),
-  ).toBe(true);
 });
 
 it('keeps ordinary marking controls when custom editing is unavailable', () => {
@@ -194,7 +183,6 @@ it('keeps ordinary marking controls when custom editing is unavailable', () => {
   });
   renderPage();
   expect(screen.queryByText('Custom')).toBeNull();
-  expect(screen.queryByText('Full body marking')).toBeNull();
   expect(screen.queryByText('Taur body')).toBeNull();
   const leftArm = within(screen.getByText('Left arm').closest('.Section')!);
   fireEvent.click(leftArm.getByText('+'));

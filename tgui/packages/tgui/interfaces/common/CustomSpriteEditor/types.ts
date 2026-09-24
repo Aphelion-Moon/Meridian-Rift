@@ -49,7 +49,6 @@ export type CustomSpriteEditorData = {
   hideParts?: boolean;
   canHideUnderwear?: boolean;
   hideUnderwear?: boolean;
-  wholeBodyTaur?: boolean;
   showGradient?: boolean;
   canChangeMarkings?: boolean;
   baseMarkings?: { index: number; name: string; color: string }[];

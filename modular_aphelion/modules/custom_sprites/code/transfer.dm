@@ -184,9 +184,9 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return list("error" = "The style's drawing target is invalid.")
 	var/zone = raw["zone"]
 	if(target == "markings")
-		if(!("zone" in raw))
+		if(isnull(zone))
 			return list("error" = "The style is missing its body zone.")
-		if(!isnull(zone) && !(zone in GLOB.custom_marking_zone_labels))
+		if(!(zone in GLOB.custom_marking_zone_labels))
 			return list("error" = "The style's body zone is invalid.")
 	else if(!isnull(zone))
 		return list("error" = "Hair styles cannot have a body zone.")
@@ -199,8 +199,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			return drawing_result
 		drawing = drawing_result["drawing"]
 		if(custom_sprite_width(drawing) == CUSTOM_SPRITE_TAUR_WIDTH)
-			if(target != "markings" || (!isnull(zone) && zone != CUSTOM_MARKING_ZONE_TAUR))
-				return list("error" = "Wide drawings require whole-body or taur markings.")
+			if(zone != CUSTOM_MARKING_ZONE_TAUR)
+				return list("error" = "Wide drawings require taur markings.")
 		else if(zone == CUSTOM_MARKING_ZONE_TAUR)
 			return list("error" = "Taur markings require a wide drawing.")
 	var/list/hair

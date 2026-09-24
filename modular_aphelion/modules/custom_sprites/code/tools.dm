@@ -4,7 +4,7 @@
  * Arguments:
  * - tool: The scissors or tattoo machine in the artist's hand.
  * - target: "hair", "facial_hair" or "markings".
- * - zone: The marking body zone, or null for hair or whole-body markings.
+ * - zone: The marking body zone, or null for hair.
  */
 /proc/custom_sprite_salon_tool_menu(obj/item/tool, mob/living/carbon/human/artist, mob/living/carbon/human/recipient, target, zone)
 	var/label = custom_sprite_salon_label(target, zone)
@@ -52,7 +52,7 @@
 	INVOKE_ASYNC(src, PROC_REF(choose_zone), user, interacting_with)
 	return ITEM_INTERACT_SUCCESS
 
-/// Offers whole-body work and the recipient's present body zones, then continues with the shared salon flow.
+/// Offers the recipient's present body zones, then continues with the shared salon flow.
 /obj/item/tattoo_machine/proc/choose_zone(mob/living/carbon/human/artist, mob/living/carbon/human/recipient)
 	var/list/zones = list()
 	for(var/zone in GLOB.custom_marking_zone_labels)
@@ -66,7 +66,6 @@
 	if(!length(zones))
 		balloon_alert(artist, "nowhere to tattoo!")
 		return
-	zones["Whole body"] = null
 	var/choice = tgui_input_list(artist, "Where do you want to tattoo [recipient]?", "Tattoo machine", zones)
 	if(!choice || !(choice in zones))
 		return

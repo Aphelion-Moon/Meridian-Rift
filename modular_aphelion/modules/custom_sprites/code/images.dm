@@ -284,9 +284,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 /proc/custom_sprite_body_silhouette(mob/living/carbon/human/body, body_zone, width = 32)
 	var/icon/silhouette = custom_sprite_blank_icon(width)
 	var/offset_x = (width - 32) / 2
-	var/limb_zone = (body_zone && GLOB.custom_marking_hand_arms[body_zone]) || body_zone
+	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
-		if(body_zone && limb.body_zone != limb_zone)
+		if(limb.body_zone != limb_zone)
 			continue
 		if(limb.bodyshape & BODYSHAPE_TAUR || IS_STUMP(limb))
 			continue
@@ -296,7 +296,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		silhouette.Blend(custom_sprite_silhouette(limb), ICON_OVERLAY, offset_x + 1, 1)
 		if(limb.aux_zone)
 			silhouette.Blend(custom_sprite_silhouette(limb, TRUE), ICON_OVERLAY, offset_x + 1, 1)
-	if(!body_zone || body_zone == CUSTOM_MARKING_ZONE_TAUR)
+	if(body_zone == CUSTOM_MARKING_ZONE_TAUR)
 		silhouette.Blend(custom_sprite_taur_silhouette(body), ICON_OVERLAY, offset_x - 15, 1)
 	return silhouette
 
@@ -319,12 +319,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	// Bounded cache of directional limb silhouettes used by editing masks.
 	var/static/list/limb_masks = list()
 	var/list/geometry = list(width, body_zone)
-	var/limb_zone = (body_zone && GLOB.custom_marking_hand_arms[body_zone]) || body_zone
+	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
-		if((body_zone && limb.body_zone != limb_zone) || limb.bodyshape & BODYSHAPE_TAUR || IS_STUMP(limb))
+		if(limb.body_zone != limb_zone || limb.bodyshape & BODYSHAPE_TAUR || IS_STUMP(limb))
 			continue
 		geometry += list(limb.custom_sprite_icon_file(), custom_sprite_limb_state(limb), limb.aux_zone)
-	if(!body_zone || body_zone == CUSTOM_MARKING_ZONE_TAUR)
+	if(body_zone == CUSTOM_MARKING_ZONE_TAUR)
 		var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 		var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 		if(taur && chest)

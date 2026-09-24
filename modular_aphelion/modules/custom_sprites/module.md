@@ -5,8 +5,7 @@ Module ID: CUSTOM_SPRITES
 ### Description:
 
 Adds pixel editors for custom hair and markings in character preferences. You can
-add to an existing haircut, draw a whole-body marking, or give individual body
-zones their own drawings. Barbers and tattoo artists can use the same editor on
+add to an existing haircut or give individual body zones their own drawings. Barbers and tattoo artists can use the same editor on
 other players, with consent, a mirror preview and an optional save. Everything
 uses the existing SpriteEditor.
 
@@ -17,8 +16,8 @@ custom facial hair drawing is in the facial hairstyle picker. Both work exactly
 alike: the same editor, tools, bounds, palette, base-look controls, import and
 export, salon work and saved previous style. Facial hair is drawn on the lower
 face and saved under its own key, so the two never touch each other.
-The **Full body marking** button is on the body customization page's Markings tab.
-Each marking section there also has a **Custom** button, below its **+**:
+Each marking section on the body customization page's Markings tab has a
+**Custom** button, below its **+**:
 Head, Torso, Left arm, Right arm, Left hand, Right hand, Left leg and Right leg.
 Their tooltips say what each one draws over. A button is lit up, with a check
 mark, once its drawing has paint; an empty canvas saves as no drawing, so it
@@ -29,15 +28,15 @@ the editor's Base markings section does. The server refuses duplicates from eith
 With a taur body selected and enabled, the legs have no paintable pixels and
 their markings never show, so both leg sections swap their + and Custom buttons
 for a **Taur body** button, and the server refuses new leg markings.
-These pass `body_zone` to the same editor. Whole-body, ordinary zone, hand and
-taur-zone drawings stay separate.
+These pass `body_zone` to the same editor. Ordinary zone, hand and taur-zone
+drawings stay separate.
 
 Hands aren't limbs of their own: they're the arm's auxiliary zone. A hand drawing
 covers the hand plus the three arm rows just above it, so it can't climb the arm,
 and renders as its own overlay on that arm.
 
-Hair and ordinary limb drawings use a 32 by 32 canvas. Whole-body drawings on
-taurs and the Taur body editor use 64 by 32. All have Front, Back, Right and Left
+Hair and ordinary limb drawings use a 32 by 32 canvas. The Taur body editor uses
+64 by 32. All have Front, Back, Right and Left
 views; a dot beside a view means it contains paint. Hair and facial hair can be
 drawn anywhere on their canvas, regardless of the base style. Markings use
 the actual body or selected zone's
@@ -165,8 +164,8 @@ changes nothing that gets saved.
 
 The markings editor owns that limb's own markings the same way. A **Base
 markings** section adds, swaps, recolors and removes them, in layer order, with
-the drawing on top. The whole-body editor has no such section, since it isn't
-bound to one limb. These changes stay in the draft and support undo/redo. Saving
+the drawing on top. The Taur body editor has no such section, since the taur
+body carries no native limb markings. These changes stay in the draft and support undo/redo. Saving
 writes them with the drawing. Salon work uses the recipient's markings and waits
 for their approval; it never edits the artist's character preferences.
 
@@ -186,9 +185,7 @@ other Custom color. The selected brush updates after server acknowledgement.
 Every drawing saves its own Emissive setting for each of the four views. The
 checkbox edits the current view and defaults off. It is independent of the
 normal hair emissive preference. The master emissive appearance preference can
-suppress glow without changing these saved choices. The whole-body editor on a
-taur warns that emissive paint on the taur body doesn't glow from that drawing;
-the Taur body drawing is the place for it.
+suppress glow without changing these saved choices.
 
 Emissive views get glow masks; non-emissive views get blockers. Both use the
 paint's masking, clipping, opacity and placement. Unused directions have explicit
@@ -205,7 +202,6 @@ validates and selects that slot's drawings from the loaded data.
 | Stored value | Scope and contents |
 | --- | --- |
 | `characterN.hair` | One custom hair drawing for that character slot. |
-| `characterN.markings` | One whole-body custom marking for that slot. |
 | `characterN.limb_markings` | Drawings keyed by `head`, `chest`, `l_arm`, `r_arm`, `l_leg`, `r_leg` and `taur`. Unknown zones are discarded. |
 | `custom_sprite_palette` in `preferences.json` | The account's Custom swatches, separate from drawing data. |
 
@@ -225,7 +221,7 @@ when compression would be larger.
 | 3 | 64 by 32, 2,048 pixels | 63 | 2,049 characters |
 
 Version 3 is fixed at 64 by 32; dimensions are not supplied by the file. It is
-allowed for whole-body and taur-zone markings. Hair and ordinary limb zones
+allowed only for taur-zone markings. Hair and ordinary limb zones
 remain 32 by 32; the taur zone requires version 3. Only used colors are saved.
 The decoder checks lengths, indexes and expanded size before accepting data.
 
@@ -260,23 +256,16 @@ apply to the drawing sidecar; Custom swatches use the existing preference writer
 
 #### Rendering and caching
 
-Preferences copy drawings onto DNA. Hair gets its own head snapshot; markings
-get separate whole-body and zone overlays on each limb. DNA copies use independent
+Preferences copy drawings onto DNA. Hair gets its own head snapshot; each marking
+zone gets its own overlay on its limb. DNA copies use independent
 lists. Limb update signals handle regenerated or replaced parts, while detached
 parts retain their appearance. Ordinary markings clip to limb geometry and split
 across the normal leg layers. They do not draw on husks or invisible taur legs.
 
-Taur paint has separate whole-body and taur-zone overlays attached to the chest.
-They use the external organ's native layers, directional silhouettes and
+Taur-zone paint is an overlay attached to the chest. It uses the external organ's native layers, directional silhouettes and
 visibility rules, with a 64 by 32 icon centered at offset -16. Matrixed accessory
 layers contribute their original alpha to the mask. Glow and blocker masks keep
 the same width, layers and offset. Organ gain/loss signals update these snapshots.
-
-Wide whole-body paint crops columns 17 through 48 before masking ordinary upper
-body limbs. Legacy 32-pixel whole-body paint also renders on the taur's central
-32 columns. Opening it on a wide canvas adds transparent margins without moving
-paint or revealing a previously hidden layer; imports preview that same centered
-result before replacement.
 
 On the first render of a drawing, its pixel data is decoded and painted directly
 into a BYOND icon as horizontal runs. This needs no temporary workspace or files.
@@ -321,9 +310,10 @@ the existing palette order, run lengths and saved format.
 
 #### Older saves and limits
 
-Version 1 and 2 drawings still load at 32 by 32. Opening whole-body paint on a
-taur centers it on the wide canvas and saves it as version 3 through the normal
-save path. Wide paint is never silently shrunk into a narrow editor. A legacy
+Version 1 and 2 drawings still load at 32 by 32. Wide paint is never silently
+shrunk into a narrow editor. The whole-body marking was removed: a slot's old
+`markings` drawing and its previous style are ignored on load and dropped the
+next time that slot's drawings are saved. A legacy
 single emissive boolean applies to all four views; missing emission settings
 default off. Explicit saved whole-drawing
 tints are baked into the editor's literal colors on opening, preserving their
@@ -336,8 +326,8 @@ old drawings can still inherit that filter. New drawings use literal colors.
 
 | Limit | Value |
 | --- | --- |
-| Drawing size | 32 by 32; taur whole-body and taur-zone canvases are 64 by 32. Four directions. |
-| Drawings per character | Nine targets: hair, whole-body markings, six limb zones and the taur zone. |
+| Drawing size | 32 by 32; the taur-zone canvas is 64 by 32. Four directions. |
+| Drawings per character | Eight targets: hair, six limb zones and the taur zone. |
 | Saved Custom swatches | 16 per account. |
 | Colors in one drawing | 63 opaque colors, plus transparency. Undoable colors also reserve room. |
 | Undo history | 100 actions per open custom editor. |
@@ -366,8 +356,8 @@ changes.
   locks and unlocks that view immediately, without reopening the editor, and the
   lock is rechecked when you finish, so losing the mirror mid-draft refuses that
   change rather than applying it. The barber locker and vendor stock one.
-- `/obj/item/tattoo_machine`: use it on someone, then pick **Whole body** or a body
-  zone they actually have, including Taur lower body. Missing limbs, stumps and invisible
+- `/obj/item/tattoo_machine`: use it on someone, then pick a body zone they
+  actually have, including Taur lower body. Missing limbs, stumps and invisible
   taur leg slots aren't offered. It's reusable, needs no ink and works for anyone
   holding it. The barber locker has one and the barber vendor stocks three.
 
@@ -430,20 +420,13 @@ rebuilt on resume.
 
 `/datum/custom_sprite_salon` owns the session. It holds weak references to both
 players, the tool and the bodypart, the starting appearance and the reviewed
-proposal. Taur work binds to both the chest and the external taur organ.
-Whole-body work tracks every limb and the taur organ, so adding, losing or
-replacing one invalidates the proposal. Its
+proposal. Taur work binds to both the chest and the external taur organ. Its
 states are drafting, awaiting approval, applying and completed.
 
 - Starting needs two different connected players, a human recipient, adjacency,
   the right tool in hand, and a reachable target. Hats that hide hair block
   hair work, so clothing never hides the part being worked on. Tattoos use worn clothing's coverage flags for that zone, so a
   rolled-up jumpsuit exposes the arms and gloves only cover the hands.
-- The tattoo zone picker also offers **Whole body**, using the existing whole-body
-  custom marking slot. Every present paintable bodypart must be exposed, including
-  hands and feet. Missing limbs, stumps and invisible taur legs don't block it;
-  a visible taur body is included on the 64 by 32 canvas. Separate zone tattoos
-  keep their own drawings.
 - Editing only checks that the artist's account owns the draft.
 - Finish, accept and completion each recheck both players and their controlling
   accounts, consciousness, the held tool, adjacency, reachability, bodypart
@@ -483,7 +466,7 @@ recipient's worn appearances using the same layer set as worn-emissive rendering
 
 Donor parts keep their own skin, native markings and drawing snapshots in the
 preview. Taur dummies copy the actual organ's accessory, colors, visibility and
-pose, then the chest's independent whole-body and taur-zone paint snapshots.
+pose, then the chest's independent taur-zone paint snapshot.
 Drafts, exports and history read the attached head, limb or taur-zone overlay's
 drawing. Hair also uses the head's visible gradient and opacity.
 Native species opacity stays implicit; an opaque donor head keeps its explicit
@@ -550,8 +533,8 @@ The server enforces the import boundary:
 - Exact field sets and value types. Emission flags may be true/false or 0/1.
   Account sidecars, other formats and versions, and unknown fields are refused.
 - Four views at the drawing version's fixed size: 32 by 32 for versions 1/2,
-  or 64 by 32 for version 3. Wide drawings are limited to whole-body and taur-zone
-  markings; taur-zone drawings must be wide. The color and run limits remain
+  or 64 by 32 for version 3. Wide drawings are limited to taur-zone markings,
+  and taur-zone drawings must be wide. Markings without a body zone are refused. The color and run limits remain
   strict. Nothing is salvaged: one bad view rejects the file. A non-null drawing
   with no paint is refused, so bad data can never act as Clear.
 - Registered, unlocked hairstyles and gradients, character/species eligibility,
@@ -613,9 +596,8 @@ ownership, directional glow/blockers, persistence failures and recovery, slot
 changes, imports, save/reopen/erase, and preview caching. They also check exact
 run encoding, mixed-case colors and all 63 colors across icon rows and directions.
 Taur fixtures create a real Cow (Spotted) organ and compare native geometry in all
-four directions, upper-body cropping, wide glow/blockers, legacy centering,
-guide/candidate alignment and independent whole-body/zone snapshots. Capacity
-coverage fills all 100 slots with nine current targets and their previous styles.
+four directions, wide glow/blockers and guide alignment. Capacity
+coverage fills all 100 slots with eight current targets and their previous styles.
 Keep the shared painting and NanoPaint paths working when changing SpriteEditor.
 
 `transfer.dm` covers hostile JSON, strict fields, RLE and palette abuse,
@@ -636,8 +618,7 @@ check legacy colors, ambiguous shades, batched redraws and gradient opacity.
 distance, mirror closing, interrupted and replayed completion, achievements,
 restoration, limb replacement, changed controlling players, salon import limits,
 dressed guides, customized limb mask parity, closing and resuming, recipient saves,
-whole-body tattoos and clothing coverage, and taur-organ replacement while the
-chest remains attached.
+and taur-organ replacement while the chest remains attached.
 Donor tests attach real transplanted limbs and heads, check their appearance and
 restoration history, and compare allowed hair-extension pixels in all four artist
 and mirror views.
@@ -757,7 +738,7 @@ are also required.
 | `tgui/packages/tgui/interfaces/CustomHairEditor.tsx`, `CustomMarkingsEditor.tsx` | The two interface entry points. |
 | `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, backend types and their tests. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | Hair editor button. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Whole-body, zone and taur marking buttons, and their tests. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Zone and taur marking buttons, and their tests. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Editing-availability flag. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/index.tsx`, `atoms.ts`, `helpers.ts`, `Types/types.ts`, `Types/Tool.ts` | Shared editor state, rendering/context hooks, gesture cancellation and selection types. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. |

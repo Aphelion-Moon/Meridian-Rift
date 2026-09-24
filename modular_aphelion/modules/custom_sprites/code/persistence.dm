@@ -118,8 +118,6 @@
 	var/list/custom_hair
 	/// Saved facial hair drawing for the loaded character slot.
 	var/list/custom_facial_hair
-	/// Saved whole-body drawing for the loaded character slot.
-	var/list/custom_markings
 	/// Body zone -> saved drawing for the loaded character slot.
 	var/list/custom_limb_markings
 	/// Editor key -> the one previous saved package for that drawing target.
@@ -148,7 +146,6 @@
 	custom_facial_hair = custom_sprite_validate(slot_data["facial_hair"])
 	if(custom_sprite_width(custom_facial_hair) != 32)
 		custom_facial_hair = null
-	custom_markings = custom_sprite_validate(slot_data["markings"])
 	custom_limb_markings = custom_limb_markings_validate(slot_data["limb_markings"])
 	custom_style_previous = custom_style_previous_validate(slot_data["previous_styles"])
 
@@ -157,7 +154,6 @@
 	custom_sprite_slot = null
 	custom_hair = null
 	custom_facial_hair = null
-	custom_markings = null
 	custom_limb_markings = null
 	custom_style_previous = null
 
@@ -175,8 +171,6 @@
 		slot_data["hair"] = deep_copy_list(custom_hair)
 	if(custom_facial_hair)
 		slot_data["facial_hair"] = deep_copy_list(custom_facial_hair)
-	if(custom_markings)
-		slot_data["markings"] = deep_copy_list(custom_markings)
 	if(length(custom_limb_markings))
 		slot_data["limb_markings"] = deep_copy_list(custom_limb_markings)
 	if(length(custom_style_previous))

@@ -1114,7 +1114,7 @@ it('steps base markings with the cycle arrows and stops when there is nothing to
   expect(send).not.toHaveBeenCalled();
 });
 
-it('offers the limb’s own markings, and never for the whole body', () => {
+it('offers the limb’s own markings only when the backend permits it', () => {
   const store = createStore();
   const limb = {
     ...fixture(),
@@ -1398,27 +1398,4 @@ it('rotates through the views in the same order as the character preview', () =>
     'Button--selected',
   );
   expect(send).not.toHaveBeenCalled();
-});
-
-it('points taur emissives at the taur drawing from the whole-body editor', () => {
-  const store = createStore();
-  const editor = () => (
-    <Provider store={store}>
-      <CustomSpriteEditor target="markings" />
-    </Provider>
-  );
-  const taur = { ...fixture(64), wholeBodyTaur: true };
-  backendStore.set(gameDataAtom, taur);
-  const view = render(editor());
-  expect(screen.getByText(/Use the Taur body custom marking/)).toBeTruthy();
-  backendStore.set(gameDataAtom, { ...taur, emissiveAllowed: false });
-  view.rerender(editor());
-  expect(screen.queryByText(/taur body/i)).toBeNull();
-  backendStore.set(gameDataAtom, {
-    ...taur,
-    context: 'salon',
-    recipientName: 'Leia',
-  });
-  view.rerender(editor());
-  expect(screen.getByText(/Use the Taur lower body tattoo/)).toBeTruthy();
 });

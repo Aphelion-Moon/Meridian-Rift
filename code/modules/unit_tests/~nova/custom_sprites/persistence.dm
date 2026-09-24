@@ -60,14 +60,14 @@
 	TEST_ASSERT(store.writes == 1, "Unchanged drawings and ordinary preference saves must not rewrite the sidecar.")
 	preferences.switch_to_slot(2)
 	preferences.load_custom_sprites()
-	TEST_ASSERT(!(preferences.custom_hair || preferences.custom_markings), "A new slot must have a blank canvas.")
-	preferences.commit_custom_style(custom_style_package("markings", null, drawing, null), preferences.default_slot)
+	TEST_ASSERT(!(preferences.custom_hair || length(preferences.custom_limb_markings)), "A new slot must have a blank canvas.")
+	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_CHEST, drawing, null), preferences.default_slot)
 	// Exercise the private UI action without requiring a live browser.
 	call(preferences, "remove_current_slot")()
 	TEST_ASSERT(!store.get_entry("character2"), "Deleting a slot must remove its sidecar record.")
 	preferences.switch_to_slot(1)
 	preferences.load_custom_sprites()
-	TEST_ASSERT(!(json_encode(preferences.custom_hair) != json_encode(drawing) || preferences.custom_markings), "Switching slots must restore only that slot's drawings.")
+	TEST_ASSERT(!(json_encode(preferences.custom_hair) != json_encode(drawing) || length(preferences.custom_limb_markings)), "Switching slots must restore only that slot's drawings.")
 	var/datum/json_savefile/custom_sprites/reloaded = allocate(/datum/json_savefile/custom_sprites, test_path)
 	TEST_ASSERT(json_encode(reloaded.get_entry("character1")) == json_encode(store.get_entry("character1")), "A new session must recover saved drawings.")
 	store.path = null
@@ -89,7 +89,7 @@
 	GLOB.preferences_datums[test_key] = preferences
 	custom_sprites_after_import(test_key)
 	GLOB.preferences_datums -= test_key
-	TEST_ASSERT(!(fexists(test_path) || fexists("[test_path].bak") || fexists("[test_path].new") || preferences.custom_hair || preferences.custom_markings || length(preferences.custom_limb_markings) || preferences.custom_sprite_savefile.path), "An imported character must not inherit old disk data or writable cached drawings.")
+	TEST_ASSERT(!(fexists(test_path) || fexists("[test_path].bak") || fexists("[test_path].new") || preferences.custom_hair || length(preferences.custom_limb_markings) || preferences.custom_sprite_savefile.path), "An imported character must not inherit old disk data or writable cached drawings.")
 	preferences.load_and_save = FALSE
 
 /datum/unit_test/custom_marking_zone_persistence/Run()
@@ -103,29 +103,25 @@
 	preferences.custom_sprite_slot = null
 	preferences.load_and_save = TRUE
 	var/list/hair = custom_sprite_test_drawing("2")
-	var/list/whole = custom_sprite_test_drawing()
 	var/list/arm = custom_sprite_test_drawing("2")
 	var/list/leg = custom_sprite_test_drawing()
 	leg["emissive"] = custom_sprite_emissive_settings(list("1" = TRUE))
 	preferences.commit_custom_style(custom_style_package("hair", null, hair, null), preferences.default_slot)
-	preferences.commit_custom_style(custom_style_package("markings", null, whole, null), preferences.default_slot)
 	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot)
 	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_R_LEG, leg, null), preferences.default_slot)
-	TEST_ASSERT(json_encode(preferences.custom_markings) == json_encode(whole), "A zone drawing must not replace the whole-body marking.")
 	var/list/saved = store.get_entry("character[preferences.default_slot]")
 	TEST_ASSERT(json_encode(saved?["limb_markings"]?[BODY_ZONE_L_ARM]) == json_encode(arm), "A zone drawing must be saved independently in the same character slot.")
-	TEST_ASSERT(!(store.writes != 4 || preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot) || store.writes != 4), "Only a changed zone drawing should write the sidecar.")
+	TEST_ASSERT(!(store.writes != 3 || preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot) || store.writes != 3), "Only a changed zone drawing should write the sidecar.")
 	var/datum/json_savefile/custom_sprites/reloaded = allocate(/datum/json_savefile/custom_sprites, test_path)
-	TEST_ASSERT(json_encode(reloaded.get_entry("character[preferences.default_slot]")) == json_encode(saved), "A new session must recover hair, whole-body markings, and independent zone drawings.")
+	TEST_ASSERT(json_encode(reloaded.get_entry("character[preferences.default_slot]")) == json_encode(saved), "A new session must recover hair and independent zone drawings.")
 	preferences.custom_hair = null
-	preferences.custom_markings = null
 	preferences.custom_limb_markings = null
 	preferences.custom_sprite_slot = null
 	preferences.load_custom_sprites()
 	TEST_ASSERT(!(json_encode(preferences.custom_hair) != json_encode(hair) || json_encode(preferences.custom_limb_markings?[BODY_ZONE_R_LEG]) != json_encode(leg)), "Reloading preferences must recover each drawing and its own emissive settings.")
 	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, null, null), preferences.default_slot)
 	saved = store.get_entry("character[preferences.default_slot]")
-	TEST_ASSERT(!(saved?["limb_markings"]?[BODY_ZONE_L_ARM] || json_encode(saved?["limb_markings"]?[BODY_ZONE_R_LEG]) != json_encode(leg) || json_encode(preferences.custom_hair) != json_encode(hair) || json_encode(preferences.custom_markings) != json_encode(whole)), "Clearing an arm must preserve hair, whole-body markings, and the leg drawing.")
+	TEST_ASSERT(!(saved?["limb_markings"]?[BODY_ZONE_L_ARM] || json_encode(saved?["limb_markings"]?[BODY_ZONE_R_LEG]) != json_encode(leg) || json_encode(preferences.custom_hair) != json_encode(hair)), "Clearing an arm must preserve hair and the leg drawing.")
 	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_R_LEG, null, null), preferences.default_slot)
 	saved = store.get_entry("character[preferences.default_slot]")
 	TEST_ASSERT(!(saved?["limb_markings"] || length(preferences.custom_limb_markings)), "Clearing the final zone must omit the empty zone map.")
@@ -136,7 +132,6 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/list/drawing = custom_sprite_test_drawing()
-	preferences.commit_custom_style(custom_style_package("markings", null, drawing, null), preferences.default_slot)
 	preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, drawing, null), preferences.default_slot)
 	var/before = json_encode(preferences.custom_sprite_savefile.get_entry())
 	var/list/valid = custom_style_validate_package(custom_style_package("markings", BODY_ZONE_L_ARM, null, null))
@@ -158,7 +153,7 @@
 	preferences.custom_sprite_savefile.set_entry("character[preferences.default_slot]", list("markings" = drawing, "limb_markings" = raw_zones))
 	preferences.custom_sprite_slot = null
 	preferences.load_custom_sprites()
-	TEST_ASSERT(!(length(preferences.custom_limb_markings) != 1 || json_encode(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]) != json_encode(drawing) || json_encode(preferences.custom_markings) != json_encode(drawing)), "Loading must retain valid zones and whole-body markings while dropping unknown and malformed zones.")
+	TEST_ASSERT(!(length(preferences.custom_limb_markings) != 1 || json_encode(preferences.custom_limb_markings?[BODY_ZONE_L_ARM]) != json_encode(drawing) || ("markings" in preferences.custom_sprite_slot_data())), "Loading must retain valid zones while dropping unknown and malformed zones and retired whole-body markings.")
 	for(var/bad_zones in list(null, 1, "not a map", list("tail" = drawing)))
 		TEST_ASSERT(!custom_limb_markings_validate(bad_zones), "Invalid or empty zone maps must sanitize to no drawings.")
 	var/list/all_zones = list()
@@ -206,15 +201,15 @@
 	for(var/direction in directions)
 		wide["dirs"][direction] = "f[repeat_string(1024, "12")]"
 	zones[CUSTOM_MARKING_ZONE_TAUR] = wide
-	var/list/previous = list("hair" = custom_style_package("hair", null, drawing, null), "markings" = custom_style_package("markings", null, wide, null))
+	var/list/previous = list("hair" = custom_style_package("hair", null, drawing, null))
 	for(var/zone in zones)
 		previous[custom_style_key("markings", zone)] = custom_style_package("markings", zone, zones[zone], null)
 	var/list/all_slots = list()
 	for(var/slot in 1 to MAX_SAVE_SLOTS_SUBSCRIBER)
-		all_slots["character[slot]"] = list("hair" = drawing, "markings" = wide, "limb_markings" = zones, "previous_styles" = previous)
+		all_slots["character[slot]"] = list("hair" = drawing, "limb_markings" = zones, "previous_styles" = previous)
 	text2file(json_encode(all_slots), test_path)
 	var/datum/json_savefile/custom_sprites/store = allocate(/datum/json_savefile/custom_sprites, test_path)
-	TEST_ASSERT(!(length(store.get_entry()) != MAX_SAVE_SLOTS_SUBSCRIBER || json_encode(store.get_entry("character[MAX_SAVE_SLOTS_SUBSCRIBER]")) != json_encode(all_slots["character[MAX_SAVE_SLOTS_SUBSCRIBER]"])), "A full account must reload every drawing and its previous style, including both wide taur targets.")
+	TEST_ASSERT(!(length(store.get_entry()) != MAX_SAVE_SLOTS_SUBSCRIBER || json_encode(store.get_entry("character[MAX_SAVE_SLOTS_SUBSCRIBER]")) != json_encode(all_slots["character[MAX_SAVE_SLOTS_SUBSCRIBER]"])), "A full account must reload every drawing and its previous style, including the wide taur target.")
 	custom_sprite_test_remove_sidecar(test_path)
 	var/padding = "0"
 	for(var/i in 1 to 24)

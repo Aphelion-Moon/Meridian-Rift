@@ -114,7 +114,6 @@ export const CustomSpriteEditor = ({
     hideParts,
     canHideUnderwear,
     hideUnderwear,
-    wholeBodyTaur,
     canChangeMarkings,
     baseMarkings,
     baseMarkingChoices,
@@ -618,16 +617,6 @@ export const CustomSpriteEditor = ({
                       Emissive
                     </Button.Checkbox>
                   </Stack.Item>
-                  {!!wholeBodyTaur && !!emissiveAllowed && (
-                    <Stack.Item color="average">
-                      Emissives drawn on the taur body won&apos;t glow from this
-                      drawing. Use the{' '}
-                      {salon
-                        ? 'Taur lower body tattoo'
-                        : 'Taur body custom marking'}{' '}
-                      instead.
-                    </Stack.Item>
-                  )}
                   <Stack.Item>
                     <Section title="Preview">
                       <Box textAlign="center">

@@ -271,7 +271,6 @@ export type PreferencesMenuData = {
 
   // NOVA EDIT ADDITION START
   allow_custom_sprite_editing?: BooleanLike;
-  custom_body_marking?: BooleanLike;
   custom_marking_zones?: string[];
   preview_options: string[];
   preview_selection: string;
