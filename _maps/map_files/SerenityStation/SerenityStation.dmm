@@ -27394,6 +27394,7 @@
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
 /obj/effect/turf_decal/siding/thinplating/dark,
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron,
 /area/station/common/cryopods)
 "hOY" = (
@@ -28258,6 +28259,7 @@
 /obj/structure/cable,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/iron/dark/side,
 /area/station/service/barber)
 "icV" = (
