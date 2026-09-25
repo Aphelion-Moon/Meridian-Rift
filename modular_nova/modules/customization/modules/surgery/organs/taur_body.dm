@@ -402,7 +402,7 @@
 	. = ..()
 	// Grown after our own overlay went on, so the tail draws over the body on the layers they share.
 	var/datum/sprite_accessory/taur/accessory = bodypart_overlay.sprite_datum
-	if(isnull(limb.owner) || isnull(accessory?.tail_icon))
+	if(isnull(limb.owner) || !accessory?.has_tail)
 		return
 	var/obj/item/organ/tail/taur/tail = new
 	tail.organ_flags &= ~(ORGAN_ORGANIC | ORGAN_ROBOTIC)

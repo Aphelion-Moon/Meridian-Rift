@@ -259,7 +259,7 @@
  */
 /datum/bodypart_overlay/mutant/proc/get_singular_image(image_icon_state, layer_index, layer_real, mob/living/carbon/human/owner, icon_override = null, obj/item/bodypart/limb)
 	// We get from icon_override if it is filled, and from sprite_datum.icon if not.
-	var/mutable_appearance/appearance = mutable_appearance(icon_override || sprite_datum.get_special_icon(owner), image_icon_state, layer = layer_real)
+	var/mutable_appearance/appearance = mutable_appearance(icon_override || sprite_datum.get_special_icon(owner, src), image_icon_state, layer = layer_real)
 
 	if(sprite_datum.center)
 		center_image(appearance, sprite_datum.special_x_dimension ? sprite_datum.get_special_x_dimension(owner) : sprite_datum.dimension_x, sprite_datum.dimension_y)

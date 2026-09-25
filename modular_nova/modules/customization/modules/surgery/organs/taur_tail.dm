@@ -44,9 +44,5 @@
 	return "[body_state]_[wagging ? "wagging" : ""]tail"
 
 /datum/bodypart_overlay/mutant/tail/taur/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
-	if(!..())
-		return FALSE
-	var/mob/living/carbon/human/human = owner || bodypart_owner.owner
-	if(!istype(human) || !(FEATURE_TAIL in human.try_hide_mutant_parts))
-		return TRUE
-	return isnull(human.w_uniform) && isnull(human.wear_suit)
+	var/datum/sprite_accessory/taur/taur = sprite_datum
+	return !isnull(taur?.tail_icon) && ..()

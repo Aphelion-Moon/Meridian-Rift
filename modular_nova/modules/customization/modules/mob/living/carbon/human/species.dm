@@ -183,7 +183,7 @@ GLOBAL_LIST_EMPTY(customizable_races)
 
 	for (var/key, mutant_part in organ_holder.dna.mutant_bodyparts)
 		// A taur that brings its own tail owns the tail slot, as its preferences already decide.
-		if(key == FEATURE_TAIL && !isnull(taur_accessory?.tail_icon))
+		if(key == FEATURE_TAIL && taur_accessory?.has_tail)
 			continue
 		var/list/accessory_category = SSaccessories.sprite_accessories[key]
 		if(!islist(accessory_category))

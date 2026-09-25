@@ -6,6 +6,7 @@
 		var/datum/sprite_accessory/taur/taur = taur_entry
 		if(isnull(taur.tail_icon))
 			continue
+		TEST_ASSERT(taur.has_tail, "[taur_name] has a tail_icon without has_tail, so it never grows the tail.")
 		var/list/tail_states = icon_states(taur.tail_icon)
 		var/list/poses = list(taur.icon_state)
 		if(taur.can_lay_down)
@@ -76,9 +77,9 @@
 	TEST_ASSERT(istype(taur.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL), /obj/item/organ/tail/taur), "Regenerating organs lost the taur tail.")
 
 	var/datum/mutant_bodypart/taur_part = taur.dna.mutant_bodyparts[FEATURE_TAUR]
-	taur_part.name = /datum/sprite_accessory/taur/horse::name
+	taur_part.name = /datum/sprite_accessory/taur/drider::name
 	taur.dna.species.regenerate_organs(taur)
-	TEST_ASSERT_NULL(taur.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL), "Swapping to a monolith taur left a tail behind.")
+	TEST_ASSERT_NULL(taur.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL), "Swapping to a taur without a tail left one behind.")
 
 /// Choosing a taur that brings its own tail hides the tail preferences and keeps FEATURE_TAIL out of the DNA.
 /datum/unit_test/taur_tail_preferences
@@ -112,9 +113,12 @@
 
 	preferences.value_cache[/datum/preference/toggle/mutant_toggle/taur] = TRUE
 	preferences.value_cache[/datum/preference/choiced/mutant_choice/taur] = /datum/sprite_accessory/taur/horse::name
+	TEST_ASSERT(preferences.has_taur_tail(), "A taur with a baked-in tail still offers the tail preferences.")
+
+	preferences.value_cache[/datum/preference/choiced/mutant_choice/taur] = /datum/sprite_accessory/taur/drider::name
 	for(var/preference_type in tail_preferences)
 		var/datum/preference/preference = GLOB.preference_entries[preference_type]
-		TEST_ASSERT(preference.is_accessible(preferences), "[preference_type] stays hidden under a monolith taur.")
+		TEST_ASSERT(preference.is_accessible(preferences), "[preference_type] stays hidden under a taur without a tail.")
 
 /// Amputation shears and the field medic's bone saw refuse to cut off a taur tail.
 /datum/unit_test/taur_tail_cannot_be_cut
@@ -158,6 +162,20 @@
 	taur.set_species(/datum/species/human/felinid)
 	var/obj/item/organ/tail/tail = taur.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
 	TEST_ASSERT(istype(tail, /obj/item/organ/tail/taur), "Becoming a felinid swapped the taur's own tail for [tail?.type].")
+
+/// A taur whose tail is baked into its body sprite still grows a tail organ that wags, and it draws nothing itself.
+/datum/unit_test/taur_tail_baked_in
+
+/datum/unit_test/taur_tail_baked_in/Run()
+	var/mob/living/carbon/human/consistent/taur = allocate(__IMPLIED_TYPE__)
+	taur.dna.mutant_bodyparts[FEATURE_TAUR] = build_mutant_part(/datum/sprite_accessory/taur/horse::name)
+	taur.dna.species.regenerate_organs(taur)
+
+	var/obj/item/organ/tail/taur/tail = taur.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
+	TEST_ASSERT(istype(tail), "A taur with a baked-in tail grew no tail organ.")
+	TEST_ASSERT(taur.wag_tail(), "A baked-in taur tail cannot wag.")
+	var/obj/item/bodypart/chest/chest = taur.get_bodypart(BODY_ZONE_CHEST)
+	TEST_ASSERT(!tail.bodypart_overlay.can_draw_on_bodypart(chest, taur), "A baked-in taur tail draws over its body sprite.")
 
 /**
  * Makes a human a feline taur, the taur whose tail is drawn separately, and returns its taur body.

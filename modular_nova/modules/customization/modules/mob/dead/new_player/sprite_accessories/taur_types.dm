@@ -33,7 +33,9 @@
 	var/can_lay_down = FALSE
 	/// The offset we get from laying down. Negative values move us down
 	var/laydown_offset = 0
-	/// Icon file holding this taur's separate tail states. Null means the tail is baked into the body sprite.
+	/// Whether the body has a tail. It grows a tail organ, which takes the tail slot and hides the tail preferences.
+	var/has_tail = FALSE
+	/// Icon file holding this taur's separate tail states. Null means any tail is baked into the body sprite.
 	var/tail_icon
 
 /datum/sprite_accessory/taur/get_special_icon(mob/living/carbon/human/target, datum/bodypart_overlay/mutant/bodypart_overlay)
@@ -95,6 +97,7 @@
 /datum/sprite_accessory/taur/cow
 	name = "Cow"
 	icon_state = "cow"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_HOOF
 	alt_taur_mode = BODYSHAPE_TAUR_PAW
 	color_src = USE_ONE_COLOR
@@ -110,6 +113,7 @@
 /datum/sprite_accessory/taur/deer
 	name = "Deer"
 	icon_state = "deer"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_HOOF
 	alt_taur_mode = BODYSHAPE_TAUR_PAW
 	organ_type = /obj/item/organ/taur_body/horselike/deer
@@ -119,6 +123,7 @@
 /datum/sprite_accessory/taur/drake
 	name = "Drake"
 	icon_state = "drake"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -3
@@ -143,11 +148,13 @@
 /datum/sprite_accessory/taur/eevee
 	name = "Eevee"
 	icon_state = "eevee"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 
 /datum/sprite_accessory/taur/horse
 	name = "Horse"
 	icon_state = "horse"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_HOOF
 	alt_taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
@@ -156,6 +163,7 @@
 /datum/sprite_accessory/taur/fishlike
 	name = "Mermaid"
 	icon_state = "mermaid"
+	has_tail = TRUE
 	organ_type = /obj/item/organ/taur_body/fishlike
 	taur_mode = BODYSHAPE_TAUR_SNAKE
 	color_src = USE_ONE_COLOR
@@ -173,6 +181,7 @@
 /datum/sprite_accessory/taur/naga
 	name = "Naga"
 	icon_state = "naga"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_SNAKE
 	organ_type = /obj/item/organ/taur_body/serpentine
 
@@ -194,6 +203,7 @@
 /datum/sprite_accessory/taur/otie
 	name = "Otie"
 	icon_state = "otie"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -4
@@ -201,11 +211,13 @@
 /datum/sprite_accessory/taur/pede
 	name = "Scolipede"
 	icon_state = "pede"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 
 /datum/sprite_accessory/taur/centipede
 	name = "Centipede"
 	icon_state = "centipede"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_SNAKE
 	organ_type = /obj/item/organ/taur_body/centipede
 
@@ -229,6 +241,7 @@
 /datum/sprite_accessory/taur/canine
 	name = "Canine"
 	icon_state = "canine"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -3
@@ -236,6 +249,7 @@
 /datum/sprite_accessory/taur/feline
 	name = "Feline"
 	icon_state = "feline"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -4
@@ -285,6 +299,7 @@
 /datum/sprite_accessory/taur/kitsune
 	name = "Kitsune"
 	icon_state = "kitsune"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -3
@@ -296,6 +311,7 @@
 /datum/sprite_accessory/taur/chemlight
 	name = "Chemtaur"
 	icon_state = "chemtaur"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -6

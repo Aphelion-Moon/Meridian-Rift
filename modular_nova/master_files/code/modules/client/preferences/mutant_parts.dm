@@ -769,15 +769,15 @@
  * values are kept for when the character goes back to a taur without one.
  *
  * Returns:
- * - TRUE: The taur choice will be applied and its accessory has a tail_icon.
- * - FALSE: No taur will be applied, or it is a monolith with its tail baked in.
+ * - TRUE: The taur choice will be applied and its body has a tail, drawn separately or baked in.
+ * - FALSE: No taur will be applied, or its body has no tail.
  */
 /datum/preferences/proc/has_taur_tail()
 	var/datum/preference/choiced/mutant_choice/taur/taur_preference = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
 	if(!taur_preference.is_visible(preferences = src))
 		return FALSE
 	var/datum/sprite_accessory/taur/taur = SSaccessories.sprite_accessories[FEATURE_TAUR][read_preference(/datum/preference/choiced/mutant_choice/taur)]
-	return !isnull(taur?.tail_icon)
+	return taur?.has_tail
 
 /// Xenodorsal
 

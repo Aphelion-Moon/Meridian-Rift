@@ -228,7 +228,8 @@ GAME_VERB_DESC(/mob/living/carbon/human, toggle_mutant_part_visibility, "Show/Hi
 		available_selection["reveal all"] = TRUE
 	// Lets build our parts list
 	for(var/organ_slot, feature_string in total_selection)
-		if(get_organ_slot(organ_slot))
+		var/obj/item/organ/organ = get_organ_slot(organ_slot)
+		if(organ && !istype(organ, /obj/item/organ/tail/taur))
 			available_selection[feature_string] = TRUE
 
 	// If this proc is called with the 'quick_toggle' flag, we skip the rest
