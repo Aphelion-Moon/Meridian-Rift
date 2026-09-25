@@ -332,8 +332,14 @@
 		close(can_be_suspended = FALSE)
 		return
 	// Validate ping
-	if(!initialized && world.time - opened_at > TGUI_PING_TIMEOUT)
-		log_tgui(user, "Error: Zombie window detected, closing.",
+	// APHELION EDIT REMOVAL START - A cold browser cannot answer a pooled-window ping yet
+	// if(!initialized && world.time - opened_at > TGUI_PING_TIMEOUT)
+	// APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Bound initial loading separately from pooled-window liveness
+	var/timeout = window.is_ready() ? TGUI_PING_TIMEOUT : TGUI_WINDOW_STARTUP_TIMEOUT
+	if(!initialized && world.time - opened_at > timeout)
+		log_tgui(user, "Error: [window.is_ready() ? "Zombie window detected" : "Window startup timed out"], closing.",
+	// APHELION EDIT ADDITION END
 			window = window,
 			src_object = src_object)
 		close(can_be_suspended = FALSE)
