@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_nova/modules/verbs/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_nova/modules/verbs/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ff47e40a32d1147be1b92c458afbe3115d1134f5/modular_nova/modules/verbs/readme.md"><img src="git.png" width="16" height="16" title="modular_nova/modules/verbs/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="title-more-verbs-and-subtler">Title: More verbs and Subtler</h2>
+<p>MODULE ID: VERBS</p>
+<h3 id="description">Description:</h3>
+<p>Adds player verbs and emotes, including LOOC, Subtle, and Subtler.</p>
+<p>Subtler excludes ghosts and can address one nearby participant or a local radius.
+Holograms and Dullahan relays retain their existing recipient routing. Target choices
+use unique display names and weak references, then recheck the selected target's
+range after the prompt. Emote bans and IC mute status are checked before and after
+prompts.</p>
+<p>An active wall portal adds two outgoing choices: the relay's tile or its one-tile
+radius. Incoming messages through a relay name the sender &quot;Unknown&quot;; outgoing
+messages use the relay's name. Both participants must allow ERP and portal use.
+Messages sent to a relay also log its real owner.</p>
+<p>Portal destination choices retain the exact relay offered before the prompt.
+<code>get_portal_output()</code> and <code>resolve_portal_output()</code>, defined by the portal module,
+are shared with its other prompted actions. Ending or replacing a session invalidates
+the old choice.</p>
+<p>Notification sounds require the recipient's Subtler sound preference. Portal and
+other lewd notifications also require the ERP sound preference.</p>
+<h3 id="tg-proc-changes">TG Proc Changes:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>CHAT_LOOC</code></li>
+<li><code>CHAT_LOOC_ADMIN</code></li>
+<li><code>LOG_SUBTLER</code></li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li>Portal output helpers in <code>modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/portal_interaction_routes.dm</code></li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p><a href="https://github.com/Skyrat-SS13/Skyrat-tg/pull/872">Original implementation</a>.
+Gandalf2k15: porting and refactoring.</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ff47e40a32d1147be1b92c458afbe3115d1134f5">ff47e40</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

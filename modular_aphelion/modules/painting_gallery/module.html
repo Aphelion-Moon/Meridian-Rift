@@ -1,0 +1,195 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/painting_gallery/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/painting_gallery/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ff47e40a32d1147be1b92c458afbe3115d1134f5/modular_aphelion/modules/painting_gallery/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/painting_gallery/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="art-galaxy-and-painting-persistence">Art Galaxy and painting persistence</h2>
+<p>Module ID: PAINTING_GALLERY</p>
+<h3 id="description">Description:</h3>
+<p>Art Galaxy is installed on standard PDAs. <strong>Browse</strong> and <strong>My Artwork</strong> open as
+thumbnail lists with 24 paintings per page; selecting a painting opens its details with an uncropped,
+pixel-scaled image that fits the available window space. Browse retains searches,
+and both views support downloads and console printing. My Artwork lets the
+signed-in player manage website visibility from either the list or the detail
+view, regardless of who owns the PDA. Each viewer keeps separate navigation, so
+another person inspecting the same PDA cannot reset their personal artwork view.
+Every change checks <code>creator_ckey</code> on the server before saving.</p>
+<p>Finalizing a canvas saves it privately to <strong>My Artwork</strong> immediately, without a
+website prompt or a frame. Its author can publish or withdraw it using the
+checkbox. Character signatures, including anonymous signatures, remain separate
+from account ownership. <strong>A Brush with Greatness</strong> rewards successfully enabling
+publication for an owned saved painting; imports and loading existing records do
+not award it.</p>
+<p>Accounts can store <strong>500 unique paintings</strong>, counting personal, framed, imported,
+and website-public artwork together. Copies and additional frames do not consume
+extra slots. The native transaction checks the final collection under its writer
+lock; oversized imports fail in full with a player-facing explanation. Deleting
+artwork frees capacity. Historical collections above the cap remain readable and
+editable, including visibility changes and deletion, but cannot grow further.
+Legacy migrations preserve their existing artwork.</p>
+<p>Personal saves carry no station rotation tags. An archive-enabled frame adds its
+tag immediately, including when framing an already saved or printed painting.
+Display-only frames never add rotation tags. Round-end archiving remains a fallback;
+failed saves report a warning and can be retried through an archive frame. General
+in-game browsing and AI portraits exclude personal-only saves.</p>
+<p>My Artwork shows current frame counts separately from station rotation membership.
+Deleting an owned painting asks for confirmation, including a warning that it will
+remove all displayed copies and future station spawns. Only a successful transaction
+removes the metadata, image, and framed copies; failure preserves them. Deletion also
+withdraws website publication on the next publisher pass. Player-facing timing
+allows 30 minutes: a 15-minute interval, up to 10 minutes processing, and five
+minutes shared caching; service outages can take longer. Current-round deletion
+markers and saved-canvas checks prevent surviving loose copies from restoring it.</p>
+<p>Painting JSON stays at <strong>version 3</strong>. Optional <code>show_in_webgallery</code> accepts only
+decoded JSON <code>true</code> or numeric <code>1</code> as public and saves numeric <code>0</code>/<code>1</code>. Missing
+values remain private without rewriting the collection. Historical dates and
+unknown metadata are preserved; duplicate-only imports leave bytes, timestamps,
+images, and backups unchanged. Website publication follows its separate publisher
+schedule, so an in-game save is not immediately visible online.</p>
+<h4 id="nova-imports-and-consent">Nova imports and consent</h4>
+<p><strong>Imports default off.</strong> Leave <code>ENABLE_NOVA_PAINTING_IMPORT</code> commented out in
+<code>config/nova/config_nova.txt</code> until the deployment has been validated. It gates
+automatic offers, Retry, and the <strong>Prompt Nova Painting Import</strong> admin verb.
+Website visibility controls work independently when painting storage is writable.</p>
+<p>Opening Art Galaxy offers an import once per account. The hidden
+<code>nova_painting_import_answer</code> is preserved during character/preferences uploads:</p>
+<table><thead><tr><th>Event</th><th>Saved answer</th><th>Result</th></tr></thead><tbody>
+<tr><td>Missing preference</td><td>Unset</td><td>Eligible for an automatic offer</td></tr>
+<tr><td>Valid source has no matching paintings</td><td>No, if previously unset</td><td>No more automatic offers</td></tr>
+<tr><td>Explicit No</td><td>No</td><td>No more automatic offers</td></tr>
+<tr><td>First prompt closes or disconnects</td><td>Unchanged</td><td>No import</td></tr>
+<tr><td>Explicit Yes</td><td>Yes</td><td>Continue the confirmed import</td></tr>
+<tr><td>Source unavailable or invalid</td><td>Unchanged</td><td>Report failure</td></tr>
+<tr><td>Import fails after Yes</td><td>Yes</td><td>Offer manually confirmed Retry</td></tr>
+</tbody></table>
+<p>After confirmation, <strong>Make these imported paintings public on the web gallery?</strong>
+offers <strong>Yes / Let me choose individually</strong>. Cancelling or disconnecting here
+continues the authorized import with visibility off. Yes affects only new records.
+One flow runs per ckey across devices. Existing records, pending canvases,
+current-round deletions, and existing destination images take precedence.</p>
+<p>An <code>R_ADMIN</code> administrator may prompt an online player again after a previous
+answer. Fresh player confirmation is always required. Issuing a prompt starts
+separate 60-second cooldowns for the administrator and target, retained through
+reconnects within the round. Initiation and outcome are logged.</p>
+<h4 id="backup-staging">Backup staging</h4>
+<p>Paths are relative to the game working directory:</p>
+<table><thead><tr><th>Purpose</th><th>Path</th></tr></thead><tbody>
+<tr><td>Live metadata and images</td><td><code>data/paintings.json</code>, <code>data/paintings/images/&lt;md5&gt;.png</code></td></tr>
+<tr><td>Private recovery state</td><td><code>data/paintings/.store/</code></td></tr>
+<tr><td>Read-only Nova source</td><td><code>config/nova/paintings.json</code>, <code>config/nova/paintings/images/&lt;md5&gt;.png</code></td></tr>
+</tbody></table>
+<p>Stage into an offline checkout using the actual extracted backup paths:</p>
+<pre><code class="language-powershell">powershell.exe -NoProfile -File tools/painting_store/stage-nova.ps1 `
+  -BackupMetadata 'D:\verified-backup\data\paintings.json' `
+  -BackupImageRoot 'D:\verified-backup\data\paintings\images' `
+  -RepositoryRoot 'C:\Meridian-Rift'
+</code></pre>
+<p>The script copies exact metadata and referenced PNGs into Git-ignored, read-only
+files. It rejects links and divergent destinations, preserves matching files and
+unrelated <code>config/nova</code> contents, and publishes metadata last. An interrupted
+initial copy can be rerun. Never commit the real backup or stage into a running
+server's source tree. Restrict filesystem access to trusted operators.</p>
+<p>The native helper validates the complete source and decoded PNG pixels before
+importing. Limits are 64 MiB/100,000 metadata records and 1 MiB per PNG; supported
+sizes are 11x11, 19x19, 23x19, 23x23, 24x24, 36x24, and 45x27. The game's MD5
+identifies artwork; it is not a checksum of the PNG file.</p>
+<h4 id="native-dependency-and-deployment">Native dependency and deployment</h4>
+<p>BYOND needs a <strong>32-bit</strong> painting-store library on both Windows and Linux.
+Rust is pinned to 1.89.0; use the checked-in lockfile. Build from the repository root:</p>
+<pre><code class="language-powershell"># Windows: Visual Studio C++ tools with x86 libraries and the Windows SDK
+rustup toolchain install 1.89.0 --profile minimal
+rustup target add --toolchain 1.89.0 i686-pc-windows-msvc
+./tools/painting_store/build.ps1
+</code></pre>
+<pre><code class="language-sh"># Linux: gcc-multilib and 32-bit glibc development/runtime support
+rustup toolchain install 1.89.0 --profile minimal
+rustup target add --toolchain 1.89.0 i686-unknown-linux-gnu
+bash tools/painting_store/build.sh
+</code></pre>
+<p>The scripts run native tests and place the DLL or <code>.so</code> beside the game DMB.
+Windows deployments verify the committed <code>meridian_painting_store.dll</code> against
+<code>binary-manifest.json</code>; rebuilding changes the manifest, so commit source,
+manifest, and binary together. Linux builds from locked source; use the oldest
+supported glibc runner for releases. Deploy the library with the next game compile,
+never replace one loaded by a running DreamDaemon.</p>
+<p>Full builds, server runs, DM tests, TGS, and packaged CI artifacts include the
+helper. Compile-only <code>dm</code> and map jobs do not. AutoWiki skips painting persistence.
+Missing/incompatible libraries or failed verification must stop deployment or
+disable writes visibly, without reverting to the old file writer.</p>
+<h4 id="transactions-and-recovery">Transactions and recovery</h4>
+<p>All painting mutations use one subsystem queue after player dialogs finish.
+The native worker locks storage and checks the expected snapshot SHA-256, stages
+verified JSON/images, writes a durable journal, promotes images without overwrite,
+then atomically replaces JSON as the commit point. Deletions commit metadata
+before removing images; unfinished cleanup is retried. Explicit field changes
+preserve untouched native JSON values and unknown fields. Nova commits recheck
+the confirmed source hash and copy original records with only visibility changed.</p>
+<p>Recovery runs before loading paintings. It completes committed cleanup or restores
+the verified prior snapshot, using transaction-owned image evidence. An unexpected
+valid database change stops writes for investigation. A damaged collection is
+never replaced with an empty one. <code>data</code> resolves once for TGS junctions; descendant
+links are rejected. Keep resolved roots stable while the game runs. These guarantees
+require local storage with atomic replacement, durable flushes, and hardlinks
+(NTFS/ext4); keep normal external backups as well.</p>
+<p>If recovery fails, stop the affected runtime before manual changes. Preserve an
+external copy of the JSON, images, complete <code>.store</code> directory, and logs. Diagnose
+the journal and hashes; do not delete the journal to bypass a check. <code>last-good.json</code>
+contains the previous exact bytes and their SHA-256. Verify any restoration with
+its associated images and rerun recovery on an isolated copy before service resumes.</p>
+<p>For protocol changes, see <a href="../../../tools/painting_store/src/lib.rs">the API entrypoint</a>
+and <a href="../../../tools/painting_store/src/store.rs">transaction implementation</a>.
+API 1 exposes <code>info</code>, <code>snapshot</code>, <code>submit_commit</code>, <code>poll</code>, and <code>cancel</code> through
+<code>painting_store_call</code>; filesystem work runs off the BYOND thread. Successful
+commits with pending cleanup still require runtime state to refresh. Failed polls
+cancel collection; unpolled jobs expire after one minute. Queued abandoned jobs
+are skipped, while a running transaction finishes under the same writer lock.
+Late results report <code>expired</code>, requiring a fresh snapshot before retrying. Up to
+four completed results remain collectible for five minutes, outside the active-job
+limit; successful polls remove their result immediately.</p>
+<h4 id="maintenance-and-validation">Maintenance and validation</h4>
+<p>TGUI receives only the active thumbnail page or one detail record, with no unused
+image dimensions or hidden-tab collection. Dates and medium are sent only for
+owned details, and only the visible page or detail image assets are sent to the client. Optional state and owner payloads are lazy. Commits invalidate search/owner caches;
+status changes refresh only open Art Galaxy views. Portrait assets are registered
+when new images appear. Keep this separation when adding UI features.</p>
+<p>Before activation, run the native build/tests on each supported platform, focused
+DM gallery tests, TGUI typechecking/build, and
+<code>tools/painting_store/tests/stage-nova.tests.ps1</code>. Use isolated data to check duplicate
+no-ops, mixed imports, interrupted recovery, ownership, and both cancelled prompts.
+In BYOND, verify PDA installation, reconnects/admin cooldowns, changes across two
+open galleries, and midround image availability. Confirm website consent handling
+before enabling imports in the intended runtime; leave the branch default off.</p>
+<p>The approved moth artwork is <code>icons/achievements.dmi</code>, state <code>public_painter</code>.
+Preserve its native 76x76 size and the exact symmetrical Misc achievement frame
+from <code>icons/ui/achievements/achievements.dmi</code>; do not redraw or scale the circle.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<p>These integration edits retain their original code in <code>APHELION EDIT</code> comments; replacement behavior lives in this module where possible.</p>
+<table><thead><tr><th>Existing file</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>code/controllers/subsystem/persistent_paintings.dm</code></td><td>Load consent/raw metadata, initialize recovery, and route saves/migrations through the queue</td></tr>
+<tr><td><code>code/modules/art/paintings.dm</code></td><td>Track pending canvases; save finished canvases privately; transact archive, patronage, and frame changes</td></tr>
+<tr><td><code>code/modules/admin/painting_manager.dm</code></td><td>Transact edits/deletions after dialogs</td></tr>
+<tr><td><code>code/modules/modular_computers/file_system/programs/portrait_printer.dm</code></td><td>Add authenticated owner data/actions and validate stale selections</td></tr>
+<tr><td><code>code/modules/modular_computers/computers/item/pda.dm</code></td><td>Install Art Galaxy once, including curator PDAs</td></tr>
+<tr><td><code>code/modules/asset_cache/assets/portraits.dm</code></td><td>Keep portrait assets available when the collection starts empty</td></tr>
+<tr><td><code>modular_nova/modules/preferences_import/code/_sanitise.dm</code></td><td>Preserve the local account import answer</td></tr>
+<tr><td><code>tgstation.dme</code>, <code>code/modules/unit_tests/_unit_tests.dm</code>, include schemas</td><td>Register production code and conditional tests</td></tr>
+<tr><td>Build/CI/TGS scripts</td><td>Build, verify, and package the native runtime dependency</td></tr>
+</tbody></table>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><a href="code/art_galaxy.dm">code/art_galaxy.dm</a>: portrait printer <code>New</code>, <code>Destroy</code>, <code>ui_interact</code>, and <code>ui_close</code>.</li>
+<li>The remaining <code>code/</code> files add subsystem, canvas, preference, admin, asset, and
+achievement helpers; <a href="../../../code/modules/unit_tests/~nova/painting_gallery.dm">painting_gallery.dm</a> isolates
+consent, migration, and transaction behavior.</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/__DEFINES/paintings.dm</code>: <code>PAINTINGS_DATA_FORMAT_VERSION</code> and
+<code>NOVA_PAINTING_IMPORT_ANSWER</code>.</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tgui/packages/tgui/interfaces/ArtGalaxy/</code>: frontend; <code>NtosPortraitPrinter.tsx</code>
+remains the interface discovery entrypoint.</li>
+<li><code>code/datums/achievements/painting_achievements.dm</code>: definition discoverable by
+the existing website catalog; award logic and icon remain in this module.</li>
+<li><code>tools/painting_store/</code>: native helper, build/verification scripts, and staging
+tool; <code>meridian_painting_store.dll</code>: Windows runtime dependency.</li>
+<li><code>config/nova/config_nova.txt</code>: disabled import flag; <code>.gitignore</code>: private backup
+and native build-output exclusions.</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ff47e40a32d1147be1b92c458afbe3115d1134f5">ff47e40</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

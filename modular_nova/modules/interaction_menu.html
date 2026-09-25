@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_nova/modules/interaction_menu/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_nova/modules/interaction_menu/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ff47e40a32d1147be1b92c458afbe3115d1134f5/modular_nova/modules/interaction_menu/readme.md"><img src="git.png" width="16" height="16" title="modular_nova/modules/interaction_menu/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="title-interaction-menu">Title: INTERACTION MENU</h2><h3 id="description">Description:</h3>
+<p>The Ctrl+Shift interaction panel uses <code>/datum/component/interactable</code> for the UI and
+<code>/datum/interaction</code> for configured actions, messages, and effects. The server takes the
+actor from the TGUI session and the target from the component parent.</p>
+<p>An interaction route supplies access to a participant through another object. A null
+route uses ordinary adjacency, unless the interaction permits distance. The portal
+module implements two routes:</p>
+<ul>
+<li><code>portal_relay</code> reaches the half of a wall portal's occupant that its body relay shows.
+The rest of the occupant can only be reached in person.</li>
+<li><code>portal_device</code> checks the operator, held device, worn receiver, links, and selected
+parts. It also supports the receiver wearer filling both interaction roles.</li>
+</ul>
+<p>Movables that represent a participant can implement <code>interaction_route_for()</code>.
+The component asks the device linked to any receiver its parent wears first, then a
+remote body relay. A device the viewer holds or stands next to offers the viewer's own
+parts on the receiver wearer's panel, whether or not the viewer is that wearer. Device
+attacks can also construct a route directly.</p>
+<h3 id="validation-and-ownership">Validation and ownership:</h3>
+<p><code>can_execute()</code> checks participant state, route authority, preferences, and required
+parts. The menu uses it when listing actions, <code>act()</code> checks again before sending
+messages, and <code>apply_effects()</code> checks before deferred effects. Only the deferred and
+menu passes ignore the interaction cooldown; successful callers start the shared
+cooldown on both participants.</p>
+<p>Route preferences apply to ordinary interactions too. Lewd interactions additionally
+require both participants' ERP preference. Routes and deferred participants use weak
+references, so a dropped, replaced, or deleted endpoint cannot authorize old effects.
+Keep these boundary checks when adding a new route.</p>
+<p>The panel names a target only while their body is visible. Otherwise it displays their
+current relay name, or &quot;Unknown&quot; if no relay remains. Leaving a relay or ending its
+session therefore cannot reveal the remote identity; direct actions remain available.</p>
+<h3 id="message-templates">Message templates:</h3>
+<p><code>act()</code> gets anonymity from the route. Public messages use the observer perspective;
+private messages address their recipient as &quot;you&quot;. Known self interactions read
+reflexively for everyone (&quot;yourself&quot;, &quot;herself&quot;, &quot;her own&quot;): a bare <code>%TARGET%</code> is an
+object and <code>%TARGET_CAPITAL%</code> a subject, and the target message is skipped because the
+user message already addresses them. Anonymity takes precedence over shared identity.
+Ordinary direct messages also hide an unseen target, so a distant action cannot recover
+their name after a relay ends. An explicit route retains its own identity policy,
+including a device configured to reveal its remote participant. Administrative logs
+retain the real participants.</p>
+<p>Both <code>USER</code> and <code>TARGET</code> support these tokens:</p>
+<table><thead><tr><th>Token</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>%USER%</code>, <code>%USER_CAPITAL%</code></td><td>Participant name, optionally capitalized</td></tr>
+<tr><td><code>%USER_OBJECT%</code></td><td>Object form, including &quot;yourself&quot; for known self interactions</td></tr>
+<tr><td><code>%USER%'s</code></td><td>Possessive, including &quot;your&quot; or &quot;your own&quot; for the recipient</td></tr>
+<tr><td><code>%USER_VERB_S%</code>, <code>%USER_VERB_ES%</code></td><td>Verb ending omitted for a second-person subject</td></tr>
+<tr><td><code>%USER_PRONOUN_THEIR%</code>, <code>%USER_PRONOUN_THEIRS%</code></td><td>Possessive pronouns</td></tr>
+<tr><td><code>%USER_PRONOUN_THEM%</code>, <code>%USER_PRONOUN_THEY%</code>, <code>%USER_PRONOUN_THEMSELVES%</code></td><td>Other pronoun forms</td></tr>
+</tbody></table>
+<p>For example, <code>%USER_CAPITAL% wave%USER_VERB_S% to %TARGET_OBJECT%.</code> works for both
+observer and recipient messages. Existing private templates need explicit verb-ending
+tokens when their subject can become &quot;you&quot;; the formatter does not conjugate prose.</p>
+<p>Configuration loads from <code>config/nova/interactions/</code>, including nested JSON files.
+Portal device mappings depend on the external interaction set described in the
+<a href="../modular_items/readme.md">modular items documentation</a>.</p>
+<h3 id="verification">Verification:</h3>
+<p>The portal route tests cover anonymous panel titles, route preferences, and stale
+offered sessions. Device and lifecycle tests cover endpoint authority and cleanup.
+The ordinary CI deployment does not copy the interaction configuration directory;
+runtime routing tests use deterministic fixtures, while deployment-specific JSON
+validation requires supplying that configuration.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="master-file-additions">Master file additions:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li>N/A</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ff47e40a32d1147be1b92c458afbe3115d1134f5">ff47e40</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

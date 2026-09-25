@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_nova/modules/title_screen/MODULE.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>TGUI base themes and lobby title screens <aside>modular_nova/modules/title_screen/MODULE.md</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ff47e40a32d1147be1b92c458afbe3115d1134f5/modular_nova/modules/title_screen/MODULE.md"><img src="git.png" width="16" height="16" title="modular_nova/modules/title_screen/MODULE.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p><strong>Module ID:</strong> <code>lobbyscreen</code></p>
+<p>This system combines player-selected TGUI base themes with an administrator-managed lobby title screen. It shares the theme and artwork components between ordinary TGUI windows, the lobby, and the title-screen preview.</p>
+<h2 id="setting-ownership">Setting ownership</h2><table><thead><tr><th>Setting</th><th>Applies to</th><th>Saved in</th></tr></thead><tbody>
+<tr><td>Base theme selected with the gear menu</td><td>One player's TGUI windows and lobby</td><td>Account preference <code>meridian_theme</code></td></tr>
+<tr><td>Title image, screen effect, scanlines, bezel and optional wordmark</td><td>Everyone's lobby; appearance is stored separately for each title image</td><td><code>data/title_screen_settings.json</code></td></tr>
+<tr><td>Automatic title rotation</td><td>The server</td><td><code>data/title_screen_settings.json</code></td></tr>
+<tr><td>Development showcase theme override</td><td>One open TGUI window</td><td>Temporary frontend state; cleared when the window closes</td></tr>
+</tbody></table>
+<p>The title-screen manager itself uses the viewing administrator's base theme. Selecting Wastelander in its gear menu does not select Wastelander for other players. Everyone receives the same title image and per-image settings, but theme-dependent colors and the lobby menu follow each player's preference. A bezel choice is independent of the base theme, including the separately named Aphelion theme and Aphelion bezel.</p>
+<h2 id="defaults">Defaults</h2><table><thead><tr><th>Setting</th><th>Default</th></tr></thead><tbody>
+<tr><td>Account base theme</td><td>Aphelion (<code>meridian_aphelion</code>)</td></tr>
+<tr><td>Title image</td><td>Meridian Rift (default), the normal built-in master</td></tr>
+<tr><td>Screen</td><td>Convex (<code>convex</code>)</td></tr>
+<tr><td>Scanlines</td><td>Version 2 (<code>scanlines-classic</code>)</td></tr>
+<tr><td>Bezel</td><td>Dark Brown (<code>rusty-dark</code>)</td></tr>
+<tr><td>Rotate title screens each round</td><td>Off</td></tr>
+<tr><td>Extra wordmark on configured images</td><td>Off</td></tr>
+</tbody></table>
+<p>Saved administrator settings take precedence over these defaults. Images without their own appearance record inherit the current per-screen defaults. The normal built-in master already contains the wordmark; its rendering does not depend on the optional wordmark toggle for configured images.</p>
+<p>During <code>startup</code>, the lobby shows the boot terminal and hides title artwork. The subsystem still publishes a configured loading splash or the transparent loading placeholder as its initial image. Title artwork becomes visible after the lobby leaves <code>startup</code>, using the image published at that point; changing the title defaults does not replace the loading sequence.</p>
+<h2 id="tgui-base-themes">TGUI base themes</h2>
+<p>Use the gear in a TGUI title bar or the lobby to select an account-wide base theme. The server saves valid selections and refreshes that player's open windows and lobby. No administrator permission is required.</p>
+<p>The account preference is stored as the top-level <code>meridian_theme</code> key in <code>data/player_saves/&lt;first letter of ckey&gt;/&lt;ckey&gt;/preferences.json</code>. It uses <code>PREFERENCE_PLAYER</code>, so one selection applies across character slots. The gear menu renders this preference directly.</p>
+<p>The picker presents these choices in order:</p>
+<table><thead><tr><th>Display name</th><th>Stored ID</th></tr></thead><tbody>
+<tr><td>Aphelion</td><td><code>meridian_aphelion</code></td></tr>
+<tr><td>Classic</td><td><code>meridian_classic</code></td></tr>
+<tr><td>Electra</td><td><code>meridian_electra</code></td></tr>
+<tr><td>Vector</td><td><code>meridian_vector</code></td></tr>
+<tr><td>Synapse</td><td><code>meridian_synapse</code></td></tr>
+<tr><td>Highline</td><td><code>meridian_highline</code></td></tr>
+<tr><td>Hephaestus</td><td><code>meridian_hephaestus</code></td></tr>
+<tr><td>Diagnostic</td><td><code>meridian_diagnostic</code></td></tr>
+<tr><td>Augmentation</td><td><code>meridian_augmentation</code></td></tr>
+<tr><td>Hotline</td><td><code>meridian_hotline</code></td></tr>
+<tr><td>Cyberpunk</td><td><code>meridian_cyberpunk</code></td></tr>
+<tr><td>Scavenger</td><td><code>meridian_scavenger</code></td></tr>
+<tr><td>Wastelander</td><td><code>meridian_wastelander</code></td></tr>
+<tr><td>Shadowbroker</td><td><code>meridian_shadowbroker</code></td></tr>
+<tr><td>Foundry</td><td><code>meridian_foundry</code></td></tr>
+</tbody></table>
+<p>Classic uses the original Nanotrasen component styling without the Meridian console layer. Saved preferences using retired IDs fall back to Aphelion until the player selects a theme again; there is no migration for the renamed IDs.</p>
+<p>Ordinary TGUI windows resolve their appearance in this order:</p>
+<ol>
+<li>A temporary development override for that window.</li>
+<li>An explicitly requested specialty theme, such as paper or syndicate.</li>
+<li>The saved account base theme.</li>
+<li>An ordinary requested/device base theme.</li>
+<li>Aphelion.</li>
+</ol>
+<p>The lobby uses the account base theme. Specialty interfaces retain their authored appearance; their gear still updates the account preference used by ordinary windows. The resolver maps upstream <code>nanotrasen</code> and <code>ntos</code> requests to Electra; the preference picker sends canonical IDs from the table above.</p>
+<p>In a development build, open the Kitchen Sink with F11 or the title-bar bug button. Its skin controls preview a window-local override. <strong>Inherit</strong> clears that override, and closing the window discards it. The component examples and loader preview use the same production theme components.</p>
+<h2 id="title-screen-picker">Title-screen picker</h2>
+<p>Administrators with Fun permission (<code>R_FUN</code>) can open <strong>Title Screen: Manage</strong> in the Fun category, or use the lobby's title-management control. Both routes open the same manager. Permission is checked again when handling changes and after a confirmation dialog returns.</p>
+<ol>
+<li>Select a title image from the list. The two built-in Meridian Rift entries use different wordmark presentations; configured images appear alongside them.</li>
+<li>Adjust the screen effect, scanlines and bezel in the local preview. Configured images can also display the themed wordmark over the picture.</li>
+<li>Choose <strong>Apply for everyone</strong> and confirm to make the selection live and save its appearance.</li>
+<li>Choose <strong>Revert</strong> to discard the draft and return to the currently live screen and settings.</li>
+</ol>
+<p>Selecting another image loads that image's saved appearance into the draft. Reopening a closed manager also starts from live state. An untouched open manager follows external changes; an edited draft remains local. If another administrator changes the same appearance or the live screen changes during confirmation, the manager requires the draft to be reviewed again rather than applying stale state.</p>
+<table><thead><tr><th>Control</th><th>Choices</th></tr></thead><tbody>
+<tr><td>Screen</td><td>Flat (<code>flat</code>), Vignette (<code>edge</code>), Convex (<code>convex</code>)</td></tr>
+<tr><td>Scanlines</td><td>None (<code>none</code>), Version 1 (<code>scanlines-light</code>), Version 2 (<code>scanlines-classic</code>)</td></tr>
+<tr><td>Bezel</td><td>Rusty (<code>rusty</code>), Dark Brown (<code>rusty-dark</code>), Aphelion (<code>aphelion</code>), Classic (<code>classic</code>), None (<code>none</code>)</td></tr>
+</tbody></table>
+<p><strong>Rotate title screens each round</strong> is independent of the draft: toggling it saves immediately, without Apply. When enabled, unattended title changes choose from the configured image pool and use the chosen image's own appearance. Turning rotation off pins the managed screen currently showing. With rotation off and no explicit selection, the normal built-in Meridian Rift master is used.</p>
+<p>The existing <strong>Title Screen: Change</strong> verb remains available for direct uploads. Uploaded images are unmanaged: they have no persistent per-image record in the picker. Select a managed image in the picker to resume editing its presentation. <strong>Title Screen: Set Notice</strong> updates the lobby notice, and <strong>Fix Lobby Screen</strong> refreshes the lobby for the administrator using it.</p>
+<h2 id="configured-images-and-persistence">Configured images and persistence</h2>
+<p>The subsystem discovers images from <code>&lt;config.directory&gt;/title_screens/images/</code> during initialization. Add a BYOND-loadable image there and restart the server to include it in the picker. Configured filenames are the stable keys used for selection and per-image appearance.</p>
+<p>The discovery code excludes the reserved <code>exclude</code>, <code>blank.png</code> and <code>startup_splash</code> names from the normal image pool. A filename beginning with <code>startup_splash+</code> selects the loading splash instead. Keep ordinary image filenames free of <code>+</code>; that separator is used by the splash naming convention.</p>
+<p><code>data/title_screen_settings.json</code> currently uses schema version <code>&quot;3&quot;</code>:</p>
+<table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>_version</code></td><td>Persistence schema version</td></tr>
+<tr><td><code>selected</code></td><td>Pinned configured filename; <code>null</code> means the normal master, <code>__default_alt__</code> means the alternate master</td></tr>
+<tr><td><code>rotate</code></td><td>Whether automatic rotation is enabled</td></tr>
+<tr><td><code>screens</code></td><td>Appearance records keyed by configured filename or a built-in master key</td></tr>
+<tr><td><code>screens[key].variant</code></td><td>Screen effect ID</td></tr>
+<tr><td><code>screens[key].bezel</code></td><td>Bezel ID</td></tr>
+<tr><td><code>screens[key].texture</code></td><td>Scanline ID</td></tr>
+<tr><td><code>screens[key].wordmark</code></td><td>Whether to add the themed wordmark over a configured image</td></tr>
+</tbody></table>
+<p>The normal master's appearance record uses <code>__default__</code>; the alternate uses <code>__default_alt__</code>. These record keys are distinct from the normal master's <code>null</code> selection value.</p>
+<p>Records for missing images are retained, allowing a temporarily removed file to recover its appearance when restored under the same name. An unavailable pinned selection is cleared at initialization. Renaming an image creates a different key.</p>
+<p>The loader converts version 1's shared settings into per-image records and version 2's boolean bezels into <code>TITLE_BEZEL_CLASSIC</code> or None. The retired <code>convex-bezel</code> effect is split into Convex plus <code>TITLE_BEZEL_CLASSIC</code>. Historical <code>original</code> / <code>navarobl</code> texture values normalize to <code>scanlines-light</code> / <code>scanlines-classic</code> when loaded. These migrations preserve explicit historical settings rather than applying the new defaults wholesale. Loading a missing or unsupported-version settings file leaves the compiled defaults in place.</p>
+<p><code>data/progress_cache.json</code> is separate: it stores startup timing information for the loading terminal, not title selection or player themes. The active lobby is rendered by TGUI; the old <code>lobby_html.txt</code> element-editing instructions do not configure this implementation.</p>
+<h2 id="implementation-map">Implementation map</h2><h3 id="backend">Backend</h3><table><thead><tr><th>File</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><a href="code/_title_screen_defines.dm">code/_title_screen_defines.dm</a></td><td>Title defaults, valid bezel IDs, master keys, persistence versions and manager permission</td></tr>
+<tr><td><a href="code/title_screen_subsystem.dm">code/title_screen_subsystem.dm</a></td><td><code>SStitle</code>: discovery, selection, per-image validation, persistence/migration, startup progress and asset publication</td></tr>
+<tr><td><a href="code/title_screen_manager.dm">code/title_screen_manager.dm</a></td><td>Per-admin draft, preview data, confirmation, conflict checks and manager entrypoint</td></tr>
+<tr><td><a href="code/lobby_menu_title_controls.dm">code/lobby_menu_title_controls.dm</a></td><td>Modular lobby asset delivery, initial title payload, manager permission flag and theme/manager messages</td></tr>
+<tr><td><a href="code/title_screen_controls.dm">code/title_screen_controls.dm</a></td><td>Upload, notice and refresh verbs</td></tr>
+<tr><td><a href="code/new_player.dm">code/new_player.dm</a> and <a href="code/title_screen_pref_middleware.dm">code/title_screen_pref_middleware.dm</a></td><td>Lobby visibility and character-name updates</td></tr>
+<tr><td><a href="../../../modular_aphelion/modules/meridian_ui/code/preferences.dm">Meridian preference implementation</a></td><td>Account preference, exact ID validation, saving and same-player refreshes</td></tr>
+<tr><td><a href="../../../modular_aphelion/modules/meridian_ui/code/tgui.dm">Meridian TGUI transport</a></td><td>Config augmentation, config-only updates and <code>setMeridianTheme</code> message handling</td></tr>
+</tbody></table>
+<p>Changing a base theme sends <code>setMeridianTheme</code> with <code>{ theme }</code>. The frontend updates optimistically; the server validates the canonical ID and refreshes the authoritative selection. Config-only updates avoid invoking an interface's <code>ui_data()</code> just to repaint its theme.</p>
+<p>Title image publication carries the image URL and appearance together. Asset generations and complete published snapshots prevent a late asset operation or newly opened lobby from pairing one image with another image's settings. Appearance-only changes reuse the image asset.</p>
+<h3 id="frontend-and-styles">Frontend and styles</h3><table><thead><tr><th>File or directory</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><a href="../../../tgui/packages/tgui/constants/meridian-theme.ts">meridian-theme.ts</a></td><td>Canonical theme catalog, palette metadata, aliases and resolution</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui/layouts/Layout.tsx">Layout.tsx</a>, <a href="../../../tgui/packages/tgui/events/store.ts">store.ts</a> and <a href="../../../tgui/packages/tgui/hooks/useRootThemeClasses.ts">useRootThemeClasses.ts</a></td><td>Shared theme state, precedence and owned root-class cleanup</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui/layouts/MeridianThemePicker.tsx">MeridianThemePicker.tsx</a></td><td>Shared gear menu and keyboard navigation</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui/layouts/MeridianTitleBarUtilities.tsx">MeridianTitleBarUtilities.tsx</a></td><td>Ordinary-window picker integration and development control</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui/interfaces/TitleScreenManager.tsx">TitleScreenManager.tsx</a></td><td>Administrative title list, draft controls and preview</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui/interfaces/common/TitleArtwork.tsx">TitleArtwork.tsx</a></td><td>Shared screen effects, wordmark presentation, bezel, scanlines and legacy frontend fallbacks</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui-lobby/AphelionLobbyMenu.tsx">AphelionLobbyMenu.tsx</a>, <a href="../../../tgui/packages/tgui-lobby/menuTheme.ts">menuTheme.ts</a> and <a href="../../../tgui/packages/tgui-lobby/themeFocus.ts">themeFocus.ts</a></td><td>Themed lobby composition, menu profiles and focus exclusions</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui/styles/meridianos/">meridianos/</a></td><td>Shared theme tokens, components, loaders, decoration, accessibility rules and stylesheet entrypoints</td></tr>
+<tr><td><a href="../../../tgui/packages/tgui-lobby/styles/meridianos/">lobby meridianos/</a></td><td>Lobby layout profiles, artwork integration and decorative scanline layer</td></tr>
+</tbody></table>
+<p><code>meridianos/_shared.scss</code> contains the common font/token/theme imports. <code>_index.scss</code> assembles ordinary TGUI styling; the lobby's <code>styles/meridianos/_meridian.scss</code> assembles its styling. <code>_preferences.scss</code> and <code>_titlebar.scss</code> load the upstream sheets before adding module-specific rules. Keep their cascade positions when moving imports.</p>
+<p>Theme selectors are scoped, and the root-class hook only removes classes it owns. Preserve specialty themes, unrelated root modifiers, reduced-motion/forced-colors behavior, and pointer-transparent decorative layers when extending the system.</p>
+<h2 id="maintenance-and-verification">Maintenance and verification</h2>
+<ul>
+<li>To change per-image defaults, keep <code>TITLE_DEFAULT_*</code> in the DM defines and <code>DEFAULT_LOBBY_TITLE_*</code> in <code>TitleArtwork.tsx</code> aligned. Rotation's initial value lives on <code>SStitle</code>; the built-in master uses a null initial selection. Do not rewrite saved administrator choices when changing defaults.</li>
+<li>To add a base theme, update the frontend catalog, the backend preference's allowed IDs, the scoped theme styles and the lobby heading/layout mapping together. Retain old stored IDs or provide an explicit migration when renaming choices.</li>
+<li>To add a title appearance choice, update backend validation and manager options, frontend types/resolution and CSS together. Persistence migrations must preserve the meaning of existing records.</li>
+<li>Keep shared styling in the existing module files and use narrow registration/render/serialization hooks in core. Avoid copying complete upstream components or procedures to customize one value.</li>
+</ul>
+<p>From <code>tgui/</code>, run the relevant frontend checks after implementation changes:</p>
+<pre><code class="language-sh">bun run tgui:tsc
+bun test packages/tgui/styles/meridianos/tests packages/tgui/layouts packages/tgui/interfaces/common packages/tgui/interfaces/TitleScreenManager.test.tsx packages/tgui-lobby
+bun run tgui:build
+</code></pre>
+<p>Backend coverage lives in <a href="../../../code/modules/unit_tests/~nova/title_screen_settings.dm">title_screen_settings.dm</a> and <a href="../../../code/modules/unit_tests/~nova/meridian_preferences.dm">meridian_preferences.dm</a>. Use the repository's <a href="../../../tools/build/README.md">DM build/test workflow</a> when changing backend behavior. The title tests isolate their settings file and publication state from the server's saved title configuration.</p>
+<p>For visual changes, also check the live lobby and manager in BYOND: theme switching, both built-in masters, configured artwork, each bezel/scanline combination, narrow windows, keyboard focus, and a player joining while the title changes. Compilation and DOM tests alone do not verify WebView2 rendering.</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ff47e40a32d1147be1b92c458afbe3115d1134f5">ff47e40</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

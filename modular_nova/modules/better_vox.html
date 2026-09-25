@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_nova/modules/better_vox/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_nova/modules/better_vox/readme.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ff47e40a32d1147be1b92c458afbe3115d1134f5/modular_nova/modules/better_vox/readme.md"><img src="git.png" width="16" height="16" title="modular_nova/modules/better_vox/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="credits">Credits</h2>
+<p>Code: [@Gandalf2k15]
+Original Sprites: [TauCeti]
+Sprite Modifications: [CandleJaxx]</p>
+<h2 id="todo">TODO</h2>
+<p>Get all clothing sprites to fit.
+Get all bodyparts to fit.
+Add the bodypart color selection.
+Make the tails work.
+Fix the legs not being fully there without a tail.</p>
+<h2 id="shared-uniform-artwork">Shared uniform artwork</h2>
+<p><code>icons/clothing/uniform.dmi</code> contains the retained worn states, including states
+used by reskins and adjusted uniforms. Plain colored jumpsuits use
+<code>GAGS/icons/jumpsuit_better_vox.dmi</code> through GAGS; their obsolete per-color copies
+are not needed in the shared sheet.</p>
+<p>The former <code>NEEDS CONVERTED</code> entry was an editor reminder, not a runtime flag.
+Some artwork after it is still used, including legacy human-shaped sprites and
+reskins. The marker and unused states have been removed; retained states keep
+their existing pixels. The generic <code>jumpsuit</code>/<code>jumpskirt</code> states and their <code>_d</code>
+variants remain available to dynamic clothing changes such as disguises.</p>
+<p>The fitted rainbow artwork is stored as <code>rainbow</code> in the shared uniform sheet.
+The item uses <code>rainbow</code> for both species lookup and uniform rendering. It does
+not run GAGS at initialization, so it uses this sheet directly and retains its
+original colors. The generic shared <code>jumpsuit</code> artwork stays unchanged.</p>
+<h2 id="pants-fallback">Pants fallback</h2>
+<p>Uniforms covering <code>LEGS</code> use a generated pants fallback when neither an item-specific
+Vox sprite nor the shared Vox uniform sheet contains their worn state. The upper
+garment is preserved, including rolled-down states. Skirts and other slots are excluded.</p>
+<p><code>icons/clothing/pants_template.dmi</code> contains the four-direction <code>pants</code> state,
+derived from rows 1 through 11 (BYOND coordinates) of the <code>jumpsuit</code> state in
+<code>modular_nova/modules/GAGS/icons/jumpsuit_better_vox.dmi</code>. Those are exactly the
+rows removed by the existing <code>digi_leg_mask</code> through <code>replace_icon_legs()</code>.
+<code>modular_nova/modules/GAGS/json_configs/vox_primalis_pants.json</code> colors the template using one color, with the same
+single-color preference and multicolor pixel sampling used by digi clothing.
+Generated files retain normal and rolled-down states and are cached by source
+file, state, and palette; they are not stored as dedicated item sprites.</p>
+<h2 id="vox-clothing-templates">Vox clothing templates</h2>
+<p>Normal Vox now have pants, glove, sneaker, and boot fallbacks. Vox Primalis
+(Better Vox) additionally have sneaker and boot fallbacks. Dedicated item sprites
+and existing shared species states are selected first. Other footwear uses the
+boot template, following the digitigrade generator; gloves are only generated for
+normal Vox. Uniforms must cover LEGS, except for the existing explicit
+vox_primalis_force_pants override.</p>
+<p>The templates are 32x32, with south, north, east, and west directions:</p>
+<table><thead><tr><th>Species</th><th>DMI path</th><th>States</th></tr></thead><tbody>
+<tr><td>Normal Vox</td><td>modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi</td><td>template_pants, template_shorts, template_jumpsuit*, template_jumpskirt*, template_jeans*, template_belt*, template_buckle, template_shortalls, rainbow</td></tr>
+<tr><td>Normal Vox</td><td>modular_nova/master_files/icons/mob/clothing/species/vox/hands.dmi</td><td>template_gloves, template_gloves_talon_out</td></tr>
+<tr><td>Normal Vox</td><td>modular_nova/master_files/icons/mob/clothing/species/vox/feet.dmi</td><td>template_sneakers_back, template_sneakers_front, template_sneakers_chained, template_boots, template_laceups, template_sandals</td></tr>
+<tr><td>Better Vox</td><td>modular_nova/modules/better_vox/icons/clothing/feet_template.dmi</td><td>shoes_colored, shoes_uncolored, boots</td></tr>
+</tbody></table>
+<p>Normal Vox GAGS inputs live beside the finished artwork in each slot's sheet.
+The <code>template_</code> prefix prevents raw layers from being selected as finished worn
+states. Uniform layers include rolled-down jumpsuits, skirts, prison markings,
+and jeans. Sneakers share their back/front layers between ordinary two-color
+GAGS and the one-color fallback; chained sneakers add <code>template_sneakers_chained</code>.
+The old Vox rainbow jumpsuit uses the original <code>rainbow</code> state directly, without
+generated pants. Better Vox has a separate <code>rainbow</code> state whose legs fit its
+own pants template. Colorable boots share the corrected fallback boot
+layer; colorable laceups and sandals keep their dedicated template layers.
+Better Vox sneakers reuse the standard sneakers_back and sneakers_front layers
+from icons/mob/clothing/feet.dmi, preserving the original shading and solid soles.
+Each side view adds one sole pixel to cover the talon. Better Vox boots use the
+fully covering combat state from their own feet.dmi, normalized to greyscale
+for recoloring. Better Vox pants use tailored
+crease shading and an extended hip contour, with a small bottom notch at BYOND
+x=15..17, y=6 in the south and north views. Shading immediately above the notch
+forms a short recessed fold. The notch intentionally exposes the underlying
+body, including one green pixel at the back. These templates do not change body sprites.</p>
+<p>The normal Vox jumpsuit source layer is <code>template_jumpsuit</code> in <code>uniform.dmi</code>.
+The runtime first checks item-specific Vox icons, then the shared uniform.dmi,
+and only generates template pants when those do not provide the requested state.</p>
+<p>The vox_feet.json GAGS config produces sneakers_worn and boots_worn;
+vox_hands.json produces gloves_worn. The Vox Primalis counterparts keep their
+original source names in vox_primalis_feet.json and vox_primalis_hands.json.
+Each takes one color, like the digi masks.
+Single-color clothing keeps its palette, multicolor pants and footwear use the
+existing digitigrade color sampler, and gloves use their most common visible
+source color. Sneaker trim retains its original color.</p>
+<p>Generated pants retain upper garments and rolled-down states, including aliases
+for explicit worn states. Files are cached by species, source file/state, template,
+item type/state, and palette; generated fallbacks never become dedicated item
+icons. Recoloring therefore selects fresh output. Normal Vox clothing selection
+precedes generic digitigrade sprites, and fitted sprites skip a second digi mask.
+Vox with plantigrade legs retain their existing human-footwear behavior.</p>
+<p>The vox_clothing_templates unit test checks all directions, recoloring, static
+colors, dedicated-sprite priority, invalid states, skirts, adjusted uniforms, and
+actual equipped overlays, plus Better Vox hip and foot coverage against the body
+sprites in every direction, with the intentional bottom notch checked separately.
+It exports all-direction worn previews into the test workspace's
+data/vox_templates_*.png files.</p>
+<h2 id="skirts-dresses-and-vox-legs">Skirts, dresses, and Vox legs</h2>
+<p>Normal Vox use the same unmodified outfit sprites and recoloring configs as
+Better Vox for the audited skirts, dresses, kilts, maid outfits, and similar
+clothing. These explicit overrides take priority over the pants template, even
+when an outfit covers <code>LEGS</code>. The existing old-Vox bathrobe stays species-specific.</p>
+<p>Normal Vox always use their digitigrade Vox legs. The leg-shape preference is
+hidden, and a saved normal-leg choice cannot select plantigrade legs on spawn
+or body replacement.</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ff47e40a32d1147be1b92c458afbe3115d1134f5">ff47e40</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

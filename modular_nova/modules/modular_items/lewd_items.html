@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_nova/modules/modular_items/lewd_items/readme.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>Portal items and structures <aside>modular_nova/modules/modular_items/lewd_items/readme.md</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/ff47e40a32d1147be1b92c458afbe3115d1134f5/modular_nova/modules/modular_items/lewd_items/readme.md"><img src="git.png" width="16" height="16" title="modular_nova/modules/modular_items/lewd_items/readme.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>The handheld <a href="code/lewd_items/portal_fleshlight.dm">device</a> and
+<a href="code/lewd_items/portal_panties.dm">receiver</a> connect two equipped endpoints. The
+<a href="code/lewd_machinery/lewd_portals.dm">portal bore</a> creates a pair of wall portals
+and a body relay for their occupant. Both use the generic
+<a href="../../interaction_menu/readme.md">interaction route API</a>.</p>
+<h2 id="controls">Controls</h2>
+<ul>
+<li>Link the handheld device and receiver by using either item on the other.</li>
+<li>Equip the receiver in a specific genital slot through the interaction panel,
+or equip it as a mask for the mouth endpoint.</li>
+<li>Activate the handheld device in hand to cycle the target used when selecting
+the groin. Other selected body zones choose their corresponding endpoint.</li>
+<li>Use the handheld device on yourself, or Ctrl-Shift-click it from up to a tile
+away, to open the interaction panel of the receiver's wearer, listing what your
+own parts can do through the portal. The wearer can do the same to reach their
+own receiver.</li>
+<li>Use one linked device on another to pick from the interactions between their
+two wearers. The device in your hand is the active side.</li>
+<li>Right-click the device or receiver to toggle that item's anonymity. Alt-click
+either linked item to unlink it.</li>
+<li>Use the bore on two supported walls to create its portal pair. Activate an
+empty bore to change modes; activate it after placement to collapse its portals.</li>
+<li>Right-click an unoccupied wall portal to change both endpoints' mode. Buckle
+into one endpoint to create the relay at its peer, then unbuckle to leave.
+A gloryhole relays the penis and balls, and a wallstuck portal everything below
+the waist. Interactions with the relayed half only work next to the relay, and
+the rest of the occupant only in person.</li>
+</ul>
+<h2 id="ownership-and-validation">Ownership and validation</h2>
+<p>The handheld device and receiver are linked peers. Neither owns the other:
+unlinking or deleting one clears the surviving item's reciprocal reference.
+Equipped receiver authority comes from its exact inventory slot, not its location
+inside a mob's contents or its cached target alone.</p>
+<p>The bore owns its wall endpoints. Removing either endpoint collapses the pair.
+The occupied endpoint owns its relay and borrows the occupant; teardown deletes
+the relay and restores the occupant's presentation. The interaction component
+only observes the relay through a weak reference. Keep teardown idempotent because
+endpoint, occupant, and relay deletion can enter the same cleanup path.</p>
+<p>A worn receiver is always open: it sits on its part underneath any clothing, so
+clothing, masks and sheaths never close it. The device end follows face to face
+exposure rules through <code>portal_target_is_accessible()</code> in
+<a href="code/lewd_helpers/human.dm">the human helpers</a>. Slot and link checks stay with
+the items that own those relationships. Physical access and visible sprite state
+are distinct: rendering checks native appearances separately and copies them
+before filtering. The occupant's preferences are never changed: a gloryhole
+occupant's penis overlay refuses to draw for the session, and a wallstuck occupant
+has body layers stripped as they are applied. Both keep a rebuild between queued
+refreshes from showing the hidden body for a tick.</p>
+<p>Routes in <a href="code/lewd_machinery/portal_interaction_routes.dm">portal_interaction_routes.dm</a>
+bind interactions to their current endpoints using weak references. Revalidate
+after prompts or delays so unlinking, equipment changes, preference changes, or a
+replacement session cannot authorize an old action. Both participants must allow
+ERP and sex-toy use.</p>
+<h2 id="deployment-configuration">Deployment configuration</h2>
+<p>Handheld interactions resolve the names in the device's <code>interaction_map</code> through
+<code>GLOB.interaction_instances</code>. A deployment must supply the corresponding JSON
+definitions under <code>config/nova/interactions/</code> in the server's working directory.
+The repository's example interaction files do not supply that complete set.</p>
+<p>Each part pairing lists one or more names, default first. A mapped definition must
+be lewd, have <code>usage = &quot;other&quot;</code>, use a visible category, and may only require the
+genitals at its own two endpoints.
+The validator rejects absent or incompatible definitions. JSON filenames do not
+form the contract; the loaded interaction names and metadata do. See the
+<a href="../../interaction_menu/code/interaction_datum.dm">interaction datum</a> for loading
+and message-template fields.</p>
+<h2 id="tests">Tests</h2>
+<p><code>code/modules/unit_tests/~nova/portal_device.dm</code>, <code>portal_lifecycle.dm</code>, and
+<code>portal_routes.dm</code> cover equipment authority, rendering invalidation, ownership,
+route execution, and message formatting. Shared fixtures live in
+<code>portal_test_helpers.dm</code>. Default tests install temporary real interaction datums
+and use neutral message templates, so the ordinary CI deployment can run them
+without production interaction JSON. Each test restores any registry entries it
+replaces.</p>
+<p>Run the DM suite from the repository root with <code>tools/build/build.bat dm-test</code>
+on Windows or <code>tools/build/build.sh dm-test</code> on Linux. For a focused local run,
+temporarily add <code>TEST_FOCUS(/datum/unit_test/portal_device)</code> and
+<code>TEST_FOCUS(/datum/unit_test/portal_lifecycle)</code> after the test includes; remove
+those focus declarations when finished.</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/ff47e40a32d1147be1b92c458afbe3115d1134f5">ff47e40</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
