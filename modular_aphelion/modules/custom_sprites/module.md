@@ -121,6 +121,9 @@ reuses them, and only the view's own drawable box, before any view lock, is read
 pixel. Each region is judged against its own paint layer: hand paint sits above the body's
 parts (`custom_sprite_merge_cover_rows()`), and the taur's paint is never covered.
 
+A drag ends up in the region it is released over; released off the body, the last region
+the drag crossed stays selected. A plain click off the body changes nothing.
+
 #### Tools and controls
 
 - The tools sit in one framed group, the active tool filled. Tools with a hotkey show

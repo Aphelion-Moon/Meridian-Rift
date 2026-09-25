@@ -379,3 +379,47 @@ it('names the part that hides the paint under the cursor, after a short hover', 
     getBounds.mockRestore();
   }
 });
+
+it('moves the selection to the region a drag is released over', () => {
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const { view, editor } = renderRegions();
+    const canvas = view.container.querySelector('canvas')!;
+    const box = view.container.querySelector('.CustomSpriteEditor__canvas')!;
+    send.mockClear();
+    // Pressed on the torso, released over the left arm.
+    fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
+    fireEvent.mouseMove(box, { clientX: 25, clientY: 5, buttons: 1 });
+    fireEvent.mouseUp(box, { clientX: 25, clientY: 5, button: 0 });
+    // The stroke's own transaction follows the selection, so check the call, not the last one.
+    expect(send).toHaveBeenCalledWith('selectRegion', { zone: 'l_arm' });
+    expect(screen.getByText('Left arm base markings')).toBeTruthy();
+    // Dragged off the body: the last region the drag crossed wins.
+    backendStore.set(gameDataAtom, {
+      ...regionFixture(),
+      selectedZone: 'chest',
+      focusRevision: 2,
+    });
+    view.rerender(editor());
+    expect(screen.getByText('Torso base markings')).toBeTruthy();
+    send.mockClear();
+    fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
+    fireEvent.mouseMove(box, { clientX: 25, clientY: 5, buttons: 1 });
+    fireEvent.mouseMove(box, { clientX: 105, clientY: 5, buttons: 1 });
+    fireEvent.mouseUp(box, { clientX: 105, clientY: 5, button: 0 });
+    // The stroke's own transaction follows the selection, so check the call, not the last one.
+    expect(send).toHaveBeenCalledWith('selectRegion', { zone: 'l_arm' });
+    expect(screen.getByText('Left arm base markings')).toBeTruthy();
+    // A plain release over empty space, or with another button, changes nothing.
+    send.mockClear();
+    fireEvent.mouseUp(box, { clientX: 105, clientY: 5, button: 0 });
+    fireEvent.mouseUp(box, { clientX: 5, clientY: 5, button: 2 });
+    expect(send).not.toHaveBeenCalledWith('selectRegion', expect.anything());
+    expect(screen.getByText('Left arm base markings')).toBeTruthy();
+  } finally {
+    getBounds.mockRestore();
+  }
+});

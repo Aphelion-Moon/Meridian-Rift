@@ -243,25 +243,46 @@ export const CustomSpriteEditor = ({
     directions.find(([dir]) => dir === direction)?.[1] ?? 'Front';
   const regionRows = regions?.[direction];
   const selectedInView = !!regionBounds(regionRows, zones, selectedZone);
-  const selectRegionAt = (x: number, y: number) => {
-    if (!regionMode) return;
-    const zone = regionAt(regionRows, zones, x, y);
-    if (!zone || zone === selectedZone || lockReason(zone)) return;
+  const selectZone = (zone: string | null) => {
+    if (!regionMode || !zone || zone === selectedZone || lockReason(zone))
+      return;
     setSelectedZone(zone);
     act('selectRegion', { zone });
   };
-  const trackHover = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!regionMode) return;
+  const selectRegionAt = (x: number, y: number) =>
+    selectZone(regionAt(regionRows, zones, x, y));
+  // The last region a drag crossed, so a drag released off the body still ends up somewhere sensible.
+  const dragZone = useRef<string | null>(null);
+  const pixelAt = (event: React.MouseEvent<HTMLDivElement>) => {
     const canvas = event.currentTarget.querySelector('canvas');
-    if (!canvas) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const { width, height } = sprite;
-    const px = Math.floor(((event.clientX - rect.left) / rect.width) * width);
-    const py = Math.floor(((event.clientY - rect.top) / rect.height) * height);
+    return [
+      Math.floor(((event.clientX - rect.left) / rect.width) * width),
+      Math.floor(((event.clientY - rect.top) / rect.height) * height),
+    ] as const;
+  };
+  // A drag selects the region it is released over; released off the body, the last region it crossed.
+  const selectRegionAtRelease = (event: React.MouseEvent<HTMLDivElement>) => {
+    const last = dragZone.current;
+    dragZone.current = null;
+    if (!regionMode || event.button !== 0) return;
+    const at = pixelAt(event);
+    if (!at) return;
+    const zone = regionAt(regionRows, zones, at[0], at[1]);
+    selectZone(zone && !lockReason(zone) ? zone : last);
+  };
+  const trackHover = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!regionMode) return;
+    const at = pixelAt(event);
+    if (!at) return;
+    const [px, py] = at;
     const zone = regionAt(regionRows, zones, px, py);
     // Locked regions can't be picked, so they don't light up either.
     const hovered = lockReason(zone) ? null : zone;
     if (hovered !== hoveredZone) setHoveredZone(hovered);
+    if (event.buttons && hovered) dragZone.current = hovered;
     // Only painted, covered pixels get the tip: the same pixels the overlay hatches. It waits for
     // the cursor to rest, so flicking across paint mid-stroke never puts anything in the way.
     const pixel = sprite.layers[0]?.data[direction]?.[py]?.[px];
@@ -645,7 +666,11 @@ export const CustomSpriteEditor = ({
                       backgroundColor="rgba(0, 0, 0, 0.2)"
                       p={1}
                       style={{ overflow: 'hidden', boxSizing: 'border-box' }}
+                      onMouseDown={() => {
+                        dragZone.current = null;
+                      }}
                       onMouseMove={trackHover}
+                      onMouseUp={selectRegionAtRelease}
                       onMouseLeave={() => {
                         setHoveredZone(null);
                         clearCoverTip();

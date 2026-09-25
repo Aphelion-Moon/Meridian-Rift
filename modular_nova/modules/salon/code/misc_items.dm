@@ -66,11 +66,6 @@
 	. = ..()
 	// A simple GUI with a list of hairstyles and a view, so people can choose a hairstyle!
 
-/// How far the sheen highlight is lifted towards white from the hair's own
-/// colour. High enough that black hair still shows strands rather than reading
-/// as one flat silhouette.
-#define HAIR_TRIMMING_SHEEN_LIFT 0.65
-
 /**
  * Resolves the colour this head's hair actually renders in.
  *
@@ -118,8 +113,7 @@
 	icon_state = "wisp_1"
 	/// Shapes a pile falls in when nothing has asked for a particular one.
 	var/static/list/trimming_shapes = list("wisp", "tangle", "arc", "curl")
-	/// The hair colour this pile was cut from, kept so piles can compare it
-	/// without caring which of the two palettes they happened to roll.
+	/// The hair colour this pile was cut from; piles only merge with the same colour.
 	var/trimming_color = COLOR_BLACK
 	/// The shape this pile fell in, held so it keeps it as the pile grows.
 	var/trimming_shape
@@ -133,14 +127,8 @@
 	src.pile_size = clamp(round(pile_size), 1, 3)
 	icon_state = "[trimming_shape]_[src.pile_size]"
 	trimming_color = hair_color || COLOR_BLACK
-	// Half of all piles catch the light, so a salon floor doesn't end up looking
-	// uniform. The sheen config lays a highlight over the frontmost strands.
-	if(prob(50))
-		greyscale_config = /datum/greyscale_config/hair_trimmings/sheen
-		greyscale_colors = "[trimming_color][BlendRGB(trimming_color, COLOR_WHITE, HAIR_TRIMMING_SHEEN_LIFT)]"
-	else
-		greyscale_config = /datum/greyscale_config/hair_trimmings
-		greyscale_colors = trimming_color
+	greyscale_config = /datum/greyscale_config/hair_trimmings
+	greyscale_colors = trimming_color
 	return ..()
 
 /**
@@ -163,8 +151,6 @@
 	if(other.trimming_color != trimming_color)
 		return FALSE
 	return ..()
-
-#undef HAIR_TRIMMING_SHEEN_LIFT
 
 /obj/item/razor
 	name = "electric razor"

@@ -3357,10 +3357,3 @@ Cloaks
 	name = "Hair Trimmings"
 	icon_file = 'modular_nova/modules/GAGS/icons/hair_trimmings.dmi'
 	json_config = 'modular_nova/modules/GAGS/json_configs/hair_trimmings/hair_trimmings.json'
-
-/// Two colours: the hair, then a lifted highlight laid over the frontmost
-/// strands. Multiply blending can only darken, so without this pass dark hair
-/// lands as a flat silhouette with no strands visible in it.
-/datum/greyscale_config/hair_trimmings/sheen
-	name = "Hair Trimmings (Sheen)"
-	json_config = 'modular_nova/modules/GAGS/json_configs/hair_trimmings/hair_trimmings_sheen.json'
