@@ -9017,6 +9017,7 @@
 	name = "Barber Shop"
 	},
 /obj/structure/disposalpipe/segment,
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/iron,
 /area/station/service/barber)
 "bgc" = (
@@ -44804,6 +44805,7 @@
 /obj/effect/turf_decal/tile/teal/opposingcorners{
 	dir = 1
 	},
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron/cafeteria,
 /area/station/common/cryopods)
 "nwR" = (

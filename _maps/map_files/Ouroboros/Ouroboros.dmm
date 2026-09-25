@@ -3509,7 +3509,7 @@
 /obj/structure/cable,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
-/obj/effect/landmark/navigate_destination,
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/iron/dark/smooth_large,
 /area/station/service/barber)
 "bdy" = (
@@ -83933,7 +83933,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 9
 	},
-/obj/effect/landmark/navigate_destination,
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron/white,
 /area/station/common/cryopods)
 "ylw" = (

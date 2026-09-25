@@ -58363,11 +58363,9 @@
 /area/station/engineering/storage/tech)
 "pEf" = (
 /obj/machinery/holopad,
-/obj/effect/landmark/navigate_destination{
-	location = "Cryogenics"
-	},
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron/herringbone,
 /area/station/common/cryopods)
 "pEx" = (
@@ -84136,6 +84134,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 4
 	},
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/iron/dark,
 /area/station/service/barber)
 "wxU" = (
