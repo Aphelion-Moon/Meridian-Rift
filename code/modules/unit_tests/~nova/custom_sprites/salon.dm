@@ -171,8 +171,11 @@
 	TEST_ASSERT(session.propose(recipient), "Only the artist may finish the work.")
 	var/error = session.propose(artist)
 	TEST_ASSERT(!(error || session.state != "awaiting approval" || !session.mirror || !GLOB.custom_sprite_salon_prompts[recipient.ckey]), "A changed draft must open the recipient's mirror: [error]")
-	var/list/before = session.mirror.before_urls
-	TEST_ASSERT(!(length(before) != 4 || length(session.mirror.after_urls) != 4 || before["2"] == session.mirror.after_urls["2"]), "The mirror must render all four directions before and after the change.")
+	var/datum/custom_sprite_mirror/mirror = session.mirror
+	TEST_ASSERT(!(length(mirror.before_urls) != 1 || length(mirror.after_urls) != 1 || mirror.before_urls["2"] == mirror.after_urls["2"]), "The mirror must open with the Front view drawn before and after the change.")
+	for(var/direction in GLOB.custom_style_directions)
+		mirror.render_view(direction)
+	TEST_ASSERT(!(length(mirror.before_urls) != 4 || length(mirror.after_urls) != 4), "Every view must draw both pictures once shown.")
 	var/first_token = session.proposal["token"]
 	paint(session)
 	TEST_ASSERT(!(session.state != "drafting" || session.mirror || session.proposal), "Editing must withdraw the pending proposal.")
@@ -354,6 +357,7 @@
 	var/error = session.propose(artist)
 	TEST_ASSERT(!error, "The extension must be proposable: [error]")
 	for(var/direction in GLOB.cardinals)
+		session.mirror.render_view("[direction]")
 		var/icon/rendered = getFlatIcon(editor.preview_body, defdir = direction, no_anim = TRUE)
 		rendered.Crop(1, 1, 32, 32)
 		TEST_ASSERT(!(rendered.GetPixel(7, 31) != "#fe12ab" || session.mirror.after_urls["[direction]"] != "data:image/png;base64,[icon2base64(rendered)]"), "The recipient mirror must show the same native extension in direction [direction].")
@@ -840,7 +844,7 @@
 		var/datum/custom_sprite_mirror/mirror = session.mirror
 		var/list/static_data = mirror.ui_static_data(recipient)
 		var/list/data = mirror.ui_data(recipient)
-		TEST_ASSERT(!(length(static_data["before"]) != 4 || length(static_data["after"]) != 4 || data["before"] || data["after"] || data["timeout"] <= 0), "Mirror images must be static while the small timeout payload updates.")
+		TEST_ASSERT(!(!static_data["before"]?["2"] || !static_data["after"]?["2"] || data["before"] || data["after"] || data["timeout"] <= 0), "Mirror images must be static while the small timeout payload updates.")
 		var/list/prior = preferences.custom_style_saved_package("markings", BODY_ZONE_L_ARM)
 		var/old_hash = custom_style_package_hash(prior)
 		var/token = session.proposal["token"]
@@ -1203,6 +1207,38 @@
 	locked = canvas.locked_regions()
 	TEST_ASSERT(findtext(locked[CUSTOM_MARKING_ZONE_TAUR], "can't be tattooed"), "A removed taur body must lock as untattooable, not replaced: [json_encode(locked)]")
 
+/// The recipient's mirror draws only the view its window shows; the others are drawn once shown.
+/datum/unit_test/custom_sprite_salon/mirror_views/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
+	var/error = session.propose(artist)
+	TEST_ASSERT(!error, "The fixture must open the mirror: [error]")
+	var/datum/custom_sprite_mirror/mirror = session.mirror
+	TEST_ASSERT(!(length(mirror.before_urls) != 1 || !mirror.before_urls["2"] || length(mirror.after_urls) != 1 || !mirror.after_urls["2"]), "The mirror must open with only the Front view drawn.")
+	TEST_ASSERT(mirror.ui_data(recipient)["visibleView"] == "2", "The window must learn which view the mirror drew.")
+	var/datum/tgui/full_update_counting/ui = allocate(/datum/tgui/full_update_counting, recipient, mirror, "CustomSpriteMirror")
+	TEST_ASSERT(!mirror.ui_act("setView", list("dir" = "1"), ui), "A newly drawn view travels as static data, not with a second update.")
+	TEST_ASSERT(!(ui.full_updates != 1 || !mirror.before_urls["1"] || !mirror.after_urls["1"] || mirror.visible_direction != "1"), "Showing the Back view must draw both of its pictures and send them.")
+	TEST_ASSERT(!(mirror.ui_act("setView", list("dir" = "1"), ui) || ui.full_updates != 1), "Showing the view already shown must change nothing.")
+	TEST_ASSERT(!(mirror.ui_act("setView", list("dir" = "3"), ui) || mirror.visible_direction != "1"), "Unknown views must be refused.")
+	TEST_ASSERT(!(!mirror.ui_act("setView", list("dir" = "2"), ui) || ui.full_updates != 1), "Returning to a view already drawn only updates the window's data.")
+	var/front = mirror.before_urls["2"]
+	var/back = mirror.before_urls["1"]
+	// Someone else tattoos a region the proposal doesn't touch.
+	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_R_LEG, custom_sprite_test_drawing(), null))
+	if(mirror.refresh_timer)
+		deltimer(mirror.refresh_timer)
+	mirror.refresh()
+	TEST_ASSERT(!(mirror.before_urls["2"] == front || mirror.stale_views["2"]), "A refresh must redraw the view the window shows.")
+	TEST_ASSERT(!(mirror.before_urls["1"] != back || !mirror.stale_views["1"]), "A refresh must leave the other views' last pictures until they're shown.")
+	var/list/applied = list()
+	applied[custom_style_key("markings", BODY_ZONE_L_ARM)] = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_drawing(), null)
+	var/datum/custom_sprite_mirror/result = new(null, recipient, applied, null)
+	var/datum/tgui/result_ui = allocate(/datum/tgui, recipient, result, "CustomSpriteMirror")
+	TEST_ASSERT(!(result.ui_act("setView", list("dir" = "1"), result_ui) || result.visible_direction != "2"), "The result window shows no views, so it must refuse to draw one.")
+	qdel(result)
+
 /// The mirror redraws both pictures when the recipient's look changes while they decide.
 /datum/unit_test/custom_sprite_salon/mirror_refresh/Run()
 	setup_players()
@@ -1343,6 +1379,9 @@
 /// Held items stay out of salon pictures, so picking one up redraws nothing, while worn changes still redraw and relock at once.
 /datum/unit_test/custom_sprite_salon/held_items/Run()
 	setup_players()
+	// Dressed, so the worn overlays the held ones are checked against aren't empty.
+	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
+	TEST_ASSERT(recipient.equip_to_slot_or_del(uniform, ITEM_SLOT_ICLOTHING), "The fixture must be able to wear the jumpsuit.")
 	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
 	var/datum/custom_sprite_editor/markings/canvas = session.editor
 	if(session.dress_timer)
@@ -1354,8 +1393,9 @@
 	var/held = recipient.overlays_standing[HANDS_LAYER]
 	var/list/held_overlays = islist(held) ? held : list(held)
 	TEST_ASSERT(length(held_overlays - null), "The fixture's crowbar must be drawn in hand.")
-	for(var/overlay in custom_sprite_worn_overlays(recipient))
-		TEST_ASSERT(!(overlay in held_overlays), "Held items must stay out of salon guides and mirrors.")
+	var/list/worn = custom_sprite_worn_overlays(recipient)
+	TEST_ASSERT(length(worn), "The fixture's jumpsuit must be drawn as worn.")
+	TEST_ASSERT(!length(held_overlays & worn), "Held items must stay out of salon guides and mirrors.")
 	canvas.static_dirty = FALSE
 	var/obj/item/clothing/gloves/color/black/gloves = allocate(/obj/item/clothing/gloves/color/black)
 	TEST_ASSERT(recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES), "The fixture must be able to wear gloves.")

@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Window } from 'tgui/layouts';
 import { Box, Button, Stack } from 'tgui-core/components';
@@ -21,6 +21,7 @@ export type CustomSpriteMirrorData = {
   saveState?: 'saved' | 'error' | null;
   saveMessage?: string | null;
   messageError?: boolean;
+  visibleView?: string;
 };
 
 const directions: [Direction, string][] = [
@@ -41,6 +42,7 @@ export const CustomSpriteMirror = () => {
     token,
     before,
     after,
+    visibleView,
   } = data;
   const approval = mode === 'approval';
 
@@ -75,7 +77,11 @@ export const CustomSpriteMirror = () => {
           </Stack.Item>
           {approval && (
             <>
-              <MirrorComparison before={before} after={after} />
+              <MirrorComparison
+                before={before}
+                after={after}
+                visibleView={visibleView}
+              />
               <Stack.Item>
                 <Stack>
                   <Stack.Item grow>
@@ -170,10 +176,18 @@ export const CustomSpriteMirror = () => {
 const MirrorComparison = memo(function MirrorComparison({
   before,
   after,
-}: Pick<CustomSpriteMirrorData, 'before' | 'after'>) {
+  visibleView,
+}: Pick<CustomSpriteMirrorData, 'before' | 'after' | 'visibleView'>) {
+  const { act } = useBackend();
   const [direction, setDirection] = useState<Direction>('2');
   const [split, setSplit] = useState(50);
   const view = directions.find(([dir]) => dir === direction)?.[1];
+  useEffect(() => {
+    // The server draws only the view the mirror says it shows.
+    if (visibleView !== undefined && visibleView !== direction) {
+      act('setView', { dir: direction });
+    }
+  }, [direction, visibleView]);
 
   return (
     <>

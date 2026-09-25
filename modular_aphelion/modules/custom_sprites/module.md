@@ -404,9 +404,9 @@ still takes a private copy for its masks and final overlay assembly.
 The editor renders strokes locally. Server previews wait for a 0.6-second pause
 and skip unchanged drawings. Guides and previews are drawn only for the view the
 window shows. The window tells the server when it shows another view, and until
-then each view keeps its last image. Import and restore previews and the
-recipient's mirror still draw all four views. Encoded pixels are cached until
-paint changes; metadata changes reuse them. Guide and preview PNGs are
+then each view keeps its last image. The recipient's approval mirror works the
+same way; import and restore previews still draw all four views. Encoded pixels
+are cached until paint changes; metadata changes reuse them. Guide and preview PNGs are
 editor-owned data URLs, with no global asset/CDN registration. The browser
 reuses decoded guides, cached shading geometry and unchanged drag previews. Only
 the opened drawing is sent to its editor. The canvas travels as a palette of its
@@ -416,7 +416,8 @@ a canvas holds more than 64 values. A stroke re-encodes only its own view.
 Idle windows don't resend drawings. Hairstyle and native-marking choices,
 guides, the paintable mask and the region map are static UI data, and the sorted
 hairstyle lists are shared. A rebuild or a lock change sends them in one full
-update. Picking a palette color or a region doesn't update the window, which
+update. So does showing a view for the first time after the window opens or
+rebuilds, because its guide is static data. Picking a palette color or a region doesn't update the window, which
 already shows it. Refreshes never bring the window forward; only opening it
 does. Salon guides listen for the recipient's worn-overlay changes, including
 adjusting clothes already being worn. Changes within a second share one refresh
@@ -834,7 +835,7 @@ and clear, whole-body files, and hand paint staying above re-created arm paint.
 `regions.dm` the paintable mask with regions locked. `workspace.dm` covers the
 window's canvas wire format, `markings_editor.dm` static data, and `editor.dm`
 the visible view, refresh focus and quiet selection. `salon.dm` also covers held
-items.
+items and the mirror drawing only the view it shows.
 
 Tests use `TEST_ASSERT`, which stops at the first failure. Anything a later test
 depends on is released in `Destroy()`: salon players and their registries, and
@@ -869,7 +870,9 @@ save feedback, color blending, swatch menus, theme styling and the zone buttons.
 tool, the region labels and actions, focus, scanlines, locked regions and import
 notices. `CustomSpriteMirror.test.tsx` also covers the tattoo change list.
 `canvas.test.ts` covers the compact canvas, and
-`CustomSpriteEditor.views.test.tsx` covers view reporting.
+`CustomSpriteEditor.views.test.tsx` covers view reporting, convergence and
+reopening on the Front view. `CustomSpriteMirror.test.tsx` covers the mirror's
+view reporting.
 Keep each tgui test file under 50 KB. Bun 1.3.13 serves larger files from its
 runtime transpiler cache, and on those cached runs it parses
 `transparency_checkerboard.svg` as JSX, failing the whole file from the second run
@@ -914,7 +917,7 @@ All paths here are relative to this module unless stated otherwise.
 | `code/regions.dm` | Present regions in draw order, region ID colors, the cached per-view region map composed through the real overlay types, region lookup and the paintable mask. |
 | `code/composite.dm` | Composes region drawings into one canvas and splits an edited canvas back into per-region drawings by the save rule. |
 | `code/salon.dm` | `/datum/custom_sprite_salon` session over a set of drawings (one for hair, one per region for a tattoo), request/restore procs including the whole-body-or-region restore choice, live style packages and preview dummies, five-second round application of the touched drawings, optional approved save and per-drawing history on `/mob/living/carbon/human`. Brush sounds and the salon's window actions live on the session. `/datum/custom_sprite_editor/salon` (hair) and `/datum/custom_sprite_editor/markings/salon` (the tattoo canvas, which locks regions the recipient can't be tattooed on) override the context hooks, `can_edit()` and UI lifecycle procs. Recipient overlay signals coalesce guide refreshes; equipment signals resync region and mirror locks at once. |
-| `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images, approval-only export, result window and recipient saves, the tattoo change list and one-write saves of every applied region. |
+| `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images drawn per view (`render_view()`, the `setView` action), approval-only export, result window and recipient saves, the tattoo change list and one-write saves of every applied region. |
 | `code/tools.dm` | `/obj/item/tattoo_machine`, which opens the tool menu on the whole body; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
 | `code/transfer.dm` | Style package format, strict validation, export text, geometry checks and transfer helpers, including the whole-body `"target": "body"` file. |
 | `code/saved_styles.dm` | Previous saved styles and complete hair and native marking saves. `commit_custom_styles()` validates and writes several regions in one sidecar write. |

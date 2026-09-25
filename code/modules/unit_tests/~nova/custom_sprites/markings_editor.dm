@@ -618,4 +618,8 @@
 	editor.rebuild_resources(reuse_body = TRUE)
 	editor.ui_interact(user, ui)
 	TEST_ASSERT(!(ui.full_updates != 1 || editor.static_dirty), "Rebuilt guides and masks must reach the open window as one full update.")
+	// A lock change found while a full update's data is built rides along in its static data.
+	editor.static_dirty = TRUE
+	editor.ui_static_data(user)
+	TEST_ASSERT(!editor.static_dirty, "Building static data for a send must clear the flag, so the change isn't sent twice.")
 	editor.finish(FALSE)

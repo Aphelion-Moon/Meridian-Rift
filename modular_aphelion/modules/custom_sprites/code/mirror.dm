@@ -95,6 +95,16 @@
 	var/message_error = FALSE
 	/// Pending redraw after the recipient's look changed while they decide.
 	var/refresh_timer
+	/// The view the recipient's window shows. Its pictures are drawn at once, the others once shown.
+	var/visible_direction = "2"
+	/// The recipient's look before the proposal, captured to flatten one view at a time.
+	var/mutable_appearance/before_appearance
+	/// The same body wearing the proposal, captured to flatten one view at a time.
+	var/mutable_appearance/after_appearance
+	/// Canvas width the pictures are flattened at.
+	var/picture_width = 32
+	/// Direction -> TRUE for views whose pictures predate the last capture.
+	var/list/stale_views = list()
 
 /datum/custom_sprite_mirror/New(datum/custom_sprite_salon/session, mob/living/carbon/human/recipient, list/applied_packages, slot)
 	recipient_ckey = recipient.ckey
@@ -127,21 +137,36 @@
 	owner?.close_mirror()
 	return ..()
 
-/// Draws the recipient as they look now beside the same body wearing the proposal, from every side.
+/// Captures the recipient as they look now and the same body wearing the proposal, then draws the shown view. Other views keep their last pictures until shown.
 /datum/custom_sprite_mirror/proc/render_proposal(mob/living/carbon/human/recipient)
 	var/list/worn = custom_sprite_worn_overlays(recipient)
 	var/mob/living/carbon/human/dummy/body = custom_sprite_salon_dummy(recipient)
-	before_urls = custom_sprite_render_directions(body, worn_overlays = worn)
+	before_appearance = custom_sprite_preview_appearance(body, worn)
 	custom_sprite_apply_round_styles(body, session.proposal["packages"], session.recipient_emissives)
-	after_urls = custom_sprite_render_directions(body, worn_overlays = worn)
+	after_appearance = custom_sprite_preview_appearance(body, worn)
+	picture_width = custom_sprite_preview_width(body)
 	qdel(body)
+	before_urls ||= list()
+	after_urls ||= list()
+	for(var/direction in GLOB.custom_style_directions)
+		stale_views[direction] = TRUE
+	render_view(visible_direction)
+
+/// Flattens one view's before and after pictures when they predate the last capture. Returns TRUE when it drew them.
+/datum/custom_sprite_mirror/proc/render_view(direction)
+	if(!stale_views[direction] || !before_appearance)
+		return FALSE
+	before_urls[direction] = custom_sprite_render_view(before_appearance, text2num(direction), picture_width)
+	after_urls[direction] = custom_sprite_render_view(after_appearance, text2num(direction), picture_width)
+	stale_views -= direction
+	return TRUE
 
 /// Redraws both pictures shortly after the recipient's look changes, once for a burst of changes.
 /datum/custom_sprite_mirror/proc/schedule_refresh()
 	if(session && !refresh_timer)
 		refresh_timer = addtimer(CALLBACK(src, PROC_REF(refresh)), 1 SECONDS, TIMER_STOPPABLE)
 
-/// Redraws both pictures and sends them to the open window.
+/// Recaptures both looks, redraws the shown view and sends the pictures to the open window.
 /datum/custom_sprite_mirror/proc/refresh()
 	refresh_timer = null
 	var/mob/living/carbon/human/recipient = recipient()
@@ -193,6 +218,7 @@
 		"saveState" = save_state,
 		"saveMessage" = save_message,
 		"messageError" = message_error,
+		"visibleView" = visible_direction,
 	)
 
 /datum/custom_sprite_mirror/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
@@ -203,6 +229,16 @@
 		expire()
 		return TRUE
 	switch(action)
+		if("setView")
+			var/direction = params["dir"]
+			if(!session || !(direction in GLOB.custom_style_directions) || direction == visible_direction)
+				return FALSE
+			visible_direction = direction
+			if(!render_view(direction))
+				return TRUE
+			// The pictures are static data, and the full update carries the new view with them.
+			update_static_data(ui.user, ui, always_instant = TRUE)
+			return FALSE
 		if("accept", "acceptPermanent")
 			if(session && istext(params["token"]) && params["token"] == token)
 				session.accept(ui.user, token, save_permanently = action == "acceptPermanent")

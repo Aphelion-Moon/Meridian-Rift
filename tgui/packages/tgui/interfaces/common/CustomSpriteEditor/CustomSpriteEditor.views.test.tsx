@@ -46,3 +46,24 @@ it('reopens on the Front view without asking for the view it closed on', () => {
   render(editor);
   expect(send).not.toHaveBeenCalled();
 });
+
+it('converges on the view the window shows when an older answer arrives late', () => {
+  const store = createStore();
+  const editor = () => (
+    <Provider store={store}>
+      <CustomSpriteEditor target="hair" />
+    </Provider>
+  );
+  backendStore.set(gameDataAtom, { ...fixture(), visibleView: '2' });
+  const view = render(editor());
+  fireEvent.click(screen.getByText('Back'));
+  expect(send).toHaveBeenLastCalledWith('setView', { dir: '1' });
+  send.mockClear();
+  backendStore.set(gameDataAtom, { ...fixture(), visibleView: '1' });
+  view.rerender(editor());
+  expect(send).not.toHaveBeenCalled();
+  // The answer to an earlier request lands after the one for this view.
+  backendStore.set(gameDataAtom, { ...fixture(), visibleView: '2' });
+  view.rerender(editor());
+  expect(send).toHaveBeenLastCalledWith('setView', { dir: '1' });
+});

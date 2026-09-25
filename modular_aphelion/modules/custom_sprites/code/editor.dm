@@ -550,6 +550,11 @@
 	if(ui.window)
 		winset(user, ui.window.id, "focus=true")
 
+/// Sends static data a partial update found changed. Runs a tick later, so the payload being built isn't re-entered.
+/datum/custom_sprite_editor/proc/push_static_data()
+	if(static_dirty)
+		SStgui.update_uis(src)
+
 /datum/custom_sprite_editor/ui_interact(mob/user, datum/tgui/ui)
 	if(!can_edit(user))
 		return
@@ -586,6 +591,8 @@
 	ui.open()
 
 /datum/custom_sprite_editor/ui_static_data(mob/user)
+	// Static data is only built for a send, which carries every pending change.
+	static_dirty = FALSE
 	. = list()
 	if(can_change_hair())
 		.["hairStyles"] = available_hairstyles()
@@ -599,9 +606,9 @@
 
 /datum/custom_sprite_editor/ui_data(mob/user)
 	sync_locked_views(push = FALSE)
-	// A lock change found here moved the mask, which only a full update carries.
+	// A lock change found here moved the mask, which only a full update carries. One being built takes it along.
 	if(static_dirty && LAZYLEN(open_uis))
-		SStgui.update_uis(src)
+		addtimer(CALLBACK(src, PROC_REF(push_static_data)), 0, TIMER_UNIQUE)
 	var/list/editor_data = workspace.sprite_editor_ui_data()
 	var/list/custom_palette = preferences?.read_preference(/datum/preference/custom_sprite_palette) || list()
 	// Paint/history admission must not add swatches; only style shades and explicit guide picks do.

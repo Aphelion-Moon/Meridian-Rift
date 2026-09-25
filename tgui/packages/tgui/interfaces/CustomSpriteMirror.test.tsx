@@ -129,3 +129,25 @@ it('offers recipient save without a redundant export after application and repor
   fireEvent.click(screen.getByText('Save for future rounds'));
   expect(send).toHaveBeenLastCalledWith('save');
 });
+
+it('asks the server to draw only the view the mirror shows, and only while approving', () => {
+  backendStore.set(gameDataAtom, { ...approval(), visibleView: '2' });
+  const view = render(<CustomSpriteMirror />);
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByText('Back'));
+  expect(send).toHaveBeenLastCalledWith('setView', { dir: '1' });
+  send.mockClear();
+  backendStore.set(gameDataAtom, { ...approval(), visibleView: '1' });
+  view.rerender(<CustomSpriteMirror />);
+  expect(send).not.toHaveBeenCalled();
+  view.unmount();
+  backendStore.set(gameDataAtom, {
+    mode: 'result',
+    label: 'hairstyle',
+    restoration: false,
+    canSave: true,
+    visibleView: '1',
+  });
+  render(<CustomSpriteMirror />);
+  expect(send).not.toHaveBeenCalled();
+});
