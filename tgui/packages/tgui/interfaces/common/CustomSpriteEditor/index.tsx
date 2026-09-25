@@ -9,11 +9,13 @@ import {
   Button,
   Collapsible,
   Dropdown,
+  Icon,
   Modal,
   Section,
   Stack,
   Tooltip,
 } from 'tgui-core/components';
+import { classes } from 'tgui-core/react';
 import { SpriteEditor } from '../SpriteEditor';
 import {
   currentToolAtom,
@@ -25,7 +27,10 @@ import {
   tools,
 } from '../SpriteEditor/atoms';
 import { Dir } from '../SpriteEditor/Types/types';
-import { toolTooltip } from '../SpriteEditor/useSpriteEditorHotkeys';
+import {
+  toolHotkeys,
+  toolTooltip,
+} from '../SpriteEditor/useSpriteEditorHotkeys';
 import { decodeCanvas } from './canvas';
 import { CustomSpritePalette } from './Palette';
 import { RegionOverlay } from './RegionOverlay';
@@ -101,6 +106,14 @@ const directions = [
 const rotation = [Dir.SOUTH, Dir.WEST, Dir.NORTH, Dir.EAST];
 
 const blendingTooltip = 'Uses Multiply blending on Custom colors.';
+/** What the toolbar spreads onto each tool button; the hotkey rides along as a data attribute. */
+type ToolButtonProps = ReturnType<
+  NonNullable<Parameters<typeof SpriteEditor.Toolbar>[0]['perButtonProps']>
+>;
+
+/** Shown by the banner and the info button, verbatim from the design. */
+const LAYER_TIP =
+  'Markings layer beneath mutant parts (like snouts) and will not show in game so long as those parts are present.';
 /** Markings and tattoo window size, tall enough that the side panel doesn't scroll. */
 const MARKINGS_WINDOW = [1100, 920] as const;
 /** Wide enough that base marking names aren't cut short beside their buttons. */
@@ -167,6 +180,8 @@ export const CustomSpriteEditor = ({
     backgrounds,
     defaultBackground,
     visibleView,
+    coverMask,
+    layerTipSeen,
   } = data;
   const sprite = useMemo(
     () => decodeCanvas(editorData.sprite),
@@ -185,6 +200,8 @@ export const CustomSpriteEditor = ({
     image: HTMLImageElement;
   }>();
   const [showGrid, setShowGrid] = useState(false);
+  // The info button brings the layering message back after it was dismissed for the account.
+  const [tipOpen, setTipOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [background, setBackground] = useState(
     defaultBackground ?? 'Transparent',
@@ -382,51 +399,181 @@ export const CustomSpriteEditor = ({
         )}
         <Stack fill vertical>
           <Stack.Item>
-            <Stack>
-              {directions.map(([dir, label]) => (
-                <Stack.Item key={dir} grow>
-                  <Button
-                    fluid
-                    icon={locked(dir) ? 'lock' : undefined}
-                    tooltip={
-                      locked(dir)
-                        ? 'You need a mirror to work on this view of your own body.'
-                        : undefined
-                    }
-                    selected={direction === dir}
-                    onClick={() => setDirection(dir)}
+            <Stack align="center">
+              <Stack.Item>
+                <div className="CustomSpriteEditor__group">
+                  {directions.map(([dir, label]) => {
+                    const painted = !!edited[dir];
+                    const pipLabel = painted
+                      ? 'Has markings'
+                      : 'No markings yet';
+                    const pip = (
+                      <span
+                        className={classes([
+                          'CustomSpriteEditor__pip',
+                          painted && 'CustomSpriteEditor__pip--lit',
+                        ])}
+                        role="img"
+                        aria-label={pipLabel}
+                      />
+                    );
+                    return (
+                      <Button
+                        key={dir}
+                        className="CustomSpriteEditor__viewTab"
+                        icon={locked(dir) ? 'lock' : undefined}
+                        tooltip={
+                          locked(dir)
+                            ? 'You need a mirror to work on this view of your own body.'
+                            : undefined
+                        }
+                        selected={direction === dir}
+                        onClick={() => setDirection(dir)}
+                      >
+                        {label}
+                        {locked(dir) ? (
+                          pip
+                        ) : (
+                          <Tooltip content={pipLabel}>{pip}</Tooltip>
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </Stack.Item>
+              {regionMode && !!regionLabel && (
+                <Stack.Item>
+                  <Tooltip
+                    content="Use any tool on a region to select it."
+                    position="bottom-start"
                   >
-                    {label}
-                    {edited[dir] ? ' •' : ''}
-                  </Button>
+                    <span className="CustomSpriteEditor__region">
+                      <Icon name="bullseye" />
+                      <b>{regionLabel}</b>
+                      {!selectedInView && selectedZone ? (
+                        <span className="CustomSpriteEditor__regionOff">
+                          (not in this view)
+                        </span>
+                      ) : null}
+                    </span>
+                  </Tooltip>
                 </Stack.Item>
-              ))}
+              )}
+              <Stack.Item grow />
+              <Stack.Item>
+                <div className="CustomSpriteEditor__tray">
+                  <Button
+                    color="transparent"
+                    selected={showGuide}
+                    aria-pressed={showGuide}
+                    icon="user"
+                    tooltip="Show the body behind your paint."
+                    onClick={() => setShowGuide(!showGuide)}
+                  >
+                    Guide
+                  </Button>
+                  {!!canHideParts && (
+                    <Button
+                      color="transparent"
+                      selected={!hideParts}
+                      aria-pressed={!hideParts}
+                      icon="paw"
+                      tooltip="Show hair, wings, tails and other parts that cover the body in the guide. The preview always shows them."
+                      onClick={() => act('toggleParts')}
+                    >
+                      Parts
+                    </Button>
+                  )}
+                  {!!canHideUnderwear && (
+                    <Button
+                      color="transparent"
+                      selected={!hideUnderwear}
+                      aria-pressed={!hideUnderwear}
+                      icon="shirt"
+                      tooltip="Show underwear in the guide and the preview."
+                      onClick={() => act('toggleUnderwear')}
+                    >
+                      Underwear
+                    </Button>
+                  )}
+                  {!!hasGradient && (
+                    <Button
+                      color="transparent"
+                      selected={!!showGradient}
+                      aria-pressed={!!showGradient}
+                      icon="palette"
+                      tooltip="Show the base look's gradient in the guide, preview and palette."
+                      onClick={() => act('toggleGradient')}
+                    >
+                      Gradient
+                    </Button>
+                  )}
+                  <Button
+                    color="transparent"
+                    selected={showGrid}
+                    aria-pressed={showGrid}
+                    icon="border-all"
+                    tooltip="Pixel grid over the canvas."
+                    onClick={() => setShowGrid(!showGrid)}
+                  >
+                    Grid
+                  </Button>
+                  {regionMode && (
+                    <>
+                      <span className="CustomSpriteEditor__trayDivider" />
+                      <Button
+                        color="transparent"
+                        icon="circle-info"
+                        tooltip={LAYER_TIP}
+                        aria-label="How markings layer with parts"
+                        onClick={() => setTipOpen(true)}
+                      />
+                    </>
+                  )}
+                </div>
+              </Stack.Item>
             </Stack>
           </Stack.Item>
           <Stack.Item>
             <Stack align="center">
               <Stack.Item>
                 <SpriteEditor.Toolbar
+                  className="CustomSpriteEditor__group"
                   toolFlags={editorData.toolFlags}
-                  perButtonProps={(tool) => ({
-                    tooltip: toolTooltip(
-                      tool,
-                      tool === tools[2] ? 'Alt+click with any tool' : undefined,
-                    ),
-                  })}
+                  perButtonProps={(tool) =>
+                    ({
+                      tooltip: toolTooltip(
+                        tool,
+                        tool === tools[2]
+                          ? 'Alt+click with any tool'
+                          : undefined,
+                      ),
+                      'data-hotkey': toolHotkeys[tool.name]?.toUpperCase(),
+                    }) as ToolButtonProps
+                  }
                 />
               </Stack.Item>
-              <Stack.Item>
+              <Stack.Item className="CustomSpriteEditor__divider" />
+              <Stack.Item className="CustomSpriteEditor__ghost">
                 <SpriteEditor.Undo stack={editorData.undoStack} />
               </Stack.Item>
-              <Stack.Item>
+              <Stack.Item className="CustomSpriteEditor__ghost">
                 <SpriteEditor.Redo stack={editorData.redoStack} />
               </Stack.Item>
+              <Stack.Item className="CustomSpriteEditor__divider" />
               <Stack.Item>
                 <Button
-                  color="bad"
-                  icon="eraser"
+                  color="transparent"
+                  className="CustomSpriteEditor__clear"
+                  icon="broom"
                   disabled={regionMode && (!selectedZone || !!selectedLock)}
+                  tooltip={
+                    !regionMode
+                      ? 'Erase this view. Undo brings it back.'
+                      : regionLabel
+                        ? `Erase all ${regionLabel.toLowerCase()} paint in this view. Undo brings it back.`
+                        : 'Choose a region to clear.'
+                  }
                   onClick={() =>
                     regionMode
                       ? act('clear', {
@@ -436,71 +583,53 @@ export const CustomSpriteEditor = ({
                       : act('clear', { dir: String(direction) })
                   }
                 >
-                  {regionMode
-                    ? `Clear ${regionLabel.toLowerCase()}`
-                    : 'Clear layer'}
+                  {!regionMode
+                    ? 'Clear layer'
+                    : regionLabel
+                      ? `Clear ${regionLabel.toLowerCase()}`
+                      : 'Clear region'}
                 </Button>
               </Stack.Item>
               <Stack.Item grow />
               <Stack.Item>
-                <Button
-                  icon="file-import"
-                  tooltip="Preview a style file before replacing this draft."
-                  onClick={() => act('importStyle')}
-                >
-                  Import
-                </Button>
-                <Button
-                  icon="file-export"
-                  tooltip="Download the current draft without saving it."
-                  onClick={() => act('exportStyle')}
-                >
-                  Export
-                </Button>
-              </Stack.Item>
-              <Stack.Item>
-                <Button.Checkbox
-                  checked={showGuide}
-                  onClick={() => setShowGuide(!showGuide)}
-                >
-                  Guide
-                </Button.Checkbox>
-                {!!canHideParts && (
-                  <Button.Checkbox
-                    checked={!!hideParts}
-                    tooltip="Leave hair, wings, tails and other parts that cover the body out of the guide. The preview still shows them."
-                    onClick={() => act('toggleParts')}
+                <div className="CustomSpriteEditor__group">
+                  <Button
+                    icon="file-import"
+                    tooltip="Preview a style file before replacing this draft."
+                    onClick={() => act('importStyle')}
                   >
-                    Hide parts
-                  </Button.Checkbox>
-                )}
-                {!!canHideUnderwear && (
-                  <Button.Checkbox
-                    checked={!!hideUnderwear}
-                    tooltip="Leave underwear off the guide and preview."
-                    onClick={() => act('toggleUnderwear')}
+                    Import
+                  </Button>
+                  <Button
+                    icon="file-export"
+                    tooltip="Download the current draft without saving it."
+                    onClick={() => act('exportStyle')}
                   >
-                    Hide underwear
-                  </Button.Checkbox>
-                )}
-                {!!hasGradient && (
-                  <Button.Checkbox
-                    checked={!!showGradient}
-                    tooltip="Show the base look's gradient in the guide, preview and palette."
-                    onClick={() => act('toggleGradient')}
-                  >
-                    Gradient
-                  </Button.Checkbox>
-                )}
-                <Button.Checkbox
-                  checked={showGrid}
-                  onClick={() => setShowGrid(!showGrid)}
-                >
-                  Grid
-                </Button.Checkbox>
+                    Export
+                  </Button>
+                </div>
               </Stack.Item>
             </Stack>
           </Stack.Item>
+          {regionMode &&
+            (tipOpen || (layerTipSeen !== undefined && !layerTipSeen)) && (
+              <Stack.Item>
+                <div className="CustomSpriteEditor__banner">
+                  <Icon name="lightbulb" />
+                  <span>{LAYER_TIP}</span>
+                  <span className="CustomSpriteEditor__bannerSpacer" />
+                  <Button
+                    color="transparent"
+                    onClick={() => {
+                      setTipOpen(false);
+                      if (!layerTipSeen) act('dismissLayerTip');
+                    }}
+                  >
+                    Got it
+                  </Button>
+                </div>
+              </Stack.Item>
+            )}
           <Stack.Item grow basis={0} minHeight={0}>
             <Stack fill>
               <Stack.Item grow minWidth={0} minHeight={0}>
@@ -567,6 +696,8 @@ export const CustomSpriteEditor = ({
                                   selected={selectedZone}
                                   hovered={hoveredZone}
                                   labels={regionLabels ?? {}}
+                                  cover={coverMask?.[direction]}
+                                  frame={sprite.layers[0]?.data[direction]}
                                 />
                               )
                             : undefined
@@ -574,17 +705,9 @@ export const CustomSpriteEditor = ({
                       />
                     </Box>
                   </Stack.Item>
-                  {regionMode && (
+                  {regionMode && !!selectedLock && (
                     <Stack.Item className="CustomSpriteEditor__status">
-                      <span>
-                        <b>{regionLabel}</b>
-                        {!selectedInView && selectedZone ? (
-                          <span> (not in this view)</span>
-                        ) : null}
-                      </span>
-                      {!!selectedLock && (
-                        <Box color="average">{selectedLock}</Box>
-                      )}
+                      <Box color="average">{selectedLock}</Box>
                     </Stack.Item>
                   )}
                 </Stack>
@@ -638,7 +761,7 @@ export const CustomSpriteEditor = ({
                       <Section
                         title={
                           <Tooltip
-                            content="Click the body to choose a region."
+                            content="Use any tool on a region to select it."
                             position="bottom-start"
                           >
                             <span>{`${regionLabel} base markings`}</span>

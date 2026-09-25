@@ -1126,3 +1126,155 @@
 	editor.ui_close(mock_client.mob)
 	TEST_ASSERT(editor.visible_direction == "2", "Closing must return to the Front view the window reopens on.")
 	editor.finish(FALSE)
+
+/// The layering notice shows until its owner dismisses it; the dismissal saves without closing the editor.
+/datum/unit_test/custom_sprite_layer_tip/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	// The optimization_test editor accepts UI actions without a connected client.
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "markings", BODY_ZONE_CHEST)
+	LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomSpriteEditor")
+	var/list/data = editor.ui_data(mock_client.mob)
+	TEST_ASSERT(data["layerTipSeen"] == FALSE, "A fresh account must be shown the layering notice.")
+	TEST_ASSERT(editor.ui_act("dismissLayerTip", list(), ui, null), "Dismissing the notice must request a UI update.")
+	TEST_ASSERT(!editor.closing && preferences.custom_sprite_editors?[editor.editor_key] == editor, "Dismissing the notice must not close the editor.")
+	TEST_ASSERT(preferences.read_preference(/datum/preference/toggle/custom_marking_layer_tip_seen) == TRUE, "The dismissal must be written to the player's preferences.")
+	data = editor.ui_data(mock_client.mob)
+	TEST_ASSERT(data["layerTipSeen"] == TRUE, "The notice must stay dismissed for the account.")
+	TEST_ASSERT(editor.ui_act("dismissLayerTip", list(), ui, null), "A second dismissal, from another window, still refreshes that window.")
+	// A salon session's editor has no owning preferences: it never shows the notice and never writes one.
+	var/datum/preferences/owner = editor.preferences
+	editor.preferences = null
+	TEST_ASSERT(editor.layer_tip_seen(), "An editor without preferences must count the notice as seen.")
+	TEST_ASSERT(!editor.ui_act("dismissLayerTip", list(), ui, null), "An editor without preferences must refuse the dismissal.")
+	editor.preferences = owner
+	editor.finish(FALSE)
+
+/// Hair and parts drawn over the body mark the canvas pixels they cover; a bare body marks nothing.
+/datum/unit_test/custom_sprite_cover_mask/Run()
+	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
+	human.set_hairstyle("Bald", update = TRUE)
+	var/list/bare = custom_sprite_cover_rows(custom_sprite_cover_appearance(human), "2", 32)
+	TEST_ASSERT(length(bare) == 32 && length(bare[1]) == 32, "Cover rows must be 32 rows of 32 pixels.")
+	TEST_ASSERT(!findtext(jointext(bare, ""), "1"), "A bald human with no parts covers nothing.")
+	// The real external organ path, as the taur fixture uses it.
+	human.dna.mutant_bodyparts[FEATURE_SNOUT] = build_mutant_part("Beak", list("#654321"))
+	human.dna.species.regenerate_organs(human, visual_only = TRUE)
+	human.update_body(is_creating = TRUE)
+	var/obj/item/organ/snout = human.get_organ_slot(ORGAN_SLOT_EXTERNAL_SNOUT)
+	TEST_ASSERT(snout, "The fixture needs a real snout organ.")
+	var/datum/bodypart_overlay/mutant/part = snout.bodypart_overlay
+	var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
+	var/gender = head.limb_gender == FEMALE ? "f" : "m"
+	// The snout's own art, read straight from its accessory rather than through the overlay pipeline.
+	var/list/states = list(part.build_icon_state_nova(gender, EXTERNAL_ADJACENT))
+	for(var/color_index, layer_name in part.sprite_datum.color_layer_names)
+		states += part.build_icon_state_nova(gender, EXTERNAL_ADJACENT, layer_name)
+	var/icon/shape = custom_sprite_blank_icon()
+	for(var/state in states)
+		if(icon_exists(part.sprite_datum.icon, state))
+			shape.Blend(icon(part.sprite_datum.icon, state), ICON_OVERLAY)
+	var/list/rows = custom_sprite_cover_rows(custom_sprite_cover_appearance(human), "2", 32)
+	var/covered = 0
+	for(var/y in 1 to 32)
+		for(var/x in 1 to 32)
+			var/expected = shape.GetPixel(x, 33 - y, "", SOUTH) ? "1" : "0"
+			TEST_ASSERT(copytext(rows[y], x, x + 1) == expected, "Pixel [x],[y] must be covered exactly where the snout draws.")
+			if(expected == "1")
+				covered++
+	TEST_ASSERT(covered, "A beak must cover at least one Front-view pixel.")
+	human.set_hairstyle("Business Hair", update = TRUE)
+	var/list/haired = custom_sprite_cover_rows(custom_sprite_cover_appearance(human), "2", 32)
+	TEST_ASSERT(length(replacetext(jointext(haired, ""), "0", "")) > covered, "Hair must add covered pixels.")
+	// Rows are cached by the cover key, so a rebuild with the same look reuses them.
+	var/list/key = list()
+	var/mutable_appearance/keyed = custom_sprite_cover_appearance(human, key)
+	TEST_ASSERT(length(key), "The cover key must describe the images it was built from.")
+	var/list/cached = custom_sprite_cover_rows(keyed, "2", 32, json_encode(key))
+	TEST_ASSERT(cached == custom_sprite_cover_rows(keyed, "2", 32, json_encode(key)), "The same cover key must reuse the cached rows.")
+	TEST_ASSERT(cached != custom_sprite_cover_rows(keyed, "2", 32, "other"), "A different cover key must not share rows.")
+	TEST_ASSERT(cached ~= haired, "Cached rows must match a fresh flatten.")
+	// Only the drawable box is read; everything outside it is reported clear without a pixel read.
+	var/list/boxed = custom_sprite_cover_rows(keyed, "2", 32, null, list(12, 6, 19, 9))
+	for(var/y in 1 to 32)
+		for(var/x in 1 to 32)
+			var/inside = x >= 13 && x <= 20 && y >= 7 && y <= 10
+			TEST_ASSERT(copytext(boxed[y], x, x + 1) == (inside ? copytext(haired[y], x, x + 1) : "0"), "Bounded rows must match inside the box and be clear outside it.")
+	// Hair is a runtime icon, so its key comes from the look that built it, not from the image.
+	human.set_hairstyle("Long Hair 1", update = TRUE)
+	var/list/long_key = list()
+	var/mutable_appearance/long_cover = custom_sprite_cover_appearance(human, long_key)
+	TEST_ASSERT(json_encode(key) != json_encode(long_key), "Two hairstyles must not share a cover key.")
+	var/list/long_rows = custom_sprite_cover_rows(long_cover, "2", 32, json_encode(long_key))
+	TEST_ASSERT(!(long_rows ~= cached), "Two hairstyles must not share cached rows.")
+	head.set_custom_head_drawing("hair", custom_sprite_test_drawing())
+	var/list/painted_key = list()
+	custom_sprite_cover_appearance(human, painted_key)
+	TEST_ASSERT(json_encode(painted_key) != json_encode(long_key), "Custom hair paint must change the cover key.")
+	// A higher threshold is a different cover: the snout (BODY_ADJ_LAYER) no longer counts.
+	var/list/high_key = list()
+	var/mutable_appearance/high = custom_sprite_cover_appearance(human, high_key, -BODYPARTS_HIGH_LAYER)
+	TEST_ASSERT(json_encode(high_key) != json_encode(painted_key), "The threshold must be part of the cover key.")
+	var/mutable_appearance/full = custom_sprite_cover_appearance(human)
+	TEST_ASSERT(length(high.overlays) < length(full.overlays), "A part below the hand paint layer must not cover hand paint.")
+
+/// The whole-body editor publishes cover rows with each view's guide; hair editors publish none.
+/datum/unit_test/custom_sprite_cover_static_data/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, "markings", BODY_ZONE_CHEST)
+	LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
+	var/list/cover = editor.ui_static_data(mock_client.mob)["coverMask"]
+	TEST_ASSERT(length(cover) == 1 && length(cover["2"]) == 32, "Opening must publish the Front view's cover rows with its guide.")
+	editor.render_view("1")
+	cover = editor.ui_static_data(mock_client.mob)["coverMask"]
+	TEST_ASSERT(length(cover["1"]) == 32, "Showing a view must publish its cover rows.")
+	var/datum/custom_sprite_editor/hair = new /datum/custom_sprite_editor/qualification(preferences, "hair", null)
+	LAZYSET(preferences.custom_sprite_editors, hair.editor_key, hair)
+	var/list/hair_cover = hair.ui_static_data(mock_client.mob)["coverMask"]
+	TEST_ASSERT(!length(hair_cover), "Hair editors publish no cover rows.")
+	editor.finish(FALSE)
+	hair.finish(FALSE)
+
+/// A view whose drawable box is empty has no bounds; syncing locks must leave it alone rather than copy null.
+/datum/unit_test/custom_sprite_locked_views_without_bounds/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "markings", BODY_ZONE_CHEST)
+	LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
+	editor.unlocked_bounds["1"] = null
+	TEST_ASSERT(editor.sync_locked_views(push = FALSE), "Losing a view's box must count as a change.")
+	TEST_ASSERT(isnull(editor.workspace.draw_bounds["1"]), "A view without a box must lose its drawing bounds.")
+	TEST_ASSERT(!editor.sync_locked_views(push = FALSE), "A view without a box must stay unchanged on the next sync.")
+	editor.finish(FALSE)
+
+/datum/custom_sprite_editor/optimization_test/locked_back/locked_directions()
+	return list("1")
+
+/// A locked view still publishes its real cover rows, so unlocking it later hatches paint at once.
+/datum/unit_test/custom_sprite_cover_rows_ignore_view_locks/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Business Hair")
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test/locked_back(preferences, "markings", BODY_ZONE_CHEST)
+	LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
+	TEST_ASSERT(editor.workspace.draw_bounds["1"] ~= list(0, 0, -1, -1), "The fixture's Back view must be locked.")
+	editor.render_view("1")
+	TEST_ASSERT(findtext(jointext(editor.cover_rows["1"], ""), "1"), "A locked view's cover rows must still mark the hair.")
+	editor.finish(FALSE)
+
+/// Hand pixels use the hand paint layer's cover, the taur is never covered, other pixels use the body's, and unowned pixels stay clear.
+/datum/unit_test/custom_sprite_cover_rows_by_region/Run()
+	var/list/zones = list(BODY_ZONE_CHEST, BODY_ZONE_PRECISE_L_HAND, CUSTOM_MARKING_ZONE_TAUR)
+	var/list/region = list("1230" + repeat_string(28, "0"))
+	var/list/body = list("1111" + repeat_string(28, "0"))
+	var/list/high = list("0000" + repeat_string(28, "0"))
+	for(var/y in 2 to 32)
+		region += repeat_string(32, "0")
+		body += repeat_string(32, "1")
+		high += repeat_string(32, "0")
+	var/list/merged = custom_sprite_merge_cover_rows(body, high, region, zones)
+	TEST_ASSERT(merged[1] == "1000" + repeat_string(28, "0"), "The torso pixel takes the body cover, the hand pixel the high cover, the taur none.")
+	TEST_ASSERT(merged[2] == repeat_string(32, "0"), "Pixels no region owns are never covered.")
+	TEST_ASSERT(custom_sprite_merge_cover_rows(body, high, null, zones) == body, "Without a region map the body cover stands.")

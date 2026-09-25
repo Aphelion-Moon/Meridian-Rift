@@ -1233,7 +1233,7 @@ it('uses round-only draft wording and salon actions in the salon context', () =>
   expect(screen.getByText(/Waiting for Leia/)).toBeTruthy();
 });
 
-it('groups blending with the custom colors and hides hair on demand', () => {
+it('groups blending with the custom colors and shows parts on demand', () => {
   const store = createStore();
   backendStore.set(gameDataAtom, {
     ...fixture(),
@@ -1251,13 +1251,15 @@ it('groups blending with the custom colors and hides hair on demand', () => {
   expect(
     within(custom as HTMLElement).getByText('Blending options'),
   ).toBeTruthy();
-  const parts = screen.getByText('Hide parts').closest('.Button')!;
-  expect(parts.classList).toContain('Button--selected');
+  // Parts are hidden, so the show-toggle is unlit.
+  const parts = screen.getByText('Parts').closest('.Button')!;
+  expect(parts.classList).not.toContain('Button--selected');
+  expect(parts.getAttribute('aria-pressed')).toBe('false');
   fireEvent.click(parts);
   expect(send).toHaveBeenLastCalledWith('toggleParts');
 });
 
-it('offers hiding underwear only where the backend allows it', () => {
+it('offers showing underwear only where the backend allows it', () => {
   const store = createStore();
   const editor = () => (
     <Provider store={store}>
@@ -1265,15 +1267,17 @@ it('offers hiding underwear only where the backend allows it', () => {
     </Provider>
   );
   const view = render(editor());
-  expect(screen.queryByText('Hide underwear')).toBeNull();
+  expect(screen.queryByText('Underwear')).toBeNull();
   backendStore.set(gameDataAtom, {
     ...fixture(),
     canHideUnderwear: true,
     hideUnderwear: false,
   });
   view.rerender(editor());
-  const underwear = screen.getByText('Hide underwear').closest('.Button')!;
-  expect(underwear.classList).not.toContain('Button--selected');
+  // Underwear is shown, so the toggle is lit.
+  const underwear = screen.getByText('Underwear').closest('.Button')!;
+  expect(underwear.classList).toContain('Button--selected');
+  expect(underwear.getAttribute('aria-pressed')).toBe('true');
   fireEvent.click(underwear);
   expect(send).toHaveBeenLastCalledWith('toggleUnderwear');
 });

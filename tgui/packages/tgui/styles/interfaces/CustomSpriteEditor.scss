@@ -76,3 +76,149 @@
   background-size: 100% 100% !important;
   image-rendering: pixelated;
 }
+
+// Joined buttons in one frame: the view switcher, the tools and Import/Export.
+.CustomSpriteEditor__group {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.CustomSpriteEditor__group > .Stack__item {
+  margin: 0;
+}
+
+.CustomSpriteEditor__group > .Button,
+.CustomSpriteEditor__group > .Stack__item > .Button {
+  position: relative;
+  margin: 0;
+  border-radius: 0;
+  border-color: transparent;
+}
+
+.CustomSpriteEditor__group > .Button + .Button,
+.CustomSpriteEditor__group > .Stack__item + .Stack__item > .Button {
+  border-left-color: var(--color-border-dark);
+}
+
+.CustomSpriteEditor__viewTab {
+  min-width: 5.5em;
+}
+
+// The pip: a hollow ring when the view has no paint, a lit disc when it does.
+.CustomSpriteEditor__pip {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 1px var(--color-label);
+}
+
+.CustomSpriteEditor__pip--lit {
+  background: #79ff79;
+  box-shadow:
+    0 0 4px 1px rgba(121, 255, 121, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+// On the selected view's accent fill the pip keeps a dark rim instead of a glow.
+.Button--selected .CustomSpriteEditor__pip {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.Button--selected .CustomSpriteEditor__pip--lit {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.CustomSpriteEditor__region {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0 0.5em;
+}
+
+.CustomSpriteEditor__region > .Icon,
+.CustomSpriteEditor__regionOff {
+  color: var(--color-label);
+}
+
+.CustomSpriteEditor__divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 0.25em;
+  background: var(--color-border-dark);
+}
+
+// Tool hotkeys are drawn from a data attribute, so the buttons keep their icon-only layout.
+.CustomSpriteEditor__group .Button[data-hotkey]::after {
+  content: attr(data-hotkey);
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 7px;
+  line-height: 1;
+  font-weight: bold;
+  opacity: 0.6;
+}
+
+// Undo and redo show a frame only while hovered or focused. A disabled one keeps the theme's
+// disabled frame, which every theme marks with !important.
+.CustomSpriteEditor__ghost .Button:not(:hover):not(:focus-visible) {
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+// Clear reads as a warning, and fills only while hovered.
+.CustomSpriteEditor__clear.Button {
+  color: var(--color-bad);
+}
+
+.CustomSpriteEditor__clear.Button:not(.Button--disabled):hover {
+  background-color: var(--color-bad);
+  color: var(--color-white);
+}
+
+// Visibility toggles sit in one recessed tray; a lit toggle keeps the theme's outline and rail.
+.CustomSpriteEditor__tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.CustomSpriteEditor__tray > .Button {
+  margin: 0;
+}
+
+.CustomSpriteEditor__trayDivider {
+  width: 1px;
+  height: 14px;
+  margin: 0 2px;
+  background: var(--color-border-dark);
+}
+
+.CustomSpriteEditor__banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.25em 0.5em;
+  border-left: 2px solid var(--color-average);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.CustomSpriteEditor__banner > .Icon {
+  color: var(--color-average);
+}
+
+.CustomSpriteEditor__bannerSpacer {
+  flex: 1 1 auto;
+}

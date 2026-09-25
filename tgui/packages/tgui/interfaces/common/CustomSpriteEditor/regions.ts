@@ -137,3 +137,38 @@ export const drawScanlines: ShadeRenderer = (context, areas, scale) => {
     }
   }
 };
+
+/** Painted pixels that hair or a part covers in game, each as a one-pixel rect. */
+export const coveredPaint = (
+  cover: string[] | undefined,
+  frame: string[][] | undefined,
+): PixelRect[] => {
+  if (!cover || !frame) return [];
+  const cells: PixelRect[] = [];
+  frame.forEach((row, y) => {
+    row.forEach((pixel, x) => {
+      if (cover[y]?.[x] === '1' && pixel && !pixel.endsWith('00')) {
+        cells.push([x, y, 1, 1]);
+      }
+    });
+  });
+  return cells;
+};
+
+/** Covered paint: a dark wash and a rising diagonal, so the paint still reads through. */
+export const drawCoveredPaint = (
+  context: CanvasRenderingContext2D,
+  cells: PixelRect[],
+  scale: number,
+) => {
+  for (const [x, y] of cells) {
+    const left = x * scale;
+    const top = y * scale;
+    context.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    context.fillRect(left, top, scale, scale);
+    context.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    for (let step = 0; step < scale; step++) {
+      context.fillRect(left + step, top + scale - 1 - step, 1, 1);
+    }
+  }
+};

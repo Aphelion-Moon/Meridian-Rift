@@ -164,3 +164,29 @@
 		for(var/row in map_rows)
 			rows += owned.Replace(locked_regions ? locked_regions.Replace(row, "0") : row, "1")
 		.[direction] = rows
+
+/**
+ * One view's cover rows with each pixel judged against the layer its own region's paint draws on.
+ *
+ * Body paint sits at BODYPARTS_LAYER and takes `body_rows`; hand paint sits at the hand's aux layer
+ * and takes `high_rows`; taur paint rides the taur's own top layers and is never covered. Pixels no
+ * region owns stay clear. Without a region map the body rows stand as they are.
+ */
+/proc/custom_sprite_merge_cover_rows(list/body_rows, list/high_rows, list/region_rows, list/zones)
+	if(!region_rows)
+		return body_rows
+	var/list/rows = list()
+	for(var/y in 1 to length(body_rows))
+		var/body = body_rows[y]
+		var/high = high_rows[y]
+		var/list/row = list()
+		for(var/x in 1 to length(body))
+			var/zone = custom_sprite_region_owner(region_rows, zones, x - 1, y - 1)
+			if(!zone || zone == CUSTOM_MARKING_ZONE_TAUR)
+				row += "0"
+			else if(GLOB.custom_marking_hand_arms[zone])
+				row += copytext(high, x, x + 1)
+			else
+				row += copytext(body, x, x + 1)
+		rows += jointext(row, "")
+	return rows

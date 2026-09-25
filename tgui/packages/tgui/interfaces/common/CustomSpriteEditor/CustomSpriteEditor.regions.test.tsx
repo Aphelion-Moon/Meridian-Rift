@@ -4,7 +4,9 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import {
+  compactSprite,
   fixture,
+  fixtureFrames,
   painted,
   send,
   setupEditorTests,
@@ -285,4 +287,75 @@ it('outlines hovered regions, but not locked ones', () => {
   } finally {
     getBounds.mockRestore();
   }
+});
+
+it('washes and hatches painted pixels that a part covers', () => {
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const data = regionFixture();
+    const frames = fixtureFrames();
+    frames[Dir.SOUTH][0][1] = '#00000000';
+    data.editorData.sprite = compactSprite(32, 32, frames);
+    const cover = [
+      '11'.padEnd(32, '0'),
+      ...Array.from({ length: 31 }, () => '0'.repeat(32)),
+    ];
+    data.coverMask = { 2: cover };
+    const { view } = renderRegions(data);
+    // The drawing canvas clears the shared paint log after the overlay draws, so hover a region to
+    // redraw the overlay on its own. Two covered pixels, one of them transparent: exactly one wash.
+    const canvas = view.container.querySelector('canvas')!;
+    fireEvent.mouseMove(canvas, { clientX: 25, clientY: 5 });
+    expect(
+      painted.filter((fill) => fill === 'rgba(0, 0, 0, 0.45)'),
+    ).toHaveLength(1);
+    expect(painted).toContain('rgba(255, 255, 255, 0.55)');
+  } finally {
+    getBounds.mockRestore();
+  }
+});
+
+it('names the selected region beside the view and drops the chip when nothing is selected', () => {
+  const { view, editor } = renderRegions();
+  const chip = screen.getByText('Torso').closest('.CustomSpriteEditor__region');
+  expect(chip).toBeTruthy();
+  expect(screen.queryByText(/Click the body to choose a region/)).toBeNull();
+  backendStore.set(gameDataAtom, {
+    ...regionFixture(),
+    selectedZone: null,
+    focusRevision: 2,
+  });
+  view.rerender(editor());
+  expect(
+    view.container.querySelector('.CustomSpriteEditor__region'),
+  ).toBeNull();
+  // With nothing selected, Clear says what to do instead of naming an empty region.
+  const clear = screen.getByText('Clear region').closest('.Button')!;
+  expect(clear.classList).toContain('Button--disabled');
+});
+
+it('shows the layering notice until it is dismissed for the account, and reopens it from the info button', () => {
+  // The server sends 0 and 1, never JS booleans.
+  const { view, editor } = renderRegions({
+    ...regionFixture(),
+    layerTipSeen: 0,
+  });
+  expect(
+    screen.getByText(/Markings layer beneath mutant parts \(like snouts\)/),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByText('Got it'));
+  expect(send).toHaveBeenLastCalledWith('dismissLayerTip');
+  backendStore.set(gameDataAtom, { ...regionFixture(), layerTipSeen: 1 });
+  view.rerender(editor());
+  expect(screen.queryByText(/Markings layer beneath mutant parts/)).toBeNull();
+  // The info button brings the message back for keyboard and mouse users alike; closing it sends nothing.
+  send.mockClear();
+  fireEvent.click(screen.getByLabelText('How markings layer with parts'));
+  expect(screen.getByText(/Markings layer beneath mutant parts/)).toBeTruthy();
+  fireEvent.click(screen.getByText('Got it'));
+  expect(screen.queryByText(/Markings layer beneath mutant parts/)).toBeNull();
+  expect(send).not.toHaveBeenCalledWith('dismissLayerTip');
 });

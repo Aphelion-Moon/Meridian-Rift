@@ -27,6 +27,59 @@
 	body.apply_overlay(HAIR_LAYER)
 	return appearance
 
+/**
+ * Everything the body draws over the marking layer, so the editor can show which paint a part hides.
+ *
+ * Hair and every mutant part image drawn above BODYPARTS_LAYER count, offset the way get_limb_icon()
+ * draws them. Parts behind the body, hidden parts, the taur body (which carries its own paint) and
+ * emissive images are left out. `above_layer` is the paint layer being covered: only images drawn
+ * after it count. `key`, when given, collects what each included image is drawn from and where it
+ * lands, so callers can cache the flattened rows by geometry.
+ */
+/proc/custom_sprite_cover_appearance(mob/living/carbon/human/body, list/key, above_layer = -BODYPARTS_LAYER)
+	var/mutable_appearance/cover = new
+	if(key)
+		key += list(above_layer, body.mob_height)
+	var/list/hair = body.overlays_standing[HAIR_LAYER]
+	if(length(hair))
+		cover.overlays += hair
+		if(key)
+			key += custom_sprite_hair_cover_key(body)
+			for(var/mutable_appearance/strand as anything in hair)
+				key += custom_sprite_placement_key(strand)
+	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
+		for(var/datum/bodypart_overlay/mutant/part in limb.bodypart_overlays)
+			if(istype(part, /datum/bodypart_overlay/mutant/taur_body) || !part.can_draw_on_bodypart(limb, body))
+				continue
+			var/included = FALSE
+			for(var/mutable_appearance/image as anything in part.get_all_overlays(limb))
+				// Only images drawn after the paint layer can hide paint.
+				if(PLANE_TO_TRUE(image.plane) == EMISSIVE_PLANE || image.layer <= above_layer)
+					continue
+				body.apply_height(image, part.offset_location)
+				cover.overlays += image
+				if(key)
+					if(!included)
+						// The part's render key names its art; generated icons have no path to key by.
+						key += list(json_encode(part.icon_render_key(limb)), "[limb.limb_gender]|[part.offset_location]")
+						included = TRUE
+					key += custom_sprite_placement_key(image)
+	return cover
+
+/// The look the head's hair images were built from: those icons are generated at runtime and can't be keyed by path.
+/proc/custom_sprite_hair_cover_key(mob/living/carbon/human/body)
+	var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
+	var/list/masks = list()
+	for(var/datum/hair_mask/mask as anything in body.hair_masks)
+		masks += "[mask.type]"
+	var/list/hair_paint = head?.custom_head_drawing("hair")
+	var/list/facial_paint = head?.custom_head_drawing("facial_hair")
+	return json_encode(list(custom_style_live_hair_context(body, "hair"), custom_style_live_hair_context(body, "facial_hair"), custom_sprite_hash(hair_paint), custom_sprite_hash(facial_paint), masks))
+
+/// Where an image lands when flattened: its offsets and layer. Its art is keyed separately.
+/proc/custom_sprite_placement_key(mutable_appearance/image)
+	return "[image.pixel_x]|[image.pixel_y]|[image.pixel_w]|[image.pixel_z]|[image.layer]"
+
 /// A body's look with worn overlays added, captured so its views can be flattened one at a time.
 /proc/custom_sprite_preview_appearance(mob/living/carbon/human/body, list/worn_overlays)
 	var/mutable_appearance/appearance = new(body.appearance)

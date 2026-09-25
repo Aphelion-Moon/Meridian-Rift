@@ -2,6 +2,8 @@
 import { expect, it } from 'bun:test';
 import {
   bracketBars,
+  coveredPaint,
+  drawCoveredPaint,
   drawScanlines,
   regionAt,
   regionBounds,
@@ -59,4 +61,33 @@ it('draws scanlines only inside the shaded areas, on every third screen row', ()
     ['rgba(10, 12, 14, 0.62)', 0, 0, 6, 3],
     ['rgba(255, 255, 255, 0.07)', 0, 1, 6, 1],
   ]);
+});
+
+it('lists only painted pixels the cover rows mark, and tolerates short rows', () => {
+  const cover = ['1100', '0010'];
+  const frame = [
+    ['#ff0000ff', '#00000000', '#ff0000ff', '#ff0000ff'],
+    ['#ff0000ff', '#ff0000ff', '#ff0000ff', '#ff0000ff'],
+    ['#ff0000ff', '#ff0000ff', '#ff0000ff', '#ff0000ff'],
+  ];
+  expect(coveredPaint(cover, frame)).toEqual([
+    [0, 0, 1, 1],
+    [2, 1, 1, 1],
+  ]);
+  expect(coveredPaint(undefined, frame)).toEqual([]);
+  expect(coveredPaint(cover, undefined)).toEqual([]);
+});
+
+it('washes and hatches each covered pixel with fill rects only', () => {
+  const calls: [string, number, number, number, number][] = [];
+  const context = {
+    fillStyle: '',
+    fillRect(x: number, y: number, w: number, h: number) {
+      calls.push([this.fillStyle, x, y, w, h]);
+    },
+  } as unknown as CanvasRenderingContext2D;
+  drawCoveredPaint(context, [[1, 2, 1, 1]], 10);
+  expect(calls[0]).toEqual(['rgba(0, 0, 0, 0.45)', 10, 20, 10, 10]);
+  expect(calls[1]).toEqual(['rgba(255, 255, 255, 0.55)', 10, 29, 1, 1]);
+  expect(calls).toHaveLength(11);
 });

@@ -1,4 +1,5 @@
 // THIS IS AN APHELION UI FILE
+import type { BooleanLike } from 'tgui-core/react';
 import type { Dir, SpriteEditorToolFlags } from '../SpriteEditor/Types/types';
 import type { CompactSprite } from './canvas';
 
@@ -51,12 +52,12 @@ export type CustomSpriteEditorData = {
   candidate: CustomSpriteCandidate | null;
   canRestorePrevious?: boolean;
   canChangeHair?: boolean;
-  hasGradient?: boolean;
-  canHideParts?: boolean;
-  hideParts?: boolean;
-  canHideUnderwear?: boolean;
-  hideUnderwear?: boolean;
-  showGradient?: boolean;
+  hasGradient?: BooleanLike;
+  canHideParts?: BooleanLike;
+  hideParts?: BooleanLike;
+  canHideUnderwear?: BooleanLike;
+  hideUnderwear?: BooleanLike;
+  showGradient?: BooleanLike;
   canChangeMarkings?: boolean;
   baseMarkings?: { index: number; name: string; color: string }[];
   baseMarkingChoices?: string[];
@@ -81,4 +82,8 @@ export type CustomSpriteEditorData = {
   lockedRegions?: Record<string, string> | null;
   paletteNotice?: string | null;
   visibleView?: string;
+  /** Direction -> "1"/"0" rows: canvas pixels hair or a part draws over in game. Static data, markings only. */
+  coverMask?: Partial<Record<Dir, string[]>> | null;
+  /** Whether this account has dismissed the layering notice: 0 or 1 from the server. */
+  layerTipSeen?: BooleanLike;
 };

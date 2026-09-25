@@ -681,3 +681,10 @@
 	rebuild_resources()
 	transfer_notice = source == "restore" ? "Previous saved style restored. Save to keep it." : "Style imported."
 	return TRUE
+
+/// Hand paint draws above the body's own parts and the taur's paint above nearly everything, so each region takes its own cover.
+/datum/custom_sprite_editor/markings/cover_rows_for(direction)
+	var/list/bounds = unlocked_bounds ? unlocked_bounds[direction] : null
+	var/list/body_rows = custom_sprite_cover_rows(cover_appearance, direction, workspace.width, cover_key, bounds)
+	var/list/high_rows = custom_sprite_cover_rows(cover_high_appearance, direction, workspace.width, cover_high_key, bounds)
+	return custom_sprite_merge_cover_rows(body_rows, high_rows, region_map ? region_map[direction] : null, region_zones)
