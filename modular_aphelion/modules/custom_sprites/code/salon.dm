@@ -881,7 +881,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	uniform_ref = null
 	if(!istype(uniform))
 		return
-	RegisterSignal(uniform, COMSIG_CLOTHING_UNDER_ADJUSTED, PROC_REF(on_recipient_changed))
+	RegisterSignal(uniform, COMSIG_CLOTHING_UNDER_ADJUSTED, PROC_REF(on_uniform_adjusted))
 	uniform_ref = WEAKREF(uniform)
 
 /datum/custom_sprite_salon/proc/on_recipient_changed(datum/source)
@@ -890,25 +890,34 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(recipient)
 		watch_uniform(recipient)
 	// Clothing can cover or uncover tattoo regions, and a self-stylist's mirror can come or go.
+	// Redraws follow the worn-overlay signals, which leave held items out.
+	editor?.sync_locked_views()
+
+/// Rolling a jumpsuit up or down changes what it covers and how it looks, without taking it off.
+/datum/custom_sprite_salon/proc/on_uniform_adjusted(datum/source)
+	SIGNAL_HANDLER
 	editor?.sync_locked_views()
 	schedule_preview_refresh()
 	mirror?.schedule_refresh()
 
 /datum/custom_sprite_salon/proc/on_recipient_overlay_changed(datum/source, layer)
 	SIGNAL_HANDLER
+	// Held items are left out of salon guides and mirrors, so picking things up redraws nothing.
+	if(layer == HANDS_LAYER)
+		return
 	// Underwear is also drawn by the dummy, from its copied clothing preferences.
 	var/body_changed = layer == BODYPARTS_LAYER || layer == HAIR_LAYER || layer == BODY_LAYER
 	if(body_changed || (layer in GLOB.worn_overlay_layers))
 		schedule_preview_refresh(body_changed)
 		mirror?.schedule_refresh()
 
-/// Coalesce overlay remove/apply pairs without postponing refreshes during continuous changes.
+/// Groups a second of changes into one refresh, without postponing it while changes continue.
 /datum/custom_sprite_salon/proc/schedule_preview_refresh(body_changed = FALSE)
 	if(!editor?.resources_ready)
 		return
 	rebuild_preview_body ||= body_changed
 	if(!dress_timer)
-		dress_timer = addtimer(CALLBACK(src, PROC_REF(refresh_editor_body)), 0.1 SECONDS, TIMER_STOPPABLE)
+		dress_timer = addtimer(CALLBACK(src, PROC_REF(refresh_editor_body)), 1 SECONDS, TIMER_STOPPABLE)
 
 /datum/custom_sprite_salon/proc/refresh_editor_body()
 	dress_timer = null
@@ -1368,6 +1377,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 
 /datum/custom_sprite_editor/salon/context_ui_data()
 	return session.context_ui_data()
+
+/// The salon restores through the tool, with the recipient's consent, never from the window.
+/datum/custom_sprite_editor/salon/update_restorable()
+	return
 
 /**
  * The salon's tattoo context: the whole-body canvas on another player's live look.

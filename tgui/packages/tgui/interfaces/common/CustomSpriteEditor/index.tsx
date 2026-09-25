@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import { useAtom, useSetAtom } from 'jotai';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import { useBackend } from 'tgui/backend';
 import { Window } from 'tgui/layouts';
@@ -26,6 +26,7 @@ import {
 } from '../SpriteEditor/atoms';
 import { Dir } from '../SpriteEditor/Types/types';
 import { toolTooltip } from '../SpriteEditor/useSpriteEditorHotkeys';
+import { decodeCanvas } from './canvas';
 import { CustomSpritePalette } from './Palette';
 import { RegionOverlay } from './RegionOverlay';
 import { drawScanlines, regionAt, regionBounds } from './regions';
@@ -165,7 +166,12 @@ export const CustomSpriteEditor = ({
     paletteNotice,
     backgrounds,
     defaultBackground,
+    visibleView,
   } = data;
+  const sprite = useMemo(
+    () => decodeCanvas(editorData.sprite),
+    [editorData.sprite],
+  );
   const [direction, setDirection] = useAtom(dirAtom);
   const setLayer = useSetAtom(layerAtom);
   const setCurrentTool = useSetAtom(currentToolAtom);
@@ -183,7 +189,7 @@ export const CustomSpriteEditor = ({
   const [background, setBackground] = useState(
     defaultBackground ?? 'Transparent',
   );
-  const wide = editorData.sprite.width > 32;
+  const wide = sprite.width > 32;
   const tile = backgrounds?.find((entry) => entry.name === background);
   const tileUrl = tile ? (wide ? tile.wideUrl : tile.url) : null;
   const tileStyle = {
@@ -219,7 +225,7 @@ export const CustomSpriteEditor = ({
     const canvas = event.currentTarget.querySelector('canvas');
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const { width, height } = editorData.sprite;
+    const { width, height } = sprite;
     const zone = regionAt(
       regionRows,
       zones,
@@ -264,9 +270,22 @@ export const CustomSpriteEditor = ({
       image.onload = null;
     };
   }, [guideUrl]);
+  // A reused window's view atom keeps its last view until the effect below resets it.
+  const [viewReset, setViewReset] = useState(false);
+  useEffect(() => {
+    // The server draws guides and previews only for the view the window says it shows.
+    if (
+      viewReset &&
+      visibleView !== undefined &&
+      visibleView !== String(direction)
+    ) {
+      act('setView', { dir: String(direction) });
+    }
+  }, [direction, visibleView, viewReset]);
   useEffect(() => {
     setLayer(0);
     setDirection(Dir.SOUTH);
+    setViewReset(true);
     const cancelContext = {
       setPreviewLayer,
       setPreviewData,
@@ -497,7 +516,7 @@ export const CustomSpriteEditor = ({
                       onMouseLeave={() => setHoveredZone(null)}
                     >
                       <SpriteEditor.Canvas
-                        data={editorData.sprite}
+                        data={sprite}
                         onSave={() => act('saveDraft')}
                         onDraw={
                           salon
@@ -542,7 +561,7 @@ export const CustomSpriteEditor = ({
                                 <RegionOverlay
                                   rows={regionRows}
                                   zones={zones}
-                                  imageWidth={editorData.sprite.width}
+                                  imageWidth={sprite.width}
                                   canvasWidth={canvasWidth}
                                   canvasHeight={canvasHeight}
                                   selected={selectedZone}

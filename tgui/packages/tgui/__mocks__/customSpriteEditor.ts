@@ -13,38 +13,77 @@ import {
   startKeyPassthrough,
   stopKeyPassthrough,
 } from 'tgui-core/hotkeys';
+import {
+  CANVAS_ALPHABET,
+  type CompactSprite,
+} from '../interfaces/common/CustomSpriteEditor/canvas';
 import type { CustomSpriteEditorData } from '../interfaces/common/CustomSpriteEditor/types';
 import {
   Dir,
   SpriteEditorToolFlags,
 } from '../interfaces/common/SpriteEditor/Types/types';
 
-export const fixture = (width = 32, height = 32): CustomSpriteEditorData => {
+/** Four views of `width` by `height` white pixels, as SpriteEditor holds them, for tests that set pixels. */
+export const fixtureFrames = (width = 32, height = 32) => {
   const frame = () =>
     Array.from({ length: height }, () => Array(width).fill('#ffffffff'));
+  return {
+    [Dir.SOUTH]: frame(),
+    [Dir.NORTH]: frame(),
+    [Dir.EAST]: frame(),
+    [Dir.WEST]: frame(),
+  };
+};
+
+/** Encodes frames the way the server does: every pixel value once, and each view as index codes. */
+export const compactSprite = (
+  width: number,
+  height: number,
+  frames: Partial<Record<Dir, string[][]>>,
+): CompactSprite => {
+  const palette: string[] = [];
+  const indexes = new Map<string, number>();
+  for (const frame of Object.values(frames)) {
+    for (const row of frame ?? []) {
+      for (const pixel of row) {
+        if (!indexes.has(pixel)) {
+          indexes.set(pixel, palette.length);
+          palette.push(pixel);
+        }
+      }
+    }
+  }
+  const digits = palette.length <= 64 ? 1 : palette.length <= 4096 ? 2 : 3;
+  const code = (index: number) => {
+    let text = '';
+    for (let digit = 0; digit < digits; digit++) {
+      text = CANVAS_ALPHABET[index % 64] + text;
+      index = Math.floor(index / 64);
+    }
+    return text;
+  };
+  const views: Record<string, string> = {};
+  for (const [dir, frame] of Object.entries(frames)) {
+    views[dir] = (frame ?? [])
+      .map((row) => row.map((pixel) => code(indexes.get(pixel)!)).join(''))
+      .join('');
+  }
+  return {
+    width,
+    height,
+    dirs: 4,
+    backdrop: '',
+    canvas: { palette, digits, views },
+  };
+};
+
+export const fixture = (width = 32, height = 32): CustomSpriteEditorData => {
   return {
     bodyZone: null,
     bodyZoneLabel: null,
     candidate: null,
     editorData: {
-      sprite: {
-        width,
-        height,
-        dirs: 4,
-        backdrop: '',
-        layers: [
-          {
-            name: 'Drawing',
-            visible: true,
-            data: {
-              [Dir.SOUTH]: frame(),
-              [Dir.NORTH]: frame(),
-              [Dir.EAST]: frame(),
-              [Dir.WEST]: frame(),
-            },
-          },
-        ],
-      },
+      sprite: compactSprite(width, height, fixtureFrames(width, height)),
       undoStack: ['Pencil'],
       redoStack: [],
       toolFlags: SpriteEditorToolFlags.All,

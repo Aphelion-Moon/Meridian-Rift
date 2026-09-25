@@ -22,12 +22,13 @@
 	for(var/color in palette)
 		colors += tint && tint != "#ffffff" ? custom_sprite_tint_color(color, tint) : color
 	var/usable = drawing && custom_sprite_width(drawing) == width
+	var/list/index_values = custom_sprite_index_values()
 	for(var/direction in GLOB.custom_style_directions)
 		var/list/pixels = new /list(width * 32)
 		var/grid = usable ? custom_sprite_decode_grid(drawing["dirs"][direction], length(palette), width * 32) : null
 		if(grid)
 			for(var/position in 1 to width * 32)
-				var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1)) - 1
+				var/index = index_values[copytext(grid, position, position + 1)]
 				if(index > 0)
 					pixels[position] = colors[index]
 		.[direction] = pixels

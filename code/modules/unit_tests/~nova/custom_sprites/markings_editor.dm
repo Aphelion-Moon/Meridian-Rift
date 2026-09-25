@@ -133,7 +133,7 @@
 	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
 	TEST_ASSERT(!editor.ui_act("selectRegion", list("zone" = "tail"), ui, null), "Unknown regions can't be selected.")
-	TEST_ASSERT(!(!editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_LEG), ui, null) || editor.selected_zone != BODY_ZONE_L_LEG), "Selecting a present region must work.")
+	TEST_ASSERT(!(editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_LEG), ui, null) || editor.selected_zone != BODY_ZONE_L_LEG), "Selecting a present region must work without resending the window, which already shows it.")
 	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null)
 	TEST_ASSERT(editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "Adding a base marking to a region must work.")
 	TEST_ASSERT(editor.save_drawing(), "Saving a base-marking-only change must succeed: [editor.save_error]")
@@ -564,7 +564,8 @@
 	var/revision = editor.draft_revision
 	TEST_ASSERT(editor.ui_act("spriteEditorCommand", list("command" = "transaction", "transaction" = list("type" = "eraser", "layer" = 1, "dir" = "2", "points" = list(arm_point))), ui, null), "A refused stroke must resend the canvas so the window drops it.")
 	TEST_ASSERT(editor.draft_revision == revision, "A refused stroke must not count as an edit.")
-	TEST_ASSERT(!editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null), "A locked region can't be selected.")
+	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null)
+	TEST_ASSERT(editor.selected_zone != BODY_ZONE_L_ARM, "A locked region can't be selected.")
 	// A region can lock while it's selected; its actions are refused until it unlocks.
 	editor.selected_zone = BODY_ZONE_L_ARM
 	TEST_ASSERT(!editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null), "Clear must refuse a locked region.")
@@ -591,4 +592,30 @@
 	editor.sync_locked_views(push = FALSE)
 	TEST_ASSERT(editor.workspace.is_point_allowed(arm_point[1], arm_point[2], "2"), "An unlocked region must be paintable again.")
 	TEST_ASSERT(editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null), "An unlocked region's actions must work again.")
+	editor.finish(FALSE)
+
+/// Counts full updates: only they carry static data.
+/datum/tgui/full_update_counting
+	var/full_updates = 0
+
+/datum/tgui/full_update_counting/send_full_update(custom_data, force, always_instant)
+	full_updates++
+
+/datum/unit_test/custom_sprite_markings_static_data/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/mob/living/carbon/human/consistent/user = allocate(/mob/living/carbon/human/consistent)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	var/list/data = editor.ui_data(user)
+	var/list/static_data = editor.ui_static_data(user)
+	for(var/key in list("guides", "drawMask", "regions", "regionZones", "emissive"))
+		TEST_ASSERT(!(key in data) && (key in static_data), "[key] must travel as static data, not with every update.")
+	var/datum/tgui/full_update_counting/ui = allocate(/datum/tgui/full_update_counting, user, editor, "CustomMarkingsEditor")
+	editor.static_dirty = FALSE
+	editor.ui_interact(user, ui)
+	TEST_ASSERT(!ui.full_updates, "An ordinary refresh must not resend static data.")
+	editor.rebuild_resources(reuse_body = TRUE)
+	editor.ui_interact(user, ui)
+	TEST_ASSERT(!(ui.full_updates != 1 || editor.static_dirty), "Rebuilt guides and masks must reach the open window as one full update.")
 	editor.finish(FALSE)

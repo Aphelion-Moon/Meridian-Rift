@@ -28,7 +28,10 @@
 		var/zone = custom_sprite_test_zone(target)
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, target, zone)
 		LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
-		TEST_ASSERT(!(length(editor.guide_urls) != 4 || length(editor.preview_urls) != 4), "Each editor must publish all four guides and previews.")
+		TEST_ASSERT(!(length(editor.guide_urls) != 1 || !editor.guide_urls["2"] || length(editor.preview_urls) != 1 || !editor.preview_urls["2"]), "Each editor must publish the Front view's guide and preview on opening.")
+		for(var/direction in GLOB.custom_style_directions)
+			editor.render_view(direction)
+		TEST_ASSERT(!(length(editor.guide_urls) != 4 || length(editor.preview_urls) != 4), "Every view must publish its guide and preview once shown.")
 		var/list/bounds = editor.workspace.draw_bounds["2"]
 		TEST_ASSERT(bounds, "The preview body needs editable bounds.")
 		var/list/stroke = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(custom_sprite_test_paintable_point(editor)))
@@ -245,6 +248,8 @@
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
+	for(var/direction in GLOB.custom_style_directions)
+		editor.render_view(direction)
 	var/list/guides = editor.guide_icons
 	if(length(guides) != 4)
 		editor.finish(FALSE)
@@ -333,6 +338,7 @@
 	TEST_ASSERT(!(body.underwear_visibility & UNDERWEAR_HIDE_UNDIES || !length(body.get_underwear_overlays())), "Generating guides must leave the preview body's underwear visible.")
 	var/list/clothed_icons = list()
 	for(var/direction in GLOB.cardinals)
+		editor.render_view("[direction]")
 		// Previews show the whole look.
 		var/icon/whole = getFlatIcon(new /mutable_appearance(body.appearance), defdir = direction, no_anim = TRUE)
 		whole.Crop(1, 1, 32, 32)
@@ -343,16 +349,19 @@
 		clothed_icons["[direction]"] = clothed
 	// Guides show the body as it is until the owner hides the underwear.
 	for(var/direction in GLOB.cardinals)
+		editor.render_view("[direction]")
 		TEST_ASSERT(custom_sprite_test_same_pixels(clothed_icons["[direction]"], editor.guide_icons["[direction]"]), "Every guide direction must match the character's own underwear.")
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
 	TEST_ASSERT(editor.ui_act("toggleUnderwear", list(), ui, null), "Character setup must let markings hide underwear.")
 	TEST_ASSERT(editor.preview_body.underwear_visibility == UNDERWEAR_HIDE_ALL, "Hiding underwear must hide every underwear slot on the preview body.")
 	var/clothing_changed_pixels = FALSE
 	for(var/direction in GLOB.cardinals)
+		editor.render_view("[direction]")
 		clothing_changed_pixels ||= !custom_sprite_test_same_pixels(editor.guide_icons["[direction]"], clothed_icons["[direction]"])
 	TEST_ASSERT(clothing_changed_pixels, "Hiding underwear must change the guides.")
 	editor.ui_act("toggleUnderwear", list(), ui, null)
 	for(var/direction in GLOB.cardinals)
+		editor.render_view("[direction]")
 		TEST_ASSERT(custom_sprite_test_same_pixels(clothed_icons["[direction]"], editor.guide_icons["[direction]"]), "Showing underwear again must restore the guides.")
 	editor.finish(FALSE)
 
@@ -702,7 +711,7 @@
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, "markings", body_zone)
 		LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
 		var/list/data = editor.ui_data(mock_client.mob)
-		TEST_ASSERT(!(data["bodyZone"] != body_zone || data["bodyZoneLabel"] != label || length(data["drawMask"]) != 4), "Zone buttons must scope the existing editor and expose four silhouette masks.")
+		TEST_ASSERT(!(data["bodyZone"] != body_zone || data["bodyZoneLabel"] != label || length(editor.ui_static_data(mock_client.mob)["drawMask"]) != 4), "Zone buttons must scope the existing editor and expose four silhouette masks.")
 		var/list/point
 		for(var/y in 0 to 31)
 			for(var/x in 0 to 31)
@@ -753,6 +762,7 @@
 	hair.overlays = body.overlays_standing[HAIR_LAYER]
 	for(var/direction in GLOB.cardinals)
 		var/icon/expected = getFlatIcon(hair, defdir = direction, no_anim = TRUE)
+		editor.render_view("[direction]")
 		var/icon/guide = editor.guide_icons["[direction]"]
 		var/checked = 0
 		for(var/y in 1 to 32)
@@ -801,6 +811,7 @@
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/taur_test(preferences, "markings", CUSTOM_MARKING_ZONE_TAUR)
 	TEST_ASSERT(!(editor.workspace.width != 64 || editor.workspace.height != 32), "Taur drawings need the native 64 by 32 taur canvas.")
 	for(var/direction in GLOB.cardinals)
+		editor.render_view("[direction]")
 		var/icon/guide = editor.guide_icons["[direction]"]
 		TEST_ASSERT(!(guide.Width() != 64 || guide.Height() != 32), "Wide guides must retain the same dimensions as their paint canvas.")
 	editor.finish(FALSE)
@@ -819,7 +830,7 @@
 	TEST_ASSERT(!(custom_sprite_hash(preferences.custom_hair) != saved_hash || !editor.workspace.edited_directions["2"] || !length(editor.workspace.undo_stack)), "Closing the window must not save, and must keep the unsaved paint and history.")
 	TEST_ASSERT(!(editor.resources_ready || editor.preview_body || length(editor.guide_urls)), "Closing the window must release preview resources.")
 	editor.ui_interact(allocate(/mob/living/carbon/human/consistent))
-	TEST_ASSERT(!(!editor.resources_ready || length(editor.guide_urls) != 4 || !editor.workspace.edited_directions["2"]), "Reopening must rebuild previews around the kept draft.")
+	TEST_ASSERT(!(!editor.resources_ready || !editor.guide_urls["2"] || !editor.workspace.edited_directions["2"]), "Reopening must rebuild previews around the kept draft.")
 	editor.finish(FALSE)
 
 
@@ -986,13 +997,17 @@
 	TEST_ASSERT(painted, "The fixture must paint something on the limb.")
 	var/list/previous = editor.current_package()
 	LAZYSET(preferences.custom_style_previous, custom_style_key("markings", BODY_ZONE_L_ARM), previous)
+	editor.refresh_preview(push = FALSE)
 	TEST_ASSERT(!editor.context_ui_data()["canRestorePrevious"], "A style the draft already matches must not be offered.")
 	editor.workspace.clear_direction("2")
+	editor.refresh_preview(push = FALSE)
 	TEST_ASSERT(editor.context_ui_data()["canRestorePrevious"], "A previous saved style must be offered.")
 	editor.show_candidate(custom_style_copy_package(previous), "restore")
 	TEST_ASSERT(editor.apply_candidate(), "Restoring the previous style failed: [editor.transfer_error]")
+	editor.refresh_preview(push = FALSE)
 	TEST_ASSERT(!editor.context_ui_data()["canRestorePrevious"], "Restoring the same style again must not be offered.")
 	editor.workspace.undo()
+	editor.refresh_preview(push = FALSE)
 	TEST_ASSERT(editor.context_ui_data()["canRestorePrevious"], "Undoing the restore must offer it again.")
 	editor.finish(FALSE)
 
@@ -1058,3 +1073,56 @@
 		editor.refresh_preview()
 		TEST_ASSERT(editor.preview_urls["2"] != before, "The [target] preview must show a new stroke.")
 		editor.finish(FALSE)
+
+/// Counts requests to bring the window forward.
+/datum/custom_sprite_editor/optimization_test/focus_counting
+	var/focus_requests = 0
+
+/datum/custom_sprite_editor/optimization_test/focus_counting/bring_to_front(mob/user, datum/tgui/ui)
+	focus_requests++
+
+/datum/unit_test/custom_sprite_editor_refresh_focus/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/mob/living/carbon/human/consistent/user = allocate(/mob/living/carbon/human/consistent)
+	var/datum/custom_sprite_editor/optimization_test/focus_counting/editor = new(preferences, "hair")
+	var/datum/tgui/ui = allocate(/datum/tgui, user, editor, "CustomHairEditor")
+	LAZYADD(editor.open_uis, ui)
+	editor.ui_interact(user, ui)
+	TEST_ASSERT(!editor.focus_requests, "tgui's own refreshes must not pull the window in front of what the player is doing.")
+	editor.ui_interact(user)
+	TEST_ASSERT(editor.focus_requests == 1, "Opening an editor that's already open must bring its window forward.")
+	LAZYREMOVE(editor.open_uis, ui)
+	editor.finish(FALSE)
+
+/// Picking a swatch the window already shows must not resend the whole canvas.
+/datum/unit_test/custom_sprite_editor_quiet_selection/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
+	var/color = editor.workspace.palette[length(editor.workspace.palette)]
+	TEST_ASSERT(!(editor.ui_act("selectColor", list("color" = "[color]ff"), ui, null) || editor.selected_color != color), "Selecting a palette color must take effect without a window update.")
+	editor.finish(FALSE)
+
+/// Only the view the window shows is drawn; the others are drawn once shown.
+/datum/unit_test/custom_sprite_editor_visible_view/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
+	TEST_ASSERT(!(length(editor.guide_urls) != 1 || !editor.guide_urls["2"] || length(editor.preview_urls) != 1 || !editor.preview_urls["2"]), "Opening must draw only the Front view's guide and preview.")
+	TEST_ASSERT(editor.ui_data(mock_client.mob)["visibleView"] == "2", "The window must learn which view the server drew.")
+	TEST_ASSERT(editor.ui_act("setView", list("dir" = "1"), ui, null), "Showing the Back view must draw it and update the window.")
+	TEST_ASSERT(!(!editor.guide_urls["1"] || !editor.preview_urls["1"] || editor.visible_direction != "1"), "The shown view must get its guide and preview.")
+	TEST_ASSERT(!editor.ui_act("setView", list("dir" = "1"), ui, null), "Showing the view already shown must not resend the window.")
+	TEST_ASSERT(!editor.ui_act("setView", list("dir" = "3"), ui, null), "Unknown views must be refused.")
+	TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "1", "color" = "[editor.workspace.palette[1]]ff", "points" = list(custom_sprite_test_paintable_point(editor, "1")))), "The fixture must paint the Back view.")
+	editor.refresh_preview(push = FALSE)
+	TEST_ASSERT(!(editor.stale_previews["1"] || !editor.stale_previews["2"]), "A refresh must draw only the shown view and leave the others' last image until shown.")
+	TEST_ASSERT(editor.stale_guides["4"], "The fixture needs a view whose guide was never drawn.")
+	editor.sample_guide("4", 0, 0)
+	TEST_ASSERT(!editor.stale_guides["4"], "Sampling a view must draw its guide first.")
+	editor.ui_close(mock_client.mob)
+	TEST_ASSERT(editor.visible_direction == "2", "Closing must return to the Front view the window reopens on.")
+	editor.finish(FALSE)

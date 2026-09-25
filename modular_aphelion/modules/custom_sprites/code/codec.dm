@@ -90,15 +90,18 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	if(spantext(grid, copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 1, palette_size + 2)) != pixel_count)
 		return null
 	var/hex_digits = "0123456789abcdef"
-	var/rle = "r"
+	// Joined once at the end: growing one string run by run copies it every time.
+	var/list/runs = list("r")
+	var/encoded_length = 1
 	for(var/i = 1; i <= pixel_count;)
 		var/pixel = copytext(grid, i, i + 1)
 		var/run = min(15, spantext(grid, pixel, i))
-		rle += "[copytext(hex_digits, run + 1, run + 2)][pixel]"
-		if(length(rle) >= pixel_count + 1)
+		runs += "[copytext(hex_digits, run + 1, run + 2)][pixel]"
+		encoded_length += 2
+		if(encoded_length >= pixel_count + 1)
 			return "f[grid]"
 		i += run
-	return rle
+	return jointext(runs, "")
 
 /// Reject before expanding, and stop at the supported pixel count even for hostile runs.
 /proc/custom_sprite_decode_grid(encoded, palette_size = 15, pixel_count = 1024)
@@ -117,18 +120,49 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		if("r")
 			if((length(encoded) - 1) % 2)
 				return null
-			for(var/i = 2; i < length(encoded); i += 2)
+			var/list/runs = list()
+			var/decoded_length = 0
+			var/encoded_length = length(encoded)
+			for(var/i = 2; i < encoded_length; i += 2)
 				var/run = findtextEx(hex_digits, copytext(encoded, i, i + 1)) - 1
 				var/pixel = copytext(encoded, i + 1, i + 2)
 				var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, pixel) - 1
-				if(run < 1 || index < 0 || index > palette_size || length(grid) + run > pixel_count)
+				if(run < 1 || index < 0 || index > palette_size || decoded_length + run > pixel_count)
 					return null
-				grid += repeat_string(run, pixel)
+				runs += custom_sprite_run_text(pixel, run)
+				decoded_length += run
+			grid = jointext(runs, "")
 		else
 			return null
 	if(length(grid) != pixel_count)
 		return null
 	return grid
+
+/// One index character repeated `run` times (1-15), cut from a string built once per character.
+/proc/custom_sprite_run_text(pixel, run)
+	var/static/list/repeated = list()
+	var/full = repeated[pixel]
+	if(!full)
+		full = "[pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel][pixel]"
+		repeated[pixel] = full
+	return copytext(full, 1, run + 1)
+
+/// CUSTOM_SPRITE_INDEX_ALPHABET character -> its palette index. "0" is transparent.
+/proc/custom_sprite_index_values()
+	var/static/list/values
+	if(!values)
+		values = list()
+		for(var/position in 1 to length(CUSTOM_SPRITE_INDEX_ALPHABET))
+			values[copytext(CUSTOM_SPRITE_INDEX_ALPHABET, position, position + 1)] = position - 1
+	return values
+
+/// A palette index as `digits` characters of CUSTOM_SPRITE_INDEX_ALPHABET, most significant first.
+/proc/custom_sprite_canvas_code(index, digits)
+	. = ""
+	for(var/i in 1 to digits)
+		var/digit = index % 64
+		. = "[copytext(CUSTOM_SPRITE_INDEX_ALPHABET, digit + 1, digit + 2)][.]"
+		index = round(index / 64)
 
 /proc/custom_sprite_color(color)
 	if(!istext(color) || length(color) != 7 || copytext(color, 1, 2) != "#")
@@ -248,7 +282,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		var/grid = custom_sprite_decode_grid(encoded, length(old_palette), pixel_count)
 		if(!grid)
 			return null
-		var/recolored = ""
+		var/list/recolored = list()
 		for(var/position in 1 to pixel_count)
 			// Alphabet position 1 is transparent, so palette index 1 lives at position 2.
 			var/alphabet_position = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1))
@@ -257,7 +291,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 				continue
 			var/mapped = index_map[alphabet_position - 1] + 1
 			recolored += copytext(CUSTOM_SPRITE_INDEX_ALPHABET, mapped, mapped + 1)
-		directions[direction] = custom_sprite_encode_grid(recolored, length(new_palette), pixel_count)
+		directions[direction] = custom_sprite_encode_grid(jointext(recolored, ""), length(new_palette), pixel_count)
 	var/list/result = drawing.Copy()
 	result["palette"] = new_palette
 	result["dirs"] = directions

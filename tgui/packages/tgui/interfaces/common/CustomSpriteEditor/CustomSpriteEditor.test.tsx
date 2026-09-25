@@ -10,6 +10,15 @@ import {
   gameDataAtom,
 } from 'tgui/events/store';
 import {
+  compactSprite,
+  fixture,
+  fixtureFrames,
+  getContext,
+  painted,
+  send,
+  setupEditorTests,
+} from '../../../__mocks__/customSpriteEditor';
+import {
   currentColorAtom,
   currentToolAtom,
   dirAtom,
@@ -23,13 +32,6 @@ import {
 } from '../SpriteEditor/colorSpaces';
 import { Dir } from '../SpriteEditor/Types/types';
 import { CustomSpriteEditor } from './index';
-import {
-  fixture,
-  getContext,
-  painted,
-  send,
-  setupEditorTests,
-} from '../../../__mocks__/customSpriteEditor';
 import type { CustomSpriteEditorData } from './types';
 
 setupEditorTests();
@@ -39,9 +41,11 @@ it.each([
   'facial_hair',
   'markings',
 ] as const)('temporarily samples painted pixels and the guide with Alt+click in %s', (target) => {
+  const frames = fixtureFrames();
+  frames[Dir.SOUTH][0][0] = '#12abefff';
+  frames[Dir.SOUTH][0][1] = '#00000000';
   const data = { ...fixture(), context: 'salon' };
-  data.editorData.sprite.layers[0].data[Dir.SOUTH]![0][0] = '#12abefff';
-  data.editorData.sprite.layers[0].data[Dir.SOUTH]![0][1] = '#00000000';
+  data.editorData.sprite = compactSprite(32, 32, frames);
   backendStore.set(gameDataAtom, data);
   const getBounds = spyOn(
     HTMLElement.prototype,
@@ -817,10 +821,7 @@ it('reopens with Pencil and clears the previous tool and optimistic stroke on cl
   act(() => {
     store.set(currentToolAtom, tools[2], context);
     store.set(previewLayerAtom, 0);
-    store.set(
-      previewDataAtom,
-      fixture().editorData.sprite.layers[0].data[Dir.SOUTH],
-    );
+    store.set(previewDataAtom, fixtureFrames()[Dir.SOUTH]);
   });
   view.unmount();
   expect(store.get(currentToolAtom) === tools[0]).toBe(true);

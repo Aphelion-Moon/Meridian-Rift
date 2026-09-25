@@ -343,3 +343,48 @@
 	workspace.load_frames(frames)
 	TEST_ASSERT(!(!workspace.edited_directions["2"] || !("#ffffff" in workspace.palette)), "Loading frames must mark edited views and admit their colors.")
 	qdel(workspace)
+
+/// Reads one pixel back out of the window's compact canvas.
+/proc/custom_sprite_test_canvas_pixel(list/canvas, direction, x, y, width)
+	var/digits = canvas["digits"]
+	var/list/views = canvas["views"]
+	var/list/palette = canvas["palette"]
+	var/codes = views[direction]
+	var/offset = (y * width + x) * digits
+	var/index = 0
+	for(var/digit in 1 to digits)
+		index = index * 64 + findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(codes, offset + digit, offset + digit + 1)) - 1
+	return palette[index + 1]
+
+/datum/unit_test/custom_sprite_canvas_wire/Run()
+	var/datum/sprite_editor_workspace/custom_sprite/workspace = new(null, list("#123456"), null, null, 32)
+	TEST_ASSERT(workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#123456ff", "points" = list(list(0, 0)))), "The fixture must paint one pixel.")
+	var/list/editor_data = workspace.sprite_editor_ui_data()
+	var/list/sprite = editor_data["sprite"]
+	TEST_ASSERT(!("layers" in sprite), "The window must not receive a color string per pixel.")
+	var/list/canvas = sprite["canvas"]
+	var/list/views = canvas["views"]
+	TEST_ASSERT(!(json_encode(canvas["palette"]) != json_encode(list("#123456ff", "#00000000")) || canvas["digits"] != 1), "The palette must list each pixel value once, in first-use order: [json_encode(canvas["palette"])]")
+	TEST_ASSERT(!(views["2"] != "0[repeat_string(1023, "1")]" || views["1"] != repeat_string(1024, "1")), "Each view must be one code per pixel, row by row from the top left.")
+	TEST_ASSERT(workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#123456ff", "points" = list(list(1, 0)))), "The fixture must paint a second pixel.")
+	canvas = workspace.canvas_ui_data()
+	views = canvas["views"]
+	TEST_ASSERT(!(views["2"] != "00[repeat_string(1022, "1")]" || views["1"] != repeat_string(1024, "1")), "A stroke must update its own view and leave the others' codes alone.")
+	workspace.undo()
+	TEST_ASSERT(custom_sprite_test_canvas_pixel(workspace.canvas_ui_data(), "2", 1, 0, 32) == "#00000000", "Undo must reach the window's canvas.")
+	qdel(workspace)
+	var/datum/sprite_editor_workspace/custom_sprite/regions/crowded = new(null, list(), null, null, 32)
+	var/list/frames = list()
+	for(var/direction in GLOB.custom_style_directions)
+		var/list/frame = list()
+		for(var/y in 0 to 31)
+			var/list/row = list()
+			for(var/x in 0 to 31)
+				row += y < 3 ? "[rgb(y * 32 + x, 0, 0)]ff" : "#00000000"
+			frame += list(row)
+		frames[direction] = frame
+	crowded.load_frames(frames)
+	canvas = crowded.canvas_ui_data()
+	TEST_ASSERT(canvas["digits"] == 2, "More than 64 pixel values must use two characters per pixel.")
+	TEST_ASSERT(custom_sprite_test_canvas_pixel(canvas, "4", 5, 1, 32) == "[rgb(37, 0, 0)]ff", "Two-character codes must name the right palette entry.")
+	qdel(crowded)

@@ -126,3 +126,25 @@
 		var/datum/json_savefile/custom_sprites/bad_store = allocate(/datum/json_savefile/custom_sprites, test_path)
 		TEST_ASSERT(!length(bad_store.get_entry()), "Invalid roots must not create character entries.")
 	fdel(test_path)
+
+/// Dense art stores flat and sparse art stores runs; both must round-trip exactly at both canvas widths.
+/datum/unit_test/custom_sprite_codec_round_trips/Run()
+	for(var/width in list(32, CUSTOM_SPRITE_TAUR_WIDTH))
+		var/pixel_count = width * 32
+		var/list/dense = list()
+		var/list/sparse = list()
+		for(var/position in 0 to pixel_count - 1)
+			var/x = position % width
+			var/y = round(position / width)
+			var/dense_index = (x + y) % 5 ? (round(x / 3) + y) % 40 + 1 : 0
+			var/sparse_index = (y % 4 == 0 || x < width / 4 || x >= width * 3 / 4) ? 0 : (round(x / 7) + round(y / 3)) % 40 + 1
+			dense += copytext(CUSTOM_SPRITE_INDEX_ALPHABET, dense_index + 1, dense_index + 2)
+			sparse += copytext(CUSTOM_SPRITE_INDEX_ALPHABET, sparse_index + 1, sparse_index + 2)
+		for(var/grid in list(jointext(dense, ""), jointext(sparse, "")))
+			var/runs = 0
+			for(var/i = 1; i <= pixel_count; i += min(15, spantext(grid, copytext(grid, i, i + 1), i)))
+				runs++
+			var/encoded = custom_sprite_encode_grid(grid, 40, pixel_count)
+			TEST_ASSERT(copytext(encoded, 1, 2) == (1 + runs * 2 >= pixel_count + 1 ? "f" : "r"), "A grid must store flat exactly when its runs wouldn't be shorter.")
+			TEST_ASSERT(custom_sprite_decode_grid(encoded, 40, pixel_count) == grid, "Encoding must round-trip at width [width].")
+			TEST_ASSERT(custom_sprite_encode_grid(custom_sprite_decode_grid(encoded, 40, pixel_count), 40, pixel_count) == encoded, "Re-encoding a decoded grid must reproduce it byte for byte.")

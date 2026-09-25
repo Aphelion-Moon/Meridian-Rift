@@ -141,6 +141,24 @@
 	var/hide_parts = TRUE
 	/// Whether underwear is left out of guides and previews.
 	var/hide_underwear = FALSE
+	/// Whether a previous saved style differs from the draft, as of the last preview refresh or save.
+	var/can_restore_previous = FALSE
+	/// Guides, the draw mask or the region map changed since the window last received static data.
+	var/static_dirty = FALSE
+	/// The view the window shows. Guides and previews are drawn for it at once, and for the others once shown.
+	var/visible_direction = "2"
+	/// The guide's look as the last rebuild captured it, flattened one view at a time.
+	var/mutable_appearance/guide_appearance
+	/// Hair guide shifts, applied in order: south by the hairstyle offset, then west and south by the species offset.
+	var/list/guide_shift
+	/// Direction -> TRUE for views whose guide predates the last rebuild.
+	var/list/stale_guides = list()
+	/// The previewed look for preview_hash, flattened one view at a time.
+	var/mutable_appearance/preview_appearance
+	/// Canvas width previews are flattened at.
+	var/preview_width = 32
+	/// Direction -> TRUE for views whose preview predates preview_hash.
+	var/list/stale_previews = list()
 
 /datum/custom_sprite_editor/New(datum/preferences/preferences, target, body_zone)
 	src.preferences = preferences
@@ -318,7 +336,11 @@
 
 /// Context hook: extra window data owned by the context.
 /datum/custom_sprite_editor/proc/context_ui_data()
-	return list("canRestorePrevious" = !!restorable_package())
+	return list("canRestorePrevious" = can_restore_previous)
+
+/// Works out whether Restore previous saved style is offered. Runs with the debounced preview and after saves, not on every window update.
+/datum/custom_sprite_editor/proc/update_restorable()
+	can_restore_previous = !!restorable_package()
 
 /**
  * Rebuilds the preview body, guides, sampled palette and drawing bounds.
@@ -334,16 +356,23 @@
 	if(!reuse_body)
 		QDEL_NULL(preview_body)
 		preview_body = create_preview_body()
-	release_resources()
 	resources_hair = json_encode(workspace.hair_context)
 	resources_markings = json_encode(workspace.markings_context)
+	static_dirty = TRUE
 	if(!preview_body)
+		release_resources()
 		resources_ready = FALSE
 		sampled_palette = list()
 		workspace.draw_bounds = list()
 		workspace.draw_mask = null
 		refresh_custom_palette()
 		return FALSE
+	// Every view keeps its last guide and preview until it's drawn again.
+	preview_hash = null
+	preview_appearance = null
+	for(var/direction in GLOB.custom_style_directions)
+		stale_guides[direction] = TRUE
+		stale_previews[direction] = TRUE
 	if(!isnull(workspace.markings_context))
 		apply_draft_base_markings()
 	// Everything taken off the body for the guides, mapped to its limb, to put back afterwards.
@@ -388,21 +417,7 @@
 	sync_locked_views(push = FALSE)
 	sampled_palette = palette
 	refresh_custom_palette()
-	var/mutable_appearance/rendered = render_appearance(preview_body)
-	var/list/worn = render_overlays()
-	if(length(worn))
-		rendered = new(rendered)
-		rendered.overlays += worn
-	for(var/direction in GLOB.cardinals)
-		var/icon/guide = custom_sprite_flat_icon(rendered, direction, workspace.width)
-		if(target == "hair")
-			var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[preview_body.hairstyle]
-			guide.Shift(SOUTH, hairstyle?.y_offset || 0)
-			if(LAZYFIND(preview_body.dna.species.offset_features, OFFSET_HAIR))
-				guide.Shift(WEST, preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_W])
-				guide.Shift(SOUTH, preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_Z])
-		guide_icons["[direction]"] = guide
-		guide_urls["[direction]"] = publish_icon(guide)
+	capture_guide()
 	head?.set_custom_head_drawing(target, head_drawing)
 	for(var/datum/bodypart_overlay/overlay as anything in hidden_overlays)
 		var/obj/item/bodypart/limb = hidden_overlays[overlay]
@@ -433,6 +448,56 @@
 	guide_urls = list()
 	preview_urls = list()
 	preview_hash = null
+	guide_appearance = null
+	preview_appearance = null
+	stale_guides = list()
+	stale_previews = list()
+
+/// Captures the guide's look from the prepared preview body and draws the visible view. Other views are drawn when shown.
+/datum/custom_sprite_editor/proc/capture_guide()
+	guide_appearance = new(render_appearance(preview_body))
+	var/list/worn = render_overlays()
+	if(length(worn))
+		guide_appearance.overlays += worn
+	guide_shift = null
+	if(target == "hair")
+		var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[preview_body.hairstyle]
+		guide_shift = list(hairstyle?.y_offset || 0)
+		if(LAZYFIND(preview_body.dna.species.offset_features, OFFSET_HAIR))
+			guide_shift += list(preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_W], preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_Z])
+	render_guide(visible_direction)
+
+/// Draws one view of the guide the last rebuild captured. Guides are static data, so the window needs a full update afterwards.
+/datum/custom_sprite_editor/proc/render_guide(direction)
+	if(!guide_appearance)
+		return FALSE
+	var/icon/guide = custom_sprite_flat_icon(guide_appearance, text2num(direction), workspace.width)
+	if(guide_shift)
+		guide.Shift(SOUTH, guide_shift[1])
+		if(length(guide_shift) > 1)
+			guide.Shift(WEST, guide_shift[2])
+			guide.Shift(SOUTH, guide_shift[3])
+	guide_icons[direction] = guide
+	guide_urls[direction] = publish_icon(guide)
+	stale_guides -= direction
+	static_dirty = TRUE
+	return TRUE
+
+/// Draws one view of the preview captured for preview_hash.
+/datum/custom_sprite_editor/proc/render_preview(direction)
+	if(!preview_appearance)
+		return FALSE
+	preview_urls[direction] = custom_sprite_render_view(preview_appearance, text2num(direction), preview_width, CALLBACK(src, PROC_REF(publish_icon)))
+	stale_previews -= direction
+	return TRUE
+
+/// Brings one view's guide and preview up to date. Returns TRUE when anything was drawn.
+/datum/custom_sprite_editor/proc/render_view(direction)
+	. = FALSE
+	if(stale_guides[direction] && render_guide(direction))
+		. = TRUE
+	if(stale_previews[direction] && render_preview(direction))
+		. = TRUE
 
 /datum/custom_sprite_editor/proc/sample_marking_palette()
 	var/list/colors = list()
@@ -480,16 +545,35 @@
 /datum/custom_sprite_editor/ui_status(mob/user, datum/ui_state/state)
 	return can_edit(user) ? UI_INTERACTIVE : UI_CLOSE
 
+/// Brings the open window in front of the player's other windows.
+/datum/custom_sprite_editor/proc/bring_to_front(mob/user, datum/tgui/ui)
+	if(ui.window)
+		winset(user, ui.window.id, "focus=true")
+
 /datum/custom_sprite_editor/ui_interact(mob/user, datum/tgui/ui)
 	if(!can_edit(user))
 		return
+	// tgui's own refreshes pass their window; only an explicit open brings it forward.
+	var/opening = isnull(ui)
 	if(!resources_ready && rebuild_resources())
 		refresh_preview(push = FALSE)
+	if(static_dirty)
+		ui ||= SStgui.get_open_ui(user, src)
+		if(ui)
+			// Guides, masks and the region map are static data, which an ordinary refresh leaves out.
+			static_dirty = FALSE
+			ui.process_status()
+			if(ui.status <= UI_CLOSE)
+				ui.close()
+				return
+			ui.send_full_update(always_instant = TRUE)
+			if(opening)
+				bring_to_front(user, ui)
+			return
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(ui)
-		// Opening an editor that's already open brings its window forward.
-		if(ui.window)
-			winset(user, ui.window.id, "focus=true")
+		if(opening)
+			bring_to_front(user, ui)
 		return
 	var/interface = "CustomMarkingsEditor"
 	if(target == "hair")
@@ -498,6 +582,7 @@
 		interface = "CustomFacialHairEditor"
 	ui = new(user, src, interface, window_title())
 	ui.set_autoupdate(FALSE)
+	static_dirty = FALSE
 	ui.open()
 
 /datum/custom_sprite_editor/ui_static_data(mob/user)
@@ -509,15 +594,20 @@
 		.["maxBaseMarkings"] = MAXIMUM_MARKINGS_PER_LIMB
 	.["backgrounds"] = custom_sprite_background_tiles()
 	.["defaultBackground"] = preferences?.read_preference(/datum/preference/choiced/background_state)
+	.["guides"] = guide_urls
+	.["drawMask"] = workspace.draw_mask
 
 /datum/custom_sprite_editor/ui_data(mob/user)
 	sync_locked_views(push = FALSE)
+	// A lock change found here moved the mask, which only a full update carries.
+	if(static_dirty && LAZYLEN(open_uis))
+		SStgui.update_uis(src)
 	var/list/editor_data = workspace.sprite_editor_ui_data()
 	var/list/custom_palette = preferences?.read_preference(/datum/preference/custom_sprite_palette) || list()
 	// Paint/history admission must not add swatches; only style shades and explicit guide picks do.
 	editor_data["serverPalette"] = (sampled_palette | guide_palette) & workspace.palette
 	editor_data["serverSelectedColor"] = selected_color
-	var/list/data = list("editorData" = editor_data, "context" = context, "customTint" = custom_tint, "displayTint" = custom_palette_tint(), "colorMode" = color_mode, "emissive" = workspace.emissive, "emissiveAllowed" = emissives_allowed(), "saveRevision" = save_revision, "saveError" = save_error, "customPalette" = custom_palette, "availableColors" = workspace.palette, "maxCustomColors" = CUSTOM_SPRITE_MAX_CUSTOM_COLORS, "guides" = guide_urls, "previews" = preview_urls, "edited" = workspace.edited_directions, "drawBounds" = workspace.draw_bounds, "drawMask" = workspace.draw_mask, "bodyZone" = body_zone, "bodyZoneLabel" = GLOB.custom_marking_zone_labels[body_zone], "resourcesReady" = resources_ready, "transferError" = transfer_error, "transferNotice" = transfer_notice)
+	var/list/data = list("editorData" = editor_data, "context" = context, "customTint" = custom_tint, "displayTint" = custom_palette_tint(), "colorMode" = color_mode, "emissive" = workspace.emissive, "emissiveAllowed" = emissives_allowed(), "saveRevision" = save_revision, "saveError" = save_error, "customPalette" = custom_palette, "availableColors" = workspace.palette, "maxCustomColors" = CUSTOM_SPRITE_MAX_CUSTOM_COLORS, "previews" = preview_urls, "edited" = workspace.edited_directions, "drawBounds" = workspace.draw_bounds, "bodyZone" = body_zone, "bodyZoneLabel" = GLOB.custom_marking_zone_labels[body_zone], "resourcesReady" = resources_ready, "transferError" = transfer_error, "transferNotice" = transfer_notice, "visibleView" = visible_direction)
 	if(custom_style_hair_target(target))
 		data["hairStyle"] = workspace.hair_context?["style"]
 		data["hairColor"] = workspace.hair_context?["color"]
@@ -546,12 +636,20 @@
 	if(!isnull(handled))
 		return handled
 	switch(action)
+		if("setView")
+			var/direction = params["dir"]
+			if(!(direction in GLOB.custom_style_directions) || direction == visible_direction)
+				return FALSE
+			visible_direction = direction
+			render_view(direction)
+			return TRUE
 		if("selectColor")
 			if(!workspace.is_valid_color(params["color"]))
 				return FALSE
 			selected_color = LOWER_TEXT(copytext(params["color"], 1, 8))
 			selected_custom_color = null
-			return TRUE
+			// The window picked this swatch itself; echoing it back would resend the whole canvas.
+			return FALSE
 		if("selectCustomColor")
 			var/color = custom_sprite_color(params["color"])
 			if(!(color in preferences.read_preference(/datum/preference/custom_sprite_palette)))
@@ -749,6 +847,8 @@
 	var/list/frame = workspace.layers[1]["data"][direction]
 	var/list/channels = split_color(frame[y + 1][x + 1])
 	if(!channels[4])
+		if(stale_guides[direction])
+			render_guide(direction)
 		var/icon/guide = guide_icons[direction]
 		var/pixel = guide?.GetPixel(x + 1, workspace.height - y)
 		if(!pixel)
@@ -960,34 +1060,47 @@
 	if(closing || !resources_ready)
 		return
 	draft = workspace.serialize_drawing()
+	update_restorable()
 	var/new_hash = custom_sprite_hash(draft)
 	if(preview_hash == new_hash)
 		return
-	preview_urls = render_previews(draft, workspace.hair_context)
-	preview_hash = new_hash
+	adopt_preview(capture_preview(draft, workspace.hair_context), new_hash, push)
+
+/// Takes a newly captured preview look: the visible view is drawn now, the others when shown.
+/datum/custom_sprite_editor/proc/adopt_preview(mutable_appearance/look, hash, push)
+	preview_appearance = look
+	preview_width = custom_sprite_preview_width(preview_body)
+	preview_hash = hash
+	for(var/direction in GLOB.custom_style_directions)
+		stale_previews[direction] = TRUE
+	render_preview(visible_direction)
 	if(push)
 		SStgui.update_uis(src)
 
 /**
- * Renders the preview body with a drawing in its edited layer and returns Front/Back/Right/Left data URLs.
+ * Puts a drawing on the preview body and captures how it looks, for flattening one view at a time.
  *
  * The preview body keeps the given drawing afterwards. Other base looks are restored to the
  * draft before returning, so resources stay consistent with the guides.
  */
-/datum/custom_sprite_editor/proc/render_previews(list/drawing, list/hair, list/markings)
+/datum/custom_sprite_editor/proc/capture_preview(list/drawing, list/hair, list/markings)
 	var/hair_swapped = custom_style_hair_target(target) && hair && json_encode(hair) != json_encode(workspace.hair_context)
 	var/markings_swapped = !isnull(markings) && json_encode(markings) != json_encode(workspace.markings_context)
 	custom_sprite_apply_round_style(preview_body, list("target" = target, "zone" = body_zone, "drawing" = drawing, "hair" = hair_swapped ? hair : null, "markings" = markings_swapped ? markings : null), emissives_allowed())
 	// Hair-only updates don't rebuild the underwear that was hidden for the guides.
 	if(custom_style_hair_target(target))
 		preview_body.update_body()
-	var/list/urls = custom_sprite_render_directions(preview_body, publish = CALLBACK(src, PROC_REF(publish_icon)), worn_overlays = render_overlays())
+	var/mutable_appearance/look = custom_sprite_preview_appearance(preview_body, render_overlays())
 	if(hair_swapped)
 		custom_style_apply_hair_context(preview_body, workspace.hair_context, update = FALSE, target = target)
 	if(markings_swapped)
 		custom_style_apply_base_markings(preview_body, body_zone, workspace.markings_context, emissives_allowed())
 		preview_body.update_body()
-	return urls
+	return look
+
+/// All four views' data URLs of the preview body wearing a drawing, for import and restore previews.
+/datum/custom_sprite_editor/proc/render_previews(list/drawing, list/hair, list/markings)
+	return custom_sprite_render_views(capture_preview(drawing, hair, markings), custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_icon)))
 
 /// Closing keeps the unsaved draft and its history; only saving writes. Preview resources are rebuilt on reopening.
 /datum/custom_sprite_editor/ui_close(mob/user)
@@ -998,6 +1111,8 @@
 	QDEL_NULL(preview_body)
 	release_resources()
 	resources_ready = FALSE
+	// The window opens on the Front view again.
+	visible_direction = "2"
 
 /datum/custom_sprite_editor/proc/current_package()
 	return custom_style_package(target, body_zone, workspace.serialize_drawing(), workspace.hair_context, workspace.markings_context)
@@ -1009,6 +1124,7 @@
 		SStgui.update_uis(src)
 		return FALSE
 	workspace.mark_saved()
+	update_restorable()
 	save_error = null
 	save_revision++
 	return TRUE

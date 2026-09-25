@@ -1,9 +1,11 @@
 #define CUSTOM_SPRITE_MIRROR_TIMEOUT (120 SECONDS)
 
-/// This body's worn clothing overlays, in layer order.
+/// This body's worn clothing overlays, in layer order. Held items are left out.
 /proc/custom_sprite_worn_overlays(mob/living/carbon/human/source)
 	. = list()
 	for(var/layer in GLOB.worn_overlay_layers)
+		if(layer == HANDS_LAYER)
+			continue
 		var/overlays = source?.overlays_standing?[layer]
 		if(overlays)
 			. += overlays
@@ -25,17 +27,31 @@
 	body.apply_overlay(HAIR_LAYER)
 	return appearance
 
-/// Front, Back, Right and Left data URLs for a preview body, without flipping any view.
-/proc/custom_sprite_render_directions(mob/living/carbon/human/body, datum/callback/publish, list/worn_overlays)
+/// A body's look with worn overlays added, captured so its views can be flattened one at a time.
+/proc/custom_sprite_preview_appearance(mob/living/carbon/human/body, list/worn_overlays)
 	var/mutable_appearance/appearance = new(body.appearance)
 	if(length(worn_overlays))
 		appearance.overlays += worn_overlays
-	var/list/urls = list()
-	var/width = custom_sprite_taur_overlay(body) ? CUSTOM_SPRITE_TAUR_WIDTH : 32
+	return appearance
+
+/// The canvas width a body's previews are flattened at: a taur organ widens it.
+/proc/custom_sprite_preview_width(mob/living/carbon/human/body)
+	return custom_sprite_taur_overlay(body) ? CUSTOM_SPRITE_TAUR_WIDTH : 32
+
+/// One view of a captured look as a data URL, published through the callback when one is given.
+/proc/custom_sprite_render_view(mutable_appearance/appearance, direction, width, datum/callback/publish)
+	var/icon/rendered = custom_sprite_flat_icon(appearance, direction, width)
+	return publish ? publish.Invoke(rendered) : "data:image/png;base64,[icon2base64(rendered)]"
+
+/// Front, Back, Right and Left data URLs of a captured look, without flipping any view.
+/proc/custom_sprite_render_views(mutable_appearance/appearance, width, datum/callback/publish)
+	. = list()
 	for(var/direction in GLOB.cardinals)
-		var/icon/rendered = custom_sprite_flat_icon(appearance, direction, width)
-		urls["[direction]"] = publish ? publish.Invoke(rendered) : "data:image/png;base64,[icon2base64(rendered)]"
-	return urls
+		.["[direction]"] = custom_sprite_render_view(appearance, direction, width, publish)
+
+/// Front, Back, Right and Left data URLs for a preview body, without flipping any view.
+/proc/custom_sprite_render_directions(mob/living/carbon/human/body, datum/callback/publish, list/worn_overlays)
+	return custom_sprite_render_views(custom_sprite_preview_appearance(body, worn_overlays), custom_sprite_preview_width(body), publish)
 
 /**
  * The recipient's mirror.
@@ -123,7 +139,7 @@
 /// Redraws both pictures shortly after the recipient's look changes, once for a burst of changes.
 /datum/custom_sprite_mirror/proc/schedule_refresh()
 	if(session && !refresh_timer)
-		refresh_timer = addtimer(CALLBACK(src, PROC_REF(refresh)), 0.1 SECONDS, TIMER_STOPPABLE)
+		refresh_timer = addtimer(CALLBACK(src, PROC_REF(refresh)), 1 SECONDS, TIMER_STOPPABLE)
 
 /// Redraws both pictures and sends them to the open window.
 /datum/custom_sprite_mirror/proc/refresh()

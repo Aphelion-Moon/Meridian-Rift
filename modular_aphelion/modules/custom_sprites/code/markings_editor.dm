@@ -156,6 +156,7 @@
 		return FALSE
 	canvas.locked = locked
 	canvas.draw_mask = custom_sprite_region_mask(region_map, locked)
+	static_dirty = TRUE
 	return TRUE
 
 /// Zone -> why it's locked, as the canvas enforces it. Worked out afresh only while the canvas isn't built.
@@ -267,6 +268,7 @@
 			SStgui.update_uis(src)
 			return FALSE
 	mark_saved()
+	update_restorable()
 	save_error = null
 	save_revision++
 	return TRUE
@@ -282,16 +284,14 @@
 	if(closing || !resources_ready)
 		return
 	var/list/results = region_results()
+	update_restorable()
 	var/new_hash = md5(json_encode(results))
 	if(preview_hash == new_hash)
 		return
-	preview_urls = render_region_previews(results)
-	preview_hash = new_hash
-	if(push)
-		SStgui.update_uis(src)
+	adopt_preview(capture_region_previews(results), new_hash, push)
 
-/// Renders the preview body wearing exactly what saving would write. A region too colorful to save shows its saved paint.
-/datum/custom_sprite_editor/markings/proc/render_region_previews(list/results)
+/// Puts exactly what saving would write on the preview body and captures its look. A region too colorful to save shows its saved paint.
+/datum/custom_sprite_editor/markings/proc/capture_region_previews(list/results)
 	var/list/shown = results.Copy()
 	for(var/zone, entry_untyped in results)
 		var/list/entry = entry_untyped
@@ -300,7 +300,11 @@
 			entry["drawing"] = saved_drawings[zone]
 			shown[zone] = entry
 	custom_sprite_apply_region_results(preview_body, shown, emissives_allowed())
-	return custom_sprite_render_directions(preview_body, publish = CALLBACK(src, PROC_REF(publish_icon)), worn_overlays = render_overlays())
+	return custom_sprite_preview_appearance(preview_body, render_overlays())
+
+/// All four views' data URLs of the preview body wearing these results, for import and restore previews.
+/datum/custom_sprite_editor/markings/proc/render_region_previews(list/results)
+	return custom_sprite_render_views(capture_region_previews(results), custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_icon)))
 
 /// Puts every region's drawing and base markings on a body, then redraws it once.
 /proc/custom_sprite_apply_region_results(mob/living/carbon/human/body, list/results, allow_emissives)
@@ -326,12 +330,14 @@
 			choices[zone] = GLOB.body_markings_per_limb[zone]
 	.["regionMarkingChoices"] = choices
 	.["maxBaseMarkings"] = MAXIMUM_MARKINGS_PER_LIMB
+	.["regions"] = region_map
+	.["regionZones"] = region_zones
+	.["emissive"] = custom_sprite_emissive_settings(FALSE)
 
 /datum/custom_sprite_editor/markings/ui_data(mob/user)
 	. = ..()
-	.["emissive"] = custom_sprite_emissive_settings(FALSE)
-	.["regions"] = region_map
-	.["regionZones"] = region_zones
+	// Region emission lives in regionEmissive; the all-off view flags are static data.
+	. -= "emissive"
 	.["selectedZone"] = selected_zone
 	.["focusRevision"] = focus_revision
 	.["regionEmissive"] = workspace.emissive
@@ -396,7 +402,8 @@
 	switch(action)
 		if("selectRegion")
 			selected_zone = zone
-			return TRUE
+			// The window already shows its own selection.
+			return FALSE
 		if("setEmissive")
 			var/direction = params["dir"]
 			var/enabled = params["enabled"]
@@ -538,8 +545,8 @@
 		if(!custom_style_matches(package, region_package(zone, results)))
 			.[zone] = package
 
-/datum/custom_sprite_editor/markings/context_ui_data()
-	return list("canRestorePrevious" = length(restorable_regions()) > 0)
+/datum/custom_sprite_editor/markings/update_restorable()
+	can_restore_previous = length(restorable_regions()) > 0
 
 /// A whole-body file previews its regions; a single-region file its own; a drawing-only file goes into the selected region.
 /datum/custom_sprite_editor/markings/preview_received(list/result)

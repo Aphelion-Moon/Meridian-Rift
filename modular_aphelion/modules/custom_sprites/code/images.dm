@@ -338,10 +338,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	for(var/direction in GLOB.cardinals)
 		var/list/rows = list()
 		for(var/y in 0 to 31)
-			var/row = ""
+			var/list/row = list()
 			for(var/x in 0 to width - 1)
 				row += silhouette.GetPixel(x + 1, 32 - y, "", direction) ? "1" : "0"
-			rows += row
+			rows += jointext(row, "")
 		mask["[direction]"] = rows
 	return custom_sprite_cache_put(limb_masks, key, mask)
 

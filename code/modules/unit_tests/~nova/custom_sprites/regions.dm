@@ -136,3 +136,9 @@
 	for(var/key in GLOB.custom_sprite_limb_icons)
 		TEST_ASSERT(!findtext(key, scratch.drawing_pixel_hash), "Region-map scratch overlays must not fill the shared limb icon cache.")
 	qdel(scratch)
+
+/// A region map's paintable mask keeps every owned pixel except the locked regions', region 1 included.
+/datum/unit_test/custom_sprite_region_mask_locks/Run()
+	var/list/map = list("2" = list("0123456789", "9876543210"))
+	TEST_ASSERT(json_encode(custom_sprite_region_mask(map)) == json_encode(list("2" = list("0111111111", "1111111110"))), "With nothing locked, every owned pixel must be paintable.")
+	TEST_ASSERT(json_encode(custom_sprite_region_mask(map, list("1", "9"))) == json_encode(list("2" = list("0011111110", "0111111100"))), "Locked regions must leave the mask, region 1 included.")

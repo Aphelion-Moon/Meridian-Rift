@@ -1,9 +1,6 @@
 // THIS IS AN APHELION UI FILE
-import type {
-  Dir,
-  SpriteData,
-  SpriteEditorToolFlags,
-} from '../SpriteEditor/Types/types';
+import type { Dir, SpriteEditorToolFlags } from '../SpriteEditor/Types/types';
+import type { CompactSprite } from './canvas';
 
 export type CustomSpriteCandidate = {
   source: 'import' | 'restore';
@@ -26,7 +23,7 @@ export type CustomSpriteEditorData = {
   bodyZone: string | null;
   bodyZoneLabel: string | null;
   editorData: {
-    sprite: SpriteData;
+    sprite: CompactSprite;
     undoStack: string[];
     redoStack: string[];
     toolFlags: SpriteEditorToolFlags;
@@ -83,4 +80,5 @@ export type CustomSpriteEditorData = {
   regionEmissive?: Record<string, Record<Dir, boolean>>;
   lockedRegions?: Record<string, string> | null;
   paletteNotice?: string | null;
+  visibleView?: string;
 };

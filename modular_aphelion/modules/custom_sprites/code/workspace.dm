@@ -87,6 +87,14 @@
 	var/list/saved_transactions = list()
 	/// Rotation markers of unsaved imports and restorations that fell off the end of the history.
 	var/list/trimmed_rotations = list()
+	/// Pixel value -> its code in the window's canvas.
+	var/list/canvas_codes
+	/// Every pixel value the window's canvas uses, in first-use order. Null until built.
+	var/list/canvas_palette
+	/// Direction -> that view as codes. A null entry is rebuilt on the next update.
+	var/list/canvas_views
+	/// Characters per pixel in canvas_views.
+	var/canvas_digits = 1
 
 /datum/sprite_editor_workspace/custom_sprite/New(list/drawing, list/sampled_palette, list/bounds, list/mask, canvas_width = null)
 	..(max(custom_sprite_width(drawing), canvas_width == CUSTOM_SPRITE_TAUR_WIDTH ? CUSTOM_SPRITE_TAUR_WIDTH : 32), 32, 4, null, SPRITE_EDITOR_COLOR_MODE_RGB, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
@@ -201,7 +209,7 @@
 			update_edited_direction(direction)
 			changed = TRUE
 	if(changed)
-		pixels_dirty = TRUE
+		pixels_changed()
 	return changed
 
 /datum/sprite_editor_workspace/custom_sprite/proc/is_painted(x, y, direction)
@@ -275,7 +283,7 @@
 		apply_replacement(transaction, TRUE)
 		return
 	..()
-	pixels_dirty = TRUE
+	pixels_changed(transaction["dir"])
 	update_edited_direction(transaction["dir"])
 
 /datum/sprite_editor_workspace/custom_sprite/reverse_transact(list/transaction)
@@ -283,7 +291,7 @@
 		apply_replacement(transaction, FALSE)
 		return
 	..()
-	pixels_dirty = TRUE
+	pixels_changed(transaction["dir"])
 	update_edited_direction(transaction["dir"])
 
 /// Explicit saved tints already render as a separate overlay: bake their RGB into literal colors.
@@ -299,7 +307,7 @@
 				if(colors[row[x]])
 					row[x] = colors[row[x]]
 	tint = "#ffffff"
-	pixels_dirty = TRUE
+	pixels_changed()
 	palette = used_colors()
 
 /**
@@ -387,7 +395,7 @@
 	markings_context = forward ? transaction["markings_new"] : transaction["markings_old"]
 	apply_replacement_emissive(transaction, forward)
 	tint = forward ? transaction["tint_new"] : transaction["tint_old"]
-	pixels_dirty = TRUE
+	pixels_changed()
 
 /// Update only the affected direction, without serializing the drawing for its UI marker.
 /datum/sprite_editor_workspace/custom_sprite/proc/update_edited_direction(direction)
@@ -398,6 +406,66 @@
 			if(!endswith(pixel, "00"))
 				edited_directions[direction] = TRUE
 				return
+
+/// Pixels changed: serialization rebuilds, and so does the window's canvas, only that view when one is named.
+/datum/sprite_editor_workspace/custom_sprite/proc/pixels_changed(direction)
+	pixels_dirty = TRUE
+	if(direction && canvas_views)
+		canvas_views[direction] = null
+	else
+		canvas_palette = null
+
+/**
+ * The canvas as the window receives it: every pixel value once, and each view as codes.
+ *
+ * A code is `canvas_digits` characters of CUSTOM_SPRITE_INDEX_ALPHABET naming a palette entry, most
+ * significant first, row by row from the top left. The palette only grows until the next full
+ * rebuild, so views that didn't change keep their codes and aren't encoded again.
+ *
+ * Returns list("palette" = pixel values, "digits" = characters per pixel, "views" = direction -> codes).
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/canvas_ui_data()
+	var/list/frames = layers[1]["data"]
+	var/list/stale = list()
+	for(var/direction in frames)
+		if(isnull(canvas_palette) || isnull(canvas_views[direction]))
+			stale += direction
+	if(length(stale))
+		var/list/values = canvas_palette ? canvas_palette.Copy() : list()
+		// Pixel value -> TRUE. `values |= row` would keep a row's own repeats.
+		var/list/known = list()
+		for(var/value in values)
+			known[value] = TRUE
+		for(var/direction in stale)
+			for(var/list/row as anything in frames[direction])
+				for(var/pixel in row)
+					if(!known[pixel])
+						known[pixel] = TRUE
+						values += pixel
+		var/digits = length(values) <= 64 ? 1 : (length(values) <= 4096 ? 2 : 3)
+		if(isnull(canvas_palette) || digits != canvas_digits)
+			// Wider codes change every view.
+			canvas_digits = digits
+			canvas_codes = list()
+			canvas_views = list()
+			stale = assoc_to_keys(frames)
+		canvas_palette = values
+		for(var/index in length(canvas_codes) + 1 to length(canvas_palette))
+			canvas_codes[canvas_palette[index]] = custom_sprite_canvas_code(index - 1, canvas_digits)
+		for(var/direction in stale)
+			var/list/codes = list()
+			for(var/list/row as anything in frames[direction])
+				for(var/pixel in row)
+					codes += canvas_codes[pixel]
+			canvas_views[direction] = jointext(codes, "")
+	return list("palette" = canvas_palette, "digits" = canvas_digits, "views" = canvas_views)
+
+/// The window gets the canvas as palette indexes rather than a color string per pixel.
+/datum/sprite_editor_workspace/custom_sprite/sprite_editor_ui_data()
+	. = ..()
+	var/list/sprite = .["sprite"]
+	sprite -= "layers"
+	sprite["canvas"] = canvas_ui_data()
 
 /datum/sprite_editor_workspace/custom_sprite/proc/serialize_drawing()
 	if(!pixels_dirty)
@@ -561,7 +629,7 @@
 			for(var/x in 1 to width)
 				frame[y][x] = source[y][x]
 		update_edited_direction(direction)
-	pixels_dirty = TRUE
+	pixels_changed()
 	palette = used_colors()
 
 /**

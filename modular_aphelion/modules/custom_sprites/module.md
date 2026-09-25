@@ -402,25 +402,37 @@ clipped pixels, but final appearance keys include settings that affect the resul
 still takes a private copy for its masks and final overlay assembly.
 
 The editor renders strokes locally. Server previews wait for a 0.6-second pause
-and skip unchanged drawings. Encoded pixels are cached until paint changes;
-metadata changes reuse them. Guide and preview PNGs are editor-owned data URLs,
-with no global asset/CDN registration. The browser reuses decoded guides, cached
-shading geometry and unchanged drag previews. Only the opened drawing is sent
-to its editor.
+and skip unchanged drawings. Guides and previews are drawn only for the view the
+window shows. The window tells the server when it shows another view, and until
+then each view keeps its last image. Import and restore previews and the
+recipient's mirror still draw all four views. Encoded pixels are cached until
+paint changes; metadata changes reuse them. Guide and preview PNGs are
+editor-owned data URLs, with no global asset/CDN registration. The browser
+reuses decoded guides, cached shading geometry and unchanged drag previews. Only
+the opened drawing is sent to its editor. The canvas travels as a palette of its
+pixel values and one index string per view: one character per pixel, or two once
+a canvas holds more than 64 values. A stroke re-encodes only its own view.
 
-Idle windows don't resend drawings. Hairstyle and native-marking choices are
-static UI data, and the sorted hairstyle lists are shared. Salon guides listen
-for the recipient's worn-overlay changes, including adjusting clothes already
-being worn. Related changes share one refresh and one UI update. Clothing changes
-reuse the preview body; hair, anatomy and underwear changes rebuild it. Picking up or
-dropping a mirror updates self-styling locks immediately. Those locks restrict
-editing without clipping existing paint out of the draft.
+Idle windows don't resend drawings. Hairstyle and native-marking choices,
+guides, the paintable mask and the region map are static UI data, and the sorted
+hairstyle lists are shared. A rebuild or a lock change sends them in one full
+update. Picking a palette color or a region doesn't update the window, which
+already shows it. Refreshes never bring the window forward; only opening it
+does. Salon guides listen for the recipient's worn-overlay changes, including
+adjusting clothes already being worn. Changes within a second share one refresh
+and one UI update. Held items are left out of salon guides and mirror pictures,
+so picking things up or dropping them redraws nothing. Equipment changes still
+relock regions and views at once. Clothing changes reuse the preview body; hair,
+anatomy and underwear changes rebuild it. Picking up or dropping a mirror
+updates self-styling locks immediately. Those locks restrict editing without
+clipping existing paint out of the draft.
 
 Color scans collect distinct pixels before normalizing their RGB. Serialization
-reuses each color's index and joins the encoded pixels once per direction. The
-codec validates the full grid before falling back to the flat format, so an
-invalid pixel at the end cannot slip through an early return. These changes keep
-the existing palette order, run lengths and saved format.
+reuses each color's index and joins the encoded pixels once per direction.
+Encoding and decoding collect runs in lists and join them once. The codec
+validates the full grid before falling back to the flat format, so an invalid
+pixel at the end cannot slip through an early return. These changes keep the
+existing palette order, run lengths and saved format.
 
 #### Older saves and limits
 
@@ -591,7 +603,7 @@ through the same draft, preview and approval as changes made in the editor.
 
 Salon guides and previews show the whole body, wearing what the recipient is
 actually wearing, so the artist works on the person in front of them. Dressing or
-undressing rebuilds them shortly after. Marking guides leave hair, wings, tails and
+undressing rebuilds them within a second. Marking guides leave hair, wings, tails and
 other hanging parts out, so they can't cover the limb; a **Hide parts** toggle beside
 Guide and Grid puts them back on. The preview body only loses them while the guides
 are drawn, so previews always show the whole look. Hair editors keep those parts
@@ -607,7 +619,8 @@ hair and underwear settings. Tattoo masks use that same full limb geometry as
 character setup. They don't
 use `generate_dummy_lookalike()`, which reapplies saved preferences, and they
 don't copy inventory, minds, quirks or effects. Guides and mirrors add the
-recipient's worn appearances using the same layer set as worn-emissive rendering.
+recipient's worn appearances using the same layer set as worn-emissive
+rendering, except held items.
 
 Donor parts keep their own skin, native markings and drawing snapshots in the
 preview. Taur dummies copy the actual organ's accessory, colors, visibility and
@@ -736,8 +749,9 @@ leaves emission changes made since on other regions alone.
 
 **Restore previous saved style** opens the old package as a preview, the same way
 as an import. It only appears while the draft differs from that style, so it
-disappears once it has been restored and returns if you undo. Saving it swaps
-current and previous. Deleting a slot removes its
+disappears once it has been restored and returns if you undo. The offer is
+worked out with the preview after a pause and after saving, not on every window
+update. Saving it swaps current and previous. Deleting a slot removes its
 previous styles; preference imports remove them with the rest of the sidecar.
 
 A salon save writes to the character slot selected in character setup. A tattoo
@@ -816,6 +830,11 @@ that can't be saved, and ui_data skipping region work when nothing needs it.
 the icon caches. `saved_styles.dm`, `workspace.dm`,
 `transfer.dm` and `appearance.dm` cover multi-region commits, region-bounded fill
 and clear, whole-body files, and hand paint staying above re-created arm paint.
+`codec.dm` also covers encode and decode round trips at both canvas widths, and
+`regions.dm` the paintable mask with regions locked. `workspace.dm` covers the
+window's canvas wire format, `markings_editor.dm` static data, and `editor.dm`
+the visible view, refresh focus and quiet selection. `salon.dm` also covers held
+items.
 
 Tests use `TEST_ASSERT`, which stops at the first failure. Anything a later test
 depends on is released in `Destroy()`: salon players and their registries, and
@@ -849,6 +868,8 @@ save feedback, color blending, swatch menus, theme styling and the zone buttons.
 `CustomSpriteEditor.regions.test.tsx` covers region mode: selecting with every
 tool, the region labels and actions, focus, scanlines, locked regions and import
 notices. `CustomSpriteMirror.test.tsx` also covers the tattoo change list.
+`canvas.test.ts` covers the compact canvas, and
+`CustomSpriteEditor.views.test.tsx` covers view reporting.
 Keep each tgui test file under 50 KB. Bun 1.3.13 serves larger files from its
 runtime transpiler cache, and on those cached runs it parses
 `transparency_checkerboard.svg` as JSX, failing the whole file from the second run
@@ -888,7 +909,7 @@ All paths here are relative to this module unless stated otherwise.
 
 | File | Types, overrides and owned behavior |
 | --- | --- |
-| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()` and `context_ui_data()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. |
+| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()`, `context_ui_data()` and `update_restorable()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. Guides and previews are drawn per view (`render_view()`, the `setView` action). Guides, the mask and the region map are static data, sent when `static_dirty`. |
 | `code/markings_editor.dm` | `/datum/custom_sprite_editor/markings`: the whole-body window, region selection and focus, per-region emissive, Clear and base markings, changed-region saves, previews, export/restore prompts and region imports. Also `custom_sprite_apply_region_results()`. Context hooks `reference_packages()`, `locked_regions()` and `map_follows_body()`; region locks shade and refuse locked regions. |
 | `code/regions.dm` | Present regions in draw order, region ID colors, the cached per-view region map composed through the real overlay types, region lookup and the paintable mask. |
 | `code/composite.dm` | Composes region drawings into one canvas and splits an edited canvas back into per-region drawings by the save rule. |
@@ -900,7 +921,7 @@ All paths here are relative to this module unless stated otherwise.
 | `code/achievements.dm` | The four `/datum/award/achievement/misc/custom_*` awards. |
 | `code/persistence.dm` | `/datum/json_savefile/custom_sprites` overrides `New()`, `load()`, `save()`, `set_entry()`, `remove_entry()` and `wipe()` for verified sidecar writes and recovery. Adds the preferences-owned drawing fields and load/save/close/delete helpers, plus `custom_sprites_after_import()`. |
 | `code/palette.dm` | `/datum/preference/custom_sprite_palette` implements account storage, default/deserialize/serialize/validation and `is_accessible()`. Its UI is owned by the editor. |
-| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()` and `reverse_transact()`. Owns palette validation, mask-aware fill, history limits, serialization, Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` and `sanitize_transaction()` helpers. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. The region canvas refuses locked regions for every tool and selection move. |
+| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `sprite_editor_ui_data()`. Owns palette validation, mask-aware fill, history limits, serialization, the window's compact canvas (`canvas_ui_data()`), Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` and `sanitize_transaction()` helpers. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. The region canvas refuses locked regions for every tool and selection move. |
 | `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers. Re-creating an arm's zone overlay moves its hand overlays back above it. |
 | `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. |
 | `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization, content hashes, arm/hand partners and zone widths. |

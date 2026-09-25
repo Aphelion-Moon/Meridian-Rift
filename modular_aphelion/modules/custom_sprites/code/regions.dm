@@ -111,11 +111,11 @@
 	for(var/direction in GLOB.cardinals)
 		var/list/rows = list()
 		for(var/y in 0 to 31)
-			var/row = ""
+			var/list/row = list()
 			for(var/x in 0 to width - 1)
 				var/pixel = composite.GetPixel(x + 1, 32 - y, "", direction)
 				row += pixel ? (ids[LOWER_TEXT(copytext(pixel, 1, 8))] || custom_sprite_region_fallback(ordered, x, y, direction)) : "0"
-			rows += row
+			rows += jointext(row, "")
 		result["[direction]"] = rows
 	return custom_sprite_cache_put(maps, key, result)
 
@@ -156,15 +156,11 @@
 
 /// The paintable mask of a region map: every pixel an unlocked region owns. `locked` holds region characters.
 /proc/custom_sprite_region_mask(list/region_map, list/locked)
+	var/static/regex/owned = regex(@"[1-9]", "g")
+	var/regex/locked_regions = length(locked) ? regex("\[[jointext(locked, "")]\]", "g") : null
 	. = list()
 	for(var/direction, map_rows in region_map)
 		var/list/rows = list()
 		for(var/row in map_rows)
-			var/owned = row
-			// Locked regions go first, so region 1 can be locked before 2-9 become "1".
-			for(var/region in locked)
-				owned = replacetext(owned, region, "0")
-			for(var/index in 2 to 9)
-				owned = replacetext(owned, "[index]", "1")
-			rows += owned
+			rows += owned.Replace(locked_regions ? locked_regions.Replace(row, "0") : row, "1")
 		.[direction] = rows

@@ -237,7 +237,7 @@
 	TEST_ASSERT(!(hair_session.editor.resources_ready || hair_session.editor.preview_body || !hair_session.editor.workspace), "Closing the salon editor must keep the draft and release preview resources.")
 	TEST_ASSERT(!(!custom_sprite_salon_resume(scissors, artist) || !custom_sprite_salon_resume(machine, artist)), "The tool's self-use action must handle resuming.")
 	hair_session.editor.ui_interact(artist)
-	TEST_ASSERT(!(!hair_session.editor.resources_ready || length(hair_session.editor.guide_urls) != 4), "Resuming must rebuild preview resources.")
+	TEST_ASSERT(!(!hair_session.editor.resources_ready || !hair_session.editor.guide_urls["2"]), "Resuming must rebuild preview resources.")
 
 /// Retain the real native pixels at the existing publication boundary.
 /datum/custom_sprite_editor/salon/test_icons
@@ -331,14 +331,19 @@
 	session.editor = editor
 	editor.workspace.update_palette(editor.workspace.palette | "#fe12ab")
 	for(var/direction in GLOB.cardinals)
+		editor.render_view("[direction]")
 		var/icon/guide = editor.guide_icons["[direction]"]
 		TEST_ASSERT(!guide.GetPixel(7, 31), "The extension fixture must be outside the original head and hair silhouette in direction [direction].")
 		TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "[direction]", "color" = "#fe12abff", "points" = list(list(6, 1)))), "A bun above the original hair must be inside the editor's allowed drawing area.")
 	editor.published_icons.Cut()
 	editor.refresh_preview()
-	var/index = 0
+	var/list/previews = list("2" = editor.published_icons[length(editor.published_icons)])
+	for(var/direction in list("1", "4", "8"))
+		editor.published_icons.Cut()
+		editor.render_view(direction)
+		previews[direction] = editor.published_icons[length(editor.published_icons)]
 	for(var/direction in GLOB.cardinals)
-		var/icon/rendered = editor.published_icons[++index]
+		var/icon/rendered = previews["[direction]"]
 		TEST_ASSERT(rendered.GetPixel(7, 31) == "#fe12ab", "Artist previews must retain allowed custom hair outside the original silhouette in direction [direction].")
 		var/body_pixels = 0
 		for(var/y in 1 to 14)
@@ -791,7 +796,10 @@
 			wings_limb = limb
 			break
 	TEST_ASSERT(wings_overlay, "Hiding parts from the guide must leave the wings on the preview body.")
-	TEST_ASSERT(json_encode(custom_sprite_render_directions(editor.preview_body, worn_overlays = editor.render_overlays())) == json_encode(editor.preview_urls), "Hiding parts from the guide must leave hair and wings on the preview.")
+	var/list/expected_previews = custom_sprite_render_directions(editor.preview_body, worn_overlays = editor.render_overlays())
+	for(var/direction, expected in expected_previews)
+		editor.render_view(direction)
+		TEST_ASSERT(editor.preview_urls[direction] == expected, "Hiding parts from the guide must leave hair and wings on the preview.")
 	// Hidden means gone from the whole canvas: hair hanging beside the body counts too.
 	var/icon/hidden = editor.guide_icons["2"]
 	// Build the comparison through the mob itself, not the helpers this is checking.
@@ -1277,7 +1285,7 @@
 	canvas.ui_data(artist)
 	TEST_ASSERT(session.part_checks == regions, "A window update must check each region once: [session.part_checks] checks for [regions] regions")
 	session.part_checks = 0
-	TEST_ASSERT(canvas.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui), "The fixture must select the left arm.")
+	TEST_ASSERT(!(canvas.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui) || canvas.selected_zone != BODY_ZONE_L_ARM), "The fixture must select the left arm.")
 	TEST_ASSERT(session.part_checks == regions, "Selecting a region must check each region once: [session.part_checks] checks for [regions] regions")
 	qdel(ui)
 
@@ -1331,3 +1339,28 @@
 	editor.refresh_preview()
 	TEST_ASSERT(editor.preview_urls["2"] != before, "The haircut preview must show a new stroke.")
 	qdel(ui)
+
+/// Held items stay out of salon pictures, so picking one up redraws nothing, while worn changes still redraw and relock at once.
+/datum/unit_test/custom_sprite_salon/held_items/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
+	var/datum/custom_sprite_editor/markings/canvas = session.editor
+	if(session.dress_timer)
+		deltimer(session.dress_timer)
+		session.dress_timer = null
+	var/obj/item/crowbar/crowbar = allocate(/obj/item/crowbar)
+	TEST_ASSERT(recipient.put_in_hands(crowbar), "The fixture must be able to hold the crowbar.")
+	TEST_ASSERT(!session.dress_timer, "Picking up an item must not redraw the salon guides.")
+	var/held = recipient.overlays_standing[HANDS_LAYER]
+	var/list/held_overlays = islist(held) ? held : list(held)
+	TEST_ASSERT(length(held_overlays - null), "The fixture's crowbar must be drawn in hand.")
+	for(var/overlay in custom_sprite_worn_overlays(recipient))
+		TEST_ASSERT(!(overlay in held_overlays), "Held items must stay out of salon guides and mirrors.")
+	canvas.static_dirty = FALSE
+	var/obj/item/clothing/gloves/color/black/gloves = allocate(/obj/item/clothing/gloves/color/black)
+	TEST_ASSERT(recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES), "The fixture must be able to wear gloves.")
+	TEST_ASSERT(session.dress_timer, "Putting gloves on must redraw the salon guides.")
+	TEST_ASSERT(canvas.lock_reasons?[BODY_ZONE_PRECISE_L_HAND], "Gloves must lock the hands at once.")
+	TEST_ASSERT(canvas.static_dirty, "A lock change must send the new mask with the next full update.")
+	deltimer(session.dress_timer)
+	session.dress_timer = null
