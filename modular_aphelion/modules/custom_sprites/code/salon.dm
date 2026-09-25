@@ -1121,7 +1121,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(!artist || !recipient)
 		return_to_drafting("The work couldn't be applied.")
 		return
-	artist.visible_message(span_notice("[artist] adds the finishing touches to [recipient]'s [label()]."), span_notice("You add the finishing touches to [recipient]'s [label()]."))
+	// Moving interrupts the finishing touches, so the recipient is asked to hold still.
+	artist.visible_message(span_notice("[artist] adds the finishing touches to [recipient]'s [label()]."), span_notice("You add the finishing touches to [recipient]'s [label()]."), ignored_mobs = self_work ? null : recipient)
+	if(!self_work)
+		to_chat(recipient, span_notice("[artist] adds the finishing touches to your [label()]. Try not to move!"))
 	stop_drawing_sounds()
 	var/finished = do_salon_work(artist, SALON_APPLY_DURATION, recipient, tool_type == /obj/item/tattoo_machine, CALLBACK(src, PROC_REF(application_valid), token))
 	if(!QDELETED(src))
@@ -1177,7 +1180,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		if(self_work)
 			result.ui_interact(recipient)
 		else
-			to_chat(recipient, result.message_error ? span_warning(result.save_message) : span_notice(result.save_message))
+			// Only a failed save needs saying.
+			if(result.message_error)
+				to_chat(recipient, span_warning(result.save_message))
 			qdel(result)
 	qdel(src)
 	return TRUE

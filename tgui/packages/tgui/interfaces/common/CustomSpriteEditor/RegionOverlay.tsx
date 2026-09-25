@@ -1,5 +1,6 @@
 // THIS IS AN APHELION UI FILE
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { classes } from 'tgui-core/react';
 import {
   bracketBars,
   regionBounds,
@@ -7,6 +8,9 @@ import {
   regionTag,
   tagPosition,
 } from './regions';
+
+/** How long a newly selected region's tag stays up before it fades. */
+const TAG_SHOWN_MS = 1500;
 
 type RegionOverlayProps = {
   rows?: string[];
@@ -22,6 +26,7 @@ type RegionOverlayProps = {
 /**
  * The selected region's target-lock brackets and name tag, and the hovered region's faint outline.
  * Everything is black and white and sits outside region pixels, so paint is never tinted or covered.
+ * The tag names a region as it's selected, then fades so it isn't in the way while drawing.
  */
 export const RegionOverlay = (props: RegionOverlayProps) => {
   const {
@@ -37,6 +42,12 @@ export const RegionOverlay = (props: RegionOverlayProps) => {
   const ref = useRef<HTMLCanvasElement>(null);
   const scale = imageWidth ? canvasWidth / imageWidth : 0;
   const bounds = regionBounds(rows, zones, selected);
+  const [tagFaded, setTagFaded] = useState(false);
+  useEffect(() => {
+    setTagFaded(false);
+    const timeout = setTimeout(() => setTagFaded(true), TAG_SHOWN_MS);
+    return () => clearTimeout(timeout);
+  }, [selected]);
   useLayoutEffect(() => {
     const context = ref.current?.getContext('2d');
     if (!context || !scale) return;
@@ -77,7 +88,10 @@ export const RegionOverlay = (props: RegionOverlayProps) => {
       />
       {!!tag && !!selected && (
         <div
-          className="CustomSpriteEditor__regionTag"
+          className={classes([
+            'CustomSpriteEditor__regionTag',
+            tagFaded && 'CustomSpriteEditor__regionTag--faded',
+          ])}
           style={{ left: tag[0], top: tag[1] }}
         >
           {regionTag(selected, labels[selected] ?? selected)}

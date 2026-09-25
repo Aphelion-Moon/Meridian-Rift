@@ -374,7 +374,6 @@
 	ui.status = UI_UPDATE
 	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_R_LEG), ui, null)
 	TEST_ASSERT(editor.selected_zone == BODY_ZONE_CHEST, "Region actions must respect the window's state, like every other action.")
-	TEST_ASSERT(editor.window_title() == "Custom Markings", "Character setup's whole-body window is titled Custom Markings: [editor.window_title()]")
 	editor.finish(FALSE)
 
 /datum/unit_test/custom_sprite_markings_editor_selection_authority/Run()

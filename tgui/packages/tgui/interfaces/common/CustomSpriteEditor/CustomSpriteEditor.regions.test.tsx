@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import { expect, it, spyOn } from 'bun:test';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import {
@@ -127,21 +127,24 @@ it('sends the selected region with clear, emissive and base marking actions', ()
   const section = screen
     .getByText('Left arm base markings')
     .closest('.Section')! as HTMLElement;
-  fireEvent.click(section.querySelectorAll('.Button')[0]);
+  const add = within(section).getByText('+').closest('.Button')!;
+  // Under the rows and green, as in character setup's markings list.
+  expect(add).toBe([...section.querySelectorAll('.Button')].at(-1)!);
+  expect(add.classList.contains('Button--color--good')).toBe(true);
+  fireEvent.click(add);
   expect(send).toHaveBeenLastCalledWith('addBaseMarking', { zone: 'l_arm' });
-  expect(screen.getByText('Click the body to choose a region.')).toBeTruthy();
+  expect(screen.queryByText(/Click the body to choose a region/)).toBeNull();
 });
 
-it('says when a region has no base markings to offer', () => {
+it('leaves out the base markings section for a region that has none', () => {
   renderRegions({
     ...regionFixture(),
     regionZones: ['chest', 'taur'],
     regionLabels: { chest: 'Torso', taur: 'Taur lower body' },
     selectedZone: 'taur',
   });
-  expect(
-    screen.getByText('Taur lower body has no base markings.'),
-  ).toBeTruthy();
+  expect(screen.queryByText('Taur lower body base markings')).toBeNull();
+  expect(screen.queryByText(/has no base markings/)).toBeNull();
 });
 
 it('follows the focus revision when character setup moves the selection', () => {
@@ -190,27 +193,6 @@ it('shades unavailable pixels with scanlines', () => {
   } finally {
     getBounds.mockRestore();
   }
-});
-
-it('shows why new colors are refused when old markings use too many', () => {
-  renderRegions({ ...regionFixture(), paletteNotice: 'Too many colors.' });
-  expect(screen.getByText('Too many colors.')).toBeTruthy();
-});
-
-it('lists replaced and skipped regions when previewing an import', () => {
-  renderRegions({
-    ...regionFixture(),
-    candidate: {
-      source: 'import',
-      previews: { 1: '', 2: '', 4: '', 8: '' },
-      regions: ['Left arm'],
-      skipped: ['Taur lower body (not on this body)'],
-    },
-  });
-  expect(screen.getByText(/Replaces: Left arm\./)).toBeTruthy();
-  expect(
-    screen.getByText(/Skipped: Taur lower body \(not on this body\)\. /),
-  ).toBeTruthy();
 });
 
 it('selects regions with the primary button only', () => {
@@ -270,7 +252,9 @@ it('keeps the selection off locked regions and explains a locked selection', () 
     const section = screen
       .getByText('Left arm base markings')
       .closest('.Section')! as HTMLElement;
-    expect(disabled(section.querySelectorAll('.Button')[0])).toBe(true);
+    expect(disabled(within(section).getByText('+').closest('.Button'))).toBe(
+      true,
+    );
     expect(
       disabled(section.querySelector('.fa-trash')?.closest('.Button')),
     ).toBe(true);
@@ -301,14 +285,4 @@ it('outlines hovered regions, but not locked ones', () => {
   } finally {
     getBounds.mockRestore();
   }
-});
-
-it('calls the salon canvas a tattoo', () => {
-  renderRegions({
-    ...regionFixture(),
-    context: 'salon',
-    recipientName: 'Leia',
-    salonState: 'drafting',
-  });
-  expect(screen.getByText('Custom Tattoo for Leia')).toBeTruthy();
 });

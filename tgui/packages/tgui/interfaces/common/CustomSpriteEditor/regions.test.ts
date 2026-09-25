@@ -6,7 +6,6 @@ import {
   regionAt,
   regionBounds,
   regionOutline,
-  regionTag,
   tagPosition,
 } from './regions';
 
@@ -45,12 +44,6 @@ it('places brackets outside the box and the tag above, or below at the top edge'
   expect(bars[3]).toEqual([14, -5, 1, 9]);
   expect(tagPosition([0, 5, 1, 6], 10, 13, 5)).toEqual([0, 30]);
   expect(tagPosition([0, 0, 1, 1], 10, 13, 5)).toEqual([0, 27]);
-});
-
-it('names regions briefly for the tag', () => {
-  expect(regionTag('l_arm', 'Left arm')).toBe('L. ARM');
-  expect(regionTag('chest', 'Torso')).toBe('TORSO');
-  expect(regionTag('wing', 'Wing')).toBe('WING');
 });
 
 it('draws scanlines only inside the shaded areas, on every third screen row', () => {

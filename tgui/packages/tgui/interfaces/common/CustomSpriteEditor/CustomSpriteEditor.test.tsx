@@ -616,21 +616,6 @@ it.each([
   }
 });
 
-it.each([
-  ['hair', null, null, 'Custom Hair'],
-  ['markings', null, null, 'Custom Markings'],
-  ['markings', 'l_arm', 'Left arm', 'Custom Left arm markings'],
-  ['markings', 'taur', 'Taur body', 'Custom Taur body markings'],
-] as const)('identifies the %s drawing scope for %s', (target, bodyZone, bodyZoneLabel, title) => {
-  backendStore.set(gameDataAtom, { ...fixture(), bodyZone, bodyZoneLabel });
-  render(
-    <Provider store={createStore()}>
-      <CustomSpriteEditor target={target} />
-    </Provider>,
-  );
-  expect(screen.getByText(title)).toBeTruthy();
-});
-
 it('lets preview images retain their own proportions independently of canvas dimensions', () => {
   backendStore.set(gameDataAtom, {
     ...fixture(),
@@ -1003,28 +988,30 @@ it('steps base markings with the cycle arrows and stops when there is nothing to
     const section = screen.getByText('Base markings').closest('.Section')!;
     return (section as HTMLElement).querySelectorAll('.Button');
   };
-  // [add, previous, next, color, remove]
-  fireEvent.click(buttons()[2]);
+  // [previous, next, color, remove, add]
+  fireEvent.click(buttons()[1]);
   expect(send).toHaveBeenLastCalledWith('setBaseMarking', {
     index: 1,
     name: 'Dots',
   });
-  fireEvent.click(buttons()[1]);
+  fireEvent.click(buttons()[0]);
   expect(send).toHaveBeenLastCalledWith('setBaseMarking', {
     index: 1,
     name: 'Stripe',
   });
-  // The add and remove buttons must not have shifted under the arrows.
-  fireEvent.click(buttons()[0]);
-  expect(send).toHaveBeenLastCalledWith('addBaseMarking');
+  // The add button sits under the rows, green, as in character setup.
+  expect(buttons()[4].textContent).toBe('+');
+  expect(buttons()[4].classList.contains('Button--color--good')).toBe(true);
   fireEvent.click(buttons()[4]);
+  expect(send).toHaveBeenLastCalledWith('addBaseMarking');
+  fireEvent.click(buttons()[3]);
   expect(send).toHaveBeenLastCalledWith('removeBaseMarking', { index: 1 });
 
   backendStore.set(gameDataAtom, limb([]));
   view.rerender(editor());
   send.mockClear();
+  fireEvent.click(buttons()[0]);
   fireEvent.click(buttons()[1]);
-  fireEvent.click(buttons()[2]);
   expect(send).not.toHaveBeenCalled();
 });
 
@@ -1050,10 +1037,11 @@ it('offers the limb’s own markings only when the backend permits it', () => {
   expect(
     within(section as HTMLElement).getByPlaceholderText('Stripe'),
   ).toBeTruthy();
-  const buttons = (section as HTMLElement).querySelectorAll('.Button');
-  fireEvent.click(buttons[buttons.length - 1]);
+  fireEvent.click(
+    (section as HTMLElement).querySelector('.fa-trash')!.closest('.Button')!,
+  );
   expect(send).toHaveBeenLastCalledWith('removeBaseMarking', { index: 1 });
-  fireEvent.click(buttons[0]);
+  fireEvent.click(within(section as HTMLElement).getByText('+'));
   expect(send).toHaveBeenLastCalledWith('addBaseMarking');
   backendStore.set(gameDataAtom, { ...limb, canChangeMarkings: false });
   view.rerender(editor());

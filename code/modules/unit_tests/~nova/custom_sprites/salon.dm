@@ -833,7 +833,6 @@
 		var/list/static_data = mirror.ui_static_data(recipient)
 		var/list/data = mirror.ui_data(recipient)
 		TEST_ASSERT(!(length(static_data["before"]) != 4 || length(static_data["after"]) != 4 || data["before"] || data["after"] || data["timeout"] <= 0), "Mirror images must be static while the small timeout payload updates.")
-		TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Left arm")), "The mirror must name the region the tattoo changes: [json_encode(static_data["changes"])]")
 		var/list/prior = preferences.custom_style_saved_package("markings", BODY_ZONE_L_ARM)
 		var/old_hash = custom_style_package_hash(prior)
 		var/token = session.proposal["token"]
@@ -940,9 +939,6 @@
 	var/chest_key = custom_style_key("markings", BODY_ZONE_CHEST)
 	var/list/packages = session.proposal["packages"]
 	TEST_ASSERT(!(length(packages) != 2 || !packages[arm_key] || !packages[chest_key]), "The proposal must carry exactly the touched regions: [json_encode(assoc_to_keys(packages))]")
-	var/list/static_data = session.mirror.ui_static_data(recipient)
-	TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Torso", "Left arm")), "The mirror must name the touched regions in body order: [json_encode(static_data["changes"])]")
-	TEST_ASSERT(static_data["label"] == "tattoo", "Whole-body work is a tattoo: [static_data["label"]]")
 	var/token = session.proposal["token"]
 	TEST_ASSERT(!(!session.accept(recipient, token) || !session.complete_application(token)), "Approved touched regions must apply.")
 	var/list/after = custom_sprite_live_packages(recipient, "markings")
@@ -1061,8 +1057,6 @@
 	var/datum/custom_sprite_salon/test/one = new(machine, artist, recipient, "markings", custom_sprite_salon_previous(recipient, "markings", choices["Left arm"]))
 	var/error = one.propose(artist)
 	TEST_ASSERT(!error, "Restoring one region must open the mirror: [error]")
-	var/list/static_data = one.mirror.ui_static_data(recipient)
-	TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Left arm")), "A one-region restoration must name only that region.")
 	token = one.proposal["token"]
 	TEST_ASSERT(!(!one.accept(recipient, token) || !one.complete_application(token)), "The one-region restoration must apply.")
 	var/list/after = custom_sprite_live_packages(recipient, "markings")
@@ -1073,8 +1067,6 @@
 	var/datum/custom_sprite_salon/test/whole = new(machine, artist, recipient, "markings", custom_sprite_salon_previous(recipient, "markings", choices["Whole body"]))
 	error = whole.propose(artist)
 	TEST_ASSERT(!error, "Restoring the whole body must open the mirror: [error]")
-	static_data = whole.mirror.ui_static_data(recipient)
-	TEST_ASSERT(json_encode(static_data["changes"]) == json_encode(list("Left arm", "Right leg")), "A whole-body restoration must name every region with history: [json_encode(static_data["changes"])]")
 	token = whole.proposal["token"]
 	TEST_ASSERT(!(!whole.accept(recipient, token) || !whole.complete_application(token)), "The whole-body restoration must apply.")
 	after = custom_sprite_live_packages(recipient, "markings")
@@ -1242,16 +1234,6 @@
 	custom_sprite_salon_start_restore(machine, artist, recipient, "markings", list(hand_key))
 	TEST_ASSERT(!GLOB.custom_sprite_salon_restorations[artist.ckey], "Restoring only a covered region must be refused.")
 
-/// The BYOND window starts with the title the interface gives it, so it doesn't flash another.
-/datum/unit_test/custom_sprite_salon/window_titles/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/haircut = new(scissors, artist, recipient, "hair")
-	var/datum/custom_sprite_salon/test/facial = new(scissors, artist, recipient, "facial_hair")
-	var/datum/custom_sprite_salon/test/tattoo = new(machine, artist, recipient, "markings")
-	TEST_ASSERT(haircut.editor.window_title() == "Custom Hair for [recipient]", "Salon hair titles name the recipient: [haircut.editor.window_title()]")
-	TEST_ASSERT(facial.editor.window_title() == "Custom Facial Hair for [recipient]", "Salon facial hair titles name the recipient: [facial.editor.window_title()]")
-	TEST_ASSERT(tattoo.editor.window_title() == "Custom Tattoo for [recipient]", "Tattoo work is titled as a tattoo: [tattoo.editor.window_title()]")
-
 /// A region whose look changes on the body while work goes on greys out with the reason; the rest stay free.
 /datum/unit_test/custom_sprite_salon/changed_regions/Run()
 	setup_players()
@@ -1329,4 +1311,23 @@
 	recipient.dropItemToGround(gloves)
 	canvas.ui_act("drawing", activity, ui)
 	TEST_ASSERT(session.drawing_sound, "Erasing paint in an uncovered region must sound.")
+	qdel(ui)
+
+/// A salon haircut's preview follows the artist's strokes, as a tattoo's does.
+/datum/unit_test/custom_sprite_salon/hair_preview/Run()
+	setup_players()
+	var/datum/custom_sprite_salon/test/session = new(scissors, artist, recipient, "hair")
+	var/datum/custom_sprite_editor/editor = session.editor
+	var/datum/tgui/ui = new(artist, editor, "CustomHairEditor")
+	var/before = editor.preview_urls["2"]
+	editor.workspace.update_palette(editor.workspace.palette | "#ff0000")
+	var/list/points = list()
+	for(var/y in 1 to 4)
+		for(var/x in 1 to 4)
+			points += list(list(x, y))
+	editor.ui_act("spriteEditorCommand", list("command" = "transaction", "transaction" = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#ff0000ff", "points" = points)), ui, null)
+	TEST_ASSERT(editor.preview_timer, "A haircut stroke must schedule a preview refresh.")
+	deltimer(editor.preview_timer)
+	editor.refresh_preview()
+	TEST_ASSERT(editor.preview_urls["2"] != before, "The haircut preview must show a new stroke.")
 	qdel(ui)

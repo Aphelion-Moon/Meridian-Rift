@@ -12,6 +12,7 @@ import {
   Modal,
   Section,
   Stack,
+  Tooltip,
 } from 'tgui-core/components';
 import { SpriteEditor } from '../SpriteEditor';
 import {
@@ -99,6 +100,10 @@ const directions = [
 const rotation = [Dir.SOUTH, Dir.WEST, Dir.NORTH, Dir.EAST];
 
 const blendingTooltip = 'Uses Multiply blending on Custom colors.';
+/** Markings and tattoo window size, tall enough that the side panel doesn't scroll. */
+const MARKINGS_WINDOW = [1100, 920] as const;
+/** Wide enough that base marking names aren't cut short beside their buttons. */
+const MARKINGS_PANEL_WIDTH = '26rem';
 
 export const CustomSpriteEditor = ({
   target,
@@ -194,6 +199,10 @@ export const CustomSpriteEditor = ({
   const lockReason = (zone?: string | null) =>
     (zone && lockedRegions?.[zone]) || null;
   const selectedLock = lockReason(selectedZone);
+  // Base markings the selected region can take; regions without any, like a taur body, have no section.
+  const regionChoices = selectedZone
+    ? regionMarkingChoices?.[selectedZone]
+    : undefined;
   const viewLabel =
     directions.find(([dir]) => dir === direction)?.[1] ?? 'Front';
   const regionRows = regions?.[direction];
@@ -233,6 +242,8 @@ export const CustomSpriteEditor = ({
     setDirection(cycleOption(rotation, direction, step) ?? direction);
   const savedLabel = salon ? 'Draft saved for this round' : 'Saved';
   const hairTarget = target === 'hair' || target === 'facial_hair';
+  // Markings and tattoos stack base markings above the palette and preview, so they get more room.
+  const markingsWindow = target === 'markings';
   const drawingName =
     target === 'hair'
       ? 'Custom Hair'
@@ -283,8 +294,8 @@ export const CustomSpriteEditor = ({
 
   return (
     <Window
-      width={1000}
-      height={780}
+      width={markingsWindow ? MARKINGS_WINDOW[0] : 1000}
+      height={markingsWindow ? MARKINGS_WINDOW[1] : 780}
       title={salon ? `${drawingName} for ${recipientName}` : drawingName}
     >
       <Window.Content>
@@ -552,14 +563,17 @@ export const CustomSpriteEditor = ({
                           <span> (not in this view)</span>
                         ) : null}
                       </span>
-                      <Box color={selectedLock ? 'average' : 'label'}>
-                        {selectedLock ?? 'Click the body to choose a region'}
-                      </Box>
+                      {!!selectedLock && (
+                        <Box color="average">{selectedLock}</Box>
+                      )}
                     </Stack.Item>
                   )}
                 </Stack>
               </Stack.Item>
-              <Stack.Item width="18rem" overflowY="auto">
+              <Stack.Item
+                width={markingsWindow ? MARKINGS_PANEL_WIDTH : '18rem'}
+                overflowY="auto"
+              >
                 <Stack vertical>
                   {!!canChangeHair && (
                     <Stack.Item>
@@ -600,130 +614,106 @@ export const CustomSpriteEditor = ({
                       </Section>
                     </Stack.Item>
                   )}
-                  {regionMode && !!selectedZone && (
+                  {regionMode && !!selectedZone && !!regionChoices && (
                     <Stack.Item>
                       <Section
-                        title={`${regionLabel} base markings`}
-                        buttons={
-                          !!regionMarkingChoices?.[selectedZone] && (
-                            <Button
-                              icon="plus"
-                              disabled={
-                                !!selectedLock ||
-                                (regionMarkings?.[selectedZone]?.length ?? 0) >=
-                                  (maxBaseMarkings ?? 0)
-                              }
-                              onClick={() =>
-                                act('addBaseMarking', { zone: selectedZone })
-                              }
-                            />
-                          )
+                        title={
+                          <Tooltip
+                            content="Click the body to choose a region."
+                            position="bottom-start"
+                          >
+                            <span>{`${regionLabel} base markings`}</span>
+                          </Tooltip>
                         }
                       >
-                        {regionMarkingChoices?.[selectedZone] ? (
-                          <>
-                            {(regionMarkings?.[selectedZone] ?? []).map(
-                              (marking) => {
-                                const taken = new Set(
-                                  (regionMarkings?.[selectedZone] ?? []).map(
-                                    (entry) => entry.name,
-                                  ),
-                                );
-                                const choices = regionMarkingChoices[
-                                  selectedZone
-                                ].filter(
-                                  (name) =>
-                                    name === marking.name || !taken.has(name),
-                                );
-                                return (
-                                  <Stack
-                                    key={marking.index}
-                                    mb={0.5}
-                                    align="center"
+                        {(regionMarkings?.[selectedZone] ?? []).map(
+                          (marking) => {
+                            const taken = new Set(
+                              (regionMarkings?.[selectedZone] ?? []).map(
+                                (entry) => entry.name,
+                              ),
+                            );
+                            const choices = regionChoices.filter(
+                              (name) =>
+                                name === marking.name || !taken.has(name),
+                            );
+                            return (
+                              <Stack
+                                key={marking.index}
+                                mb={0.5}
+                                align="center"
+                              >
+                                <Stack.Item grow style={{ minWidth: 0 }}>
+                                  <CycleDropdown
+                                    options={choices}
+                                    disabled={!!selectedLock}
+                                    selected={marking.name}
+                                    onSelected={(name) =>
+                                      act('setBaseMarking', {
+                                        zone: selectedZone,
+                                        index: marking.index,
+                                        name,
+                                      })
+                                    }
+                                  />
+                                </Stack.Item>
+                                <Stack.Item>
+                                  <Button
+                                    disabled={!!selectedLock}
+                                    tooltip={`Color of ${marking.name}`}
+                                    onClick={() =>
+                                      act('pickBaseMarkingColor', {
+                                        zone: selectedZone,
+                                        index: marking.index,
+                                      })
+                                    }
                                   >
-                                    <Stack.Item grow style={{ minWidth: 0 }}>
-                                      <CycleDropdown
-                                        options={choices}
-                                        disabled={!!selectedLock}
-                                        selected={marking.name}
-                                        onSelected={(name) =>
-                                          act('setBaseMarking', {
-                                            zone: selectedZone,
-                                            index: marking.index,
-                                            name,
-                                          })
-                                        }
-                                      />
-                                    </Stack.Item>
-                                    <Stack.Item>
-                                      <Button
-                                        disabled={!!selectedLock}
-                                        tooltip={`Color of ${marking.name}`}
-                                        onClick={() =>
-                                          act('pickBaseMarkingColor', {
-                                            zone: selectedZone,
-                                            index: marking.index,
-                                          })
-                                        }
-                                      >
-                                        <Box
-                                          inline
-                                          width="1rem"
-                                          height="0.8rem"
-                                          backgroundColor={marking.color}
-                                        />
-                                      </Button>
-                                    </Stack.Item>
-                                    <Stack.Item>
-                                      <Button
-                                        icon="trash"
-                                        disabled={!!selectedLock}
-                                        color="bad"
-                                        tooltip={`Remove ${marking.name}`}
-                                        onClick={() =>
-                                          act('removeBaseMarking', {
-                                            zone: selectedZone,
-                                            index: marking.index,
-                                          })
-                                        }
-                                      />
-                                    </Stack.Item>
-                                  </Stack>
-                                );
-                              },
-                            )}
-                            {!regionMarkings?.[selectedZone]?.length && (
-                              <Box color="label">
-                                {regionLabel} has no markings yet.
-                              </Box>
-                            )}
-                          </>
-                        ) : (
-                          <Box color="label">
-                            {regionLabel} has no base markings.
-                          </Box>
+                                    <Box
+                                      inline
+                                      width="1rem"
+                                      height="0.8rem"
+                                      backgroundColor={marking.color}
+                                    />
+                                  </Button>
+                                </Stack.Item>
+                                <Stack.Item>
+                                  <Button
+                                    icon="trash"
+                                    disabled={!!selectedLock}
+                                    color="bad"
+                                    tooltip={`Remove ${marking.name}`}
+                                    onClick={() =>
+                                      act('removeBaseMarking', {
+                                        zone: selectedZone,
+                                        index: marking.index,
+                                      })
+                                    }
+                                  />
+                                </Stack.Item>
+                              </Stack>
+                            );
+                          },
                         )}
-                        <Box color="label" italic mt={0.5}>
-                          Click the body to choose a region.
-                        </Box>
+                        {(regionMarkings?.[selectedZone]?.length ?? 0) <
+                          (maxBaseMarkings ?? 0) && (
+                          <Button
+                            color="good"
+                            disabled={!!selectedLock}
+                            onClick={() =>
+                              act('addBaseMarking', {
+                                zone: selectedZone,
+                              })
+                            }
+                          >
+                            +
+                          </Button>
+                        )}
                       </Section>
                     </Stack.Item>
                   )}
                   {!!canChangeMarkings && (
                     <Stack.Item>
-                      <Section
-                        title="Base markings"
-                        buttons={
-                          <Button
-                            icon="plus"
-                            disabled={
-                              (baseMarkings?.length ?? 0) >=
-                              (maxBaseMarkings ?? 0)
-                            }
-                            onClick={() => act('addBaseMarking')}
-                          />
-                        }
-                      >
+                      <Section title="Base markings">
                         {(baseMarkings ?? []).map((marking) => {
                           // A limb takes each marking once, so a row offers only names no other row has claimed.
                           const choices = (baseMarkingChoices ?? []).filter(
@@ -776,10 +766,14 @@ export const CustomSpriteEditor = ({
                             </Stack>
                           );
                         })}
-                        {!baseMarkings?.length && (
-                          <Box color="label">
-                            This limb has no markings yet.
-                          </Box>
+                        {(baseMarkings?.length ?? 0) <
+                          (maxBaseMarkings ?? 0) && (
+                          <Button
+                            color="good"
+                            onClick={() => act('addBaseMarking')}
+                          >
+                            +
+                          </Button>
                         )}
                       </Section>
                     </Stack.Item>

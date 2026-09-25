@@ -86,8 +86,8 @@ canvas.
 - The selection drives the region's Base markings section ("Left arm base
   markings"), its Emissive checkbox (`Emissives - (Left arm, Front)`) and Clear
   ("Clear left arm"). A status line under the canvas names the region, adds
-  "(not in this view)" when it has no pixels in the current view, and says
-  "Click the body to choose a region".
+  "(not in this view)" when it has no pixels in the current view, and gives
+  the reason when the region is locked.
 - Fill floods only the region you click; other regions' pixels are boundaries.
   Every other tool follows the paintable mask, which is the union of all regions.
   Moved pixels belong to whichever region they land in.
@@ -100,8 +100,9 @@ the highlighted region's own pixels: brackets, tag and outline sit just outside
 it, at most over the edge of a neighbouring region. Unavailable pixels get a dark
 wash with faint horizontal scanlines, in every custom editor. The selected region
 gets target-lock corner brackets and a small name tag (`L. ARM`, `TORSO`) above
-the top-left bracket, or below the box when there's no room. Hovering another
-region outlines it faintly, just outside its pixels.
+the top-left bracket, or below the box when there's no room. The tag shows for
+a second and a half after a region is selected, then fades; the brackets stay.
+Hovering another region outlines it faintly, just outside its pixels.
 
 #### Tools and controls
 
@@ -146,9 +147,11 @@ region outlines it faintly, just outside its pixels.
   The row starts on the character's own background, or the artist's in the
   salon. The choice is never saved, since writing a preference would save and
   close the editor.
-- The window opens at 1000 by 780. Closing the window keeps the unsaved draft and
-  its history; reopening continues it with the Pencil selected. Changing direction
-  or using history cancels the current selection/drag.
+- The window opens at 1000 by 780, or 1100 by 920 for markings and tattoos, whose
+  wider side panel fits base markings, palette and preview without scrolling.
+  Closing the window keeps the unsaved draft and its history; reopening continues
+  it with the Pencil selected. Changing direction or using history cancels the
+  current selection/drag.
 
 | Shortcut | Action |
 | --- | --- |
@@ -234,13 +237,14 @@ the sidebar preview and the sampled palette, leaving the plain style shades. It
 changes nothing that gets saved.
 
 The markings editor owns each region's native markings the same way. The
-selected region's section, titled "Left arm base markings" with "Click the body
-to choose a region." underneath, adds, swaps, recolors and removes them, in layer
-order, with the drawing on top. The taur region carries no native limb markings
-and says so. These changes stay in the draft and support undo/redo. Saving
-writes them with the drawings. The salon's tattoo canvas has the same section.
-Salon work uses the recipient's markings and waits for their approval; it never
-edits the artist's character preferences.
+selected region's section, titled "Left arm base markings" (its tooltip says
+"Click the body to choose a region."), adds, swaps, recolors and removes them,
+in layer order, with the drawing on top. As in character setup, a green **+**
+under the rows adds one until the limb is full. The taur region carries no
+native limb markings, so it has no section. These changes stay in the draft and
+support undo/redo. Saving writes them with the drawings. The salon's tattoo
+canvas has the same section. Salon work uses the recipient's markings and waits
+for their approval; it never edits the artist's character preferences.
 
 **Blending options**, inside the Custom box, starts with both options off:
 
@@ -522,17 +526,19 @@ The flow:
 5. Accepting starts five seconds of finishing touches for custom hair, facial
    hair and tattoos alike. The drawing was the work. Snips or tattoo sounds and
    ambience play during these finishing touches too, and stop on completion or
-   interruption. The change is applied only if everything still checks out when
-   those five seconds finish. Ordinary haircut options keep their normal timings.
+   interruption. The recipient is told "Try not to move!", since moving
+   interrupts them. The change is applied only if everything still checks out
+   when those five seconds finish. Ordinary haircut options keep their normal
+   timings.
 6. **Accept permanently** saves after successful application, using the same
    character-slot checks and safe save path as **Save for future rounds**. The
    replaced saved style is kept as the previous style. An interrupted application
-   saves nothing. A failed save leaves the accepted look applied for this round
-   and reports the error in chat. There's no second prompt for someone else's
-   work: you already chose whether to save. Self-styling still shows **Save for
-   future rounds** and **Done** afterwards, since it skips the approval mirror.
-   Export belongs to the approval prompt; it isn't repeated here. The mirror
-   uses your chosen UI theme.
+   saves nothing. A successful save says nothing more; a failed one leaves the
+   accepted look applied for this round and reports the error in chat. There's
+   no second prompt for someone else's work: you already chose whether to save.
+   Self-styling still shows **Save for future rounds** and **Done** afterwards,
+   since it skips the approval mirror. Export belongs to the approval prompt; it
+   isn't repeated here. The mirror uses your chosen UI theme.
 
 The recipient must accept the start and the exact finished design. Closing or
 letting the mirror expire declines. Any edit withdraws a pending mirror.
