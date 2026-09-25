@@ -7333,6 +7333,7 @@
 #include "interface\fonts\vcr_osd_mono.dm"
 #include "modular_aphelion\master_files\code\datums\wires\_wires.dm"
 #include "modular_aphelion\master_files\code\game\objects\objs.dm"
+#include "modular_aphelion\master_files\code\game\objects\effects\landmarks.dm"
 #include "modular_aphelion\master_files\code\game\objects\items\plushes.dm"
 #include "modular_aphelion\master_files\code\game\objects\structures\signs\signs_misc.dm"
 #include "modular_aphelion\master_files\code\modules\admin\admin.dm"
