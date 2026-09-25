@@ -84,6 +84,6 @@ export type CustomSpriteEditorData = {
   visibleView?: string;
   /** Direction -> "1"/"0" rows: canvas pixels hair or a part draws over in game. Static data, markings only. */
   coverMask?: Partial<Record<Dir, string[]>> | null;
-  /** Whether this account has dismissed the layering notice: 0 or 1 from the server. */
-  layerTipSeen?: BooleanLike;
+  /** The covering parts named by the cover rows' marks: 1-9 then a-z index into it. Static data. */
+  coverParts?: string[];
 };

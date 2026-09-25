@@ -62,11 +62,12 @@ it('groups the tools with their hotkey letters and switches tools from them', ()
   expect(store.get(currentToolAtom)).toBe(tools[1]);
 });
 
-it('keeps Clear quiet and frames Import and Export as one pair', () => {
+it('frames Clear and history like their neighbours, and Import and Export as one pair', () => {
   const { view } = renderEditor('hair');
   const clear = screen.getByText('Clear layer').closest('.Button')!;
-  expect(clear.classList).toContain('Button--color--transparent');
+  expect(clear.classList).not.toContain('Button--color--transparent');
   expect(clear.classList).toContain('CustomSpriteEditor__clear');
+  expect(view.container.querySelector('.CustomSpriteEditor__ghost')).toBeNull();
   fireEvent.click(clear);
   expect(send).toHaveBeenLastCalledWith('clear', { dir: '2' });
   const files = screen
@@ -102,13 +103,6 @@ it('keeps every visibility toggle on show polarity in one tray', () => {
   expect(toggle('Grid').classList).toContain('Button--selected');
   expect(screen.queryByText('Hide parts')).toBeNull();
   expect(screen.queryByText('Hide underwear')).toBeNull();
-});
-
-it('shows no layering notice or info button in a hair editor', () => {
-  backendStore.set(gameDataAtom, { ...fixture(), layerTipSeen: 0 });
-  renderEditor('hair');
-  expect(screen.queryByText(/Markings layer beneath mutant parts/)).toBeNull();
-  expect(screen.queryByLabelText('How markings layer with parts')).toBeNull();
 });
 
 it('follows the server when it flips a visibility flag on refresh', () => {

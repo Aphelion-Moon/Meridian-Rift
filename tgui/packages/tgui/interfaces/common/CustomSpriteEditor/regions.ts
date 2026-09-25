@@ -147,12 +147,26 @@ export const coveredPaint = (
   const cells: PixelRect[] = [];
   frame.forEach((row, y) => {
     row.forEach((pixel, x) => {
-      if (cover[y]?.[x] === '1' && pixel && !pixel.endsWith('00')) {
+      const mark = cover[y]?.[x];
+      if (mark && mark !== '0' && pixel && !pixel.endsWith('00')) {
         cells.push([x, y, 1, 1]);
       }
     });
   });
   return cells;
+};
+
+/** The part covering a pixel: the row mark (1-9, then a-z) indexes the parts list. */
+export const coverPartAt = (
+  cover: string[] | undefined,
+  parts: string[] | undefined,
+  x: number,
+  y: number,
+): string | null => {
+  const mark = cover?.[y]?.[x];
+  if (!mark || mark === '0' || !parts) return null;
+  const index = parseInt(mark, 36);
+  return Number.isNaN(index) ? null : (parts[index - 1] ?? null);
 };
 
 /** Covered paint: a dark wash and a rising diagonal, so the paint still reads through. */

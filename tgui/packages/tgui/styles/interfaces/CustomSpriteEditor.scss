@@ -166,15 +166,25 @@
   opacity: 0.6;
 }
 
-// Undo and redo show a frame only while hovered or focused. A disabled one keeps the theme's
-// disabled frame, which every theme marks with !important.
-.CustomSpriteEditor__ghost .Button:not(:hover):not(:focus-visible) {
-  background-color: transparent;
-  border-color: transparent;
-  box-shadow: none;
+// The canvas box positions the covered-paint tip that follows the cursor.
+.CustomSpriteEditor__canvas {
+  position: relative;
 }
 
-// Clear reads as a warning, and fills only while hovered.
+.CustomSpriteEditor__coverTip {
+  position: absolute;
+  z-index: 2;
+  padding: 0 4px;
+  line-height: 13px;
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.72);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// Clear keeps its frame, reads as a warning, and fills only while hovered.
 .CustomSpriteEditor__clear.Button {
   color: var(--color-bad);
 }
@@ -199,26 +209,3 @@
   margin: 0;
 }
 
-.CustomSpriteEditor__trayDivider {
-  width: 1px;
-  height: 14px;
-  margin: 0 2px;
-  background: var(--color-border-dark);
-}
-
-.CustomSpriteEditor__banner {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  padding: 0.25em 0.5em;
-  border-left: 2px solid var(--color-average);
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.CustomSpriteEditor__banner > .Icon {
-  color: var(--color-average);
-}
-
-.CustomSpriteEditor__bannerSpacer {
-  flex: 1 1 auto;
-}

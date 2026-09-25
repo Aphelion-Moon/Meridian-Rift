@@ -345,39 +345,63 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		mask["[direction]"] = rows
 	return custom_sprite_cache_put(limb_masks, key, mask)
 
-/// One view of a cover look as "1"/"0" rows: the canvas pixels something drawn over the body layer occupies.
-/// With `cache_key` (from custom_sprite_cover_appearance), the same look reuses its rows across rebuilds and editors.
-/// `bounds` (0-based, inclusive x0, y0, x1, y1) limits the pixel reads to the drawable box; outside it is clear.
-/proc/custom_sprite_cover_rows(mutable_appearance/cover, direction, width = 32, cache_key, list/bounds)
-	// Bounded cache of flattened cover rows, keyed by the images that made them.
+/**
+ * One view of the cover looks as rows of marks: "0" where nothing covers, else the mark of the
+ * topmost look (custom_sprite_cover_char(N) for looks[N]). Only images drawn after `above_layer`
+ * count, so the same looks serve body paint and hand paint. `bounds` (0-based, inclusive x0, y0,
+ * x1, y1) limits the pixel reads to the drawable box; outside it is clear. With `cache_key` (from
+ * custom_sprite_cover_looks), the same look reuses its rows across rebuilds and editors.
+ */
+/proc/custom_sprite_cover_rows(list/looks, direction, width = 32, above_layer = -BODYPARTS_LAYER, cache_key, list/bounds)
+	// Bounded cache of flattened cover rows, keyed by the looks that made them.
 	var/static/list/cover_masks = list()
-	var/key = cache_key ? "[cache_key]|[direction]|[width]|[json_encode(bounds)]" : null
+	var/key = cache_key ? "[cache_key]|[above_layer]|[direction]|[width]|[json_encode(bounds)]" : null
 	if(key && cover_masks[key])
 		return cover_masks[key]
-	var/icon/flat = custom_sprite_flat_icon(cover, text2num(direction), width)
-	var/list/rows = list()
-	// Nothing to flatten (a bare, bald body) comes back as no icon at all.
-	if(!flat)
-		var/empty = repeat_string(width, "0")
-		for(var/y in 1 to 32)
-			rows += empty
-		return key ? custom_sprite_cache_put(cover_masks, key, rows) : rows
 	var/x0 = bounds ? bounds[1] : 0
 	var/y0 = bounds ? bounds[2] : 0
 	var/x1 = bounds ? bounds[3] : width - 1
 	var/y1 = bounds ? bounds[4] : 31
-	var/left = repeat_string(x0, "0")
-	var/right = repeat_string(width - 1 - x1, "0")
-	var/empty = repeat_string(width, "0")
-	for(var/y in 0 to 31)
-		if(y < y0 || y > y1)
-			rows += empty
-			continue
+	var/list/grid = list()
+	for(var/y in 1 to 32)
 		var/list/row = list()
-		for(var/x in x0 to x1)
-			row += flat.GetPixel(x + 1, 32 - y) ? "1" : "0"
-		rows += "[left][jointext(row, "")][right]"
+		for(var/x in 1 to width)
+			row += "0"
+		grid += list(row)
+	// Stamp each look from the lowest up, so the last mark on a pixel names the part on top.
+	for(var/index in 1 to length(looks))
+		var/list/look = looks[index]
+		var/mutable_appearance/cover = new
+		for(var/mutable_appearance/image as anything in look["images"])
+			if(image.layer <= above_layer)
+				continue
+			cover.overlays += image
+		if(!length(cover.overlays))
+			continue
+		// Nothing to flatten comes back as no icon at all.
+		var/icon/flat = custom_sprite_flat_icon(cover, text2num(direction), width)
+		if(!flat)
+			continue
+		var/mark = custom_sprite_cover_char(index)
+		for(var/y in y0 to y1)
+			var/list/row = grid[y + 1]
+			for(var/x in x0 to x1)
+				if(flat.GetPixel(x + 1, 32 - y))
+					row[x + 1] = mark
+	var/list/rows = list()
+	for(var/list/row as anything in grid)
+		rows += jointext(row, "")
 	return key ? custom_sprite_cache_put(cover_masks, key, rows) : rows
+
+/// The mark that names looks[index] in cover rows: 1 to 9, then a to z.
+/proc/custom_sprite_cover_char(index)
+	return copytext("123456789abcdefghijklmnopqrstuvwxyz", index, index + 1)
+
+/// The looks' labels in mark order, for the window's tooltip.
+/proc/custom_sprite_cover_labels(list/looks)
+	. = list()
+	for(var/list/look as anything in looks)
+		. += look["label"]
 
 /// Nova's character preview backgrounds as tiles for the custom editors' background swatches.
 /proc/custom_sprite_background_tiles()

@@ -2,6 +2,7 @@
 import { expect, it } from 'bun:test';
 import {
   bracketBars,
+  coverPartAt,
   coveredPaint,
   drawCoveredPaint,
   drawScanlines,
@@ -64,7 +65,8 @@ it('draws scanlines only inside the shaded areas, on every third screen row', ()
 });
 
 it('lists only painted pixels the cover rows mark, and tolerates short rows', () => {
-  const cover = ['1100', '0010'];
+  // Each mark names the covering part; only "0" is clear.
+  const cover = ['1200', '0010'];
   const frame = [
     ['#ff0000ff', '#00000000', '#ff0000ff', '#ff0000ff'],
     ['#ff0000ff', '#ff0000ff', '#ff0000ff', '#ff0000ff'],
@@ -90,4 +92,17 @@ it('washes and hatches each covered pixel with fill rects only', () => {
   expect(calls[0]).toEqual(['rgba(0, 0, 0, 0.45)', 10, 20, 10, 10]);
   expect(calls[1]).toEqual(['rgba(255, 255, 255, 0.55)', 10, 29, 1, 1]);
   expect(calls).toHaveLength(11);
+});
+
+it('names the part covering a pixel from the row mark', () => {
+  const cover = ['1230'];
+  const parts = ['hair', 'snout', 'wings'];
+  expect(coverPartAt(cover, parts, 0, 0)).toBe('hair');
+  expect(coverPartAt(cover, parts, 1, 0)).toBe('snout');
+  expect(coverPartAt(cover, parts, 2, 0)).toBe('wings');
+  expect(coverPartAt(cover, parts, 3, 0)).toBeNull();
+  expect(coverPartAt(cover, parts, 0, 5)).toBeNull();
+  expect(coverPartAt(['a'], parts, 0, 0)).toBeNull();
+  expect(coverPartAt(undefined, parts, 0, 0)).toBeNull();
+  expect(coverPartAt(cover, undefined, 0, 0)).toBeNull();
 });

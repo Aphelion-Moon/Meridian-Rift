@@ -34,7 +34,7 @@ import {
 import { decodeCanvas } from './canvas';
 import { CustomSpritePalette } from './Palette';
 import { RegionOverlay } from './RegionOverlay';
-import { drawScanlines, regionAt, regionBounds } from './regions';
+import { coverPartAt, drawScanlines, regionAt, regionBounds } from './regions';
 import type { CustomSpriteEditorData } from './types';
 
 /** Steps through a list of options with wraparound, for the cycle arrows and rotate buttons. */
@@ -106,14 +106,14 @@ const directions = [
 const rotation = [Dir.SOUTH, Dir.WEST, Dir.NORTH, Dir.EAST];
 
 const blendingTooltip = 'Uses Multiply blending on Custom colors.';
+/** How long the cursor rests on covered paint before the tip names the part over it. */
+const COVER_TIP_DELAY_MS = 400;
+
 /** What the toolbar spreads onto each tool button; the hotkey rides along as a data attribute. */
 type ToolButtonProps = ReturnType<
   NonNullable<Parameters<typeof SpriteEditor.Toolbar>[0]['perButtonProps']>
 >;
 
-/** Shown by the banner and the info button, verbatim from the design. */
-const LAYER_TIP =
-  'Markings layer beneath mutant parts (like snouts) and will not show in game so long as those parts are present.';
 /** Markings and tattoo window size, tall enough that the side panel doesn't scroll. */
 const MARKINGS_WINDOW = [1100, 920] as const;
 /** Wide enough that base marking names aren't cut short beside their buttons. */
@@ -181,7 +181,7 @@ export const CustomSpriteEditor = ({
     defaultBackground,
     visibleView,
     coverMask,
-    layerTipSeen,
+    coverParts,
   } = data;
   const sprite = useMemo(
     () => decodeCanvas(editorData.sprite),
@@ -200,8 +200,6 @@ export const CustomSpriteEditor = ({
     image: HTMLImageElement;
   }>();
   const [showGrid, setShowGrid] = useState(false);
-  // The info button brings the layering message back after it was dismissed for the account.
-  const [tipOpen, setTipOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [background, setBackground] = useState(
     defaultBackground ?? 'Transparent',
@@ -216,6 +214,21 @@ export const CustomSpriteEditor = ({
   const zones = regionZones ?? [];
   const [selectedZone, setSelectedZone] = useState(serverZone ?? null);
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
+  // The part hiding the paint under the cursor, shown as a tip once the cursor rests there.
+  const [coverTip, setCoverTip] = useState<{
+    x: number;
+    y: number;
+    label: string;
+  } | null>(null);
+  const coverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearCoverTip = () => {
+    if (coverTimer.current) {
+      clearTimeout(coverTimer.current);
+      coverTimer.current = null;
+    }
+    setCoverTip(null);
+  };
+  useEffect(() => clearCoverTip, []);
   useEffect(() => setSelectedZone(serverZone ?? null), [focusRevision]);
   const regionLabel = (selectedZone && regionLabels?.[selectedZone]) || '';
   // Regions the server won't change right now, each with the reason, such as clothing covering it.
@@ -243,15 +256,38 @@ export const CustomSpriteEditor = ({
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const { width, height } = sprite;
-    const zone = regionAt(
-      regionRows,
-      zones,
-      Math.floor(((event.clientX - rect.left) / rect.width) * width),
-      Math.floor(((event.clientY - rect.top) / rect.height) * height),
-    );
+    const px = Math.floor(((event.clientX - rect.left) / rect.width) * width);
+    const py = Math.floor(((event.clientY - rect.top) / rect.height) * height);
+    const zone = regionAt(regionRows, zones, px, py);
     // Locked regions can't be picked, so they don't light up either.
     const hovered = lockReason(zone) ? null : zone;
     if (hovered !== hoveredZone) setHoveredZone(hovered);
+    // Only painted, covered pixels get the tip: the same pixels the overlay hatches. It waits for
+    // the cursor to rest, so flicking across paint mid-stroke never puts anything in the way.
+    const pixel = sprite.layers[0]?.data[direction]?.[py]?.[px];
+    const label =
+      pixel && !pixel.endsWith('00') && !event.buttons
+        ? coverPartAt(coverMask?.[direction], coverParts, px, py)
+        : null;
+    if (!label) {
+      clearCoverTip();
+      return;
+    }
+    const box = event.currentTarget.getBoundingClientRect();
+    const tip = {
+      x: event.clientX - box.left + 14,
+      y: event.clientY - box.top + 14,
+      label,
+    };
+    if (coverTip?.label === label) {
+      setCoverTip(tip);
+      return;
+    }
+    clearCoverTip();
+    coverTimer.current = setTimeout(() => {
+      coverTimer.current = null;
+      setCoverTip(tip);
+    }, COVER_TIP_DELAY_MS);
   };
   const lastSaveRevision = useRef(saveRevision);
   const nextDrawingActivity = useRef(0);
@@ -518,18 +554,6 @@ export const CustomSpriteEditor = ({
                   >
                     Grid
                   </Button>
-                  {regionMode && (
-                    <>
-                      <span className="CustomSpriteEditor__trayDivider" />
-                      <Button
-                        color="transparent"
-                        icon="circle-info"
-                        tooltip={LAYER_TIP}
-                        aria-label="How markings layer with parts"
-                        onClick={() => setTipOpen(true)}
-                      />
-                    </>
-                  )}
                 </div>
               </Stack.Item>
             </Stack>
@@ -554,16 +578,15 @@ export const CustomSpriteEditor = ({
                 />
               </Stack.Item>
               <Stack.Item className="CustomSpriteEditor__divider" />
-              <Stack.Item className="CustomSpriteEditor__ghost">
+              <Stack.Item>
                 <SpriteEditor.Undo stack={editorData.undoStack} />
               </Stack.Item>
-              <Stack.Item className="CustomSpriteEditor__ghost">
+              <Stack.Item>
                 <SpriteEditor.Redo stack={editorData.redoStack} />
               </Stack.Item>
               <Stack.Item className="CustomSpriteEditor__divider" />
               <Stack.Item>
                 <Button
-                  color="transparent"
                   className="CustomSpriteEditor__clear"
                   icon="broom"
                   disabled={regionMode && (!selectedZone || !!selectedLock)}
@@ -611,25 +634,6 @@ export const CustomSpriteEditor = ({
               </Stack.Item>
             </Stack>
           </Stack.Item>
-          {regionMode &&
-            (tipOpen || (layerTipSeen !== undefined && !layerTipSeen)) && (
-              <Stack.Item>
-                <div className="CustomSpriteEditor__banner">
-                  <Icon name="lightbulb" />
-                  <span>{LAYER_TIP}</span>
-                  <span className="CustomSpriteEditor__bannerSpacer" />
-                  <Button
-                    color="transparent"
-                    onClick={() => {
-                      setTipOpen(false);
-                      if (!layerTipSeen) act('dismissLayerTip');
-                    }}
-                  >
-                    Got it
-                  </Button>
-                </div>
-              </Stack.Item>
-            )}
           <Stack.Item grow basis={0} minHeight={0}>
             <Stack fill>
               <Stack.Item grow minWidth={0} minHeight={0}>
@@ -642,7 +646,10 @@ export const CustomSpriteEditor = ({
                       p={1}
                       style={{ overflow: 'hidden', boxSizing: 'border-box' }}
                       onMouseMove={trackHover}
-                      onMouseLeave={() => setHoveredZone(null)}
+                      onMouseLeave={() => {
+                        setHoveredZone(null);
+                        clearCoverTip();
+                      }}
                     >
                       <SpriteEditor.Canvas
                         data={sprite}
@@ -703,6 +710,14 @@ export const CustomSpriteEditor = ({
                             : undefined
                         }
                       />
+                      {!!coverTip && (
+                        <div
+                          className="CustomSpriteEditor__coverTip"
+                          style={{ left: coverTip.x, top: coverTip.y }}
+                        >
+                          Hidden by {coverTip.label}
+                        </div>
+                      )}
                     </Box>
                   </Stack.Item>
                   {regionMode && !!selectedLock && (

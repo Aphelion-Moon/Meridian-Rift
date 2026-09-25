@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { expect, it, spyOn } from 'bun:test';
+import { expect, it, jest, spyOn } from 'bun:test';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
@@ -337,25 +337,45 @@ it('names the selected region beside the view and drops the chip when nothing is
   expect(clear.classList).toContain('Button--disabled');
 });
 
-it('shows the layering notice until it is dismissed for the account, and reopens it from the info button', () => {
-  // The server sends 0 and 1, never JS booleans.
-  const { view, editor } = renderRegions({
-    ...regionFixture(),
-    layerTipSeen: 0,
-  });
-  expect(
-    screen.getByText(/Markings layer beneath mutant parts \(like snouts\)/),
-  ).toBeTruthy();
-  fireEvent.click(screen.getByText('Got it'));
-  expect(send).toHaveBeenLastCalledWith('dismissLayerTip');
-  backendStore.set(gameDataAtom, { ...regionFixture(), layerTipSeen: 1 });
-  view.rerender(editor());
-  expect(screen.queryByText(/Markings layer beneath mutant parts/)).toBeNull();
-  // The info button brings the message back for keyboard and mouse users alike; closing it sends nothing.
-  send.mockClear();
-  fireEvent.click(screen.getByLabelText('How markings layer with parts'));
-  expect(screen.getByText(/Markings layer beneath mutant parts/)).toBeTruthy();
-  fireEvent.click(screen.getByText('Got it'));
-  expect(screen.queryByText(/Markings layer beneath mutant parts/)).toBeNull();
-  expect(send).not.toHaveBeenCalledWith('dismissLayerTip');
+it('names the part that hides the paint under the cursor, after a short hover', () => {
+  jest.useFakeTimers();
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const data = regionFixture();
+    data.coverMask = {
+      2: [
+        '12'.padEnd(32, '0'),
+        ...Array.from({ length: 31 }, () => '0'.repeat(32)),
+      ],
+    };
+    data.coverParts = ['hair', 'snout'];
+    const { view } = renderRegions(data);
+    const box = view.container.querySelector('.CustomSpriteEditor__canvas')!;
+    const settle = () => act(() => jest.advanceTimersByTime(400));
+    // Flicking across covered paint shows nothing; resting on it does.
+    fireEvent.mouseMove(box, { clientX: 5, clientY: 5 });
+    expect(screen.queryByText(/Hidden by/)).toBeNull();
+    settle();
+    expect(screen.getByText('Hidden by hair')).toBeTruthy();
+    fireEvent.mouseMove(box, { clientX: 15, clientY: 5 });
+    expect(screen.queryByText(/Hidden by/)).toBeNull();
+    settle();
+    expect(screen.getByText('Hidden by snout')).toBeTruthy();
+    // A stroke in progress never gets a tip.
+    fireEvent.mouseMove(box, { clientX: 5, clientY: 5, buttons: 1 });
+    settle();
+    expect(screen.queryByText(/Hidden by/)).toBeNull();
+    fireEvent.mouseMove(box, { clientX: 55, clientY: 5 });
+    settle();
+    expect(screen.queryByText(/Hidden by/)).toBeNull();
+    fireEvent.mouseMove(box, { clientX: 5, clientY: 5 });
+    fireEvent.mouseLeave(box);
+    settle();
+    expect(screen.queryByText(/Hidden by/)).toBeNull();
+  } finally {
+    getBounds.mockRestore();
+  }
 });

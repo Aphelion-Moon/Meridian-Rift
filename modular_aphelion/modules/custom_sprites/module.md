@@ -110,10 +110,11 @@ Hovering another region outlines it faintly, just outside its pixels.
 
 Paint that hair or a mutant part draws over in game (anything on a layer above the
 marking layer: snouts, ears, tails, wings, hair) is washed dark and struck through on
-the canvas, whether or not the guide shows that part. The server builds those pixels
-once per body geometry with the guides (`custom_sprite_cover_appearance()` flattened by
-`custom_sprite_cover_rows()`) and sends them as the static `coverMask` rows; hair editors
-send none. Nothing is recomputed per stroke. The rows are cached by what they were
+the canvas, whether or not the guide shows that part, and hovering such a pixel names the
+part on top: "Hidden by snout" (the hair layer is always "hair"). The server builds those
+pixels once per body geometry with the guides (`custom_sprite_cover_looks()` stamped into
+rows by `custom_sprite_cover_rows()`, lowest look first) and sends them as the static
+`coverMask` rows of marks with the `coverParts` labels they index; hair editors send none. Nothing is recomputed per stroke. The rows are cached by what they were
 flattened from (each part's render key and placement, the hair look, the body height and the
 paint layer), so a Parts or Underwear toggle, a salon clothing refresh or a reopened editor
 reuses them, and only the view's own drawable box, before any view lock, is read pixel by
@@ -124,8 +125,8 @@ parts (`custom_sprite_merge_cover_rows()`), and the taur's paint is never covere
 
 - The tools sit in one framed group, the active tool filled. Tools with a hotkey show
   the letter in their corner (M, B, E, G); tooltips keep the full name. Undo and redo
-  follow as ghost buttons, then Clear, with a thin rule between the groups. Import and
-  Export stay in the toolbar as one framed pair.
+  follow, then Clear, each framed like any other button, with a thin rule between the
+  groups. Import and Export stay in the toolbar as one framed pair.
 - Select comes first in the toolbar. Drag a box, then drag inside it to move the
   selected paint. The box can start in a shaded area, and you can grab it there
   too. All painted pixels in the box move, including old paint left in a shaded
@@ -147,7 +148,7 @@ parts (`custom_sprite_merge_cover_rows()`), and the taur's paint is never covere
   A selection move is one action,
   including overlapping moves and pixels it replaces. Custom drawing history
   keeps up to 100 actions and lasts only for that editor session.
-- Clear is a transparent button in the danger colour that fills red on hover and
+- Clear is a framed button in the danger colour that fills red on hover and
   clears the current direction. With no region selected it reads **Clear region** and
   is disabled. It can
   also remove old paint outside bounds that changed with the character's body
@@ -163,15 +164,6 @@ parts (`custom_sprite_merge_cover_rows()`), and the taur's paint is never covere
   underwear included unless hidden, and excludes the drawing being edited. Parts only
   changes the guide; the preview always shows hair and parts. Guide and paint share
   the same canvas and pixel grid.
-- Markings editors end the tray with an info button whose tooltip is the layering
-  message: "Markings layer beneath mutant parts (like snouts) and will not show in
-  game so long as those parts are present." The same message shows as a banner under
-  the toolbar until **Got it** dismisses it for the account: the `dismissLayerTip`
-  action writes the hidden player preference `custom_marking_layer_tip_seen`
-  directly, like the palette, so the editor stays open, and refreshes every other
-  open editor of the account. The info button reopens the message in that window. `layerTipSeen` in the UI
-  data says whether it has been dismissed. A salon editor uses the artist's
-  preferences.
 - Markings editors name the selected region beside the view switcher, with
   "(not in this view)" when the region has no pixels in that view; the status line
   under the canvas keeps only a locked region's reason.
@@ -320,7 +312,6 @@ validates and selects that slot's drawings from the loaded data.
 | `characterN.hair` | One custom hair drawing for that character slot. |
 | `characterN.limb_markings` | Drawings keyed by `head`, `chest`, `l_arm`, `r_arm`, `l_leg`, `r_leg` and `taur`. Unknown zones are discarded. |
 | `custom_sprite_palette` in `preferences.json` | The account's Custom swatches, separate from drawing data. |
-| `custom_marking_layer_tip_seen` in `preferences.json` | Whether the account dismissed the markings editors' layering notice. Hidden from the preferences window. |
 
 A drawing stores `version`, `palette`, `dirs`, `tint` and optional `emissive`
 metadata. Direction keys are BYOND's `"2"` (Front/South), `"1"` (Back/North),
@@ -946,12 +937,12 @@ All paths here are relative to this module unless stated otherwise.
 
 | File | Types, overrides and owned behavior |
 | --- | --- |
-| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()`, `context_ui_data()` and `update_restorable()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. Guides and previews are drawn per view (`render_view()`, the `setView` action). Guides, the mask and the region map are static data, sent when `static_dirty`. Adds the hidden `/datum/preference/toggle/custom_marking_layer_tip_seen`, `layer_tip_seen()`, the `dismissLayerTip` action and `layerTipSeen`; captures `cover_appearance` in `rebuild_resources()` and publishes `cover_rows` as the static `coverMask` with each view's guide. |
+| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()`, `context_ui_data()` and `update_restorable()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. Guides and previews are drawn per view (`render_view()`, the `setView` action). Guides, the mask and the region map are static data, sent when `static_dirty`. Captures `cover_appearance` in `rebuild_resources()` and publishes `cover_rows` as the static `coverMask` with each view's guide. |
 | `code/markings_editor.dm` | `/datum/custom_sprite_editor/markings`: the whole-body window, region selection and focus, per-region emissive, Clear and base markings, changed-region saves, previews, export/restore prompts and region imports. Also `custom_sprite_apply_region_results()`. Context hooks `reference_packages()`, `locked_regions()` and `map_follows_body()`; region locks shade and refuse locked regions. |
 | `code/regions.dm` | Present regions in draw order, region ID colors, the cached per-view region map composed through the real overlay types, region lookup and the paintable mask. `custom_sprite_merge_cover_rows()` blends body and hand covers by region owner. |
 | `code/composite.dm` | Composes region drawings into one canvas and splits an edited canvas back into per-region drawings by the save rule. |
 | `code/salon.dm` | `/datum/custom_sprite_salon` session over a set of drawings (one for hair, one per region for a tattoo), request/restore procs including the whole-body-or-region restore choice, live style packages and preview dummies, five-second round application of the touched drawings, optional approved save and per-drawing history on `/mob/living/carbon/human`. Brush sounds and the salon's window actions live on the session. `/datum/custom_sprite_editor/salon` (hair) and `/datum/custom_sprite_editor/markings/salon` (the tattoo canvas, which locks regions the recipient can't be tattooed on) override the context hooks, `can_edit()` and UI lifecycle procs. Recipient overlay signals coalesce guide refreshes; equipment signals resync region and mirror locks at once. |
-| `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images drawn per view (`render_view()`, the `setView` action), approval-only export, result window and recipient saves, the tattoo change list and one-write saves of every applied region. `custom_sprite_cover_appearance()` gathers hair and the mutant part images drawn above a paint layer, keyed by `custom_sprite_hair_cover_key()`, each part's render key and `custom_sprite_placement_key()`. |
+| `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images drawn per view (`render_view()`, the `setView` action), approval-only export, result window and recipient saves, the tattoo change list and one-write saves of every applied region. `custom_sprite_cover_looks()` gathers the hair and each mutant part drawn on the body as labelled looks, lowest layer first, keyed by `custom_sprite_hair_cover_key()`, each part's render key and `custom_sprite_placement_key()`. |
 | `code/tools.dm` | `/obj/item/tattoo_machine`, which opens the tool menu on the whole body; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
 | `code/transfer.dm` | Style package format, strict validation, export text, geometry checks and transfer helpers, including the whole-body `"target": "body"` file. |
 | `code/saved_styles.dm` | Previous saved styles and complete hair and native marking saves. `commit_custom_styles()` validates and writes several regions in one sidecar write. |
@@ -960,7 +951,7 @@ All paths here are relative to this module unless stated otherwise.
 | `code/palette.dm` | `/datum/preference/custom_sprite_palette` implements account storage, default/deserialize/serialize/validation and `is_accessible()`. Its UI is owned by the editor. |
 | `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `sprite_editor_ui_data()`. Owns palette validation, mask-aware fill, history limits, serialization, the window's compact canvas (`canvas_ui_data()`), Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` and `sanitize_transaction()` helpers. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. The region canvas refuses locked regions for every tool and selection move. |
 | `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers. Re-creating an arm's zone overlay moves its hand overlays back above it. |
-| `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. `custom_sprite_cover_rows()` flattens one view of that cover look into `1`/`0` rows, cached by the cover key and read only inside the drawable box. |
+| `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. `custom_sprite_cover_rows()` stamps one view of those looks into rows of marks above a paint layer, cached by the cover key and read only inside the drawable box; `custom_sprite_cover_char()` and `custom_sprite_cover_labels()` name the marks. |
 | `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization, content hashes, arm/hand partners and zone widths. |
 
 ### Defines:

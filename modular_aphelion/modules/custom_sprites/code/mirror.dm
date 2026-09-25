@@ -28,43 +28,63 @@
 	return appearance
 
 /**
- * Everything the body draws over the marking layer, so the editor can show which paint a part hides.
- *
- * Hair and every mutant part image drawn above BODYPARTS_LAYER count, offset the way get_limb_icon()
- * draws them. Parts behind the body, hidden parts, the taur body (which carries its own paint) and
- * emissive images are left out. `above_layer` is the paint layer being covered: only images drawn
- * after it count. `key`, when given, collects what each included image is drawn from and where it
- * lands, so callers can cache the flattened rows by geometry.
+ * The looks that can hide paint: the hair, then every mutant part drawn on the body. Each look
+ * carries its images, offset the way get_limb_icon() draws them, the highest layer it draws on
+ * and a label for the window. Looks come lowest layer first, so stamping them in order leaves the
+ * topmost part at each pixel. Parts behind the body, hidden parts, the taur body (which carries
+ * its own paint) and emissive images are left out. `key`, when given, collects what each look is
+ * drawn from and where it lands, so rows flattened from these looks can be cached by geometry.
  */
-/proc/custom_sprite_cover_appearance(mob/living/carbon/human/body, list/key, above_layer = -BODYPARTS_LAYER)
-	var/mutable_appearance/cover = new
+/proc/custom_sprite_cover_looks(mob/living/carbon/human/body, list/key)
+	var/list/looks = list()
 	if(key)
-		key += list(above_layer, body.mob_height)
+		key += body.mob_height
 	var/list/hair = body.overlays_standing[HAIR_LAYER]
 	if(length(hair))
-		cover.overlays += hair
+		var/list/images = list()
+		var/top = -INFINITY
+		for(var/mutable_appearance/strand as anything in hair)
+			if(PLANE_TO_TRUE(strand.plane) == EMISSIVE_PLANE)
+				continue
+			images += strand
+			top = max(top, strand.layer)
+			if(key)
+				key += custom_sprite_placement_key(strand)
+		if(length(images))
+			looks += list(list("label" = "hair", "layer" = top, "images" = images))
 		if(key)
 			key += custom_sprite_hair_cover_key(body)
-			for(var/mutable_appearance/strand as anything in hair)
-				key += custom_sprite_placement_key(strand)
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
 		for(var/datum/bodypart_overlay/mutant/part in limb.bodypart_overlays)
 			if(istype(part, /datum/bodypart_overlay/mutant/taur_body) || !part.can_draw_on_bodypart(limb, body))
 				continue
-			var/included = FALSE
+			var/list/images = list()
+			var/top = -INFINITY
 			for(var/mutable_appearance/image as anything in part.get_all_overlays(limb))
-				// Only images drawn after the paint layer can hide paint.
-				if(PLANE_TO_TRUE(image.plane) == EMISSIVE_PLANE || image.layer <= above_layer)
+				if(PLANE_TO_TRUE(image.plane) == EMISSIVE_PLANE)
 					continue
 				body.apply_height(image, part.offset_location)
-				cover.overlays += image
+				images += image
+				top = max(top, image.layer)
 				if(key)
-					if(!included)
-						// The part's render key names its art; generated icons have no path to key by.
-						key += list(json_encode(part.icon_render_key(limb)), "[limb.limb_gender]|[part.offset_location]")
-						included = TRUE
 					key += custom_sprite_placement_key(image)
-	return cover
+			if(!length(images))
+				continue
+			looks += list(list("label" = replacetext(part.feature_key, "_", " "), "layer" = top, "images" = images))
+			if(key)
+				// The part's render key names its art; generated icons have no path to key by.
+				key += list(json_encode(part.icon_render_key(limb)), "[limb.limb_gender]|[part.offset_location]")
+	// Lowest look first: the last one stamped on a pixel is the one on top.
+	var/list/sorted = list()
+	for(var/list/look as anything in looks)
+		var/position = 1
+		while(position <= length(sorted))
+			var/list/other = sorted[position]
+			if(other["layer"] > look["layer"])
+				break
+			position++
+		sorted.Insert(position, list(look))
+	return sorted
 
 /// The look the head's hair images were built from: those icons are generated at runtime and can't be keyed by path.
 /proc/custom_sprite_hair_cover_key(mob/living/carbon/human/body)

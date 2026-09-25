@@ -1,17 +1,6 @@
 /// Editing can be disabled without removing any saved appearance.
 /datum/config_entry/flag/disallow_custom_sprite_editing
 
-/// Whether the markings editors' layering notice has been dismissed. The editor owns this preference's UI.
-/datum/preference/toggle/custom_marking_layer_tip_seen
-	category = PREFERENCE_CATEGORY_GAME_PREFERENCES
-	savefile_identifier = PREFERENCE_PLAYER
-	savefile_key = "custom_marking_layer_tip_seen"
-	default_value = FALSE
-
-/datum/preference/toggle/custom_marking_layer_tip_seen/is_accessible(datum/preferences/preferences)
-	. = ..()
-	return FALSE
-
 /datum/preference_middleware/custom_sprites
 	action_delegations = list("open_custom_sprite_editor" = PROC_REF(open_editor))
 
@@ -160,15 +149,12 @@
 	var/visible_direction = "2"
 	/// The guide's look as the last rebuild captured it, flattened one view at a time.
 	var/mutable_appearance/guide_appearance
-	/// Hair and parts drawn over the marking layer, captured with the guide. Paint under them is hidden in game.
-	var/mutable_appearance/cover_appearance
-	/// Direction -> 32 row strings marking canvas pixels hair or a part covers.
+	/// Hair and parts drawn over the body, captured with the guide, lowest layer first. Paint under them is hidden in game.
+	var/list/cover_looks
+	/// Direction -> 32 row strings marking which of cover_looks covers each canvas pixel.
 	var/list/cover_rows = list()
-	/// What cover_appearance was built from, so its rows come from the shared cache.
+	/// What cover_looks were built from, so their rows come from the shared cache.
 	var/cover_key
-	/// The same look above the hand paint layer, for hand pixels, with its key.
-	var/mutable_appearance/cover_high_appearance
-	var/cover_high_key
 	/// Hair guide shifts, applied in order: south by the hairstyle offset, then west and south by the species offset.
 	var/list/guide_shift
 	/// Direction -> TRUE for views whose guide predates the last rebuild.
@@ -289,9 +275,6 @@
 /datum/custom_sprite_editor/proc/can_hide_parts()
 	return !custom_style_hair_target(target)
 
-/// Whether the owner has dismissed the layering notice. Editors without preferences, such as a salon session's, never show it.
-/datum/custom_sprite_editor/proc/layer_tip_seen()
-	return !preferences || !!preferences.read_preference(/datum/preference/toggle/custom_marking_layer_tip_seen)
 
 /// Context hook: whether underwear can be left out of guides and previews.
 /datum/custom_sprite_editor/proc/can_hide_underwear()
@@ -402,17 +385,12 @@
 	if(!isnull(workspace.markings_context))
 		apply_draft_base_markings()
 	// Captured before parts are taken off for the guide: paint under them is covered whether or not the guide shows them.
-	cover_appearance = null
+	cover_looks = null
 	cover_key = null
-	cover_high_appearance = null
-	cover_high_key = null
 	if(target == "markings")
 		var/list/key = list()
-		cover_appearance = custom_sprite_cover_appearance(preview_body, key)
+		cover_looks = custom_sprite_cover_looks(preview_body, key)
 		cover_key = json_encode(key)
-		var/list/high_key = list()
-		cover_high_appearance = custom_sprite_cover_appearance(preview_body, high_key, -BODYPARTS_HIGH_LAYER)
-		cover_high_key = json_encode(high_key)
 	cover_rows = list()
 	// Everything taken off the body for the guides, mapped to its limb, to put back afterwards.
 	var/list/hidden_overlays
@@ -489,10 +467,8 @@
 	preview_hash = null
 	guide_appearance = null
 	preview_appearance = null
-	cover_appearance = null
+	cover_looks = null
 	cover_key = null
-	cover_high_appearance = null
-	cover_high_key = null
 	cover_rows = list()
 	stale_guides = list()
 	stale_previews = list()
@@ -523,7 +499,7 @@
 			guide.Shift(SOUTH, guide_shift[3])
 	guide_icons[direction] = guide
 	guide_urls[direction] = publish_icon(guide)
-	if(cover_appearance)
+	if(cover_looks)
 		cover_rows[direction] = cover_rows_for(direction)
 	stale_guides -= direction
 	static_dirty = TRUE
@@ -531,7 +507,7 @@
 
 /// Context hook: one view's cover rows, read inside the view's own box before any lock so an unlocked view is right at once.
 /datum/custom_sprite_editor/proc/cover_rows_for(direction)
-	return custom_sprite_cover_rows(cover_appearance, direction, workspace.width, cover_key, unlocked_bounds ? unlocked_bounds[direction] : null)
+	return custom_sprite_cover_rows(cover_looks, direction, workspace.width, -BODYPARTS_LAYER, cover_key, unlocked_bounds ? unlocked_bounds[direction] : null)
 
 /// Draws one view of the preview captured for preview_hash.
 /datum/custom_sprite_editor/proc/render_preview(direction)
@@ -654,6 +630,7 @@
 	.["guides"] = guide_urls
 	.["drawMask"] = workspace.draw_mask
 	.["coverMask"] = cover_rows
+	.["coverParts"] = cover_looks ? custom_sprite_cover_labels(cover_looks) : list()
 
 /datum/custom_sprite_editor/ui_data(mob/user)
 	sync_locked_views(push = FALSE)
@@ -680,7 +657,6 @@
 	data["hideParts"] = hide_parts
 	data["canHideUnderwear"] = can_hide_underwear()
 	data["hideUnderwear"] = hide_underwear
-	data["layerTipSeen"] = layer_tip_seen()
 	// TGUI merges updates, so an absent candidate must explicitly clear the previous preview.
 	data["candidate"] = candidate ? list("source" = candidate["source"], "previews" = candidate["previews"], "summary" = candidate["summary"]) : null
 	return data + context_ui_data()
@@ -756,19 +732,6 @@
 			if(index > length(entries) || entries[index]["name"] != entry["name"])
 				return FALSE
 			return write_base_marking(index, entry["name"], custom_sprite_color(color))
-		if("dismissLayerTip")
-			if(!preferences)
-				return FALSE
-			if(!layer_tip_seen())
-				// Written directly, like the custom palette: the preference middleware's save-and-close only fires for setup changes.
-				var/datum/preference/preference = GLOB.preference_entries[/datum/preference/toggle/custom_marking_layer_tip_seen]
-				preferences.update_preference(preference, TRUE)
-				preferences.save_preferences()
-				// Every other open editor of this account loses its banner too.
-				for(var/datum/custom_sprite_editor/editor as anything in preferences.custom_sprite_open_editors())
-					if(editor != src)
-						SStgui.update_uis(editor)
-			return TRUE
 		if("toggleParts")
 			if(!can_hide_parts())
 				return FALSE
