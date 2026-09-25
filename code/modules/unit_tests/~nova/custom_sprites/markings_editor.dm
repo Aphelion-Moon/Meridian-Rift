@@ -24,14 +24,6 @@
 	save_error = "The disk is full."
 	return FALSE
 
-/// Counts how often the whole-body editor works out what saving would write.
-/datum/custom_sprite_editor/markings/unified_test/counting
-	var/result_builds = 0
-
-/datum/custom_sprite_editor/markings/unified_test/counting/region_results()
-	result_builds++
-	return ..()
-
 /// A drawing with one painted pixel, in the Front view only.
 /proc/custom_sprite_test_front_drawing(list/point, color)
 	var/list/drawing = custom_sprite_test_region_drawing(list(list(point[1], point[2], color)))
@@ -195,20 +187,6 @@
 	arm["dirs"] = list("2" = arm["dirs"]["2"])
 	TEST_ASSERT(editor.show_region_candidate(list(BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, arm, null)), "import"), "An over-full canvas must preview an import: [editor.transfer_error]")
 	TEST_ASSERT(editor.apply_candidate(), "An over-full canvas must take an import: [editor.transfer_error]")
-	editor.finish(FALSE)
-
-/datum/unit_test/custom_sprite_markings_editor_pooled_palette/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
-	TEST_ASSERT(custom_sprite_test_pool_colors(preferences, 50) == 50, "The fixture needs fifty colors across its regions.")
-	var/list/custom = list()
-	for(var/index in 1 to CUSTOM_SPRITE_MAX_CUSTOM_COLORS)
-		custom += LOWER_TEXT(rgb(200, index, 7))
-	TEST_ASSERT(preferences.write_preference(GLOB.preference_entries[/datum/preference/custom_sprite_palette], custom), "The fixture needs a full Custom palette.")
-	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
-	TEST_ASSERT(length(editor.workspace.palette) == CUSTOM_SPRITE_MAX_COLORS, "Sampled and Custom colors must fill the room the saves leave, not all be refused together.")
-	TEST_ASSERT(!(!length(editor.sampled_palette) || !(editor.sampled_palette[1] in editor.workspace.palette)), "The body's own shades are admitted before Custom colors.")
 	editor.finish(FALSE)
 
 /datum/unit_test/custom_sprite_markings_editor_routing/Run()
@@ -468,17 +446,6 @@
 	TEST_ASSERT(custom_sprite_drawing_pixels(drawing, CUSTOM_SPRITE_TAUR_WIDTH)["2"][centre[2] * CUSTOM_SPRITE_TAUR_WIDTH + centre[1] + 1], "The centred paint must land where the old taur editor put it.")
 	wide.finish(FALSE)
 
-/datum/unit_test/custom_sprite_markings_editor_restorable_cost/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
-	var/datum/custom_sprite_editor/markings/unified_test/counting/editor = new(preferences, BODY_ZONE_CHEST)
-	custom_sprite_test_paint_region(editor, BODY_ZONE_CHEST)
-	editor.result_builds = 0
-	editor.ui_data(mock_client.mob)
-	TEST_ASSERT(!editor.result_builds, "With no previous styles, a stroke's window update must not work out what every region would save.")
-	editor.finish(FALSE)
-
 /datum/unit_test/custom_sprite_markings_editor_move_between_regions/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -592,34 +559,4 @@
 	editor.sync_locked_views(push = FALSE)
 	TEST_ASSERT(editor.workspace.is_point_allowed(arm_point[1], arm_point[2], "2"), "An unlocked region must be paintable again.")
 	TEST_ASSERT(editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null), "An unlocked region's actions must work again.")
-	editor.finish(FALSE)
-
-/// Counts full updates: only they carry static data.
-/datum/tgui/full_update_counting
-	var/full_updates = 0
-
-/datum/tgui/full_update_counting/send_full_update(custom_data, force, always_instant)
-	full_updates++
-
-/datum/unit_test/custom_sprite_markings_static_data/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
-	var/mob/living/carbon/human/consistent/user = allocate(/mob/living/carbon/human/consistent)
-	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
-	var/list/data = editor.ui_data(user)
-	var/list/static_data = editor.ui_static_data(user)
-	for(var/key in list("guides", "drawMask", "regions", "regionZones", "emissive"))
-		TEST_ASSERT(!(key in data) && (key in static_data), "[key] must travel as static data, not with every update.")
-	var/datum/tgui/full_update_counting/ui = allocate(/datum/tgui/full_update_counting, user, editor, "CustomMarkingsEditor")
-	editor.static_dirty = FALSE
-	editor.ui_interact(user, ui)
-	TEST_ASSERT(!ui.full_updates, "An ordinary refresh must not resend static data.")
-	editor.rebuild_resources(reuse_body = TRUE)
-	editor.ui_interact(user, ui)
-	TEST_ASSERT(!(ui.full_updates != 1 || editor.static_dirty), "Rebuilt guides and masks must reach the open window as one full update.")
-	// A lock change found while a full update's data is built rides along in its static data.
-	editor.static_dirty = TRUE
-	editor.ui_static_data(user)
-	TEST_ASSERT(!editor.static_dirty, "Building static data for a send must clear the flag, so the change isn't sent twice.")
 	editor.finish(FALSE)

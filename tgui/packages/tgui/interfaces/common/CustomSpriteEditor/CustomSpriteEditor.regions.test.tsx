@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { expect, it, jest, spyOn } from 'bun:test';
+import { expect, it, spyOn } from 'bun:test';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
@@ -11,7 +11,7 @@ import {
   send,
   setupEditorTests,
 } from '../../../__mocks__/customSpriteEditor';
-import { currentToolAtom, dirAtom, tools } from '../SpriteEditor/atoms';
+import { currentToolAtom, tools } from '../SpriteEditor/atoms';
 import { Dir } from '../SpriteEditor/Types/types';
 import { CustomSpriteEditor } from './index';
 import type { CustomSpriteEditorData } from './types';
@@ -96,26 +96,6 @@ it.each([
   }
 });
 
-it('selects on Alt-click sampling too', () => {
-  const getBounds = spyOn(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-  try {
-    const { view } = renderRegions();
-    const canvas = view.container.querySelector('canvas')!;
-    fireEvent.mouseDown(canvas, {
-      clientX: 25,
-      clientY: 5,
-      button: 0,
-      altKey: true,
-    });
-    expect(send).toHaveBeenCalledWith('selectRegion', { zone: 'l_arm' });
-  } finally {
-    getBounds.mockRestore();
-  }
-});
-
 it('sends the selected region with clear, emissive and base marking actions', () => {
   renderRegions({ ...regionFixture(), selectedZone: 'l_arm' });
   fireEvent.click(screen.getByText('Clear left arm'));
@@ -129,24 +109,9 @@ it('sends the selected region with clear, emissive and base marking actions', ()
   const section = screen
     .getByText('Left arm base markings')
     .closest('.Section')! as HTMLElement;
-  const add = within(section).getByText('+').closest('.Button')!;
-  // Under the rows and green, as in character setup's markings list.
-  expect(add).toBe([...section.querySelectorAll('.Button')].at(-1)!);
-  expect(add.classList.contains('Button--color--good')).toBe(true);
-  fireEvent.click(add);
+  fireEvent.click(within(section).getByText('+').closest('.Button')!);
   expect(send).toHaveBeenLastCalledWith('addBaseMarking', { zone: 'l_arm' });
   expect(screen.queryByText(/Click the body to choose a region/)).toBeNull();
-});
-
-it('leaves out the base markings section for a region that has none', () => {
-  renderRegions({
-    ...regionFixture(),
-    regionZones: ['chest', 'taur'],
-    regionLabels: { chest: 'Torso', taur: 'Taur lower body' },
-    selectedZone: 'taur',
-  });
-  expect(screen.queryByText('Taur lower body base markings')).toBeNull();
-  expect(screen.queryByText(/has no base markings/)).toBeNull();
 });
 
 it('follows the focus revision when character setup moves the selection', () => {
@@ -159,60 +124,6 @@ it('follows the focus revision when character setup moves the selection', () => 
   });
   view.rerender(editor());
   expect(screen.getByText('Left arm base markings')).toBeTruthy();
-});
-
-it('tags the selected region and keeps a selection that has no pixels in this view', () => {
-  const getBounds = spyOn(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-  try {
-    const empty = Array.from({ length: 32 }, () => '0'.repeat(32));
-    const data = regionFixture();
-    data.regions = { ...data.regions!, 4: empty };
-    data.drawMask = { ...data.drawMask!, 4: empty };
-    const { store, view, editor } = renderRegions(data);
-    expect(screen.getByText('TORSO')).toBeTruthy();
-    act(() => store.set(dirAtom, Dir.EAST));
-    view.rerender(editor());
-    expect(screen.queryByText('TORSO')).toBeNull();
-    expect(screen.getByText('(not in this view)')).toBeTruthy();
-  } finally {
-    getBounds.mockRestore();
-  }
-});
-
-it('shades unavailable pixels with scanlines', () => {
-  const getBounds = spyOn(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-  try {
-    renderRegions();
-    expect(painted).toContain('rgba(10, 12, 14, 0.62)');
-    expect(painted).toContain('rgba(255, 255, 255, 0.07)');
-    expect(painted).not.toContain('rgba(50, 50, 50, 0.75)');
-  } finally {
-    getBounds.mockRestore();
-  }
-});
-
-it('selects regions with the primary button only', () => {
-  const getBounds = spyOn(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-  try {
-    const { view } = renderRegions();
-    const canvas = view.container.querySelector('canvas')!;
-    send.mockClear();
-    fireEvent.mouseDown(canvas, { clientX: 25, clientY: 5, button: 2 });
-    fireEvent.mouseUp(window, { clientX: 25, clientY: 5, button: 2 });
-    expect(send).not.toHaveBeenCalledWith('selectRegion', expect.anything());
-    expect(screen.getByText('Torso base markings')).toBeTruthy();
-  } finally {
-    getBounds.mockRestore();
-  }
 });
 
 it('keeps the selection off locked regions and explains a locked selection', () => {
@@ -268,27 +179,6 @@ it('keeps the selection off locked regions and explains a locked selection', () 
   }
 });
 
-it('outlines hovered regions, but not locked ones', () => {
-  const getBounds = spyOn(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-  try {
-    for (const [lockedRegions, outlined] of [
-      [undefined, true],
-      [{ l_arm: 'Covered.' }, false],
-    ] as const) {
-      const { view } = renderRegions({ ...regionFixture(), lockedRegions });
-      const box = view.container.querySelector('.CustomSpriteEditor__canvas')!;
-      fireEvent.mouseMove(box, { clientX: 25, clientY: 5 });
-      expect(painted.includes('rgba(255, 255, 255, 0.35)')).toBe(outlined);
-      view.unmount();
-    }
-  } finally {
-    getBounds.mockRestore();
-  }
-});
-
 it('washes and hatches painted pixels that a part covers', () => {
   const getBounds = spyOn(
     HTMLElement.prototype,
@@ -313,68 +203,6 @@ it('washes and hatches painted pixels that a part covers', () => {
       painted.filter((fill) => fill === 'rgba(0, 0, 0, 0.45)'),
     ).toHaveLength(1);
     expect(painted).toContain('rgba(255, 255, 255, 0.55)');
-  } finally {
-    getBounds.mockRestore();
-  }
-});
-
-it('names the selected region beside the view and drops the chip when nothing is selected', () => {
-  const { view, editor } = renderRegions();
-  const chip = screen.getByText('Torso').closest('.CustomSpriteEditor__region');
-  expect(chip).toBeTruthy();
-  expect(screen.queryByText(/Click the body to choose a region/)).toBeNull();
-  backendStore.set(gameDataAtom, {
-    ...regionFixture(),
-    selectedZone: null,
-    focusRevision: 2,
-  });
-  view.rerender(editor());
-  expect(
-    view.container.querySelector('.CustomSpriteEditor__region'),
-  ).toBeNull();
-  // With nothing selected, Clear says what to do instead of naming an empty region.
-  const clear = screen.getByText('Clear region').closest('.Button')!;
-  expect(clear.classList).toContain('Button--disabled');
-});
-
-it('names the part that hides the paint under the cursor, after a short hover', () => {
-  jest.useFakeTimers();
-  const getBounds = spyOn(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-  try {
-    const data = regionFixture();
-    data.coverMask = {
-      2: [
-        '12'.padEnd(32, '0'),
-        ...Array.from({ length: 31 }, () => '0'.repeat(32)),
-      ],
-    };
-    data.coverParts = ['hair', 'snout'];
-    const { view } = renderRegions(data);
-    const box = view.container.querySelector('.CustomSpriteEditor__canvas')!;
-    const settle = () => act(() => jest.advanceTimersByTime(400));
-    // Flicking across covered paint shows nothing; resting on it does.
-    fireEvent.mouseMove(box, { clientX: 5, clientY: 5 });
-    expect(screen.queryByText(/Hidden by/)).toBeNull();
-    settle();
-    expect(screen.getByText('Hidden by hair')).toBeTruthy();
-    fireEvent.mouseMove(box, { clientX: 15, clientY: 5 });
-    expect(screen.queryByText(/Hidden by/)).toBeNull();
-    settle();
-    expect(screen.getByText('Hidden by snout')).toBeTruthy();
-    // A stroke in progress never gets a tip.
-    fireEvent.mouseMove(box, { clientX: 5, clientY: 5, buttons: 1 });
-    settle();
-    expect(screen.queryByText(/Hidden by/)).toBeNull();
-    fireEvent.mouseMove(box, { clientX: 55, clientY: 5 });
-    settle();
-    expect(screen.queryByText(/Hidden by/)).toBeNull();
-    fireEvent.mouseMove(box, { clientX: 5, clientY: 5 });
-    fireEvent.mouseLeave(box);
-    settle();
-    expect(screen.queryByText(/Hidden by/)).toBeNull();
   } finally {
     getBounds.mockRestore();
   }

@@ -8,9 +8,11 @@ import {
   previewDataAtom,
   previewLayerAtom,
   selectionBoundsAtom,
+  selectionMaskAtom,
   tools,
 } from './atoms';
 import { isTextEntryTarget } from './helpers';
+import { settleSelection } from './selection';
 import type { Tool } from './Types/Tool';
 import type { SpriteEditorToolCancelContext } from './Types/types';
 
@@ -35,6 +37,7 @@ const cancelContextFor = (
   setPreviewData: (value) => store.set(previewDataAtom, value),
   setPreviewLayer: (value) => store.set(previewLayerAtom, value),
   setSelectionBounds: (value) => store.set(selectionBoundsAtom, value),
+  setSelectionMask: (value) => store.set(selectionMaskAtom, value),
 });
 
 export function useSpriteEditorHistory() {
@@ -76,6 +79,8 @@ export function useSpriteEditorHotkeys(disabled = false, onSave?: () => void) {
       if (key === 's' && !event.shiftKey && onSave) {
         claimedKeys.current.add(key);
         event.preventDefault();
+        // Floating paint is part of what the window shows, so it is saved too.
+        settleSelection();
         onSave();
         return;
       }

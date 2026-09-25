@@ -44,7 +44,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		if(!(key in raw))
 			return list("error" = "The drawing is missing \"[key]\".")
 	var/version = raw["version"]
-	if(!(version in list(1, 2, 3)))
+	if(!(version in list(1, 2, 3, 4)))
 		return list("error" = "The drawing uses an unsupported version.")
 	var/list/raw_palette = raw["palette"]
 	var/palette_limit = version == 1 ? 15 : CUSTOM_SPRITE_MAX_COLORS
@@ -59,7 +59,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	var/list/raw_dirs = raw["dirs"]
 	if(!islist(raw_dirs) || custom_style_unknown_key(raw_dirs, GLOB.custom_style_directions))
 		return list("error" = "The drawing's views are malformed.")
-	var/pixel_count = custom_sprite_width(raw) * 32
+	var/height = custom_sprite_height(raw)
+	var/pixel_count = custom_sprite_width(raw) * height
 	var/list/directions = list()
 	for(var/direction in GLOB.custom_style_directions)
 		if(!(direction in raw_dirs))
@@ -91,7 +92,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		// Older drawings saved one flag for every view.
 		else if(!legacy || !(raw_emissive in list(TRUE, FALSE)))
 			return list("error" = "The drawing's emissive settings are malformed.")
-	var/list/canonical = list("version" = custom_sprite_version(custom_sprite_width(raw), length(palette)), "palette" = palette, "tint" = custom_sprite_color(tint), "dirs" = directions, "emissive" = custom_sprite_emissive_settings(raw_emissive))
+	// Tall drawings never had the legacy hair-color filter, which only covers 32 rows.
+	var/list/canonical = list("version" = custom_sprite_version(custom_sprite_width(raw), length(palette), height), "palette" = palette, "tint" = custom_sprite_color(tint) || (height > 32 ? "#ffffff" : null), "dirs" = directions, "emissive" = custom_sprite_emissive_settings(raw_emissive))
 	return list("drawing" = canonical)
 
 /**
@@ -203,6 +205,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 				return list("error" = "Wide drawings require taur markings.")
 		else if(zone == CUSTOM_MARKING_ZONE_TAUR)
 			return list("error" = "Taur markings require a wide drawing.")
+		if(custom_sprite_height(drawing) > 32 && target != "hair")
+			return list("error" = "Tall drawings are for hair only.")
 	var/list/hair
 	if(custom_style_hair_target(target))
 		var/list/hair_result = custom_style_validate_hair(raw["hair"], target)
@@ -354,11 +358,12 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(!drawing)
 		return null
 	var/list/palette = drawing["palette"]
-	var/pixel_count = custom_sprite_width(drawing) * 32
+	var/height = custom_sprite_height(drawing)
+	var/pixel_count = custom_sprite_width(drawing) * height
 	var/list/dirs = list()
 	for(var/direction in GLOB.custom_style_directions)
 		dirs[direction] = drawing["dirs"][direction] || custom_sprite_encode_grid(repeat_string(pixel_count, "0"), length(palette), pixel_count)
-	return list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette)), "palette" = palette, "dirs" = dirs, "tint" = drawing["tint"], "emissive" = custom_sprite_emissive_settings(drawing["emissive"]))
+	return list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette), height), "palette" = palette, "dirs" = dirs, "tint" = drawing["tint"], "emissive" = custom_sprite_emissive_settings(drawing["emissive"]))
 
 /// Whole-body export: every region's drawing and base markings in one file.
 /proc/custom_style_body_export_text(list/regions)
@@ -385,13 +390,14 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(!drawing)
 		return null
 	var/width = custom_sprite_width(drawing)
+	var/height = custom_sprite_height(drawing)
 	for(var/direction in GLOB.custom_style_directions)
-		var/grid = custom_sprite_decode_grid(drawing["dirs"][direction], length(drawing["palette"]), width * 32)
+		var/grid = custom_sprite_decode_grid(drawing["dirs"][direction], length(drawing["palette"]), width * height)
 		if(!grid)
 			continue
 		var/list/box = bounds?[direction]
 		var/list/rows = mask?[direction]
-		for(var/y in 0 to 31)
+		for(var/y in 0 to height - 1)
 			var/row = copytext(grid, y * width + 1, (y + 1) * width + 1)
 			if(spantext(row, "0") == width)
 				continue

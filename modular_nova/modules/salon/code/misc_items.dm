@@ -175,8 +175,10 @@
 /obj/item/razor/proc/shave(mob/living/carbon/human/target_human, location = BODY_ZONE_PRECISE_MOUTH)
 	if(location == BODY_ZONE_PRECISE_MOUTH)
 		target_human.set_facial_hairstyle("Shaved", update = TRUE)
+		target_human.remove_custom_hair("facial_hair")
 	else
 		target_human.set_hairstyle("Bald", update = TRUE)
+		target_human.remove_custom_hair()
 
 	playsound(loc, 'sound/items/unsheath.ogg', 20, TRUE)
 
@@ -212,7 +214,7 @@
 			to_chat(user, span_warning("[target_human] is just way too shaved. Like, really really shaved."))
 			return
 
-		if(target_human.facial_hairstyle == "Shaved")
+		if(target_human.facial_hairstyle == "Shaved" && !target_human.has_custom_hair("facial_hair"))
 			to_chat(user, span_warning("Already clean-shaven!"))
 			return
 
@@ -235,7 +237,7 @@
 			to_chat(user, span_warning("The headgear is in the way!"))
 			return
 
-		if(target_human.hairstyle == "Bald" || target_human.hairstyle == "Balding Hair" || target_human.hairstyle == "Skinhead")
+		if((target_human.hairstyle == "Bald" || target_human.hairstyle == "Balding Hair" || target_human.hairstyle == "Skinhead") && !target_human.has_custom_hair())
 			to_chat(user, span_warning("There is not enough hair left to shave!"))
 			return
 

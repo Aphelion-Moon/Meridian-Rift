@@ -24,8 +24,10 @@ import {
   previewDataAtom,
   previewLayerAtom,
   selectionBoundsAtom,
+  selectionMaskAtom,
   tools,
 } from '../SpriteEditor/atoms';
+import { SelectionTools, settleSelection } from '../SpriteEditor/selection';
 import { Dir } from '../SpriteEditor/Types/types';
 import {
   toolHotkeys,
@@ -77,7 +79,7 @@ function CycleDropdown(props: {
   return (
     <Stack align="center">
       {chevron(-1)}
-      <Stack.Item grow style={{ minWidth: 0 }}>
+      <Stack.Item grow minWidth={0}>
         <Dropdown
           width="100%"
           disabled={disabled}
@@ -138,9 +140,6 @@ export const CustomSpriteEditor = ({
     hideParts,
     canHideUnderwear,
     hideUnderwear,
-    canChangeMarkings,
-    baseMarkings,
-    baseMarkingChoices,
     maxBaseMarkings,
     lockedDirections,
     hairStyle,
@@ -150,7 +149,6 @@ export const CustomSpriteEditor = ({
     selfWork,
     salonState,
     resourcesReady = true,
-    bodyZoneLabel,
     editorData,
     colorMode,
     emissive,
@@ -193,6 +191,7 @@ export const CustomSpriteEditor = ({
   const setPreviewData = useSetAtom(previewDataAtom);
   const setPreviewLayer = useSetAtom(previewLayerAtom);
   const setSelectionBounds = useSetAtom(selectionBoundsAtom);
+  const setSelectionMask = useSetAtom(selectionMaskAtom);
   const [showGuide, setShowGuide] = useState(true);
   const guideUrl = showGuide ? guides[direction] : undefined;
   const [loadedGuide, setLoadedGuide] = useState<{
@@ -205,8 +204,16 @@ export const CustomSpriteEditor = ({
     defaultBackground ?? 'Transparent',
   );
   const wide = sprite.width > 32;
+  // The tall hair canvas reaches above the tile the body stands on.
+  const tall = sprite.height > 32;
   const tile = backgrounds?.find((entry) => entry.name === background);
-  const tileUrl = tile ? (wide ? tile.wideUrl : tile.url) : null;
+  const tileUrl = tile
+    ? wide
+      ? tile.wideUrl
+      : tall
+        ? tile.tallUrl
+        : tile.url
+    : null;
   const tileStyle = {
     backgroundImage: `url(${tileUrl ?? transparency_checkerboard})`,
   };
@@ -313,15 +320,14 @@ export const CustomSpriteEditor = ({
   const lastSaveRevision = useRef(saveRevision);
   const nextDrawingActivity = useRef(0);
   const paletteTint = colorMode === 'literal' ? null : displayTint;
-  const takenMarkings = new Set(
-    (baseMarkings ?? []).map((entry) => entry.name),
-  );
   const salon = context === 'salon';
   const locked = (dir: Dir) => !!lockedDirections?.includes(String(dir));
   const rotate = (step: number) =>
     setDirection(cycleOption(rotation, direction, step) ?? direction);
   const savedLabel = salon ? 'Draft saved for this round' : 'Saved';
   const hairTarget = target === 'hair' || target === 'facial_hair';
+  // Hair blends Custom colors with the hair color, markings with the body's primary mutant color.
+  const bodyBlend = hairTarget ? 'hair' : 'mutant';
   // Markings and tattoos stack base markings above the palette and preview, so they get more room.
   const markingsWindow = target === 'markings';
   const drawingName =
@@ -329,11 +335,9 @@ export const CustomSpriteEditor = ({
       ? 'Custom Hair'
       : target === 'facial_hair'
         ? 'Custom Facial Hair'
-        : bodyZoneLabel
-          ? `Custom ${bodyZoneLabel} markings`
-          : salon
-            ? 'Custom Tattoo'
-            : 'Custom Markings';
+        : salon
+          ? 'Custom Tattoo'
+          : 'Custom Markings';
   SpriteEditor.syncBackend('selectColor', editorData.serverSelectedColor);
   useEffect(() => {
     if (!guideUrl || loadedGuide?.url === guideUrl) return;
@@ -364,6 +368,7 @@ export const CustomSpriteEditor = ({
       setPreviewLayer,
       setPreviewData,
       setSelectionBounds,
+      setSelectionMask,
     };
     const resetTool = () => {
       setCurrentTool(tools[0], cancelContext);
@@ -430,10 +435,6 @@ export const CustomSpriteEditor = ({
                           src={candidate.previews[dir]}
                           alt={`${label} preview`}
                           width={96}
-                          style={{
-                            height: 'auto',
-                            imageRendering: 'pixelated',
-                          }}
                         />
                       </Box>
                     )}
@@ -598,6 +599,9 @@ export const CustomSpriteEditor = ({
                   }
                 />
               </Stack.Item>
+              <Stack.Item className="CustomSpriteEditor__turns">
+                <SelectionTools className="CustomSpriteEditor__group" />
+              </Stack.Item>
               <Stack.Item className="CustomSpriteEditor__divider" />
               <Stack.Item>
                 <SpriteEditor.Undo stack={editorData.undoStack} />
@@ -628,7 +632,7 @@ export const CustomSpriteEditor = ({
                   }
                 >
                   {!regionMode
-                    ? 'Clear layer'
+                    ? 'Clear direction'
                     : regionLabel
                       ? `Clear ${regionLabel.toLowerCase()}`
                       : 'Clear region'}
@@ -665,7 +669,6 @@ export const CustomSpriteEditor = ({
                       height="100%"
                       backgroundColor="rgba(0, 0, 0, 0.2)"
                       p={1}
-                      style={{ overflow: 'hidden', boxSizing: 'border-box' }}
                       onMouseDown={() => {
                         dragZone.current = null;
                       }}
@@ -825,7 +828,7 @@ export const CustomSpriteEditor = ({
                                 mb={0.5}
                                 align="center"
                               >
-                                <Stack.Item grow style={{ minWidth: 0 }}>
+                                <Stack.Item grow minWidth={0}>
                                   <CycleDropdown
                                     options={choices}
                                     disabled={!!selectedLock}
@@ -893,125 +896,64 @@ export const CustomSpriteEditor = ({
                       </Section>
                     </Stack.Item>
                   )}
-                  {!!canChangeMarkings && (
-                    <Stack.Item>
-                      <Section title="Base markings">
-                        {(baseMarkings ?? []).map((marking) => {
-                          // A limb takes each marking once, so a row offers only names no other row has claimed.
-                          const choices = (baseMarkingChoices ?? []).filter(
-                            (name) =>
-                              name === marking.name || !takenMarkings.has(name),
-                          );
-                          return (
-                            <Stack key={marking.index} mb={0.5} align="center">
-                              <Stack.Item grow style={{ minWidth: 0 }}>
-                                <CycleDropdown
-                                  options={choices}
-                                  selected={marking.name}
-                                  onSelected={(name) =>
-                                    act('setBaseMarking', {
-                                      index: marking.index,
-                                      name,
-                                    })
-                                  }
-                                />
-                              </Stack.Item>
-                              <Stack.Item>
-                                <Button
-                                  tooltip={`Color of ${marking.name}`}
-                                  onClick={() =>
-                                    act('pickBaseMarkingColor', {
-                                      index: marking.index,
-                                    })
-                                  }
-                                >
-                                  <Box
-                                    inline
-                                    width="1rem"
-                                    height="0.8rem"
-                                    backgroundColor={marking.color}
-                                  />
-                                </Button>
-                              </Stack.Item>
-                              <Stack.Item>
-                                <Button
-                                  icon="trash"
-                                  color="bad"
-                                  tooltip={`Remove ${marking.name}`}
-                                  onClick={() =>
-                                    act('removeBaseMarking', {
-                                      index: marking.index,
-                                    })
-                                  }
-                                />
-                              </Stack.Item>
-                            </Stack>
-                          );
-                        })}
-                        {(baseMarkings?.length ?? 0) <
-                          (maxBaseMarkings ?? 0) && (
-                          <Button
-                            color="good"
-                            onClick={() => act('addBaseMarking')}
-                          >
-                            +
-                          </Button>
-                        )}
-                      </Section>
-                    </Stack.Item>
-                  )}
                   <Stack.Item>
                     <CustomSpritePalette
                       blending={
-                        <Collapsible title="Blending options">
-                          {hairTarget && (
+                        <div className="CustomSpriteEditor__blending">
+                          <Collapsible title="Blending options">
                             <Button.Checkbox
                               fluid
-                              checked={colorMode === 'hair'}
+                              checked={colorMode === bodyBlend}
                               tooltip={blendingTooltip}
                               onClick={() =>
                                 act('setColorMode', {
                                   mode:
-                                    colorMode === 'hair' ? 'literal' : 'hair',
+                                    colorMode === bodyBlend
+                                      ? 'literal'
+                                      : bodyBlend,
                                 })
                               }
                             >
-                              Blend with hair color
+                              {hairTarget
+                                ? 'Blend with hair color'
+                                : 'Blend with mutant color'}
                             </Button.Checkbox>
-                          )}
-                          <Stack align="center" mt={0.5}>
-                            <Stack.Item grow>
-                              <Button.Checkbox
-                                fluid
-                                checked={colorMode === 'tint'}
-                                tooltip={blendingTooltip}
-                                onClick={() =>
-                                  act('setColorMode', {
-                                    mode:
-                                      colorMode === 'tint' ? 'literal' : 'tint',
-                                  })
-                                }
-                              >
-                                Blend with color
-                              </Button.Checkbox>
-                            </Stack.Item>
-                            {colorMode === 'tint' && (
-                              <Stack.Item>
-                                <Button
-                                  className="SpriteEditor__plainSwatch"
-                                  width="2em"
-                                  height="2em"
-                                  aria-label="Choose blending color"
-                                  tooltip="Choose blending color"
-                                  onClick={() => act('pickTint')}
-                                  style={{
-                                    backgroundImage: `linear-gradient(${customTint}, ${customTint})`,
-                                  }}
-                                />
+                            <Stack align="center" mt={0.5}>
+                              <Stack.Item grow>
+                                <Button.Checkbox
+                                  fluid
+                                  checked={colorMode === 'tint'}
+                                  tooltip={blendingTooltip}
+                                  onClick={() =>
+                                    act('setColorMode', {
+                                      mode:
+                                        colorMode === 'tint'
+                                          ? 'literal'
+                                          : 'tint',
+                                    })
+                                  }
+                                >
+                                  Blend with color
+                                </Button.Checkbox>
                               </Stack.Item>
-                            )}
-                          </Stack>
-                        </Collapsible>
+                              {colorMode === 'tint' && (
+                                <Stack.Item>
+                                  <Button
+                                    className="SpriteEditor__plainSwatch"
+                                    width="2em"
+                                    height="2em"
+                                    aria-label="Choose blending color"
+                                    tooltip="Choose blending color"
+                                    onClick={() => act('pickTint')}
+                                    style={{
+                                      backgroundImage: `linear-gradient(${customTint}, ${customTint})`,
+                                    }}
+                                  />
+                                </Stack.Item>
+                              )}
+                            </Stack>
+                          </Collapsible>
+                        </div>
                       }
                       serverPalette={editorData.serverPalette}
                       customPalette={customPalette}
@@ -1072,10 +1014,6 @@ export const CustomSpriteEditor = ({
                               src={previews[direction]}
                               alt="Character with your drawing"
                               width={128}
-                              style={{
-                                height: 'auto',
-                                imageRendering: 'pixelated',
-                              }}
                             />
                           </Box>
                         )}
@@ -1200,7 +1138,15 @@ export const CustomSpriteEditor = ({
               </Stack.Item>
               {salon && (
                 <Stack.Item>
-                  <Button onClick={() => act('closeEditor')}>Close</Button>
+                  <Button
+                    onClick={() => {
+                      // The salon keeps the draft, floating paint included.
+                      settleSelection();
+                      act('closeEditor');
+                    }}
+                  >
+                    Close
+                  </Button>
                 </Stack.Item>
               )}
               <Stack.Item>
@@ -1208,7 +1154,11 @@ export const CustomSpriteEditor = ({
                   color="good"
                   disabled={salon && salonState !== 'drafting'}
                   tooltip="Ctrl+S saves without closing."
-                  onClick={() => act(salon ? 'finishWork' : 'save')}
+                  onClick={() => {
+                    // Floating paint is part of the drawing being saved or finished.
+                    settleSelection();
+                    act(salon ? 'finishWork' : 'save');
+                  }}
                 >
                   {salon ? 'Finish' : 'Save and close'}
                 </Button>

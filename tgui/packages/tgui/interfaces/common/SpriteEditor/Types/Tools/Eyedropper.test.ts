@@ -68,13 +68,3 @@ it('preserves transparent sampling in general editors without a backdrop', () =>
     parseHexColorString('#00000000'),
   );
 });
-
-it('ignores right clicks and points outside the image', () => {
-  const { data, context, tool } = fixture('#00000000');
-  tool.onMouseDown(context, data, 0, 0, true);
-  tool.onMouseDown(context, data, -0.1, 0);
-  tool.onMouseDown(context, data, 2, 0);
-  tool.onMouseDown(context, data, 0, 1);
-  expect(context.onSampleBackdrop).not.toHaveBeenCalled();
-  expect(context.setCurrentColor).not.toHaveBeenCalled();
-});

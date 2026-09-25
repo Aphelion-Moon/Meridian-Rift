@@ -30,7 +30,7 @@
 	var/list/lock_reasons
 
 /datum/custom_sprite_editor/markings/New(datum/preferences/preferences, focus_zone)
-	..(preferences, "markings", null)
+	..(preferences, "markings")
 	focus_region(focus_zone)
 
 /// The canvas is composed from every region's save instead of one package.
@@ -170,10 +170,6 @@
 		SStgui.update_uis(src)
 	return regions_changed || views_changed
 
-/// The canvas never holds paint outside its regions, so there's nothing stranded to drop.
-/datum/custom_sprite_editor/markings/clip_stranded_paint()
-	return
-
 /datum/custom_sprite_editor/markings/apply_draft_base_markings()
 	for(var/zone, entries in workspace.markings_context)
 		custom_style_apply_base_markings(preview_body, zone, entries, emissives_allowed())
@@ -283,6 +279,8 @@
 	preview_timer = null
 	if(closing || !resources_ready)
 		return
+	if(refresh_composed_previews(push))
+		return
 	var/list/results = region_results()
 	update_restorable()
 	var/new_hash = md5(json_encode(results))
@@ -377,11 +375,6 @@
 		index++
 		. += list(list("index" = index, "name" = entry["name"], "color" = entry["color"]))
 
-/// Marks the draft changed and schedules its preview, as the base editor does after every edit.
-/datum/custom_sprite_editor/markings/proc/draft_edited()
-	draft_changed()
-	preview_timer = addtimer(CALLBACK(src, PROC_REF(refresh_preview)), 0.6 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_STOPPABLE)
-
 /// Whether a region's saved paint in one view includes any the canvas can't show, under other limbs or outside every region.
 /datum/custom_sprite_editor/markings/proc/has_covered_paint(zone, direction)
 	var/list/colors = saved_pixels[zone]?[direction]
@@ -472,8 +465,9 @@
 	if(!canvas.replace_frames(canvas.layers[1]["data"], "Change base markings", new_context, canvas.emissive))
 		return FALSE
 	draft_changed()
-	rebuild_resources()
-	refresh_preview(push = FALSE)
+	// The palette keeps its sampled shades until the rebuild samples the new look.
+	refresh_custom_palette()
+	request_rebuild()
 	return TRUE
 
 /**
@@ -678,7 +672,8 @@
 	// Saving keeps each replaced style as the previous one, unless the import is undone first.
 	if(applied != before)
 		applied["rotate"] = assoc_to_keys(regions)
-	rebuild_resources()
+	refresh_custom_palette()
+	request_rebuild()
 	transfer_notice = source == "restore" ? "Previous saved style restored. Save to keep it." : "Style imported."
 	return TRUE
 

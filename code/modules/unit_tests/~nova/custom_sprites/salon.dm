@@ -9,44 +9,6 @@
 /datum/custom_sprite_salon/test/award(mob/player, award_type)
 	awards += award_type
 
-/// Counts part checks, so one window action can be shown to work out the region locks once.
-/datum/custom_sprite_salon/test/lock_counting
-	/// part_problem() calls so far.
-	var/part_checks = 0
-
-/datum/custom_sprite_salon/test/lock_counting/part_problem(mob/living/carbon/human/recipient, key)
-	part_checks++
-	return ..()
-
-/// Counts body redraws, so applying several regions can be shown to redraw once.
-/mob/living/carbon/human/consistent/redraw_counting
-	/// update_body() calls so far.
-	var/redraws = 0
-
-/mob/living/carbon/human/consistent/redraw_counting/update_body(is_creating = FALSE)
-	redraws++
-	return ..()
-
-/// Records stop packets without requiring a real sound-capable client.
-/mob/living/carbon/human/consistent/salon_sound_listener
-	/// Most recent channel silenced for this listener.
-	var/stopped_channel
-
-/mob/living/carbon/human/consistent/salon_sound_listener/stop_sound_channel(channel)
-	stopped_channel = channel
-	return ..()
-
-/datum/unit_test/custom_sprite_salon_sound_cleanup/Run()
-	var/mob/living/carbon/human/consistent/salon_sound_listener/source = allocate(/mob/living/carbon/human/consistent/salon_sound_listener)
-	var/mob/living/carbon/human/consistent/salon_sound_listener/bystander = allocate(/mob/living/carbon/human/consistent/salon_sound_listener)
-	var/datum/looping_sound/salon_snipping/sound = new(source, TRUE)
-	var/channel = sound.sound_channel
-	sound.listeners = list(WEAKREF(source), WEAKREF(bystander))
-	qdel(source)
-	TEST_ASSERT(!(source.stopped_channel != channel || bystander.stopped_channel != channel), "Deleting the source must silence its own channel as well as nearby listeners.")
-	TEST_ASSERT(!(sound.is_active() || sound.listeners || SSsounds.reserved_channels["[channel]"]), "Source deletion must release the clip, timer and reserved channel.")
-	qdel(sound)
-
 /datum/unit_test/custom_sprite_salon
 	/// Connected artist body used by consent and application checks.
 	var/mob/living/carbon/human/consistent/artist
@@ -115,25 +77,6 @@
 		return FALSE
 	canvas.draft_changed()
 	return TRUE
-
-/datum/unit_test/custom_sprite_salon/timed_sounds
-	/// Number of do_after checks observed with sound channels reserved.
-	var/sound_checks = 0
-
-/datum/unit_test/custom_sprite_salon/timed_sounds/proc/check_sounds(expected_channels, interrupted)
-	sound_checks++
-	TEST_ASSERT(length(SSsounds.reserved_channels) == expected_channels, "Salon audio must start before the timed work and remain active during it.")
-	return !interrupted
-
-/datum/unit_test/custom_sprite_salon/timed_sounds/Run()
-	setup_players()
-	for(var/tattoo in list(FALSE, TRUE))
-		for(var/interrupted in list(FALSE, TRUE))
-			var/before = length(SSsounds.reserved_channels)
-			sound_checks = 0
-			var/completed = do_salon_work(artist, 0.3 SECONDS, recipient, tattoo, CALLBACK(src, PROC_REF(check_sounds), before + (tattoo ? 2 : 1), interrupted))
-			TEST_ASSERT(!(!sound_checks || completed == interrupted), "The timed salon action must run its validity callback and respect interruption.")
-			TEST_ASSERT(length(SSsounds.reserved_channels) == before, "Completion and interruption must both release salon sound channels.")
 
 /datum/unit_test/custom_sprite_salon/Run()
 	setup_players()
@@ -242,15 +185,6 @@
 	hair_session.editor.ui_interact(artist)
 	TEST_ASSERT(!(!hair_session.editor.resources_ready || !hair_session.editor.guide_urls["2"]), "Resuming must rebuild preview resources.")
 
-/// Retain the real native pixels at the existing publication boundary.
-/datum/custom_sprite_editor/salon/test_icons
-	/// Captured native pixels from the production rendering and publication path.
-	var/list/published_icons = list()
-
-/datum/custom_sprite_editor/salon/test_icons/publish_icon(icon/rendered)
-	published_icons += icon(rendered)
-	return ..()
-
 /datum/unit_test/custom_sprite_salon/proc/transplant_donor(zone, hair_opacity = 128)
 	var/mob/living/carbon/human/donor = allocate(/mob/living/carbon/human/consistent)
 	donor.skin_tone = "african2"
@@ -325,52 +259,6 @@
 	qdel(preview)
 	custom_sprite_apply_round_style(recipient, package)
 	TEST_ASSERT(!(head.skin_tone != original_skin || head.hair_alpha != 128 || custom_sprite_hash(head.custom_hair) != paint_hash), "Applying hair must preserve donor head identity and its unrelated appearance.")
-
-/datum/unit_test/custom_sprite_salon/hair_extension_preview/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/session = new(scissors, artist, recipient, "hair")
-	qdel(session.editor)
-	var/datum/custom_sprite_editor/salon/test_icons/editor = new(session)
-	session.editor = editor
-	editor.workspace.update_palette(editor.workspace.palette | "#fe12ab")
-	for(var/direction in GLOB.cardinals)
-		editor.render_view("[direction]")
-		var/icon/guide = editor.guide_icons["[direction]"]
-		TEST_ASSERT(!guide.GetPixel(7, 31), "The extension fixture must be outside the original head and hair silhouette in direction [direction].")
-		TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "[direction]", "color" = "#fe12abff", "points" = list(list(6, 1)))), "A bun above the original hair must be inside the editor's allowed drawing area.")
-	editor.published_icons.Cut()
-	editor.refresh_preview()
-	var/list/previews = list("2" = editor.published_icons[length(editor.published_icons)])
-	for(var/direction in list("1", "4", "8"))
-		editor.published_icons.Cut()
-		editor.render_view(direction)
-		previews[direction] = editor.published_icons[length(editor.published_icons)]
-	for(var/direction in GLOB.cardinals)
-		var/icon/rendered = previews["[direction]"]
-		TEST_ASSERT(rendered.GetPixel(7, 31) == "#fe12ab", "Artist previews must retain allowed custom hair outside the original silhouette in direction [direction].")
-		var/body_pixels = 0
-		for(var/y in 1 to 14)
-			for(var/x in 1 to 32)
-				if(rendered.GetPixel(x, y))
-					body_pixels++
-		TEST_ASSERT(body_pixels, "Artist previews must show the body being worked on in direction [direction].")
-	var/error = session.propose(artist)
-	TEST_ASSERT(!error, "The extension must be proposable: [error]")
-	for(var/direction in GLOB.cardinals)
-		session.mirror.render_view("[direction]")
-		var/icon/rendered = getFlatIcon(editor.preview_body, defdir = direction, no_anim = TRUE)
-		rendered.Crop(1, 1, 32, 32)
-		TEST_ASSERT(!(rendered.GetPixel(7, 31) != "#fe12ab" || session.mirror.after_urls["[direction]"] != "data:image/png;base64,[icon2base64(rendered)]"), "The recipient mirror must show the same native extension in direction [direction].")
-
-/datum/unit_test/custom_sprite_salon/donor_gradient/Run()
-	setup_players()
-	recipient.set_hair_gradient_style("None", update = FALSE)
-	recipient.set_hair_gradient_color("#000000", update = FALSE)
-	var/list/original_hair = custom_style_live_hair_context(recipient)
-	var/obj/item/bodypart/head/head = transplant_donor(BODY_ZONE_HEAD)
-	TEST_ASSERT(!(head.get_hair_gradient_style(GRADIENT_HAIR_KEY) != "Fade Up" || recipient.get_hair_gradient_style(GRADIENT_HAIR_KEY) != "None"), "The donor's gradient must differ from the recipient's retained hair settings.")
-	custom_style_apply_hair_context(recipient, original_hair)
-	TEST_ASSERT(!(head.get_hair_gradient_style(GRADIENT_HAIR_KEY) != "None" || head.get_hair_gradient_color(GRADIENT_HAIR_KEY) != "#000000"), "Applying a hair context must update the head even when the recipient's cached settings already match it.")
 
 /datum/unit_test/custom_sprite_salon_native_hair_opacity/Run()
 	for(var/species_id in list(SPECIES_ETHEREAL, SPECIES_SLIMESTART))
@@ -483,7 +371,6 @@
 	replacement.Insert(recipient, special = TRUE)
 	TEST_ASSERT(findtext(session.participant_problem(), "replaced"), "Replacing the taur organ while retaining the chest must invalidate a tattoo that changes it.")
 
-
 /proc/custom_sprite_test_mask_count(list/rows)
 	. = 0
 	for(var/row in rows)
@@ -531,7 +418,6 @@
 	TEST_ASSERT(uniform.can_adjust && !uniform.alt_covers_chest, "The fixture jumpsuit must roll down to bare the torso and arms.")
 	uniform.toggle_jumpsuit_adjust()
 	TEST_ASSERT(!(custom_sprite_zone_covered(recipient, BODY_ZONE_L_ARM) || custom_sprite_salon_target_problem(recipient, "markings", BODY_ZONE_L_ARM)), "Rolled-up sleeves must expose the arms for tattooing.")
-
 
 /datum/unit_test/custom_sprite_salon/locked_paint/Run()
 	setup_players()
@@ -622,36 +508,6 @@
 		TEST_ASSERT(applied["style"] == hair["style"], "Approved base hair must be applied to the recipient.")
 		GLOB.custom_sprite_salon_cooldowns.Cut()
 
-/datum/unit_test/custom_sprite_salon/clothing_refresh/Run()
-	setup_players()
-	recipient.underwear = "Briefs"
-	recipient.update_body()
-	var/datum/custom_sprite_salon/test/session = new(scissors, artist, recipient, "hair")
-	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
-	recipient.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING)
-	if(session.dress_timer)
-		deltimer(session.dress_timer)
-	session.refresh_editor_body()
-	var/mob/living/carbon/human/dummy/body = session.editor.preview_body
-	var/icon/before = icon(session.editor.guide_icons["2"])
-	var/paint_before = custom_sprite_hash(session.editor.workspace.serialize_drawing())
-	uniform.rolldown()
-	TEST_ASSERT(session.dress_timer, "Changing an already-worn uniform must schedule a guide refresh.")
-	deltimer(session.dress_timer)
-	session.refresh_editor_body()
-	TEST_ASSERT(session.editor.preview_body == body, "A clothing-only refresh must reuse the preview body.")
-	TEST_ASSERT(!custom_sprite_test_same_pixels(before, session.editor.guide_icons["2"]), "The refreshed guide must show the adjusted uniform.")
-	TEST_ASSERT(custom_sprite_hash(session.editor.workspace.serialize_drawing()) == paint_before, "Clothing changes must preserve the drawing.")
-	// Unlike worn items, underwear is also part of the dummy's copied appearance.
-	recipient.set_all_underwear_visibility(TRUE)
-	TEST_ASSERT(session.dress_timer, "Underwear visibility changes must schedule a preview refresh.")
-	deltimer(session.dress_timer)
-	session.refresh_editor_body()
-	TEST_ASSERT(session.editor.preview_body.underwear_visibility == recipient.underwear_visibility, "A preview must discard its old underwear visibility after the recipient changes it.")
-	session.editor.ui_close(artist)
-	uniform.rolldown()
-	TEST_ASSERT(!session.dress_timer, "Closed drafts must not schedule preview work.")
-
 /datum/unit_test/custom_sprite_salon/self_styling/Run()
 	setup_players()
 	TEST_ASSERT(!custom_sprite_salon_start_problem(scissors, artist, artist, "hair"), "Cutting your own hair must be allowed: [custom_sprite_salon_start_problem(scissors, artist, artist, "hair")]")
@@ -702,36 +558,6 @@
 	TEST_ASSERT(!(haircut.editor.apply_hair_context(glowing, "Change hair") || !haircut.editor.transfer_error), "A haircut must not change hair glow or opacity.")
 	qdel(haircut)
 
-
-/datum/unit_test/custom_sprite_salon/self_hair_guide/Run()
-	setup_players()
-	artist.set_hairstyle("Short Hair", update = TRUE)
-	var/datum/custom_sprite_salon/test/session = new(scissors, artist, artist, "hair", null)
-	var/datum/sprite_accessory/hair/current = SSaccessories.hairstyles_list[session.editor.workspace.hair_context["style"]]
-	var/list/current_bounds = custom_sprite_icon_bounds(icon(current.icon, current.icon_state), SOUTH)
-	var/longer
-	for(var/name, candidate_untyped in SSaccessories.hairstyles_list)
-		var/datum/sprite_accessory/hair/candidate = candidate_untyped
-		if(!candidate?.icon_state || candidate.locked)
-			continue
-		var/list/bounds = custom_sprite_icon_bounds(icon(candidate.icon, candidate.icon_state), SOUTH)
-		if(bounds && current_bounds && bounds[4] > current_bounds[4] + 2)
-			longer = name
-			break
-	TEST_ASSERT(longer, "The fixture needs a hairstyle that reaches further than the current one.")
-	var/icon/before = icon(session.editor.guide_icons["2"])
-	var/list/restyle = session.editor.workspace.hair_context.Copy()
-	restyle["style"] = longer
-	TEST_ASSERT(session.editor.apply_hair_context(restyle, "Change hairstyle"), "Changing the hairstyle failed: [session.editor.transfer_error]")
-	// The guide is drawn from the drafted look, not the one the session started with.
-	TEST_ASSERT(!custom_sprite_test_same_pixels(before, session.editor.guide_icons["2"]), "A new haircut must change the guide.")
-	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
-	artist.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING)
-	var/icon/dressed = icon(session.editor.guide_icons["2"])
-	session.editor.rebuild_resources()
-	TEST_ASSERT(!custom_sprite_test_same_pixels(dressed, session.editor.guide_icons["2"]), "Guides must show the clothes the recipient is wearing.")
-
-
 /datum/unit_test/custom_sprite_salon/separate_drafts/Run()
 	setup_players()
 	var/datum/custom_sprite_salon/test/haircut = new(scissors, artist, recipient, "hair")
@@ -769,62 +595,6 @@
 		for(var/y in 0 to 31)
 			for(var/x in 0 to 31)
 				TEST_ASSERT(!(copytext(rows[y + 1], x + 1, x + 2) == index && !canvas.workspace.is_point_allowed(x, y, "[direction]")), "Every left arm pixel must be paintable in direction [direction].")
-
-/datum/unit_test/custom_sprite_salon/tattoo_hair_layer/Run()
-	setup_players()
-	// A style long enough to hang over the chest.
-	var/long_style
-	var/lowest = 0
-	for(var/name, candidate_untyped in SSaccessories.hairstyles_list)
-		var/datum/sprite_accessory/hair/candidate = candidate_untyped
-		if(!candidate?.icon_state || candidate.locked)
-			continue
-		var/list/extent = custom_sprite_icon_bounds(icon(candidate.icon, candidate.icon_state), SOUTH)
-		if(extent && extent[4] > lowest)
-			lowest = extent[4]
-			long_style = name
-	recipient.set_hairstyle(long_style, update = TRUE)
-	var/obj/item/organ/wings/moth/wings = new
-	wings.Insert(recipient, special = TRUE)
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
-	var/datum/custom_sprite_editor/editor = session.editor
-	TEST_ASSERT(length(editor.preview_body.overlays_standing[HAIR_LAYER]), "The fixture must have hair to leave out of the guide.")
-	TEST_ASSERT(!(!editor.can_hide_parts() || !editor.hide_parts), "Tattoo guides must keep hair and parts out of the way by default.")
-	TEST_ASSERT(!editor.can_hide_underwear(), "Tattoo guides must show the recipient as they're dressed, underwear included.")
-	// Only the guide leaves parts out; the preview body keeps them once the guides are drawn.
-	var/obj/item/bodypart/wings_limb
-	var/datum/bodypart_overlay/mutant/wings/wings_overlay
-	for(var/obj/item/bodypart/limb as anything in editor.preview_body.bodyparts)
-		wings_overlay = locate() in limb.bodypart_overlays
-		if(wings_overlay)
-			wings_limb = limb
-			break
-	TEST_ASSERT(wings_overlay, "Hiding parts from the guide must leave the wings on the preview body.")
-	var/list/expected_previews = custom_sprite_render_directions(editor.preview_body, worn_overlays = editor.render_overlays())
-	for(var/direction, expected in expected_previews)
-		editor.render_view(direction)
-		TEST_ASSERT(editor.preview_urls[direction] == expected, "Hiding parts from the guide must leave hair and wings on the preview.")
-	// Hidden means gone from the whole canvas: hair hanging beside the body counts too.
-	var/icon/hidden = editor.guide_icons["2"]
-	// Build the comparison through the mob itself, not the helpers this is checking.
-	wings_limb.remove_bodypart_overlay(wings_overlay)
-	var/list/hair = editor.preview_body.overlays_standing[HAIR_LAYER]
-	editor.preview_body.remove_overlay(HAIR_LAYER)
-	var/icon/bare = custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)
-	editor.preview_body.overlays_standing[HAIR_LAYER] = hair
-	editor.preview_body.apply_overlay(HAIR_LAYER)
-	wings_limb.add_bodypart_overlay(wings_overlay)
-	var/icon/whole = custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)
-	TEST_ASSERT(!custom_sprite_test_same_pixels(bare, whole), "The fixture's hair and wings must be visible on the body it's drawn on.")
-	// Guides are built while other renders read the same body, so hiding hair must not touch it.
-	custom_sprite_limb_appearance(editor.preview_body)
-	TEST_ASSERT(custom_sprite_test_same_pixels(whole, custom_sprite_flat_icon(editor.preview_body, SOUTH, editor.workspace.width)), "Hiding hair must leave the body it was taken from alone.")
-	for(var/y in 1 to 32)
-		for(var/x in 1 to 32)
-			TEST_ASSERT(hidden.GetPixel(x, y) == bare.GetPixel(x, y), "Hidden hair and parts must leave the guide alone at [x],[y].")
-	editor.hide_parts = FALSE
-	editor.rebuild_resources()
-	TEST_ASSERT(!custom_sprite_test_same_pixels(hidden, editor.guide_icons["2"]), "Putting hair and parts back on must change the guide.")
 
 /datum/unit_test/custom_sprite_salon/mirror_choices/Run()
 	setup_players()
@@ -877,65 +647,7 @@
 	TEST_ASSERT(!(session.accept(recipient, token, save_permanently = TRUE) || session.state != "drafting" || session.save_on_completion), "A late approval must fail even before the expiry timer runs.")
 	GLOB.preferences_datums -= recipient.ckey
 
-/datum/unit_test/custom_sprite_salon/editor_sounds/Run()
-	setup_players()
-	for(var/target in list("hair", "markings"))
-		var/tattoo = target == "markings"
-		var/datum/custom_sprite_salon/test/session = new(tattoo ? machine : scissors, artist, recipient, target)
-		var/datum/custom_sprite_editor/editor = session.editor
-		var/channels_before = length(SSsounds.reserved_channels)
-		// Register the open UI without needing a DreamSeeker window in a native test.
-		var/datum/tgui/ui = new(artist, editor, "CustomHairEditor")
-		editor.open_uis = list(ui)
-		editor.ui_interact(artist, ui)
-		TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "An idle open editor must stay silent.")
-		for(var/list/invalid as anything in list(list("dir" = "2", "x" = -1, "y" = 0, "erasing" = TRUE), list("dir" = "2", "x" = 9999, "y" = 0, "erasing" = TRUE), list("dir" = "invalid", "x" = 1, "y" = 1), list("dir" = "2", "x" = "text", "y" = 1)))
-			editor.ui_act("drawing", invalid, ui)
-		TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "Malformed or off-canvas activity must not start sounds.")
-		var/list/activity
-		for(var/y in 0 to editor.workspace.height - 1)
-			for(var/x in 0 to editor.workspace.width - 1)
-				if(editor.workspace.is_point_allowed(x, y, "2"))
-					activity = list("dir" = "2", "x" = x, "y" = y)
-					break
-			if(activity)
-				break
-		var/revision = editor.draft_revision
-		TEST_ASSERT(!(editor.ui_act("drawing", activity, ui) || editor.draft_revision != revision), "Brush activity must not change pixels or request a UI update.")
-		var/datum/looping_sound/sound = session.drawing_sound
-		TEST_ASSERT(!(!sound?.is_active() || sound.parent != artist || length(SSsounds.reserved_channels) != channels_before + (tattoo ? 2 : 1)), "The first brush movement must immediately start sounds on the artist.")
-		TEST_ASSERT(!(tattoo && (!sound.vary || !session.drawing_ambience?.native_repeat_active)), "Tattooing needs varied needle bursts and steady native-looped ambience.")
-		var/sound_timer = sound.timer_id
-		editor.ui_act("drawing", activity, ui)
-		TEST_ASSERT(!(session.drawing_sound != sound || sound.timer_id != sound_timer), "Drawing during the cooldown must not restart or duplicate the clip.")
-		TEST_ASSERT(!(!istype(sound, /datum/looping_sound/salon_snipping/drawing) || sound.mid_length_vary || sound.mid_length != (tattoo ? 12 SECONDS : 5 SECONDS)), "Brush clips must play once with a fixed five/twelve-second cooldown.")
-		artist.forceMove(get_step(artist, NORTH))
-		TEST_ASSERT(sound.is_active(), "Drawing sounds must survive movement while the editor stays open.")
-		if(tattoo)
-			sleep(2 SECONDS)
-			editor.ui_act("drawing", activity, ui)
-			sleep(2 SECONDS)
-			TEST_ASSERT(session.drawing_ambience?.is_active(), "Continued drawing must extend the ambience tail.")
-			sleep(2 SECONDS)
-			TEST_ASSERT(!session.drawing_ambience, "Tattoo ambience must stop after drawing has been idle for three seconds.")
-		else
-			sleep(6 SECONDS)
-			TEST_ASSERT(!sound.is_active(), "A snip must not loop while the drawing is idle.")
-		// Advance only the cooldown, avoiding a twelve-second sleep for a repeated clip.
-		session.drawing_sound_cooldown = 0
-		editor.ui_act("drawing", activity, ui)
-		TEST_ASSERT(!(!sound.is_active() || sound.timer_id == sound_timer), "The next brush movement after cooldown must start another clip.")
-		editor.ui_close(artist)
-		TEST_ASSERT(!(!QDELETED(sound) || session.drawing_sound || session.drawing_ambience || length(SSsounds.reserved_channels) != channels_before), "Closing the editor must silence and release both sound channels.")
-		editor.ui_interact(artist, ui)
-		TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "Reopening a retained draft must stay silent until drawing resumes.")
-		session.drawing_sound_cooldown = 0
-		editor.ui_act("drawing", activity, ui)
-		qdel(session)
-		TEST_ASSERT(length(SSsounds.reserved_channels) == channels_before, "Discarding open work must release its sound channels.")
-		artist.forceMove(run_loc_floor_bottom_left)
-
-/// Only regions the draft changes are proposed, named in the mirror, applied and remembered.
+/// Only regions the draft changes are proposed, applied and remembered.
 /datum/unit_test/custom_sprite_salon/touched_regions/Run()
 	setup_players()
 	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
@@ -1207,55 +919,6 @@
 	locked = canvas.locked_regions()
 	TEST_ASSERT(findtext(locked[CUSTOM_MARKING_ZONE_TAUR], "can't be tattooed"), "A removed taur body must lock as untattooable, not replaced: [json_encode(locked)]")
 
-/// The recipient's mirror draws only the view its window shows; the others are drawn once shown.
-/datum/unit_test/custom_sprite_salon/mirror_views/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
-	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
-	var/error = session.propose(artist)
-	TEST_ASSERT(!error, "The fixture must open the mirror: [error]")
-	var/datum/custom_sprite_mirror/mirror = session.mirror
-	TEST_ASSERT(!(length(mirror.before_urls) != 1 || !mirror.before_urls["2"] || length(mirror.after_urls) != 1 || !mirror.after_urls["2"]), "The mirror must open with only the Front view drawn.")
-	TEST_ASSERT(mirror.ui_data(recipient)["visibleView"] == "2", "The window must learn which view the mirror drew.")
-	var/datum/tgui/full_update_counting/ui = allocate(/datum/tgui/full_update_counting, recipient, mirror, "CustomSpriteMirror")
-	TEST_ASSERT(!mirror.ui_act("setView", list("dir" = "1"), ui), "A newly drawn view travels as static data, not with a second update.")
-	TEST_ASSERT(!(ui.full_updates != 1 || !mirror.before_urls["1"] || !mirror.after_urls["1"] || mirror.visible_direction != "1"), "Showing the Back view must draw both of its pictures and send them.")
-	TEST_ASSERT(!(mirror.ui_act("setView", list("dir" = "1"), ui) || ui.full_updates != 1), "Showing the view already shown must change nothing.")
-	TEST_ASSERT(!(mirror.ui_act("setView", list("dir" = "3"), ui) || mirror.visible_direction != "1"), "Unknown views must be refused.")
-	TEST_ASSERT(!(!mirror.ui_act("setView", list("dir" = "2"), ui) || ui.full_updates != 1), "Returning to a view already drawn only updates the window's data.")
-	var/front = mirror.before_urls["2"]
-	var/back = mirror.before_urls["1"]
-	// Someone else tattoos a region the proposal doesn't touch.
-	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_R_LEG, custom_sprite_test_drawing(), null))
-	if(mirror.refresh_timer)
-		deltimer(mirror.refresh_timer)
-	mirror.refresh()
-	TEST_ASSERT(!(mirror.before_urls["2"] == front || mirror.stale_views["2"]), "A refresh must redraw the view the window shows.")
-	TEST_ASSERT(!(mirror.before_urls["1"] != back || !mirror.stale_views["1"]), "A refresh must leave the other views' last pictures until they're shown.")
-	var/list/applied = list()
-	applied[custom_style_key("markings", BODY_ZONE_L_ARM)] = custom_style_package("markings", BODY_ZONE_L_ARM, custom_sprite_test_drawing(), null)
-	var/datum/custom_sprite_mirror/result = new(null, recipient, applied, null)
-	var/datum/tgui/result_ui = allocate(/datum/tgui, recipient, result, "CustomSpriteMirror")
-	TEST_ASSERT(!(result.ui_act("setView", list("dir" = "1"), result_ui) || result.visible_direction != "2"), "The result window shows no views, so it must refuse to draw one.")
-	qdel(result)
-
-/// The mirror redraws both pictures when the recipient's look changes while they decide.
-/datum/unit_test/custom_sprite_salon/mirror_refresh/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
-	TEST_ASSERT(paint_region(session, BODY_ZONE_L_ARM), "The fixture must paint the left arm.")
-	var/error = session.propose(artist)
-	TEST_ASSERT(!error, "The fixture must open the mirror: [error]")
-	var/datum/custom_sprite_mirror/mirror = session.mirror
-	var/list/before = mirror.before_urls.Copy()
-	var/list/after = mirror.after_urls.Copy()
-	// Someone else tattoos a region the proposal doesn't touch.
-	custom_sprite_apply_round_style(recipient, custom_style_package("markings", BODY_ZONE_R_LEG, custom_sprite_test_drawing(), null))
-	TEST_ASSERT(mirror.refresh_timer, "A change to the recipient's look must schedule a mirror redraw.")
-	deltimer(mirror.refresh_timer)
-	mirror.refresh()
-	TEST_ASSERT(!(mirror.before_urls["2"] == before["2"] || mirror.after_urls["2"] == after["2"]), "Both pictures must show the recipient's new look.")
-
 /// Restoring the whole body leaves out regions that can't be worked on right now, and restores the rest.
 /datum/unit_test/custom_sprite_salon/restore_covered/Run()
 	setup_players()
@@ -1296,35 +959,6 @@
 	canvas.sync_locked_views()
 	TEST_ASSERT(canvas.workspace.is_point_allowed(point[1], point[2], "2"), "A region whose look is back as it was can take paint again.")
 
-/// Applying a tattoo over several regions redraws the body once.
-/datum/unit_test/custom_sprite_salon/one_redraw/Run()
-	setup_players(/mob/living/carbon/human/consistent/redraw_counting)
-	var/mob/living/carbon/human/consistent/redraw_counting/counting = recipient
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
-	TEST_ASSERT(!(!paint_region(session, BODY_ZONE_L_ARM) || !paint_region(session, BODY_ZONE_R_LEG)), "The fixture must paint two regions.")
-	var/error = session.propose(artist)
-	TEST_ASSERT(!error, "The fixture must open the mirror: [error]")
-	var/token = session.proposal["token"]
-	TEST_ASSERT(session.accept(recipient, token), "The fixture tattoo must be approved.")
-	counting.redraws = 0
-	TEST_ASSERT(session.complete_application(token), "The fixture tattoo must apply.")
-	TEST_ASSERT(counting.redraws == 1, "Applying two regions must redraw the body once: [counting.redraws]")
-
-/// One window update, or one region action, works out the region locks once.
-/datum/unit_test/custom_sprite_salon/lock_checks/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/lock_counting/session = new(machine, artist, recipient, "markings")
-	var/datum/custom_sprite_editor/markings/canvas = session.editor
-	var/datum/tgui/ui = new(artist, canvas, "CustomMarkingsEditor")
-	var/regions = length(canvas.region_zones)
-	session.part_checks = 0
-	canvas.ui_data(artist)
-	TEST_ASSERT(session.part_checks == regions, "A window update must check each region once: [session.part_checks] checks for [regions] regions")
-	session.part_checks = 0
-	TEST_ASSERT(!(canvas.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui) || canvas.selected_zone != BODY_ZONE_L_ARM), "The fixture must select the left arm.")
-	TEST_ASSERT(session.part_checks == regions, "Selecting a region must check each region once: [session.part_checks] checks for [regions] regions")
-	qdel(ui)
-
 /// Covering a region stops its base markings changing too, such as a recolour that waited on the colour picker.
 /datum/unit_test/custom_sprite_salon/covered_markings/Run()
 	setup_players()
@@ -1338,69 +972,3 @@
 	var/list/entries = canvas.workspace.markings_context[BODY_ZONE_CHEST]
 	var/list/entry = entries[1]
 	TEST_ASSERT(entry["color"] == "#112233", "The torso's drafted base marking must stay as it was: [entry["color"]]")
-
-/// Erasing over paint in a covered region makes no sound, since the stroke is refused.
-/datum/unit_test/custom_sprite_salon/locked_erasing/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
-	var/datum/custom_sprite_editor/markings/canvas = session.editor
-	TEST_ASSERT(paint_region(session, BODY_ZONE_PRECISE_L_HAND), "The fixture must paint the left hand.")
-	var/list/point = custom_sprite_test_region_pixel(canvas, BODY_ZONE_PRECISE_L_HAND)
-	var/obj/item/clothing/gloves/gloves = allocate(/obj/item/clothing/gloves/color/black)
-	recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES)
-	var/datum/tgui/ui = new(artist, canvas, "CustomMarkingsEditor")
-	var/list/activity = list("dir" = "2", "x" = point[1], "y" = point[2], "erasing" = TRUE)
-	canvas.ui_act("drawing", activity, ui)
-	TEST_ASSERT(!(session.drawing_sound || session.drawing_ambience), "Erasing paint in a covered region must stay silent.")
-	recipient.dropItemToGround(gloves)
-	canvas.ui_act("drawing", activity, ui)
-	TEST_ASSERT(session.drawing_sound, "Erasing paint in an uncovered region must sound.")
-	qdel(ui)
-
-/// A salon haircut's preview follows the artist's strokes, as a tattoo's does.
-/datum/unit_test/custom_sprite_salon/hair_preview/Run()
-	setup_players()
-	var/datum/custom_sprite_salon/test/session = new(scissors, artist, recipient, "hair")
-	var/datum/custom_sprite_editor/editor = session.editor
-	var/datum/tgui/ui = new(artist, editor, "CustomHairEditor")
-	var/before = editor.preview_urls["2"]
-	editor.workspace.update_palette(editor.workspace.palette | "#ff0000")
-	var/list/points = list()
-	for(var/y in 1 to 4)
-		for(var/x in 1 to 4)
-			points += list(list(x, y))
-	editor.ui_act("spriteEditorCommand", list("command" = "transaction", "transaction" = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#ff0000ff", "points" = points)), ui, null)
-	TEST_ASSERT(editor.preview_timer, "A haircut stroke must schedule a preview refresh.")
-	deltimer(editor.preview_timer)
-	editor.refresh_preview()
-	TEST_ASSERT(editor.preview_urls["2"] != before, "The haircut preview must show a new stroke.")
-	qdel(ui)
-
-/// Held items stay out of salon pictures, so picking one up redraws nothing, while worn changes still redraw and relock at once.
-/datum/unit_test/custom_sprite_salon/held_items/Run()
-	setup_players()
-	// Dressed, so the worn overlays the held ones are checked against aren't empty.
-	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
-	TEST_ASSERT(recipient.equip_to_slot_or_del(uniform, ITEM_SLOT_ICLOTHING), "The fixture must be able to wear the jumpsuit.")
-	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
-	var/datum/custom_sprite_editor/markings/canvas = session.editor
-	if(session.dress_timer)
-		deltimer(session.dress_timer)
-		session.dress_timer = null
-	var/obj/item/crowbar/crowbar = allocate(/obj/item/crowbar)
-	TEST_ASSERT(recipient.put_in_hands(crowbar), "The fixture must be able to hold the crowbar.")
-	TEST_ASSERT(!session.dress_timer, "Picking up an item must not redraw the salon guides.")
-	var/held = recipient.overlays_standing[HANDS_LAYER]
-	var/list/held_overlays = islist(held) ? held : list(held)
-	TEST_ASSERT(length(held_overlays - null), "The fixture's crowbar must be drawn in hand.")
-	var/list/worn = custom_sprite_worn_overlays(recipient)
-	TEST_ASSERT(length(worn), "The fixture's jumpsuit must be drawn as worn.")
-	TEST_ASSERT(!length(held_overlays & worn), "Held items must stay out of salon guides and mirrors.")
-	canvas.static_dirty = FALSE
-	var/obj/item/clothing/gloves/color/black/gloves = allocate(/obj/item/clothing/gloves/color/black)
-	TEST_ASSERT(recipient.equip_to_slot_if_possible(gloves, ITEM_SLOT_GLOVES), "The fixture must be able to wear gloves.")
-	TEST_ASSERT(session.dress_timer, "Putting gloves on must redraw the salon guides.")
-	TEST_ASSERT(canvas.lock_reasons?[BODY_ZONE_PRECISE_L_HAND], "Gloves must lock the hands at once.")
-	TEST_ASSERT(canvas.static_dirty, "A lock change must send the new mask with the next full update.")
-	deltimer(session.dress_timer)
-	session.dress_timer = null

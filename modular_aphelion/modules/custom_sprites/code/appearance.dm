@@ -36,6 +36,11 @@
 /datum/sprite_accessory/hair/custom_sprite_blank
 	icon_state = SPRITE_ACCESSORY_NONE
 
+/// A bald base whose custom hair canvas is CUSTOM_SPRITE_TALL_HEIGHT tall, for hair that reaches well above the head as Afro (Huge) does.
+/datum/sprite_accessory/hair/custom_sprite_blank/tall
+	name = CUSTOM_SPRITE_TALL_HAIRSTYLE
+	natural_spawn = FALSE
+
 /obj/item/bodypart/head/proc/custom_sprite_hair_accessory()
 	var/datum/sprite_accessory/hair/accessory = SSaccessories.hairstyles_list[hairstyle]
 	if(accessory || !custom_hair)
@@ -54,6 +59,18 @@
 	var/static/datum/sprite_accessory/facial_hair/custom_sprite_blank/blank = new
 	return blank
 
+/// Whether the head carries custom paint for a hair target ("hair" or "facial_hair"). Paint is hair, even over a bald or shaved base style.
+/mob/living/carbon/human/proc/has_custom_hair(target = "hair")
+	var/obj/item/bodypart/head/head = get_bodypart(BODY_ZONE_HEAD)
+	return !!head?.custom_head_drawing(target)
+
+/// Takes custom paint off for the round along with the hair a shave or a cut to bald removes. Returns TRUE when there was paint.
+/mob/living/carbon/human/proc/remove_custom_hair(target = "hair")
+	if(!has_custom_hair(target) && !(target == "facial_hair" ? dna?.custom_facial_hair : dna?.custom_hair))
+		return FALSE
+	custom_sprite_apply_round_style(src, list("target" = target, "drawing" = null))
+	return TRUE
+
 /// Include explicit blank frames: a missing facing would fall back to the South mask.
 /proc/custom_sprite_directional_mask(icon/source, geometry_key, list/directions, glowing)
 	// Bounded cache of directional drawing emission and blocker masks.
@@ -71,7 +88,7 @@
 	if(cached)
 		return cached
 	var/icon/source_icon = icon(source)
-	var/icon/masked = custom_sprite_blank_icon(source_icon.Width())
+	var/icon/masked = custom_sprite_blank_icon(source_icon.Width(), source_icon.Height())
 	for(var/direction in selected)
 		masked.Insert(icon(source_icon, "", direction), "", direction)
 	return custom_sprite_cache_put(emissive_icons, key, masked)
@@ -87,7 +104,8 @@
 	for(var/datum/hair_mask/mask as anything in owner?.hair_masks)
 		var/icon/mask_icon = icon(mask.icon, mask.icon_state)
 		mask_icon.Shift(SOUTH, hairstyle.y_offset)
-		paint.Blend(mask_icon, ICON_ADD)
+		// Tall paint reaches above the mask, which carries on upward as its top row does.
+		paint.Blend(custom_sprite_extend_up(mask_icon, paint.Height()), ICON_ADD)
 	return paint
 
 /obj/item/bodypart/head/proc/append_custom_hair_paint_overlays(list/hair_overlays, icon/paint, datum/sprite_accessory/hair/hairstyle, dropped, target = "hair")
@@ -128,7 +146,13 @@
 		var/gradient_style = get_hair_gradient_style(gradient_key)
 		var/list/gradients = custom_style_hair_gradients(target)
 		if(gradient_style != SPRITE_ACCESSORY_NONE && gradients[gradient_style])
-			var/image/paint_gradient = get_gradient_overlay(paint, -HAIR_LAYER, gradients[gradient_style], get_hair_gradient_color(gradient_key), dropped)
+			var/datum/sprite_accessory/gradient = gradients[gradient_style]
+			var/image/paint_gradient = get_gradient_overlay(paint, -HAIR_LAYER, gradient, get_hair_gradient_color(gradient_key), dropped)
+			// The gradient sheet is 32 rows; over tall paint it carries on upward as its top row does.
+			if(paint.Height() > 32)
+				var/icon/tall_gradient = custom_sprite_extend_up(icon(gradient.icon, gradient.icon_state), paint.Height())
+				tall_gradient.Blend(paint, ICON_ADD)
+				paint_gradient.icon = tall_gradient
 			paint_gradient.pixel_x += offset_x
 			paint_gradient.pixel_z += offset_z
 			if(alpha_to_use == 255)
@@ -267,11 +291,21 @@
 /// Lower-body paint uses the actual taur organ, never its invisible leg slots.
 /datum/bodypart_overlay/custom_marking/taur
 
+/// How far taur paint sits above each of the organ's own layers: less than the gap to any other mob layer.
+#define CUSTOM_SPRITE_TAUR_PAINT_LIFT 0.001
+
 /datum/bodypart_overlay/custom_marking/taur/set_drawing(list/new_drawing, obj/item/bodypart/limb)
 	. = ..()
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(limb.owner)
-	if(taur)
-		set_layers(taur.custom_sprite_layers())
+	if(!taur)
+		return
+	// Just above each native layer, so the organ never covers the paint, whichever of the two the chest took last.
+	var/list/paint_layers = list()
+	for(var/layer_key, layer_number in taur.custom_sprite_layers())
+		paint_layers[layer_key] = layer_number - CUSTOM_SPRITE_TAUR_PAINT_LIFT
+	set_layers(paint_layers)
+
+#undef CUSTOM_SPRITE_TAUR_PAINT_LIFT
 
 /datum/bodypart_overlay/custom_marking/taur/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
 	if(!..())

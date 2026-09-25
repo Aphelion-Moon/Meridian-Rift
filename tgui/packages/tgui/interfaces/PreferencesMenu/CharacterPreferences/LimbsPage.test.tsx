@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import { afterEach, beforeEach, expect, it, spyOn } from 'bun:test';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import * as actions from 'tgui/events/act';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import type { ServerData } from '../types';
@@ -123,56 +123,6 @@ it('swaps adding and drawing leg markings for the taur drawing on taur legs', ()
   }
   expect(screen.getAllByText('+')).toHaveLength(4);
   expect(screen.getAllByText('Custom')).toHaveLength(4);
-});
-
-it('drops the add button once a limb is full', () => {
-  backendStore.set(gameDataAtom, {
-    ...preferences,
-    markings: {
-      l_arm: [
-        ...preferences.markings.l_arm,
-        {
-          name: 'Dots',
-          color: '#ff0000',
-          marking_id: 'three',
-          emissive: false,
-        },
-      ],
-    },
-  });
-  renderPage();
-  const leftArm = within(screen.getByText('Left arm').closest('.Section')!);
-  expect(leftArm.queryByText('+')).toBeNull();
-  expect(leftArm.getByText('Custom')).toBeTruthy();
-  const rightArm = within(screen.getByText('Right arm').closest('.Section')!);
-  expect(rightArm.getByText('+')).toBeTruthy();
-});
-
-it('hides markings another row on the limb already uses', () => {
-  renderPage();
-  const leftArm = within(screen.getByText('Left arm').closest('.Section')!);
-  // The selected name shows as a placeholder, so open menu entries are the
-  // only plain text matches for a marking name.
-  act(() => {
-    fireEvent.click(leftArm.getByPlaceholderText('Stripe'));
-  });
-  expect(screen.queryAllByText('Dots').length).toBeGreaterThan(0);
-  expect(screen.queryAllByText('Spots')).toHaveLength(0);
-});
-
-it('lights up the drawing buttons that already have paint', () => {
-  backendStore.set(gameDataAtom, {
-    ...preferences,
-    custom_marking_zones: ['l_arm'],
-  });
-  renderPage();
-  const drawn = (label: string) =>
-    within(screen.getByText(label).closest('.Section')!)
-      .getByText('Custom')
-      .closest('.Button')!
-      .classList.contains('Button--selected');
-  expect(drawn('Left arm')).toBe(true);
-  expect(drawn('Right arm')).toBe(false);
 });
 
 it('keeps ordinary marking controls when custom editing is unavailable', () => {

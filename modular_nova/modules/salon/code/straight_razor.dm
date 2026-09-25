@@ -21,6 +21,7 @@
 /obj/item/straight_razor/proc/shave(mob/living/carbon/human/target_human)
 	target_human.facial_hairstyle = "Shaved"
 	target_human.update_body_parts()
+	target_human.remove_custom_hair("facial_hair")
 	playsound(loc, 'sound/items/unsheath.ogg', 20, TRUE)
 
 /obj/item/straight_razor/attack(mob/attacked_mob, mob/living/user)
@@ -42,7 +43,7 @@
 			if(covering)
 				to_chat(user, span_warning("[covering] is in the way!"))
 				return
-			if(target_human.facial_hairstyle == "Shaved")
+			if(target_human.facial_hairstyle == "Shaved" && !target_human.has_custom_hair("facial_hair"))
 				to_chat(user, span_warning("Already clean-shaven!"))
 				return
 

@@ -69,6 +69,10 @@ export type BorderStyleProps = Omit<
 
 export type StringLayer = string[][];
 export type SelectionBounds = [number, number, number, number]; // APHELION EDIT ADDITION
+// APHELION EDIT ADDITION START
+/** Rows of '1' for the selected pixels of a selection box, relative to the box. */
+export type SelectionMask = string[];
+// APHELION EDIT ADDITION END
 
 export type SpriteDataLayer = {
   name: string;
@@ -84,6 +88,7 @@ export type SpriteData = {
   dirs: IconDirCount;
   backdrop: string;
   layers: SpriteDataLayer[];
+  compactStrokes?: BooleanLike; // APHELION EDIT ADDITION
 };
 
 export enum SpriteEditorColorMode {
@@ -128,6 +133,7 @@ export type SpriteEditorToolContext = {
   onSampleBackdrop?: (x: number, y: number) => void;
   onDraw?: (x: number, y: number, erasing?: boolean) => void;
   setSelectionBounds?: Dispatch<SetStateAction<SelectionBounds | undefined>>;
+  setSelectionMask?: Dispatch<SetStateAction<SelectionMask | undefined>>;
   // APHELION EDIT ADDITION END
   currentColor: EditorColor;
   setCurrentColor: Dispatch<SetStateAction<EditorColor>>;
@@ -139,5 +145,10 @@ export type SpriteEditorToolContext = {
 
 export type SpriteEditorToolCancelContext = Pick<
   SpriteEditorToolContext,
-  'setPreviewLayer' | 'setPreviewData' | 'setSelectionBounds' // APHELION EDIT CHANGE - ORIGINAL: 'setPreviewLayer' | 'setPreviewData'
+  // APHELION EDIT CHANGE START - ORIGINAL: 'setPreviewLayer' | 'setPreviewData'
+  | 'setPreviewLayer'
+  | 'setPreviewData'
+  | 'setSelectionBounds'
+  | 'setSelectionMask'
+  // APHELION EDIT CHANGE END
 >;

@@ -532,8 +532,6 @@ world
 					else
 						add.Blend(appearance.color, ICON_MULTIPLY)
 			else // 'I' is an appearance object.
-				//add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor) // APHELION EDIT REMOVAL
-
 				// APHELION EDIT ADDITION START
 				var/list/child_bounds
 				if(clip_bounds)
@@ -541,7 +539,8 @@ world
 					var/offset_y = layer_image.pixel_y + layer_image.pixel_z
 					child_bounds = list(flatX1 - offset_x, flatY1 - offset_y, flatX2 - offset_x, flatY2 - offset_y)
 				// APHELION EDIT ADDITION END
-				add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor, child_bounds)
+				add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor, child_bounds) // APHELION EDIT CHANGE - ORIGINAL: add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor)
+
 			if(!add)
 				continue
 

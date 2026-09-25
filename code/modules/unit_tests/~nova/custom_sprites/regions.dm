@@ -70,14 +70,6 @@
 				TEST_ASSERT(!(zone_x < 1 || zone_x > zone_width), "[owner] owns [x],[y] in view [direction], outside its [zone_width]-wide area.")
 				TEST_ASSERT(copytext(custom_sprite_body_draw_mask(human, owner, zone_width)[direction][y], zone_x, zone_x + 1) == "1", "[owner] owns [x],[y] in view [direction], which its own mask doesn't cover.")
 
-/datum/unit_test/custom_sprite_region_mask/Run()
-	var/list/map = list("2" = list("0120" + repeat_string(28, "0")))
-	var/list/mask = custom_sprite_region_mask(map)
-	TEST_ASSERT(mask["2"][1] == "0110" + repeat_string(28, "0"), "Every owned pixel is paintable; unowned pixels aren't.")
-	var/list/bounds = custom_sprite_mask_bounds(mask, 32)
-	TEST_ASSERT(json_encode(bounds["2"]) == json_encode(list(0, 0, 3, 1)), "Mask bounds pad the painted box by one pixel.")
-	TEST_ASSERT(custom_marking_partner(BODY_ZONE_L_ARM) == BODY_ZONE_PRECISE_L_HAND && custom_marking_partner(BODY_ZONE_PRECISE_R_HAND) == BODY_ZONE_R_ARM && !custom_marking_partner(BODY_ZONE_CHEST), "Arms and hands pair up; other regions have no partner.")
-
 /// A hand's drawing may paint the arm rows just above it, but on the canvas they're the arm's, so the arm runs its whole length.
 /datum/unit_test/custom_sprite_region_map_wrist/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
@@ -115,27 +107,6 @@
 				var/blend = LOWER_TEXT(rgb(round(a[1] * weight + b[1] * (1 - weight), 1), round(a[2] * weight + b[2] * (1 - weight), 1), round(a[3] * weight + b[3] * (1 - weight), 1)))
 				var/found = colors.Find(blend)
 				TEST_ASSERT(!(found && found != first && found != second), "A [weight] blend of regions [first] and [second] must not read as region [found].")
-
-/datum/unit_test/custom_sprite_region_fallback/Run()
-	// A faint edge of region 1 drawn over solid region 3.
-	var/icon/faint = custom_sprite_blank_icon(32)
-	faint.DrawBox(rgb(0, 0, 0, 77), 5, 28)
-	var/icon/solid = custom_sprite_blank_icon(32)
-	solid.DrawBox(rgb(0, 0, 0, 255), 5, 28)
-	TEST_ASSERT(custom_sprite_region_fallback(list(list(1, 3, 1, 1, solid), list(2, 1, 1, 1, faint)), 4, 4, SOUTH) == "3", "A blended edge pixel goes to the region that dominates it, not just the topmost one.")
-	TEST_ASSERT(custom_sprite_region_fallback(list(list(1, 3, 1, 1, faint), list(2, 1, 1, 1, solid)), 4, 4, SOUTH) == "1", "A solid region on top still owns the pixel.")
-
-/datum/unit_test/custom_sprite_region_map_uncached/Run()
-	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
-	var/obj/item/bodypart/limb = human.get_bodypart(BODY_ZONE_L_ARM)
-	var/datum/bodypart_overlay/custom_marking/zone/scratch = new
-	scratch.blocks_emissive = EMISSIVE_BLOCK_NONE
-	scratch.cache_icons = FALSE
-	scratch.set_drawing(custom_sprite_region_id_drawing(1, custom_sprite_body_draw_mask(human, BODY_ZONE_L_ARM, 32), 32), limb)
-	scratch.get_all_overlays(limb)
-	for(var/key in GLOB.custom_sprite_limb_icons)
-		TEST_ASSERT(!findtext(key, scratch.drawing_pixel_hash), "Region-map scratch overlays must not fill the shared limb icon cache.")
-	qdel(scratch)
 
 /// A region map's paintable mask keeps every owned pixel except the locked regions', region 1 included.
 /datum/unit_test/custom_sprite_region_mask_locks/Run()

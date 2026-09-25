@@ -37,7 +37,7 @@
 			if(human_target.is_mouth_covered(ITEM_SLOT_HEAD))
 				to_chat(user, span_warning("You can't brush [human_target]'s hair while [human_target.p_their()] head is covered!"))
 				return
-			if(human_target.hairstyle == "Bald" || human_target.hairstyle == "Skinhead")
+			if((human_target.hairstyle == "Bald" || human_target.hairstyle == "Skinhead") && !human_target.has_custom_hair())
 				brush_target = "head"
 			else
 				brush_target = "hair"
@@ -45,7 +45,7 @@
 			if(human_target.is_mouth_covered())
 				to_chat(user, span_warning("You can't brush [human_target]'s facial hair while [human_target.p_their()] mouth is covered!"))
 				return
-			if(human_target.facial_hairstyle != "Shaved")
+			if(human_target.facial_hairstyle != "Shaved" || human_target.has_custom_hair("facial_hair"))
 				brush_target = "beard"
 			else
 				brush_target = "chin"

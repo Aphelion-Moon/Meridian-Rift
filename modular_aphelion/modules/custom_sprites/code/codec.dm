@@ -67,19 +67,29 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 /proc/custom_sprite_width(list/drawing)
 	return drawing?["version"] == 3 ? CUSTOM_SPRITE_TAUR_WIDTH : 32
 
+/// Tall hair drawings are version 4; every other drawing is 32 rows.
+/proc/custom_sprite_height(list/drawing)
+	return drawing?["version"] == 4 ? CUSTOM_SPRITE_TALL_HEIGHT : 32
+
+/// The hair canvas a base look asks for: tall for custom hair over the tall bald base, otherwise 32 rows.
+/proc/custom_sprite_hair_canvas_height(target, list/hair)
+	return target == "hair" && hair?["style"] == CUSTOM_SPRITE_TALL_HAIRSTYLE ? CUSTOM_SPRITE_TALL_HEIGHT : 32
+
 /// Wide drawings extend equally to either side of the body's original 32-pixel canvas.
 /proc/custom_sprite_origin_x(list/drawing)
 	return (32 - custom_sprite_width(drawing)) / 2
 
-/// Wide canvases are version 3. Otherwise version 1 holds up to 15 colors and version 2 the rest.
-/proc/custom_sprite_version(width, palette_length)
+/// Wide canvases are version 3 and tall ones version 4. Otherwise version 1 holds up to 15 colors and version 2 the rest.
+/proc/custom_sprite_version(width, palette_length, height = 32)
 	if(width == CUSTOM_SPRITE_TAUR_WIDTH)
 		return 3
+	if(height == CUSTOM_SPRITE_TALL_HEIGHT)
+		return 4
 	return palette_length > 15 ? 2 : 1
 
-/// Grids are 32 rows of 32 or 64 pixels, indexing a palette of 1 to CUSTOM_SPRITE_MAX_COLORS colors.
+/// Grids are 32 rows of 32 or 64 pixels, or CUSTOM_SPRITE_TALL_HEIGHT rows of 32, indexing a palette of 1 to CUSTOM_SPRITE_MAX_COLORS colors.
 /proc/custom_sprite_grid_args_valid(palette_size, pixel_count)
-	return (pixel_count == 32 * 32 || pixel_count == CUSTOM_SPRITE_TAUR_WIDTH * 32) && isnum(palette_size) && palette_size == round(palette_size) && palette_size >= 1 && palette_size <= CUSTOM_SPRITE_MAX_COLORS
+	return (pixel_count == 32 * 32 || pixel_count == CUSTOM_SPRITE_TAUR_WIDTH * 32 || pixel_count == 32 * CUSTOM_SPRITE_TALL_HEIGHT) && isnum(palette_size) && palette_size == round(palette_size) && palette_size >= 1 && palette_size <= CUSTOM_SPRITE_MAX_COLORS
 
 /// Each run is a hex length (1-f), followed by one palette-index character.
 /// Coordinates are row-major from the top left, matching SpriteEditor.
@@ -180,7 +190,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 
 /// Reconstruct a bounded, canonical payload. Missing directions are ordinary empty canvases.
 /proc/custom_sprite_validate(list/drawing)
-	if(!islist(drawing) || !(drawing["version"] in list(1, 2, 3)))
+	if(!islist(drawing) || !(drawing["version"] in list(1, 2, 3, 4)))
 		return null
 	var/list/raw_palette = drawing["palette"]
 	var/list/raw_dirs = drawing["dirs"]
@@ -193,8 +203,12 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		if(!color || (color in palette))
 			return null
 		palette += color
+	var/height = custom_sprite_height(drawing)
 	var/tint = custom_sprite_color(drawing["tint"])
-	var/pixel_count = custom_sprite_width(drawing) * 32
+	// Tall drawings never had the legacy hair-color filter, which only covers 32 rows.
+	if(!tint && height > 32)
+		tint = "#ffffff"
+	var/pixel_count = custom_sprite_width(drawing) * height
 	var/list/directions = list()
 	for(var/direction in GLOB.custom_style_directions)
 		var/grid = custom_sprite_decode_grid(raw_dirs[direction], length(palette), pixel_count)
@@ -202,33 +216,38 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 			directions[direction] = custom_sprite_encode_grid(grid, length(palette), pixel_count)
 	if(!length(directions))
 		return null
-	var/list/validated = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette)), "palette" = palette, "tint" = tint, "dirs" = directions)
+	var/list/validated = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette), height), "palette" = palette, "tint" = tint, "dirs" = directions)
 	// Preserve older payloads; the editor and appearance default missing emission settings to off.
 	if("emissive" in drawing)
 		validated["emissive"] = custom_sprite_emissive_settings(drawing["emissive"])
 	return validated
 
-/// Center canonical legacy paint on a wide canvas. Refuse shrinking so no paint can be lost.
-/proc/custom_sprite_resize_drawing(list/drawing, width)
-	if(!drawing || !(width in list(32, CUSTOM_SPRITE_TAUR_WIDTH)))
+/**
+ * Fits canonical paint to a larger canvas: centered on a wide one, at the bottom of a tall one, so it
+ * keeps its place on the body. Refuses shrinking, so no paint can be lost.
+ */
+/proc/custom_sprite_resize_drawing(list/drawing, width, height = 32)
+	if(!drawing || !(width in list(32, CUSTOM_SPRITE_TAUR_WIDTH)) || !(height in list(32, CUSTOM_SPRITE_TALL_HEIGHT)) || (width != 32 && height != 32))
 		return null
 	var/source_width = custom_sprite_width(drawing)
-	if(width < source_width)
+	var/source_height = custom_sprite_height(drawing)
+	if(width < source_width || height < source_height)
 		return null
-	if(width == source_width)
+	if(width == source_width && height == source_height)
 		return drawing
 	var/list/resized = deep_copy_list(drawing)
 	var/padding = repeat_string((width - source_width) / 2, "0")
+	var/empty_rows = repeat_string((height - source_height) * width, "0")
 	var/palette_size = length(drawing["palette"])
 	for(var/direction, encoded in drawing["dirs"])
-		var/grid = custom_sprite_decode_grid(encoded, palette_size, source_width * 32)
+		var/grid = custom_sprite_decode_grid(encoded, palette_size, source_width * source_height)
 		if(!grid)
 			return null
-		var/list/rows = list()
-		for(var/y in 0 to 31)
+		var/list/rows = list(empty_rows)
+		for(var/y in 0 to source_height - 1)
 			rows += "[padding][copytext(grid, y * source_width + 1, (y + 1) * source_width + 1)][padding]"
-		resized["dirs"][direction] = custom_sprite_encode_grid(jointext(rows, ""), palette_size, width * 32)
-	resized["version"] = 3
+		resized["dirs"][direction] = custom_sprite_encode_grid(jointext(rows, ""), palette_size, width * height)
+	resized["version"] = custom_sprite_version(width, palette_size, height)
 	return resized
 
 /proc/custom_sprite_hash(list/drawing)
@@ -241,7 +260,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	var/list/clean = list()
 	for(var/body_zone in GLOB.custom_marking_zone_labels)
 		var/list/drawing = custom_sprite_validate(drawings[body_zone])
-		if(drawing && (body_zone == CUSTOM_MARKING_ZONE_TAUR) == (custom_sprite_width(drawing) == CUSTOM_SPRITE_TAUR_WIDTH))
+		if(drawing && custom_sprite_height(drawing) == 32 && (body_zone == CUSTOM_MARKING_ZONE_TAUR) == (custom_sprite_width(drawing) == CUSTOM_SPRITE_TAUR_WIDTH))
 			clean[body_zone] = drawing
 	return length(clean) ? clean : null
 
@@ -276,7 +295,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		index_map += position
 	if(!changed)
 		return drawing
-	var/pixel_count = custom_sprite_width(drawing) * 32
+	var/pixel_count = custom_sprite_width(drawing) * custom_sprite_height(drawing)
 	var/list/directions = list()
 	for(var/direction, encoded in drawing["dirs"])
 		var/grid = custom_sprite_decode_grid(encoded, length(old_palette), pixel_count)
@@ -302,7 +321,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	if(!drawing)
 		return ""
 	var/list/palette = drawing["palette"]
-	var/pixel_count = custom_sprite_width(drawing) * 32
+	var/pixel_count = custom_sprite_width(drawing) * custom_sprite_height(drawing)
 	var/grid = custom_sprite_decode_grid(drawing["dirs"][direction], length(palette), pixel_count)
 	if(!grid)
 		return ""

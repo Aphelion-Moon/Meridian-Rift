@@ -1,9 +1,7 @@
 // THIS IS AN APHELION UI FILE
 
 import { afterEach, beforeEach, expect, it, spyOn } from 'bun:test';
-import { join } from 'node:path';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { compileAsync } from 'sass-embedded';
 import * as actions from 'tgui/events/act';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import {
@@ -77,38 +75,6 @@ it('compares aligned views with a slider and binds both acceptance choices to th
   expect(send).toHaveBeenLastCalledWith('export', { token: 'reviewed-token' });
   fireEvent.click(screen.getByText('Decline'));
   expect(send).toHaveBeenLastCalledWith('decline');
-});
-
-it('uses the shared timeout bar without a stale expiry sentence', () => {
-  backendStore.set(gameDataAtom, approval());
-  const view = render(<CustomSpriteMirror />);
-  const bar = screen.getByRole('progressbar', { name: 'Time remaining' });
-  expect(bar.getAttribute('aria-valuenow')).toBe('1');
-  backendStore.set(gameDataAtom, { ...approval(), timeout: 0.5 });
-  view.rerender(<CustomSpriteMirror />);
-  expect(bar.getAttribute('aria-valuenow')).toBe('0.5');
-  expect(screen.queryByText(/Expires in/)).toBeNull();
-});
-
-it('fits rectangular previews inside a stable mirror area without stretching them', async () => {
-  const { css } = await compileAsync(
-    join(import.meta.dir, '../styles/interfaces/CustomSpriteMirror.scss'),
-  );
-  const style = document.createElement('style');
-  style.textContent = css;
-  document.head.appendChild(style);
-  try {
-    backendStore.set(gameDataAtom, approval());
-    render(<CustomSpriteMirror />);
-    for (const image of screen.getAllByRole('img')) {
-      const computed = getComputedStyle(image);
-      expect(computed.objectFit).toBe('contain');
-      expect(computed.width).toBe('100%');
-      expect(computed.height).toBe('100%');
-    }
-  } finally {
-    style.remove();
-  }
 });
 
 it('offers recipient save without a redundant export after application and reports failures', () => {

@@ -17,6 +17,7 @@ import {
   previewDataAtom,
   previewLayerAtom,
   selectionBoundsAtom, // APHELION EDIT ADDITION
+  selectionMaskAtom, // APHELION EDIT ADDITION
   tools,
 } from './atoms';
 import {
@@ -46,6 +47,7 @@ import {
   isTextEntryTarget,
   localizeCoords,
 } from './helpers';
+import { useSelectionCommands } from './selection'; // APHELION EDIT ADDITION
 import type { Tool } from './Types/Tool';
 import {
   type IncludeOrOmitEntireType,
@@ -313,10 +315,12 @@ export namespace SpriteEditor {
     // const cancelContext = { setPreviewLayer, setPreviewData }; // APHELION EDIT REMOVAL
     // APHELION EDIT ADDITION START
     const setSelectionBounds = useSetAtom(selectionBoundsAtom);
+    const setSelectionMask = useSetAtom(selectionMaskAtom);
     const cancelContext = {
       setPreviewLayer,
       setPreviewData,
       setSelectionBounds,
+      setSelectionMask,
     };
     // APHELION EDIT ADDITION END
     const {
@@ -395,6 +399,7 @@ export namespace SpriteEditor {
     const [previewData, setPreviewData] = useAtom(previewDataAtom);
     // APHELION EDIT ADDITION START
     const [selectionBounds, setSelectionBounds] = useAtom(selectionBoundsAtom);
+    const [selectionMask, setSelectionMask] = useAtom(selectionMaskAtom);
     const spriteKey = JSON.stringify(data);
     const renderedData = useMemo(() => {
       // These editors normally have one layer; no pixel compositing is needed.
@@ -422,6 +427,7 @@ export namespace SpriteEditor {
       onSampleBackdrop,
       onDraw,
       setSelectionBounds,
+      setSelectionMask,
       // APHELION EDIT ADDITION END
       currentColor,
       setCurrentColor,
@@ -436,8 +442,13 @@ export namespace SpriteEditor {
       }
     }, [disabled]);
     // APHELION EDIT ADDITION START
+    useSelectionCommands(currentTool, toolContext, data, !!disabled);
+    // Changing tool, view or bounds takes a selection's marquee away, dropping any floating paint.
     useEffect(
-      () => () => currentTool.cancel?.(toolContext),
+      () => () => {
+        if (currentTool.release) currentTool.release(toolContext);
+        else currentTool.cancel?.(toolContext);
+      },
       [
         currentTool,
         selectedDir,
@@ -447,6 +458,13 @@ export namespace SpriteEditor {
         JSON.stringify(props.drawBounds),
         JSON.stringify(props.drawMask),
       ],
+    );
+    // The tools outlive this canvas, so on unmount (after the release above) they forget what it held.
+    useEffect(
+      () => () => {
+        for (const tool of tools) tool.cancel?.(toolContext);
+      },
+      [],
     );
     // APHELION EDIT ADDITION END
     useEffect(() => {
@@ -480,6 +498,7 @@ export namespace SpriteEditor {
         // APHELION EDIT ADDITION START
         data={renderedData}
         selectionBounds={selectionBounds}
+        selectionMask={selectionMask}
         // APHELION EDIT ADDITION END
         backdropColor={backdrop}
         {...(disabled
@@ -488,6 +507,10 @@ export namespace SpriteEditor {
               onMouseDown: (ev, ref) => {
                 const [x, y] = localizeCoords(ev, ref, width, height);
                 // APHELION EDIT ADDITION START
+                // Pressing the canvas takes focus off the last control pressed, so Enter and shortcuts reach the canvas.
+                if (document.activeElement instanceof HTMLElement) {
+                  document.activeElement.blur();
+                }
                 // Region pickers learn where every primary press lands, whatever the tool.
                 if (ev.button === 0) {
                   onPointerDown?.(Math.floor(x), Math.floor(y));

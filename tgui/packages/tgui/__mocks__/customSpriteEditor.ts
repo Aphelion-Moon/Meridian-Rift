@@ -79,8 +79,6 @@ export const compactSprite = (
 
 export const fixture = (width = 32, height = 32): CustomSpriteEditorData => {
   return {
-    bodyZone: null,
-    bodyZoneLabel: null,
     candidate: null,
     editorData: {
       sprite: compactSprite(width, height, fixtureFrames(width, height)),
@@ -112,7 +110,7 @@ export const fixture = (width = 32, height = 32): CustomSpriteEditorData => {
 };
 
 export let send: ReturnType<typeof spyOn>;
-export let getContext: ReturnType<typeof spyOn>;
+let getContext: ReturnType<typeof spyOn>;
 /** Fill styles the mocked canvas has painted since it was last cleared. */
 export const painted: string[] = [];
 

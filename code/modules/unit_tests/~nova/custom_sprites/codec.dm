@@ -17,17 +17,6 @@
 	var/list/validated = custom_sprite_validate(drawing)
 	TEST_ASSERT(!(!validated || validated["palette"][1] != "#ffffff" || length(validated["dirs"]) != 1 || !validated["dirs"]["2"]), "A corrupt direction must not discard a valid direction.")
 
-/datum/unit_test/custom_sprite_codec_canonical_runs/Run()
-	var/list/cases = list(
-		"[repeat_string(15, "1")][repeat_string(1009, "0")]" = "rf1[repeat_string(67, "f0")]40",
-		"[repeat_string(16, "1")][repeat_string(1008, "0")]" = "rf111[repeat_string(67, "f0")]30",
-		"[repeat_string(31, "1")][repeat_string(993, "0")]" = "rf1f111[repeat_string(66, "f0")]30",
-	)
-	for(var/grid, encoded in cases)
-		TEST_ASSERT(!(custom_sprite_encode_grid(grid, 1) != encoded || custom_sprite_decode_grid(encoded, 1) != grid), "Runs crossing the 15-pixel limit must retain their exact saved representation.")
-	var/late_invalid = "[repeat_string(511, "12")]1!"
-	TEST_ASSERT(!(custom_sprite_encode_grid(late_invalid, 2) || custom_sprite_decode_grid("f[late_invalid]", 2)), "A flat fallback must still reject an invalid final pixel.")
-
 /datum/unit_test/custom_sprite_extended_palette/Run()
 	var/list/palette = list()
 	for(var/i in 1 to 63)

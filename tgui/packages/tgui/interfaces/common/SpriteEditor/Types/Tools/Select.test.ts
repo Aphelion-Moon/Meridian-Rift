@@ -46,6 +46,7 @@ const fixture = (
     setPreviewLayer: mock(),
     setPreviewData: mock(),
     setSelectionBounds: mock(),
+    setSelectionMask: mock(),
   };
   const tool = new Select();
   const select = (rect: SelectionBounds) => {
@@ -61,14 +62,38 @@ beforeEach(() => {
 });
 afterEach(() => send.mockRestore());
 
-it('moves hidden paint with the selection, but only onto the limb', () => {
+/** The pixels a placed selection sent, as x, y and color, read back from its area, values and codes. */
+const placed = (call = 0) => {
+  const { area, palette, digits, codes } = send.mock.calls[call][1].transaction;
+  const alphabet =
+    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
+  const pixels: [number, number, string][] = [];
+  let position = 0;
+  for (let y = area[1]; y <= area[3]; y++) {
+    for (let x = area[0]; x <= area[2]; x++) {
+      const code: string = codes.slice(position, position + digits);
+      position += digits;
+      if (code[0] === '.') continue;
+      let index = 0;
+      for (const character of code) {
+        index = index * alphabet.length + alphabet.indexOf(character);
+      }
+      pixels.push([x, y, palette[index]]);
+    }
+  }
+  return pixels;
+};
+
+it('moves hidden paint with the selection, and sends it once it all lands on the limb', () => {
   const frame = [[red, blue, clear, clear]];
   const { data, context, tool, select } = fixture(frame);
   context.drawMask = ['1011'];
   select([0, 0, 1, 0]);
   tool.onMouseDown(context, data, 0, 0);
   tool.onMouseMove(context, data, 1, 0);
-  expect(context.setPreviewData).not.toHaveBeenCalled();
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [clear, red, blue, clear],
+  ]);
   tool.onMouseUp(context, data, 2, 0);
   expect(context.setPreviewData).toHaveBeenLastCalledWith([
     [clear, clear, red, blue],
@@ -89,35 +114,53 @@ it('grabs a selection in shaded pixels and brings hidden paint back inside the b
   expect(context.setSelectionBounds).toHaveBeenLastCalledWith([0, 0, 2, 1]);
   expect(send).not.toHaveBeenCalled();
   tool.onMouseDown(context, data, 0, 0);
-  tool.onMouseMove(context, data, 1, 0);
+  tool.onMouseUp(context, data, 2, 1);
   expect(context.setPreviewData).toHaveBeenLastCalledWith([
     Array(8).fill(clear),
     [clear, clear, blue, clear, clear, clear, clear, clear],
     [clear, clear, clear, clear, red, clear, clear, clear],
   ]);
-  const updates = (context.setPreviewData as ReturnType<typeof mock>).mock.calls
-    .length;
-  tool.onMouseMove(context, data, 3, 0);
-  expect(context.setPreviewData).toHaveBeenCalledTimes(updates);
-  tool.onMouseUp(context, data, 1, 0);
   expect(send.mock.calls[0][1].transaction.rect).toEqual([0, 0, 2, 1]);
   expect(send.mock.calls[0][1].transaction.offset).toEqual([2, 1]);
   expect(frame[0][0]).toBe(blue);
 });
 
-it('clamps moved paint to drawing bounds even when the box includes shaded margins', () => {
+it('floats paint that does not all land, and cuts off what is off the canvas or shaded when dropped', () => {
   const { data, context, tool, select } = fixture(
-    [[clear, clear, red, clear, clear, clear, clear, clear]],
-    [2, 0, 5, 0],
+    [[clear, clear, red, green, clear, clear, clear, clear]],
+    [0, 0, 5, 0],
   );
-  select([1, 0, 2, 0]);
-  tool.onMouseDown(context, data, 1, 0);
+  select([2, 0, 3, 0]);
+  tool.onMouseDown(context, data, 2, 0);
   tool.onMouseUp(context, data, 20, 0);
-  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([4, 0, 5, 0]);
+  // Part of the box stays on the canvas; red hangs over shaded pixels, green off the edge.
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([7, 0, 8, 0]);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [clear, clear, clear, clear, clear, clear, clear, red],
+  ]);
+  tool.onMouseDown(context, data, 7, 0);
+  tool.onMouseUp(context, data, 5, 0);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [clear, clear, clear, clear, clear, red, green, clear],
+  ]);
+  expect(send).not.toHaveBeenCalled();
+  tool.release(context);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith(undefined);
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(send.mock.calls[0][1].transaction).toMatchObject({
+    type: 'move',
+    name: 'Move selection',
+    layer: 1,
+    dir: '2',
+  });
+  expect(placed()).toEqual([
+    [2, 0, clear],
+    [3, 0, clear],
+    [5, 0, red],
+  ]);
   expect(context.setPreviewData).toHaveBeenLastCalledWith([
     [clear, clear, clear, clear, clear, red, clear, clear],
   ]);
-  expect(send.mock.calls[0][1].transaction.offset).toEqual([3, 0]);
 });
 
 it('selects a normalized rectangle without previewing or changing pixels', () => {
@@ -169,7 +212,7 @@ it('preserves destination under transparent source and directly replaces partial
   ]);
 });
 
-it('clamps the whole rectangle and its movement to editable bounds', () => {
+it('keeps part of a dragged box on the canvas either way', () => {
   const { data, context, tool, select } = fixture(
     [
       [clear, clear, clear, clear],
@@ -181,45 +224,19 @@ it('clamps the whole rectangle and its movement to editable bounds', () => {
   select([1, 1, 2, 1]);
   tool.onMouseDown(context, data, 1, 1);
   tool.onMouseUp(context, data, 40, 40);
-  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([2, 2, 3, 2]);
-  expect(send).toHaveBeenLastCalledWith('spriteEditorCommand', {
-    command: 'transaction',
-    transaction: {
-      type: 'move',
-      name: 'Move selection',
-      layer: 1,
-      dir: '2',
-      rect: [1, 1, 2, 1],
-      offset: [1, 1],
-    },
-  });
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([3, 2, 4, 2]);
+  tool.onMouseDown(context, data, 3, 2);
+  tool.onMouseUp(context, data, -40, -40);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([-1, 0, 0, 0]);
+  expect(send).not.toHaveBeenCalled();
 });
 
-it('reuses the preview at unchanged integer offsets and includes the release position', () => {
-  const { data, context, tool, select } = fixture();
-  select([0, 0, 0, 0]);
-  tool.onMouseDown(context, data, 0.1, 0);
-  tool.onMouseMove(context, data, 1.1, 0);
-  const first = (context.setPreviewData as ReturnType<typeof mock>).mock
-    .calls[0][0];
-  tool.onMouseMove(context, data, 1.9, 0);
-  expect(context.setPreviewData).toHaveBeenCalledTimes(1);
-  tool.onMouseUp(context, data, 2, 0);
-  expect(context.setPreviewData).toHaveBeenCalledTimes(2);
-  expect(first).toEqual([[clear, red, blue, clear]]);
-  expect(context.setPreviewData).toHaveBeenLastCalledWith([
-    [clear, green, red, clear],
-  ]);
-  expect(send).toHaveBeenCalledTimes(1);
-});
-
-it('starts a new selection outside the old one and ignores out-of-canvas/right clicks', () => {
+it('starts a new selection outside the old one and ignores clicks off the canvas', () => {
   const { data, context, tool, select } = fixture();
   select([0, 0, 0, 0]);
   select([2, 0, 3, 0]);
   expect(context.setSelectionBounds).toHaveBeenLastCalledWith([2, 0, 3, 0]);
   tool.onMouseDown(context, data, -1, 0);
-  tool.onMouseDown(context, data, 1, 0, true);
   tool.onMouseUp(context, data, 2, 0);
   expect(send).not.toHaveBeenCalled();
   const blocked = fixture([[red]], [0, 0, -1, -1]);
@@ -424,4 +441,118 @@ it('recognizes equivalent opacity spellings in acknowledged pixel frames', () =>
   tool.reconcile(context, data);
   expect(context.setPreviewData).toHaveBeenLastCalledWith(undefined);
   expect(send).toHaveBeenCalledTimes(1);
+});
+
+it('copies a selection and pastes it as floating paint that is sent once, when dropped', () => {
+  const { data, context, tool, select } = fixture([
+    [red, green, clear, clear, clear],
+  ]);
+  select([0, 0, 1, 0]);
+  expect(tool.copy(context, data)).toBe(true);
+  expect(tool.paste(context, data)).toBe(true);
+  // It floats where it was copied from.
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([0, 0, 1, 0]);
+  tool.onMouseDown(context, data, 0, 0);
+  tool.onMouseUp(context, data, 3, 0);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [red, green, clear, red, green],
+  ]);
+  expect(send).not.toHaveBeenCalled();
+  tool.release(context);
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(placed()).toEqual([
+    [3, 0, red],
+    [4, 0, green],
+  ]);
+});
+
+it('pastes what was copied in one view into another', () => {
+  const { data, context, tool, select } = fixture([[red, green, clear]]);
+  data.layers[0].data[Dir.NORTH] = [[clear, clear, blue]];
+  select([0, 0, 1, 0]);
+  tool.copy(context, data);
+  const back = { ...context, selectedDir: Dir.NORTH };
+  expect(tool.paste(back, data)).toBe(true);
+  expect(back.setPreviewData).toHaveBeenLastCalledWith([[red, green, blue]]);
+  tool.release(back);
+  expect(send.mock.calls[0][1].transaction.dir).toBe('1');
+  expect(placed()).toEqual([
+    [0, 0, red],
+    [1, 0, green],
+  ]);
+});
+
+it('takes a right-dragged rectangle out of the selection and moves only what is left', () => {
+  const { data, context, tool, select } = fixture([
+    [red, green, blue, clear, clear, clear],
+  ]);
+  // With nothing selected, the right button does nothing.
+  expect(tool.onMouseDown(context, data, 1, 0, true)).toBeUndefined();
+  select([0, 0, 2, 0]);
+  tool.onMouseDown(context, data, 1, 0, true);
+  tool.onMouseUp(context, data, 1, 0);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([0, 0, 2, 0]);
+  expect(context.setSelectionMask).toHaveBeenLastCalledWith(['101']);
+  tool.onMouseDown(context, data, 0, 0);
+  tool.onMouseUp(context, data, 3, 0);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [clear, green, clear, red, clear, blue],
+  ]);
+  expect(placed()).toEqual([
+    [0, 0, clear],
+    [2, 0, clear],
+    [3, 0, red],
+    [5, 0, blue],
+  ]);
+  // Taking out everything that's left drops the selection.
+  tool.onMouseDown(context, data, 3, 0, true);
+  tool.onMouseUp(context, data, 5, 0);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith(undefined);
+});
+
+it('turns the selection a quarter turn about its middle and drops it where it shows', () => {
+  const { data, context, tool, select } = fixture([
+    [red, green, clear],
+    [clear, clear, clear],
+    [clear, clear, clear],
+  ]);
+  select([0, 0, 1, 0]);
+  expect(tool.rotate(context, data, 1)).toBe(true);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([0, 0, 0, 1]);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [red, clear, clear],
+    [green, clear, clear],
+    [clear, clear, clear],
+  ]);
+  expect(send).not.toHaveBeenCalled();
+  tool.release(context);
+  expect(placed()).toEqual([
+    [1, 0, clear],
+    [0, 1, green],
+  ]);
+});
+
+it('turns back to where it started without sending anything', () => {
+  const { data, context, tool, select } = fixture([[red, green, blue, clear]]);
+  select([0, 0, 2, 0]);
+  tool.rotate(context, data, 1);
+  tool.rotate(context, data, -1);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([0, 0, 2, 0]);
+  tool.release(context);
+  expect(send).not.toHaveBeenCalled();
+});
+
+it('throws floating paint away on Escape and drops it when a new selection starts', () => {
+  const { data, context, tool, select } = fixture([[red, clear, clear, clear]]);
+  select([0, 0, 0, 0]);
+  tool.copy(context, data);
+  tool.paste(context, data);
+  tool.cancel(context);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith(undefined);
+  tool.paste(context, data);
+  tool.onMouseDown(context, data, 0, 0);
+  tool.onMouseUp(context, data, 2, 0);
+  expect(send).not.toHaveBeenCalled();
+  select([3, 0, 3, 0]);
+  expect(placed()).toEqual([[2, 0, red]]);
 });

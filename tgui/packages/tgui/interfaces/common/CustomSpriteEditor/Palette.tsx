@@ -12,7 +12,7 @@ import { useAtom } from 'jotai';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import { useBackend } from 'tgui/backend';
-import { Button, Divider, Section, Stack, Tooltip } from 'tgui-core/components';
+import { Button, Section, Stack, Tooltip } from 'tgui-core/components';
 import { KEY_DELETE } from 'tgui-core/keycodes';
 import { currentColorAtom } from '../SpriteEditor/atoms';
 import {
@@ -205,12 +205,7 @@ const CustomPaletteSection = ({
           </Stack.Item>
         )}
       </Stack>
-      {!!footer && (
-        <>
-          <Divider />
-          {footer}
-        </>
-      )}
+      {footer}
     </Section>
   );
 };

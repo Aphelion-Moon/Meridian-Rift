@@ -9,13 +9,13 @@ import {
   mock,
   spyOn,
 } from 'bun:test';
-import { act, fireEvent, render, waitFor } from '@testing-library/react'; // APHELION EDIT CHANGE - ORIGINAL: import { act, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { storage } from 'common/storage';
 import { Provider } from 'jotai';
 import { UI_INTERACTIVE } from 'tgui-core/constants';
 import { globalEvents } from 'tgui-core/events';
-import { startKeyPassthrough, stopKeyPassthrough } from 'tgui-core/hotkeys'; // APHELION EDIT ADDITION
-import * as drag from '../drag'; // APHELION EDIT ADDITION
+import { startKeyPassthrough, stopKeyPassthrough } from 'tgui-core/hotkeys';
+import * as drag from '../drag';
 import { update } from '../events/handlers/update';
 import { configAtom, store, suspendedAtom } from '../events/store';
 import { Window } from './Window';

@@ -92,7 +92,7 @@
 	set_overlay_hair_color(facial_hair_overlay, facial_hair_color)
 	// Emissive blocker
 	if(blocks_emissive != EMISSIVE_BLOCK_NONE)
-		var/mutable_appearance/em_block = emissive_blocker(legacy_paint ? sprite_accessory.icon : facial_hair_overlay.icon, legacy_paint ? sprite_accessory.icon_state : facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha) // APHELION EDIT CHANGE - Legacy paint owns separate directional masks.
+		var/mutable_appearance/em_block = emissive_blocker(legacy_paint ? sprite_accessory.icon : facial_hair_overlay.icon, legacy_paint ? sprite_accessory.icon_state : facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha) // APHELION EDIT CHANGE - Legacy paint owns separate directional masks. ORIGINAL: var/mutable_appearance/em_block = emissive_blocker(facial_hair_overlay.icon, facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha)
 		if (dropped)
 			em_block = image(em_block, dir = SOUTH)
 		worn_face_offset?.apply_offset(em_block)

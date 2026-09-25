@@ -34,7 +34,9 @@
   pointer-events: none;
 }
 
-.CustomSpriteEditor__regionTag {
+// The region tag and the covered-paint tip share one label look.
+.CustomSpriteEditor__regionTag,
+.CustomSpriteEditor__coverTip {
   position: absolute;
   pointer-events: none;
   padding: 0 4px;
@@ -44,6 +46,9 @@
   color: #fff;
   background-color: rgba(0, 0, 0, 0.72);
   white-space: nowrap;
+}
+
+.CustomSpriteEditor__regionTag {
   transition: opacity 0.6s ease-out;
 }
 
@@ -169,19 +174,12 @@
 // The canvas box positions the covered-paint tip that follows the cursor.
 .CustomSpriteEditor__canvas {
   position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .CustomSpriteEditor__coverTip {
-  position: absolute;
   z-index: 2;
-  padding: 0 4px;
-  line-height: 13px;
-  font-size: 10px;
-  font-weight: bold;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.72);
-  white-space: nowrap;
-  pointer-events: none;
 }
 
 // Clear keeps its frame, reads as a warning, and fills only while hovered.
@@ -209,3 +207,50 @@
   margin: 0;
 }
 
+
+// Blending options follow the Custom swatches without a rule between them.
+.CustomSpriteEditor__blending {
+  margin-top: 0.5em;
+}
+
+// The collapsed header draws no separator; it appears once the options open beneath it.
+.CustomSpriteEditor__blending > * > .Table:only-child > .Table__cell {
+  border-bottom: 0;
+}
+
+// The quarter-turn buttons take no room while there is no selection to turn.
+.CustomSpriteEditor__turns:empty {
+  display: none;
+}
+
+// A selection's marching ants over the canvas, drawn without catching the pointer.
+.SpriteEditor__selection {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 1px dashed white;
+  box-shadow: 0 0 0 1px black;
+}
+
+// With pixels taken out, the ants follow the selected pixels' edge instead of the box.
+.SpriteEditor__selection--mask {
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.SpriteEditor__selectionEdge,
+.SpriteEditor__selectionAnts {
+  fill: none;
+}
+
+.SpriteEditor__selectionEdge {
+  stroke: black;
+  stroke-width: 3px;
+}
+
+.SpriteEditor__selectionAnts {
+  stroke: white;
+  stroke-width: 1px;
+  stroke-dasharray: 3 3;
+}

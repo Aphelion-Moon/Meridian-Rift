@@ -311,8 +311,8 @@
 	TEST_ASSERT(json_encode(disk["character1"]["limb_markings"][BODY_ZONE_L_ARM]) == json_encode(arm), "A successful retry must publish the submitted limb drawing to disk.")
 	var/writes = store.writes
 	TEST_ASSERT(!(preferences.commit_custom_style(custom_style_package("markings", BODY_ZONE_L_ARM, arm, null), preferences.default_slot) || store.writes != writes), "An unchanged, clean save must succeed without writing again.")
-	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/qualification(preferences, "hair")
-	LAZYSET(preferences.custom_sprite_editors, editor.editor_key, editor)
+	var/datum/custom_sprite_editor/editor = new(preferences, "hair")
+	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	editor.workspace.clear_direction("2")
 	store.fail_destination = "[test_path].new"
 	TEST_ASSERT(!(editor.save_drawing() || editor.save_revision || !editor.save_error), "A failed editor save must report an error without acknowledging a new revision.")

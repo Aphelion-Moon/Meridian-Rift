@@ -8,6 +8,7 @@ import {
   isPainted, // APHELION EDIT ADDITION
   isWithinDrawBounds, // APHELION EDIT ADDITION
 } from '../../helpers';
+import { strokePixels } from '../../strokeMask'; // APHELION EDIT ADDITION
 import { Tool } from '../Tool';
 import type { LayerTransaction } from '../Transaction';
 import type {
@@ -23,6 +24,7 @@ class EraserTransaction implements LayerTransaction {
   layer: number;
   dir: Dir;
   points: Map<string, [number, number]> = new Map();
+  sprite?: SpriteData; // APHELION EDIT ADDITION
 
   constructor(dir: Dir, layer: number) {
     this.dir = dir;
@@ -52,7 +54,7 @@ class EraserTransaction implements LayerTransaction {
         name: 'Eraser',
         layer: this.layer + 1,
         dir: `${this.dir}`,
-        points: this.points.values().toArray(),
+        ...strokePixels(this.points, this.sprite), // APHELION EDIT CHANGE - ORIGINAL: points: this.points.values().toArray(),
       },
     });
   }
@@ -77,6 +79,7 @@ export class Eraser extends Tool {
     const [px, py, inBounds] = constrainToIconGrid(x, y, width, height);
     if (isRightClick) return;
     this.currentTransaction = new EraserTransaction(selectedDir, selectedLayer);
+    this.currentTransaction.sprite = data; // APHELION EDIT ADDITION
     // if (inBounds) { // APHELION EDIT REMOVAL
     // APHELION EDIT ADDITION START
     // Paint left outside changed bounds can still be erased.

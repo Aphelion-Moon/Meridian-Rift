@@ -925,8 +925,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	rebuild_preview_body = FALSE
 	if(QDELETED(src) || !editor?.resources_ready)
 		return
-	editor.rebuild_resources(reuse_body = !rebuild_body)
-	editor.refresh_preview()
+	editor.request_rebuild(reuse_body = !rebuild_body)
 
 /// How a retained draft is described to the artist it belongs to.
 /datum/custom_sprite_salon/proc/work_phrase()
@@ -1321,7 +1320,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 
 /datum/custom_sprite_editor/salon/New(datum/custom_sprite_salon/session)
 	src.session = session
-	..(GLOB.preferences_datums[session.artist_ckey], session.target, null)
+	..(GLOB.preferences_datums[session.artist_ckey], session.target)
 
 /datum/custom_sprite_editor/salon/Destroy()
 	session?.stop_drawing_sounds()

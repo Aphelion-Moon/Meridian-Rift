@@ -144,7 +144,7 @@
 	if(custom_sprite_width(custom_hair) != 32)
 		custom_hair = null
 	custom_facial_hair = custom_sprite_validate(slot_data["facial_hair"])
-	if(custom_sprite_width(custom_facial_hair) != 32)
+	if(custom_sprite_width(custom_facial_hair) != 32 || custom_sprite_height(custom_facial_hair) != 32)
 		custom_facial_hair = null
 	custom_limb_markings = custom_limb_markings_validate(slot_data["limb_markings"])
 	custom_style_previous = custom_style_previous_validate(slot_data["previous_styles"])

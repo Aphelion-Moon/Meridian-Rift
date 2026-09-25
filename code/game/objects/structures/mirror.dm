@@ -154,12 +154,13 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/mirror/broken, 28)
 
 /obj/structure/mirror/proc/change_beard(mob/living/carbon/human/beard_dresser)
 	if(beard_dresser.physique == FEMALE)
-		if(beard_dresser.facial_hairstyle == "Shaved")
+		if(beard_dresser.facial_hairstyle == "Shaved" && !beard_dresser.has_custom_hair("facial_hair")) // APHELION EDIT CHANGE - Custom facial hair is hair - ORIGINAL: if(beard_dresser.facial_hairstyle == "Shaved")
 			balloon_alert(beard_dresser, "nothing to shave!")
 			return
 		var/shave_beard = tgui_alert(beard_dresser, "Shave your beard?", "Grooming", list("Yes", "No"))
 		if(shave_beard == "Yes" && can_use_mirror(beard_dresser))
 			beard_dresser.set_facial_hairstyle("Shaved", update = TRUE)
+			beard_dresser.remove_custom_hair("facial_hair") // APHELION EDIT ADDITION
 		return
 
 	var/new_style = tgui_input_list(beard_dresser, "Select a facial hairstyle", "Grooming", SSaccessories.facial_hairstyles_list)

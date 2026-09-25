@@ -266,26 +266,6 @@ const buildInternalImplantData = (
 
 // Markings
 
-/** Opens a custom drawing, lit up once it has paint; an empty canvas saves nothing. */
-const CustomDrawingButton = (props: {
-  label: string;
-  area: string;
-  drawn: boolean;
-  onClick: () => void;
-}) => (
-  <Button
-    icon="paintbrush"
-    selected={props.drawn}
-    tooltip={`Lets you draw a custom marking over ${props.area}.${
-      props.drawn ? ' You have one drawn; click to edit it.' : ''
-    }`}
-    onClick={props.onClick}
-  >
-    {props.label}
-    {props.drawn && <Icon name="check" ml={0.5} />}
-  </Button>
-);
-
 const Markings = (props: {
   body_zone: string;
   chosen_markings: Marking[] | null;
@@ -300,6 +280,8 @@ const Markings = (props: {
   // A taur body takes the legs' place, so they get its drawing instead of markings.
   const taurLeg = !!data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone);
   const drawingZone = taurLeg ? 'taur' : body_zone;
+  // The drawing button lights up once it has paint; an empty canvas saves nothing.
+  const drawn = !!data.custom_marking_zones?.includes(drawingZone);
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
@@ -385,17 +367,22 @@ const Markings = (props: {
       )}
       {!!data.allow_custom_sprite_editing && (
         <Stack.Item>
-          <CustomDrawingButton
-            label={taurLeg ? 'Taur body' : 'Custom'}
-            area={taurLeg ? 'your taur body' : 'this limb'}
-            drawn={!!data.custom_marking_zones?.includes(drawingZone)}
+          <Button
+            icon="paintbrush"
+            selected={drawn}
+            tooltip={`Lets you draw a custom marking over ${
+              taurLeg ? 'your taur body' : 'this limb'
+            }.${drawn ? ' You have one drawn; click to edit it.' : ''}`}
             onClick={() =>
               act('open_custom_sprite_editor', {
                 target: 'markings',
                 body_zone: drawingZone,
               })
             }
-          />
+          >
+            {taurLeg ? 'Taur body' : 'Custom'}
+            {drawn && <Icon name="check" ml={0.5} />}
+          </Button>
         </Stack.Item>
       )}
     </Stack>

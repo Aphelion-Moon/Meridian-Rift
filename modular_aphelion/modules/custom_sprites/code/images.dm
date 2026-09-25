@@ -3,19 +3,32 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 
 /// A blank in every editable direction, including bald hairstyles without an icon state.
 /// Insert() alone leaves an empty icon reporting 0x0, so seed its dimensions from the blank.
-/proc/custom_sprite_blank_icon(width = 32)
+/proc/custom_sprite_blank_icon(width = 32, height = 32)
 	var/icon/blank = icon('icons/blanks/32x32.dmi', "nothing")
-	if(width != 32)
-		blank.Crop(1, 1, width, 32)
+	if(width != 32 || height != 32)
+		blank.Crop(1, 1, width, height)
 	var/icon/result = icon(blank)
 	for(var/direction in GLOB.cardinals)
 		result.Insert(blank, "", direction)
 	return result
 
-/// Clip in body coordinates before flattening can expand a wide or offset overlay's origin.
-/proc/custom_sprite_flat_icon(image/appearance, direction, width = 32)
+/// Clip in body coordinates before flattening can expand a wide or offset overlay's origin. A tall canvas reaches above the tile.
+/proc/custom_sprite_flat_icon(image/appearance, direction, width = 32, height = 32)
 	var/offset_x = (width - 32) / 2
-	return getFlatIcon(appearance, defdir = direction, no_anim = TRUE, clip_bounds = list(1 - offset_x, 1, 32 + offset_x, 32))
+	return getFlatIcon(appearance, defdir = direction, no_anim = TRUE, clip_bounds = list(1 - offset_x, 1, 32 + offset_x, height))
+
+/// A copy of a 32-row icon grown to `height` rows, its top row repeated upward, so hair masks and gradients carry on over tall paint.
+/proc/custom_sprite_extend_up(icon/source, height)
+	var/icon/result = icon(source)
+	var/source_height = result.Height()
+	if(height <= source_height)
+		return result
+	var/icon/top_row = icon(source)
+	top_row.Crop(1, source_height, result.Width(), source_height)
+	result.Crop(1, 1, result.Width(), height)
+	for(var/y in source_height + 1 to height)
+		result.Blend(top_row, ICON_OVERLAY, 1, y)
+	return result
 
 /// Keep runtime caches bounded. Callers treat cached icons/lists as immutable.
 /proc/custom_sprite_cache_put(list/cache, key, value, limit = 256)
@@ -136,17 +149,20 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		return
 	var/list/palette = drawing["palette"]
 	var/width = custom_sprite_width(drawing)
+	var/height = custom_sprite_height(drawing)
+	// Centered on a wider canvas; at the bottom of a taller one, where the body is.
 	var/offset_x = (workspace.width - width) / 2
+	var/offset_y = workspace.height - height
 	for(var/direction, encoded in drawing["dirs"])
-		var/grid = custom_sprite_decode_grid(encoded, length(palette), width * 32)
+		var/grid = custom_sprite_decode_grid(encoded, length(palette), width * height)
 		if(!grid)
 			continue
 		var/list/frame = workspace.layers[1]["data"][direction]
-		for(var/y in 1 to 32)
+		for(var/y in 1 to height)
 			for(var/x in 1 to width)
 				var/position = (y - 1) * width + x
 				var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1)) - 1
-				frame[y][x + offset_x] = index > 0 ? "[palette[index]]ff" : "#00000000"
+				frame[y + offset_y][x + offset_x] = index > 0 ? "[palette[index]]ff" : "#00000000"
 
 /// Called by debounced previews and appearance rendering, never by the per-stroke UI payload. Throwaway drawings skip the cache.
 /proc/custom_sprite_paint_icon(list/drawing, cache = TRUE)
@@ -160,21 +176,22 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		return cached
 	var/list/palette = drawing["palette"]
 	var/width = custom_sprite_width(drawing)
-	var/icon/paint = custom_sprite_blank_icon(width)
+	var/height = custom_sprite_height(drawing)
+	var/icon/paint = custom_sprite_blank_icon(width, height)
 	for(var/direction in GLOB.cardinals)
-		var/grid = custom_sprite_decode_grid(drawing["dirs"]["[direction]"], length(palette), width * 32)
+		var/grid = custom_sprite_decode_grid(drawing["dirs"]["[direction]"], length(palette), width * height)
 		if(!grid)
 			continue
 		var/icon/frame = icon(paint, "", direction)
 		// Paint opaque horizontal runs directly, without an editor workspace or temporary files.
-		for(var/y in 0 to 31)
+		for(var/y in 0 to height - 1)
 			var/row = copytext(grid, y * width + 1, (y + 1) * width + 1)
 			for(var/x = 1; x <= width;)
 				var/pixel = copytext(row, x, x + 1)
 				var/run = spantext(row, pixel, x)
 				if(pixel != "0")
 					var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, pixel) - 1
-					frame.DrawBox(palette[index], x, 32 - y, x + run - 1, 32 - y)
+					frame.DrawBox(palette[index], x, height - y, x + run - 1, height - y)
 				x += run
 		paint.Insert(frame, "", direction)
 	return cache ? custom_sprite_cache_put(paint_icons, key, paint) : paint
@@ -224,10 +241,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	return list(min_x, min_y, max_x, max_y)
 
 /// Full canvas for hair and facial hair; per-view locks are applied separately.
-/proc/custom_sprite_canvas_bounds(width = 32)
+/proc/custom_sprite_canvas_bounds(width = 32, height = 32)
 	. = list()
 	for(var/direction in GLOB.cardinals)
-		.["[direction]"] = list(0, 0, width - 1, 31)
+		.["[direction]"] = list(0, 0, width - 1, height - 1)
 
 /// The taur organ owns its visible body; its two leg placeholders have no paintable pixels.
 /proc/custom_sprite_taur_overlay(mob/living/carbon/human/body)
@@ -310,10 +327,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 			if(first)
 				box = list(min(box[1], first - 1), min(box[2], y - 1), max(box[3], findlasttext(rows[y], "1") - 1), y - 1)
 		.[direction] = box[3] < 0 ? null : list(max(0, box[1] - 1), max(0, box[2] - 1), min(width - 1, box[3] + 1), min(31, box[4] + 1))
-
-/// Each view's paintable area padded by one pixel, read from the cached mask rather than the icon.
-/proc/custom_sprite_body_draw_bounds(mob/living/carbon/human/body, body_zone, width = 32)
-	return custom_sprite_mask_bounds(custom_sprite_body_draw_mask(body, body_zone, width), width)
 
 /// Row strings keep the wire payload small and test the same silhouette used by rendering. `wrist` gives a hand its wrist band.
 /proc/custom_sprite_body_draw_mask(mob/living/carbon/human/body, body_zone, width = 32, wrist = TRUE)
@@ -414,5 +427,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		var/icon/wide = icon(tile)
 		wide.Crop(1, 1, CUSTOM_SPRITE_TAUR_WIDTH, 32)
 		wide.Blend(tile, ICON_OVERLAY, 33, 1)
-		tiles += list(list("name" = name, "url" = "data:image/png;base64,[icon2base64(tile)]", "wideUrl" = "data:image/png;base64,[icon2base64(wide)]"))
+		// The tall hair canvas continues the tile upward.
+		var/icon/tall = icon(tile)
+		tall.Crop(1, 1, 32, CUSTOM_SPRITE_TALL_HEIGHT)
+		tall.Blend(tile, ICON_OVERLAY, 1, 33)
+		tiles += list(list("name" = name, "url" = "data:image/png;base64,[icon2base64(tile)]", "wideUrl" = "data:image/png;base64,[icon2base64(wide)]", "tallUrl" = "data:image/png;base64,[icon2base64(tall)]"))
 	return tiles

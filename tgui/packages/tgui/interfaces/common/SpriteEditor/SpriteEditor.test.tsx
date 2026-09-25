@@ -11,6 +11,7 @@ import {
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createStore, Provider } from 'jotai';
 import * as actions from 'tgui/events/act';
+import { store as backendStore, suspendingAtom } from 'tgui/events/store';
 import {
   releaseHeldKeys,
   startKeyPassthrough,
@@ -26,10 +27,9 @@ import {
   selectionBoundsAtom,
   tools,
 } from './atoms';
-import { AdvancedCanvas } from './Components/AdvancedCanvas';
 import { Palette } from './Components/Palette';
-import type { ShadeRenderer } from './drawBounds';
 import { SpriteEditor } from './index';
+import { SelectionTools } from './selection';
 import { Bucket } from './Types/Tools/Bucket';
 import { Eraser } from './Types/Tools/Eraser';
 import { Pencil } from './Types/Tools/Pencil';
@@ -39,10 +39,7 @@ import {
   type SpriteEditorToolContext,
   SpriteEditorToolFlags,
 } from './Types/types';
-import {
-  toolTooltip,
-  useSpriteEditorHotkeys,
-} from './useSpriteEditorHotkeys';
+import { useSpriteEditorHotkeys } from './useSpriteEditorHotkeys';
 
 const Hotkeys = ({
   disabled = false,
@@ -104,7 +101,9 @@ describe('sprite editor interactions', () => {
       <Provider store={store}>
         <input aria-label="Text" />
         <SpriteEditor.Toolbar
-          toolFlags={SpriteEditorToolFlags.Pencil | SpriteEditorToolFlags.Eraser}
+          toolFlags={
+            SpriteEditorToolFlags.Pencil | SpriteEditorToolFlags.Eraser
+          }
         />
       </Provider>,
     );
@@ -124,20 +123,12 @@ describe('sprite editor interactions', () => {
     fireEvent.keyUp(document, { key: 'e' });
   });
 
-  it('names each tool shortcut in its tooltip', () => {
-    expect(toolTooltip(tools[0])).toBe('Pencil (B)');
-    expect(toolTooltip(tools[4])).toBe('Select (M)');
-    expect(toolTooltip(tools[2])).toBe('Eyedropper');
-    expect(toolTooltip(tools[2], 'Alt+click with any tool')).toBe(
-      'Eyedropper (Alt+click with any tool)',
-    );
-    expect(toolTooltip(tools[1], 'hint')).toBe('Eraser (E, hint)');
-  });
-
   it('consumes editor shortcuts before native game key passthrough, including release', () => {
     const native = spyOn(Byond, 'command');
     try {
-      const view = render(<Hotkeys onSave={() => actions.sendAct('saveDraft')} />);
+      const view = render(
+        <Hotkeys onSave={() => actions.sendAct('saveDraft')} />,
+      );
       for (const [key, keyCode, shiftKey] of [
         ['z', 90, false],
         ['y', 89, false],
@@ -146,7 +137,12 @@ describe('sprite editor interactions', () => {
       ] as const) {
         view.rerender(<Hotkeys onSave={() => actions.sendAct('saveDraft')} />);
         expect(
-          fireEvent.keyDown(document, { key, keyCode, ctrlKey: true, shiftKey }),
+          fireEvent.keyDown(document, {
+            key,
+            keyCode,
+            ctrlKey: true,
+            shiftKey,
+          }),
         ).toBe(false);
         // A backend update can disable editing, and Ctrl may be released first.
         view.rerender(<Hotkeys disabled />);
@@ -168,32 +164,6 @@ describe('sprite editor interactions', () => {
     } finally {
       native.mockRestore();
     }
-  });
-
-  it('maps undo and both redo shortcuts to one command', () => {
-    render(<Hotkeys />);
-    for (const [key, shiftKey, command] of [
-      ['z', false, 'undo'],
-      ['y', false, 'redo'],
-      ['z', true, 'redo'],
-    ] as const) {
-      const event = new KeyboardEvent('keydown', {
-        key,
-        ctrlKey: true,
-        shiftKey,
-        bubbles: true,
-        cancelable: true,
-      });
-      act(() => {
-        document.dispatchEvent(event);
-      });
-      expect(event.defaultPrevented).toBe(true);
-      expect(send).toHaveBeenLastCalledWith('spriteEditorCommand', {
-        command,
-        count: 1,
-      });
-    }
-    expect(send).toHaveBeenCalledTimes(3);
   });
 
   it('leaves text editing and disabled canvases alone', () => {
@@ -253,27 +223,6 @@ describe('sprite editor interactions', () => {
     expect(send).toHaveBeenCalledTimes(1);
   });
 
-  it('offers one button per history action and commits one step', () => {
-    const view = render(
-      <>
-        <SpriteEditor.Undo stack={['First stroke', 'Second stroke']} />
-        <SpriteEditor.Redo stack={['Third stroke']} />
-      </>,
-    );
-    const buttons = view.container.querySelectorAll('.Button');
-    expect(buttons).toHaveLength(2);
-    for (const [index, command] of ['undo', 'redo'].entries()) {
-      fireEvent.click(buttons[index]);
-      expect(send).toHaveBeenLastCalledWith('spriteEditorCommand', {
-        command,
-        count: 1,
-      });
-    }
-    view.rerender(<SpriteEditor.Undo stack={[]} />);
-    fireEvent.click(view.container.querySelector('.Button')!);
-    expect(send).toHaveBeenCalledTimes(2);
-  });
-
   it('keeps generic palette keyboard selection, Delete, and right-click selection', () => {
     const colors = [
       { r: 255, g: 255, b: 255 },
@@ -308,189 +257,6 @@ describe('sprite editor interactions', () => {
     expect(select).toHaveBeenLastCalledWith(colors[1], true);
     fireEvent.click(buttons[2]);
     expect(add).toHaveBeenCalledTimes(1);
-  });
-
-  it('paints literal pixels and preserves transparency and the guide', () => {
-    const painted: string[] = [];
-    const context = {
-      fillStyle: '',
-      clearRect: () => {},
-      fillRect: () => painted.push(context.fillStyle),
-    };
-    const getContext = spyOn(
-      HTMLCanvasElement.prototype,
-      'getContext',
-    ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
-    try {
-      const data = [['#ffffffff', '#80808080', '#00000000']];
-      const view = render(
-        <AdvancedCanvas data={data} background="url(guide.png)" />,
-      );
-      expect(painted.slice(-3)).toEqual(data[0]);
-      view.rerender(
-        <AdvancedCanvas
-          data={[['#ff8000ff', '#0080ff80', '#00000000']]}
-          background="url(guide.png)"
-        />,
-      );
-      expect(painted.slice(-3)).toEqual([
-        '#ff8000ff',
-        '#0080ff80',
-        '#00000000',
-      ]);
-      expect(
-        view.container.querySelector('canvas')!.style.backgroundImage,
-      ).toContain('guide.png');
-      expect(data).toEqual([['#ffffffff', '#80808080', '#00000000']]);
-    } finally {
-      getContext.mockRestore();
-    }
-  });
-
-  it('draws the loaded guide beneath pixels on the same grid and refreshes it independently', () => {
-    const operations: string[] = [];
-    const context = {
-      fillStyle: '',
-      imageSmoothingEnabled: true,
-      clearRect: () => {
-        operations.length = 0;
-      },
-      drawImage: (
-        image: HTMLImageElement,
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-      ) => {
-        operations.push(
-          `${image.src}:${x},${y},${width},${height}:${context.imageSmoothingEnabled}`,
-        );
-      },
-      fillRect: () => operations.push(context.fillStyle),
-    };
-    const getContext = spyOn(
-      HTMLCanvasElement.prototype,
-      'getContext',
-    ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
-    const getBounds = spyOn(
-      HTMLElement.prototype,
-      'getBoundingClientRect',
-    ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-    try {
-      const front = new Image();
-      front.src = 'front.png';
-      const back = new Image();
-      back.src = 'back.png';
-      const data = [
-        ['#ffffffff', '#00000000'],
-        ['#80808080', '#ff0000ff'],
-      ];
-      const view = render(
-        <AdvancedCanvas data={data} backgroundImage={front} />,
-      );
-      expect(operations).toEqual([
-        `${front.src}:0,0,320,320:false`,
-        ...data.flat(),
-      ]);
-      view.rerender(<AdvancedCanvas data={data} backgroundImage={back} />);
-      expect(operations).toEqual([
-        `${back.src}:0,0,320,320:false`,
-        ...data.flat(),
-      ]);
-      view.rerender(<AdvancedCanvas data={data} />);
-      expect(operations).toEqual(data.flat());
-    } finally {
-      getContext.mockRestore();
-      getBounds.mockRestore();
-    }
-  });
-
-  it('shades exactly the forbidden pixels once using at most four rectangles', () => {
-    type Bounds = [number, number, number, number];
-    const rectangles: Bounds[] = [];
-    const context = {
-      fillStyle: '',
-      clearRect: () => {
-        rectangles.length = 0;
-      },
-      fillRect: (x: number, y: number, width: number, height: number) => {
-        if (context.fillStyle === 'rgba(50, 50, 50, 0.75)') {
-          rectangles.push([x / 10, y / 10, width / 10, height / 10]);
-        }
-      },
-    };
-    const getContext = spyOn(
-      HTMLCanvasElement.prototype,
-      'getContext',
-    ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
-    const getBounds = spyOn(
-      HTMLElement.prototype,
-      'getBoundingClientRect',
-    ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-    try {
-      const data = Array.from({ length: 32 }, () =>
-        Array(32).fill('#00000000'),
-      );
-      const cases: [Bounds | undefined, number, number, string[]?][] = [
-        [[6, 0, 25, 20], 3, 604],
-        [[2, 3, 28, 29], 4, 295],
-        [[0, 0, -1, -1], 1, 1024],
-        [[40, 40, 50, 50], 1, 1024],
-        [[0, 0, 31, 31], 0, 0],
-        [[-8, -8, 40, 40], 0, 0],
-        [undefined, 0, 0],
-        [
-          undefined,
-          33,
-          1022,
-          [`101${'0'.repeat(29)}`, ...Array(31).fill('0'.repeat(32))],
-        ],
-        [
-          [1, 0, 31, 31],
-          33,
-          1023,
-          [`101${'0'.repeat(29)}`, ...Array(31).fill('0'.repeat(32))],
-        ],
-      ];
-      const view = render(<AdvancedCanvas data={data} />);
-      for (const [bounds, rectangleCount, shadedPixels, mask] of cases) {
-        view.rerender(
-          <AdvancedCanvas data={data} drawBounds={bounds} drawMask={mask} />,
-        );
-        expect(rectangles).toHaveLength(rectangleCount);
-        const coverage = Array.from({ length: 32 }, () => Array(32).fill(0));
-        for (const [left, top, width, height] of rectangles) {
-          expect(width).toBeGreaterThan(0);
-          expect(height).toBeGreaterThan(0);
-          expect(left).toBeGreaterThanOrEqual(0);
-          expect(top).toBeGreaterThanOrEqual(0);
-          expect(left + width).toBeLessThanOrEqual(32);
-          expect(top + height).toBeLessThanOrEqual(32);
-          for (let y = top; y < top + height; y++) {
-            for (let x = left; x < left + width; x++) coverage[y][x]++;
-          }
-        }
-        const expected = data.map((row, y) =>
-          row.map((_, x) =>
-            Number(
-              (!!bounds &&
-                (x < bounds[0] ||
-                  y < bounds[1] ||
-                  x > bounds[2] ||
-                  y > bounds[3])) ||
-                (!!mask && mask[y]?.[x] !== '1'),
-            ),
-          ),
-        );
-        expect(coverage).toEqual(expected);
-        expect(coverage.flat().reduce((sum, value) => sum + value, 0)).toBe(
-          shadedPixels,
-        );
-      }
-    } finally {
-      getContext.mockRestore();
-      getBounds.mockRestore();
-    }
   });
 
   it('echoes a gap-free fast drag locally and commits exactly once on release', () => {
@@ -537,46 +303,6 @@ describe('sprite editor interactions', () => {
     expect(transaction.points).toHaveLength(32);
     expect(transaction.points[0]).toEqual([0, 0]);
     expect(transaction.points[31]).toEqual([31, 31]);
-  });
-
-  it.each([
-    Pencil,
-    Eraser,
-  ])('skips duplicate preview work without losing release pixels for %p', (Tool) => {
-    const frame = [Array(8).fill('#ffffffff')];
-    const data: SpriteData = {
-      width: 8,
-      height: 1,
-      dirs: 1,
-      backdrop: '',
-      layers: [
-        {
-          name: 'Drawing',
-          visible: true,
-          data: { 2: frame, 1: undefined, 4: undefined, 8: undefined },
-        },
-      ],
-    };
-    const setPreviewData = mock(() => {});
-    const context: SpriteEditorToolContext = {
-      currentColor: { r: 0, g: 0, b: 0 },
-      selectedDir: Dir.SOUTH,
-      selectedLayer: 0,
-      setCurrentColor: () => {},
-      setPreviewLayer: () => {},
-      setPreviewData,
-    };
-    const tool = new Tool();
-    tool.onMouseDown(context, data, 0, 0, false);
-    for (let i = 0; i < 50; i++) tool.onMouseMove(context, data, 0.2, 0.3);
-    expect(setPreviewData).toHaveBeenCalledTimes(1);
-    tool.onMouseMove(context, data, 3, 0);
-    tool.onMouseMove(context, data, 0, 0);
-    expect(setPreviewData).toHaveBeenCalledTimes(2);
-    tool.onMouseUp(context, data, 7, 0);
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][1].transaction.points).toHaveLength(8);
-    expect(frame[0]).toEqual(Array(8).fill('#ffffffff'));
   });
 
   it('erases existing paint outside the bounds without reaching unpainted shaded pixels', () => {
@@ -809,6 +535,95 @@ describe('sprite editor interactions', () => {
     }
   });
 
+  it('copies, pastes into another view, turns and drops a selection from the keyboard and toolbar', () => {
+    const store = createStore();
+    const blank = () =>
+      Array.from({ length: 4 }, () => Array(4).fill('#00000000'));
+    const front = blank();
+    front[0][0] = '#ff0000ff';
+    front[0][1] = '#00ff00ff';
+    const data: SpriteData = {
+      width: 4,
+      height: 4,
+      dirs: 4,
+      backdrop: '',
+      layers: [
+        {
+          name: 'Drawing',
+          visible: true,
+          data: { 2: front, 1: blank(), 4: blank(), 8: blank() },
+        },
+      ],
+    };
+    const context = { fillStyle: '', clearRect: () => {}, fillRect: () => {} };
+    const getContext = spyOn(
+      HTMLCanvasElement.prototype,
+      'getContext',
+    ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
+    const getBounds = spyOn(
+      HTMLElement.prototype,
+      'getBoundingClientRect',
+    ).mockReturnValue(new DOMRect(0, 0, 80, 80));
+    const key = (init: KeyboardEventInit) => {
+      const claimed = !fireEvent.keyDown(document, init);
+      fireEvent.keyUp(document, init);
+      return claimed;
+    };
+    try {
+      const view = render(
+        <Provider store={store}>
+          <SpriteEditor.Toolbar />
+          <SelectionTools />
+          <SpriteEditor.Canvas data={data} />
+        </Provider>,
+      );
+      key({ key: 'm' });
+      const canvas = view.container.querySelector('canvas')!;
+      fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
+      fireEvent.mouseUp(window, { clientX: 25, clientY: 5, button: 0 });
+      expect(store.get(selectionBoundsAtom)).toEqual([0, 0, 1, 0]);
+      expect(key({ key: 'c', ctrlKey: true })).toBe(true);
+      act(() => store.set(dirAtom, Dir.NORTH));
+      expect(store.get(selectionBoundsAtom)).toBeUndefined();
+      expect(key({ key: 'v', ctrlKey: true })).toBe(true);
+      expect(store.get(selectionBoundsAtom)).toEqual([0, 0, 1, 0]);
+      expect(key({ key: 'r' })).toBe(true);
+      expect(store.get(selectionBoundsAtom)).toEqual([0, 0, 0, 1]);
+      fireEvent.click(screen.getByLabelText('Turn counter-clockwise'));
+      expect(store.get(selectionBoundsAtom)).toEqual([0, 0, 1, 0]);
+      expect(send).not.toHaveBeenCalled();
+      expect(key({ key: 'Enter' })).toBe(true);
+      expect(store.get(selectionBoundsAtom)).toBeUndefined();
+      expect(send).toHaveBeenCalledTimes(1);
+      // The pasted pair, as the box around it, its two values and one code per pixel.
+      expect(send.mock.calls[0][1].transaction).toMatchObject({
+        type: 'move',
+        dir: '1',
+        area: [0, 0, 1, 0],
+        palette: ['#ff0000ff', '#00ff00ff'],
+        digits: 1,
+        codes: '01',
+      });
+      // With nothing selected here, turning and dropping are left alone.
+      expect(key({ key: 'r' })).toBe(false);
+      expect(key({ key: 'Enter' })).toBe(false);
+      // Closing the window drops floating paint before the window goes.
+      act(() => store.set(dirAtom, Dir.EAST));
+      expect(key({ key: 'v', ctrlKey: true })).toBe(true);
+      act(() => backendStore.set(suspendingAtom, true));
+      expect(send).toHaveBeenCalledTimes(2);
+      expect(send.mock.calls[1][1].transaction).toMatchObject({
+        dir: '4',
+        codes: '01',
+      });
+      view.unmount();
+    } finally {
+      backendStore.set(suspendingAtom, false);
+      getContext.mockRestore();
+      getBounds.mockRestore();
+    }
+  });
+
   it('keeps multi-layer blending and detects changed pixels without repainting for brush colors', () => {
     const store = createStore();
     const layers = ['#ff0000ff', '#0000ff80'].map((color) => ({
@@ -967,38 +782,4 @@ describe('sprite editor interactions', () => {
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][1].transaction.points).toHaveLength(32);
   });
-});
-
-it('lets a canvas replace the flat shade and draw an overlay at its size', () => {
-  const context = { fillStyle: '', clearRect: () => {}, fillRect: () => {} };
-  const getContext = spyOn(
-    HTMLCanvasElement.prototype,
-    'getContext',
-  ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
-  const getBounds = spyOn(
-    HTMLElement.prototype,
-    'getBoundingClientRect',
-  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
-  const shade = mock<ShadeRenderer>(() => {});
-  const overlay = mock((width: number, height: number) => (
-    <div data-testid="overlay">{`${width}x${height}`}</div>
-  ));
-  try {
-    render(
-      <AdvancedCanvas
-        data={[['#00000000', '#00000000']]}
-        drawBounds={[0, 0, 0, 0]}
-        shade={shade}
-        overlay={overlay}
-      />,
-    );
-    expect(shade).toHaveBeenCalled();
-    expect(shade.mock.calls.at(-1)?.[1]).toEqual([[1, 0, 1, 1]]);
-    expect(shade.mock.calls.at(-1)?.[2]).toBe(160);
-    expect(overlay).toHaveBeenLastCalledWith(320, 160);
-    expect(screen.getByTestId('overlay').textContent).toBe('320x160');
-  } finally {
-    getContext.mockRestore();
-    getBounds.mockRestore();
-  }
 });

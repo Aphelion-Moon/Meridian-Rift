@@ -17,12 +17,11 @@ export type CustomSpriteBackground = {
   name: string;
   url: string;
   wideUrl: string;
+  tallUrl: string;
 };
 
 export type CustomSpriteEditorData = {
   context?: 'preferences' | 'salon';
-  bodyZone: string | null;
-  bodyZoneLabel: string | null;
   editorData: {
     sprite: CompactSprite;
     undoStack: string[];
@@ -31,7 +30,7 @@ export type CustomSpriteEditorData = {
     serverPalette: string[];
     serverSelectedColor: string;
   };
-  colorMode: 'literal' | 'hair' | 'tint';
+  colorMode: 'literal' | 'hair' | 'mutant' | 'tint';
   emissive: Record<Dir, boolean>;
   emissiveAllowed: boolean;
   saveRevision: number;
@@ -58,9 +57,6 @@ export type CustomSpriteEditorData = {
   canHideUnderwear?: BooleanLike;
   hideUnderwear?: BooleanLike;
   showGradient?: BooleanLike;
-  canChangeMarkings?: boolean;
-  baseMarkings?: { index: number; name: string; color: string }[];
-  baseMarkingChoices?: string[];
   maxBaseMarkings?: number;
   lockedDirections?: string[] | null;
   hairStyle?: string | null;

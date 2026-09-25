@@ -16,8 +16,10 @@ import type {
   InlineStyle,
   Layer,
   SelectionBounds, // APHELION EDIT ADDITION
+  SelectionMask, // APHELION EDIT ADDITION
   StringLayer,
 } from '../Types/types';
+import { SelectionOutline } from './SelectionOutline'; // APHELION EDIT ADDITION
 
 type AdvancedCanvasMouseEventHandler = (
   event: MouseEvent,
@@ -47,6 +49,7 @@ export type AdvancedCanvasPropsBase = {
   drawBounds?: [number, number, number, number]; // APHELION EDIT ADDITION
   drawMask?: string[]; // APHELION EDIT ADDITION
   selectionBounds?: SelectionBounds; // APHELION EDIT ADDITION
+  selectionMask?: SelectionMask; // APHELION EDIT ADDITION
   shade?: ShadeRenderer; // APHELION EDIT ADDITION
   overlay?: (canvasWidth: number, canvasHeight: number) => React.ReactNode; // APHELION EDIT ADDITION
 } & Partial<BooleanStyleMap & StringStyleMap & InlineStyle>;
@@ -93,6 +96,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     drawBounds, // APHELION EDIT ADDITION
     drawMask, // APHELION EDIT ADDITION
     selectionBounds, // APHELION EDIT ADDITION
+    selectionMask, // APHELION EDIT ADDITION
     shade, // APHELION EDIT ADDITION
     overlay, // APHELION EDIT ADDITION
     ...rest
@@ -258,23 +262,11 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
         />
         {/* APHELION EDIT ADDITION START */}
         {selectionBounds && (
-          <div
-            data-selection-bounds={selectionBounds.join(',')}
-            style={{
-              position: 'absolute',
-              pointerEvents: 'none',
-              boxSizing: 'border-box',
-              border: '1px dashed white',
-              boxShadow: '0 0 0 1px black',
-              left: (selectionBounds[0] * canvasWidth) / imageWidth,
-              top: (selectionBounds[1] * canvasHeight) / imageHeight,
-              width:
-                ((selectionBounds[2] - selectionBounds[0] + 1) * canvasWidth) /
-                imageWidth,
-              height:
-                ((selectionBounds[3] - selectionBounds[1] + 1) * canvasHeight) /
-                imageHeight,
-            }}
+          <SelectionOutline
+            bounds={selectionBounds}
+            mask={selectionMask}
+            scaleX={canvasWidth / imageWidth}
+            scaleY={canvasHeight / imageHeight}
           />
         )}
         {overlay?.(canvasWidth, canvasHeight)}

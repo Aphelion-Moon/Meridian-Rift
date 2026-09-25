@@ -37,7 +37,7 @@
 					to_chat(affected_human, span_warning("Your hair starts to fall out in clumps..."))
 					addtimer(CALLBACK(src, PROC_REF(baldify), affected_human, FALSE), 5 SECONDS)
 			if(5)
-				if((affected_human.facial_hairstyle != "Shaved") || (affected_human.hairstyle != "Bald"))
+				if((affected_human.facial_hairstyle != "Shaved") || (affected_human.hairstyle != "Bald") || affected_human.has_custom_hair() || affected_human.has_custom_hair("facial_hair")) // APHELION EDIT CHANGE - Custom hair is hair - ORIGINAL: if((affected_human.facial_hairstyle != "Shaved") || (affected_human.hairstyle != "Bald"))
 					if(affected_human.hairstyle == "Balding Hair")
 						to_chat(affected_human, span_warning("The little hair you have left starts to fall out in clumps..."))
 					else
@@ -48,5 +48,9 @@
 	if(fully_bald)
 		baldie.set_facial_hairstyle("Shaved", update = FALSE)
 		baldie.set_hairstyle("Bald") //this will call update_body_parts()
+		// APHELION EDIT ADDITION START - Custom hair falls out too
+		baldie.remove_custom_hair()
+		baldie.remove_custom_hair("facial_hair")
+		// APHELION EDIT ADDITION END
 	else
 		baldie.set_hairstyle("Balding Hair")

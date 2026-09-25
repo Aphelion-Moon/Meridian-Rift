@@ -26,7 +26,7 @@
 		to_chat(user, span_warning("You stop, look down at what you're currently holding and ponder to yourself, \"This is probably to be used on their hair or their facial hair.\""))
 		return
 
-	if(target_human.hairstyle == "Bald" && target_human.facial_hairstyle == "Shaved")
+	if(target_human.hairstyle == "Bald" && target_human.facial_hairstyle == "Shaved" && !target_human.has_custom_hair() && !target_human.has_custom_hair("facial_hair"))
 		// Bald heads can still get custom hair.
 		if(user.zone_selected == BODY_ZONE_HEAD)
 			var/bare_choice = tgui_alert(user, "[target_human] has nothing to cut. Draw a custom style instead?", "It's sculpting time!", list("Custom Hair", "Custom Facial Hair", "Cancel"))
@@ -68,6 +68,9 @@
 			return
 		var/shorn_style = target_human.hairstyle
 		target_human.set_hairstyle(hair_id, update = TRUE)
+		// Cutting it all off takes custom hair with it; any other cut leaves the paint on top of the new style.
+		if(hair_id == "Bald")
+			target_human.remove_custom_hair()
 		user.visible_message(span_notice("[user] [expert ? "expertly" : "successfully"] cuts [target_human]'s hair!"), span_notice("You [expert ? "expertly" : "successfully"] cut [target_human]'s hair!"))
 		drop_hair_trimmings(get_turf(target_human), target_human, hair_id == "Bald" ? 3 : 2, hairstyle = shorn_style)
 		INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(offer_to_keep_hairstyle), target_human, hair_id)
@@ -90,6 +93,8 @@
 			return
 		var/shorn_style = target_human.facial_hairstyle
 		target_human.set_facial_hairstyle(facial_hair_id, update = TRUE)
+		if(facial_hair_id == "Shaved")
+			target_human.remove_custom_hair("facial_hair")
 		user.visible_message(span_notice("[user] [expert ? "expertly" : "successfully"] cuts [target_human]'s facial hair!"), span_notice("You [expert ? "expertly" : "successfully"] cut [target_human]'s facial hair!"))
 		drop_hair_trimmings(get_turf(target_human), target_human, facial_hair_id == "Shaved" ? 2 : 1, facial = TRUE, hairstyle = shorn_style)
 		INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(offer_to_keep_hairstyle), target_human, facial_hair_id, TRUE)
