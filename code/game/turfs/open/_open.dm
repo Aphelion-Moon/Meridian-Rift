@@ -4,6 +4,10 @@
 	plane = FLOOR_PLANE
 	///negative for faster, positive for slower
 	var/slowdown = 0
+	// APHELION EDIT ADDITION START - DOGMOS
+	/// Last observed reaction invocation's list identity; equal yields in a new invocation still log.
+	var/list/kennel_last_reaction_results
+	// APHELION EDIT ADDITION END
 
 	var/footstep = null
 	var/barefootstep = null
@@ -516,10 +520,10 @@
 	. = air.heat_capacity()
 
 /turf/open/GetTemperature()
-	. = air.temperature
+	. = blocks_air ? get_dogmos_blocked_temperature() : air.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: . = air.temperature
 
 /turf/open/TakeTemperature(temp)
-	air.temperature += temp
+	air.set_temperature(air.return_temperature() + temp) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.temperature += temp
 	air_update_turf(FALSE, FALSE)
 
 /turf/open/proc/freeze_turf()

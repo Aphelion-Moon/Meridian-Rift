@@ -849,7 +849,7 @@ GLOBAL_DATUM_INIT(operations, /datum/operation_holder, new)
 		return ITEM_INTERACT_BLOCKING
 
 	// NOVA EDIT ADDITION START - Makes it so you cannot operate on people in turned on Stasis Beds
-	if(patient.buckled)
+	if(patient?.buckled) // APHELION EDIT CHANGE - DETACHED_SURGERY_PATIENT - ORIGINAL: if(patient.buckled)
 		var/obj/machinery/stasis/stasis_bed = patient.buckled
 		if(istype(stasis_bed) && stasis_bed.stasis_enabled)
 			to_chat(surgeon, span_warning("[patient] cannot be operated in the [patient.buckled] while it is turned on!"))

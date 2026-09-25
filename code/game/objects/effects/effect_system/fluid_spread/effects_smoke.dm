@@ -295,13 +295,21 @@
 	if(chilly.air)
 		var/datum/gas_mixture/air = chilly.air
 		if(!distcheck || get_dist(location, chilly) < blast) // Otherwise we'll get silliness like people using Nanofrost to kill people through walls with cold air
-			air.temperature = temperature
+			air.set_temperature(temperature) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.temperature = temperature
 
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		if(air.moles[/datum/gas/plasma])
 			var/mole_count = air.moles[/datum/gas/plasma]
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(air.get_moles(/datum/gas/plasma))
+			var/mole_count = air.get_moles(/datum/gas/plasma)
+			// APHELION EDIT ADDITION END
 			air.adjust_gas(/datum/gas/nitrogen, mole_count)
 			air.adjust_gas(/datum/gas/plasma, -mole_count)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 			air.garbage_collect()
+		*/ // APHELION EDIT REMOVAL END
 
 		for(var/obj/effect/hotspot/fire in chilly)
 			qdel(fire)

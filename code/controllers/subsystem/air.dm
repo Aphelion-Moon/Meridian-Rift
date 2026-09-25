@@ -1,6 +1,13 @@
+// APHELION EDIT ADDITION START - DOGMOS
+/// Fire cycles between shared Dogmos Kennel UI updates while slow mode is enabled.
+#define KENNEL_SLOW_MODE_PUSH_INTERVAL 4
+
+
+// APHELION EDIT ADDITION END
 SUBSYSTEM_DEF(air)
 	name = "Atmospherics"
 	dependencies = list(
+		/datum/controller/subsystem/dogmos, // APHELION EDIT ADDITION - DOGMOS
 		/datum/controller/subsystem/mapping,
 		/datum/controller/subsystem/atoms,
 	)
@@ -44,7 +51,9 @@ SUBSYSTEM_DEF(air)
 
 
 	//Special functions lists
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/turf/active_super_conductivity = list()
+	*/ // APHELION EDIT REMOVAL END
 	var/list/turf/open/high_pressure_delta = list()
 	var/list/atom_process = list()
 	/// Reactions which will contribute to a hotspot's size.
@@ -79,7 +88,7 @@ SUBSYSTEM_DEF(air)
 	msg += "HS:[hotspots.len]|"
 	msg += "EG:[excited_groups.len]|"
 	msg += "HP:[high_pressure_delta.len]|"
-	msg += "SC:[active_super_conductivity.len]|"
+	msg += "SC:[dogmos_heat_graph_count()]|" // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: msg += "SC:[active_super_conductivity.len]|"
 	msg += "PN:[networks.len]|"
 	msg += "AM:[atmos_machinery.len]|"
 	msg += "AO:[atom_process.len]|"
@@ -93,19 +102,32 @@ SUBSYSTEM_DEF(air)
 
 /datum/controller/subsystem/air/Initialize()
 	map_loading = FALSE
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	gas_reactions = init_gas_reactions()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	// gas_reactions, dogmos_reactions and the Dogmos gas registry are built by SSdogmos at
+	// INITSTAGE_EARLY - they have to exist before the first turf builds its air. See dogmos.dm.
+	// APHELION EDIT ADDITION END
 	hotspot_reactions = init_hotspot_reactions()
 
 	setup_allturfs()
 	setup_atmos_machinery()
 	setup_pipenets()
 	setup_turf_visuals()
+	diagnostics.setup_kennel_overlays() // APHELION EDIT ADDITION - DOGMOS
 	process_adjacent_rebuild()
 	atmos_handbooks_init()
+	RegisterSignal(SSdcs, COMSIG_GLOB_EXPLOSION, PROC_REF(on_kennel_explosion)) // APHELION EDIT ADDITION - DOGMOS
 	return SS_INIT_SUCCESS
 
 
 /datum/controller/subsystem/air/fire(resumed = FALSE)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(dogmos_resume_recovered_cycle)
+		resumed = TRUE
+		dogmos_resume_recovered_cycle = FALSE
+	// APHELION EDIT ADDITION END
 	var/timer = TICK_USAGE_REAL
 
 	//Rebuilds can happen at any time, so this needs to be done outside of the normal system
@@ -117,7 +139,7 @@ SUBSYSTEM_DEF(air)
 		timer = TICK_USAGE_REAL
 		process_adjacent_rebuild()
 		//This does mean that the apperent rebuild costs fluctuate very quickly, this is just the cost of having them always process, no matter what
-		cost_adjacent = TICK_USAGE_REAL - timer
+		cost_adjacent = TICK_DELTA_TO_MS(TICK_USAGE_REAL - timer) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: cost_adjacent = TICK_USAGE_REAL - timer
 		if(state != SS_RUNNING)
 			return
 
@@ -127,7 +149,7 @@ SUBSYSTEM_DEF(air)
 		timer = TICK_USAGE_REAL
 		process_rebuilds()
 		//This does mean that the apperent rebuild costs fluctuate very quickly, this is just the cost of having them always process, no matter what
-		cost_rebuilds = TICK_USAGE_REAL - timer
+		cost_rebuilds = TICK_DELTA_TO_MS(TICK_USAGE_REAL - timer) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: cost_rebuilds = TICK_USAGE_REAL - timer
 		if(state != SS_RUNNING)
 			return
 
@@ -211,7 +233,9 @@ SUBSYSTEM_DEF(air)
 		cached_cost += TICK_USAGE_REAL - timer
 		if(state != SS_RUNNING)
 			return
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		cost_superconductivity = MC_AVERAGE(cost_superconductivity, TICK_DELTA_TO_MS(cached_cost))
+		*/ // APHELION EDIT REMOVAL END
 		resumed = FALSE
 		currentpart = SSAIR_PROCESS_ATOMS
 
@@ -230,7 +254,20 @@ SUBSYSTEM_DEF(air)
 	currentpart = SSAIR_PIPENETS
 	SStgui.update_uis(SSair) //Lightning fast debugging motherfucker
 
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Cadence half of Kennel slow mode (payload half is in /datum/dogmos_kennel/ui_data()): pushed every
+	// cycle when off, every KENNEL_SLOW_MODE_PUSH_INTERVAL-th cycle when on (~2s at wait = 0.5s) via a
+	// small round-robin cursor, so multiple simultaneous viewers don't multiply real per-cycle push cost.
+	if(!diagnostics.kennel_slow_mode)
+		SStgui.update_uis(GLOB.dogmos_kennel)
+	else
+		diagnostics.kennel_push_cursor = (diagnostics.kennel_push_cursor + 1) % KENNEL_SLOW_MODE_PUSH_INTERVAL
+		if(!diagnostics.kennel_push_cursor)
+			SStgui.update_uis(GLOB.dogmos_kennel)
+
+// APHELION EDIT ADDITION END
 /datum/controller/subsystem/air/Recover()
+	initialized = SSair.initialized // APHELION EDIT ADDITION - DOGMOS
 	excited_groups = SSair.excited_groups
 	active_turfs = SSair.active_turfs
 	hotspots = SSair.hotspots
@@ -243,7 +280,9 @@ SUBSYSTEM_DEF(air)
 	gas_reactions = SSair.gas_reactions
 	atmos_gen = SSair.atmos_gen
 	planetary = SSair.planetary
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	active_super_conductivity = SSair.active_super_conductivity
+	*/ // APHELION EDIT REMOVAL END
 	high_pressure_delta = SSair.high_pressure_delta
 	atom_process = SSair.atom_process
 	currentrun = SSair.currentrun
@@ -272,12 +311,22 @@ SUBSYSTEM_DEF(air)
 /datum/controller/subsystem/air/proc/process_pipenets(resumed = FALSE)
 	if (!resumed)
 		src.currentrun = networks.Copy()
+		// APHELION EDIT ADDITION START - DOGMOS
+		dogmos_pipenets_reconciled = 0
+		dogmos_pipenet_mixtures_reconciled = 0
+	// APHELION EDIT ADDITION END
 	//cache for sanic speed (lists are references anyways)
 	var/list/currentrun = src.currentrun
 	while(currentrun.len)
 		var/datum/thing = currentrun[currentrun.len]
 		currentrun.len--
 		if(thing)
+			// APHELION EDIT ADDITION START - DOGMOS
+			var/datum/pipeline/network = thing
+			if(network.update && !network.building)
+				dogmos_pipenets_reconciled++
+				dogmos_pipenet_mixtures_reconciled += length(network.other_airs) + 1
+			// APHELION EDIT ADDITION END
 			thing.process()
 		else
 			networks.Remove(thing)
@@ -315,23 +364,54 @@ SUBSYSTEM_DEF(air)
 		if(MC_TICK_CHECK)
 			return
 
+/** Processes atmosphere machinery with bounded tick checks. */ // APHELION EDIT ADDITION - DOGMOS
 /datum/controller/subsystem/air/proc/process_atmos_machinery(resumed = FALSE)
 	if (!resumed)
 		src.currentrun = atmos_machinery.Copy()
 	//cache for sanic speed (lists are references anyways)
 	var/list/currentrun = src.currentrun
 	while(currentrun.len)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		var/obj/machinery/M = currentrun[currentrun.len]
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(MC_TICK_CHECK)
+			return
+		var/datum/processing_entry = currentrun[currentrun.len]
+		// APHELION EDIT ADDITION END
 		currentrun.len--
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		if(!M)
 			atmos_machinery -= M
 		if(M.process_atmos(wait * 0.1) == PROCESS_KILL)
 			stop_processing_machine(M)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(!istype(processing_entry, /obj/machinery) && !istype(processing_entry, /datum/component/gas_leaker))
+			atmos_machinery -= processing_entry
+			continue
+		var/kennel_tick_start = TICK_USAGE
+		var/process_result
+		if(ismachinery(processing_entry))
+			var/obj/machinery/machine = processing_entry
+			process_result = machine.process_atmos(wait * 0.1)
+		else
+			var/datum/component/gas_leaker/gas_leaker = processing_entry
+			process_result = gas_leaker.process_atmos(wait * 0.1)
+		if(process_result == PROCESS_KILL)
+			stop_processing_machine(processing_entry, currentrun_entry_removed = TRUE)
+			continue
+		if(ismachinery(processing_entry) && !QDELETED(processing_entry))
+			var/obj/machinery/profiled_machine = processing_entry
+			diagnostics.check_kennel_machine_cost(profiled_machine, TICK_USAGE_TO_MS(kennel_tick_start))
+		// APHELION EDIT ADDITION END
 		if(MC_TICK_CHECK)
 			return
 
 
+/** Requests native heat work. */ // APHELION EDIT ADDITION - DOGMOS
 /datum/controller/subsystem/air/proc/process_super_conductivity(resumed = FALSE)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if (!resumed)
 		src.currentrun = active_super_conductivity.Copy()
 	//cache for sanic speed (lists are references anyways)
@@ -342,6 +422,8 @@ SUBSYSTEM_DEF(air)
 		T.super_conduct()
 		if(MC_TICK_CHECK)
 			return
+	*/ // APHELION EDIT REMOVAL END
+	process_turf_heat() // APHELION EDIT ADDITION - DOGMOS
 
 /datum/controller/subsystem/air/proc/process_hotspots(resumed = FALSE)
 	if (!resumed)
@@ -358,16 +440,40 @@ SUBSYSTEM_DEF(air)
 		if(MC_TICK_CHECK)
 			return
 
+/** Runs Rust's pressure equalizer, then drains any queued DM pressure movements. */ // APHELION EDIT ADDITION - DOGMOS
 /datum/controller/subsystem/air/proc/process_high_pressure_delta(resumed = FALSE)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(!resumed)
+		dogmos_equalize_stage_complete = FALSE
+	// A budget deferral can happen before a native cursor exists. Only successful
+	// completion permits pressure-only resumes to skip the native stage.
+	if(!dogmos_equalize_stage_complete)
+		var/remaining_ms = TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)
+		if(process_turf_equalize_auxtools(remaining_ms))
+			pause() // ran out of budget mid-equalize - resume next fire()
+			return
+		dogmos_equalize_stage_complete = TRUE
+
+	// APHELION EDIT ADDITION END
 	while (high_pressure_delta.len)
 		var/turf/open/T = high_pressure_delta[high_pressure_delta.len]
 		high_pressure_delta.len--
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(!T)
+			continue
+		// APHELION EDIT ADDITION END
 		T.high_pressure_movements()
 		T.pressure_difference = 0
 		if(MC_TICK_CHECK)
 			return
 
+// APHELION EDIT ADDITION START - DOGMOS
+/** Runs native gas and reactions between resumable exposure and settlement passes.
+ * New activations join the published frontier; their exposure waits until the next cycle.
+ */
+// APHELION EDIT ADDITION END
 /datum/controller/subsystem/air/proc/process_active_turfs(resumed = FALSE)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	//cache for sanic speed
 	var/fire_count = times_fired
 	if (!resumed)
@@ -380,9 +486,44 @@ SUBSYSTEM_DEF(air)
 		if (T)
 			T.process_cell(fire_count)
 		if (MC_TICK_CHECK)
-			return
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(!resumed)
+		dogmos_active_phase = DOGMOS_ACTIVE_MAINTENANCE
+		active_turfs_walk_cursor = 0
+		dogmos_visual_refresh_cursor = 0
+		dogmos_walk_chunk_end = 0
+		dogmos_visual_chunk_end = 0
+		dogmos_visual_refresh_batch = active_turfs.Copy()
+		dogmos_reacted_turfs = list()
 
+	if(dogmos_active_phase == DOGMOS_ACTIVE_MAINTENANCE)
+		while(walk_active_turfs_batch())
+			if(state != SS_RUNNING)
+				return
+		if(MC_TICK_CHECK)
+			// APHELION EDIT ADDITION END
+			return
+		dogmos_active_phase = DOGMOS_ACTIVE_NATIVE // APHELION EDIT ADDITION - DOGMOS
+
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(dogmos_active_phase == DOGMOS_ACTIVE_NATIVE)
+		// Native diffusion queues reactions and callbacks in the same stage.
+		process_turfs_auxtools(TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE))
+		dogmos_active_phase = DOGMOS_ACTIVE_SETTLEMENT
+
+	if(finish_turf_processing_auxtools(TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)))
+		pause() // still draining queued reactions/visuals/pressure-difference callbacks - resume next fire()
+		return
+	refresh_dogmos_visuals()
+
+
+
+
+/** Runs Rust's low-pressure equalizer within the current tick budget. */
+// APHELION EDIT ADDITION END
 /datum/controller/subsystem/air/proc/process_excited_groups(resumed = FALSE)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if (!resumed)
 		src.currentrun = excited_groups.Copy()
 	//cache for sanic speed (lists are references anyways)
@@ -401,6 +542,12 @@ SUBSYSTEM_DEF(air)
 		EG.turf_reactions = NONE
 		if (MC_TICK_CHECK)
 			return
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/remaining_ms = TICK_DELTA_TO_MS(Master.current_ticklimit - TICK_USAGE)
+	if(process_excited_groups_auxtools(remaining_ms))
+		pause() // ran out of budget mid-batch - resume next fire(), see doc comment above
+// APHELION EDIT ADDITION END
 
 /datum/controller/subsystem/air/proc/process_rebuilds()
 	//Yes this does mean rebuilding pipenets can freeze up the subsystem forever, but if we're in that situation something else is very wrong
@@ -435,6 +582,7 @@ SUBSYSTEM_DEF(air)
 
 ///Rebuilds a pipeline by expanding outwards, while yielding when sane
 /datum/controller/subsystem/air/proc/expand_pipeline(datum/pipeline/net, list/border)
+	var/expanded_volume // APHELION EDIT ADDITION - DOGMOS
 	while(border.len)
 		var/obj/machinery/atmospherics/borderline = border[border.len]
 		border.len--
@@ -448,7 +596,7 @@ SUBSYSTEM_DEF(air)
 				net.add_machinery_member(considered_device)
 				continue
 			var/obj/machinery/atmospherics/pipe/item = considered_device
-			if(net.members.Find(item))
+			if(item.parent == net) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(net.members.Find(item))
 				continue
 			if(item.parent)
 				var/static/pipenetwarnings = 10
@@ -461,7 +609,14 @@ SUBSYSTEM_DEF(air)
 			net.members += item
 			border += item
 
+			/* // APHELION EDIT REMOVAL START - DOGMOS
 			net.air.volume += item.volume
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
+			if(isnull(expanded_volume))
+				expanded_volume = net.air.return_volume()
+			expanded_volume += item.volume
+			// APHELION EDIT ADDITION END
 			item.replace_pipenet(item.parent, net)
 
 			if(item.air_temporary)
@@ -469,11 +624,19 @@ SUBSYSTEM_DEF(air)
 				item.air_temporary = null
 
 		if (MC_TICK_CHECK)
+			// APHELION EDIT ADDITION START - DOGMOS
+			if(!isnull(expanded_volume))
+				net.air.set_volume(expanded_volume)
+			// APHELION EDIT ADDITION END
 			return
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(!isnull(expanded_volume))
+		net.air.set_volume(expanded_volume)
+// APHELION EDIT ADDITION END
 
 ///Removes a turf from processing, and causes its excited group to clean up so things properly adapt to the change
 /datum/controller/subsystem/air/proc/remove_from_active(turf/open/T)
-	active_turfs -= T
+	dogmos_remove_frontier_member(T) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: active_turfs -= T
 	if(currentpart == SSAIR_ACTIVETURFS)
 		currentrun -= T
 	#ifdef VISUALIZE_ACTIVE_TURFS //Use this when you want details about how the turfs are moving, display_all_groups should work for normal operation
@@ -488,7 +651,7 @@ SUBSYSTEM_DEF(air)
 
 ///Puts an active turf to sleep so it doesn't process. Do this without cleaning up its excited group.
 /datum/controller/subsystem/air/proc/sleep_active_turf(turf/open/T)
-	active_turfs -= T
+	dogmos_remove_frontier_member(T) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: active_turfs -= T
 	if(currentpart == SSAIR_ACTIVETURFS)
 		currentrun -= T
 	#ifdef VISUALIZE_ACTIVE_TURFS
@@ -500,6 +663,11 @@ SUBSYSTEM_DEF(air)
 ///Adds a turf to active processing, handles duplicates. Call this with blockchanges == TRUE if you want to nuke the assoc excited group
 /datum/controller/subsystem/air/proc/add_to_active(turf/open/activate, blockchanges = FALSE)
 	if(istype(activate) && activate.air)
+		// APHELION EDIT ADDITION START - DOGMOS
+		for(var/obj/machinery/atmospherics/atmos_machine in activate)
+			if(atmos_machine.wake_on_turf_atmos && !atmos_machine.atmos_processing)
+				start_processing_machine(atmos_machine)
+		// APHELION EDIT ADDITION END
 		activate.significant_share_ticker = 0
 		if(blockchanges && activate.excited_group) //This is used almost exclusivly for shuttles, so the excited group doesn't stay behind
 			activate.excited_group.garbage_collect() //Nuke it
@@ -509,7 +677,7 @@ SUBSYSTEM_DEF(air)
 		activate.add_atom_colour(COLOR_VIBRANT_LIME, TEMPORARY_COLOUR_PRIORITY)
 		#endif
 		activate.excited = TRUE
-		active_turfs += activate
+		dogmos_add_frontier_member(activate) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: active_turfs += activate
 	else if(activate.flags_1 & INITIALIZED_1)
 		for(var/turf/neighbor as anything in activate.atmos_adjacent_turfs)
 			add_to_active(neighbor, TRUE)
@@ -525,7 +693,16 @@ SUBSYSTEM_DEF(air)
 
 /datum/controller/subsystem/air/StopLoadingMap()
 	map_loading = FALSE
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	for(var/T in queued_for_activation)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	for(var/turf/T in queued_for_activation)
+		// Late-map-loaded turfs (ruins, away missions) never went through setup_allturfs()'s bulk
+		// Initalize_Atmos() pass, so they've never registered with Dogmos - do it now, alongside the
+		// existing add_to_active() catch-up this loop already does for the same reason.
+		T.register_dogmos_air()
+		// APHELION EDIT ADDITION END
 		add_to_active(T, TRUE)
 	queued_for_activation.Cut()
 
@@ -540,14 +717,23 @@ SUBSYSTEM_DEF(air)
 		var/turf/active = jumpy
 		active.remove_atom_colour(TEMPORARY_COLOUR_PRIORITY, COLOR_VIBRANT_LIME)
 	#endif
-	active_turfs.Cut()
+	dogmos_clear_active_frontier() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: active_turfs.Cut()
 	// We compare this against turf.current cycle using <= to ensure O(n)
 	// It defaults to 0, so we start at -1
 	var/time = -1
 
 	var/list/turf/open/difference_check = list()
+	var/list/initialization_batch = list() // APHELION EDIT ADDITION - DOGMOS
 	for(var/turf/setup as anything in ALL_TURFS())
 		if (!setup.init_air)
+			// APHELION EDIT ADDITION START - DOGMOS
+			continue
+		if(DOGMOS)
+			initialization_batch += setup
+			if(length(initialization_batch) >= DOGMOS_ACTIVE_TURFS_WALK_BATCH_SIZE)
+				time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
+				initialization_batch.Cut()
+			// APHELION EDIT ADDITION END
 			continue
 		// We pass the tick as the current step so if we sleep the step changes
 		// This way we can make setting up adjacent turfs O(n) rather then O(n^2)
@@ -556,6 +742,15 @@ SUBSYSTEM_DEF(air)
 		difference_check += setup
 		if(CHECK_TICK)
 			time--
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(DOGMOS)
+		if(length(initialization_batch))
+			time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
+		// Rebuild edges after every endpoint has registered, independent of map order.
+		for(var/turf/registered_turf as anything in difference_check)
+			registered_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+			CHECK_TICK
+	// APHELION EDIT ADDITION END
 
 	// Now we're gonna compare for differences
 	// Taking advantage of current cycle being set to negative before this run to do A->B B->A prevention
@@ -570,10 +765,10 @@ SUBSYSTEM_DEF(air)
 			if(potential_diff.air.compare(enemy_tile.air, FALSE))
 				if(!potential_diff.excited)
 					potential_diff.excited = TRUE
-					SSair.active_turfs += potential_diff
+					SSair.dogmos_add_frontier_member(potential_diff) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs += potential_diff
 				if(!enemy_tile.excited)
 					enemy_tile.excited = TRUE
-					SSair.active_turfs += enemy_tile
+					SSair.dogmos_add_frontier_member(enemy_tile) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs += enemy_tile
 				// No sense continuing to iterate
 				break
 		CHECK_TICK
@@ -598,7 +793,13 @@ SUBSYSTEM_DEF(air)
 				new_turfs_to_check += T.resolve_active_graph()
 			CHECK_TICK
 
+			/* // APHELION EDIT REMOVAL START - DOGMOS
 			active_turfs += new_turfs_to_check
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
+			for(var/turf/open/new_active as anything in new_turfs_to_check)
+				dogmos_add_frontier_member(new_active)
+			// APHELION EDIT ADDITION END
 			turfs_to_check = new_turfs_to_check
 		while (turfs_to_check.len)
 
@@ -791,19 +992,29 @@ GLOBAL_LIST_EMPTY(colored_images)
 
 	var/list/gas = params2list(gas_string)
 	if(gas["TEMP"])
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		canonical_mix.temperature = text2num(gas["TEMP"])
 		canonical_mix.temperature_archived = canonical_mix.temperature
+		*/ // APHELION EDIT REMOVAL END
+		canonical_mix.set_temperature(text2num(gas["TEMP"])) // APHELION EDIT ADDITION - DOGMOS
 		gas -= "TEMP"
 	else // if we do not have a temp in the new gas mix lets assume room temp.
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		canonical_mix.temperature = T20C
 	var/list/cached_moles = canonical_mix.moles
+		*/ // APHELION EDIT REMOVAL END
+		canonical_mix.set_temperature(T20C) // APHELION EDIT ADDITION - DOGMOS
 	for(var/id in gas)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		var/path = id
 		if(!ispath(path))
 			path = gas_id2path(path) //a lot of these strings can't have embedded expressions (especially for mappers), so support for IDs needs to stick around
 		cached_moles[path] = text2num(gas[id])
+		*/ // APHELION EDIT REMOVAL END
+		canonical_mix.set_moles(id, text2num(gas[id])) // APHELION EDIT ADDITION - DOGMOS
 
 	if(istype(canonical_mix, /datum/gas_mixture/immutable))
+		canonical_mix.mark_immutable() //content is final now; New() deliberately did not do this // APHELION EDIT ADDITION - DOGMOS
 		return canonical_mix
 	return canonical_mix.copy()
 
@@ -819,34 +1030,102 @@ GLOBAL_LIST_EMPTY(colored_images)
  * Adds a given machine to the processing system for SSAIR_ATMOSMACHINERY processing.
  *
  * Arguments:
- * * machine - The machine to start processing. Can be any /obj/machinery.
+ * * machine - An atmosphere-processing machine or gas-leaker component. // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: * * machine - The machine to start processing. Can be any /obj/machinery.
  */
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /datum/controller/subsystem/air/proc/start_processing_machine(obj/machinery/machine)
 	if(machine.atmos_processing)
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/datum/controller/subsystem/air/proc/start_processing_machine(datum/machine)
+	if(!istype(machine, /obj/machinery) && !istype(machine, /datum/component/gas_leaker))
+		stack_trace("Attempted to add unsupported [machine?.type] to SSair atmosphere machinery processing.")
+		return
+	var/already_processing
+	if(ismachinery(machine))
+		var/obj/machinery/atmos_machine = machine
+		already_processing = atmos_machine.atmos_processing
+	else
+		var/datum/component/gas_leaker/gas_leaker = machine
+		already_processing = gas_leaker.atmos_processing
+	if(already_processing)
+		// APHELION EDIT ADDITION END
 		return
 	if(QDELETED(machine))
 		stack_trace("We tried to add a garbage collecting machine to SSair. Don't")
 		return
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	machine.atmos_processing = TRUE
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(ismachinery(machine))
+		var/obj/machinery/atmos_machine = machine
+		atmos_machine.atmos_processing = TRUE
+	else
+		var/datum/component/gas_leaker/gas_leaker = machine
+		gas_leaker.atmos_processing = TRUE
+	// APHELION EDIT ADDITION END
 	atmos_machinery += machine
 
 /**
  * Removes a given machine to the processing system for SSAIR_ATMOSMACHINERY processing.
  *
  * Arguments:
+/* // APHELION EDIT REMOVAL START - DOGMOS
  * * machine - The machine to stop processing.
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+ * * machine - The atmosphere-processing machine or gas-leaker component to stop.
+ * * currentrun_entry_removed - The processing loop has already popped this entry; other callers leave FALSE.
+// APHELION EDIT ADDITION END
  */
+/* // APHELION EDIT REMOVAL START - DOGMOS
 /datum/controller/subsystem/air/proc/stop_processing_machine(obj/machinery/machine)
 	if(!machine.atmos_processing)
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - DOGMOS
+/datum/controller/subsystem/air/proc/stop_processing_machine(datum/machine, currentrun_entry_removed = FALSE)
+	if(!istype(machine, /obj/machinery) && !istype(machine, /datum/component/gas_leaker))
+		// APHELION EDIT ADDITION END
 		return
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	machine.atmos_processing = FALSE
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/is_processing
+	if(ismachinery(machine))
+		var/obj/machinery/atmos_machine = machine
+		is_processing = atmos_machine.atmos_processing
+	else
+		var/datum/component/gas_leaker/gas_leaker = machine
+		is_processing = gas_leaker.atmos_processing
+	if(!is_processing)
+		return
+	if(ismachinery(machine))
+		var/obj/machinery/atmos_machine = machine
+		atmos_machine.atmos_processing = FALSE
+	else
+		var/datum/component/gas_leaker/gas_leaker = machine
+		gas_leaker.atmos_processing = FALSE
+	// APHELION EDIT ADDITION END
 	atmos_machinery -= machine
+	diagnostics.kennel_machine_cost_ewma -= REF(machine) // APHELION EDIT ADDITION - DOGMOS
 
 	// If we're currently processing atmos machines, there's a chance this machine is in
 	// the currentrun list, which is a cache of atmos_machinery. Remove it from that list
 	// as well to prevent processing qdeleted objects in the cache.
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(currentpart == SSAIR_ATMOSMACHINERY)
 		currentrun -= machine
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(currentpart == SSAIR_ATMOSMACHINERY && !currentrun_entry_removed)
+		// Find the entry once before removing it from the continuation.
+		var/removed_index = currentrun.Find(machine)
+		// Reuse the lookup above instead of scanning this continuation a second time.
+		if(removed_index)
+			currentrun.Cut(removed_index, removed_index + 1)
+// APHELION EDIT ADDITION END
 
 /datum/controller/subsystem/air/ui_state(mob/user)
 	return ADMIN_STATE(R_DEBUG)
@@ -883,7 +1162,12 @@ GLOBAL_LIST_EMPTY(colored_images)
 	data["active_size"] = active_turfs.len
 	data["hotspots_size"] = hotspots.len
 	data["excited_size"] = excited_groups.len
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	data["conducting_size"] = active_super_conductivity.len
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	data["conducting_size"] = dogmos_heat_graph_count()
+	// APHELION EDIT ADDITION END
 	data["frozen"] = can_fire
 	data["show_all"] = display_all_groups
 	data["fire_count"] = times_fired
@@ -897,16 +1181,39 @@ GLOBAL_LIST_EMPTY(colored_images)
 
 /datum/controller/subsystem/air/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(. || !check_rights_for(usr.client, R_DEBUG))
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/mob/user = usr
+	if(. || !user?.client || !check_rights_for(user.client, R_DEBUG))
+		// APHELION EDIT ADDITION END
 		return
 	switch(action)
 		if("move-to-target")
+			/* // APHELION EDIT REMOVAL START - DOGMOS
 			var/turf/target = locate(params["spot"])
 			if(!target)
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
+			var/turf/target
+			for(var/datum/excited_group/group as anything in excited_groups)
+				if(!length(group.turf_list))
+					continue
+				target = locate(params["spot"]) in group.turf_list
+				if(target)
+					break
+			if(!target || !user)
+				// APHELION EDIT ADDITION END
 				return
-			usr.forceMove(target)
+			user.forceMove(target) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: usr.forceMove(target)
 		if("toggle-freeze")
 			can_fire = !can_fire
+			// APHELION EDIT ADDITION START - DOGMOS
+			return TRUE
+		if("toggle_realistic_space_radiation")
+			realistic_space_radiation = !realistic_space_radiation
+			// APHELION EDIT ADDITION END
 			return TRUE
 		if("toggle_show_group")
 			var/datum/excited_group/group = locate(params["group"])
@@ -929,10 +1236,14 @@ GLOBAL_LIST_EMPTY(colored_images)
 					group.hide_turfs()
 			return TRUE
 		if("toggle_user_display")
-			var/mob/user = ui.user
+			user = ui.user // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/mob/user = ui.user
 			user.hud_used.atmos_debug_overlays = !user.hud_used.atmos_debug_overlays
 			if(user.hud_used.atmos_debug_overlays)
 				user.client.images += GLOB.colored_images
 			else
 				user.client.images -= GLOB.colored_images
 			return TRUE
+// APHELION EDIT ADDITION START - DOGMOS
+
+#undef KENNEL_SLOW_MODE_PUSH_INTERVAL
+// APHELION EDIT ADDITION END

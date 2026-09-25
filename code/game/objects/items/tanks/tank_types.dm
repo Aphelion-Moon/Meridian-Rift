@@ -67,8 +67,14 @@
 	force = 10
 
 /obj/item/tank/internals/anesthetic/populate_gas()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	air_contents.set_gas(/datum/gas/oxygen, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD)
 	air_contents.set_gas(/datum/gas/nitrous_oxide, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	air_contents.set_gas(/datum/gas/oxygen, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD)
+	air_contents.set_gas(/datum/gas/nitrous_oxide, (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
+// APHELION EDIT ADDITION END
 
 
 /obj/item/tank/internals/anesthetic/examine(mob/user)
@@ -242,18 +248,36 @@
 /obj/item/tank/internals/emergency_oxygen/engi/clown/n2o
 
 /obj/item/tank/internals/emergency_oxygen/engi/clown/n2o/populate_gas()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.95)
 	air_contents.set_gas(/datum/gas/nitrous_oxide, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.05)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.95)
+	air_contents.set_gas(/datum/gas/nitrous_oxide, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.05)
+// APHELION EDIT ADDITION END
 
 /obj/item/tank/internals/emergency_oxygen/engi/clown/bz
 
 /obj/item/tank/internals/emergency_oxygen/engi/clown/bz/populate_gas()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	air_contents.set_gas(/datum/gas/oxygen,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.9)
 	air_contents.set_gas(/datum/gas/bz,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.1)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	air_contents.set_gas(/datum/gas/oxygen,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.9)
+	air_contents.set_gas(/datum/gas/bz,(10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.1)
+// APHELION EDIT ADDITION END
 
 /obj/item/tank/internals/emergency_oxygen/engi/clown/helium
 	distribute_pressure = TANK_CLOWN_RELEASE_PRESSURE + 2
 
 /obj/item/tank/internals/emergency_oxygen/engi/clown/helium/populate_gas()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.75)
 	air_contents.set_gas(/datum/gas/helium, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.25)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.75)
+	air_contents.set_gas(/datum/gas/helium, (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * 0.25)
+// APHELION EDIT ADDITION END

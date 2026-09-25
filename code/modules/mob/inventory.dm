@@ -182,6 +182,11 @@
 	if(get_item_for_held_index(hand_index))
 		dropItemToGround(get_item_for_held_index(hand_index), force = TRUE)
 	I.forceMove(src) //this has to come before has_equipped() is called
+	// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
+	// Movement listeners can transfer or delete the item before this pickup resumes.
+	if(QDELETED(I) || I.loc != src)
+		return FALSE
+	// APHELION EDIT ADDITION END
 	held_items[hand_index] = I
 	SET_PLANE_EXPLICIT(I, ABOVE_HUD_PLANE, src)
 	if(I.pulledby)

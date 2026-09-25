@@ -8,6 +8,10 @@ echo Testing $MAP
 
 tools/deploy.sh ci_test
 
+# APHELION EDIT ADDITION START - DOGMOS
+python3 tools/dogmos/stage_ci_runtime.py --root . --destination ci_test
+# APHELION EDIT ADDITION END
+
 mkdir -p ci_test/config
 mkdir -p ci_test/data
 

@@ -126,8 +126,14 @@
 		can_unwrench = FALSE
 	var/datum/gas_mixture/distro_air = airs[1]
 	var/datum/gas_mixture/waste_air = airs[2]
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	distro_air.volume = 1000
 	waste_air.volume = 1000
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	distro_air.set_volume(1000)
+	waste_air.set_volume(1000)
+// APHELION EDIT ADDITION END
 
 /obj/machinery/atmospherics/components/unary/airlock_pump/post_machine_initialize()
 	. = ..()
@@ -227,7 +233,7 @@
 	var/datum/pipeline/distro_pipe = parents[1]
 	var/datum/gas_mixture/distro_air = airs[1]
 	var/datum/gas_mixture/tile_air = tile.return_air()
-	var/transfer_moles = (volume_rate / tile_air.volume) * (pressure_delta * tile_air.volume) / (distro_air.temperature * R_IDEAL_GAS_EQUATION)
+	var/transfer_moles = (volume_rate / tile_air.return_volume()) * (pressure_delta * tile_air.return_volume()) / (distro_air.return_temperature() * R_IDEAL_GAS_EQUATION) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transfer_moles = (volume_rate / tile_air.volume) * (pressure_delta * tile_air.volume) / (distro_air.temperature * R_IDEAL_GAS_EQUATION)
 	moles = min(moles, transfer_moles)
 
 	var/datum/gas_mixture/removed_air = distro_air.remove(moles)
@@ -245,7 +251,7 @@
 	var/datum/gas_mixture/waste_air = airs[2]
 	var/datum/gas_mixture/tile_air = tile.return_air()
 
-	var/transfer_moles = tile_air.total_moles() * (volume_rate / tile_air.volume)
+	var/transfer_moles = tile_air.total_moles() * (volume_rate / tile_air.return_volume()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transfer_moles = tile_air.total_moles() * (volume_rate / tile_air.volume)
 	var/datum/gas_mixture/removed_air = tile.remove_air(transfer_moles)
 
 	if(!removed_air)

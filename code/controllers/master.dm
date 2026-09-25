@@ -458,6 +458,11 @@ ADMIN_VERB(cmd_controller_view_ui, R_SERVER|R_DEBUG, "Controller Overview", "Vie
 	var/msg = "Initializations complete within [time] second[time == 1 ? "" : "s"]!"
 	to_chat(world, span_boldannounce("[msg]"), MESSAGE_TYPE_DEBUG)
 	log_world(msg)
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Snapshotted so a unit test can ask "was the boot clean?" without being polluted by runtimes
+	// the tests themselves cause later. See /datum/unit_test/no_runtimes_during_init.
+	GLOB.runtimes_at_init_complete = GLOB.total_runtimes
+	// APHELION EDIT ADDITION END
 	SSticker.timeLeft = SSticker.start_at
 
 
@@ -873,6 +878,15 @@ ADMIN_VERB(cmd_controller_view_ui, R_SERVER|R_DEBUG, "Controller Overview", "Vie
 				bg_calc = FALSE
 
 
+			// APHELION EDIT ADDITION START - DOGMOS
+			if (queue_node.resume_after > world.time && (queue_node.state == SS_PAUSED || queue_node.state == SS_PAUSING))
+				// Keep the unfinished run queued, but give later work its share of this pass.
+				current_tick_budget -= queue_node_priority
+				queue_node = queue_node.queue_next
+				continue
+			queue_node.resume_after = 0
+
+			// APHELION EDIT ADDITION END
 			tick_remaining = TICK_LIMIT_RUNNING - TICK_USAGE
 
 			if (queue_node_priority >= 0 && current_tick_budget > 0 && current_tick_budget >= queue_node_priority)

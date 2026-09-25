@@ -36,6 +36,7 @@
 
 # Ignore compiled linux libs in the root folder, e.g. librust_g.so
 /*.so
+!/libdogmos_in_process.so
 
 #Ignore compiled files and other files generated during compilation.
 *.mdme
@@ -272,3 +273,4 @@ define_sanity_output.txt
 # Running OpenDream locally
 tgstation.json
 rust_g64.dll
+CLAUDE.md

@@ -55,8 +55,16 @@
 /obj/machinery/atmospherics/components/binary/pump/update_icon_nopipes()
 	icon_state = (on && is_operational) ? "pump_on-[set_overlay_offset(piping_layer)]" : "pump_off-[set_overlay_offset(piping_layer)]"
 
+/** Transfers gas toward the configured output pressure while work remains. */ // APHELION EDIT ADDITION - DOGMOS
 /obj/machinery/atmospherics/components/binary/pump/process_atmos()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(!on || !is_operational)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(!on)
+		return PROCESS_KILL
+	if(!is_operational)
+		// APHELION EDIT ADDITION END
 		return
 
 	var/datum/gas_mixture/input_air = airs[1]
@@ -65,6 +73,10 @@
 
 	if(input_air.pump_gas_to(output_air, target_pressure, output_pipenet_air = output_pipenet_air))
 		update_parents()
+		// APHELION EDIT ADDITION START - DOGMOS
+		return
+	return PROCESS_KILL
+// APHELION EDIT ADDITION END
 
 /obj/machinery/atmospherics/components/binary/pump/ui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)

@@ -7,4 +7,12 @@
 // evaluating the #pragma lines, even if its outside a block it cares about
 // (Also so people can code-own it. Shoutout to AA)
 #include "tools/ci/od_lints.dm"
+// APHELION EDIT ADDITION START - DOGMOS_OPENDREAM_LINT
+
+#ifdef CIBUILDING
+// OpenDream cannot load BYOND native extensions; declare the builtin for CI linting only.
+/proc/load_ext(library, proc_name)
+	CRASH("load_ext is unavailable in OpenDream CI lint builds")
+// APHELION EDIT ADDITION END
 #endif
+#endif // APHELION EDIT ADDITION - DOGMOS_OPENDREAM_LINT

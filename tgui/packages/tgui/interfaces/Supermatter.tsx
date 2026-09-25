@@ -257,7 +257,8 @@ export const SupermatterContent = (props: SupermatterProps) => {
                     bad: [1800, Infinity],
                   }}
                 >
-                  {`${toFixed(gas_total_moles, 2)} Moles`}
+                  {/* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {`${toFixed(gas_total_moles, 2)} Moles`} */}
+                  {`${toFixed(gas_total_moles, 4)} Moles`}
                 </ProgressBar>
               }
             />

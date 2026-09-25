@@ -100,6 +100,10 @@
 /// Helper to allocate a new object with the implied type (the type of the variable it's assigned to) in the corner of the test room
 #define EASY_ALLOCATE(arguments...) allocate(__IMPLIED_TYPE__, run_loc_floor_bottom_left, ##arguments)
 
+// APHELION EDIT ADDITION START - DOGMOS
+// The sorted dogmos_*.dm includes below are Dogmos-owned tests.
+// Keep ownership comments outside the machine-managed include block.
+// APHELION EDIT ADDITION END
 // BEGIN_INCLUDE
 #include "aas_configs.dm"
 #include "abductor_baton_spell.dm"
@@ -171,6 +175,39 @@
 #include "designs.dm"
 #include "dismemberment.dm"
 #include "dna_infusion.dm"
+// APHELION EDIT ADDITION START - DOGMOS
+#include "dogmos_active_turfs_bloat.dm"
+#include "dogmos_aphelion_reactions.dm"
+#include "dogmos_assimilate_air_temperature_sync.dm"
+#include "dogmos_callback_delivery.dm"
+#include "dogmos_decompression_feedback.dm"
+#include "dogmos_decompression_floor_rip.dm"
+#include "dogmos_del_cost.dm"
+#include "dogmos_flamethrower_projection.dm"
+#include "dogmos_gas_overlays.dm"
+#include "dogmos_goggle_modes.dm"
+#include "dogmos_ignore_air_temperature_reset.dm"
+#include "dogmos_immutable_mixture_contract.dm"
+#include "dogmos_init_health.dm"
+#include "dogmos_internals_breath.dm"
+#include "dogmos_kennel_fire_groups.dm"
+#include "dogmos_kennel_overlays.dm"
+#include "dogmos_kennel_process_metrics.dm"
+#include "dogmos_kennel_reaction_profiling.dm"
+#include "dogmos_kennel_reactions_of_interest.dm"
+#include "dogmos_kennel_record_event.dm"
+#include "dogmos_kennel_slow_mode_payload.dm"
+#include "dogmos_kennel_structures.dm"
+#include "dogmos_kennel_thresholds.dm"
+#include "dogmos_playtest_regressions.dm"
+#include "dogmos_registration.dm"
+#include "dogmos_temperature_authority.dm"
+#include "dogmos_turf_adjacency_sync.dm"
+#include "dogmos_turf_lifecycle.dm"
+#include "dogmos_turf_registration.dm"
+#include "dogmos_turf_temperature_setter.dm"
+#include "dogmos_volume_sites.dm"
+// APHELION EDIT ADDITION END
 #include "door_access.dm"
 #include "dragon_expiration.dm"
 #include "drink_icons.dm"
@@ -191,6 +228,9 @@
 #include "food_edibility_check.dm"
 #include "food_processor.dm"
 #include "full_heal.dm"
+// APHELION EDIT ADDITION START - DOGMOS
+#include "gas_mixture_golden.dm"
+// APHELION EDIT ADDITION END
 #include "gas_transfer.dm"
 #include "get_turf_pixel.dm"
 #include "geyser.dm"
@@ -380,6 +420,9 @@
 #include "~nova\accessory_layers.dm"
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
+// APHELION EDIT ADDITION START - DOGMOS
+#include "~nova\cigarettes.dm"
+// APHELION EDIT ADDITION END
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\liver_nova.dm"
@@ -401,10 +444,17 @@
 #include "~nova\world_topic_log_redaction.dm"
 // NOVA EDIT ADDITION END
 // END_INCLUDE
+// APHELION EDIT ADDITION START - DOGMOS
+#include "../../../modular_aphelion/modules/dogmos/code/mixture_fusion_tests.dm"
+// APHELION EDIT ADDITION END
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter
 #include "find_reference_sanity.dm"
 #endif
 
+// APHELION EDIT ADDITION START - CUSTOMIZATION_CI_FIXES
+#include "../../../modular_aphelion/modules/customization_fixes/code/regressions.dm"
+
+// APHELION EDIT ADDITION END
 #undef TEST_ASSERT
 #undef TEST_ASSERT_EQUAL
 #undef TEST_ASSERT_NOTEQUAL

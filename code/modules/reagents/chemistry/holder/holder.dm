@@ -745,8 +745,12 @@
 	if(isnull(target))
 		return
 
-	if(volume_modifier <= 0)
+	if(volume_modifier < 0) // APHELION EDIT CHANGE - RUNTIME_CORRECTNESS - ORIGINAL: if(volume_modifier <= 0)
 		stack_trace("Volume modifier [volume_modifier] must be +ve")
+		// APHELION EDIT ADDITION START - RUNTIME_CORRECTNESS
+		return
+	if(volume_modifier == 0)
+		// APHELION EDIT ADDITION END
 		return
 
 	var/list/datum/reagent/reagents = list()

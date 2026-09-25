@@ -1,5 +1,6 @@
 # base = ubuntu + full apt update
-FROM ubuntu:xenial AS base
+# Native i686 artifact requires glibc >= 2.34; Jammy provides 2.35.
+FROM ubuntu:22.04 AS base
 
 RUN dpkg --add-architecture i386 \
     && apt-get update \
@@ -70,16 +71,17 @@ RUN . ./dependencies.sh \
     && git checkout FETCH_HEAD \
     && env PKG_CONFIG_ALLOW_CROSS=1 ~/.cargo/bin/cargo build --release --target i686-unknown-linux-gnu
 
-# final = byond + runtime deps + rust_g + build
+# final = byond + runtime deps + rust_g + native artifacts + build
 FROM byond
 WORKDIR /tgstation
 
 RUN apt-get install -y --no-install-recommends \
-        libssl1.0.0:i386 \
+        libssl3:i386 \
         zlib1g:i386
 
 COPY --from=build /deploy ./
 COPY --from=rust_g /rust_g/target/i686-unknown-linux-gnu/release/librust_g.so ./librust_g.so
+COPY libdogmos_in_process.so ./libdogmos_in_process.so
 
 VOLUME [ "/tgstation/config", "/tgstation/data" ]
 ENTRYPOINT [ "DreamDaemon", "tgstation.dmb", "-port", "1337", "-trusted", "-close", "-verbose" ]

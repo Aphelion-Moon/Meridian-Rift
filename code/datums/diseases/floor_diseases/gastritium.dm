@@ -44,8 +44,14 @@
 
 /datum/disease/gastritium/proc/tritium_burp(hot_chance = FALSE)
 	var/datum/gas_mixture/burp = new
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	burp.set_gas(/datum/gas/tritium, MOLES_GAS_VISIBLE)
 	burp.temperature = affected_mob.bodytemperature
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	burp.set_gas(/datum/gas/tritium, MOLES_GAS_VISIBLE)
+	burp.set_temperature(affected_mob.bodytemperature)
+	// APHELION EDIT ADDITION END
 	if(hot_chance && prob(tritium_burp_hot_chance))
 		burp.set_temperature(TRITIUM_MINIMUM_BURN_TEMPERATURE)
 		if(!IS_UNCONSCIOUS_OR_CRIT(affected_mob))

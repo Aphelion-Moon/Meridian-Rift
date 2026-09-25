@@ -66,7 +66,13 @@
 			return PERCEIVED_RADIATION_DANGER_HIGH
 	else
 		// We're out of the threshold from being irradiated, but by how much?
+		/* // APHELION EDIT REMOVAL START - DOGMOS_PLAYTEST_REGRESSIONS
 		if (insulation_to_target / pulse_information.threshold <= MEDIUM_RADIATION_THRESHOLD_RANGE)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS_PLAYTEST_REGRESSIONS
+		// Compare without division: a fully absorbed, zero-threshold pulse is also shielded.
+		if (insulation_to_target <= pulse_information.threshold * MEDIUM_RADIATION_THRESHOLD_RANGE)
+			// APHELION EDIT ADDITION END
 			return PERCEIVED_RADIATION_DANGER_MEDIUM
 		else
 			return PERCEIVED_RADIATION_DANGER_LOW

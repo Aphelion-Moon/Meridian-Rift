@@ -32,7 +32,7 @@
 	SSair.networks -= src
 	if(building)
 		SSair.remove_from_expansion(src)
-	if(air?.volume)
+	if(air?.return_volume()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(air?.volume)
 		temporarily_store_air()
 	for(var/obj/machinery/atmospherics/pipe/considered_pipe in members)
 		considered_pipe.replace_pipenet(considered_pipe.parent, null)
@@ -43,12 +43,23 @@
 		considered_component.nullify_pipenet(src)
 	return ..()
 
+/** Reconciles a dirty pipeline and wakes machinery whose inputs may have changed. */ // APHELION EDIT ADDITION - DOGMOS
 /datum/pipeline/process()
 	if(!update || building)
 		return
+	// APHELION EDIT ADDITION START - DOGMOS
+	for(var/obj/machinery/atmospherics/components/atmos_machine as anything in other_atmos_machines)
+		SSair.start_processing_machine(atmos_machine)
+	for(var/obj/machinery/atmospherics/pipe/atmos_pipe as anything in members)
+		if(atmos_pipe.wake_on_pipeline_atmos)
+			SSair.start_processing_machine(atmos_pipe)
+		for(var/obj/machinery/meter/pipe_meter as anything in atmos_pipe.dogmos_pipeline_meters)
+			SSair.start_processing_machine(pipe_meter)
+	// APHELION EDIT ADDITION END
 	reconcile_air()
 	//Only react if the mix has changed, and don't keep updating if it hasn't
 	update = air.react(src)
+	update ||= air.dogmos_fusion_waiting(src) // APHELION EDIT ADDITION - DOGMOS
 	//CalculateGasmixColor(air) // NOVA EDIT REMOVAL - Pipe gas visuals removed
 
 /datum/pipeline/proc/set_air(datum/gas_mixture/new_air)
@@ -74,7 +85,7 @@
 	if(!air)
 		set_air(new /datum/gas_mixture)
 
-	air.volume = volume
+	air.set_volume(volume) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.volume = volume
 	SSair.add_to_expansion(src, base)
 
 ///Has the same effect as build_pipeline(), but this doesn't queue its work, so overrun abounds. It's useful for the pregame
@@ -105,7 +116,7 @@
 					add_machinery_member(considered_device)
 					continue
 				var/obj/machinery/atmospherics/pipe/item = considered_device
-				if(members.Find(item))
+				if(item.parent == src) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(members.Find(item))
 					continue
 				if(item.parent)
 					var/static/pipenetwarnings = 10
@@ -127,7 +138,7 @@
 
 			possible_expansions -= borderline
 
-	air.volume = volume
+	air.set_volume(volume) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.volume = volume
 
 	/**
 	 *  For a machine to properly "connect" to a pipeline and share gases,
@@ -165,12 +176,12 @@
 			merge(parent_pipeline)
 		if(!members.Find(reference_pipe))
 			members += reference_pipe
-			air.volume += reference_pipe.volume
+			air.set_volume(air.return_volume() + reference_pipe.volume) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.volume += reference_pipe.volume
 
 /datum/pipeline/proc/merge(datum/pipeline/parent_pipeline)
 	if(parent_pipeline == src)
 		return
-	air.volume += parent_pipeline.air.volume
+	air.set_volume(air.return_volume() + parent_pipeline.air.return_volume()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.volume += parent_pipeline.air.volume
 	members.Add(parent_pipeline.members)
 	for(var/obj/machinery/atmospherics/pipe/reference_pipe in parent_pipeline.members)
 		reference_pipe.replace_pipenet(reference_pipe.parent, src)
@@ -204,15 +215,21 @@
 	//Update individual gas_mixtures by volume ratio
 
 	for(var/obj/machinery/atmospherics/pipe/member in members)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		member.air_temporary = new
 		member.air_temporary.volume = member.volume
 		member.air_temporary.copy_from_ratio(air, member.volume / air.volume)
 
 		member.air_temporary.temperature = air.temperature
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		member.air_temporary = new(member.volume)
+		member.air_temporary.equalize_with(air)
+// APHELION EDIT ADDITION END
 
 /datum/pipeline/proc/temperature_interact(turf/target, share_volume, thermal_conductivity)
 	var/total_heat_capacity = air.heat_capacity()
-	var/partial_heat_capacity = total_heat_capacity * (share_volume / air.volume)
+	var/partial_heat_capacity = total_heat_capacity * (share_volume / air.return_volume()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/partial_heat_capacity = total_heat_capacity * (share_volume / air.volume)
 
 	var/turf_temperature = target.GetTemperature()
 	var/turf_heat_capacity = target.GetHeatCapacity()
@@ -221,28 +238,28 @@
 	if(target.liquids?.liquid_state >= LIQUID_STATE_FOR_HEAT_EXCHANGERS)
 		turf_temperature = target.liquids.temp
 		turf_heat_capacity = target.liquids.total_reagents * REAGENT_HEAT_CAPACITY
-		var/delta_temperature = (air.temperature - turf_temperature)
+		var/delta_temperature = (air.return_temperature() - turf_temperature) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/delta_temperature = (air.temperature - turf_temperature)
 
 		if(turf_heat_capacity <= 0 || partial_heat_capacity <= 0)
 			return TRUE
 
 		var/heat = CALCULATE_CONDUCTION_ENERGY(thermal_conductivity * delta_temperature, turf_heat_capacity, partial_heat_capacity)
 
-		air.temperature -= heat / total_heat_capacity
+		air.set_temperature(air.return_temperature() - (heat / total_heat_capacity)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.temperature -= heat / total_heat_capacity
 		if(!target.liquids.immutable)
 			target.liquids.temp += heat / turf_heat_capacity
 	else //NOVA EDIT END
 		if(turf_heat_capacity <= 0 || partial_heat_capacity <= 0)
 			return TRUE
 
-		var/delta_temperature = turf_temperature - air.temperature
+		var/delta_temperature = turf_temperature - air.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/delta_temperature = turf_temperature - air.temperature
 
 		var/heat = thermal_conductivity * CALCULATE_CONDUCTION_ENERGY(delta_temperature, partial_heat_capacity, turf_heat_capacity)
-		air.temperature += heat / total_heat_capacity
+		air.set_temperature(air.return_temperature() + (heat / total_heat_capacity)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.temperature += heat / total_heat_capacity
 		target.TakeTemperature(-1 * heat / turf_heat_capacity)
 
 		if(target.blocks_air)
-			target.temperature_expose(air, target.temperature)
+			target.temperature_expose(air, target.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: target.temperature_expose(air, target.temperature)
 		update = TRUE
 
 /datum/pipeline/proc/return_air()
@@ -266,6 +283,7 @@
 			pipeline_list |= atmos_machine.return_pipenets_for_reconcilation(src)
 			gas_mixture_list += atmos_machine.return_airs_for_reconcilation(src)
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/total_thermal_energy = 0
 	var/total_heat_capacity = 0
 
@@ -306,6 +324,8 @@
 	//Update individual gas_mixtures by volume ratio
 	for(var/datum/gas_mixture/gas_mixture as anything in gas_mixture_list)
 		gas_mixture.copy_from_ratio(total_gas_mixture, gas_mixture.volume / volume_sum)
+	*/ // APHELION EDIT REMOVAL END
+	dogmos_reconcile_pipeline_mixtures(gas_mixture_list) // APHELION EDIT ADDITION - DOGMOS
 
 //--------------------
 // GAS VISUALS STUFF
@@ -342,8 +362,14 @@
 
 	var/current_weight = 0
 	var/current_color
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	for(var/datum/gas/gas_path as anything in air.moles)
 		var/gas_weight = air.moles[gas_path]
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	for(var/datum/gas/gas_path as anything in air.get_gases())
+		var/gas_weight = air.get_moles(gas_path)
+		// APHELION EDIT ADDITION END
 		if(!gas_weight)
 			continue
 		var/gas_color = initial(gas_path.primary_color)
@@ -357,7 +383,7 @@
 		current_color = COLOR_BLACK
 	else
 		// Empty weight is prety much arbitrary, just tuned to make the color change from black reasonably quickly without hitting max color immediately
-		var/empty_weight = (air.volume * 1.5 - current_weight) / 10
+		var/empty_weight = (air.return_volume() * 1.5 - current_weight) / 10 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/empty_weight = (air.volume * 1.5 - current_weight) / 10
 		if(empty_weight > 0)
 			current_color = BlendHSV(COLOR_BLACK, current_color, current_weight / (empty_weight + current_weight))
 

@@ -187,6 +187,11 @@
 
 	var/list/turf/attachable_turfs = get_turfs_to_mount_on()
 	for(var/turf/target as anything in attachable_turfs)
+		// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
+		// Directional lookups at a map edge can have no neighboring turf.
+		if(isnull(target))
+			continue
+		// APHELION EDIT ADDITION END
 		var/atom/attachable_atom
 		if(is_mountable_turf(target))
 			attachable_atom = target //your usual wallmount

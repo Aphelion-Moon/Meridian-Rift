@@ -66,18 +66,30 @@
 	var/other_air_heat_capacity = partnerair_contents.heat_capacity()
 	var/combined_heat_capacity = other_air_heat_capacity + air_heat_capacity
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/old_temperature = air_contents.temperature
 	var/other_old_temperature = partnerair_contents.temperature
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/old_temperature = air_contents.return_temperature()
+	var/other_old_temperature = partnerair_contents.return_temperature()
+	// APHELION EDIT ADDITION END
 
 	if(combined_heat_capacity > 0)
-		var/combined_energy = partnerair_contents.temperature * other_air_heat_capacity + air_heat_capacity * air_contents.temperature
+		var/combined_energy = partnerair_contents.return_temperature() * other_air_heat_capacity + air_heat_capacity * air_contents.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/combined_energy = partnerair_contents.temperature * other_air_heat_capacity + air_heat_capacity * air_contents.temperature
 
 		var/new_temperature = combined_energy / combined_heat_capacity
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		air_contents.temperature = new_temperature
 		partnerair_contents.temperature = new_temperature
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		air_contents.set_temperature(new_temperature)
+		partnerair_contents.set_temperature(new_temperature)
+	// APHELION EDIT ADDITION END
 
-	if(abs(old_temperature - air_contents.temperature) > 1)
+	if(abs(old_temperature - air_contents.return_temperature()) > 1) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(abs(old_temperature - air_contents.temperature) > 1)
 		update_parents()
 
-	if(abs(other_old_temperature - partnerair_contents.temperature) > 1)
+	if(abs(other_old_temperature - partnerair_contents.return_temperature()) > 1) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(abs(other_old_temperature - partnerair_contents.temperature) > 1)
 		partner.update_parents()

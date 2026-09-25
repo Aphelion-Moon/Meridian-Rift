@@ -12,6 +12,10 @@
  */
 /turf/open/space/Initialize(mapload)
 	SHOULD_CALL_PARENT(FALSE)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(isnull(space_gas))
+		space_gas = new
+	// APHELION EDIT ADDITION END
 	air = space_gas
 
 	if (PERFORM_ALL_TESTS(focus_only/multiple_space_initialization))

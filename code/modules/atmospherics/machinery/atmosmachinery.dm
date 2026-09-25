@@ -51,6 +51,12 @@
 	var/pipe_state
 	///Check if the device should be on or off (mostly used in processing for machines)
 	var/on = FALSE
+	// APHELION EDIT ADDITION START - DOGMOS
+	///Whether turf atmosphere activity should wake this machine after it becomes dormant.
+	var/wake_on_turf_atmos = FALSE
+	///Whether a dirty parent pipeline should wake this dormant pipe member.
+	var/wake_on_pipeline_atmos = FALSE
+	// APHELION EDIT ADDITION END
 
 	///Whether it can be painted
 	var/paintable = TRUE
@@ -160,12 +166,12 @@
 	var/datum/gas_mixture/turf_gas = open_loc.air
 	if(isnull(turf_gas))
 		return
-	check_atmos_process(open_loc, turf_gas, turf_gas.temperature)
+	check_atmos_process(open_loc, turf_gas, turf_gas.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: check_atmos_process(open_loc, turf_gas, turf_gas.temperature)
 
 /turf/open/atmos_conditions_changed()
 	if(isnull(air))
 		return
-	check_atmos_process(src, air, air.temperature)
+	check_atmos_process(src, air, air.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: check_atmos_process(src, air, air.temperature)
 
 /**
  * Called by the machinery disconnect(), custom for each type
@@ -186,8 +192,20 @@
 		return
 
 	on = active
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(on)
+		SSair.start_processing_machine(src)
+	// APHELION EDIT ADDITION END
 	update_appearance(UPDATE_ICON)
 	SEND_SIGNAL(src, COMSIG_ATMOS_MACHINE_SET_ON, on)
+// APHELION EDIT ADDITION START - DOGMOS
+
+/** Wakes enabled atmosphere machinery when it becomes operational. */
+/obj/machinery/atmospherics/on_set_is_operational(old_value)
+	. = ..()
+	if(is_operational && on)
+		SSair.start_processing_machine(src)
+// APHELION EDIT ADDITION END
 
 /// This should only be called by SSair as part of the rebuild queue.
 /// Handles rebuilding pipelines after init or they've been changed.
