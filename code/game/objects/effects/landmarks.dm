@@ -775,4 +775,3 @@ INITIALIZE_IMMEDIATE(/obj/effect/landmark/start/new_player)
 
 /obj/effect/landmark/navigate_destination/disposals
 	location = "Disposals"
-
