@@ -46,11 +46,12 @@
 /**
  * Which region owns each canvas pixel, in every view.
  *
- * Every region's current editing mask is filled with its ID color and pushed through its real
- * overlay type, so the hand/arm layering, the leg split and the taur's native layers all apply as
- * they do in game. The images are composed in draw order (by layer, then region order) and the
- * result is read once per view. A blended edge pixel goes to the region that dominates it. Maps are
- * cached by the geometry that produced them.
+ * Every region's pixels are filled with its ID color and pushed through its real overlay type, so
+ * the hand/arm layering, the leg split and the taur's native layers all apply as they do in game.
+ * A hand counts only its own pixels: its drawing may also paint the arm rows just above it, but
+ * those stay the arm's, so the arm's region runs its whole length. The images are composed in
+ * draw order (by layer, then region order) and the result is read once per view. A blended edge
+ * pixel goes to the region that dominates it. Maps are cached by the geometry that produced them.
  *
  * Arguments:
  * - body: The body whose limbs and taur organ define the regions.
@@ -64,7 +65,7 @@
 	var/static/list/maps = list()
 	var/list/geometry = list(width, zones)
 	for(var/zone in zones)
-		geometry += list(custom_sprite_body_draw_mask(body, zone, custom_marking_zone_width(zone)))
+		geometry += list(custom_sprite_body_draw_mask(body, zone, custom_marking_zone_width(zone), wrist = FALSE))
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 	if(taur && chest)
@@ -78,7 +79,7 @@
 		var/zone = zones[index]
 		var/obj/item/bodypart/limb = body.get_bodypart(custom_marking_zone_limb(zone))
 		var/zone_width = custom_marking_zone_width(zone)
-		var/list/drawing = limb && custom_sprite_region_id_drawing(index, custom_sprite_body_draw_mask(body, zone, zone_width), zone_width)
+		var/list/drawing = limb && custom_sprite_region_id_drawing(index, custom_sprite_body_draw_mask(body, zone, zone_width, wrist = FALSE), zone_width)
 		if(!drawing)
 			continue
 		var/overlay_type = custom_marking_zone_overlay_type(zone)

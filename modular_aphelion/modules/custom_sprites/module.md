@@ -39,7 +39,10 @@ editor shows them as one body.
 
 Hands aren't limbs of their own: they're the arm's auxiliary zone. A hand drawing
 covers the hand plus the three arm rows just above it, so it can't climb the arm,
-and renders as its own overlay on that arm.
+and renders as its own overlay on that arm. On the whole-body canvas those three
+rows belong to the arm, so the arm's region runs its whole length and the hand's
+is just the hand. Hand paint already on them still shows, as it does in game;
+painting over it moves it to the arm.
 
 Hair and ordinary limb drawings are 32 by 32, and taur-zone drawings 64 by 32.
 The markings canvas is 64 by 32 whenever the body has a taur organ, even a hidden

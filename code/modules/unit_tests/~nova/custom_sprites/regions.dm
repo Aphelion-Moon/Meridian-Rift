@@ -78,6 +78,7 @@
 	TEST_ASSERT(json_encode(bounds["2"]) == json_encode(list(0, 0, 3, 1)), "Mask bounds pad the painted box by one pixel.")
 	TEST_ASSERT(custom_marking_partner(BODY_ZONE_L_ARM) == BODY_ZONE_PRECISE_L_HAND && custom_marking_partner(BODY_ZONE_PRECISE_R_HAND) == BODY_ZONE_R_ARM && !custom_marking_partner(BODY_ZONE_CHEST), "Arms and hands pair up; other regions have no partner.")
 
+/// A hand's drawing may paint the arm rows just above it, but on the canvas they're the arm's, so the arm runs its whole length.
 /datum/unit_test/custom_sprite_region_map_wrist/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	var/list/zones = custom_sprite_present_regions(human)
@@ -93,7 +94,7 @@
 					if(copytext(mask[direction][y], x, x + 1) != "1" || palm.GetPixel(x, 33 - y, "", text2num(direction)))
 						continue
 					wrist++
-					TEST_ASSERT(custom_sprite_region_owner(map[direction], zones, x - 1, y - 1) == hand, "[hand] must own its wrist band at [x],[y] in view [direction].")
+					TEST_ASSERT(custom_sprite_region_owner(map[direction], zones, x - 1, y - 1) == GLOB.custom_marking_hand_arms[hand], "[GLOB.custom_marking_hand_arms[hand]] must own [hand]'s wrist band at [x],[y] in view [direction].")
 		TEST_ASSERT(wrist, "The fixture needs [hand]'s wrist band.")
 
 /datum/unit_test/custom_sprite_region_colors/Run()

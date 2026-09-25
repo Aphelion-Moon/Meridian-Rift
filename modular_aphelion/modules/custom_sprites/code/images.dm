@@ -258,8 +258,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 /// Arm rows above a hand's top edge that hand paint may still cover.
 #define CUSTOM_SPRITE_HAND_ARM_ROWS 3
 
-/// A hand's own pixels plus a short band of the arm just above them, so hand paint can't climb the arm.
-/proc/custom_sprite_hand_silhouette(obj/item/bodypart/limb)
+/// A hand's own pixels plus, with `wrist`, a short band of the arm just above them, so hand paint can't climb the arm.
+/proc/custom_sprite_hand_silhouette(obj/item/bodypart/limb, wrist = TRUE)
 	var/icon/result = custom_sprite_blank_icon()
 	if(!limb.aux_zone)
 		return result
@@ -267,7 +267,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/icon/arm = custom_sprite_silhouette(limb)
 	for(var/direction in GLOB.cardinals)
 		var/icon/frame = icon(hand, dir = direction)
-		var/list/hand_bounds = custom_sprite_icon_bounds(hand, direction)
+		var/list/hand_bounds = wrist ? custom_sprite_icon_bounds(hand, direction) : null
 		if(hand_bounds)
 			var/icon/arm_frame = icon(arm, dir = direction)
 			// Editor rows count down from the top; icon rows count up from the bottom.
@@ -280,8 +280,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 
 #undef CUSTOM_SPRITE_HAND_ARM_ROWS
 
-/// Compose geometry in the canvas frame without stretching or changing the body's origin.
-/proc/custom_sprite_body_silhouette(mob/living/carbon/human/body, body_zone, width = 32)
+/// Compose geometry in the canvas frame without stretching or changing the body's origin. `wrist` gives a hand its wrist band.
+/proc/custom_sprite_body_silhouette(mob/living/carbon/human/body, body_zone, width = 32, wrist = TRUE)
 	var/icon/silhouette = custom_sprite_blank_icon(width)
 	var/offset_x = (width - 32) / 2
 	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
@@ -291,7 +291,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		if(limb.bodyshape & BODYSHAPE_TAUR || IS_STUMP(limb))
 			continue
 		if(limb_zone != body_zone)
-			silhouette.Blend(custom_sprite_hand_silhouette(limb), ICON_OVERLAY, offset_x + 1, 1)
+			silhouette.Blend(custom_sprite_hand_silhouette(limb, wrist), ICON_OVERLAY, offset_x + 1, 1)
 			continue
 		silhouette.Blend(custom_sprite_silhouette(limb), ICON_OVERLAY, offset_x + 1, 1)
 		if(limb.aux_zone)
@@ -315,11 +315,11 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 /proc/custom_sprite_body_draw_bounds(mob/living/carbon/human/body, body_zone, width = 32)
 	return custom_sprite_mask_bounds(custom_sprite_body_draw_mask(body, body_zone, width), width)
 
-/// Row strings keep the wire payload small and test the same silhouette used by rendering.
-/proc/custom_sprite_body_draw_mask(mob/living/carbon/human/body, body_zone, width = 32)
+/// Row strings keep the wire payload small and test the same silhouette used by rendering. `wrist` gives a hand its wrist band.
+/proc/custom_sprite_body_draw_mask(mob/living/carbon/human/body, body_zone, width = 32, wrist = TRUE)
 	// Bounded cache of directional limb silhouettes used by editing masks.
 	var/static/list/limb_masks = list()
-	var/list/geometry = list(width, body_zone)
+	var/list/geometry = list(width, body_zone, wrist)
 	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
 		if(limb.body_zone != limb_zone || limb.bodyshape & BODYSHAPE_TAUR || IS_STUMP(limb))
@@ -333,7 +333,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/key = json_encode(geometry)
 	if(limb_masks[key])
 		return limb_masks[key]
-	var/icon/silhouette = custom_sprite_body_silhouette(body, body_zone, width)
+	var/icon/silhouette = custom_sprite_body_silhouette(body, body_zone, width, wrist)
 	var/list/mask = list()
 	for(var/direction in GLOB.cardinals)
 		var/list/rows = list()
