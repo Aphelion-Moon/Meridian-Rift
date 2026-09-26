@@ -6,6 +6,7 @@ and timing use authored data. All others retain manual placement.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -17,6 +18,9 @@ MODULE = ROOT / "modular_aphelion/modules/cyborg_customization"
 FAMILIES = {"Drake": "drake", "Borgi": "borgi", "Otie": "otie", "Vale": "vale", "ValeDark": "vale", "Hound": "hound", "Darkhound": "hound", "Alina": "alina"}
 DIRECTIONS = ["south", "north", "east", "west", "southeast", "southwest", "northeast", "northwest"]
 SHA = "090a9cb13722af449567867c720826eb6af215a5"
+MANIFEST_FORMAT_VERSION = 1
+PROFILE_ID_DIGEST_LENGTH = 16
+ANCHOR_MARKER_RGBA = (51, 255, 255, 255)
 
 
 def read_dmi(path: Path):
@@ -38,6 +42,12 @@ def read_dmi(path: Path):
     return dict(image=image.convert("RGBA"), description=description, width=width, height=height, states=states)
 
 
+def load_cached_dmi(cache, key, path):
+    if key not in cache:
+        cache[key] = read_dmi(path)
+    return cache[key]
+
+
 def frame(sheet, state, frame_index, direction):
     index = state["offset"] + frame_index * state["dirs"] + direction
     columns = sheet["image"].width // sheet["width"]
@@ -50,8 +60,45 @@ def compatible(source, state, markers, marker):
 
 
 def marker_anchor(cell):
-    pixels = [(x + 1, cell.height - y) for y in range(cell.height) for x in range(cell.width) if cell.getpixel((x, y)) == (51, 255, 255, 255)]
+    # Image coordinates start at the top left; DM anchors are one-based from the bottom left.
+    pixels = [(x + 1, cell.height - y) for y in range(cell.height) for x in range(cell.width) if cell.getpixel((x, y)) == ANCHOR_MARKER_RGBA]
     return pixels[0] if len(pixels) == 1 else None
+
+
+def canonical_profile(profile):
+    return json.dumps(profile, sort_keys=True, separators=(",", ":"))
+
+
+def profile_digest(canonical_json):
+    return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
+
+
+def deduplicate_profiles(model_profiles):
+    canonical_profiles = {}
+    for model_key in sorted(model_profiles):
+        profile = model_profiles[model_key]
+        canonical_profiles.setdefault(canonical_profile(profile), profile)
+
+    # The short digest selects a bucket; canonical full-profile JSON handles collisions.
+    profiles_by_prefix = {}
+    for canonical_json in sorted(canonical_profiles):
+        digest_prefix = profile_digest(canonical_json)[:PROFILE_ID_DIGEST_LENGTH]
+        profiles_by_prefix.setdefault(digest_prefix, []).append(canonical_json)
+
+    ids_by_canonical_json = {}
+    profiles = {}
+    for digest_prefix, colliding_profiles in sorted(profiles_by_prefix.items()):
+        for profile_index, canonical_json in enumerate(colliding_profiles):
+            collision_suffix = "" if profile_index == 0 else f"-{profile_index + 1}"
+            profile_id = f"profile-{digest_prefix}{collision_suffix}"
+            ids_by_canonical_json[canonical_json] = profile_id
+            profiles[profile_id] = canonical_profiles[canonical_json]
+
+    model_references = {
+        model_key: ids_by_canonical_json[canonical_profile(profile)]
+        for model_key, profile in sorted(model_profiles.items())
+    }
+    return model_references, profiles
 
 
 def format_frame_sequence(frames):
@@ -74,15 +121,20 @@ def format_animation_profile(profile):
 def format_animation_manifest(manifest):
     lines = [
         "{",
+        f'  "format_version": {manifest["format_version"]},',
         f'  "source_sha": {json.dumps(manifest["source_sha"])},',
         '  "models": {',
     ]
-    for model_index, (model_key, profile) in enumerate(manifest["models"].items()):
+    for model_index, (model_key, profile_id) in enumerate(manifest["models"].items()):
         model_comma = "," if model_index + 1 < len(manifest["models"]) else ""
+        lines.append(f'    {json.dumps(model_key)}: {json.dumps(profile_id)}{model_comma}')
+    lines.extend(["  },", '  "profiles": {'])
+    for profile_index, (profile_id, profile) in enumerate(manifest["profiles"].items()):
+        profile_comma = "," if profile_index + 1 < len(manifest["profiles"]) else ""
         profile_lines = format_animation_profile(profile)
-        lines.append(f'    {json.dumps(model_key)}: {profile_lines[0]}')
+        lines.append(f'    {json.dumps(profile_id)}: {profile_lines[0]}')
         lines.extend(f'    {line}' for line in profile_lines[1:-1])
-        lines.append(f'    {profile_lines[-1]}{model_comma}')
+        lines.append(f'    {profile_lines[-1]}{profile_comma}')
     lines.append("  },")
     fallbacks = json.dumps(manifest["fallbacks"], indent=2).replace("\n", "\n  ")
     lines.append(f'  "fallbacks": {fallbacks}')
@@ -103,9 +155,9 @@ def build():
         if not family:
             continue
         source_path = icons[macro]
-        source = inputs.setdefault(source_path, read_dmi(ROOT / source_path))
-        markers = inputs.setdefault(f"marker:{family}", read_dmi(MODULE / f"icons/animation_markers/{family}.dmi"))
-        masks = inputs.setdefault(f"mask:{family}", read_dmi(MODULE / f"icons/occlusion_masks/{family}mask.dmi"))
+        source = load_cached_dmi(inputs, source_path, ROOT / source_path)
+        markers = load_cached_dmi(inputs, f"marker:{family}", MODULE / f"icons/animation_markers/{family}.dmi")
+        masks = load_cached_dmi(inputs, f"mask:{family}", MODULE / f"icons/occlusion_masks/{family}mask.dmi")
         marker_base = markers["states"][0]["name"]
         mask_base = masks["states"][0]["name"]
         model = {}
@@ -138,7 +190,9 @@ def build():
                 manifest["fallbacks"].append(f"{source_path}#{state['name']}:{state['movement']}: no unique cyan anchor")
                 continue
             model[key] = directions
-            output = outputs.setdefault(source_path, Image.new("RGBA", source["image"].size))
+            if source_path not in outputs:
+                outputs[source_path] = Image.new("RGBA", source["image"].size)
+            output = outputs[source_path]
             for d in range(state["dirs"]):
                 for f in range(state["frames"]):
                     body, xy = frame(source, state, f, d)
@@ -147,6 +201,20 @@ def build():
                     output.paste(body, xy)
         if model:
             manifest["models"][source_path + "#" + base_state] = model
+    model_references, profiles = deduplicate_profiles(manifest["models"])
+    manifest = {
+        "format_version": MANIFEST_FORMAT_VERSION,
+        "source_sha": manifest["source_sha"],
+        "models": model_references,
+        "profiles": profiles,
+        "fallbacks": sorted(manifest["fallbacks"]),
+    }
+    if any(profile_id not in profiles for profile_id in model_references.values()):
+        raise ValueError("Generated cyborg animation manifest contains a dangling profile reference")
+    rendered_manifest = format_animation_manifest(manifest)
+    if json.loads(rendered_manifest) != manifest:
+        raise ValueError("Generated cyborg animation manifest did not round-trip through JSON")
+
     target = MODULE / "icons/occlusion_generated"
     target.mkdir(parents=True, exist_ok=True)
     resource_lines = ["// Generated by tools/cyborg_customization/build_assets.py; do not edit.", "/proc/cyborg_occlusion_resources()", "\tvar/static/list/resources = list("]
@@ -158,7 +226,7 @@ def build():
         resource_lines.append(f'\t\t"{path}" = \'modular_aphelion/modules/cyborg_customization/icons/occlusion_generated/{filename}\',')
     resource_lines.extend(["\t)", "\treturn resources", ""])
     (MODULE / "code/asset_resources.dm").write_text("\n".join(resource_lines), encoding="utf-8")
-    (MODULE / "animation_manifest.json").write_text(format_animation_manifest(manifest), encoding="utf-8")
+    (MODULE / "animation_manifest.json").write_text(rendered_manifest, encoding="utf-8")
     print(f"{len(manifest['models'])} models with authored data; {len(manifest['fallbacks'])} pose/movement fallbacks; {len(outputs)} generated sheets")
 
 

@@ -4,7 +4,11 @@
 	if(isnull(manifest))
 		manifest = json_decode(file2text('modular_aphelion/modules/cyborg_customization/animation_manifest.json'))
 	var/list/models = manifest["models"]
-	var/list/model = models["[descriptor["icon"]]#[descriptor["icon_state"]]"]
+	var/profile_id = models["[descriptor["icon"]]#[descriptor["icon_state"]]"]
+	if(isnull(profile_id))
+		return null
+	var/list/profiles = manifest["profiles"]
+	var/list/model = profiles[profile_id]
 	var/list/state = model?["[pose]:[moving ? 1 : 0]"]
 	return state?[LOWER_TEXT(dir2text(cyborg_cardinal_direction(direction)))]
 

@@ -2,10 +2,19 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image, PngImagePlugin
 
-from build_assets import compatible, format_animation_manifest, frame, marker_anchor, read_dmi
+from build_assets import (
+    compatible,
+    deduplicate_profiles,
+    format_animation_manifest,
+    frame,
+    load_cached_dmi,
+    marker_anchor,
+    read_dmi,
+)
 
 
 class AssetContracts(unittest.TestCase):
@@ -32,11 +41,65 @@ class AssetContracts(unittest.TestCase):
         cell.putpixel((0, 0), (51, 255, 255, 255))
         self.assertIsNone(marker_anchor(cell))
 
+    def test_cached_dmi_loader_reads_only_on_cache_miss(self):
+        cache = {}
+        path = Path("fixture.dmi")
+
+        with patch("build_assets.read_dmi", return_value=object()) as read_dmi:
+            first = load_cached_dmi(cache, "fixture", path)
+            second = load_cached_dmi(cache, "fixture", path)
+
+        self.assertIs(first, second)
+        read_dmi.assert_called_once_with(path)
+
+    def test_profile_dedup_uses_the_full_table_and_resolves_digest_collisions(self):
+        base_frames = [
+            {"x": 0.0, "y": -22, "delay": 1.0},
+            {"x": 1.0, "y": -21, "delay": 2.0},
+        ]
+        base = {"idle:0": {"south": base_frames}}
+
+        def changed_frames(**changes):
+            frames = [dict(frame) for frame in base_frames]
+            frames[0].update(changes)
+            return frames
+
+        alternatives = {
+            "pose": {"sit:0": {"south": [dict(frame) for frame in base_frames]}},
+            "movement": {"idle:1": {"south": [dict(frame) for frame in base_frames]}},
+            "direction": {"idle:0": {"north": [dict(frame) for frame in base_frames]}},
+            "frame_order": {"idle:0": {"south": list(reversed(base_frames))}},
+            "x": {"idle:0": {"south": changed_frames(x=2.0)}},
+            "y": {"idle:0": {"south": changed_frames(y=-20)}},
+            "delay": {"idle:0": {"south": changed_frames(delay=3.0)}},
+        }
+        model_profiles = {
+            "base": base,
+            "same": {"idle:0": {"south": [dict(frame) for frame in base_frames]}},
+            **alternatives,
+        }
+
+        with patch("build_assets.profile_digest", return_value="a" * 64):
+            references, profiles = deduplicate_profiles(model_profiles)
+            reordered_references, reordered_profiles = deduplicate_profiles(
+                dict(reversed(list(model_profiles.items()))),
+            )
+
+        self.assertEqual(references, reordered_references)
+        self.assertEqual(profiles, reordered_profiles)
+        self.assertEqual(references["base"], references["same"])
+        self.assertEqual(len(profiles), len(alternatives) + 1)
+        for model_key in alternatives:
+            self.assertNotEqual(references["base"], references[model_key])
+
     def test_manifest_formatter_keeps_data_and_compacts_frames(self):
+        profile_id = "profile-0123456789abcdef"
         manifest = {
+            "format_version": 1,
             "source_sha": "fixture",
-            "models": {
-                "fixture.dmi#borgi": {
+            "models": {"fixture.dmi#borgi": profile_id},
+            "profiles": {
+                profile_id: {
                     "idle:0": {
                         "south": [
                             {"x": 0.0, "y": -22, "delay": 1.0},
