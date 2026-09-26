@@ -1,5 +1,6 @@
 #define CUSTOM_STYLE_MAX_PREFERENCES_BYTES (8 * 1024 * 1024)
 
+/// The key a style is stored under: the target, or `markings:zone`.
 /proc/custom_style_key(target, zone)
 	return zone ? "[target]:[zone]" : target
 
@@ -48,6 +49,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	),
 ))
 
+/// A colour as the preference writer stores it, black when invalid.
 /proc/custom_style_normal_color(color)
 	return sanitize_hexcolor(color, 6, TRUE, "#000000")
 
@@ -55,6 +57,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 /proc/custom_style_normal_opacity(opacity)
 	return isnum(opacity) && opacity >= /datum/preference/numeric/hair_opacity::minimum && opacity <= /datum/preference/numeric/hair_opacity::maximum ? round(opacity) : null
 
+/// This character's saved base look for a head target.
 /datum/preferences/proc/custom_style_hair_context(target = "hair")
 	var/list/fields = GLOB.custom_style_hair_preferences[target]
 	var/opacity
@@ -71,6 +74,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		"emissive" = emissive,
 	)
 
+/// A body's live base look for a head target, read from its head when it has one.
 /proc/custom_style_live_hair_context(mob/living/carbon/human/body, target = "hair")
 	var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
 	var/gradient_key = custom_style_gradient_key(target)
@@ -124,11 +128,13 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	var/list/markings = target == "markings" && (zone in GLOB.body_markings_per_limb) ? custom_style_marking_entries(body_markings?[zone]) : null
 	return custom_style_package(target, zone, drawing, custom_style_hair_target(target) ? custom_style_hair_context(target) : null, markings)
 
+/// A copy of the previous saved style for a target, or null.
 /datum/preferences/proc/custom_style_previous_package(target, zone)
 	load_custom_sprites()
 	var/list/package = custom_style_previous?[custom_style_key(target, zone)]
 	return custom_style_copy_package(package)
 
+/// Replaces the loaded slot's drawing for a target in memory.
 /datum/preferences/proc/set_custom_style_drawing(target, zone, list/drawing)
 	if(target == "facial_hair")
 		custom_facial_hair = drawing
@@ -354,6 +360,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		slot_data[preference.savefile_key] = preference.serialize(value)
 	return slot_data
 
+/// A file's text, or null when it's missing or larger than `max_bytes`.
 /proc/custom_style_read_file(file_path, max_bytes = CUSTOM_STYLE_MAX_PREFERENCES_BYTES)
 	if(!fexists(file_path) || length(file(file_path)) > max_bytes)
 		return null

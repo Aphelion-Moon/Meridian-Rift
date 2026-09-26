@@ -36,6 +36,7 @@
 /datum/preference_middleware/custom_sprites/on_new_character(mob/user)
 	preferences.load_custom_sprites()
 
+/// Character setup's action: opens (or focuses) the editor for a target, after the config and ownership checks.
 /datum/preference_middleware/custom_sprites/proc/open_editor(list/params, mob/user)
 	if(CONFIG_GET(flag/disallow_custom_sprite_editing) || user?.client != preferences.parent)
 		return FALSE
@@ -126,6 +127,8 @@
 	var/draft_revision = 0
 	/// An import or restoration waiting for the owner to confirm its preview.
 	var/list/candidate
+	/// Candidate key -> its four previews, kept while the resources they were drawn on last. Restoring the same style twice draws nothing.
+	var/list/candidate_cache = list()
 	/// Safe import or export failure message for the owner.
 	var/transfer_error
 	/// Import or export completion message for the owner.
@@ -152,8 +155,8 @@
 	var/list/cover_rows = list()
 	/// What cover_looks were built from, so their rows come from the shared cache.
 	var/cover_key
-	/// Hair guide shifts, applied in order: south by the hairstyle offset, then west and south by the species offset.
-	var/list/guide_shift
+	/// Where the hair guide's window sits, list(x, z) pixels from the tile: where custom hair paint is drawn, lifted with its hairstyle.
+	var/list/guide_lift
 	/// Direction -> TRUE for views whose guide predates the last rebuild.
 	var/list/stale_guides = list()
 	/// The previewed look for preview_hash, flattened one view at a time.
@@ -185,6 +188,7 @@
 /datum/custom_sprite_editor/Destroy()
 	SStgui.close_uis(src)
 	QDEL_NULL(workspace)
+	drop_pending_body()
 	QDEL_NULL(preview_body)
 	preferences = null
 	draft = null
@@ -237,7 +241,7 @@
 		workspace.draw_bounds[direction] = allowed?.Copy()
 		changed = TRUE
 	if(changed && push)
-		SStgui.update_uis(src)
+		push()
 	return changed
 
 /// Context hook: the window's title. BYOND shows it until the interface draws its own, so the two match.
@@ -270,7 +274,6 @@
 /datum/custom_sprite_editor/proc/can_hide_parts()
 	return !custom_style_hair_target(target)
 
-
 /// Context hook: whether underwear can be left out of guides and previews.
 /datum/custom_sprite_editor/proc/can_hide_underwear()
 	return target == "markings"
@@ -295,6 +298,7 @@
 		preview_body.update_body_parts()
 	return hidden
 
+/// Context hook: worn overlays to add to guides and previews. Character setup adds none.
 /datum/custom_sprite_editor/proc/render_overlays()
 	return null
 
@@ -371,6 +375,8 @@
 	resources_hair = json_encode(workspace.hair_context)
 	resources_markings = json_encode(workspace.markings_context)
 	static_dirty = TRUE
+	// Candidate previews show the rebuilt look, such as the recipient's clothing, so none drawn before it are kept.
+	candidate_cache = list()
 	if(!preview_body)
 		release_resources()
 		resources_ready = FALSE
@@ -466,6 +472,7 @@
 	cover_rows = list()
 	stale_guides = list()
 	stale_previews = list()
+	candidate_cache = list()
 
 /// Captures the guide's look from the prepared preview body and draws the visible view. Other views are drawn when shown.
 /datum/custom_sprite_editor/proc/capture_guide()
@@ -473,24 +480,17 @@
 	var/list/worn = render_overlays()
 	if(length(worn))
 		guide_appearance.overlays += worn
-	guide_shift = null
-	if(target == "hair")
-		var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[preview_body.hairstyle]
-		guide_shift = list(hairstyle?.y_offset || 0)
-		if(LAZYFIND(preview_body.dna.species.offset_features, OFFSET_HAIR))
-			guide_shift += list(preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_W], preview_body.dna.species.offset_features[OFFSET_HAIR][INDEX_Z])
+	// Custom hair paint is drawn where its hairstyle is, so the hair guide shows the body from there. Facial hair isn't lifted.
+	guide_lift = target == "hair" ? custom_sprite_hair_lift(preview_body) : null
 	render_guide(visible_direction)
 
 /// Draws one view of the guide the last rebuild captured. Guides are static data, so the window needs a full update afterwards.
 /datum/custom_sprite_editor/proc/render_guide(direction)
 	if(!guide_appearance)
 		return FALSE
-	var/icon/guide = custom_sprite_flat_icon(guide_appearance, text2num(direction), workspace.width, workspace.height)
-	if(guide_shift)
-		guide.Shift(SOUTH, guide_shift[1])
-		if(length(guide_shift) > 1)
-			guide.Shift(WEST, guide_shift[2])
-			guide.Shift(SOUTH, guide_shift[3])
+	var/list/lift = guide_lift || list(0, 0)
+	// Flattened in its own window, so a hairstyle reaching above the tile shows whole.
+	var/icon/guide = custom_sprite_flat_icon(guide_appearance, text2num(direction), workspace.width, workspace.height, lift[1], lift[2])
 	guide_icons[direction] = guide
 	guide_urls[direction] = publish_icon(guide)
 	if(cover_looks)
@@ -530,11 +530,12 @@
 	if(!length(colors))
 		return shades
 	var/list/palette = colors.Copy()
+	var/list/color_rgbs = list()
+	for(var/color in colors)
+		color_rgbs += list(rgb2num(color))
 	for(var/shade in shades)
-		var/list/shade_rgb = rgb2num(shade)
-		for(var/color in colors)
-			var/list/color_rgb = rgb2num(color)
-			palette |= rgb(shade_rgb[1] * color_rgb[1] / 255, shade_rgb[2] * color_rgb[2] / 255, shade_rgb[3] * color_rgb[3] / 255)
+		for(var/list/color_rgb as anything in color_rgbs)
+			palette |= custom_sprite_shade(shade, color_rgb)
 			if(length(palette) >= 15)
 				return palette
 	return palette
@@ -551,10 +552,12 @@
 			return custom_sprite_sample_palette(marking.icon, "[marking.icon_state]_[digi][limb.body_zone][gender_suffix]")
 	return custom_sprite_sample_palette(null, null)
 
+/// A rendered icon as the data URL the window shows.
 /datum/custom_sprite_editor/proc/publish_icon(icon/rendered)
 	// Small, private previews live with this editor, without global asset/CDN registrations.
 	return "data:image/png;base64,[icon2base64(rendered)]"
 
+/// Whether this user may act on this editor right now: its owner, on the slot it opened for, with editing enabled.
 /datum/custom_sprite_editor/proc/can_edit(mob/user)
 	return !closing && preferences && user?.client == preferences.parent && slot == preferences.default_slot && !CONFIG_GET(flag/disallow_custom_sprite_editing)
 
@@ -572,10 +575,14 @@
 /// Sends static data a partial update found changed. Runs a tick later, so the payload being built isn't re-entered.
 /datum/custom_sprite_editor/proc/push_static_data()
 	if(static_dirty)
-		SStgui.update_uis(src)
+		push()
 
 /datum/custom_sprite_editor/ui_interact(mob/user, datum/tgui/ui)
 	if(!can_edit(user))
+		return
+	// While strokes wait, an existing window's refresh waits for the drain; only a first open goes ahead.
+	if(length(stroke_queue) && SStgui.get_open_ui(user, src))
+		push_after_drain = TRUE
 		return
 	// tgui's own refreshes pass their window; only an explicit open brings it forward.
 	var/opening = isnull(ui)
@@ -632,9 +639,9 @@
 	// Paint/history admission must not add swatches; only style shades and explicit guide picks do.
 	editor_data["serverPalette"] = (sampled_palette | guide_palette) & workspace.palette
 	editor_data["serverSelectedColor"] = selected_color
-	var/list/data = list("editorData" = editor_data, "context" = context, "customTint" = custom_tint, "displayTint" = custom_palette_tint(), "colorMode" = color_mode, "emissive" = workspace.emissive, "emissiveAllowed" = emissives_allowed(), "saveRevision" = save_revision, "saveError" = save_error, "customPalette" = custom_palette, "availableColors" = workspace.palette, "maxCustomColors" = CUSTOM_SPRITE_MAX_CUSTOM_COLORS, "previews" = preview_urls, "edited" = workspace.edited_directions, "drawBounds" = workspace.draw_bounds, "resourcesReady" = resources_ready, "transferError" = transfer_error, "transferNotice" = transfer_notice, "visibleView" = visible_direction)
+	var/list/data = list("editorData" = editor_data, "context" = context, "customTint" = custom_tint, "displayTint" = custom_palette_tint(), "colorMode" = color_mode, "emissive" = workspace.emissive, "emissiveAllowed" = emissives_allowed(), "saveRevision" = save_revision, "saveError" = save_error, "customPalette" = custom_palette, "availableColors" = workspace.palette, "maxCustomColors" = CUSTOM_SPRITE_MAX_CUSTOM_COLORS, "previews" = preview_urls, "edited" = workspace.edited_directions, "drawBounds" = workspace.draw_bounds, "resourcesReady" = resources_ready, "transferError" = transfer_error, "transferNotice" = transfer_notice, "visibleView" = visible_direction, "strokeNotice" = stroke_notice)
 	if(custom_style_hair_target(target))
-		data["hairStyle"] = workspace.hair_context?["style"]
+		data["hairStyle"] = pending_hairstyle || workspace.hair_context?["style"]
 		data["hairColor"] = workspace.hair_context?["color"]
 		data["canChangeHair"] = can_change_hair()
 		data["hasGradient"] = workspace.hair_context?["gradient_style"] && workspace.hair_context["gradient_style"] != SPRITE_ACCESSORY_NONE
@@ -652,8 +659,15 @@
 	. = ..()
 	if(. || !can_edit(ui.user))
 		return
+	// Strokes over the budget go in first, in order. Until they have, the window can only send more strokes and switch views: anything else is ignored, and the drain's update shows where things stand.
+	if(length(stroke_queue) && action != "setView" && !(action == "spriteEditorCommand" && params["command"] == "transaction"))
+		push_after_drain = TRUE
+		return FALSE
 	// A mirror can be picked up or dropped while this window is open.
 	sync_locked_views(push = FALSE)
+	// Everything else the window does comes after the hairstyle picked last.
+	if(action != "setHairStyle")
+		apply_pending_hairstyle()
 	if(act_blocked(action))
 		return TRUE
 	var/handled = editor_act(action, params, ui)
@@ -665,6 +679,11 @@
 			if(!(direction in GLOB.custom_style_directions) || direction == visible_direction)
 				return FALSE
 			visible_direction = direction
+			// Heard while strokes wait, but the window hears back from the drain's update, which carries them.
+			if(length(stroke_queue))
+				request_view()
+				push_after_drain = TRUE
+				return FALSE
 			return request_view()
 		if("selectColor")
 			if(!workspace.is_valid_color(params["color"]))
@@ -702,12 +721,9 @@
 			request_rebuild()
 			return TRUE
 		if("setHairStyle")
-			var/list/hair = workspace.hair_context?.Copy()
-			if(!can_change_hair() || !hair || !istext(params["style"]) || params["style"] == hair["style"])
+			if(!can_change_hair() || !workspace.hair_context || !istext(params["style"]))
 				return FALSE
-			hair["style"] = params["style"]
-			apply_hair_context(hair, "Change hairstyle")
-			return TRUE
+			return request_hairstyle(params["style"])
 		if("pickHairColor")
 			var/list/hair = workspace.hair_context?.Copy()
 			if(!can_change_hair() || !hair)
@@ -752,9 +768,7 @@
 		if("spriteEditorCommand")
 			switch(params["command"])
 				if("transaction")
-					// A refused stroke still resends the canvas, so the window drops what it drew ahead of the server.
-					if(!workspace.new_transaction(params["transaction"]))
-						return TRUE
+					return take_stroke(params["transaction"])
 				if("undo")
 					var/history_length = length(workspace.undo_stack)
 					workspace.undo(custom_sprite_history_jump(params["count"]))
@@ -862,6 +876,7 @@
 		return custom_sprite_color(preview_body?.dna.features[FEATURE_MUTANT_COLOR])
 	return null
 
+/// The account's Custom swatches after the current blending mode.
 /datum/custom_sprite_editor/proc/transformed_custom_palette()
 	var/list/colors = list()
 	var/tint = custom_palette_tint()
@@ -971,6 +986,7 @@
 	transfer_notice = workspace.height > 32 ? "The canvas grew to fit this hairstyle. Undo history starts over." : "The canvas shrank back to the normal size. Undo history starts over."
 	return TRUE
 
+/// Rebuilds the paintable palette from the draft, the sampled shades and the Custom swatches, keeping the brush valid.
 /datum/custom_sprite_editor/proc/refresh_custom_palette()
 	var/list/available = sampled_palette | transformed_custom_palette()
 	// An unpainted guide brush is still active even though no drawing/history pixel uses it yet, so it goes first.
@@ -997,7 +1013,7 @@
 	for(var/datum/custom_sprite_editor/editor as anything in preferences.custom_sprite_open_editors())
 		// A full drawing keeps its admitted colors; other saved swatches remain visible but disabled.
 		editor.refresh_custom_palette()
-		SStgui.update_uis(editor)
+		editor.push()
 	return TRUE
 
 /**
@@ -1051,13 +1067,14 @@
 /datum/custom_sprite_editor/proc/adopt_preview(mutable_appearance/look, hash, push)
 	preview_appearance = look
 	preview_width = custom_sprite_preview_width(preview_body)
-	preview_height = workspace.height
+	// Pictures reach up as far as the hair does, lifted hairstyles such as Afro (Huge) included.
+	preview_height = max(workspace.height, custom_sprite_preview_height(preview_body))
 	preview_hash = hash
 	for(var/direction in GLOB.custom_style_directions)
 		stale_previews[direction] = TRUE
 	render_preview(visible_direction)
 	if(push)
-		SStgui.update_uis(src)
+		push()
 
 /**
  * Puts a drawing on the preview body and captures how it looks, for flattening one view at a time.
@@ -1077,29 +1094,37 @@
 
 /// All four views' data URLs of the preview body wearing a drawing, for import and restore previews.
 /datum/custom_sprite_editor/proc/render_previews(list/drawing, list/hair)
-	return custom_sprite_render_views(capture_preview(drawing, hair), custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_icon)), workspace.height)
+	var/mutable_appearance/look = capture_preview(drawing, hair)
+	// As tall as the candidate's own hair reaches, which may be a lifted hairstyle this draft doesn't wear.
+	var/height = max(workspace.height, custom_sprite_preview_height(preview_body, target == "hair" ? hair?["style"] : null))
+	return custom_sprite_render_views(look, custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_icon)), height)
 
 /// Closing keeps the unsaved draft and its history; only saving writes. Preview resources are rebuilt on reopening.
 /datum/custom_sprite_editor/ui_close(mob/user)
+	// The draft outlives the window, with the hairstyle picked last.
+	apply_pending_hairstyle()
 	if(preview_timer)
 		deltimer(preview_timer)
 		preview_timer = null
-	pending_work = NONE
+	keep_only_strokes()
 	candidate = null
 	QDEL_NULL(preview_body)
+	drop_pending_body()
 	release_resources()
 	resources_ready = FALSE
 	// The window opens on the Front view again.
 	visible_direction = "2"
 
+/// The draft as a style package.
 /datum/custom_sprite_editor/proc/current_package()
 	return custom_style_package(target, null, workspace.serialize_drawing(), workspace.hair_context)
 
+/// Saves the draft to the character. Returns FALSE with `save_error` set when it couldn't.
 /datum/custom_sprite_editor/proc/save_drawing()
 	var/error = preferences.commit_custom_style(current_package(), slot, length(workspace.unsaved_rotations()) > 0)
 	if(error)
 		save_error = "[error] Your drawing is kept in this session. Press Ctrl+S to retry."
-		SStgui.update_uis(src)
+		push()
 		return FALSE
 	workspace.mark_saved()
 	update_restorable()
@@ -1107,9 +1132,22 @@
 	save_revision++
 	return TRUE
 
+/// Closes the editor, saving first when asked; a failed save keeps it open.
 /datum/custom_sprite_editor/proc/finish(save_changes = TRUE)
 	if(closing)
 		return
+	if(save_changes)
+		apply_pending_hairstyle()
+		if(length(stroke_queue))
+			// Preferences going away can't wait for the background: the strokes go in now, so the save has them.
+			if(preferences && QDELING(preferences))
+				while(length(stroke_queue))
+					drain_strokes()
+			else
+				// Saving now would leave them out, so the editor stays open as it does when a save fails.
+				save_error = "Your last strokes are still going in. Save again in a moment."
+				push()
+				return
 	if(save_changes && preferences && preferences.default_slot == slot && !save_drawing())
 		return
 	closing = TRUE
@@ -1163,17 +1201,12 @@
 		return hair_problem
 	if(custom_style_has_emission(package["drawing"]) && !emissives_allowed())
 		return "This style glows, but emissive appearance is disabled for this character."
-	var/list/drawing = package["drawing"]
-	if(drawing && custom_sprite_width(drawing) > workspace.width)
-		return "This style needs the wider taur canvas."
-	if(drawing && custom_sprite_height(drawing) > workspace.height)
+	// Hair packages are never wide (the codec refuses them), and paint resized to this canvas can't lie outside it.
+	if(custom_sprite_height(package["drawing"]) > workspace.height)
 		return "This style needs the tall hair canvas. Choose [CUSTOM_SPRITE_TALL_HAIRSTYLE] as the base hair first."
-	drawing = custom_sprite_resize_drawing(drawing, workspace.width, workspace.height)
-	var/outside = custom_style_paint_outside(drawing, custom_sprite_canvas_bounds(workspace.width, workspace.height), null)
-	if(outside)
-		return "The [outside] view has paint outside the area this hairstyle allows."
 	return null
 
+/// Records an import or restoration for confirmation. Its previews are drawn in the background, or taken from the cache.
 /datum/custom_sprite_editor/proc/show_candidate(list/package, source)
 	var/problem = candidate_problem(package)
 	if(problem)
@@ -1184,11 +1217,28 @@
 	package["drawing"] = custom_sprite_resize_drawing(package["drawing"], workspace.width, workspace.height)
 	var/list/hair = package["hair"]
 	var/summary = hair ? "[hair["style"]], [hair["color"]]" : null
-	candidate = list("package" = custom_style_copy_package(package), "source" = source, "revision" = draft_revision, "summary" = summary, "previews" = render_previews(package["drawing"], hair))
+	candidate = list("package" = custom_style_copy_package(package), "source" = source, "revision" = draft_revision, "summary" = summary, "previews" = null)
+	candidate["previews"] = candidate_cache[candidate_key()]
+	if(isnull(candidate["previews"]))
+		request_candidate()
+	return TRUE
+
+/// What a candidate's previews depend on: its drawing and base look, and the body they're drawn on.
+/datum/custom_sprite_editor/proc/candidate_key()
+	var/list/package = candidate["package"]
+	return json_encode(list(custom_sprite_hash(package["drawing"]), package["hair"], REF(preview_body), resources_hair, hide_underwear, show_gradient))
+
+/// Context hook: draws the waiting candidate's previews and caches them. The body then shows the draft again.
+/datum/custom_sprite_editor/proc/render_candidate()
+	var/list/package = candidate["package"]
+	var/key = candidate_key()
+	candidate["previews"] = render_previews(package["drawing"], package["hair"])
+	if(length(candidate_cache) >= 8)
+		candidate_cache.Cut(1, 2)
+	candidate_cache[key] = candidate["previews"]
 	// The body now shows the candidate; the next refresh restores the draft.
 	preview_hash = null
 	refresh_preview(push = FALSE)
-	return TRUE
 
 /// Replaces the draft with the confirmed candidate as one undoable action. A canvas that has to change size for it starts its history over.
 /datum/custom_sprite_editor/proc/apply_candidate()

@@ -58,7 +58,7 @@
 		return TRUE
 	render_preview(visible_direction)
 	if(push)
-		SStgui.update_uis(src)
+		push()
 	return TRUE
 
 /// Composed previews come from the slices and the canvas; otherwise the painted body is flattened.

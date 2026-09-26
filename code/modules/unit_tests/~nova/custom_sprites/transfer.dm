@@ -253,6 +253,16 @@
 	custom_style_transfer_end(test_key)
 	GLOB.custom_style_transfers -= test_key
 
+/// `count` spaces, the same text as repeat_string(count, " ") but built by doubling: appending one character at a time makes a 160 KiB file take most of a minute.
+/proc/custom_style_test_spaces(count)
+	. = ""
+	var/chunk = " "
+	while(count)
+		if(count & 1)
+			. += chunk
+		count >>= 1
+		chunk += chunk
+
 /datum/unit_test/custom_style_body_transfer/Run()
 	// Exports always carry per-view emission, so the fixture does too for an exact round trip.
 	var/list/drawing = custom_sprite_test_drawing()
@@ -275,7 +285,7 @@
 	envelope = json_decode(text)
 	envelope["regions"] = list()
 	TEST_ASSERT(custom_style_parse(json_encode(envelope))["error"], "A whole-body file needs at least one region.")
-	var/padding = repeat_string(CUSTOM_STYLE_MAX_BYTES, " ")
+	var/padding = custom_style_test_spaces(CUSTOM_STYLE_MAX_BYTES)
 	var/list/single = json_decode(custom_style_export_text(regions[BODY_ZONE_L_ARM]))
 	TEST_ASSERT(findtext(custom_style_parse("[json_encode(single)][padding]")["error"], "16 KiB"), "Single-region files keep their 16 KiB cap.")
-	TEST_ASSERT(findtext(custom_style_parse(repeat_string(CUSTOM_STYLE_MAX_BODY_BYTES + 1, " "))["error"], "160 KiB"), "Every file keeps the 160 KiB cap.")
+	TEST_ASSERT(findtext(custom_style_parse(custom_style_test_spaces(CUSTOM_STYLE_MAX_BODY_BYTES + 1))["error"], "160 KiB"), "Every file keeps the 160 KiB cap.")

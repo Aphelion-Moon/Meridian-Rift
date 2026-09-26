@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { useAtom, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import { useBackend } from 'tgui/backend';
@@ -27,7 +27,12 @@ import {
   selectionMaskAtom,
   tools,
 } from '../SpriteEditor/atoms';
-import { SelectionTools, settleSelection } from '../SpriteEditor/selection';
+import {
+  MIRROR_SELECTION_KEY,
+  ROTATE_SELECTION_KEY,
+  SelectionTools,
+  settleSelection,
+} from '../SpriteEditor/selection';
 import { Dir } from '../SpriteEditor/Types/types';
 import {
   toolHotkeys,
@@ -121,6 +126,32 @@ const MARKINGS_WINDOW = [1100, 920] as const;
 /** Wide enough that base marking names aren't cut short beside their buttons. */
 const MARKINGS_PANEL_WIDTH = '26rem';
 
+/** A small colour sample beside a button's label. */
+const ColorChip = ({ color, ml }: { color: string; ml?: number }) => (
+  <Box inline ml={ml} width="1rem" height="0.8rem" backgroundColor={color} />
+);
+
+/** One of the mutually exclusive blending modes: on when current, back to literal colours when pressed again. */
+const BlendToggle = (props: {
+  mode: 'hair' | 'mutant' | 'tint';
+  current: string;
+  label: string;
+  act: ReturnType<typeof useBackend>['act'];
+}) => (
+  <Button.Checkbox
+    fluid
+    checked={props.current === props.mode}
+    tooltip={blendingTooltip}
+    onClick={() =>
+      props.act('setColorMode', {
+        mode: props.current === props.mode ? 'literal' : props.mode,
+      })
+    }
+  >
+    {props.label}
+  </Button.Checkbox>
+);
+
 export const CustomSpriteEditor = ({
   target,
 }: {
@@ -175,6 +206,7 @@ export const CustomSpriteEditor = ({
     regionEmissive,
     lockedRegions,
     paletteNotice,
+    strokeNotice,
     backgrounds,
     defaultBackground,
     visibleView,
@@ -188,6 +220,7 @@ export const CustomSpriteEditor = ({
   const [direction, setDirection] = useAtom(dirAtom);
   const setLayer = useSetAtom(layerAtom);
   const setCurrentTool = useSetAtom(currentToolAtom);
+  const selecting = useAtomValue(currentToolAtom).name === 'Select';
   const setPreviewData = useSetAtom(previewDataAtom);
   const setPreviewLayer = useSetAtom(previewLayerAtom);
   const setSelectionBounds = useSetAtom(selectionBoundsAtom);
@@ -214,8 +247,10 @@ export const CustomSpriteEditor = ({
         ? tile.tallUrl
         : tile.url
     : null;
+  // Pictures stand on the plain tile, which repeats upward as far as they reach.
+  const pictureTileUrl = tile ? (wide ? tile.wideUrl : tile.url) : null;
   const tileStyle = {
-    backgroundImage: `url(${tileUrl ?? transparency_checkerboard})`,
+    backgroundImage: `url(${pictureTileUrl ?? transparency_checkerboard})`,
   };
   const regionMode = target === 'markings' && !!regions;
   const zones = regionZones ?? [];
@@ -246,6 +281,11 @@ export const CustomSpriteEditor = ({
   const regionChoices = selectedZone
     ? regionMarkingChoices?.[selectedZone]
     : undefined;
+  const markingRows = selectedZone
+    ? (regionMarkings?.[selectedZone] ?? [])
+    : [];
+  // A limb takes each marking once, so a row offers only names no other row has claimed.
+  const takenMarkings = new Set(markingRows.map((entry) => entry.name));
   const viewLabel =
     directions.find(([dir]) => dir === direction)?.[1] ?? 'Front';
   const regionRows = regions?.[direction];
@@ -416,6 +456,11 @@ export const CustomSpriteEditor = ({
                   : ''}
                 This replaces the current draft. You can undo it.
               </Box>
+              {!candidate.previews && (
+                <Box color="label" mb={1}>
+                  Drawing the preview...
+                </Box>
+              )}
               <Stack justify="space-around" mb={1}>
                 {directions.map(([dir, label]) => (
                   <Stack.Item
@@ -425,7 +470,7 @@ export const CustomSpriteEditor = ({
                     minWidth={0}
                     textAlign="center"
                   >
-                    {!!candidate.previews[dir] && (
+                    {!!candidate.previews?.[dir] && (
                       <Box
                         inline
                         className="CustomSpriteEditor__tile"
@@ -786,12 +831,9 @@ export const CustomSpriteEditor = ({
                               onClick={() => act('pickHairColor')}
                             >
                               Hair color
-                              <Box
-                                inline
+                              <ColorChip
                                 ml={1}
-                                width="1rem"
-                                height="0.8rem"
-                                backgroundColor={hairColor ?? '#000000'}
+                                color={hairColor ?? '#000000'}
                               />
                             </Button>
                           </Stack.Item>
@@ -811,76 +853,59 @@ export const CustomSpriteEditor = ({
                           </Tooltip>
                         }
                       >
-                        {(regionMarkings?.[selectedZone] ?? []).map(
-                          (marking) => {
-                            const taken = new Set(
-                              (regionMarkings?.[selectedZone] ?? []).map(
-                                (entry) => entry.name,
-                              ),
-                            );
-                            const choices = regionChoices.filter(
-                              (name) =>
-                                name === marking.name || !taken.has(name),
-                            );
-                            return (
-                              <Stack
-                                key={marking.index}
-                                mb={0.5}
-                                align="center"
-                              >
-                                <Stack.Item grow minWidth={0}>
-                                  <CycleDropdown
-                                    options={choices}
-                                    disabled={!!selectedLock}
-                                    selected={marking.name}
-                                    onSelected={(name) =>
-                                      act('setBaseMarking', {
-                                        zone: selectedZone,
-                                        index: marking.index,
-                                        name,
-                                      })
-                                    }
-                                  />
-                                </Stack.Item>
-                                <Stack.Item>
-                                  <Button
-                                    disabled={!!selectedLock}
-                                    tooltip={`Color of ${marking.name}`}
-                                    onClick={() =>
-                                      act('pickBaseMarkingColor', {
-                                        zone: selectedZone,
-                                        index: marking.index,
-                                      })
-                                    }
-                                  >
-                                    <Box
-                                      inline
-                                      width="1rem"
-                                      height="0.8rem"
-                                      backgroundColor={marking.color}
-                                    />
-                                  </Button>
-                                </Stack.Item>
-                                <Stack.Item>
-                                  <Button
-                                    icon="trash"
-                                    disabled={!!selectedLock}
-                                    color="bad"
-                                    tooltip={`Remove ${marking.name}`}
-                                    onClick={() =>
-                                      act('removeBaseMarking', {
-                                        zone: selectedZone,
-                                        index: marking.index,
-                                      })
-                                    }
-                                  />
-                                </Stack.Item>
-                              </Stack>
-                            );
-                          },
-                        )}
-                        {(regionMarkings?.[selectedZone]?.length ?? 0) <
-                          (maxBaseMarkings ?? 0) && (
+                        {markingRows.map((marking) => {
+                          const choices = regionChoices.filter(
+                            (name) =>
+                              name === marking.name || !takenMarkings.has(name),
+                          );
+                          return (
+                            <Stack key={marking.index} mb={0.5} align="center">
+                              <Stack.Item grow minWidth={0}>
+                                <CycleDropdown
+                                  options={choices}
+                                  disabled={!!selectedLock}
+                                  selected={marking.name}
+                                  onSelected={(name) =>
+                                    act('setBaseMarking', {
+                                      zone: selectedZone,
+                                      index: marking.index,
+                                      name,
+                                    })
+                                  }
+                                />
+                              </Stack.Item>
+                              <Stack.Item>
+                                <Button
+                                  disabled={!!selectedLock}
+                                  tooltip={`Color of ${marking.name}`}
+                                  onClick={() =>
+                                    act('pickBaseMarkingColor', {
+                                      zone: selectedZone,
+                                      index: marking.index,
+                                    })
+                                  }
+                                >
+                                  <ColorChip color={marking.color} />
+                                </Button>
+                              </Stack.Item>
+                              <Stack.Item>
+                                <Button
+                                  icon="trash"
+                                  disabled={!!selectedLock}
+                                  color="bad"
+                                  tooltip={`Remove ${marking.name}`}
+                                  onClick={() =>
+                                    act('removeBaseMarking', {
+                                      zone: selectedZone,
+                                      index: marking.index,
+                                    })
+                                  }
+                                />
+                              </Stack.Item>
+                            </Stack>
+                          );
+                        })}
+                        {markingRows.length < (maxBaseMarkings ?? 0) && (
                           <Button
                             color="good"
                             disabled={!!selectedLock}
@@ -901,40 +926,24 @@ export const CustomSpriteEditor = ({
                       blending={
                         <div className="CustomSpriteEditor__blending">
                           <Collapsible title="Blending options">
-                            <Button.Checkbox
-                              fluid
-                              checked={colorMode === bodyBlend}
-                              tooltip={blendingTooltip}
-                              onClick={() =>
-                                act('setColorMode', {
-                                  mode:
-                                    colorMode === bodyBlend
-                                      ? 'literal'
-                                      : bodyBlend,
-                                })
+                            <BlendToggle
+                              mode={bodyBlend}
+                              current={colorMode}
+                              act={act}
+                              label={
+                                hairTarget
+                                  ? 'Blend with hair color'
+                                  : 'Blend with mutant color'
                               }
-                            >
-                              {hairTarget
-                                ? 'Blend with hair color'
-                                : 'Blend with mutant color'}
-                            </Button.Checkbox>
+                            />
                             <Stack align="center" mt={0.5}>
                               <Stack.Item grow>
-                                <Button.Checkbox
-                                  fluid
-                                  checked={colorMode === 'tint'}
-                                  tooltip={blendingTooltip}
-                                  onClick={() =>
-                                    act('setColorMode', {
-                                      mode:
-                                        colorMode === 'tint'
-                                          ? 'literal'
-                                          : 'tint',
-                                    })
-                                  }
-                                >
-                                  Blend with color
-                                </Button.Checkbox>
+                                <BlendToggle
+                                  mode="tint"
+                                  current={colorMode}
+                                  act={act}
+                                  label="Blend with color"
+                                />
                               </Stack.Item>
                               {colorMode === 'tint' && (
                                 <Stack.Item>
@@ -1089,6 +1098,9 @@ export const CustomSpriteEditor = ({
           {!!paletteNotice && (
             <Stack.Item color="average">{paletteNotice}</Stack.Item>
           )}
+          {!!strokeNotice && (
+            <Stack.Item color="average">{strokeNotice}</Stack.Item>
+          )}
           {!!saveError && (
             <Stack.Item color="bad">
               <div role="alert">{saveError}</div>
@@ -1108,6 +1120,16 @@ export const CustomSpriteEditor = ({
                 {salon && !selfWork
                   ? `Finish next to ${recipientName} with the tool in hand.`
                   : ''}
+                {selecting && (
+                  <div className="CustomSpriteEditor__selectHint">
+                    <kbd>Ctrl+C</kbd> copy · <kbd>Ctrl+V</kbd> paste ·{' '}
+                    <kbd>{ROTATE_SELECTION_KEY.toUpperCase()}</kbd> /{' '}
+                    <kbd>Shift+{ROTATE_SELECTION_KEY.toUpperCase()}</kbd> turn ·{' '}
+                    <kbd>Shift+{MIRROR_SELECTION_KEY.toUpperCase()}</kbd> mirror
+                    · <kbd>Right-drag</kbd> subtract · <kbd>Enter</kbd> drop ·{' '}
+                    <kbd>Esc</kbd> cancel
+                  </div>
+                )}
               </Stack.Item>
               <Stack.Item>
                 <Box color="good">

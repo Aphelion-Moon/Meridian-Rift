@@ -10,13 +10,7 @@
 /datum/preference/custom_sprite_palette/deserialize(input, datum/preferences/preferences)
 	if(!islist(input) || length(input) > CUSTOM_SPRITE_MAX_CUSTOM_COLORS)
 		return null
-	var/list/colors = list()
-	for(var/raw_color, associated in input)
-		var/color = custom_sprite_color(raw_color)
-		if(!color || (color in colors) || !isnull(associated))
-			return null
-		colors += color
-	return colors
+	return custom_sprite_palette_colors(input, strict = TRUE)
 
 /datum/preference/custom_sprite_palette/is_valid(value, datum/preferences/preferences)
 	var/list/colors = deserialize(value, preferences)

@@ -379,6 +379,40 @@ it('sends import and export requests without saving and confirms a previewed can
   );
 });
 
+it('shows a candidate whose previews are still being drawn, then the previews', () => {
+  const store = createStore();
+  const editor = () => (
+    <Provider store={store}>
+      <CustomSpriteEditor target="hair" />
+    </Provider>
+  );
+  backendStore.set(gameDataAtom, {
+    ...fixture(),
+    candidate: {
+      source: 'restore',
+      summary: 'Short Hair, #583820',
+      previews: null,
+    },
+  });
+  const view = render(editor());
+  expect(screen.getByText('Restore previous saved style?')).toBeTruthy();
+  expect(screen.getByText('Drawing the preview...')).toBeTruthy();
+  expect(screen.queryByAltText('Front preview')).toBeNull();
+  backendStore.set(gameDataAtom, {
+    ...fixture(),
+    candidate: {
+      source: 'restore',
+      summary: 'Short Hair, #583820',
+      previews: { 1: 'data:b', 2: 'data:f', 4: 'data:r', 8: 'data:l' },
+    },
+  });
+  view.rerender(editor());
+  expect(screen.queryByText('Drawing the preview...')).toBeNull();
+  expect(screen.getByAltText('Front preview').getAttribute('src')).toBe(
+    'data:f',
+  );
+});
+
 it.each([
   ['import', 'Cancel', 'cancelCandidate'],
   ['import', 'Replace draft', 'confirmCandidate'],

@@ -47,6 +47,8 @@
 	TEST_ASSERT_EQUAL(normal.workspace.height, 48, "Switching to the tall slot should grow the canvas")
 	var/list/grown = normal.workspace.get_first_layer_pixel_data()
 	TEST_ASSERT(!endswith(grown[48][6], "00"), "The paint should keep its place above the body")
+	// As if the moment hairstyle picks wait out after a change had passed.
+	COOLDOWN_RESET(preferences.custom_sprite_pace, hairstyle_window)
 	TEST_ASSERT(normal.ui_act("setHairStyle", list("style" = "Bald"), ui, null), "The editor should switch back")
 	TEST_ASSERT_EQUAL(normal.workspace.height, 32, "Paint that fits should go back to the normal canvas")
 

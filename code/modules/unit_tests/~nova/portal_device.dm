@@ -417,6 +417,9 @@
 	TEST_ASSERT(receiver_penis.covered_by_clothing(receiver_wearer), "The receiver's jumpsuit did not cover their penis.")
 	TEST_ASSERT_EQUAL(penis_receiver.get_equipped_wearer(), receiver_wearer, "A sheathed receiver penis under a jumpsuit closed the receiver.")
 
+/datum/unit_test/portal_device/receiver_appearance_refresh
+	priority = TEST_LONGER
+
 /// Covering a worn receiver keeps the device open; taking the receiver off closes it and clears its art.
 /datum/unit_test/portal_device/receiver_appearance_refresh/Run()
 	if(CONFIG_GET(flag/disable_lewd_items))
@@ -451,6 +454,9 @@
 	TEST_ASSERT_EQUAL(device.name, "portal fleshlight", "Reopening the mouth receiver did not restore the device name.")
 	TEST_ASSERT(has_portal_overlay_state(device, "portal_mouth_lips"), "Reopening the mouth receiver did not restore portal-device lip art.")
 
+/datum/unit_test/portal_device/receiver_ignores_held_item_changes
+	priority = TEST_LONGER
+
 /// Picking up, redrawing, and dropping unrelated held items must not rebuild the linked device.
 /datum/unit_test/portal_device/receiver_ignores_held_item_changes/Run()
 	if(CONFIG_GET(flag/disable_lewd_items))
@@ -478,6 +484,9 @@
 	TEST_ASSERT(wearer.dropItemToGround(held_item), "The receiver wearer could not drop the test item.")
 	TEST_ASSERT(wait_for_appearance_timers(), "Appearance timers did not run after dropping the held item.")
 	TEST_ASSERT_EQUAL(device.appearance_updates, 0, "Dropping an unrelated held item rebuilt the linked portal device.")
+
+/datum/unit_test/portal_device/receiver_genital_appearance_refresh
+	priority = TEST_LONGER
 
 /// Body-driven arousal and standalone size changes both refresh the item's shaft through real timers.
 /datum/unit_test/portal_device/receiver_genital_appearance_refresh/Run()

@@ -164,9 +164,12 @@
 					return FALSE
 				var/x = point[1]
 				var/y = point[2]
-				if(!is_point_allowed(x, y, direction) || seen["[x],[y]"])
+				if(!is_point_allowed(x, y, direction))
 					continue
-				seen["[x],[y]"] = TRUE
+				if(!mask_stroke)
+					if(seen["[x],[y]"])
+						continue
+					seen["[x],[y]"] = TRUE
 				filtered += list(list(x, y))
 			transaction["points"] = filtered
 			if(!length(filtered))

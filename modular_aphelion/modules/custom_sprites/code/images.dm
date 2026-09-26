@@ -12,10 +12,28 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		result.Insert(blank, "", direction)
 	return result
 
-/// Clip in body coordinates before flattening can expand a wide or offset overlay's origin. A tall canvas reaches above the tile.
-/proc/custom_sprite_flat_icon(image/appearance, direction, width = 32, height = 32)
-	var/offset_x = (width - 32) / 2
-	return getFlatIcon(appearance, defdir = direction, no_anim = TRUE, clip_bounds = list(1 - offset_x, 1, 32 + offset_x, height))
+/**
+ * Clip in body coordinates before flattening can expand a wide or offset overlay's origin. A tall
+ * canvas reaches above the tile, and `shift_x` and `shift_z` move the whole window the way a lifted
+ * hairstyle moves the paint drawn over it.
+ */
+/proc/custom_sprite_flat_icon(image/appearance, direction, width = 32, height = 32, shift_x = 0, shift_z = 0)
+	var/margin = (width - 32) / 2
+	return getFlatIcon(appearance, defdir = direction, no_anim = TRUE, clip_bounds = list(1 - margin + shift_x, 1 + shift_z, 32 + margin + shift_x, height + shift_z))
+
+/**
+ * Where a body's hair, and custom hair painted over it, are drawn from the tile, as list(x, z) pixels.
+ * A hairstyle drawn above the head, such as Afro (Huge), lifts both, as the species' hair offset does.
+ * `style` names a hairstyle other than the body's own.
+ */
+/proc/custom_sprite_hair_lift(mob/living/carbon/human/body, style)
+	var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[style || body.hairstyle]
+	var/list/lift = list(0, hairstyle?.y_offset || 0)
+	var/list/offsets = body.dna?.species?.offset_features
+	if(LAZYFIND(offsets, OFFSET_HAIR))
+		lift[1] += offsets[OFFSET_HAIR][INDEX_W]
+		lift[2] += offsets[OFFSET_HAIR][INDEX_Z]
+	return lift
 
 /// A copy of a 32-row icon grown to `height` rows, its top row repeated upward, so hair masks and gradients carry on over tall paint.
 /proc/custom_sprite_extend_up(icon/source, height)
@@ -80,6 +98,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/list/tint_rgb = rgb2num(tint)
 	return rgb(round(color_rgb[1] * tint_rgb[1] / 255 + 0.5), round(color_rgb[2] * tint_rgb[2] / 255 + 0.5), round(color_rgb[3] * tint_rgb[3] / 255 + 0.5))
 
+/// A sampled shade multiplied by a colour's channels, exactly as painted hair shades have always been built. Not
+/// custom_sprite_tint_color(): that rounds as the window does, and recolours match paint by these exact values.
+/proc/custom_sprite_shade(shade, list/tint_rgb)
+	var/list/shade_rgb = rgb2num(shade)
+	return rgb(shade_rgb[1] * tint_rgb[1] / 255, shade_rgb[2] * tint_rgb[2] / 255, shade_rgb[3] * tint_rgb[3] / 255)
+
 /// Bake effective hair color into source shades; gradients already supply their own RGB.
 /proc/custom_sprite_sample_hair_palette(datum/sprite_accessory/hair/hairstyle, obj/item/bodypart/head/head, target = "hair")
 	var/list/palette = custom_sprite_sample_palette(hairstyle?.icon, hairstyle?.icon_state)
@@ -89,8 +113,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/list/shades = palette
 	palette = list()
 	for(var/shade in shades)
-		var/list/shade_rgb = rgb2num(shade)
-		palette |= rgb(shade_rgb[1] * hair_rgb[1] / 255, shade_rgb[2] * hair_rgb[2] / 255, shade_rgb[3] * hair_rgb[3] / 255)
+		palette |= custom_sprite_shade(shade, hair_rgb)
 	var/gradient_key = custom_style_gradient_key(target)
 	var/gradient_style = head.get_hair_gradient_style(gradient_key)
 	if(gradient_style == SPRITE_ACCESSORY_NONE || !custom_style_hair_gradients(target)[gradient_style])
@@ -107,8 +130,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/list/hair_rgb = rgb2num(custom_sprite_color(hair?["color"]) || "#000000")
 	var/list/shades = list()
 	for(var/shade in custom_sprite_sample_palette(hairstyle?.icon, hairstyle?.icon_state))
-		var/list/shade_rgb = rgb2num(shade)
-		shades += rgb(shade_rgb[1] * hair_rgb[1] / 255, shade_rgb[2] * hair_rgb[2] / 255, shade_rgb[3] * hair_rgb[3] / 255)
+		shades += custom_sprite_shade(shade, hair_rgb)
 	return shades
 
 /**
@@ -144,6 +166,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 			map -= color
 	return length(map) ? map : null
 
+/// Paints a drawing into a workspace's frames, centred on a wider canvas and at the bottom of a taller one.
 /proc/custom_sprite_hydrate(datum/sprite_editor_workspace/workspace, list/drawing)
 	if(!drawing)
 		return
@@ -207,6 +230,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 		state += "_[ICON_KEY_DIGI]"
 	return state
 
+/// The icon file this limb draws from: its greyscale sheet when it should draw greyscale, else its static one.
 /obj/item/bodypart/proc/custom_sprite_icon_file()
 	return should_draw_greyscale && icon_greyscale ? icon_greyscale : icon_static
 

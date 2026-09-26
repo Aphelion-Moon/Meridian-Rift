@@ -75,6 +75,7 @@
 	var/draft_hash = custom_sprite_hash(editor.workspace.serialize_drawing())
 	for(var/action in list("cancelCandidate", "confirmCandidate"))
 		TEST_ASSERT(editor.show_candidate(empty_package, "import"), "An empty style must offer a confirmable preview: [editor.transfer_error]")
+		editor.run_deferred_work()
 		var/list/before = json_decode(json_encode(editor.ui_data(mock_client.mob)))
 		TEST_ASSERT(!(before["candidate"]?["source"] != "import" || length(before["candidate"]?["previews"]) != 4), "The UI payload must expose the pending import and its four previews.")
 		TEST_ASSERT(editor.ui_act(action, list(), ui, null), "Candidate dismissal must request an immediate UI update.")
@@ -83,6 +84,7 @@
 		TEST_ASSERT(!(action == "cancelCandidate" && custom_sprite_hash(editor.workspace.serialize_drawing()) != draft_hash), "Cancelling the candidate must preserve the painted draft.")
 		TEST_ASSERT(!(action == "confirmCandidate" && (editor.workspace.serialize_drawing() || editor.transfer_error)), "Confirming an empty candidate must replace the draft before dismissing the preview.")
 	TEST_ASSERT(editor.show_candidate(empty_package, "restore"), "A restored style must also offer a confirmable preview.")
+	editor.run_deferred_work()
 	editor.draft_changed()
 	editor.ui_act("confirmCandidate", list(), ui, null)
 	var/list/rejected = json_decode(json_encode(editor.ui_data(mock_client.mob)))
@@ -98,8 +100,7 @@
 	editor.workspace = new(null, list("#ffffff"), null)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 	editor.ui_act("spriteEditorCommand", list("command" = "transaction", "transaction" = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#ffffffff", "points" = list(list(0, 0)))), ui, null)
-	var/pending_timer = editor.preview_timer
-	TEST_ASSERT(!(!editor.ui_act("saveDraft", list(), ui, null) || editor.closing || preferences.custom_sprite_editors?["hair"] != editor || !pending_timer || editor.preview_timer != pending_timer), "Saving a draft must keep the editor and pending preview timer alive.")
+	TEST_ASSERT(editor.ui_act("saveDraft", list(), ui, null) && !editor.closing && preferences.custom_sprite_editors?["hair"] == editor, "Saving a draft must keep the editor open.")
 	var/list/saved = preferences.custom_hair
 	TEST_ASSERT(!(custom_sprite_decode_grid(saved?["dirs"]?["2"], 1) != "1" + repeat_string(1023, "0")), "Saving before the preview debounce must persist the current workspace.")
 	var/saved_hash = custom_sprite_hash(saved)

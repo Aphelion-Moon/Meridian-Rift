@@ -1,7 +1,12 @@
+/datum/sprite_editor_workspace
+	/// Set while a stroke decoded from a compact mask is checked. A mask can't name a pixel twice, so can_transact() skips its duplicate check; no window can set it.
+	var/mask_stroke = FALSE
+
 /// Shared point validation and the extension point for consumer-specific drawing bounds.
 /datum/sprite_editor_workspace/proc/valid_point_pair(list/point)
 	return islist(point) && length(point) == 2 && isnum(point[1]) && isnum(point[2]) && round(point[1]) == point[1] && round(point[2]) == point[2]
 
+/// Whether a pixel may be painted; the base workspace allows the whole canvas.
 /datum/sprite_editor_workspace/proc/is_point_allowed(x, y, direction)
 	return x >= 0 && x < width && y >= 0 && y < height
 
@@ -91,18 +96,27 @@
 	var/bottom = area[4]
 	if(left < 0 || top < 0 || right >= width || bottom >= height || right < left || bottom < top || length(codes) != (right - left + 1) * (bottom - top + 1) * digits)
 		return FALSE
-	// Each value is checked once: transparent lifts paint away, anything else must be a color this drawing takes.
+	// A window never sends more values than pixels it changes.
+	if(length(palette) > (right - left + 1) * (bottom - top + 1))
+		return FALSE
+	// Each distinct value is checked once: transparent lifts paint away, anything else must be a color this drawing takes.
 	var/list/values = list()
+	// Lowercased value -> the value it stands for, so repeats cost a lookup instead of another check.
+	var/list/checked = list()
 	for(var/raw_color in palette)
 		if(!istext(raw_color))
 			return FALSE
-		var/color = LOWER_TEXT(raw_color)
-		if(length(color) == 9 && endswith(color, "00"))
-			color = "#00000000"
-		else if(!is_valid_color(color))
-			return FALSE
-		else if(length(color) == 7)
-			color += "ff"
+		var/key = LOWER_TEXT(raw_color)
+		var/color = checked[key]
+		if(!color)
+			color = key
+			if(length(color) == 9 && endswith(color, "00"))
+				color = "#00000000"
+			else if(!is_valid_color(color))
+				return FALSE
+			else if(length(color) == 7)
+				color += "ff"
+			checked[key] = color
 		values += color
 	var/list/index_values = custom_sprite_index_values()
 	var/unchanged = digits == 1 ? "." : ".."
@@ -186,29 +200,53 @@
 /// Colors the current and undoable pixels use, which must stay paintable.
 /datum/sprite_editor_workspace/custom_sprite/proc/kept_colors()
 	. = used_colors()
-	// Pixel value -> TRUE once looked at: a long history repeats a few values thousands of times.
-	var/list/seen = list()
 	for(var/list/stack as anything in list(undo_stack, redo_stack))
 		for(var/list/transaction as anything in stack)
-			var/color = transaction["color"]
-			if(color && !seen[color])
-				seen[color] = TRUE
-				. |= LOWER_TEXT(copytext(color, 1, 8))
-			for(var/list/point as anything in transaction["points"])
-				var/old_color = point[3]
-				if(seen[old_color])
+			. |= step_colors(transaction)
+
+/**
+ * The opaque colors one history step paints with or over, in the order it first uses them. A move or
+ * placement's own colors count, so they stay paintable while the step waits undone to be redone.
+ *
+ * Worked out once and kept on the step, which never changes once it's in the history: a history of
+ * whole-canvas steps would otherwise be read pixel by pixel on every palette refresh.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/step_colors(list/transaction)
+	var/list/colors = transaction["kept_colors"]
+	if(colors)
+		return colors
+	colors = list()
+	// Pixel value -> TRUE once looked at: one step can repeat a few values thousands of times.
+	var/list/seen = list()
+	var/color = transaction["color"]
+	if(color)
+		seen[color] = TRUE
+		colors += LOWER_TEXT(copytext(color, 1, 8))
+	// A move or placement puts down colors of its own, which redoing it paints again.
+	var/placed = transaction["type"] == "move"
+	for(var/list/point as anything in transaction["points"])
+		var/old_color = point[3]
+		if(!seen[old_color])
+			seen[old_color] = TRUE
+			if(!endswith(old_color, "00"))
+				colors |= LOWER_TEXT(copytext(old_color, 1, 8))
+		if(!placed)
+			continue
+		var/new_color = point[4]
+		if(!seen[new_color])
+			seen[new_color] = TRUE
+			if(!endswith(new_color, "00"))
+				colors |= LOWER_TEXT(copytext(new_color, 1, 8))
+	for(var/_direction, points in transaction["replaced"])
+		for(var/list/point as anything in points)
+			for(var/replaced_color in list(point[3], point[4]))
+				if(seen[replaced_color])
 					continue
-				seen[old_color] = TRUE
-				if(!endswith(old_color, "00"))
-					. |= LOWER_TEXT(copytext(old_color, 1, 8))
-			for(var/_direction, points in transaction["replaced"])
-				for(var/list/point as anything in points)
-					for(var/replaced_color in list(point[3], point[4]))
-						if(seen[replaced_color])
-							continue
-						seen[replaced_color] = TRUE
-						if(!endswith(replaced_color, "00"))
-							. |= LOWER_TEXT(copytext(replaced_color, 1, 8))
+				seen[replaced_color] = TRUE
+				if(!endswith(replaced_color, "00"))
+					colors |= LOWER_TEXT(copytext(replaced_color, 1, 8))
+	transaction["kept_colors"] = colors
+	return colors
 
 /**
  * Keeps current and undoable colors paintable, then admits available colors in order while there's room.
@@ -238,6 +276,7 @@
 		combined += color
 	palette = combined
 
+/// The opaque colours the frames use, lowercase, in first-use order.
 /datum/sprite_editor_workspace/custom_sprite/proc/used_colors()
 	var/list/colors = list()
 	// Pixel value -> TRUE once looked at.
@@ -254,6 +293,7 @@
 					colors |= LOWER_TEXT(copytext(pixel, 1, 8))
 	return colors
 
+/// Refuses a stroke colour that isn't in the palette.
 /datum/sprite_editor_workspace/custom_sprite/proc/validate_palette_color(datum/source, color)
 	SIGNAL_HANDLER
 	if(!(LOWER_TEXT(copytext(color, 1, 8)) in palette))
@@ -273,6 +313,7 @@
 	var/list/rows = draw_mask[direction]
 	return rows && copytext(rows[y + 1], x + 1, x + 2) == "1"
 
+/// Whether a pixel holds opaque paint.
 /datum/sprite_editor_workspace/custom_sprite/proc/is_painted(x, y, direction)
 	var/list/frame = layers[1]["data"][direction]
 	var/color = frame?[y + 1][x + 1]
@@ -287,21 +328,35 @@
 	// Windows send strokes as a compact mask; the history keeps point lists.
 	if(islist(transaction) && ("mask" in transaction))
 		transaction["points"] = custom_sprite_mask_points(transaction["mask"], width, height)
+		mask_stroke = TRUE
 	. = ..()
 	erasing = FALSE
+	mask_stroke = FALSE
 	trim_history()
 
 #define CUSTOM_SPRITE_MAX_UNDO 100
+/// The most pixels the undo history records across its steps; the oldest steps go first once it's passed.
+#define CUSTOM_SPRITE_MAX_UNDO_POINTS 40000
 
-/// Keeps the undo history within CUSTOM_SPRITE_MAX_UNDO steps, dropping the oldest first.
+/// Keeps the undo history within CUSTOM_SPRITE_MAX_UNDO steps and CUSTOM_SPRITE_MAX_UNDO_POINTS recorded pixels, dropping the oldest first.
 /datum/sprite_editor_workspace/custom_sprite/proc/trim_history()
-	if(length(undo_stack) > CUSTOM_SPRITE_MAX_UNDO)
+	var/points = 0
+	for(var/list/step as anything in undo_stack)
+		points += step_points(step)
+	while(length(undo_stack) > 1 && (length(undo_stack) > CUSTOM_SPRITE_MAX_UNDO || points > CUSTOM_SPRITE_MAX_UNDO_POINTS))
 		var/list/oldest = undo_stack[1]
 		// An unsaved import that can no longer be undone still keeps the replaced style.
 		if(oldest["rotate"] && !(oldest in saved_transactions))
 			trimmed_rotations |= oldest["rotate"]
+		points -= step_points(oldest)
 		undo_stack.Cut(1, 2)
 		undo_names.Cut(1, 2)
+
+/// The pixels one history step records: its points, plus every view a replacement changed.
+/datum/sprite_editor_workspace/custom_sprite/proc/step_points(list/transaction)
+	. = length(transaction["points"])
+	for(var/_direction, points in transaction["replaced"])
+		. += length(points)
 
 /// The last applied history entry, or null.
 /datum/sprite_editor_workspace/custom_sprite/proc/last_transaction()
@@ -324,6 +379,7 @@
 			. |= transaction["rotate"]
 
 #undef CUSTOM_SPRITE_MAX_UNDO
+#undef CUSTOM_SPRITE_MAX_UNDO_POINTS
 
 /// Treat masked pixels as fill boundaries, so disconnected parts do not fill through the backdrop.
 /datum/sprite_editor_workspace/custom_sprite/preprocess_new_transaction(list/transaction)
@@ -346,9 +402,18 @@
 	if(transaction["type"] == "replace")
 		apply_replacement(transaction, TRUE)
 		return
-	..()
-	pixels_changed(transaction["dir"])
-	update_edited_direction(transaction["dir"])
+	var/direction = transaction["dir"]
+	if(transaction["type"] == "pencil")
+		// blend_color() returns the source for an opaque colour, and this canvas only takes opaque colours: assign outright.
+		var/color = transaction["color"]
+		var/list/frame = layers[transaction["layer"]]["data"][direction]
+		for(var/list/point as anything in transaction["points"])
+			frame[point[2] + 1][point[1] + 1] = color
+		edited_directions[direction] = length(transaction["points"]) > 0 || edited_directions[direction]
+	else
+		..()
+		update_edited_direction(direction)
+	pixels_changed(direction)
 
 /datum/sprite_editor_workspace/custom_sprite/reverse_transact(list/transaction)
 	if(transaction["type"] == "replace")
@@ -443,6 +508,7 @@
 /datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement_emissive(list/transaction, forward)
 	emissive = forward ? transaction["emissive_new"] : transaction["emissive_old"]
 
+/// Applies or reverses a replacement step: pixels, base look, markings, emission and tint together.
 /datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement(list/transaction, forward)
 	for(var/direction, points in transaction["replaced"])
 		var/list/frame = layers[1]["data"][direction]
@@ -526,6 +592,7 @@
 	sprite["canvas"] = canvas_ui_data()
 	sprite["compactStrokes"] = TRUE
 
+/// The draft as a canonical drawing, cached until pixels change; null when empty or over the colour limit.
 /datum/sprite_editor_workspace/custom_sprite/proc/serialize_drawing()
 	if(!pixels_dirty)
 		if(drawing_cache && (drawing_cache["tint"] != tint || drawing_cache["emissive"] != emissive))

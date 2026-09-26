@@ -556,3 +556,107 @@ it('throws floating paint away on Escape and drops it when a new selection start
   select([3, 0, 3, 0]);
   expect(placed()).toEqual([[2, 0, red]]);
 });
+
+it('mirrors the selection left to right about its middle and drops it where it shows', () => {
+  const { data, context, tool, select } = fixture([[red, green, blue, clear]]);
+  select([0, 0, 2, 0]);
+  expect(tool.flip(context, data)).toBe(true);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([0, 0, 2, 0]);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [blue, green, red, clear],
+  ]);
+  expect(send).not.toHaveBeenCalled();
+  tool.release(context);
+  expect(placed()).toEqual([
+    [0, 0, blue],
+    [2, 0, red],
+  ]);
+});
+
+it('mirrors back to where it started without sending anything', () => {
+  const { data, context, tool, select } = fixture([[red, green, blue, clear]]);
+  select([0, 0, 2, 0]);
+  tool.flip(context, data);
+  tool.flip(context, data);
+  tool.release(context);
+  expect(send).not.toHaveBeenCalled();
+});
+
+it('mirrors floating paint where it floats', () => {
+  const { data, context, tool, select } = fixture([
+    [red, green, clear, clear, clear],
+  ]);
+  select([0, 0, 1, 0]);
+  tool.copy(context, data);
+  tool.paste(context, data);
+  tool.onMouseDown(context, data, 0, 0);
+  tool.onMouseUp(context, data, 3, 0);
+  expect(tool.flip(context, data)).toBe(true);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [red, green, clear, green, red],
+  ]);
+  tool.release(context);
+  expect(placed()).toEqual([
+    [3, 0, green],
+    [4, 0, red],
+  ]);
+});
+
+it('mirrors only the selected pixels, and the shape of the selection with them', () => {
+  const { data, context, tool, select } = fixture([
+    [red, green, blue],
+    [blue, red, clear],
+  ]);
+  select([0, 0, 2, 0]);
+  // With the middle taken out, its paint stays put while the ends swap.
+  tool.onMouseDown(context, data, 1, 0, true);
+  tool.onMouseUp(context, data, 1, 0);
+  tool.flip(context, data);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [blue, green, red],
+    [blue, red, clear],
+  ]);
+  tool.cancel(context);
+  select([0, 0, 1, 1]);
+  tool.onMouseDown(context, data, 1, 1, true);
+  tool.onMouseUp(context, data, 1, 1);
+  expect(context.setSelectionMask).toHaveBeenLastCalledWith(['11', '10']);
+  tool.flip(context, data);
+  expect(context.setSelectionMask).toHaveBeenLastCalledWith(['11', '01']);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [green, red, blue],
+    [clear, blue, clear],
+  ]);
+});
+
+it('writes paint that floated off the paintable area as soon as a drag lands all of it', () => {
+  const { data, context, tool, select } = fixture(
+    [[red, clear, clear, clear]],
+    [0, 0, 2, 0],
+  );
+  select([0, 0, 0, 0]);
+  tool.onMouseDown(context, data, 0, 0);
+  tool.onMouseUp(context, data, 3, 0);
+  expect(tool.isFloating()).toBe(true);
+  expect(send).not.toHaveBeenCalled();
+  // Back where it all fits, it's written at once, as a move that lands is.
+  tool.onMouseDown(context, data, 3, 0);
+  tool.onMouseUp(context, data, 1, 0);
+  expect(tool.isFloating()).toBe(false);
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(placed()).toEqual([
+    [0, 0, clear],
+    [1, 0, red],
+  ]);
+  expect(context.setSelectionBounds).toHaveBeenLastCalledWith([1, 0, 1, 0]);
+  // Pasted and turned paint keep floating wherever they land, until the marquee goes away.
+  tool.copy(context, data);
+  tool.paste(context, data);
+  tool.onMouseDown(context, data, 1, 0);
+  tool.onMouseUp(context, data, 2, 0);
+  tool.rotate(context, data, 1);
+  tool.onMouseDown(context, data, 2, 0);
+  tool.onMouseUp(context, data, 0, 0);
+  expect(tool.isFloating()).toBe(true);
+  expect(send).toHaveBeenCalledTimes(1);
+});

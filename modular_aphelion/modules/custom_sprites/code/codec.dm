@@ -17,6 +17,7 @@ GLOBAL_LIST_INIT(custom_style_directions, list("2", "1", "4", "8"))
 /// Drawing targets that sit on a head accessory and carry its base look with the paint.
 GLOBAL_LIST_INIT(custom_style_hair_targets, list("hair", "facial_hair"))
 
+/// Whether a drawing target is head hair or facial hair.
 /proc/custom_style_hair_target(target)
 	return target in GLOB.custom_style_hair_targets
 
@@ -24,9 +25,11 @@ GLOBAL_LIST_INIT(custom_style_hair_targets, list("hair", "facial_hair"))
 /proc/custom_style_hair_accessories(target)
 	return target == "facial_hair" ? SSaccessories.facial_hairstyles_list : SSaccessories.hairstyles_list
 
+/// The gradient list a head target draws from.
 /proc/custom_style_hair_gradients(target)
 	return target == "facial_hair" ? SSaccessories.facial_hair_gradients_list : SSaccessories.hair_gradients_list
 
+/// The gradient key a head target stores under.
 /proc/custom_style_gradient_key(target)
 	return target == "facial_hair" ? GRADIENT_FACIAL_HAIR_KEY : GRADIENT_HAIR_KEY
 
@@ -74,10 +77,6 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 /// The hair canvas a base look asks for: tall for custom hair over the tall bald base, otherwise 32 rows.
 /proc/custom_sprite_hair_canvas_height(target, list/hair)
 	return target == "hair" && hair?["style"] == CUSTOM_SPRITE_TALL_HAIRSTYLE ? CUSTOM_SPRITE_TALL_HEIGHT : 32
-
-/// Wide drawings extend equally to either side of the body's original 32-pixel canvas.
-/proc/custom_sprite_origin_x(list/drawing)
-	return (32 - custom_sprite_width(drawing)) / 2
 
 /// Wide canvases are version 3 and tall ones version 4. Otherwise version 1 holds up to 15 colors and version 2 the rest.
 /proc/custom_sprite_version(width, palette_length, height = 32)
@@ -174,6 +173,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		. = "[copytext(CUSTOM_SPRITE_INDEX_ALPHABET, digit + 1, digit + 2)][.]"
 		index = round(index / 64)
 
+/// A colour as `#rrggbb` lowercase, or null when the text isn't exactly that.
 /proc/custom_sprite_color(color)
 	if(!istext(color) || length(color) != 7 || copytext(color, 1, 2) != "#")
 		return null
@@ -188,6 +188,22 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		settings[direction] = directions ? directions[direction] == TRUE : value == TRUE
 	return settings
 
+/**
+ * The colours a saved or uploaded palette offers, canonical and lowercase.
+ *
+ * Returns null when an entry isn't a colour or repeats one. With `strict`, an entry that carries a
+ * value (the palette written as an object rather than an array) is refused as well, as uploads and
+ * the account palette are; stored drawings stay lenient about it, as they always have.
+ */
+/proc/custom_sprite_palette_colors(list/raw_palette, strict = FALSE)
+	var/list/palette = list()
+	for(var/raw_color, associated in raw_palette)
+		var/color = custom_sprite_color(raw_color)
+		if(!color || (color in palette) || (strict && !isnull(associated)))
+			return null
+		palette += color
+	return palette
+
 /// Reconstruct a bounded, canonical payload. Missing directions are ordinary empty canvases.
 /proc/custom_sprite_validate(list/drawing)
 	if(!islist(drawing) || !(drawing["version"] in list(1, 2, 3, 4)))
@@ -197,12 +213,9 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	var/palette_limit = drawing["version"] == 1 ? 15 : CUSTOM_SPRITE_MAX_COLORS
 	if(!islist(raw_palette) || !length(raw_palette) || length(raw_palette) > palette_limit || !islist(raw_dirs))
 		return null
-	var/list/palette = list()
-	for(var/raw_color in raw_palette)
-		var/color = custom_sprite_color(raw_color)
-		if(!color || (color in palette))
-			return null
-		palette += color
+	var/list/palette = custom_sprite_palette_colors(raw_palette)
+	if(!palette)
+		return null
 	var/height = custom_sprite_height(drawing)
 	var/tint = custom_sprite_color(drawing["tint"])
 	// Tall drawings never had the legacy hair-color filter, which only covers 32 rows.
@@ -250,6 +263,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	resized["version"] = custom_sprite_version(width, palette_size, height)
 	return resized
 
+/// Content identity of a whole drawing, "empty" for none.
 /proc/custom_sprite_hash(list/drawing)
 	return drawing ? md5(json_encode(drawing)) : "empty"
 

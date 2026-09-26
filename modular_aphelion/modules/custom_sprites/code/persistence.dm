@@ -69,6 +69,7 @@
 	var/write_error = write_file(contents, destination)
 	return !length(write_error) && rustg_file_read(destination) == contents
 
+/// Writes `contents` to `destination` and returns rust-g's error text, empty on success. Tests override it to fail.
 /datum/json_savefile/custom_sprites/proc/write_file(contents, destination)
 	return rustg_file_write(contents, destination)
 
@@ -125,12 +126,14 @@
 	/// Editor key -> open preferences editor; allocated on first use.
 	var/list/custom_sprite_editors
 
+/// The drawing sidecar beside a preferences.json path, or null when the path has no directory.
 /proc/custom_sprite_sidecar_path(preferences_path)
 	if(!istext(preferences_path))
 		return null
 	var/separator = findlasttext(preferences_path, "/")
 	return separator ? "[copytext(preferences_path, 1, separator + 1)]custom_sprites.json" : null
 
+/// Loads the selected slot's drawings from the sidecar, creating the store on first use.
 /datum/preferences/proc/load_custom_sprites()
 	if(!custom_sprite_savefile)
 		custom_sprite_savefile = new(load_and_save ? custom_sprite_sidecar_path(path) : null)
@@ -165,6 +168,7 @@
 	else
 		custom_sprite_savefile.remove_entry("character[slot]")
 
+/// The loaded slot's drawings and previous styles as the sidecar stores them.
 /datum/preferences/proc/custom_sprite_slot_data()
 	var/list/slot_data = list()
 	if(custom_hair)
@@ -177,6 +181,7 @@
 		slot_data["previous_styles"] = custom_style_copy_previous(custom_style_previous)
 	return slot_data
 
+/// Removes a slot's drawings from the sidecar and saves it. Returns whether the save succeeded.
 /datum/preferences/proc/remove_custom_sprite_slot(slot)
 	load_custom_sprites()
 	var/key = "character[slot]"

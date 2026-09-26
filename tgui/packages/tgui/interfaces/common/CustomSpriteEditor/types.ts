@@ -5,7 +5,7 @@ import type { CompactSprite } from './canvas';
 
 export type CustomSpriteCandidate = {
   source: 'import' | 'restore';
-  previews: Record<Dir, string>;
+  previews: Record<Dir, string> | null;
   summary?: string | null;
   regions?: string[];
   skipped?: string[];
@@ -77,6 +77,7 @@ export type CustomSpriteEditorData = {
   regionEmissive?: Record<string, Record<Dir, boolean>>;
   lockedRegions?: Record<string, string> | null;
   paletteNotice?: string | null;
+  strokeNotice?: string | null;
   visibleView?: string;
   /** Direction -> "1"/"0" rows: canvas pixels hair or a part draws over in game. Static data, markings only. */
   coverMask?: Partial<Record<Dir, string[]>> | null;

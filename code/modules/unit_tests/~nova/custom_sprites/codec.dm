@@ -137,3 +137,15 @@
 			TEST_ASSERT(copytext(encoded, 1, 2) == (1 + runs * 2 >= pixel_count + 1 ? "f" : "r"), "A grid must store flat exactly when its runs wouldn't be shorter.")
 			TEST_ASSERT(custom_sprite_decode_grid(encoded, 40, pixel_count) == grid, "Encoding must round-trip at width [width].")
 			TEST_ASSERT(custom_sprite_encode_grid(custom_sprite_decode_grid(encoded, 40, pixel_count), 40, pixel_count) == encoded, "Re-encoding a decoded grid must reproduce it byte for byte.")
+
+/// A stored palette written as an object still loads; an upload or an account palette written that way is refused.
+/datum/unit_test/custom_sprite_palette_shapes/Run()
+	var/list/drawing = custom_sprite_test_drawing()
+	drawing["palette"] = list("#ffffff" = "x", "#888888" = "y")
+	drawing["emissive"] = custom_sprite_emissive_settings(FALSE)
+	var/list/loaded = custom_sprite_validate(drawing)
+	TEST_ASSERT(loaded && json_encode(loaded["palette"]) == json_encode(list("#ffffff", "#888888")), "The loader must keep accepting a palette stored as an object")
+	TEST_ASSERT(findtext(custom_style_validate_drawing(drawing)["error"], "palette"), "An upload whose palette is an object must be refused")
+	var/datum/preference/palette = GLOB.preference_entries[/datum/preference/custom_sprite_palette]
+	TEST_ASSERT(isnull(palette.deserialize(list("#ffffff" = "x"))), "An account palette written as an object must be refused")
+	TEST_ASSERT(isnull(custom_sprite_validate(list("version" = 1, "palette" = list("#ffffff", "#FFFFFF"), "tint" = null, "dirs" = drawing["dirs"]))), "A repeated colour, whatever its case, still refuses the drawing")

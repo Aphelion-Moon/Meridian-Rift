@@ -61,10 +61,9 @@ have no editable zone pixels, and a missing arm takes its hand with it.
 
 The base hairstyle **Bald (Tall Canvas)** draws no hair of its own and never
 spawns naturally. Custom hair (not facial hair) drawn over it gets a 32 by 48
-canvas: the usual 32 rows with 16 more above them, room for hair as big as Afro
-(Huge), whose 32 rows sit 6 pixels up. The guide and the preview grow with it,
-with the body at the bottom as in game, and the canvas backdrop continues its tile
-upward.
+canvas: the usual 32 rows with 16 more above them, for hair bigger than any base
+hairstyle. The guide and the preview grow with it, with the body at the bottom as
+in game, and the canvas backdrop continues its tile upward.
 
 A drawing whose paint reaches into the extra rows saves as version 4 and renders
 those rows above the head, the way the taur's wide icon reaches past the sides of
@@ -82,6 +81,20 @@ tall base is chosen, and tall drawings are refused for facial hair and markings.
 Hair masks from hats and hair gradients carry on over the extra rows as their
 top row does. The salon's hair editor and the mirror's pictures follow the same
 rules.
+
+#### Lifted hairstyles
+
+Some base hairstyles are drawn above the head: Afro (Huge) sits 6 pixels up and
+Mohawk (Tall) 2, and a species' hair offset moves hair too. Custom hair painted
+over such a hairstyle is lifted with it, so the canvas's 32 rows are the
+hairstyle's own rows and the whole hairstyle fits them; it needs no tall canvas.
+The hair guide is flattened from that lifted window of the body, so it shows the
+whole hairstyle, with the body lower down and its feet below the canvas, where
+hair paint can't reach anyway. The preview, the previews of an import or a
+restoration and the mirror's pictures grow upward as far as the hair reaches,
+standing on the backdrop tile, which repeats upward. Facial hair isn't lifted,
+so its guide keeps the body's own rows. The whole-body markings editor's composed
+previews stay 32 rows, so a lifted hairstyle is cut there.
 
 The wide canvas adds 16 columns on each side of the ordinary body. Existing
 32-pixel paint stays centered at the same physical position when opened on a
@@ -165,20 +178,27 @@ the drag crossed stays selected. A plain click off the body changes nothing.
   taken out starts a new selection.
 - Dragging is free, even partly off the canvas; part of the box always stays on it.
   A move whose paint all lands on paintable pixels is sent at once, as one action.
-  Paint that doesn't all land floats with the box instead, and so do pasted and
-  turned paint: floating paint is only written when the marquee goes away (a new
-  selection, another tool or view, Enter, Ctrl+S, Save and close or Finish, or
-  closing the editor), and whatever is then off the canvas or outside the
-  paintable area is cut off. Escape and history throw floating paint away.
+  Paint that doesn't all land floats with the box instead, until a later drag
+  lands all of it, when it is sent the same way. Pasted, turned and mirrored paint
+  floats wherever it lands. Floating paint is only written when the marquee goes
+  away (a new selection, another tool or view, Enter, Ctrl+S, Save and close or
+  Finish, or closing the editor), and whatever is then off the canvas or outside
+  the paintable area is cut off. Escape and history throw floating paint away.
+  Floating paint exists only in the window, so the preview shows it once it's
+  written. On the whole-body canvas that matters most for thin limbs: moving an
+  arm and hand's paint sideways usually leaves some of it off the body.
 - Ctrl+C copies the selection's shape and paint, floating or not. The copy lives
   in the tgui window rather than the editor, so an editor opened later in the same
   window can still paste it. Ctrl+V pastes it as floating paint where it was
   copied from, in whichever view is showing, with part of it on the canvas. R turns
   the selection a quarter turn clockwise about its middle and Shift+R
-  counter-clockwise; paint still on the canvas is lifted to float first. While there
-  is a selection, two turn buttons sit beside the tools and do the same. All of
-  this is worked out in the window: the server only receives the finished move, as
-  one transaction, never anything per mouse movement.
+  counter-clockwise; paint still on the canvas is lifted to float first. Shift+H
+  mirrors it left to right the same way, as Shift+H flips horizontally in Aseprite
+  (GIMP's flip tool is Shift+F). While there is a selection, turn and mirror buttons
+  sit beside the tools and do the same, carrying their keys as the tools do. While
+  Select is the current tool, a line beside the footer buttons lists its keys. All
+  of this is worked out in the window: the server only receives the finished move,
+  as one transaction, never anything per mouse movement.
 - Pencil, eraser, eyedropper and fill use the same canvas. Pencil and eraser
   include the release position and send one transaction per stroke. Fill stops
   at holes in a zone's silhouette.
@@ -241,6 +261,7 @@ the drag crossed stays selected. A plain click off the body changes nothing.
 | Escape | Deselect, throwing floating paint away, or dismiss an open swatch menu. |
 | Ctrl+C / Ctrl+V | With Select: copy the selection / paste it as floating paint in the view shown. |
 | R / Shift+R | With Select: turn the selection a quarter turn clockwise / counter-clockwise. |
+| Shift+H | With Select: mirror the selection left to right. |
 | Enter | With Select: drop the selection, writing any floating paint. |
 | Delete while hovering a Custom swatch | Remove that saved color. |
 
@@ -275,7 +296,8 @@ Escape dismisses them.
 
 Custom colors save immediately through the normal account preference writer.
 Discarding a drawing does not discard palette changes. Removing a swatch does
-not remove painted pixels or colors still needed by undo/redo. If a drawing has
+not remove painted pixels or colors still needed by undo/redo, including the
+colors a moved or pasted selection puts down while it waits to be redone. If a drawing has
 no room for another color, unavailable Custom swatches stay visible but disabled,
 and the Custom title says why.
 Themes cannot paint over the swatches; selection uses a border.
@@ -514,13 +536,6 @@ anatomy and underwear changes rebuild it. Picking up or dropping a mirror
 updates self-styling locks immediately. Those locks restrict editing without
 clipping existing paint out of the draft.
 
-Color scans collect distinct pixels before normalizing their RGB. Serialization
-reuses each color's index and joins the encoded pixels once per direction.
-Encoding and decoding collect runs in lists and join them once. The codec
-validates the full grid before falling back to the flat format, so an invalid
-pixel at the end cannot slip through an early return. These changes keep the
-existing palette order, run lengths and saved format.
-
 #### Server load and hostile windows
 
 A window's actions only change the draft and note what needs drawing. Guides,
@@ -550,20 +565,63 @@ Up to four run half a second apart, and each one used comes back after a second
 and a half. A few changes in a row never wait more than half a second, while
 changes that keep coming faster than that get one rebuild every second and a
 half, always for the latest state. An editor opened too soon opens by itself
-when the pace allows, and reopening a window then rebuilds in the background. A
-restore that has to wait says "Wait a moment before trying that again."; restores
+when the pace allows, and reopening a window then rebuilds in the background.
+
+A rebuild that needs a new preview body takes two of the subsystem's runs: the
+first builds the body, the second draws the guides and the preview on it, so
+neither run holds the server for long. Until the second run the window keeps the
+pictures it had; nothing goes blank. A change that arrives between the two runs
+makes the second build again on the latest state, when the pace allows.
+
+A restore that has to wait says "Wait a moment before trying that again."; restores
 also wait while a preview is waiting for an answer.
 
-Undo and redo take at most ten steps per action. Windows only ever send one.
-Ctrl+S on a draft that hasn't changed since its last save is acknowledged
+An import or a restoration shows its card at once and draws its previews in the
+background, so the window says "Drawing the preview..." for a moment before
+they appear. Previews are kept per editor for the last few candidates drawn on
+the same body, so restoring the same style again shows them at once.
+
+Undo and redo take at most ten steps per action; windows only ever send one.
+The history keeps its last 100 steps or its last 40,000 recorded pixels,
+whichever runs out first, so whole-canvas pastes can't hold megabytes of history
+each. Ctrl+S on a draft that hasn't changed since its last save is acknowledged
 without writing. Imports and exports keep their own cooldowns.
+
+A base hairstyle change applies at once. Styles picked in the half second after
+one applies wait, and only the latest applies when that half second ends, so a
+burst of picks lands at most twice and skips the styles in between, such as
+growing into the tall canvas and straight out again. The style list shows the
+latest pick throughout, and anything else the window does, closing it or
+saving included, first applies the pick that is waiting. The half second is the
+rebuild spacing, so the preview never updates less often than it already could;
+picks half a second apart or slower all apply at once. A player's hair and
+facial hair editors share the window.
 
 Pencil and eraser strokes travel as a bit mask of the canvas, one character per
 six pixels, so a stroke across a whole view is a single short message instead of
 a point list split into many (a long stroke used to be cut off by the per-second
 message limit). The server refuses a mask whose length doesn't match the canvas
-or that marks a pixel past its end; every action's parameters are validated
-before any icon work, and malformed input is refused without drawing anything.
+or that marks a pixel past its end. A placed selection can't bring more values
+than pixels it covers, and each distinct value is checked once however often it
+repeats. Every action's parameters are validated before any icon work, and
+malformed input is refused without drawing anything.
+
+A player's strokes and placements apply inside the action while they stay under
+6,000 pixels a second, four full tall-canvas strokes, far more than a hand
+paints; a fill counts the pixels it filled. Past that they wait in order for the
+background subsystem, which applies them within its tick budget; the canvas
+already shows them, and the window gets no update until they're all in, so
+nothing it shows is ever overwritten by an older picture. Only a queue of fifty
+strokes, which no person reaches, refuses further strokes, with a quiet notice
+until the queue drains. While strokes wait, the server takes only two things
+from the window, more strokes (moves, pastes and fills included) and view
+switches, which the drain's update then shows, so history and saves keep their
+order: anything else it asks for, such as undo, Clear, the eyedropper, Save or a
+base look change, is ignored until the update the drain sends shows where things
+stand. If character setup saves the editor meanwhile, for a setting change or a
+slot switch, the editor keeps its draft unsaved, as after a failed save, and
+says "Your last strokes are still going in. Save again in a moment." Under the
+budget none of this happens.
 
 #### Older saves and limits
 
@@ -587,7 +645,7 @@ old drawings can still inherit that filter. New drawings use literal colors.
 | Drawings per character | Eight targets: hair, six limb zones and the taur zone. |
 | Saved Custom swatches | 16 per account. |
 | Colors in one drawing | 63 opaque colors, plus transparency. Undoable colors also reserve room. |
-| Undo history | 100 actions per open custom editor; one undo or redo action takes at most 10 steps. |
+| Undo history | 100 actions or 40,000 recorded pixels per open custom editor, whichever runs out first (about 25 whole-canvas placements); one undo or redo action takes at most 10 steps. |
 | Background work | A player's rebuilds, new editors and previous-style previews share one pace: up to four half a second apart, each coming back after 1.5 seconds, so nonstop work gets one per 1.5 seconds. |
 | Drawing sidecar | 16 MiB per account, supporting up to 100 slots with all targets and their previous saved styles. |
 | Animation and extra canvas layers | Not supported by the custom editors. |
@@ -921,70 +979,21 @@ on the old base look, and saving again fixes it.
 
 #### Tests and maintenance
 
-The native tests in `code/modules/unit_tests/~nova/custom_sprites/` cover codec validation, input/history validation,
-selection overlap and shaded starts, limb masks, palette limits, drawing
-ownership, directional glow/blockers, persistence failures and recovery, slot
-changes, imports and save/reopen/erase. They also check run encoding,
-mixed-case colors and all 63 colors across icon rows and directions.
-Taur fixtures create a real Cow (Spotted) organ and compare native geometry in all
-four directions and guide alignment. Capacity
-coverage fills all 100 slots with eight current targets and their previous styles.
-Keep the shared painting and NanoPaint paths working when changing SpriteEditor.
-`hardening.dm` covers deferred drawing: a burst of view changes draws once, rebuild-triggering changes rebuild once and are spaced out, history jumps are capped, restore previews wait, unchanged saves write nothing, new editors are spaced out, the pace allows a short burst, then one piece per refill while work keeps coming, and gives the burst back after a quiet spell, composed previews match flattening the painted body for human, lizard, moth and slime bodies, and stroke masks paint exactly their pixels while malformed masks are refused.
-
-`transfer.dm` covers hostile JSON, strict fields, RLE and palette abuse,
-locked styles, account sidecars, geometry and transfer cooldowns. Mutation
-fixtures pass unchanged, and check the relevant rejection reason. Legacy numeric flags and canonical pixel encoding have separate checks.
-`saved_styles.dm` covers previous-style rotation, zone isolation, empty
-styles, slot deletion, complete hair and native marking saves, a refused save
-without a verified sidecar, preference-tab independence and pending opacity
-changes. `appearance.dm` also covers hair shade maps, drawing recolors including
-merged palette slots, in-game dyeing, and facial hair from its live look through
-rendering, export and dyeing; `editor.dm` covers the base-hair controls with
-undo, full-canvas hair painting and imports, and the facial hair editor's save
-key. `salon.dm` covers self-styling, the mirror-locked back view without losing
-saved paint, self haircuts and native marking ownership. Appearance tests also
-check legacy colors.
-`salon.dm` covers consent, withdrawal, cooldowns, stale tokens,
-distance, mirror closing, interrupted and replayed completion, achievements,
-the whole-body tattoo canvas, touched regions,
-one-write permanent saves, per-region history and whole-body or single-region
-restore, live clothing coverage, husked limbs, hidden taur bodies, missing or
-replaced limbs mid-draft, self-tattooing the back, restoration, limb replacement, changed controlling players, salon import limits,
-dressed guides, customized limb mask parity, closing and resuming, recipient saves,
-and taur-organ replacement while the chest remains attached.
-Donor tests attach real transplanted limbs and heads, and check their appearance
-and restoration history.
-
-`regions.dm` covers region maps: draw order, hands over arms, missing arms taking
-their hands, and wide taur maps. `composite.dm` covers composing and splitting,
-including tints, hidden paint and arm/hand partners. `markings_editor.dm` covers
-saving only changed regions in one write, selection and focus, palette overflow,
-locked regions, routing from the Custom buttons, imports (whole-body, single-region
-and drawing-only, including the taur's centring), undo side effects, paint moved
-between regions, emission-only saves, map rebuilds, window state and selection
-checks, regions over their own color limit and setup changes waiting on a drawing
-that can't be saved.
-`regions.dm` also covers ID colors, blended edges, the wrist band and taur maps. `saved_styles.dm`, `workspace.dm`,
-`transfer.dm` and `appearance.dm` cover multi-region commits, region-bounded fill
-and clear, whole-body files, and hand paint staying above re-created arm paint.
-`codec.dm` also covers encode and decode round trips at both canvas widths, and
-`regions.dm` the paintable mask with regions locked.
-`blending.dm` covers Blend with mutant color; `taur_paint.dm` taur paint showing over
-a taur organ that arrived after it; `hair_interactions.dm` custom hair counting as hair
-for hair ties, shaving and hair loss; `selection_placement.dm` a placed selection's
-pixels applying as one step with paint outside the drawing area cut; and
-`tall_hair.dm` the tall canvas's codec, editor, import rules, imports and
-restorations that change the canvas size, and rendering above the head.
-
-Tests use `TEST_ASSERT`, which stops at the first failure. Anything a later test
-depends on is released in `Destroy()`: salon players and their registries, and
-sidecar files registered through `/datum/custom_sprite_test_files`.
-
-Use the repository's [native unit-test instructions](../../../code/modules/unit_tests/README.md).
-The tests are included from `code/modules/unit_tests/_unit_tests.dm`, which provides `TEST_ASSERT`. Temporary `TEST_FOCUS` entries
-must stay out of committed source. `BUILD.cmd` is the normal Windows build entry
-point; there is no separate build command for this module.
+Native tests live in `code/modules/unit_tests/~nova/custom_sprites/` and are
+included from `code/modules/unit_tests/_unit_tests.dm`, which provides
+`TEST_ASSERT` (it stops at the first failure, so anything a later test depends
+on is released in `Destroy()` or through `allocate()`). One file per area:
+`codec.dm`, `save_compatibility.dm` (old-format drawings and sidecars load and
+write back exactly as before), `persistence.dm`, `saved_styles.dm`,
+`transfer.dm`, `composite.dm`, `regions.dm`, `workspace.dm`, `editor.dm`,
+`markings_editor.dm`, `appearance.dm`, `salon.dm`, `tall_hair.dm`,
+`lifted_hair.dm`, `region_selection.dm`, `selection_placement.dm`,
+`blending.dm`, `taur_paint.dm`, `hair_interactions.dm`, `palette.dm` and
+`hardening.dm` (deferred drawing, the per-player pace, the hairstyle window,
+stroke masks, placements, kept colours and the safeguards in Server load and
+hostile windows). Each test's `///` says what it pins. Keep temporary
+`TEST_FOCUS` entries out of committed source; there is no separate build
+command for this module, `BUILD.cmd` is the normal Windows entry point.
 
 From `tgui/`, the focused UI checks are:
 
@@ -994,32 +1003,18 @@ bun run tgui:tsc
 bun run tgui:build
 ```
 
-The UI tests cover tool gestures, selection acknowledgement, save feedback,
-color blending, swatch menus and the zone buttons. `regions.test.ts` covers
-region lookup and the covered-paint marks, and
-`CustomSpriteEditor.regions.test.tsx` covers region mode: selecting with every
-tool and on drag release, the region actions, focus, locked regions and the
-covered-paint wash.
-`canvas.test.ts` covers the compact canvas, and
-`CustomSpriteEditor.views.test.tsx` covers view reporting, convergence and
-reopening on the Front view. `CustomSpriteMirror.test.tsx` covers the mirror's
-view reporting. `CustomSpriteEditor.blend.test.tsx` covers the mutant color
-blending option, `CustomSpriteEditor.tall.test.tsx` the tall canvas's backdrop,
-`Select.test.ts` moving, floating, cutting, copying, pasting across views, taking
-pixels out of and turning selections, `SpriteEditor.test.tsx` their keys and
-turn buttons, `CustomSpriteEditor.selection.test.tsx` writing floating paint
-before each way of closing the editor, with the next editor starting from its own
-drawing, and `strokeMask.test.ts` packing strokes into masks and when the Pencil
-and Eraser send one.
-Keep each tgui test file under 50 KB. Bun 1.3.13 serves larger files from its
-runtime transpiler cache, and on those cached runs it parses
-`transparency_checkerboard.svg` as JSX, failing the whole file from the second run
-on. `tgui/packages/tgui/__mocks__/customSpriteEditor.ts` holds the fixture and
-setup the editor's test files share. It sits outside `interfaces/` because the
-interface bundle takes in every non-test file there.
-Native icon tests and browser fixtures do not cover every live-client case.
-Check real drawing/dragging, hats, turning/resting, limb changes, save/relog and
-slot/import behavior in DreamSeeker when changing those paths.
+The UI tests sit beside the code they cover: the Select tool and its keys,
+stroke masks, the editor window (sampling, saves, views, regions, blending,
+the tall canvas, closing with floating paint), the palette menus, the mirror
+and the character setup buttons. Keep each tgui test file under 50 KB: Bun
+1.3.13 serves larger files from its runtime transpiler cache and then parses
+`transparency_checkerboard.svg` as JSX from the second run on.
+`tgui/packages/tgui/__mocks__/customSpriteEditor.ts` holds the fixture and
+setup the editor's test files share; it sits outside `interfaces/` because the
+interface bundle takes in every non-test file there. Native icon tests and
+browser fixtures do not cover every live-client case: check real drawing and
+dragging, hats, turning and resting, limb changes, save/relog and slot/import
+behaviour in DreamSeeker when changing those paths.
 
 ### TG Proc/File Changes:
 
@@ -1070,7 +1065,7 @@ All paths here are relative to this module unless stated otherwise.
 | `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest, just above the organ's own layers. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers, and the human's `has_custom_hair()` and `remove_custom_hair()` for hair interactions. Re-creating an arm's zone overlay moves its hand overlays back above it. |
 | `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. `custom_sprite_cover_rows()` stamps one view of those looks into rows of marks above a paint layer, cached by the cover key and read only inside the drawable box; `custom_sprite_cover_char()` and `custom_sprite_cover_labels()` name the marks. |
 | `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization, content hashes, arm/hand partners and zone widths. |
-| `code/limits.dm` | `SScustom_sprite_work` and the editor's deferred work: `request_view()`, `request_rebuild()`, `request_refresh()` and `run_deferred_work()`, the per-player `/datum/custom_sprite_pace` (on `/datum/preferences` as `custom_sprite_pace`), `rebuild_for_opening()`, the middleware's `open_deferred()` for new editors, `act_blocked()` for restore previews, `save_unchanged()`, `custom_sprite_mask_points()` for compact strokes and `custom_sprite_history_jump()`. |
+| `code/limits.dm` | `SScustom_sprite_work` and the editor's deferred work: `request_view()`, `request_rebuild()`, `request_refresh()` and `run_deferred_work()`, the per-player `/datum/custom_sprite_pace` (on `/datum/preferences` as `custom_sprite_pace`), `rebuild_for_opening()`, the middleware's `open_deferred()` for new editors, `act_blocked()` for restore previews, the hairstyle window (`request_hairstyle()`, `apply_pending_hairstyle()`, `apply_hairstyle()`), `save_unchanged()`, `custom_sprite_mask_points()` for compact strokes and `custom_sprite_history_jump()`. The stroke budget and queue: the pace's `stroke_fits()`, `take_stroke()`, `drain_strokes()`, `push()` (an update that waits while strokes do) and `custom_sprite_transaction_pixels()`; `request_candidate()` for candidate previews. |
 | `code/compose.dm` | Whole-body markings previews composed from paint-free slices and the canvas: `can_compose_previews()`, `refresh_composed_previews()`, `composed_view()`, `view_slices()`, `capture_paintless_look()`, `slice_flat()`, `paint_icon()`, and the markings `render_preview()` override. |
 
 ### Defines:
@@ -1086,8 +1081,8 @@ All paths here are relative to this module unless stated otherwise.
 | `code/transfer.dm` | `CUSTOM_STYLE_FORMAT`, `CUSTOM_STYLE_VERSION` | `aphelion-custom-style`, version 1. |
 | `code/transfer.dm` | `CUSTOM_STYLE_IMPORT_COOLDOWN`, `CUSTOM_STYLE_EXPORT_COOLDOWN` | 5 and 2 seconds. |
 | `code/transfer.dm` | `CUSTOM_STYLE_EXPORT_DIRECTORY` | `data/custom_style_exports/`. |
-| `code/workspace.dm` | `CUSTOM_SPRITE_MAX_UNDO` | 100 undo steps. File-local. |
-| `code/limits.dm` | `CUSTOM_SPRITE_WORK_*`, `CUSTOM_SPRITE_REBUILD_SPACING`, `CUSTOM_SPRITE_BURST`, `CUSTOM_SPRITE_REFILL`, `CUSTOM_SPRITE_MAX_HISTORY_JUMP` | Deferred work flags; the pace's half-second spacing, four-piece burst and 1.5-second refill; ten history steps per action. File-local. |
+| `code/workspace.dm` | `CUSTOM_SPRITE_MAX_UNDO`, `CUSTOM_SPRITE_MAX_UNDO_POINTS` | 100 undo steps; 40,000 recorded pixels across them. File-local. |
+| `code/limits.dm` | `CUSTOM_SPRITE_WORK_*`, `CUSTOM_SPRITE_REBUILD_SPACING`, `CUSTOM_SPRITE_BURST`, `CUSTOM_SPRITE_REFILL`, `CUSTOM_SPRITE_HAIRSTYLE_WINDOW`, `CUSTOM_SPRITE_MAX_HISTORY_JUMP`, `CUSTOM_SPRITE_STROKE_BUDGET`, `CUSTOM_SPRITE_STROKE_QUEUE` | Deferred work flags; the pace's half-second spacing, four-piece burst and 1.5-second refill; the half-second hairstyle window; ten history steps per action; 6,000 stroke pixels a second applied inside actions; fifty strokes waiting at most. File-local. |
 | `code/salon.dm` | `SALON_*` | Session states, 120-second prompts, 10-second request cooldown, 5-second custom applications. File-local. |
 | `code/mirror.dm` | `CUSTOM_SPRITE_MIRROR_TIMEOUT` | 120-second approval countdown and expiry. File-local. |
 | `code/__DEFINES/sprite_editor.dm` at repository root | `SPRITE_EDITOR_TOOL_SELECT` | Shared Select tool bit, `1<<4`. |
@@ -1124,7 +1119,7 @@ are also required.
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. `shade` replaces the flat grey over unavailable pixels, and `overlay` draws over the canvas at its size. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/strokeMask.ts`, `strokeMask.test.ts` | Compact strokes: the Pencil and Eraser send a stroke as one bit per canvas pixel when the canvas data sets `compactStrokes`, as the custom editors' workspaces do, and their tests. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Types/Tools/` | Pencil, Eraser, Eyedropper and Bucket updates; the Select tool (moving, floating, copying, pasting, taking out and turning selections) and focused tool tests. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/selection.tsx`, `Components/SelectionOutline.tsx` | The Select tool's keys (Ctrl+C, Ctrl+V, R, Shift+R, Enter), the turn buttons, dropping floating paint before a save, and the marching ants around a box or a selection with pixels taken out. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/selection.tsx`, `Components/SelectionOutline.tsx` | The Select tool's keys (Ctrl+C, Ctrl+V, R, Shift+R, Shift+H, Enter), the turn and mirror buttons, dropping floating paint before a save, and the marching ants around a box or a selection with pixels taken out. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/drawBounds.ts`, `useSpriteEditorHotkeys.ts`, `SpriteEditor.test.tsx` | Cached shading geometry and the `ShadeRenderer` type, shared shortcuts/history cancellation and editor interaction tests. |
 | `tgui/packages/tgui/interfaces/NtosNanopaint/NanopaintMenuBar.tsx` | Uses the same history cancellation as toolbar and keyboard actions. |
 | `tgui/packages/tgui/layouts/Window.tsx`, `Window.test.tsx` | Current-event Alt handling and respecting gestures already claimed by a control. |

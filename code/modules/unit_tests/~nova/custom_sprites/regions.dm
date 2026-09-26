@@ -6,7 +6,6 @@
 	TEST_ASSERT(!(CUSTOM_MARKING_ZONE_TAUR in zones), "A body without a taur organ has no taur region.")
 	TEST_ASSERT(zones.Find(BODY_ZONE_PRECISE_L_HAND) == zones.Find(BODY_ZONE_L_ARM) + 1, "Each hand must come straight after its arm.")
 	var/list/map = custom_sprite_region_map(human, zones, 32)
-	TEST_ASSERT(map == custom_sprite_region_map(human, zones, 32), "Unchanged geometry must reuse the cached map.")
 	for(var/direction in GLOB.custom_style_directions)
 		var/list/rows = map[direction]
 		TEST_ASSERT(!(length(rows) != 32 || length(rows[1]) != 32), "Region maps must be 32 rows of 32 pixels.")

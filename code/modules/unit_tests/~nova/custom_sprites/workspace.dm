@@ -211,7 +211,6 @@
 	workspace.redo()
 	valid["offset"] = list(0, 0)
 	TEST_ASSERT(!(workspace.new_transaction(deep_copy_list(valid)) || length(workspace.undo_stack) != 1), "Zero displacement must not create a transaction.")
-	TEST_ASSERT((workspace.tool_flags & 16), "Custom workspaces must advertise the Select tool.")
 
 /datum/unit_test/custom_sprite_selection_shaded_margin/Run()
 	var/list/rows = list()

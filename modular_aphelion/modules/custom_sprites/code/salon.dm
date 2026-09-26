@@ -735,13 +735,16 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		drop_hair_trimmings(get_turf(recipient), recipient, trimming_stage, facial = (target == "facial_hair"))
 	schedule_trimmings()
 
+/// What this work is called, such as "hairstyle".
 /datum/custom_sprite_salon/proc/label()
 	return custom_sprite_salon_label(target)
 
+/// The artist's body, or null once it's gone or another player controls it.
 /datum/custom_sprite_salon/proc/artist()
 	var/mob/living/carbon/human/artist = artist_ref?.resolve()
 	return !QDELETED(artist) && artist.ckey == artist_ckey ? artist : null
 
+/// The recipient's body, or null once it's gone or another player controls it.
 /datum/custom_sprite_salon/proc/recipient()
 	var/mob/living/carbon/human/recipient = recipient_ref?.resolve()
 	return !QDELETED(recipient) && recipient.ckey == recipient_ckey ? recipient : null
@@ -858,6 +861,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	RegisterSignal(artist, COMSIG_MOVABLE_MOVED, PROC_REF(on_artist_changed))
 	watched_ref = WEAKREF(artist)
 
+/// The artist moved: self-styling locks may have changed.
 /datum/custom_sprite_salon/proc/on_artist_changed(datum/source)
 	SIGNAL_HANDLER
 	editor?.sync_locked_views()
@@ -884,6 +888,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	RegisterSignal(uniform, COMSIG_CLOTHING_UNDER_ADJUSTED, PROC_REF(on_uniform_adjusted))
 	uniform_ref = WEAKREF(uniform)
 
+/// The recipient's equipment changed: locks and the watched jumpsuit follow.
 /datum/custom_sprite_salon/proc/on_recipient_changed(datum/source)
 	SIGNAL_HANDLER
 	var/mob/living/carbon/human/recipient = recipient_ref?.resolve()
@@ -900,6 +905,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	schedule_preview_refresh()
 	mirror?.schedule_refresh()
 
+/// A worn or body overlay changed: guides, previews and the mirror redraw shortly.
 /datum/custom_sprite_salon/proc/on_recipient_overlay_changed(datum/source, layer)
 	SIGNAL_HANDLER
 	// Held items are left out of salon guides and mirrors, so picking things up redraws nothing.
@@ -919,6 +925,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(!dress_timer)
 		dress_timer = addtimer(CALLBACK(src, PROC_REF(refresh_editor_body)), 1 SECONDS, TIMER_STOPPABLE)
 
+/// Rebuilds the editor's resources after clothing or body changes settled.
 /datum/custom_sprite_salon/proc/refresh_editor_body()
 	dress_timer = null
 	var/rebuild_body = rebuild_preview_body
@@ -1059,7 +1066,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	to_chat(artist, span_notice("You show [recipient_name] the finished [label()] in a mirror."))
 	mirror.ui_interact(recipient)
 	if(editor)
-		SStgui.update_uis(editor)
+		editor.push()
 	return null
 
 /// Closes the mirror without treating the close as a decision.
@@ -1084,13 +1091,15 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		return
 	state = SALON_DRAFTING
 	if(editor)
-		SStgui.update_uis(editor)
+		editor.push()
 
+/// An edit withdraws a proposal the recipient is still reviewing.
 /datum/custom_sprite_salon/proc/draft_changed()
 	if(state == SALON_AWAITING_APPROVAL)
 		to_chat(recipient(), span_notice("The artist changed the design, so the preview was withdrawn."))
 		return_to_drafting("You changed the design, so [recipient_name]'s preview was withdrawn.")
 
+/// The recipient (or the timeout) turns the proposal down; the draft is kept.
 /datum/custom_sprite_salon/proc/decline(mob/user, reason = "declined")
 	if(state != SALON_AWAITING_APPROVAL || (user && user.ckey != recipient_ckey))
 		return
@@ -1117,6 +1126,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	INVOKE_ASYNC(src, PROC_REF(apply_proposal), proposal["token"])
 	return TRUE
 
+/// Whether the timed application for `token` is still the current one.
 /datum/custom_sprite_salon/proc/application_valid(token)
 	return state == SALON_APPLYING && proposal?["token"] == token
 
@@ -1195,6 +1205,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	qdel(src)
 	return TRUE
 
+/// Gives a player an achievement, when they have a client.
 /datum/custom_sprite_salon/proc/award(mob/player, award_type)
 	player.client?.give_award(award_type, player)
 
@@ -1300,6 +1311,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		return
 	custom_sprite_salon_open_draft(session, tool, user)
 
+/// Reopens a retained draft for its artist, rebinding the artist's body and tool.
 /proc/custom_sprite_salon_open_draft(datum/custom_sprite_salon/session, obj/item/tool, mob/living/carbon/human/user)
 	if(QDELETED(session) || !ishuman(user) || user.ckey != session.artist_ckey || !user.is_holding(tool) || !istype(tool, session.tool_type))
 		return

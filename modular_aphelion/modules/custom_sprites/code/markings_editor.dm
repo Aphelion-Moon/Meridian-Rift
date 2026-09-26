@@ -167,7 +167,7 @@
 	var/regions_changed = resources_ready && apply_region_locks()
 	var/views_changed = ..(FALSE)
 	if(push && (regions_changed || views_changed))
-		SStgui.update_uis(src)
+		push()
 	return regions_changed || views_changed
 
 /datum/custom_sprite_editor/markings/apply_draft_base_markings()
@@ -197,7 +197,7 @@
 				available = region_zones
 			selected_zone = (BODY_ZONE_CHEST in available) ? BODY_ZONE_CHEST : (length(available) ? available[1] : null)
 	focus_revision++
-	SStgui.update_uis(src)
+	push()
 
 /**
  * What saving would write for every region right now, cached per draft state.
@@ -252,7 +252,7 @@
 			continue
 		if(result["error"])
 			save_error = "[GLOB.custom_marking_zone_labels[zone]] [result["error"]] Your drawing is kept in this session. Press Ctrl+S to retry."
-			SStgui.update_uis(src)
+			push()
 			return FALSE
 		packages += list(region_package(zone, results))
 		if(zone in rotations)
@@ -261,7 +261,7 @@
 		var/error = preferences.commit_custom_styles(packages, slot, rotate_keys)
 		if(error)
 			save_error = "[error] Your drawing is kept in this session. Press Ctrl+S to retry."
-			SStgui.update_uis(src)
+			push()
 			return FALSE
 	mark_saved()
 	update_restorable()
@@ -590,11 +590,24 @@
 	if(problem)
 		transfer_error = problem
 		return FALSE
-	candidate = list("regions" = usable, "skipped" = skipped, "source" = source, "revision" = draft_revision, "summary" = null, "previews" = render_region_previews(candidate_results(usable)))
-	// The body now shows the candidate; the next refresh restores the draft.
+	candidate = list("regions" = usable, "skipped" = skipped, "source" = source, "revision" = draft_revision, "summary" = null, "previews" = null)
+	candidate["previews"] = candidate_cache[candidate_key()]
+	if(isnull(candidate["previews"]))
+		request_candidate()
+	return TRUE
+
+/// A whole-body candidate is keyed by every region it would set and the body it's drawn on.
+/datum/custom_sprite_editor/markings/candidate_key()
+	return json_encode(list(md5(json_encode(candidate_results(candidate["regions"]))), REF(preview_body), resources_markings, hide_parts, hide_underwear))
+
+/datum/custom_sprite_editor/markings/render_candidate()
+	var/key = candidate_key()
+	candidate["previews"] = render_region_previews(candidate_results(candidate["regions"]))
+	if(length(candidate_cache) >= 8)
+		candidate_cache.Cut(1, 2)
+	candidate_cache[key] = candidate["previews"]
 	preview_hash = null
 	refresh_preview(push = FALSE)
-	return TRUE
 
 /// Why candidate regions can't replace their parts of this draft, or null.
 /datum/custom_sprite_editor/markings/proc/region_candidate_problem(list/regions)

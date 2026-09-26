@@ -86,8 +86,11 @@ describe('sprite editor interactions', () => {
     ] as const) {
       expect(fireEvent.keyDown(document, { key })).toBe(false);
       expect(store.get(currentToolAtom).name).toBe(name);
-      fireEvent.keyUp(document, { key });
+      // The release of a claimed key is swallowed too, so the game never sees half a shortcut.
+      expect(fireEvent.keyUp(document, { key })).toBe(false);
     }
+    // A key nothing claimed passes through on release.
+    expect(fireEvent.keyUp(document, { key: 'x' })).toBe(true);
   });
 
   it('leaves tool keys alone when modified, typed into a field, or filtered out', () => {
@@ -619,6 +622,75 @@ describe('sprite editor interactions', () => {
       view.unmount();
     } finally {
       backendStore.set(suspendingAtom, false);
+      getContext.mockRestore();
+      getBounds.mockRestore();
+    }
+  });
+
+  it('mirrors a selection with Shift+H or its button, and leaves a plain H alone', () => {
+    const store = createStore();
+    const blank = () =>
+      Array.from({ length: 4 }, () => Array(4).fill('#00000000'));
+    const front = blank();
+    front[0][0] = '#ff0000ff';
+    front[0][1] = '#00ff00ff';
+    const data: SpriteData = {
+      width: 4,
+      height: 4,
+      dirs: 4,
+      backdrop: '',
+      layers: [
+        {
+          name: 'Drawing',
+          visible: true,
+          data: { 2: front, 1: blank(), 4: blank(), 8: blank() },
+        },
+      ],
+    };
+    const context = { fillStyle: '', clearRect: () => {}, fillRect: () => {} };
+    const getContext = spyOn(
+      HTMLCanvasElement.prototype,
+      'getContext',
+    ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
+    const getBounds = spyOn(
+      HTMLElement.prototype,
+      'getBoundingClientRect',
+    ).mockReturnValue(new DOMRect(0, 0, 80, 80));
+    const key = (init: KeyboardEventInit) => {
+      const claimed = !fireEvent.keyDown(document, init);
+      fireEvent.keyUp(document, init);
+      return claimed;
+    };
+    try {
+      const view = render(
+        <Provider store={store}>
+          <SpriteEditor.Toolbar />
+          <SelectionTools />
+          <SpriteEditor.Canvas data={data} />
+        </Provider>,
+      );
+      key({ key: 'm' });
+      const canvas = view.container.querySelector('canvas')!;
+      fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
+      fireEvent.mouseUp(window, { clientX: 25, clientY: 5, button: 0 });
+      expect(key({ key: 'h' })).toBe(false);
+      expect(key({ key: 'H', shiftKey: true })).toBe(true);
+      // The button mirrors it back, and the key once more.
+      fireEvent.click(screen.getByLabelText('Mirror'));
+      expect(key({ key: 'H', shiftKey: true })).toBe(true);
+      expect(send).not.toHaveBeenCalled();
+      expect(key({ key: 'Enter' })).toBe(true);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send.mock.calls[0][1].transaction).toMatchObject({
+        type: 'move',
+        dir: '2',
+        area: [0, 0, 1, 0],
+        palette: ['#00ff00ff', '#ff0000ff'],
+        digits: 1,
+        codes: '01',
+      });
+      view.unmount();
+    } finally {
       getContext.mockRestore();
       getBounds.mockRestore();
     }

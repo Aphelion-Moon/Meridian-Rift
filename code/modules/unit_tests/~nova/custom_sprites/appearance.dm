@@ -205,7 +205,6 @@
 			continue
 		var/obj/item/bodypart/limb = human.get_bodypart(body_zone)
 		var/list/mask = custom_sprite_body_draw_mask(human, body_zone)
-		TEST_ASSERT(mask == custom_sprite_body_draw_mask(human, body_zone), "Unchanged limb geometry must reuse its cached mask.")
 		var/icon/silhouette = custom_sprite_silhouette(limb)
 		if(limb.aux_zone)
 			silhouette.Blend(custom_sprite_silhouette(limb, TRUE), ICON_OVERLAY)

@@ -123,6 +123,29 @@ const turnMask = (mask: SelectionMask, turn: 1 | -1): SelectionMask => {
   );
 };
 
+/** Whether every pixel, drawn with its box at left, top, lands on the canvas where paint is allowed. */
+const landsAt = (
+  context: SpriteEditorToolContext,
+  data: SpriteData,
+  pixels: Pixel[],
+  left: number,
+  top: number,
+) =>
+  pixels.every(([px, py]) => {
+    const [x, y] = [left + px, top + py];
+    return (
+      x >= 0 &&
+      y >= 0 &&
+      x < data.width &&
+      y < data.height &&
+      isWithinDrawBounds(x, y, context.drawBounds, context.drawMask)
+    );
+  });
+
+/** A mask mirrored left to right. */
+const flipMask = (mask: SelectionMask): SelectionMask =>
+  mask.map((row) => [...row].reverse().join(''));
+
 /**
  * The selection with a rectangle taken out of it, tightened around what's left: a plain box when
  * nothing inside it is missing. Undefined when nothing is left.
@@ -170,6 +193,8 @@ type Floating = {
   /** source without the lifted paint. */
   base: StringLayer;
   pixels: Pixel[];
+  /** It floats only because a move didn't all land, so a drag that lands all of it writes it. */
+  moved?: boolean;
 };
 
 type SelectionDrag = {
@@ -533,25 +558,35 @@ export class Select extends Tool {
     if (drag?.mode !== 'move') return;
     const lift = drag.lift;
     const [dx, dy] = drag.offset;
+    const floating = this.floating;
+    if (!lift) {
+      // Paint that floats only because a move didn't all land is written once a drag lands all of it.
+      if (
+        floating?.moved &&
+        (dx || dy) &&
+        this.selection &&
+        landsAt(
+          context,
+          data,
+          floating.pixels,
+          this.selection[0],
+          this.selection[1],
+        )
+      ) {
+        this.drop(context);
+      }
+      this.showPreview(context);
+      return;
+    }
     const changed = drag.preview?.some((row, py) =>
-      row.some((pixel, px) => pixel !== lift?.frame[py][px]),
+      row.some((pixel, px) => pixel !== lift.frame[py][px]),
     );
-    if (!lift || !changed) {
+    if (!changed) {
       this.showPreview(context);
       return;
     }
     const [sx, sy, ex, ey] = drag.rect;
-    const lands = lift.pixels.every(([px, py]) => {
-      const [tx, ty] = [sx + dx + px, sy + dy + py];
-      return (
-        tx >= 0 &&
-        ty >= 0 &&
-        tx < data.width &&
-        ty < data.height &&
-        isWithinDrawBounds(tx, ty, context.drawBounds, context.drawMask)
-      );
-    });
-    if (!lands) {
+    if (!landsAt(context, data, lift.pixels, sx + dx, sy + dy)) {
       // Paint that doesn't all land on the canvas floats with the box until it's dropped.
       const base = copyLayer(lift.frame);
       for (const [px, py] of lift.pixels) base[sy + py][sx + px] = CLEAR;
@@ -561,6 +596,7 @@ export class Select extends Tool {
         source: lift.frame,
         base,
         pixels: lift.pixels,
+        moved: true,
       };
       this.showPreview(context);
       return;
@@ -662,6 +698,8 @@ export class Select extends Tool {
       return false;
     }
     const floating = this.floating!;
+    // Turned paint floats until the marquee goes away, wherever it lands.
+    floating.moved = false;
     const width = rect[2] - rect[0] + 1;
     const height = rect[3] - rect[1] + 1;
     floating.pixels = floating.pixels.map(([x, y, color]) =>
@@ -683,6 +721,32 @@ export class Select extends Tool {
       [left, top, left + height - 1, top + width - 1],
       this.mask && turnMask(this.mask, turn),
     );
+    this.showPreview(context);
+    return true;
+  }
+
+  /**
+   * Mirrors the selection left to right about its middle. Paint still on the canvas is lifted to
+   * float with the box first.
+   *
+   * Returns whether there was a selection to mirror.
+   */
+  flip(context: SpriteEditorToolContext, data: SpriteData) {
+    this.reconcilePending(context, data);
+    const rect = this.selection;
+    if (!rect || this.drag || (!this.floating && !this.float(context, data))) {
+      return false;
+    }
+    const floating = this.floating!;
+    // Mirrored paint floats until the marquee goes away, wherever it lands.
+    floating.moved = false;
+    const width = rect[2] - rect[0] + 1;
+    floating.pixels = floating.pixels.map(([x, y, color]) => [
+      width - 1 - x,
+      y,
+      color,
+    ]);
+    this.setSelection(context, [...rect], this.mask && flipMask(this.mask));
     this.showPreview(context);
     return true;
   }

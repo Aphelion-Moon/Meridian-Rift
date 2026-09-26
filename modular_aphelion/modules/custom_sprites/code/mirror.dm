@@ -122,10 +122,15 @@
 	for(var/direction in GLOB.cardinals)
 		.["[direction]"] = custom_sprite_render_view(appearance, direction, width, publish, height)
 
-/// The canvas height a body's pictures need: taller while its hair drawing reaches above the head.
-/proc/custom_sprite_preview_height(mob/living/carbon/human/body)
+/**
+ * The rows a body's pictures need: taller while its hair drawing reaches above the head, and taller
+ * again for a hairstyle drawn above it, such as Afro (Huge). `style` names a hairstyle other than
+ * the body's own.
+ */
+/proc/custom_sprite_preview_height(mob/living/carbon/human/body, style)
 	var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
-	return custom_sprite_height(head?.custom_hair)
+	var/list/lift = custom_sprite_hair_lift(body, style)
+	return custom_sprite_height(head?.custom_hair) + max(0, lift[2])
 
 /**
  * The recipient's mirror.
@@ -253,11 +258,13 @@
 	render_proposal(recipient)
 	update_static_data_for_all_viewers()
 
+/// The countdown ran out: tells the recipient and declines.
 /datum/custom_sprite_mirror/proc/expire()
 	var/mob/recipient = recipient_ref?.resolve()
 	to_chat(recipient, span_warning("The mirror preview expired without approval."))
 	session?.decline(null, "didn't respond to")
 
+/// The recipient's body, or null once it's gone or another player controls it.
 /datum/custom_sprite_mirror/proc/recipient()
 	var/mob/living/carbon/human/recipient = recipient_ref?.resolve()
 	return !QDELETED(recipient) && recipient.ckey == recipient_ckey ? recipient : null

@@ -50,12 +50,9 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	var/palette_limit = version == 1 ? 15 : CUSTOM_SPRITE_MAX_COLORS
 	if(!islist(raw_palette) || !length(raw_palette) || length(raw_palette) > palette_limit)
 		return list("error" = "The drawing's palette is invalid or has more than [palette_limit] colors.")
-	var/list/palette = list()
-	for(var/raw_color, associated in raw_palette)
-		var/color = custom_sprite_color(raw_color)
-		if(!color || (color in palette) || !isnull(associated))
-			return list("error" = "The drawing's palette has an invalid or repeated color.")
-		palette += color
+	var/list/palette = custom_sprite_palette_colors(raw_palette, strict = TRUE)
+	if(!palette)
+		return list("error" = "The drawing's palette has an invalid or repeated color.")
 	var/list/raw_dirs = raw["dirs"]
 	if(!islist(raw_dirs) || custom_style_unknown_key(raw_dirs, GLOB.custom_style_directions))
 		return list("error" = "The drawing's views are malformed.")
@@ -226,6 +223,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			markings = markings_result["markings"]
 	return list("package" = custom_style_package(target, zone, drawing, hair, markings))
 
+/// A canonical package that owns copies of its drawing, hair look and markings.
 /proc/custom_style_package(target, zone, list/drawing, list/hair, list/markings)
 	. = list("target" = target, "zone" = target == "markings" ? zone : null, "drawing" = deep_copy_list(drawing), "hair" = hair?.Copy())
 	if(!isnull(markings))
@@ -410,6 +408,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 					return GLOB.custom_style_direction_labels[direction]
 	return null
 
+/// Whether any view of a drawing glows.
 /proc/custom_style_has_emission(list/drawing)
 	for(var/direction in drawing?["emissive"])
 		if(drawing["emissive"][direction])
@@ -440,11 +439,13 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	state[kind] = world.time + (kind == "import" ? CUSTOM_STYLE_IMPORT_COOLDOWN : CUSTOM_STYLE_EXPORT_COOLDOWN)
 	return null
 
+/// Releases the account's transfer slot.
 /proc/custom_style_transfer_end(ckey)
 	var/list/state = GLOB.custom_style_transfers[ckey]
 	if(state)
 		state["busy"] = FALSE
 
+/// The download name for a package.
 /proc/custom_style_file_label(list/package)
 	if(package["target"] == "facial_hair")
 		return "custom-facial-hair-style"

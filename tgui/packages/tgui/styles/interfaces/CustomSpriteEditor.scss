@@ -63,10 +63,13 @@
   gap: 1em;
 }
 
-// Background tiles stay pixel-sharp and fill their preview or swatch.
+// Background tiles stay pixel-sharp. Pictures stand on the tile, which repeats upward as far as
+// hair reaches above the head.
 .CustomSpriteEditor__tile {
   max-width: 100%;
-  background-size: 100% 100%;
+  background-size: 100% auto;
+  background-position: bottom;
+  background-repeat: repeat-y;
   image-rendering: pixelated;
 
   // Flush on the tile, with no inline descender gap, and shrinking to fit a narrow window.
@@ -207,7 +210,6 @@
   margin: 0;
 }
 
-
 // Blending options follow the Custom swatches without a rule between them.
 .CustomSpriteEditor__blending {
   margin-top: 0.5em;
@@ -253,4 +255,19 @@
   stroke: white;
   stroke-width: 1px;
   stroke-dasharray: 3 3;
+}
+
+// The Select tool's shortcuts, beside the footer buttons while it's the current tool.
+.CustomSpriteEditor__selectHint {
+  font-size: 0.85em;
+  line-height: 1.7;
+
+  kbd {
+    padding: 0 0.3em;
+    border: 1px solid currentColor;
+    border-radius: 0.25em;
+    font-family: inherit;
+    font-size: 0.9em;
+    white-space: nowrap;
+  }
 }

@@ -1,17 +1,19 @@
 // THIS IS AN APHELION UI FILE
 import { useAtomValue } from 'jotai';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { store as backendStore, suspendingAtom } from 'tgui/events/store';
 import { Button } from 'tgui-core/components';
-import { listenForKeyEvents } from 'tgui-core/hotkeys';
 import { selectionBoundsAtom } from './atoms';
 import { isTextEntryTarget } from './helpers';
 import type { Tool } from './Types/Tool';
 import { Select } from './Types/Tools/Select';
 import type { SpriteData, SpriteEditorToolContext } from './Types/types';
+import { useClaimedKeys } from './useClaimedKeys';
 
 /// Unmodified key that turns the selection clockwise; with Shift, counter-clockwise.
 export const ROTATE_SELECTION_KEY = 'r';
+/// With Shift, mirrors the selection left to right, as Shift+H flips horizontally in Aseprite.
+export const MIRROR_SELECTION_KEY = 'h';
 
 /**
  * The canvas selection commands act on: its current tool, live context and sprite. A window has one
@@ -33,6 +35,12 @@ export const rotateSelection = (turn: 1 | -1) => {
   return !!current?.select.rotate(current.context, current.data, turn);
 };
 
+/** Mirrors the selection left to right. Returns whether it mirrored. */
+export const mirrorSelection = () => {
+  const current = currentSelect();
+  return !!current?.select.flip(current.context, current.data);
+};
+
 /** Drops floating paint onto the canvas, so a save or a finish includes it. A plain selection stays. */
 export const settleSelection = () => {
   const current = currentSelect();
@@ -41,8 +49,8 @@ export const settleSelection = () => {
 
 /**
  * Selection keys while the Select tool is current: Ctrl+C copies, Ctrl+V pastes into the view shown,
- * R turns the selection clockwise and Shift+R counter-clockwise, and Enter drops it. Keys that have
- * nothing to act on pass through untouched.
+ * R turns the selection clockwise and Shift+R counter-clockwise, Shift+H mirrors it left to right,
+ * and Enter drops it. Keys that have nothing to act on pass through untouched.
  */
 export function useSelectionCommands(
   tool: Tool,
@@ -68,74 +76,88 @@ export function useSelectionCommands(
       }),
     [],
   );
-  const claimedKeys = useRef(new Set<string>());
-  useEffect(
-    () =>
-      listenForKeyEvents((keyEvent) => {
-        const event = keyEvent.event;
-        const key = event.key.toLowerCase();
-        if (keyEvent.isUp()) {
-          if (claimedKeys.current.delete(key)) event.preventDefault();
-          return;
-        }
-        const current = currentSelect();
-        if (
-          !current ||
-          event.altKey ||
-          event.metaKey ||
-          event.defaultPrevented ||
-          isTextEntryTarget(event.target)
-        ) {
-          return;
-        }
-        const { select, context, data } = current;
-        let handled = false;
-        if (event.ctrlKey) {
-          if (event.shiftKey) return;
-          if (key === 'c') handled = select.copy(context, data);
-          if (key === 'v') handled = select.paste(context, data);
-        } else if (key === ROTATE_SELECTION_KEY) {
-          handled = select.rotate(context, data, event.shiftKey ? -1 : 1);
-        } else if (
-          key === 'enter' &&
-          !event.shiftKey &&
-          select.hasSelection()
-        ) {
-          select.release(context);
-          handled = true;
-        }
-        if (!handled) return;
-        claimedKeys.current.add(key);
-        event.preventDefault();
-      }),
-    [],
-  );
+  useClaimedKeys((event, key) => {
+    const current = currentSelect();
+    if (
+      !current ||
+      event.altKey ||
+      event.metaKey ||
+      event.defaultPrevented ||
+      isTextEntryTarget(event.target)
+    ) {
+      return false;
+    }
+    const { select, context, data } = current;
+    if (event.ctrlKey) {
+      if (event.shiftKey) return false;
+      if (key === 'c') return select.copy(context, data);
+      if (key === 'v') return select.paste(context, data);
+      return false;
+    }
+    if (key === MIRROR_SELECTION_KEY) {
+      return event.shiftKey && select.flip(context, data);
+    }
+    if (key === ROTATE_SELECTION_KEY) {
+      return select.rotate(context, data, event.shiftKey ? -1 : 1);
+    }
+    if (key === 'enter' && !event.shiftKey && select.hasSelection()) {
+      select.release(context);
+      return true;
+    }
+    return false;
+  }, []);
 }
 
-/** Quarter-turn buttons for the toolbar, shown while there is a selection. */
+/** A button for a selection command, labelled and badged like the tool buttons. */
+const SelectionButton = (props: {
+  icon: string;
+  label: string;
+  keys: string;
+  badge: string;
+  command: () => void;
+}) => (
+  <Button
+    icon={props.icon}
+    aria-label={props.label}
+    tooltip={`${props.label} (${props.keys})`}
+    data-hotkey={props.badge}
+    onClick={(event) => {
+      props.command();
+      // Enter then drops the selection rather than pressing this button again.
+      event.currentTarget.blur();
+    }}
+  />
+);
+
+/** Turn and mirror buttons for the toolbar, shown while there is a selection. */
 export const SelectionTools = (props: { className?: string }) => {
   const bounds = useAtomValue(selectionBoundsAtom);
   if (!bounds) return null;
-  const turnButton = (turn: 1 | -1) => (
-    <Button
-      icon={turn > 0 ? 'rotate-right' : 'rotate-left'}
-      aria-label={turn > 0 ? 'Turn clockwise' : 'Turn counter-clockwise'}
-      tooltip={
-        turn > 0
-          ? `Turn the selection clockwise (${ROTATE_SELECTION_KEY.toUpperCase()})`
-          : `Turn the selection counter-clockwise (Shift+${ROTATE_SELECTION_KEY.toUpperCase()})`
-      }
-      onClick={(event) => {
-        rotateSelection(turn);
-        // Enter then drops the selection rather than pressing this button again.
-        event.currentTarget.blur();
-      }}
-    />
-  );
+  const turn = ROTATE_SELECTION_KEY.toUpperCase();
+  const mirror = MIRROR_SELECTION_KEY.toUpperCase();
   return (
     <div className={props.className}>
-      {turnButton(-1)}
-      {turnButton(1)}
+      <SelectionButton
+        icon="rotate-left"
+        label="Turn counter-clockwise"
+        keys={`Shift+${turn}`}
+        badge={`⇧${turn}`}
+        command={() => rotateSelection(-1)}
+      />
+      <SelectionButton
+        icon="rotate-right"
+        label="Turn clockwise"
+        keys={turn}
+        badge={turn}
+        command={() => rotateSelection(1)}
+      />
+      <SelectionButton
+        icon="arrows-left-right"
+        label="Mirror"
+        keys={`Shift+${mirror}`}
+        badge={`⇧${mirror}`}
+        command={mirrorSelection}
+      />
     </div>
   );
 };

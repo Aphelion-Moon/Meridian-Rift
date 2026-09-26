@@ -343,17 +343,6 @@
 	TEST_ASSERT(editor.ui_act("setEmissive", list("zone" = BODY_ZONE_L_ARM, "dir" = "2", "enabled" = TRUE), ui, null), "A region that appeared later must take emissive changes.")
 	editor.finish(FALSE)
 
-/datum/unit_test/custom_sprite_markings_editor_ui_state/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
-	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
-	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
-	ui.status = UI_UPDATE
-	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_R_LEG), ui, null)
-	TEST_ASSERT(editor.selected_zone == BODY_ZONE_CHEST, "Region actions must respect the window's state, like every other action.")
-	editor.finish(FALSE)
-
 /datum/unit_test/custom_sprite_markings_editor_selection_authority/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)

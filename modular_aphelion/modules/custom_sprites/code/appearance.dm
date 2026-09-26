@@ -41,6 +41,7 @@
 	name = CUSTOM_SPRITE_TALL_HAIRSTYLE
 	natural_spawn = FALSE
 
+/// The accessory this head's hair draws with: the real one, or the nameless blank so a bald head can carry paint.
 /obj/item/bodypart/head/proc/custom_sprite_hair_accessory()
 	var/datum/sprite_accessory/hair/accessory = SSaccessories.hairstyles_list[hairstyle]
 	if(accessory || !custom_hair)
@@ -52,6 +53,7 @@
 /datum/sprite_accessory/facial_hair/custom_sprite_blank
 	icon_state = SPRITE_ACCESSORY_NONE
 
+/// The accessory this head's facial hair draws with: the real one, or the nameless blank so a shaved face can carry paint.
 /obj/item/bodypart/head/proc/custom_sprite_facial_hair_accessory()
 	var/datum/sprite_accessory/facial_hair/accessory = SSaccessories.facial_hairstyles_list[facial_hairstyle]
 	if(accessory || !custom_facial_hair)
@@ -108,6 +110,7 @@
 		paint.Blend(custom_sprite_extend_up(mask_icon, paint.Height()), ICON_ADD)
 	return paint
 
+/// Adds the painted layer for one head target to `hair_overlays`: its blocker, the tinted paint (with its gradient), then its glow.
 /obj/item/bodypart/head/proc/append_custom_hair_paint_overlays(list/hair_overlays, icon/paint, datum/sprite_accessory/hair/hairstyle, dropped, target = "hair")
 	if(!paint)
 		return
@@ -132,13 +135,7 @@
 			geometry += "[mask.icon]|[mask.icon_state]"
 	var/geometry_key = json_encode(geometry)
 	// Legacy paint is merged into the base hair; its OFF mask must still cover base hair emission.
-	var/icon/blocking = custom_sprite_directional_mask(paint, geometry_key, drawing["emissive"], FALSE)
-	if(blocking)
-		var/mutable_appearance/blocker = custom_sprite_emissive_mask(tinted, loc || owner || src, FALSE)
-		blocker.icon = blocking
-		if(dropped)
-			blocker = make_mutable_appearance_directional(blocker, SOUTH)
-		hair_overlays += blocker
+	custom_sprite_append_mask(hair_overlays, paint, geometry_key, drawing["emissive"], FALSE, tinted, loc || owner || src, dropped)
 	if(drawing["tint"])
 		hair_overlays += tinted
 		// The base gradient is built from the accessory alone, so painted pixels need their own copy.
@@ -168,13 +165,19 @@
 				shared_holder.overlays += opaque_paint
 				shared_holder.overlays += paint_gradient
 				hair_overlays += shared_holder
-	var/icon/emitting = custom_sprite_directional_mask(paint, geometry_key, drawing["emissive"], TRUE)
-	if(emitting)
-		var/mutable_appearance/glow = custom_sprite_emissive_mask(tinted, loc || owner || src, TRUE)
-		glow.icon = emitting
-		if(dropped)
-			glow = make_mutable_appearance_directional(glow, SOUTH)
-		hair_overlays += glow
+	custom_sprite_append_mask(hair_overlays, paint, geometry_key, drawing["emissive"], TRUE, tinted, loc || owner || src, dropped)
+
+/// Adds `paint`'s glow mask (`glowing`) or blocker mask to `overlays` for the facings whose emissive setting matches,
+/// placed like `visible`. Adds nothing when no facing matches. Dropped heads and limbs face South.
+/proc/custom_sprite_append_mask(list/overlays, icon/paint, geometry_key, list/emissive, glowing, image/visible, atom/location, dropped = FALSE)
+	var/icon/masked = custom_sprite_directional_mask(paint, geometry_key, emissive, glowing)
+	if(!masked)
+		return
+	var/mutable_appearance/mask = custom_sprite_emissive_mask(visible, location, glowing)
+	mask.icon = masked
+	if(dropped)
+		mask = make_mutable_appearance_directional(mask, SOUTH)
+	overlays += mask
 
 /// Reuse the visible paint's placement; shared worn/bodypart preparation owns pose transforms.
 /proc/custom_sprite_emissive_mask(image/source, atom/location, glowing)
@@ -202,6 +205,7 @@
 	/// Whether built icons go into the shared caches. Throwaway overlays, such as region-map scratch, skip them.
 	var/cache_icons = TRUE
 
+/// Takes a private copy of the drawing and records its identities; hand overlays follow their arm's aux layer.
 /datum/bodypart_overlay/custom_marking/proc/set_drawing(list/new_drawing, obj/item/bodypart/limb)
 	drawing = deep_copy_list(new_drawing)
 	drawing_hash = custom_sprite_hash(drawing)
@@ -271,16 +275,9 @@
 		visible_overlays += overlay
 		index++
 		var/geometry_key = "marking|[key]|split=[split_leg]|[index]|[overlay.layer]"
-		var/icon/emitting = custom_sprite_directional_mask(overlay.icon, geometry_key, drawing?["emissive"], TRUE)
-		if(emitting)
-			var/mutable_appearance/glow = custom_sprite_emissive_mask(overlay, limb, TRUE)
-			glow.icon = emitting
-			masks += glow
-		var/icon/blocking = custom_sprite_directional_mask(overlay.icon, geometry_key, drawing?["emissive"], FALSE)
-		if(blocking && blocks_emissive != EMISSIVE_BLOCK_NONE)
-			var/mutable_appearance/blocker = custom_sprite_emissive_mask(overlay, limb, FALSE)
-			blocker.icon = blocking
-			masks += blocker
+		custom_sprite_append_mask(masks, overlay.icon, geometry_key, drawing?["emissive"], TRUE, overlay, limb)
+		if(blocks_emissive != EMISSIVE_BLOCK_NONE)
+			custom_sprite_append_mask(masks, overlay.icon, geometry_key, drawing?["emissive"], FALSE, overlay, limb)
 	// Each facing emits OR blocks; translucent edges must not receive both masks.
 	. = visible_overlays + masks
 
@@ -364,6 +361,7 @@
 		if(candidate.type == overlay_type)
 			return candidate
 
+/// Puts a zone drawing on this limb as an overlay of `overlay_type`, replacing, updating or removing the one it has.
 /obj/item/bodypart/proc/apply_custom_marking(list/drawing, overlay_type = /datum/bodypart_overlay/custom_marking/zone)
 	var/datum/bodypart_overlay/custom_marking/overlay = get_custom_marking(overlay_type)
 	if(!drawing)
@@ -384,6 +382,7 @@
 				add_bodypart_overlay(hand, FALSE)
 	overlay.set_drawing(drawing, src)
 
+/// Copies DNA drawings onto every limb and the head; with `refresh_body` the body redraw does it through the component.
 /mob/living/carbon/human/proc/sync_custom_sprite_appearance(refresh_body = FALSE)
 	AddComponent(/datum/component/custom_sprite_appearance)
 	// A body refresh already snapshots markings through the component and hair through update_limb().
@@ -458,6 +457,7 @@
 /datum/component/custom_sprite_appearance/UnregisterFromParent()
 	UnregisterSignal(parent, list(COMSIG_CARBON_BODYPART_UPDATED, COMSIG_CARBON_GAIN_ORGAN, COMSIG_CARBON_LOSE_ORGAN))
 
+/// A regenerated or replaced limb takes its zone drawings from DNA.
 /datum/component/custom_sprite_appearance/proc/on_limb_updated(mob/living/carbon/human/source, obj/item/bodypart/limb, dropping_limb, is_creating)
 	SIGNAL_HANDLER
 	if(!dropping_limb && is_creating)
@@ -465,6 +465,7 @@
 		if(limb.body_zone == BODY_ZONE_CHEST)
 			source.sync_custom_taur_markings()
 
+/// A taur organ coming or going changes where the taur zone's paint lives.
 /datum/component/custom_sprite_appearance/proc/on_organ_changed(mob/living/carbon/human/source, obj/item/organ/organ, special)
 	SIGNAL_HANDLER
 	if(istype(organ, /obj/item/organ/taur_body))
