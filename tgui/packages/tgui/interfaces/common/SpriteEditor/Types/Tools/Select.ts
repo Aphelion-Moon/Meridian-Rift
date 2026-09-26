@@ -10,6 +10,7 @@ import {
 } from '../../helpers';
 import { Tool } from '../Tool';
 import type {
+  BaseCopyResult,
   Dir,
   SelectionBounds,
   SelectionMask,
@@ -185,6 +186,14 @@ const subtractRect = (
  * Paint that follows the selection box instead of sitting in the canvas: lifted off it by a move that
  * didn't all land on the canvas, pasted, or turned. It is written to the canvas only when dropped.
  */
+type BaseCopy = {
+  width: number;
+  request: number;
+  source: string;
+  origin: [number, number];
+  height: number;
+};
+
 type Floating = {
   dir: Dir;
   layer: number;
@@ -195,6 +204,7 @@ type Floating = {
   pixels: Pixel[];
   /** It floats only because a move didn't all land, so a drag that lands all of it writes it. */
   moved?: boolean;
+  baseCopy?: BaseCopy;
 };
 
 type SelectionDrag = {
@@ -220,8 +230,9 @@ type SelectionDrag = {
  * Dragging is free, even off the canvas. A move that lands entirely on paintable pixels is sent at
  * once, as one history step. Paint that doesn't fit, pasted paint and turned paint float with the box
  * instead, and only reach the canvas when the marquee goes away (release()): then anything off the
- * canvas or outside the paintable area is cut. Everything happens here in the window; the server only
- * receives the finished move.
+ * canvas or outside the paintable area is cut. Pointer movement stays in the window. Editors that
+ * support temporary character previews receive one preview placement after a floating gesture;
+ * only a finished move or drop changes the server's draft.
  */
 export class Select extends Tool {
   icon = 'vector-square';
@@ -241,9 +252,58 @@ export class Select extends Tool {
     rect: SelectionBounds;
     mask?: SelectionMask;
     pixels: Pixel[];
+    baseCopy?: BaseCopy;
+  };
+  private copyRequest = 0;
+  private pendingBaseCopy?: {
+    request: number;
+    source: string;
+    rect: SelectionBounds;
+    mask?: SelectionMask;
+    frame: StringLayer;
   };
   /** The paintable area from the last full context, so a drop from a bare cancel context still cuts to it. */
   private area?: Pick<SpriteEditorToolContext, 'drawBounds' | 'drawMask'>;
+  /** Whether the character thumbnail currently has a temporary floating-paint preview. */
+  private serverPreview = false;
+
+  private clearServerPreview() {
+    if (!this.serverPreview) return;
+    this.serverPreview = false;
+    act('previewSelection', { transaction: null });
+  }
+
+  /** Previews a finished gesture without committing its floating paint or sending pointer moves. */
+  private previewFloating(data: SpriteData) {
+    const floating = this.floating;
+    if (!data.selectionPreview || !floating || !this.selection) return;
+    const frame = this.floatingFrame(floating, this.selection);
+    const placement = encodePlacement(floating.source, frame);
+    if (!placement) {
+      this.clearServerPreview();
+      return;
+    }
+    this.serverPreview = true;
+    act('previewSelection', {
+      transaction: { dir: String(floating.dir), ...placement, ...(floating.baseCopy && { baseCopy: floating.baseCopy.request, baseCopySource: floating.baseCopy.source }) },
+    });
+  }
+
+  /** The legal part of floating paint, exactly as dropping it would place it. */
+  private floatingFrame(floating: Floating, selection: SelectionBounds) {
+    const [left, top] = selection;
+    const frame = copyLayer(floating.base);
+    for (const [px, py, color] of floating.pixels) {
+      const [x, y] = [left + px, top + py];
+      if (
+        frame[y]?.[x] !== undefined &&
+        isWithinDrawBounds(x, y, this.area?.drawBounds, this.area?.drawMask)
+      ) {
+        frame[y][x] = color;
+      }
+    }
+    return frame;
+  }
 
   private reconcilePending(context: SpriteEditorToolContext, data: SpriteData) {
     this.area = { drawBounds: context.drawBounds, drawMask: context.drawMask };
@@ -291,6 +351,7 @@ export class Select extends Tool {
     ) {
       this.floating = undefined;
       this.drag = undefined;
+      this.clearServerPreview();
       this.setSelection(context, undefined, undefined);
     }
   }
@@ -362,6 +423,7 @@ export class Select extends Tool {
     layer: number,
     source: StringLayer,
     frame: StringLayer,
+    baseCopy?: BaseCopy,
   ) {
     const placement = encodePlacement(source, frame);
     if (!placement) return;
@@ -377,6 +439,10 @@ export class Select extends Tool {
         layer: layer + 1,
         dir: String(dir),
         ...placement,
+        ...(baseCopy && {
+          baseCopy: baseCopy.request,
+          baseCopySource: baseCopy.source,
+        }),
       },
     });
   }
@@ -387,21 +453,18 @@ export class Select extends Tool {
    * Returns whether there was floating paint, so callers can show the frame it left behind.
    */
   private drop(context: SpriteEditorToolCancelContext) {
+    this.clearServerPreview();
     const floating = this.floating;
     this.floating = undefined;
     if (!floating || !this.selection) return false;
-    const [left, top] = this.selection;
-    const frame = copyLayer(floating.base);
-    for (const [px, py, color] of floating.pixels) {
-      const [x, y] = [left + px, top + py];
-      if (
-        frame[y]?.[x] !== undefined &&
-        isWithinDrawBounds(x, y, this.area?.drawBounds, this.area?.drawMask)
-      ) {
-        frame[y][x] = color;
-      }
-    }
-    this.commitFrame(floating.dir, floating.layer, floating.source, frame);
+    const frame = this.floatingFrame(floating, this.selection);
+    this.commitFrame(
+      floating.dir,
+      floating.layer,
+      floating.source,
+      frame,
+      floating.baseCopy,
+    );
     return true;
   }
 
@@ -435,6 +498,7 @@ export class Select extends Tool {
     const { width, height } = data;
     const [px, py, inBounds] = constrainToIconGrid(x, y, width, height);
     if (!inBounds) return;
+    this.clearServerPreview();
     const bounds: SelectionBounds = [0, 0, width - 1, height - 1];
     const base = {
       dir: context.selectedDir,
@@ -576,6 +640,7 @@ export class Select extends Tool {
         this.drop(context);
       }
       this.showPreview(context);
+      this.previewFloating(data);
       return;
     }
     const changed = drag.preview?.some((row, py) =>
@@ -583,6 +648,7 @@ export class Select extends Tool {
     );
     if (!changed) {
       this.showPreview(context);
+      this.previewFloating(data);
       return;
     }
     const [sx, sy, ex, ey] = drag.rect;
@@ -599,6 +665,7 @@ export class Select extends Tool {
         moved: true,
       };
       this.showPreview(context);
+      this.previewFloating(data);
       return;
     }
     if (
@@ -639,6 +706,7 @@ export class Select extends Tool {
    * Returns whether there was a selection to copy.
    */
   copy(context: SpriteEditorToolContext, data: SpriteData) {
+    this.pendingBaseCopy = undefined;
     this.reconcilePending(context, data);
     const rect = this.selection;
     if (!rect || this.drag) return false;
@@ -649,6 +717,72 @@ export class Select extends Tool {
       rect: [...rect],
       mask: this.mask,
       pixels: pixels.map((pixel) => [...pixel] as Pixel),
+      baseCopy: this.floating?.baseCopy,
+    };
+    return true;
+  }
+
+  /** Shift+C snapshots local paint and requests only the selected native base pixels. */
+  copyBaseLayer(context: SpriteEditorToolContext, data: SpriteData) {
+    this.reconcilePending(context, data);
+    const rect = this.selection;
+    if (!rect || this.drag || !data.baseCopyInfo) return false;
+    const frame = this.floating
+      ? this.floatingFrame(this.floating, rect)
+      : this.currentFrame(context, data);
+    if (!frame) return false;
+    this.copyRequest = (this.copyRequest % 1000000000) + 1;
+    const request = this.copyRequest;
+    this.pendingBaseCopy = {
+      request,
+      source: data.baseCopyInfo.source,
+      rect: [...rect],
+      mask: this.mask?.slice(),
+      frame,
+    };
+    act('copyBaseLayer', {
+      request,
+      dir: String(context.selectedDir),
+      rect: [...rect],
+      mask: this.mask,
+    });
+    return true;
+  }
+
+  /** An old or cancelled response cannot overwrite a newer clipboard. */
+  receiveBaseCopy(result: BaseCopyResult) {
+    const pending = this.pendingBaseCopy;
+    if (!pending || result.request !== pending.request) return false;
+    this.pendingBaseCopy = undefined;
+    if (
+      result.error ||
+      result.source !== pending.source ||
+      result.height !== pending.frame.length ||
+      result.width !== pending.frame[0]?.length ||
+      result.codes.length !== result.width * result.height
+    ) {
+      return false;
+    }
+    const frame = copyLayer(pending.frame);
+    for (let y = 0; y < result.height; y++) {
+      for (let x = 0; x < result.width; x++) {
+        if (!isPainted(frame[y][x])) {
+          frame[y][x] =
+            result.palette[CODES.indexOf(result.codes[y * result.width + x])];
+        }
+      }
+    }
+    this.clipboard = {
+      rect: pending.rect,
+      mask: pending.mask,
+      pixels: liftPixels(frame, pending.rect, pending.mask),
+      baseCopy: {
+        width: result.width,
+        request: result.request,
+        source: result.source,
+        origin: result.origin,
+        height: result.height,
+      },
     };
     return true;
   }
@@ -663,18 +797,47 @@ export class Select extends Tool {
     this.reconcilePending(context, data);
     const clip = this.clipboard;
     if (!clip || this.drag) return false;
+    const [left, top, right, bottom] = clip.rect;
+    const base = clip.baseCopy;
+    const destination = data.baseCopyInfo;
+    if (base && base.source !== destination?.source) {
+      act('baseCopyProblem', { problem: 'context' });
+      return true;
+    }
+    const x = base
+      ? left + (data.width - base.width) / 2 + base.origin[0] - destination!.origin[0]
+      : clamp(left, left - right, data.width - 1);
+    const y = base
+      ? top +
+        data.height -
+        base.height -
+        base.origin[1] +
+        destination!.origin[1]
+      : clamp(top, top - bottom, data.height - 1);
+    if (
+      base &&
+      clip.pixels.some(
+        ([px, py]) =>
+          x + px < 0 ||
+          x + px >= data.width ||
+          y + py < 0 ||
+          y + py >= data.height ||
+          !isWithinDrawBounds(x + px, y + py, context.drawBounds, context.drawMask),
+      )
+    ) {
+      act('baseCopyProblem', { problem: 'bounds' });
+      return true;
+    }
     this.drop(context);
     const source = this.currentFrame(context, data);
     if (!source) return false;
-    const [left, top, right, bottom] = clip.rect;
-    const x = clamp(left, left - right, data.width - 1);
-    const y = clamp(top, top - bottom, data.height - 1);
     this.floating = {
       dir: context.selectedDir,
       layer: context.selectedLayer,
       source,
       base: copyLayer(source),
       pixels: clip.pixels.map((pixel) => [...pixel] as Pixel),
+      baseCopy: clip.baseCopy,
     };
     this.setSelection(
       context,
@@ -682,6 +845,7 @@ export class Select extends Tool {
       clip.mask,
     );
     this.showPreview(context);
+    this.previewFloating(data);
     return true;
   }
 
@@ -722,6 +886,7 @@ export class Select extends Tool {
       this.mask && turnMask(this.mask, turn),
     );
     this.showPreview(context);
+    this.previewFloating(data);
     return true;
   }
 
@@ -748,6 +913,7 @@ export class Select extends Tool {
     ]);
     this.setSelection(context, [...rect], this.mask && flipMask(this.mask));
     this.showPreview(context);
+    this.previewFloating(data);
     return true;
   }
 
@@ -777,6 +943,8 @@ export class Select extends Tool {
 
   /** Escape and history: the selection and any floating paint are thrown away. */
   cancel(context: SpriteEditorToolCancelContext) {
+    this.pendingBaseCopy = undefined;
+    this.clearServerPreview();
     this.drag = undefined;
     this.selection = undefined;
     this.mask = undefined;

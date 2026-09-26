@@ -23,6 +23,80 @@
 	var/list/slices = list()
 	/// Direction -> the canvas pixels its composed preview was drawn from.
 	var/list/composed_frames = list()
+	/// At most one bounded compact selection placement, waiting for the ordinary preview debounce.
+	var/list/selection_request
+	/// Temporary preview-only frames. The workspace, history, saves and exports never read these.
+	var/list/selection_frames
+
+/// Floating paint is previewed at the end of a gesture; no pointer moves or unvalidated pixels reach the renderer.
+/datum/custom_sprite_editor/markings/proc/queue_selection_preview(list/transaction)
+	if(isnull(transaction))
+		return clear_selection_preview(schedule = TRUE)
+	if(!resources_ready || !islist(transaction) || transaction["dir"] != visible_direction)
+		return FALSE
+	var/list/area = transaction["area"]
+	var/list/palette = transaction["palette"]
+	var/codes = transaction["codes"]
+	var/pixels = workspace.width * workspace.height
+	// Cheap envelope limits before retaining anything. Full placement/color/lock validation runs after the burst settles.
+	if(!islist(area) || length(area) != 4 || !islist(palette) || !length(palette) || length(palette) > pixels || !istext(codes) || length(codes) > pixels * 2 || !(transaction["digits"] in list(1, 2)))
+		return FALSE
+	selection_request = list("type" = "move", "layer" = 1, "dir" = transaction["dir"], "area" = area, "palette" = palette, "digits" = transaction["digits"], "codes" = codes)
+	if(!isnull(transaction["baseCopy"]))
+		selection_request["baseCopy"] = transaction["baseCopy"]
+		selection_request["baseCopySource"] = transaction["baseCopySource"]
+	preview_timer = addtimer(CALLBACK(src, PROC_REF(request_refresh)), 0.6 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_STOPPABLE)
+	return TRUE
+
+/// Drops the temporary picture on cancellation, a new gesture, a draft edit or changed body/region locks.
+/datum/custom_sprite_editor/markings/proc/clear_selection_preview(schedule = FALSE)
+	if(!selection_request && !selection_frames)
+		return FALSE
+	selection_request = null
+	selection_frames = null
+	if(schedule)
+		preview_timer = addtimer(CALLBACK(src, PROC_REF(request_refresh)), 0.6 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_STOPPABLE)
+	return TRUE
+
+/datum/custom_sprite_editor/markings/draft_changed()
+	clear_selection_preview()
+	return ..()
+
+/// The draft can outlive its window; temporary paint must not survive a close or resource rebuild.
+/datum/custom_sprite_editor/markings/release_resources()
+	clear_selection_preview()
+	return ..()
+
+/// Checks exactly the placement a real drop would accept, but writes only a copy of that one view.
+/datum/custom_sprite_editor/markings/proc/apply_selection_preview()
+	if(!selection_request)
+		return
+	// Clothing or mirror access may have changed since this request entered the debounce.
+	sync_locked_views(push = FALSE)
+	if(!selection_request || (selection_request["dir"] in locked_directions()))
+		clear_selection_preview()
+		return
+	var/list/transaction = selection_request
+	selection_request = null
+	selection_frames = null
+	var/list/old_palette = workspace.palette
+	var/trusted_copy = !isnull(transaction["baseCopy"])
+	var/allowed = (!trusted_copy || prepare_base_copy_paste(transaction)) && workspace.can_transact(transaction)
+	if(trusted_copy)
+		workspace.palette = old_palette
+	if(!allowed)
+		return
+	var/direction = transaction["dir"]
+	var/list/frames = workspace.layers[1]["data"]
+	selection_frames = frames.Copy()
+	var/list/frame = deep_copy_list(selection_frames[direction])
+	selection_frames[direction] = frame
+	for(var/list/point as anything in transaction["points"])
+		frame[point[2] + 1][point[1] + 1] = point[4]
+
+/// The character thumbnail can show floating paint without changing the authoritative draft.
+/datum/custom_sprite_editor/markings/proc/preview_frames()
+	return selection_frames || workspace.layers[1]["data"]
 
 /// Whether previews can be composed right now, rather than flattened from the painted body.
 /datum/custom_sprite_editor/markings/proc/can_compose_previews()
@@ -48,7 +122,7 @@
 		preview_composed = TRUE
 		composed_frames = list()
 	update_restorable()
-	var/list/frames = workspace.layers[1]["data"]
+	var/list/frames = preview_frames()
 	var/changed = FALSE
 	for(var/direction in GLOB.custom_style_directions)
 		if(composed_frames[direction] != json_encode(frames[direction]))
@@ -66,14 +140,14 @@
 	if(!preview_composed || !resources_ready)
 		return ..()
 	preview_urls[direction] = publish_icon(composed_view(direction))
-	composed_frames[direction] = json_encode(workspace.layers[1]["data"][direction])
+	composed_frames[direction] = json_encode(preview_frames()[direction])
 	stale_previews -= direction
 	return TRUE
 
 /// One view of the preview: its slices with the canvas pixels between them.
 /datum/custom_sprite_editor/markings/proc/composed_view(direction)
 	var/list/cut = view_slices(direction)
-	var/list/frame = workspace.layers[1]["data"][direction]
+	var/list/frame = preview_frames()[direction]
 	var/icon/composed = icon('icons/blanks/32x32.dmi', "nothing")
 	// A slice with nothing in it flattens to null, which the typed loop skips.
 	for(var/icon/part in list(cut[1], paint_icon(frame, direction, FALSE), cut[2], paint_icon(frame, direction, TRUE), cut[3]))

@@ -221,7 +221,6 @@ export enum PrefsWindow {
 }
 
 export type CharacterPreferencesData = {
-
   clothing: Record<string, string>;
   features: Record<string, string>;
   game_preferences: Record<string, unknown>;
@@ -345,6 +344,7 @@ export type ServerData = {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];
     marking_choices: Record<string, MarkingChoice[]>;
+    marking_icons?: Record<string, Record<string, string>>;
     marking_presets: MarkingPreset[];
     max_markings: number;
   };

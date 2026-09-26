@@ -7,7 +7,11 @@ import { selectionBoundsAtom } from './atoms';
 import { isTextEntryTarget } from './helpers';
 import type { Tool } from './Types/Tool';
 import { Select } from './Types/Tools/Select';
-import type { SpriteData, SpriteEditorToolContext } from './Types/types';
+import type {
+  BaseCopyResult,
+  SpriteData,
+  SpriteEditorToolContext,
+} from './Types/types';
 import { useClaimedKeys } from './useClaimedKeys';
 
 /// Unmodified key that turns the selection clockwise; with Shift, counter-clockwise.
@@ -28,6 +32,10 @@ const currentSelect = () =>
   canvas?.tool instanceof Select
     ? { select: canvas.tool, context: canvas.context, data: canvas.data }
     : undefined;
+
+/** Delivers a one-off hair copy response only to the active selection tool. */
+export const receiveBaseCopy = (result: BaseCopyResult) =>
+  currentSelect()?.select.receiveBaseCopy(result);
 
 /** Turns the selection a quarter turn: 1 clockwise, -1 counter-clockwise. Returns whether it turned. */
 export const rotateSelection = (turn: 1 | -1) => {
@@ -94,6 +102,8 @@ export function useSelectionCommands(
       if (key === 'v') return select.paste(context, data);
       return false;
     }
+    if (key === 'c' && event.shiftKey)
+      return select.copyBaseLayer(context, data);
     if (key === MIRROR_SELECTION_KEY) {
       return event.shiftKey && select.flip(context, data);
     }

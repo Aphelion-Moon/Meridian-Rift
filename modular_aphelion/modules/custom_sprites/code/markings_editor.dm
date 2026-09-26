@@ -103,6 +103,7 @@
 	region_map = custom_sprite_region_map(preview_body, region_zones, region_width())
 	if(region_map != old_map)
 		results_cache = null
+		clear_selection_preview()
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
 	if(!canvas)
 		return
@@ -155,6 +156,7 @@
 	if(canvas.locked && compare_list(canvas.locked, locked))
 		return FALSE
 	canvas.locked = locked
+	clear_selection_preview(schedule = TRUE)
 	canvas.draw_mask = custom_sprite_region_mask(region_map, locked)
 	static_dirty = TRUE
 	return TRUE
@@ -166,6 +168,8 @@
 /datum/custom_sprite_editor/markings/sync_locked_views(push = TRUE)
 	var/regions_changed = resources_ready && apply_region_locks()
 	var/views_changed = ..(FALSE)
+	if(views_changed)
+		clear_selection_preview(schedule = TRUE)
 	if(push && (regions_changed || views_changed))
 		push()
 	return regions_changed || views_changed
@@ -205,12 +209,12 @@
  * Returns zone -> list("drawing", "markings", "changed", "error"). `markings` is null for regions
  * without native markings, such as the taur.
  */
-/datum/custom_sprite_editor/markings/proc/region_results()
+/datum/custom_sprite_editor/markings/proc/region_results(list/preview_frames)
 	var/revision = "[draft_revision]|[save_revision]|[length(workspace.undo_stack)]|[length(workspace.redo_stack)]"
-	if(results_cache && results_revision == revision)
+	if(!preview_frames && results_cache && results_revision == revision)
 		return results_cache
 	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = workspace
-	var/list/split = custom_sprite_split_regions(canvas.layers[1]["data"], baseline, saved_drawings, region_map, region_zones, canvas.width, saved_pixels, canvas.resets)
+	var/list/split = custom_sprite_split_regions(preview_frames || canvas.layers[1]["data"], baseline, saved_drawings, region_map, region_zones, canvas.width, saved_pixels, canvas.resets)
 	. = list()
 	for(var/zone, entry in split)
 		var/list/drawing = entry["drawing"]
@@ -224,8 +228,9 @@
 		if(!isnull(markings) && json_encode(markings) != json_encode(saved_markings[zone]))
 			changed = TRUE
 		.[zone] = list("drawing" = drawing, "markings" = markings, "changed" = changed, "error" = entry["error"])
-	results_cache = .
-	results_revision = revision
+	if(!preview_frames)
+		results_cache = .
+		results_revision = revision
 
 /// One region's would-be-saved package.
 /datum/custom_sprite_editor/markings/proc/region_package(zone, list/results)
@@ -279,9 +284,10 @@
 	preview_timer = null
 	if(closing || !resources_ready)
 		return
+	apply_selection_preview()
 	if(refresh_composed_previews(push))
 		return
-	var/list/results = region_results()
+	var/list/results = region_results(selection_frames)
 	update_restorable()
 	var/new_hash = md5(json_encode(results))
 	if(preview_hash == new_hash)
@@ -327,6 +333,7 @@
 		if(zone in GLOB.body_markings_per_limb)
 			choices[zone] = GLOB.body_markings_per_limb[zone]
 	.["regionMarkingChoices"] = choices
+	.["regionMarkingIcons"] = custom_sprite_marking_icons()
 	.["maxBaseMarkings"] = MAXIMUM_MARKINGS_PER_LIMB
 	.["regions"] = region_map
 	.["regionZones"] = region_zones
@@ -334,6 +341,7 @@
 
 /datum/custom_sprite_editor/markings/ui_data(mob/user)
 	. = ..()
+	.["editorData"]["sprite"]["selectionPreview"] = TRUE
 	// Region emission lives in regionEmissive; the all-off view flags are static data.
 	. -= "emissive"
 	.["selectedZone"] = selected_zone
@@ -382,6 +390,12 @@
 	return colors && rows && length(custom_sprite_covered_positions(colors, zone, rows, region_zones, workspace.width)) > 0
 
 /datum/custom_sprite_editor/markings/editor_act(action, list/params, datum/tgui/ui)
+	if(action == "previewSelection")
+		queue_selection_preview(params["transaction"])
+		// The deferred preview sends the update; the drawing itself has not changed.
+		return FALSE
+	if(action == "setView" || action == "spriteEditorCommand")
+		clear_selection_preview(schedule = TRUE)
 	var/static/list/region_actions = list("selectRegion", "setEmissive", "clear", "setBaseMarking", "addBaseMarking", "removeBaseMarking", "pickBaseMarkingColor")
 	if(action in list("exportStyle", "restorePrevious"))
 		return prompt_action(action, ui.user)

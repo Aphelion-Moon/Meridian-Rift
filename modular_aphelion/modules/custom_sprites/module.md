@@ -184,9 +184,12 @@ the drag crossed stays selected. A plain click off the body changes nothing.
   away (a new selection, another tool or view, Enter, Ctrl+S, Save and close or
   Finish, or closing the editor), and whatever is then off the canvas or outside
   the paintable area is cut off. Escape and history throw floating paint away.
-  Floating paint exists only in the window, so the preview shows it once it's
-  written. On the whole-body canvas that matters most for thin limbs: moving an
-  arm and hand's paint sideways usually leaves some of it off the body.
+  On markings and tattoo canvases, finishing a drag, paste, turn or mirror also
+  updates the character preview after its usual pause. That temporary picture
+  shows the paint that would land on the body; floating pixels outside the body
+  remain available to reposition. It does not change the draft, undo history,
+  saves or exports. Cancelling restores the draft's preview. Hair previews still
+  show floating paint when it is written.
 - Ctrl+C copies the selection's shape and paint, floating or not. The copy lives
   in the tgui window rather than the editor, so an editor opened later in the same
   window can still paste it. Ctrl+V pastes it as floating paint where it was
@@ -538,13 +541,10 @@ clipping existing paint out of the draft.
 
 #### Server load and hostile windows
 
-A window's actions only change the draft and note what needs drawing. Guides,
-previews and resource rebuilds are drawn afterwards by `SScustom_sprite_work`, a
-background subsystem that runs once per 0.1 seconds in tick time other subsystems
-leave over. A burst of actions draws once, for the state it ends on: turning
-through all four views quickly draws only the last one, and a view drawn since
-the last change is shown again without drawing. The preview's 0.6-second pause
-still applies; its refresh also runs in the background.
+`SScustom_sprite_work` draws the guides, previews and resource rebuilds noted
+above every 0.1 seconds, using tick time other subsystems leave over. Actions
+only change the draft and mark work; bursts draw once for their final state.
+The per-view cache and 0.6-second preview pause described above still apply.
 
 Whole-body markings previews are composed rather than flattened. Each view of the
 body without paint is flattened once per rebuild into three slices: under body
@@ -553,6 +553,15 @@ slices with the canvas pixels between them, each at its limb's marking opacity,
 which matches flattening the painted body exactly. Only views whose pixels
 changed are drawn again. A taur, a tinted or translucent body, or a canvas over
 the shared colour limit falls back to flattening the painted body.
+
+Floating selection previews reuse those same rendering paths. The window sends
+one compact placement when a gesture finishes, never on pointer movement. The
+server retains only the latest request, capped at the canvas's pixel and palette
+sizes, and validates colors, coordinates and region locks through the ordinary
+selection-placement validator after the 0.6-second pause. It copies only the
+changed view for the preview; authoritative pixels and history stay untouched.
+A new gesture, cancellation, a real draft edit, a view change or changed region
+locks clears the temporary picture.
 
 Toggling parts, underwear or the gradient, changing the base hair, base markings,
 undo or redo across a base look change, confirming an import and the salon's
@@ -961,10 +970,8 @@ same base look in character setup, including hair opacity or that limb's native
 markings. Otherwise the save explains why and
 the round appearance stays.
 
-A hair package is the whole supported look: base hairstyle, hair color, gradient
-style and color, hair opacity, base-hair emission, and the drawing with its own
-emission settings. It doesn't include species, facial hair, equipment or any
-other preference.
+Hair packages contain the complete hair look listed under [Import and export](#import-and-export),
+including the drawing's emission. Species, facial hair and equipment are excluded.
 
 A supported limb or hand package can also contain `markings`: an ordered array
 of known marking names, hex colors and boolean emission flags. It uses the
@@ -1009,9 +1016,9 @@ the tall canvas, closing with floating paint), the palette menus, the mirror
 and the character setup buttons. Keep each tgui test file under 50 KB: Bun
 1.3.13 serves larger files from its runtime transpiler cache and then parses
 `transparency_checkerboard.svg` as JSX from the second run on.
-`tgui/packages/tgui/__mocks__/customSpriteEditor.ts` holds the fixture and
-setup the editor's test files share; it sits outside `interfaces/` because the
-interface bundle takes in every non-test file there. Native icon tests and
+`tgui/packages/tgui/__mocks__/` holds the shared editor fixture, setup and
+rendering helpers. They sit outside `interfaces/` because the interface bundle
+takes in every non-test file there. Native icon tests and
 browser fixtures do not cover every live-client case: check real drawing and
 dragging, hats, turning and resting, limb changes, save/relog and slot/import
 behaviour in DreamSeeker when changing those paths.
@@ -1049,11 +1056,11 @@ All paths here are relative to this module unless stated otherwise.
 
 | File | Types, overrides and owned behavior |
 | --- | --- |
-| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()`, `context_ui_data()` and `update_restorable()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. Guides and previews are drawn per view (`render_view()`, the `setView` action). Guides, the mask and the region map are static data, sent when `static_dirty`. Captures `cover_appearance` in `rebuild_resources()` and publishes `cover_rows` as the static `coverMask` with each view's guide. |
+| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()`, `context_ui_data()` and `update_restorable()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. Guides and previews are drawn per view: `setView` calls `request_view()`, and `run_deferred_work()` dispatches `render_guide()` and `render_preview()`. Guides, the mask and the region map are static data, sent when `static_dirty`. Captures `cover_appearance` in `rebuild_resources()` and publishes `cover_rows` as the static `coverMask` with each view's guide. |
 | `code/markings_editor.dm` | `/datum/custom_sprite_editor/markings`: the whole-body window, region selection and focus, per-region emissive, Clear and base markings, changed-region saves, previews, export/restore prompts and region imports. Also `custom_sprite_apply_region_results()`. Context hooks `reference_packages()`, `locked_regions()` and `map_follows_body()`; region locks shade and refuse locked regions. |
 | `code/regions.dm` | Present regions in draw order, region ID colors, the cached per-view region map composed through the real overlay types, region lookup and the paintable mask. `custom_sprite_merge_cover_rows()` blends body and hand covers by region owner. |
 | `code/composite.dm` | Composes region drawings into one canvas and splits an edited canvas back into per-region drawings by the save rule. |
-| `code/salon.dm` | `/datum/custom_sprite_salon` session over a set of drawings (one for hair, one per region for a tattoo), request/restore procs including the whole-body-or-region restore choice, live style packages and preview dummies, five-second round application of the touched drawings, optional approved save and per-drawing history on `/mob/living/carbon/human`. Brush sounds and the salon's window actions live on the session. `/datum/custom_sprite_editor/salon` (hair) and `/datum/custom_sprite_editor/markings/salon` (the tattoo canvas, which locks regions the recipient can't be tattooed on) override the context hooks, `can_edit()` and UI lifecycle procs. Recipient overlay signals coalesce guide refreshes; equipment signals resync region and mirror locks at once. |
+| `code/salon.dm` | `/datum/custom_sprite_salon` session over a set of drawings (one for hair, one per region for a tattoo), request/restore procs including the whole-body-or-region restore choice, live style packages and preview dummies, five-second round application of the touched drawings, optional approved save and per-drawing history on `/mob/living/carbon/human`. Brush sounds and the salon's window actions live on the session. `/datum/custom_sprite_editor/salon` (hair) and `/datum/custom_sprite_editor/markings/salon` (the tattoo canvas, which locks regions the recipient can't be tattooed on) inherit shared context, authorization and lifecycle hooks through the base editor's optional typed `session`; permanent salon context guards detached sessions. They specialize initial packages, region mapping and hair constraints. Recipient overlay signals coalesce guide refreshes; equipment signals resync region and mirror locks at once. |
 | `code/mirror.dm` | `/datum/custom_sprite_mirror` approval countdown, static comparison images drawn per view (`render_view()`, the `setView` action), approval-only export, result window and recipient saves, the tattoo change list and one-write saves of every applied region. `custom_sprite_cover_looks()` gathers the hair and each mutant part drawn on the body as labelled looks, lowest layer first, keyed by `custom_sprite_hair_cover_key()`, each part's render key and `custom_sprite_placement_key()`. |
 | `code/tools.dm` | `/obj/item/tattoo_machine`, which opens the tool menu on the whole body; `attack_self()` resume on it and `/obj/item/scissors`; the shared tool menu and timed salon sounds. |
 | `code/transfer.dm` | Style package format, strict validation, export text, geometry checks and transfer helpers, including the whole-body `"target": "body"` file. |
@@ -1111,7 +1118,7 @@ are also required.
 | `modular_aphelion/modules/worn_emissives/code/worn_emissives.dm` | Existing final appearance grouping keeps paint masks aligned with the character's pose. |
 | `tgui/packages/tgui/interfaces/CustomHairEditor.tsx`, `CustomMarkingsEditor.tsx` | The two interface entry points. |
 | `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, the region overlay (`regions.ts`, `RegionOverlay.tsx`), backend types and their tests. |
-| `tgui/packages/tgui/__mocks__/customSpriteEditor.ts` | The fixture and per-test setup the editor's test files share. |
+| `tgui/packages/tgui/__mocks__/customSpriteEditor.ts`, `renderCustomSpriteEditor.tsx` | Shared editor fixtures, per-test setup and rendering with isolated or deliberately reused stores. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | Hair editor button. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Zone and taur marking buttons, and their tests. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Editing-availability flag. |

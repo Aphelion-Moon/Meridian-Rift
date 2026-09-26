@@ -191,11 +191,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(isnull(allow_emissives))
 		var/datum/preferences/preferences = GLOB.preferences_datums[body.ckey]
 		allow_emissives = preferences?.read_preference(/datum/preference/toggle/allow_emissives)
-	var/list/drawing = custom_sprite_appearance_drawing(package["drawing"], allow_emissives)
-	var/zone = package["zone"]
-	body.AddComponent(/datum/component/custom_sprite_appearance)
 	var/target = package["target"]
 	if(custom_style_hair_target(target))
+		var/list/drawing = custom_sprite_appearance_drawing(package["drawing"], allow_emissives)
+		body.AddComponent(/datum/component/custom_sprite_appearance)
 		if(package["hair"])
 			custom_style_apply_hair_context(body, package["hair"], update = FALSE, target = target)
 		if(target == "facial_hair")
@@ -206,14 +205,9 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		head?.set_custom_head_drawing(target, deep_copy_list(drawing))
 		body.update_hair()
 		return
-	custom_style_apply_base_markings(body, zone, package["markings"], allow_emissives)
-	if(drawing)
-		LAZYSET(body.dna.custom_limb_markings, zone, drawing)
-	else
-		LAZYREMOVE(body.dna.custom_limb_markings, zone)
-	var/obj/item/bodypart/limb = body.get_bodypart(custom_marking_zone_limb(zone))
-	limb?.apply_custom_marking(drawing, custom_marking_zone_overlay_type(zone))
-	body.update_body()
+	var/list/regions = list()
+	regions[package["zone"]] = package
+	custom_sprite_apply_region_results(body, regions, allow_emissives)
 
 /**
  * Changes a live body's round appearance for several drawings, redrawing it once.
@@ -1327,21 +1321,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 /// The salon's hair context: an artist-owned draft of another player's live hair or facial hair.
 /datum/custom_sprite_editor/salon
 	context = "salon"
-	/// Salon session that owns this editor and its retained draft.
-	var/datum/custom_sprite_salon/session
 
 /datum/custom_sprite_editor/salon/New(datum/custom_sprite_salon/session)
 	src.session = session
 	..(GLOB.preferences_datums[session.artist_ckey], session.target)
-
-/datum/custom_sprite_editor/salon/Destroy()
-	session?.stop_drawing_sounds()
-	session = null
-	return ..()
-
-/datum/custom_sprite_editor/salon/ui_close(mob/user)
-	session?.stop_drawing_sounds()
-	return ..()
 
 /datum/custom_sprite_editor/salon/window_title()
 	return "[..()] for [session.recipient_name]"
@@ -1350,44 +1333,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	var/list/entry = session.original[session.target]
 	return custom_style_copy_package(entry["package"])
 
-/// Guides show the recipient as they are dressed, so the artist sees the person they're working on.
-/datum/custom_sprite_editor/salon/render_overlays()
-	return custom_sprite_worn_overlays(session?.recipient())
-
-/datum/custom_sprite_editor/salon/can_hide_underwear()
-	return FALSE
-
-/datum/custom_sprite_editor/salon/create_preview_body()
-	var/mob/living/carbon/human/recipient = session.recipient_ref?.resolve()
-	if(QDELETED(recipient))
-		return null
-	return custom_sprite_salon_dummy(recipient)
-
-/datum/custom_sprite_editor/salon/emissives_allowed()
-	return session.recipient_emissives
-
 /// Base hair changes stay in the draft until the recipient approves the complete look.
 /datum/custom_sprite_editor/salon/can_change_hair()
 	return custom_style_hair_target(target)
 
-/datum/custom_sprite_editor/salon/locked_directions()
-	return session?.locked_directions()
-
 /datum/custom_sprite_editor/salon/hair_context_problem(list/hair)
 	return session.hair_problem(hair)
-
-/datum/custom_sprite_editor/salon/can_edit(mob/user)
-	return !closing && session && user?.ckey == session.artist_ckey && !CONFIG_GET(flag/disallow_custom_sprite_editing)
-
-/datum/custom_sprite_editor/salon/draft_changed()
-	..()
-	session.draft_changed()
-
-/datum/custom_sprite_editor/salon/context_act(action, list/params, mob/user)
-	return session.context_act(action, params, user)
-
-/datum/custom_sprite_editor/salon/context_ui_data()
-	return session.context_ui_data()
 
 /// The salon restores through the tool, with the recipient's consent, never from the window.
 /datum/custom_sprite_editor/salon/update_restorable()
@@ -1401,21 +1352,10 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
  */
 /datum/custom_sprite_editor/markings/salon
 	context = "salon"
-	/// Salon session that owns this editor and its retained draft.
-	var/datum/custom_sprite_salon/session
 
 /datum/custom_sprite_editor/markings/salon/New(datum/custom_sprite_salon/session)
 	src.session = session
 	..(GLOB.preferences_datums[session.artist_ckey], null)
-
-/datum/custom_sprite_editor/markings/salon/Destroy()
-	session?.stop_drawing_sounds()
-	session = null
-	return ..()
-
-/datum/custom_sprite_editor/markings/salon/ui_close(mob/user)
-	session?.stop_drawing_sounds()
-	return ..()
 
 /// Each region is measured against the recipient's look when work started.
 /datum/custom_sprite_editor/markings/salon/reference_packages()
@@ -1426,32 +1366,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 
 /datum/custom_sprite_editor/markings/salon/window_title()
 	return "Custom Tattoo for [session.recipient_name]"
-
-/datum/custom_sprite_editor/markings/salon/create_preview_body()
-	var/mob/living/carbon/human/recipient = session.recipient_ref?.resolve()
-	if(QDELETED(recipient))
-		return null
-	return custom_sprite_salon_dummy(recipient)
-
-/// Guides show the recipient as they are dressed, so the artist sees the person they're working on.
-/datum/custom_sprite_editor/markings/salon/render_overlays()
-	return custom_sprite_worn_overlays(session?.recipient())
-
-/datum/custom_sprite_editor/markings/salon/can_hide_underwear()
-	return FALSE
-
-/datum/custom_sprite_editor/markings/salon/emissives_allowed()
-	return session.recipient_emissives
-
-/datum/custom_sprite_editor/markings/salon/locked_directions()
-	return session?.locked_directions()
-
-/datum/custom_sprite_editor/markings/salon/can_edit(mob/user)
-	return !closing && session && user?.ckey == session.artist_ckey && !CONFIG_GET(flag/disallow_custom_sprite_editing)
-
-/datum/custom_sprite_editor/markings/salon/draft_changed()
-	..()
-	session.draft_changed()
 
 /// The salon restores through the tool, with the recipient's consent, never from the window.
 /datum/custom_sprite_editor/markings/salon/restorable_regions()
@@ -1476,12 +1390,6 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		var/problem = recipient ? session.region_problem(recipient, custom_style_key("markings", zone)) : "[session.recipient_name] isn't available."
 		if(problem)
 			.[zone] = problem
-
-/datum/custom_sprite_editor/markings/salon/context_act(action, list/params, mob/user)
-	return session.context_act(action, params, user)
-
-/datum/custom_sprite_editor/markings/salon/context_ui_data()
-	return session.context_ui_data()
 
 /// Style key -> the would-be-applied package of every region the draft changes.
 /datum/custom_sprite_editor/markings/salon/proc/touched_packages()

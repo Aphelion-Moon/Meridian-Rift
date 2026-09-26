@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import { afterEach, beforeEach, expect, it, spyOn } from 'bun:test';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import * as actions from 'tgui/events/act';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import type { ServerData } from '../types';
@@ -44,6 +44,14 @@ const serverData: ServerData = {
         name,
         recommended_species: null,
       })),
+    },
+    marking_icons: {
+      l_arm: {
+        Stripe: 'mark-stripe',
+        Spots: 'mark-spots',
+        Dots: 'mark-dots',
+        Unavailable: 'mark-unavailable',
+      },
     },
     marking_presets: [],
     max_markings: 3,
@@ -138,5 +146,31 @@ it('keeps ordinary marking controls when custom editing is unavailable', () => {
   fireEvent.click(leftArm.getByText('+'));
   expect(send).toHaveBeenLastCalledWith('add_marking', {
     bodypart_slot: 'l_arm',
+  });
+});
+
+it('opens cached marking icons and filters duplicates before local search', async () => {
+  renderPage();
+  const trigger = screen.getAllByLabelText('Select marking')[0];
+  expect(trigger.textContent).toContain('Stripe');
+  expect(trigger.querySelector('.preferences32x32')).toBeNull();
+  await act(async () => fireEvent.click(trigger));
+  expect(screen.getByLabelText('Stripe')).toBeTruthy();
+  expect(screen.queryByLabelText('Spots')).toBeNull();
+  expect(screen.queryByLabelText('Unavailable')).toBeNull();
+  expect(
+    screen.getByLabelText('Dots').querySelector('.mark-dots'),
+  ).toBeTruthy();
+  fireEvent.input(screen.getByPlaceholderText('Search...'), {
+    target: { value: 'dots' },
+  });
+  expect(screen.queryByLabelText('Stripe')).toBeNull();
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByLabelText('Dots'));
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(send).toHaveBeenLastCalledWith('change_marking', {
+    bodypart_slot: 'l_arm',
+    marking_id: 'one',
+    marking_name: 'Dots',
   });
 });

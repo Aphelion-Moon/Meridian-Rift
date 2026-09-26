@@ -1,6 +1,11 @@
 // THIS IS AN APHELION UI FILE
 import type { BooleanLike } from 'tgui-core/react';
-import type { Dir, SpriteEditorToolFlags } from '../SpriteEditor/Types/types';
+import type {
+  BaseCopyInfo,
+  BaseCopyResult,
+  Dir,
+  SpriteEditorToolFlags,
+} from '../SpriteEditor/Types/types';
 import type { CompactSprite } from './canvas';
 
 export type CustomSpriteCandidate = {
@@ -22,6 +27,8 @@ export type CustomSpriteBackground = {
 
 export type CustomSpriteEditorData = {
   context?: 'preferences' | 'salon';
+  baseCopyInfo?: BaseCopyInfo | null;
+  baseCopyResult?: BaseCopyResult;
   editorData: {
     sprite: CompactSprite;
     undoStack: string[];
@@ -61,6 +68,7 @@ export type CustomSpriteEditorData = {
   lockedDirections?: string[] | null;
   hairStyle?: string | null;
   hairStyles?: string[];
+  hairStyleIcons?: Record<string, string>;
   hairColor?: string | null;
   recipientName?: string;
   selfWork?: boolean;
@@ -74,6 +82,7 @@ export type CustomSpriteEditorData = {
   focusRevision?: number;
   regionMarkings?: Record<string, RegionMarking[]>;
   regionMarkingChoices?: Record<string, string[]>;
+  regionMarkingIcons?: Record<string, Record<string, string>>;
   regionEmissive?: Record<string, Record<Dir, boolean>>;
   lockedRegions?: Record<string, string> | null;
   paletteNotice?: string | null;

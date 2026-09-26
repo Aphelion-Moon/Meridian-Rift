@@ -1,3 +1,27 @@
+/// Observes actual TGUI update dispatch and the resulting payload without opening a native window.
+/datum/tgui/custom_sprite_push_test
+	/// Forced updates dispatched by SStgui.
+	var/pushes = 0
+	/// Data delivered by the latest forced update.
+	var/list/last_data
+
+/// Registers only with its editor, so SStgui.update_uis exercises the real push path.
+/datum/tgui/custom_sprite_push_test/New(mob/user, datum/src_object, interface)
+	..()
+	LAZYADD(src_object.open_uis, src)
+
+/// Drops the test registration even when an assertion stops the test early.
+/datum/tgui/custom_sprite_push_test/Destroy()
+	if(src_object)
+		LAZYREMOVE(src_object.open_uis, src)
+	return ..()
+
+/// Captures the payload that an actual forced update would deliver.
+/datum/tgui/custom_sprite_push_test/process(seconds_per_tick, force = FALSE)
+	if(force)
+		pushes++
+		last_data = src_object.ui_data(user)
+
 /// Counts every guide and preview the editor draws and every resource rebuild, and runs actions without a connected client.
 /datum/custom_sprite_editor/markings/hardening_test
 	/// Guides and previews drawn so far.
@@ -505,11 +529,12 @@
 /// Strokes within the budget apply at once; the rest wait in order and apply in the background; past the queue's length they're refused, quietly.
 /datum/unit_test/custom_sprite_hardening/stroke_budget/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	mock_client.mob = allocate(/mob)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], CUSTOM_SPRITE_TALL_HAIRSTYLE)
 	var/datum/custom_sprite_editor/hardening_test/editor = allocate(/datum/custom_sprite_editor/hardening_test, preferences, "hair")
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
+	var/datum/tgui/custom_sprite_push_test/ui = allocate(/datum/tgui/custom_sprite_push_test, mock_client.mob, editor, "CustomHairEditor")
 	var/datum/sprite_editor_workspace/custom_sprite/workspace = editor.workspace
 	TEST_ASSERT_EQUAL(workspace.height, 48, "The fixture needs the tall canvas")
 	workspace.update_palette(list("#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff", "#ffffff", "#808080", "#800000", "#008000"))
@@ -522,7 +547,7 @@
 	TEST_ASSERT_EQUAL(length(workspace.undo_stack), steps + 3, "Three full tall strokes fit a second's budget and apply at once")
 	TEST_ASSERT_EQUAL(length(editor.stroke_queue), 7, "The rest wait in the queue")
 	TEST_ASSERT(pushed[1] && pushed[3] && !pushed[4] && !pushed[10], "Applied strokes push; queued ones don't")
-	TEST_ASSERT(editor.ui_act("toggleGradient", list(), ui, null) == FALSE && editor.push_after_drain, "While strokes wait, an action's push waits for the drain")
+	TEST_ASSERT(editor.ui_act("toggleGradient", list(), ui, null) == FALSE && !ui.pushes, "While strokes wait, an action's push waits for the drain")
 	var/fires = 0
 	while(length(editor.stroke_queue) && fires < 20)
 		fires++
@@ -530,7 +555,7 @@
 	TEST_ASSERT(!length(editor.stroke_queue), "The queue drains in the background")
 	TEST_ASSERT_EQUAL(length(workspace.undo_stack), steps + 10, "Every queued stroke applies")
 	TEST_ASSERT_EQUAL(workspace.get_first_layer_pixel_data()[1][1], "[colors[10]]ff", "Queued strokes apply in the order they were sent")
-	TEST_ASSERT(!editor.push_after_drain, "The drain pushes what waited")
+	TEST_ASSERT(ui.pushes && isnull(ui.last_data["strokeNotice"]), "The drain must dispatch the completed canvas and clear its notice")
 	// Past the queue's length, strokes are refused with a quiet notice.
 	var/datum/custom_sprite_pace/pace = editor.pace()
 	pace.stroke_pixels = 1e9
@@ -600,10 +625,11 @@
 /// While strokes over the budget wait, the window can only send more strokes. Anything else is ignored until they're in, so history and saves keep their order, and closing waits rather than saving without them.
 /datum/unit_test/custom_sprite_hardening/stroke_queue_order/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	mock_client.mob = allocate(/mob)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/hardening_test/editor = allocate(/datum/custom_sprite_editor/hardening_test, preferences, "hair")
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
+	var/datum/tgui/custom_sprite_push_test/ui = allocate(/datum/tgui/custom_sprite_push_test, mock_client.mob, editor, "CustomHairEditor")
 	var/datum/sprite_editor_workspace/custom_sprite/workspace = editor.workspace
 	workspace.update_palette(list("#ff0000", "#00ff00"))
 	var/mask = custom_sprite_hardening_mask(custom_sprite_hardening_all_points(workspace.width, workspace.height), workspace.width, workspace.height)
@@ -613,7 +639,7 @@
 	pace.stroke_pixels = 1e9
 	editor.ui_act("spriteEditorCommand", list("command" = "transaction", "transaction" = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#00ff00ff", "mask" = mask)), ui, null)
 	TEST_ASSERT_EQUAL(length(editor.stroke_queue), 1, "A stroke over the budget waits")
-	TEST_ASSERT(!editor.ui_act("spriteEditorCommand", list("command" = "undo", "count" = 1), ui, null) && editor.push_after_drain, "An undo sent while a stroke waits is ignored, and the window hears back after the drain")
+	TEST_ASSERT(!editor.ui_act("spriteEditorCommand", list("command" = "undo", "count" = 1), ui, null) && !ui.pushes, "An undo sent while a stroke waits is ignored, and the window hears back after the drain")
 	TEST_ASSERT_EQUAL(length(workspace.undo_stack), steps, "The ignored undo changes no history")
 	editor.ui_act("saveDraft", list(), ui, null)
 	TEST_ASSERT(isnull(preferences.custom_hair), "A save sent while a stroke waits is ignored rather than saving without it")
@@ -623,6 +649,7 @@
 	while(length(editor.stroke_queue) && fires < 10)
 		fires++
 		editor.run_deferred_work()
+	TEST_ASSERT(ui.pushes, "The window must receive an actual update after the queue drains")
 	TEST_ASSERT_EQUAL(length(workspace.undo_stack), steps + 1, "The waiting stroke lands after the ones before it")
 	TEST_ASSERT_EQUAL(workspace.get_first_layer_pixel_data()[1][1], "#00ff00ff", "The waiting stroke paints last")
 	TEST_ASSERT(editor.ui_act("spriteEditorCommand", list("command" = "undo", "count" = 1), ui, null), "Once the strokes are in, undo works again")
@@ -677,10 +704,11 @@
 /// Switching views reads and changes nothing in the draft, so the window can still switch while strokes wait, and the server draws the view it shows.
 /datum/unit_test/custom_sprite_hardening/stroke_queue_view/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	mock_client.mob = allocate(/mob)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/hardening_test/editor = allocate(/datum/custom_sprite_editor/hardening_test, preferences, "hair")
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
+	var/datum/tgui/custom_sprite_push_test/ui = allocate(/datum/tgui/custom_sprite_push_test, mock_client.mob, editor, "CustomHairEditor")
 	var/datum/sprite_editor_workspace/custom_sprite/workspace = editor.workspace
 	workspace.update_palette(list("#ff0000"))
 	var/mask = custom_sprite_hardening_mask(custom_sprite_hardening_all_points(workspace.width, workspace.height), workspace.width, workspace.height)
@@ -692,7 +720,9 @@
 	editor.ui_act("setView", list("dir" = "4"), ui, null)
 	TEST_ASSERT_EQUAL(editor.visible_direction, "4", "A view switch sent while a stroke waits is still heard")
 	// The Front view is drawn and its refresh is pending, so nothing needs drawing to show it.
-	TEST_ASSERT(!editor.ui_act("setView", list("dir" = "2"), ui, null) && editor.push_after_drain && editor.visible_direction == "2", "A view switch sent while strokes wait is heard, and the window hears back after the drain")
+	TEST_ASSERT(!editor.ui_act("setView", list("dir" = "2"), ui, null) && !ui.pushes && editor.visible_direction == "2", "A view switch sent while strokes wait is heard, and the window hears back after the drain")
+	editor.run_deferred_work()
+	TEST_ASSERT(ui.pushes && ui.last_data["visibleView"] == "2", "The drain must publish the final selected view")
 
 /// A deferred rebuild builds its body in one fire and renders in the next, keeping the old pictures up meanwhile, and ends exactly where a single rebuild would.
 /datum/unit_test/custom_sprite_hardening/rebuild_two_fires/Run()

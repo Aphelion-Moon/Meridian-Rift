@@ -35,6 +35,12 @@
 #define CUSTOM_SPRITE_STROKE_QUEUE 50
 /// Deferred work: apply the strokes that were over budget, in order.
 #define CUSTOM_SPRITE_WORK_STROKES (1<<5)
+/// Deferred, explicitly requested base-layer clipboard capture.
+#define CUSTOM_SPRITE_WORK_BASE_COPY (1<<6)
+
+/// Queue one bounded base-layer copy without adding work to ordinary paint.
+/datum/custom_sprite_editor/proc/request_base_copy_work()
+	request_work(CUSTOM_SPRITE_WORK_BASE_COPY)
 
 SUBSYSTEM_DEF(custom_sprite_work)
 	name = "Custom Sprite Work"
@@ -149,8 +155,6 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	var/list/stroke_queue = list()
 	/// Why the latest stroke was refused, shown quietly until the queue drains.
 	var/stroke_notice
-	/// A push was due while strokes waited; the drain sends it.
-	var/push_after_drain = FALSE
 	/// The body a deferred rebuild built in its first fire; the window keeps the old resources until the second swaps it in.
 	var/mob/living/carbon/human/dummy/pending_body
 	/// Whether pending_body was built (it may be null when the context has no body right now).
@@ -168,7 +172,6 @@ SUBSYSTEM_DEF(custom_sprite_work)
 /// Sends the window an update, unless strokes are still waiting: their drain sends it instead, so no update shows frames without them.
 /datum/custom_sprite_editor/proc/push()
 	if(length(stroke_queue))
-		push_after_drain = TRUE
 		return
 	SStgui.update_uis(src)
 
@@ -193,7 +196,6 @@ SUBSYSTEM_DEF(custom_sprite_work)
 		return TRUE
 	if(length(stroke_queue) >= CUSTOM_SPRITE_STROKE_QUEUE)
 		stroke_notice = "Too many strokes are waiting; the last one was dropped."
-		push_after_drain = TRUE
 		return FALSE
 	stroke_queue += list(transaction)
 	request_work(CUSTOM_SPRITE_WORK_STROKES)
@@ -210,7 +212,6 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	if(length(stroke_queue))
 		return FALSE
 	stroke_notice = null
-	push_after_drain = FALSE
 	SStgui.update_uis(src)
 	return TRUE
 
@@ -328,6 +329,9 @@ SUBSYSTEM_DEF(custom_sprite_work)
 			render_preview(visible_direction)
 	if((work & CUSTOM_SPRITE_WORK_CANDIDATE) && resources_ready && candidate && isnull(candidate["previews"]))
 		render_candidate()
+	if((work & CUSTOM_SPRITE_WORK_BASE_COPY) && !finish_base_copy())
+		pending_work |= CUSTOM_SPRITE_WORK_BASE_COPY
+		return FALSE
 	SStgui.update_uis(src)
 	return TRUE
 
@@ -494,3 +498,4 @@ SUBSYSTEM_DEF(custom_sprite_work)
 #undef CUSTOM_SPRITE_STROKE_BUDGET
 #undef CUSTOM_SPRITE_STROKE_QUEUE
 #undef CUSTOM_SPRITE_WORK_STROKES
+#undef CUSTOM_SPRITE_WORK_BASE_COPY

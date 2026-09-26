@@ -1,7 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import { expect, it, spyOn } from 'bun:test';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { createStore, Provider } from 'jotai';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import {
   compactSprite,
@@ -11,9 +10,9 @@ import {
   send,
   setupEditorTests,
 } from '../../../__mocks__/customSpriteEditor';
+import { renderEditor } from '../../../__mocks__/renderCustomSpriteEditor';
 import { currentToolAtom, tools } from '../SpriteEditor/atoms';
 import { Dir } from '../SpriteEditor/Types/types';
-import { CustomSpriteEditor } from './index';
 import type { CustomSpriteEditorData } from './types';
 
 setupEditorTests();
@@ -53,14 +52,7 @@ const regionFixture = (): CustomSpriteEditorData => {
 
 const renderRegions = (data = regionFixture()) => {
   backendStore.set(gameDataAtom, data);
-  const store = createStore();
-  const editor = () => (
-    <Provider store={store}>
-      <CustomSpriteEditor target="markings" />
-    </Provider>
-  );
-  const view = render(editor());
-  return { store, view, editor };
+  return renderEditor('markings');
 };
 
 it.each([
@@ -249,5 +241,98 @@ it('moves the selection to the region a drag is released over', () => {
     expect(screen.getByText('Left arm base markings')).toBeTruthy();
   } finally {
     getBounds.mockRestore();
+  }
+});
+
+it.each([
+  'preferences',
+  'salon',
+] as const)('uses the cached marking popup with per-row duplicate filtering in %s', async (context) => {
+  renderRegions({
+    ...regionFixture(),
+    context,
+    selectedZone: 'l_arm',
+    regionMarkings: {
+      l_arm: [
+        { index: 1, name: 'Tiger Stripe', color: '#112233' },
+        { index: 2, name: 'Spots', color: '#445566' },
+      ],
+    },
+    regionMarkingChoices: { l_arm: ['Tiger Stripe', 'Spots', 'Dots'] },
+    regionMarkingIcons: {
+      l_arm: {
+        'Tiger Stripe': 'mark-stripe',
+        Spots: 'mark-spots',
+        Dots: 'mark-dots',
+        Unavailable: 'mark-unavailable',
+      },
+    },
+  });
+  const trigger = screen.getAllByLabelText('Select left arm marking')[0];
+  expect(trigger.querySelector('.preferences32x32')).toBeNull();
+  await act(async () => fireEvent.click(trigger));
+  expect(screen.getByLabelText('Tiger Stripe')).toBeTruthy();
+  expect(screen.queryByLabelText('Spots')).toBeNull();
+  expect(screen.queryByLabelText('Unavailable')).toBeNull();
+  await act(async () => {
+    fireEvent.input(screen.getByPlaceholderText('Search...'), {
+      target: { value: 'dots' },
+    });
+  });
+  expect(send).not.toHaveBeenCalled();
+  await act(async () => fireEvent.click(screen.getByLabelText('Dots')));
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(send).toHaveBeenLastCalledWith('setBaseMarking', {
+    zone: 'l_arm',
+    index: 1,
+    name: 'Dots',
+  });
+});
+
+
+it.each(['preferences', 'salon'])('copies base markings across regions in %s and retains the clipboard after removing the base', (context) => {
+  const data = regionFixture();
+  data.context = context;
+  data.selfWork = true;
+  data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 32 };
+  data.editorData.sprite.selectionPreview = true;
+  const frames = fixtureFrames();
+  for (const frame of Object.values(frames)) for (const row of frame) row.fill('#00000000');
+  frames[Dir.SOUTH][0][1] = '#ff0000ff';
+  data.editorData.sprite = { ...compactSprite(32, 32, frames), selectionPreview: true };
+  const bounds = spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const { view, editor } = renderRegions(data);
+    fireEvent.keyDown(document, { key: 'm' });
+    fireEvent.keyUp(document, { key: 'm' });
+    expect(screen.queryByText('Shift+C')).toBeNull();
+    send.mockClear();
+    fireEvent.keyDown(document, { key: 'C', shiftKey: true });
+    fireEvent.keyUp(document, { key: 'C', shiftKey: true });
+    expect(send).not.toHaveBeenCalledWith('copyBaseLayer', expect.anything());
+    const canvas = view.container.querySelector('canvas')!;
+    fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
+    fireEvent.mouseUp(window, { clientX: 35, clientY: 5, button: 0 });
+    expect(screen.getByText('Shift+C')).toBeTruthy();
+    expect(screen.getByText(/copy with base markings/)).toBeTruthy();
+    send.mockClear();
+    fireEvent.keyDown(document, { key: 'C', shiftKey: true });
+    fireEvent.keyUp(document, { key: 'C', shiftKey: true });
+    const request = send.mock.calls.find(([action]) => action === 'copyBaseLayer')![1].request;
+    const copied = { ...data, baseCopyResult: { request, source: 'marking-editor', origin: [0, 0] as [number, number], width: 32, height: 32, palette: ['#00000000', '#0000ffff'], codes: `1111${'0'.repeat(1020)}` } };
+    backendStore.set(gameDataAtom, copied);
+    view.rerender(editor());
+    backendStore.set(gameDataAtom, { ...copied, regionMarkings: { chest: [], l_arm: [] } });
+    view.rerender(editor());
+    send.mockClear();
+    fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
+    fireEvent.keyUp(document, { key: 'v', ctrlKey: true });
+    expect(send).toHaveBeenCalledWith('previewSelection', { transaction: expect.objectContaining({ baseCopy: request, baseCopySource: 'marking-editor' }) });
+    expect(send).not.toHaveBeenCalledWith('spriteEditorCommand', expect.anything());
+    fireEvent.keyDown(document, { key: 'Enter' });
+    fireEvent.keyUp(document, { key: 'Enter' });
+    expect(send).toHaveBeenCalledWith('spriteEditorCommand', { command: 'transaction', transaction: expect.objectContaining({ baseCopy: request, baseCopySource: 'marking-editor', palette: ['#0000ffff'], codes: '0.00', area: [0, 0, 3, 0] }) });
+  } finally {
+    bounds.mockRestore();
   }
 });

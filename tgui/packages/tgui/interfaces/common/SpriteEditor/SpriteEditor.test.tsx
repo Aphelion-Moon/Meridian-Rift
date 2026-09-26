@@ -585,6 +585,29 @@ describe('sprite editor interactions', () => {
       fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
       fireEvent.mouseUp(window, { clientX: 25, clientY: 5, button: 0 });
       expect(store.get(selectionBoundsAtom)).toEqual([0, 0, 1, 0]);
+      expect(key({ key: 'C', shiftKey: true })).toBe(false);
+      data.baseCopyInfo = {
+        source: 'hair-editor',
+        style: 'Test',
+        origin: [0, 0],
+        height: 4,
+      };
+      view.rerender(
+        <Provider store={store}>
+          <SpriteEditor.Toolbar />
+          <SelectionTools />
+          <SpriteEditor.Canvas data={data} />
+        </Provider>,
+      );
+      expect(key({ key: 'C', shiftKey: true })).toBe(true);
+      expect(send).toHaveBeenLastCalledWith('copyBaseLayer', {
+        request: expect.any(Number),
+        dir: '2',
+        rect: [0, 0, 1, 0],
+        mask: undefined,
+      });
+      expect(key({ key: 'C', ctrlKey: true, shiftKey: true })).toBe(false);
+      send.mockClear();
       expect(key({ key: 'c', ctrlKey: true })).toBe(true);
       act(() => store.set(dirAtom, Dir.NORTH));
       expect(store.get(selectionBoundsAtom)).toBeUndefined();

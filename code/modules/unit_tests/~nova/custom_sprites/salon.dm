@@ -2,6 +2,13 @@
 /datum/custom_sprite_salon/test
 	/// Achievement types emitted by successful test applications.
 	var/list/awards = list()
+	/// Draft-change notifications received through the editor hook.
+	var/draft_changes = 0
+
+/// Counts the shared editor hook before the real consent transition.
+/datum/custom_sprite_salon/test/draft_changed()
+	draft_changes++
+	return ..()
 
 /datum/custom_sprite_salon/test/apply_proposal(token)
 	return
@@ -972,3 +979,40 @@
 	var/list/entries = canvas.workspace.markings_context[BODY_ZONE_CHEST]
 	var/list/entry = entries[1]
 	TEST_ASSERT(entry["color"] == "#112233", "The torso's drafted base marking must stay as it was: [entry["color"]]")
+
+/// Shared salon hooks keep artist ownership, one consent invalidation, and fail-closed detached editors.
+/datum/unit_test/custom_sprite_salon/shared_editor_context/Run()
+	setup_players()
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, artist.mock_client)
+	GLOB.preferences_datums[artist.ckey] = preferences
+	for(var/target in list("hair", "markings"))
+		var/obj/item/tool = target == "hair" ? scissors : machine
+		var/datum/custom_sprite_salon/test/session = new(tool, artist, recipient, target, null)
+		var/datum/custom_sprite_editor/editor = session.editor
+		TEST_ASSERT(editor.can_edit(artist) && !editor.can_edit(recipient), "Only the artist may act on either salon editor")
+		TEST_ASSERT(!editor.can_hide_underwear(), "Both salon guides must keep the recipient's clothing context")
+		TEST_ASSERT(target == "hair" ? paint(session) : paint_region(session, BODY_ZONE_CHEST), "Each salon context needs a changed draft")
+		TEST_ASSERT(!session.propose(artist) && session.proposal, "The changed draft must be submitted for recipient approval")
+		var/revision = editor.draft_revision
+		var/notifications = session.draft_changes
+		var/datum/custom_sprite_editor/markings/tattoo = target == "markings" ? editor : null
+		if(tattoo)
+			tattoo.selection_request = list("dir" = "2")
+			var/list/frames = tattoo.workspace.layers[1]["data"]
+			tattoo.selection_frames = frames.Copy()
+		editor.draft_changed()
+		TEST_ASSERT_EQUAL(editor.draft_revision, revision + 1, "A draft edit must advance its revision exactly once")
+		TEST_ASSERT_EQUAL(session.draft_changes, notifications + 1, "A draft edit must notify its salon session exactly once")
+		TEST_ASSERT(!session.proposal && !session.mirror && session.state == "drafting", "An edit must withdraw the recipient's previous approval")
+		TEST_ASSERT(!tattoo || (!tattoo.selection_request && !tattoo.selection_frames), "Tattoo edits must also clear queued and rendered temporary paint")
+		var/saved = json_encode(preferences.custom_sprite_savefile?.get_entry())
+		var/save_revision = editor.save_revision
+		editor.session = null
+		TEST_ASSERT(!editor.can_edit(artist), "A detached salon editor must refuse its former artist")
+		TEST_ASSERT(!editor.context_act("saveDraft", list(), artist), "A detached salon editor must never fall through to preference saving")
+		TEST_ASSERT(!editor.context_act("save", list(), artist), "A detached salon editor must never finish a preferences editor")
+		TEST_ASSERT(!QDELETED(editor) && editor.save_revision == save_revision, "Rejected detached actions must leave the draft alive and unacknowledged")
+		TEST_ASSERT_EQUAL(json_encode(preferences.custom_sprite_savefile?.get_entry()), saved, "Detached actions must leave the artist's saved character untouched")
+		editor.session = session
+		qdel(session)
+		GLOB.custom_sprite_salon_cooldowns.Cut()

@@ -237,6 +237,7 @@
 
 	data["augment_items"]    = build_augment_choices()
 	data["marking_choices"]  = build_marking_choices()
+	data["marking_icons"] = custom_sprite_marking_icons() // APHELION EDIT ADDITION - Static shared picker catalog.
 	data["marking_presets"]  = build_marking_presets()
 	data["max_markings"]     = MAXIMUM_MARKINGS_PER_LIMB
 

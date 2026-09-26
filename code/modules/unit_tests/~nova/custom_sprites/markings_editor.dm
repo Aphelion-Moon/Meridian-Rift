@@ -549,3 +549,382 @@
 	TEST_ASSERT(editor.workspace.is_point_allowed(arm_point[1], arm_point[2], "2"), "An unlocked region must be paintable again.")
 	TEST_ASSERT(editor.ui_act("clear", list("dir" = "2", "zone" = BODY_ZONE_L_ARM), ui, null), "An unlocked region's actions must work again.")
 	editor.finish(FALSE)
+
+
+/// The compact placement the selection tool sends for a temporary picture or a final drop.
+/proc/custom_sprite_test_selection_placement(list/changes, width = 32)
+	var/list/palette = list("#00000000", "#fe12abff", "#12ab34ff")
+	var/list/codes = new /list(width * 32)
+	for(var/index in 1 to length(codes))
+		codes[index] = "."
+	for(var/list/point as anything in changes)
+		codes[point[2] * width + point[1] + 1] = "[palette.Find(point[3]) - 1]"
+	return list("dir" = "2", "area" = list(0, 0, width - 1, 31), "palette" = palette, "digits" = 1, "codes" = jointext(codes, ""))
+
+/// Both ordinary and taur previews follow a floating selection without changing its draft or undo stack.
+/datum/unit_test/custom_sprite_markings_selection_preview/Run()
+	for(var/editor_type in list(/datum/custom_sprite_editor/markings/unified_test, /datum/custom_sprite_editor/markings/unified_test/taur))
+		var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+		var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+		preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+		var/datum/custom_sprite_editor/markings/unified_test/editor = new editor_type(preferences, BODY_ZONE_CHEST)
+		LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+		var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+		var/list/points = list()
+		var/list/rows = editor.region_map["2"]
+		for(var/zone in list(BODY_ZONE_CHEST, BODY_ZONE_L_ARM))
+			var/list/point
+			for(var/y in 0 to 30)
+				for(var/x in 0 to editor.workspace.width - 1)
+					if(!point && custom_sprite_region_owner(rows, editor.region_zones, x, y) == zone && editor.workspace.is_point_allowed(x, y + 1, "2"))
+						point = list(x, y)
+			TEST_ASSERT(point, "Each fixture region needs a source and a drawable pixel below it.")
+			points += list(point)
+		editor.workspace.update_palette(list("#fe12ab", "#12ab34"))
+		var/list/changes = list()
+		for(var/index in 1 to length(points))
+			var/list/point = points[index]
+			var/color = index == 1 ? "#fe12abff" : "#12ab34ff"
+			TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = color, "points" = list(point))), "Both source regions must be painted.")
+			changes += list(list(point[1], point[2], "#00000000"), list(point[1], point[2] + 1, color))
+		editor.draft_edited()
+		editor.refresh_preview(push = FALSE)
+		var/original_preview = editor.preview_urls["2"]
+		var/original_frame = json_encode(editor.workspace.layers[1]["data"])
+		var/original_results = json_encode(editor.region_results())
+		var/history = length(editor.workspace.undo_stack)
+		var/revision = editor.draft_revision
+		var/list/transaction = custom_sprite_test_selection_placement(changes, editor.workspace.width)
+		editor.ui_act("previewSelection", list("transaction" = transaction), ui, null)
+		TEST_ASSERT(editor.selection_request && !editor.selection_frames, "A selection action must defer validation and rendering.")
+		TEST_ASSERT_EQUAL(editor.preview_urls["2"], original_preview, "Actions must not compose or flatten a preview inline.")
+		editor.refresh_preview(push = FALSE)
+		TEST_ASSERT(editor.selection_frames, "The ordinary placement validator must accept paint spanning multiple regions.")
+		TEST_ASSERT(editor.preview_urls["2"] != original_preview, "The character thumbnail must show the moved paint for ordinary and taur bodies.")
+		for(var/list/change as anything in changes)
+			TEST_ASSERT_EQUAL(editor.selection_frames["2"][change[2] + 1][change[1] + 1], change[3], "Every moved region must appear in the temporary frame.")
+		TEST_ASSERT_EQUAL(json_encode(editor.workspace.layers[1]["data"]), original_frame, "Floating previews must never write the draft.")
+		TEST_ASSERT_EQUAL(json_encode(editor.region_results()), original_results, "Save/export packages must ignore temporary paint.")
+		TEST_ASSERT_EQUAL(length(editor.workspace.undo_stack), history, "Floating previews must not create history.")
+		TEST_ASSERT_EQUAL(editor.draft_revision, revision, "Floating previews must not mark the draft changed.")
+		editor.ui_act("previewSelection", list("transaction" = null), ui, null)
+		editor.refresh_preview(push = FALSE)
+		TEST_ASSERT(!editor.selection_frames, "Cancelling must forget temporary paint.")
+		TEST_ASSERT_EQUAL(editor.preview_urls["2"], original_preview, "Cancelling must restore the exact previous thumbnail.")
+		editor.queue_selection_preview(transaction)
+		editor.refresh_preview(push = FALSE)
+		editor.queue_selection_preview(transaction)
+		editor.ui_close(mock_client.mob)
+		TEST_ASSERT(!editor.selection_request && !editor.selection_frames, "Closing must discard queued and rendered temporary paint without a frontend cancellation.")
+		TEST_ASSERT(editor.rebuild_resources(), "Reopening must rebuild the retained authoritative draft.")
+		editor.refresh_preview(push = FALSE)
+		TEST_ASSERT_EQUAL(editor.preview_urls["2"], original_preview, "Reopening must show the original draft, not a previous temporary selection.")
+		editor.finish(FALSE)
+
+/// Mutable locks emulate clothing or mirror access changing during the debounce.
+/datum/custom_sprite_editor/markings/unified_test/selection_locks
+	var/list/test_region_locks = list()
+	var/list/test_view_locks = list()
+
+/datum/custom_sprite_editor/markings/unified_test/selection_locks/locked_regions()
+	return test_region_locks
+
+/datum/custom_sprite_editor/markings/unified_test/selection_locks/locked_directions()
+	return test_view_locks
+
+/// Hostile preview messages cannot bypass placement validation, region locks, draft isolation or the one-request bound.
+/datum/unit_test/custom_sprite_markings_selection_preview/hostile/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/selection_locks/editor = new(preferences, BODY_ZONE_CHEST)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	editor.workspace.update_palette(list("#fe12ab", "#12ab34"))
+	var/list/point = custom_sprite_test_region_pixel(editor, BODY_ZONE_CHEST)
+	var/list/first = custom_sprite_test_selection_placement(list(list(point[1], point[2], "#fe12abff")))
+	var/list/last = custom_sprite_test_selection_placement(list(list(point[1], point[2], "#12ab34ff")))
+	var/original_frame = json_encode(editor.workspace.layers[1]["data"])
+	var/original_preview = editor.preview_urls["2"]
+	for(var/index in 1 to 100)
+		TEST_ASSERT(editor.queue_selection_preview(index == 100 ? last : first), "Valid preview requests must coalesce.")
+	TEST_ASSERT_EQUAL(editor.selection_request["codes"], last["codes"], "A burst retains exactly its latest request.")
+	TEST_ASSERT(!editor.selection_frames, "A hostile action burst must not decode or compose inline.")
+	TEST_ASSERT_EQUAL(editor.preview_urls["2"], original_preview, "A hostile action burst must not render inline.")
+	editor.refresh_preview(push = FALSE)
+	TEST_ASSERT_EQUAL(editor.selection_frames["2"][point[2] + 1][point[1] + 1], "#12ab34ff", "The deferred preview must use only the latest bounded request.")
+	TEST_ASSERT_EQUAL(json_encode(editor.workspace.layers[1]["data"]), original_frame, "Even a hostile burst must not modify the draft.")
+	for(var/invalid in list("dir", "area", "palette", "digits", "codes"))
+		var/list/bad = first.Copy()
+		switch(invalid)
+			if("dir")
+				bad[invalid] = "bogus"
+			if("area")
+				bad[invalid] = list(0, 0, 31)
+			if("palette")
+				bad[invalid] = new /list(1025)
+			if("digits")
+				bad[invalid] = 3
+			if("codes")
+				bad[invalid] = repeat_string(2049, "0")
+		TEST_ASSERT(!editor.queue_selection_preview(bad), "Oversized or malformed [invalid] must be refused before queueing.")
+	var/list/bad_color = first.Copy()
+	bad_color["palette"] = list("#00000000", "not a color", "#12ab34ff")
+	TEST_ASSERT(editor.queue_selection_preview(bad_color), "Color validation is deferred.")
+	editor.refresh_preview(push = FALSE)
+	TEST_ASSERT(!editor.selection_frames, "Malformed colors must never reach a preview frame.")
+	TEST_ASSERT_EQUAL(editor.preview_urls["2"], original_preview, "A malformed replacement must restore the authoritative thumbnail.")
+	var/datum/sprite_editor_workspace/custom_sprite/regions/canvas = editor.workspace
+	// Erasing locked paint must fail too, not just painting a locked destination.
+	canvas.layers[1]["data"]["2"][point[2] + 1][point[1] + 1] = "#fe12abff"
+	var/list/erase = custom_sprite_test_selection_placement(list(list(point[1], point[2], "#00000000")))
+	TEST_ASSERT(editor.queue_selection_preview(erase), "Lock checks are deferred.")
+	editor.test_region_locks = list(BODY_ZONE_CHEST = "Covered")
+	editor.refresh_preview(push = FALSE)
+	TEST_ASSERT(!editor.selection_frames, "A region locking during the debounce must discard its pending preview.")
+	TEST_ASSERT(editor.queue_selection_preview(erase), "A stable lock still passes the cheap envelope check.")
+	editor.refresh_preview(push = FALSE)
+	TEST_ASSERT(!editor.selection_frames, "Selections must never erase or move paint out of locked regions.")
+	editor.test_region_locks = list()
+	editor.sync_locked_views(push = FALSE)
+	editor.queue_selection_preview(erase)
+	editor.test_view_locks = list("2")
+	editor.refresh_preview(push = FALSE)
+	TEST_ASSERT(!editor.selection_frames, "A view locking during the debounce must discard its pending preview.")
+	editor.queue_selection_preview(erase)
+	editor.refresh_preview(push = FALSE)
+	TEST_ASSERT(!editor.selection_frames, "Even transparent erasure must not preview changes to a locked view.")
+	editor.queue_selection_preview(last)
+	editor.draft_changed()
+	TEST_ASSERT(!editor.selection_request && !editor.selection_frames, "A real draft change must invalidate pending and rendered temporary paint.")
+	editor.finish(FALSE)
+
+/// Marking popups share immutable preference classes and never resend them with paint updates.
+/datum/unit_test/custom_sprite_marking_catalog
+	priority = TEST_LONGER
+
+/datum/unit_test/custom_sprite_marking_catalog/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/markings/editor = allocate(/datum/custom_sprite_editor/markings/unified_test, preferences, BODY_ZONE_L_ARM)
+	var/list/static_data = editor.ui_static_data(mock_client.mob)
+	var/list/icons_by_zone = static_data["regionMarkingIcons"]
+	TEST_ASSERT(icons_by_zone == custom_sprite_marking_icons(), "Editor catalogs must reuse the immutable shared map")
+	var/datum/preference_middleware/limbs_and_markings/middleware = allocate(/datum/preference_middleware/limbs_and_markings)
+	var/list/preference_data = middleware.get_constant_data()
+	TEST_ASSERT(preference_data["marking_icons"] == icons_by_zone, "Normal preferences must use the same marking classes")
+	var/datum/asset/spritesheet_batched/preferences/sheet = get_asset_datum(/datum/asset/spritesheet_batched/preferences)
+	sheet.ensure_ready()
+	for(var/zone, choices in GLOB.body_markings_per_limb)
+		var/list/icons = icons_by_zone[zone]
+		TEST_ASSERT_EQUAL(length(icons), length(choices), "Every [zone] marking must have a picker entry")
+		for(var/name in choices)
+			TEST_ASSERT(sheet.entries[icons[name]], "The cached preferences sheet must contain [zone] / [name]")
+			TEST_ASSERT_EQUAL(sheet.icon_size_id(icons[name]), "preferences32x32", "The [zone] / [name] thumbnail must fit the shared picker, including wide source icons")
+	var/list/dynamic_data = editor.ui_data(mock_client.mob)
+	TEST_ASSERT(!("regionMarkingIcons" in dynamic_data) && !("regionMarkingChoices" in dynamic_data), "Painting updates must not resend marking catalogs")
+	var/list/assets = editor.ui_assets(mock_client.mob)
+	TEST_ASSERT(length(assets) == 1 && assets[1] == sheet, "Markings and tattooing must reuse the existing cached preferences asset")
+
+
+/// Synthetic native marking art, registered only for these tests and removed by the test allocator.
+/datum/custom_sprite_base_marking_fixture
+	var/list/names = list()
+	var/list/previous_choices = list()
+
+/datum/custom_sprite_base_marking_fixture/New()
+	var/list/zones = list(BODY_ZONE_CHEST, BODY_ZONE_L_ARM, BODY_ZONE_PRECISE_L_HAND)
+	for(var/zone in zones)
+		previous_choices[zone] = GLOB.body_markings_per_limb[zone]
+		var/list/choices = GLOB.body_markings_per_limb[zone]
+		GLOB.body_markings_per_limb[zone] = choices.Copy()
+	for(var/index in 1 to 4)
+		var/datum/body_marking/marking = new
+		marking.name = "Copy test [REF(src)] [index]"
+		marking.icon_state = index == 4 ? "missing" : "copy"
+		marking.gendered = FALSE
+		var/icon/tile = icon('icons/blanks/32x32.dmi', "nothing")
+		tile.DrawBox(index == 3 ? "#ffffff80" : "#ffffff", 1, 1, 32, 32)
+		var/icon/art = icon(tile)
+		for(var/direction in GLOB.cardinals)
+			art.Insert(tile, "", direction)
+			for(var/zone in zones)
+				art.Insert(tile, "copy_[zone]", direction)
+				art.Insert(tile, "copy_digitigrade_[zone]", direction)
+		marking.icon = art
+		names += marking.name
+		GLOB.body_markings[marking.name] = marking
+		for(var/zone in zones)
+			GLOB.body_markings_per_limb[zone] += marking.name
+
+/datum/custom_sprite_base_marking_fixture/Destroy()
+	for(var/name in names)
+		qdel(GLOB.body_markings[name])
+		GLOB.body_markings -= name
+	for(var/zone, choices in previous_choices)
+		GLOB.body_markings_per_limb[zone] = choices
+	return ..()
+
+/// Put one native record on a draft without producing a paint transaction.
+/datum/custom_sprite_base_marking_fixture/proc/put(datum/custom_sprite_editor/markings/editor, zone, index = 1, color = "#ff0000", emissive = FALSE)
+	editor.workspace.markings_context[zone] = list(list("name" = names[index], "color" = color, "emissive" = emissive))
+
+/// Native RGB sampling follows region ownership and does not copy body/custom paint or change draft state.
+/datum/unit_test/custom_sprite_markings_base_copy/Run()
+	var/datum/custom_sprite_base_marking_fixture/art = allocate(/datum/custom_sprite_base_marking_fixture)
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	art.put(editor, BODY_ZONE_CHEST)
+	art.put(editor, BODY_ZONE_L_ARM, 1, "#0000ff")
+	art.put(editor, BODY_ZONE_PRECISE_L_HAND, 1, "#00ff00")
+	editor.rebuild_resources()
+	var/list/chest = custom_sprite_test_region_pixel(editor, BODY_ZONE_CHEST)
+	editor.workspace.update_palette(list("#fe12ab"))
+	TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#fe12abff", "points" = list(chest))), "The fixture custom paint must land on the chest.")
+	var/before = json_encode(editor.workspace.layers[1]["data"])
+	var/history = length(editor.workspace.undo_stack)
+	var/palette = json_encode(editor.workspace.palette)
+	var/revision = editor.draft_revision
+	var/list/copied = editor.build_base_copy(list("request" = 1, "dir" = "2", "rect" = list(0, 0, 31, 31)))
+	TEST_ASSERT(copied && length(copied["codes"]) == 1024, "A multi-region native base copy must succeed: [editor.transfer_error]")
+	var/list/expected = list(BODY_ZONE_CHEST = "#ff0000ff", BODY_ZONE_L_ARM = "#0000ffff", BODY_ZONE_PRECISE_L_HAND = "#00ff00ff")
+	for(var/y in 0 to 31)
+		for(var/x in 0 to 31)
+			var/zone = custom_sprite_region_owner(editor.region_map["2"], editor.region_zones, x, y)
+			var/code = copytext(copied["codes"], y * 32 + x + 1, y * 32 + x + 2)
+			TEST_ASSERT_EQUAL(copied["palette"][findtext(CUSTOM_SPRITE_INDEX_ALPHABET, code)], expected[zone] || "#00000000", "Each canvas pixel may sample only its owning region's native marks, never skin or custom paint.")
+	TEST_ASSERT(json_encode(editor.workspace.layers[1]["data"]) == before && length(editor.workspace.undo_stack) == history && json_encode(editor.workspace.palette) == palette && editor.draft_revision == revision, "Copy must not change authoritative pixels, history, palette or revision.")
+	TEST_ASSERT(!length(preferences.custom_limb_markings), "Copy must not create saved drawings.")
+	var/obj/item/bodypart/limb = editor.preview_body.get_bodypart(BODY_ZONE_CHEST)
+	limb.markings_alpha = 96
+	var/list/native = list()
+	limb.append_base_marking_overlays(native)
+	var/mutable_appearance/native_marking = native[1]
+	TEST_ASSERT(length(native) == 1 && native_marking.alpha == 96 && native_marking.color == "#ff0000", "Default helper arguments must preserve native marking alpha and color.")
+	var/list/sampled = list()
+	limb.append_base_marking_overlays(sampled, BODY_ZONE_CHEST, FALSE, 255)
+	var/mutable_appearance/sampled_marking = sampled[1]
+	TEST_ASSERT(length(sampled) == 1 && sampled_marking.alpha == 255 && limb.markings_alpha == 96, "Sampling must neutralize only the returned appearance's alpha, leaving the limb untouched.")
+	editor.finish(FALSE)
+
+/// A marking copy survives deleting the native source and previews without admitting permanent colors.
+/datum/unit_test/custom_sprite_markings_base_copy_paste/Run()
+	var/datum/custom_sprite_base_marking_fixture/art = allocate(/datum/custom_sprite_base_marking_fixture)
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	art.put(editor, BODY_ZONE_CHEST, 1, "#fe12ab")
+	editor.rebuild_resources()
+	var/list/point = custom_sprite_test_region_pixel(editor, BODY_ZONE_CHEST)
+	var/list/copied = editor.build_base_copy(list("request" = 1, "dir" = "2", "rect" = list(point[1], point[2], point[1], point[2])))
+	TEST_ASSERT(copied, "The selected base marking pixel must copy.")
+	TEST_ASSERT(editor.write_region_marking(BODY_ZONE_CHEST, 1, null, null), "The native source must be removable after copying.")
+	editor.rebuild_resources()
+	var/list/placement = custom_sprite_test_selection_placement(list(list(point[1], point[2], "#fe12abff")))
+	placement["palette"] = list("#00000000", "#fe12abff")
+	placement["baseCopy"] = copied["request"]
+	placement["baseCopySource"] = copied["source"]
+	editor.workspace.update_palette(list())
+	var/original_palette = json_encode(editor.workspace.palette)
+	var/original_frame = json_encode(editor.workspace.layers[1]["data"])
+	var/history = length(editor.workspace.undo_stack)
+	TEST_ASSERT(editor.queue_selection_preview(placement), "A copied marking must enter the normal deferred preview path.")
+	editor.apply_selection_preview()
+	TEST_ASSERT(editor.selection_frames && editor.selection_frames["2"][point[2] + 1][point[1] + 1] == "#fe12abff", "The temporary picture must include the copied color after removing its native source.")
+	TEST_ASSERT(json_encode(editor.workspace.palette) == original_palette && json_encode(editor.workspace.layers[1]["data"]) == original_frame && length(editor.workspace.undo_stack) == history, "Trusted preview admission must be temporary and must not affect the draft or undo history.")
+	placement["type"] = "move"
+	placement["layer"] = 1
+	TEST_ASSERT(editor.prepare_base_copy_paste(placement) && editor.workspace.new_transaction(deep_copy_list(placement)), "The base copy must paste through the existing validated move transaction.")
+	var/pasted = json_encode(editor.workspace.layers[1]["data"])
+	TEST_ASSERT(!length(editor.workspace.markings_context[BODY_ZONE_CHEST]), "Pasting must not restore native base records.")
+	editor.workspace.undo()
+	TEST_ASSERT_EQUAL(json_encode(editor.workspace.layers[1]["data"]), original_frame, "Undo must remove copied custom pixels.")
+	editor.workspace.redo()
+	TEST_ASSERT_EQUAL(json_encode(editor.workspace.layers[1]["data"]), pasted, "Redo must restore the exact copied pixels.")
+	editor.finish(FALSE)
+
+/// Wide canvases keep humanoid coordinates centered, and locked source regions are refused.
+/datum/unit_test/custom_sprite_markings_base_copy_bounds/Run()
+	var/datum/custom_sprite_base_marking_fixture/art = allocate(/datum/custom_sprite_base_marking_fixture)
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/taur/wide = new(preferences, BODY_ZONE_CHEST)
+	art.put(wide, BODY_ZONE_CHEST)
+	wide.rebuild_resources()
+	var/list/copied = wide.build_base_copy(list("request" = 1, "dir" = "2", "rect" = list(0, 0, 63, 31)))
+	TEST_ASSERT(copied && copied["width"] == 64 && length(copied["codes"]) == 2048, "A taur body must use the supported wide copy envelope: [wide.transfer_error]")
+	TEST_ASSERT(findtext(copied["codes"], "1"), "A wide body still copies its ordinary native chest markings.")
+	for(var/y in 0 to 31)
+		for(var/x in 0 to 63)
+			var/zone = custom_sprite_region_owner(wide.region_map["2"], wide.region_zones, x, y)
+			var/code = copytext(copied["codes"], y * 64 + x + 1, y * 64 + x + 2)
+			TEST_ASSERT((zone == BODY_ZONE_CHEST) == (code != "0"), "The wide origin must agree with region ownership; taur organ art must stay out of the copy.")
+	wide.finish(FALSE)
+	var/datum/custom_sprite_editor/markings/unified_test/selection_locks/editor = new(preferences, BODY_ZONE_CHEST)
+	art.put(editor, BODY_ZONE_CHEST)
+	editor.rebuild_resources()
+	var/list/point = custom_sprite_test_region_pixel(editor, BODY_ZONE_CHEST)
+	var/list/request = list("request" = 2, "dir" = "2", "rect" = list(point[1], point[2], point[1], point[2]), "mask" = list("1"))
+	editor.test_region_locks = list(BODY_ZONE_CHEST = "Covered")
+	TEST_ASSERT(!editor.build_base_copy(request) && editor.transfer_error, "A region covered since the request must not be sampled into the clipboard.")
+	editor.test_region_locks = list()
+	request["mask"] = list("0")
+	copied = editor.build_base_copy(request)
+	TEST_ASSERT(copied && copied["codes"] == repeat_string(1024, "0"), "Selection holes must stay empty across region boundaries.")
+	art.put(editor, BODY_ZONE_CHEST, 1, "#0000ff")
+	TEST_ASSERT(!editor.build_base_copy(request), "A base record changed before its resource rebuild must not use stale sampled pixels.")
+	editor.finish(FALSE)
+
+/// Appearance and palette limits fail closed rather than changing the persisted drawing representation.
+/datum/unit_test/custom_sprite_markings_base_copy_limits/Run()
+	var/datum/custom_sprite_base_marking_fixture/art = allocate(/datum/custom_sprite_base_marking_fixture)
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_CHEST)
+	var/list/point = custom_sprite_test_region_pixel(editor, BODY_ZONE_CHEST)
+	var/list/request = list("request" = 1, "dir" = "2", "rect" = list(point[1], point[2], point[1], point[2]))
+	art.put(editor, BODY_ZONE_CHEST, 3)
+	editor.rebuild_resources()
+	TEST_ASSERT(!editor.build_base_copy(request) && editor.transfer_error, "Intrinsic partial alpha cannot enter the opaque drawing format.")
+	art.put(editor, BODY_ZONE_CHEST, 1)
+	editor.workspace.markings_context[BODY_ZONE_CHEST] += list(list("name" = art.names[2], "color" = "#0000ff", "emissive" = FALSE))
+	editor.rebuild_resources()
+	var/obj/item/bodypart/limb = editor.preview_body.get_bodypart(BODY_ZONE_CHEST)
+	limb.markings_alpha = 128
+	TEST_ASSERT(!editor.build_base_copy(request) && editor.transfer_error, "Overlapping independently translucent base marks cannot be baked with altered coverage.")
+	art.put(editor, BODY_ZONE_CHEST, 4)
+	editor.rebuild_resources()
+	var/list/blank = editor.build_base_copy(request)
+	TEST_ASSERT(blank && blank["codes"] == repeat_string(1024, "0"), "Missing native states must not fall back to an unrelated opaque default state.")
+	editor.finish(FALSE)
+	TEST_ASSERT(custom_sprite_test_pool_colors(preferences, 70) == 70, "The palette fixture must retain more than 63 colors across valid individual regions.")
+	editor = new(preferences, BODY_ZONE_CHEST)
+	var/list/kept = editor.workspace.kept_colors()
+	TEST_ASSERT(length(kept) == 70 && editor.base_copy_colors_fit(list(kept[1])), "Existing colors remain copyable when the combined regional pool exceeds 63.")
+	TEST_ASSERT(!editor.base_copy_colors_fit(list("#abcdef")), "A full existing regional pool must not admit a new copy color.")
+	var/list/empty_copy = editor.build_base_copy(list("request" = 2, "dir" = "2", "rect" = list(0, 0, 31, 31)))
+	TEST_ASSERT(empty_copy, "An empty native layer remains copyable on an existing large regional palette.")
+	var/list/colors = list()
+	for(var/color in kept)
+		colors += "[color]ff"
+	var/list/codes = new /list(1024)
+	for(var/index in 1 to length(codes))
+		codes[index] = ".."
+	var/placed = 0
+	for(var/y in 0 to 31)
+		for(var/x in 0 to 31)
+			if(placed >= length(kept) || custom_sprite_region_owner(editor.region_map["2"], editor.region_zones, x, y) != BODY_ZONE_CHEST)
+				continue
+			codes[y * 32 + x + 1] = copytext(CUSTOM_SPRITE_INDEX_ALPHABET, round(placed / 64) + 1, round(placed / 64) + 2) + copytext(CUSTOM_SPRITE_INDEX_ALPHABET, (placed % 64) + 1, (placed % 64) + 2)
+			placed++
+	TEST_ASSERT(placed == 70, "The chest fixture needs enough owned pixels to test its independent save palette.")
+	var/list/placement = list("type" = "move", "layer" = 1, "dir" = "2", "area" = list(0, 0, 31, 31), "palette" = colors, "digits" = 2, "codes" = jointext(codes, ""), "baseCopy" = empty_copy["request"], "baseCopySource" = empty_copy["source"])
+	var/before = json_encode(editor.workspace.layers[1]["data"])
+	var/palette_before = json_encode(editor.workspace.palette)
+	TEST_ASSERT(!editor.prepare_base_copy_paste(placement) && editor.transfer_error, "Existing shared colors must still respect each destination region's 63-color save limit.")
+	TEST_ASSERT(json_encode(editor.workspace.layers[1]["data"]) == before && json_encode(editor.workspace.palette) == palette_before, "A rejected regional placement must leave pixels and palette unchanged.")
+	editor.finish(FALSE)

@@ -16,6 +16,7 @@ import {
   Tooltip,
 } from 'tgui-core/components';
 import { classes } from 'tgui-core/react';
+import { ChoicedSelectionDropdown } from '../ChoicedSelection';
 import { SpriteEditor } from '../SpriteEditor';
 import {
   currentToolAtom,
@@ -30,6 +31,7 @@ import {
 import {
   MIRROR_SELECTION_KEY,
   ROTATE_SELECTION_KEY,
+  receiveBaseCopy,
   SelectionTools,
   settleSelection,
 } from '../SpriteEditor/selection';
@@ -63,8 +65,10 @@ function CycleDropdown(props: {
   selected: string | null | undefined;
   onSelected: (value: string) => void;
   disabled?: boolean;
+  icons?: Record<string, string>;
+  name?: string;
 }) {
-  const { options, selected, onSelected, disabled } = props;
+  const { options, selected, onSelected, disabled, icons, name } = props;
   const chevron = (step: number) => (
     <Stack.Item>
       <Button
@@ -85,17 +89,27 @@ function CycleDropdown(props: {
     <Stack align="center">
       {chevron(-1)}
       <Stack.Item grow minWidth={0}>
-        <Dropdown
-          width="100%"
-          disabled={disabled}
-          options={options}
-          menuWidth="max-content"
-          selected={selected ?? undefined}
-          displayText={selected ?? undefined}
-          searchInput
-          maxItems={8}
-          onSelected={onSelected}
-        />
+        {icons ? (
+          <ChoicedSelectionDropdown
+            name={name ?? 'hairstyle'}
+            icons={icons}
+            options={options}
+            selected={selected ?? ''}
+            onSelect={onSelected}
+            disabled={disabled}
+          />
+        ) : (
+          <Dropdown
+            width="100%"
+            disabled={disabled}
+            options={options}
+            menuWidth="max-content"
+            selected={selected ?? undefined}
+            displayText={selected ?? undefined}
+            maxItems={8}
+            onSelected={onSelected}
+          />
+        )}
       </Stack.Item>
       {chevron(1)}
     </Stack>
@@ -121,10 +135,32 @@ type ToolButtonProps = ReturnType<
   NonNullable<Parameters<typeof SpriteEditor.Toolbar>[0]['perButtonProps']>
 >;
 
-/** Markings and tattoo window size, tall enough that the side panel doesn't scroll. */
-const MARKINGS_WINDOW = [1100, 920] as const;
-/** Wide enough that base marking names aren't cut short beside their buttons. */
-const MARKINGS_PANEL_WIDTH = '26rem';
+/** Room for the palette, blending controls, full preview and both rotation controls. */
+const EDITOR_WINDOW = [1100, 920] as const;
+/** Shares palette rows across hair, markings and their salon editors. */
+const EDITOR_PANEL_WIDTH = '26rem';
+
+/** Both canvases turn the same view, through the same control. */
+const ViewRotation = ({ onRotate }: { onRotate: (step: number) => void }) => (
+  <>
+    <Button
+      fontSize="22px"
+      icon="redo"
+      aria-label="Rotate Clockwise"
+      tooltip="Rotate Clockwise"
+      tooltipPosition="bottom"
+      onClick={() => onRotate(1)}
+    />
+    <Button
+      fontSize="22px"
+      icon="undo"
+      aria-label="Rotate Counter-Clockwise"
+      tooltip="Rotate Counter-Clockwise"
+      tooltipPosition="bottom"
+      onClick={() => onRotate(-1)}
+    />
+  </>
+);
 
 /** A small colour sample beside a button's label. */
 const ColorChip = ({ color, ml }: { color: string; ml?: number }) => (
@@ -175,6 +211,7 @@ export const CustomSpriteEditor = ({
     lockedDirections,
     hairStyle,
     hairStyles,
+    hairStyleIcons,
     hairColor,
     recipientName,
     selfWork,
@@ -203,6 +240,7 @@ export const CustomSpriteEditor = ({
     focusRevision,
     regionMarkings,
     regionMarkingChoices,
+    regionMarkingIcons,
     regionEmissive,
     lockedRegions,
     paletteNotice,
@@ -214,13 +252,25 @@ export const CustomSpriteEditor = ({
     coverParts,
   } = data;
   const sprite = useMemo(
-    () => decodeCanvas(editorData.sprite),
-    [editorData.sprite],
+    () => ({
+      ...decodeCanvas(editorData.sprite),
+      baseCopyInfo:
+        data.baseCopyInfo &&
+        (target === 'markings' || data.baseCopyInfo.style === data.hairStyle) &&
+        data.baseCopyInfo.height === editorData.sprite.height
+          ? data.baseCopyInfo
+          : undefined,
+    }),
+    [editorData.sprite, data.baseCopyInfo, data.hairStyle, target],
   );
+  useEffect(() => {
+    if (data.baseCopyResult) receiveBaseCopy(data.baseCopyResult);
+  }, [data.baseCopyResult]);
   const [direction, setDirection] = useAtom(dirAtom);
   const setLayer = useSetAtom(layerAtom);
   const setCurrentTool = useSetAtom(currentToolAtom);
   const selecting = useAtomValue(currentToolAtom).name === 'Select';
+  const selectionBounds = useAtomValue(selectionBoundsAtom);
   const setPreviewData = useSetAtom(previewDataAtom);
   const setPreviewLayer = useSetAtom(previewLayerAtom);
   const setSelectionBounds = useSetAtom(selectionBoundsAtom);
@@ -368,8 +418,6 @@ export const CustomSpriteEditor = ({
   const hairTarget = target === 'hair' || target === 'facial_hair';
   // Hair blends Custom colors with the hair color, markings with the body's primary mutant color.
   const bodyBlend = hairTarget ? 'hair' : 'mutant';
-  // Markings and tattoos stack base markings above the palette and preview, so they get more room.
-  const markingsWindow = target === 'markings';
   const drawingName =
     target === 'hair'
       ? 'Custom Hair'
@@ -432,8 +480,8 @@ export const CustomSpriteEditor = ({
 
   return (
     <Window
-      width={markingsWindow ? MARKINGS_WINDOW[0] : 1000}
-      height={markingsWindow ? MARKINGS_WINDOW[1] : 780}
+      width={EDITOR_WINDOW[0]}
+      height={EDITOR_WINDOW[1]}
       title={salon ? `${drawingName} for ${recipientName}` : drawingName}
     >
       <Window.Content>
@@ -649,10 +697,16 @@ export const CustomSpriteEditor = ({
               </Stack.Item>
               <Stack.Item className="CustomSpriteEditor__divider" />
               <Stack.Item>
-                <SpriteEditor.Undo stack={editorData.undoStack} />
+                <SpriteEditor.Undo
+                  stack={editorData.undoStack}
+                  icon="backward"
+                />
               </Stack.Item>
               <Stack.Item>
-                <SpriteEditor.Redo stack={editorData.redoStack} />
+                <SpriteEditor.Redo
+                  stack={editorData.redoStack}
+                  icon="forward"
+                />
               </Stack.Item>
               <Stack.Item className="CustomSpriteEditor__divider" />
               <Stack.Item>
@@ -704,7 +758,7 @@ export const CustomSpriteEditor = ({
               </Stack.Item>
             </Stack>
           </Stack.Item>
-          <Stack.Item grow basis={0} minHeight={0}>
+          <Stack.Item grow basis={0}>
             <Stack fill>
               <Stack.Item grow minWidth={0} minHeight={0}>
                 <Stack vertical fill>
@@ -793,6 +847,12 @@ export const CustomSpriteEditor = ({
                       )}
                     </Box>
                   </Stack.Item>
+                  <Stack.Item
+                    textAlign="center"
+                    className="CustomSpriteEditor__canvasRotation"
+                  >
+                    <ViewRotation onRotate={rotate} />
+                  </Stack.Item>
                   {regionMode && !!selectedLock && (
                     <Stack.Item className="CustomSpriteEditor__status">
                       <Box color="average">{selectedLock}</Box>
@@ -801,8 +861,8 @@ export const CustomSpriteEditor = ({
                 </Stack>
               </Stack.Item>
               <Stack.Item
-                width={markingsWindow ? MARKINGS_PANEL_WIDTH : '18rem'}
-                overflowY="auto"
+                width={EDITOR_PANEL_WIDTH}
+                className="CustomSpriteEditor__sidebar"
               >
                 <Stack vertical>
                   {!!canChangeHair && (
@@ -818,6 +878,12 @@ export const CustomSpriteEditor = ({
                           <Stack.Item>
                             <CycleDropdown
                               options={hairStyles ?? []}
+                              icons={hairStyleIcons}
+                              name={
+                                target === 'facial_hair'
+                                  ? 'facial hairstyle'
+                                  : 'hairstyle'
+                              }
                               selected={hairStyle}
                               onSelected={(style) =>
                                 act('setHairStyle', { style })
@@ -863,6 +929,8 @@ export const CustomSpriteEditor = ({
                               <Stack.Item grow minWidth={0}>
                                 <CycleDropdown
                                   options={choices}
+                                  icons={regionMarkingIcons?.[selectedZone]}
+                                  name={`${regionLabel.toLowerCase()} marking`}
                                   disabled={!!selectedLock}
                                   selected={marking.name}
                                   onSelected={(name) =>
@@ -1055,20 +1123,7 @@ export const CustomSpriteEditor = ({
                           </Stack>
                         )}
                         <Box mt={1}>
-                          <Button
-                            fontSize="22px"
-                            icon="redo"
-                            tooltip="Rotate Clockwise"
-                            tooltipPosition="bottom"
-                            onClick={() => rotate(1)}
-                          />
-                          <Button
-                            fontSize="22px"
-                            icon="undo"
-                            tooltip="Rotate Counter-Clockwise"
-                            tooltipPosition="bottom"
-                            onClick={() => rotate(-1)}
-                          />
+                          <ViewRotation onRotate={rotate} />
                         </Box>
                       </Box>
                     </Section>
@@ -1122,7 +1177,15 @@ export const CustomSpriteEditor = ({
                   : ''}
                 {selecting && (
                   <div className="CustomSpriteEditor__selectHint">
-                    <kbd>Ctrl+C</kbd> copy · <kbd>Ctrl+V</kbd> paste ·{' '}
+                    <kbd>Ctrl+C</kbd> copy ·{' '}
+                    {!!sprite.baseCopyInfo && !!selectionBounds && (
+                      <Tooltip content={target === 'markings' ? 'Copy selected base markings and paint from editable regions. Ctrl+V pastes editable colors; destination region opacity and emission stay unchanged. Body, clothing and taur artwork are excluded.' : 'Copy selected base hair and paint. Ctrl+V pastes editable pixels; opacity and gradients remain live hair settings. Choose Bald (Tall Canvas) if the copy needs more room.'}>
+                        <span>
+                          <kbd>Shift+C</kbd> copy with base {target === 'markings' ? 'markings' : 'hair'} ·{' '}
+                        </span>
+                      </Tooltip>
+                    )}
+                    <kbd>Ctrl+V</kbd> paste ·{' '}
                     <kbd>{ROTATE_SELECTION_KEY.toUpperCase()}</kbd> /{' '}
                     <kbd>Shift+{ROTATE_SELECTION_KEY.toUpperCase()}</kbd> turn ·{' '}
                     <kbd>Shift+{MIRROR_SELECTION_KEY.toUpperCase()}</kbd> mirror

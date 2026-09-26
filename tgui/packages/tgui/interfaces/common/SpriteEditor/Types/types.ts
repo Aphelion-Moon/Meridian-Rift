@@ -82,6 +82,27 @@ export type SpriteDataLayer = {
   };
 };
 
+// APHELION EDIT ADDITION START
+export type BaseCopyInfo = {
+  source: string;
+  style?: string | null;
+  origin: [number, number];
+  height: number;
+};
+export type BaseCopyResult = { request: number } & (
+  | { error: true }
+  | {
+      error?: false;
+      source: string;
+      origin: [number, number];
+      width: number;
+      height: number;
+      palette: string[];
+      codes: string;
+    }
+);
+// APHELION EDIT ADDITION END
+
 export type SpriteData = {
   width: number;
   height: number;
@@ -89,6 +110,8 @@ export type SpriteData = {
   backdrop: string;
   layers: SpriteDataLayer[];
   compactStrokes?: BooleanLike; // APHELION EDIT ADDITION
+  selectionPreview?: BooleanLike; // APHELION EDIT ADDITION
+  baseCopyInfo?: BaseCopyInfo; // APHELION EDIT ADDITION
 };
 
 export enum SpriteEditorColorMode {

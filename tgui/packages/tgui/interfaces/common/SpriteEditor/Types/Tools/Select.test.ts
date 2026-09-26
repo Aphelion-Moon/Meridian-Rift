@@ -660,3 +660,309 @@ it('writes paint that floated off the paintable area as soon as a drag lands all
   expect(tool.isFloating()).toBe(true);
   expect(send).toHaveBeenCalledTimes(1);
 });
+
+it('previews a move across region gaps without committing or losing floating pixels', () => {
+  const frame = [[red, green, clear, clear, clear, clear]];
+  const { data, context, tool, select } = fixture(frame);
+  data.selectionPreview = true;
+  context.drawMask = ['110011'];
+  select([0, 0, 1, 0]);
+  tool.onMouseDown(context, data, 0, 0);
+  tool.onMouseMove(context, data, 1, 0);
+  expect(send).not.toHaveBeenCalled();
+  tool.onMouseUp(context, data, 1, 0);
+  expect(tool.isFloating()).toBe(true);
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(send.mock.calls[0][0]).toBe('previewSelection');
+  // Only the paint on a body region enters the thumbnail; the shaded green pixel still floats.
+  expect(placed()).toEqual([
+    [0, 0, clear],
+    [1, 0, red],
+  ]);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [clear, red, green, clear, clear, clear],
+  ]);
+  expect(frame).toEqual([[red, green, clear, clear, clear, clear]]);
+  // Repositioning onto the other region keeps both original pixels and commits one history step.
+  tool.onMouseDown(context, data, 1, 0);
+  expect(send.mock.calls[1]).toEqual([
+    'previewSelection',
+    { transaction: null },
+  ]);
+  tool.onMouseUp(context, data, 4, 0);
+  expect(tool.isFloating()).toBe(false);
+  expect(send.mock.calls[2][0]).toBe('spriteEditorCommand');
+  expect(placed(2)).toEqual([
+    [0, 0, clear],
+    [1, 0, clear],
+    [4, 0, red],
+    [5, 0, green],
+  ]);
+  expect(send).toHaveBeenCalledTimes(3);
+});
+
+it.each([
+  'cancel',
+  'direction',
+  'layer',
+] as const)('clears a temporary character preview on %s without committing floating paint', (reason) => {
+  const { data, context, tool, select } = fixture([[red, green, clear]]);
+  data.selectionPreview = true;
+  context.drawMask = ['110'];
+  select([0, 0, 1, 0]);
+  tool.onMouseDown(context, data, 0, 0);
+  tool.onMouseUp(context, data, 1, 0);
+  send.mockClear();
+  if (reason === 'cancel') {
+    tool.cancel(context);
+  } else {
+    if (reason === 'direction') context.selectedDir = Dir.NORTH;
+    if (reason === 'layer') context.selectedLayer = 1;
+    tool.reconcile(context, data);
+  }
+  expect(tool.isFloating()).toBe(false);
+  expect(send.mock.calls).toEqual([
+    ['previewSelection', { transaction: null }],
+  ]);
+});
+
+const hairInfo = (height: number, origin: [number, number] = [0, 0]) => ({
+  source: 'hair-editor',
+  style: 'Test hair',
+  origin,
+  height,
+});
+
+it('copies selected base hair beneath custom paint without writing until paste is dropped', () => {
+  const { tool, data, context, select } = fixture([[clear, red, clear, clear]]);
+  data.baseCopyInfo = hairInfo(1);
+  select([0, 0, 2, 0]);
+  expect(tool.copyBaseLayer(context, data)).toBe(true);
+  expect(send).toHaveBeenLastCalledWith('copyBaseLayer', {
+    request: 1,
+    dir: '2',
+    rect: [0, 0, 2, 0],
+    mask: undefined,
+  });
+  expect(
+    tool.receiveBaseCopy({
+      request: 1,
+      source: 'hair-editor',
+      origin: [0, 0],
+      width: 4,
+      height: 1,
+      palette: [clear, blue, green],
+      codes: '1120',
+    }),
+  ).toBe(true);
+  expect(send).toHaveBeenCalledTimes(1);
+  send.mockClear();
+  expect(tool.paste(context, data)).toBe(true);
+  expect(context.setPreviewData).toHaveBeenLastCalledWith([
+    [blue, red, green, clear],
+  ]);
+  expect(send).not.toHaveBeenCalled();
+  tool.release(context);
+  expect(placed()).toEqual([
+    [0, 0, blue],
+    [2, 0, green],
+  ]);
+  expect(send.mock.calls[0][1].transaction).toMatchObject({
+    baseCopy: 1,
+    baseCopySource: 'hair-editor',
+  });
+});
+
+it('keeps selection holes out of base-hair copies', () => {
+  const { tool, data, context, select } = fixture([
+    [clear, clear, clear, clear],
+  ]);
+  data.baseCopyInfo = hairInfo(1);
+  select([0, 0, 2, 0]);
+  tool.onMouseDown(context, data, 1, 0, true);
+  tool.onMouseUp(context, data, 1, 0);
+  tool.copyBaseLayer(context, data);
+  expect(send.mock.calls[0][1].mask).toEqual(['101']);
+  tool.receiveBaseCopy({
+    request: 1,
+    source: 'hair-editor',
+    origin: [0, 0],
+    width: 4,
+    height: 1,
+    palette: [clear, blue],
+    codes: '1110',
+  });
+  send.mockClear();
+  tool.paste(context, data);
+  tool.release(context);
+  expect(placed()).toEqual([
+    [0, 0, blue],
+    [2, 0, blue],
+  ]);
+});
+
+it('does not let a delayed base response replace a later ordinary copy', () => {
+  const { tool, data, context, select } = fixture([[red, clear, clear, clear]]);
+  data.baseCopyInfo = hairInfo(1);
+  select([0, 0, 1, 0]);
+  tool.copyBaseLayer(context, data);
+  tool.copy(context, data);
+  expect(
+    tool.receiveBaseCopy({
+      request: 1,
+      source: 'hair-editor',
+      origin: [0, 0],
+      width: 4,
+      height: 1,
+      palette: [clear, blue],
+      codes: '1100',
+    }),
+  ).toBe(false);
+  data.layers[0].data[Dir.SOUTH] = [[clear, clear, clear, clear]];
+  send.mockClear();
+  tool.paste(context, data);
+  tool.release(context);
+  expect(placed()).toEqual([[0, 0, red]]);
+  expect(send.mock.calls[0][1].transaction.baseCopy).toBeUndefined();
+});
+
+it('preserves hair placement through a lifted style changing to a tall bald canvas', () => {
+  const rows = Array.from({ length: 32 }, () => Array(32).fill(clear));
+  const { tool, data, context, select } = fixture(rows);
+  data.baseCopyInfo = hairInfo(32, [1, 16]);
+  select([3, 20, 3, 20]);
+  tool.copyBaseLayer(context, data);
+  const codes = Array(1024).fill('0');
+  codes[20 * 32 + 3] = '1';
+  tool.receiveBaseCopy({
+    request: 1,
+    source: 'hair-editor',
+    origin: [1, 16],
+    width: 32,
+    height: 32,
+    palette: [clear, blue],
+    codes: codes.join(''),
+  });
+  data.height = 48;
+  data.layers[0].data[Dir.SOUTH] = Array.from({ length: 48 }, () =>
+    Array(32).fill(clear),
+  );
+  data.baseCopyInfo = { ...hairInfo(48, [1, 0]), style: 'Bald (Tall Canvas)' };
+  send.mockClear();
+  tool.paste(context, data);
+  tool.release(context);
+  expect(placed()).toEqual([[3, 20, blue]]);
+});
+
+it('refuses a base paste that would clip hair and keeps its clipboard for a taller destination', () => {
+  const { tool, data, context, select } = fixture([
+    [clear, clear, clear, clear],
+  ]);
+  data.baseCopyInfo = hairInfo(1, [0, 2]);
+  select([0, 0, 1, 0]);
+  tool.copyBaseLayer(context, data);
+  tool.receiveBaseCopy({
+    request: 1,
+    source: 'hair-editor',
+    origin: [0, 2],
+    width: 4,
+    height: 1,
+    palette: [clear, blue],
+    codes: '1000',
+  });
+  data.baseCopyInfo = hairInfo(1);
+  send.mockClear();
+  tool.paste(context, data);
+  expect(tool.isFloating()).toBe(false);
+  expect(send).toHaveBeenLastCalledWith('baseCopyProblem', {
+    problem: 'bounds',
+  });
+  data.height = 3;
+  data.layers[0].data[Dir.SOUTH] = Array.from({ length: 3 }, () =>
+    Array(4).fill(clear),
+  );
+  data.baseCopyInfo = hairInfo(3);
+  send.mockClear();
+  tool.paste(context, data);
+  tool.release(context);
+  expect(placed()).toEqual([[0, 0, blue]]);
+});
+
+it('leaves base copying disabled for other editors and rejects cross-editor base pastes', () => {
+  const { tool, data, context, select } = fixture([
+    [clear, clear, clear, clear],
+  ]);
+  select([0, 0, 1, 0]);
+  expect(tool.copyBaseLayer(context, data)).toBe(false);
+  expect(send).not.toHaveBeenCalled();
+  data.baseCopyInfo = hairInfo(1);
+  tool.copyBaseLayer(context, data);
+  tool.receiveBaseCopy({
+    request: 1,
+    source: 'hair-editor',
+    origin: [0, 0],
+    width: 4,
+    height: 1,
+    palette: [clear, blue],
+    codes: '1000',
+  });
+  data.baseCopyInfo = undefined;
+  send.mockClear();
+  tool.paste(context, data);
+  expect(tool.isFloating()).toBe(false);
+  expect(send).toHaveBeenLastCalledWith('baseCopyProblem', {
+    problem: 'context',
+  });
+});
+
+
+it('previews copied base markings with their trusted token before a normal undoable drop', () => {
+  const { tool, data, context, select } = fixture([[clear, red, clear, clear]]);
+  data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
+  data.selectionPreview = true;
+  context.drawMask = ['1110'];
+  select([0, 0, 2, 0]);
+  tool.copyBaseLayer(context, data);
+  tool.receiveBaseCopy({ request: 1, source: 'marking-editor', origin: [0, 0], width: 4, height: 1, palette: [clear, blue, green], codes: '1120' });
+  send.mockClear();
+  tool.paste(context, data);
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(send).toHaveBeenLastCalledWith('previewSelection', { transaction: expect.objectContaining({ baseCopy: 1, baseCopySource: 'marking-editor', dir: '2', palette: [blue, green] }) });
+  expect(data.layers[0].data[Dir.SOUTH]).toEqual([[clear, red, clear, clear]]);
+  tool.release(context);
+  expect(send).toHaveBeenCalledWith('spriteEditorCommand', { command: 'transaction', transaction: expect.objectContaining({ baseCopy: 1, baseCopySource: 'marking-editor' }) });
+});
+
+it('keeps a base clipboard when destination regions become locked instead of clipping its pixels', () => {
+  const { tool, data, context, select } = fixture([[clear, clear, clear, clear]]);
+  data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
+  context.drawMask = ['1110'];
+  select([0, 0, 1, 0]);
+  tool.copyBaseLayer(context, data);
+  tool.receiveBaseCopy({ request: 1, source: 'marking-editor', origin: [0, 0], width: 4, height: 1, palette: [clear, blue], codes: '1100' });
+  context.drawMask = ['1000'];
+  send.mockClear();
+  expect(tool.paste(context, data)).toBe(true);
+  expect(tool.isFloating()).toBe(false);
+  expect(send).toHaveBeenLastCalledWith('baseCopyProblem', { problem: 'bounds' });
+  context.drawMask = ['1110'];
+  send.mockClear();
+  expect(tool.paste(context, data)).toBe(true);
+  tool.release(context);
+  expect(placed()).toEqual([[0, 0, blue], [1, 0, blue]]);
+});
+
+it('keeps humanoid body coordinates centered when a wide marking copy is pasted on a narrow canvas', () => {
+  const frame = [Array(64).fill(clear)];
+  const { tool, data, context, select } = fixture(frame);
+  data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
+  select([16, 0, 16, 0]);
+  tool.copyBaseLayer(context, data);
+  tool.receiveBaseCopy({ request: 1, source: 'marking-editor', origin: [0, 0], width: 64, height: 1, palette: [clear, blue], codes: `${'0'.repeat(16)}1${'0'.repeat(47)}` });
+  data.width = 32;
+  data.layers[0].data[Dir.SOUTH] = [Array(32).fill(clear)];
+  send.mockClear();
+  tool.paste(context, data);
+  tool.release(context);
+  expect(placed()).toEqual([[0, 0, blue]]);
+});

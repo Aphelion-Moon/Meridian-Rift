@@ -77,6 +77,8 @@
 /datum/custom_sprite_editor
 	/// Selects preferences or salon actions and window wording.
 	var/context = "preferences"
+	/// Optional salon owner; the context stays salon even after this session is detached.
+	var/datum/custom_sprite_salon/session
 	/// Supplies Custom swatches. In the preferences context it is also the saved character.
 	var/datum/preferences/preferences
 	/// Editable pixels, palette and undo history for this draft.
@@ -87,8 +89,6 @@
 	var/target
 	/// Character slot bound when this editor opened.
 	var/slot
-	/// Most recently serialized workspace drawing used by saves and previews.
-	var/list/draft
 	/// Appearance identity of the last rendered preview.
 	var/preview_hash
 	/// Pending preview debounce timer, cancelled when the editor closes.
@@ -186,12 +186,13 @@
 	refresh_preview()
 
 /datum/custom_sprite_editor/Destroy()
+	session?.stop_drawing_sounds()
+	session = null
 	SStgui.close_uis(src)
 	QDEL_NULL(workspace)
 	drop_pending_body()
 	QDEL_NULL(preview_body)
 	preferences = null
-	draft = null
 	guide_icons = null
 	candidate = null
 	return ..()
@@ -211,13 +212,16 @@
 
 /// Context hook: a private body showing the appearance being drawn on, or null when unavailable.
 /datum/custom_sprite_editor/proc/create_preview_body()
+	if(context == "salon")
+		var/mob/living/carbon/human/recipient = session?.recipient_ref?.resolve()
+		return QDELETED(recipient) ? null : custom_sprite_salon_dummy(recipient)
 	var/mob/living/carbon/human/dummy/body = new
 	preferences.apply_prefs_to(body, TRUE, visuals_only = TRUE)
 	return body
 
 /// Context hook: whether this destination may use emissive paint.
 /datum/custom_sprite_editor/proc/emissives_allowed()
-	return preferences.read_preference(/datum/preference/toggle/allow_emissives)
+	return context == "salon" ? session?.recipient_emissives : preferences.read_preference(/datum/preference/toggle/allow_emissives)
 
 /**
  * Applies the context's current view locks to the drawing bounds.
@@ -254,7 +258,7 @@
 
 /// Context hook: views that can't be painted right now, beyond the drawing's own bounds.
 /datum/custom_sprite_editor/proc/locked_directions()
-	return null
+	return session?.locked_directions()
 
 /// Context hook: whether this context may change the base hair look from inside the editor.
 /datum/custom_sprite_editor/proc/can_change_hair()
@@ -276,7 +280,7 @@
 
 /// Context hook: whether underwear can be left out of guides and previews.
 /datum/custom_sprite_editor/proc/can_hide_underwear()
-	return target == "markings"
+	return context != "salon" && target == "markings"
 
 /**
  * Takes wings, tails and other parts that hang over the limb off the preview body while the guide is drawn.
@@ -300,11 +304,12 @@
 
 /// Context hook: worn overlays to add to guides and previews. Character setup adds none.
 /datum/custom_sprite_editor/proc/render_overlays()
-	return null
+	return context == "salon" ? custom_sprite_worn_overlays(session?.recipient()) : null
 
 /// Context hook: called after every change to the draft.
 /datum/custom_sprite_editor/proc/draft_changed()
 	draft_revision++
+	session?.draft_changed()
 
 /// Marks the draft changed and schedules its debounced preview, as every window edit does.
 /datum/custom_sprite_editor/proc/draft_edited()
@@ -317,6 +322,8 @@
 
 /// Context hook: extra actions owned by the context.
 /datum/custom_sprite_editor/proc/context_act(action, list/params, mob/user)
+	if(context == "salon")
+		return session?.context_act(action, params, user)
 	switch(action)
 		if("save")
 			var/datum/preferences/owner = preferences
@@ -352,7 +359,7 @@
 
 /// Context hook: extra window data owned by the context.
 /datum/custom_sprite_editor/proc/context_ui_data()
-	return list("canRestorePrevious" = can_restore_previous)
+	return context == "salon" ? session?.context_ui_data() : list("canRestorePrevious" = can_restore_previous)
 
 /// Works out whether Restore previous saved style is offered. Runs with the debounced preview and after saves, not on every window update.
 /datum/custom_sprite_editor/proc/update_restorable()
@@ -369,6 +376,8 @@
  * - FALSE: The context has no body to draw on right now. The draft is kept.
  */
 /datum/custom_sprite_editor/proc/rebuild_resources(reuse_body = FALSE)
+	base_copy_frame = null
+	base_copy_frame_key = null
 	if(!reuse_body)
 		QDEL_NULL(preview_body)
 		preview_body = create_preview_body()
@@ -461,6 +470,12 @@
 
 /// Drops the guides and previews built from the preview body.
 /datum/custom_sprite_editor/proc/release_resources()
+	base_copy_request = null
+	base_copy_ui = null
+	base_copy_frame = null
+	base_copy_frame_key = null
+	base_copy_colors = null
+	base_copy_token = null
 	guide_icons = list()
 	guide_urls = list()
 	preview_urls = list()
@@ -511,14 +526,6 @@
 	stale_previews -= direction
 	return TRUE
 
-/// Brings one view's guide and preview up to date. Returns TRUE when anything was drawn.
-/datum/custom_sprite_editor/proc/render_view(direction)
-	. = FALSE
-	if(stale_guides[direction] && render_guide(direction))
-		. = TRUE
-	if(stale_previews[direction] && render_preview(direction))
-		. = TRUE
-
 /// The markings palette: the body's mutant colors, then its native marking shades tinted by each, up to 15 colors.
 /datum/custom_sprite_editor/proc/sample_marking_palette()
 	var/list/colors = list()
@@ -559,7 +566,11 @@
 
 /// Whether this user may act on this editor right now: its owner, on the slot it opened for, with editing enabled.
 /datum/custom_sprite_editor/proc/can_edit(mob/user)
-	return !closing && preferences && user?.client == preferences.parent && slot == preferences.default_slot && !CONFIG_GET(flag/disallow_custom_sprite_editing)
+	if(closing || CONFIG_GET(flag/disallow_custom_sprite_editing))
+		return FALSE
+	if(context == "salon")
+		return !QDELETED(session) && user?.ckey == session.artist_ckey
+	return preferences && user?.client == preferences.parent && slot == preferences.default_slot
 
 /datum/custom_sprite_editor/ui_state(mob/user)
 	return GLOB.always_state
@@ -582,7 +593,6 @@
 		return
 	// While strokes wait, an existing window's refresh waits for the drain; only a first open goes ahead.
 	if(length(stroke_queue) && SStgui.get_open_ui(user, src))
-		push_after_drain = TRUE
 		return
 	// tgui's own refreshes pass their window; only an explicit open brings it forward.
 	var/opening = isnull(ui)
@@ -616,14 +626,21 @@
 	static_dirty = FALSE
 	ui.open()
 
+/datum/custom_sprite_editor/ui_assets(mob/user)
+	// Reuse character preferences' cached spritesheet, including for a salon artist.
+	return can_change_hair() ? list(get_asset_datum(/datum/asset/spritesheet_batched/preferences)) : list()
+
 /datum/custom_sprite_editor/ui_static_data(mob/user)
 	// Static data is only built for a send, which carries every pending change.
 	static_dirty = FALSE
 	. = list()
 	if(can_change_hair())
 		.["hairStyles"] = available_hairstyles()
+		.["hairStyleIcons"] = hairstyle_icons()
 	.["backgrounds"] = custom_sprite_background_tiles()
 	.["defaultBackground"] = preferences?.read_preference(/datum/preference/choiced/background_state)
+	var/list/copy_look = target == "hair" && resources_ready && resources_hair ? json_decode(resources_hair) : null
+	.["baseCopyInfo"] = resources_ready && (copy_look || istype(src, /datum/custom_sprite_editor/markings)) ? list("source" = REF(src), "style" = copy_look?["style"], "origin" = base_copy_origin(), "height" = workspace.height) : null
 	.["guides"] = guide_urls
 	.["drawMask"] = workspace.draw_mask
 	.["coverMask"] = cover_rows
@@ -661,7 +678,6 @@
 		return
 	// Strokes over the budget go in first, in order. Until they have, the window can only send more strokes and switch views: anything else is ignored, and the drain's update shows where things stand.
 	if(length(stroke_queue) && action != "setView" && !(action == "spriteEditorCommand" && params["command"] == "transaction"))
-		push_after_drain = TRUE
 		return FALSE
 	// A mirror can be picked up or dropped while this window is open.
 	sync_locked_views(push = FALSE)
@@ -674,6 +690,11 @@
 	if(!isnull(handled))
 		return handled
 	switch(action)
+		if("copyBaseLayer")
+			return request_base_copy(params, ui)
+		if("baseCopyProblem")
+			transfer_error = params["problem"] == "bounds" ? (target == "hair" ? "The copied hair does not fit here. Choose Bald (Tall Canvas) for taller hair, then paste again." : "The copied pixels do not fit the editable regions here. Keep this view and uncover the destination, then paste again.") : "Wait for this editor to finish changing before pasting its base copy."
+			return TRUE
 		if("setView")
 			var/direction = params["dir"]
 			if(!(direction in GLOB.custom_style_directions) || direction == visible_direction)
@@ -682,7 +703,6 @@
 			// Heard while strokes wait, but the window hears back from the drain's update, which carries them.
 			if(length(stroke_queue))
 				request_view()
-				push_after_drain = TRUE
 				return FALSE
 			return request_view()
 		if("selectColor")
@@ -768,7 +788,10 @@
 		if("spriteEditorCommand")
 			switch(params["command"])
 				if("transaction")
-					return take_stroke(params["transaction"])
+					var/list/transaction = params["transaction"]
+					if(islist(transaction) && !isnull(transaction["baseCopy"]) && !prepare_base_copy_paste(transaction))
+						return TRUE
+					return take_stroke(transaction)
 				if("undo")
 					var/history_length = length(workspace.undo_stack)
 					workspace.undo(custom_sprite_history_jump(params["count"]))
@@ -939,6 +962,20 @@
 		LAZYSET(choices_by_target, target, choices)
 	return choices
 
+/// Cached preference icon classes for exactly the styles the editor already offers.
+/datum/custom_sprite_editor/proc/hairstyle_icons()
+	var/static/list/icons_by_target
+	var/list/icons = LAZYACCESS(icons_by_target, target)
+	if(isnull(icons))
+		var/datum/preference/choiced/entry = GLOB.preference_entries[GLOB.custom_style_hair_preferences[target]["style"]]
+		var/list/catalog = entry.compile_constant_data()
+		var/list/preference_icons = catalog["icons"]
+		icons = list()
+		for(var/style in available_hairstyles())
+			icons[style] = preference_icons[style]
+		LAZYSET(icons_by_target, target, icons)
+	return icons
+
 /**
  * Swaps the base hair look under the drawing as one undoable action.
  *
@@ -1056,7 +1093,7 @@
 	preview_timer = null
 	if(closing || !resources_ready)
 		return
-	draft = workspace.serialize_drawing()
+	var/list/draft = workspace.serialize_drawing()
 	update_restorable()
 	var/new_hash = custom_sprite_hash(draft)
 	if(preview_hash == new_hash)
@@ -1101,6 +1138,7 @@
 
 /// Closing keeps the unsaved draft and its history; only saving writes. Preview resources are rebuilt on reopening.
 /datum/custom_sprite_editor/ui_close(mob/user)
+	session?.stop_drawing_sounds()
 	// The draft outlives the window, with the hairstyle picked last.
 	apply_pending_hairstyle()
 	if(preview_timer)

@@ -1,8 +1,7 @@
 // THIS IS AN APHELION UI FILE
 
 import { expect, it, spyOn } from 'bun:test';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { createStore, Provider } from 'jotai';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { update } from 'tgui/events/handlers/update';
 import {
   backendStateAtom,
@@ -16,6 +15,7 @@ import {
   send,
   setupEditorTests,
 } from '../../../__mocks__/customSpriteEditor';
+import { renderEditor } from '../../../__mocks__/renderCustomSpriteEditor';
 import {
   currentColorAtom,
   currentToolAtom,
@@ -24,7 +24,6 @@ import {
 } from '../SpriteEditor/atoms';
 import { colorToHexString } from '../SpriteEditor/colorSpaces';
 import { Dir } from '../SpriteEditor/Types/types';
-import { CustomSpriteEditor } from './index';
 import type { CustomSpriteEditorData } from './types';
 
 setupEditorTests();
@@ -45,12 +44,7 @@ it.each([
     'getBoundingClientRect',
   ).mockReturnValue(new DOMRect(0, 0, 320, 320));
   try {
-    const store = createStore();
-    const view = render(
-      <Provider store={store}>
-        <CustomSpriteEditor target={target} />
-      </Provider>,
-    );
+    const { store, view } = renderEditor(target);
     const canvas = view.container.querySelector('canvas')!;
     fireEvent.click(
       view.container.querySelector('.fa-eraser')!.closest('.Button')!,
@@ -98,19 +92,20 @@ it('leaves form input, dialogs, modified shortcuts and scrolling outside color c
   data.editorData.serverPalette.push('#123456');
   data.availableColors.push('#123456');
   backendStore.set(gameDataAtom, data);
-  const view = render(
-    <Provider store={createStore()}>
-      <CustomSpriteEditor target="hair" />
-      <input aria-label="Name" />
-      <textarea aria-label="Notes" />
-      <select aria-label="Choice">
-        <option>One</option>
-      </select>
-      <div contentEditable suppressContentEditableWarning>
-        <span>Editable text</span>
-      </div>
-    </Provider>,
-  );
+  const { view } = renderEditor('hair', {
+    children: (
+      <>
+        <input aria-label="Name" />
+        <textarea aria-label="Notes" />
+        <select aria-label="Choice">
+          <option>One</option>
+        </select>
+        <div contentEditable suppressContentEditableWarning>
+          <span>Editable text</span>
+        </div>
+      </>
+    ),
+  });
   for (const target of [
     screen.getByLabelText('Name'),
     screen.getByLabelText('Notes'),
@@ -154,37 +149,19 @@ it('leaves form input, dialogs, modified shortcuts and scrolling outside color c
 });
 
 it('shows failed saves without a success flash and allows retry', () => {
-  const store = createStore();
-  const editor = (
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>
-  );
-  const view = render(editor);
+  const { view, editor } = renderEditor();
   backendStore.set(gameDataAtom, { ...fixture(), saveRevision: 1 });
-  view.rerender(
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>,
-  );
+  view.rerender(editor());
   expect(screen.getByRole('status').textContent).toBe('Saved');
   const saveError = "Couldn't save to disk. Press Ctrl+S to retry.";
   backendStore.set(gameDataAtom, { ...fixture(), saveRevision: 1, saveError });
-  view.rerender(
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>,
-  );
+  view.rerender(editor());
   expect(screen.queryByText('Saved')).toBeNull();
   expect(screen.getByRole('alert').textContent).toBe(saveError);
   fireEvent.keyDown(document, { key: 's', ctrlKey: true });
   expect(send).toHaveBeenLastCalledWith('saveDraft');
   backendStore.set(gameDataAtom, { ...fixture(), saveRevision: 2 });
-  view.rerender(
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>,
-  );
+  view.rerender(editor());
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.getByRole('status').textContent).toBe('Saved');
 });
@@ -209,11 +186,7 @@ it('uses the selected direction limb silhouette to reject painting outside that 
     'getBoundingClientRect',
   ).mockReturnValue(new DOMRect(0, 0, 320, 320));
   try {
-    const view = render(
-      <Provider store={createStore()}>
-        <CustomSpriteEditor target="markings" />
-      </Provider>,
-    );
+    const { view } = renderEditor('markings');
     const canvas = view.container.querySelector('canvas')!;
     const paint = (x: number) => {
       fireEvent.mouseDown(canvas, {
@@ -261,11 +234,7 @@ it('only reports salon brush activity, immediately and at most once a second dur
   let now = 1000;
   const clock = spyOn(Date, 'now').mockImplementation(() => now);
   try {
-    const view = render(
-      <Provider store={createStore()}>
-        <CustomSpriteEditor target="hair" />
-      </Provider>,
-    );
+    const { view } = renderEditor('hair');
     const canvas = view.container.querySelector('canvas')!;
     send.mockClear();
     fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
@@ -307,26 +276,31 @@ it.each([
   'preferences',
   'salon',
 ] as const)('changes base hair in %s when the backend permits it', (context) => {
-  const store = createStore();
   const hair = {
     context,
     ...fixture(),
     canChangeHair: true,
     hairStyle: 'Short Hair',
     hairStyles: ['Bald', 'Short Hair', 'Bedhead'],
+    hairStyleIcons: {
+      Bald: 'hair-bald',
+      'Short Hair': 'hair-short',
+      Bedhead: 'hair-bedhead',
+    },
     hairColor: '#583820',
   };
   backendStore.set(gameDataAtom, hair);
-  const editor = () => (
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>
-  );
-  const view = render(editor());
+  const { view, editor } = renderEditor();
   fireEvent.click(screen.getByText('Hair color'));
   expect(send).toHaveBeenLastCalledWith('pickHairColor');
-  fireEvent.click(screen.getByPlaceholderText('Short Hair'));
-  fireEvent.click(screen.getByText('Bedhead'));
+  send.mockClear();
+  fireEvent.click(screen.getByLabelText('Select hairstyle'));
+  fireEvent.input(screen.getByPlaceholderText('Search...'), {
+    target: { value: 'bed' },
+  });
+  expect(screen.queryByLabelText('Bald')).toBeNull();
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByLabelText('Bedhead'));
   expect(send).toHaveBeenLastCalledWith('setHairStyle', { style: 'Bedhead' });
   backendStore.set(gameDataAtom, {
     ...hair,
@@ -340,13 +314,7 @@ it.each([
 });
 
 it('sends import and export requests without saving and confirms a previewed candidate', () => {
-  const store = createStore();
-  const editor = () => (
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>
-  );
-  const view = render(editor());
+  const { view, editor } = renderEditor();
   fireEvent.click(screen.getByText('Export'));
   expect(send).toHaveBeenLastCalledWith('exportStyle');
   fireEvent.click(screen.getByText('Import'));
@@ -380,12 +348,6 @@ it('sends import and export requests without saving and confirms a previewed can
 });
 
 it('shows a candidate whose previews are still being drawn, then the previews', () => {
-  const store = createStore();
-  const editor = () => (
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>
-  );
   backendStore.set(gameDataAtom, {
     ...fixture(),
     candidate: {
@@ -394,7 +356,7 @@ it('shows a candidate whose previews are still being drawn, then the previews', 
       previews: null,
     },
   });
-  const view = render(editor());
+  const { view, editor } = renderEditor();
   expect(screen.getByText('Restore previous saved style?')).toBeTruthy();
   expect(screen.getByText('Drawing the preview...')).toBeTruthy();
   expect(screen.queryByAltText('Front preview')).toBeNull();
@@ -419,12 +381,6 @@ it.each([
   ['restore', 'Cancel', 'cancelCandidate'],
   ['restore', 'Replace draft', 'confirmCandidate'],
 ] as const)('dismisses the %s preview after %s receives a backend update', (source, button, action) => {
-  const store = createStore();
-  const editor = () => (
-    <Provider store={store}>
-      <CustomSpriteEditor target="hair" />
-    </Provider>
-  );
   const applyUpdate = (data: CustomSpriteEditorData) => {
     update({ ...backendStore.get(backendStateAtom), data, static_data: {} });
   };
@@ -436,7 +392,7 @@ it.each([
       previews: { 1: 'data:b', 2: 'data:f', 4: 'data:r', 8: 'data:l' },
     },
   });
-  const view = render(editor());
+  const { view, editor } = renderEditor();
   expect(screen.getByAltText('Left preview')).toBeTruthy();
   fireEvent.click(screen.getByText(button));
   expect(send).toHaveBeenLastCalledWith(action);
@@ -448,4 +404,92 @@ it.each([
   view.rerender(editor());
   expect(screen.queryAllByAltText('Left preview')).toHaveLength(0);
   expect(screen.queryAllByText('Replace draft')).toHaveLength(0);
+});
+
+it('documents Shift+C and receives its one-off hair copy before a Bald paste', () => {
+  const data = fixture();
+  const frames = fixtureFrames();
+  for (const frame of Object.values(frames))
+    for (const row of frame) row.fill('#00000000');
+  frames[Dir.SOUTH][0][1] = '#ff0000ff';
+  data.editorData.sprite = compactSprite(32, 32, frames);
+  data.hairStyle = 'Test hair';
+  data.baseCopyInfo = {
+    source: 'hair-editor',
+    style: 'Test hair',
+    origin: [0, 0],
+    height: 32,
+  };
+  backendStore.set(gameDataAtom, data);
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const { view, editor } = renderEditor('hair');
+    fireEvent.keyDown(document, { key: 'm' });
+    fireEvent.keyUp(document, { key: 'm' });
+    expect(screen.queryByText('Shift+C')).toBeNull();
+    const canvas = view.container.querySelector('canvas')!;
+    fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
+    fireEvent.mouseUp(window, { clientX: 15, clientY: 5, button: 0 });
+    expect(screen.getByText('Shift+C')).toBeTruthy();
+    send.mockClear();
+    fireEvent.keyDown(document, { key: 'C', shiftKey: true });
+    fireEvent.keyUp(document, { key: 'C', shiftKey: true });
+    const request = send.mock.calls[0][1].request;
+    expect(send.mock.calls[0][0]).toBe('copyBaseLayer');
+    act(() =>
+      update({
+        ...backendStore.get(backendStateAtom),
+        static_data: {},
+        data: {
+          baseCopyResult: {
+            request,
+            source: 'hair-editor',
+            origin: [0, 0],
+            width: 32,
+            height: 32,
+            palette: ['#00000000', '#0000ffff'],
+            codes: `11${'0'.repeat(1022)}`,
+          },
+        },
+      }),
+    );
+    view.rerender(editor());
+    act(() =>
+      update({
+        ...backendStore.get(backendStateAtom),
+        static_data: {},
+        data: {
+          hairStyle: 'Bald',
+          baseCopyInfo: {
+            source: 'hair-editor',
+            style: 'Bald',
+            origin: [0, 0],
+            height: 32,
+          },
+        },
+      }),
+    );
+    view.rerender(editor());
+    send.mockClear();
+    fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
+    fireEvent.keyUp(document, { key: 'v', ctrlKey: true });
+    expect(send).not.toHaveBeenCalled();
+    fireEvent.keyDown(document, { key: 'Enter' });
+    fireEvent.keyUp(document, { key: 'Enter' });
+    expect(send).toHaveBeenLastCalledWith('spriteEditorCommand', {
+      command: 'transaction',
+      transaction: expect.objectContaining({
+        baseCopy: request,
+        baseCopySource: 'hair-editor',
+        palette: ['#0000ffff'],
+        codes: '0',
+        area: [0, 0, 0, 0],
+      }),
+    });
+  } finally {
+    getBounds.mockRestore();
+  }
 });

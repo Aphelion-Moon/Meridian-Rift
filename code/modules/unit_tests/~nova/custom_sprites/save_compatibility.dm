@@ -21,6 +21,10 @@
 /proc/custom_sprite_compat_v3()
 	return list("version" = 3, "palette" = list("#123456"), "tint" = null, "dirs" = list("2" = "r[repeat_string(136, "f1")]81"))
 
+/// v4, a tall hair canvas: first and last Front pixels are colour 1; Back is solid colour 2.
+/proc/custom_sprite_compat_v4()
+	return list("version" = 4, "palette" = list("#123456", "#abcdef"), "tint" = "#ffffff", "dirs" = list("2" = "r11[repeat_string(102, "f0")]4011", "1" = "r[repeat_string(102, "f2")]62"), "emissive" = list("2" = FALSE, "1" = TRUE, "4" = FALSE, "8" = FALSE))
+
 /// Old drawings of every version load to the same pixels and write back byte for byte, as the current code does.
 /datum/unit_test/custom_sprite_save_compat_drawings/Run()
 	var/list/v1 = custom_sprite_compat_v1()
@@ -52,6 +56,14 @@
 	TEST_ASSERT_EQUAL(custom_sprite_decode_grid(v3["dirs"]["2"], 1, 2048), repeat_string(2048, "1"), "The v3 Front view must decode to 2,048 painted pixels")
 	TEST_ASSERT_EQUAL(json_encode(custom_limb_markings_validate(list("taur" = v3, "head" = v1))), json_encode(list("head" = v1, "taur" = v3)), "Stored zone drawings must load in zone order with their bytes unchanged")
 	TEST_ASSERT(isnull(custom_limb_markings_validate(list("l_arm" = v3))), "A wide drawing on an ordinary limb is dropped, as today")
+	var/list/v4 = custom_sprite_compat_v4()
+	TEST_ASSERT_EQUAL(json_encode(custom_sprite_validate(v4)), json_encode(v4), "A canonical v4 drawing must write back identically")
+	TEST_ASSERT(custom_sprite_width(v4) == 32 && custom_sprite_height(v4) == 48, "v4 is 32 by 48")
+	TEST_ASSERT_EQUAL(custom_sprite_decode_grid(v4["dirs"]["2"], 2, 1536), "1[repeat_string(1534, "0")]1", "The v4 Front view must preserve the first and last canvas pixels")
+	TEST_ASSERT_EQUAL(custom_sprite_decode_grid(v4["dirs"]["1"], 2, 1536), repeat_string(1536, "2"), "The v4 Back view must retain its second palette colour")
+	paint = custom_sprite_paint_icon(v4, FALSE)
+	TEST_ASSERT(paint.Width() == 32 && paint.Height() == 48 && paint.GetPixel(1, 48, "", SOUTH) == "#123456" && paint.GetPixel(32, 1, "", SOUTH) == "#123456", "The v4 icon must retain both extra rows and the bottom row")
+	TEST_ASSERT(!paint.GetPixel(2, 48, "", SOUTH) && !paint.GetPixel(31, 1, "", SOUTH) && paint.GetPixel(1, 48, "", NORTH) == "#abcdef" && paint.GetPixel(32, 1, "", NORTH) == "#abcdef", "Tall pixels must retain transparent interior pixels and the Back view palette at both ends")
 
 /// A whole account sidecar as the branch wrote it, one slot with every key, and what loading it must give back.
 /proc/custom_sprite_compat_sidecar()
@@ -146,3 +158,24 @@
 	TEST_ASSERT(!length(middleware.get_ui_data(mock_client.mob)["custom_marking_zones"]), "Character setup shows no drawn zones")
 	for(var/key in preferences.savefile.get_entry("character[preferences.default_slot]"))
 		TEST_ASSERT(!findtext(key, "custom_sprite"), "The character slot gains no custom sprite keys: [key]")
+
+/// High numbered slots round-trip literal legacy and tall drawings without rewriting other slots.
+/datum/unit_test/custom_sprite_save_compat_high_slots/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/json_savefile/custom_sprites/counting_test/store = allocate(/datum/json_savefile/custom_sprites/counting_test, null)
+	QDEL_NULL(preferences.custom_sprite_savefile)
+	preferences.custom_sprite_savefile = store
+	var/list/tree = custom_sprite_compat_sidecar()
+	tree["character45"] = list("hair" = custom_sprite_compat_v4(), "facial_hair" = custom_sprite_compat_v1())
+	tree["character100"] = list("hair" = custom_sprite_compat_v4(), "limb_markings" = list("taur" = custom_sprite_compat_v3()))
+	for(var/key, slot_data in tree)
+		store.set_entry(key, json_decode(json_encode(slot_data)))
+	for(var/slot in list(45, 100))
+		preferences.default_slot = slot
+		preferences.clear_custom_sprite_slot()
+		preferences.load_custom_sprites()
+		TEST_ASSERT_EQUAL(json_encode(preferences.custom_hair), json_encode(custom_sprite_compat_v4()), "Each high slot must load the literal v4 hair drawing")
+		preferences.store_custom_sprite_slot(slot)
+		TEST_ASSERT_EQUAL(json_encode(store.get_entry()), json_encode(tree), "Writing a high slot must keep every slot's keys and bytes unchanged")
+	TEST_ASSERT_EQUAL(store.writes, 0, "Loading and normalizing unchanged in-memory slots must not write a savefile")

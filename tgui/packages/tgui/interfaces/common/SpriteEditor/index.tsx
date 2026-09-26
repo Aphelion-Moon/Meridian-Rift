@@ -79,6 +79,7 @@ type TransactionType = 'undo' | 'redo';
 type HistoryButtonProps = {
   stack: string[];
   type: TransactionType;
+  icon?: string; // APHELION EDIT ADDITION
 };
 
 /* // APHELION EDIT REMOVAL START
@@ -148,12 +149,13 @@ const HistoryButton = (props: HistoryButtonProps) => {
 */ // APHELION EDIT REMOVAL END
 // APHELION EDIT ADDITION START
 const HistoryButton = (props: HistoryButtonProps) => {
-  const { stack, type } = props;
+  const { stack, type, icon = type } = props;
   const history = useSpriteEditorHistory();
   const stackEmpty = stack.length < 1;
   return (
     <Button
-      icon={type}
+      icon={icon}
+      aria-label={capitalize(type)}
       disabled={stackEmpty}
       tooltip={`${capitalize(type)} (${type === 'undo' ? 'Ctrl+Z' : 'Ctrl+Y or Ctrl+Shift+Z'})${stackEmpty ? '' : `: ${stack[stack.length - 1]}`}`}
       onClick={() => history(type)}
@@ -298,6 +300,7 @@ export namespace SpriteEditor {
     );
   };
 
+  /* APHELION EDIT REMOVAL START - Allow an editor-specific history icon.
   export const Undo = (props: Pick<HistoryButtonProps, 'stack'>) => {
     const { stack } = props;
     return <HistoryButton stack={stack} type="undo" />;
@@ -307,6 +310,16 @@ export namespace SpriteEditor {
     const { stack } = props;
     return <HistoryButton stack={stack} type="redo" />;
   };
+  APHELION EDIT REMOVAL END */
+  // APHELION EDIT ADDITION START
+  export const Undo = (props: Omit<HistoryButtonProps, 'type'>) => {
+    return <HistoryButton {...props} type="undo" />;
+  };
+
+  export const Redo = (props: Omit<HistoryButtonProps, 'type'>) => {
+    return <HistoryButton {...props} type="redo" />;
+  };
+  // APHELION EDIT ADDITION END
 
   export const Toolbar = (props: ToolbarProps) => {
     const [currentTool, setCurrentTool] = useAtom(currentToolAtom);

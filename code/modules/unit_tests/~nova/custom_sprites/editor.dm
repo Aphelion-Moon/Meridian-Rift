@@ -13,7 +13,9 @@
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	TEST_ASSERT(!(length(editor.guide_urls) != 1 || !editor.guide_urls["2"] || length(editor.preview_urls) != 1 || !editor.preview_urls["2"]), "Each editor must publish the Front view's guide and preview on opening.")
 	for(var/direction in GLOB.custom_style_directions)
-		editor.render_view(direction)
+		editor.visible_direction = direction
+		editor.request_view()
+		editor.run_deferred_work()
 	TEST_ASSERT(!(length(editor.guide_urls) != 4 || length(editor.preview_urls) != 4), "Every view must publish its guide and preview once shown.")
 	var/list/stroke = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(custom_sprite_test_paintable_point(editor)))
 	TEST_ASSERT(editor.workspace.new_transaction(stroke), "The editor rejected a sampled shade within its own bounds.")
@@ -287,7 +289,9 @@
 	hair.overlays = body.overlays_standing[HAIR_LAYER]
 	for(var/direction in GLOB.cardinals)
 		var/icon/expected = getFlatIcon(hair, defdir = direction, no_anim = TRUE)
-		editor.render_view("[direction]")
+		editor.visible_direction = "[direction]"
+		editor.request_view()
+		editor.run_deferred_work()
 		var/icon/guide = editor.guide_icons["[direction]"]
 		var/checked = 0
 		for(var/y in 1 to 32)
@@ -397,6 +401,28 @@
 	locked["style"] = "Definitely Not A Hairstyle"
 	TEST_ASSERT(!(editor.apply_hair_context(locked, "Change hairstyle") || !editor.transfer_error), "Unavailable hairstyles must be refused.")
 	editor.finish(FALSE)
+
+/// Hair and haircutting share the existing preference sheet, without adding catalogs to paint updates.
+/datum/unit_test/custom_sprite_editor_hairstyle_catalog/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	for(var/target in GLOB.custom_style_hair_targets)
+		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
+		var/list/static_data = editor.ui_static_data(mock_client.mob)
+		var/list/styles = static_data["hairStyles"]
+		var/list/icons = static_data["hairStyleIcons"]
+		var/datum/preference/choiced/entry = GLOB.preference_entries[GLOB.custom_style_hair_preferences[target]["style"]]
+		var/list/catalog = entry.compile_constant_data()
+		var/list/preference_icons = catalog["icons"]
+		TEST_ASSERT(length(icons) == length(styles) && length(styles), "The [target] picker must expose one preference icon for each allowed hairstyle.")
+		for(var/style in styles)
+			TEST_ASSERT(icons[style] == preference_icons[style] && icons[style], "The [target] picker must reuse the preference icon class for [style].")
+		TEST_ASSERT(editor.hairstyle_icons() == icons, "Repeated [target] catalog requests must reuse the cached icon map.")
+		var/list/dynamic_data = editor.ui_data(mock_client.mob)
+		TEST_ASSERT(!(("hairStyles" in dynamic_data) || ("hairStyleIcons" in dynamic_data)), "Painting updates must not resend the hairstyle catalog.")
+		var/list/assets = editor.ui_assets(mock_client.mob)
+		TEST_ASSERT(length(assets) == 1 && istype(assets[1], /datum/asset/spritesheet_batched/preferences), "The [target] picker must use the existing preferences spritesheet.")
+		editor.finish(FALSE)
 
 /datum/unit_test/custom_sprite_facial_hair_editor/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
@@ -518,3 +544,135 @@
 	TEST_ASSERT(merged[1] == "1000" + repeat_string(28, "0"), "The torso pixel takes the body cover, the hand pixel the high cover, the taur none.")
 	TEST_ASSERT(merged[2] == repeat_string(32, "0"), "Pixels no region owns are never covered.")
 	TEST_ASSERT(custom_sprite_merge_cover_rows(body, high, null, zones) == body, "Without a region map the body cover stands.")
+
+/// Copy samples only native hair RGB, leaving opacity, gradients and every draft state untouched.
+/datum/unit_test/custom_sprite_base_hair_copy/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Short Hair")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_color], "#ff0000")
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	var/list/request = list("request" = 1, "dir" = "2", "rect" = list(0, 0, 31, 31))
+	var/before = json_encode(editor.workspace.serialize_drawing())
+	var/palette_before = json_encode(editor.workspace.palette)
+	var/saved_before = custom_sprite_hash(preferences.custom_hair)
+	var/revision_before = editor.draft_revision
+	var/list/plain = editor.build_base_copy(request)
+	TEST_ASSERT(plain && length(plain["palette"]) > 1 && length(plain["codes"]) == 1024, "Opaque red hair must produce pixels, including RGB values whose blue channel is 00: [editor.transfer_error]")
+	TEST_ASSERT(json_encode(plain["origin"]) == json_encode(editor.guide_lift || list(0, 0)), "A copy must retain the source hair's native canvas origin.")
+	for(var/color in plain["palette"])
+		TEST_ASSERT(color == "#00000000" || (length(color) == 9 && endswith(color, "ff")), "A base copy must contain only transparent or opaque RGB pixels.")
+	var/obj/item/bodypart/head/head = editor.preview_body.get_bodypart(BODY_ZONE_HEAD)
+	head.set_custom_head_drawing("hair", custom_sprite_test_drawing())
+	var/list/custom_paint = head.custom_hair
+	var/list/gradients = list(GRADIENT_HAIR_KEY = "Full")
+	head.gradient_styles = gradients
+	head.gradient_colors = list(GRADIENT_HAIR_KEY = "#00ffff")
+	head.hair_alpha = 64
+	head.facial_hairstyle = custom_style_test_facial_style()
+	head.facial_hair_color = "#00ffff"
+	editor.preview_body.emissive_hair = TRUE
+	var/old_block = head.blocks_emissive
+	editor.base_copy_frame_key = null
+	request["request"] = 2
+	var/list/decorated = editor.build_base_copy(request)
+	TEST_ASSERT(decorated && decorated["codes"] == plain["codes"] && json_encode(decorated["palette"]) == json_encode(plain["palette"]), "Custom paint, beard, glow, live gradients and global opacity must not enter the copied base pixels.")
+	TEST_ASSERT(head.custom_hair == custom_paint && head.gradient_styles == gradients && head.hair_alpha == 64 && head.blocks_emissive == old_block && editor.preview_body.emissive_hair, "Sampling must restore every temporarily suppressed head setting.")
+	TEST_ASSERT(json_encode(editor.workspace.serialize_drawing()) == before && json_encode(editor.workspace.palette) == palette_before && editor.draft_revision == revision_before && !length(editor.workspace.undo_stack) && !length(editor.workspace.redo_stack), "Copy must not mutate the draft, admitted colors, revision or history.")
+	TEST_ASSERT(custom_sprite_hash(preferences.custom_hair) == saved_before, "Copy must not write character saves.")
+	var/painted_index
+	for(var/index in 1 to length(plain["codes"]))
+		if(copytext(plain["codes"], index, index + 1) != "0")
+			painted_index = index
+			break
+	var/x = (painted_index - 1) % 32
+	var/y = round((painted_index - 1) / 32)
+	request["request"] = 3
+	request["rect"] = list(x, y, x, y)
+	request["mask"] = list("1")
+	var/list/selected = editor.build_base_copy(request)
+	TEST_ASSERT(selected && length(replacetext(selected["codes"], "0", "")) == 1, "A one-pixel selection must copy exactly that base pixel in full-canvas coordinates.")
+	request["mask"] = list("0")
+	var/list/excluded = editor.build_base_copy(request)
+	TEST_ASSERT(excluded && excluded["codes"] == repeat_string(1024, "0") && length(excluded["palette"]) == 1, "An excluded selection pixel must remain transparent.")
+	editor.finish(FALSE)
+
+/// A trusted copy survives choosing Bald, but cannot bypass palette admission, history limits or editor lifetime.
+/datum/unit_test/custom_sprite_base_hair_copy_paste/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Short Hair")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_color], "#6030b0")
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	var/list/copied = editor.build_base_copy(list("request" = 2, "dir" = "2", "rect" = list(0, 0, 31, 31)))
+	TEST_ASSERT(copied && length(copied["palette"]) > 1, "The fixture must copy visible base hair: [editor.transfer_error]")
+	var/list/placement = list("type" = "move", "layer" = 1, "dir" = "2", "area" = list(0, 0, 31, 31), "palette" = copied["palette"], "digits" = 1, "codes" = copied["codes"], "baseCopy" = 1, "baseCopySource" = copied["source"])
+	var/palette_before = json_encode(editor.workspace.palette)
+	TEST_ASSERT(!editor.prepare_base_copy_paste(placement), "An older copy token must not admit any colors.")
+	placement["baseCopy"] = copied["request"]
+	placement["baseCopySource"] = REF(preferences)
+	TEST_ASSERT(!editor.prepare_base_copy_paste(placement) && json_encode(editor.workspace.palette) == palette_before, "A token from another source must not admit colors.")
+	placement["baseCopySource"] = copied["source"]
+	var/list/bald = editor.workspace.hair_context.Copy()
+	bald["style"] = "Bald"
+	TEST_ASSERT(editor.apply_hair_context(bald, "Change hairstyle"), "The copied hairstyle must be replaceable with Bald.")
+	editor.rebuild_resources()
+	TEST_ASSERT(editor.base_copy_token == copied["request"] && editor.prepare_base_copy_paste(placement), "Changing to Bald must retain the trusted copy and its paste colors.")
+	TEST_ASSERT(editor.workspace.new_transaction(deep_copy_list(placement)), "Copied hair must paste as editable custom pixels after choosing Bald.")
+	var/pasted = json_encode(editor.workspace.serialize_drawing())
+	editor.workspace.undo()
+	TEST_ASSERT(!editor.workspace.serialize_drawing() && editor.workspace.hair_context["style"] == "Bald", "Undo must remove pasted pixels while keeping the selected Bald base.")
+	editor.workspace.redo()
+	TEST_ASSERT(json_encode(editor.workspace.serialize_drawing()) == pasted, "Redo must restore the exact copied colors and pixels.")
+	var/list/forged = deep_copy_list(placement)
+	forged["palette"] = list("#00000000", "#fe01abff")
+	forged["codes"] = repeat_string(1024, "1")
+	TEST_ASSERT(editor.prepare_base_copy_paste(forged) && !editor.workspace.new_transaction(forged), "A valid token must not authorize arbitrary browser-supplied colors.")
+	TEST_ASSERT(json_encode(editor.workspace.serialize_drawing()) == pasted, "Rejected placement must leave copied pixels unchanged.")
+	var/list/full_palette = list()
+	for(var/index in 1 to CUSTOM_SPRITE_MAX_COLORS)
+		full_palette += rgb(index, 0, 0)
+	var/grid = copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 2) + repeat_string(1024 - CUSTOM_SPRITE_MAX_COLORS, "0")
+	var/list/full_drawing = list("version" = 2, "palette" = full_palette, "dirs" = list("2" = custom_sprite_encode_grid(grid, CUSTOM_SPRITE_MAX_COLORS)))
+	QDEL_NULL(editor.workspace)
+	editor.workspace = new(full_drawing, list(), null)
+	palette_before = json_encode(editor.workspace.palette)
+	TEST_ASSERT(!editor.prepare_base_copy_paste(placement) && json_encode(editor.workspace.palette) == palette_before, "Copy admission must refuse a sixty-fourth retained color without changing the palette.")
+	editor.release_resources()
+	TEST_ASSERT(isnull(editor.base_copy_token) && !editor.base_copy_colors && !editor.base_copy_frame && !editor.prepare_base_copy_paste(placement), "Closing preview resources must expire the copy and release its cached pixels and colors.")
+	editor.finish(FALSE)
+
+/// Malformed browser requests and lost permissions cannot retain or execute pending copy work.
+/datum/unit_test/custom_sprite_base_hair_copy_validation/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
+	var/list/valid = list("request" = 1, "dir" = "2", "rect" = list(0, 0, 0, 0), "mask" = list("1"))
+	for(var/list/replacement as anything in list(list("request", 0), list("request", 1.5), list("request", 2000000000), list("dir", "3"), list("rect", list(0, 0, 31)), list("rect", list(0, 0, 0.5, 1)), list("rect", list(2, 0, 1, 0)), list("rect", list(0, 0, 47, 47)), list("rect", list(-49, 0, -49, 0)), list("mask", list("2")), list("mask", list("11")), list("mask", list("1", "1"))))
+		var/list/invalid = deep_copy_list(valid)
+		invalid[replacement[1]] = replacement[2]
+		TEST_ASSERT(!editor.validated_base_copy(invalid), "Malformed copy metadata must be rejected: [json_encode(replacement)]")
+	var/list/retained = editor.validated_base_copy(valid)
+	valid["rect"][1] = -1
+	valid["mask"][1] = "0"
+	TEST_ASSERT(retained["rect"][1] == 0 && retained["mask"][1] == "1", "Validation must own its small selection lists rather than retain caller aliases.")
+	editor.closing = TRUE
+	editor.request_base_copy(retained, ui)
+	TEST_ASSERT(!editor.base_copy_request && editor.transfer_error, "A request without edit permission must not enter the costly work queue.")
+	editor.closing = FALSE
+	editor.request_base_copy(retained, ui)
+	retained["request"] = 2
+	editor.request_base_copy(retained, ui)
+	TEST_ASSERT(editor.base_copy_request?["request"] == 2 && !editor.base_copy_frame, "A burst must retain only its newest envelope and defer all pixel sampling.")
+	editor.closing = TRUE
+	TEST_ASSERT(editor.finish_base_copy() && !editor.base_copy_request && !editor.base_copy_ui && !editor.base_copy_frame, "Losing edit permission while waiting must cancel pending copy work without sampling.")
+	editor.closing = FALSE
+	editor.workspace.tint = "#aaaaaa"
+	TEST_ASSERT(!editor.build_base_copy(retained) && editor.transfer_error, "Legacy color multipliers must fail closed instead of changing copied RGB.")
+	editor.finish(FALSE)
+	var/datum/custom_sprite_editor/facial = new /datum/custom_sprite_editor/optimization_test(preferences, "facial_hair")
+	TEST_ASSERT(!facial.validated_base_copy(retained), "Base head hair copy must not be admitted by the facial hair editor.")
+	facial.finish(FALSE)

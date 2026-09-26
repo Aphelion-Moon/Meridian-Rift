@@ -7,16 +7,17 @@ import {
   Box,
   Button,
   Floating,
-  Input,
+  // Input, // APHELION EDIT REMOVAL - shared icon picker
   Icon, // NOVA EDIT ADDITION
   LabeledList,
-  Section,
+  // Section, // APHELION EDIT REMOVAL - shared icon picker
   Stack,
 } from 'tgui-core/components';
 import { exhaustiveCheck } from 'tgui-core/exhaustive'; // NOVA EDIT ADDITION
 import { classes } from 'tgui-core/react';
-import { createSearch } from 'tgui-core/string';
+// import { createSearch } from 'tgui-core/string'; // APHELION EDIT REMOVAL - shared icon picker
 import { CharacterPreview } from '../../common/CharacterPreview';
+import { ChoicedSelection } from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
 import { PageButton } from '../components/PageButton'; // NOVA EDIT ADDITION
 import { RandomizationButton } from '../components/RandomizationButton';
 import { SideDropdown } from '../components/SideDropdown'; // NOVA EDIT ADDITION
@@ -41,9 +42,11 @@ import { VocalsInput, VoiceInput } from './vocals'; // NOVA EDIT ADDITION
 const CLOTHING_CELL_SIZE = 48;
 const CLOTHING_SIDEBAR_ROWS = 13.6; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: 9
 
+/* // APHELION EDIT REMOVAL START - Icon picker sizing now lives in common/ChoicedSelection.tsx.
 const CLOTHING_SELECTION_CELL_SIZE = 48;
 const CLOTHING_SELECTION_WIDTH = 5.4;
 const CLOTHING_SELECTION_MULTIPLIER = 5.2;
+*/ // APHELION EDIT REMOVAL END
 
 type CharacterControlsProps = {
   handleRotate: (backwards: boolean) => void; // NOVA EDIT CHANGE - Original: handleRotate: () => void;
@@ -125,6 +128,7 @@ function CharacterControls(props: CharacterControlsProps) {
   );
 }
 
+/* // APHELION EDIT REMOVAL START - Extracted to common/ChoicedSelection.tsx for reuse by custom editors.
 type ChoicedSelectionProps = {
   name: string;
   catalog: FeatureChoicedServerData;
@@ -135,7 +139,6 @@ type ChoicedSelectionProps = {
 };
 
 function ChoicedSelection(props: ChoicedSelectionProps) {
-  const { data, act } = useBackend<PreferencesMenuData>(); // APHELION EDIT ADDITION
   const { catalog, supplementalFeature, supplementalValue } = props;
   const [searchText, setSearchText] = useState('');
 
@@ -175,34 +178,6 @@ function ChoicedSelection(props: ChoicedSelectionProps) {
               placeholder="Search..."
               onChange={setSearchText}
             />
-            {/* APHELION EDIT ADDITION START */}
-            {!!data.allow_custom_sprite_editing &&
-              supplementalFeature === 'hair_color' && (
-                <Button
-                  mt={1}
-                  fluid
-                  icon="paintbrush"
-                  onClick={() =>
-                    act('open_custom_sprite_editor', { target: 'hair' })
-                  }
-                >
-                  Custom hair drawing
-                </Button>
-              )}
-            {!!data.allow_custom_sprite_editing &&
-              supplementalFeature === 'facial_hair_color' && (
-                <Button
-                  mt={1}
-                  fluid
-                  icon="paintbrush"
-                  onClick={() =>
-                    act('open_custom_sprite_editor', { target: 'facial_hair' })
-                  }
-                >
-                  Custom facial hair drawing
-                </Button>
-              )}
-            {/* APHELION EDIT ADDITION END */}
           </Section>
         </Stack.Item>
         <Stack.Item grow>
@@ -257,6 +232,7 @@ function searchInCatalog(searchText = '', catalog: Record<string, string>) {
   }
   return items;
 }
+*/ // APHELION EDIT REMOVAL END
 
 type GenderButtonProps = {
   handleSetGender: (gender: Gender) => void;
@@ -317,7 +293,7 @@ type MainFeatureProps = {
 };
 
 function MainFeature(props: MainFeatureProps) {
-  const { data } = useBackend<PreferencesMenuData>();
+  const { data, act } = useBackend<PreferencesMenuData>(); // APHELION EDIT CHANGE - ORIGINAL: const { data } = useBackend<PreferencesMenuData>();
   const {
     catalog,
     currentValue,
@@ -333,6 +309,7 @@ function MainFeature(props: MainFeatureProps) {
       stopChildPropagation
       placement="right-start"
       content={
+        /* APHELION EDIT REMOVAL START - Supplemental controls are supplied as shared-picker content.
         <ChoicedSelection
           name={catalog.name}
           catalog={catalog}
@@ -346,6 +323,58 @@ function MainFeature(props: MainFeatureProps) {
           }
           onSelect={handleSelect}
         />
+        APHELION EDIT REMOVAL END */
+        // APHELION EDIT ADDITION START
+        <ChoicedSelection
+          name={catalog.name}
+          catalog={catalog}
+          selected={currentValue}
+          buttons={
+            supplementalFeature && (
+              <FeatureValueInput
+                shrink
+                feature={features[supplementalFeature]}
+                featureId={supplementalFeature}
+                value={
+                  data.character_preferences.supplemental_features[
+                    supplementalFeature
+                  ]
+                }
+              />
+            )
+          }
+          onSelect={handleSelect}
+        >
+          {/* APHELION EDIT ADDITION START */}
+          {!!data.allow_custom_sprite_editing &&
+            supplementalFeature === 'hair_color' && (
+              <Button
+                mt={1}
+                fluid
+                icon="paintbrush"
+                onClick={() =>
+                  act('open_custom_sprite_editor', { target: 'hair' })
+                }
+              >
+                Custom hair drawing
+              </Button>
+            )}
+          {!!data.allow_custom_sprite_editing &&
+            supplementalFeature === 'facial_hair_color' && (
+              <Button
+                mt={1}
+                fluid
+                icon="paintbrush"
+                onClick={() =>
+                  act('open_custom_sprite_editor', { target: 'facial_hair' })
+                }
+              >
+                Custom facial hair drawing
+              </Button>
+            )}
+          {/* APHELION EDIT ADDITION END */}
+        </ChoicedSelection>
+        // APHELION EDIT ADDITION END
       }
     >
       <Button

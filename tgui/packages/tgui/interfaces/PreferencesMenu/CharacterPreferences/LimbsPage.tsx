@@ -22,6 +22,7 @@ import {
 import type { BooleanLike } from 'tgui-core/react';
 
 import { CharacterPreview } from '../../common/CharacterPreview';
+import { ChoicedSelectionDropdown } from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
 import type {
   AugmentItem,
   AugmentSlot,
@@ -274,7 +275,9 @@ const Markings = (props: {
 }) => {
   const { body_zone, chosen_markings, marking_choices, act } = props;
   const { data } = useBackend<PreferencesMenuData>();
-  const maxMarkings = useServerPrefs()?.limbs_and_markings?.max_markings ?? 0;
+  const serverMarkings = useServerPrefs()?.limbs_and_markings; // APHELION EDIT ADDITION
+  const maxMarkings = serverMarkings?.max_markings ?? 0; // APHELION EDIT CHANGE
+  const markingIcons = serverMarkings?.marking_icons?.[body_zone]; // APHELION EDIT ADDITION
   const markings = chosen_markings ?? [];
   const takenMarkings = new Set(markings.map((marking) => marking.name));
   // A taur body takes the legs' place, so they get its drawing instead of markings.
@@ -294,22 +297,39 @@ const Markings = (props: {
           <Stack.Item key={marking.marking_id}>
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
-                <Dropdown
-                  width="100%"
-                  options={choices}
-                  selected={marking.name}
-                  displayText={marking.name}
-                  maxItems={7}
-                  searchInput
-                  styledInput
-                  onSelected={(value) =>
-                    act('change_marking', {
-                      bodypart_slot: body_zone,
-                      marking_id: marking.marking_id,
-                      marking_name: value,
-                    })
-                  }
-                />
+                {/* APHELION EDIT CHANGE START - Share the cached popup with custom editors. */}
+                {markingIcons ? (
+                  <ChoicedSelectionDropdown
+                    name="marking"
+                    icons={markingIcons}
+                    options={choices}
+                    selected={marking.name}
+                    onSelect={(value: string) =>
+                      act('change_marking', {
+                        bodypart_slot: body_zone,
+                        marking_id: marking.marking_id,
+                        marking_name: value,
+                      })
+                    }
+                  />
+                ) : (
+                  <Dropdown
+                    width="100%"
+                    options={choices}
+                    selected={marking.name}
+                    displayText={marking.name}
+                    maxItems={7}
+                    styledInput
+                    onSelected={(value) =>
+                      act('change_marking', {
+                        bodypart_slot: body_zone,
+                        marking_id: marking.marking_id,
+                        marking_name: value,
+                      })
+                    }
+                  />
+                )}
+                {/* APHELION EDIT CHANGE END */}
               </Stack.Item>
               <Stack.Item>
                 <Button

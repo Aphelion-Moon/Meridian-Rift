@@ -1,7 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import { expect, it, spyOn } from 'bun:test';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { createStore, Provider } from 'jotai';
+import { fireEvent, screen } from '@testing-library/react';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import {
   compactSprite,
@@ -10,8 +9,8 @@ import {
   send,
   setupEditorTests,
 } from '../../../__mocks__/customSpriteEditor';
+import { renderEditor } from '../../../__mocks__/renderCustomSpriteEditor';
 import { Dir } from '../SpriteEditor/Types/types';
-import { CustomSpriteEditor } from './index';
 
 setupEditorTests();
 
@@ -34,11 +33,7 @@ const closeWithFloatingPaint = (
     'getBoundingClientRect',
   ).mockReturnValue(new DOMRect(0, 0, 320, 320));
   try {
-    const view = render(
-      <Provider store={createStore()}>
-        <CustomSpriteEditor target="hair" />
-      </Provider>,
-    );
+    const { view } = renderEditor('hair');
     fireEvent.click(
       view.container.querySelector('.fa-vector-square')!.closest('.Button')!,
     );
