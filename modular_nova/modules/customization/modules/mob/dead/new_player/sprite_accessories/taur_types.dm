@@ -245,6 +245,7 @@
 	taur_mode = BODYSHAPE_TAUR_PAW
 	can_lay_down = TRUE
 	laydown_offset = -3
+	tail_icon = 'modular_nova/master_files/icons/mob/sprite_accessory/taur_tails.dmi'
 
 /datum/sprite_accessory/taur/feline
 	name = "Feline"
