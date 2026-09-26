@@ -326,13 +326,14 @@
 /datum/config_entry/string/banappeals
 
 /datum/config_entry/string/wikiurl
-	default = "https://wiki.novasector13.com/index.php" //NOVA EDIT CHANGE - Original: default = "https://wiki.tgstation13.org"
+	// APHELION EDIT - Use Meridian's wiki base for page links and manuals.
+	default = "https://meridian-wiki.a13.info/wiki" //NOVA EDIT CHANGE - Original: upstream wiki default.
 
 /datum/config_entry/string/forumurl
 	default = "http://tgstation13.org/phpBB/index.php"
 
 /datum/config_entry/string/rulesurl
-	default = "http://tgstation13.org/wiki/Rules"
+	default = "https://meridian-wiki.a13.info/wiki/Server_Policies" // APHELION EDIT
 
 /datum/config_entry/string/githuburl
 	default = "https://www.github.com/tgstation/tgstation"
