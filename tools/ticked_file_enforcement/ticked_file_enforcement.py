@@ -56,9 +56,9 @@ with open(file_reference, 'r') as file:
         elif not reading:
             continue
         # APHELION EDIT START - Modular unit tests. NOVA spellings kept so upstream ports don't break.
-        elif line in ("// APHELION EDIT START", "// NOVA EDIT START"):
+        elif line in ("// APHELION EDIT ADDITION START", "// NOVA EDIT ADDITION START"):
             continue
-        elif line in ("// APHELION EDIT END", "// NOVA EDIT END"):
+        elif line in ("// APHELION EDIT ADDITION END", "// NOVA EDIT ADDITION END"):
             continue
         # APHELION EDIT END
 

@@ -8,6 +8,7 @@
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/head/costume.dmi'
 
 /obj/item/clothing/gloves/tactical_maid
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/species/vox/hands.dmi'
 	name = "tactical maid sleeves"
 	desc = "These 'tactical' gloves and heavy and warm."
 	icon = 'modular_nova/master_files/icons/obj/clothing/gloves.dmi'

@@ -1,0 +1,188 @@
+// THIS IS AN APHELION UI FILE
+@use 'sass:meta';
+
+@include meta.load-css('../interfaces/PreferencesMenu.scss');
+
+.PreferencesMenu {
+  &__LoadoutCategoryTabs > .Tab {
+    // Balance the selection indicator below the two-line icon/label strip.
+    padding-top: var(--tab-indicator-size);
+  }
+
+  &__Jobs {
+    --job-priority-size: 18px;
+    --job-priority-gap: 6px;
+    --job-priority-padding: 3px;
+
+    &__row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: stretch;
+
+      > :first-child,
+      .job-name {
+        min-width: 0;
+      }
+
+      .job-name {
+        overflow-wrap: anywhere;
+      }
+    }
+
+    &__priorityArea {
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-end;
+    }
+
+    &__priorityGrid {
+      display: grid;
+      grid-template-columns: repeat(4, var(--job-priority-size));
+      column-gap: var(--job-priority-gap);
+      align-content: center;
+      justify-content: end;
+
+      &.options {
+        min-height: 24px;
+        padding: var(--job-priority-padding);
+      }
+
+      &--overflow > :last-child {
+        grid-column: 4;
+      }
+    }
+
+    &__priorityHeaders {
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px calc(var(--job-priority-padding) + var(--border-thickness-small, 1px)) 5px;
+    }
+
+    &__PriorityHeader {
+      width: var(--job-priority-size);
+      height: var(--job-priority-size);
+      line-height: var(--job-priority-size);
+      text-align: center;
+      transform: rotate(-45deg);
+      transform-origin: center;
+    }
+  }
+
+  &__Jobs__departments {
+    &--Captain {
+      // Keep the heavier top/bottom frame without shifting this column's cells.
+      border-inline-width: var(--border-thickness-small, 1px);
+    }
+
+    &__priority {
+      box-sizing: border-box;
+      min-height: 0;
+      padding: 0;
+      line-height: 16px;
+      border-radius: 0;
+
+      .Button__content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+
+      .Button--icon {
+        min-width: 0;
+        margin: 0;
+        line-height: 1;
+      }
+
+      &--enabled {
+        border-color: hsla(0, 0%, 100%, 0.72);
+      }
+    }
+
+    // These empty controls use their outline as the unchecked state. Theme
+    // rules for idle transparent buttons must not erase the actual choices.
+    // Keep this small caller-painted matrix independent of material frames.
+    &__priority.Button {
+      min-height: 0 !important;
+      padding: 0 !important;
+      margin: 0;
+      border: 1px solid rgb(0 0 0 / 65%) !important;
+      border-image: none !important;
+      background-image: none !important;
+      box-shadow: none !important;
+
+      &:hover {
+        border-color: #101614 !important;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 1px;
+        box-shadow: 0 0 0 1px #101614 !important;
+      }
+    }
+
+    &__priorityMark {
+      display: block;
+      font-family: var(--font-family);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 16px;
+      text-align: center;
+    }
+  }
+
+  &__SpeciesList {
+    overflow-x: hidden;
+  }
+
+  &__SpeciesButton {
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 0;
+
+    .Button__content {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    .species64x64 {
+      margin: 0;
+    }
+  }
+
+  &__SpeciesDiet,
+  &__SpeciesDietGroup {
+    min-width: 0;
+    margin: 0;
+  }
+
+  &__SpeciesDietGroup {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  &__SpeciesPerk {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    .Icon {
+      line-height: 1;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .PreferencesMenu__Jobs__departments__priority.Button {
+    border-color: ButtonText !important;
+
+    &:focus-visible {
+      outline-color: Highlight;
+      box-shadow: none !important;
+    }
+  }
+}

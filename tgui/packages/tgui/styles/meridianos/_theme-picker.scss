@@ -1,0 +1,214 @@
+// THIS IS AN APHELION UI FILE
+@use '../base';
+@use '../functions.scss' as *;
+
+.MeridianThemePicker {
+  display: inline-flex;
+  flex: 0 0 auto;
+
+  &__trigger {
+    appearance: none;
+    cursor: var(--cursor-pointer);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: base.rem(24px);
+    min-width: base.rem(24px);
+    height: base.rem(24px);
+    min-height: base.rem(24px);
+    padding: 0;
+    color: var(--button-color);
+    background: var(--button-background-default);
+    border: var(--border-thickness-tiny) solid var(--color-border-dark);
+    border-radius: var(--button-border-radius);
+    font: inherit;
+
+    &:hover {
+      background: hsl(
+        from var(--button-background-default) h s calc(l + var(--adjust-hover))
+      );
+    }
+
+    &:active {
+      background: hsl(
+        from var(--button-background-default) h s calc(l - var(--adjust-active))
+      );
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+  }
+
+  &__menu {
+    box-sizing: border-box;
+    width: base.rem(264px);
+    // Raw vw/vh are not the layout viewport once BYOND scales the window --
+    // vp() applies --scaling-amount the way .TitleBar's width does. The insets
+    // are the chrome the menu must clear, not magic numbers: it hangs off the
+    // trigger at the bottom of the title bar, so it owes the bar's height plus
+    // the frame's bottom band. Fallbacks keep the classic theme, which defines
+    // no --console-* tokens, on its previous clamp.
+    max-width: calc(
+      #{vp(100vw)} - var(--console-chrome-safe-left, 0px) - var(
+          --console-chrome-safe-right,
+          0px
+        ) -
+        #{base.rem(16px)}
+    );
+    max-height: calc(
+      #{vp(100vh)} - var(--console-titlebar-height, #{base.rem(32px)}) - var(
+          --console-chrome-safe-bottom,
+          0px
+        ) -
+        #{base.rem(16px)}
+    );
+    overflow: hidden;
+    color: var(--dropdown-menu-color);
+    background: var(--dropdown-menu-background);
+    border: var(--dropdown-menu-border);
+    border-radius: var(--dropdown-menu-border-radius);
+    box-shadow: 0 base.rem(4px) base.rem(12px) rgb(0 0 0 / 46%);
+  }
+
+  &__heading {
+    padding: base.rem(8px) base.rem(10px);
+    color: var(--color-text-translucent-light);
+    border-bottom: var(--border-thickness-tiny) solid var(--color-border);
+    font-size: base.rem(11px);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  &__options {
+    // The menu's own clamp less the heading above this scroller.
+    max-height: min(
+      var(--native-menu-options-height, 100000px),
+      calc(
+        #{vp(100vh)} - var(--console-titlebar-height, #{base.rem(32px)}) - var(
+            --console-chrome-safe-bottom,
+            0px
+          ) -
+          #{base.rem(50px)}
+      )
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: base.rem(4px);
+  }
+
+  &__option {
+    appearance: none;
+    cursor: var(--cursor-pointer);
+    display: grid;
+    grid-template-columns: base.rem(18px) base.rem(28px) minmax(0, 1fr);
+    align-items: center;
+    gap: base.rem(6px);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: base.rem(32px);
+    padding: base.rem(4px) base.rem(6px);
+    color: var(--dropdown-menu-color);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--dropdown-entry-border-radius);
+    font: inherit;
+    text-align: left;
+
+    &:hover {
+      background: var(--dropdown-entry-background-hover);
+    }
+
+    &:active {
+      background: var(--dropdown-entry-background-active);
+    }
+
+    &[aria-checked='true'] {
+      background: var(--dropdown-entry-background-selected);
+      border-left-color: currentColor;
+    }
+  }
+
+  &__check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: base.rem(18px);
+  }
+
+  &__swatch {
+    width: base.rem(28px);
+    height: base.rem(12px);
+    background: var(
+      --theme-preview-image,
+      linear-gradient(
+        90deg,
+        var(--theme-preview-primary, #4f759b) 0 50%,
+        var(--theme-preview-secondary, #b2c8dc) 50%
+      )
+    );
+    border: 1px solid currentColor;
+  }
+
+  &__label {
+    min-width: 0;
+
+    strong,
+    span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    span {
+      margin-top: base.rem(1px);
+      color: var(--color-text-translucent-light);
+      font-size: base.rem(10px);
+    }
+  }
+}
+
+.theme-console .MeridianThemePicker__option[aria-checked='true'] {
+  &,
+  .MeridianThemePicker__label span {
+    color: var(--console-text-on-accent);
+  }
+}
+
+.MeridianThemePicker__floating {
+  z-index: 300;
+}
+
+:is(.MeridianThemePicker__trigger, .MeridianThemePicker__option):focus-visible {
+  outline: 2px solid var(--console-interaction-focus, var(--color-primary));
+  outline-offset: 1px;
+  box-shadow: 0 0 0 1px
+    var(--console-interaction-focus-contrast, var(--color-base));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .MeridianThemePicker__floating {
+    transition-duration: 0.001ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .MeridianThemePicker__trigger,
+  .MeridianThemePicker__menu,
+  .MeridianThemePicker__option {
+    forced-color-adjust: auto;
+    border-color: CanvasText;
+  }
+
+  .MeridianThemePicker__swatch {
+    display: none;
+  }
+
+  .MeridianThemePicker__option {
+    grid-template-columns: base.rem(18px) minmax(0, 1fr);
+  }
+}

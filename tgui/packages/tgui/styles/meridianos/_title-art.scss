@@ -1,0 +1,563 @@
+// THIS IS AN APHELION UI FILE
+// The lobby title artwork, shared by the lobby backdrop and the admin
+// manager's preview. Lives here rather than in tgui-lobby because the
+// dependency runs lobby -> tgui, never the other way.
+.lobby-title-art {
+  --lobby-title-phosphor: color-mix(
+    in srgb,
+    var(--lobby-accent, var(--boot-accent, #58d1c9)) 84%,
+    white
+  );
+  --lobby-title-phosphor-secondary: color-mix(
+    in srgb,
+    var(--lobby-accent-secondary, var(--boot-accent-secondary, #7ae2db)) 76%,
+    white
+  );
+  --lobby-title-screen: color-mix(
+    in srgb,
+    var(--lobby-canvas, #080d10) 22%,
+    black
+  );
+  --lobby-title-edge: color-mix(
+    in srgb,
+    var(--lobby-accent, var(--boot-accent, #58d1c9)) 18%,
+    transparent
+  );
+  --lobby-title-mark-background: linear-gradient(
+    to bottom,
+    var(--lobby-title-phosphor),
+    var(--lobby-title-phosphor-secondary)
+  );
+  --lobby-title-bezel-depth: clamp(12px, 3.8cqmin, 56px);
+  --lobby-title-bezel-screw-offset: clamp(6px, 1.9cqmin, 28px);
+
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  isolation: isolate;
+  // Everything inside sizes against this box rather than the viewport. In the
+  // lobby the two are the same thing, so the backdrop is unchanged; anywhere
+  // smaller -- the admin manager's preview -- viewport units blew the artwork
+  // up to many times its container and clipped all but a sliver of it.
+  container-type: size;
+}
+
+.lobby-title-art__bezel,
+.lobby-title-art__screen,
+.lobby-title-art__scanlines {
+  position: absolute;
+  inset: 0;
+}
+
+// The glass is viewport-sized, while the neutral square mask stays at its
+// existing 90cqmin scale. This preserves the wordmark's proportions without
+// bringing back an opaque square around it on widescreen clients.
+.lobby-title-art__fallback,
+.lobby-title-art__mark,
+.lobby-title-art__bloom-source {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90cqmin;
+  height: 90cqmin;
+  transform: translate(-50%, -50%);
+}
+
+.lobby-title-art__bezel {
+  z-index: 0;
+}
+
+.lobby-title-art__screen {
+  z-index: 1;
+  overflow: hidden;
+  background: var(--lobby-title-screen);
+}
+
+.lobby-title-art__screen::before,
+.lobby-title-art__screen::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: '';
+  pointer-events: none;
+}
+
+.lobby-title-art__scanlines {
+  display: none;
+  z-index: 3;
+  background: var(--lobby-title-phosphor);
+  opacity: 0.22;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  -webkit-mask: var(--lobby-title-scanline-image) center / cover no-repeat;
+  mask: var(--lobby-title-scanline-image) center / cover no-repeat;
+}
+
+.lobby-title-art--texture-scanlines-classic .lobby-title-art__screen::after {
+  display: none;
+}
+
+.lobby-title-art--texture-scanlines-classic .lobby-title-art__scanlines {
+  display: block;
+}
+
+.lobby-title-art__screen::before {
+  display: none;
+}
+
+.lobby-title-art__screen::after {
+  z-index: 3;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    color-mix(in srgb, var(--lobby-title-phosphor) 8%, transparent) 2px 3px
+  );
+  opacity: 0.54;
+  mix-blend-mode: screen;
+}
+
+.lobby-title-art__fallback {
+  z-index: 1;
+  object-fit: contain;
+  filter: grayscale(1) brightness(1.35);
+}
+
+.lobby-title-art__mark {
+  display: none;
+  z-index: 1;
+  background: var(--lobby-title-mark-background);
+  filter: drop-shadow(
+    0 0 clamp(2px, 0.45cqmin, 5px)
+      color-mix(in srgb, var(--lobby-title-phosphor) 42%, transparent)
+  );
+}
+
+@supports ((mask-image: url('')) or (-webkit-mask-image: url(''))) {
+  .lobby-title-art__fallback {
+    display: none;
+  }
+
+  .lobby-title-art__mark,
+  .lobby-title-art__bloom-source {
+    display: block;
+    -webkit-mask: var(--lobby-title-art-image) center / contain no-repeat;
+    mask: var(--lobby-title-art-image) center / contain no-repeat;
+  }
+}
+
+// Overlay treatment: the selected screen is a finished picture rather than an
+// alpha master, so it keeps its own colour and fills the glass, and the themed
+// wordmark composites over it. The mark layer itself is unchanged -- it is
+// already a tinted shape masked by --lobby-title-art-image, which TitleArtwork
+// points at the neutral master in this mode.
+.lobby-title-art--overlay .lobby-title-art__screen {
+  background:
+    var(--lobby-title-backdrop-image) center / cover no-repeat,
+    var(--lobby-title-screen);
+}
+
+// The backdrop is already the picture, so the <img> beneath it would only
+// double up. It stays in the markup as the no-mask fallback.
+@supports ((mask-image: url('')) or (-webkit-mask-image: url(''))) {
+  .lobby-title-art--overlay .lobby-title-art__fallback {
+    display: none;
+  }
+}
+
+// Without mask support there is no wordmark layer, so show the picture plainly
+// rather than the grayscale treatment the mask mode uses.
+.lobby-title-art--overlay .lobby-title-art__fallback {
+  filter: none;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  transform: none;
+}
+
+// Screen blending keeps the mark legible over a bright picture without hiding
+// the artwork, matching how the scanline layer already composites.
+.lobby-title-art--overlay .lobby-title-art__mark {
+  mix-blend-mode: screen;
+}
+
+// B: flat geometry with only subtle falloff and edge reflection.
+.lobby-title-art--edge .lobby-title-art__screen::before {
+  display: block;
+  // Keep the flat edge falloff behind the title and lobby controls. This
+  // avoids sacrificing text contrast just to suggest glass at the perimeter.
+  z-index: 0;
+  background:
+    radial-gradient(
+      ellipse at 50% 43%,
+      transparent 54%,
+      rgb(0 0 0 / 18%) 75%,
+      rgb(0 0 0 / 62%) 100%
+    ),
+    linear-gradient(
+      112deg,
+      var(--lobby-title-edge),
+      transparent 8% 86%,
+      color-mix(in srgb, var(--lobby-title-phosphor-secondary) 8%, transparent)
+    );
+}
+
+// C/D: optical curvature is confined to the glass. C stays full-bleed so its
+// shading meets the viewport instead of revealing a second rectangle. D clips
+// the glass only where the physical perimeter bezel begins.
+.lobby-title-art--convex .lobby-title-art__screen {
+  box-shadow:
+    inset 0 0 2.2cqmin rgb(255 255 255 / 5%),
+    inset 0 0 8cqmin rgb(0 0 0 / 92%);
+}
+
+.lobby-title-art--convex .lobby-title-art__screen::before {
+  display: block;
+  background:
+    radial-gradient(
+      ellipse at 50% 44%,
+      transparent 45%,
+      rgb(0 0 0 / 18%) 67%,
+      rgb(0 0 0 / 78%) 100%
+    ),
+    linear-gradient(
+      116deg,
+      color-mix(in srgb, white 7%, transparent) 0%,
+      transparent 13% 77%,
+      color-mix(in srgb, var(--lobby-title-phosphor) 7%, transparent) 100%
+    );
+}
+
+// The physical monitor rim. Independent of the screen effect, so a flat or
+// vignetted screen can sit in the same bezel a convex one does.
+.lobby-title-art--bezel .lobby-title-art__bezel::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  box-sizing: border-box;
+  border: max(1px, 0.12cqmin) solid
+    color-mix(in srgb, var(--lobby-boundary, #4b6b78) 48%, #050708);
+  content: '';
+  background:
+    radial-gradient(
+      circle at var(--lobby-title-bezel-screw-offset)
+        var(--lobby-title-bezel-screw-offset),
+      #798184 0 max(1px, 0.2cqmin),
+      #111516 max(1.5px, 0.26cqmin) max(3px, 0.52cqmin),
+      transparent max(3.5px, 0.58cqmin)
+    ),
+    radial-gradient(
+      circle at calc(100% - var(--lobby-title-bezel-screw-offset))
+        var(--lobby-title-bezel-screw-offset),
+      #798184 0 max(1px, 0.2cqmin),
+      #111516 max(1.5px, 0.26cqmin) max(3px, 0.52cqmin),
+      transparent max(3.5px, 0.58cqmin)
+    ),
+    radial-gradient(
+      circle at var(--lobby-title-bezel-screw-offset)
+        calc(100% - var(--lobby-title-bezel-screw-offset)),
+      #798184 0 max(1px, 0.2cqmin),
+      #111516 max(1.5px, 0.26cqmin) max(3px, 0.52cqmin),
+      transparent max(3.5px, 0.58cqmin)
+    ),
+    radial-gradient(
+      circle at calc(100% - var(--lobby-title-bezel-screw-offset))
+        calc(100% - var(--lobby-title-bezel-screw-offset)),
+      #798184 0 max(1px, 0.2cqmin),
+      #111516 max(1.5px, 0.26cqmin) max(3px, 0.52cqmin),
+      transparent max(3.5px, 0.58cqmin)
+    ),
+    repeating-linear-gradient(
+      104deg,
+      rgb(255 255 255 / 2%) 0 1px,
+      transparent 1px 5px
+    ),
+    linear-gradient(145deg, #343b3e, #101416 46%, #22292c 74%, #07090a);
+  box-shadow:
+    inset 0 0 0 0.65cqmin rgb(0 0 0 / 62%),
+    inset 0.25cqmin 0.25cqmin 0.35cqmin rgb(255 255 255 / 9%),
+    0 1.1cqmin 2.5cqmin rgb(0 0 0 / 68%),
+    0 0 1.25cqmin
+      color-mix(in srgb, var(--lobby-title-phosphor) 9%, transparent);
+}
+
+.lobby-title-art--bezel .lobby-title-art__screen {
+  inset: var(--lobby-title-bezel-depth);
+  border-radius: 8.1cqmin / 6.3cqmin;
+  clip-path: inset(0 round 8.1cqmin / 6.3cqmin);
+  box-shadow:
+    0 0 0 0.55cqmin #050708,
+    0 0 0 0.78cqmin
+      color-mix(in srgb, var(--lobby-boundary, #4b6b78) 54%, #050708),
+    inset 0 0 2.2cqmin rgb(255 255 255 / 5%),
+    inset 0 0 8cqmin rgb(0 0 0 / 92%);
+}
+
+// Original nine-slice SVG armor: fixed-proportion corners and continuous rails
+// at every lobby/manager size. Rspack inlines stylesheet SVGs, so this travels
+// with the asset-cached CSS and needs no separate BYOND resource registration.
+.lobby-title-art--bezel-rusty .lobby-title-art__bezel::before,
+.lobby-title-art--bezel-rusty-dark .lobby-title-art__bezel::before {
+  border: 0 solid transparent;
+  border-width: clamp(38px, 12cqmin, 177px);
+  border-image: url('~tgui/styles/meridianos/assets/lobby-bezel-rusty.svg') 120 fill / 1 /
+    0 stretch;
+  background: #211d19;
+  box-shadow: inset 0 0 0 1px #0e0c0b;
+}
+
+.lobby-title-art--bezel-rusty-dark .lobby-title-art__bezel::before {
+  // The same etched metal in a deeper, less orange brown. Apply the finish to
+  // the physical rim alone so the glass, wordmark, and controls keep their color.
+  filter: brightness(0.66) saturate(0.68);
+}
+
+.lobby-title-art--bezel-rusty .lobby-title-art__screen,
+.lobby-title-art--bezel-rusty-dark .lobby-title-art__screen {
+  box-shadow:
+    0 0 0 0.55cqmin #0e0c0b,
+    0 0 0 0.78cqmin #453f36,
+    inset 0 0 2.2cqmin rgb(236 229 216 / 5%),
+    inset 0 0 8cqmin rgb(0 0 0 / 92%);
+}
+
+// A warm, finely textured housing that can be selected with any interface theme.
+.lobby-title-art--bezel-aphelion .lobby-title-art__bezel::before {
+  border-color: #453f36;
+  // The opaque brown coat leaves the original grain at the site's 2% strength.
+  background:
+    linear-gradient(
+      145deg,
+      rgb(41 37 32 / 98%),
+      rgb(26 23 20 / 98%) 46%,
+      rgb(33 29 25 / 98%) 74%,
+      rgb(14 12 11 / 98%)
+    ),
+    var(--aphelion-grain) repeat;
+  background-size:
+    auto,
+    512px 512px;
+  box-shadow:
+    inset 0 0 0 0.65cqmin rgb(0 0 0 / 32%),
+    inset 0.15cqmin 0.15cqmin 0.2cqmin rgb(236 229 216 / 6%);
+}
+
+.lobby-title-art--bezel-aphelion .lobby-title-art__screen {
+  box-shadow:
+    0 0 0 0.55cqmin #0e0c0b,
+    0 0 0 0.78cqmin #453f36,
+    inset 0 0 2.2cqmin rgb(236 229 216 / 5%),
+    inset 0 0 8cqmin rgb(0 0 0 / 92%);
+}
+
+.theme-nanotrasen .lobby-title-art {
+  --lobby-title-phosphor: #cde;
+  --lobby-title-phosphor-secondary: #8fb7ff;
+  --lobby-title-screen:
+    linear-gradient(
+      to bottom,
+      rgb(110 45 136 / 60%),
+      rgb(120 68 204 / 60%),
+      rgb(68 68 204 / 60%),
+      rgb(68 68 204 / 60%),
+      rgb(0 0 102 / 60%)
+    ),
+    #000;
+  --lobby-title-edge: rgb(143 183 255 / 18%);
+}
+
+// Primary Classic master: keep the legacy menu, but move its purple-to-blue
+// identity from the glass onto the wordmark itself. The class name remains for
+// compatibility with saved and in-flight lobby state.
+.theme-nanotrasen .lobby-title-art--classic-alt {
+  --lobby-title-phosphor: #cde;
+  --lobby-title-phosphor-secondary: #8fb7ff;
+  --lobby-title-screen: #000;
+  --lobby-title-mark-background: linear-gradient(
+    to bottom,
+    #6e2d88,
+    #7844cc,
+    #4444cc,
+    #4444cc,
+    #000066
+  );
+  --lobby-title-edge: rgb(143 183 255 / 18%);
+}
+
+.theme-meridian_highline .lobby-title-art {
+  --lobby-title-phosphor: var(--console-interaction-accent);
+  --lobby-title-phosphor-secondary: var(--console-border-control);
+  --lobby-title-screen: var(--console-surface-recessed);
+  --lobby-title-edge: color-mix(
+    in srgb,
+    var(--console-interaction-selected) 8%,
+    transparent
+  );
+
+  .lobby-title-art__mark {
+    filter: none;
+  }
+}
+
+.theme-meridian_wastelander .lobby-title-art {
+  --lobby-title-phosphor: var(--console-interaction-accent);
+  --lobby-title-phosphor-secondary: var(--console-border-control);
+  --lobby-title-screen: var(--console-surface-recessed);
+  --lobby-title-edge: color-mix(
+    in srgb,
+    var(--console-interaction-accent) 10%,
+    transparent
+  );
+
+  .lobby-title-art__mark {
+    filter: none;
+  }
+
+  .lobby-title-art__scanlines {
+    opacity: 0.1;
+  }
+}
+
+.theme-meridian_aphelion .lobby-title-art {
+  --lobby-title-phosphor: #ece5d8;
+  --lobby-title-phosphor-secondary: #a89f90;
+  --lobby-title-screen: #131110;
+  --lobby-title-edge: rgb(236 229 216 / 4%);
+  --lobby-title-mark-background: linear-gradient(to bottom, #ece5d8, #a89f90);
+
+  .lobby-title-art__mark {
+    filter: none;
+  }
+
+  .lobby-title-art__scanlines,
+  .lobby-title-art__screen::after {
+    opacity: 0.016;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lobby-title-art__mark {
+    filter: none;
+  }
+
+  .lobby-title-art__screen::after {
+    opacity: 0.28;
+  }
+
+  .lobby-title-art__screen::before {
+    opacity: 0.72;
+  }
+}
+
+@media (forced-colors: active) {
+  :root .lobby-title-art {
+    --lobby-title-phosphor: CanvasText;
+    --lobby-title-phosphor-secondary: CanvasText;
+    --lobby-title-screen: Canvas;
+    --lobby-title-mark-background: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .lobby-title-art .lobby-title-art__screen {
+    inset: 0;
+    border-radius: 0;
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+    box-shadow: none;
+    clip-path: none;
+  }
+
+  .lobby-title-art .lobby-title-art__screen::before,
+  .lobby-title-art .lobby-title-art__screen::after,
+  .lobby-title-art .lobby-title-art__scanlines,
+  .lobby-title-art .lobby-title-art__bezel::before {
+    display: none;
+  }
+
+  .lobby-title-art__mark {
+    background: CanvasText;
+    filter: none;
+    transform: translate(-50%, -50%);
+  }
+
+  .lobby-title-art__fallback {
+    filter: none;
+  }
+}
+
+// Screen treatment: the picture fills the glass exactly as in overlay, but no
+// wordmark is composited. Keeping the two independent is what lets a screen be
+// framed without being branded.
+.lobby-title-art--screen .lobby-title-art__screen {
+  background:
+    var(--lobby-title-backdrop-image) center / cover no-repeat,
+    var(--lobby-title-screen);
+}
+
+.lobby-title-art--screen .lobby-title-art__mark {
+  display: none;
+}
+
+.lobby-title-art--screen .lobby-title-art__fallback {
+  filter: none;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  transform: none;
+}
+
+@supports ((mask-image: url('')) or (-webkit-mask-image: url(''))) {
+  .lobby-title-art--screen .lobby-title-art__fallback {
+    display: none;
+  }
+}
+
+// The manager's preview needs a box to fill; the lobby's copy is positioned by
+// the lobby itself, so this is scoped to the window rather than the artwork.
+.TitleScreenManager__preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 12rem;
+}
+
+.TitleScreenManager__preview .lobby-title-art {
+  position: absolute;
+  inset: 0;
+}
+
+// Scanlines off. The scanline layer and the texture the screen paints over it
+// are one choice, so both go together.
+.lobby-title-art--texture-none .lobby-title-art__scanlines,
+.lobby-title-art--texture-none .lobby-title-art__screen::after {
+  display: none;
+}
+
+// The primary master's gradient wordmark treatment. Classic keeps the legacy
+// purple ramp it shipped with; every other skin derives the same ramp from its
+// own palette so the master reads as that theme rather than a stray NT gradient.
+.lobby-title-art--classic-alt {
+  --lobby-title-mark-background: linear-gradient(
+    to bottom,
+    var(--console-interaction-accent, #7844cc),
+    var(--console-interaction-selected, #4444cc),
+    color-mix(
+      in srgb,
+      var(--console-interaction-selected, #4444cc) 55%,
+      var(--console-surface-canvas, #000066)
+    )
+  );
+}
+
+.lobby-title-art--classic-alt .lobby-title-art__mark,
+.lobby-title-art--classic-alt .lobby-title-art__bloom-source {
+  // The alpha master occupies y=12-20%; confine the whole ramp to that band so
+  // every stop is actually visible on the title rather than off the glass.
+  background-position: center 13%;
+  background-repeat: no-repeat;
+  background-size: 100% 9%;
+}

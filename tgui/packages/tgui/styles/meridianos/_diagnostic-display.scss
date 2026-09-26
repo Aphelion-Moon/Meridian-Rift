@@ -1,0 +1,371 @@
+// THIS IS AN APHELION UI FILE
+// Diagnostic uses quiet phosphor linework. Other themes and accessible contrast
+// modes retain the shared instrument layers and their existing appearance.
+.DiagnosticLoader__acquisition {
+  display: none;
+}
+
+@keyframes meridian-diagnostic-acquisition-search {
+  0%,
+  100% {
+    transform: translate(-4px, 3px) scale(1.12);
+  }
+  50% {
+    transform: translate(3px, -2px) scale(0.78);
+  }
+}
+
+@keyframes meridian-diagnostic-acquisition-target {
+  0%,
+  100% {
+    transform: translate(8px, -7px);
+  }
+  50% {
+    transform: translate(-3px, 4px);
+  }
+}
+
+@keyframes meridian-diagnostic-acquisition-sector {
+  0%,
+  100% {
+    stroke-dasharray: 24 100;
+    stroke-dashoffset: -2;
+  }
+  50% {
+    stroke-dasharray: 38 100;
+    stroke-dashoffset: -42;
+  }
+}
+
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  .theme-meridian_diagnostic {
+    --diagnostic-display-grain: repeating-linear-gradient(
+      0deg,
+      rgb(74 216 121 / 1%) 0 1px,
+      transparent 1px 4px
+    );
+
+    .lobby {
+      --menu-panel:
+        var(--diagnostic-display-grain),
+        radial-gradient(
+          ellipse at 50% 0,
+          rgb(74 216 121 / 2%),
+          transparent 72%
+        ),
+        linear-gradient(180deg, #07120d, #030907 78%);
+      --menu-shadow:
+        inset 0 0 0 3px var(--lobby-canvas),
+        inset 0 0 18px rgb(74 216 121 / 2%), 0 4px 14px rgb(0 0 0 / 38%),
+        0 0 8px rgb(74 216 121 / 3%);
+
+      .container_nav::before {
+        filter: drop-shadow(0 0 2px rgb(74 216 121 / 20%));
+      }
+
+      .lobby-terminal-phase {
+        text-shadow: none;
+      }
+
+      // Resting rows share the housing surface; only interaction adds a face.
+      .menu_button:not(:disabled):not(.info_display):not(.menu_readout) {
+        &:first-of-type {
+          text-shadow: none;
+        }
+
+        &:hover,
+        &:focus-visible {
+          background:
+            var(--diagnostic-display-grain),
+            linear-gradient(180deg, rgb(74 216 121 / 9%), rgb(74 216 121 / 2%)),
+            var(--lobby-recessed);
+          box-shadow:
+            inset 0 0 0 1px rgb(74 216 121 / 30%),
+            inset 0 0 12px rgb(74 216 121 / 5%),
+            0 0 5px rgb(74 216 121 / 6%);
+          text-shadow: none;
+        }
+
+        &:active {
+          background:
+            var(--diagnostic-display-grain),
+            linear-gradient(180deg, rgb(0 0 0 / 22%), rgb(74 216 121 / 7%)),
+            var(--lobby-recessed);
+          box-shadow:
+            inset 0 0 0 1px rgb(74 216 121 / 30%),
+            inset 0 2px 5px rgb(0 0 0 / 42%);
+        }
+      }
+
+      .trait_button:hover {
+        text-shadow: 0 0 5px rgb(74 216 121 / 24%);
+      }
+    }
+
+    .boot_terminal::before {
+      background-image:
+        radial-gradient(
+          circle at 50% var(--boot-instrument-anchor),
+          rgb(74 216 121 / 4%),
+          transparent var(--boot-glow-extent)
+        ),
+        var(--diagnostic-display-grain);
+    }
+
+    // Transparent boot mode continues to leave the selected picture unobscured.
+    .lobby--transparent .boot_terminal::before {
+      background-image: none;
+    }
+
+    .container_terminal {
+      background:
+        var(--diagnostic-display-grain),
+        linear-gradient(135deg, rgb(5 16 11 / 76%), rgb(3 9 7 / 48%));
+      box-shadow: inset 0 0 18px rgb(74 216 121 / 3%);
+    }
+
+    .container_terminal::before {
+      background: linear-gradient(180deg, #4db47a, #318d57);
+      box-shadow: 0 0 4px rgb(74 216 121 / 14%);
+    }
+
+    .container_terminal__header,
+    .boot_terminal__statusChannel {
+      text-shadow: none;
+    }
+
+    .container_terminal__lamp,
+    .boot_terminal__cursor {
+      box-shadow: 0 0 5px rgb(74 216 121 / 35%);
+    }
+
+    .boot_terminal .DiagnosticLoader__label {
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgb(74 216 121 / 5%),
+        transparent
+      );
+      text-shadow: none;
+    }
+
+    .DiagnosticLoader__instrument {
+      contain: layout style;
+      overflow: visible;
+    }
+
+    .DiagnosticLoader__instrument > span {
+      display: none;
+      animation: none;
+    }
+
+    .DiagnosticLoader__acquisition {
+      --acquisition-phase: min(
+        1,
+        calc(var(--diagnostic-loader-progress) / 0.8)
+      );
+      --acquisition-target-phase: min(
+        1,
+        calc(var(--diagnostic-loader-progress) / 0.7)
+      );
+      --acquisition-convergence: calc(
+        var(--acquisition-phase) * var(--acquisition-phase) *
+          (3 - 2 * var(--acquisition-phase))
+      );
+      --acquisition-target-convergence: calc(
+        var(--acquisition-target-phase) * var(--acquisition-target-phase) *
+          (3 - 2 * var(--acquisition-target-phase))
+      );
+      --acquisition-offset: calc(1 - var(--acquisition-convergence));
+
+      display: block;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+      fill: none;
+      stroke-width: 1;
+
+      .DiagnosticAcquisition__grid {
+        stroke: #17382a;
+      }
+      .DiagnosticAcquisition__calibration {
+        stroke: #34644a;
+      }
+      .DiagnosticAcquisition__crosshair {
+        stroke: #57936e;
+      }
+
+      .DiagnosticAcquisition__glow,
+      .DiagnosticAcquisition__trace {
+        stroke: #60ce92;
+        stroke-width: 1.3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .DiagnosticAcquisition__glow {
+        opacity: 0.36;
+        stroke-width: 2.4;
+        filter: blur(1.6px);
+      }
+
+      .DiagnosticAcquisition__progress {
+        stroke-width: 1.2;
+        stroke-dasharray: calc(var(--diagnostic-loader-progress) * 100px) 100;
+        opacity: min(1, calc(var(--diagnostic-loader-progress) * 100));
+        transition: stroke-dasharray 240ms linear;
+      }
+
+      .DiagnosticAcquisition__brackets {
+        stroke: #88d8ab;
+        transform-origin: 80px 80px;
+
+        > path {
+          transition: transform 320ms ease-out;
+        }
+      }
+
+      .DiagnosticAcquisition__northWest {
+        transform: translate(
+          calc(-42px * var(--acquisition-offset)),
+          calc(-17px * var(--acquisition-offset))
+        );
+      }
+
+      .DiagnosticAcquisition__northEast {
+        transform: translate(
+          calc(12px * var(--acquisition-offset)),
+          calc(-17px * var(--acquisition-offset))
+        );
+      }
+
+      .DiagnosticAcquisition__southEast {
+        transform: translate(
+          calc(12px * var(--acquisition-offset)),
+          calc(37px * var(--acquisition-offset))
+        );
+      }
+
+      .DiagnosticAcquisition__southWest {
+        transform: translate(
+          calc(-42px * var(--acquisition-offset)),
+          calc(37px * var(--acquisition-offset))
+        );
+      }
+
+      .DiagnosticAcquisition__target {
+        stroke: #59bc84;
+        stroke-width: 1;
+        transform: translate(
+          calc(11px * (1 - var(--acquisition-target-convergence))),
+          calc(-10px * (1 - var(--acquisition-target-convergence)))
+        );
+        transition: transform 320ms ease-out;
+      }
+    }
+
+    // Unknown progress searches a partial sector; it never simulates completion.
+    .DiagnosticLoader--indeterminate .DiagnosticLoader__acquisition {
+      --acquisition-convergence: 0.35;
+
+      .DiagnosticAcquisition__brackets {
+        animation: meridian-diagnostic-acquisition-search 7.6s ease-in-out
+          infinite;
+      }
+
+      .DiagnosticAcquisition__target {
+        animation: meridian-diagnostic-acquisition-target 7.6s ease-in-out
+          infinite;
+      }
+
+      .DiagnosticAcquisition__progress {
+        stroke-dasharray: 28 100;
+        opacity: 1;
+        animation: meridian-diagnostic-acquisition-sector 7.6s ease-in-out
+          infinite;
+      }
+    }
+
+    .DiagnosticLoader[data-motion='paused'] .DiagnosticLoader__acquisition * {
+      animation-play-state: paused;
+      transition: none;
+    }
+
+    .DiagnosticLoader--motion-reduced .DiagnosticLoader__acquisition * {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    // Fine calibration and bloom are reserved for the full-size instrument.
+    .DiagnosticLoader--compact .DiagnosticLoader__acquisition {
+      .DiagnosticAcquisition__grid,
+      .DiagnosticAcquisition__calibration,
+      .DiagnosticAcquisition__glow {
+        display: none;
+      }
+
+      .DiagnosticAcquisition__trace {
+        stroke-width: 4;
+      }
+      .DiagnosticAcquisition__progress {
+        stroke-width: 3;
+      }
+      .DiagnosticAcquisition__crosshair,
+      .DiagnosticAcquisition__target {
+        stroke-width: 3;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .DiagnosticLoader__acquisition * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    .lobby-title-art {
+      // Retain the existing palette, with a subtle colored center and shaded
+      // shoulders. The alpha master still sets every stroke and internal gap.
+      --lobby-title-mark-background: linear-gradient(
+        180deg,
+        #26964f 0%,
+        #4bca79 44%,
+        #3eb666 64%,
+        #218344 100%
+      );
+
+      .lobby-title-art__mark {
+        filter: none;
+      }
+
+      .lobby-title-art__bloom-source {
+        background-image: var(--lobby-title-mark-background);
+      }
+
+      .lobby-title-art__bloom--near {
+        filter: blur(clamp(1px, 0.2cqmin, 2px));
+        opacity: 0.25;
+      }
+
+      .lobby-title-art__bloom--far {
+        filter: blur(clamp(3px, 0.65cqmin, 6px));
+        opacity: 0.1;
+      }
+
+      &.lobby-title-art--overlay .lobby-title-art__bloom {
+        mix-blend-mode: screen;
+      }
+    }
+  }
+
+  @supports ((mask-image: url('')) or (-webkit-mask-image: url(''))) {
+    .theme-meridian_diagnostic
+      .lobby-title-art:not(.lobby-title-art--screen)
+      .lobby-title-art__bloom {
+      display: block;
+    }
+  }
+}

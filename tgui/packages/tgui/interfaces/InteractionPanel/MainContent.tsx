@@ -68,7 +68,7 @@ export const MainContent = () => {
                 Genital Options
               </Tabs.Tab>
             )}
-            {erp_interaction && (
+            {!!erp_interaction && (
               <Tabs.Tab
                 selected={tabIndex === InteractionTab.GenitalOptions}
                 onClick={() => setTabIndex(InteractionTab.GenitalOptions)}

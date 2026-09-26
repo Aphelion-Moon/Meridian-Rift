@@ -1,0 +1,69 @@
+// THIS IS AN APHELION UI FILE
+@use './aphelion-neon' as neon;
+
+// Website styling stays on neutral chrome; caller-colored content keeps its colors.
+.theme-meridian_aphelion {
+  font-family: var(--aphelion-font-sans);
+  font-synthesis: none;
+
+  .Window {
+    background: var(--console-surface-canvas);
+  }
+
+  .TitleBar {
+    background: var(--console-surface-base);
+  }
+
+  .TitleBar__title,
+  .Section__titleText {
+    font-family: var(--aphelion-font-display);
+    font-weight: 400;
+    letter-spacing: 0.025em;
+  }
+
+  .TitleBar::after {
+    @include neon.rail;
+    bottom: -32px;
+  }
+
+  .Section {
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 16%);
+  }
+
+  .Section::before {
+    background: var(--aphelion-grain) repeat;
+    background-size: 512px 512px;
+    opacity: 0.02;
+  }
+
+  .Section > .Section__title {
+    background: var(--section-title-background, var(--console-surface-base));
+  }
+
+  .Section > .Section__title::after {
+    width: 7px;
+    height: 1px;
+    background: var(--console-interaction-accent);
+    opacity: 0.55;
+  }
+
+  :is(.Button, .Tab, .Input, .TextArea, .NumberInput, .Dropdown__control) {
+    border-radius: 2px;
+  }
+
+  // Field outlines identify editable areas against the quiet panel seams.
+  :is(.Input, .TextArea, .NumberInput, .Dropdown__control) {
+    border-color: var(--console-border-control);
+  }
+
+  .DiagnosticLoader__label {
+    font-family: var(--aphelion-font-display);
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-meridian_aphelion .TitleBar::after {
+    display: none;
+  }
+}

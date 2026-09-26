@@ -319,7 +319,7 @@ export function SmartPipeBlockSection(props) {
       <Stack vertical textAlign="center">
         <Stack.Item>
           <Stack>
-            <Stack.Item>
+            <Stack.Item grow basis={0}> {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <Stack.Item> */}
               <Button
                 color="transparent"
                 icon="info"
@@ -330,7 +330,7 @@ export function SmartPipeBlockSection(props) {
                 default (all directions can connect)"
               />
             </Stack.Item>
-            <Stack.Item>
+            <Stack.Item grow basis={0}> {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <Stack.Item> */}
               <Button
                 icon="arrow-up"
                 selected={init_directions.north}
@@ -341,11 +341,12 @@ export function SmartPipeBlockSection(props) {
                 }
               />
             </Stack.Item>
+            <Stack.Item grow basis={0} /> {/* APHELION EDIT ADDITION - MERIDIAN_UI */}
           </Stack>
         </Stack.Item>
         <Stack.Item>
           <Stack>
-            <Stack.Item>
+            <Stack.Item grow basis={0}> {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <Stack.Item> */}
               <Button
                 icon="arrow-left"
                 selected={init_directions.west}
@@ -356,10 +357,10 @@ export function SmartPipeBlockSection(props) {
                 }
               />
             </Stack.Item>
-            <Stack.Item>
+            <Stack.Item grow basis={0}>{/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <Stack.Item> */}
               <Button icon="circle" onClick={() => act('init_reset', {})} />
             </Stack.Item>
-            <Stack.Item>
+            <Stack.Item grow basis={0}> {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <Stack.Item> */}
               <Button
                 icon="arrow-right"
                 selected={init_directions.east}
@@ -373,6 +374,7 @@ export function SmartPipeBlockSection(props) {
           </Stack>
         </Stack.Item>
         <Stack.Item>
+          {/* APHELION EDIT REMOVAL START - MERIDIAN_UI
           <Button
             icon="arrow-down"
             selected={init_directions.south}
@@ -382,6 +384,24 @@ export function SmartPipeBlockSection(props) {
               })
             }
           />
+          APHELION EDIT REMOVAL END */}
+          {/* APHELION EDIT ADDITION START - MERIDIAN_UI */}
+          <Stack>
+            <Stack.Item grow basis={0} />
+            <Stack.Item grow basis={0}>
+              <Button
+                icon="arrow-down"
+                selected={init_directions.south}
+                onClick={() =>
+                  act('init_dir_setting', {
+                    dir_flag: 'south',
+                  })
+                }
+              />
+            </Stack.Item>
+            <Stack.Item grow basis={0} />
+          </Stack>
+          {/* APHELION EDIT ADDITION END */}
         </Stack.Item>
       </Stack>
     </Section>
@@ -402,7 +422,8 @@ export function RapidPipeDispenser(props) {
                 <SelectionSection />
               </Stack.Item>
               {rootCategoryIndex === 0 && (
-                <Stack.Item width="90px">
+                // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: width="90px"
+                <Stack.Item width="100px">
                   <SmartPipeBlockSection />
                 </Stack.Item>
               )}

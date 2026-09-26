@@ -8,7 +8,7 @@
 		SPECIES_LIZARD_SILVER = 1,
 	)
 	organ_type = /obj/item/organ/spines
-	use_custom_mod_icon = TRUE
+	mod_icon_slots = ITEM_SLOT_OCLOTHING|ITEM_SLOT_HEAD
 
 /datum/sprite_accessory/spines/none
 	name = SPRITE_ACCESSORY_NONE

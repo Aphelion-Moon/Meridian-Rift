@@ -1,6 +1,11 @@
 // THIS IS A NOVA SECTOR UI FILE
 import { type ReactNode, useState } from 'react';
-import { Button, ByondUi, Section, Stack } from 'tgui-core/components';
+// APHELION EDIT REMOVAL - native UI menu avoidance
+// import { Button, ByondUi, Section, Stack } from 'tgui-core/components';
+// APHELION EDIT ADDITION START - native UI menu avoidance
+import { Button, Section, Stack } from 'tgui-core/components';
+import { ByondUi } from '../../layouts/ByondUi';
+// APHELION EDIT ADDITION END
 
 import { resolveAsset } from '../../assets';
 import { useBackend } from '../../backend';

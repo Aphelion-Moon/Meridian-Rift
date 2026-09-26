@@ -203,3 +203,5 @@
 	greyscale_config_worn = /datum/greyscale_config/beret_badge/worn
 	icon_state = "/obj/item/clothing/head/beret/bridgeofficer"
 	greyscale_colors = "#41579a#ccced1"
+	greyscale_config_worn_vox = /datum/greyscale_config/beret_badge/worn/vox
+	greyscale_config_worn_teshari = /datum/greyscale_config/beret_badge/worn/teshari

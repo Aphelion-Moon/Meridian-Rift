@@ -3,7 +3,7 @@
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/horns.dmi'
 	default_color = "#555555"
 	organ_type = /obj/item/organ/horns
-	use_custom_mod_icon = TRUE
+	mod_icon_slots = ITEM_SLOT_HEAD
 
 /datum/sprite_accessory/horns/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/bodypart_overlay)
 	var/obj/item/clothing/head/worn_head = wearer.head
@@ -100,6 +100,8 @@
 
 /datum/sprite_accessory/horns/big
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/horns_big.dmi'
+	center = TRUE
+	dimension_y = 48
 
 /datum/sprite_accessory/horns/big/antlers
 	name = "Antlers"

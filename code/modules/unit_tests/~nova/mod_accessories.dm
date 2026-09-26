@@ -1,0 +1,103 @@
+/// A chestplate must not project head accessories, and an unsealed helmet must not project either.
+/datum/unit_test/mod_accessory_parts/Run()
+	var/mob/living/carbon/human/consistent/wearer = allocate(__IMPLIED_TYPE__)
+	var/obj/item/mod/control/pre_equipped/standard/mod = allocate(__IMPLIED_TYPE__)
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(mod, ITEM_SLOT_BACK), "Could not equip the MOD control.")
+	var/datum/sprite_accessory/ears/cat/ears = allocate(__IMPLIED_TYPE__)
+	var/obj/item/chestplate = mod.get_part_from_slot(ITEM_SLOT_OCLOTHING)
+	var/obj/item/helmet = mod.get_part_from_slot(ITEM_SLOT_HEAD)
+	mod.control_activation(is_on = TRUE)
+	TEST_ASSERT(mod.deploy(wearer, chestplate, instant = TRUE), "Could not deploy the chestplate.")
+	if(ears.mod_overlay_active(wearer))
+		TEST_FAIL("A chestplate alone projects hardlight on ears.")
+	TEST_ASSERT(mod.deploy(wearer, helmet, instant = TRUE), "Could not deploy the helmet.")
+	TEST_ASSERT(ears.mod_overlay_active(wearer), "A sealed helmet should project hardlight on ears.")
+	mod.seal_part(helmet, is_sealed = FALSE)
+	if(ears.mod_overlay_active(wearer))
+		TEST_FAIL("An unsealed helmet still projects hardlight on ears.")
+
+/// Helmet-only hardlight must retain its theme in the shared limb cache.
+/datum/unit_test/mod_accessory_theme_key/Run()
+	var/mob/living/carbon/human/consistent/wearer = allocate(__IMPLIED_TYPE__)
+	var/obj/item/mod/control/pre_equipped/standard/mod = allocate(__IMPLIED_TYPE__)
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(mod, ITEM_SLOT_BACK), "Could not equip the MOD control.")
+	var/datum/sprite_accessory/ears/cat/ears = allocate(__IMPLIED_TYPE__)
+	mod.control_activation(is_on = TRUE)
+	TEST_ASSERT(mod.deploy(wearer, mod.get_part_from_slot(ITEM_SLOT_HEAD), instant = TRUE), "Could not deploy the helmet.")
+	TEST_ASSERT_EQUAL(ears.get_hardlight_theme_key(wearer), mod.theme.hardlight_theme, "Helmet-only hardlight lost its theme.")
+	var/datum/bodypart_overlay/mutant/cat_ears/overlay = allocate(__IMPLIED_TYPE__)
+	overlay.sprite_datum = ears
+	var/obj/item/bodypart/head = wearer.get_bodypart(BODY_ZONE_HEAD)
+	var/blue_key = overlay.icon_render_key(head).Join("-")
+	mod.theme = GLOB.mod_themes[/datum/mod_theme/security]
+	var/amber_key = overlay.icon_render_key(head).Join("-")
+	TEST_ASSERT_NOTEQUAL(blue_key, amber_key, "Different helmet-only themes share a limb cache key.")
+	TEST_ASSERT(findtext(amber_key, "MOD_alert_amber"), "The limb cache key does not describe the rendered hardlight.")
+
+/// Requirements are conjunctive, and neither unrelated parts nor disabled themes can provide hardlight.
+/datum/unit_test/mod_accessory_requirements/Run()
+	var/mob/living/carbon/human/consistent/wearer = allocate(__IMPLIED_TYPE__)
+	var/obj/item/mod/control/pre_equipped/standard/mod = allocate(__IMPLIED_TYPE__)
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(mod, ITEM_SLOT_BACK), "Could not equip the MOD control.")
+	var/datum/sprite_accessory/spines/spines = allocate(__IMPLIED_TYPE__)
+	var/datum/sprite_accessory/ears/cat/ears = allocate(__IMPLIED_TYPE__)
+	var/datum/sprite_accessory/snouts/snout = allocate(__IMPLIED_TYPE__)
+	mod.control_activation(is_on = TRUE)
+	TEST_ASSERT(mod.deploy(wearer, mod.get_part_from_slot(ITEM_SLOT_OCLOTHING), instant = TRUE), "Could not deploy the chestplate.")
+	TEST_ASSERT(!spines.mod_overlay_active(wearer), "Spines project without their required helmet.")
+	var/obj/item/helmet = mod.get_part_from_slot(ITEM_SLOT_HEAD)
+	TEST_ASSERT(mod.deploy(wearer, helmet, instant = TRUE), "Could not deploy the helmet.")
+	TEST_ASSERT(spines.mod_overlay_active(wearer), "Spines do not project with both required parts sealed.")
+	TEST_ASSERT(!snout.mod_overlay_active(wearer), "An accessory without hardlight support reports an active overlay.")
+	TEST_ASSERT(!ears.mod_overlay_active(null), "A detached accessory reports an active overlay.")
+	mod.theme = GLOB.mod_themes[/datum/mod_theme/infiltrator]
+	TEST_ASSERT(!ears.mod_overlay_active(wearer), "A theme without hardlight projects an overlay.")
+	mod.theme = GLOB.mod_themes[/datum/mod_theme]
+	TEST_ASSERT(mod.retract(wearer, helmet, instant = TRUE), "Could not retract the helmet.")
+	var/obj/item/clothing/head/mod/foreign_helmet = allocate(__IMPLIED_TYPE__)
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(foreign_helmet, ITEM_SLOT_HEAD), "Could not equip a foreign helmet.")
+	TEST_ASSERT(!ears.mod_overlay_active(wearer), "A helmet outside this controller's parts provides hardlight.")
+
+/// Sealing, rollback and direct control changes must update the displayed limb even without a coverage change.
+/datum/unit_test/mod_accessory_refresh/Run()
+	var/mob/living/carbon/human/consistent/wearer = allocate(__IMPLIED_TYPE__)
+	var/obj/item/mod/control/pre_equipped/standard/mod = allocate(__IMPLIED_TYPE__)
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(mod, ITEM_SLOT_BACK), "Could not equip the MOD control.")
+	var/datum/bodypart_overlay/mutant/cat_ears/overlay = allocate(__IMPLIED_TYPE__)
+	overlay.set_appearance(/datum/sprite_accessory/ears/cat)
+	var/obj/item/bodypart/head = wearer.get_bodypart(BODY_ZONE_HEAD)
+	head.add_bodypart_overlay(overlay)
+	var/obj/item/clothing/head/mod/helmet = mod.get_part_from_slot(ITEM_SLOT_HEAD)
+	// Isolate the transition from the unrelated coverage-change update path.
+	helmet.visor_flags_inv = NONE
+	TEST_ASSERT(mod.deploy(wearer, helmet, instant = TRUE), "Could not deploy the helmet.")
+	var/unlit_key = wearer.icon_render_keys[BODY_ZONE_HEAD]
+	mod.activating = TRUE
+	mod.seal_part(helmet, is_sealed = TRUE)
+	TEST_ASSERT_NOTEQUAL(wearer.icon_render_keys[BODY_ZONE_HEAD], unlit_key, "Sealing during activation did not refresh hardlight.")
+	TEST_ASSERT_EQUAL(wearer.icon_render_keys[BODY_ZONE_HEAD], head.get_cache_key(), "Displayed limb is stale after sealing.")
+	mod.activating = FALSE
+	mod.seal_part(helmet, is_sealed = FALSE)
+	TEST_ASSERT_EQUAL(wearer.icon_render_keys[BODY_ZONE_HEAD], unlit_key, "Activation rollback left hardlight on the limb.")
+	mod.control_activation(is_on = TRUE)
+	mod.seal_part(helmet, is_sealed = TRUE)
+	TEST_ASSERT_NOTEQUAL(wearer.icon_render_keys[BODY_ZONE_HEAD], unlit_key, "An active sealed helmet did not refresh hardlight.")
+	mod.control_activation(is_on = FALSE)
+	TEST_ASSERT_EQUAL(wearer.icon_render_keys[BODY_ZONE_HEAD], unlit_key, "Direct control shutdown left hardlight on the limb.")
+
+/// Color layers can reuse immutable masked resources without sharing a mutable icon.
+/datum/unit_test/mod_accessory_icon_cache/Run()
+	var/datum/sprite_accessory/ears/cat/ears = allocate(__IMPLIED_TYPE__)
+	var/mutable_appearance/source = mutable_appearance(ears.icon, "m_ears_cat_ADJ")
+	var/datum/mod_theme/blue = GLOB.mod_themes[/datum/mod_theme]
+	var/first_icon = ears.get_custom_mod_icon(source, blue)
+	var/second_icon = ears.get_custom_mod_icon(source, blue)
+	TEST_ASSERT_NOTNULL(first_icon, "No hardlight icon was generated.")
+	TEST_ASSERT_EQUAL(first_icon, second_icon, "A cache hit made another icon instead of reusing the resource.")
+	var/amber_icon = ears.get_custom_mod_icon(source, GLOB.mod_themes[/datum/mod_theme/security])
+	TEST_ASSERT_NOTEQUAL(first_icon, amber_icon, "Different hardlight themes share a masked resource.")
+	var/icon/reference = icon(source.icon, source.icon_state)
+	reference.Blend("#fff", ICON_ADD)
+	reference.Blend(icon('modular_nova/modules/customization/modules/mob/living/carbon/human/MOD_sprite_accessories/icons/MOD_mask.dmi', "standard_blue"), ICON_MULTIPLY)
+	var/icon/result = icon(first_icon)
+	TEST_ASSERT_EQUAL(icon2base64(result), icon2base64(reference), "Caching changed the masked icon's pixels.")

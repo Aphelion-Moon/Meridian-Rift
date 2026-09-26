@@ -15,6 +15,8 @@
 #define COMSIG_MOB_GIVE_DIRECT_CONTROL "mob_give_direct_control"
 /// Lets objects subscribe to step events on a target mob.
 #define COMSIG_GENERAL_STEP_ACTION "general_step_action"
+/// From /obj/item/organ/genital/set_size(), which does not redraw the owner: (obj/item/organ/genital/updated_genital)
+#define COMSIG_HUMAN_GENITAL_UPDATED "human_genital_updated"
 
 //Gun signals
 ///When a gun is switched to automatic fire mode

@@ -219,6 +219,12 @@
 /datum/greyscale_config/standalone_hood/worn/oldvox
 	icon_file = 'modular_nova/modules/GAGS/icons/head/head_oldvox.dmi'
 
+// BEANIE
+
+/datum/greyscale_config/beanie/worn/better_vox
+	name = "Beanie (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/head.dmi'
+
 // CATEAR HEADPHONES
 
 /datum/greyscale_config/catear_headphone
@@ -305,6 +311,11 @@
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 	json_config = 'code/datums/greyscale/json_configs/bandana.json'
 
+/datum/greyscale_config/bandana/worn/better_vox
+	name = "Bandana (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+	json_config = 'code/datums/greyscale/json_configs/bandana.json'
+
 /datum/greyscale_config/bandana/striped/worn/muzzled
 	name = "Striped Bandana (Worn, Muzzled)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
@@ -313,6 +324,10 @@
 	name = "Striped Bandana (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
 
+/datum/greyscale_config/bandana/striped/worn/better_vox
+	name = "Striped Bandana (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
 /datum/greyscale_config/bandana/skull/worn/muzzled
 	name = "Skull Bandana (Worn, Muzzled)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
@@ -320,6 +335,10 @@
 /datum/greyscale_config/bandana/skull/worn/vox
 	name = "Skull Bandana (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
+
+/datum/greyscale_config/bandana/skull/worn/better_vox
+	name = "Skull Bandana (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
 
 /datum/greyscale_config/tape_piece/worn/muzzled
 	name = "Tape Piece (Worn, Muzzled)"
@@ -330,10 +349,34 @@
 	name = "Facescarf (Worn, Muzzled)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
 
+/datum/greyscale_config/facescarf/worn/better_vox
+	name = "Facescarf (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
+/datum/greyscale_config/neck_gaiter/worn/better_vox
+	name = "Neck Gaiter (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
+/datum/greyscale_config/kitsune/worn/better_vox
+	name = "Kitsune mask (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
+/datum/greyscale_config/rebellion_mask/worn/better_vox
+	name = "Rebellion mask (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/mask.dmi'
+
 // Duct Tape
 /datum/greyscale_config/tape_piece/worn/vox
 	name = "Tape Piece (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
+
+/datum/greyscale_config/tape_piece/worn/spikes/vox
+	name = "Spiked Tape Piece (Worn, Vox)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/mask.dmi'
+
+/datum/greyscale_config/tape_piece/worn/spikes/muzzled
+	name = "Spiked Tape Piece (Worn, Muzzled)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/mask_muzzled.dmi'
 
 /datum/greyscale_config/vape/worn/vox
 	name = "Vape (Worn, Vox)"
@@ -744,6 +787,10 @@
 	name = "Pencilskirt (Worn, Digi)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
+/datum/greyscale_config/pencilskirt/worn/better_vox
+	name = "Pencilskirt (Worn, Vox Primalis)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
 /datum/greyscale_config/pencilskirt_withshirt
 	name = "Pencilskirt + Shirt"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/suits.dmi'
@@ -755,6 +802,10 @@
 
 /datum/greyscale_config/pencilskirt_withshirt/worn/digi
 	name = "Pencilskirt + Shirt (Worn, Digi)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
+/datum/greyscale_config/pencilskirt_withshirt/worn/better_vox
+	name = "Pencilskirt + Shirt (Worn, Vox Primalis)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
 /datum/greyscale_config/pencilskirt_checkers
@@ -770,6 +821,10 @@
 	name = "Checkered Pencilskirt (Worn, Digi)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
+/datum/greyscale_config/pencilskirt_checkers/worn/better_vox
+	name = "Checkered Pencilskirt (Worn, Vox Primalis)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
 /datum/greyscale_config/pencilskirt_checkers_withshirt
 	name = "Checkered Pencilskirt + Shirt"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/suits.dmi'
@@ -783,6 +838,10 @@
 	name = "Checkered Pencilskirt + Shirt (Worn, Digi)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
+/datum/greyscale_config/pencilskirt_checkers_withshirt/worn/better_vox
+	name = "Checkered Pencilskirt + Shirt (Worn, Vox Primalis)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
 /datum/greyscale_config/pencilskirt_withsuit
 	name = "Pencilskirt + Suit"
 	icon_file = 'modular_nova/master_files/icons/obj/clothing/under/suits.dmi'
@@ -794,6 +853,10 @@
 
 /datum/greyscale_config/pencilskirt_withsuit/worn/digi
 	name = "Pencilskirt + Suit (Worn, Digi)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+
+/datum/greyscale_config/pencilskirt_withsuit/worn/better_vox
+	name = "Pencilskirt + Suit (Worn, Vox Primalis)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 
 //Officer's Naval Uniform
@@ -945,6 +1008,46 @@
 /datum/greyscale_config/overalls/worn/vox
 	name = "Overalls (Worn, Vox)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/suit.dmi'
+
+/datum/greyscale_config/suspenders/worn/vox
+	name = "Suspenders (Worn, Vox)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/suit.dmi'
+
+/datum/greyscale_config/jeans/worn/vox
+	name = "Jeans (Worn, Vox)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_jeans.json'
+
+/datum/greyscale_config/jeans/worn/better_vox
+	name = "Jeans (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/uniform_template.dmi'
+
+/datum/greyscale_config/jeans_ripped/worn/vox
+	name = "Ripped Jeans (Worn, Vox)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_jeans_ripped.json'
+
+/datum/greyscale_config/jeans_ripped/worn/better_vox
+	name = "Ripped Jeans (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/uniform_template.dmi'
+
+/datum/greyscale_config/jeanshorts/worn/vox
+	name = "Jean Shorts (Worn, Vox)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_jeanshorts.json'
+
+/datum/greyscale_config/jeanshorts/worn/better_vox
+	name = "Jean Shorts (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/uniform_template.dmi'
+
+/datum/greyscale_config/overalls/shorted_overall/worn/vox
+	name = "Shortened Overalls (Worn, Vox)"
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_shorted_overall.json'
+
+/datum/greyscale_config/overalls/shorted_overall/worn/better_vox
+	name = "Shortened Overalls (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/uniform_template.dmi'
 
 /datum/greyscale_config/overalls/worn/better_vox
 	name = "Overalls (Worn, Better Vox)"
@@ -1195,11 +1298,13 @@
 
 /datum/greyscale_config/jumpsuit/worn/vox
 	name = "Jumpsuit (Worn, Vox)"
-	icon_file = 'modular_nova/modules/GAGS/icons/jumpsuit_vox.dmi'
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_jumpsuit.json'
 
 /datum/greyscale_config/jumpsuit/prison/worn/vox
 	name = "Prison Jumpsuit (Worn, Vox)"
-	icon_file = 'modular_nova/modules/GAGS/icons/jumpsuit_vox.dmi'
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_jumpsuit_prison.json'
 
 /datum/greyscale_config/jumpsuit/worn/better_vox
 	name = "Jumpsuit (Worn, Better Vox)"
@@ -1824,11 +1929,13 @@ TREK
 
 /datum/greyscale_config/sneakers/worn/vox
 	name = "Sneakers (Worn, Vox)"
-	icon_file = 'modular_nova/modules/GAGS/icons/sneakers_vox.dmi'
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/feet.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_sneakers.json'
 
 /datum/greyscale_config/sneakers_orange/worn/vox
 	name = "Orange Sneakers (Worn, Vox)"
-	icon_file = 'modular_nova/modules/GAGS/icons/sneakers_vox.dmi'
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/feet.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_sneakers_orange.json'
 
 /datum/greyscale_config/sneakers/worn/teshari
 	name = "Sneakers (Worn, Teshari)"
@@ -1859,7 +1966,8 @@ TREK
 	icon_file = 'modular_nova/modules/GAGS/icons/shoes/shoes_newvox.dmi'
 
 /datum/greyscale_config/boots/worn/oldvox
-	icon_file = 'modular_nova/modules/GAGS/icons/shoes/shoes_oldvox.dmi'
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/feet.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_boots.json'
 
 /datum/greyscale_config/cowboy_boots
 	name = "Colorable Cowboy Boots"
@@ -1938,7 +2046,8 @@ TREK
 
 /datum/greyscale_config/laceup/worn/oldvox
 	name = "Colorable Laceups (Worn, Vox)"
-	icon_file = 'modular_nova/modules/GAGS/icons/shoes/shoes_oldvox.dmi'
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/feet.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_laceups.json'
 
 // Sandals
 
@@ -1961,7 +2070,8 @@ TREK
 	icon_file = 'modular_nova/modules/GAGS/icons/shoes/shoes_newvox.dmi'
 
 /datum/greyscale_config/sandals/worn/oldvox
-	icon_file = 'modular_nova/modules/GAGS/icons/shoes/shoes_oldvox.dmi'
+	icon_file = 'modular_nova/master_files/icons/mob/clothing/species/vox/feet.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/vox_sandals.json'
 
 
 /*
@@ -3011,6 +3121,10 @@ Departmental Gags
 	name = "Department Protection Caped Gauntlet (Worn)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/neck.dmi'
 	json_config = 'modular_nova/modules/GAGS/json_configs/neck/depgag_caped_gauntlet_worn.json'
+
+/datum/greyscale_config/depgag_caped_gauntlet/worn/better_vox
+	name = "Department Protection Caped Gauntlet (Worn, Better Vox)"
+	icon_file = 'modular_nova/modules/better_vox/icons/clothing/neck.dmi'
 
 /*
 Modular PDAs

@@ -1,8 +1,7 @@
 /datum/latejoin_menu/ui_data(mob/user)
 	. = ..()
-	var/color = SSsecurity_level.get_current_level_as_text()
-	switch(color)
-		if("delta", "gamma")
-			color = "red"
+	var/datum/security_level/current_level = SSsecurity_level.current_security_level
+	var/level_name = current_level?.name || "green"
+	var/level_color = current_level?.announcement_color || "green"
 
-	.["alert_level"] = list("name" = capitalize(SSsecurity_level.get_current_level_as_text()), "color" = color)
+	.["alert_level"] = list("name" = capitalize(level_name), "color" = level_color)

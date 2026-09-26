@@ -1,4 +1,5 @@
-import { ByondUi } from 'tgui-core/components';
+// import { ByondUi } from 'tgui-core/components'; // APHELION EDIT REMOVAL - native UI menu avoidance
+import { ByondUi } from '../../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 
 export const CharacterPreview = (props: {
   width?: string; // NOVA EDIT

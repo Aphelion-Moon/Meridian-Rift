@@ -3,7 +3,7 @@
 	key = FEATURE_XENODORSAL
 	color_src = USE_ONE_COLOR
 	organ_type = /obj/item/organ/xenodorsal
-	use_custom_mod_icon = TRUE
+	mod_icon_slots = ITEM_SLOT_OCLOTHING
 
 /datum/sprite_accessory/xenodorsal/none
 	name = SPRITE_ACCESSORY_NONE

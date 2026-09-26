@@ -1,0 +1,28 @@
+// THIS IS AN APHELION UI FILE
+// The glass sits above themed menus while controls remain accessible siblings.
+.lobby-menu-scanline-overlay {
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+
+  .lobby-title-art__screen {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .lobby-title-art__bezel::before,
+  .lobby-title-art__screen::before {
+    display: none;
+  }
+}
+
+.lobby[data-menu-scanlines='true'] .container_nav {
+  z-index: 1;
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  .lobby-menu-scanline-overlay {
+    display: none;
+  }
+}
+

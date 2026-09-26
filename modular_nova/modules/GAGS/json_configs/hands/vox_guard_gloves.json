@@ -1,0 +1,20 @@
+{
+	"depgag_gloves": [
+		{
+			"type": "icon_state",
+			"icon_state": "guard_base",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "guard_accent",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		}
+	]
+}
