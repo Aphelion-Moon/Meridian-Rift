@@ -96,18 +96,17 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	GLOB.cyborg_customization_holders += src
 	RegisterSignal(SSdcs, COMSIG_GLOB_MOB_LOGGED_IN, PROC_REF(viewer_login))
 	RegisterSignal(owner, COMSIG_LIVING_POST_UPDATE_TRANSFORM, PROC_REF(on_owner_transform))
-	RegisterSignal(owner, COMSIG_MOVABLE_MOVED, PROC_REF(on_owner_moved))
 	RegisterSignals(owner, list(SIGNAL_ADDTRAIT(TRAIT_IMMOBILIZED), SIGNAL_REMOVETRAIT(TRAIT_IMMOBILIZED)), PROC_REF(on_owner_transform))
 	for(var/mob/player as anything in GLOB.player_list)
 		refresh_viewer(player)
 
 /obj/effect/client_image_holder/cyborg_customization/Destroy(force)
-	if(movement_timer)
-		deltimer(movement_timer)
 	for(var/mob/seer as anything in who_sees_us)
 		seer.client?.images -= occlusion_image
+		seer.client?.images -= animation_image
 	occlusion_image = null
-	UnregisterSignal(owner, list(COMSIG_LIVING_POST_UPDATE_TRANSFORM, COMSIG_MOVABLE_MOVED))
+	animation_image = null
+	UnregisterSignal(owner, COMSIG_LIVING_POST_UPDATE_TRANSFORM)
 	UnregisterSignal(owner, list(SIGNAL_ADDTRAIT(TRAIT_IMMOBILIZED), SIGNAL_REMOVETRAIT(TRAIT_IMMOBILIZED)))
 	GLOB.cyborg_customization_holders -= src
 	UnregisterSignal(SSdcs, COMSIG_GLOB_MOB_LOGGED_IN)
@@ -130,9 +129,12 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	RegisterSignal(new_seer, COMSIG_MOB_LOGOUT, PROC_REF(remove_seer))
 	if(occlusion_image)
 		new_seer.client?.images |= occlusion_image
+	if(animation_image)
+		new_seer.client?.images |= animation_image
 
 /obj/effect/client_image_holder/cyborg_customization/remove_seer(mob/source)
 	source.client?.images -= occlusion_image
+	source.client?.images -= animation_image
 	UnregisterSignal(source, COMSIG_MOB_LOGOUT)
 	return ..()
 
@@ -179,7 +181,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	)) : list()
 	regenerate_image()
 	update_occlusion()
-	play_authored_animation()
+	update_animation()
 
 /datum/preference_middleware/cyborg_character/post_set_preference(mob/user, preference, value)
 	for(var/slot in cyborg_layout_supported_slots())

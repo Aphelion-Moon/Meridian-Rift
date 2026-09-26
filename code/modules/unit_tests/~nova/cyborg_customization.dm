@@ -781,6 +781,11 @@
 		TEST_ASSERT_EQUAL(holder.occlusion_image.pixel_y, 0, "A body mask must not repeat the owner's Z offset as Y.")
 		TEST_ASSERT_EQUAL("[holder.occlusion_image.transform]", "[matrix()]", "Body masks inherit the owner's transform exactly once.")
 		TEST_ASSERT_EQUAL("[holder.shown_image.transform]", "[matrix()]", "Part roots inherit the owner's transform exactly once.")
+		TEST_ASSERT(holder.animation_image, "Authored models must use a native movement carrier.")
+		TEST_ASSERT_EQUAL(holder.animation_image.loc, robot, "The carrier must follow the same native movement as the chassis.")
+		TEST_ASSERT_EQUAL(holder.animation_image.icon_state, robot.icon_state, "The carrier must select the chassis pose.")
+		TEST_ASSERT_EQUAL(holder.animation_image.dir, direction, "Turning must select the matching native direction.")
+		TEST_ASSERT_EQUAL(holder.shown_image.filters[1]:size, 127, "Native displacement must stay aligned to whole pixels.")
 		var/list/layer = holder.render_layers[1]
 		var/mutable_appearance/part = holder.shown_image.overlays[1]
 		var/icon/art = layer["resource"]

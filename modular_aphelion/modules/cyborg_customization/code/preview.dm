@@ -54,7 +54,7 @@
 			"body" = cyborg_preview_body(descriptor, direction, pose, FALSE, index, moving),
 			"occlusion" = include_occlusion ? cyborg_preview_body(descriptor, direction, pose, TRUE, index, moving) : null,
 			"x" = frame["x"] - anchor["x"], "y" = frame["y"] - anchor["y"],
-			"delay" = max(1, frame["delay"]) * 100,
+			"delay" = frame["delay"] * 100,
 		))
 	return result
 

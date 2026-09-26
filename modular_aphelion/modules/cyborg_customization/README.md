@@ -48,6 +48,8 @@ The creator sends private image resources through native static UI data and send
 
 The offline builder accepts explicitly named local animation families with compatible dimensions, directions, frame counts, and delays, and requires exactly one cyan marker per frame. The generated `animation_manifest.json` uses format version 1: model/state keys reference deduplicated complete animation profiles. Profile IDs are generated deterministically; full canonical profile data resolves digest-prefix collisions. The runtime reader resolves the model reference through the profile table.
 
+Live anchor motion uses a cached one-pixel native DMI per model, with the chassis's states, directions, movement variants and frame delays. Its private owner-relative image supplies a displacement filter on the composed parts. This preserves individual part transforms while BYOND selects movement frames and maintains their phase, including turns and stops. There is no server movement timeout or separate interpolated attachment loop. Transparent padding prevents edge clipping; a displacement size of 127 maps each color-channel step to one pixel. The creator also preserves authored sub-decisecond frame delays.
+
 | Local skin labels | Donor family |
 | --- | --- |
 | Drake | drake |

@@ -61,20 +61,30 @@
 	for(var/id in catalog)
 		var/list/descriptor = catalog[id]
 		if(!cyborg_animation_anchor(descriptor, SOUTH, "idle"))
+			TEST_ASSERT_NULL(cyborg_animation_map(descriptor), "An unauthored model must retain static manual placement.")
 			continue // Other skins deliberately use manual placement and static previews.
+		var/icon/movement_map = cyborg_animation_map(descriptor)
 		for(var/pose in descriptor["poses"])
+			var/state = descriptor["icon_state"] + (pose == "idle" ? "" : "-[pose]")
 			for(var/direction in GLOB.cardinals)
 				for(var/moving in list(FALSE, TRUE))
 					var/list/frames = cyborg_preview_animation(descriptor, direction, pose, moving, TRUE)
 					if(!cyborg_animation_anchor(descriptor, direction, pose) || !length(cyborg_animation_frames(descriptor, direction, pose, moving)))
 						TEST_ASSERT(!length(frames), "[id] [pose] borrowed an unauthored animation instead of using a static fallback.")
 						TEST_ASSERT(findtext(cyborg_preview_body(descriptor, direction, pose), "iVBORw0KGgo") == 1, "[id] [pose] has no native PNG for its static fallback.")
+						TEST_ASSERT_EQUAL(movement_map.GetPixel(1, 1, state, direction, 1, moving), "#808080", "[id] [pose] must not translate an unauthored sequence.")
 						continue
 					TEST_ASSERT(length(frames) && length(frames) <= 32, "[id] [pose] [dir2text(direction)] moving=[moving] has no bounded authored preview sequence.")
+					var/list/authored = cyborg_animation_frames(descriptor, direction, pose, moving)
+					var/frame_index = 0
 					for(var/list/frame as anything in frames)
+						frame_index++
 						TEST_ASSERT(findtext(frame["body"], "iVBORw0KGgo") == 1, "[id] [pose] has no PNG body for an authored animation frame.")
 						TEST_ASSERT(findtext(frame["occlusion"], "iVBORw0KGgo") == 1, "[id] [pose] has no PNG occlusion for an authored animation frame.")
 						TEST_ASSERT(isnum(frame["x"]) && isnum(frame["y"]) && frame["delay"] > 0, "[id] [pose] has unusable preview anchor/timing data.")
+						TEST_ASSERT_EQUAL(frame["delay"], authored[frame_index]["delay"] * 100, "Preview timing must preserve sub-decisecond chassis frames.")
+						TEST_ASSERT(abs(frame["x"]) < 128 && abs(frame["y"]) < 128, "Authored displacement must fit the native map channels.")
+						TEST_ASSERT_EQUAL(movement_map.GetPixel(1, 1, state, direction, frame_index, moving), rgb(128 - frame["x"], 128 + frame["y"], 128), "[id] [pose] native movement frame must retain its exact anchor.")
 					checked++
 	TEST_ASSERT(checked > 0, "No authored models reached the real native preview renderer.")
 
