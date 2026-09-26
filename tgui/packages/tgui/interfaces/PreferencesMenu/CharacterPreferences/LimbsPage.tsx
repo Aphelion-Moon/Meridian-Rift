@@ -272,8 +272,10 @@ const Markings = (props: {
   chosen_markings: Marking[] | null;
   marking_choices: string[];
   act: (action: string, params?: Record<string, unknown>) => void;
+  pickerPlacement?: ComponentProps<typeof Floating>['placement'];
 }) => {
-  const { body_zone, chosen_markings, marking_choices, act } = props;
+  const { body_zone, chosen_markings, marking_choices, act, pickerPlacement } =
+    props;
   const { data } = useBackend<PreferencesMenuData>();
   const serverMarkings = useServerPrefs()?.limbs_and_markings; // APHELION EDIT ADDITION
   const maxMarkings = serverMarkings?.max_markings ?? 0; // APHELION EDIT CHANGE
@@ -304,6 +306,7 @@ const Markings = (props: {
                     icons={markingIcons}
                     options={choices}
                     selected={marking.name}
+                    placement={pickerPlacement}
                     onSelect={(value: string) =>
                       act('change_marking', {
                         bodypart_slot: body_zone,
@@ -641,11 +644,13 @@ const MarkingsColumn = (props: {
     {props.limbs.map((bodypart) => (
       <div key={bodypart.slot} style={{ marginBottom: '1.5em' }}>
         <Section fill title={bodypart.slot}>
+          {/* Sideways pickers would land under the preview's map control. */}
           <Markings
             body_zone={bodypart.body_zone ?? bodypart.slot}
             chosen_markings={bodypart.chosen_markings}
             marking_choices={bodypart.marking_choices}
             act={props.act}
+            pickerPlacement="bottom-start"
           />
         </Section>
       </div>

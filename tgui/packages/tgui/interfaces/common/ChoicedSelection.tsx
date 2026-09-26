@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ComponentProps, type ReactNode, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -117,12 +117,13 @@ export function ChoicedSelectionDropdown(props: {
   selected: string;
   onSelect: (value: string) => void;
   disabled?: boolean;
+  placement?: ComponentProps<typeof Floating>['placement'];
 }) {
-  const { disabled, icons, ...selection } = props;
+  const { disabled, icons, placement = 'left-start', ...selection } = props;
   return (
     <Floating
       stopChildPropagation
-      placement="left-start"
+      placement={placement}
       disabled={disabled}
       content={<ChoicedSelection {...selection} catalog={{ icons }} />}
     >
