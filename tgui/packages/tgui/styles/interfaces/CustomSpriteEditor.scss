@@ -1,0 +1,273 @@
+// THIS IS AN APHELION UI FILE
+// Swatches show drawing colors; theme materials must not recolor them.
+.Button.SpriteEditor__plainSwatch {
+  background-color: transparent !important;
+  background-blend-mode: normal !important;
+  background-clip: padding-box !important;
+  border: 1px solid #555 !important;
+  border-image: none !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+
+  &[aria-pressed='true'] {
+    border-color: #ddd !important;
+  }
+
+  &:focus-visible {
+    outline: 1px solid #ddd !important;
+    outline-offset: 1px;
+  }
+
+  &::before,
+  &::after,
+  .Button__content {
+    display: none !important;
+  }
+}
+
+// The region overlay and tag draw over the canvas without catching the pointer.
+.CustomSpriteEditor__overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+// The region tag and the covered-paint tip share one label look.
+.CustomSpriteEditor__regionTag,
+.CustomSpriteEditor__coverTip {
+  position: absolute;
+  pointer-events: none;
+  padding: 0 4px;
+  line-height: 13px; // TAG_HEIGHT in regions.ts
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.72);
+  white-space: nowrap;
+}
+
+.CustomSpriteEditor__regionTag {
+  transition: opacity 0.6s ease-out;
+}
+
+// A new selection names its region, then the tag fades out of the way.
+.CustomSpriteEditor__regionTag--faded {
+  opacity: 0;
+}
+
+.CustomSpriteEditor__status {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+}
+
+// Background tiles stay pixel-sharp. Pictures stand on the tile, which repeats upward as far as
+// hair reaches above the head.
+.CustomSpriteEditor__tile {
+  max-width: 100%;
+  background-size: 100% auto;
+  background-position: bottom;
+  background-repeat: repeat-y;
+  image-rendering: pixelated;
+
+  // Flush on the tile, with no inline descender gap, and shrinking to fit a narrow window.
+  img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.Button.SpriteEditor__plainSwatch.CustomSpriteEditor__backgroundSwatch {
+  background-size: 100% 100% !important;
+  image-rendering: pixelated;
+}
+
+// Joined buttons in one frame: the view switcher, the tools and Import/Export.
+.CustomSpriteEditor__group {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.CustomSpriteEditor__group > .Stack__item {
+  margin: 0;
+}
+
+.CustomSpriteEditor__group > .Button,
+.CustomSpriteEditor__group > .Stack__item > .Button {
+  position: relative;
+  margin: 0;
+  border-radius: 0;
+  border-color: transparent;
+}
+
+.CustomSpriteEditor__group > .Button + .Button,
+.CustomSpriteEditor__group > .Stack__item + .Stack__item > .Button {
+  border-left-color: var(--color-border-dark);
+}
+
+.CustomSpriteEditor__viewTab {
+  min-width: 5.5em;
+}
+
+// The pip: a hollow ring when the view has no paint, a lit disc when it does.
+.CustomSpriteEditor__pip {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+  box-shadow: inset 0 0 0 1px var(--color-label);
+}
+
+.CustomSpriteEditor__pip--lit {
+  background: #79ff79;
+  box-shadow:
+    0 0 4px 1px rgba(121, 255, 121, 0.55),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+// On the selected view's accent fill the pip keeps a dark rim instead of a glow.
+.Button--selected .CustomSpriteEditor__pip {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.Button--selected .CustomSpriteEditor__pip--lit {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.CustomSpriteEditor__region {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0 0.5em;
+}
+
+.CustomSpriteEditor__region > .Icon,
+.CustomSpriteEditor__regionOff {
+  color: var(--color-label);
+}
+
+.CustomSpriteEditor__divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 0.25em;
+  background: var(--color-border-dark);
+}
+
+// Tool hotkeys are drawn from a data attribute, so the buttons keep their icon-only layout.
+.CustomSpriteEditor__group .Button[data-hotkey]::after {
+  content: attr(data-hotkey);
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 7px;
+  line-height: 1;
+  font-weight: bold;
+  opacity: 0.6;
+}
+
+// The canvas box positions the covered-paint tip that follows the cursor.
+.CustomSpriteEditor__canvas {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.CustomSpriteEditor__coverTip {
+  z-index: 2;
+}
+
+// Clear keeps its frame, reads as a warning, and fills only while hovered.
+.CustomSpriteEditor__clear.Button {
+  color: var(--color-bad);
+}
+
+.CustomSpriteEditor__clear.Button:not(.Button--disabled):hover {
+  background-color: var(--color-bad);
+  color: var(--color-white);
+}
+
+// Visibility toggles sit in one recessed tray; a lit toggle keeps the theme's outline and rail.
+.CustomSpriteEditor__tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.CustomSpriteEditor__tray > .Button {
+  margin: 0;
+}
+
+// Blending options follow the Custom swatches without a rule between them.
+.CustomSpriteEditor__blending {
+  margin-top: 0.5em;
+}
+
+// The collapsed header draws no separator; it appears once the options open beneath it.
+.CustomSpriteEditor__blending > * > .Table:only-child > .Table__cell {
+  border-bottom: 0;
+}
+
+// The quarter-turn buttons take no room while there is no selection to turn.
+.CustomSpriteEditor__turns:empty {
+  display: none;
+}
+
+// A selection's marching ants over the canvas, drawn without catching the pointer.
+.SpriteEditor__selection {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 1px dashed white;
+  box-shadow: 0 0 0 1px black;
+}
+
+// With pixels taken out, the ants follow the selected pixels' edge instead of the box.
+.SpriteEditor__selection--mask {
+  border: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.SpriteEditor__selectionEdge,
+.SpriteEditor__selectionAnts {
+  fill: none;
+}
+
+.SpriteEditor__selectionEdge {
+  stroke: black;
+  stroke-width: 3px;
+}
+
+.SpriteEditor__selectionAnts {
+  stroke: white;
+  stroke-width: 1px;
+  stroke-dasharray: 3 3;
+}
+
+// The Select tool's shortcuts, beside the footer buttons while it's the current tool.
+.CustomSpriteEditor__selectHint {
+  font-size: 0.85em;
+  line-height: 1.7;
+
+  kbd {
+    padding: 0 0.3em;
+    border: 1px solid currentColor;
+    border-radius: 0.25em;
+    font-family: inherit;
+    font-size: 0.9em;
+    white-space: nowrap;
+  }
+}

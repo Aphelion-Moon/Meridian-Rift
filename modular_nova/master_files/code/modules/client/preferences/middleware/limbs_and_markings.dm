@@ -238,6 +238,7 @@
 	data["augment_items"]    = build_augment_choices()
 	data["marking_choices"]  = build_marking_choices()
 	data["marking_presets"]  = build_marking_presets()
+	data["max_markings"]     = MAXIMUM_MARKINGS_PER_LIMB
 
 	return data
 
@@ -245,8 +246,7 @@
 /datum/preference_middleware/limbs_and_markings/get_ui_data(mob/user)
 	var/list/data = list()
 
-	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
-	data["taur_legs"] = (taur_choice.is_accessible(preferences) && preferences.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
+	data["taur_legs"] = has_taur_legs()
 	data["digi_legs"] = preferences.read_preference(/datum/preference/choiced/digitigrade_legs) == DIGITIGRADE_LEGS
 	data["allow_mismatched_parts"] = preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)
 
@@ -258,6 +258,11 @@
 	data["quirk_points_enabled"] = SSquirks.points_enabled
 
 	return data
+
+/// Returns whether a taur body takes the place of this character's legs.
+/datum/preference_middleware/limbs_and_markings/proc/has_taur_legs()
+	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	return taur_choice.is_accessible(preferences) && preferences.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE
 
 /// Performs DM-side validation for anything we are reading from prefs
 /datum/preference_middleware/limbs_and_markings/proc/is_aug_valid_for_prefs(datum/augment_item/aug, augment_slot, mob/user, datum/preferences/prefs)
@@ -369,11 +374,18 @@
 
 /datum/preference_middleware/limbs_and_markings/proc/add_marking(list/params, mob/user)
 	var/bodypart_slot = params["bodypart_slot"]
+	// Leg markings never show under a taur body.
+	if((bodypart_slot in list(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)) && has_taur_legs())
+		return
 	if(!preferences.body_markings[bodypart_slot])
 		preferences.body_markings[bodypart_slot] = list()
 	if(length(preferences.body_markings[bodypart_slot]) >= MAXIMUM_MARKINGS_PER_LIMB)
 		return
-	var/marking_name = pick(GLOB.body_markings_per_limb[bodypart_slot])
+	// Markings are keyed by name, so one the limb already wears would duplicate that entry.
+	var/list/choices = GLOB.body_markings_per_limb[bodypart_slot] - preferences.body_markings[bodypart_slot]
+	if(!length(choices))
+		return
+	var/marking_name = pick(choices)
 	var/datum/body_marking/marking = GLOB.body_markings[marking_name]
 	var/species_type = preferences.read_preference(/datum/preference/choiced/species)
 	var/list/preview_features = preferences.character_preview_view.body.dna.features
@@ -393,6 +405,9 @@
 	var/marking_id = params["marking_id"]
 	var/marking_name = params["marking_name"]
 	var/list/markings = preferences.body_markings[bodypart_slot]
+	// Another row's name would merge the two entries into one.
+	if(!(marking_name in GLOB.body_markings_per_limb[bodypart_slot]) || (marking_name in markings))
+		return
 	var/list/new_markings = list()
 	var/marking_count = 0
 	for(var/entry, marking_data in markings)

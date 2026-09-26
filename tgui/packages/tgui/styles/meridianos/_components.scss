@@ -441,6 +441,13 @@
     box-shadow: inset 0 0 0 1px var(--console-surface-canvas);
   }
 
+  // Transparent bars stay unpainted as in core; callers stack them over their
+  // own fills (PlantAnalyzer nutrients over its per-reagent segments).
+  .ProgressBar.ProgressBar--color--transparent {
+    background: transparent;
+    box-shadow: none;
+  }
+
   // Solid 1px outline, so the label reads on a bright fill and a dark track.
   .ProgressBar__content {
     color: var(--console-text-primary);

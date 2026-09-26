@@ -83,10 +83,11 @@ for code_file in scannable_files:
     if subdirectories is True:
         dm_path = code_file.replace('/', '\\')
     else:
-        dm_path = os.path.basename(code_file)
-        # NOVA EDIT START - Modular unit tests - have to append this again after it gets removed; this was not designed upstream with subfolders for unit tests in mind so we must cope.
-        if("~nova/" in code_file):
-            dm_path = "~nova\\" + dm_path
+        # NOVA EDIT START - Modular unit tests - keep the path under the
+        # scannable directory (not just the basename) so nested folders such
+        # as ~nova/custom_sprites/ match their #include lines; upstream assumes
+        # a flat directory. Flat files are unaffected (relpath == basename).
+        dm_path = os.path.relpath(code_file, scannable_directory).replace(os.sep, '\\')
         # NOVA EDIT END
 
     included = f"#include \"{dm_path}\"" in lines

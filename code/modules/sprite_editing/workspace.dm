@@ -36,7 +36,7 @@
 	layers = list(list("name" = "Background", visible = TRUE, "data" = create_layer_data(initial_layer_color)))
 
 /datum/sprite_editor_workspace/proc/copy(preserve_history = FALSE)
-	var/datum/sprite_editor_workspace/new_workspace = new(width, height, dirs, color_mode, config_flags, tool_flags)
+	var/datum/sprite_editor_workspace/new_workspace = new(width, height, dirs, backdrop, color_mode, config_flags, tool_flags) // APHELION EDIT CHANGE - ORIGINAL: var/datum/sprite_editor_workspace/new_workspace = new(width, height, dirs, color_mode, config_flags, tool_flags)
 	new_workspace.layers = deep_copy_list_alt(layers)
 	if(preserve_history)
 		new_workspace.undo_names = undo_names.Copy()
@@ -64,6 +64,7 @@
 /datum/sprite_editor_workspace/proc/new_transaction(transaction)
 	if(!can_transact(transaction))
 		return
+	transaction = sanitize_transaction(transaction) // APHELION EDIT ADDITION
 	preprocess_new_transaction(transaction)
 	transact(transaction)
 	if(!(config_flags & SPRITE_EDITOR_ALLOW_UNDO))
@@ -74,20 +75,30 @@
 	undo_names += transaction["name"]
 	return TRUE
 
-/datum/sprite_editor_workspace/proc/undo()
+/datum/sprite_editor_workspace/proc/undo(count = 1) // APHELION EDIT CHANGE - ORIGINAL: /datum/sprite_editor_workspace/proc/undo()
 	if(!(config_flags & SPRITE_EDITOR_ALLOW_UNDO))
 		return
-	if(length(undo_stack))
+	// if(length(undo_stack)) // APHELION EDIT REMOVAL
+	// APHELION EDIT ADDITION START - Validate history jumps.
+	if(!isnum(count) || count < 1)
+		return
+	for(var/i in 1 to min(round(count), length(undo_stack)))
+	// APHELION EDIT ADDITION END
 		pop(undo_names)
 		var/transaction = pop(undo_stack)
 		reverse_transact(transaction)
 		redo_stack += list(transaction)
 		redo_names += transaction["name"]
 
-/datum/sprite_editor_workspace/proc/redo()
+/datum/sprite_editor_workspace/proc/redo(count = 1) // APHELION EDIT CHANGE - ORIGINAL: /datum/sprite_editor_workspace/proc/redo()
 	if(!(config_flags & SPRITE_EDITOR_ALLOW_UNDO))
 		return
-	if(length(redo_stack))
+	// if(length(redo_stack)) // APHELION EDIT REMOVAL
+	// APHELION EDIT ADDITION START - Validate history jumps.
+	if(!isnum(count) || count < 1)
+		return
+	for(var/i in 1 to min(round(count), length(redo_stack)))
+	// APHELION EDIT ADDITION END
 		pop(redo_names)
 		var/transaction = pop(redo_stack)
 		transact(transaction)
@@ -97,13 +108,19 @@
 /datum/sprite_editor_workspace/proc/toggle_layer_visible(layer)
 	if(!(config_flags & SPRITE_EDITOR_ALLOW_LAYERS))
 		return
-	if(!isnum(layer))
+	if(!isnum(layer) || round(layer) != layer) // APHELION EDIT CHANGE - ORIGINAL: if(!isnum(layer))
 		return
 	if(layer < 1 || layer > length(layers))
 		return
 	layers[layer]["visible"] = !layers[layer]["visible"]
 
 /datum/sprite_editor_workspace/proc/is_valid_color(color)
+	// APHELION EDIT ADDITION START - split_color must not receive malformed UI input.
+	if(!istext(color) || !(length(color) in list(7, 9)) || copytext(color, 1, 2) != "#")
+		return FALSE
+	if(sanitize_hexcolor(color, length(color) - 1, TRUE, "invalid") != LOWER_TEXT(color))
+		return FALSE
+	// APHELION EDIT ADDITION END
 	if(SEND_SIGNAL(src, COMSIG_SPRITE_EDITOR_VALIDATE_COLOR, color))
 		return FALSE
 	var/list/rgb_color = split_color(color)
@@ -118,6 +135,46 @@
 			return TRUE
 
 /datum/sprite_editor_workspace/proc/can_transact(list/transaction)
+	// APHELION EDIT ADDITION START - Validate before indexing any layer or frame.
+	if(!islist(transaction))
+		return FALSE
+	var/transaction_type = transaction["type"]
+	var/layer = transaction["layer"]
+	if(transaction_type == "addLayer")
+		return config_flags & SPRITE_EDITOR_ALLOW_LAYERS
+	if(!isnum(layer) || round(layer) != layer || layer < 1 || layer > length(layers))
+		return FALSE
+	if(transaction_type in list("pencil", "eraser", "bucket"))
+		var/direction = transaction["dir"]
+		if(!istext(direction) || !(direction in layers[layer]["data"]))
+			return FALSE
+		if(transaction_type == "bucket")
+			var/list/point = transaction["point"]
+			if(!valid_point_pair(point) || !is_point_allowed(point[1], point[2], direction))
+				return FALSE
+			transaction["point"] = point.Copy()
+		else
+			var/list/points = transaction["points"]
+			if(!islist(points) || length(points) > width * height)
+				return FALSE
+			var/list/filtered = list()
+			var/list/seen = list()
+			for(var/list/point as anything in points)
+				if(!valid_point_pair(point))
+					return FALSE
+				var/x = point[1]
+				var/y = point[2]
+				if(!is_point_allowed(x, y, direction))
+					continue
+				if(!mask_stroke)
+					if(seen["[x],[y]"])
+						continue
+					seen["[x],[y]"] = TRUE
+				filtered += list(list(x, y))
+			transaction["points"] = filtered
+			if(!length(filtered))
+				return FALSE
+	// APHELION EDIT ADDITION END
 	switch(transaction["type"])
 		if("pencil")
 			return tool_flags & SPRITE_EDITOR_TOOL_PENCIL && is_valid_color(transaction["color"])
@@ -125,8 +182,24 @@
 			return tool_flags & SPRITE_EDITOR_TOOL_ERASER
 		if("bucket")
 			return tool_flags & SPRITE_EDITOR_TOOL_BUCKET && is_valid_color(transaction["color"])
+		// APHELION EDIT ADDITION START
+		if("move")
+			return tool_flags & SPRITE_EDITOR_TOOL_SELECT && prepare_selection_move(transaction)
+		// APHELION EDIT ADDITION END
+		/* // APHELION EDIT REMOVAL START - Validate each layer operation and its boundaries.
 		if("renameLayer", "moveLayerUp", "moveLayerDown", "flattenLayer", "addLayer", "deleteLayer")
 			return config_flags & SPRITE_EDITOR_ALLOW_LAYERS
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - Validate each layer operation and its boundaries.
+		if("renameLayer")
+			return config_flags & SPRITE_EDITOR_ALLOW_LAYERS && istext(transaction["newName"]) && length(transaction["newName"]) <= 64
+		if("moveLayerUp")
+			return config_flags & SPRITE_EDITOR_ALLOW_LAYERS && layer < length(layers)
+		if("moveLayerDown", "flattenLayer")
+			return config_flags & SPRITE_EDITOR_ALLOW_LAYERS && layer > 1
+		if("deleteLayer")
+			return config_flags & SPRITE_EDITOR_ALLOW_LAYERS && length(layers) > 1
+		// APHELION EDIT ADDITION END
 		else // Invalid transaction type, probably from href exploitation
 			return FALSE
 
@@ -149,7 +222,18 @@
 			var/x = point[1]+1
 			var/y = point[2]+1
 			transaction["points"] = flood_fill(affected_frame, x, y, width, height)
+			// APHELION EDIT ADDITION START
+			var/list/filtered = list()
+			for(var/list/filled_point as anything in transaction["points"])
+				if(is_point_allowed(filled_point[1], filled_point[2], dir))
+					filtered += list(filled_point)
+			transaction["points"] = filtered
+			// APHELION EDIT ADDITION END
 			transaction -= "point"
+		// APHELION EDIT ADDITION START - Do not trust client undo values.
+		if("renameLayer")
+			transaction["oldName"] = layers[transaction["layer"]]["name"]
+		// APHELION EDIT ADDITION END
 		if("flattenLayer")
 			var/layer = transaction["layer"]
 			var/list/top_layer = layers[layer]
@@ -173,7 +257,7 @@
 				var/x = point[1]+1
 				var/y = point[2]+1
 				affected_frame[y][x] = blend_color(affected_frame[y][x], color)
-		if("eraser")
+		if("eraser", "move") // APHELION EDIT CHANGE - ORIGINAL: if("eraser")
 			var/layer = transaction["layer"]
 			var/dir = transaction["dir"]
 			var/list/points = transaction["points"]
@@ -181,7 +265,7 @@
 			for(var/list/point in points)
 				var/x = point[1]+1
 				var/y = point[2]+1
-				affected_frame[y][x] = "#00000000"
+				affected_frame[y][x] = transaction["type"] == "move" ? point[4] : "#00000000" // APHELION EDIT CHANGE - ORIGINAL: affected_frame[y][x] = "#00000000"
 		if("renameLayer")
 			var/layer = transaction["layer"]
 			var/new_name = transaction["newName"]
@@ -196,10 +280,10 @@
 			var/layer = transaction["layer"]
 			var/list/top_layer = layers[layer]
 			var/list/bottom_layer = layers[layer-1]
-			for(var/dir in 1 to dirs)
+			for(var/dir in bottom_layer["data"]) // APHELION EDIT CHANGE - ORIGINAL: for(var/dir in 1 to dirs)
 				for(var/y in 1 to height)
 					for(var/x in 1 to width)
-						bottom_layer["[dir]"][y][x] = blend_color(bottom_layer["[dir]"][y][x], top_layer["[dir]"][y][x])
+						bottom_layer["data"][dir][y][x] = blend_color(bottom_layer["data"][dir][y][x], top_layer["data"][dir][y][x]) // APHELION EDIT CHANGE - ORIGINAL: bottom_layer["[dir]"][y][x] = blend_color(bottom_layer["[dir]"][y][x], top_layer["[dir]"][y][x])
 			layers.Cut(layer, layer+1)
 		if("addLayer")
 			var/layer_name = "New Layer"
@@ -214,7 +298,7 @@
 
 /datum/sprite_editor_workspace/proc/reverse_transact(list/transaction)
 	switch(transaction["type"])
-		if("pencil", "eraser", "bucket")
+		if("pencil", "eraser", "bucket", "move") // APHELION EDIT CHANGE - ORIGINAL: if("pencil", "eraser", "bucket")
 			var/layer = transaction["layer"]
 			var/dir = transaction["dir"]
 			var/list/points = transaction["points"]
@@ -241,13 +325,13 @@
 			var/old_visibility = layers[bottom_layer_index]["visible"]
 			layers[bottom_layer_index] = bottom_layer
 			layers[bottom_layer_index]["visible"] = old_visibility
-			layers.Insert(layer, top_layer)
+			layers.Insert(layer, list(top_layer)) // APHELION EDIT CHANGE - ORIGINAL: layers.Insert(layer, top_layer)
 		if("addLayer")
 			pop(layers)
 		if("deleteLayer")
 			var/layer = transaction["layer"]
 			var/old_layer = transaction["oldLayer"]
-			layers.Insert(layer, old_layer)
+			layers.Insert(layer, list(old_layer)) // APHELION EDIT CHANGE - ORIGINAL: layers.Insert(layer, old_layer)
 
 /datum/sprite_editor_workspace/proc/sprite_editor_ui_data()
 	return list(
@@ -283,25 +367,43 @@
 	var/file_width = width * grid_width
 	var/file_height = height * grid_height
 	var/layer_count = length(layers)
-	var/temp_file_prefix = copytext(REF(src), 2, -1)
+	var/list/temp_paths = list() // APHELION EDIT CHANGE - ORIGINAL: var/temp_file_prefix = copytext(REF(src), 2, -1)
 	for(var/i in 1 to layer_count)
 		var/list/layer_frames = list()
 		for(var/dir_index in 1 to dirs)
 			layer_frames += list(layers[i]["data"]["[GLOB.alldirs_dmi_order[dir_index]]"])
 		var/pixels = reorder_pixels(width, height, grid_width, grid_height, layer_frames)
-		var/temp_path = "tmp/[temp_file_prefix]_layer[i].dmi"
+		var/temp_path = "tmp/sprite_editor_[md5("[metadata]|[pixels]")].dmi" // APHELION EDIT CHANGE - ORIGINAL: var/temp_path = "tmp/[temp_file_prefix]_layer[i].dmi"
+		temp_paths += temp_path // APHELION EDIT ADDITION
 		var/result = rustg_dmi_create_png(temp_path, "[file_width]", "[file_height]", pixels)
 		if(result)
 			stack_trace(result)
-			return TRUE
+			// APHELION EDIT ADDITION START - Remove temporary files after failed exports.
+			for(var/cleanup_path in temp_paths)
+				fdel(cleanup_path)
+			// APHELION EDIT ADDITION END
+			return null // APHELION EDIT CHANGE - ORIGINAL: return TRUE
 		result = rustg_dmi_inject_metadata(temp_path, metadata)
 		if(result)
 			stack_trace(result)
-			return TRUE
+			// APHELION EDIT ADDITION START - Remove temporary files after failed exports.
+			for(var/cleanup_path in temp_paths)
+				fdel(cleanup_path)
+			// APHELION EDIT ADDITION END
+			return null // APHELION EDIT CHANGE - ORIGINAL: return TRUE
+	/* // APHELION EDIT REMOVAL START - Runtime files cannot use batched asset generation.
 	var/datum/universal_icon/out_icon = uni_icon("tmp/[temp_file_prefix]_layer1.dmi", "")
 	for(var/i in 2 to layer_count)
 		out_icon.blend_icon(uni_icon("tmp/[temp_file_prefix]_layer[i].dmi", ""), ICON_OVERLAY)
 	var/icon/final_icon = out_icon.to_icon()
 	for(var/i in 1 to layer_count)
 		fdel("tmp/[temp_file_prefix]_layer[i].dmi")
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Composite runtime files directly before cleanup.
+	var/icon/final_icon = icon(file(temp_paths[1]), "")
+	for(var/i in 2 to layer_count)
+		final_icon.Blend(icon(file(temp_paths[i]), ""), ICON_OVERLAY)
+	for(var/temp_path in temp_paths)
+		fdel(temp_path)
+	// APHELION EDIT ADDITION END
 	return final_icon

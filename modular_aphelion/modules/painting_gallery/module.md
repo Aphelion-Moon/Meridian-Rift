@@ -131,9 +131,13 @@ bash tools/painting_store/build.sh
 ```
 
 The scripts run native tests and place the DLL or `.so` beside the game DMB.
-Windows deployments verify the committed `meridian_painting_store.dll` against
-`binary-manifest.json`; rebuilding changes the manifest, so commit source,
-manifest, and binary together. Linux builds from locked source; use the oldest
+Windows builds use the committed `meridian_painting_store.dll` while it matches
+`binary-manifest.json`. When the DLL or any source stops matching, the build runs
+`build.ps1` automatically and verifies the result, so a source change never stops
+a build or deployment. `build.ps1` installs the pinned toolchain and x86 target
+when missing, without updating rustup; the machine, including a Windows TGS host,
+still needs rustup and the Visual Studio C++ x86 build tools. Commit the rebuilt
+DLL and manifest with the source. Linux builds from locked source; use the oldest
 supported glibc runner for releases. Deploy the library with the next game compile,
 never replace one loaded by a running DreamDaemon.
 
@@ -151,6 +155,9 @@ then atomically replaces JSON as the commit point. Deletions commit metadata
 before removing images; unfinished cleanup is retried. Explicit field changes
 preserve untouched native JSON values and unknown fields. Nova commits recheck
 the confirmed source hash and copy original records with only visibility changed.
+Each call unlocks storage explicitly when it ends, rather than leaving Windows to
+release the lock with the closed handle, so the next call never finds it held.
+Only real contention reports `busy`; other lock failures report their I/O error.
 
 Recovery runs before loading paintings. It completes committed cleanup or restores
 the verified prior snapshot, using transaction-owned image evidence. An unexpected

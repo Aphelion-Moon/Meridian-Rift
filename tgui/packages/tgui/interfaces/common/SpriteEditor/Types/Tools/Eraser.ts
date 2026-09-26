@@ -5,7 +5,10 @@ import {
   constrainToIconGrid,
   copyLayer,
   getDataPixel,
+  isPainted, // APHELION EDIT ADDITION
+  isWithinDrawBounds, // APHELION EDIT ADDITION
 } from '../../helpers';
+import { strokePixels } from '../../strokeMask'; // APHELION EDIT ADDITION
 import { Tool } from '../Tool';
 import type { LayerTransaction } from '../Transaction';
 import type {
@@ -21,6 +24,7 @@ class EraserTransaction implements LayerTransaction {
   layer: number;
   dir: Dir;
   points: Map<string, [number, number]> = new Map();
+  sprite?: SpriteData; // APHELION EDIT ADDITION
 
   constructor(dir: Dir, layer: number) {
     this.dir = dir;
@@ -50,7 +54,7 @@ class EraserTransaction implements LayerTransaction {
         name: 'Eraser',
         layer: this.layer + 1,
         dir: `${this.dir}`,
-        points: this.points.values().toArray(),
+        ...strokePixels(this.points, this.sprite), // APHELION EDIT CHANGE - ORIGINAL: points: this.points.values().toArray(),
       },
     });
   }
@@ -75,12 +79,22 @@ export class Eraser extends Tool {
     const [px, py, inBounds] = constrainToIconGrid(x, y, width, height);
     if (isRightClick) return;
     this.currentTransaction = new EraserTransaction(selectedDir, selectedLayer);
-    if (inBounds) {
+    this.currentTransaction.sprite = data; // APHELION EDIT ADDITION
+    // if (inBounds) { // APHELION EDIT REMOVAL
+    // APHELION EDIT ADDITION START
+    // Paint left outside changed bounds can still be erased.
+    if (
+      inBounds &&
+      (isWithinDrawBounds(px, py, context.drawBounds, context.drawMask) ||
+        isPainted(getDataPixel(data, selectedLayer, selectedDir, px, py)))
+    ) {
+      // APHELION EDIT ADDITION END
       this.currentTransaction.addPoint(
         px,
         py,
         getDataPixel(data, selectedLayer, selectedDir, px, py),
       );
+      if (this.currentTransaction.points.size) context.onDraw?.(px, py, true); // APHELION EDIT ADDITION
     }
     this.lastPoint = [px, py];
     setPreviewLayer(selectedLayer);
@@ -105,17 +119,40 @@ export class Eraser extends Tool {
     const { dir, layer } = currentTransaction;
     const [px, py] = constrainToIconGrid(x, y, width, height);
     const [opx, opy] = lastPoint!;
+    // APHELION EDIT ADDITION START
+    if (px === opx && py === opy) return;
+    const previousSize = currentTransaction.points.size;
+    // APHELION EDIT ADDITION END
     bresenhamLine(opx, opy, px, py, (x, y) => {
+      /* // APHELION EDIT REMOVAL START
       if (x < 0 || x >= width || y < 0 || y >= height) {
         return;
       }
+      */ // APHELION EDIT REMOVAL END
+      // APHELION EDIT ADDITION START
+      if (
+        x < 0 ||
+        x >= width ||
+        y < 0 ||
+        y >= height ||
+        (!isWithinDrawBounds(x, y, context.drawBounds, context.drawMask) &&
+          !isPainted(getDataPixel(data, selectedLayer, selectedDir, x, y)))
+      ) {
+        return;
+      }
+      // APHELION EDIT ADDITION END
       currentTransaction.addPoint(
         x,
         y,
         getDataPixel(data, selectedLayer, selectedDir, x, y),
       );
+      // APHELION EDIT ADDITION START
+      if (currentTransaction.points.size > previousSize)
+        context.onDraw?.(x, y, true);
+      // APHELION EDIT ADDITION END
     });
     this.lastPoint = [px, py];
+    if (currentTransaction.points.size === previousSize) return; // APHELION EDIT ADDITION
     setPreviewData(
       currentTransaction.getPreviewLayer(layers[layer].data[dir]!),
     );
@@ -128,11 +165,17 @@ export class Eraser extends Tool {
     y: number,
   ) {
     if (!this.currentTransaction) return;
+    this.onMouseMove(context, data, x, y); // APHELION EDIT ADDITION
     if (this.currentTransaction.points.size !== 0) {
       this.currentTransaction.commit();
+      // APHELION EDIT ADDITION START
+    } else {
+      this.cancel(context);
+      // APHELION EDIT ADDITION END
     }
-    this.currentTransaction.commit();
+    // this.currentTransaction.commit(); // APHELION EDIT REMOVAL
     this.currentTransaction = null;
+    this.lastPoint = null; // APHELION EDIT ADDITION
   }
 
   cancel(context: SpriteEditorToolCancelContext) {

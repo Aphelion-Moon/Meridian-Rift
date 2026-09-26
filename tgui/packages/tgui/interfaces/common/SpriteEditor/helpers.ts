@@ -168,8 +168,10 @@ export function bresenhamLine(
   const dy = Math.abs(y1 - y0);
   const sy = Math.sign(y1 - y0);
   let error = dx - dy;
-  do {
+  // APHELION EDIT CHANGE - ORIGINAL: do {
+  while (true) {
     plot(x0, y0);
+    if (x0 === x1 && y0 === y1) break; // APHELION EDIT ADDITION
     const e2 = 2 * error;
     if (e2 > -dy) {
       error -= dy;
@@ -179,5 +181,22 @@ export function bresenhamLine(
       error += dx;
       y0 += sy;
     }
-  } while (!(x0 === x1 && y0 === y1));
+  } // APHELION EDIT CHANGE - ORIGINAL: } while (!(x0 === x1 && y0 === y1));
 }
+// APHELION EDIT ADDITION START
+export const isWithinDrawBounds = (
+  x: number,
+  y: number,
+  bounds?: [number, number, number, number],
+  mask?: string[],
+) =>
+  (!bounds ||
+    (x >= bounds[0] && y >= bounds[1] && x <= bounds[2] && y <= bounds[3])) &&
+  (!mask || mask[y]?.[x] === '1');
+export const isPainted = (color: string | undefined) =>
+  !!color && (parseHexColorString(color).a ?? 1) > 0;
+/** Whether a key event is aimed at a text field, which keeps its own shortcuts. */
+export const isTextEntryTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (!!target.closest('input, textarea, select') || target.isContentEditable);
+// APHELION EDIT ADDITION END

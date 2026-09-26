@@ -239,3 +239,6 @@ SAVEFILE_UPLOAD_LIMIT 2000
 
 ## Uncomment to enable backup from nova paintings db. Requires the files to be set up in /config/nova/paintings along with the paintings.json in /config/nova base folder
 #ENABLE_NOVA_PAINTING_IMPORT
+
+## Uncomment to disable the custom hair and body-marking pixel editors. Saved drawings still render.
+#DISALLOW_CUSTOM_SPRITE_EDITING

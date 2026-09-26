@@ -27,4 +27,9 @@ export abstract class Tool {
     y?: number,
   ): void;
   cancel?(context: SpriteEditorToolCancelContext);
+  reconcile?(context: SpriteEditorToolContext, data: SpriteData): void; // APHELION EDIT ADDITION
+  // APHELION EDIT ADDITION START
+  /** The tool or view changes, or the editor closes: finish rather than abandon. Tools without it are cancelled. */
+  release?(context: SpriteEditorToolCancelContext): void;
+  // APHELION EDIT ADDITION END
 }

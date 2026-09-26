@@ -4,6 +4,8 @@
 	lip_style = target.lip_style
 	lip_color = target.lip_color
 	hairstyle = target.hairstyle
+	custom_hair = deep_copy_list(target.dna.custom_hair) // APHELION EDIT ADDITION - Detached heads retain their paint
+	custom_facial_hair = deep_copy_list(target.dna.custom_facial_hair) // APHELION EDIT ADDITION - Detached heads retain their paint
 	hair_alpha = target.hair_alpha ? target.hair_alpha : target_species.hair_alpha // NOVA EDIT CHANGE - Customization - Hair alpha - ORIGINAL: hair_alpha = owner_species.hair_alpha
 	hair_color = target.hair_color
 	facial_hairstyle = target.facial_hairstyle
@@ -66,20 +68,31 @@
 /obj/item/bodypart/head/proc/get_base_facial_hair_overlays(dropped)
 	PRIVATE_PROC(TRUE)
 	. = list()
-	var/datum/sprite_accessory/facial_hair/sprite_accessory = SSaccessories.facial_hairstyles_list[facial_hairstyle]
-	if(!sprite_accessory || sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE)
+	var/datum/sprite_accessory/facial_hair/sprite_accessory = custom_sprite_facial_hair_accessory() // APHELION EDIT CHANGE - ORIGINAL: var/datum/sprite_accessory/facial_hair/sprite_accessory = SSaccessories.facial_hairstyles_list[facial_hairstyle]
+	if(!sprite_accessory || (sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE && !custom_facial_hair)) // APHELION EDIT CHANGE - ORIGINAL: if(!sprite_accessory || sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE)
 		return .
 
 	var/atom/location = loc || owner || src
 	var/image_dir = dropped ? SOUTH : null
 
+	// APHELION EDIT ADDITION START - Blend before colour processing on this private icon.
+	var/icon/base_icon
+	var/icon/custom_paint = get_custom_hair_paint(sprite_accessory, "facial_hair")
+	var/legacy_paint = custom_paint && !custom_facial_hair["tint"] // Untinted paint is merged into the base.
+	if(sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE)
+		base_icon = custom_sprite_blank_icon()
+	else if(legacy_paint)
+		base_icon = icon(sprite_accessory.icon, sprite_accessory.icon_state)
+	if(legacy_paint)
+		base_icon.Blend(custom_paint, ICON_OVERLAY)
+	// APHELION EDIT ADDITION END
 	// Overlay
-	var/image/facial_hair_overlay = image(sprite_accessory.icon, sprite_accessory.icon_state, -HAIR_LAYER, dir = image_dir)
+	var/image/facial_hair_overlay = base_icon ? image(base_icon, "", -HAIR_LAYER, dir = image_dir) : image(sprite_accessory.icon, sprite_accessory.icon_state, -HAIR_LAYER, dir = image_dir) // APHELION EDIT CHANGE - ORIGINAL: var/image/facial_hair_overlay = image(sprite_accessory.icon, sprite_accessory.icon_state, -HAIR_LAYER, dir = image_dir)
 	facial_hair_overlay.alpha = facial_hair_alpha
 	set_overlay_hair_color(facial_hair_overlay, facial_hair_color)
 	// Emissive blocker
 	if(blocks_emissive != EMISSIVE_BLOCK_NONE)
-		var/mutable_appearance/em_block = emissive_blocker(facial_hair_overlay.icon, facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha)
+		var/mutable_appearance/em_block = emissive_blocker(legacy_paint ? sprite_accessory.icon : facial_hair_overlay.icon, legacy_paint ? sprite_accessory.icon_state : facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha) // APHELION EDIT CHANGE - Legacy paint owns separate directional masks. ORIGINAL: var/mutable_appearance/em_block = emissive_blocker(facial_hair_overlay.icon, facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha)
 		if (dropped)
 			em_block = image(em_block, dir = SOUTH)
 		worn_face_offset?.apply_offset(em_block)
@@ -92,12 +105,14 @@
 	//Gradients
 	var/facial_hair_gradient_style = get_hair_gradient_style(GRADIENT_FACIAL_HAIR_KEY)
 	if(facial_hair_gradient_style == SPRITE_ACCESSORY_NONE)
+		append_custom_hair_paint_overlays(., custom_paint, sprite_accessory, dropped, "facial_hair") // APHELION EDIT ADDITION
 		return .
 
 	var/facial_hair_gradient_color = get_hair_gradient_color(GRADIENT_FACIAL_HAIR_KEY)
-	var/image/facial_hair_gradient_overlay = get_gradient_overlay(icon(sprite_accessory.icon, sprite_accessory.icon_state), -HAIR_LAYER, SSaccessories.facial_hair_gradients_list[facial_hair_gradient_style], facial_hair_gradient_color, dropped)
+	var/image/facial_hair_gradient_overlay = get_gradient_overlay(base_icon || icon(sprite_accessory.icon, sprite_accessory.icon_state), -HAIR_LAYER, SSaccessories.facial_hair_gradients_list[facial_hair_gradient_style], facial_hair_gradient_color, dropped) // APHELION EDIT CHANGE - ORIGINAL: var/image/facial_hair_gradient_overlay = get_gradient_overlay(icon(sprite_accessory.icon, sprite_accessory.icon_state), -HAIR_LAYER, SSaccessories.facial_hair_gradients_list[facial_hair_gradient_style], facial_hair_gradient_color, dropped)
 	if (facial_hair_alpha == 255)
 		. += facial_hair_gradient_overlay
+		append_custom_hair_paint_overlays(., custom_paint, sprite_accessory, dropped, "facial_hair") // APHELION EDIT ADDITION
 		return .
 
 	// If we have a gradient and hair alpha, we need to merge them into a single appearance by having a shared KEEP_TOGETHER holder
@@ -110,14 +125,15 @@
 	shared_holder.overlays += facial_hair_overlay
 	shared_holder.overlays += facial_hair_gradient_overlay
 	. += shared_holder
+	append_custom_hair_paint_overlays(., custom_paint, sprite_accessory, dropped, "facial_hair") // APHELION EDIT ADDITION
 	return .
 
 /// Used in constructing the hair overlays - handles just the hair on top of the head
 /obj/item/bodypart/head/proc/get_base_hair_overlays(dropped)
 	PRIVATE_PROC(TRUE)
 	. = list()
-	var/datum/sprite_accessory/hair/hair_sprite_accessory = SSaccessories.hairstyles_list[hairstyle]
-	if(!hair_sprite_accessory || hair_sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE)
+	var/datum/sprite_accessory/hair/hair_sprite_accessory = custom_sprite_hair_accessory() // APHELION EDIT CHANGE - ORIGINAL: var/datum/sprite_accessory/hair/hair_sprite_accessory = SSaccessories.hairstyles_list[hairstyle]
+	if(!hair_sprite_accessory || (hair_sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE && !custom_hair)) // APHELION EDIT CHANGE - ORIGINAL: if(!hair_sprite_accessory || hair_sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE)
 		return .
 
 	var/atom/location = loc || owner || src
@@ -125,7 +141,12 @@
 
 	var/list/all_hair_overlays = list()
 	// Hair masks
-	var/icon/base_icon = icon(hair_sprite_accessory.getCachedIcon(owner?.hair_masks))
+	var/icon/base_icon = hair_sprite_accessory.icon_state == SPRITE_ACCESSORY_NONE ? custom_sprite_blank_icon() : icon(hair_sprite_accessory.getCachedIcon(owner?.hair_masks)) // APHELION EDIT CHANGE - ORIGINAL: var/icon/base_icon = icon(hair_sprite_accessory.getCachedIcon(owner?.hair_masks))
+	// APHELION EDIT ADDITION START - Blend before colour/gradient processing on this private icon.
+	var/icon/custom_paint = get_custom_hair_paint(hair_sprite_accessory)
+	if(custom_paint && !custom_hair["tint"])
+		base_icon.Blend(custom_paint, ICON_OVERLAY)
+	// APHELION EDIT ADDITION END
 	// Overlay
 	all_hair_overlays += image(base_icon, layer = -HAIR_LAYER, dir = image_dir)
 	// If we have any hair appendages (ponytails, etc.) sticking out on a particular side,
@@ -148,9 +169,10 @@
 			hair_overlay.pixel_x += owner.dna.species.offset_features[OFFSET_HAIR][INDEX_W]
 			hair_overlay.pixel_z += owner.dna.species.offset_features[OFFSET_HAIR][INDEX_Z]
 		// NOVA EDIT ADDITION END
+		var/icon/base_effect_icon = custom_paint && !custom_hair["tint"] && hair_overlay == all_hair_overlays[1] ? hair_sprite_accessory.getCachedIcon(owner?.hair_masks) : hair_overlay.icon // APHELION EDIT ADDITION - Legacy paint owns separate directional masks.
 		// Emissive blocker
 		if(blocks_emissive != EMISSIVE_BLOCK_NONE)
-			var/mutable_appearance/em_block = emissive_blocker(hair_overlay.icon, hair_overlay.icon_state, location, -HAIR_LAYER, alpha = hair_alpha)
+			var/mutable_appearance/em_block = emissive_blocker(base_effect_icon, hair_overlay.icon_state, location, -HAIR_LAYER, alpha = hair_alpha) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/em_block = emissive_blocker(hair_overlay.icon, hair_overlay.icon_state, location, -HAIR_LAYER, alpha = hair_alpha)
 			if (dropped)
 				em_block = image(em_block, dir = SOUTH)
 			em_block.pixel_z = hair_sprite_accessory.y_offset
@@ -161,7 +183,7 @@
 		// NOVA EDIT ADDITION START - Emissive hair appearance
 		var/mob/living/carbon/human/human_owner = owner
 		if(human_owner?.emissive_hair)
-			var/mutable_appearance/em_appear = emissive_appearance(hair_overlay.icon, "[hair_overlay.icon_state]_e", location, layer = hair_overlay.layer, alpha = hair_alpha)
+			var/mutable_appearance/em_appear = emissive_appearance(base_effect_icon, hair_overlay.icon_state, location, layer = hair_overlay.layer, alpha = hair_alpha) // APHELION EDIT CHANGE - Hair has no "_e" states; the glow is the hair's own state. ORIGINAL: var/mutable_appearance/em_appear = emissive_appearance(hair_overlay.icon, "[hair_overlay.icon_state]_e", location, layer = hair_overlay.layer, alpha = hair_alpha)
 			if(dropped)
 				em_appear = image(em_appear, dir = SOUTH)
 			worn_face_offset?.apply_offset(em_appear)
@@ -187,11 +209,12 @@
 		. -= hair_overlay
 		hair_overlay.alpha = 255
 		var/image/shared_holder = image(layer = -HAIR_LAYER, dir = image_dir)
-		shared_holder.alpha = facial_hair_alpha
+		shared_holder.alpha = hair_alpha // APHELION EDIT CHANGE - ORIGINAL: shared_holder.alpha = facial_hair_alpha
 		shared_holder.appearance_flags |= KEEP_TOGETHER
 		shared_holder.overlays += hair_overlay
 		shared_holder.overlays += hair_gradient_overlay
 		. += shared_holder
+	append_custom_hair_paint_overlays(., custom_paint, hair_sprite_accessory, dropped) // APHELION EDIT ADDITION
 	return .
 
 /// Helper for setting hair color of an overlay appropriately

@@ -9,11 +9,13 @@ import {
   mock,
   spyOn,
 } from 'bun:test';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { storage } from 'common/storage';
 import { Provider } from 'jotai';
 import { UI_INTERACTIVE } from 'tgui-core/constants';
 import { globalEvents } from 'tgui-core/events';
+import { startKeyPassthrough, stopKeyPassthrough } from 'tgui-core/hotkeys';
+import * as drag from '../drag';
 import { update } from '../events/handlers/update';
 import { configAtom, store, suspendedAtom } from '../events/store';
 import { Window } from './Window';
@@ -90,6 +92,52 @@ afterEach(() => {
 });
 
 describe('Window geometry lifecycle', () => {
+  it('uses the current mouse modifier after Alt keyup was missed', () => {
+    const start = spyOn(drag, 'dragStartHandler').mockImplementation(() => {});
+    startKeyPassthrough();
+    try {
+      const view = render(<Window.Content>Content</Window.Content>);
+      fireEvent.keyDown(document, { key: 'Alt', keyCode: 18, altKey: true });
+      act(() => globalEvents.emit('window-blur'));
+      fireEvent.mouseDown(view.getByText('Content'), {
+        button: 0,
+        altKey: false,
+      });
+      expect(start).not.toHaveBeenCalled();
+      fireEvent.mouseDown(view.getByText('Content'), {
+        button: 0,
+        altKey: true,
+      });
+      expect(start).toHaveBeenCalledTimes(1);
+    } finally {
+      stopKeyPassthrough();
+    }
+  });
+
+  it('leaves claimed control gestures and secondary clicks to their owners', () => {
+    const start = spyOn(drag, 'dragStartHandler').mockImplementation(() => {});
+    startKeyPassthrough();
+    try {
+      const view = render(
+        <Window.Content>
+          <div onMouseDown={(event) => event.preventDefault()}>Control</div>
+          <div>Background</div>
+        </Window.Content>,
+      );
+      fireEvent.keyDown(document, { key: 'Alt', keyCode: 18, altKey: true });
+      fireEvent.mouseDown(view.getByText('Control'), {
+        button: 0,
+        altKey: true,
+      });
+      fireEvent.mouseDown(view.getByText('Background'), {
+        button: 2,
+        altKey: true,
+      });
+      expect(start).not.toHaveBeenCalled();
+    } finally {
+      stopKeyPassthrough();
+    }
+  });
   it('does not unhide or signal DM until recalled geometry has finished', async () => {
     const recalledGeometry = deferred<undefined>();
     spyOn(storage, 'get').mockImplementation(() => recalledGeometry.promise);

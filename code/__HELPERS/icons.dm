@@ -390,7 +390,8 @@ world
 /// appearance system (overlays/underlays, etc.) is not available.
 ///
 /// Only the first argument is required.
-/proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor)
+/// clip_bounds fixes the output rectangle in appearance coordinates, including nested offsets. // APHELION EDIT ADDITION
+/proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor, list/clip_bounds) // APHELION EDIT CHANGE - ORIGINAL: /proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor)
 	// Loop through the underlays, then overlays, sorting them into the layers list
 	#define PROCESS_OVERLAYS_OR_UNDERLAYS(flat, process, base_layer) \
 		for (var/i in 1 to process.len) { \
@@ -424,6 +425,10 @@ world
 
 	var/static/icon/flat_template = icon('icons/blanks/32x32.dmi', "nothing")
 	var/icon/flat = icon(flat_template)
+	// APHELION EDIT ADDITION START
+	if(clip_bounds)
+		flat.Crop(1, 1, clip_bounds[3] - clip_bounds[1] + 1, clip_bounds[4] - clip_bounds[2] + 1)
+	// APHELION EDIT ADDITION END
 
 	if(!appearance || appearance.alpha <= 0)
 		return flat
@@ -465,7 +470,7 @@ world
 		var/list/icon_dimensions = get_icon_dimensions(curicon)
 		var/icon_width = icon_dimensions["width"]
 		var/icon_height = icon_dimensions["height"]
-		if(icon_width != 32 || icon_height != 32)
+		if(!clip_bounds && (icon_width != 32 || icon_height != 32)) // APHELION EDIT CHANGE - ORIGINAL: if(icon_width != 32 || icon_height != 32)
 			flat.Scale(icon_width, icon_height)
 
 	if(!base_icon_dir)
@@ -490,10 +495,10 @@ world
 
 		var/icon/add // Icon of overlay being added
 
-		var/flatX1 = 1
-		var/flatX2 = flat.Width()
-		var/flatY1 = 1
-		var/flatY2 = flat.Height()
+		var/flatX1 = clip_bounds ? clip_bounds[1] : 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatX1 = 1
+		var/flatX2 = flatX1 + flat.Width() - 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatX2 = flat.Width()
+		var/flatY1 = clip_bounds ? clip_bounds[2] : 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatY1 = 1
+		var/flatY2 = flatY1 + flat.Height() - 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatY2 = flat.Height()
 
 		var/addX1 = 0
 		var/addX2 = 0
@@ -527,7 +532,14 @@ world
 					else
 						add.Blend(appearance.color, ICON_MULTIPLY)
 			else // 'I' is an appearance object.
-				add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor)
+				// APHELION EDIT ADDITION START
+				var/list/child_bounds
+				if(clip_bounds)
+					var/offset_x = layer_image.pixel_x + layer_image.pixel_w
+					var/offset_y = layer_image.pixel_y + layer_image.pixel_z
+					child_bounds = list(flatX1 - offset_x, flatY1 - offset_y, flatX2 - offset_x, flatY2 - offset_y)
+				// APHELION EDIT ADDITION END
+				add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor, child_bounds) // APHELION EDIT CHANGE - ORIGINAL: add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor)
 
 			if(!add)
 				continue
@@ -539,7 +551,7 @@ world
 			addY2 = max(flatY2, layer_image.pixel_y + layer_image.pixel_z + add.Height())
 
 			if (
-				addX1 != flatX1 \
+				!clip_bounds && addX1 != flatX1 /* APHELION EDIT CHANGE - ORIGINAL: addX1 != flatX1 */ \
 				&& addX2 != flatX2 \
 				&& addY1 != flatY1 \
 				&& addY2 != flatY2 \
@@ -558,7 +570,14 @@ world
 				flatY2 = addY2
 
 			// Blend the overlay into the flattened icon
-			flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1)
+			//flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1) // APHELION EDIT REMOVAL
+			// APHELION EDIT ADDITION START
+			if(clip_bounds && layer_image != copy)
+				// Child bounds already include placement relative to this same output rectangle.
+				flat.Blend(add, blendMode2iconMode(curblend))
+			else
+				flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1)
+			// APHELION EDIT ADDITION END
 
 
 		if(appearance.alpha < 255)
@@ -573,6 +592,10 @@ world
 			return icon(flat, "", SOUTH)
 	else if (render_icon) // There's no overlays.
 		var/icon/final_icon = icon(icon(curicon, curstate, base_icon_dir), "", SOUTH, no_anim ? TRUE : null)
+		// APHELION EDIT ADDITION START
+		if(clip_bounds)
+			final_icon.Crop(arglist(clip_bounds))
+		// APHELION EDIT ADDITION END
 
 		if (appearance.alpha < 255)
 			final_icon.Blend(rgb(255,255,255, appearance.alpha), ICON_MULTIPLY)

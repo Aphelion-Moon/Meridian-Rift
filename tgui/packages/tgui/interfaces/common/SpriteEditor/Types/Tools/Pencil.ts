@@ -1,6 +1,15 @@
 import { sendAct as act } from 'tgui/events/act';
 import { colorToHexString } from '../../colorSpaces';
-import { bresenhamLine, constrainToIconGrid, copyLayer } from '../../helpers';
+// import { bresenhamLine, constrainToIconGrid, copyLayer } from '../../helpers'; // APHELION EDIT REMOVAL
+// APHELION EDIT ADDITION START
+import {
+  bresenhamLine,
+  constrainToIconGrid,
+  copyLayer,
+  isWithinDrawBounds,
+} from '../../helpers';
+import { strokePixels } from '../../strokeMask';
+// APHELION EDIT ADDITION END
 import { Tool } from '../Tool';
 import type { LayerTransaction } from '../Transaction';
 import type {
@@ -16,6 +25,7 @@ class PencilTransaction implements LayerTransaction {
   layer: number;
   dir: Dir;
   points: Map<string, [number, number]> = new Map();
+  sprite?: SpriteData; // APHELION EDIT ADDITION
 
   constructor(dir: Dir, layer: number, color: string) {
     this.dir = dir;
@@ -46,7 +56,7 @@ class PencilTransaction implements LayerTransaction {
         layer: this.layer + 1,
         dir: `${this.dir}`,
         color: this.color,
-        points: this.points.values().toArray(),
+        ...strokePixels(this.points, this.sprite), // APHELION EDIT CHANGE - ORIGINAL: points: this.points.values().toArray(),
       },
     });
   }
@@ -80,8 +90,16 @@ export class Pencil extends Tool {
       selectedLayer,
       colorToHexString(currentColor),
     );
-    if (inBounds) {
+    this.currentTransaction.sprite = data; // APHELION EDIT ADDITION
+    // if (inBounds) { // APHELION EDIT REMOVAL
+    // APHELION EDIT ADDITION START
+    if (
+      inBounds &&
+      isWithinDrawBounds(px, py, context.drawBounds, context.drawMask)
+    ) {
+      // APHELION EDIT ADDITION END
       this.currentTransaction.addPoint(px, py);
+      context.onDraw?.(px, py); // APHELION EDIT ADDITION
     }
     this.lastPoint = [px, py];
     setPreviewLayer(selectedLayer);
@@ -106,13 +124,32 @@ export class Pencil extends Tool {
     const { dir, layer } = currentTransaction;
     const [px, py] = constrainToIconGrid(x, y, width, height);
     const [opx, opy] = lastPoint!;
+    // APHELION EDIT ADDITION START
+    if (px === opx && py === opy) return;
+    const previousSize = currentTransaction.points.size;
+    // APHELION EDIT ADDITION END
     bresenhamLine(opx, opy, px, py, (x, y) => {
+      /* // APHELION EDIT REMOVAL START
       if (x < 0 || x >= width || y < 0 || y >= height) {
         return;
       }
+      */ // APHELION EDIT REMOVAL END
+      // APHELION EDIT ADDITION START
+      if (
+        x < 0 ||
+        x >= width ||
+        y < 0 ||
+        y >= height ||
+        !isWithinDrawBounds(x, y, context.drawBounds, context.drawMask)
+      ) {
+        return;
+      }
+      // APHELION EDIT ADDITION END
       currentTransaction.addPoint(x, y);
+      if (currentTransaction.points.size > previousSize) context.onDraw?.(x, y); // APHELION EDIT ADDITION
     });
     this.lastPoint = [px, py];
+    if (currentTransaction.points.size === previousSize) return; // APHELION EDIT ADDITION
     setPreviewData(
       currentTransaction.getPreviewLayer(layers[layer].data[dir]!),
     );
@@ -125,8 +162,13 @@ export class Pencil extends Tool {
     y: number,
   ) {
     if (!this.currentTransaction) return;
+    this.onMouseMove(context, data, x, y); // APHELION EDIT ADDITION
     if (this.currentTransaction.points.size !== 0) {
       this.currentTransaction.commit();
+      // APHELION EDIT ADDITION START
+    } else {
+      this.cancel(context);
+      // APHELION EDIT ADDITION END
     }
     this.currentTransaction = null;
     this.lastPoint = null;

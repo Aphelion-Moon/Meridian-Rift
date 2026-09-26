@@ -270,6 +270,8 @@ export type PreferencesMenuData = {
   job_preferences: JobPreference[];
 
   // NOVA EDIT ADDITION START
+  allow_custom_sprite_editing?: BooleanLike;
+  custom_marking_zones?: string[];
   preview_options: string[];
   preview_selection: string;
 
@@ -344,6 +346,7 @@ export type ServerData = {
     augment_items: AugmentSlot[];
     marking_choices: Record<string, MarkingChoice[]>;
     marking_presets: MarkingPreset[];
+    max_markings: number;
   };
   // NOVA EDIT ADDITION END
   [otherKey: string]: unknown;

@@ -12,10 +12,10 @@ import {
   useLayoutEffect,
   useState,
 } from 'react';
-import { type Box, KeyListener } from 'tgui-core/components';
+import type { Box } from 'tgui-core/components'; // APHELION EDIT CHANGE - ORIGINAL: import { type Box, KeyListener } from 'tgui-core/components';
 import { UI_DISABLED, UI_INTERACTIVE } from 'tgui-core/constants';
 import { globalEvents } from 'tgui-core/events';
-import { KEY_ALT } from 'tgui-core/keycodes';
+// import { KEY_ALT } from 'tgui-core/keycodes'; // APHELION EDIT REMOVAL
 import { type BooleanLike, classes } from 'tgui-core/react';
 import { decodeHtmlEntities } from 'tgui-core/string';
 import { useBackend } from '../backend';
@@ -189,10 +189,9 @@ type ContentProps = Partial<{
 
 function WindowContent(props: ContentProps) {
   const { className, fitted, children, ...rest } = props;
-  const [altDown, setAltDown] = useState(false);
-
+  // const [altDown, setAltDown] = useState(false); // APHELION EDIT REMOVAL
   function dragStartIfAltHeld(event: React.MouseEvent<HTMLDivElement>): void {
-    if (altDown) {
+    if (event.altKey && event.button === 0 && !event.defaultPrevented) { // APHELION EDIT CHANGE - ORIGINAL: if (altDown) {
       dragStartHandler(event);
     }
   }
@@ -208,6 +207,7 @@ function WindowContent(props: ContentProps) {
       className={classes(['Window__content', className])}
       {...rest}
     >
+      {/* APHELION EDIT REMOVAL START
       <KeyListener
         onKeyDown={(evt) => {
           if (KEY_ALT === evt.code) {
@@ -220,6 +220,7 @@ function WindowContent(props: ContentProps) {
           }
         }}
       />
+      APHELION EDIT REMOVAL END */}
       {fitted ? (
         children
       ) : (

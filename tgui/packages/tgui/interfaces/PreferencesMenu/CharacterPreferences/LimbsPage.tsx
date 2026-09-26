@@ -273,17 +273,30 @@ const Markings = (props: {
   act: (action: string, params?: Record<string, unknown>) => void;
 }) => {
   const { body_zone, chosen_markings, marking_choices, act } = props;
+  const { data } = useBackend<PreferencesMenuData>();
+  const maxMarkings = useServerPrefs()?.limbs_and_markings?.max_markings ?? 0;
+  const markings = chosen_markings ?? [];
+  const takenMarkings = new Set(markings.map((marking) => marking.name));
+  // A taur body takes the legs' place, so they get its drawing instead of markings.
+  const taurLeg = !!data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone);
+  const drawingZone = taurLeg ? 'taur' : body_zone;
+  // The drawing button lights up once it has paint; an empty canvas saves nothing.
+  const drawn = !!data.custom_marking_zones?.includes(drawingZone);
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
-      {(chosen_markings ?? []).map((marking) => {
+      {markings.map((marking) => {
+        // A limb takes each marking once, so a row offers only names no other row has claimed.
+        const choices = marking_choices.filter(
+          (name) => name === marking.name || !takenMarkings.has(name),
+        );
         return (
           <Stack.Item key={marking.marking_id}>
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
                 <Dropdown
                   width="100%"
-                  options={marking_choices}
+                  options={choices}
                   selected={marking.name}
                   displayText={marking.name}
                   maxItems={7}
@@ -342,14 +355,36 @@ const Markings = (props: {
           </Stack.Item>
         );
       })}
-      <Stack.Item>
-        <Button
-          color="good"
-          onClick={() => act('add_marking', { bodypart_slot: body_zone })}
-        >
-          +
-        </Button>
-      </Stack.Item>
+      {!taurLeg && markings.length < maxMarkings && (
+        <Stack.Item>
+          <Button
+            color="good"
+            onClick={() => act('add_marking', { bodypart_slot: body_zone })}
+          >
+            +
+          </Button>
+        </Stack.Item>
+      )}
+      {!!data.allow_custom_sprite_editing && (
+        <Stack.Item>
+          <Button
+            icon="paintbrush"
+            selected={drawn}
+            tooltip={`Lets you draw a custom marking over ${
+              taurLeg ? 'your taur body' : 'this limb'
+            }.${drawn ? ' You have one drawn; click to edit it.' : ''}`}
+            onClick={() =>
+              act('open_custom_sprite_editor', {
+                target: 'markings',
+                body_zone: drawingZone,
+              })
+            }
+          >
+            {taurLeg ? 'Taur body' : 'Custom'}
+            {drawn && <Icon name="check" ml={0.5} />}
+          </Button>
+        </Stack.Item>
+      )}
     </Stack>
   );
 };

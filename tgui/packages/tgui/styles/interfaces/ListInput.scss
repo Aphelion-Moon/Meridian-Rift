@@ -12,6 +12,12 @@
 
 .ListInput__Section .Section__titleText {
   font-size: 1rem;
+  // APHELION EDIT ADDITION START - Wrap long prompts instead of truncating them
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  // APHELION EDIT ADDITION END
 }
 
 .ListInput__Loader {
