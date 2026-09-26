@@ -38,7 +38,8 @@
 		return
 	var/list/current
 	if(!robot.cyborg_appearance_store || robot.cyborg_appearance_slot == preferences.default_slot || robot.cyborg_appearance_owner != robot.ckey)
-		current = preferences.cyborg_layout_begin_draft()
+		var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+		current = editor.begin_draft()
 		if(!current)
 			robot.cyborg_appearance_store = null
 			robot.cyborg_appearance_layout = null

@@ -55,9 +55,7 @@
 	return slots
 
 /proc/cyborg_layout_copy(layout)
-	if(islist(layout) && (("schema_version" in layout) || ("active" in layout) || ("presets" in layout) || ("model_defaults" in layout)))
-		return cyborg_layout_normalize(layout)
-	return cyborg_layout_normalize_slots(layout)
+	return deep_copy_list(layout)
 
 /proc/cyborg_layout_number(value, minimum, maximum, default_value, step = 0.01)
 	if(istext(value))
@@ -157,39 +155,6 @@
 		if(length(normalized_arousal))
 			entry["arousal"] = normalized_arousal
 	return length(entry) ? entry : null
-
-/// UI action payloads must fit the known directional schema before replacement.
-/proc/cyborg_layout_advanced_action_is_bounded(raw)
-	if(!islist(raw) || length(raw) > length(cyborg_layout_supported_advanced_keys()))
-		return FALSE
-	var/list/supported = cyborg_layout_supported_advanced_keys()
-	for(var/key in raw)
-		if(!(key in supported))
-			return FALSE
-	for(var/key in supported)
-		var/list/entry = raw[key]
-		if(isnull(entry))
-			continue
-		if(!islist(entry) || length(entry) > 7)
-			return FALSE
-		for(var/entry_key in entry)
-			if(!(entry_key in list("visible", "pixel_x", "pixel_y", "rotation", "scale", "priority", "arousal")))
-				return FALSE
-		var/list/arousal = entry["arousal"]
-		if(!isnull(arousal))
-			if(!islist(arousal) || length(arousal) > 3)
-				return FALSE
-			for(var/state in arousal)
-				if(!(state in list("none", "partial", "full")))
-					return FALSE
-			for(var/state in list("none", "partial", "full"))
-				var/list/state_entry = arousal[state]
-				if(!isnull(state_entry) && (!islist(state_entry) || length(state_entry) > 6))
-					return FALSE
-				for(var/state_key in state_entry)
-					if(!(state_key in list("visible", "pixel_x", "pixel_y", "rotation", "scale", "priority")))
-						return FALSE
-	return TRUE
 
 /proc/cyborg_layout_normalize_slots(raw, allow_legacy_aliases = FALSE)
 	var/list/normalized = list()

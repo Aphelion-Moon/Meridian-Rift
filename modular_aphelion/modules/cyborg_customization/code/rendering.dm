@@ -53,6 +53,7 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	var/list/choices = runtime_state["choices"]
 	var/list/active = runtime_state["active"]
 	var/list/arousal = runtime_state["arousal"]
+	var/list/anchor = cyborg_animation_anchor(descriptor, runtime_state["direction"], runtime_state["pose"])
 	for(var/slot in cyborg_layout_supported_slots())
 		if(!active[slot] || !choices[slot] || choices[slot] == SPRITE_ACCESSORY_NONE)
 			continue
@@ -60,7 +61,6 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		var/list/entry = layout[slot]
 		var/mirrored = cyborg_mirror_placement(descriptor, entry, runtime_state["direction"])
 		var/list/placement = cyborg_resolve_placement(entry, runtime_state["direction"], runtime_state["pose"], state, mirrored, TRAIT_R_WIDE in descriptor["features"])
-		var/list/anchor = cyborg_animation_anchor(descriptor, runtime_state["direction"], runtime_state["pose"])
 		if(anchor)
 			placement["pixel_x"] += anchor["x"]
 			placement["pixel_y"] += anchor["y"]
@@ -185,10 +185,10 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	for(var/slot in cyborg_layout_supported_slots())
 		if(preference != "silicon_[slot]_sprite")
 			continue
-		var/list/draft = preferences.cyborg_layout_begin_draft()
+		var/list/draft = begin_draft()
 		if(draft)
 			draft["active"][slot]["sprite"] = cyborg_preference_value(preferences, preference)
-			preferences.cyborg_layout_update_draft(draft)
+			update_draft(draft)
 	if(iscyborg(user))
 		var/mob/living/silicon/robot/robot = user
 		robot.cyborg_customization_sync_permissions(preferences)

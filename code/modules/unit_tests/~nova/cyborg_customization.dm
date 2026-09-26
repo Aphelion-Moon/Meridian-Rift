@@ -1,5 +1,103 @@
 /// Focused tests for the bounded cyborg layout contract.
 
+/// Inject a staging failure through the same native seam used by the editor.
+/datum/preferences/cyborg_save_failure_test
+	parent_type = /datum/preferences/preferences_import_test
+	var/fail_layout_stage = FALSE
+
+/datum/preferences/cyborg_save_failure_test/write_preference(datum/preference/preference, preference_value)
+	if(fail_layout_stage && istype(preference, /datum/preference/cyborg_layout))
+		return FALSE
+	return ..()
+
+/datum/unit_test/cyborg_save_failure_retains_draft
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_save_failure_retains_draft/Run()
+	var/datum/preferences/cyborg_save_failure_test/preferences = create_preferences(preference_type = /datum/preferences/cyborg_save_failure_test)
+	var/datum/json_savefile/save_result_test/store = allocate(/datum/json_savefile/save_result_test, null)
+	preferences.savefile = store
+	preferences.default_slot = 1
+	preferences.max_save_slots = 3
+	preferences.value_cache = list()
+	store.set_entry("character1", list("version" = 52))
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/list/draft = editor.begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 19
+	editor.update_draft(draft)
+	var/context = editor.context_generation
+	var/revision = editor.draft_revision
+	preferences.fail_layout_stage = TRUE
+	TEST_ASSERT(!editor.commit_draft(), "Injected staging failure was acknowledged.")
+	TEST_ASSERT(editor.dirty && editor.draft && editor.save_error, "Staging failure lost its retryable draft.")
+	preferences.fail_layout_stage = FALSE
+	store.path = "unused_cyborg_write_failure.json"
+	TEST_ASSERT(!editor.commit_draft(), "Injected disk write failure was acknowledged.")
+	TEST_ASSERT(editor.dirty && editor.draft == draft, "Write failure discarded the owned draft.")
+	TEST_ASSERT_EQUAL(preferences.load_character(2), PREFERENCES_LOAD_ABORTED, "Direct slot load did not veto the failed save.")
+	preferences.switch_to_slot(2)
+	TEST_ASSERT_EQUAL(preferences.default_slot, 1, "Failed save changed the character slot.")
+	TEST_ASSERT_NULL(store.get_entry("character2"), "An aborted slot change initialized a missing character.")
+	store.forced_result = ""
+	TEST_ASSERT(editor.commit_draft(), "Retry after write recovery failed.")
+	TEST_ASSERT(!editor.dirty && !editor.save_error, "Successful retry did not clear pending/error state.")
+	TEST_ASSERT_EQUAL(editor.saved_revision, revision, "Retry acknowledged the wrong revision.")
+	TEST_ASSERT_EQUAL(store.get_entry("character1")["silicon_genital_layout_presets"]["active"]["penis"]["pixel_x"], 19, "Retry lost accepted placement data.")
+	draft["active"]["penis"]["pixel_x"] = 21
+	editor.update_draft(draft)
+	editor.before_character_save()
+	draft["active"]["penis"]["pixel_x"] = 22
+	editor.update_draft(draft)
+	editor.after_preferences_save(JSON_SAVE_WRITTEN)
+	TEST_ASSERT(editor.dirty, "An older staged revision acknowledged a newer edit.")
+	editor.on_character_replaced()
+	editor.flush_timer(1, context, revision)
+	TEST_ASSERT_NULL(editor.draft, "A stale timer resurrected replaced data.")
+	TEST_ASSERT_NULL(editor.draft_timer, "Replacement retained an old callback.")
+	store.path = null
+	draft = editor.begin_draft()
+	editor.update_draft(draft)
+	TEST_ASSERT_EQUAL(editor.commit_draft(), JSON_SAVE_SESSION_ONLY, "Memory-only preference mode must remain usable.")
+	TEST_ASSERT(editor.session_only && !editor.dirty, "Memory-only result claimed durable saving or remained stuck.")
+
+/datum/unit_test/cyborg_targeted_placement/Run()
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	var/list/store = cyborg_layout_default()
+	var/list/entry = store["active"]["penis"]
+	entry["advanced"]["west"] = list("visible" = FALSE, "pixel_x" = 12, "pixel_y" = -4, "scale" = 1.5, "arousal" = list("full" = list("pixel_y" = 8)))
+	store["presets"]["Original"] = deep_copy_list(store["active"])
+	var/list/command = list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "pose", "direction" = "west", "pose" = "rest"), "changes" = list("pixel_x" = 0, "pixel_y" = 3))
+	var/list/result = cyborg_layout_action(store, command, model_id)
+	var/list/next = result["store"]
+	TEST_ASSERT(next, "A valid atomic placement was rejected.")
+	var/list/pose = next["active"]["penis"]["advanced"]["rest_west"]
+	TEST_ASSERT_EQUAL(pose["pixel_x"], 0, "An explicit zero correction was lost or mirrored.")
+	TEST_ASSERT_EQUAL(pose["pixel_y"], 3, "Atomic placement lost its other coordinate.")
+	TEST_ASSERT_EQUAL(pose["scale"], 1.5, "First pose edit failed to materialize the direction fallback.")
+	TEST_ASSERT_EQUAL(pose["visible"], FALSE, "First edit lost explicit false visibility.")
+	TEST_ASSERT_EQUAL(pose["arousal"]["full"]["pixel_y"], 8, "First edit lost inherited arousal overrides.")
+	TEST_ASSERT_NULL(entry["advanced"]["rest_west"], "Mutation changed the input store.")
+	TEST_ASSERT_NULL(next["presets"]["Original"]["penis"]["advanced"]["rest_west"], "Mutation changed a saved preset.")
+	command["changes"] = list("pixel_x" = 5, "pixel_y" = list("nested" = 2))
+	TEST_ASSERT_NULL(cyborg_layout_action(next, command, model_id)["store"], "Malformed multi-field input partially applied.")
+	TEST_ASSERT_EQUAL(pose["pixel_x"], 0, "Rejected input mutated the existing store.")
+	command["target"]["scope"] = "arousal"
+	command["target"]["arousal"] = "full"
+	command["changes"] = list("pixel_x" = 9)
+	next = cyborg_layout_action(next, command, model_id)["store"]
+	pose = next["active"]["penis"]["advanced"]["rest_west"]
+	TEST_ASSERT_EQUAL(pose["pixel_x"], 0, "Arousal edit changed the pose correction.")
+	TEST_ASSERT_EQUAL(pose["arousal"]["full"]["pixel_y"], 8, "Arousal edit erased an unrelated field.")
+	command["operation"] = "inherit_placement"
+	command -= "changes"
+	next = cyborg_layout_action(next, command, model_id)["store"]
+	TEST_ASSERT_NULL(next["active"]["penis"]["advanced"]["rest_west"]["arousal"]["full"], "Inherit did not remove the addressed arousal override.")
+	TEST_ASSERT_EQUAL(next["active"]["penis"]["advanced"]["west"]["pixel_x"], 12, "Inherit changed the direction fallback.")
+	command = list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = WEST), "changes" = list("pixel_x" = 10, "scale" = 1.5))
+	next = cyborg_layout_action(next, command, model_id)["store"]
+	TEST_ASSERT_EQUAL(next["active"]["penis"]["scale"], 1.5, "Part scale became specific to a direction group.")
+	TEST_ASSERT_EQUAL(next["active"]["penis"]["placement_groups"]["side"]["pixel_x"], 10, "The server did not derive the wide side group.")
+
 /// Keep mock connections out of real registries and detach them on every exit path.
 /datum/unit_test/cyborg_mock_preferences
 	abstract_type = /datum/unit_test/cyborg_mock_preferences
@@ -37,10 +135,10 @@
 	previous_persistent_clients = null
 	previous_persistent_client_list = null
 
-/datum/unit_test/cyborg_mock_preferences/proc/create_preferences(mob/living/silicon/robot/robot)
+/datum/unit_test/cyborg_mock_preferences/proc/create_preferences(mob/living/silicon/robot/robot, preference_type = /datum/preferences/preferences_import_test)
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	// Reuse the native memory-only preference fixture and its parent-link teardown.
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/preferences/preferences = allocate(preference_type, mock_client)
 	mock_client.prefs = preferences
 	if(robot)
 		robot.mock_client = mock_client
@@ -71,11 +169,10 @@
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
-	var/datum/preference_middleware/cyborg_character/middleware = new(preferences)
-	allocated += middleware
+	var/datum/preference_middleware/cyborg_character/middleware = preferences.cyborg_session()
 	middleware.page_active = TRUE
 	middleware.preview_model = model_id
-	TEST_ASSERT(middleware.edit_layout(list("operation" = "save_default", "character_slot" = 2), robot), "Saving a model default must succeed.")
+	TEST_ASSERT(middleware.edit_layout(list("operation" = "save_default", "character_slot" = 2, "context" = middleware.context_generation), robot), "Saving a model default must succeed.")
 	var/list/store = preferences.read_preference(/datum/preference/cyborg_layout)
 	TEST_ASSERT_EQUAL(store["model_defaults"][model_id]["penis"]["sprite"], "Dogborg Knotted", "Model defaults must snapshot sprite choices.")
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], SPRITE_ACCESSORY_NONE)
@@ -95,13 +192,13 @@
 	TEST_ASSERT_NULL(runtime_data["store"], "Runtime data must not expose editable saved layouts.")
 	TEST_ASSERT(length(runtime_data["parts"]), "Runtime controls must list configured parts.")
 	var/before = json_encode(robot.cyborg_appearance_layout)
-	TEST_ASSERT(!robot.cyborg_runtime_action(list("operation" = "place", "slot" = "penis", "x" = 100, "y" = 100, "character_slot" = 2), robot), "Runtime placement must be rejected server-side.")
+	TEST_ASSERT(!robot.cyborg_runtime_action(list("operation" = "place", "slot" = "penis", "x" = 100, "y" = 100, "character_slot" = 2, "context" = middleware.context_generation), robot), "Runtime placement must be rejected server-side.")
 	TEST_ASSERT_EQUAL(json_encode(robot.cyborg_appearance_layout), before, "Rejected runtime editing must leave layout untouched.")
-	TEST_ASSERT(robot.cyborg_runtime_action(list("operation" = "activate", "slot" = "penis", "value" = FALSE, "character_slot" = 2), robot), "Usage controls must allow hiding configured parts.")
+	TEST_ASSERT(robot.cyborg_runtime_action(list("operation" = "activate", "slot" = "penis", "value" = FALSE, "character_slot" = 2, "context" = middleware.context_generation), robot), "Usage controls must allow hiding configured parts.")
 	apply_cyborg_customization(robot, preferences, "login")
 	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "Reconnect must preserve an explicit hidden state.")
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_choices["penis"], "Dogborg Knotted", "Reconnect must preserve the model's saved sprite.")
-	TEST_ASSERT(middleware.edit_layout(list("operation" = "load_default", "character_slot" = 2), robot), "Creator must load the saved default.")
+	TEST_ASSERT(middleware.edit_layout(list("operation" = "load_default", "character_slot" = 2, "context" = middleware.context_generation), robot), "Creator must load the saved default.")
 	TEST_ASSERT_EQUAL(preferences.read_preference(/datum/preference/choiced/cyborg_sprite/penis), "Dogborg Knotted", "Loading a default must restore the sprite selector too.")
 
 /datum/unit_test/cyborg_creator_draft_lifecycle/Run()
@@ -116,17 +213,22 @@
 	var/datum/preference_middleware/cyborg_character/editor = locate() in preferences.middleware
 	TEST_ASSERT(editor, "The character creator middleware was not registered on real preferences.")
 	TEST_ASSERT(!length(editor.get_ui_data(null)), "A closed creator eagerly generated preview data.")
-	var/list/pending = preferences.cyborg_layout_begin_draft()
-	preferences.cyborg_layout_update_draft(pending)
-	var/pending_timer = preferences.cyborg_layout_draft_timer
+	var/list/pending = preferences.cyborg_session().begin_draft()
+	preferences.cyborg_session().update_draft(pending)
+	var/pending_timer = preferences.cyborg_session().draft_timer
 	editor.set_page(list("active" = FALSE), null)
-	TEST_ASSERT_EQUAL(preferences.cyborg_layout_draft_timer, pending_timer, "A redundant inactive-page message flushed a draft owned by another interface.")
-	preferences.cyborg_layout_discard_draft("creator_fixture")
+	TEST_ASSERT_EQUAL(preferences.cyborg_session().draft_timer, pending_timer, "A redundant inactive-page message flushed a draft owned by another interface.")
+	preferences.cyborg_session().discard_draft("creator_fixture")
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	for(var/cycle in 1 to 3)
 		TEST_ASSERT(editor.set_page(list("active" = TRUE), null), "Opening the creator was rejected.")
-		TEST_ASSERT(editor.set_preview(list("model" = model_id, "direction" = NORTH), null), "Selecting a valid creator model was rejected.")
+		TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "model" = model_id, "direction" = NORTH), null), "Selecting a valid creator model was rejected.")
 		var/list/payload = editor.get_ui_data(null)["cyborg_customization"]
+		TEST_ASSERT_NULL(payload["body"], "Ordinary UI updates must not retransmit chassis images.")
+		if(cycle == 1)
+			TEST_NOTICE(src, "Creator payload JSON characters: dynamic [length(json_encode(payload))], private resources [length(json_encode(editor.preview_resources))]. Closed gallery, Drake north, default parts.")
+		payload += editor.get_ui_static_data(null)["cyborg_resources"]
+		var/list/resources_before = editor.preview_resources
 		TEST_ASSERT_EQUAL(payload["model"], model_id, "The preview did not select the requested canonical model.")
 		TEST_ASSERT_EQUAL(payload["direction"], NORTH, "The preview did not select the requested cardinal direction.")
 		TEST_ASSERT(findtext(payload["body"], "iVBORw0KGgo") == 1, "The creator did not return a PNG body preview.")
@@ -135,24 +237,37 @@
 			TEST_ASSERT_NULL(model_preview["thumbnail"], "Closed galleries must not render every model thumbnail on each layout edit.")
 			TEST_ASSERT_NULL(model_preview["thumbnail_directions"], "Closed galleries must not send rotation frames.")
 		TEST_ASSERT(findtext(payload["reference"], "iVBORw0KGgo") == 1, "The creator must include its fixed-size reference artwork.")
-		var/list/edit = list("character_slot" = 2, "operation" = "set", "slot" = "penis", "field" = "pixel_x", "value" = 99)
+		var/list/edit = list("character_slot" = 2, "context" = editor.context_generation, "operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = NORTH), "changes" = list("pixel_x" = 99))
 		TEST_ASSERT(!editor.edit_layout(edit, null), "A stale character slot was allowed to edit the current slot.")
-		TEST_ASSERT_EQUAL(preferences.cyborg_layout_begin_draft()["active"]["penis"]["pixel_x"], cycle == 1 ? 0 : cycle - 1, "A rejected stale action changed the current draft.")
+		TEST_ASSERT_EQUAL((preferences.cyborg_session().begin_draft()["active"]["penis"]["placement_groups"]?["north"]?["pixel_x"] || 0), cycle == 1 ? 0 : cycle - 1, "A rejected stale action changed the current draft.")
 		edit["character_slot"] = 1
-		edit["value"] = cycle
+		edit["changes"]["pixel_x"] = cycle
 		TEST_ASSERT(editor.edit_layout(edit, null), "A current-slot creator edit was rejected.")
-		TEST_ASSERT(preferences.cyborg_layout_draft_timer, "A creator edit did not schedule persistence.")
+		editor.get_ui_data(null)
+		TEST_ASSERT(editor.preview_resources == resources_before, "A position-only edit rebuilt static preview resources.")
+		if(cycle == 1)
+			preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], FALSE)
+			var/list/denied = editor.get_ui_data(null)["cyborg_customization"]
+			TEST_ASSERT(!denied["allowed"] && !length(denied["layers"]), "Revoking permission retained private preview layers.")
+			TEST_ASSERT_NULL(editor.get_ui_static_data(null)["cyborg_resources"], "Revoking permission retained the static resource payload.")
+			preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+			editor.get_ui_data(null)
+			TEST_ASSERT(editor.get_ui_static_data(null)["cyborg_resources"], "Restoring permission did not restore preview resources.")
+		var/stale_context = editor.context_generation - 1
+		TEST_ASSERT(!editor.set_preview(list("context" = stale_context, "model" = model_id), null), "A replaced context accepted a stale model action.")
+		TEST_ASSERT(preferences.cyborg_session().draft_timer, "A creator edit did not schedule persistence.")
 		// Closing the whole preferences window must save even without a React unmount action.
 		preferences.ui_close(null)
 		TEST_ASSERT(!editor.page_active && !length(editor.get_ui_data(null)), "Closing preferences left the creator active.")
-		TEST_ASSERT_NULL(preferences.cyborg_layout_draft_timer, "Closing preferences retained a deferred write callback.")
-		TEST_ASSERT_NULL(preferences.cyborg_layout_draft, "Closing preferences retained an editable draft.")
+		TEST_ASSERT_NULL(preferences.cyborg_session().draft_timer, "Closing preferences retained a deferred write callback.")
+		TEST_ASSERT(!preferences.cyborg_session().dirty, "Closing preferences left accepted edits unsaved.")
 		var/list/saved = preferences.savefile.get_entry("character1")
-		TEST_ASSERT_EQUAL(saved["silicon_genital_layout_presets"]["active"]["penis"]["pixel_x"], cycle, "Closing preferences lost the last creator edit.")
+		TEST_ASSERT_EQUAL(saved["silicon_genital_layout_presets"]["active"]["penis"]["placement_groups"]["north"]["pixel_x"], cycle, "Closing preferences lost the last creator edit.")
 		TEST_ASSERT(!editor.edit_layout(edit, null), "A closed creator accepted a delayed edit.")
-		TEST_ASSERT(!editor.set_preview(list("model" = model_id), null), "A closed creator accepted a delayed preview action.")
+		TEST_ASSERT(!editor.set_preview(list("context" = editor.context_generation, "model" = model_id), null), "A closed creator accepted a delayed preview action.")
 
 	editor.set_page(list("active" = TRUE), null)
+	editor.on_character_replaced()
 	var/list/future = list("schema_version" = 2, "active" = list("penis" = list("pixel_x" = 99)))
 	preferences.savefile.set_entry("character1", list("version" = 52, "silicon_genital_layout_presets" = future))
 	preferences.value_cache -= /datum/preference/cyborg_layout
@@ -181,43 +296,48 @@
 	var/datum/preference_middleware/cyborg_character/editor = locate() in preferences.middleware
 	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
 	TEST_ASSERT(editor.set_page(list("active" = TRUE), null), "Opening the creator was rejected.")
-	TEST_ASSERT(editor.set_preview(list("model" = model_id), null), "Selecting the model was rejected.")
-	var/list/draft = preferences.cyborg_layout_begin_draft()
+	TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "model" = model_id), null), "Selecting the model was rejected.")
+	var/list/draft = preferences.cyborg_session().begin_draft()
 	draft["active"]["penis"]["pixel_x"] = 7
 	var/list/model_default = cyborg_layout_copy(draft["active"])
 	model_default["penis"]["pixel_x"] = 31
 	draft["model_defaults"][model_id] = model_default
-	TEST_ASSERT(preferences.cyborg_layout_update_draft(draft), "The model-default fixture was not accepted.")
+	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "The model-default fixture was not accepted.")
 	var/list/payload = editor.get_ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["layout_source"], "active", "A newly opened creator must edit the active layout.")
 	TEST_ASSERT_EQUAL(payload["store"]["active"]["penis"]["pixel_x"], 7, "The active draft fixture was not retained.")
-	TEST_ASSERT(editor.set_preview(list("layout_source" = "model_default"), null), "Selecting the model-default preview was rejected.")
+	var/pending_timer = editor.draft_timer
+	TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "layout_source" = "model_default"), null), "Selecting the model-default preview was rejected.")
 	payload = editor.get_ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["layout_source"], "model_default", "A saved model default was not selected for preview.")
 	TEST_ASSERT_EQUAL(payload["store"]["active"]["penis"]["pixel_x"], 7, "Previewing a model default mutated the active draft.")
+	TEST_ASSERT(editor.draft_timer && editor.draft_timer != pending_timer, "Changing preview source did not reschedule its stale-context save callback.")
+	deltimer(editor.draft_timer)
+	editor.flush_timer(editor.draft_slot, editor.context_generation, editor.draft_revision)
+	TEST_ASSERT(!editor.dirty, "Changing preview source invalidated the active draft's pending autosave.")
 	var/other_model
 	for(var/candidate in cyborg_catalog_for(preferences, "creator"))
 		if(candidate != model_id)
 			other_model = candidate
 			break
 	if(other_model)
-		TEST_ASSERT(editor.set_preview(list("model" = other_model), null), "Changing the preview model was rejected.")
+		TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "model" = other_model), null), "Changing the preview model was rejected.")
 		payload = editor.get_ui_data(null)["cyborg_customization"]
 		TEST_ASSERT_EQUAL(payload["layout_source"], "active", "Changing models retained a read-only model-default source.")
-		TEST_ASSERT(editor.set_preview(list("model" = model_id, "layout_source" = "model_default"), null), "Returning to the model-default fixture was rejected.")
-	TEST_ASSERT(editor.edit_layout(list("character_slot" = 1, "operation" = "set", "slot" = "penis", "field" = "pixel_x", "value" = 99), null), "The read-only model-default edit was not handled.")
+		TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "model" = model_id, "layout_source" = "model_default"), null), "Returning to the model-default fixture was rejected.")
+	TEST_ASSERT(editor.edit_layout(list("character_slot" = 1, "context" = editor.context_generation, "operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = NORTH), "changes" = list("pixel_x" = 99)), null), "The read-only model-default edit was not handled.")
 	payload = editor.get_ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["store"]["active"]["penis"]["pixel_x"], 7, "Editing a model-default preview changed the active draft.")
-	TEST_ASSERT(editor.edit_layout(list("character_slot" = 1, "operation" = "delete_default"), null), "Deleting the selected model default was rejected.")
+	TEST_ASSERT(editor.edit_layout(list("context" = editor.context_generation, "character_slot" = 1, "operation" = "delete_default"), null), "Deleting the selected model default was rejected.")
 	payload = editor.get_ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["layout_source"], "active", "Deleting the selected model default did not fall back to the active source.")
-	draft = preferences.cyborg_layout_begin_draft()
+	draft = preferences.cyborg_session().begin_draft()
 	model_default = cyborg_layout_copy(draft["active"])
 	model_default["penis"]["pixel_x"] = 31
 	draft["model_defaults"][model_id] = model_default
-	TEST_ASSERT(preferences.cyborg_layout_update_draft(draft), "The model-default fixture could not be restored.")
-	TEST_ASSERT(editor.set_preview(list("layout_source" = "model_default"), null), "Restoring the model-default preview was rejected.")
-	TEST_ASSERT(editor.edit_layout(list("character_slot" = 1, "operation" = "load_default"), null), "Loading the selected model default was rejected.")
+	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "The model-default fixture could not be restored.")
+	TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "layout_source" = "model_default"), null), "Restoring the model-default preview was rejected.")
+	TEST_ASSERT(editor.edit_layout(list("context" = editor.context_generation, "character_slot" = 1, "operation" = "load_default"), null), "Loading the selected model default was rejected.")
 	payload = editor.get_ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["layout_source"], "active", "Loading a model default did not return to the editable active source.")
 	TEST_ASSERT_EQUAL(payload["store"]["active"]["penis"]["pixel_x"], 31, "Loading a model default did not copy it into the active layout.")
@@ -228,15 +348,15 @@
 	preferences.default_slot = 1
 	preferences.savefile.set_entry("character1", list("version" = 52))
 	preferences.value_cache = list()
-	var/list/draft = preferences.cyborg_layout_begin_draft()
+	var/list/draft = preferences.cyborg_session().begin_draft()
 	draft["active"]["penis"]["pixel_x"] = 23
-	preferences.cyborg_layout_update_draft(draft)
+	preferences.cyborg_session().update_draft(draft)
 	// No recipient exercises export preparation while skipping the file-transfer UI.
 	// There is deliberately no sleep: export must contain the edit before debounce fires.
 	preferences.export_to_client(null, null)
 	var/list/saved = preferences.savefile.get_entry("character1")
 	TEST_ASSERT_EQUAL(saved?["silicon_genital_layout_presets"]?["active"]?["penis"]?["pixel_x"], 23, "Immediate export omitted the pending creator edit from its JSON tree.")
-	TEST_ASSERT_NULL(preferences.cyborg_layout_draft_timer, "Export left the exported edit waiting on its debounce timer.")
+	TEST_ASSERT_NULL(preferences.cyborg_session().draft_timer, "Export left the exported edit waiting on its debounce timer.")
 
 /// A short real-GC regression for the leak found by the full create/destroy sweep.
 /datum/unit_test/cyborg_mock_preferences_cleanup
@@ -341,12 +461,13 @@
 		wide_edges += 1
 	wide_input["active"]["penis"]["ignored"] = wide_edges
 	TEST_ASSERT_EQUAL(cyborg_layout_normalize(wide_input)["active"]["penis"]["pixel_x"], 23, "Unknown scalar width must be ignored without scanning every entry.")
-	var/list/advanced_too_wide = list()
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	var/list/command = list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "pose", "direction" = "north", "pose" = "idle"), "changes" = list())
 	for(var/index in 1 to 29)
-		advanced_too_wide["unknown_[index]"] = list()
-	TEST_ASSERT(!cyborg_layout_advanced_action_is_bounded(advanced_too_wide), "Oversized advanced action payloads must be rejected before normalization.")
-	TEST_ASSERT(!cyborg_layout_advanced_action_is_bounded(list("unsupported" = list("pixel_x" = 1))), "Unknown directional action keys must not erase a valid directional layout.")
-	TEST_ASSERT(!cyborg_layout_advanced_action_is_bounded(list("north" = list("unknown" = 1))), "Unknown directional action fields must be rejected before replacement.")
+		command["changes"]["unknown_[index]"] = list()
+	TEST_ASSERT_NULL(cyborg_layout_action(cyborg_layout_default(), command, model_id)["store"], "Oversized targeted edits must be rejected before walking nested values.")
+	command["changes"] = list("unknown" = 1)
+	TEST_ASSERT_NULL(cyborg_layout_action(cyborg_layout_default(), command, model_id)["store"], "Unknown placement fields must not replace valid data.")
 
 /datum/unit_test/cyborg_layout_import_aliases_and_future_data/Run()
 	var/list/legacy_layout = list("schema_version" = 1, "active" = list("penis" = list("advanced" = list("rest" = list("pixel_x" = 9)))))
@@ -435,7 +556,7 @@
 	TEST_ASSERT(robot.cyborg_runtime_action(runtime_activate, robot), "A consent-disabled runtime request must return visible feedback.")
 	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "A consent-disabled runtime request changed the body state.")
 
-	var/list/draft = preferences.cyborg_layout_begin_draft()
+	var/list/draft = preferences.cyborg_session().begin_draft()
 	var/list/draft_active = islist(draft) ? draft["active"] : null
 	var/list/draft_penis = islist(draft_active) ? draft_active["penis"] : null
 	if(!islist(draft) || !islist(draft_active) || !islist(draft_penis))
@@ -444,16 +565,16 @@
 		TEST_FAIL("Current-schema draft was malformed (draft_list=[islist(draft)], active_list=[islist(draft_active)], penis_list=[islist(draft_penis)], raw_future=[cyborg_layout_import_is_future(raw_layout)], cached_layout_list=[islist(preferences.value_cache[/datum/preference/cyborg_layout])]).")
 		return
 	draft["active"]["penis"]["pixel_x"] = 42
-	TEST_ASSERT(preferences.cyborg_layout_update_draft(draft), "A current-schema draft must be accepted.")
-	TEST_ASSERT(preferences.cyborg_layout_draft_timer, "Draft updates must schedule a debounced flush.")
-	preferences.cyborg_layout_discard_draft("unit_test")
-	TEST_ASSERT_NULL(preferences.cyborg_layout_draft, "Discard must clear the slot-bound draft.")
-	TEST_ASSERT_NULL(preferences.cyborg_layout_draft_timer, "Discard must cancel the pending flush callback.")
+	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "A current-schema draft must be accepted.")
+	TEST_ASSERT(preferences.cyborg_session().draft_timer, "Draft updates must schedule a debounced flush.")
+	preferences.cyborg_session().discard_draft("unit_test")
+	TEST_ASSERT_NULL(preferences.cyborg_session().draft, "Discard must clear the slot-bound draft.")
+	TEST_ASSERT_NULL(preferences.cyborg_session().draft_timer, "Discard must cancel the pending flush callback.")
 
-	draft = preferences.cyborg_layout_begin_draft()
+	draft = preferences.cyborg_session().begin_draft()
 	draft["active"]["penis"]["pixel_x"] = 17
-	TEST_ASSERT(preferences.cyborg_layout_update_draft(draft), "A second draft update failed.")
-	TEST_ASSERT(preferences.cyborg_layout_flush_draft("unit_test"), "A current-slot draft must flush.")
+	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "A second draft update failed.")
+	TEST_ASSERT(preferences.cyborg_session().commit_draft(), "A current-slot draft must flush.")
 	var/list/flushed = preferences.read_preference(/datum/preference/cyborg_layout)
 	TEST_ASSERT_EQUAL(flushed["active"]["penis"]["pixel_x"], 17, "Flush did not write the current slot's layout.")
 	var/list/new_slot_data = preferences.savefile.get_entry("character2")
@@ -476,19 +597,20 @@
 	preferences.default_slot = 1
 	preferences.value_cache = list()
 	preferences.read_preference(/datum/preference/cyborg_layout)
-	draft = preferences.cyborg_layout_begin_draft()
+	draft = preferences.cyborg_session().begin_draft()
 	draft["active"]["penis"]["pixel_x"] = 41
-	TEST_ASSERT(preferences.cyborg_layout_update_draft(draft), "The slot-one draft update failed.")
+	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "The slot-one draft update failed.")
 	TEST_ASSERT(preferences.load_character(2), "Directly loading the second character slot failed.")
 	TEST_ASSERT_EQUAL(preferences.read_preference(/datum/preference/cyborg_layout)["active"]["penis"]["pixel_x"], 2, "A slot-one layout draft leaked into slot two.")
 	var/list/saved_slot_one = preferences.savefile.get_entry("character1")
 	TEST_ASSERT_EQUAL(saved_slot_one["silicon_genital_layout_presets"]["active"]["penis"]["pixel_x"], 41, "Direct slot loading did not persist the old slot's layout draft.")
 
+	preferences.cyborg_session().on_character_replaced()
 	var/list/saved_slot_two = preferences.savefile.get_entry("character2")
 	var/list/future_layout = list("schema_version" = 2, "active" = list("penis" = list("pixel_x" = 99)))
 	saved_slot_two["silicon_genital_layout_presets"] = future_layout
 	preferences.value_cache -= /datum/preference/cyborg_layout
-	TEST_ASSERT_NULL(preferences.cyborg_layout_begin_draft(), "An unsupported future layout must not become an editable draft.")
+	TEST_ASSERT_NULL(preferences.cyborg_session().begin_draft(), "An unsupported future layout must not become an editable draft.")
 	TEST_ASSERT(saved_slot_two["silicon_genital_layout_presets"] == future_layout, "Opening the creator replaced future layout data.")
 
 	var/datum/preference/choiced/cyborg_size/size_preference = GLOB.preference_entries[/datum/preference/choiced/cyborg_size]
@@ -562,10 +684,11 @@
 	var/list/normalized = cyborg_layout_normalize(list("schema_version" = 1, "active" = list("penis" = list("sprite_size" = 99, "scale" = 99))))
 	TEST_ASSERT_EQUAL(normalized["active"]["penis"]["sprite_size"], 16, "Sprite size was not bounded.")
 	TEST_ASSERT_EQUAL(normalized["active"]["penis"]["scale"], 2, "Continuous scale exceeded the 200% cap.")
-	var/list/placed = cyborg_layout_action(cyborg_layout_default(), list("operation" = "place", "slot" = "penis", "x" = 999, "y" = -999), null)
-	TEST_ASSERT_EQUAL(placed["store"]["active"]["penis"]["pixel_x"], 128, "Atomic placement did not clamp X.")
-	TEST_ASSERT_EQUAL(placed["store"]["active"]["penis"]["pixel_y"], -128, "Atomic placement did not clamp Y.")
-	var/list/fractional = cyborg_layout_action(cyborg_layout_default(), list("operation" = "place", "slot" = "penis", "x" = 15.6, "y" = -15.6), null)["store"]["active"]["penis"]
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	var/list/placed = cyborg_layout_action(cyborg_layout_default(), list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "pose", "direction" = "south", "pose" = "idle"), "changes" = list("pixel_x" = 999, "pixel_y" = -999)), model_id)
+	TEST_ASSERT_EQUAL(placed["store"]["active"]["penis"]["advanced"]["idle_south"]["pixel_x"], 128, "Atomic placement did not clamp X.")
+	TEST_ASSERT_EQUAL(placed["store"]["active"]["penis"]["advanced"]["idle_south"]["pixel_y"], -128, "Atomic placement did not clamp Y.")
+	var/list/fractional = cyborg_layout_action(cyborg_layout_default(), list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "pose", "direction" = "south", "pose" = "idle"), "changes" = list("pixel_x" = 15.6, "pixel_y" = -15.6)), model_id)["store"]["active"]["penis"]["advanced"]["idle_south"]
 	TEST_ASSERT_EQUAL(fractional["pixel_x"], 16, "Placement must round X to the nearest whole pixel.")
 	TEST_ASSERT_EQUAL(fractional["pixel_y"], -16, "Placement must round negative Y to the nearest whole pixel.")
 	var/list/fractional_entry = list("pixel_x" = -7.6, "pixel_y" = 7.6, "advanced" = list("north" = list("pixel_x" = -1.6, "arousal" = list("full" = list("pixel_y" = 2.6)))))

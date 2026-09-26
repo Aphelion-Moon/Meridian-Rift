@@ -150,7 +150,8 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 	for(var/datum/preferences/old_prefs as anything in list(GLOB.preferences_datums[target_ckey], connected?.prefs))
 		if(!old_prefs)
 			continue
-		old_prefs.cyborg_layout_discard_draft("import")
+		for(var/datum/preference_middleware/preference_middleware as anything in old_prefs.middleware)
+			preference_middleware.on_character_replaced()
 		old_prefs.load_and_save = FALSE
 		old_prefs.path = null
 		if(old_prefs.savefile)

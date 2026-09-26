@@ -4,11 +4,7 @@ import { AdjustmentSlider } from '../AdjustmentSlider';
 import { ColorControls } from './ColorControls';
 import { PresetControls } from './PresetControls';
 import { placementBase, placementGroup } from './placementGroups';
-import {
-  type PlacementTarget,
-  posePlacement,
-  updatePosePlacement,
-} from './posePlacement';
+import { type PlacementTarget, posePlacement } from './posePlacement';
 import {
   CYBORG_SLOTS,
   type CyborgSlot,
@@ -16,6 +12,7 @@ import {
   type LayoutAction,
   type LayoutStore,
   type PartMetadata,
+  type PlacementCommand,
 } from './types';
 
 export const editorLabel = (value: string) =>
@@ -109,19 +106,25 @@ export function LayoutControls(props: {
   );
   const set = (field: string, value: unknown) =>
     onAction({ operation: 'set', slot, field, value, placement_group: group });
+  const placement = (scope: 'base' | 'pose' | 'arousal') => ({
+    scope,
+    direction,
+    pose,
+    arousal,
+  });
+  const setPlacement = (field: string, value: unknown) =>
+    onAction({
+      operation: 'set_placement',
+      slot,
+      target: placement(target),
+      changes: { [field]: value },
+    } as PlacementCommand);
   const {
     key: directionKey,
     directional,
     effective: arousalPlacement,
   } = posePlacement(entry, direction, pose, arousal);
   const effective = stateOverride ? arousalPlacement : directional;
-  const setDirectional = (field: string, value: unknown) =>
-    set(
-      'advanced',
-      updatePosePlacement(entry, direction, pose, arousal, stateOverride, {
-        [field]: value,
-      }),
-    );
   const sliders = (
     values: DirectionEntry | typeof entry,
     update: typeof set,
@@ -258,7 +261,7 @@ export function LayoutControls(props: {
                   : 'All views'}{' '}
               · Positive Y moves upward.
             </Box>
-            {sliders(base, set)}
+            {sliders(base, setPlacement)}
             {!!part?.color_channels.length && (
               <Box bold my={1}>
                 Colors
@@ -333,11 +336,11 @@ export function LayoutControls(props: {
             <Button.Checkbox
               disabled={props.disabled}
               checked={!!effective.visible}
-              onClick={() => setDirectional('visible', !effective.visible)}
+              onClick={() => setPlacement('visible', !effective.visible)}
             >
               Visible in this view
             </Button.Checkbox>
-            {sliders(effective, setDirectional, true)}
+            {sliders(effective, setPlacement, true)}
             <Button.Confirm
               disabled={
                 props.disabled ||
@@ -345,18 +348,13 @@ export function LayoutControls(props: {
                   ? !entry.advanced[directionKey]?.arousal?.[arousal]
                   : !entry.advanced[directionKey])
               }
-              onClick={() => {
-                const advanced = { ...entry.advanced };
-                if (stateOverride) {
-                  const states = { ...advanced[directionKey].arousal };
-                  delete states[arousal];
-                  advanced[directionKey] = {
-                    ...advanced[directionKey],
-                    arousal: states,
-                  };
-                } else delete advanced[directionKey];
-                set('advanced', advanced);
-              }}
+              onClick={() =>
+                onAction({
+                  operation: 'inherit_placement',
+                  slot,
+                  target: placement(target),
+                } satisfies PlacementCommand)
+              }
             >
               {stateOverride
                 ? 'Inherit pose placement'

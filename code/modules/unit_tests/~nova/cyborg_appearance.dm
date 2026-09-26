@@ -2,8 +2,9 @@
 /datum/unit_test/cyborg_independent_placement_groups/Run()
 	var/list/store = cyborg_layout_default()
 	store["active"]["penis"]["pixel_y"] = 15
-	store = cyborg_layout_action(store, list("operation" = "place", "slot" = "penis", "placement_group" = "side", "x" = 22, "y" = 7), null)["store"]
-	store = cyborg_layout_action(store, list("operation" = "place", "slot" = "penis", "placement_group" = "north", "x" = 1, "y" = -3), null)["store"]
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	store = cyborg_layout_action(store, list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = EAST), "changes" = list("pixel_x" = 22, "pixel_y" = 7)), model_id)["store"]
+	store = cyborg_layout_action(store, list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = NORTH), "changes" = list("pixel_x" = 1, "pixel_y" = -3)), model_id)["store"]
 	var/list/entry = store["active"]["penis"]
 	TEST_ASSERT_EQUAL(cyborg_resolve_placement(entry, EAST, "idle", "none", FALSE, TRUE)["pixel_x"], 22, "North edits must not replace side placement.")
 	TEST_ASSERT_EQUAL(cyborg_resolve_placement(entry, WEST, "idle", "none", TRUE, TRUE)["pixel_x"], -22, "Side placement must mirror west.")

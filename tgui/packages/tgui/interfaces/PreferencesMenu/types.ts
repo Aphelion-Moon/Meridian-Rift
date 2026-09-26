@@ -251,6 +251,9 @@ export type CharacterPreferencesData = {
 
 export type PreferencesMenuData = {
   cyborg_customization?: CyborgCustomizationData;
+  cyborg_resources?: Partial<CyborgCustomizationData> & {
+    layer_icons?: Record<string, string>;
+  };
   character_preview_view: string;
   character_profiles: (string | null)[];
 

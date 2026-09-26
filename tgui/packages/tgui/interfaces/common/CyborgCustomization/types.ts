@@ -49,6 +49,15 @@ export type LayoutStore = {
   model_defaults: Record<string, Layout>;
 };
 export type CyborgCustomizationData = {
+  /** Replaced drafts invalidate commands; ordinary edits only advance revision. */
+  context?: number;
+  revision?: number;
+  save_status?: {
+    pending: boolean;
+    revision: number;
+    session_only: boolean;
+    error?: string;
+  };
   wide?: boolean | number;
   reference?: string;
   parts?: Partial<Record<CyborgSlot, PartMetadata>>;
@@ -102,6 +111,17 @@ export type PartMetadata = {
   color_channels: number[];
 };
 export type LayoutAction = (params: Record<string, unknown>) => void;
+export type PlacementCommand = {
+  operation: 'set_placement' | 'inherit_placement';
+  slot: CyborgSlot;
+  target: {
+    scope: 'base' | 'pose' | 'arousal';
+    direction: string | number;
+    pose: string;
+    arousal: string;
+  };
+  changes?: Partial<Omit<DirectionEntry, 'arousal'>>;
+};
 
 // A single registry is shared by the creator and ordinary preference filtering.
 export const CYBORG_VISUAL_KEYS = [

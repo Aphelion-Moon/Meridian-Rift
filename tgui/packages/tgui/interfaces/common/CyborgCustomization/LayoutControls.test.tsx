@@ -58,7 +58,9 @@ it('edits the direction and pose currently shown in the creator preview', async 
     fireEvent.click(screen.getByText('Visible in this view')),
   );
   expect(actions[0]).toMatchObject({
-    value: { rest_north: { visible: false } },
+    operation: 'set_placement',
+    target: { scope: 'pose', direction: 'north', pose: 'rest' },
+    changes: { visible: false },
   });
   await act(async () => fireEvent.click(screen.getByText('Resting')));
   expect(screen.queryByText('bellyup') === null).toBe(true);
@@ -128,29 +130,10 @@ it.each([
 
   expect(actions).toHaveLength(1);
   expect(actions[0]).toMatchObject({
-    operation: 'set',
+    operation: 'set_placement',
     slot: 'penis',
-    field: 'advanced',
-    value: {
-      rest_south: explicitPose
-        ? {
-            visible: false,
-            pixel_x: 0,
-            pixel_y: 7,
-            rotation: 0,
-            scale: 1,
-            priority: 5,
-          }
-        : {
-            visible: true,
-            pixel_x: 12,
-            pixel_y: -4,
-            rotation: 20,
-            scale: 1.5,
-            priority: 3,
-            arousal: { full: { pixel_y: 8 } },
-          },
-    },
+    target: { scope: 'pose', direction: 'south', pose: 'rest' },
+    changes: { visible: !explicitPose },
   });
   if (explicitPose) {
     expect(store.active.penis.advanced.rest_south.visible).toBe(true);

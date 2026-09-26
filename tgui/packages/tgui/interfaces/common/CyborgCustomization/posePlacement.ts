@@ -31,27 +31,3 @@ export function posePlacement(
     effective: { ...directional, ...directional.arousal?.[arousal] },
   };
 }
-
-/** Shared by numeric edits, pointer placement, and keyboard nudges. */
-export function updatePosePlacement(
-  entry: LayoutEntry,
-  direction: string | number,
-  pose: string,
-  arousal: string,
-  onlyArousal: boolean,
-  changes: Partial<DirectionEntry>,
-) {
-  const { key, directional } = posePlacement(entry, direction, pose, arousal);
-  return {
-    ...entry.advanced,
-    [key]: onlyArousal
-      ? {
-          ...directional,
-          arousal: {
-            ...directional.arousal,
-            [arousal]: { ...directional.arousal?.[arousal], ...changes },
-          },
-        }
-      : { ...directional, ...changes },
-  };
-}

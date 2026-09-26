@@ -5,17 +5,14 @@ import { editorLabel } from './LayoutControls';
 import { mapPreviewZoom, previewDisplayScale } from './mapPreviewZoom';
 import { PreviewPart } from './PreviewPart';
 import { placementBase, placementGroup } from './placementGroups';
-import {
-  type PlacementTarget,
-  posePlacement,
-  updatePosePlacement,
-} from './posePlacement';
+import { type PlacementTarget, posePlacement } from './posePlacement';
 import { dragPlacement, fitPreview, previewBounds } from './previewGeometry';
 import {
   CYBORG_DIRECTIONS,
   type CyborgCustomizationData,
   type CyborgSlot,
   type LayoutAction,
+  type PlacementCommand,
 } from './types';
 
 export function CyborgPreview({
@@ -64,28 +61,17 @@ export function CyborgPreview({
     };
   };
   const place = (part: CyborgSlot, position: { x: number; y: number }) => {
-    if (placementTarget === 'base') {
-      onLayout?.({
-        operation: 'place',
-        slot: part,
-        placement_group: placementGroup(!!data.wide, data.direction),
-        ...position,
-      });
-    } else {
-      onLayout?.({
-        operation: 'set',
-        slot: part,
-        field: 'advanced',
-        value: updatePosePlacement(
-          data.store.active[part],
-          data.direction,
-          data.pose,
-          data.arousal,
-          placementTarget === 'arousal',
-          { pixel_x: position.x, pixel_y: position.y },
-        ),
-      });
-    }
+    onLayout?.({
+      operation: 'set_placement',
+      slot: part,
+      target: {
+        scope: placementTarget,
+        direction: data.direction,
+        pose: data.pose,
+        arousal: data.arousal,
+      },
+      changes: { pixel_x: position.x, pixel_y: position.y },
+    } satisfies PlacementCommand);
   };
 
   const stage = useRef<HTMLDivElement>(null);
@@ -154,7 +140,16 @@ export function CyborgPreview({
   useEffect(() => {
     drag.current = null;
     setDraft(null);
-  }, [data.pose, data.direction, data.arousal, editable, placementTarget]);
+  }, [
+    data.context,
+    data.model,
+    data.pose,
+    data.direction,
+    data.arousal,
+    editable,
+    placementTarget,
+    slot,
+  ]);
   useEffect(() => {
     if (data.moving || !editable) setMode('camera');
   }, [data.moving, editable]);

@@ -91,13 +91,12 @@ it('uses the same pose target for visual dragging and sliders without mirroring 
     fireEvent.pointerUp(stage, { clientX: x, clientY: y, pointerId: 1 });
   };
   dragPart(1, 0);
-  expect(actions[0].operation).toBe('set');
-  expect(actions[0].field).toBe('advanced');
-  expect(actions[0].value.rest_west.pixel_x).toBe(6);
-  expect(actions[0].value.rest_west.priority).toBe(8);
-  expect(actions[0].value.sit_west).toEqual(
-    store.active.penis.advanced.sit_west,
-  );
+  expect(actions[0]).toMatchObject({
+    operation: 'set_placement',
+    target: { scope: 'pose', direction: 8, pose: 'rest' },
+    changes: { pixel_x: 6, pixel_y: 7 },
+  });
+  expect(actions[0].value).toBeUndefined();
   expect(
     (
       screen.getByLabelText(
@@ -107,14 +106,16 @@ it('uses the same pose target for visual dragging and sliders without mirroring 
   ).toBe('5');
   fireEvent.click(screen.getByText('This arousal'));
   dragPart(0, -1);
-  expect(actions[1].value.rest_west.arousal.partial.pixel_y).toBe(8);
-  expect(actions[1].value.rest_west.pixel_y).toBe(7);
+  expect(actions[1]).toMatchObject({
+    target: { scope: 'arousal', arousal: 'partial' },
+    changes: { pixel_y: 8 },
+  });
   fireEvent.click(screen.getByText('Shared placement'));
   dragPart(1, 0);
   expect(actions[2]).toMatchObject({
-    operation: 'place',
-    placement_group: 'side',
-    x: 9,
+    operation: 'set_placement',
+    target: { scope: 'base', direction: 8 },
+    changes: { pixel_x: 9 },
   });
 });
 
@@ -406,7 +407,10 @@ it('rounds exact pixel positions to whole numbers in base and override controls'
   const horizontal = screen.getByLabelText('Horizontal position exact value');
   fireEvent.change(horizontal, { target: { value: '-15.6' } });
   fireEvent.blur(horizontal);
-  expect(actions.at(-1)).toMatchObject({ field: 'pixel_x', value: -16 });
+  expect(actions.at(-1)).toMatchObject({
+    operation: 'set_placement',
+    changes: { pixel_x: -16 },
+  });
   fireEvent.click(screen.getByText('This pose'));
   const vertical = screen.getByLabelText(
     'Override: Vertical position exact value',
@@ -414,8 +418,9 @@ it('rounds exact pixel positions to whole numbers in base and override controls'
   fireEvent.change(vertical, { target: { value: '15.6' } });
   fireEvent.blur(vertical);
   expect(actions.at(-1)).toMatchObject({
-    field: 'advanced',
-    value: { idle_south: { pixel_y: 16 } },
+    operation: 'set_placement',
+    target: { scope: 'pose', pose: 'idle', direction: 'south' },
+    changes: { pixel_y: 16 },
   });
 });
 
@@ -555,9 +560,28 @@ it('drags parts in world pixels and sends one atomic placement, while camera pan
   fireEvent.pointerMove(stage, { clientX: 35, clientY: 5, pointerId: 2 });
   expect(actions).toEqual([]);
   fireEvent.pointerUp(stage, { clientX: 35, clientY: 5, pointerId: 2 });
-  expect(actions).toEqual([
-    { operation: 'place', slot: 'penis', x: 15, y: 15 },
+  expect(actions).toMatchObject([
+    {
+      operation: 'set_placement',
+      slot: 'penis',
+      changes: { pixel_x: 15, pixel_y: 15 },
+    },
   ]);
+  fireEvent.pointerDown(screen.getByAltText('Penis preview'), {
+    button: 0,
+    clientX: 20,
+    clientY: 20,
+    pointerId: 3,
+  });
+  view.rerender(
+    <CyborgPreview
+      data={{ ...data, context: 2, model: 'replacement' }}
+      slot="penis"
+      onLayout={(action) => actions.push(action)}
+    />,
+  );
+  fireEvent.pointerUp(stage, { clientX: 60, clientY: 50, pointerId: 3 });
+  expect(actions).toHaveLength(1);
 });
 
 it('offers bounded placement sliders and sends the final numeric offset', () => {
@@ -573,11 +597,10 @@ it('offers bounded placement sliders and sends the final numeric offset', () => 
   expect(vertical.getAttribute('max')).toBe('128');
   fireEvent.change(vertical, { target: { value: '15' } });
   fireEvent.pointerUp(vertical);
-  expect(actions.at(-1)).toEqual({
-    operation: 'set',
+  expect(actions.at(-1)).toMatchObject({
+    operation: 'set_placement',
     slot: 'penis',
-    field: 'pixel_y',
-    value: 15,
+    changes: { pixel_y: 15 },
   });
 });
 
@@ -743,8 +766,14 @@ it('applies an arousal override to the state visible in the preview', () => {
     screen.getByRole('slider', { name: 'Override: Vertical position' }),
   );
   expect(actions.at(-1)).toMatchObject({
-    field: 'advanced',
-    value: { sit_east: { arousal: { full: { pixel_y: 15 } } } },
+    operation: 'set_placement',
+    target: {
+      scope: 'arousal',
+      pose: 'sit',
+      direction: 'east',
+      arousal: 'full',
+    },
+    changes: { pixel_y: 15 },
   });
 });
 

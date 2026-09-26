@@ -13,7 +13,20 @@ export function CyborgCharacterPage() {
     act('cyborg_page', { active: true });
     return () => act('cyborg_page', { active: false });
   }, [act]);
-  const customization = data.cyborg_customization;
+  const state = data.cyborg_customization;
+  const resources = data.cyborg_resources;
+  const customization = state && {
+    ...resources,
+    ...state,
+    models: resources?.models ?? [],
+    body: resources?.body ?? null,
+    body_width: resources?.body_width ?? 32,
+    body_height: resources?.body_height ?? 32,
+    layers: state.layers?.map((layer) => ({
+      ...layer,
+      icon: resources?.layer_icons?.[layer.slot || ''] || '',
+    })),
+  };
   if (!customization)
     return <NoticeBox>Loading cyborg customization…</NoticeBox>;
   if (customization.unsupported)
@@ -28,9 +41,15 @@ export function CyborgCharacterPage() {
       onName={(value) =>
         act('set_preference', { preference: 'cyborg_name', value })
       }
-      onPreview={(params) => act('cyborg_preview', params)}
+      onPreview={(params) =>
+        act('cyborg_preview', { ...params, context: customization.context })
+      }
       onLayout={(params) =>
-        act('cyborg_layout', { ...params, character_slot: data.active_slot })
+        act('cyborg_layout', {
+          ...params,
+          character_slot: data.active_slot,
+          context: customization.context,
+        })
       }
       renderPreference={(key) =>
         values[key] !== undefined && features[key] ? (

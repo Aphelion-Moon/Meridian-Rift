@@ -156,7 +156,25 @@ export function CyborgCharacterEditor(props: {
         : readonly
           ? 'Viewing saved model default · Placement editing disabled'
           : 'Editing working setup · Draft saves automatically; update presets explicitly'}
-      {tab === 'Appearance' && data.message && (
+      {data.save_status && (
+        <Box mt={0.5}>
+          {data.save_status.error ||
+            (data.save_status.pending
+              ? 'Unsaved changes…'
+              : data.save_status.session_only
+                ? 'Session only — not saved to disk.'
+                : 'Saved.')}
+          {data.save_status.error && (
+            <Button
+              ml={1}
+              onClick={() => onLayout({ operation: 'retry_save' })}
+            >
+              Retry save
+            </Button>
+          )}
+        </Box>
+      )}
+      {tab === 'Appearance' && data.message && !data.save_status?.error && (
         <Box mt={0.5}>{data.message}</Box>
       )}
     </div>
