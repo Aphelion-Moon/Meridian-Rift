@@ -1179,9 +1179,16 @@ export const CustomSpriteEditor = ({
                   <div className="CustomSpriteEditor__selectHint">
                     <kbd>Ctrl+C</kbd> copy ·{' '}
                     {!!sprite.baseCopyInfo && !!selectionBounds && (
-                      <Tooltip content={target === 'markings' ? 'Copy selected base markings and paint from editable regions. Ctrl+V pastes editable colors; destination region opacity and emission stay unchanged. Body, clothing and taur artwork are excluded.' : 'Copy selected base hair and paint. Ctrl+V pastes editable pixels; opacity and gradients remain live hair settings. Choose Bald (Tall Canvas) if the copy needs more room.'}>
+                      <Tooltip
+                        content={
+                          target === 'markings'
+                            ? 'Copy selected base markings and paint from editable regions. Ctrl+V pastes editable colors; destination region opacity and emission stay unchanged. Body, clothing and taur artwork are excluded.'
+                            : 'Copy selected base hair and paint. Ctrl+V pastes editable pixels; opacity and gradients remain live hair settings. Choose Bald (Tall Canvas) if the copy needs more room.'
+                        }
+                      >
                         <span>
-                          <kbd>Shift+C</kbd> copy with base {target === 'markings' ? 'markings' : 'hair'} ·{' '}
+                          <kbd>Shift+C</kbd> copy with base{' '}
+                          {target === 'markings' ? 'markings' : 'hair'} ·{' '}
                         </span>
                       </Tooltip>
                     )}

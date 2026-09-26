@@ -285,7 +285,14 @@ export class Select extends Tool {
     }
     this.serverPreview = true;
     act('previewSelection', {
-      transaction: { dir: String(floating.dir), ...placement, ...(floating.baseCopy && { baseCopy: floating.baseCopy.request, baseCopySource: floating.baseCopy.source }) },
+      transaction: {
+        dir: String(floating.dir),
+        ...placement,
+        ...(floating.baseCopy && {
+          baseCopy: floating.baseCopy.request,
+          baseCopySource: floating.baseCopy.source,
+        }),
+      },
     });
   }
 
@@ -805,7 +812,10 @@ export class Select extends Tool {
       return true;
     }
     const x = base
-      ? left + (data.width - base.width) / 2 + base.origin[0] - destination!.origin[0]
+      ? left +
+        (data.width - base.width) / 2 +
+        base.origin[0] -
+        destination!.origin[0]
       : clamp(left, left - right, data.width - 1);
     const y = base
       ? top +
@@ -822,7 +832,12 @@ export class Select extends Tool {
           x + px >= data.width ||
           y + py < 0 ||
           y + py >= data.height ||
-          !isWithinDrawBounds(x + px, y + py, context.drawBounds, context.drawMask),
+          !isWithinDrawBounds(
+            x + px,
+            y + py,
+            context.drawBounds,
+            context.drawMask,
+          ),
       )
     ) {
       act('baseCopyProblem', { problem: 'bounds' });

@@ -83,7 +83,7 @@
 		for(var/x in area[1] to area[3])
 			var/code = copytext(checked["codes"], position, position + digits)
 			position += digits
-			if(startswith(code, "."))
+			if(copytext(code, 1, 2) == ".")
 				continue
 			var/index = 0
 			for(var/character in 1 to digits)

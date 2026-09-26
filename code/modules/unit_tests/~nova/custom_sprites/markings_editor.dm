@@ -567,6 +567,9 @@
 		var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 		var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 		preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+		// Keep the tested torso/arm pixels visible instead of depending on randomized hair or beards.
+		preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Bald")
+		preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/facial_hairstyle], "Shaved")
 		var/datum/custom_sprite_editor/markings/unified_test/editor = new editor_type(preferences, BODY_ZONE_CHEST)
 		LAZYSET(preferences.custom_sprite_editors, "markings", editor)
 		var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")

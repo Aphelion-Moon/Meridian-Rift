@@ -289,18 +289,27 @@ it.each([
   });
 });
 
-
-it.each(['preferences', 'salon'])('copies base markings across regions in %s and retains the clipboard after removing the base', (context) => {
+it.each([
+  'preferences',
+  'salon',
+])('copies base markings across regions in %s and retains the clipboard after removing the base', (context) => {
   const data = regionFixture();
   data.context = context;
   data.selfWork = true;
   data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 32 };
   data.editorData.sprite.selectionPreview = true;
   const frames = fixtureFrames();
-  for (const frame of Object.values(frames)) for (const row of frame) row.fill('#00000000');
+  for (const frame of Object.values(frames))
+    for (const row of frame) row.fill('#00000000');
   frames[Dir.SOUTH][0][1] = '#ff0000ff';
-  data.editorData.sprite = { ...compactSprite(32, 32, frames), selectionPreview: true };
-  const bounds = spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 320, 320));
+  data.editorData.sprite = {
+    ...compactSprite(32, 32, frames),
+    selectionPreview: true,
+  };
+  const bounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
   try {
     const { view, editor } = renderRegions(data);
     fireEvent.keyDown(document, { key: 'm' });
@@ -318,20 +327,53 @@ it.each(['preferences', 'salon'])('copies base markings across regions in %s and
     send.mockClear();
     fireEvent.keyDown(document, { key: 'C', shiftKey: true });
     fireEvent.keyUp(document, { key: 'C', shiftKey: true });
-    const request = send.mock.calls.find(([action]) => action === 'copyBaseLayer')![1].request;
-    const copied = { ...data, baseCopyResult: { request, source: 'marking-editor', origin: [0, 0] as [number, number], width: 32, height: 32, palette: ['#00000000', '#0000ffff'], codes: `1111${'0'.repeat(1020)}` } };
+    const request = send.mock.calls.find(
+      ([action]) => action === 'copyBaseLayer',
+    )![1].request;
+    const copied = {
+      ...data,
+      baseCopyResult: {
+        request,
+        source: 'marking-editor',
+        origin: [0, 0] as [number, number],
+        width: 32,
+        height: 32,
+        palette: ['#00000000', '#0000ffff'],
+        codes: `1111${'0'.repeat(1020)}`,
+      },
+    };
     backendStore.set(gameDataAtom, copied);
     view.rerender(editor());
-    backendStore.set(gameDataAtom, { ...copied, regionMarkings: { chest: [], l_arm: [] } });
+    backendStore.set(gameDataAtom, {
+      ...copied,
+      regionMarkings: { chest: [], l_arm: [] },
+    });
     view.rerender(editor());
     send.mockClear();
     fireEvent.keyDown(document, { key: 'v', ctrlKey: true });
     fireEvent.keyUp(document, { key: 'v', ctrlKey: true });
-    expect(send).toHaveBeenCalledWith('previewSelection', { transaction: expect.objectContaining({ baseCopy: request, baseCopySource: 'marking-editor' }) });
-    expect(send).not.toHaveBeenCalledWith('spriteEditorCommand', expect.anything());
+    expect(send).toHaveBeenCalledWith('previewSelection', {
+      transaction: expect.objectContaining({
+        baseCopy: request,
+        baseCopySource: 'marking-editor',
+      }),
+    });
+    expect(send).not.toHaveBeenCalledWith(
+      'spriteEditorCommand',
+      expect.anything(),
+    );
     fireEvent.keyDown(document, { key: 'Enter' });
     fireEvent.keyUp(document, { key: 'Enter' });
-    expect(send).toHaveBeenCalledWith('spriteEditorCommand', { command: 'transaction', transaction: expect.objectContaining({ baseCopy: request, baseCopySource: 'marking-editor', palette: ['#0000ffff'], codes: '0.00', area: [0, 0, 3, 0] }) });
+    expect(send).toHaveBeenCalledWith('spriteEditorCommand', {
+      command: 'transaction',
+      transaction: expect.objectContaining({
+        baseCopy: request,
+        baseCopySource: 'marking-editor',
+        palette: ['#0000ffff'],
+        codes: '0.00',
+        area: [0, 0, 3, 0],
+      }),
+    });
   } finally {
     bounds.mockRestore();
   }

@@ -915,7 +915,6 @@ it('leaves base copying disabled for other editors and rejects cross-editor base
   });
 });
 
-
 it('previews copied base markings with their trusted token before a normal undoable drop', () => {
   const { tool, data, context, select } = fixture([[clear, red, clear, clear]]);
   data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
@@ -923,33 +922,69 @@ it('previews copied base markings with their trusted token before a normal undoa
   context.drawMask = ['1110'];
   select([0, 0, 2, 0]);
   tool.copyBaseLayer(context, data);
-  tool.receiveBaseCopy({ request: 1, source: 'marking-editor', origin: [0, 0], width: 4, height: 1, palette: [clear, blue, green], codes: '1120' });
+  tool.receiveBaseCopy({
+    request: 1,
+    source: 'marking-editor',
+    origin: [0, 0],
+    width: 4,
+    height: 1,
+    palette: [clear, blue, green],
+    codes: '1120',
+  });
   send.mockClear();
   tool.paste(context, data);
   expect(send).toHaveBeenCalledTimes(1);
-  expect(send).toHaveBeenLastCalledWith('previewSelection', { transaction: expect.objectContaining({ baseCopy: 1, baseCopySource: 'marking-editor', dir: '2', palette: [blue, green] }) });
+  expect(send).toHaveBeenLastCalledWith('previewSelection', {
+    transaction: expect.objectContaining({
+      baseCopy: 1,
+      baseCopySource: 'marking-editor',
+      dir: '2',
+      palette: [blue, green],
+    }),
+  });
   expect(data.layers[0].data[Dir.SOUTH]).toEqual([[clear, red, clear, clear]]);
   tool.release(context);
-  expect(send).toHaveBeenCalledWith('spriteEditorCommand', { command: 'transaction', transaction: expect.objectContaining({ baseCopy: 1, baseCopySource: 'marking-editor' }) });
+  expect(send).toHaveBeenCalledWith('spriteEditorCommand', {
+    command: 'transaction',
+    transaction: expect.objectContaining({
+      baseCopy: 1,
+      baseCopySource: 'marking-editor',
+    }),
+  });
 });
 
 it('keeps a base clipboard when destination regions become locked instead of clipping its pixels', () => {
-  const { tool, data, context, select } = fixture([[clear, clear, clear, clear]]);
+  const { tool, data, context, select } = fixture([
+    [clear, clear, clear, clear],
+  ]);
   data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
   context.drawMask = ['1110'];
   select([0, 0, 1, 0]);
   tool.copyBaseLayer(context, data);
-  tool.receiveBaseCopy({ request: 1, source: 'marking-editor', origin: [0, 0], width: 4, height: 1, palette: [clear, blue], codes: '1100' });
+  tool.receiveBaseCopy({
+    request: 1,
+    source: 'marking-editor',
+    origin: [0, 0],
+    width: 4,
+    height: 1,
+    palette: [clear, blue],
+    codes: '1100',
+  });
   context.drawMask = ['1000'];
   send.mockClear();
   expect(tool.paste(context, data)).toBe(true);
   expect(tool.isFloating()).toBe(false);
-  expect(send).toHaveBeenLastCalledWith('baseCopyProblem', { problem: 'bounds' });
+  expect(send).toHaveBeenLastCalledWith('baseCopyProblem', {
+    problem: 'bounds',
+  });
   context.drawMask = ['1110'];
   send.mockClear();
   expect(tool.paste(context, data)).toBe(true);
   tool.release(context);
-  expect(placed()).toEqual([[0, 0, blue], [1, 0, blue]]);
+  expect(placed()).toEqual([
+    [0, 0, blue],
+    [1, 0, blue],
+  ]);
 });
 
 it('keeps humanoid body coordinates centered when a wide marking copy is pasted on a narrow canvas', () => {
@@ -958,7 +993,15 @@ it('keeps humanoid body coordinates centered when a wide marking copy is pasted 
   data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
   select([16, 0, 16, 0]);
   tool.copyBaseLayer(context, data);
-  tool.receiveBaseCopy({ request: 1, source: 'marking-editor', origin: [0, 0], width: 64, height: 1, palette: [clear, blue], codes: `${'0'.repeat(16)}1${'0'.repeat(47)}` });
+  tool.receiveBaseCopy({
+    request: 1,
+    source: 'marking-editor',
+    origin: [0, 0],
+    width: 64,
+    height: 1,
+    palette: [clear, blue],
+    codes: `${'0'.repeat(16)}1${'0'.repeat(47)}`,
+  });
   data.width = 32;
   data.layers[0].data[Dir.SOUTH] = [Array(32).fill(clear)];
   send.mockClear();
