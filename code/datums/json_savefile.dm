@@ -8,6 +8,8 @@
 	VAR_PRIVATE/list/tree
 	/// If this is set to true, calling set_entry or remove_entry will automatically call save(), this does not catch modifying a sub-tree, nor do I know how to do that
 	var/auto_save = FALSE
+	/// Error reported by the most recent write, cleared on successful or memory-only saves.
+	var/last_save_error
 	/// Cooldown that tracks the time between attempts to download the savefile.
 	COOLDOWN_DECLARE(download_cooldown)
 
@@ -56,8 +58,35 @@ GENERAL_PROTECT_DATUM(/datum/json_savefile)
 		return FALSE
 
 /datum/json_savefile/proc/save()
-	if(path)
-		rustg_file_write(json_encode(tree, JSON_PRETTY_PRINT), path)
+	// APHELION EDIT CHANGE START - CYBORG_CUSTOMIZATION - expose the native write outcome
+	// Original: if(path) rustg_file_write(json_encode(tree, JSON_PRETTY_PRINT), path)
+	last_save_error = null
+	if(!path)
+		return JSON_SAVE_SESSION_ONLY
+	try
+		var/serialized = json_encode(tree, JSON_PRETTY_PRINT)
+		var/write_error = write_file(serialized, path)
+		// Pinned rust-g 6.2.0 returns an empty string on success, error text on failure.
+		if(isnull(write_error) || !istext(write_error) || length(write_error))
+			last_save_error = istext(write_error) ? write_error : "Native file write returned no result."
+			return JSON_SAVE_FAILED
+		// 6.2.0 discards the byte count from Write::write; no error alone cannot exclude a short write.
+		if(read_file(path) != serialized)
+			last_save_error = "Saved contents did not match the requested JSON."
+			return JSON_SAVE_FAILED
+	catch(var/exception/error)
+		last_save_error = "[error]"
+		return JSON_SAVE_FAILED
+	return JSON_SAVE_WRITTEN
+	// APHELION EDIT CHANGE END
+
+/// Native write seam shared with savefile subclasses and focused failure-injection tests.
+/datum/json_savefile/proc/write_file(contents, destination)
+	return rustg_file_write(contents, destination)
+
+/// Readback verifies complete contents; it does not make the existing write atomic.
+/datum/json_savefile/proc/read_file(source)
+	return rustg_file_read(source)
 
 /datum/json_savefile/serialize_list(list/options, list/semvers)
 	SHOULD_CALL_PARENT(FALSE)

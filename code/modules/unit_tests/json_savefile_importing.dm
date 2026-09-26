@@ -81,3 +81,32 @@
 	json_savefile.load()
 	runtime_read = json_savefile.get_entry("runtime_saving")
 	TEST_ASSERT_EQUAL(runtime_check_string, runtime_read, "saved and read the same key but got different values, auto save didn't work as expected")
+	TEST_ASSERT_EQUAL(json_savefile.save(), JSON_SAVE_WRITTEN, "A real native write must report success.")
+
+/// Deterministic native boundary failures without touching player files.
+/datum/json_savefile/save_result_test
+	var/forced_result = "Injected write failure"
+	var/written_contents
+	var/short_write = FALSE
+
+/datum/json_savefile/save_result_test/write_file(contents, destination)
+	written_contents = contents
+	return forced_result
+
+/datum/json_savefile/save_result_test/read_file(source)
+	return short_write ? "{" : written_contents
+
+/datum/unit_test/json_savefile_write_result/Run()
+	var/datum/json_savefile/save_result_test/store = allocate(/datum/json_savefile/save_result_test, null)
+	TEST_ASSERT_EQUAL(store.save(), JSON_SAVE_SESSION_ONLY, "Memory-only saving must not claim a disk write.")
+	store.path = "unused_failure_injection.json"
+	TEST_ASSERT_EQUAL(store.save(), JSON_SAVE_FAILED, "Native error text must fail the save.")
+	TEST_ASSERT_EQUAL(store.last_save_error, store.forced_result, "Write error text was lost.")
+	store.forced_result = null
+	TEST_ASSERT_EQUAL(store.save(), JSON_SAVE_FAILED, "A missing native return must not acknowledge saving.")
+	store.forced_result = ""
+	store.short_write = TRUE
+	TEST_ASSERT_EQUAL(store.save(), JSON_SAVE_FAILED, "A successful but incomplete native write must not be acknowledged.")
+	store.short_write = FALSE
+	TEST_ASSERT_EQUAL(store.save(), JSON_SAVE_WRITTEN, "Empty native error text must acknowledge success.")
+	TEST_ASSERT_NULL(store.last_save_error, "Successful retry must clear the error.")
