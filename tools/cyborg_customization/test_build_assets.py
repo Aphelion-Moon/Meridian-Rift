@@ -1,10 +1,11 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from PIL import Image, PngImagePlugin
 
-from build_assets import compatible, frame, marker_anchor, read_dmi
+from build_assets import compatible, format_animation_manifest, frame, marker_anchor, read_dmi
 
 
 class AssetContracts(unittest.TestCase):
@@ -30,6 +31,30 @@ class AssetContracts(unittest.TestCase):
         self.assertEqual(marker_anchor(cell), (3, 7))
         cell.putpixel((0, 0), (51, 255, 255, 255))
         self.assertIsNone(marker_anchor(cell))
+
+    def test_manifest_formatter_keeps_data_and_compacts_frames(self):
+        manifest = {
+            "source_sha": "fixture",
+            "models": {
+                "fixture.dmi#borgi": {
+                    "idle:0": {
+                        "south": [
+                            {"x": 0.0, "y": -22, "delay": 1.0},
+                            {"x": 1.0, "y": -21, "delay": 1.0},
+                        ],
+                    },
+                },
+            },
+            "fallbacks": ["fixture.dmi#sit:0: incompatible authored timing"],
+        }
+
+        formatted = format_animation_manifest(manifest)
+
+        self.assertEqual(json.loads(formatted), manifest)
+        self.assertIn(
+            '"south": [{"x": 0.0, "y": -22, "delay": 1.0}, {"x": 1.0, "y": -21, "delay": 1.0}]',
+            formatted,
+        )
 
     def test_matching_frame_count_does_not_hide_different_timing(self):
         sheet = {"width": 64, "height": 32}

@@ -54,6 +54,42 @@ def marker_anchor(cell):
     return pixels[0] if len(pixels) == 1 else None
 
 
+def format_frame_sequence(frames):
+    return "[" + ", ".join(json.dumps(frame, separators=(", ", ": ")) for frame in frames) + "]"
+
+
+def format_animation_profile(profile):
+    lines = ["{"]
+    for state_index, (state_key, directions) in enumerate(profile.items()):
+        state_comma = "," if state_index + 1 < len(profile) else ""
+        lines.append(f'  {json.dumps(state_key)}: {{')
+        for direction_index, (direction, frames) in enumerate(directions.items()):
+            direction_comma = "," if direction_index + 1 < len(directions) else ""
+            lines.append(f'    {json.dumps(direction)}: {format_frame_sequence(frames)}{direction_comma}')
+        lines.append(f'  }}{state_comma}')
+    lines.append("}")
+    return lines
+
+
+def format_animation_manifest(manifest):
+    lines = [
+        "{",
+        f'  "source_sha": {json.dumps(manifest["source_sha"])},',
+        '  "models": {',
+    ]
+    for model_index, (model_key, profile) in enumerate(manifest["models"].items()):
+        model_comma = "," if model_index + 1 < len(manifest["models"]) else ""
+        profile_lines = format_animation_profile(profile)
+        lines.append(f'    {json.dumps(model_key)}: {profile_lines[0]}')
+        lines.extend(f'    {line}' for line in profile_lines[1:-1])
+        lines.append(f'    {profile_lines[-1]}{model_comma}')
+    lines.append("  },")
+    fallbacks = json.dumps(manifest["fallbacks"], indent=2).replace("\n", "\n  ")
+    lines.append(f'  "fallbacks": {fallbacks}')
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
 def build():
     defines = (ROOT / "code/__DEFINES/~nova_defines/robot_defines.dm").read_text()
     icons = dict(re.findall(r"#define (CYBORG_ICON_\w+) '([^']+)'", defines))
@@ -122,7 +158,7 @@ def build():
         resource_lines.append(f'\t\t"{path}" = \'modular_aphelion/modules/cyborg_customization/icons/occlusion_generated/{filename}\',')
     resource_lines.extend(["\t)", "\treturn resources", ""])
     (MODULE / "code/asset_resources.dm").write_text("\n".join(resource_lines), encoding="utf-8")
-    (MODULE / "animation_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (MODULE / "animation_manifest.json").write_text(format_animation_manifest(manifest), encoding="utf-8")
     print(f"{len(manifest['models'])} models with authored data; {len(manifest['fallbacks'])} pose/movement fallbacks; {len(outputs)} generated sheets")
 
 
