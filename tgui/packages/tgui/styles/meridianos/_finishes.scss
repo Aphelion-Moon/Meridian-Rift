@@ -1,0 +1,18 @@
+// THIS IS AN APHELION UI FILE
+// Shared by TGUI and the lobby, after their component and menu layouts.
+@use 'sass:meta';
+
+// Neon material, theme profiles, then their detail and title overrides.
+@include meta.load-css('./hotline.scss');
+@include meta.load-css('./neon-glass.scss');
+@include meta.load-css('./synapse-neon.scss');
+@include meta.load-css('./cyberpunk-neon.scss');
+@include meta.load-css('./augmentation-neon.scss');
+@include meta.load-css('./neon-details.scss');
+@include meta.load-css('./edge-lit-glass.scss');
+@include meta.load-css('./neon-title.scss');
+@include meta.load-css('./aphelion-neon-title.scss');
+
+// Instrument displays override the common loader's fixed layer set.
+@include meta.load-css('./diagnostic.scss');
+@include meta.load-css('./vector.scss');

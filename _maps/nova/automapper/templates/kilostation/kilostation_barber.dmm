@@ -325,6 +325,7 @@
 /area/station/maintenance/fore)
 "DF" = (
 /obj/machinery/door/airlock/maintenance,
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/iron/dark/pattern_6,
 /area/station/service/barber)
 "EA" = (

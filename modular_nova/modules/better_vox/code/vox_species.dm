@@ -36,6 +36,7 @@
 	custom_worn_icons = list(
 		LOADOUT_ITEM_HEAD = VOX_PRIMALIS_HEAD_ICON,
 		LOADOUT_ITEM_MASK = VOX_PRIMALIS_MASK_ICON,
+		LOADOUT_ITEM_NECK = VOX_PRIMALIS_NECK_ICON,
 		LOADOUT_ITEM_SUIT = VOX_PRIMALIS_SUIT_ICON,
 		LOADOUT_ITEM_UNIFORM = VOX_PRIMALIS_UNIFORM_ICON,
 		LOADOUT_ITEM_GLOVES =  VOX_PRIMALIS_GLOVES_ICON,
@@ -104,10 +105,22 @@
 	)
 
 /datum/species/vox_primalis/on_species_gain(mob/living/carbon/human/transformer, datum/species/old_species, pref_load, regenerate_icons)
-	. = ..()
-	var/vox_color = transformer.dna.features["vox_bodycolor"]
-	if(!vox_color || vox_color == "default")
+	RegisterSignal(transformer, COMSIG_CARBON_BODYPART_UPDATED, PROC_REF(on_bodypart_updated))
+	return ..()
+
+/datum/species/vox_primalis/on_species_loss(mob/living/carbon/human/human, datum/species/new_species, pref_load)
+	UnregisterSignal(human, COMSIG_CARBON_BODYPART_UPDATED)
+	return ..()
+
+/**
+ * Gives Vox Primalis limbs the sprite set picked by the vox_bodycolor feature.
+ *
+ * Runs whenever a limb is created or rebuilt from DNA, so species changes, regrown limbs and the preferences preview all pick it up.
+ * Limbs that aren't using a Vox Primalis sprite set are left alone.
+ */
+/datum/species/vox_primalis/proc/on_bodypart_updated(mob/living/carbon/human/source, obj/item/bodypart/limb, dropping_limb, is_creating)
+	SIGNAL_HANDLER
+	if(!is_creating || findtext(limb.limb_id, SPECIES_VOX_PRIMALIS) != 1)
 		return
-	for(var/obj/item/bodypart/limb as anything in transformer.bodyparts)
-		limb.limb_id = "[SPECIES_VOX_PRIMALIS]_[vox_color]"
-	transformer.update_body()
+	var/vox_color = source.dna.features["vox_bodycolor"]
+	limb.limb_id = (vox_color && vox_color != "default") ? "[SPECIES_VOX_PRIMALIS]_[vox_color]" : SPECIES_VOX_PRIMALIS

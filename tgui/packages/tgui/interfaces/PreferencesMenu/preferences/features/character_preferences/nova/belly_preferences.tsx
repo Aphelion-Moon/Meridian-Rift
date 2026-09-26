@@ -1,15 +1,15 @@
 // THIS IS A NOVA SECTOR UI FILE
 import {
   CheckboxInput,
-  Feature,
-  FeatureChoiced,
+  type Feature,
+  type FeatureChoiced,
   FeatureColorInput,
   FeatureNumberInput,
   FeatureSliderInput,
-  FeatureToggle,
+  type FeatureToggle,
 } from '../../base';
-import { FeatureDropdownInput } from '../../dropdowns';
 import { FeatureBellyButton } from '../../belly_button';
+import { FeatureDropdownInput } from '../../dropdowns';
 
 export const erp_belly_button: Feature<number> = {
   name: 'Belly Prefs',
@@ -20,7 +20,7 @@ export const erp_belly_vore_prey: FeatureChoiced = {
   name: 'Vore Prey Preference',
   category: 'BELLY',
   description:
-    'Determines whether or not you partake in the belly system to engage in vore as a prey. \'Never\' means you can never be a prey, \'Query\' means you always get queried before someone tries to take you, \'Always\' means you always consent.',
+    "Determines whether or not you partake in the belly system to engage in vore as a prey. 'Never' means you can never be a prey, 'Query' means you always get queried before someone tries to take you, 'Always' means you always consent.",
   component: FeatureDropdownInput,
 };
 
@@ -28,7 +28,7 @@ export const erp_belly_vore_prey: FeatureChoiced = {
 export const erp_bellyquirk_color: Feature<string> = {
   name: 'Belly Color',
   description:
-    'Belly coloration. Match this to your skin, Augments+ or Mutant Colors to make it look smooth, and toggle \'Use Skin tone\' if your torso uses a skintone spritesheet.',
+    "Belly coloration. Match this to your skin, Augments+ or Mutant Colors to make it look smooth, and toggle 'Use Skin tone' if your torso uses a skintone spritesheet.",
   component: FeatureColorInput,
 };
 

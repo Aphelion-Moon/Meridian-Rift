@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Original six-blade bronze iris. Geometry remains legible at compact size. -->
+  <defs>
+    <linearGradient id="bronze" x1="17" y1="11" x2="163" y2="155" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b68a4f"/><stop offset=".23" stop-color="#8b6338"/>
+      <stop offset=".55" stop-color="#684526"/><stop offset="1" stop-color="#342315"/>
+    </linearGradient>
+    <radialGradient id="shade">
+      <stop offset=".2" stop-color="#120c06" stop-opacity=".42"/>
+      <stop offset=".52" stop-color="#caa475" stop-opacity="0"/>
+      <stop offset="1" stop-color="#110c06" stop-opacity=".24"/>
+    </radialGradient>
+    <pattern id="casting" width="17" height="13" patternUnits="userSpaceOnUse">
+      <path d="M3 2h1m9 6h1M7 11h1" stroke="#efc991" stroke-opacity=".18"/>
+      <path d="M4 3h1m9 6h1M8 12h1" stroke="#140d07" stroke-opacity=".36"/>
+      <circle cx="10" cy="3" r=".6" fill="#1e160c" fill-opacity=".32"/>
+    </pattern>
+    <path id="blade" d="M100 6A94 94 0 0 1 181.406 53C175.157 98.177 146.141 99.919 109 84.412A18 18 0 0 0 91 84.412C123 60 136 34 100 6Z"/>
+    <path id="seam" d="M100 6C136 34 123 60 91 84.412"/>
+  </defs>
+  <circle cx="100" cy="100" r="97" fill="#1b120a" stroke="#c69a5c" stroke-width="2"/>
+  <g fill="url(#bronze)" stroke="#21150b" stroke-width="2.4" stroke-linejoin="round">
+    <use href="#blade"/><use href="#blade" transform="rotate(60 100 100)"/>
+    <use href="#blade" transform="rotate(120 100 100)"/><use href="#blade" transform="rotate(180 100 100)"/>
+    <use href="#blade" transform="rotate(240 100 100)"/><use href="#blade" transform="rotate(300 100 100)"/>
+  </g>
+  <circle cx="100" cy="100" r="93" fill="url(#casting)"/>
+  <circle cx="100" cy="100" r="93" fill="url(#shade)"/>
+  <g fill="none" stroke="#dfb77a" stroke-width=".9" stroke-opacity=".8">
+    <use href="#seam"/><use href="#seam" transform="rotate(60 100 100)"/>
+    <use href="#seam" transform="rotate(120 100 100)"/><use href="#seam" transform="rotate(180 100 100)"/>
+    <use href="#seam" transform="rotate(240 100 100)"/><use href="#seam" transform="rotate(300 100 100)"/>
+  </g>
+  <circle cx="100" cy="100" r="18" fill="#211407" stroke="#a67738" stroke-width="2"/>
+  <circle cx="100" cy="100" r="94" fill="none" stroke="#1a1008" stroke-width="2"/>
+</svg>

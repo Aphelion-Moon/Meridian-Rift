@@ -13,7 +13,8 @@
 	var/opened_file_uid
 	var/opened_file_on_disk = FALSE
 	var/opened_file_name = "Untitled"
-	var/written_note = "Congratulations on your station upgrading to the new NtOS and Thinktronic based collaboration effort, \
+	//var/written_note = "Congratulations on your station upgrading to the new NtOS and Thinktronic based collaboration effort, \ // APHELION EDIT CHANGE - LOBBY_MENU_REWORK - Line below, NTOS mention
+	var/written_note = "Congratulations on your station upgrading to the new MeridianOS and Thinktronic based collaboration effort, \
 		bringing you the best in electronics and software since 2467!\n\
 		To help with navigation, we have provided the following definitions:\n\
 		Fore - Toward front of ship\n\

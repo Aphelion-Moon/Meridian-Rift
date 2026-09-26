@@ -29,6 +29,8 @@ var verbs = [['', '']]; // list with a list inside
 var favourite_verbs = [];
 var verb_filter = '';
 var current_verb_cat = null;
+var verb_search_enabled = true;
+var verb_favourites_enabled = true;
 // APHELION EDIT ADDITION END
 var tickets = [];
 var interviewManager = { status: '', interviews: [] };
@@ -691,7 +693,9 @@ function make_verb_item(command) {
   a.href = '#';
   a.onclick = make_verb_onclick(command.replace(/\s/g, '-'));
   a.className = 'grid-item';
-  a.appendChild(make_star(command));
+  if (verb_favourites_enabled) {
+    a.appendChild(make_star(command));
+  }
   var t = document.createElement('span');
   t.textContent = command;
   t.className = 'grid-item-text';
@@ -878,6 +882,7 @@ function render_verb_category(container, cat) {
   }
 }
 */ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START
   container.appendChild(table);
 
   for (var subCatName in additions) {
@@ -897,7 +902,9 @@ function draw_verbs(cat) {
   }
   current_verb_cat = cat;
   statcontentdiv.textContent = '';
-  statcontentdiv.appendChild(make_verb_search());
+  if (verb_search_enabled) {
+    statcontentdiv.appendChild(make_verb_search());
+  }
   var results = document.createElement('div');
   results.id = 'verb-results';
   statcontentdiv.appendChild(results);
@@ -937,7 +944,9 @@ function render_favourites(container) {
 
 function draw_favourites() {
   statcontentdiv.textContent = '';
-  statcontentdiv.appendChild(make_verb_search());
+  if (verb_search_enabled) {
+    statcontentdiv.appendChild(make_verb_search());
+  }
   var results = document.createElement('div');
   results.id = 'verb-results';
   statcontentdiv.appendChild(results);
@@ -1079,6 +1088,27 @@ Byond.subscribeTo('init_verbs', (payload) => {
 });
 
 // APHELION EDIT ADDITION START
+Byond.subscribeTo('update_verb_preferences', (payload) => {
+  verb_search_enabled = !!payload.verb_search;
+  verb_favourites_enabled = !!payload.verb_favourites;
+  if (!verb_search_enabled) {
+    verb_filter = '';
+  }
+  if (verb_favourites_enabled) {
+    addPermanentTab('Favourites');
+  } else {
+    removePermanentTab('Favourites');
+    if (current_tab == 'Favourites') {
+      tab_change(defaultTab);
+    }
+  }
+  if (current_tab == 'Favourites') {
+    draw_favourites();
+  } else if (verb_tabs.includes(current_tab)) {
+    draw_verbs(current_tab);
+  }
+});
+
 Byond.subscribeTo('update_favourite_verbs', (payload) => {
   favourite_verbs = Array.isArray(payload) ? payload : [];
   if (current_tab == 'Favourites') {

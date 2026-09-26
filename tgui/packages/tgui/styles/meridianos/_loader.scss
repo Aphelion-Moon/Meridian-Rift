@@ -1,0 +1,304 @@
+// THIS IS AN APHELION UI FILE
+@use './glowstick';
+
+// Emit the shared texture once in each bundle, before the theme materials.
+@include glowstick.texture;
+
+// Shared by the ordinary TGUI and lobby bundles. One fixed layer set is
+// reshaped entirely through semantic variables; only the outer cage moves.
+.DiagnosticLoader {
+  --diagnostic-loader-size: 80px;
+  --diagnostic-loader-angle: 216deg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: calc(var(--diagnostic-loader-size) + 56px);
+  color: var(--console-text-primary, #e6eef1);
+  text-align: center;
+}
+
+.DiagnosticLoader--compact {
+  --diagnostic-loader-size: 40px;
+  min-height: 72px;
+}
+
+.DiagnosticLoader--large {
+  --diagnostic-loader-size: clamp(120px, 18vmin, 160px);
+  min-height: calc(var(--diagnostic-loader-size) + 72px);
+}
+
+.DiagnosticLoader__instrument {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--diagnostic-loader-size);
+  height: var(--diagnostic-loader-size);
+  contain: layout paint style;
+  isolation: isolate;
+}
+
+// Decorative light copies are opt-in for material themes and hidden in forced colors.
+.DiagnosticLoader__light {
+  display: none;
+}
+
+:is(
+  .DiagnosticLoader__tickCrown,
+  .DiagnosticLoader__outerCage,
+  .DiagnosticLoader__progressTrack,
+  .DiagnosticLoader__progressFill,
+  .DiagnosticLoader__innerMarks,
+  .DiagnosticLoader__nodes,
+  .DiagnosticLoader__origin,
+  .DiagnosticLoader__core
+) {
+  position: absolute;
+  pointer-events: none;
+}
+
+.DiagnosticLoader__tickCrown {
+  clip-path: var(--console-loader-crown-clip, none);
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from var(--console-loader-crown-start, -90deg),
+    var(--console-loader-crown-color, #4b6b78) 0deg
+      var(--console-loader-tick-width, 3deg),
+    var(--console-loader-crown-gap, transparent)
+      var(--console-loader-tick-width, 3deg)
+      var(--console-loader-tick-step, 90deg)
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(50% - var(--console-loader-tick-depth, 6%)),
+    #000 calc(50% - var(--console-loader-tick-depth, 6%) + 1px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(50% - var(--console-loader-tick-depth, 6%)),
+    #000 calc(50% - var(--console-loader-tick-depth, 6%) + 1px)
+  );
+}
+
+.DiagnosticLoader__outerCage {
+  inset: 9%;
+  border-radius: 50%;
+  background: var(
+    --console-loader-cage-pattern,
+    conic-gradient(
+      from -78deg,
+      #58d1c9 0deg 92deg,
+      transparent 92deg 142deg,
+      #7ae2db 142deg 224deg,
+      transparent 224deg
+    )
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--console-loader-cage-width, 3px)),
+    #000 calc(100% - var(--console-loader-cage-width, 3px) + 1px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--console-loader-cage-width, 3px)),
+    #000 calc(100% - var(--console-loader-cage-width, 3px) + 1px)
+  );
+}
+
+.DiagnosticLoader__progressTrack,
+.DiagnosticLoader__progressFill {
+  inset: 19%;
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--console-loader-track-width, 3px)),
+    #000 calc(100% - var(--console-loader-track-width, 3px) + 1px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--console-loader-track-width, 3px)),
+    #000 calc(100% - var(--console-loader-track-width, 3px) + 1px)
+  );
+}
+
+.DiagnosticLoader__progressTrack {
+  background: var(--console-loader-progress-track, #091217);
+}
+
+.DiagnosticLoader__progressFill {
+  background: conic-gradient(
+    from -90deg,
+    var(--console-loader-progress-core, #58d1c9) 0deg
+      var(--diagnostic-loader-angle),
+    var(--console-loader-fill-gap, transparent)
+      var(--diagnostic-loader-angle) 360deg
+  );
+}
+
+.DiagnosticLoader__innerMarks {
+  inset: var(--console-loader-inner-inset, 31%);
+  border-top: var(--console-loader-stroke-secondary, 1px) solid
+    var(--console-border-control, #4b6b78);
+  border-right: var(--console-loader-stroke, 2px) solid
+    var(--console-interaction-selected, #7ae2db);
+  border-bottom: var(--console-loader-stroke-secondary, 1px) solid
+    var(--console-border-control, #4b6b78);
+  border-left: var(--console-loader-stroke, 2px) solid
+    var(--console-interaction-accent, #58d1c9);
+  transform: rotate(45deg);
+}
+
+.DiagnosticLoader__nodes {
+  inset: 13%;
+  border-radius: 50%;
+  opacity: var(--console-loader-node-opacity, 0);
+  background: repeating-conic-gradient(
+    from var(--console-loader-node-start, -90deg),
+    var(--console-interaction-selected, #7ae2db) 0deg
+      var(--console-loader-node-width, 5deg),
+    transparent var(--console-loader-node-width, 5deg)
+      var(--console-loader-node-step, 90deg)
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--console-loader-node-size, 4px)),
+    #000 calc(100% - var(--console-loader-node-size, 4px) + 1px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--console-loader-node-size, 4px)),
+    #000 calc(100% - var(--console-loader-node-size, 4px) + 1px)
+  );
+}
+
+.DiagnosticLoader__origin {
+  top: 13%;
+  left: 50%;
+  width: var(--console-loader-origin-width, 2px);
+  height: var(--console-loader-origin-height, 8px);
+  background: var(--console-interaction-focus, #ffd84d);
+  transform: translateX(-50%);
+}
+
+.DiagnosticLoader__core {
+  top: 50%;
+  left: 50%;
+  width: var(--console-loader-core-size, 24%);
+  height: var(--console-loader-core-size, 24%);
+  background: var(--console-loader-progress-core, #58d1c9);
+  clip-path: var(
+    --console-loader-core-shape,
+    polygon(50% 0, 100% 50%, 50% 100%, 0 50%)
+  );
+  transform: translate(-50%, -50%);
+}
+
+.DiagnosticLoader__label {
+  max-width: min(32em, 90%);
+  color: var(--console-text-primary, #e6eef1);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.DiagnosticLoader__detail {
+  max-width: min(32em, 90%);
+  margin-top: -4px;
+  color: var(--console-text-secondary, #9fb2bc);
+  font-family: var(--font-family-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes meridian-loader-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.DiagnosticLoader--indeterminate[data-motion='running']
+  .DiagnosticLoader__outerCage {
+  animation: meridian-loader-turn
+    var(--console-loader-turn-duration, 5.6s) linear infinite;
+  will-change: transform;
+}
+
+.DiagnosticLoader--indeterminate:is(
+    [data-motion='paused'],
+    .DiagnosticLoader--motion-reduced
+  )
+  .DiagnosticLoader__outerCage {
+  animation: none;
+  transform: rotate(23deg);
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .DiagnosticLoader--indeterminate .DiagnosticLoader__outerCage {
+    animation: none !important;
+    transform: rotate(23deg);
+    will-change: auto;
+  }
+}
+
+@media (forced-colors: active) {
+  .DiagnosticLoader__instrument {
+    outline: 1px solid CanvasText;
+    outline-offset: 3px;
+  }
+
+  .DiagnosticLoader__tickCrown {
+    background: none;
+    border: 2px dashed CanvasText;
+    -webkit-mask: none;
+    mask: none;
+  }
+
+  .DiagnosticLoader__outerCage {
+    background: none;
+    border: 2px solid Highlight;
+    -webkit-mask: none;
+    mask: none;
+  }
+
+  .DiagnosticLoader__progressTrack,
+  .DiagnosticLoader__nodes {
+    display: none;
+  }
+
+  .DiagnosticLoader__progressFill {
+    inset: auto 14% 8%;
+    height: 6px;
+    background: Canvas;
+    border: 1px solid CanvasText;
+    border-radius: 0;
+    -webkit-mask: none;
+    mask: none;
+    forced-color-adjust: none;
+  }
+
+  .DiagnosticLoader__progressFill::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: Highlight;
+    transform: scaleX(var(--diagnostic-loader-progress));
+    transform-origin: left center;
+  }
+
+  .DiagnosticLoader--indeterminate .DiagnosticLoader__progressFill::after {
+    transform: scaleX(0.38);
+  }
+
+  .DiagnosticLoader__origin,
+  .DiagnosticLoader__core {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .DiagnosticLoader__label,
+  .DiagnosticLoader__detail {
+    forced-color-adjust: auto;
+  }
+}

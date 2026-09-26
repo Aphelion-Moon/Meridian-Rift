@@ -4,9 +4,7 @@
 	log = FALSE
 
 /datum/world_topic/symphony/announce_sounds/Run(list/input)
-	. = list()
-	.["sounds"] = assoc_to_keys(SSstation.announcer?.event_sounds)
-	.["announcer"] = "[SSstation.announcer?.type]"
+	return list("sounds" = assoc_to_keys(SSstation.announcer?.event_sounds), "announcer" = "[SSstation.announcer?.type]")
 
 /// Message from SSymphony to the round.
 /datum/world_topic/symphony/announce

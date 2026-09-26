@@ -52,6 +52,7 @@
 	name = "brass spear"
 	desc = "A razor-sharp spear made of brass. It thrums with barely-contained energy."
 	icon_state = "ratvarian_spear"
+	inhand_icon_state = "ratvarian_spear"
 	embed_type = /datum/embedding/spear/brass
 	throwforce = 36
 	force = 25

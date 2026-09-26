@@ -77,9 +77,9 @@
 				if (!item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only))
 					continue
 
-				// Make sure the item is not overriding an important for life outfit item
+				// Make sure the item is not overriding an important for life outfit item. Previews always show the loadout item.
 				var/datum/outfit/outfit_important_for_life = dna.species.outfit_important_for_life
-				if(!outfit_important_for_life || !item.pre_equip_item(equipped_outfit, outfit_important_for_life, src, visuals_only))
+				if(visuals_only || !outfit_important_for_life || !item.pre_equip_item(equipped_outfit, outfit_important_for_life, src, visuals_only))
 					item.insert_path_into_outfit(equipped_outfit, src, visuals_only, override_preference)
 		equipOutfit(equipped_outfit, visuals_only)
 

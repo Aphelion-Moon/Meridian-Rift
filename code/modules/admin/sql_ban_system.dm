@@ -218,7 +218,7 @@
 	<input type='checkbox' id='applyadmins' name='applyadmins' value='1'[applies_to_admins ? " checked": ""]>
 	<div class='inputbox'></div></label>
 	<!-- NOVA EDIT ADDITION BEGIN - SSYMPHONY -->
-	[CONFIG_GET(flag/symphony_enabled) ? "<label class='inputlabel checkbox'>Community ban (all servers)\
+	[SSsymphony.enabled ? "<label class='inputlabel checkbox'>Community ban (all servers)\
 	<input type='checkbox' id='symphonycommunity' name='symphonycommunity' value='1'[edit_id ? " disabled" : " checked"]>\
 	<div class='inputbox'></div></label>" : ""]
 	<!-- NOVA EDIT ADDITION END -->

@@ -109,7 +109,7 @@
 				to_chat(user, span_danger("[target] don't have suitable genitalia for that!"))
 				return FALSE
 
-			if(!(target.is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW))
+			if(!(target.is_bottomless() || vagina.is_shown_over_clothing()))
 				to_chat(user, span_danger("[target]'s groin is covered!"))
 				return FALSE
 

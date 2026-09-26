@@ -320,8 +320,10 @@ export class ChatScreen extends Component<ChatScreenProps, ChatScreenState> {
               </Stack.Item>
             )}
             <Stack.Item>
-              <Stack fill align="center">
-                <Stack.Item grow>
+              {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack fill align="center"> */}
+              <Stack fill align="center" className="MeridianControlRow">
+                {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item grow> */}
+                <Stack.Item grow className="MeridianControlRow__fill">
                   <Input
                     placeholder={`Send message to ${recipient.name}...`}
                     fluid

@@ -16,7 +16,8 @@ export const Signaler = (props) => {
   const { act, data } = useBackend();
   return (
     <Window width={280} height={128}>
-      <Window.Content>
+      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Window.Content> */}
+      <Window.Content scrollable>
         <SignalerContent />
       </Window.Content>
     </Window>
@@ -31,9 +32,11 @@ export const SignalerContent = (props) => {
   const backColor = 'rgba(0, 0, 69, 0.5)';
   return (
     <Section>
-      <Stack>
+      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack> */}
+      <Stack className="MeridianControlRow">
         <Stack.Item color="label">Frequency:</Stack.Item>
-        <Stack.Item>
+        {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item> */}
+        <Stack.Item className="MeridianControlRow__fill MeridianControlRow__fill--small">
           <NumberInput
             animated
             tickWhileDragging
@@ -65,11 +68,13 @@ export const SignalerContent = (props) => {
           />
         </Stack.Item>
       </Stack>
-      <Stack mt={0.6}>
+      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack mt={0.6}> */}
+      <Stack mt={0.6} className="MeridianControlRow">
         <Stack.Item pr={5.3} color="label">
           Code:
         </Stack.Item>
-        <Stack.Item>
+        {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item> */}
+        <Stack.Item className="MeridianControlRow__fill MeridianControlRow__fill--small">
           <NumberInput
             animated
             tickWhileDragging
@@ -99,8 +104,10 @@ export const SignalerContent = (props) => {
           />
         </Stack.Item>
       </Stack>
-      <Stack mt={0.8}>
-        <Stack.Item ml={10.5}>
+      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack mt={0.8}> */}
+      <Stack mt={0.8} className="MeridianControlRow">
+        {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item ml={10.5}> */}
+        <Stack.Item ml={10.5} className="MeridianControlRow__fill">
           <Button
             mb={-0.1}
             fluid

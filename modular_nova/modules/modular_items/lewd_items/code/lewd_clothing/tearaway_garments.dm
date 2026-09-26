@@ -13,6 +13,8 @@
 	bodyshapes_with_variations = NONE
 	can_adjust = FALSE
 	gender = PLURAL
+	greyscale_config_worn_vox = /datum/greyscale_config/tearaway_garments/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/tearaway_garments/worn
 
 /obj/item/clothing/under/tearaway_garments/Initialize(mapload)
 	. = ..()

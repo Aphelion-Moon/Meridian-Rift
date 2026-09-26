@@ -29,8 +29,8 @@
 	var/always_color_customizable
 	///Special case of whether the accessory should be shifted in the X dimension, check taur genitals for example
 	var/special_x_dimension
-	///Special case for MODsuit overlays
-	var/use_custom_mod_icon
+	/// All of these inventory slots must contain sealed parts of the wearer's MOD to project hardlight. NONE disables it.
+	var/mod_icon_slots = NONE
 	var/uses_emissives = FALSE
 	var/color_layer_names
 	/// If this sprite accessory will be inaccessable if ERP config is disabled
@@ -59,17 +59,13 @@
 
 		var/list/icon_states_list = SSaccessories.cached_mutant_icon_files[icon] || SSaccessories.build_cached_icon_states(icon)
 		var/icon_state_prefix = "m_[key]_[get_sprite_suffix()]"
+		var/static/list/channel_names = list("1" = "primary", "2" = "secondary", "3" = "tertiary")
 
-		for(var/postfix in SSaccessories.all_layer_postfixes)
-			var/prefix = "[icon_state_prefix]_[postfix]"
-			if("[prefix]_primary" in icon_states_list)
-				color_layer_names["1"] = "primary"
-			if("[prefix]_secondary" in icon_states_list)
-				color_layer_names["2"] = "secondary"
-			if("[prefix]_tertiary" in icon_states_list)
-				color_layer_names["3"] = "tertiary"
-			if(length(color_layer_names) == 3)
-				break // Found all three channels, nothing left to learn.
+		for(var/color_index, channel_name in channel_names)
+			for(var/postfix in SSaccessories.all_layer_postfixes)
+				if("[icon_state_prefix]_[postfix]_[channel_name]" in icon_states_list)
+					color_layer_names[color_index] = channel_name
+					break
 
 /// Returns the 'suffix' of the sprite (by default just the icon_state)
 /datum/sprite_accessory/proc/get_sprite_suffix()
@@ -110,6 +106,7 @@
 	natural_spawn = FALSE
 
 /datum/sprite_accessory/moth_markings
+	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/moth_markings.dmi'
 	key = FEATURE_MOTH_MARKINGS
 	// organ_type = /obj/item/organ/moth_markings // UNCOMMENT THIS IF THEY EVER FIX IT UPSTREAM, CAN'T BE BOTHERED TO FIX IT MYSELF
 

@@ -1,0 +1,204 @@
+// THIS IS AN APHELION UI FILE
+@use 'sass:map';
+
+// Match these named colors to constants/meridian-themes/<name>.ts.
+// Components consume the semantic tokens emitted below, not these primitives.
+// Keep this order stable: _themes.scss emits the maps in declaration order.
+$palettes: (
+  // Electra
+  meridian_electra: (
+    canvas: #080d10,
+    panel: #0d171d,
+    raised: #18303a,
+    recessed: #091217,
+    boundary: #4b6b78,
+    text: #e6eef1,
+    mutedText: #9fb2bc,
+    accent: #58d1c9,
+    secondaryAccent: #7ae2db,
+    focus: #ffd84d,
+  ),
+  // Wastelander
+  meridian_wastelander: (
+    canvas: #0c100b,
+    panel: #11160f,
+    raised: #22291b,
+    recessed: #090d08,
+    boundary: #657653,
+    text: #adb997,
+    mutedText: #919f7e,
+    accent: #90a863,
+    secondaryAccent: #a4ba78,
+    focus: #d3be7e,
+  ),
+  // Vector
+  meridian_vector: (
+    canvas: #070d16,
+    panel: #0b1626,
+    raised: #162d49,
+    recessed: #08111d,
+    boundary: #426b96,
+    text: #e7f1ff,
+    mutedText: #9cb3cf,
+    accent: #54a9ff,
+    secondaryAccent: #7fc0ff,
+    focus: #b8f5ff,
+  ),
+  // Foundry
+  meridian_foundry: (
+    canvas: #17100b,
+    panel: #21170f,
+    raised: #3c2b1d,
+    recessed: #130e09,
+    boundary: #a58252,
+    text: #f1dfbc,
+    mutedText: #c6ad88,
+    accent: #e7ad52,
+    secondaryAccent: #f0c074,
+    focus: #ffda94,
+  ),
+  // Diagnostic
+  meridian_diagnostic: (
+    canvas: #050d09,
+    panel: #091611,
+    raised: #123020,
+    recessed: #06100b,
+    boundary: #3f7354,
+    text: #e2f4e8,
+    mutedText: #98baa3,
+    accent: #4ad879,
+    secondaryAccent: #79e79a,
+    focus: #b1ffd8,
+  ),
+  // Highline
+  meridian_highline: (
+    canvas: #10151a,
+    panel: #171e24,
+    raised: #29343d,
+    recessed: #0d1216,
+    boundary: #77868f,
+    text: #c9d0d3,
+    mutedText: #afbac1,
+    accent: #b9c5ca,
+    secondaryAccent: #a6c5d3,
+    focus: #9dc7de,
+  ),
+  // Synapse
+  meridian_synapse: (
+    canvas: #0c0710,
+    panel: #160d1a,
+    raised: #301a38,
+    recessed: #100912,
+    boundary: #885094,
+    text: #f4eaf6,
+    mutedText: #c0a7c5,
+    accent: #c477e8,
+    secondaryAccent: #38d6cf,
+    focus: #c9bcff,
+  ),
+  // Hotline
+  meridian_hotline: (
+    canvas: #09040e,
+    panel: #160b20,
+    raised: #2c143a,
+    recessed: #0e0615,
+    boundary: #9857b0,
+    text: #fff0ff,
+    mutedText: #cbb0d4,
+    accent: #ff57d5,
+    secondaryAccent: #ff74de,
+    focus: #edc6ff,
+  ),
+  // Cyberpunk
+  meridian_cyberpunk: (
+    canvas: #090304,
+    panel: #0f0505,
+    raised: #1a090c,
+    recessed: #050203,
+    boundary: #c0152a,
+    text: #f7edf0,
+    mutedText: #c9a9b0,
+    accent: #ff5267,
+    secondaryAccent: #00e5d4,
+    focus: #74fff5,
+  ),
+  // Augmentation
+  meridian_augmentation: (
+    canvas: #070203,
+    panel: #0f0505,
+    raised: #19080b,
+    recessed: #050102,
+    boundary: #c0152a,
+    text: #eaf7f6,
+    mutedText: #a9c7c4,
+    accent: #00e5d4,
+    secondaryAccent: #f04459,
+    focus: #70fff5,
+  ),
+  // Hephaestus
+  meridian_hephaestus: (
+    canvas: #10181d,
+    panel: #172127,
+    raised: #29353b,
+    recessed: #0c1317,
+    boundary: #a28c68,
+    text: #e6deca,
+    mutedText: #b8b39f,
+    accent: #dcad62,
+    secondaryAccent: #b4c6a3,
+    focus: #f3d39a,
+  ),
+  // Shadowbroker
+  meridian_shadowbroker: (
+    canvas: #101314,
+    panel: #1b2021,
+    raised: #293032,
+    recessed: #080a0b,
+    boundary: #747e7a,
+    text: #f3eedc,
+    mutedText: #bcb7a8,
+    accent: #f4a62a,
+    secondaryAccent: #6fc5d2,
+    focus: #fff2a3,
+  ),
+  // Scavenger
+  meridian_scavenger: (
+    canvas: #100d0a,
+    panel: #1a1712,
+    raised: #2b251d,
+    recessed: #080705,
+    boundary: #7c6e50,
+    text: #f0e7ce,
+    mutedText: #c9bea3,
+    accent: #d5a84c,
+    secondaryAccent: #9aaa8c,
+    focus: #ffe6a3,
+  ),
+  // Aphelion
+  meridian_aphelion: (
+    canvas: #131110,
+    panel: #1a1714,
+    raised: #211d19,
+    recessed: #0e0c0b,
+    boundary: #8f887c,
+    text: #ece5d8,
+    mutedText: #a89f90,
+    accent: #56d4dc,
+    secondaryAccent: #56d4dc,
+    focus: #56d4dc,
+  ),
+);
+
+@mixin emit($palette) {
+  --console-surface-canvas: #{map.get($palette, 'canvas')};
+  --console-surface-base: #{map.get($palette, 'panel')};
+  --console-surface-raised: #{map.get($palette, 'raised')};
+  --console-surface-recessed: #{map.get($palette, 'recessed')};
+  --console-surface-overlay: #{map.get($palette, 'raised')};
+  --console-border-control: #{map.get($palette, 'boundary')};
+  --console-text-primary: #{map.get($palette, 'text')};
+  --console-text-secondary: #{map.get($palette, 'mutedText')};
+  --console-interaction-accent: #{map.get($palette, 'accent')};
+  --console-interaction-selected: #{map.get($palette, 'secondaryAccent')};
+  --console-interaction-focus: #{map.get($palette, 'focus')};
+}

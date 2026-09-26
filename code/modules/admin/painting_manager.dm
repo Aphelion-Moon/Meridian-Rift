@@ -24,6 +24,7 @@ ADMIN_VERB(painting_manager, R_ADMIN, "Paintings Manager", "View and redact pain
 	.["paintings"] = SSpersistent_paintings.painting_ui_data(filter = NONE, admin = TRUE)
 
 /datum/paintings_manager/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	/* // APHELION EDIT REMOVAL START - Administrative mutations use the shared transaction queue.
 	if(..())
 		return
 	if (!check_rights(R_ADMIN))
@@ -88,3 +89,9 @@ ADMIN_VERB(painting_manager, R_ADMIN, "Paintings Manager", "View and redact pain
 			chosen_painting.tags |= tag_name
 			log_admin("[key_name(user)] has added tag [tag_name] to persistent painting made by [chosen_painting.creator_ckey] with id [chosen_painting.md5].")
 			return TRUE
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Collect input before starting the transaction.
+	if(..() || !check_rights(R_ADMIN))
+		return
+	return gallery_ui_act(action, params, ui)
+	// APHELION EDIT ADDITION END

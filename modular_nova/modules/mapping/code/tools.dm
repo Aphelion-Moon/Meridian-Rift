@@ -51,7 +51,6 @@
 	greyscale_config = null
 	greyscale_config_inhand_left = null
 	greyscale_config_inhand_right = null
-	post_init_icon_state = null
 
 //CROWBAR//
 /obj/item/crowbar/advanced

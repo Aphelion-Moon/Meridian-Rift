@@ -203,7 +203,7 @@ export class ChangelogContent extends Component<any, ChangelogState> {
 
     const header = (
       <Section>
-        <h1>Aphelion</h1>
+        <h1>Aphelion 13</h1>
         <p>
           <b>Thanks to: </b>
           Traditional Games 13, Nova Sector, Skyrat Station 13, Baystation 12,
@@ -213,18 +213,18 @@ export class ChangelogContent extends Component<any, ChangelogState> {
           game.
         </p>
         <p>
-          {'Current project maintainers can be found '}
-          <a href="https://github.com/AphelionDevelopment?tab=members">here</a>
+          {'Current organization members can be found '}
+          <a href="https://github.com/orgs/AphelionDevelopment/people">here</a>
           {', recent GitHub contributors can be found '}
           <a href="https://github.com/AphelionDevelopment/Meridian-Rift/pulse/monthly">
             here
           </a>
           .
         </p>
-        {/* <p>
-          {'You can also join our forums '}
-          <a href="">here</a>.
-        </p> */}
+        <p>
+          {'You can also join our discord '}
+          <a href="https://discord.gg/aphelion">here</a>.
+        </p>
         {dateDropdown}
       </Section>
     );

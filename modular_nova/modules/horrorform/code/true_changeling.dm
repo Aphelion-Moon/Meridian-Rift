@@ -186,7 +186,6 @@
 	name = "Re-Form Human Shell"
 	desc = "We turn back into a human. This takes considerable effort and will stun us for some time afterwards."
 	button_icon = 'modular_nova/modules/horrorform/icons/actions_changeling.dmi'
-	button_icon = 'modular_nova/modules/horrorform/icons/actions_changeling.dmi'
 	background_icon_state = "bg_changeling"
 	button_icon_state = "change_to_human"
 

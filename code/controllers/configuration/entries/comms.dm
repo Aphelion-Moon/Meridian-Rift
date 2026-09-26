@@ -2,7 +2,12 @@
 	protection = CONFIG_ENTRY_HIDDEN
 
 /datum/config_entry/string/comms_key/ValidateAndSet(str_val)
-	return str_val != "default_pwd" && length(str_val) > 6 && ..()
+	// return str_val != "default_pwd" && length(str_val) > 6 && ..() // APHELION EDIT REMOVAL
+	// APHELION EDIT ADDITION START - Keep Symphony's status in sync after successful validation.
+	. = str_val != "default_pwd" && length(str_val) > 6 && ..()
+	if(.)
+		SSsymphony.comms_key_set = !!config_entry_value
+	// APHELION EDIT ADDITION END
 
 /datum/config_entry/keyed_list/cross_server
 	key_mode = KEY_MODE_TEXT

@@ -1,5 +1,11 @@
 // THIS IS A NOVA SECTOR UI FILE
-import { type ComponentProps, useMemo, useRef, useState } from 'react';
+import {
+  type ComponentProps,
+  type ComponentRef,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useBackend } from 'tgui/backend';
 import {
   Box,
@@ -7,6 +13,7 @@ import {
   ColorBox,
   Divider,
   Dropdown,
+  Floating,
   Icon,
   Modal,
   Section,
@@ -48,25 +55,30 @@ type ColumnData = {
   filteredMarkingPresets: string[];
 };
 
-// On hover, used to display extra_info tooltips.
-// Uses visibility/opacity toggle instead of conditional rendering to avoid
-// DOM node insertion/removal
+// Portal descriptions above section stacking contexts while retaining the animation.
 const HoverText = (props: { text: string; children: any }) => {
-  const [visible, setVisible] = useState(false);
+  const floatingRef = useRef<ComponentRef<typeof Floating>>(null);
   return (
-    <div
-      className="LimbsPage__hover-text"
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-      onMouseDown={() => setVisible(false)}
-    >
-      {props.children}
-      <div
-        className={`LimbsPage__hover-text--tooltip-wrapper${visible && props.text ? ' visible' : ''}`}
-      >
+    <Floating
+      ref={floatingRef}
+      hoverOpen
+      hoverDelay={1}
+      disabled={!props.text}
+      placement="bottom-start"
+      contentOffset={4}
+      animationDuration={600}
+      contentClasses="LimbsPage__hover-text--tooltip-wrapper"
+      content={
         <div className="LimbsPage__hover-text--tooltip">{props.text}</div>
+      }
+    >
+      <div
+        className="LimbsPage__hover-text"
+        onMouseDown={() => floatingRef.current?.close()}
+      >
+        {props.children}
       </div>
-    </div>
+    </Floating>
   );
 };
 

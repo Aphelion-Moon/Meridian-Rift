@@ -3,7 +3,7 @@ import { filter } from 'es-toolkit/compat';
 import { useState } from 'react';
 import {
   Button,
-  ByondUi,
+  // ByondUi, // APHELION EDIT REMOVAL - native UI menu avoidance
   Input,
   NoticeBox,
   Section,
@@ -11,9 +11,9 @@ import {
 } from 'tgui-core/components';
 import { type BooleanLike, classes } from 'tgui-core/react';
 import { createSearch } from 'tgui-core/string';
-
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
+import { ByondUi } from '../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 
 type Data = {
   activeCamera: Camera & { status: BooleanLike };

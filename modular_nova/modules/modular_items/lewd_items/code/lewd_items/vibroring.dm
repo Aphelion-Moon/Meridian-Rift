@@ -79,10 +79,12 @@
 	var/mob/living/carbon/human/user = loc
 	if(!user || !istype(user))
 		return PROCESS_KILL
-	var/obj/item/organ/genital/testicles/balls = user.get_organ_slot(ORGAN_SLOT_PENIS)
-	if(!toy_on || !balls)
+	var/obj/item/organ/genital/penis/penis = user.get_organ_slot(ORGAN_SLOT_PENIS)
+	if(!toy_on || !penis)
 		return
 	user.adjust_arousal(1 * seconds_per_tick)
 	user.adjust_pleasure(1 * seconds_per_tick)
-	if(balls.aroused != AROUSAL_CANT)
-		balls.aroused = AROUSAL_FULL //Vibroring keep penis erected.
+	if(penis.aroused != AROUSAL_CANT && penis.aroused != AROUSAL_FULL)
+		penis.aroused = AROUSAL_FULL // Vibrorings keep the penis erect.
+		penis.update_sprite_suffix()
+		user.update_body()

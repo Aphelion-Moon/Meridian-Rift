@@ -23,6 +23,11 @@
 	if(CONFIG_GET(flag/disable_lewd_items))
 		return INITIALIZE_HINT_QDEL
 
+/obj/item/storage/box/erp/portal_fleshlight/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
 /obj/item/paper/shibari_kit_instructions/Initialize(mapload)
 	. = ..()
 	if(CONFIG_GET(flag/disable_lewd_items))
@@ -214,6 +219,11 @@
 		return INITIALIZE_HINT_QDEL
 
 /obj/item/clothing/erp_leash/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
+/obj/item/wallframe/lewd_portal/Initialize(mapload)
 	. = ..()
 	if(CONFIG_GET(flag/disable_lewd_items))
 		return INITIALIZE_HINT_QDEL

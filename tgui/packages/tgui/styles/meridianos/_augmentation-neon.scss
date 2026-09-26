@@ -1,0 +1,31 @@
+// THIS IS AN APHELION UI FILE
+
+@media (forced-colors: none) {
+  .theme-meridian_augmentation {
+    // Selected controls stay red while the loader accents remain cyan.
+    --glass-cyan: #00e5d4;
+    --glass-tube: url('tgui/styles/meridianos/assets/augmentation-neon-tube.svg');
+    --glass-cyan-cage: conic-gradient(from -90deg,
+      transparent 0deg 240deg, #00e5d4 240deg 338deg, transparent 338deg);
+    // Red cage sectors stay uniform; the textured glow belongs to cyan.
+    --console-loader-cage-pattern: conic-gradient(from -90deg,
+      #c0152a 0deg 98deg, transparent 98deg 120deg,
+      #c0152a 120deg 218deg, transparent 218deg 240deg,
+      #00e5d4 240deg 338deg, transparent 338deg);
+
+    // Uniform red nodes avoid small white streaks where they overlap the fans.
+    // Keep the original node mask, angles and red fan geometry.
+    .DiagnosticLoader__nodes {
+      background: repeating-conic-gradient(
+        from var(--console-loader-node-start, -90deg),
+        var(--console-interaction-selected) 0deg var(--console-loader-node-width),
+        transparent var(--console-loader-node-width) var(--console-loader-node-step)
+      );
+    }
+
+    // Cyan follows the original left inner mark, cage segment, hexagonal core
+    // and progress ring. The red fans and nodes receive no cyan halo.
+    .DiagnosticLoader__light .DiagnosticLoader__innerMarks { border-left-color: #00e5d4; }
+    .DiagnosticLoader__light .DiagnosticLoader__nodes { display: none; }
+  }
+}

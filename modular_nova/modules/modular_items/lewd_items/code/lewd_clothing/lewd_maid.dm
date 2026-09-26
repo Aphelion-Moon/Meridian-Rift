@@ -28,3 +28,4 @@
 	greyscale_config_worn = null
 	greyscale_config_worn_digi = null
 	post_init_icon_state = null
+	vox_primalis_force_pants = TRUE

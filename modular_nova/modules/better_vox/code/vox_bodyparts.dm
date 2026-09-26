@@ -11,6 +11,27 @@
 	eyes_icon = 'modular_nova/modules/better_vox/icons/bodyparts/vox_eyes.dmi'
 	teeth_count = 72
 
+/// Position fallback human hats and facewear on the Primalis head.
+/obj/item/bodypart/head/mutant/vox_primalis/Initialize(mapload)
+	worn_head_offset = new(
+		attached_part = src,
+		feature_key = OFFSET_HEAD,
+		offset_x = list("north" = 0, "south" = 0, "east" = 3, "west" = -3),
+	)
+	worn_mask_offset = new(
+		attached_part = src,
+		feature_key = OFFSET_FACEMASK,
+		offset_x = list("north" = 0, "south" = 0, "east" = 5, "west" = -5),
+		offset_y = list("north" = 0, "south" = 0, "east" = 1, "west" = 0),
+	)
+	worn_glasses_offset = new(
+		attached_part = src,
+		feature_key = OFFSET_GLASSES,
+		offset_x = list("north" = 0, "south" = 0, "east" = 5, "west" = -5),
+		offset_y = list("north" = 0, "south" = 0, "east" = 1, "west" = 1),
+	)
+	return ..()
+
 /obj/item/bodypart/chest/mutant/vox_primalis
 	icon_static = 'modular_nova/modules/better_vox/icons/bodyparts/vox_bodyparts.dmi'
 	icon_greyscale = 'modular_nova/modules/better_vox/icons/bodyparts/vox_bodyparts.dmi'
@@ -20,6 +41,16 @@
 	is_dimorphic = FALSE
 	should_draw_greyscale = FALSE
 	limb_id = SPECIES_VOX_PRIMALIS
+
+/// Position fallback human back items on the Primalis torso.
+/obj/item/bodypart/chest/mutant/vox_primalis/Initialize(mapload)
+	worn_back_offset = new(
+		attached_part = src,
+		feature_key = OFFSET_BACK,
+		offset_x = list("north" = 0, "south" = 0, "east" = 1, "west" = -1),
+		offset_y = list("north" = -1, "south" = -1, "east" = 1, "west" = 1),
+	)
+	return ..()
 
 /obj/item/bodypart/arm/left/mutant/vox_primalis
 	icon_static = 'modular_nova/modules/better_vox/icons/bodyparts/vox_bodyparts.dmi'

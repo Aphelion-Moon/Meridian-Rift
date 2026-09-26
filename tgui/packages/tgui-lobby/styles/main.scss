@@ -1,17 +1,16 @@
 @use 'sass:meta';
-@use 'aphelion'; // APHELION EDIT ADDITION - LOBBY_MENU_REWORK - Aphelion's plain-text nav/terminal/notice/trait styling
 
 @include meta.load-css('~tgui/styles/reset');
 @include meta.load-css('~tgui-core/styles/base.scss');
 @include meta.load-css('~tgui-core/styles/colors.scss');
 @include meta.load-css('~tgui-core/styles/vars-components.scss');
+@include meta.load-css('~tgui-core/styles/components/Floating.scss'); // APHELION EDIT ADDITION
 @include meta.load-css('~tgui-core/styles/components/Tooltip.scss');
+@include meta.load-css('./meridianos/meridian.scss'); // APHELION EDIT ADDITION - MERIDIAN_UI
 
 .Tooltip {
   //font-family: 'Pixellari', monospace; // APHELION EDIT REMOVAL
-  // APHELION EDIT ADDITION START - LOBBY_MENU_REWORK
-  font-family: 'Fixedsys', monospace;
-  // APHELION EDIT ADDITION END
+  font-family: 'Fixedsys', monospace; // APHELION EDIT ADDITION
 }
 
 .Floating {

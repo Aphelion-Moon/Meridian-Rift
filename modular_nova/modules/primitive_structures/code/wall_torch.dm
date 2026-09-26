@@ -185,22 +185,4 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/wall_torch/spawns_lit, 28)
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT)
 	result_path = /obj/structure/wall_torch/mount_only
 	pixel_shift = 28
-
-
-/obj/item/wallframe/torch_mount/try_build(turf/on_wall, mob/user)
-	if(get_dist(on_wall,user) > 1)
-		balloon_alert(user, "you are too far!")
-		return
-
-	var/floor_to_wall = get_dir(user, on_wall)
-	if(!(floor_to_wall in GLOB.cardinals))
-		balloon_alert(user, "stand in line with wall!")
-		return
-
-	var/turf/user_turf = get_turf(user)
-
-	if(check_wall_item(user_turf, floor_to_wall, wall_external))
-		balloon_alert(user, "already something here!")
-		return
-
-	return TRUE
+	requires_floor = FALSE

@@ -4,16 +4,22 @@
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	greyscale_config_worn_muzzled = /datum/greyscale_config/bandana/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/bandana/worn/vox
+	greyscale_config_worn_better_vox = /datum/greyscale_config/bandana/worn/better_vox
 
 /obj/item/clothing/mask/bandana/striped
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	greyscale_config_worn_muzzled = /datum/greyscale_config/bandana/striped/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/bandana/striped/worn/vox
+	greyscale_config_worn_better_vox = /datum/greyscale_config/bandana/striped/worn/better_vox
 
 /obj/item/clothing/mask/bandana/skull
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
 	greyscale_config_worn_muzzled = /datum/greyscale_config/bandana/skull/worn/muzzled
 	greyscale_config_worn_vox = /datum/greyscale_config/bandana/skull/worn/vox
+	greyscale_config_worn_better_vox = /datum/greyscale_config/bandana/skull/worn/better_vox
+
+/obj/item/clothing/mask/facescarf
+	greyscale_config_worn_better_vox = /datum/greyscale_config/facescarf/worn/better_vox
 
 /obj/item/clothing/mask/muzzle/tape
 	supports_variations_flags = CLOTHING_SNOUTED_VARIATION
@@ -21,8 +27,8 @@
 	greyscale_config_worn_vox = /datum/greyscale_config/tape_piece/worn/vox
 
 /obj/item/clothing/mask/muzzle/tape/pointy
-	greyscale_config_worn_muzzled = /datum/greyscale_config/tape_piece/worn/muzzled
-	greyscale_config_worn_vox = /datum/greyscale_config/tape_piece/worn/vox
+	greyscale_config_worn_muzzled = /datum/greyscale_config/tape_piece/worn/spikes/muzzled
+	greyscale_config_worn_vox = /datum/greyscale_config/tape_piece/worn/spikes/vox
 
 /obj/item/clothing/mask/cigarette
 	supports_variations_flags = NONE

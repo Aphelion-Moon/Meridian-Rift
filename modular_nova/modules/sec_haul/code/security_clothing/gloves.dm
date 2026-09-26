@@ -1,4 +1,5 @@
 /obj/item/clothing/gloves/color/black/security/depgag
+	greyscale_config_worn_vox = /datum/greyscale_config/depgag_gloves/worn/vox
 	name = "guard gloves"
 	desc = "These gloves come with microchips that help the user quickly restrain suspects."
 	icon = 'icons/map_icons/clothing/_clothing.dmi'

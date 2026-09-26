@@ -12,15 +12,13 @@
 /// TRUE if a topic from this sender is allowed to run.
 /proc/symphony_address_allowed(addr)
 	var/static/list/local_addresses = list("127.0.0.1", "::1", "localhost")
-	if(!CONFIG_GET(flag/symphony_topics_local_only))
-		return TRUE
 	// Null addr means the sender is on this machine.
-	if(!addr)
+	if(!SSsymphony.topics_local_only || !addr)
 		return TRUE
 	var/sender = LOWER_TEXT(trim(addr))
 	if(sender in local_addresses)
 		return TRUE
-	for(var/allowed in CONFIG_GET(str_list/symphony_topics_allowed_addresses))
+	for(var/allowed in SSsymphony.topics_allowed_addresses)
 		if(LOWER_TEXT(trim(allowed)) == sender)
 			return TRUE
 	return FALSE
@@ -74,7 +72,7 @@
 		.["message"] = "missing target_ckey"
 		return
 	// Don't claim we did something the master switch stopped.
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		.["success"] = FALSE
 		.["message"] = "enforcement is off"
 		return
@@ -91,7 +89,7 @@
 		.["success"] = FALSE
 		.["message"] = "missing target_ckey"
 		return
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		.["success"] = FALSE
 		.["message"] = "enforcement is off"
 		return

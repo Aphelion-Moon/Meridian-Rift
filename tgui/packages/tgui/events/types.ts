@@ -1,4 +1,5 @@
 import type { ExtractAtomValue } from 'jotai';
+import type { MeridianBaseThemeId } from '../constants/theme'; // APHELION EDIT ADDITION - MERIDIAN_UI
 import type { sendAct } from './act';
 import type { backendStateAtom } from './store';
 
@@ -31,6 +32,7 @@ type User = {
 export type Config = {
   client: Client;
   interface: IFace;
+  meridianTheme: MeridianBaseThemeId; // APHELION EDIT ADDITION - MERIDIAN_UI
   refreshing: BinaryIO;
   status: number;
   title: string;

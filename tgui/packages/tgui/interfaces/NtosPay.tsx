@@ -31,7 +31,8 @@ type Transactions = {
 export const NtosPay = (props) => {
   return (
     <NtosWindow width={495} height={655}>
-      <NtosWindow.Content>
+      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <NtosWindow.Content> */}
+      <NtosWindow.Content scrollable>
         <NtosPayContent />
       </NtosWindow.Content>
     </NtosWindow>
@@ -94,9 +95,11 @@ const TransferSection = (props) => {
   const [moneyToSendIsValid, setMoneyToSendIsValid] = useState(true);
 
   return (
-    <Stack>
+    // APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack>
+    <Stack className="MeridianControlGrid">
       <Stack.Item>
-        <Section title="Transfer Money">
+        {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Section title="Transfer Money"> */}
+        <Section title="Transfer Money" className="MeridianControlForm">
           <Box>
             <Tooltip
               content="Enter the pay token of the account you want to transfer credits to."
@@ -137,7 +140,8 @@ const TransferSection = (props) => {
       </Stack.Item>
       <Stack.Item>
         <Section title="Get Token" width="270px" height="98px">
-          <Box>
+          {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Box> */}
+          <Box className="MeridianControlRow">
             <Input
               placeholder="Full name of account."
               width="190px"

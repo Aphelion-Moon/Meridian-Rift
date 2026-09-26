@@ -184,7 +184,7 @@ GLOBAL_LIST_EMPTY_TYPED(active_bets, /datum/active_bet)
 		return
 	// We'll only advertise it on the first bet of the round, as to not make this overly annoying.
 	var/should_alert = !length(betting_channel.messages)
-	newscaster_message = GLOB.news_network.submit_article("The bet [name] has started, place your bets now!", "NtOS Space Betting App", NEWSCASTER_SPACE_BETTING, null, update_alert = should_alert)
+	newscaster_message = GLOB.news_network.submit_article("The bet [name] has started, place your bets now!", "MeridianOS Space Betting App", NEWSCASTER_SPACE_BETTING, null, update_alert = should_alert) // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: newscaster_message = GLOB.news_network.submit_article("The bet [name] has started, place your bets now!", "NtOS Space Betting App", NEWSCASTER_SPACE_BETTING, null, update_alert = should_alert)
 
 /// Reply to our previously placed advertisement feed article.
 /datum/active_bet/proc/reply_to_feed(winning_option)
@@ -192,7 +192,7 @@ GLOBAL_LIST_EMPTY_TYPED(active_bets, /datum/active_bet)
 		return
 	GLOB.news_network.submit_comment(
 		comment_text = "The bet [name] has ended, the winner was [winning_option]!",
-		newscaster_username = "NtOS Betting Results",
+		newscaster_username = "MeridianOS Betting Results", // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: newscaster_username = "NtOS Betting Results",
 		current_message = newscaster_message,
 	)
 

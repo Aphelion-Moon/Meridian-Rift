@@ -1,0 +1,12 @@
+{
+	"boots": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_boots",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	]
+}

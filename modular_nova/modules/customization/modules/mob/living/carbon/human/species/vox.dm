@@ -21,7 +21,7 @@
 	// Vox are cold resistant, but also heat sensitive
 	bodytemp_heat_damage_limit = (BODYTEMP_HEAT_DAMAGE_LIMIT - 15) // being cold resistant, should make you heat sensitive actual effect ingame isn't much
 	bodytemp_cold_damage_limit = (BODYTEMP_COLD_DAMAGE_LIMIT - 30)
-	digitigrade_customization = DIGITIGRADE_OPTIONAL
+	digitigrade_customization = DIGITIGRADE_FORCED
 	bodypart_overrides = list(
 		BODY_ZONE_HEAD = /obj/item/bodypart/head/mutant/vox,
 		BODY_ZONE_CHEST = /obj/item/bodypart/chest/mutant/vox,
@@ -29,6 +29,10 @@
 		BODY_ZONE_R_ARM = /obj/item/bodypart/arm/right/mutant/vox,
 		BODY_ZONE_L_LEG = /obj/item/bodypart/leg/left/mutant/vox,
 		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/mutant/vox,
+	)
+	survival_box_overrides = list(
+		SURVIVAL_INTERNALS_TYPE = /obj/item/tank/internals/nitrogen/belt/emergency,
+		SURVIVAL_MEDIPEN_TYPE = /obj/item/reagent_containers/hypospray/medipen,
 	)
 	custom_worn_icons = list(
 		LOADOUT_ITEM_HEAD = VOX_HEAD_ICON,
@@ -76,13 +80,7 @@
 	return markings
 
 /datum/species/vox/get_custom_worn_icon(item_slot, obj/item/item)
-	// snowflakey but vox legs weird.
-	if(item_slot == LOADOUT_ITEM_SHOES)
-		var/obj/item/bodypart/leg = bodypart_overrides[BODY_ZONE_L_LEG] || bodypart_overrides[BODY_ZONE_R_LEG]
-		if(leg && !(initial(leg.bodyshape) & BODYSHAPE_DIGITIGRADE))
-			// normal legs, use normal human shoes
-			return DEFAULT_SHOES_FILE
-
+	// APHELION EDIT CHANGE - Current leg shape is checked by generate_custom_worn_icon().
 	return item.worn_icon_vox
 
 /datum/species/vox/set_custom_worn_icon(item_slot, obj/item/item, icon/icon)

@@ -22,8 +22,8 @@ import type { AugmentsTab } from './CharacterPreferences/LimbsPage';
 
 // Window dimensions per state
 const WINDOW_WIDTH  = 920;
-const WINDOW_HEIGHT_DEFAULT  = 780;
-const WINDOW_HEIGHT_MARKINGS_BODYPARTS = 940; // taller to fit three-column markings layout
+const WINDOW_HEIGHT_DEFAULT  = 820;
+const WINDOW_HEIGHT_MARKINGS_BODYPARTS = 980; // taller to fit three-column markings layout
 // NOVA EDIT ADDITION END
 
 export function PreferencesMenu(props) {
@@ -49,7 +49,7 @@ export function PreferencesMenu(props) {
 //function PrefsWindowInner(props) { // NOVA EDIT REMOVAL
 // NOVA EDIT ADDITION START
 function PrefsWindowInner(props: {
-  onAugmentsTabChange: (tab: AugmentsTab) => void;
+  onAugmentsTabChange: (tab: AugmentsTab | null) => void; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: onAugmentsTabChange: (tab: AugmentsTab) => void;
 }) {
 // NOVA EDIT ADDITION END
   const { data } = useBackend<PreferencesMenuData>();

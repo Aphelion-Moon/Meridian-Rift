@@ -57,6 +57,8 @@
 	can_adjust = TRUE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 	bodyshapes_with_variations = NONE
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 
 /obj/item/clothing/under/dress/skirt/nova/red_skirt
 	name = "red bra and skirt"
@@ -64,8 +66,11 @@
 	icon_state = "red_skirt"
 	body_parts_covered = CHEST|GROIN|LEGS
 	can_adjust = TRUE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
+	worn_icon_digi = null
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 
 /obj/item/clothing/under/dress/skirt/nova/black_skirt
 	name = "black bra and skirt"
@@ -73,8 +78,11 @@
 	icon_state = "black_skirt"
 	body_parts_covered = CHEST|GROIN|LEGS
 	can_adjust = TRUE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
+	worn_icon_digi = null
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 
 /obj/item/clothing/under/dress/skirt/nova/jean
 	name = "jean skirt"
@@ -130,6 +138,8 @@
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY|FEMALE_UNIFORM_NO_BREASTS
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	flags_1 = IS_PLAYER_COLORABLE_1
+	greyscale_config_worn_vox = /datum/greyscale_config/long_skirt/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/long_skirt/worn
 
 /obj/item/clothing/under/dress/skirt/nova/mini_skirt
 	name = "mini skirt"
@@ -173,6 +183,8 @@
 	worn_icon_digi = null
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = CHEST|GROIN|LEGS
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 
 /obj/item/clothing/under/dress/nova/redformal
 	name = "formal red dress"
@@ -182,6 +194,8 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS
 	flags_inv = HIDESHOES
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 
 /obj/item/clothing/under/dress/nova/countess
 	name = "countess dress"
@@ -196,6 +210,8 @@
 	flags_inv = HIDESHOES
 	flags_1 = IS_PLAYER_COLORABLE_1
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/countess_dress/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/countess_dress/worn
 
 /obj/item/clothing/under/dress/wedding_dress/ribbon
 	name = "wedding dress with ribbon"
@@ -206,6 +222,8 @@
 	post_init_icon_state = "wedding_dress_with_ribbon"
 	greyscale_config = /datum/greyscale_config/wedding_dress_ribbon
 	greyscale_config_worn = /datum/greyscale_config/wedding_dress_ribbon/worn
+	greyscale_config_worn_vox = /datum/greyscale_config/wedding_dress_ribbon/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/wedding_dress_ribbon/worn
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	worn_icon_digi = null
 
@@ -221,6 +239,8 @@
 	greyscale_colors = "#cc0000#5f5f5f"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/strapless_dress/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/strapless_dress/worn
 
 /obj/item/clothing/under/dress/nova/pentagram
 	name = "pentagram strapped dress"
@@ -234,6 +254,8 @@
 	greyscale_colors = "#403c46"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/pentagram_dress/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/pentagram_dress/worn
 
 /obj/item/clothing/under/dress/nova/jute
 	name = "jacarta dress"
@@ -243,6 +265,8 @@
 	can_adjust = TRUE
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 	bodyshapes_with_variations = NONE
+	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
+	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses.dmi'
 
 /obj/item/clothing/under/dress/wedding_dress
 	icon = 'icons/map_icons/clothing/under/dress.dmi'
@@ -258,6 +282,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 	bodyshapes_with_variations = NONE
 	worn_icon_digi = 'modular_nova/master_files/icons/mob/clothing/under/skirts_dresses_digi.dmi'
+	greyscale_config_worn_vox = /datum/greyscale_config/wedding_dress/worn
 
 /datum/atom_skin/giant_scarf
 	abstract_type = /datum/atom_skin/giant_scarf
@@ -320,6 +345,8 @@
 	female_sprite_flags = NO_FEMALE_UNIFORM
 	flags_1 = IS_PLAYER_COLORABLE_1
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/giant_scarf/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/giant_scarf/worn
 
 /obj/item/clothing/under/dress/nova/giant_scarf/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/giant_scarf, initial_skin = "Plain")
@@ -372,6 +399,8 @@
 	can_adjust = FALSE
 	alternate_worn_layer = ABOVE_SHOES_LAYER
 	gets_cropped_on_taurs = FALSE
+	greyscale_config_worn_vox = /datum/greyscale_config/midnight_gown/worn/digi
+	greyscale_config_worn_better_vox = /datum/greyscale_config/midnight_gown/worn/digi
 
 /obj/item/clothing/under/dress/nova/midnight_gown/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/midnight_gown)
@@ -386,6 +415,8 @@
 	post_init_icon_state = "windowed_dress"
 	greyscale_config = /datum/greyscale_config/windowed_dress
 	greyscale_config_worn = /datum/greyscale_config/windowed_dress/worn
+	greyscale_config_worn_vox = /datum/greyscale_config/windowed_dress/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/windowed_dress/worn
 	greyscale_colors = "#424242#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS
@@ -424,6 +455,8 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/slit_dress/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/slit_dress/worn
 
 /obj/item/clothing/under/dress/nova/slit_dress/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/slit_dress)
@@ -454,6 +487,8 @@
 	post_init_icon_state = "shorter_dress"
 	greyscale_config = /datum/greyscale_config/shorter_dress
 	greyscale_config_worn = /datum/greyscale_config/shorter_dress/worn
+	greyscale_config_worn_vox = /datum/greyscale_config/shorter_dress/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/shorter_dress/worn
 	greyscale_colors = "#424242#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS
@@ -488,6 +523,8 @@
 	post_init_icon_state = "pen_skirt"
 	greyscale_config = /datum/greyscale_config/pen_skirt
 	greyscale_config_worn = /datum/greyscale_config/pen_skirt/worn
+	greyscale_config_worn_vox = /datum/greyscale_config/pen_skirt/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/pen_skirt/worn
 	greyscale_colors = "#424242"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = GROIN|LEGS
@@ -509,6 +546,8 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS|ARMS
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/formal_pen_skirt/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/formal_pen_skirt/worn
 
 /*
  *	Others
@@ -529,6 +568,8 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	bodyshapes_with_variations = NONE
 	worn_icon_digi = null
+	greyscale_config_worn_vox = /datum/greyscale_config/loincloth/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/loincloth/worn
 
 /obj/item/clothing/under/dress/skirt/nova/loincloth/loincloth_alt
 	name = "shorter loincloth"
@@ -537,3 +578,5 @@
 	post_init_icon_state = "loincloth_alt"
 	greyscale_config = /datum/greyscale_config/loincloth_alt
 	greyscale_config_worn = /datum/greyscale_config/loincloth_alt/worn
+	greyscale_config_worn_vox = /datum/greyscale_config/loincloth_alt/worn
+	greyscale_config_worn_better_vox = /datum/greyscale_config/loincloth_alt/worn

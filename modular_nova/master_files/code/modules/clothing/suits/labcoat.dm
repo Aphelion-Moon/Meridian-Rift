@@ -64,7 +64,6 @@
 /obj/item/clothing/suit/toggle/labcoat/nova/lalunevest
 	name = "sleeveless buttoned coat"
 	desc = "A fashionable jacket bearing the La Lune insignia on the inside. It appears similar to a labcoat in design and materials, though the tag warns against it being a replacement for such."
-	icon_state = "/obj/item/clothing/suit/toggle/labcoat/nova/lalunevest"
 	worn_icon_digi = null
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 	icon_state = "labcoat_lalunevest"

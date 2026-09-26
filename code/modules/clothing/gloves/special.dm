@@ -134,6 +134,7 @@
 	AddElement(/datum/element/adjust_fishing_difficulty, -6)
 
 /obj/item/clothing/gloves/latex/coroner
+	worn_icon_better_vox = 'modular_nova/modules/better_vox/icons/clothing/hands.dmi'
 	name = "coroner's gloves"
 	desc = "Black gloves made from latex with a superhydrophobic coating. Useful for picking bodies up instead of dragging blood behind."
 	icon_state = "latex_black"

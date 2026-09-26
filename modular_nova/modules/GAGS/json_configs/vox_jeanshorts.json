@@ -1,0 +1,28 @@
+{
+	"jeanshorts": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_buckle",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "template_belt",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "template_jeanshorts",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		}
+	]
+}

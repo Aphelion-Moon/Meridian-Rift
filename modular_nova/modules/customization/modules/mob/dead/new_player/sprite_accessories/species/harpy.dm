@@ -4,6 +4,7 @@
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/species/harpy_wings.dmi'
 
 /datum/sprite_accessory/wings/mammal/arfel_harpy
+	mod_icon_slots = ITEM_SLOT_GLOVES
 	name = "Arfel Harpy (Low) Reshade"
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/species/harpy_wings.dmi'
 	icon_state = "arfelharpy"

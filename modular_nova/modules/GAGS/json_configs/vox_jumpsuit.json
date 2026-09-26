@@ -1,0 +1,52 @@
+{
+	"jumpsuit": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_jumpsuit",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "template_jumpsuit_accessories",
+			"blend_mode": "overlay"
+		}
+	],
+	"jumpsuit_d": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_jumpsuit_d",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"jumpskirt": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_jumpskirt",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "template_jumpskirt_accessories",
+			"blend_mode": "overlay"
+		}
+	],
+	"jumpskirt_d": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_jumpskirt_d",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	]
+}

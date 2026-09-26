@@ -1,0 +1,72 @@
+// THIS IS AN APHELION UI FILE
+
+.JobSelection {
+  &__status {
+    .NoticeBox {
+      margin-bottom: 0;
+    }
+  }
+
+  &__department {
+    .Section__title {
+      display: flex;
+      min-width: 0;
+      align-items: baseline;
+      gap: var(--space-m);
+    }
+
+    .Section__titleText {
+      min-width: 0;
+      overflow: hidden;
+      flex: 1 1 auto;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .Section__buttons {
+      position: static;
+      display: block;
+      flex: 0 0 auto;
+      margin: 0 0 0 auto;
+      font-size: 1rem;
+      white-space: nowrap;
+    }
+  }
+}
+
+.theme-console {
+  .JobSelection__job.Button {
+    border-color: transparent;
+    border-image: none;
+    box-shadow: none;
+
+    &:hover,
+    &:active {
+      border-color: transparent;
+      border-image: none;
+      box-shadow: none;
+    }
+
+    &:focus-visible {
+      border-color: transparent;
+      border-image: none;
+      box-shadow: 0 0 0 1px var(--console-interaction-focus-contrast);
+    }
+  }
+}
+
+// Cyberpunk's asset-framed Button selector intentionally has extra specificity.
+// Match it here so caller-painted job rows retain their own flat department UI.
+.theme-console.theme-meridian_cyberpunk .JobSelection__job.Button {
+  border-image: none;
+}
+
+@media (max-width: 480px) {
+  .JobSelection__randomAction {
+    flex-basis: 100%;
+
+    .Button {
+      width: 100%;
+    }
+  }
+}

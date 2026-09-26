@@ -4,7 +4,7 @@ import { useBackend } from 'tgui/backend';
 import {
   Box,
   Button,
-  ByondUi,
+  // ByondUi, // APHELION EDIT REMOVAL - native UI menu avoidance
   ColorBox,
   Dropdown,
   InfinitePlane,
@@ -12,6 +12,7 @@ import {
   Stack,
 } from 'tgui-core/components';
 import { Window } from '../../layouts';
+import { ByondUi } from '../../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 import {
   type Connection,
   Connections,

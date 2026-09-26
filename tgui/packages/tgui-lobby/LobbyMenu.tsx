@@ -1,4 +1,4 @@
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - ORIGINAL imports
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - ORIGINAL imports
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Tooltip } from 'tgui-core/components';
 import { assetMap } from './assets';
@@ -6,12 +6,16 @@ import { playCollapseSound, playExpandSound, playSelectSound } from './audio';
 
 */ // APHELION EDIT REMOVAL END
 // APHELION EDIT ADDITION START - LOBBY_MENU_REWORK
-import { useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer } from 'react'; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: import { useEffect, useReducer } from 'react';
+// APHELION EDIT ADDITION START - MERIDIAN_UI
+import type { MeridianBaseThemeId } from 'tgui/constants/theme';
+import type { MeridianLobbyState } from './AphelionLobbyMenu';
+// APHELION EDIT ADDITION END
 import { AphelionLobbyMenu } from './AphelionLobbyMenu';
-import type { StartupMessage } from './components/BootTerminal';
+import type { StartupMessage, StartupStatus } from './components/BootTerminal';
 import type { StationTrait } from './components/StationTraitList';
 // APHELION EDIT ADDITION END
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - moved to components/StationTraitList.tsx
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - moved to components/StationTraitList.tsx
 type StationTrait = {
   ref: string;
   name: string;
@@ -21,44 +25,45 @@ type StationTrait = {
 };
 */ // APHELION EDIT REMOVAL END
 
-export type ServerState = {
-  titleImageUrl: string;
-  gamePhase: 'startup' | 'pregame' | 'setting_up' | 'playing' | 'postgame';
-  isReady: boolean;
-  canReady: boolean;
-  canJoin: boolean;
-  canObserve: boolean;
-  assetsReady: boolean;
-  countdown: string;
-  playerCount: number;
-  readyCount: number;
-  adminReadyCount: number;
-  adminCount: number;
-  mapName: string;
-  shiftTime: string;
-  isAdmin: boolean;
-  isLocalhost: boolean;
-  stationTraits: StationTrait[];
-  hasNewPoll: boolean;
-  canPoll: boolean;
-  overflowJob: string | null;
-  traitFeedback: string | null;
-  transparent: boolean;
-  // APHELION EDIT ADDITION START - LOBBY_MENU_REWORK - Aphelion's own lobby content
-  notice: string | null;
-  latejoinQueue: string | number;
-  canSwapServers: boolean;
-  characterName: string;
-  isAntag: boolean;
-  startupMessages: StartupMessage[];
-  progressCurrent: number;
-  progressTotal: number;
-  /** 'checking' until the first whitelist lookup resolves - don't draw the gate on it. */
-  whitelistGate: 'open' | 'blocked' | 'checking' | 'unavailable';
-  // APHELION EDIT ADDITION END
-};
+export type ServerState = MeridianLobbyState &
+  StartupStatus & {
+    // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: export type ServerState = {
+    titleImageUrl: string;
+    gamePhase: 'startup' | 'pregame' | 'setting_up' | 'playing' | 'postgame';
+    isReady: boolean;
+    canReady: boolean;
+    canJoin: boolean;
+    canObserve: boolean;
+    assetsReady: boolean;
+    countdown: string;
+    playerCount: number;
+    readyCount: number;
+    adminReadyCount: number;
+    adminCount: number;
+    mapName: string;
+    shiftTime: string;
+    isAdmin: boolean;
+    isLocalhost: boolean;
+    stationTraits: StationTrait[];
+    hasNewPoll: boolean;
+    canPoll: boolean;
+    canSwapServers: boolean;
+    overflowJob: string | null;
+    traitFeedback: string | null;
+    transparent: boolean;
+    // APHELION EDIT ADDITION START - LOBBY_MENU_REWORK - Aphelion's own lobby content
+    notice: string | null;
+    latejoinQueue: string | number;
+    characterName: string;
+    isAntag: boolean;
+    whitelistGate: 'open' | 'blocked' | 'checking' | 'unavailable';
+    startupMessages: StartupMessage[];
+    progressCurrent: number;
+    progressTotal: number;
+    // APHELION EDIT ADDITION END
+  };
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - isCollapsed dropped along with the shutter/collapse feature
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - isCollapsed dropped along with the shutter/collapse feature
 type LobbyState = {
   isCollapsed: boolean;
   serverState: ServerState | null;
@@ -70,7 +75,7 @@ type LobbyState = {
 };
 // APHELION EDIT ADDITION END
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
 type LobbyAction =
   | { type: 'serverInit'; payload: ServerState }
   | { type: 'serverUpdate'; payload: Partial<ServerState> }
@@ -82,7 +87,7 @@ type LobbyAction =
   | { type: 'serverUpdate'; payload: Partial<ServerState> };
 // APHELION EDIT ADDITION END
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
 const DEFAULT_STATE: LobbyState = {
   isCollapsed: false,
   serverState: null,
@@ -104,7 +109,7 @@ function lobbyReducer(state: LobbyState, action: LobbyAction): LobbyState {
         ...state,
         serverState: { ...state.serverState, ...action.payload },
       };
-    /* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
+    /* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK
     case 'setCollapsed':
       return { ...state, isCollapsed: action.collapsed };
     */ // APHELION EDIT REMOVAL END
@@ -331,7 +336,7 @@ function getLobbyScale(): number {
 }
 */ // APHELION EDIT REMOVAL END
 
-/* APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - the entire component body, replaced below
+/* // APHELION EDIT REMOVAL START - LOBBY_MENU_REWORK - the entire component body, replaced below
 export function LobbyMenu() {
   const [state, dispatch] = useReducer(lobbyReducer, DEFAULT_STATE);
   const [animating, setAnimating] = useState(false);
@@ -737,10 +742,27 @@ export function LobbyMenu() {
     );
   }, [serverState?.transparent]);
 
+  // APHELION EDIT ADDITION START - MERIDIAN_UI
+  const setMeridianTheme = useCallback((theme: MeridianBaseThemeId) => {
+    dispatch({ type: 'serverUpdate', payload: { meridianTheme: theme } });
+    Byond.sendMessage('setMeridianTheme', { theme });
+  }, []);
+
+  // APHELION EDIT ADDITION END
   if (!serverState) {
     return null;
   }
 
+  /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
   return <AphelionLobbyMenu serverState={serverState} />;
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START - MERIDIAN_UI
+  return (
+    <AphelionLobbyMenu
+      onMeridianThemeChange={setMeridianTheme}
+      serverState={serverState}
+    />
+  );
+  // APHELION EDIT ADDITION END
 }
 // APHELION EDIT ADDITION END

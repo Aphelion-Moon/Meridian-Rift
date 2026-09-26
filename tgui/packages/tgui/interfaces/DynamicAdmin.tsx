@@ -698,7 +698,7 @@ export const DynamicAdmin = () => {
     >
       <Window.Content>
         <Section
-          title="&nbsp;"
+          //title="&nbsp;" APHELION EDIT REMOVAL - MERIDIAN_UI - `buttons` already opens the header, this messed with themes
           height="100%"
           width="100%"
           buttons={

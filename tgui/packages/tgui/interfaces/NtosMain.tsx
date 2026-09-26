@@ -35,11 +35,11 @@ export const NtosMain = (props) => {
     <NtosWindow
       title={
         (PC_device_theme === 'syndicate' && 'Syndix Main Menu') ||
-        'NtOS Main Menu'
+        'MeridianOS Main Menu' // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: 'NtOS Main Menu'
       }
       width={400}
       height={500}
-      z
+      // z APHELION EDIT REMOVAL
     >
       <NtosWindow.Content scrollable>
         {Boolean(
@@ -75,7 +75,7 @@ export const NtosMain = (props) => {
                   }
                   backgroundColor={
                     alert_style === alert_relevancies.ALERT_RELEVANCY_SAFE
-                      ? '#0000000'
+                      ? '#00000000'
                       : alert_color
                   }
                   tooltip="The current alert level. Indicator becomes more intense when there is a threat, moreso if your department is responsible for handling it."

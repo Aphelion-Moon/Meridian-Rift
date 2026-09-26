@@ -59,6 +59,10 @@
 	name = "Vibrating Ring"
 	item_path = /obj/item/clothing/sextoy/vibroring
 
+/datum/loadout_item/erp/portal_fleshlight
+	name = "Portal Device and Underwear"
+	item_path = /obj/item/storage/box/erp/portal_fleshlight
+
 /*
 *	DILDOS
 */
@@ -304,3 +308,11 @@
 /datum/loadout_item/erp/pentacamphor_neuroware_box
 	name = "Neuroware Chips Box (Nobido Xtreme)"
 	item_path = /obj/item/storage/box/flat/neuroware/pentacamphor
+
+/*
+*	STRUCTURES
+*/
+
+/datum/loadout_item/erp/lewd_portal
+	name = "LustWish Portal"
+	item_path = /obj/item/wallframe/lewd_portal
