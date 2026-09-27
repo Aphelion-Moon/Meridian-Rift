@@ -71,6 +71,23 @@
 		"samples" = length(pixels),
 	)
 
+/**
+ * Tells a glowing emissive appearance from an emissive blocker, which shares its plane.
+ *
+ * Every emissive colour matrix writes its glow into the constant row, and a blocker leaves that row at
+ * zero (see _EMISSIVE_COLOR() and _EM_BLOCK_COLOR()).
+ *
+ * Arguments:
+ * - overlay: an appearance already known to sit on the emissive plane.
+ *
+ * Returns TRUE when the appearance glows.
+ */
+/proc/markings_baseline_is_glowing(image/overlay)
+	var/list/color_matrix = overlay.color
+	if(!islist(color_matrix) || length(color_matrix) < 20)
+		return FALSE
+	return !!(color_matrix[17] || color_matrix[18] || color_matrix[19])
+
 /// Shared setup for both markings baselines. Abstract, so the runner never tries to run it on its own.
 /datum/unit_test/markings_baseline
 	abstract_type = /datum/unit_test/markings_baseline
@@ -99,6 +116,7 @@
  *
  * Appearance and filter counts are the numbers the overlay merging step is supposed to move, and the
  * emissive count is the only visible trace of the emissive branch, which never reaches a flat icon.
+ * Every limb also puts emissive blockers on the emissive plane, so those are counted apart.
  *
  * Arguments:
  * - target: the human whose limbs are measured.
@@ -110,27 +128,35 @@
 	var/appearances = 0
 	var/filters = 0
 	var/emissives = 0
+	var/blockers = 0
 	var/markings = 0
 	var/list/per_limb = list()
 	for(var/obj/item/bodypart/limb as anything in target.bodyparts)
 		var/list/overlays = limb.get_limb_icon(dropped)
 		var/limb_filters = 0
 		var/limb_emissives = 0
+		var/limb_blockers = 0
 		for(var/image/overlay as anything in overlays)
 			if(isnull(overlay))
 				continue
 			limb_filters += length(overlay.filters)
-			if(PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE)
+			if(PLANE_TO_TRUE(overlay.plane) != EMISSIVE_PLANE)
+				continue
+			if(markings_baseline_is_glowing(overlay))
 				limb_emissives++
+			else
+				limb_blockers++
 		var/limb_markings = length(limb.markings) + length(limb.aux_zone_markings)
 		appearances += length(overlays)
 		filters += limb_filters
 		emissives += limb_emissives
+		blockers += limb_blockers
 		markings += limb_markings
 		per_limb[limb.body_zone] = list(
 			"appearances" = length(overlays),
 			"filters" = limb_filters,
 			"emissive_appearances" = limb_emissives,
+			"emissive_blockers" = limb_blockers,
 			"markings" = limb_markings,
 			"markings_alpha" = limb.markings_alpha,
 		)
@@ -138,6 +164,7 @@
 		"appearances" = appearances,
 		"filters" = filters,
 		"emissive_appearances" = emissives,
+		"emissive_blockers" = blockers,
 		"markings" = markings,
 		"per_limb" = per_limb,
 	)
