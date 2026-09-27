@@ -190,6 +190,7 @@ type ContentProps = Partial<{
 function WindowContent(props: ContentProps) {
   const { className, fitted, children, ...rest } = props;
   // const [altDown, setAltDown] = useState(false); // APHELION EDIT REMOVAL
+
   function dragStartIfAltHeld(event: React.MouseEvent<HTMLDivElement>): void {
     if (event.altKey && event.button === 0 && !event.defaultPrevented) { // APHELION EDIT CHANGE - ORIGINAL: if (altDown) {
       dragStartHandler(event);
