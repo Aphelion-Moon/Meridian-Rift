@@ -450,10 +450,10 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/image/canvas
 	var/last_canvas_size
 	var/last_canvas_state
-	// APHELION EDIT ADDITION START - Explicit bounds for first-use preview resources.
+	/// The image render_new_preview_appearance() returned instead of rendering the dummy, if any.
+	var/image/silicon_preview
 	/// A transparent tiled rectangle sizes the map before the canvas icon reaches the client.
 	var/atom/movable/screen/background/preview_bounds
-	// APHELION EDIT ADDITION END
 	// NOVA EDIT ADDITION END
 
 /atom/movable/screen/map_view/char_preview/Initialize(mapload, datum/hud/hud_owner, datum/preferences/preferences)
@@ -465,6 +465,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	// NOVA EDIT ADDITION START: Better character preview
 	canvas?.cut_overlays()
 	canvas = null
+	silicon_preview = null // APHELION EDIT ADDITION
 	// NOVA EDIT ADDITION END
 	QDEL_NULL(body)
 	preferences?.character_preview_view = null
@@ -485,19 +486,31 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	else
 		body.wipe_state()
 
-	appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
+	// APHELION EDIT CHANGE START - Keep the silicon image so the canvas can show it. ORIGINAL: appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
+	var/rendered = preferences.render_new_preview_appearance(body, show_job_clothes)
+	appearance = rendered
+	// The human path returns the dummy's own appearance; only the AI/Cyborg path returns a standalone /image.
+	silicon_preview = isimage(rendered) ? rendered : null
+	// APHELION EDIT CHANGE END
 
 	// NOVA EDIT ADDITION BEGIN: Better character preview
 	var/canvas_size = 0
 	var/canvas_state = preferences.read_preference(/datum/preference/choiced/background_state)
 
 	// if oversized trait (fixes size at 2.0) or over 1.1, scales up
-	if ((/datum/quirk/oversized::name in preferences.all_quirks) || (body.dna.features["body_size"] > 1.1))
+	// applies them to the dummy, and the map's bounds must not change when the top job changes: the client does not
+	// re-fit a secondary map whose bounds grow after it is shown, which clips the character. ORIGINAL:
+	// if ((/datum/quirk/oversized::name in preferences.all_quirks) || (body.dna.features["body_size"] > 1.1))
+	// 	canvas_size += 1
+	// if (body.dna.mutant_bodyparts["taur"])
+	if ((/datum/quirk/oversized::name in preferences.all_quirks) || (preferences.read_preference(/datum/preference/numeric/body_size) > 1.1))
 		canvas_size += 1
-	if (body.dna.mutant_bodyparts["taur"])
+	var/datum/preference/choiced/mutant_choice/taur/taur_preference = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	if (taur_preference.is_visible(body, preferences) && preferences.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
 		// taurs can be extra wide, so scale up in attempt to see their tails
 		canvas_size += 1
 	body.pixel_x = canvas_size * 16
+	silicon_preview?.pixel_x = canvas_size * 16
 
 	if (isnull(canvas) || last_canvas_size != canvas_size || last_canvas_state != canvas_state)
 		switch (canvas_size)
@@ -510,18 +523,16 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 
 	// Update the map view bounds when canvas size changes to properly display the scaled preview
 	set_position(1, 1)
-	// APHELION EDIT ADDITION START - Do not depend on downloaded icon dimensions for map sizing.
 	if(isnull(preview_bounds))
 		preview_bounds = new
 		preview_bounds.del_on_map_removal = FALSE
 	preview_bounds.assigned_map = assigned_map
 	preview_bounds.fill_rect(1, 1, canvas_size + 1, canvas_size + 1)
-	// APHELION EDIT ADDITION END
 	last_canvas_size = canvas_size
 	last_canvas_state = canvas_state
 
 	canvas.cut_overlays()
-	canvas.add_overlay(body.appearance)
+	canvas.add_overlay(silicon_preview || body.appearance)
 
 	appearance = canvas.appearance
 	// NOVA EDIT ADDITION END
