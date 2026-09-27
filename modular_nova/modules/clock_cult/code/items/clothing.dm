@@ -154,7 +154,7 @@
 	invis_view = SEE_INVISIBLE_OBSERVER
 	invis_override = null
 	flash_protect = FLASH_PROTECTION_SENSITIVE
-	vision_flags = SEE_MOBS
+	clothing_traits = list(TRAIT_THERMAL_VISION)
 	color_cutoffs = list(5, 15, 5)
 	glass_colour_type = /datum/client_colour/glass_colour/yellow
 	actions_types = list(/datum/action/item_action/toggle/clock)
@@ -198,6 +198,7 @@
 /obj/item/clothing/glasses/clockwork/wraith_spectacles/proc/enable()
 	enabled = TRUE
 	color_cutoffs = list(15, 12, 0)
+	attach_clothing_traits(TRAIT_THERMAL_VISION)
 	visor_toggling()
 
 	if(wearer)
@@ -211,6 +212,7 @@
 /obj/item/clothing/glasses/clockwork/wraith_spectacles/proc/disable()
 	enabled = FALSE
 	color_cutoffs = null
+	detach_clothing_traits(TRAIT_THERMAL_VISION)
 	visor_toggling() //this doesn't remove everything, check later
 
 	if(wearer)
