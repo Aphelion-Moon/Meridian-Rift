@@ -269,8 +269,10 @@ export type PreferencesMenuData = {
   job_preferences: JobPreference[];
 
   // NOVA EDIT ADDITION START
+  // APHELION EDIT ADDITION START
   allow_custom_sprite_editing?: BooleanLike;
   custom_marking_zones?: string[];
+  // APHELION EDIT ADDITION END
   preview_options: string[];
   preview_selection: string;
 
@@ -344,9 +346,9 @@ export type ServerData = {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];
     marking_choices: Record<string, MarkingChoice[]>;
-    marking_icons?: Record<string, Record<string, string>>;
+    marking_icons?: Record<string, Record<string, string>>; // APHELION EDIT ADDITION
     marking_presets: MarkingPreset[];
-    max_markings: number;
+    max_markings: number; // APHELION EDIT ADDITION
   };
   // NOVA EDIT ADDITION END
   [otherKey: string]: unknown;

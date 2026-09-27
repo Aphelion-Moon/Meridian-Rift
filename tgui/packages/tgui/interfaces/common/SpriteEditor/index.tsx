@@ -41,7 +41,12 @@ import {
   colorToHexString,
   parseHexColorString,
 } from './colorSpaces';
-// APHELION EDIT CHANGE - ORIGINAL: import { getFlattenedSpriteDir, localizeCoords } from './helpers';
+/* APHELION EDIT REMOVAL START
+import { getFlattenedSpriteDir, localizeCoords } from './helpers';
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START
+
+// APHELION EDIT ADDITION END
 import {
   getFlattenedSpriteDir,
   isTextEntryTarget,
@@ -393,6 +398,10 @@ export namespace SpriteEditor {
   };
 
   export const Canvas = (props: CanvasProps) => {
+    /* APHELION EDIT REMOVAL START
+    const { data, disabled, ...rest } = props;
+    */ // APHELION EDIT REMOVAL END
+    // APHELION EDIT ADDITION START
     const {
       data,
       disabled,
@@ -401,7 +410,8 @@ export namespace SpriteEditor {
       onDraw,
       onPointerDown,
       ...rest
-    } = props; // APHELION EDIT CHANGE - ORIGINAL: const { data, disabled, ...rest } = props;
+    } = props;
+    // APHELION EDIT ADDITION END
     useSpriteEditorHotkeys(!!disabled, onSave); // APHELION EDIT ADDITION
     const { width, height, backdrop } = data;
     const [currentColor, setCurrentColor] = useAtom(currentColorAtom);

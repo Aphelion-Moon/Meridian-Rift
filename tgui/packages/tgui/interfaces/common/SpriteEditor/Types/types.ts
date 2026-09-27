@@ -182,10 +182,13 @@ export type SpriteEditorToolContext = {
 
 export type SpriteEditorToolCancelContext = Pick<
   SpriteEditorToolContext,
-  // APHELION EDIT CHANGE START - ORIGINAL: 'setPreviewLayer' | 'setPreviewData'
+  /* APHELION EDIT REMOVAL START
+  'setPreviewLayer' | 'setPreviewData'
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START
   | 'setPreviewLayer'
   | 'setPreviewData'
   | 'setSelectionBounds'
   | 'setSelectionMask'
-  // APHELION EDIT CHANGE END
+  // APHELION EDIT ADDITION END
 >;

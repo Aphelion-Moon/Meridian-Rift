@@ -121,7 +121,17 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
   const [[canvasWidth, canvasHeight], setCanvasDimensions] = useState<
     [number, number]
   >([0, 0]);
-  // APHELION EDIT CHANGE START - call the lifecycle hook in every render mode.
+  /* APHELION EDIT REMOVAL START
+  const mouseDownHandler = propsHaveClickAndDragHandlers(props)
+    ? useClickAndDragEventHandler(
+        canvasRef,
+        props.onMouseDown,
+        props.onMouseMove,
+        props.onMouseUp,
+      )
+    : undefined;
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START - call the lifecycle hook in every render mode.
   const drag = propsHaveClickAndDragHandlers(props) ? props : undefined;
   const dragHandler = useClickAndDragEventHandler(
     canvasRef,
@@ -130,7 +140,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     drag?.onMouseUp,
   );
   const mouseDownHandler = drag && dragHandler;
-  // APHELION EDIT CHANGE END
+  // APHELION EDIT ADDITION END
   useLayoutEffect(() => {
     const parent = parentRef.current;
     if (!parent) return;

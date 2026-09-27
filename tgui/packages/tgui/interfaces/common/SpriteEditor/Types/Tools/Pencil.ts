@@ -147,8 +147,10 @@ export class Pencil extends Tool {
       // APHELION EDIT ADDITION END
       const previousPointCount = currentTransaction.points.size; // APHELION EDIT ADDITION
       currentTransaction.addPoint(x, y);
+      // APHELION EDIT ADDITION START
       if (currentTransaction.points.size > previousPointCount)
-        context.onDraw?.(x, y); // APHELION EDIT ADDITION
+        context.onDraw?.(x, y);
+      // APHELION EDIT ADDITION END
     });
     this.lastPoint = [px, py];
     if (currentTransaction.points.size === previousSize) return; // APHELION EDIT ADDITION

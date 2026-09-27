@@ -58,10 +58,13 @@ export const currentToolAtom = atom<
     }
     const oldTool = get(currentToolInternalAtom);
     if (oldTool !== tool) {
-      // APHELION EDIT CHANGE START - A tool that can finish its work does so. ORIGINAL: oldTool?.cancel?.(context);
+      /* APHELION EDIT REMOVAL START
+      oldTool?.cancel?.(context);
+      */ // APHELION EDIT REMOVAL END
+      // APHELION EDIT ADDITION START - finish a tool that can release its work.
       if (oldTool?.release) oldTool.release(context);
       else oldTool?.cancel?.(context);
-      // APHELION EDIT CHANGE END
+      // APHELION EDIT ADDITION END
     }
     set(currentToolInternalAtom, tool);
   },

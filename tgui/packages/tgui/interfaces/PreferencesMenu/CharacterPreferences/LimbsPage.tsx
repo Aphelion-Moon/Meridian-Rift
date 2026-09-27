@@ -22,10 +22,12 @@ import {
 import type { BooleanLike } from 'tgui-core/react';
 
 import { CharacterPreview } from '../../common/CharacterPreview';
+// APHELION EDIT ADDITION START
 import {
   ChoicedSelectionDropdown,
   MARKING_PREVIEW_AREAS,
-} from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
+} from '../../common/ChoicedSelection';
+// APHELION EDIT ADDITION END
 import type {
   AugmentItem,
   AugmentSlot,
@@ -275,9 +277,15 @@ const Markings = (props: {
   chosen_markings: Marking[] | null;
   marking_choices: string[];
   act: (action: string, params?: Record<string, unknown>) => void;
+  // APHELION EDIT ADDITION START
   pickerPlacement?: ComponentProps<typeof Floating>['placement'];
   tooltipPosition?: ComponentProps<typeof Floating>['placement'];
+  // APHELION EDIT ADDITION END
 }) => {
+  /* APHELION EDIT REMOVAL START
+  const { body_zone, chosen_markings, marking_choices, act } = props;
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START
   const {
     body_zone,
     chosen_markings,
@@ -286,10 +294,12 @@ const Markings = (props: {
     pickerPlacement,
     tooltipPosition,
   } = props;
+  // APHELION EDIT ADDITION END
+  // APHELION EDIT ADDITION START
   const { data } = useBackend<PreferencesMenuData>();
-  const serverMarkings = useServerPrefs()?.limbs_and_markings; // APHELION EDIT ADDITION
-  const maxMarkings = serverMarkings?.max_markings ?? 0; // APHELION EDIT CHANGE
-  const markingIcons = serverMarkings?.marking_icons?.[body_zone]; // APHELION EDIT ADDITION
+  const serverMarkings = useServerPrefs()?.limbs_and_markings;
+  const maxMarkings = serverMarkings?.max_markings ?? 0;
+  const markingIcons = serverMarkings?.marking_icons?.[body_zone];
   const markings = chosen_markings ?? [];
   const takenMarkings = new Set(markings.map((marking) => marking.name));
   // A taur body takes the legs' place, so they get its drawing instead of markings.
@@ -297,15 +307,16 @@ const Markings = (props: {
   const drawingZone = taurLeg ? 'taur' : body_zone;
   // The drawing button lights up once it has paint; an empty canvas saves nothing.
   const drawn = !!data.custom_marking_zones?.includes(drawingZone);
+  // APHELION EDIT ADDITION END
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
-      {markings.map((marking) => {
+      {markings.map((marking) => { // APHELION EDIT CHANGE - ORIGINAL: {(chosen_markings ?? []).map((marking) => {
+        // APHELION EDIT ADDITION START
         // A limb takes each marking once, so a row offers only names no other row has claimed.
         const choices = marking_choices.filter(
           (name) => name === marking.name || !takenMarkings.has(name),
         );
-        // APHELION EDIT ADDITION START
         const changeMarking = (value: string) =>
           act('change_marking', {
             bodypart_slot: body_zone,
@@ -317,7 +328,25 @@ const Markings = (props: {
           <Stack.Item key={marking.marking_id}>
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
-                {/* APHELION EDIT CHANGE START - Share the cached popup with custom editors. */}
+                {/* APHELION EDIT REMOVAL START
+                <Dropdown
+                  width="100%"
+                  options={marking_choices}
+                  selected={marking.name}
+                  displayText={marking.name}
+                  maxItems={7}
+                  searchInput
+                  styledInput
+                  onSelected={(value) =>
+                    act('change_marking', {
+                      bodypart_slot: body_zone,
+                      marking_id: marking.marking_id,
+                      marking_name: value,
+                    })
+                  }
+                />
+                APHELION EDIT REMOVAL END */}
+                {/* APHELION EDIT ADDITION START - share the cached popup with custom editors. */}
                 {markingIcons ? (
                   <ChoicedSelectionDropdown
                     name="marking"
@@ -339,7 +368,7 @@ const Markings = (props: {
                     onSelected={changeMarking}
                   />
                 )}
-                {/* APHELION EDIT CHANGE END */}
+                {/* APHELION EDIT ADDITION END */}
               </Stack.Item>
               <Stack.Item>
                 <Button
@@ -356,7 +385,7 @@ const Markings = (props: {
               <Stack.Item>
                 <Button
                   color={marking.emissive ? 'good' : 'bad'}
-                  tooltipPosition={tooltipPosition}
+                  tooltipPosition={tooltipPosition /* APHELION EDIT ADDITION */}
                   tooltip="The 'E' is for 'Emissive' — does it glow? Green = glow, Red = no glow."
                   onClick={() =>
                     act('change_emissive', {
@@ -386,6 +415,17 @@ const Markings = (props: {
           </Stack.Item>
         );
       })}
+      {/* APHELION EDIT REMOVAL START
+      <Stack.Item>
+        <Button
+          color="good"
+          onClick={() => act('add_marking', { bodypart_slot: body_zone })}
+        >
+          +
+        </Button>
+      </Stack.Item>
+      APHELION EDIT REMOVAL END */}
+      {/* APHELION EDIT ADDITION START */}
       {!taurLeg && markings.length < maxMarkings && (
         <Stack.Item>
           <Button
@@ -417,6 +457,7 @@ const Markings = (props: {
           </Button>
         </Stack.Item>
       )}
+      {/* APHELION EDIT ADDITION END */}
     </Stack>
   );
 };
@@ -648,12 +689,21 @@ const InternalImplantSection = (props: { internal_implant: AugmentData }) => {
 const MarkingsColumn = (props: {
   limbs: BodypartData[];
   act: (action: string, params?: Record<string, unknown>) => void;
-  tooltipPosition: ComponentProps<typeof Floating>['placement'];
+  tooltipPosition: ComponentProps<typeof Floating>['placement']; // APHELION EDIT ADDITION
 }) => (
   <Section fill scrollable title="Markings">
     {props.limbs.map((bodypart) => (
       <div key={bodypart.slot} style={{ marginBottom: '1.5em' }}>
         <Section fill title={bodypart.slot}>
+          {/* APHELION EDIT REMOVAL START
+          <Markings
+            body_zone={bodypart.body_zone ?? bodypart.slot}
+            chosen_markings={bodypart.chosen_markings}
+            marking_choices={bodypart.marking_choices}
+            act={props.act}
+          />
+          APHELION EDIT REMOVAL END */}
+          {/* APHELION EDIT ADDITION START */}
           {/* Sideways pickers and centred tooltips would land under the preview's map control. */}
           <Markings
             body_zone={bodypart.body_zone ?? bodypart.slot}
@@ -663,6 +713,7 @@ const MarkingsColumn = (props: {
             pickerPlacement="bottom-start"
             tooltipPosition={props.tooltipPosition}
           />
+          {/* APHELION EDIT ADDITION END */}
         </Section>
       </div>
     ))}
@@ -929,9 +980,13 @@ export const LimbsPage = ({
   const columnForTab = (
     limbs: BodypartData[],
     internal_implants: AugmentData[],
-    tooltipPosition: ComponentProps<typeof Floating>['placement'],
+    tooltipPosition: ComponentProps<typeof Floating>['placement'], // APHELION EDIT ADDITION
   ) => {
     if (tab === AugmentsTab.Markings)
+      /* APHELION EDIT REMOVAL START
+      return <MarkingsColumn limbs={limbs} act={actAndResetPresetWarning} />;
+      */ // APHELION EDIT REMOVAL END
+      // APHELION EDIT ADDITION START
       return (
         <MarkingsColumn
           limbs={limbs}
@@ -939,6 +994,7 @@ export const LimbsPage = ({
           tooltipPosition={tooltipPosition}
         />
       );
+      // APHELION EDIT ADDITION END
     if (tab === AugmentsTab.BodyParts)
       return (
         <BodyPartsColumn
@@ -1010,7 +1066,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.left ?? [],
                 columns?.internalImplants.left ?? [],
-                'bottom-end',
+                'bottom-end', // APHELION EDIT ADDITION
               )}
             </Stack.Item>
 
@@ -1068,7 +1124,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.right ?? [],
                 columns?.internalImplants.right ?? [],
-                'bottom-start',
+                'bottom-start', // APHELION EDIT ADDITION
               )}
             </Stack.Item>
           </Stack>
