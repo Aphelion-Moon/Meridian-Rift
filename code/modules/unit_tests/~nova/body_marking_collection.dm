@@ -190,14 +190,14 @@
 	shallow.remove_entry(shallow.find_entry(BODY_ZONE_CHEST, "Bovine"))
 	TEST_ASSERT(original.find_entry(BODY_ZONE_CHEST, "Bovine"), "Removing a row from a shallow copy must leave the original's rows alone")
 
-	// A body's limbs hold their own lists of the DNA's entries: the snapshot a detached limb goes on drawing.
+	// A body's limbs hold the DNA's own zone lists, which are never edited in place: the snapshot a detached limb goes on drawing.
 	var/mob/living/carbon/human/body = allocate(/mob/living/carbon/human/consistent)
 	body.dna.body_markings = body_marking_collection_from_list(json_decode("{\"l_arm\":{\"Bovine\":\[\"#4488cc\",0]},\"chest\":\[]}"))
 	body.update_body_parts(update_limb_data = TRUE)
 	var/list/dna_view = body.dna.body_markings.entries_for_zone(BODY_ZONE_L_ARM)
 	var/obj/item/bodypart/arm = body.get_bodypart(BODY_ZONE_L_ARM)
-	TEST_ASSERT(islist(arm.markings) && arm.markings != dna_view && length(arm.markings) == 1 && arm.markings[1] == dna_view[1], "A limb must hold its own list of the DNA's entries")
-	TEST_ASSERT(findtext(arm.get_cache_key(), "l_arm--Bovine_#4488cc_0"), "The limb icon key must name each marking with its colour and glow, as the nested lists did")
+	TEST_ASSERT(islist(arm.markings) && arm.markings == dna_view && length(arm.markings) == 1, "A limb must hold the DNA's own list of its zone's entries")
+	TEST_ASSERT(findtext(arm.get_cache_key(), "l_arm=Bovine_#4488cc_0;;alpha=255"), "The limb icon key must name each marking with its colour and glow, and the markings' alpha")
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 	TEST_ASSERT(islist(chest.markings) && !length(chest.markings), "An emptied zone must give its limb an empty list")
 	var/obj/item/bodypart/head = body.get_bodypart(BODY_ZONE_HEAD)

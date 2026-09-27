@@ -72,9 +72,10 @@
  * Counts the marking lists and entry datums a fully-marked body is carrying, per limb and in total.
  *
  * Lists are the allocations the datumisation removes, so they are counted apart from the entry datums that
- * replace the nested lists' two-element tuples. update_limb() copies each zone's entry list onto the limb
- * but not the entries inside it, so an entry the DNA also holds is counted as shared rather than as the
- * limb's own. The keys the nested-list baseline wrote keep their meaning for lists.
+ * replace the nested lists' two-element tuples. update_limb() hands each limb the DNA's own list for its zone,
+ * which counts as shared; a list the DNA does not hold right now, such as a detached snapshot, counts as the
+ * limb's own. An entry the DNA also holds counts as shared too. The keys the nested-list baseline wrote keep
+ * their meaning for lists.
  *
  * Arguments:
  * - target: the human to count.
@@ -221,7 +222,7 @@
 		human.update_body_parts()
 	record("update_body_parts_cached", phase_started, MARKINGS_BENCHMARK_BODY_PASSES)
 
-	// The churn path: only a creating update re-reads DNA, and that is where the per-limb copy happens.
+	// The churn path: only a creating update re-reads DNA, and that is where each limb is handed its zone lists.
 	phase_started = rustg_time_microseconds(MARKINGS_BENCHMARK_CLOCK)
 	for(var/pass in 1 to MARKINGS_BENCHMARK_BODY_PASSES)
 		human.update_body_parts(update_limb_data = TRUE)

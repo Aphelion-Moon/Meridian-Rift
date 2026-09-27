@@ -162,8 +162,8 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /**
  * Returns every zone's entries, in zone order.
  *
- * The returned list and the lists inside it are shared and must not be edited. A structural change builds
- * new ones, so a list already handed out keeps what it held.
+ * The returned list and the lists inside it are shared and must not be edited: limbs hold these zone lists as
+ * their markings. A structural change builds new ones, so a list already handed out keeps what it held.
  *
  * Returns:
  * - list: zone -> list of entries, emptied zones included, or null when no zone is present.
@@ -406,10 +406,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	var/cached = key_cache?[zone]
 	if(!isnull(cached))
 		return cached
-	var/list/keys = list()
-	for(var/datum/body_marking_entry/entry as anything in entries_for_zone(zone))
-		keys += entry.cache_key()
-	cached = jointext(keys, "-")
+	cached = body_marking_entries_cache_key(entries_for_zone(zone))
 	LAZYSET(key_cache, zone, cached)
 	return cached
 
@@ -500,6 +497,24 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	. = list()
 	for(var/datum/body_marking_entry/entry as anything in zone_entries)
 		.[entry.marking.name] = list(entry.get_color(), entry.get_emissive())
+
+/**
+ * Returns a string standing for a list of entries, in order, with their colours and glow.
+ *
+ * A collection's cache_key_for_zone() and a limb holding entries of its own both build their strings here, so the
+ * same markings give the same string either way.
+ *
+ * Arguments:
+ * - zone_entries: the entries, in order.
+ *
+ * Returns:
+ * - string: each entry's cache_key() joined by "-", or "" for none.
+ */
+/proc/body_marking_entries_cache_key(list/zone_entries)
+	var/list/keys = list()
+	for(var/datum/body_marking_entry/entry as anything in zone_entries)
+		keys += entry.cache_key()
+	return jointext(keys, "-")
 
 /**
  * Copies a list of entries into new ones, as deep_copy_list() copied the nested shape.

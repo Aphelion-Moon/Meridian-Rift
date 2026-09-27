@@ -384,6 +384,7 @@
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
+#include "~nova\limb_marking_cache.dm"
 #include "~nova\limb_markings.dm"
 #include "~nova\limb_markings_appearance.dm"
 #include "~nova\limb_markings_benchmark.dm"
