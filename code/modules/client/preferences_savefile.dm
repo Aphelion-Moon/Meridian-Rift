@@ -486,7 +486,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		all_quirks = list()
 		// APHELION EDIT ADDITION START
 		augments = list()
-		body_markings = list()
+		body_markings = new /datum/body_marking_collection
 		languages = list()
 		language_understanding = null
 		// APHELION EDIT ADDITION END

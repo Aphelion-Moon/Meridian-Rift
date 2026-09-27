@@ -2027,6 +2027,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	return null
 
+/* // APHELION EDIT REMOVAL START - Species body marking overlays are gone with their callers, see markings_bodypart_overlay.dm.
 /// Add species appropriate body markings
 /datum/species/proc/add_body_markings(mob/living/carbon/human/hooman)
 	for(var/markings_type in body_markings) //loop through possible species markings
@@ -2054,6 +2055,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	if(needs_update && !(hooman.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		hooman.update_body_parts()
 	return null
+*/ // APHELION EDIT REMOVAL END
 
 /**
  * Returns what type of gas this species breathes

@@ -1325,6 +1325,13 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 		bound_width = ICON_SIZE_X
 		bound_height = size * ICON_SIZE_Y
 
+// APHELION EDIT ADDITION START - Runtime icon sizes are cached, bounded
+/// How many runtime icons get_icon_dimensions() keeps the size of, the oldest forgotten first.
+#define RUNTIME_ICON_DIMENSIONS_LIMIT 256
+/// Runtime icon in the resource cache -> its width and height; see get_icon_dimensions().
+GLOBAL_LIST_EMPTY(runtime_icon_dimensions)
+
+// APHELION EDIT ADDITION END
 /// Returns a list containing the width and height of an icon file
 /proc/get_icon_dimensions(icon_path)
 	if(istype(icon_path, /datum/universal_icon))
@@ -1334,6 +1341,20 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 	// Runtime generated dynamic icons are an unbounded concept cache identity wise, the same icon can exist millions of ways and holding them in a list as a key can lead to unbounded memory usage if called often by consumers.
 	// Check distinctly that this is something that has this unspecified concept, and thus that we should not cache.
 	if (!istext(icon_path) && (!isfile(icon_path) || !length("[icon_path]")))
+		// APHELION EDIT ADDITION START - Runtime icon sizes are cached, bounded
+		// A runtime icon already in the resource cache never changes, so its size is kept, for a bounded number of them;
+		// an /icon datum can still change and is measured every time.
+		if (isfile(icon_path))
+			var/list/known = GLOB.runtime_icon_dimensions[icon_path]
+			if (known)
+				return known
+			var/icon/resource_icon = icon(icon_path)
+			known = list("width" = resource_icon.Width(), "height" = resource_icon.Height())
+			if (length(GLOB.runtime_icon_dimensions) >= RUNTIME_ICON_DIMENSIONS_LIMIT)
+				GLOB.runtime_icon_dimensions.Cut(1, 2)
+			GLOB.runtime_icon_dimensions[icon_path] = known
+			return known
+		// APHELION EDIT ADDITION END
 		var/icon/my_icon = icon(icon_path)
 		return list("width" = my_icon.Width(), "height" = my_icon.Height())
 	if (isnull(GLOB.icon_dimensions[icon_path]))
@@ -1349,6 +1370,7 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 		GLOB.icon_dimensions[icon_path] = result
 
 	return GLOB.icon_dimensions[icon_path]
+#undef RUNTIME_ICON_DIMENSIONS_LIMIT // APHELION EDIT ADDITION
 
 /// Returns a list containing the width and height of an icon file, without using rustg for pure function calls
 /proc/get_icon_dimensions_pure(icon_path)

@@ -15,16 +15,19 @@
 	name = "Vox Tiger Tattoo"
 	icon_state = "voxtiger"
 	affected_bodyparts = CHEST | LEG_RIGHT | LEG_LEFT | ARM_LEFT | ARM_RIGHT
+	gendered = FALSE
 
 /datum/body_marking/tertiary/vox/hive
 	name = "Vox Hive Tattoo"
 	icon_state = "voxhive"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/tertiary/vox/nightling
 	name = "Vox Nightling Tattoo"
 	icon_state = "voxnightling"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT
+	gendered = FALSE
 
 /datum/body_marking/tertiary/vox/heart
 	name = "Vox Heart Tattoo"

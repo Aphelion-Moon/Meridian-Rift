@@ -155,8 +155,10 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return list("error" = "The hair emissive setting must be true or false.")
 	return list("hair" = list("style" = style, "color" = color, "gradient_style" = gradient_style, "gradient_color" = gradient_color, "opacity" = custom_style_normal_opacity(opacity), "emissive" = raw["emissive"] ? TRUE : FALSE))
 
-/// Strictly validates the ordered native markings for one supported limb.
-/proc/custom_style_validate_markings(list/raw, zone)
+/// Strictly validates the ordered native markings for one supported limb. A name a marking merge retired validates as the
+/// marking that draws it now (GLOB.body_marking_renames), as a save's migration renames it. Stored data (trusted) leaves out,
+/// and logs, a marking its limb no longer offers, where an upload is refused.
+/proc/custom_style_validate_markings(list/raw, zone, trusted = FALSE)
 	if(!(zone in GLOB.body_markings_per_limb) || !islist(raw) || length(raw) > MAXIMUM_MARKINGS_PER_LIMB)
 		return list("error" = "The base markings are invalid or exceed the limb's marking limit.")
 	var/list/markings = list()
@@ -168,15 +170,30 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			if(!(key in entry))
 				return list("error" = "The base marking settings are incomplete.")
 		var/name = entry["name"]
-		if(!istext(name) || !(name in GLOB.body_markings_per_limb[zone]) || (name in names))
+		if(!istext(name) || (name in names))
+			return list("error" = "The base markings contain an unavailable or repeated marking.")
+		names += name
+		name = GLOB.body_marking_renames[name] || name
+		if(!(name in GLOB.body_markings_per_limb[zone]))
+			// A restore point keeps the rest of its markings, and its drawing, when its limb stopped offering one of them.
+			if(trusted)
+				log_game("A saved custom style left out [name], which the [zone] no longer offers.")
+				continue
 			return list("error" = "The base markings contain an unavailable or repeated marking.")
 		var/color = custom_sprite_color(entry["color"])
 		if(!color)
 			return list("error" = "The base marking colors are invalid.")
 		if(!(entry["emissive"] in list(TRUE, FALSE)))
 			return list("error" = "The base marking emissive settings must be true or false.")
-		names += name
-		markings += list(list("name" = name, "color" = color, "emissive" = entry["emissive"] ? TRUE : FALSE))
+		var/emissive = entry["emissive"] ? TRUE : FALSE
+		// A retired name and the name it became draw the same art, so the package keeps one record, as a save keeps one entry
+		// (body_marking_rename_retired()): the later, drawn on top, glowing if either glowed.
+		for(var/list/worn as anything in markings)
+			if(worn["name"] == name)
+				emissive ||= worn["emissive"]
+				markings -= list(worn)
+				break
+		markings += list(list("name" = name, "color" = color, "emissive" = emissive))
 	return list("markings" = markings)
 
 /**
@@ -188,7 +205,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  *
  * Arguments:
  * - raw: The decoded package.
- * - trusted: Stored data rather than an upload. Its drawing may predate per-view emission settings.
+ * - trusted: Stored data rather than an upload. Its drawing may predate per-view emission settings, and a marking its limb
+ *   no longer offers is left out of it rather than refusing it.
  *
  * Returns:
  * - list("package" = canonical package)
@@ -238,7 +256,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		if(target != "markings" || !(zone in GLOB.body_markings_per_limb))
 			return list("error" = "Base markings require a supported body zone.")
 		if(!isnull(raw["markings"]))
-			var/list/markings_result = custom_style_validate_markings(raw["markings"], zone)
+			var/list/markings_result = custom_style_validate_markings(raw["markings"], zone, trusted)
 			if(markings_result["error"])
 				return markings_result
 			markings = markings_result["markings"]
