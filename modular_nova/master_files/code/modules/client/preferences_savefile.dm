@@ -57,7 +57,7 @@
 		if(!GLOB.robotic_styles_list[augment_limb_styles[key]])
 			augment_limb_styles -= key
 
-	body_markings = update_markings(SANITIZE_LIST(save_data["body_markings"]))
+	body_markings = body_marking_collection_from_list(save_data["body_markings"])
 	mismatched_customization = save_data["mismatched_customization"]
 	allow_advanced_colors = save_data["allow_advanced_colors"]
 
@@ -350,21 +350,13 @@
 /datum/preferences/proc/save_character_nova(list/save_data)
 	save_data["augments"] = augments
 	save_data["augment_limb_styles"] = augment_limb_styles
-	save_data["body_markings"] = body_markings
+	save_data["body_markings"] = body_markings.serialize()
 	save_data["mismatched_customization"] = mismatched_customization
 	save_data["allow_advanced_colors"] = allow_advanced_colors
 	save_data["alt_job_titles"] = alt_job_titles
 	save_data["languages"] = languages
 	save_data["modular_version"] = MODULAR_SAVEFILE_VERSION_MAX
 	save_data["food_preferences"] = food_preferences
-
-/datum/preferences/proc/update_markings(list/markings)
-	if (islist(markings))
-		for (var/marking in markings)
-			for (var/title in markings[marking])
-				if (!islist(markings[marking][title]))
-					markings[marking][title] = list(sanitize_hexcolor(markings[marking][title]), FALSE)
-	return markings
 
 /datum/preferences/proc/load_augments(list/augments_prefs, current_version)
 	if(!length(augments_prefs))

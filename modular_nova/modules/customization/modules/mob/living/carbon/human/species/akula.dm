@@ -155,7 +155,7 @@
 
 /datum/species/akula/get_random_body_markings(list/passed_features)
 	var/datum/body_marking_set/body_marking_set = GLOB.body_marking_sets["Akula"]
-	var/list/markings = list()
+	var/datum/body_marking_collection/markings = new
 	if(body_marking_set)
 		markings = assemble_body_markings_from_set(body_marking_set, passed_features, src)
 	return markings

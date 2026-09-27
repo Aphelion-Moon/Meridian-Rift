@@ -172,7 +172,7 @@ GLOBAL_LIST_EMPTY(customizable_races)
 	return mutantpart_list
 
 /datum/species/proc/get_random_body_markings(list/features) //Needs features to base the colour off of
-	return list()
+	return new /datum/body_marking_collection
 
 /datum/species/regenerate_organs(mob/living/carbon/organ_holder, datum/species/old_species, replace_current = TRUE, list/excluded_zones, visual_only = FALSE, replace_missing = TRUE)
 	. = ..()

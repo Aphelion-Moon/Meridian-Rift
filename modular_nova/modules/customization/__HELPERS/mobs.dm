@@ -29,15 +29,13 @@
 	return sprite_accessory
 
 /proc/assemble_body_markings_from_set(datum/body_marking_set/marking_set, list/features, datum/species/species)
-	var/list/body_markings = list()
+	var/datum/body_marking_collection/body_markings = new
 	for(var/set_name in marking_set.body_marking_list)
 		var/datum/body_marking/body_marking = GLOB.body_markings[set_name]
 		for(var/zone, markings in GLOB.body_markings_per_limb)
 			var/list/marking_list = markings
 			if(set_name in marking_list)
-				if(isnull(body_markings[zone]))
-					body_markings[zone] = list()
-				body_markings[zone][set_name] = list(body_marking.get_default_color(features, species), FALSE)
+				body_markings.add_entry(new /datum/body_marking_entry(body_marking, zone, body_marking.get_default_color(features, species), FALSE))
 	return body_markings
 
 /proc/random_bra(gender)

@@ -129,7 +129,7 @@
 	editor.ui_act("selectRegion", list("zone" = BODY_ZONE_L_ARM), ui, null)
 	TEST_ASSERT(editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "Adding a base marking to a region must work.")
 	TEST_ASSERT(editor.save_drawing(), "Saving a base-marking-only change must succeed: [editor.save_error]")
-	TEST_ASSERT(length(preferences.body_markings?[BODY_ZONE_L_ARM]) == 1, "The region's base markings must be saved.")
+	TEST_ASSERT(preferences.body_markings.zone_length(BODY_ZONE_L_ARM) == 1, "The region's base markings must be saved.")
 	TEST_ASSERT(!preferences.custom_limb_markings?[BODY_ZONE_L_ARM], "A base marking change alone must not create a drawing.")
 	custom_sprite_test_paint_region(editor, BODY_ZONE_L_ARM)
 	TEST_ASSERT(editor.ui_act("setEmissive", list("zone" = BODY_ZONE_L_ARM, "dir" = "2", "enabled" = TRUE), ui, null), "Turning on a region's emission must work.")
@@ -260,7 +260,7 @@
 	preferences.ui_act("add_marking", list("bodypart_slot" = BODY_ZONE_L_ARM), ui, null)
 	TEST_ASSERT(!preferences.custom_sprite_editors?["markings"], "A Markings tab change must save and close the whole-body editor first, so it can't write stale base markings back later.")
 	TEST_ASSERT(preferences.custom_limb_markings?[BODY_ZONE_L_ARM], "Closing the editor must save its paint.")
-	TEST_ASSERT(length(preferences.body_markings?[BODY_ZONE_L_ARM]) == 1, "The Markings tab change must still apply.")
+	TEST_ASSERT(preferences.body_markings.zone_length(BODY_ZONE_L_ARM) == 1, "The Markings tab change must still apply.")
 
 /datum/unit_test/custom_sprite_markings_editor_hidden_paint/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
@@ -337,7 +337,7 @@
 	TEST_ASSERT(preferences.custom_sprite_editors?["markings"] == editor, "The drawing that couldn't be saved stays open.")
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, preferences, "PreferencesMenu")
 	preferences.ui_act("add_marking", list("bodypart_slot" = BODY_ZONE_L_ARM), ui, null)
-	TEST_ASSERT(!length(preferences.body_markings?[BODY_ZONE_L_ARM]), "A Markings tab change must wait too.")
+	TEST_ASSERT(!preferences.body_markings.zone_length(BODY_ZONE_L_ARM), "A Markings tab change must wait too.")
 	TEST_ASSERT(preferences.custom_sprite_editors?["markings"] == editor, "The drawing that couldn't be saved stays open after a refused tab change.")
 	editor.finish(FALSE)
 

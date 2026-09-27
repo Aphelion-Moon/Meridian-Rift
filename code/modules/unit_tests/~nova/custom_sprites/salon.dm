@@ -203,7 +203,7 @@
 	donor.dna.custom_hair = custom_sprite_appearance_drawing(custom_sprite_test_drawing("2"), FALSE)
 	donor.dna.custom_limb_markings = list()
 	donor.dna.custom_limb_markings[zone] = custom_sprite_appearance_drawing(custom_sprite_test_drawing(), FALSE)
-	donor.dna.body_markings[zone] = list("Tiger Stripe" = list("#ff0000", 0))
+	donor.dna.body_markings.set_zone_from_list(zone, list("Tiger Stripe" = list("#ff0000", 0)))
 	donor.sync_custom_sprite_appearance(refresh_body = TRUE)
 	var/obj/item/bodypart/limb = donor.get_bodypart(zone)
 	limb.drop_limb(TRUE)
@@ -215,7 +215,7 @@
 /datum/unit_test/custom_sprite_salon/donor_appearance/Run()
 	setup_players()
 	var/obj/item/bodypart/arm = transplant_donor(BODY_ZONE_L_ARM)
-	var/original_markings = json_encode(arm.markings)
+	var/original_markings = json_encode(body_marking_entries_to_list(arm.markings))
 	var/original_draw_color = arm.draw_color
 	var/datum/bodypart_overlay/custom_marking/zone = locate(/datum/bodypart_overlay/custom_marking/zone) in arm.bodypart_overlays
 	var/zone_hash = zone?.drawing_hash
@@ -223,11 +223,11 @@
 	var/mob/living/carbon/human/dummy/preview = custom_sprite_salon_dummy(recipient)
 	var/obj/item/bodypart/preview_arm = preview.get_bodypart(BODY_ZONE_L_ARM)
 	var/datum/bodypart_overlay/custom_marking/preview_zone = locate(/datum/bodypart_overlay/custom_marking/zone) in preview_arm.bodypart_overlays
-	TEST_ASSERT(!(preview_arm.draw_color != original_draw_color || json_encode(preview_arm.markings) != original_markings || preview_zone?.drawing_hash != zone_hash), "Salon dummies must preserve donor skin, native markings and limb paint.")
+	TEST_ASSERT(!(preview_arm.draw_color != original_draw_color || json_encode(body_marking_entries_to_list(preview_arm.markings)) != original_markings || preview_zone?.drawing_hash != zone_hash), "Salon dummies must preserve donor skin, native markings and limb paint.")
 	qdel(preview)
 	for(var/list/package as anything in list(custom_style_package("hair", null, custom_sprite_test_drawing(), custom_style_live_hair_context(recipient)), custom_style_package("markings", BODY_ZONE_R_ARM, custom_sprite_test_drawing(), null)))
 		custom_sprite_apply_round_style(recipient, package)
-		TEST_ASSERT(!(recipient.get_bodypart(BODY_ZONE_L_ARM) != arm || arm.owner != recipient || arm.draw_color != original_draw_color || json_encode(arm.markings) != original_markings || QDELETED(zone) || zone.drawing_hash != zone_hash), "Editing [package["target"]] on another part must preserve the donor arm and its paint.")
+		TEST_ASSERT(!(recipient.get_bodypart(BODY_ZONE_L_ARM) != arm || arm.owner != recipient || arm.draw_color != original_draw_color || json_encode(body_marking_entries_to_list(arm.markings)) != original_markings || QDELETED(zone) || zone.drawing_hash != zone_hash), "Editing [package["target"]] on another part must preserve the donor arm and its paint.")
 
 /datum/unit_test/custom_sprite_salon/donor_history/Run()
 	setup_players()
@@ -459,12 +459,12 @@
 	GLOB.preferences_datums[artist.ckey] = preferences
 	var/datum/custom_sprite_salon/test/session = new(machine, artist, recipient, "markings")
 	var/datum/custom_sprite_editor/markings/canvas = session.editor
-	var/before = json_encode(preferences.body_markings)
+	var/before = json_encode(preferences.body_markings.serialize())
 	var/name = GLOB.body_markings_per_limb[BODY_ZONE_CHEST][1]
-	var/recipient_before = json_encode(recipient.dna.body_markings)
+	var/recipient_before = json_encode(recipient.dna.body_markings.serialize())
 	TEST_ASSERT(canvas.write_region_marking(BODY_ZONE_CHEST, null, name, "#112233"), "The tattoo canvas must offer the torso's native markings as part of its draft.")
-	TEST_ASSERT(json_encode(preferences.body_markings) == before, "Salon base-marking actions must leave the artist's preferences untouched.")
-	TEST_ASSERT(json_encode(recipient.dna.body_markings) == recipient_before, "Changing a tattoo preset must not change the recipient before approval.")
+	TEST_ASSERT(json_encode(preferences.body_markings.serialize()) == before, "Salon base-marking actions must leave the artist's preferences untouched.")
+	TEST_ASSERT(json_encode(recipient.dna.body_markings.serialize()) == recipient_before, "Changing a tattoo preset must not change the recipient before approval.")
 	canvas.workspace.undo()
 	TEST_ASSERT(!length(canvas.workspace.markings_context[BODY_ZONE_CHEST]), "Undo must remove the draft's new tattoo preset.")
 	canvas.workspace.redo()
@@ -487,7 +487,7 @@
 	token = session.proposal["token"]
 	session.accept(recipient, token)
 	session.complete_application(token)
-	TEST_ASSERT(recipient.dna.body_markings?[BODY_ZONE_CHEST]?[name]?[MARKING_INDEX_COLOR] == "#445566", "Approved tattoo presets must apply to the recipient's torso.")
+	TEST_ASSERT(recipient.dna.body_markings.find_entry(BODY_ZONE_CHEST, name)?.get_color() == "#445566", "Approved tattoo presets must apply to the recipient's torso.")
 	GLOB.preferences_datums[artist.ckey] = previous_preferences
 
 /datum/unit_test/custom_sprite_salon/hair_controls/Run()

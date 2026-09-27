@@ -89,7 +89,7 @@
 	ling.dna.mutant_bodyparts[FEATURE_HORNS] = build_mutant_part("Curled", list("#292826", "#292826", "#8292826")) // NOVA EDIT CHANGE - ORIGINAL: ling.dna.features[FEATURE_HORNS] = "Curved"
 	ling.dna.mutant_bodyparts[FEATURE_FRILLS] = build_mutant_part("Short", list("#886600", "#886600", "#886600")) // NOVA EDIT CHANGE - ORIGINAL: ling.dna.features[FEATURE_FRILLS] = "Sort"
 	ling.dna.mutant_bodyparts[FEATURE_SPINES] = build_mutant_part("Long + Membrane", list("#886600", "#886600", "#886600")) // NOVA EDIT CHANGE - ORIGINAL: ling.dna.features[FEATURE_SPINES] = "Long + Membrane"
-	ling.dna.body_markings[BODY_ZONE_CHEST] = list("Light Belly" = list("#886600", 0)) // NOVA EDIT CHANGE - ORIGINAL : ling.dna.features[FEATURE_LIZARD_MARKINGS] = "Light Belly"
+	ling.dna.body_markings.set_zone_from_list(BODY_ZONE_CHEST, list("Light Belly" = list("#886600", 0))) // NOVA EDIT CHANGE - ORIGINAL : ling.dna.features[FEATURE_LIZARD_MARKINGS] = "Light Belly"
 	ling.dna.features[FEATURE_LEGS] = DIGITIGRADE_LEGS
 	ling.set_eye_color(COLOR_WHITE)
 	ling.dna.update_ui_block(/datum/dna_block/identity/eye_colors)

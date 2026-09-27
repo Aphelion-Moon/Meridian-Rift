@@ -1,5 +1,5 @@
 /**
- * Measures what the nested-list marking representation costs, so the datumisation has a number to beat.
+ * Measures what the marking representation costs, so every step of the datumisation is measured the same way.
  *
  * Writes data/markings_benchmark.json: the whole world.Profile payload for the drive, a wall clock reading
  * per phase, and the counts DM can take directly - marking list lengths, limb icon cache size, and the
@@ -69,11 +69,12 @@
 	world.Profile(PROFILE_START)
 
 /**
- * Counts the marking lists a fully-marked body is carrying, per limb and in total.
+ * Counts the marking lists and entry datums a fully-marked body is carrying, per limb and in total.
  *
- * These are the allocations the datumisation removes, so they are the before half of that comparison.
- * update_limb() copies each zone map onto the limb but not the tuples inside it, so a list the DNA also
- * holds is counted as shared rather than as the limb's own.
+ * Lists are the allocations the datumisation removes, so they are counted apart from the entry datums that
+ * replace the nested lists' two-element tuples. update_limb() copies each zone's entry list onto the limb
+ * but not the entries inside it, so an entry the DNA also holds is counted as shared rather than as the
+ * limb's own. The keys the nested-list baseline wrote keep their meaning for lists.
  *
  * Arguments:
  * - target: the human to count.
@@ -84,7 +85,10 @@
 	var/total_entries = 0
 	var/total_owned = 0
 	var/total_shared = 0
+	var/total_entries_owned = 0
+	var/total_entries_shared = 0
 	var/list/per_limb = list()
+	var/datum/body_marking_collection/dna_markings = target.dna.body_markings
 	for(var/obj/item/bodypart/limb as anything in target.bodyparts)
 		var/body_entries = length(limb.markings)
 		var/aux_entries = length(limb.aux_zone_markings)
@@ -94,42 +98,47 @@
 			held[limb.aux_zone] = limb.aux_zone_markings
 		var/owned = 0
 		var/shared = 0
+		var/entries_owned = 0
+		var/entries_shared = 0
 		for(var/zone, worn in held)
 			var/list/worn_list = worn
 			if(!length(worn_list))
 				continue
-			var/list/dna_worn = target.dna.body_markings[zone]
+			var/list/dna_worn = dna_markings.entries_for_zone(zone)
 			if(worn_list == dna_worn)
 				shared++
 			else
 				owned++
-			for(var/marking_name, tuple in worn_list)
-				if(tuple == dna_worn?[marking_name])
-					shared++
+			for(var/datum/body_marking_entry/entry as anything in worn_list)
+				if(entry in dna_worn)
+					entries_shared++
 				else
-					owned++
+					entries_owned++
 		total_entries += body_entries + aux_entries
 		total_owned += owned
 		total_shared += shared
+		total_entries_owned += entries_owned
+		total_entries_shared += entries_shared
 		per_limb[limb.body_zone] = list(
 			"markings" = body_entries,
 			"aux_markings" = aux_entries,
 			"lists_owned" = owned,
 			"lists_shared_with_dna" = shared,
+			"entry_datums_owned" = entries_owned,
+			"entry_datums_shared_with_dna" = entries_shared,
 			"markings_alpha" = limb.markings_alpha,
 		)
-	var/dna_entries = 0
-	for(var/zone, worn in target.dna.body_markings)
-		var/list/worn_list = worn
-		dna_entries += length(worn_list)
 	return list(
 		"limb_entries" = total_entries,
 		"limb_lists_owned" = total_owned,
 		"limb_lists_shared_with_dna" = total_shared,
-		"dna_zones" = length(target.dna.body_markings),
-		"dna_entries" = dna_entries,
-		// The outer map, one map per zone, and one tuple per entry.
-		"dna_lists" = 1 + length(target.dna.body_markings) + dna_entries,
+		"limb_entry_datums_owned" = total_entries_owned,
+		"limb_entry_datums_shared_with_dna" = total_entries_shared,
+		"dna_zones" = dna_markings.zone_count(),
+		"dna_entries" = dna_markings.entry_count(),
+		// Every list the collection holds: its entries, its zones and whichever caches it has built.
+		"dna_lists" = dna_markings.count_lists(),
+		"dna_entry_datums" = dna_markings.entry_count(),
 		"per_limb" = per_limb,
 	)
 
@@ -137,7 +146,7 @@
  * Drives the limbs_and_markings action set the prefs menu exposes.
  *
  * color_marking opens a blocking tgui modal, so it is only driven when usr is unset: the picker then
- * returns null, so the action rebuilds its zone map but neither stores it nor re-renders the preview.
+ * returns null, so the action finds its marking but neither recolours it nor re-renders the preview.
  * change_marking renames to a fixture marking, so its target never depends on the order of
  * GLOB.body_markings_per_limb.
  *
@@ -157,16 +166,16 @@
 			middleware.set_preset(list("preset" = preset.name), user)
 			driven++
 		// A preset only fills the zones it covers, so make sure this one has a row to edit.
-		while(length(preferences.body_markings[zone]) < MAXIMUM_MARKINGS_PER_LIMB)
+		while(preferences.body_markings.zone_length(zone) < MAXIMUM_MARKINGS_PER_LIMB)
 			if(!middleware.add_marking(list("bodypart_slot" = zone), user))
 				break
 			driven++
 		var/marking_id = "[zone]_1"
-		if(!length(preferences.body_markings[zone]))
+		if(!preferences.body_markings.zone_length(zone))
 			continue
 		var/replacement
 		for(var/candidate in markings_baseline_marking_names())
-			if(!(candidate in preferences.body_markings[zone]))
+			if(!preferences.body_markings.find_entry(zone, candidate))
 				replacement = candidate
 				break
 		if(replacement && middleware.change_marking(list("bodypart_slot" = zone, "marking_id" = marking_id, "marking_name" = replacement), user))
@@ -194,7 +203,7 @@
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], FALSE)
 	preferences.create_character_preview_view(mock_client.mob)
 	var/datum/preference_middleware/limbs_and_markings/middleware = locate() in preferences.middleware
-	markings_baseline_fill(preferences.body_markings)
+	preferences.body_markings = body_marking_collection_from_list(markings_baseline_fill())
 
 	var/actions_driven = 0
 	// Read after the preview's first render, so the delta holds only what the drive itself cached.
@@ -222,12 +231,12 @@
 	// A species change, out to the one species with a reduced marking alpha and back again.
 	phase_started = rustg_time_microseconds(MARKINGS_BENCHMARK_CLOCK)
 	human.set_species(/datum/species/jelly/roundstartslime)
-	markings_baseline_fill(human.dna.body_markings)
+	human.dna.body_markings = body_marking_collection_from_list(markings_baseline_fill())
 	human.update_body_parts(update_limb_data = TRUE)
 	var/obj/item/bodypart/slime_chest = human.get_bodypart(BODY_ZONE_CHEST)
 	counters["slime_markings_alpha"] = slime_chest?.markings_alpha
 	human.set_species(/datum/species/human)
-	markings_baseline_fill(human.dna.body_markings)
+	human.dna.body_markings = body_marking_collection_from_list(markings_baseline_fill())
 	human.update_body_parts(update_limb_data = TRUE)
 	record("species_change", phase_started, 2)
 	yield_unprofiled()
@@ -305,7 +314,7 @@
 		notes += "profile: world.Profile returned nothing, check forbid_all_profiling."
 
 	rustg_file_write(json_encode(list(
-		"representation" = "nested_list",
+		"representation" = "body_marking_collection",
 		"fixture" = list(
 			"marking_names" = markings_baseline_marking_names(),
 			"marking_colors" = markings_baseline_marking_colors(),

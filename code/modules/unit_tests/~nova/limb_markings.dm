@@ -25,13 +25,13 @@
 		var/list/worn = list()
 		for(var/marking_name in narrowed.Copy(1, MAXIMUM_MARKINGS_PER_LIMB))
 			worn[marking_name] = list("#ffffff", FALSE)
-		preferences.body_markings[BODY_ZONE_L_ARM] = worn
+		preferences.body_markings.set_zone_from_list(BODY_ZONE_L_ARM, worn)
 		middleware.add_marking(list("bodypart_slot" = BODY_ZONE_L_ARM), mock_client.mob)
-		TEST_ASSERT(json_encode(assoc_to_keys(preferences.body_markings[BODY_ZONE_L_ARM])) == json_encode(narrowed), "Adding a marking must pick one the limb doesn't already wear.")
+		TEST_ASSERT(json_encode(preferences.body_markings.marking_names(BODY_ZONE_L_ARM)) == json_encode(narrowed), "Adding a marking must pick one the limb doesn't already wear.")
 	middleware.add_marking(list("bodypart_slot" = BODY_ZONE_L_ARM), mock_client.mob)
-	TEST_ASSERT(length(preferences.body_markings[BODY_ZONE_L_ARM]) == MAXIMUM_MARKINGS_PER_LIMB, "A full limb must refuse another marking.")
+	TEST_ASSERT(preferences.body_markings.zone_length(BODY_ZONE_L_ARM) == MAXIMUM_MARKINGS_PER_LIMB, "A full limb must refuse another marking.")
 	middleware.change_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_1", "marking_name" = narrowed[2]), mock_client.mob)
-	TEST_ASSERT(json_encode(assoc_to_keys(preferences.body_markings[BODY_ZONE_L_ARM])) == json_encode(narrowed), "Renaming a marking to one another row wears must be refused.")
+	TEST_ASSERT(json_encode(preferences.body_markings.marking_names(BODY_ZONE_L_ARM)) == json_encode(narrowed), "Renaming a marking to one another row wears must be refused.")
 
 /// Without mismatched parts, adding a limb marking picks only one meant for the character's species.
 /datum/unit_test/limb_markings_follow_species
@@ -64,9 +64,9 @@
 	original_choices = choices
 	GLOB.body_markings_per_limb[BODY_ZONE_L_ARM] = list(foreign, shared)
 	for(var/attempt in 1 to 10)
-		preferences.body_markings[BODY_ZONE_L_ARM] = list()
+		preferences.body_markings.set_zone_entries(BODY_ZONE_L_ARM, list())
 		middleware.add_marking(list("bodypart_slot" = BODY_ZONE_L_ARM), mock_client.mob)
-		TEST_ASSERT(json_encode(assoc_to_keys(preferences.body_markings[BODY_ZONE_L_ARM])) == json_encode(list(shared)), "Without mismatched parts, adding a marking must pick one meant for the character's species.")
+		TEST_ASSERT(json_encode(preferences.body_markings.marking_names(BODY_ZONE_L_ARM)) == json_encode(list(shared)), "Without mismatched parts, adding a marking must pick one meant for the character's species.")
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
 	middleware.add_marking(list("bodypart_slot" = BODY_ZONE_L_ARM), mock_client.mob)
-	TEST_ASSERT(preferences.body_markings[BODY_ZONE_L_ARM][foreign], "Mismatched parts allow any species' marking.")
+	TEST_ASSERT(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, foreign), "Mismatched parts allow any species' marking.")

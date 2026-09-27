@@ -2,9 +2,14 @@
 	var/list/list/mutant_bodyparts = list()
 	features = MANDATORY_FEATURE_LIST
 	///Body markings of the DNA's owner. This is for storing their original state for re-creating the character. They'll get changed on species mutation
-	var/list/list/body_markings = list()
+	var/datum/body_marking_collection/body_markings
 	///Current body size, used for proper re-sizing and keeping track of that
 	var/current_body_size = BODY_SIZE_NORMAL
+
+/// Every DNA starts with an empty marking collection, which a species roll or a DNA copy replaces.
+/datum/dna/New(mob/living/new_holder, datum/species/mob_species)
+	body_markings = new
+	return ..()
 
 /// Updates the mob's body size to prefs features
 /datum/dna/proc/update_body_size(force_reapply = FALSE)
@@ -26,7 +31,7 @@
 /mob/living/carbon/proc/apply_customizable_dna_features_to_species()
 	if(!has_dna())
 		CRASH("[src] does not have DNA")
-	dna.body_markings = dna.body_markings.Copy()
+	dna.body_markings = dna.body_markings.shallow_copy()
 	var/list/bodyparts_to_add = LAZYCOPY(dna.mutant_bodyparts)
 	for(var/key, part in bodyparts_to_add)
 		var/datum/mutant_bodypart/mutant_part = part

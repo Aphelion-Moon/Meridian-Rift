@@ -11,12 +11,12 @@
 	. = ..()
 	if(current_style)
 		. += "-[current_style]"
-	for(var/key, marking_entry in markings)
+	for(var/datum/body_marking_entry/marking_entry as anything in markings)
 		. += (bodyshape & BODYSHAPE_DIGITIGRADE) ? "[BODYPART_ID_DIGITIGRADE]_[body_zone]" : body_zone
-		. += "-[key]_[marking_entry[MARKING_INDEX_COLOR]]_[marking_entry[MARKING_INDEX_EMISSIVE]]"
-	for(var/key, marking_entry in aux_zone_markings)
+		. += "-[marking_entry.cache_key()]"
+	for(var/datum/body_marking_entry/marking_entry as anything in aux_zone_markings)
 		. += aux_zone
-		. += "-[key]_[marking_entry[MARKING_INDEX_COLOR]]_[marking_entry[MARKING_INDEX_EMISSIVE]]"
+		. += "-[marking_entry.cache_key()]"
 	return .
 
 /**

@@ -46,6 +46,6 @@
 	human.dna.features[FEATURE_MUTANT_COLOR] = main_color
 	human.dna.features[FEATURE_MUTANT_COLOR_TWO] = secondary_color
 	human.dna.features[FEATURE_MUTANT_COLOR_THREE] = secondary_color
-	human.dna.body_markings[BODY_ZONE_HEAD] = list("Insect Antennae" = list("#644b07", 0))
+	human.dna.body_markings.set_zone_from_list(BODY_ZONE_HEAD, list("Insect Antennae" = list("#644b07", 0)))
 	regenerate_organs(human, src, visual_only = TRUE)
 	human.update_body(TRUE)

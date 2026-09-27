@@ -4,8 +4,9 @@
  * This file also holds the fixture shared with the markings benchmark, because both baselines have to
  * dress the same character for their numbers to be comparable.
  *
- * Run it on the current representation to write the "before" file, then again after a step to write the
- * "after" file, and diff the two. Only `output_path` changes between the two runs.
+ * Run it on the current representation to write the "before" file, then again after a step, compiled with
+ * MARKINGS_APPEARANCE_AFTER defined, to write the "after" file, and diff the two. Only `output_path`
+ * changes between the two runs.
  */
 
 /// The markings both baselines wear. Each one claims all eight marking zones and ships art for every one
@@ -19,28 +20,25 @@
 	return list("#4488cc", "#cc4422", "#33aa55")
 
 /**
- * Fills a marking map in the pre-datumisation shape: zone -> (marking name -> list(color, emissive)).
+ * Builds the fixture's marking map in the nested shape a savefile holds: zone -> (marking name -> list(color, emissive)).
  *
  * Every zone in GLOB.marking_zones receives all three fixture markings. Only the second one emits, so a
- * capture covers both the plain and the emissive branch of append_base_marking_overlays().
+ * capture covers both the plain and the emissive branch of append_base_marking_overlays(). Callers load it
+ * through body_marking_collection_from_list(), the way a saved character's markings arrive, and replace the
+ * whole collection with it, so a species randomiser that already seeded a zone cannot leave a stray entry behind.
  *
- * Arguments:
- * - target: the map to fill, either a preferences or a DNA marking list.
- *
- * Returns the same list.
+ * Returns a new list.
  */
-/proc/markings_baseline_fill(list/target)
+/proc/markings_baseline_fill()
 	var/list/names = markings_baseline_marking_names()
 	var/list/colors = markings_baseline_marking_colors()
-	// Emptied first, so a species randomiser that already seeded a zone cannot leave a stray entry behind.
-	target.Cut()
+	. = list()
 	for(var/zone in GLOB.marking_zones)
 		var/list/worn = list()
 		for(var/index in 1 to length(names))
 			// An integer 0/1, which is what a savefile holds for the emissive flag.
 			worn[names[index]] = list(colors[index], index == 2 ? 1 : 0)
-		target[zone] = worn
-	return target
+		.[zone] = worn
 
 /**
  * Reduces a rendered icon to one comparison key.
@@ -107,7 +105,7 @@
 	human.hairstyle = "Bald"
 	human.facial_hairstyle = "Shaved"
 	human.physique = MALE
-	markings_baseline_fill(human.dna.body_markings)
+	human.dna.body_markings = body_marking_collection_from_list(markings_baseline_fill())
 	human.update_body_parts(update_limb_data = TRUE)
 	return human
 
@@ -203,8 +201,12 @@
 /// Captures the appearance of every marking rendering case the refactor must preserve.
 /datum/unit_test/markings_baseline/appearance
 	/// Where the signatures land. A later step renders the same matrix into a second path and diffs the
-	/// two; point this at "data/markings_appearance_after.json" for that run and change nothing else.
+	/// two: define MARKINGS_APPEARANCE_AFTER for that run and change nothing else.
+#ifdef MARKINGS_APPEARANCE_AFTER
+	var/output_path = "data/markings_appearance_after.json"
+#else
 	var/output_path = "data/markings_appearance_before.json"
+#endif
 	/// case name -> signature and counters.
 	var/list/cases = list()
 	/// Anything that could not be built, so a missing case never has to be guessed at.
@@ -291,7 +293,7 @@
 	var/mob/living/carbon/human/slime = build_marked_human()
 	slime.set_species(/datum/species/jelly/roundstartslime)
 	// A species change can rebuild the marking map, so dress the body again before rendering it.
-	markings_baseline_fill(slime.dna.body_markings)
+	slime.dna.body_markings = body_marking_collection_from_list(markings_baseline_fill())
 	slime.hairstyle = "Bald"
 	slime.facial_hairstyle = "Shaved"
 	slime.physique = MALE
@@ -300,7 +302,7 @@
 
 	// Write before asserting, so a failed expectation still leaves a usable baseline on disk.
 	rustg_file_write(json_encode(list(
-		"representation" = "nested_list",
+		"representation" = "body_marking_collection",
 		"fixture" = list(
 			"marking_names" = names,
 			"marking_colors" = markings_baseline_marking_colors(),

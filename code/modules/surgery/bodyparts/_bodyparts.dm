@@ -1241,12 +1241,14 @@
 		alpha = owner_species.specific_alpha
 
 	if(!(bodypart_flags & (BODYPART_PSEUDOPART | BODYPART_STUMP)) && !(bodyshape & BODYSHAPE_TAUR))
-		if(body_zone in owner_dna.body_markings)
-			markings = LAZYLISTDUPLICATE(owner_dna.body_markings[body_zone])
+		// The limb keeps its own list of the entries it wears: the snapshot it goes on drawing once detached.
+		var/datum/body_marking_collection/owner_markings = owner_dna.body_markings
+		if(owner_markings.has_zone(body_zone))
+			markings = LAZYLISTDUPLICATE(owner_markings.entries_for_zone(body_zone))
 		else
 			LAZYNULL(markings)
-		if(aux_zone && (aux_zone in owner_dna.body_markings))
-			aux_zone_markings = LAZYLISTDUPLICATE(owner_dna.body_markings[aux_zone])
+		if(aux_zone && owner_markings.has_zone(aux_zone))
+			aux_zone_markings = LAZYLISTDUPLICATE(owner_markings.entries_for_zone(aux_zone))
 		else
 			LAZYNULL(aux_zone_markings)
 		markings_alpha = owner_species.markings_alpha

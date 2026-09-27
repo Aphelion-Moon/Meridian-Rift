@@ -550,8 +550,8 @@
 /// Shades sampled from the first native marking the preview body wears.
 /datum/custom_sprite_editor/proc/sample_marking_shades()
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
-		for(var/marking_name in limb.markings)
-			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
+		for(var/datum/body_marking_entry/marking_entry as anything in limb.markings)
+			var/datum/body_marking/marking = marking_entry.marking
 			if(!marking)
 				continue
 			var/gender_suffix = limb.body_zone == BODY_ZONE_CHEST && marking.gendered ? (limb.is_dimorphic ? "_[limb.limb_gender]" : "_m") : ""

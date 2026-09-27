@@ -72,7 +72,7 @@
 /datum/species/aquatic/get_random_body_markings(list/passed_features)
 	var/name = "Shark"
 	var/datum/body_marking_set/BMS = GLOB.body_marking_sets[name]
-	var/list/markings = list()
+	var/datum/body_marking_collection/markings = new
 	if(BMS)
 		markings = assemble_body_markings_from_set(BMS, passed_features, src)
 	return markings
