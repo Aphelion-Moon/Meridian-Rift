@@ -9,11 +9,15 @@ has_sudo="$(command -v sudo)"
 has_ytdlp="$(command -v yt-dlp)"
 has_pip3="$(command -v pip3)"
 has_unzip="$(command -v unzip)"
+# APHELION EDIT ADDITION START - Check the x86 linker runtime even on existing installs.
+has_gcc="$(command -v gcc)"
+x86_startup_object="$(gcc -m32 -print-file-name=Scrt1.o 2>/dev/null)"
+# APHELION EDIT ADDITION END
 set -e
 set -x
 
 # apt packages, libssl needed by rust-g but not included in TGS barebones install
-if ! ( [ -x "$has_git" ] && [ -x "$has_curl" ] && [ -x "$has_pip3" ] && [ -x "$has_unzip" ] && [ -f "/usr/lib/i386-linux-gnu/libssl.so" ] ); then
+if ! ( [ -x "$has_git" ] && [ -x "$has_curl" ] && [ -x "$has_pip3" ] && [ -x "$has_unzip" ] && [ -f "/usr/lib/i386-linux-gnu/libssl.so" ] && [ -x "$has_gcc" ] && [ -f "$x86_startup_object" ] ); then # APHELION EDIT CHANGE - ORIGINAL: if ! ( [ -x "$has_git" ] && [ -x "$has_curl" ] && [ -x "$has_pip3" ] && [ -x "$has_unzip" ] && [ -f "/usr/lib/i386-linux-gnu/libssl.so" ] ); then
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 	echo "!!! HEY YOU THERE, READING THE TGS LOGS READ THIS!!!"
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -41,6 +45,10 @@ if ! [ -x "$has_cargo" ]; then
 	. ~/.profile
 fi
 
+# APHELION EDIT ADDITION START - Keep the painting helper on its audited compiler without changing rust-g's default.
+~/.cargo/bin/rustup toolchain install 1.89.0 --profile minimal
+~/.cargo/bin/rustup target add --toolchain 1.89.0 i686-unknown-linux-gnu
+# APHELION EDIT ADDITION END
 # install or update yt-dlp when not present, or if it is present with pip3,
 # which we assume was used to install it
 if ! [ -x "$has_ytdlp" ]; then

@@ -8,19 +8,13 @@
 	lewd_slot_flags = LEWD_SLOT_PENIS | LEWD_SLOT_VAGINA | LEWD_SLOT_ANUS
 	/// Strong peer reference; neither item owns the other.
 	var/obj/item/clothing/sextoy/portal_fleshlight/linked_fleshlight
-	/// Receiver anatomy selected by its authoritative equipped slot.
+	/// The part this sits on while worn: the mouth, or the organ slot it was inserted into.
 	var/current_target
 	/// Whether the panties' wearer is anonymous
 	var/anonymous = FALSE
-	/// The currently observed receiver wearer.
-	var/datum/weakref/observed_wearer
-	/// Whether an appearance refresh is already queued.
-	var/appearance_refresh_queued = FALSE
 
 /obj/item/clothing/sextoy/portal_panties/Initialize(mapload)
 	. = ..()
-	if(. == INITIALIZE_HINT_QDEL)
-		return
 	register_context()
 
 /obj/item/clothing/sextoy/portal_panties/add_context(atom/source, list/context, obj/item/held_item, mob/user)
@@ -38,23 +32,21 @@
 
 /obj/item/clothing/sextoy/portal_panties/examine(mob/user)
 	. = ..()
+	. += span_notice("Equip it as a mask to connect to the mouth, or use the interaction panel to equip it in a specific genital slot.")
 	if(!has_reciprocal_link())
 		. += span_notice("The status light is off. The device needs to be paired with a portal fleshlight.")
 		return
 
-	var/configuration_valid = receiver_configuration_valid()
-	. += span_notice("The status light is [configuration_valid ? "on" : "off"]. The portal is [configuration_valid ? "open" : "closed"].")
-	if(configuration_valid)
+	var/portal_open = !!get_equipped_wearer()
+	. += span_notice("The status light is [portal_open ? "on" : "off"]. The portal is [portal_open ? "open" : "closed"].")
+	if(portal_open)
 		. += span_notice("The current target is: [current_target]")
-
-	. += span_notice("Equip it as a mask to connect to the mouth, or use the interaction panel to equip it in a specific genital slot.")
 
 /obj/item/clothing/sextoy/portal_panties/attackby(obj/item/attacking_item, mob/user, list/modifiers, list/attack_modifiers)
 	. = ..()
 	var/obj/item/clothing/sextoy/portal_fleshlight/portal_toy = attacking_item
-	if(!istype(portal_toy))
-		return
-	portal_toy.link_panties(src, user)
+	if(istype(portal_toy))
+		portal_toy.link_panties(src, user)
 
 /obj/item/clothing/sextoy/portal_panties/lewd_equipped(mob/living/carbon/human/user, slot, initial)
 	. = ..()
@@ -68,13 +60,17 @@
 	. = ..()
 	update_target(user)
 
+/**
+ * Points the receiver at the part it now sits on, and starts or stops redrawing the device from its wearer.
+ *
+ * Arguments:
+ * - user: The mob this was just equipped to or dropped from.
+ * - slot: ITEM_SLOT_MASK for the mouth, an ORGAN_SLOT_ genital for a lewd slot, or null when dropped.
+ */
 /obj/item/clothing/sextoy/portal_panties/proc/update_target(mob/living/carbon/human/user, slot)
 	if(!istype(user))
 		return
 
-	current_equipped_slot = slot
-
-	// The mask slot is an ITEM_SLOT_ bitflag; the rest are ORGAN_SLOT_ strings that double as their own target.
 	switch(slot)
 		if(ITEM_SLOT_MASK)
 			current_target = BODY_ZONE_PRECISE_MOUTH
@@ -82,65 +78,27 @@
 			current_target = slot
 		else
 			current_target = null
-	set_observed_wearer(current_target ? user : null)
+
+	var/static/list/visual_signals = list(COMSIG_CARBON_APPLY_OVERLAY, COMSIG_HUMAN_GENITAL_UPDATED)
+	if(current_target)
+		RegisterSignals(user, visual_signals, PROC_REF(on_wearer_visual_changed), override = TRUE)
+	else
+		UnregisterSignal(user, visual_signals)
 
 	if(has_reciprocal_link())
 		linked_fleshlight.update_appearance()
-	else if(!isnull(current_target))
+	else if(current_target)
 		audible_message("[icon2html(src, hearers(src))] *beep* *beep* *beep*")
 		playsound(src, 'sound/machines/beep/triple_beep.ogg', ASSEMBLY_BEEP_VOLUME, TRUE)
 		to_chat(user, span_notice("The panties are not linked to a portal fleshlight."))
 
-/// Sets the wearer we observe without owning them.
-/obj/item/clothing/sextoy/portal_panties/proc/set_observed_wearer(mob/living/carbon/human/new_wearer)
-	var/static/list/wearer_visual_signals = list(
-		COMSIG_MOB_EQUIPPED_ITEM = PROC_REF(on_wearer_item_equipped),
-		COMSIG_MOB_UNEQUIPPED_ITEM = PROC_REF(on_wearer_item_unequipped),
-		COMSIG_CARBON_APPLY_OVERLAY = PROC_REF(on_wearer_overlay_changed),
-		COMSIG_CARBON_REMOVE_OVERLAY = PROC_REF(on_wearer_overlay_changed),
-		COMSIG_HUMAN_GENITAL_UPDATED = PROC_REF(on_wearer_genital_changed),
-	)
-	var/mob/living/carbon/human/old_wearer = observed_wearer?.resolve()
-	if(old_wearer == new_wearer)
+/// Redraws the linked device on the next tick when the wearer's body art or genitals change.
+/obj/item/clothing/sextoy/portal_panties/proc/on_wearer_visual_changed(datum/source, changed_layer_or_genital)
+	SIGNAL_HANDLER
+	// Genitals, lips and skin all draw on the body parts layer; clothing and held items never reach the portal art.
+	if(source != loc || (isnum(changed_layer_or_genital) && changed_layer_or_genital != BODYPARTS_LAYER) || !has_reciprocal_link())
 		return
-	if(!QDELETED(old_wearer))
-		UnregisterSignal(old_wearer, wearer_visual_signals)
-	observed_wearer = new_wearer ? WEAKREF(new_wearer) : null
-	if(new_wearer)
-		for(var/wearer_signal in wearer_visual_signals)
-			RegisterSignal(new_wearer, wearer_signal, wearer_visual_signals[wearer_signal])
-
-/obj/item/clothing/sextoy/portal_panties/proc/on_wearer_item_equipped(datum/source, obj/item/equipped_item, slot)
-	SIGNAL_HANDLER
-	if(slot != ITEM_SLOT_HANDS)
-		on_wearer_visual_changed(source)
-
-/obj/item/clothing/sextoy/portal_panties/proc/on_wearer_item_unequipped(datum/source, obj/item/unequipped_item, force, atom/newloc, no_move, invdrop, silent, hand_index)
-	SIGNAL_HANDLER
-	if(!hand_index)
-		on_wearer_visual_changed(source)
-
-/obj/item/clothing/sextoy/portal_panties/proc/on_wearer_overlay_changed(datum/source, changed_layer)
-	SIGNAL_HANDLER
-	if(changed_layer != HANDS_LAYER)
-		on_wearer_visual_changed(source)
-
-/obj/item/clothing/sextoy/portal_panties/proc/on_wearer_genital_changed(datum/source, obj/item/organ/genital/updated_genital)
-	SIGNAL_HANDLER
-	if(updated_genital.slot == current_target)
-		on_wearer_visual_changed(source)
-
-/obj/item/clothing/sextoy/portal_panties/proc/on_wearer_visual_changed(datum/source)
-	SIGNAL_HANDLER
-	if(source != observed_wearer?.resolve() || appearance_refresh_queued || !has_reciprocal_link())
-		return
-	appearance_refresh_queued = TRUE
-	addtimer(CALLBACK(src, PROC_REF(flush_linked_appearance_refresh)), 0)
-
-/obj/item/clothing/sextoy/portal_panties/proc/flush_linked_appearance_refresh()
-	appearance_refresh_queued = FALSE
-	if(has_reciprocal_link())
-		linked_fleshlight.update_appearance()
+	addtimer(CALLBACK(linked_fleshlight, TYPE_PROC_REF(/atom, update_appearance)), 0, TIMER_UNIQUE)
 
 /obj/item/clothing/sextoy/portal_panties/attack_hand_secondary(mob/user, list/modifiers)
 	. = ..()
@@ -157,59 +115,40 @@
 		to_chat(user, span_warning("[src] isn't linked to any portal fleshlight!"))
 		return CLICK_ACTION_BLOCKING
 
-	var/datum/weakref/fleshlight_ref = WEAKREF(linked_fleshlight)
-	var/choice = tgui_alert(user, "Are you sure you want to unlink the portal fleshlight?", "Unlink Portal Fleshlight", list("Yes", "No"))
-	if(choice != "Yes")
-		return CLICK_ACTION_BLOCKING
-	var/obj/item/clothing/sextoy/portal_fleshlight/fleshlight = fleshlight_ref.resolve()
-	if(QDELETED(src) || QDELETED(fleshlight) || linked_fleshlight != fleshlight || fleshlight.linked_panties != src || !user.Adjacent(src))
+	if(tgui_alert(user, "Are you sure you want to unlink the portal fleshlight?", "Unlink Portal Fleshlight", list("Yes", "No")) != "Yes" || QDELETED(src) || !user.Adjacent(src))
 		return CLICK_ACTION_BLOCKING
 
 	to_chat(user, span_notice("You unlink the portal fleshlight from [src]."))
 	clear_link()
 	return CLICK_ACTION_SUCCESS
 
-/// Returns the wearer only when the receiver is still in the slot it claims.
+/**
+ * Returns whoever is wearing this in the slot its target claims, or null when it isn't worn.
+ *
+ * A worn receiver is always open. It sits on its part underneath anything the wearer has on, so clothing,
+ * underwear and arousal never close it.
+ */
 /obj/item/clothing/sextoy/portal_panties/proc/get_equipped_wearer()
-	if(!ishuman(loc) || QDELETED(loc) || !current_target || !current_equipped_slot)
-		return null
 	var/mob/living/carbon/human/wearer = loc
-	if(current_target == BODY_ZONE_PRECISE_MOUTH)
-		if(current_equipped_slot != ITEM_SLOT_MASK || wearer.get_item_by_slot(ITEM_SLOT_MASK) != src)
-			return null
-	else if(current_equipped_slot != current_target || wearer.get_lewd_slot_item(current_equipped_slot) != src)
+	if(!ishuman(wearer) || isnull(current_target))
 		return null
-	return wearer
-
-/// Presentation and authority helper for equipped slot, anatomy, and exposure.
-/obj/item/clothing/sextoy/portal_panties/proc/receiver_configuration_valid()
-	var/mob/living/carbon/human/wearer = get_equipped_wearer()
-	return wearer && wearer.portal_target_is_accessible(current_target)
+	var/obj/item/worn_item = current_target == BODY_ZONE_PRECISE_MOUTH ? wearer.wear_mask : wearer.get_lewd_slot_item(current_target)
+	return worn_item == src ? wearer : null
 
 /obj/item/clothing/sextoy/portal_panties/proc/has_reciprocal_link()
 	return !QDELETED(linked_fleshlight) && linked_fleshlight.linked_panties == src
 
 /// Silently and idempotently clears both peer references without deleting either item.
 /obj/item/clothing/sextoy/portal_panties/proc/clear_link()
-	var/obj/item/clothing/sextoy/portal_fleshlight/old_fleshlight = linked_fleshlight
+	if(has_reciprocal_link())
+		linked_fleshlight.clear_link()
 	linked_fleshlight = null
-	if(old_fleshlight?.linked_panties != src)
-		return
-	old_fleshlight.linked_panties = null
-	if(!QDELETED(old_fleshlight))
-		old_fleshlight.update_appearance()
 
 /obj/item/clothing/sextoy/portal_panties/Destroy()
-	var/mob/living/carbon/human/wearer = ishuman(loc) ? loc : null
-	var/cleared_genital_slot = FALSE
-	if(wearer && (current_equipped_slot in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)) && wearer.get_lewd_slot_item(current_equipped_slot) == src)
-		wearer.set_lewd_slot_item(current_equipped_slot, null)
-		cleared_genital_slot = TRUE
-	if(cleared_genital_slot && !QDELETED(wearer))
-		wearer.update_inv_lewd()
-	current_equipped_slot = null
-	current_target = null
-	set_observed_wearer(null)
-	appearance_refresh_queued = FALSE
+	var/mob/living/carbon/human/wearer = loc
+	if(ishuman(wearer) && wearer.get_lewd_slot_item(current_target) == src)
+		wearer.set_lewd_slot_item(current_target, null)
+		if(!QDELETED(wearer))
+			wearer.update_inv_lewd()
 	clear_link()
 	return ..()

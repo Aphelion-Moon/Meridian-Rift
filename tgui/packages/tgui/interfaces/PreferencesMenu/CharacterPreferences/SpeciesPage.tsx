@@ -402,10 +402,20 @@ function SpeciesPageInner(props: SpeciesPageInnerProps) {
                   </Stack.Item>
 
                   <Stack.Item width="30%">
+                    {/* APHELION EDIT REMOVAL START - species preview geometry
                     <CharacterPreview
                       id={data.character_preview_view}
                       height="100%"
                     />
+                    APHELION EDIT REMOVAL END */}
+                    {/* APHELION EDIT ADDITION START - species preview geometry */}
+                    <CharacterPreview
+                      className="PreferencesMenu__SpeciesPreview"
+                      id={data.character_preview_view}
+                      width="100%"
+                      height="auto"
+                    />
+                    {/* APHELION EDIT ADDITION END */}
                   </Stack.Item>
                 </Stack>
               </Box>

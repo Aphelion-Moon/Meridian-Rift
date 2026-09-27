@@ -33,6 +33,7 @@
 	natural_spawn = FALSE
 
 /datum/sprite_accessory/horns/angler
+	icon = 'icons/mob/human/species/lizard/lizard_misc.dmi'
 	default_color = DEFAULT_SECONDARY
 	recommended_species = list(
 		SPECIES_MAMMAL = 1,

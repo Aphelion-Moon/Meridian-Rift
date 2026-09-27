@@ -10,14 +10,16 @@ An interaction route supplies access to a participant through another object. A 
 route uses ordinary adjacency, unless the interaction permits distance. The portal
 module implements two routes:
 
-- `portal_relay` reaches the occupant of an active wall portal through its body relay.
+- `portal_relay` reaches the half of a wall portal's occupant that its body relay shows.
+  The rest of the occupant can only be reached in person.
 - `portal_device` checks the operator, held device, worn receiver, links, and selected
   parts. It also supports the receiver wearer filling both interaction roles.
 
 Movables that represent a participant can implement `interaction_route_for()`.
-The component asks the viewer's active item first, then a remote body relay. A held
-device offers its holder's own parts on the receiver wearer's panel, whether or not
-the holder is that wearer. Device attacks can also construct a route directly.
+The component asks the device linked to any receiver its parent wears first, then a
+remote body relay. A device the viewer holds or stands next to offers the viewer's own
+parts on the receiver wearer's panel, whether or not the viewer is that wearer. Device
+attacks can also construct a route directly.
 
 ### Validation and ownership:
 
@@ -39,8 +41,10 @@ session therefore cannot reveal the remote identity; direct actions remain avail
 ### Message templates:
 
 `act()` gets anonymity from the route. Public messages use the observer perspective;
-private messages address their recipient as "you". Known self interactions use
-reflexive names and possessions, while anonymity takes precedence over shared identity.
+private messages address their recipient as "you". Known self interactions read
+reflexively for everyone ("yourself", "herself", "her own"): a bare `%TARGET%` is an
+object and `%TARGET_CAPITAL%` a subject, and the target message is skipped because the
+user message already addresses them. Anonymity takes precedence over shared identity.
 Ordinary direct messages also hide an unseen target, so a distant action cannot recover
 their name after a relay ends. An explicit route retains its own identity policy,
 including a device configured to reveal its remote participant. Administrative logs

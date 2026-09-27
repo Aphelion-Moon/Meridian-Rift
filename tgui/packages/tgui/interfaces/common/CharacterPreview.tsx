@@ -2,6 +2,7 @@
 import { ByondUi } from '../../layouts/ByondUi'; // APHELION EDIT ADDITION - native UI menu avoidance
 
 export const CharacterPreview = (props: {
+  className?: string; // APHELION EDIT ADDITION - caller-owned preview geometry
   width?: string; // NOVA EDIT
   height: string;
   id: string;
@@ -11,6 +12,7 @@ export const CharacterPreview = (props: {
   // NOVA EDIT END
   return (
     <ByondUi
+      className={props.className} // APHELION EDIT ADDITION - caller-owned preview geometry
       width={width} // NOVA EDIT
       height={props.height}
       params={{

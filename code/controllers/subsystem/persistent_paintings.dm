@@ -1,5 +1,4 @@
-#define PAINTINGS_DATA_FORMAT_VERSION 3
-
+// #define PAINTINGS_DATA_FORMAT_VERSION 3 // APHELION EDIT REMOVAL - Shared in code/__DEFINES/paintings.dm.
 /*
 {
 	"version":2
@@ -25,7 +24,7 @@
 */
 
 /datum/painting
-	/// md5 of the png file, also the filename.
+	/// Pixel-data identity and filename; not a PNG checksum. // APHELION EDIT CHANGE - ORIGINAL: /// md5 of the png file, also the filename.
 	var/md5
 	/// Title
 	var/title
@@ -57,6 +56,7 @@
 	var/loaded_from_json = FALSE
 
 /datum/painting/proc/load_from_json(list/json_data)
+	load_gallery_metadata(json_data) // APHELION EDIT ADDITION - painting gallery metadata
 	md5 = json_data["md5"]
 	title = json_data["title"]
 	creator_ckey = json_data["creator_ckey"]
@@ -74,7 +74,7 @@
 	loaded_from_json = TRUE
 
 /datum/painting/proc/to_json()
-	var/list/new_data = list()
+	var/list/new_data = gallery_json_base() // APHELION EDIT CHANGE - ORIGINAL: var/list/new_data = list()
 	new_data["md5"] = md5
 	new_data["title"] = title
 	new_data["creator_ckey"] = creator_ckey
@@ -89,6 +89,7 @@
 	new_data["height"] = height
 	new_data["medium"] = medium
 	new_data["frame_type"] = frame_type
+	new_data["show_in_webgallery"] = show_in_webgallery == TRUE // APHELION EDIT ADDITION
 	return new_data
 
 /datum/painting/proc/get_icon()
@@ -156,6 +157,7 @@ SUBSYSTEM_DEF(persistent_paintings)
 	)
 
 /datum/controller/subsystem/persistent_paintings/Initialize()
+	/* // APHELION EDIT REMOVAL START - Recover and load through the painting store.
 	var/json_file = file("data/paintings.json")
 	if(fexists(json_file))
 		var/list/raw_data = update_format(json_decode(file2text(json_file)))
@@ -163,6 +165,8 @@ SUBSYSTEM_DEF(persistent_paintings)
 			var/datum/painting/loaded_painting = new
 			loaded_painting.load_from_json(painting_data)
 			paintings += loaded_painting
+	*/ // APHELION EDIT REMOVAL END
+	initialize_store() // APHELION EDIT ADDITION - recover and load without truncating the database
 
 	for(var/obj/structure/sign/painting/painting_frame as anything in painting_frames)
 		painting_frame.load_persistent()
@@ -189,6 +193,7 @@ SUBSYSTEM_DEF(persistent_paintings)
 		var/list/pdata = painting.to_json()
 		pdata["ref"] = REF(painting)
 		UNTYPED_LIST_ADD(admin_painting_data, pdata)
+	cache_gallery_owners() // APHELION EDIT ADDITION - owner-scoped gallery cache
 
 /**
  * Generates painting data ready to be consumed by ui.
@@ -228,6 +233,7 @@ SUBSYSTEM_DEF(persistent_paintings)
 			continue
 		. += painting
 
+/* // APHELION EDIT REMOVAL START - Atomic migrations live in modular_aphelion/modules/painting_gallery.
 /// Updates paintings data format to latest if necessary
 /datum/controller/subsystem/persistent_paintings/proc/update_format(current_data)
 	if(current_data["version"] && current_data["version"] == PAINTINGS_DATA_FORMAT_VERSION)
@@ -300,6 +306,7 @@ SUBSYSTEM_DEF(persistent_paintings)
 		var/list/possible_frame_types = get_available_frames(credit_value, only_current_tier = TRUE)
 		painting_data["frame_type"] = pick(possible_frame_types) || "simple"
 	return current_data
+*/ // APHELION EDIT REMOVAL END
 
 /**
  * returns a list of cosmetic frames which patronage tier values are are within credit_value.
@@ -325,6 +332,7 @@ SUBSYSTEM_DEF(persistent_paintings)
 
 	save_to_file()
 
+/* // APHELION EDIT REMOVAL START - Replace direct database rewriting with the shared transaction queue.
 /// Saves all currently tracked painting data to file
 /datum/controller/subsystem/persistent_paintings/proc/save_to_file()
 	var/json_file = file("data/paintings.json")
@@ -354,3 +362,9 @@ SUBSYSTEM_DEF(persistent_paintings)
 	cache_paintings()
 
 #undef PAINTINGS_DATA_FORMAT_VERSION
+*/ // APHELION EDIT REMOVAL END
+// APHELION EDIT ADDITION START - Refresh through the painting store.
+/// All changes now commit explicitly; this compatibility hook refreshes external changes.
+/datum/controller/subsystem/persistent_paintings/proc/save_to_file()
+	return run_store_operation("sync")
+// APHELION EDIT ADDITION END

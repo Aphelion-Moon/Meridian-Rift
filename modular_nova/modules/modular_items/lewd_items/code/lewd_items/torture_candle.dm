@@ -151,7 +151,7 @@
 			targeted_somewhere = TRUE
 			var/obj/item/organ/genital/penis = attacked.get_organ_slot(ORGAN_SLOT_PENIS)
 			var/obj/item/organ/genital/vagina = attacked.get_organ_slot(ORGAN_SLOT_VAGINA)
-			if((vagina && penis) && (attacked.is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW && penis.visibility_preference == GENITAL_ALWAYS_SHOW))
+			if((vagina && penis) && (attacked.is_bottomless() || vagina.is_shown_over_clothing() && penis.is_shown_over_clothing()))
 				message = (user == attacked) ? pick("drips some wax on [attacked.p_their()] genitals, moaning in pleasure",
 											"drips some wax on [attacked.p_them()]self, moaning in pleasure as it reaches [attacked.p_their()] genitals") : pick(
 											"drips wax right on [attacked]'s genitalia. It slightly itches",
@@ -160,7 +160,7 @@
 											"drips some wax onto [attacked]'s genitals, making [attacked.p_them()] moan in pleasure")
 				attacked.adjust_pain(PAIN_DEFAULT)
 
-			else if(penis && (attacked.is_bottomless() || penis.visibility_preference == GENITAL_ALWAYS_SHOW))
+			else if(penis && (attacked.is_bottomless() || penis.is_shown_over_clothing()))
 				message = (user == attacked) ? pick("drips some wax on [attacked.p_their()] penis, causing [attacked.p_them()] to moan in pleasure",
 											"drips some wax on themselves, letting it reach his penis. he moans in pleasure.") : pick(
 											"drips wax right on [attacked]'s penis. It slightly itches.",
@@ -168,7 +168,7 @@
 											"tilts the candle. Drops of wax, dripping right from [src] right on the [attacked]'s penis, made him moan.")
 				attacked.adjust_pain(PAIN_DEFAULT)
 
-			else if(vagina && (attacked.is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW))
+			else if(vagina && (attacked.is_bottomless() || vagina.is_shown_over_clothing()))
 				message = (user == attacked) ? pick("drips some wax on themselves, letting it reach his vagina. He moans in pleasure.", "drips some wax on the [attacked]'s pussy, he moans in pleasure") : pick("drips some wax on the [attacked]'s vagina, he moans in pleasure", "tilts the candle. Wax slowly goes down, reaching the [attacked]'s vagina.", "tilts the candle. Drops of wax, dripping right from [src] right on the [attacked]'s pussy, made him moan.")
 				attacked.adjust_pain(PAIN_DEFAULT)
 
@@ -183,7 +183,7 @@
 		if(BODY_ZONE_CHEST)
 			targeted_somewhere = TRUE
 			var/obj/item/organ/genital/breasts = attacked.get_organ_slot(ORGAN_SLOT_BREASTS)
-			if(attacked.is_topless() || breasts.visibility_preference == GENITAL_ALWAYS_SHOW)
+			if(attacked.is_topless() || breasts.is_shown_over_clothing())
 				var/breasts_or_nipples = breasts ? ORGAN_SLOT_BREASTS : ORGAN_SLOT_NIPPLES
 				message = (user == attacked) ? pick("drips some wax on [attacked.p_their()] [breasts_or_nipples], releasing all [attacked.p_their()] lustness", "drips some wax right on [attacked.p_their()] [breasts ? "tits" : "chest"], making [attacked.p_their()] feel faint.") : pick("pours the wax that is slowly dripping from [src] onto [attacked]'s [breasts_or_nipples], [attacked.p_they()] shows pure enjoyment.", "tilts the candle. Right in the moment when wax drips on [attacked]'s [breasts_or_nipples], [attacked.p_they()] shivers", "tilts the candle. Just when hot drops of wax fell on [attacked]'s [breasts_or_nipples], [attacked.p_they()] quietly moans in pleasure")
 				attacked.adjust_pain(PAIN_DEFAULT * 0.66)
