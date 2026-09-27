@@ -45,8 +45,6 @@ import {
 import { getFlattenedSpriteDir, localizeCoords } from './helpers';
 */ // APHELION EDIT REMOVAL END
 // APHELION EDIT ADDITION START
-
-// APHELION EDIT ADDITION END
 import {
   getFlattenedSpriteDir,
   isTextEntryTarget,

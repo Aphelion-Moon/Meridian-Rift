@@ -269,10 +269,8 @@ export type PreferencesMenuData = {
   job_preferences: JobPreference[];
 
   // NOVA EDIT ADDITION START
-  // APHELION EDIT ADDITION START
   allow_custom_sprite_editing?: BooleanLike;
   custom_marking_zones?: string[];
-  // APHELION EDIT ADDITION END
   preview_options: string[];
   preview_selection: string;
 

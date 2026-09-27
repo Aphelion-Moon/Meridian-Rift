@@ -1,6 +1,6 @@
 import { normal } from 'color-blend';
-// APHELION EDIT CHANGE - ORIGINAL: import { useCallback, useEffect, useState } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+//import { useCallback, useEffect, useState } from 'react'; // APHELION EDIT REMOVAL
+import { useCallback, useEffect, useRef, useState } from 'react'; // APHELION EDIT ADDITION
 
 import { hsv2rgb, isRgb, parseHexColorString } from './colorSpaces';
 import type {

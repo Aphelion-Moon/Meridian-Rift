@@ -113,19 +113,21 @@ export type MergeLayers = () => {
   below: StringLayer[];
   above: StringLayer[];
 };
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 export type SpriteData = {
   width: number;
   height: number;
   dirs: IconDirCount;
   backdrop: string;
   layers: SpriteDataLayer[];
-  compactStrokes?: BooleanLike; // APHELION EDIT ADDITION
-  selectionPreview?: BooleanLike; // APHELION EDIT ADDITION
-  baseCopyInfo?: BaseCopyInfo; // APHELION EDIT ADDITION
-  layerTarget?: LayerTarget; // APHELION EDIT ADDITION
-  mergeLayers?: MergeLayers; // APHELION EDIT ADDITION
+  // APHELION EDIT ADDITION START
+  compactStrokes?: BooleanLike;
+  selectionPreview?: BooleanLike;
+  baseCopyInfo?: BaseCopyInfo;
+  layerTarget?: LayerTarget;
+  mergeLayers?: MergeLayers;
+  // APHELION EDIT ADDITION END
 };
 
 export enum SpriteEditorColorMode {

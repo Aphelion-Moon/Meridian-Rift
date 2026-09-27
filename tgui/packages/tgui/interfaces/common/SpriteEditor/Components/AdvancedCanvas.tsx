@@ -121,7 +121,7 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
   const [[canvasWidth, canvasHeight], setCanvasDimensions] = useState<
     [number, number]
   >([0, 0]);
-  /* APHELION EDIT REMOVAL START
+  /* // APHELION EDIT REMOVAL START
   const mouseDownHandler = propsHaveClickAndDragHandlers(props)
     ? useClickAndDragEventHandler(
         canvasRef,
@@ -222,9 +222,11 @@ export const AdvancedCanvas = (props: AdvancedCanvasProps) => {
     canvasRef,
     showGrid,
     backdropColor,
-    backgroundImage, // APHELION EDIT ADDITION
-    shadedAreas, // APHELION EDIT ADDITION
-    shade, // APHELION EDIT ADDITION
+    // APHELION EDIT ADDITION START
+    backgroundImage,
+    shadedAreas,
+    shade,
+    // APHELION EDIT ADDITION END
   ]);
   return (
     <div

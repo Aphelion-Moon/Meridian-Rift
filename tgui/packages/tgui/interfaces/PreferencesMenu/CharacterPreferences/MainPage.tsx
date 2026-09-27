@@ -317,7 +317,7 @@ function MainFeature(props: MainFeatureProps) {
       stopChildPropagation
       placement="right-start"
       content={
-        /* APHELION EDIT REMOVAL START - Supplemental controls are supplied as shared-picker content.
+        /* // APHELION EDIT REMOVAL START - Supplemental controls are supplied as shared-picker content.
         <ChoicedSelection
           name={catalog.name}
           catalog={catalog}
@@ -331,7 +331,7 @@ function MainFeature(props: MainFeatureProps) {
           }
           onSelect={handleSelect}
         />
-        APHELION EDIT REMOVAL END */
+        /* // APHELION EDIT REMOVAL END
         // APHELION EDIT ADDITION START
         <ChoicedSelection
           name={catalog.name}
