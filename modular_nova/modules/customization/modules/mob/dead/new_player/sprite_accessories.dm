@@ -74,7 +74,7 @@
 /datum/sprite_accessory/proc/is_hidden(mob/living/carbon/human/owner, datum/bodypart_overlay/mutant/bodypart_overlay)
 	return FALSE
 
-/datum/sprite_accessory/proc/get_special_icon(mob/living/carbon/human/H, passed_state)
+/datum/sprite_accessory/proc/get_special_icon(mob/living/carbon/human/H, datum/bodypart_overlay/mutant/bodypart_overlay)
 	return icon
 
 /datum/sprite_accessory/proc/get_special_x_dimension(mob/living/carbon/human/H, passed_state)
