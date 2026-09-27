@@ -151,7 +151,7 @@ export const AppendagePanel = (props: AppendagePanelProps) => {
         {!appendage.outer && canAdd && (
           <Button
             icon="copy"
-            tooltip="Copies this piece to a new Over hats layer. Clear the views where it should stay under headwear."
+            tooltip="A piece sits either under hats or on top of them. Want both? This copies it to an Over hats layer. Then erase the copy in any view where it should stay under the hat. Good for bangs that fall over a cap's brim."
             onClick={props.onCopy}
           >
             Copy to over-hat layer
@@ -200,7 +200,9 @@ export const AppendagePanel = (props: AppendagePanelProps) => {
         </div>
         <div className="CustomSpriteEditor__zoneColumn" role="radiogroup">
           <div className="CustomSpriteEditor__zoneHeader">
-            <span>Where it attaches (for hat masking)</span>
+            <Tooltip content="Pick where this piece sits. Hats that cover that spot will trim or hide it.">
+              <span>Where it attaches (for hat masking)</span>
+            </Tooltip>
             <span className="CustomSpriteEditor__panelSpacer" />
             <span>Hats that cover it</span>
           </div>
