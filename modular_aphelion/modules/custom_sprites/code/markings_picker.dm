@@ -18,10 +18,10 @@
 	for(var/zone, icons in custom_sprite_marking_icons())
 		for(var/name, sprite_class in icons)
 			var/datum/body_marking/marking = GLOB.body_markings[name]
-			var/gender_suffix = zone == BODY_ZONE_CHEST && marking.gendered ? "_m" : ""
 			var/icon_file = marking.icon
-			var/icon_state = "[marking.icon_state]_[zone][gender_suffix]"
-			// Some existing choices advertise zones with no artwork. Keep their empty appearance and eligibility.
+			// The state a male chest and a plantigrade leg draw, or a digitigrade leg for a marking with art for no other.
+			var/icon_state = marking.zone_icon_state(zone) || marking.zone_icon_state(zone, digitigrade = TRUE)
+			// Every zone a marking is offered on has its art; one a sheet still lacked would preview blank.
 			if(!icon_exists(icon_file, icon_state))
 				icon_file = 'icons/blanks/32x32.dmi'
 				icon_state = "nothing"

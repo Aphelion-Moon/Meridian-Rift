@@ -135,11 +135,16 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		if(zone in zones)
 			. += label
 
-/// Ordered, portable records for a limb's existing native markings.
+/// Ordered, portable records for native markings: a limb's or a collection zone's entries, or a zone's saved nested shape.
 /proc/custom_style_marking_entries(list/native)
 	. = list()
-	for(var/name, entry in native)
-		. += list(list("name" = name, "color" = custom_style_normal_color(entry[MARKING_INDEX_COLOR]), "emissive" = entry[MARKING_INDEX_EMISSIVE] ? TRUE : FALSE))
+	for(var/item, entry in native)
+		// Entries and the saved shape give the same records for the same markings, so live and saved ones compare byte for byte.
+		var/datum/body_marking_entry/marking_entry = astype(item, /datum/body_marking_entry)
+		if(marking_entry)
+			. += list(list("name" = marking_entry.marking.name, "color" = custom_style_normal_color(marking_entry.get_color()), "emissive" = marking_entry.get_emissive() ? TRUE : FALSE))
+			continue
+		. += list(list("name" = item, "color" = custom_style_normal_color(entry[MARKING_INDEX_COLOR]), "emissive" = entry[MARKING_INDEX_EMISSIVE] ? TRUE : FALSE))
 
 /// Convert validated records back into the native marking renderer's ordered map.
 /proc/custom_style_marking_data(list/entries)
@@ -155,13 +160,14 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(!allow_emissives)
 		for(var/_name, entry in native)
 			entry[MARKING_INDEX_EMISSIVE] = FALSE
-	LAZYSET(body.dna.body_markings, zone, deep_copy_list(native))
+	body.dna.body_markings.set_zone_from_list(zone, native)
 	var/obj/item/bodypart/limb = body.get_bodypart(custom_marking_zone_limb(zone))
 	if(limb)
+		// The limb gets entries of its own, apart from the DNA's, as the deep copy gave it.
 		if(zone == limb.aux_zone)
-			limb.aux_zone_markings = native
+			limb.aux_zone_markings = body_marking_entries_from_list(zone, native)
 		else
-			limb.markings = native
+			limb.markings = body_marking_entries_from_list(zone, native)
 
 /// Applies a whitelisted hair look to a live or preview body.
 /proc/custom_style_apply_hair_context(mob/living/carbon/human/body, list/hair, update = TRUE, target = "hair")
@@ -303,8 +309,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		// Customization can change a limb's sprite without changing its type.
 		limb.change_appearance(source_limb.custom_sprite_icon_file(), source_limb.limb_id, source_limb.should_draw_greyscale, source_limb.is_dimorphic, update_owner = FALSE)
 		limb.alpha = source_limb.alpha
-		limb.markings = deep_copy_list(source_limb.markings)
-		limb.aux_zone_markings = deep_copy_list(source_limb.aux_zone_markings)
+		limb.markings = body_marking_entries_copy(source_limb.markings)
+		limb.aux_zone_markings = body_marking_entries_copy(source_limb.aux_zone_markings)
 		limb.markings_alpha = source_limb.markings_alpha
 		limb.apply_custom_marking(null, /datum/bodypart_overlay/custom_marking/zone)
 		limb.apply_custom_marking(null, /datum/bodypart_overlay/custom_marking/taur/zone)

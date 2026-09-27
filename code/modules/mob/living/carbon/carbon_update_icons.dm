@@ -386,7 +386,7 @@
 			continue
 
 		// Update limb actually doesn't do much, get_limb_icon is the cpu eater.
-		limb.update_limb(is_creating = update_limb_data)
+		limb.update_limb(FALSE, update_limb_data) // APHELION EDIT CHANGE - positional: a named argument costs the call ~150 ns - ORIGINAL: limb.update_limb(is_creating = update_limb_data)
 
 		var/old_key = icon_render_keys[limb.body_zone]
 		var/new_key = limb.get_cache_key()

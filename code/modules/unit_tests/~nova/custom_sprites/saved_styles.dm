@@ -89,7 +89,7 @@
 	var/other_zone = BODY_ZONE_R_ARM
 	var/list/entries = custom_style_test_markings(zone)
 	var/list/old_entries = list(deep_copy_list(entries[1]))
-	preferences.body_markings = list("[zone]" = custom_style_marking_data(old_entries), "[other_zone]" = custom_style_marking_data(old_entries))
+	preferences.body_markings = body_marking_collection_from_list(list("[zone]" = custom_style_marking_data(old_entries), "[other_zone]" = custom_style_marking_data(old_entries)))
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
 	preferences.save_character()
 	preferences.savefile.path = preferences.path
@@ -102,47 +102,56 @@
 	var/list/package = custom_style_package("markings", zone, custom_sprite_test_drawing("2"), null, entries)
 	var/old_preferences = rustg_file_read(preferences.path)
 	var/old_sidecar = rustg_file_read("[folder]custom_sprites.json")
-	var/old_memory = json_encode(preferences.body_markings)
+	var/old_memory = json_encode(preferences.body_markings.serialize())
 	var/verified_sidecar = preferences.custom_sprite_savefile.last_good_json
 	// Nothing may be written without the sidecar's verified recovery snapshot.
 	preferences.custom_sprite_savefile.last_good_json = null
 	var/error = preferences.commit_custom_style(package, preferences.default_slot, rotate = TRUE, reject_pending_markings = TRUE)
 	preferences.custom_sprite_savefile.last_good_json = verified_sidecar
 	TEST_ASSERT(!(!error || rustg_file_read(preferences.path) != old_preferences || rustg_file_read("[folder]custom_sprites.json") != old_sidecar), "A rejected native marking save must preserve both saved files.")
-	TEST_ASSERT(!(json_encode(preferences.body_markings) != old_memory || custom_style_package_hash(preferences.custom_style_saved_package("markings", zone)) != custom_style_package_hash(original) || preferences.custom_style_previous_package("markings", zone)), "A failed native marking save must preserve in-memory native marks, drawing and previous style.")
-	// An edit on another limb must survive the save while only this limb is replaced.
-	preferences.body_markings[other_zone][old_entries[1]["name"]][1] = "#654321"
-	var/other_before = json_encode(preferences.body_markings[other_zone])
+	TEST_ASSERT(!(json_encode(preferences.body_markings.serialize()) != old_memory || custom_style_package_hash(preferences.custom_style_saved_package("markings", zone)) != custom_style_package_hash(original) || preferences.custom_style_previous_package("markings", zone)), "A failed native marking save must preserve in-memory native marks, drawing and previous style.")
+	// A body dressed from these preferences owns its markings: a recolour on it, as the fur dyer or a slime's colour
+	// reset makes, never reaches the character, so it is no pending edit for this limb's save below.
+	var/mob/living/carbon/human/body = allocate(/mob/living/carbon/human/consistent)
+	var/datum/preference_middleware/limbs_and_markings/markings_middleware = locate() in preferences.middleware
+	markings_middleware.apply_to_human(body, preferences)
+	var/memory_before_body = json_encode(preferences.body_markings.serialize())
+	body.dna.body_markings.find_entry(zone, old_entries[1]["name"]).set_color("#0a0b0c")
+	TEST_ASSERT_EQUAL(json_encode(preferences.body_markings.serialize()), memory_before_body, "Recolouring a body dressed from the character must leave the character's markings alone.")
+	// A character setup edit on another limb must survive the save while only this limb is replaced.
+	preferences.body_markings.find_entry(other_zone, old_entries[1]["name"]).set_color("#654321")
+	var/other_before = json_encode(preferences.body_markings.serialize()[other_zone])
 	error = preferences.commit_custom_style(package, preferences.default_slot, rotate = TRUE, reject_pending_markings = TRUE)
-	TEST_ASSERT(!error, "A complete native marking save failed: [error]")
+	TEST_ASSERT(!error, "A complete native marking save failed, so the dressed body's recolour counted as a pending edit: [error]")
 	var/list/disk_preferences = json_decode(rustg_file_read(preferences.path))["character[preferences.default_slot]"]
 	var/list/disk_sprites = json_decode(rustg_file_read("[folder]custom_sprites.json"))["character[preferences.default_slot]"]
 	TEST_ASSERT(!(json_encode(custom_style_marking_entries(disk_preferences?["body_markings"]?[zone])) != json_encode(entries) || custom_sprite_hash(disk_sprites?["limb_markings"]?[zone]) != custom_sprite_hash(custom_sprite_validate(package["drawing"]))), "Native marking saves must persist ordered presets and the selected drawing.")
-	TEST_ASSERT(!(json_encode(custom_style_marking_entries(preferences.body_markings[zone])) != json_encode(entries) || json_encode(preferences.body_markings[other_zone]) != other_before || json_encode(disk_preferences?["body_markings"]?[other_zone]) != other_before), "Native marking saves must publish the committed limb and preserve pending edits on other limbs.")
+	TEST_ASSERT(!(json_encode(custom_style_marking_entries(preferences.body_markings.entries_for_zone(zone))) != json_encode(entries) || json_encode(preferences.body_markings.serialize()[other_zone]) != other_before || json_encode(disk_preferences?["body_markings"]?[other_zone]) != other_before), "Native marking saves must publish the committed limb and preserve pending edits on other limbs.")
+	TEST_ASSERT(body.dna.body_markings.find_entry(other_zone, old_entries[1]["name"]).get_color() != "#654321", "A character setup edit must not reach a body already dressed from the character.")
 	var/list/previous = preferences.custom_style_previous_package("markings", zone)
 	TEST_ASSERT(custom_style_package_hash(previous) == custom_style_package_hash(original), "Previous-style rotation must retain the original native marking context and drawing.")
 	var/list/reloaded = custom_style_previous_validate(disk_sprites?["previous_styles"])
 	TEST_ASSERT(custom_style_package_hash(reloaded?[custom_style_key("markings", zone)]) == custom_style_package_hash(original), "Native previous styles must survive strict sidecar reload validation.")
 	TEST_ASSERT(!preferences.custom_sprite_savefile.dirty, "A successful native marking save must leave the sidecar verified.")
-	// Save-character normally aliases these lists, so an in-place edit must still collide with disk.
+	// save_character() only snapshots the markings, so a character setup edit made after it must still collide with disk.
 	preferences.save_character()
-	preferences.body_markings[zone][entries[1]["name"]][1] = "#fedcba"
-	var/pending_memory = json_encode(preferences.body_markings)
+	preferences.body_markings.find_entry(zone, entries[1]["name"]).set_color("#fedcba")
+	var/pending_memory = json_encode(preferences.body_markings.serialize())
 	old_preferences = rustg_file_read(preferences.path)
 	old_sidecar = rustg_file_read("[folder]custom_sprites.json")
 	error = preferences.commit_custom_style(original, preferences.default_slot, rotate = TRUE, reject_pending_markings = TRUE)
-	TEST_ASSERT(!(!error || json_encode(preferences.body_markings) != pending_memory || rustg_file_read(preferences.path) != old_preferences || rustg_file_read("[folder]custom_sprites.json") != old_sidecar), "Recipient saves must reject aliased pending changes on the target limb without altering either file.")
-	preferences.body_markings[zone][entries[1]["name"]][1] = entries[1]["color"]
+	TEST_ASSERT(!(!error || json_encode(preferences.body_markings.serialize()) != pending_memory || rustg_file_read(preferences.path) != old_preferences || rustg_file_read("[folder]custom_sprites.json") != old_sidecar), "Recipient saves must reject pending character setup changes on the target limb without altering either file.")
+	preferences.body_markings.find_entry(zone, entries[1]["name"]).set_color(entries[1]["color"])
 	var/list/clear = custom_style_package("markings", zone, null, null, list())
 	error = preferences.commit_custom_style(clear, preferences.default_slot, rotate = TRUE, reject_pending_markings = TRUE)
 	disk_preferences = json_decode(rustg_file_read(preferences.path))["character[preferences.default_slot]"]
-	TEST_ASSERT(!(error || length(preferences.body_markings[zone]) || length(disk_preferences?["body_markings"]?[zone]) || preferences.custom_limb_markings?[zone]), "Explicit empty native markings must clear the saved limb and its drawing: [error]")
+	TEST_ASSERT(!(error || preferences.body_markings.zone_length(zone) || length(disk_preferences?["body_markings"]?[zone]) || preferences.custom_limb_markings?[zone]), "Explicit empty native markings must clear the saved limb and its drawing: [error]")
 	previous = preferences.custom_style_previous_package("markings", zone)
 	TEST_ASSERT(!(custom_style_package_hash(previous) != custom_style_package_hash(package) || preferences.commit_custom_style(previous, preferences.default_slot, rotate = TRUE, reject_pending_markings = TRUE)), "Restoring the previous style must recover both native markings and its drawing.")
 	previous = preferences.custom_style_previous_package("markings", zone)
 	TEST_ASSERT(custom_style_package_hash(previous) == custom_style_package_hash(clear), "Restoration must rotate the explicit native Clear package as the previous style.")
 	error = preferences.commit_custom_style(custom_style_package("markings", zone, old_drawing, null), preferences.default_slot, rotate = TRUE)
-	TEST_ASSERT(!(error || json_encode(custom_style_marking_entries(preferences.body_markings[zone])) != json_encode(entries)), "A legacy package without native marking context must preserve saved native markings.")
+	TEST_ASSERT(!(error || json_encode(custom_style_marking_entries(preferences.body_markings.entries_for_zone(zone))) != json_encode(entries)), "A legacy package without native marking context must preserve saved native markings.")
 	preferences.load_and_save = FALSE
 	custom_style_test_cleanup(folder)
 
@@ -257,5 +266,22 @@
 		custom_style_package("markings", BODY_ZONE_HEAD, custom_sprite_test_drawing(), null),
 	), preferences.default_slot, null)
 	TEST_ASSERT(!error, "Saving a base marking with another region's drawing failed: [error]")
-	TEST_ASSERT(preferences.body_markings?[BODY_ZONE_L_ARM]?[marking], "The changed region's base markings must be published.")
+	TEST_ASSERT(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, marking), "The changed region's base markings must be published.")
 	TEST_ASSERT(!preferences.custom_limb_markings?[BODY_ZONE_L_ARM], "A base-marking-only region must not gain a drawing.")
+
+/// A restore point keeps its drawing and its other markings when its limb no longer offers one of them, as zone narrowings left
+/// stored styles: that marking is left out, and logged. An uploaded style holding it is still refused.
+/datum/unit_test/custom_style_previous_narrowed_marking/Run()
+	// Bee is no longer offered on a hand, since step 7 narrowed its zones; Bovine still is.
+	TEST_ASSERT(!("Bee" in GLOB.body_markings_per_limb[BODY_ZONE_PRECISE_L_HAND]) && ("Bovine" in GLOB.body_markings_per_limb[BODY_ZONE_PRECISE_L_HAND]), "The fixture needs a marking a hand no longer offers and one it does.")
+	var/key = custom_style_key("markings", BODY_ZONE_PRECISE_L_HAND)
+	var/list/bovine = list("name" = "Bovine", "color" = "#222222", "emissive" = TRUE)
+	var/list/narrowed = list()
+	narrowed[key] = custom_style_package("markings", BODY_ZONE_PRECISE_L_HAND, custom_sprite_test_drawing(), null, list(list("name" = "Bee", "color" = "#111111", "emissive" = FALSE), bovine))
+	var/list/offered = list()
+	offered[key] = custom_style_package("markings", BODY_ZONE_PRECISE_L_HAND, custom_sprite_test_drawing(), null, list(bovine))
+	var/list/kept = custom_style_previous_validate(narrowed)?[key]
+	TEST_ASSERT(kept, "The restore point must be kept.")
+	TEST_ASSERT_EQUAL(json_encode(kept), json_encode(custom_style_previous_validate(offered)?[key]), "The restore point must keep its drawing and every marking its limb still offers.")
+	var/list/uploaded = custom_style_parse(custom_style_export_text(narrowed[key]))
+	TEST_ASSERT(uploaded["error"] && !uploaded["package"], "An uploaded style holding a marking its limb no longer offers must still be refused.")

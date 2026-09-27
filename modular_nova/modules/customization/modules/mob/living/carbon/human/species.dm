@@ -4,8 +4,6 @@ GLOBAL_LIST_EMPTY(customizable_races)
 	digitigrade_customization = DIGITIGRADE_OPTIONAL // Doing this so that the legs preference actually works for everyone.
 	/// Whether or not the gender shaping is disabled for this species
 	var/no_gender_shaping
-	///A list of actual body markings on the owner of the species. Associative lists with keys named by limbs defines, pointing to a list with names and colors for the marking to be rendered. This is also stored in the DNA
-	var/list/list/body_markings = list()
 	///How are we treated regarding processing reagents, by default we process them as if we're organic
 	var/reagent_flags = PROCESS_ORGANIC
 	///Whether a species can use augmentations in preferences
@@ -180,8 +178,36 @@ GLOBAL_LIST_EMPTY(customizable_races)
 
 	return mutantpart_list
 
-/datum/species/proc/get_random_body_markings(list/features) //Needs features to base the colour off of
-	return list()
+/**
+ * Returns the body marking sets a random character of this species may start with.
+ *
+ * Returns:
+ * - A /datum/body_marking_set typepath to always wear, a new list of them meaning one at random, or null for none.
+ */
+/datum/species/proc/get_random_marking_sets()
+	return null
+
+/**
+ * Returns the body markings a random character of this species starts with: the set get_random_marking_sets() gives,
+ * or one of the sets it lists.
+ *
+ * Arguments:
+ * - features: the character's features, where markings following a mutant colour read it.
+ *
+ * Returns:
+ * - /datum/body_marking_collection: always a new collection, empty when there is no set to wear.
+ */
+/datum/species/proc/get_random_body_markings(list/features)
+	RETURN_TYPE(/datum/body_marking_collection)
+	var/set_type = get_random_marking_sets()
+	// Only a choice draws from the random generator; a single set is simply worn.
+	if(islist(set_type))
+		var/list/set_types = set_type
+		set_type = length(set_types) ? pick(set_types) : null
+	var/datum/body_marking_set/marking_set = set_type ? GLOB.body_marking_sets_by_type[set_type] : null
+	if(!marking_set)
+		return new /datum/body_marking_collection
+	return assemble_body_markings_from_set(marking_set, features, src)
 
 /datum/species/regenerate_organs(mob/living/carbon/organ_holder, datum/species/old_species, replace_current = TRUE, list/excluded_zones, visual_only = FALSE, replace_missing = TRUE)
 	var/legless = !grows_legs()

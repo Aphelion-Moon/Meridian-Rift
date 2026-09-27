@@ -29,7 +29,7 @@
 
 /// Setup actions that change the body or its markings outside set_preference save and close open editors first, as preference changes do.
 /datum/preferences/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
-	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "remove_marking", "change_emissive", "set_preset", "randomize_character")
+	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "reset_marking_color", "remove_marking", "change_emissive", "set_preset", "randomize_character")
 	if((action in body_actions) && !finish_custom_sprite_editors_for_change(ui?.user))
 		return TRUE
 	return ..()
@@ -626,16 +626,18 @@
 				return palette
 	return palette
 
-/// Shades sampled from the first native marking the preview body wears.
+/// Shades sampled from the first native marking the preview body draws.
 /datum/custom_sprite_editor/proc/sample_marking_shades()
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
-		for(var/marking_name in limb.markings)
-			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
+		for(var/datum/body_marking_entry/marking_entry as anything in limb.markings)
+			var/datum/body_marking/marking = marking_entry.marking
 			if(!marking)
 				continue
-			var/gender_suffix = limb.body_zone == BODY_ZONE_CHEST && marking.gendered ? (limb.is_dimorphic ? "_[limb.limb_gender]" : "_m") : ""
-			var/digi = limb.bodyshape & BODYSHAPE_DIGITIGRADE ? "digitigrade_" : ""
-			return custom_sprite_sample_palette(marking.icon, "[marking.icon_state]_[digi][limb.body_zone][gender_suffix]")
+			var/marking_state = marking.zone_icon_state(limb.body_zone, limb.bodyshape & BODYSHAPE_DIGITIGRADE, limb.is_dimorphic ? limb.limb_gender : "m")
+			// A marking with no art here draws nothing, so it has no shades to give.
+			if(!marking_state || !icon_exists(marking.icon, marking_state))
+				continue
+			return custom_sprite_sample_palette(marking.icon, marking_state)
 	return custom_sprite_sample_palette(null, null)
 
 /// A drawn picture's PNG as the data URL the window shows.
@@ -1032,13 +1034,7 @@
 /// A new base marking's starting color, from the body being drawn on rather than the setup preview.
 /datum/custom_sprite_editor/proc/default_marking_color(name)
 	var/datum/body_marking/marking = GLOB.body_markings[name]
-	var/list/features = list(
-		FEATURE_MUTANT_COLOR = preview_body?.dna.features[FEATURE_MUTANT_COLOR],
-		FEATURE_MUTANT_COLOR_TWO = preview_body?.dna.features[FEATURE_MUTANT_COLOR_TWO],
-		FEATURE_MUTANT_COLOR_THREE = preview_body?.dna.features[FEATURE_MUTANT_COLOR_THREE],
-		FEATURE_SKIN_COLOR = skintone2hex(preview_body?.skin_tone),
-	)
-	return marking.get_default_color(features, preview_body?.dna.species)
+	return marking.seed_color(preview_body?.dna.features, preview_body?.dna.species)
 
 /**
  * Rewrites a limb's native marking records. Markings are stored by name, so one limb can't wear
