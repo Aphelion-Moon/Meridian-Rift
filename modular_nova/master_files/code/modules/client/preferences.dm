@@ -10,7 +10,7 @@
 	/// Which augment slot we currently have chosen, this is for UI display
 	var/chosen_augment_slot
 	/// Every body marking this character wears
-	var/datum/body_marking_collection/body_markings
+	var/datum/body_marking_collection/body_markings = new
 
 	/// Will the person see accessories not meant for their species to choose from
 	var/mismatched_customization = FALSE
@@ -55,12 +55,6 @@
 	var/list/preferred_spawn_outfits = list()
 
 	// NOVA EDIT ADDITION END
-
-/// A character starts with an empty marking collection until a slot loads its own.
-/datum/preferences/New(client/parent)
-	body_markings = new
-	return ..()
-
 /datum/preferences/proc/species_updated(species_type)
 	all_quirks = list()
 	// Reset cultural stuff
