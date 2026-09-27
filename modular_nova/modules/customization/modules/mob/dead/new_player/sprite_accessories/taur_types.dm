@@ -37,6 +37,28 @@
 	var/has_tail = FALSE
 	/// Icon file holding this taur's separate tail states. Null means any tail is baked into the body sprite.
 	var/tail_icon
+	/// The icon_state this taur's tail states are named after, when it shares another taur's tail art. Null means its own.
+	var/tail_icon_state
+
+/datum/sprite_accessory/taur/New()
+	. = ..()
+	if(isnull(tail_icon) || color_src != USE_MATRIXED_COLORS)
+		return
+	// Colour slots come from the body's art, but a separate tail can use colours the body has none of. Without a slot
+	// those never draw, and every later colour shifts down a slot, taking the previous colour's pref.
+	var/list/tail_states = SSaccessories.cached_mutant_icon_files[tail_icon] || SSaccessories.build_cached_icon_states(tail_icon)
+	var/tail_prefix = "m_[key]_[tail_icon_state || icon_state]_tail"
+	var/static/list/channel_names = list("1" = "primary", "2" = "secondary", "3" = "tertiary")
+	var/list/slots = list()
+	for(var/color_index, channel_name in channel_names)
+		if(color_layer_names[color_index])
+			slots[color_index] = channel_name
+			continue
+		for(var/postfix in SSaccessories.all_layer_postfixes)
+			if("[tail_prefix]_[postfix]_[channel_name]" in tail_states)
+				slots[color_index] = channel_name
+				break
+	color_layer_names = slots
 
 /datum/sprite_accessory/taur/get_special_icon(mob/living/carbon/human/target, datum/bodypart_overlay/mutant/bodypart_overlay)
 	if(istype(bodypart_overlay, /datum/bodypart_overlay/mutant/tail/taur))
@@ -309,6 +331,7 @@
 /datum/sprite_accessory/taur/kitsune/alt
 	name = "Kitsune (alt)"
 	icon_state = "kitsunealt"
+	tail_icon_state = "kitsune" // the same fan; only the body's colour layers differ
 
 /datum/sprite_accessory/taur/chemlight
 	name = "Chemtaur"

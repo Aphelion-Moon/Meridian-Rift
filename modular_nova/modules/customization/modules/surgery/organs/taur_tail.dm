@@ -40,8 +40,8 @@
 	return sprite_datum?.feature_key_override || feature_key
 
 /datum/bodypart_overlay/mutant/tail/taur/get_base_icon_state()
-	var/body_state = body_overlay?.get_base_icon_state() || sprite_datum.icon_state
-	return "[body_state]_[wagging ? "wagging" : ""]tail"
+	var/datum/sprite_accessory/taur/taur = sprite_datum
+	return "[taur.tail_icon_state || taur.icon_state][body_overlay?.laying_down ? "_laying" : ""]_[wagging ? "wagging" : ""]tail"
 
 /datum/bodypart_overlay/mutant/tail/taur/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
 	var/datum/sprite_accessory/taur/taur = sprite_datum

@@ -8,9 +8,10 @@
 			continue
 		TEST_ASSERT(taur.has_tail, "[taur_name] has a tail_icon without has_tail, so it never grows the tail.")
 		var/list/tail_states = icon_states(taur.tail_icon)
-		var/list/poses = list(taur.icon_state)
+		var/tail_state_base = taur.tail_icon_state || taur.icon_state
+		var/list/poses = list(tail_state_base)
 		if(taur.can_lay_down)
-			poses += "[taur.icon_state]_laying"
+			poses += "[tail_state_base]_laying"
 		for(var/pose in poses)
 			for(var/tail_state in list("tail", "waggingtail"))
 				var/prefix = "m_[taur.key]_[pose]_[tail_state]_"
@@ -20,6 +21,24 @@
 						found = TRUE
 						break
 				TEST_ASSERT(found, "[taur_name] has a tail_icon without any [pose]_[tail_state] states.")
+
+/// A separate tail has a colour slot for every colour its art uses, even ones the body has no art for.
+/datum/unit_test/taur_tail_color_slots
+
+/datum/unit_test/taur_tail_color_slots/Run()
+	for(var/taur_name, taur_entry in SSaccessories.sprite_accessories[FEATURE_TAUR])
+		var/datum/sprite_accessory/taur/taur = taur_entry
+		if(isnull(taur.tail_icon))
+			continue
+		var/list/slotted = list()
+		for(var/_color_index, channel_name in taur.color_layer_names)
+			slotted += channel_name
+		var/prefix = "m_[taur.key]_[taur.tail_icon_state || taur.icon_state]_tail_"
+		for(var/state in icon_states(taur.tail_icon))
+			if(findtext(state, prefix) != 1)
+				continue
+			var/channel = copytext(state, findlasttext(state, "_") + 1)
+			TEST_ASSERT(channel in slotted, "[taur_name]'s tail has [channel] art ([state]) but no [channel] colour slot, so it never draws.")
 
 /// A taur tail on a mob with no taur body falls back to its accessory's own state rather than runtiming.
 /datum/unit_test/taur_tail_without_body
