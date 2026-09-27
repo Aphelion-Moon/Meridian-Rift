@@ -305,6 +305,14 @@ const Markings = (props: {
         const choices = marking_choices.filter(
           (name) => name === marking.name || !takenMarkings.has(name),
         );
+        // APHELION EDIT ADDITION START
+        const changeMarking = (value: string) =>
+          act('change_marking', {
+            bodypart_slot: body_zone,
+            marking_id: marking.marking_id,
+            marking_name: value,
+          });
+        // APHELION EDIT ADDITION END
         return (
           <Stack.Item key={marking.marking_id}>
             <Stack fill>
@@ -318,13 +326,7 @@ const Markings = (props: {
                     selected={marking.name}
                     placement={pickerPlacement}
                     previewArea={MARKING_PREVIEW_AREAS[body_zone]}
-                    onSelect={(value: string) =>
-                      act('change_marking', {
-                        bodypart_slot: body_zone,
-                        marking_id: marking.marking_id,
-                        marking_name: value,
-                      })
-                    }
+                    onSelect={changeMarking}
                   />
                 ) : (
                   <Dropdown
@@ -334,13 +336,7 @@ const Markings = (props: {
                     displayText={marking.name}
                     maxItems={7}
                     styledInput
-                    onSelected={(value) =>
-                      act('change_marking', {
-                        bodypart_slot: body_zone,
-                        marking_id: marking.marking_id,
-                        marking_name: value,
-                      })
-                    }
+                    onSelected={changeMarking}
                   />
                 )}
                 {/* APHELION EDIT CHANGE END */}

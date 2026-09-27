@@ -142,6 +142,7 @@ export const AppendagePanel = (props: AppendagePanelProps) => {
               className="CustomSpriteEditor__renameButton"
               icon="pencil"
               color="transparent"
+              aria-label="Rename appendage"
               tooltip={`Rename (up to ${maxName} characters)`}
               onClick={startRename}
             />
@@ -198,7 +199,11 @@ export const AppendagePanel = (props: AppendagePanelProps) => {
             {judged.text}
           </div>
         </div>
-        <div className="CustomSpriteEditor__zoneColumn" role="radiogroup">
+        <div
+          className="CustomSpriteEditor__zoneColumn"
+          role="radiogroup"
+          aria-label="Where the appendage attaches"
+        >
           <div className="CustomSpriteEditor__zoneHeader">
             <Tooltip content="Pick where this piece sits. Hats that cover that spot will trim or hide it.">
               <span>Where it attaches (for hat masking)</span>
@@ -206,12 +211,31 @@ export const AppendagePanel = (props: AppendagePanelProps) => {
             <span className="CustomSpriteEditor__panelSpacer" />
             <span>Hats that cover it</span>
           </div>
-          {ZONES.map((zone) => (
+          {ZONES.map((zone, index) => (
             <button
               key={zone.bit}
               type="button"
               role="radio"
               aria-checked={appendage.zone === zone.bit}
+              aria-label={zone.name}
+              tabIndex={appendage.zone === zone.bit ? 0 : -1}
+              onKeyDown={(event) => {
+                const step =
+                  event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                    ? -1
+                    : event.key === 'ArrowRight' || event.key === 'ArrowDown'
+                      ? 1
+                      : 0;
+                if (!step) return;
+                event.preventDefault();
+                const next = (index + step + ZONES.length) % ZONES.length;
+                event.currentTarget
+                  .parentElement!.querySelectorAll<HTMLButtonElement>(
+                    '[role="radio"]',
+                  )
+                  [next].focus();
+                props.onZone(ZONES[next].bit);
+              }}
               className="CustomSpriteEditor__zoneRow"
               onClick={() => props.onZone(zone.bit)}
             >

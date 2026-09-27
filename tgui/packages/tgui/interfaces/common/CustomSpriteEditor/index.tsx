@@ -1,6 +1,7 @@
 // THIS IS AN APHELION UI FILE
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
+  type ComponentProps,
   type CSSProperties,
   useEffect,
   useMemo,
@@ -122,6 +123,7 @@ function CycleDropdown(props: {
         // so this matches the 22px control height Dropdown sets for itself.
         lineHeight="22px"
         icon={step < 0 ? 'chevron-left' : 'chevron-right'}
+        aria-label={`${step < 0 ? 'Previous' : 'Next'} ${name ?? 'hairstyle'}`}
         disabled={disabled || options.length <= 1}
         onClick={() => {
           const next = cycleOption(options, selected, step);
@@ -161,6 +163,11 @@ function CycleDropdown(props: {
     </Stack>
   );
 }
+
+/** A guide visibility control shares its pressed state with keyboard and screen-reader users. */
+const GuideToggle = (props: ComponentProps<typeof Button>) => (
+  <Button color="transparent" aria-pressed={!!props.selected} {...props} />
+);
 
 const directions = [
   [Dir.SOUTH, 'Front'],
@@ -624,6 +631,13 @@ export const CustomSpriteEditor = ({
   useEffect(clearCoverTip, [chosenId, wornKey]);
   useEffect(() => setSelectedZone(serverZone ?? null), [focusRevision]);
   const regionLabel = (selectedZone && regionLabels?.[selectedZone]) || '';
+  const actionTarget = {
+    dir: String(direction),
+    ...(regionMode ? { zone: selectedZone } : chosen && { layer: chosen.id }),
+  };
+  const currentEmissive = regionMode
+    ? !!(selectedZone && regionEmissive?.[selectedZone]?.[direction])
+    : !!(chosen ? chosen.emissive : emissive)[direction];
   // Regions the server won't change right now, each with the reason, such as clothing covering it.
   const lockReason = (zone?: string | null) =>
     (zone && lockedRegions?.[zone]) || null;
@@ -942,62 +956,52 @@ export const CustomSpriteEditor = ({
               <Stack.Item grow />
               <Stack.Item>
                 <div className="CustomSpriteEditor__tray">
-                  <Button
-                    color="transparent"
+                  <GuideToggle
                     selected={showGuide}
-                    aria-pressed={showGuide}
                     icon="user"
                     tooltip="Show the body behind your paint."
                     onClick={() => setShowGuide(!showGuide)}
                   >
                     Guide
-                  </Button>
+                  </GuideToggle>
                   {!!canHideParts && (
-                    <Button
-                      color="transparent"
+                    <GuideToggle
                       selected={!hideParts}
-                      aria-pressed={!hideParts}
                       icon="paw"
                       tooltip="Show hair, wings, tails and other parts that cover the body in the guide. The preview always shows them."
                       onClick={() => act('toggleParts')}
                     >
                       Parts
-                    </Button>
+                    </GuideToggle>
                   )}
                   {!!canHideUnderwear && (
-                    <Button
-                      color="transparent"
+                    <GuideToggle
                       selected={!hideUnderwear}
-                      aria-pressed={!hideUnderwear}
                       icon="shirt"
                       tooltip="Show underwear in the guide and the preview."
                       onClick={() => act('toggleUnderwear')}
                     >
                       Underwear
-                    </Button>
+                    </GuideToggle>
                   )}
                   {!!hasGradient && (
-                    <Button
-                      color="transparent"
+                    <GuideToggle
                       selected={!!showGradient}
-                      aria-pressed={!!showGradient}
                       icon="palette"
                       tooltip="Show the base look's gradient in the guide, preview and palette."
                       onClick={() => act('toggleGradient')}
                     >
                       Gradient
-                    </Button>
+                    </GuideToggle>
                   )}
-                  <Button
-                    color="transparent"
+                  <GuideToggle
                     selected={showGrid}
-                    aria-pressed={showGrid}
                     icon="border-all"
                     tooltip="Pixel grid over the canvas."
                     onClick={() => setShowGrid(!showGrid)}
                   >
                     Grid
-                  </Button>
+                  </GuideToggle>
                 </div>
               </Stack.Item>
             </Stack>
@@ -1068,17 +1072,7 @@ export const CustomSpriteEditor = ({
                           ? `Erase all ${regionLabel.toLowerCase()} paint in this view. Undo brings it back.`
                           : 'Choose a region to clear.'
                   }
-                  onClick={() =>
-                    regionMode
-                      ? act('clear', {
-                          dir: String(direction),
-                          zone: selectedZone,
-                        })
-                      : act('clear', {
-                          dir: String(direction),
-                          ...(chosen && { layer: chosen.id }),
-                        })
-                  }
+                  onClick={() => act('clear', actionTarget)}
                 >
                   {chosen
                     ? `Clear ${chosen.name.toLowerCase()}`
@@ -1233,6 +1227,7 @@ export const CustomSpriteEditor = ({
                   {!!chosen && (
                     <Stack.Item>
                       <AppendagePanel
+                        key={chosen.id}
                         appendage={chosen}
                         hats={hats}
                         chips={chips}
@@ -1446,16 +1441,7 @@ export const CustomSpriteEditor = ({
                   <Stack.Item>
                     <Button.Checkbox
                       fluid
-                      checked={
-                        regionMode
-                          ? !!(
-                              selectedZone &&
-                              regionEmissive?.[selectedZone]?.[direction]
-                            )
-                          : chosen
-                            ? !!chosen.emissive[direction]
-                            : emissive[direction]
-                      }
+                      checked={currentEmissive}
                       disabled={
                         !emissiveAllowed ||
                         (regionMode && (!selectedZone || !!selectedLock))
@@ -1468,23 +1454,10 @@ export const CustomSpriteEditor = ({
                             : 'Makes this direction glow in the dark.'
                       }
                       onClick={() =>
-                        regionMode
-                          ? act('setEmissive', {
-                              zone: selectedZone,
-                              dir: String(direction),
-                              enabled:
-                                !regionEmissive?.[selectedZone!]?.[direction],
-                            })
-                          : chosen
-                            ? act('setEmissive', {
-                                layer: chosen.id,
-                                dir: String(direction),
-                                enabled: !chosen.emissive[direction],
-                              })
-                            : act('setEmissive', {
-                                dir: String(direction),
-                                enabled: !emissive[direction],
-                              })
+                        act('setEmissive', {
+                          ...actionTarget,
+                          enabled: !currentEmissive,
+                        })
                       }
                     >
                       {regionMode

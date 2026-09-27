@@ -19,20 +19,32 @@ import {
  */
 export const useLoadedImages = (urls: (string | undefined)[]) => {
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({});
+  const pending = useRef(new Map<string, HTMLImageElement>());
   useEffect(() => {
-    let live = true;
-    for (const url of urls) {
-      if (!url || images[url]) continue;
+    for (const url of new Set(urls)) {
+      if (!url || images[url] || pending.current.has(url)) continue;
       const image = new Image();
-      image.onload = () => {
-        if (live) setImages((current) => ({ ...current, [url]: image }));
+      pending.current.set(url, image);
+      const finish = (loaded: boolean) => {
+        if (pending.current.get(url) !== image) return;
+        image.onload = image.onerror = null;
+        pending.current.delete(url);
+        if (loaded) setImages((current) => ({ ...current, [url]: image }));
       };
+      image.onload = () => finish(true);
+      image.onerror = () => finish(false);
       image.src = url;
     }
-    return () => {
-      live = false;
-    };
   }, [urls.join('\n')]);
+  useEffect(
+    () => () => {
+      for (const image of pending.current.values()) {
+        image.onload = image.onerror = null;
+      }
+      pending.current.clear();
+    },
+    [],
+  );
   return images;
 };
 

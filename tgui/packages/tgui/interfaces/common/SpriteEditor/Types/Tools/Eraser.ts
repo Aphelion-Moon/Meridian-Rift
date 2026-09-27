@@ -141,13 +141,14 @@ export class Eraser extends Tool {
         return;
       }
       // APHELION EDIT ADDITION END
+      const previousPointCount = currentTransaction.points.size; // APHELION EDIT ADDITION
       currentTransaction.addPoint(
         x,
         y,
         getDataPixel(data, selectedLayer, selectedDir, x, y),
       );
       // APHELION EDIT ADDITION START
-      if (currentTransaction.points.size > previousSize)
+      if (currentTransaction.points.size > previousPointCount)
         context.onDraw?.(x, y, true);
       // APHELION EDIT ADDITION END
     });

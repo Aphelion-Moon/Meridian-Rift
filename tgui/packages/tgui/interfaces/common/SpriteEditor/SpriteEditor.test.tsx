@@ -114,7 +114,12 @@ describe('sprite editor interactions', () => {
     fireEvent.keyDown(document, { key: 'm' });
     expect(store.get(currentToolAtom).name).toBe('Pencil');
     // Modifiers belong to the undo/redo/save chords.
-    for (const modifier of ['ctrlKey', 'altKey', 'shiftKey'] as const) {
+    for (const modifier of [
+      'ctrlKey',
+      'altKey',
+      'shiftKey',
+      'metaKey',
+    ] as const) {
       fireEvent.keyDown(document, { key: 'e', [modifier]: true });
       expect(store.get(currentToolAtom).name).toBe('Pencil');
     }
@@ -167,6 +172,19 @@ describe('sprite editor interactions', () => {
     } finally {
       native.mockRestore();
     }
+  });
+
+  it('leaves Meta-modified history and save chords to their owner', () => {
+    const onSave = mock();
+    render(<Hotkeys onSave={onSave} />);
+    for (const key of ['z', 'y', 's']) {
+      expect(
+        fireEvent.keyDown(document, { key, ctrlKey: true, metaKey: true }),
+      ).toBe(true);
+      expect(fireEvent.keyUp(document, { key })).toBe(true);
+    }
+    expect(send).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it('leaves text editing and disabled canvases alone', () => {
@@ -306,6 +324,66 @@ describe('sprite editor interactions', () => {
     expect(transaction.points).toHaveLength(32);
     expect(transaction.points[0]).toEqual([0, 0]);
     expect(transaction.points[31]).toEqual([31, 31]);
+  });
+
+  it.each([
+    Pencil,
+    Eraser,
+  ])('notifies each newly visited pixel once and skips repeated previews for %p', (Tool) => {
+    const initial = Tool === Pencil ? '#00000000' : '#ffffffff';
+    const data: SpriteData = {
+      width: 3,
+      height: 3,
+      dirs: 1,
+      backdrop: '',
+      layers: [
+        {
+          name: 'Drawing',
+          visible: true,
+          data: {
+            [Dir.SOUTH]: Array.from({ length: 3 }, () =>
+              Array(3).fill(initial),
+            ),
+            [Dir.NORTH]: undefined,
+            [Dir.EAST]: undefined,
+            [Dir.WEST]: undefined,
+          },
+        },
+      ],
+    };
+    const onDraw = mock();
+    const preview = mock();
+    const context: SpriteEditorToolContext = {
+      currentColor: { r: 255, g: 255, b: 255 },
+      selectedDir: Dir.SOUTH,
+      selectedLayer: 0,
+      setCurrentColor: () => {},
+      setPreviewLayer: () => {},
+      setPreviewData: preview,
+      onDraw,
+    };
+    const tool = new Tool();
+    tool.onMouseDown(context, data, 0, 0, false);
+    // The final edge inserts (0, 1) before revisiting the stroke's first pixel.
+    for (const [x, y] of [
+      [2, 0],
+      [2, 2],
+      [0, 2],
+      [0, 0],
+    ]) {
+      tool.onMouseMove(context, data, x, y);
+    }
+    expect(onDraw).toHaveBeenCalledTimes(8);
+    expect(new Set(onDraw.mock.calls.map(([x, y]) => `${x},${y}`)).size).toBe(
+      8,
+    );
+    const previousPreviews = preview.mock.calls.length;
+    tool.onMouseMove(context, data, 2, 0);
+    expect(onDraw).toHaveBeenCalledTimes(8);
+    expect(preview).toHaveBeenCalledTimes(previousPreviews);
+    tool.onMouseUp(context, data, 2, 0);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][1].transaction.points).toHaveLength(8);
   });
 
   it('erases existing paint outside the bounds without reaching unpainted shaded pixels', () => {

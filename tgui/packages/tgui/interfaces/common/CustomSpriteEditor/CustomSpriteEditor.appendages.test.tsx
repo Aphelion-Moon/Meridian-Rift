@@ -16,7 +16,7 @@ import {
 } from '../../../__mocks__/customSpriteEditor';
 import { renderEditor } from '../../../__mocks__/renderCustomSpriteEditor';
 import { Dir } from '../SpriteEditor/Types/types';
-import { Zone } from './appendages';
+import { Zone, ZONES } from './appendages';
 import type { CustomSpriteEditorData } from './types';
 
 setupEditorTests();
@@ -299,4 +299,49 @@ it('names the hat that trims the paint under a resting cursor', () => {
     act(() => jest.advanceTimersByTime(1000));
     expect(screen.getByText('Hidden by the fedora')).toBeTruthy();
   });
+});
+
+it('discards an unfinished rename when the server selects another appendage', () => {
+  backendStore.set(gameDataAtom, layered({ focusLayer: 'a1' }));
+  const { view, editor } = renderEditor('hair');
+  fireEvent.click(
+    view.container.querySelector('.CustomSpriteEditor__renameButton')!,
+  );
+  const input = screen.getByRole('textbox', { name: 'Appendage name' });
+  fireEvent.change(input, { target: { value: 'Unfinished name' } });
+  send.mockClear();
+  applyUpdate(layered({ focusLayer: 'a2' }));
+  view.rerender(editor());
+  expect(
+    screen.queryByRole('textbox', { name: 'Appendage name' }) === null,
+  ).toBe(true);
+  expect(
+    send.mock.calls.filter(([action]) => action === 'renameAppendage'),
+  ).toHaveLength(0);
+  fireEvent.click(
+    view.container.querySelector('.CustomSpriteEditor__renameButton')!,
+  );
+  expect(
+    (
+      screen.getByRole('textbox', {
+        name: 'Appendage name',
+      }) as HTMLInputElement
+    ).value,
+  ).toBe('Ponytail tip');
+});
+
+it('moves appendage zone radio focus with arrow keys and wraps at either end', () => {
+  backendStore.set(gameDataAtom, layered({ focusLayer: 'a1' }));
+  renderEditor('hair');
+  const radios = screen.getAllByRole('radio');
+  radios[0].focus();
+  send.mockClear();
+  fireEvent.keyDown(radios[0], { key: 'ArrowLeft' });
+  expect(document.activeElement === radios.at(-1)).toBe(true);
+  expect(send).toHaveBeenLastCalledWith('setAppendageZone', {
+    id: 'a1',
+    zone: ZONES.at(-1)!.bit,
+  });
+  fireEvent.keyDown(radios.at(-1)!, { key: 'ArrowRight' });
+  expect(document.activeElement === radios[0]).toBe(true);
 });

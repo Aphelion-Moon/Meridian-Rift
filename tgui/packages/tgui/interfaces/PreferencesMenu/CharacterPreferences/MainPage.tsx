@@ -303,6 +303,14 @@ function MainFeature(props: MainFeatureProps) {
   } = props;
 
   const supplementalFeature = catalog.supplemental_feature;
+  // APHELION EDIT ADDITION START
+  const customTarget =
+    supplementalFeature === 'hair_color'
+      ? 'hair'
+      : supplementalFeature === 'facial_hair_color'
+        ? 'facial_hair'
+        : undefined;
+  // APHELION EDIT ADDITION END
 
   return (
     <Floating
@@ -346,32 +354,18 @@ function MainFeature(props: MainFeatureProps) {
           onSelect={handleSelect}
         >
           {/* APHELION EDIT ADDITION START */}
-          {!!data.allow_custom_sprite_editing &&
-            supplementalFeature === 'hair_color' && (
-              <Button
-                mt={1}
-                fluid
-                icon="paintbrush"
-                onClick={() =>
-                  act('open_custom_sprite_editor', { target: 'hair' })
-                }
-              >
-                Custom hair drawing
-              </Button>
-            )}
-          {!!data.allow_custom_sprite_editing &&
-            supplementalFeature === 'facial_hair_color' && (
-              <Button
-                mt={1}
-                fluid
-                icon="paintbrush"
-                onClick={() =>
-                  act('open_custom_sprite_editor', { target: 'facial_hair' })
-                }
-              >
-                Custom facial hair drawing
-              </Button>
-            )}
+          {!!data.allow_custom_sprite_editing && customTarget && (
+            <Button
+              mt={1}
+              fluid
+              icon="paintbrush"
+              onClick={() =>
+                act('open_custom_sprite_editor', { target: customTarget })
+              }
+            >
+              {`Custom ${customTarget.replace('_', ' ')} drawing`}
+            </Button>
+          )}
           {/* APHELION EDIT ADDITION END */}
         </ChoicedSelection>
         // APHELION EDIT ADDITION END

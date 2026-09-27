@@ -1,5 +1,6 @@
 import { normal } from 'color-blend';
-import { useCallback, useEffect, useState } from 'react';
+// APHELION EDIT CHANGE - ORIGINAL: import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { hsv2rgb, isRgb, parseHexColorString } from './colorSpaces';
 import type {
@@ -64,16 +65,30 @@ export function useClickAndDragEventHandler<T>(
   onMouseMove?: ClickAndDragEventHandler<T>,
   onMouseUp?: ClickAndDragEventHandler<T>,
 ): (MouseEvent) => void {
+  // APHELION EDIT ADDITION START - own listeners through rerenders and unmounts.
+  const stopDrag = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => () => stopDrag.current?.(), []);
+  const detach = () => {
+    window.removeEventListener('mousemove', moveHandler);
+    window.removeEventListener('mouseup', upHandler);
+    if (stopDrag.current === detach) stopDrag.current = undefined;
+  };
+  // APHELION EDIT ADDITION END
   const moveHandler = (ev: MouseEvent) => onMouseMove?.(ev, ref);
   const upHandler = (ev: MouseEvent) => {
+    detach(); // APHELION EDIT ADDITION - detach even if release throws or unmounts.
     onMouseUp?.(ev, ref);
     ev.preventDefault();
-    window.removeEventListener('mousemove', moveHandler);
+    // APHELION EDIT REMOVAL - ORIGINAL: window.removeEventListener('mousemove', moveHandler);
   };
   return (ev: MouseEvent) => {
     onMouseDown?.(ev, ref);
     if (ev.defaultPrevented) return;
     ev.preventDefault();
+    // APHELION EDIT ADDITION START
+    stopDrag.current?.();
+    stopDrag.current = detach;
+    // APHELION EDIT ADDITION END
     window.addEventListener('mousemove', moveHandler);
     window.addEventListener('mouseup', upHandler, { once: true });
   };

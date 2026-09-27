@@ -1,9 +1,15 @@
 // THIS IS AN APHELION UI FILE
-import { memo, useEffect, useState } from 'react';
+import { type ComponentProps, memo, useEffect, useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Window } from 'tgui/layouts';
 import { Box, Button, Stack } from 'tgui-core/components';
 import { Loader } from './common/Loader';
+
+const MirrorButton = (props: ComponentProps<typeof Button>) => (
+  <Stack.Item grow>
+    <Button fluid textAlign="center" {...props} />
+  </Stack.Item>
+);
 
 type Direction = '2' | '1' | '4' | '8';
 
@@ -84,52 +90,33 @@ export const CustomSpriteMirror = () => {
               />
               <Stack.Item>
                 <Stack>
-                  <Stack.Item grow>
-                    <Button
-                      fluid
-                      textAlign="center"
-                      color="bad"
-                      onClick={() => act('decline')}
-                    >
-                      Decline
-                    </Button>
-                  </Stack.Item>
-                  <Stack.Item grow>
-                    <Button
-                      fluid
-                      textAlign="center"
-                      icon="file-export"
-                      tooltip="Download this design without applying it."
-                      onClick={() => act('export', { token })}
-                    >
-                      Export
-                    </Button>
-                  </Stack.Item>
+                  <MirrorButton color="bad" onClick={() => act('decline')}>
+                    Decline
+                  </MirrorButton>
+                  <MirrorButton
+                    icon="file-export"
+                    tooltip="Download this design without applying it."
+                    onClick={() => act('export', { token })}
+                  >
+                    Export
+                  </MirrorButton>
                 </Stack>
               </Stack.Item>
               <Stack.Item>
                 <Stack>
-                  <Stack.Item grow>
-                    <Button
-                      fluid
-                      textAlign="center"
-                      color="good"
-                      onClick={() => act('accept', { token })}
-                    >
-                      Accept for this round
-                    </Button>
-                  </Stack.Item>
-                  <Stack.Item grow>
-                    <Button
-                      fluid
-                      textAlign="center"
-                      color="good"
-                      tooltip="Apply and save for future rounds on this character. Your previous saved style is kept."
-                      onClick={() => act('acceptPermanent', { token })}
-                    >
-                      Accept permanently
-                    </Button>
-                  </Stack.Item>
+                  <MirrorButton
+                    color="good"
+                    onClick={() => act('accept', { token })}
+                  >
+                    Accept for this round
+                  </MirrorButton>
+                  <MirrorButton
+                    color="good"
+                    tooltip="Apply and save for future rounds on this character. Your previous saved style is kept."
+                    onClick={() => act('acceptPermanent', { token })}
+                  >
+                    Accept permanently
+                  </MirrorButton>
                 </Stack>
               </Stack.Item>
             </>
@@ -142,26 +129,14 @@ export const CustomSpriteMirror = () => {
               </Stack.Item>
               <Stack.Item>
                 <Stack>
-                  <Stack.Item grow>
-                    <Button
-                      fluid
-                      textAlign="center"
-                      onClick={() => act('close')}
-                    >
-                      Done
-                    </Button>
-                  </Stack.Item>
-                  <Stack.Item grow>
-                    <Button
-                      fluid
-                      textAlign="center"
-                      color="good"
-                      disabled={!data.canSave}
-                      onClick={() => act('save')}
-                    >
-                      Save for future rounds
-                    </Button>
-                  </Stack.Item>
+                  <MirrorButton onClick={() => act('close')}>Done</MirrorButton>
+                  <MirrorButton
+                    color="good"
+                    disabled={!data.canSave}
+                    onClick={() => act('save')}
+                  >
+                    Save for future rounds
+                  </MirrorButton>
                 </Stack>
               </Stack.Item>
             </>
@@ -194,16 +169,13 @@ const MirrorComparison = memo(function MirrorComparison({
       <Stack.Item>
         <Stack>
           {directions.map(([dir, name]) => (
-            <Stack.Item key={dir} grow>
-              <Button
-                fluid
-                textAlign="center"
-                selected={direction === dir}
-                onClick={() => setDirection(dir)}
-              >
-                {name}
-              </Button>
-            </Stack.Item>
+            <MirrorButton
+              key={dir}
+              selected={direction === dir}
+              onClick={() => setDirection(dir)}
+            >
+              {name}
+            </MirrorButton>
           ))}
         </Stack>
       </Stack.Item>

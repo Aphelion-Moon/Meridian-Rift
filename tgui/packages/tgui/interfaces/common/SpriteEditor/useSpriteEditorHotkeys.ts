@@ -63,6 +63,7 @@ export function useSpriteEditorHotkeys(disabled = false, onSave?: () => void) {
         disabled ||
         !event.ctrlKey ||
         event.altKey ||
+        event.metaKey ||
         event.defaultPrevented ||
         isTextEntryTarget(event.target)
       ) {
@@ -97,6 +98,7 @@ export function useSpriteEditorToolHotkeys(toolFlags: number) {
       if (
         event.ctrlKey ||
         event.altKey ||
+        event.metaKey ||
         event.shiftKey ||
         event.defaultPrevented ||
         isTextEntryTarget(event.target)

@@ -99,19 +99,18 @@ const liftPixels = (
   return pixels;
 };
 
-/** A copy of the frame with the pixels drawn at left, top. Pixels that land off the canvas are left out. */
+/** Draws onto a caller-owned frame at left, top, leaving pixels off the canvas out. */
 const stamp = (
   frame: StringLayer,
   pixels: Pixel[],
   left: number,
   top: number,
 ) => {
-  const out = copyLayer(frame);
   for (const [px, py, color] of pixels) {
-    const row = out[top + py];
+    const row = frame[top + py];
     if (row && left + px >= 0 && left + px < row.length) row[left + px] = color;
   }
-  return out;
+  return frame;
 };
 
 /** A mask a quarter turn round: 1 clockwise, -1 counter-clockwise. */
@@ -398,7 +397,7 @@ export class Select extends Tool {
     if (!preview && floating && this.selection) {
       layer = floating.layer;
       preview = stamp(
-        floating.base,
+        copyLayer(floating.base),
         floating.pixels,
         this.selection[0],
         this.selection[1],
@@ -490,7 +489,7 @@ export class Select extends Tool {
    *
    * Returns whether there was floating paint, so callers can show the frame it left behind.
    */
-  private drop(context: SpriteEditorToolCancelContext) {
+  private drop() {
     this.clearServerPreview();
     const floating = this.floating;
     this.floating = undefined;
@@ -549,7 +548,7 @@ export class Select extends Tool {
     if (isRightClick) {
       // The right button takes pixels out of the selection. Floating paint is dropped first.
       if (!this.selection) return;
-      if (this.drop(context)) this.showPreview(context);
+      if (this.drop()) this.showPreview(context);
       this.drag = { ...base, mode: 'subtract', bounds, rect: [px, py, px, py] };
       this.showSubtraction(context);
       return true;
@@ -573,7 +572,7 @@ export class Select extends Tool {
       return true;
     }
     // A new marquee drops any floating paint where it is.
-    if (this.drop(context)) this.showPreview(context);
+    if (this.drop()) this.showPreview(context);
     this.drag = { ...base, mode: 'select', bounds };
     this.setSelection(context, [px, py, px, py], undefined);
     return true;
@@ -679,7 +678,7 @@ export class Select extends Tool {
           this.selection[1],
         )
       ) {
-        this.drop(context);
+        this.drop();
       }
       this.showPreview(context);
       this.previewFloating(data);
@@ -927,26 +926,11 @@ export class Select extends Tool {
         base.origin[1] +
         destination!.origin[1]
       : clamp(top, top - bottom, data.height - 1);
-    if (
-      base &&
-      clip.pixels.some(
-        ([px, py]) =>
-          x + px < 0 ||
-          x + px >= data.width ||
-          y + py < 0 ||
-          y + py >= data.height ||
-          !isWithinDrawBounds(
-            x + px,
-            y + py,
-            context.drawBounds,
-            context.drawMask,
-          ),
-      )
-    ) {
+    if (base && !landsAt(context, data, clip.pixels, x, y)) {
       act('baseCopyProblem', { problem: 'bounds' });
       return true;
     }
-    this.drop(context);
+    this.drop();
     const source = this.currentFrame(context, data);
     if (!source) return false;
     this.floating = {
@@ -1052,7 +1036,7 @@ export class Select extends Tool {
    */
   release(context: SpriteEditorToolCancelContext) {
     this.drag = undefined;
-    this.drop(context);
+    this.drop();
     this.selection = undefined;
     this.mask = undefined;
     context.setSelectionBounds?.(undefined);

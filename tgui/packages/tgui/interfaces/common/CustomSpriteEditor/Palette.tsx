@@ -149,6 +149,7 @@ const CustomPaletteSection = ({
           const button = (
             <Button
               inline
+              aria-label={`${title} color ${displayColor}`}
               aria-pressed={colorsAreEqual(color, selectedColor)}
               className="SpriteEditor__plainSwatch"
               width="2em"
@@ -198,6 +199,7 @@ const CustomPaletteSection = ({
             <Button
               inline
               icon="plus"
+              aria-label="Add custom color"
               width="2em"
               height="2em"
               onClick={onClickAddColor}
@@ -358,26 +360,24 @@ export const CustomSpritePalette = ({
           }
           colorContextMenu={(index, close) => (
             <>
-              <Button
-                fluid
-                icon="pen"
-                onClick={() => {
-                  act('editPaletteColor', { color: customPalette[index] });
-                  close();
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                fluid
-                icon="trash"
-                onClick={() => {
-                  act('removePaletteColor', { color: customPalette[index] });
-                  close();
-                }}
-              >
-                Remove
-              </Button>
+              {(
+                [
+                  ['Edit', 'pen', 'editPaletteColor'],
+                  ['Remove', 'trash', 'removePaletteColor'],
+                ] as const
+              ).map(([label, icon, action]) => (
+                <Button
+                  key={action}
+                  fluid
+                  icon={icon}
+                  onClick={() => {
+                    act(action, { color: customPalette[index] });
+                    close();
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
             </>
           )}
           canAddColor={customPalette.length < maxCustomColors}
