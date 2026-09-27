@@ -116,7 +116,7 @@
 	var/detached_key = arm.get_cache_key()
 	TEST_ASSERT(findtext(detached_key, "_#abcdef_0;"), "A detached limb's icon key must stand for the markings it holds: [detached_key]")
 	TEST_ASSERT(dna_markings.remove_entry(added), "The former owner must lose the added marking")
-	dna_markings.set_zone_entries(BODY_ZONE_PRECISE_L_HAND, list())
+	dna_markings.set_zone_entries(BODY_ZONE_PRECISE_L_HAND, null)
 	body.update_body_parts(update_limb_data = TRUE)
 	// A recolour elsewhere on the former owner makes the detached limb rebuild its key, now from its own entries.
 	var/datum/body_marking_entry/head_marking = dna_markings.find_entry(BODY_ZONE_HEAD, names[1])

@@ -101,8 +101,8 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	VAR_PRIVATE/list/zones
 	/// Bumped by every structural change: a zone or an entry added, an entry removed or replaced.
 	VAR_PRIVATE/version = 0
-	/// zone -> that zone's entries in order, for every zone in zones. Built on first use after a version bump
-	/// and always replaced rather than edited, so a list handed out earlier stays a stable snapshot.
+	/// zone -> that zone's entries in order, for every zone wearing any, in zone order. Built on first use after a
+	/// version bump and always replaced rather than edited, so a list handed out earlier stays a stable snapshot.
 	VAR_PRIVATE/list/zone_cache
 	/// The version zone_cache was built at.
 	VAR_PRIVATE/zone_cache_version = -1
@@ -160,23 +160,32 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	return length(entries_for_zone(zone))
 
 /**
- * Returns every zone's entries, in zone order.
+ * Returns the entries of every zone that wears any, in zone order.
  *
  * The returned list and the lists inside it are shared and must not be edited: limbs hold these zone lists as
- * their markings. A structural change builds new ones, so a list already handed out keeps what it held.
+ * their markings. A structural change builds new ones, so a list already handed out keeps what it held. A zone
+ * that wears nothing, emptied or absent, has no list here; has_zone() tells the two apart.
  *
  * Returns:
- * - list: zone -> list of entries, emptied zones included, or null when no zone is present.
+ * - list: zone -> list of entries, or null when no zone wears any.
  */
 /datum/body_marking_collection/proc/zone_views()
 	RETURN_TYPE(/list)
 	if(zone_cache_version != version)
+		// Entries keep the order they were added in, which stops being zone order once a zone is set again, so
+		// they are gathered per zone first and the views then follow zones.
+		var/list/gathered
+		for(var/datum/body_marking_entry/entry as anything in entries)
+			var/list/zone_entries = gathered?[entry.zone]
+			if(!zone_entries)
+				zone_entries = list()
+				LAZYSET(gathered, entry.zone, zone_entries)
+			zone_entries += entry
 		var/list/views
 		for(var/zone in zones)
-			LAZYSET(views, zone, list())
-		for(var/datum/body_marking_entry/entry as anything in entries)
-			var/list/zone_entries = views[entry.zone]
-			zone_entries += entry
+			var/list/zone_entries = gathered?[zone]
+			if(zone_entries)
+				LAZYSET(views, zone, zone_entries)
 		zone_cache = views
 		zone_cache_version = version
 	return zone_cache
@@ -188,7 +197,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * - zone: the zone to read.
  *
  * Returns:
- * - list: a shared, read-only list of entries, empty for an emptied zone, or null when the zone is absent.
+ * - list: a shared, read-only list of entries, or null when the zone wears nothing, emptied or absent.
  */
 /datum/body_marking_collection/proc/entries_for_zone(zone)
 	RETURN_TYPE(/list)
@@ -204,13 +213,12 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * - zone: the zone to read.
  *
  * Returns:
- * - list: a new list of marking names.
+ * - list: a new list of marking names, or null when the zone wears nothing.
  */
 /datum/body_marking_collection/proc/marking_names(zone)
 	RETURN_TYPE(/list)
-	. = list()
 	for(var/datum/body_marking_entry/entry as anything in entries_for_zone(zone))
-		. += entry.marking.name
+		LAZYADD(., entry.marking.name)
 
 /**
  * Returns the entry wearing a marking on a zone.
@@ -293,7 +301,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * Arguments:
  * - zone: one of GLOB.marking_zones.
  * - zone_entries: the zone's new entries, in order. They are held by reference. Entries for another zone
- *   and repeats of a marking are skipped.
+ *   and repeats of a marking are skipped. Null or an empty list empties the zone, which stays present.
  *
  * Returns:
  * - TRUE if the zone was set.
@@ -301,17 +309,18 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /datum/body_marking_collection/proc/set_zone_entries(zone, list/zone_entries)
 	if(!(zone in GLOB.marking_zones))
 		return FALSE
-	var/list/kept = list()
+	var/list/kept
 	for(var/datum/body_marking_entry/entry as anything in entries)
 		if(entry.zone != zone)
-			kept += entry
-	var/list/worn = list()
-	for(var/datum/body_marking_entry/entry as anything in zone_entries)
-		if(!entry?.marking || entry.zone != zone || worn[entry.marking])
-			continue
-		worn[entry.marking] = TRUE
-		kept += entry
-	entries = length(kept) ? kept : null
+			LAZYADD(kept, entry)
+	if(length(zone_entries))
+		var/list/worn = list()
+		for(var/datum/body_marking_entry/entry as anything in zone_entries)
+			if(!entry?.marking || entry.zone != zone || worn[entry.marking])
+				continue
+			worn[entry.marking] = TRUE
+			LAZYADD(kept, entry)
+	entries = kept
 	LAZYOR(zones, zone)
 	version++
 	return TRUE
@@ -332,14 +341,15 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /**
  * Gives every zone another collection holds that collection's entries, as assigning its zone maps did.
  *
- * A zone present here keeps its place and a new one goes at the end. The entries are shared, not copied.
+ * A zone present here keeps its place and a new one goes at the end. A zone the other holds emptied is emptied
+ * here too. The entries are shared, not copied.
  *
  * Arguments:
  * - other: the collection whose zones win.
  */
 /datum/body_marking_collection/proc/overwrite_zones_from(datum/body_marking_collection/other)
-	for(var/zone, zone_entries in other?.zone_views())
-		set_zone_entries(zone, zone_entries)
+	for(var/zone in other?.zones)
+		set_zone_entries(zone, other.entries_for_zone(zone))
 
 /**
  * Returns a new collection with new entries in the same zones and order, colours and glow. Nothing is shared.
@@ -384,8 +394,10 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /datum/body_marking_collection/proc/serialize()
 	RETURN_TYPE(/list)
 	. = list()
-	for(var/zone, zone_entries in zone_views())
-		.[zone] = body_marking_entries_to_list(zone_entries)
+	var/list/views = zone_views()
+	// Every present zone, emptied ones included: the save keeps their keys.
+	for(var/zone in zones)
+		.[zone] = body_marking_entries_to_list(views?[zone])
 
 /**
  * Returns a string standing for one zone's markings, in order, with their colours and glow.
@@ -458,13 +470,12 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * - raw_zone: the zone's markings, read as body_marking_collection_from_list() documents.
  *
  * Returns:
- * - list: new entries in the zone's order.
+ * - list: new entries in the zone's order, or null when none load.
  */
 /proc/body_marking_entries_from_list(zone, list/raw_zone)
 	RETURN_TYPE(/list)
-	. = list()
-	if(!islist(raw_zone))
-		return
+	if(!islist(raw_zone) || !length(raw_zone))
+		return null
 	var/list/worn = list()
 	for(var/name in raw_zone)
 		if(!istext(name) || worn[name])
@@ -481,7 +492,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 			var/list/fields = value
 			color = length(fields) >= MARKING_INDEX_COLOR ? fields[MARKING_INDEX_COLOR] : null
 			emissive = length(fields) >= MARKING_INDEX_EMISSIVE ? fields[MARKING_INDEX_EMISSIVE] : FALSE
-		. += new /datum/body_marking_entry(marking, zone, color, emissive)
+		LAZYADD(., new /datum/body_marking_entry(marking, zone, color, emissive))
 
 /**
  * Rebuilds one zone's nested shape from its entries: marking name -> list(color, emissive).
@@ -511,6 +522,8 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * - string: each entry's cache_key() joined by "-", or "" for none.
  */
 /proc/body_marking_entries_cache_key(list/zone_entries)
+	if(!length(zone_entries))
+		return ""
 	var/list/keys = list()
 	for(var/datum/body_marking_entry/entry as anything in zone_entries)
 		keys += entry.cache_key()
@@ -523,12 +536,9 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * - zone_entries: the entries to copy.
  *
  * Returns:
- * - list: new entries in the same order, or null for null.
+ * - list: new entries in the same order, or null when there are none.
  */
 /proc/body_marking_entries_copy(list/zone_entries)
 	RETURN_TYPE(/list)
-	if(isnull(zone_entries))
-		return null
-	. = list()
 	for(var/datum/body_marking_entry/entry as anything in zone_entries)
-		. += entry.copy()
+		LAZYADD(., entry.copy())

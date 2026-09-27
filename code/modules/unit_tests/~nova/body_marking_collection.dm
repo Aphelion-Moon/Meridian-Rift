@@ -109,7 +109,7 @@
 	TEST_ASSERT_EQUAL(json_encode(markings.marking_names(BODY_ZONE_L_ARM)), json_encode(list(fourth, names[3], names[2])), "A renamed marking must keep its place")
 	// A zone keeps the place it first took, emptied or not, as a nested map kept its key.
 	markings.add_entry(new /datum/body_marking_entry(GLOB.body_markings[names[1]], BODY_ZONE_HEAD, "#112233", TRUE))
-	markings.set_zone_entries(BODY_ZONE_L_ARM, list())
+	markings.set_zone_entries(BODY_ZONE_L_ARM, null)
 	markings.add_entry(new /datum/body_marking_entry(GLOB.body_markings[names[1]], BODY_ZONE_CHEST, "#445566", FALSE))
 	markings.add_entry(new /datum/body_marking_entry(GLOB.body_markings[names[2]], BODY_ZONE_L_ARM, "#778899", TRUE))
 	var/list/expected_save = list(
@@ -199,7 +199,7 @@
 	TEST_ASSERT(islist(arm.markings) && arm.markings == dna_view && length(arm.markings) == 1, "A limb must hold the DNA's own list of its zone's entries")
 	TEST_ASSERT(findtext(arm.get_cache_key(), "l_arm=Bovine_#4488cc_0;;alpha=255"), "The limb icon key must name each marking with its colour and glow, and the markings' alpha")
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
-	TEST_ASSERT(islist(chest.markings) && !length(chest.markings), "An emptied zone must give its limb an empty list")
+	TEST_ASSERT(body.dna.body_markings.has_zone(BODY_ZONE_CHEST) && isnull(chest.markings), "An emptied zone stays present but must give its limb no list")
 	var/obj/item/bodypart/head = body.get_bodypart(BODY_ZONE_HEAD)
 	TEST_ASSERT(isnull(head.markings), "A zone the DNA lacks must give its limb no list")
 	// Copied DNA gets a collection of its own holding the same entries, as the nested lists' Copy() gave.

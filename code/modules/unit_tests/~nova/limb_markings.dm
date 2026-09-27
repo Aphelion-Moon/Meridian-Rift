@@ -64,7 +64,7 @@
 	original_choices = choices
 	GLOB.body_markings_per_limb[BODY_ZONE_L_ARM] = list(foreign, shared)
 	for(var/attempt in 1 to 10)
-		preferences.body_markings.set_zone_entries(BODY_ZONE_L_ARM, list())
+		preferences.body_markings.set_zone_entries(BODY_ZONE_L_ARM, null)
 		middleware.add_marking(list("bodypart_slot" = BODY_ZONE_L_ARM), mock_client.mob)
 		TEST_ASSERT(json_encode(preferences.body_markings.marking_names(BODY_ZONE_L_ARM)) == json_encode(list(shared)), "Without mismatched parts, adding a marking must pick one meant for the character's species.")
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
