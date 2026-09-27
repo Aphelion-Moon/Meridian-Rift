@@ -321,7 +321,8 @@
     color: var(--console-surface-canvas);
   }
 
-  .TitleBar__close {
+  .TitleBar__close,
+  .TitleBar__utilities :is(.MeridianThemePicker__trigger, .TitleBar__utilityButton) {
     color: var(--console-surface-canvas);
     opacity: 1;
 

@@ -28,16 +28,17 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  * - raw: The decoded drawing object.
  * - legacy: Accepts old drawing-only files and stored drawings, where tint, emission and empty
  *   directions may be absent.
+ * - allow_appendages: Hair styles may carry appendages; any other drawing with them is refused.
  *
  * Returns:
- * - list("drawing" = canonical drawing): Valid paint in at least one direction.
+ * - list("drawing" = canonical drawing): Valid paint in at least one direction or appendage.
  * - list("error" = message): Anything malformed, including a drawing with no paint. Empty art
  *   must be written as an explicit null drawing, so invalid data can never become Clear.
  */
-/proc/custom_style_validate_drawing(list/raw, legacy = FALSE)
+/proc/custom_style_validate_drawing(list/raw, legacy = FALSE, allow_appendages = FALSE)
 	if(!islist(raw))
 		return list("error" = "The drawing is malformed.")
-	if(custom_style_unknown_key(raw, GLOB.custom_style_drawing_keys))
+	if(custom_style_unknown_key(raw, allow_appendages ? GLOB.custom_style_drawing_keys + "appendages" : GLOB.custom_style_drawing_keys))
 		return list("error" = "The drawing has an unsupported field.")
 	var/list/required = legacy ? list("version", "palette", "dirs") : GLOB.custom_style_drawing_keys
 	for(var/key in required)
@@ -69,29 +70,44 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			return list("error" = "The [GLOB.custom_style_direction_labels[direction]] view has invalid pixel data.")
 		if(spantext(grid, "0") != pixel_count)
 			directions[direction] = custom_sprite_encode_grid(grid, length(palette), pixel_count)
-	if(!length(directions))
+	var/list/appendages
+	if("appendages" in raw)
+		var/list/appendage_result = custom_hair_appendages_validate_strict(raw["appendages"], length(palette), pixel_count, legacy)
+		if(appendage_result["error"])
+			return appendage_result
+		appendages = appendage_result["appendages"]
+	if(!length(directions) && !appendages)
 		return list("error" = "The drawing has no paint. Empty styles must use a null drawing.")
 	var/tint = raw["tint"]
 	if(!isnull(tint) && !custom_sprite_color(tint))
 		return list("error" = "The drawing's color filter is invalid.")
-	var/raw_emissive = raw["emissive"]
-	if("emissive" in raw)
-		if(islist(raw_emissive))
-			if(custom_style_unknown_key(raw_emissive, GLOB.custom_style_directions))
-				return list("error" = "The drawing's emissive settings are malformed.")
-			for(var/direction in GLOB.custom_style_directions)
-				if(!(direction in raw_emissive))
-					if(!legacy)
-						return list("error" = "The drawing's emissive settings are incomplete.")
-					continue
-				if(!(raw_emissive[direction] in list(TRUE, FALSE)))
-					return list("error" = "The drawing's emissive settings must be true or false.")
-		// Older drawings saved one flag for every view.
-		else if(!legacy || !(raw_emissive in list(TRUE, FALSE)))
-			return list("error" = "The drawing's emissive settings are malformed.")
+	var/emissive_problem = custom_style_emissive_problem(raw, legacy)
+	if(emissive_problem)
+		return list("error" = "The drawing's [emissive_problem]")
 	// Tall drawings never had the legacy hair-color filter, which only covers 32 rows.
-	var/list/canonical = list("version" = custom_sprite_version(custom_sprite_width(raw), length(palette), height), "palette" = palette, "tint" = custom_sprite_color(tint) || (height > 32 ? "#ffffff" : null), "dirs" = directions, "emissive" = custom_sprite_emissive_settings(raw_emissive))
+	var/list/canonical = list("version" = custom_sprite_version(custom_sprite_width(raw), length(palette), height), "palette" = palette, "tint" = custom_sprite_color(tint) || (height > 32 ? "#ffffff" : null), "dirs" = directions, "emissive" = custom_sprite_emissive_settings(raw["emissive"]))
+	if(appendages)
+		canonical["appendages"] = appendages
 	return list("drawing" = canonical)
+
+/// Why a drawing's or appendage's emission settings are refused, finishing "The drawing's ...", or null when they're fine or absent.
+/proc/custom_style_emissive_problem(list/raw, legacy)
+	if(!("emissive" in raw))
+		return null
+	var/raw_emissive = raw["emissive"]
+	// Older drawings saved one flag for every view.
+	if(!islist(raw_emissive))
+		return legacy && (raw_emissive in list(TRUE, FALSE)) ? null : "emissive settings are malformed."
+	if(custom_style_unknown_key(raw_emissive, GLOB.custom_style_directions))
+		return "emissive settings are malformed."
+	for(var/direction in GLOB.custom_style_directions)
+		if(!(direction in raw_emissive))
+			if(!legacy)
+				return "emissive settings are incomplete."
+			continue
+		if(!(raw_emissive[direction] in list(TRUE, FALSE)))
+			return "emissive settings must be true or false."
+	return null
 
 /**
  * Strictly validates the whitelisted base hair look carried by hair styles.
@@ -193,7 +209,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return list("error" = "The style is missing its drawing.")
 	var/list/drawing
 	if(!isnull(raw["drawing"]))
-		var/list/drawing_result = custom_style_validate_drawing(raw["drawing"], legacy = trusted)
+		var/list/drawing_result = custom_style_validate_drawing(raw["drawing"], legacy = trusted, allow_appendages = target == "hair")
 		if(drawing_result["error"])
 			return drawing_result
 		drawing = drawing_result["drawing"]
@@ -285,7 +301,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return list("error" = "The file must contain a JSON object.")
 	if(!("format" in decoded))
 		if(length(text) > CUSTOM_STYLE_MAX_BYTES)
-			return list("error" = "The file is larger than 16 KiB.")
+			return list("error" = "The file is larger than [CUSTOM_STYLE_MAX_BYTES / 1024] KiB.")
 		for(var/key in decoded)
 			if(istext(key) && findtext(key, "character") == 1)
 				return list("error" = "That is an account drawing file, not a style export.")
@@ -305,7 +321,7 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 			body["legacy"] = FALSE
 		return body
 	if(length(text) > CUSTOM_STYLE_MAX_BYTES)
-		return list("error" = "The file is larger than 16 KiB.")
+		return list("error" = "The file is larger than [CUSTOM_STYLE_MAX_BYTES / 1024] KiB.")
 	var/list/result = custom_style_validate_package(decoded)
 	if(result["error"])
 		return result
@@ -361,7 +377,10 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	var/list/dirs = list()
 	for(var/direction in GLOB.custom_style_directions)
 		dirs[direction] = drawing["dirs"][direction] || custom_sprite_encode_grid(repeat_string(pixel_count, "0"), length(palette), pixel_count)
-	return list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette), height), "palette" = palette, "dirs" = dirs, "tint" = drawing["tint"], "emissive" = custom_sprite_emissive_settings(drawing["emissive"]))
+	. = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette), height), "palette" = palette, "dirs" = dirs, "tint" = drawing["tint"], "emissive" = custom_sprite_emissive_settings(drawing["emissive"]))
+	var/list/appendages = custom_hair_appendages_export(drawing["appendages"], length(palette), pixel_count)
+	if(appendages)
+		.["appendages"] = appendages
 
 /// Whole-body export: every region's drawing and base markings in one file.
 /proc/custom_style_body_export_text(list/regions)

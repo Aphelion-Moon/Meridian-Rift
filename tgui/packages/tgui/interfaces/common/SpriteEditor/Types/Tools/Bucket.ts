@@ -2,6 +2,7 @@ import { sendAct as act } from 'tgui/events/act';
 import { colorToHexString } from '../../colorSpaces';
 // APHELION EDIT CHANGE - ORIGINAL: import { constrainToIconGrid } from '../../helpers';
 import { constrainToIconGrid, isWithinDrawBounds } from '../../helpers';
+import { strokeLayer } from '../../strokeMask'; // APHELION EDIT ADDITION
 import { Tool } from '../Tool';
 import type { SpriteData, SpriteEditorToolContext } from '../types';
 
@@ -34,7 +35,7 @@ export class Bucket extends Tool {
       transaction: {
         type: 'bucket',
         name: 'Flood Fill',
-        layer: selectedLayer + 1,
+        ...strokeLayer(data, selectedLayer), // APHELION EDIT CHANGE - ORIGINAL: layer: selectedLayer + 1,
         dir: `${selectedDir}`,
         color: colorToHexString(currentColor),
         point: [px, py],

@@ -22,7 +22,10 @@ import {
 import type { BooleanLike } from 'tgui-core/react';
 
 import { CharacterPreview } from '../../common/CharacterPreview';
-import { ChoicedSelectionDropdown } from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
+import {
+  ChoicedSelectionDropdown,
+  MARKING_PREVIEW_AREAS,
+} from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
 import type {
   AugmentItem,
   AugmentSlot,
@@ -273,9 +276,16 @@ const Markings = (props: {
   marking_choices: string[];
   act: (action: string, params?: Record<string, unknown>) => void;
   pickerPlacement?: ComponentProps<typeof Floating>['placement'];
+  tooltipPosition?: ComponentProps<typeof Floating>['placement'];
 }) => {
-  const { body_zone, chosen_markings, marking_choices, act, pickerPlacement } =
-    props;
+  const {
+    body_zone,
+    chosen_markings,
+    marking_choices,
+    act,
+    pickerPlacement,
+    tooltipPosition,
+  } = props;
   const { data } = useBackend<PreferencesMenuData>();
   const serverMarkings = useServerPrefs()?.limbs_and_markings; // APHELION EDIT ADDITION
   const maxMarkings = serverMarkings?.max_markings ?? 0; // APHELION EDIT CHANGE
@@ -307,6 +317,7 @@ const Markings = (props: {
                     options={choices}
                     selected={marking.name}
                     placement={pickerPlacement}
+                    previewArea={MARKING_PREVIEW_AREAS[body_zone]}
                     onSelect={(value: string) =>
                       act('change_marking', {
                         bodypart_slot: body_zone,
@@ -349,6 +360,7 @@ const Markings = (props: {
               <Stack.Item>
                 <Button
                   color={marking.emissive ? 'good' : 'bad'}
+                  tooltipPosition={tooltipPosition}
                   tooltip="The 'E' is for 'Emissive' — does it glow? Green = glow, Red = no glow."
                   onClick={() =>
                     act('change_emissive', {
@@ -396,6 +408,7 @@ const Markings = (props: {
             tooltip={`Lets you draw a custom marking over ${
               taurLeg ? 'your taur body' : 'this limb'
             }.${drawn ? ' You have one drawn; click to edit it.' : ''}`}
+            tooltipPosition={tooltipPosition}
             onClick={() =>
               act('open_custom_sprite_editor', {
                 target: 'markings',
@@ -639,18 +652,20 @@ const InternalImplantSection = (props: { internal_implant: AugmentData }) => {
 const MarkingsColumn = (props: {
   limbs: BodypartData[];
   act: (action: string, params?: Record<string, unknown>) => void;
+  tooltipPosition: ComponentProps<typeof Floating>['placement'];
 }) => (
   <Section fill scrollable title="Markings">
     {props.limbs.map((bodypart) => (
       <div key={bodypart.slot} style={{ marginBottom: '1.5em' }}>
         <Section fill title={bodypart.slot}>
-          {/* Sideways pickers would land under the preview's map control. */}
+          {/* Sideways pickers and centred tooltips would land under the preview's map control. */}
           <Markings
             body_zone={bodypart.body_zone ?? bodypart.slot}
             chosen_markings={bodypart.chosen_markings}
             marking_choices={bodypart.marking_choices}
             act={props.act}
             pickerPlacement="bottom-start"
+            tooltipPosition={props.tooltipPosition}
           />
         </Section>
       </div>
@@ -918,9 +933,16 @@ export const LimbsPage = ({
   const columnForTab = (
     limbs: BodypartData[],
     internal_implants: AugmentData[],
+    tooltipPosition: ComponentProps<typeof Floating>['placement'],
   ) => {
     if (tab === AugmentsTab.Markings)
-      return <MarkingsColumn limbs={limbs} act={actAndResetPresetWarning} />;
+      return (
+        <MarkingsColumn
+          limbs={limbs}
+          act={actAndResetPresetWarning}
+          tooltipPosition={tooltipPosition}
+        />
+      );
     if (tab === AugmentsTab.BodyParts)
       return (
         <BodyPartsColumn
@@ -992,6 +1014,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.left ?? [],
                 columns?.internalImplants.left ?? [],
+                'bottom-end',
               )}
             </Stack.Item>
 
@@ -1049,6 +1072,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.right ?? [],
                 columns?.internalImplants.right ?? [],
+                'bottom-start',
               )}
             </Stack.Item>
           </Stack>

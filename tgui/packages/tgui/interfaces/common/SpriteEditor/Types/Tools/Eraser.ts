@@ -8,7 +8,7 @@ import {
   isPainted, // APHELION EDIT ADDITION
   isWithinDrawBounds, // APHELION EDIT ADDITION
 } from '../../helpers';
-import { strokePixels } from '../../strokeMask'; // APHELION EDIT ADDITION
+import { strokeLayer, strokePixels } from '../../strokeMask'; // APHELION EDIT ADDITION
 import { Tool } from '../Tool';
 import type { LayerTransaction } from '../Transaction';
 import type {
@@ -52,7 +52,7 @@ class EraserTransaction implements LayerTransaction {
       transaction: {
         type: 'eraser',
         name: 'Eraser',
-        layer: this.layer + 1,
+        ...strokeLayer(this.sprite, this.layer), // APHELION EDIT CHANGE - ORIGINAL: layer: this.layer + 1,
         dir: `${this.dir}`,
         ...strokePixels(this.points, this.sprite), // APHELION EDIT CHANGE - ORIGINAL: points: this.points.values().toArray(),
       },

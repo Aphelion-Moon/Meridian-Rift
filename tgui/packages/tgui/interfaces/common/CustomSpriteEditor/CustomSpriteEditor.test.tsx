@@ -406,7 +406,7 @@ it.each([
   expect(screen.queryAllByText('Replace draft')).toHaveLength(0);
 });
 
-it('documents Shift+C and receives its one-off hair copy before a Bald paste', () => {
+it('documents Ctrl+Shift+C and receives its one-off hair copy before a Bald paste', () => {
   const data = fixture();
   const frames = fixtureFrames();
   for (const frame of Object.values(frames))
@@ -429,14 +429,14 @@ it('documents Shift+C and receives its one-off hair copy before a Bald paste', (
     const { view, editor } = renderEditor('hair');
     fireEvent.keyDown(document, { key: 'm' });
     fireEvent.keyUp(document, { key: 'm' });
-    expect(screen.queryByText('Shift+C')).toBeNull();
+    expect(screen.queryByText('Ctrl+Shift+C')).toBeNull();
     const canvas = view.container.querySelector('canvas')!;
     fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
     fireEvent.mouseUp(window, { clientX: 15, clientY: 5, button: 0 });
-    expect(screen.getByText('Shift+C')).toBeTruthy();
+    expect(screen.getByText('Ctrl+Shift+C')).toBeTruthy();
     send.mockClear();
-    fireEvent.keyDown(document, { key: 'C', shiftKey: true });
-    fireEvent.keyUp(document, { key: 'C', shiftKey: true });
+    fireEvent.keyDown(document, { key: 'C', ctrlKey: true, shiftKey: true });
+    fireEvent.keyUp(document, { key: 'C', ctrlKey: true, shiftKey: true });
     const request = send.mock.calls[0][1].request;
     expect(send.mock.calls[0][0]).toBe('copyBaseLayer');
     act(() =>

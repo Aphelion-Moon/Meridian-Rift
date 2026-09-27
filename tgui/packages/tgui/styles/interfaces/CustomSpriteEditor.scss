@@ -1,4 +1,6 @@
 // THIS IS AN APHELION UI FILE
+@use 'sass:list';
+@use 'sass:map';
 // Swatches show drawing colors; theme materials must not recolor them.
 .Button.SpriteEditor__plainSwatch {
   background-color: transparent !important;
@@ -80,6 +82,15 @@
   }
 }
 
+// A wide picture showing only its middle half: the tile clips the sides the picture shifts past.
+.CustomSpriteEditor__tile--half {
+  overflow: hidden;
+
+  img {
+    max-width: none;
+  }
+}
+
 .Button.SpriteEditor__plainSwatch.CustomSpriteEditor__backgroundSwatch {
   background-size: 100% 100% !important;
   image-rendering: pixelated;
@@ -110,6 +121,74 @@
 .CustomSpriteEditor__group > .Button + .Button,
 .CustomSpriteEditor__group > .Stack__item + .Stack__item > .Button {
   border-left-color: var(--color-border-dark);
+}
+
+// A recessed tray behind a row of separate buttons.
+%CustomSpriteEditor__trayBox {
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+// Classic paints stock tgui's solid buttons, which a shared frame fuses into one slab, so its
+// groups and turn buttons sit apart in the same tray as Guide and Grid.
+.theme-meridian_classic {
+  .CustomSpriteEditor__group,
+  .CustomSpriteEditor__turnButtons {
+    @extend %CustomSpriteEditor__trayBox;
+    overflow: visible;
+  }
+
+  // The layer tabs already sit in the strip's own frame.
+  .CustomSpriteEditor__group.CustomSpriteEditor__layerTabs {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  // Clear and Remove are plain red buttons, as classic's other destructive ones are.
+  :is(.CustomSpriteEditor__clear, .CustomSpriteEditor__remove).Button:not(
+      .Button--disabled
+    ) {
+    background-color: var(--color-bad);
+    color: var(--color-white);
+
+    .Icon {
+      color: inherit;
+    }
+
+    &:hover {
+      background-color: hsl(
+        from var(--color-bad) h s calc(l + var(--adjust-hover))
+      );
+    }
+  }
+
+  .CustomSpriteEditor__group > .Button,
+  .CustomSpriteEditor__group > .Stack__item > .Button {
+    border-radius: var(--button-border-radius, 2px);
+  }
+
+  .CustomSpriteEditor__group > .Button + .Button,
+  .CustomSpriteEditor__group > .Stack__item + .Stack__item > .Button {
+    border-left-color: transparent;
+  }
+}
+
+// The two turn buttons, under the canvas and under the preview.
+.CustomSpriteEditor__turnButtons {
+  display: inline-flex;
+  gap: 4px;
+
+  > .Button {
+    margin: 0;
+  }
+}
+
+.CustomSpriteEditor__canvasRotation {
+  padding-top: 6px;
 }
 
 .CustomSpriteEditor__viewTab {
@@ -181,29 +260,44 @@
   box-sizing: border-box;
 }
 
+// A view that only uses the middle half of a wide canvas lays the canvas out twice as wide and
+// centred, and the canvas box clips the empty sides; coordinates stay the whole canvas's.
+.CustomSpriteEditor__canvasFrame {
+  width: 100%;
+  height: 100%;
+}
+
+.CustomSpriteEditor__canvasFrame--half {
+  width: 200%;
+  margin-left: -50%;
+}
+
 .CustomSpriteEditor__coverTip {
   z-index: 2;
 }
 
-// Clear keeps its frame, reads as a warning, and fills only while hovered.
-.CustomSpriteEditor__clear.Button {
+// Clear and Remove keep their frames and warn with a red icon; the text stays the theme's, and
+// the button fills red only while hovered.
+.CustomSpriteEditor__clear.Button .Icon,
+.CustomSpriteEditor__remove.Button .Icon {
   color: var(--color-bad);
 }
 
-.CustomSpriteEditor__clear.Button:not(.Button--disabled):hover {
+.CustomSpriteEditor__clear.Button:not(.Button--disabled):hover,
+.CustomSpriteEditor__remove.Button:not(.Button--disabled):hover {
   background-color: var(--color-bad);
   color: var(--color-white);
+
+  .Icon {
+    color: inherit;
+  }
 }
 
 // Visibility toggles sit in one recessed tray; a lit toggle keeps the theme's outline and rail.
 .CustomSpriteEditor__tray {
+  @extend %CustomSpriteEditor__trayBox;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--color-border-dark);
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.25);
 }
 
 .CustomSpriteEditor__tray > .Button {
@@ -269,5 +363,522 @@
     font-family: inherit;
     font-size: 0.9em;
     white-space: nowrap;
+  }
+}
+
+// Hair layers: the base hair, under-hat and over-hat pieces each carry a colour through their tab,
+// icons and panel, as do the tried-on hat and the layer controls. Each theme picks them from its
+// own palette so nothing looks borrowed; Aphelion keeps the design's.
+// Theme -> (base hair, under hats, over hats, tried-on hat, accent).
+$appendage-themes: (
+  meridian_aphelion: (#ff6fa8, #a58bff, #ffb547, #e9d27a, #56d4dc),
+  meridian_classic: (#6aa7ea, #4ec2a8, #a9d5f5, #e0e0e0, #6aa7ea),
+  meridian_electra: (#58d1c9, #8ea3ff, #ffd84d, #e6eef1, #58d1c9),
+  meridian_vector: (#54a9ff, #9b8cff, #b8f5ff, #e7f1ff, #54a9ff),
+  meridian_synapse: (#c477e8, #38d6cf, #ff8fc8, #f4eaf6, #c477e8),
+  meridian_highline: (#9dc7de, #b5a9d6, #d9c796, #c9d0d3, #b9c5ca),
+  meridian_hephaestus: (#dcad62, #b4c6a3, #e88f6a, #e6deca, #dcad62),
+  meridian_diagnostic: (#4ad879, #56c7c0, #d8f06e, #e2f4e8, #4ad879),
+  meridian_augmentation: (#00e5d4, #f04459, #ffc857, #eaf7f6, #00e5d4),
+  meridian_hotline: (#ff57d5, #a88bff, #ffb46b, #fff0ff, #ff57d5),
+  meridian_cyberpunk: (#ff5267, #00e5d4, #ffe14d, #f7edf0, #ff5267),
+  meridian_scavenger: (#d5a84c, #9aaa8c, #e38a5d, #f0e7ce, #d5a84c),
+  meridian_wastelander: (#a4ba78, #7fa8a0, #d3be7e, #adb997, #90a863),
+  meridian_shadowbroker: (#f4a62a, #6fc5d2, #fff2a3, #f3eedc, #f4a62a),
+  meridian_foundry: (#e7ad52, #c9785c, #ffe08a, #f1dfbc, #e7ad52),
+);
+
+@mixin appendage-colors($colors) {
+  --appendage-hair: #{list.nth($colors, 1)};
+  --appendage-under: #{list.nth($colors, 2)};
+  --appendage-over: #{list.nth($colors, 3)};
+  --appendage-hat: #{list.nth($colors, 4)};
+  --appendage-accent: #{list.nth($colors, 5)};
+}
+
+:root {
+  @include appendage-colors(map.get($appendage-themes, meridian_aphelion));
+}
+
+@each $theme, $colors in $appendage-themes {
+  .theme-#{$theme} {
+    @include appendage-colors($colors);
+  }
+}
+
+$recessed: var(--console-surface-recessed, rgba(0, 0, 0, 0.3));
+
+.CustomSpriteEditor__kind--hair {
+  --kind: var(--appendage-hair);
+}
+
+.CustomSpriteEditor__kind--under {
+  --kind: var(--appendage-under);
+}
+
+.CustomSpriteEditor__kind--over {
+  --kind: var(--appendage-over);
+}
+
+.CustomSpriteEditor__kindIcon {
+  color: var(--kind);
+}
+
+// Small print in capitals: the zone badges, the strip's count and the panel's column heads.
+%CustomSpriteEditor__caps {
+  font-size: 9.5px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-label);
+  white-space: nowrap;
+}
+
+// The layer strip sits under the view switcher: a tab per layer, the add button and the count.
+.CustomSpriteEditor__strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03),
+    transparent 70%
+  );
+}
+
+// Long names give way before anything leaves the strip.
+.CustomSpriteEditor__layerTabs {
+  min-width: 0;
+}
+
+.CustomSpriteEditor__layerName {
+  max-width: 11em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Icon, name, badge and pip on one centred line.
+.CustomSpriteEditor__layerTab > .Button__content {
+  display: flex;
+  align-items: center;
+}
+
+// A stripe of the layer's colour along the top of its tab, and along the bottom once it's chosen.
+.CustomSpriteEditor__group > .Button.CustomSpriteEditor__layerTab {
+  min-width: 0;
+  padding: 0 11px;
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--kind) 75%, transparent);
+}
+
+// The chosen tab is tinted with its layer's colour rather than the theme's selection, which would
+// put every kind in the same colour.
+.CustomSpriteEditor__group
+  > .Button.CustomSpriteEditor__layerTab.Button--selected {
+  background: color-mix(in srgb, var(--kind) 16%, transparent) !important;
+  color: var(--console-text-primary, var(--color-white)) !important;
+  box-shadow:
+    inset 0 2px 0 var(--kind),
+    inset 0 -2px 0 var(--kind) !important;
+}
+
+.CustomSpriteEditor__layerTab .CustomSpriteEditor__kindIcon {
+  margin-right: 6px;
+}
+
+// A line box of its own: the button's tall one would carry its frame over the tab's stripes.
+.CustomSpriteEditor__zoneBadge {
+  @extend %CustomSpriteEditor__caps;
+  margin-left: 6px;
+  padding: 1px 4px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 2px;
+  line-height: 1.3;
+}
+
+.CustomSpriteEditor__stripNote {
+  @extend %CustomSpriteEditor__caps;
+  flex: none;
+  margin-left: auto;
+  font-weight: normal;
+  letter-spacing: 0.06em;
+}
+
+// Adding a layer is a dashed, unfilled button, so it never reads as a layer itself.
+.Button.CustomSpriteEditor__addLayer {
+  flex: none;
+  border: 1px dashed color-mix(in srgb, var(--appendage-accent) 50%, transparent);
+  background-color: transparent;
+  color: var(--appendage-accent);
+}
+
+// The panel under the canvas describes the chosen appendage.
+.CustomSpriteEditor__appendagePanel {
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.CustomSpriteEditor__panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--color-border-dark);
+  font-size: 13px;
+  font-weight: bold;
+
+  > .Button {
+    margin: 0;
+    font-weight: normal;
+  }
+}
+
+.CustomSpriteEditor__kindDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--kind);
+  box-shadow: 0 0 8px var(--kind);
+}
+
+.CustomSpriteEditor__panelSpacer {
+  flex: 1;
+}
+
+// The pencil rides up beside the name, as small as it can be while still easy to hit.
+.CustomSpriteEditor__panelTitle > .Button.CustomSpriteEditor__renameButton {
+  position: relative;
+  top: -6px;
+  margin-left: -4px;
+  padding: 0 3px;
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--color-label);
+}
+
+.CustomSpriteEditor__rename {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  > .Input {
+    width: 190px;
+    padding-right: 42px;
+    border-color: var(--appendage-accent);
+    box-shadow: 0 0 12px -4px var(--appendage-accent);
+  }
+}
+
+.CustomSpriteEditor__renameCount {
+  position: absolute;
+  right: 7px;
+  font-size: 9.5px;
+  font-weight: normal;
+  color: var(--color-label);
+  pointer-events: none;
+}
+
+.CustomSpriteEditor__panelBody {
+  display: grid;
+  grid-template-columns: 196px 1fr;
+  gap: 12px;
+  padding: 8px;
+}
+
+// The panel's own controls are plain buttons, drawn here rather than by the theme.
+.CustomSpriteEditor__kindCard,
+.CustomSpriteEditor__zoneRow,
+.CustomSpriteEditor__hat {
+  appearance: none;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+
+  &:focus-visible {
+    outline: 1px solid var(--appendage-accent);
+    outline-offset: 1px;
+  }
+}
+
+.CustomSpriteEditor__kindColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.CustomSpriteEditor__kindCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 8px;
+  border-color: var(--color-border-dark);
+  background: $recessed;
+
+  .CustomSpriteEditor__kindIcon {
+    margin-top: 1px;
+    font-size: 18px;
+  }
+
+  b {
+    font-size: 12.5px;
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    font-size: 10.5px;
+    line-height: 1.3;
+    color: var(--color-label);
+  }
+
+  &:hover {
+    border-color: var(--console-border-control, rgba(255, 255, 255, 0.3));
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--kind);
+    background: color-mix(in srgb, var(--kind) 11%, transparent);
+    box-shadow:
+      inset 0 0 0 1px var(--kind),
+      0 0 22px -8px var(--kind);
+  }
+}
+
+.CustomSpriteEditor__verdict {
+  flex: 1;
+  padding: 7px 9px;
+  border-left: 2px solid var(--color-good);
+  border-radius: 2px;
+  background: $recessed;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.CustomSpriteEditor__verdict--warn {
+  border-left-color: var(--color-bad);
+}
+
+.CustomSpriteEditor__zoneColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.CustomSpriteEditor__zoneHeader {
+  @extend %CustomSpriteEditor__caps;
+  display: flex;
+  padding: 0 6px 3px 26px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+
+.CustomSpriteEditor__zoneRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 23px;
+  padding: 0 6px;
+  background: transparent;
+
+  &:hover {
+    border-color: var(--color-border-dark);
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  &[aria-checked='true'] {
+    border-color: var(--kind);
+    background: color-mix(in srgb, var(--kind) 14%, transparent);
+    box-shadow: 0 0 16px -8px var(--kind);
+  }
+}
+
+.CustomSpriteEditor__zoneRadio {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--color-label);
+
+  [aria-checked='true'] > & {
+    background: var(--kind);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--kind) 35%, transparent);
+  }
+}
+
+// A zone's pictogram is two glyphs in one box: the head in the theme's quiet text colour, the part
+// it attaches to lit.
+.CustomSpriteEditor__zonePictogram {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 20px;
+
+  > .Icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
+
+.CustomSpriteEditor__zoneHead {
+  color: color-mix(in srgb, var(--color-label) 55%, transparent);
+}
+
+.CustomSpriteEditor__zoneLit {
+  color: var(--console-text-primary, #d6cebf);
+
+  [aria-checked='true'] & {
+    color: var(--kind);
+    filter: drop-shadow(0 0 2px var(--kind));
+  }
+}
+
+.CustomSpriteEditor__zoneName {
+  flex: none;
+  width: 128px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.CustomSpriteEditor__zoneExamples {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--color-label);
+}
+
+.CustomSpriteEditor__coverChips {
+  flex: none;
+  display: flex;
+  gap: 3px;
+}
+
+// A hat that leaves the zone alone fades to a grey ghost; the one being tried on is framed.
+.CustomSpriteEditor__coverChip {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 19px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+
+  img {
+    max-width: 26px;
+    max-height: 15px;
+    image-rendering: pixelated;
+    opacity: 0.16;
+    filter: grayscale(1);
+  }
+}
+
+.CustomSpriteEditor__coverChip--covers {
+  background: color-mix(in srgb, var(--color-bad) 12%, transparent);
+
+  img {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.CustomSpriteEditor__coverChip--worn {
+  border-color: color-mix(in srgb, var(--appendage-hat) 70%, transparent);
+}
+
+// The preview fills whatever its section has left, Try on included, and the picture fits inside.
+.CustomSpriteEditor__preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-align: center;
+}
+
+.CustomSpriteEditor__previewFit {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Try on sits under the Preview while an appendage is chosen.
+.CustomSpriteEditor__tryOn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border-dark);
+  text-align: left;
+}
+
+.CustomSpriteEditor__subhead {
+  @extend %CustomSpriteEditor__caps;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.CustomSpriteEditor__hats {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+
+  > * {
+    flex: 1;
+  }
+}
+
+.CustomSpriteEditor__hat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  padding: 5px 4px 4px;
+  border-color: var(--color-border-dark);
+  background: $recessed;
+  font-size: 10.5px;
+  text-align: center;
+
+  canvas {
+    display: block;
+    width: 48px;
+    height: 48px;
+    image-rendering: pixelated;
+  }
+
+  &:hover {
+    border-color: var(--console-border-control, rgba(255, 255, 255, 0.3));
+  }
+
+  &[aria-pressed='true'] {
+    border-color: var(--appendage-hat);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--appendage-hat) 13%, transparent),
+      transparent
+    );
+    box-shadow: 0 0 14px -4px var(--appendage-hat);
   }
 }

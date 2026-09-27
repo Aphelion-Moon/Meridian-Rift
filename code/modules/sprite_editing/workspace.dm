@@ -160,7 +160,8 @@
 			var/list/filtered = list()
 			var/list/seen = list()
 			for(var/list/point as anything in points)
-				if(!valid_point_pair(point))
+				// A mask's points are whole canvas pixels by construction.
+				if(!mask_stroke && !valid_point_pair(point))
 					return FALSE
 				var/x = point[1]
 				var/y = point[2]
@@ -170,7 +171,8 @@
 					if(seen["[x],[y]"])
 						continue
 					seen["[x],[y]"] = TRUE
-				filtered += list(list(x, y))
+				// A mask's points are its own fresh lists; anyone else's are copied, as the history writes into them.
+				filtered += mask_stroke ? list(point) : list(list(x, y))
 			transaction["points"] = filtered
 			if(!length(filtered))
 				return FALSE

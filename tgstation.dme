@@ -7360,6 +7360,7 @@
 #include "modular_aphelion\modules\admin_tech\code\legacy.dm"
 #include "modular_aphelion\modules\custom_sprites\code\achievements.dm"
 #include "modular_aphelion\modules\custom_sprites\code\appearance.dm"
+#include "modular_aphelion\modules\custom_sprites\code\appendages.dm"
 #include "modular_aphelion\modules\custom_sprites\code\base_marking_overlays.dm"
 #include "modular_aphelion\modules\custom_sprites\code\codec.dm"
 #include "modular_aphelion\modules\custom_sprites\code\compose.dm"

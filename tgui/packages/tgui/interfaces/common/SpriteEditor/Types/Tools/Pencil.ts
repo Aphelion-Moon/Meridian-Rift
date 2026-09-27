@@ -8,7 +8,7 @@ import {
   copyLayer,
   isWithinDrawBounds,
 } from '../../helpers';
-import { strokePixels } from '../../strokeMask';
+import { strokeLayer, strokePixels } from '../../strokeMask';
 // APHELION EDIT ADDITION END
 import { Tool } from '../Tool';
 import type { LayerTransaction } from '../Transaction';
@@ -53,7 +53,7 @@ class PencilTransaction implements LayerTransaction {
       transaction: {
         type: 'pencil',
         name: 'Pencil',
-        layer: this.layer + 1,
+        ...strokeLayer(this.sprite, this.layer), // APHELION EDIT CHANGE - ORIGINAL: layer: this.layer + 1,
         dir: `${this.dir}`,
         color: this.color,
         ...strokePixels(this.points, this.sprite), // APHELION EDIT CHANGE - ORIGINAL: points: this.points.values().toArray(),

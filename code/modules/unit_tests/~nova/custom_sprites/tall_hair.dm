@@ -76,6 +76,89 @@
 	var/icon/flat = getFlatIcon(new /mutable_appearance(human.appearance), defdir = SOUTH, no_anim = TRUE, clip_bounds = list(1, 1, 32, 48))
 	TEST_ASSERT_EQUAL(LOWER_TEXT(flat.GetPixel(17, 46)), "#123456", "Paint in the extra rows should show above the head")
 
+/// Tall paint draws every painted pixel once, where the tall canvas has it, and its gradient and emissive blocker cover the extra rows too.
+/datum/unit_test/custom_sprite_tall_hair_coverage/Run()
+	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
+	human.hairstyle = CUSTOM_SPRITE_TALL_HAIRSTYLE
+	human.grad_style = list(GRADIENT_HAIR_KEY = "Full")
+	human.grad_color = list(GRADIENT_HAIR_KEY = "#00ff00")
+	// The top and bottom rows, and the rows either side of the body's tile edge. Rows count down from the top.
+	var/list/painted_rows = list(0, 15, 16, 47)
+	var/grid = ""
+	var/list/expected = list()
+	for(var/row in 0 to 47)
+		var/painted = (row in painted_rows)
+		grid += repeat_string(32, painted ? "1" : "0")
+		if(painted)
+			for(var/x in 1 to 32)
+				expected += "[x],[48 - row]"
+	var/list/drawing = custom_sprite_tall_hair_test_drawing(0, 0)
+	drawing["tint"] = "#ff8800"
+	for(var/direction in drawing["dirs"])
+		drawing["dirs"][direction] = custom_sprite_encode_grid(grid, 1, 32 * 48)
+	human.dna.custom_hair = drawing
+	var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
+	head.copy_appearance_from(human)
+	// Paint and gradient pixels by colour, and blocker pixels, placed where they draw.
+	var/list/drawn = list()
+	for(var/image/overlay as anything in head.get_hair_overlays())
+		if(overlay.layer != -HAIR_LAYER || !overlay.icon)
+			continue
+		var/icon/drawn_icon = icon(overlay.icon)
+		var/kind = PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE ? "blocker" : overlay.color
+		for(var/y in 1 to drawn_icon.Height())
+			for(var/x in 1 to drawn_icon.Width())
+				if(drawn_icon.GetPixel(x, y, "", SOUTH))
+					LAZYADDASSOCLIST(drawn, kind, "[x],[y + overlay.pixel_z]")
+	TEST_ASSERT_EQUAL(json_encode(sort_list(drawn["#ff8800"])), json_encode(sort_list(expected)), "The paint should draw every painted pixel once, where the tall canvas has it")
+	TEST_ASSERT_EQUAL(json_encode(sort_list(drawn["#00ff00"])), json_encode(sort_list(expected)), "The gradient should cover the paint's extra rows too")
+	TEST_ASSERT_EQUAL(json_encode(sort_list(drawn["blocker"])), json_encode(sort_list(expected)), "The emissive blocker should cover the paint's extra rows too")
+
+/// Character setup's height maps carry on above the dummy's tile as their top rows, so what is drawn above the head moves with it instead of tearing off.
+/datum/unit_test/custom_sprite_preview_height_maps/Run()
+	var/mob/living/carbon/human/dummy/consistent/dummy = allocate(/mob/living/carbon/human/dummy/consistent)
+	dummy.set_mob_height(HUMAN_HEIGHT_TALLEST)
+	dummy.apply_height(dummy, ENTIRE_BODY)
+	var/maps = 0
+	for(var/list/filter_info as anything in dummy.filter_data)
+		if(filter_info["type"] != "displace")
+			continue
+		maps++
+		var/icon/map = filter_info["icon"]
+		TEST_ASSERT_EQUAL(map.Height(), 64, "[filter_info["name"]] should reach 32 rows above the tile")
+		TEST_ASSERT_EQUAL(filter_info["y"], 16, "[filter_info["name"]] should keep its own rows on the tile")
+		TEST_ASSERT_EQUAL(map.GetPixel(1, 64), map.GetPixel(1, 32), "[filter_info["name"]] should move what is above the tile as it moves the head")
+	TEST_ASSERT_EQUAL(maps, 3, "Tallest should stretch the dummy with three maps")
+	var/tallest = 0
+	for(var/mutable_appearance/overlay as anything in dummy.overlays)
+		if(overlay.icon)
+			var/icon/drawn = icon(overlay.icon)
+			tallest = max(tallest, drawn.Height())
+	TEST_ASSERT_EQUAL(tallest, 64, "The dummy should reach as far up as its maps, so the rows they lift aren't cut off")
+
+/// The character setup preview gets its larger canvas for a body taller than average, and for hair lifted or painted above the head.
+/datum/unit_test/custom_sprite_tall_preview_canvas/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	var/datum/preference/height = GLOB.preference_entries[/datum/preference/choiced/mob_height]
+	var/datum/preference/hairstyle = GLOB.preference_entries[/datum/preference/choiced/hairstyle]
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(hairstyle, "Bald")
+	var/atom/movable/screen/map_view/char_preview/view = allocate(/atom/movable/screen/map_view/char_preview, null, null, preferences)
+	view.update_body()
+	TEST_ASSERT_EQUAL(view.last_canvas_size, 0, "An average body should keep the one-tile canvas")
+	preferences.write_preference(height, "Tall")
+	view.update_body()
+	TEST_ASSERT_EQUAL(view.last_canvas_size, 1, "A tall body should get the larger canvas")
+	preferences.write_preference(height, "Average")
+	preferences.write_preference(hairstyle, "Afro (Huge)")
+	view.update_body()
+	TEST_ASSERT_EQUAL(view.last_canvas_size, 1, "A hairstyle drawn above the head should get the larger canvas")
+	preferences.write_preference(hairstyle, CUSTOM_SPRITE_TALL_HAIRSTYLE)
+	preferences.custom_hair = custom_sprite_tall_hair_test_drawing(16, 2)
+	view.update_body()
+	TEST_ASSERT_EQUAL(view.last_canvas_size, 1, "Hair painted above the head should get the larger canvas")
+
 /// A 32 by 32 hair drawing painted in every view, once in its top row and once in its bottom row.
 /proc/custom_sprite_tall_hair_test_short_drawing()
 	var/grid = "[repeat_string(3, "0")]1[repeat_string(995, "0")]1[repeat_string(24, "0")]"

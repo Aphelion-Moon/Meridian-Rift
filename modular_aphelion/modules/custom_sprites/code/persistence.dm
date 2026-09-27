@@ -143,7 +143,7 @@
 	var/list/slot_data = custom_sprite_savefile.get_entry("character[default_slot]")
 	if(!islist(slot_data))
 		slot_data = list()
-	custom_hair = custom_sprite_validate(slot_data["hair"])
+	custom_hair = custom_sprite_validate(slot_data["hair"], allow_appendages = TRUE)
 	if(custom_sprite_width(custom_hair) != 32)
 		custom_hair = null
 	custom_facial_hair = custom_sprite_validate(slot_data["facial_hair"])

@@ -44,7 +44,7 @@ export type AdvancedCanvasPropsBase = {
   showGrid?: boolean;
   border?: BorderStyleProps;
   background?: string | string[];
-  backgroundImage?: HTMLImageElement; // APHELION EDIT ADDITION
+  backgroundImage?: CanvasImageSource; // APHELION EDIT ADDITION
   backdropColor?: string;
   drawBounds?: [number, number, number, number]; // APHELION EDIT ADDITION
   drawMask?: string[]; // APHELION EDIT ADDITION

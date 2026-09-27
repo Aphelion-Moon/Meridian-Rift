@@ -1,4 +1,4 @@
-/// Shift+C retains only one bounded source frame and one trusted palette per open editor.
+/// A merged copy (Ctrl+Shift+C) retains only one bounded source frame and one trusted palette per open editor.
 /datum/custom_sprite_editor
 	var/list/base_copy_request
 	var/datum/weakref/base_copy_ui
@@ -82,7 +82,7 @@
 	sync_locked_views(push = FALSE)
 	var/list/request = validated_base_copy(params)
 	if(!request || !base_copy_ready() || (request["dir"] in locked_directions()))
-		transfer_error = "Wait for the base layer to finish changing, then press Shift+C again."
+		transfer_error = "Wait for the base to finish changing, then press Ctrl+Shift+C again."
 		return null
 	if(workspace.tint != "#ffffff")
 		transfer_error = "This legacy drawing uses a color multiplier. Base copying requires a literal-color drawing."
@@ -159,7 +159,7 @@
 	if(request["look"] == base_copy_context())
 		result = build_base_copy(request)
 	else
-		transfer_error = "The base layer changed before copying finished. Press Shift+C again."
+		transfer_error = "The base changed before copying finished. Press Ctrl+Shift+C again."
 	if(!result)
 		transfer_notice = null
 		result = list("request" = request["request"], "error" = TRUE)
@@ -171,7 +171,7 @@
 /datum/custom_sprite_editor/proc/prepare_base_copy_paste(list/transaction)
 	sync_locked_views(push = FALSE)
 	if(!(target == "hair" || istype(src, /datum/custom_sprite_editor/markings)) || transaction["type"] != "move" || transaction["baseCopy"] != base_copy_token || isnull(base_copy_token) || transaction["baseCopySource"] != REF(src))
-		transfer_error = "That base copy has expired. Select the base layer and press Shift+C again."
+		transfer_error = "That copy has expired. Select the area again and press Ctrl+Shift+C."
 		return FALSE
 	if(!base_copy_colors_fit(base_copy_colors))
 		transfer_error = "Pasting these colors and retaining undo history would exceed 63 colors."

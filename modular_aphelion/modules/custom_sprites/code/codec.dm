@@ -204,8 +204,8 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		palette += color
 	return palette
 
-/// Reconstruct a bounded, canonical payload. Missing directions are ordinary empty canvases.
-/proc/custom_sprite_validate(list/drawing)
+/// Reconstruct a bounded, canonical payload. Missing directions are ordinary empty canvases. Only hair passes `allow_appendages`; other drawings lose any.
+/proc/custom_sprite_validate(list/drawing, allow_appendages = FALSE)
 	if(!islist(drawing) || !(drawing["version"] in list(1, 2, 3, 4)))
 		return null
 	var/list/raw_palette = drawing["palette"]
@@ -227,12 +227,17 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 		var/grid = custom_sprite_decode_grid(raw_dirs[direction], length(palette), pixel_count)
 		if(grid && spantext(grid, "0") != pixel_count)
 			directions[direction] = custom_sprite_encode_grid(grid, length(palette), pixel_count)
-	if(!length(directions))
+	var/list/appendages = allow_appendages ? custom_hair_appendages_validate(drawing["appendages"], length(palette), pixel_count) : null
+	// Appendages alone are enough: a bald base can carry just a ponytail.
+	if(!length(directions) && !appendages)
 		return null
 	var/list/validated = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette), height), "palette" = palette, "tint" = tint, "dirs" = directions)
 	// Preserve older payloads; the editor and appearance default missing emission settings to off.
 	if("emissive" in drawing)
 		validated["emissive"] = custom_sprite_emissive_settings(drawing["emissive"])
+	// Written only when there are some, so drawings without any save exactly as they always have.
+	if(appendages)
+		validated["appendages"] = appendages
 	return validated
 
 /**
@@ -252,16 +257,28 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	var/padding = repeat_string((width - source_width) / 2, "0")
 	var/empty_rows = repeat_string((height - source_height) * width, "0")
 	var/palette_size = length(drawing["palette"])
-	for(var/direction, encoded in drawing["dirs"])
-		var/grid = custom_sprite_decode_grid(encoded, palette_size, source_width * source_height)
-		if(!grid)
-			return null
-		var/list/rows = list(empty_rows)
-		for(var/y in 0 to source_height - 1)
-			rows += "[padding][copytext(grid, y * source_width + 1, (y + 1) * source_width + 1)][padding]"
-		resized["dirs"][direction] = custom_sprite_encode_grid(jointext(rows, ""), palette_size, width * height)
+	// Appendages share the canvas, so their views move with the hair's.
+	for(var/list/views as anything in custom_sprite_all_views(resized))
+		for(var/direction, encoded in views.Copy())
+			var/grid = custom_sprite_decode_grid(encoded, palette_size, source_width * source_height)
+			if(!grid)
+				return null
+			var/list/rows = list(empty_rows)
+			for(var/y in 0 to source_height - 1)
+				rows += "[padding][copytext(grid, y * source_width + 1, (y + 1) * source_width + 1)][padding]"
+			views[direction] = custom_sprite_encode_grid(jointext(rows, ""), palette_size, width * height)
 	resized["version"] = custom_sprite_version(width, palette_size, height)
 	return resized
+
+/// The drawing's own view list, then each appendage's: live references, so writes change the drawing.
+/proc/custom_sprite_all_views(list/drawing)
+	. = list()
+	if(!drawing)
+		return
+	. += list(drawing["dirs"])
+	for(var/_key, entry in drawing["appendages"])
+		var/list/appendage = entry
+		. += list(appendage["dirs"])
 
 /// Content identity of a whole drawing, "empty" for none.
 /proc/custom_sprite_hash(list/drawing)
@@ -310,40 +327,45 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	if(!changed)
 		return drawing
 	var/pixel_count = custom_sprite_width(drawing) * custom_sprite_height(drawing)
-	var/list/directions = list()
-	for(var/direction, encoded in drawing["dirs"])
-		var/grid = custom_sprite_decode_grid(encoded, length(old_palette), pixel_count)
-		if(!grid)
-			return null
-		var/list/recolored = list()
-		for(var/position in 1 to pixel_count)
-			// Alphabet position 1 is transparent, so palette index 1 lives at position 2.
-			var/alphabet_position = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1))
-			if(alphabet_position <= 1)
-				recolored += "0"
-				continue
-			var/mapped = index_map[alphabet_position - 1] + 1
-			recolored += copytext(CUSTOM_SPRITE_INDEX_ALPHABET, mapped, mapped + 1)
-		directions[direction] = custom_sprite_encode_grid(jointext(recolored, ""), length(new_palette), pixel_count)
-	var/list/result = drawing.Copy()
+	// Appendages share the palette, so their views are rewritten through the same map.
+	var/list/result = deep_copy_list(drawing)
 	result["palette"] = new_palette
-	result["dirs"] = directions
-	return custom_sprite_validate(result)
+	for(var/list/views as anything in custom_sprite_all_views(result))
+		for(var/direction, encoded in views.Copy())
+			var/grid = custom_sprite_decode_grid(encoded, length(old_palette), pixel_count)
+			if(!grid)
+				return null
+			var/list/recolored = list()
+			for(var/position in 1 to pixel_count)
+				// Alphabet position 1 is transparent, so palette index 1 lives at position 2.
+				var/alphabet_position = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1))
+				if(alphabet_position <= 1)
+					recolored += "0"
+					continue
+				var/mapped = index_map[alphabet_position - 1] + 1
+				recolored += copytext(CUSTOM_SPRITE_INDEX_ALPHABET, mapped, mapped + 1)
+			views[direction] = custom_sprite_encode_grid(jointext(recolored, ""), length(new_palette), pixel_count)
+	// Only hair carries appendages, so keeping them here keeps the drawing's own.
+	return custom_sprite_validate(result, allow_appendages = TRUE)
 
-/// One view's pixels as color text, so two drawings compare by what they show, not palette order.
+/// One view's pixels as color text, so two drawings compare by what they show, not palette order. Appendages' pixels in that view follow the hair's.
 /proc/custom_sprite_direction_signature(list/drawing, direction)
 	if(!drawing)
 		return ""
 	var/list/palette = drawing["palette"]
 	var/pixel_count = custom_sprite_width(drawing) * custom_sprite_height(drawing)
-	var/grid = custom_sprite_decode_grid(drawing["dirs"][direction], length(palette), pixel_count)
-	if(!grid)
-		return ""
-	var/list/pixels = list()
-	for(var/position in 1 to pixel_count)
-		var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1)) - 1
-		pixels += index >= 1 ? palette[index] : ""
-	return jointext(pixels, ",")
+	var/list/signatures = list()
+	for(var/list/views as anything in custom_sprite_all_views(drawing))
+		var/grid = custom_sprite_decode_grid(views[direction], length(palette), pixel_count)
+		if(!grid)
+			signatures += ""
+			continue
+		var/list/pixels = list()
+		for(var/position in 1 to pixel_count)
+			var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1)) - 1
+			pixels += index >= 1 ? palette[index] : ""
+		signatures += jointext(pixels, ",")
+	return jointext(signatures, "|")
 
 /// Tint and emissive settings affect appearances, not the drawing's raw pixels.
 /proc/custom_sprite_pixel_hash(list/drawing)

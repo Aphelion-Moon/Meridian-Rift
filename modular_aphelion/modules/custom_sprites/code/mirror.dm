@@ -418,6 +418,6 @@
 		markings = custom_style_copy_markings(markings)
 		for(var/list/entry as anything in markings)
 			entry["emissive"] = FALSE
-	return custom_style_package(package["target"], package["zone"], custom_sprite_validate(drawing), package["hair"], markings)
+	return custom_style_package(package["target"], package["zone"], custom_sprite_validate(drawing, allow_appendages = package["target"] == "hair"), package["hair"], markings)
 
 #undef CUSTOM_SPRITE_MIRROR_TIMEOUT

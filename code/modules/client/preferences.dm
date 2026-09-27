@@ -500,6 +500,10 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	if (body.dna.mutant_bodyparts["taur"])
 		// taurs can be extra wide, so scale up in attempt to see their tails
 		canvas_size += 1
+	// APHELION EDIT ADDITION START - Tall bodies and hair that reach above one tile get the larger canvas too.
+	if (!canvas_size && custom_sprite_preview_reaches_up(body))
+		canvas_size = 1
+	// APHELION EDIT ADDITION END
 	body.pixel_x = canvas_size * 16
 
 	if (isnull(canvas) || last_canvas_size != canvas_size || last_canvas_state != canvas_state)

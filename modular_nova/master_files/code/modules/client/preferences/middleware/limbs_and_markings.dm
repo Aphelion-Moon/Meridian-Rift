@@ -382,13 +382,13 @@
 		preferences.body_markings[bodypart_slot] = list()
 	if(length(preferences.body_markings[bodypart_slot]) >= MAXIMUM_MARKINGS_PER_LIMB)
 		return
+	var/datum/species/current_species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
 	// Markings are keyed by name, so one the limb already wears would duplicate that entry.
-	var/list/choices = GLOB.body_markings_per_limb[bodypart_slot] - preferences.body_markings[bodypart_slot]
+	var/list/choices = body_markings_of_zone_for_species(bodypart_slot, current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)) - preferences.body_markings[bodypart_slot]
 	if(!length(choices))
 		return
 	var/marking_name = pick(choices)
 	var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-	var/species_type = preferences.read_preference(/datum/preference/choiced/species)
 	var/list/preview_features = preferences.character_preview_view.body.dna.features
 	var/list/features = list(
 		FEATURE_MUTANT_COLOR       = preview_features[FEATURE_MUTANT_COLOR],
@@ -396,7 +396,6 @@
 		FEATURE_MUTANT_COLOR_THREE = preview_features[FEATURE_MUTANT_COLOR_THREE],
 		FEATURE_SKIN_COLOR         = skintone2hex(preferences.read_preference(/datum/preference/choiced/skin_tone)),
 	)
-	var/datum/species/current_species = GLOB.species_prototypes[species_type]
 	preferences.body_markings[bodypart_slot] += list("[marking_name]" = list(marking.get_default_color(features, current_species), FALSE))
 	preferences.character_preview_view.update_body()
 	return TRUE

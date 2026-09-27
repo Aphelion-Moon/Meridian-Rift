@@ -8,6 +8,7 @@ import {
   isPainted,
   isWithinDrawBounds,
 } from '../../helpers';
+import { strokeLayer } from '../../strokeMask';
 import { Tool } from '../Tool';
 import type {
   BaseCopyResult,
@@ -147,6 +148,24 @@ const landsAt = (
 const flipMask = (mask: SelectionMask): SelectionMask =>
   mask.map((row) => [...row].reverse().join(''));
 
+/** Frames drawn over one another in order, later ones on top, as a merged copy sees them. */
+const flatten = (frames: StringLayer[]) =>
+  frames[0].map((row, y) =>
+    row.map((_pixel, x) => {
+      for (let index = frames.length - 1; index >= 0; index--) {
+        const pixel = frames[index][y]?.[x];
+        if (isPainted(pixel)) return pixel;
+      }
+      return CLEAR;
+    }),
+  );
+
+/** The server layer paint goes to, as transactions name it. */
+type LayerRef = ReturnType<typeof strokeLayer>;
+
+const sameLayer = (a: LayerRef, b: LayerRef) =>
+  a.layer === b.layer && a.layerId === b.layerId;
+
 /**
  * The selection with a rectangle taken out of it, tightened around what's left: a plain box when
  * nothing inside it is missing. Undefined when nothing is left.
@@ -197,6 +216,7 @@ type BaseCopy = {
 type Floating = {
   dir: Dir;
   layer: number;
+  target: LayerRef;
   /** The frame as it was when the paint was lifted or pasted; the drop is measured against it. */
   source: StringLayer;
   /** source without the lifted paint. */
@@ -210,6 +230,7 @@ type Floating = {
 type SelectionDrag = {
   dir: Dir;
   layer: number;
+  target: LayerRef;
   origin: [number, number];
 } & (
   | { mode: 'select'; bounds: SelectionBounds }
@@ -225,7 +246,8 @@ type SelectionDrag = {
 );
 
 /**
- * Selects a box, or a box with pixels taken out of it, and moves, copies, pastes and turns its paint.
+ * Selects a box, or a box with pixels taken out of it, and moves, copies, cuts, pastes and turns its
+ * paint. Where the canvas shows one of several layers, each gesture keeps to the layer it began on.
  *
  * Dragging is free, even off the canvas. A move that lands entirely on paintable pixels is sent at
  * once, as one history step. Paint that doesn't fit, pasted paint and turned paint float with the box
@@ -244,6 +266,7 @@ export class Select extends Tool {
   private pending?: {
     dir: Dir;
     layer: number;
+    target: LayerRef;
     source: StringLayer;
     frames: StringLayer[];
   };
@@ -316,12 +339,14 @@ export class Select extends Tool {
     this.area = { drawBounds: context.drawBounds, drawMask: context.drawMask };
     const source =
       data.layers[context.selectedLayer]?.data[context.selectedDir];
+    const target = strokeLayer(data, context.selectedLayer);
     const pending = this.pending;
     if (pending) {
       if (
         !source ||
         pending.dir !== context.selectedDir ||
-        pending.layer !== context.selectedLayer
+        pending.layer !== context.selectedLayer ||
+        !sameLayer(pending.target, target)
       ) {
         this.pending = undefined;
         this.drag = undefined;
@@ -353,6 +378,7 @@ export class Select extends Tool {
       floating &&
       (floating.dir !== context.selectedDir ||
         floating.layer !== context.selectedLayer ||
+        !sameLayer(floating.target, target) ||
         !current ||
         !framesEqual(current, floating.source))
     ) {
@@ -428,14 +454,19 @@ export class Select extends Tool {
   private commitFrame(
     dir: Dir,
     layer: number,
+    target: LayerRef,
     source: StringLayer,
     frame: StringLayer,
     baseCopy?: BaseCopy,
   ) {
     const placement = encodePlacement(source, frame);
     if (!placement) return;
-    if (this.pending?.dir !== dir || this.pending.layer !== layer) {
-      this.pending = { dir, layer, source, frames: [] };
+    if (
+      this.pending?.dir !== dir ||
+      this.pending.layer !== layer ||
+      !sameLayer(this.pending.target, target)
+    ) {
+      this.pending = { dir, layer, target, source, frames: [] };
     }
     this.pending.frames.push(frame);
     act('spriteEditorCommand', {
@@ -443,7 +474,7 @@ export class Select extends Tool {
       transaction: {
         type: 'move',
         name: 'Move selection',
-        layer: layer + 1,
+        ...target,
         dir: String(dir),
         ...placement,
         ...(baseCopy && {
@@ -468,6 +499,7 @@ export class Select extends Tool {
     this.commitFrame(
       floating.dir,
       floating.layer,
+      floating.target,
       floating.source,
       frame,
       floating.baseCopy,
@@ -487,6 +519,7 @@ export class Select extends Tool {
     this.floating = {
       dir: context.selectedDir,
       layer: context.selectedLayer,
+      target: strokeLayer(data, context.selectedLayer),
       source,
       base,
       pixels,
@@ -510,6 +543,7 @@ export class Select extends Tool {
     const base = {
       dir: context.selectedDir,
       layer: context.selectedLayer,
+      target: strokeLayer(data, context.selectedLayer),
       origin: [px, py] as [number, number],
     };
     if (isRightClick) {
@@ -563,7 +597,8 @@ export class Select extends Tool {
     if (!drag) return;
     if (
       drag.dir !== context.selectedDir ||
-      drag.layer !== context.selectedLayer
+      drag.layer !== context.selectedLayer ||
+      !sameLayer(drag.target, strokeLayer(data, context.selectedLayer))
     ) {
       this.cancel(context);
       return;
@@ -666,6 +701,7 @@ export class Select extends Tool {
       this.floating = {
         dir: drag.dir,
         layer: drag.layer,
+        target: drag.target,
         source: lift.frame,
         base,
         pixels: lift.pixels,
@@ -683,13 +719,20 @@ export class Select extends Tool {
       ey + dy >= data.height
     ) {
       // Only a whole box on the canvas can travel as a box and offset.
-      this.commitFrame(drag.dir, drag.layer, lift.frame, drag.preview!);
+      this.commitFrame(
+        drag.dir,
+        drag.layer,
+        drag.target,
+        lift.frame,
+        drag.preview!,
+      );
       this.showPreview(context);
       return;
     }
     this.pending ??= {
       dir: drag.dir,
       layer: drag.layer,
+      target: drag.target,
       source: lift.frame,
       frames: [],
     };
@@ -699,7 +742,7 @@ export class Select extends Tool {
       transaction: {
         type: 'move',
         name: 'Move selection',
-        layer: drag.layer + 1,
+        ...drag.target,
         dir: String(drag.dir),
         rect: drag.rect,
         offset: drag.offset,
@@ -729,15 +772,75 @@ export class Select extends Tool {
     return true;
   }
 
-  /** Shift+C snapshots local paint and requests only the selected native base pixels. */
-  copyBaseLayer(context: SpriteEditorToolContext, data: SpriteData) {
+  /**
+   * Ctrl+X: copies the selection, then takes its paint off the canvas in one history step. Floating
+   * paint goes too: lifted paint has already left the canvas, and pasted paint never reached it. The
+   * marquee stays.
+   *
+   * Returns whether there was a selection to cut.
+   */
+  cut(context: SpriteEditorToolContext, data: SpriteData) {
+    if (!this.copy(context, data)) return false;
+    const rect = this.selection!;
+    const floating = this.floating;
+    if (floating) {
+      this.floating = undefined;
+      this.clearServerPreview();
+      this.commitFrame(
+        floating.dir,
+        floating.layer,
+        floating.target,
+        floating.source,
+        floating.base,
+      );
+    } else {
+      const source = this.currentFrame(context, data);
+      if (!source) return true;
+      const frame = copyLayer(source);
+      for (const [px, py] of liftPixels(source, rect, this.mask)) {
+        frame[rect[1] + py][rect[0] + px] = CLEAR;
+      }
+      this.commitFrame(
+        context.selectedDir,
+        context.selectedLayer,
+        strokeLayer(data, context.selectedLayer),
+        source,
+        frame,
+      );
+    }
+    this.showPreview(context);
+    return true;
+  }
+
+  /**
+   * Ctrl+Shift+C, or Ctrl+C while Merged is lit: copies the selection as the view shows it, the
+   * view's other paint layers included. The layers are composed here; only the native base pixels
+   * are asked of the server, and a canvas with no base to copy is copied at once.
+   *
+   * Returns whether there was a selection to copy.
+   */
+  copyMerged(context: SpriteEditorToolContext, data: SpriteData) {
     this.reconcilePending(context, data);
     const rect = this.selection;
-    if (!rect || this.drag || !data.baseCopyInfo) return false;
-    const frame = this.floating
+    if (!rect || this.drag) return false;
+    const own = this.floating
       ? this.floatingFrame(this.floating, rect)
       : this.currentFrame(context, data);
-    if (!frame) return false;
+    if (!own) return false;
+    const merge = data.mergeLayers?.();
+    const frame =
+      merge?.dir === context.selectedDir
+        ? flatten([...merge.below, own, ...merge.above])
+        : own;
+    if (!data.baseCopyInfo) {
+      this.pendingBaseCopy = undefined;
+      this.clipboard = {
+        rect: [...rect],
+        mask: this.mask,
+        pixels: liftPixels(frame, rect, this.mask),
+      };
+      return true;
+    }
     this.copyRequest = (this.copyRequest % 1000000000) + 1;
     const request = this.copyRequest;
     this.pendingBaseCopy = {
@@ -849,6 +952,7 @@ export class Select extends Tool {
     this.floating = {
       dir: context.selectedDir,
       layer: context.selectedLayer,
+      target: strokeLayer(data, context.selectedLayer),
       source,
       base: copyLayer(source),
       pixels: clip.pixels.map((pixel) => [...pixel] as Pixel),

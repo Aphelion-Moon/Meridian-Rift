@@ -67,7 +67,10 @@ Upstream `nanotrasen`, `ntos`, and default-paint recolor (`admin`, `dark`,
 
 ## Skin catalog
 
-The title-bar gear exposes one account-wide base-theme preference in this
+The title-bar gear sits with the development toggle (development builds only)
+as bare icons in the close button's colour and opacity, each in a full-height
+24px cell, so a skin's frame pin keeps its lane between them and the close
+button. The gear exposes one account-wide base-theme preference in this
 order: **Aphelion**, **Classic**, **Electra**, Vector, Synapse, Highline,
 Hephaestus, Diagnostic, Augmentation, Hotline, Cyberpunk, Scavenger,
 Wastelander, Shadowbroker, and Foundry.

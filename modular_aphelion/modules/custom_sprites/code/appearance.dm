@@ -6,13 +6,56 @@
 	/// Body zone -> paint inherited by newly created limbs.
 	var/list/custom_limb_markings
 
-/// Appearance copies honor the master preference without changing saved layer settings.
+/// Appearance copies honor the master preference without changing saved layer settings, appendages' included.
 /proc/custom_sprite_appearance_drawing(list/drawing, allow_emissives)
 	if(!drawing)
 		return null
 	var/list/result = deep_copy_list(drawing)
 	result["emissive"] = custom_sprite_emissive_settings(allow_emissives ? result["emissive"] : FALSE)
+	for(var/_key, entry in result["appendages"])
+		var/list/appendage = entry
+		appendage["emissive"] = custom_sprite_emissive_settings(allow_emissives ? appendage["emissive"] : FALSE)
 	return result
+
+/**
+ * Whether a character setup preview reaches above the one tile its smallest canvas shows: a body
+ * taller than average, or hair lifted or painted above the head.
+ */
+/proc/custom_sprite_preview_reaches_up(mob/living/carbon/human/body)
+	if(body.mob_height > HUMAN_HEIGHT_MEDIUM)
+		return TRUE
+	var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[body.hairstyle]
+	if(hairstyle?.y_offset > 0)
+		return TRUE
+	var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
+	return custom_sprite_height(head?.custom_hair) > 32
+
+/**
+ * Character setup's dummy stretches as one piece, with height maps that only cover its own tile, so
+ * anything drawn above the head (tall hair, lifted hairstyles, tall hats) would stay put as the head
+ * moved and tear where the tile ends. Each map carries on 32 rows upward as its top row, moved up so
+ * its own rows stay on the tile, and everything above the tile moves as the head does. A transparent
+ * spacer as tall as the maps keeps the rows they lift from being cut off at the top.
+ */
+/mob/living/carbon/human/dummy/apply_height(image/appearance, body_area)
+	. = ..()
+	if(appearance != src || body_area != ENTIRE_BODY)
+		return
+	var/static/list/tall_maps = list()
+	var/stretched = FALSE
+	for(var/list/filter_info as anything in filter_data)
+		if(filter_info["type"] != "displace")
+			continue
+		var/icon/map = filter_info["icon"]
+		if(!map)
+			continue
+		tall_maps[map] ||= custom_sprite_extend_up(map, 64)
+		modify_filter(filter_info["name"], list("icon" = tall_maps[map], "y" = 16))
+		stretched = TRUE
+	if(stretched)
+		// The body is drawn only as far as its images reach, so rows lifted past the top need room to land in.
+		var/static/mutable_appearance/headroom = mutable_appearance(custom_sprite_blank_icon(32, 64))
+		add_overlay(headroom)
 
 /obj/item/bodypart/head
 	/// This owner's hair drawing; DNA and head snapshots are copied independently.
@@ -110,11 +153,36 @@
 		paint.Blend(custom_sprite_extend_up(mask_icon, paint.Height()), ICON_ADD)
 	return paint
 
-/// Adds the painted layer for one head target to `hair_overlays`: its blocker, the tinted paint (with its gradient), then its glow.
+/// Adds the painted layer for one head target to `hair_overlays`: its blocker, the tinted paint (with its gradient), then its glow. Hair's appendages follow.
 /obj/item/bodypart/head/proc/append_custom_hair_paint_overlays(list/hair_overlays, icon/paint, datum/sprite_accessory/hair/hairstyle, dropped, target = "hair")
 	if(!paint)
 		return
 	var/list/drawing = custom_head_drawing(target)
+	var/facial = target == "facial_hair"
+	// Hair can carry appendages without paint of its own.
+	if(length(drawing["dirs"]))
+		var/list/geometry = list(target, custom_sprite_pixel_hash(drawing), hairstyle.type, facial ? 0 : hairstyle.y_offset)
+		if(!facial)
+			for(var/datum/hair_mask/mask as anything in owner?.hair_masks)
+				geometry += "[mask.icon]|[mask.icon_state]"
+		// Legacy paint is merged into the base hair; its OFF mask must still cover base hair emission.
+		append_custom_paint_image(hair_overlays, paint, drawing["tint"], drawing["emissive"], -HAIR_LAYER, json_encode(geometry), hairstyle, dropped, target, merged = !drawing["tint"])
+	if(!facial)
+		append_custom_appendage_overlays(hair_overlays, hairstyle, dropped)
+
+/**
+ * Adds one painted layer to `hair_overlays` where the head draws it: its blocker mask, the paint and
+ * its gradient, then its glow mask.
+ *
+ * Arguments:
+ * - tint: The drawing's colour filter. Paint without one follows the hair colour, as untinted paint
+ *   merged into the hair always has.
+ * - emissive: This layer's own per-view emission settings.
+ * - layer: The paint's layer, -HAIR_LAYER or -OUTER_HAIR_LAYER.
+ * - geometry_key: Identifies the paint's pixels and trimming for the shared mask caches.
+ * - merged: The paint is already part of the hair's own image, so only its masks are added.
+ */
+/obj/item/bodypart/head/proc/append_custom_paint_image(list/hair_overlays, icon/paint, tint, list/emissive, layer, geometry_key, datum/sprite_accessory/hair/hairstyle, dropped, target = "hair", merged = FALSE)
 	var/facial = target == "facial_hair"
 	var/offset_x = 0
 	var/offset_z = facial ? 0 : hairstyle.y_offset
@@ -122,29 +190,27 @@
 		offset_x = owner.dna.species.offset_features[OFFSET_HAIR][INDEX_W]
 		offset_z += owner.dna.species.offset_features[OFFSET_HAIR][INDEX_Z]
 	var/alpha_to_use = facial ? facial_hair_alpha : hair_alpha
-	var/image/tinted = image(paint, layer = -HAIR_LAYER, dir = dropped ? SOUTH : null)
-	tinted.appearance_flags |= RESET_COLOR
-	tinted.color = drawing["tint"]
-	tinted.alpha = alpha_to_use
-	tinted.pixel_x = offset_x
-	tinted.pixel_z = offset_z
-	worn_face_offset?.apply_offset(tinted)
-	var/list/geometry = list(target, custom_sprite_pixel_hash(drawing), hairstyle.type, facial ? 0 : hairstyle.y_offset)
-	if(!facial)
-		for(var/datum/hair_mask/mask as anything in owner?.hair_masks)
-			geometry += "[mask.icon]|[mask.icon_state]"
-	var/geometry_key = json_encode(geometry)
-	// Legacy paint is merged into the base hair; its OFF mask must still cover base hair emission.
-	custom_sprite_append_mask(hair_overlays, paint, geometry_key, drawing["emissive"], FALSE, tinted, loc || owner || src, dropped)
-	if(drawing["tint"])
-		hair_overlays += tinted
+	var/image/painted = image(paint, layer = layer, dir = dropped ? SOUTH : null)
+	if(tint || merged)
+		painted.appearance_flags |= RESET_COLOR
+		painted.color = tint
+	else
+		set_overlay_hair_color(painted, hair_color)
+	painted.alpha = alpha_to_use
+	painted.pixel_x = offset_x
+	painted.pixel_z = offset_z
+	worn_face_offset?.apply_offset(painted)
+	var/atom/location = loc || owner || src
+	custom_sprite_append_mask(hair_overlays, paint, geometry_key, emissive, FALSE, painted, location, dropped)
+	if(!merged)
+		hair_overlays += painted
 		// The base gradient is built from the accessory alone, so painted pixels need their own copy.
 		var/gradient_key = custom_style_gradient_key(target)
 		var/gradient_style = get_hair_gradient_style(gradient_key)
 		var/list/gradients = custom_style_hair_gradients(target)
 		if(gradient_style != SPRITE_ACCESSORY_NONE && gradients[gradient_style])
 			var/datum/sprite_accessory/gradient = gradients[gradient_style]
-			var/image/paint_gradient = get_gradient_overlay(paint, -HAIR_LAYER, gradient, get_hair_gradient_color(gradient_key), dropped)
+			var/image/paint_gradient = get_gradient_overlay(paint, layer, gradient, get_hair_gradient_color(gradient_key), dropped)
 			// The gradient sheet is 32 rows; over tall paint it carries on upward as its top row does.
 			if(paint.Height() > 32)
 				var/icon/tall_gradient = custom_sprite_extend_up(icon(gradient.icon, gradient.icon_state), paint.Height())
@@ -156,16 +222,16 @@
 				hair_overlays += paint_gradient
 			else
 				// Match native hair composition: blend first, then apply opacity once.
-				hair_overlays -= tinted
-				var/image/shared_holder = image(layer = -HAIR_LAYER, dir = dropped ? SOUTH : null)
+				hair_overlays -= painted
+				var/image/shared_holder = image(layer = layer, dir = dropped ? SOUTH : null)
 				shared_holder.alpha = alpha_to_use
 				shared_holder.appearance_flags |= KEEP_TOGETHER
-				var/image/opaque_paint = image(tinted)
+				var/image/opaque_paint = image(painted)
 				opaque_paint.alpha = 255
 				shared_holder.overlays += opaque_paint
 				shared_holder.overlays += paint_gradient
 				hair_overlays += shared_holder
-	custom_sprite_append_mask(hair_overlays, paint, geometry_key, drawing["emissive"], TRUE, tinted, loc || owner || src, dropped)
+	custom_sprite_append_mask(hair_overlays, paint, geometry_key, emissive, TRUE, painted, location, dropped)
 
 /// Adds `paint`'s glow mask (`glowing`) or blocker mask to `overlays` for the facings whose emissive setting matches,
 /// placed like `visible`. Adds nothing when no facing matches. Dropped heads and limbs face South.

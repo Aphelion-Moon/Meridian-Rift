@@ -71,7 +71,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 			markings = custom_style_marking_entries(zone == limb?.aux_zone ? limb?.aux_zone_markings : limb?.markings)
 		var/datum/bodypart_overlay/custom_marking/marking = limb?.get_custom_marking(custom_marking_zone_overlay_type(zone))
 		drawing = marking?.drawing
-	return custom_style_package(target, zone, custom_sprite_validate(drawing), custom_style_hair_target(target) ? custom_style_live_hair_context(body, target) : null, markings)
+	return custom_style_package(target, zone, custom_sprite_validate(drawing, allow_appendages = target == "hair"), custom_style_hair_target(target) ? custom_style_live_hair_context(body, target) : null, markings)
 
 /**
  * A cheap fingerprint of one marking zone's live look: its paint's hash and its native markings.

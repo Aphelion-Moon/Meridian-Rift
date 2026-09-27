@@ -737,7 +737,7 @@ it('copies selected base hair beneath custom paint without writing until paste i
   const { tool, data, context, select } = fixture([[clear, red, clear, clear]]);
   data.baseCopyInfo = hairInfo(1);
   select([0, 0, 2, 0]);
-  expect(tool.copyBaseLayer(context, data)).toBe(true);
+  expect(tool.copyMerged(context, data)).toBe(true);
   expect(send).toHaveBeenLastCalledWith('copyBaseLayer', {
     request: 1,
     dir: '2',
@@ -781,7 +781,7 @@ it('keeps selection holes out of base-hair copies', () => {
   select([0, 0, 2, 0]);
   tool.onMouseDown(context, data, 1, 0, true);
   tool.onMouseUp(context, data, 1, 0);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   expect(send.mock.calls[0][1].mask).toEqual(['101']);
   tool.receiveBaseCopy({
     request: 1,
@@ -805,7 +805,7 @@ it('does not let a delayed base response replace a later ordinary copy', () => {
   const { tool, data, context, select } = fixture([[red, clear, clear, clear]]);
   data.baseCopyInfo = hairInfo(1);
   select([0, 0, 1, 0]);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   tool.copy(context, data);
   expect(
     tool.receiveBaseCopy({
@@ -831,7 +831,7 @@ it('preserves hair placement through a lifted style changing to a tall bald canv
   const { tool, data, context, select } = fixture(rows);
   data.baseCopyInfo = hairInfo(32, [1, 16]);
   select([3, 20, 3, 20]);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   const codes = Array(1024).fill('0');
   codes[20 * 32 + 3] = '1';
   tool.receiveBaseCopy({
@@ -860,7 +860,7 @@ it('refuses a base paste that would clip hair and keeps its clipboard for a tall
   ]);
   data.baseCopyInfo = hairInfo(1, [0, 2]);
   select([0, 0, 1, 0]);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   tool.receiveBaseCopy({
     request: 1,
     source: 'hair-editor',
@@ -888,15 +888,15 @@ it('refuses a base paste that would clip hair and keeps its clipboard for a tall
   expect(placed()).toEqual([[0, 0, blue]]);
 });
 
-it('leaves base copying disabled for other editors and rejects cross-editor base pastes', () => {
+it('copies merged at once where there is no base to ask for, and rejects cross-editor base pastes', () => {
   const { tool, data, context, select } = fixture([
     [clear, clear, clear, clear],
   ]);
   select([0, 0, 1, 0]);
-  expect(tool.copyBaseLayer(context, data)).toBe(false);
+  expect(tool.copyMerged(context, data)).toBe(true);
   expect(send).not.toHaveBeenCalled();
   data.baseCopyInfo = hairInfo(1);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   tool.receiveBaseCopy({
     request: 1,
     source: 'hair-editor',
@@ -921,7 +921,7 @@ it('previews copied base markings with their trusted token before a normal undoa
   data.selectionPreview = true;
   context.drawMask = ['1110'];
   select([0, 0, 2, 0]);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   tool.receiveBaseCopy({
     request: 1,
     source: 'marking-editor',
@@ -960,7 +960,7 @@ it('keeps a base clipboard when destination regions become locked instead of cli
   data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
   context.drawMask = ['1110'];
   select([0, 0, 1, 0]);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   tool.receiveBaseCopy({
     request: 1,
     source: 'marking-editor',
@@ -992,7 +992,7 @@ it('keeps humanoid body coordinates centered when a wide marking copy is pasted 
   const { tool, data, context, select } = fixture(frame);
   data.baseCopyInfo = { source: 'marking-editor', origin: [0, 0], height: 1 };
   select([16, 0, 16, 0]);
-  tool.copyBaseLayer(context, data);
+  tool.copyMerged(context, data);
   tool.receiveBaseCopy({
     request: 1,
     source: 'marking-editor',
@@ -1008,4 +1008,85 @@ it('keeps humanoid body coordinates centered when a wide marking copy is pasted 
   tool.paste(context, data);
   tool.release(context);
   expect(placed()).toEqual([[0, 0, blue]]);
+});
+
+it('cuts paint off one layer and pastes it into another, naming each by index and id', () => {
+  const { data, context, tool, select } = fixture([[red, green, blue, clear]]);
+  data.layerTarget = { layer: 2, layerId: 'a1' };
+  select([0, 0, 1, 0]);
+  expect(tool.cut(context, data)).toBe(true);
+  expect(send.mock.calls[0][1].transaction).toMatchObject({
+    layer: 2,
+    layerId: 'a1',
+  });
+  expect(placed()).toEqual([
+    [0, 0, clear],
+    [1, 0, clear],
+  ]);
+  // Changing tabs takes the marquee away, then the canvas shows the other layer.
+  tool.release(context);
+  data.layerTarget = { layer: 3, layerId: 'a2' };
+  data.layers[0].data[Dir.SOUTH] = [[clear, clear, clear, clear]];
+  send.mockClear();
+  expect(tool.paste(context, data)).toBe(true);
+  tool.release(context);
+  expect(send.mock.calls[0][1].transaction).toMatchObject({
+    layer: 3,
+    layerId: 'a2',
+  });
+  expect(placed()).toEqual([
+    [0, 0, red],
+    [1, 0, green],
+  ]);
+});
+
+it('drops floating paint on the layer it floated from, never on the one shown next', () => {
+  const { data, context, tool, select } = fixture([[red, green, clear, clear]]);
+  data.layerTarget = { layer: 2, layerId: 'a1' };
+  select([0, 0, 1, 0]);
+  tool.flip(context, data);
+  data.layerTarget = { layer: 3, layerId: 'a2' };
+  tool.release(context);
+  expect(send.mock.calls[0][1].transaction).toMatchObject({
+    layer: 2,
+    layerId: 'a1',
+  });
+  expect(placed()).toEqual([
+    [0, 0, green],
+    [1, 0, red],
+  ]);
+  send.mockClear();
+  // Floating paint a reconcile finds on another layer is thrown away rather than written there.
+  data.layerTarget = { layer: 2, layerId: 'a1' };
+  select([0, 0, 1, 0]);
+  tool.flip(context, data);
+  data.layerTarget = { layer: 3, layerId: 'a2' };
+  tool.reconcile(context, data);
+  expect(tool.isFloating()).toBe(false);
+  tool.release(context);
+  expect(send).not.toHaveBeenCalled();
+});
+
+it('copies merged: the view as it shows, the topmost paint of every layer winning', () => {
+  const { data, context, tool, select } = fixture([
+    [clear, green, clear, clear],
+  ]);
+  data.mergeLayers = () => ({
+    dir: Dir.SOUTH,
+    below: [[[red, red, red, clear]]],
+    above: [[[clear, clear, blue, clear]]],
+  });
+  select([0, 0, 3, 0]);
+  expect(tool.copyMerged(context, data)).toBe(true);
+  // With no native base to add, nothing is asked of the server.
+  expect(send).not.toHaveBeenCalled();
+  tool.release(context);
+  data.layers[0].data[Dir.SOUTH] = [[clear, clear, clear, clear]];
+  tool.paste(context, data);
+  tool.release(context);
+  expect(placed()).toEqual([
+    [0, 0, red],
+    [1, 0, green],
+    [2, 0, blue],
+  ]);
 });

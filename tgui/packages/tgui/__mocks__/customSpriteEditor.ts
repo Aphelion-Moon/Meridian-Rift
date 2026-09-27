@@ -125,6 +125,7 @@ export const setupEditorTests = () => {
     backendStore.set(gameDataAtom, fixture());
     send = spyOn(actions, 'sendAct');
     startKeyPassthrough();
+    const noop = () => undefined;
     const context = {
       fillStyle: '',
       clearRect: () => {
@@ -133,6 +134,19 @@ export const setupEditorTests = () => {
       fillRect: () => {
         painted.push(context.fillStyle);
       },
+      // Layered hair composes images; the tests read what reaches the canvas through fillRect.
+      drawImage: noop,
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4),
+      }),
+      putImageData: noop,
+      save: noop,
+      restore: noop,
+      beginPath: noop,
+      moveTo: noop,
+      lineTo: noop,
+      stroke: noop,
+      setLineDash: noop,
     };
     getContext = spyOn(
       HTMLCanvasElement.prototype,

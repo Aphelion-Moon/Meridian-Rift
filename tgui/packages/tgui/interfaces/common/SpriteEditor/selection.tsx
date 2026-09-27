@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { useAtomValue } from 'jotai';
+import { atom, useAtom, useAtomValue, useStore } from 'jotai';
 import { useEffect, useLayoutEffect } from 'react';
 import { store as backendStore, suspendingAtom } from 'tgui/events/store';
 import { Button } from 'tgui-core/components';
@@ -18,6 +18,9 @@ import { useClaimedKeys } from './useClaimedKeys';
 export const ROTATE_SELECTION_KEY = 'r';
 /// With Shift, mirrors the selection left to right, as Shift+H flips horizontally in Aseprite.
 export const MIRROR_SELECTION_KEY = 'h';
+
+/** Whether Ctrl+C copies merged: the view as it shows, every paint layer and the base included. */
+export const mergedCopyAtom = atom(false);
 
 /**
  * The canvas selection commands act on: its current tool, live context and sprite. A window has one
@@ -56,9 +59,10 @@ export const settleSelection = () => {
 };
 
 /**
- * Selection keys while the Select tool is current: Ctrl+C copies, Ctrl+V pastes into the view shown,
- * R turns the selection clockwise and Shift+R counter-clockwise, Shift+H mirrors it left to right,
- * and Enter drops it. Keys that have nothing to act on pass through untouched.
+ * Selection keys while the Select tool is current: Ctrl+C copies (merged while Merged is lit),
+ * Ctrl+Shift+C copies merged, Ctrl+X cuts, Ctrl+V pastes into the view and layer shown, R turns the
+ * selection clockwise and Shift+R counter-clockwise, Shift+H mirrors it left to right, and Enter
+ * drops it. Keys that have nothing to act on pass through untouched.
  */
 export function useSelectionCommands(
   tool: Tool,
@@ -66,6 +70,7 @@ export function useSelectionCommands(
   data: SpriteData,
   disabled: boolean,
 ) {
+  const store = useStore();
   useLayoutEffect(() => {
     canvas = disabled ? undefined : { tool, context, data };
   });
@@ -97,13 +102,16 @@ export function useSelectionCommands(
     }
     const { select, context, data } = current;
     if (event.ctrlKey) {
+      if (key === 'c') {
+        return event.shiftKey || store.get(mergedCopyAtom)
+          ? select.copyMerged(context, data)
+          : select.copy(context, data);
+      }
       if (event.shiftKey) return false;
-      if (key === 'c') return select.copy(context, data);
+      if (key === 'x') return select.cut(context, data);
       if (key === 'v') return select.paste(context, data);
       return false;
     }
-    if (key === 'c' && event.shiftKey)
-      return select.copyBaseLayer(context, data);
     if (key === MIRROR_SELECTION_KEY) {
       return event.shiftKey && select.flip(context, data);
     }
@@ -139,9 +147,16 @@ const SelectionButton = (props: {
   />
 );
 
-/** Turn and mirror buttons for the toolbar, shown while there is a selection. */
-export const SelectionTools = (props: { className?: string }) => {
+/**
+ * Turn and mirror buttons for the toolbar, shown while there is a selection, and the Merged toggle
+ * where a merged copy differs from a plain one: its tooltip names what it adds.
+ */
+export const SelectionTools = (props: {
+  className?: string;
+  mergedTooltip?: string;
+}) => {
   const bounds = useAtomValue(selectionBoundsAtom);
+  const [merged, setMerged] = useAtom(mergedCopyAtom);
   if (!bounds) return null;
   const turn = ROTATE_SELECTION_KEY.toUpperCase();
   const mirror = MIRROR_SELECTION_KEY.toUpperCase();
@@ -168,6 +183,20 @@ export const SelectionTools = (props: { className?: string }) => {
         badge={`⇧${mirror}`}
         command={mirrorSelection}
       />
+      {!!props.mergedTooltip && (
+        <Button
+          icon="tg-zaphelion-layers"
+          selected={merged}
+          aria-pressed={merged}
+          tooltip={props.mergedTooltip}
+          onClick={(event) => {
+            setMerged(!merged);
+            event.currentTarget.blur();
+          }}
+        >
+          Merged
+        </Button>
+      )}
     </div>
   );
 };

@@ -101,6 +101,18 @@ export type BaseCopyResult = { request: number } & (
       codes: string;
     }
 );
+/** The server layer a canvas paints when it shows one of several: its index and its id. */
+export type LayerTarget = { layer: number; layerId: string };
+/**
+ * The view's other paint layers in draw order, below and above the one being painted, for a merged
+ * copy. A getter, so the layers are gathered only when a copy is made and never serialized with the
+ * sprite.
+ */
+export type MergeLayers = () => {
+  dir: Dir;
+  below: StringLayer[];
+  above: StringLayer[];
+};
 // APHELION EDIT ADDITION END
 
 export type SpriteData = {
@@ -112,6 +124,8 @@ export type SpriteData = {
   compactStrokes?: BooleanLike; // APHELION EDIT ADDITION
   selectionPreview?: BooleanLike; // APHELION EDIT ADDITION
   baseCopyInfo?: BaseCopyInfo; // APHELION EDIT ADDITION
+  layerTarget?: LayerTarget; // APHELION EDIT ADDITION
+  mergeLayers?: MergeLayers; // APHELION EDIT ADDITION
 };
 
 export enum SpriteEditorColorMode {

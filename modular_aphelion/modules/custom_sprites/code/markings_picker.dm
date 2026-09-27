@@ -37,6 +37,8 @@
 				var/left = round((32 - width) / 2)
 				var/bottom = round((32 - height) / 2)
 				preview.crop(1 - left, 1 - bottom, 32 - left, 32 - bottom)
+			// Many markings are faint shading; tripled opacity shows their shape in pickers.
+			preview.map_colors_rgba(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3)
 			sheet.insert_icon(sprite_class, preview)
 
 /// Salon artists reuse the preferences sheet already cached by the client.

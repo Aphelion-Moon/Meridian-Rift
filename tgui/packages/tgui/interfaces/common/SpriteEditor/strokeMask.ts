@@ -25,6 +25,16 @@ export const encodeStrokeMask = (
   return mask;
 };
 
+/**
+ * The layer a transaction names. A canvas that shows one of several layers names its layer by index
+ * and id, so a stroke for a layer that undo has since moved is refused rather than landing on another.
+ */
+export const strokeLayer = (
+  data: SpriteData | undefined,
+  layer: number,
+): { layer: number; layerId?: string } =>
+  data?.layerTarget ?? { layer: layer + 1 };
+
 /** A stroke's pixels as its transaction carries them: a mask where the server reads one, otherwise a point list. */
 export const strokePixels = (
   points: Map<string, [number, number]>,

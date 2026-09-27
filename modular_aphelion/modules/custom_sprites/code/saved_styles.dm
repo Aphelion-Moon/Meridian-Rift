@@ -248,7 +248,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		if(markings_result["error"])
 			return markings_result
 		markings = markings_result["markings"]
-	package = custom_style_package(target, zone, custom_sprite_validate(package["drawing"]), package["hair"], markings)
+	package = custom_style_package(target, zone, custom_sprite_validate(package["drawing"], allow_appendages = target == "hair"), package["hair"], markings)
 	var/list/current = custom_style_saved_package(target, zone)
 	// A drawing-only hair package keeps the saved base look.
 	if(custom_style_hair_target(target) && !package["hair"])

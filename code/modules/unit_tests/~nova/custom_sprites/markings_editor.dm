@@ -167,6 +167,31 @@
 	TEST_ASSERT(!(editor.selected_zone != BODY_ZONE_R_LEG || !findtext(editor.transfer_notice, "no taur")), "Focusing a region this body doesn't have keeps the selection and says why.")
 	editor.finish(FALSE)
 
+/datum/unit_test/custom_sprite_markings_editor_species_choices/Run()
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], FALSE)
+	var/foreign
+	for(var/name in GLOB.body_markings_per_limb[BODY_ZONE_L_ARM])
+		var/datum/body_marking/marking = GLOB.body_markings[name]
+		if(marking.recommended_species && !marking.recommended_species[SPECIES_HUMAN])
+			foreign = name
+			break
+	TEST_ASSERT(foreign, "The fixture needs a left arm marking meant for another species.")
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_L_ARM)
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	var/list/static_data = editor.ui_static_data(mock_client.mob)
+	var/list/choices = static_data["regionMarkingChoices"][BODY_ZONE_L_ARM]
+	TEST_ASSERT(length(choices) && !(foreign in choices), "Without mismatched parts, a region offers only its species' markings.")
+	TEST_ASSERT(editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "Adding a base marking must work.")
+	var/list/added = editor.workspace.markings_context[BODY_ZONE_L_ARM][1]
+	TEST_ASSERT(added["name"] in choices, "Adding a base marking picks one the region offers.")
+	TEST_ASSERT(!editor.ui_act("setBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 1, "name" = foreign), ui, null), "Without mismatched parts, another species' marking is refused.")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+	TEST_ASSERT(editor.ui_act("setBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 1, "name" = foreign), ui, null), "Mismatched parts allow any species' marking.")
+	editor.finish(FALSE)
+
 /datum/unit_test/custom_sprite_markings_editor_palette_overflow/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)

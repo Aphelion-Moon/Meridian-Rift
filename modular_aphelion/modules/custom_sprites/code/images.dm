@@ -167,7 +167,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	return length(map) ? map : null
 
 /// Paints a drawing into a workspace's frames, centred on a wider canvas and at the bottom of a taller one.
-/proc/custom_sprite_hydrate(datum/sprite_editor_workspace/workspace, list/drawing)
+/proc/custom_sprite_hydrate(datum/sprite_editor_workspace/workspace, list/drawing, layer = 1, list/views = drawing?["dirs"])
 	if(!drawing)
 		return
 	var/list/palette = drawing["palette"]
@@ -176,16 +176,22 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	// Centered on a wider canvas; at the bottom of a taller one, where the body is.
 	var/offset_x = (workspace.width - width) / 2
 	var/offset_y = workspace.height - height
-	for(var/direction, encoded in drawing["dirs"])
+	// Grid character -> pixel value, worked out once rather than for every pixel.
+	var/list/pixel_values = list()
+	for(var/character, index in custom_sprite_index_values())
+		if(index > length(palette))
+			break
+		pixel_values[character] = index ? "[palette[index]]ff" : "#00000000"
+	for(var/direction, encoded in views)
 		var/grid = custom_sprite_decode_grid(encoded, length(palette), width * height)
 		if(!grid)
 			continue
-		var/list/frame = workspace.layers[1]["data"][direction]
+		var/list/frame = workspace.layers[layer]["data"][direction]
 		for(var/y in 1 to height)
+			var/list/row = frame[y + offset_y]
+			var/position = (y - 1) * width
 			for(var/x in 1 to width)
-				var/position = (y - 1) * width + x
-				var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, copytext(grid, position, position + 1)) - 1
-				frame[y + offset_y][x + offset_x] = index > 0 ? "[palette[index]]ff" : "#00000000"
+				row[x + offset_x] = pixel_values[copytext(grid, position + x, position + x + 1)]
 
 /// Called by debounced previews and appearance rendering, never by the per-stroke UI payload. Throwaway drawings skip the cache.
 /proc/custom_sprite_paint_icon(list/drawing, cache = TRUE)

@@ -49,7 +49,7 @@
 	for(var/direction in GLOB.custom_style_directions)
 		drawing["dirs"][direction] = "f[repeat_string(1024, "1_")]"
 	var/full_text = custom_style_export_text(custom_style_package("markings", "taur", drawing, null))
-	TEST_ASSERT(!(length(full_text) > CUSTOM_STYLE_MAX_BYTES || custom_style_parse(full_text)["error"]), "All four worst-case wide views and 63 colors must fit the unchanged 16 KiB import cap.")
+	TEST_ASSERT(!(length(full_text) > CUSTOM_STYLE_MAX_BYTES || custom_style_parse(full_text)["error"]), "All four worst-case wide views and 63 colors must fit the single-target import cap.")
 	drawing["palette"] += "#ffffff"
 	TEST_ASSERT(custom_style_parse(custom_style_export_text(custom_style_package("markings", "taur", drawing, null)))["error"], "Version 3 must retain the 63-color import limit.")
 
@@ -79,6 +79,10 @@
 
 /datum/unit_test/custom_style_parse_hostile/Run()
 	var/valid = custom_style_test_export()
+	// Doubled rather than repeat_string(), which copies its whole result once per character.
+	var/oversized = "a"
+	while(length(oversized) < CUSTOM_STYLE_MAX_BYTES)
+		oversized += oversized
 	var/list/cases = list(
 		"trailing content" = "[valid] {}",
 		"unterminated" = copytext(valid, 1, length(valid) - 2),
@@ -88,7 +92,7 @@
 		"bad literal" = "{\"emissive\":fals}",
 		"trailing comma" = "{\"a\":1,}",
 		"deep nesting" = "{\"a\":" + repeat_string(200, "\[") + repeat_string(200, "]") + "}",
-		"oversized" = "{\"a\":\"[repeat_string(CUSTOM_STYLE_MAX_BYTES, "a")]\"}",
+		"oversized" = "{\"a\":\"[oversized]\"}",
 		"empty" = "",
 	)
 	for(var/name, json in cases)
@@ -287,5 +291,5 @@
 	TEST_ASSERT(custom_style_parse(json_encode(envelope))["error"], "A whole-body file needs at least one region.")
 	var/padding = custom_style_test_spaces(CUSTOM_STYLE_MAX_BYTES)
 	var/list/single = json_decode(custom_style_export_text(regions[BODY_ZONE_L_ARM]))
-	TEST_ASSERT(findtext(custom_style_parse("[json_encode(single)][padding]")["error"], "16 KiB"), "Single-region files keep their 16 KiB cap.")
+	TEST_ASSERT(findtext(custom_style_parse("[json_encode(single)][padding]")["error"], "[CUSTOM_STYLE_MAX_BYTES / 1024] KiB"), "Single-region files keep the single-target cap.")
 	TEST_ASSERT(findtext(custom_style_parse(custom_style_test_spaces(CUSTOM_STYLE_MAX_BODY_BYTES + 1))["error"], "160 KiB"), "Every file keeps the 160 KiB cap.")

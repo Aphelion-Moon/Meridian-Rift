@@ -25,8 +25,12 @@ Their tooltips say what each one draws over. A button is lit up, with a check
 mark, once its drawing has paint; an empty canvas saves as no drawing, so it
 stays plain. The **+** disappears once a limb has its three markings. A limb
 can't wear the same marking twice: **+** picks at random from the ones it doesn't
-have, and each row's dropdown leaves out names the other rows use, the same way
+have (without **Allow mismatched parts**, only those meant for the character's
+species, as the dropdowns list), and each row's dropdown leaves out names the other rows use, the same way
 the editor's Base markings section does. The server refuses duplicates from either.
+Both pickers zoom each marking's icon to its body part over a grey checkerboard and
+draw it at triple opacity, so dark and faint shading markings stay visible; the
+zoom areas in `ChoicedSelection.tsx` were measured to fit every current marking.
 With a taur body selected and enabled, the legs have no paintable pixels and
 their markings never show, so both leg sections swap their + and Custom buttons
 for a **Taur body** button, and the server refuses new leg markings.
@@ -82,6 +86,20 @@ Hair masks from hats and hair gradients carry on over the extra rows as their
 top row does. The salon's hair editor and the mirror's pictures follow the same
 rules.
 
+Character setup's dummy is drawn as one piece with its height filters on the
+whole body, and tg's 32 by 32 maps only cover the body's own tile. Anything drawn
+above the tile, such as tall paint, a lifted hairstyle or a tall hat, stayed put
+while a Short to Tallest body moved its head, so rows were lost or repeated
+where the tile ends. `/mob/living/carbon/human/dummy/apply_height()` carries each
+map on 32 rows upward as its top row, moved up so the map's own rows stay on the
+tile, so everything above the tile moves as the head does. The body is drawn only
+as far as its images reach, so a transparent spacer 64 rows tall keeps the rows
+the maps lift from being cut off at the top. In game, hair only takes the head's
+pixel offset and never tore; markings sit on their limbs and stretch with them in
+both places. Character setup's preview also gets its larger canvas for a body
+taller than Average and for hair lifted or painted above the head, as it already
+did for oversized bodies and taurs, so the top of the head isn't cut off.
+
 #### Lifted hairstyles
 
 Some base hairstyles are drawn above the head: Afro (Huge) sits 6 pixels up and
@@ -105,6 +123,72 @@ Uncomment `DISALLOW_CUSTOM_SPRITE_EDITING` at the end of
 `config/nova/config_nova.txt` to hide the buttons and reject editing actions.
 Saved drawings still render. Editors check the owning client, character slot,
 target and optional body zone on the server, including after color-picker dialogs.
+
+#### Hair appendages
+
+Custom hair can carry up to three appendage layers (`CUSTOM_SPRITE_MAX_APPENDAGES`)
+besides the base hair, which behave as hairstyles' own `hair_appendages_inner` and
+`hair_appendages_outer` pieces do:
+
+- **Under hats** pieces draw with the hair, under headwear. A worn hair mask trims
+  one only when the mask's `strict_coverage_zones` include where it attaches.
+- **Over hats** pieces draw on `OUTER_HAIR_LAYER`, above headwear, and are never
+  trimmed. While a worn mask strictly covers where one attaches, it isn't drawn.
+
+A piece attaches at one `HAIR_APPENDAGE_*` zone, listed as Crown, Forehead, Left
+side, Right side, Back of the head, Down the front and Down the back, names that
+never reuse the view names. Berets and hard hats cover the crown; fedoras and
+security helmets also cover the sides and the back of the head; winter hoods and
+hoodies cover hair down the back as well. No hat covers the forehead or hair down
+the front. Tint, gradients, alpha, lifts, species offsets and dropped heads follow
+the base paint, and emission is set per layer and view.
+
+The hair editor has a layer strip under the view switcher: **Base hair layer**, a
+tab per appendage (its kind, name, zone and a pip for the view shown), **+
+Appendage layer** while there's room for another, and the count. Long names are
+shortened on their tabs, whose tooltips carry them whole. While the base hair is
+chosen the canvas takes the whole column, and its tab's tooltip explains
+appendages. An appendage gets a panel under the canvas that picks its kind and
+zone, shows the try-on hats that cover each zone, and says in one sentence what
+the tried-on hat does to it. The window crops those hat chips from the hats' front
+views itself, since BYOND exports an icon smaller than a tile padded out to 32 by
+32. The pencil beside its name renames it, 20 characters at most
+(`CUSTOM_SPRITE_MAX_APPENDAGE_NAME`), cleaned as the server cleans names.
+**Copy to over-hat layer** copies an under-hat piece to a new over-hat layer, for
+a piece that should stay under headwear in some views and over it in others, and
+**Remove** removes it. Clear, Emissive and the view pips act on the chosen layer.
+Adding, removing, renaming, moving, changing kind and copying are undoable steps in
+the one history, and every layer shares the drawing's 63 colors. The salon's hair
+editors work the same way.
+
+The canvas shows the chosen layer's every pixel. The others show as they'd be
+worn, faded, in draw order: the base hair, under-hat pieces, the hat, over-hat
+pieces. **Try on**, under the preview while an appendage is chosen, puts a hard
+hat, a fedora or a winter hood (one per hair mask the game's hats use) on the
+canvas at half strength and on the preview, and hatches the chosen layer's paint
+that hat trims (white) or hides (in the over-hat colour); resting the cursor there
+names the hat. The base hair is always painted with no hat on. The hats' masks and
+placed sprites are static data built with the other resources, cached per canvas
+height and lift. Each Meridian theme gives the layer kinds, the tried-on hat and
+the layer controls colours from its own palette (`$appendage-themes` in
+`CustomSpriteEditor.scss`), and the canvas reads them for its strikes and lines.
+
+Strokes, fills and selection moves name their layer by index and id, so a stroke
+meant for a layer that undo has just moved is refused instead of landing on
+another. The window receives only the visible view of each appendage and waits
+for a view it turns to before letting it be painted.
+
+The hair drawing gains an optional `appendages` object keyed `"1"` to `"3"`, each
+`{name, zone, outer, dirs, emissive}` in the drawing's palette, version and size;
+a tall drawing's appendages are tall. A drawing without appendages saves exactly
+as before. Loading drops a bad or empty appendage on its own and keeps the rest;
+imports are strict. A drawing whose base hair is empty but whose appendages have
+paint is valid. Unpainted appendage layers survive hairstyle changes and canvas
+resizes but aren't saved. A canvas resize keeps every layer in its place under its
+id, so the window stays on the layer it was painting. Facial hair and markings
+never carry appendages. In
+practice an appendage adds 1-2 KB to a slot; three incompressible tall ones fit
+the 32 KiB single-target import limit.
 
 #### Regions and selection
 
@@ -192,8 +276,14 @@ the drag crossed stays selected. A plain click off the body changes nothing.
   show floating paint when it is written.
 - Ctrl+C copies the selection's shape and paint, floating or not. The copy lives
   in the tgui window rather than the editor, so an editor opened later in the same
-  window can still paste it. Ctrl+V pastes it as floating paint where it was
-  copied from, in whichever view is showing, with part of it on the canvas. R turns
+  window can still paste it. Ctrl+X copies and takes the paint off in one step.
+  Ctrl+V pastes it as floating paint where it was copied from, in whichever view
+  and layer are showing, with part of it on the canvas. Where there is a native
+  base or other layers to add, a **Merged** toggle sits beside turn and mirror:
+  while it's lit, Ctrl+C copies the selection as it shows, every layer's paint
+  with the topmost winning and the native base hair or markings under it, and
+  Ctrl+Shift+C does that once. The layers are composed in the window; only the
+  base pixels come from the server, as one paced request. R turns
   the selection a quarter turn clockwise about its middle and Shift+R
   counter-clockwise; paint still on the canvas is lifted to float first. Shift+H
   mirrors it left to right the same way, as Shift+H flips horizontally in Aseprite
@@ -218,8 +308,9 @@ the drag crossed stays selected. A plain click off the body changes nothing.
   A selection move is one action,
   including overlapping moves and pixels it replaces. Custom drawing history
   keeps up to 100 actions and lasts only for that editor session.
-- Clear is a framed button in the danger colour that fills red on hover and
-  clears the current direction. In the hair editors it reads **Clear direction**.
+- Clear is a framed button with a red icon in the theme's text that fills red on
+  hover (Classic, which spaces grouped buttons in a recessed tray, draws it and
+  Remove solid red), and clears the current direction. In the hair editors it reads **Clear direction**.
   With no region selected it reads **Clear region** and
   is disabled. It can
   also remove old paint outside bounds that changed with the character's body
@@ -246,8 +337,16 @@ the drag crossed stays selected. A plain click off the body changes nothing.
   The row starts on the character's own background, or the artist's in the
   salon. The choice is never saved, since writing a preference would save and
   close the editor.
-- The window opens at 1000 by 780, or 1100 by 920 for markings and tattoos, whose
-  wider side panel fits base markings, palette and preview without scrolling.
+- The window opens at 1100 by 920, or 1100 by 960 for hair, whose wider side panel
+  also fits its layer strip, the appendage panel and Try on, tall canvas included,
+  in every theme's frame without scrolling. A wide canvas (a taur's whole body)
+  opens at 1400 by 920, since it fits by its width. A view of it with nothing
+  paintable or painted outside its middle half, as a taur's front and back are,
+  shows just that half at twice the size; the canvas keeps its full width, so
+  strokes and selections keep their places. The preview takes whatever height the
+  side panel has left, Try on included, and grows by the largest whole number that
+  fits, with its turn buttons under it as the canvas has; a wide picture that's
+  clear outside its middle half shows just that half the same way.
   Closing the window keeps the unsaved draft and its history; reopening continues
   it with the Pencil selected. Changing direction drops a selection's floating
   paint onto the view it came from; using history cancels the selection and throws
@@ -262,7 +361,8 @@ the drag crossed stays selected. A plain click off the body changes nothing.
 | Alt+left-click | Sample paint, or the visible guide underneath, without changing tools. |
 | Mouse wheel over the canvas or swatches, or [ / ] | Previous / next palette color, wrapping through Palette and available Custom colors. |
 | Escape | Deselect, throwing floating paint away, or dismiss an open swatch menu. |
-| Ctrl+C / Ctrl+V | With Select: copy the selection / paste it as floating paint in the view shown. |
+| Ctrl+C / Ctrl+X / Ctrl+V | With Select: copy / cut the selection, or paste it as floating paint in the view and layer shown. Ctrl+C copies merged while Merged is lit. |
+| Ctrl+Shift+C | With Select: copy the selection merged, as it shows, once. |
 | R / Shift+R | With Select: turn the selection a quarter turn clockwise / counter-clockwise. |
 | Shift+H | With Select: mirror the selection left to right. |
 | Enter | With Select: drop the selection, writing any floating paint. |
@@ -346,8 +446,10 @@ The markings editor owns each region's native markings the same way. The
 selected region's section, titled "Left arm base markings" (its tooltip says
 "Use any tool on a region to select it."), adds, swaps, recolors and removes them,
 in layer order, with the drawing on top. As in character setup, a green **+**
-under the rows adds one until the limb is full. The taur region carries no
-native limb markings, so it has no section. These changes stay in the draft and
+under the rows adds one until the limb is full. As there, without **Allow
+mismatched parts** a region offers only markings meant for the body's species, and
+the server refuses others; the salon follows the recipient's preference. The taur
+region carries no native limb markings, so it has no section. These changes stay in the draft and
 support undo/redo. Saving writes them with the drawings. The salon's tattoo
 canvas has the same section. Salon work uses the recipient's markings and waits
 for their approval; it never edits the artist's character preferences.
@@ -522,7 +624,9 @@ editor-owned data URLs, with no global asset/CDN registration. The browser
 reuses decoded guides, cached shading geometry and unchanged drag previews. Only
 the opened drawing is sent to its editor. The canvas travels as a palette of its
 pixel values and one index string per view: one character per pixel, or two once
-a canvas holds more than 64 values. A stroke re-encodes only its own view.
+a canvas holds more than 64 values. A stroke re-encodes only its own view. An
+appendage layer is encoded only in the view the window shows, and adding or
+removing one leaves the other layers' index strings as they are.
 
 Idle windows don't resend drawings. Hairstyle and native-marking choices,
 guides, the paintable mask and the region map are static UI data, and the sorted
@@ -604,7 +708,10 @@ latest pick throughout, and anything else the window does, closing it or
 saving included, first applies the pick that is waiting. The half second is the
 rebuild spacing, so the preview never updates less often than it already could;
 picks half a second apart or slower all apply at once. A player's hair and
-facial hair editors share the window.
+facial hair editors share the window. A new hairstyle never recolors paint (only
+a new color on the same style does), so its undo step records just the old and
+new look: the paint, its appendage layers, the window's canvas and the rest of
+the history stay as they are.
 
 Pencil and eraser strokes travel as a bit mask of the canvas, one character per
 six pixels, so a stroke across a whole view is a single short message instead of
@@ -918,7 +1025,7 @@ emissive flags may be numeric 0/1, as written by the old save format.
 
 The server enforces the import boundary:
 
-- 160 KiB maximum, checked before the file is read, and 16 KiB for anything but
+- 160 KiB maximum, checked before the file is read, and 32 KiB for anything but
   a whole-body file. BYOND has already received the upload by then. The existing `/client/AllowUpload()` separately enforces
   `upload_limit` (512 KiB by default) or `upload_limit_admin` (5 MiB by default).
 - `rustg_json_is_valid()` before `json_decode()`, so malformed or deeply nested
@@ -931,6 +1038,10 @@ The server enforces the import boundary:
   limited to hair. Markings without a body zone are refused. The color and run limits remain
   strict. Nothing is salvaged: one bad view rejects the file. A non-null drawing
   with no paint is refused, so bad data can never act as Clear.
+- Hair files may carry up to three appendages, numbered from 1 in order, each
+  with exactly its five fields, a name already in its cleaned form, one known
+  zone, a 0/1 kind, paint in the drawing's palette and its own emissive flags.
+  Errors name the appendage by number, never by its uploaded name.
 - Registered, unlocked hairstyles and gradients, character/species eligibility,
   opacity access, and the destination's emissive setting. The last preferences
   tab opened does not affect eligibility.
@@ -995,12 +1106,19 @@ write back exactly as before), `persistence.dm`, `saved_styles.dm`,
 `transfer.dm`, `composite.dm`, `regions.dm`, `workspace.dm`, `editor.dm`,
 `markings_editor.dm`, `appearance.dm`, `salon.dm`, `tall_hair.dm`,
 `lifted_hair.dm`, `region_selection.dm`, `selection_placement.dm`,
-`blending.dm`, `taur_paint.dm`, `hair_interactions.dm`, `palette.dm` and
-`hardening.dm` (deferred drawing, the per-player pace, the hairstyle window,
-stroke masks, placements, kept colours and the safeguards in Server load and
-hostile windows). Each test's `///` says what it pins. Keep temporary
-`TEST_FOCUS` entries out of committed source; there is no separate build
-command for this module, `BUILD.cmd` is the normal Windows entry point.
+`blending.dm`, `taur_paint.dm`, `hair_interactions.dm`, `palette.dm`,
+`appendages.dm` and `hardening.dm` (deferred drawing, the per-player pace, the
+hairstyle window, stroke masks, placements, kept colours and the safeguards in
+Server load and hostile windows). Each test's `///` says what it pins. Keep
+temporary `TEST_FOCUS` entries out of committed source; there is no separate
+build command for this module, `BUILD.cmd` is the normal Windows entry point.
+
+`tools/custom_sprite_harness/` is not part of any build. Its `run.sh` builds the
+game with `harness.dm` appended and walks the in-game checklist for hair
+appendages the way a window drives the editor, then replays each step as a
+hostile window at tgui's topic limit, and writes what each step and attack cost,
+with the procs behind anything over budget, to
+`data/custom_sprite_harness/report.md`. Its README gives the budgets.
 
 From `tgui/`, the focused UI checks are:
 
@@ -1034,7 +1152,7 @@ These are the core hooks this module needs. Existing-file edits use
 | `code/__DEFINES/sprite_editor.dm` | Adds `SPRITE_EDITOR_TOOL_SELECT`. |
 | `code/__HELPERS/icons.dm` | `getFlatIcon()` accepts optional `clip_bounds` in appearance coordinates. The custom editor fixes the output origin and size even with nested wide overlays; callers that omit it keep the existing behavior. |
 | `code/datums/dna/dna.dm` | `/datum/dna/copy_dna()` copies all three drawing fields and synchronizes the recipient. |
-| `code/modules/client/preferences.dm` | `/datum/preferences/Destroy()` closes editors and deletes the sidecar datum; `ui_close()` saves editors before removing the preview. |
+| `code/modules/client/preferences.dm` | `/datum/preferences/Destroy()` closes editors and deletes the sidecar datum; `ui_close()` saves editors before removing the preview. `/atom/movable/screen/map_view/char_preview/update_body()` takes the larger canvas when `custom_sprite_preview_reaches_up()` finds a tall body or hair above the head. |
 | `code/modules/client/preferences_savefile.dm` | `switch_to_slot()` finishes the old slot's editors; `remove_current_slot()` discards editors and removes that slot's drawings. |
 | `code/modules/mob/living/carbon/carbon_update_icons.dm` | `/mob/living/carbon/update_body_parts()` still reaches forced hair/eye refreshes when the limb icons themselves are unchanged. |
 | `code/modules/surgery/bodyparts/head_hair_and_lips.dm` | `/obj/item/bodypart/head/copy_appearance_from()` snapshots hair and facial hair paint; `get_base_hair_overlays()` and `get_base_facial_hair_overlays()` apply it without modifying the shared accessory icon, add its separate masks, and use `custom_sprite_hair_accessory()`/`custom_sprite_facial_hair_accessory()` so bald heads and shaved faces can carry paint. Nova's emissive hair glows from the hair overlay's own state; hair sheets have no `_e` states. `/mob/living/carbon/human/set_haircolor()` and `set_facial_haircolor()` are overridden in `code/appearance.dm` to recolor painted shades. |
@@ -1069,10 +1187,11 @@ All paths here are relative to this module unless stated otherwise.
 | `code/persistence.dm` | `/datum/json_savefile/custom_sprites` overrides `New()`, `load()`, `save()`, `set_entry()`, `remove_entry()` and `wipe()` for verified sidecar writes and recovery. Adds the preferences-owned drawing fields and load/save/close/delete helpers, plus `custom_sprites_after_import()`. |
 | `code/palette.dm` | `/datum/preference/custom_sprite_palette` implements account storage, default/deserialize/serialize/validation and `is_accessible()`. Its UI is owned by the editor. |
 | `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `sprite_editor_ui_data()`. Owns palette validation, mask-aware fill, history limits, serialization, the window's compact canvas (`canvas_ui_data()`), Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` (a box and offset, or a placed selection's final pixels through `prepare_selection_placement()`) and `sanitize_transaction()` helpers. A tall hair canvas saves as a normal drawing until paint reaches its extra rows. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. The region canvas refuses locked regions for every tool and selection move. |
-| `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest, just above the organ's own layers. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers, and the human's `has_custom_hair()` and `remove_custom_hair()` for hair interactions. Re-creating an arm's zone overlay moves its hand overlays back above it. |
+| `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest, just above the organ's own layers. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers, and the human's `has_custom_hair()` and `remove_custom_hair()` for hair interactions. Re-creating an arm's zone overlay moves its hand overlays back above it. `/mob/living/carbon/human/dummy/apply_height()` carries the preview dummy's height maps above its tile and gives it room for what they lift, and `custom_sprite_preview_reaches_up()` asks character setup for its larger canvas. |
 | `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. `custom_sprite_cover_rows()` stamps one view of those looks into rows of marks above a paint layer, cached by the cover key and read only inside the drawable box; `custom_sprite_cover_char()` and `custom_sprite_cover_labels()` name the marks. |
 | `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization, content hashes, arm/hand partners and zone widths. |
 | `code/limits.dm` | `SScustom_sprite_work` and the editor's deferred work: `request_view()`, `request_rebuild()`, `request_refresh()` and `run_deferred_work()`, the per-player `/datum/custom_sprite_pace` (on `/datum/preferences` as `custom_sprite_pace`), `rebuild_for_opening()`, the middleware's `open_deferred()` for new editors, `act_blocked()` for restore previews, the hairstyle window (`request_hairstyle()`, `apply_pending_hairstyle()`, `apply_hairstyle()`), `save_unchanged()`, `custom_sprite_mask_points()` for compact strokes and `custom_sprite_history_jump()`. The stroke budget and queue: the pace's `stroke_fits()`, `take_stroke()`, `drain_strokes()`, `push()` (an update that waits while strokes do) and `custom_sprite_transaction_pixels()`; `request_candidate()` for candidate previews. |
+| `code/appendages.dm` | Hair appendages: name cleaning, lenient and strict validation, export, content hash; the head's `custom_appendage_masks()` and `append_custom_appendage_overlays()` with a bounded masked-icon cache; the Try on hats (`GLOB.custom_hair_try_on_hats`), their cached mask rows and placed views, and the preview hat; the editor's `appendage_act()`, `set_try_on()`, `appendage_ui_data()` and `set_appendage_emissive()`; the workspace's layer id check `stroke_layer_matches()` and unpainted-layer carry-over when a recolor also resizes. The workspace's layer steps and `resize_height()` live in `code/workspace.dm`. |
 | `code/compose.dm` | Whole-body markings previews composed from paint-free slices and the canvas: `can_compose_previews()`, `refresh_composed_previews()`, `composed_view()`, `view_slices()`, `capture_paintless_look()`, `slice_flat()`, `paint_icon()`, and the markings `render_preview()` override. |
 
 ### Defines:
@@ -1083,7 +1202,8 @@ All paths here are relative to this module unless stated otherwise.
 | Same file | `CUSTOM_SPRITE_INDEX_ALPHABET` | `0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_`; index 0 is transparent. |
 | Same file | `CUSTOM_SPRITE_TAUR_WIDTH`, `CUSTOM_MARKING_ZONE_TAUR` | 64-pixel canvas width and the `taur` zone key. |
 | Same file | `CUSTOM_SPRITE_TALL_HEIGHT`, `CUSTOM_SPRITE_TALL_HAIRSTYLE` | 48-row tall hair canvas and the name of the bald base that opens it. |
-| Same file | `CUSTOM_SPRITE_MAX_SIDECAR_BYTES`, `CUSTOM_STYLE_MAX_BYTES` | 16 MiB drawing-file limit; 16 KiB single-target import limit. |
+| Same file | `CUSTOM_SPRITE_MAX_SIDECAR_BYTES`, `CUSTOM_STYLE_MAX_BYTES` | 16 MiB drawing-file limit; 32 KiB single-target import limit. |
+| Same file | `CUSTOM_SPRITE_MAX_APPENDAGES`, `CUSTOM_SPRITE_MAX_APPENDAGE_NAME` | 3 hair appendage layers; 20-character appendage names. |
 | Same file | `CUSTOM_STYLE_MAX_BODY_BYTES` | 160 KiB whole-body import limit, checked before any file is read. |
 | `code/transfer.dm` | `CUSTOM_STYLE_FORMAT`, `CUSTOM_STYLE_VERSION` | `aphelion-custom-style`, version 1. |
 | `code/transfer.dm` | `CUSTOM_STYLE_IMPORT_COOLDOWN`, `CUSTOM_STYLE_EXPORT_COOLDOWN` | 5 and 2 seconds. |
@@ -1125,8 +1245,9 @@ are also required.
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/index.tsx`, `atoms.ts`, `helpers.ts`, `Types/types.ts`, `Types/Tool.ts` | Shared editor state, rendering/context hooks, gesture cancellation and selection types. The canvas's `onPointerDown` reports where every press lands, whatever the tool. The tool objects outlive any one canvas, so an unmounting canvas drops floating paint and then resets them. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. `shade` replaces the flat grey over unavailable pixels, and `overlay` draws over the canvas at its size. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/strokeMask.ts`, `strokeMask.test.ts` | Compact strokes: the Pencil and Eraser send a stroke as one bit per canvas pixel when the canvas data sets `compactStrokes`, as the custom editors' workspaces do, and their tests. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/Types/Tools/` | Pencil, Eraser, Eyedropper and Bucket updates; the Select tool (moving, floating, copying, pasting, taking out and turning selections) and focused tool tests. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/selection.tsx`, `Components/SelectionOutline.tsx` | The Select tool's keys (Ctrl+C, Ctrl+V, R, Shift+R, Shift+H, Enter), the turn and mirror buttons, dropping floating paint before a save, and the marching ants around a box or a selection with pixels taken out. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/Types/Tools/` | Pencil, Eraser, Eyedropper and Bucket updates, naming the canvas's `layerTarget` where it has one; the Select tool (moving, floating, copying, cutting, merged copying, pasting, taking out and turning selections, each gesture kept to the layer it began on) and focused tool tests. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/selection.tsx`, `Components/SelectionOutline.tsx` | The Select tool's keys (Ctrl+C, Ctrl+X, Ctrl+Shift+C, Ctrl+V, R, Shift+R, Shift+H, Enter), the turn and mirror buttons and the Merged toggle, dropping floating paint before a save, and the marching ants around a box or a selection with pixels taken out. |
+| `tgui/packages/tgfont/icons/zaphelion-*.svg` | Hair layer glyphs: the base hair wig, Under hats, Over hats, the Merged stack, and the zone pictograms as a grey head (`head-side`, `head-back`) under a lit `zone-*` part. Outlined from the design's strokes. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/drawBounds.ts`, `useSpriteEditorHotkeys.ts`, `SpriteEditor.test.tsx` | Cached shading geometry and the `ShadeRenderer` type, shared shortcuts/history cancellation and editor interaction tests. |
 | `tgui/packages/tgui/interfaces/NtosNanopaint/NanopaintMenuBar.tsx` | Uses the same history cancellation as toolbar and keyboard actions. |
 | `tgui/packages/tgui/layouts/Window.tsx`, `Window.test.tsx` | Current-event Alt handling and respecting gestures already claimed by a control. |

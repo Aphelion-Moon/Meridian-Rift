@@ -599,14 +599,15 @@ describe('sprite editor interactions', () => {
           <SpriteEditor.Canvas data={data} />
         </Provider>,
       );
-      expect(key({ key: 'C', shiftKey: true })).toBe(true);
+      // Plain Shift+C is left alone; Ctrl+Shift+C copies merged, asking only for the base pixels.
+      expect(key({ key: 'C', shiftKey: true })).toBe(false);
+      expect(key({ key: 'C', ctrlKey: true, shiftKey: true })).toBe(true);
       expect(send).toHaveBeenLastCalledWith('copyBaseLayer', {
         request: expect.any(Number),
         dir: '2',
         rect: [0, 0, 1, 0],
         mask: undefined,
       });
-      expect(key({ key: 'C', ctrlKey: true, shiftKey: true })).toBe(false);
       send.mockClear();
       expect(key({ key: 'c', ctrlKey: true })).toBe(true);
       act(() => store.set(dirAtom, Dir.NORTH));

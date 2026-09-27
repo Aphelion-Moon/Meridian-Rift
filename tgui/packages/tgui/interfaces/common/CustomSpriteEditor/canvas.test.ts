@@ -5,7 +5,7 @@ import {
   fixtureFrames,
 } from '../../../__mocks__/customSpriteEditor';
 import { Dir } from '../SpriteEditor/Types/types';
-import { decodeCanvas } from './canvas';
+import { decodeCanvas, fitsMiddleHalf } from './canvas';
 
 it('decodes the canvas the server sends for one painted pixel', () => {
   const sprite = decodeCanvas({
@@ -42,4 +42,28 @@ it('round-trips every view, including two-character codes past 64 values', () =>
   for (const dir of [Dir.SOUTH, Dir.NORTH, Dir.EAST, Dir.WEST]) {
     expect(decoded.layers[0].data[dir]).toEqual(frames[dir]);
   }
+});
+
+it('shows a wide view at its middle half only while nothing paintable or painted lies outside it', () => {
+  const clear = () =>
+    Array.from({ length: 32 }, () => Array(64).fill('#00000000'));
+  const middleMask = Array.from(
+    { length: 32 },
+    () => `${'0'.repeat(16)}${'1'.repeat(32)}${'0'.repeat(16)}`,
+  );
+  const frame = clear();
+  frame[10][20] = '#ff0000ff';
+  expect(fitsMiddleHalf(frame, middleMask)).toBe(true);
+  const taurMask = [...middleMask];
+  taurMask[20] = '1'.repeat(64);
+  expect(fitsMiddleHalf(frame, taurMask)).toBe(false);
+  const oldPaint = clear();
+  oldPaint[5][60] = '#00ff00ff';
+  expect(fitsMiddleHalf(oldPaint, middleMask)).toBe(false);
+  expect(
+    fitsMiddleHalf(
+      Array.from({ length: 32 }, () => Array(32).fill('#00000000')),
+      undefined,
+    ),
+  ).toBe(false);
 });

@@ -14,7 +14,11 @@
 #define CUSTOM_MARKING_ZONE_TAUR "taur"
 /// Size limit of an account's drawing sidecar.
 #define CUSTOM_SPRITE_MAX_SIDECAR_BYTES (16 * 1024 * 1024)
-/// Size limit of an imported style file.
-#define CUSTOM_STYLE_MAX_BYTES 16384
+/// Size limit of an imported style file: tall hair with three appendages of incompressible art fits.
+#define CUSTOM_STYLE_MAX_BYTES 32768
+/// Most appendage layers custom hair carries, each like one of a hairstyle's hair_appendages_inner or _outer pieces.
+#define CUSTOM_SPRITE_MAX_APPENDAGES 3
+/// Longest appendage name, in characters.
+#define CUSTOM_SPRITE_MAX_APPENDAGE_NAME 20
 /// Size limit of an imported whole-body style file, which carries up to one drawing per region.
 #define CUSTOM_STYLE_MAX_BODY_BYTES 163840

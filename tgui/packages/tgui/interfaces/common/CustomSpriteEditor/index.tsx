@@ -1,6 +1,12 @@
 // THIS IS AN APHELION UI FILE
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import { useBackend } from 'tgui/backend';
 import { Window } from 'tgui/layouts';
@@ -16,7 +22,11 @@ import {
   Tooltip,
 } from 'tgui-core/components';
 import { classes } from 'tgui-core/react';
-import { ChoicedSelectionDropdown } from '../ChoicedSelection';
+import {
+  ChoicedSelectionDropdown,
+  MARKING_PREVIEW_AREAS,
+  type SpriteArea,
+} from '../ChoicedSelection';
 import { SpriteEditor } from '../SpriteEditor';
 import {
   currentToolAtom,
@@ -28,19 +38,51 @@ import {
   selectionMaskAtom,
   tools,
 } from '../SpriteEditor/atoms';
+import { useDimensions } from '../SpriteEditor/helpers';
 import {
   MIRROR_SELECTION_KEY,
+  mergedCopyAtom,
   ROTATE_SELECTION_KEY,
   receiveBaseCopy,
   SelectionTools,
   settleSelection,
 } from '../SpriteEditor/selection';
-import { Dir } from '../SpriteEditor/Types/types';
+import {
+  Dir,
+  type SpriteData,
+  type SpriteDataLayer,
+  type StringLayer,
+} from '../SpriteEditor/Types/types';
 import {
   toolHotkeys,
   toolTooltip,
 } from '../SpriteEditor/useSpriteEditorHotkeys';
-import { decodeCanvas } from './canvas';
+import { AppendagePanel } from './AppendagePanel';
+import {
+  type Appendage,
+  drawOrder,
+  expandHats,
+  hatchedPixels,
+  layerFate,
+  type StackLayer,
+  stackAround,
+  type TryOnHat,
+} from './appendages';
+import {
+  decodeAppendages,
+  decodeCanvas,
+  fitsMiddleHalf,
+  pictureFitsMiddleHalf,
+} from './canvas';
+import {
+  composeBackground,
+  composeWorn,
+  hatChip,
+  LayerOverlay,
+  TryOn,
+  useLoadedImages,
+} from './LayerCanvas';
+import { LayerStrip } from './LayerStrip';
 import { CustomSpritePalette } from './Palette';
 import { RegionOverlay } from './RegionOverlay';
 import { coverPartAt, drawScanlines, regionAt, regionBounds } from './regions';
@@ -67,8 +109,10 @@ function CycleDropdown(props: {
   disabled?: boolean;
   icons?: Record<string, string>;
   name?: string;
+  previewArea?: SpriteArea;
 }) {
-  const { options, selected, onSelected, disabled, icons, name } = props;
+  const { options, selected, onSelected, disabled, icons, name, previewArea } =
+    props;
   const chevron = (step: number) => (
     <Stack.Item>
       <Button
@@ -97,6 +141,7 @@ function CycleDropdown(props: {
             selected={selected ?? ''}
             onSelect={onSelected}
             disabled={disabled}
+            previewArea={previewArea}
           />
         ) : (
           <Dropdown
@@ -137,12 +182,79 @@ type ToolButtonProps = ReturnType<
 
 /** Room for the palette, blending controls, full preview and both rotation controls. */
 const EDITOR_WINDOW = [1100, 920] as const;
+/** Hair also fits its layer strip, the panel under the canvas and Try on, in every theme's frame. */
+const HAIR_WINDOW = [1100, 960] as const;
+/** A wide canvas (a taur's whole body) fits by its width, so it gets the width to grow into. */
+const WIDE_WINDOW = [1400, 920] as const;
 /** Shares palette rows across hair, markings and their salon editors. */
 const EDITOR_PANEL_WIDTH = '26rem';
+/** Hair's side panel is wider, so a wide (taur) body's preview has room to grow. */
+const HAIR_PANEL_WIDTH = '30rem';
+
+/**
+ * The preview at the largest whole number that fits the room the side panel has left for it, which
+ * it measures, so its pixels stay square and even. It stands on the chosen background tile. A wide
+ * (taur) picture with nothing outside its middle half, as a front or back view is, shows just that
+ * half, on the narrow tile.
+ */
+const FittedPicture = (props: {
+  src: string;
+  alt: string;
+  tileStyle: CSSProperties;
+  narrowTileStyle: CSSProperties;
+}) => {
+  const box = useRef<HTMLDivElement>(null);
+  const [boxWidth, boxHeight] = useDimensions(box);
+  const [natural, setNatural] = useState<[number, number]>();
+  const [half, setHalf] = useState(false);
+  const shownWidth = natural ? (half ? natural[0] / 2 : natural[0]) : 0;
+  const scale =
+    natural && boxWidth > 0 && boxHeight > 0
+      ? Math.max(
+          1,
+          Math.floor(Math.min(boxWidth / shownWidth, boxHeight / natural[1])),
+        )
+      : 1;
+  return (
+    <div ref={box} className="CustomSpriteEditor__previewFit">
+      <Box
+        inline
+        className={classes([
+          'CustomSpriteEditor__tile',
+          half && 'CustomSpriteEditor__tile--half',
+        ])}
+        style={
+          half
+            ? { ...props.narrowTileStyle, width: shownWidth * scale }
+            : props.tileStyle
+        }
+      >
+        <img
+          src={props.src}
+          alt={props.alt}
+          width={natural ? natural[0] * scale : undefined}
+          style={half ? { marginLeft: (-shownWidth * scale) / 2 } : undefined}
+          onLoad={(event) => {
+            const image = event.currentTarget;
+            setNatural([image.naturalWidth, image.naturalHeight]);
+            setHalf(pictureFitsMiddleHalf(image));
+          }}
+        />
+      </Box>
+    </div>
+  );
+};
+
+const NO_APPENDAGES: Appendage[] = [];
+const NO_HATS: Record<string, TryOnHat> = {};
+
+/** A view of nothing, while an appendage's view is on its way from the server. */
+const blankFrame = (width: number, height: number): StringLayer =>
+  Array.from({ length: height }, () => Array(width).fill('#00000000'));
 
 /** Both canvases turn the same view, through the same control. */
 const ViewRotation = ({ onRotate }: { onRotate: (step: number) => void }) => (
-  <>
+  <span className="CustomSpriteEditor__turnButtons">
     <Button
       fontSize="22px"
       icon="redo"
@@ -159,7 +271,7 @@ const ViewRotation = ({ onRotate }: { onRotate: (step: number) => void }) => (
       tooltipPosition="bottom"
       onClick={() => onRotate(-1)}
     />
-  </>
+  </span>
 );
 
 /** A small colour sample beside a button's label. */
@@ -250,6 +362,12 @@ export const CustomSpriteEditor = ({
     visibleView,
     coverMask,
     coverParts,
+    appendages: serverAppendages,
+    maxAppendages = 3,
+    maxAppendageName = 20,
+    tryOn,
+    focusLayer,
+    tryOnHats,
   } = data;
   const sprite = useMemo(
     () => ({
@@ -268,6 +386,7 @@ export const CustomSpriteEditor = ({
   }, [data.baseCopyResult]);
   const [direction, setDirection] = useAtom(dirAtom);
   const setLayer = useSetAtom(layerAtom);
+  const setMergedCopy = useSetAtom(mergedCopyAtom);
   const setCurrentTool = useSetAtom(currentToolAtom);
   const selecting = useAtomValue(currentToolAtom).name === 'Select';
   const selectionBounds = useAtomValue(selectionBoundsAtom);
@@ -302,11 +421,190 @@ export const CustomSpriteEditor = ({
   const tileStyle = {
     backgroundImage: `url(${pictureTileUrl ?? transparency_checkerboard})`,
   };
+  const narrowTileStyle = {
+    backgroundImage: `url(${tile?.url ?? transparency_checkerboard})`,
+  };
+  // Hair is painted a layer at a time: the base hair, or one of its appendages.
+  const layered = target === 'hair';
+  const windowSize = layered ? HAIR_WINDOW : wide ? WIDE_WINDOW : EDITOR_WINDOW;
+  const appendages = (layered && serverAppendages) || NO_APPENDAGES;
+  const [layerId, setLayerId] = useState('hair');
+  const chosen = appendages.find((entry) => entry.id === layerId) ?? null;
+  const chosenId = chosen?.id ?? 'hair';
+  useEffect(() => {
+    if (focusLayer) setLayerId(focusLayer);
+  }, [focusLayer]);
+  const view = String(direction);
+  // A taur's front and back only use the middle of its wide canvas, so those views fill the box with it.
+  const halfView = useMemo(
+    () =>
+      !layered &&
+      fitsMiddleHalf(sprite.layers[0]?.data[direction], drawMask?.[direction]),
+    [layered, sprite, drawMask, direction],
+  );
+  const appendageFrames = useMemo(
+    () => decodeAppendages(editorData.sprite),
+    [editorData.sprite],
+  );
+  const stackLayers = useMemo<StackLayer[]>(
+    () =>
+      layered
+        ? [
+            {
+              id: 'hair',
+              appendage: null,
+              frame: sprite.layers[0]?.data[direction],
+            },
+            ...appendages.map((appendage) => ({
+              id: appendage.id,
+              appendage,
+              frame: appendageFrames[appendage.id]?.[view],
+            })),
+          ]
+        : [],
+    [layered, sprite, appendages, appendageFrames, direction],
+  );
+  const hats = useMemo(
+    () => (layered && tryOnHats ? expandHats(tryOnHats) : NO_HATS),
+    [layered, tryOnHats],
+  );
+  const [chosenHat, setChosenHat] = useState<string | null>(null);
+  // The Base hair layer is always painted with no hat on.
+  const wornKey = chosen && chosenHat && hats[chosenHat] ? chosenHat : null;
+  const wornHat = wornKey ? hats[wornKey] : null;
+  // Measured against what was last sent, not the server's echo, which can lag a quick change back.
+  const sentTryOn = useRef(tryOn ?? null);
+  useEffect(() => {
+    if (!layered || sentTryOn.current === wornKey) return;
+    sentTryOn.current = wornKey;
+    act('setTryOn', { hat: wornKey });
+  }, [wornKey]);
+  const hatImages = useLoadedImages(
+    Object.values(hats).flatMap((hat) => [
+      hat.views[view],
+      hat.views[Dir.SOUTH],
+    ]),
+  );
+  const hatImage = wornHat ? hatImages[wornHat.views[view]] : undefined;
+  // "Hats that cover it" chips, cropped here from each hat's front view.
+  const chips = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(hats).map(([key, hat]) => [
+          key,
+          hatChip(hatImages[hat.views[Dir.SOUTH]]),
+        ]),
+      ),
+    [hats, hatImages],
+  );
+  const guideImage =
+    loadedGuide?.url === guideUrl ? loadedGuide?.image : undefined;
+  const stack = useMemo(
+    () => (layered ? stackAround(stackLayers, chosenId, wornHat, view) : null),
+    [layered, stackLayers, chosenId, wornHat, view],
+  );
+  const canvasBackground = useMemo(
+    () =>
+      stack?.below.length
+        ? composeBackground(
+            guideImage,
+            stack.below,
+            hatImage,
+            sprite.width,
+            sprite.height,
+          )
+        : guideImage,
+    [stack, guideImage, hatImage, sprite.width, sprite.height],
+  );
+  const hatch = useMemo(() => {
+    if (!chosen || !wornHat) return null;
+    const fate = layerFate(chosen, wornHat);
+    const frame = appendageFrames[chosen.id]?.[view];
+    return {
+      cells: hatchedPixels(frame, fate, wornHat.masks[view]),
+      fate,
+      hat: wornHat.label.toLowerCase(),
+    };
+  }, [chosen, wornHat, appendageFrames, view]);
+  // Each Try on choice drawn on the head, as the view being painted would be worn.
+  const tryOnViews = useMemo(() => {
+    const views: Record<string, HTMLCanvasElement> = {};
+    if (!chosen) return views;
+    for (const key of ['', ...Object.keys(hats)]) {
+      const hat = key ? hats[key] : null;
+      const image = hat ? hatImages[hat.views[view]] : undefined;
+      views[key] = composeWorn(
+        guideImage,
+        stackLayers,
+        hat,
+        image,
+        view,
+        sprite.width,
+        sprite.height,
+      );
+    }
+    return views;
+  }, [!!chosen, hats, hatImages, guideImage, stackLayers, view, sprite]);
+  // The window hands the canvas only the chosen layer; the others are drawn around it.
+  const canvasSprite = useMemo((): SpriteData => {
+    if (!layered) return sprite;
+    const layerTarget = {
+      layer: chosen ? appendages.indexOf(chosen) + 2 : 1,
+      layerId: chosenId,
+    };
+    // Composed only when a merged copy is made, so ordinary updates don't carry every layer.
+    const mergeLayers = () => {
+      const ordered = drawOrder(stackLayers);
+      const index = ordered.findIndex((layer) => layer.id === chosenId);
+      const frames = (part: StackLayer[]) =>
+        part.flatMap((layer) => (layer.frame ? [layer.frame] : []));
+      return {
+        dir: direction,
+        below: frames(ordered.slice(0, index)),
+        above: frames(ordered.slice(index + 1)),
+      };
+    };
+    if (!chosen) return { ...sprite, layerTarget, mergeLayers };
+    const frame =
+      appendageFrames[chosen.id]?.[view] ??
+      blankFrame(sprite.width, sprite.height);
+    const layer = {
+      name: chosen.name,
+      visible: true,
+      data: { [direction]: frame },
+    } as unknown as SpriteDataLayer;
+    return { ...sprite, layers: [layer], layerTarget, mergeLayers };
+  }, [
+    layered,
+    sprite,
+    chosen,
+    chosenId,
+    appendages,
+    appendageFrames,
+    stackLayers,
+    view,
+    direction,
+  ]);
+  // An appendage's other views come from the server as the window turns to them.
+  const layerLoading = !!chosen && !appendageFrames[chosen.id]?.[view];
+  const layerName = chosen ? chosen.name : 'Base hair layer';
+  // A merged copy adds the base and the other layers, so it's offered only where there are some.
+  const baseName = target === 'markings' ? 'base markings' : 'base hair';
+  const mergedTooltip =
+    sprite.baseCopyInfo || appendages.length
+      ? `When lit, Ctrl+C copies ${layered ? 'every layer' : 'the paint'} as it shows${sprite.baseCopyInfo ? `, ${baseName} included` : ''}. Ctrl+Shift+C does it once.`
+      : undefined;
+  const mergedHint =
+    target === 'markings'
+      ? 'Copy selected base markings and paint from editable regions. Ctrl+V pastes editable colors; destination region opacity and emission stay unchanged. Body, clothing and taur artwork are excluded.'
+      : sprite.baseCopyInfo
+        ? `Copy selected base hair and ${appendages.length ? 'the paint of every layer' : 'paint'}. Ctrl+V pastes editable pixels; opacity and gradients remain live hair settings. Choose Bald (Tall Canvas) if the copy needs more room.`
+        : 'Copy the paint of every layer as it shows.';
   const regionMode = target === 'markings' && !!regions;
   const zones = regionZones ?? [];
   const [selectedZone, setSelectedZone] = useState(serverZone ?? null);
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
-  // The part hiding the paint under the cursor, shown as a tip once the cursor rests there.
+  // What hides or trims the paint under the cursor, shown as a tip once the cursor rests there.
   const [coverTip, setCoverTip] = useState<{
     x: number;
     y: number;
@@ -321,6 +619,7 @@ export const CustomSpriteEditor = ({
     setCoverTip(null);
   };
   useEffect(() => clearCoverTip, []);
+  useEffect(clearCoverTip, [chosenId, wornKey]);
   useEffect(() => setSelectedZone(serverZone ?? null), [focusRevision]);
   const regionLabel = (selectedZone && regionLabels?.[selectedZone]) || '';
   // Regions the server won't change right now, each with the reason, such as clothing covering it.
@@ -371,22 +670,37 @@ export const CustomSpriteEditor = ({
     selectZone(zone && !lockReason(zone) ? zone : last);
   };
   const trackHover = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!regionMode) return;
+    if (!regionMode && !hatch?.cells.size) {
+      if (coverTip) clearCoverTip();
+      return;
+    }
     const at = pixelAt(event);
     if (!at) return;
     const [px, py] = at;
-    const zone = regionAt(regionRows, zones, px, py);
-    // Locked regions can't be picked, so they don't light up either.
-    const hovered = lockReason(zone) ? null : zone;
-    if (hovered !== hoveredZone) setHoveredZone(hovered);
-    if (event.buttons && hovered) dragZone.current = hovered;
-    // Only painted, covered pixels get the tip: the same pixels the overlay hatches. It waits for
-    // the cursor to rest, so flicking across paint mid-stroke never puts anything in the way.
-    const pixel = sprite.layers[0]?.data[direction]?.[py]?.[px];
-    const label =
-      pixel && !pixel.endsWith('00') && !event.buttons
-        ? coverPartAt(coverMask?.[direction], coverParts, px, py)
-        : null;
+    let label: string | null = null;
+    // Only hatched pixels get the tip. It waits for the cursor to rest, so flicking across paint
+    // mid-stroke never puts anything in the way.
+    if (regionMode) {
+      const zone = regionAt(regionRows, zones, px, py);
+      // Locked regions can't be picked, so they don't light up either.
+      const hovered = lockReason(zone) ? null : zone;
+      if (hovered !== hoveredZone) setHoveredZone(hovered);
+      if (event.buttons && hovered) dragZone.current = hovered;
+      const pixel = sprite.layers[0]?.data[direction]?.[py]?.[px];
+      const part =
+        pixel && !pixel.endsWith('00') && !event.buttons
+          ? coverPartAt(coverMask?.[direction], coverParts, px, py)
+          : null;
+      label = part && `Hidden by ${part}`;
+    } else if (
+      hatch &&
+      !event.buttons &&
+      px >= 0 &&
+      px < sprite.width &&
+      hatch.cells.has(py * sprite.width + px)
+    ) {
+      label = `${hatch.fate === 'hidden' ? 'Hidden' : 'Trimmed'} by the ${hatch.hat}`;
+    }
     if (!label) {
       clearCoverTip();
       return;
@@ -450,6 +764,7 @@ export const CustomSpriteEditor = ({
   }, [direction, visibleView, viewReset]);
   useEffect(() => {
     setLayer(0);
+    setMergedCopy(false);
     setDirection(Dir.SOUTH);
     setViewReset(true);
     const cancelContext = {
@@ -480,8 +795,8 @@ export const CustomSpriteEditor = ({
 
   return (
     <Window
-      width={EDITOR_WINDOW[0]}
-      height={EDITOR_WINDOW[1]}
+      width={windowSize[0]}
+      height={windowSize[1]}
       title={salon ? `${drawingName} for ${recipientName}` : drawingName}
     >
       <Window.Content>
@@ -554,10 +869,14 @@ export const CustomSpriteEditor = ({
               <Stack.Item>
                 <div className="CustomSpriteEditor__group">
                   {directions.map(([dir, label]) => {
-                    const painted = !!edited[dir];
-                    const pipLabel = painted
-                      ? 'Has markings'
-                      : 'No markings yet';
+                    const painted = !!(chosen ? chosen.edited : edited)[dir];
+                    const pipLabel = layered
+                      ? painted
+                        ? `${layerName} has paint in this view`
+                        : `No ${layerName.toLowerCase()} paint in this view yet`
+                      : painted
+                        ? 'Has markings'
+                        : 'No markings yet';
                     const pip = (
                       <span
                         className={classes([
@@ -673,6 +992,19 @@ export const CustomSpriteEditor = ({
               </Stack.Item>
             </Stack>
           </Stack.Item>
+          {layered && (
+            <Stack.Item>
+              <LayerStrip
+                appendages={appendages}
+                selected={chosenId}
+                hairPainted={!!edited[direction]}
+                direction={view}
+                maxAppendages={maxAppendages}
+                onSelect={setLayerId}
+                onAdd={() => act('addAppendage')}
+              />
+            </Stack.Item>
+          )}
           <Stack.Item>
             <Stack align="center">
               <Stack.Item>
@@ -693,7 +1025,10 @@ export const CustomSpriteEditor = ({
                 />
               </Stack.Item>
               <Stack.Item className="CustomSpriteEditor__turns">
-                <SelectionTools className="CustomSpriteEditor__group" />
+                <SelectionTools
+                  className="CustomSpriteEditor__group"
+                  mergedTooltip={mergedTooltip}
+                />
               </Stack.Item>
               <Stack.Item className="CustomSpriteEditor__divider" />
               <Stack.Item>
@@ -715,11 +1050,13 @@ export const CustomSpriteEditor = ({
                   icon="broom"
                   disabled={regionMode && (!selectedZone || !!selectedLock)}
                   tooltip={
-                    !regionMode
-                      ? 'Erase this view. Undo brings it back.'
-                      : regionLabel
-                        ? `Erase all ${regionLabel.toLowerCase()} paint in this view. Undo brings it back.`
-                        : 'Choose a region to clear.'
+                    layered
+                      ? `Erase ${chosen ? chosen.name.toLowerCase() : 'the base hair layer'} in this view. Undo brings it back.`
+                      : !regionMode
+                        ? 'Erase this view. Undo brings it back.'
+                        : regionLabel
+                          ? `Erase all ${regionLabel.toLowerCase()} paint in this view. Undo brings it back.`
+                          : 'Choose a region to clear.'
                   }
                   onClick={() =>
                     regionMode
@@ -727,14 +1064,19 @@ export const CustomSpriteEditor = ({
                           dir: String(direction),
                           zone: selectedZone,
                         })
-                      : act('clear', { dir: String(direction) })
+                      : act('clear', {
+                          dir: String(direction),
+                          ...(chosen && { layer: chosen.id }),
+                        })
                   }
                 >
-                  {!regionMode
-                    ? 'Clear direction'
-                    : regionLabel
-                      ? `Clear ${regionLabel.toLowerCase()}`
-                      : 'Clear region'}
+                  {chosen
+                    ? `Clear ${chosen.name.toLowerCase()}`
+                    : !regionMode
+                      ? 'Clear direction'
+                      : regionLabel
+                        ? `Clear ${regionLabel.toLowerCase()}`
+                        : 'Clear region'}
                 </Button>
               </Stack.Item>
               <Stack.Item grow />
@@ -778,71 +1120,91 @@ export const CustomSpriteEditor = ({
                         clearCoverTip();
                       }}
                     >
-                      <SpriteEditor.Canvas
-                        data={sprite}
-                        onSave={() => act('saveDraft')}
-                        onDraw={
-                          salon
-                            ? (x, y, erasing = false) => {
-                                const now = Date.now();
-                                if (now < nextDrawingActivity.current) return;
-                                nextDrawingActivity.current = now + 1000;
-                                act('drawing', {
-                                  dir: String(direction),
-                                  x,
-                                  y,
-                                  erasing,
-                                });
-                              }
-                            : undefined
-                        }
-                        onSampleBackdrop={(x, y) => {
-                          if (showGuide) {
-                            act('sampleGuide', {
-                              dir: String(direction),
-                              x,
-                              y,
-                            });
+                      {/* A view that only uses the middle of a wide canvas lays it out twice as wide; this box clips the sides. */}
+                      <div
+                        className={classes([
+                          'CustomSpriteEditor__canvasFrame',
+                          halfView && 'CustomSpriteEditor__canvasFrame--half',
+                        ])}
+                      >
+                        <SpriteEditor.Canvas
+                          data={canvasSprite}
+                          disabled={layerLoading}
+                          onSave={() => act('saveDraft')}
+                          onDraw={
+                            salon
+                              ? (x, y, erasing = false) => {
+                                  const now = Date.now();
+                                  if (now < nextDrawingActivity.current) return;
+                                  nextDrawingActivity.current = now + 1000;
+                                  act('drawing', {
+                                    dir: String(direction),
+                                    x,
+                                    y,
+                                    erasing,
+                                  });
+                                }
+                              : undefined
                           }
-                        }}
-                        width="100%"
-                        height="100%"
-                        showGrid={showGrid}
-                        drawBounds={drawBounds[direction] ?? [0, 0, -1, -1]}
-                        drawMask={drawMask?.[direction]}
-                        backgroundImage={
-                          loadedGuide?.url === guideUrl
-                            ? loadedGuide?.image
-                            : undefined
-                        }
-                        background={tileUrl ? `url(${tileUrl})` : undefined}
-                        shade={drawScanlines}
-                        onPointerDown={selectRegionAt}
-                        overlay={
-                          regionMode
-                            ? (canvasWidth, canvasHeight) => (
-                                <RegionOverlay
-                                  rows={regionRows}
-                                  zones={zones}
-                                  imageWidth={sprite.width}
-                                  canvasWidth={canvasWidth}
-                                  canvasHeight={canvasHeight}
-                                  selected={selectedZone}
-                                  hovered={hoveredZone}
-                                  labels={regionLabels ?? {}}
-                                  cover={coverMask?.[direction]}
-                                  frame={sprite.layers[0]?.data[direction]}
-                                />
-                              )
-                            : undefined
-                        }
-                      />
+                          onSampleBackdrop={(x, y) => {
+                            if (showGuide) {
+                              act('sampleGuide', {
+                                dir: String(direction),
+                                x,
+                                y,
+                              });
+                            }
+                          }}
+                          width="100%"
+                          height="100%"
+                          showGrid={showGrid}
+                          drawBounds={drawBounds[direction] ?? [0, 0, -1, -1]}
+                          drawMask={drawMask?.[direction]}
+                          backgroundImage={canvasBackground}
+                          background={tileUrl ? `url(${tileUrl})` : undefined}
+                          shade={drawScanlines}
+                          onPointerDown={selectRegionAt}
+                          overlay={
+                            regionMode
+                              ? (canvasWidth, canvasHeight) => (
+                                  <RegionOverlay
+                                    rows={regionRows}
+                                    zones={zones}
+                                    imageWidth={sprite.width}
+                                    canvasWidth={canvasWidth}
+                                    canvasHeight={canvasHeight}
+                                    selected={selectedZone}
+                                    hovered={hoveredZone}
+                                    labels={regionLabels ?? {}}
+                                    cover={coverMask?.[direction]}
+                                    frame={sprite.layers[0]?.data[direction]}
+                                  />
+                                )
+                              : stack
+                                ? (canvasWidth, canvasHeight) => (
+                                    <LayerOverlay
+                                      items={stack.above}
+                                      hatImage={hatImage}
+                                      hatch={hatch}
+                                      imageWidth={sprite.width}
+                                      imageHeight={sprite.height}
+                                      canvasWidth={canvasWidth}
+                                      canvasHeight={canvasHeight}
+                                      tallRow={
+                                        tall ? sprite.height - 32 : undefined
+                                      }
+                                    />
+                                  )
+                                : undefined
+                          }
+                        />
+                      </div>
                       {!!coverTip && (
                         <div
                           className="CustomSpriteEditor__coverTip"
                           style={{ left: coverTip.x, top: coverTip.y }}
                         >
-                          Hidden by {coverTip.label}
+                          {coverTip.label}
                         </div>
                       )}
                     </Box>
@@ -858,13 +1220,42 @@ export const CustomSpriteEditor = ({
                       <Box color="average">{selectedLock}</Box>
                     </Stack.Item>
                   )}
+                  {!!chosen && (
+                    <Stack.Item>
+                      <AppendagePanel
+                        appendage={chosen}
+                        hats={hats}
+                        chips={chips}
+                        hat={wornKey}
+                        maxName={maxAppendageName}
+                        canAdd={appendages.length < maxAppendages}
+                        onRename={(name) =>
+                          act('renameAppendage', { id: chosenId, name })
+                        }
+                        onZone={(zone) =>
+                          act('setAppendageZone', { id: chosenId, zone })
+                        }
+                        onKind={(outer) =>
+                          act('setAppendageKind', { id: chosenId, outer })
+                        }
+                        onCopy={() => {
+                          // The copy takes the layer as the server has it, floating paint included.
+                          settleSelection();
+                          act('copyToOverHat', { id: chosenId });
+                        }}
+                        onRemove={() =>
+                          act('removeAppendage', { id: chosenId })
+                        }
+                      />
+                    </Stack.Item>
+                  )}
                 </Stack>
               </Stack.Item>
               <Stack.Item
-                width={EDITOR_PANEL_WIDTH}
+                width={layered ? HAIR_PANEL_WIDTH : EDITOR_PANEL_WIDTH}
                 className="CustomSpriteEditor__sidebar"
               >
-                <Stack vertical>
+                <Stack vertical fill>
                   {!!canChangeHair && (
                     <Stack.Item>
                       <Section
@@ -930,6 +1321,9 @@ export const CustomSpriteEditor = ({
                                 <CycleDropdown
                                   options={choices}
                                   icons={regionMarkingIcons?.[selectedZone]}
+                                  previewArea={
+                                    MARKING_PREVIEW_AREAS[selectedZone]
+                                  }
                                   name={`${regionLabel.toLowerCase()} marking`}
                                   disabled={!!selectedLock}
                                   selected={marking.name}
@@ -1048,7 +1442,9 @@ export const CustomSpriteEditor = ({
                               selectedZone &&
                               regionEmissive?.[selectedZone]?.[direction]
                             )
-                          : emissive[direction]
+                          : chosen
+                            ? !!chosen.emissive[direction]
+                            : emissive[direction]
                       }
                       disabled={
                         !emissiveAllowed ||
@@ -1057,7 +1453,9 @@ export const CustomSpriteEditor = ({
                       tooltip={
                         !emissiveAllowed
                           ? 'Enable emissive appearance in character preferences.'
-                          : 'Makes this direction glow in the dark.'
+                          : layered
+                            ? 'Makes this layer glow in the dark in this view.'
+                            : 'Makes this direction glow in the dark.'
                       }
                       onClick={() =>
                         regionMode
@@ -1067,32 +1465,38 @@ export const CustomSpriteEditor = ({
                               enabled:
                                 !regionEmissive?.[selectedZone!]?.[direction],
                             })
-                          : act('setEmissive', {
-                              dir: String(direction),
-                              enabled: !emissive[direction],
-                            })
+                          : chosen
+                            ? act('setEmissive', {
+                                layer: chosen.id,
+                                dir: String(direction),
+                                enabled: !chosen.emissive[direction],
+                              })
+                            : act('setEmissive', {
+                                dir: String(direction),
+                                enabled: !emissive[direction],
+                              })
                       }
                     >
                       {regionMode
                         ? `Emissives - (${regionLabel}, ${viewLabel})`
-                        : 'Emissive'}
+                        : layered
+                          ? `Emissive - (${layerName}, ${viewLabel})`
+                          : 'Emissive'}
                     </Button.Checkbox>
                   </Stack.Item>
-                  <Stack.Item>
-                    <Section title="Preview">
-                      <Box textAlign="center">
-                        {previews[direction] && (
-                          <Box
-                            inline
-                            className="CustomSpriteEditor__tile"
-                            style={tileStyle}
-                          >
-                            <img
-                              src={previews[direction]}
-                              alt="Character with your drawing"
-                              width={128}
-                            />
-                          </Box>
+                  {/* The preview takes whatever height the panel has left, Try on included. */}
+                  <Stack.Item grow basis={0} minHeight="10rem">
+                    <Section title="Preview" fill>
+                      <div className="CustomSpriteEditor__preview">
+                        {previews[direction] ? (
+                          <FittedPicture
+                            src={previews[direction]}
+                            alt="Character with your drawing"
+                            tileStyle={tileStyle}
+                            narrowTileStyle={narrowTileStyle}
+                          />
+                        ) : (
+                          <div className="CustomSpriteEditor__previewFit" />
                         )}
                         {!!backgrounds?.length && (
                           <Stack
@@ -1125,7 +1529,15 @@ export const CustomSpriteEditor = ({
                         <Box mt={1}>
                           <ViewRotation onRotate={rotate} />
                         </Box>
-                      </Box>
+                        {!!chosen && Object.keys(hats).length > 0 && (
+                          <TryOn
+                            hats={hats}
+                            selected={wornKey}
+                            views={tryOnViews}
+                            onSelect={setChosenHat}
+                          />
+                        )}
+                      </div>
                     </Section>
                   </Stack.Item>
                 </Stack>
@@ -1177,22 +1589,16 @@ export const CustomSpriteEditor = ({
                   : ''}
                 {selecting && (
                   <div className="CustomSpriteEditor__selectHint">
-                    <kbd>Ctrl+C</kbd> copy ·{' '}
-                    {!!sprite.baseCopyInfo && !!selectionBounds && (
-                      <Tooltip
-                        content={
-                          target === 'markings'
-                            ? 'Copy selected base markings and paint from editable regions. Ctrl+V pastes editable colors; destination region opacity and emission stay unchanged. Body, clothing and taur artwork are excluded.'
-                            : 'Copy selected base hair and paint. Ctrl+V pastes editable pixels; opacity and gradients remain live hair settings. Choose Bald (Tall Canvas) if the copy needs more room.'
-                        }
-                      >
+                    <kbd>Ctrl+C</kbd> copy · <kbd>Ctrl+X</kbd> cut ·{' '}
+                    <kbd>Ctrl+V</kbd>{' '}
+                    {appendages.length ? 'paste into this layer' : 'paste'} ·{' '}
+                    {!!mergedTooltip && !!selectionBounds && (
+                      <Tooltip content={mergedHint}>
                         <span>
-                          <kbd>Shift+C</kbd> copy with base{' '}
-                          {target === 'markings' ? 'markings' : 'hair'} ·{' '}
+                          <kbd>Ctrl+Shift+C</kbd> copy merged ·{' '}
                         </span>
                       </Tooltip>
                     )}
-                    <kbd>Ctrl+V</kbd> paste ·{' '}
                     <kbd>{ROTATE_SELECTION_KEY.toUpperCase()}</kbd> /{' '}
                     <kbd>Shift+{ROTATE_SELECTION_KEY.toUpperCase()}</kbd> turn ·{' '}
                     <kbd>Shift+{MIRROR_SELECTION_KEY.toUpperCase()}</kbd> mirror

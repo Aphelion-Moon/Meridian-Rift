@@ -645,12 +645,17 @@
 	.["drawMask"] = workspace.draw_mask
 	.["coverMask"] = cover_rows
 	.["coverParts"] = cover_looks ? custom_sprite_cover_labels(cover_looks) : list()
+	if(target == "hair" && resources_ready)
+		var/datum/sprite_accessory/hair/hairstyle = custom_style_hair_accessories(target)[workspace.hair_context?["style"]]
+		.["tryOnHats"] = custom_hair_try_on_ui_data(workspace.height, guide_lift, hairstyle?.y_offset || 0)
 
 /datum/custom_sprite_editor/ui_data(mob/user)
 	sync_locked_views(push = FALSE)
 	// A lock change found here moved the mask, which only a full update carries. One being built takes it along.
 	if(static_dirty && LAZYLEN(open_uis))
 		addtimer(CALLBACK(src, PROC_REF(push_static_data)), 0, TIMER_UNIQUE)
+	// Appendage layers send only the view the window shows.
+	workspace.visible_view = visible_direction
 	var/list/editor_data = workspace.sprite_editor_ui_data()
 	var/list/custom_palette = preferences?.read_preference(/datum/preference/custom_sprite_palette) || list()
 	// Paint/history admission must not add swatches; only style shades and explicit guide picks do.
@@ -663,6 +668,14 @@
 		data["canChangeHair"] = can_change_hair()
 		data["hasGradient"] = workspace.hair_context?["gradient_style"] && workspace.hair_context["gradient_style"] != SPRITE_ACCESSORY_NONE
 		data["showGradient"] = show_gradient
+	if(target == "hair")
+		data["appendages"] = appendage_ui_data()
+		data["maxAppendages"] = CUSTOM_SPRITE_MAX_APPENDAGES
+		data["maxAppendageName"] = CUSTOM_SPRITE_MAX_APPENDAGE_NAME
+		data["tryOn"] = try_on
+		// Sent once, so the window switches to a layer it was just given.
+		data["focusLayer"] = focus_layer
+		focus_layer = null
 	data["lockedDirections"] = locked_directions()
 	data["canHideParts"] = can_hide_parts()
 	data["hideParts"] = hide_parts
@@ -804,20 +817,36 @@
 						return TRUE
 				else
 					return FALSE
-			if((workspace.hair_context && resources_hair != json_encode(workspace.hair_context)) || (!isnull(workspace.markings_context) && resources_markings != json_encode(workspace.markings_context)))
+			if(!isnull(workspace.markings_context) && resources_markings != json_encode(workspace.markings_context))
 				request_rebuild()
+			else if(workspace.hair_context && resources_hair != json_encode(workspace.hair_context))
+				request_rebuild(reuse_body = TRUE)
 		if("clear")
-			if(!workspace.clear_direction(params["dir"]))
+			var/layer = isnull(params["layer"]) ? 1 : workspace.layer_index(params["layer"])
+			if(!layer || !workspace.clear_direction(params["dir"], layer))
 				return FALSE
 		if("setEmissive")
 			var/direction = params["dir"]
 			var/enabled = params["enabled"]
 			if(!istext(direction) || !(direction in workspace.emissive) || !isnum(enabled) || !(enabled in list(TRUE, FALSE)) || (enabled && !emissives_allowed()))
 				return FALSE
-			if(workspace.emissive[direction] == enabled)
-				return TRUE
-			workspace.emissive = workspace.emissive.Copy()
-			workspace.emissive[direction] = enabled
+			var/layer = isnull(params["layer"]) ? 1 : workspace.layer_index(params["layer"])
+			if(!layer)
+				return FALSE
+			if(layer > 1)
+				if(!set_appendage_emissive(layer, direction, enabled))
+					return TRUE
+			else
+				if(workspace.emissive[direction] == enabled)
+					return TRUE
+				workspace.emissive = workspace.emissive.Copy()
+				workspace.emissive[direction] = enabled
+		if("addAppendage", "removeAppendage", "renameAppendage", "setAppendageZone", "setAppendageKind", "copyToOverHat")
+			if(!appendage_act(action, params))
+				return FALSE
+		if("setTryOn")
+			set_try_on(params["hat"])
+			return FALSE
 		if("pickTint")
 			var/color = tgui_color_picker(ui.user, "Choose a color to blend with Custom palette brushes.", "Custom palette blending", custom_tint)
 			if(!can_edit(ui.user) || !custom_sprite_color(color))
@@ -863,8 +892,19 @@
 /datum/custom_sprite_editor/proc/sample_guide(direction, x, y)
 	if(!istext(direction) || !(direction in workspace.layers[1]["data"]) || !workspace.valid_point_pair(list(x, y)) || x < 0 || x >= workspace.width || y < 0 || y >= workspace.height)
 		return FALSE
-	var/list/frame = workspace.layers[1]["data"][direction]
-	var/list/channels = split_color(frame[y + 1][x + 1])
+	// The top layer with paint here wins, as the canvas draws them: over-hat pieces, under-hat pieces, then the hair.
+	var/list/order = list()
+	for(var/outer in list(TRUE, FALSE))
+		for(var/layer in length(workspace.layers) to 2 step -1)
+			if(!workspace.layers[layer]["outer"] == !outer)
+				order += layer
+	order += 1
+	var/list/channels
+	for(var/layer in order)
+		var/list/frame = workspace.layers[layer]["data"][direction]
+		channels = split_color(frame[y + 1][x + 1])
+		if(channels[4])
+			break
 	if(!channels[4])
 		if(stale_guides[direction])
 			render_guide(direction)
@@ -994,32 +1034,45 @@
 	if(isnull(recolored) && drawing)
 		transfer_error = "This drawing couldn't be recolored. Save or reopen the editor, then try again."
 		return FALSE
-	if(!resize_canvas(recolored, hair) && !workspace.replace_drawing(recolored, hair, name))
+	// Paint the new look doesn't recolor keeps every pixel, so only the look itself is swapped.
+	if(!resize_canvas(recolored, hair) && !(drawing && recolored == drawing ? workspace.replace_hair_context(hair, name) : workspace.replace_drawing(recolored, hair, name, keep_layers = TRUE)))
 		transfer_error = "This change and your undo history need more than [CUSTOM_SPRITE_MAX_COLORS] colors. Save or reopen the editor, then try again."
 		return FALSE
 	draft_changed()
 	// The palette keeps its sampled shades until the rebuild samples the new look.
 	refresh_custom_palette()
-	request_rebuild()
+	// The rebuild puts the whole hair look on the body it already has; a new body would only cost more.
+	request_rebuild(reuse_body = TRUE)
 	return TRUE
 
 /**
  * Moves the draft onto the canvas height its paint and base look ask for, such as the tall hair
  * canvas, with the paint kept where it sits on the head.
  *
- * History can't span two canvas sizes, so it starts over; a pending import or restoration still
- * keeps the replaced saved style when the draft is saved.
+ * The draft's own paint resizes where it is, every layer keeping its id; a recolored drawing
+ * replaces the draft. History can't span two canvas sizes, so it starts over; a pending import or
+ * restoration still keeps the replaced saved style when the draft is saved.
  *
  * Returns TRUE when the canvas changed size, or FALSE when it already fits.
  */
 /datum/custom_sprite_editor/proc/resize_canvas(list/drawing, list/hair)
-	if(max(custom_sprite_height(drawing), custom_sprite_hair_canvas_height(target, hair)) == workspace.height)
+	var/new_height = max(custom_sprite_height(drawing), custom_sprite_hair_canvas_height(target, hair))
+	if(new_height == workspace.height)
 		return FALSE
-	var/list/rotations = workspace.unsaved_rotations()
-	QDEL_NULL(workspace)
-	workspace = create_workspace(custom_style_package(target, null, drawing, hair))
-	workspace.owner_ref = WEAKREF(src)
-	workspace.trimmed_rotations = rotations
+	if(drawing == workspace.serialize_drawing())
+		workspace.resize_height(new_height)
+		workspace.hair_context = hair?.Copy()
+		if(!drawing)
+			workspace.tint = "#ffffff"
+	else
+		var/list/rotations = workspace.unsaved_rotations()
+		// A drawing only carries painted appendages; unpainted layers come across on their own.
+		var/list/unpainted = workspace.unpainted_appendages()
+		QDEL_NULL(workspace)
+		workspace = create_workspace(custom_style_package(target, null, drawing, hair))
+		workspace.owner_ref = WEAKREF(src)
+		workspace.trimmed_rotations = rotations
+		workspace.restore_unpainted_appendages(unpainted)
 	transfer_notice = workspace.height > 32 ? "The canvas grew to fit this hairstyle. Undo history starts over." : "The canvas shrank back to the normal size. Undo history starts over."
 	return TRUE
 
@@ -1095,7 +1148,7 @@
 		return
 	var/list/draft = workspace.serialize_drawing()
 	update_restorable()
-	var/new_hash = custom_sprite_hash(draft)
+	var/new_hash = "[custom_sprite_hash(draft)]|[try_on]"
 	if(preview_hash == new_hash)
 		return
 	adopt_preview(capture_preview(draft, workspace.hair_context), new_hash, push)
@@ -1122,9 +1175,20 @@
 /datum/custom_sprite_editor/proc/capture_preview(list/drawing, list/hair)
 	var/hair_swapped = hair && json_encode(hair) != json_encode(workspace.hair_context)
 	custom_sprite_apply_round_style(preview_body, list("target" = target, "drawing" = drawing, "hair" = hair_swapped ? hair : null), emissives_allowed())
+	// A Try on hat trims the preview's hair with its own mask, then comes off again before the guides see the body.
+	var/list/worn_masks = preview_body.hair_masks
+	var/image/hat = try_on && target == "hair" ? custom_hair_try_on_image(try_on, preview_body) : null
+	if(hat)
+		preview_body.hair_masks = list(SSaccessories.hair_masks_list[GLOB.custom_hair_try_on_hats[try_on]["mask"]])
 	// Hair-only updates don't rebuild the underwear that was hidden for the guides.
 	preview_body.update_body()
-	var/mutable_appearance/look = custom_sprite_preview_appearance(preview_body, render_overlays())
+	var/list/overlays = render_overlays()
+	if(hat)
+		overlays = (overlays || list()) + hat
+	var/mutable_appearance/look = custom_sprite_preview_appearance(preview_body, overlays)
+	if(hat)
+		preview_body.hair_masks = worn_masks
+		preview_body.update_hair()
 	if(hair_swapped)
 		custom_style_apply_hair_context(preview_body, workspace.hair_context, update = FALSE, target = target)
 	return look

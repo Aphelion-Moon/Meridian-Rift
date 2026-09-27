@@ -456,7 +456,7 @@ export namespace SpriteEditor {
     }, [disabled]);
     // APHELION EDIT ADDITION START
     useSelectionCommands(currentTool, toolContext, data, !!disabled);
-    // Changing tool, view or bounds takes a selection's marquee away, dropping any floating paint.
+    // Changing tool, view, layer or bounds takes a selection's marquee away, dropping any floating paint.
     useEffect(
       () => () => {
         if (currentTool.release) currentTool.release(toolContext);
@@ -466,6 +466,7 @@ export namespace SpriteEditor {
         currentTool,
         selectedDir,
         selectedLayer,
+        data.layerTarget?.layerId,
         width,
         height,
         JSON.stringify(props.drawBounds),

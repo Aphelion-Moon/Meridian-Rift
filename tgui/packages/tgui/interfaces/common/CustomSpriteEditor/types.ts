@@ -6,6 +6,7 @@ import type {
   Dir,
   SpriteEditorToolFlags,
 } from '../SpriteEditor/Types/types';
+import type { Appendage, TryOnHat } from './appendages';
 import type { CompactSprite } from './canvas';
 
 export type CustomSpriteCandidate = {
@@ -92,4 +93,14 @@ export type CustomSpriteEditorData = {
   coverMask?: Partial<Record<Dir, string[]>> | null;
   /** The covering parts named by the cover rows' marks: 1-9 then a-z index into it. Static data. */
   coverParts?: string[];
+  /** The hair's appendage layers, in order. Hair only. */
+  appendages?: Appendage[];
+  maxAppendages?: number;
+  maxAppendageName?: number;
+  /** The Try on hat the previews wear, or null. */
+  tryOn?: string | null;
+  /** An appendage layer to switch to, sent once after one is added or copied. */
+  focusLayer?: string | null;
+  /** Try on hats by key. Static data, hair only. */
+  tryOnHats?: Record<string, TryOnHat>;
 };

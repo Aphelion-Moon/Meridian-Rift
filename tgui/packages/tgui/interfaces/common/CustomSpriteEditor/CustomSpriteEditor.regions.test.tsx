@@ -314,19 +314,19 @@ it.each([
     const { view, editor } = renderRegions(data);
     fireEvent.keyDown(document, { key: 'm' });
     fireEvent.keyUp(document, { key: 'm' });
-    expect(screen.queryByText('Shift+C')).toBeNull();
+    expect(screen.queryByText('Ctrl+Shift+C')).toBeNull();
     send.mockClear();
-    fireEvent.keyDown(document, { key: 'C', shiftKey: true });
-    fireEvent.keyUp(document, { key: 'C', shiftKey: true });
+    fireEvent.keyDown(document, { key: 'C', ctrlKey: true, shiftKey: true });
+    fireEvent.keyUp(document, { key: 'C', ctrlKey: true, shiftKey: true });
     expect(send).not.toHaveBeenCalledWith('copyBaseLayer', expect.anything());
     const canvas = view.container.querySelector('canvas')!;
     fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
     fireEvent.mouseUp(window, { clientX: 35, clientY: 5, button: 0 });
-    expect(screen.getByText('Shift+C')).toBeTruthy();
-    expect(screen.getByText(/copy with base markings/)).toBeTruthy();
+    expect(screen.getByText('Ctrl+Shift+C')).toBeTruthy();
+    expect(screen.getByText(/copy merged/)).toBeTruthy();
     send.mockClear();
-    fireEvent.keyDown(document, { key: 'C', shiftKey: true });
-    fireEvent.keyUp(document, { key: 'C', shiftKey: true });
+    fireEvent.keyDown(document, { key: 'C', ctrlKey: true, shiftKey: true });
+    fireEvent.keyUp(document, { key: 'C', ctrlKey: true, shiftKey: true });
     const request = send.mock.calls.find(
       ([action]) => action === 'copyBaseLayer',
     )![1].request;

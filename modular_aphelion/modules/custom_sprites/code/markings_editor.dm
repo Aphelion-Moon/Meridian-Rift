@@ -331,7 +331,7 @@
 	var/list/choices = list()
 	for(var/zone in GLOB.custom_marking_zone_labels)
 		if(zone in GLOB.body_markings_per_limb)
-			choices[zone] = GLOB.body_markings_per_limb[zone]
+			choices[zone] = marking_choices(zone)
 	.["regionMarkingChoices"] = choices
 	.["regionMarkingIcons"] = custom_sprite_marking_icons()
 	.["maxBaseMarkings"] = MAXIMUM_MARKINGS_PER_LIMB
@@ -374,6 +374,16 @@
 		if(results[zone]?["error"])
 			return "The [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] uses more than [CUSTOM_SPRITE_MAX_COLORS] colors on its own, so it can't be saved or exported until some are gone."
 	return "Your markings already use more than [CUSTOM_SPRITE_MAX_COLORS] colors between them, so new colors can't be added until some are gone."
+
+/**
+ * The base markings a region may take, as character setup offers them.
+ *
+ * Without allow mismatched parts, only markings meant for the body's species. The salon follows
+ * the recipient's preference, since the markings land on their character.
+ */
+/datum/custom_sprite_editor/markings/proc/marking_choices(zone)
+	var/datum/preferences/owner = context == "salon" ? GLOB.preferences_datums[session?.recipient_ckey] : preferences
+	return body_markings_of_zone_for_species(zone, preview_body?.dna.species.id, owner?.read_preference(/datum/preference/toggle/allow_mismatched_parts))
 
 /// A region's native markings in layer order, as its Base markings section shows them.
 /datum/custom_sprite_editor/markings/proc/region_marking_rows(zone)
@@ -428,16 +438,14 @@
 				return FALSE
 		if("setBaseMarking")
 			var/name = params["name"]
-			if(!isnum(params["index"]) || !istext(name) || !(name in GLOB.body_markings_per_limb[zone]) || custom_style_marking_data(canvas.markings_context[zone])[name])
+			if(!isnum(params["index"]) || !istext(name) || !(name in marking_choices(zone)) || custom_style_marking_data(canvas.markings_context[zone])[name])
 				return FALSE
 			return write_region_marking(zone, params["index"], name, null)
 		if("addBaseMarking")
 			var/list/markings = custom_style_marking_data(canvas.markings_context[zone])
 			if(!(zone in canvas.markings_context) || length(markings) >= MAXIMUM_MARKINGS_PER_LIMB)
 				return FALSE
-			var/list/choices = GLOB.body_markings_per_limb[zone].Copy()
-			for(var/name in markings)
-				choices -= name
+			var/list/choices = marking_choices(zone) - markings
 			if(!length(choices))
 				return FALSE
 			return write_region_marking(zone, null, choices[1], default_marking_color(choices[1]))
