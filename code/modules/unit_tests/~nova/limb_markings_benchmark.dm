@@ -2,8 +2,9 @@
  * Measures what the marking representation costs, so every step of the datumisation is measured the same way.
  *
  * Writes data/markings_benchmark.json: the whole world.Profile payload for the drive, a wall clock reading
- * per phase, and the counts DM can take directly - marking list lengths, limb icon cache size, and the
- * appearance and height filter counts a fully-marked tall body carries.
+ * per phase, the counts DM can take directly - marking list lengths, limb icon cache size, and the
+ * appearance and height filter counts a fully-marked tall body carries - and the median cost of an
+ * update_body_parts() pass timed with the profiler off, which is the wall clock steps compare.
  *
  * The fixture lives in limb_markings_appearance.dm, because both baselines have to dress the same
  * character for their numbers to be comparable.
@@ -20,6 +21,10 @@
 /// Seeds the preview's randomised character and add_marking's random picks, so every run drives the same content.
 /// Kept under a million, so it survives BYOND's float precision and json_encode's six significant digits intact.
 #define MARKINGS_BENCHMARK_SEED 260927
+/// Blocks of update_body_parts() passes timed with the profiler off. Steps compare the median block.
+#define MARKINGS_BENCHMARK_PROBE_BLOCKS 30
+/// update_body_parts() passes per profiler-off block, each block reading the clock once.
+#define MARKINGS_BENCHMARK_PROBE_PASSES 100
 
 /// Records the cost of the pre-datumisation marking representation.
 /datum/unit_test/markings_baseline/benchmark
@@ -190,6 +195,57 @@
 		driven++
 	return driven
 
+/**
+ * Returns the median of a list of numbers: the middle value, or the mean of the two middle values for an even count.
+ *
+ * Arguments:
+ * - values: the numbers. The list itself is left unsorted.
+ */
+/datum/unit_test/markings_baseline/benchmark/proc/median(list/values)
+	var/count = length(values)
+	if(!count)
+		return null
+	var/list/ordered = sortTim(values.Copy(), GLOBAL_PROC_REF(cmp_numeric_asc))
+	if(count % 2)
+		return ordered[(count + 1) / 2]
+	return (ordered[count / 2] + ordered[count / 2 + 1]) / 2
+
+/**
+ * Times update_body_parts() on a freshly dressed fixture while world.Profile is stopped.
+ *
+ * The profiler's bookkeeping inflates and scatters the wall clock of the profiled drive, so steps compare the
+ * median of these short blocks instead. Cached passes reuse every limb icon; creating passes also hand each
+ * limb its markings again. Call it only while the profiler is stopped.
+ *
+ * Returns a list of readings keyed for the output file.
+ */
+/datum/unit_test/markings_baseline/benchmark/proc/time_unprofiled()
+	var/mob/living/carbon/human/human = build_marked_human()
+	// Warm every cache the blocks read, so the first block is no outlier.
+	for(var/pass in 1 to MARKINGS_BENCHMARK_PROBE_PASSES)
+		human.update_body_parts()
+		human.update_body_parts(update_limb_data = TRUE)
+	var/list/cached = list()
+	var/list/creating = list()
+	rustg_time_reset(MARKINGS_BENCHMARK_CLOCK)
+	for(var/block in 1 to MARKINGS_BENCHMARK_PROBE_BLOCKS)
+		var/started = rustg_time_microseconds(MARKINGS_BENCHMARK_CLOCK)
+		for(var/pass in 1 to MARKINGS_BENCHMARK_PROBE_PASSES)
+			human.update_body_parts()
+		cached += (rustg_time_microseconds(MARKINGS_BENCHMARK_CLOCK) - started) / MARKINGS_BENCHMARK_PROBE_PASSES
+		started = rustg_time_microseconds(MARKINGS_BENCHMARK_CLOCK)
+		for(var/pass in 1 to MARKINGS_BENCHMARK_PROBE_PASSES)
+			human.update_body_parts(update_limb_data = TRUE)
+		creating += (rustg_time_microseconds(MARKINGS_BENCHMARK_CLOCK) - started) / MARKINGS_BENCHMARK_PROBE_PASSES
+	return list(
+		"blocks" = MARKINGS_BENCHMARK_PROBE_BLOCKS,
+		"passes_per_block" = MARKINGS_BENCHMARK_PROBE_PASSES,
+		"update_body_parts_cached_median_us" = median(cached),
+		"update_body_parts_creating_median_us" = median(creating),
+		"update_body_parts_cached_us_per_block" = cached,
+		"update_body_parts_creating_us_per_block" = creating,
+	)
+
 /datum/unit_test/markings_baseline/benchmark/Run()
 	var/mob/living/carbon/human/human = build_marked_human()
 	counters["fixture"] = count_marking_lists(human)
@@ -291,8 +347,9 @@
 	// Read before the tall body below renders, so the delta covers the drive alone.
 	counters["limb_icon_cache_after"] = length(human.limb_icon_cache)
 	var/profile_text = world.Profile(PROFILE_REFRESH, format = "json")
-	// Nothing after this test should find the drive still sitting in the profiler.
-	world.Profile(PROFILE_CLEAR)
+	// Nothing after this test should find the drive still sitting in the profiler. A command without PROFILE_STOP
+	// starts profiling, and PROFILE_REFRESH is PROFILE_START, so the read above restarted it and this stops it again.
+	world.Profile(PROFILE_CLEAR | PROFILE_STOP)
 
 	// A tall body is the worst case for the overlay count: every marking appearance takes its own filter.
 	var/mob/living/carbon/human/tall = build_marked_human()
@@ -302,6 +359,9 @@
 	counters["tall_marking_lists"] = count_marking_lists(tall)
 	counters["tall_mob_height"] = tall.mob_height
 	counters["actions_driven"] = actions_driven
+
+	// The profiler stopped above, and the drive's counters are all read, so this adds nothing to them.
+	var/list/profiler_off = time_unprofiled()
 
 	var/profile_payload
 	if(length(profile_text))
@@ -329,6 +389,7 @@
 		"counters" = counters,
 		"notes" = notes,
 		"profile" = profile_payload,
+		"profiler_off" = profiler_off,
 	)), output_path)
 
 	// Assert after writing, so a failed expectation still leaves the measurements on disk. Only a phase
@@ -344,8 +405,11 @@
 	TEST_ASSERT(length(profile_text), "world.Profile returned no data, so the benchmark has no primary evidence.")
 	for(var/phase in list("update_body_parts_cached", "update_body_parts_creating", "species_change", "husk_cycle", "dismember_reattach", "height_change", "middleware_actions"))
 		TEST_ASSERT(timings[phase], "The [phase] phase did not run, so its cost was never measured.")
+	TEST_ASSERT(profiler_off["update_body_parts_cached_median_us"] > 0 && profiler_off["update_body_parts_creating_median_us"] > 0, "The profiler-off phase measured nothing.")
 
 #undef MARKINGS_BENCHMARK_BODY_PASSES
 #undef MARKINGS_BENCHMARK_ACTION_ROUNDS
 #undef MARKINGS_BENCHMARK_CLOCK
 #undef MARKINGS_BENCHMARK_SEED
+#undef MARKINGS_BENCHMARK_PROBE_BLOCKS
+#undef MARKINGS_BENCHMARK_PROBE_PASSES
