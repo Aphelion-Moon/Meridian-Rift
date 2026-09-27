@@ -169,6 +169,9 @@
 	var/datum/body_marking_set/preset = GLOB.body_marking_sets["Tajaran"]
 	for(var/round in 1 to MARKINGS_BENCHMARK_ACTION_ROUNDS)
 		if(preset)
+			// A preset replaced every zone until it merged into the zones it covers; each round starts from no markings,
+			// so the rounds keep driving the same actions on the same markings.
+			preferences.body_markings = new /datum/body_marking_collection
 			middleware.set_preset(list("preset" = preset.name), user)
 			driven++
 		// A preset only fills the zones it covers, so make sure this one has a row to edit.
@@ -258,6 +261,8 @@
 	// Species and mismatched parts decide which markings add_marking may pick, so neither is left to the roll.
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], FALSE)
+	// The action set lights a marking, which allow_emissives gates, and the preview draws the glow only when allowed.
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
 	preferences.create_character_preview_view(mock_client.mob)
 	var/datum/preference_middleware/limbs_and_markings/middleware = locate() in preferences.middleware
 	preferences.body_markings = body_marking_collection_from_list(markings_baseline_fill())

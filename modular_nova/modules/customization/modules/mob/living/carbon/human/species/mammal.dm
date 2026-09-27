@@ -82,11 +82,12 @@
 
 /datum/species/mammal/get_random_body_markings(list/passed_features)
 	var/name = SPRITE_ACCESSORY_NONE
-	var/list/candidates = GLOB.body_marking_sets.Copy()
-	for(var/candi in candidates)
-		var/datum/body_marking_set/setter = GLOB.body_marking_sets[candi]
-		if(setter.recommended_species && isnull(setter.recommended_species[id]))
-			candidates -= candi
+	// The sets meant for any species or for this one, gathered rather than removed from a list being looped over.
+	var/list/candidates
+	for(var/set_name, set_datum in GLOB.body_marking_sets)
+		var/datum/body_marking_set/setter = set_datum
+		if(isnull(setter.recommended_species) || !isnull(setter.recommended_species[id]))
+			LAZYADD(candidates, set_name)
 	if(length(candidates))
 		name = pick(candidates)
 	var/datum/body_marking_set/BMS = GLOB.body_marking_sets[name]

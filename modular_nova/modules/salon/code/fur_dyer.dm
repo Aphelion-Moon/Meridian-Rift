@@ -78,7 +78,7 @@
 
 /obj/item/fur_dyer/proc/dye_marking(mob/living/carbon/human/target_human, mob/living/user)
 
-	var/datum/body_marking_collection/current_markings = target_human.dna.body_markings.shallow_copy()
+	var/datum/body_marking_collection/current_markings = target_human.dna.body_markings
 
 	if(!current_markings.zone_count())
 		to_chat(user, span_danger("[target_human] has no markings!"))
@@ -114,9 +114,7 @@
 	visible_message(span_notice("[user] starts to masterfully paint [target_human]!"))
 
 	if(do_after(user, 20 SECONDS, target_human))
-		current_markings.find_entry(selected_marking_area, selected_marking_id)?.set_color(selected_color)
-
-		target_human.dna.body_markings = current_markings.shallow_copy()
+		finish_marking_dye(target_human, selected_marking_area, selected_marking_id, selected_color)
 
 		target_human.regenerate_icons()
 
@@ -125,6 +123,29 @@
 		visible_message(span_notice("[user] finishes painting [target_human]!"))
 
 		playsound(src.loc, 'sound/effects/spray2.ogg', 50, TRUE)
+
+/**
+ * Recolours one marking on a body once its painting has finished.
+ *
+ * The marking is looked up among the body's markings as they are now, which may have changed while it was
+ * being painted, and nothing is written when it is gone. The body's markings are its own, so the colour never
+ * reaches its player's saved character.
+ *
+ * Arguments:
+ * - target_human: the painted body.
+ * - zone: the marking zone painted.
+ * - marking_name: the name of the marking painted.
+ * - color: the new colour.
+ *
+ * Returns:
+ * - TRUE if the marking was recoloured.
+ */
+/obj/item/fur_dyer/proc/finish_marking_dye(mob/living/carbon/human/target_human, zone, marking_name, color)
+	var/datum/body_marking_entry/dyed = target_human.dna.body_markings.find_entry(zone, marking_name)
+	if(!dyed)
+		return FALSE
+	dyed.set_color(color)
+	return TRUE
 
 #undef COLOR_MODE_SPECIFIC
 #undef COLOR_MODE_GENERAL

@@ -14,7 +14,9 @@
 	)
 
 /datum/preference_middleware/limbs_and_markings/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
-	target.dna.body_markings = preferences.body_markings.shallow_copy()
+	// The body gets entries of its own, so recolouring it (fur dyer, slime colour reset) never reaches the saved character,
+	// and none of them glow while the character's allow_emissives preference is off, as custom sprites are dressed.
+	target.dna.body_markings = preferences.body_markings.copy(allow_emissives = preferences.read_preference(/datum/preference/toggle/allow_emissives))
 
 	var/list/visited_body_zones = list()
 	for(var/key, augment_path in preferences.augments)
@@ -454,7 +456,9 @@
 	var/datum/body_marking_entry/toggled = marking_entry_by_id(bodypart_slot, marking_id)
 	if(!toggled)
 		return
-	toggled.set_emissive(sanitize_integer(emissive))
+	// A glow waits on the character's allow_emissives preference, as custom sprite glow does.
+	if(!toggled.set_emissive(sanitize_integer(emissive), preferences.read_preference(/datum/preference/toggle/allow_emissives)))
+		return
 	preferences.character_preview_view.update_body()
 	return TRUE
 
@@ -472,8 +476,16 @@
 
 /datum/preference_middleware/limbs_and_markings/proc/set_preset(list/params, mob/user)
 	var/preset = params["preset"]
-	if(preset)
-		var/datum/body_marking_set/BMS = GLOB.body_marking_sets[preset]
+	// A name no set has returns quietly, where it used to runtime assembling a null set.
+	var/datum/body_marking_set/marking_set = istext(preset) ? GLOB.body_marking_sets[preset] : null
+	if(!marking_set)
+		return
+	if(!length(marking_set.body_marking_list))
+		// A set without markings, "None", clears every zone: the whole collection is replaced, as it always was.
+		preferences.body_markings = new /datum/body_marking_collection
+	else
+		// A set with markings merges: each zone it covers is replaced by its markings in the set's order, and
+		// every other zone keeps what it wears.
 		var/species_type = preferences.read_preference(/datum/preference/choiced/species)
 		var/list/preview_features = preferences.character_preview_view.body.dna.features
 		var/list/features = list(
@@ -483,7 +495,7 @@
 			FEATURE_SKIN_COLOR         = skintone2hex(preferences.read_preference(/datum/preference/choiced/skin_tone)),
 		)
 		var/datum/species/current_species = GLOB.species_prototypes[species_type]
-		preferences.body_markings = assemble_body_markings_from_set(BMS, features, current_species)
+		preferences.body_markings.overwrite_zones_from(assemble_body_markings_from_set(marking_set, features, current_species))
 	preferences.character_preview_view.update_body()
 	return TRUE
 

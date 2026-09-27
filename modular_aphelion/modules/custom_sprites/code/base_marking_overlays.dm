@@ -11,10 +11,12 @@
  * - zone: A body or auxiliary zone to include, or null for both in native order.
  * - include_emissive: Whether native emissive appearances accompany the visible markings.
  * - alpha_override: An explicit visible marking opacity, or null to use markings_alpha.
+ * - image_dir: A facing every appearance keeps whichever way its holder faces, SOUTH for a dropped limb as its own
+ *   images have, or null to follow the holder.
  *
  * Returns the same output list.
  */
-/obj/item/bodypart/proc/append_base_marking_overlays(list/output, zone = null, include_emissive = TRUE, alpha_override = null)
+/obj/item/bodypart/proc/append_base_marking_overlays(list/output, zone = null, include_emissive = TRUE, alpha_override = null, image_dir = null)
 	var/override_color
 	var/atom/offset_spokesman = owner || src
 	// First, check to see if this bodypart is husked. If so, we don't want to apply our sparkledog colors to the limb.
@@ -40,14 +42,16 @@
 				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[digi_modifier][body_zone][gender_modifier]", -BODYPARTS_LAYER)
 				accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
 				if(include_emissive && marking_entry.get_emissive())
-					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
+					// The glow fades with the marking, as a limb's own glow follows the limb's alpha.
+					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer, alpha = accessory_overlay.alpha)
 				if(override_color)
 					accessory_overlay.color = override_color
 				else
 					accessory_overlay.color = marking_entry.get_color()
-				output += accessory_overlay
+				// Only image() with a dir keeps an overlay's own facing, so a dropped limb's markings face south with it.
+				output += image_dir ? image(accessory_overlay, dir = image_dir) : accessory_overlay
 				if (emissive)
-					output += emissive
+					output += image_dir ? image(emissive, dir = image_dir) : emissive
 
 		if(aux_zone && (isnull(zone) || zone == aux_zone))
 			for(var/datum/body_marking_entry/marking_entry as anything in aux_zone_markings)
@@ -62,12 +66,12 @@
 				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[render_limb_string]", -aux_layer)
 				accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
 				if(include_emissive && marking_entry.get_emissive())
-					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
+					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer, alpha = accessory_overlay.alpha)
 				if(override_color)
 					accessory_overlay.color = override_color
 				else
 					accessory_overlay.color = marking_entry.get_color()
-				output += accessory_overlay
+				output += image_dir ? image(accessory_overlay, dir = image_dir) : accessory_overlay
 				if (emissive)
-					output += emissive
+					output += image_dir ? image(emissive, dir = image_dir) : emissive
 	return output

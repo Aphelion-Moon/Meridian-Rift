@@ -60,18 +60,24 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /**
  * Turns this entry's glow on or off, for every collection and limb holding it.
  *
- * Refuses nothing yet: the allow_emissives refusal arrives with the marking bug fixes (markings plan step 3).
- *
  * Arguments:
  * - new_emissive: truthy to glow. It is stored as 0 or 1.
+ * - allow_emissives: FALSE while the character's allow_emissives preference is off. Glow is then refused, as the
+ *   custom sprite path refuses it; turning glow off is always allowed.
+ *
+ * Returns:
+ * - TRUE when the entry now glows as asked, FALSE when glow was refused.
  */
-/datum/body_marking_entry/proc/set_emissive(new_emissive)
+/datum/body_marking_entry/proc/set_emissive(new_emissive, allow_emissives = TRUE)
 	new_emissive = new_emissive ? TRUE : FALSE
+	if(new_emissive && !allow_emissives)
+		return FALSE
 	if(new_emissive == emissive)
-		return
+		return TRUE
 	emissive = new_emissive
 	cached_key = null
 	GLOB.body_marking_entry_revision++
+	return TRUE
 
 /**
  * Returns this entry's part of a limb icon cache key.
@@ -87,12 +93,16 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /**
  * Returns a new entry wearing the same marking on the same zone, in the same colour and glow.
  *
+ * Arguments:
+ * - allow_emissives: FALSE to copy without the glow, as a body is dressed while its character's allow_emissives
+ *   preference is off. The glow this entry holds is kept either way.
+ *
  * Returns:
  * - /datum/body_marking_entry: the new entry.
  */
-/datum/body_marking_entry/proc/copy()
+/datum/body_marking_entry/proc/copy(allow_emissives = TRUE)
 	RETURN_TYPE(/datum/body_marking_entry)
-	return new /datum/body_marking_entry(marking, zone, color, emissive)
+	return new /datum/body_marking_entry(marking, zone, color, allow_emissives ? emissive : FALSE)
 
 /datum/body_marking_collection
 	/// Every worn entry in the order it was added. A zone's markings are this list filtered by zone.
@@ -354,15 +364,19 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /**
  * Returns a new collection with new entries in the same zones and order, colours and glow. Nothing is shared.
  *
+ * Arguments:
+ * - allow_emissives: FALSE to copy every entry without its glow, as a body is dressed while its character's
+ *   allow_emissives preference is off. The glow this collection holds is kept either way.
+ *
  * Returns:
  * - /datum/body_marking_collection: the copy.
  */
-/datum/body_marking_collection/proc/copy()
+/datum/body_marking_collection/proc/copy(allow_emissives = TRUE)
 	RETURN_TYPE(/datum/body_marking_collection)
 	var/datum/body_marking_collection/duplicate = new
 	duplicate.zones = zones?.Copy()
 	for(var/datum/body_marking_entry/entry as anything in entries)
-		LAZYADD(duplicate.entries, entry.copy())
+		LAZYADD(duplicate.entries, entry.copy(allow_emissives))
 	return duplicate
 
 /**

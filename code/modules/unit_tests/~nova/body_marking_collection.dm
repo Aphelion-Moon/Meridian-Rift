@@ -129,6 +129,8 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+	// A row below is lit, which the character's allow_emissives preference gates.
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
 	preferences.create_character_preview_view(mock_client.mob)
 	var/datum/preference_middleware/limbs_and_markings/middleware = locate() in preferences.middleware
 	TEST_ASSERT(middleware, "The fixture needs the limbs and markings middleware")
