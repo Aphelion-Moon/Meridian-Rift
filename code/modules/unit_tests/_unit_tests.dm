@@ -384,6 +384,8 @@
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\limb_markings.dm"
+#include "~nova\limb_markings_appearance.dm"
+#include "~nova\limb_markings_benchmark.dm"
 #include "~nova\liver_nova.dm"
 #include "~nova\matrixed_accessories.dm"
 #include "~nova\meridian_preferences.dm"
