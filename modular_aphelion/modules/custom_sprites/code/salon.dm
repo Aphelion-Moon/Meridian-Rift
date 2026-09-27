@@ -1138,6 +1138,8 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	if(!self_work)
 		to_chat(recipient, span_notice("[artist] adds the finishing touches to your [label()]. Try not to move!"))
 	stop_drawing_sounds()
+	// The artist's window shows the finishing touches, even when the recipient's approval started them.
+	editor?.push()
 	var/finished = do_salon_work(artist, SALON_APPLY_DURATION, recipient, tool_type == /obj/item/tattoo_machine, CALLBACK(src, PROC_REF(application_valid), token))
 	if(!QDELETED(src))
 		complete_application(token, finished)
@@ -1271,7 +1273,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 
 /// Window data the salon owns, shared by the hair editor and the tattoo canvas.
 /datum/custom_sprite_salon/proc/context_ui_data()
-	return list("canRestorePrevious" = FALSE, "recipientName" = recipient_name, "salonState" = state, "selfWork" = self_work)
+	return list("canRestorePrevious" = FALSE, "recipientName" = recipient_name, "salonState" = state, "selfWork" = self_work, "applyDuration" = SALON_APPLY_DURATION * 100)
 
 /**
  * Resumes a retained draft from a tool's self-use action. Sleeps only when asking which one.

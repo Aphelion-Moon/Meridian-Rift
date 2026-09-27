@@ -28,14 +28,15 @@
 	return appearance
 
 /**
- * The looks that can hide paint: the hair, then every mutant part drawn on the body. Each look
- * carries its images, offset the way get_limb_icon() draws them, the highest layer it draws on
- * and a label for the window. Looks come lowest layer first, so stamping them in order leaves the
- * topmost part at each pixel. Parts behind the body, hidden parts, the taur body (which carries
- * its own paint) and emissive images are left out. `key`, when given, collects what each look is
- * drawn from and where it lands, so rows flattened from these looks can be cached by geometry.
+ * The looks that can hide paint: the hair, every mutant part drawn on the body, each piece of
+ * underwear and, given a `wearer`, each item they have on. Each look carries its images, offset
+ * the way get_limb_icon() draws them, the highest layer it draws on and a label for the window;
+ * worn items are also marked `worn`. Looks come lowest layer first, so stamping them in order
+ * leaves the topmost part at each pixel. Parts behind the body, hidden parts, the taur body (which
+ * carries its own paint) and emissive images are left out. `key`, when given, collects what each
+ * look is drawn from and where it lands, so rows flattened from these looks can be cached by geometry.
  */
-/proc/custom_sprite_cover_looks(mob/living/carbon/human/body, list/key)
+/proc/custom_sprite_cover_looks(mob/living/carbon/human/body, list/key, mob/living/carbon/human/wearer)
 	var/list/looks = list()
 	if(key)
 		key += body.mob_height
@@ -74,6 +75,9 @@
 			if(key)
 				// The part's render key names its art; generated icons have no path to key by.
 				key += list(json_encode(part.icon_render_key(limb)), "[limb.limb_gender]|[part.offset_location]")
+	looks += custom_sprite_underwear_looks(body, key)
+	if(wearer)
+		looks += custom_sprite_worn_looks(wearer, key)
 	// Lowest look first: the last one stamped on a pixel is the one on top.
 	var/list/sorted = list()
 	for(var/list/look as anything in looks)
@@ -85,6 +89,74 @@
 			position++
 		sorted.Insert(position, list(look))
 	return sorted
+
+/// Each piece of underwear the body shows, as a look of its own: underwear, bra, undershirt and socks.
+/proc/custom_sprite_underwear_looks(mob/living/carbon/human/body, list/key)
+	. = list()
+	var/list/pieces = list(
+		list("underwear", UNDERWEAR_HIDE_UNDIES, body.underwear, body.underwear_color),
+		list("bra", UNDERWEAR_HIDE_BRA, body.bra, body.bra_color),
+		list("undershirt", UNDERWEAR_HIDE_SHIRT, body.undershirt, body.undershirt_color),
+		list("socks", UNDERWEAR_HIDE_SOCKS, body.socks, body.socks_color),
+	)
+	var/visibility = body.underwear_visibility
+	for(var/list/piece as anything in pieces)
+		if(visibility & piece[2])
+			continue
+		// get_underwear_overlays() draws every piece that isn't hidden, so the rest are hidden while it draws this one.
+		body.underwear_visibility = (visibility | UNDERWEAR_HIDE_ALL) & ~piece[2]
+		var/list/images = body.get_underwear_overlays()
+		body.underwear_visibility = visibility
+		if(!length(images))
+			continue
+		var/top = -INFINITY
+		for(var/mutable_appearance/image as anything in images)
+			body.apply_height(image, ENTIRE_BODY)
+			top = max(top, image.layer)
+			if(key)
+				key += custom_sprite_placement_key(image)
+		. += list(list("label" = piece[1], "layer" = top, "images" = images))
+		if(key)
+			key += list(json_encode(list(piece[1], piece[3], piece[4], body.physique, body.bodyshape)))
+
+/// What the wearer has on, a look for each worn item, labelled by its name. Held items are left out.
+/proc/custom_sprite_worn_looks(mob/living/carbon/human/wearer, list/key)
+	. = list()
+	// Each worn layer and the slot whose item it draws.
+	var/static/list/worn_slots = list(
+		list(UNIFORM_LAYER, ITEM_SLOT_ICLOTHING),
+		list(ID_LAYER, ITEM_SLOT_ID),
+		list(GLOVES_LAYER, ITEM_SLOT_GLOVES),
+		list(SHOES_LAYER, ITEM_SLOT_FEET),
+		list(EARS_LAYER, ITEM_SLOT_EARS),
+		list(SUIT_LAYER, ITEM_SLOT_OCLOTHING),
+		list(GLASSES_LAYER, ITEM_SLOT_EYES),
+		list(BELT_LAYER, ITEM_SLOT_BELT),
+		list(SUIT_STORE_LAYER, ITEM_SLOT_SUITSTORE),
+		list(NECK_LAYER, ITEM_SLOT_NECK),
+		list(BACK_LAYER, ITEM_SLOT_BACK),
+		list(FACEMASK_LAYER, ITEM_SLOT_MASK),
+		list(HEAD_LAYER, ITEM_SLOT_HEAD),
+		list(HANDCUFF_LAYER, ITEM_SLOT_HANDCUFFED),
+		list(LEGCUFF_LAYER, ITEM_SLOT_LEGCUFFED),
+	)
+	for(var/list/slot as anything in worn_slots)
+		var/obj/item/item = wearer.get_item_by_slot(slot[2])
+		var/worn = wearer.overlays_standing[slot[1]]
+		if(!item || !worn)
+			continue
+		var/list/images = list()
+		var/top = -INFINITY
+		for(var/mutable_appearance/image as anything in (islist(worn) ? worn : list(worn)))
+			if(PLANE_TO_TRUE(image.plane) == EMISSIVE_PLANE)
+				continue
+			images += image
+			top = max(top, image.layer)
+			if(key)
+				// Worn overlays are rebuilt whenever the item's look changes, so each one names its own art.
+				key += "[REF(image)]|[custom_sprite_placement_key(image)]"
+		if(length(images))
+			. += list(list("label" = "\the [item]", "layer" = top, "images" = images, "worn" = TRUE))
 
 /// The look the head's hair images were built from: those icons are generated at runtime and can't be keyed by path.
 /proc/custom_sprite_hair_cover_key(mob/living/carbon/human/body)

@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { expect, it, spyOn } from 'bun:test';
+import { expect, it, jest, spyOn } from 'bun:test';
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import {
@@ -200,6 +200,47 @@ it('washes and hatches painted pixels that a part covers', () => {
   }
 });
 
+it('names what covers a resting cursor: clothing blocks a region it locks, anything else hides paint', () => {
+  jest.useFakeTimers();
+  const getBounds = spyOn(
+    HTMLElement.prototype,
+    'getBoundingClientRect',
+  ).mockReturnValue(new DOMRect(0, 0, 320, 320));
+  try {
+    const data = regionFixture();
+    // Row 0 is the chest at x 0-1 and the left arm at x 2-3; one pixel of each is bare.
+    const frames = fixtureFrames();
+    frames[Dir.SOUTH][0][1] = '#00000000';
+    frames[Dir.SOUTH][0][3] = '#00000000';
+    data.editorData.sprite = compactSprite(32, 32, frames);
+    data.coverMask = {
+      2: [
+        '1122'.padEnd(32, '0'),
+        ...Array.from({ length: 31 }, () => '0'.repeat(32)),
+      ],
+    };
+    data.coverParts = ['underwear', 'the black jacket'];
+    data.coverWorn = [0, 1];
+    data.lockedRegions = { l_arm: "Leia's left arm is covered." };
+    const { view } = renderRegions(data);
+    const canvas = view.container.querySelector('canvas')!;
+    const tipAt = (x: number) => {
+      fireEvent.mouseMove(canvas, { clientX: x * 10 + 5, clientY: 5 });
+      act(() => jest.advanceTimersByTime(1000));
+      return (
+        view.container.querySelector('.CustomSpriteEditor__coverTip')
+          ?.textContent ?? null
+      );
+    };
+    expect(tipAt(0)).toBe('Hidden by underwear');
+    expect(tipAt(1)).toBeNull();
+    expect(tipAt(2)).toBe('Blocked by the black jacket');
+    expect(tipAt(3)).toBe('Blocked by the black jacket');
+  } finally {
+    getBounds.mockRestore();
+  }
+});
+
 it('moves the selection to the region a drag is released over', () => {
   const getBounds = spyOn(
     HTMLElement.prototype,
@@ -323,7 +364,7 @@ it.each([
     fireEvent.mouseDown(canvas, { clientX: 5, clientY: 5, button: 0 });
     fireEvent.mouseUp(window, { clientX: 35, clientY: 5, button: 0 });
     expect(screen.getByText('Ctrl+Shift+C')).toBeTruthy();
-    expect(screen.getByText(/copy merged/)).toBeTruthy();
+    expect(screen.getByText(/copy all/)).toBeTruthy();
     send.mockClear();
     fireEvent.keyDown(document, { key: 'C', ctrlKey: true, shiftKey: true });
     fireEvent.keyUp(document, { key: 'C', ctrlKey: true, shiftKey: true });

@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import { expect, it } from 'bun:test';
-import { coveredPaint, coverPartAt, regionAt } from './regions';
+import { coveredPaint, coverIndexAt, regionAt } from './regions';
 
 const rows = ['0110', '0120', '0000'];
 const zones = ['chest', 'l_arm'];
@@ -29,15 +29,13 @@ it('lists only painted pixels the cover rows mark, and tolerates short rows', ()
   expect(coveredPaint(cover, undefined)).toEqual([]);
 });
 
-it('names the part covering a pixel from the row mark', () => {
-  const cover = ['1230'];
-  const parts = ['hair', 'snout', 'wings'];
-  expect(coverPartAt(cover, parts, 0, 0)).toBe('hair');
-  expect(coverPartAt(cover, parts, 1, 0)).toBe('snout');
-  expect(coverPartAt(cover, parts, 2, 0)).toBe('wings');
-  expect(coverPartAt(cover, parts, 3, 0)).toBeNull();
-  expect(coverPartAt(cover, parts, 0, 5)).toBeNull();
-  expect(coverPartAt(['a'], parts, 0, 0)).toBeNull();
-  expect(coverPartAt(undefined, parts, 0, 0)).toBeNull();
-  expect(coverPartAt(cover, undefined, 0, 0)).toBeNull();
+it('finds the part covering a pixel from the row mark', () => {
+  const cover = ['123a0'];
+  expect(coverIndexAt(cover, 0, 0)).toBe(0);
+  expect(coverIndexAt(cover, 1, 0)).toBe(1);
+  expect(coverIndexAt(cover, 2, 0)).toBe(2);
+  expect(coverIndexAt(cover, 3, 0)).toBe(9);
+  expect(coverIndexAt(cover, 4, 0)).toBeNull();
+  expect(coverIndexAt(cover, 0, 5)).toBeNull();
+  expect(coverIndexAt(undefined, 0, 0)).toBeNull();
 });

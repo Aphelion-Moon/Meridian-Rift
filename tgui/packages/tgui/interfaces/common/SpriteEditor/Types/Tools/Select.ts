@@ -813,7 +813,7 @@ export class Select extends Tool {
   }
 
   /**
-   * Ctrl+Shift+C, or Ctrl+C while Merged is lit: copies the selection as the view shows it, the
+   * Ctrl+Shift+C, or Ctrl+C while Copy all is lit: copies the selection as the view shows it, the
    * view's other paint layers included. The layers are composed here; only the native base pixels
    * are asked of the server, and a canvas with no base to copy is copied at once.
    *

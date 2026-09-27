@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 
-import { expect, it, spyOn } from 'bun:test';
+import { expect, it, jest, spyOn } from 'bun:test';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { update } from 'tgui/events/handlers/update';
 import {
@@ -221,6 +221,30 @@ it('uses the selected direction limb silhouette to reject painting outside that 
   } finally {
     getBounds.mockRestore();
   }
+});
+
+it('covers a salon editor during the finishing touches, and fades out when they stop short', () => {
+  jest.useFakeTimers();
+  const data = {
+    ...fixture(),
+    context: 'salon',
+    salonState: 'applying',
+    applyDuration: 5000,
+  };
+  backendStore.set(gameDataAtom, data);
+  const { view, editor } = renderEditor('hair');
+  expect(screen.getByText('Applying finishing touches…')).toBeTruthy();
+  backendStore.set(gameDataAtom, { ...data, salonState: 'drafting' });
+  view.rerender(editor());
+  expect(screen.getByText('Interrupted!')).toBeTruthy();
+  act(() => jest.advanceTimersByTime(1300));
+  expect(
+    view.container.querySelector('.CustomSpriteEditor__finishing--fading'),
+  ).not.toBeNull();
+  act(() => jest.advanceTimersByTime(500));
+  expect(
+    view.container.querySelector('.CustomSpriteEditor__finishing'),
+  ).toBeNull();
 });
 
 it('only reports salon brush activity, immediately and at most once a second during a stroke', () => {

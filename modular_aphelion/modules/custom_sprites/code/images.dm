@@ -446,6 +446,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	for(var/list/look as anything in looks)
 		. += look["label"]
 
+/// Which looks, in mark order, are worn items (1) rather than parts of the body (0), for the window's tooltip.
+/proc/custom_sprite_cover_worn(list/looks)
+	. = list()
+	for(var/list/look as anything in looks)
+		. += look["worn"] ? 1 : 0
+
 /// Nova's character preview backgrounds as tiles for the custom editors' background swatches.
 /proc/custom_sprite_background_tiles()
 	var/static/list/tiles

@@ -156,17 +156,16 @@ export const coveredPaint = (
   return cells;
 };
 
-/** The part covering a pixel: the row mark (1-9, then a-z) indexes the parts list. */
-export const coverPartAt = (
+/** Where the part covering a pixel sits in the parts list: the row mark (1-9, then a-z) counts from 1. */
+export const coverIndexAt = (
   cover: string[] | undefined,
-  parts: string[] | undefined,
   x: number,
   y: number,
-): string | null => {
+): number | null => {
   const mark = cover?.[y]?.[x];
-  if (!mark || mark === '0' || !parts) return null;
+  if (!mark || mark === '0') return null;
   const index = parseInt(mark, 36);
-  return Number.isNaN(index) ? null : (parts[index - 1] ?? null);
+  return Number.isNaN(index) ? null : index - 1;
 };
 
 /** Covered paint: a dark wash and a rising diagonal, so the paint still reads through. */

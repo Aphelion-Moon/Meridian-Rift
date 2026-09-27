@@ -74,6 +74,7 @@ import {
   fitsMiddleHalf,
   pictureFitsMiddleHalf,
 } from './canvas';
+import { FinishingOverlay } from './FinishingOverlay';
 import {
   composeBackground,
   composeWorn,
@@ -85,7 +86,7 @@ import {
 import { LayerStrip } from './LayerStrip';
 import { CustomSpritePalette } from './Palette';
 import { RegionOverlay } from './RegionOverlay';
-import { coverPartAt, drawScanlines, regionAt, regionBounds } from './regions';
+import { coverIndexAt, drawScanlines, regionAt, regionBounds } from './regions';
 import type { CustomSpriteEditorData } from './types';
 
 /** Steps through a list of options with wraparound, for the cycle arrows and rotate buttons. */
@@ -328,6 +329,7 @@ export const CustomSpriteEditor = ({
     recipientName,
     selfWork,
     salonState,
+    applyDuration,
     resourcesReady = true,
     editorData,
     colorMode,
@@ -362,6 +364,7 @@ export const CustomSpriteEditor = ({
     visibleView,
     coverMask,
     coverParts,
+    coverWorn,
     appendages: serverAppendages,
     maxAppendages = 3,
     maxAppendageName = 20,
@@ -588,18 +591,17 @@ export const CustomSpriteEditor = ({
   // An appendage's other views come from the server as the window turns to them.
   const layerLoading = !!chosen && !appendageFrames[chosen.id]?.[view];
   const layerName = chosen ? chosen.name : 'Base hair layer';
-  // A merged copy adds the base and the other layers, so it's offered only where there are some.
-  const baseName = target === 'markings' ? 'base markings' : 'base hair';
+  // Copy all adds the base and the other layers, so it's offered only where there are some.
+  const copiedByAll = sprite.baseCopyInfo
+    ? target === 'markings'
+      ? 'the custom markings and the base markings'
+      : 'the custom hair and the base hair'
+    : 'the paint of every layer';
   const mergedTooltip =
     sprite.baseCopyInfo || appendages.length
-      ? `When lit, Ctrl+C copies ${layered ? 'every layer' : 'the paint'} as it shows${sprite.baseCopyInfo ? `, ${baseName} included` : ''}. Ctrl+Shift+C does it once.`
+      ? `While lit, Ctrl+C copies ${copiedByAll}.`
       : undefined;
-  const mergedHint =
-    target === 'markings'
-      ? 'Copy selected base markings and paint from editable regions. Ctrl+V pastes editable colors; destination region opacity and emission stay unchanged. Body, clothing and taur artwork are excluded.'
-      : sprite.baseCopyInfo
-        ? `Copy selected base hair and ${appendages.length ? 'the paint of every layer' : 'paint'}. Ctrl+V pastes editable pixels; opacity and gradients remain live hair settings. Choose Bald (Tall Canvas) if the copy needs more room.`
-        : 'Copy the paint of every layer as it shows.';
+  const mergedHint = `Copies ${copiedByAll}.`;
   const regionMode = target === 'markings' && !!regions;
   const zones = regionZones ?? [];
   const [selectedZone, setSelectedZone] = useState(serverZone ?? null);
@@ -687,11 +689,19 @@ export const CustomSpriteEditor = ({
       if (hovered !== hoveredZone) setHoveredZone(hovered);
       if (event.buttons && hovered) dragZone.current = hovered;
       const pixel = sprite.layers[0]?.data[direction]?.[py]?.[px];
-      const part =
-        pixel && !pixel.endsWith('00') && !event.buttons
-          ? coverPartAt(coverMask?.[direction], coverParts, px, py)
-          : null;
-      label = part && `Hidden by ${part}`;
+      const index = event.buttons
+        ? null
+        : coverIndexAt(coverMask?.[direction], px, py);
+      const part = index === null ? null : coverParts?.[index];
+      if (part) {
+        // Clothing over a region it keeps from being worked on blocks it, painted or not; anything
+        // else only hides paint.
+        if (coverWorn?.[index!] && lockReason(zone)) {
+          label = `Blocked by ${part}`;
+        } else if (pixel && !pixel.endsWith('00')) {
+          label = `Hidden by ${part}`;
+        }
+      }
     } else if (
       hatch &&
       !event.buttons &&
@@ -1595,7 +1605,7 @@ export const CustomSpriteEditor = ({
                     {!!mergedTooltip && !!selectionBounds && (
                       <Tooltip content={mergedHint}>
                         <span>
-                          <kbd>Ctrl+Shift+C</kbd> copy merged ·{' '}
+                          <kbd>Ctrl+Shift+C</kbd> copy all ·{' '}
                         </span>
                       </Tooltip>
                     )}
@@ -1664,6 +1674,10 @@ export const CustomSpriteEditor = ({
             </Stack>
           </Stack.Item>
         </Stack>
+        <FinishingOverlay
+          applying={salon && salonState === 'applying'}
+          duration={applyDuration ?? 5000}
+        />
       </Window.Content>
     </Window>
   );

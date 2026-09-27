@@ -461,6 +461,33 @@
 	TEST_ASSERT(!(json_encode(editor.guide_urls) != showing || !("#22ddcc" in editor.sampled_palette)), "Showing the gradient again must restore the guide and palette.")
 	editor.finish(FALSE)
 
+/// Underwear hides paint a piece at a time, and what a salon recipient wears hides it under the item's own name, marked as worn.
+/datum/unit_test/custom_sprite_cover_underwear_and_clothing/Run()
+	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
+	for(var/name in SSaccessories.underwear_list)
+		if(name != "Nude" && name != SPRITE_ACCESSORY_NONE)
+			human.underwear = name
+			break
+	human.undershirt = "Nude"
+	human.bra = "Nude"
+	human.socks = "Nude"
+	human.update_body()
+	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
+	TEST_ASSERT(human.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING), "The fixture needs a worn jumpsuit.")
+	var/list/looks = custom_sprite_cover_looks(human, null, human)
+	var/list/worn = list()
+	for(var/list/look as anything in looks)
+		if(look["worn"])
+			worn += look["label"]
+	var/list/labels = custom_sprite_cover_labels(looks)
+	TEST_ASSERT(("underwear" in labels), "Underwear must hide paint: [json_encode(labels)]")
+	TEST_ASSERT(!("socks" in labels), "Socks the body doesn't wear must not: [json_encode(labels)]")
+	TEST_ASSERT_EQUAL(json_encode(worn), json_encode(list("\the [uniform]")), "The jumpsuit must hide paint under its own name, as something worn")
+	TEST_ASSERT(length(custom_sprite_cover_worn(looks)) == length(labels), "Each look must say whether it is worn")
+	// Without a wearer, as in character setup, clothing isn't looked for.
+	for(var/list/look as anything in custom_sprite_cover_looks(human))
+		TEST_ASSERT(!look["worn"], "Character setup must not count worn items")
+
 /// Hair and parts drawn over the body mark the canvas pixels they cover; a bare body marks nothing.
 /datum/unit_test/custom_sprite_cover_mask/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)

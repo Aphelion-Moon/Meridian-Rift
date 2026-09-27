@@ -406,7 +406,7 @@
 	cover_key = null
 	if(target == "markings")
 		var/list/key = list()
-		cover_looks = custom_sprite_cover_looks(preview_body, key)
+		cover_looks = custom_sprite_cover_looks(preview_body, key, context == "salon" ? session?.recipient() : null)
 		cover_key = json_encode(key)
 	cover_rows = list()
 	// Everything taken off the body for the guides, mapped to its limb, to put back afterwards.
@@ -645,6 +645,7 @@
 	.["drawMask"] = workspace.draw_mask
 	.["coverMask"] = cover_rows
 	.["coverParts"] = cover_looks ? custom_sprite_cover_labels(cover_looks) : list()
+	.["coverWorn"] = cover_looks ? custom_sprite_cover_worn(cover_looks) : list()
 	if(target == "hair" && resources_ready)
 		var/datum/sprite_accessory/hair/hairstyle = custom_style_hair_accessories(target)[workspace.hair_context?["style"]]
 		.["tryOnHats"] = custom_hair_try_on_ui_data(workspace.height, guide_lift, hairstyle?.y_offset || 0)

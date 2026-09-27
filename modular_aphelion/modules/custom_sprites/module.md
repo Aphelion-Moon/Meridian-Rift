@@ -232,13 +232,17 @@ the top-left bracket, or below the box when there's no room. The tag shows for
 a second and a half after a region is selected, then fades; the brackets stay.
 Hovering another region outlines it faintly, just outside its pixels.
 
-Paint that hair or a mutant part draws over in game (anything on a layer above the
-marking layer: snouts, ears, tails, wings, hair) is washed dark and struck through on
-the canvas, whether or not the guide shows that part, and hovering such a pixel names the
-part on top: "Hidden by snout" (the hair layer is always "hair"). The server builds those
-pixels once per body geometry with the guides (`custom_sprite_cover_looks()` stamped into
-rows by `custom_sprite_cover_rows()`, lowest look first) and sends them as the static
-`coverMask` rows of marks with the `coverParts` labels they index; hair editors send none. Nothing is recomputed per stroke. The rows are cached by what they were
+Paint that hair, a mutant part or underwear draws over in game (anything on a layer above
+the marking layer: snouts, ears, tails, wings, hair, and the underwear, bra, undershirt and
+socks piece by piece) is washed dark and struck through on the canvas, whether or not the
+guide shows that part, and resting the cursor on such a pixel names the part on top:
+"Hidden by snout" (the hair layer is always "hair"). On a tattoo, what the recipient wears
+counts too, under the item's own name: over a region that clothing locks, the tip reads
+"Blocked by the black jacket" whether or not the pixel is painted, and elsewhere clothing
+only hides paint like any part. The server builds those pixels once per body geometry with
+the guides (`custom_sprite_cover_looks()` stamped into rows by `custom_sprite_cover_rows()`,
+lowest look first) and sends them as the static `coverMask` rows of marks with the
+`coverParts` labels they index and `coverWorn` flags for worn items; hair editors send none. Nothing is recomputed per stroke. The rows are cached by what they were
 flattened from (each part's render key and placement, the hair look, the body height and the
 paint layer), so a Parts or Underwear toggle, a salon clothing refresh or a reopened editor
 reuses them, and only the view's own drawable box, before any view lock, is read pixel by
@@ -279,7 +283,7 @@ the drag crossed stays selected. A plain click off the body changes nothing.
   window can still paste it. Ctrl+X copies and takes the paint off in one step.
   Ctrl+V pastes it as floating paint where it was copied from, in whichever view
   and layer are showing, with part of it on the canvas. Where there is a native
-  base or other layers to add, a **Merged** toggle sits beside turn and mirror:
+  base or other layers to add, a **Copy all** toggle sits beside turn and mirror:
   while it's lit, Ctrl+C copies the selection as it shows, every layer's paint
   with the topmost winning and the native base hair or markings under it, and
   Ctrl+Shift+C does that once. The layers are composed in the window; only the
@@ -361,8 +365,8 @@ the drag crossed stays selected. A plain click off the body changes nothing.
 | Alt+left-click | Sample paint, or the visible guide underneath, without changing tools. |
 | Mouse wheel over the canvas or swatches, or [ / ] | Previous / next palette color, wrapping through Palette and available Custom colors. |
 | Escape | Deselect, throwing floating paint away, or dismiss an open swatch menu. |
-| Ctrl+C / Ctrl+X / Ctrl+V | With Select: copy / cut the selection, or paste it as floating paint in the view and layer shown. Ctrl+C copies merged while Merged is lit. |
-| Ctrl+Shift+C | With Select: copy the selection merged, as it shows, once. |
+| Ctrl+C / Ctrl+X / Ctrl+V | With Select: copy / cut the selection, or paste it as floating paint in the view and layer shown. Ctrl+C copies everything shown while Copy all is lit. |
+| Ctrl+Shift+C | With Select: copy all of the selection as it shows (paint of every layer and the base), once. |
 | R / Shift+R | With Select: turn the selection a quarter turn clockwise / counter-clockwise. |
 | Shift+H | With Select: mirror the selection left to right. |
 | Enter | With Select: drop the selection, writing any floating paint. |
@@ -855,7 +859,10 @@ The flow:
    hair and tattoos alike. The drawing was the work. Snips or tattoo sounds and
    ambience play during these finishing touches too, and stop on completion or
    interruption. The recipient is told "Try not to move!", since moving
-   interrupts them. The change is applied only if everything still checks out
+   interrupts them. The artist's editor stays open under the theme's loader,
+   which fills over the five seconds under "Applying finishing touches…". Finished
+   work closes the window; work cut short says "Interrupted!", fades, and leaves
+   the drawing as it was. The change is applied only if everything still checks out
    when those five seconds finish. Ordinary haircut options keep their normal
    timings.
 6. **Accept permanently** saves after successful application, using the same
@@ -1237,7 +1244,7 @@ are also required.
 | `modular_nova/modules/preferences_import/code/import_verb.dm` | `prefs_import_invalidate_cache()` calls the drawing cleanup after a successful import. |
 | `modular_aphelion/modules/worn_emissives/code/worn_emissives.dm` | Existing final appearance grouping keeps paint masks aligned with the character's pose. |
 | `tgui/packages/tgui/interfaces/CustomHairEditor.tsx`, `CustomMarkingsEditor.tsx` | The two interface entry points. |
-| `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, the region overlay (`regions.ts`, `RegionOverlay.tsx`), backend types and their tests. |
+| `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, the region overlay (`regions.ts`, `RegionOverlay.tsx`), the salon's finishing-touches overlay (`FinishingOverlay.tsx`), backend types and their tests. |
 | `tgui/packages/tgui/__mocks__/customSpriteEditor.ts`, `renderCustomSpriteEditor.tsx` | Shared editor fixtures, per-test setup and rendering with isolated or deliberately reused stores. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | Hair editor button. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Zone and taur marking buttons, and their tests. |
@@ -1246,8 +1253,8 @@ are also required.
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. `shade` replaces the flat grey over unavailable pixels, and `overlay` draws over the canvas at its size. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/strokeMask.ts`, `strokeMask.test.ts` | Compact strokes: the Pencil and Eraser send a stroke as one bit per canvas pixel when the canvas data sets `compactStrokes`, as the custom editors' workspaces do, and their tests. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Types/Tools/` | Pencil, Eraser, Eyedropper and Bucket updates, naming the canvas's `layerTarget` where it has one; the Select tool (moving, floating, copying, cutting, merged copying, pasting, taking out and turning selections, each gesture kept to the layer it began on) and focused tool tests. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/selection.tsx`, `Components/SelectionOutline.tsx` | The Select tool's keys (Ctrl+C, Ctrl+X, Ctrl+Shift+C, Ctrl+V, R, Shift+R, Shift+H, Enter), the turn and mirror buttons and the Merged toggle, dropping floating paint before a save, and the marching ants around a box or a selection with pixels taken out. |
-| `tgui/packages/tgfont/icons/zaphelion-*.svg` | Hair layer glyphs: the base hair wig, Under hats, Over hats, the Merged stack, and the zone pictograms as a grey head (`head-side`, `head-back`) under a lit `zone-*` part. Outlined from the design's strokes. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/selection.tsx`, `Components/SelectionOutline.tsx` | The Select tool's keys (Ctrl+C, Ctrl+X, Ctrl+Shift+C, Ctrl+V, R, Shift+R, Shift+H, Enter), the turn and mirror buttons and the Copy all toggle, dropping floating paint before a save, and the marching ants around a box or a selection with pixels taken out. |
+| `tgui/packages/tgfont/icons/zaphelion-*.svg` | Hair layer glyphs: the base hair wig, Under hats, Over hats, the Copy all stack, and the zone pictograms as a grey head (`head-side`, `head-back`) under a lit `zone-*` part. Outlined from the design's strokes. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/drawBounds.ts`, `useSpriteEditorHotkeys.ts`, `SpriteEditor.test.tsx` | Cached shading geometry and the `ShadeRenderer` type, shared shortcuts/history cancellation and editor interaction tests. |
 | `tgui/packages/tgui/interfaces/NtosNanopaint/NanopaintMenuBar.tsx` | Uses the same history cancellation as toolbar and keyboard actions. |
 | `tgui/packages/tgui/layouts/Window.tsx`, `Window.test.tsx` | Current-event Alt handling and respecting gestures already claimed by a control. |

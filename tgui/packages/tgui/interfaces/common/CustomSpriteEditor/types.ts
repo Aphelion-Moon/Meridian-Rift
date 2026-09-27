@@ -74,6 +74,8 @@ export type CustomSpriteEditorData = {
   recipientName?: string;
   selfWork?: boolean;
   salonState?: 'drafting' | 'awaiting approval' | 'applying' | 'completed';
+  /** How long the salon's finishing touches take, in milliseconds. */
+  applyDuration?: number;
   backgrounds?: CustomSpriteBackground[];
   defaultBackground?: string | null;
   regions?: Partial<Record<Dir, string[]>> | null;
@@ -89,10 +91,12 @@ export type CustomSpriteEditorData = {
   paletteNotice?: string | null;
   strokeNotice?: string | null;
   visibleView?: string;
-  /** Direction -> "1"/"0" rows: canvas pixels hair or a part draws over in game. Static data, markings only. */
+  /** Direction -> "1"/"0" rows: canvas pixels hair, a part, underwear or clothing draws over in game. Static data, markings only. */
   coverMask?: Partial<Record<Dir, string[]>> | null;
   /** The covering parts named by the cover rows' marks: 1-9 then a-z index into it. Static data. */
   coverParts?: string[];
+  /** 1 where the covering part at that index is a worn item, which blocks work on a region it covers. Static data. */
+  coverWorn?: number[];
   /** The hair's appendage layers, in order. Hair only. */
   appendages?: Appendage[];
   maxAppendages?: number;

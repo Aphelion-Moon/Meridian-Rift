@@ -19,7 +19,7 @@ export const ROTATE_SELECTION_KEY = 'r';
 /// With Shift, mirrors the selection left to right, as Shift+H flips horizontally in Aseprite.
 export const MIRROR_SELECTION_KEY = 'h';
 
-/** Whether Ctrl+C copies merged: the view as it shows, every paint layer and the base included. */
+/** Whether Ctrl+C copies all (the toggle is lit): the view as it shows, every paint layer and the base included. */
 export const mergedCopyAtom = atom(false);
 
 /**
@@ -59,8 +59,8 @@ export const settleSelection = () => {
 };
 
 /**
- * Selection keys while the Select tool is current: Ctrl+C copies (merged while Merged is lit),
- * Ctrl+Shift+C copies merged, Ctrl+X cuts, Ctrl+V pastes into the view and layer shown, R turns the
+ * Selection keys while the Select tool is current: Ctrl+C copies (everything shown while Copy all is
+ * lit), Ctrl+Shift+C copies everything shown, Ctrl+X cuts, Ctrl+V pastes into the view and layer shown, R turns the
  * selection clockwise and Shift+R counter-clockwise, Shift+H mirrors it left to right, and Enter
  * drops it. Keys that have nothing to act on pass through untouched.
  */
@@ -148,8 +148,8 @@ const SelectionButton = (props: {
 );
 
 /**
- * Turn and mirror buttons for the toolbar, shown while there is a selection, and the Merged toggle
- * where a merged copy differs from a plain one: its tooltip names what it adds.
+ * Turn and mirror buttons for the toolbar, shown while there is a selection, and the Copy all toggle
+ * where copying everything shown differs from a plain copy: its tooltip names what it adds.
  */
 export const SelectionTools = (props: {
   className?: string;
@@ -194,7 +194,7 @@ export const SelectionTools = (props: {
             event.currentTarget.blur();
           }}
         >
-          Merged
+          Copy all
         </Button>
       )}
     </div>
