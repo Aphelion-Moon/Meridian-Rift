@@ -380,6 +380,7 @@
 #include "~nova\accessory_layers.dm"
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
+#include "~nova\body_marking_art.dm"
 #include "~nova\body_marking_collection.dm"
 #include "~nova\body_marking_colors.dm"
 #include "~nova\body_marking_features.dm"

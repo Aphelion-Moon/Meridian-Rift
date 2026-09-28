@@ -13,7 +13,8 @@
 	/// The "#rrggbb" a MARKING_COLOR_FIXED_DEFAULT or MARKING_COLOR_LOCKED marking starts in. The following modes ignore it.
 	var/default_color
 	/// The zones this marking draws on, as bitflags (HEAD, CHEST, ARM_LEFT, ARM_RIGHT, HAND_LEFT, HAND_RIGHT, LEG_RIGHT, LEG_LEFT).
-	/// Claim a zone only where the sheet has its art: character setup offers the marking on every zone claimed here.
+	/// Claim a zone only where the sheet has its art: character setup offers the marking on every zone claimed here. The
+	/// body_marking_art unit test checks each claim against the sheet.
 	var/affected_bodyparts
 	/// The leg shapes this marking has art for, MARKING_LEG_* flags. A leg of another shape draws none of it.
 	var/leg_shapes = MARKING_LEG_PLANTIGRADE | MARKING_LEG_DIGITIGRADE
@@ -78,8 +79,8 @@
 /**
  * Returns the icon state this marking draws on one zone of a limb, or null where it draws nothing there: a leg of a shape
  * leg_shapes leaves out. The limb renderer draws every marking appearance from this, through drawn_state(), and character
- * setup's picker and the custom sprite editor ask it too, so all of them read the same art. The sheet can still lack the
- * state, as it does on a zone a save holds but the marking no longer claims.
+ * setup's picker, the custom sprite editor and the body_marking_art unit test ask it too, so all of them read the same art.
+ * The sheet can still lack the state, as it does on a zone a save holds but the marking no longer claims.
  *
  * Arguments:
  * - zone: the marking zone drawn on: a limb's body zone, or an arm's aux zone for its hand.
@@ -97,8 +98,9 @@
 /**
  * Returns the icon state the limb renderer draws for this marking on one zone of a limb: zone_icon_state()'s state where the
  * sheet has it, else FALSE, so a missing state draws nothing rather than the sheet's default state. It is missing on a zone
- * a save holds but the marking no longer claims, which is no bug, so this stays silent. The answer is kept in drawn_states
- * under the limb's request, where BODY_MARKING_DRAWN_STATE() reads it again with no proc call.
+ * a save holds but the marking no longer claims, which is no bug, so this stays silent; the body_marking_art unit test is
+ * the loud check of claimed zones. The answer is kept in drawn_states under the limb's request, where
+ * BODY_MARKING_DRAWN_STATE() reads it again with no proc call.
  *
  * Arguments:
  * - request: the key of the limb's zone, leg shape and chest art, which the renderer builds once per limb.
