@@ -2,6 +2,7 @@
 @use 'sass:meta';
 
 @include meta.load-css('../interfaces/PreferencesMenu.scss');
+@include meta.load-css('./species.scss');
 
 .PreferencesMenu {
   &__LoadoutCategoryTabs > .Tab {
@@ -132,53 +133,56 @@
     }
   }
 
-  &__SpeciesList {
-    overflow-x: hidden;
-  }
 
-  &__SpeciesPreview {
-    // The native character canvas is square; description height is unrelated.
-    aspect-ratio: 1 / 1;
-  }
-
-  &__SpeciesButton {
-    box-sizing: border-box;
-    overflow: hidden;
-    padding: 0;
-
-    .Button__content {
-      display: grid;
-      place-items: center;
-      width: 100%;
-      height: 100%;
-    }
-
-    .species64x64 {
-      margin: 0;
-    }
-  }
-
-  &__SpeciesDiet,
-  &__SpeciesDietGroup {
-    min-width: 0;
-    margin: 0;
-  }
-
-  &__SpeciesDietGroup {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  &__SpeciesPerk {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-
-    .Icon {
-      line-height: 1;
-    }
-  }
+  // APHELION EDIT REMOVAL START - Species page: the old page's rules, kept with its commented-out SpeciesPage.tsx.
+  // &__SpeciesList {
+  //   overflow-x: hidden;
+  // }
+  //
+  // &__SpeciesPreview {
+  //   // The native character canvas is square; description height is unrelated.
+  //   aspect-ratio: 1 / 1;
+  // }
+  //
+  // &__SpeciesButton {
+  //   box-sizing: border-box;
+  //   overflow: hidden;
+  //   padding: 0;
+  //
+  //   .Button__content {
+  //     display: grid;
+  //     place-items: center;
+  //     width: 100%;
+  //     height: 100%;
+  //   }
+  //
+  //   .species64x64 {
+  //     margin: 0;
+  //   }
+  // }
+  //
+  // &__SpeciesDiet,
+  // &__SpeciesDietGroup {
+  //   min-width: 0;
+  //   margin: 0;
+  // }
+  //
+  // &__SpeciesDietGroup {
+  //   flex-wrap: wrap;
+  //   justify-content: flex-end;
+  // }
+  //
+  // &__SpeciesPerk {
+  //   display: flex;
+  //   align-items: center;
+  //   justify-content: center;
+  //   overflow: hidden;
+  //
+  //   .Icon {
+  //     line-height: 1;
+  //   }
+  // }
+  // APHELION EDIT REMOVAL END
 }
 
 // The faded character menu lets drags through, but tgui-core's Floating

@@ -55,9 +55,25 @@ export type Name = {
 
 export type Species = {
   name: string;
-  desc: string;
-  lore: string[];
+  // APHELION EDIT CHANGE START - Species page: null when nothing is on record
+  // ORIGINAL: desc: string;
+  // ORIGINAL: lore: string[];
+  desc: string | null;
+  lore: string[] | null;
+  // APHELION EDIT CHANGE END
   icon: string;
+  // APHELION EDIT ADDITION START - Species page
+  /** A species_families id; unknown or missing ids fall under Unclassified. */
+  family: string | null;
+  /** The species on the page this one is a variant of. */
+  variant_of: string | null;
+  /** Offered in setup, but can't join the station crew. */
+  off_station: BooleanLike;
+  /** The holiday this species can be joined as during, if it waits for one. */
+  holiday: string | null;
+  /** Whether that holiday is on now. */
+  holiday_active: BooleanLike;
+  // APHELION EDIT ADDITION END
 
   use_skintones: BooleanLike;
   sexes: BooleanLike;
@@ -79,6 +95,16 @@ export type Species = {
   };
 };
 
+// APHELION EDIT ADDITION START - Species page
+/** A family on the species page, from /datum/species_family, in page order. */
+export type SpeciesFamily = {
+  id: string;
+  name: string;
+  /** Font Awesome, or tgfont when it starts with tg-. */
+  icon: string;
+};
+
+// APHELION EDIT ADDITION END
 export type Perk = {
   ui_icon: string;
   name: string;
@@ -341,14 +367,15 @@ export type ServerData = {
   };
   species: Record<string, Species>;
   // NOVA EDIT ADDITION START
+  species_families: SpeciesFamily[];
   background_state: { choices: string[] };
   limbs_and_markings?: {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];
     marking_choices: Record<string, MarkingChoice[]>;
-    marking_icons?: Record<string, Record<string, string>>; // APHELION EDIT ADDITION
+    marking_icons?: Record<string, Record<string, string>>;
     marking_presets: MarkingPreset[];
-    max_markings: number; // APHELION EDIT ADDITION
+    max_markings: number;
   };
   // NOVA EDIT ADDITION END
   [otherKey: string]: unknown;

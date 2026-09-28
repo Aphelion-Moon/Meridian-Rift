@@ -14,7 +14,7 @@ import { AugmentsTab, LimbsPage } from './LimbsPage';
 import { LoadoutPage } from './loadout';
 import { MainPage } from './MainPage';
 import { QuirkPersonalityPage } from './QuirksPage';
-import { SpeciesPage } from './SpeciesPage';
+import { SpeciesPage } from './SpeciesRegistry'; // APHELION EDIT CHANGE - ORIGINAL: import { SpeciesPage } from './SpeciesPage';
 
 enum Page {
   Antags,

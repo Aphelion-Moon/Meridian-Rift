@@ -1,0 +1,1864 @@
+// THIS IS AN APHELION UI FILE
+// Character Preferences > Species. Everything below reads the MeridianOS
+// semantic tokens, with tgui-core fallbacks so Classic paints it too. The
+// specimen chamber then gets a small construction of its own per theme,
+// built from materials those themes already ship.
+
+.SpeciesRegistry {
+  --species-surface: var(--console-surface-base, var(--color-section, #0000004d));
+  --species-recessed: var(--console-surface-recessed, #00000059);
+  --species-raised: var(--console-surface-raised, #ffffff0f);
+  --species-line: var(--console-border-subtle, #ffffff1f);
+  --species-line-strong: var(--console-border-strong, #ffffff38);
+  --species-text: var(--console-text-primary, var(--color-text, #ffffff));
+  --species-muted: var(--console-text-secondary, #ffffffa6);
+  --species-accent: var(--console-interaction-accent, var(--color-primary, #4972a1));
+  --species-selected: var(--console-interaction-selected, var(--button-background-selected, #4972a1));
+  --species-good: var(--console-status-success, var(--color-good, #5baa27));
+  --species-bad: var(--console-status-danger, var(--color-bad, #db2828));
+  --species-warn: var(--console-status-warning, var(--color-average, #f2711c));
+  --species-info: var(--console-status-information, #63b4ff);
+  --species-like: #ef8fbf;
+  --species-display: var(--console-font-display, var(--font-family));
+  --species-mono: var(--font-family-mono, Consolas, monospace);
+  --species-case: var(--console-heading-case, uppercase);
+  --species-tracking: var(--console-heading-tracking, 0.06em);
+  --species-cut: var(--console-corner-cut, 0px);
+
+  min-height: 0;
+
+  // tgfont glyphs sit on the same line as Font Awesome's.
+  .Icon[class*='tg-'] {
+    line-height: 1;
+  }
+
+  &__roster {
+    flex: 0 0 232px;
+    min-height: 0;
+  }
+}
+
+// MARK: Sprite
+
+.SpeciesSprite {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  line-height: 0;
+
+  // The frame, from either sheet: scaled from its corner, pixels kept square.
+  > * {
+    transform-origin: top left;
+    image-rendering: pixelated;
+  }
+}
+
+// MARK: Toolbar
+
+.SpeciesToolbar {
+  &__families .Tab {
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  &__families .Tab__text {
+    justify-content: center;
+    width: 100%;
+  }
+
+  // Icon and count over the name, so all ten tabs fit the default width.
+  &__tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 0 2px;
+    line-height: 1.1;
+  }
+
+  &__tabTop {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__tabCount {
+    font-size: 0.82em;
+    color: var(--species-muted);
+  }
+
+  &__tabName {
+    white-space: nowrap;
+  }
+}
+
+// MARK: Search
+
+.SpeciesSearch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+
+  &__field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__holiday.Button {
+    flex: none;
+    margin: 0;
+  }
+
+  .SpeciesRoster & {
+    width: 300px;
+  }
+}
+
+// MARK: Tally
+
+.SpeciesTally {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 0.85em;
+  line-height: 1.2;
+  white-space: nowrap;
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+
+    .Icon {
+      font-size: 0.8em;
+    }
+
+    &--positive {
+      color: var(--species-good);
+    }
+
+    &--neutral {
+      color: var(--species-muted);
+    }
+
+    &--negative {
+      color: var(--species-bad);
+    }
+
+    &--empty {
+      opacity: 0.45;
+    }
+  }
+
+  &__summary {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+// MARK: Heading and decision
+
+.SpeciesHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__eyebrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 6px;
+    font-family: var(--species-mono);
+    font-size: 0.85em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--species-accent);
+  }
+
+  &__rule {
+    width: 14px;
+    height: 1px;
+    background: var(--species-line-strong);
+  }
+
+  &__parent.Button {
+    margin: 0;
+    padding: 0 2px;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    color: var(--species-text);
+  }
+
+  &__name {
+    margin: 0;
+    padding: 0;
+    font-family: var(--species-display);
+    font-size: 2em;
+    font-weight: normal;
+    line-height: 1.05;
+    color: var(--species-text);
+    text-transform: var(--species-case);
+    letter-spacing: var(--species-tracking);
+    overflow-wrap: break-word;
+    hyphens: auto;
+    text-wrap: balance;
+  }
+}
+
+.SpeciesDecision {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  .SpeciesTally {
+    justify-content: flex-start;
+    font-size: 0.95em;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__hint {
+    font-size: 0.88em;
+    line-height: 1.35;
+    color: var(--species-muted);
+  }
+
+  &__notice.NoticeBox {
+    margin: 0;
+  }
+}
+
+.SpeciesDescription {
+  line-height: 1.5;
+  color: var(--species-text);
+
+  p {
+    margin: 0 0 6px;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.SpeciesTraits__empty {
+  font-style: italic;
+  color: var(--species-muted);
+}
+
+// MARK: Roster
+
+.SpeciesStage {
+  &__floor {
+    display: grid;
+    // The detail tabs get the wider side; the decision column is short.
+    grid-template-columns: minmax(0, 4fr) auto minmax(0, 5fr);
+    gap: 14px;
+    height: 100%;
+    min-height: 0;
+    // A spotlight falls on the centre of the stage.
+    background: radial-gradient(
+      ellipse 30% 70% at 50% 55%,
+      color-mix(in srgb, var(--species-accent) 7%, transparent),
+      transparent 70%
+    );
+  }
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__description {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  &__center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__right {
+    min-width: 0;
+    min-height: 0;
+  }
+}
+
+.SpeciesDetailTabs {
+  // Counts ride inside the label so every tab ends the same way, and a label
+  // that runs out of room trails off rather than crowding its neighbour.
+  &__tabs .Tab__text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    margin-left: 4px;
+    font-size: 0.82em;
+    color: var(--species-muted);
+  }
+
+  &__panel.Section {
+    margin: 0;
+  }
+
+  .SpeciesLore__text {
+    margin: 0;
+  }
+}
+
+.SpeciesRoster {
+  &__heading {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+  }
+
+  &__count {
+    font-size: 0.85em;
+    letter-spacing: 0.04em;
+    color: var(--species-muted);
+    white-space: nowrap;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  // Each family is a strip with its name running up the side, like a film label.
+  &__family {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  &__familyTitle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 6px 0;
+    font-family: var(--species-mono);
+    font-size: 0.78em;
+    font-weight: normal;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--species-muted);
+    border-right: 1px solid var(--species-line);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+
+    .Icon {
+      color: var(--species-accent);
+      transform: rotate(90deg);
+    }
+  }
+
+  &__tiles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  &__lineage {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 1px 3px 3px;
+    background: color-mix(in srgb, var(--species-recessed) 55%, transparent);
+    box-shadow: inset 0 0 0 1px var(--species-line);
+  }
+
+  &__lineageLabel {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    overflow: hidden;
+    font-family: var(--species-mono);
+    font-size: 0.78em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--species-muted);
+
+    .Icon {
+      color: var(--species-accent);
+    }
+  }
+
+  &__lineageTiles {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__tile {
+    position: relative;
+    display: inline-block;
+
+    .Button {
+      width: 70px;
+      margin: 0;
+      padding: 2px 2px 3px;
+    }
+
+    .Button__content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    &--locked .SpeciesSprite {
+      filter: grayscale(0.75) brightness(0.8);
+    }
+
+    // The current species wears a lit lamp.
+    &--current::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--species-good);
+      box-shadow: 0 0 5px 1px color-mix(in srgb, var(--species-good) 50%, transparent);
+      pointer-events: none;
+    }
+  }
+
+  &__name {
+    display: block;
+    max-width: 64px;
+    overflow: hidden;
+    font-size: 0.78em;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// MARK: Traits
+
+.SpeciesTraits {
+  &__group + &__group {
+    margin-top: 9px;
+  }
+
+  &__group--positive {
+    --kind-color: var(--species-good);
+  }
+
+  &__group--neutral {
+    --kind-color: var(--species-muted);
+  }
+
+  &__group--negative {
+    --kind-color: var(--species-bad);
+  }
+
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 5px;
+    font-family: var(--species-mono);
+    font-size: 0.8em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--kind-color);
+
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--species-line);
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.SpeciesTrait {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    color: var(--kind-color);
+    background: color-mix(in srgb, var(--kind-color) 13%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kind-color) 42%, transparent);
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  &__name {
+    font-weight: bold;
+    color: var(--species-text);
+  }
+
+  &__description {
+    line-height: 1.35;
+    color: var(--species-muted);
+  }
+}
+
+// MARK: Diet
+
+.SpeciesDiet {
+  &__row--likes {
+    --food-color: var(--species-like);
+  }
+
+  &__row--dislikes {
+    --food-color: var(--species-warn);
+  }
+
+  &__row--toxic {
+    --food-color: var(--species-bad);
+  }
+
+  .LabeledList__label .Icon {
+    color: var(--food-color);
+  }
+
+  &__foods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  &__food {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 6px;
+    line-height: 1.5;
+    color: var(--species-text);
+    background: var(--species-surface);
+    box-shadow: inset 0 0 0 1px var(--species-line);
+
+    .Icon {
+      color: var(--food-color);
+    }
+  }
+}
+
+// MARK: Lineage
+
+.SpeciesLineageList {
+  &__tree {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__member {
+    position: relative;
+
+    &--depth1 {
+      --indent: 14px;
+    }
+
+    &--depth2 {
+      --indent: 28px;
+    }
+
+    &--depth3 {
+      --indent: 42px;
+    }
+
+    &--depth1,
+    &--depth2,
+    &--depth3 {
+      padding-left: var(--indent);
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: -3px;
+        bottom: 50%;
+        left: calc(var(--indent) - 9px);
+        width: 7px;
+        border-bottom: 1px solid var(--species-line-strong);
+        border-left: 1px solid var(--species-line-strong);
+      }
+    }
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  &__flag {
+    color: var(--species-info);
+  }
+
+  .Button {
+    padding-left: 2px;
+  }
+
+  .SpeciesSprite {
+    margin: -4px 0;
+  }
+}
+
+// MARK: Lore
+
+.SpeciesLore__text {
+  margin: 0;
+
+  p {
+    margin: 0 0 8px;
+    line-height: 1.5;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// MARK: Specimen chamber
+
+.SpecimenViewer {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: calc(var(--specimen-size, 192px) + 8px);
+
+  &__chamber {
+    --chamber-glow: var(--species-accent);
+    --chamber-mark: var(--species-accent);
+    --chamber-cut: var(--species-cut);
+
+    position: relative;
+    height: calc(var(--specimen-size, 192px) + 44px);
+    overflow: hidden;
+    isolation: isolate;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    background: var(--species-recessed);
+    box-shadow:
+      inset 0 0 0 1px var(--species-line-strong),
+      inset 0 0 28px rgb(0 0 0 / 50%);
+    clip-path: polygon(
+      var(--chamber-cut) 0,
+      calc(100% - var(--chamber-cut)) 0,
+      100% var(--chamber-cut),
+      100% calc(100% - var(--chamber-cut)),
+      calc(100% - var(--chamber-cut)) 100%,
+      var(--chamber-cut) 100%,
+      0 calc(100% - var(--chamber-cut)),
+      0 var(--chamber-cut)
+    );
+
+    &:active {
+      cursor: grabbing;
+    }
+
+    > span,
+    > .DiagnosticLoader__acquisition {
+      position: absolute;
+      pointer-events: none;
+    }
+  }
+
+  &__backdrop {
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(
+        ellipse 72% 44% at 50% 84%,
+        color-mix(in srgb, var(--chamber-glow) 20%, transparent),
+        transparent 72%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--species-surface) 75%, #000),
+        var(--species-recessed)
+      );
+  }
+
+  &__grid {
+    inset: 0;
+    z-index: 0;
+    opacity: 0.3;
+    background-image:
+      linear-gradient(var(--species-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--species-line) 1px, transparent 1px);
+    background-size: 16px 16px;
+    background-position: center bottom 20px;
+    mask-image: linear-gradient(180deg, transparent 5%, #000 45%, #000 85%, transparent);
+  }
+
+  &__chamber > .DiagnosticLoader__acquisition {
+    z-index: 1;
+    inset: 0 0 20px;
+  }
+
+  &__floor {
+    left: 22%;
+    right: 22%;
+    bottom: 25px;
+    z-index: 1;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(0 0 0 / 70%), transparent);
+  }
+
+  &__figure {
+    left: 50%;
+    bottom: 22px;
+    z-index: 2;
+    width: var(--specimen-size, 192px);
+    height: var(--specimen-size, 192px);
+    margin-left: calc(var(--specimen-size, 192px) / -2);
+    animation: species-specimen-arrive 420ms cubic-bezier(0.2, 0, 0.2, 1) both;
+  }
+
+  &__sweep {
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+    height: 26%;
+    opacity: 0;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      color-mix(in srgb, var(--chamber-glow) 18%, transparent) 80%,
+      color-mix(in srgb, var(--chamber-glow) 70%, transparent) 99%,
+      transparent
+    );
+    animation: species-specimen-sweep 760ms ease-out both;
+  }
+
+  &__glass {
+    inset: 0;
+    z-index: 4;
+    background: linear-gradient(
+      118deg,
+      rgb(255 255 255 / 5%) 0 17%,
+      transparent 17.5% 58%,
+      rgb(255 255 255 / 2.5%) 58.5% 63%,
+      transparent 63.5%
+    );
+  }
+
+  &__scale {
+    top: 28px;
+    bottom: 30px;
+    left: 7px;
+    z-index: 4;
+    width: 7px;
+    opacity: 0.45;
+    background:
+      repeating-linear-gradient(0deg, var(--species-muted) 0 1px, transparent 1px 8px) left / 4px 100% no-repeat,
+      repeating-linear-gradient(0deg, var(--species-muted) 0 1px, transparent 1px 40px) left / 7px 100% no-repeat;
+  }
+
+  &__corner {
+    z-index: 4;
+    width: 10px;
+    height: 10px;
+    border: 0 solid var(--chamber-mark);
+    opacity: 0.75;
+
+    &--nw {
+      top: 5px;
+      left: 5px;
+      border-top-width: 1px;
+      border-left-width: 1px;
+    }
+
+    &--ne {
+      top: 5px;
+      right: 5px;
+      border-top-width: 1px;
+      border-right-width: 1px;
+    }
+
+    &--sw {
+      bottom: 25px;
+      left: 5px;
+      border-bottom-width: 1px;
+      border-left-width: 1px;
+    }
+
+    &--se {
+      bottom: 25px;
+      right: 5px;
+      border-bottom-width: 1px;
+      border-right-width: 1px;
+    }
+  }
+
+  &__readout {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 20px;
+    padding: 0 8px;
+    font-size: 0.78em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--species-muted);
+    background: color-mix(in srgb, var(--species-recessed) 88%, transparent);
+    border-top: 1px solid var(--species-line);
+  }
+
+  &__controls {
+    width: 100%;
+  }
+}
+
+@keyframes species-specimen-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: brightness(2);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes species-specimen-sweep {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(360%);
+  }
+}
+
+// Up from below the floor, out past the ceiling, then a rest before the next pass.
+@keyframes species-augment-scan {
+  0% {
+    transform: translateY(170%);
+  }
+
+  70%,
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+// A line at a time, one period of the feed per loop.
+@keyframes species-glyph-feed {
+  to {
+    transform: translateY(calc(-1 * var(--glyph-tile)));
+  }
+}
+
+@keyframes species-iris-open {
+  from {
+    clip-path: circle(0% at 50% 58%);
+  }
+
+  to {
+    clip-path: circle(75% at 50% 58%);
+  }
+}
+
+@keyframes species-glitch {
+  0%,
+  100% {
+    clip-path: inset(0);
+    transform: none;
+  }
+
+  20% {
+    clip-path: inset(18% 0 58% 0);
+    transform: translateX(-4px);
+  }
+
+  40% {
+    clip-path: inset(62% 0 12% 0);
+    transform: translateX(3px);
+  }
+
+  60% {
+    clip-path: inset(32% 0 40% 0);
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes species-crt-on {
+  0% {
+    transform: scale(1, 0.02);
+    filter: brightness(3);
+  }
+
+  45% {
+    transform: scale(1, 1);
+    filter: brightness(1.6);
+  }
+
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+// MARK: Chamber per theme
+
+// Aphelion: a 70s vector sunset behind each specimen. A striped spectrum sun
+// sets on a wireframe horizon under a few stars, in the website's warm casing.
+.theme-meridian_aphelion .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #e5c25b;
+    --chamber-mark: #a89f90;
+    --aphelion-horizon: 60%;
+
+    background: #0e0c0b;
+    box-shadow:
+      inset 0 0 0 1px #453f36,
+      inset 0 0 0 4px #1a1714,
+      inset 0 0 0 5px #2e2a25;
+  }
+
+  // A few stars, the sun's warmth on sky and floor, and the dusk gradient.
+  &__backdrop {
+    background:
+      radial-gradient(1.2px 1.2px at 16% 14%, #ece5d8 50%, transparent 100%),
+      radial-gradient(1px 1px at 71% 9%, #ece5d8 50%, transparent 100%),
+      radial-gradient(1.6px 1.6px at 86% 24%, #e5c25b 50%, transparent 100%),
+      radial-gradient(1px 1px at 29% 31%, #a89f90 50%, transparent 100%),
+      radial-gradient(1px 1px at 57% 19%, #ece5d8 50%, transparent 100%),
+      radial-gradient(1px 1px at 9% 43%, #8f887c 50%, transparent 100%),
+      radial-gradient(1.2px 1.2px at 92% 47%, #a89f90 50%, transparent 100%),
+      radial-gradient(
+        ellipse 62% 38% at 50% var(--aphelion-horizon),
+        rgb(255 169 102 / 16%),
+        transparent 70%
+      ),
+      linear-gradient(
+        180deg,
+        #0e0c0b 0%,
+        #1a1714 var(--aphelion-horizon),
+        #0e0c0b 100%
+      );
+
+    // The sun: warm spectrum bands, cut by gaps that widen toward the horizon.
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% - var(--aphelion-horizon));
+      left: 50%;
+      width: 74%;
+      aspect-ratio: 2 / 1;
+      border-radius: 999px 999px 0 0;
+      transform: translateX(-50%);
+      background: linear-gradient(
+        180deg,
+        #ffe675 0%,
+        #ffa966 38%,
+        #ff697b 70%,
+        #e596f3 100%
+      );
+      mask-image: linear-gradient(
+        180deg,
+        #000 0 44%,
+        transparent 44% 48%,
+        #000 48% 59%,
+        transparent 59% 64%,
+        #000 64% 72%,
+        transparent 72% 78%,
+        #000 78% 84%,
+        transparent 84% 91%,
+        #000 91% 95%,
+        transparent 95%
+      );
+      opacity: 0.9;
+    }
+
+    // The horizon: the website's six-stop calibration rule.
+    &::after {
+      content: '';
+      position: absolute;
+      top: var(--aphelion-horizon);
+      left: 5%;
+      right: 5%;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        #56d4dc 12%,
+        #7bc86f 28%,
+        #e5c25b 44%,
+        #e0863f 60%,
+        #d95f4c 76%,
+        #c06bb4 90%,
+        transparent
+      );
+      box-shadow: 0 0 6px rgb(255 169 102 / 45%);
+    }
+  }
+
+  // A vector wireframe floor running from the horizon toward the viewer.
+  &__grid {
+    inset: var(--aphelion-horizon) -40% 20px;
+    opacity: 0.55;
+    background-image:
+      linear-gradient(rgb(229 194 91 / 55%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(229 194 91 / 55%) 1px, transparent 1px);
+    background-size: 18px 12px;
+    background-position: center top;
+    transform: perspective(90px) rotateX(52deg);
+    transform-origin: top;
+    mask-image: linear-gradient(180deg, transparent, #000 35%, #000 80%, transparent);
+  }
+
+  // The faint raster of a vector display, with the website's film grain.
+  &__glass {
+    background: repeating-linear-gradient(
+      180deg,
+      rgb(0 0 0 / 16%) 0 1px,
+      transparent 1px 3px
+    );
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--aphelion-grain) 0 0 / 256px 256px repeat;
+      opacity: 0.06;
+    }
+  }
+
+  &__readout {
+    background: #131110;
+    border-top: 0;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(
+        90deg,
+        #56d4dc 0 16.66%,
+        #7bc86f 16.66% 33.33%,
+        #e5c25b 33.33% 50%,
+        #e0863f 50% 66.66%,
+        #d95f4c 66.66% 83.33%,
+        #c06bb4 83.33%
+      );
+    }
+  }
+}
+
+.theme-meridian_aphelion .SpeciesHeading__name {
+  font-family: var(--aphelion-font-display);
+  letter-spacing: 0.025em;
+}
+
+// Classic: stock tgui paint, no console construction.
+.theme-nanotrasen .SpecimenViewer {
+  &__chamber {
+    background: #1a1a1a;
+    box-shadow: inset 0 0 0 1px #ffffff26;
+  }
+
+  &__backdrop {
+    background:
+      radial-gradient(ellipse 70% 45% at 50% 84%, rgb(73 114 161 / 30%), transparent 72%),
+      linear-gradient(180deg, #2a2a2a, #161616);
+  }
+
+  &__corner,
+  &__scale {
+    display: none;
+  }
+}
+
+// Electra: an electric floor grid running to a teal horizon.
+.theme-meridian_electra .SpecimenViewer {
+  &__chamber {
+    --chamber-mark: var(--console-interaction-focus);
+  }
+
+  &__backdrop {
+    background:
+      linear-gradient(180deg, transparent 57%, rgb(88 209 201 / 35%) 57.5%, transparent 59%),
+      radial-gradient(ellipse 90% 30% at 50% 58%, rgb(88 209 201 / 22%), transparent 70%),
+      linear-gradient(180deg, #050a0c 0%, #0d171d 57%, #030607 100%);
+  }
+
+  &__grid {
+    inset: 58% -40% 0;
+    opacity: 0.55;
+    background-image:
+      linear-gradient(rgb(88 209 201 / 55%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(88 209 201 / 55%) 1px, transparent 1px);
+    background-size: 18px 14px;
+    background-position: center top;
+    transform: perspective(90px) rotateX(48deg);
+    transform-origin: top;
+    mask-image: linear-gradient(180deg, #000, transparent 95%);
+  }
+}
+
+// Vector: blueprint paper with measurement rails on two edges.
+.theme-meridian_vector .SpecimenViewer {
+  &__backdrop {
+    background:
+      radial-gradient(ellipse 70% 45% at 50% 84%, rgb(84 169 255 / 16%), transparent 72%),
+      #06101d;
+  }
+
+  &__grid {
+    opacity: 1;
+    background-image:
+      linear-gradient(rgb(84 169 255 / 26%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(84 169 255 / 26%) 1px, transparent 1px),
+      linear-gradient(rgb(84 169 255 / 10%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(84 169 255 / 10%) 1px, transparent 1px);
+    background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+    background-position: 0 0;
+    mask-image: none;
+  }
+
+  &__scale {
+    opacity: 0.9;
+    background:
+      repeating-linear-gradient(0deg, #54a9ff 0 1px, transparent 1px 8px) left / 4px 100% no-repeat,
+      repeating-linear-gradient(0deg, #7fc0ff 0 1px, transparent 1px 40px) left / 8px 100% no-repeat;
+  }
+
+  &__floor {
+    left: 16px;
+    right: 16px;
+    bottom: 24px;
+    height: 7px;
+    border-radius: 0;
+    background:
+      repeating-linear-gradient(90deg, #54a9ff 0 1px, transparent 1px 8px) bottom / 100% 4px no-repeat,
+      repeating-linear-gradient(90deg, #7fc0ff 0 1px, transparent 1px 40px) bottom / 100% 7px no-repeat;
+    opacity: 0.8;
+  }
+
+  &__corner {
+    width: 6px;
+    height: 6px;
+    border-width: 0;
+    background: var(--console-interaction-accent);
+    clip-path: polygon(0 0, 100% 0, 0 100%);
+
+    &--ne {
+      clip-path: polygon(0 0, 100% 0, 100% 100%);
+    }
+
+    &--sw {
+      clip-path: polygon(0 0, 0 100%, 100% 100%);
+    }
+
+    &--se {
+      clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    }
+  }
+}
+
+// Synapse: aubergine glass with one deep asymmetric cut and cyan edge light.
+.theme-meridian_synapse .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #c477e8;
+    --chamber-mark: #38d6cf;
+
+    clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  &__backdrop {
+    background:
+      linear-gradient(135deg, transparent 0 62%, rgb(56 214 207 / 22%) 62.2%, transparent 64%),
+      radial-gradient(ellipse 80% 50% at 50% 86%, rgb(196 119 232 / 26%), transparent 72%),
+      linear-gradient(180deg, #1d1024, #0c0710);
+  }
+
+  &__glass {
+    background:
+      linear-gradient(125deg, rgb(255 255 255 / 7%) 0 22%, transparent 22.5%),
+      linear-gradient(90deg, transparent calc(100% - 2px), rgb(56 214 207 / 60%) 0);
+  }
+}
+
+// Highline: accessibility first. A flat ceramic plate, no glow or motion.
+.theme-meridian_highline .SpecimenViewer {
+  &__chamber {
+    background: var(--console-surface-base);
+    box-shadow: inset 0 0 0 2px var(--console-border-control);
+  }
+
+  &__backdrop,
+  &__grid,
+  &__glass,
+  &__sweep,
+  &__scale,
+  &__corner {
+    display: none;
+  }
+
+  &__figure {
+    animation: none;
+  }
+
+  &__readout {
+    color: var(--console-text-primary);
+    background: var(--console-surface-raised);
+    border-top: 2px solid var(--console-border-control);
+  }
+}
+
+// Hephaestus: smoked green instrument glass behind gunmetal and bronze screws.
+.theme-meridian_hephaestus .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #b4c6a3;
+    --chamber-mark: var(--forge-edge, #b89965);
+
+    background: var(--forge-texture) center / 320px;
+    box-shadow:
+      inset 0 0 0 1px #000,
+      inset 0 0 0 2px var(--forge-edge, #b89965);
+  }
+
+  &__backdrop {
+    inset: 9px 9px 29px;
+    background:
+      radial-gradient(ellipse 70% 40% at 50% 88%, rgb(180 198 163 / 18%), transparent 72%),
+      linear-gradient(180deg, #0f1f1a, #06100c);
+    box-shadow:
+      inset 0 0 0 1px #000,
+      inset 0 0 18px rgb(0 0 0 / 80%);
+  }
+
+  &__glass {
+    inset: 9px 9px 29px;
+    background:
+      linear-gradient(120deg, rgb(208 230 190 / 10%) 0 20%, transparent 20.5% 70%, rgb(208 230 190 / 5%) 70.5% 74%, transparent 74.5%),
+      rgb(60 90 70 / 12%);
+  }
+
+  &__grid {
+    display: none;
+  }
+
+  &__corner {
+    width: 7px;
+    height: 7px;
+    border: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f3d39a, #967044 55%, #3a2a17);
+    box-shadow: 0 0 0 1px #00000099;
+    opacity: 1;
+
+    &--nw,
+    &--ne {
+      top: 2px;
+    }
+
+    &--nw,
+    &--sw {
+      left: 2px;
+    }
+
+    &--ne,
+    &--se {
+      right: 2px;
+    }
+
+    &--sw,
+    &--se {
+      bottom: 22px;
+    }
+  }
+
+  &__readout {
+    background: #0c1317;
+    color: var(--console-interaction-accent);
+  }
+}
+
+// Diagnostic: the loader's own acquisition reticle locks onto each specimen.
+.theme-meridian_diagnostic .SpecimenViewer {
+  &__backdrop {
+    background:
+      var(--diagnostic-display-grain, none),
+      radial-gradient(ellipse 70% 42% at 50% 84%, rgb(74 216 121 / 12%), transparent 72%),
+      linear-gradient(180deg, #07120d, #030907);
+  }
+
+  &__grid {
+    display: none;
+  }
+
+  &__corner {
+    width: 12px;
+    height: 12px;
+    border-color: #88d8ab;
+    border-width: 0;
+
+    &--nw,
+    &--sw {
+      border-left-width: 2px;
+    }
+
+    &--ne,
+    &--se {
+      border-right-width: 2px;
+    }
+
+    &--nw,
+    &--ne {
+      border-top-width: 2px;
+    }
+
+    &--sw,
+    &--se {
+      border-bottom-width: 2px;
+    }
+  }
+
+  &__readout {
+    color: #79e79a;
+  }
+}
+
+// Augmentation: the theme's telemetry glyphs line the chamber walls, and a
+// calibration beam climbs through them, lighting each glyph as it passes.
+.theme-meridian_augmentation .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #00e5d4;
+    --chamber-mark: #00e5d4;
+    --scan-cycle: 5.5s;
+  }
+
+  &__backdrop {
+    background:
+      radial-gradient(ellipse 70% 40% at 50% 86%, rgb(0 229 212 / 14%), transparent 72%),
+      linear-gradient(180deg, #081517, #020607);
+
+    // The beam itself, faint across the open wall. Its box matches the lit
+    // band in the glyphs below so the two travel as one.
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: calc((100% - 20px) * 0.6);
+      background: linear-gradient(
+        0deg,
+        transparent 0 80%,
+        rgb(0 229 212 / 6%) 94%,
+        rgb(0 229 212 / 34%) 97.8%,
+        rgb(240 68 89 / 60%) 98.4%,
+        transparent 99%
+      );
+      animation: species-augment-scan var(--scan-cycle) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    }
+  }
+
+  // Glyphs only: the tile is a mask, so the wall takes whatever lights it.
+  &__grid {
+    inset: 0 0 20px;
+    opacity: 1;
+    background: linear-gradient(
+      90deg,
+      rgb(0 229 212 / 44%),
+      rgb(0 229 212 / 12%) 30% 70%,
+      rgb(0 229 212 / 44%)
+    );
+    mask: var(--peripheral-data-texture, linear-gradient(transparent, transparent)) 50% 0 / 100% auto
+      repeat-y;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60%;
+      background: linear-gradient(
+        0deg,
+        transparent,
+        rgb(0 229 212 / 30%) 40%,
+        rgb(0 229 212 / 85%) 88%,
+        #dafffb 97.5%,
+        #f04459 98.5%,
+        transparent 99.5%
+      );
+      animation: species-augment-scan var(--scan-cycle) cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    }
+  }
+
+  &__scale {
+    opacity: 0.8;
+    background:
+      repeating-linear-gradient(0deg, #00e5d4 0 1px, transparent 1px 8px) left / 4px 100% no-repeat,
+      repeating-linear-gradient(0deg, #70fff5 0 1px, transparent 1px 40px) left / 7px 100% no-repeat;
+  }
+}
+
+// Hotline: a striped synthwave sun behind neon pink glass.
+.theme-meridian_hotline .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #ff57d5;
+    --chamber-mark: #ff74de;
+
+    box-shadow:
+      inset 0 0 0 1px #ff57d5,
+      inset 0 0 14px rgb(255 87 213 / 35%);
+  }
+
+  &__backdrop {
+    background:
+      linear-gradient(180deg, transparent 63%, rgb(255 116 222 / 55%) 63.3%, transparent 64.5%),
+      radial-gradient(circle at 50% 60%, transparent 0 31%, transparent 31%),
+      linear-gradient(180deg, #1c0a2a 0%, #3a1150 45%, #160b20 63%, #09040e 100%);
+  }
+
+  &__grid {
+    inset: 20% 16% 37%;
+    opacity: 0.85;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: linear-gradient(180deg, #ffd166, #ff74de 55%, #c04fd0);
+    mask-image: repeating-linear-gradient(180deg, #000 0 7px, transparent 7px 9px);
+  }
+}
+
+// Cyberpunk: black glass framed by broken red rails and cyan registration.
+// The theme's telemetry glyphs, typeset: a column of unreadable text on each
+// side of the specimen, ticking upward a line at a time.
+.theme-meridian_cyberpunk .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #ff5267;
+    --chamber-mark: #00e5d4;
+
+    background:
+      linear-gradient(90deg, #c0152a 0 38%, transparent 38% 46%, #c0152a 46% 100%) top / 100% 2px no-repeat,
+      linear-gradient(90deg, #c0152a 0 64%, transparent 64% 70%, #c0152a 70% 100%) bottom / 100% 2px no-repeat,
+      #050203;
+    box-shadow: inset 0 0 22px rgb(0 0 0 / 80%);
+  }
+
+  &__backdrop {
+    inset: 2px 0;
+    background:
+      repeating-linear-gradient(180deg, rgb(255 82 103 / 4%) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse 70% 42% at 50% 86%, rgb(255 82 103 / 18%), transparent 72%),
+      #070203;
+  }
+
+  // The mask stays put and softens the top and bottom lines while the text
+  // ticks upward underneath it.
+  &__grid {
+    // One period of the feed; the tile is 264 x 300 and scales with the chamber.
+    --glyph-tile: calc((var(--specimen-size, 192px) + 8px) * 300 / 264);
+
+    inset: 2px 0 20px;
+    opacity: 1;
+    background: none;
+    mask-image: linear-gradient(180deg, transparent, #000 12%, #000 86%, transparent);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0 0 calc(-1 * var(--glyph-tile));
+      background: url('tgui/styles/meridianos/assets/species/cyberpunk-glyph-pylons.svg') 0 0 /
+        100% var(--glyph-tile) repeat-y;
+      animation: species-glyph-feed 11s steps(25) infinite;
+    }
+  }
+
+  // The text columns stand where the ruler would.
+  &__scale {
+    display: none;
+  }
+
+  &__figure {
+    animation:
+      species-specimen-arrive 420ms cubic-bezier(0.2, 0, 0.2, 1) both,
+      species-glitch 360ms steps(1) 120ms both;
+  }
+
+  &__corner {
+    width: 14px;
+    height: 14px;
+    opacity: 1;
+    filter: drop-shadow(0 0 3px #00e5d4);
+  }
+}
+
+// Scavenger: rust plate casing with rivets around a cream-lit reading window.
+.theme-meridian_scavenger .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #d5a84c;
+    --chamber-mark: #d5a84c;
+
+    background: var(--scavenger-texture) 0 0 / 384px 384px;
+    box-shadow: inset 0 0 0 1px #080705;
+  }
+
+  &__backdrop {
+    inset: 8px 8px 28px;
+    background:
+      radial-gradient(ellipse 72% 42% at 50% 88%, rgb(240 231 206 / 10%), transparent 72%),
+      linear-gradient(180deg, #1a1712, #080705);
+    box-shadow:
+      inset 0 0 0 1px #7c6e50,
+      inset 0 2px 8px rgb(0 0 0 / 80%);
+  }
+
+  &__glass {
+    inset: 8px 8px 28px;
+  }
+
+  &__grid {
+    display: none;
+  }
+
+  &__corner {
+    width: 6px;
+    height: 6px;
+    border: 0;
+    background: var(--scavenger-fastener);
+    opacity: 1;
+
+    &--nw,
+    &--ne {
+      top: 1px;
+    }
+
+    &--nw,
+    &--sw {
+      left: 1px;
+    }
+
+    &--ne,
+    &--se {
+      right: 1px;
+    }
+
+    &--sw,
+    &--se {
+      bottom: 21px;
+    }
+  }
+
+  &__readout {
+    background: #100d0a;
+    color: #c9bea3;
+  }
+}
+
+// Wastelander: a curved phosphor tube sunk into olive casing.
+.theme-meridian_wastelander .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #a4ba78;
+    --chamber-mark: #657653;
+
+    background: #22291b;
+    box-shadow:
+      inset 0 0 0 1px #657653,
+      inset 0 -3px 0 #090d08;
+  }
+
+  &__backdrop {
+    inset: 10px 10px 30px;
+    border-radius: 18px / 14px;
+    background:
+      radial-gradient(ellipse at 50% 50%, rgb(164 186 120 / 12%), transparent 70%),
+      #0b0f09;
+    box-shadow:
+      inset 0 0 22px rgb(0 0 0 / 85%),
+      0 0 0 2px #090d08;
+  }
+
+  &__glass {
+    inset: 10px 10px 30px;
+    border-radius: 18px / 14px;
+    background:
+      repeating-linear-gradient(180deg, rgb(0 0 0 / 28%) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 30% 18%, rgb(255 255 255 / 8%), transparent 45%);
+  }
+
+  &__figure {
+    filter: sepia(0.35) saturate(0.8) brightness(0.95);
+    animation: species-crt-on 520ms ease-out both;
+  }
+
+  &__grid,
+  &__corner {
+    display: none;
+  }
+}
+
+// Shadowbroker: a spacecraft equipment bay with lamp blocks and hazard floor.
+.theme-meridian_shadowbroker .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #f4a62a;
+    --chamber-mark: #747e7a;
+  }
+
+  &__backdrop {
+    background:
+      linear-gradient(90deg, #f4a62a 0 22px, transparent 22px calc(100% - 22px), #f4a62a calc(100% - 22px)) top 8px left 8px / calc(100% - 16px) 5px no-repeat,
+      radial-gradient(ellipse 70% 42% at 50% 86%, rgb(244 166 42 / 12%), transparent 72%),
+      linear-gradient(180deg, #1b2021, #080a0b);
+  }
+
+  &__grid {
+    inset: auto 0 20px;
+    height: 8px;
+    opacity: 0.7;
+    background: repeating-linear-gradient(-45deg, #f4a62a 0 6px, #080a0b 6px 12px);
+    mask-image: none;
+  }
+}
+
+// Foundry: hammered bronze with a six-blade iris that opens on each specimen.
+.theme-meridian_foundry .SpecimenViewer {
+  &__chamber {
+    --chamber-glow: #e7ad52;
+    --chamber-mark: var(--forge-edge, #bd8a52);
+
+    background: var(--forge-texture) center / 360px;
+    box-shadow:
+      inset 0 0 0 1px #000,
+      inset 0 0 0 2px var(--forge-edge, #bd8a52);
+  }
+
+  &__backdrop {
+    inset: 10px 10px 30px;
+    border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
+    background:
+      radial-gradient(ellipse 70% 40% at 50% 88%, rgb(231 173 82 / 18%), transparent 72%),
+      linear-gradient(180deg, #21170f, #130e09);
+    box-shadow:
+      inset 0 0 0 2px #19120d,
+      inset 0 0 20px rgb(0 0 0 / 85%);
+    animation: species-iris-open 520ms cubic-bezier(0.3, 0, 0.1, 1) both;
+  }
+
+  &__grid {
+    inset: 10px 10px 30px;
+    opacity: 0.5;
+    border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
+    background: repeating-conic-gradient(
+      from 0deg at 50% 58%,
+      rgb(0 0 0 / 55%) 0deg 1.5deg,
+      transparent 1.5deg 60deg
+    );
+    mask-image: radial-gradient(circle at 50% 58%, transparent 0 60%, #000 61%);
+  }
+
+  &__glass {
+    inset: 10px 10px 30px;
+    border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
+  }
+
+  &__corner {
+    display: none;
+  }
+
+  &__readout {
+    background: #19120d;
+    color: #f0c074;
+  }
+}
+
+// MARK: Motion and forced colours
+
+// Nothing moves in a chamber nobody is looking at: its window is hidden or
+// has lost focus. Everything picks up where it left off on return.
+.SpecimenViewer[data-motion='paused'] {
+  &,
+  & *,
+  & *::before,
+  & *::after {
+    animation-play-state: paused !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .SpecimenViewer {
+    &__figure,
+    &__sweep,
+    &__grid,
+    &__grid::before,
+    &__backdrop,
+    &__backdrop::after {
+      animation: none !important;
+    }
+  }
+
+  // A beam parked mid-wall would read as a stripe; the glyphs stay lit.
+  .theme-meridian_augmentation .SpecimenViewer {
+    &__grid::before,
+    &__backdrop::after {
+      display: none;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .SpecimenViewer__chamber > span:not(.SpecimenViewer__figure):not(.SpecimenViewer__readout) {
+    display: none;
+  }
+}
+
+// MARK: Classic
+
+// Stock tgui habits, for the Classic skin only: tab strips read as section
+// headers over the primary rule, perks are solid colour boxes like the old
+// Features row, and sub-headings are bold and coloured over their own rule.
+.theme-meridian_classic .SpeciesRegistry {
+  .SpeciesDetailTabs__tabs.Tabs {
+    margin: 0;
+    padding: var(--space-s) var(--space-s) 0;
+    background-color: var(--color-section);
+    border-bottom: var(--border-thickness-small) solid var(--color-primary);
+  }
+
+  .SpeciesDetailTabs__tabs .Tab--selected {
+    color: var(--color-text);
+    background-color: hsl(from var(--color-primary) h s l / 55%);
+  }
+
+  // Stock tabs carry an icon and a label, no counts.
+  .SpeciesDetailTabs__count {
+    display: none;
+  }
+
+  // Classic buttons are short, so rows grow to hold the whole sprite.
+  .SpeciesLineageList .SpeciesSprite {
+    margin: 0;
+  }
+
+  .SpeciesTraits__group--neutral {
+    --kind-color: hsl(0 0% 45%);
+  }
+
+  .SpeciesTraits__heading {
+    padding-bottom: 2px;
+    font-family: inherit;
+    font-size: 1em;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    border-bottom: var(--border-thickness-small) solid var(--kind-color);
+
+    &::after {
+      display: none;
+    }
+  }
+
+  .SpeciesTraits__group--neutral .SpeciesTraits__heading {
+    color: var(--color-label);
+  }
+
+  .SpeciesTrait {
+    padding: 4px;
+    background-color: hsl(0 0% 100% / 4%);
+    border-radius: var(--border-radius-small);
+  }
+
+  .SpeciesTrait__icon {
+    width: 26px;
+    height: 26px;
+    color: #fff;
+    background-color: var(--kind-color);
+    border-radius: var(--border-radius-small);
+    box-shadow: none;
+  }
+
+  .SpeciesTrait__name {
+    color: var(--color-text);
+  }
+
+  .SpeciesTrait__description {
+    color: var(--color-label);
+  }
+
+  .SpeciesDiet__food {
+    box-shadow: inset 0 0 0 1px hsl(from var(--color-primary) h s l / 60%);
+  }
+}

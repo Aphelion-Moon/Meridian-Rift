@@ -29,6 +29,7 @@ const serverData: ServerData = {
   random: { randomizable: [] },
   loadout: { loadout_tabs: [] },
   species: {},
+  species_families: [],
   background_state: { choices: [] },
   limbs_and_markings: {
     robotic_styles: [],

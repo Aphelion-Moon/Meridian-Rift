@@ -155,12 +155,14 @@ describe('MeridianOS shared control geometry', () => {
           <Button aria-label="Classic ellipsis action" ellipsis fluid>
             Long action label
           </Button>
+          {/* // APHELION EDIT REMOVAL START - Species page: the old species button and its rules are commented out.
           <Button
             aria-label="Classic species action"
             className="PreferencesMenu__SpeciesButton"
           >
             <span>Species preview</span>
           </Button>
+          // APHELION EDIT REMOVAL END */}
           <PriorityButton
             color="green"
             enabled
@@ -194,9 +196,11 @@ describe('MeridianOS shared control geometry', () => {
     expect(getComputedStyle(content('Classic ellipsis action')).display).toBe(
       'flex',
     );
-    expect(getComputedStyle(content('Classic species action')).display).toBe(
-      'grid',
-    );
+    // APHELION EDIT REMOVAL START - Species page: the old species button and its rules are commented out.
+    // expect(getComputedStyle(content('Classic species action')).display).toBe(
+    //   'grid',
+    // );
+    // APHELION EDIT REMOVAL END
     for (const priority of [enabledPriority, emptyPriority]) {
       expect(getComputedStyle(priority).lineHeight).toBe('16px');
       expect(getComputedStyle(priority).minHeight).toBe('0');
