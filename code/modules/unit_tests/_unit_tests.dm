@@ -383,6 +383,7 @@
 #include "~nova\body_marking_art.dm"
 #include "~nova\body_marking_collection.dm"
 #include "~nova\body_marking_colors.dm"
+#include "~nova\body_marking_content.dm"
 #include "~nova\body_marking_features.dm"
 #include "~nova\body_marking_fixes.dm"
 #include "~nova\body_marking_merge.dm"

@@ -1,6 +1,7 @@
 /**
  * Every named marking set's members as body_marking_sets.dm named them before it listed typepaths, by set type, or null for a
- * set without markings. Kept here, and nowhere in the game, as the reference the typepath members are checked against.
+ * set without markings. Kept here, and nowhere in the game, as the reference the typepath members are checked against. Rat Paw,
+ * merged into Hands Feet at save version 22, reads as Hands Feet.
  */
 /proc/body_marking_set_members_by_name()
 	return list(
@@ -35,8 +36,8 @@
 		/datum/body_marking_set/goat = list("Goat Hoof"),
 		/datum/body_marking_set/floof = list("Floof"),
 		/datum/body_marking_set/floofer = list("Floof", "Floofer Sock"),
-		/datum/body_marking_set/rat = list("Rat Paw", "Rat Spot"),
-		/datum/body_marking_set/sloth = list("Rat Paw", "Sloth Head"),
+		/datum/body_marking_set/rat = list("Hands Feet", "Rat Spot"),
+		/datum/body_marking_set/sloth = list("Hands Feet", "Sloth Head"),
 		/datum/body_marking_set/scolipede = list("Scolipede", "Scolipede Spikes"),
 		/datum/body_marking_set/guilmon = list("Guilmon", "Guilmon Mark"),
 		/datum/body_marking_set/xeno = list("Xeno", "Xeno Head"),

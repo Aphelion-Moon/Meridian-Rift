@@ -158,11 +158,11 @@
 
 /datum/body_marking_set/rat
 	name = "Rat"
-	body_marking_list = list(/datum/body_marking/secondary/rat, /datum/body_marking/tertiary/rat)
+	body_marking_list = list(/datum/body_marking/secondary/handsfeet, /datum/body_marking/tertiary/rat)
 
 /datum/body_marking_set/sloth
 	name = "Sloth"
-	body_marking_list = list(/datum/body_marking/secondary/rat, /datum/body_marking/tertiary/sloth) //Yes we're re-using the rat bits as they'd be identical
+	body_marking_list = list(/datum/body_marking/secondary/handsfeet, /datum/body_marking/tertiary/sloth) // The rat's paws.
 
 /datum/body_marking_set/scolipede
 	name = "Scolipede"

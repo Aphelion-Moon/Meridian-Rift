@@ -674,11 +674,6 @@
 	icon_state = "floof"
 	affected_bodyparts = HEAD | CHEST
 
-/datum/body_marking/secondary/rat
-	name = "Rat Paw"
-	icon_state = "rat"
-	affected_bodyparts = ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
-
 /datum/body_marking/secondary/scolipede
 	name = "Scolipede"
 	icon_state = "scolipede"
@@ -733,10 +728,11 @@
 	affected_bodyparts = CHEST
 	gendered = FALSE
 
+/// Rat Paw drew this art too, state for state, and save version 22 merged it into this marking (GLOB.body_marking_renames).
 /datum/body_marking/secondary/handsfeet
 	name = "Hands Feet"
 	icon_state = "handsfeet"
-	affected_bodyparts = HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT // No head or chest art.
 
 /datum/body_marking/secondary/frog
 	name = "Frog"

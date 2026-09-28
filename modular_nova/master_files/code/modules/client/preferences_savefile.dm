@@ -3,7 +3,7 @@
  * You can't really use the non-modular version, least you eventually want asinine merge
  * conflicts and/or potentially disastrous issues to arise, so here's your own.
  */
-#define MODULAR_SAVEFILE_VERSION_MAX 21
+#define MODULAR_SAVEFILE_VERSION_MAX 22
 
 #define MODULAR_SAVEFILE_UP_TO_DATE -1
 
@@ -27,6 +27,7 @@
 #define VERSION_HEIGHT_UPDATE 19
 #define VERSION_HEMOPHAGE_SPECIES_REMOVAL 20
 #define VERSION_MARKING_DATUMS 21
+#define VERSION_MARKING_CONTENT 22
 
 #define INDEX_UNDERWEAR 1
 #define INDEX_BRA 2
@@ -58,6 +59,9 @@
 		if(!GLOB.robotic_styles_list[augment_limb_styles[key]])
 			augment_limb_styles -= key
 
+	// A save from before a marking name was retired still holds it: renamed first, as the loader drops a name it doesn't know.
+	if(needs_nova_update >= 0 && needs_nova_update < VERSION_MARKING_CONTENT)
+		body_marking_rename_retired(save_data["body_markings"])
 	body_markings = body_marking_collection_from_list(save_data["body_markings"])
 	mismatched_customization = save_data["mismatched_customization"]
 	allow_advanced_colors = save_data["allow_advanced_colors"]
@@ -640,6 +644,7 @@
 #undef VERSION_AUGMENT_ITEMS_PATH_CHANGE
 #undef VERSION_HEMOPHAGE_SPECIES_REMOVAL
 #undef VERSION_MARKING_DATUMS
+#undef VERSION_MARKING_CONTENT
 #undef INDEX_UNDERWEAR
 #undef INDEX_BRA
 #undef VERSION_HEIGHT_UPDATE

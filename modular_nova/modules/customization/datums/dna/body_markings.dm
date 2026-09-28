@@ -574,6 +574,61 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 			.++
 	. += length(zone_cache)
 
+/// Marking names a save or a custom-style package may still carry although no marking has them any more, each -> the name of
+/// the marking that draws the same art now. A save has them renamed by the migration of the save version that retired them,
+/// before the loader, which drops a name it doesn't know (body_marking_rename_retired()); a custom-style package is read
+/// through here by custom_style_validate_markings(). A retired name is never given to another marking, and a name added here
+/// needs a save version whose migration renames again.
+GLOBAL_LIST_INIT(body_marking_renames, list(
+	"Rat Paw" = "Hands Feet", // Save version 22: Rat Paw's art was Hands Feet's, state for state.
+))
+
+/**
+ * Renames retired marking names in the nested shape preferences.json stores, zone by zone and in place, by
+ * GLOB.body_marking_renames. A zone holding a retired name and the name it became wears the same art twice, so it keeps one
+ * entry: the later one, which drew on top, in its place and colour, glowing if either glowed, as the lower one's glow showed
+ * through a top one that didn't glow. A zone with nothing to rename is left as it is.
+ *
+ * Arguments:
+ * - raw: the decoded "body_markings" value. Anything that isn't a list is left alone, as is a zone that isn't one.
+ *
+ * Returns:
+ * - number: how many entries were renamed.
+ */
+/proc/body_marking_rename_retired(list/raw)
+	. = 0
+	if(!islist(raw))
+		return
+	for(var/zone in raw)
+		if(!istext(zone))
+			continue
+		var/list/raw_zone = raw[zone]
+		if(!islist(raw_zone))
+			continue
+		var/found = FALSE
+		for(var/name in raw_zone)
+			if(istext(name) && GLOB.body_marking_renames[name])
+				found = TRUE
+				break
+		if(!found)
+			continue
+		var/list/kept = list()
+		for(var/name in raw_zone)
+			if(!istext(name))
+				kept += list(name)
+				continue
+			var/value = raw_zone[name]
+			if(GLOB.body_marking_renames[name])
+				name = GLOB.body_marking_renames[name]
+				.++
+			if(name in kept)
+				var/list/fields = kept[name]
+				if(islist(fields) && length(fields) >= MARKING_INDEX_EMISSIVE && fields[MARKING_INDEX_EMISSIVE] && !(islist(value) && length(value) >= MARKING_INDEX_EMISSIVE && value[MARKING_INDEX_EMISSIVE]))
+					value = list(islist(value) ? (length(value) >= MARKING_INDEX_COLOR ? value[MARKING_INDEX_COLOR] : null) : value, TRUE)
+				kept -= name
+			kept[name] = value
+		raw[zone] = kept
+
 /**
  * The tolerant loader for the nested shape preferences.json stores: zone -> (marking name -> list(color, emissive)).
  *
