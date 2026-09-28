@@ -505,3 +505,19 @@
   - qol: art can now be saved instantaneously and without a frame. Adding to the station
       rotation frames still happens the normal way though using the library frames
   - bugfix: fixes a few issue with the funny portal devices
+2026-09-28:
+  Co0kie-GG:
+  - rscadd: AI can now see emotes touch cameras
+  FlufflesTheDog:
+  - bugfix: Several stations now have cryo navigation waypoints, and ensures that
+      future maps also have cryo waypoints.
+  PapaMichael:
+  - bugfix: The Detomatix disk now actually sends spoofed messages
+  SmArtKar:
+  - bugfix: Fixed shoes and a bunch of other items not being washable
+  necromanceranne:
+  - bugfix: Cybernetic fangs use the correct, metallic icon state.
+  vinylspiders:
+  - refactor: adds support for taur to have tails! feline taur is the only one with
+      a wag animation for now.
+  - bugfix: fixes color picker for some of the char prefs menu options being off-center
