@@ -5,7 +5,7 @@
 	var/current_style = null
 	/// Used for taur limbs that do not get rendered at all
 	VAR_PROTECTED/is_actually_just_invisible = FALSE
-	/// The part of this limb's icon cache keys standing for the markings it draws, or null for none. See marking_icon_key().
+	/// The part of this limb's icon cache keys standing for the markings it draws, or null for none. See LIMB_MARKING_ICON_KEY.
 	VAR_PRIVATE/marking_key
 	/// The markings list marking_key was built from.
 	VAR_PRIVATE/list/marking_key_markings
@@ -18,13 +18,18 @@
 	/// GLOB.body_marking_entry_revision when marking_key was built, -1 until it first is.
 	VAR_PRIVATE/marking_key_revision = -1
 
+/// The markings part of this limb's icon cache keys: marking_key, read with no proc call, while the five things it was built
+/// from are unchanged, else a new one from rebuild_marking_icon_key(). It reads private vars, so only /obj/item/bodypart's
+/// own procs may use it.
+#define LIMB_MARKING_ICON_KEY ((marking_key_revision == GLOB.body_marking_entry_revision && marking_key_markings == markings && marking_key_aux_markings == aux_zone_markings && marking_key_alpha == markings_alpha && marking_key_digitigrade == !!(bodyshape & BODYSHAPE_DIGITIGRADE)) ? marking_key : rebuild_marking_icon_key())
+
 /obj/item/bodypart/generate_icon_key()
 	RETURN_TYPE(/list)
 	. = ..()
 	if(current_style)
 		. += "-[current_style]"
 	if(markings || aux_zone_markings)
-		var/drawn_markings = marking_icon_key()
+		var/drawn_markings = LIMB_MARKING_ICON_KEY
 		if(drawn_markings)
 			. += drawn_markings
 	return .
@@ -36,27 +41,25 @@
 	RETURN_TYPE(/list)
 	. = ..()
 	if(markings || aux_zone_markings)
-		var/drawn_markings = marking_icon_key()
+		var/drawn_markings = LIMB_MARKING_ICON_KEY
 		if(drawn_markings)
 			. += drawn_markings
 	return .
 
 /**
- * Returns the part of this limb's icon cache keys standing for the markings it draws.
+ * Builds the part of this limb's icon cache keys standing for the markings it draws, and stamps what it was built from.
  *
- * Built once and reused until something it describes changes: the marking lists are swapped for others, an entry
- * anywhere is recoloured or its glow toggled (GLOB.body_marking_entry_revision), markings_alpha changes, or the limb
- * turns digitigrade or back. Marking lists are never edited in place, so the same list still holds the same entries
- * in the same order.
+ * LIMB_MARKING_ICON_KEY reuses the result until something it describes changes: the marking lists are swapped for
+ * others, an entry anywhere is recoloured or its glow toggled (GLOB.body_marking_entry_revision), markings_alpha changes,
+ * or the limb turns digitigrade or back. Marking lists are never edited in place, so the same list still holds the same
+ * entries in the same order.
  *
  * Returns:
  * - string: "[zone]=[entries];[aux zone]=[entries];alpha=[markings_alpha]", a zone without markings left empty and
  *   the zone written "digitigrade_[zone]" on a digitigrade limb, or null when the limb draws no markings.
  */
-/obj/item/bodypart/proc/marking_icon_key()
+/obj/item/bodypart/proc/rebuild_marking_icon_key()
 	var/digitigrade = (bodyshape & BODYSHAPE_DIGITIGRADE) ? TRUE : FALSE
-	if(marking_key_revision == GLOB.body_marking_entry_revision && marking_key_markings == markings && marking_key_aux_markings == aux_zone_markings && marking_key_alpha == markings_alpha && marking_key_digitigrade == digitigrade)
-		return marking_key
 	marking_key_revision = GLOB.body_marking_entry_revision
 	marking_key_markings = markings
 	marking_key_aux_markings = aux_zone_markings
@@ -124,3 +127,4 @@
 		icon_greyscale = new_icon
 
 #undef ICON_STATE_FORMULA_DIGI
+#undef LIMB_MARKING_ICON_KEY

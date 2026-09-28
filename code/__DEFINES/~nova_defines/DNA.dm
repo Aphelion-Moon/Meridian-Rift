@@ -54,6 +54,10 @@
 #define MARKING_INDEX_COLOR 1
 #define MARKING_INDEX_EMISSIVE 2
 
+/// A /datum/body_marking_collection's zone views as its zone_views() returns them, read with no proc call while they are
+/// current. The collection is evaluated up to three times, so pass a typed local.
+#define BODY_MARKING_ZONE_VIEWS(collection) (collection.zone_cache_version == collection.version ? collection.zone_cache : collection.zone_views())
+
 //The color list that is passed to color matrixed things when a person is husked
 #define HUSK_COLOR_LIST list(list(0.64, 0.64, 0.64, 0), list(0.64, 0.64, 0.64, 0), list(0.64, 0.64, 0.64, 0), list(0, 0, 0, 1))
 

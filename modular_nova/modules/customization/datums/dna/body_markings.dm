@@ -109,13 +109,15 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	VAR_PRIVATE/list/entries
 	/// Zones in the order they first appeared. An emptied zone keeps its place, as the nested map kept its key.
 	VAR_PRIVATE/list/zones
-	/// Bumped by every structural change: a zone or an entry added, an entry removed or replaced.
-	VAR_PRIVATE/version = 0
+	/// Bumped by every structural change: a zone or an entry added, an entry removed or replaced. Read-only outside this
+	/// type, where only BODY_MARKING_ZONE_VIEWS() reads it.
+	var/version = 0
 	/// zone -> that zone's entries in order, for every zone wearing any, in zone order. Built on first use after a
 	/// version bump and always replaced rather than edited, so a list handed out earlier stays a stable snapshot.
-	VAR_PRIVATE/list/zone_cache
-	/// The version zone_cache was built at.
-	VAR_PRIVATE/zone_cache_version = -1
+	/// Read-only outside this type, where only BODY_MARKING_ZONE_VIEWS() reads it.
+	var/list/zone_cache
+	/// The version zone_cache was built at. Read-only outside this type, where only BODY_MARKING_ZONE_VIEWS() reads it.
+	var/zone_cache_version = -1
 	/// zone -> cache key fragment. Dropped on a version bump or a new entry revision.
 	VAR_PRIVATE/list/key_cache
 	/// The version key_cache was built at.
@@ -174,7 +176,8 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  *
  * The returned list and the lists inside it are shared and must not be edited: limbs hold these zone lists as
  * their markings. A structural change builds new ones, so a list already handed out keeps what it held. A zone
- * that wears nothing, emptied or absent, has no list here; has_zone() tells the two apart.
+ * that wears nothing, emptied or absent, has no list here; has_zone() tells the two apart. Hot callers read the
+ * same views through BODY_MARKING_ZONE_VIEWS(), which calls this only when they are out of date.
  *
  * Returns:
  * - list: zone -> list of entries, or null when no zone wears any.
@@ -213,7 +216,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	RETURN_TYPE(/list)
 	if(!istext(zone))
 		return null
-	var/list/views = zone_views()
+	var/list/views = BODY_MARKING_ZONE_VIEWS(src)
 	return views?[zone]
 
 /**
@@ -408,7 +411,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 /datum/body_marking_collection/proc/serialize()
 	RETURN_TYPE(/list)
 	. = list()
-	var/list/views = zone_views()
+	var/list/views = BODY_MARKING_ZONE_VIEWS(src)
 	// Every present zone, emptied ones included: the save keeps their keys.
 	for(var/zone in zones)
 		.[zone] = body_marking_entries_to_list(views?[zone])
