@@ -12,8 +12,11 @@
 	var/color_mode = MARKING_COLOR_FOLLOWS_PRIMARY
 	/// The "#rrggbb" a MARKING_COLOR_FIXED_DEFAULT or MARKING_COLOR_LOCKED marking starts in. The following modes ignore it.
 	var/default_color
-	///Which bodyparts does the marking affect in BITFLAGS!! (HEAD, CHEST, ARM_LEFT, ARM_RIGHT, HAND_LEFT, HAND_RIGHT, LEG_RIGHT, LEG_LEFT)
+	/// The zones this marking draws on, as bitflags (HEAD, CHEST, ARM_LEFT, ARM_RIGHT, HAND_LEFT, HAND_RIGHT, LEG_RIGHT, LEG_LEFT).
+	/// Claim a zone only where the sheet has its art: character setup offers the marking on every zone claimed here.
 	var/affected_bodyparts
+	/// The leg shapes this marking has art for, MARKING_LEG_* flags. A leg of another shape draws none of it.
+	var/leg_shapes = MARKING_LEG_PLANTIGRADE | MARKING_LEG_DIGITIGRADE
 	/// The species this marking is meant for, species id -> TRUE, or null for any species. Without mismatched parts character
 	/// setup offers and accepts it only for those. A marking in any /datum/body_marking_set has this replaced at init by the
 	/// union of those sets' species (derive_body_marking_species()), so a declaration here counts only for a marking in no set.
@@ -26,6 +29,9 @@
 	/// Colours character setup suggests beside the colour picker, lowercase "#rrggbb", or null for none. Markings declaring the
 	/// same palette share one list.
 	var/list/recommended_colors
+	/// A limb's request -> the icon state this marking draws for it, or FALSE for nothing, as drawn_state() answered; null
+	/// until a limb draws it. Read-only outside this type, where only BODY_MARKING_DRAWN_STATE() reads it.
+	var/list/drawn_states
 
 /datum/body_marking/New()
 	. = ..()
@@ -69,6 +75,43 @@
 	stack_trace("Body marking [name] ([type]) has an unknown color_mode: [color_mode]")
 	return COLOR_WHITE
 
+/**
+ * Returns the icon state this marking draws on one zone of a limb, or null where it draws nothing there: a leg of a shape
+ * leg_shapes leaves out. The limb renderer draws every marking appearance from this, through drawn_state(), and character
+ * setup's picker and the custom sprite editor ask it too, so all of them read the same art. The sheet can still lack the
+ * state, as it does on a zone a save holds but the marking no longer claims.
+ *
+ * Arguments:
+ * - zone: the marking zone drawn on: a limb's body zone, or an arm's aux zone for its hand.
+ * - digitigrade: TRUE for a digitigrade limb.
+ * - limb_gender: the chest art a gendered marking draws, "m" or "f": a dimorphic chest's limb_gender, "m" on any other chest.
+ *
+ * Returns:
+ * - string: the icon state, or null.
+ */
+/datum/body_marking/proc/zone_icon_state(zone, digitigrade = FALSE, limb_gender = "m")
+	if((zone == BODY_ZONE_L_LEG || zone == BODY_ZONE_R_LEG) && !(leg_shapes & (digitigrade ? MARKING_LEG_DIGITIGRADE : MARKING_LEG_PLANTIGRADE)))
+		return null
+	return "[icon_state]_[digitigrade ? "digitigrade_" : ""][zone][zone == BODY_ZONE_CHEST && gendered ? "_[limb_gender]" : ""]"
+
+/**
+ * Returns the icon state the limb renderer draws for this marking on one zone of a limb: zone_icon_state()'s state where the
+ * sheet has it, else FALSE, so a missing state draws nothing rather than the sheet's default state. It is missing on a zone
+ * a save holds but the marking no longer claims, which is no bug, so this stays silent. The answer is kept in drawn_states
+ * under the limb's request, where BODY_MARKING_DRAWN_STATE() reads it again with no proc call.
+ *
+ * Arguments:
+ * - request: the key of the limb's zone, leg shape and chest art, which the renderer builds once per limb.
+ * - zone, digitigrade, limb_gender: as zone_icon_state() takes them.
+ *
+ * Returns:
+ * - string: the icon state, or FALSE.
+ */
+/datum/body_marking/proc/drawn_state(request, zone, digitigrade = FALSE, limb_gender = "m")
+	var/state = zone_icon_state(zone, digitigrade, limb_gender)
+	. = state && icon_exists(icon, state) ? state : FALSE
+	LAZYSET(drawn_states, request, .)
+
 /// Markings of no family, on the other_markings sheet unless they name another. Those with a colour of their own start in it
 /// (MARKING_COLOR_FIXED_DEFAULT); the rest follow the primary mutant colour.
 /datum/body_marking/other
@@ -82,6 +125,10 @@
 	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#484848"
 	affected_bodyparts = HEAD
+
+/// Draws tg's own eye bags, the state the All Nighter quirk draws, which is named for no zone.
+/datum/body_marking/other/eyebags/zone_icon_state(zone, digitigrade = FALSE, limb_gender = "m")
+	return zone == BODY_ZONE_HEAD ? icon_state : ..()
 
 /datum/body_marking/other/drake_bone
 	name = "Drake Bone"
@@ -358,11 +405,13 @@
 	name = "Leg Band"
 	icon_state = "legband"
 	affected_bodyparts = LEG_RIGHT | LEG_LEFT
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/other/protogenlegs
 	name = "Protogen Leg - Digitigrade"
 	icon_state = "protogen"
 	affected_bodyparts = LEG_RIGHT | LEG_LEFT
+	leg_shapes = MARKING_LEG_DIGITIGRADE
 
 /datum/body_marking/other/protogenarms
 	name = "Protogen Arm"
@@ -418,38 +467,44 @@
 	name = "Teshari Plain"
 	icon_state = "teshari_plain"
 	recommended_species = list(SPECIES_TESHARI = 1)
-	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT // No head or hand art.
 	gendered = FALSE
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/secondary/teshari_coat
 	name = "Teshari Coat"
 	icon_state = "teshari_coat"
 	recommended_species = list(SPECIES_TESHARI = 1)
-	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT // No hand art.
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/secondary/teshari_underfluff
 	name = "Teshari Underfluff"
 	icon_state = "teshari_underfluff"
 	recommended_species = list(SPECIES_TESHARI = 1)
 	affected_bodyparts = HEAD | CHEST | LEG_RIGHT | LEG_LEFT
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/secondary/teshari_short
 	name = "Teshari Short"
 	icon_state = "teshari_short"
 	recommended_species = list(SPECIES_TESHARI = 1)
-	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT // No head, chest or hand art.
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/secondary/teshari_feathers_male
 	name = "Teshari Feathers (Male)"
 	icon_state = "teshari_feathers_male"
 	recommended_species = list(SPECIES_TESHARI = 1)
-	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT // No hand art.
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/secondary/teshari_feathers_female
 	name = "Teshari Feathers (Female)"
 	icon_state = "teshari_feathers_female"
 	recommended_species = list(SPECIES_TESHARI = 1)
-	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT // No hand art.
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/secondary/teshari_lashes
 	name = "Teshari Lashes"
@@ -490,7 +545,7 @@
 /datum/body_marking/secondary/shepherd
 	name = "Shepherd"
 	icon_state = "shepherd"
-	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT // No hand art.
 
 /datum/body_marking/secondary/wolf
 	name = "Wolf"
@@ -527,6 +582,7 @@
 	icon_state = "leopard1"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
 	gendered = FALSE
+	leg_shapes = MARKING_LEG_DIGITIGRADE
 
 /datum/body_marking/secondary/leopard2
 	name = "Leopard (alt)"
@@ -548,6 +604,7 @@
 	name = "Tiger Spot"
 	icon_state = "tiger"
 	affected_bodyparts = HEAD | CHEST | LEG_RIGHT | LEG_LEFT
+	leg_shapes = MARKING_LEG_PLANTIGRADE
 
 /datum/body_marking/secondary/otter
 	name = "Otter"
@@ -631,6 +688,7 @@
 	icon_state = "guilmon"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
 	gendered = FALSE
+	leg_shapes = MARKING_LEG_DIGITIGRADE
 
 /datum/body_marking/secondary/xeno
 	name = "Xeno"
@@ -654,6 +712,7 @@
 	name = "Belly Slim"
 	icon_state = "bellyslim"
 	affected_bodyparts = HEAD | CHEST | LEG_RIGHT | LEG_LEFT
+	leg_shapes = MARKING_LEG_DIGITIGRADE
 
 /datum/body_marking/secondary/bellyslimalt
 	name = "Belly Slim Alternative"
@@ -685,7 +744,7 @@
 /datum/body_marking/secondary/bee
 	name = "Bee"
 	icon_state = "bee"
-	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT // No hand art.
 	gendered = FALSE
 
 /datum/body_marking/secondary/gradient
@@ -801,7 +860,7 @@
 /datum/body_marking/tertiary/deer
 	name = "Deer Hoof"
 	icon_state = "deer"
-	affected_bodyparts = HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	affected_bodyparts = LEG_RIGHT | LEG_LEFT // No hand art.
 
 /datum/body_marking/tertiary/hyena
 	name = "Hyena Side"
@@ -871,6 +930,7 @@
 	name = "Insectoid Trim"
 	icon_state = "insect_trim"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | LEG_LEFT | LEG_RIGHT
+	leg_shapes = MARKING_LEG_DIGITIGRADE
 
 /datum/body_marking/tertiary/chemlight
 	name = "Bands and Stripes (Alt)"

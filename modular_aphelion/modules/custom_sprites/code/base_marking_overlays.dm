@@ -4,7 +4,8 @@
  * The ordinary limb renderer passes its existing overlay list, preserving native layer order
  * without allocating another list. An editor may request one body or auxiliary zone, omit the
  * separate emissive appearances and replace the live marking opacity while sampling its pixels.
- * No body, custom paint or external-organ overlays are included.
+ * No body, custom paint or external-organ overlays are included. A marking draws only the state its
+ * drawn_state() answers, and nothing where it has no art: see zone_icon_state().
  *
  * Arguments:
  * - output: The caller-owned overlay list to append to.
@@ -25,21 +26,22 @@
 	// We need to check that the owner exists(could be a placed bodypart) and that it's not a chainsawhand and that they're a human with usable DNA.
 	if(!(bodypart_flags & (BODYPART_PSEUDOPART | BODYPART_STUMP)) && (!(bodyshape & BODYSHAPE_TAUR))) // taur legs never ever render
 		if(isnull(zone) || zone == body_zone)
+			// Per limb, not per marking: its leg shape, the chest art a gendered marking draws on it, and the request both make.
+			var/digitigrade = bodyshape & BODYSHAPE_DIGITIGRADE
+			var/chest_gender = is_dimorphic ? limb_gender : "m"
+			var/request = "[body_zone][digitigrade ? "_digitigrade" : ""][body_zone == BODY_ZONE_CHEST ? "_[chest_gender]" : ""]"
 			for(var/datum/body_marking_entry/marking_entry as anything in markings) // Cycle through all of our currently selected markings.
 				var/datum/body_marking/body_marking = marking_entry.marking
 				if (!body_marking) // Edge case prevention.
 					continue
-
-				var/gender_modifier = ""
-				if(body_zone == BODY_ZONE_CHEST) // Chest markings have male and female versions.
-					if(body_marking.gendered)
-						gender_modifier = is_dimorphic ? "_[limb_gender]" : "_m"
-				var/digi_modifier = ""
-				if(bodyshape & BODYSHAPE_DIGITIGRADE)
-					digi_modifier = "digitigrade_"
+				// FALSE where the marking has no art for this leg shape or its sheet lacks the state, as on a zone a save holds but
+				// the marking no longer claims: nothing is drawn rather than the sheet's default state.
+				var/marking_state = BODY_MARKING_DRAWN_STATE(body_marking, request, body_zone, digitigrade, chest_gender)
+				if(!marking_state)
+					continue
 				var/mutable_appearance/accessory_overlay
 				var/mutable_appearance/emissive
-				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[digi_modifier][body_zone][gender_modifier]", -BODYPARTS_LAYER)
+				accessory_overlay = mutable_appearance(body_marking.icon, marking_state, -BODYPARTS_LAYER)
 				accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
 				if(include_emissive && marking_entry.get_emissive())
 					// The glow fades with the marking, as a limb's own glow follows the limb's alpha.
@@ -58,12 +60,12 @@
 				var/datum/body_marking/body_marking = marking_entry.marking
 				if (!body_marking) // Edge case prevention.
 					continue
-
-				var/render_limb_string = aux_zone
-
+				var/marking_state = BODY_MARKING_DRAWN_STATE(body_marking, aux_zone, aux_zone, FALSE, "m")
+				if(!marking_state)
+					continue
 				var/mutable_appearance/emissive
 				var/mutable_appearance/accessory_overlay
-				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[render_limb_string]", -aux_layer)
+				accessory_overlay = mutable_appearance(body_marking.icon, marking_state, -aux_layer)
 				accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
 				if(include_emissive && marking_entry.get_emissive())
 					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer, alpha = accessory_overlay.alpha)

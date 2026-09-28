@@ -1,5 +1,6 @@
 /datum/body_marking/akula
 	icon = 'modular_nova/master_files/icons/mob/body_markings/akula_markings.dmi'
+	leg_shapes = MARKING_LEG_PLANTIGRADE // Neither Akula marking has digitigrade art.
 
 /datum/body_marking/akula/secondary
 	name = "Akula"

@@ -547,16 +547,18 @@
 				return palette
 	return palette
 
-/// Shades sampled from the first native marking the preview body wears.
+/// Shades sampled from the first native marking the preview body draws.
 /datum/custom_sprite_editor/proc/sample_marking_shades()
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
 		for(var/datum/body_marking_entry/marking_entry as anything in limb.markings)
 			var/datum/body_marking/marking = marking_entry.marking
 			if(!marking)
 				continue
-			var/gender_suffix = limb.body_zone == BODY_ZONE_CHEST && marking.gendered ? (limb.is_dimorphic ? "_[limb.limb_gender]" : "_m") : ""
-			var/digi = limb.bodyshape & BODYSHAPE_DIGITIGRADE ? "digitigrade_" : ""
-			return custom_sprite_sample_palette(marking.icon, "[marking.icon_state]_[digi][limb.body_zone][gender_suffix]")
+			var/marking_state = marking.zone_icon_state(limb.body_zone, limb.bodyshape & BODYSHAPE_DIGITIGRADE, limb.is_dimorphic ? limb.limb_gender : "m")
+			// A marking with no art here draws nothing, so it has no shades to give.
+			if(!marking_state || !icon_exists(marking.icon, marking_state))
+				continue
+			return custom_sprite_sample_palette(marking.icon, marking_state)
 	return custom_sprite_sample_palette(null, null)
 
 /// A rendered icon as the data URL the window shows.

@@ -24,7 +24,7 @@
 
 /datum/body_marking/tertiary/synthliz/plates
 	name = "Synth Plates"
-	icon_state = "synthlizplates"
+	icon_state = "synthlizsplates"
 	affected_bodyparts = CHEST
 
 /datum/body_marking/tertiary/synthliz/chestlights
