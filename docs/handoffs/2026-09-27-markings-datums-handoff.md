@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Worktree** | `C:\Users\mal\Meridian-Rift\.worktrees\markings-datums`, branch `markings-datums` |
-| **Base** | `c85041d7bda` — tip of `scenegirlsimulator` == `origin/scenegirlsimulator` as of 2026-09-27 ~18:50. Rebased from `bfaf20397f36` after the hair-appendage work landed as commits `d289b6f1c40`, `3c919cf9b1c`, `c85041d7bda` (80 files). |
+| **Base** | `f1dd78e5b34` — `origin/scenegirlsimulator` as of 2026-09-28 ~11:20. Rebased twice: from `bfaf20397f36` onto `c85041d7bda` (hair-appendage work, 2026-09-27) and, right before step 8 as Deviation 2 asks, from `c85041d7bda` onto `f1dd78e5b34` (six upstream commits: mal's "tsx pass" + ".", Bloop's review-suggestion commits and "a"; 24 files, none overlapping ours; zero conflicts). **Every commit SHA quoted in the ledger rows below is pre-rebase**; `git log` is authoritative and the pre-rebase tip is tagged `markings-datums-pre-rebase-20260928` (`5f930d2011b`). |
 | **Snapshot commit** | **not needed any more** — the hair-appendage work is in the base itself (Deviation 3). Every measurement is taken against `c85041d7bda`; the docs and baseline-test commits on top of it change no production code. **The bfaf2039 baseline numbers in ledger row A are stale and must be re-taken on this base.** |
 | **Plan** | [`2026-09-27-markings-datums-plan.md`](2026-09-27-markings-datums-plan.md) — verbatim copy of the approved plan: §0 setup, §1 inventory, §2 design, §3 the 9 steps, §4 scope lock, §5 verification, §6 risks, §7 decisions. **Read it in full before touching code.** This document only adds what the plan could not know about this machine. |
 | **Execution** | Fable 5.1 orchestrator driving a fresh Opus implementer. The implementer works only in this worktree, one plan step per commit, and reports to the orchestrator after every step. |
@@ -334,6 +334,22 @@ verified behaviour, and "portable to tg: yes/no". Larger targets: propose with n
   6. Unrelated hotspots (record only, tg-portable): `synchronize_bodytypes` 682 calls / ~5 ms self per drive (scans every organ
      in every limb per attach/detach); `update_damage_overlays` 839 calls / ~6 ms self, once per body update even when damage
      is unchanged. `markings_copy.dm` keeps its own now-redundant `icon_exists` filter (left alone).
+
+* **Decisions at the start of B8 (orchestrator, 2026-09-28):**
+  1. Rebased onto `f1dd78e5b34` before any tgui edit (above). B8 begins with a verification pass on the rebased tree.
+  2. Edit markers in tgui: the upstream "tsx pass" wrapped Aphelion changes inside the Nova-owned `LimbsPage.tsx` and
+     `PreferencesMenu/types.ts` in `// APHELION EDIT …` markers — step 8's edits to those two files follow that convention;
+     Aphelion-owned tgui files (LimbsPage.test.tsx, ChoicedSelection.tsx, CustomSpriteEditor, meridianos SCSS) take none.
+  3. `ChoicedSelection.tsx` gains an additive `disabled?: Record<name, reason>` prop (disabled grid cells with a tooltip) —
+     scope addition approved; its existing tests must stay green.
+  4. The menu has no in-panel colour input (FeatureColorInput → set_color_preference → the same blocking DM modal). Step 8
+     reuses the colour-picker window's own components (SaturationValue, Hue, HexColorInput) inside a tgui-core Floating
+     popover on the row, imported not edited; the colour is sent as one `color_marking` on Apply; swatches send at once.
+  5. `reset_marking_color` joins `/datum/preferences/ui_act`'s body_actions list in Aphelion's editor.dm so a reset saves and
+     closes open editors like every other marking action; commit 3 also makes `region_candidate_problem()` refuse an
+     import/restore whose package holds two markings of one exclusion group on a zone (same silent-drop path).
+  6. No headless-Edge/CDP hit-test harness exists on this machine (the earlier lab runs were native DreamSeeker/WebView2 or a
+     species-page-only Playwright rig): step 8's tgui evidence is the bundle build plus the jsdom tests.
 
 ## 5. Decisions already taken (plan §7 — do not re-open)
 
