@@ -132,6 +132,8 @@
 	var/list/descriptions = list()
 	var/list/categories = list()
 	var/list/colors = list()
+	// Button text that differs from the interaction's name, such as "Pecjob" for a pec owner.
+	var/list/labels
 
 	has_erp_interaction = FALSE
 
@@ -153,6 +155,10 @@
 
 		descriptions[interaction.name] = interaction.description
 		colors[interaction.name] = interaction.color
+		// `user` opened the panel and acts; `self` is the one it was opened on.
+		var/label = interaction.display_name_for(user, self)
+		if(label != interaction.name)
+			LAZYSET(labels, interaction.name, label)
 
 	// Main check to see if the user is even opted into bellies on this character.
 	if(TRAIT_PREDATORY in user._status_traits)
@@ -182,6 +188,7 @@
 	data["interactions"] = categories
 	data["descriptions"] = descriptions
 	data["colors"] = colors
+	data["labels"] = labels
 
 	var/atom/movable/resolved_relay = resolve_body_relay()
 	data["self"] = can_see(user, self) ? self.name : (resolved_relay?.name || "Unknown")

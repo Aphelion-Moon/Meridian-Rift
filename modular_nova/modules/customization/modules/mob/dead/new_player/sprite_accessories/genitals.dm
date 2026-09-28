@@ -418,6 +418,21 @@
 	has_skintone_shading = TRUE
 	genital_location = CHEST
 	max_sprite_size_affix = 5
+	/// Pec shapes are muscle, not breasts: one sprite whatever the size, and "pecs" wherever interactions name the chest.
+	var/pecs = FALSE
+	/// For pec shapes: the bigger of the two sizes.
+	var/pecs_big = FALSE
+	/// For pec shapes: whether the nipples are drawn.
+	var/pecs_nipples = TRUE
+	/// Sheet with a bouncing twin of every state in `icon`, drawn instead while the breasts bounce. Null if they can't.
+	var/jiggle_icon = BREASTS_ICON_JIGGLE
+	/// Sheet for `*pecbounce`, both pecs bouncing together. Only pec shapes have one.
+	var/pec_bounce_icon
+	/// Sheet for `*pecbounce2`, the pecs taking turns. Only pec shapes have one.
+	var/pec_bounce_alternate_icon
+
+/datum/sprite_accessory/genital/breasts/get_special_icon(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/genital/breasts/bodypart_overlay)
+	return bodypart_overlay?.animation_icon || ..()
 
 /datum/sprite_accessory/genital/breasts/none
 	icon_state = "none"
@@ -425,6 +440,7 @@
 	factual = FALSE
 	natural_spawn = FALSE
 	color_src = null
+	jiggle_icon = null
 
 /datum/sprite_accessory/genital/breasts/pair
 	icon_state = "pair"
@@ -435,6 +451,7 @@
 	name = parent_type::name + " (Alt)"
 	display_name = parent_type::name
 	icon = BREASTS_ICON_ALT
+	jiggle_icon = BREASTS_ICON_ALT_JIGGLE
 	icon_state = parent_type::icon_state + "_alt"
 	color_src = USE_MATRIXED_COLORS
 
@@ -446,6 +463,7 @@
 	name = parent_type::name + " (Alt)"
 	display_name = parent_type::name
 	icon = BREASTS_ICON_ALT
+	jiggle_icon = BREASTS_ICON_ALT_JIGGLE
 	icon_state = parent_type::icon_state + "_alt"
 	color_src = USE_MATRIXED_COLORS
 	max_sprite_size_affix = 19
@@ -460,10 +478,35 @@
 	name = parent_type::name + " (Alt)"
 	display_name = parent_type::name
 	icon = BREASTS_ICON_ALT
+	jiggle_icon = BREASTS_ICON_ALT_JIGGLE
 	icon_state = parent_type::icon_state + "_alt"
 	color_src = USE_MATRIXED_COLORS
 	max_sprite_size_affix = 19
 	skintone_max_sprite_size_affix = null
+
+/datum/sprite_accessory/genital/breasts/pecs
+	icon_state = "pecs"
+	name = "Pecs"
+	max_sprite_size_affix = 0
+	natural_spawn = FALSE
+	pecs = TRUE
+	pec_bounce_icon = BREASTS_ICON_PEC_BOUNCE
+	pec_bounce_alternate_icon = BREASTS_ICON_PEC_BOUNCE_ALTERNATE
+
+/datum/sprite_accessory/genital/breasts/pecs/nippleless
+	icon_state = "pecs_nippleless"
+	name = "Pecs (Nippleless)"
+	pecs_nipples = FALSE
+
+/datum/sprite_accessory/genital/breasts/pecs/big
+	icon_state = "pecs_big"
+	name = "Bigger pecs"
+	pecs_big = TRUE
+
+/datum/sprite_accessory/genital/breasts/pecs/big/nippleless
+	icon_state = "pecs_big_nippleless"
+	name = "Bigger pecs (Nippleless)"
+	pecs_nipples = FALSE
 
 // BUTT
 
