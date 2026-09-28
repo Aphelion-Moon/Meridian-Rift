@@ -8,6 +8,14 @@
 	var/dir
 	var/frame
 	var/datum/icon_transformer/transform
+	// APHELION EDIT ADDITION START - A grown flat icon's canvas, which its file's size doesn't tell.
+	/// Set by get_flat_uni_icon(grow = TRUE): where the canvas's lower left pixel sits, counted from the
+	/// flattened appearance's own (1, 1), and the canvas's size.
+	var/flat_x1
+	var/flat_y1
+	var/flat_width
+	var/flat_height
+	// APHELION EDIT ADDITION END
 
 /// Don't instantiate these yourself, use uni_icon.
 /datum/universal_icon/New(icon/icon_file, icon_state="", dir=null, frame=null, datum/icon_transformer/transform=null, color=null)
@@ -399,7 +407,8 @@
 
 /// getFlatIcon for [/datum/universal_icon]s
 /// Still fairly slow for complex appearances due to filesystem operations. Try to avoid using it
-/proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor)
+/// APHELION EDIT ADDITION - grow: the canvas fits every overlay, nested ones where they really are; see flat_x1.
+/proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor, grow = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor)
 	// Loop through the underlays, then overlays, sorting them into the layers list
 	#define PROCESS_OVERLAYS_OR_UNDERLAYS(flat, process, base_layer) \
 		for (var/i in 1 to process.len) { \
@@ -510,6 +519,11 @@
 		var/icon_height = icon_dimensions["height"]
 		if(icon_width != 32 || icon_height != 32)
 			flat.scale(icon_width, icon_height)
+			// APHELION EDIT ADDITION START - Scaling the blank doesn't change its file's size.
+			if(grow)
+				flat.flat_width = icon_width
+				flat.flat_height = icon_height
+			// APHELION EDIT ADDITION END
 
 	if(!base_icon_dir)
 		base_icon_dir = curdir
@@ -539,6 +553,11 @@
 		var/flatX2 = flat_dimensions["width"]
 		var/flatY1 = 1
 		var/flatY2 = flat_dimensions["height"]
+		// APHELION EDIT ADDITION START
+		if(grow && flat.flat_width)
+			flatX2 = flat.flat_width
+			flatY2 = flat.flat_height
+		// APHELION EDIT ADDITION END
 
 		var/addX1 = 0
 		var/addX2 = 0
@@ -572,10 +591,35 @@
 					else
 						add.blend_color(appearance.color, ICON_MULTIPLY)
 			else // 'layer_image' is an appearance object.
-				add = get_flat_uni_icon(layer_image, curdir, curicon, curstate, curblend, FALSE, next_parentcolor)
+				add = get_flat_uni_icon(layer_image, curdir, curicon, curstate, curblend, FALSE, next_parentcolor, grow) // APHELION EDIT CHANGE - ORIGINAL: add = get_flat_uni_icon(layer_image, curdir, curicon, curstate, curblend, FALSE, next_parentcolor)
 			if(!add || !length(add.icon_file))
 				continue
 
+			// APHELION EDIT ADDITION START - Growing: fit the overlay's whole canvas, which starts left of or below its
+			// own (1, 1) if it grew too. Offsets round to whole pixels, as the canvas has no others.
+			if(grow)
+				var/add_x1 = round(layer_image.pixel_x + layer_image.pixel_w, 1) + (isnull(add.flat_x1) ? 1 : add.flat_x1)
+				var/add_y1 = round(layer_image.pixel_y + layer_image.pixel_z, 1) + (isnull(add.flat_y1) ? 1 : add.flat_y1)
+				var/add_width = add.flat_width
+				var/add_height = add.flat_height
+				if(isnull(add_width))
+					var/list/add_size = get_icon_dimensions(add)
+					add_width = add_size["width"]
+					add_height = add_size["height"]
+				addX1 = min(flatX1, add_x1)
+				addX2 = max(flatX2, add_x1 + add_width - 1)
+				addY1 = min(flatY1, add_y1)
+				addY2 = max(flatY2, add_y1 + add_height - 1)
+				if(addX1 != flatX1 || addX2 != flatX2 || addY1 != flatY1 || addY2 != flatY2)
+					flat.crop(addX1 - flatX1 + 1, addY1 - flatY1 + 1, addX2 - flatX1 + 1, addY2 - flatY1 + 1)
+					flatX1 = addX1
+					flatX2 = addX2
+					flatY1 = addY1
+					flatY2 = addY2
+				flat.blend_icon(add, blendMode2iconMode(curblend), add_x1 - flatX1 + 1, add_y1 - flatY1 + 1)
+				continue
+
+			// APHELION EDIT ADDITION END
 			// Find the new dimensions of the flat icon to fit the added overlay
 			var/list/add_dimensions = get_icon_dimensions(add)
 			addX1 = min(flatX1, layer_image.pixel_x + layer_image.pixel_w + 1)
@@ -608,6 +652,13 @@
 		if(appearance.alpha < 255)
 			flat.blend_color(rgb(255, 255, 255, appearance.alpha), ICON_MULTIPLY)
 
+		// APHELION EDIT ADDITION START
+		if(grow)
+			flat.flat_x1 = flatX1
+			flat.flat_y1 = flatY1
+			flat.flat_width = flatX2 - flatX1 + 1
+			flat.flat_height = flatY2 - flatY1 + 1
+		// APHELION EDIT ADDITION END
 		return flat
 
 	else if(should_display) // There's no overlays.

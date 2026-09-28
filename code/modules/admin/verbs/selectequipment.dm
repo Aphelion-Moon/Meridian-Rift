@@ -116,6 +116,7 @@ ADMIN_VERB_ONLY_CONTEXT_MENU(select_equipment, R_FUN, "Select Equipment", /mob)
 			showDirs = list(SOUTH),
 			outfit_override = selected_outfit,
 			no_anim = TRUE,
+			grow = TRUE, // APHELION EDIT ADDITION - The preview shows wings, tails and big hats whole; the UI scales it to fit.
 		)
 		cached_for_identifier = selected_identifier
 
