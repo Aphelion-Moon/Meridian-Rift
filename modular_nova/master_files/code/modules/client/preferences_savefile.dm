@@ -348,6 +348,75 @@
 		// The markings loaded above, not save_data: load_character_nova() built them before calling this.
 		body_markings.enforce_zone_limits()
 
+	if(current_version < VERSION_MARKING_CONTENT)
+		// A marking the character wears that its species may no longer pick, since sets decide who may wear what, stays
+		// editable: mismatched parts go on, and persist, where that changes nothing else the character draws. Nothing has pruned
+		// the markings yet: character setup prunes only when a player changes species.
+		var/datum/species/species = GLOB.species_prototypes[read_preference(/datum/preference/choiced/species)]
+		if(!CONFIG_GET(flag/disable_mismatched_parts) && !read_preference(/datum/preference/toggle/allow_mismatched_parts) && body_markings.validate_for_species(species.id, FALSE) && mismatched_parts_change_nothing())
+			write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+
+/**
+ * Returns whether turning allow_mismatched_parts on would leave how this character is drawn as it is. The toggle reaches a body
+ * only through questions an apply_to_human() asks, so this puts each question as it is put there, with the toggle off and then
+ * on, and compares what the answers let onto the body:
+ * - every mutant part and genital preference applies its value where is_visible() says it shows, else its default; the snout
+ *   also snouts the head whenever it shows, None or not (masks and helmets then take their muzzled sprites);
+ * - hair opacity applies its value only where is_visible() says it shows;
+ * - penis taur mode and penis sheath write their value only while is_accessible();
+ * - the knot preference, while it is on, gives the knot only while the penis choice is_accessible();
+ * - the limbs and markings middleware refuses leg augments while the taur choice is_accessible() with a taur chosen.
+ * The answers alone would not do: the IPC screen, chassis and head always count as switched on, so every character but a synth
+ * would see them show with the toggle on, and apply the same None or default either way. is_accessible() also answers by the page
+ * the player last opened in setup, which is still the page when they spawn, so every question is put as on the character page
+ * and as on any other. The page and the toggle's own value are put back.
+ */
+/datum/preferences/proc/mismatched_parts_change_nothing()
+	var/toggle_type = /datum/preference/toggle/allow_mismatched_parts
+	var/was_cached = (toggle_type in value_cache)
+	var/cached = value_cache[toggle_type]
+	var/window = current_window
+	var/datum/preference/penis_choice = GLOB.preference_entries[/datum/preference/choiced/genital/penis]
+	var/datum/preference/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	var/leg_augments = FALSE
+	for(var/augment_slot, augment_path in augments)
+		var/datum/augment_item/limb/limb_augment = astype(GLOB.augment_items[augment_path], /datum/augment_item/limb)
+		if(limb_augment?.slot_flag & (LEG_LEFT|LEG_RIGHT))
+			leg_augments = TRUE
+	var/list/answers = list()
+	for(var/page in list(PREFERENCE_TAB_CHARACTER_PREFERENCES, PREFERENCE_TAB_GAME_PREFERENCES))
+		current_window = page
+		for(var/allowed in list(FALSE, TRUE))
+			value_cache[toggle_type] = allowed
+			var/list/found = list()
+			for(var/preference_type, preference_datum in GLOB.preference_entries)
+				var/datum/preference/preference = preference_datum
+				if(preference.savefile_identifier != PREFERENCE_CHARACTER)
+					continue
+				if(istype(preference, /datum/preference/choiced/mutant_choice))
+					var/datum/preference/choiced/mutant_choice/part = preference
+					var/shows = part.is_visible(null, src)
+					found += list(shows ? read_preference(preference_type) : part.create_default_value())
+					if(preference_type == /datum/preference/choiced/mutant_choice/snout)
+						found += shows ? TRUE : FALSE
+				else if(istype(preference, /datum/preference/choiced/genital))
+					var/datum/preference/choiced/genital/genital = preference
+					found += list(genital.is_visible(null, src) ? read_preference(preference_type) : genital.create_default_value())
+				else if(istype(preference, /datum/preference/numeric/hair_opacity))
+					var/datum/preference/numeric/hair_opacity/opacity = preference
+					found += list(opacity.is_visible(null, src) ? read_preference(preference_type) : null)
+				else if(preference_type == /datum/preference/toggle/penis_taur_mode || preference_type == /datum/preference/choiced/penis_sheath)
+					found += list(preference.is_accessible(src) ? read_preference(preference_type) : null)
+			found += (read_preference(/datum/preference/toggle/knotting/has_knot) && penis_choice.is_accessible(src)) ? TRUE : FALSE
+			found += (leg_augments && taur_choice.is_accessible(src) && read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE) ? TRUE : FALSE
+			answers += json_encode(found)
+	current_window = window
+	if(was_cached)
+		value_cache[toggle_type] = cached
+	else
+		value_cache -= toggle_type
+	return answers[1] == answers[2] && answers[3] == answers[4]
+
 /datum/preferences/proc/check_migration()
 	if(!tgui_prefs_migration)
 		to_chat(parent, boxed_message(span_redtext("CRITICAL FAILURE IN PREFERENCE MIGRATION, REPORT THIS IMMEDIATELY.")))

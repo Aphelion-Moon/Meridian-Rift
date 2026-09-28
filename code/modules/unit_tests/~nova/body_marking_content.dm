@@ -153,3 +153,130 @@
 	// A style file a player uploads.
 	var/list/uploaded = custom_style_parse(custom_style_export_text(custom_style_package("markings", BODY_ZONE_R_LEG, null, null, both)))
 	TEST_ASSERT_EQUAL(json_encode(uploaded["package"]?["markings"]), json_encode(one), "An uploaded style holding Rat Paw must import it as Hands Feet: [uploaded["error"]]")
+
+/**
+ * Loads a savefile tree into these preferences and draws the character as a spawn does, on a fresh body, and signs it as the
+ * appearance harness signs a case. The tree is loaded as given and not saved.
+ *
+ * Arguments:
+ * - preferences: the preferences to load into.
+ * - slot: the character's savefile tree.
+ */
+/datum/unit_test/body_marking_content/proc/character_signature(datum/preferences/preferences, list/slot)
+	preferences.savefile.set_entry("character[preferences.default_slot]", slot)
+	preferences.value_cache = list()
+	if(!preferences.load_character(preferences.default_slot))
+		return null
+	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+	preferences.apply_prefs_to(body, TRUE)
+	return json_encode(markings_baseline_signature(get_flat_icon_for_all_directions(body)))
+
+/// A save from before version 22 whose character wears a marking its species may no longer pick, since sets decide who may
+/// wear what, has mismatched parts turned on as it loads, so the marking stays editable, but only where that changes nothing
+/// else the character draws: with a mutant part left switched on for a feature the species lacks, which mismatched parts would
+/// show, the toggle stays off. A save with the toggle on, or whose markings all fit its species, keeps every byte but its version.
+/// The two tests after this one pin what the check asks beyond the parts' values.
+/datum/unit_test/body_marking_content/mismatched_markings
+
+/datum/unit_test/body_marking_content/mismatched_markings/Run()
+	var/datum/preferences/preferences = fixture_preferences()
+	var/datum/body_marking/splotches = GLOB.body_markings_by_type[/datum/body_marking/other/splotches]
+	TEST_ASSERT(!splotches.allows_species(SPECIES_HUMAN), "The fixture needs a marking a human may not pick: Splotches is for its set's species")
+	var/list/off_species = list(BODY_ZONE_HEAD = list("Splotches" = list("#aa0000", 0)))
+	var/off_species_text = json_encode(off_species)
+	// (a) Nothing else would change: the toggle goes on and persists, and the marking loads, draws and stays editable.
+	var/list/written = load_and_save(preferences, list("version" = 52, "modular_version" = 21, "tgui_prefs_migration" = TRUE, "species" = SPECIES_HUMAN, "body_markings" = json_decode(off_species_text)))
+	TEST_ASSERT(written, "A version 21 human must load")
+	TEST_ASSERT_EQUAL(written["allow_mismatched_parts_toggle"], TRUE, "The save must hold mismatched parts on")
+	TEST_ASSERT(preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts), "The loaded character must have mismatched parts on")
+	TEST_ASSERT_EQUAL(json_encode(written["body_markings"]), off_species_text, "The markings must load as saved")
+	var/list/before_flip = json_decode(json_encode(written))
+	before_flip["allow_mismatched_parts_toggle"] = FALSE
+	TEST_ASSERT_EQUAL(character_signature(preferences, written), character_signature(preferences, before_flip), "Mismatched parts on must draw the character as it was with them off")
+	var/first = json_encode(written)
+	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, json_decode(first))), first, "A second load and save must change nothing")
+	// The marking stays editable: another zone takes it too.
+	var/mob/user = preferences.parent.mob
+	preferences.create_character_preview_view(user)
+	var/datum/preference_middleware/limbs_and_markings/middleware = locate() in preferences.middleware
+	TEST_ASSERT(middleware.add_marking(list("bodypart_slot" = BODY_ZONE_CHEST, "marking_name" = splotches.name), user), "The character must be able to add the marking to another zone")
+	// (b) A snout left switched on, which a human lacks and mismatched parts would show: the toggle stays off, nothing changes.
+	var/list/snouted = json_decode(first)
+	snouted["allow_mismatched_parts_toggle"] = FALSE
+	snouted["snout_toggle"] = TRUE
+	snouted["feature_snout"] = "Beak"
+	var/snouted_text = json_encode(snouted)
+	var/list/stale = json_decode(snouted_text)
+	stale["modular_version"] = 21
+	written = load_and_save(preferences, stale)
+	TEST_ASSERT_EQUAL(json_encode(written), snouted_text, "With a part mismatched parts would show, the save must keep every byte but its version")
+	TEST_ASSERT_EQUAL(character_signature(preferences, written), character_signature(preferences, json_decode(snouted_text)), "The character must draw as it did")
+	TEST_ASSERT(!preferences.mismatched_parts_change_nothing(), "The snout must count as a change")
+	var/datum/preference/choiced/mutant_choice/snout/snout = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/snout]
+	TEST_ASSERT(!snout.is_visible(null, preferences), "The snout must stay hidden")
+	preferences.value_cache[/datum/preference/toggle/allow_mismatched_parts] = TRUE
+	TEST_ASSERT(snout.is_visible(null, preferences), "The player turning mismatched parts on must show the snout")
+	// (c) The toggle already on: every byte but the version.
+	var/list/switched_on = json_decode(first)
+	switched_on["modular_version"] = 21
+	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, switched_on)), first, "A save with mismatched parts on must keep every byte but its version")
+	// (d) Every marking fits the species: every byte but the version.
+	var/list/fitting = json_decode(first)
+	fitting["allow_mismatched_parts_toggle"] = FALSE
+	fitting["body_markings"] = list(BODY_ZONE_CHEST = list("Tattoo - Heart" = list("#112222", 0)))
+	var/fitting_text = json_encode(fitting)
+	fitting["modular_version"] = 21
+	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, fitting)), fitting_text, "A save whose markings all fit its species must keep every byte but its version")
+
+/// A snout switched on and left at None draws nothing, yet with mismatched parts on the snout preference makes a human's head
+/// snouted, so masks and helmets would take their muzzled sprites: the check asks whether each part shows, not only what it
+/// would apply, and a save from before version 22 with such a snout keeps mismatched parts off, and every byte but its version.
+/datum/unit_test/body_marking_content/mismatched_markings_snout
+
+/datum/unit_test/body_marking_content/mismatched_markings_snout/Run()
+	var/datum/preferences/preferences = fixture_preferences()
+	var/list/written = load_and_save(preferences, list("version" = 52, "modular_version" = 22, "tgui_prefs_migration" = TRUE, "species" = SPECIES_HUMAN, "allow_mismatched_parts_toggle" = FALSE, "snout_toggle" = TRUE, "feature_snout" = SPRITE_ACCESSORY_NONE, "body_markings" = list(BODY_ZONE_HEAD = list("Splotches" = list("#aa0000", 0)))))
+	TEST_ASSERT(written, "A version 22 human must load")
+	var/written_text = json_encode(written)
+	var/list/stale = json_decode(written_text)
+	stale["modular_version"] = 21
+	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, stale)), written_text, "With a snout switched on at None, the save must keep every byte but its version")
+	TEST_ASSERT(!preferences.mismatched_parts_change_nothing(), "A snout switched on at None must count as a change")
+	// Why: a body drawn with mismatched parts on has a snouted head.
+	var/mob/living/carbon/human/consistent/as_loaded = allocate(/mob/living/carbon/human/consistent)
+	preferences.apply_prefs_to(as_loaded, TRUE)
+	var/obj/item/bodypart/head/loaded_head = as_loaded.get_bodypart(BODY_ZONE_HEAD)
+	TEST_ASSERT(!(loaded_head.bodyshape & BODYSHAPE_SNOUTED), "The loaded human's head must not be snouted")
+	preferences.value_cache[/datum/preference/toggle/allow_mismatched_parts] = TRUE
+	var/mob/living/carbon/human/consistent/mismatched = allocate(/mob/living/carbon/human/consistent)
+	preferences.apply_prefs_to(mismatched, TRUE)
+	var/obj/item/bodypart/head/mismatched_head = mismatched.get_bodypart(BODY_ZONE_HEAD)
+	TEST_ASSERT(mismatched_head.bodyshape & BODYSHAPE_SNOUTED, "With mismatched parts on, the human's head must be snouted")
+
+/// A taur body refuses leg augments only while the taur choice is accessible, and is_accessible() answers by the page the player
+/// last opened in setup, which is still the page when they spawn: off the character page the choice takes mismatched parts,
+/// whatever the species offers. So the check asks on both pages, and a save from before version 22 of an anthromorph taur with a
+/// leg augment and a marking of another species' set keeps mismatched parts off, and every byte but its version.
+/datum/unit_test/body_marking_content/mismatched_markings_page
+
+/datum/unit_test/body_marking_content/mismatched_markings_page/Run()
+	var/datum/preferences/preferences = fixture_preferences()
+	var/datum/body_marking/lights = GLOB.body_markings_by_type[/datum/body_marking/secondary/synthliz/lights]
+	TEST_ASSERT(!lights.allows_species(SPECIES_MAMMAL), "The fixture needs a marking an anthromorph may not pick: Synth Lights is for synths")
+	var/list/written = load_and_save(preferences, list("version" = 52, "modular_version" = 22, "tgui_prefs_migration" = TRUE, "species" = SPECIES_MAMMAL, "allow_mismatched_parts_toggle" = FALSE, "taur_toggle" = TRUE, "feature_taur" = "Bunny", "augments" = list(AUGMENT_SLOT_L_LEG = "[/datum/augment_item/limb/l_leg/digi_prosthetic]"), "body_markings" = list(BODY_ZONE_CHEST = list("Synth Lights" = list("#aa0000", 0)))))
+	TEST_ASSERT(written, "A version 22 anthromorph must load")
+	TEST_ASSERT(length(preferences.augments), "The fixture must keep its leg augment")
+	var/written_text = json_encode(written)
+	var/list/stale = json_decode(written_text)
+	stale["modular_version"] = 21
+	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, stale)), written_text, "A taur with a leg augment must keep every byte but its version")
+	TEST_ASSERT(!preferences.mismatched_parts_change_nothing(), "The taur choice must count as a change off the character page")
+	// Why: on the character page the species' own taur feature answers either way, on any other page mismatched parts decide.
+	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	for(var/allowed in list(FALSE, TRUE))
+		preferences.value_cache[/datum/preference/toggle/allow_mismatched_parts] = allowed
+		preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+		TEST_ASSERT(taur_choice.is_accessible(preferences), "On the character page the taur choice must be accessible [allowed ? "with" : "without"] mismatched parts")
+		preferences.current_window = PREFERENCE_TAB_GAME_PREFERENCES
+		TEST_ASSERT_EQUAL(!!taur_choice.is_accessible(preferences), allowed, "On any other page the taur choice must be accessible only with mismatched parts")
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES

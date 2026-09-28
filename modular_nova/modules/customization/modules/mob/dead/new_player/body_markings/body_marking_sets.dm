@@ -225,6 +225,11 @@
 	name = "Splotches"
 	body_marking_list = list(/datum/body_marking/other/splotches)
 
+/// The head splotch mirrored, on the other side of the face: a set of its own, so the Splotches preset keeps one.
+/datum/body_marking_set/splotches_swapped
+	name = "Splotches Swapped"
+	body_marking_list = list(/datum/body_marking/other/splotcheswap)
+
 /datum/body_marking_set/chitin
 	name = "Chitin"
 	body_marking_list = list(/datum/body_marking/other/chitin)
@@ -275,6 +280,16 @@
 /datum/body_marking_set/synthliz/pecs_light
 	name = "Synth Pecs Lights"
 	body_marking_list = list(/datum/body_marking/secondary/synthliz/pecs, /datum/body_marking/tertiary/synthliz/collarlights)
+
+/// Three lights at the collar (secondary) and eight down the chest's sides (tertiary): two sheets, two colours, no pixel in common.
+/datum/body_marking_set/synthliz/lights
+	name = "Synth Lights"
+	body_marking_list = list(/datum/body_marking/secondary/synthliz/lights, /datum/body_marking/tertiary/synthliz/chestlights)
+
+/// The plates frame the scutes, drawn over their edge (facing south); from behind only the plates draw.
+/datum/body_marking_set/synthliz/plates
+	name = "Synth Plates"
+	body_marking_list = list(/datum/body_marking/secondary/synthliz/scutes, /datum/body_marking/tertiary/synthliz/plates)
 
 //MOTH
 
