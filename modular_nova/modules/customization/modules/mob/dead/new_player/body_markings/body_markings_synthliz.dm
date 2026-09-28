@@ -11,6 +11,7 @@
 	name = "Synth Lights"
 	icon_state = "synthlizlights"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/secondary/synthliz/pecs
 	name = "Synth Pecs"
@@ -30,8 +31,10 @@
 	name = "Synth Chest Lights"
 	icon_state = "synthlizlights"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/tertiary/synthliz/collarlights
 	name = "Synth Collar Lights"
 	icon_state = "synthlizpecslight"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT
+	gendered = FALSE

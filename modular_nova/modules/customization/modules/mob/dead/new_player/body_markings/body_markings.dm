@@ -342,6 +342,7 @@
 	name = "Chitin"
 	icon_state = "chitin"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/other/bands_foot
 	name = "Color Bands (Foot)"
@@ -400,6 +401,7 @@
 	name = "Back Stripe"
 	icon_state = "backstripe"
 	affected_bodyparts = HEAD | CHEST
+	gendered = FALSE
 
 /datum/body_marking/secondary
 	icon = 'modular_nova/master_files/icons/mob/body_markings/secondary_markings.dmi'
@@ -410,12 +412,14 @@
 	icon_state = "teshari"
 	recommended_species = list(SPECIES_TESHARI = 1)
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT
+	gendered = FALSE
 
 /datum/body_marking/secondary/teshari_plain
 	name = "Teshari Plain"
 	icon_state = "teshari_plain"
 	recommended_species = list(SPECIES_TESHARI = 1)
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/secondary/teshari_coat
 	name = "Teshari Coat"
@@ -522,11 +526,13 @@
 	name = "Leopard"
 	icon_state = "leopard1"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/secondary/leopard2
 	name = "Leopard (alt)"
 	icon_state = "leopard2"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/secondary/skunk
 	name = "Skunk"
@@ -577,6 +583,7 @@
 	name = "Eevee"
 	icon_state = "eevee"
 	affected_bodyparts = HEAD | CHEST
+	gendered = FALSE
 
 /datum/body_marking/secondary/shark
 	name = "Shark"
@@ -617,22 +624,26 @@
 	name = "Scolipede"
 	icon_state = "scolipede"
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/secondary/guilmon
 	name = "Guilmon"
 	icon_state = "guilmon"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/secondary/xeno
 	name = "Xeno"
 	icon_state = "xeno"
 	affected_bodyparts = CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 	recommended_species = list(SPECIES_XENO = 1)
 
 /datum/body_marking/secondary/datashark
 	name = "Datashark"
 	icon_state = "datashark"
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/secondary/belly
 	name = "Belly"
@@ -653,11 +664,13 @@
 	name = "Belly and Butt"
 	icon_state = "bellyandbutt"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/secondary/butt
 	name = "Butt"
 	icon_state = "butt"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/secondary/handsfeet
 	name = "Hands Feet"
@@ -673,6 +686,7 @@
 	name = "Bee"
 	icon_state = "bee"
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/secondary/gradient
 	name = "Gradient"
@@ -713,6 +727,7 @@
 	name = "Belly Outline"
 	icon_state = "chembelly_trim"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/tertiary
 	icon = 'modular_nova/master_files/icons/mob/body_markings/tertiary_markings.dmi'
@@ -792,6 +807,7 @@
 	name = "Hyena Side"
 	icon_state = "hyena"
 	affected_bodyparts = HEAD | CHEST
+	gendered = FALSE
 
 /datum/body_marking/tertiary/dog
 	name = "Dog Spot"
@@ -822,11 +838,13 @@
 	name = "Scolipede Spikes"
 	icon_state = "scolipede"
 	affected_bodyparts = CHEST
+	gendered = FALSE
 
 /datum/body_marking/tertiary/guilmon
 	name = "Guilmon Mark"
 	icon_state = "guilmon"
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE
 
 /datum/body_marking/tertiary/xeno
 	name = "Xeno Head"

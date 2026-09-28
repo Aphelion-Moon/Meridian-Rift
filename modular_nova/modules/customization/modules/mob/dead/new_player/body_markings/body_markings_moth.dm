@@ -4,6 +4,7 @@
 	default_color = "#FFFFFF"
 	recommended_species = list(SPECIES_MOTH = 1)
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE // Every moth marking draws one chest for both physiques.
 
 /datum/body_marking/moth/reddish
 	name = "Reddish"
