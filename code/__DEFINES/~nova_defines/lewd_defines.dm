@@ -67,6 +67,9 @@
 /// Pec flexes: every pec state, bouncing together or taking turns, under the same state names.
 #define BREASTS_ICON_PEC_BOUNCE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce.dmi'
 #define BREASTS_ICON_PEC_BOUNCE_ALTERNATE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce_alternate.dmi'
+/// The same flexes slowed down, each flex held longer.
+#define BREASTS_ICON_PEC_BOUNCE_SLOW 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce_slow.dmi'
+#define BREASTS_ICON_PEC_BOUNCE_ALTERNATE_SLOW 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce_alternate_slow.dmi'
 
 /// One bounce cycle: two hops, while the jiggle states loop underneath.
 #define BREAST_BOUNCE_CYCLE (0.8 SECONDS)

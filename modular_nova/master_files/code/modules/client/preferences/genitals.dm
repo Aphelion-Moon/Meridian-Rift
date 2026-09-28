@@ -417,15 +417,22 @@
 
 /datum/preference/choiced/genital/breasts/compile_constant_data()
 	. = ..()
-	// The UI's Pecs toggle, size and nipple controls pick among these shapes, so it never hardcodes their names.
-	var/list/pecs
-	for(var/shape_name, shape_entry in SSaccessories.sprite_accessories[relevant_mutant_bodypart])
-		var/datum/sprite_accessory/genital/breasts/shape = shape_entry
-		if(shape.pecs)
-			LAZYSET(pecs, shape_name, list("big" = shape.pecs_big, "nipples" = shape.pecs_nipples))
-	.["pecs"] = pecs
-	// What turning the Pecs toggle off goes back to.
-	.["breasts_default"] = /datum/sprite_accessory/genital/breasts/pair::name
+	// The UI shows these as one Pecs entry in the list, and lists them in its Pecs option dropdown.
+	.["pec_shapes"] = pec_shape_names()
+
+/datum/preference/choiced/genital/breasts/init_possible_values()
+	var/list/choices = ..()
+	// The pec shapes sit just above Pair, where the UI's one Pecs entry goes.
+	var/list/pec_names = pec_shape_names()
+	choices -= pec_names
+	choices.Insert(max(1, choices.Find(/datum/sprite_accessory/genital/breasts/pair::name)), pec_names)
+	return choices
+
+/// The pec shapes' names, in the order the Pecs option dropdown lists them.
+/datum/preference/choiced/genital/breasts/proc/pec_shape_names()
+	. = list()
+	for(var/datum/sprite_accessory/genital/breasts/pecs/shape_type as anything in typesof(/datum/sprite_accessory/genital/breasts/pecs))
+		. += initial(shape_type.name)
 
 /datum/preference/toggle/genital_skin_tone/breasts
 	savefile_key = "breasts_skin_tone"

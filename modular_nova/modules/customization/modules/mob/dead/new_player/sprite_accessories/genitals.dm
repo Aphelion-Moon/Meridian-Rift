@@ -421,10 +421,6 @@
 	var/pecs_nipples = TRUE
 	/// Sheet with a bouncing twin of every state in `icon`, drawn instead while the breasts bounce. Null if they can't.
 	var/jiggle_icon = BREASTS_ICON_JIGGLE
-	/// Sheet for `*pecbounce`, both pecs bouncing together. Only pec shapes have one.
-	var/pec_bounce_icon
-	/// Sheet for `*pecbounce2`, the pecs taking turns. Only pec shapes have one.
-	var/pec_bounce_alternate_icon
 
 /datum/sprite_accessory/genital/breasts/get_special_icon(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/genital/breasts/bodypart_overlay)
 	return bodypart_overlay?.animation_icon || ..()
@@ -485,8 +481,6 @@
 	max_sprite_size_affix = 0
 	natural_spawn = FALSE
 	pecs = TRUE
-	pec_bounce_icon = BREASTS_ICON_PEC_BOUNCE
-	pec_bounce_alternate_icon = BREASTS_ICON_PEC_BOUNCE_ALTERNATE
 
 /datum/sprite_accessory/genital/breasts/pecs/nippleless
 	icon_state = "pecs_nippleless"

@@ -129,8 +129,7 @@
 /// Why the pecs can't flex right now, said to their owner, or null if they can. Clothes don't stop a flex.
 /obj/item/organ/genital/breasts/proc/flex_blocker()
 	var/mob/living/carbon/human/human_owner = owner
-	var/datum/sprite_accessory/genital/breasts/shape = get_shape()
-	if(!istype(human_owner) || !pecs || !shape?.pec_bounce_icon)
+	if(!istype(human_owner) || !pecs)
 		return "You have no pecs to bounce."
 	if(IS_UNCONSCIOUS_OR_CRIT(human_owner) || human_owner.body_position != STANDING_UP)
 		return "You need to be on your feet."
@@ -143,11 +142,12 @@
 	play_animation(get_shape().jiggle_icon, duration, hops = TRUE)
 	return TRUE
 
-/// Flexes the pecs for `duration`: together, or taking turns if `alternating`. Returns FALSE if they can't right now.
-/obj/item/organ/genital/breasts/proc/start_flex(alternating = FALSE, duration = BREAST_BOUNCE_DEFAULT_DURATION)
+/// Flexes the pecs for `duration`: together, or taking turns if `alternating`, and held longer if `slow`.
+/// Returns FALSE if they can't right now.
+/obj/item/organ/genital/breasts/proc/start_flex(alternating = FALSE, slow = FALSE, duration = BREAST_BOUNCE_DEFAULT_DURATION)
 	if(flex_blocker())
 		return FALSE
-	play_animation(flex_sheet(alternating), duration, hops = FALSE)
+	play_animation(flex_sheet(alternating, slow), duration, hops = FALSE)
 	return TRUE
 
 /// Draws the chest from `sheet` for `duration`, in whole cycles, hopping each cycle if `hops`.
@@ -189,10 +189,13 @@
 	var/datum/bodypart_overlay/mutant/genital/breasts/overlay = bodypart_overlay
 	return sheet && overlay.animation_icon == sheet
 
-/// The sheet a pec flex plays from, together or alternating; null for shapes that can't flex.
-/obj/item/organ/genital/breasts/proc/flex_sheet(alternating)
-	var/datum/sprite_accessory/genital/breasts/shape = get_shape()
-	return alternating ? shape?.pec_bounce_alternate_icon : shape?.pec_bounce_icon
+/// The sheet a pec flex plays from, which holds every pec shape; null when the chest isn't pecs.
+/obj/item/organ/genital/breasts/proc/flex_sheet(alternating, slow)
+	if(!pecs)
+		return null
+	if(alternating)
+		return slow ? BREASTS_ICON_PEC_BOUNCE_ALTERNATE_SLOW : BREASTS_ICON_PEC_BOUNCE_ALTERNATE
+	return slow ? BREASTS_ICON_PEC_BOUNCE_SLOW : BREASTS_ICON_PEC_BOUNCE
 
 /// The breast shape the chest is drawn with.
 /obj/item/organ/genital/breasts/proc/get_shape()
