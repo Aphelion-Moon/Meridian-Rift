@@ -201,8 +201,9 @@
 	preferences.body_markings = new /datum/body_marking_collection
 	var/list/seeded_from = preferences.character_preview_view.body.dna.features
 	TEST_ASSERT(middleware.set_preset(list("preset" = marking_set.name), mock_client.mob), "The Akula preset must apply")
-	for(var/name in marking_set.body_marking_list)
-		var/datum/body_marking/marking = GLOB.body_markings[name]
+	for(var/marking_type in marking_set.body_marking_list)
+		var/datum/body_marking/marking = GLOB.body_markings_by_type[marking_type]
+		var/name = marking.name
 		TEST_ASSERT(sources[marking.color_mode], "The fixture preset's [name] must follow a mutant colour")
 		var/list/zones = list()
 		for(var/zone in GLOB.marking_zones)
@@ -226,11 +227,11 @@
 /proc/body_marking_colors_scanned_set(datum/body_marking_set/marking_set, list/features, datum/species/species)
 	RETURN_TYPE(/datum/body_marking_collection)
 	var/datum/body_marking_collection/body_markings = new
-	for(var/set_name in marking_set.body_marking_list)
-		var/datum/body_marking/body_marking = GLOB.body_markings[set_name]
+	for(var/marking_type in marking_set.body_marking_list)
+		var/datum/body_marking/body_marking = GLOB.body_markings_by_type[marking_type]
 		for(var/zone, markings in GLOB.body_markings_per_limb)
 			var/list/marking_list = markings
-			if(set_name in marking_list)
+			if(body_marking && (body_marking.name in marking_list))
 				body_markings.add_entry(new /datum/body_marking_entry(body_marking, zone, body_marking.seed_color(features, species), FALSE))
 	return body_markings
 
@@ -248,9 +249,10 @@
 		TEST_ASSERT_EQUAL(built, scanned, "The [set_name] set must build what the per-limb scan built")
 		compared++
 	TEST_ASSERT_EQUAL(compared, length(GLOB.body_marking_sets), "Every marking set must be compared")
-	// A member no marking has adds nothing, as it matched no zone's list.
+	// A member no marking is registered under, as an abstract family type, adds nothing, as it matched no zone's list.
 	var/datum/body_marking_set/odd_set = allocate(/datum/body_marking_set)
-	odd_set.body_marking_list = list("Not A Marking", "Bovine")
+	odd_set.body_marking_list = list(/datum/body_marking/secondary, /datum/body_marking/secondary/bovine)
+	TEST_ASSERT_NULL(GLOB.body_markings_by_type[/datum/body_marking/secondary], "The fixture needs a marking type no marking is registered under")
 	TEST_ASSERT_EQUAL(json_encode(assemble_body_markings_from_set(odd_set, features, species).serialize()), json_encode(body_marking_colors_scanned_set(odd_set, features, species).serialize()), "A set naming no marking must build what the per-limb scan built")
 
 /**

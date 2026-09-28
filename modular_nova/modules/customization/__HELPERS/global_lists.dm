@@ -40,6 +40,10 @@
 
 		GLOB.default_mutant_bodyparts[species.name] = default_parts
 
+/// Every named body marking by its typepath, built beside GLOB.body_markings and in the same order. Code that names a marking,
+/// as a marking set names its members, looks it up here; the name-keyed list serves the savefile and UI paths, which carry names.
+GLOBAL_LIST_EMPTY(body_markings_by_type)
+
 /proc/make_body_marking_references()
 	// Here we build the global list for all body markings
 	for(var/path in subtypesof(/datum/body_marking))
@@ -47,6 +51,7 @@
 		if(initial(BM.name))
 			BM = new path()
 			GLOB.body_markings[BM.name] = BM
+			GLOB.body_markings_by_type[path] = BM
 			//We go through all the possible affected bodyparts and a name reference where applicable
 			for(var/marking_zone in GLOB.marking_zones)
 				var/bitflag = GLOB.marking_zone_to_bitflag[marking_zone]

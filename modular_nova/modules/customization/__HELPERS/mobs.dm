@@ -51,7 +51,7 @@
  * marking starts in the colour its color_mode seeds.
  *
  * Arguments:
- * - marking_set: the set to wear. A name no marking has adds nothing.
+ * - marking_set: the set to wear. A member no marking is registered under adds nothing.
  * - features: the character's features, where markings following a mutant colour read it.
  * - species: the character's species.
  *
@@ -61,8 +61,8 @@
 /proc/assemble_body_markings_from_set(datum/body_marking_set/marking_set, list/features, datum/species/species)
 	RETURN_TYPE(/datum/body_marking_collection)
 	var/datum/body_marking_collection/body_markings = new
-	for(var/set_name in marking_set.body_marking_list)
-		var/datum/body_marking/body_marking = GLOB.body_markings[set_name]
+	for(var/marking_type in marking_set.body_marking_list)
+		var/datum/body_marking/body_marking = GLOB.body_markings_by_type[marking_type]
 		if(!body_marking)
 			continue
 		var/color = body_marking.seed_color(features, species)

@@ -254,9 +254,10 @@
 		var/stacked = FALSE
 		for(var/zone in GLOB.marking_zones)
 			var/list/on_zone = list()
-			for(var/name in candidate.body_marking_list)
-				if(name in GLOB.body_markings_per_limb[zone])
-					on_zone += name
+			for(var/marking_type in candidate.body_marking_list)
+				var/datum/body_marking/member = GLOB.body_markings_by_type[marking_type]
+				if(member.name in GLOB.body_markings_per_limb[zone])
+					on_zone += member.name
 			if(length(on_zone))
 				candidate_zones[zone] = on_zone
 			stacked ||= length(on_zone) > 1

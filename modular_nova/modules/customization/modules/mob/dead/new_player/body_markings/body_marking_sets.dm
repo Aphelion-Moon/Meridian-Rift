@@ -1,8 +1,8 @@
 /datum/body_marking_set
 	///The preview name of the body marking set. HAS to be unique
 	var/name
-	///List of the body markings in this set
-	var/body_marking_list
+	/// The markings this set puts on, as /datum/body_marking typepaths, in the order they go on.
+	var/list/body_marking_list
 	///Which species is this marking recommended to. Important for randomisations.
 	var/list/recommended_species = list(
 		SPECIES_MAMMAL = TRUE,
@@ -23,195 +23,195 @@
 
 /datum/body_marking_set/tajaran
 	name = "Tajaran"
-	body_marking_list = list("Tajaran")
+	body_marking_list = list(/datum/body_marking/secondary/tajaran)
 
 /datum/body_marking_set/fox
 	name = "Fox"
-	body_marking_list = list("Fox", "Fox Sock")
+	body_marking_list = list(/datum/body_marking/secondary/fox, /datum/body_marking/tertiary/fox)
 
 /datum/body_marking_set/sergal
 	name = "Sergal"
-	body_marking_list = list("Sergal")
+	body_marking_list = list(/datum/body_marking/secondary/sergal)
 
 /datum/body_marking_set/husky
 	name = "Husky"
-	body_marking_list = list("Husky")
+	body_marking_list = list(/datum/body_marking/secondary/husky)
 
 /datum/body_marking_set/fennec
 	name = "Fennec"
-	body_marking_list = list("Fennec")
+	body_marking_list = list(/datum/body_marking/secondary/fennec)
 
 /datum/body_marking_set/redpanda
 	name = "Red Panda"
-	body_marking_list = list("Red Panda", "Red Panda Head")
+	body_marking_list = list(/datum/body_marking/secondary/redpanda, /datum/body_marking/tertiary/redpanda)
 
 /datum/body_marking_set/dalmatian
 	name = "Dalmatian"
-	body_marking_list = list("Dalmatian")
+	body_marking_list = list(/datum/body_marking/secondary/dalmatian)
 
 /datum/body_marking_set/shepherd
 	name = "Shepherd"
-	body_marking_list = list("Shepherd", "Shepherd Spot")
+	body_marking_list = list(/datum/body_marking/secondary/shepherd, /datum/body_marking/tertiary/shepherd)
 
 /datum/body_marking_set/wolf
 	name = "Wolf"
-	body_marking_list = list("Wolf", "Wolf Spot")
+	body_marking_list = list(/datum/body_marking/secondary/wolf, /datum/body_marking/tertiary/wolf)
 
 /datum/body_marking_set/raccoon
 	name = "Raccoon"
-	body_marking_list = list("Raccoon")
+	body_marking_list = list(/datum/body_marking/secondary/raccoon)
 
 /datum/body_marking_set/bovine
 	name = "Bovine"
-	body_marking_list = list("Bovine", "Bovine Spot")
+	body_marking_list = list(/datum/body_marking/secondary/bovine, /datum/body_marking/tertiary/bovine)
 
 /datum/body_marking_set/possum
 	name = "Possum"
-	body_marking_list = list("Possum")
+	body_marking_list = list(/datum/body_marking/secondary/possum)
 
 /datum/body_marking_set/corgi
 	name = "Corgi"
-	body_marking_list = list("Corgi")
+	body_marking_list = list(/datum/body_marking/secondary/corgi)
 
 /datum/body_marking_set/skunk
 	name = "Skunk"
-	body_marking_list = list("Skunk")
+	body_marking_list = list(/datum/body_marking/secondary/skunk)
 
 /datum/body_marking_set/panther
 	name = "Panther"
-	body_marking_list = list("Panther")
+	body_marking_list = list(/datum/body_marking/secondary/panther)
 
 /datum/body_marking_set/tiger
 	name = "Tiger"
-	body_marking_list = list("Tiger Spot", "Tiger Stripe")
+	body_marking_list = list(/datum/body_marking/secondary/tiger, /datum/body_marking/tertiary/tiger)
 
 /datum/body_marking_set/otter
 	name = "Otter"
-	body_marking_list = list("Otter", "Otter Head")
+	body_marking_list = list(/datum/body_marking/secondary/otter, /datum/body_marking/tertiary/otter)
 
 /datum/body_marking_set/otie
 	name = "Otie"
-	body_marking_list = list("Otie", "Otie Spot")
+	body_marking_list = list(/datum/body_marking/secondary/otie, /datum/body_marking/tertiary/otie)
 
 /datum/body_marking_set/sabresune
 	name = "Sabresune"
-	body_marking_list = list("Sabresune")
+	body_marking_list = list(/datum/body_marking/secondary/sabresune)
 
 /datum/body_marking_set/orca
 	name = "Orca"
-	body_marking_list = list("Orca")
+	body_marking_list = list(/datum/body_marking/secondary/orca)
 
 /datum/body_marking_set/hawk
 	name = "Hawk"
-	body_marking_list = list("Hawk", "Hawk Talon")
+	body_marking_list = list(/datum/body_marking/secondary/hawk, /datum/body_marking/tertiary/hawk)
 
 /datum/body_marking_set/corvid
 	name = "Corvid"
-	body_marking_list = list("Corvid", "Corvid Talon")
+	body_marking_list = list(/datum/body_marking/secondary/corvid, /datum/body_marking/tertiary/corvid)
 
 /datum/body_marking_set/eevee
 	name = "Eevee"
-	body_marking_list = list("Eevee")
+	body_marking_list = list(/datum/body_marking/secondary/eevee)
 
 /datum/body_marking_set/deer
 	name = "Deer"
-	body_marking_list = list("Deer", "Deer Hoof")
+	body_marking_list = list(/datum/body_marking/secondary/deer, /datum/body_marking/tertiary/deer)
 
 /datum/body_marking_set/hyena
 	name = "Hyena"
-	body_marking_list = list("Hyena", "Hyena Side")
+	body_marking_list = list(/datum/body_marking/secondary/hyena, /datum/body_marking/tertiary/hyena)
 
 /datum/body_marking_set/dog
 	name = "Dog"
-	body_marking_list = list("Dog", "Dog Spot")
+	body_marking_list = list(/datum/body_marking/secondary/dog, /datum/body_marking/tertiary/dog)
 
 /datum/body_marking_set/bat
 	name = "Bat"
-	body_marking_list = list("Bat Mark", "Bat")
+	body_marking_list = list(/datum/body_marking/tertiary/bat, /datum/body_marking/secondary/bat)
 
 /datum/body_marking_set/goat
 	name = "Goat"
-	body_marking_list = list("Goat Hoof")
+	body_marking_list = list(/datum/body_marking/tertiary/goat)
 
 /datum/body_marking_set/floof
 	name = "Floof"
-	body_marking_list = list("Floof")
+	body_marking_list = list(/datum/body_marking/secondary/floof)
 
 /datum/body_marking_set/floofer
 	name = "Floofer"
-	body_marking_list = list("Floof", "Floofer Sock")
+	body_marking_list = list(/datum/body_marking/secondary/floof, /datum/body_marking/tertiary/floofer)
 
 /datum/body_marking_set/rat
 	name = "Rat"
-	body_marking_list = list("Rat Paw", "Rat Spot")
+	body_marking_list = list(/datum/body_marking/secondary/rat, /datum/body_marking/tertiary/rat)
 
 /datum/body_marking_set/sloth
 	name = "Sloth"
-	body_marking_list = list("Rat Paw", "Sloth Head") //Yes we're re-using the rat bits as they'd be identical
+	body_marking_list = list(/datum/body_marking/secondary/rat, /datum/body_marking/tertiary/sloth) //Yes we're re-using the rat bits as they'd be identical
 
 /datum/body_marking_set/scolipede
 	name = "Scolipede"
-	body_marking_list = list("Scolipede", "Scolipede Spikes")
+	body_marking_list = list(/datum/body_marking/secondary/scolipede, /datum/body_marking/tertiary/scolipede)
 
 /datum/body_marking_set/guilmon
 	name = "Guilmon"
-	body_marking_list = list("Guilmon", "Guilmon Mark")
+	body_marking_list = list(/datum/body_marking/secondary/guilmon, /datum/body_marking/tertiary/guilmon)
 
 /datum/body_marking_set/xeno
 	name = "Xeno"
-	body_marking_list = list("Xeno", "Xeno Head")
+	body_marking_list = list(/datum/body_marking/secondary/xeno, /datum/body_marking/tertiary/xeno)
 
 /datum/body_marking_set/datashark
 	name = "Datashark"
-	body_marking_list = list("Datashark")
+	body_marking_list = list(/datum/body_marking/secondary/datashark)
 
 /datum/body_marking_set/shark
 	name = "Shark"
-	body_marking_list = list("Shark")
+	body_marking_list = list(/datum/body_marking/secondary/shark)
 
 /datum/body_marking_set/belly
 	name = "Belly"
-	body_marking_list = list("Belly")
+	body_marking_list = list(/datum/body_marking/secondary/belly)
 
 /datum/body_marking_set/belly_slim
 	name = "Belly Slim"
-	body_marking_list = list("Belly Slim")
+	body_marking_list = list(/datum/body_marking/secondary/bellyslim)
 
 /datum/body_marking_set/hands_feet
 	name = "Hands Feet"
-	body_marking_list = list("Hands Feet")
+	body_marking_list = list(/datum/body_marking/secondary/handsfeet)
 
 /datum/body_marking_set/frog
 	name = "Frog"
-	body_marking_list = list("Frog")
+	body_marking_list = list(/datum/body_marking/secondary/frog)
 
 /datum/body_marking_set/bee
 	name = "Bee"
-	body_marking_list = list("Bee")
+	body_marking_list = list(/datum/body_marking/secondary/bee)
 
 /datum/body_marking_set/gradient
 	name = "Gradient"
-	body_marking_list = list("Gradient")
+	body_marking_list = list(/datum/body_marking/secondary/gradient)
 
 /datum/body_marking_set/harlequin
 	name = "Harlequin"
-	body_marking_list = list("Harlequin")
+	body_marking_list = list(/datum/body_marking/secondary/harlequin)
 
 /datum/body_marking_set/harlequin_reversed
 	name = "Harlequin Reversed"
-	body_marking_list = list("Harlequin Reversed")
+	body_marking_list = list(/datum/body_marking/secondary/harlequin_reversed)
 
 /datum/body_marking_set/plain
 	name = "Plain"
-	body_marking_list = list("Plain")
+	body_marking_list = list(/datum/body_marking/secondary/plain)
 
 /datum/body_marking_set/splotches
 	name = "Splotches"
-	body_marking_list = list("Splotches")
+	body_marking_list = list(/datum/body_marking/other/splotches)
 
 /datum/body_marking_set/chitin
 	name = "Chitin"
-	body_marking_list = list("Chitin")
+	body_marking_list = list(/datum/body_marking/other/chitin)
 
 //AKULA MARKINGS
 /datum/body_marking_set/akula
@@ -219,7 +219,7 @@
 
 /datum/body_marking_set/akula/akula
 	name = "Akula"
-	body_marking_list = list("Akula", "Akula Highlight")
+	body_marking_list = list(/datum/body_marking/akula/secondary, /datum/body_marking/akula/tertiary)
 
 //VOX MARKINGS
 /datum/body_marking_set/vox
@@ -227,38 +227,38 @@
 
 /datum/body_marking_set/vox/vox
 	name = "Vox"
-	body_marking_list = list("Vox Talon")
+	body_marking_list = list(/datum/body_marking/secondary/vox/vox)
 
 /datum/body_marking_set/vox/vox_tiger
 	name = "Vox Tiger"
-	body_marking_list = list("Vox Talon", "Vox Tiger Tattoo")
+	body_marking_list = list(/datum/body_marking/secondary/vox/vox, /datum/body_marking/tertiary/vox/tiger)
 
 /datum/body_marking_set/vox/vox_hive
 	name = "Vox Hive"
-	body_marking_list = list("Vox Talon", "Vox Hive Tattoo")
+	body_marking_list = list(/datum/body_marking/secondary/vox/vox, /datum/body_marking/tertiary/vox/hive)
 
 /datum/body_marking_set/vox/vox_nightling
 	name = "Vox Nightling"
-	body_marking_list = list("Vox Talon", "Vox Nightling Tattoo")
+	body_marking_list = list(/datum/body_marking/secondary/vox/vox, /datum/body_marking/tertiary/vox/nightling)
 
 /datum/body_marking_set/vox/vox_heart
 	name = "Vox Heart"
-	body_marking_list = list("Vox Talon", "Vox Heart Tattoo")
+	body_marking_list = list(/datum/body_marking/secondary/vox/vox, /datum/body_marking/tertiary/vox/heart)
 
 /datum/body_marking_set/synthliz
 	recommended_species = list(SPECIES_SYNTH = 1)
 
 /datum/body_marking_set/synthliz/scutes
 	name = "Synth Scutes"
-	body_marking_list = list("Synth Scutes")
+	body_marking_list = list(/datum/body_marking/secondary/synthliz/scutes)
 
 /datum/body_marking_set/synthliz/pecs
 	name = "Synth Pecs"
-	body_marking_list = list("Synth Pecs")
+	body_marking_list = list(/datum/body_marking/secondary/synthliz/pecs)
 
 /datum/body_marking_set/synthliz/pecs_light
 	name = "Synth Pecs Lights"
-	body_marking_list = list("Synth Pecs", "Synth Collar Lights")
+	body_marking_list = list(/datum/body_marking/secondary/synthliz/pecs, /datum/body_marking/tertiary/synthliz/collarlights)
 
 //MOTH
 
@@ -267,56 +267,56 @@
 
 /datum/body_marking_set/moth/reddish
 	name = "Reddish"
-	body_marking_list = list("Reddish")
+	body_marking_list = list(/datum/body_marking/moth/reddish)
 
 /datum/body_marking_set/moth/royal
 	name = "Royal"
-	body_marking_list = list("Royal")
+	body_marking_list = list(/datum/body_marking/moth/royal)
 
 /datum/body_marking_set/moth/gothic
 	name = "Gothic"
-	body_marking_list = list("Gothic")
+	body_marking_list = list(/datum/body_marking/moth/gothic)
 
 /datum/body_marking_set/moth/whitefly
 	name = "Whitefly"
-	body_marking_list = list("Whitefly")
+	body_marking_list = list(/datum/body_marking/moth/whitefly)
 
 /datum/body_marking_set/moth/burnt_off
 	name = "Burnt Off"
-	body_marking_list = list("Burnt Off")
+	body_marking_list = list(/datum/body_marking/moth/burnt_off)
 
 /datum/body_marking_set/moth/deathhead
 	name = "Deathhead"
-	body_marking_list = list("Deathhead")
+	body_marking_list = list(/datum/body_marking/moth/deathhead)
 
 /datum/body_marking_set/moth/poison
 	name = "Poison"
-	body_marking_list = list("Poison")
+	body_marking_list = list(/datum/body_marking/moth/poison)
 
 /datum/body_marking_set/moth/ragged
 	name = "Ragged"
-	body_marking_list = list("Ragged")
+	body_marking_list = list(/datum/body_marking/moth/ragged)
 
 /datum/body_marking_set/moth/moonfly
 	name = "Moonfly"
-	body_marking_list = list("Moonfly")
+	body_marking_list = list(/datum/body_marking/moth/moonfly)
 
 /datum/body_marking_set/moth/oakworm
 	name = "Oakworm"
-	body_marking_list = list("Oakworm")
+	body_marking_list = list(/datum/body_marking/moth/oakworm)
 
 /datum/body_marking_set/moth/jungle
 	name = "Jungle"
-	body_marking_list = list("Jungle")
+	body_marking_list = list(/datum/body_marking/moth/jungle)
 
 /datum/body_marking_set/moth/witchwing
 	name = "Witchwing"
-	body_marking_list = list("Witchwing")
+	body_marking_list = list(/datum/body_marking/moth/witchwing)
 
 /datum/body_marking_set/moth/lovers
 	name = "Lovers"
-	body_marking_list = list("Lovers")
+	body_marking_list = list(/datum/body_marking/moth/lovers)
 
 /datum/body_marking_set/moth/lightbearer
 	name = "Lightbearer"
-	body_marking_list = list("Lightbearer")
+	body_marking_list = list(/datum/body_marking/moth/lightbearer)
