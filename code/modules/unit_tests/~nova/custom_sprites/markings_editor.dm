@@ -293,6 +293,11 @@
 	TEST_ASSERT(!preferences.custom_sprite_editors?["markings"], "A Markings tab change must save and close the whole-body editor first, so it can't write stale base markings back later.")
 	TEST_ASSERT(preferences.custom_limb_markings?[BODY_ZONE_L_ARM], "Closing the editor must save its paint.")
 	TEST_ASSERT(preferences.body_markings.zone_length(BODY_ZONE_L_ARM) == 1, "The Markings tab change must still apply.")
+	// A colour reset changes the markings too, so it saves and closes an editor opened since the same way.
+	editor = new(preferences, BODY_ZONE_L_ARM)
+	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
+	preferences.ui_act("reset_marking_color", list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_1"), ui, null)
+	TEST_ASSERT(!preferences.custom_sprite_editors?["markings"], "A colour reset must save and close the whole-body editor first, as every Markings tab change does.")
 
 /datum/unit_test/custom_sprite_markings_editor_hidden_paint/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)

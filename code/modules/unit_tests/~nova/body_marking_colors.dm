@@ -60,7 +60,8 @@
 			TEST_ASSERT_NULL(worn.default_color, "[name] follows a mutant colour, so the colour it declares would never be read")
 
 /// A locked marking keeps its colour: its entry refuses a recolour, and neither character setup's colour action, a rename
-/// in setup nor the fur dyer can give it another. A colour a save already holds is kept.
+/// in setup nor the fur dyer can give it another. A colour a save already holds is kept. Character setup is told which rows are
+/// locked, and its colour action takes only a "#rrggbb" its picker sent.
 /datum/unit_test/body_marking_colors/locked
 	/// The left arm's real marking choices, restored after the test narrows them.
 	var/list/original_choices
@@ -95,10 +96,18 @@
 	var/datum/preference_middleware/limbs_and_markings/middleware = locate() in preferences.middleware
 	TEST_ASSERT(middleware, "The fixture needs the limbs and markings middleware")
 	preferences.body_markings = body_marking_collection_from_list(list(BODY_ZONE_L_ARM = list("[paint.name]" = list("#abcdef", 0), "[ink.name]" = list("#abcdef", 0))))
-	// Without a user the colour picker returns nothing, so an unlocked row's action ends having changed nothing; a locked row's
-	// never opens it.
-	TEST_ASSERT(middleware.color_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_1"), mock_client.mob), "An unlocked row's colour action must run")
-	TEST_ASSERT(!middleware.color_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_2"), mock_client.mob), "A locked row's colour action must return without doing anything")
+	var/list/rows = middleware.get_ui_data(mock_client.mob)["markings"][BODY_ZONE_L_ARM]
+	TEST_ASSERT(!rows[1]["locked"] && rows[2]["locked"], "Character setup must be told which rows are locked")
+	// The colour character setup's picker sends: an unlocked row takes it, stored as the lowercase colour a save holds.
+	TEST_ASSERT(middleware.color_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_1", "color" = "#12AB34"), mock_client.mob), "An unlocked row must take the colour sent")
+	TEST_ASSERT_EQUAL(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, paint.name).get_color(), "#12ab34", "A colour sent must be stored lowercase")
+	// Anything but a "#rrggbb" is refused and changes nothing, as is a row that isn't there.
+	for(var/sent in list(null, "", "12ab34", "#12ab3", "#12ab34ff", "#12ag34", 1234, list("#123456")))
+		TEST_ASSERT(!middleware.color_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_1", "color" = sent), mock_client.mob), "A colour action sending [json_encode(sent)] must be refused")
+	TEST_ASSERT(!middleware.color_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_3", "color" = "#123456"), mock_client.mob), "A colour action for a row that isn't there must be refused")
+	TEST_ASSERT_EQUAL(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, paint.name).get_color(), "#12ab34", "A refused colour must change nothing")
+	// A locked row refuses any colour.
+	TEST_ASSERT(!middleware.color_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_2", "color" = "#123456"), mock_client.mob), "A locked row must refuse the colour sent")
 	TEST_ASSERT_EQUAL(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, ink.name).get_color(), "#abcdef", "A locked row must keep its colour")
 	// A rename to a locked marking takes that marking's own colour, not the replaced row's; a rename away keeps the colour.
 	preferences.body_markings = body_marking_collection_from_list(list(BODY_ZONE_L_ARM = list("[paint.name]" = list("#abcdef", 1))))
@@ -150,6 +159,40 @@
 	TEST_ASSERT(markings.find_entry(BODY_ZONE_L_ARM, primary.name).get_emissive(), "A colour reset must keep glow")
 	TEST_ASSERT_EQUAL(markings.find_entry(BODY_ZONE_HEAD, fixed.name).get_color(), LOWER_TEXT(fixed.default_color), "A colour reset must give a fixed marking its own colour")
 	TEST_ASSERT_EQUAL(markings.find_entry(BODY_ZONE_L_ARM, ink.name).get_color(), "#020202", "A colour reset must leave a locked marking's colour alone")
+
+/// Character setup's colour reset gives one row the colour its marking starts in, by its colour mode: the preview body's mutant
+/// colour it follows, or its own. A locked row gets its own colour back too, which no recolour could give it. Glow stays.
+/datum/unit_test/body_marking_colors/setup_reset
+
+/datum/unit_test/body_marking_colors/setup_reset/Run()
+	var/datum/body_marking/ink = marking_with_mode(MARKING_COLOR_LOCKED)
+	var/datum/body_marking/primary = marking_with_mode(MARKING_COLOR_FOLLOWS_PRIMARY)
+	var/datum/body_marking/fixed = marking_with_mode(MARKING_COLOR_FIXED_DEFAULT, BODY_ZONE_HEAD)
+	TEST_ASSERT(ink && primary && fixed, "The fixture needs a locked, a following and a fixed marking")
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+	preferences.create_character_preview_view(mock_client.mob)
+	var/datum/preference_middleware/limbs_and_markings/middleware = locate() in preferences.middleware
+	// Saved colours, none of them the colour its marking starts in.
+	preferences.body_markings = body_marking_collection_from_list(list(
+		BODY_ZONE_L_ARM = list("[primary.name]" = list("#010101", 1), "[ink.name]" = list("#020202", 0)),
+		BODY_ZONE_HEAD = list("[fixed.name]" = list("#030303", 0)),
+	))
+	var/expected_primary = sanitize_hexcolor(preferences.character_preview_view.body.dna.features[FEATURE_MUTANT_COLOR])
+	TEST_ASSERT(expected_primary != "#010101", "The fixture's saved colour must not be the preview's mutant colour")
+	TEST_ASSERT(middleware.reset_marking_color(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_1"), mock_client.mob), "Resetting a following row must work")
+	var/datum/body_marking_entry/followed = preferences.body_markings.find_entry(BODY_ZONE_L_ARM, primary.name)
+	TEST_ASSERT_EQUAL(followed.get_color(), expected_primary, "A following row must reset to the preview's mutant colour it follows")
+	TEST_ASSERT(followed.get_emissive(), "A reset must keep glow")
+	TEST_ASSERT_EQUAL(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, ink.name).get_color(), "#020202", "Resetting one row must leave the others alone")
+	TEST_ASSERT(middleware.reset_marking_color(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_2"), mock_client.mob), "Resetting a locked row must work")
+	TEST_ASSERT_EQUAL(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, ink.name).get_color(), LOWER_TEXT(ink.default_color), "A locked row must reset to its own colour")
+	TEST_ASSERT(middleware.reset_marking_color(list("bodypart_slot" = BODY_ZONE_HEAD, "marking_id" = "[BODY_ZONE_HEAD]_1"), mock_client.mob), "Resetting a fixed row must work")
+	TEST_ASSERT_EQUAL(preferences.body_markings.find_entry(BODY_ZONE_HEAD, fixed.name).get_color(), LOWER_TEXT(fixed.default_color), "A fixed row must reset to its own colour")
+	// A row that isn't there is refused.
+	TEST_ASSERT(!middleware.reset_marking_color(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "[BODY_ZONE_L_ARM]_3"), mock_client.mob), "Resetting a row that isn't there must be refused")
+	TEST_ASSERT(!middleware.reset_marking_color(list("bodypart_slot" = BODY_ZONE_CHEST, "marking_id" = "[BODY_ZONE_L_ARM]_1"), mock_client.mob), "A row id from another zone must be refused")
 
 /// Character setup seeds a new marking's colour from the preview body's mutant colours by the marking's mode, when it
 /// is added and when a preset brings it.

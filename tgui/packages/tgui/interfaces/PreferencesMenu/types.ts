@@ -123,6 +123,7 @@ export type Marking = {
   color: string;
   marking_id: string;
   emissive: boolean;
+  locked: BooleanLike; // APHELION EDIT ADDITION - its marking always wears its own colour
 };
 
 // Augment data types (from get_constant_data)
@@ -141,16 +142,49 @@ export type AugmentItem = {
   ckey_whitelist: string[] | null;
 };
 
-/** One marking option with optional species restriction */
-export type MarkingChoice = {
-  name: string;
+// APHELION EDIT REMOVAL START
+// /** One marking option with optional species restriction */
+// export type MarkingChoice = {
+//   name: string;
+//   recommended_species: string | null;
+// };
+// APHELION EDIT REMOVAL END
+
+// APHELION EDIT ADDITION START
+/** Where a newly worn marking takes its colour from: a /datum/body_marking's color_mode, one of the MARKING_COLOR_* defines */
+export type MarkingColorMode =
+  | 'follows_primary'
+  | 'follows_secondary'
+  | 'follows_tertiary'
+  | 'fixed_default'
+  | 'locked';
+
+/** What character setup knows of one marking, sent once by name: models /datum/body_marking */
+export type MarkingInfo = {
+  color_mode: MarkingColorMode;
+  /** Whether its chest art differs by physique */
+  gendered: BooleanLike;
+  /** Markings sharing a group are alternatives: a zone wears at most one of them */
+  exclusion_group: string | null;
+  /** The leg shapes it has art for, MARKING_LEG_* bitflags */
+  leg_shapes: number;
+  /** Comma-separated ids of the species it is meant for, or null for any species */
   recommended_species: string | null;
+  /** Colours suggested beside the colour picker; sent only for a marking that has some */
+  recommended_colors?: string[];
 };
+// APHELION EDIT ADDITION END
 
 /** One preset with optional species restriction */
 export type MarkingPreset = {
   name: string;
   recommended_species: string | null;
+  // APHELION EDIT ADDITION START
+  /** The markings it puts on, in order, or null for none */
+  markings: string[] | null;
+  /** Whether it replaces every marking when picked, rather than only the zones it covers */
+  keep_together: BooleanLike;
+  // APHELION EDIT ADDITION END
 };
 
 /** Models /datum/robotic_style */
@@ -343,7 +377,8 @@ export type ServerData = {
   limbs_and_markings?: {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];
-    marking_choices: Record<string, MarkingChoice[]>;
+    marking_choices: Record<string, string[]>; // APHELION EDIT CHANGE - ORIGINAL: marking_choices: Record<string, MarkingChoice[]>;
+    marking_info: Record<string, MarkingInfo>; // APHELION EDIT ADDITION
     marking_icons?: Record<string, Record<string, string>>; // APHELION EDIT ADDITION
     marking_presets: MarkingPreset[];
     max_markings: number; // APHELION EDIT ADDITION

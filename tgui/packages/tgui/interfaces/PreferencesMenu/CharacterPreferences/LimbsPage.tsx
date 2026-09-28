@@ -230,6 +230,14 @@ const filterBySpecies = <T extends { recommended_species: string | null }>(
   );
 };
 
+// APHELION EDIT ADDITION START
+/** Whether something meant for these comma-separated species ids, or for any species when there are none, suits this one. */
+const suitsSpecies = (
+  recommended_species: string | null | undefined,
+  species: string,
+) => !recommended_species || recommended_species.split(',').includes(species);
+// APHELION EDIT ADDITION END
+
 const isAugAllowed = (
   aug: AugmentItem,
   species: string,
@@ -886,6 +894,7 @@ export const LimbsPage = ({
     const allowMismatched = !!data.allow_mismatched_parts;
 
     // Filter marking choices and presets by species/mismatched parts
+    /* APHELION EDIT REMOVAL START
     const markingChoices: Record<string, string[]> = {};
     for (const [slot, choices] of Object.entries(
       server_data.marking_choices ?? {},
@@ -896,6 +905,20 @@ export const LimbsPage = ({
         allowMismatched,
       ).map((choice) => choice.name);
     }
+    */ // APHELION EDIT REMOVAL END
+    // APHELION EDIT ADDITION START - a zone's choices are names; each marking's details come once, by name.
+    const markingInfo = server_data.marking_info ?? {};
+    const markingChoices: Record<string, string[]> = {};
+    for (const [slot, names] of Object.entries(
+      server_data.marking_choices ?? {},
+    )) {
+      markingChoices[slot] = allowMismatched
+        ? names
+        : names.filter((name) =>
+            suitsSpecies(markingInfo[name]?.recommended_species, species),
+          );
+    }
+    // APHELION EDIT ADDITION END
     const filteredMarkingPresets = filterBySpecies(
       server_data.marking_presets ?? [],
       species,

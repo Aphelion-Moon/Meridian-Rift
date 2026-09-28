@@ -13,8 +13,7 @@
 /// Steady-state update_body_parts() passes per loop. Enough for the per-call key rebuild to dominate the
 /// reading, small enough that neither loop needs to yield and distort its own wall clock.
 #define MARKINGS_BENCHMARK_BODY_PASSES 300
-/// How many times the whole limbs_and_markings action set is driven. Every action but the colour change
-/// re-renders the preview.
+/// How many times the whole limbs_and_markings action set is driven. Every action re-renders the preview.
 #define MARKINGS_BENCHMARK_ACTION_ROUNDS 5
 /// rust-g stopwatch key, reset at the start of a phase and read at the end of it.
 #define MARKINGS_BENCHMARK_CLOCK "markings_benchmark"
@@ -151,8 +150,8 @@
 /**
  * Drives the limbs_and_markings action set the prefs menu exposes.
  *
- * color_marking opens a blocking tgui modal, so it is only driven when usr is unset: the picker then
- * returns null, so the action finds its marking but neither recolours it nor re-renders the preview.
+ * color_marking sends a colour as character setup's picker does, one no row is seeded with, so it recolours its
+ * row and re-renders the preview like the rest.
  * change_marking renames to a fixture marking, so its target never depends on the order of
  * GLOB.body_markings_per_limb.
  *
@@ -189,9 +188,8 @@
 				break
 		if(replacement && middleware.change_marking(list("bodypart_slot" = zone, "marking_id" = marking_id, "marking_name" = replacement), user))
 			driven++
-		if(isnull(usr))
-			middleware.color_marking(list("bodypart_slot" = zone, "marking_id" = marking_id), user)
-			driven++
+		middleware.color_marking(list("bodypart_slot" = zone, "marking_id" = marking_id, "color" = "#123456"), user)
+		driven++
 		middleware.change_emissive_marking(list("bodypart_slot" = zone, "marking_id" = marking_id, "emissive" = FALSE), user)
 		driven++
 		middleware.remove_marking(list("bodypart_slot" = zone, "marking_id" = marking_id), user)
@@ -336,7 +334,7 @@
 
 	counters["limb_icon_cache_after_fixture"] = length(human.limb_icon_cache)
 
-	// The prefs-menu action set, each action of which rebuilds a zone map and, bar the colour change, re-renders the preview.
+	// The prefs-menu action set, each action of which re-renders the preview.
 	if(middleware)
 		// The yields above let other code draw from the generator, so the picks are seeded again here.
 		rand_seed(MARKINGS_BENCHMARK_SEED)
@@ -345,8 +343,6 @@
 		record("middleware_actions", phase_started, actions_driven)
 	else
 		notes += "middleware_actions: no limbs_and_markings middleware on the test preferences."
-	if(!isnull(usr))
-		notes += "color_marking: skipped, usr was set and the colour picker would have blocked."
 
 	var/drive_elapsed = rustg_time_microseconds(MARKINGS_BENCHMARK_CLOCK) - drive_started
 	world.Profile(PROFILE_STOP)

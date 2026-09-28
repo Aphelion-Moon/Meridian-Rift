@@ -136,11 +136,11 @@
 	TEST_ASSERT(middleware, "The fixture needs the limbs and markings middleware")
 	preferences.body_markings = body_marking_collection_from_list(json_decode("{\"chest\":{\"Bovine\":\[\"#4488CC\",0]},\"l_leg\":\[],\"l_arm\":{\"Bovine\":\[\"#112233\",0],\"Dalmatian\":\[\"#445566\",1],\"Guilmon Mark\":\[\"#778899\",0]}}"))
 	var/list/expected_rows = list(
-		BODY_ZONE_CHEST = list(list("name" = "Bovine", "color" = "#4488cc", "marking_id" = "chest_1", "emissive" = 0)),
+		BODY_ZONE_CHEST = list(list("name" = "Bovine", "color" = "#4488cc", "marking_id" = "chest_1", "emissive" = 0, "locked" = 0)),
 		BODY_ZONE_L_ARM = list(
-			list("name" = "Bovine", "color" = "#112233", "marking_id" = "l_arm_1", "emissive" = 0),
-			list("name" = "Dalmatian", "color" = "#445566", "marking_id" = "l_arm_2", "emissive" = 1),
-			list("name" = "Guilmon Mark", "color" = "#778899", "marking_id" = "l_arm_3", "emissive" = 0),
+			list("name" = "Bovine", "color" = "#112233", "marking_id" = "l_arm_1", "emissive" = 0, "locked" = 0),
+			list("name" = "Dalmatian", "color" = "#445566", "marking_id" = "l_arm_2", "emissive" = 1, "locked" = 0),
+			list("name" = "Guilmon Mark", "color" = "#778899", "marking_id" = "l_arm_3", "emissive" = 0, "locked" = 0),
 		),
 	)
 	TEST_ASSERT_EQUAL(json_encode(middleware.get_ui_data(mock_client.mob)["markings"]), json_encode(expected_rows), "The prefs menu must list each zone with markings, in order, with positional ids")
@@ -148,8 +148,8 @@
 	middleware.change_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "l_arm_1", "marking_name" = fourth), mock_client.mob)
 	middleware.change_emissive_marking(list("bodypart_slot" = BODY_ZONE_L_ARM, "marking_id" = "l_arm_2", "emissive" = 0), mock_client.mob)
 	expected_rows[BODY_ZONE_L_ARM] = list(
-		list("name" = fourth, "color" = "#112233", "marking_id" = "l_arm_1", "emissive" = 0),
-		list("name" = "Guilmon Mark", "color" = "#778899", "marking_id" = "l_arm_2", "emissive" = 1),
+		list("name" = fourth, "color" = "#112233", "marking_id" = "l_arm_1", "emissive" = 0, "locked" = 0),
+		list("name" = "Guilmon Mark", "color" = "#778899", "marking_id" = "l_arm_2", "emissive" = 1, "locked" = 0),
 	)
 	TEST_ASSERT_EQUAL(json_encode(middleware.get_ui_data(mock_client.mob)["markings"]), json_encode(expected_rows), "Row actions must act on the row their id names and keep the rest in order")
 	middleware.remove_marking(list("bodypart_slot" = BODY_ZONE_CHEST, "marking_id" = "chest_1"), mock_client.mob)

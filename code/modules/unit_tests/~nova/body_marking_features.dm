@@ -248,9 +248,10 @@
 	original_choices = null
 	TEST_ASSERT_EQUAL(json_encode(drawn), json_encode(list(json_encode(list(bovine.name, free)))), "A random addition must never pick a marking of a group the zone wears")
 	// Character setup is told each marking's group.
-	for(var/list/choice as anything in middleware.build_marking_choices()[BODY_ZONE_L_ARM])
-		var/datum/body_marking/offered = GLOB.body_markings[choice["name"]]
-		TEST_ASSERT_EQUAL(choice["exclusion_group"], offered.exclusion_group, "[choice["name"]] must be sent with its group")
+	var/list/marking_info = middleware.build_marking_info()
+	for(var/datum/body_marking/grouped as anything in list(bovine, bovine_spot, dalmatian))
+		TEST_ASSERT_EQUAL(marking_info[grouped.name]["exclusion_group"], "test_coat", "[grouped.name] must be sent with its group")
+	TEST_ASSERT_NULL(marking_info[guilmon.name]["exclusion_group"], "[guilmon.name] is in no group, so it must be sent with none")
 
 /// A set kept together replaces every marking when picked; any other set replaces only the zones it covers.
 /datum/unit_test/body_marking_features/keep_together
@@ -378,8 +379,10 @@
 		TEST_ASSERT(preferences.load_character(preferences.default_slot), "A version 7 character must load")
 		TEST_ASSERT_EQUAL(preferences.read_preference(/datum/preference/choiced/mutant_choice/skrell_hair), new_name, "Skrell hair saved as [old_name] must load as [new_name]")
 
-/// Character setup's constant data carries each choice's exclusion group, colour mode and whether its chest art is gendered,
-/// suggested colours only where a marking has some, and each preset's markings and whether it is kept together.
+/// Character setup's constant data names each zone's choices, unfiltered and in the zone's order, and describes every marking
+/// once, by name: its exclusion group, colour mode, whether its chest art is gendered, the leg shapes it has art for and the
+/// species it is meant for, with suggested colours only where a marking has some. Each preset carries its markings and whether
+/// it is kept together.
 /datum/unit_test/body_marking_features/payload
 	/// The marking given a palette for the test.
 	var/datum/body_marking/palette_marking
@@ -400,20 +403,30 @@
 	var/list/palette = list("#aa0000", "#00aa00")
 	palette_marking.recommended_colors = palette
 	var/list/data = middleware.get_constant_data()
-	var/checked = 0
-	for(var/zone, zone_choices in data["marking_choices"])
-		for(var/list/choice as anything in zone_choices)
-			var/datum/body_marking/marking = GLOB.body_markings[choice["name"]]
-			TEST_ASSERT(marking, "[zone] offers [choice["name"]], which no marking has")
-			TEST_ASSERT(("exclusion_group" in choice) && choice["exclusion_group"] == marking.exclusion_group, "[marking.name] must be sent with its exclusion group")
-			TEST_ASSERT_EQUAL(choice["color_mode"], marking.color_mode, "[marking.name] must be sent with its colour mode")
-			TEST_ASSERT_EQUAL(choice["gendered"], marking.gendered, "[marking.name] must be sent with whether it is gendered")
-			if(marking == palette_marking)
-				TEST_ASSERT_EQUAL(json_encode(choice["recommended_colors"]), json_encode(palette), "[marking.name] must be sent with its suggested colours")
-			else
-				TEST_ASSERT(!("recommended_colors" in choice), "[marking.name] has no suggested colours, so none may be sent")
-			checked++
-	TEST_ASSERT(checked, "The payload must offer markings")
+	var/list/marking_info = data["marking_info"]
+	// A zone names its choices, and every name it offers is described.
+	TEST_ASSERT(length(data["marking_choices"]), "The payload must offer markings")
+	TEST_ASSERT_EQUAL(json_encode(data["marking_choices"]), json_encode(GLOB.body_markings_per_limb), "Each zone must offer its markings by name, in its own order")
+	for(var/zone, zone_names in data["marking_choices"])
+		for(var/name in zone_names)
+			TEST_ASSERT(marking_info[name], "[zone] offers [name], which isn't described")
+	// Every marking is described once, one a save holds on a zone that no longer offers it included.
+	TEST_ASSERT_EQUAL(length(marking_info), length(GLOB.body_markings), "Every marking must be described once")
+	for(var/name, marking_datum in GLOB.body_markings)
+		var/datum/body_marking/marking = marking_datum
+		var/list/info = marking_info[name]
+		TEST_ASSERT(info, "[name] must be described")
+		TEST_ASSERT(("exclusion_group" in info) && info["exclusion_group"] == marking.exclusion_group, "[name] must be sent with its exclusion group")
+		TEST_ASSERT_EQUAL(info["color_mode"], marking.color_mode, "[name] must be sent with its colour mode")
+		TEST_ASSERT_EQUAL(info["gendered"], marking.gendered, "[name] must be sent with whether it is gendered")
+		TEST_ASSERT_EQUAL(info["leg_shapes"], marking.leg_shapes, "[name] must be sent with the leg shapes it has art for")
+		var/list/species_ids = marking.recommended_species ? sort_list(assoc_to_keys(marking.recommended_species)) : null
+		var/list/sent_ids = info["recommended_species"] ? sort_list(splittext(info["recommended_species"], ",")) : null
+		TEST_ASSERT_EQUAL(json_encode(sent_ids), json_encode(species_ids), "[name] must be sent with the species it is meant for")
+		if(marking == palette_marking)
+			TEST_ASSERT_EQUAL(json_encode(info["recommended_colors"]), json_encode(palette), "[name] must be sent with its suggested colours")
+		else
+			TEST_ASSERT(!("recommended_colors" in info), "[name] has no suggested colours, so none may be sent")
 	var/list/presets = data["marking_presets"]
 	TEST_ASSERT_EQUAL(length(presets), length(GLOB.body_marking_sets), "Every set must be offered as a preset")
 	for(var/list/preset as anything in presets)

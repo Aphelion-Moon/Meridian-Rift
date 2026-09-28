@@ -28,7 +28,7 @@
 
 /// Setup actions that change the body or its markings outside set_preference save and close open editors first, as preference changes do.
 /datum/preferences/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
-	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "remove_marking", "change_emissive", "set_preset", "randomize_character")
+	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "reset_marking_color", "remove_marking", "change_emissive", "set_preset", "randomize_character")
 	if((action in body_actions) && !finish_custom_sprite_editors_for_change(ui?.user))
 		return TRUE
 	return ..()

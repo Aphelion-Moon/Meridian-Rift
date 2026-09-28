@@ -7,6 +7,7 @@
 		"add_marking"  = PROC_REF(add_marking),
 		"change_marking" = PROC_REF(change_marking),
 		"color_marking" = PROC_REF(color_marking),
+		"reset_marking_color" = PROC_REF(reset_marking_color),
 		"remove_marking" = PROC_REF(remove_marking),
 		"set_internal_implant_aug" = PROC_REF(set_internal_implant_aug),
 		"set_preset" = PROC_REF(set_preset),
@@ -191,26 +192,30 @@
 
 	return augment_slots_with_items
 
-/// Builds unfiltered marking choices per slot — TSX filters by species/mismatched parts
-/datum/preference_middleware/limbs_and_markings/proc/build_marking_choices()
-	var/list/marking_choices = list()
-	for(var/slot in GLOB.body_markings_per_limb)
-		var/list/slot_choices = list()
-		for(var/marking_name in GLOB.body_markings_per_limb[slot])
-			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-			var/list/choice = list(
-				"name"                = marking_name,
-				"recommended_species" = marking.recommended_species ? jointext(marking.recommended_species, ",") : null,
-				"exclusion_group"     = marking.exclusion_group,
-				"color_mode"          = marking.color_mode,
-				"gendered"            = marking.gendered,
-			)
-			// Only a marking with suggested colours sends them.
-			if(marking.recommended_colors)
-				choice["recommended_colors"] = marking.recommended_colors
-			slot_choices += list(choice)
-		marking_choices[slot] = slot_choices
-	return marking_choices
+/**
+ * Builds what character setup knows of every marking, once, by name: the zones' choices name markings and TSX looks each up here.
+ * A marking a save holds on a zone that no longer offers it is here too, so its row can still be shown.
+ *
+ * Returns:
+ * - list: marking name -> its color_mode, gendered, exclusion_group, leg_shapes, recommended_species (comma-separated species
+ *   ids, or null for any species) and, only for a marking with some, recommended_colors.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/build_marking_info()
+	var/list/marking_info = list()
+	for(var/marking_name, marking_datum in GLOB.body_markings)
+		var/datum/body_marking/marking = marking_datum
+		var/list/info = list(
+			"color_mode"          = marking.color_mode,
+			"gendered"            = marking.gendered,
+			"exclusion_group"     = marking.exclusion_group,
+			"leg_shapes"          = marking.leg_shapes,
+			"recommended_species" = marking.recommended_species ? jointext(marking.recommended_species, ",") : null,
+		)
+		// Only a marking with suggested colours sends them.
+		if(marking.recommended_colors)
+			info["recommended_colors"] = marking.recommended_colors
+		marking_info[marking_name] = info
+	return marking_info
 
 /// Builds unfiltered marking presets — TSX filters by species/mismatched parts
 /datum/preference_middleware/limbs_and_markings/proc/build_marking_presets()
@@ -253,7 +258,10 @@
 	data["robotic_styles"] = robotic_styles
 
 	data["augment_items"]    = build_augment_choices()
-	data["marking_choices"]  = build_marking_choices()
+	// Each zone's choices by name, unfiltered, in the zone's order: the shared list itself, which nothing here edits. TSX filters
+	// them by species/mismatched parts with the details marking_info sends once per marking.
+	data["marking_choices"]  = GLOB.body_markings_per_limb
+	data["marking_info"]     = build_marking_info()
 	data["marking_icons"] = custom_sprite_marking_icons() // APHELION EDIT ADDITION - Static shared picker catalog.
 	data["marking_presets"]  = build_marking_presets()
 	data["max_markings"]     = MAXIMUM_MARKINGS_PER_LIMB
@@ -399,6 +407,8 @@
 				"color"      = sanitize_hexcolor(entry.get_color()),
 				"marking_id" = "[slot]_[marking_count]",
 				"emissive"   = entry.get_emissive(),
+				// A locked marking's colour is its own, so the row's colour control needs no lookup to know it can't pick one.
+				"locked"     = entry.marking.color_mode == MARKING_COLOR_LOCKED,
 			))
 		result[slot] = fixed
 	return result
@@ -494,17 +504,32 @@
 	preferences.character_preview_view.update_body()
 	return TRUE
 
+/**
+ * Recolours a row's marking to params["color"], the "#rrggbb" character setup's own colour picker sends. A row that isn't
+ * there, anything else sent as the colour and a locked marking, whose colour is its own, are refused.
+ */
 /datum/preference_middleware/limbs_and_markings/proc/color_marking(list/params, mob/user)
 	var/bodypart_slot = params["bodypart_slot"]
 	var/marking_id = params["marking_id"]
+	var/new_color = params["color"]
 	var/datum/body_marking_entry/recoloured = marking_entry_by_id(bodypart_slot, marking_id)
-	// A locked marking keeps its colour, so there is nothing to pick.
-	if(!recoloured || recoloured.marking.color_mode == MARKING_COLOR_LOCKED)
+	// set_color() refuses a locked marking.
+	if(!recoloured || !istext(new_color) || !findtext(new_color, GLOB.is_color) || !recoloured.set_color(new_color))
 		return
-	var/new_color = tgui_color_picker(usr, "Select new color", null, recoloured.get_color())
-	if(!new_color)
-		return TRUE
-	recoloured.set_color(new_color)
+	preferences.character_preview_view.update_body()
+	return TRUE
+
+/**
+ * Gives a row's marking the colour it starts in again, by its colour mode: the preview's mutant colour it follows, or its own.
+ * A locked marking gets its own colour back too, which a recolour can't give it.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/reset_marking_color(list/params, mob/user)
+	var/bodypart_slot = params["bodypart_slot"]
+	var/marking_id = params["marking_id"]
+	var/datum/body_marking_entry/reset = marking_entry_by_id(bodypart_slot, marking_id)
+	if(!reset)
+		return
+	reset.reseed_color(marking_seed_features(), edited_species())
 	preferences.character_preview_view.update_body()
 	return TRUE
 

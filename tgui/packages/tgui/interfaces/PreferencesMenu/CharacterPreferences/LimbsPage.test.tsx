@@ -3,9 +3,19 @@ import { afterEach, beforeEach, expect, it, spyOn } from 'bun:test';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import * as actions from 'tgui/events/act';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
-import type { ServerData } from '../types';
+import type { MarkingInfo, ServerData } from '../types';
 import { ServerPrefs } from '../useServerPrefs';
 import { LimbsPage } from './LimbsPage';
+
+/** A marking's details as character setup sends them: meant for any species unless told otherwise. */
+const markingInfo = (details: Partial<MarkingInfo> = {}): MarkingInfo => ({
+  color_mode: 'follows_primary',
+  gendered: 0,
+  exclusion_group: null,
+  leg_shapes: 3,
+  recommended_species: null,
+  ...details,
+});
 
 const zones = [
   ['Head', 'head'],
@@ -39,11 +49,11 @@ const serverData: ServerData = {
       aug_options: [],
       implant_options: [],
     })),
-    marking_choices: {
-      l_arm: ['Stripe', 'Spots', 'Dots'].map((name) => ({
-        name,
-        recommended_species: null,
-      })),
+    marking_choices: { l_arm: ['Stripe', 'Spots', 'Dots'] },
+    marking_info: {
+      Stripe: markingInfo(),
+      Spots: markingInfo(),
+      Dots: markingInfo(),
     },
     marking_icons: {
       l_arm: {
@@ -63,8 +73,20 @@ const preferences = {
   character_preferences: { misc: { species: 'human' } },
   markings: {
     l_arm: [
-      { name: 'Stripe', color: '#ffffff', marking_id: 'one', emissive: false },
-      { name: 'Spots', color: '#000000', marking_id: 'two', emissive: true },
+      {
+        name: 'Stripe',
+        color: '#ffffff',
+        marking_id: 'one',
+        emissive: false,
+        locked: false,
+      },
+      {
+        name: 'Spots',
+        color: '#000000',
+        marking_id: 'two',
+        emissive: true,
+        locked: false,
+      },
     ],
   },
   augments: {},
@@ -90,12 +112,24 @@ afterEach(() => {
   backendStore.set(gameDataAtom, previousData);
 });
 
-const renderPage = () =>
+const renderPage = (data = serverData) =>
   render(
-    <ServerPrefs.Provider value={serverData}>
+    <ServerPrefs.Provider value={data}>
       <LimbsPage />
     </ServerPrefs.Provider>,
   );
+
+/** The fixture's server data with some markings' details replaced. */
+const withMarkingInfo = (details: Record<string, MarkingInfo>): ServerData => {
+  const limbs = serverData.limbs_and_markings!;
+  return {
+    ...serverData,
+    limbs_and_markings: {
+      ...limbs,
+      marking_info: { ...limbs.marking_info, ...details },
+    },
+  };
+};
 
 it('opens one custom drawing per marking zone alongside existing markings', () => {
   renderPage();
@@ -173,4 +207,26 @@ it('opens cached marking icons and filters duplicates before local search', asyn
     marking_id: 'one',
     marking_name: 'Dots',
   });
+});
+
+it('offers a zone only the markings meant for the species, unless mismatched parts are allowed', async () => {
+  const data = withMarkingInfo({
+    Dots: markingInfo({ recommended_species: 'moth,insect' }),
+  });
+  const offersDots = async (overrides: Record<string, unknown>) => {
+    backendStore.set(gameDataAtom, { ...preferences, ...overrides });
+    const view = renderPage(data);
+    await act(async () =>
+      fireEvent.click(screen.getAllByLabelText('Select marking')[0]),
+    );
+    const offered = !!screen.queryByLabelText('Dots');
+    view.unmount();
+    return offered;
+  };
+  expect(await offersDots({})).toBe(false);
+  expect(
+    await offersDots({ character_preferences: { misc: { species: 'moth' } } }),
+  ).toBe(true);
+  expect(await offersDots({ allow_mismatched_parts: true })).toBe(true);
+  expect(send).not.toHaveBeenCalled();
 });
