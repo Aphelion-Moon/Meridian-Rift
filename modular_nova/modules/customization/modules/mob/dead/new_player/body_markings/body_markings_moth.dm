@@ -65,6 +65,8 @@
 
 /datum/body_marking/moth/grayscale
 	icon = 'modular_nova/master_files/icons/mob/body_markings/moth_grayscale_markings.dmi'
+	color_mode = MARKING_COLOR_FOLLOWS_PRIMARY // Grey art, made to be tinted: it starts in the primary mutant colour.
+	default_color = null
 
 /datum/body_marking/moth/grayscale/reddish
 	name = "Reddish Grayscale"
