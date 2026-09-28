@@ -258,3 +258,20 @@
 	TEST_ASSERT(!error, "Saving a base marking with another region's drawing failed: [error]")
 	TEST_ASSERT(preferences.body_markings.find_entry(BODY_ZONE_L_ARM, marking), "The changed region's base markings must be published.")
 	TEST_ASSERT(!preferences.custom_limb_markings?[BODY_ZONE_L_ARM], "A base-marking-only region must not gain a drawing.")
+
+/// A restore point keeps its drawing and its other markings when its limb no longer offers one of them, as zone narrowings left
+/// stored styles: that marking is left out, and logged. An uploaded style holding it is still refused.
+/datum/unit_test/custom_style_previous_narrowed_marking/Run()
+	// Bee is no longer offered on a hand, since step 7 narrowed its zones; Bovine still is.
+	TEST_ASSERT(!("Bee" in GLOB.body_markings_per_limb[BODY_ZONE_PRECISE_L_HAND]) && ("Bovine" in GLOB.body_markings_per_limb[BODY_ZONE_PRECISE_L_HAND]), "The fixture needs a marking a hand no longer offers and one it does.")
+	var/key = custom_style_key("markings", BODY_ZONE_PRECISE_L_HAND)
+	var/list/bovine = list("name" = "Bovine", "color" = "#222222", "emissive" = TRUE)
+	var/list/narrowed = list()
+	narrowed[key] = custom_style_package("markings", BODY_ZONE_PRECISE_L_HAND, custom_sprite_test_drawing(), null, list(list("name" = "Bee", "color" = "#111111", "emissive" = FALSE), bovine))
+	var/list/offered = list()
+	offered[key] = custom_style_package("markings", BODY_ZONE_PRECISE_L_HAND, custom_sprite_test_drawing(), null, list(bovine))
+	var/list/kept = custom_style_previous_validate(narrowed)?[key]
+	TEST_ASSERT(kept, "The restore point must be kept.")
+	TEST_ASSERT_EQUAL(json_encode(kept), json_encode(custom_style_previous_validate(offered)?[key]), "The restore point must keep its drawing and every marking its limb still offers.")
+	var/list/uploaded = custom_style_parse(custom_style_export_text(narrowed[key]))
+	TEST_ASSERT(uploaded["error"] && !uploaded["package"], "An uploaded style holding a marking its limb no longer offers must still be refused.")
