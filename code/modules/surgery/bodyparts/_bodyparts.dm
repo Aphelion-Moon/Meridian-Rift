@@ -290,8 +290,19 @@
 
 	name = "[limb_id] [parse_zone(body_zone)]"
 	update_limb(TRUE)
-	update_icon_dropped()
+	// APHELION EDIT CHANGE START - A limb made in nullspace is drawn when it first leaves it - ORIGINAL: update_icon_dropped()
+	if(loc)
+		update_icon_dropped()
+	// APHELION EDIT CHANGE END
 	refresh_bleed_rate()
+
+// APHELION EDIT ADDITION START - A limb made in nullspace is drawn when it first leaves it
+/obj/item/bodypart/Moved(atom/old_loc, movement_dir, forced, list/old_locs, momentum_change = TRUE)
+	. = ..()
+	// Most limbs made in nullspace are attached to a body, or deleted, before anyone could see them dropped.
+	if(isnull(old_loc) && !owner)
+		update_icon_dropped()
+// APHELION EDIT ADDITION END
 
 /obj/item/bodypart/Destroy()
 	if(owner && !QDELETED(owner))

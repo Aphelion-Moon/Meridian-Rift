@@ -387,6 +387,7 @@
 #include "~nova\body_marking_fixes.dm"
 #include "~nova\body_marking_merge.dm"
 #include "~nova\body_marking_set_members.dm"
+#include "~nova\bodypart_dropped_icon.dm"
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
