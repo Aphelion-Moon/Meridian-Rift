@@ -76,6 +76,7 @@
 		/datum/body_marking_set/moth/witchwing = list("Witchwing"),
 		/datum/body_marking_set/moth/lovers = list("Lovers"),
 		/datum/body_marking_set/moth/lightbearer = list("Lightbearer"),
+		/datum/body_marking_set/moth/firewatch = list("Firewatch"),
 	)
 
 /// Every marking set lists its members by typepath, and each is the marking the set named before, in the same order.

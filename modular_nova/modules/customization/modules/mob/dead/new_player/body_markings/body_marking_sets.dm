@@ -336,3 +336,7 @@
 /datum/body_marking_set/moth/lightbearer
 	name = "Lightbearer"
 	body_marking_list = list(/datum/body_marking/moth/lightbearer)
+
+/datum/body_marking_set/moth/firewatch
+	name = "Firewatch"
+	body_marking_list = list(/datum/body_marking/moth/firewatch)

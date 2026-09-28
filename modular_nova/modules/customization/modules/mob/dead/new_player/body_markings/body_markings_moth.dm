@@ -63,6 +63,10 @@
 	name = "Lightbearer"
 	icon_state = "lightbearer"
 
+/datum/body_marking/moth/firewatch
+	name = "Firewatch"
+	icon_state = "firewatch"
+
 /datum/body_marking/moth/grayscale
 	icon = 'modular_nova/master_files/icons/mob/body_markings/moth_grayscale_markings.dmi'
 	color_mode = MARKING_COLOR_FOLLOWS_PRIMARY // Grey art, made to be tinted: it starts in the primary mutant colour.
@@ -119,3 +123,7 @@
 /datum/body_marking/moth/grayscale/lovers
 	name = "Lovers Grayscale"
 	icon_state = "lovers"
+
+/datum/body_marking/moth/grayscale/firewatch
+	name = "Firewatch Grayscale"
+	icon_state = "firewatch"
