@@ -440,7 +440,9 @@
 			var/name = params["name"]
 			if(!isnum(params["index"]) || !istext(name) || !(name in marking_choices(zone)) || custom_style_marking_data(canvas.markings_context[zone])[name])
 				return FALSE
-			return write_region_marking(zone, params["index"], name, null)
+			// A renamed row keeps its colour, unless its new marking is locked: ink starts in its own colour, as in character setup.
+			var/datum/body_marking/marking = GLOB.body_markings[name]
+			return write_region_marking(zone, params["index"], name, marking.color_mode == MARKING_COLOR_LOCKED ? default_marking_color(name) : null)
 		if("addBaseMarking")
 			var/list/markings = custom_style_marking_data(canvas.markings_context[zone])
 			if(!(zone in canvas.markings_context) || length(markings) >= MAXIMUM_MARKINGS_PER_LIMB)
@@ -459,6 +461,10 @@
 			if(!isnum(index) || index < 1 || index > length(entries))
 				return FALSE
 			var/list/entry = entries[index]
+			// A locked marking keeps its colour, as in character setup.
+			var/datum/body_marking/marking = GLOB.body_markings[entry["name"]]
+			if(marking?.color_mode == MARKING_COLOR_LOCKED)
+				return FALSE
 			var/color = tgui_color_picker(ui.user, "Choose a color for [entry["name"]].", "Limb markings", entry["color"])
 			if(!can_edit(ui.user) || !custom_sprite_color(color))
 				return FALSE

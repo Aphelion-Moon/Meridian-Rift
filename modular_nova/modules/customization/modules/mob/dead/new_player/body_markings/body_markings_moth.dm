@@ -1,5 +1,6 @@
 /datum/body_marking/moth
 	icon = 'modular_nova/master_files/icons/mob/body_markings/moth_markings.dmi'
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FFFFFF"
 	recommended_species = list(SPECIES_MOTH = 1)
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT

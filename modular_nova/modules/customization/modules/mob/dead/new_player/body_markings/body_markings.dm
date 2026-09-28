@@ -8,43 +8,49 @@
 	var/icon_state
 	///The preview name of the body marking. NEEDS A UNIQUE NAME
 	var/name
-	///The color the marking defaults to, important for randomisations. either a hex color ie."#FFFFFF" or a define like DEFAULT_PRIMARY
+	/// Where a newly worn marking takes its colour from, one of the MARKING_COLOR_* defines. See seed_color().
+	var/color_mode = MARKING_COLOR_FOLLOWS_PRIMARY
+	/// The "#rrggbb" a MARKING_COLOR_FIXED_DEFAULT or MARKING_COLOR_LOCKED marking starts in. The following modes ignore it.
 	var/default_color
 	///Which bodyparts does the marking affect in BITFLAGS!! (HEAD, CHEST, ARM_LEFT, ARM_RIGHT, HAND_LEFT, HAND_RIGHT, LEG_RIGHT, LEG_LEFT)
 	var/affected_bodyparts
 	///Which species is this marking recommended to. Important for randomisations.
 	var/list/recommended_species = list(SPECIES_MAMMAL = TRUE)
-	///If this is on the color customization will show up despite the pref settings, it will also cause the marking to not reset colors to match the defaults
-	var/always_color_customizable
 	///Whether the body marking sprite is the same for both sexes or not. Only relevant for chest right now.
 	var/gendered = TRUE
 
 /datum/body_marking/New()
-	if(!default_color)
-		default_color = "#FFFFFF"
+	. = ..()
 	if(recommended_species)
 		recommended_species = string_assoc_list(recommended_species)
 
-/datum/body_marking/proc/get_default_color(list/features, datum/species/species) //Needs features for the color information
-	var/list/colors
-	switch(default_color)
-		if(DEFAULT_PRIMARY)
-			colors = features[FEATURE_MUTANT_COLOR]
-		if(DEFAULT_SECONDARY)
-			colors = features[FEATURE_MUTANT_COLOR_TWO]
-		if(DEFAULT_TERTIARY)
-			colors = features[FEATURE_MUTANT_COLOR_THREE]
-		if(DEFAULT_SKIN_OR_PRIMARY)
-			if(species && !(TRAIT_USES_SKINTONES in species.inherent_traits))
-				colors = features[FEATURE_SKIN_COLOR]
-			else
-				colors = features[FEATURE_MUTANT_COLOR]
-		else
-			colors = default_color
+/**
+ * Returns the colour this marking starts in when it is added, brought by a preset or reset, by its color_mode: the
+ * mutant colour it follows, or its own default_color.
+ *
+ * Arguments:
+ * - features: the character's features, where a following mode reads its mutant colour. May be null.
+ * - species: the character's species. No mode reads it yet; a species-dependent mode needs no caller changed.
+ *
+ * Returns:
+ * - string: the colour, as its source holds it. Null when the mutant colour followed is unset, which an entry stores as
+ *   black, as it always did.
+ */
+/datum/body_marking/proc/seed_color(list/features, datum/species/species)
+	switch(color_mode)
+		if(MARKING_COLOR_FOLLOWS_PRIMARY)
+			return features?[FEATURE_MUTANT_COLOR]
+		if(MARKING_COLOR_FOLLOWS_SECONDARY)
+			return features?[FEATURE_MUTANT_COLOR_TWO]
+		if(MARKING_COLOR_FOLLOWS_TERTIARY)
+			return features?[FEATURE_MUTANT_COLOR_THREE]
+		if(MARKING_COLOR_FIXED_DEFAULT, MARKING_COLOR_LOCKED)
+			return default_color
+	stack_trace("Body marking [name] ([type]) has an unknown color_mode: [color_mode]")
+	return COLOR_WHITE
 
-	return colors
-
-//Use this one for things with pre-set default colors, I guess
+/// Markings of no family, on the other_markings sheet unless they name another. Those with a colour of their own start in it
+/// (MARKING_COLOR_FIXED_DEFAULT); the rest follow the primary mutant colour.
 /datum/body_marking/other
 	icon = 'modular_nova/master_files/icons/mob/body_markings/other_markings.dmi'
 	recommended_species = null
@@ -53,12 +59,14 @@
 	name = "Eye Bags"
 	icon = 'icons/mob/human/species/misc/bodypart_overlay_simple.dmi'
 	icon_state = "bags"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#484848"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/drake_bone
 	name = "Drake Bone"
 	icon_state = "drakebone"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = CHEST | HAND_LEFT | HAND_RIGHT
 	gendered = FALSE
@@ -66,6 +74,7 @@
 /datum/body_marking/other/tonage
 	name = "Body Tonage"
 	icon_state = "tonage"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#555555"
 	affected_bodyparts = CHEST
 	gendered = FALSE
@@ -73,6 +82,7 @@
 /datum/body_marking/other/belly_slim_toned
 	name = "Belly Slim (Alt) + Tonage"
 	icon_state = "bellyslimtoned"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#555555"
 	affected_bodyparts = CHEST
 	gendered = FALSE
@@ -80,48 +90,56 @@
 /datum/body_marking/other/flushed_cheeks
 	name = "Flushed Cheeks"
 	icon_state = "flushed_cheeks"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/cyclops
 	name = "Cyclopean Eye"
 	icon_state = "cyclops"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/blank_face
 	name = "Blank round face (use with monster mouth)"
 	icon_state = "blankface"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/blank_face2
 	name = "Blank Round Face, Alt"
 	icon_state = "blankface2"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/blank_face3
 	name = "Blank Round Face, Flat"
 	icon_state = "blankface3"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/monster_mouth
 	name = "Monster Mouth"
 	icon_state = "monster"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/monster_mouth_white
 	name = "Monster Mouth (White)"
 	icon_state = "monster_white"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/monster_mouth_white2
 	name = "Monster Mouth (White, eye-compatible)"
 	icon_state = "monster_white2"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 //you're welcome -- iska
@@ -129,12 +147,14 @@
 /datum/body_marking/other/monster_mouth2
 	name = "Monster Mouth 2"
 	icon_state = "monster2"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/nose_blemish
 	name = "Nose Blemish"
 	icon_state = "nose_blemish"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
@@ -151,6 +171,7 @@
 /datum/body_marking/other/insect_antennae
 	name = "Insect Antennae"
 	icon_state = "insect_antennae"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
@@ -162,12 +183,14 @@
 /datum/body_marking/other/clowncross
 	name = "Clown Cross"
 	icon_state = "clowncross"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FFFF00"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/clownlips
 	name = "Clown Lips"
 	icon_state = "clownlips"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0033"
 	affected_bodyparts = HEAD
 
@@ -179,75 +202,75 @@
 /datum/body_marking/other/weight
 	name = "Body Weight"
 	icon_state = "weight"
-	default_color = DEFAULT_PRIMARY
 	affected_bodyparts = CHEST
 
 /datum/body_marking/other/weight2
 	name = "Body Weight (Greyscale)"
 	icon_state = "weight2"
-	default_color = DEFAULT_PRIMARY
 	affected_bodyparts = CHEST
 
 /datum/body_marking/other/pilot
 	name = "Pilot"
 	icon_state = "pilot"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD | ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT
 
 /datum/body_marking/other/pilot_jaw
 	name = "Pilot Jaw"
 	icon_state = "pilot_jaw"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#CCCCCC"
 	affected_bodyparts = HEAD
 
 /datum/body_marking/other/drake_eyes
 	name = "Drake Eyes"
 	icon_state = "drakeeyes"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0000"
 	affected_bodyparts = HEAD
-	always_color_customizable = TRUE
 
 /datum/body_marking/other/big_ol_eyes
 	name = "Large Eyes"
 	icon_state = "bigoleyes"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0000"
 	affected_bodyparts = HEAD
-	always_color_customizable = TRUE
 
 /datum/body_marking/other/three_eyes
 	name = "Three Eyes"
 	icon_state = "3eyes"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0000"
 	affected_bodyparts = HEAD
-	always_color_customizable = TRUE
 
 /datum/body_marking/other/four_eyes
 	name = "Four Eyes"
 	icon_state = "4eyes"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0000"
 	affected_bodyparts = HEAD
-	always_color_customizable = TRUE
 
 /datum/body_marking/other/sclera
 	name = "Sclera"
 	icon_state = "sclera"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0000"
 	affected_bodyparts = HEAD
-	always_color_customizable = TRUE
 
 /datum/body_marking/other/anime_inner
 	name = "Anime Eyes (Inner)"
 	icon_state = "anime_inner"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0000"
 	affected_bodyparts = HEAD
-	always_color_customizable = TRUE
 
 /datum/body_marking/other/anime_outer
 	name = "Anime Eyes (Outer)"
 	icon_state = "anime_outer"
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FF0000"
 	affected_bodyparts = HEAD
-	always_color_customizable = TRUE
 
 /datum/body_marking/other/claws
 	name = "Claw Tips"
@@ -360,7 +383,7 @@
 
 /datum/body_marking/secondary
 	icon = 'modular_nova/master_files/icons/mob/body_markings/secondary_markings.dmi'
-	default_color = DEFAULT_SECONDARY
+	color_mode = MARKING_COLOR_FOLLOWS_SECONDARY
 
 /datum/body_marking/secondary/teshari
 	name = "Teshari"
@@ -673,7 +696,7 @@
 
 /datum/body_marking/tertiary
 	icon = 'modular_nova/master_files/icons/mob/body_markings/tertiary_markings.dmi'
-	default_color = DEFAULT_TERTIARY
+	color_mode = MARKING_COLOR_FOLLOWS_TERTIARY
 
 /datum/body_marking/tertiary/redpanda
 	name = "Red Panda Head"
@@ -816,11 +839,12 @@
 	icon_state = "chem_light"
 	affected_bodyparts = ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
 
+/// Every marking drawn from the tattoo sheet. Ink is always ink: it starts slightly faded and can't be recoloured.
 /datum/body_marking/tattoo
 	icon = 'modular_nova/master_files/icons/mob/body_markings/tattoo_markings.dmi'
 	recommended_species = null
+	color_mode = MARKING_COLOR_LOCKED
 	default_color = "#112222" //slightly faded ink.
-	always_color_customizable = 1
 	gendered = FALSE
 
 /datum/body_marking/tattoo/heart

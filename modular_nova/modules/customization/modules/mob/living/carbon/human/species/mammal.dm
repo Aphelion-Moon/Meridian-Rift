@@ -80,21 +80,8 @@
 	features[FEATURE_MUTANT_COLOR_THREE] = third_color
 	return features
 
-/datum/species/mammal/get_random_body_markings(list/passed_features)
-	var/name = SPRITE_ACCESSORY_NONE
-	// The sets meant for any species or for this one, gathered rather than removed from a list being looped over.
-	var/list/candidates
-	for(var/set_name, set_datum in GLOB.body_marking_sets)
-		var/datum/body_marking_set/setter = set_datum
-		if(isnull(setter.recommended_species) || !isnull(setter.recommended_species[id]))
-			LAZYADD(candidates, set_name)
-	if(length(candidates))
-		name = pick(candidates)
-	var/datum/body_marking_set/BMS = GLOB.body_marking_sets[name]
-	var/datum/body_marking_collection/markings = new
-	if(BMS)
-		markings = assemble_body_markings_from_set(BMS, passed_features, src)
-	return markings
+/datum/species/mammal/get_random_marking_sets()
+	return body_marking_set_types_for_species(id)
 
 /datum/species/mammal/get_species_description()
 	return "This is a template species for your own creations!"

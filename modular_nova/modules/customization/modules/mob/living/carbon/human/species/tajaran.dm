@@ -72,13 +72,8 @@
 	features[FEATURE_MUTANT_COLOR_THREE] = second_color
 	return features
 
-/datum/species/tajaran/get_random_body_markings(list/passed_features)
-	var/name = pick("Tajaran", "Floof", "Floofer")
-	var/datum/body_marking_set/BMS = GLOB.body_marking_sets[name]
-	var/datum/body_marking_collection/markings = new
-	if(BMS)
-		markings = assemble_body_markings_from_set(BMS, passed_features, src)
-	return markings
+/datum/species/tajaran/get_random_marking_sets()
+	return list(/datum/body_marking_set/tajaran, /datum/body_marking_set/floof, /datum/body_marking_set/floofer)
 
 /datum/species/tajaran/get_species_description()
 	return placeholder_description

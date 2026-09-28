@@ -951,13 +951,7 @@
 /// A new base marking's starting color, from the body being drawn on rather than the setup preview.
 /datum/custom_sprite_editor/proc/default_marking_color(name)
 	var/datum/body_marking/marking = GLOB.body_markings[name]
-	var/list/features = list(
-		FEATURE_MUTANT_COLOR = preview_body?.dna.features[FEATURE_MUTANT_COLOR],
-		FEATURE_MUTANT_COLOR_TWO = preview_body?.dna.features[FEATURE_MUTANT_COLOR_TWO],
-		FEATURE_MUTANT_COLOR_THREE = preview_body?.dna.features[FEATURE_MUTANT_COLOR_THREE],
-		FEATURE_SKIN_COLOR = skintone2hex(preview_body?.skin_tone),
-	)
-	return marking.get_default_color(features, preview_body?.dna.species)
+	return marking.seed_color(preview_body?.dna.features, preview_body?.dna.species)
 
 /**
  * Rewrites a limb's native marking records. Markings are stored by name, so one limb can't wear

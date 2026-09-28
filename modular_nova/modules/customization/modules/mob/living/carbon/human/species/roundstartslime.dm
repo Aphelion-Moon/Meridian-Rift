@@ -871,12 +871,8 @@
 				alterer.dna.update_uf_block(/datum/dna_block/feature/mutant_color/three)
 
 	if(marking_reset == "Yes")
-		for(var/_zone, zone_entries in alterer.dna.body_markings.zone_views())
-			for(var/datum/body_marking_entry/marking_entry as anything in zone_entries)
-				var/datum/body_marking/iterated_marking = marking_entry.marking
-				if(iterated_marking.always_color_customizable)
-					continue
-				marking_entry.set_color(iterated_marking.get_default_color(alterer.dna.features, alterer.dna.species))
+		// Every marking starts over in the colour its mode gives it from the new colours; locked ink keeps its own.
+		alterer.dna.body_markings.reseed_colors(alterer.dna.features, alterer.dna.species)
 
 	if(mutant_part_reset == "Yes")
 		alterer.mutant_renderkey = "" //Just in case

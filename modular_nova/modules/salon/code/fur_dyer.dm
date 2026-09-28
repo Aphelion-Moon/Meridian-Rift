@@ -138,14 +138,13 @@
  * - color: the new colour.
  *
  * Returns:
- * - TRUE if the marking was recoloured.
+ * - TRUE if the marking was recoloured. A locked marking, ink, takes no dye.
  */
 /obj/item/fur_dyer/proc/finish_marking_dye(mob/living/carbon/human/target_human, zone, marking_name, color)
 	var/datum/body_marking_entry/dyed = target_human.dna.body_markings.find_entry(zone, marking_name)
 	if(!dyed)
 		return FALSE
-	dyed.set_color(color)
-	return TRUE
+	return dyed.set_color(color)
 
 #undef COLOR_MODE_SPECIFIC
 #undef COLOR_MODE_GENERAL

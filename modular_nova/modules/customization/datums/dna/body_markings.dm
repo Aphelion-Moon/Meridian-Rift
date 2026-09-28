@@ -40,15 +40,44 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	return emissive
 
 /**
- * Recolours this entry, for every collection and limb holding it.
+ * Recolours this entry, for every collection and limb holding it. A locked marking keeps its colour.
  *
- * Refuses nothing yet: the locked-colour refusal arrives with the marking colour modes (markings plan
- * step 4/5).
+ * Arguments:
+ * - new_color: any colour sanitize_hexcolor() accepts. It is stored sanitized.
+ *
+ * Returns:
+ * - TRUE when the entry now wears the colour, FALSE when its marking is locked.
+ */
+/datum/body_marking_entry/proc/set_color(new_color)
+	// Ink is ink.
+	if(marking?.color_mode == MARKING_COLOR_LOCKED)
+		return FALSE
+	store_color(new_color)
+	return TRUE
+
+/**
+ * Gives this entry the colour its marking starts in again, by the marking's color_mode: the mutant colour it follows, or
+ * its own default_color. A locked marking gets its own colour back too, which set_color() refuses.
+ *
+ * A marking being newly worn is built with seed_color()'s colour instead, so no icon key is invalidated for an entry no
+ * key can hold yet.
+ *
+ * Arguments:
+ * - features: the character's features, where a following mode reads its mutant colour.
+ * - species: the character's species.
+ */
+/datum/body_marking_entry/proc/reseed_color(list/features, datum/species/species)
+	if(marking)
+		store_color(marking.seed_color(features, species))
+
+/**
+ * Stores a colour and invalidates every icon key built from the old one. It refuses nothing; the callers decide.
  *
  * Arguments:
  * - new_color: any colour sanitize_hexcolor() accepts. It is stored sanitized.
  */
-/datum/body_marking_entry/proc/set_color(new_color)
+/datum/body_marking_entry/proc/store_color(new_color)
+	PRIVATE_PROC(TRUE)
 	new_color = sanitize_hexcolor(new_color)
 	if(new_color == color)
 		return
@@ -438,6 +467,19 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	cached = body_marking_entries_cache_key(entries_for_zone(zone))
 	LAZYSET(key_cache, zone, cached)
 	return cached
+
+/**
+ * Gives every marking its starting colour again, as a colour reset does, except locked ones: ink keeps its colour, a
+ * custom one a save holds included. Glow is left alone.
+ *
+ * Arguments:
+ * - features: the character's features, where a following mode reads its mutant colour.
+ * - species: the character's species.
+ */
+/datum/body_marking_collection/proc/reseed_colors(list/features, datum/species/species)
+	for(var/datum/body_marking_entry/entry as anything in entries)
+		if(entry.marking?.color_mode != MARKING_COLOR_LOCKED)
+			entry.reseed_color(features, species)
 
 /**
  * Counts the lists this collection holds right now, caches included. The markings benchmark reports it.

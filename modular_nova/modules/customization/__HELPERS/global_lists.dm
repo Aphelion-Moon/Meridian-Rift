@@ -55,6 +55,10 @@
 						GLOB.body_markings_per_limb[marking_zone] = list()
 					GLOB.body_markings_per_limb[marking_zone] += BM.name
 
+/// Every named body marking set by its typepath, built beside GLOB.body_marking_sets and in the same order. Code that picks a
+/// set looks it up here; the name-keyed list serves the savefile and UI paths, which carry names.
+GLOBAL_LIST_EMPTY(body_marking_sets_by_type)
+
 /proc/make_body_marking_set_references()
 	// Here we build the global list for all body markings sets
 	for(var/path in subtypesof(/datum/body_marking_set))
@@ -62,6 +66,7 @@
 		if(initial(BM.name))
 			BM = new path()
 			GLOB.body_marking_sets[BM.name] = BM
+			GLOB.body_marking_sets_by_type[path] = BM
 
 /proc/make_robotic_style_references()
 	for(var/path in valid_subtypesof(/datum/robotic_style))

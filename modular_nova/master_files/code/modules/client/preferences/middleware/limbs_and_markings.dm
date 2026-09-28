@@ -393,6 +393,16 @@
 			return entry
 	return null
 
+/**
+ * Returns the features a new marking's colour is seeded from: the preview body's, which wears the character's mutant colours.
+ *
+ * Returns:
+ * - list: the preview body's own features list. Read it, never edit it.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/marking_seed_features()
+	RETURN_TYPE(/list)
+	return preferences.character_preview_view.body.dna.features
+
 /datum/preference_middleware/limbs_and_markings/proc/add_marking(list/params, mob/user)
 	var/bodypart_slot = params["bodypart_slot"]
 	// Leg markings never show under a taur body.
@@ -409,14 +419,7 @@
 		return
 	var/marking_name = pick(choices)
 	var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-	var/list/preview_features = preferences.character_preview_view.body.dna.features
-	var/list/features = list(
-		FEATURE_MUTANT_COLOR       = preview_features[FEATURE_MUTANT_COLOR],
-		FEATURE_MUTANT_COLOR_TWO   = preview_features[FEATURE_MUTANT_COLOR_TWO],
-		FEATURE_MUTANT_COLOR_THREE = preview_features[FEATURE_MUTANT_COLOR_THREE],
-		FEATURE_SKIN_COLOR         = skintone2hex(preferences.read_preference(/datum/preference/choiced/skin_tone)),
-	)
-	all_markings.add_entry(new /datum/body_marking_entry(marking, bodypart_slot, marking.get_default_color(features, current_species), FALSE))
+	all_markings.add_entry(new /datum/body_marking_entry(marking, bodypart_slot, marking.seed_color(marking_seed_features(), current_species)))
 	preferences.character_preview_view.update_body()
 	return TRUE
 
@@ -432,7 +435,12 @@
 	all_markings.add_zone(bodypart_slot)
 	var/datum/body_marking_entry/renamed = marking_entry_by_id(bodypart_slot, marking_id)
 	if(renamed)
-		all_markings.replace_entry(renamed, new /datum/body_marking_entry(GLOB.body_markings[marking_name], bodypart_slot, renamed.get_color(), renamed.get_emissive()))
+		var/datum/body_marking/replacement = GLOB.body_markings[marking_name]
+		// The row keeps its colour, unless its new marking is locked: ink starts in its own colour, never the replaced row's.
+		var/color = renamed.get_color()
+		if(replacement.color_mode == MARKING_COLOR_LOCKED)
+			color = replacement.seed_color(marking_seed_features(), GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)])
+		all_markings.replace_entry(renamed, new /datum/body_marking_entry(replacement, bodypart_slot, color, renamed.get_emissive()))
 	preferences.character_preview_view.update_body()
 	return TRUE
 
@@ -440,7 +448,8 @@
 	var/bodypart_slot = params["bodypart_slot"]
 	var/marking_id = params["marking_id"]
 	var/datum/body_marking_entry/recoloured = marking_entry_by_id(bodypart_slot, marking_id)
-	if(!recoloured)
+	// A locked marking keeps its colour, so there is nothing to pick.
+	if(!recoloured || recoloured.marking.color_mode == MARKING_COLOR_LOCKED)
 		return
 	var/new_color = tgui_color_picker(usr, "Select new color", null, recoloured.get_color())
 	if(!new_color)
@@ -486,16 +495,8 @@
 	else
 		// A set with markings merges: each zone it covers is replaced by its markings in the set's order, and
 		// every other zone keeps what it wears.
-		var/species_type = preferences.read_preference(/datum/preference/choiced/species)
-		var/list/preview_features = preferences.character_preview_view.body.dna.features
-		var/list/features = list(
-			FEATURE_MUTANT_COLOR       = preview_features[FEATURE_MUTANT_COLOR],
-			FEATURE_MUTANT_COLOR_TWO   = preview_features[FEATURE_MUTANT_COLOR_TWO],
-			FEATURE_MUTANT_COLOR_THREE = preview_features[FEATURE_MUTANT_COLOR_THREE],
-			FEATURE_SKIN_COLOR         = skintone2hex(preferences.read_preference(/datum/preference/choiced/skin_tone)),
-		)
-		var/datum/species/current_species = GLOB.species_prototypes[species_type]
-		preferences.body_markings.overwrite_zones_from(assemble_body_markings_from_set(marking_set, features, current_species))
+		var/datum/species/current_species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
+		preferences.body_markings.overwrite_zones_from(assemble_body_markings_from_set(marking_set, marking_seed_features(), current_species))
 	preferences.character_preview_view.update_body()
 	return TRUE
 

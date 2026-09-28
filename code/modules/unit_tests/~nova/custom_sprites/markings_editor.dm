@@ -192,6 +192,38 @@
 	TEST_ASSERT(editor.ui_act("setBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 1, "name" = foreign), ui, null), "Mismatched parts allow any species' marking.")
 	editor.finish(FALSE)
 
+/// A locked marking keeps its own colour in the whole-body editor, as in character setup: a row renamed to one starts in
+/// that colour, not the old row's, and its colour can't be picked.
+/datum/unit_test/custom_sprite_markings_editor_locked_colors
+
+/datum/unit_test/custom_sprite_markings_editor_locked_colors/Run()
+	var/datum/body_marking/ink
+	var/datum/body_marking/paint
+	for(var/name in GLOB.body_markings_per_limb[BODY_ZONE_L_ARM])
+		var/datum/body_marking/marking = GLOB.body_markings[name]
+		if(marking.color_mode == MARKING_COLOR_LOCKED)
+			ink ||= marking
+		else
+			paint ||= marking
+	TEST_ASSERT(ink && paint, "The fixture needs a locked and an unlocked left arm marking.")
+	var/ink_color = LOWER_TEXT(ink.default_color)
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+	preferences.body_markings = body_marking_collection_from_list(list(BODY_ZONE_L_ARM = list("[paint.name]" = list("#abcdef", 0))))
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_L_ARM)
+	// A real mob without a client: the colour picker runtimes on one, so a locked row that opened it would fail the test.
+	var/mob/living/carbon/human/consistent/user = allocate(/mob/living/carbon/human/consistent)
+	var/datum/tgui/ui = allocate(/datum/tgui, user, editor, "CustomMarkingsEditor")
+	var/list/rows = editor.workspace.markings_context[BODY_ZONE_L_ARM]
+	TEST_ASSERT(length(rows) == 1 && rows[1]["color"] == "#abcdef", "The fixture's left arm must open with its saved row.")
+	TEST_ASSERT(editor.ui_act("setBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 1, "name" = ink.name), ui, null), "Renaming a row to a locked marking must work.")
+	var/list/renamed = editor.workspace.markings_context[BODY_ZONE_L_ARM][1]
+	TEST_ASSERT(renamed["name"] == ink.name && renamed["color"] == ink_color, "A row renamed to a locked marking must start in that marking's colour, not the old row's.")
+	TEST_ASSERT(!editor.ui_act("pickBaseMarkingColor", list("zone" = BODY_ZONE_L_ARM, "index" = 1), ui, null), "Picking a locked row's colour must return without doing anything.")
+	TEST_ASSERT(editor.workspace.markings_context[BODY_ZONE_L_ARM][1]["color"] == ink_color, "A locked row must keep its colour.")
+	editor.finish(FALSE)
+
 /datum/unit_test/custom_sprite_markings_editor_palette_overflow/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)

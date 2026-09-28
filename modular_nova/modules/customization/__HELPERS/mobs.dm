@@ -21,6 +21,22 @@
 		if(!marking.recommended_species || marking.recommended_species[species_id])
 			. += marking_name
 
+/**
+ * Returns the body marking sets meant for any species or for this one, the "None" set included.
+ *
+ * Arguments:
+ * - species_id: the species' id.
+ *
+ * Returns:
+ * - list: a new list of /datum/body_marking_set typepaths in GLOB.body_marking_sets_by_type order, or null for none.
+ */
+/proc/body_marking_set_types_for_species(species_id)
+	RETURN_TYPE(/list)
+	for(var/set_type, set_datum in GLOB.body_marking_sets_by_type)
+		var/datum/body_marking_set/marking_set = set_datum
+		if(isnull(marking_set.recommended_species) || !isnull(marking_set.recommended_species[species_id]))
+			LAZYADD(., set_type)
+
 /proc/random_accessory_of_key_for_species(key, datum/species/species, mismatched = FALSE, ckey)
 	var/list/accessory_list = accessory_list_of_key_for_species(key, species, mismatched, ckey)
 	var/datum/sprite_accessory/sprite_accessory = SSaccessories.sprite_accessories[key][pick(accessory_list)]
@@ -28,14 +44,31 @@
 		CRASH("Cant find random accessory of [key] key, for species [species.id]")
 	return sprite_accessory
 
+/**
+ * Builds a new collection wearing a marking set: each of its markings on every zone the marking claims, in the set's order.
+ *
+ * A marking's zones come in GLOB.body_markings_per_limb order, as scanning those lists for its name gave them, and each
+ * marking starts in the colour its color_mode seeds.
+ *
+ * Arguments:
+ * - marking_set: the set to wear. A name no marking has adds nothing.
+ * - features: the character's features, where markings following a mutant colour read it.
+ * - species: the character's species.
+ *
+ * Returns:
+ * - /datum/body_marking_collection: always a new collection.
+ */
 /proc/assemble_body_markings_from_set(datum/body_marking_set/marking_set, list/features, datum/species/species)
+	RETURN_TYPE(/datum/body_marking_collection)
 	var/datum/body_marking_collection/body_markings = new
 	for(var/set_name in marking_set.body_marking_list)
 		var/datum/body_marking/body_marking = GLOB.body_markings[set_name]
-		for(var/zone, markings in GLOB.body_markings_per_limb)
-			var/list/marking_list = markings
-			if(set_name in marking_list)
-				body_markings.add_entry(new /datum/body_marking_entry(body_marking, zone, body_marking.get_default_color(features, species), FALSE))
+		if(!body_marking)
+			continue
+		var/color = body_marking.seed_color(features, species)
+		for(var/zone in GLOB.body_markings_per_limb)
+			if(body_marking.affected_bodyparts & GLOB.marking_zone_to_bitflag[zone])
+				body_markings.add_entry(new /datum/body_marking_entry(body_marking, zone, color))
 	return body_markings
 
 /proc/random_bra(gender)
