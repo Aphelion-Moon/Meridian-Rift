@@ -33,5 +33,5 @@ GLOBAL_LIST_INIT(background_state_options, list(
 	body.setDir(dir)
 	canvas.dir = body.dir
 	canvas.cut_overlays()
-	canvas.add_overlay(body.appearance)
+	canvas.add_overlay(silicon_preview || body.appearance) // APHELION EDIT CHANGE - ORIGINAL: canvas.add_overlay(body.appearance)
 	appearance = canvas.appearance
