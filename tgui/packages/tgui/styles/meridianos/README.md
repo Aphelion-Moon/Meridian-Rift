@@ -51,8 +51,11 @@ use it.
     zoom before display scaling. Width settles before height is measured again.
     Explicit scroll regions keep their own viewports. Manual resizing disables
     automatic growth until reopening; screen limits and layouts that cannot grow
-    to fit use scrolling. Input dialogs and glassblowing retain their natural-height
-    layout rules and may shrink during opening. Other compact forms need no registration.
+    to fit use scrolling. Input dialogs and glassblowing use natural-height layout
+    only during the hidden opening measurement and may shrink during that pass.
+    Before showing, the normal fill layout is restored and checked again, so lists
+    and editors expand with the viewport. Later updates measure viewport overflow.
+    Other compact forms need no registration.
 
 `Layout` resolves the window-local development override first, then an authored
 specialty theme, the saved player base theme, an ordinary requested/device

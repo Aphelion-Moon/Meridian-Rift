@@ -121,6 +121,7 @@
 	// These are awarded/tracked by this server, never by the uploaded file.
 	out["hearted_until"] = local_player_data["hearted_until"]
 	out[PREFS_IMPORT_NOTICE_KEY] = local_player_data[PREFS_IMPORT_NOTICE_KEY]
+	out[NOVA_PAINTING_IMPORT_ANSWER] = local_player_data[NOVA_PAINTING_IMPORT_ANSWER] // APHELION EDIT ADDITION - preserve local import consent
 	return out
 
 /// Lists consumed as text/type names by raw loaders must not carry numeric indexes or nested collections.

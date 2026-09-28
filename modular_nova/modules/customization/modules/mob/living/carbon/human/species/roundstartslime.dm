@@ -1004,6 +1004,9 @@
 	for(var/datum/dna_block/feature/mutant/block as anything in subtypesof(/datum/dna_block/feature/mutant))
 		if(CONFIG_GET(flag/disable_erp_preferences) && (block::feature_key in ORGAN_ERP_LIST))
 			continue
+		// A taur's own tail comes and goes with its body.
+		if(block::feature_key == FEATURE_TAIL && istype(alterer.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL), /obj/item/organ/tail/taur))
+			continue
 		mutant_part_list[block::feature_key] = block
 	var/chosen_key = tgui_input_list(
 		alterer,

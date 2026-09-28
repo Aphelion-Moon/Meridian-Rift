@@ -98,9 +98,11 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 	painting_metadata.creation_round_id = GLOB.round_id
 	painting_metadata.width = width
 	painting_metadata.height = height
+	LAZYOR(SSpersistent_paintings.pending_canvases, src) // APHELION EDIT ADDITION - include unframed local artwork in import conflicts
 	ADD_KEEP_TOGETHER(src, INNATE_TRAIT)
 
 /obj/item/canvas/Destroy()
+	LAZYREMOVE(SSpersistent_paintings.pending_canvases, src) // APHELION EDIT ADDITION - pending artwork registry
 	last_patron = null
 	if(istype(loc,/obj/structure/sign/painting))
 		var/obj/structure/sign/painting/frame = loc
@@ -168,7 +170,7 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 		"pixelsPerUnit" = pixels_per_unit,
 		"finalized" = finalized,
 		"allowColorPicker" = can_change_implement_color,
-		"editable" = can_edit && !finalized, //Ideally you should be able to draw moustaches on existing paintings in the gallery but that's not implemented yet
+		"editable" = can_edit && !finalized && !finalizing, // APHELION EDIT CHANGE - ORIGINAL: "editable" = can_edit && !finalized, //Ideally you should be able to draw moustaches on existing paintings in the gallery but that's not implemented yet
 		"showPlaque" = istype(loc, /obj/structure/sign/painting)
 	)
 
@@ -186,7 +188,7 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 	switch(action)
 		if("spriteEditorCommand")
 			. = TRUE
-			if(finalized)
+			if(finalized || finalizing) // APHELION EDIT CHANGE - ORIGINAL: if(finalized)
 				return
 			var/command = params["command"]
 			if(command != "transaction") // Painting only allows transactions, no undo/redo or layer visibility toggling
@@ -233,6 +235,7 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 		return COLOR_IS_INVALID
 
 /obj/item/canvas/proc/finalize(mob/user)
+	/* // APHELION EDIT REMOVAL START - Canvas finalization now runs in the gallery module.
 	if(finalized || painting_metadata.loaded_from_json)
 		return
 	if(!in_range(src, user))
@@ -249,15 +252,17 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 	finalized = TRUE
 
 	SStgui.update_uis(src)
+	*/ // APHELION EDIT REMOVAL END
+	return gallery_finalize(user) // APHELION EDIT ADDITION - private saves and finalization guard
 
 #define CURATOR_PERCENTILE_CUT 0.225
 #define SERVICE_PERCENTILE_CUT 0.125
 
 /obj/item/canvas/proc/patron(mob/living/user)
-	if(!finalized || !isliving(user))
+	if(!finalized || persistence_saving || !isliving(user)) // APHELION EDIT CHANGE - ORIGINAL: if(!finalized || !isliving(user))
 		return
 	if(!painting_metadata.loaded_from_json)
-		if(tgui_alert(user, "The painting hasn't been archived yet and will be lost at the end of the shift if not placed in an elegible frame. Continue?","Unarchived Painting",list("Yes","No")) != "Yes")
+		if(tgui_alert(user, "This painting has not been archived. Place it in an archive-enabled frame to save it. Continue?", "Unarchived Painting", list("Yes", "No")) != "Yes") // APHELION EDIT CHANGE - ORIGINAL: if(tgui_alert(user, "The painting hasn't been archived yet and will be lost at the end of the shift if not placed in an elegible frame. Continue?","Unarchived Painting",list("Yes","No")) != "Yes")
 			return
 	var/mob/living/living_user = user
 	var/obj/item/card/id/id_card = living_user.get_idcard(TRUE)
@@ -273,13 +278,20 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 		return
 	var/sniped_amount = painting_metadata.credit_value
 	var/offer_amount = tgui_input_number(user, "How much do you want to offer?", "Patronage Amount", (painting_metadata.credit_value + 1), account.account_balance, painting_metadata.credit_value)
-	if(!offer_amount || QDELETED(user) || QDELETED(src) || !istype(loc, /obj/structure/sign/painting) || !user.can_perform_action(loc, FORBID_TELEKINESIS_REACH))
+	if(!offer_amount || persistence_saving || QDELETED(user) || QDELETED(src) || !istype(loc, /obj/structure/sign/painting) || !user.can_perform_action(loc, FORBID_TELEKINESIS_REACH)) // APHELION EDIT CHANGE - ORIGINAL: if(!offer_amount || QDELETED(user) || QDELETED(src) || !istype(loc, /obj/structure/sign/painting) || !user.can_perform_action(loc, FORBID_TELEKINESIS_REACH))
 		return
 	if(sniped_amount != painting_metadata.credit_value)
 		return
 	if(!account.adjust_money(-offer_amount, "Painting: Patron of [painting_metadata.title]"))
 		to_chat(user, span_warning("Transaction failure. Please try again."))
 		return
+	// APHELION EDIT ADDITION START - Persist before distributing the patronage payment.
+	var/old_patronage = painting_metadata.credit_value
+	if(!persist_patronage(user, account, offer_amount, sniped_amount))
+		return
+	if(QDELETED(src) || QDELETED(user))
+		return
+	// APHELION EDIT ADDITION END
 
 	var/datum/bank_account/service_account = SSeconomy.get_dep_account(ACCOUNT_SRV)
 	service_account.adjust_money(offer_amount * SERVICE_PERCENTILE_CUT)
@@ -296,12 +308,20 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 
 	if(istype(loc, /obj/structure/sign/painting))
 		var/obj/structure/sign/painting/frame = loc
-		frame.remove_art_element(painting_metadata.credit_value)
+		frame.remove_art_element(old_patronage) // APHELION EDIT CHANGE - ORIGINAL: frame.remove_art_element(painting_metadata.credit_value)
 		frame.add_art_element(offer_amount)
 
+	/* // APHELION EDIT REMOVAL START - Archived metadata was already committed.
 	painting_metadata.patron_ckey = user.ckey
 	painting_metadata.patron_name = user.real_name
 	painting_metadata.credit_value = offer_amount
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Archived metadata was already committed.
+	if(!painting_metadata.loaded_from_json)
+		painting_metadata.patron_ckey = user.ckey
+		painting_metadata.patron_name = user.real_name
+		painting_metadata.credit_value = offer_amount
+	// APHELION EDIT ADDITION END
 	last_patron = WEAKREF(user.mind)
 
 	to_chat(user, span_notice("Nanotrasen Trust Foundation thanks you for your contribution. You're now an official patron of this painting."))
@@ -330,12 +350,22 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 	var/result = show_radial_menu(user, loc, radial_options, radius = 60, custom_check = CALLBACK(src, PROC_REF(can_select_frame), user), tooltips = TRUE)
 	if(!result)
 		return
+	/* // APHELION EDIT REMOVAL START - Commit frame changes through the shared queue.
 	painting_metadata.frame_type = result
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Commit frame changes through the shared queue.
+	if(!persist_frame_choice(user, result))
+		return
+	// APHELION EDIT ADDITION END
 	var/obj/structure/sign/painting/our_frame = loc
 	our_frame.balloon_alert(user, "frame set to [result]")
 	our_frame.update_appearance()
 
 /obj/item/canvas/proc/can_select_frame(mob/user)
+	// APHELION EDIT ADDITION START - Archive guard.
+	if(persistence_saving)
+		return FALSE
+	// APHELION EDIT ADDITION END
 	if(!istype(loc, /obj/structure/sign/painting))
 		return FALSE
 	if(!loc.IsReachableBy(user) || user.incapacitated)
@@ -444,15 +474,27 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 		return "Unknown medium"
 
 /obj/item/canvas/proc/try_rename(mob/user)
+	// APHELION EDIT ADDITION START - Archive guard.
+	if(persistence_saving)
+		return FALSE
+	// APHELION EDIT ADDITION END
 	if(painting_metadata.loaded_from_json) // No renaming old paintings
 		return TRUE
 	var/new_name = tgui_input_text(user, "What do you want to name the painting?", "Title Your Masterpiece", max_length = MAX_NAME_LEN)
 	new_name = reject_bad_name(new_name, allow_numbers = TRUE, ascii_only = FALSE, strict = TRUE, cap_after_symbols = FALSE)
-	if(isnull(new_name))
+	if(isnull(new_name) || QDELETED(src) || persistence_saving) // APHELION EDIT CHANGE - ORIGINAL: if(isnull(new_name))
 		return FALSE
 	if(new_name != painting_metadata.title && user.can_perform_action(src))
 		painting_metadata.title = new_name
+	/* // APHELION EDIT REMOVAL START - Input may outlive the canvas or its archive transaction.
 	switch(tgui_alert(user, "Do you want to sign it or remain anonymous?", "Sign painting?", list("Yes", "No", "Cancel")))
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Input may outlive the canvas or its archive transaction.
+	var/signature = tgui_alert(user, "Do you want to sign it or remain anonymous?", "Sign painting?", list("Yes", "No", "Cancel"))
+	if(QDELETED(src) || QDELETED(user) || persistence_saving || painting_metadata.loaded_from_json)
+		return FALSE
+	switch(signature)
+	// APHELION EDIT ADDITION END
 		if("Yes")
 			return TRUE
 		if("No")
@@ -606,7 +648,7 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 /obj/structure/sign/painting/examine(mob/user)
 	. = ..()
 	if(persistence_id)
-		. += span_notice("Any painting placed here will be archived at the end of the shift.")
+		. += span_notice("Finalized paintings placed here are archived immediately.") // APHELION EDIT CHANGE - ORIGINAL: . += span_notice("Any painting placed here will be archived at the end of the shift.")
 	if(current_canvas)
 		current_canvas.ui_interact(user)
 		. += span_notice("Use wirecutters to remove the painting.")
@@ -643,6 +685,12 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 		current_canvas = new_canvas
 		if(!current_canvas.finalized)
 			current_canvas.finalize(user)
+		// APHELION EDIT ADDITION START - Archive immediately and recheck placement after yielding.
+		else
+			current_canvas.archive_if_mounted(user)
+		if(QDELETED(src) || QDELETED(new_canvas) || current_canvas != new_canvas || new_canvas.loc != src)
+			return FALSE
+		// APHELION EDIT ADDITION END
 		to_chat(user,span_notice("You frame [current_canvas]."))
 		add_art_element()
 		update_appearance()
@@ -744,11 +792,20 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 	return 0
 
 /obj/structure/sign/painting/proc/save_persistent()
+	/* // APHELION EDIT REMOVAL START - Personal saves may join the frame rotation later.
 	if(!persistence_id || !current_canvas || current_canvas.no_save || current_canvas.painting_metadata.loaded_from_json)
 		return
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Saved originals and printed copies may add a rotation tag.
+	if(!persistence_id || !current_canvas || (current_canvas.no_save && !current_canvas.painting_metadata.loaded_from_json))
+		return
+	if(persistence_id in current_canvas.painting_metadata.tags)
+		return list("ok" = TRUE, "changed" = FALSE)
+	// APHELION EDIT ADDITION END
 	if(SANITIZE_FILENAME(persistence_id) != persistence_id)
 		stack_trace("Invalid persistence_id - [persistence_id]")
 		return
+	/* // APHELION EDIT REMOVAL START - All image and metadata writes use the shared transaction queue.
 	var/data = current_canvas.get_data_string()
 	var/md5 = md5(LOWER_TEXT(data))
 	var/list/current = SSpersistent_paintings.paintings[persistence_id]
@@ -768,6 +825,8 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 	if(result)
 		CRASH("Error saving persistent painting: [result]")
 	SSpersistent_paintings.paintings += current_canvas.painting_metadata
+	*/ // APHELION EDIT REMOVAL END
+	return SSpersistent_paintings.run_store_operation("archive", list("canvas" = current_canvas, "tag" = persistence_id)) // APHELION EDIT ADDITION - shared painting transaction queue
 
 /obj/item/canvas/proc/fill_grid_from_icon(icon/I)
 	var/list/grid = workspace.layers[1]["data"]["[SOUTH]"]
@@ -918,6 +977,7 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 	desc = "paintbrush included"
 	icon = 'icons/obj/art/artstuff.dmi'
 	icon_state = "palette"
+	inhand_icon_state = "palette"
 	lefthand_file = 'icons/mob/inhands/equipment/palette_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/equipment/palette_righthand.dmi'
 	w_class = WEIGHT_CLASS_TINY

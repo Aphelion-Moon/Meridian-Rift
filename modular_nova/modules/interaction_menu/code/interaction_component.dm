@@ -77,16 +77,14 @@
 	interact_next = interact_last + INTERACTION_COOLDOWN
 	partner.interact_next = interact_next
 
-/// Resolves a route from the viewer's active item or this component's current body relay.
+/// Resolves a route through a portal device the viewer can reach, or this component's current body relay. Null is in person.
 /datum/component/interactable/proc/get_interaction_route(datum/interaction/interaction, mob/living/carbon/human/user)
-	var/obj/item/active_item = user.get_active_held_item()
-	var/datum/interaction_route/item_route = active_item?.interaction_route_for(self, interaction, user)
-	if(item_route || user == self || user.Adjacent(self))
-		return item_route
+	var/datum/interaction_route/route = self.get_worn_portal_route(interaction, user)
 	var/atom/movable/resolved_relay = resolve_body_relay()
-	if(resolved_relay && user.Adjacent(resolved_relay))
-		return resolved_relay.interaction_route_for(self, interaction, user)
-	return null
+	// The relay only answers for the half of the body it shows; everything else is reached in person.
+	if(!route && user != self && resolved_relay && user.Adjacent(resolved_relay))
+		route = resolved_relay.interaction_route_for(self, interaction, user)
+	return route
 
 /datum/component/interactable/proc/open_interaction_menu(datum/source, mob/user)
 	SIGNAL_HANDLER
@@ -122,9 +120,9 @@
 	var/list/data = list()
 	data["arousalLimit"] = AROUSAL_LIMIT
 	// Genital config option labels, shared with the standalone layering panel.
-	data["genital_visibility_options"] = assoc_to_keys(GLOB.genital_visibility_options)
-	data["genital_layering_options"] = assoc_to_keys(GLOB.genital_layering_options)
-	data["genital_arousal_options"] = assoc_to_keys(GLOB.genital_arousal_options)
+	data["genital_visibility_options"] = assoc_to_keys(/obj/item/organ/genital::visibility_options)
+	data["genital_layering_options"] = assoc_to_keys(/obj/item/organ/genital::layering_options)
+	data["genital_arousal_options"] = assoc_to_keys(/obj/item/organ/genital::arousal_options)
 	return data
 
 /datum/component/interactable/ui_data(mob/user)

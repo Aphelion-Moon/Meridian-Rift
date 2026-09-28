@@ -1,0 +1,5 @@
+author: "vinylspiders"
+delete-after: True
+changes:
+  - refactor: "adds support for taur to have tails! feline taur is the only one with a wag animation for now."
+  - bugfix: "fixes color picker for some of the char prefs menu options being off-center"

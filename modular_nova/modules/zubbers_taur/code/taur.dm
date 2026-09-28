@@ -1,6 +1,7 @@
 /datum/sprite_accessory/taur/chemnaga
 	name = "Chemnaga"
 	icon_state = "chemnaga"
+	has_tail = TRUE
 	taur_mode = BODYSHAPE_TAUR_SNAKE
 	organ_type = /obj/item/organ/taur_body/serpentine
 	icon = 'modular_nova/modules/zubbers_taur/icons/mam_taur.dmi'

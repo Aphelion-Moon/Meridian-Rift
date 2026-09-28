@@ -1,3 +1,7 @@
+// APHELION EDIT ADDITION START - Shared gallery persistence contract.
+#define PAINTINGS_DATA_FORMAT_VERSION 3
+#define NOVA_PAINTING_IMPORT_ANSWER "nova_painting_import_answer"
+// APHELION EDIT ADDITION END
 /// Only returns paintings with 23x23 or 24x24 sizes fitting AI display icon.
 #define PAINTINGS_FILTER_AI_PORTRAIT (1<<0)
 /// Search mode for the title of the painting
