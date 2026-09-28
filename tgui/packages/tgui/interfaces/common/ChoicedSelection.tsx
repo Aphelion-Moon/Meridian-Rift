@@ -79,6 +79,8 @@ type ChoicedSelectionProps = {
   children?: ReactNode;
   /** Zooms every icon to this part of its sprite. */
   previewArea?: SpriteArea;
+  /** Options shown but not selectable right now: option -> why, which its tooltip gives. */
+  disabledOptions?: Record<string, string>;
 };
 
 /** The preferences icon picker, shared with editors using the same spritesheet. */
@@ -92,6 +94,7 @@ export function ChoicedSelection(props: ChoicedSelectionProps) {
     buttons,
     children,
     previewArea,
+    disabledOptions,
   } = props;
   const [searchText, setSearchText] = useState('');
   const choices = useMemo(
@@ -140,36 +143,41 @@ export function ChoicedSelection(props: ChoicedSelectionProps) {
         <Stack.Item grow>
           <Section fill scrollable noTopPadding>
             <Stack wrap>
-              {matchingChoices.map(([choice, image]) => (
-                <Button
-                  key={choice}
-                  onClick={() => onSelect(choice)}
-                  selected={choice === selected}
-                  tooltip={choice}
-                  tooltipPosition="right"
-                  aria-label={choice}
-                  style={{
-                    height: `${CELL_SIZE}px`,
-                    width: `${CELL_SIZE}px`,
-                  }}
-                >
-                  {previewArea ? (
-                    <ZoomedSprite image={image} area={previewArea} />
-                  ) : (
-                    <Box
-                      className={classes([
-                        'preferences32x32',
-                        image,
-                        'centered-image',
-                      ])}
-                      style={{
-                        transform:
-                          'translateX(-50%) translateY(-50%) scale(0.8)',
-                      }}
-                    />
-                  )}
-                </Button>
-              ))}
+              {matchingChoices.map(([choice, image]) => {
+                const reason = disabledOptions?.[choice];
+                return (
+                  <Button
+                    key={choice}
+                    onClick={() => onSelect(choice)}
+                    selected={choice === selected}
+                    disabled={!!reason}
+                    tooltip={reason ? `${choice}: ${reason}` : choice}
+                    tooltipPosition="right"
+                    aria-label={choice}
+                    aria-disabled={reason ? true : undefined}
+                    style={{
+                      height: `${CELL_SIZE}px`,
+                      width: `${CELL_SIZE}px`,
+                    }}
+                  >
+                    {previewArea ? (
+                      <ZoomedSprite image={image} area={previewArea} />
+                    ) : (
+                      <Box
+                        className={classes([
+                          'preferences32x32',
+                          image,
+                          'centered-image',
+                        ])}
+                        style={{
+                          transform:
+                            'translateX(-50%) translateY(-50%) scale(0.8)',
+                        }}
+                      />
+                    )}
+                  </Button>
+                );
+              })}
             </Stack>
           </Section>
         </Stack.Item>
@@ -188,6 +196,8 @@ export function ChoicedSelectionDropdown(props: {
   disabled?: boolean;
   placement?: ComponentProps<typeof Floating>['placement'];
   previewArea?: SpriteArea;
+  /** Options the picker shows but won't select: option -> why. */
+  disabledOptions?: Record<string, string>;
 }) {
   const { disabled, icons, placement = 'left-start', ...selection } = props;
   return (

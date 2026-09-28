@@ -187,6 +187,49 @@
   pointer-events: none;
 }
 
+// Character setup's Markings tab. The colour picker is a Floating portaled out
+// of .PreferencesMenu, so none of this nests under it; the picker's class sits
+// on its own Floating, which closes by unmounting: nothing here hides one.
+.LimbsPage {
+  &__markingNotes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-m);
+    margin-top: var(--space-xs);
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--color-label);
+  }
+
+  &__markingNote--warning {
+    color: var(--color-average);
+  }
+
+  &__colorTrigger {
+    display: inline-block;
+  }
+
+  &__colorPicker {
+    padding: var(--space-m);
+    background-color: var(--color-base);
+    box-shadow: 0 0.5em 1em hsla(0, 0%, 0%, 0.5);
+
+    .react-colorful {
+      width: 160px;
+      height: 160px;
+    }
+  }
+
+  &__presetScope,
+  &__presetMarkings {
+    margin-bottom: var(--space-m);
+  }
+
+  &__presetMarkings {
+    color: var(--color-label);
+  }
+}
+
 @media (forced-colors: active) {
   .PreferencesMenu__Jobs__departments__priority.Button {
     border-color: ButtonText !important;

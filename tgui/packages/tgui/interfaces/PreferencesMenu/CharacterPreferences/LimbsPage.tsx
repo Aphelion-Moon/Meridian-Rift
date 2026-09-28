@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { useBackend } from 'tgui/backend';
+import { type HsvaColor, hexToHsva, hsvaToHex } from 'tgui-core/color'; // APHELION EDIT ADDITION
 import {
   Box,
   Button,
@@ -21,9 +22,14 @@ import {
 } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 
+// APHELION EDIT ADDITION START
+import { Hue, SaturationValue } from '../../ColorPickerModal/Color';
+import { HexColorInput } from '../../ColorPickerModal/TextSetter';
+// APHELION EDIT ADDITION END
 import { CharacterPreview } from '../../common/CharacterPreview';
 // APHELION EDIT ADDITION START
 import {
+  ChoicedSelection,
   ChoicedSelectionDropdown,
   MARKING_PREVIEW_AREAS,
 } from '../../common/ChoicedSelection';
@@ -32,8 +38,12 @@ import type {
   AugmentItem,
   AugmentSlot,
   Marking,
+  MarkingColorMode, // APHELION EDIT ADDITION
+  MarkingInfo, // APHELION EDIT ADDITION
+  MarkingPreset, // APHELION EDIT ADDITION
   PreferencesMenuData,
   RoboticStyle,
+  Species, // APHELION EDIT ADDITION
 } from '../types';
 import { useServerPrefs } from '../useServerPrefs';
 
@@ -133,6 +143,14 @@ const LabeledDropdown = (
 
 const PresetConfirmPopup = (props: {
   preset: string;
+  // APHELION EDIT ADDITION START
+  /** The markings the preset puts on, in order, or null for none. */
+  markings: string[] | null;
+  /** Whether the preset replaces every marking, on the body parts it leaves bare too. */
+  keepTogether: boolean;
+  /** The body parts the preset covers, by label. */
+  zones: string[];
+  // APHELION EDIT ADDITION END
   onConfirm: () => void;
   onCancel: () => void;
 }) => (
@@ -142,10 +160,41 @@ const PresetConfirmPopup = (props: {
         <Box fontSize="2em">Replace Markings?</Box>
       </Stack.Item>
       <Stack.Item maxWidth="300px">
+        {/* APHELION EDIT REMOVAL START
         <Box>
           Applying the <b>{props.preset}</b> preset will replace all your
           current markings. Are you sure?
         </Box>
+        APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START - "None" and a kept-together set replace every marking; any other set replaces only the body parts it covers. */}
+        {!props.markings?.length || props.keepTogether ? (
+          <Box className="LimbsPage__presetScope LimbsPage__presetScope--all">
+            {props.markings?.length ? (
+              <>
+                The <b>{props.preset}</b> preset is kept together: applying it
+                will replace all your current markings, on every body part.
+              </>
+            ) : (
+              <>
+                Applying the <b>{props.preset}</b> preset will remove all your
+                current markings.
+              </>
+            )}{' '}
+            Are you sure?
+          </Box>
+        ) : (
+          <Box className="LimbsPage__presetScope LimbsPage__presetScope--zones">
+            Applying the <b>{props.preset}</b> preset will replace your markings
+            on the body parts it covers: {props.zones.join(', ')}. Your other
+            markings stay. Are you sure?
+          </Box>
+        )}
+        {!!props.markings?.length && (
+          <Box className="LimbsPage__presetMarkings">
+            It puts on {props.markings.join(', ')}.
+          </Box>
+        )}
+        {/* APHELION EDIT ADDITION END */}
       </Stack.Item>
       <Stack.Item>
         <Stack fill>
@@ -280,6 +329,332 @@ const buildInternalImplantData = (
 
 // Markings
 
+// APHELION EDIT ADDITION START
+// Leg shape bitflags -- these must match the MARKING_LEG_* defines in code\__DEFINES\~nova_defines\DNA.dm
+const MARKING_LEG_PLANTIGRADE = 1 << 0;
+const MARKING_LEG_DIGITIGRADE = 1 << 1;
+
+/** What a colour reset gives a row back, by its marking's colour mode. */
+const RESET_COLOR_TOOLTIPS: Record<MarkingColorMode, string> = {
+  follows_primary: 'Reset to your mutant color',
+  follows_secondary: 'Reset to your mutant color 2',
+  follows_tertiary: 'Reset to your mutant color 3',
+  fixed_default: "Reset to this marking's own color",
+  locked: "Reset to this marking's own color",
+};
+
+/**
+ * Why each offered marking can't go on a zone right now, as the backend refuses it: a marking a row there wears, and any
+ * other marking of a worn marking's exclusion group. `renaming` is the row being renamed, whose own marking doesn't count.
+ */
+const unavailableMarkings = (
+  rows: Marking[],
+  info: Record<string, MarkingInfo>,
+  offered: string[],
+  renaming?: Marking,
+): Record<string, string> => {
+  const reasons: Record<string, string> = {};
+  for (const row of rows) {
+    if (row === renaming) continue;
+    reasons[row.name] = 'already worn here';
+    const group = info[row.name]?.exclusion_group;
+    if (!group) continue;
+    for (const name of offered) {
+      if (!reasons[name] && info[name]?.exclusion_group === group) {
+        reasons[name] = `can't be worn with ${row.name}`;
+      }
+    }
+  }
+  return reasons;
+};
+
+/** Species names for comma-separated species ids: each one the menu knows by name, else its id. */
+const speciesNames = (
+  ids: string,
+  species: Record<string, Species> | undefined,
+) =>
+  ids
+    .split(',')
+    .map((id) => species?.[id]?.name ?? id)
+    .join(', ');
+
+/** The body parts a preset covers, by their sections' labels: every zone offering one of its markings, in zone order. */
+const presetZones = (
+  preset: MarkingPreset,
+  choices: Record<string, string[]>,
+  items: AugmentSlot[],
+) =>
+  Object.entries(choices)
+    .filter(([, names]) =>
+      preset.markings?.some((name) => names.includes(name)),
+    )
+    .map(
+      ([zone]) => items.find((item) => item.body_zone === zone)?.slot ?? zone,
+    );
+
+type MarkingNote = { text: string; warning?: boolean };
+
+/**
+ * What is worth knowing about a row's marking where it sits: that its zone no longer takes it, whom it is meant for when
+ * that isn't this species, which leg shape it draws on, and that a chest marking follows physique.
+ */
+const markingNotes = (
+  marking: Marking,
+  info: MarkingInfo | undefined,
+  zone: string,
+  zoneOffers: string[] | undefined,
+  context: {
+    species: string;
+    speciesList: Record<string, Species> | undefined;
+    digiLegs: boolean;
+  },
+): MarkingNote[] => {
+  const notes: MarkingNote[] = [];
+  // A save can hold a marking on a zone narrowed since: it draws nothing there, but stays removable.
+  if (!zoneOffers?.includes(marking.name)) {
+    notes.push({ text: 'Not drawn here any more', warning: true });
+  }
+  if (!info) return notes;
+  if (
+    info.recommended_species &&
+    !suitsSpecies(info.recommended_species, context.species)
+  ) {
+    notes.push({
+      text: `Meant for ${speciesNames(info.recommended_species, context.speciesList)}`,
+      warning: true,
+    });
+  }
+  if (zone === 'l_leg' || zone === 'r_leg') {
+    const plantigrade = !!(info.leg_shapes & MARKING_LEG_PLANTIGRADE);
+    const digitigrade = !!(info.leg_shapes & MARKING_LEG_DIGITIGRADE);
+    if (plantigrade !== digitigrade) {
+      notes.push(
+        (context.digiLegs ? digitigrade : plantigrade)
+          ? { text: `${plantigrade ? 'Plantigrade' : 'Digitigrade'} legs only` }
+          : {
+              text: `Not drawn on ${context.digiLegs ? 'digitigrade' : 'plantigrade'} legs`,
+              warning: true,
+            },
+      );
+    }
+  }
+  if (zone === 'chest' && info.gendered) {
+    notes.push({ text: 'Changes with physique' });
+  }
+  return notes;
+};
+
+/**
+ * A row's colour, picked in place with the colour picker window's own controls and sent once, on Apply; a suggested colour is
+ * sent as soon as it is picked. A locked marking's colour can't be picked at all.
+ */
+const MarkingColor = (props: {
+  color: string;
+  locked: boolean;
+  recommended?: string[];
+  placement?: ComponentProps<typeof Floating>['placement'];
+  tooltipPosition?: ComponentProps<typeof Floating>['placement'];
+  onPick: (color: string) => void;
+}) => {
+  const { color, locked, recommended, placement, tooltipPosition, onPick } =
+    props;
+  const floatingRef = useRef<ComponentRef<typeof Floating>>(null);
+  const [hsva, setHsva] = useState<HsvaColor>(() => hexToHsva(color));
+  // A typed colour is sent as typed, not as its round trip through HSV.
+  const [typed, setTyped] = useState<string | null>(null);
+  const [edited, setEdited] = useState(false);
+  const picked = typed ?? hsvaToHex(hsva);
+  const change = (next: Partial<HsvaColor>) => {
+    setHsva((current) => ({ ...current, ...next }));
+    setTyped(null);
+    setEdited(true);
+  };
+  const pick = (value: string) => {
+    if (value.toLowerCase() !== color.toLowerCase()) {
+      onPick(value.toLowerCase());
+    }
+    floatingRef.current?.close();
+  };
+  if (locked) {
+    return (
+      <Button
+        disabled
+        tooltip="This marking is ink: it always keeps its own color."
+        tooltipPosition={tooltipPosition}
+        aria-label="Marking color"
+      >
+        <ColorBox color={color} />
+      </Button>
+    );
+  }
+  return (
+    <Floating
+      ref={floatingRef}
+      stopChildPropagation
+      placement={placement}
+      contentClasses="LimbsPage__colorPicker"
+      // Each opening starts from the row's own colour.
+      onOpenChange={(open) => {
+        if (open) {
+          setHsva(hexToHsva(color));
+          setTyped(null);
+          setEdited(false);
+        }
+      }}
+      content={
+        <Stack vertical>
+          <Stack.Item>
+            <Stack>
+              <Stack.Item>
+                <div className="react-colorful">
+                  <SaturationValue hsva={hsva} onChange={change} />
+                  <Hue
+                    hue={hsva.h}
+                    onChange={change}
+                    className="react-colorful__last-control"
+                  />
+                </div>
+              </Stack.Item>
+              {!!recommended?.length && (
+                <Stack.Item>
+                  <Stack vertical>
+                    {recommended.map((suggested) => (
+                      <Stack.Item key={suggested}>
+                        <Button
+                          tooltip={`Suggested: ${suggested}`}
+                          aria-label={`Suggested color ${suggested}`}
+                          onClick={() => pick(suggested)}
+                        >
+                          <ColorBox color={suggested} />
+                        </Button>
+                      </Stack.Item>
+                    ))}
+                  </Stack>
+                </Stack.Item>
+              )}
+            </Stack>
+          </Stack.Item>
+          <Stack.Item>
+            <Stack align="center">
+              <Stack.Item>
+                <ColorBox color={picked} />
+              </Stack.Item>
+              <Stack.Item grow>
+                <HexColorInput
+                  fluid
+                  color={picked.substring(1)}
+                  onChange={(value) => {
+                    setHsva(hexToHsva(value));
+                    setTyped(`#${value.toLowerCase()}`);
+                    setEdited(true);
+                  }}
+                />
+              </Stack.Item>
+              <Stack.Item>
+                <Button
+                  color="good"
+                  disabled={!edited}
+                  onClick={() => pick(picked)}
+                >
+                  Apply
+                </Button>
+              </Stack.Item>
+            </Stack>
+          </Stack.Item>
+        </Stack>
+      }
+    >
+      {/* The picker anchors to this wrapper: a button's tooltip takes the button's own anchor. */}
+      <div className="LimbsPage__colorTrigger">
+        <Button
+          tooltip="Pick this marking's color"
+          tooltipPosition={tooltipPosition}
+          aria-label="Marking color"
+        >
+          <ColorBox color={color} />
+        </Button>
+      </div>
+    </Floating>
+  );
+};
+
+/**
+ * Adds a marking picked from the zone's choices, the ones it can't take right now shown with the reason; or, from the
+ * second button, one at random.
+ */
+const AddMarking = (props: {
+  body_zone: string;
+  options: string[];
+  unavailable: Record<string, string>;
+  icons?: Record<string, string>;
+  placement?: ComponentProps<typeof Floating>['placement'];
+  tooltipPosition?: ComponentProps<typeof Floating>['placement'];
+  onAdd: (marking_name?: string) => void;
+}) => {
+  const {
+    body_zone,
+    options,
+    unavailable,
+    icons,
+    placement,
+    tooltipPosition,
+    onAdd,
+  } = props;
+  const floatingRef = useRef<ComponentRef<typeof Floating>>(null);
+  return (
+    <Stack>
+      <Stack.Item grow>
+        {icons ? (
+          <Floating
+            ref={floatingRef}
+            stopChildPropagation
+            placement={placement}
+            content={
+              <ChoicedSelection
+                name="marking"
+                catalog={{ icons }}
+                selected=""
+                options={options}
+                disabledOptions={unavailable}
+                previewArea={MARKING_PREVIEW_AREAS[body_zone]}
+                onSelect={(name) => {
+                  onAdd(name);
+                  floatingRef.current?.close();
+                }}
+              />
+            }
+          >
+            <Button fluid color="good" icon="plus" aria-label="Add a marking">
+              Add marking
+            </Button>
+          </Floating>
+        ) : (
+          <Dropdown
+            width="100%"
+            color="good"
+            options={options.filter((name) => !unavailable[name])}
+            selected={null}
+            placeholder="Add marking..."
+            maxItems={7}
+            onSelected={(name) => onAdd(name)}
+          />
+        )}
+      </Stack.Item>
+      <Stack.Item>
+        <Button
+          color="good"
+          icon="dice"
+          tooltip="Add a random marking"
+          tooltipPosition={tooltipPosition}
+          aria-label="Add a random marking"
+          onClick={() => onAdd()}
+        />
+      </Stack.Item>
+    </Stack>
+  );
+};
+// APHELION EDIT ADDITION END
+
 const Markings = (props: {
   body_zone: string;
   chosen_markings: Marking[] | null;
@@ -305,11 +680,17 @@ const Markings = (props: {
   // APHELION EDIT ADDITION END
   // APHELION EDIT ADDITION START
   const { data } = useBackend<PreferencesMenuData>();
-  const serverMarkings = useServerPrefs()?.limbs_and_markings;
+  const serverPrefs = useServerPrefs();
+  const serverMarkings = serverPrefs?.limbs_and_markings;
   const maxMarkings = serverMarkings?.max_markings ?? 0;
   const markingIcons = serverMarkings?.marking_icons?.[body_zone];
+  const markingInfo = serverMarkings?.marking_info ?? {};
   const markings = chosen_markings ?? [];
-  const takenMarkings = new Set(markings.map((marking) => marking.name));
+  const noteContext = {
+    species: data.character_preferences?.misc?.species ?? '',
+    speciesList: serverPrefs?.species,
+    digiLegs: !!data.digi_legs,
+  };
   // A taur body takes the legs' place, so they get its drawing instead of markings.
   const taurLeg = !!data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone);
   const drawingZone = taurLeg ? 'taur' : body_zone;
@@ -321,9 +702,21 @@ const Markings = (props: {
       <Stack.Item>Markings:</Stack.Item>
       {markings.map((marking) => { // APHELION EDIT CHANGE - ORIGINAL: {(chosen_markings ?? []).map((marking) => {
         // APHELION EDIT ADDITION START
-        // A limb takes each marking once, so a row offers only names no other row has claimed.
-        const choices = marking_choices.filter(
-          (name) => name === marking.name || !takenMarkings.has(name),
+        // A limb takes each marking once and one of each exclusion group, so a row can't take a marking another row wears
+        // or keeps off the zone; the picker shows those with the reason.
+        const unavailable = unavailableMarkings(
+          markings,
+          markingInfo,
+          marking_choices,
+          marking,
+        );
+        const info = markingInfo[marking.name];
+        const notes = markingNotes(
+          marking,
+          info,
+          body_zone,
+          serverMarkings?.marking_choices?.[body_zone],
+          noteContext,
         );
         const changeMarking = (value: string) =>
           act('change_marking', {
@@ -333,7 +726,10 @@ const Markings = (props: {
           });
         // APHELION EDIT ADDITION END
         return (
-          <Stack.Item key={marking.marking_id}>
+          <Stack.Item
+            key={marking.marking_id}
+            className="LimbsPage__markingRow" // APHELION EDIT ADDITION
+          >
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
                 {/* APHELION EDIT REMOVAL START
@@ -359,7 +755,8 @@ const Markings = (props: {
                   <ChoicedSelectionDropdown
                     name="marking"
                     icons={markingIcons}
-                    options={choices}
+                    options={marking_choices}
+                    disabledOptions={unavailable}
                     selected={marking.name}
                     placement={pickerPlacement}
                     previewArea={MARKING_PREVIEW_AREAS[body_zone]}
@@ -368,7 +765,9 @@ const Markings = (props: {
                 ) : (
                   <Dropdown
                     width="100%"
-                    options={choices}
+                    options={marking_choices.filter(
+                      (name) => name === marking.name || !unavailable[name],
+                    )}
                     selected={marking.name}
                     displayText={marking.name}
                     maxItems={7}
@@ -378,6 +777,7 @@ const Markings = (props: {
                 )}
                 {/* APHELION EDIT ADDITION END */}
               </Stack.Item>
+              {/* APHELION EDIT REMOVAL START
               <Stack.Item>
                 <Button
                   onClick={() =>
@@ -390,6 +790,41 @@ const Markings = (props: {
                   <ColorBox color={marking.color} />
                 </Button>
               </Stack.Item>
+              APHELION EDIT REMOVAL END */}
+              {/* APHELION EDIT ADDITION START - the colour is picked in place, and reset to where its colour mode starts it. */}
+              <Stack.Item>
+                <MarkingColor
+                  color={marking.color}
+                  locked={!!marking.locked}
+                  recommended={info?.recommended_colors}
+                  placement={pickerPlacement}
+                  tooltipPosition={tooltipPosition}
+                  onPick={(color) =>
+                    act('color_marking', {
+                      bodypart_slot: body_zone,
+                      marking_id: marking.marking_id,
+                      color,
+                    })
+                  }
+                />
+              </Stack.Item>
+              <Stack.Item>
+                <Button
+                  icon="rotate-left"
+                  tooltip={
+                    RESET_COLOR_TOOLTIPS[info?.color_mode ?? 'fixed_default']
+                  }
+                  tooltipPosition={tooltipPosition}
+                  aria-label="Reset marking color"
+                  onClick={() =>
+                    act('reset_marking_color', {
+                      bodypart_slot: body_zone,
+                      marking_id: marking.marking_id,
+                    })
+                  }
+                />
+              </Stack.Item>
+              {/* APHELION EDIT ADDITION END */}
               <Stack.Item>
                 <Button
                   color={marking.emissive ? 'good' : 'bad'}
@@ -420,6 +855,24 @@ const Markings = (props: {
                 </Button>
               </Stack.Item>
             </Stack>
+            {/* APHELION EDIT ADDITION START */}
+            {!!notes.length && (
+              <div className="LimbsPage__markingNotes">
+                {notes.map((note) => (
+                  <span
+                    key={note.text}
+                    className={
+                      note.warning
+                        ? 'LimbsPage__markingNote LimbsPage__markingNote--warning'
+                        : 'LimbsPage__markingNote'
+                    }
+                  >
+                    {note.text}
+                  </span>
+                ))}
+              </div>
+            )}
+            {/* APHELION EDIT ADDITION END */}
           </Stack.Item>
         );
       })}
@@ -436,12 +889,26 @@ const Markings = (props: {
       {/* APHELION EDIT ADDITION START */}
       {!taurLeg && markings.length < maxMarkings && (
         <Stack.Item>
-          <Button
-            color="good"
-            onClick={() => act('add_marking', { bodypart_slot: body_zone })}
-          >
-            +
-          </Button>
+          <AddMarking
+            body_zone={body_zone}
+            options={marking_choices}
+            unavailable={unavailableMarkings(
+              markings,
+              markingInfo,
+              marking_choices,
+            )}
+            icons={markingIcons}
+            placement={pickerPlacement}
+            tooltipPosition={tooltipPosition}
+            onAdd={(marking_name) =>
+              act(
+                'add_marking',
+                marking_name
+                  ? { bodypart_slot: body_zone, marking_name }
+                  : { bodypart_slot: body_zone },
+              )
+            }
+          />
         </Stack.Item>
       )}
       {!!data.allow_custom_sprite_editing && (
@@ -868,6 +1335,7 @@ export const LimbsPage = ({
         'remove_marking',
         'change_marking',
         'color_marking',
+        'reset_marking_color', // APHELION EDIT ADDITION
         'change_emissive',
       ].includes(action)
     ) {
@@ -884,6 +1352,21 @@ export const LimbsPage = ({
     width: '400px',
     zIndex: 100,
   };
+
+  // APHELION EDIT ADDITION START
+  // The preset waiting for confirmation: what it puts on, and which body parts it covers.
+  const pendingPresetData = server_data?.marking_presets?.find(
+    (preset) => preset.name === pendingPreset,
+  );
+  const pendingPresetZones =
+    pendingPresetData && server_data
+      ? presetZones(
+          pendingPresetData,
+          server_data.marking_choices ?? {},
+          server_data.augment_items ?? [],
+        )
+      : [];
+  // APHELION EDIT ADDITION END
 
   // Build all column data, splitting augment_items into bodyparts and internal implants
   const columns: ColumnData | null = useMemo(() => {
@@ -1035,6 +1518,9 @@ export const LimbsPage = ({
         <div style={pendingPresetStyle}>
           <PresetConfirmPopup
             preset={pendingPreset}
+            markings={pendingPresetData?.markings ?? null} // APHELION EDIT ADDITION
+            keepTogether={!!pendingPresetData?.keep_together} // APHELION EDIT ADDITION
+            zones={pendingPresetZones} // APHELION EDIT ADDITION
             onConfirm={() => {
               hasWarnedRef.current = true;
               act('set_preset', { preset: pendingPreset });
