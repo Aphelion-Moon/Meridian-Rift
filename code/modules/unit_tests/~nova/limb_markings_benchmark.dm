@@ -258,9 +258,11 @@
 	// A new character rolls a random appearance and species, so the roll is seeded to come out the same every run.
 	rand_seed(MARKINGS_BENCHMARK_SEED)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	// Species and mismatched parts decide which markings add_marking may pick, so neither is left to the roll.
+	// Species and mismatched parts decide which markings add_marking may pick, so neither is left to the roll. The drive
+	// measures cost, not the species rules, so mismatched parts let every action through: the Tajaran preset, meant for
+	// other species, still applies to the human.
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], FALSE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
 	// The action set lights a marking, which allow_emissives gates, and the preview draws the glow only when allowed.
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
 	preferences.create_character_preview_view(mock_client.mob)
