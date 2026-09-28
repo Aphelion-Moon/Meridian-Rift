@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { Button, Icon, Stack, Tabs } from 'tgui-core/components';
+import { Icon, Tabs } from 'tgui-core/components';
 
 import type { SpeciesBrowserModel } from './model';
 import { ALL_FAMILIES } from './taxonomy';
@@ -24,7 +24,7 @@ function TabLabel(props: TabLabelProps) {
   );
 }
 
-/** One row: the way back, then every family. */
+/** Every family, as tabs over the roster they sort. */
 export function SpeciesToolbar(props: { model: SpeciesBrowserModel }) {
   const { model } = props;
   const { groups, order, family, searching } = model;
@@ -37,35 +37,26 @@ export function SpeciesToolbar(props: { model: SpeciesBrowserModel }) {
   };
 
   return (
-    <Stack align="center" className="SpeciesToolbar">
-      <Stack.Item>
-        <Button icon="arrow-left" onClick={model.onBack}>
-          Character
-        </Button>
-      </Stack.Item>
-      <Stack.Item grow basis={0}>
-        <Tabs className="SpeciesToolbar__families" fluid>
-          <Tabs.Tab
-            selected={!searching && family === ALL_FAMILIES}
-            onClick={() => pick(ALL_FAMILIES)}
-          >
-            <TabLabel icon="border-all" name="All" count={order.length} />
-          </Tabs.Tab>
-          {groups.map((group) => (
-            <Tabs.Tab
-              key={group.family.id}
-              selected={!searching && family === group.family.id}
-              onClick={() => pick(group.family.id)}
-            >
-              <TabLabel
-                icon={group.family.icon}
-                name={group.family.name}
-                count={group.size}
-              />
-            </Tabs.Tab>
-          ))}
-        </Tabs>
-      </Stack.Item>
-    </Stack>
+    <Tabs className="SpeciesToolbar" fluid>
+      <Tabs.Tab
+        selected={!searching && family === ALL_FAMILIES}
+        onClick={() => pick(ALL_FAMILIES)}
+      >
+        <TabLabel icon="border-all" name="All" count={order.length} />
+      </Tabs.Tab>
+      {groups.map((group) => (
+        <Tabs.Tab
+          key={group.family.id}
+          selected={!searching && family === group.family.id}
+          onClick={() => pick(group.family.id)}
+        >
+          <TabLabel
+            icon={group.family.icon}
+            name={group.family.name}
+            count={group.size}
+          />
+        </Tabs.Tab>
+      ))}
+    </Tabs>
   );
 }

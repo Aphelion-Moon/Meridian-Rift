@@ -1,16 +1,11 @@
 // Families on the species page. Subtypes inherit their parent's family unless they
-// belong somewhere else, like the holiday Vampire under Paranormal.
+// belong somewhere else. Holiday species are filed under Holiday while they wait for their
+// holiday, whatever they return here.
 
 /datum/species/human/get_species_family()
 	return /datum/species_family/mammalian
 
-/datum/species/humanoid/get_species_family()
-	return /datum/species_family/mammalian
-
 /datum/species/dwarf/get_species_family()
-	return /datum/species_family/mammalian
-
-/datum/species/mammal/get_species_family()
 	return /datum/species_family/mammalian
 
 /datum/species/tajaran/get_species_family()
@@ -40,17 +35,11 @@
 /datum/species/teshari/get_species_family()
 	return /datum/species_family/avian
 
-/datum/species/aquatic/get_species_family()
-	return /datum/species_family/aquatic
-
 /datum/species/akula/get_species_family()
 	return /datum/species_family/aquatic
 
 /datum/species/skrell/get_species_family()
 	return /datum/species_family/aquatic
-
-/datum/species/insect/get_species_family()
-	return /datum/species_family/insectoid
 
 /datum/species/insectoid/get_species_family()
 	return /datum/species_family/insectoid
@@ -61,7 +50,7 @@
 /datum/species/moth/get_species_family()
 	return /datum/species_family/insectoid
 
-/datum/species/synthetic/get_species_family()
+/datum/species/synthetic/holosynth/get_species_family()
 	return /datum/species_family/synthetic
 
 /datum/species/protean/get_species_family()
@@ -95,10 +84,10 @@
 	return /datum/species_family/xenobiological
 
 /datum/species/dullahan/get_species_family()
-	return /datum/species_family/paranormal
+	return /datum/species_family/xenobiological
 
 /datum/species/ghoul/get_species_family()
-	return /datum/species_family/paranormal
+	return /datum/species_family/xenobiological
 
 /datum/species/skeleton/get_species_family()
 	return /datum/species_family/paranormal
@@ -120,6 +109,22 @@
 
 /datum/species/monkey/get_species_family()
 	return /datum/species_family/paranormal
+
+// The template species: bases for players' own creations, which say so or have no lore of their own.
+/datum/species/humanoid/get_species_family()
+	return /datum/species_family/generic
+
+/datum/species/mammal/get_species_family()
+	return /datum/species_family/generic
+
+/datum/species/aquatic/get_species_family()
+	return /datum/species_family/generic
+
+/datum/species/insect/get_species_family()
+	return /datum/species_family/generic
+
+/datum/species/synthetic/get_species_family()
+	return /datum/species_family/generic
 
 // Vox Primalis is not a subtype of Vox, but it is one of their kin.
 /datum/species/vox_primalis/get_variant_of(list/page_ids)

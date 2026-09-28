@@ -38,7 +38,12 @@ function RosterTile(props: { model: SpeciesBrowserModel; id: string }) {
   );
 }
 
-/** Small tiles in bracketed lineages, like a character-select roster. */
+/**
+ * Small tiles in bracketed lineages, like a character-select roster. Every
+ * row shares one grid, so tiles stand in the same columns down the roster
+ * and on the same line across it: a lineage's box and label are drawn in the
+ * gaps around its tiles rather than taking room of their own.
+ */
 export function SpeciesRoster(props: Props) {
   const { model } = props;
   const { heading, count } = rosterHeading(model);
@@ -48,7 +53,7 @@ export function SpeciesRoster(props: Props) {
     content = <NoticeBox info>{noMatchText(model)}</NoticeBox>;
   } else if (model.matches) {
     content = (
-      <div className="SpeciesRoster__tiles">
+      <div className="SpeciesRoster__tiles SpeciesRoster__tiles--results">
         {model.matches.map((id) => (
           <RosterTile key={id} model={model} id={id} />
         ))}
@@ -64,16 +69,22 @@ export function SpeciesRoster(props: Props) {
         <div className="SpeciesRoster__tiles">
           {lineages.map(({ root, members }) =>
             members.length > 1 ? (
-              <span key={root} className="SpeciesRoster__lineage">
-                <span className="SpeciesRoster__lineageLabel">
-                  {model.species[root].name} and variants
+              <div
+                key={root}
+                className="SpeciesRoster__lineage"
+                style={{ gridColumn: `span ${members.length}` }}
+              >
+                <span
+                  className="SpeciesRoster__lineageLabel"
+                  title={`${model.species[root].name} and its variants`}
+                >
+                  <Icon name="code-branch" />
+                  {model.species[root].name}
                 </span>
-                <span className="SpeciesRoster__lineageTiles">
-                  {members.map(({ id }) => (
-                    <RosterTile key={id} model={model} id={id} />
-                  ))}
-                </span>
-              </span>
+                {members.map(({ id }) => (
+                  <RosterTile key={id} model={model} id={id} />
+                ))}
+              </div>
             ) : (
               <RosterTile key={root} model={model} id={root} />
             ),

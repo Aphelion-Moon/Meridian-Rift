@@ -33,4 +33,6 @@ export const testFamilies: SpeciesFamily[] = [
   { id: 'elemental', name: 'Elemental', icon: 'fa-gem' },
   { id: 'xenobiological', name: 'Exotic', icon: 'tg-zaphelion-alien' },
   { id: 'paranormal', name: 'Paranormal', icon: 'fa-ghost' },
+  { id: 'holiday', name: 'Holiday', icon: 'fa-gift' },
+  { id: 'generic', name: 'Generic', icon: 'fa-pen-ruler' },
 ];

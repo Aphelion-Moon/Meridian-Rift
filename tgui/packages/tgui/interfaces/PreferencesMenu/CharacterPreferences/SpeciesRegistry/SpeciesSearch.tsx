@@ -47,7 +47,7 @@ export function noMatchText(model: SpeciesBrowserModel) {
   const base = `No species match “${model.query.trim()}”.`;
   return model.showHoliday || !model.holidayCount
     ? base
-    : `${base} Holiday species are hidden; tick Holiday to search them too.`;
+    : `${base} Holiday species are hidden; tick Show holiday species to search them too.`;
 }
 
 /** The search box and holiday toggle that sit with the roster. */
@@ -66,15 +66,11 @@ export function SpeciesSearch(props: { model: SpeciesBrowserModel }) {
         <Button.Checkbox
           className="SpeciesSearch__holiday"
           checked={model.showHoliday}
-          tooltip={
-            model.showHoliday
-              ? 'Hide holiday species'
-              : `Show ${model.holidayCount} holiday species. You can create them any time; you join as one during its holiday.`
-          }
+          tooltip={`${model.holidayCount} holiday species. You can create them any time, and join as one during its holiday.`}
           tooltipPosition="bottom"
           onClick={() => model.setShowHoliday(!model.showHoliday)}
         >
-          Holiday
+          Show holiday species
         </Button.Checkbox>
       )}
     </span>

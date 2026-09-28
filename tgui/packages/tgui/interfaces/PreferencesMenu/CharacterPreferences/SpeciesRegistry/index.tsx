@@ -9,6 +9,8 @@ import { SpeciesBrowser } from './SpeciesBrowser';
 
 type SpeciesPageProps = {
   closeSpecies: () => void;
+  /** Told while the page is shown, so the window can make room for it. */
+  onShown?: (shown: boolean) => void;
 };
 
 /** Backend wiring only; everything visual lives in SpeciesBrowser. */
@@ -25,6 +27,11 @@ export function SpeciesPage(props: SpeciesPageProps) {
   // The sprites come when the page opens, not with every preferences window.
   useEffect(() => {
     act('species_page_sprites');
+  }, []);
+
+  useEffect(() => {
+    props.onShown?.(true);
+    return () => props.onShown?.(false);
   }, []);
 
   // The character's own preview, whenever the page opens or the character

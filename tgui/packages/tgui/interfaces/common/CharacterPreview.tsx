@@ -13,6 +13,7 @@ export const CharacterPreview = (props: {
   return (
     <ByondUi
       className={props.className} // APHELION EDIT ADDITION - caller-owned preview geometry
+      persist // APHELION EDIT ADDITION - one native preview for every page, moved rather than made again on each tab switch
       width={width} // NOVA EDIT
       height={props.height}
       params={{

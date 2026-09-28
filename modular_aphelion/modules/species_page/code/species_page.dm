@@ -114,7 +114,8 @@ GLOBAL_LIST_INIT(species_page_filler_text, list(
 	var/list/roundstart_races = get_selectable_species()
 	var/holiday = holiday_races[id]
 
-	var/datum/species_family/family = get_species_family()
+	// A holiday species waits under Holiday, where the page's holiday toggle shows and hides it.
+	var/datum/species_family/family = holiday ? /datum/species_family/holiday : get_species_family()
 	entry["family"] = family ? species_family_id(family) : null
 	entry["variant_of"] = get_variant_of(page_ids)
 	entry["holiday"] = holiday

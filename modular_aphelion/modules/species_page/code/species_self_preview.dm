@@ -96,11 +96,13 @@ GLOBAL_LIST_EMPTY(species_self_preview_users)
 
 /**
  * Draws the mob facing each way into one strip with iconforge, or finds the same look already drawn.
- * One flatten serves all four facings; see uni_icon_facings_json(). Returns the page's data for the
- * strip, or null if it couldn't be drawn.
+ * One flatten serves all four facings; see uni_icon_facings_json(). Its canvas grows to fit parts that
+ * reach past the mob's own tile, like big ears and wings. Returns the page's data for the strip, or
+ * null if it couldn't be drawn.
  */
 /datum/preference_middleware/species_page/proc/draw_self_preview(mob/living/carbon/human/body)
-	var/list/recipes = uni_icon_facings_json(get_flat_uni_icon(body, UP), GLOB.species_page_facings)
+	var/datum/universal_icon/flat = get_flat_uni_icon(body, UP, grow = TRUE)
+	var/list/recipes = uni_icon_facings_json(flat, GLOB.species_page_facings)
 	var/list/entries = list()
 	for (var/facing in recipes)
 		entries += "\"[facing]\":[recipes[facing]]"
@@ -143,6 +145,10 @@ GLOBAL_LIST_EMPTY(species_self_preview_users)
 		"width" = width,
 		"height" = text2num(size[2]),
 		"frames" = frames,
+		// How far the canvas reaches left of and below the mob's own tile, so the page can stand the mob
+		// where a species sprite stands.
+		"x" = isnull(flat.flat_x1) ? 0 : 1 - flat.flat_x1,
+		"y" = isnull(flat.flat_y1) ? 0 : 1 - flat.flat_y1,
 	)
 	GLOB.species_self_previews[name] = drawing
 	return drawing

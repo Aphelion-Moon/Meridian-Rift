@@ -1,5 +1,5 @@
 // THIS IS AN APHELION UI FILE
-import { Section } from 'tgui-core/components';
+import { Button, Section } from 'tgui-core/components';
 
 import type { SpeciesBrowserModel } from './model';
 import { SpeciesDecision } from './SpeciesDecision';
@@ -8,7 +8,11 @@ import { SpeciesDetailTabs } from './SpeciesDetailTabs';
 import { SpeciesHeading } from './SpeciesHeading';
 import { SpecimenViewer } from './SpecimenViewer';
 
-/** The inspected species: name and choice, the specimen, then its details. */
+/**
+ * The inspected species: name and choice, the specimen, then its details.
+ * Everything above the description keeps its height from species to species,
+ * so browsing never moves the page under the pointer.
+ */
 export function SpeciesStage(props: { model: SpeciesBrowserModel }) {
   const { model } = props;
   const id = model.inspected;
@@ -18,6 +22,11 @@ export function SpeciesStage(props: { model: SpeciesBrowserModel }) {
     <Section fill className="SpeciesStage">
       <div className="SpeciesStage__floor">
         <div className="SpeciesStage__left">
+          <div>
+            <Button icon="arrow-left" onClick={model.onBack}>
+              Character
+            </Button>
+          </div>
           <SpeciesHeading model={model} id={id} />
           <SpeciesDecision model={model} id={id} />
           <div className="SpeciesStage__description">

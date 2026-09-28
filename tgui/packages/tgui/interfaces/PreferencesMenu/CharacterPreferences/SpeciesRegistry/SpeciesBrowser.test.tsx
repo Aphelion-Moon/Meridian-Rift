@@ -13,6 +13,13 @@ const species: SpeciesMap = {
     icon: 'lizardperson',
     family: 'reptilian',
   }),
+  ashwalker: testSpecies({
+    name: 'Ash Walker',
+    icon: 'ash_walker',
+    family: 'reptilian',
+    variant_of: 'lizard',
+    off_station: true,
+  }),
   golem: testSpecies({
     name: 'Golem',
     icon: 'golem',
@@ -22,7 +29,7 @@ const species: SpeciesMap = {
   skeleton: testSpecies({
     name: 'Skeleton',
     icon: 'skeleton',
-    family: 'paranormal',
+    family: 'holiday',
     holiday: 'Halloween',
   }),
 };
@@ -52,7 +59,7 @@ describe('SpeciesBrowser', () => {
   it('hides holiday species until asked, except the current one', () => {
     const { tile } = renderBrowser();
     expect(tile('skeleton')).toBeNull();
-    fireEvent.click(screen.getByText('Holiday'));
+    fireEvent.click(screen.getByText('Show holiday species'));
     expect(tile('skeleton')).not.toBeNull();
 
     const current = renderBrowser({ currentSpecies: 'skeleton' });
@@ -89,6 +96,41 @@ describe('SpeciesBrowser', () => {
     expect(onChoose).not.toHaveBeenCalled();
   });
 
+  it('keeps the same lines above the description for every species', () => {
+    const { view, tile } = renderBrowser();
+    const find = (selector: string) =>
+      view.container.querySelectorAll<HTMLElement>(selector);
+
+    fireEvent.click(tile('lizard') as Element);
+    expect(find('.SpeciesHeading__variant')[0].textContent).toBe('');
+    expect(find('.SpeciesDecision__status')).toHaveLength(1);
+    expect(
+      find('.SpeciesHeading__name')[0].style.getPropertyValue('--name-length'),
+    ).toBe('12');
+
+    // A variant names its parent on the line kept for it, and a restriction
+    // takes the hint's place rather than adding a box.
+    fireEvent.click(tile('ashwalker') as Element);
+    expect(find('.SpeciesHeading__variant')[0].textContent).toContain(
+      'Lizardperson',
+    );
+    expect(find('.SpeciesDecision__status')).toHaveLength(1);
+    expect(screen.getByText(/Off-station roles only/)).toBeTruthy();
+    expect(find('.SpeciesDecision .NoticeBox')).toHaveLength(0);
+  });
+
+  it('puts the family tabs right above the roster they sort', () => {
+    const { view } = renderBrowser();
+    const tabs = view.container.querySelector('.SpeciesToolbar') as Element;
+    const roster = view.container.querySelector('.SpeciesRoster');
+    expect(tabs.parentElement?.nextElementSibling?.contains(roster)).toBe(true);
+    expect(
+      tabs.parentElement?.previousElementSibling?.querySelector(
+        '.SpeciesStage',
+      ),
+    ).not.toBeNull();
+  });
+
   it('shows the character itself for its own species, and sprites for others', () => {
     const { view, tile } = renderBrowser({
       selfPreview: {
@@ -96,6 +138,8 @@ describe('SpeciesBrowser', () => {
         image: 'species_self_test_32x32.png',
         width: 32,
         height: 32,
+        x: 0,
+        y: 0,
         frames: { north: 0, south: 32, east: 64, west: 96 },
       },
     });

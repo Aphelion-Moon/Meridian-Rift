@@ -114,6 +114,7 @@ export function CharacterPreferenceWindow(props) {
 // NOVA EDIT ADDITION START
 export function CharacterPreferenceWindow(props: {
   onAugmentsTabChange?: (tab: import('./LimbsPage').AugmentsTab | null) => void;
+  onSpeciesPageShown?: (shown: boolean) => void; // APHELION EDIT ADDITION
 }) {
   const { act, data } = useBackend<PreferencesMenuData>();
   /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
@@ -145,7 +146,7 @@ export function CharacterPreferenceWindow(props: {
       break;
     case Page.Species:
       pageContents = (
-        <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} />
+        <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} onShown={props.onSpeciesPageShown} /* APHELION EDIT CHANGE - ORIGINAL: <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} /> */ />
       );
 
       break;

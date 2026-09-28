@@ -112,6 +112,12 @@ export type SpeciesSelfPreview = {
   /** One frame's size in pixels; every facing is the same size. */
   width: number;
   height: number;
+  /**
+   * How far a frame reaches left of and below the mob's own 32px tile, in
+   * pixels, for parts like wings and big ears.
+   */
+  x: number;
+  y: number;
   /** Each facing's left edge in the image, in pixels. */
   frames: Record<'south' | 'west' | 'north' | 'east', number>;
 };

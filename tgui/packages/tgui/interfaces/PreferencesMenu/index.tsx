@@ -25,20 +25,30 @@ const WINDOW_WIDTH  = 920;
 const WINDOW_HEIGHT_DEFAULT  = 820;
 const WINDOW_HEIGHT_MARKINGS_BODYPARTS = 980; // taller to fit three-column markings layout
 // NOVA EDIT ADDITION END
+const WINDOW_HEIGHT_SPECIES = 860; // APHELION EDIT ADDITION - Species page: two whole rows of its roster, in every theme, under the chamber.
 
 export function PreferencesMenu(props) {
   // NOVA EDIT ADDITION START
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
+  const [speciesShown, setSpeciesShown] = useState(false); // APHELION EDIT ADDITION
 
-  const height = augmentsTab !== null
-    ? WINDOW_HEIGHT_MARKINGS_BODYPARTS
-    : WINDOW_HEIGHT_DEFAULT;
+  // APHELION EDIT CHANGE START - Species page. ORIGINAL:
+  // const height = augmentsTab !== null
+  //   ? WINDOW_HEIGHT_MARKINGS_BODYPARTS
+  //   : WINDOW_HEIGHT_DEFAULT;
+  const height =
+    augmentsTab !== null
+      ? WINDOW_HEIGHT_MARKINGS_BODYPARTS
+      : speciesShown
+        ? WINDOW_HEIGHT_SPECIES
+        : WINDOW_HEIGHT_DEFAULT;
+  // APHELION EDIT CHANGE END
   // NOVA EDIT ADDITION END
   return (
     <Window width={WINDOW_WIDTH} height={height} /* NOVA EDIT CHANGE - ORIGINAL: <Window width={920} height={770}> */>
       <Window.Content>
         <Suspense fallback={<LoadingScreen />}>
-          <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> *//>
+          <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} onSpeciesPageShown={setSpeciesShown} /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> */ /* APHELION EDIT CHANGE - ORIGINAL: <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} /> *//>
         </Suspense>
       </Window.Content>
     </Window>
@@ -50,6 +60,7 @@ export function PreferencesMenu(props) {
 // NOVA EDIT ADDITION START
 function PrefsWindowInner(props: {
   onAugmentsTabChange: (tab: AugmentsTab | null) => void; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: onAugmentsTabChange: (tab: AugmentsTab) => void;
+  onSpeciesPageShown: (shown: boolean) => void; // APHELION EDIT ADDITION
 }) {
 // NOVA EDIT ADDITION END
   const { data } = useBackend<PreferencesMenuData>();
@@ -73,7 +84,7 @@ function PrefsWindowInner(props: {
   let title;
   switch (window) {
     case PrefsWindow.Character:
-      content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */ />
+      content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} onSpeciesPageShown={props.onSpeciesPageShown} /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */ /* APHELION EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} />; */ />
       title = 'Character Preferences';
       break;
     case PrefsWindow.Game:

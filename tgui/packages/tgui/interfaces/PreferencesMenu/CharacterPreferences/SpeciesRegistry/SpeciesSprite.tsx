@@ -36,26 +36,45 @@ export function SpeciesSprite(props: Props) {
 type PreviewFrameProps = {
   preview: SpeciesSelfPreview;
   dir: SpriteDir;
-  /** The square it fills, in pixels, as a species sprite at the same scale would. */
+  /** The square a species sprite fills at the viewer's scale, in pixels. */
   box: number;
 };
 
+/** A species sprite's frame, and a mob's own tile, in pixels. */
+const TILE = 32;
+
 /**
- * One facing of a drawn preview mob. It is scaled by the largest whole number
- * that fits the box, so larger mobs still fit, and stands on the box's floor.
+ * One facing of a drawn preview mob. Its own tile stands where a species
+ * sprite would, centred on the box's floor, with parts that reach past it,
+ * like wings and big ears, around it. It is scaled by the largest whole
+ * number, up to a species sprite's, that keeps those parts in the box; only
+ * what hangs below its feet may run over the floor.
  */
 export function PreviewFrame(props: PreviewFrameProps) {
   const { preview, dir, box } = props;
-  const { width, height } = preview;
-  const scale = Math.max(1, Math.floor(box / Math.max(width, height)));
+  const { width, height, x, y } = preview;
+  // From the tile's centre to the frame's farther side, and from its floor to the top.
+  const reach = Math.max(x + TILE / 2, width - x - TILE / 2);
+  const rise = height - y;
+  const scale = Math.max(
+    1,
+    Math.min(
+      Math.floor(box / TILE),
+      Math.floor(box / 2 / reach),
+      Math.floor(box / rise),
+    ),
+  );
 
   return (
-    <Box className="SpeciesSprite" style={{ width: box, height: box }}>
+    <Box
+      className="SpeciesSprite SpeciesSprite--preview"
+      style={{ width: box, height: box }}
+    >
       <Box
         className="SpeciesSprite__frame"
         style={{
-          left: `${Math.floor((box - width * scale) / 2)}px`,
-          top: `${box - height * scale}px`,
+          left: `${box / 2 - (x + TILE / 2) * scale}px`,
+          top: `${box - rise * scale}px`,
           width: `${width}px`,
           height: `${height}px`,
           backgroundImage: `url('${resolveAsset(preview.image)}')`,

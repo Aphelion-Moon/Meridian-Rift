@@ -110,9 +110,12 @@ function collectLineage(
 const leadsWithHumans = (lineage: SpeciesLineage) =>
   lineage.members.some(({ id }) => id === HUMAN);
 
+const hasVariants = (lineage: SpeciesLineage) => lineage.members.length > 1;
+
 /**
  * Families in display order, each holding lineages: a root species followed
- * by its variants, depth first. Most lineages are a single species.
+ * by its variants, depth first. Most lineages are a single species. Humans
+ * lead, then the lineages with variants, so every row starts with its boxes.
  */
 export function groupSpecies(
   species: SpeciesMap,
@@ -144,8 +147,11 @@ export function groupSpecies(
     .filter((family) => lineagesByFamily.has(family.id))
     .map((family) => {
       const lineages = lineagesByFamily.get(family.id) ?? [];
+      // Sorting is stable, so each kind stays in name order.
       lineages.sort(
-        (a, b) => Number(leadsWithHumans(b)) - Number(leadsWithHumans(a)),
+        (a, b) =>
+          Number(leadsWithHumans(b)) - Number(leadsWithHumans(a)) ||
+          Number(hasVariants(b)) - Number(hasVariants(a)),
       );
       return {
         family,

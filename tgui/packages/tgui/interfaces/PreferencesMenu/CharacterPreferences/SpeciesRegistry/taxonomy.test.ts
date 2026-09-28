@@ -10,12 +10,14 @@ import {
 import { testFamilies, testSpecies } from './testSpecies';
 
 const species: SpeciesMap = {
+  kobold: testSpecies({ name: 'Kobold', family: 'reptilian' }),
   lizard: testSpecies({ name: 'Lizardperson', family: 'reptilian' }),
   ashwalker: testSpecies({
     name: 'Ash Walker',
     family: 'reptilian',
     variant_of: 'lizard',
   }),
+  unathi: testSpecies({ name: 'Unathi', family: 'reptilian' }),
   felinid: testSpecies({
     name: 'Felinid',
     family: 'mammalian',
@@ -25,8 +27,9 @@ const species: SpeciesMap = {
   human: testSpecies({ name: 'Human', family: 'mammalian' }),
   vampire: testSpecies({
     name: 'Vampire',
-    family: 'paranormal',
+    family: 'holiday',
     variant_of: 'human',
+    holiday: 'Halloween',
   }),
   mystery: testSpecies({ name: 'Mystery', family: 'no-such-family' }),
 };
@@ -38,8 +41,17 @@ describe('groupSpecies', () => {
     expect(groups.map(({ family }) => family.id)).toEqual([
       'mammalian',
       'reptilian',
-      'paranormal',
+      'holiday',
       'unclassified',
+    ]);
+  });
+
+  it('starts each row with its lineages that have variants', () => {
+    const reptilian = groups[1];
+    expect(reptilian.lineages.map(({ root }) => root)).toEqual([
+      'lizard',
+      'kobold',
+      'unathi',
     ]);
   });
 
@@ -57,8 +69,8 @@ describe('groupSpecies', () => {
   });
 
   it('leaves a variant filed under another family on its own', () => {
-    const paranormal = groups.find(({ family }) => family.id === 'paranormal');
-    expect(paranormal?.lineages).toEqual([
+    const holiday = groups.find(({ family }) => family.id === 'holiday');
+    expect(holiday?.lineages).toEqual([
       { root: 'vampire', members: [{ id: 'vampire', depth: 0, parent: null }] },
     ]);
   });
