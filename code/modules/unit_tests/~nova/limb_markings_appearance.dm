@@ -40,6 +40,27 @@
 			worn[names[index]] = list(colors[index], index == 2 ? 1 : 0)
 		.[zone] = worn
 
+/// The one colour every marking of the merge fixture wears.
+/proc/markings_merge_fixture_color()
+	return "#4488cc"
+
+/**
+ * Builds the merge fixture's marking map, in the same nested shape as markings_baseline_fill(): the same three markings
+ * on every zone, all in one colour and all glowing. Each zone's markings then run together in colour and in glow, which
+ * the standard fixture, three colours with one glow per zone, never does. Its cases measure drawing a zone's same-coloured
+ * markings, and its glows, as one.
+ *
+ * Returns a new list.
+ */
+/proc/markings_merge_fixture_fill()
+	var/merge_color = markings_merge_fixture_color()
+	. = list()
+	for(var/zone in GLOB.marking_zones)
+		var/list/worn = list()
+		for(var/name in markings_baseline_marking_names())
+			worn[name] = list(merge_color, 1)
+		.[zone] = worn
+
 /**
  * Reduces a rendered icon to one comparison key.
  *
@@ -98,16 +119,53 @@
  * Hair and facial hair are pinned to their empty styles and the physique is pinned to male, so no stray
  * accessory or gender roll can move a pixel between two runs of this test.
  *
+ * Arguments:
+ * - fill: the markings to wear, in the nested shape markings_baseline_fill() builds, or null for that standard fixture.
+ *
  * Returns the new human, already rendered once.
  */
-/datum/unit_test/markings_baseline/proc/build_marked_human()
+/datum/unit_test/markings_baseline/proc/build_marked_human(list/fill)
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	human.hairstyle = "Bald"
 	human.facial_hairstyle = "Shaved"
 	human.physique = MALE
-	human.dna.body_markings = body_marking_collection_from_list(markings_baseline_fill())
+	human.dna.body_markings = body_marking_collection_from_list(fill || markings_baseline_fill())
 	human.update_body_parts(update_limb_data = TRUE)
 	return human
+
+/**
+ * Counts what a pixel signature cannot see on one limb: its appearances, the height filters on them, and the glowing
+ * appearances and emissive blockers it puts on the emissive plane, counted apart.
+ *
+ * Arguments:
+ * - limb: the limb to measure, attached or dropped.
+ * - dropped: passed to get_limb_icon(), matching how the case itself was rendered.
+ *
+ * Returns a list of counters keyed for the output file.
+ */
+/datum/unit_test/markings_baseline/proc/measure_limb_shape(obj/item/bodypart/limb, dropped = FALSE)
+	var/list/overlays = limb.get_limb_icon(dropped)
+	var/limb_filters = 0
+	var/limb_emissives = 0
+	var/limb_blockers = 0
+	for(var/image/overlay as anything in overlays)
+		if(isnull(overlay))
+			continue
+		limb_filters += length(overlay.filters)
+		if(PLANE_TO_TRUE(overlay.plane) != EMISSIVE_PLANE)
+			continue
+		if(markings_baseline_is_glowing(overlay))
+			limb_emissives++
+		else
+			limb_blockers++
+	return list(
+		"appearances" = length(overlays),
+		"filters" = limb_filters,
+		"emissive_appearances" = limb_emissives,
+		"emissive_blockers" = limb_blockers,
+		"markings" = length(limb.markings) + length(limb.aux_zone_markings),
+		"markings_alpha" = limb.markings_alpha,
+	)
 
 /**
  * Counts what a pixel signature cannot see.
@@ -130,34 +188,13 @@
 	var/markings = 0
 	var/list/per_limb = list()
 	for(var/obj/item/bodypart/limb as anything in target.bodyparts)
-		var/list/overlays = limb.get_limb_icon(dropped)
-		var/limb_filters = 0
-		var/limb_emissives = 0
-		var/limb_blockers = 0
-		for(var/image/overlay as anything in overlays)
-			if(isnull(overlay))
-				continue
-			limb_filters += length(overlay.filters)
-			if(PLANE_TO_TRUE(overlay.plane) != EMISSIVE_PLANE)
-				continue
-			if(markings_baseline_is_glowing(overlay))
-				limb_emissives++
-			else
-				limb_blockers++
-		var/limb_markings = length(limb.markings) + length(limb.aux_zone_markings)
-		appearances += length(overlays)
-		filters += limb_filters
-		emissives += limb_emissives
-		blockers += limb_blockers
-		markings += limb_markings
-		per_limb[limb.body_zone] = list(
-			"appearances" = length(overlays),
-			"filters" = limb_filters,
-			"emissive_appearances" = limb_emissives,
-			"emissive_blockers" = limb_blockers,
-			"markings" = limb_markings,
-			"markings_alpha" = limb.markings_alpha,
-		)
+		var/list/limb_shape = measure_limb_shape(limb, dropped)
+		appearances += limb_shape["appearances"]
+		filters += limb_shape["filters"]
+		emissives += limb_shape["emissive_appearances"]
+		blockers += limb_shape["emissive_blockers"]
+		markings += limb_shape["markings"]
+		per_limb[limb.body_zone] = limb_shape
 	return list(
 		"appearances" = appearances,
 		"filters" = filters,
@@ -300,6 +337,45 @@
 	slime.update_body_parts(update_limb_data = TRUE)
 	capture("slime_reduced_alpha", slime, measure_overlay_shape(slime))
 
+	// The merge fixture, rendered after every standard case so their records stay as they were: each zone's markings share
+	// one colour and all glow. A body standing, husked, tall and on digitigrade legs, a dropped arm, and the slime.
+	var/mob/living/carbon/human/merge_standing = build_marked_human(markings_merge_fixture_fill())
+	capture("merge_standing", merge_standing, measure_overlay_shape(merge_standing))
+
+	var/mob/living/carbon/human/merge_husked = build_marked_human(markings_merge_fixture_fill())
+	merge_husked.become_husk(BURN)
+	merge_husked.update_body_parts(update_limb_data = TRUE)
+	capture("merge_husked", merge_husked, measure_overlay_shape(merge_husked))
+
+	var/mob/living/carbon/human/merge_tall = build_marked_human(markings_merge_fixture_fill())
+	merge_tall.set_mob_height(HUMAN_HEIGHT_TALL)
+	merge_tall.update_body_parts(update_limb_data = TRUE)
+	capture("merge_height_tall", merge_tall, measure_overlay_shape(merge_tall))
+
+	var/mob/living/carbon/human/merge_digitigrade = build_marked_human(markings_merge_fixture_fill())
+	if(replace_legs(merge_digitigrade, /obj/item/bodypart/leg/left/digitigrade, /obj/item/bodypart/leg/right/digitigrade))
+		capture("merge_digitigrade", merge_digitigrade, measure_overlay_shape(merge_digitigrade))
+	else
+		notes += "merge_digitigrade: could not attach digitigrade legs to the merge fixture."
+
+	var/mob/living/carbon/human/merge_dismembered = build_marked_human(markings_merge_fixture_fill())
+	var/obj/item/bodypart/merge_dropped_arm = merge_dismembered.get_bodypart(BODY_ZONE_L_ARM)
+	if(merge_dropped_arm)
+		merge_dropped_arm.drop_limb(special = TRUE)
+		capture("merge_dropped_limb", merge_dropped_arm, measure_limb_shape(merge_dropped_arm, TRUE))
+		qdel(merge_dropped_arm)
+	else
+		notes += "merge_dropped_limb: the merge fixture had no left arm to detach."
+
+	var/mob/living/carbon/human/merge_slime = build_marked_human(markings_merge_fixture_fill())
+	merge_slime.set_species(/datum/species/jelly/roundstartslime)
+	merge_slime.dna.body_markings = body_marking_collection_from_list(markings_merge_fixture_fill())
+	merge_slime.hairstyle = "Bald"
+	merge_slime.facial_hairstyle = "Shaved"
+	merge_slime.physique = MALE
+	merge_slime.update_body_parts(update_limb_data = TRUE)
+	capture("merge_slime_reduced_alpha", merge_slime, measure_overlay_shape(merge_slime))
+
 	// Write before asserting, so a failed expectation still leaves a usable baseline on disk.
 	rustg_file_write(json_encode(list(
 		"representation" = "body_marking_collection",
@@ -308,6 +384,12 @@
 			"marking_colors" = markings_baseline_marking_colors(),
 			"zones" = GLOB.marking_zones,
 			"emissive_index" = 2,
+		),
+		"merge_fixture" = list(
+			"marking_names" = names,
+			"marking_color" = markings_merge_fixture_color(),
+			"zones" = GLOB.marking_zones,
+			"emissive" = "all",
 		),
 		"cases" = cases,
 		"notes" = notes,
@@ -322,3 +404,6 @@
 	TEST_ASSERT_NOTEQUAL(male_case["pixels_md5"], female_case["pixels_md5"], "A gendered chest marking must render differently on each physique.")
 	TEST_ASSERT_NOTEQUAL(standing_case["pixels_md5"], cases["husked"]["pixels_md5"], "A husk must not render the same pixels as an unhusked body.")
 	TEST_ASSERT(standing_case["markings"] > 0, "The fixture must actually be wearing markings.")
+	var/list/merge_case = cases["merge_standing"]
+	TEST_ASSERT_EQUAL(merge_case["markings"], standing_case["markings"], "The merge fixture must wear as many markings as the standard one.")
+	TEST_ASSERT_NOTEQUAL(merge_case["pixels_md5"], standing_case["pixels_md5"], "The merge fixture's one colour must render differently from the standard fixture's three.")

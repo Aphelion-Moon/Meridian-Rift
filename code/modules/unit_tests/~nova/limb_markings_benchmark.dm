@@ -3,7 +3,7 @@
  *
  * Writes data/markings_benchmark.json: the whole world.Profile payload for the drive, a wall clock reading
  * per phase, the counts DM can take directly - marking list lengths, limb icon cache size, and the
- * appearance and height filter counts a fully-marked tall body carries - and the median cost of an
+ * appearance and height filter counts a fully-marked tall body carries in either fixture - and the median cost of an
  * update_body_parts() pass timed with the profiler off, which is the wall clock steps compare.
  *
  * The fixture lives in limb_markings_appearance.dm, because both baselines have to dress the same
@@ -363,6 +363,13 @@
 	counters["tall_mob_height"] = tall.mob_height
 	counters["actions_driven"] = actions_driven
 
+	// The same tall body in the merge fixture, one colour on every marking and every marking glowing: the count that
+	// drawing a zone's same-coloured markings and its glows as one moves. Drawn once, after the drive's counters are read.
+	var/mob/living/carbon/human/merge_tall = build_marked_human(markings_merge_fixture_fill())
+	merge_tall.set_mob_height(HUMAN_HEIGHT_TALL)
+	merge_tall.update_body_parts(update_limb_data = TRUE)
+	counters["merge_tall_overlay_shape"] = measure_overlay_shape(merge_tall)
+
 	// The profiler stopped above, and the drive's counters are all read, so this adds nothing to them.
 	var/list/profiler_off = time_unprofiled()
 
@@ -404,6 +411,8 @@
 	var/list/tall_shape = counters["tall_overlay_shape"]
 	TEST_ASSERT(tall_shape["appearances"] > 0, "A fully-marked tall body must render some appearances to measure.")
 	TEST_ASSERT(tall_shape["filters"] > 0, "A tall body must carry height filters, or the filter count measures nothing.")
+	var/list/merge_tall_shape = counters["merge_tall_overlay_shape"]
+	TEST_ASSERT(merge_tall_shape["filters"] > 0 && merge_tall_shape["emissive_appearances"] > 0, "The merge fixture's tall body must carry height filters and glow, or its counts measure nothing.")
 	TEST_ASSERT(actions_driven > 0, "The middleware action set must actually have been driven.")
 	TEST_ASSERT(length(profile_text), "world.Profile returned no data, so the benchmark has no primary evidence.")
 	for(var/phase in list("update_body_parts_cached", "update_body_parts_creating", "species_change", "husk_cycle", "dismember_reattach", "height_change", "middleware_actions"))
