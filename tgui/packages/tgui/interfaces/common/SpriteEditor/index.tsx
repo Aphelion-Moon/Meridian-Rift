@@ -50,7 +50,7 @@ import {
   isTextEntryTarget,
   localizeCoords,
 } from './helpers';
-import { useSelectionCommands } from './selection'; 
+import { useSelectionCommands } from './selection';
 // APHELION EDIT ADDITION END
 import type { Tool } from './Types/Tool';
 import {

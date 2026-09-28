@@ -148,6 +148,12 @@
     background: none;
   }
 
+  // Classic's window is one flat shade, so the strip's lit gradient reads as a
+  // raised slab instead of another row. Keep the frame, drop the fill.
+  .CustomSpriteEditor__strip {
+    background: none;
+  }
+
   // Clear and Remove are plain red buttons, as classic's other destructive ones are.
   :is(.CustomSpriteEditor__clear, .CustomSpriteEditor__remove).Button:not(
       .Button--disabled

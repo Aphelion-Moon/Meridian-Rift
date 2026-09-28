@@ -152,7 +152,7 @@ export const AppendagePanel = (props: AppendagePanelProps) => {
         {!appendage.outer && canAdd && (
           <Button
             icon="copy"
-            tooltip="A piece sits either under hats or on top of them. Want both? This copies it to an Over hats layer. Then erase the copy in any view where it should stay under the hat. Good for bangs that fall over a cap's brim."
+            tooltip="A piece sits either under hats or on top of them. Want both? This duplicates the current appendage on top."
             onClick={props.onCopy}
           >
             Copy to over-hat layer

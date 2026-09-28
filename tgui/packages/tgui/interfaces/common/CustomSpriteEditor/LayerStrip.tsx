@@ -40,7 +40,7 @@ export const LayerStrip = (props: LayerStripProps) => {
       tooltip={
         appendage
           ? `${appendage.name} · ${zoneInfo(appendage.zone).name} · ${KINDS[appendage.outer ? 'over' : 'under'].label}`
-          : 'Your hair sits under headwear, and hats with a hair mask trim it to fit. Add an appendage layer for a piece that should stay whole under a hat, or sit on top of one.'
+          : 'Your main hair. Hats trim it to fit.'
       }
       tooltipPosition="bottom"
       onClick={() => onSelect(id)}
