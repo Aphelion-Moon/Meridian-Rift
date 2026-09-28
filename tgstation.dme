@@ -7401,6 +7401,7 @@
 #include "modular_aphelion\modules\species_page\code\species_page.dm"
 #include "modular_aphelion\modules\species_page\code\species_page_middleware.dm"
 #include "modular_aphelion\modules\species_page\code\species_previews.dm"
+#include "modular_aphelion\modules\species_page\code\species_self_preview.dm"
 #include "modular_aphelion\modules\species_page\code\species_spritesheet.dm"
 #include "modular_aphelion\modules\species_page\code\species_taxonomy.dm"
 #include "modular_aphelion\modules\stat_panel\code\preferences.dm"

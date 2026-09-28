@@ -88,4 +88,36 @@ describe('SpeciesBrowser', () => {
     fireEvent.doubleClick(tile('golem') as Element);
     expect(onChoose).not.toHaveBeenCalled();
   });
+
+  it('shows the character itself for its own species, and sprites for others', () => {
+    const { view, tile } = renderBrowser({
+      selfPreview: {
+        species: 'human',
+        image: 'species_self_test_32x32.png',
+        width: 32,
+        height: 32,
+        frames: { north: 0, south: 32, east: 64, west: 96 },
+      },
+    });
+    const figure = () =>
+      view.container.querySelector('.SpecimenViewer__figure') as Element;
+    const bodyButton = () =>
+      view.container.querySelector('.SpecimenViewer__controls .fa-child');
+
+    const frame = figure().querySelector(
+      '.SpeciesSprite__frame',
+    ) as HTMLElement;
+    expect(frame.style.backgroundImage).toContain(
+      'species_self_test_32x32.png',
+    );
+    expect(frame.style.backgroundPosition).toStartWith('-32px');
+    expect(screen.getByText('You')).toBeTruthy();
+    // The character is shown as its preview shows it, so there is no body toggle.
+    expect(bodyButton()).toBeNull();
+
+    fireEvent.click(tile('lizard') as Element);
+    expect(figure().querySelector('.SpeciesSprite__frame')).toBeNull();
+    expect(figure().querySelector('.lizardperson-south')).not.toBeNull();
+    expect(bodyButton()).not.toBeNull();
+  });
 });

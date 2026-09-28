@@ -68,8 +68,26 @@
 
 /// Adds a render of the dummy facing each way to entries, in the page's turning order.
 /proc/render_species_facings(list/entries, mob/living/carbon/human/dummy, icon_key)
-	var/static/list/facings = list("south" = SOUTH, "west" = WEST, "north" = NORTH, "east" = EAST)
+	var/datum/universal_icon/template = get_flat_uni_icon(dummy, UP)
+	dummy.dna.species.preview_icon_after_effects(template, dummy)
+	var/list/recipes = uni_icon_facings_json(template, GLOB.species_page_facings)
+	for (var/facing in recipes)
+		entries["[icon_key]-[facing]"] = json_decode(recipes[facing])
+
+/// The facings the species page turns through, in order.
+GLOBAL_LIST_INIT(species_page_facings, list("south" = SOUTH, "west" = WEST, "north" = NORTH, "east" = EAST))
+
+/**
+ * Turns a flat icon walked with get_flat_uni_icon(target, UP) into its recipe for each facing, as
+ * iconforge entry JSON: facing name -> recipe.
+ *
+ * Nothing in the walk depends on the facing except which frame each directional state shows, so one
+ * walk with UP standing in for the facing, with each facing written in afterwards, gives exactly what a
+ * walk per facing does, for a quarter of the walking. No mob overlay faces UP of its own accord.
+ */
+/proc/uni_icon_facings_json(datum/universal_icon/template, list/facings)
+	var/list/pieces = splittext(json_encode(template.to_list()), "\"dir\":[UP]")
+	var/list/recipes = list()
 	for (var/facing in facings)
-		var/datum/universal_icon/render = get_flat_uni_icon(dummy, facings[facing])
-		dummy.dna.species.preview_icon_after_effects(render, dummy)
-		entries["[icon_key]-[facing]"] = render.to_list()
+		recipes[facing] = jointext(pieces, "\"dir\":[facings[facing]]")
+	return recipes

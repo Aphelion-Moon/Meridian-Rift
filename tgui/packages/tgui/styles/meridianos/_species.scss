@@ -51,6 +51,12 @@
     transform-origin: top left;
     image-rendering: pixelated;
   }
+
+  // One facing of the character's drawn preview, standing on the box's floor.
+  &__frame {
+    position: absolute;
+    background-repeat: no-repeat;
+  }
 }
 
 // MARK: Toolbar

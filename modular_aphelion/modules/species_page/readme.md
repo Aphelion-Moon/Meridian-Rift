@@ -28,24 +28,27 @@ species** is pressed; clicking a tile only inspects it.
   which replace the old 64x64 head sheet. Every MeridianOS theme dresses the chamber from its own
   materials, and Classic follows stock tgui. The chamber's motion pauses while the window is hidden
   or unfocused.
+- **The character itself.** While the chamber shows the character's own species, it shows the
+  character: the preferences preview mob, as the preview shows it, drawn facing each way when the page
+  opens, and only if it has changed since it was last drawn. One `get_flat_uni_icon()` walk serves all
+  four facings (`uni_icon_facings_json()`), iconforge draws the strip off the main thread, the same
+  look is drawn once however many share it, and each drawing goes to a client once. A drawing is kept
+  only while some character shows it, so there is at most one per character that opened the page.
 - **Sprites cost nothing until they are wanted.** Neither sheet draws anything during init: both are
   drawn in one pass when either is first realized, by `SSasset_loading` in the lobby or by the first
-  player to open the page. The preferences window no longer carries a species sheet; the page asks
-  for the uniform sheet when it opens, and for the body sheet only once someone turns a specimen to
-  its body.
+  player to open the page, with one walk per species and outfit rather than one per facing. The
+  preferences window no longer carries a species sheet; the page asks for the uniform sheet when it
+  opens, and for the body sheet only once someone turns a specimen to its body. Every file reaches
+  the client before the page hears of it: a stylesheet whose image hasn't arrived stays blank.
 - Akula (Generic) is renamed Aquatic, and Aquatic and Unathi get previews that read as themselves.
   The id is unchanged, so saves need no migration.
 
 Everything the page shows about species is static: the species preference's constant data and
 the species page middleware's families, both in the cached preferences JSON asset
 (`useServerPrefs()`). Only the character's species and Nova Star status come from `useBackend()`,
-choosing a species is the usual `set_preference` act, and the sheets come from the middleware's
-`species_page_sprites` act. Browsing, the family tabs, search and the holiday toggle are local UI
-state.
-
-The `species_page` unit test checks that every species on the page has a family, that variants
-point at species the page offers, that `get_holiday()` agrees with `check_roundstart_eligible()`
-under each simulated holiday, and that both sheets have every sprite at one size.
+choosing a species is the usual `set_preference` act, the sheets come from the middleware's
+`species_page_sprites` act, and the character's own preview from its `species_page_self` act and its
+ui data. Browsing, the family tabs, search and the holiday toggle are local UI state.
 
 ### TG Proc/File Changes:
 
@@ -56,6 +59,8 @@ under each simulated holiday, and that both sheets have every sprite at one size
   species sheet, and `/datum/asset/spritesheet_batched/species` is commented out
 - `modular_nova/modules/customization/modules/mob/living/carbon/human/species/aquatic.dm`: renamed
   to Aquatic
+- `code/modules/asset_cache/spritesheet/batched/universal_icon.dm`: `/proc/get_flat_uni_icon()` writes
+  each runtime icon out once instead of on every flatten, which was most of a flatten's cost
 
 ### Modular Overrides:
 
@@ -68,7 +73,6 @@ under each simulated holiday, and that both sheets have every sprite at one size
 
 ### Included files that are not contained in this module:
 
-- `code/modules/unit_tests/~nova/species_page.dm`
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesRegistry/` (the page)
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesPage.tsx` (the old page, commented out)
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx` (imports the new page)

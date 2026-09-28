@@ -104,6 +104,18 @@ export type SpeciesFamily = {
   icon: string;
 };
 
+/** The character's own preview mob, facing each way, drawn side by side in one image. */
+export type SpeciesSelfPreview = {
+  /** The species it was drawn as. */
+  species: string;
+  image: string;
+  /** One frame's size in pixels; every facing is the same size. */
+  width: number;
+  height: number;
+  /** Each facing's left edge in the image, in pixels. */
+  frames: Record<'south' | 'west' | 'north' | 'east', number>;
+};
+
 // APHELION EDIT ADDITION END
 export type Perk = {
   ui_icon: string;
@@ -298,6 +310,8 @@ export type PreferencesMenuData = {
   // APHELION EDIT ADDITION START
   allow_custom_sprite_editing?: BooleanLike;
   custom_marking_zones?: string[];
+  /** Species page: the character's own preview, once drawn and sent. */
+  species_page_self?: SpeciesSelfPreview;
   // APHELION EDIT ADDITION END
   preview_options: string[];
   preview_selection: string;

@@ -451,6 +451,7 @@
 	// Filter out 'runtime' icons (server-generated RSC cache icons)
 	// Write the icon to the filesystem so it can be used by iconforge
 	if(!isfile(curicon) || !length(string_curicon))
+		/* // APHELION EDIT REMOVAL START - Runtime icons: each is written out once, below.
 		var/file_path_tmp = "tmp/uni_icon-tmp-[rand(1, 999)].dmi" // this filename is temporary.
 		fcopy(curicon, file_path_tmp)
 		var/file_hash = rustg_hash_file(RUSTG_HASH_MD5, file_path_tmp)
@@ -459,6 +460,24 @@
 		fcopy(file_path_tmp, file_path)
 		fdel(file_path_tmp) // delete the old one
 		curicon = file(file_path)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - Runtime icons: a cache entry never changes, so write each out once
+		// rather than on every flatten, where copying and hashing it was most of the flatten's cost.
+		var/static/list/runtime_icon_paths = list()
+		var/runtime_icon_ref = isfile(curicon) ? REF(curicon) : null
+		var/file_path = runtime_icon_ref && runtime_icon_paths[runtime_icon_ref]
+		if(isnull(file_path) || !fexists(file_path))
+			var/file_path_tmp = "tmp/uni_icon-tmp-[rand(1, 999)].dmi" // this filename is temporary.
+			fcopy(curicon, file_path_tmp)
+			var/file_hash = rustg_hash_file(RUSTG_HASH_MD5, file_path_tmp)
+			// Use the hash as its new filename - this allows the uni_icon to be smart cached, because the filename will be consistent between runs if the content is the same
+			file_path = "tmp/uni_icon-[file_hash].dmi"
+			fcopy(file_path_tmp, file_path)
+			fdel(file_path_tmp) // delete the old one
+			if(runtime_icon_ref)
+				runtime_icon_paths[runtime_icon_ref] = file_path
+		curicon = file(file_path)
+		// APHELION EDIT ADDITION END
 
 	if(!icon_exists(curicon, curstate))
 		if("" in icon_states_fast(curicon)) // BYOND defaulting functionality

@@ -9,8 +9,9 @@ import {
 import { Button, Stack } from 'tgui-core/components';
 
 import { DiagnosticAcquisition } from '../../../common/DiagnosticAcquisition';
+import type { SpeciesSelfPreview } from '../../types';
 import { SPRITE_DIRS } from './constants';
-import { SpeciesSprite } from './SpeciesSprite';
+import { PreviewFrame, SpeciesSprite } from './SpeciesSprite';
 
 /** 32px frames at 8x: 256px, large enough to read markings and silhouettes. */
 const VIEWER_SCALE = 8;
@@ -23,6 +24,8 @@ const DIR_LABELS = { south: 'S', west: 'W', north: 'N', east: 'E' } as const;
 type Props = {
   icon: string;
   name: string;
+  /** The character's own preview mob, shown instead of the species sprite. */
+  self?: SpeciesSelfPreview;
   /** Called when the specimen is first turned to its body, to fetch those sprites. */
   onBody?: () => void;
 };
@@ -54,10 +57,11 @@ type ChamberStyle = CSSProperties & { '--diagnostic-loader-progress': number };
 
 /**
  * The inspected species in a chamber each theme dresses its own way. Turn it
- * with the buttons, the turntable or by dragging, in uniform or without.
+ * with the buttons, the turntable or by dragging, in uniform or without. The
+ * character's own species shows the character itself, as its preview shows it.
  */
 export function SpecimenViewer(props: Props) {
-  const { icon, name, onBody } = props;
+  const { icon, name, self, onBody } = props;
   const [turn, setTurn] = useState(0);
   const [bare, setBare] = useState(false);
   const [spinning, setSpinning] = useState(false);
@@ -69,6 +73,7 @@ export function SpecimenViewer(props: Props) {
 
   const dir = SPRITE_DIRS[((turn % 4) + 4) % 4];
   const rotate = (steps: number) => setTurn((value) => value + steps);
+  const specimen = self ? self.image : icon;
 
   useEffect(() => {
     if (!spinning || !watched) {
@@ -82,7 +87,7 @@ export function SpecimenViewer(props: Props) {
     setAcquired(0.15);
     const timer = setTimeout(() => setAcquired(1), 60);
     return () => clearTimeout(timer);
-  }, [icon]);
+  }, [specimen]);
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -110,6 +115,8 @@ export function SpecimenViewer(props: Props) {
     '--specimen-size': `${32 * VIEWER_SCALE}px`,
   };
 
+  const showing = self ? 'your character' : bare ? 'body' : 'in uniform';
+
   return (
     <div
       className="SpecimenViewer"
@@ -119,7 +126,7 @@ export function SpecimenViewer(props: Props) {
       <div
         className="SpecimenViewer__chamber"
         role="img"
-        aria-label={`${name}, ${bare ? 'body' : 'in uniform'}, facing ${dir}`}
+        aria-label={`${name}, ${showing}, facing ${dir}`}
         style={chamberStyle}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -130,15 +137,19 @@ export function SpecimenViewer(props: Props) {
         <span className="SpecimenViewer__grid" />
         <DiagnosticAcquisition />
         <span className="SpecimenViewer__floor" />
-        <span key={icon} className="SpecimenViewer__figure">
-          <SpeciesSprite
-            icon={icon}
-            dir={dir}
-            bare={bare}
-            scale={VIEWER_SCALE}
-          />
+        <span key={specimen} className="SpecimenViewer__figure">
+          {self ? (
+            <PreviewFrame preview={self} dir={dir} box={32 * VIEWER_SCALE} />
+          ) : (
+            <SpeciesSprite
+              icon={icon}
+              dir={dir}
+              bare={bare}
+              scale={VIEWER_SCALE}
+            />
+          )}
         </span>
-        <span key={`sweep-${icon}`} className="SpecimenViewer__sweep" />
+        <span key={`sweep-${specimen}`} className="SpecimenViewer__sweep" />
         <span className="SpecimenViewer__glass" />
         <span className="SpecimenViewer__scale" />
         <span className="SpecimenViewer__corner SpecimenViewer__corner--nw" />
@@ -146,7 +157,7 @@ export function SpecimenViewer(props: Props) {
         <span className="SpecimenViewer__corner SpecimenViewer__corner--sw" />
         <span className="SpecimenViewer__corner SpecimenViewer__corner--se" />
         <span className="SpecimenViewer__readout ConsoleReading">
-          <span>{bare ? 'Body' : 'Uniform'}</span>
+          <span>{self ? 'You' : bare ? 'Body' : 'Uniform'}</span>
           <span>Facing {DIR_LABELS[dir]}</span>
         </span>
       </div>
@@ -177,27 +188,31 @@ export function SpecimenViewer(props: Props) {
           />
         </Stack.Item>
         <Stack.Item grow />
-        <Stack.Item>
-          <Button
-            icon="tshirt"
-            selected={!bare}
-            tooltip="Uniform"
-            tooltipPosition="bottom"
-            onClick={() => setBare(false)}
-          />
-        </Stack.Item>
-        <Stack.Item>
-          <Button
-            icon="child"
-            selected={bare}
-            tooltip="Body"
-            tooltipPosition="bottom"
-            onClick={() => {
-              setBare(true);
-              onBody?.();
-            }}
-          />
-        </Stack.Item>
+        {!self && (
+          <>
+            <Stack.Item>
+              <Button
+                icon="tshirt"
+                selected={!bare}
+                tooltip="Uniform"
+                tooltipPosition="bottom"
+                onClick={() => setBare(false)}
+              />
+            </Stack.Item>
+            <Stack.Item>
+              <Button
+                icon="child"
+                selected={bare}
+                tooltip="Body"
+                tooltipPosition="bottom"
+                onClick={() => {
+                  setBare(true);
+                  onBody?.();
+                }}
+              />
+            </Stack.Item>
+          </>
+        )}
       </Stack>
     </div>
   );
