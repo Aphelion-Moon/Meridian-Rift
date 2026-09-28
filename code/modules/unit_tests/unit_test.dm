@@ -134,6 +134,55 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	allocated += instance
 	return instance
 
+// APHELION EDIT ADDITION START - DOGMOS
+/** Returns two adjacent open turfs from the shared atmos test room.
+ * Arguments: * direction - direction from run_loc_floor_bottom_left for the second turf.
+ */
+/datum/unit_test/proc/allocate_turf_pair(direction = EAST)
+	var/turf/open/turf_a = run_loc_floor_bottom_left
+	var/turf/open/turf_b = get_step(turf_a, direction)
+	TEST_ASSERT(istype(turf_a), "run_loc_floor_bottom_left is not an open turf - this test needs one.")
+	TEST_ASSERT(istype(turf_b), "The turf [direction] of run_loc_floor_bottom_left is not an open turf - this test needs two real, adjacent turfs.")
+	// Previous tests may have replaced a turf with deferred adjacency recalculation.
+	// Establish this fixture's topology before asserting its preconditions.
+	turf_a.immediate_calculate_adjacent_turfs()
+	turf_b.immediate_calculate_adjacent_turfs()
+	TEST_ASSERT(turf_a in turf_b.atmos_adjacent_turfs, \
+		"turf_a and turf_b are not gas-adjacent (atmos_adjacent_turfs) - this test needs two turfs Dogmos will actually share gas between.")
+	return list(turf_a, turf_b)
+
+/** Re-registers a turf and rebuilds its Dogmos heat-graph adjacency. */
+/datum/unit_test/proc/resync_turf_for_dogmos(turf/open/target)
+	target.register_dogmos_air()
+	target.immediate_calculate_adjacent_turfs()
+
+/** Converts an adjacent turf to space and returns list(vacuum_neighbor, original_type).
+ * Restore the original type from Destroy(), including after failed assertions.
+ */
+/datum/unit_test/proc/convert_neighbor_to_space(turf/open/interior, direction = EAST)
+	var/turf/neighbor_loc = get_step(interior, direction)
+	TEST_ASSERT(istype(neighbor_loc, /turf/open), \
+		"The turf [direction] of the interior turf is not an open turf - this test needs a real neighbor to convert to space.")
+	var/original_type = neighbor_loc.type
+
+	// Rebuild adjacency synchronously so the new edge exists when the test continues.
+	var/turf/open/space/vacuum_neighbor = neighbor_loc.ChangeTurf(/turf/open/space, flags = CHANGETURF_INHERIT_AIR | CHANGETURF_RECALC_ADJACENT)
+	TEST_ASSERT(istype(vacuum_neighbor), \
+		"ChangeTurf to /turf/open/space did not produce a space turf - test setup is broken, not the thing under test.")
+	TEST_ASSERT(interior in vacuum_neighbor.atmos_adjacent_turfs, \
+		"The interior turf and its new space neighbor are not gas-adjacent - test setup is broken, not the thing under test.")
+	return list(vacuum_neighbor, original_type)
+
+/// Restores whatever convert_neighbor_to_space() replaced. Safe to call unconditionally from Destroy() -
+/// a null/empty original_type (never converted, or already restored) is a no-op.
+/datum/unit_test/proc/restore_neighbor_from_space(turf/open/interior, original_type, direction = EAST)
+	if(!original_type || !istype(interior))
+		return
+	var/turf/neighbor_loc = get_step(interior, direction)
+	if(istype(neighbor_loc, /turf/open/space))
+		neighbor_loc.ChangeTurf(original_type, flags = CHANGETURF_INHERIT_AIR | CHANGETURF_RECALC_ADJACENT)
+
+// APHELION EDIT ADDITION END
 /// Resets the air of our testing room to its default
 /datum/unit_test/proc/restore_atmos()
 	var/area/working_area = run_loc_floor_bottom_left.loc
@@ -141,7 +190,15 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	for(var/turf/open/restore in to_restore)
 		var/datum/gas_mixture/GM = SSair.parse_gas_string(restore.initial_gas_mix, /datum/gas_mixture/turf)
 		restore.copy_air(GM)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		restore.temperature = initial(restore.temperature)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		// set_temperature(), not a direct var write - Dogmos owns turf temperature (TurfHeat) now, and
+		// a direct restore.temperature = ... write only touches the DM var, leaving Rust's copy stale
+		// for every subsequent test. See modular_aphelion/master_files/code/game/turfs/turf.dm.
+		restore.set_temperature(initial(restore.temperature))
+		// APHELION EDIT ADDITION END
 		restore.air_update_turf(update = FALSE, remove = FALSE)
 
 /datum/unit_test/proc/test_screenshot(name, icon/icon)
@@ -217,6 +274,14 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/skip_test = (test_path in SSmapping.current_map.skipped_tests)
 	var/test_output_desc = "[test_path]"
 	var/message = ""
+	// APHELION EDIT ADDITION START - DOGMOS
+	// GLOB.total_runtimes is bumped by /world/Error (code\modules\error_handler\error_handler.dm).
+	// Snapshotting it around the test attributes each runtime to whichever test was running, which
+	// the suite could not previously do: a test that runtimed but never called TEST_FAIL was
+	// recorded as PASSED with no trace of the runtime anywhere but the global aggregate.
+	var/runtimes_before = GLOB.total_runtimes
+	var/runtimes_during = 0
+	// APHELION EDIT ADDITION END
 
 	log_world("::group::[test_path]")
 
@@ -228,10 +293,15 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		test.Run()
 		if(test.priority < TEST_CREATE_AND_DESTROY) //We shouldn't care about restoring atmos after create_and_destroy.
 			test.restore_atmos()
+		// APHELION EDIT ADDITION START - DOGMOS
+
+		// Restore-time runtimes are attributed to the test that dirtied the turf, not the next one.
+		runtimes_during = GLOB.total_runtimes - runtimes_before
+		// APHELION EDIT ADDITION END
 
 		duration = REALTIMEOFDAY - duration
 		GLOB.current_test = null
-		GLOB.failed_any_test |= !test.succeeded
+		GLOB.failed_any_test |= !test.succeeded || runtimes_during // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: GLOB.failed_any_test |= !test.succeeded
 
 		var/list/log_entry = list()
 		var/list/fail_reasons = test.fail_reasons
@@ -250,21 +320,41 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 			message = log_entry.Join("\n")
 			log_test(message)
 
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(runtimes_during)
+			log_world("[TEST_OUTPUT_YELLOW("RUNTIMES")] [test_path] logged [runtimes_during] runtime error(s)")
+
+		// APHELION EDIT ADDITION END
 		test_output_desc += " [duration / 10]s"
 		if(duration > 10)
 			GLOB.test_run_times[test_path] = duration
-		if (test.succeeded)
+		if (test.succeeded && !runtimes_during) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if (test.succeeded)
 			log_world("[TEST_OUTPUT_GREEN("PASS")] [test_output_desc]")
 
 	log_world("::endgroup::")
 
-	if (!test.succeeded && !skip_test)
+	if ((!test.succeeded || runtimes_during) && !skip_test) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if (!test.succeeded && !skip_test)
 		log_world("::error::[TEST_OUTPUT_RED("FAIL")] [test_output_desc]")
 
-	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
+	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded && !runtimes_during ? UNIT_TEST_PASSED : UNIT_TEST_FAILED) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	// Record elapsed duration for timing checks; skipped tests report zero.
+	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path, "runtimes" = runtimes_during, "duration" = skip_test ? 0 : duration)
+	// APHELION EDIT ADDITION END
 
+	// APHELION EDIT ADDITION START - DOGMOS - attribute synchronous teardown errors
+	var/runtimes_before_teardown = GLOB.total_runtimes
 	qdel(test)
+	var/teardown_runtimes = GLOB.total_runtimes - runtimes_before_teardown
+	if(teardown_runtimes)
+		var/list/result = test_results[test_path]
+		result["runtimes"] += teardown_runtimes
+		result["status"] = UNIT_TEST_FAILED
+		GLOB.failed_any_test = TRUE
+	// APHELION EDIT ADDITION END
 
 /// Builds (and returns) a list of atoms that we shouldn't initialize in generic testing, like Create and Destroy.
 /// It is appreciated to add the reason why the atom shouldn't be initialized if you add it to this list.
@@ -434,6 +524,16 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	sortTim(tests_to_run, GLOBAL_PROC_REF(cmp_unit_test_priority))
 
 	var/list/test_results = list()
+
+	// APHELION EDIT ADDITION START - DOGMOS - authoritative selected-suite inventory
+	var/list/test_inventory = list()
+	for(var/datum/unit_test/unit_path as anything in tests_to_run)
+		if(ispath(unit_path, /datum/unit_test/focus_only) || unit_path::abstract_type == unit_path || unit_path::times_to_run <= 0)
+			continue
+		test_inventory += "[unit_path]"
+	fdel("data/unit_test_inventory.json")
+	file("data/unit_test_inventory.json") << json_encode(test_inventory)
+	// APHELION EDIT ADDITION END
 
 	//Hell code, we're bound to end the round somehow so let's stop if from ending while we work
 	SSticker.delay_end = TRUE

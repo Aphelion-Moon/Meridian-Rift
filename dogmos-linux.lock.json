@@ -1,0 +1,53 @@
+{
+  "artifacts": {
+    "dogmos-source-snapshot.json": "97065488169d26687c3b2b429f832aa516f9a5a6c93147cd47611a86f32c182b",
+    "dogmos_bindings.dm": "503b51dd7f4228c76ab0e45f038e54db6d791347ae611210e6e18069e0284e6c",
+    "libdogmos_in_process.so": "8ebb8abc5e03df66ea23ade57b9d2e9c00682d595344e1e68a2969607bf45b1b",
+    "libdogmos_in_process.so.debug": "b905e3b0f69f05c22192c7c9cb8be3ada661093a7346360fcd688e2e180b91a5"
+  },
+  "backend": "in-process",
+  "build_provenance": {
+    "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "cpu_requirements": [],
+    "flag_sha256": {},
+    "linker": {
+      "command": null,
+      "selection": "cargo-rustc-configuration",
+      "version": null
+    },
+    "objcopy_version": "GNU objcopy (GNU Binutils for Ubuntu) 2.42",
+    "profile_override_sha256": {},
+    "rustc_verbose": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.0\nLLVM version: 22.1.8"
+  },
+  "cargo_arguments": [
+    "+1.98.0",
+    "build",
+    "-p",
+    "dogmos",
+    "--lib",
+    "--example",
+    "generate_bindings",
+    "--release",
+    "--locked",
+    "--target",
+    "i686-unknown-linux-gnu",
+    "--no-default-features",
+    "--features",
+    "aphelion_reactions,katmos,katmos_slow_decompression,superconductivity,turf_processing"
+  ],
+  "features": [
+    "aphelion_reactions",
+    "katmos",
+    "katmos_slow_decompression",
+    "superconductivity",
+    "turf_processing"
+  ],
+  "kind": "unqualified-in-process-playtest",
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "source_revision": "739cd17f7bbf70cf2804425891e619f3ffb39c9f",
+  "source_sha256": "97065488169d26687c3b2b429f832aa516f9a5a6c93147cd47611a86f32c182b",
+  "target": "i686-unknown-linux-gnu",
+  "tests_run": false,
+  "toolchain": "1.98.0"
+}

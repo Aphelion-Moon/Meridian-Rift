@@ -189,12 +189,12 @@
 	var/port_capacity = port.heat_capacity()
 
 	// The difference between target and what we need to heat/cool. Positive if heating, negative if cooling.
-	var/temperature_target_delta = target_temperature - port.temperature
+	var/temperature_target_delta = target_temperature - port.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/temperature_target_delta = target_temperature - port.temperature
 
 	// We perfectly can do W1+W2 / C1+C2 here but this lets us count the power easily.
 	var/heat_amount = CALCULATE_CONDUCTION_ENERGY(temperature_target_delta, port_capacity, heat_capacity)
 
-	port.temperature = max(((port.temperature * port_capacity) + heat_amount) / port_capacity, TCMB)
+	port.set_temperature(max(((port.return_temperature() * port_capacity) + heat_amount) / port_capacity, TCMB)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: port.temperature = max(((port.temperature * port_capacity) + heat_amount) / port_capacity, TCMB)
 
 	heat_amount = min(abs(heat_amount), 1e8) * THERMOMACHINE_POWER_CONVERSION
 
@@ -287,7 +287,7 @@
 	data["initial"] = initial(target_temperature)
 
 	var/datum/gas_mixture/port = airs[1]
-	data["temperature"] = port.temperature
+	data["temperature"] = port.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: data["temperature"] = port.temperature
 	data["pressure"] = port.return_pressure()
 	return data
 

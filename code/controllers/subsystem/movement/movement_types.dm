@@ -428,6 +428,10 @@
 
 ///Tries to calculate a new path for this moveloop.
 /datum/move_loop/has_target/jps/proc/recalculate_path()
+	// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
+	if(QDELETED(src))
+		return
+	// APHELION EDIT ADDITION END
 	if(!COOLDOWN_FINISHED(src, repath_cooldown))
 		return
 	COOLDOWN_START(src, repath_cooldown, repath_delay)

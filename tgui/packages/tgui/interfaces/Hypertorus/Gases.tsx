@@ -91,7 +91,7 @@ const GasList = (props: GasListProps) => {
   const { start_power, start_cooling } = data;
 
   const gases: HypertorusGas[] = sortBy(
-    filter(raw_gases, (gas) => gas.amount >= 0.01),
+    filter(raw_gases, (gas) => gas.amount >= 0.0001), // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: filter(raw_gases, (gas) => gas.amount >= 0.01),
     [(gas) => -gas.amount],
   );
 
@@ -148,7 +148,8 @@ const GasList = (props: GasListProps) => {
               minValue={0}
               maxValue={minimumScale}
             >
-              {`${toFixed(gas.amount, 2)} moles`}
+              {/* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {`${toFixed(gas.amount, 2)} moles`} */}
+              {`${toFixed(gas.amount, 4)} moles`}
             </ProgressBar>
           </LabeledList.Item>
         );

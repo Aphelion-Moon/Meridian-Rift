@@ -555,6 +555,7 @@
 	base_icon_state = "wooden";
 	icon = 'icons/obj/storage/crates.dmi';
 	icon_state = "wooden";
+	light_mask = null;
 	color = "#b887b7";
 	name = "LustWish crate";
 	desc = "A bluespace-utilizing wooden crate that contains LustWish merchandise.";

@@ -98,8 +98,14 @@
 
 	var/datum/gas_mixture/air_contents = airs[1]
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(air_contents.temperature > 0)
 		var/transfer_moles = (air_contents.return_pressure() * volume_rate) / (air_contents.temperature * R_IDEAL_GAS_EQUATION)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(air_contents.return_temperature() > 0)
+		var/transfer_moles = (air_contents.return_pressure() * volume_rate) / (air_contents.return_temperature() * R_IDEAL_GAS_EQUATION)
+		// APHELION EDIT ADDITION END
 
 		if(!transfer_moles)
 			return

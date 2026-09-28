@@ -1140,7 +1140,7 @@ GLOBAL_LIST_EMPTY(cached_storage_typecaches)
 	if(to_hide.client)
 		to_hide.client.screen -= storage_interfaces[to_hide].list_ui_elements()
 		to_hide.client.screen -= real_location.contents
-	if(to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE])
+	if(to_hide.hud_used?.screen_groups[HUD_GROUP_STORAGE]) // APHELION EDIT CHANGE - HUD_LIFECYCLE - ORIGINAL: if(to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE])
 		to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE] -= storage_interfaces[to_hide].list_ui_elements()
 		to_hide.hud_used.screen_groups[HUD_GROUP_STORAGE] -= real_location.contents
 	QDEL_NULL(storage_interfaces[to_hide])
