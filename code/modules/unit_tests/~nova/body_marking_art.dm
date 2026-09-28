@@ -83,6 +83,45 @@
 					missing += "[name] ([marking.type]) claims [zone], which asks for [state], missing from [marking.icon]"
 	TEST_ASSERT(!length(missing), "Body markings claim zones their sheets have no art for:\n[jointext(missing, "\n")]")
 
+/// Every state on a body marking sheet is art some marking claims: a state no marking claims is art a marking lost or a
+/// duplicate, and must not come back unnoticed. A body marking sheet is one under icons/mob/body_markings/ that a marking in
+/// GLOB.body_markings draws from; the states a sheet keeps though no marking claims them are listed here with the reason.
+/datum/unit_test/body_marking_art/unclaimed_states
+
+/datum/unit_test/body_marking_art/unclaimed_states/Run()
+	// sheet -> state -> TRUE: every state a marking asks of its sheet on a zone it claims, walked as claimed_zones walks them.
+	var/list/sheets = list()
+	for(var/name, marking_datum in GLOB.body_markings)
+		var/datum/body_marking/marking = marking_datum
+		if(!findtext("[marking.icon]", "icons/mob/body_markings/"))
+			continue
+		var/list/states = sheets[marking.icon]
+		if(!states)
+			states = list()
+			sheets[marking.icon] = states
+		for(var/zone in GLOB.marking_zones)
+			if(!(marking.affected_bodyparts & GLOB.marking_zone_to_bitflag[zone]))
+				continue
+			var/list/shapes = (zone == BODY_ZONE_L_LEG || zone == BODY_ZONE_R_LEG) ? list(FALSE, TRUE) : list(FALSE)
+			var/list/physiques = zone == BODY_ZONE_CHEST ? list("m", "f") : list("m")
+			for(var/digitigrade in shapes)
+				for(var/limb_gender in physiques)
+					var/state = marking.zone_icon_state(zone, digitigrade, limb_gender)
+					if(state)
+						states[state] = TRUE
+	// sheet path -> the states it keeps though no marking claims them
+	var/list/kept = list(
+		// Its unnamed default state, blank: a missing state never falls back to it, as the renderer draws nothing instead.
+		"modular_nova/master_files/icons/mob/body_markings/akula_markings.dmi" = list(""),
+	)
+	var/list/unclaimed = list()
+	for(var/sheet, states in sheets)
+		for(var/state in icon_states(sheet))
+			if(!states[state] && !(state in kept["[sheet]"]))
+				unclaimed += "[sheet]: \"[state]\""
+	TEST_ASSERT_EQUAL(length(sheets), 11, "The walk must reach every body marking sheet")
+	TEST_ASSERT(!length(unclaimed), "Body marking sheets hold states no marking claims:\n[jointext(unclaimed, "\n")]")
+
 /// A marking draws nothing where its sheet lacks the state a zone asks for, glow included, rather than the sheet's default
 /// state: a zone claimed without art, or one a save holds that the marking no longer claims. A zone it has art for draws.
 /datum/unit_test/body_marking_art/missing_state
