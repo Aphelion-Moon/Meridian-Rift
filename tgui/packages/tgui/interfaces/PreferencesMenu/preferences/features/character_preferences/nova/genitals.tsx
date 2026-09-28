@@ -1,6 +1,5 @@
 // THIS IS A NOVA SECTOR UI FILE
-import { Button, Stack } from 'tgui-core/components';
-import type { BooleanLike } from 'tgui-core/react';
+import { Stack } from 'tgui-core/components';
 
 import {
   CheckboxInput,
@@ -158,73 +157,52 @@ export const feature_womb: Feature<string> = {
 };
 
 type BreastsServerData = FeatureChoicedServerData & {
-  /** Pec shapes by name: which size they are and whether nipples are drawn. */
-  pecs?: Record<string, { big: BooleanLike; nipples: BooleanLike }>;
-  /** The shape turning Pecs off goes back to. */
-  breasts_default?: string;
+  /** The pec shapes, in the Pecs option dropdown's order. The first stands in for all of them in the breast list. */
+  pec_shapes?: string[];
 };
 
-/** Breasts, or pecs through a toggle with their own size and nipple controls. */
+/** Breast shapes with the pec shapes folded into one Pecs entry, and a Pecs option dropdown while one is chosen. */
 function BreastsInput(
   props: FeatureValueProps<string, string, BreastsServerData>,
 ) {
   const { serverData, value, handleSetValue } = props;
-  const pecs = serverData?.pecs ?? {};
-  const current = pecs[value];
-  const pecShape = (big: boolean, nipples: boolean) =>
-    Object.keys(pecs).find(
-      (shape) => !!pecs[shape].big === big && !!pecs[shape].nipples === nipples,
-    );
-  const setPecs = (big: boolean, nipples: boolean) => {
-    const shape = pecShape(big, nipples);
-    if (shape) {
-      handleSetValue(shape);
-    }
-  };
+  const pecShapes = serverData?.pec_shapes ?? [];
+  const pecsEntry = pecShapes[0];
+  const isPecs = pecShapes.includes(value);
   const breastChoices = serverData && {
     ...serverData,
-    choices: serverData.choices.filter((choice) => !pecs[choice]),
+    choices: serverData.choices.filter(
+      (choice) => choice === pecsEntry || !pecShapes.includes(choice),
+    ),
   };
 
   return (
     <Stack vertical>
       <Stack.Item>
-        <Button.Checkbox
-          checked={!!current}
-          disabled={!serverData}
-          onClick={() =>
-            current
-              ? handleSetValue(serverData?.breasts_default ?? value)
-              : setPecs(false, true)
-          }
-        >
-          Pecs
-        </Button.Checkbox>
+        <FeatureDropdownInput
+          buttons
+          {...props}
+          serverData={breastChoices}
+          value={isPecs ? pecsEntry : value}
+          handleSetValue={(choice) => {
+            // Picking Pecs again keeps whichever pec option is set.
+            if (!(isPecs && choice === pecsEntry)) {
+              handleSetValue(choice);
+            }
+          }}
+        />
       </Stack.Item>
-      {current ? (
+      {isPecs && (
         <Stack.Item>
-          <Button
-            selected={!current.big}
-            onClick={() => setPecs(false, !!current.nipples)}
-          >
-            Pecs
-          </Button>
-          <Button
-            selected={!!current.big}
-            onClick={() => setPecs(true, !!current.nipples)}
-          >
-            Bigger pecs
-          </Button>
-          <Button.Checkbox
-            checked={!!current.nipples}
-            onClick={() => setPecs(!!current.big, !current.nipples)}
-          >
-            Nipples
-          </Button.Checkbox>
-        </Stack.Item>
-      ) : (
-        <Stack.Item>
-          <FeatureDropdownInput buttons {...props} serverData={breastChoices} />
+          <Stack align="center">
+            <Stack.Item color="label">Pecs option</Stack.Item>
+            <Stack.Item grow>
+              <FeatureDropdownInput
+                {...props}
+                serverData={{ choices: pecShapes }}
+              />
+            </Stack.Item>
+          </Stack>
         </Stack.Item>
       )}
     </Stack>

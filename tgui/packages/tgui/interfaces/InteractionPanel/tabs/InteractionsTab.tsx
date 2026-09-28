@@ -17,8 +17,8 @@ type Interaction = {
   interactions: Record<string, string[]>;
   descriptions: Record<string, string>;
   colors: Record<string, string>;
-  /** Button text where it differs from the interaction's name, e.g. "Pecjob". */
-  labels?: Record<string, string>;
+  /** Button text where it differs from the interaction's name, e.g. "Pecjob". Null when none differ. */
+  labels?: Record<string, string> | null;
   self: string;
   block_interact: BooleanLike;
   use_subtler: BooleanLike;
@@ -39,13 +39,14 @@ export const InteractionsTab = ({
     interactions = {},
     descriptions = {},
     colors = {},
-    labels = {},
+    labels,
     block_interact,
     use_subtler,
   } = data;
 
   const searchLower = searchText.toLowerCase();
-  const labelOf = (interaction: string) => labels[interaction] ?? interaction;
+  // The server sends null rather than an empty list, which a destructuring default would not catch.
+  const labelOf = (interaction: string) => labels?.[interaction] ?? interaction;
 
   const renderInteractionButton = (interaction: string) => {
     return (
