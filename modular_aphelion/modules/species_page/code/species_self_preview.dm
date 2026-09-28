@@ -17,13 +17,17 @@ GLOBAL_LIST_EMPTY(species_self_preview_users)
 	if (isnull(client))
 		return FALSE
 	var/drawn = update_self_preview()
-	var/file_name = self_preview?["image"]
+	var/list/drawing = self_preview
+	var/file_name = drawing?["image"]
 	if (isnull(file_name) || client.sent_assets[file_name])
 		return drawn
 	client << browse_rsc(file("[SPECIES_SELF_PREVIEW_DIR][file_name]"), file_name)
-	client.sent_assets[file_name] = self_preview["name"]
-	// The page only hears of the drawing once its file is there; see get_ui_data().
-	client.browse_queue_flush()
+	// The page only hears of a drawing once the client confirms its file has arrived (see get_ui_data()).
+	// Any preferences update sent before that would have it ask for an image still on its way, which
+	// stays blank: a background image that fails once isn't asked for again.
+	if (!client.browse_queue_flush() || QDELETED(client))
+		return FALSE
+	client.sent_assets[file_name] = drawing["name"]
 	return TRUE
 
 /// Draws the preview mob facing each way if it has changed since it was last drawn. Returns whether it drew.
