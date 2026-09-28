@@ -1505,6 +1505,34 @@
 	SEND_SIGNAL(src, COMSIG_BODYPART_GET_LIMB_ICON, ., dropped)
 	return .
 
+// APHELION EDIT ADDITION START - Each sheet from a file is toned for husks once
+/// Icon sheet from a file -> its husk-toned copy in the resource cache; see husk_toned_sheet().
+GLOBAL_LIST_EMPTY(husk_toned_sheets)
+
+/**
+ * Returns an icon sheet toned the way a husk is drawn.
+ *
+ * Toning works on the whole sheet, every state in it, so a sheet from a file is toned once and its copy kept, one per file:
+ * as bounded as the icon files are. A runtime icon or an /icon datum could hold any pixels and is toned afresh every time.
+ *
+ * Arguments:
+ * * sheet - The icon to tone: a file, a runtime icon in the resource cache or an /icon datum.
+ */
+/proc/husk_toned_sheet(sheet)
+	var/from_file = isfile(sheet) && length("[sheet]")
+	if(from_file)
+		var/toned = GLOB.husk_toned_sheets[sheet]
+		if(toned)
+			return toned
+	var/icon/husk_icon = new(sheet)
+	husk_icon.ColorTone(HUSK_COLOR_TONE)
+	if(!from_file)
+		return husk_icon
+	var/toned_copy = fcopy_rsc(husk_icon)
+	GLOB.husk_toned_sheets[sheet] = toned_copy
+	return toned_copy
+// APHELION EDIT ADDITION END
+
 /**
  * Takes in an image and greyscales it to later be recolored to look like a husk
  *
@@ -1512,9 +1540,12 @@
  * May return multiple if the blood overlay has an emissive associated
  */
 /obj/item/bodypart/proc/huskify_image(image/thing_to_husk)
+	/* // APHELION EDIT REMOVAL START - Each sheet from a file is toned for husks once
 	var/icon/husk_icon = new(thing_to_husk.icon)
 	husk_icon.ColorTone(HUSK_COLOR_TONE)
 	thing_to_husk.icon = husk_icon
+	*/ // APHELION EDIT REMOVAL END
+	thing_to_husk.icon = husk_toned_sheet(thing_to_husk.icon) // APHELION EDIT ADDITION - Each sheet from a file is toned for husks once
 
 	var/mutable_appearance/husk_blood = mutable_appearance(icon_husk, "[husk_type]_husk_[body_zone]", thing_to_husk.layer, appearance_flags = RESET_COLOR)
 	. = list(husk_blood)

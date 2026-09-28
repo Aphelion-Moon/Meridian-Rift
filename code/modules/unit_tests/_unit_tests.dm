@@ -392,6 +392,7 @@
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\drop_limb_blood.dm"
+#include "~nova\husk_icon_cache.dm"
 #include "~nova\icon_dimensions.dm"
 #include "~nova\limb_marking_cache.dm"
 #include "~nova\limb_markings.dm"
