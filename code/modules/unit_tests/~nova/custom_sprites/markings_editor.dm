@@ -217,11 +217,88 @@
 	var/datum/tgui/ui = allocate(/datum/tgui, user, editor, "CustomMarkingsEditor")
 	var/list/rows = editor.workspace.markings_context[BODY_ZONE_L_ARM]
 	TEST_ASSERT(length(rows) == 1 && rows[1]["color"] == "#abcdef", "The fixture's left arm must open with its saved row.")
+	TEST_ASSERT(!editor.region_marking_rows(BODY_ZONE_L_ARM)[1]["locked"], "An unlocked row must be sent as unlocked.")
 	TEST_ASSERT(editor.ui_act("setBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 1, "name" = ink.name), ui, null), "Renaming a row to a locked marking must work.")
 	var/list/renamed = editor.workspace.markings_context[BODY_ZONE_L_ARM][1]
 	TEST_ASSERT(renamed["name"] == ink.name && renamed["color"] == ink_color, "A row renamed to a locked marking must start in that marking's colour, not the old row's.")
+	// The window is told, so it can grey the row's colour control.
+	TEST_ASSERT(editor.region_marking_rows(BODY_ZONE_L_ARM)[1]["locked"], "A locked row must be sent as locked.")
 	TEST_ASSERT(!editor.ui_act("pickBaseMarkingColor", list("zone" = BODY_ZONE_L_ARM, "index" = 1), ui, null), "Picking a locked row's colour must return without doing anything.")
 	TEST_ASSERT(editor.workspace.markings_context[BODY_ZONE_L_ARM][1]["color"] == ink_color, "A locked row must keep its colour.")
+	editor.finish(FALSE)
+
+/// Two markings of one exclusion group never share a region through the whole-body editor, which saves regions through
+/// set_zone_from_list(), where the second would be dropped: renaming a row into a group another row wears and an imported style
+/// holding two are refused with the reason, and adding a marking skips the ones a worn marking's group keeps off, refusing with
+/// the reason when nothing else is left. A row may still become another marking of its own group.
+/datum/unit_test/custom_sprite_markings_editor_exclusion_groups
+	/// marking -> the exclusion group it had before the test gave it one, put back in Destroy().
+	var/list/original_groups
+	/// The left arm's real marking choices, restored after the test narrows them.
+	var/list/original_choices
+
+/datum/unit_test/custom_sprite_markings_editor_exclusion_groups/Destroy()
+	for(var/datum/body_marking/marking as anything in original_groups)
+		marking.exclusion_group = original_groups[marking]
+	original_groups = null
+	if(original_choices)
+		GLOB.body_markings_per_limb[BODY_ZONE_L_ARM] = original_choices
+	return ..()
+
+/datum/unit_test/custom_sprite_markings_editor_exclusion_groups/Run()
+	var/datum/body_marking/bovine = GLOB.body_markings_by_type[/datum/body_marking/secondary/bovine]
+	var/datum/body_marking/dalmatian = GLOB.body_markings_by_type[/datum/body_marking/secondary/dalmatian]
+	var/datum/body_marking/guilmon = GLOB.body_markings_by_type[/datum/body_marking/tertiary/guilmon]
+	for(var/datum/body_marking/grouped as anything in list(bovine, dalmatian))
+		LAZYSET(original_groups, grouped, grouped.exclusion_group)
+		grouped.exclusion_group = "test_coat"
+	var/free
+	for(var/name in GLOB.body_markings_per_limb[BODY_ZONE_L_ARM])
+		var/datum/body_marking/marking = GLOB.body_markings[name]
+		if(!marking.exclusion_group && !(name in list(bovine.name, dalmatian.name, guilmon.name)))
+			free = name
+			break
+	TEST_ASSERT(free, "The fixture needs a left arm marking outside the group.")
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+	preferences.body_markings = body_marking_collection_from_list(list(BODY_ZONE_L_ARM = list("[bovine.name]" = list("#111111", 0), "[guilmon.name]" = list("#222222", 0))))
+	var/datum/custom_sprite_editor/markings/unified_test/editor = new(preferences, BODY_ZONE_L_ARM)
+	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor")
+	var/before = json_encode(editor.workspace.markings_context[BODY_ZONE_L_ARM])
+	// Renaming the second row into the group the first row wears.
+	TEST_ASSERT(editor.ui_act("setBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 2, "name" = dalmatian.name), ui, null), "A refused rename must update the window with its reason.")
+	TEST_ASSERT_EQUAL(json_encode(editor.workspace.markings_context[BODY_ZONE_L_ARM]), before, "A rename into a group another row wears must change nothing.")
+	TEST_ASSERT(findtext(editor.transfer_error, bovine.name), "The refusal must name the marking in the way: [editor.transfer_error]")
+	// The first row may become another marking of its own group.
+	editor.transfer_error = null
+	TEST_ASSERT(editor.ui_act("setBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 1, "name" = dalmatian.name), ui, null), "A row may become another marking of its own group.")
+	TEST_ASSERT_EQUAL(editor.workspace.markings_context[BODY_ZONE_L_ARM][1]["name"], dalmatian.name, "The row must wear its new marking.")
+	TEST_ASSERT_NULL(editor.transfer_error, "An allowed rename must give no reason.")
+	// Adding skips the marking the worn one's group keeps off.
+	original_choices = GLOB.body_markings_per_limb[BODY_ZONE_L_ARM]
+	GLOB.body_markings_per_limb[BODY_ZONE_L_ARM] = list(bovine.name, free)
+	TEST_ASSERT(editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "Adding must work while a marking outside the group is left.")
+	TEST_ASSERT_EQUAL(json_encode(assoc_to_keys(custom_style_marking_data(editor.workspace.markings_context[BODY_ZONE_L_ARM]))), json_encode(list(dalmatian.name, guilmon.name, free)), "Adding must skip a marking of the group the region wears.")
+	TEST_ASSERT_NULL(editor.transfer_error, "An addition that found a marking must give no reason.")
+	// With only that marking left, adding is refused with the reason.
+	TEST_ASSERT(editor.ui_act("removeBaseMarking", list("zone" = BODY_ZONE_L_ARM, "index" = 3), ui, null), "Removing a row must work.")
+	GLOB.body_markings_per_limb[BODY_ZONE_L_ARM] = list(bovine.name)
+	before = json_encode(editor.workspace.markings_context[BODY_ZONE_L_ARM])
+	TEST_ASSERT(editor.ui_act("addBaseMarking", list("zone" = BODY_ZONE_L_ARM), ui, null), "A refused addition must update the window with its reason.")
+	TEST_ASSERT_EQUAL(json_encode(editor.workspace.markings_context[BODY_ZONE_L_ARM]), before, "An addition only the group's marking could fill must add nothing.")
+	TEST_ASSERT(editor.transfer_error, "A refused addition must say why.")
+	GLOB.body_markings_per_limb[BODY_ZONE_L_ARM] = original_choices
+	original_choices = null
+	// An imported style holding two markings of the group.
+	editor.transfer_error = null
+	var/list/clash = list(
+		list("name" = bovine.name, "color" = "#111111", "emissive" = FALSE),
+		list("name" = dalmatian.name, "color" = "#222222", "emissive" = FALSE),
+	)
+	TEST_ASSERT(!editor.show_region_candidate(list(BODY_ZONE_L_ARM = custom_style_package("markings", BODY_ZONE_L_ARM, null, null, clash)), "import"), "An import holding two markings of a group must be refused.")
+	TEST_ASSERT(findtext(editor.transfer_error, bovine.name) && findtext(editor.transfer_error, dalmatian.name), "The refusal must name both markings: [editor.transfer_error]")
+	TEST_ASSERT_NULL(editor.candidate, "A refused import must preview nothing.")
 	editor.finish(FALSE)
 
 /datum/unit_test/custom_sprite_markings_editor_palette_overflow/Run()

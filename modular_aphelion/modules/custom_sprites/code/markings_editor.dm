@@ -385,13 +385,41 @@
 	var/datum/preferences/owner = context == "salon" ? GLOB.preferences_datums[session?.recipient_ckey] : preferences
 	return body_markings_of_zone_for_species(zone, preview_body?.dna.species.id, owner?.read_preference(/datum/preference/toggle/allow_mismatched_parts))
 
-/// A region's native markings in layer order, as its Base markings section shows them.
+/// A region's native markings in layer order, as its Base markings section shows them. A locked marking's colour is its own.
 /datum/custom_sprite_editor/markings/proc/region_marking_rows(zone)
 	. = list()
 	var/index = 0
 	for(var/list/entry as anything in workspace.markings_context[zone])
 		index++
-		. += list(list("index" = index, "name" = entry["name"], "color" = entry["color"]))
+		var/datum/body_marking/marking = GLOB.body_markings[entry["name"]]
+		. += list(list("index" = index, "name" = entry["name"], "color" = entry["color"], "locked" = marking?.color_mode == MARKING_COLOR_LOCKED))
+
+/**
+ * Returns the marking a region's rows already wear that keeps another off it: one of its exclusion group. The preview and saving
+ * set a region through set_zone_from_list(), which drops the second marking of a group, so the editor refuses it first.
+ *
+ * Arguments:
+ * - entries: the region's marking records, in order.
+ * - name: the marking that would go on.
+ * - ignore_index: the row that marking would replace, or is itself, whose own marking doesn't count.
+ *
+ * Returns:
+ * - text: the name of the marking in the way, or null.
+ */
+/proc/custom_style_marking_conflict(list/entries, name, ignore_index)
+	var/datum/body_marking/marking = GLOB.body_markings[name]
+	var/group = marking?.exclusion_group
+	if(!group)
+		return null
+	var/index = 0
+	for(var/list/entry as anything in entries)
+		index++
+		if(index == ignore_index)
+			continue
+		var/datum/body_marking/worn = GLOB.body_markings[entry["name"]]
+		if(worn?.exclusion_group == group)
+			return entry["name"]
+	return null
 
 /// Whether a region's saved paint in one view includes any the canvas can't show, under other limbs or outside every region.
 /datum/custom_sprite_editor/markings/proc/has_covered_paint(zone, direction)
@@ -440,6 +468,11 @@
 			var/name = params["name"]
 			if(!isnum(params["index"]) || !istext(name) || !(name in marking_choices(zone)) || custom_style_marking_data(canvas.markings_context[zone])[name])
 				return FALSE
+			// Another row wearing a marking of its exclusion group keeps it off, as saving would drop it; the window says why.
+			var/in_the_way = custom_style_marking_conflict(canvas.markings_context[zone], name, params["index"])
+			if(in_the_way)
+				transfer_error = "[name] can't be worn with [in_the_way], which the [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] already wears."
+				return TRUE
 			// A renamed row keeps its colour, unless its new marking is locked: ink starts in its own colour, as in character setup.
 			var/datum/body_marking/marking = GLOB.body_markings[name]
 			return write_region_marking(zone, params["index"], name, marking.color_mode == MARKING_COLOR_LOCKED ? default_marking_color(name) : null)
@@ -450,7 +483,12 @@
 			var/list/choices = marking_choices(zone) - markings
 			if(!length(choices))
 				return FALSE
-			return write_region_marking(zone, null, choices[1], default_marking_color(choices[1]))
+			// The first choice no worn marking's exclusion group keeps off, as saving would drop it; the window says why if none is.
+			for(var/name in choices)
+				if(!custom_style_marking_conflict(canvas.markings_context[zone], name))
+					return write_region_marking(zone, null, name, default_marking_color(name))
+			transfer_error = "Every other marking the [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] can take can't be worn with one it already wears."
+			return TRUE
 		if("removeBaseMarking")
 			if(!isnum(params["index"]))
 				return FALSE
@@ -653,6 +691,14 @@
 			for(var/list/entry as anything in package["markings"])
 				if(entry["emissive"])
 					return "The [label] has glowing base markings, but emissive appearance is disabled for this character."
+		// Saving would drop the second marking of an exclusion group, so a style holding two is refused.
+		var/list/package_markings = package["markings"]
+		var/index = 0
+		for(var/list/entry as anything in package_markings)
+			index++
+			var/in_the_way = custom_style_marking_conflict(package_markings, entry["name"], index)
+			if(in_the_way)
+				return "The [label] has [entry["name"]] and [in_the_way], which can't be worn together."
 		if(drawing && custom_sprite_width(drawing) != custom_marking_zone_width(zone))
 			return "The [label] drawing is the wrong size for that region."
 		var/outside = custom_style_paint_outside(drawing, null, custom_sprite_body_draw_mask(preview_body, zone, custom_marking_zone_width(zone)))

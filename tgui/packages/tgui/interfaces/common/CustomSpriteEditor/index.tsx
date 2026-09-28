@@ -1343,8 +1343,14 @@ export const CustomSpriteEditor = ({
                               </Stack.Item>
                               <Stack.Item>
                                 <Button
-                                  disabled={!!selectedLock}
-                                  tooltip={`Color of ${marking.name}`}
+                                  // A locked marking always wears its own colour.
+                                  disabled={!!selectedLock || !!marking.locked}
+                                  tooltip={
+                                    marking.locked
+                                      ? `${marking.name} is ink: it always keeps its own color.`
+                                      : `Color of ${marking.name}`
+                                  }
+                                  aria-label={`Color of ${marking.name}`}
                                   onClick={() =>
                                     act('pickBaseMarkingColor', {
                                       zone: selectedZone,

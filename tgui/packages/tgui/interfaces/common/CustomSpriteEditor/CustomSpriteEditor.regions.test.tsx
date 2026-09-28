@@ -106,6 +106,33 @@ it('sends the selected region with clear, emissive and base marking actions', ()
   expect(screen.queryByText(/Click the body to choose a region/)).toBeNull();
 });
 
+it("greys a locked base marking's color and never asks for one", () => {
+  const fixture = regionFixture();
+  renderRegions({
+    ...fixture,
+    selectedZone: 'l_arm',
+    regionMarkings: {
+      ...fixture.regionMarkings,
+      l_arm: [
+        { index: 1, name: 'Tiger Stripe', color: '#112233' },
+        { index: 2, name: 'Spots', color: '#445566', locked: 1 },
+      ],
+    },
+  });
+  const unlocked = screen.getByLabelText('Color of Tiger Stripe');
+  const locked = screen.getByLabelText('Color of Spots');
+  expect(locked.classList.contains('Button--disabled')).toBe(true);
+  expect(unlocked.classList.contains('Button--disabled')).toBe(false);
+  send.mockClear();
+  fireEvent.click(locked);
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(unlocked);
+  expect(send).toHaveBeenLastCalledWith('pickBaseMarkingColor', {
+    zone: 'l_arm',
+    index: 1,
+  });
+});
+
 it('follows the focus revision when character setup moves the selection', () => {
   const { view, editor } = renderRegions();
   expect(screen.getByText('Torso base markings')).toBeTruthy();

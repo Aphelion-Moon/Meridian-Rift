@@ -17,7 +17,13 @@ export type CustomSpriteCandidate = {
   skipped?: string[];
 };
 
-export type RegionMarking = { index: number; name: string; color: string };
+export type RegionMarking = {
+  index: number;
+  name: string;
+  color: string;
+  /** The marking always wears its own colour, so none can be picked. */
+  locked?: BooleanLike;
+};
 
 export type CustomSpriteBackground = {
   name: string;
