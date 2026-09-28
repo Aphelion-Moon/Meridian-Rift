@@ -1254,9 +1254,11 @@
 	// Recolors mutant overlays to match new mutant colors
 	for(var/datum/bodypart_overlay/mutant/overlay in bodypart_overlays)
 		overlay.inherit_color(src, force = TRUE)
+	/* // APHELION EDIT REMOVAL START - No limb carries a species body marking overlay any more, see markings_bodypart_overlay.dm.
 	// Ensures marking overlays are updated accordingly as well
 	for(var/datum/bodypart_overlay/simple/body_marking/marking in bodypart_overlays)
 		marking.set_appearance(owner_dna.features[marking.dna_feature_key], species_color)
+	*/ // APHELION EDIT REMOVAL END
 
 	return TRUE
 

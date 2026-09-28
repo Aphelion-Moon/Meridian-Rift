@@ -157,16 +157,6 @@
 	name = "Round"
 	icon_state = "round"
 
-/datum/sprite_accessory/lizard_markings
-	key = FEATURE_MARKING_GENERIC
-	default_color = DEFAULT_TERTIARY
-
-/datum/sprite_accessory/lizard_markings/none
-	name = SPRITE_ACCESSORY_NONE
-	icon_state = "none"
-	factual = FALSE
-	natural_spawn = FALSE
-
 /// Legs are a special case, they aren't actually sprite_accessories but are updated with them.
 /// These datums exist for selecting legs on preference, and little else
 /datum/sprite_accessory/legs
