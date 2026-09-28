@@ -280,3 +280,62 @@
 		preferences.current_window = PREFERENCE_TAB_GAME_PREFERENCES
 		TEST_ASSERT_EQUAL(!!taur_choice.is_accessible(preferences), allowed, "On any other page the taur choice must be accessible only with mismatched parts")
 	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+
+/// The eight marking preferences step 6 deleted drew nothing on upstream Nova or on any Meridian, so a save from before version
+/// 22 loses their keys and nothing takes their place: a moth save with a coloured or a white marking or its toggle off, and a
+/// lizard save with a belly marking, come out without the keys, their markings and look as they were. A save without them keeps
+/// every byte but its version.
+/datum/unit_test/body_marking_content/legacy_keys
+
+/datum/unit_test/body_marking_content/legacy_keys/Run()
+	var/datum/preferences/preferences = fixture_preferences()
+	var/list/legacy_keys = list("feature_body_markings", "body_markings_color", "body_markings_emissive", "body_markings_toggle", "feature_moth_markings", "moth_markings_color", "moth_markings_emissive", "moth_markings_toggle")
+	var/markings_text = "{\"chest\":{\"Reddish\":\[\"#ffffff\",0]},\"l_leg\":{\"Bovine\":\[\"#111111\",1]}}"
+	var/list/cases = list(
+		list("species" = SPECIES_MOTH, "moth_markings_toggle" = TRUE, "feature_moth_markings" = "Reddish", "moth_markings_color" = list("#aa2200", "#00aa22", "#2200aa"), "moth_markings_emissive" = list(0, 0, 0)),
+		list("species" = SPECIES_MOTH, "moth_markings_toggle" = TRUE, "feature_moth_markings" = "Moon Fly", "moth_markings_color" = list("#ffffff", "#ffffff", "#ffffff"), "moth_markings_emissive" = list(1, 0, 0)),
+		list("species" = SPECIES_MOTH, "moth_markings_toggle" = FALSE, "feature_moth_markings" = "Dipped", "moth_markings_color" = list("#ffffff", "#ffffff", "#ffffff"), "moth_markings_emissive" = list(0, 0, 0)),
+		list("species" = SPECIES_LIZARD, "body_markings_toggle" = TRUE, "feature_body_markings" = "Light Belly", "body_markings_color" = list("#aa2200", "#00aa22", "#2200aa"), "body_markings_emissive" = list(0, 1, 0)),
+	)
+	for(var/list/legacy as anything in cases)
+		var/list/slot = list("version" = 52, "modular_version" = 21, "tgui_prefs_migration" = TRUE, "allow_mismatched_parts_toggle" = TRUE, "body_markings" = json_decode(markings_text))
+		var/list/legacy_copy = json_decode(json_encode(legacy))
+		for(var/key in legacy_copy)
+			slot[key] = legacy_copy[key]
+		var/list/written = load_and_save(preferences, slot)
+		TEST_ASSERT(written, "A version 21 character must load")
+		for(var/key in legacy_keys)
+			TEST_ASSERT(!(key in written), "[key] must be gone from [json_encode(legacy)]")
+		TEST_ASSERT_EQUAL(json_encode(written["body_markings"]), markings_text, "The markings of [json_encode(legacy)] must load as saved")
+		// The same character with the keys, as this server reads it without version 22: held, and read by nothing.
+		var/list/kept = json_decode(json_encode(written))
+		legacy_copy = json_decode(json_encode(legacy))
+		for(var/key in legacy_copy)
+			if(key in legacy_keys)
+				kept[key] = legacy_copy[key]
+		TEST_ASSERT_EQUAL(character_signature(preferences, written), character_signature(preferences, kept), "Without the keys, [json_encode(legacy)] must draw as it did with them")
+		// Nothing left to drop: every byte but the version.
+		var/first = json_encode(written)
+		var/list/clean = json_decode(first)
+		clean["modular_version"] = 21
+		TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, clean)), first, "A save without the keys must keep every byte but its version")
+
+/// The legacy export gives the loaded character as a save from before version 22: modular version 20 and Hands Feet on an arm
+/// named Rat Paw again, every other byte as saving would write it, the live save untouched. Read back through this server's
+/// loader it is the same character, byte for byte.
+/datum/unit_test/body_marking_content/legacy_export
+
+/datum/unit_test/body_marking_content/legacy_export/Run()
+	var/datum/preferences/preferences = fixture_preferences()
+	var/list/saved = load_and_save(preferences, list("version" = 52, "modular_version" = 22, "tgui_prefs_migration" = TRUE, "species" = SPECIES_MAMMAL, "allow_mismatched_parts_toggle" = TRUE, "body_markings" = list(BODY_ZONE_L_ARM = list("Hands Feet" = list("#aa0000", 1), "Bovine" = list("#111111", 0)), BODY_ZONE_PRECISE_L_HAND = list("Hands Feet" = list("#bb0000", 0)), BODY_ZONE_CHEST = list("Firewatch" = list("#ffffff", 0)))))
+	TEST_ASSERT(saved, "The fixture character must load")
+	var/saved_text = json_encode(saved)
+	var/list/legacy = preferences.legacy_character_save()
+	TEST_ASSERT_EQUAL(json_encode(preferences.savefile.get_entry("character[preferences.default_slot]")), saved_text, "Exporting must leave the live save alone")
+	TEST_ASSERT_EQUAL(legacy["modular_version"], 20, "The export must be at version 20")
+	TEST_ASSERT_EQUAL(json_encode(legacy["body_markings"]), "{\"l_arm\":{\"Rat Paw\":\[\"#aa0000\",1],\"Bovine\":\[\"#111111\",0]},\"l_hand\":{\"Hands Feet\":\[\"#bb0000\",0]},\"chest\":{\"Firewatch\":\[\"#ffffff\",0]}}", "Hands Feet on an arm, and only there, must be Rat Paw again")
+	var/list/restored = json_decode(json_encode(legacy))
+	restored["modular_version"] = 22
+	restored["body_markings"] = saved["body_markings"]
+	TEST_ASSERT_EQUAL(json_encode(restored), saved_text, "The export must differ from the save in its version and the arm's name alone")
+	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, legacy)), saved_text, "The export must load back through this server's loader as the character it came from")
