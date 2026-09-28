@@ -31,7 +31,7 @@
 
 	return TRUE
 
-/datum/sprite_accessory/genital/get_special_icon(mob/living/carbon/human/target_mob)
+/datum/sprite_accessory/genital/get_special_icon(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/bodypart_overlay)
 	if(!uses_taur_sprite(target_mob))
 		return icon
 

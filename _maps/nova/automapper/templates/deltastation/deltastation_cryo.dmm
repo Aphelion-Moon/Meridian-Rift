@@ -52,9 +52,7 @@
 /obj/machinery/door/airlock/public/glass{
 	name = "Cryopods"
 	},
-/obj/effect/landmark/navigate_destination{
-	location = "Cryopods"
-	},
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron/white,
 /area/station/commons/fitness/recreation)
 "I" = (

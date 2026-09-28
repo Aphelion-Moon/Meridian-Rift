@@ -168,7 +168,7 @@
 			visible_message(span_userlove("[src] shoots [self_their] load into the [condom], filling it up!"), \
 				span_userlove("You shoot your thick load into the [condom] and it catches it all!"), pref_to_check = /datum/preference/toggle/erp)
 
-		else if(!is_bottomless() && penis.visibility_preference != GENITAL_ALWAYS_SHOW)
+		else if(!is_bottomless() && !penis.is_shown_over_clothing())
 			visible_message(span_userlove("[src] cums inside [self_their] clothes!"), \
 				span_userlove("You shoot your load, but you weren't naked, so you mess up your clothes!"), pref_to_check = /datum/preference/toggle/erp)
 			self_orgasm = TRUE
@@ -364,7 +364,7 @@
 		if(!organs.reacquire(src) || !organs.vagina)
 			return FALSE
 		var/obj/item/organ/genital/vagina/vagina = organs.vagina
-		if(is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW)
+		if(is_bottomless() || vagina.is_shown_over_clothing())
 			visible_message(span_userlove("[src] twitches and moans as [p_they()] climax from their vagina!"), span_userlove("You twitch and moan as you climax from your vagina!"), pref_to_check = /datum/preference/toggle/erp)
 			add_cum_splatter_floor(get_turf(src), female = TRUE)
 		else

@@ -244,6 +244,16 @@
     min-height: var(--button-height);
   }
 
+  // A Stack with no text line, like the preferences colour swatch, has the same
+  // problem and sat at the top of the box. A one-column grid centres it while
+  // keeping block flow for any content that follows.
+  .Button:not(.Button--compact):not(.Button--hasIcon)
+    > .Button__content:has(> .Stack) {
+    display: grid;
+    min-height: var(--button-height);
+    align-content: center;
+  }
+
   .Button--empty.Button--hasIcon > .Button__content > .Button--icon {
     margin: 0;
   }
@@ -813,6 +823,14 @@
     display: flex;
     min-height: 24px;
     align-items: center;
+  }
+
+  // Same centring for a text-less Stack, as in the console skins.
+  .Button:not(.Button--compact):not(.Button--hasIcon)
+    > .Button__content:has(> .Stack) {
+    display: grid;
+    min-height: 24px;
+    align-content: center;
   }
 
   .Button--empty.Button--hasIcon:not(.Button--compact) {

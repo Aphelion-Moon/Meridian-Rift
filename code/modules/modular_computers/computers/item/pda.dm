@@ -46,6 +46,7 @@
 		/datum/computer_file/program/nt_pay,
 		/datum/computer_file/program/notepad,
 		/datum/computer_file/program/crew_manifest,
+		/datum/computer_file/program/portrait_printer, // APHELION EDIT ADDITION - ART_GALAXY
 		/datum/computer_file/program/crew_self_serve, // NOVA EDIT ADDITION - Adds punch clock app to all base tablets
 		/datum/computer_file/program/maintenance/camera, // NOVA EDIT ADDITION - Adds camera to all base tablets
 	)
@@ -71,9 +72,17 @@
 
 /obj/item/modular_computer/pda/install_default_programs()
 	var/list/apps_to_download = list()
+	/* // APHELION EDIT REMOVAL START - ART_GALAXY - Deduplicate standard and role-specific applications.
 	if(has_pda_programs)
 		apps_to_download += default_programs + pda_programs
 	apps_to_download += starting_programs
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - ART_GALAXY - Deduplicate standard and role-specific applications.
+	if(has_pda_programs)
+		apps_to_download |= default_programs
+		apps_to_download |= pda_programs
+	apps_to_download |= starting_programs
+	// APHELION EDIT ADDITION END
 
 	for(var/programs in apps_to_download)
 		var/datum/computer_file/program/program_type = new programs

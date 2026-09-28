@@ -273,6 +273,9 @@
 	name = "Secure Art Exhibition";
 	req_access = list("library")
 	},
+/obj/structure/sign/commemoration{
+	pixel_y = 32
+	},
 /turf/open/floor/carpet,
 /area/station/service/library)
 "aef" = (
@@ -2801,7 +2804,7 @@
 	name = "Cryopods"
 	},
 /obj/machinery/door/firedoor,
-/obj/effect/landmark/navigate_destination,
+/obj/effect/landmark/navigate_destination/cryo,
 /turf/open/floor/iron/white/smooth_large,
 /area/station/common/cryopods)
 "aNT" = (
@@ -7849,7 +7852,7 @@
 /area/station/engineering/atmos)
 "cqt" = (
 /obj/structure/table,
-/obj/item/mmi,
+/obj/item/brain_processor/organic,
 /obj/item/storage/toolbox/electrical{
 	pixel_y = 12
 	},
@@ -8798,6 +8801,7 @@
 /obj/structure/disposalpipe/segment{
 	dir = 4
 	},
+/obj/effect/landmark/navigate_destination/barber,
 /turf/open/floor/iron/vaporwave,
 /area/station/service/barber)
 "cFF" = (
@@ -22444,7 +22448,7 @@
 /area/station/security/interrogation)
 "gwJ" = (
 /obj/structure/table/wood,
-/obj/item/relic,
+/obj/item/assembly/relic,
 /turf/open/floor/iron/grimy,
 /area/station/commons/vacant_room/office)
 "gwM" = (
@@ -34768,9 +34772,6 @@
 	},
 /area/station/commons/storage/primary)
 "jOT" = (
-/obj/structure/sign/painting/library{
-	pixel_y = 32
-	},
 /obj/effect/turf_decal/siding/wood,
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
@@ -34778,6 +34779,9 @@
 /obj/machinery/disposal/bin,
 /obj/structure/disposalpipe/trunk,
 /obj/effect/turf_decal/box,
+/obj/structure/sign/painting/large/library{
+	dir = 1
+	},
 /turf/open/floor/wood/tile,
 /area/station/service/library)
 "jOZ" = (
@@ -42961,7 +42965,7 @@
 "lYn" = (
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/table,
-/obj/item/relic,
+/obj/item/assembly/relic,
 /obj/item/binoculars,
 /turf/open/floor/glass/reinforced,
 /area/station/maintenance/port/fore)
@@ -47088,9 +47092,6 @@
 /area/station/engineering/atmos)
 "nhJ" = (
 /obj/structure/table/wood,
-/obj/structure/sign/painting/library{
-	pixel_y = 32
-	},
 /obj/effect/turf_decal/siding/wood,
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
@@ -52275,13 +52276,13 @@
 /obj/effect/turf_decal/tile/dark_red/anticorner/contrasted{
 	dir = 4
 	},
-/obj/item/mmi{
+/obj/item/brain_processor/organic{
 	pixel_y = -14
 	},
-/obj/item/mmi{
+/obj/item/brain_processor/organic{
 	pixel_y = -10
 	},
-/obj/item/mmi{
+/obj/item/brain_processor/organic{
 	pixel_y = -5
 	},
 /turf/open/floor/iron/dark,
@@ -57245,7 +57246,7 @@
 	},
 /area/station/engineering/break_room)
 "pTK" = (
-/obj/item/mmi,
+/obj/item/brain_processor/organic,
 /obj/item/assembly/prox_sensor,
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/table,
@@ -66053,8 +66054,8 @@
 /turf/open/floor/wood/large,
 /area/station/hallway/primary/central/fore)
 "spv" = (
-/obj/item/mmi,
-/obj/item/mmi,
+/obj/item/brain_processor/organic,
+/obj/item/brain_processor/organic,
 /obj/item/bodypart/chest/robot,
 /obj/structure/rack,
 /obj/item/assembly/flash/handheld,
@@ -68370,7 +68371,7 @@
 "sTy" = (
 /obj/structure/closet,
 /obj/effect/spawner/random/maintenance/three,
-/obj/item/relic,
+/obj/item/assembly/relic,
 /obj/effect/decal/cleanable/dirt,
 /turf/open/floor/iron/smooth,
 /area/station/maintenance/starboard/aft)
@@ -87041,7 +87042,7 @@
 /obj/effect/turf_decal/trimline/purple/filled/line{
 	dir = 10
 	},
-/obj/item/relic,
+/obj/item/assembly/relic,
 /obj/machinery/firealarm/directional/west{
 	pixel_y = 17
 	},
@@ -87243,8 +87244,8 @@
 	spawn_loot_chance = 35
 	},
 /obj/structure/table/wood/fancy,
-/obj/structure/sign/painting/large/library{
-	dir = 1
+/obj/structure/sign/painting/library_secure{
+	pixel_y = 32
 	},
 /turf/open/floor/wood,
 /area/station/service/library)
