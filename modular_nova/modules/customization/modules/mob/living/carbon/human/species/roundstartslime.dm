@@ -871,7 +871,7 @@
 				alterer.dna.update_uf_block(/datum/dna_block/feature/mutant_color/three)
 
 	if(marking_reset == "Yes")
-		// Every marking starts over in the colour its mode gives it from the new colours; locked ink keeps its own.
+		// Every marking starts over in the colour its mode gives it from the new colours; a locked one keeps its own.
 		alterer.dna.body_markings.reseed_colors(alterer.dna.features, alterer.dna.species)
 
 	if(mutant_part_reset == "Yes")

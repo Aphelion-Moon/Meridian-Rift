@@ -197,6 +197,8 @@
 /datum/unit_test/custom_sprite_markings_editor_locked_colors
 
 /datum/unit_test/custom_sprite_markings_editor_locked_colors/Run()
+	// No marking ships locked, so a tattoo is locked until the test ends.
+	allocate(/datum/body_marking_test_lock)
 	var/datum/body_marking/ink
 	var/datum/body_marking/paint
 	for(var/name in GLOB.body_markings_per_limb[BODY_ZONE_L_ARM])

@@ -939,11 +939,11 @@
 	icon_state = "chem_light"
 	affected_bodyparts = ARM_LEFT | ARM_RIGHT | HAND_LEFT | HAND_RIGHT | LEG_RIGHT | LEG_LEFT
 
-/// Every marking drawn from the tattoo sheet. Ink is always ink: it starts slightly faded and can't be recoloured.
+/// Every marking drawn from the tattoo sheet. It starts as slightly faded ink and can be recoloured like any other marking.
 /datum/body_marking/tattoo
 	icon = 'modular_nova/master_files/icons/mob/body_markings/tattoo_markings.dmi'
 	recommended_species = null
-	color_mode = MARKING_COLOR_LOCKED
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#112222" //slightly faded ink.
 	gendered = FALSE
 

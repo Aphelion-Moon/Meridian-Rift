@@ -49,7 +49,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * - TRUE when the entry now wears the colour, FALSE when its marking is locked.
  */
 /datum/body_marking_entry/proc/set_color(new_color)
-	// Ink is ink.
+	// A locked marking keeps its own colour.
 	if(marking?.color_mode == MARKING_COLOR_LOCKED)
 		return FALSE
 	store_color(new_color)
@@ -491,8 +491,8 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	return cached
 
 /**
- * Gives every marking its starting colour again, as a colour reset does, except locked ones: ink keeps its colour, a
- * custom one a save holds included. Glow is left alone.
+ * Gives every marking its starting colour again, as a colour reset does, except locked ones: a locked marking keeps its
+ * colour, a custom one a save holds included. Glow is left alone.
  *
  * Arguments:
  * - features: the character's features, where a following mode reads its mutant colour.

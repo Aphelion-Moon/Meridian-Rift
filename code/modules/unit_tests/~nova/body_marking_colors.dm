@@ -1,3 +1,22 @@
+/// Locks a marking while the unit test that allocates this lives, and gives it its own colour mode back when the test ends. No
+/// marking ships locked: the mode stays for content that wants it, and its tests lock a tattoo, which has a colour of its own.
+/datum/body_marking_test_lock
+	/// The locked marking.
+	var/datum/body_marking/marking
+	/// Its own colour mode.
+	var/mode
+
+/datum/body_marking_test_lock/New(marking_type = /datum/body_marking/tattoo/circuit)
+	. = ..()
+	marking = GLOB.body_markings_by_type[marking_type]
+	mode = marking.color_mode
+	marking.color_mode = MARKING_COLOR_LOCKED
+
+/datum/body_marking_test_lock/Destroy()
+	marking.color_mode = mode
+	marking = null
+	return ..()
+
 /// Shared setup for the body marking colour mode tests. Abstract, so the runner never runs it on its own.
 /datum/unit_test/body_marking_colors
 	abstract_type = /datum/unit_test/body_marking_colors
@@ -72,7 +91,8 @@
 	return ..()
 
 /datum/unit_test/body_marking_colors/locked/Run()
-	var/datum/body_marking/ink = marking_with_mode(MARKING_COLOR_LOCKED)
+	var/datum/body_marking_test_lock/lock = allocate(/datum/body_marking_test_lock)
+	var/datum/body_marking/ink = lock.marking
 	var/datum/body_marking/paint = marking_with_mode(MARKING_COLOR_FOLLOWS_PRIMARY)
 	TEST_ASSERT(ink && paint, "The fixture needs a locked and a following left arm marking")
 	var/ink_color = LOWER_TEXT(ink.default_color)
@@ -137,7 +157,8 @@
 
 /datum/unit_test/body_marking_colors/reseed/Run()
 	var/list/features = seed_features()
-	var/datum/body_marking/ink = marking_with_mode(MARKING_COLOR_LOCKED)
+	var/datum/body_marking_test_lock/lock = allocate(/datum/body_marking_test_lock)
+	var/datum/body_marking/ink = lock.marking
 	var/datum/body_marking/primary = marking_with_mode(MARKING_COLOR_FOLLOWS_PRIMARY)
 	var/datum/body_marking/fixed = marking_with_mode(MARKING_COLOR_FIXED_DEFAULT, BODY_ZONE_HEAD)
 	TEST_ASSERT(ink && primary && fixed, "The fixture needs a locked, a following and a fixed marking")
@@ -165,7 +186,8 @@
 /datum/unit_test/body_marking_colors/setup_reset
 
 /datum/unit_test/body_marking_colors/setup_reset/Run()
-	var/datum/body_marking/ink = marking_with_mode(MARKING_COLOR_LOCKED)
+	var/datum/body_marking_test_lock/lock = allocate(/datum/body_marking_test_lock)
+	var/datum/body_marking/ink = lock.marking
 	var/datum/body_marking/primary = marking_with_mode(MARKING_COLOR_FOLLOWS_PRIMARY)
 	var/datum/body_marking/fixed = marking_with_mode(MARKING_COLOR_FIXED_DEFAULT, BODY_ZONE_HEAD)
 	TEST_ASSERT(ink && primary && fixed, "The fixture needs a locked, a following and a fixed marking")

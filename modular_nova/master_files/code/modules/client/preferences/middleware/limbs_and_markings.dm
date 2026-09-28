@@ -494,7 +494,7 @@
 	all_markings.add_zone(bodypart_slot)
 	var/datum/body_marking_entry/renamed = marking_entry_by_id(bodypart_slot, marking_id)
 	if(renamed)
-		// The row keeps its colour, unless its new marking is locked: ink starts in its own colour, never the replaced row's.
+		// The row keeps its colour, unless its new marking is locked: that starts in its own colour, never the replaced row's.
 		var/color = renamed.get_color()
 		if(replacement.color_mode == MARKING_COLOR_LOCKED)
 			color = replacement.seed_color(marking_seed_features(), edited_species())

@@ -73,7 +73,7 @@
 #define MARKING_COLOR_FOLLOWS_TERTIARY "follows_tertiary"
 /// Starts in the marking's own default_color, then recolours freely.
 #define MARKING_COLOR_FIXED_DEFAULT "fixed_default"
-/// Starts in the marking's own default_color and keeps it: ink is always ink.
+/// Starts in the marking's own default_color and keeps it: a recolour is refused.
 #define MARKING_COLOR_LOCKED "locked"
 
 // The leg shapes a /datum/body_marking has art for: its leg_shapes. A leg of a shape its marking has no art for draws none of it.

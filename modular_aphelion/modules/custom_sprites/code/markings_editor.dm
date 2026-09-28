@@ -473,7 +473,7 @@
 			if(in_the_way)
 				transfer_error = "[name] can't be worn with [in_the_way], which the [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] already wears."
 				return TRUE
-			// A renamed row keeps its colour, unless its new marking is locked: ink starts in its own colour, as in character setup.
+			// A renamed row keeps its colour, unless its new marking is locked: that starts in its own colour, as in character setup.
 			var/datum/body_marking/marking = GLOB.body_markings[name]
 			return write_region_marking(zone, params["index"], name, marking.color_mode == MARKING_COLOR_LOCKED ? default_marking_color(name) : null)
 		if("addBaseMarking")
