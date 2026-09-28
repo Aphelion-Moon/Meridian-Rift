@@ -385,6 +385,7 @@
 #include "~nova\body_marking_colors.dm"
 #include "~nova\body_marking_features.dm"
 #include "~nova\body_marking_fixes.dm"
+#include "~nova\body_marking_merge.dm"
 #include "~nova\body_marking_set_members.dm"
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
