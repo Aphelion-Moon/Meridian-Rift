@@ -52,6 +52,12 @@
 	return default
 
 /proc/sanitize_hexcolor(color, desired_format = DEFAULT_HEX_COLOR_LEN, include_crunch = TRUE, default)
+	// APHELION EDIT ADDITION START - Canonical input needs no rebuilding
+	// Most callers pass what this proc returned before: lowercase #rrggbb comes back unchanged, so skip the character loop.
+	var/static/regex/canonical_hexcolor = regex(@"^#[0-9a-f]{6}$")
+	if(desired_format == DEFAULT_HEX_COLOR_LEN && include_crunch && istext(color) && canonical_hexcolor.Find(color))
+		return color
+	// APHELION EDIT ADDITION END
 	var/crunch = include_crunch ? "#" : ""
 	//NOVA EDIT ADDITION BEGIN - CUSTOMIZATION
 	if(islist(color))
