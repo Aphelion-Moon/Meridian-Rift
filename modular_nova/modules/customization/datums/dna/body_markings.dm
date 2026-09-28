@@ -280,19 +280,44 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	return null
 
 /**
+ * Returns the entry that keeps a marking off a zone: one wearing the same marking or, unless told not to look, one wearing
+ * another marking of its exclusion group. add_entry(), replace_entry() and set_zone_entries() refuse through here, and
+ * character setup asks it which markings a zone can still take.
+ *
+ * Arguments:
+ * - zone: the zone the marking would go on.
+ * - marking: the marking that would go on.
+ * - ignored: an entry to leave out, as the one a replacement takes the place of.
+ * - check_group: FALSE to look for the same marking only.
+ *
+ * Returns:
+ * - /datum/body_marking_entry, or null when nothing on the zone stands in the way.
+ */
+/datum/body_marking_collection/proc/blocking_entry(zone, datum/body_marking/marking, datum/body_marking_entry/ignored, check_group = TRUE)
+	RETURN_TYPE(/datum/body_marking_entry)
+	var/group = check_group ? marking.exclusion_group : null
+	for(var/datum/body_marking_entry/entry as anything in entries)
+		if(entry == ignored || entry.zone != zone)
+			continue
+		if(entry.marking.name == marking.name || (group && entry.marking.exclusion_group == group))
+			return entry
+	return null
+
+/**
  * Adds an entry after every entry already on its zone, adding the zone first when it is absent.
  *
- * A zone wears each marking at most once, which the name-keyed nested map used to guarantee.
+ * A zone wears each marking at most once, which the name-keyed nested map used to guarantee, and at most one marking
+ * of an exclusion group.
  *
  * Arguments:
  * - entry: the entry to add. It is held by reference, not copied.
  *
  * Returns:
- * - TRUE if added. FALSE for an entry without a marking or off the marking zones, or one repeating a
- *   marking its zone already wears.
+ * - TRUE if added. FALSE for an entry without a marking or off the marking zones, or one its zone already wears the
+ *   marking of, or a marking of its exclusion group.
  */
 /datum/body_marking_collection/proc/add_entry(datum/body_marking_entry/entry)
-	if(!entry?.marking || !(entry.zone in GLOB.marking_zones) || find_entry(entry.zone, entry.marking.name))
+	if(!entry?.marking || !(entry.zone in GLOB.marking_zones) || blocking_entry(entry.zone, entry.marking))
 		return FALSE
 	LAZYADD(entries, entry)
 	LAZYOR(zones, entry.zone)
@@ -321,17 +346,14 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * Arguments:
  * - old_entry: the entry to replace.
  * - replacement: the entry taking its place. It must sit on the same zone and not wear a marking another
- *   entry on that zone already wears.
+ *   entry on that zone already wears, or a marking of that entry's exclusion group.
  *
  * Returns:
  * - TRUE if replaced.
  */
 /datum/body_marking_collection/proc/replace_entry(datum/body_marking_entry/old_entry, datum/body_marking_entry/replacement)
 	var/index = LAZYFIND(entries, old_entry)
-	if(!index || !replacement?.marking || replacement.zone != old_entry.zone)
-		return FALSE
-	var/datum/body_marking_entry/worn = find_entry(replacement.zone, replacement.marking.name)
-	if(worn && worn != old_entry)
+	if(!index || !replacement?.marking || replacement.zone != old_entry.zone || blocking_entry(replacement.zone, replacement.marking, old_entry))
 		return FALSE
 	entries[index] = replacement
 	version++
@@ -342,28 +364,28 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  *
  * Arguments:
  * - zone: one of GLOB.marking_zones.
- * - zone_entries: the zone's new entries, in order. They are held by reference. Entries for another zone
- *   and repeats of a marking are skipped. Null or an empty list empties the zone, which stays present.
+ * - zone_entries: the zone's new entries, in order. They are held by reference. Entries for another zone, repeats of
+ *   a marking and a second marking of an exclusion group are skipped. Null or an empty list empties the zone, which
+ *   stays present.
+ * - keep_group_conflicts: TRUE to keep markings of one exclusion group side by side, as a save or another collection
+ *   holds them. Only the savefile loader and whole-zone transfers pass it; the version 21 savefile pass resolves what a
+ *   save held.
  *
  * Returns:
  * - TRUE if the zone was set.
  */
-/datum/body_marking_collection/proc/set_zone_entries(zone, list/zone_entries)
+/datum/body_marking_collection/proc/set_zone_entries(zone, list/zone_entries, keep_group_conflicts = FALSE)
 	if(!(zone in GLOB.marking_zones))
 		return FALSE
 	var/list/kept
 	for(var/datum/body_marking_entry/entry as anything in entries)
 		if(entry.zone != zone)
 			LAZYADD(kept, entry)
-	if(length(zone_entries))
-		var/list/worn = list()
-		for(var/datum/body_marking_entry/entry as anything in zone_entries)
-			if(!entry?.marking || entry.zone != zone || worn[entry.marking])
-				continue
-			worn[entry.marking] = TRUE
-			LAZYADD(kept, entry)
 	entries = kept
 	LAZYOR(zones, zone)
+	for(var/datum/body_marking_entry/entry as anything in zone_entries)
+		if(entry?.marking && entry.zone == zone && !blocking_entry(zone, entry.marking, check_group = !keep_group_conflicts))
+			LAZYADD(entries, entry)
 	version++
 	return TRUE
 
@@ -384,14 +406,14 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * Gives every zone another collection holds that collection's entries, as assigning its zone maps did.
  *
  * A zone present here keeps its place and a new one goes at the end. A zone the other holds emptied is emptied
- * here too. The entries are shared, not copied.
+ * here too. Each zone is taken whole, as the other holds it. The entries are shared, not copied.
  *
  * Arguments:
  * - other: the collection whose zones win.
  */
 /datum/body_marking_collection/proc/overwrite_zones_from(datum/body_marking_collection/other)
 	for(var/zone in other?.zones)
-		set_zone_entries(zone, other.entries_for_zone(zone))
+		set_zone_entries(zone, other.entries_for_zone(zone), keep_group_conflicts = TRUE)
 
 /**
  * Returns a new collection with new entries in the same zones and order, colours and glow. Nothing is shared.
@@ -482,6 +504,64 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 			entry.reseed_color(features, species)
 
 /**
+ * Returns the entries a species may not wear without mismatched parts, each asked of its marking's allows_species(): the one
+ * check of a whole character's markings against a species. Character setup prunes with it when the species changes. Loading
+ * never asks, so a save keeps and draws every marking it holds.
+ *
+ * Arguments:
+ * - species_id: the species' id.
+ * - allow_mismatched: TRUE when mismatched parts are allowed, which allows every marking.
+ * - prune: TRUE to remove those entries as well. Their zones stay present, as any removal leaves them.
+ *
+ * Returns:
+ * - list: a new list of the entries not allowed, in order, or null when every entry is.
+ */
+/datum/body_marking_collection/proc/validate_for_species(species_id, allow_mismatched, prune = FALSE)
+	RETURN_TYPE(/list)
+	if(allow_mismatched)
+		return null
+	var/list/disallowed
+	for(var/datum/body_marking_entry/entry as anything in entries)
+		if(!entry.marking.allows_species(species_id))
+			LAZYADD(disallowed, entry)
+	if(prune && disallowed)
+		LAZYREMOVE(entries, disallowed)
+		version++
+	return disallowed
+
+/**
+ * Drops what editing could never have put on a zone, keeping the order of the rest: a second marking of an exclusion group,
+ * then every entry past MAXIMUM_MARKINGS_PER_LIMB. A save from before version 21 gets this once as it loads; nothing else
+ * calls it, so a save written since keeps what it holds.
+ *
+ * Returns:
+ * - number: how many entries were dropped.
+ */
+/datum/body_marking_collection/proc/enforce_zone_limits()
+	var/list/kept
+	// zone -> entries kept on it so far
+	var/list/kept_per_zone
+	for(var/datum/body_marking_entry/entry as anything in entries)
+		var/kept_here = LAZYACCESS(kept_per_zone, entry.zone)
+		if(kept_here >= MAXIMUM_MARKINGS_PER_LIMB)
+			continue
+		var/group = entry.marking.exclusion_group
+		var/datum/body_marking_entry/rival
+		if(group)
+			for(var/datum/body_marking_entry/worn as anything in kept)
+				if(worn.zone == entry.zone && worn.marking.exclusion_group == group)
+					rival = worn
+					break
+		if(rival)
+			continue
+		LAZYADD(kept, entry)
+		LAZYSET(kept_per_zone, entry.zone, kept_here + 1)
+	. = length(entries) - length(kept)
+	if(.)
+		entries = kept
+		version++
+
+/**
  * Counts the lists this collection holds right now, caches included. The markings benchmark reports it.
  *
  * Returns:
@@ -500,7 +580,8 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
  * A marking stored as a bare colour, the legacy shape, loads as that colour without glow; a missing colour
  * or glow reads as sanitize_hexcolor()'s default and 0, and extra fields are ignored. Zones outside
  * GLOB.marking_zones, zones that aren't lists and names missing from GLOB.body_markings are dropped.
- * Anything that isn't a list, null included, loads as no markings.
+ * Anything that isn't a list, null included, loads as no markings. Nothing else is checked: markings of one
+ * exclusion group load side by side, and a zone may hold more than MAXIMUM_MARKINGS_PER_LIMB, as saved.
  *
  * Arguments:
  * - raw: the decoded "body_markings" value.
@@ -518,7 +599,7 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 			continue
 		var/list/raw_zone = raw[zone]
 		if(islist(raw_zone))
-			collection.set_zone_from_list(zone, raw_zone)
+			collection.set_zone_entries(zone, body_marking_entries_from_list(zone, raw_zone), keep_group_conflicts = TRUE)
 	return collection
 
 /**

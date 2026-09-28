@@ -270,6 +270,8 @@
 	TEST_ASSERT(none_set && !length(none_set.body_marking_list), "The fixture needs the None set, which holds no markings")
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	// The character's species is random; with mismatched parts any preset applies, and species rules are tested elsewhere.
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
 	preferences.create_character_preview_view(mock_client.mob)
 	var/datum/preference_middleware/limbs_and_markings/middleware = locate() in preferences.middleware
 	preferences.body_markings = body_marking_collection_from_list(markings_baseline_fill())

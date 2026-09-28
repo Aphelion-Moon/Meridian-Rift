@@ -3,6 +3,7 @@
 	make_default_mutant_bodypart_references()
 	make_body_marking_references()
 	make_body_marking_set_references()
+	derive_body_marking_species()
 	make_robotic_style_references()
 	make_augment_references()
 	build_erp_item_list()
@@ -59,6 +60,9 @@ GLOBAL_LIST_EMPTY(body_markings_by_type)
 					if(!GLOB.body_markings_per_limb[marking_zone])
 						GLOB.body_markings_per_limb[marking_zone] = list()
 					GLOB.body_markings_per_limb[marking_zone] += BM.name
+	// Each zone offers its markings in name order. The zones keep the order they were first claimed in, which the set factory reads.
+	for(var/zone, zone_names in GLOB.body_markings_per_limb)
+		GLOB.body_markings_per_limb[zone] = sort_list(zone_names)
 
 /// Every named body marking set by its typepath, built beside GLOB.body_marking_sets and in the same order. Code that picks a
 /// set looks it up here; the name-keyed list serves the savefile and UI paths, which carry names.
@@ -72,6 +76,34 @@ GLOBAL_LIST_EMPTY(body_marking_sets_by_type)
 			BM = new path()
 			GLOB.body_marking_sets[BM.name] = BM
 			GLOB.body_marking_sets_by_type[path] = BM
+
+/**
+ * Gives every marking in a marking set the species of its sets: the union of their recommended_species, or any species when
+ * one of them names none. A marking in no set keeps the species it declares. Runs once both lists are built, so a set and its
+ * markings never disagree about who may wear them. Only choices and validation read the result, never loading or drawing.
+ */
+/proc/derive_body_marking_species()
+	// marking -> species id -> TRUE, in the order its sets name them
+	var/list/gathered = list()
+	// markings in a set meant for any species
+	var/list/unrestricted = list()
+	for(var/set_type, set_datum in GLOB.body_marking_sets_by_type)
+		var/datum/body_marking_set/marking_set = set_datum
+		for(var/marking_type in marking_set.body_marking_list)
+			var/datum/body_marking/marking = GLOB.body_markings_by_type[marking_type]
+			if(!marking)
+				continue
+			if(isnull(marking_set.recommended_species))
+				unrestricted[marking] = TRUE
+			var/list/species_ids = gathered[marking]
+			if(!species_ids)
+				species_ids = list()
+				gathered[marking] = species_ids
+			for(var/species_id in marking_set.recommended_species)
+				species_ids[species_id] = TRUE
+	for(var/datum/body_marking/marking as anything in gathered)
+		// Interned, so markings of the same sets share one list, and a marking of one set shares that set's.
+		marking.recommended_species = unrestricted[marking] ? null : marking.string_assoc_list(gathered[marking])
 
 /proc/make_robotic_style_references()
 	for(var/path in valid_subtypesof(/datum/robotic_style))

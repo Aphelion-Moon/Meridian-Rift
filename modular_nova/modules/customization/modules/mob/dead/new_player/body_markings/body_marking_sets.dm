@@ -3,7 +3,9 @@
 	var/name
 	/// The markings this set puts on, as /datum/body_marking typepaths, in the order they go on.
 	var/list/body_marking_list
-	///Which species is this marking recommended to. Important for randomisations.
+	/// The species this set is meant for, species id -> TRUE, or null for any species: the ones a random character may draw it
+	/// for, and without mismatched parts the only ones character setup offers it to. Each of its markings may be worn by at
+	/// least these, as derive_body_marking_species() gives a marking the species of its sets.
 	var/list/recommended_species = list(
 		SPECIES_MAMMAL = TRUE,
 		SPECIES_TAJARAN = TRUE,
@@ -11,11 +13,24 @@
 		SPECIES_AQUATIC = TRUE,
 		SPECIES_AKULA = TRUE
 	)
+	/// Whether picking this set in character setup replaces every marking with the set's, as a unit. Otherwise the set replaces
+	/// only the zones it covers and every other zone keeps its markings.
+	var/keep_together = FALSE
 
 /datum/body_marking_set/New()
 	. = ..()
 	if(recommended_species)
 		recommended_species = string_assoc_list(recommended_species)
+
+/**
+ * Returns whether a species may wear this set without mismatched parts: any species when it names none, otherwise only the
+ * ones it names.
+ *
+ * Arguments:
+ * - species_id: the species' id.
+ */
+/datum/body_marking_set/proc/allows_species(species_id)
+	return isnull(recommended_species) || !isnull(recommended_species[species_id])
 
 /datum/body_marking_set/none
 	name = SPRITE_ACCESSORY_NONE
@@ -160,6 +175,7 @@
 /datum/body_marking_set/xeno
 	name = "Xeno"
 	body_marking_list = list(/datum/body_marking/secondary/xeno, /datum/body_marking/tertiary/xeno)
+	recommended_species = list(SPECIES_XENO = 1)
 
 /datum/body_marking_set/datashark
 	name = "Datashark"

@@ -18,7 +18,7 @@
 	. = list()
 	for(var/marking_name in markings)
 		var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-		if(!marking.recommended_species || marking.recommended_species[species_id])
+		if(marking.allows_species(species_id))
 			. += marking_name
 
 /**
@@ -34,7 +34,7 @@
 	RETURN_TYPE(/list)
 	for(var/set_type, set_datum in GLOB.body_marking_sets_by_type)
 		var/datum/body_marking_set/marking_set = set_datum
-		if(isnull(marking_set.recommended_species) || !isnull(marking_set.recommended_species[species_id]))
+		if(marking_set.allows_species(species_id))
 			LAZYADD(., set_type)
 
 /proc/random_accessory_of_key_for_species(key, datum/species/species, mismatched = FALSE, ckey)
@@ -48,7 +48,8 @@
  * Builds a new collection wearing a marking set: each of its markings on every zone the marking claims, in the set's order.
  *
  * A marking's zones come in GLOB.body_markings_per_limb order, as scanning those lists for its name gave them, and each
- * marking starts in the colour its color_mode seeds.
+ * marking starts in the colour its color_mode seeds. A member sharing an exclusion group with an earlier member stays off the
+ * zones that one took.
  *
  * Arguments:
  * - marking_set: the set to wear. A member no marking is registered under adds nothing.

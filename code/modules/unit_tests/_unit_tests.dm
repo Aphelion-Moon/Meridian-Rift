@@ -382,6 +382,7 @@
 #include "~nova\automapper.dm"
 #include "~nova\body_marking_collection.dm"
 #include "~nova\body_marking_colors.dm"
+#include "~nova\body_marking_features.dm"
 #include "~nova\body_marking_fixes.dm"
 #include "~nova\body_marking_set_members.dm"
 #include "~nova\clothing_variation_icons.dm"

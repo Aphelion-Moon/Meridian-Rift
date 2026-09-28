@@ -3,7 +3,7 @@
  * You can't really use the non-modular version, least you eventually want asinine merge
  * conflicts and/or potentially disastrous issues to arise, so here's your own.
  */
-#define MODULAR_SAVEFILE_VERSION_MAX 20
+#define MODULAR_SAVEFILE_VERSION_MAX 21
 
 #define MODULAR_SAVEFILE_UP_TO_DATE -1
 
@@ -26,6 +26,7 @@
 #define VERSION_AUGMENT_ITEMS_PATH_CHANGE 18
 #define VERSION_HEIGHT_UPDATE 19
 #define VERSION_HEMOPHAGE_SPECIES_REMOVAL 20
+#define VERSION_MARKING_DATUMS 21
 
 #define INDEX_UNDERWEAR 1
 #define INDEX_BRA 2
@@ -267,16 +268,14 @@
 			write_preference(GLOB.preference_entries[/datum/preference/loadout], loadout_list)
 
 	if(current_version < VERSION_SKRELL_HAIR_NAME_UPDATE)
-		var/list/mutant_bodyparts = SANITIZE_LIST(save_data["mutant_bodyparts"])
+		// The choice's own key, as the save holds it. The mutant_bodyparts key it was mirrored in is no longer written, and
+		// holds lists, never datums.
+		var/current_skrell_hair = save_data["feature_skrell_hair"]
 
-		var/datum/mutant_bodypart/mutant_part = mutant_bodyparts[FEATURE_SKRELL_HAIR]
-		if(mutant_part)
-			var/current_skrell_hair = mutant_part.name
-
-			if(current_skrell_hair == "Male")
-				write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Short")
-			else if(current_skrell_hair == "Female")
-				write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Long")
+		if(current_skrell_hair == "Male")
+			write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Short")
+		else if(current_skrell_hair == "Female")
+			write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Long")
 
 		// Sets old insect laugh to the merged moth/insect in case character uses it.
 	if (current_version < VERSION_TG_EMOTE_SOUNDS)
@@ -340,6 +339,10 @@
 		if(save_data["species"] == "hemophage")
 			write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMANOID)
 			LAZYADD(save_data["all_quirks"], "Hemophagia")
+
+	if(current_version < VERSION_MARKING_DATUMS)
+		// The markings loaded above, not save_data: load_character_nova() built them before calling this.
+		body_markings.enforce_zone_limits()
 
 /datum/preferences/proc/check_migration()
 	if(!tgui_prefs_migration)
@@ -636,6 +639,7 @@
 #undef VERSION_DONK_MIGRATION
 #undef VERSION_AUGMENT_ITEMS_PATH_CHANGE
 #undef VERSION_HEMOPHAGE_SPECIES_REMOVAL
+#undef VERSION_MARKING_DATUMS
 #undef INDEX_UNDERWEAR
 #undef INDEX_BRA
 #undef VERSION_HEIGHT_UPDATE

@@ -14,15 +14,35 @@
 	var/default_color
 	///Which bodyparts does the marking affect in BITFLAGS!! (HEAD, CHEST, ARM_LEFT, ARM_RIGHT, HAND_LEFT, HAND_RIGHT, LEG_RIGHT, LEG_LEFT)
 	var/affected_bodyparts
-	///Which species is this marking recommended to. Important for randomisations.
+	/// The species this marking is meant for, species id -> TRUE, or null for any species. Without mismatched parts character
+	/// setup offers and accepts it only for those. A marking in any /datum/body_marking_set has this replaced at init by the
+	/// union of those sets' species (derive_body_marking_species()), so a declaration here counts only for a marking in no set.
 	var/list/recommended_species = list(SPECIES_MAMMAL = TRUE)
 	///Whether the body marking sprite is the same for both sexes or not. Only relevant for chest right now.
 	var/gendered = TRUE
+	/// Markings sharing a group are alternatives: a zone wears at most one of them. A text token, or null for none. A save
+	/// keeps what it held when a group is authored, so a group added after save version 21 needs a migration version of its own.
+	var/exclusion_group
+	/// Colours character setup suggests beside the colour picker, lowercase "#rrggbb", or null for none. Markings declaring the
+	/// same palette share one list.
+	var/list/recommended_colors
 
 /datum/body_marking/New()
 	. = ..()
 	if(recommended_species)
 		recommended_species = string_assoc_list(recommended_species)
+	if(recommended_colors)
+		recommended_colors = string_list(recommended_colors)
+
+/**
+ * Returns whether a species may wear this marking without mismatched parts: any species when it names none, otherwise only
+ * the ones it names. Character setup's choices and actions, and a collection's validate_for_species(), all ask here.
+ *
+ * Arguments:
+ * - species_id: the species' id.
+ */
+/datum/body_marking/proc/allows_species(species_id)
+	return isnull(recommended_species) || !isnull(recommended_species[species_id])
 
 /**
  * Returns the colour this marking starts in when it is added, brought by a preset or reset, by its color_mode: the

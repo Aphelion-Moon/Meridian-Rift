@@ -198,10 +198,17 @@
 		var/list/slot_choices = list()
 		for(var/marking_name in GLOB.body_markings_per_limb[slot])
 			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-			slot_choices += list(list(
+			var/list/choice = list(
 				"name"                = marking_name,
 				"recommended_species" = marking.recommended_species ? jointext(marking.recommended_species, ",") : null,
-			))
+				"exclusion_group"     = marking.exclusion_group,
+				"color_mode"          = marking.color_mode,
+				"gendered"            = marking.gendered,
+			)
+			// Only a marking with suggested colours sends them.
+			if(marking.recommended_colors)
+				choice["recommended_colors"] = marking.recommended_colors
+			slot_choices += list(choice)
 		marking_choices[slot] = slot_choices
 	return marking_choices
 
@@ -210,9 +217,17 @@
 	var/list/presets = list()
 	for(var/preset_name in GLOB.body_marking_sets)
 		var/datum/body_marking_set/marking_set = GLOB.body_marking_sets[preset_name]
+		// The names of the markings the set puts on, in order, or null for none.
+		var/list/marking_names
+		for(var/marking_type in marking_set.body_marking_list)
+			var/datum/body_marking/marking = GLOB.body_markings_by_type[marking_type]
+			if(marking)
+				LAZYADD(marking_names, marking.name)
 		presets += list(list(
 			"name"                = preset_name,
 			"recommended_species" = marking_set.recommended_species ? jointext(marking_set.recommended_species, ",") : null,
+			"markings"            = marking_names,
+			"keep_together"       = marking_set.keep_together,
 		))
 	return presets
 
@@ -261,6 +276,19 @@
 	data["quirk_points_enabled"] = SSquirks.points_enabled
 
 	return data
+
+/// Changing species removes the markings the new one may not wear, unless mismatched parts allow any. Zones stay.
+/datum/preference_middleware/limbs_and_markings/post_set_preference(mob/user, preference, value)
+	if(preference != "species")
+		return
+	var/datum/species/current_species = edited_species()
+	if(preferences.body_markings.validate_for_species(current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts), prune = TRUE))
+		preferences.character_preview_view?.update_body()
+
+/// Returns the species prototype of the character being edited.
+/datum/preference_middleware/limbs_and_markings/proc/edited_species()
+	RETURN_TYPE(/datum/species)
+	return GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
 
 /// Returns whether a taur body takes the place of this character's legs.
 /datum/preference_middleware/limbs_and_markings/proc/has_taur_legs()
@@ -403,8 +431,15 @@
 	RETURN_TYPE(/list)
 	return preferences.character_preview_view.body.dna.features
 
+/**
+ * Adds a marking to a zone: the one params["marking_name"] names, or one picked at random without a name. Either comes from
+ * the zone's markings the species may wear (any, with mismatched parts), less the ones the zone wears and the rest of
+ * their exclusion groups. A name that isn't among them is refused.
+ */
 /datum/preference_middleware/limbs_and_markings/proc/add_marking(list/params, mob/user)
 	var/bodypart_slot = params["bodypart_slot"]
+	if(!(bodypart_slot in GLOB.body_markings_per_limb))
+		return
 	// Leg markings never show under a taur body.
 	if((bodypart_slot in list(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)) && has_taur_legs())
 		return
@@ -412,12 +447,20 @@
 	all_markings.add_zone(bodypart_slot)
 	if(all_markings.zone_length(bodypart_slot) >= MAXIMUM_MARKINGS_PER_LIMB)
 		return
-	var/datum/species/current_species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
-	// A limb wears each marking once, so the ones it already wears are no choice.
-	var/list/choices = body_markings_of_zone_for_species(bodypart_slot, current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)) - all_markings.marking_names(bodypart_slot)
-	if(!length(choices))
+	var/datum/species/current_species = edited_species()
+	var/list/choices
+	for(var/choice in body_markings_of_zone_for_species(bodypart_slot, current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)) - all_markings.marking_names(bodypart_slot))
+		// A worn marking keeps the rest of its exclusion group off the zone.
+		var/datum/body_marking/candidate = GLOB.body_markings[choice]
+		if(!candidate.exclusion_group || !all_markings.blocking_entry(bodypart_slot, candidate))
+			LAZYADD(choices, choice)
+	var/marking_name = params["marking_name"]
+	if(isnull(marking_name))
+		if(!LAZYLEN(choices))
+			return
+		marking_name = pick(choices)
+	else if(!(marking_name in choices))
 		return
-	var/marking_name = pick(choices)
 	var/datum/body_marking/marking = GLOB.body_markings[marking_name]
 	all_markings.add_entry(new /datum/body_marking_entry(marking, bodypart_slot, marking.seed_color(marking_seed_features(), current_species)))
 	preferences.character_preview_view.update_body()
@@ -431,16 +474,23 @@
 	// A limb wears each marking once, so another row's marking is refused.
 	if(!(marking_name in GLOB.body_markings_per_limb[bodypart_slot]) || all_markings.find_entry(bodypart_slot, marking_name))
 		return
+	var/datum/body_marking/replacement = GLOB.body_markings[marking_name]
+	// Without mismatched parts a marking meant for other species is refused, as add_marking never offers one.
+	if(!preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts))
+		var/datum/species/current_species = edited_species()
+		if(!replacement.allows_species(current_species.id))
+			return
 	// Acting on a zone keeps it, even emptied, as the rebuilt nested map did.
 	all_markings.add_zone(bodypart_slot)
 	var/datum/body_marking_entry/renamed = marking_entry_by_id(bodypart_slot, marking_id)
 	if(renamed)
-		var/datum/body_marking/replacement = GLOB.body_markings[marking_name]
 		// The row keeps its colour, unless its new marking is locked: ink starts in its own colour, never the replaced row's.
 		var/color = renamed.get_color()
 		if(replacement.color_mode == MARKING_COLOR_LOCKED)
-			color = replacement.seed_color(marking_seed_features(), GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)])
-		all_markings.replace_entry(renamed, new /datum/body_marking_entry(replacement, bodypart_slot, color, renamed.get_emissive()))
+			color = replacement.seed_color(marking_seed_features(), edited_species())
+		// Another row wearing a marking of the replacement's exclusion group refuses it.
+		if(!all_markings.replace_entry(renamed, new /datum/body_marking_entry(replacement, bodypart_slot, color, renamed.get_emissive())))
+			return
 	preferences.character_preview_view.update_body()
 	return TRUE
 
@@ -489,13 +539,19 @@
 	var/datum/body_marking_set/marking_set = istext(preset) ? GLOB.body_marking_sets[preset] : null
 	if(!marking_set)
 		return
+	var/datum/species/current_species = edited_species()
+	// Without mismatched parts a set meant for other species is refused, as the presets list never offers one.
+	if(!preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts) && !marking_set.allows_species(current_species.id))
+		return
 	if(!length(marking_set.body_marking_list))
 		// A set without markings, "None", clears every zone: the whole collection is replaced, as it always was.
 		preferences.body_markings = new /datum/body_marking_collection
+	else if(marking_set.keep_together)
+		// A set kept together is worn as a unit: it replaces every marking, on the zones it leaves bare as well.
+		preferences.body_markings = assemble_body_markings_from_set(marking_set, marking_seed_features(), current_species)
 	else
 		// A set with markings merges: each zone it covers is replaced by its markings in the set's order, and
 		// every other zone keeps what it wears.
-		var/datum/species/current_species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
 		preferences.body_markings.overwrite_zones_from(assemble_body_markings_from_set(marking_set, marking_seed_features(), current_species))
 	preferences.character_preview_view.update_body()
 	return TRUE
