@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Worktree** | `C:\Users\mal\Meridian-Rift\.worktrees\markings-datums`, branch `markings-datums` |
-| **Base** | `f1dd78e5b34` — `origin/scenegirlsimulator` as of 2026-09-28 ~11:20. Rebased twice: from `bfaf20397f36` onto `c85041d7bda` (hair-appendage work, 2026-09-27) and, right before step 8 as Deviation 2 asks, from `c85041d7bda` onto `f1dd78e5b34` (six upstream commits: mal's "tsx pass" + ".", Bloop's review-suggestion commits and "a"; 24 files, none overlapping ours; zero conflicts). **Every commit SHA quoted in the ledger rows below is pre-rebase**; `git log` is authoritative and the pre-rebase tip is tagged `markings-datums-pre-rebase-20260928` (`5f930d2011b`). |
+| **Base** | `f1dd78e5b34` — `origin/scenegirlsimulator` as of 2026-09-28 ~11:20. Rebased twice: from `bfaf20397f36` onto `c85041d7bda` (hair-appendage work, 2026-09-27) and, right before step 8 as Deviation 2 asks, from `c85041d7bda` onto `f1dd78e5b34` (six upstream commits: mal's "tsx pass" + ".", Bloop's review-suggestion commits and "a"; 24 files, none overlapping ours; zero conflicts). **Every commit SHA quoted in the ledger rows below is pre-rebase**; `git log` is authoritative; the pre-rebase safety tag was deleted at close-out (§4b B10). **Branch complete as of 2026-09-28, see §8.** |
 | **Snapshot commit** | **not needed any more** — the hair-appendage work is in the base itself (Deviation 3). Every measurement is taken against `c85041d7bda`; the docs and baseline-test commits on top of it change no production code. **The bfaf2039 baseline numbers in ledger row A are stale and must be re-taken on this base.** |
 | **Plan** | [`2026-09-27-markings-datums-plan.md`](2026-09-27-markings-datums-plan.md) — verbatim copy of the approved plan: §0 setup, §1 inventory, §2 design, §3 the 9 steps, §4 scope lock, §5 verification, §6 risks, §7 decisions. **Read it in full before touching code.** This document only adds what the plan could not know about this machine. |
 | **Execution** | Fable 5.1 orchestrator driving a fresh Opus implementer. The implementer works only in this worktree, one plan step per commit, and reports to the orchestrator after every step. |
@@ -393,6 +393,56 @@ verified behaviour, and "portable to tg: yes/no". Larger targets: propose with n
      second rebase) and has diverged from the local branch. Publishing the rebased branch needs `git push --force-with-lease`;
      the orchestrator never pushes.
 
+* **Decisions and findings at the B10 review (orchestrator, 2026-09-28) — final package accepted, branch complete:**
+  1. Six separate `perf:` commits accepted, each read in full, one fix per commit as §3 asks. tg-portable, upstream files only,
+     APHELION EDIT markers, one new test each: `264dcb6f9f1` (`sanitize_hexcolor()` returns canonical `#rrggbb` as given),
+     `ea8f7723e2f` (`get_icon_dimensions()` keeps runtime-icon sizes, FIFO 256), `fdc8b2d53b3` (a limb made in nullspace is
+     drawn when it first leaves it; `get_limb_icon` 332 → 80 per drive), `beaac22ff2a` (`drop_limb()` bloodies only a limb that
+     lands somewhere), `00dd97eb37f` (a file-backed limb sheet is toned for husks once). Nova only: `5b19dd801c6` (the legs
+     preference keeps limbs already of the type `replace_body()` would build; `replace_body` 42 → 2, preview refresh −32 %).
+     Every commit kept the appearance capture 17/17 byte-identical, DreamChecker identical and the screenshots pixel-identical.
+  2. P-F and the old preview bug (mal's question: switching characters between digitigrade and plantigrade legs drawing the
+     preview wrong). Safe by construction: the fast path compares each limb's exact type with what `replace_body()` would build
+     for the requested shape, so a digitigrade ↔ plantigrade switch still swaps and a species switch never reaches it (the legs
+     preference already defers to the species preference); and the render never depended on the swap, since `apply_prefs_to()`
+     ends with `icon_render_keys = list()` + `update_body(is_creating = TRUE)` (`code/modules/client/preferences.dm:702-704`).
+     Pinned by `digitigrade_legs_preview_switch`: one preview body redrawn through the preview's own `update_body()`
+     (`wipe_state()` + `render_new_preview_appearance()`) across eight character switches, each compared with a fresh body given
+     the same preferences (leg types, shapes, colour overrides, render keys, closed batch, flattened pixels). The guard found two
+     exclusions the brief lacked, now in the commit: any synthetic (the chassis decides `ignore_digi`) and any limb carrying a
+     colour override (a kept limb keeps it; a coloured chassis colour survived a switch to an uncoloured one without it). On the
+     pre-fix file the guard passes and the refresh test fails where it should. The test also corrects the first draft's foreign
+     limb: a robotic arm carries `BP_BLOCK_CHANGE_SPECIES`, so `replace_body()` never swapped it; a lizard arm is used.
+  3. Corrections found on the way: the brief's P-C condition would have stripped blood from a limb pulled off its body by a move
+     (`forced_removal()`); the committed `move_to_floor ? drop_loc : (loc && loc != owner)` keeps it. B0 hotspot 5 was misread:
+     the 368 blood-decal `Attach` calls come from organs leaving a limb, not from `drop_limb()` (they fell to 208 with P-F).
+     P-B needs no FIFO cap (keys are icon files, as bounded as `GLOB.icon_dimensions`); the brief's mask-blend cache already
+     exists as `masked_leg_icons_cache` (B0's "32 leg-mask Blends" were 24 from `ColorTone` itself).
+  4. Content, additive only, the orchestrator's calls under mal's delegation: `f90b4195684` greyscale moth family →
+     `MARKING_COLOR_FOLLOWS_PRIMARY` with `default_color = null` (modes FIXED 60 → 47, PRIMARY 27 → 40); `2b7d31abbe4`
+     Firewatch + Firewatch Grayscale + `/datum/body_marking_set/moth/firewatch`, the chest pair folded on both sheets. The fold
+     was re-verified by the orchestrator from the git blobs: 91 → 90 and 85 → 84 states, only `firewatch_chest_m`/`_f` →
+     `firewatch_chest`, the new chest's pixels equal to both old states, every carried state's pixels identical, order preserved.
+     Final content: 201 markings, 73 sets. Everything destructive stays recorded, not changed (the B6–B9 lists above: moth organ
+     and accessories, dead pref keys, unclaimed art, Hands Feet == Rat Paw, Vox tattoos, set-less synth markings, Splotches and
+     Chitin as derived, exclusion-group candidates).
+  5. Evaluate-only hotspots left recorded (each needs more than a small safe change): species re-applied on every render (the
+     preview relies on the same-species `set_species` to regenerate organs), `update_eyes` (Aphelion forces it on limb-data
+     updates), `read_preference` (pipeline restructure), `update_damage_overlays` (needs damage-state tracking).
+     `synchronize_bodytypes` (772 → 212) and Register/UnregisterSignal (4629 / 2852 → 1344 / 687) fell as side effects. New:
+     `random_string` 1008 calls / 11–14 ms via Nova's `generate_unique_features` per `set_species`; `animate_eyelid` 626 / 8 ms.
+  6. **Finding for mal:** BYOND 516.1687 compiler fault in the test build. Depending on unrelated code layout, `dm.exe` rejects
+     a proc-static list initialised with `::` as "invalid variable" (`banned_edits`, `forge_items`, `altar_items`,
+     `archive_items` so far); adding or renaming unrelated test code flips it, the production build never tripped, the final
+     tree compiles with and without focus. Bisect logs: `B10-final\compile-*.log`. Escalation is mal's call.
+  7. Close-out verified independently by the orchestrator, not from the report: full local suite 854 = 853 PASS +
+     `job_display_order` (pre-existing); focused 331 / 331; tgui `bun test` 414 / 0, `tsc` clean, build compiled; the final
+     capture's md5 `97bf28a133a1` equals the B9 reference; DreamChecker 129 with the sorted list identical to B9; `git diff
+     --check` clean and all 17 changed text files LF; no trailer on any commit. Not run, accepted for a package whose captures
+     are pixel-identical: mutation runs for P-E..P-B, check_grep, Tracy, a live DreamSeeker look.
+  8. Safety tag `markings-datums-pre-rebase-20260928` (was `5f930d2011b`) deleted. `origin/markings-datums` still points at the
+     pre-rebase `cef1181df29`; publishing the branch is `git push --force-with-lease origin markings-datums`, mal's call.
+
 ## 5. Decisions already taken (plan §7 — do not re-open)
 
 | Question | Decision |
@@ -483,3 +533,30 @@ verified behaviour, and "portable to tg: yes/no". Larger targets: propose with n
 | B10-C1 | _(this commit)_ | content, the orchestrator's call under mal's delegation: `/datum/body_marking/moth/grayscale` follows the primary mutant colour (`color_mode = MARKING_COLOR_FOLLOWS_PRIMARY`, and `default_color = null`, which `body_marking_colors/seed_modes` requires of every following marking) in `body_markings_moth.dm`; the coloured moth family keeps fixed `#FFFFFF` | DreamChecker 129, identical to B9 / B0-regen; focused 331 PASS with `clean_run.lk`, no runtime (`B10-C1-focused`), `seed_modes` included (walks all 199 in GLOB); capture 17/17 byte-identical to B9's final; 64 screenshots pixel-identical; test build with and without focus compiles | Mapping (B4's `marking_modes.py` static parse of the tree, 199 markings, joined to the runtime dump taken on B10-PB's tree): `FOLLOWS_PRIMARY` 27 → 40, `FIXED_DEFAULT` 60 → 47, secondary 65, tertiary 36, locked 11 unchanged; exactly the 13 "… Grayscale" markings changed (`C1-mapping.tsv`). No test asserts the counts (the brief's "mapping test counts" are the evidence table). A runtime dump probe on this tree tripped the BYOND compiler fault recorded in B10-PF, so the counts are the static parse's. Player-visible: a greyscale moth marking added, reset or brought by a preset starts in the primary mutant colour; saves keep their literal colours. |
 | B10-C2 | _(this commit)_ | content, the orchestrator's call under mal's delegation: `body_markings_moth.dm` (`/datum/body_marking/moth/firewatch` "Firewatch", `/datum/body_marking/moth/grayscale/firewatch` "Firewatch Grayscale"), `body_marking_sets.dm` (`/datum/body_marking_set/moth/firewatch`; the greyscale family has no sets), `code/modules/unit_tests/~nova/body_marking_set_members.dm` (its reference entry), and the two sheets `moth_markings.dmi` / `moth_grayscale_markings.dmi` (`firewatch_chest_m` → `firewatch_chest`, `firewatch_chest_f` dropped) | fold (`fold_firewatch.py`, sheets from git, B6's `dmi_lib` writer, re-read from the worktree) and an independent `verify_firewatch.py`: 172 states identical by metadata + RGBA md5 in source order, 2 renamed with the pixels of both old states, 2 dropped (the twins), icon sizes 45×34 / 32×32 kept, PIL decodes all, the other 9 marking sheets byte-identical (`C2-fold\firewatch-fold-proof.tsv`, `C2-verify-worktree.tsv`); sheet md5 moth `7d7815f3…` → `a2b702b4…`, greyscale `2b338f1e…` → `32b858d3…`, unchanged by the build; `build.bat dm` 0 / 0; DreamChecker 129, identical to B9 / B0-regen; test build compiles with and without focus | Committed before any daemon run (DMI rule). Tests run on this commit — focused suites incl. the art test, capture, benchmark and full suite — are in the B10-closeout row. Derivation (`C2-derivation-table.tsv`, B5's table + 2 rows): Firewatch moth (its set), Firewatch Grayscale moth (set-less, keeps the family's declaration); 201 markings, 73 sets. Player-visible: a new moth marking, its greyscale twin, a new moth preset; Firewatch joins the random pool of new moth characters. |
 | B10-closeout | _(this commit)_ | close-out verification on the final tree (`2b7d31abbe4`), no code change | `build.bat dm` 0 errors / 0 warnings; `dm-test` 0 errors / 4 pre-existing warnings; DreamChecker 129, sorted list identical to B9 / B0-regen on every B10 commit's tree; focused 331 (every marking test file, custom_sprites, changeling, preferences_import, digitigrade_legs, the six B10 test files, 18 tg limb/husk/blood/preference/species tests) PASS with `clean_run.lk`, no runtime (`B10-C2-focused`), the art tests (`claimed_zones` over all 201 markings, `missing_state`, `leg_shapes`), `body_marking_set_members`, `seed_modes`, `species_random_sets` and `derived_species` among them; appearance: 17/17 byte-identical to B9's final after-file (`97bf28a1…`) in every B10 run, the 11 standard cases 10/11 byte-identical to B3 and husked pixel-identical (70 → 50 appearances since B9); full local suite 854: 853 PASS, `job_display_order` FAIL (pre-existing), no runtime error, 117/117 screenshots pixel-identical to B9's full run (`B10-final-full`); no daemon rewrote a sheet (git status clean after every run); tgui `bun test` 414 / 0, `tgui:tsc` clean, `tgui:build` compiled; `git diff --check bafc52cb6c3..HEAD` clean, LF only, every commit by mal without a trailer | Final benchmark (`B10-final-bench-run1/2`, no other daemon; series table `B10-final\series-table.tsv`): profiler-off cached 54.15 / 54.23 µs, creating 213.54 / 211.17 µs (block minima 208.3 / 207.6; B10-base 53.68 / 206.91, minimum 205.8; no B10 commit touches that path — read as run-to-run spread, B3 and B7 saw the same). Drive call counts vs B10-base: `update_body_parts` 825 → 785, `get_cache_key` 4948 → 4708, `update_limb` 5705 → 4745, `get_limb_icon` and `append_base_marking_overlays` 332 → 80, `update_icon_dropped` 265 → 13, `replace_body` 42 → 2, `ColorTone` 8 → 1, `/icon/proc/Width` 561 → 23, `decal/blood/Attach` 368 → 208, `sanitize_hexcolor` self 9 → 5 ms; profiled middleware actions 8064 → 5317 / 4680 µs per action, husk cycle 27640 → 19952 / 19790 µs per pass. Unchanged: tall body 60 / 60 / 10 / 10 and merge tall body 40 / 40 / 10 / 10, DNA lists 12, limb lists 0 owned / 8 shared, cache deltas +30 / +37. After C-2 the drive's seeded picks draw from zone lists holding the two Firewatch markings, so its marking picks and merge counts (`Blend` 61 → 49, `Insert` 85 → 60) moved with content, not code. Content: 199 → 201 markings, 72 → 73 sets; modes FIXED 60 → 48, PRIMARY 27 → 41, secondary 65, tertiary 36, locked 11. Evaluate-only items left recorded (report): `species/apply_to_human` → `set_species` every render, `update_eyes`, `read_preference`, `update_damage_overlays`; `synchronize_bodytypes` (772 → 212) and Register/UnregisterSignal (4629 / 2852 → 1344 / 687) fell with P-A, P-C and P-F. New hotspots recorded: `random_string` 1008 calls / 11–14 ms and `generate_unique_features` per `set_species` (Nova), `animate_eyelid` 626 / 8 ms. |
+| B10-review | _(docs commit)_ | orchestrator review of `5b19dd801c6`, `f90b4195684`, `2b7d31abbe4` and the close-out; safety tag deleted; no code change | every diff read in full; the DMI fold re-verified from the git blobs (states, pixels, order); the full and focused `unit_tests.json` recounted; tgui logs; capture md5 against the B9 reference; DreamChecker sorted diff against B9; `git diff --check` and `ls-files --eol` | **Accepted. Branch complete:** nine plan steps, six `perf:` commits, two content commits. Full suite 853 / 854 (`job_display_order` only), focused 331 / 331, tgui 414 / 0, captures 17/17 byte-identical to B9 and 10/11 to B3 (husked pixel-identical), DreamChecker 129 identical. See §4b B10 and §8. |
+
+## 8. Closing summary (orchestrator, 2026-09-28)
+
+**Done.** `markings-datums` on base `f1dd78e5b34` carries the nine plan steps (§3 of the plan), six separate `perf:` commits and
+two additive content commits, each with a review row above. Every parity gate held to the end: savefiles byte-identical, the
+eleven standard appearance cases pixel-identical to the step-3 reference and all seventeen to the step-9 reference, DreamChecker
+unchanged since B0, the full local suite green bar the pre-existing `job_display_order`.
+
+| measure (markings benchmark drive) | B0 | final |
+|---|---|---|
+| `update_body_parts` per pass, cached / creating, profiler off | 76.5 / 233.6 µs | ~54 / ~211 µs |
+| `get_limb_icon` calls | 297 | 80 |
+| `replace_body` calls | 37 | 2 |
+| husk cycle per pass, profiled | 27.6 ms (B10 base; 10.8 before step 9's first blends) | 19.9 ms |
+| preview middleware action, profiled | 8064 µs (B10 base) | ~5000 µs |
+| DNA marking lists / limb lists owned / shared with DNA | 33 / 8 / 24 | 12 / 0 / 8 |
+| fully-marked tall body, merge fixture: appearances / height filters / glows | 80 / 80 / 30 | 40 / 40 / 10 |
+
+**Player-visible:** marking datums with colour modes and seeding, species-derived recommendation, exclusion groups,
+`keep_together` presets, the tgui picker with in-panel colour and reset and locked greying, editor refusals, four markings that
+never drew now drawing, the Firewatch moth marking and preset, greyscale moth markings starting in the primary mutant colour,
+save version 21.
+
+**Left for mal:** publish with `git push --force-with-lease origin markings-datums` (the remote is pre-rebase); the content
+decisions recorded but not made (§4b B6–B10); the BYOND compiler fault (§4b B10 item 6); porting the five tg-portable `perf:`
+commits upstream (each commit body is written for that).
