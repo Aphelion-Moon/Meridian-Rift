@@ -164,6 +164,16 @@
 		else
 			return TRUE
 
+/// Whether the human's chest is pecs rather than breasts.
+/mob/living/carbon/human/proc/has_pecs()
+	var/obj/item/organ/genital/breasts/chest = get_organ_slot(ORGAN_SLOT_BREASTS)
+	return chest?.pecs
+
+/// Whether the human's chest is pecs drawn without nipples.
+/mob/living/carbon/human/proc/has_nippleless_pecs()
+	var/obj/item/organ/genital/breasts/chest = get_organ_slot(ORGAN_SLOT_BREASTS)
+	return chest?.nippleless
+
 /// Returns true if the human has an accessible anus for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
 /mob/living/carbon/human/proc/has_anus(required_state = REQUIRE_GENITAL_ANY)
 	if(issilicon(src))

@@ -61,3 +61,18 @@
 #define PENIS_ICON_TAUR 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/taur_penis_onmob.dmi'
 #define TESTICLES_ICON_ALT 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/testicles_onmob_alt.dmi'
 #define BREASTS_ICON_ALT 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_alt.dmi'
+/// Bouncing twins of every state in the breast sheets, under the same state names.
+#define BREASTS_ICON_JIGGLE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_jiggle.dmi'
+#define BREASTS_ICON_ALT_JIGGLE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_alt_jiggle.dmi'
+/// Pec flexes: every pec state, bouncing together or taking turns, under the same state names.
+#define BREASTS_ICON_PEC_BOUNCE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce.dmi'
+#define BREASTS_ICON_PEC_BOUNCE_ALTERNATE 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob_pecbounce_alternate.dmi'
+
+/// One bounce cycle: two hops, while the jiggle states loop underneath.
+#define BREAST_BOUNCE_CYCLE (0.8 SECONDS)
+/// How high each hop goes, in pixels.
+#define BREAST_BOUNCE_HOP_HEIGHT 4
+/// How long a bounce lasts when no duration is given.
+#define BREAST_BOUNCE_DEFAULT_DURATION (2.4 SECONDS)
+/// The longest a single bounce can last.
+#define BREAST_BOUNCE_MAX_DURATION (10 SECONDS)

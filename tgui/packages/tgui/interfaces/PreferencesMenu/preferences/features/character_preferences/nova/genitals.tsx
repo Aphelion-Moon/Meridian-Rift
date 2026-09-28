@@ -1,4 +1,7 @@
 // THIS IS A NOVA SECTOR UI FILE
+import { Button, Stack } from 'tgui-core/components';
+import type { BooleanLike } from 'tgui-core/react';
+
 import {
   CheckboxInput,
   type Feature,
@@ -154,13 +157,83 @@ export const feature_womb: Feature<string> = {
   },
 };
 
-export const feature_breasts: Feature<string> = {
+type BreastsServerData = FeatureChoicedServerData & {
+  /** Pec shapes by name: which size they are and whether nipples are drawn. */
+  pecs?: Record<string, { big: BooleanLike; nipples: BooleanLike }>;
+  /** The shape turning Pecs off goes back to. */
+  breasts_default?: string;
+};
+
+/** Breasts, or pecs through a toggle with their own size and nipple controls. */
+function BreastsInput(
+  props: FeatureValueProps<string, string, BreastsServerData>,
+) {
+  const { serverData, value, handleSetValue } = props;
+  const pecs = serverData?.pecs ?? {};
+  const current = pecs[value];
+  const pecShape = (big: boolean, nipples: boolean) =>
+    Object.keys(pecs).find(
+      (shape) => !!pecs[shape].big === big && !!pecs[shape].nipples === nipples,
+    );
+  const setPecs = (big: boolean, nipples: boolean) => {
+    const shape = pecShape(big, nipples);
+    if (shape) {
+      handleSetValue(shape);
+    }
+  };
+  const breastChoices = serverData && {
+    ...serverData,
+    choices: serverData.choices.filter((choice) => !pecs[choice]),
+  };
+
+  return (
+    <Stack vertical>
+      <Stack.Item>
+        <Button.Checkbox
+          checked={!!current}
+          disabled={!serverData}
+          onClick={() =>
+            current
+              ? handleSetValue(serverData?.breasts_default ?? value)
+              : setPecs(false, true)
+          }
+        >
+          Pecs
+        </Button.Checkbox>
+      </Stack.Item>
+      {current ? (
+        <Stack.Item>
+          <Button
+            selected={!current.big}
+            onClick={() => setPecs(false, !!current.nipples)}
+          >
+            Pecs
+          </Button>
+          <Button
+            selected={!!current.big}
+            onClick={() => setPecs(true, !!current.nipples)}
+          >
+            Bigger pecs
+          </Button>
+          <Button.Checkbox
+            checked={!!current.nipples}
+            onClick={() => setPecs(!!current.big, !current.nipples)}
+          >
+            Nipples
+          </Button.Checkbox>
+        </Stack.Item>
+      ) : (
+        <Stack.Item>
+          <FeatureDropdownInput buttons {...props} serverData={breastChoices} />
+        </Stack.Item>
+      )}
+    </Stack>
+  );
+}
+
+export const feature_breasts: Feature<string, string, BreastsServerData> = {
   name: 'Breast Choice',
-  component: (
-    props: FeatureValueProps<string, string, FeatureChoicedServerData>,
-  ) => {
-    return <FeatureDropdownInput buttons {...props} />;
-  },
+  component: BreastsInput,
 };
 
 export const breasts_skin_tone: FeatureToggle = {

@@ -391,6 +391,7 @@
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
 #include "~nova\painting_gallery.dm"
+#include "~nova\pecs.dm"
 #include "~nova\portal_device.dm"
 #include "~nova\portal_lifecycle.dm"
 #include "~nova\portal_routes.dm"

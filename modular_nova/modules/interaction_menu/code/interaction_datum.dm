@@ -1,9 +1,39 @@
 
 GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
+/// Words for the chest tokens (%USER_BREASTS%, %TARGET_TITS%, ...) when the participant has breasts.
+GLOBAL_LIST_INIT(interaction_breast_words, list(
+	"BREASTS" = "breasts",
+	"BREAST" = "breast",
+	"TITS" = "tits",
+	"BOOBS" = "boobs",
+	"BOOB" = "boob",
+	"CHEST" = "chest",
+))
+
+/// The same tokens for pecs, which replace every breast word so one template reads right for both.
+GLOBAL_LIST_INIT(interaction_pec_words, list(
+	"BREASTS" = "pecs",
+	"BREAST" = "pec",
+	"TITS" = "pecs",
+	"BOOBS" = "pecs",
+	"BOOB" = "pec",
+	"CHEST" = "pecs",
+))
+
 /datum/interaction
 	/// The name to be displayed in the interaction menu for this interaction
 	var/name = "broken interaction"
+	/// The menu label instead of `name` when the chest this interaction uses is pecs, e.g. "Pecjob". Optional.
+	var/name_pecs
+	/// The menu label when that chest is pecs drawn without nipples, e.g. "Kiss pecs". Falls back to `name_pecs`. Optional.
+	var/name_nippleless
+	/// Messages used instead of `message` when that chest is pecs drawn without nipples. Optional.
+	var/list/message_nippleless
+	/// Messages used instead of `user_messages` when that chest is pecs drawn without nipples. Optional.
+	var/list/user_messages_nippleless
+	/// Messages used instead of `target_messages` when that chest is pecs drawn without nipples. Optional.
+	var/list/target_messages_nippleless
 	/// The description of the interacton.
 	var/description = "broken"
 	/// If it can be done at a distance.
@@ -170,7 +200,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	if(!islist(message) && istext(message))
 		message_admins("Deprecated message handling for '[html_encode(name)]'. Correct format is a list with one entry. This message will only show once.")
 		message = list(message)
-	var/message_template = pick(message)
+	var/message_template = pick(texts_for(message, message_nippleless, user, target))
 	// %USER% is blanked here because the emote procs below already prepend the user's name.
 	var/msg = format_message_for(
 		message_template,
@@ -202,9 +232,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		var/admin_msg = format_message_for(message_template, user, target, omit_user = TRUE)
 		user.log_message("[admin_msg] (interaction target: [key_name(target)]; user anonymous: [user_anonymous]; target anonymous: [target_anonymous])", LOG_GAME)
 
-	if(user_messages.len)
+	var/list/user_texts = texts_for(user_messages, user_messages_nippleless, user, target)
+	if(user_texts.len)
 		var/user_msg = format_message_for(
-			pick(user_messages),
+			pick(user_texts),
 			user,
 			target,
 			route = route,
@@ -214,9 +245,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		to_chat(user, user_msg)
 
 	// Someone acting on themselves already got the user side message; the target side would address them twice.
-	if(target_messages.len && !(user == target && !user_anonymous && !target_anonymous))
+	var/list/target_texts = texts_for(target_messages, target_messages_nippleless, user, target)
+	if(target_texts.len && !(user == target && !user_anonymous && !target_anonymous))
 		var/target_msg = format_message_for(
-			pick(target_messages),
+			pick(target_texts),
 			user,
 			target,
 			user_anonymous = user_anonymous,
@@ -295,7 +327,30 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEM%", them)
 		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEY%", they)
 		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
+		// Chest words follow the participant's own chest; pecs replace every breast word.
+		for(var/form, word in (participant.has_pecs() ? GLOB.interaction_pec_words : GLOB.interaction_breast_words))
+			formatted_message = replacetext(formatted_message, "%[role]_[form]%", word)
 	return trim(formatted_message, INTERACTION_MAX_CHAR)
+
+/// Whose chest this interaction is about: the user's when it needs their breasts, otherwise the target's.
+/datum/interaction/proc/chest_owner(mob/living/carbon/human/user, mob/living/carbon/human/target)
+	RETURN_TYPE(/mob/living/carbon/human)
+	return (ORGAN_SLOT_BREASTS in user_required_parts) ? user : target
+
+/// The list to pick messages from: `nippleless_texts`, if given, when that chest is pecs drawn without nipples.
+/datum/interaction/proc/texts_for(list/usual, list/nippleless_texts, mob/living/carbon/human/user, mob/living/carbon/human/target)
+	if(nippleless_texts && chest_owner(user, target)?.has_nippleless_pecs())
+		return nippleless_texts
+	return usual
+
+/// The menu label for these participants: `name_pecs`, or `name_nippleless`, when that chest is pecs.
+/datum/interaction/proc/display_name_for(mob/living/carbon/human/user, mob/living/carbon/human/target)
+	if(!name_pecs && !name_nippleless)
+		return name
+	var/obj/item/organ/genital/breasts/chest = chest_owner(user, target)?.get_organ_slot(ORGAN_SLOT_BREASTS)
+	if(!chest?.pecs)
+		return name
+	return (chest.nippleless && name_nippleless) || name_pecs || name
 
 /// Applies side effects only while the interaction's original authority remains valid.
 /datum/interaction/proc/apply_effects(
@@ -333,6 +388,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	var/file = file(fpath)
 	var/list/json = json_load(file)
 	name = sanitize_text(json["name"])
+	load_chest_text(json)
 	description = sanitize_text(json["description"])
 	distance_allowed = sanitize_integer(json["distance_allowed"], 0, 1, 0)
 	message = sanitize_islist(json["message"], list("json error"))
@@ -389,9 +445,31 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 		"lewd" = lewd,
 		"sexuality" = sexuality,
 	)
+	save_chest_text(json)
 	var/file = file(fpath)
 	WRITE_FILE(file, json_encode(json))
 	return TRUE
+
+/// Reads the optional pec and nippleless text, which both JSON loaders share.
+/datum/interaction/proc/load_chest_text(list/json)
+	name_pecs = json["name_pecs"] ? sanitize_text(json["name_pecs"]) : null
+	name_nippleless = json["name_nippleless"] ? sanitize_text(json["name_nippleless"]) : null
+	message_nippleless = sanitize_islist(json["message_nippleless"], null)
+	user_messages_nippleless = sanitize_islist(json["user_messages_nippleless"], null)
+	target_messages_nippleless = sanitize_islist(json["target_messages_nippleless"], null)
+
+/// Writes back whichever optional pec and nippleless text is set.
+/datum/interaction/proc/save_chest_text(list/json)
+	if(name_pecs)
+		json["name_pecs"] = name_pecs
+	if(name_nippleless)
+		json["name_nippleless"] = name_nippleless
+	if(message_nippleless)
+		json["message_nippleless"] = message_nippleless
+	if(user_messages_nippleless)
+		json["user_messages_nippleless"] = user_messages_nippleless
+	if(target_messages_nippleless)
+		json["target_messages_nippleless"] = target_messages_nippleless
 
 /// Global loading procs
 /proc/populate_interaction_instances()
@@ -429,6 +507,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
 		var/datum/interaction/interaction = new()
 
+		interaction.load_chest_text(ijson)
 		interaction.distance_allowed = sanitize_integer(ijson["distance_allowed"], 0, 1, 0)
 		interaction.message = sanitize_islist(ijson["message"], list("json error"))
 		interaction.category = sanitize_text(ijson["category"])

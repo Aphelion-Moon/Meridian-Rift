@@ -13,6 +13,16 @@
 	bodypart_overlay = /datum/bodypart_overlay/mutant/genital/breasts
 	internal_fluid_datum = /datum/reagent/consumable/breast_milk
 	var/lactates = FALSE
+	/// Built from a pec accessory: the chest is muscle, and interactions and examine text say "pecs".
+	var/pecs = FALSE
+	/// Pecs drawn without nipples, which read an interaction's nippleless text where it has some.
+	var/nippleless = FALSE
+	/// Cycles still to come in the chest's current animation.
+	var/bounce_cycles_left = 0
+	/// Timer for the next cycle.
+	var/bounce_timer
+	/// The current animation is a jiggle, which hops the owner each cycle and needs a bare chest. Pec flexes do neither.
+	var/bounce_hops = FALSE
 
 /datum/bodypart_overlay/mutant/genital/breasts
 	feature_key = ORGAN_SLOT_BREASTS
@@ -22,8 +32,12 @@
 	)
 	offset_location = ENTIRE_BODY
 	genital_stack_rank = 1
+	/// The sheet the chest animates from (a jiggle or a pec flex), or null while it's still. See the shape's get_special_icon().
+	var/animation_icon
 
 /obj/item/organ/genital/breasts/get_description_string(datum/sprite_accessory/genital/breasts/breasts)
+	if(pecs)
+		return "You see a pair of [breasts.pecs_big ? "big, heavy" : "firm"] pecs."
 	var/returned_string = "You see a [LOWER_TEXT(get_genital_descriptor(breasts))] of breasts."
 	var/size_description
 	var/translation = breasts_size_to_cup(genital_size)
@@ -82,12 +96,117 @@
 
 	return ..()
 
-/obj/item/organ/genital/breasts/build_from_accessory(datum/sprite_accessory/genital/accessory, datum/dna/DNA)
+/obj/item/organ/genital/breasts/build_from_accessory(datum/sprite_accessory/genital/breasts/accessory, datum/dna/DNA)
 	uses_skintones = DNA.features["breasts_uses_skintones"] ? accessory.has_skintone_shading : FALSE
+	pecs = accessory.pecs
+	nippleless = accessory.pecs && !accessory.pecs_nipples
 	return ..()
 
 /datum/bodypart_overlay/mutant/genital/breasts/get_global_feature_list()
 	return SSaccessories.sprite_accessories[ORGAN_SLOT_BREASTS]
+
+/obj/item/organ/genital/breasts/on_mob_remove(mob/living/carbon/organ_owner, special, movement_flags)
+	. = ..()
+	stop_bounce()
+
+/// Why the breasts can't jiggle right now, said to their owner, or null if they can.
+/obj/item/organ/genital/breasts/proc/bounce_blocker()
+	var/mob/living/carbon/human/human_owner = owner
+	if(!istype(human_owner))
+		return "You have nothing to bounce."
+	var/datum/sprite_accessory/genital/breasts/shape = get_shape()
+	// A flat chest has nothing to bounce. Pecs always do, whatever size was saved with them.
+	if(!shape?.jiggle_icon || (!pecs && floor(genital_size) < 1))
+		return "You have nothing there to bounce."
+	if(IS_UNCONSCIOUS_OR_CRIT(human_owner) || human_owner.body_position != STANDING_UP)
+		return "You need to be on your feet."
+	if(human_owner.combat_mode)
+		return "Not while you're ready for a fight."
+	if(!is_exposed())
+		return "Your chest needs to be bare."
+	return null
+
+/// Why the pecs can't flex right now, said to their owner, or null if they can. Clothes don't stop a flex.
+/obj/item/organ/genital/breasts/proc/flex_blocker()
+	var/mob/living/carbon/human/human_owner = owner
+	var/datum/sprite_accessory/genital/breasts/shape = get_shape()
+	if(!istype(human_owner) || !pecs || !shape?.pec_bounce_icon)
+		return "You have no pecs to bounce."
+	if(IS_UNCONSCIOUS_OR_CRIT(human_owner) || human_owner.body_position != STANDING_UP)
+		return "You need to be on your feet."
+	return null
+
+/// Jiggles on the spot for `duration`, in whole cycles. Returns FALSE if the breasts can't right now.
+/obj/item/organ/genital/breasts/proc/start_bounce(duration = BREAST_BOUNCE_DEFAULT_DURATION)
+	if(bounce_blocker())
+		return FALSE
+	play_animation(get_shape().jiggle_icon, duration, hops = TRUE)
+	return TRUE
+
+/// Flexes the pecs for `duration`: together, or taking turns if `alternating`. Returns FALSE if they can't right now.
+/obj/item/organ/genital/breasts/proc/start_flex(alternating = FALSE, duration = BREAST_BOUNCE_DEFAULT_DURATION)
+	if(flex_blocker())
+		return FALSE
+	play_animation(flex_sheet(alternating), duration, hops = FALSE)
+	return TRUE
+
+/// Draws the chest from `sheet` for `duration`, in whole cycles, hopping each cycle if `hops`.
+/obj/item/organ/genital/breasts/proc/play_animation(sheet, duration, hops)
+	if(bounce_timer)
+		deltimer(bounce_timer)
+	bounce_hops = hops
+	bounce_cycles_left = max(1, round(min(duration, BREAST_BOUNCE_MAX_DURATION) / BREAST_BOUNCE_CYCLE, 1))
+	set_animation_icon(sheet)
+	bounce_cycle()
+
+/// One cycle (two hops for a jiggle), then the next while there's time left and nothing stops it.
+/obj/item/organ/genital/breasts/proc/bounce_cycle()
+	bounce_timer = null
+	if(bounce_cycles_left <= 0 || (bounce_hops ? bounce_blocker() : flex_blocker()))
+		stop_bounce()
+		return
+	bounce_cycles_left--
+	if(bounce_hops)
+		animate(owner, pixel_z = BREAST_BOUNCE_HOP_HEIGHT, time = BREAST_BOUNCE_CYCLE / 4, easing = SINE_EASING | EASE_OUT, loop = 2, flags = ANIMATION_RELATIVE | ANIMATION_PARALLEL)
+		animate(pixel_z = -BREAST_BOUNCE_HOP_HEIGHT, time = BREAST_BOUNCE_CYCLE / 4, easing = SINE_EASING | EASE_IN, flags = ANIMATION_RELATIVE)
+	bounce_timer = addtimer(CALLBACK(src, PROC_REF(bounce_cycle)), BREAST_BOUNCE_CYCLE, TIMER_STOPPABLE)
+
+/// Settles the chest back onto its still sprites.
+/obj/item/organ/genital/breasts/proc/stop_bounce()
+	bounce_cycles_left = 0
+	if(bounce_timer)
+		deltimer(bounce_timer)
+		bounce_timer = null
+	set_animation_icon(null)
+
+/// Whether the chest is animating right now, from any sheet.
+/obj/item/organ/genital/breasts/proc/is_bouncing()
+	var/datum/bodypart_overlay/mutant/genital/breasts/overlay = bodypart_overlay
+	return !isnull(overlay.animation_icon)
+
+/// Whether the chest is animating from `sheet` right now.
+/obj/item/organ/genital/breasts/proc/is_playing(sheet)
+	var/datum/bodypart_overlay/mutant/genital/breasts/overlay = bodypart_overlay
+	return sheet && overlay.animation_icon == sheet
+
+/// The sheet a pec flex plays from, together or alternating; null for shapes that can't flex.
+/obj/item/organ/genital/breasts/proc/flex_sheet(alternating)
+	var/datum/sprite_accessory/genital/breasts/shape = get_shape()
+	return alternating ? shape?.pec_bounce_alternate_icon : shape?.pec_bounce_icon
+
+/// The breast shape the chest is drawn with.
+/obj/item/organ/genital/breasts/proc/get_shape()
+	RETURN_TYPE(/datum/sprite_accessory/genital/breasts)
+	var/datum/bodypart_overlay/mutant/genital/breasts/overlay = bodypart_overlay
+	return overlay.sprite_datum
+
+/// Swaps the sheet the chest draws from, redrawing the chest when it changes.
+/obj/item/organ/genital/breasts/proc/set_animation_icon(sheet)
+	var/datum/bodypart_overlay/mutant/genital/breasts/overlay = bodypart_overlay
+	if(overlay.animation_icon == sheet)
+		return
+	overlay.animation_icon = sheet
+	owner?.update_body_parts()
 
 /obj/item/organ/genital/breasts/proc/breasts_size_to_cup(number)
 	if(number < 0)

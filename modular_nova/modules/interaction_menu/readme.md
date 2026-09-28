@@ -60,9 +60,15 @@ Both `USER` and `TARGET` support these tokens:
 | `%USER_VERB_S%`, `%USER_VERB_ES%` | Verb ending omitted for a second-person subject |
 | `%USER_PRONOUN_THEIR%`, `%USER_PRONOUN_THEIRS%` | Possessive pronouns |
 | `%USER_PRONOUN_THEM%`, `%USER_PRONOUN_THEY%`, `%USER_PRONOUN_THEMSELVES%` | Other pronoun forms |
+| `%USER_BREASTS%`, `%USER_TITS%`, `%USER_BOOBS%`, `%USER_BREAST%`, `%USER_BOOB%`, `%USER_CHEST%` | Chest words; for a participant with pecs every one reads "pecs" or "pec" |
 
 For example, `%USER_CAPITAL% wave%USER_VERB_S% to %TARGET_OBJECT%.` works for both
-observer and recipient messages. Existing private templates need explicit verb-ending
+observer and recipient messages. An optional `name_pecs` gives the menu button its pec wording
+("Pecjob" for "Boobjob") when the chest the interaction uses, the user's if `breasts` is in
+`user_required_parts` and otherwise the target's, is pecs. When that chest is pecs drawn without
+nipples, the optional `name_nippleless`, `message_nippleless`, `user_messages_nippleless` and
+`target_messages_nippleless` stand in for the label and message lists, so nipple interactions can read
+sensibly; each falls back to the usual field when absent. Existing private templates need explicit verb-ending
 tokens when their subject can become "you"; the formatter does not conjugate prose.
 
 Configuration loads from `config/nova/interactions/`, including nested JSON files.

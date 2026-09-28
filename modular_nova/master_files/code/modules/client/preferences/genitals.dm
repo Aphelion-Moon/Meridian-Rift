@@ -415,6 +415,18 @@
 	relevant_mutant_bodypart = ORGAN_SLOT_BREASTS
 	default_accessory_type = /datum/sprite_accessory/genital/breasts/none
 
+/datum/preference/choiced/genital/breasts/compile_constant_data()
+	. = ..()
+	// The UI's Pecs toggle, size and nipple controls pick among these shapes, so it never hardcodes their names.
+	var/list/pecs
+	for(var/shape_name, shape_entry in SSaccessories.sprite_accessories[relevant_mutant_bodypart])
+		var/datum/sprite_accessory/genital/breasts/shape = shape_entry
+		if(shape.pecs)
+			LAZYSET(pecs, shape_name, list("big" = shape.pecs_big, "nipples" = shape.pecs_nipples))
+	.["pecs"] = pecs
+	// What turning the Pecs toggle off goes back to.
+	.["breasts_default"] = /datum/sprite_accessory/genital/breasts/pair::name
+
 /datum/preference/toggle/genital_skin_tone/breasts
 	savefile_key = "breasts_skin_tone"
 	relevant_mutant_bodypart = ORGAN_SLOT_BREASTS
@@ -476,7 +488,12 @@
 	var/passed_initial_check = ..(preferences)
 	var/allowed = preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)
 	var/erp_allowed = preferences.read_preference(/datum/preference/toggle/master_erp_preferences) && preferences.read_preference(/datum/preference/toggle/allow_genitals)
-	var/part_enabled = is_factual_sprite_accessory(relevant_mutant_bodypart, preferences.read_preference(/datum/preference/choiced/genital/breasts))
+	var/shape_name = preferences.read_preference(/datum/preference/choiced/genital/breasts)
+	var/part_enabled = is_factual_sprite_accessory(relevant_mutant_bodypart, shape_name)
+	// Pecs have one sprite whatever the size, and cup letters mean nothing for them.
+	var/datum/sprite_accessory/genital/breasts/shape = SSaccessories.sprite_accessories[relevant_mutant_bodypart]?[shape_name]
+	if(shape?.pecs)
+		return FALSE
 	return erp_allowed && part_enabled && (passed_initial_check || allowed)
 
 /datum/preference/choiced/breasts_size/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)

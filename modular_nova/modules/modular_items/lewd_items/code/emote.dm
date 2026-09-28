@@ -42,3 +42,75 @@
 					'modular_nova/modules/modular_items/lewd_items/sounds/final_f2.ogg',
 					'modular_nova/modules/modular_items/lewd_items/sounds/final_f3.ogg',
 		)
+
+/// Bounces on the spot so the chest jiggles. `*jiggle 6` keeps it up for six seconds; using it again stops.
+/datum/emote/living/lewd/jiggle
+	key = "jiggle"
+	key_third_person = "jiggles"
+	message = "shakes their chest and bounces on the spot!"
+	mob_type_allowed_typecache = /mob/living/carbon/human
+
+/datum/emote/living/lewd/jiggle/can_run_emote(mob/living/carbon/human/user, status_check = TRUE, intentional, params)
+	if(!..())
+		return FALSE
+	var/obj/item/organ/genital/breasts/chest = user.get_organ_slot(ORGAN_SLOT_BREASTS)
+	if(chest?.is_playing(chest.get_shape()?.jiggle_icon))
+		return TRUE
+	var/blocker = chest ? chest.bounce_blocker() : "You have nothing to bounce."
+	if(blocker && intentional)
+		to_chat(user, span_warning(blocker))
+	return !blocker
+
+/datum/emote/living/lewd/jiggle/select_message_type(mob/living/carbon/human/user, msg, intentional)
+	. = ..()
+	if(user.has_pecs())
+		return "flexes and bounces their pecs!"
+
+/datum/emote/living/lewd/jiggle/run_emote(mob/living/carbon/human/user, params, type_override, intentional)
+	var/obj/item/organ/genital/breasts/chest = user.get_organ_slot(ORGAN_SLOT_BREASTS)
+	if(chest?.is_playing(chest.get_shape()?.jiggle_icon))
+		chest.stop_bounce()
+		return
+	// Text after the key is how many seconds to keep it up, so it never stands in for the message.
+	var/seconds = text2num(params)
+	if(!chest?.start_bounce(seconds > 0 ? seconds SECONDS : BREAST_BOUNCE_DEFAULT_DURATION))
+		return
+	return ..(user, null, type_override, intentional)
+
+// Not lewd: the pecs flex and bounce from their own sheets, and clothes only hide the sprite.
+/// Flexes so both pecs bounce. `*pecbounce 6` keeps it up for six seconds; using it again stops.
+/datum/emote/living/carbon/human/pecbounce
+	key = "pecbounce"
+	key_third_person = "pecbounces"
+	message = "flexes, bouncing their pecs."
+	/// The pecs take turns instead of bouncing together.
+	var/alternating = FALSE
+
+/// The pecs bounce one after the other.
+/datum/emote/living/carbon/human/pecbounce/alternate
+	key = "pecbounce2"
+	key_third_person = "pecbounces2"
+	message = "bounces their pecs one after the other."
+	alternating = TRUE
+
+/datum/emote/living/carbon/human/pecbounce/can_run_emote(mob/living/carbon/human/user, status_check = TRUE, intentional, params)
+	if(!..())
+		return FALSE
+	var/obj/item/organ/genital/breasts/chest = user.get_organ_slot(ORGAN_SLOT_BREASTS)
+	if(chest?.is_playing(chest.flex_sheet(alternating)))
+		return TRUE
+	var/blocker = chest ? chest.flex_blocker() : "You have no pecs to bounce."
+	if(blocker && intentional)
+		to_chat(user, span_warning(blocker))
+	return !blocker
+
+/datum/emote/living/carbon/human/pecbounce/run_emote(mob/living/carbon/human/user, params, type_override, intentional)
+	var/obj/item/organ/genital/breasts/chest = user.get_organ_slot(ORGAN_SLOT_BREASTS)
+	if(chest?.is_playing(chest.flex_sheet(alternating)))
+		chest.stop_bounce()
+		return
+	// Text after the key is how many seconds to keep it up, so it never stands in for the message.
+	var/seconds = text2num(params)
+	if(!chest?.start_flex(alternating, seconds > 0 ? seconds SECONDS : BREAST_BOUNCE_DEFAULT_DURATION))
+		return
+	return ..(user, null, type_override, intentional)
