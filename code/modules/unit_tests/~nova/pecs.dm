@@ -1,10 +1,10 @@
-/// Every pec shape has its still states, and twins on its jiggle and flex sheets, with and without skin tone shading.
+/// Every pec shape has its still states, and twins on its jiggle and every flex sheet, with and without skin tone shading.
 /datum/unit_test/pec_states
 
 /datum/unit_test/pec_states/Run()
 	var/list/suffixes = list("", "_s")
 	for(var/datum/sprite_accessory/genital/breasts/shape as anything in typesof(/datum/sprite_accessory/genital/breasts/pecs))
-		var/list/sheets = list(initial(shape.icon), initial(shape.jiggle_icon), initial(shape.pec_bounce_icon), initial(shape.pec_bounce_alternate_icon))
+		var/list/sheets = list(initial(shape.icon), initial(shape.jiggle_icon), BREASTS_ICON_PEC_BOUNCE, BREASTS_ICON_PEC_BOUNCE_ALTERNATE, BREASTS_ICON_PEC_BOUNCE_SLOW, BREASTS_ICON_PEC_BOUNCE_ALTERNATE_SLOW)
 		for(var/suffix in suffixes)
 			var/state = "m_breasts_[initial(shape.icon_state)]_0[suffix]_FRONT_UNDER"
 			for(var/sheet in sheets)
@@ -113,18 +113,25 @@
 	TEST_ASSERT(pecs.start_flex(), "The pec flex did not start.")
 	TEST_ASSERT_EQUAL(overlay.sprite_datum.get_special_icon(flexer, overlay), BREASTS_ICON_PEC_BOUNCE, "Flexing pecs did not draw from the pec bounce sheet.")
 
-	var/datum/emote/living/carbon/human/pecbounce/alternate/alternate = locate() in GLOB.emote_list["pecbounce2"]
-	TEST_ASSERT_NOTNULL(alternate, "The *pecbounce2 emote is not registered.")
+	var/datum/emote/living/carbon/human/pecbounce/alternate/alternate = locate() in GLOB.emote_list["pbounce2"]
+	TEST_ASSERT_NOTNULL(alternate, "The *pbounce2 emote is not registered.")
 	alternate.run_emote(flexer)
-	TEST_ASSERT_EQUAL(overlay.sprite_datum.get_special_icon(flexer, overlay), BREASTS_ICON_PEC_BOUNCE_ALTERNATE, "*pecbounce2 did not take over from the other flex.")
+	TEST_ASSERT_EQUAL(overlay.sprite_datum.get_special_icon(flexer, overlay), BREASTS_ICON_PEC_BOUNCE_ALTERNATE, "*pbounce2 did not take over from the other flex.")
 	alternate.run_emote(flexer)
-	TEST_ASSERT(!pecs.is_bouncing(), "Using *pecbounce2 again did not stop it.")
+	TEST_ASSERT(!pecs.is_bouncing(), "Using *pbounce2 again did not stop it.")
 
-	var/datum/emote/living/carbon/human/pecbounce/together = locate() in GLOB.emote_list["pecbounce"]
-	TEST_ASSERT_NOTNULL(together, "The *pecbounce emote is not registered.")
+	var/datum/emote/living/carbon/human/pecbounce/together = locate() in GLOB.emote_list["pbounce"]
+	TEST_ASSERT_NOTNULL(together, "The *pbounce emote is not registered.")
 	together.run_emote(flexer, "5")
-	TEST_ASSERT(pecs.is_playing(BREASTS_ICON_PEC_BOUNCE), "*pecbounce did not start.")
-	TEST_ASSERT_EQUAL(pecs.bounce_cycles_left, round(5 SECONDS / BREAST_BOUNCE_CYCLE, 1) - 1, "*pecbounce ignored its duration.")
+	TEST_ASSERT(pecs.is_playing(BREASTS_ICON_PEC_BOUNCE), "*pbounce did not start.")
+	TEST_ASSERT_EQUAL(pecs.bounce_cycles_left, round(5 SECONDS / BREAST_BOUNCE_CYCLE, 1) - 1, "*pbounce ignored its duration.")
+
+	// The slow flexes have keys of their own, and only one emote answers each key.
+	for(var/key, sheet in list("pbounces" = BREASTS_ICON_PEC_BOUNCE_SLOW, "pbounce2s" = BREASTS_ICON_PEC_BOUNCE_ALTERNATE_SLOW))
+		TEST_ASSERT_EQUAL(length(GLOB.emote_list[key]), 1, "More than one emote answers *[key].")
+		var/datum/emote/living/carbon/human/pecbounce/slow_flex = GLOB.emote_list[key][1]
+		slow_flex.run_emote(flexer)
+		TEST_ASSERT(pecs.is_playing(sheet), "*[key] did not play its slow sheet.")
 	pecs.stop_bounce()
 
 	flexer.set_resting(TRUE, instant = TRUE)
