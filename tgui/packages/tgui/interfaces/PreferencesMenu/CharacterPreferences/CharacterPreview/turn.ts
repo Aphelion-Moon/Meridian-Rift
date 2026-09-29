@@ -16,3 +16,8 @@ export const previewFacing = (turn: number) =>
 export const turnPreview = atom(null, (get, set, backwards: boolean) =>
   set(previewTurnAtom, get(previewTurnAtom) + (backwards ? -1 : 1)),
 );
+
+/** Turns the preview by some quarter turns, clockwise from above. */
+export const turnPreviewBy = atom(null, (get, set, turns: number) =>
+  set(previewTurnAtom, get(previewTurnAtom) + turns),
+);

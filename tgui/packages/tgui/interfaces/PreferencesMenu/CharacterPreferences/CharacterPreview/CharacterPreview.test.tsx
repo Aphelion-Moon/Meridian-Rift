@@ -8,13 +8,14 @@ import {
   expect,
   it,
 } from 'bun:test';
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { getDefaultStore } from 'jotai';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 
 import type { CharacterPreviewDrawing, ServerData } from '../../types';
 import { ServerPrefs } from '../../useServerPrefs';
 import { previewFit } from './drawing';
+import { dragTurns, wheelZooms } from './gestures';
 import { CharacterPreview } from './index';
 import { previewTurnAtom, turnPreview } from './turn';
 
@@ -72,6 +73,32 @@ describe('previewFit', () => {
     };
 
     expect(previewFit(grown, 272, 480, [0, 0, 32, 32]).scale).toBe(6);
+  });
+
+  it('zooms a whole step at a time, from 1x to twice the fit, still centred', () => {
+    const bounds = [8, 2, 24, 32] as const;
+    const closer = previewFit(tile, 272, 480, [...bounds], 1);
+
+    expect(closer.fitScale).toBe(8);
+    expect(closer.scale).toBe(9);
+    expect(closer.y).toBe(240 + 15 * 9);
+    expect(previewFit(tile, 272, 480, [...bounds], 100).scale).toBe(16);
+    expect(previewFit(tile, 272, 480, [...bounds], -100).scale).toBe(1);
+  });
+});
+
+describe('dragTurns and wheelZooms', () => {
+  it('turns a quarter per step of drag, the front following the pointer', () => {
+    expect(dragTurns(39)).toEqual({ turns: 0, rest: 39 });
+    // Dragging right turns the front to the right: anticlockwise from above.
+    expect(dragTurns(95)).toEqual({ turns: -2, rest: 15 });
+    expect(dragTurns(-45)).toEqual({ turns: 1, rest: -5 });
+  });
+
+  it('zooms a step per wheel notch, wheeling up zooming in', () => {
+    expect(wheelZooms(-100)).toEqual({ zooms: 1, rest: 0 });
+    expect(wheelZooms(250)).toEqual({ zooms: -2, rest: 50 });
+    expect(wheelZooms(-60)).toEqual({ zooms: 0, rest: -60 });
   });
 });
 
@@ -242,5 +269,81 @@ describe('CharacterPreview', () => {
       'canvas',
     ) as HTMLCanvasElement;
     expect(drawnFrom.get(canvas)).toBe(tile.frames.east);
+  });
+
+  it('turns with a drag, a quarter per step, until the pointer lets go', async () => {
+    setData({ character_preview: tile });
+    const view = renderPreview();
+    await settle();
+    const box = view.container.querySelector(
+      '.CharacterPreview',
+    ) as HTMLElement;
+    const canvas = () =>
+      view.container.querySelector('canvas') as HTMLCanvasElement;
+
+    act(() => {
+      fireEvent.pointerDown(box, { pointerId: 1, button: 0, clientX: 100 });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 130 });
+    });
+    // Short of a step: nothing turns.
+    expect(drawnFrom.get(canvas())).toBe(tile.frames.south);
+
+    act(() => {
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 145 });
+    });
+    // Dragged right a step: the front turns right, to face east.
+    expect(drawnFrom.get(canvas())).toBe(tile.frames.east);
+
+    act(() => {
+      // Two steps back left, counting from where the last step ended.
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 60 });
+      fireEvent.pointerUp(box, { pointerId: 1 });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 400 });
+    });
+    expect(drawnFrom.get(canvas())).toBe(tile.frames.west);
+    expect(getDefaultStore().get(previewTurnAtom)).toBe(1);
+  });
+
+  it('zooms a whole step per wheel notch without scrolling the page, and a double-click fits it again', async () => {
+    setData({ character_preview: tile });
+    const view = renderPreview();
+    await settle();
+    const box = view.container.querySelector(
+      '.CharacterPreview',
+    ) as HTMLElement;
+    const width = () =>
+      (view.container.querySelector('canvas') as HTMLCanvasElement).style.width;
+    const wheel = (deltaY: number) => {
+      const event = new WheelEvent('wheel', {
+        deltaY,
+        bubbles: true,
+        cancelable: true,
+      });
+      act(() => {
+        box.dispatchEvent(event);
+      });
+      return event;
+    };
+
+    expect(width()).toBe('256px');
+    expect(wheel(-100).defaultPrevented).toBe(true);
+    expect(width()).toBe(`${9 * 32}px`);
+    // Part of a notch waits for the rest.
+    wheel(-60);
+    expect(width()).toBe(`${9 * 32}px`);
+    wheel(-40);
+    expect(width()).toBe(`${10 * 32}px`);
+    // Up to twice the fit and no further, and back out at once from there.
+    for (let notch = 0; notch < 20; notch++) {
+      wheel(-100);
+    }
+    expect(width()).toBe(`${16 * 32}px`);
+    wheel(100);
+    expect(width()).toBe(`${15 * 32}px`);
+
+    act(() => {
+      fireEvent.doubleClick(box);
+    });
+    expect(width()).toBe('256px');
   });
 });

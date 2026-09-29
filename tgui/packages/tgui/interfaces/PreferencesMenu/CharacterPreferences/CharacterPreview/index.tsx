@@ -1,14 +1,21 @@
 // THIS IS AN APHELION UI FILE
-import { useAtomValue } from 'jotai';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { classes } from 'tgui-core/react';
 
 import { DiagnosticLoader } from '../../../common/DiagnosticLoader';
 import type { CharacterPreviewDrawing, PreferencesMenuData } from '../../types';
 import { useServerPrefs } from '../../useServerPrefs';
-import { PreviewCanvas, previewFit, TILE, useShownPreview } from './drawing';
-import { previewFacing, previewTurnAtom } from './turn';
+import {
+  PreviewCanvas,
+  previewFit,
+  TILE,
+  useShownPreview,
+  zoomedScale,
+} from './drawing';
+import { usePreviewGestures } from './gestures';
+import { previewFacing, previewTurnAtom, turnPreviewBy } from './turn';
 
 type Props = {
   /** The box's CSS size. It fills it. */
@@ -22,6 +29,10 @@ type Props = {
  * the server makes of the character, turned by the page and stood on the
  * chosen background, as large as a whole-number scale fits the box. A loader
  * shows while a newer drawing is on its way.
+ *
+ * Dragging across it turns the character, a quarter per DRAG_STEP pixels, and
+ * the wheel zooms it a whole step at a time, from 1x to twice the fit.
+ * Double-clicking goes back to the fit.
  */
 export function CharacterPreview(props: Props) {
   const { width = '272px', height, className } = props;
@@ -30,6 +41,19 @@ export function CharacterPreview(props: Props) {
   const drawing = data.character_preview;
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<[number, number]>();
+  const [zoom, setZoom] = useState(0);
+  // The fitted scale the drawing last had, which bounds the zoom.
+  const fitScale = useRef(1);
+  const turnBy = useSetAtom(turnPreviewBy);
+  const gestures = usePreviewGestures(box, {
+    onTurn: turnBy,
+    onZoom: (steps) =>
+      setZoom((value) => {
+        const base = fitScale.current;
+        // Stored within reach, so wheeling back always moves at once.
+        return zoomedScale(base, value + steps) - base;
+      }),
+  });
 
   useLayoutEffect(() => {
     const element = box.current;
@@ -56,6 +80,8 @@ export function CharacterPreview(props: Props) {
       ref={box}
       className={classes(['CharacterPreview', className])}
       style={{ width, height }}
+      onDoubleClick={() => setZoom(0)}
+      {...gestures}
     >
       {!!size &&
         (drawing ? (
@@ -64,6 +90,8 @@ export function CharacterPreview(props: Props) {
             width={size[0]}
             height={size[1]}
             tile={tile}
+            zoom={zoom}
+            fitScale={fitScale}
           />
         ) : (
           <PreviewBackground tile={tile} fit={previewFit(undefined, ...size)} />
@@ -86,14 +114,22 @@ type DrawnCharacterProps = {
   width: number;
   height: number;
   tile?: string;
+  /** Whole steps added to the fitted scale. */
+  zoom: number;
+  /** Told the fitted scale, which bounds the zoom. */
+  fitScale: RefObject<number>;
 };
 
 /** The drawing facing the way the tabs have turned it, on its background. */
 function DrawnCharacter(props: DrawnCharacterProps) {
-  const { width, height, tile } = props;
+  const { width, height, tile, zoom, fitScale } = props;
   const shown = useShownPreview(props.drawing);
   const turn = useAtomValue(previewTurnAtom);
-  const fit = previewFit(shown.preview, width, height, shown.bounds);
+  const fit = previewFit(shown.preview, width, height, shown.bounds, zoom);
+
+  useLayoutEffect(() => {
+    fitScale.current = fit.fitScale;
+  });
 
   return (
     <>

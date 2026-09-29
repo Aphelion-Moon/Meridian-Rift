@@ -902,6 +902,13 @@
     place-items: center;
     background: color-mix(in srgb, var(--species-recessed) 45%, transparent);
     animation: species-drawing-in 160ms ease-out 150ms both;
+    // The loader takes half the chamber's shorter side.
+    container-type: size;
+
+    .DiagnosticLoader {
+      --diagnostic-loader-size: clamp(64px, 50cqmin, 176px);
+      min-height: 0;
+    }
   }
 
   &__glass {

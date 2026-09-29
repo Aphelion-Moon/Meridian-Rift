@@ -159,12 +159,16 @@ export function previewScale(
  * whole-number scale allows, capped at a tile filling the box's shorter side:
  * its tile's centre across the middle, and all it draws in any facing centred
  * up and down. `x` and `y` are the tile's centre and floor in box pixels.
+ *
+ * `zoom` adds whole steps to that fitted scale, from 1x up to twice the fit,
+ * still centred on what the preview draws; `fitScale` is the scale before it.
  */
 export function previewFit(
   preview: CharacterPreviewDrawing | undefined,
   width: number,
   height: number,
   bounds?: DrawnBounds,
+  zoom = 0,
 ) {
   const extent = preview
     ? previewExtent(preview, bounds)
@@ -172,7 +176,7 @@ export function previewFit(
   const reach = Math.max(0, -extent.left, extent.right);
   const top = Math.max(0, extent.top);
   const bottom = Math.min(0, extent.bottom);
-  const scale = Math.max(
+  const fitScale = Math.max(
     1,
     Math.min(
       fits(Math.min(width, height), TILE),
@@ -180,12 +184,18 @@ export function previewFit(
       fits(height, top - bottom),
     ),
   );
+  const scale = zoomedScale(fitScale, zoom);
   return {
     scale,
+    fitScale,
     x: width / 2,
     y: Math.round(height / 2 + ((top + bottom) * scale) / 2),
   };
 }
+
+/** A fitted scale with zoom steps added, from 1x up to twice the fit. */
+export const zoomedScale = (fitScale: number, zoom: number) =>
+  Math.min(2 * fitScale, Math.max(1, fitScale + zoom));
 
 export type ShownPreview = {
   preview: CharacterPreviewDrawing;
