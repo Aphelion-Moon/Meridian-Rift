@@ -411,6 +411,7 @@
 #include "~nova\portal_routes.dm"
 #include "~nova\portal_test_helpers.dm"
 #include "~nova\preferences_import.dm"
+#include "~nova\random_string.dm"
 #include "~nova\sanitize_hexcolor.dm"
 #include "~nova\shuttle.dm"
 #include "~nova\symphony_moderation.dm"
