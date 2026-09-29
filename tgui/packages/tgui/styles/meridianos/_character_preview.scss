@@ -38,6 +38,22 @@
     cursor: grabbing;
   }
 
+  // Held still, then dragged: the view pans. The page moves the character,
+  // its floor and the scanner's rule itself, each by its own translate, and
+  // each has a layer of its own while the pan lasts, so moving them repaints
+  // nothing.
+  &[data-panning] {
+    cursor: move;
+
+    .CharacterPreview__background,
+    .CharacterPreview__figure,
+    .CharacterPreview__rule {
+      will-change: translate;
+    }
+  }
+
+  // The page sets it a tile past the box above and to the left, so the floor
+  // can move by up to a tile and still fill it.
   &__background {
     position: absolute;
     inset: 0;

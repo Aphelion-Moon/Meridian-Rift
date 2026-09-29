@@ -25,6 +25,13 @@ Augments+ and the species page's chamber) shows that one drawing.
   it draws, in any facing, fits the box, up to a tile filling the box's shorter side, so its pixels stay
   square. The chosen background's tile repeats under it at the same scale, one tile under the character's
   own. The background is the page's, so choosing another redraws nothing.
+- **Turned, zoomed and panned by hand.** Dragging across the preview turns the character a quarter per 40px,
+  and the wheel zooms it in whole steps, from 1x to twice the fit. Holding the pointer still for 300 ms and
+  then dragging pans it instead, as far as brings any part of what the character draws to the box's middle,
+  so it never leaves the box; the pan is kept in the drawing's pixels, so a zoom keeps what is at the middle
+  there. A double-click fits it again, unpanned. A turn renders once per quarter and a zoom once per step; a
+  pan renders nothing, moving the character, its floor and the scanner's rule by their own inline
+  `translate`, the floor by the pan less whole tiles.
 - **Framed by the theme.** Each theme cases the preview on the box's edge in materials it already ships, as
   the species chamber's casing is built: Aphelion's bezel and calibration rule, the forge themes' own window
   frames, Scavenger's riveted rust plate, Wastelander's tube, and so on; Classic and Highline keep a plain
@@ -50,6 +57,11 @@ Augments+ and the species page's chamber) shows that one drawing.
 Measured live in the lab client, over 29 changes: the preview mob's rebuild, unchanged, takes about 13 ms;
 the drawing adds about 3 ms of main-thread time, most of it the walk, and iconforge about 35 ms on its own
 thread. A change reaches the screen in 48 ms (median of 8), where the map took 123 to 251 ms.
+
+The pan, profiled in Chromium 141 (software-rendered) over 240 moves, one a frame: no frame dropped, at full
+speed or with the CPU slowed four times; a move restyles three elements in about 0.16 ms (0.65 ms slowed), and
+lays out, paints, rasters and renders nothing. Taking the layers and letting them go costs about 8 ms of
+raster, once a pan.
 
 ### TG Proc/File Changes:
 
@@ -80,7 +92,7 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 
 ### Included files that are not contained in this module:
 
-- `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/CharacterPreview/`: the preview, its drawing and fit (`drawing.tsx`), the turn every tab shares (`turn.ts`), and their tests.
+- `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/CharacterPreview/`: the preview, its drawing and fit (`drawing.tsx`), the turn every tab shares (`turn.ts`), its drag, hold and wheel gestures (`gestures.ts`) and pan (`pan.ts`), and their tests.
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesRegistry/`: the species chamber shows the same drawing (`SpeciesSprite.tsx`, `SpecimenViewer.tsx`, `index.tsx`, `model.ts`).
 - `tgui/packages/tgui/styles/meridianos/_character_preview.scss`, loaded by `_preferences.scss`: the preview and
   its frame in every theme, with `tests/character-preview-frame.test.tsx`.

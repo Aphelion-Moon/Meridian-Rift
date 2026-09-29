@@ -7,16 +7,19 @@ import {
   describe,
   expect,
   it,
+  jest,
 } from 'bun:test';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { getDefaultStore } from 'jotai';
+import { Profiler } from 'react';
 import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 
 import type { CharacterPreviewDrawing, ServerData } from '../../types';
 import { ServerPrefs } from '../../useServerPrefs';
-import { previewFit } from './drawing';
-import { dragTurns, wheelZooms } from './gestures';
+import { type DrawnBounds, previewFit } from './drawing';
+import { dragTurns, HOLD_TIME, heldStill, wheelZooms } from './gestures';
 import { CharacterPreview } from './index';
+import { createPreviewPan } from './pan';
 import { previewTurnAtom, turnPreview } from './turn';
 
 const tile: CharacterPreviewDrawing = {
@@ -85,6 +88,19 @@ describe('previewFit', () => {
     expect(previewFit(tile, 272, 480, [...bounds], 100).scale).toBe(16);
     expect(previewFit(tile, 272, 480, [...bounds], -100).scale).toBe(1);
   });
+
+  it('pans as far as brings any part of what it draws to the middle, at any zoom', () => {
+    const bounds: DrawnBounds = [8, 2, 24, 32];
+    // 8px each side of the tile's centre, and 30 rows centred up and down.
+    const across = { minX: -8, maxX: 8, minY: -15, maxY: 15 };
+
+    expect(previewFit(tile, 272, 480, bounds).panBounds).toEqual(across);
+    expect(previewFit(tile, 272, 480, bounds, 1).panBounds).toEqual(across);
+    // A taur drawn from 32px left of its tile's centre to 8px right of it.
+    const taur = { ...tile, width: 64, x: 16 };
+    const wide = previewFit(taur, 272, 480, [0, 0, 40, 32]).panBounds;
+    expect([wide.minX, wide.maxX]).toEqual([-8, 32]);
+  });
 });
 
 describe('dragTurns and wheelZooms', () => {
@@ -99,6 +115,110 @@ describe('dragTurns and wheelZooms', () => {
     expect(wheelZooms(-100)).toEqual({ zooms: 1, rest: 0 });
     expect(wheelZooms(250)).toEqual({ zooms: -2, rest: 50 });
     expect(wheelZooms(-60)).toEqual({ zooms: 0, rest: -60 });
+  });
+
+  it('holds a pointer still while it strays no more than a few pixels', () => {
+    expect(heldStill(0, 0)).toBe(true);
+    expect(heldStill(-6, 0)).toBe(true);
+    expect(heldStill(3, 4)).toBe(true);
+    expect(heldStill(5, 5)).toBe(false);
+  });
+});
+
+/** How far a part of the preview in this box has been moved, or '' if it hasn't. */
+const movedBy = (box: HTMLElement, part: string) =>
+  (
+    box.querySelector(`.CharacterPreview__${part}`) as HTMLElement
+  ).style.getPropertyValue('translate');
+
+describe('createPreviewPan', () => {
+  const across = { minX: -8, maxX: 8, minY: -15, maxY: 15 };
+  const part = (tag: string, name: string) => {
+    const element = document.createElement(tag);
+    element.className = `CharacterPreview__${name}`;
+    return element;
+  };
+  const panned = () => {
+    const element = document.createElement('div');
+    element.append(
+      part('span', 'background'),
+      part('canvas', 'figure'),
+      part('span', 'rule'),
+    );
+    const pan = createPreviewPan({ current: element });
+    const moved = (name: string) => movedBy(element, name);
+    return { element, pan, moved };
+  };
+
+  it('moves the drawing with the pointer, in whole pixels, as far as its bounds', () => {
+    const { pan, moved } = panned();
+    pan.place(8, across);
+    pan.start(100, 100);
+    pan.move(123, 70);
+    expect(moved('figure')).toBe('23px -30px');
+    // The floor moves by the same, less whole tiles, and the rule only up and
+    // down.
+    expect(moved('background')).toBe('23px 226px');
+    expect(moved('rule')).toBe('0px -30px');
+
+    // Past the bounds it stops, and comes back as soon as the pointer does.
+    pan.move(400, -400);
+    expect(moved('figure')).toBe('64px -120px');
+    pan.move(99, 101);
+    expect(moved('figure')).toBe('-1px 1px');
+  });
+
+  it('keeps what is at the middle there through a zoom, even mid-pan', () => {
+    const { pan, moved } = panned();
+    pan.place(8, across);
+    pan.start(0, 0);
+    pan.move(40, 0);
+    pan.place(9, across);
+    expect(moved('figure')).toBe('45px 0px');
+    // From the zoom on, the drawing keeps up with the pointer at 9x.
+    pan.move(49, 0);
+    expect(moved('figure')).toBe('54px 0px');
+    pan.end();
+
+    // Bounds that shrink take it back within them.
+    pan.place(9, { ...across, maxX: 2 });
+    expect(moved('figure')).toBe('18px 0px');
+    // Back in the middle, nothing is moved at all.
+    pan.reset();
+    expect([moved('figure'), moved('background'), moved('rule')]).toEqual([
+      '',
+      '',
+      '',
+    ]);
+  });
+
+  it('moves parts a render drew anew', () => {
+    const { element, pan, moved } = panned();
+    pan.place(8, across);
+    pan.start(0, 0);
+    pan.move(16, 8);
+    pan.end();
+    element
+      .querySelector('.CharacterPreview__figure')
+      ?.replaceWith(part('canvas', 'figure'));
+    expect(moved('figure')).toBe('');
+
+    pan.place(8, across);
+    expect(moved('figure')).toBe('16px 8px');
+  });
+
+  it('takes hold only of a placed drawing, and marks the box while it pans', () => {
+    const { element, pan, moved } = panned();
+    pan.start(0, 0);
+    pan.move(50, 50);
+    expect(element.hasAttribute('data-panning')).toBe(false);
+    expect(moved('figure')).toBe('');
+
+    pan.place(8, across);
+    pan.start(0, 0);
+    expect(element.hasAttribute('data-panning')).toBe(true);
+    pan.end();
+    expect(element.hasAttribute('data-panning')).toBe(false);
   });
 });
 
@@ -199,6 +319,7 @@ describe('CharacterPreview', () => {
 
   afterEach(() => {
     cleanup();
+    jest.useRealTimers();
     getDefaultStore().set(previewTurnAtom, 0);
     backendStore.set(gameDataAtom, previousData as never);
   });
@@ -221,6 +342,11 @@ describe('CharacterPreview', () => {
     );
     expect(background.style.backgroundSize).toBe('256px 256px');
     expect(background.style.backgroundPosition).toBe('8px 112px');
+    // A tile past the box above and to the left, for a pan to move it into.
+    expect([background.style.top, background.style.left]).toEqual([
+      '-256px',
+      '-256px',
+    ]);
   });
 
   it('shows the drawing, and the loader over it only while a newer one is on its way', async () => {
@@ -345,6 +471,136 @@ describe('CharacterPreview', () => {
       fireEvent.doubleClick(box);
     });
     expect(width()).toBe('256px');
+  });
+
+  /** Presses on the box and holds still until the drag would pan. */
+  const holdOn = (box: HTMLElement, clientX: number, clientY: number) => {
+    jest.useFakeTimers();
+    act(() => {
+      fireEvent.pointerDown(box, { pointerId: 1, button: 0, clientX, clientY });
+      jest.advanceTimersByTime(HOLD_TIME);
+    });
+  };
+
+  it('pans with a drag held still first, rendering nothing as it goes', async () => {
+    setData({ character_preview: tile });
+    let commits = 0;
+    const view = render(
+      <Profiler id="preview" onRender={() => commits++}>
+        {preview()}
+      </Profiler>,
+    );
+    await settle();
+    const box = view.container.querySelector(
+      '.CharacterPreview',
+    ) as HTMLElement;
+    const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
+
+    jest.useFakeTimers();
+    act(() => {
+      fireEvent.pointerDown(box, {
+        pointerId: 1,
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+      });
+      // A hand's tremor still holds still.
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 103, clientY: 98 });
+      jest.advanceTimersByTime(HOLD_TIME - 1);
+    });
+    expect(box.hasAttribute('data-panning')).toBe(false);
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(box.hasAttribute('data-panning')).toBe(true);
+
+    const rendered = commits;
+    act(() => {
+      for (let move = 1; move <= 20; move++) {
+        fireEvent.pointerMove(box, {
+          pointerId: 1,
+          clientX: 103 + 3 * move,
+          clientY: 98 - move,
+        });
+      }
+    });
+    // 60px right and 20px up from where the hold ended, and not turned.
+    expect(movedBy(box, 'figure')).toBe('60px -20px');
+    expect(movedBy(box, 'background')).toBe('60px 236px');
+    expect(drawnFrom.get(canvas)).toBe(tile.frames.south);
+    expect(commits).toBe(rendered);
+
+    act(() => {
+      fireEvent.pointerUp(box, { pointerId: 1 });
+    });
+    expect(box.hasAttribute('data-panning')).toBe(false);
+    expect(movedBy(box, 'figure')).toBe('60px -20px');
+    expect(commits).toBe(rendered);
+  });
+
+  it('turns with a drag that moves at once, however long it is held after', async () => {
+    setData({ character_preview: tile });
+    const view = renderPreview();
+    await settle();
+    const box = view.container.querySelector(
+      '.CharacterPreview',
+    ) as HTMLElement;
+    const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
+
+    jest.useFakeTimers();
+    act(() => {
+      fireEvent.pointerDown(box, {
+        pointerId: 1,
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+      });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 110, clientY: 100 });
+      jest.advanceTimersByTime(HOLD_TIME * 2);
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 145, clientY: 100 });
+    });
+    expect(box.hasAttribute('data-panning')).toBe(false);
+    expect(drawnFrom.get(canvas)).toBe(tile.frames.east);
+    expect(movedBy(box, 'figure')).toBe('');
+  });
+
+  it('zooms about what a pan brought to the middle, and a double-click brings it back', async () => {
+    setData({ character_preview: tile });
+    const view = renderPreview();
+    await settle();
+    const box = view.container.querySelector(
+      '.CharacterPreview',
+    ) as HTMLElement;
+    const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
+
+    holdOn(box, 100, 100);
+    act(() => {
+      // Past the drawing's edge, 16px from its tile's centre: it stops with
+      // that edge at the middle.
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 400, clientY: 116 });
+      fireEvent.pointerUp(box, { pointerId: 1 });
+    });
+    expect(movedBy(box, 'figure')).toBe('128px 16px');
+
+    act(() => {
+      box.dispatchEvent(
+        new WheelEvent('wheel', {
+          deltaY: -100,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+    // At 9x, what was at the middle still is.
+    expect(canvas.style.width).toBe(`${9 * 32}px`);
+    expect(movedBy(box, 'figure')).toBe('144px 18px');
+    expect(movedBy(box, 'background')).toBe('144px 18px');
+
+    act(() => {
+      fireEvent.doubleClick(box);
+    });
+    expect(canvas.style.width).toBe('256px');
+    expect(movedBy(box, 'figure')).toBe('');
   });
 
   it("frames itself for the tab's motif, a portrait unless the tab says", async () => {

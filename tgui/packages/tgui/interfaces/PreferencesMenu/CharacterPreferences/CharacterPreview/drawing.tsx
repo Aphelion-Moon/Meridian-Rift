@@ -155,6 +155,17 @@ export function previewScale(
 }
 
 /**
+ * How far a pan may move a drawing, in its own pixels: rightwards from minX to
+ * maxX, and downwards from minY to maxY.
+ */
+export type PanBounds = {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+};
+
+/**
  * Where a preview stands in a box that everything it draws fills as far as a
  * whole-number scale allows, capped at a tile filling the box's shorter side:
  * its tile's centre across the middle, and all it draws in any facing centred
@@ -162,6 +173,9 @@ export function previewScale(
  *
  * `zoom` adds whole steps to that fitted scale, from 1x up to twice the fit,
  * still centred on what the preview draws; `fitScale` is the scale before it.
+ *
+ * `panBounds` is how far a pan may move it: as far as brings any part of what
+ * it draws to the box's middle, at any zoom.
  */
 export function previewFit(
   preview: CharacterPreviewDrawing | undefined,
@@ -185,12 +199,16 @@ export function previewFit(
     ),
   );
   const scale = zoomedScale(fitScale, zoom);
-  return {
-    scale,
-    fitScale,
-    x: width / 2,
-    y: Math.round(height / 2 + ((top + bottom) * scale) / 2),
+  const y = Math.round(height / 2 + ((top + bottom) * scale) / 2);
+  // How high above its floor the drawing is at the box's middle, unpanned.
+  const middle = (y - height / 2) / scale;
+  const panBounds: PanBounds = {
+    minX: -extent.right,
+    maxX: -extent.left,
+    minY: extent.bottom - middle,
+    maxY: extent.top - middle,
   };
+  return { scale, fitScale, x: width / 2, y, panBounds };
 }
 
 /** A fitted scale with zoom steps added, from 1x up to twice the fit. */

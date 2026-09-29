@@ -22,6 +22,7 @@ import {
   zoomedScale,
 } from './drawing';
 import { usePreviewGestures } from './gestures';
+import { type PreviewPan, usePreviewPan } from './pan';
 import { previewFacing, previewTurnAtom, turnPreviewBy } from './turn';
 
 /**
@@ -50,8 +51,10 @@ type Props = {
  * the tab shows it for; see _character_preview.scss.
  *
  * Dragging across it turns the character, a quarter per DRAG_STEP pixels, and
- * the wheel zooms it a whole step at a time, from 1x to twice the fit.
- * Double-clicking goes back to the fit.
+ * the wheel zooms it a whole step at a time, from 1x to twice the fit. Holding
+ * the pointer still for HOLD_TIME and then dragging pans it instead, as far as
+ * brings any part of the character to the middle. Double-clicking goes back to
+ * the fit, unpanned.
  */
 export function CharacterPreview(props: Props) {
   const { width = '272px', height, className, motif = 'portrait' } = props;
@@ -63,6 +66,7 @@ export function CharacterPreview(props: Props) {
   const [zoom, setZoom] = useState(0);
   // The fitted scale the drawing last had, which bounds the zoom.
   const fitScale = useRef(1);
+  const pan = usePreviewPan(box);
   const turnBy = useSetAtom(turnPreviewBy);
   const gestures = usePreviewGestures(box, {
     onTurn: turnBy,
@@ -72,6 +76,9 @@ export function CharacterPreview(props: Props) {
         // Stored within reach, so wheeling back always moves at once.
         return zoomedScale(base, value + steps) - base;
       }),
+    onPanStart: pan.start,
+    onPan: pan.move,
+    onPanEnd: pan.end,
   });
 
   useLayoutEffect(() => {
@@ -103,7 +110,10 @@ export function CharacterPreview(props: Props) {
         className,
       ])}
       style={{ width, height }}
-      onDoubleClick={() => setZoom(0)}
+      onDoubleClick={() => {
+        pan.reset();
+        setZoom(0);
+      }}
       {...gestures}
     >
       {!!size &&
@@ -115,6 +125,7 @@ export function CharacterPreview(props: Props) {
             tile={tile}
             zoom={zoom}
             fitScale={fitScale}
+            pan={pan}
           />
         ) : (
           <PreviewBackground tile={tile} fit={previewFit(undefined, ...size)} />
@@ -142,17 +153,20 @@ type DrawnCharacterProps = {
   zoom: number;
   /** Told the fitted scale, which bounds the zoom. */
   fitScale: RefObject<number>;
+  /** Told the scale and how far it may pan, before the browser paints. */
+  pan: PreviewPan;
 };
 
 /** The drawing facing the way the tabs have turned it, on its background. */
 function DrawnCharacter(props: DrawnCharacterProps) {
-  const { width, height, tile, zoom, fitScale } = props;
+  const { width, height, tile, zoom, fitScale, pan } = props;
   const shown = useShownPreview(props.drawing);
   const turn = useAtomValue(previewTurnAtom);
   const fit = previewFit(shown.preview, width, height, shown.bounds, zoom);
 
   useLayoutEffect(() => {
     fitScale.current = fit.fitScale;
+    pan.place(fit.scale, fit.panBounds);
   });
 
   return (
@@ -226,7 +240,12 @@ type PreviewBackgroundProps = {
   fit: ReturnType<typeof previewFit>;
 };
 
-/** The background's tile repeated at the character's scale, one of them under the character's own tile. */
+/**
+ * The background's tile repeated at the character's scale, one of them under
+ * the character's own tile. It reaches a tile past the box above and to the
+ * left, so a pan can move it by the pan less whole tiles, which looks the same
+ * as the whole pan and never uncovers the box.
+ */
 function PreviewBackground(props: PreviewBackgroundProps) {
   const { tile, fit } = props;
   if (!tile) {
@@ -237,6 +256,8 @@ function PreviewBackground(props: PreviewBackgroundProps) {
     <span
       className="CharacterPreview__background"
       style={{
+        top: `${-size}px`,
+        left: `${-size}px`,
         backgroundImage: `url("${tile}")`,
         backgroundSize: `${size}px ${size}px`,
         backgroundPosition: `${fit.x - size / 2}px ${fit.y - size}px`,
