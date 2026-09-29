@@ -29,7 +29,9 @@ GLOBAL_LIST_INIT(character_preview_facings, list("south" = SOUTH, "west" = WEST,
  * as the game draws them.
  *
  * It is drawn again whenever the preview mob changes and a window is open to show it, and the window asks for it when
- * it opens, saying which drawing it holds. A lone change is drawn at once. Changes that come while a drawing is under
+ * it opens, saying which drawing it holds. A lone change is drawn as soon as whatever made it has finished, in the
+ * same tick: one action can change the look more than once, like taking one hat off to put another on, and only its
+ * last look is drawn, as a map only ever showed what a tick ended with. Changes that come while a drawing is under
  * way, or within CHARACTER_PREVIEW_SETTLE of the last answer, wait in a single slot: each newer one takes its place
  * and pushes the answer back, until they stop for CHARACTER_PREVIEW_SETTLE or CHARACTER_PREVIEW_MAX_WAIT has passed
  * since the first of them. Then the latest look is drawn once. The page shows a loader while one waits.
@@ -54,6 +56,8 @@ GLOBAL_LIST_INIT(character_preview_facings, list("south" = SOUTH, "west" = WEST,
 	var/preview_on_page
 	/// Set while a drawing is in progress; another waits for it.
 	var/drawing = FALSE
+	/// Set while a lone change's answer waits for what made the change to finish; later changes fold into it.
+	var/answer_due = FALSE
 	/// An answer just given; changes in its wake wait to be folded into one.
 	COOLDOWN_DECLARE(preview_cooldown)
 	/// When the oldest change still waiting for its answer came, or null when none is waiting.
@@ -79,18 +83,26 @@ GLOBAL_LIST_INIT(character_preview_facings, list("south" = SOUTH, "west" = WEST,
 	preview_changed()
 	return FALSE
 
-/// Something to draw: now, or once a burst of changes settles.
+/// Something to draw: once whatever changed the look has finished, or once a burst of changes settles.
 /datum/preference_middleware/character_preview/proc/preview_changed()
-	if(isnull(open_window()))
+	if(isnull(open_window()) || answer_due)
 		return
 	if(isnull(waiting_since) && !drawing && COOLDOWN_FINISHED(src, preview_cooldown))
-		INVOKE_ASYNC(src, PROC_REF(answer))
+		answer_due = TRUE
+		INVOKE_ASYNC(src, PROC_REF(answer_when_done))
 		return
 	if(isnull(waiting_since))
 		waiting_since = world.time
 		send_preview_update(list("character_preview_pending" = TRUE))
 	var/wait = min(CHARACTER_PREVIEW_SETTLE, waiting_since + CHARACTER_PREVIEW_MAX_WAIT - world.time)
 	addtimer(CALLBACK(src, PROC_REF(answer_waiting)), max(wait, world.tick_lag), TIMER_UNIQUE | TIMER_OVERRIDE | TIMER_NO_HASH_WAIT)
+
+/// A lone change's answer. It yields until whatever made the change has finished, later this tick, so it draws the
+/// look that action left rather than one it passed through.
+/datum/preference_middleware/character_preview/proc/answer_when_done()
+	sleep(0)
+	answer_due = FALSE
+	answer()
 
 /// The end of a burst of changes: the latest look, drawn once.
 /datum/preference_middleware/character_preview/proc/answer_waiting()

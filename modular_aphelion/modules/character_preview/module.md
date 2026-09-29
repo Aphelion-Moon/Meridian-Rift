@@ -29,10 +29,12 @@ Augments+ and the species page's chamber) shows that one drawing.
   update of its own that leaves the rest of the preferences data alone. BYOND keeps every file a client is
   sent in its cache for good, and a map kept every look the preview mob had; the player's cache doesn't
   grow however often the character changes. iconforge's file is deleted as soon as it has been read.
-- **Changes can't pile up.** A lone change is drawn at once. Changes that come while a drawing is under way,
-  or within a quarter second of the last answer, wait in one slot, each newer one taking the place of the
-  last, until they stop for a quarter second or a second has passed; then the latest look is drawn once.
-  The page shows the theme's loader over the drawing it has while a newer one waits.
+- **Changes can't pile up.** A lone change is drawn as soon as the action that made it has finished, in the same
+  tick, so an action that changes the look twice, like swapping one loadout hat for another, draws only the look it
+  ends with. Changes that come while a drawing is under way, or within a quarter second of the last answer, wait in
+  one slot, each newer one taking the place of the last, until they stop for a quarter second or a second has
+  passed; then the latest look is drawn once. The page shows the theme's loader over the drawing it has while a
+  newer one waits.
 - **Memory stays bounded.** A drawing is named by the md5 of its recipes, so characters that look alike
   share one, and it is kept only while an open window shows it: at most one per character with setup open.
   Closing the window lets its drawing go, and a window asks for the drawing when it opens, saying which one
