@@ -7361,6 +7361,8 @@
 #include "modular_aphelion\modules\admin_tech\code\legacy.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
+#include "modular_aphelion\modules\greyscale_eyes\code\greyscale_eyes.dm"
+#include "modular_aphelion\modules\greyscale_eyes\code\preferences.dm"
 #include "modular_aphelion\modules\job_desc_overrides\job_desc_overrides.dm"
 #include "modular_aphelion\modules\meridian_ui\code\computer.dm"
 #include "modular_aphelion\modules\meridian_ui\code\preferences.dm"
