@@ -253,33 +253,115 @@
 	var/obj/item/bodypart/head/mismatched_head = mismatched.get_bodypart(BODY_ZONE_HEAD)
 	TEST_ASSERT(mismatched_head.bodyshape & BODYSHAPE_SNOUTED, "With mismatched parts on, the human's head must be snouted")
 
-/// A taur body refuses leg augments only while the taur choice is accessible, and is_accessible() answers by the page the player
-/// last opened in setup, which is still the page when they spawn: off the character page the choice takes mismatched parts,
-/// whatever the species offers. So the check asks on both pages, and a save from before version 22 of an anthromorph taur with a
-/// leg augment and a marking of another species' set keeps mismatched parts off, and every byte but its version.
-/datum/unit_test/body_marking_content/mismatched_markings_page
+/**
+ * Loads a savefile tree into these preferences and spawns the character on a fresh body, as a job does, and records what the
+ * body got that the mismatched parts check asks about: its flattened pixels, mutant parts, limbs (where leg augments go), the DNA
+ * features the penis's taur mode and sheath go in, and whether it can knot. The tree is loaded as given and not saved.
+ *
+ * Arguments:
+ * - preferences: the preferences to load into.
+ * - slot: the character's savefile tree.
+ *
+ * Returns the record as text, so two compare with one assertion.
+ */
+/datum/unit_test/body_marking_content/proc/spawn_record(datum/preferences/preferences, list/slot)
+	preferences.savefile.set_entry("character[preferences.default_slot]", slot)
+	preferences.value_cache = list()
+	if(!preferences.load_character(preferences.default_slot))
+		return null
+	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+	preferences.apply_prefs_to(body, TRUE)
+	var/list/record = markings_baseline_signature(get_flat_icon_for_all_directions(body))
+	var/list/parts = list()
+	for(var/key, part_datum in body.dna.mutant_bodyparts)
+		var/datum/mutant_bodypart/part = part_datum
+		parts[key] = part.name
+	record["mutant_parts"] = parts
+	var/list/limbs = list()
+	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
+		limbs[limb.body_zone] = "[limb.type]"
+	record["limbs"] = limbs
+	record["penis_taur_mode"] = body.dna.features["penis_taur_mode"]
+	record["penis_sheath"] = body.dna.features["penis_sheath"]
+	record["knot"] = HAS_TRAIT(body, TRAIT_CAN_KNOT) ? TRUE : FALSE
+	return json_encode(record)
 
-/datum/unit_test/body_marking_content/mismatched_markings_page/Run()
+/// The check asks its questions as a spawn asks them, without the setup page (is_applicable()), so the characters whose answers
+/// used to differ only off the character page flip like any other: a taur with a leg augment (its species has the taur, so the
+/// taur takes the legs' place and refuses the augment with the toggle off as with it on), a knot owner, and a penis owner in taur
+/// mode or with a sheath (its species has the penis, so the penis choice answers yes either way). Each wears a marking of another
+/// species' set and has no part the toggle would show: its save from before version 22 turns mismatched parts on and is written
+/// as the same save with the toggle on, and it spawns as that character with the toggle off did. The menu still answers by the
+/// page: off the character page the taur choice is accessible only with the toggle on, while is_applicable() answers alike on
+/// every page.
+/datum/unit_test/body_marking_content/mismatched_markings_apply
+
+/datum/unit_test/body_marking_content/mismatched_markings_apply/Run()
 	var/datum/preferences/preferences = fixture_preferences()
 	var/datum/body_marking/lights = GLOB.body_markings_by_type[/datum/body_marking/secondary/synthliz/lights]
-	TEST_ASSERT(!lights.allows_species(SPECIES_MAMMAL), "The fixture needs a marking an anthromorph may not pick: Synth Lights is for synths")
-	var/list/written = load_and_save(preferences, list("version" = 52, "modular_version" = 22, "tgui_prefs_migration" = TRUE, "species" = SPECIES_MAMMAL, "allow_mismatched_parts_toggle" = FALSE, "taur_toggle" = TRUE, "feature_taur" = "Bunny", "augments" = list(AUGMENT_SLOT_L_LEG = "[/datum/augment_item/limb/l_leg/digi_prosthetic]"), "body_markings" = list(BODY_ZONE_CHEST = list("Synth Lights" = list("#aa0000", 0)))))
-	TEST_ASSERT(written, "A version 22 anthromorph must load")
-	TEST_ASSERT(length(preferences.augments), "The fixture must keep its leg augment")
-	var/written_text = json_encode(written)
-	var/list/stale = json_decode(written_text)
-	stale["modular_version"] = 21
-	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, stale)), written_text, "A taur with a leg augment must keep every byte but its version")
-	TEST_ASSERT(!preferences.mismatched_parts_change_nothing(), "The taur choice must count as a change off the character page")
-	// Why: on the character page the species' own taur feature answers either way, on any other page mismatched parts decide.
+	TEST_ASSERT(!lights.allows_species(SPECIES_MAMMAL), "The fixtures need a marking an anthromorph may not pick: Synth Lights is for synths")
+	var/datum/body_marking/splotches = GLOB.body_markings_by_type[/datum/body_marking/other/splotches]
+	TEST_ASSERT(!splotches.allows_species(SPECIES_HUMAN), "The fixtures need a marking a human may not pick: Splotches is for its set's species")
+	var/datum/augment_item/leg_augment = GLOB.augment_items[/datum/augment_item/limb/l_leg/digi_prosthetic]
+	// name -> the savefile tree's keys beyond the version's own
+	var/list/fixtures = list(
+		"a taur with a leg augment" = list("species" = SPECIES_MAMMAL, "taur_toggle" = TRUE, "feature_taur" = "Bunny", "augments" = list(AUGMENT_SLOT_L_LEG = "[/datum/augment_item/limb/l_leg/digi_prosthetic]"), "body_markings" = list(BODY_ZONE_CHEST = list("Synth Lights" = list("#aa0000", 0)))),
+		"a knot owner" = list("species" = SPECIES_HUMAN, "feature_penis" = "Knotted", "has_knot" = TRUE, "body_markings" = list(BODY_ZONE_HEAD = list("Splotches" = list("#aa0000", 0)))),
+		"a penis in taur mode" = list("species" = SPECIES_HUMAN, "feature_penis" = "Flared", "penis_taur_mode_toggle" = TRUE, "body_markings" = list(BODY_ZONE_HEAD = list("Splotches" = list("#aa0000", 0)))),
+		"a penis with a sheath" = list("species" = SPECIES_HUMAN, "feature_penis" = "Nondescript", "penis_sheath" = "Sheath", "body_markings" = list(BODY_ZONE_HEAD = list("Splotches" = list("#aa0000", 0)))),
+	)
+	var/taur_text
+	for(var/fixture_name, fixture_keys in fixtures)
+		// The character as a version 22 save with mismatched parts off: loading it fills every default in, once.
+		var/list/tree = list("version" = 52, "modular_version" = 22, "tgui_prefs_migration" = TRUE, "allow_mismatched_parts_toggle" = FALSE)
+		var/list/extra_keys = fixture_keys
+		for(var/key, value in extra_keys)
+			tree[key] = json_decode(json_encode(value))
+		var/base_text = json_encode(load_and_save(preferences, tree))
+		if(fixture_name == "a taur with a leg augment")
+			taur_text = base_text
+		// The same character saved before version 22.
+		var/list/stale = json_decode(base_text)
+		stale["modular_version"] = 21
+		var/list/written = load_and_save(preferences, stale)
+		TEST_ASSERT(written, "[fixture_name] must load")
+		// Not an assertion: each fixture that stays off is named.
+		if(!preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts))
+			TEST_FAIL("[fixture_name] must be loaded with mismatched parts on")
+			continue
+		var/list/expected = json_decode(base_text)
+		expected["allow_mismatched_parts_toggle"] = TRUE
+		var/written_text = json_encode(written)
+		TEST_ASSERT_EQUAL(written_text, json_encode(expected), "[fixture_name] must be saved as it was, with mismatched parts on and at version 22")
+		var/flipped = spawn_record(preferences, json_decode(written_text))
+		TEST_ASSERT_EQUAL(flipped, spawn_record(preferences, json_decode(base_text)), "[fixture_name] must spawn with mismatched parts on as it did with them off")
+		var/list/got = json_decode(flipped)
+		var/list/got_parts = got["mutant_parts"]
+		var/list/got_limbs = got["limbs"]
+		switch(fixture_name)
+			if("a taur with a leg augment")
+				TEST_ASSERT(got_parts[FEATURE_TAUR], "[fixture_name] must be a taur")
+				TEST_ASSERT_NOTEQUAL(got_limbs[BODY_ZONE_L_LEG], "[leg_augment.path]", "[fixture_name] must have its leg augment refused")
+			if("a knot owner")
+				TEST_ASSERT(got["knot"], "[fixture_name] must be able to knot")
+			if("a penis in taur mode")
+				TEST_ASSERT_EQUAL(got["penis_taur_mode"], TRUE, "[fixture_name] must have taur mode on")
+			if("a penis with a sheath")
+				TEST_ASSERT_EQUAL(got["penis_sheath"], "Sheath", "[fixture_name] must have the sheath")
+		TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, json_decode(written_text))), written_text, "[fixture_name]: a second load and save must change nothing")
+	// The menu keeps answering by the page; what a character gets does not.
+	load_and_save(preferences, json_decode(taur_text))
 	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	var/window = preferences.current_window
 	for(var/allowed in list(FALSE, TRUE))
 		preferences.value_cache[/datum/preference/toggle/allow_mismatched_parts] = allowed
 		preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
 		TEST_ASSERT(taur_choice.is_accessible(preferences), "On the character page the taur choice must be accessible [allowed ? "with" : "without"] mismatched parts")
+		TEST_ASSERT(taur_choice.is_applicable(preferences), "With the character page open the taur choice must apply [allowed ? "with" : "without"] mismatched parts")
 		preferences.current_window = PREFERENCE_TAB_GAME_PREFERENCES
 		TEST_ASSERT_EQUAL(!!taur_choice.is_accessible(preferences), allowed, "On any other page the taur choice must be accessible only with mismatched parts")
-	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+		TEST_ASSERT(taur_choice.is_applicable(preferences), "With another page open the taur choice must apply [allowed ? "with" : "without"] mismatched parts")
+	preferences.current_window = window
 
 /// The eight marking preferences step 6 deleted drew nothing on upstream Nova or on any Meridian, so a save from before version
 /// 22 loses their keys and nothing takes their place: a moth save with a coloured or a white marking or its toggle off, and a
