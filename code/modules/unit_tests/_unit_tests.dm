@@ -417,6 +417,7 @@
 #include "~nova\symphony_moderation.dm"
 #include "~nova\symphony_whitelist.dm"
 #include "~nova\title_screen_settings.dm"
+#include "~nova\unique_features_hash.dm"
 #include "~nova\world_topic_log_redaction.dm"
 #include "~nova\custom_sprites\appearance.dm"
 #include "~nova\custom_sprites\appendages.dm"

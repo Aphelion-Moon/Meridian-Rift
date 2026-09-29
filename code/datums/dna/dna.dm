@@ -204,6 +204,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 		. += block.unique_block(holder)
 
 /datum/dna/proc/generate_unique_features()
+	/* APHELION EDIT REMOVAL START
 	. = ""
 	for(var/block_type in GLOB.dna_feature_blocks)
 		var/datum/dna_block/feature/block = GLOB.dna_feature_blocks[block_type]
@@ -211,6 +212,17 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 			. += random_string(block.block_length, GLOB.hex_characters)
 			continue
 		. += block.unique_block(holder)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - The blocks joined once, not a longer copy of the hash per block
+	var/list/blocks = list()
+	for(var/block_type in GLOB.dna_feature_blocks)
+		var/datum/dna_block/feature/block = GLOB.dna_feature_blocks[block_type]
+		if(isnull(features[block.feature_key]))
+			blocks += random_string(block.block_length, GLOB.hex_characters)
+			continue
+		blocks += block.unique_block(holder)
+	return jointext(blocks, "")
+	// APHELION EDIT ADDITION END
 
 /**
  * Picks what mutations this DNA has innate and generates DNA blocks for them
