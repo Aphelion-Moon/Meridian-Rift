@@ -829,4 +829,10 @@
   .Button--empty.Button--hasIcon > .Button__content {
     justify-content: center;
   }
+
+  // Dropdowns take the same box, so one keeps the top and bottom of the arrow,
+  // play and other buttons beside it. Stock tgui draws them 22px high.
+  :is(.Dropdown__control, .Dropdown__input) {
+    min-height: 24px;
+  }
 }
