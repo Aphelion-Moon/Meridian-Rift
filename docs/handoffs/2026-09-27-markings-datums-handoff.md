@@ -500,6 +500,58 @@ verified behaviour, and "portable to tg: yes/no". Larger targets: propose with n
      locked now (wording only); the spurious `unused_var` lint keeps moving between compiles; the 516.1687 compiler fault
      follows the count of new variable names (B10 item 6).
 
+* **Decisions and findings at the B12 review (orchestrator, 2026-09-29) — measured perf pass from ZeWaka's 516 data:**
+  1. Reference adopted for all perf work on this codebase: ZeWaka's measured BYOND 516.1687 tables
+     (`C:\Users\mal\Meridian-Rift-BYOND-Lab\reference\zewaka-byond-516-perf-data.md`, from
+     https://gist.github.com/ZeWaka/d0cd97abc9085e7a75b12212cae2c690; mal, 2026-09-29). Gate used for every item, mal's
+     "profile it to verify": an in-run interleaved A/B of the exact operation (profiler off, ≥ 40 blocks, Mann–Whitney
+     p < 0.01 and the gist's ±8 % bar per op; for a whole-pass change significance plus the stated absolute), the drive before
+     and after, captures byte-identical. Items measuring slower or within noise were reported, not landed.
+  2. Landed (each its own commit): `1c0b1cd2b25` `random_string()` joins once (8.74 → 4.14 µs per 21-char call; each
+     `generate_unique_features()` asks for 24 strings, 22 of them 21 chars — the brief's "3–6" was wrong; same text and RNG
+     state over 2640 seeded calls); `0f91b5ce4b9` `generate_unique_features()` joins its blocks once (182 → 152 µs per call);
+     `45beae2977b` `update_body_parts()` calls `update_limb()` positionally (a named argument costs ~150 ns on 516; 4745 calls
+     per drive; cached pass −1.03 µs, 140/200 blocks, p = 4e-15); `d34303bfb61` nine marking-path loops walk key and value
+     together (−18…−31 % each, cold paths, Nova/Aphelion only); `d8a4954995a` carbon `get_bodyparts_by_zones()` reads
+     `real_bodypart_cache` instead of a `get_bodypart()` per zone (6.5 → 3.2 µs per call, cached pass −3.4 µs, `get_bodypart`
+     6874 → 2164 per drive). The four tg-file commits are tg-portable with APHELION EDIT markers. `c16af279bf6` rewords the
+     two "is ink" tooltips (LimbsPage and the custom sprite editor) to "color is fixed", American spelling as the rest of the UI.
+  3. **Item A, mal's ask (`dna.mutant_bodyparts` as an `/alist`), NOT landed by the pixel oracle.** Audit of all 218
+     references (`B12-perf-gist\A-audit.tsv`): keyed reads/writes, `-=`, `Cut()`, LAZY macros all alist-compatible; no
+     positional access; semantics proved on 516.1687 (`islist()` TRUE, `Copy()` stays an alist, `Cut()` works, `Insert`/`Swap`
+     refused, no positional index, iteration order intrinsic: string-table id order, the same for every insertion order and
+     different between builds for runtime strings). Per op the wins were real (20-key Copy 757 → 441 ns, species merge
+     −9…−13 %, `length()` +35 %; ~0.3 µs of a 2.5 µs set_species). The blocker: `regenerate_organs()` inserts organs in
+     container order, which sets `bodypart_overlays` order and so the draw order of same-layer head and back parts. Sweep of
+     288 bodies (36 species, every slot filled, forward and reversed, list and alist): in 19 species the PLAIN LIST ITSELF
+     draws differently for the two insertion orders (lizard head: snout, frills, horns vs horns, frills, snout), and the
+     alist's fixed order (frills, horns, snout) matches neither for 11 of them. No fixed order reproduces the old looks,
+     because the old order is each character's insertion history; the tree was left as it was. **Finding for mal:** two
+     characters with identical parts can already render differently today depending on the order the parts went on; a
+     deterministic same-layer order would be a content change (one visible change for up to 19 species) with its own
+     migration story, not a perf change. The species blueprint (`GLOB.default_mutant_bodyparts`) stays a list too: as an
+     alist the same seed rolls different random parts.
+  4. Reported, not landed, with numbers: B3 keyed membership twins (`zone in GLOB.marking_zones`: noise at 8 entries; the
+     bitflag assoc list is unsafe as a twin — numeric input reads TRUE or runtimes; a zone's name list as an alist: first
+     name +37 %, later names and misses −30…−50 %, ~95 checks per drive, < 1 µs); B4 typepath tables as alists (reads −3…−5 %,
+     within the bar; builds −30 %, ~15 µs once at init); the `append_base_marking_overlays(., image_dir = …)` named argument
+     (80 calls, ~12 µs per drive, positional would need four nulls); `update_limb()`'s typed overlay filter loop (noise).
+     Measured, not done: batching the 22 `random_string` calls into one (~37 µs per set_species, restructures a tg and a Nova
+     proc together).
+  5. Close-out verified independently by the orchestrator: full suite 867 = 865 PASS + `job_display_order` (pre-existing) +
+     `monkey_business` (Nova stasis-edit runtime, passes alone); the three new tests present and green; capture 17/17
+     byte-identical to the B9 reference (`97bf28a133a1`); DreamChecker 129, sorted list identical to B10/B11; tgui 414/0,
+     tsc, build; `git diff --check` clean, 17 text files LF, no trailer. Final benchmark vs B11 (`B12-final-bench-run1`, no
+     other daemon): profiler-off cached 53.48 → 50.21 µs (−6.1 %), creating 209.07 → 203.44 µs (−2.7 %); profiled species
+     change 12.05 → 11.46 ms, middleware action 5006 → 4635 µs.
+  6. Runner deviation approved by the orchestrator: another session cycled idle servers on port 38631 (`self\w+\.dmb`);
+     the runner ignores those (logged per run with PID, dmb and CPU share) while still waiting for every test daemon. Runs
+     that overlapped foreign test daemons are listed in the ledger rows; no decision used their timings.
+  7. New hotspots, record only: `get_all_limbs()` copies the species' `bodypart_overrides` on each of 785 calls per drive;
+     `update_draw_color()` 6924 calls per drive, twice per creating `update_limb`; Nova's DNA feature hash never encodes
+     mutant parts on set_species (tg's features-null check sends those blocks to `random_string()`; only `update_uf_block()`
+     writes them).
+
 ## 5. Decisions already taken (plan §7 — do not re-open)
 
 | Question | Decision |
@@ -606,6 +658,7 @@ verified behaviour, and "portable to tg: yes/no". Larger targets: propose with n
 | B12-B6 | _(this commit)_ | perf, tg-portable, a hotspot the drive shows (B0 recorded it: 785 map builds per drive): `code/modules/surgery/bodyparts/helpers.dm` (new `/mob/living/carbon/get_bodyparts_by_zones()` reads `real_bodypart_cache[zone]` for each zone of `get_all_limbs()` instead of a `get_bodypart(zone)` call per zone; APHELION EDIT markers); **new** `code/modules/unit_tests/~nova/bodyparts_by_zones.dm` (1 test) and its `_unit_tests.dm` include — scope additions for the portable fix | per call, in-run A/B against a verbatim copy (`B12-B1b-focused`, no other daemon, 40 blocks × 5000 calls; Mann-Whitney): human 6.51 → 3.17 µs (−51 %, 40/40, p < 1e-13), mammal preview 6.60 → 3.21, markings fixture 6.72 → 3.27; equivalence: same zones, order and limbs on three bodies and one missing an arm (null kept); whole passes (`b12_probe_b6_pass` in `B12-B6-bench-run2`, 60 blocks × 100 interleaved, profiler off, rule declared before the run: p < 0.01): cached 70.56 → 67.13 µs (−3.43 µs, 56/60, p = 1e-15), creating 246.98 → 243.65 µs (−3.33 µs, 48/60, p = 1e-5), render keys identical; `dm.exe -DCBT tgstation.dme` 0 / 0; test build with and without focus 0 errors / 5 warnings (the 5th the layout-dependent `unused_var` lint on untouched `plant_genes.dm:242`); DreamChecker 129, sorted list identical to B11-C5; focused 352 focus lines (353 results) PASS with `clean_run.lk`, no runtime, no other daemon (`B12-B6-focused`); capture 17/17 byte-identical to the B9 reference in all three runs; 64 screenshots pixel-identical to B11-c5's; benchmark (`B12-B6-bench-run1`, `-run2` vs `B12-B2-bench-run1`): `get_bodypart` 6874 → 2164, `get_bodyparts_by_zones` 785 moved to the carbon override, nothing else moved; profiler-off 52.35 / 206.21 → 51.92 / 208.21 (run 1) and 50.69 / 205.33 µs (run 2); `git diff --check` clean | Both bench runs had another session's test daemon join mid-way (33220 at +5 s of our daemon in run 1, 24220 at +30 s in run 2), which can only inflate their medians; the pass-level A/B is interleaved. Next candidate seen, not measured or changed: `get_all_limbs()` copies the species' `bodypart_overrides` on each of those 785 calls. |
 | B12-C | _(this commit)_ | housekeeping left by B11 (§4b B11-9): `tgui/.../CharacterPreferences/LimbsPage.tsx` (a locked row's disabled colour button: "This marking is ink: it always keeps its own color." → "This marking's color is fixed."; inside step 8's APHELION EDIT ADDITION block, so no new marker) and, **scope addition approved by the orchestrator**, `tgui/.../common/CustomSpriteEditor/index.tsx` (the editor's twin: "<name> is ink: …" → "<name>'s color is fixed."; Aphelion-owned, no markers); American spelling, as every other string on both pages | `bun test` PreferencesMenu 14 pass / 0 fail, CustomSpriteEditor 79 / 0 (12 files); `tgui:tsc` clean; `tgui:build` compiled (Rspack 1.7.12); `biome check` of both files: only the two formatter diffs upstream's tsx pass left in LimbsPage.tsx (lines 703 and 1503, recorded at B8), nothing at the changed lines; no test asserts either string; `git diff --check` clean | Wording only. No marking is locked since `5dc6d65c239`; the mode and its greying stay for content that wants it. |
 | B12-closeout | _(this commit)_ | close-out of work package B12 on the final tree (`c16af279bf6`), no code change: six commits landed (`perf:` B1a `random_string()`, B1b the DNA feature hash, B5 `update_limb()` positional, B2 the `for(k, v)` idiom, B6 `get_bodyparts_by_zones()`; `fix:` C the locked-colour tooltip); measured and not landed: item A (`dna.mutant_bodyparts` as an `/alist`), B3 (keyed membership twins), B4 (typepath tables as `/alist`s), the `append_base_marking_overlays()` named argument, `update_limb()`'s typed filter loop | `dm.exe -DCBT tgstation.dme` 0 / 0; test build with and without focus 0 errors / 5 warnings (4 pre-existing, the 5th the layout-dependent `unused_var` lint on untouched `plant_genes.dm:242`); DreamChecker 129, sorted list identical to B11-C5 on every B12 commit's tree; every commit's focused run (352–353 results) PASS with `clean_run.lk`, no runtime; full local suite (`B12-final-full`) 867 = 865 PASS + `job_display_order` (pre-existing, same message) + `monkey_business` (Nova's stasis edit, `_operation.dm:852`, `null.buckled`; its own runtime is the run's only one), which passes alone on the same tree (`B12-final-monkey-alone`) — B11's 864 plus the 3 new tests, the same two failures; 117/117 screenshots pixel-identical to B11's full run; capture 17/17 byte-identical to the B9 reference (`97bf28a1…`) in every B12 run; tgui `bun test` 414 / 0, `tgui:tsc` clean, `tgui:build` compiled; `git diff --check c6955df367d..HEAD` clean, all 17 changed text files LF, every commit by mal with no trailer; no daemon rewrote a sheet | Final benchmark (`B12-final-bench-run1`, no other daemon; run 2 had another session's daemon join mid-way) vs `B11-final-bench-run1`: profiler-off cached 53.48 → 50.21 µs (−6.1 %), creating 209.07 → 203.44 µs (−2.7 %) (run 2: 50.79 / 205.10); call counts as B11's bar B6's (`get_bodypart` 6874 → 2164, `get_bodyparts_by_zones` on the carbon override); profiled passes: cached 72.5 → 67.1 µs, creating 262.9 → 255.0 µs, species change 12.05 → 11.46 ms, middleware action 5006 → 4635 µs; tall body 60 / 60 / 10 / 10 and merge tall body 40 / 40 / 10 / 10 unchanged. Item A (`A-summary.md`, `A-audit.tsv`): 218 references audited; `/alist` semantics proved on 516.1687 (`islist()` TRUE, `Copy()` keeps it an `/alist`, `Cut()` works, positional reads silently read numeric keys, `Insert`/`Swap` refused, a walk iterates a snapshot); its order is its own (string-table order: compile-time keys stable across two builds, runtime strings not); `regenerate_organs()` draws same-layer parts in container order, and the pixel sweep (36 species × both insertion orders × list and `/alist` × dummy and human, 288 bodies) found the plain list itself drawing two looks for 19 species and the `/alist` matching neither order in 11 of them → not landed by the 1:1 rule; the species blueprint as an `/alist` would change seeded rolls. B3 zone / name twins: −0 to −15 % / +43 to −50 % per check, < 1 µs per drive; B4 reads −3 / −5 % (under the 8 % bar), init build −22 / −30 % (~15 µs once per round). Runner: two sessions' servers on port 38631 (`selfeffects`, `selfinline*`) ignored with the orchestrator's approval and logged per sample with their CPU share (`run_focused_B12b.ps1`). Findings, record only: the DNA feature hash never encodes mutant parts on `set_species()` (Nova; tg's features-null check sends those blocks to `random_string()`); `get_all_limbs()` copies the species' `bodypart_overrides` on each of 785 calls per drive; batching the 22 random hash blocks into one call would save ~37 µs per `set_species()` (restructures a tg and a Nova proc). |
+| B12-review | _(docs commit)_ | orchestrator review of `1c0b1cd2b25`, `0f91b5ce4b9`, `45beae2977b`, `d34303bfb61`, `d8a4954995a`, `c16af279bf6` and the close-out; no code change | every diff read in full (four tg files, the nine idiom hunks, both tooltips, the three new tests); the full `unit_tests.json` recounted; capture md5 against the B9 reference; DreamChecker sorted diff; `git diff --check` and `ls-files --eol` | **Accepted.** Five measured `perf:` commits (four tg-portable) and one wording fix; item A (mutant_bodyparts alist) not landed by the pixel oracle, its numbers and the insertion-order finding recorded for mal. Final drive 50.21 / 203.44 µs against B11's 53.48 / 209.07. See §4b B12. |
 
 ## 8. Closing summary (orchestrator, 2026-09-28)
 
@@ -638,3 +691,8 @@ Rat Paw merge with its rename table and migrations, the dead-key cleanup, the le
 is left for mal is unchanged (publish with `--force-with-lease`; the moth organ path; the compiler fault) plus the B11 items
 marked "for mal" (relaxing the mismatched-parts check to the character page; the pre-2023 Skyrat lizard designs). A measured
 perf pass from ZeWaka's 516 data (alists, keyed reads, `for(k, v)`, `random_string`) is briefed as B12.
+
+**Addendum (2026-09-29, B12):** the measured perf pass landed five `perf:` commits and one wording fix (§4b B12); the branch tip
+is the B12 review docs commit. B0 → now on the markings benchmark drive, profiler off: cached pass 76.5 → 50.2 µs (−34 %),
+creating pass 233.6 → 203.4 µs (−13 %). mal's alist request for `dna.mutant_bodyparts` was measured and declined by the pixel
+oracle; the same-layer draw-order finding it surfaced is his to decide.
