@@ -16,6 +16,10 @@
 
 /// Maximum ping timeout allowed to detect zombie windows
 #define TGUI_PING_TIMEOUT (4 SECONDS)
+// APHELION EDIT ADDITION START - Cold browser startup is not a pooled-window ping
+/// Allow native HTML delivery and browser creation to finish before declaring a new window dead.
+#define TGUI_WINDOW_STARTUP_TIMEOUT (60 SECONDS)
+// APHELION EDIT ADDITION END
 /// Used for rate-limiting to prevent DoS by excessively refreshing a TGUI window
 #define TGUI_REFRESH_FULL_UPDATE_COOLDOWN (1 SECONDS)
 
