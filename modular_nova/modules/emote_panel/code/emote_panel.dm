@@ -544,7 +544,7 @@ GAME_VERB_PROC(/mob/living, emote_mothsqueak, "> Moth Squeak", "Emotes+")
 	src.emote("msqueak", intentional = TRUE)
 
 GAME_VERB_PROC(/mob/living, emote_mousesqueak, "> Mouse Squeak", "Emotes+")
-	src.emote("squeak", intentional = TRUE)
+	src.emote("mousesqueak", intentional = TRUE)
 
 GAME_VERB_PROC(/mob/living, emote_merp, "> Merp", "Emotes+")
 	src.emote("merp", intentional = TRUE)

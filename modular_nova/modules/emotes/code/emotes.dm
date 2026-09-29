@@ -142,11 +142,15 @@
 
 /datum/emote/living/carbon/msqueak
 	key = "msqueak"
+	message = /datum/emote/living/moth/msqueak::message
+	message_mime = /datum/emote/living/moth/msqueak::message_mime
+	emote_type = /datum/emote/living/moth/msqueak::emote_type
 	vary = TRUE
+	sound = /datum/emote/living/moth/msqueak::sound
 
 /datum/emote/living/mousesqueak
-	key = "squeak"
-	key_third_person = "squeaks"
+	key = "mousesqueak"
+	key_third_person = "mousesqueaks"
 	message = "squeaks!"
 	emote_type = EMOTE_AUDIBLE
 	vary = TRUE
