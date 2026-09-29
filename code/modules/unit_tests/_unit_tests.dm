@@ -404,6 +404,7 @@
 #include "~nova\matrixed_accessories.dm"
 #include "~nova\meridian_preferences.dm"
 #include "~nova\mod_accessories.dm"
+#include "~nova\mutant_bodypart_order.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
 #include "~nova\painting_gallery.dm"

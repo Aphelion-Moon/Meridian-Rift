@@ -200,18 +200,76 @@ GLOBAL_LIST_EMPTY(customizable_races)
 		return new /datum/body_marking_collection
 	return assemble_body_markings_from_set(marking_set, features, src)
 
+/**
+ * Returns every mutant bodypart key a preference can give a character, in the order apply_prefs_to() first writes each into the
+ * character's DNA: get_preferences_in_priority_order()'s, where the first mutant part choice, genital choice or emissive toggle
+ * of a key gives it its place (a choice writes its part when it shows, a genital choice and an emissive toggle always write
+ * one, all before the species preference regenerates the organs). Built once, the first time it is asked for.
+ *
+ * Returns:
+ * - list: key -> its place, from 1, iterated in that order. Shared: never edit it.
+ */
+/proc/mutant_bodypart_preference_order()
+	var/static/list/order
+	if(order)
+		return order
+	var/list/places = list()
+	for(var/datum/preference/preference as anything in get_preferences_in_priority_order())
+		var/key = preference.relevant_mutant_bodypart
+		if(!key || places[key])
+			continue
+		if(istype(preference, /datum/preference/choiced/mutant_choice) || istype(preference, /datum/preference/choiced/genital) || istype(preference, /datum/preference/toggle/emissive))
+			places[key] = length(places) + 1
+	// Asked before the preferences exist, there is nothing to keep.
+	if(length(places))
+		order = places
+	return places
+
+/**
+ * Returns the keys of a DNA's mutant bodyparts in the order regenerate_organs() puts their organs in. Each organ that goes in
+ * appends its overlay to its limb, so this is also the order parts sharing a layer on one limb draw in, bottom to top, and it
+ * must not depend on the order the container happens to hold its keys in (the order they arrived in, or an /alist's own): the
+ * keys preferences give come in mutant_bodypart_preference_order(), then any other key in text order. For a character built
+ * from its preferences this is the order it has always drawn in: apply_prefs_to() writes its parts, in that order, into a
+ * container empty of real parts (a fresh body's, the preview's cleared one), and the species preference then regenerates the
+ * organs walking the container.
+ *
+ * Arguments:
+ * * mutant_bodyparts - the container, key -> /datum/mutant_bodypart.
+ *
+ * Returns:
+ * - list: the container's keys in that order, or null when it holds none.
+ */
+/proc/mutant_bodyparts_in_draw_order(list/mutant_bodyparts)
+	var/list/order = mutant_bodypart_preference_order()
+	var/list/ordered
+	for(var/key in order)
+		if(mutant_bodyparts[key])
+			LAZYADD(ordered, key)
+	var/list/leftovers
+	for(var/key in mutant_bodyparts)
+		if(!order[key])
+			LAZYADD(leftovers, key)
+	if(leftovers)
+		LAZYADD(ordered, sortTim(leftovers, GLOBAL_PROC_REF(cmp_text_asc)))
+	return ordered
+
 /datum/species/regenerate_organs(mob/living/carbon/organ_holder, datum/species/old_species, replace_current = TRUE, list/excluded_zones, visual_only = FALSE, replace_missing = TRUE)
 	. = ..()
 
 	var/robot_organs = HAS_TRAIT(organ_holder, TRAIT_ROBOTIC_DNA_ORGANS)
 
-	for (var/key, mutant_part in organ_holder.dna.mutant_bodyparts)
+	// Organs go in, and so parts sharing a layer draw, in one fixed order, whatever order the container holds its keys in. The
+	// parts are read as they were before any organ went in, as walking the container would read them: an organ going in drops
+	// its key from the container and, on a body that is not a dummy, writes it back last.
+	var/list/mutant_bodyparts = organ_holder.dna.mutant_bodyparts.Copy()
+	for(var/key in mutant_bodyparts_in_draw_order(mutant_bodyparts))
 		var/list/accessory_category = SSaccessories.sprite_accessories[key]
 		if(!islist(accessory_category))
 			stack_trace("Mutant bodypart key [key] has no sprite accessory category")
 			continue
 
-		var/datum/mutant_bodypart/mutant_bodypart = mutant_part
+		var/datum/mutant_bodypart/mutant_bodypart = mutant_bodyparts[key]
 		if(!istype(mutant_bodypart))
 			continue
 
