@@ -130,13 +130,12 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 /// Ordered, portable records for native markings: a limb's or a collection zone's entries, or a zone's saved nested shape.
 /proc/custom_style_marking_entries(list/native)
 	. = list()
-	for(var/item in native)
+	for(var/item, entry in native)
 		// Entries and the saved shape give the same records for the same markings, so live and saved ones compare byte for byte.
 		var/datum/body_marking_entry/marking_entry = astype(item, /datum/body_marking_entry)
 		if(marking_entry)
 			. += list(list("name" = marking_entry.marking.name, "color" = custom_style_normal_color(marking_entry.get_color()), "emissive" = marking_entry.get_emissive() ? TRUE : FALSE))
 			continue
-		var/entry = native[item]
 		. += list(list("name" = item, "color" = custom_style_normal_color(entry[MARKING_INDEX_COLOR]), "emissive" = entry[MARKING_INDEX_EMISSIVE] ? TRUE : FALSE))
 
 /// Convert validated records back into the native marking renderer's ordered map.

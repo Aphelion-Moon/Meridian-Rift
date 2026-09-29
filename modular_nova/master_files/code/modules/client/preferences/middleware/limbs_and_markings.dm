@@ -220,8 +220,8 @@
 /// Builds unfiltered marking presets — TSX filters by species/mismatched parts
 /datum/preference_middleware/limbs_and_markings/proc/build_marking_presets()
 	var/list/presets = list()
-	for(var/preset_name in GLOB.body_marking_sets)
-		var/datum/body_marking_set/marking_set = GLOB.body_marking_sets[preset_name]
+	for(var/preset_name, set_datum in GLOB.body_marking_sets)
+		var/datum/body_marking_set/marking_set = set_datum
 		// The names of the markings the set puts on, in order, or null for none.
 		var/list/marking_names
 		for(var/marking_type in marking_set.body_marking_list)

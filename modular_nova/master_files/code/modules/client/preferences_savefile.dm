@@ -453,8 +453,8 @@
 		if(!islist(arm) || !("Hands Feet" in arm))
 			continue
 		var/list/renamed = list()
-		for(var/name in arm)
-			renamed[name == "Hands Feet" ? "Rat Paw" : name] = arm[name]
+		for(var/name, value in arm)
+			renamed[name == "Hands Feet" ? "Rat Paw" : name] = value
 		markings[zone] = renamed
 	// Its own lists, none shared with the live character.
 	return json_decode(json_encode(save_data))

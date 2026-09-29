@@ -101,9 +101,10 @@ GLOBAL_LIST_EMPTY(body_marking_sets_by_type)
 				gathered[marking] = species_ids
 			for(var/species_id in marking_set.recommended_species)
 				species_ids[species_id] = TRUE
-	for(var/datum/body_marking/marking as anything in gathered)
+	for(var/marking_key, species_ids in gathered)
+		var/datum/body_marking/marking = marking_key
 		// Interned, so markings of the same sets share one list, and a marking of one set shares that set's.
-		marking.recommended_species = unrestricted[marking] ? null : marking.string_assoc_list(gathered[marking])
+		marking.recommended_species = unrestricted[marking] ? null : marking.string_assoc_list(species_ids)
 
 /proc/make_robotic_style_references()
 	for(var/path in valid_subtypesof(/datum/robotic_style))

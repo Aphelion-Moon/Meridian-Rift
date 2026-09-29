@@ -599,10 +599,10 @@ GLOBAL_LIST_INIT(body_marking_renames, list(
 	. = 0
 	if(!islist(raw))
 		return
-	for(var/zone in raw)
+	for(var/zone, zone_value in raw)
 		if(!istext(zone))
 			continue
-		var/list/raw_zone = raw[zone]
+		var/list/raw_zone = zone_value
 		if(!islist(raw_zone))
 			continue
 		var/found = FALSE
@@ -613,11 +613,10 @@ GLOBAL_LIST_INIT(body_marking_renames, list(
 		if(!found)
 			continue
 		var/list/kept = list()
-		for(var/name in raw_zone)
+		for(var/name, value in raw_zone)
 			if(!istext(name))
 				kept += list(name)
 				continue
-			var/value = raw_zone[name]
 			if(GLOB.body_marking_renames[name])
 				name = GLOB.body_marking_renames[name]
 				.++
@@ -649,10 +648,10 @@ GLOBAL_LIST_INIT(body_marking_renames, list(
 	var/datum/body_marking_collection/collection = new
 	if(!islist(raw))
 		return collection
-	for(var/zone in raw)
+	for(var/zone, zone_value in raw)
 		if(!istext(zone) || !(zone in GLOB.marking_zones))
 			continue
-		var/list/raw_zone = raw[zone]
+		var/list/raw_zone = zone_value
 		if(islist(raw_zone))
 			collection.set_zone_entries(zone, body_marking_entries_from_list(zone, raw_zone), keep_group_conflicts = TRUE)
 	return collection
@@ -672,14 +671,13 @@ GLOBAL_LIST_INIT(body_marking_renames, list(
 	if(!islist(raw_zone) || !length(raw_zone))
 		return null
 	var/list/worn = list()
-	for(var/name in raw_zone)
+	for(var/name, value in raw_zone)
 		if(!istext(name) || worn[name])
 			continue
 		var/datum/body_marking/marking = GLOB.body_markings[name]
 		if(!marking)
 			continue
 		worn[name] = TRUE
-		var/value = raw_zone[name]
 		// A bare colour reads as that colour without glow, the repair update_markings() used to make.
 		var/color = value
 		var/emissive = FALSE

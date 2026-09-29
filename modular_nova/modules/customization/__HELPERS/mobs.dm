@@ -1,7 +1,7 @@
 /proc/accessory_list_of_key_for_species(key, datum/species/species, mismatched, ckey)
 	var/list/accessory_list = list()
-	for(var/name in SSaccessories.sprite_accessories[key])
-		var/datum/sprite_accessory/sprite_accessory = SSaccessories.sprite_accessories[key][name]
+	for(var/name, accessory in SSaccessories.sprite_accessories[key])
+		var/datum/sprite_accessory/sprite_accessory = accessory
 		if(sprite_accessory.locked)
 			continue
 		if(!mismatched && sprite_accessory.recommended_species && isnull(sprite_accessory.recommended_species[species.id]))
