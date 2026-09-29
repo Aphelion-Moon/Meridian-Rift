@@ -1347,7 +1347,7 @@ export const CustomSpriteEditor = ({
                                   disabled={!!selectedLock || !!marking.locked}
                                   tooltip={
                                     marking.locked
-                                      ? `${marking.name} is ink: it always keeps its own color.`
+                                      ? `${marking.name}'s color is fixed.`
                                       : `Color of ${marking.name}`
                                   }
                                   aria-label={`Color of ${marking.name}`}

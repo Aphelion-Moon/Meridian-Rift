@@ -479,7 +479,7 @@ const MarkingColor = (props: {
     return (
       <Button
         disabled
-        tooltip="This marking is ink: it always keeps its own color."
+        tooltip="This marking's color is fixed."
         tooltipPosition={tooltipPosition}
         aria-label="Marking color"
       >
