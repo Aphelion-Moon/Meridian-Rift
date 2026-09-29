@@ -488,6 +488,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		augments = list()
 		body_markings = list()
 		languages = list()
+		language_understanding = null
 		// APHELION EDIT ADDITION END
 		recently_updated_keys |= /datum/preference/name/real_name
 		save_character()

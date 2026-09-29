@@ -334,6 +334,10 @@ export type PreferencesMenuData = {
   character_preview?: CharacterPreviewDrawing;
   /** A newer drawing of the character preview is on its way. */
   character_preview_pending?: BooleanLike;
+  /** How much, in percent, of each language only understood the character follows, by name. */
+  language_understanding?: Record<string, number>;
+  /** A line in each language only understood, as the character would hear it, by name. */
+  language_understanding_samples?: Record<string, string>;
   // APHELION EDIT ADDITION END
   preview_options: string[];
   preview_selection: string;

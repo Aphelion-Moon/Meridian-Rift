@@ -383,6 +383,7 @@
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
+#include "~nova\language_understanding.dm"
 #include "~nova\limb_markings.dm"
 #include "~nova\liver_nova.dm"
 #include "~nova\matrixed_accessories.dm"

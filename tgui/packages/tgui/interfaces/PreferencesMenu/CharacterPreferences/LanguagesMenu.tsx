@@ -3,6 +3,7 @@ import { useBackend } from 'tgui/backend';
 import { BlockQuote, Box, Button, Section, Stack } from 'tgui-core/components';
 
 import type { Language, PreferencesMenuData } from '../types';
+import { LanguageUnderstanding } from './LanguageUnderstanding'; // APHELION EDIT ADDITION - Partial understanding
 
 export function KnownLanguage(props: { language: Language }) {
   const { act } = useBackend<PreferencesMenuData>();
@@ -62,6 +63,11 @@ export function KnownLanguage(props: { language: Language }) {
             </Button>
           </Stack.Item>
         </Stack>
+        {/* APHELION EDIT ADDITION START - Partial understanding */}
+        {!props.language.speaking && (
+          <LanguageUnderstanding language={props.language} />
+        )}
+        {/* APHELION EDIT ADDITION END */}
       </Section>
     </Stack.Item>
   );
@@ -141,6 +147,10 @@ export function LanguagesPage() {
         Common to play most station jobs. <br />
         It does not cost points to toggle speech of a language—it only costs
         points to add an entirely new language.
+        {/* APHELION EDIT ADDITION START - Partial understanding */}
+        <br />A language only understood can be followed in part: set how much
+        of it gets through.
+        {/* APHELION EDIT ADDITION END */}
       </Section>
       <Stack wrap>
         <Stack.Item grow basis="24em" minWidth={0}>

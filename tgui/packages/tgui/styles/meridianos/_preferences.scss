@@ -186,6 +186,18 @@
   // APHELION EDIT REMOVAL END
 }
 
+// A language only understood: how much of it gets through, and a line in it
+// as heard. The label keeps its width so the slider stays put as it changes.
+.LanguagesMenu__understandingLabel {
+  min-width: 8.5em;
+  opacity: 0.8;
+}
+
+.LanguagesMenu__understandingSample {
+  font-style: italic;
+  opacity: 0.85;
+}
+
 // The faded character menu lets drags through, but tgui-core's Floating
 // wrapper around it (portaled outside .PreferencesMenu) would still catch them.
 .Floating:has(> .PreferencesMenu__Jobs__characterMenu--hidden) {

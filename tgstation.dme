@@ -7384,6 +7384,7 @@
 #include "modular_aphelion\modules\department_ooc\code\department_ooc.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
 #include "modular_aphelion\modules\job_desc_overrides\job_desc_overrides.dm"
+#include "modular_aphelion\modules\language_understanding\code\language_understanding.dm"
 #include "modular_aphelion\modules\meridian_ui\code\computer.dm"
 #include "modular_aphelion\modules\meridian_ui\code\preferences.dm"
 #include "modular_aphelion\modules\meridian_ui\code\tgui.dm"
