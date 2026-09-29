@@ -1,3 +1,18 @@
+/// Whether two GetPixel() results are the same colour to within the rounding iconforge and BYOND's icon procs differ by.
+/proc/custom_sprite_test_close_pixel(first, second)
+	if(first == second)
+		return TRUE
+	var/list/first_rgba = first ? rgb2num(first) : list(0, 0, 0, 0)
+	var/list/second_rgba = second ? rgb2num(second) : list(0, 0, 0, 0)
+	if(length(first_rgba) < 4)
+		first_rgba += 255
+	if(length(second_rgba) < 4)
+		second_rgba += 255
+	for(var/channel in 1 to 4)
+		if(abs(first_rgba[channel] - second_rgba[channel]) > 2)
+			return FALSE
+	return TRUE
+
 /// The first pixel this draft may paint in one view.
 /proc/custom_sprite_test_paintable_point(datum/custom_sprite_editor/editor, direction = "2")
 	var/list/bounds = editor.workspace.draw_bounds[direction]
@@ -11,7 +26,9 @@
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new(preferences, "hair")
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-	TEST_ASSERT(!(length(editor.guide_urls) != 1 || !editor.guide_urls["2"] || length(editor.preview_urls) != 1 || !editor.preview_urls["2"]), "Each editor must publish the Front view's guide and preview on opening.")
+	TEST_ASSERT(!(length(editor.guide_urls) != 4 || !editor.guide_urls["2"] || length(editor.preview_urls) != 1 || !editor.preview_urls["2"]), "Each editor must publish every view's guide and the Front view's preview on opening.")
+	editor.run_deferred_work()
+	TEST_ASSERT_EQUAL(length(editor.preview_urls), 4, "The other views' previews must follow in the next fire.")
 	for(var/direction in GLOB.custom_style_directions)
 		editor.visible_direction = direction
 		editor.request_view()
@@ -292,7 +309,7 @@
 		editor.visible_direction = "[direction]"
 		editor.request_view()
 		editor.run_deferred_work()
-		var/icon/guide = editor.guide_icons["[direction]"]
+		var/icon/guide = editor.guide_icon("[direction]")
 		var/checked = 0
 		for(var/y in 1 to 32)
 			for(var/x in 1 to 32)
@@ -300,7 +317,7 @@
 				if(!pixel)
 					continue
 				checked++
-				TEST_ASSERT(guide.GetPixel(x, y) == pixel, "Taur hair guide pixel [x],[y] in direction [direction]: expected [pixel], got [guide.GetPixel(x, y)].")
+				TEST_ASSERT(custom_sprite_test_close_pixel(guide.GetPixel(x, y), pixel), "Taur hair guide pixel [x],[y] in direction [direction]: expected [pixel], got [guide.GetPixel(x, y)].")
 		TEST_ASSERT(checked, "The alignment fixture must contain hair in every direction.")
 	editor.finish(FALSE)
 
@@ -335,6 +352,19 @@
 				var/expected = (x == 3 && y == 3) ? "#ff0000" : (x == 33 && y == 13) ? "#00ff00" : (x == 64 && y == 31) ? "#0000ff" : null
 				TEST_ASSERT(wide.GetPixel(x, y) == expected, "Wide preview lost a native nested offset at [x],[y] in direction [direction].")
 				TEST_ASSERT(!(x <= 32 && narrow.GetPixel(x, y) != ((x == 17 && y == 13) ? "#00ff00" : null)), "The hair guide must keep the central tile's native pixel origin.")
+	// The editors' pictures are drawn by iconforge in the same windows, from one walk for all four views.
+	var/datum/callback/to_icon = CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(custom_sprite_picture_icon))
+	var/list/wide_views = custom_sprite_draw_recipes(custom_sprite_view_recipes(body, 64), to_icon)
+	var/list/narrow_views = custom_sprite_draw_recipes(custom_sprite_view_recipes(body), to_icon)
+	for(var/view in GLOB.custom_style_directions)
+		var/icon/wide = wide_views[view]
+		var/icon/narrow = narrow_views[view]
+		TEST_ASSERT(!(wide?.Width() != 64 || wide.Height() != 32 || narrow?.Width() != 32 || narrow.Height() != 32), "Drawn pictures must keep their windows' exact dimensions.")
+		for(var/y in 1 to 32)
+			for(var/x in 1 to 64)
+				var/expected = (x == 3 && y == 3) ? "#ff0000" : (x == 33 && y == 13) ? "#00ff00" : (x == 64 && y == 31) ? "#0000ff" : null
+				TEST_ASSERT(wide.GetPixel(x, y) == expected, "A drawn wide picture lost a native nested offset at [x],[y] in view [view].")
+				TEST_ASSERT(!(x <= 32 && narrow.GetPixel(x, y) != ((x == 17 && y == 13) ? "#00ff00" : null)), "A drawn guide must keep the central tile's native pixel origin.")
 
 /datum/unit_test/custom_sprite_editor_close_keeps_draft/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)

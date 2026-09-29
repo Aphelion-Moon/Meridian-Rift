@@ -1,4 +1,5 @@
 // THIS IS A NOVA SECTOR UI FILE
+import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
 import {
   type ComponentProps,
   type ComponentRef,
@@ -21,7 +22,7 @@ import {
 } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 
-import { CharacterPreview } from '../../common/CharacterPreview';
+// import { CharacterPreview } from '../../common/CharacterPreview'; // APHELION EDIT REMOVAL - Drawn character preview
 // APHELION EDIT ADDITION START
 import {
   ChoicedSelectionDropdown,
@@ -36,6 +37,8 @@ import type {
   RoboticStyle,
 } from '../types';
 import { useServerPrefs } from '../useServerPrefs';
+import { CharacterPreview } from './CharacterPreview'; // APHELION EDIT ADDITION - Drawn character preview
+import { turnPreview } from './CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 
 /** AugmentSlot with selected augment */
 type AugmentData = AugmentSlot & {
@@ -171,18 +174,19 @@ const InternalImplantTitle = (props: { name: string; icon: string }) => (
 );
 
 export const RotateCharacterButtons = () => {
-  const { act } = useBackend<PreferencesMenuData>();
+  // const { act } = useBackend<PreferencesMenuData>(); // APHELION EDIT REMOVAL - Drawn character preview
+  const turn = useSetAtom(turnPreview); // APHELION EDIT ADDITION - Drawn character preview
   return (
     <Box mt={1}>
       <Button
-        onClick={() => act('rotate', { backwards: false })}
+        onClick={() => turn(false)} // APHELION EDIT CHANGE - The page turns the drawn preview. ORIGINAL: onClick={() => act('rotate', { backwards: false })}
         fontSize="22px"
         icon="redo"
         tooltip="Rotate Clockwise"
         tooltipPosition="bottom"
       />
       <Button
-        onClick={() => act('rotate', { backwards: true })}
+        onClick={() => turn(true)} // APHELION EDIT CHANGE - The page turns the drawn preview. ORIGINAL: onClick={() => act('rotate', { backwards: true })}
         fontSize="22px"
         icon="undo"
         tooltip="Rotate Counter-Clockwise"
@@ -811,11 +815,16 @@ const CenterColumnExtras = (props: {
 };
 
 // The character preview section at the top of the center column
-const PreviewSection = (props: { id: string }) => (
+// APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: const PreviewSection = (props: { id: string }) => (
+const PreviewSection = () => (
   <Section fill title="Character Preview" align="center">
     <Stack vertical fill>
       <Stack.Item grow align="center">
-        <CharacterPreview id={props.id} height="100%" width="280px" />
+        <CharacterPreview
+          // id={props.id} // APHELION EDIT REMOVAL - Drawn character preview
+          height="100%"
+          width="280px"
+        />
       </Stack.Item>
       <Stack.Divider />
       <Stack.Item align="center">
@@ -1078,7 +1087,9 @@ export const LimbsPage = ({
                   height="45%"
                   style={{ overflow: 'hidden', position: 'relative' }}
                 >
-                  <PreviewSection id={data.character_preview_view} />
+                  <PreviewSection
+                  // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
+                  />
                 </Stack.Item>
 
                 {/* Extras: anything rendering below the preview, takes remaining space */}

@@ -60,7 +60,6 @@ const serverData: ServerData = {
 };
 
 const preferences = {
-  character_preview_view: 'custom-markings-test',
   character_preferences: { misc: { species: 'human' } },
   markings: {
     l_arm: [

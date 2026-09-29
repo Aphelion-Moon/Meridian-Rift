@@ -76,18 +76,3 @@
 
 /// The facings the species page turns through, in order.
 GLOBAL_LIST_INIT(species_page_facings, list("south" = SOUTH, "west" = WEST, "north" = NORTH, "east" = EAST))
-
-/**
- * Turns a flat icon walked with get_flat_uni_icon(target, UP) into its recipe for each facing, as
- * iconforge entry JSON: facing name -> recipe.
- *
- * Nothing in the walk depends on the facing except which frame each directional state shows, so one
- * walk with UP standing in for the facing, with each facing written in afterwards, gives exactly what a
- * walk per facing does, for a quarter of the walking. No mob overlay faces UP of its own accord.
- */
-/proc/uni_icon_facings_json(datum/universal_icon/template, list/facings)
-	var/list/pieces = splittext(json_encode(template.to_list()), "\"dir\":[UP]")
-	var/list/recipes = list()
-	for (var/facing in facings)
-		recipes[facing] = jointext(pieces, "\"dir\":[facings[facing]]")
-	return recipes

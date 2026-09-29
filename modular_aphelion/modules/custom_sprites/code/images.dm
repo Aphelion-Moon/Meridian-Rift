@@ -21,6 +21,76 @@ GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 	var/margin = (width - 32) / 2
 	return getFlatIcon(appearance, defdir = direction, no_anim = TRUE, clip_bounds = list(1 - margin + shift_x, 1 + shift_z, 32 + margin + shift_x, height + shift_z))
 
+/// Where the editors' pictures are drawn. tmp/ is cleared every round.
+#define CUSTOM_SPRITE_PICTURE_DIR "tmp/custom_sprite_pictures/"
+
+/// The editors' views as custom_sprite_view_recipes() draws them, in GLOB.cardinals order, which their pictures are published in.
+GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" = EAST, "8" = WEST))
+
+/**
+ * A look in custom_sprite_flat_icon()'s window, facing each of the editors' views, from one universal icon walk:
+ * view -> iconforge recipe. custom_sprite_draw_recipes() draws them.
+ */
+/proc/custom_sprite_view_recipes(image/appearance, width = 32, height = 32, shift_x = 0, shift_z = 0)
+	var/datum/universal_icon/flat = get_flat_uni_icon(appearance, UP, grow = TRUE)
+	// The window's corners from the look's own lower left pixel, then from where the grown canvas starts.
+	var/margin = (width - 32) / 2
+	var/flat_x1 = isnull(flat.flat_x1) ? 1 : flat.flat_x1
+	var/flat_y1 = isnull(flat.flat_y1) ? 1 : flat.flat_y1
+	flat.crop(2 - margin + shift_x - flat_x1, 2 + shift_z - flat_y1, 33 + margin + shift_x - flat_x1, 1 + height + shift_z - flat_y1)
+	return uni_icon_facings_json(flat, GLOB.custom_sprite_view_facings)
+
+/**
+ * Draws recipes with iconforge, a picture each, on the main thread: a few tenths of a millisecond per picture,
+ * where getFlatIcon() takes several for one view of a body. Each PNG goes to `publish`, a data URL of it when
+ * there's none. Returns view -> what publish made of it.
+ *
+ * With a `name`, the files are kept where custom_sprite_picture_path() says, each drawing under the name
+ * overwriting the last: making and deleting a file costs more than drawing the picture. Their owner deletes them
+ * with custom_sprite_forget_pictures(). Without one, each file is deleted once published.
+ */
+/proc/custom_sprite_draw_recipes(list/recipes, datum/callback/publish, name)
+	. = list()
+	var/static/drawn = 0
+	var/kept = !!name
+	if(!kept)
+		name = "picture[++drawn]"
+	for(var/view, recipe in recipes)
+		var/result = rustg_iconforge_generate(CUSTOM_SPRITE_PICTURE_DIR, "[name]_[view]", "{\"[view]\":[recipe]}", FALSE, FALSE, TRUE)
+		var/list/output = findtext(result, "{", 1, 2) ? json_decode(result) : null
+		var/list/sizes = output?["sizes"]
+		if(length(sizes) != 1)
+			stack_trace("A custom sprite picture couldn't be drawn: [output?["error"] || result]")
+			continue
+		if(output["error"])
+			log_asset("Custom sprite picture: [output["error"]]")
+		var/path = custom_sprite_picture_path(name, view, sizes[1])
+		.[view] = publish ? publish.Invoke(path) : custom_sprite_picture_url(path)
+		if(!kept)
+			fdel(path)
+
+/// Where custom_sprite_draw_recipes() keeps the picture of one view drawn under a name; `size` is "[width]x[height]".
+/proc/custom_sprite_picture_path(name, view, size)
+	return "[CUSTOM_SPRITE_PICTURE_DIR][name]_[view]_[size].png"
+
+/// Deletes the pictures kept under a name, and under any name it begins.
+/proc/custom_sprite_forget_pictures(name)
+	var/prefix = "[name]_"
+	var/prefix_end = length(prefix) + 1
+	for(var/file in flist(CUSTOM_SPRITE_PICTURE_DIR))
+		if(findtext(file, prefix, 1, prefix_end))
+			fdel("[CUSTOM_SPRITE_PICTURE_DIR][file]")
+
+/// A drawn PNG as the data URL a window shows.
+/proc/custom_sprite_picture_url(path)
+	return "data:image/png;base64,[rustg_hash_file(RUSTG_HASH_BASE64, path)]"
+
+/// A drawn PNG as a native icon, for reading its pixels.
+/proc/custom_sprite_picture_icon(path)
+	return icon(file(path))
+
+#undef CUSTOM_SPRITE_PICTURE_DIR
+
 /**
  * Where a body's hair, and custom hair painted over it, are drawn from the tile, as list(x, z) pixels.
  * A hairstyle drawn above the head, such as Afro (Huge), lifts both, as the species' hair offset does.

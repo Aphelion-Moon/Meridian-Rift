@@ -18,10 +18,10 @@ export function SpeciesPage(props: SpeciesPageProps) {
   const { act, data } = useBackend<PreferencesMenuData>();
   const serverData = useServerPrefs();
   const currentSpecies = data.character_preferences.misc.species;
-  // Until the character is drawn again as a newly chosen species, it has no preview.
+  // The character preview every tab shows, until the character is drawn again as a newly chosen species.
   const selfPreview =
-    data.species_page_self?.species === currentSpecies
-      ? data.species_page_self
+    data.character_preview?.species === currentSpecies
+      ? data.character_preview
       : undefined;
 
   // The sprites come when the page opens, not with every preferences window.
@@ -34,12 +34,6 @@ export function SpeciesPage(props: SpeciesPageProps) {
     return () => props.onShown?.(false);
   }, []);
 
-  // The character's own preview, whenever the page opens or the character
-  // changes under it. The server only draws it again if it has changed.
-  useEffect(() => {
-    act('species_page_self');
-  }, [currentSpecies, data.active_slot]);
-
   if (!serverData) {
     return <LoadingScreen />;
   }
@@ -50,6 +44,7 @@ export function SpeciesPage(props: SpeciesPageProps) {
       families={serverData.species_families}
       currentSpecies={currentSpecies}
       selfPreview={selfPreview}
+      selfPending={!!data.character_preview_pending}
       novaStarLocked={!!data.nova_star_restrictions && !data.is_nova_star}
       onBack={props.closeSpecies}
       onChoose={createSetPreference(act, 'species')}

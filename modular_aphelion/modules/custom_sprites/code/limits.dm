@@ -37,6 +37,8 @@
 #define CUSTOM_SPRITE_WORK_STROKES (1<<5)
 /// Deferred, explicitly requested base-layer clipboard capture.
 #define CUSTOM_SPRITE_WORK_BASE_COPY (1<<6)
+/// Ready the views the window isn't showing that the last rebuild or refresh left for later.
+#define CUSTOM_SPRITE_WORK_OTHER_VIEWS (1<<7)
 
 /// Queue one bounded base-layer copy without adding work to ordinary paint.
 /datum/custom_sprite_editor/proc/request_base_copy_work()
@@ -268,6 +270,10 @@ SUBSYSTEM_DEF(custom_sprite_work)
 		own_pace = new
 	return own_pace
 
+/// Asks for the views the window isn't showing to be readied in the background.
+/datum/custom_sprite_editor/proc/request_other_views()
+	request_work(CUSTOM_SPRITE_WORK_OTHER_VIEWS)
+
 /// Asks for the waiting candidate's previews to be drawn in the background.
 /datum/custom_sprite_editor/proc/request_candidate()
 	request_work(CUSTOM_SPRITE_WORK_CANDIDATE)
@@ -329,6 +335,10 @@ SUBSYSTEM_DEF(custom_sprite_work)
 			render_preview(visible_direction)
 	if((work & CUSTOM_SPRITE_WORK_CANDIDATE) && resources_ready && candidate && isnull(candidate["previews"]))
 		render_candidate()
+	// After a candidate, whose drawing changes the look again. A refresh on its way would draw a newer look, so the
+	// old one's other views wait for it.
+	if((work & CUSTOM_SPRITE_WORK_OTHER_VIEWS) && resources_ready && !preview_timer)
+		draw_waiting_views()
 	if((work & CUSTOM_SPRITE_WORK_BASE_COPY) && !finish_base_copy())
 		pending_work |= CUSTOM_SPRITE_WORK_BASE_COPY
 		return FALSE

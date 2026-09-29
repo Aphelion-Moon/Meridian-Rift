@@ -1,3 +1,4 @@
+import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
 import { Suspense, useEffect, useState } from 'react';
 import { exhaustiveCheck } from 'tgui-core/exhaustive';
 import { fetchRetry } from 'tgui-core/http';
@@ -8,6 +9,7 @@ import { Window } from '../../layouts';
 import { logger } from '../../logging';
 import { LoadingScreen } from '../common/LoadingScreen';
 import { CharacterPreferenceWindow } from './CharacterPreferences';
+import { previewTurnAtom } from './CharacterPreferences/CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import { GamePreferenceWindow } from './GamePreferences';
 import {
   GamePreferencesSelectedPage,
@@ -31,6 +33,11 @@ export function PreferencesMenu(props) {
   // NOVA EDIT ADDITION START
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
   const [speciesShown, setSpeciesShown] = useState(false); // APHELION EDIT ADDITION
+  // APHELION EDIT ADDITION START - Drawn character preview: tgui keeps a closed window's page for the next, so the
+  // character is turned back to face south as the window opens, as the game's preview was.
+  const setPreviewTurn = useSetAtom(previewTurnAtom);
+  useEffect(() => setPreviewTurn(0), []);
+  // APHELION EDIT ADDITION END
 
   // APHELION EDIT CHANGE START - Species page. ORIGINAL:
   // const height = augmentsTab !== null

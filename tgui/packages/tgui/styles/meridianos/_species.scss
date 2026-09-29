@@ -894,6 +894,16 @@
     animation: species-specimen-sweep 760ms ease-out both;
   }
 
+  // A newer drawing of the character on its way, shown only once it takes a moment.
+  &__drawing {
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--species-recessed) 45%, transparent);
+    animation: species-drawing-in 160ms ease-out 150ms both;
+  }
+
   &__glass {
     inset: 0;
     z-index: 4;
@@ -970,6 +980,16 @@
     opacity: 1;
     transform: none;
     filter: none;
+  }
+}
+
+@keyframes species-drawing-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
@@ -1814,7 +1834,7 @@
 }
 
 @media (forced-colors: active) {
-  .SpecimenViewer__chamber > span:not(.SpecimenViewer__figure) {
+  .SpecimenViewer__chamber > span:not(.SpecimenViewer__figure):not(.SpecimenViewer__drawing) {
     display: none;
   }
 }

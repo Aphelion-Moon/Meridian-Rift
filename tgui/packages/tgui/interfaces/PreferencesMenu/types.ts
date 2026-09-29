@@ -104,10 +104,13 @@ export type SpeciesFamily = {
   icon: string;
 };
 
-/** The character's own preview mob, facing each way, drawn side by side in one image. */
-export type SpeciesSelfPreview = {
-  /** The species it was drawn as. */
-  species: string;
+/** The character preview every tab shows: the preview mob, facing each way, drawn side by side in one image. */
+export type CharacterPreviewDrawing = {
+  /** Numbers the drawing; any change to it comes as a new one. */
+  id: number;
+  /** The species it was drawn as, or null for a silicon job's preview. */
+  species: string | null;
+  /** The drawing, as a PNG data URL. */
   image: string;
   /** One frame's size in pixels; every facing is the same size. */
   width: number;
@@ -120,6 +123,14 @@ export type SpeciesSelfPreview = {
   y: number;
   /** Each facing's left edge in the image, in pixels. */
   frames: Record<'south' | 'west' | 'north' | 'east', number>;
+  /**
+   * Rows a height filter moves, which the drawing leaves out: runs of the
+   * tile's columns as [first frame row, rows, first source row], counting rows
+   * from the frame's top. A source row of -1 leaves the run empty.
+   */
+  rows?: [number, number, number][];
+  /** The mob's transform (body size) about its tile's centre, y upwards: [a, b, c, d, e, f]. */
+  transform?: [number, number, number, number, number, number];
 };
 
 // APHELION EDIT ADDITION END
@@ -294,7 +305,7 @@ export type CharacterPreferencesData = {
 };
 
 export type PreferencesMenuData = {
-  character_preview_view: string;
+  // character_preview_view: string; // APHELION EDIT REMOVAL - Drawn character preview
   character_profiles: (string | null)[];
 
   character_preferences: CharacterPreferencesData;
@@ -316,8 +327,13 @@ export type PreferencesMenuData = {
   // APHELION EDIT ADDITION START
   allow_custom_sprite_editing?: BooleanLike;
   custom_marking_zones?: string[];
-  /** Species page: the character's own preview, once drawn and sent. */
-  species_page_self?: SpeciesSelfPreview;
+  /**
+   * The character preview every tab shows, once drawn. It comes in updates of
+   * its own, which the data keeps until the next.
+   */
+  character_preview?: CharacterPreviewDrawing;
+  /** A newer drawing of the character preview is on its way. */
+  character_preview_pending?: BooleanLike;
   // APHELION EDIT ADDITION END
   preview_options: string[];
   preview_selection: string;
@@ -388,7 +404,10 @@ export type ServerData = {
   species: Record<string, Species>;
   // NOVA EDIT ADDITION START
   species_families: SpeciesFamily[];
-  background_state: { choices: string[] };
+  // APHELION EDIT CHANGE START - Character preview backgrounds: each choice's tile as a data URL
+  // ORIGINAL: background_state: { choices: string[] };
+  background_state: { choices: string[]; tiles?: Record<string, string> };
+  // APHELION EDIT CHANGE END
   limbs_and_markings?: {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];

@@ -183,16 +183,13 @@
 /proc/custom_sprite_preview_width(mob/living/carbon/human/body)
 	return custom_sprite_taur_overlay(body) ? CUSTOM_SPRITE_TAUR_WIDTH : 32
 
-/// One view of a captured look as a data URL, published through the callback when one is given.
-/proc/custom_sprite_render_view(mutable_appearance/appearance, direction, width, datum/callback/publish, height = 32)
-	var/icon/rendered = custom_sprite_flat_icon(appearance, direction, width, height)
-	return publish ? publish.Invoke(rendered) : "data:image/png;base64,[icon2base64(rendered)]"
-
-/// Front, Back, Right and Left data URLs of a captured look, without flipping any view.
-/proc/custom_sprite_render_views(mutable_appearance/appearance, width, datum/callback/publish, height = 32)
-	. = list()
-	for(var/direction in GLOB.cardinals)
-		.["[direction]"] = custom_sprite_render_view(appearance, direction, width, publish, height)
+/**
+ * Front, Back, Right and Left data URLs of a captured look, without flipping any view, from one walk. Each
+ * picture's PNG goes through the callback when one is given, in GLOB.cardinals order, and is kept under `name`
+ * when one is given; see custom_sprite_draw_recipes().
+ */
+/proc/custom_sprite_render_views(mutable_appearance/appearance, width, datum/callback/publish, height = 32, name)
+	return custom_sprite_draw_recipes(custom_sprite_view_recipes(appearance, width, height), publish, name)
 
 /**
  * The rows a body's pictures need: taller while its hair drawing reaches above the head, and taller
@@ -246,20 +243,18 @@
 	var/message_error = FALSE
 	/// Pending redraw after the recipient's look changed while they decide.
 	var/refresh_timer
-	/// The view the recipient's window shows. Its pictures are drawn at once, the others once shown.
+	/// The view the recipient's window shows.
 	var/visible_direction = "2"
-	/// The recipient's look before the proposal, captured to flatten one view at a time.
-	var/mutable_appearance/before_appearance
-	/// The same body wearing the proposal, captured to flatten one view at a time.
-	var/mutable_appearance/after_appearance
-	/// Canvas width the pictures are flattened at.
+	/// What this mirror's pictures are kept under; see custom_sprite_draw_recipes().
+	var/picture_name
+	/// Canvas width the pictures are drawn at.
 	var/picture_width = 32
-	/// Canvas height the pictures are flattened at: taller when either look has tall hair.
+	/// Canvas height the pictures are drawn at: taller when either look has tall hair.
 	var/picture_height = 32
-	/// Direction -> TRUE for views whose pictures predate the last capture.
-	var/list/stale_views = list()
 
 /datum/custom_sprite_mirror/New(datum/custom_sprite_salon/session, mob/living/carbon/human/recipient, list/applied_packages, slot)
+	var/static/mirrors_made = 0
+	picture_name = "mirror[++mirrors_made]"
 	recipient_ckey = recipient.ckey
 	recipient_ref = WEAKREF(recipient)
 	if(!session)
@@ -288,40 +283,29 @@
 	session = null
 	SStgui.close_uis(src)
 	owner?.close_mirror()
+	custom_sprite_forget_pictures(picture_name)
 	return ..()
 
-/// Captures the recipient as they look now and the same body wearing the proposal, then draws the shown view. Other views keep their last pictures until shown.
+/// Captures the recipient as they look now and the same body wearing the proposal, and draws every view of both.
 /datum/custom_sprite_mirror/proc/render_proposal(mob/living/carbon/human/recipient)
 	var/list/worn = custom_sprite_worn_overlays(recipient)
 	var/mob/living/carbon/human/dummy/body = custom_sprite_salon_dummy(recipient)
-	before_appearance = custom_sprite_preview_appearance(body, worn)
+	var/mutable_appearance/before_appearance = custom_sprite_preview_appearance(body, worn)
 	var/before_height = custom_sprite_preview_height(body)
 	custom_sprite_apply_round_styles(body, session.proposal["packages"], session.recipient_emissives)
-	after_appearance = custom_sprite_preview_appearance(body, worn)
+	var/mutable_appearance/after_appearance = custom_sprite_preview_appearance(body, worn)
 	picture_width = custom_sprite_preview_width(body)
 	picture_height = max(before_height, custom_sprite_preview_height(body))
 	qdel(body)
-	before_urls ||= list()
-	after_urls ||= list()
-	for(var/direction in GLOB.custom_style_directions)
-		stale_views[direction] = TRUE
-	render_view(visible_direction)
-
-/// Flattens one view's before and after pictures when they predate the last capture. Returns TRUE when it drew them.
-/datum/custom_sprite_mirror/proc/render_view(direction)
-	if(!stale_views[direction] || !before_appearance)
-		return FALSE
-	before_urls[direction] = custom_sprite_render_view(before_appearance, text2num(direction), picture_width, null, picture_height)
-	after_urls[direction] = custom_sprite_render_view(after_appearance, text2num(direction), picture_width, null, picture_height)
-	stale_views -= direction
-	return TRUE
+	before_urls = custom_sprite_render_views(before_appearance, picture_width, null, picture_height, "[picture_name]_before")
+	after_urls = custom_sprite_render_views(after_appearance, picture_width, null, picture_height, "[picture_name]_after")
 
 /// Redraws both pictures shortly after the recipient's look changes, once for a burst of changes.
 /datum/custom_sprite_mirror/proc/schedule_refresh()
 	if(session && !refresh_timer)
 		refresh_timer = addtimer(CALLBACK(src, PROC_REF(refresh)), 1 SECONDS, TIMER_STOPPABLE)
 
-/// Recaptures both looks, redraws the shown view and sends the pictures to the open window.
+/// Recaptures both looks, redraws them and sends the pictures to the open window.
 /datum/custom_sprite_mirror/proc/refresh()
 	refresh_timer = null
 	var/mob/living/carbon/human/recipient = recipient()
@@ -391,11 +375,7 @@
 			if(!session || !(direction in GLOB.custom_style_directions) || direction == visible_direction)
 				return FALSE
 			visible_direction = direction
-			if(!render_view(direction))
-				return TRUE
-			// The pictures are static data, and the full update carries the new view with them.
-			update_static_data(ui.user, ui, always_instant = TRUE)
-			return FALSE
+			return TRUE
 		if("accept", "acceptPermanent")
 			if(session && istext(params["token"]) && params["token"] == token)
 				session.accept(ui.user, token, save_permanently = action == "acceptPermanent")

@@ -233,12 +233,13 @@
 	editor.ui_act("saveDraft", list(), ui, null)
 	TEST_ASSERT_EQUAL(preferences.commits, 2, "A changed draft must be saved again.")
 
-/// Four species, every view painted and flattened twice: the slowest custom sprite test.
+/// Four species, every view painted and drawn twice: the slowest custom sprite test.
 /datum/unit_test/custom_sprite_hardening/composed_previews
 	priority = TEST_LONGER
 
-/// Composed previews show exactly what flattening the painted body shows, for bodies with parts, wings, tails and translucent paint.
+/// Composed previews show exactly what drawing the painted body shows, for bodies with parts, wings, tails and translucent paint.
 /datum/unit_test/custom_sprite_hardening/composed_previews/Run()
+	var/datum/callback/to_icon = CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(custom_sprite_picture_icon))
 	for(var/species in list(SPECIES_HUMAN, SPECIES_LIZARD, SPECIES_MOTH, SPECIES_SLIMESTART))
 		var/list/opened = whole_body_editor(species)
 		var/datum/custom_sprite_editor/markings/hardening_test/editor = opened[1]
@@ -247,15 +248,20 @@
 		editor.refresh_preview(push = FALSE)
 		TEST_ASSERT(editor.preview_composed, "A [species] body's previews must be composed.")
 		var/mutable_appearance/painted = editor.capture_region_previews(editor.region_results())
+		var/list/composed_recipes = list()
 		for(var/direction in GLOB.custom_style_directions)
-			var/icon/expected = custom_sprite_flat_icon(painted, text2num(direction))
-			var/icon/composed = editor.composed_view(direction)
+			composed_recipes[direction] = editor.composed_recipe(direction)
+		var/list/expected_views = custom_sprite_draw_recipes(custom_sprite_view_recipes(painted), to_icon)
+		var/list/composed_views = custom_sprite_draw_recipes(composed_recipes, to_icon)
+		for(var/direction in GLOB.custom_style_directions)
+			var/icon/expected = expected_views[direction]
+			var/icon/composed = composed_views[direction]
 			var/mismatch
 			for(var/y in 1 to 32)
 				for(var/x in 1 to 32)
 					if(!mismatch && !same_pixel(expected.GetPixel(x, y), composed.GetPixel(x, y)))
 						mismatch = "[x],[y]: [expected.GetPixel(x, y)] vs [composed.GetPixel(x, y)]"
-			TEST_ASSERT(!mismatch, "A [species] body's composed [GLOB.custom_style_direction_labels[direction]] preview must match the flattened body, first difference at [mismatch].")
+			TEST_ASSERT(!mismatch, "A [species] body's composed [GLOB.custom_style_direction_labels[direction]] preview must match the drawn body, first difference at [mismatch].")
 
 /// Character setup builds at most one new editor per spacing; an open that comes sooner waits, then happens by itself.
 /datum/unit_test/custom_sprite_hardening/open_spacing/Run()
@@ -455,7 +461,7 @@
 	/// Pictures published so far.
 	var/published = 0
 
-/datum/custom_sprite_editor/hardening_test/publishing/publish_icon(icon/rendered)
+/datum/custom_sprite_editor/hardening_test/publishing/publish_picture(path)
 	published++
 	return ..()
 
@@ -470,6 +476,8 @@
 	var/list/drawing = list("version" = 1, "palette" = list("#123456"), "tint" = null, "dirs" = list("2" = "f1[repeat_string(1023, "0")]"), "emissive" = custom_sprite_emissive_settings(FALSE))
 	preferences.custom_style_previous = list("hair" = custom_style_package("hair", null, drawing, editor.workspace.hair_context.Copy()))
 	editor.update_restorable()
+	// Opening leaves its other views to the next fire; that fire comes first.
+	editor.run_deferred_work()
 	var/published = editor.published
 	TEST_ASSERT(editor.ui_act("restorePrevious", list(), ui, null), "Restoring must show the card at once.")
 	TEST_ASSERT(editor.candidate && isnull(editor.candidate["previews"]), "The card is recorded before its previews are drawn.")

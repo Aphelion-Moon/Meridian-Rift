@@ -131,11 +131,46 @@ describe('SpeciesBrowser', () => {
     ).not.toBeNull();
   });
 
+  it('shows a loader over the character while a newer drawing is on its way', () => {
+    const selfPreview = {
+      id: 1,
+      species: 'human',
+      image: 'data:image/png;base64,32x32',
+      width: 32,
+      height: 32,
+      x: 0,
+      y: 0,
+      frames: { north: 0, south: 32, east: 64, west: 96 },
+    };
+    const loader = (view: ReturnType<typeof render>) =>
+      view.container.querySelector(
+        '.SpecimenViewer__drawing .DiagnosticLoader',
+      );
+
+    const settled = renderBrowser({ selfPreview });
+    expect(loader(settled.view)).toBeNull();
+    settled.view.unmount();
+
+    const { view, tile } = renderBrowser({ selfPreview, selfPending: true });
+    expect(loader(view)).not.toBeNull();
+    // The loader alone says it: no words on screen, only for screen readers.
+    expect(loader(view)?.querySelector('.DiagnosticLoader__label')).toBeNull();
+    expect(screen.getByRole('progressbar', { name: /^Drawing / })).toBeTruthy();
+    // The character keeps showing under it until the new drawing arrives.
+    expect(
+      view.container.querySelector('.SpeciesSprite__frame'),
+    ).not.toBeNull();
+    // Other species aren't being drawn.
+    fireEvent.click(tile('lizard') as Element);
+    expect(loader(view)).toBeNull();
+  });
+
   it('shows the character itself for its own species, and sprites for others', () => {
     const { view, tile } = renderBrowser({
       selfPreview: {
+        id: 1,
         species: 'human',
-        image: 'species_self_test_32x32.png',
+        image: 'data:image/png;base64,32x32',
         width: 32,
         height: 32,
         x: 0,
@@ -150,11 +185,10 @@ describe('SpeciesBrowser', () => {
 
     const frame = figure().querySelector(
       '.SpeciesSprite__frame',
-    ) as HTMLElement;
-    expect(frame.style.backgroundImage).toContain(
-      'species_self_test_32x32.png',
-    );
-    expect(frame.style.backgroundPosition).toStartWith('-32px');
+    ) as HTMLCanvasElement;
+    // The character, drawn from the preview onto its own canvas.
+    expect(frame.tagName).toBe('CANVAS');
+    expect([frame.width, frame.height]).toEqual([32, 32]);
     expect(screen.getByRole('img', { name: /your character/ })).toBeTruthy();
     // The character is shown as its preview shows it, so there is no body toggle.
     expect(bodyButton()).toBeNull();

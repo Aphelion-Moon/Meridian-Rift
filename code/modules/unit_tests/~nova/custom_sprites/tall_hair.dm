@@ -136,8 +136,8 @@
 			tallest = max(tallest, drawn.Height())
 	TEST_ASSERT_EQUAL(tallest, 64, "The dummy should reach as far up as its maps, so the rows they lift aren't cut off")
 
-/// The character setup preview gets its larger canvas for a body taller than average, and for hair lifted or painted above the head.
-/datum/unit_test/custom_sprite_tall_preview_canvas/Run()
+/// Character setup's drawn preview reaches as far up as the character does: a body taller than average, and hair lifted or painted above the head.
+/datum/unit_test/custom_sprite_tall_preview_drawing/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/preference/height = GLOB.preference_entries[/datum/preference/choiced/mob_height]
@@ -146,18 +146,18 @@
 	preferences.write_preference(hairstyle, "Bald")
 	var/atom/movable/screen/map_view/char_preview/view = allocate(/atom/movable/screen/map_view/char_preview, null, null, preferences)
 	view.update_body()
-	TEST_ASSERT_EQUAL(view.last_canvas_size, 0, "An average body should keep the one-tile canvas")
+	TEST_ASSERT_EQUAL(character_preview_walk(view.body)["height"], 32, "An average bald body should fit its own tile")
 	preferences.write_preference(height, "Tall")
 	view.update_body()
-	TEST_ASSERT_EQUAL(view.last_canvas_size, 1, "A tall body should get the larger canvas")
+	TEST_ASSERT(character_preview_walk(view.body)["height"] > 32, "A tall body's drawing should reach above its tile")
 	preferences.write_preference(height, "Average")
 	preferences.write_preference(hairstyle, "Afro (Huge)")
 	view.update_body()
-	TEST_ASSERT_EQUAL(view.last_canvas_size, 1, "A hairstyle drawn above the head should get the larger canvas")
+	TEST_ASSERT(character_preview_walk(view.body)["height"] > 32, "A hairstyle drawn above the head should reach above the tile in the drawing")
 	preferences.write_preference(hairstyle, CUSTOM_SPRITE_TALL_HAIRSTYLE)
 	preferences.custom_hair = custom_sprite_tall_hair_test_drawing(16, 2)
 	view.update_body()
-	TEST_ASSERT_EQUAL(view.last_canvas_size, 1, "Hair painted above the head should get the larger canvas")
+	TEST_ASSERT(character_preview_walk(view.body)["height"] > 32, "Hair painted above the head should reach above the tile in the drawing")
 
 /// A 32 by 32 hair drawing painted in every view, once in its top row and once in its bottom row.
 /proc/custom_sprite_tall_hair_test_short_drawing()

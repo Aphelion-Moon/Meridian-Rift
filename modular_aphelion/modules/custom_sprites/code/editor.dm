@@ -107,8 +107,14 @@
 	var/color_mode = "literal"
 	/// Chosen multiplier for Blend with color; white has no effect.
 	var/custom_tint = "#ffffff"
-	/// Direction -> native guide icon used by the eyedropper.
+	/// Direction -> native guide icon for the eyedropper, drawn the first time it's wanted; see guide_icon().
 	var/list/guide_icons = list()
+	/// Direction -> the iconforge recipe each guide picture was drawn from.
+	var/list/guide_recipes
+	/// The guide look the guide pictures were drawn from. All four views are drawn together.
+	var/mutable_appearance/guides_drawn_for
+	/// What this editor's pictures are kept under; see custom_sprite_draw_recipes().
+	var/picture_name
 	/// Direction -> private guide image sent to the editor.
 	var/list/guide_urls = list()
 	/// Direction -> private preview image sent to the editor.
@@ -145,9 +151,9 @@
 	var/can_restore_previous = FALSE
 	/// Guides, the draw mask or the region map changed since the window last received static data.
 	var/static_dirty = FALSE
-	/// The view the window shows. Guides and previews are drawn for it at once, and for the others once shown.
+	/// The view the window shows.
 	var/visible_direction = "2"
-	/// The guide's look as the last rebuild captured it, flattened one view at a time.
+	/// The guide's look as the last rebuild captured it.
 	var/mutable_appearance/guide_appearance
 	/// Hair and parts drawn over the body, captured with the guide, lowest layer first. Paint under them is hidden in game.
 	var/list/cover_looks
@@ -157,18 +163,24 @@
 	var/cover_key
 	/// Where the hair guide's window sits, list(x, z) pixels from the tile: where custom hair paint is drawn, lifted with its hairstyle.
 	var/list/guide_lift
-	/// Direction -> TRUE for views whose guide predates the last rebuild.
+	/// Direction -> TRUE for views whose guide, or its cover rows, predate the last rebuild.
 	var/list/stale_guides = list()
-	/// The previewed look for preview_hash, flattened one view at a time.
+	/// The previewed look for preview_hash.
 	var/mutable_appearance/preview_appearance
-	/// Canvas width previews are flattened at.
+	/// Canvas width previews are drawn at.
 	var/preview_width = 32
-	/// Canvas height previews are flattened at: taller for the tall hair canvas.
+	/// Canvas height previews are drawn at: taller for the tall hair canvas.
 	var/preview_height = 32
 	/// Direction -> TRUE for views whose preview predates preview_hash.
 	var/list/stale_previews = list()
+	/// Direction -> the iconforge recipe of each view of preview_appearance, from one walk.
+	var/list/preview_recipes
+	/// The preview look preview_recipes were walked from.
+	var/mutable_appearance/preview_recipes_for
 
 /datum/custom_sprite_editor/New(datum/preferences/preferences, target)
+	var/static/editors_made = 0
+	picture_name = "editor[++editors_made]"
 	src.preferences = preferences
 	src.target = target
 	if(custom_style_hair_target(target))
@@ -195,6 +207,7 @@
 	preferences = null
 	guide_icons = null
 	candidate = null
+	custom_sprite_forget_pictures(picture_name)
 	return ..()
 
 /// Context hook: the package the draft starts from.
@@ -477,19 +490,24 @@
 	base_copy_colors = null
 	base_copy_token = null
 	guide_icons = list()
+	guide_recipes = null
+	guides_drawn_for = null
 	guide_urls = list()
 	preview_urls = list()
 	preview_hash = null
 	guide_appearance = null
 	preview_appearance = null
+	preview_recipes = null
+	preview_recipes_for = null
 	cover_looks = null
 	cover_key = null
 	cover_rows = list()
 	stale_guides = list()
 	stale_previews = list()
 	candidate_cache = list()
+	custom_sprite_forget_pictures(picture_name)
 
-/// Captures the guide's look from the prepared preview body and draws the visible view. Other views are drawn when shown.
+/// Captures the guide's look from the prepared preview body and draws its pictures.
 /datum/custom_sprite_editor/proc/capture_guide()
 	guide_appearance = new(render_appearance(preview_body))
 	var/list/worn = render_overlays()
@@ -499,32 +517,84 @@
 	guide_lift = target == "hair" ? custom_sprite_hair_lift(preview_body) : null
 	render_guide(visible_direction)
 
-/// Draws one view of the guide the last rebuild captured. Guides are static data, so the window needs a full update afterwards.
+/**
+ * Readies one view of the guide the last rebuild captured: every view's picture, drawn together from one walk if
+ * they predate the capture, and this view's cover rows. The other views' cover rows follow in the next fire.
+ * Guides are static data, so the window needs a full update afterwards.
+ */
 /datum/custom_sprite_editor/proc/render_guide(direction)
 	if(!guide_appearance)
 		return FALSE
-	var/list/lift = guide_lift || list(0, 0)
-	// Flattened in its own window, so a hairstyle reaching above the tile shows whole.
-	var/icon/guide = custom_sprite_flat_icon(guide_appearance, text2num(direction), workspace.width, workspace.height, lift[1], lift[2])
-	guide_icons[direction] = guide
-	guide_urls[direction] = publish_icon(guide)
+	if(guides_drawn_for != guide_appearance)
+		var/list/lift = guide_lift || list(0, 0)
+		// Drawn in its own window, so a hairstyle reaching above the tile shows whole.
+		guide_recipes = custom_sprite_view_recipes(guide_appearance, workspace.width, workspace.height, lift[1], lift[2])
+		guide_urls = custom_sprite_draw_recipes(guide_recipes, CALLBACK(src, PROC_REF(publish_picture)), "[picture_name]_guide")
+		guide_icons = list()
+		guides_drawn_for = guide_appearance
 	if(cover_looks)
 		cover_rows[direction] = cover_rows_for(direction)
-	stale_guides -= direction
+		stale_guides -= direction
+		if(direction == visible_direction && length(stale_guides))
+			request_other_views()
+	else
+		stale_guides = list()
 	static_dirty = TRUE
 	return TRUE
+
+/// One view's guide as a native icon, for the eyedropper, read from its picture the first time it's wanted.
+/datum/custom_sprite_editor/proc/guide_icon(direction)
+	if(stale_guides[direction])
+		render_guide(direction)
+	if(guide_icons[direction])
+		return guide_icons[direction]
+	var/path = custom_sprite_picture_path("[picture_name]_guide", direction, "[workspace.width]x[workspace.height]")
+	if(fexists(path))
+		guide_icons[direction] = custom_sprite_picture_icon(path)
+	else if(guide_recipes?[direction])
+		guide_icons[direction] = custom_sprite_draw_recipes(list("[direction]" = guide_recipes[direction]), CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(custom_sprite_picture_icon)))[direction]
+	return guide_icons[direction]
 
 /// Context hook: one view's cover rows, read inside the view's own box before any lock so an unlocked view is right at once.
 /datum/custom_sprite_editor/proc/cover_rows_for(direction)
 	return custom_sprite_cover_rows(cover_looks, direction, workspace.width, -BODYPARTS_LAYER, cover_key, unlocked_bounds ? unlocked_bounds[direction] : null)
 
-/// Draws one view of the preview captured for preview_hash.
+/**
+ * Draws one view of the preview captured for preview_hash, walking the look once for every view. The others it
+ * leaves stale are drawn from the same walk in the next fire, so the action pays for one picture.
+ */
 /datum/custom_sprite_editor/proc/render_preview(direction)
 	if(!preview_appearance)
 		return FALSE
-	preview_urls[direction] = custom_sprite_render_view(preview_appearance, text2num(direction), preview_width, CALLBACK(src, PROC_REF(publish_icon)), preview_height)
-	stale_previews -= direction
+	if(preview_recipes_for != preview_appearance)
+		preview_recipes = custom_sprite_view_recipes(preview_appearance, preview_width, preview_height)
+		preview_recipes_for = preview_appearance
+	draw_previews(list(direction))
+	if(length(stale_previews))
+		request_other_views()
 	return TRUE
+
+/// Draws these views of the preview from its walk.
+/datum/custom_sprite_editor/proc/draw_previews(list/views)
+	var/list/recipes = list()
+	for(var/view in views)
+		recipes[view] = preview_recipes[view]
+	for(var/view, url in custom_sprite_draw_recipes(recipes, CALLBACK(src, PROC_REF(publish_picture)), "[picture_name]_preview"))
+		preview_urls[view] = url
+		stale_previews -= view
+
+/// Deferred work: every view the window may turn to next that isn't ready, its guide's cover rows and its preview, so turning draws nothing.
+/datum/custom_sprite_editor/proc/draw_waiting_views()
+	for(var/view in GLOB.custom_sprite_view_facings)
+		if(stale_guides[view])
+			render_guide(view)
+	if(!length(stale_previews) || !preview_appearance || preview_recipes_for != preview_appearance)
+		return
+	var/list/views = list()
+	for(var/view in GLOB.custom_sprite_view_facings)
+		if(stale_previews[view])
+			views += view
+	draw_previews(views)
 
 /// The markings palette: the body's mutant colors, then its native marking shades tinted by each, up to 15 colors.
 /datum/custom_sprite_editor/proc/sample_marking_palette()
@@ -559,10 +629,10 @@
 			return custom_sprite_sample_palette(marking.icon, "[marking.icon_state]_[digi][limb.body_zone][gender_suffix]")
 	return custom_sprite_sample_palette(null, null)
 
-/// A rendered icon as the data URL the window shows.
-/datum/custom_sprite_editor/proc/publish_icon(icon/rendered)
+/// A drawn picture's PNG as the data URL the window shows.
+/datum/custom_sprite_editor/proc/publish_picture(path)
 	// Small, private previews live with this editor, without global asset/CDN registrations.
-	return "data:image/png;base64,[icon2base64(rendered)]"
+	return custom_sprite_picture_url(path)
 
 /// Whether this user may act on this editor right now: its owner, on the slot it opened for, with editing enabled.
 /datum/custom_sprite_editor/proc/can_edit(mob/user)
@@ -907,9 +977,7 @@
 		if(channels[4])
 			break
 	if(!channels[4])
-		if(stale_guides[direction])
-			render_guide(direction)
-		var/icon/guide = guide_icons[direction]
+		var/icon/guide = guide_icon(direction)
 		var/pixel = guide?.GetPixel(x + 1, workspace.height - y)
 		if(!pixel)
 			return FALSE
@@ -1154,7 +1222,7 @@
 		return
 	adopt_preview(capture_preview(draft, workspace.hair_context), new_hash, push)
 
-/// Takes a newly captured preview look: the visible view is drawn now, the others when shown.
+/// Takes a newly captured preview look: the visible view is drawn now, the others in the next fire.
 /datum/custom_sprite_editor/proc/adopt_preview(mutable_appearance/look, hash, push)
 	preview_appearance = look
 	preview_width = custom_sprite_preview_width(preview_body)
@@ -1168,7 +1236,7 @@
 		push()
 
 /**
- * Puts a drawing on the preview body and captures how it looks, for flattening one view at a time.
+ * Puts a drawing on the preview body and captures how it looks, to draw.
  *
  * The preview body keeps the given drawing afterwards. Other base looks are restored to the
  * draft before returning, so resources stay consistent with the guides.
@@ -1199,7 +1267,7 @@
 	var/mutable_appearance/look = capture_preview(drawing, hair)
 	// As tall as the candidate's own hair reaches, which may be a lifted hairstyle this draft doesn't wear.
 	var/height = max(workspace.height, custom_sprite_preview_height(preview_body, target == "hair" ? hair?["style"] : null))
-	return custom_sprite_render_views(look, custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_icon)), height)
+	return custom_sprite_render_views(look, custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_picture)), height, "[picture_name]_candidate")
 
 /// Closing keeps the unsaved draft and its history; only saving writes. Preview resources are rebuilt on reopening.
 /datum/custom_sprite_editor/ui_close(mob/user)

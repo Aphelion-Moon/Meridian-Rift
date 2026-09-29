@@ -3,6 +3,7 @@
 
 @include meta.load-css('../interfaces/PreferencesMenu.scss');
 @include meta.load-css('./species.scss');
+@include meta.load-css('./character_preview.scss');
 
 .PreferencesMenu {
   &__LoadoutCategoryTabs > .Tab {

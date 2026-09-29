@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'; // NOVA EDIT CHANGE - ORIGINAL: import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'; // APHELION EDIT CHANGE - ORIGINAL: import { useState, useMemo } from 'react'; // NOVA EDIT CHANGE - ORIGINAL: import { useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Dropdown, Stack } from 'tgui-core/components'; // NOVA EDIT CHANGE - ORIGINAL: import { Button, Stack } from 'tgui-core/components';
 import { exhaustiveCheck } from 'tgui-core/exhaustive';
@@ -121,6 +121,13 @@ export function CharacterPreferenceWindow(props: {
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
   */ // APHELION EDIT REMOVAL END
   const [currentPage, setCurrentPageRaw] = useState(Page.Main);
+  // APHELION EDIT ADDITION START - The character preview every tab shows: asked for once the window opens, then sent
+  // whenever the character changes, unless the window already holds it.
+  const heldPreview = data.character_preview?.id;
+  useEffect(() => {
+    act('character_preview', { have: heldPreview });
+  }, []);
+  // APHELION EDIT ADDITION END
   const setCurrentPage = (page: Page) => {
     if (page !== Page.Limbs) props.onAugmentsTabChange?.(null);
     else props.onAugmentsTabChange?.(AugmentsTab.Markings);

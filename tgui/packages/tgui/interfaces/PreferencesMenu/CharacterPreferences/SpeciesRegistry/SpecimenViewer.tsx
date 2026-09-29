@@ -9,7 +9,8 @@ import {
 import { Button, Stack } from 'tgui-core/components';
 
 import { DiagnosticAcquisition } from '../../../common/DiagnosticAcquisition';
-import type { SpeciesSelfPreview } from '../../types';
+import { DiagnosticLoader } from '../../../common/DiagnosticLoader';
+import type { CharacterPreviewDrawing } from '../../types';
 import { SPRITE_DIRS } from './constants';
 import { PreviewFrame, SpeciesSprite } from './SpeciesSprite';
 
@@ -23,7 +24,9 @@ type Props = {
   icon: string;
   name: string;
   /** The character's own preview mob, shown instead of the species sprite. */
-  self?: SpeciesSelfPreview;
+  self?: CharacterPreviewDrawing;
+  /** A newer drawing of the character is on its way. */
+  drawing?: boolean;
   /** Called when the specimen is first turned to its body, to fetch those sprites. */
   onBody?: () => void;
 };
@@ -59,7 +62,7 @@ type ChamberStyle = CSSProperties & { '--diagnostic-loader-progress': number };
  * character's own species shows the character itself, as its preview shows it.
  */
 export function SpecimenViewer(props: Props) {
-  const { icon, name, self, onBody } = props;
+  const { icon, name, self, drawing, onBody } = props;
   const [turn, setTurn] = useState(0);
   const [bare, setBare] = useState(false);
   const [spinning, setSpinning] = useState(false);
@@ -71,7 +74,8 @@ export function SpecimenViewer(props: Props) {
 
   const dir = SPRITE_DIRS[((turn % 4) + 4) % 4];
   const rotate = (steps: number) => setTurn((value) => value + steps);
-  const specimen = self ? self.image : icon;
+  // A new drawing of the character replaces the old one in place.
+  const specimen = self ? `self:${self.species}` : icon;
 
   useEffect(() => {
     if (!spinning || !watched) {
@@ -148,6 +152,15 @@ export function SpecimenViewer(props: Props) {
           )}
         </span>
         <span key={`sweep-${specimen}`} className="SpecimenViewer__sweep" />
+        {drawing && (
+          <span className="SpecimenViewer__drawing">
+            <DiagnosticLoader
+              size="compact"
+              label={null}
+              ariaLabel={`Drawing ${name}`}
+            />
+          </span>
+        )}
         <span className="SpecimenViewer__glass" />
         <span className="SpecimenViewer__scale" />
         <span className="SpecimenViewer__corner SpecimenViewer__corner--nw" />

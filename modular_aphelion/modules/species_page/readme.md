@@ -34,14 +34,11 @@ its height from species to species, so browsing never moves the page under the p
   materials, and Classic follows stock tgui. The chamber's motion pauses while the window is hidden
   or unfocused.
 - **The character itself.** While the chamber shows the character's own species, it shows the
-  character: the preferences preview mob, as the preview shows it, drawn facing each way when the page
-  opens, and only if it has changed since it was last drawn. One `get_flat_uni_icon()` walk serves all
-  four facings (`uni_icon_facings_json()`), iconforge draws the strip off the main thread, the same
-  look is drawn once however many share it, and each drawing goes to a client once. A drawing is kept
-  only while some character shows it, so there is at most one per character that opened the page. The
-  walk grows its canvas to fit parts that reach past the mob's tile, like big ears and wings, and the
-  page stands the mob's own tile where a species sprite stands, scaled down only as far as those
-  parts need.
+  character: the drawing of the preferences preview mob that every tab of character setup shows (see
+  the character preview module), with its height and body size, standing where a species sprite
+  stands, its own tile on the chamber floor, scaled down only as far as parts that reach past that
+  tile, like big ears and wings, need. It never shows the drawing for a species that has since
+  replaced it, and the chamber's loader stays up while a newer drawing is on its way.
 - **Sprites cost nothing until they are wanted.** Neither sheet draws anything during init: both are
   drawn in one pass when either is first realized, by `SSasset_loading` in the lobby or by the first
   player to open the page, with one walk per species and outfit rather than one per facing. The
@@ -55,8 +52,8 @@ Everything the page shows about species is static: the species preference's cons
 the species page middleware's families, both in the cached preferences JSON asset
 (`useServerPrefs()`). Only the character's species and Nova Star status come from `useBackend()`,
 choosing a species is the usual `set_preference` act, the sheets come from the middleware's
-`species_page_sprites` act, and the character's own preview from its `species_page_self` act and its
-ui data. Browsing, the family tabs, search and the holiday toggle are local UI state.
+`species_page_sprites` act, and the character's own preview is the character preview's drawing in
+the window's data. Browsing, the family tabs, search and the holiday toggle are local UI state.
 
 ### TG Proc/File Changes:
 
@@ -71,7 +68,8 @@ ui data. Browsing, the family tabs, search and the holiday toggle are local UI s
   each runtime icon out once instead of on every flatten, which was most of a flatten's cost, and takes
   `grow`: the canvas then fits every overlay, nested flattens placed where their own grown canvases
   really start, and the result's new `flat_x1`/`flat_y1`/`flat_width`/`flat_height` vars say where the
-  appearance sits in it. Without `grow` it flattens exactly as before.
+  appearance sits in it. Without `grow` it flattens exactly as before. `uni_icon_facings_json()` stamps
+  one walk with each facing, so one walk serves all four.
 - `tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx`: the window is 40px taller while the
   species page shows, for two whole rows of its roster under the chamber
 

@@ -38,6 +38,7 @@ export function SpeciesStage(props: { model: SpeciesBrowserModel }) {
             icon={entry.icon}
             name={entry.name}
             self={id === model.current ? model.selfPreview : undefined}
+            drawing={id === model.current && model.selfPending}
             onBody={model.loadBodySprites}
           />
         </div>

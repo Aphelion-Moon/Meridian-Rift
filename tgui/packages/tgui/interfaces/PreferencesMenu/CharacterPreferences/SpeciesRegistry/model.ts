@@ -1,7 +1,7 @@
 // THIS IS AN APHELION UI FILE
 import { useMemo, useRef, useState } from 'react';
 
-import type { SpeciesFamily, SpeciesSelfPreview } from '../../types';
+import type { CharacterPreviewDrawing, SpeciesFamily } from '../../types';
 import { MIN_QUERY_LENGTH, searchSpecies } from './search';
 import {
   ALL_FAMILIES,
@@ -39,7 +39,9 @@ export type SpeciesBrowserModel = {
   inspect: (id: string) => void;
   current: string;
   /** The character's own preview mob, shown for the current species once drawn. */
-  selfPreview?: SpeciesSelfPreview;
+  selfPreview?: CharacterPreviewDrawing;
+  /** A newer drawing of the character is on its way. */
+  selfPending: boolean;
   isLocked: (id: string) => boolean;
   choose: (id: string) => void;
   /** Asks for the sprites without uniform, the first time they are shown. */
@@ -53,7 +55,9 @@ export type SpeciesBrowserInput = {
   families: SpeciesFamily[];
   currentSpecies: string;
   /** The character's own preview mob, facing each way, once the server has drawn it. */
-  selfPreview?: SpeciesSelfPreview;
+  selfPreview?: CharacterPreviewDrawing;
+  /** A newer drawing of the character is on its way. */
+  selfPending?: boolean;
   /** Whether Nova Star restrictions lock this player out of starred species. */
   novaStarLocked: boolean;
   onBack: () => void;
@@ -139,6 +143,7 @@ export function useSpeciesBrowser(
     inspect: setInspected,
     current: currentSpecies,
     selfPreview: input.selfPreview,
+    selfPending: !!input.selfPending,
     isLocked,
     choose: (id: string) => {
       if (!isLocked(id)) {

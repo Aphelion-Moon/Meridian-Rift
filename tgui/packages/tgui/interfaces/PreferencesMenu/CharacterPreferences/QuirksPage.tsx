@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from 'tgui-core/components';
 import { createSearch } from 'tgui-core/string';
-import { CharacterPreview } from '../../common/CharacterPreview'; // NOVA EDIT ADDITION
+// import { CharacterPreview } from '../../common/CharacterPreview'; // NOVA EDIT ADDITION // APHELION EDIT REMOVAL - Drawn character preview
 
 import {
   type PreferencesMenuData,
@@ -497,6 +497,7 @@ function QuirkPage() {
         {/* NOVA EDIT ADDITION START */}
         <Stack vertical fill align="center">
           {/* Keep the CharacterPreview alive but "hidden", so that traits that affect appearance (e.g. Oversized) refresh rendering calculations immediately. */}
+          {/* APHELION EDIT REMOVAL START - Drawn character preview: the server draws every change while the window is open, so no page needs a map kept alive.
           <Stack.Item
             style={{
               position: 'absolute',
@@ -513,6 +514,7 @@ function QuirkPage() {
               width="1px"
             />
           </Stack.Item>
+          APHELION EDIT REMOVAL END */}
           <Icon name="exchange-alt" size={1.5} ml={2} mr={2} />
         </Stack>
         {/* NOVA EDIT ADDITION END */}

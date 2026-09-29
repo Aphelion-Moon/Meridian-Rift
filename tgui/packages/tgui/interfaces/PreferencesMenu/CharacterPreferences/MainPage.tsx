@@ -1,5 +1,6 @@
 import { sortBy } from 'es-toolkit';
 import { filter, map } from 'es-toolkit/compat';
+import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
 import { type ReactNode, useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { sendAct } from 'tgui/events/act';
@@ -16,7 +17,7 @@ import {
 import { exhaustiveCheck } from 'tgui-core/exhaustive'; // NOVA EDIT ADDITION
 import { classes } from 'tgui-core/react';
 // import { createSearch } from 'tgui-core/string'; // APHELION EDIT REMOVAL - shared icon picker
-import { CharacterPreview } from '../../common/CharacterPreview';
+// import { CharacterPreview } from '../../common/CharacterPreview'; // APHELION EDIT REMOVAL - Drawn character preview
 import { ChoicedSelection } from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
 import { PageButton } from '../components/PageButton'; // NOVA EDIT ADDITION
 import { RandomizationButton } from '../components/RandomizationButton';
@@ -35,6 +36,8 @@ import {
 } from '../types';
 import { useRandomToggleState } from '../useRandomToggleState';
 import { useServerPrefs } from '../useServerPrefs';
+import { CharacterPreview } from './CharacterPreview'; // APHELION EDIT ADDITION - Drawn character preview
+import { turnPreview } from './CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import { DeleteCharacterPopup } from './DeleteCharacterPopup';
 import { MultiNameInput, NameInput } from './names';
 import { VocalsInput, VoiceInput } from './vocals'; // NOVA EDIT ADDITION
@@ -533,6 +536,7 @@ type MainPageProps = {
 
 export function MainPage(props: MainPageProps) {
   const { act, data } = useBackend<PreferencesMenuData>();
+  const turn = useSetAtom(turnPreview); // APHELION EDIT ADDITION - Drawn character preview
 
   const [deleteCharacterPopupOpen, setDeleteCharacterPopupOpen] =
     useState(false);
@@ -682,7 +686,7 @@ export function MainPage(props: MainPageProps) {
                 handleOpenSpecies={props.openSpecies}
                 handleRotate={(value) => {
                   // NOVA EDIT CHANGE - Original: handleRotate={() => {
-                  act('rotate', { backwards: value }); // NOVA EDIT CHANGE - Original: act('rotate');
+                  turn(value); // APHELION EDIT CHANGE - The page turns the drawn preview. ORIGINAL: act('rotate', { backwards: value }); // NOVA EDIT CHANGE - Original: act('rotate');
                 }}
                 setGender={createSetPreference(act, 'gender')}
                 showGender={
@@ -705,7 +709,7 @@ export function MainPage(props: MainPageProps) {
             <Stack.Item grow>
               <CharacterPreview
                 height="100%"
-                id={data.character_preview_view}
+                // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
               />
             </Stack.Item>
 

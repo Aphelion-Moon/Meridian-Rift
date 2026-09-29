@@ -18,19 +18,6 @@
 	return result
 
 /**
- * Whether a character setup preview reaches above the one tile its smallest canvas shows: a body
- * taller than average, or hair lifted or painted above the head.
- */
-/proc/custom_sprite_preview_reaches_up(mob/living/carbon/human/body)
-	if(body.mob_height > HUMAN_HEIGHT_MEDIUM)
-		return TRUE
-	var/datum/sprite_accessory/hair/hairstyle = SSaccessories.hairstyles_list[body.hairstyle]
-	if(hairstyle?.y_offset > 0)
-		return TRUE
-	var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
-	return custom_sprite_height(head?.custom_hair) > 32
-
-/**
  * Character setup's dummy stretches as one piece, with height maps that only cover its own tile, so
  * anything drawn above the head (tall hair, lifted hairstyles, tall hats) would stay put as the head
  * moved and tear where the tile ends. Each map carries on 32 rows upward as its top row, moved up so

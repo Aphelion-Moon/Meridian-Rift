@@ -459,7 +459,7 @@
 	var/curstate = appearance.icon_state || defstate
 	// Filter out 'runtime' icons (server-generated RSC cache icons)
 	// Write the icon to the filesystem so it can be used by iconforge
-	if(!isfile(curicon) || !length(string_curicon))
+	if(curicon && (!isfile(curicon) || !length(string_curicon))) // APHELION EDIT CHANGE - An appearance with no icon of its own, like a container of overlays, has none to write out. ORIGINAL: if(!isfile(curicon) || !length(string_curicon))
 		/* // APHELION EDIT REMOVAL START - Runtime icons: each is written out once, below.
 		var/file_path_tmp = "tmp/uni_icon-tmp-[rand(1, 999)].dmi" // this filename is temporary.
 		fcopy(curicon, file_path_tmp)
@@ -476,13 +476,11 @@
 		var/runtime_icon_ref = isfile(curicon) ? REF(curicon) : null
 		var/file_path = runtime_icon_ref && runtime_icon_paths[runtime_icon_ref]
 		if(isnull(file_path) || !fexists(file_path))
-			var/file_path_tmp = "tmp/uni_icon-tmp-[rand(1, 999)].dmi" // this filename is temporary.
-			fcopy(curicon, file_path_tmp)
-			var/file_hash = rustg_hash_file(RUSTG_HASH_MD5, file_path_tmp)
-			// Use the hash as its new filename - this allows the uni_icon to be smart cached, because the filename will be consistent between runs if the content is the same
-			file_path = "tmp/uni_icon-[file_hash].dmi"
-			fcopy(file_path_tmp, file_path)
-			fdel(file_path_tmp) // delete the old one
+			// Named by a hash of the resource itself, so the same icon is the same file between runs, as the
+			// smart cache needs, and a new one is written with one file operation rather than four.
+			file_path = "tmp/uni_icon-[md5(fcopy_rsc(curicon))].dmi"
+			if(!fexists(file_path))
+				fcopy(curicon, file_path)
 			if(runtime_icon_ref)
 				runtime_icon_paths[runtime_icon_ref] = file_path
 		curicon = file(file_path)
@@ -676,3 +674,21 @@
 		return final_icon
 
 	#undef PROCESS_OVERLAYS_OR_UNDERLAYS
+
+// APHELION EDIT ADDITION START - One walk for every facing.
+/**
+ * Turns a flat icon walked with get_flat_uni_icon(target, UP) into its recipe for each facing, as iconforge entry
+ * JSON: facing name -> recipe.
+ *
+ * Nothing in the walk depends on the facing except which frame each directional state shows, so one walk with UP
+ * standing in for the facing, with each facing written in afterwards, gives exactly what a walk per facing does, for
+ * a quarter of the walking. No mob overlay faces UP of its own accord. A mob that something redraws when it turns has
+ * to be turned and walked once per facing instead.
+ */
+/proc/uni_icon_facings_json(datum/universal_icon/template, list/facings)
+	var/list/pieces = splittext(json_encode(template.to_list()), "\"dir\":[UP]")
+	var/list/recipes = list()
+	for (var/facing, dir in facings)
+		recipes[facing] = jointext(pieces, "\"dir\":[dir]")
+	return recipes
+// APHELION EDIT ADDITION END

@@ -1,17 +1,11 @@
-/// The species page's static data, its sprites when it asks for them, and the character's own preview.
+/// The species page's static data, and its sprites when it asks for them. The character's own preview is the character
+/// preview every tab shows; see /datum/preference_middleware/character_preview.
 /datum/preference_middleware/species_page
 	// The static data is the families, so that is what the page reads it as.
 	key = "species_families"
 	action_delegations = list(
 		"species_page_sprites" = PROC_REF(send_species_page_sprites),
-		"species_page_self" = PROC_REF(send_self_preview),
 	)
-	/// The preview mob's appearance when it was last drawn. Held, rather than its ref kept, so the ref can't be reused.
-	var/self_appearance
-	/// That drawing, as the page reads it: its file, frame size and each facing's offset. Null until drawn.
-	var/list/self_preview
-	/// Set while a drawing is in progress; a second request waits for it.
-	var/drawing_self = FALSE
 
 /// The families, in order, with the static preference data.
 /datum/preference_middleware/species_page/get_constant_data()
@@ -23,14 +17,6 @@
 			"icon" = initial(family_type.icon),
 		))
 	return families
-
-/// The character's own preview, once this client has its file.
-/datum/preference_middleware/species_page/get_ui_data(mob/user)
-	var/file_name = self_preview?["image"]
-	var/client/client = user.client
-	if (isnull(file_name) || isnull(client) || !client.sent_assets[file_name])
-		return list()
-	return list("species_page_self" = self_preview)
 
 /**
  * Sends a species page sheet to the preferences window, when the page opens rather than whenever

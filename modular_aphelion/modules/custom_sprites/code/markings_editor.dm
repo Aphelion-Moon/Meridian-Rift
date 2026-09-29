@@ -308,7 +308,7 @@
 
 /// All four views' data URLs of the preview body wearing these results, for import and restore previews.
 /datum/custom_sprite_editor/markings/proc/render_region_previews(list/results)
-	return custom_sprite_render_views(capture_region_previews(results), custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_icon)))
+	return custom_sprite_render_views(capture_region_previews(results), custom_sprite_preview_width(preview_body), CALLBACK(src, PROC_REF(publish_picture)), 32, "[picture_name]_candidate")
 
 /// Puts every region's drawing and base markings on a body, then redraws it once.
 /proc/custom_sprite_apply_region_results(mob/living/carbon/human/body, list/results, allow_emissives)

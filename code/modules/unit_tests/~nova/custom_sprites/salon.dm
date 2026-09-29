@@ -110,7 +110,7 @@
 	var/datum/custom_sprite_salon/test/session = new(scissors, artist, recipient, "hair", null)
 	TEST_ASSERT(!(custom_sprite_salon_session(artist.ckey, "hair", recipient.ckey) != session || session.editor?.context != "salon"), "A salon session must own the artist's retained draft for this recipient.")
 	TEST_ASSERT(session.propose(artist) == "Nothing has changed yet.", "Unchanged submissions must not be proposed.")
-	var/icon/guide = session.editor.guide_icons["2"]
+	var/icon/guide = session.editor.guide_icon("2")
 	var/body_pixels = 0
 	for(var/y in 1 to 14)
 		for(var/x in 1 to 32)
@@ -122,10 +122,7 @@
 	var/error = session.propose(artist)
 	TEST_ASSERT(!(error || session.state != "awaiting approval" || !session.mirror || !GLOB.custom_sprite_salon_prompts[recipient.ckey]), "A changed draft must open the recipient's mirror: [error]")
 	var/datum/custom_sprite_mirror/mirror = session.mirror
-	TEST_ASSERT(!(length(mirror.before_urls) != 1 || length(mirror.after_urls) != 1 || mirror.before_urls["2"] == mirror.after_urls["2"]), "The mirror must open with the Front view drawn before and after the change.")
-	for(var/direction in GLOB.custom_style_directions)
-		mirror.render_view(direction)
-	TEST_ASSERT(!(length(mirror.before_urls) != 4 || length(mirror.after_urls) != 4), "Every view must draw both pictures once shown.")
+	TEST_ASSERT(!(length(mirror.before_urls) != 4 || length(mirror.after_urls) != 4 || mirror.before_urls["2"] == mirror.after_urls["2"]), "The mirror must open with every view drawn before and after the change.")
 	var/first_token = session.proposal["token"]
 	paint(session)
 	TEST_ASSERT(!(session.state != "drafting" || session.mirror || session.proposal), "Editing must withdraw the pending proposal.")
