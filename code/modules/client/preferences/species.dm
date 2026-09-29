@@ -49,7 +49,7 @@
 	var/list/data = list()
 	var/list/page_ids = get_species_page_ids() // APHELION EDIT ADDITION - Species page
 
-	for (var/species_id in page_ids) // NOVA EDIT CHANGE - ORIGINAL: for (var/species_id in get_selectable_species())
+	for (var/species_id in page_ids) // APHELION EDIT CHANGE - Species page. ORIGINAL: for (var/species_id in (get_selectable_species() + get_customizable_races())) // NOVA EDIT CHANGE - ORIGINAL: for (var/species_id in get_selectable_species())
 		var/species_type = GLOB.species_list[species_id]
 		var/datum/species/species = GLOB.species_prototypes[species_type]
 

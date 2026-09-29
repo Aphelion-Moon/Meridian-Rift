@@ -563,15 +563,27 @@ function LoadoutPreviewSection() {
             <Stack.Item>
               <Button
                 icon="chevron-left"
-                // APHELION EDIT CHANGE - The page turns the drawn preview. ORIGINAL: onClick={() => act('rotate_dummy', { dir: 'left' })}
-                onClick={() => turn(false)}
+                /* // APHELION EDIT REMOVAL START - The page turns the drawn preview.
+                onClick={() =>
+                  act('rotate_dummy', {
+                    dir: 'left',
+                  })
+                }
+                */ // APHELION EDIT REMOVAL END
+                onClick={() => turn(false)} // APHELION EDIT ADDITION - The page turns the drawn preview.
               />
             </Stack.Item>
             <Stack.Item>
               <Button
                 icon="chevron-right"
-                // APHELION EDIT CHANGE - The page turns the drawn preview. ORIGINAL: onClick={() => act('rotate_dummy', { dir: 'right' })}
-                onClick={() => turn(true)}
+                /* // APHELION EDIT REMOVAL START - The page turns the drawn preview.
+                onClick={() =>
+                  act('rotate_dummy', {
+                    dir: 'right',
+                  })
+                }
+                */ // APHELION EDIT REMOVAL END
+                onClick={() => turn(true)} // APHELION EDIT ADDITION - The page turns the drawn preview.
               />
             </Stack.Item>
           </Stack>

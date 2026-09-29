@@ -815,16 +815,11 @@ const CenterColumnExtras = (props: {
 };
 
 // The character preview section at the top of the center column
-// APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: const PreviewSection = (props: { id: string }) => (
-const PreviewSection = () => (
+const PreviewSection = () => ( // APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: const PreviewSection = (props: { id: string }) => (
   <Section fill title="Character Preview" align="center">
     <Stack vertical fill>
       <Stack.Item grow align="center">
-        <CharacterPreview
-          // id={props.id} // APHELION EDIT REMOVAL - Drawn character preview
-          height="100%"
-          width="280px"
-        />
+        <CharacterPreview height="100%" width="280px" /* APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: <CharacterPreview id={props.id} height="100%" width="280px" /> */ />
       </Stack.Item>
       <Stack.Divider />
       <Stack.Item align="center">
@@ -1087,9 +1082,7 @@ export const LimbsPage = ({
                   height="45%"
                   style={{ overflow: 'hidden', position: 'relative' }}
                 >
-                  <PreviewSection
-                  // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
-                  />
+                  <PreviewSection /* APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: <PreviewSection id={data.character_preview_view} /> */ />
                 </Stack.Item>
 
                 {/* Extras: anything rendering below the preview, takes remaining space */}
