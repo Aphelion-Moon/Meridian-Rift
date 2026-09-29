@@ -819,7 +819,7 @@ const PreviewSection = () => ( // APHELION EDIT CHANGE - Drawn character preview
   <Section fill title="Character Preview" align="center">
     <Stack vertical fill>
       <Stack.Item grow align="center">
-        <CharacterPreview height="100%" width="280px" /* APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: <CharacterPreview id={props.id} height="100%" width="280px" /> */ />
+        <CharacterPreview height="100%" width="280px" motif="scanner" /* APHELION EDIT CHANGE - Drawn character preview, framed as a scanner. ORIGINAL: <CharacterPreview id={props.id} height="100%" width="280px" /> */ />
       </Stack.Item>
       <Stack.Divider />
       <Stack.Item align="center">

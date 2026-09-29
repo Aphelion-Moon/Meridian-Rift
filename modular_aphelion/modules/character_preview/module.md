@@ -25,6 +25,13 @@ Augments+ and the species page's chamber) shows that one drawing.
   it draws, in any facing, fits the box, up to a tile filling the box's shorter side, so its pixels stay
   square. The chosen background's tile repeats under it at the same scale, one tile under the character's
   own. The background is the page's, so choosing another redraws nothing.
+- **Framed by the theme.** Each theme cases the preview on the box's edge in materials it already ships, as
+  the species chamber's casing is built: Aphelion's bezel and calibration rule, the forge themes' own window
+  frames, Scavenger's riveted rust plate, Wastelander's tube, and so on; Classic and Highline keep a plain
+  edge. Each tab adds one motif: a portrait's corners (Character), a fitting mirror's glass and clips
+  (Loadout), or a scanner's rule along the character's tile, ticked in the drawing's pixels (Augments+).
+  The floor is never painted over: what the frame draws on it is small and keylined, so it reads on every
+  background. The frame never draws again once shown, nothing in it moves, and it takes no pointer.
 - **Nothing lands on the player's disk.** The strip travels inside the data as a PNG data URL, in a small
   update of its own that leaves the rest of the preferences data alone. BYOND keeps every file a client is
   sent in its cache for good, and a map kept every look the preview mob had; the player's cache doesn't
@@ -57,8 +64,8 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 | `tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx` | `PreferencesMenu` turns the character back to face south as the window opens. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx` | `CharacterPreferenceWindow` asks for the drawing when it mounts. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | `MainPage` shows the drawn preview, and `handleRotate` turns it. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/loadout/index.tsx` | `LoadoutPreviewSection` shows the drawn preview, and its arrows turn it. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx` | `RotateCharacterButtons` turn the drawn preview, and `PreviewSection` shows it. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/loadout/index.tsx` | `LoadoutPreviewSection` shows the drawn preview, framed as a mirror, and its arrows turn it. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx` | `RotateCharacterButtons` turn the drawn preview, and `PreviewSection` shows it, framed as a scanner. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/QuirksPage.tsx` | `QuirkPage` no longer keeps a hidden map preview alive for appearance quirks. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Adds `CharacterPreviewDrawing`, `PreferencesMenuData`'s `character_preview` and `character_preview_pending`, and `ServerData`'s `background_state.tiles`; `character_preview_view` is commented out. |
 
@@ -75,7 +82,8 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/CharacterPreview/`: the preview, its drawing and fit (`drawing.tsx`), the turn every tab shares (`turn.ts`), and their tests.
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesRegistry/`: the species chamber shows the same drawing (`SpeciesSprite.tsx`, `SpecimenViewer.tsx`, `index.tsx`, `model.ts`).
-- `tgui/packages/tgui/styles/meridianos/_character_preview.scss`, loaded by `_preferences.scss`.
+- `tgui/packages/tgui/styles/meridianos/_character_preview.scss`, loaded by `_preferences.scss`: the preview and
+  its frame in every theme, with `tests/character-preview-frame.test.tsx`.
 - `code/modules/unit_tests/~nova/custom_sprites/tall_hair.dm`: checks the drawing's height for tall hair.
 - `tgstation.dme`
 

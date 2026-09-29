@@ -346,4 +346,63 @@ describe('CharacterPreview', () => {
     });
     expect(width()).toBe('256px');
   });
+
+  it("frames itself for the tab's motif, a portrait unless the tab says", async () => {
+    setData({});
+    const view = render(
+      <ServerPrefs.Provider value={serverData}>
+        <CharacterPreview height="100%" />
+        <CharacterPreview height="100%" motif="mirror" />
+      </ServerPrefs.Provider>,
+    );
+    await settle();
+    const [portrait, mirror] =
+      view.container.querySelectorAll('.CharacterPreview');
+
+    expect(portrait.classList.contains('CharacterPreview--portrait')).toBe(
+      true,
+    );
+    expect(mirror.classList.contains('CharacterPreview--mirror')).toBe(true);
+    // Every theme builds its frame from the same parts; its styles pick them.
+    const parts = (selector: string) =>
+      mirror.querySelectorAll(selector).length;
+    expect(parts('.CharacterPreview__case')).toBe(1);
+    expect(parts('.CharacterPreview__trim')).toBe(1);
+    expect(parts('.CharacterPreview__glass')).toBe(1);
+    expect(parts('.CharacterPreview__mark')).toBe(4);
+    expect(parts('.CharacterPreview__clip')).toBe(4);
+  });
+
+  it("lays the scanner's rule along the character's own tile, in the drawing's pixels", async () => {
+    setData({ character_preview: tile });
+    const view = render(
+      <ServerPrefs.Provider value={serverData}>
+        <CharacterPreview height="100%" motif="scanner" />
+      </ServerPrefs.Provider>,
+    );
+    await settle();
+    const box = view.container.querySelector(
+      '.CharacterPreview',
+    ) as HTMLElement;
+    const rule = () =>
+      view.container.querySelector('.CharacterPreview__rule') as HTMLElement;
+
+    // At 8x the tile's floor is 368px down the 480px box, its top 256px above.
+    expect(rule().style.top).toBe('112px');
+    expect(rule().style.height).toBe('257px');
+    expect(rule().style.getPropertyValue('--preview-pixel')).toBe('8px');
+
+    // Zoomed a step, it follows the tile.
+    const wheel = new WheelEvent('wheel', {
+      deltaY: -100,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      box.dispatchEvent(wheel);
+    });
+    expect(rule().style.top).toBe(`${240 + 16 * 9 - 32 * 9}px`);
+    expect(rule().style.height).toBe(`${32 * 9 + 1}px`);
+    expect(rule().style.getPropertyValue('--preview-pixel')).toBe('9px');
+  });
 });
