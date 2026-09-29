@@ -674,8 +674,8 @@
 		return final_icon
 
 	#undef PROCESS_OVERLAYS_OR_UNDERLAYS
-
 // APHELION EDIT ADDITION START - One walk for every facing.
+
 /**
  * Turns a flat icon walked with get_flat_uni_icon(target, UP) into its recipe for each facing, as iconforge entry
  * JSON: facing name -> recipe.

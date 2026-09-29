@@ -23,15 +23,15 @@
 
 	for (var/species_id in get_selectable_species())
 		values += GLOB.species_list[species_id]
-	//NOVA EDIT ADDITION START
 
+	//NOVA EDIT ADDITION
 	for (var/species_id in get_customizable_races())
 		values += GLOB.species_list[species_id]
-
-	//  Holiday species can be made all year, and joined during their holiday.
+	//NOVA EDIT END
+	// APHELION EDIT ADDITION START - Species page: holiday species can be made all year, and joined during their holiday.
 	for (var/species_id in get_holiday_races())
 		values |= GLOB.species_list[species_id]
-	// NOVA EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 
 	return values
 
