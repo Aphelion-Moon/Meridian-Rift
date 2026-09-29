@@ -1,5 +1,8 @@
 /datum/dna
-	var/list/list/mutant_bodyparts = list()
+	/// Mutant part key -> /datum/mutant_bodypart. An /alist: copies and removals cost less than a list's, keyed reads the same,
+	/// length() walks it (ask for a key instead), and its order is its own, which nothing reads (regenerate_organs() walks
+	/// mutant_bodyparts_in_draw_order()). Never null: every assignment gives a container, so LAZYSET and LAZYCOPY keep it one.
+	var/alist/mutant_bodyparts = alist()
 	features = MANDATORY_FEATURE_LIST
 	///Body markings of the DNA's owner. This is for storing their original state for re-creating the character. They'll get changed on species mutation
 	var/datum/body_marking_collection/body_markings = new

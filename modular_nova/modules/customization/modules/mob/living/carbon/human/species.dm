@@ -131,10 +131,9 @@ GLOBAL_LIST_EMPTY(customizable_races)
  * * existing_mutant_bodyparts - When passed a list of existing mutant bodyparts, the existing ones will not get overwritten
  */
 /datum/species/proc/get_mutant_bodyparts(list/features, list/existing_mutant_bodyparts) //Needs features to base the colour off of
-	var/list/mutantpart_list = list()
+	// A DNA's container is an /alist, and so is its Copy().
+	var/alist/mutantpart_list = existing_mutant_bodyparts ? existing_mutant_bodyparts.Copy() : alist()
 	var/static/list/blacklisted_keys
-	if(LAZYLEN(existing_mutant_bodyparts))
-		mutantpart_list = existing_mutant_bodyparts.Copy()
 
 	var/list/default_bodypart_data = GLOB.default_mutant_bodyparts[name]
 	var/erp_disabled = CONFIG_GET(flag/disable_erp_preferences)
@@ -143,7 +142,7 @@ GLOBAL_LIST_EMPTY(customizable_races)
 		if(erp_disabled && GLOB.possible_genitals[key])
 			continue
 		// Skip if there's an existing sprite accessory
-		if(LAZYLEN(existing_mutant_bodyparts) && existing_mutant_bodyparts[key])
+		if(existing_mutant_bodyparts?[key])
 			continue
 
 		var/datum/mutant_bodypart/species_blueprint/bodypart_data = bodypart_to_add

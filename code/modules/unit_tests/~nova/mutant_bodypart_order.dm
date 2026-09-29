@@ -48,3 +48,27 @@
 		var/list/signature = markings_baseline_signature(get_flat_icon_for_all_directions(body))
 		drawn += signature["pixels_md5"]
 	TEST_ASSERT_EQUAL(drawn[1], drawn[2], "A lizard's parts must draw the same whatever order they were entered in")
+
+/// dna.mutant_bodyparts is an /alist on every path that builds or replaces it, so none falls back to a plain list: a new body, a
+/// character built from its preferences, the preview's cleared body, a species change, a DNA copy and the species' own parts.
+/datum/unit_test/mutant_bodypart_order/containers
+
+/datum/unit_test/mutant_bodypart_order/containers/Run()
+	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+	TEST_ASSERT(isalist(body.dna.mutant_bodyparts), "A new body's parts must be an /alist")
+	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
+	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_LIZARD)
+	preferences.apply_prefs_to(body, TRUE)
+	TEST_ASSERT(length(body.dna.mutant_bodyparts), "The lizard must have parts")
+	TEST_ASSERT(isalist(body.dna.mutant_bodyparts), "A character built from its preferences must keep an /alist")
+	var/mob/living/carbon/human/dummy/mannequin = allocate(/mob/living/carbon/human/dummy)
+	preferences.render_new_preview_appearance(mannequin, FALSE)
+	TEST_ASSERT(isalist(mannequin.dna.mutant_bodyparts), "The preview's cleared body must keep an /alist")
+	body.set_species(/datum/species/mammal)
+	TEST_ASSERT(isalist(body.dna.mutant_bodyparts), "A species change must keep an /alist")
+	var/mob/living/carbon/human/consistent/copy = allocate(/mob/living/carbon/human/consistent)
+	body.dna.copy_dna(copy.dna, COPY_DNA_SE|COPY_DNA_SPECIES)
+	TEST_ASSERT(isalist(copy.dna.mutant_bodyparts), "A DNA copy must be an /alist")
+	var/datum/species/lizard/lizard = GLOB.species_prototypes[/datum/species/lizard]
+	TEST_ASSERT(isalist(lizard.get_mutant_bodyparts(body.dna.features)), "A species' own parts must be built as an /alist")
