@@ -37,6 +37,7 @@ GLOBAL_LIST_INIT(skill_choices, init_skill_choices())
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "skilled_quirk"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/skilled/init_possible_values()
 	return assoc_to_keys(GLOB.skill_choices)
