@@ -37,7 +37,7 @@
 	if(value)
 		var/penis_choice = preferences.read_preference(/datum/preference/choiced/genital/penis)
 		var/datum/preference/choiced/genital/penis/penis_choice_pref = GLOB.preference_entries[/datum/preference/choiced/genital/penis]
-		if(!penis_choice_pref.is_accessible(preferences) || !is_factual_sprite_accessory(ORGAN_SLOT_PENIS, penis_choice))
+		if(!penis_choice_pref.is_applicable(preferences) || !is_factual_sprite_accessory(ORGAN_SLOT_PENIS, penis_choice))
 			return
 		ADD_TRAIT(target, TRAIT_CAN_KNOT, ROUNDSTART_TRAIT)
 	else

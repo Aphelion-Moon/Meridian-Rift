@@ -53,7 +53,7 @@
 	relevant_inherent_trait = TRAIT_USES_SKINTONES
 
 /datum/preference/toggle/skin_tone_toggle/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	if (is_accessible(preferences) && !value)
+	if (is_applicable(preferences) && !value)
 		REMOVE_TRAIT(target, TRAIT_USES_SKINTONES, SPECIES_TRAIT)
 		ADD_TRAIT(target, TRAIT_MUTANT_COLORS, SPECIES_TRAIT)
 		for(var/obj/item/bodypart/bodypart_to_change as anything in target.bodyparts)

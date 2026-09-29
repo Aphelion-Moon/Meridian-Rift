@@ -37,7 +37,7 @@
 	var/should_greyscale_limbs
 	if(!preferences.read_preference(/datum/preference/toggle/skin_tone_toggle))
 		var/datum/preference/toggle/skin_tone_toggle/skin_tone_toggle = GLOB.preference_entries[/datum/preference/toggle/skin_tone_toggle]
-		if(skin_tone_toggle.is_accessible(preferences))
+		if(skin_tone_toggle.is_applicable(preferences))
 			should_greyscale_limbs = TRUE
 
 	var/limbs_changed = FALSE
@@ -322,7 +322,7 @@
 	if(aug.ckey_whitelist && !LAZYFIND(aug.ckey_whitelist, user?.client?.ckey))
 		return FALSE
 	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
-	if(taur_choice.is_accessible(prefs) && prefs.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
+	if(taur_choice.is_applicable(prefs) && prefs.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
 		var/datum/augment_item/limb/limb_aug = astype(aug, /datum/augment_item/limb)
 		if(limb_aug?.slot_flag && (limb_aug.slot_flag & (LEG_LEFT|LEG_RIGHT)))
 			return FALSE
