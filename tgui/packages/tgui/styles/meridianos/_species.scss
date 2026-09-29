@@ -940,36 +940,18 @@
     }
 
     &--sw {
-      bottom: 25px;
+      bottom: 5px;
       left: 5px;
       border-bottom-width: 1px;
       border-left-width: 1px;
     }
 
     &--se {
-      bottom: 25px;
+      bottom: 5px;
       right: 5px;
       border-bottom-width: 1px;
       border-right-width: 1px;
     }
-  }
-
-  &__readout {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 20px;
-    padding: 0 8px;
-    font-size: 0.78em;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--species-muted);
-    background: color-mix(in srgb, var(--species-recessed) 88%, transparent);
-    border-top: 1px solid var(--species-line);
   }
 
   &__controls {
@@ -1173,7 +1155,7 @@
 
   // A vector wireframe floor running from the horizon toward the viewer.
   &__grid {
-    inset: var(--aphelion-horizon) -40% 20px;
+    inset: var(--aphelion-horizon) -40% 0;
     opacity: 0.55;
     background-image:
       linear-gradient(rgb(229 194 91 / 55%) 1px, transparent 1px),
@@ -1199,29 +1181,6 @@
       inset: 0;
       background: var(--aphelion-grain) 0 0 / 256px 256px repeat;
       opacity: 0.06;
-    }
-  }
-
-  &__readout {
-    background: #131110;
-    border-top: 0;
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(
-        90deg,
-        #56d4dc 0 16.66%,
-        #7bc86f 16.66% 33.33%,
-        #e5c25b 33.33% 50%,
-        #e0863f 50% 66.66%,
-        #d95f4c 66.66% 83.33%,
-        #c06bb4 83.33%
-      );
     }
   }
 }
@@ -1379,12 +1338,6 @@
   &__figure {
     animation: none;
   }
-
-  &__readout {
-    color: var(--console-text-primary);
-    background: var(--console-surface-raised);
-    border-top: 2px solid var(--console-border-control);
-  }
 }
 
 // Hephaestus: smoked green instrument glass behind gunmetal and bronze screws.
@@ -1400,7 +1353,7 @@
   }
 
   &__backdrop {
-    inset: 9px 9px 29px;
+    inset: 9px;
     background:
       radial-gradient(ellipse 70% 40% at 50% 88%, rgb(180 198 163 / 18%), transparent 72%),
       linear-gradient(180deg, #0f1f1a, #06100c);
@@ -1410,7 +1363,7 @@
   }
 
   &__glass {
-    inset: 9px 9px 29px;
+    inset: 9px;
     background:
       linear-gradient(120deg, rgb(208 230 190 / 10%) 0 20%, transparent 20.5% 70%, rgb(208 230 190 / 5%) 70.5% 74%, transparent 74.5%),
       rgb(60 90 70 / 12%);
@@ -1446,13 +1399,8 @@
 
     &--sw,
     &--se {
-      bottom: 22px;
+      bottom: 2px;
     }
-  }
-
-  &__readout {
-    background: #0c1317;
-    color: var(--console-interaction-accent);
   }
 }
 
@@ -1495,10 +1443,6 @@
       border-bottom-width: 2px;
     }
   }
-
-  &__readout {
-    color: #79e79a;
-  }
 }
 
 // Augmentation: the theme's telemetry glyphs line the chamber walls, and a
@@ -1523,7 +1467,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: calc((100% - 20px) * 0.6);
+      height: 60%;
       background: linear-gradient(
         0deg,
         transparent 0 80%,
@@ -1538,7 +1482,7 @@
 
   // Glyphs only: the tile is a mask, so the wall takes whatever lights it.
   &__grid {
-    inset: 0 0 20px;
+    inset: 0;
     opacity: 1;
     background: linear-gradient(
       90deg,
@@ -1633,7 +1577,7 @@
     // One period of the feed; the tile is 264 x 300 and scales with the chamber.
     --glyph-tile: calc((var(--specimen-size, 192px) + 8px) * 300 / 264);
 
-    inset: 2px 0 20px;
+    inset: 2px 0;
     opacity: 1;
     background: none;
     mask-image: linear-gradient(180deg, transparent, #000 12%, #000 86%, transparent);
@@ -1678,7 +1622,7 @@
   }
 
   &__backdrop {
-    inset: 8px 8px 28px;
+    inset: 8px;
     background:
       radial-gradient(ellipse 72% 42% at 50% 88%, rgb(240 231 206 / 10%), transparent 72%),
       linear-gradient(180deg, #1a1712, #080705);
@@ -1688,7 +1632,7 @@
   }
 
   &__glass {
-    inset: 8px 8px 28px;
+    inset: 8px;
   }
 
   &__grid {
@@ -1719,13 +1663,8 @@
 
     &--sw,
     &--se {
-      bottom: 21px;
+      bottom: 1px;
     }
-  }
-
-  &__readout {
-    background: #100d0a;
-    color: #c9bea3;
   }
 }
 
@@ -1742,7 +1681,7 @@
   }
 
   &__backdrop {
-    inset: 10px 10px 30px;
+    inset: 10px;
     border-radius: 18px / 14px;
     background:
       radial-gradient(ellipse at 50% 50%, rgb(164 186 120 / 12%), transparent 70%),
@@ -1753,7 +1692,7 @@
   }
 
   &__glass {
-    inset: 10px 10px 30px;
+    inset: 10px;
     border-radius: 18px / 14px;
     background:
       repeating-linear-gradient(180deg, rgb(0 0 0 / 28%) 0 1px, transparent 1px 3px),
@@ -1807,7 +1746,7 @@
   }
 
   &__backdrop {
-    inset: 10px 10px 30px;
+    inset: 10px;
     border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
     background:
       radial-gradient(ellipse 70% 40% at 50% 88%, rgb(231 173 82 / 18%), transparent 72%),
@@ -1819,7 +1758,7 @@
   }
 
   &__grid {
-    inset: 10px 10px 30px;
+    inset: 10px;
     opacity: 0.5;
     border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
     background: repeating-conic-gradient(
@@ -1831,17 +1770,12 @@
   }
 
   &__glass {
-    inset: 10px 10px 30px;
+    inset: 10px;
     border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
   }
 
   &__corner {
     display: none;
-  }
-
-  &__readout {
-    background: #19120d;
-    color: #f0c074;
   }
 }
 
@@ -1880,7 +1814,7 @@
 }
 
 @media (forced-colors: active) {
-  .SpecimenViewer__chamber > span:not(.SpecimenViewer__figure):not(.SpecimenViewer__readout) {
+  .SpecimenViewer__chamber > span:not(.SpecimenViewer__figure) {
     display: none;
   }
 }

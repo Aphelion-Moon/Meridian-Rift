@@ -19,8 +19,6 @@ const VIEWER_SCALE = 8;
 const DRAG_STEP_PX = 28;
 const TURNTABLE_MS = 650;
 
-const DIR_LABELS = { south: 'S', west: 'W', north: 'N', east: 'E' } as const;
-
 type Props = {
   icon: string;
   name: string;
@@ -156,10 +154,6 @@ export function SpecimenViewer(props: Props) {
         <span className="SpecimenViewer__corner SpecimenViewer__corner--ne" />
         <span className="SpecimenViewer__corner SpecimenViewer__corner--sw" />
         <span className="SpecimenViewer__corner SpecimenViewer__corner--se" />
-        <span className="SpecimenViewer__readout ConsoleReading">
-          <span>{self ? 'You' : bare ? 'Body' : 'Uniform'}</span>
-          <span>Facing {DIR_LABELS[dir]}</span>
-        </span>
       </div>
       <Stack className="SpecimenViewer__controls" align="center" g={0.5}>
         <Stack.Item>

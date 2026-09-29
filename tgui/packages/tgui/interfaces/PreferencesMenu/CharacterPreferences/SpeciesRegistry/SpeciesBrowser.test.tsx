@@ -155,7 +155,7 @@ describe('SpeciesBrowser', () => {
       'species_self_test_32x32.png',
     );
     expect(frame.style.backgroundPosition).toStartWith('-32px');
-    expect(screen.getByText('You')).toBeTruthy();
+    expect(screen.getByRole('img', { name: /your character/ })).toBeTruthy();
     // The character is shown as its preview shows it, so there is no body toggle.
     expect(bodyButton()).toBeNull();
 
