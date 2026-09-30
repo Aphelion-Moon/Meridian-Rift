@@ -5,7 +5,9 @@
  * rebuilds are drawn afterwards by SScustom_sprite_work, once for a burst of actions, in tick time
  * other subsystems leave over, so no window can hold up a tick however fast it sends actions. The
  * work that costs tens of milliseconds a time, resource rebuilds, new editors and previews of a
- * previous saved style, is paced per player across all their editors by /datum/custom_sprite_pace.
+ * previous saved style, is paced per player across all their editors by /datum/custom_sprite_pace,
+ * and across players by the subsystem: such work runs in a tick with room for it, and otherwise only
+ * while work that ran a tick over stays within CUSTOM_SPRITE_OVERRUN_BUDGET.
  */
 
 /// Deferred work: draw the visible view's stale guide and preview.
@@ -39,6 +41,12 @@
 #define CUSTOM_SPRITE_WORK_BASE_COPY (1<<6)
 /// Ready the views the window isn't showing that the last rebuild or refresh left for later.
 #define CUSTOM_SPRITE_WORK_OTHER_VIEWS (1<<7)
+/// Of each second, how many ms costly work that doesn't fit in what is left of its tick may take, running it over.
+/// A rebuild's drawing takes longer than a tick, so it never fits whole. The budget refills whatever the server does,
+/// so waiting work always gets its turn.
+#define CUSTOM_SPRITE_OVERRUN_BUDGET 150
+/// How many ms of such work may build up for a burst: a new body and the drawing on it.
+#define CUSTOM_SPRITE_OVERRUN_BURST 150
 
 /// Queue one bounded base-layer copy without adding work to ordinary paint.
 /datum/custom_sprite_editor/proc/request_base_copy_work()
@@ -52,22 +60,55 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	runlevels = RUNLEVEL_LOBBY | RUNLEVELS_DEFAULT
 	/// Editors with deferred work, in the order they asked.
 	var/list/queue = list()
+	/// How many ms costly work takes, on average; see /datum/custom_sprite_editor/proc/costly_work_due().
+	var/costly_cost = 50
+	/// How many ms costly work that runs a tick over may still take now. Below zero, it went over, and that is paid back first.
+	var/overrun_budget = CUSTOM_SPRITE_OVERRUN_BURST
+	/// When overrun_budget was last topped up.
+	var/overrun_budget_at = 0
 
-/// Runs queued editors' work in order until the tick runs short. Work that has to wait goes back in the queue.
+/**
+ * Runs queued editors' work in order until the tick runs short. Costly work can't be split: it runs when it fits,
+ * the first in what is left of the tick and later ones in this subsystem's share of it, and otherwise from the
+ * overrun budget. A rebuild's drawing never waits once its body is built, but what it runs over comes out of the
+ * budget too. Work that has to wait goes back in the queue.
+ */
 /datum/controller/subsystem/custom_sprite_work/fire(resumed)
 	var/list/waiting = list()
+	var/costly_limit = TICK_LIMIT_RUNNING
 	while(length(queue))
 		var/datum/custom_sprite_editor/editor = queue[1]
 		queue.Cut(1, 2)
-		if(!QDELETED(editor) && !editor.run_deferred_work())
+		if(QDELETED(editor))
+			continue
+		var/costly = editor.costly_work_due()
+		var/overrun = costly && TICK_USAGE + costly_cost / world.tick_lag > costly_limit
+		// A rebuild's drawing goes on the turn after its body: a body left waiting is thrown away for a change after it.
+		if(overrun && !editor.pending_body_ready)
+			var/time = world.time
+			overrun_budget = min(overrun_budget + (time - overrun_budget_at) * CUSTOM_SPRITE_OVERRUN_BUDGET / (1 SECONDS), CUSTOM_SPRITE_OVERRUN_BURST)
+			overrun_budget_at = time
+			if(overrun_budget <= 0)
+				waiting += editor
+				continue
+		var/started = TICK_USAGE
+		var/tick = world.time
+		if(!editor.run_deferred_work())
 			waiting += editor
+		if(costly)
+			costly_limit = Master.current_ticklimit
+			// Work that slept ran across ticks, which says nothing of what it cost.
+			var/cost = world.time == tick ? TICK_DELTA_TO_MS(TICK_USAGE - started) : costly_cost
+			costly_cost = MC_AVERAGE(costly_cost, cost)
+			if(overrun)
+				overrun_budget -= cost
 		if(MC_TICK_CHECK)
 			break
 	queue += waiting
 
-/// Shows how many editors are waiting.
+/// Shows how many editors are waiting, and what costly work costs.
 /datum/controller/subsystem/custom_sprite_work/stat_entry(msg)
-	msg = "Q:[length(queue)]"
+	msg = "Q:[length(queue)]|C:[round(costly_cost, 0.1)]ms|O:[round(overrun_budget)]ms"
 	return ..()
 
 /**
@@ -165,6 +206,17 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	var/body_requests = 0
 	/// The body_requests count pending_body was built for.
 	var/pending_body_for = 0
+
+/// Whether this editor's deferred work would build or rebuild something now, costing tens of milliseconds.
+/datum/custom_sprite_editor/proc/costly_work_due()
+	if(closing)
+		return FALSE
+	if(pending_work & CUSTOM_SPRITE_WORK_CANDIDATE)
+		return TRUE
+	if(!(pending_work & CUSTOM_SPRITE_WORK_REBUILD))
+		return FALSE
+	var/datum/custom_sprite_pace/pace = pace()
+	return pending_body_ready || pace.due()
 
 /// Asks SScustom_sprite_work for work. Whatever the draft holds when it runs is what gets drawn.
 /datum/custom_sprite_editor/proc/request_work(work)
@@ -509,3 +561,5 @@ SUBSYSTEM_DEF(custom_sprite_work)
 #undef CUSTOM_SPRITE_STROKE_QUEUE
 #undef CUSTOM_SPRITE_WORK_STROKES
 #undef CUSTOM_SPRITE_WORK_BASE_COPY
+#undef CUSTOM_SPRITE_OVERRUN_BUDGET
+#undef CUSTOM_SPRITE_OVERRUN_BURST

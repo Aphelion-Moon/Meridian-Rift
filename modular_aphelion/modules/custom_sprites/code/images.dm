@@ -57,6 +57,8 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 		name = "picture[++drawn]"
 	for(var/view, recipe in recipes)
 		var/result = rustg_iconforge_generate(CUSTOM_SPRITE_PICTURE_DIR, "[name]_[view]", "{\"[view]\":[recipe]}", FALSE, FALSE, TRUE)
+		// iconforge keeps about 28 KB of each picture until it lets go, a tenth of a character preview's drawing.
+		iconforge_drawn(0.1)
 		var/list/output = findtext(result, "{", 1, 2) ? json_decode(result) : null
 		var/list/sizes = output?["sizes"]
 		if(length(sizes) != 1)

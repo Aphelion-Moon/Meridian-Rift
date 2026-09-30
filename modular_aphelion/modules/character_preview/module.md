@@ -69,7 +69,8 @@ Augments+ and the species page's chamber) shows that one drawing.
   it holds, so it is sent one only if that is another. iconforge keeps every image it makes until it is told
   to let them go, 80 to 330 KB a look, and a look is hardly ever drawn twice, so every 100 drawings it is told
   to, once none is under way (one under way would come out empty) and no spritesheet is being made. New
-  drawings wait for that, a tick or two.
+  drawings wait for that, a tick or two. The custom sprite editors' pictures, which iconforge keeps too, about
+  28 KB each, count toward it a tenth each.
 
 Measured live in the lab client, over 29 changes: the preview mob's rebuild, unchanged, takes about 13 ms;
 the drawing adds about 3 ms of main-thread time, most of it the walk, and iconforge about 35 ms on its own
@@ -117,8 +118,9 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 ### Modular Overrides:
 
 - `code/drawing.dm`: adds `/datum/preferences/var/preview_drawing`, `/datum/preferences/proc/character_preview_changed()` and `character_preview_open()`,
-  and `/proc/character_preview_drawn()` with the globals it keeps: the drawings under way and how many there
-  have been since iconforge last let go of what it keeps.
+  and `/proc/iconforge_drawn()` with the globals it keeps: the drawings under way and how many looks' worth
+  iconforge has drawn since it last let go of what it keeps, the custom sprite editors' pictures counting a tenth
+  each.
 - `code/backgrounds.dm`: `/datum/preference/choiced/background_state/compile_constant_data()` also sends each background's tile.
 - `code/rebuilds.dm`: `SScharacter_preview`, the queue of preview mobs waiting to be rebuilt, and
   `/atom/movable/screen/map_view/char_preview`'s `body_stale` and `turns`, `defer_rebuild()` and `current_body()`.

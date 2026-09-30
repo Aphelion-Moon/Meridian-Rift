@@ -173,6 +173,20 @@
 	TEST_ASSERT(editor.run_deferred_work(), "And renders on the fire after.")
 	TEST_ASSERT_EQUAL(editor.rebuilds, 2, "The waiting rebuild must run.")
 
+/// Only a rebuild's body and the drawing on it are costly work, which waits for room across players, and only once the player's pace lets it run.
+/datum/unit_test/custom_sprite_hardening/costly_work/Run()
+	var/list/opened = whole_body_editor()
+	var/datum/custom_sprite_editor/markings/hardening_test/editor = opened[1]
+	var/datum/tgui/ui = opened[2]
+	TEST_ASSERT(!editor.costly_work_due(), "An editor with no rebuild waiting has no costly work.")
+	editor.ui_act("toggleParts", list(), ui, null)
+	TEST_ASSERT(editor.costly_work_due(), "A rebuild the pace allows is costly work.")
+	TEST_ASSERT(!editor.run_deferred_work(), "The rebuild builds its body first.")
+	TEST_ASSERT(editor.costly_work_due(), "Drawing on the built body is costly work too.")
+	TEST_ASSERT(editor.run_deferred_work(), "The next turn draws it.")
+	editor.ui_act("toggleUnderwear", list(), ui, null)
+	TEST_ASSERT(!editor.costly_work_due(), "A rebuild still waiting for the pace isn't costly work yet.")
+
 /// One undo or redo action takes at most a handful of steps, whatever count a window sends.
 /datum/unit_test/custom_sprite_hardening/history_jump/Run()
 	var/list/opened = whole_body_editor()
