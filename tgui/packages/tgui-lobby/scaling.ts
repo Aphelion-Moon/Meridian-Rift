@@ -1,9 +1,8 @@
-const BASE_WIDTH = 640;
+const SCALE_FUDGE = 1.2;
 
 export function updateScaling() {
-  const width = window.innerWidth;
   document.documentElement.style.setProperty(
     '--lobby-scale',
-    `${width / BASE_WIDTH}`,
+    `${window.devicePixelRatio * SCALE_FUDGE}`,
   );
 }
