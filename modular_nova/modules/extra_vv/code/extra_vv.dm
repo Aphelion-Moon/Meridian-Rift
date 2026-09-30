@@ -57,7 +57,7 @@
 	var/quirks_prompt = tgui_alert(usr, "Reload their quirks too? This will clear any existing quirks on the mob.", "Load Quirks", list("Yes", "No"))
 
 	var/mob/living/carbon/human/human_mob = src
-	human_mob.dna.mutant_bodyparts = alist()
+	human_mob.dna.mutant_bodyparts = list()
 	human_mob.dna.species.regenerate_organs(src, replace_current = TRUE)
 	client?.prefs?.apply_prefs_to(src, icon_updates = FALSE)
 	human_mob.dna.update_body_size()

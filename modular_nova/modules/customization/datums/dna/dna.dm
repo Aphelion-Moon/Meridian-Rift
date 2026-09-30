@@ -1,8 +1,8 @@
 /datum/dna
-	/// Mutant part key -> /datum/mutant_bodypart. An /alist: copies and removals cost less than a list's, keyed reads the same,
-	/// length() walks it (ask for a key instead), and its order is its own, which nothing reads (regenerate_organs() walks
-	/// mutant_bodyparts_in_draw_order()). Never null: every assignment gives a container, so LAZYSET and LAZYCOPY keep it one.
-	var/alist/mutant_bodyparts = alist()
+	/// Mutant part key -> /datum/mutant_bodypart. A plain list on purpose: its keys keep the order they arrived in, which
+	/// regenerate_organs() walks, so it is the order parts sharing a layer on a limb draw in. An /alist has an order of its own;
+	/// converting this one was measured and declined (docs/handoffs/2026-09-27-markings-datums-handoff.md section 4b, B12-B14).
+	var/list/list/mutant_bodyparts = list()
 	features = MANDATORY_FEATURE_LIST
 	///Body markings of the DNA's owner. This is for storing their original state for re-creating the character. They'll get changed on species mutation
 	var/datum/body_marking_collection/body_markings = new
