@@ -7,7 +7,6 @@ import {
   describe,
   expect,
   it,
-  jest,
 } from 'bun:test';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { getDefaultStore } from 'jotai';
@@ -17,7 +16,7 @@ import { store as backendStore, gameDataAtom } from 'tgui/events/store';
 import type { CharacterPreviewDrawing, ServerData } from '../../types';
 import { ServerPrefs } from '../../useServerPrefs';
 import { type DrawnBounds, previewFit } from './drawing';
-import { dragTurns, HOLD_TIME, heldStill, wheelZooms } from './gestures';
+import { dragGesture, dragTurns, wheelZooms } from './gestures';
 import { CharacterPreview } from './index';
 import { createPreviewPan } from './pan';
 import { previewTurnAtom, turnPreview } from './turn';
@@ -117,11 +116,14 @@ describe('dragTurns and wheelZooms', () => {
     expect(wheelZooms(-60)).toEqual({ zooms: 0, rest: -60 });
   });
 
-  it('holds a pointer still while it strays no more than a few pixels', () => {
-    expect(heldStill(0, 0)).toBe(true);
-    expect(heldStill(-6, 0)).toBe(true);
-    expect(heldStill(3, 4)).toBe(true);
-    expect(heldStill(5, 5)).toBe(false);
+  it("lets a drag's first few pixels decide: across turns, up or down pans", () => {
+    expect(dragGesture(3, 4)).toBeUndefined();
+    expect(dragGesture(-6, 0)).toBeUndefined();
+    expect(dragGesture(7, -2)).toBe('turn');
+    expect(dragGesture(-2, 7)).toBe('pan');
+    expect(dragGesture(1, -9)).toBe('pan');
+    // Exactly diagonal turns, as dragging did before panning.
+    expect(dragGesture(5, 5)).toBe('turn');
   });
 });
 
@@ -156,10 +158,9 @@ describe('createPreviewPan', () => {
     pan.start(100, 100);
     pan.move(123, 70);
     expect(moved('figure')).toBe('23px -30px');
-    // The floor moves by the same, less whole tiles, and the rule only up and
-    // down.
+    // The floor moves by the same, less whole tiles; the frame's rule stays.
     expect(moved('background')).toBe('23px 226px');
-    expect(moved('rule')).toBe('0px -30px');
+    expect(moved('rule')).toBe('');
 
     // Past the bounds it stops, and comes back as soon as the pointer does.
     pan.move(400, -400);
@@ -319,7 +320,6 @@ describe('CharacterPreview', () => {
 
   afterEach(() => {
     cleanup();
-    jest.useRealTimers();
     getDefaultStore().set(previewTurnAtom, 0);
     backendStore.set(gameDataAtom, previousData as never);
   });
@@ -473,16 +473,7 @@ describe('CharacterPreview', () => {
     expect(width()).toBe('256px');
   });
 
-  /** Presses on the box and holds still until the drag would pan. */
-  const holdOn = (box: HTMLElement, clientX: number, clientY: number) => {
-    jest.useFakeTimers();
-    act(() => {
-      fireEvent.pointerDown(box, { pointerId: 1, button: 0, clientX, clientY });
-      jest.advanceTimersByTime(HOLD_TIME);
-    });
-  };
-
-  it('pans with a drag held still first, rendering nothing as it goes', async () => {
+  it('pans with a drag that sets off up or down, every way after, rendering nothing', async () => {
     setData({ character_preview: tile });
     let commits = 0;
     const view = render(
@@ -495,8 +486,8 @@ describe('CharacterPreview', () => {
       '.CharacterPreview',
     ) as HTMLElement;
     const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
+    const rendered = commits;
 
-    jest.useFakeTimers();
     act(() => {
       fireEvent.pointerDown(box, {
         pointerId: 1,
@@ -504,29 +495,31 @@ describe('CharacterPreview', () => {
         clientX: 100,
         clientY: 100,
       });
-      // A hand's tremor still holds still.
-      fireEvent.pointerMove(box, { pointerId: 1, clientX: 103, clientY: 98 });
-      jest.advanceTimersByTime(HOLD_TIME - 1);
+      // Inside the slop, nothing is decided.
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 102, clientY: 104 });
     });
     expect(box.hasAttribute('data-panning')).toBe(false);
+    expect(movedBy(box, 'figure')).toBe('');
+
     act(() => {
-      jest.advanceTimersByTime(1);
+      // Off downwards: it pans, from where the pointer went down.
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 101, clientY: 110 });
     });
     expect(box.hasAttribute('data-panning')).toBe(true);
+    expect(movedBy(box, 'figure')).toBe('1px 10px');
 
-    const rendered = commits;
     act(() => {
+      // From there it goes every way, across included, and never turns.
       for (let move = 1; move <= 20; move++) {
         fireEvent.pointerMove(box, {
           pointerId: 1,
-          clientX: 103 + 3 * move,
-          clientY: 98 - move,
+          clientX: 101 + 3 * move,
+          clientY: 110 - 2 * move,
         });
       }
     });
-    // 60px right and 20px up from where the hold ended, and not turned.
-    expect(movedBy(box, 'figure')).toBe('60px -20px');
-    expect(movedBy(box, 'background')).toBe('60px 236px');
+    expect(movedBy(box, 'figure')).toBe('61px -30px');
+    expect(movedBy(box, 'background')).toBe('61px 226px');
     expect(drawnFrom.get(canvas)).toBe(tile.frames.south);
     expect(commits).toBe(rendered);
 
@@ -534,11 +527,11 @@ describe('CharacterPreview', () => {
       fireEvent.pointerUp(box, { pointerId: 1 });
     });
     expect(box.hasAttribute('data-panning')).toBe(false);
-    expect(movedBy(box, 'figure')).toBe('60px -20px');
+    expect(movedBy(box, 'figure')).toBe('61px -30px');
     expect(commits).toBe(rendered);
   });
 
-  it('turns with a drag that moves at once, however long it is held after', async () => {
+  it('turns with a drag that sets off across, however it goes after', async () => {
     setData({ character_preview: tile });
     const view = renderPreview();
     await settle();
@@ -547,7 +540,6 @@ describe('CharacterPreview', () => {
     ) as HTMLElement;
     const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
 
-    jest.useFakeTimers();
     act(() => {
       fireEvent.pointerDown(box, {
         pointerId: 1,
@@ -555,9 +547,9 @@ describe('CharacterPreview', () => {
         clientX: 100,
         clientY: 100,
       });
-      fireEvent.pointerMove(box, { pointerId: 1, clientX: 110, clientY: 100 });
-      jest.advanceTimersByTime(HOLD_TIME * 2);
-      fireEvent.pointerMove(box, { pointerId: 1, clientX: 145, clientY: 100 });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 110, clientY: 102 });
+      // Up and down from here only turns it, never pans.
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 145, clientY: 180 });
     });
     expect(box.hasAttribute('data-panning')).toBe(false);
     expect(drawnFrom.get(canvas)).toBe(tile.frames.east);
@@ -573,8 +565,14 @@ describe('CharacterPreview', () => {
     ) as HTMLElement;
     const canvas = view.container.querySelector('canvas') as HTMLCanvasElement;
 
-    holdOn(box, 100, 100);
     act(() => {
+      fireEvent.pointerDown(box, {
+        pointerId: 1,
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+      });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 100, clientY: 110 });
       // Past the drawing's edge, 16px from its tile's centre: it stops with
       // that edge at the middle.
       fireEvent.pointerMove(box, { pointerId: 1, clientX: 400, clientY: 116 });
@@ -629,7 +627,7 @@ describe('CharacterPreview', () => {
     expect(parts('.CharacterPreview__clip')).toBe(4);
   });
 
-  it("lays the scanner's rule along the character's own tile, in the drawing's pixels", async () => {
+  it("lays the scanner's rule along the character's own tile, and keeps it there through zoom and pan", async () => {
     setData({ character_preview: tile });
     const view = render(
       <ServerPrefs.Provider value={serverData}>
@@ -642,23 +640,37 @@ describe('CharacterPreview', () => {
     ) as HTMLElement;
     const rule = () =>
       view.container.querySelector('.CharacterPreview__rule') as HTMLElement;
+    const placed = () => [
+      rule().style.top,
+      rule().style.height,
+      rule().style.getPropertyValue('--preview-pixel'),
+      rule().style.getPropertyValue('translate'),
+    ];
 
     // At 8x the tile's floor is 368px down the 480px box, its top 256px above.
-    expect(rule().style.top).toBe('112px');
-    expect(rule().style.height).toBe('257px');
-    expect(rule().style.getPropertyValue('--preview-pixel')).toBe('8px');
+    expect(placed()).toEqual(['112px', '257px', '8px', '']);
 
-    // Zoomed a step, it follows the tile.
-    const wheel = new WheelEvent('wheel', {
-      deltaY: -100,
-      bubbles: true,
-      cancelable: true,
+    // Zoomed a step and panned, the character moves; the frame's rule doesn't.
+    act(() => {
+      box.dispatchEvent(
+        new WheelEvent('wheel', {
+          deltaY: -100,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
     act(() => {
-      box.dispatchEvent(wheel);
+      fireEvent.pointerDown(box, {
+        pointerId: 1,
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+      });
+      fireEvent.pointerMove(box, { pointerId: 1, clientX: 110, clientY: 140 });
+      fireEvent.pointerUp(box, { pointerId: 1 });
     });
-    expect(rule().style.top).toBe(`${240 + 16 * 9 - 32 * 9}px`);
-    expect(rule().style.height).toBe(`${32 * 9 + 1}px`);
-    expect(rule().style.getPropertyValue('--preview-pixel')).toBe('9px');
+    expect(movedBy(box, 'figure')).toBe('10px 40px');
+    expect(placed()).toEqual(['112px', '257px', '8px', '']);
   });
 });

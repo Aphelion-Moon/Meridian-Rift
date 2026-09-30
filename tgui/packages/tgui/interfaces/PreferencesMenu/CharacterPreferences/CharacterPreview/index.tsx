@@ -51,10 +51,10 @@ type Props = {
  * the tab shows it for; see _character_preview.scss.
  *
  * Dragging across it turns the character, a quarter per DRAG_STEP pixels, and
- * the wheel zooms it a whole step at a time, from 1x to twice the fit. Holding
- * the pointer still for HOLD_TIME and then dragging pans it instead, as far as
- * brings any part of the character to the middle. Double-clicking goes back to
- * the fit, unpanned.
+ * the wheel zooms it a whole step at a time, from 1x to twice the fit. A drag
+ * that sets off up or down pans it instead, every way until the pointer lets
+ * go, as far as brings any part of the character to the middle. Double-clicking
+ * goes back to the fit, unpanned. The frame stays put through all of it.
  */
 export function CharacterPreview(props: Props) {
   const { width = '272px', height, className, motif = 'portrait' } = props;
@@ -162,7 +162,11 @@ function DrawnCharacter(props: DrawnCharacterProps) {
   const { width, height, tile, zoom, fitScale, pan } = props;
   const shown = useShownPreview(props.drawing);
   const turn = useAtomValue(previewTurnAtom);
-  const fit = previewFit(shown.preview, width, height, shown.bounds, zoom);
+  // The frame's scanner rule stays where the fit puts it, whatever the zoom.
+  const fitted = previewFit(shown.preview, width, height, shown.bounds);
+  const fit = zoom
+    ? previewFit(shown.preview, width, height, shown.bounds, zoom)
+    : fitted;
 
   useLayoutEffect(() => {
     fitScale.current = fit.fitScale;
@@ -180,7 +184,7 @@ function DrawnCharacter(props: DrawnCharacterProps) {
         x={fit.x}
         y={fit.y}
       />
-      <PreviewRule fit={fit} />
+      <PreviewRule fit={fitted} />
     </>
   );
 }
@@ -215,8 +219,9 @@ export const PreviewFrame = memo(function PreviewFrame() {
 });
 
 /**
- * The scanner's rule: the character's own tile from its floor to its top,
- * ticked in the drawing's pixels, so it moves and scales with every zoom.
+ * The scanner's rule: the character's own tile from its floor to its top, as
+ * the fit shows it, ticked in the drawing's pixels at that scale. It is part
+ * of the frame, so it stays put while the view zooms and pans.
  */
 function PreviewRule(props: { fit: ReturnType<typeof previewFit> }) {
   const { fit } = props;

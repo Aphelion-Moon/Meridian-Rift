@@ -47,9 +47,9 @@ export type PreviewPan = {
  * character never leaves the box.
  *
  * It moves the parts it pans itself, each by its own inline `translate`: the
- * drawing, its floor, and the scanner's rule. A pan re-renders nothing and
- * restyles only those three, and a move that changes no whole pixel writes
- * nothing.
+ * drawing and its floor. A pan re-renders nothing and restyles only those two,
+ * and a move that changes no whole pixel writes nothing. The frame, the
+ * scanner's rule included, stays where it is.
  */
 export function createPreviewPan(
   box: RefObject<HTMLElement | null>,
@@ -59,10 +59,9 @@ export function createPreviewPan(
   // The pointer holding the drawing: where it took hold, the pan it took hold
   // of, and where it is.
   let grab: { from: Point; pan: Point; at: Point } | undefined;
-  let parts: Record<'figure' | 'floor' | 'rule', HTMLElement | null> = {
+  let parts: Record<'figure' | 'floor', HTMLElement | null> = {
     figure: null,
     floor: null,
-    rule: null,
   };
   let written = '';
 
@@ -81,8 +80,6 @@ export function createPreviewPan(
     translate(parts.figure, x, y);
     // The floor repeats every tile, so it moves by the pan less whole tiles.
     translate(parts.floor, lessTiles(x, tile), lessTiles(y, tile));
-    // The scanner's rule stays on the sill, and follows the tile up and down.
-    translate(parts.rule, 0, y);
   };
 
   // Where the pointer is becomes where it took hold, of the pan as it is.
@@ -105,7 +102,6 @@ export function createPreviewPan(
       parts = {
         figure: element?.querySelector('.CharacterPreview__figure') ?? null,
         floor: element?.querySelector('.CharacterPreview__background') ?? null,
-        rule: element?.querySelector('.CharacterPreview__rule') ?? null,
       };
       written = '';
       write();

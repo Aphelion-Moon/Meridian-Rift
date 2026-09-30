@@ -29,7 +29,8 @@
   flex: none;
   overflow: hidden;
   isolation: isolate;
-  // Dragging turns the character and the wheel zooms it.
+  // Dragging across turns the character, up or down pans it, and the wheel
+  // zooms it.
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -38,16 +39,14 @@
     cursor: grabbing;
   }
 
-  // Held still, then dragged: the view pans. The page moves the character,
-  // its floor and the scanner's rule itself, each by its own translate, and
-  // each has a layer of its own while the pan lasts, so moving them repaints
-  // nothing.
+  // Dragged up or down: the view pans. The page moves the character and its
+  // floor itself, each by its own translate, and each has a layer of its own
+  // while the pan lasts, so moving them repaints nothing. The frame stays put.
   &[data-panning] {
     cursor: move;
 
     .CharacterPreview__background,
-    .CharacterPreview__figure,
-    .CharacterPreview__rule {
+    .CharacterPreview__figure {
       will-change: translate;
     }
   }

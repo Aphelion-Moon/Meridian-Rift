@@ -13,11 +13,8 @@ export const DRAG_STEP = 40;
 /** Wheel travel, in pixels, that zooms one step: one notch of a mouse wheel. */
 export const WHEEL_STEP = 100;
 
-/** How long, in milliseconds, a pointer is held still before its drag pans. */
-export const HOLD_TIME = 300;
-
-/** How far, in pixels, a held pointer may stray and still be held still. */
-export const HOLD_SLOP = 6;
+/** How far, in pixels, a drag goes before its direction decides what it does. */
+export const DRAG_SLOP = 6;
 
 /**
  * The quarter turns a drag has made, clockwise from above, and the travel left
@@ -35,9 +32,16 @@ export function wheelZooms(travel: number, step = WHEEL_STEP) {
   return { zooms: steps === 0 ? 0 : -steps, rest: travel - steps * step };
 }
 
-/** Whether a pointer this far from where it went down is still held still. */
-export const heldStill = (dx: number, dy: number, slop = HOLD_SLOP) =>
-  Math.hypot(dx, dy) <= slop;
+/**
+ * What a drag this far from where it went down does: across turns, up or down
+ * pans, and a drag still inside the slop hasn't decided.
+ */
+export function dragGesture(dx: number, dy: number, slop = DRAG_SLOP) {
+  if (Math.hypot(dx, dy) <= slop) {
+    return undefined;
+  }
+  return Math.abs(dy) > Math.abs(dx) ? 'pan' : 'turn';
+}
 
 /** A wheel event's travel in pixels, whichever unit the device reports it in. */
 function wheelPixels(event: WheelEvent) {
@@ -55,7 +59,7 @@ type GestureHandlers = {
   onTurn: (turns: number) => void;
   /** Zoom steps; positive zooms in. */
   onZoom: (steps: number) => void;
-  /** A held pointer begins to pan, from where it is. */
+  /** A drag begins to pan, from where the pointer went down. */
   onPanStart: (x: number, y: number) => void;
   /** The panning pointer is here now. */
   onPan: (x: number, y: number) => void;
@@ -68,21 +72,18 @@ type Drag = {
   /** Where the pointer went down. */
   downX: number;
   downY: number;
-  /** Where the pointer is. */
-  x: number;
-  y: number;
   /** Where the turn's travel counts from. */
   turnX: number;
-  /** Held still so far, until it moves or is held long enough. */
-  gesture: 'hold' | 'turn' | 'pan';
-  hold: ReturnType<typeof setTimeout>;
+  /** Undecided until the drag leaves the slop. */
+  gesture?: 'turn' | 'pan';
 };
 
 /**
- * Drag to turn, hold still and then drag to pan, and wheel to zoom, on a box.
- * A drag that moves at once turns; one held still for HOLD_TIME pans instead.
- * Pointer and wheel travel collect in refs, so a turn renders once per quarter
- * turn, not once per move, and a pan never renders: its handlers see every move.
+ * Drag to turn or pan, and wheel to zoom, on a box. A drag's first few pixels
+ * decide what it does: across turns the character, and up or down pans it,
+ * every way, until the pointer lets go. Pointer and wheel travel collect in
+ * refs, so a turn renders once per quarter turn, not once per move, and a pan
+ * never renders: its handlers see every move.
  */
 export function usePreviewGestures(
   box: RefObject<HTMLElement | null>,
@@ -114,17 +115,10 @@ export function usePreviewGestures(
     return () => element.removeEventListener('wheel', onWheel);
   }, [box]);
 
-  // A pointer still held as the box goes stops waiting to pan.
-  useEffect(() => () => clearTimeout(drag.current?.hold), []);
-
   const letGo = () => {
     const held = drag.current;
-    if (!held) {
-      return;
-    }
-    clearTimeout(held.hold);
     drag.current = null;
-    if (held.gesture === 'pan') {
+    if (held?.gesture === 'pan') {
       latest.current.onPanEnd();
     }
   };
@@ -142,21 +136,12 @@ export function usePreviewGestures(
       }
       // A second finger takes over from the first.
       letGo();
-      const { clientX: x, clientY: y } = event;
-      const held: Drag = {
+      drag.current = {
         pointer: event.pointerId,
-        downX: x,
-        downY: y,
-        x,
-        y,
-        turnX: x,
-        gesture: 'hold',
-        hold: setTimeout(() => {
-          held.gesture = 'pan';
-          latest.current.onPanStart(held.x, held.y);
-        }, HOLD_TIME),
+        downX: event.clientX,
+        downY: event.clientY,
+        turnX: event.clientX,
       };
-      drag.current = held;
       // Keep the drag when the pointer leaves the box.
       event.currentTarget.setPointerCapture?.(event.pointerId);
     },
@@ -165,22 +150,20 @@ export function usePreviewGestures(
       if (!held || held.pointer !== event.pointerId) {
         return;
       }
-      held.x = event.clientX;
-      held.y = event.clientY;
+      const { clientX: x, clientY: y } = event;
+      if (!held.gesture) {
+        held.gesture = dragGesture(x - held.downX, y - held.downY);
+        if (held.gesture === 'pan') {
+          latest.current.onPanStart(held.downX, held.downY);
+        }
+      }
       if (held.gesture === 'pan') {
-        latest.current.onPan(held.x, held.y);
+        latest.current.onPan(x, y);
         return;
       }
-      if (
-        held.gesture === 'hold' &&
-        !heldStill(held.x - held.downX, held.y - held.downY)
-      ) {
-        held.gesture = 'turn';
-        clearTimeout(held.hold);
-      }
-      const { turns, rest } = dragTurns(held.x - held.turnX);
+      const { turns, rest } = dragTurns(x - held.turnX);
       if (turns) {
-        held.turnX = held.x - rest;
+        held.turnX = x - rest;
         latest.current.onTurn(turns);
       }
     },
