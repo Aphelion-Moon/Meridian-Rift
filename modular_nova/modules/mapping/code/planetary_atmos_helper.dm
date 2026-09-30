@@ -15,5 +15,11 @@
 		if(!potential_turf.density)
 			var/turf/open/our_target_turf = potential_turf
 			our_target_turf.planetary_atmos = TRUE
+			// These turfs have already run /turf/open/Initialize(), which only registers the planetary mix of turfs that
+			// were planetary at that point. Register it here as well, or process_cell() reads a null SSair.planetary entry.
+			if(!SSair.planetary[our_target_turf.initial_gas_mix])
+				var/datum/gas_mixture/immutable/planetary/mix = new
+				mix.parse_string_immutable(our_target_turf.initial_gas_mix)
+				SSair.planetary[our_target_turf.initial_gas_mix] = mix
 
 	qdel(src)

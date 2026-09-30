@@ -3,6 +3,7 @@ import { useBackend } from 'tgui/backend';
 import { BlockQuote, Box, Button, Section, Stack } from 'tgui-core/components';
 
 import type { Language, PreferencesMenuData } from '../types';
+import { LanguageUnderstanding } from './LanguageUnderstanding';
 
 export function KnownLanguage(props: { language: Language }) {
   const { act } = useBackend<PreferencesMenuData>();
@@ -62,6 +63,9 @@ export function KnownLanguage(props: { language: Language }) {
             </Button>
           </Stack.Item>
         </Stack>
+        {!props.language.speaking && (
+          <LanguageUnderstanding language={props.language} />
+        )}
       </Section>
     </Stack.Item>
   );

@@ -67,7 +67,10 @@ Upstream `nanotrasen`, `ntos`, and default-paint recolor (`admin`, `dark`,
 
 ## Skin catalog
 
-The title-bar gear exposes one account-wide base-theme preference in this
+The title-bar gear sits with the development toggle (development builds only)
+as bare icons in the close button's colour and opacity, each in a full-height
+24px cell, so a skin's frame pin keeps its lane between them and the close
+button. The gear exposes one account-wide base-theme preference in this
 order: **Aphelion**, **Classic**, **Electra**, Vector, Synapse, Highline,
 Hephaestus, Diagnostic, Augmentation, Hotline, Cyberpunk, Scavenger,
 Wastelander, Shadowbroker, and Foundry.
@@ -264,6 +267,12 @@ mixin alone does not deduplicate the emitted asset.
 Import window-only artwork from `_index.scss`, not `_finishes.scss`: the lobby
 does not render `.Window` elements. `_peripheral-data.scss` follows this rule
 so its large border glyph textures are only embedded in the TGUI bundle.
+
+Embedded SVGs are base64 encoded, so every byte of a file costs about a third
+more in the bundle. Optimize new or edited SVGs before committing them: from
+`tgui/`, run `bunx svgo -r -f packages/tgui/styles/meridianos/assets`, which
+picks up `tgui/svgo.config.cjs`. Its settings keep the result identical on
+screen.
 
 From `tgui/`, run:
 

@@ -147,7 +147,7 @@ GLOBAL_LIST_EMPTY(aaerp_maskcache)
 
 	image.overlays -= image.overlays
 	for(var/an_overlay in cached_other)
-		var/arm_check = findtext(an_overlay:icon_state, "_arm") && (an_overlay:layer == -BODYPARTS_LAYER)
+		var/arm_check = an_overlay:layer == -BODYPARTS_LAYER && findtextEx(an_overlay:icon_state, "_arm")
 		if(an_overlay:layer < image.layer && !arm_check)
 			continue
 

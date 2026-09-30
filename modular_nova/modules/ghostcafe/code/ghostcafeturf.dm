@@ -9,6 +9,12 @@
 	immunity_trait = TRAIT_GHOSTROLE
 	immunity_resistance_flags = LAVA_PROOF
 
+/// Decor mapped onto fake lava is often set to take no damage, which the burning component refuses, and there's nothing on it to burn anyway.
+/turf/open/lava/fake/do_burn(atom/movable/burn_target, seconds_per_tick = 1)
+	if(isobj(burn_target) && !burn_target.uses_integrity)
+		return FALSE
+	return ..()
+
 /turf/open/floor/plating/vox
 	name = "nitrogen-filled plating"
 	desc = "Vox box certified."

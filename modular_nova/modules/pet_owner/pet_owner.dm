@@ -66,6 +66,7 @@
 	savefile_key = "pet_owner"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 GLOBAL_LIST_INIT(possible_player_pet, list(
 	"Axolotl" = /mob/living/basic/axolotl,
@@ -140,6 +141,7 @@ GLOBAL_LIST_INIT(possible_player_pet, list(
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	maximum_value_length = 32
+	should_update_preview = FALSE
 
 /datum/preference/text/pet_name/is_accessible(datum/preferences/preferences)
 	if (!..())
@@ -158,6 +160,7 @@ GLOBAL_LIST_INIT(possible_player_pet, list(
 	savefile_key = "pet_desc"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/text/pet_desc/is_accessible(datum/preferences/preferences)
 	if (!..())
@@ -176,6 +179,7 @@ GLOBAL_LIST_INIT(possible_player_pet, list(
 	savefile_key = "pet_gender"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/pet_gender/init_possible_values()
 	return list("Random", MALE, FEMALE, PLURAL, NEUTER)

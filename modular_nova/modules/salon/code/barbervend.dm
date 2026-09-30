@@ -20,6 +20,8 @@
 	)
 	premium = list(
 		/obj/item/scissors = 3,
+		/obj/item/tattoo_machine = 3,
+		/obj/item/hhmirror = 5,
 		/obj/item/reagent_containers/spray/super_barbers_aid = 3,
 		/obj/item/storage/box/lipsticks = 3,
 		/obj/item/lipstick/quantum = 1,

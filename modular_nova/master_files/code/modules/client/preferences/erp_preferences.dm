@@ -125,6 +125,7 @@
 	category = PREFERENCE_CATEGORY_ERP
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_status_pref"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/erp_status/init_possible_values()
 	return list(
@@ -182,6 +183,7 @@
 	category = PREFERENCE_CATEGORY_ERP
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_status_pref_nc"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/erp_status_nc/init_possible_values()
 	return list(
@@ -220,6 +222,7 @@
 	category = PREFERENCE_CATEGORY_ERP
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_status_pref_v"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/erp_status_v/init_possible_values()
 	return list(
@@ -258,6 +261,7 @@
 	category = PREFERENCE_CATEGORY_ERP
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_status_pref_mechanics"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/erp_status_mechanics/init_possible_values()
 	return list(
@@ -327,6 +331,7 @@
 	category = PREFERENCE_CATEGORY_ERP
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_status_pref_hypnosis"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/erp_status_hypno/init_possible_values()
 	return list(

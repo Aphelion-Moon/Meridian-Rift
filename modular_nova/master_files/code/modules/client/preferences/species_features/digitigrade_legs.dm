@@ -44,6 +44,13 @@
 	if(target == preferences.character_preview_view?.body && target.dna.species.type != preferences.read_preference(/datum/preference/choiced/species))
 		return TRUE
 
-	target.update_body()
+	// Swap the limbs as one render batch, as a species change does, then draw the body once.
+	// The preview's features are reset before every render, so this runs on each one.
+	var/already_batched = target.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS
+	target.living_flags |= STOP_OVERLAY_UPDATE_BODY_PARTS
 	target.dna.species.replace_body(target, target.dna.species) // TODO: Replace this with something less stupidly expensive.
+	if(!already_batched)
+		target.living_flags &= ~STOP_OVERLAY_UPDATE_BODY_PARTS
+		target.update_body()
+		target.update_damage_overlays()
 	return TRUE
