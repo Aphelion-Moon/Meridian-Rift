@@ -11,15 +11,15 @@ pressed; clicking a tile only inspects it. Everything above the inspected specie
 its height from species to species, so browsing never moves the page under the pointer.
 
 - **Families and lineages.** Each species names its family through
-  `/datum/species/proc/get_species_family()`, a `/datum/species_family` typepath. Families give
-  their own name, icon and order, the way quirks give their icons, and reach the page with the
-  static preference data from `/datum/preference_middleware/species_page`. A species is a
-  variant of its parent type when the page offers that parent too (Felinid of Human, Ash Walker of
-  Lizardperson), and Vox Primalis is filed with the Vox. Variants in another family, like the
-  holiday Vampire, stand on their own there and still name their parent. The template species, bases
-  for players' own creations (Humanoid, Anthromorph, Anthromorphic Insect, Aquatic, Synthetic
-  Humanoid), are filed last, under Generic. The roster puts every tile on one grid of columns, and
-  each lineage's box sits in the gaps around its tiles, at the start of its row.
+  `/datum/species/proc/get_species_family()`, a `/datum/species_family` typepath. Families give their own
+  name, icon and order, the way quirks give their icons, and reach the page with the static preference
+  data from `/datum/preference_middleware/species_page`. A species is a variant of its parent type when
+  the page offers that parent too (Felinid of Human, Ash Walker of Lizardperson), Vox Primalis is filed
+  with the Vox, and Kobolds with the Lizardpeople. Variants in another family, like the holiday Vampire,
+  stand on their own there and still name their parent. The template species, bases for players' own
+  creations (Humanoid, Anthromorph, Anthromorphic Insect, Aquatic, Synthetic Humanoid), are filed last,
+  under Generic. The roster puts every tile on one grid of columns, and each lineage's box sits in the
+  gaps around its tiles, at the start of its row.
 - **Holiday species** can be picked in character setup all year and are joinable during their
   holiday. `/datum/species/proc/get_holiday()` names the holiday that makes a species a roundstart
   race, mirroring `check_roundstart_eligible()`; jobs already refuse species that are not roundstart
@@ -29,10 +29,13 @@ its height from species to species, so browsing never moves the page under the p
 - **No placeholder text.** Placeholder and "fill this in" descriptions and lore are left out of the
   page's data, and the page draws nothing in their place.
 - **Specimen chamber.** The inspected species turns in four directions, in uniform or without, from
-  `/datum/asset/spritesheet_batched/species_full` and `/datum/asset/spritesheet_batched/species_full/body`,
-  which replace the old 64x64 head sheet. Every MeridianOS theme dresses the chamber from its own
-  materials, and Classic follows stock tgui. The chamber's motion pauses while the window is hidden
-  or unfocused.
+  `/datum/asset/spritesheet_batched/species_full` and
+  `/datum/asset/spritesheet_batched/species_full/body`, which replace the old 64x64 head sheet. Each
+  species stands as tall as it does in the round: its dummy takes its height as one filter over the whole
+  body, as character setup's does, and since a flatten leaves filters out, the rows the filter moves are
+  moved in the render itself, from bands of it (`species_page_height()`), so Kobolds and Dwarves are
+  short. Every MeridianOS theme dresses the chamber from its own materials, and Classic follows stock
+  tgui. The chamber's motion pauses while the window is hidden or unfocused.
 - **The character itself.** While the chamber shows the character's own species, it shows the
   character: the drawing of the preferences preview mob that every tab of character setup shows (see
   the character preview module), with its height and body size, standing where a species sprite

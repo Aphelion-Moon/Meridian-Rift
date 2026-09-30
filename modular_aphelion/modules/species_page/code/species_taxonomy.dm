@@ -129,3 +129,7 @@
 // Vox Primalis is not a subtype of Vox, but it is one of their kin.
 /datum/species/vox_primalis/get_variant_of(list/page_ids)
 	return page_ids[SPECIES_VOX] ? SPECIES_VOX : null
+
+// Kobolds are not a subtype of lizards, but they are lizardfolk: one of their kin.
+/datum/species/monkey/kobold/get_variant_of(list/page_ids)
+	return page_ids[SPECIES_LIZARD] ? SPECIES_LIZARD : null
