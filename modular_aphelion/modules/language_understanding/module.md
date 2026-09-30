@@ -20,6 +20,12 @@ character speaks is always followed in full.
   as before. Loading drops unknown languages and anything that isn't a number, and snaps the rest into range. Code
   without this module ignores the key.
 - **Samples are kept.** Each language's sample line is scrambled once per level and kept.
+- **Loads never leave a character mute.** Loading a character (an import included) reads what it knows of each
+  language as spoken or understood whatever a file holds: text, like `"2"`, or tg's language flags, where 3 is
+  spoken and understood. Before, anything but the number 2 was understood only, so a character imported from such a
+  file showed every language as "Can only understand" and spawned speaking none. A language known not at all is
+  dropped, and a character left with no languages gets its species' spoken ones, where before it spawned with none
+  unless the Languages page had been drawn for it (`sanitize_language_knowledge()`).
 
 ### TG Proc/File Changes:
 
@@ -30,6 +36,7 @@ New UI files start with `// THIS IS AN APHELION UI FILE`.
 | --- | --- |
 | `code/modules/client/preferences_savefile.dm` | `/datum/preferences/proc/switch_to_slot()`: a slot that fails to load also clears the levels. |
 | `modular_nova/master_files/code/modules/client/preferences_savefile.dm` | `load_character_nova()` and `save_character_nova()` read and write `language_understanding`. |
+| `modular_nova/modules/customization/modules/client/preferences.dm` | `/datum/preferences/proc/sanitize_languages()` reads each language's knowledge through `sanitize_language_knowledge()`, and gives a character with no languages its species' spoken ones. |
 | `modular_nova/master_files/code/modules/language/language_holder.dm` | `/datum/language_holder/proc/adjust_languages_to_prefs()` clears the levels it granted, then grants each understood-only language set below full as partial understanding. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LanguagesMenu.tsx` | `KnownLanguage` shows the slider for a language only understood; `LanguagesPage` says what it does. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Adds `PreferencesMenuData`'s `language_understanding` and `language_understanding_samples`. |
@@ -37,7 +44,7 @@ New UI files start with `// THIS IS AN APHELION UI FILE`.
 ### Modular Overrides:
 
 - `code/language_understanding.dm`: adds `/datum/preferences/var/language_understanding` with
-  `language_understanding_level()` and `saved_language_understanding()`, and the
+  `language_understanding_level()` and `saved_language_understanding()`, `/proc/sanitize_language_knowledge()`, and the
   `/datum/preference_middleware/language_understanding` middleware.
 
 ### Defines:
@@ -51,6 +58,8 @@ New UI files start with `// THIS IS AN APHELION UI FILE`.
   label and the sample line, with `LanguageUnderstanding.test.tsx`.
 - `tgui/packages/tgui/styles/meridianos/_preferences.scss`: the label's and the sample's styles.
 - `code/modules/unit_tests/~nova/language_understanding.dm`, included from `code/modules/unit_tests/_unit_tests.dm`.
+- `code/modules/unit_tests/~nova/preferences_import_languages.dm`: languages survive an export and import, knowledge
+  held as text or flags imports as meant, and a character imported with none speaks its species' languages.
 - `tgstation.dme`
 
 ### Credits:

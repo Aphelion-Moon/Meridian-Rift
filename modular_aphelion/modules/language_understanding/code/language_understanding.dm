@@ -40,6 +40,18 @@
 			LAZYSET(levels, language, level)
 	return levels
 
+/**
+ * A saved language's knowledge as LANGUAGE_SPOKEN or LANGUAGE_UNDERSTOOD, or null for none. A file from elsewhere may
+ * hold it as text, or as tg's language flags, where 3 is spoken and understood; everything but LANGUAGE_SPOKEN itself
+ * was taken as understood only, and a character imported that way spoke nothing.
+ */
+/proc/sanitize_language_knowledge(value)
+	if(istext(value))
+		value = text2num(value)
+	if(!isnum(value) || value < LANGUAGE_UNDERSTOOD)
+		return null
+	return value >= LANGUAGE_SPOKEN ? LANGUAGE_SPOKEN : LANGUAGE_UNDERSTOOD
+
 /// A level snapped to a whole step, between the least allowed and all of it.
 /proc/snap_language_understanding(level)
 	return clamp(round(level, LANGUAGE_UNDERSTANDING_STEP), LANGUAGE_UNDERSTANDING_MIN, 100)
