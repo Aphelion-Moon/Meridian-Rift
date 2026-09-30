@@ -84728,7 +84728,7 @@
 /obj/machinery/recharger{
 	pixel_y = 3
 	},
-/obj/item/borg/sight/hud/sec{
+/obj/item/clothing/glasses/hud/security{
 	pixel_y = 17
 	},
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,
