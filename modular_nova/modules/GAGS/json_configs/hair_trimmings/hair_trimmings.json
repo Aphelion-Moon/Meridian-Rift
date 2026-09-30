@@ -1,0 +1,122 @@
+{
+	"curl_1": [
+		{
+			"type": "icon_state",
+			"icon_state": "curl_1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"curl_2": [
+		{
+			"type": "icon_state",
+			"icon_state": "curl_2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"curl_3": [
+		{
+			"type": "icon_state",
+			"icon_state": "curl_3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"arc_1": [
+		{
+			"type": "icon_state",
+			"icon_state": "arc_1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"arc_2": [
+		{
+			"type": "icon_state",
+			"icon_state": "arc_2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"arc_3": [
+		{
+			"type": "icon_state",
+			"icon_state": "arc_3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"tangle_1": [
+		{
+			"type": "icon_state",
+			"icon_state": "tangle_1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"tangle_2": [
+		{
+			"type": "icon_state",
+			"icon_state": "tangle_2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"tangle_3": [
+		{
+			"type": "icon_state",
+			"icon_state": "tangle_3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"wisp_1": [
+		{
+			"type": "icon_state",
+			"icon_state": "wisp_1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"wisp_2": [
+		{
+			"type": "icon_state",
+			"icon_state": "wisp_2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"wisp_3": [
+		{
+			"type": "icon_state",
+			"icon_state": "wisp_3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	]
+}

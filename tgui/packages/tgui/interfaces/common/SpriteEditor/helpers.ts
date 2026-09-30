@@ -1,5 +1,6 @@
 import { normal } from 'color-blend';
-import { useCallback, useEffect, useState } from 'react';
+//import { useCallback, useEffect, useState } from 'react'; // APHELION EDIT REMOVAL
+import { useCallback, useEffect, useRef, useState } from 'react'; // APHELION EDIT ADDITION
 
 import { hsv2rgb, isRgb, parseHexColorString } from './colorSpaces';
 import type {
@@ -64,16 +65,30 @@ export function useClickAndDragEventHandler<T>(
   onMouseMove?: ClickAndDragEventHandler<T>,
   onMouseUp?: ClickAndDragEventHandler<T>,
 ): (MouseEvent) => void {
+  // APHELION EDIT ADDITION START - own listeners through rerenders and unmounts.
+  const stopDrag = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => () => stopDrag.current?.(), []);
+  const detach = () => {
+    window.removeEventListener('mousemove', moveHandler);
+    window.removeEventListener('mouseup', upHandler);
+    if (stopDrag.current === detach) stopDrag.current = undefined;
+  };
+  // APHELION EDIT ADDITION END
   const moveHandler = (ev: MouseEvent) => onMouseMove?.(ev, ref);
   const upHandler = (ev: MouseEvent) => {
+    detach(); // APHELION EDIT ADDITION - detach even if release throws or unmounts.
     onMouseUp?.(ev, ref);
     ev.preventDefault();
-    window.removeEventListener('mousemove', moveHandler);
+    // APHELION EDIT REMOVAL - ORIGINAL: window.removeEventListener('mousemove', moveHandler);
   };
   return (ev: MouseEvent) => {
     onMouseDown?.(ev, ref);
     if (ev.defaultPrevented) return;
     ev.preventDefault();
+    // APHELION EDIT ADDITION START
+    stopDrag.current?.();
+    stopDrag.current = detach;
+    // APHELION EDIT ADDITION END
     window.addEventListener('mousemove', moveHandler);
     window.addEventListener('mouseup', upHandler, { once: true });
   };
@@ -168,8 +183,10 @@ export function bresenhamLine(
   const dy = Math.abs(y1 - y0);
   const sy = Math.sign(y1 - y0);
   let error = dx - dy;
-  do {
+  // APHELION EDIT CHANGE - ORIGINAL: do {
+  while (true) {
     plot(x0, y0);
+    if (x0 === x1 && y0 === y1) break; // APHELION EDIT ADDITION
     const e2 = 2 * error;
     if (e2 > -dy) {
       error -= dy;
@@ -179,5 +196,22 @@ export function bresenhamLine(
       error += dx;
       y0 += sy;
     }
-  } while (!(x0 === x1 && y0 === y1));
+  } // APHELION EDIT CHANGE - ORIGINAL: } while (!(x0 === x1 && y0 === y1));
 }
+// APHELION EDIT ADDITION START
+export const isWithinDrawBounds = (
+  x: number,
+  y: number,
+  bounds?: [number, number, number, number],
+  mask?: string[],
+) =>
+  (!bounds ||
+    (x >= bounds[0] && y >= bounds[1] && x <= bounds[2] && y <= bounds[3])) &&
+  (!mask || mask[y]?.[x] === '1');
+export const isPainted = (color: string | undefined) =>
+  !!color && (parseHexColorString(color).a ?? 1) > 0;
+/** Whether a key event is aimed at a text field, which keeps its own shortcuts. */
+export const isTextEntryTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (!!target.closest('input, textarea, select') || target.isContentEditable);
+// APHELION EDIT ADDITION END

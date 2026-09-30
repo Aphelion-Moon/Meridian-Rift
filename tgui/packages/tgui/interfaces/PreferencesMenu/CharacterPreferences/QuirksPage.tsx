@@ -11,7 +11,6 @@ import {
   Tooltip,
 } from 'tgui-core/components';
 import { createSearch } from 'tgui-core/string';
-import { CharacterPreview } from '../../common/CharacterPreview'; // NOVA EDIT ADDITION
 
 import {
   type PreferencesMenuData,
@@ -493,29 +492,7 @@ function QuirkPage() {
       </Stack.Item>
 
       <Stack.Item align="center">
-        {/* <Icon name="exchange-alt" size={1.5} ml={2} mr={2} /> // NOVA EDIT REMOVAL - moved down */}
-        {/* NOVA EDIT ADDITION START */}
-        <Stack vertical fill align="center">
-          {/* Keep the CharacterPreview alive but "hidden", so that traits that affect appearance (e.g. Oversized) refresh rendering calculations immediately. */}
-          <Stack.Item
-            style={{
-              position: 'absolute',
-              left: '-10000px',
-              top: '-10000px',
-              width: '1px',
-              height: '1px',
-              pointerEvents: 'none',
-            }}
-          >
-            <CharacterPreview
-              id={data.character_preview_view}
-              height="1px"
-              width="1px"
-            />
-          </Stack.Item>
-          <Icon name="exchange-alt" size={1.5} ml={2} mr={2} />
-        </Stack>
-        {/* NOVA EDIT ADDITION END */}
+        <Icon name="exchange-alt" size={1.5} ml={2} mr={2} />
       </Stack.Item>
 
       <Stack.Item basis="50%">

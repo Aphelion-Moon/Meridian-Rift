@@ -113,6 +113,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	should_generate_icons = TRUE
+	should_update_preview = FALSE
 
 GLOBAL_LIST_INIT(possible_player_lunchbox_design_choice, list(
 	"Dark" = /obj/item/storage/lunchbox/dark,
@@ -167,6 +168,7 @@ GLOBAL_LIST_INIT(possible_player_lunchbox_design_choice, list(
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	should_generate_icons = TRUE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/lunchbox_meal_choice/init_possible_values()
 	return list("Random") + assoc_to_keys(GLOB.possible_player_lunchbox_meal_choice)
@@ -282,6 +284,7 @@ GLOBAL_LIST_INIT(possible_player_lunchbox_meal_choice, list(
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	should_generate_icons = TRUE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/lunchbox_first_snack_choice/icon_for(value)
 	if (value == "Random")
@@ -400,6 +403,7 @@ GLOBAL_LIST_INIT(possible_player_lunchbox_snack_choice, list(
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	should_generate_icons = TRUE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/lunchbox_second_snack_choice/icon_for(value)
 	if (value == "Random")
@@ -431,6 +435,7 @@ GLOBAL_LIST_INIT(possible_player_lunchbox_snack_choice, list(
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	should_generate_icons = TRUE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/lunchbox_drink_choice/icon_for(value)
 	if (value == "Random")
@@ -521,6 +526,7 @@ GLOBAL_LIST_INIT(possible_player_lunchbox_drink_choice, list(
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	should_generate_icons = TRUE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/lunchbox_desert_choice/icon_for(value)
 	if (value == "Random")

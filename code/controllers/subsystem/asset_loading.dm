@@ -23,7 +23,7 @@ SUBSYSTEM_DEF(asset_loading)
 			return
 
 	// We just emptied the queue
-	if(last_queue_len && !length(generate_queue) && !assets_generating)
+	if(last_queue_len && !length(generate_queue) && !assets_generating && !character_preview_drawing_under_way()) // APHELION EDIT CHANGE - This runs on every fire once the queue has emptied, and would spoil a character preview being drawn. ORIGINAL: if(last_queue_len && !length(generate_queue) && !assets_generating)
 		// Clean up cached icons, freeing memory.
 		rustg_iconforge_cleanup()
 

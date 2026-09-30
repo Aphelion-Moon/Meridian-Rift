@@ -1,6 +1,7 @@
 /// Abstract base for knotting prefs.
 /datum/preference/toggle/knotting
 	abstract_type = /datum/preference/toggle/knotting
+	should_update_preview = FALSE
 
 /datum/preference/toggle/knotting/is_accessible(datum/preferences/preferences)
 	if(!..(preferences))

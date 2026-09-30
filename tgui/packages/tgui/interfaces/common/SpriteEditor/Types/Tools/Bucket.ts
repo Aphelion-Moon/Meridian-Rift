@@ -1,6 +1,8 @@
 import { sendAct as act } from 'tgui/events/act';
 import { colorToHexString } from '../../colorSpaces';
-import { constrainToIconGrid } from '../../helpers';
+// APHELION EDIT CHANGE - ORIGINAL: import { constrainToIconGrid } from '../../helpers';
+import { constrainToIconGrid, isWithinDrawBounds } from '../../helpers';
+import { strokeLayer } from '../../strokeMask'; // APHELION EDIT ADDITION
 import { Tool } from '../Tool';
 import type { SpriteData, SpriteEditorToolContext } from '../types';
 
@@ -19,13 +21,21 @@ export class Bucket extends Tool {
     const { selectedDir, selectedLayer, currentColor } = context;
     const { width, height } = data;
     const [px, py, inBounds] = constrainToIconGrid(x, y, width, height);
-    if (!inBounds) return undefined;
+    // if (!inBounds) return undefined; // APHELION EDIT REMOVAL
+    // APHELION EDIT ADDITION START
+    if (
+      !inBounds ||
+      !isWithinDrawBounds(px, py, context.drawBounds, context.drawMask)
+    )
+      return undefined;
+    context.onDraw?.(px, py);
+    // APHELION EDIT ADDITION END
     act('spriteEditorCommand', {
       command: 'transaction',
       transaction: {
         type: 'bucket',
         name: 'Flood Fill',
-        layer: selectedLayer + 1,
+        ...strokeLayer(data, selectedLayer), // APHELION EDIT CHANGE - ORIGINAL: layer: selectedLayer + 1,
         dir: `${selectedDir}`,
         color: colorToHexString(currentColor),
         point: [px, py],

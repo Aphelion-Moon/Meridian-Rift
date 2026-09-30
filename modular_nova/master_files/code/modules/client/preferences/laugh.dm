@@ -3,6 +3,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "character_laugh"
 	randomize_by_default = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/laugh/init_possible_values()
 	return assoc_to_keys(GLOB.laugh_types_by_name)

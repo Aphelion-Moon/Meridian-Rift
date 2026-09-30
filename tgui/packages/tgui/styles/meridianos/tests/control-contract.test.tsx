@@ -20,9 +20,9 @@ import {
 } from '../../../constants/theme';
 import { PriorityButton } from '../../../interfaces/PreferencesMenu/CharacterPreferences/JobsPage';
 import { LOADOUT_CATEGORY_TABS_CLASS } from '../../../interfaces/PreferencesMenu/CharacterPreferences/loadout';
+
 /** The stylesheets under test live one level up from this directory. */
 const styleRoot = join(import.meta.dir, '..');
-
 
 const COMPONENT_SOURCE = readFileSync(
   join(styleRoot, '_components.scss'),
@@ -32,14 +32,8 @@ const DECORATION_SOURCE = readFileSync(
   join(styleRoot, '_decoration.scss'),
   'utf8',
 );
-const THEME_SOURCE = readFileSync(
-  join(styleRoot, '_themes.scss'),
-  'utf8',
-);
-const TOKEN_SOURCE = readFileSync(
-  join(styleRoot, '_tokens.scss'),
-  'utf8',
-);
+const THEME_SOURCE = readFileSync(join(styleRoot, '_themes.scss'), 'utf8');
+const TOKEN_SOURCE = readFileSync(join(styleRoot, '_tokens.scss'), 'utf8');
 const CHECKED_ARIA = {
   'aria-checked': true,
   role: 'checkbox',
@@ -77,9 +71,7 @@ beforeAll(async () => {
       '_components.scss',
       '_decoration.scss',
       '_preferences.scss',
-    ].map(
-      async (file) => (await compileAsync(join(styleRoot, file))).css,
-    ),
+    ].map(async (file) => (await compileAsync(join(styleRoot, file))).css),
   );
   productionStyle = document.createElement('style');
   // happy-dom does not resolve custom properties in background shorthands.
@@ -155,12 +147,14 @@ describe('MeridianOS shared control geometry', () => {
           <Button aria-label="Classic ellipsis action" ellipsis fluid>
             Long action label
           </Button>
+          {/* // APHELION EDIT REMOVAL START - Species page: the old species button and its rules are commented out.
           <Button
             aria-label="Classic species action"
             className="PreferencesMenu__SpeciesButton"
           >
             <span>Species preview</span>
           </Button>
+          // APHELION EDIT REMOVAL END */}
           <PriorityButton
             color="green"
             enabled
@@ -194,9 +188,11 @@ describe('MeridianOS shared control geometry', () => {
     expect(getComputedStyle(content('Classic ellipsis action')).display).toBe(
       'flex',
     );
-    expect(getComputedStyle(content('Classic species action')).display).toBe(
-      'grid',
-    );
+    // APHELION EDIT REMOVAL START - Species page: the old species button and its rules are commented out.
+    // expect(getComputedStyle(content('Classic species action')).display).toBe(
+    //   'grid',
+    // );
+    // APHELION EDIT REMOVAL END
     for (const priority of [enabledPriority, emptyPriority]) {
       expect(getComputedStyle(priority).lineHeight).toBe('16px');
       expect(getComputedStyle(priority).minHeight).toBe('0');
@@ -205,10 +201,33 @@ describe('MeridianOS shared control geometry', () => {
       ).not.toBe('24px');
     }
     expect(
-      getComputedStyle(legacyButton)
-        .getPropertyValue('--button-height')
-        .trim(),
+      getComputedStyle(legacyButton).getPropertyValue('--button-height').trim(),
     ).not.toBe('max(24px, 1.667em)');
+  });
+
+  it('gives Classic dropdowns the box of the buttons beside them', () => {
+    // Stock tgui draws a dropdown 22px high; Classic buttons are 24px, which
+    // left each preference dropdown 2px short of its arrow and play buttons.
+    for (const [theme, expected] of [
+      ['theme-nanotrasen theme-meridian_classic', '24px'],
+      ['theme-nanotrasen', ''],
+    ] as const) {
+      const view = render(
+        <div className={theme}>
+          <Dropdown
+            buttons
+            onSelected={() => undefined}
+            options={['First', 'Second']}
+            selected="First"
+          />
+        </div>,
+      );
+      const control = view.container.querySelector(
+        '.Dropdown__control',
+      ) as HTMLElement;
+      expect(getComputedStyle(control).minHeight, theme).toBe(expected);
+      cleanup();
+    }
   });
 
   it('keeps dropdown arrows on the Stack control row', () => {
@@ -233,10 +252,7 @@ describe('MeridianOS shared control geometry', () => {
 
       const arrows = view.container.querySelectorAll('.Dropdown > .Button');
       expect(arrows).toHaveLength(2);
-      for (const control of [
-        view.getByLabelText('Direct action'),
-        ...arrows,
-      ]) {
+      for (const control of [view.getByLabelText('Direct action'), ...arrows]) {
         const style = getComputedStyle(control);
         expect(style.marginTop, `${theme}: grouped control top margin`).toBe(
           '0px',
@@ -251,9 +267,7 @@ describe('MeridianOS shared control geometry', () => {
   });
 
   it('uses one theme-console contract for every MeridianOS skin', () => {
-    expect(COMPONENT_SOURCE).toMatch(
-      /^(?:\/\/[^\n]*\n)*\.theme-console \{/,
-    );
+    expect(COMPONENT_SOURCE).toMatch(/^(?:\/\/[^\n]*\n)*\.theme-console \{/);
 
     for (const theme of MERIDIAN_THEME_IDS) {
       expect(resolveMeridianTheme({ requested: theme }).classes).toContain(

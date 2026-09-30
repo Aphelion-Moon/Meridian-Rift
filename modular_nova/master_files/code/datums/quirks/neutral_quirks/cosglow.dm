@@ -20,6 +20,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "cosglow_glow_color"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/color/cosglow_glow_color/create_default_value()
 	return "#14FF67"
@@ -34,6 +35,7 @@
 	minimum = COSGLOW_THICKNESS_MIN
 	maximum = COSGLOW_THICKNESS_MAX
 	step = 0.5
+	should_update_preview = FALSE
 
 /datum/preference/numeric/cosglow_thickness/apply_to_human()
 	return

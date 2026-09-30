@@ -16,6 +16,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "floating_items"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/color/floating_items/apply_to_human(mob/living/carbon/human/target, value)
 	target.held_hover_color = value

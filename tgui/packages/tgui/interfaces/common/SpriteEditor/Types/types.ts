@@ -68,6 +68,11 @@ export type BorderStyleProps = Omit<
 >;
 
 export type StringLayer = string[][];
+export type SelectionBounds = [number, number, number, number]; // APHELION EDIT ADDITION
+// APHELION EDIT ADDITION START
+/** Rows of '1' for the selected pixels of a selection box, relative to the box. */
+export type SelectionMask = string[];
+// APHELION EDIT ADDITION END
 
 export type SpriteDataLayer = {
   name: string;
@@ -77,12 +82,52 @@ export type SpriteDataLayer = {
   };
 };
 
+// APHELION EDIT ADDITION START
+export type BaseCopyInfo = {
+  source: string;
+  style?: string | null;
+  origin: [number, number];
+  height: number;
+};
+export type BaseCopyResult = { request: number } & (
+  | { error: true }
+  | {
+      error?: false;
+      source: string;
+      origin: [number, number];
+      width: number;
+      height: number;
+      palette: string[];
+      codes: string;
+    }
+);
+/** The server layer a canvas paints when it shows one of several: its index and its id. */
+export type LayerTarget = { layer: number; layerId: string };
+/**
+ * The view's other paint layers in draw order, below and above the one being painted, for a merged
+ * copy. A getter, so the layers are gathered only when a copy is made and never serialized with the
+ * sprite.
+ */
+export type MergeLayers = () => {
+  dir: Dir;
+  below: StringLayer[];
+  above: StringLayer[];
+};
+
+// APHELION EDIT ADDITION END
 export type SpriteData = {
   width: number;
   height: number;
   dirs: IconDirCount;
   backdrop: string;
   layers: SpriteDataLayer[];
+  // APHELION EDIT ADDITION START
+  compactStrokes?: BooleanLike;
+  selectionPreview?: BooleanLike;
+  baseCopyInfo?: BaseCopyInfo;
+  layerTarget?: LayerTarget;
+  mergeLayers?: MergeLayers;
+  // APHELION EDIT ADDITION END
 };
 
 export enum SpriteEditorColorMode {
@@ -96,7 +141,8 @@ export enum SpriteEditorToolFlags {
   Eraser = 1 << 1,
   Dropper = 1 << 2,
   Bucket = 1 << 3,
-  All = (1 << 4) - 1,
+  Select = 1 << 4, // APHELION EDIT CHANGE - ORIGINAL: All = (1 << 4) - 1,
+  All = (1 << 5) - 1, // APHELION EDIT ADDITION
 }
 
 export type ServerColorData = {
@@ -120,6 +166,14 @@ export type SpriteEditorData = IncludeOrOmitEntireType<
 >;
 
 export type SpriteEditorToolContext = {
+  // APHELION EDIT ADDITION START
+  drawBounds?: [number, number, number, number];
+  drawMask?: string[];
+  onSampleBackdrop?: (x: number, y: number) => void;
+  onDraw?: (x: number, y: number, erasing?: boolean) => void;
+  setSelectionBounds?: Dispatch<SetStateAction<SelectionBounds | undefined>>;
+  setSelectionMask?: Dispatch<SetStateAction<SelectionMask | undefined>>;
+  // APHELION EDIT ADDITION END
   currentColor: EditorColor;
   setCurrentColor: Dispatch<SetStateAction<EditorColor>>;
   selectedDir: Dir;
@@ -130,5 +184,13 @@ export type SpriteEditorToolContext = {
 
 export type SpriteEditorToolCancelContext = Pick<
   SpriteEditorToolContext,
+  /* APHELION EDIT REMOVAL START
   'setPreviewLayer' | 'setPreviewData'
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START
+  | 'setPreviewLayer'
+  | 'setPreviewData'
+  | 'setSelectionBounds'
+  | 'setSelectionMask'
+  // APHELION EDIT ADDITION END
 >;

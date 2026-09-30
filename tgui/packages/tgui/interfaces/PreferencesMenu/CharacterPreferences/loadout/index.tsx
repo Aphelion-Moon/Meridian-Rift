@@ -1,6 +1,7 @@
+import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
 import { Fragment, useState } from 'react';
 import { useBackend } from 'tgui/backend';
-import { CharacterPreview } from 'tgui/interfaces/common/CharacterPreview';
+// import { CharacterPreview } from 'tgui/interfaces/common/CharacterPreview'; // APHELION EDIT REMOVAL - Drawn character preview
 import { removeAllSkiplines } from 'tgui/interfaces/TextInputModal'; // NOVA EDIT ADDITION: Multiple loadout presets
 import {
   Box,
@@ -19,6 +20,8 @@ import {
 
 import type { PreferencesMenuData } from '../../types'; // NOVA EDIT ADDITION: Multiple loadout presets
 import { useServerPrefs } from '../../useServerPrefs';
+import { CharacterPreview } from '../CharacterPreview'; // APHELION EDIT ADDITION - Drawn character preview
+import { turnPreview } from '../CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import type {
   LoadoutCategory,
   LoadoutItem,
@@ -516,6 +519,7 @@ function LoadoutSelectedSection(props: LoadoutSelectedSectionProps) {
 
 function LoadoutPreviewSection() {
   const { act, data } = useBackend<LoadoutManagerData>();
+  const turn = useSetAtom(turnPreview); // APHELION EDIT ADDITION - Drawn character preview
 
   return (
     <Section
@@ -536,7 +540,8 @@ function LoadoutPreviewSection() {
           <CharacterPreview
             height="100%"
             width="240px"
-            id={data.character_preview_view}
+            // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
+            motif="mirror" // APHELION EDIT ADDITION - Preview frames: the loadout's mirror
           />{' '}
           {/* NOVA EDIT CHANGE - ORIGINAL: <CharacterPreview height="100%" id={data.character_preview_view} /> */}
         </Stack.Item>
@@ -559,21 +564,27 @@ function LoadoutPreviewSection() {
             <Stack.Item>
               <Button
                 icon="chevron-left"
+                /* // APHELION EDIT REMOVAL START - The page turns the drawn preview.
                 onClick={() =>
                   act('rotate_dummy', {
                     dir: 'left',
                   })
                 }
+                */ // APHELION EDIT REMOVAL END
+                onClick={() => turn(false)} // APHELION EDIT ADDITION - The page turns the drawn preview.
               />
             </Stack.Item>
             <Stack.Item>
               <Button
                 icon="chevron-right"
+                /* // APHELION EDIT REMOVAL START - The page turns the drawn preview.
                 onClick={() =>
                   act('rotate_dummy', {
                     dir: 'right',
                   })
                 }
+                */ // APHELION EDIT REMOVAL END
+                onClick={() => turn(true)} // APHELION EDIT ADDITION - The page turns the drawn preview.
               />
             </Stack.Item>
           </Stack>

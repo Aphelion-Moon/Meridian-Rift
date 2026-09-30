@@ -6,9 +6,12 @@ import { Bucket } from './Types/Tools/Bucket';
 import { Eraser } from './Types/Tools/Eraser';
 import { Eyedropper } from './Types/Tools/Eyedropper';
 import { Pencil } from './Types/Tools/Pencil';
+import { Select } from './Types/Tools/Select'; // APHELION EDIT ADDITION
 import {
   Dir,
   type EditorColor,
+  type SelectionBounds, // APHELION EDIT ADDITION
+  type SelectionMask, // APHELION EDIT ADDITION
   type SpriteEditorToolCancelContext,
   type StringLayer,
 } from './Types/types';
@@ -39,6 +42,7 @@ export const tools: Tool[] = [
   new Eraser(),
   new Eyedropper(),
   new Bucket(),
+  new Select(), // APHELION EDIT ADDITION
 ];
 
 const currentToolInternalAtom = atom(tools[0]);
@@ -54,7 +58,13 @@ export const currentToolAtom = atom<
     }
     const oldTool = get(currentToolInternalAtom);
     if (oldTool !== tool) {
+      /* APHELION EDIT REMOVAL START
       oldTool?.cancel?.(context);
+      */ // APHELION EDIT REMOVAL END
+      // APHELION EDIT ADDITION START - finish a tool that can release its work.
+      if (oldTool?.release) oldTool.release(context);
+      else oldTool?.cancel?.(context);
+      // APHELION EDIT ADDITION END
     }
     set(currentToolInternalAtom, tool);
   },
@@ -63,3 +73,5 @@ export const dirAtom = atom(Dir.SOUTH);
 export const layerAtom = atom(0);
 export const previewLayerAtom = atom<number | undefined>();
 export const previewDataAtom = atom<StringLayer | undefined>();
+export const selectionBoundsAtom = atom<SelectionBounds | undefined>(); // APHELION EDIT ADDITION
+export const selectionMaskAtom = atom<SelectionMask | undefined>(); // APHELION EDIT ADDITION

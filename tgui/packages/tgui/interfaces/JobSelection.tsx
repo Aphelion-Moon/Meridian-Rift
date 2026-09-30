@@ -214,13 +214,6 @@ export function JobSelection(props) {
           title={
             <>
               {shuttle_status && <NoticeBox info>{shuttle_status}</NoticeBox>}
-              {
-                // NOVA EDIT ADDITION START - Alert level on jobs menu
-                <NoticeBox color={data.alert_level.color}>
-                  The current alert level is: {data.alert_level.name}
-                </NoticeBox>
-                // NOVA EDIT ADDITION END
-              }
               <Box as="span" color="label">
                 It is currently {round_duration} into the shift.
               </Box>

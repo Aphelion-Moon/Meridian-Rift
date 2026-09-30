@@ -51,4 +51,52 @@
     border: 0;
     font: inherit;
   }
+
+  // The theme picker and the development toggle are bare icons like the close button beside them:
+  // its colour and opacity, a full-height cell each, lit on hover. The cells keep their width, so
+  // a theme's frame pin keeps its lane between them and the close button.
+  &__utilities {
+    align-self: stretch;
+
+    > .MeridianThemePicker {
+      align-self: stretch;
+    }
+  }
+
+  &__utilities :is(.MeridianThemePicker__trigger, .TitleBar__utilityButton) {
+    height: 100%;
+    min-height: 0;
+    color: var(--color-text);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    opacity: 0.5;
+    font-size: base.rem(14px);
+    transition-property: background-color, opacity;
+    transition-duration: var(--transition-time-medium);
+
+    &:hover,
+    &[aria-expanded='true'] {
+      opacity: 1;
+      background: color-mix(in srgb, var(--color-text) 12%, transparent);
+      transition-duration: 0s;
+    }
+
+    &:active {
+      background: color-mix(in srgb, var(--color-text) 20%, transparent);
+    }
+  }
+
+  // The development toggle keeps its green, on the icon, and stays lit while its showcase is open.
+  &__utilities .TitleBar__KitchenSink {
+    color: var(--color-green);
+
+    &:hover {
+      background: color-mix(in srgb, var(--color-green) 16%, transparent) !important;
+    }
+
+    &[aria-pressed='true'] {
+      opacity: 1;
+    }
+  }
 }

@@ -442,7 +442,7 @@
 			var/list/penis_appearances = list()
 			for(var/mutable_appearance/penis_appearance as anything in penis_overlay.get_all_overlays(penis.bodypart_owner))
 				var/mutable_appearance/portal_penis = make_mutable_appearance_directional(penis_appearance, WEST)
-				portal_penis.icon_state = replacetext(portal_penis.icon_state, current_suffix_token, portal_suffix_token)
+				portal_penis.icon_state = replacetextEx(portal_penis.icon_state, current_suffix_token, portal_suffix_token)
 				if(portal_penis.icon && !icon_exists(portal_penis.icon, portal_penis.icon_state))
 					continue
 				penis_appearances += portal_penis
@@ -450,7 +450,7 @@
 			var/list/portal_offset
 			for(var/front_first in list(TRUE, FALSE))
 				for(var/mutable_appearance/candidate as anything in penis_appearances)
-					if(!portal_offset && candidate.icon && !!findtext(candidate.icon_state, "_FRONT_UNDER") == front_first)
+					if(!portal_offset && candidate.icon && !!findtextEx(candidate.icon_state, "_FRONT_UNDER") == front_first)
 						portal_offset = portal_penis_offset(candidate)
 			if(!portal_offset)
 				return

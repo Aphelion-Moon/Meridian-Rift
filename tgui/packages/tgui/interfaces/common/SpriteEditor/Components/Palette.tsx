@@ -33,6 +33,7 @@ export const Palette = (props: PaletteProps) => {
   return (
     <Section title="Palette">
       <Stack {...rest} style={{ ...style, flexWrap: 'wrap', gap: '0.5rem' }}>
+        {/* APHELION EDIT REMOVAL START
         {colors.map((color, i) => (
           <Stack.Item key={i} m={0}>
             <Button
@@ -59,6 +60,41 @@ export const Palette = (props: PaletteProps) => {
             />
           </Stack.Item>
         ))}
+        APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START */}
+        {colors.map((color, i) => {
+          const displayColor = colorToCssString(color);
+          return (
+            <Stack.Item
+              key={i}
+              m={0}
+              onKeyDown={(ev) => {
+                if (ev.keyCode === KEY_DELETE) {
+                  onRemoveColor(i + 1);
+                  ev.preventDefault();
+                }
+              }}
+            >
+              <Button
+                inline
+                selected={colorsAreEqual(color, selectedColor)}
+                width="2em"
+                height="2em"
+                {...paletteButtonProps}
+                onClick={() => onClickColor(color, false)}
+                onMouseOver={(ev) => ev.currentTarget.focus()}
+                onContextMenu={(ev) => {
+                  onClickColor(color, true);
+                  ev.preventDefault();
+                }}
+                style={{
+                  backgroundImage: `linear-gradient(${displayColor}, ${displayColor}), url(${transparency_checkerboard})`,
+                }}
+              />
+            </Stack.Item>
+          );
+        })}
+        {/* APHELION EDIT ADDITION END */}
         {maxColors > 1 && (
           <Stack.Item m={0}>
             <Button

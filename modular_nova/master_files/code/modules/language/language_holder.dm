@@ -34,9 +34,16 @@ GLOBAL_DATUM_INIT(language_holder_adjustor, /datum/language_holder_adjustor, new
 	// remove the innate languages (like common, and other species languages) and instead use the language prefs
 	// do not remove any languages granted by spawners, which are denoted by source = LANGUAGE_SPAWNER
 	remove_languages_by_source(list(LANGUAGE_MIND, LANGUAGE_ATOM, LANGUAGE_SPECIES, LANGUAGE_TONGUE))
+	// and the partial understanding the prefs gave last time, so applying them again doesn't keep an old level
+	remove_all_partial_languages(LANGUAGE_MIND)
 	selected_language = null // reset it to recalculate after applying our prefs
 
 	for(var/lang_path in preferences.languages)
+		// a language only understood, and only in part, is partial understanding instead
+		var/understanding = preferences.language_understanding_level(lang_path)
+		if(understanding < 100)
+			grant_partial_language(lang_path, understanding, LANGUAGE_MIND)
+			continue
 		grant_language(lang_path, (preferences.languages[lang_path] == LANGUAGE_SPOKEN ? ALL : UNDERSTOOD_LANGUAGE))
 
 	get_selected_language()

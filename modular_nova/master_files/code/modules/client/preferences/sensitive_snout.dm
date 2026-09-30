@@ -2,6 +2,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "snout_sensitivity"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/snout_sensitivity/init_possible_values()
 	return assoc_to_keys(GLOB.possible_snout_sensitivities)

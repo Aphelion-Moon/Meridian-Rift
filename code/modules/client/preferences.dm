@@ -100,6 +100,8 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/list/cached_character_profiles
 
 /datum/preferences/Destroy(force)
+	close_custom_sprite_editors() // APHELION EDIT ADDITION
+	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
 	QDEL_NULL(character_preview_view)
 	QDEL_LIST(middleware)
 	value_cache = null
@@ -166,7 +168,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		ui = new(user, src, "PreferencesMenu")
 		ui.set_autoupdate(FALSE)
 		ui.open()
-		character_preview_view.display_to(user, ui.window)
+		// APHELION EDIT REMOVAL - Character setup draws the preview in the page instead of showing this map. ORIGINAL: character_preview_view.display_to(user, ui.window)
 
 /datum/preferences/ui_state(mob/user)
 	return GLOB.always_state
@@ -211,7 +213,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	else
 		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
 	// NOVA EDIT ADDITION END
-	data["character_preview_view"] = character_preview_view.assigned_map
+	// APHELION EDIT REMOVAL - The page draws the preview rather than showing this map. ORIGINAL: data["character_preview_view"] = character_preview_view.assigned_map
 	data["overflow_role"] = SSjob.get_job_type(SSjob.overflow_role).title
 	data["window"] = current_window
 
@@ -377,9 +379,11 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	return FALSE
 
 /datum/preferences/ui_close(mob/user)
+	close_custom_sprite_editors() // APHELION EDIT ADDITION - Flush before the parent preview disappears
 	save_character()
 	save_preferences()
 	QDEL_NULL(character_preview_view)
+	preview_drawing?.window_closed() // APHELION EDIT ADDITION - The drawn preview goes with the window
 	cached_character_profiles = null
 
 /datum/preferences/Topic(href, list/href_list)
@@ -446,96 +450,42 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/datum/preferences/preferences
 	/// Whether we show current job clothes or nude/loadout only
 	var/show_job_clothes = TRUE
-	// NOVA EDIT ADDITION START: Better character preview: Rescales between 32x32, 64x64 and 96x96.
-	var/image/canvas
-	var/last_canvas_size
-	var/last_canvas_state
-	/// The image render_new_preview_appearance() returned instead of rendering the dummy, if any.
+	// APHELION EDIT ADDITION START - The drawn preview
+	/// The image render_new_preview_appearance() returned instead of dressing the dummy, if any: a silicon job's.
 	var/image/silicon_preview
-	/// A transparent tiled rectangle sizes the map before the canvas icon reaches the client.
-	var/atom/movable/screen/background/preview_bounds
-	// NOVA EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 
 /atom/movable/screen/map_view/char_preview/Initialize(mapload, datum/hud/hud_owner, datum/preferences/preferences)
 	. = ..()
 	src.preferences = preferences
 
 /atom/movable/screen/map_view/char_preview/Destroy()
-	QDEL_NULL(preview_bounds) // APHELION EDIT ADDITION - Owned preview map bounds.
-	// NOVA EDIT ADDITION START: Better character preview
-	canvas?.cut_overlays()
-	canvas = null
 	silicon_preview = null // APHELION EDIT ADDITION
-	// NOVA EDIT ADDITION END
+	SScharacter_preview.queue -= src // APHELION EDIT ADDITION - A rebuild waiting its turn goes with the view
 	QDEL_NULL(body)
 	preferences?.character_preview_view = null
 	preferences = null
 	return ..()
 
-// APHELION EDIT ADDITION START - Register bounds through the normal map lifecycle.
-/atom/movable/screen/map_view/char_preview/display_to_client(client/show_to)
-	. = ..()
-	if(preview_bounds)
-		show_to.register_map_obj(preview_bounds)
-
-// APHELION EDIT ADDITION END
 /// Updates the currently displayed body
-/atom/movable/screen/map_view/char_preview/proc/update_body()
+/atom/movable/screen/map_view/char_preview/proc/update_body(catching_up = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /atom/movable/screen/map_view/char_preview/proc/update_body()
+	// APHELION EDIT ADDITION START - With character setup open, the drawing rebuilds the body, once an action, in turn when many do; catching_up is that rebuild. See rebuilds.dm.
+	if (!catching_up && defer_rebuild())
+		return
+	body_stale = FALSE
+	// APHELION EDIT ADDITION END
 	if (isnull(body))
 		create_body()
 	else
 		body.wipe_state()
 
-	// APHELION EDIT CHANGE START - Keep the silicon image so the canvas can show it. ORIGINAL: appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
+	// APHELION EDIT CHANGE START - Keep a silicon job's image for the drawn preview. ORIGINAL: appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
 	var/rendered = preferences.render_new_preview_appearance(body, show_job_clothes)
 	appearance = rendered
 	// The human path returns the dummy's own appearance; only the AI/Cyborg path returns a standalone /image.
 	silicon_preview = isimage(rendered) ? rendered : null
 	// APHELION EDIT CHANGE END
 
-	// NOVA EDIT ADDITION BEGIN: Better character preview
-	var/canvas_size = 0
-	var/canvas_state = preferences.read_preference(/datum/preference/choiced/background_state)
-
-	// if oversized trait (fixes size at 2.0) or over 1.1, scales up
-	// applies them to the dummy, and the map's bounds must not change when the top job changes: the client does not
-	// re-fit a secondary map whose bounds grow after it is shown, which clips the character. ORIGINAL:
-	// if ((/datum/quirk/oversized::name in preferences.all_quirks) || (body.dna.features["body_size"] > 1.1))
-	// 	canvas_size += 1
-	// if (body.dna.mutant_bodyparts["taur"])
-	if ((/datum/quirk/oversized::name in preferences.all_quirks) || (preferences.read_preference(/datum/preference/numeric/body_size) > 1.1))
-		canvas_size += 1
-	var/datum/preference/choiced/mutant_choice/taur/taur_preference = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
-	if (taur_preference.is_visible(body, preferences) && preferences.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
-		// taurs can be extra wide, so scale up in attempt to see their tails
-		canvas_size += 1
-	body.pixel_x = canvas_size * 16
-	silicon_preview?.pixel_x = canvas_size * 16
-
-	if (isnull(canvas) || last_canvas_size != canvas_size || last_canvas_state != canvas_state)
-		switch (canvas_size)
-			if (0)
-				canvas = image('modular_nova/modules/character_preview_background/icons/background_32x32.dmi', icon_state = canvas_state)
-			if (1)
-				canvas = image('modular_nova/modules/character_preview_background/icons/background_64x64.dmi', icon_state = canvas_state)
-			if (2)
-				canvas = image('modular_nova/modules/character_preview_background/icons/background_96x96.dmi', icon_state = canvas_state)
-
-	// Update the map view bounds when canvas size changes to properly display the scaled preview
-	set_position(1, 1)
-	if(isnull(preview_bounds))
-		preview_bounds = new
-		preview_bounds.del_on_map_removal = FALSE
-	preview_bounds.assigned_map = assigned_map
-	preview_bounds.fill_rect(1, 1, canvas_size + 1, canvas_size + 1)
-	last_canvas_size = canvas_size
-	last_canvas_state = canvas_state
-
-	canvas.cut_overlays()
-	canvas.add_overlay(silicon_preview || body.appearance)
-
-	appearance = canvas.appearance
-	// NOVA EDIT ADDITION END
 /atom/movable/screen/map_view/char_preview/proc/create_body()
 	QDEL_NULL(body)
 

@@ -3346,3 +3346,14 @@ Cloaks
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/feet_digi.dmi'
 	json_config = 'modular_nova/modules/GAGS/json_configs/shoes/heels/heeledsandals_worn_digi.json'
 
+
+/*
+*	DECALS
+*/
+
+// HAIR TRIMMINGS
+// Cut hair on the floor, coloured from whoever it came off.
+/datum/greyscale_config/hair_trimmings
+	name = "Hair Trimmings"
+	icon_file = 'modular_nova/modules/GAGS/icons/hair_trimmings.dmi'
+	json_config = 'modular_nova/modules/GAGS/json_configs/hair_trimmings/hair_trimmings.json'

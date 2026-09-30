@@ -2,6 +2,7 @@
 	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "footstep_sound"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/footstep_sound/init_possible_values()
 	return list("Default", "Shoes", "Highheels", "Claws", "Hooves")

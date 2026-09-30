@@ -390,7 +390,9 @@ world
 /// appearance system (overlays/underlays, etc.) is not available.
 ///
 /// Only the first argument is required.
-/proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor)
+/// clip_bounds fixes the output rectangle in appearance coordinates, including nested offsets. // APHELION EDIT ADDITION
+/// grow: the canvas fits every overlay, nested ones where they really are; grown_origin, list(1, 1), gets where it starts. // APHELION EDIT ADDITION
+/proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor, list/clip_bounds, grow = FALSE, list/grown_origin) // APHELION EDIT CHANGE - ORIGINAL: /proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor)
 	// Loop through the underlays, then overlays, sorting them into the layers list
 	#define PROCESS_OVERLAYS_OR_UNDERLAYS(flat, process, base_layer) \
 		for (var/i in 1 to process.len) { \
@@ -424,6 +426,10 @@ world
 
 	var/static/icon/flat_template = icon('icons/blanks/32x32.dmi', "nothing")
 	var/icon/flat = icon(flat_template)
+	// APHELION EDIT ADDITION START
+	if(clip_bounds)
+		flat.Crop(1, 1, clip_bounds[3] - clip_bounds[1] + 1, clip_bounds[4] - clip_bounds[2] + 1)
+	// APHELION EDIT ADDITION END
 
 	if(!appearance || appearance.alpha <= 0)
 		return flat
@@ -465,7 +471,7 @@ world
 		var/list/icon_dimensions = get_icon_dimensions(curicon)
 		var/icon_width = icon_dimensions["width"]
 		var/icon_height = icon_dimensions["height"]
-		if(icon_width != 32 || icon_height != 32)
+		if(!clip_bounds && (icon_width != 32 || icon_height != 32)) // APHELION EDIT CHANGE - ORIGINAL: if(icon_width != 32 || icon_height != 32)
 			flat.Scale(icon_width, icon_height)
 
 	if(!base_icon_dir)
@@ -490,10 +496,10 @@ world
 
 		var/icon/add // Icon of overlay being added
 
-		var/flatX1 = 1
-		var/flatX2 = flat.Width()
-		var/flatY1 = 1
-		var/flatY2 = flat.Height()
+		var/flatX1 = clip_bounds ? clip_bounds[1] : 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatX1 = 1
+		var/flatX2 = flatX1 + flat.Width() - 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatX2 = flat.Width()
+		var/flatY1 = clip_bounds ? clip_bounds[2] : 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatY1 = 1
+		var/flatY2 = flatY1 + flat.Height() - 1 // APHELION EDIT CHANGE - ORIGINAL: var/flatY2 = flat.Height()
 
 		var/addX1 = 0
 		var/addX2 = 0
@@ -518,6 +524,7 @@ world
 			if(layer_image.alpha == 0)
 				continue
 
+			var/list/child_origin // APHELION EDIT ADDITION - Where a nested overlay's grown canvas starts.
 			if(layer_image == copy) // 'layer_image' is an /image based on the object being flattened.
 				curblend = BLEND_OVERLAY
 				add = icon(layer_image.icon, layer_image.icon_state, base_icon_dir)
@@ -527,11 +534,39 @@ world
 					else
 						add.Blend(appearance.color, ICON_MULTIPLY)
 			else // 'I' is an appearance object.
-				add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor)
+				// APHELION EDIT ADDITION START
+				var/list/child_bounds
+				if(clip_bounds)
+					var/offset_x = layer_image.pixel_x + layer_image.pixel_w
+					var/offset_y = layer_image.pixel_y + layer_image.pixel_z
+					child_bounds = list(flatX1 - offset_x, flatY1 - offset_y, flatX2 - offset_x, flatY2 - offset_y)
+				else if(grow)
+					child_origin = list(1, 1)
+				// APHELION EDIT ADDITION END
+				add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor, child_bounds, grow, child_origin) // APHELION EDIT CHANGE - ORIGINAL: add = getFlatIcon(image(layer_image), curdir, curicon, curstate, curblend, FALSE, no_anim, next_parentcolor)
 
 			if(!add)
 				continue
 
+			// APHELION EDIT ADDITION START - Growing: fit the overlay's whole canvas, which starts left of or below its
+			// own (1, 1) if it grew too. Offsets round to whole pixels, as the canvas has no others.
+			if(grow && !clip_bounds)
+				var/add_x1 = round(layer_image.pixel_x + layer_image.pixel_w, 1) + (child_origin ? child_origin[1] : 1)
+				var/add_y1 = round(layer_image.pixel_y + layer_image.pixel_z, 1) + (child_origin ? child_origin[2] : 1)
+				addX1 = min(flatX1, add_x1)
+				addX2 = max(flatX2, add_x1 + add.Width() - 1)
+				addY1 = min(flatY1, add_y1)
+				addY2 = max(flatY2, add_y1 + add.Height() - 1)
+				if(addX1 != flatX1 || addX2 != flatX2 || addY1 != flatY1 || addY2 != flatY2)
+					flat.Crop(addX1 - flatX1 + 1, addY1 - flatY1 + 1, addX2 - flatX1 + 1, addY2 - flatY1 + 1)
+					flatX1 = addX1
+					flatX2 = addX2
+					flatY1 = addY1
+					flatY2 = addY2
+				flat.Blend(add, blendMode2iconMode(curblend), add_x1 - flatX1 + 1, add_y1 - flatY1 + 1)
+				continue
+
+			// APHELION EDIT ADDITION END
 			// Find the new dimensions of the flat icon to fit the added overlay
 			addX1 = min(flatX1, layer_image.pixel_x + layer_image.pixel_w + 1)
 			addX2 = max(flatX2, layer_image.pixel_x + layer_image.pixel_w + add.Width())
@@ -539,7 +574,7 @@ world
 			addY2 = max(flatY2, layer_image.pixel_y + layer_image.pixel_z + add.Height())
 
 			if (
-				addX1 != flatX1 \
+				!clip_bounds && addX1 != flatX1 /* APHELION EDIT CHANGE - ORIGINAL: addX1 != flatX1 */ \
 				&& addX2 != flatX2 \
 				&& addY1 != flatY1 \
 				&& addY2 != flatY2 \
@@ -558,12 +593,24 @@ world
 				flatY2 = addY2
 
 			// Blend the overlay into the flattened icon
-			flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1)
+			//flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1) // APHELION EDIT REMOVAL
+			// APHELION EDIT ADDITION START
+			if(clip_bounds && layer_image != copy)
+				// Child bounds already include placement relative to this same output rectangle.
+				flat.Blend(add, blendMode2iconMode(curblend))
+			else
+				flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1)
+			// APHELION EDIT ADDITION END
 
 
 		if(appearance.alpha < 255)
 			flat.Blend(rgb(255, 255, 255, appearance.alpha), ICON_MULTIPLY)
 
+		// APHELION EDIT ADDITION START
+		if(grow && grown_origin)
+			grown_origin[1] = flatX1
+			grown_origin[2] = flatY1
+		// APHELION EDIT ADDITION END
 		if(no_anim)
 			//Clean up repeated frames
 			var/icon/cleaned = new /icon()
@@ -573,6 +620,10 @@ world
 			return icon(flat, "", SOUTH)
 	else if (render_icon) // There's no overlays.
 		var/icon/final_icon = icon(icon(curicon, curstate, base_icon_dir), "", SOUTH, no_anim ? TRUE : null)
+		// APHELION EDIT ADDITION START
+		if(clip_bounds)
+			final_icon.Crop(arglist(clip_bounds))
+		// APHELION EDIT ADDITION END
 
 		if (appearance.alpha < 255)
 			final_icon.Blend(rgb(255,255,255, appearance.alpha), ICON_MULTIPLY)
@@ -753,7 +804,8 @@ GLOBAL_LIST_EMPTY(friendly_animal_types)
 
 /// # If you already have a human and need to get its flat icon, call `get_flat_existing_human_icon()` instead.
 /// For creating consistent icons for human looking simple animals.
-/proc/get_flat_human_icon(icon_id, datum/job/job, datum/preferences/prefs, dummy_key, showDirs = GLOB.cardinals, outfit_override = null, no_anim = FALSE)
+/// APHELION EDIT ADDITION - grow: getFlatIcon() grows the canvas to show what reaches past the tile, for previews of one direction.
+/proc/get_flat_human_icon(icon_id, datum/job/job, datum/preferences/prefs, dummy_key, showDirs = GLOB.cardinals, outfit_override = null, no_anim = FALSE, grow = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /proc/get_flat_human_icon(icon_id, datum/job/job, datum/preferences/prefs, dummy_key, showDirs = GLOB.cardinals, outfit_override = null, no_anim = FALSE)
 	var/static/list/humanoid_icon_cache = list()
 	if(icon_id && humanoid_icon_cache[icon_id])
 		return humanoid_icon_cache[icon_id]
@@ -771,7 +823,7 @@ GLOBAL_LIST_EMPTY(friendly_animal_types)
 
 	var/icon/out_icon = icon('icons/effects/effects.dmi', "nothing")
 	for(var/direction in showDirs)
-		var/icon/partial = getFlatIcon(body, defdir = direction, no_anim = no_anim)
+		var/icon/partial = getFlatIcon(body, defdir = direction, no_anim = no_anim, grow = grow) // APHELION EDIT CHANGE - ORIGINAL: var/icon/partial = getFlatIcon(body, defdir = direction, no_anim = no_anim)
 		out_icon.Insert(partial, dir = direction)
 
 	humanoid_icon_cache[icon_id] = out_icon
