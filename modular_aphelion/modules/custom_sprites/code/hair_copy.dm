@@ -5,7 +5,7 @@
 	var/list/base_copy_request
 	/// Weak reference to the tgui window that asked for base_copy_request, which the result is sent to.
 	var/datum/weakref/base_copy_ui
-	/// Rows of colour strings of one view of the native base, as render_base_copy_frame() drew it, null where a pixel can't be copied exactly. Reused while base_copy_frame_key matches.
+	/// Rows of colour strings of one view of the native base, as render_base_copy_frame() drew it. Reused while base_copy_frame_key matches.
 	var/list/base_copy_frame
 	/// What base_copy_frame was drawn from: the guide look, the view and the canvas size.
 	var/base_copy_frame_key
@@ -114,19 +114,14 @@
 			if(x < rect[1] || x > rect[3] || y < rect[2] || y > rect[4] || (mask && copytext(mask[y - rect[2] + 1], x - rect[1] + 1, x - rect[1] + 2) != "1"))
 				codes += "0"
 				continue
-			if(isnull(color))
-				transfer_error = "Overlapping translucent markings cannot be copied exactly. Select a smaller area."
-				return null
 			if(!workspace.is_point_allowed(x, y, request["dir"]) && (workspace.is_painted(x, y, request["dir"]) || !(length(color) == 9 && endswith(color, "00"))))
 				transfer_error = "This selection includes a locked region. Select only editable regions."
 				return null
 			if(length(color) == 9 && endswith(color, "00"))
 				codes += "0"
 				continue
-			if(length(color) == 9 && !endswith(LOWER_TEXT(color), "ff"))
-				transfer_error = "This selection contains partially transparent base pixels, which the drawing format cannot preserve."
-				return null
-			color = custom_sprite_color(color)
+			// Drawings have no partial alpha, so a partially transparent base pixel is copied solid in its own colour.
+			color = custom_sprite_color(copytext(color, 1, 8))
 			if(!indices[color])
 				colors += color
 				if(length(colors) > CUSTOM_SPRITE_MAX_COLORS)

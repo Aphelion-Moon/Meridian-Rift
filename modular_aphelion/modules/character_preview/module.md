@@ -27,9 +27,10 @@ Augments+ and the species page's chamber) shows that one drawing.
   own. The background is the page's, so choosing another redraws nothing.
 - **Turned, zoomed and panned by hand.** Dragging across the preview turns the character a quarter per 40px,
   and the wheel zooms it in whole steps, from 1x to twice the fit. A drag that sets off up or down pans it
-  instead, every way until the pointer lets go, as far as brings any part of what the character draws to the
-  box's middle, so it never leaves the box; the pan is kept in the drawing's pixels, so a zoom keeps what is at
-  the middle there. A double-click fits it again, unpanned. A turn renders once per quarter and a zoom once per
+  instead, every way until the pointer lets go, and so does one held still for 0.3 s first, whichever way it
+  then sets off. A pan goes as far as brings any part of what the character draws to the box's middle, so it
+  never leaves the box; the pan is kept in the drawing's pixels, so a zoom keeps what is at the middle there. A
+  double-click fits it again, unpanned. A turn renders once per quarter and a zoom once per
   step; a pan renders nothing, moving the character and its floor by their own inline `translate`, the floor by
   the pan less whole tiles. The frame, the scanner's rule included, stays put through all of it. The species
   page's chamber has its own turntable and neither zooms nor pans.

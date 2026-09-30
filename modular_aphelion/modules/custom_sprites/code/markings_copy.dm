@@ -14,15 +14,14 @@
  *
  * The native helper runs before live height/textures and with marking opacity neutralized; pasted
  * custom paint receives those settings once. Regions without native records contribute no base
- * pixels. Overlapping native layers at reduced global opacity cannot flatten losslessly into one
- * custom layer, so those pixels are marked unavailable and rejected only if selected.
+ * pixels. Where native layers overlap at reduced global opacity, the copy takes the topmost layer's
+ * pixel rather than their blend.
  */
 /datum/custom_sprite_editor/markings/render_base_copy_frame(direction)
 	if(!istype(preview_body, /mob/living/carbon/human/dummy))
 		return null
 	apply_draft_base_markings()
 	var/list/icons = list()
-	var/list/translucent_layers = list()
 	for(var/zone in region_zones)
 		if(!(zone in GLOB.body_markings_per_limb))
 			continue
@@ -32,21 +31,14 @@
 		var/list/overlays = list()
 		limb.append_base_marking_overlays(overlays, zone, FALSE, 255)
 		var/image/look = image('icons/blanks/32x32.dmi', "nothing")
-		var/list/single_layers = list()
 		for(var/mutable_appearance/overlay as anything in overlays)
 			// Missing native states are blank; getFlatIcon's default-state fallback must not invent pixels.
 			if(!overlay.icon || !icon_exists(overlay.icon, overlay.icon_state))
 				continue
 			look.overlays += overlay
-			if(limb.markings_alpha < 255 && length(overlays) > 1)
-				var/image/single = image('icons/blanks/32x32.dmi', "nothing")
-				single.overlays += overlay
-				single_layers += custom_sprite_flat_icon(single, text2num(direction), workspace.width, workspace.height)
 		if(!length(look.overlays))
 			continue
 		icons[zone] = custom_sprite_flat_icon(look, text2num(direction), workspace.width, workspace.height)
-		if(length(single_layers) > 1)
-			translucent_layers[zone] = single_layers
 	var/list/rows = region_map[direction]
 	. = list()
 	for(var/y in 0 to workspace.height - 1)
@@ -56,14 +48,6 @@
 			var/zone = custom_sprite_region_owner(rows, region_zones, x, y)
 			var/icon/base = icons[zone]
 			row[x + 1] = base?.GetPixel(x + 1, workspace.height - y) || "#00000000"
-			var/contributors = 0
-			for(var/icon/part as anything in translucent_layers[zone])
-				var/pixel = part.GetPixel(x + 1, workspace.height - y)
-				if(pixel && !(length(pixel) == 9 && endswith(pixel, "00")))
-					contributors++
-				if(contributors > 1)
-					row[x + 1] = null
-					break
 		. += list(row)
 
 /// Check the existing placement parser and the saved palette of each affected region before admitting a copy.

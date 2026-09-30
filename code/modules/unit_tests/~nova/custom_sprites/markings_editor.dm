@@ -699,7 +699,7 @@
 	TEST_ASSERT(!editor.build_base_copy(request), "A base record changed before its resource rebuild must not use stale sampled pixels.")
 	editor.finish(FALSE)
 
-/// Appearance and palette limits fail closed rather than changing the persisted drawing representation.
+/// Translucent base pixels copy solid, since drawings have no partial alpha, and palette limits fail closed.
 /datum/unit_test/custom_sprite_markings_base_copy_limits/Run()
 	var/datum/custom_sprite_base_marking_fixture/art = allocate(/datum/custom_sprite_base_marking_fixture)
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
@@ -710,13 +710,15 @@
 	var/list/request = list("request" = 1, "dir" = "2", "rect" = list(point[1], point[2], point[1], point[2]))
 	art.put(editor, BODY_ZONE_CHEST, 3)
 	editor.rebuild_resources()
-	TEST_ASSERT(!editor.build_base_copy(request) && editor.transfer_error, "Intrinsic partial alpha cannot enter the opaque drawing format.")
+	var/list/solid = editor.build_base_copy(request)
+	TEST_ASSERT(solid && solid["palette"] ~= list("#00000000", "#ff0000ff"), "Intrinsic partial alpha must be copied solid in its own colour: [editor.transfer_error]")
 	art.put(editor, BODY_ZONE_CHEST, 1)
 	editor.workspace.markings_context[BODY_ZONE_CHEST] += list(list("name" = art.names[2], "color" = "#0000ff", "emissive" = FALSE))
 	editor.rebuild_resources()
 	var/obj/item/bodypart/limb = editor.preview_body.get_bodypart(BODY_ZONE_CHEST)
 	limb.markings_alpha = 128
-	TEST_ASSERT(!editor.build_base_copy(request) && editor.transfer_error, "Overlapping independently translucent base marks cannot be baked with altered coverage.")
+	var/list/topmost = editor.build_base_copy(request)
+	TEST_ASSERT(topmost && topmost["palette"] ~= list("#00000000", "#0000ffff"), "Overlapping translucent base marks must copy the topmost mark's pixel: [editor.transfer_error]")
 	art.put(editor, BODY_ZONE_CHEST, 4)
 	editor.rebuild_resources()
 	var/list/blank = editor.build_base_copy(request)
