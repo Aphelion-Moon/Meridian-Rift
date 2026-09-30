@@ -52,11 +52,22 @@ Augments+ and the species page's chamber) shows that one drawing.
 - **Memory stays bounded.** A drawing is named by the md5 of its recipes, so characters that look alike
   share one, and it is kept only while an open window shows it: at most one per character with setup open.
   Closing the window lets its drawing go, and a window asks for the drawing when it opens, saying which one
-  it holds, so it is sent one only if that is another.
+  it holds, so it is sent one only if that is another. iconforge keeps every image it makes until it is told
+  to let them go, 80 to 330 KB a look, and a look is hardly ever drawn twice, so every 100 drawings it is told
+  to, once none is under way (one under way would come out empty) and no spritesheet is being made. New
+  drawings wait for that, a tick or two.
 
 Measured live in the lab client, over 29 changes: the preview mob's rebuild, unchanged, takes about 13 ms;
 the drawing adds about 3 ms of main-thread time, most of it the walk, and iconforge about 35 ms on its own
 thread. A change reaches the screen in 48 ms (median of 8), where the map took 123 to 251 ms.
+
+Under load, measured with rust-g 7.0.0's iconforge built from its tag for x86_64 on 4 cores: a drawing takes
+3.5 ms of a thread for a plain human and 11.7 ms for a Nova character with markings and three-coloured parts on
+a 64x64 canvas; 64 kept under way at once drew 300 a second without slowing a main loop in the same process;
+and one goes to the page as a 2 to 2.3 KB data URL. Without letting go, 6000 such drawings kept 1.9 GB; letting
+go every 100, emulated tick by tick with 16 under way at once, kept at most 156 MB, and none came out empty.
+The page spends 2.5 ms on a drawing (11 ms with the CPU slowed four times) and shows it on the next frame; a
+burst's answer, which shows the loader first, 10 to 19 ms.
 
 The pan, profiled in Chromium 141 (software-rendered) over 240 moves, one a frame: no frame dropped, at full
 speed or with the CPU slowed four times; a move restyles three elements in about 0.16 ms (0.65 ms slowed), and
@@ -83,12 +94,15 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 
 ### Modular Overrides:
 
-- `code/drawing.dm`: adds `/datum/preferences/var/preview_drawing` and `/datum/preferences/proc/character_preview_changed()`.
+- `code/drawing.dm`: adds `/datum/preferences/var/preview_drawing` and `/datum/preferences/proc/character_preview_changed()`,
+  and `/proc/character_preview_drawn()` with the globals it keeps: the drawings under way and how many there
+  have been since iconforge last let go of what it keeps.
 - `code/backgrounds.dm`: `/datum/preference/choiced/background_state/compile_constant_data()` also sends each background's tile.
 
 ### Defines:
 
-- `code/drawing.dm`: `CHARACTER_PREVIEW_DIR`, `CHARACTER_PREVIEW_SETTLE` and `CHARACTER_PREVIEW_MAX_WAIT`. File-local.
+- `code/drawing.dm`: `CHARACTER_PREVIEW_DIR`, `CHARACTER_PREVIEW_SETTLE`, `CHARACTER_PREVIEW_MAX_WAIT`,
+  `CHARACTER_PREVIEW_CLEANUP_EVERY` and `CHARACTER_PREVIEW_JOB_TIMEOUT`. File-local.
 
 ### Included files that are not contained in this module:
 

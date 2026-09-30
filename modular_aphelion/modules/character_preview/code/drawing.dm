@@ -14,6 +14,18 @@ GLOBAL_LIST_INIT(character_preview_facings, list("south" = SOUTH, "west" = WEST,
 #define CHARACTER_PREVIEW_SETTLE (0.25 SECONDS)
 /// The longest a request waits while more keep coming.
 #define CHARACTER_PREVIEW_MAX_WAIT (1 SECONDS)
+/// How many looks iconforge draws before it is told to let go of the images it keeps from drawing them.
+#define CHARACTER_PREVIEW_CLEANUP_EVERY 100
+/// A drawing under way longer than this has lost the proc waiting on it, and is no longer waited for. They take
+/// milliseconds.
+#define CHARACTER_PREVIEW_JOB_TIMEOUT (5 SECONDS)
+
+/// The drawings iconforge is making now: job id -> when it started.
+GLOBAL_LIST_EMPTY(character_preview_jobs)
+/// How many looks iconforge has drawn since it last let go of what it keeps.
+GLOBAL_VAR_INIT(character_preview_drawn_since_cleanup, 0)
+/// When new drawings began to wait for iconforge to let go of what it keeps, or null when they needn't.
+GLOBAL_VAR(character_preview_cleanup_due)
 
 /datum/preferences
 	/// Draws the character preview that every tab of character setup shows.
@@ -234,9 +246,15 @@ GLOBAL_LIST_INIT(character_preview_facings, list("south" = SOUTH, "west" = WEST,
 	// A file name of its own, so two characters drawing the same look at once don't share a file.
 	var/static/drawings_made = 0
 	var/sheet = "preview_[++drawings_made]"
+	// While iconforge is to let go of what it keeps, new drawings wait for it; see character_preview_drawn().
+	UNTIL(isnull(GLOB.character_preview_cleanup_due) || world.time > GLOB.character_preview_cleanup_due + CHARACTER_PREVIEW_JOB_TIMEOUT)
+	GLOB.character_preview_cleanup_due = null
 	var/job = rustg_iconforge_generate_async(CHARACTER_PREVIEW_DIR, sheet, entries_json, FALSE, FALSE, TRUE)
+	GLOB.character_preview_jobs[job] = world.time
 	var/result
 	UNTIL((result = rustg_iconforge_check(job)) != RUSTG_JOB_NO_RESULTS_YET)
+	GLOB.character_preview_jobs -= job
+	character_preview_drawn()
 	if(result == RUSTG_JOB_ERROR || !findtext(result, "{", 1, 2))
 		log_asset("Character preview: could not draw [name]: [result]")
 		return null
@@ -274,6 +292,33 @@ GLOBAL_LIST_INIT(character_preview_facings, list("south" = SOUTH, "west" = WEST,
 	return drawn
 
 #undef CHARACTER_PREVIEW_DIR
+
+/**
+ * A drawing is done. iconforge keeps every image it makes until it is told to let them go, and a look is hardly ever
+ * drawn twice, so what it keeps only grows, by 80 to 330 KB a look. Every CHARACTER_PREVIEW_CLEANUP_EVERY drawings it
+ * lets go, once none is under way: one under way would come out empty. Until then new drawings wait, for a tick or
+ * two, and the last drawing under way lets go when it is done. Spritesheets being made let go themselves once they
+ * are done, so it waits for them to finish.
+ */
+/proc/character_preview_drawn()
+	if(++GLOB.character_preview_drawn_since_cleanup < CHARACTER_PREVIEW_CLEANUP_EVERY)
+		return
+	if(length(SSasset_loading.generate_queue) || SSasset_loading.assets_generating)
+		GLOB.character_preview_cleanup_due = null
+		return
+	for(var/job in GLOB.character_preview_jobs)
+		if(world.time > GLOB.character_preview_jobs[job] + CHARACTER_PREVIEW_JOB_TIMEOUT)
+			GLOB.character_preview_jobs -= job
+	if(length(GLOB.character_preview_jobs))
+		GLOB.character_preview_cleanup_due ||= world.time
+		return
+	// Skipped while something else is putting away what it made; the next drawing asks again.
+	if(rustg_iconforge_cleanup() == "Ok")
+		GLOB.character_preview_drawn_since_cleanup = 0
+	GLOB.character_preview_cleanup_due = null
+
+#undef CHARACTER_PREVIEW_CLEANUP_EVERY
+#undef CHARACTER_PREVIEW_JOB_TIMEOUT
 
 /**
  * A look's facings as iconforge recipes, on one canvas that grows to fit parts that reach past the mob's tile, like big
