@@ -4,8 +4,9 @@
  *
  * Nothing is drawn during init. Registering is empty, and the renders are drawn when a sheet is
  * first realized: by SSasset_loading in the lobby, a tick check at a time, or by the first player
- * to open the species page, whichever comes first. Sprites are named `[icon]-[dir]`, where icon is
- * the species' sanitized name, as the species preference's constant data sends it.
+ * to open the species page, whichever comes first. Sprites are named `[icon]-[facing]`, where icon is
+ * the species' sanitized name, as the species preference's constant data sends it, and facing is a
+ * key of GLOB.character_preview_facings.
  */
 /datum/asset/spritesheet_batched/species_full
 	name = "species_full"
@@ -17,13 +18,14 @@
 	name = "species_body"
 	uniform = FALSE
 
+/// Registers nothing during init; the renders are drawn when the sheet is first realized.
 /datum/asset/spritesheet_batched/species_full/create_spritesheets()
 	return
 
+/// Takes this sheet's half of the renders before it is first generated.
 /datum/asset/spritesheet_batched/species_full/realize_spritesheets(yield)
 	if (!length(entries))
-		var/list/renders = get_species_page_renders()
-		entries = uniform ? renders["uniform"] : renders["body"]
+		entries = get_species_page_renders()[uniform ? "uniform" : "body"]
 	return ..()
 
 /**
@@ -73,7 +75,7 @@
 	var/datum/universal_icon/template = get_flat_uni_icon(dummy, UP)
 	dummy.dna.species.preview_icon_after_effects(template, dummy)
 	template = species_page_height(template, dummy)
-	var/list/recipes = uni_icon_facings_json(template, GLOB.species_page_facings)
+	var/list/recipes = uni_icon_facings_json(template, GLOB.character_preview_facings)
 	for (var/facing in recipes)
 		entries["[icon_key]-[facing]"] = json_decode(recipes[facing])
 
@@ -87,8 +89,8 @@
  */
 /proc/species_page_height(datum/universal_icon/flat, mob/living/carbon/human/dummy)
 	var/list/runs = character_preview_rows(dummy, ICON_SIZE_Y, 0)
-	var/list/size = character_preview_flat_size(flat)
-	if (!length(runs) || size[1] != ICON_SIZE_X || size[2] != ICON_SIZE_Y)
+	var/list/box = character_preview_flat_box(flat)
+	if (!length(runs) || box[3] != ICON_SIZE_X || box[4] != ICON_SIZE_Y)
 		return flat
 	var/datum/universal_icon/drawn = flat.copy()
 	for (var/list/run as anything in runs)
@@ -100,6 +102,3 @@
 			band.crop(1, ICON_SIZE_Y - run[3] - run[2] + 1, ICON_SIZE_X, ICON_SIZE_Y - run[3])
 			drawn.blend_icon(band, ICON_OVERLAY, 1, bottom)
 	return drawn
-
-/// The facings the species page turns through, in order.
-GLOBAL_LIST_INIT(species_page_facings, list("south" = SOUTH, "west" = WEST, "north" = NORTH, "east" = EAST))

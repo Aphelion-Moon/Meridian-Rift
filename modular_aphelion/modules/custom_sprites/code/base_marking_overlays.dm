@@ -15,59 +15,28 @@
  * Returns the same output list.
  */
 /obj/item/bodypart/proc/append_base_marking_overlays(list/output, zone = null, include_emissive = TRUE, alpha_override = null)
-	var/override_color
+	// Placed bodyparts, chainsaw hands and stumps have no markings, and taur legs never ever render.
+	if((bodypart_flags & (BODYPART_PSEUDOPART | BODYPART_STUMP)) || (bodyshape & BODYSHAPE_TAUR))
+		return output
 	var/atom/offset_spokesman = owner || src
-	// First, check to see if this bodypart is husked. If so, we don't want to apply our sparkledog colors to the limb.
-	if(is_husked)
-		override_color = "#888888"
-	// We need to check that the owner exists(could be a placed bodypart) and that it's not a chainsawhand and that they're a human with usable DNA.
-	if(!(bodypart_flags & (BODYPART_PSEUDOPART | BODYPART_STUMP)) && (!(bodyshape & BODYSHAPE_TAUR))) // taur legs never ever render
-		if(isnull(zone) || zone == body_zone)
-			for(var/key, marking in markings) // Cycle through all of our currently selected markings.
-				var/datum/body_marking/body_marking = GLOB.body_markings[key]
-				if (!body_marking) // Edge case prevention.
-					continue
-
-				var/gender_modifier = ""
-				if(body_zone == BODY_ZONE_CHEST) // Chest markings have male and female versions.
-					if(body_marking.gendered)
-						gender_modifier = is_dimorphic ? "_[limb_gender]" : "_m"
-				var/digi_modifier = ""
-				if(bodyshape & BODYSHAPE_DIGITIGRADE)
-					digi_modifier = "digitigrade_"
-				var/mutable_appearance/accessory_overlay
-				var/mutable_appearance/emissive
-				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[digi_modifier][body_zone][gender_modifier]", -BODYPARTS_LAYER)
-				accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
-				if(include_emissive && marking[2])
-					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
-				if(override_color)
-					accessory_overlay.color = override_color
-				else
-					accessory_overlay.color = marking[1]
-				output += accessory_overlay
-				if (emissive)
-					output += emissive
-
-		if(aux_zone && (isnull(zone) || zone == aux_zone))
-			for(var/key, marking in aux_zone_markings)
-				var/datum/body_marking/body_marking = GLOB.body_markings[key]
-				if (!body_marking) // Edge case prevention.
-					continue
-
-				var/render_limb_string = aux_zone
-
-				var/mutable_appearance/emissive
-				var/mutable_appearance/accessory_overlay
-				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[render_limb_string]", -aux_layer)
-				accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
-				if(include_emissive && marking[2])
-					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
-				if(override_color)
-					accessory_overlay.color = override_color
-				else
-					accessory_overlay.color = marking[1]
-				output += accessory_overlay
-				if (emissive)
-					output += emissive
+	// A husked limb doesn't get our sparkledog colors.
+	var/override_color = is_husked ? "#888888" : null
+	// The body zone's markings, then the auxiliary zone's on its own layer. Only the body zone has digitigrade states.
+	for(var/aux in list(FALSE, TRUE))
+		var/marking_zone = aux ? aux_zone : body_zone
+		if((aux && !aux_zone) || (!isnull(zone) && zone != marking_zone))
+			continue
+		var/digi_modifier = !aux && (bodyshape & BODYSHAPE_DIGITIGRADE) ? "digitigrade_" : ""
+		for(var/key, marking in aux ? aux_zone_markings : markings) // Cycle through all of our currently selected markings.
+			var/datum/body_marking/body_marking = GLOB.body_markings[key]
+			if(!body_marking) // Edge case prevention.
+				continue
+			// Chest markings have male and female versions.
+			var/gender_modifier = marking_zone == BODY_ZONE_CHEST && body_marking.gendered ? (is_dimorphic ? "_[limb_gender]" : "_m") : ""
+			var/mutable_appearance/accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[digi_modifier][marking_zone][gender_modifier]", aux ? -aux_layer : -BODYPARTS_LAYER)
+			accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
+			accessory_overlay.color = override_color || marking[1]
+			output += accessory_overlay
+			if(include_emissive && marking[2])
+				output += emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
 	return output

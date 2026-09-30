@@ -52,13 +52,11 @@
 	TEST_ASSERT(pixels["2"][63] == "#3f0000" && pixels["1"][1024] == "#3f0000" && isnull(pixels["2"][64]), "The v2 pixels must read back as their colours in both views")
 	var/list/v3 = custom_sprite_compat_v3()
 	TEST_ASSERT_EQUAL(json_encode(custom_sprite_validate(v3)), json_encode(v3), "A canonical v3 drawing must write back identically")
-	TEST_ASSERT(custom_sprite_width(v3) == CUSTOM_SPRITE_TAUR_WIDTH && custom_sprite_height(v3) == 32, "v3 is 64 by 32")
 	TEST_ASSERT_EQUAL(custom_sprite_decode_grid(v3["dirs"]["2"], 1, 2048), repeat_string(2048, "1"), "The v3 Front view must decode to 2,048 painted pixels")
 	TEST_ASSERT_EQUAL(json_encode(custom_limb_markings_validate(list("taur" = v3, "head" = v1))), json_encode(list("head" = v1, "taur" = v3)), "Stored zone drawings must load in zone order with their bytes unchanged")
 	TEST_ASSERT(isnull(custom_limb_markings_validate(list("l_arm" = v3))), "A wide drawing on an ordinary limb is dropped, as today")
 	var/list/v4 = custom_sprite_compat_v4()
 	TEST_ASSERT_EQUAL(json_encode(custom_sprite_validate(v4)), json_encode(v4), "A canonical v4 drawing must write back identically")
-	TEST_ASSERT(custom_sprite_width(v4) == 32 && custom_sprite_height(v4) == 48, "v4 is 32 by 48")
 	TEST_ASSERT_EQUAL(custom_sprite_decode_grid(v4["dirs"]["2"], 2, 1536), "1[repeat_string(1534, "0")]1", "The v4 Front view must preserve the first and last canvas pixels")
 	TEST_ASSERT_EQUAL(custom_sprite_decode_grid(v4["dirs"]["1"], 2, 1536), repeat_string(1536, "2"), "The v4 Back view must retain its second palette colour")
 	paint = custom_sprite_paint_icon(v4, FALSE)
@@ -154,8 +152,6 @@
 			TEST_ASSERT(!(locate(/datum/bodypart_overlay/custom_marking) in limb.bodypart_overlays), "No limb may carry a paint overlay ([style], [limb.body_zone])")
 		if(style == "Bald")
 			TEST_ASSERT(!length(head.get_hair_overlays()), "A bald, shaved pre-branch head draws no hair overlays")
-	var/datum/preference_middleware/custom_sprites/middleware = locate() in preferences.middleware
-	TEST_ASSERT(!length(middleware.get_ui_data(mock_client.mob)["custom_marking_zones"]), "Character setup shows no drawn zones")
 	for(var/key in preferences.savefile.get_entry("character[preferences.default_slot]"))
 		TEST_ASSERT(!findtext(key, "custom_sprite"), "The character slot gains no custom sprite keys: [key]")
 

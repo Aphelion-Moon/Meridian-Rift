@@ -1,4 +1,4 @@
-/// The character preview shows a floating selection where it would drop, before any paint is written.
+// The character preview shows a floating selection where it would drop, before any paint is written.
 /datum/custom_sprite_editor
 	/// At most one bounded compact selection placement, waiting for the ordinary preview debounce.
 	var/list/selection_request

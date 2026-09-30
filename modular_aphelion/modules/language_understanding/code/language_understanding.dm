@@ -18,8 +18,6 @@
 
 /// The levels worth saving: understood-only languages set below full, keyed by their type as text. Null if none.
 /datum/preferences/proc/saved_language_understanding()
-	if(!length(language_understanding))
-		return null
 	var/list/saved
 	for(var/language, level in language_understanding)
 		if(languages?[language] == LANGUAGE_UNDERSTOOD && level < 100)
@@ -68,21 +66,14 @@
 /datum/preference_middleware/language_understanding/get_ui_data(mob/user)
 	var/list/levels = list()
 	var/list/samples = list()
-	if(!length(preferences.languages))
-		return list("language_understanding" = levels, "language_understanding_samples" = samples)
 	for(var/language, knowledge in preferences.languages)
-		if(knowledge != LANGUAGE_UNDERSTOOD)
-			continue
 		var/datum/language/prototype = GLOB.language_datum_instances[language]
-		if(isnull(prototype))
+		if(knowledge != LANGUAGE_UNDERSTOOD || isnull(prototype))
 			continue
 		var/level = preferences.language_understanding_level(language)
 		levels[prototype.name] = level
 		samples[prototype.name] = language_understanding_sample(language, level)
-	return list(
-		"language_understanding" = levels,
-		"language_understanding_samples" = samples,
-	)
+	return list("language_understanding" = levels, "language_understanding_samples" = samples)
 
 /// Sets how much of a language the character only understands they follow.
 /datum/preference_middleware/language_understanding/proc/set_language_understanding(list/params, mob/user)

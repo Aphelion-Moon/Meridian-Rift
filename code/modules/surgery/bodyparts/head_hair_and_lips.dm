@@ -92,7 +92,7 @@
 	set_overlay_hair_color(facial_hair_overlay, facial_hair_color)
 	// Emissive blocker
 	if(blocks_emissive != EMISSIVE_BLOCK_NONE)
-		var/mutable_appearance/em_block = emissive_blocker(legacy_paint ? sprite_accessory.icon : facial_hair_overlay.icon, legacy_paint ? sprite_accessory.icon_state : facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha) // APHELION EDIT CHANGE - Legacy paint owns separate directional masks. ORIGINAL: var/mutable_appearance/em_block = emissive_blocker(facial_hair_overlay.icon, facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha)
+		var/mutable_appearance/em_block = emissive_blocker(legacy_paint ? sprite_accessory.icon : facial_hair_overlay.icon, legacy_paint ? sprite_accessory.icon_state : facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha) // APHELION EDIT CHANGE - Legacy paint owns separate directional masks - ORIGINAL: var/mutable_appearance/em_block = emissive_blocker(facial_hair_overlay.icon, facial_hair_overlay.icon_state, location, -HAIR_LAYER, alpha = facial_hair_alpha)
 		if (dropped)
 			em_block = image(em_block, dir = SOUTH)
 		worn_face_offset?.apply_offset(em_block)
@@ -183,7 +183,7 @@
 		// NOVA EDIT ADDITION START - Emissive hair appearance
 		var/mob/living/carbon/human/human_owner = owner
 		if(human_owner?.emissive_hair)
-			var/mutable_appearance/em_appear = emissive_appearance(base_effect_icon, hair_overlay.icon_state, location, layer = hair_overlay.layer, alpha = hair_alpha) // Hair has no "_e" states; the glow is the hair's own state.
+			var/mutable_appearance/em_appear = emissive_appearance(base_effect_icon, hair_overlay.icon_state, location, layer = hair_overlay.layer, alpha = hair_alpha)
 			if(dropped)
 				em_appear = image(em_appear, dir = SOUTH)
 			worn_face_offset?.apply_offset(em_appear)

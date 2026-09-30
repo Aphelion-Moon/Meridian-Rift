@@ -390,8 +390,10 @@ world
 /// appearance system (overlays/underlays, etc.) is not available.
 ///
 /// Only the first argument is required.
-/// clip_bounds fixes the output rectangle in appearance coordinates, including nested offsets. // APHELION EDIT ADDITION
-/// grow: the canvas fits every overlay, nested ones where they really are; grown_origin, list(1, 1), gets where it starts. // APHELION EDIT ADDITION
+// APHELION EDIT ADDITION START
+/// clip_bounds fixes the output rectangle in appearance coordinates, including nested offsets.
+/// grow: the canvas fits every overlay, nested ones where they really are; grown_origin, list(1, 1), gets where it starts.
+// APHELION EDIT ADDITION END
 /proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor, list/clip_bounds, grow = FALSE, list/grown_origin) // APHELION EDIT CHANGE - ORIGINAL: /proc/getFlatIcon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, no_anim = FALSE, parentcolor)
 	// Loop through the underlays, then overlays, sorting them into the layers list
 	#define PROCESS_OVERLAYS_OR_UNDERLAYS(flat, process, base_layer) \
@@ -548,8 +550,9 @@ world
 			if(!add)
 				continue
 
-			// APHELION EDIT ADDITION START - Growing: fit the overlay's whole canvas, which starts left of or below its
-			// own (1, 1) if it grew too. Offsets round to whole pixels, as the canvas has no others.
+			// APHELION EDIT ADDITION START - Growing
+			// Fit the overlay's whole canvas, which starts left of or below its own (1, 1) if it grew too.
+			// Offsets round to whole pixels, as the canvas has no others.
 			if(grow && !clip_bounds)
 				var/add_x1 = round(layer_image.pixel_x + layer_image.pixel_w, 1) + (child_origin ? child_origin[1] : 1)
 				var/add_y1 = round(layer_image.pixel_y + layer_image.pixel_z, 1) + (child_origin ? child_origin[2] : 1)
@@ -565,7 +568,6 @@ world
 					flatY2 = addY2
 				flat.Blend(add, blendMode2iconMode(curblend), add_x1 - flatX1 + 1, add_y1 - flatY1 + 1)
 				continue
-
 			// APHELION EDIT ADDITION END
 			// Find the new dimensions of the flat icon to fit the added overlay
 			addX1 = min(flatX1, layer_image.pixel_x + layer_image.pixel_w + 1)
@@ -593,7 +595,7 @@ world
 				flatY2 = addY2
 
 			// Blend the overlay into the flattened icon
-			//flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1) // APHELION EDIT REMOVAL
+			// flat.Blend(add, blendMode2iconMode(curblend), layer_image.pixel_x + layer_image.pixel_w + 2 - flatX1, layer_image.pixel_y + layer_image.pixel_z + 2 - flatY1) // APHELION EDIT REMOVAL
 			// APHELION EDIT ADDITION START
 			if(clip_bounds && layer_image != copy)
 				// Child bounds already include placement relative to this same output rectangle.
@@ -804,7 +806,9 @@ GLOBAL_LIST_EMPTY(friendly_animal_types)
 
 /// # If you already have a human and need to get its flat icon, call `get_flat_existing_human_icon()` instead.
 /// For creating consistent icons for human looking simple animals.
-/// APHELION EDIT ADDITION - grow: getFlatIcon() grows the canvas to show what reaches past the tile, for previews of one direction.
+// APHELION EDIT ADDITION START
+/// grow: getFlatIcon() grows the canvas to show what reaches past the tile, for previews of one direction.
+// APHELION EDIT ADDITION END
 /proc/get_flat_human_icon(icon_id, datum/job/job, datum/preferences/prefs, dummy_key, showDirs = GLOB.cardinals, outfit_override = null, no_anim = FALSE, grow = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /proc/get_flat_human_icon(icon_id, datum/job/job, datum/preferences/prefs, dummy_key, showDirs = GLOB.cardinals, outfit_override = null, no_anim = FALSE)
 	var/static/list/humanoid_icon_cache = list()
 	if(icon_id && humanoid_icon_cache[icon_id])

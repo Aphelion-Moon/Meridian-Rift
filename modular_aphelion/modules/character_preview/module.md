@@ -100,15 +100,19 @@ raster, once a pan.
 
 ### TG Proc/File Changes:
 
-Existing-file edits use `APHELION EDIT` markers with their original code retained; the Nova file is edited
-directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
+Edits to tg files are marked `APHELION EDIT`, with their original code retained, except inside Nova's existing edit
+blocks, which aren't tagged again; Nova's modular files are edited directly.
 
 | File | Procs or declarations changed |
 | --- | --- |
-| `code/modules/client/preferences.dm` | `/datum/preferences/ui_interact()` no longer shows the preview map, `ui_static_data()` no longer sends `character_preview_view`, and `ui_close()` lets the drawing go. `/atom/movable/screen/map_view/char_preview`: Nova's canvas vars and its blocks in `Destroy()` and `update_body()` are commented out, with Aphelion's `preview_bounds` and `display_to_client()` that went with them; adds `var/image/silicon_preview`, where `update_body()` keeps a silicon job's image. `update_body()` takes `catching_up`: with setup open, a change leaves the body stale and asks for a drawing (`defer_rebuild()`), whose rebuild is the one catching up; `Destroy()` takes the view out of the rebuild queue. |
+| `code/modules/client/preferences.dm` | `/datum/preferences/ui_interact()` no longer shows the preview map, `ui_static_data()` no longer sends `character_preview_view`, and `ui_close()` lets the drawing go. `/atom/movable/screen/map_view/char_preview`: Nova's canvas vars and their code in `Destroy()` and `update_body()` are commented out, and Aphelion's earlier `preview_bounds` and `display_to_client()`, which went with them, are gone; `var/image/silicon_preview` stays, where `update_body()` keeps a silicon job's image. `update_body()` takes `catching_up`: with setup open, a change leaves the body stale and asks for a drawing (`defer_rebuild()`), whose rebuild is the one catching up; `Destroy()` takes the view out of the rebuild queue. |
 | `code/controllers/subsystem/asset_loading.dm` | `/datum/controller/subsystem/asset_loading/fire()` doesn't tell iconforge to let go while a character preview is being drawn (`character_preview_drawing_under_way()`). |
-| `code/modules/asset_cache/spritesheet/batched/universal_icon.dm` | `/proc/get_flat_uni_icon()` passes over an appearance without an icon, and names a runtime icon's file by the md5 of its content, writing it once. Adds `/proc/uni_icon_facings_json()`. |
+| `code/modules/asset_cache/spritesheet/batched/universal_icon.dm` | `/proc/get_flat_uni_icon()` passes over an appearance without an icon, names a runtime icon's file by the md5 of its content, writing it once, and takes `grow`: the canvas then fits every overlay, and the new `flat_x1`, `flat_y1`, `flat_width` and `flat_height` vars say where the look sits in it. Adds `/proc/uni_icon_facings_json()`. |
+| `code/__HELPERS/icons.dm` | `getFlatIcon()` takes the same `grow`, with `grown_origin` to say where the grown canvas starts, and `get_flat_human_icon()` passes `grow` on. |
+| `code/modules/admin/outfit_editor.dm`, `code/modules/admin/verbs/selectequipment.dm` | Their outfit previews pass `grow = TRUE`, so wings, tails and big hats show whole. |
+| `code/modules/client/preferences/age.dm`, `names.dm`, `paraplegic.dm`, `playtime_reward_cloak.dm`, `random.dm`, `trans_prosthetic.dm` | Preferences the preview doesn't show set `should_update_preview = FALSE` (three in `random.dm`), so changing them doesn't rebuild the preview mob. |
 | `modular_nova/modules/character_preview_background/code/character_preview_background.dm` | `/datum/preference/choiced/background_state` no longer rebuilds the preview mob (`should_update_preview = FALSE`), and the map's `/atom/movable/screen/map_view/char_preview/setDir()` override is removed. |
+| Nova preference and quirk files under `modular_nova/` | Set `should_update_preview = FALSE` on the preferences the preview doesn't show: text, sounds, opt-ins, quirk options and the like. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx` | `PreferencesMenu` turns the character back to face south as the window opens. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx` | `CharacterPreferenceWindow` asks for the drawing when it mounts. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | `MainPage` shows the drawn preview, and `handleRotate` turns it. |
@@ -119,11 +123,17 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 
 ### Modular Overrides:
 
-- `code/drawing.dm`: adds `/datum/preferences/var/preview_drawing`, `/datum/preferences/proc/character_preview_changed()` and `character_preview_open()`,
-  and `/proc/iconforge_drawn()` with the globals it keeps: the drawings under way and how many looks' worth
+- `code/drawing.dm`: `/datum/preference_middleware/character_preview`, which answers the window and draws the
+  preview; `/datum/preferences/var/preview_drawing` with `character_preview_changed()` and `character_preview_open()`;
+  `character_preview_walk()`, `character_preview_flat_box()` and `character_preview_turns_itself()`, which make the
+  recipes; and `/proc/iconforge_drawn()` with the globals it keeps: the drawings under way and how many looks' worth
   iconforge has drawn since it last let go of what it keeps, the custom sprite editors' pictures counting a tenth
   each; `/proc/character_preview_drawing_under_way()`.
-- `code/backgrounds.dm`: `/datum/preference/choiced/background_state/compile_constant_data()` also sends each background's tile.
+- `code/effects.dm`: `character_preview_effects()`, what the page draws over the drawing: the body's transform, and
+  the rows tg's height filters move, which `character_preview_rows()` reads from their displacement maps
+  (`character_preview_map_rows()`). The species page moves its renders' rows with it too.
+- `code/backgrounds.dm`: `/datum/preference/choiced/background_state/compile_constant_data()` also sends each
+  background's tile, taken from the custom sprite editors' `custom_sprite_background_tiles()`.
 - `code/rebuilds.dm`: `SScharacter_preview`, the queue of preview mobs waiting to be rebuilt, and
   `/atom/movable/screen/map_view/char_preview`'s `body_stale`, `turns` and `defer_rebuild()`.
 
@@ -136,13 +146,16 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 
 ### Included files that are not contained in this module:
 
-- `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/CharacterPreview/`: the preview, its drawing and fit (`drawing.tsx`), the turn every tab shares (`turn.ts`), its drag and wheel gestures (`gestures.ts`) and pan (`pan.ts`), and their tests.
+- `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/CharacterPreview/`: the preview, its drawing and
+  fit (`drawing.tsx`), the turn every tab shares (`turn.ts`), its drag and wheel gestures (`gestures.ts`) and pan
+  (`pan.ts`), and tests for the fit.
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesRegistry/`: the species chamber shows the same drawing (`SpeciesSprite.tsx`, `SpecimenViewer.tsx`, `index.tsx`, `model.ts`).
 - `tgui/packages/tgui/styles/meridianos/_character_preview.scss`, loaded by `_preferences.scss`: the preview and
-  its frame in every theme, with `tests/character-preview-frame.test.tsx`.
-- `code/modules/unit_tests/~nova/custom_sprites/tall_hair.dm`: checks the drawing's height for tall hair.
-- `code/modules/unit_tests/~nova/character_preview_rebuilds.dm`: checks that a change with setup open leaves the mob for
-  the drawing to rebuild, and that rebuilds take their turns in order, each with every change made while it waited.
+  its frame in every theme.
+- `modular_aphelion/modules/custom_sprites/code/images.dm`: `custom_sprite_background_tiles()`, the background tiles;
+  its pictures count toward `iconforge_drawn()`.
+- `code/modules/unit_tests/~nova/character_preview_rebuilds.dm`, included from `code/modules/unit_tests/_unit_tests.dm`:
+  a DM unit test that, with setup open, changes wait for their turn and one rebuild takes them all in.
 - `tgstation.dme`
 
 ### Credits:

@@ -2,9 +2,7 @@
 /proc/custom_sprite_region_position(zone, x, y, width)
 	var/zone_width = custom_marking_zone_width(zone)
 	var/zone_x = x - (width - zone_width) / 2
-	if(zone_x < 0 || zone_x >= zone_width)
-		return 0
-	return y * zone_width + zone_x + 1
+	return (zone_x < 0 || zone_x >= zone_width) ? 0 : y * zone_width + zone_x + 1
 
 /**
  * One drawing's pixels as colors, row-major from the top left.
@@ -183,11 +181,8 @@
 	. = list()
 	for(var/zone in all_zones)
 		var/list/saved = drawings?[zone]
-		if(!changed[zone])
-			.[zone] = list("drawing" = saved, "changed" = FALSE, "error" = null)
-			continue
-		var/list/encoded = custom_sprite_pixels_drawing(pixels[zone], custom_marking_zone_width(zone), saved?["emissive"])
-		.[zone] = list("drawing" = encoded["drawing"], "changed" = TRUE, "error" = encoded["error"])
+		var/list/encoded = changed[zone] ? custom_sprite_pixels_drawing(pixels[zone], custom_marking_zone_width(zone), saved?["emissive"]) : list("drawing" = saved)
+		.[zone] = list("drawing" = encoded["drawing"], "changed" = !!changed[zone], "error" = encoded["error"])
 
 /**
  * Encodes one region's pixels as a canonical, literal-color drawing.

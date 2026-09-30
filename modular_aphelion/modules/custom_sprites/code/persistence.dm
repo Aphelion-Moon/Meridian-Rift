@@ -1,3 +1,4 @@
+/// The account's drawing sidecar, custom_sprites.json beside preferences.json, with verified writes and a recovery backup.
 /datum/json_savefile/custom_sprites
 	/// Includes changes from other targets/slots after a failed disk save.
 	var/dirty = FALSE
@@ -41,6 +42,8 @@
 		return null
 	return null
 
+/// Loads each slot's entry from the primary, or from the backup when the primary is missing or unreadable. Loading
+/// neither leaves last_good_json null, so save() refuses and the files on disk stay as they are.
 /datum/json_savefile/custom_sprites/load()
 	wipe()
 	pending_removed_entries = null
@@ -49,10 +52,9 @@
 	if(!path)
 		return FALSE
 	var/list/snapshot = read_snapshot(path)
-	var/recovered = FALSE
-	if(!snapshot)
-		snapshot = read_snapshot("[path].bak")
-		recovered = TRUE
+	// A recovered copy is written back as the primary on the next save.
+	var/recovered = isnull(snapshot)
+	snapshot ||= read_snapshot("[path].bak")
 	if(!snapshot)
 		return FALSE
 	var/list/decoded = snapshot["data"]
@@ -66,25 +68,29 @@
 
 /// rust-g returns error text, not a success boolean; a full readback also catches short writes.
 /datum/json_savefile/custom_sprites/proc/write_verified(contents, destination)
-	var/write_error = write_file(contents, destination)
-	return !length(write_error) && rustg_file_read(destination) == contents
+	return !length(write_file(contents, destination)) && rustg_file_read(destination) == contents
 
 /// Writes `contents` to `destination` and returns rust-g's error text, empty on success. Tests override it to fail.
 /datum/json_savefile/custom_sprites/proc/write_file(contents, destination)
 	return rustg_file_write(contents, destination)
 
+/**
+ * Writes the tree when it has changed or the last write failed, and returns whether the file on disk now holds it.
+ *
+ * The new JSON is staged and verified first. Then the backup is made to hold the last verified revision, and the primary
+ * is written and verified. Deleted slots are scrubbed from the backup before success is reported.
+ */
 /datum/json_savefile/custom_sprites/save()
 	if(!dirty && !last_save_failed)
 		return TRUE
 	last_save_failed = TRUE
 	if(!path || isnull(last_good_json))
 		return FALSE
-	var/serialized
 	var/staging_path = "[path].new"
 	var/backup_path = "[path].bak"
 	var/previous_json = last_good_json
 	try
-		serialized = json_encode(get_entry())
+		var/serialized = json_encode(get_entry())
 		if(length(serialized) > CUSTOM_SPRITE_MAX_SIDECAR_BYTES || !write_verified(serialized, staging_path))
 			return FALSE
 		// After fallback the backup may be the only good copy: do not rewrite it.

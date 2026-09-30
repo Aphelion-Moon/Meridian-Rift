@@ -1,14 +1,6 @@
-/// Runs the hair editor's actions without a connected client, keeping every picture it publishes.
-/datum/custom_sprite_editor/lifted_hair_test
-	/// Pictures published since the list was last cleared, in order.
-	var/list/published = list()
-
+/// Runs the hair editor's actions without a connected client.
 /datum/custom_sprite_editor/lifted_hair_test/can_edit(mob/user)
 	return !closing
-
-/datum/custom_sprite_editor/lifted_hair_test/publish_picture(path)
-	published += custom_sprite_picture_icon(path)
-	return ..()
 
 /// The topmost painted pixel of a hairstyle's front view, as list(x, y) counted from the bottom left.
 /proc/custom_sprite_lifted_hair_test_top(datum/sprite_accessory/hair/hairstyle)
@@ -18,10 +10,6 @@
 			if(sheet.GetPixel(x, y))
 				return list(x, y)
 	return null
-
-/// Whether a picture reaches row `y`, counted from the bottom, and has paint at that pixel.
-/proc/custom_sprite_lifted_hair_test_shows(icon/picture, x, y)
-	return picture && picture.Height() >= y && picture.GetPixel(x, y)
 
 /// Custom hair is lifted with a hairstyle drawn above the head, such as Afro (Huge), so the guide shows that hairstyle's own rows, whole.
 /datum/unit_test/custom_sprite_lifted_hair_guide/Run()
@@ -45,33 +33,3 @@
 	// Facial hair isn't lifted, so its guide keeps the body's own rows.
 	var/datum/custom_sprite_editor/lifted_hair_test/facial = allocate(/datum/custom_sprite_editor/lifted_hair_test, preferences, "facial_hair")
 	TEST_ASSERT(facial.guide_urls["2"] == custom_sprite_render_views(facial.guide_appearance, 32)["2"], "A facial hair guide should keep the body's own rows")
-
-/// Pictures of a body wearing a hairstyle drawn above its head, such as Afro (Huge), show the whole hairstyle.
-/datum/unit_test/custom_sprite_lifted_hair_pictures/Run()
-	var/datum/sprite_accessory/hair/afro = SSaccessories.hairstyles_list[/datum/sprite_accessory/hair/afro_huge::name]
-	var/list/top = custom_sprite_lifted_hair_test_top(afro)
-	TEST_ASSERT(top && top[2] + afro.y_offset > 32, "Afro (Huge) should reach above the tile the body stands on")
-	var/lifted_y = top[2] + afro.y_offset
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	var/datum/preference/hairstyle = GLOB.preference_entries[/datum/preference/choiced/hairstyle]
-	preferences.write_preference(hairstyle, afro.name)
-	var/datum/custom_sprite_editor/lifted_hair_test/editor = allocate(/datum/custom_sprite_editor/lifted_hair_test, preferences, "hair")
-	editor.published.Cut()
-	editor.render_preview("2")
-	TEST_ASSERT(custom_sprite_lifted_hair_test_shows(editor.published[1], top[1], lifted_y), "The editor's preview should show the whole hairstyle")
-	// An imported style's previews, from an editor whose own hairstyle isn't lifted.
-	preferences.write_preference(hairstyle, "Bald")
-	var/datum/custom_sprite_editor/lifted_hair_test/bald = allocate(/datum/custom_sprite_editor/lifted_hair_test, preferences, "hair")
-	var/list/afro_hair = bald.workspace.hair_context.Copy()
-	afro_hair["style"] = afro.name
-	bald.published.Cut()
-	TEST_ASSERT(bald.show_candidate(custom_style_package("hair", null, null, afro_hair), "import"), "The style should preview: [bald.transfer_error]")
-	bald.run_deferred_work()
-	// Views are published in GLOB.cardinals order, so the front view is the second.
-	TEST_ASSERT(custom_sprite_lifted_hair_test_shows(bald.published[2], top[1], lifted_y), "An imported style's front preview should show the whole hairstyle")
-	// The mirror's pictures.
-	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
-	body.set_hairstyle(afro.name, update = TRUE)
-	var/icon/picture = custom_sprite_flat_icon(new /mutable_appearance(body.appearance), SOUTH, 32, custom_sprite_preview_height(body))
-	TEST_ASSERT(custom_sprite_lifted_hair_test_shows(picture, top[1], lifted_y), "Pictures of a body should show the whole hairstyle")

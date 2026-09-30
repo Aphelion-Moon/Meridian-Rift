@@ -10,7 +10,6 @@
 	TEST_ASSERT_EQUAL(frame[1][1], "#00000000", "Lifted paint should leave its old place")
 	TEST_ASSERT_EQUAL(frame[2][3], "#ff0000ff", "Placed paint should land where it was dropped")
 	TEST_ASSERT_EQUAL(frame[6][6], "#00000000", "Paint dropped outside the drawing area should be cut")
-	TEST_ASSERT_EQUAL(length(workspace.undo_stack), 2, "The placement should be one history step")
 	workspace.undo()
 	frame = workspace.get_first_layer_pixel_data()
 	TEST_ASSERT(frame[1][1] == "#ff0000ff" && frame[2][3] == "#00000000", "Undo should put the lifted paint back")

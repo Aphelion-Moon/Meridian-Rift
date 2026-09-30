@@ -1,7 +1,6 @@
 import { sendAct as act } from 'tgui/events/act';
 import { colorToHexString } from '../../colorSpaces';
-// APHELION EDIT CHANGE - ORIGINAL: import { constrainToIconGrid } from '../../helpers';
-import { constrainToIconGrid, isWithinDrawBounds } from '../../helpers';
+import { constrainToIconGrid, isWithinDrawBounds } from '../../helpers'; // APHELION EDIT CHANGE - ORIGINAL: import { constrainToIconGrid } from '../../helpers';
 import { strokeLayer } from '../../strokeMask'; // APHELION EDIT ADDITION
 import { Tool } from '../Tool';
 import type { SpriteData, SpriteEditorToolContext } from '../types';

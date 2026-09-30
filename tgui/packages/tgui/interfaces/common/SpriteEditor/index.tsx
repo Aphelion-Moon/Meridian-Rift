@@ -1,7 +1,5 @@
-// APHELION EDIT CHANGE - ORIGINAL: import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useAtom, useAtomValue, useSetAtom, useStore } from 'jotai';
-// APHELION EDIT CHANGE - ORIGINAL: import { useEffect, useState } from 'react';
-import { useEffect, useMemo } from 'react';
+import { useAtom, useAtomValue, useSetAtom, useStore } from 'jotai'; // APHELION EDIT CHANGE - ORIGINAL: import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useEffect, useMemo } from 'react'; // APHELION EDIT CHANGE - ORIGINAL: import { useEffect, useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Button, Stack } from 'tgui-core/components'; // APHELION EDIT CHANGE - ORIGINAL: import { Box, Button, Floating, Stack } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
@@ -41,7 +39,7 @@ import {
   colorToHexString,
   parseHexColorString,
 } from './colorSpaces';
-/* APHELION EDIT REMOVAL START
+/* // APHELION EDIT REMOVAL START
 import { getFlattenedSpriteDir, localizeCoords } from './helpers';
 */ // APHELION EDIT REMOVAL END
 // APHELION EDIT ADDITION START
@@ -149,7 +147,6 @@ const HistoryButton = (props: HistoryButtonProps) => {
     </Floating>
   );
 };
-
 */ // APHELION EDIT REMOVAL END
 // APHELION EDIT ADDITION START
 const HistoryButton = (props: HistoryButtonProps) => {
@@ -167,6 +164,7 @@ const HistoryButton = (props: HistoryButtonProps) => {
   );
 };
 // APHELION EDIT ADDITION END
+
 type ServerColorProps = {
   serverPalette: string[];
   /* // APHELION EDIT REMOVAL START
@@ -200,8 +198,8 @@ const hasServerColorProps = (
 ): props is PaletteProps & ServerColorProps => {
   return Object.hasOwn(props, 'serverPalette');
 };
-
 */ // APHELION EDIT REMOVAL END
+
 type CanvasProps = {
   data: SpriteData;
   disabled?: BooleanLike;
@@ -304,7 +302,7 @@ export namespace SpriteEditor {
     );
   };
 
-  /* APHELION EDIT REMOVAL START - Allow an editor-specific history icon.
+  /* // APHELION EDIT REMOVAL START - Allow an editor-specific history icon.
   export const Undo = (props: Pick<HistoryButtonProps, 'stack'>) => {
     const { stack } = props;
     return <HistoryButton stack={stack} type="undo" />;
@@ -314,7 +312,7 @@ export namespace SpriteEditor {
     const { stack } = props;
     return <HistoryButton stack={stack} type="redo" />;
   };
-  APHELION EDIT REMOVAL END */
+  */ // APHELION EDIT REMOVAL END
   // APHELION EDIT ADDITION START
   export const Undo = (props: Omit<HistoryButtonProps, 'type'>) => {
     return <HistoryButton {...props} type="undo" />;
@@ -357,7 +355,7 @@ export namespace SpriteEditor {
     }, [toolFlags]);
     return (
       <Stack {...rest}>
-        {/* APHELION EDIT REMOVAL START
+        {/* // APHELION EDIT REMOVAL START
         {tools.map(
           (tool, i) =>
             !!(toolFlags & (1 << i)) && (
@@ -372,7 +370,7 @@ export namespace SpriteEditor {
               </Stack.Item>
             ),
         )}
-        APHELION EDIT REMOVAL END */}
+        // APHELION EDIT REMOVAL END */}
         {/* APHELION EDIT ADDITION START - Display order does not change tool flags. */}
         {[tools[4], ...tools.slice(0, 4)].map((tool) => {
           const i = tools.indexOf(tool);
@@ -397,7 +395,7 @@ export namespace SpriteEditor {
   };
 
   export const Canvas = (props: CanvasProps) => {
-    /* APHELION EDIT REMOVAL START
+    /* // APHELION EDIT REMOVAL START
     const { data, disabled, ...rest } = props;
     */ // APHELION EDIT REMOVAL END
     // APHELION EDIT ADDITION START
@@ -509,7 +507,7 @@ export namespace SpriteEditor {
     // APHELION EDIT ADDITION END
     return (
       <AdvancedCanvas
-        /* APHELION EDIT REMOVAL START
+        /* // APHELION EDIT REMOVAL START
         data={getFlattenedSpriteDir(
           data,
           selectedDir,
@@ -517,7 +515,7 @@ export namespace SpriteEditor {
           previewLayer,
           previewData,
         )}
-        APHELION EDIT REMOVAL END */
+        */ // APHELION EDIT REMOVAL END
         // APHELION EDIT ADDITION START
         data={renderedData}
         selectionBounds={selectionBounds}

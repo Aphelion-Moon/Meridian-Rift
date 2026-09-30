@@ -335,7 +335,7 @@ function MainFeature(props: MainFeatureProps) {
           onSelect={handleSelect}
         />
         */ // APHELION EDIT REMOVAL END
-        // APHELION EDIT ADDITION START
+        // APHELION EDIT ADDITION START - Shared icon picker, with a button for a custom drawing
         <ChoicedSelection
           name={catalog.name}
           catalog={catalog}
@@ -356,7 +356,6 @@ function MainFeature(props: MainFeatureProps) {
           }
           onSelect={handleSelect}
         >
-          {/* APHELION EDIT ADDITION START */}
           {!!data.allow_custom_sprite_editing && customTarget && (
             <Button
               mt={1}
@@ -369,7 +368,6 @@ function MainFeature(props: MainFeatureProps) {
               {`Custom ${customTarget.replace('_', ' ')} drawing`}
             </Button>
           )}
-          {/* APHELION EDIT ADDITION END */}
         </ChoicedSelection>
         // APHELION EDIT ADDITION END
       }
@@ -686,7 +684,7 @@ export function MainPage(props: MainPageProps) {
                 handleOpenSpecies={props.openSpecies}
                 handleRotate={(value) => {
                   // NOVA EDIT CHANGE - Original: handleRotate={() => {
-                  turn(value); // NOVA EDIT CHANGE - Original: act('rotate');
+                  turn(value); // APHELION EDIT CHANGE - Drawn character preview - ORIGINAL: act('rotate', { backwards: value }); // NOVA EDIT CHANGE - Original: act('rotate');
                 }}
                 setGender={createSetPreference(act, 'gender')}
                 showGender={

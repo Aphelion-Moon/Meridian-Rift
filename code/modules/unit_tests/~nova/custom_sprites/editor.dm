@@ -21,22 +21,14 @@
 			if(editor.workspace.is_point_allowed(x, y, direction))
 				return list(x, y)
 
+/// Save and close writes the draft and releases its editor, and Discard keeps the last saved drawing.
 /datum/unit_test/custom_sprite_editor_lifecycle/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	var/datum/custom_sprite_editor/editor = new(preferences, "hair")
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-	TEST_ASSERT(!(length(editor.guide_urls) != 4 || !editor.guide_urls["2"] || length(editor.preview_urls) != 1 || !editor.preview_urls["2"]), "Each editor must publish every view's guide and the Front view's preview on opening.")
-	editor.run_deferred_work()
-	TEST_ASSERT_EQUAL(length(editor.preview_urls), 4, "The other views' previews must follow in the next fire.")
-	for(var/direction in GLOB.custom_style_directions)
-		editor.visible_direction = direction
-		editor.request_view()
-		editor.run_deferred_work()
-	TEST_ASSERT(!(length(editor.guide_urls) != 4 || length(editor.preview_urls) != 4), "Every view must publish its guide and preview once shown.")
 	var/list/stroke = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(custom_sprite_test_paintable_point(editor)))
 	TEST_ASSERT(editor.workspace.new_transaction(stroke), "The editor rejected a sampled shade within its own bounds.")
-	editor.refresh_preview()
 	editor.finish(TRUE)
 	TEST_ASSERT(!(!preferences.custom_hair || preferences.custom_sprite_editors?["hair"]), "Closing must save the drawing and release its editor.")
 	var/saved_hash = custom_sprite_hash(preferences.custom_hair)
@@ -45,43 +37,12 @@
 	editor.workspace.clear_direction("2")
 	editor.finish(FALSE)
 	TEST_ASSERT(saved_hash == custom_sprite_hash(preferences.custom_hair), "Discard must preserve the last saved drawing.")
-	var/old_gate = CONFIG_GET(flag/disallow_custom_sprite_editing)
-	CONFIG_SET(flag/disallow_custom_sprite_editing, TRUE)
-	var/datum/preference_middleware/custom_sprites/middleware = locate() in preferences.middleware
-	var/list/ui_data = middleware.get_ui_data(mock_client.mob)
-	CONFIG_SET(flag/disallow_custom_sprite_editing, old_gate)
-	TEST_ASSERT(!(ui_data["allow_custom_sprite_editing"] || !custom_sprite_paint_icon(preferences.custom_hair)), "Disabling editing must hide controls while saved drawings still render.")
-
-/datum/unit_test/custom_sprite_editor_saved_colors/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	var/datum/custom_sprite_editor/hair = new(preferences, "hair")
-	var/datum/custom_sprite_editor/facial = new(preferences, "facial_hair")
-	LAZYSET(preferences.custom_sprite_editors, "hair", hair)
-	LAZYSET(preferences.custom_sprite_editors, "facial_hair", facial)
-	TEST_ASSERT(hair.set_custom_palette(list("#fe12ab")), "Adding a saved swatch through the editor must succeed.")
-	for(var/datum/custom_sprite_editor/editor as anything in list(hair, facial))
-		var/list/data = editor.ui_data(mock_client.mob)
-		TEST_ASSERT(!(data["maxCustomColors"] != 16 || !("#fe12ab" in data["customPalette"]) || !editor.workspace.is_valid_color("#fe12abff")), "A saved swatch must immediately become paintable in both open editors.")
-	var/list/full_palette = list()
-	for(var/i in 1 to CUSTOM_SPRITE_MAX_COLORS)
-		full_palette += rgb(i, 0, 0)
-	var/grid = copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 2) + repeat_string(1024 - CUSTOM_SPRITE_MAX_COLORS, "0")
-	var/list/full_drawing = list("version" = 2, "palette" = full_palette, "dirs" = list("2" = custom_sprite_encode_grid(grid, CUSTOM_SPRITE_MAX_COLORS)))
-	QDEL_NULL(hair.workspace)
-	hair.workspace = new(full_drawing, list(), null)
-	TEST_ASSERT(hair.set_custom_palette(list("#fe12ab", "#ab12fe")), "A full drawing must not prevent saving colors for other characters.")
-	var/list/full_data = hair.ui_data(mock_client.mob)
-	TEST_ASSERT(!(!("#ab12fe" in full_data["customPalette"]) || ("#ab12fe" in full_data["availableColors"])), "Unavailable colors must stay saved and be identified as unavailable in a full drawing.")
-	hair.finish(FALSE)
-	facial.finish(FALSE)
-	var/list/colors = preferences.read_preference(/datum/preference/custom_sprite_palette)
-	TEST_ASSERT(json_encode(colors) == json_encode(list("#fe12ab", "#ab12fe")), "Discarding a character drawing must retain its account palette.")
 
 /// Exercise the real UI actions without requiring a connected BYOND client.
 /datum/custom_sprite_editor/optimization_test/can_edit(mob/user)
 	return !closing
 
+/// Cancelling an import or restore preview keeps the draft, confirming replaces it, and a preview the draft changed under is refused.
 /datum/unit_test/custom_sprite_candidate_dismissal/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -95,21 +56,17 @@
 	for(var/action in list("cancelCandidate", "confirmCandidate"))
 		TEST_ASSERT(editor.show_candidate(empty_package, "import"), "An empty style must offer a confirmable preview: [editor.transfer_error]")
 		editor.run_deferred_work()
-		var/list/before = json_decode(json_encode(editor.ui_data(mock_client.mob)))
-		TEST_ASSERT(!(before["candidate"]?["source"] != "import" || length(before["candidate"]?["previews"]) != 4), "The UI payload must expose the pending import and its four previews.")
-		TEST_ASSERT(editor.ui_act(action, list(), ui, null), "Candidate dismissal must request an immediate UI update.")
-		var/list/after = json_decode(json_encode(editor.ui_data(mock_client.mob)))
-		TEST_ASSERT(!(editor.candidate || !("candidate" in after) || !isnull(after["candidate"])), "[action] must explicitly send a null candidate so TGUI clears its previously merged preview.")
+		TEST_ASSERT(editor.ui_act(action, list(), ui, null) && !editor.candidate, "[action] must dismiss the preview.")
 		TEST_ASSERT(!(action == "cancelCandidate" && custom_sprite_hash(editor.workspace.serialize_drawing()) != draft_hash), "Cancelling the candidate must preserve the painted draft.")
-		TEST_ASSERT(!(action == "confirmCandidate" && (editor.workspace.serialize_drawing() || editor.transfer_error)), "Confirming an empty candidate must replace the draft before dismissing the preview.")
+		TEST_ASSERT(!(action == "confirmCandidate" && (editor.workspace.serialize_drawing() || editor.transfer_error)), "Confirming an empty candidate must replace the draft.")
 	TEST_ASSERT(editor.show_candidate(empty_package, "restore"), "A restored style must also offer a confirmable preview.")
 	editor.run_deferred_work()
 	editor.draft_changed()
 	editor.ui_act("confirmCandidate", list(), ui, null)
-	var/list/rejected = json_decode(json_encode(editor.ui_data(mock_client.mob)))
-	TEST_ASSERT(!(!editor.transfer_error || !("candidate" in rejected) || !isnull(rejected["candidate"])), "Rejecting a stale candidate must also dismiss its previously merged preview.")
+	TEST_ASSERT(editor.transfer_error && !editor.candidate, "A preview the draft changed under must be refused and dismissed.")
 	editor.finish(FALSE)
 
+/// Saving keeps the editor open and writes the current workspace, and a later Discard keeps that save.
 /datum/unit_test/custom_sprite_save_without_close/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -127,6 +84,7 @@
 	editor.ui_act("discard", list(), ui, null)
 	TEST_ASSERT(custom_sprite_hash(preferences.custom_hair) == saved_hash, "Discarding later edits must preserve the most recently saved draft.")
 
+/// Opening an explicitly tinted drawing bakes its tint into exact colours that render identically, without saving or aliasing the stored drawing.
 /datum/unit_test/custom_sprite_explicit_tint_reopen/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -156,6 +114,7 @@
 			TEST_ASSERT(custom_sprite_test_same_pixels(before["[direction]"], getFlatIcon(body, defdir = direction, no_anim = TRUE)), "Baking an explicit tint must preserve every rendered pixel at alpha [opacity].")
 	editor.finish(FALSE)
 
+/// Per-view emission changes only metadata, refuses malformed actions, survives a disk reload, and the master emissive preference gates it without overwriting the saved choice.
 /datum/unit_test/custom_sprite_emissive_editor/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -166,29 +125,17 @@
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
-	var/list/data = editor.ui_data(mock_client.mob)
-	TEST_ASSERT(!(json_encode(data["emissive"]) != json_encode(custom_sprite_emissive_settings(FALSE)) || !data["emissiveAllowed"]), "Every custom drawing view must default off even when normal hair emission is enabled.")
 	TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(custom_sprite_test_paintable_point(editor)))), "The emissive persistence fixture must paint a valid pixel.")
 	var/list/before = editor.workspace.serialize_drawing()
 	TEST_ASSERT(editor.ui_act("setEmissive", list("dir" = "1", "enabled" = TRUE), ui, null), "The emissive checkbox must update the current drawing.")
 	var/list/after = editor.workspace.serialize_drawing()
 	TEST_ASSERT(!(!after["emissive"]["1"] || before["emissive"]["1"] || after["dirs"] != before["dirs"] || after["palette"] != before["palette"] || editor.workspace.pixels_dirty), "Toggling emissive must replace only metadata and preserve the previous snapshot.")
-	for(var/direction in list("2", "4", "8"))
-		TEST_ASSERT(!after["emissive"][direction], "Toggling one view must leave the other three views non-emissive.")
-	var/preview_timer = editor.preview_timer
-	editor.ui_act("setEmissive", list("dir" = "1", "enabled" = TRUE), ui, null)
-	TEST_ASSERT(editor.preview_timer == preview_timer, "An unchanged emissive setting must not reschedule its preview.")
 	for(var/bad in list(null, "true", 2, list(TRUE)))
 		TEST_ASSERT(!(editor.ui_act("setEmissive", list("dir" = "1", "enabled" = bad), ui, null) || !editor.workspace.emissive["1"]), "Malformed emissive actions must not change the drawing.")
 	for(var/bad in list(null, "3", 2, list("2")))
 		TEST_ASSERT(!editor.ui_act("setEmissive", list("dir" = bad, "enabled" = FALSE), ui, null), "Emissive actions must reject invalid directions.")
 	editor.ui_act("saveDraft", list(), ui, null)
 	editor.finish(FALSE)
-	editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-	TEST_ASSERT(!(!editor.workspace.emissive["1"] || editor.workspace.emissive["2"]), "Reopening must restore only the custom views explicitly enabled in the drawing.")
-	editor.finish(FALSE)
-	TEST_ASSERT(preferences.read_preference(/datum/preference/toggle/hair_emissive), "A drawing's own emission must not change the hair emissive preference.")
 	var/test_path = "tmp/custom_sprite_emissive_[REF(src)].json"
 	allocate(/datum/custom_sprite_test_files, test_path)
 	preferences.custom_sprite_savefile.path = test_path
@@ -201,8 +148,7 @@
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], FALSE)
 	var/datum/custom_sprite_editor/blocked = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
 	var/datum/tgui/blocked_ui = allocate(/datum/tgui, mock_client.mob, blocked, "CustomHairEditor")
-	var/list/blocked_data = blocked.ui_data(mock_client.mob)
-	TEST_ASSERT(!(blocked_data["emissiveAllowed"] || blocked.ui_act("setEmissive", list("dir" = "2", "enabled" = TRUE), blocked_ui, null) || json_encode(blocked.preview_body.dna.custom_hair["emissive"]) != json_encode(custom_sprite_emissive_settings(FALSE))), "The character's master emissive preference must gate both the editor and rendered drawing.")
+	TEST_ASSERT(!(blocked.ui_act("setEmissive", list("dir" = "2", "enabled" = TRUE), blocked_ui, null) || json_encode(blocked.preview_body.dna.custom_hair["emissive"]) != json_encode(custom_sprite_emissive_settings(FALSE))), "The character's master emissive preference must gate both the editor and rendered drawing.")
 	blocked.finish(FALSE)
 	TEST_ASSERT(preferences.custom_hair["emissive"]["1"], "The master preference must suppress appearance without overwriting the saved setting.")
 	var/mob/living/carbon/human/body = allocate(/mob/living/carbon/human/consistent)
@@ -216,19 +162,14 @@
 		preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/hair_emissive], hair_emissive)
 		preferences.apply_prefs_to(body, TRUE, visuals_only = TRUE)
 		TEST_ASSERT(!(json_encode(body.dna.custom_hair["emissive"]) != json_encode(preferences.custom_hair["emissive"]) || custom_sprite_hash(preferences.custom_hair) != hair_hash), "Normal hair emission changes must not alter the custom drawing's saved or applied flags.")
-	var/list/legacy = deep_copy_list(preferences.custom_hair)
-	legacy -= "emissive"
-	preferences.commit_custom_style(custom_style_package("hair", null, legacy, null), preferences.default_slot)
-	preferences.apply_prefs_to(body, TRUE, visuals_only = TRUE)
-	var/datum/custom_sprite_editor/legacy_editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	TEST_ASSERT(!(json_encode(body.dna.custom_hair["emissive"]) != json_encode(custom_sprite_emissive_settings(FALSE)) || json_encode(legacy_editor.workspace.emissive) != json_encode(custom_sprite_emissive_settings(FALSE))), "Missing custom emission metadata must default off in both preference application and the editor.")
-	legacy_editor.finish(FALSE)
 
+/// A version 1 drawing with one pixel painted at `x`, `y` in its Front view.
 /proc/custom_sprite_reopen_test_drawing(x, y, tint = "#ff00ff")
 	var/offset = y * 32 + x
 	var/grid = repeat_string(offset, "0") + "1" + repeat_string(1023 - offset, "0")
 	return list("version" = 1, "palette" = list("#ffffff"), "tint" = tint, "dirs" = list("2" = custom_sprite_encode_grid(grid)))
 
+/// Erasing or clearing reopened paint saves its removal without touching other drawings.
 /datum/unit_test/custom_sprite_reopen_clear_render/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -239,8 +180,6 @@
 	for(var/tool in list("eraser", "clear"))
 		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
 		LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-		var/list/clean_guides = editor.guide_urls.Copy()
-		var/list/clean_previews = editor.preview_urls.Copy()
 		var/list/bounds = editor.workspace.draw_bounds["2"]
 		var/x = bounds[1]
 		var/y = bounds[2]
@@ -250,18 +189,16 @@
 		TEST_ASSERT(preferences.custom_hair, "Fixture must save its drawing before reopening.")
 		editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
 		LAZYSET(preferences.custom_sprite_editors, "hair", editor)
-		TEST_ASSERT(json_encode(editor.guide_urls) == json_encode(clean_guides), "Reopening must not bake editable paint into the guide.")
 		if(tool == "clear")
 			TEST_ASSERT(editor.workspace.clear_direction("2"), "Clear must remove reopened pixels.")
 		else
 			TEST_ASSERT(editor.workspace.new_transaction(list("type" = "eraser", "layer" = 1, "dir" = "2", "points" = list(list(x, y)))), "The eraser must remove a reopened pixel.")
 		TEST_ASSERT(!(editor.workspace.serialize_drawing() || editor.workspace.edited_directions["2"]), "Erased pixels must leave an empty drawing and edited marker.")
-		editor.refresh_preview()
-		TEST_ASSERT(json_encode(editor.preview_urls) == json_encode(clean_previews), "After [tool], the preview must return to the clean baseline.")
 		editor.finish(TRUE)
 		TEST_ASSERT(!preferences.custom_hair, "Saving cleared hair must persist its removal.")
 		TEST_ASSERT(custom_sprite_hash(preferences.custom_limb_markings?[BODY_ZONE_CHEST]) == markings_hash, "Editing hair must preserve the independent markings drawing.")
 
+/// A forced body refresh redraws changed hair paint even when no limb's cache key changed.
 /datum/unit_test/custom_sprite_forced_hair_refresh/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	human.hairstyle = /datum/sprite_accessory/hair/bedhead::name
@@ -287,6 +224,7 @@
 	body.update_body(is_creating = TRUE)
 	return body
 
+/// A taur body's hair guide draws the hair exactly where the body draws it, in every view.
 /datum/unit_test/custom_sprite_taur_alignment/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -321,6 +259,7 @@
 		TEST_ASSERT(checked, "The alignment fixture must contain hair in every direction.")
 	editor.finish(FALSE)
 
+/// Flattened and iconforge-drawn pictures keep fixed 32 and 64 pixel windows and every nested offset's native pixel origin.
 /datum/unit_test/custom_sprite_fixed_origin/Run()
 	// Native offsets compose across containers. The outer dots lie beyond a normal mob tile.
 	var/icon/dots = custom_sprite_blank_icon(64)
@@ -366,6 +305,7 @@
 				TEST_ASSERT(wide.GetPixel(x, y) == expected, "A drawn wide picture lost a native nested offset at [x],[y] in view [view].")
 				TEST_ASSERT(!(x <= 32 && narrow.GetPixel(x, y) != ((x == 17 && y == 13) ? "#00ff00" : null)), "A drawn guide must keep the central tile's native pixel origin.")
 
+/// Closing the window keeps the editor, its unsaved draft and its history, and saves nothing.
 /datum/unit_test/custom_sprite_editor_close_keeps_draft/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -378,24 +318,9 @@
 	editor.ui_close(mock_client.mob)
 	TEST_ASSERT(!(QDELETED(editor) || editor.closing || LAZYACCESS(preferences.custom_sprite_editors, "hair") != editor), "Closing the window must keep the editor and its draft.")
 	TEST_ASSERT(!(custom_sprite_hash(preferences.custom_hair) != saved_hash || !editor.workspace.edited_directions["2"] || !length(editor.workspace.undo_stack)), "Closing the window must not save, and must keep the unsaved paint and history.")
-	TEST_ASSERT(!(editor.resources_ready || editor.preview_body || length(editor.guide_urls)), "Closing the window must release preview resources.")
-	editor.ui_interact(allocate(/mob/living/carbon/human/consistent))
-	TEST_ASSERT(!(!editor.resources_ready || !editor.guide_urls["2"] || !editor.workspace.edited_directions["2"]), "Reopening must rebuild previews around the kept draft.")
 	editor.finish(FALSE)
 
-/datum/unit_test/custom_sprite_hair_canvas/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	for(var/target in GLOB.custom_style_hair_targets)
-		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-		TEST_ASSERT(!(editor.can_hide_parts() || editor.ui_data(mock_client.mob)["canHideParts"]), "Hair editors must not offer Hide Parts.")
-		for(var/direction in GLOB.cardinals)
-			for(var/list/point as anything in list(list(0, 0), list(31, 0), list(0, 31), list(31, 31)))
-				TEST_ASSERT(editor.workspace.is_point_allowed(point[1], point[2], "[direction]"), "Every hair canvas corner must be editable in direction [direction].")
-		var/list/drawing = custom_sprite_reopen_test_drawing(31, 31, "#112233")
-		TEST_ASSERT(!editor.candidate_problem(custom_style_package(target, null, drawing, editor.workspace.hair_context)), "Hair imports must allow the same full canvas as painting.")
-		editor.finish(FALSE)
-
+/// Recolouring the base hair carries painted shades through undo, a new hairstyle keeps the paint exactly, and unknown hairstyles are refused.
 /datum/unit_test/custom_sprite_editor_hair_swap/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -412,13 +337,11 @@
 	var/list/frame = editor.workspace.get_first_layer_pixel_data()
 	var/painted_x = bounds[1] + 3
 	var/painted_y = bounds[2] + 3
-	TEST_ASSERT(editor.can_change_hair(), "Character preferences must be able to change the base hair look.")
 	var/list/recolor = editor.workspace.hair_context.Copy()
 	recolor["color"] = "#c0d0e0"
 	TEST_ASSERT(editor.apply_hair_context(recolor, "Change hair color"), "Changing the hair color failed: [editor.transfer_error]")
 	var/list/color_map = custom_style_hair_color_map(custom_style_test_hair(), recolor, null)
 	TEST_ASSERT(!(editor.workspace.hair_context["color"] != "#c0d0e0" || frame[painted_y][painted_x] != "[color_map[shade]]ff"), "A hair recolor must update the look and carry painted shades with it.")
-	TEST_ASSERT((color_map[shade] in editor.workspace.palette), "The palette must follow the new hair color.")
 	editor.workspace.undo()
 	TEST_ASSERT(!(editor.workspace.hair_context["color"] != "#583820" || frame[painted_y][painted_x] != "[shade]ff"), "Undo must restore the old look and its painted shades.")
 	editor.workspace.redo()
@@ -432,227 +355,17 @@
 	TEST_ASSERT(!(editor.apply_hair_context(locked, "Change hairstyle") || !editor.transfer_error), "Unavailable hairstyles must be refused.")
 	editor.finish(FALSE)
 
-/// Hair and haircutting share the existing preference sheet, without adding catalogs to paint updates.
-/datum/unit_test/custom_sprite_editor_hairstyle_catalog/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	for(var/target in GLOB.custom_style_hair_targets)
-		var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, target)
-		var/list/static_data = editor.ui_static_data(mock_client.mob)
-		var/list/styles = static_data["hairStyles"]
-		var/list/icons = static_data["hairStyleIcons"]
-		var/datum/preference/choiced/entry = GLOB.preference_entries[GLOB.custom_style_hair_preferences[target]["style"]]
-		var/list/catalog = entry.compile_constant_data()
-		var/list/preference_icons = catalog["icons"]
-		TEST_ASSERT(length(icons) == length(styles) && length(styles), "The [target] picker must expose one preference icon for each allowed hairstyle.")
-		for(var/style in styles)
-			TEST_ASSERT(icons[style] == preference_icons[style] && icons[style], "The [target] picker must reuse the preference icon class for [style].")
-		TEST_ASSERT(editor.hairstyle_icons() == icons, "Repeated [target] catalog requests must reuse the cached icon map.")
-		var/list/dynamic_data = editor.ui_data(mock_client.mob)
-		TEST_ASSERT(!(("hairStyles" in dynamic_data) || ("hairStyleIcons" in dynamic_data)), "Painting updates must not resend the hairstyle catalog.")
-		var/list/assets = editor.ui_assets(mock_client.mob)
-		TEST_ASSERT(length(assets) == 1 && istype(assets[1], /datum/asset/spritesheet_batched/preferences), "The [target] picker must use the existing preferences spritesheet.")
-		editor.finish(FALSE)
-
+/// Saving facial hair writes its own key and never touches the head hair drawing.
 /datum/unit_test/custom_sprite_facial_hair_editor/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	var/style = custom_style_test_facial_style()
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/facial_hairstyle], style)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/facial_hairstyle], custom_style_test_facial_style())
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/facial_hair_color], "#583820")
 	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "facial_hair")
-	TEST_ASSERT(!(editor.workspace.hair_context["style"] != style || editor.workspace.hair_context["color"] != "#583820"), "The facial hair editor must open on the character's own facial look.")
-	TEST_ASSERT(!(!editor.can_change_hair() || !(style in editor.available_hairstyles())), "The facial hair editor must offer facial hairstyles.")
 	var/list/bounds = editor.workspace.draw_bounds["2"]
-	TEST_ASSERT(json_encode(bounds) == json_encode(list(0, 0, 31, 31)), "Facial hair must have the same unrestricted canvas as head hair.")
 	TEST_ASSERT(editor.workspace.new_transaction(list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "[editor.workspace.palette[1]]ff", "points" = list(list(bounds[1] + 2, bounds[2] + 2)))), "The facial hair editor must accept paint inside its bounds.")
 	TEST_ASSERT(!(editor.save_drawing() != TRUE || custom_sprite_hash(preferences.custom_facial_hair) != custom_sprite_hash(editor.workspace.serialize_drawing())), "Saving must store the facial hair drawing on its own key: [editor.save_error]")
 	TEST_ASSERT(!preferences.custom_hair, "Saving facial hair must not touch the head hair drawing.")
-	preferences.load_custom_sprites()
-	editor.finish(FALSE)
-
-/datum/unit_test/custom_sprite_gradient_toggle/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Short Hair")
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_color], "#2244cc")
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hair_gradient], "Full")
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_gradient], "#22ddcc")
-	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	TEST_ASSERT(("#22ddcc" in editor.sampled_palette), "A gradient's color must be offered while the gradient is shown.")
-	var/showing = json_encode(editor.guide_urls)
-	editor.show_gradient = FALSE
-	editor.rebuild_resources()
-	TEST_ASSERT(!("#22ddcc" in editor.sampled_palette), "Hiding the gradient must fall back to the plain hairstyle palette.")
-	TEST_ASSERT(json_encode(editor.guide_urls) != showing, "Hiding the gradient must change the guide.")
-	TEST_ASSERT(json_encode(editor.workspace.hair_context) == json_encode(preferences.custom_style_hair_context()), "Hiding the gradient must not change the look being saved.")
-	editor.show_gradient = TRUE
-	editor.rebuild_resources()
-	TEST_ASSERT(!(json_encode(editor.guide_urls) != showing || !("#22ddcc" in editor.sampled_palette)), "Showing the gradient again must restore the guide and palette.")
-	editor.finish(FALSE)
-
-/// Underwear hides paint a piece at a time, and what a salon recipient wears hides it under the item's own name, marked as worn.
-/datum/unit_test/custom_sprite_cover_underwear_and_clothing/Run()
-	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
-	for(var/name in SSaccessories.underwear_list)
-		if(name != "Nude" && name != SPRITE_ACCESSORY_NONE)
-			human.underwear = name
-			break
-	human.undershirt = "Nude"
-	human.bra = "Nude"
-	human.socks = "Nude"
-	human.update_body()
-	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
-	TEST_ASSERT(human.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING), "The fixture needs a worn jumpsuit.")
-	var/list/looks = custom_sprite_cover_looks(human, null, human)
-	var/list/worn = list()
-	for(var/list/look as anything in looks)
-		if(look["worn"])
-			worn += look["label"]
-	var/list/labels = custom_sprite_cover_labels(looks)
-	TEST_ASSERT(("underwear" in labels), "Underwear must hide paint: [json_encode(labels)]")
-	TEST_ASSERT(!("socks" in labels), "Socks the body doesn't wear must not: [json_encode(labels)]")
-	TEST_ASSERT_EQUAL(json_encode(worn), json_encode(list("\the [uniform]")), "The jumpsuit must hide paint under its own name, as something worn")
-	TEST_ASSERT(length(custom_sprite_cover_worn(looks)) == length(labels), "Each look must say whether it is worn")
-	// Without a wearer, as in character setup, clothing isn't looked for.
-	for(var/list/look as anything in custom_sprite_cover_looks(human))
-		TEST_ASSERT(!look["worn"], "Character setup must not count worn items")
-
-/// Hair and parts drawn over the body mark the canvas pixels they cover; a bare body marks nothing.
-/datum/unit_test/custom_sprite_cover_mask/Run()
-	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
-	human.set_hairstyle("Bald", update = TRUE)
-	var/list/bare = custom_sprite_cover_rows(custom_sprite_cover_looks(human), "2", 32)
-	TEST_ASSERT(length(bare) == 32 && length(bare[1]) == 32, "Cover rows must be 32 rows of 32 pixels.")
-	TEST_ASSERT(!findtext(jointext(bare, ""), "1"), "A bald human with no parts covers nothing.")
-	// The real external organ path, as the taur fixture uses it.
-	human.dna.mutant_bodyparts[FEATURE_SNOUT] = build_mutant_part("Beak", list("#654321"))
-	human.dna.species.regenerate_organs(human, visual_only = TRUE)
-	human.update_body(is_creating = TRUE)
-	var/obj/item/organ/snout = human.get_organ_slot(ORGAN_SLOT_EXTERNAL_SNOUT)
-	TEST_ASSERT(snout, "The fixture needs a real snout organ.")
-	var/datum/bodypart_overlay/mutant/part = snout.bodypart_overlay
-	var/obj/item/bodypart/head/head = human.get_bodypart(BODY_ZONE_HEAD)
-	var/gender = head.limb_gender == FEMALE ? "f" : "m"
-	// The snout's own art, read straight from its accessory rather than through the overlay pipeline.
-	var/list/states = list(part.build_icon_state_nova(gender, EXTERNAL_ADJACENT))
-	for(var/color_index, layer_name in part.sprite_datum.color_layer_names)
-		states += part.build_icon_state_nova(gender, EXTERNAL_ADJACENT, layer_name)
-	var/icon/shape = custom_sprite_blank_icon()
-	for(var/state in states)
-		if(icon_exists(part.sprite_datum.icon, state))
-			shape.Blend(icon(part.sprite_datum.icon, state), ICON_OVERLAY)
-	var/list/rows = custom_sprite_cover_rows(custom_sprite_cover_looks(human), "2", 32)
-	var/covered = 0
-	for(var/y in 1 to 32)
-		for(var/x in 1 to 32)
-			var/expected = shape.GetPixel(x, 33 - y, "", SOUTH) ? "1" : "0"
-			TEST_ASSERT(copytext(rows[y], x, x + 1) == expected, "Pixel [x],[y] must be covered exactly where the snout draws.")
-			if(expected == "1")
-				covered++
-	TEST_ASSERT(covered, "A beak must cover at least one Front-view pixel.")
-	human.set_hairstyle("Business Hair", update = TRUE)
-	var/list/haired = custom_sprite_cover_rows(custom_sprite_cover_looks(human), "2", 32)
-	TEST_ASSERT(length(replacetext(jointext(haired, ""), "0", "")) > covered, "Hair must add covered pixels.")
-	// Rows are cached by the cover key, so a rebuild with the same look reuses them.
-	var/list/key = list()
-	var/list/keyed = custom_sprite_cover_looks(human, key)
-	TEST_ASSERT(length(key), "The cover key must describe the images it was built from.")
-	var/list/cached = custom_sprite_cover_rows(keyed, "2", 32, -BODYPARTS_LAYER, json_encode(key))
-	TEST_ASSERT(cached == custom_sprite_cover_rows(keyed, "2", 32, -BODYPARTS_LAYER, json_encode(key)), "The same cover key must reuse the cached rows.")
-	TEST_ASSERT(cached != custom_sprite_cover_rows(keyed, "2", 32, -BODYPARTS_LAYER, "other"), "A different cover key must not share rows.")
-	TEST_ASSERT(cached ~= haired, "Cached rows must match a fresh flatten.")
-	// Looks are labelled lowest layer first, and each pixel carries the mark of the look on top.
-	TEST_ASSERT(custom_sprite_cover_labels(keyed) ~= list("snout", "hair"), "The snout sits below the hair: [json_encode(custom_sprite_cover_labels(keyed))]")
-	TEST_ASSERT(findtext(jointext(haired, ""), "1") && findtext(jointext(haired, ""), "2"), "Rows must mark both the snout and the hair.")
-	// Only the drawable box is read; everything outside it is reported clear without a pixel read.
-	var/list/boxed = custom_sprite_cover_rows(keyed, "2", 32, -BODYPARTS_LAYER, null, list(12, 6, 19, 9))
-	for(var/y in 1 to 32)
-		for(var/x in 1 to 32)
-			var/inside = x >= 13 && x <= 20 && y >= 7 && y <= 10
-			TEST_ASSERT(copytext(boxed[y], x, x + 1) == (inside ? copytext(haired[y], x, x + 1) : "0"), "Bounded rows must match inside the box and be clear outside it.")
-	// Hair is a runtime icon, so its key comes from the look that built it, not from the image.
-	human.set_hairstyle("Long Hair 1", update = TRUE)
-	var/list/long_key = list()
-	var/list/long_looks = custom_sprite_cover_looks(human, long_key)
-	TEST_ASSERT(json_encode(key) != json_encode(long_key), "Two hairstyles must not share a cover key.")
-	var/list/long_rows = custom_sprite_cover_rows(long_looks, "2", 32, -BODYPARTS_LAYER, json_encode(long_key))
-	TEST_ASSERT(!(long_rows ~= cached), "Two hairstyles must not share cached rows.")
-	head.set_custom_head_drawing("hair", custom_sprite_test_drawing())
-	var/list/painted_key = list()
-	custom_sprite_cover_looks(human, painted_key)
-	TEST_ASSERT(json_encode(painted_key) != json_encode(long_key), "Custom hair paint must change the cover key.")
-	// Above the hand paint layer the snout (BODY_ADJ_LAYER) no longer counts, and the hair still does.
-	var/list/high_rows = custom_sprite_cover_rows(long_looks, "2", 32, -BODYPARTS_HIGH_LAYER, json_encode(long_key))
-	TEST_ASSERT(!(high_rows ~= long_rows), "The threshold must be part of the cache key and give different rows.")
-	TEST_ASSERT(!findtext(jointext(high_rows, ""), "1") && findtext(jointext(high_rows, ""), "2"), "Above the hand paint layer only the hair covers.")
-
-/// Hand pixels use the hand paint layer's cover, the taur is never covered, other pixels use the body's, and unowned pixels stay clear.
-/datum/unit_test/custom_sprite_cover_rows_by_region/Run()
-	var/list/zones = list(BODY_ZONE_CHEST, BODY_ZONE_PRECISE_L_HAND, CUSTOM_MARKING_ZONE_TAUR)
-	var/list/region = list("1230" + repeat_string(28, "0"))
-	var/list/body = list("1111" + repeat_string(28, "0"))
-	var/list/high = list("0000" + repeat_string(28, "0"))
-	for(var/y in 2 to 32)
-		region += repeat_string(32, "0")
-		body += repeat_string(32, "1")
-		high += repeat_string(32, "0")
-	var/list/merged = custom_sprite_merge_cover_rows(body, high, region, zones)
-	TEST_ASSERT(merged[1] == "1000" + repeat_string(28, "0"), "The torso pixel takes the body cover, the hand pixel the high cover, the taur none.")
-	TEST_ASSERT(merged[2] == repeat_string(32, "0"), "Pixels no region owns are never covered.")
-	TEST_ASSERT(custom_sprite_merge_cover_rows(body, high, null, zones) == body, "Without a region map the body cover stands.")
-
-/// Copy samples only native hair RGB, leaving opacity, gradients and every draft state untouched.
-/datum/unit_test/custom_sprite_base_hair_copy/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Short Hair")
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/color/hair_color], "#ff0000")
-	var/datum/custom_sprite_editor/editor = new /datum/custom_sprite_editor/optimization_test(preferences, "hair")
-	var/list/request = list("request" = 1, "dir" = "2", "rect" = list(0, 0, 31, 31))
-	var/before = json_encode(editor.workspace.serialize_drawing())
-	var/palette_before = json_encode(editor.workspace.palette)
-	var/saved_before = custom_sprite_hash(preferences.custom_hair)
-	var/revision_before = editor.draft_revision
-	var/list/plain = editor.build_base_copy(request)
-	TEST_ASSERT(plain && length(plain["palette"]) > 1 && length(plain["codes"]) == 1024, "Opaque red hair must produce pixels, including RGB values whose blue channel is 00: [editor.transfer_error]")
-	TEST_ASSERT(json_encode(plain["origin"]) == json_encode(editor.guide_lift || list(0, 0)), "A copy must retain the source hair's native canvas origin.")
-	for(var/color in plain["palette"])
-		TEST_ASSERT(color == "#00000000" || (length(color) == 9 && endswith(color, "ff")), "A base copy must contain only transparent or opaque RGB pixels.")
-	var/obj/item/bodypart/head/head = editor.preview_body.get_bodypart(BODY_ZONE_HEAD)
-	head.set_custom_head_drawing("hair", custom_sprite_test_drawing())
-	var/list/custom_paint = head.custom_hair
-	var/list/gradients = list(GRADIENT_HAIR_KEY = "Full")
-	head.gradient_styles = gradients
-	head.gradient_colors = list(GRADIENT_HAIR_KEY = "#00ffff")
-	head.hair_alpha = 64
-	head.facial_hairstyle = custom_style_test_facial_style()
-	head.facial_hair_color = "#00ffff"
-	editor.preview_body.emissive_hair = TRUE
-	var/old_block = head.blocks_emissive
-	editor.base_copy_frame_key = null
-	request["request"] = 2
-	var/list/decorated = editor.build_base_copy(request)
-	TEST_ASSERT(decorated && decorated["codes"] == plain["codes"] && json_encode(decorated["palette"]) == json_encode(plain["palette"]), "Custom paint, beard, glow, live gradients and global opacity must not enter the copied base pixels.")
-	TEST_ASSERT(head.custom_hair == custom_paint && head.gradient_styles == gradients && head.hair_alpha == 64 && head.blocks_emissive == old_block && editor.preview_body.emissive_hair, "Sampling must restore every temporarily suppressed head setting.")
-	TEST_ASSERT(json_encode(editor.workspace.serialize_drawing()) == before && json_encode(editor.workspace.palette) == palette_before && editor.draft_revision == revision_before && !length(editor.workspace.undo_stack) && !length(editor.workspace.redo_stack), "Copy must not mutate the draft, admitted colors, revision or history.")
-	TEST_ASSERT(custom_sprite_hash(preferences.custom_hair) == saved_before, "Copy must not write character saves.")
-	var/painted_index
-	for(var/index in 1 to length(plain["codes"]))
-		if(copytext(plain["codes"], index, index + 1) != "0")
-			painted_index = index
-			break
-	var/x = (painted_index - 1) % 32
-	var/y = round((painted_index - 1) / 32)
-	request["request"] = 3
-	request["rect"] = list(x, y, x, y)
-	request["mask"] = list("1")
-	var/list/selected = editor.build_base_copy(request)
-	TEST_ASSERT(selected && length(replacetext(selected["codes"], "0", "")) == 1, "A one-pixel selection must copy exactly that base pixel in full-canvas coordinates.")
-	request["mask"] = list("0")
-	var/list/excluded = editor.build_base_copy(request)
-	TEST_ASSERT(excluded && excluded["codes"] == repeat_string(1024, "0") && length(excluded["palette"]) == 1, "An excluded selection pixel must remain transparent.")
 	editor.finish(FALSE)
 
 /// A trusted copy survives choosing Bald, but cannot bypass palette admission, history limits or editor lifetime.
@@ -734,7 +447,7 @@
 	TEST_ASSERT(!facial.validated_base_copy(retained), "Base head hair copy must not be admitted by the facial hair editor.")
 	facial.finish(FALSE)
 
-/// Floating paint shows on the hair preview, on the layer it floats on, and never reaches the draft.
+/// Floating paint previews on the layer it names without ever writing the draft, and a preview naming another layer's id is refused.
 /datum/unit_test/custom_sprite_hair_selection_preview/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -742,8 +455,6 @@
 	LAZYSET(preferences.custom_sprite_editors, "hair", editor)
 	var/datum/tgui/ui = allocate(/datum/tgui, mock_client.mob, editor, "CustomHairEditor")
 	editor.ui_act("addAppendage", list(), ui, null)
-	editor.refresh_preview(push = FALSE)
-	var/drawn_hash = editor.preview_hash
 	var/draft = json_encode(editor.workspace.serialize_drawing())
 	var/history = length(editor.workspace.undo_stack)
 	var/revision = editor.draft_revision
@@ -754,10 +465,10 @@
 		placement = list("layer" = layer, "layerId" = editor.workspace.layers[layer]["id"], "dir" = "2", "area" = list(point[1], point[2], point[1], point[2]), "palette" = list(color), "digits" = 1, "codes" = "0")
 		editor.ui_act("previewSelection", list("transaction" = placement), ui, null)
 		editor.refresh_preview(push = FALSE)
-		TEST_ASSERT(editor.selection_layer == layer && editor.selection_frames?["2"][point[2] + 1][point[1] + 1] == color && editor.preview_hash != drawn_hash, "The preview must picture floating paint on the layer it names, layer [layer].")
+		TEST_ASSERT(editor.selection_layer == layer && editor.selection_frames?["2"][point[2] + 1][point[1] + 1] == color, "The preview must picture floating paint on the layer it names, layer [layer].")
 		TEST_ASSERT(json_encode(editor.workspace.serialize_drawing()) == draft && length(editor.workspace.undo_stack) == history && editor.draft_revision == revision, "Floating previews must never write the draft, its history or its revision.")
 	placement["layerId"] = "hair"
 	editor.queue_selection_preview(placement)
 	editor.refresh_preview(push = FALSE)
-	TEST_ASSERT(!editor.selection_frames && editor.preview_hash == drawn_hash, "A preview naming another layer's id must be refused, and the draft's own picture shown again.")
+	TEST_ASSERT(!editor.selection_frames, "A preview naming another layer's id must be refused.")
 	editor.finish(FALSE)

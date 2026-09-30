@@ -9,11 +9,13 @@
 	var/frame
 	var/datum/icon_transformer/transform
 	// APHELION EDIT ADDITION START - A grown flat icon's canvas, which its file's size doesn't tell.
-	/// Set by get_flat_uni_icon(grow = TRUE): where the canvas's lower left pixel sits, counted from the
-	/// flattened appearance's own (1, 1), and the canvas's size.
+	/// Set by get_flat_uni_icon(grow = TRUE): the x of the canvas's lower left pixel, relative to the flattened appearance's own (1, 1).
 	var/flat_x1
+	/// Set by get_flat_uni_icon(grow = TRUE): the y of the canvas's lower left pixel, relative to the flattened appearance's own (1, 1).
 	var/flat_y1
+	/// Set by get_flat_uni_icon(grow = TRUE): the canvas's width in pixels.
 	var/flat_width
+	/// Set by get_flat_uni_icon(grow = TRUE): the canvas's height in pixels.
 	var/flat_height
 	// APHELION EDIT ADDITION END
 
@@ -407,7 +409,9 @@
 
 /// getFlatIcon for [/datum/universal_icon]s
 /// Still fairly slow for complex appearances due to filesystem operations. Try to avoid using it
-/// APHELION EDIT ADDITION - grow: the canvas fits every overlay, nested ones where they really are; see flat_x1.
+// APHELION EDIT ADDITION START
+/// grow: the canvas fits every overlay, nested ones where they really are; see flat_x1.
+// APHELION EDIT ADDITION END
 /proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor, grow = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /proc/get_flat_uni_icon(image/appearance, defdir, deficon, defstate, defblend, start = TRUE, parentcolor)
 	// Loop through the underlays, then overlays, sorting them into the layers list
 	#define PROCESS_OVERLAYS_OR_UNDERLAYS(flat, process, base_layer) \
@@ -459,7 +463,7 @@
 	var/curstate = appearance.icon_state || defstate
 	// Filter out 'runtime' icons (server-generated RSC cache icons)
 	// Write the icon to the filesystem so it can be used by iconforge
-	if(curicon && (!isfile(curicon) || !length(string_curicon))) // APHELION EDIT CHANGE - An appearance with no icon of its own, like a container of overlays, has none to write out. ORIGINAL: if(!isfile(curicon) || !length(string_curicon))
+	if(curicon && (!isfile(curicon) || !length(string_curicon))) // APHELION EDIT CHANGE - An appearance with no icon of its own, like a container of overlays, has none to write out - ORIGINAL: if(!isfile(curicon) || !length(string_curicon))
 		/* // APHELION EDIT REMOVAL START - Runtime icons: each is written out once, below.
 		var/file_path_tmp = "tmp/uni_icon-tmp-[rand(1, 999)].dmi" // this filename is temporary.
 		fcopy(curicon, file_path_tmp)
@@ -470,8 +474,9 @@
 		fdel(file_path_tmp) // delete the old one
 		curicon = file(file_path)
 		*/ // APHELION EDIT REMOVAL END
-		// APHELION EDIT ADDITION START - Runtime icons: a cache entry never changes, so write each out once
-		// rather than on every flatten, where copying and hashing it was most of the flatten's cost.
+		// APHELION EDIT ADDITION START - Runtime icons: each is written out once
+		// A cache entry never changes, so write each out once rather than on every flatten, where copying and
+		// hashing it was most of the flatten's cost.
 		var/static/list/runtime_icon_paths = list()
 		var/runtime_icon_ref = isfile(curicon) ? REF(curicon) : null
 		var/file_path = runtime_icon_ref && runtime_icon_paths[runtime_icon_ref]
@@ -593,8 +598,9 @@
 			if(!add || !length(add.icon_file))
 				continue
 
-			// APHELION EDIT ADDITION START - Growing: fit the overlay's whole canvas, which starts left of or below its
-			// own (1, 1) if it grew too. Offsets round to whole pixels, as the canvas has no others.
+			// APHELION EDIT ADDITION START - Growing
+			// Fit the overlay's whole canvas, which starts left of or below its own (1, 1) if it grew too.
+			// Offsets round to whole pixels, as the canvas has no others.
 			if(grow)
 				var/add_x1 = round(layer_image.pixel_x + layer_image.pixel_w, 1) + (isnull(add.flat_x1) ? 1 : add.flat_x1)
 				var/add_y1 = round(layer_image.pixel_y + layer_image.pixel_z, 1) + (isnull(add.flat_y1) ? 1 : add.flat_y1)
@@ -616,7 +622,6 @@
 					flatY2 = addY2
 				flat.blend_icon(add, blendMode2iconMode(curblend), add_x1 - flatX1 + 1, add_y1 - flatY1 + 1)
 				continue
-
 			// APHELION EDIT ADDITION END
 			// Find the new dimensions of the flat icon to fit the added overlay
 			var/list/add_dimensions = get_icon_dimensions(add)
@@ -675,7 +680,6 @@
 
 	#undef PROCESS_OVERLAYS_OR_UNDERLAYS
 // APHELION EDIT ADDITION START - One walk for every facing.
-
 /**
  * Turns a flat icon walked with get_flat_uni_icon(target, UP) into its recipe for each facing, as iconforge entry
  * JSON: facing name -> recipe.

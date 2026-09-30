@@ -1,15 +1,3 @@
-/**
- * Keeps the custom sprite editors cheap for the server, whatever a window sends.
- *
- * Window actions only change the draft and note what needs drawing. Views, previews and resource
- * rebuilds are drawn afterwards by SScustom_sprite_work, once for a burst of actions, in tick time
- * other subsystems leave over, so no window can hold up a tick however fast it sends actions. The
- * work that costs tens of milliseconds a time, resource rebuilds, new editors and previews of a
- * previous saved style, is paced per player across all their editors by /datum/custom_sprite_pace,
- * and across players by the subsystem: what such work runs past the ends of ticks stays within
- * CUSTOM_SPRITE_OVERRUN_BUDGET.
- */
-
 /// Deferred work: draw the visible view's stale guide and preview.
 #define CUSTOM_SPRITE_WORK_VIEW (1<<0)
 /// Deferred work: refresh the preview after edits settle.
@@ -47,10 +35,17 @@
 /// How many ms past the ends of ticks may build up for a burst: a new body and the drawing on it.
 #define CUSTOM_SPRITE_OVERRUN_BURST 150
 
-/// Queue one bounded base-layer copy without adding work to ordinary paint.
-/datum/custom_sprite_editor/proc/request_base_copy_work()
-	request_work(CUSTOM_SPRITE_WORK_BASE_COPY)
-
+/**
+ * Keeps the custom sprite editors cheap for the server, whatever a window sends.
+ *
+ * Window actions only change the draft and note what needs drawing. Views, previews and resource
+ * rebuilds are drawn afterwards by SScustom_sprite_work, once for a burst of actions, in tick time
+ * other subsystems leave over, so no window can hold up a tick however fast it sends actions. The
+ * work that costs tens of milliseconds a time, resource rebuilds, new editors and previews of a
+ * previous saved style, is paced per player across all their editors by /datum/custom_sprite_pace,
+ * and across players by the subsystem: what such work runs past the ends of ticks stays within
+ * CUSTOM_SPRITE_OVERRUN_BUDGET.
+ */
 SUBSYSTEM_DEF(custom_sprite_work)
 	name = "Custom Sprite Work"
 	wait = 1
@@ -73,8 +68,7 @@ SUBSYSTEM_DEF(custom_sprite_work)
 /datum/controller/subsystem/custom_sprite_work/fire(resumed)
 	var/list/waiting = list()
 	while(length(queue))
-		var/datum/custom_sprite_editor/editor = queue[1]
-		queue.Cut(1, 2)
+		var/datum/custom_sprite_editor/editor = popleft(queue)
 		if(QDELETED(editor))
 			continue
 		var/costly = editor.costly_work_due()
@@ -107,6 +101,7 @@ SUBSYSTEM_DEF(custom_sprite_work)
  * previous saved style. Up to CUSTOM_SPRITE_BURST pieces run CUSTOM_SPRITE_REBUILD_SPACING apart,
  * and each piece used comes back after CUSTOM_SPRITE_REFILL. A few changes in a row never wait more
  * than the shortest spacing, while a window asking for such work nonstop gets one piece per refill.
+ * The player's base hairstyle window and stroke budget are kept here too.
  */
 /datum/custom_sprite_pace
 	/// When the next piece of costly work may start at the soonest.
@@ -150,18 +145,6 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	var/wait = COOLDOWN_TIMELEFT(src, spacing)
 	return burst > 0 ? wait : max(wait, refilled_at + CUSTOM_SPRITE_REFILL - world.time)
 
-/// Whether a base hairstyle change may apply at once.
-/datum/custom_sprite_pace/proc/hairstyle_due()
-	return COOLDOWN_FINISHED(src, hairstyle_window)
-
-/// Notes a base hairstyle change applying now; ones picked in the next moments wait.
-/datum/custom_sprite_pace/proc/start_hairstyle_window()
-	COOLDOWN_START(src, hairstyle_window, CUSTOM_SPRITE_HAIRSTYLE_WINDOW)
-
-/// How long a base hairstyle change picked now waits.
-/datum/custom_sprite_pace/proc/hairstyle_time_left()
-	return COOLDOWN_TIMELEFT(src, hairstyle_window)
-
 /// Whether a stroke of `pixels` may apply inside its action, counting it if so.
 /datum/custom_sprite_pace/proc/stroke_fits(pixels)
 	if(COOLDOWN_FINISHED(src, stroke_window))
@@ -172,10 +155,12 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	stroke_pixels += pixels
 	return TRUE
 
+/// Custom sprite editing's per-player pace.
 /datum/preferences
 	/// Paces this player's costly custom sprite work across all their editors.
 	var/datum/custom_sprite_pace/custom_sprite_pace = new
 
+/// The editor's deferred work, stroke queue and pacing.
 /datum/custom_sprite_editor
 	/// CUSTOM_SPRITE_WORK_* flags waiting for SScustom_sprite_work.
 	var/pending_work = NONE
@@ -204,10 +189,8 @@ SUBSYSTEM_DEF(custom_sprite_work)
 		return FALSE
 	if(pending_work & CUSTOM_SPRITE_WORK_CANDIDATE)
 		return TRUE
-	if(!(pending_work & CUSTOM_SPRITE_WORK_REBUILD))
-		return FALSE
 	var/datum/custom_sprite_pace/pace = pace()
-	return pending_body_ready || pace.due()
+	return (pending_work & CUSTOM_SPRITE_WORK_REBUILD) && (pending_body_ready || pace.due())
 
 /// Asks SScustom_sprite_work for work. Whatever the draft holds when it runs is what gets drawn.
 /datum/custom_sprite_editor/proc/request_work(work)
@@ -249,9 +232,7 @@ SUBSYSTEM_DEF(custom_sprite_work)
 /// Applies waiting strokes in order until the tick runs short, at least one per call, then sends the window everything that waited for them. Returns whether the queue is empty.
 /datum/custom_sprite_editor/proc/drain_strokes()
 	do
-		var/list/transaction = stroke_queue[1]
-		stroke_queue.Cut(1, 2)
-		workspace.new_transaction(transaction)
+		workspace.new_transaction(popleft(stroke_queue))
 	while(length(stroke_queue) && TICK_USAGE < Master.current_ticklimit)
 	draft_edited()
 	if(length(stroke_queue))
@@ -320,6 +301,10 @@ SUBSYSTEM_DEF(custom_sprite_work)
 /// Asks for the waiting candidate's previews to be drawn in the background.
 /datum/custom_sprite_editor/proc/request_candidate()
 	request_work(CUSTOM_SPRITE_WORK_CANDIDATE)
+
+/// Queue one bounded base-layer copy without adding work to ordinary paint.
+/datum/custom_sprite_editor/proc/request_base_copy_work()
+	request_work(CUSTOM_SPRITE_WORK_BASE_COPY)
 
 /**
  * Does this editor's deferred work and sends the window what changed.
@@ -417,13 +402,13 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	if(style == (pending_hairstyle || current))
 		return FALSE
 	var/datum/custom_sprite_pace/pace = pace()
-	if(!pending_hairstyle && pace.hairstyle_due())
-		pace.start_hairstyle_window()
+	if(!pending_hairstyle && COOLDOWN_FINISHED(pace, hairstyle_window))
+		COOLDOWN_START(pace, hairstyle_window, CUSTOM_SPRITE_HAIRSTYLE_WINDOW)
 		apply_hairstyle(style)
 		return TRUE
 	// Picking the applied style again only drops the one waiting.
 	pending_hairstyle = style == current ? null : style
-	addtimer(CALLBACK(src, PROC_REF(apply_pending_hairstyle), TRUE), pace.hairstyle_time_left(), TIMER_UNIQUE)
+	addtimer(CALLBACK(src, PROC_REF(apply_pending_hairstyle), TRUE), COOLDOWN_TIMELEFT(pace, hairstyle_window), TIMER_UNIQUE)
 	return TRUE
 
 /// Applies a hairstyle that was waiting, when its window ends or before anything else the window does.
@@ -433,7 +418,7 @@ SUBSYSTEM_DEF(custom_sprite_work)
 	var/style = pending_hairstyle
 	pending_hairstyle = null
 	var/datum/custom_sprite_pace/pace = pace()
-	pace.start_hairstyle_window()
+	COOLDOWN_START(pace, hairstyle_window, CUSTOM_SPRITE_HAIRSTYLE_WINDOW)
 	apply_hairstyle(style)
 	if(push)
 		SStgui.update_uis(src)
@@ -506,12 +491,11 @@ SUBSYSTEM_DEF(custom_sprite_work)
 		return 0
 	if("mask" in transaction)
 		return custom_sprite_mask_pixels(transaction["mask"]) || width * height
-	if(islist(transaction["area"]) && length(transaction["area"]) == 4)
-		var/list/area = transaction["area"]
-		return isnum(area[1]) && isnum(area[2]) && isnum(area[3]) && isnum(area[4]) ? max(0, (area[3] - area[1] + 1) * (area[4] - area[2] + 1)) : width * height
-	if(islist(transaction["rect"]) && length(transaction["rect"]) == 4)
-		var/list/rect = transaction["rect"]
-		return isnum(rect[1]) && isnum(rect[2]) && isnum(rect[3]) && isnum(rect[4]) ? max(0, (rect[3] - rect[1] + 1) * (rect[4] - rect[2] + 1)) : width * height
+	// A placement's area, or a move's box.
+	for(var/key in list("area", "rect"))
+		var/list/box = transaction[key]
+		if(islist(box) && length(box) == 4)
+			return isnum(box[1]) && isnum(box[2]) && isnum(box[3]) && isnum(box[4]) ? max(0, (box[3] - box[1] + 1) * (box[4] - box[2] + 1)) : width * height
 	return islist(transaction["points"]) ? length(transaction["points"]) : 1
 
 /// The pixels a compact stroke mask marks, or null when a character isn't in the alphabet.

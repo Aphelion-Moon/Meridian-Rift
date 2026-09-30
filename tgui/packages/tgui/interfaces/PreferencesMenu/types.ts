@@ -55,12 +55,8 @@ export type Name = {
 
 export type Species = {
   name: string;
-  // APHELION EDIT CHANGE START - Species page: null when nothing is on record
-  // ORIGINAL: desc: string;
-  // ORIGINAL: lore: string[];
-  desc: string | null;
-  lore: string[] | null;
-  // APHELION EDIT CHANGE END
+  desc: string | null; // APHELION EDIT CHANGE - Species page: null when nothing is on record - ORIGINAL: desc: string;
+  lore: string[] | null; // APHELION EDIT CHANGE - Species page: null when nothing is on record - ORIGINAL: lore: string[];
   icon: string;
   // APHELION EDIT ADDITION START - Species page
   /** A species_families id; unknown or missing ids fall under Unclassified. */
@@ -103,7 +99,8 @@ export type SpeciesFamily = {
   /** Font Awesome, or tgfont when it starts with tg-. */
   icon: string;
 };
-
+// APHELION EDIT ADDITION END
+// APHELION EDIT ADDITION START - Drawn character preview
 /** The character preview every tab shows: the preview mob, facing each way, drawn side by side in one image. */
 export type CharacterPreviewDrawing = {
   /** Numbers the drawing; any change to it comes as a new one. */

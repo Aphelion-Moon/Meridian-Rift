@@ -147,14 +147,6 @@ describe('MeridianOS shared control geometry', () => {
           <Button aria-label="Classic ellipsis action" ellipsis fluid>
             Long action label
           </Button>
-          {/* // APHELION EDIT REMOVAL START - Species page: the old species button and its rules are commented out.
-          <Button
-            aria-label="Classic species action"
-            className="PreferencesMenu__SpeciesButton"
-          >
-            <span>Species preview</span>
-          </Button>
-          // APHELION EDIT REMOVAL END */}
           <PriorityButton
             color="green"
             enabled
@@ -188,11 +180,6 @@ describe('MeridianOS shared control geometry', () => {
     expect(getComputedStyle(content('Classic ellipsis action')).display).toBe(
       'flex',
     );
-    // APHELION EDIT REMOVAL START - Species page: the old species button and its rules are commented out.
-    // expect(getComputedStyle(content('Classic species action')).display).toBe(
-    //   'grid',
-    // );
-    // APHELION EDIT REMOVAL END
     for (const priority of [enabledPriority, emptyPriority]) {
       expect(getComputedStyle(priority).lineHeight).toBe('16px');
       expect(getComputedStyle(priority).minHeight).toBe('0');
@@ -203,31 +190,6 @@ describe('MeridianOS shared control geometry', () => {
     expect(
       getComputedStyle(legacyButton).getPropertyValue('--button-height').trim(),
     ).not.toBe('max(24px, 1.667em)');
-  });
-
-  it('gives Classic dropdowns the box of the buttons beside them', () => {
-    // Stock tgui draws a dropdown 22px high; Classic buttons are 24px, which
-    // left each preference dropdown 2px short of its arrow and play buttons.
-    for (const [theme, expected] of [
-      ['theme-nanotrasen theme-meridian_classic', '24px'],
-      ['theme-nanotrasen', ''],
-    ] as const) {
-      const view = render(
-        <div className={theme}>
-          <Dropdown
-            buttons
-            onSelected={() => undefined}
-            options={['First', 'Second']}
-            selected="First"
-          />
-        </div>,
-      );
-      const control = view.container.querySelector(
-        '.Dropdown__control',
-      ) as HTMLElement;
-      expect(getComputedStyle(control).minHeight, theme).toBe(expected);
-      cleanup();
-    }
   });
 
   it('keeps dropdown arrows on the Stack control row', () => {

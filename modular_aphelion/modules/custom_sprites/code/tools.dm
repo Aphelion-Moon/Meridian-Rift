@@ -27,6 +27,7 @@
 	custom_sprite_salon_resume(src, user)
 	return TRUE
 
+/// The tattooist's tool. Used on someone, it opens the whole-body tattoo canvas on their current look.
 /obj/item/tattoo_machine
 	name = "tattoo machine"
 	desc = "A reusable coil tattoo machine. Use it on someone, sketch the design anywhere on their body, then apply it once they approve. Use it in hand to resume unfinished work."
@@ -51,7 +52,7 @@
 	INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(custom_sprite_salon_tool_menu), src, user, interacting_with, "markings")
 	return ITEM_INTERACT_SUCCESS
 
-/// The finishing action stays audible too; interruption and completion release both channels.
+/// A do_after() for the finishing touches that plays the tool's work sound, and the tattoo machine's hum, until it ends either way.
 /proc/do_salon_work(mob/living/user, duration, atom/recipient, tattoo = FALSE, datum/callback/extra_checks)
 	var/sound_type = tattoo ? /datum/looping_sound/salon_snipping/drawing/tattoo : /datum/looping_sound/salon_snipping
 	var/datum/looping_sound/work_sound = new sound_type(recipient, TRUE)
@@ -62,6 +63,7 @@
 	qdel(ambience)
 	qdel(work_sound)
 
+/// Scissor snips while salon work goes on. Stopping it cuts the clip off for everyone who heard it.
 /datum/looping_sound/salon_snipping
 	mid_sounds = 'modular_nova/modules/salon/sound/haircut.ogg'
 	mid_length = 6 SECONDS
@@ -87,6 +89,7 @@
 	stop()
 	..()
 
+/// A single work clip that brush activity in the editor starts, rather than a loop.
 /datum/looping_sound/salon_snipping/drawing
 	mid_length = 5 SECONDS
 	mid_length_vary = 0
@@ -96,12 +99,14 @@
 	play(get_sound())
 	timer_id = addtimer(CALLBACK(src, PROC_REF(stop)), mid_length, TIMER_CLIENT_TIME | TIMER_DELETE_ME | TIMER_STOPPABLE, SSsound_loops)
 
+/// The tattoo needle's pitch-varied clip.
 /datum/looping_sound/salon_snipping/drawing/tattoo
 	mid_sounds = 'modular_nova/modules/salon/sound/tattoo1.ogg'
 	mid_length = 12 SECONDS
 	volume = 60
 	vary = TRUE
 
+/// The tattoo machine's steady hum under the needle.
 /datum/looping_sound/salon_tattoo_ambience
 	mid_sounds = 'modular_nova/modules/salon/sound/tattoo_ambience.ogg'
 	volume = 30

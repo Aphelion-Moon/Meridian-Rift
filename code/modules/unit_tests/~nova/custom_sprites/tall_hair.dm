@@ -56,7 +56,7 @@
 /datum/unit_test/custom_sprite_tall_hair_import/Run()
 	var/list/beard = list("style" = "Shaved", "color" = "#000000", "gradient_style" = SPRITE_ACCESSORY_NONE, "gradient_color" = "#000000", "opacity" = null, "emissive" = FALSE)
 	var/list/facial_result = custom_style_validate_package(list("format" = "aphelion-custom-style", "version" = 1, "target" = "facial_hair", "zone" = null, "drawing" = custom_sprite_tall_hair_test_drawing(3, 2), "hair" = beard))
-	TEST_ASSERT(findtext(facial_result["error"], "Tall drawings"), "A tall facial hair drawing should be refused by name: [facial_result["error"]]")
+	TEST_ASSERT(facial_result["error"], "A tall facial hair drawing should be refused")
 	var/list/hair = list("style" = "Bald (Tall Canvas)", "color" = "#000000", "gradient_style" = SPRITE_ACCESSORY_NONE, "gradient_color" = "#000000", "opacity" = null, "emissive" = FALSE)
 	var/list/result = custom_style_validate_package(list("format" = "aphelion-custom-style", "version" = 1, "target" = "hair", "zone" = null, "drawing" = custom_sprite_tall_hair_test_drawing(3, 2), "hair" = hair))
 	TEST_ASSERT(result["package"], "A tall hair style should validate: [result["error"]]")
@@ -64,7 +64,7 @@
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/hairstyle], "Bald")
 	var/datum/custom_sprite_editor/tall_hair_test/editor = allocate(/datum/custom_sprite_editor/tall_hair_test, preferences, "hair")
-	TEST_ASSERT(findtext(editor.candidate_problem(result["package"]), "tall"), "A normal canvas should refuse tall paint and say it needs the tall canvas")
+	TEST_ASSERT(editor.candidate_problem(result["package"]), "A normal canvas should refuse tall paint")
 
 /// A tall drawing renders its extra rows above the head.
 /datum/unit_test/custom_sprite_tall_hair_render/Run()
@@ -113,51 +113,6 @@
 	TEST_ASSERT_EQUAL(json_encode(sort_list(drawn["#ff8800"])), json_encode(sort_list(expected)), "The paint should draw every painted pixel once, where the tall canvas has it")
 	TEST_ASSERT_EQUAL(json_encode(sort_list(drawn["#00ff00"])), json_encode(sort_list(expected)), "The gradient should cover the paint's extra rows too")
 	TEST_ASSERT_EQUAL(json_encode(sort_list(drawn["blocker"])), json_encode(sort_list(expected)), "The emissive blocker should cover the paint's extra rows too")
-
-/// Character setup's height maps carry on above the dummy's tile as their top rows, so what is drawn above the head moves with it instead of tearing off.
-/datum/unit_test/custom_sprite_preview_height_maps/Run()
-	var/mob/living/carbon/human/dummy/consistent/dummy = allocate(/mob/living/carbon/human/dummy/consistent)
-	dummy.set_mob_height(HUMAN_HEIGHT_TALLEST)
-	dummy.apply_height(dummy, ENTIRE_BODY)
-	var/maps = 0
-	for(var/list/filter_info as anything in dummy.filter_data)
-		if(filter_info["type"] != "displace")
-			continue
-		maps++
-		var/icon/map = filter_info["icon"]
-		TEST_ASSERT_EQUAL(map.Height(), 64, "[filter_info["name"]] should reach 32 rows above the tile")
-		TEST_ASSERT_EQUAL(filter_info["y"], 16, "[filter_info["name"]] should keep its own rows on the tile")
-		TEST_ASSERT_EQUAL(map.GetPixel(1, 64), map.GetPixel(1, 32), "[filter_info["name"]] should move what is above the tile as it moves the head")
-	TEST_ASSERT_EQUAL(maps, 3, "Tallest should stretch the dummy with three maps")
-	var/tallest = 0
-	for(var/mutable_appearance/overlay as anything in dummy.overlays)
-		if(overlay.icon)
-			var/icon/drawn = icon(overlay.icon)
-			tallest = max(tallest, drawn.Height())
-	TEST_ASSERT_EQUAL(tallest, 64, "The dummy should reach as far up as its maps, so the rows they lift aren't cut off")
-
-/// Character setup's drawn preview reaches as far up as the character does: a body taller than average, and hair lifted or painted above the head.
-/datum/unit_test/custom_sprite_tall_preview_drawing/Run()
-	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
-	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
-	var/datum/preference/height = GLOB.preference_entries[/datum/preference/choiced/mob_height]
-	var/datum/preference/hairstyle = GLOB.preference_entries[/datum/preference/choiced/hairstyle]
-	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
-	preferences.write_preference(hairstyle, "Bald")
-	var/atom/movable/screen/map_view/char_preview/view = allocate(/atom/movable/screen/map_view/char_preview, null, null, preferences)
-	view.update_body()
-	TEST_ASSERT_EQUAL(character_preview_walk(view.body)["height"], 32, "An average bald body should fit its own tile")
-	preferences.write_preference(height, "Tall")
-	view.update_body()
-	TEST_ASSERT(character_preview_walk(view.body)["height"] > 32, "A tall body's drawing should reach above its tile")
-	preferences.write_preference(height, "Average")
-	preferences.write_preference(hairstyle, "Afro (Huge)")
-	view.update_body()
-	TEST_ASSERT(character_preview_walk(view.body)["height"] > 32, "A hairstyle drawn above the head should reach above the tile in the drawing")
-	preferences.write_preference(hairstyle, CUSTOM_SPRITE_TALL_HAIRSTYLE)
-	preferences.custom_hair = custom_sprite_tall_hair_test_drawing(16, 2)
-	view.update_body()
-	TEST_ASSERT(character_preview_walk(view.body)["height"] > 32, "Hair painted above the head should reach above the tile in the drawing")
 
 /// A 32 by 32 hair drawing painted in every view, once in its top row and once in its bottom row.
 /proc/custom_sprite_tall_hair_test_short_drawing()

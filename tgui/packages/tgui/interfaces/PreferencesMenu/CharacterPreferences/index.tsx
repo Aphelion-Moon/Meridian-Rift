@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'; // NOVA EDIT CHANGE - ORIGINAL: import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'; // APHELION EDIT CHANGE - ORIGINAL: import { useState, useMemo } from 'react'; // NOVA EDIT CHANGE - ORIGINAL: import { useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Dropdown, Stack } from 'tgui-core/components'; // NOVA EDIT CHANGE - ORIGINAL: import { Button, Stack } from 'tgui-core/components';
 import { exhaustiveCheck } from 'tgui-core/exhaustive';
@@ -117,6 +117,9 @@ export function CharacterPreferenceWindow(props: {
   onSpeciesPageShown?: (shown: boolean) => void;
 }) {
   const { act, data } = useBackend<PreferencesMenuData>();
+  /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
+  const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
+  */ // APHELION EDIT REMOVAL END
   const [currentPage, setCurrentPageRaw] = useState(Page.Main);
   // The character preview every tab shows: asked for once the window opens, then sent
   // whenever the character changes, unless the window already holds it.
@@ -166,6 +169,7 @@ export function CharacterPreferenceWindow(props: {
         <LimbsPage
           onTabChange={(tab) => {
             props.onAugmentsTabChange?.(tab);
+            // setAugmentsTab(tab); // APHELION EDIT REMOVAL - MERIDIAN_UI
           }}
         />
       );

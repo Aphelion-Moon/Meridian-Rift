@@ -1,3 +1,4 @@
+// THIS IS AN APHELION UI FILE
 // SVGO settings for our own SVG art, such as the MeridianOS theme assets. From tgui/, run for example:
 //   bunx svgo -r -f packages/tgui/styles/meridianos/assets
 // Leave upstream SVGs, such as packages/tgui/assets/transparency_checkerboard.svg, as they are.

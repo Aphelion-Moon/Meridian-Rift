@@ -49,7 +49,8 @@ export function PreferencesMenu(props) {
     <Window width={WINDOW_WIDTH} height={height} /* NOVA EDIT CHANGE - ORIGINAL: <Window width={920} height={770}> */>
       <Window.Content>
         <Suspense fallback={<LoadingScreen />}>
-          <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} onSpeciesPageShown={setSpeciesShown} /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> */ />
+          <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} onSpeciesPageShown={setSpeciesShown} /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> */ // APHELION EDIT CHANGE - Species page - ORIGINAL: <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> *//>
+          />
         </Suspense>
       </Window.Content>
     </Window>
@@ -60,7 +61,7 @@ export function PreferencesMenu(props) {
 //function PrefsWindowInner(props) { // NOVA EDIT REMOVAL
 // NOVA EDIT ADDITION START
 function PrefsWindowInner(props: {
-  onAugmentsTabChange: (tab: AugmentsTab | null) => void;
+  onAugmentsTabChange: (tab: AugmentsTab | null) => void; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: onAugmentsTabChange: (tab: AugmentsTab) => void;
   onSpeciesPageShown: (shown: boolean) => void;
 }) {
 // NOVA EDIT ADDITION END
@@ -85,7 +86,8 @@ function PrefsWindowInner(props: {
   let title;
   switch (window) {
     case PrefsWindow.Character:
-      content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} onSpeciesPageShown={props.onSpeciesPageShown} /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */ />
+      content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} onSpeciesPageShown={props.onSpeciesPageShown} /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */ // APHELION EDIT CHANGE - Species page - ORIGINAL: content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */ />
+      />
       title = 'Character Preferences';
       break;
     case PrefsWindow.Game:

@@ -1,4 +1,4 @@
-// APHELION EDIT REMOVAL START - Species page: replaced by ./SpeciesRegistry. Kept commented out so upstream changes still merge.
+// APHELION EDIT REMOVAL START - Species page: replaced by ./SpeciesRegistry. The old page stays here, commented out line by line, so upstream changes to it still show up in merges.
 // import { useBackend } from 'tgui/backend';
 // import {
 //   BlockQuote,

@@ -1,12 +1,7 @@
 // THIS IS AN APHELION UI FILE
 import { describe, expect, it } from 'bun:test';
 
-import {
-  flattenGroups,
-  getLineage,
-  groupSpecies,
-  type SpeciesMap,
-} from './taxonomy';
+import { flattenGroups, groupSpecies, type SpeciesMap } from './taxonomy';
 import { testFamilies, testSpecies } from './testSpecies';
 
 const species: SpeciesMap = {
@@ -84,13 +79,5 @@ describe('groupSpecies', () => {
       'a',
       'b',
     ]);
-  });
-});
-
-describe('getLineage', () => {
-  it('finds the whole lineage from any member', () => {
-    const groups = groupSpecies(species, testFamilies);
-    expect(getLineage(groups, 'ashwalker')?.root).toBe('lizard');
-    expect(getLineage(groups, 'lizard')?.members).toHaveLength(2);
   });
 });

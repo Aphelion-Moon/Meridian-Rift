@@ -1,27 +1,11 @@
 // THIS IS AN APHELION UI FILE
-// Test support shared by the custom sprite editor's test files. It lives here, outside
+// The server's canvas encoding, for the canvas decoding tests. It lives here, outside
 // interfaces/, so the interface bundle never picks it up.
-import { afterEach, beforeEach, jest, spyOn } from 'bun:test';
-import * as actions from 'tgui/events/act';
-import {
-  store as backendStore,
-  gameDataAtom,
-  suspendedAtom,
-} from 'tgui/events/store';
-import {
-  releaseHeldKeys,
-  startKeyPassthrough,
-  stopKeyPassthrough,
-} from 'tgui-core/hotkeys';
 import {
   CANVAS_ALPHABET,
   type CompactSprite,
 } from '../interfaces/common/CustomSpriteEditor/canvas';
-import type { CustomSpriteEditorData } from '../interfaces/common/CustomSpriteEditor/types';
-import {
-  Dir,
-  SpriteEditorToolFlags,
-} from '../interfaces/common/SpriteEditor/Types/types';
+import { Dir } from '../interfaces/common/SpriteEditor/Types/types';
 
 /** Four views of `width` by `height` white pixels, as SpriteEditor holds them, for tests that set pixels. */
 export const fixtureFrames = (width = 32, height = 32) => {
@@ -75,91 +59,4 @@ export const compactSprite = (
     backdrop: '',
     canvas: { palette, digits, views },
   };
-};
-
-export const fixture = (width = 32, height = 32): CustomSpriteEditorData => {
-  return {
-    candidate: null,
-    editorData: {
-      sprite: compactSprite(width, height, fixtureFrames(width, height)),
-      undoStack: ['Pencil'],
-      redoStack: [],
-      toolFlags: SpriteEditorToolFlags.All,
-      serverPalette: ['#ffffff'],
-      serverSelectedColor: '#ffffff',
-    },
-    colorMode: 'literal',
-    emissive: { 1: false, 2: false, 4: false, 8: false },
-    emissiveAllowed: true,
-    saveRevision: 0,
-    customTint: '#ffffff',
-    displayTint: '#ff0000',
-    customPalette: [],
-    availableColors: ['#ffffff'],
-    maxCustomColors: 16,
-    guides: { 1: '', 2: '', 4: '', 8: '' },
-    previews: { 1: '', 2: '', 4: '', 8: '' },
-    edited: { 1: false, 2: true, 4: false, 8: false },
-    drawBounds: {
-      1: [0, 0, width - 1, height - 1],
-      2: [0, 0, width - 1, height - 1],
-      4: [0, 0, width - 1, height - 1],
-      8: [0, 0, width - 1, height - 1],
-    },
-  };
-};
-
-export let send: ReturnType<typeof spyOn>;
-let getContext: ReturnType<typeof spyOn>;
-/** Fill styles the mocked canvas has painted since it was last cleared. */
-export const painted: string[] = [];
-
-/** Registers the game data, act spy, canvas mock and key passthrough every editor test runs with. */
-export const setupEditorTests = () => {
-  let previousData: Record<string, unknown>;
-  let previousSuspended: number | false;
-  beforeEach(() => {
-    previousData = backendStore.get(gameDataAtom);
-    previousSuspended = backendStore.get(suspendedAtom);
-    backendStore.set(suspendedAtom, false);
-    backendStore.set(gameDataAtom, fixture());
-    send = spyOn(actions, 'sendAct');
-    startKeyPassthrough();
-    const noop = () => undefined;
-    const context = {
-      fillStyle: '',
-      clearRect: () => {
-        painted.length = 0;
-      },
-      fillRect: () => {
-        painted.push(context.fillStyle);
-      },
-      // Layered hair composes images; the tests read what reaches the canvas through fillRect.
-      drawImage: noop,
-      createImageData: (width: number, height: number) => ({
-        data: new Uint8ClampedArray(width * height * 4),
-      }),
-      putImageData: noop,
-      save: noop,
-      restore: noop,
-      beginPath: noop,
-      moveTo: noop,
-      lineTo: noop,
-      stroke: noop,
-      setLineDash: noop,
-    };
-    getContext = spyOn(
-      HTMLCanvasElement.prototype,
-      'getContext',
-    ).mockReturnValue(context as unknown as CanvasRenderingContext2D);
-  });
-  afterEach(() => {
-    releaseHeldKeys();
-    stopKeyPassthrough();
-    jest.useRealTimers();
-    send.mockRestore();
-    getContext.mockRestore();
-    backendStore.set(gameDataAtom, previousData);
-    backendStore.set(suspendedAtom, previousSuspended);
-  });
 };

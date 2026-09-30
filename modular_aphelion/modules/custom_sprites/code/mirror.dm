@@ -1,3 +1,4 @@
+/// How long the recipient has to answer the mirror before it declines for them.
 #define CUSTOM_SPRITE_MIRROR_TIMEOUT (120 SECONDS)
 
 /// This body's worn clothing overlays, in layer order. Held items are left out.

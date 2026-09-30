@@ -33,7 +33,7 @@ export const Palette = (props: PaletteProps) => {
   return (
     <Section title="Palette">
       <Stack {...rest} style={{ ...style, flexWrap: 'wrap', gap: '0.5rem' }}>
-        {/* APHELION EDIT REMOVAL START
+        {/* // APHELION EDIT REMOVAL START
         {colors.map((color, i) => (
           <Stack.Item key={i} m={0}>
             <Button
@@ -60,7 +60,7 @@ export const Palette = (props: PaletteProps) => {
             />
           </Stack.Item>
         ))}
-        APHELION EDIT REMOVAL END */}
+        // APHELION EDIT REMOVAL END */}
         {/* APHELION EDIT ADDITION START */}
         {colors.map((color, i) => {
           const displayColor = colorToCssString(color);

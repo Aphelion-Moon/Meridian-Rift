@@ -1,3 +1,4 @@
+/// The account palette refuses malformed, duplicate or oversized swatch lists, is stored once per account rather than per slot, and survives a disk reload.
 /datum/unit_test/custom_sprite_account_palette/Run()
 	var/datum/preference/preference = GLOB.preference_entries[/datum/preference/custom_sprite_palette]
 	var/list/colors = list()

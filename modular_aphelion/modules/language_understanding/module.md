@@ -30,8 +30,8 @@ understood in full.
 
 ### TG Proc/File Changes:
 
-Existing-file edits use `APHELION EDIT` markers with their original code retained; Nova files are edited directly.
-New UI files start with `// THIS IS AN APHELION UI FILE`.
+Edits to tg files are marked `APHELION EDIT`, except inside Nova's existing edit blocks, which aren't tagged again;
+Nova's modular files are edited directly.
 
 | File | Procs or declarations changed |
 | --- | --- |
@@ -45,8 +45,10 @@ New UI files start with `// THIS IS AN APHELION UI FILE`.
 ### Modular Overrides:
 
 - `code/language_understanding.dm`: adds `/datum/preferences/var/language_understanding` with
-  `language_understanding_level()` and `saved_language_understanding()`, and the
-  `/datum/preference_middleware/language_understanding` middleware.
+  `language_understanding_level()` and `saved_language_understanding()`; `sanitize_language_understanding()`,
+  `snap_language_understanding()` and `language_understanding_sample()`; and the
+  `/datum/preference_middleware/language_understanding` middleware, whose `set_language_understanding` action sets a
+  level.
 
 ### Defines:
 
@@ -56,9 +58,10 @@ New UI files start with `// THIS IS AN APHELION UI FILE`.
 ### Included files that are not contained in this module:
 
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LanguageUnderstanding.tsx`: the readout, the
-  slider and the sample line, with `LanguageUnderstanding.test.tsx`.
+  slider and the sample line.
 - `tgui/packages/tgui/styles/meridianos/_preferences.scss`: their styles.
-- `code/modules/unit_tests/~nova/language_understanding.dm`, included from `code/modules/unit_tests/_unit_tests.dm`.
+- `code/modules/unit_tests/~nova/language_understanding.dm`, included from `code/modules/unit_tests/_unit_tests.dm`: DM
+  unit tests.
 - `tgstation.dme`
 
 ### Credits:

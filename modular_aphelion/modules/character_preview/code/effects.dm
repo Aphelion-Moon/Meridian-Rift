@@ -52,13 +52,12 @@
 
 	// Frame row + 1 -> the frame row it shows, or -1 for none.
 	var/list/sources = new /list(frame_height)
-	var/map_count = length(maps)
 	for (var/frame_row in 0 to frame_height - 1)
 		var/tile_row = frame_height - tile_y - frame_row
 		var/source = tile_row
 		if (tile_row >= lowest && tile_row <= highest)
 			// The last filter samples first: its output row, then its input row, back to the flatten's own row.
-			for (var/index in map_count to 1 step -1)
+			for (var/index in length(maps) to 1 step -1)
 				var/list/map = maps[index]
 				var/list/map_rows = map[1]
 				var/map_row = source - map[3] + 1

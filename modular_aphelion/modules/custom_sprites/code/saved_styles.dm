@@ -1,3 +1,4 @@
+/// The largest preferences.json custom_style_read_file() reads back, 8 MiB.
 #define CUSTOM_STYLE_MAX_PREFERENCES_BYTES (8 * 1024 * 1024)
 
 /// The key a style is stored under: the target, or `markings:zone`.
@@ -13,11 +14,8 @@
 		var/target = custom_style_hair_target(key) ? key : "markings"
 		var/zone = (key in GLOB.custom_marking_zone_labels) ? key : null
 		var/storage_key = custom_style_key(target, zone)
-		var/list/stored = raw[storage_key]
-		if(!islist(stored))
-			continue
-		var/list/result = custom_style_validate_package(stored, trusted = TRUE)
-		var/list/package = result["package"]
+		// Anything missing or malformed fails validation and is dropped.
+		var/list/package = custom_style_validate_package(raw[storage_key], trusted = TRUE)["package"]
 		if(package && package["target"] == target && package["zone"] == zone)
 			clean[storage_key] = package
 	return length(clean) ? clean : null
@@ -48,6 +46,14 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		"gradient_color" = /datum/preference/color/facial_hair_gradient,
 	),
 ))
+
+/// Every preference a head target's base look is saved in: its fields, plus head hair's opacity toggle.
+/proc/custom_style_hair_preference_types(target)
+	. = list()
+	for(var/_field, preference_type in GLOB.custom_style_hair_preferences[target])
+		. += preference_type
+	if(target == "hair")
+		. += /datum/preference/toggle/mutant_toggle/hair_opacity
 
 /// A colour as the preference writer stores it, black when invalid.
 /proc/custom_style_normal_color(color)
@@ -131,8 +137,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 /// A copy of the previous saved style for a target, or null.
 /datum/preferences/proc/custom_style_previous_package(target, zone)
 	load_custom_sprites()
-	var/list/package = custom_style_previous?[custom_style_key(target, zone)]
-	return custom_style_copy_package(package)
+	return custom_style_copy_package(custom_style_previous?[custom_style_key(target, zone)])
 
 /// Replaces the loaded slot's drawing for a target in memory.
 /datum/preferences/proc/set_custom_style_drawing(target, zone, list/drawing)
@@ -192,12 +197,15 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save() ? null : "Couldn't save to disk."
 	var/list/old_previous = custom_style_previous
 	var/list/new_previous = custom_style_copy_previous(custom_style_previous) || list()
+	// Whether a changed native base look also needs preferences.json written.
+	var/write_base = FALSE
 	for(var/list/entry as anything in prepared)
 		var/list/package = entry["package"]
 		var/key = custom_style_key(package["target"], package["zone"])
 		if(key in rotate_keys)
 			new_previous[key] = entry["current"]
 		set_custom_style_drawing(package["target"], package["zone"], deep_copy_list(package["drawing"]))
+		write_base ||= load_and_save && (entry["hair_changed"] || entry["markings_changed"])
 	custom_style_previous = length(new_previous) ? new_previous : null
 	var/sidecar_key = "character[slot]"
 	var/list/old_sidecar_entry = custom_sprite_savefile.get_entry(sidecar_key)
@@ -212,10 +220,6 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		else
 			custom_sprite_savefile.set_entry(sidecar_key, old_sidecar_entry)
 		return "Couldn't save to disk."
-	var/write_base = FALSE
-	for(var/list/entry as anything in prepared)
-		write_base ||= entry["hair_changed"] || entry["markings_changed"]
-	write_base = write_base && load_and_save
 	if(write_base)
 		// Keeps pending character setup edits, and creates the slot's entry if it has none.
 		save_character()
@@ -273,15 +277,8 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 		var/problem = custom_style_hair_problem(package["hair"], target)
 		if(problem)
 			return list("error" = problem)
-		if(reject_pending_hair)
-			var/list/fields = GLOB.custom_style_hair_preferences[target]
-			var/pending_hair = target == "hair" && (/datum/preference/toggle/mutant_toggle/hair_opacity in recently_updated_keys)
-			for(var/_field, preference_type in fields)
-				if(preference_type in recently_updated_keys)
-					pending_hair = TRUE
-					break
-			if(pending_hair)
-				return list("error" = "Character setup has unsaved hair changes. Close character setup, then try again.")
+		if(reject_pending_hair && length(custom_style_hair_preference_types(target) & recently_updated_keys))
+			return list("error" = "Character setup has unsaved hair changes. Close character setup, then try again.")
 	return list("package" = package, "current" = current, "hair_changed" = hair_changed, "markings_changed" = markings_changed)
 
 /// Native marking lists may alias the save tree; compare the actual saved file for recipient saves.
@@ -335,13 +332,9 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	var/list/slot_data = custom_style_hair_slot_data(savefile.get_entry("character[slot]"), hair, target)
 	if(slot_data)
 		savefile.set_entry("character[slot]", slot_data)
-	var/list/fields = GLOB.custom_style_hair_preferences[target]
-	for(var/_field, preference_type in fields)
-		recently_updated_keys -= preference_type
-		value_cache -= preference_type
-	if(target == "hair")
-		recently_updated_keys -= /datum/preference/toggle/mutant_toggle/hair_opacity
-		value_cache -= /datum/preference/toggle/mutant_toggle/hair_opacity
+	var/list/preference_types = custom_style_hair_preference_types(target)
+	recently_updated_keys -= preference_types
+	value_cache -= preference_types
 	refresh_custom_sprite_preview()
 
 /// Returns an updated copy of a character's save data, or null when that slot has no data.
@@ -349,8 +342,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	if(!islist(slot_data))
 		return null
 	slot_data = deep_copy_list(slot_data)
-	var/list/fields = GLOB.custom_style_hair_preferences[target]
-	for(var/field, preference_type in fields)
+	for(var/field, preference_type in GLOB.custom_style_hair_preferences[target])
 		var/datum/preference/preference = GLOB.preference_entries[preference_type]
 		var/value = hair[field]
 		if(field == "opacity")

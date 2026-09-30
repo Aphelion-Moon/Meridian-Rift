@@ -23,7 +23,8 @@ which mostly matters for the two held items. An entry that cannot join keeps its
 entries at its layer start afresh, so draw order is unchanged. `overlays2text()` names the first
 sprite inside iconless wrappers, so an overflow printout shows what they hold.
 
-This covers ordinary worn slots and held overlays, not the separate psionic held-item
+This covers ordinary worn slots and held overlays, listed in `GLOB.worn_overlay_layers` (which the custom
+sprite editors' dressed previews also read), not the separate psionic held-item
 `vis_contents`/render-source path. Absolute-layer effects and non-emissive planes are not moved.
 It does not create blockers for items that intentionally do not supply one.
 
@@ -67,10 +68,9 @@ but needs call-frequency evidence rather than another cache in this module.
 - `code/modules/mob/living/carbon/carbon_update_icons.dm`: one call in `apply_overlay()` before `add_overlay()`.
 - `code/modules/mob/living/carbon/human/human_update_icons.dm`: `update_body_parts()` measures nested
   sprites too (they read back as appearances, which have no procs), so accessories inside holders
-  still size the body for HUDs, immersion and similar effects.
-- `code/controllers/subsystem/overlays.dm`: `overlays2text()` names the first sprite inside iconless wrappers.
-- `code/modules/mob/living/carbon/human/human_update_icons.dm`: the four active garment builders in
+  still size the body for HUDs, immersion and similar effects; the four active garment builders in
   `get_underwear_overlays()` pass the wearer to `make_appearance()`.
+- `code/controllers/subsystem/overlays.dm`: `overlays2text()` names the first sprite inside iconless wrappers.
 - `code/datums/sprite_accessories/clothing.dm`: `make_appearance()` adds a blocker when `em_block`
   is enabled and a wearer is supplied, after the existing icon generation/cache path.
 

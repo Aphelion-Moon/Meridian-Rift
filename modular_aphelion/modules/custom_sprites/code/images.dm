@@ -1,4 +1,4 @@
-/// Bounded cache of paint clipped to bodyparts and their split leg layers.
+/// Bounded cache of paint clipped to bodyparts and their split leg layers, and of taur silhouettes.
 GLOBAL_LIST_EMPTY(custom_sprite_limb_icons)
 
 /// A blank in every editable direction, including bald hairstyles without an icon state.
@@ -338,9 +338,7 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 			min_y = min(min_y, y)
 			max_x = max(max_x, x)
 			max_y = max(max_y, y)
-	if(max_x < 0)
-		return null
-	return list(min_x, min_y, max_x, max_y)
+	return max_x < 0 ? null : list(min_x, min_y, max_x, max_y)
 
 /// Full canvas for hair and facial hair; per-view locks are applied separately.
 /proc/custom_sprite_canvas_bounds(width = 32, height = 32)
@@ -364,8 +362,7 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 	if(cached)
 		return cached
 	var/icon/silhouette = custom_sprite_blank_icon(CUSTOM_SPRITE_TAUR_WIDTH)
-	var/list/native_layers = taur.custom_sprite_layers()
-	for(var/native_layer, layer_value in native_layers)
+	for(var/native_layer, layer_value in taur.custom_sprite_layers())
 		if(!isnull(layer_index) && native_layer != layer_index)
 			continue
 		for(var/image/part as anything in taur.get_images(chest, native_layer, -layer_value))
@@ -405,9 +402,7 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 	var/offset_x = (width - 32) / 2
 	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
-		if(limb.body_zone != limb_zone)
-			continue
-		if(limb.bodyshape & BODYSHAPE_TAUR || IS_STUMP(limb))
+		if(limb.body_zone != limb_zone || limb.bodyshape & BODYSHAPE_TAUR || IS_STUMP(limb))
 			continue
 		if(limb_zone != body_zone)
 			silhouette.Blend(custom_sprite_hand_silhouette(limb, wrist), ICON_OVERLAY, offset_x + 1, 1)
@@ -448,17 +443,24 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 	var/key = json_encode(geometry)
 	if(limb_masks[key])
 		return limb_masks[key]
-	var/icon/silhouette = custom_sprite_body_silhouette(body, body_zone, width, wrist)
-	var/list/mask = list()
+	return custom_sprite_cache_put(limb_masks, key, custom_sprite_icon_rows(custom_sprite_body_silhouette(body, body_zone, width, wrist), width))
+
+/**
+ * Each view of a 32-row icon as row strings from the top, `width` characters each: "0" where it's
+ * clear and "1" where it has a pixel. With `ids` (colour -> region character) a pixel reads as its
+ * colour's region instead, and a blend as the region custom_sprite_region_fallback() finds in `ordered`.
+ */
+/proc/custom_sprite_icon_rows(icon/source, width, list/ids, list/ordered)
+	. = list()
 	for(var/direction in GLOB.cardinals)
 		var/list/rows = list()
 		for(var/y in 0 to 31)
 			var/list/row = list()
 			for(var/x in 0 to width - 1)
-				row += silhouette.GetPixel(x + 1, 32 - y, "", direction) ? "1" : "0"
+				var/pixel = source.GetPixel(x + 1, 32 - y, "", direction)
+				row += pixel ? (ids ? (ids[LOWER_TEXT(copytext(pixel, 1, 8))] || custom_sprite_region_fallback(ordered, x, y, direction)) : "1") : "0"
 			rows += jointext(row, "")
-		mask["[direction]"] = rows
-	return custom_sprite_cache_put(limb_masks, key, mask)
+		.["[direction]"] = rows
 
 /**
  * One view of the cover looks as rows of marks: "0" where nothing covers, else the mark of the
@@ -473,10 +475,7 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 	var/key = cache_key ? "[cache_key]|[above_layer]|[direction]|[width]|[json_encode(bounds)]" : null
 	if(key && cover_masks[key])
 		return cover_masks[key]
-	var/x0 = bounds ? bounds[1] : 0
-	var/y0 = bounds ? bounds[2] : 0
-	var/x1 = bounds ? bounds[3] : width - 1
-	var/y1 = bounds ? bounds[4] : 31
+	var/list/box = bounds || list(0, 0, width - 1, 31)
 	var/list/grid = list()
 	for(var/y in 1 to 32)
 		var/list/row = list()
@@ -488,9 +487,8 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 		var/list/look = looks[index]
 		var/mutable_appearance/cover = new
 		for(var/mutable_appearance/image as anything in look["images"])
-			if(image.layer <= above_layer)
-				continue
-			cover.overlays += image
+			if(image.layer > above_layer)
+				cover.overlays += image
 		if(!length(cover.overlays))
 			continue
 		// Nothing to flatten comes back as no icon at all.
@@ -498,9 +496,9 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 		if(!flat)
 			continue
 		var/mark = custom_sprite_cover_char(index)
-		for(var/y in y0 to y1)
+		for(var/y in box[2] to box[4])
 			var/list/row = grid[y + 1]
-			for(var/x in x0 to x1)
+			for(var/x in box[1] to box[3])
 				if(flat.GetPixel(x + 1, 32 - y))
 					row[x + 1] = mark
 	var/list/rows = list()

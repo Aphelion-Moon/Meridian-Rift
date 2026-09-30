@@ -14,9 +14,8 @@
 		if(!limb || IS_STUMP(limb) || (limb.bodyshape & BODYSHAPE_TAUR) || !(zone in GLOB.custom_marking_zone_labels))
 			continue
 		. += zone
-		for(var/hand, arm in GLOB.custom_marking_hand_arms)
-			if(arm == zone && limb.aux_zone == hand)
-				. += hand
+		if(limb.aux_zone && GLOB.custom_marking_hand_arms[limb.aux_zone] == zone)
+			. += limb.aux_zone
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 	if(taur && chest && taur.can_draw_on_bodypart(chest, body))
@@ -39,9 +38,7 @@
 		var/grid = jointext(rows, "")
 		if(findtext(grid, "1"))
 			directions[direction] = custom_sprite_encode_grid(grid, 1, width * 32)
-	if(!length(directions))
-		return null
-	return list("version" = custom_sprite_version(width, 1), "palette" = list(custom_sprite_region_color(index)), "tint" = null, "dirs" = directions, "emissive" = custom_sprite_emissive_settings(FALSE))
+	return length(directions) ? list("version" = custom_sprite_version(width, 1), "palette" = list(custom_sprite_region_color(index)), "tint" = null, "dirs" = directions, "emissive" = custom_sprite_emissive_settings(FALSE)) : null
 
 /**
  * Which region owns each canvas pixel, in every view.
@@ -93,31 +90,18 @@
 			entries += list(list(part.layer, index, 1 + offset_x + part.pixel_x + part.pixel_w, 1 + part.pixel_y + part.pixel_z, icon(part.icon, part.icon_state)))
 		qdel(scratch)
 	// Stable draw order: lower layers first, then region order within a layer.
-	var/list/layers = list()
-	for(var/list/entry as anything in entries)
-		layers |= entry[1]
-	var/list/ordered = list()
-	for(var/layer in sort_list(layers, GLOBAL_PROC_REF(cmp_numeric_asc)))
-		for(var/list/entry as anything in entries)
-			if(entry[1] == layer)
-				ordered += list(entry)
+	var/list/ordered = sort_list(entries, GLOBAL_PROC_REF(cmp_custom_sprite_region_layer))
 	var/icon/composite = custom_sprite_blank_icon(width)
 	for(var/list/entry as anything in ordered)
 		composite.Blend(entry[5], ICON_OVERLAY, entry[3], entry[4])
 	var/list/ids = list()
 	for(var/index in 1 to length(zones))
 		ids[custom_sprite_region_color(index)] = "[index]"
-	var/list/result = list()
-	for(var/direction in GLOB.cardinals)
-		var/list/rows = list()
-		for(var/y in 0 to 31)
-			var/list/row = list()
-			for(var/x in 0 to width - 1)
-				var/pixel = composite.GetPixel(x + 1, 32 - y, "", direction)
-				row += pixel ? (ids[LOWER_TEXT(copytext(pixel, 1, 8))] || custom_sprite_region_fallback(ordered, x, y, direction)) : "0"
-			rows += jointext(row, "")
-		result["[direction]"] = rows
-	return custom_sprite_cache_put(maps, key, result)
+	return custom_sprite_cache_put(maps, key, custom_sprite_icon_rows(composite, width, ids, ordered))
+
+/// Orders custom_sprite_region_map()'s images by layer, lowest first. sort_list() is stable, so region order holds within a layer.
+/proc/cmp_custom_sprite_region_layer(list/a, list/b)
+	return a[1] - b[1]
 
 /**
  * The region that dominates one blended pixel, as its region character.

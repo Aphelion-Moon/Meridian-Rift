@@ -168,7 +168,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		ui = new(user, src, "PreferencesMenu")
 		ui.set_autoupdate(FALSE)
 		ui.open()
-		// APHELION EDIT REMOVAL - Character setup draws the preview in the page instead of showing this map. ORIGINAL: character_preview_view.display_to(user, ui.window)
+		// character_preview_view.display_to(user, ui.window) // APHELION EDIT REMOVAL - Character setup draws the preview in the page instead of showing this map
 
 /datum/preferences/ui_state(mob/user)
 	return GLOB.always_state
@@ -213,7 +213,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	else
 		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
 	// NOVA EDIT ADDITION END
-	// APHELION EDIT REMOVAL - The page draws the preview rather than showing this map. ORIGINAL: data["character_preview_view"] = character_preview_view.assigned_map
+	// data["character_preview_view"] = character_preview_view.assigned_map // APHELION EDIT REMOVAL - The page draws the preview rather than showing this map
 	data["overflow_role"] = SSjob.get_job_type(SSjob.overflow_role).title
 	data["window"] = current_window
 
@@ -450,6 +450,13 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/datum/preferences/preferences
 	/// Whether we show current job clothes or nude/loadout only
 	var/show_job_clothes = TRUE
+	/* // APHELION EDIT REMOVAL START - The drawn preview replaces the canvas
+	// NOVA EDIT ADDITION START: Better character preview: Rescales between 32x32, 64x64 and 96x96.
+	var/image/canvas
+	var/last_canvas_size
+	var/last_canvas_state
+	// NOVA EDIT ADDITION END
+	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - The drawn preview
 	/// The image render_new_preview_appearance() returned instead of dressing the dummy, if any: a silicon job's.
 	var/image/silicon_preview
@@ -460,6 +467,12 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	src.preferences = preferences
 
 /atom/movable/screen/map_view/char_preview/Destroy()
+	/* // APHELION EDIT REMOVAL START - The drawn preview replaces the canvas
+	// NOVA EDIT ADDITION START: Better character preview
+	canvas?.cut_overlays()
+	canvas = null
+	// NOVA EDIT ADDITION END
+	*/ // APHELION EDIT REMOVAL END
 	silicon_preview = null // APHELION EDIT ADDITION
 	SScharacter_preview.queue -= src // APHELION EDIT ADDITION - A rebuild waiting its turn goes with the view
 	QDEL_NULL(body)
@@ -479,13 +492,47 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	else
 		body.wipe_state()
 
-	// APHELION EDIT CHANGE START - Keep a silicon job's image for the drawn preview. ORIGINAL: appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
+	// appearance = preferences.render_new_preview_appearance(body, show_job_clothes) // APHELION EDIT REMOVAL
+	// APHELION EDIT ADDITION START - Keep a silicon job's image for the drawn preview
 	var/rendered = preferences.render_new_preview_appearance(body, show_job_clothes)
 	appearance = rendered
 	// The human path returns the dummy's own appearance; only the AI/Cyborg path returns a standalone /image.
 	silicon_preview = isimage(rendered) ? rendered : null
-	// APHELION EDIT CHANGE END
+	// APHELION EDIT ADDITION END
 
+	/* // APHELION EDIT REMOVAL START - The drawn preview replaces the canvas
+	// NOVA EDIT ADDITION BEGIN: Better character preview
+	var/canvas_size = 0
+	var/canvas_state = preferences.read_preference(/datum/preference/choiced/background_state)
+
+	// if oversized trait (fixes size at 2.0) or over 1.1, scales up
+	if ((/datum/quirk/oversized::name in preferences.all_quirks) || (body.dna.features["body_size"] > 1.1))
+		canvas_size += 1
+	if (body.dna.mutant_bodyparts["taur"])
+		// taurs can be extra wide, so scale up in attempt to see their tails
+		canvas_size += 1
+	body.pixel_x = canvas_size * 16
+
+	if (isnull(canvas) || last_canvas_size != canvas_size || last_canvas_state != canvas_state)
+		switch (canvas_size)
+			if (0)
+				canvas = image('modular_nova/modules/character_preview_background/icons/background_32x32.dmi', icon_state = canvas_state)
+			if (1)
+				canvas = image('modular_nova/modules/character_preview_background/icons/background_64x64.dmi', icon_state = canvas_state)
+			if (2)
+				canvas = image('modular_nova/modules/character_preview_background/icons/background_96x96.dmi', icon_state = canvas_state)
+
+	// Update the map view bounds when canvas size changes to properly display the scaled preview
+	set_position(1, 1)
+	last_canvas_size = canvas_size
+	last_canvas_state = canvas_state
+
+	canvas.cut_overlays()
+	canvas.add_overlay(body.appearance)
+
+	appearance = canvas.appearance
+	// NOVA EDIT ADDITION END
+	*/ // APHELION EDIT REMOVAL END
 /atom/movable/screen/map_view/char_preview/proc/create_body()
 	QDEL_NULL(body)
 

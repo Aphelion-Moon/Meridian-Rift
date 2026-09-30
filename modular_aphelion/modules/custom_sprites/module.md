@@ -1139,43 +1139,36 @@ on the old base look, and saving again fixes it.
 Native tests live in `code/modules/unit_tests/~nova/custom_sprites/` and are
 included from `code/modules/unit_tests/_unit_tests.dm`, which provides
 `TEST_ASSERT` (it stops at the first failure, so anything a later test depends
-on is released in `Destroy()` or through `allocate()`). One file per area:
-`codec.dm`, `save_compatibility.dm` (old-format drawings and sidecars load and
-write back exactly as before), `persistence.dm`, `saved_styles.dm`,
-`transfer.dm`, `composite.dm`, `regions.dm`, `workspace.dm`, `editor.dm`,
-`markings_editor.dm`, `appearance.dm`, `salon.dm`, `tall_hair.dm`,
-`lifted_hair.dm`, `region_selection.dm`, `selection_placement.dm`,
-`blending.dm`, `taur_paint.dm`, `hair_interactions.dm`, `palette.dm`,
-`appendages.dm` and `hardening.dm` (deferred drawing, the per-player pace, the
-hairstyle window, stroke masks, placements, kept colours and the safeguards in
-Server load and hostile windows). Each test's `///` says what it pins. Keep
-temporary `TEST_FOCUS` entries out of committed source; there is no separate
-build command for this module, `BUILD.cmd` is the normal Windows entry point.
-
-`tools/custom_sprite_harness/` is not part of any build. Its `run.sh` builds the
-game with `harness.dm` appended and walks the in-game checklist for hair
-appendages the way a window drives the editor, then replays each step as a
-hostile window at tgui's topic limit, and writes what each step and attack cost,
-with the procs behind anything over budget, to
-`data/custom_sprite_harness/report.md`. Its README gives the budgets.
+on is released in `Destroy()` or through `allocate()`). They guard what could
+break silently: the codec and old saves (`codec.dm`, `save_compatibility.dm`),
+persistence and saved styles (`persistence.dm`, `saved_styles.dm`), import
+validation (`transfer.dm`), regions and how drafts split into them
+(`composite.dm`, `regions.dm`, `region_selection.dm`, `taur_paint.dm`), the
+workspace and editors (`workspace.dm`, `editor.dm`, `markings_editor.dm`,
+`selection_placement.dm`, `palette.dm`, `appendages.dm`), rendering
+(`appearance.dm`, `tall_hair.dm`, `lifted_hair.dm`), the salon's consent and
+checks (`salon.dm`) and hostile windows (`hardening.dm`: stroke masks,
+placements, kept colours and the history and stroke queue bounds). Each test's
+`///` says what it guards. Keep temporary `TEST_FOCUS` entries out of committed
+source; there is no separate build command for this module, `BUILD.cmd` is the
+normal Windows entry point.
 
 From `tgui/`, the focused UI checks are:
 
 ```powershell
-bun test packages/tgui/interfaces/common/CustomSpriteEditor packages/tgui/interfaces/CustomSpriteMirror.test.tsx packages/tgui/interfaces/common/SpriteEditor packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.test.tsx packages/tgui/layouts/Window.test.tsx
+bun test packages/tgui/interfaces/common/CustomSpriteEditor packages/tgui/interfaces/common/SpriteEditor packages/tgui/layouts/Window.test.tsx
 bun run tgui:tsc
 bun run tgui:build
 ```
 
-The UI tests sit beside the code they cover: the Select tool and its keys,
-stroke masks, the editor window (sampling, saves, views, regions, blending,
-the tall canvas, closing with floating paint), the palette menus, the mirror
-and the character setup buttons. Keep each tgui test file under 50 KB: Bun
-1.3.13 serves larger files from its runtime transpiler cache and then parses
-`transparency_checkerboard.svg` as JSX from the second run on.
-`tgui/packages/tgui/__mocks__/` holds the shared editor fixture, setup and
-rendering helpers. They sit outside `interfaces/` because the interface bundle
-takes in every non-test file there. Native icon tests and
+The UI tests sit beside the code they cover: the Select tool, stroke masks,
+the drawing tools' paintable area, canvas decoding, hats over hair layers,
+drag listeners and the window's Alt handling. Keep each tgui test file under
+50 KB: Bun 1.3.13 serves larger files from its runtime transpiler cache and
+then parses `transparency_checkerboard.svg` as JSX from the second run on.
+`tgui/packages/tgui/__mocks__/customSpriteEditor.ts` encodes canvases as the
+server does, for the decoding tests. It sits outside `interfaces/` because the
+interface bundle takes in every non-test file there. Native icon tests and
 browser fixtures do not cover every live-client case: check real drawing and
 dragging, hats, turning and resting, limb changes, save/relog and slot/import
 behaviour in DreamSeeker when changing those paths.
@@ -1188,12 +1181,17 @@ These are the core hooks this module needs. Existing-file edits use
 
 | File | Procs or declarations changed |
 | --- | --- |
+| `dependencies.sh` | Takes rust-g 7.0.0 early, whose `rustg_file_write()` writes atomically; the drawing sidecar and style exports write through it. |
+| `code/__DEFINES/overlays.dm` | Raises `MAX_ATOM_OVERLAYS` to 180 for custom paint and its emissive masks. |
 | `code/__DEFINES/sprite_editor.dm` | Adds `SPRITE_EDITOR_TOOL_SELECT`. |
 | `code/__HELPERS/icons.dm` | `getFlatIcon()` accepts optional `clip_bounds` in appearance coordinates. The custom editor fixes the output origin and size even with nested wide overlays; callers that omit it keep the existing behavior. |
 | `code/datums/dna/dna.dm` | `/datum/dna/copy_dna()` copies all three drawing fields and synchronizes the recipient. |
 | `code/modules/client/preferences.dm` | `/datum/preferences/Destroy()` closes editors and deletes the sidecar datum; `ui_close()` saves editors before removing the preview. |
 | `code/modules/client/preferences_savefile.dm` | `switch_to_slot()` finishes the old slot's editors; `remove_current_slot()` discards editors and removes that slot's drawings. |
 | `code/modules/mob/living/carbon/carbon_update_icons.dm` | `/mob/living/carbon/update_body_parts()` still reaches forced hair/eye refreshes when the limb icons themselves are unchanged. |
+| `code/modules/surgery/bodyparts/_bodyparts.dm` | `/obj/item/bodypart/proc/get_limb_icon()` draws native markings through `append_base_marking_overlays()` (`code/base_marking_overlays.dm`), which the markings copy also samples; the call replaces Nova's markings code inside its existing edit block. |
+| `code/modules/client/preferences/assets.dm` | The preferences spritesheet adds every zone's native markings through `custom_sprite_insert_marking_icons()`, for the marking pickers. |
+| `code/modules/asset_cache/spritesheet/batched/universal_icon.dm` | `get_flat_uni_icon()` takes `grow`, which the editors' pictures use to fit every overlay, and writes each runtime icon out once; shared with the character preview module. |
 | `code/modules/surgery/bodyparts/head_hair_and_lips.dm` | `/obj/item/bodypart/head/copy_appearance_from()` snapshots hair and facial hair paint; `get_base_hair_overlays()` and `get_base_facial_hair_overlays()` apply it without modifying the shared accessory icon, add its separate masks, and use `custom_sprite_hair_accessory()`/`custom_sprite_facial_hair_accessory()` so bald heads and shaved faces can carry paint. Nova's emissive hair glows from the hair overlay's own state; hair sheets have no `_e` states. `/mob/living/carbon/human/set_haircolor()` and `set_facial_haircolor()` are overridden in `code/appearance.dm` to recolor painted shades. |
 | `code/modules/sprite_editing/workspace.dm` | `/datum/sprite_editor_workspace/copy()`, `new_transaction()`, `undo()`, `redo()`, `can_transact()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `to_icon()`: preserve workspace configuration, validate/sanitize commands, support selection patches, repair layer/history handling and safely export runtime icons. |
 | `code/modules/art/paintings.dm` | `/obj/item/canvas/Initialize()` enables Select alongside its existing tools. |
@@ -1213,7 +1211,12 @@ All paths here are relative to this module unless stated otherwise.
 
 | File | Types, overrides and owned behavior |
 | --- | --- |
-| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()`, `context_ui_data()` and `update_restorable()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. Guides and previews are drawn for every view from one walk: `render_guide()` and `render_preview()` draw the view the window shows and leave the others to `draw_waiting_views()` in the next deferred run, `draw_previews()` draws a set of views, `publish_picture()` makes a drawn file the window's data URL, and `guide_icon()` loads a guide for reading its pixels. `setView` calls `request_view()`, and `run_deferred_work()` dispatches `render_guide()` and `render_preview()`. Guides, the mask and the region map are static data, sent when `static_dirty`. Captures `cover_appearance` in `rebuild_resources()` and publishes `cover_rows` as the static `coverMask` with each view's guide. |
+| `code/editor.dm` | `/datum/config_entry/flag/disallow_custom_sprite_editing`; `/datum/preference_middleware/custom_sprites` implements `get_ui_data()`, `apply_to_human()`, `pre_set_preference()` and `on_new_character()`. `/datum/custom_sprite_editor` owns the window, draft, palette actions, guides, previews, import/export and candidates. It is the preferences context; its context hooks include `initial_package()`, `create_preview_body()`, `emissives_allowed()`, `hair_context_problem()`, `render_overlays()`, `draft_changed()`, `context_act()`, `context_ui_data()` and `update_restorable()`. Markings requests go to the whole-body editor through `markings_editor()`, and static data carries the background tiles. Guides and previews are drawn for every view from one walk: `render_guide()` and `render_preview()` draw the view the window shows and leave the others to `draw_waiting_views()` in the next deferred run, `draw_previews()` draws a set of views, `publish_picture()` makes a drawn file the window's data URL, and `guide_icon()` loads a guide for reading its pixels. `setView` calls `request_view()`, and `run_deferred_work()` dispatches `render_guide()` and `render_preview()`. Guides, the mask and the region map are static data, sent when `static_dirty`. `rebuild_resources()` captures `cover_looks` (keyed by `cover_key`) and publishes their `cover_rows` as the static `coverMask` with each view's guide. |
+| `code/hair_copy.dm` | Copy all (Ctrl+Shift+C) of the native base under a selection. `request_base_copy()` validates the request (`validated_base_copy()`) and queues it as deferred work; `finish_base_copy()` runs it at the costly-work pace, and `build_base_copy()` encodes the base pixels as palette indexes for the window's clipboard. `prepare_base_copy_paste()` admits only that copy's colours when it's pasted. The head's `custom_sprite_copy_base_hair()` flattens the native hair without paint, gradient or opacity. Hooks the markings editor overrides: `base_copy_context()`, `base_copy_ready()`, `base_copy_origin()`, `render_base_copy_frame()` and `base_copy_placement_valid()`. |
+| `code/markings_copy.dm` | The markings editor's Copy all hooks: copies follow the draft's native markings; `render_base_copy_frame()` samples each region's own native markings, never the body, clothing or taur art, and marks pixels where translucent layers overlap as uncopyable; `base_copy_placement_valid()` refuses a paste that lands on a locked region or takes a region past its colour limit. |
+| `code/selection_preview.dm` | Floating selection previews on markings canvases: `queue_selection_preview()` keeps one bounded placement per editor, `apply_selection_preview()` validates it as a real drop would and paints a copy of that view for the preview, and `clear_selection_preview()` drops it. |
+| `code/markings_picker.dm` | `custom_sprite_marking_icons()` and `custom_sprite_insert_marking_icons()`: every zone's native markings as classes in the preferences spritesheet, shared by character setup's marking pickers and the editors' Base markings sections; the markings editor's `ui_assets()`. |
+| `code/base_marking_overlays.dm` | `/obj/item/bodypart/proc/append_base_marking_overlays()`: a limb's native marking overlays in layer order, for the limb renderer in `_bodyparts.dm` and the markings copy, optionally for one zone, without emissives or at a set opacity. |
 | `code/markings_editor.dm` | `/datum/custom_sprite_editor/markings`: the whole-body window, region selection and focus, per-region emissive, Clear and base markings, changed-region saves, previews, export/restore prompts and region imports. Also `custom_sprite_apply_region_results()`. Context hooks `reference_packages()`, `locked_regions()` and `map_follows_body()`; region locks shade and refuse locked regions. |
 | `code/regions.dm` | Present regions in draw order, region ID colors, the cached per-view region map composed through the real overlay types, region lookup and the paintable mask. `custom_sprite_merge_cover_rows()` blends body and hand covers by region owner. |
 | `code/composite.dm` | Composes region drawings into one canvas and splits an edited canvas back into per-region drawings by the save rule. |
@@ -1225,12 +1228,12 @@ All paths here are relative to this module unless stated otherwise.
 | `code/achievements.dm` | The four `/datum/award/achievement/misc/custom_*` awards. |
 | `code/persistence.dm` | `/datum/json_savefile/custom_sprites` overrides `New()`, `load()`, `save()`, `set_entry()`, `remove_entry()` and `wipe()` for verified sidecar writes and recovery. Adds the preferences-owned drawing fields and load/save/close/delete helpers, plus `custom_sprites_after_import()`. |
 | `code/palette.dm` | `/datum/preference/custom_sprite_palette` implements account storage, default/deserialize/serialize/validation and `is_accessible()`. Its UI is owned by the editor. |
-| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `sprite_editor_ui_data()`. Owns palette validation, mask-aware fill, history limits, serialization, the window's compact canvas (`canvas_ui_data()`), Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `is_point_allowed()`, `prepare_selection_move()` (a box and offset, or a placed selection's final pixels through `prepare_selection_placement()`) and `sanitize_transaction()` helpers. A tall hair canvas saves as a normal drawing until paint reaches its extra rows. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. The region canvas refuses locked regions for every tool and selection move. |
+| `code/workspace.dm` | `/datum/sprite_editor_workspace/custom_sprite` overrides `New()`, `is_point_allowed()`, `new_transaction()`, `preprocess_new_transaction()`, `transact()`, `reverse_transact()` and `sprite_editor_ui_data()`. Owns palette validation, mask-aware fill, history limits, serialization, the window's compact canvas (`canvas_ui_data()`), Clear, tint baking and undoable whole-drawing replacement. Adds shared `valid_point_pair()`, `valid_box()`, `is_point_allowed()`, `prepare_selection_move()` (a box and offset, or a placed selection's final pixels through `prepare_selection_placement()`) and `sanitize_transaction()` helpers. A tall hair canvas saves as a normal drawing until paint reaches its extra rows. `/datum/sprite_editor_workspace/custom_sprite/regions` bounds fill by region, clears one region and replaces frames as one undoable step. The region canvas refuses locked regions for every tool and selection move. |
 | `code/appearance.dm` | Adds DNA/head drawing fields, human synchronization and `/datum/component/custom_sprite_appearance` limb/organ signals. `/datum/bodypart_overlay/custom_marking` owns limb rendering; `/zone` keeps limb-zone paint separate, and `/taur` plus `/taur/zone` render the two lower-body snapshots on the chest, just above the organ's own layers. Adds the taur overlay's read-only `custom_sprite_layers()` accessor. Also owns hair and directional emission/blocker helpers, and the human's `has_custom_hair()` and `remove_custom_hair()` for hair interactions. Re-creating an arm's zone overlay moves its hand overlays back above it. `/mob/living/carbon/human/dummy/apply_height()` carries the preview dummy's height maps above its tile and gives it room for what they lift. |
-| `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks and the background tiles. `custom_sprite_cover_rows()` stamps one view of those looks into rows of marks above a paint layer, cached by the cover key and read only inside the drawable box; `custom_sprite_cover_char()` and `custom_sprite_cover_labels()` name the marks. The pictures: `custom_sprite_view_recipes()` walks a look once, crops it to the editor's window and stamps it with each view; `custom_sprite_draw_recipes()` draws a PNG per view with iconforge, kept under a name and overwritten, or deleted once published, each counting toward iconforge letting go of what it keeps; `custom_sprite_picture_path()`, `custom_sprite_forget_pictures()`, `custom_sprite_picture_url()` and `custom_sprite_picture_icon()`. |
+| `code/images.dm` | Palette sampling, bounded runtime caches, width-aware drawing hydration/icon generation, fixed-origin flattening, canvas and mask bounds, native limb/taur silhouettes, directional editing masks (whose rows, like the region map's, come from `custom_sprite_icon_rows()`) and the background tiles, which character setup's preview backgrounds also use. `custom_sprite_cover_rows()` stamps one view of those looks into rows of marks above a paint layer, cached by the cover key and read only inside the drawable box; `custom_sprite_cover_char()` and `custom_sprite_cover_labels()` name the marks. The pictures: `custom_sprite_view_recipes()` walks a look once, crops it to the editor's window and stamps it with each view; `custom_sprite_draw_recipes()` draws a PNG per view with iconforge, kept under a name and overwritten, or deleted once published, each counting toward iconforge letting go of what it keeps; `custom_sprite_picture_path()`, `custom_sprite_forget_pictures()`, `custom_sprite_picture_url()` and `custom_sprite_picture_icon()`. |
 | `code/codec.dm` | Drawing and zone-map validation, palette-index encoding/decoding, fixed canvas dimensions, centered legacy expansion, emission normalization, content hashes, arm/hand partners and zone widths. |
 | `code/limits.dm` | `SScustom_sprite_work` and the editor's deferred work: `request_view()`, `request_rebuild()`, `request_refresh()` and `run_deferred_work()`, the per-player `/datum/custom_sprite_pace` (on `/datum/preferences` as `custom_sprite_pace`), `rebuild_for_opening()`, the middleware's `open_deferred()` for new editors, `act_blocked()` for restore previews, the hairstyle window (`request_hairstyle()`, `apply_pending_hairstyle()`, `apply_hairstyle()`), `save_unchanged()`, `custom_sprite_mask_points()` for compact strokes and `custom_sprite_history_jump()`. The stroke budget and queue: the pace's `stroke_fits()`, `take_stroke()`, `drain_strokes()`, `push()` (an update that waits while strokes do) and `custom_sprite_transaction_pixels()`; `request_candidate()` for candidate previews, and `request_other_views()` for the views the window isn't showing, drawn after a candidate and only once no refresh is waiting. `costly_work_due()` tells the subsystem which work the overrun budget holds back while it is spent. |
-| `code/appendages.dm` | Hair appendages: name cleaning, lenient and strict validation, export, content hash; the head's `custom_appendage_masks()` and `append_custom_appendage_overlays()` with a bounded masked-icon cache; the Try on hats (`GLOB.custom_hair_try_on_hats`), their cached mask rows and placed views, and the preview hat; the editor's `appendage_act()`, `set_try_on()`, `appendage_ui_data()` and `set_appendage_emissive()`; the workspace's layer id check `stroke_layer_matches()` and unpainted-layer carry-over when a recolor also resizes. The workspace's layer steps and `resize_height()` live in `code/workspace.dm`. |
+| `code/appendages.dm` | Hair appendages: name cleaning, lenient and strict validation and export; the head's `custom_appendage_masks()` and `append_custom_appendage_overlays()` with a bounded masked-icon cache; the Try on hats (`GLOB.custom_hair_try_on_hats`), their cached mask rows and placed views, and the preview hat; the editor's `appendage_act()`, `set_try_on()`, `appendage_ui_data()` and `set_appendage_emissive()`; the workspace's layer id check `stroke_layer_matches()` and unpainted-layer carry-over when a recolor also resizes. The workspace's layer steps and `resize_height()` live in `code/workspace.dm`. |
 | `code/compose.dm` | Whole-body markings previews composed from paint-free slices and the canvas: `can_compose_previews()`, `refresh_composed_previews()`, `composed_recipe()`, `view_slice_recipes()`, `capture_paintless_look()`, `slice_look()`, `paint_recipes()`, `custom_sprite_boxes_recipe()`, and the markings `render_preview()` override, which draws every view whose pixels changed. |
 
 ### Defines:
@@ -1262,10 +1265,11 @@ are also required.
 | --- | --- |
 | `tgstation.dme` | Includes this module's code. |
 | `code/modules/unit_tests/~nova/custom_sprites/`, `code/modules/unit_tests/_unit_tests.dm` | The native tests and their includes. |
+| `tools/ticked_file_enforcement/ticked_file_enforcement.py` | Include checks follow nested unit test folders such as `~nova/custom_sprites/`. |
 | `modular_nova/modules/salon/code/scissors.dm` | `/obj/item/scissors/attack()` offers Custom Style, including for bald and shaved targets. Ordinary cuts use the same timed snipping sounds. A head or face with custom hair has something to cut, and cutting to Bald or Shaved takes the drawing off. |
 | `modular_nova/modules/salon/code/misc_items.dm`, `straight_razor.dm`, `hair_tie.dm`, `modular_nova/modules/hairbrush/code/hairbrush.dm`, `modular_nova/modules/moretraitoritems/code/syndiemirror.dm` | Razors, hair ties, the hairbrush and the syndicate mirror count custom hair as hair through `has_custom_hair()`; shaving and cuts to Bald or Shaved call `remove_custom_hair()`. |
 | `modular_nova/modules/salon/code/barber.dm`, `barbervend.dm` | Barber locker and vendor stock the tattoo machine and Nova's handheld mirror. |
-| `tgui/packages/tgui/interfaces/CustomSpriteMirror.tsx`, `CustomSpriteMirror.test.tsx`, `tgui/packages/tgui/styles/interfaces/CustomSpriteMirror.scss` | The recipient's mirror and its tests. |
+| `tgui/packages/tgui/interfaces/CustomSpriteMirror.tsx`, `tgui/packages/tgui/styles/interfaces/CustomSpriteMirror.scss` | The recipient's mirror. |
 | `modular_aphelion/modules/custom_sprites/icons/` | The 76 by 76 achievement icons. |
 | `modular_nova/modules/salon/icons/items.dmi` | Salon item sprites, including the tattoo machine. |
 | `modular_nova/modules/salon/icons/items_lefthand.dmi`, `items_righthand.dmi` | Angled in-hands in all four directions for the tattoo machine, scissors, electric razor, hairspray and straight razor. |
@@ -1277,9 +1281,9 @@ are also required.
 | `modular_aphelion/modules/worn_emissives/code/worn_emissives.dm` | Existing final appearance grouping keeps paint masks aligned with the character's pose. |
 | `tgui/packages/tgui/interfaces/CustomHairEditor.tsx`, `CustomMarkingsEditor.tsx` | The two interface entry points. |
 | `tgui/packages/tgui/interfaces/common/CustomSpriteEditor/` | Shared custom window, palette/context menus, the region overlay (`regions.ts`, `RegionOverlay.tsx`), the salon's finishing-touches overlay (`FinishingOverlay.tsx`), backend types and their tests. |
-| `tgui/packages/tgui/__mocks__/customSpriteEditor.ts`, `renderCustomSpriteEditor.tsx` | Shared editor fixtures, per-test setup and rendering with isolated or deliberately reused stores. |
+| `tgui/packages/tgui/__mocks__/customSpriteEditor.ts` | The server's canvas encoding, for the canvas decoding tests. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | Hair editor button. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`, `LimbsPage.test.tsx` | Zone and taur marking buttons, and their tests. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx` | Zone and taur marking buttons. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Editing-availability flag. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/index.tsx`, `atoms.ts`, `helpers.ts`, `Types/types.ts`, `Types/Tool.ts` | Shared editor state, rendering/context hooks, gesture cancellation and selection types. The canvas's `onPointerDown` reports where every press lands, whatever the tool. The tool objects outlive any one canvas, so an unmounting canvas drops floating paint and then resets them. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Components/AdvancedCanvas.tsx`, `Palette.tsx` | Canvas input/rendering and shared palette behavior. `shade` replaces the flat grey over unavailable pixels, and `overlay` draws over the canvas at its size. |
@@ -1287,7 +1291,7 @@ are also required.
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/Types/Tools/` | Pencil, Eraser, Eyedropper and Bucket updates, naming the canvas's `layerTarget` where it has one; the Select tool (moving, floating, copying, cutting, merged copying, pasting, taking out and turning selections, each gesture kept to the layer it began on) and focused tool tests. |
 | `tgui/packages/tgui/interfaces/common/SpriteEditor/selection.tsx`, `Components/SelectionOutline.tsx` | The Select tool's keys (Ctrl+C, Ctrl+X, Ctrl+Shift+C, Ctrl+V, R, Shift+R, Shift+H, Enter), the turn and mirror buttons and the Copy all toggle, dropping floating paint before a save, and the marching ants around a box or a selection with pixels taken out. |
 | `tgui/packages/tgfont/icons/zaphelion-*.svg` | Hair layer glyphs: the base hair wig, Under hats, Over hats, the Copy all stack, and the zone pictograms as a grey head (`head-side`, `head-back`) under a lit `zone-*` part. Outlined from the design's strokes. |
-| `tgui/packages/tgui/interfaces/common/SpriteEditor/drawBounds.ts`, `useSpriteEditorHotkeys.ts`, `SpriteEditor.test.tsx` | Cached shading geometry and the `ShadeRenderer` type, shared shortcuts/history cancellation and editor interaction tests. |
+| `tgui/packages/tgui/interfaces/common/SpriteEditor/drawBounds.ts`, `useSpriteEditorHotkeys.ts`, `SpriteEditor.test.tsx` | Cached shading geometry and the `ShadeRenderer` type, shared shortcuts/history cancellation, and tests that the Pencil and Eraser keep to the paintable area. |
 | `tgui/packages/tgui/interfaces/NtosNanopaint/NanopaintMenuBar.tsx` | Uses the same history cancellation as toolbar and keyboard actions. |
 | `tgui/packages/tgui/layouts/Window.tsx`, `Window.test.tsx` | Current-event Alt handling and respecting gestures already claimed by a control. |
 | `tgui/packages/tgui/styles/interfaces/CustomSpriteEditor.scss`, `tgui/packages/tgui/styles/main.scss` | Custom editor styling and its stylesheet registration. |

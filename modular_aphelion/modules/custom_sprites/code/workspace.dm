@@ -1,3 +1,4 @@
+/// Selection moves and placements, drawing bounds and input sanitizing, shared by every SpriteEditor workspace.
 /datum/sprite_editor_workspace
 	/// Set while a stroke decoded from a compact mask is checked. A mask can't name a pixel twice, so can_transact() skips its duplicate check; no window can set it.
 	var/mask_stroke = FALSE
@@ -10,6 +11,15 @@
 /datum/sprite_editor_workspace/proc/is_point_allowed(x, y, direction)
 	return x >= 0 && x < width && y >= 0 && y < height
 
+/// Whether `box` is list(left, top, right, bottom) of whole pixels on the canvas, none of it inside out.
+/datum/sprite_editor_workspace/proc/valid_box(list/box)
+	if(!islist(box) || length(box) != 4)
+		return FALSE
+	for(var/coordinate in box)
+		if(!isnum(coordinate) || round(coordinate) != coordinate)
+			return FALSE
+	return box[1] >= 0 && box[2] >= 0 && box[3] < width && box[4] < height && box[3] >= box[1] && box[4] >= box[2]
+
 /// Build an immutable old/new pixel patch before modifying the frame, including overlapping moves.
 /datum/sprite_editor_workspace/proc/prepare_selection_move(list/transaction)
 	var/direction = transaction["dir"]
@@ -19,24 +29,21 @@
 		return prepare_selection_placement(transaction)
 	var/list/rect = transaction["rect"]
 	var/list/offset = transaction["offset"]
-	if(!islist(rect) || length(rect) != 4 || !valid_point_pair(offset))
+	if(!valid_box(rect) || !valid_point_pair(offset))
 		return FALSE
-	for(var/coordinate in rect)
-		if(!isnum(coordinate) || round(coordinate) != coordinate)
-			return FALSE
 	var/left = rect[1]
 	var/top = rect[2]
 	var/right = rect[3]
 	var/bottom = rect[4]
 	var/dx = offset[1]
 	var/dy = offset[2]
-	if(left < 0 || top < 0 || right >= width || bottom >= height || right < left || bottom < top || abs(dx) >= width || abs(dy) >= height || (!dx && !dy))
-		return FALSE
-	// The box may include shaded margins; only its painted pixels must stay in the drawing area.
-	if(left + dx < 0 || top + dy < 0 || right + dx >= width || bottom + dy >= height)
+	// A move goes somewhere, its whole box still on the canvas. The box may include shaded margins; only its painted pixels must stay in the drawing area.
+	if((!dx && !dy) || left + dx < 0 || top + dy < 0 || right + dx >= width || bottom + dy >= height)
 		return FALSE
 	var/list/frame = layers[transaction["layer"]]["data"][direction]
+	// Every painted pixel lifts away, then lands: "x,y" -> list(x, y, old color, new color).
 	var/list/changes = list()
+	var/list/landings = list()
 	// Painted pixels outside changed bounds may be moved back in; their destinations are still checked.
 	for(var/y in top to bottom)
 		for(var/x in left to right)
@@ -45,19 +52,14 @@
 				if(!is_point_allowed(x + dx, y + dy, direction))
 					return FALSE
 				changes["[x],[y]"] = list(x, y, color, "#00000000")
-	for(var/y in top to bottom)
-		for(var/x in left to right)
-			var/color = frame[y + 1][x + 1]
-			if(!istext(color) || (length(color) == 9 && endswith(color, "00")))
-				continue
-			var/destination_x = x + dx
-			var/destination_y = y + dy
-			var/key = "[destination_x],[destination_y]"
-			var/list/change = changes[key]
-			if(change)
-				change[4] = color
-			else
-				changes[key] = list(destination_x, destination_y, frame[destination_y + 1][destination_x + 1], color)
+				landings += list(list(x + dx, y + dy, color))
+	for(var/list/landing as anything in landings)
+		var/key = "[landing[1]],[landing[2]]"
+		var/list/change = changes[key]
+		if(change)
+			change[4] = landing[3]
+		else
+			changes[key] = list(landing[1], landing[2], frame[landing[2] + 1][landing[1] + 1], landing[3])
 	var/list/points = list()
 	for(var/_key, change in changes)
 		if(change[3] != change[4])
@@ -85,19 +87,15 @@
 	var/list/palette = transaction["palette"]
 	var/digits = transaction["digits"]
 	var/codes = transaction["codes"]
-	if(!islist(area) || length(area) != 4 || !islist(palette) || !length(palette) || !(digits in list(1, 2)) || length(palette) > 64 ** digits || !istext(codes))
+	if(!valid_box(area) || !islist(palette) || !length(palette) || !(digits in list(1, 2)) || length(palette) > 64 ** digits || !istext(codes))
 		return FALSE
-	for(var/coordinate in area)
-		if(!isnum(coordinate) || round(coordinate) != coordinate)
-			return FALSE
 	var/left = area[1]
 	var/top = area[2]
 	var/right = area[3]
 	var/bottom = area[4]
-	if(left < 0 || top < 0 || right >= width || bottom >= height || right < left || bottom < top || length(codes) != (right - left + 1) * (bottom - top + 1) * digits)
-		return FALSE
-	// A window never sends more values than pixels it changes.
-	if(length(palette) > (right - left + 1) * (bottom - top + 1))
+	var/pixels = (right - left + 1) * (bottom - top + 1)
+	// The codes cover the area exactly, and a window never sends more values than pixels it changes.
+	if(length(codes) != pixels * digits || length(palette) > pixels)
 		return FALSE
 	// Each distinct value is checked once: transparent lifts paint away, anything else must be a color this drawing takes.
 	var/list/values = list()
@@ -146,6 +144,7 @@
 	transaction["points"] = points
 	return length(points) > 0
 
+/// A custom hair or markings drawing being edited: its layers share one palette, paint stays within the body's bounds, and the history is kept within limits.
 /datum/sprite_editor_workspace/custom_sprite
 	/// Opaque brush colors available to this workspace.
 	var/list/palette
@@ -192,6 +191,11 @@
 	/// What used_colors() last found, until pixels change.
 	var/list/used_colors_cache
 
+/**
+ * Opens `drawing`, or a blank canvas for null, painting within `bounds` and `mask`, and offers `sampled_palette`
+ * after the drawing's own colours. `canvas_width` and `canvas_height` ask for the taur's wide canvas or tall hair's
+ * canvas; a drawing larger than the canvas asked for keeps its own size.
+ */
 /datum/sprite_editor_workspace/custom_sprite/New(list/drawing, list/sampled_palette, list/bounds, list/mask, canvas_width = null, canvas_height = null)
 	..(max(custom_sprite_width(drawing), canvas_width == CUSTOM_SPRITE_TAUR_WIDTH ? CUSTOM_SPRITE_TAUR_WIDTH : 32), max(custom_sprite_height(drawing), canvas_height == CUSTOM_SPRITE_TALL_HEIGHT ? CUSTOM_SPRITE_TALL_HEIGHT : 32), 4, null, SPRITE_EDITOR_COLOR_MODE_RGB, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
 	tint = drawing?["tint"]
@@ -201,11 +205,11 @@
 	RegisterSignal(src, COMSIG_SPRITE_EDITOR_VALIDATE_COLOR, PROC_REF(validate_palette_color))
 	layers[1]["id"] = "hair"
 	custom_sprite_hydrate(src, drawing)
+	// add_appendage_layer() notes which views of each appendage are painted.
 	for(var/_key, appendage in drawing?["appendages"])
 		add_appendage_layer(appendage, drawing)
-	for(var/layer in 1 to length(layers))
-		for(var/direction in layers[layer]["data"])
-			update_edited_direction(direction, layer)
+	for(var/direction in layers[1]["data"])
+		update_edited_direction(direction)
 	palette = used_colors()
 	update_palette(sampled_palette)
 
@@ -251,12 +255,16 @@
 			frame += list(blank.Copy())
 		.["[GLOB.alldirs_dmi_order[i]]"] = frame
 
+/// A new blank appendage layer, not yet in the draft, with `appendage`'s name, zone, kind and emission under the next id.
+/datum/sprite_editor_workspace/custom_sprite/proc/appendage_entry(list/appendage)
+	return list("name" = appendage["name"], "visible" = TRUE, "data" = create_layer_data(), "id" = "a[next_appendage_id++]", "zone" = appendage["zone"], "outer" = appendage["outer"] ? TRUE : FALSE, "emissive" = custom_sprite_emissive_settings(appendage["emissive"]), "edited" = list())
+
 /**
  * Adds an appendage layer at `position` (the end when null), painted from `appendage`'s views when
  * `drawing` is given, and returns it. Nothing is recorded for undo; steps that add one do that.
  */
 /datum/sprite_editor_workspace/custom_sprite/proc/add_appendage_layer(list/appendage, list/drawing, position = null)
-	var/list/entry = list("name" = appendage["name"], "visible" = TRUE, "data" = create_layer_data(), "id" = "a[next_appendage_id++]", "zone" = appendage["zone"], "outer" = appendage["outer"] ? TRUE : FALSE, "emissive" = custom_sprite_emissive_settings(appendage["emissive"]), "edited" = list())
+	var/list/entry = appendage_entry(appendage)
 	var/index = isnull(position) ? length(layers) + 1 : clamp(position, 2, length(layers) + 1)
 	layers.Insert(index, list(entry))
 	if(drawing)
@@ -276,6 +284,10 @@
 			return index
 	return 0
 
+/// Whether `layer` is a whole number naming one of the layers, from `lowest` on: 2 names only appendage layers.
+/datum/sprite_editor_workspace/custom_sprite/proc/valid_layer(layer, lowest = 1)
+	return isnum(layer) && round(layer) == layer && layer >= lowest && layer <= length(layers)
+
 /// Whether any view of `layer` has paint.
 /datum/sprite_editor_workspace/custom_sprite/proc/layer_painted(layer)
 	for(var/_direction, painted in layer_edited(layer))
@@ -286,9 +298,17 @@
 /// Colors the current and undoable pixels use, which must stay paintable.
 /datum/sprite_editor_workspace/custom_sprite/proc/kept_colors()
 	. = used_colors()
-	for(var/list/stack as anything in list(undo_stack, redo_stack))
-		for(var/list/transaction as anything in stack)
-			. |= step_colors(transaction)
+	for(var/list/transaction as anything in undo_stack + redo_stack)
+		. |= step_colors(transaction)
+
+/// Adds a pixel value's colour, lowercase and without its alpha, to the proc's `colors` the first time its `seen` meets the value, unless it's transparent.
+#define NOTE_COLOR(pixel) \
+	if(!seen[pixel]) { \
+		seen[pixel] = TRUE; \
+		if(istext(pixel) && !endswith(pixel, "00")) { \
+			colors |= LOWER_TEXT(copytext(pixel, 1, 8)); \
+		} \
+	}
 
 /**
  * The opaque colors one history step paints with or over, in the order it first uses them. A move or
@@ -312,35 +332,20 @@
 	var/placed = transaction["type"] == "move"
 	for(var/list/point as anything in transaction["points"])
 		var/old_color = point[3]
-		if(!seen[old_color])
-			seen[old_color] = TRUE
-			if(!endswith(old_color, "00"))
-				colors |= LOWER_TEXT(copytext(old_color, 1, 8))
-		if(!placed)
-			continue
-		var/new_color = point[4]
-		if(!seen[new_color])
-			seen[new_color] = TRUE
-			if(!endswith(new_color, "00"))
-				colors |= LOWER_TEXT(copytext(new_color, 1, 8))
+		NOTE_COLOR(old_color)
+		if(placed)
+			var/new_color = point[4]
+			NOTE_COLOR(new_color)
 	for(var/_direction, points in transaction["replaced"])
 		for(var/list/point as anything in points)
 			for(var/replaced_color in list(point[3], point[4]))
-				if(seen[replaced_color])
-					continue
-				seen[replaced_color] = TRUE
-				if(!endswith(replaced_color, "00"))
-					colors |= LOWER_TEXT(copytext(replaced_color, 1, 8))
+				NOTE_COLOR(replaced_color)
 	// A layer the step adds, removes or swaps comes back whole, colours and all.
 	for(var/list/entry as anything in step_layers(transaction))
 		for(var/_direction, frame in entry["data"])
 			for(var/list/row as anything in frame)
 				for(var/pixel in row)
-					if(seen[pixel])
-						continue
-					seen[pixel] = TRUE
-					if(istext(pixel) && !endswith(pixel, "00"))
-						colors |= LOWER_TEXT(copytext(pixel, 1, 8))
+					NOTE_COLOR(pixel)
 	transaction["kept_colors"] = colors
 	return colors
 
@@ -396,11 +401,7 @@
 				continue
 			for(var/list/row as anything in frame)
 				for(var/pixel in row)
-					if(seen[pixel])
-						continue
-					seen[pixel] = TRUE
-					if(istext(pixel) && !endswith(pixel, "00"))
-						colors |= LOWER_TEXT(copytext(pixel, 1, 8))
+					NOTE_COLOR(pixel)
 	used_colors_cache = colors
 	return colors.Copy()
 
@@ -410,6 +411,7 @@
 	if(!(LOWER_TEXT(copytext(color, 1, 8)) in palette))
 		return COLOR_IS_INVALID
 
+/// Pixels inside the view's bounds and mask; while erasing, also paint left anywhere else on the canvas.
 /datum/sprite_editor_workspace/custom_sprite/is_point_allowed(x, y, direction)
 	// The base check, inline: this runs for every pixel of every stroke.
 	if(x < 0 || x >= width || y < 0 || y >= height)
@@ -441,7 +443,7 @@
 	erasing = islist(transaction) && transaction["type"] == "eraser"
 	// can_transact() refuses any other layer before a pixel is looked at.
 	var/layer = islist(transaction) ? transaction["layer"] : null
-	current_layer = isnum(layer) && round(layer) == layer && layer >= 1 && layer <= length(layers) ? layer : 1
+	current_layer = valid_layer(layer) ? layer : 1
 	// Windows send strokes as a compact mask; the history keeps point lists.
 	if(islist(transaction) && ("mask" in transaction))
 		transaction["points"] = custom_sprite_mask_points(transaction["mask"], width, height)
@@ -452,6 +454,7 @@
 	current_layer = 1
 	trim_history()
 
+/// The most steps the undo history keeps; the oldest go first once it's passed.
 #define CUSTOM_SPRITE_MAX_UNDO 100
 /// The most pixels the undo history records across its steps; the oldest steps go first once it's passed.
 #define CUSTOM_SPRITE_MAX_UNDO_POINTS 40000
@@ -462,13 +465,12 @@
 	for(var/list/step as anything in undo_stack)
 		points += step_points(step)
 	while(length(undo_stack) > 1 && (length(undo_stack) > CUSTOM_SPRITE_MAX_UNDO || points > CUSTOM_SPRITE_MAX_UNDO_POINTS))
-		var/list/oldest = undo_stack[1]
+		var/list/oldest = popleft(undo_stack)
+		undo_names.Cut(1, 2)
 		// An unsaved import that can no longer be undone still keeps the replaced style.
 		if(oldest["rotate"] && !(oldest in saved_transactions))
 			trimmed_rotations |= oldest["rotate"]
 		points -= step_points(oldest)
-		undo_stack.Cut(1, 2)
-		undo_names.Cut(1, 2)
 
 /// The pixels one history step records: its points, every view a replacement changed, and every pixel of a layer it keeps whole.
 /datum/sprite_editor_workspace/custom_sprite/proc/step_points(list/transaction)
@@ -504,39 +506,54 @@
 /datum/sprite_editor_workspace/custom_sprite/preprocess_new_transaction(list/transaction)
 	if(transaction["type"] != "bucket" || !draw_mask)
 		return ..()
+	masked_fill(transaction)
+
+/**
+ * Floods a fill from its point over the pixels is_point_allowed() takes; the others are boundaries. With `rows`,
+ * a view's region map, only pixels of `region` fill.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/masked_fill(list/transaction, list/rows, region)
 	var/direction = transaction["dir"]
 	var/list/list/frame = layers[transaction["layer"]]["data"][direction]
 	var/list/masked = list()
 	for(var/y in 0 to height - 1)
 		var/list/row = frame[y + 1].Copy()
 		for(var/x in 0 to width - 1)
-			if(!is_point_allowed(x, y, direction))
+			if(!is_point_allowed(x, y, direction) || (rows && copytext(rows[y + 1], x + 1, x + 2) != region))
 				row[x + 1] = null
 		masked += list(row)
 	var/list/point = transaction["point"]
 	transaction["points"] = flood_fill(masked, point[1] + 1, point[2] + 1, width, height)
 	transaction -= "point"
 
-/datum/sprite_editor_workspace/custom_sprite/transact(list/transaction)
+/**
+ * Applies, or with `forward` FALSE reverses, a step this workspace records itself: a replacement, an appendage
+ * layer added, removed or changed, or a new base hair look. Returns FALSE for anything else, a stroke or a move.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/apply_step(list/transaction, forward)
 	switch(transaction["type"])
 		if("replace")
-			apply_replacement(transaction, TRUE)
-			return
-		if("addAppendage")
-			layers.Insert(transaction["index"], list(transaction["entry"]))
+			apply_replacement(transaction, forward)
+		if("addAppendage", "removeAppendage")
+			// Adding a layer, or undoing its removal, puts it in; the other two take it out.
+			if((transaction["type"] == "addAppendage") == forward)
+				layers.Insert(transaction["index"], list(transaction["entry"]))
+			else
+				layers.Cut(transaction["index"], transaction["index"] + 1)
 			layers_changed()
-			return
-		if("removeAppendage")
-			layers.Cut(transaction["index"], transaction["index"] + 1)
-			layers_changed()
-			return
 		if("setAppendage")
-			layers[transaction["index"]][transaction["field"]] = transaction["new"]
+			layers[transaction["index"]][transaction["field"]] = forward ? transaction["new"] : transaction["old"]
 			pixels_dirty = TRUE
-			return
 		if("hairContext")
-			hair_context = transaction["new"]
-			return
+			hair_context = forward ? transaction["new"] : transaction["old"]
+		else
+			return FALSE
+	return TRUE
+
+/// Applies a step: this workspace's own through apply_step(), a pencil stroke by assigning its colour, and anything else as the base workspace does.
+/datum/sprite_editor_workspace/custom_sprite/transact(list/transaction)
+	if(apply_step(transaction, TRUE))
+		return
 	var/direction = transaction["dir"]
 	var/layer = transaction["layer"]
 	if(transaction["type"] == "pencil")
@@ -552,26 +569,10 @@
 		update_edited_direction(direction, layer)
 	pixels_changed(direction, layer)
 
+/// Reverses a step: this workspace's own through apply_step(), and anything else as the base workspace does.
 /datum/sprite_editor_workspace/custom_sprite/reverse_transact(list/transaction)
-	switch(transaction["type"])
-		if("replace")
-			apply_replacement(transaction, FALSE)
-			return
-		if("addAppendage")
-			layers.Cut(transaction["index"], transaction["index"] + 1)
-			layers_changed()
-			return
-		if("removeAppendage")
-			layers.Insert(transaction["index"], list(transaction["entry"]))
-			layers_changed()
-			return
-		if("setAppendage")
-			layers[transaction["index"]][transaction["field"]] = transaction["old"]
-			pixels_dirty = TRUE
-			return
-		if("hairContext")
-			hair_context = transaction["old"]
-			return
+	if(apply_step(transaction, FALSE))
+		return
 	..()
 	pixels_changed(transaction["dir"], transaction["layer"])
 	update_edited_direction(transaction["dir"], transaction["layer"])
@@ -579,11 +580,21 @@
 /**
  * Applies a step the editor built itself, such as adding an appendage, and records it for undo
  * under the same limits as any other step.
+ *
+ * With `check_palette`, the palette then keeps only the colours the draft and its history use; a step
+ * whose colours wouldn't fit is rolled back instead, leaving everything as it was, and FALSE is returned.
  */
-/datum/sprite_editor_workspace/custom_sprite/proc/record_step(list/transaction)
+/datum/sprite_editor_workspace/custom_sprite/proc/record_step(list/transaction, check_palette = FALSE)
+	var/list/previous_palette = palette
 	transact(transaction)
 	undo_stack += list(transaction)
 	undo_names += transaction["name"]
+	if(check_palette && !update_palette(list()))
+		pop(undo_names)
+		pop(undo_stack)
+		reverse_transact(transaction)
+		palette = previous_palette
+		return FALSE
 	redo_stack.Cut()
 	redo_names.Cut()
 	trim_history()
@@ -593,19 +604,17 @@
 /datum/sprite_editor_workspace/custom_sprite/proc/add_appendage()
 	if(length(layers) - 1 >= CUSTOM_SPRITE_MAX_APPENDAGES)
 		return null
-	var/list/entry = add_appendage_layer(list("name" = "Appendage [length(layers)]", "zone" = HAIR_APPENDAGE_REAR, "outer" = FALSE))
-	// add_appendage_layer() already put it in; the step puts it back on redo.
-	layers.Cut(length(layers), length(layers) + 1)
+	var/list/entry = appendage_entry(list("name" = "Appendage [length(layers)]", "zone" = HAIR_APPENDAGE_REAR, "outer" = FALSE))
 	record_step(list("type" = "addAppendage", "name" = "Add appendage layer", "index" = length(layers) + 1, "entry" = entry))
 	return entry["id"]
 
 /// Copies an under-hat appendage to a new over-hat layer right after it, as the built-in pieces pair up. Returns the copy's id, or null.
 /datum/sprite_editor_workspace/custom_sprite/proc/copy_appendage_over(layer)
-	if(!isnum(layer) || layer < 2 || layer > length(layers) || round(layer) != layer || length(layers) - 1 >= CUSTOM_SPRITE_MAX_APPENDAGES || layers[layer]["outer"])
+	if(!valid_layer(layer, 2) || length(layers) - 1 >= CUSTOM_SPRITE_MAX_APPENDAGES || layers[layer]["outer"])
 		return null
 	var/list/source = layers[layer]
 	// The name gives way so the suffix always fits.
-	var/list/entry = add_appendage_layer(list("name" = custom_hair_appendage_name("[copytext_char(source["name"], 1, CUSTOM_SPRITE_MAX_APPENDAGE_NAME - 6)] (over)"), "zone" = source["zone"], "outer" = TRUE, "emissive" = source["emissive"]), position = layer + 1)
+	var/list/entry = appendage_entry(list("name" = custom_hair_appendage_name("[copytext_char(source["name"], 1, CUSTOM_SPRITE_MAX_APPENDAGE_NAME - 6)] (over)"), "zone" = source["zone"], "outer" = TRUE, "emissive" = source["emissive"]))
 	// Frames are lists of row lists, which neither deep copy helper copies row by row.
 	var/list/frames = list()
 	for(var/direction, frame in source["data"])
@@ -616,13 +625,12 @@
 	entry["data"] = frames
 	var/list/source_edited = source["edited"]
 	entry["edited"] = source_edited.Copy()
-	layers.Cut(layer + 1, layer + 2)
 	record_step(list("type" = "addAppendage", "name" = "Copy to over-hat layer", "index" = layer + 1, "entry" = entry))
 	return entry["id"]
 
 /// Removes an appendage layer, paint and all, as an undoable step.
 /datum/sprite_editor_workspace/custom_sprite/proc/remove_appendage(layer)
-	if(!isnum(layer) || layer < 2 || layer > length(layers) || round(layer) != layer)
+	if(!valid_layer(layer, 2))
 		return FALSE
 	return record_step(list("type" = "removeAppendage", "name" = "Remove appendage layer", "index" = layer, "entry" = layers[layer]))
 
@@ -632,7 +640,7 @@
  */
 /datum/sprite_editor_workspace/custom_sprite/proc/set_appendage(layer, field, value)
 	var/static/list/step_names = list("name" = "Rename appendage", "zone" = "Move appendage", "outer" = "Change appendage kind")
-	if(!isnum(layer) || layer < 2 || layer > length(layers) || round(layer) != layer || !istext(field) || !step_names[field] || layers[layer][field] == value)
+	if(!valid_layer(layer, 2) || !istext(field) || !step_names[field] || layers[layer][field] == value)
 		return FALSE
 	return record_step(list("type" = "setAppendage", "name" = step_names[field], "index" = layer, "field" = field, "old" = layers[layer][field], "new" = value))
 
@@ -689,7 +697,7 @@
 	qdel(replacement)
 	if(!changed)
 		return TRUE
-	return commit_replacement(transaction)
+	return record_step(transaction, check_palette = TRUE)
 
 /**
  * Swaps the base hair look under paint that stays exactly as it is, as one undoable step. A new
@@ -715,12 +723,10 @@
 		for(var/layer in 2 to length(layers))
 			if(!layer_painted(layer))
 				. += list(layers[layer])
-				continue
-			if(next > length(incoming))
-				continue
-			var/list/entry = incoming[next++]
-			entry["id"] = layers[layer]["id"]
-			. += list(entry)
+			else if(next <= length(incoming))
+				var/list/entry = incoming[next++]
+				entry["id"] = layers[layer]["id"]
+				. += list(entry)
 	for(var/index in next to length(incoming))
 		var/list/entry = incoming[index]
 		entry["id"] = "a[next_appendage_id++]"
@@ -740,23 +746,6 @@
 					points += list(list(x - 1, y - 1, old_color, new_color))
 		if(length(points))
 			.[direction] = points
-
-/// Applies and records a replacement; rolls it back when current and undoable colors wouldn't fit the palette.
-/datum/sprite_editor_workspace/custom_sprite/proc/commit_replacement(list/transaction)
-	var/list/previous_palette = palette
-	transact(transaction)
-	undo_stack += list(transaction)
-	undo_names += transaction["name"]
-	if(!update_palette(list()))
-		pop(undo_names)
-		pop(undo_stack)
-		reverse_transact(transaction)
-		palette = previous_palette
-		return FALSE
-	redo_stack.Cut()
-	redo_names.Cut()
-	trim_history()
-	return TRUE
 
 /// Restores emission as a replacement recorded it.
 /datum/sprite_editor_workspace/custom_sprite/proc/apply_replacement_emissive(list/transaction, forward)
@@ -867,10 +856,8 @@
 			canvas_codes[canvas_palette[index]] = custom_sprite_canvas_code(index - 1, canvas_digits)
 		for(var/list/item as anything in stale)
 			var/id = layers[item[1]]["id"]
-			var/list/views = canvas_views[id]
-			if(!views)
-				views = list()
-				canvas_views[id] = views
+			var/list/views = canvas_views[id] || list()
+			canvas_views[id] = views
 			var/list/codes = list()
 			for(var/list/row as anything in layers[item[1]]["data"][item[2]])
 				for(var/pixel in row)
@@ -879,8 +866,7 @@
 	var/list/appendage_views = list()
 	for(var/layer in 2 to length(layers))
 		var/id = layers[layer]["id"]
-		var/list/views = canvas_views[id]
-		appendage_views[id] = list("[visible_view]" = views?["[visible_view]"])
+		appendage_views[id] = list("[visible_view]" = canvas_views[id]?["[visible_view]"])
 	return list("palette" = canvas_palette, "digits" = canvas_digits, "views" = canvas_views["hair"], "appendages" = appendage_views)
 
 /// The window gets the canvas as palette indexes rather than a color string per pixel.
@@ -901,7 +887,6 @@
 		return drawing_cache
 	pixels_dirty = FALSE
 	drawing_cache = null
-	var/list/directions = list()
 	var/list/indices = list()
 	var/list/pixel_indices = list()
 	var/list/saved_palette = used_colors()
@@ -910,10 +895,8 @@
 	for(var/i in 1 to length(saved_palette))
 		indices[saved_palette[i]] = copytext(CUSTOM_SPRITE_INDEX_ALPHABET, i + 1, i + 2)
 	// A tall canvas saves as a normal 32-row drawing until paint on any layer reaches the rows above it.
-	var/saved_height = height
-	if(height > 32 && !paint_above(height - 32))
-		saved_height = 32
-	directions = encode_layer(1, saved_height, indices, pixel_indices, length(saved_palette))
+	var/saved_height = (height > 32 && !paint_above(height - 32)) ? 32 : height
+	var/list/directions = encode_layer(1, saved_height, indices, pixel_indices, length(saved_palette))
 	// Unpainted appendage layers stay in the draft but aren't saved.
 	var/list/appendages = list()
 	for(var/layer in 2 to length(layers))
@@ -983,10 +966,7 @@
 
 /// An explicit clear erases one layer's whole view, including pixels outside the current body bounds.
 /datum/sprite_editor_workspace/custom_sprite/proc/clear_direction(direction, layer = 1)
-	if(!istext(direction) || !isnum(layer) || round(layer) != layer || layer < 1 || layer > length(layers))
-		return FALSE
-	var/list/edited = layer_edited(layer)
-	if(!edited[direction])
+	if(!istext(direction) || !valid_layer(layer) || !layer_edited(layer)[direction])
 		return FALSE
 	var/list/points = list()
 	var/list/frame = layers[layer]["data"][direction]
@@ -1010,9 +990,9 @@
 	if(input["type"] != "addLayer")
 		transaction["layer"] = input["layer"]
 	switch(input["type"])
-		if("pencil", "eraser", "bucket")
+		if("pencil", "eraser", "bucket", "move")
 			transaction["dir"] = input["dir"]
-			if(input["type"] != "eraser")
+			if(input["type"] in list("pencil", "bucket"))
 				transaction["color"] = input["color"]
 			if(input["type"] == "bucket")
 				transaction["point"] = input["point"]
@@ -1020,9 +1000,6 @@
 				transaction["points"] = input["points"]
 		if("renameLayer")
 			transaction["newName"] = input["newName"]
-		if("move")
-			transaction["dir"] = input["dir"]
-			transaction["points"] = input["points"]
 	var/static/list/transaction_names = list("pencil" = "Pencil", "eraser" = "Eraser", "bucket" = "Flood Fill", "move" = "Move selection", "renameLayer" = "Rename Layer", "moveLayerUp" = "Move Layer Up", "moveLayerDown" = "Move Layer Down", "flattenLayer" = "Flatten Layer", "addLayer" = "Add Layer", "deleteLayer" = "Delete Layer")
 	transaction["name"] = transaction_names[transaction["type"]]
 	return transaction
@@ -1046,6 +1023,7 @@
 /datum/sprite_editor_workspace/custom_sprite/regions/update_palette(list/available_palette)
 	return admit_colors(kept_colors(), available_palette)
 
+/// Also swaps which regions the step replaced outright.
 /datum/sprite_editor_workspace/custom_sprite/regions/apply_replacement(list/transaction, forward)
 	..()
 	if("resets_new" in transaction)
@@ -1067,6 +1045,7 @@
 	var/list/rows = region_map?[direction]
 	return rows ? copytext(rows[y + 1], x + 1, x + 2) : "0"
 
+/// Pixels of unlocked regions inside the view's bounds. Unlike other drawings, the eraser stays inside them too.
 /datum/sprite_editor_workspace/custom_sprite/regions/is_point_allowed(x, y, direction)
 	if(x < 0 || x >= width || y < 0 || y >= height)
 		return FALSE
@@ -1094,17 +1073,7 @@
 		return ..()
 	var/direction = transaction["dir"]
 	var/list/point = transaction["point"]
-	var/region = region_at(point[1], point[2], direction)
-	var/list/list/frame = layers[transaction["layer"]]["data"][direction]
-	var/list/masked = list()
-	for(var/y in 0 to height - 1)
-		var/list/row = frame[y + 1].Copy()
-		for(var/x in 0 to width - 1)
-			if(!is_point_allowed(x, y, direction) || region_at(x, y, direction) != region)
-				row[x + 1] = null
-		masked += list(row)
-	transaction["points"] = flood_fill(masked, point[1] + 1, point[2] + 1, width, height)
-	transaction -= "point"
+	masked_fill(transaction, region_map?[direction], region_at(point[1], point[2], direction))
 
 /// Fills the canvas as a draft opens, without history.
 /datum/sprite_editor_workspace/custom_sprite/regions/proc/load_frames(list/frames)
@@ -1149,8 +1118,8 @@
  *
  * new_resets, when given, also changes which regions are replaced outright in which views.
  *
- * Returns TRUE when replaced or already identical, FALSE when the colors and undo history would
- * need more than CUSTOM_SPRITE_MAX_COLORS colors. Nothing changes then.
+ * Returns TRUE, replaced or already identical: regions may hold more than CUSTOM_SPRITE_MAX_COLORS
+ * colors between them (see update_palette()), so no replacement is refused for its colors.
  */
 /datum/sprite_editor_workspace/custom_sprite/regions/proc/replace_frames(list/frames, name, list/new_markings_context, list/new_emissive, list/new_resets)
 	if(isnull(new_resets))
@@ -1164,4 +1133,6 @@
 			emissive_new[zone] = settings
 	if(!length(replaced) && !length(emissive_new) && json_encode(markings_context) == json_encode(new_markings_context) && json_encode(resets) == json_encode(new_resets))
 		return TRUE
-	return commit_replacement(list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = hair_context, "emissive_old" = emissive_old, "emissive_new" = emissive_new, "tint_old" = tint, "tint_new" = tint, "markings_old" = markings_context, "markings_new" = new_markings_context, "resets_old" = resets, "resets_new" = new_resets))
+	return record_step(list("type" = "replace", "name" = name, "replaced" = replaced, "hair_old" = hair_context, "hair_new" = hair_context, "emissive_old" = emissive_old, "emissive_new" = emissive_new, "tint_old" = tint, "tint_new" = tint, "markings_old" = markings_context, "markings_new" = new_markings_context, "resets_old" = resets, "resets_new" = new_resets), check_palette = TRUE)
+
+#undef NOTE_COLOR

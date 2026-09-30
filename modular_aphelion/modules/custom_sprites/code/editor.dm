@@ -1,6 +1,7 @@
 /// Editing can be disabled without removing any saved appearance.
 /datum/config_entry/flag/disallow_custom_sprite_editing
 
+/// Character setup's side of the custom sprite editors: opening them, which markings have a drawing, and putting drawings on the character.
 /datum/preference_middleware/custom_sprites
 	action_delegations = list("open_custom_sprite_editor" = PROC_REF(open_editor))
 
@@ -267,11 +268,8 @@
 
 /// Context hook: the window's title. BYOND shows it until the interface draws its own, so the two match.
 /datum/custom_sprite_editor/proc/window_title()
-	if(target == "hair")
-		return "Custom Hair"
-	if(target == "facial_hair")
-		return "Custom Facial Hair"
-	return "Custom Markings"
+	var/static/list/titles = list("hair" = "Custom Hair", "facial_hair" = "Custom Facial Hair")
+	return titles[target] || "Custom Markings"
 
 /// Context hook: views that can't be painted right now, beyond the drawing's own bounds.
 /datum/custom_sprite_editor/proc/locked_directions()
@@ -697,12 +695,8 @@
 		if(opening)
 			bring_to_front(user, ui)
 		return
-	var/interface = "CustomMarkingsEditor"
-	if(target == "hair")
-		interface = "CustomHairEditor"
-	else if(target == "facial_hair")
-		interface = "CustomFacialHairEditor"
-	ui = new(user, src, interface, window_title())
+	var/static/list/interfaces = list("hair" = "CustomHairEditor", "facial_hair" = "CustomFacialHairEditor")
+	ui = new(user, src, interfaces[target] || "CustomMarkingsEditor", window_title())
 	ui.set_autoupdate(FALSE)
 	static_dirty = FALSE
 	ui.open()
@@ -1420,17 +1414,21 @@
 	var/list/package = candidate["package"]
 	return json_encode(list(custom_sprite_hash(package["drawing"]), package["hair"], REF(preview_body), resources_hair, hide_underwear, show_gradient))
 
-/// Context hook: draws the waiting candidate's previews and caches them. The body then shows the draft again.
+/// Draws the waiting candidate's previews and caches them. The body then shows the draft again.
 /datum/custom_sprite_editor/proc/render_candidate()
-	var/list/package = candidate["package"]
 	var/key = candidate_key()
-	candidate["previews"] = render_previews(package["drawing"], package["hair"])
+	candidate["previews"] = candidate_previews()
 	if(length(candidate_cache) >= 8)
 		candidate_cache.Cut(1, 2)
 	candidate_cache[key] = candidate["previews"]
 	// The body now shows the candidate; the next refresh restores the draft.
 	preview_hash = null
 	refresh_preview(push = FALSE)
+
+/// Context hook: all four views of the preview body wearing the waiting candidate.
+/datum/custom_sprite_editor/proc/candidate_previews()
+	var/list/package = candidate["package"]
+	return render_previews(package["drawing"], package["hair"])
 
 /// Replaces the draft with the confirmed candidate as one undoable action. A canvas that has to change size for it starts its history over.
 /datum/custom_sprite_editor/proc/apply_candidate()

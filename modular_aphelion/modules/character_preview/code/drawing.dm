@@ -7,7 +7,7 @@ GLOBAL_LIST_EMPTY(character_preview_drawings)
 /// How many characters are showing each of those drawings. A drawing nobody shows is forgotten, so there is at most one
 /// per character with setup open, however often they change.
 GLOBAL_LIST_EMPTY(character_preview_drawing_users)
-/// The facings a drawing holds, keyed as the page names them.
+/// The facings a drawing holds, and the species page's sprites, keyed as the page names them.
 GLOBAL_LIST_INIT(character_preview_facings, list("south" = SOUTH, "west" = WEST, "north" = NORTH, "east" = EAST))
 
 /// After an answer, how long requests wait to be folded into one, and how quiet a burst of them must go first.
@@ -92,9 +92,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	if(preferences?.preview_drawing == src)
 		preferences.preview_drawing = null
 	SScharacter_preview.drawings -= src
-	release_drawing(preview?["name"])
-	preview = null
-	drawn_look = null
+	window_closed()
 	return ..()
 
 /// The window asks for the preview, saying which drawing it holds.
@@ -126,14 +124,11 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	waiting_since = null
 	answer_soon()
 
-/// SScharacter_preview starts an answer asked for with answer_soon(). Changes from here on ask for another.
+/// SScharacter_preview starts an answer asked for with answer_soon(); changes from here on ask for another. Draws the
+/// preview if it has changed, and tells the page whether a newer drawing is waiting, sending it the latest drawing if
+/// it holds another.
 /datum/preference_middleware/character_preview/proc/start_answer()
 	answer_due = FALSE
-	answer()
-
-/// Draws the preview if it has changed, and tells the page whether a newer drawing is waiting, sending it the latest
-/// drawing if it holds another.
-/datum/preference_middleware/character_preview/proc/answer()
 	update_preview()
 	COOLDOWN_START(src, preview_cooldown, CHARACTER_PREVIEW_SETTLE)
 	var/list/update = list("character_preview_pending" = !isnull(waiting_since))
@@ -191,7 +186,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	if(look_now == drawn_look)
 		return
 
-	var/list/walk = silicon ? character_preview_walk(silicon) : character_preview_walk(body)
+	var/list/walk = character_preview_walk(silicon || body)
 	var/height = walk["height"]
 	// What the flatten leaves out and the page draws itself: rows moved by height, and body size.
 	var/list/effects = silicon ? list() : character_preview_effects(body, height, walk["y"])
@@ -385,12 +380,8 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/mob/living/body = look
 	if(!istype(body) || !character_preview_turns_itself(body))
 		var/datum/universal_icon/flat = get_flat_uni_icon(look, UP, grow = TRUE)
-		return list(
-			"recipes" = uni_icon_facings_json(flat, GLOB.character_preview_facings),
-			"height" = character_preview_flat_size(flat)[2],
-			"x" = isnull(flat.flat_x1) ? 0 : 1 - flat.flat_x1,
-			"y" = isnull(flat.flat_y1) ? 0 : 1 - flat.flat_y1,
-		)
+		var/list/box = character_preview_flat_box(flat)
+		return list("recipes" = uni_icon_facings_json(flat, GLOB.character_preview_facings), "height" = box[4], "x" = 1 - box[1], "y" = 1 - box[2])
 	var/old_dir = body.dir
 	var/list/flats = list()
 	for(var/facing, dir in GLOB.character_preview_facings)
@@ -402,30 +393,27 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/y1 = INFINITY
 	var/x2 = -INFINITY
 	var/y2 = -INFINITY
-	for(var/facing, flat_untyped in flats)
-		var/datum/universal_icon/flat = flat_untyped
-		var/flat_x1 = isnull(flat.flat_x1) ? 1 : flat.flat_x1
-		var/flat_y1 = isnull(flat.flat_y1) ? 1 : flat.flat_y1
-		var/list/size = character_preview_flat_size(flat)
-		x1 = min(x1, flat_x1)
-		y1 = min(y1, flat_y1)
-		x2 = max(x2, flat_x1 + size[1] - 1)
-		y2 = max(y2, flat_y1 + size[2] - 1)
+	for(var/facing in flats)
+		var/list/box = character_preview_flat_box(flats[facing])
+		x1 = min(x1, box[1])
+		y1 = min(y1, box[2])
+		x2 = max(x2, box[1] + box[3] - 1)
+		y2 = max(y2, box[2] + box[4] - 1)
 	var/list/recipes = list()
-	for(var/facing, flat_untyped in flats)
-		var/datum/universal_icon/flat = flat_untyped
-		var/flat_x1 = isnull(flat.flat_x1) ? 1 : flat.flat_x1
-		var/flat_y1 = isnull(flat.flat_y1) ? 1 : flat.flat_y1
-		flat.crop(x1 - flat_x1 + 1, y1 - flat_y1 + 1, x2 - flat_x1 + 1, y2 - flat_y1 + 1)
+	for(var/facing in flats)
+		var/datum/universal_icon/flat = flats[facing]
+		var/list/box = character_preview_flat_box(flat)
+		flat.crop(x1 - box[1] + 1, y1 - box[2] + 1, x2 - box[1] + 1, y2 - box[2] + 1)
 		recipes[facing] = flat.to_json()
 	return list("recipes" = recipes, "height" = y2 - y1 + 1, "x" = 1 - x1, "y" = 1 - y1)
 
-/// A flat icon's canvas, list(width, height): a grown canvas says so itself, and otherwise it is its icon's.
-/proc/character_preview_flat_size(datum/universal_icon/flat)
-	if(flat.flat_width)
-		return list(flat.flat_width, flat.flat_height)
-	var/list/dimensions = get_icon_dimensions(flat.icon_file)
-	return list(dimensions?["width"] || ICON_SIZE_X, dimensions?["height"] || ICON_SIZE_Y)
+/**
+ * A flat icon's canvas, list(x1, y1, width, height): where its lower left pixel sits, counted from the flattened look's
+ * own (1, 1), and its size. A grown canvas says so itself; any other is its icon's, at (1, 1).
+ */
+/proc/character_preview_flat_box(datum/universal_icon/flat)
+	var/list/size = flat.flat_width ? list("width" = flat.flat_width, "height" = flat.flat_height) : get_icon_dimensions(flat.icon_file)
+	return list(isnull(flat.flat_x1) ? 1 : flat.flat_x1, isnull(flat.flat_y1) ? 1 : flat.flat_y1, size?["width"] || ICON_SIZE_X, size?["height"] || ICON_SIZE_Y)
 
 /// Whether something redraws a mob when it turns, so each facing of it has to be walked on its own.
 /proc/character_preview_turns_itself(mob/living/body)

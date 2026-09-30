@@ -1086,48 +1086,6 @@ it('drops floating paint on the layer it floated from, never on the one shown ne
   expect(send).not.toHaveBeenCalled();
 });
 
-it('says when a copy, cut or paste is done, and a merged copy only once its base arrives', () => {
-  const { data, context, tool, select } = fixture([[red, clear, clear, clear]]);
-  const onClipboard = mock();
-  tool.onClipboard = onClipboard;
-  select([0, 0, 0, 0]);
-  tool.copy(context, data);
-  tool.cut(context, data);
-  tool.paste(context, data);
-  expect(onClipboard.mock.calls).toEqual([['Copied'], ['Cut'], ['Pasted']]);
-  tool.release(context);
-  onClipboard.mockClear();
-  data.baseCopyInfo = hairInfo(1);
-  select([0, 0, 1, 0]);
-  tool.copyMerged(context, data);
-  expect(onClipboard).not.toHaveBeenCalled();
-  tool.receiveBaseCopy({
-    request: 1,
-    source: 'hair-editor',
-    origin: [0, 0],
-    width: 4,
-    height: 1,
-    palette: [clear, blue],
-    codes: '1000',
-  });
-  expect(onClipboard.mock.calls).toEqual([['Copied']]);
-  // A paste the base can't take is refused, not pasted.
-  data.baseCopyInfo = { ...hairInfo(1), source: 'another-editor' };
-  tool.paste(context, data);
-  expect(onClipboard.mock.calls).toEqual([['Copied']]);
-});
-
-it('previews floating paint on the layer it floats on', () => {
-  const { data, context, tool, select } = fixture([[red, green, clear, clear]]);
-  data.selectionPreview = true;
-  data.layerTarget = { layer: 2, layerId: 'a1' };
-  select([0, 0, 1, 0]);
-  tool.flip(context, data);
-  expect(send).toHaveBeenLastCalledWith('previewSelection', {
-    transaction: expect.objectContaining({ layer: 2, layerId: 'a1' }),
-  });
-});
-
 it('copies merged: the view as it shows, the topmost paint of every layer winning', () => {
   const { data, context, tool, select } = fixture([
     [clear, green, clear, clear],

@@ -475,8 +475,7 @@
 	for(var/region, region_markings in context)
 		new_context[region] = custom_style_copy_markings(region_markings)
 	new_context[zone] = entries
-	if(!canvas.replace_frames(canvas.layers[1]["data"], "Change base markings", new_context, canvas.emissive))
-		return FALSE
+	canvas.replace_frames(canvas.layers[1]["data"], "Change base markings", new_context, canvas.emissive)
 	draft_changed()
 	// The palette keeps its sampled shades until the rebuild samples the new look.
 	refresh_custom_palette()
@@ -613,14 +612,8 @@
 /datum/custom_sprite_editor/markings/candidate_key()
 	return json_encode(list(md5(json_encode(candidate_results(candidate["regions"]))), REF(preview_body), resources_markings, hide_parts, hide_underwear))
 
-/datum/custom_sprite_editor/markings/render_candidate()
-	var/key = candidate_key()
-	candidate["previews"] = render_region_previews(candidate_results(candidate["regions"]))
-	if(length(candidate_cache) >= 8)
-		candidate_cache.Cut(1, 2)
-	candidate_cache[key] = candidate["previews"]
-	preview_hash = null
-	refresh_preview(push = FALSE)
+/datum/custom_sprite_editor/markings/candidate_previews()
+	return render_region_previews(candidate_results(candidate["regions"]))
 
 /// Why candidate regions can't replace their parts of this draft, or null.
 /datum/custom_sprite_editor/markings/proc/region_candidate_problem(list/regions)
@@ -686,14 +679,9 @@
 	var/list/new_resets = canvas.resets ? canvas.resets.Copy() : list()
 	for(var/zone, package in regions)
 		new_emissive[zone] = custom_sprite_emissive_settings(package["drawing"]?["emissive"])
-		var/list/views = list()
-		for(var/direction in GLOB.custom_style_directions)
-			views[direction] = TRUE
-		new_resets[zone] = views
+		new_resets[zone] = list("2" = TRUE, "1" = TRUE, "4" = TRUE, "8" = TRUE)
 	var/list/before = canvas.last_transaction()
-	if(!canvas.replace_frames(custom_sprite_compose_regions(drawings, region_map, region_zones, canvas.width), source == "restore" ? "Restore saved style" : "Import style", new_markings, new_emissive, new_resets))
-		transfer_error = "This style and your undo history need more than [CUSTOM_SPRITE_MAX_COLORS] colors. Save or reopen the editor, then import again."
-		return FALSE
+	canvas.replace_frames(custom_sprite_compose_regions(drawings, region_map, region_zones, canvas.width), source == "restore" ? "Restore saved style" : "Import style", new_markings, new_emissive, new_resets)
 	var/list/applied = canvas.last_transaction()
 	// Saving keeps each replaced style as the previous one, unless the import is undone first.
 	if(applied != before)

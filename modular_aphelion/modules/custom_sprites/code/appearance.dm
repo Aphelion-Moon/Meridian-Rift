@@ -12,8 +12,7 @@
 		return null
 	var/list/result = deep_copy_list(drawing)
 	result["emissive"] = custom_sprite_emissive_settings(allow_emissives ? result["emissive"] : FALSE)
-	for(var/_key, entry in result["appendages"])
-		var/list/appendage = entry
+	for(var/_key, appendage in result["appendages"])
 		appendage["emissive"] = custom_sprite_emissive_settings(allow_emissives ? appendage["emissive"] : FALSE)
 	return result
 
@@ -73,11 +72,8 @@
 
 /// The accessory this head's hair draws with: the real one, or the nameless blank so a bald head can carry paint.
 /obj/item/bodypart/head/proc/custom_sprite_hair_accessory()
-	var/datum/sprite_accessory/hair/accessory = SSaccessories.hairstyles_list[hairstyle]
-	if(accessory || !custom_hair)
-		return accessory
 	var/static/datum/sprite_accessory/hair/custom_sprite_blank/blank = new
-	return blank
+	return SSaccessories.hairstyles_list[hairstyle] || (custom_hair ? blank : null)
 
 /// Shaved faces register no accessory datum either, so paint needs the same nameless stand-in.
 /datum/sprite_accessory/facial_hair/custom_sprite_blank
@@ -85,11 +81,8 @@
 
 /// The accessory this head's facial hair draws with: the real one, or the nameless blank so a shaved face can carry paint.
 /obj/item/bodypart/head/proc/custom_sprite_facial_hair_accessory()
-	var/datum/sprite_accessory/facial_hair/accessory = SSaccessories.facial_hairstyles_list[facial_hairstyle]
-	if(accessory || !custom_facial_hair)
-		return accessory
 	var/static/datum/sprite_accessory/facial_hair/custom_sprite_blank/blank = new
-	return blank
+	return SSaccessories.facial_hairstyles_list[facial_hairstyle] || (custom_facial_hair ? blank : null)
 
 /// Whether the head carries custom paint for any of `targets` (HEAD_HAIR, HEAD_FACIAL_HAIR). Paint is hair, even over a bald or shaved base style.
 /mob/living/carbon/human/proc/has_custom_hair(targets = HEAD_HAIR)
@@ -201,9 +194,8 @@
 		// The base gradient is built from the accessory alone, so painted pixels need their own copy.
 		var/gradient_key = custom_style_gradient_key(target)
 		var/gradient_style = get_hair_gradient_style(gradient_key)
-		var/list/gradients = custom_style_hair_gradients(target)
-		if(gradient_style != SPRITE_ACCESSORY_NONE && gradients[gradient_style])
-			var/datum/sprite_accessory/gradient = gradients[gradient_style]
+		var/datum/sprite_accessory/gradient = gradient_style != SPRITE_ACCESSORY_NONE ? custom_style_hair_gradients(target)[gradient_style] : null
+		if(gradient)
 			var/image/paint_gradient = get_gradient_overlay(paint, layer, gradient, get_hair_gradient_color(gradient_key), dropped)
 			// The gradient sheet is 32 rows; over tall paint it carries on upward as its top row does.
 			if(paint.Height() > 32)
@@ -252,6 +244,7 @@
 	mask.filters = source.filters
 	return mask
 
+/// A drawing painted on a bodypart, clipped to the limb's own geometry. Subtypes keep a limb's zone, hand and taur paint apart.
 /datum/bodypart_overlay/custom_marking
 	layers = list("" = BODYPARTS_LAYER)
 	draw_on_husks = HUSK_OVERLAY_NONE
@@ -287,15 +280,19 @@
 	var/key = "[jointext(pixel_render_key(limb), "|")]|[layer_index]"
 	var/icon/clipped = GLOB.custom_sprite_limb_icons[key]
 	if(!clipped)
-		var/icon/paint = custom_sprite_paint_icon(drawing, cache_icons)
-		clipped = paint ? icon(paint) : icon('icons/blanks/32x32.dmi', "nothing")
-		clipped.Blend(custom_sprite_silhouette(limb, layer_index == "aux"), ICON_MULTIPLY)
+		clipped = clip_paint(custom_sprite_paint_icon(drawing, cache_icons), limb, layer_index)
 		if(cache_icons)
 			custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
 	var/image/result = image(clipped, layer = layer_real)
 	result.appearance_flags |= RESET_COLOR
 	result.alpha = limb.markings_alpha
 	return result
+
+/// A copy of `paint`, or a blank without any, clipped to where this overlay shows on `limb` in one of its layers.
+/datum/bodypart_overlay/custom_marking/proc/clip_paint(icon/paint, obj/item/bodypart/limb, layer_index)
+	var/icon/clipped = paint ? icon(paint) : icon('icons/blanks/32x32.dmi', "nothing")
+	clipped.Blend(custom_sprite_silhouette(limb, layer_index == "aux"), ICON_MULTIPLY)
+	return clipped
 
 /datum/bodypart_overlay/custom_marking/color_image(image/overlay, obj/item/bodypart/limb, layer_index)
 	overlay.color = drawing?["tint"]
@@ -351,12 +348,12 @@
 /// How far taur paint sits above each of the organ's own layers: less than the gap to any other mob layer.
 #define CUSTOM_SPRITE_TAUR_PAINT_LIFT 0.001
 
+/// Taur paint draws just above each of the organ's native layers, so the organ never covers it, whichever of the two the chest took last.
 /datum/bodypart_overlay/custom_marking/taur/set_drawing(list/new_drawing, obj/item/bodypart/limb)
 	. = ..()
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(limb.owner)
 	if(!taur)
 		return
-	// Just above each native layer, so the organ never covers the paint, whichever of the two the chest took last.
 	var/list/paint_layers = list()
 	for(var/layer_key, layer_number in taur.custom_sprite_layers())
 		paint_layers[layer_key] = layer_number - CUSTOM_SPRITE_TAUR_PAINT_LIFT
@@ -364,11 +361,10 @@
 
 #undef CUSTOM_SPRITE_TAUR_PAINT_LIFT
 
+/// Taur paint shows only while the taur organ itself draws on the chest.
 /datum/bodypart_overlay/custom_marking/taur/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
-	if(!..())
-		return FALSE
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(owner)
-	return taur && taur.can_draw_on_bodypart(bodypart_owner, owner)
+	return ..() && taur?.can_draw_on_bodypart(bodypart_owner, owner)
 
 /datum/bodypart_overlay/custom_marking/taur/pixel_render_key(obj/item/bodypart/limb)
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(limb.owner)
@@ -377,20 +373,15 @@
 /datum/bodypart_overlay/custom_marking/taur/icon_render_key(obj/item/bodypart/limb)
 	return pixel_render_key(limb) + list(drawing_hash, limb.markings_alpha)
 
+/datum/bodypart_overlay/custom_marking/taur/clip_paint(icon/paint, obj/item/bodypart/limb, layer_index)
+	var/icon/clipped = paint ? icon(paint) : custom_sprite_blank_icon(64)
+	clipped.Blend(custom_sprite_taur_silhouette(limb.owner, layer_index), ICON_MULTIPLY)
+	return clipped
+
+/// The 64 by 32 paint is centered on the body's tile, as the organ's own wide icon is.
 /datum/bodypart_overlay/custom_marking/taur/get_image(obj/item/bodypart/limb, layer_index, layer_real)
-	var/key = "[jointext(pixel_render_key(limb), "|")]|[layer_index]"
-	var/icon/clipped = GLOB.custom_sprite_limb_icons[key]
-	if(!clipped)
-		var/icon/paint = custom_sprite_paint_icon(drawing, cache_icons)
-		clipped = paint ? icon(paint) : custom_sprite_blank_icon(64)
-		clipped.Blend(custom_sprite_taur_silhouette(limb.owner, layer_index), ICON_MULTIPLY)
-		if(cache_icons)
-			custom_sprite_cache_put(GLOB.custom_sprite_limb_icons, key, clipped)
-	var/image/result = image(clipped, layer = layer_real)
-	result.appearance_flags |= RESET_COLOR
-	center_image(result, 64, 32)
-	result.alpha = limb.markings_alpha
-	return result
+	. = ..()
+	center_image(., 64, 32)
 
 /// The taur zone's own paint on the chest.
 /datum/bodypart_overlay/custom_marking/taur/zone
@@ -429,8 +420,7 @@
 			remove_bodypart_overlay(overlay, FALSE)
 			qdel(overlay)
 		return
-	var/hash = custom_sprite_hash(drawing)
-	if(overlay?.drawing_hash == hash)
+	if(overlay?.drawing_hash == custom_sprite_hash(drawing))
 		return
 	if(!overlay)
 		overlay = new overlay_type
@@ -457,6 +447,7 @@
 		head.custom_hair = deep_copy_list(dna.custom_hair)
 		head.custom_facial_hair = deep_copy_list(dna.custom_facial_hair)
 
+/// Painted hair shades follow the new color; see custom_sprite_recolor_hair().
 /mob/living/carbon/human/set_haircolor(hex_string, override, update = TRUE)
 	var/obj/item/bodypart/head/head = get_bodypart(BODY_ZONE_HEAD)
 	var/old_color = custom_style_normal_color(head?.hair_color || hair_color)
@@ -465,6 +456,7 @@
 	if(update)
 		update_hair()
 
+/// Painted facial hair shades follow the new color; see custom_sprite_recolor_hair().
 /mob/living/carbon/human/set_facial_haircolor(hex_string, override, update = TRUE)
 	var/obj/item/bodypart/head/head = get_bodypart(BODY_ZONE_HEAD)
 	var/old_color = custom_style_normal_color(head?.facial_hair_color || facial_hair_color)

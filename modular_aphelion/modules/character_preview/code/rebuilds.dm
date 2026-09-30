@@ -1,17 +1,3 @@
-/**
- * Rebuilding the preferences preview mob applies every preference to it: 10 to 40 ms that can't be split. tg rebuilds
- * it inside every action that changes it, twice in some, and many players changing their characters at once ran every
- * tick over, which every player on the server felt.
- *
- * With character setup open, a change only marks the mob stale and asks the window for a drawing, which rebuilds it
- * first, once for everything an action changed. SScharacter_preview starts the drawing in its next fire, in the tick
- * time other subsystems leave over, and the drawing rebuilds the mob then and there if nothing waits ahead of it and the
- * rebuild fits in what is left of the tick, as it nearly always does; one that doesn't fit still goes then while such
- * rebuilds stay within CHARACTER_PREVIEW_OVERRUN_BUDGET. Otherwise the mob waits its turn in the queue, which the fires
- * that follow work through. Changes that come while it waits go into the one rebuild, and the page shows its loader once
- * the wait is long enough to see. Without a window, the mob is rebuilt at once, as tg does.
- */
-
 /// Of each second, how many ms rebuilds that don't fit in what is left of their tick may take, running it over.
 #define CHARACTER_PREVIEW_OVERRUN_BUDGET 100
 /// How many ms of such rebuilds may build up for a burst.
@@ -20,6 +6,21 @@
 /// so a busy server still rebuilds previews, a little late, and runs a tick over for them at most this often.
 #define CHARACTER_PREVIEW_REBUILD_OVERDUE (0.5 SECONDS)
 
+/**
+ * Starts character preview drawings, and rebuilds preview mobs in turn when many change at once.
+ *
+ * Rebuilding the preferences preview mob applies every preference to it: 10 to 40 ms that can't be split. tg rebuilds
+ * it inside every action that changes it, twice in some, and many players changing their characters at once ran every
+ * tick over, which every player on the server felt.
+ *
+ * With character setup open, a change only marks the mob stale and asks the window for a drawing, which rebuilds it
+ * first, once for everything an action changed. This starts the drawing in its next fire, in the tick time other
+ * subsystems leave over, and the drawing rebuilds the mob then and there if nothing waits ahead of it and the rebuild
+ * fits in what is left of the tick, as it nearly always does; one that doesn't fit still goes then while such rebuilds
+ * stay within CHARACTER_PREVIEW_OVERRUN_BUDGET. Otherwise the mob waits its turn in the queue, which the fires that
+ * follow work through. Changes that come while it waits go into the one rebuild, and the page shows its loader once the
+ * wait is long enough to see. Without a window, the mob is rebuilt at once, as tg does.
+ */
 SUBSYSTEM_DEF(character_preview)
 	name = "Character Previews"
 	// Every tick at 20 FPS.
@@ -56,16 +57,14 @@ SUBSYSTEM_DEF(character_preview)
  */
 /datum/controller/subsystem/character_preview/fire(resumed)
 	var/limit = TICK_LIMIT_RUNNING
-	var/turns = length(queue)
-	for(var/turn in 1 to turns)
+	for(var/turn in 1 to length(queue))
 		if(!length(queue) || (!has_room(limit) && !COOLDOWN_FINISHED(src, rebuild_overdue)))
 			break
 		rebuild(queue[1])
 		limit = Master.current_ticklimit
 		if(MC_TICK_CHECK)
 			return
-	var/starts = length(drawings)
-	for(var/start in 1 to starts)
+	for(var/start in 1 to length(drawings))
 		if(!length(drawings))
 			break
 		var/datum/preference_middleware/character_preview/drawing = drawings[1]
@@ -108,9 +107,8 @@ SUBSYSTEM_DEF(character_preview)
 		if(has_room(TICK_LIMIT_RUNNING))
 			rebuild(view)
 			return TRUE
-		var/time = world.time
-		overrun_budget = min(overrun_budget + (time - overrun_budget_at) * CHARACTER_PREVIEW_OVERRUN_BUDGET / (1 SECONDS), CHARACTER_PREVIEW_OVERRUN_BURST)
-		overrun_budget_at = time
+		overrun_budget = min(overrun_budget + (world.time - overrun_budget_at) * CHARACTER_PREVIEW_OVERRUN_BUDGET / (1 SECONDS), CHARACTER_PREVIEW_OVERRUN_BURST)
+		overrun_budget_at = world.time
 		if(overrun_budget > 0)
 			overrun_budget -= rebuild(view)
 			return TRUE

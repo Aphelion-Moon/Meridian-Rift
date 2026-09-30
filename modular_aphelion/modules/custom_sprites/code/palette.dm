@@ -8,9 +8,7 @@
 	return list()
 
 /datum/preference/custom_sprite_palette/deserialize(input, datum/preferences/preferences)
-	if(!islist(input) || length(input) > CUSTOM_SPRITE_MAX_CUSTOM_COLORS)
-		return null
-	return custom_sprite_palette_colors(input, strict = TRUE)
+	return islist(input) && length(input) <= CUSTOM_SPRITE_MAX_CUSTOM_COLORS ? custom_sprite_palette_colors(input, strict = TRUE) : null
 
 /datum/preference/custom_sprite_palette/is_valid(value, datum/preferences/preferences)
 	var/list/colors = deserialize(value, preferences)

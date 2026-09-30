@@ -1,5 +1,7 @@
+/// The custom hair and tattoo awards' 76 by 76 icons.
 #define CUSTOM_SPRITE_ACHIEVEMENTS 'modular_aphelion/modules/custom_sprites/icons/achievements.dmi'
 
+/// The artist's award for applying someone else's accepted custom hair or facial hair.
 /datum/award/achievement/misc/custom_style_given
 	name = "Barberella"
 	desc = "It's ok, it'll grow back..."
@@ -7,6 +9,7 @@
 	icon = CUSTOM_SPRITE_ACHIEVEMENTS
 	icon_state = "custom_style_given"
 
+/// The recipient's award for accepted custom hair or facial hair someone else applied.
 /datum/award/achievement/misc/custom_style_received
 	name = "I'm Just a Boy with a New Haircut"
 	desc = "And That's a Pretty Nice Haircut!"
@@ -14,6 +17,7 @@
 	icon = CUSTOM_SPRITE_ACHIEVEMENTS
 	icon_state = "custom_style_received"
 
+/// The artist's award for applying someone else's accepted custom tattoo.
 /datum/award/achievement/misc/custom_tattoo_given
 	name = "Leave Your Mark"
 	desc = "You've made a lasting impression."
@@ -21,6 +25,7 @@
 	icon = CUSTOM_SPRITE_ACHIEVEMENTS
 	icon_state = "custom_tattoo_given"
 
+/// The recipient's award for an accepted custom tattoo someone else applied.
 /datum/award/achievement/misc/custom_tattoo_received
 	name = "Fresh Ink"
 	desc = "Wait this is permanent?"

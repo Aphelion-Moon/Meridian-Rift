@@ -1,5 +1,7 @@
-/// Contiguous traversal selectors: visit underlays before overlays without allocating a selector list.
+/// Traversal selector for underlays, visited first. The two selectors are contiguous, so a range visits both without
+/// allocating a selector list.
 #define WORN_EMISSIVE_UNDERLAYS 1
+/// Traversal selector for overlays, visited after underlays.
 #define WORN_EMISSIVE_OVERLAYS 2
 /// The shared out-parameter's only slot; the proc's ordinary return value holds the emissive tree.
 #define WORN_EMISSIVE_VISIBLE_RESULT 1

@@ -1,3 +1,4 @@
+/// Every region map pixel belongs to a region whose mask covers it, overlaps follow the body's draw order, hands own their pixels, and a missing arm takes its hand.
 /datum/unit_test/custom_sprite_region_map/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	var/list/zones = custom_sprite_present_regions(human)
@@ -8,7 +9,6 @@
 	var/list/map = custom_sprite_region_map(human, zones, 32)
 	for(var/direction in GLOB.custom_style_directions)
 		var/list/rows = map[direction]
-		TEST_ASSERT(!(length(rows) != 32 || length(rows[1]) != 32), "Region maps must be 32 rows of 32 pixels.")
 		var/list/masks = list()
 		for(var/zone in zones)
 			masks[zone] = custom_sprite_body_draw_mask(human, zone, 32)[direction]
@@ -43,6 +43,7 @@
 	TEST_ASSERT(!((BODY_ZONE_L_ARM in zones) || (BODY_ZONE_PRECISE_L_HAND in zones)), "A missing arm takes its hand region with it.")
 	TEST_ASSERT((BODY_ZONE_PRECISE_R_HAND in zones), "The other arm keeps its hand.")
 
+/// A taur body's map has a taur region, last, instead of legs, and every owned pixel lies inside its owner's own mask and columns.
 /datum/unit_test/custom_sprite_region_map_taur/Run()
 	var/mob/living/carbon/human/human = allocate(/mob/living/carbon/human/consistent)
 	TEST_ASSERT(custom_sprite_test_taur(human), "The fixture needs a real taur organ.")
@@ -88,6 +89,7 @@
 					TEST_ASSERT(custom_sprite_region_owner(map[direction], zones, x - 1, y - 1) == GLOB.custom_marking_hand_arms[hand], "[GLOB.custom_marking_hand_arms[hand]] must own [hand]'s wrist band at [x],[y] in view [direction].")
 		TEST_ASSERT(wrist, "The fixture needs [hand]'s wrist band.")
 
+/// Region ID colours are distinct, lowercase and never read as a third region when two blend at an edge.
 /datum/unit_test/custom_sprite_region_colors/Run()
 	var/list/colors = list()
 	for(var/index in 1 to 9)

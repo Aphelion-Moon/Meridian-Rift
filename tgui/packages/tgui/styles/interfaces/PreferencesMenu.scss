@@ -7,7 +7,7 @@
   padding: var(--space-m);
   background-color: var(--color-base);
   box-shadow: 0 0.5em 1em hsla(0, 0%, 0%, 0.5);
-
+  // APHELION EDIT ADDITION START - Shared icon picker: zoomed previews
   // Zoomed icons sit on two greys far enough apart that dark and light paint each stand out on one.
   &__preview {
     position: absolute;
@@ -28,6 +28,7 @@
     left: 0;
     transform-origin: 0 0;
   }
+  // APHELION EDIT ADDITION END
 }
 
 .PreferencesMenu {

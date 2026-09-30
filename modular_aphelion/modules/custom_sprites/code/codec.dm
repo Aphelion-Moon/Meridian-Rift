@@ -21,7 +21,7 @@ GLOBAL_LIST_INIT(custom_style_hair_targets, list("hair", "facial_hair"))
 /proc/custom_style_hair_target(target)
 	return target in GLOB.custom_style_hair_targets
 
-/// The accessory list, gradient list and gradient key each head target draws on.
+/// The accessory list a head target draws on.
 /proc/custom_style_hair_accessories(target)
 	return target == "facial_hair" ? SSaccessories.facial_hairstyles_list : SSaccessories.hairstyles_list
 
@@ -41,9 +41,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 
 /// The bodypart that carries a marking zone's paint.
 /proc/custom_marking_zone_limb(zone)
-	if(zone == CUSTOM_MARKING_ZONE_TAUR)
-		return BODY_ZONE_CHEST
-	return (zone && GLOB.custom_marking_hand_arms[zone]) || zone
+	return zone == CUSTOM_MARKING_ZONE_TAUR ? BODY_ZONE_CHEST : ((zone && GLOB.custom_marking_hand_arms[zone]) || zone)
 
 /// The overlay identity for a marking zone, so zone, hand and taur paint on one bodypart stay independent.
 /proc/custom_marking_zone_overlay_type(zone)
@@ -60,7 +58,6 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	for(var/hand, arm in GLOB.custom_marking_hand_arms)
 		if(arm == zone)
 			return hand
-	return null
 
 /// A zone's own drawing width: the taur spans the wide canvas, everything else the body's 32 pixels.
 /proc/custom_marking_zone_width(zone)
@@ -93,19 +90,16 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 /// Each run is a hex length (1-f), followed by one palette-index character.
 /// Coordinates are row-major from the top left, matching SpriteEditor.
 /proc/custom_sprite_encode_grid(grid, palette_size = 15, pixel_count = 1024)
-	if(!custom_sprite_grid_args_valid(palette_size, pixel_count) || !istext(grid) || length(grid) != pixel_count)
-		return null
 	// Validate the entire grid before allowing an early flat fallback.
-	if(spantext(grid, copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 1, palette_size + 2)) != pixel_count)
+	if(!custom_sprite_grid_args_valid(palette_size, pixel_count) || !istext(grid) || length(grid) != pixel_count || spantext(grid, copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 1, palette_size + 2)) != pixel_count)
 		return null
-	var/hex_digits = "0123456789abcdef"
 	// Joined once at the end: growing one string run by run copies it every time.
 	var/list/runs = list("r")
 	var/encoded_length = 1
 	for(var/i = 1; i <= pixel_count;)
 		var/pixel = copytext(grid, i, i + 1)
 		var/run = min(15, spantext(grid, pixel, i))
-		runs += "[copytext(hex_digits, run + 1, run + 2)][pixel]"
+		runs += "[copytext("0123456789abcdef", run + 1, run + 2)][pixel]"
 		encoded_length += 2
 		if(encoded_length >= pixel_count + 1)
 			return "f[grid]"
@@ -116,16 +110,13 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 /proc/custom_sprite_decode_grid(encoded, palette_size = 15, pixel_count = 1024)
 	if(!custom_sprite_grid_args_valid(palette_size, pixel_count) || !istext(encoded) || length(encoded) < 2 || length(encoded) > pixel_count + 1)
 		return null
-	var/hex_digits = "0123456789abcdef"
-	var/format = copytext(encoded, 1, 2)
-	var/grid = ""
-	switch(format)
+	var/grid
+	switch(copytext(encoded, 1, 2))
 		if("f")
-			if(length(encoded) != pixel_count + 1)
+			// Every pixel of the flat grid must index the palette.
+			if(length(encoded) != pixel_count + 1 || spantext(encoded, copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 1, palette_size + 2), 2) != pixel_count)
 				return null
 			grid = copytext(encoded, 2)
-			if(spantext(grid, copytext(CUSTOM_SPRITE_INDEX_ALPHABET, 1, palette_size + 2)) != pixel_count)
-				return null
 		if("r")
 			if((length(encoded) - 1) % 2)
 				return null
@@ -133,7 +124,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 			var/decoded_length = 0
 			var/encoded_length = length(encoded)
 			for(var/i = 2; i < encoded_length; i += 2)
-				var/run = findtextEx(hex_digits, copytext(encoded, i, i + 1)) - 1
+				var/run = findtextEx("0123456789abcdef", copytext(encoded, i, i + 1)) - 1
 				var/pixel = copytext(encoded, i + 1, i + 2)
 				var/index = findtextEx(CUSTOM_SPRITE_INDEX_ALPHABET, pixel) - 1
 				if(run < 1 || index < 0 || index > palette_size || decoded_length + run > pixel_count)
@@ -143,9 +134,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 			grid = jointext(runs, "")
 		else
 			return null
-	if(length(grid) != pixel_count)
-		return null
-	return grid
+	return length(grid) == pixel_count ? grid : null
 
 /// One index character repeated `run` times (1-15), cut from a string built once per character.
 /proc/custom_sprite_run_text(pixel, run)
@@ -182,11 +171,9 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 
 /// Older drawings used one boolean; each view now owns its own saved choice.
 /proc/custom_sprite_emissive_settings(value)
-	var/list/settings = list()
-	var/list/directions = islist(value) ? value : null
+	. = list()
 	for(var/direction in GLOB.custom_style_directions)
-		settings[direction] = directions ? directions[direction] == TRUE : value == TRUE
-	return settings
+		.[direction] = islist(value) ? value[direction] == TRUE : value == TRUE
 
 /**
  * The colours a saved or uploaded palette offers, canonical and lowercase.
@@ -217,10 +204,8 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	if(!palette)
 		return null
 	var/height = custom_sprite_height(drawing)
-	var/tint = custom_sprite_color(drawing["tint"])
 	// Tall drawings never had the legacy hair-color filter, which only covers 32 rows.
-	if(!tint && height > 32)
-		tint = "#ffffff"
+	var/tint = custom_sprite_color(drawing["tint"]) || (height > 32 ? "#ffffff" : null)
 	var/pixel_count = custom_sprite_width(drawing) * height
 	var/list/directions = list()
 	for(var/direction in GLOB.custom_style_directions)
@@ -231,14 +216,13 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	// Appendages alone are enough: a bald base can carry just a ponytail.
 	if(!length(directions) && !appendages)
 		return null
-	var/list/validated = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette), height), "palette" = palette, "tint" = tint, "dirs" = directions)
+	. = list("version" = custom_sprite_version(custom_sprite_width(drawing), length(palette), height), "palette" = palette, "tint" = tint, "dirs" = directions)
 	// Preserve older payloads; the editor and appearance default missing emission settings to off.
 	if("emissive" in drawing)
-		validated["emissive"] = custom_sprite_emissive_settings(drawing["emissive"])
+		.["emissive"] = custom_sprite_emissive_settings(drawing["emissive"])
 	// Written only when there are some, so drawings without any save exactly as they always have.
 	if(appendages)
-		validated["appendages"] = appendages
-	return validated
+		.["appendages"] = appendages
 
 /**
  * Fits canonical paint to a larger canvas: centered on a wide one, at the bottom of a tall one, so it
@@ -276,8 +260,7 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	if(!drawing)
 		return
 	. += list(drawing["dirs"])
-	for(var/_key, entry in drawing["appendages"])
-		var/list/appendage = entry
+	for(var/_key, appendage in drawing["appendages"])
 		. += list(appendage["dirs"])
 
 /// Content identity of a whole drawing, "empty" for none.
@@ -314,11 +297,9 @@ GLOBAL_LIST_INIT(custom_marking_hand_arms, list(
 	var/list/new_palette = list()
 	var/list/index_map = list()
 	var/changed = FALSE
-	for(var/index in 1 to length(old_palette))
-		var/color = old_palette[index]
+	for(var/color in old_palette)
 		var/replacement = color_map[color] || color
-		if(replacement != color)
-			changed = TRUE
+		changed ||= replacement != color
 		var/position = new_palette.Find(replacement)
 		if(!position)
 			new_palette += replacement

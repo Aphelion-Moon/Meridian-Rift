@@ -206,7 +206,8 @@ from `icons/ui/achievements/achievements.dmi`; do not redraw or scale the circle
 
 ### TG Proc/File Changes:
 
-These integration edits retain their original code in `APHELION EDIT` comments; replacement behavior lives in this module where possible.
+Edits to tg files keep their original code in `APHELION EDIT` comments; the Nova file is edited directly.
+Replacement behavior lives in this module where possible.
 
 | Existing file | Purpose |
 | --- | --- |
@@ -215,14 +216,17 @@ These integration edits retain their original code in `APHELION EDIT` comments; 
 | `code/modules/admin/painting_manager.dm` | Transact edits/deletions after dialogs |
 | `code/modules/modular_computers/file_system/programs/portrait_printer.dm` | Add authenticated owner data/actions and validate stale selections |
 | `code/modules/modular_computers/computers/item/pda.dm` | Install Art Galaxy once, including curator PDAs |
-| `code/modules/asset_cache/assets/portraits.dm` | Keep portrait assets available when the collection starts empty |
+| `code/modules/asset_cache/assets/portraits.dm` | Keep portrait assets available when the collection starts empty, named `paintings_<md5>.png` |
+| `tgui/packages/tgui/interfaces/PaintingAdminPanel.tsx` | Resolve portrait assets by their `.png` names |
 | `modular_nova/modules/preferences_import/code/_sanitise.dm` | Preserve the local account import answer |
-| `tgstation.dme`, `code/modules/unit_tests/_unit_tests.dm`, include schemas | Register production code and conditional tests |
+| `tgstation.dme`, `code/modules/unit_tests/_unit_tests.dm` | Register production code and conditional tests |
 | Build/CI/TGS scripts | Build, verify, and package the native runtime dependency |
 
 ### Modular Overrides:
 
 - [code/art_galaxy.dm](code/art_galaxy.dm): portrait printer `New`, `Destroy`, `ui_interact`, and `ui_close`.
+- [code/painting_achievements.dm](code/painting_achievements.dm): the **A Brush with Greatness** award,
+  `/datum/award/achievement/misc/public_painter`; `code/achievements.dm` awards it.
 - The remaining `code/` files add subsystem, canvas, preference, admin, asset, and
   achievement helpers; [painting_gallery.dm](../../../code/modules/unit_tests/~nova/painting_gallery.dm) isolates
   consent, migration, and transaction behavior.
@@ -231,13 +235,12 @@ These integration edits retain their original code in `APHELION EDIT` comments; 
 
 - `code/__DEFINES/paintings.dm`: `PAINTINGS_DATA_FORMAT_VERSION` and
   `NOVA_PAINTING_IMPORT_ANSWER`.
+- `code/art_galaxy.dm`: `ART_GALAXY_PAGE_SIZE`, the 24 paintings per page. File-local.
 
 ### Included files that are not contained in this module:
 
 - `tgui/packages/tgui/interfaces/ArtGalaxy/`: frontend; `NtosPortraitPrinter.tsx`
   remains the interface discovery entrypoint.
-- `code/datums/achievements/painting_achievements.dm`: definition discoverable by
-  the existing website catalog; award logic and icon remain in this module.
 - `tools/painting_store/`: native helper, build/verification scripts, and staging
   tool; `meridian_painting_store.dll`: Windows runtime dependency.
 - `config/nova/config_nova.txt`: disabled import flag; `.gitignore`: private backup

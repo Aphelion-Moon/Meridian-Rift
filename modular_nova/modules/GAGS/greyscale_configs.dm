@@ -3352,7 +3352,7 @@ Cloaks
 */
 
 // HAIR TRIMMINGS
-// Cut hair on the floor, coloured from whoever it came off.
+/// Cut hair on the floor, coloured from whoever it came off.
 /datum/greyscale_config/hair_trimmings
 	name = "Hair Trimmings"
 	icon_file = 'modular_nova/modules/GAGS/icons/hair_trimmings.dmi'

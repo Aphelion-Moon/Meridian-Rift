@@ -57,11 +57,10 @@
 		if(composed_frames[direction] != json_encode(frames[direction]))
 			stale_previews[direction] = TRUE
 			changed = TRUE
-	if(!changed)
-		return TRUE
-	render_preview(visible_direction)
-	if(push)
-		push()
+	if(changed)
+		render_preview(visible_direction)
+		if(push)
+			push()
 	return TRUE
 
 /// Composed previews come from the slices and the canvas; otherwise the painted body is drawn. Every view whose paint changed is drawn at once.
@@ -87,7 +86,8 @@
 	for(var/part in list(cut[1], paint[1], cut[2], paint[2], cut[3]))
 		if(part)
 			blends += "{\"type\":\"[RUSTG_ICONFORGE_BLEND_ICON]\",\"icon\":[part],\"blend_mode\":[ICON_OVERLAY],\"x\":1,\"y\":1}"
-	return "{\"icon_file\":\"icons/blanks/32x32.dmi\",\"icon_state\":\"nothing\",\"dir\":null,\"frame\":null,\"transform\":\[[jointext(blends, ",")]\]}"
+	// The lowest slice, with the body's own icon, is always there, so this is never null.
+	return custom_sprite_boxes_recipe(blends)
 
 /// Every view's slices as recipes, from one walk per slice, the first time a preview is composed after each rebuild.
 /datum/custom_sprite_editor/markings/proc/view_slice_recipes()
@@ -117,13 +117,12 @@
 			limb.remove_bodypart_overlay(marking, FALSE)
 	if(length(hidden))
 		preview_body.update_body_parts()
-	var/mutable_appearance/look = custom_sprite_preview_appearance(preview_body, render_overlays())
+	. = custom_sprite_preview_appearance(preview_body, render_overlays())
 	for(var/datum/bodypart_overlay/overlay, limb in hidden)
 		var/obj/item/bodypart/owner = limb
 		owner.add_bodypart_overlay(overlay, FALSE)
 	if(length(hidden))
 		preview_body.update_body_parts()
-	return look
 
 /// paintless_look with only its overlays layered in (low, high], or null when that leaves nothing. Only the lowest slice has the body's own icon and underlays.
 /datum/custom_sprite_editor/markings/proc/slice_look(low, high)
@@ -136,9 +135,7 @@
 	for(var/mutable_appearance/overlay as anything in paintless_look.overlays)
 		if(overlay.layer > low && overlay.layer <= high)
 			slice.overlays += overlay
-	if(low != -INFINITY && !length(slice.overlays))
-		return null
-	return slice
+	return (low == -INFINITY || length(slice.overlays)) ? slice : null
 
 /**
  * One view's canvas pixels as recipes of boxes, list(everything but the hands, the hands), each null when it has no
@@ -192,7 +189,7 @@
 				hand_color = hand_now
 	return list(custom_sprite_boxes_recipe(body_boxes), custom_sprite_boxes_recipe(hand_boxes))
 
-/// A blank tile with these DrawBox transforms, as an iconforge recipe, or null for none.
+/// A blank tile with these iconforge transforms applied in order, such as DrawBox boxes, as a recipe, or null for none.
 /proc/custom_sprite_boxes_recipe(list/boxes)
 	if(!length(boxes))
 		return null

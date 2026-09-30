@@ -9,14 +9,13 @@
 
 /// The families, in order, with the static preference data.
 /datum/preference_middleware/species_page/get_constant_data()
-	var/list/families = list()
+	. = list()
 	for (var/datum/species_family/family_type as anything in sortTim(valid_subtypesof(/datum/species_family), GLOBAL_PROC_REF(cmp_species_family_order)))
-		families += list(list(
+		. += list(list(
 			"id" = species_family_id(family_type),
 			"name" = initial(family_type.name),
 			"icon" = initial(family_type.icon),
 		))
-	return families
 
 /**
  * Sends a species page sheet to the preferences window, when the page opens rather than whenever
@@ -26,8 +25,7 @@
 	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
 	if (isnull(ui))
 		return FALSE
-	var/sheet_type = params["body"] ? /datum/asset/spritesheet_batched/species_full/body : /datum/asset/spritesheet_batched/species_full
-	var/datum/asset/sheet = get_asset_datum(sheet_type)
+	var/datum/asset/sheet = get_asset_datum(params["body"] ? /datum/asset/spritesheet_batched/species_full/body : /datum/asset/spritesheet_batched/species_full)
 	// The files have to arrive before the page hears of the stylesheet: once it has loaded that, it asks
 	// for the image straight away, and an image that isn't there yet stays blank.
 	if (sheet.send(user.client))

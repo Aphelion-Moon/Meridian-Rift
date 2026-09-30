@@ -1,5 +1,5 @@
 // THIS IS A NOVA SECTOR UI FILE
-import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
+import { useSetAtom } from 'jotai';
 import {
   type ComponentProps,
   type ComponentRef,
@@ -22,13 +22,10 @@ import {
 } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 
-// import { CharacterPreview } from '../../common/CharacterPreview'; // APHELION EDIT REMOVAL - Drawn character preview
-// APHELION EDIT ADDITION START
 import {
   ChoicedSelectionDropdown,
   MARKING_PREVIEW_AREAS,
 } from '../../common/ChoicedSelection';
-// APHELION EDIT ADDITION END
 import type {
   AugmentItem,
   AugmentSlot,
@@ -37,8 +34,8 @@ import type {
   RoboticStyle,
 } from '../types';
 import { useServerPrefs } from '../useServerPrefs';
-import { CharacterPreview } from './CharacterPreview'; // APHELION EDIT ADDITION - Drawn character preview
-import { turnPreview } from './CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
+import { CharacterPreview } from './CharacterPreview';
+import { turnPreview } from './CharacterPreview/turn';
 
 /** AugmentSlot with selected augment */
 type AugmentData = AugmentSlot & {
@@ -174,19 +171,18 @@ const InternalImplantTitle = (props: { name: string; icon: string }) => (
 );
 
 export const RotateCharacterButtons = () => {
-  // const { act } = useBackend<PreferencesMenuData>(); // APHELION EDIT REMOVAL - Drawn character preview
-  const turn = useSetAtom(turnPreview); // APHELION EDIT ADDITION - Drawn character preview
+  const turn = useSetAtom(turnPreview);
   return (
     <Box mt={1}>
       <Button
-        onClick={() => turn(false)} // APHELION EDIT CHANGE - The page turns the drawn preview. ORIGINAL: onClick={() => act('rotate', { backwards: false })}
+        onClick={() => turn(false)}
         fontSize="22px"
         icon="redo"
         tooltip="Rotate Clockwise"
         tooltipPosition="bottom"
       />
       <Button
-        onClick={() => turn(true)} // APHELION EDIT CHANGE - The page turns the drawn preview. ORIGINAL: onClick={() => act('rotate', { backwards: true })}
+        onClick={() => turn(true)}
         fontSize="22px"
         icon="undo"
         tooltip="Rotate Counter-Clockwise"
@@ -281,15 +277,9 @@ const Markings = (props: {
   chosen_markings: Marking[] | null;
   marking_choices: string[];
   act: (action: string, params?: Record<string, unknown>) => void;
-  // APHELION EDIT ADDITION START
   pickerPlacement?: ComponentProps<typeof Floating>['placement'];
   tooltipPosition?: ComponentProps<typeof Floating>['placement'];
-  // APHELION EDIT ADDITION END
 }) => {
-  /* APHELION EDIT REMOVAL START
-  const { body_zone, chosen_markings, marking_choices, act } = props;
-  */ // APHELION EDIT REMOVAL END
-  // APHELION EDIT ADDITION START
   const {
     body_zone,
     chosen_markings,
@@ -298,8 +288,6 @@ const Markings = (props: {
     pickerPlacement,
     tooltipPosition,
   } = props;
-  // APHELION EDIT ADDITION END
-  // APHELION EDIT ADDITION START
   const { data } = useBackend<PreferencesMenuData>();
   const serverMarkings = useServerPrefs()?.limbs_and_markings;
   const maxMarkings = serverMarkings?.max_markings ?? 0;
@@ -311,12 +299,10 @@ const Markings = (props: {
   const drawingZone = taurLeg ? 'taur' : body_zone;
   // The drawing button lights up once it has paint; an empty canvas saves nothing.
   const drawn = !!data.custom_marking_zones?.includes(drawingZone);
-  // APHELION EDIT ADDITION END
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
-      {markings.map((marking) => { // APHELION EDIT CHANGE - ORIGINAL: {(chosen_markings ?? []).map((marking) => {
-        // APHELION EDIT ADDITION START
+      {markings.map((marking) => {
         // A limb takes each marking once, so a row offers only names no other row has claimed.
         const choices = marking_choices.filter(
           (name) => name === marking.name || !takenMarkings.has(name),
@@ -327,30 +313,10 @@ const Markings = (props: {
             marking_id: marking.marking_id,
             marking_name: value,
           });
-        // APHELION EDIT ADDITION END
         return (
           <Stack.Item key={marking.marking_id}>
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
-                {/* APHELION EDIT REMOVAL START
-                <Dropdown
-                  width="100%"
-                  options={marking_choices}
-                  selected={marking.name}
-                  displayText={marking.name}
-                  maxItems={7}
-                  searchInput
-                  styledInput
-                  onSelected={(value) =>
-                    act('change_marking', {
-                      bodypart_slot: body_zone,
-                      marking_id: marking.marking_id,
-                      marking_name: value,
-                    })
-                  }
-                />
-                APHELION EDIT REMOVAL END */}
-                {/* APHELION EDIT ADDITION START - share the cached popup with custom editors. */}
                 {markingIcons ? (
                   <ChoicedSelectionDropdown
                     name="marking"
@@ -372,7 +338,6 @@ const Markings = (props: {
                     onSelected={changeMarking}
                   />
                 )}
-                {/* APHELION EDIT ADDITION END */}
               </Stack.Item>
               <Stack.Item>
                 <Button
@@ -389,7 +354,7 @@ const Markings = (props: {
               <Stack.Item>
                 <Button
                   color={marking.emissive ? 'good' : 'bad'}
-                  tooltipPosition={tooltipPosition /* APHELION EDIT ADDITION */}
+                  tooltipPosition={tooltipPosition}
                   tooltip="The 'E' is for 'Emissive' — does it glow? Green = glow, Red = no glow."
                   onClick={() =>
                     act('change_emissive', {
@@ -419,17 +384,6 @@ const Markings = (props: {
           </Stack.Item>
         );
       })}
-      {/* APHELION EDIT REMOVAL START
-      <Stack.Item>
-        <Button
-          color="good"
-          onClick={() => act('add_marking', { bodypart_slot: body_zone })}
-        >
-          +
-        </Button>
-      </Stack.Item>
-      APHELION EDIT REMOVAL END */}
-      {/* APHELION EDIT ADDITION START */}
       {!taurLeg && markings.length < maxMarkings && (
         <Stack.Item>
           <Button
@@ -461,7 +415,6 @@ const Markings = (props: {
           </Button>
         </Stack.Item>
       )}
-      {/* APHELION EDIT ADDITION END */}
     </Stack>
   );
 };
@@ -693,21 +646,12 @@ const InternalImplantSection = (props: { internal_implant: AugmentData }) => {
 const MarkingsColumn = (props: {
   limbs: BodypartData[];
   act: (action: string, params?: Record<string, unknown>) => void;
-  tooltipPosition: ComponentProps<typeof Floating>['placement']; // APHELION EDIT ADDITION
+  tooltipPosition: ComponentProps<typeof Floating>['placement'];
 }) => (
   <Section fill scrollable title="Markings">
     {props.limbs.map((bodypart) => (
       <div key={bodypart.slot} style={{ marginBottom: '1.5em' }}>
         <Section fill title={bodypart.slot}>
-          {/* APHELION EDIT REMOVAL START
-          <Markings
-            body_zone={bodypart.body_zone ?? bodypart.slot}
-            chosen_markings={bodypart.chosen_markings}
-            marking_choices={bodypart.marking_choices}
-            act={props.act}
-          />
-          APHELION EDIT REMOVAL END */}
-          {/* APHELION EDIT ADDITION START */}
           {/* Sideways pickers and centred tooltips would land under the preview's map control. */}
           <Markings
             body_zone={bodypart.body_zone ?? bodypart.slot}
@@ -717,7 +661,6 @@ const MarkingsColumn = (props: {
             pickerPlacement="bottom-start"
             tooltipPosition={props.tooltipPosition}
           />
-          {/* APHELION EDIT ADDITION END */}
         </Section>
       </div>
     ))}
@@ -815,11 +758,11 @@ const CenterColumnExtras = (props: {
 };
 
 // The character preview section at the top of the center column
-const PreviewSection = () => ( // APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: const PreviewSection = (props: { id: string }) => (
+const PreviewSection = () => (
   <Section fill title="Character Preview" align="center">
     <Stack vertical fill>
       <Stack.Item grow align="center">
-        <CharacterPreview height="100%" width="280px" motif="scanner" /* APHELION EDIT CHANGE - Drawn character preview, framed as a scanner. ORIGINAL: <CharacterPreview id={props.id} height="100%" width="280px" /> */ />
+        <CharacterPreview height="100%" width="280px" motif="scanner" />
       </Stack.Item>
       <Stack.Divider />
       <Stack.Item align="center">
@@ -984,13 +927,9 @@ export const LimbsPage = ({
   const columnForTab = (
     limbs: BodypartData[],
     internal_implants: AugmentData[],
-    tooltipPosition: ComponentProps<typeof Floating>['placement'], // APHELION EDIT ADDITION
+    tooltipPosition: ComponentProps<typeof Floating>['placement'],
   ) => {
     if (tab === AugmentsTab.Markings)
-      /* APHELION EDIT REMOVAL START
-      return <MarkingsColumn limbs={limbs} act={actAndResetPresetWarning} />;
-      */ // APHELION EDIT REMOVAL END
-      // APHELION EDIT ADDITION START
       return (
         <MarkingsColumn
           limbs={limbs}
@@ -998,7 +937,6 @@ export const LimbsPage = ({
           tooltipPosition={tooltipPosition}
         />
       );
-      // APHELION EDIT ADDITION END
     if (tab === AugmentsTab.BodyParts)
       return (
         <BodyPartsColumn
@@ -1070,7 +1008,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.left ?? [],
                 columns?.internalImplants.left ?? [],
-                'bottom-end', // APHELION EDIT ADDITION
+                'bottom-end',
               )}
             </Stack.Item>
 
@@ -1082,7 +1020,7 @@ export const LimbsPage = ({
                   height="45%"
                   style={{ overflow: 'hidden', position: 'relative' }}
                 >
-                  <PreviewSection /* APHELION EDIT CHANGE - Drawn character preview. ORIGINAL: <PreviewSection id={data.character_preview_view} /> */ />
+                  <PreviewSection />
                 </Stack.Item>
 
                 {/* Extras: anything rendering below the preview, takes remaining space */}
@@ -1128,7 +1066,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.right ?? [],
                 columns?.internalImplants.right ?? [],
-                'bottom-start', // APHELION EDIT ADDITION
+                'bottom-start',
               )}
             </Stack.Item>
           </Stack>

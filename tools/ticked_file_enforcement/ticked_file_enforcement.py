@@ -55,12 +55,12 @@ with open(file_reference, 'r') as file:
             break
         elif not reading:
             continue
-        # APHELION EDIT START - Modular unit tests. NOVA spellings kept so upstream ports don't break.
+        # APHELION EDIT ADDITION START - Modular unit tests. NOVA spellings kept so upstream ports don't break.
         elif line in ("// APHELION EDIT ADDITION START", "// NOVA EDIT ADDITION START"):
             continue
         elif line in ("// APHELION EDIT ADDITION END", "// NOVA EDIT ADDITION END"):
             continue
-        # APHELION EDIT END
+        # APHELION EDIT ADDITION END
 
         lines.append(line)
 
@@ -83,12 +83,19 @@ for code_file in scannable_files:
     if subdirectories is True:
         dm_path = code_file.replace('/', '\\')
     else:
-        # NOVA EDIT START - Modular unit tests - keep the path under the
-        # scannable directory (not just the basename) so nested folders such
-        # as ~nova/custom_sprites/ match their #include lines; upstream assumes
-        # a flat directory. Flat files are unaffected (relpath == basename).
+        # APHELION EDIT REMOVAL START - Modular unit tests in nested folders
+        # dm_path = os.path.basename(code_file)
+        # # NOVA EDIT START - Modular unit tests - have to append this again after it gets removed; this was not designed upstream with subfolders for unit tests in mind so we must cope.
+        # if("~nova/" in code_file):
+        #     dm_path = "~nova\\" + dm_path
+        # # NOVA EDIT END
+        # APHELION EDIT REMOVAL END
+        # APHELION EDIT ADDITION START - Modular unit tests in nested folders
+        # Keep the path under the scannable directory (not just the basename) so nested folders such
+        # as ~nova/custom_sprites/ match their #include lines; upstream assumes a flat directory.
+        # Flat files are unaffected (relpath == basename).
         dm_path = os.path.relpath(code_file, scannable_directory).replace(os.sep, '\\')
-        # NOVA EDIT END
+        # APHELION EDIT ADDITION END
 
     included = f"#include \"{dm_path}\"" in lines
 

@@ -1,7 +1,12 @@
+/// The `format` every style file carries; an envelope with any other is refused.
 #define CUSTOM_STYLE_FORMAT "aphelion-custom-style"
+/// The style file version this server writes and accepts.
 #define CUSTOM_STYLE_VERSION 1
+/// How long an account waits between imports. Failed and cancelled attempts count.
 #define CUSTOM_STYLE_IMPORT_COOLDOWN (5 SECONDS)
+/// How long an account waits between exports.
 #define CUSTOM_STYLE_EXPORT_COOLDOWN (2 SECONDS)
+/// Where an export is written just long enough to send it, under a server-generated name.
 #define CUSTOM_STYLE_EXPORT_DIRECTORY "data/custom_style_exports/"
 
 /// Account ckey -> list("busy", "import", "export"): one transfer at a time, with per-kind cooldowns.
@@ -315,17 +320,13 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 		return list("error" = "The file isn't a custom style export.")
 	if(decoded["version"] != CUSTOM_STYLE_VERSION)
 		return list("error" = "The style file uses an unsupported version.")
-	if(decoded["target"] == "body")
-		var/list/body = custom_style_validate_body(decoded)
-		if(!body["error"])
-			body["legacy"] = FALSE
-		return body
-	if(length(text) > CUSTOM_STYLE_MAX_BYTES)
+	// Only a whole-body file may use the larger limit.
+	var/body = decoded["target"] == "body"
+	if(!body && length(text) > CUSTOM_STYLE_MAX_BYTES)
 		return list("error" = "The file is larger than [CUSTOM_STYLE_MAX_BYTES / 1024] KiB.")
-	var/list/result = custom_style_validate_package(decoded)
-	if(result["error"])
-		return result
-	result["legacy"] = FALSE
+	var/list/result = body ? custom_style_validate_body(decoded) : custom_style_validate_package(decoded)
+	if(!result["error"])
+		result["legacy"] = FALSE
 	return result
 
 /**
@@ -447,9 +448,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 /proc/custom_style_transfer_begin(ckey, kind)
 	if(!ckey)
 		return "Transfers need a connected account."
+	GLOB.custom_style_transfers[ckey] ||= list("busy" = FALSE, "import" = 0, "export" = 0)
 	var/list/state = GLOB.custom_style_transfers[ckey]
-	if(!state)
-		state = GLOB.custom_style_transfers[ckey] = list("busy" = FALSE, "import" = 0, "export" = 0)
 	if(state["busy"])
 		return "Another style transfer is still in progress."
 	if(world.time < state[kind])
@@ -464,12 +464,10 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
 	if(state)
 		state["busy"] = FALSE
 
-/// The download name for a package.
+/// The download name for a package: custom-hair-style, custom-facial-hair-style, custom-tattoo-<zone> or custom-markings.
 /proc/custom_style_file_label(list/package)
-	if(package["target"] == "facial_hair")
-		return "custom-facial-hair-style"
-	if(package["target"] == "hair")
-		return "custom-hair-style"
+	if(custom_style_hair_target(package["target"]))
+		return "custom-[replacetext(package["target"], "_", "-")]-style"
 	return package["zone"] ? "custom-tattoo-[replacetext(package["zone"], "_", "-")]" : "custom-markings"
 
 /// Sends one package to a client as a downloaded file.
@@ -519,7 +517,8 @@ GLOBAL_LIST_INIT(custom_style_direction_labels, list("2" = "Front", "1" = "Back"
  *
  * Returns:
  * - null: The player cancelled.
- * - list("package", "legacy", "bytes"), list("body", "legacy", "bytes") or list("error"): See custom_style_parse().
+ * - list("package", "legacy", "bytes"), list("body", "legacy", "bytes") or list("error", "bytes"): See custom_style_parse().
+ *   An error before a file was chosen or read has no "bytes".
  */
 /proc/custom_style_receive(mob/user)
 	var/ckey = user?.ckey

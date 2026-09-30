@@ -113,7 +113,6 @@ export type MergeLayers = () => {
   below: StringLayer[];
   above: StringLayer[];
 };
-
 // APHELION EDIT ADDITION END
 export type SpriteData = {
   width: number;
@@ -141,8 +140,8 @@ export enum SpriteEditorToolFlags {
   Eraser = 1 << 1,
   Dropper = 1 << 2,
   Bucket = 1 << 3,
-  Select = 1 << 4, // APHELION EDIT CHANGE - ORIGINAL: All = (1 << 4) - 1,
-  All = (1 << 5) - 1, // APHELION EDIT ADDITION
+  Select = 1 << 4, // APHELION EDIT ADDITION
+  All = (1 << 5) - 1, // APHELION EDIT CHANGE - ORIGINAL: All = (1 << 4) - 1,
 }
 
 export type ServerColorData = {
@@ -184,7 +183,7 @@ export type SpriteEditorToolContext = {
 
 export type SpriteEditorToolCancelContext = Pick<
   SpriteEditorToolContext,
-  /* APHELION EDIT REMOVAL START
+  /* // APHELION EDIT REMOVAL START
   'setPreviewLayer' | 'setPreviewData'
   */ // APHELION EDIT REMOVAL END
   // APHELION EDIT ADDITION START

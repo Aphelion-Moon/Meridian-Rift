@@ -208,7 +208,7 @@ function WindowContent(props: ContentProps) {
       className={classes(['Window__content', className])}
       {...rest}
     >
-      {/* APHELION EDIT REMOVAL START
+      {/* // APHELION EDIT REMOVAL START
       <KeyListener
         onKeyDown={(evt) => {
           if (KEY_ALT === evt.code) {
@@ -221,7 +221,7 @@ function WindowContent(props: ContentProps) {
           }
         }}
       />
-      APHELION EDIT REMOVAL END */}
+      // APHELION EDIT REMOVAL END */}
       {fitted ? (
         children
       ) : (

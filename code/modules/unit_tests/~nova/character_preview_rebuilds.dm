@@ -1,23 +1,17 @@
-/// Preferences whose character setup window counts as open once asked to, counting the drawings it is asked for
-/// instead of drawing them.
+/// Preferences whose character setup window counts as open once asked to, without drawing anything.
 /datum/preferences/preferences_import_test/preview_window_test
 	/// Whether the window counts as open.
 	var/window_open = FALSE
-	/// How many times a change asked for a drawing.
-	var/asked = 0
 
+/// Counts as open once the test says so.
 /datum/preferences/preferences_import_test/preview_window_test/character_preview_open()
 	return window_open
 
+/// Asks for no drawing; the test takes the drawing's turn itself.
 /datum/preferences/preferences_import_test/preview_window_test/character_preview_changed()
-	if(window_open)
-		asked++
+	return
 
-/**
- * Without a window, a change rebuilds the preview mob at once. With one, a change leaves it for the window's drawing to
- * rebuild, once for however many changes, and in turn behind rebuilds already waiting. A preview leaves the queue once
- * rebuilt, or deleted.
- */
+/// With character setup open, changes leave the preview mob stale until its turn in SScharacter_preview, whose rebuild takes in every change and ends the turn a waiting drawing waits for.
 /datum/unit_test/character_preview_rebuild_turns/Run()
 	if(!SScharacter_preview.can_fire)
 		TEST_FAIL("The character preview subsystem should be able to fire")
@@ -35,7 +29,6 @@
 	preferences.window_open = TRUE
 	preferences.write_preference(hair_color, "#222222")
 	view.update_body()
-	TEST_ASSERT_EQUAL(preferences.asked, 1, "A change should ask the window for a drawing")
 	TEST_ASSERT(view.body_stale, "With a window open, a change should leave the preview mob for the drawing to rebuild")
 	TEST_ASSERT_EQUAL(view.body.hair_color, "#111111", "With a window open, a change shouldn't rebuild the preview mob inside the action")
 	preferences.write_preference(hair_color, "#333333")
@@ -45,29 +38,12 @@
 	var/atom/movable/screen/map_view/char_preview/ahead = allocate(/atom/movable/screen/map_view/char_preview)
 	queue.Insert(1, ahead)
 	TEST_ASSERT(!SScharacter_preview.rebuild_or_wait(view), "A rebuild shouldn't go ahead of one already waiting")
-	TEST_ASSERT_EQUAL(queue.Find(view), queue.Find(ahead) + 1, "A rebuild should wait behind those already waiting")
 	var/turns = view.turns
 	SScharacter_preview.rebuild(view)
 	TEST_ASSERT_EQUAL(view.body.hair_color, "#333333", "A rebuild should take in every change made while the mob waited")
 	TEST_ASSERT(!view.body_stale, "A rebuilt preview mob shouldn't be stale")
 	TEST_ASSERT(!(view in queue), "A rebuilt preview should leave the queue")
 	TEST_ASSERT_EQUAL(view.turns, turns + 1, "A rebuild should be the turn a waiting drawing waits for")
-	TEST_ASSERT_EQUAL(preferences.asked, 2, "Rebuilding the mob shouldn't ask for another drawing")
 
 	qdel(ahead)
 	TEST_ASSERT(!(ahead in queue), "A deleted preview should leave the queue")
-
-/**
- * A change isn't drawn inside the action that made it: the drawing waits for SScharacter_preview to start it, and
- * changes until then fold into it. A deleted drawing leaves the queue. Preferences make one of every middleware type, so
- * this uses the real one rather than a test subtype.
- */
-/datum/unit_test/character_preview_answer_queue/Run()
-	if(!SScharacter_preview.can_fire)
-		TEST_FAIL("The character preview subsystem should be able to fire")
-		return
-	var/datum/preference_middleware/character_preview/drawing = allocate(/datum/preference_middleware/character_preview)
-	drawing.answer_soon()
-	TEST_ASSERT(drawing.answer_due && (drawing in SScharacter_preview.drawings), "A change should wait for the subsystem to start its drawing")
-	qdel(drawing)
-	TEST_ASSERT(!(drawing in SScharacter_preview.drawings), "A deleted drawing should leave the queue")

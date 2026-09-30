@@ -18,13 +18,7 @@ export const SelectionOutline = (props: {
   const height = (bottom - top + 1) * scaleY;
   const style = { left: left * scaleX, top: top * scaleY, width, height };
   if (!mask) {
-    return (
-      <div
-        className="SpriteEditor__selection"
-        data-selection-bounds={bounds.join(',')}
-        style={style}
-      />
-    );
+    return <div className="SpriteEditor__selection" style={style} />;
   }
   const selected = (x: number, y: number) => mask[y]?.[x] === '1';
   // Every side a selected pixel shares with an unselected one.
@@ -44,7 +38,6 @@ export const SelectionOutline = (props: {
   return (
     <svg
       className="SpriteEditor__selection SpriteEditor__selection--mask"
-      data-selection-bounds={bounds.join(',')}
       style={style}
       width={width}
       height={height}

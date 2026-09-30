@@ -36,6 +36,7 @@
 	)
 	return list("zones" = zones, "map" = map, "drawings" = drawings)
 
+/// The composed canvas shows each region's paint where it owns pixels, arm paint through an unpainted hand, and an unedited canvas splits back to every saved drawing untouched.
 /datum/unit_test/custom_sprite_compose_regions/Run()
 	var/list/fixture = custom_sprite_test_region_fixture()
 	var/list/frames = custom_sprite_compose_regions(fixture["drawings"], fixture["map"], fixture["zones"], 32)
@@ -50,6 +51,7 @@
 	for(var/zone in fixture["zones"])
 		TEST_ASSERT(!(split[zone]["changed"] || split[zone]["drawing"] != fixture["drawings"][zone]), "An unedited canvas must hand back every saved drawing untouched.")
 
+/// Splitting an edited canvas changes only the region that owns an edited pixel and keeps other regions' saves, hidden paint included, byte for byte.
 /datum/unit_test/custom_sprite_split_keeps_unedited_paint/Run()
 	var/list/fixture = custom_sprite_test_region_fixture()
 	var/list/baseline = custom_sprite_compose_regions(fixture["drawings"], fixture["map"], fixture["zones"], 32)
@@ -68,6 +70,7 @@
 	split = custom_sprite_split_regions(frames, baseline, fixture["drawings"], fixture["map"], fixture["zones"], 32)
 	TEST_ASSERT(!split[BODY_ZONE_L_ARM]["changed"], "A pixel restored to its baseline value is not an edit.")
 
+/// An edited hand pixel goes to the hand and clears the arm's paint under it, and erasing a whole region saves it as unmarked.
 /datum/unit_test/custom_sprite_split_shared_surface/Run()
 	var/list/fixture = custom_sprite_test_region_fixture()
 	var/list/baseline = custom_sprite_compose_regions(fixture["drawings"], fixture["map"], fixture["zones"], 32)
@@ -86,6 +89,7 @@
 	split = custom_sprite_split_regions(frames, baseline, fixture["drawings"], fixture["map"], fixture["zones"], 32)
 	TEST_ASSERT(!(!split[BODY_ZONE_PRECISE_L_HAND]["changed"] || split[BODY_ZONE_PRECISE_L_HAND]["drawing"]), "Erasing every pixel of a region saves it as unmarked.")
 
+/// A region with a legacy tint shows it baked into its colours and re-encodes with the tint baked, so untouched pixels look the same.
 /datum/unit_test/custom_sprite_compose_tint/Run()
 	var/list/zones = list(BODY_ZONE_CHEST)
 	// x 2 is part of the torso but unpainted, so the edit below lands inside the region.
@@ -100,6 +104,7 @@
 	var/list/pixels = custom_sprite_drawing_pixels(result, 32)
 	TEST_ASSERT(!(result["tint"] || pixels["2"][2] != custom_sprite_tint_color("#808080", "#ff0000")), "Re-encoding a tinted region must bake its tint so untouched pixels look the same.")
 
+/// On a wide canvas ordinary regions sit in the central 32 columns and save 32 wide from them.
 /datum/unit_test/custom_sprite_compose_wide/Run()
 	var/list/zones = list(BODY_ZONE_CHEST, CUSTOM_MARKING_ZONE_TAUR)
 	var/list/map = custom_sprite_test_region_rows(repeat_string(16, "2") + "11", CUSTOM_SPRITE_TAUR_WIDTH)
@@ -115,6 +120,7 @@
 	var/list/chest = split[BODY_ZONE_CHEST]["drawing"]
 	TEST_ASSERT(!(custom_sprite_width(chest) != 32 || custom_sprite_drawing_pixels(chest, 32)["2"][2] != "#0000ff"), "Ordinary regions save 32-wide from the central columns.")
 
+/// A region needing more colours than a drawing holds reports an error instead of a drawing.
 /datum/unit_test/custom_sprite_split_color_limit/Run()
 	var/list/zones = list(BODY_ZONE_CHEST)
 	var/list/map = custom_sprite_test_region_rows(repeat_string(32, "1"))

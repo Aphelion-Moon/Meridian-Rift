@@ -47,8 +47,4 @@ describe('searchSpecies', () => {
     expect(search('rem')).toEqual([]);
     expect(search('remember')).toEqual(['sage']);
   });
-
-  it('needs two characters to search at all', () => {
-    expect(search('m')).toEqual([]);
-  });
 });

@@ -1,6 +1,8 @@
+/// A fresh temporary folder for one test's preference and sidecar files.
 /proc/custom_style_test_folder(datum/source)
 	return "tmp/custom_style_[ckey(REF(source))]_[rand(1, 1e6)]/"
 
+/// Deletes the preference and sidecar files a test wrote to `folder`.
 /proc/custom_style_test_cleanup(folder)
 	for(var/test_file in list("preferences.json", "custom_sprites.json", "custom_sprites.json.bak", "custom_sprites.json.new"))
 		fdel("[folder][test_file]")
@@ -10,6 +12,7 @@
 	rustg_file_write(contents, "[folder]custom_sprites.json")
 	return new /datum/json_savefile/custom_sprites("[folder]custom_sprites.json")
 
+/// Only rotating saves keep the replaced style as previous, one per zone; restoring swaps them, an empty style is kept explicitly, and saves bind to their slot.
 /datum/unit_test/custom_style_previous_rotation/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -41,6 +44,7 @@
 	preferences.remove_custom_sprite_slot(preferences.default_slot)
 	TEST_ASSERT(!(preferences.custom_style_previous || preferences.custom_sprite_savefile.get_entry("character[preferences.default_slot]")), "Deleting a slot must remove its previous styles.")
 
+/// A complete hair save writes the base look and drawing to both files and keeps the old base look as previous, and unsaved hair edits refuse a salon save.
 /datum/unit_test/custom_style_base_look_save/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -71,6 +75,7 @@
 	preferences.load_and_save = FALSE
 	custom_style_test_cleanup(folder)
 
+/// Native marking saves fail closed without a verified sidecar, publish only the committed limb, keep the previous style and refuse to overwrite unsaved edits.
 /datum/unit_test/custom_style_native_markings_persistence/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -126,7 +131,7 @@
 	old_preferences = rustg_file_read(preferences.path)
 	old_sidecar = rustg_file_read("[folder]custom_sprites.json")
 	error = preferences.commit_custom_style(original, preferences.default_slot, rotate = TRUE, reject_pending_markings = TRUE)
-	TEST_ASSERT(!(!findtext(error, "unsaved base marking changes") || json_encode(preferences.body_markings) != pending_memory || rustg_file_read(preferences.path) != old_preferences || rustg_file_read("[folder]custom_sprites.json") != old_sidecar), "Recipient saves must reject aliased pending changes on the target limb without altering either file.")
+	TEST_ASSERT(!(!error || json_encode(preferences.body_markings) != pending_memory || rustg_file_read(preferences.path) != old_preferences || rustg_file_read("[folder]custom_sprites.json") != old_sidecar), "Recipient saves must reject aliased pending changes on the target limb without altering either file.")
 	preferences.body_markings[zone][entries[1]["name"]][1] = entries[1]["color"]
 	var/list/clear = custom_style_package("markings", zone, null, null, list())
 	error = preferences.commit_custom_style(clear, preferences.default_slot, rotate = TRUE, reject_pending_markings = TRUE)
@@ -141,6 +146,7 @@
 	preferences.load_and_save = FALSE
 	custom_style_test_cleanup(folder)
 
+/// Hair opacity and glow in a style follow the character's species and permission settings on every preferences tab.
 /datum/unit_test/custom_style_hair_eligibility/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -168,6 +174,7 @@
 	var/error = preferences.commit_custom_style(custom_style_package("hair", null, null, hair), preferences.default_slot)
 	TEST_ASSERT(!(error || preferences.read_preference(/datum/preference/choiced/hairstyle) != "Short Hair"), "The production save must publish an eligible haircut while game preferences are selected: [error]")
 
+/// A pending hair opacity toggle refuses a salon save and leaves both files and the pending edit alone.
 /datum/unit_test/custom_style_pending_hair_opacity/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -181,9 +188,10 @@
 	var/before_preferences = json_encode(preferences.savefile.get_entry())
 	var/before_sidecar = json_encode(preferences.custom_sprite_savefile.get_entry())
 	var/error = preferences.commit_custom_style(custom_style_package("hair", null, custom_sprite_test_drawing(), hair), preferences.default_slot, rotate = TRUE, reject_pending_hair = TRUE)
-	TEST_ASSERT(!(!error || !findtext(error, "unsaved hair changes")), "A pending hair opacity toggle must reject a salon save as an unsaved hair conflict.")
+	TEST_ASSERT(error, "A pending hair opacity toggle must reject a salon save as an unsaved hair conflict.")
 	TEST_ASSERT(!(json_encode(preferences.savefile.get_entry()) != before_preferences || json_encode(preferences.custom_sprite_savefile.get_entry()) != before_sidecar || json_encode(preferences.custom_style_hair_context()) != before_hair || !(/datum/preference/toggle/mutant_toggle/hair_opacity in preferences.recently_updated_keys)), "Rejecting a pending opacity toggle must preserve the saved package and pending character edits.")
 
+/// Several regions save in one sidecar write, only listed changed regions rotate, and identical packages write nothing.
 /datum/unit_test/custom_sprite_commit_regions/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -215,6 +223,7 @@
 	store.path = null
 	preferences.load_and_save = FALSE
 
+/// A failed multi-region write rolls back every region and every rotation.
 /datum/unit_test/custom_sprite_commit_regions_rollback/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
@@ -236,6 +245,7 @@
 	store.path = null
 	preferences.load_and_save = FALSE
 
+/// A base-marking-only region publishes its markings without gaining a drawing.
 /datum/unit_test/custom_sprite_commit_regions_markings/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)

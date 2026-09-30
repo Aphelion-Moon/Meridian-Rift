@@ -1,14 +1,22 @@
+/// Session state: the artist is drawing, or the session has returned to the draft.
 #define SALON_DRAFTING "drafting"
+/// Session state: the recipient's mirror shows the proposal.
 #define SALON_AWAITING_APPROVAL "awaiting approval"
+/// Session state: the approved work's finishing touches are under way.
 #define SALON_APPLYING "applying"
+/// Session state: the work went on; the session is ending.
 #define SALON_COMPLETED "completed"
+/// How long a recipient has to answer a request to start work.
 #define SALON_PROMPT_TIMEOUT (120 SECONDS)
+/// How long before the same artist may ask the same recipient again.
 #define SALON_REQUEST_COOLDOWN (10 SECONDS)
+/// How long the finishing touches take once the recipient approves.
 #define SALON_APPLY_DURATION (5 SECONDS)
 /// Hair starts hitting the floor shortly after the artist gets going.
 #define SALON_TRIMMING_FIRST_DELAY (5 SECONDS)
-/// How long the pile takes to build up by one more step while work continues.
+/// The shortest time the pile takes to grow by one more step while work continues.
 #define SALON_TRIMMING_GROW_MIN (20 SECONDS)
+/// The longest time the pile takes to grow by one more step while work continues.
 #define SALON_TRIMMING_GROW_MAX (40 SECONDS)
 /// Mid-cut the pile only ever reaches this size. The rest lands on completion.
 #define SALON_TRIMMING_WORKING_MAX 2
@@ -188,26 +196,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
  * Normal redraws preserve native markings, skin and the unedited custom layers.
  */
 /proc/custom_sprite_apply_round_style(mob/living/carbon/human/body, list/package, allow_emissives)
-	if(isnull(allow_emissives))
-		var/datum/preferences/preferences = GLOB.preferences_datums[body.ckey]
-		allow_emissives = preferences?.read_preference(/datum/preference/toggle/allow_emissives)
-	var/target = package["target"]
-	if(custom_style_hair_target(target))
-		var/list/drawing = custom_sprite_appearance_drawing(package["drawing"], allow_emissives)
-		body.AddComponent(/datum/component/custom_sprite_appearance)
-		if(package["hair"])
-			custom_style_apply_hair_context(body, package["hair"], update = FALSE, target = target)
-		if(target == "facial_hair")
-			body.dna.custom_facial_hair = drawing
-		else
-			body.dna.custom_hair = drawing
-		var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
-		head?.set_custom_head_drawing(target, deep_copy_list(drawing))
-		body.update_hair()
-		return
-	var/list/regions = list()
-	regions[package["zone"]] = package
-	custom_sprite_apply_region_results(body, regions, allow_emissives)
+	custom_sprite_apply_round_styles(body, list("style" = package), allow_emissives)
 
 /**
  * Changes a live body's round appearance for several drawings, redrawing it once.
@@ -221,10 +210,21 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 		allow_emissives = preferences?.read_preference(/datum/preference/toggle/allow_emissives)
 	var/list/regions = list()
 	for(var/_key, package in packages)
-		if(custom_style_hair_target(package["target"]))
-			custom_sprite_apply_round_style(body, package, allow_emissives)
-		else
+		var/target = package["target"]
+		if(!custom_style_hair_target(target))
 			regions[package["zone"]] = package
+			continue
+		var/list/drawing = custom_sprite_appearance_drawing(package["drawing"], allow_emissives)
+		body.AddComponent(/datum/component/custom_sprite_appearance)
+		if(package["hair"])
+			custom_style_apply_hair_context(body, package["hair"], update = FALSE, target = target)
+		if(target == "facial_hair")
+			body.dna.custom_facial_hair = drawing
+		else
+			body.dna.custom_hair = drawing
+		var/obj/item/bodypart/head/head = body.get_bodypart(BODY_ZONE_HEAD)
+		head?.set_custom_head_drawing(target, deep_copy_list(drawing))
+		body.update_hair()
 	if(length(regions))
 		custom_sprite_apply_region_results(body, regions, allow_emissives)
 

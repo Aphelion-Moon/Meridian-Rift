@@ -1,6 +1,5 @@
 import { normal } from 'color-blend';
-//import { useCallback, useEffect, useState } from 'react'; // APHELION EDIT REMOVAL
-import { useCallback, useEffect, useRef, useState } from 'react'; // APHELION EDIT ADDITION
+import { useCallback, useEffect, useRef, useState } from 'react'; // APHELION EDIT CHANGE - ORIGINAL: import { useCallback, useEffect, useState } from 'react';
 
 import { hsv2rgb, isRgb, parseHexColorString } from './colorSpaces';
 import type {
@@ -79,7 +78,7 @@ export function useClickAndDragEventHandler<T>(
     detach(); // APHELION EDIT ADDITION - detach even if release throws or unmounts.
     onMouseUp?.(ev, ref);
     ev.preventDefault();
-    // APHELION EDIT REMOVAL - ORIGINAL: window.removeEventListener('mousemove', moveHandler);
+    // window.removeEventListener('mousemove', moveHandler); // APHELION EDIT REMOVAL - detach() removes it
   };
   return (ev: MouseEvent) => {
     onMouseDown?.(ev, ref);

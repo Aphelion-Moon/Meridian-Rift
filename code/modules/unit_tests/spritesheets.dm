@@ -19,15 +19,17 @@
 			if(!sprite_name)
 				TEST_FAIL("Spritesheet [sheet.type] has a nameless icon state.")
 // APHELION EDIT ADDITION START - Concurrent batched spritesheet regression.
-
 /// A real sheet with a deterministic yield so queued loading and foreground consumers overlap.
 /datum/asset/spritesheet_batched/concurrent_test
 	name = "concurrent_test"
 	abstract_type = /datum/asset/spritesheet_batched/concurrent_test
 	load_immediately = TRUE
 	force_cache = TRUE
+	/// How many times generate_spritesheets() ran.
 	var/generation_calls = 0
+	/// Whether generation sleeps, so other callers arrive while it owns the sheet.
 	var/pause_generation = FALSE
+	/// Whether generation throws, to check that ownership is released on failure.
 	var/fail_generation = FALSE
 
 /// Uses a tiny real icon to exercise both generation and the smart cache.
@@ -43,8 +45,10 @@
 		throw EXCEPTION("Expected spritesheet generation test failure")
 	return ..()
 
+/// A queued load and a foreground caller of one batched sheet share one generation, cached or not, and a failed generation lets the next caller retry.
 /datum/unit_test/spritesheet_concurrent_loading
 	priority = TEST_LONGER
+	/// How many independent waiters have received the finished sheet.
 	var/consumers_finished = 0
 
 /// Records when an independent waiter receives the completed sheet.

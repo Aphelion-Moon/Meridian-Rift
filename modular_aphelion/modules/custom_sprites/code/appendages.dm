@@ -170,11 +170,6 @@ GLOBAL_LIST_INIT(custom_hair_try_on_hats, list(
 	"hood" = list("label" = "Winter hood", "group" = "Winter hoods and hoodies", "item" = /obj/item/clothing/head/hooded/winterhood, "mask" = /datum/hair_mask/winterhood),
 ))
 
-/// A try-on hat's worn sprite in one view, as the mob wears it before any body offset.
-/proc/custom_hair_try_on_icon(hat_key, direction)
-	var/obj/item/clothing/head/hat_type = GLOB.custom_hair_try_on_hats[hat_key]["item"]
-	return icon(initial(hat_type.worn_icon), initial(hat_type.worn_icon_state) || initial(hat_type.icon_state), direction)
-
 /**
  * Where a try-on hat's hair mask keeps and trims paint on the hair canvas: per view, `height` rows,
  * top row first, of eight hex digits. Each digit is four pixels, the leftmost in its high bit: set
@@ -218,7 +213,9 @@ GLOBAL_LIST_INIT(custom_hair_try_on_hats, list(
 	for(var/direction in GLOB.custom_style_directions)
 		var/icon/canvas = icon('icons/blanks/32x32.dmi', "nothing")
 		canvas.Crop(1, 1, 32, height)
-		canvas.Blend(custom_hair_try_on_icon(hat_key, text2num(direction)), ICON_OVERLAY, 1 - lift_x, 1 - lift_z + initial(hat_type.worn_y_offset))
+		// The worn sprite, as the mob wears it before any body offset.
+		var/icon/worn = icon(initial(hat_type.worn_icon), initial(hat_type.worn_icon_state) || initial(hat_type.icon_state), text2num(direction))
+		canvas.Blend(worn, ICON_OVERLAY, 1 - lift_x, 1 - lift_z + initial(hat_type.worn_y_offset))
 		views[direction] = "data:image/png;base64,[icon2base64(canvas)]"
 	return custom_sprite_cache_put(cache, key, views, 32)
 
@@ -242,6 +239,7 @@ GLOBAL_LIST_INIT(custom_hair_try_on_hats, list(
 	head?.worn_head_offset?.apply_offset(worn)
 	return worn
 
+/// The hair editor's appendage layers and Try on hat.
 /datum/custom_sprite_editor
 	/// The Try on hat the window shows while an appendage layer is chosen, or null. Only previews wear it.
 	var/try_on
@@ -323,11 +321,4 @@ GLOBAL_LIST_INIT(custom_hair_try_on_hats, list(
 /// Whether a stroke names the layer it paints: appendage layers are named by id as well, so a stroke meant for one that undo just moved can't land on another.
 /datum/sprite_editor_workspace/custom_sprite/proc/stroke_layer_matches(list/transaction)
 	var/layer = transaction["layer"]
-	if(layer == 1)
-		return TRUE
-	return isnum(layer) && round(layer) == layer && layer > 1 && layer <= length(layers) && transaction["layerId"] == layers[layer]["id"]
-
-/// Content identity of a drawing's appendages, for render caches. "none" without any.
-/proc/custom_hair_appendages_hash(list/drawing)
-	var/list/appendages = drawing?["appendages"]
-	return length(appendages) ? md5(json_encode(list(drawing["palette"], appendages))) : "none"
+	return layer == 1 || (valid_layer(layer, 2) && transaction["layerId"] == layers[layer]["id"])

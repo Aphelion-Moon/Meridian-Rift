@@ -1,10 +1,17 @@
-/// A merged copy (Ctrl+Shift+C) retains only one bounded source frame and one trusted palette per open editor.
+// Copy all (Ctrl+Shift+C) copies the native base under a selection. An editor keeps at most one pending
+// request, one rendered base frame and the palette of the copy it last handed out.
 /datum/custom_sprite_editor
+	/// The validated copy request waiting for deferred work, tagged with the base look it was made on; null when none waits.
 	var/list/base_copy_request
+	/// Weak reference to the tgui window that asked for base_copy_request, which the result is sent to.
 	var/datum/weakref/base_copy_ui
+	/// Rows of colour strings of one view of the native base, as render_base_copy_frame() drew it, null where a pixel can't be copied exactly. Reused while base_copy_frame_key matches.
 	var/list/base_copy_frame
+	/// What base_copy_frame was drawn from: the guide look, the view and the canvas size.
 	var/base_copy_frame_key
+	/// The colours the last finished copy handed out: the only new colours pasting it may add to the palette.
 	var/list/base_copy_colors
+	/// The window's request number of the last finished copy. Pasting it must quote this and this editor's ref.
 	var/base_copy_token
 
 /// Captures native hair alone before its live gradient and opacity, on a private editor head only.

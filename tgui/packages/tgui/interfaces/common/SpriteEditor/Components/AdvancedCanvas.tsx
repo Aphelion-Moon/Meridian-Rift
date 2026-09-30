@@ -1,5 +1,4 @@
-// APHELION EDIT CHANGE - ORIGINAL: import { useLayoutEffect, useRef, useState } from 'react';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'; // APHELION EDIT CHANGE - ORIGINAL: import { useLayoutEffect, useRef, useState } from 'react';
 import transparency_checkerboard from 'tgui/assets/transparency_checkerboard.svg';
 import {
   type BooleanStyleMap,

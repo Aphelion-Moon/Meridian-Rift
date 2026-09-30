@@ -10,10 +10,10 @@ roster of every species with search. Nothing changes the character until **Selec
 pressed; clicking a tile only inspects it. Everything above the inspected species' description keeps
 its height from species to species, so browsing never moves the page under the pointer.
 
-- **Families and lineages.** Each species names its family through
-  `/datum/species/proc/get_species_family()`, a `/datum/species_family` typepath. Families give their own
-  name, icon and order, the way quirks give their icons, and reach the page with the static preference
-  data from `/datum/preference_middleware/species_page`. A species is a variant of its parent type when
+- **Families and lineages.** `GLOB.species_page_families` files each species type under a
+  `/datum/species_family`, and a subtype takes its nearest listed parent's; `/datum/species/proc/get_species_family()`
+  looks it up. Families give their own name, icon and order, the way quirks give their icons, and reach the page
+  with the static preference data from `/datum/preference_middleware/species_page`. A species is a variant of its parent type when
   the page offers that parent too (Felinid of Human, Ash Walker of Lizardperson), Vox Primalis is filed
   with the Vox, and Kobolds with the Lizardpeople. Variants in another family, like the holiday Vampire,
   stand on their own there and still name their parent. The template species, bases for players' own
@@ -68,11 +68,14 @@ the window's data. Browsing, the family tabs, search and the holiday toggle are 
 - `modular_nova/modules/customization/modules/mob/living/carbon/human/species/aquatic.dm`: renamed
   to Aquatic
 - `code/modules/asset_cache/spritesheet/batched/universal_icon.dm`: `/proc/get_flat_uni_icon()` writes
-  each runtime icon out once instead of on every flatten, which was most of a flatten's cost, and takes
-  `grow`: the canvas then fits every overlay, nested flattens placed where their own grown canvases
-  really start, and the result's new `flat_x1`/`flat_y1`/`flat_width`/`flat_height` vars say where the
-  appearance sits in it. Without `grow` it flattens exactly as before. `uni_icon_facings_json()` stamps
-  one walk with each facing, so one walk serves all four.
+  each runtime icon out once instead of on every flatten, which was most of a flatten's cost, and
+  `uni_icon_facings_json()` stamps one walk with each facing, so one walk serves all four. The character
+  preview module shares these edits.
+- `code/modules/asset_cache/spritesheet/batched/batched_spritesheet.dm`: `realize_spritesheets()` lets one
+  caller generate a sheet (`generate_spritesheets()`) while any other waits for it
+  (`generation_in_progress`), and a consumed rust-g job's `job_id` is cleared, so the lobby's loader and the
+  page asking for its sheet can't race and lose a job's result; `spritesheet_concurrent_loading` in
+  `code/modules/unit_tests/spritesheets.dm` covers it
 - `tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx`: the window is 40px taller while the
   species page shows, for two whole rows of its roster under the chamber
 
@@ -87,18 +90,20 @@ the window's data. Browsing, the family tabs, search and the holiday toggle are 
 
 ### Included files that are not contained in this module:
 
+- `modular_aphelion/modules/character_preview/code/`: the renders use its `character_preview_rows()`,
+  `character_preview_flat_box()` and `GLOB.character_preview_facings`
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesRegistry/` (the page)
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesPage.tsx` (the old page, commented out)
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx` (imports the new page,
   and tells the window while it shows)
 - `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts`
 - `tgui/packages/tgui/interfaces/PreferencesMenu/useServerPrefs.ts`
-- `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.test.tsx`
 - `tgui/packages/tgui/styles/meridianos/_species.scss`
-- `tgui/packages/tgui/styles/meridianos/_preferences.scss` (loads it; the old page's rules commented out)
-- `tgui/packages/tgui/styles/meridianos/tests/control-contract.test.tsx` (the old species button case commented out)
+- `tgui/packages/tgui/styles/meridianos/_preferences.scss` (loads it)
 - `tgui/packages/tgui/styles/meridianos/assets/species/cyberpunk-glyph-pylons.svg`
 - `tgui/packages/tgfont/icons/zaphelion-alien.svg`, `zaphelion-orange.svg`, `zaphelion-pineapple.svg`
+- `code/modules/unit_tests/screenshots/screenshot_humanoids__datum_species_aquatic.png`,
+  `screenshot_humanoids__datum_species_unathi.png` (the humanoid screenshots, with the new previews)
 
 ### Credits:
 
