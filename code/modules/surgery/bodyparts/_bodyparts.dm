@@ -302,8 +302,8 @@
 	// Most limbs made in nullspace are attached to a body, or deleted, before anyone could see them dropped.
 	if(isnull(old_loc) && !owner)
 		update_icon_dropped()
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /obj/item/bodypart/Destroy()
 	if(owner && !QDELETED(owner))
 		forced_removal(special = FALSE, dismembered = TRUE, move_to_floor = FALSE)
@@ -1453,12 +1453,9 @@
 		if(aux_zone)
 			aux.color = limb_color // NOVA EDIT CHANGE - ORIGINAL: aux.color = "[draw_color]"
 
-	// NOVA EDIT ADDITION START - MARKINGS CODE
-	// APHELION EDIT CHANGE START - Share the native marking composition with the custom sprite editor. Markings go in before the leg split below, so a leg's markings and their glow are masked into both of its layers like the leg, and they face south with a dropped limb like its other images.
+	// APHELION EDIT ADDITION START - Native markings, composed as the custom sprite editor composes them, go in before the leg split below, so a leg's markings and their glow are masked into both of its layers like the leg, and they face south with a dropped limb like its other images.
 	append_base_marking_overlays(., image_dir = image_dir)
-	// APHELION EDIT CHANGE END
-	// NOVA EDIT ADDITION END - MARKINGS CODE END
-
+	// APHELION EDIT ADDITION END
 	// No need to handle leg layering if dropped, we only face south anyways
 	if(!dropped && ((body_zone == BODY_ZONE_R_LEG) || (body_zone == BODY_ZONE_L_LEG)))
 		// Legs are a bit goofy in regards to layering, and we will need two images instead of one to fix that
@@ -1468,6 +1465,13 @@
 			. -= limb_image
 			// Add two masked images based on the old one
 			. += leg_source.generate_masked_leg(limb_image)
+	/* // APHELION EDIT REMOVAL START - The markings go in before the leg split, above.
+	// NOVA EDIT ADDITION START - MARKINGS CODE
+	// APHELION EDIT CHANGE START - Share the native marking composition with the custom sprite editor.
+	append_base_marking_overlays(.)
+	// APHELION EDIT CHANGE END
+	// NOVA EDIT ADDITION END - MARKINGS CODE END
+	*/ // APHELION EDIT REMOVAL END
 
 	// Apply height to the overlays we generated so far
 	// This is done before collecting bodypart overlays so we don't apply height twice to the same overlays
@@ -1531,8 +1535,8 @@ GLOBAL_LIST_EMPTY(husk_toned_sheets)
 	var/toned_copy = fcopy_rsc(husk_icon)
 	GLOB.husk_toned_sheets[sheet] = toned_copy
 	return toned_copy
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /**
  * Takes in an image and greyscales it to later be recolored to look like a husk
  *

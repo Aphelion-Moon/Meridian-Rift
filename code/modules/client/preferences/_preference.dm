@@ -401,8 +401,8 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	preferences.asking_applicability = TRUE
 	. = is_accessible(preferences)
 	preferences.asking_applicability = was_asking
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /// Helper for checking if one/any of the passed job types are the highest priority job for the passed preferences object
 /// Useful for filtering out certain preferences unless certain jobs are/are not active
 /datum/preference/proc/highest_priority_job_is(datum/preferences/preferences, job_type_or_types)

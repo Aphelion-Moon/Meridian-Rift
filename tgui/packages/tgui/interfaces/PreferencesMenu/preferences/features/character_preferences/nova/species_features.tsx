@@ -200,6 +200,32 @@ export const mutant_colors_color: Feature<string[]> = {
   component: FeatureTriColorInput,
 };
 
+/* // APHELION EDIT REMOVAL START - Their preferences are gone: body markings are chosen on the Limbs page.
+export const body_markings_toggle: FeatureToggle = {
+  name: 'Body Markings',
+  component: CheckboxInput,
+};
+
+export const feature_body_markings: Feature<string> = {
+  name: 'Body Markings Selection',
+  component: (
+    props: FeatureValueProps<string, string, FeatureChoicedServerData>,
+  ) => {
+    return <FeatureDropdownInput buttons {...props} />;
+  },
+};
+
+export const body_markings_color: Feature<string[]> = {
+  name: 'Body Markings Colors',
+  component: FeatureTriColorInput,
+};
+
+export const body_markings_emissive: Feature<boolean[]> = {
+  name: 'Body Markings Emissives',
+  component: FeatureTriBoolInput,
+};
+
+*/ // APHELION EDIT REMOVAL END
 export const tail_toggle: FeatureToggle = {
   name: 'Tail',
   component: CheckboxInput,
@@ -434,6 +460,33 @@ export const moth_antennae_emissive: Feature<boolean[]> = {
   component: FeatureTriBoolInput,
 };
 
+/* // APHELION EDIT REMOVAL START - Their preferences are gone: moth markings are body markings on the Limbs page.
+export const moth_markings_toggle: FeatureToggle = {
+  name: 'Moth Markings',
+  component: CheckboxInput,
+};
+
+export const feature_moth_markings: Feature<string> = {
+  name: 'Moth Markings Selection',
+  component: (
+    props: FeatureValueProps<string, string, FeatureChoicedServerData>,
+  ) => {
+    return <FeatureDropdownInput buttons {...props} />;
+  },
+};
+
+export const moth_markings_color: Feature<string[]> = {
+  name: 'Moth Markings Colors',
+  component: FeatureTriColorInput,
+};
+
+export const moth_markings_emissive: Feature<boolean[]> = {
+  name: 'Moth Markings Emissives',
+  description: 'Emissive parts glow in the dark.',
+  component: FeatureTriBoolInput,
+};
+
+*/ // APHELION EDIT REMOVAL END
 export const fluff_toggle: FeatureToggle = {
   name: 'Fluff',
   component: CheckboxInput,

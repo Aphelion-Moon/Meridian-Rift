@@ -1297,8 +1297,8 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 #define RUNTIME_ICON_DIMENSIONS_LIMIT 256
 /// Runtime icon in the resource cache -> its width and height; see get_icon_dimensions().
 GLOBAL_LIST_EMPTY(runtime_icon_dimensions)
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /// Returns a list containing the width and height of an icon file
 /proc/get_icon_dimensions(icon_path)
 	if(istype(icon_path, /datum/universal_icon))
@@ -1340,8 +1340,8 @@ GLOBAL_LIST_EMPTY(runtime_icon_dimensions)
 
 // APHELION EDIT ADDITION START - Runtime icon sizes are cached, bounded
 #undef RUNTIME_ICON_DIMENSIONS_LIMIT
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /// Returns a list containing the width and height of an icon file, without using rustg for pure function calls
 /proc/get_icon_dimensions_pure(icon_path)
 	// Icons can be a real file(), a rsc backed file(), a dynamic rsc (dyn.rsc) reference (known as a cache reference in byond docs), or an /icon which is pointing to one of those.

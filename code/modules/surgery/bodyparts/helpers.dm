@@ -64,8 +64,8 @@
 		// What get_bodypart(zone) returns without stumps.
 		parts[zone] = real_bodypart_cache[zone]
 	return parts
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /// Replaces a single limb and deletes the old one if there was one
 /mob/living/carbon/proc/del_and_replace_bodypart(obj/item/bodypart/new_limb, special)
 	var/obj/item/bodypart/old_limb = get_bodypart(new_limb.body_zone)

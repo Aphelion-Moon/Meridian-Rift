@@ -105,7 +105,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 			var/mob/living/carbon/as_carbon = new_dna.holder
 			as_carbon.set_blood_type(blood_type)
 			if(transfer_flags & COPY_DNA_SPECIES)
-				as_carbon.set_species(species.type, icon_update = 0, pref_load = FALSE, override_features = features.Copy(), override_mutantparts = LAZYCOPY(mutant_bodyparts), override_markings = body_markings.shallow_copy())
+				as_carbon.set_species(species.type, icon_update = 0, pref_load = FALSE, override_features = features.Copy(), override_mutantparts = LAZYCOPY(mutant_bodyparts), override_markings = body_markings.shallow_copy()) // APHELION EDIT CHANGE - Body markings are a collection; shallow_copy() is its Copy(). ORIGINAL: as_carbon.set_species(species.type, icon_update = 0, pref_load = FALSE, override_features = features.Copy(), override_mutantparts = LAZYCOPY(mutant_bodyparts), override_markings = body_markings.Copy())
 	else
 		new_dna.blood_type = blood_type
 		if(transfer_flags & COPY_DNA_SPECIES)
@@ -421,7 +421,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 			stored_dna.species = mrace //not calling any species update procs since we're a brain, not a monkey/human
 
 
-/mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE, list/override_features, list/override_mutantparts, datum/body_marking_collection/override_markings) // NOVA EDIT CHANGE - ORIGINAL: /mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE)
+/mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE, list/override_features, list/override_mutantparts, datum/body_marking_collection/override_markings) // APHELION EDIT CHANGE - Body markings are a collection. ORIGINAL: /mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE, list/override_features, list/override_mutantparts, list/override_markings) // NOVA EDIT CHANGE - ORIGINAL: /mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE)
 	if(QDELETED(src))
 		CRASH("You're trying to change your species post deletion, this is a recipe for madness")
 	if(isnull(mrace))

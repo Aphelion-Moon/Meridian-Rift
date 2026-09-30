@@ -285,8 +285,8 @@ const suitsSpecies = (
   recommended_species: string | null | undefined,
   species: string,
 ) => !recommended_species || recommended_species.split(',').includes(species);
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 const isAugAllowed = (
   aug: AugmentItem,
   species: string,
@@ -653,8 +653,8 @@ const AddMarking = (props: {
     </Stack>
   );
 };
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 const Markings = (props: {
   body_zone: string;
   chosen_markings: Marking[] | null;
@@ -726,10 +726,7 @@ const Markings = (props: {
           });
         // APHELION EDIT ADDITION END
         return (
-          <Stack.Item
-            key={marking.marking_id}
-            className="LimbsPage__markingRow" // APHELION EDIT ADDITION
-          >
+          <Stack.Item key={marking.marking_id} className="LimbsPage__markingRow" /* APHELION EDIT CHANGE - A marking row takes its layout from a class. ORIGINAL: <Stack.Item key={marking.marking_id}> */>
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
                 {/* APHELION EDIT REMOVAL START
@@ -1366,8 +1363,8 @@ export const LimbsPage = ({
           server_data.augment_items ?? [],
         )
       : [];
-  // APHELION EDIT ADDITION END
 
+  // APHELION EDIT ADDITION END
   // Build all column data, splitting augment_items into bodyparts and internal implants
   const columns: ColumnData | null = useMemo(() => {
     if (!server_data?.augment_items) return null;
