@@ -13,6 +13,8 @@
 	for(var/overlay_path in subtypesof(/datum/bodypart_overlay))
 		var/datum/bodypart_overlay/overlay = new overlay_path()
 		for(var/postfix in overlay.get_layer_postfixes())
+			if(postfix == "") // No postfix: the overlay draws its bare icon state.
+				continue
 			if(isnull(declared[postfix]))
 				declared[postfix] = overlay_path
 		qdel(overlay)

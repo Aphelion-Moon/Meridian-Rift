@@ -1285,7 +1285,7 @@ generate/load female uniform sprites matching all previously decided variables
 			continue
 		var/overlay_x = overlay.pixel_x + overlay.pixel_w
 		var/overlay_y = overlay.pixel_y + overlay.pixel_z
-		if (!isnull(parsed_overlays[overlay])) // Nested overlay
+		if (islist(parsed_overlays[overlay])) // Nested overlay
 			overlay_x += parsed_overlays[overlay][SUB_OVERLAY_X_INDEX]
 			overlay_y += parsed_overlays[overlay][SUB_OVERLAY_Y_INDEX]
 		/* // APHELION EDIT REMOVAL START - WORN_EMISSIVES - appearances have no procs
