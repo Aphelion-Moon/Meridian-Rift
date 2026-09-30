@@ -389,7 +389,7 @@
 		return
 	var/marking_name = pick(choices)
 	var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-	var/list/preview_features = preferences.character_preview_view.body.dna.features
+	var/list/preview_features = preferences.character_preview_view.current_body().dna.features // APHELION EDIT CHANGE - A change may still wait to be rebuilt into the body. ORIGINAL: var/list/preview_features = preferences.character_preview_view.body.dna.features
 	var/list/features = list(
 		FEATURE_MUTANT_COLOR       = preview_features[FEATURE_MUTANT_COLOR],
 		FEATURE_MUTANT_COLOR_TWO   = preview_features[FEATURE_MUTANT_COLOR_TWO],
@@ -478,7 +478,7 @@
 	if(preset)
 		var/datum/body_marking_set/BMS = GLOB.body_marking_sets[preset]
 		var/species_type = preferences.read_preference(/datum/preference/choiced/species)
-		var/list/preview_features = preferences.character_preview_view.body.dna.features
+		var/list/preview_features = preferences.character_preview_view.current_body().dna.features // APHELION EDIT CHANGE - A change may still wait to be rebuilt into the body. ORIGINAL: var/list/preview_features = preferences.character_preview_view.body.dna.features
 		var/list/features = list(
 			FEATURE_MUTANT_COLOR       = preview_features[FEATURE_MUTANT_COLOR],
 			FEATURE_MUTANT_COLOR_TWO   = preview_features[FEATURE_MUTANT_COLOR_TWO],

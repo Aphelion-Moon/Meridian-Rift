@@ -50,6 +50,19 @@ Augments+ and the species page's chamber) shows that one drawing.
   one slot, each newer one taking the place of the last, until they stop for a quarter second or a second has
   passed; then the latest look is drawn once. The page shows the theme's loader over the drawing it has while a
   newer one waits.
+- **Rebuilt once an action, in turn when many change at once.** Rebuilding the preview mob applies every
+  preference to it: 10 to 40 ms that can't be split. tg rebuilds it inside every action that changes it, twice
+  for a loadout item that takes another's place, and many players changing their characters at once ran every
+  tick over, which every player on the server felt. With setup open, a change only marks the mob stale, and the
+  drawing rebuilds it first, once for everything the action changed: as a lone change's action ends, then and
+  there if nothing waits ahead of it and the rebuild fits in what is left of the tick, as it nearly always does,
+  or, when it doesn't fit, while such rebuilds have taken less than a tenth of the last second. Otherwise, and for
+  a burst of changes, the mob waits its turn (`SScharacter_preview`), rebuilt in the tick time other subsystems
+  leave over, in order; changes that come while it waits go into the one rebuild, and the page shows the same
+  loader, once the wait is long enough to see. The queue never goes half a second without a rebuild, so a busy
+  server still rebuilds previews, a little late, and runs a tick over for one at most twice a second. Code that
+  reads the mob, like a new marking's default colours, has it rebuilt first (`current_body()`). Without a window,
+  the mob is rebuilt at once, as tg does.
 - **Memory stays bounded.** A drawing is named by the md5 of its recipes, so characters that look alike
   share one, and it is kept only while an open window shows it: at most one per character with setup open.
   Closing the window lets its drawing go, and a window asks for the drawing when it opens, saying which one
@@ -70,6 +83,13 @@ go every 100, emulated tick by tick with 16 under way at once, kept at most 156 
 The page spends 2.5 ms on a drawing (11 ms with the CPU slowed four times) and shows it on the next frame; a
 burst's answer, which shows the loader first, 10 to 19 ms.
 
+The rebuilds, measured in DreamDaemon 516.1687 in the lobby, each player clicking a loadout item every 3 seconds, or
+every second, for 20 seconds, their actions coming at the end of a tick as verbs do, against rebuilding inside the
+action as before: with 1 to 20 players clicking every 3 seconds, a click's drawing reaches the page in a median of 52
+to 88 ms (before, 51 to 101 ms), and the server keeps time (1.00 to 1.05x). With 50 players every 3 seconds it takes
+0.9 s, at 1.03x; before, 0.14 s, but the server ran at 1.31x, slowing everyone. With 100 players every second, 3.4 s
+at 1.02x (before, 2.5 s at 4.6x); with 200, 8.7 s at 1.08x (before, 58 s at 8.5x). A rebuild took about 30 ms.
+
 The pan, profiled in Chromium 141 (software-rendered) over 240 moves, one a frame: no frame dropped, at full
 speed or with the CPU slowed four times; a move restyles three elements in about 0.16 ms (0.65 ms slowed), and
 lays out, paints, rasters and renders nothing. Taking the layers and letting them go costs about 8 ms of
@@ -82,8 +102,9 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 
 | File | Procs or declarations changed |
 | --- | --- |
-| `code/modules/client/preferences.dm` | `/datum/preferences/ui_interact()` no longer shows the preview map, `ui_static_data()` no longer sends `character_preview_view`, and `ui_close()` lets the drawing go. `/atom/movable/screen/map_view/char_preview`: Nova's canvas vars and its blocks in `Destroy()` and `update_body()` are commented out, with Aphelion's `preview_bounds` and `display_to_client()` that went with them; adds `var/image/silicon_preview`, where `update_body()` keeps a silicon job's image before it calls `character_preview_changed()`. |
+| `code/modules/client/preferences.dm` | `/datum/preferences/ui_interact()` no longer shows the preview map, `ui_static_data()` no longer sends `character_preview_view`, and `ui_close()` lets the drawing go. `/atom/movable/screen/map_view/char_preview`: Nova's canvas vars and its blocks in `Destroy()` and `update_body()` are commented out, with Aphelion's `preview_bounds` and `display_to_client()` that went with them; adds `var/image/silicon_preview`, where `update_body()` keeps a silicon job's image before it calls `character_preview_changed()`. `update_body()` takes `catching_up`: with setup open, a change leaves the body stale for the drawing to rebuild (`defer_rebuild()`), and that rebuild doesn't announce the change again; `Destroy()` takes the view out of the rebuild queue. |
 | `code/modules/asset_cache/spritesheet/batched/universal_icon.dm` | `/proc/get_flat_uni_icon()` passes over an appearance without an icon, and names a runtime icon's file by the md5 of its content, writing it once. Adds `/proc/uni_icon_facings_json()`. |
+| `modular_nova/master_files/code/modules/client/preferences/middleware/limbs_and_markings.dm` | `add_marking()` and `set_preset()` read the preview mob through `current_body()`, so a change still waiting to be rebuilt into it counts. |
 | `modular_nova/modules/character_preview_background/code/character_preview_background.dm` | `/datum/preference/choiced/background_state` no longer rebuilds the preview mob (`should_update_preview = FALSE`), and the map's `/atom/movable/screen/map_view/char_preview/setDir()` override is removed. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx` | `PreferencesMenu` turns the character back to face south as the window opens. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx` | `CharacterPreferenceWindow` asks for the drawing when it mounts. |
@@ -95,15 +116,19 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 
 ### Modular Overrides:
 
-- `code/drawing.dm`: adds `/datum/preferences/var/preview_drawing` and `/datum/preferences/proc/character_preview_changed()`,
+- `code/drawing.dm`: adds `/datum/preferences/var/preview_drawing`, `/datum/preferences/proc/character_preview_changed()` and `character_preview_open()`,
   and `/proc/character_preview_drawn()` with the globals it keeps: the drawings under way and how many there
   have been since iconforge last let go of what it keeps.
 - `code/backgrounds.dm`: `/datum/preference/choiced/background_state/compile_constant_data()` also sends each background's tile.
+- `code/rebuilds.dm`: `SScharacter_preview`, the queue of preview mobs waiting to be rebuilt, and
+  `/atom/movable/screen/map_view/char_preview`'s `body_stale` and `turns`, `defer_rebuild()` and `current_body()`.
 
 ### Defines:
 
 - `code/drawing.dm`: `CHARACTER_PREVIEW_DIR`, `CHARACTER_PREVIEW_SETTLE`, `CHARACTER_PREVIEW_MAX_WAIT`,
   `CHARACTER_PREVIEW_CLEANUP_EVERY` and `CHARACTER_PREVIEW_JOB_TIMEOUT`. File-local.
+- `code/rebuilds.dm`: `CHARACTER_PREVIEW_OVERRUN_BUDGET`, `CHARACTER_PREVIEW_OVERRUN_BURST` and
+  `CHARACTER_PREVIEW_REBUILD_OVERDUE`. File-local.
 
 ### Included files that are not contained in this module:
 
@@ -112,6 +137,8 @@ directly. New UI files start with `// THIS IS AN APHELION UI FILE`.
 - `tgui/packages/tgui/styles/meridianos/_character_preview.scss`, loaded by `_preferences.scss`: the preview and
   its frame in every theme, with `tests/character-preview-frame.test.tsx`.
 - `code/modules/unit_tests/~nova/custom_sprites/tall_hair.dm`: checks the drawing's height for tall hair.
+- `code/modules/unit_tests/~nova/character_preview_rebuilds.dm`: checks that a change with setup open leaves the mob for
+  the drawing to rebuild, that rebuilds take their turns in order, and that code reading the mob gets it rebuilt first.
 - `tgstation.dme`
 
 ### Credits:

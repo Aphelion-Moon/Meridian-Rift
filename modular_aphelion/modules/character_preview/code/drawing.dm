@@ -35,6 +35,10 @@ GLOBAL_VAR(character_preview_cleanup_due)
 /datum/preferences/proc/character_preview_changed()
 	preview_drawing?.preview_changed()
 
+/// Whether a character setup window is open to show the preview.
+/datum/preferences/proc/character_preview_open()
+	return !isnull(preview_drawing?.open_window())
+
 /**
  * The character preview every tab of character setup shows: the preview mob, facing each way, drawn into one image
  * and sent in the window's data. Height and body size, which a flatten leaves out, go with it for the page to draw,
@@ -47,6 +51,9 @@ GLOBAL_VAR(character_preview_cleanup_due)
  * way, or within CHARACTER_PREVIEW_SETTLE of the last answer, wait in a single slot: each newer one takes its place
  * and pushes the answer back, until they stop for CHARACTER_PREVIEW_SETTLE or CHARACTER_PREVIEW_MAX_WAIT has passed
  * since the first of them. Then the latest look is drawn once. The page shows a loader while one waits.
+ *
+ * While a window is open, a change doesn't rebuild the preview mob itself: the drawing does, first, once for everything
+ * an action changed, and in turn with other characters when many change at once. See rebuilds.dm.
  *
  * Answers reach the page as small updates of their own, so none of them rebuilds the preferences data, and the drawing
  * travels inside the data rather than as a file: BYOND keeps every file a client is sent in its cache for good.
@@ -114,7 +121,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 /datum/preference_middleware/character_preview/proc/answer_when_done()
 	sleep(0)
 	answer_due = FALSE
-	answer()
+	answer(action_ended = TRUE)
 
 /// The end of a burst of changes: the latest look, drawn once.
 /datum/preference_middleware/character_preview/proc/answer_waiting()
@@ -122,9 +129,9 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	answer()
 
 /// Draws the preview if it has changed, and tells the page whether a newer drawing is waiting, sending it the latest
-/// drawing if it holds another.
-/datum/preference_middleware/character_preview/proc/answer()
-	update_preview()
+/// drawing if it holds another. action_ended is a lone change's answer, as the action that made it ends.
+/datum/preference_middleware/character_preview/proc/answer(action_ended = FALSE)
+	update_preview(action_ended)
 	COOLDOWN_START(src, preview_cooldown, CHARACTER_PREVIEW_SETTLE)
 	var/list/update = list("character_preview_pending" = !isnull(waiting_since))
 	var/id = preview?["id"]
@@ -148,17 +155,33 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/datum/tgui/ui = open_window()
 	ui?.send_update(update)
 
-/**
- * Draws the preview mob if its look has changed since it was last drawn, and makes the page's preview from the drawing.
- * Everything the page is sent is read from the mob in one go, before the drawing is waited on, so it all shows the same
- * look.
- */
-/datum/preference_middleware/character_preview/proc/update_preview()
+/// Draws the preview mob if its look has changed since it was last drawn. One update at a time; another waits for it.
+/datum/preference_middleware/character_preview/proc/update_preview(action_ended = FALSE)
 	UNTIL(!drawing)
+	drawing = TRUE
+	try
+		draw_changed(action_ended)
+	catch(var/exception/error)
+		drawing = FALSE
+		throw error
+	drawing = FALSE
+
+/**
+ * Rebuilds the preview mob if a change left it stale, draws it if its look has changed since it was last drawn, and
+ * makes the page's preview from the drawing. Everything the page is sent is read from the mob in one go, before the
+ * drawing is waited on, so it all shows the same look.
+ */
+/datum/preference_middleware/character_preview/proc/draw_changed(action_ended = FALSE)
 	var/atom/movable/screen/map_view/char_preview/view = preferences?.character_preview_view
-	var/mob/living/carbon/human/dummy/body = view?.body
+	if(isnull(view))
+		return
+	catch_up(view, action_ended)
+	// The window closed while it waited.
+	if(QDELETED(view))
+		return
+	var/mob/living/carbon/human/dummy/body = view.body
 	// A silicon job's preview shows its image instead of the mob.
-	var/image/silicon = view?.silicon_preview
+	var/image/silicon = view.silicon_preview
 	if(isnull(body) && isnull(silicon))
 		return
 	var/look_now = silicon ? silicon.appearance : body.appearance
@@ -171,14 +194,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/list/effects = silicon ? list() : character_preview_effects(body, height, walk["y"])
 	// Which species it shows, so the species page never shows it for the species that replaced it. A silicon is none.
 	var/species = silicon ? null : body.dna.species.id
-	drawing = TRUE
-	var/list/drawn
-	try
-		drawn = draw_preview(walk)
-	catch(var/exception/error)
-		drawing = FALSE
-		throw error
-	drawing = FALSE
+	var/list/drawn = draw_preview(walk)
 	// Preferences deleted, or a window closed, while it drew have already let their drawing go.
 	if(isnull(drawn) || QDELETED(src) || isnull(open_window()))
 		forget_unshown(drawn?["name"])
@@ -203,6 +219,23 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	preview["species"] = species
 	for(var/effect, value in effects)
 		preview[effect] = value
+
+/**
+ * Rebuilds the preview mob if a change left it stale: as a lone change's action ends, at once if there's room, and
+ * otherwise once its turn comes, while the page shows its loader. A change after its turn waits for the next drawing,
+ * which it asked for. See rebuilds.dm.
+ */
+/datum/preference_middleware/character_preview/proc/catch_up(atom/movable/screen/map_view/char_preview/view, action_ended = FALSE)
+	if(!view.body_stale || SScharacter_preview.rebuild_or_wait(view, now = action_ended))
+		return
+	// A burst waiting to be drawn has already shown the loader.
+	if(isnull(waiting_since))
+		send_preview_update(list("character_preview_pending" = TRUE))
+	var/turns = view.turns
+	UNTIL(QDELETED(view) || view.turns != turns || !SScharacter_preview.can_fire)
+	// Its turn would never come.
+	if(!QDELETED(view) && view.turns == turns)
+		SScharacter_preview.rebuild(view)
 
 /// This character stops showing a drawing. Once no character shows it, it is forgotten.
 /datum/preference_middleware/character_preview/proc/release_drawing(name)

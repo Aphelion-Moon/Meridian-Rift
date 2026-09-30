@@ -7358,6 +7358,7 @@
 #include "modular_aphelion\modules\character_preview\code\backgrounds.dm"
 #include "modular_aphelion\modules\character_preview\code\drawing.dm"
 #include "modular_aphelion\modules\character_preview\code\effects.dm"
+#include "modular_aphelion\modules\character_preview\code\rebuilds.dm"
 #include "modular_aphelion\modules\custom_sprites\code\achievements.dm"
 #include "modular_aphelion\modules\custom_sprites\code\appearance.dm"
 #include "modular_aphelion\modules\custom_sprites\code\appendages.dm"

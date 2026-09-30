@@ -474,24 +474,31 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	// NOVA EDIT ADDITION END
 	*/ // APHELION EDIT REMOVAL END
 	silicon_preview = null // APHELION EDIT ADDITION
+	SScharacter_preview.queue -= src // APHELION EDIT ADDITION - A rebuild waiting its turn goes with the view
 	QDEL_NULL(body)
 	preferences?.character_preview_view = null
 	preferences = null
 	return ..()
 
 /// Updates the currently displayed body
-/atom/movable/screen/map_view/char_preview/proc/update_body()
+/atom/movable/screen/map_view/char_preview/proc/update_body(catching_up = FALSE) // APHELION EDIT CHANGE - ORIGINAL: /atom/movable/screen/map_view/char_preview/proc/update_body()
+	// APHELION EDIT ADDITION START - With character setup open, the drawing rebuilds the body, once an action, in turn when many do; catching_up is that rebuild. See rebuilds.dm.
+	if (!catching_up && defer_rebuild())
+		return
+	body_stale = FALSE
+	// APHELION EDIT ADDITION END
 	if (isnull(body))
 		create_body()
 	else
 		body.wipe_state()
 
-	// APHELION EDIT CHANGE START - Keep a silicon job's image for the drawn preview, and tell it the look changed. ORIGINAL: appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
+	// APHELION EDIT CHANGE START - Keep a silicon job's image for the drawn preview, and tell it the look changed, unless it asked for this rebuild. ORIGINAL: appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
 	var/rendered = preferences.render_new_preview_appearance(body, show_job_clothes)
 	appearance = rendered
 	// The human path returns the dummy's own appearance; only the AI/Cyborg path returns a standalone /image.
 	silicon_preview = isimage(rendered) ? rendered : null
-	preferences.character_preview_changed()
+	if (!catching_up)
+		preferences.character_preview_changed()
 	// APHELION EDIT CHANGE END
 
 	/* // APHELION EDIT REMOVAL START - Character setup draws the preview in the page, so the map needs no canvas.
