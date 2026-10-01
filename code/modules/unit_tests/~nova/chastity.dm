@@ -12,17 +12,17 @@
 	attach_portal_preferences(partner)
 	var/obj/item/organ/genital/penis/penis = configure_test_penis(wearer)
 	TEST_ASSERT_NOTNULL(penis, "The test penis could not be set up.")
-	var/obj/item/clothing/sextoy/chastity/cage = allocate(/obj/item/clothing/sextoy/chastity)
+	var/obj/item/clothing/sextoy/chastity/device = allocate(/obj/item/clothing/sextoy/chastity)
 
-	TEST_ASSERT(!cage.can_lewd_attach(wearer, partner, ORGAN_SLOT_PENIS), "A cage fit someone who doesn't want chastity devices.")
+	TEST_ASSERT(!device.can_lewd_attach(wearer, partner, ORGAN_SLOT_PENIS), "A cage fit someone who doesn't want chastity devices.")
 	TEST_ASSERT(wearer_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp/chastity], TRUE), "Could not turn on chastity devices.")
-	TEST_ASSERT(cage.can_lewd_attach(wearer, partner, ORGAN_SLOT_PENIS), "A cage didn't fit a willing wearer with a penis.")
+	TEST_ASSERT(device.can_lewd_attach(wearer, partner, ORGAN_SLOT_PENIS), "A cage didn't fit a willing wearer with a penis.")
 	var/obj/item/clothing/sextoy/chastity/insert/insert = allocate(/obj/item/clothing/sextoy/chastity/insert)
 	TEST_ASSERT(!insert.can_lewd_attach(wearer, partner, ORGAN_SLOT_VAGINA), "An insertable belt fit someone without a vagina.")
 
 	// Fitted, the penis is closed off and the cage draws in its place.
-	put_on(wearer, cage, ORGAN_SLOT_PENIS)
-	TEST_ASSERT_EQUAL(penis.blocked_by, cage, "The cage didn't close the penis off.")
+	put_on(wearer, device, ORGAN_SLOT_PENIS)
+	TEST_ASSERT_EQUAL(penis.blocked_by, device, "The cage didn't close the penis off.")
 	var/datum/bodypart_overlay/mutant/genital/overlay = penis.bodypart_overlay
 	TEST_ASSERT_EQUAL(overlay.device_state, "cage_standard", "The cage isn't drawn over the penis.")
 	TEST_ASSERT(limb_draws(wearer, "cage_standard_m"), "The chest doesn't draw the cage.")
@@ -33,30 +33,30 @@
 	stroke.name = "Stroke"
 	stroke.target_required_parts = list(ORGAN_SLOT_PENIS)
 	TEST_ASSERT(!stroke.allow_act(partner, wearer), "A penis interaction reached a caged penis.")
-	var/datum/interaction/tug = allocate(/datum/interaction)
-	tug.name = "Tug cage"
-	tug.interaction_requires = list(INTERACTION_REQUIRE_TARGET_CAGED)
-	TEST_ASSERT(tug.allow_act(partner, wearer), "A caged-penis interaction was refused on a caged penis.")
-	TEST_ASSERT(!tug.allow_act(wearer, partner), "A caged-penis interaction was offered on someone uncaged.")
-	TEST_ASSERT_EQUAL(tug.format_message_for("%TARGET_DEVICE%", partner, wearer), cage.name, "The device token named the wrong thing.")
+	var/datum/interaction/interaction = allocate(/datum/interaction)
+	interaction.name = "Tug cage"
+	interaction.interaction_requires = list(INTERACTION_REQUIRE_TARGET_CAGED)
+	TEST_ASSERT(interaction.allow_act(partner, wearer), "A caged-penis interaction was refused on a caged penis.")
+	TEST_ASSERT(!interaction.allow_act(wearer, partner), "A caged-penis interaction was offered on someone uncaged.")
+	TEST_ASSERT_EQUAL(interaction.format_message_for("%TARGET_DEVICE%", partner, wearer), device.name, "The device token named the wrong thing.")
 	penis.aroused = AROUSAL_FULL
 	wearer.underwear = "Boxers"
 	TEST_ASSERT(!wearer.has_bulge(), "A caged penis made a bulge.")
 	wearer.underwear = "Nude"
 
 	// The key tucked inside turns it; locked, it won't come off.
-	var/obj/item/key/chastity/key = locate() in cage
+	var/obj/item/key/chastity/key = locate() in device
 	TEST_ASSERT_NOTNULL(key, "The cage came without its key.")
-	TEST_ASSERT_EQUAL(key.key_id, REF(cage), "The key doesn't match its cage.")
-	cage.set_locked(TRUE, partner)
-	TEST_ASSERT(!cage.can_lewd_remove(partner), "A locked cage came off.")
-	cage.set_locked(FALSE, partner)
-	TEST_ASSERT(cage.can_lewd_remove(partner), "An unlocked cage wouldn't come off.")
-	cage.broken_lock = TRUE
-	TEST_ASSERT(!cage.set_locked(TRUE, partner), "A broken lock caught.")
+	TEST_ASSERT_EQUAL(key.key_id, REF(device), "The key doesn't match its cage.")
+	device.set_locked(TRUE, partner)
+	TEST_ASSERT(!device.can_lewd_remove(partner), "A locked cage came off.")
+	device.set_locked(FALSE, partner)
+	TEST_ASSERT(device.can_lewd_remove(partner), "An unlocked cage wouldn't come off.")
+	device.broken_lock = TRUE
+	TEST_ASSERT(!device.set_locked(TRUE, partner), "A broken lock caught.")
 
 	// Off again, the penis is free.
-	cage.come_off(wearer)
+	device.come_off(wearer)
 	TEST_ASSERT_NULL(penis.blocked_by, "The penis stayed closed off after the cage came off.")
 	TEST_ASSERT_NULL(overlay.device_state, "The cage kept drawing after it came off.")
 	TEST_ASSERT_NULL(wearer.get_lewd_slot_item(ORGAN_SLOT_PENIS), "The cage stayed in the lewd slot.")
@@ -87,9 +87,9 @@
 	chrome.come_off(wearer)
 
 	// Wall portals relay chastity play wherever they relay the penis.
-	var/list/portals = make_portal_pair("wallstuck")
-	var/obj/structure/lewd_portal/portal = portals[1]
-	TEST_ASSERT(portal.relays_interaction(tug), "A wall portal did not relay chastity play.")
+	var/list/pair = make_portal_pair("wallstuck")
+	var/obj/structure/lewd_portal/portal = pair[1]
+	TEST_ASSERT(portal.relays_interaction(interaction), "A wall portal did not relay chastity play.")
 
 /// Puts `device` into `slot` on `wearer` the way the interaction menu does.
 /datum/unit_test/portal_test/chastity/proc/put_on(mob/living/carbon/human/wearer, obj/item/clothing/sextoy/chastity/device, slot)

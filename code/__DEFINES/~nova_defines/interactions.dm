@@ -10,7 +10,7 @@
 // If you add a new requirement you also need to implement its checking. See /datum/interaction/proc/allow_act
 #define INTERACTION_REQUIRE_SELF_HAND "self_hand"
 #define INTERACTION_REQUIRE_TARGET_HAND "target_hand"
-/// A penis that is at least half hard and covered by clothes or underwear, so it shows as a bulge.
+/// A penis shown as a bulge: true while its bulge look is drawn (has_bulge()).
 #define INTERACTION_REQUIRE_SELF_BULGE "self_bulge"
 #define INTERACTION_REQUIRE_TARGET_BULGE "target_bulge"
 /// A penis closed off by a worn device, like a chastity cage.

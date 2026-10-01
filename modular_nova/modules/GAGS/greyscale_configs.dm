@@ -3036,6 +3036,7 @@ Departmental Gags
 	json_config = 'modular_nova/modules/GAGS/json_configs/armor/depgag_hazard_jacket.json'
 
 /datum/greyscale_config/depgag_hazard_jacket/worn
+	json_config = 'modular_nova/modules/GAGS/json_configs/armor/depgag_hazard_jacket_worn.json'
 	name = "Department Protection Hazard Jacket (Worn)"
 	icon_file = 'modular_nova/master_files/icons/mob/clothing/suits/armor.dmi'
 

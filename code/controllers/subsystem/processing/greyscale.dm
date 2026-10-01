@@ -101,4 +101,37 @@ PROCESSING_SUBSYSTEM_DEF(greyscale)
 	for(var/color in 2 to length(split_colors))
 		. += "#[split_colors[color]]"
 
+// APHELION EDIT ADDITION START - Read-only provenance check for the bulge cloth sampler.
+/// Verifies the existing compiled-config Rust output. Never creates or repairs a cache entry.
+/// Kept before the local macro's undef, so this query reads the producer the subsystem uses.
+/datum/controller/subsystem/processing/greyscale/proc/bulge_cached_output_matches(config_type, colors, current_output)
+	if(!initialized || !ispath(config_type, /datum/greyscale_config) || !isfile(current_output))
+		return FALSE
+	if(islist(colors))
+		var/list/color_list = colors
+		colors = color_list.Join()
+	else if(!istext(colors))
+		return FALSE
+	var/datum/greyscale_config/config = configurations["[config_type]"]
+	if(!config)
+		return FALSE
+	if(!isnull(config.json_config_hash) || !isnull(config.icon_file_hash))
+		// Refreshed from disk (an admin's live editing, RefreshConfigsFromFile()): its layers read the files on disk now,
+		// while its garments' iconforge outputs stay those of the compiled files. Trusted while both files on disk are
+		// the compiled ones. Refresh() records the json's hash, read from its path, but an empty one for the icon (it
+		// hands rust-g the icon as a file object), so the icon is hashed here, from its path. Asked only on a look's full
+		// resolve, and only after such a refresh.
+		if(config.json_config_hash != md5(initial(config.json_config)) || rustg_hash_file(RUSTG_HASH_MD5, config.string_icon_file) != md5(initial(config.icon_file)))
+			return FALSE
+#ifdef USE_RUSTG_ICONFORGE_GAGS
+	var/type_text = "[config_type]"
+	var/uid = "[replacetext(replacetext(type_text, "/datum/greyscale_config/", ""), "/", "-")]-[colors]"
+	var/cached_output = gags_cache[uid]
+	return !isnull(cached_output) && cached_output == current_output
+#else
+	// Legacy Generate returns icon(cached_resource), a fresh mutable copy. Equality cannot prove that copy's origin.
+	return FALSE
+#endif
+
+// APHELION EDIT ADDITION END
 #undef USE_RUSTG_ICONFORGE_GAGS

@@ -12,12 +12,12 @@
 
 	var/mob/living/carbon/human/consistent/person = allocate(/mob/living/carbon/human/consistent)
 	person.set_body_hair(FEATURE_PITS, "Natural")
-	var/obj/item/organ/body_hair/pits = person.get_organ_slot(ORGAN_SLOT_EXTERNAL_PITS)
-	TEST_ASSERT(istype(pits, /obj/item/organ/body_hair/pits), "Natural armpit hair grew no hair.")
+	var/obj/item/organ/body_hair/organ = person.get_organ_slot(ORGAN_SLOT_EXTERNAL_PITS)
+	TEST_ASSERT(istype(organ, /obj/item/organ/body_hair/pits), "Natural armpit hair grew no hair.")
 	TEST_ASSERT(chest_draws(person, "pits_natural_m"), "The chest doesn't draw armpit hair.")
 
 	// It takes its own colour, or the head's when set to match.
-	var/datum/bodypart_overlay/mutant/body_hair/overlay = pits.bodypart_overlay
+	var/datum/bodypart_overlay/mutant/body_hair/overlay = organ.bodypart_overlay
 	var/obj/item/bodypart/chest/chest = person.get_bodypart(BODY_ZONE_CHEST)
 	TEST_ASSERT_EQUAL(overlay.get_hair_colour(chest), BODY_HAIR_DEFAULT_COLOR, "Armpit hair didn't start in its own colour.")
 	person.set_haircolor("#aa3311", update = TRUE)
@@ -40,22 +40,22 @@
 
 	// The colour picker only shows while body hair doesn't match the head.
 	var/datum/client_interface/person_client = attach_portal_preferences(person)
-	var/datum/preference/color/body_hair/colour_pref = GLOB.preference_entries[/datum/preference/color/body_hair]
-	TEST_ASSERT(!colour_pref.is_accessible(person_client.prefs), "The body hair colour showed while matching the hair.")
+	var/datum/preference/color/body_hair/preference = GLOB.preference_entries[/datum/preference/color/body_hair]
+	TEST_ASSERT(!preference.is_accessible(person_client.prefs), "The body hair colour showed while matching the hair.")
 	TEST_ASSERT(person_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/body_hair_matches_hair], FALSE), "Could not stop matching the hair colour.")
-	TEST_ASSERT(colour_pref.is_accessible(person_client.prefs), "The body hair colour stayed hidden while not matching.")
+	TEST_ASSERT(preference.is_accessible(person_client.prefs), "The body hair colour stayed hidden while not matching.")
 
 	// Armpit interactions need an arm there, hair or not.
 	var/mob/living/carbon/human/consistent/partner = allocate(/mob/living/carbon/human/consistent)
-	var/datum/interaction/sniff = allocate(/datum/interaction)
-	sniff.name = "Sniff armpit"
-	sniff.interaction_requires = list(INTERACTION_REQUIRE_TARGET_ARM)
-	TEST_ASSERT(sniff.allow_act(partner, person), "An armpit interaction needed armpit hair.")
+	var/datum/interaction/interaction = allocate(/datum/interaction)
+	interaction.name = "Sniff armpit"
+	interaction.interaction_requires = list(INTERACTION_REQUIRE_TARGET_ARM)
+	TEST_ASSERT(interaction.allow_act(partner, person), "An armpit interaction needed armpit hair.")
 	for(var/zone in list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM))
 		var/obj/item/bodypart/arm = person.get_bodypart(zone)
 		arm.drop_limb(special = TRUE)
 		qdel(arm)
-	TEST_ASSERT(!sniff.allow_act(partner, person), "An armpit interaction reached someone with no arms.")
+	TEST_ASSERT(!interaction.allow_act(partner, person), "An armpit interaction reached someone with no arms.")
 
 /// Whether the human's chest draws an overlay with `state`.
 /datum/unit_test/portal_test/body_hair/proc/chest_draws(mob/living/carbon/human/person, state)

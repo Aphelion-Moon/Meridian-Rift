@@ -224,7 +224,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 	if(!islist(message) && istext(message))
 		message_admins("Deprecated message handling for '[html_encode(name)]'. Correct format is a list with one entry. This message will only show once.")
 		message = list(message)
-	var/message_template = pick(texts_for(message, message_nippleless, user, target))
+	var/message_template = pick(texts_for(message, message_nippleless, user, target, message_pit_hair))
 	// %USER% is blanked here because the emote procs below already prepend the user's name.
 	var/msg = format_message_for(
 		message_template,
@@ -256,7 +256,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		var/admin_msg = format_message_for(message_template, user, target, omit_user = TRUE)
 		user.log_message("[admin_msg] (interaction target: [key_name(target)]; user anonymous: [user_anonymous]; target anonymous: [target_anonymous])", LOG_GAME)
 
-	var/list/user_texts = texts_for(user_messages, user_messages_nippleless, user, target)
+	var/list/user_texts = texts_for(user_messages, user_messages_nippleless, user, target, user_messages_pit_hair)
 	if(user_texts.len)
 		var/user_msg = format_message_for(
 			pick(user_texts),
@@ -269,7 +269,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		to_chat(user, user_msg)
 
 	// Someone acting on themselves already got the user side message; the target side would address them twice.
-	var/list/target_texts = texts_for(target_messages, target_messages_nippleless, user, target)
+	var/list/target_texts = texts_for(target_messages, target_messages_nippleless, user, target, target_messages_pit_hair)
 	if(target_texts.len && !(user == target && !user_anonymous && !target_anonymous))
 		var/target_msg = format_message_for(
 			pick(target_texts),
@@ -368,6 +368,9 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		if(findtext(formatted_message, "%[role]_DEVICE%"))
 			var/obj/item/device = participant.get_blocking_device(ORGAN_SLOT_PENIS) || participant.get_blocking_device(ORGAN_SLOT_VAGINA)
 			formatted_message = replacetext(formatted_message, "%[role]_DEVICE%", device?.name || "chastity device")
+	if(findtextEx(message_template, "%TARGET_SCENT%"))
+		var/scent = target_anonymous ? null : target?.dna?.features[ERP_FLAVOR_DNA_SCENT]
+		formatted_message = replacetextEx(formatted_message, "%TARGET_SCENT%", istext(scent) && length(scent) ? scent : "their scent")
 	return trim(formatted_message, INTERACTION_MAX_CHAR)
 
 /// Whose chest this interaction is about: the user's when it needs their breasts, otherwise the target's.
@@ -376,9 +379,11 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 	return (ORGAN_SLOT_BREASTS in user_required_parts) ? user : target
 
 /// The list to pick messages from: `nippleless_texts`, if given, when that chest is pecs drawn without nipples.
-/datum/interaction/proc/texts_for(list/usual, list/nippleless_texts, mob/living/carbon/human/user, mob/living/carbon/human/target)
+/datum/interaction/proc/texts_for(list/usual, list/nippleless_texts, mob/living/carbon/human/user, mob/living/carbon/human/target, list/pit_hair_texts = null)
 	if(nippleless_texts && chest_owner(user, target)?.has_nippleless_pecs())
 		return nippleless_texts
+	if(length(pit_hair_texts) && istype(target?.get_organ_slot(ORGAN_SLOT_EXTERNAL_PITS), /obj/item/organ/body_hair/pits))
+		return pit_hair_texts
 	return usual
 
 /// The menu label for these participants: `name_pecs`, or `name_nippleless`, when that chest is pecs.
@@ -432,6 +437,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 	var/list/json = json_load(file)
 	name = sanitize_text(json["name"])
 	load_chest_text(json)
+	load_pit_hair_text(json)
 	description = sanitize_text(json["description"])
 	distance_allowed = sanitize_integer(json["distance_allowed"], 0, 1, 0)
 	message = sanitize_islist(json["message"], list("json error"))
@@ -489,6 +495,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		"sexuality" = sexuality,
 	)
 	save_chest_text(json)
+	save_pit_hair_text(json)
 	var/file = file(fpath)
 	WRITE_FILE(file, json_encode(json))
 	return TRUE
@@ -550,6 +557,9 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 
 		var/datum/interaction/interaction = new()
 
+		interaction.name = sanitize_text(ijson["name"])
+		interaction.description = sanitize_text(ijson["description"])
+		interaction.load_pit_hair_text(ijson)
 		interaction.load_chest_text(ijson)
 		interaction.distance_allowed = sanitize_integer(ijson["distance_allowed"], 0, 1, 0)
 		interaction.message = sanitize_islist(ijson["message"], list("json error"))

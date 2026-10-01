@@ -35,49 +35,49 @@
 		TEST_NOTICE(src, "Bouncing needs genitals, which the ERP config disables.")
 		return
 
-	var/mob/living/carbon/human/consistent/bouncer = allocate(/mob/living/carbon/human/consistent)
-	var/obj/item/organ/genital/breasts/chest = give_breasts(bouncer, "Pair", 3)
+	var/mob/living/carbon/human/consistent/human = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/organ/genital/breasts/chest = give_breasts(human, "Pair", 3)
 	TEST_ASSERT_NOTNULL(chest, "The test human did not get breasts.")
 	var/datum/bodypart_overlay/mutant/genital/breasts/overlay = chest.bodypart_overlay
-	var/still_sheet = overlay.sprite_datum.get_special_icon(bouncer, overlay)
+	var/still_sheet = overlay.sprite_datum.get_special_icon(human, overlay)
 
 	TEST_ASSERT_NULL(chest.bounce_blocker(), "A bare, upright chest could not bounce.")
 	TEST_ASSERT(chest.start_bounce(), "The bounce did not start.")
-	TEST_ASSERT_EQUAL(overlay.sprite_datum.get_special_icon(bouncer, overlay), BREASTS_ICON_JIGGLE, "Bouncing breasts did not draw from the jiggle sheet.")
+	TEST_ASSERT_EQUAL(overlay.sprite_datum.get_special_icon(human, overlay), BREASTS_ICON_JIGGLE, "Bouncing breasts did not draw from the jiggle sheet.")
 	TEST_ASSERT_EQUAL(chest.bounce_cycles_left, round(BREAST_BOUNCE_DEFAULT_DURATION / BREAST_BOUNCE_CYCLE, 1) - 1, "The default bounce has the wrong number of cycles.")
 	chest.stop_bounce()
 	TEST_ASSERT(!chest.is_bouncing(), "The bounce did not stop.")
-	TEST_ASSERT_EQUAL(overlay.sprite_datum.get_special_icon(bouncer, overlay), still_sheet, "Settled breasts stayed on the jiggle sheet.")
+	TEST_ASSERT_EQUAL(overlay.sprite_datum.get_special_icon(human, overlay), still_sheet, "Settled breasts stayed on the jiggle sheet.")
 	chest.start_bounce(1 MINUTES)
 	TEST_ASSERT_EQUAL(chest.bounce_cycles_left, round(BREAST_BOUNCE_MAX_DURATION / BREAST_BOUNCE_CYCLE, 1) - 1, "A long bounce ran past the cap.")
 
 	// Covering up ends a bounce at its next cycle and keeps a new one from starting.
 	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
-	TEST_ASSERT(bouncer.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING), "Could not dress the test human.")
+	TEST_ASSERT(human.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING), "Could not dress the test human.")
 	chest.bounce_cycle()
 	TEST_ASSERT(!chest.is_bouncing(), "A covered chest kept bouncing.")
 	TEST_ASSERT(!chest.start_bounce(), "A covered chest started bouncing.")
 	qdel(uniform)
 	TEST_ASSERT_NULL(chest.bounce_blocker(), "The chest could not bounce once bare again.")
 
-	bouncer.set_resting(TRUE, instant = TRUE)
+	human.set_resting(TRUE, instant = TRUE)
 	TEST_ASSERT_NOTNULL(chest.bounce_blocker(), "A chest lying down could bounce.")
-	bouncer.set_resting(FALSE, instant = TRUE)
-	bouncer.set_combat_mode(TRUE)
+	human.set_resting(FALSE, instant = TRUE)
+	human.set_combat_mode(TRUE)
 	TEST_ASSERT_NOTNULL(chest.bounce_blocker(), "A chest in combat mode could bounce.")
-	bouncer.set_combat_mode(FALSE)
+	human.set_combat_mode(FALSE)
 
 	// The emote starts a bounce, and using it again stops it.
 	var/datum/emote/living/lewd/jiggle/jiggle = locate() in GLOB.emote_list["jiggle"]
 	TEST_ASSERT_NOTNULL(jiggle, "The jiggle emote is not registered.")
-	jiggle.run_emote(bouncer, "5")
+	jiggle.run_emote(human, "5")
 	TEST_ASSERT(chest.is_bouncing(), "The jiggle emote did not start a bounce.")
 	TEST_ASSERT_EQUAL(chest.bounce_cycles_left, round(5 SECONDS / BREAST_BOUNCE_CYCLE, 1) - 1, "The jiggle emote ignored its duration.")
-	jiggle.run_emote(bouncer)
+	jiggle.run_emote(human)
 	TEST_ASSERT(!chest.is_bouncing(), "Using the jiggle emote again did not stop the bounce.")
 
 	chest.start_bounce()
-	chest.Remove(bouncer, special = TRUE)
+	chest.Remove(human, special = TRUE)
 	TEST_ASSERT(!chest.is_bouncing(), "Removed breasts kept bouncing.")
 
 	var/mob/living/carbon/human/consistent/flat = allocate(/mob/living/carbon/human/consistent)
