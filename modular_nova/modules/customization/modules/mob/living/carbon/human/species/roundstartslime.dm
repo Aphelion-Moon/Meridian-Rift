@@ -299,9 +299,9 @@
 	victim.visible_message(span_warning("[victim]'s body completely dissolves, collapsing outwards!"), span_notice("Your body completely dissolves, collapsing outwards!"), span_notice("You hear liquid splattering."))
 	qdel(victim) // Remove the Body.
 	UnregisterSignal(victim, COMSIG_LIVING_DEATH)
-	// APHELION EDIT ADDITION START - BOUNCY_OBJECTS - pop the core away bouncing when the body melts
-	SEND_SIGNAL(src, COMSIG_MOVABLE_BOUNCY_EJECTED)
-	// APHELION EDIT ADDITION END
+	// BOUNCY_OBJECTS - toss the core loose in place, so the bouncy element pops it away
+	if(isturf(loc) && has_gravity())
+		throw_at(loc, 4, throw_speed, spin = FALSE)
 
 /**
 * Procs the ethereal jaunt liquid effect when the slime dissolves on death.
