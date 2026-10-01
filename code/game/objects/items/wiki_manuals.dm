@@ -78,7 +78,7 @@
 	icon_state ="bookEngineering2"
 	starting_author = "Engineering Encyclopedia"
 	starting_title = "Engineering Textbook"
-	page_link = "Guide_to_engineering"
+	page_link = "Station_Engineer" // APHELION EDIT - Meridian's engineering guide.
 
 /obj/item/book/manual/wiki/security_space_law
 	name = "Space Law"
@@ -86,7 +86,7 @@
 	icon_state = "bookSpaceLaw"
 	starting_author = "Nanotrasen"
 	starting_title = "Space Law"
-	page_link = "Space_Law"
+	page_link = "Federation_Law" // APHELION EDIT
 
 /obj/item/book/manual/wiki/security_space_law/suicide_act(mob/living/user)
 	user.visible_message(span_suicide("[user] pretends to read \the [src] intently... then promptly dies of laughter!"))
@@ -104,7 +104,7 @@
 	icon_state = "book7"
 	starting_author = "University of Bluespace"
 	starting_title = "Teleportation Science - Bluespace for dummies!"
-	page_link = "Guide_to_telescience"
+	page_link = "Special:Search/telescience" // APHELION EDIT - Search until Meridian has a dedicated guide.
 
 /obj/item/book/manual/wiki/engineering_hacking
 	name = "Hacking"
@@ -146,7 +146,7 @@
 	icon_state = "rdbook"
 	starting_author = "Dr. H.P. Kritz"
 	starting_title = "Mentoring your Experiments"
-	page_link = "Experimentor"
+	page_link = "Special:Search/Experimentor" // APHELION EDIT - Search until Meridian has a dedicated guide.
 
 /obj/item/book/manual/wiki/cooking_to_serve_man
 	name = "To Serve Man"
@@ -243,7 +243,7 @@
 	icon_state = "tgcbook"
 	starting_author = "Nanotrasen Edu-tainment Division"
 	starting_title = "Tactical Game Cards - Player's Handbook"
-	page_link = "Tactical_Game_Cards"
+	page_link = "Special:Search/Tactical_Game_Cards" // APHELION EDIT - Search until Meridian has a dedicated guide.
 
 #undef BOOK_WINDOW_BROWSE_SIZE
 #undef WIKI_PAGE_IFRAME

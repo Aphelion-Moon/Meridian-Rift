@@ -203,10 +203,10 @@ IPINTEL_REJECT_BAD
 # FORUMURL http://tgstation13.org/phpBB/index.php
 
 ## Wiki address
-# WIKIURL https://wiki.novasector13.com/wiki
+# WIKIURL https://meridian-wiki.a13.info/wiki
 
 ## Rules address
-# RULESURL https://wiki.novasector13.com/wiki/Policies
+# RULESURL https://meridian-wiki.a13.info/wiki/Server_Policies
 
 ## Github address
 # GITHUBURL https://github.com/AphelionDevelopment/Meridian-Rift

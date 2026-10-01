@@ -1,19 +1,18 @@
 ## MAPS
 
-/tg/station currently has six station maps in rotation.
+Station map configurations included in this repository:
 
-- [CatwalkStation](https://tgstation13.org/wiki/CatwalkStation)
-- [DeltaStation](https://tgstation13.org/wiki/DeltaStation)
-- [IceBoxStation](https://tgstation13.org/wiki/IceboxStation)
-- [MetaStation](https://tgstation13.org/wiki/MetaStation)
-- [NebulaStation](https://tgstation13.org/wiki/NebulaStation)
-- [TramStation](https://tgstation13.org/wiki/Tramstation)
-- [WawaStation](https://tgstation13.org/wiki/WawaStation)
+- [CatwalkStation](../../_maps/catwalkstation.json)
+- [DeltaStation](../../_maps/deltastation.json)
+- [IceBoxStation](../../_maps/icebox.json)
+- [MetaStation](../../_maps/metastation.json)
+- [NebulaStation](../../_maps/nebulastation.json)
+- [TramStation](../../_maps/tramstation.json)
 
 Debug station maps.
 
-- [RuntimeStation](https://tgstation13.org/wiki/RuntimeStation)
-- [MultiZ](https://tgstation13.org/wiki/MultiZ)
+- [RuntimeStation](../../_maps/runtimestation.json)
+- [MultiZ](../../_maps/multiz_debug.json)
 
 All maps have their own code file that is in the base of the `_maps` directory, or elsewhere in the codebase. For example, all of the station maps in rotation each have a corresponding JSON file and are loaded using the server's [configuration](#configuration) passed onto the Mapping subsystem. Maps are loaded dynamically when the game starts. Follow this guideline when adding your own map, to your fork, for easy compatibility.
 
@@ -32,7 +31,7 @@ Instead, /tg/station map maintainers will always recommend using one of two mode
 - [StrongDMM](https://github.com/SpaiR/StrongDMM) (Windows/Linux/MacOS)
 - [FastDMM2](https://github.com/monster860/FastDMM2) (Web-based Utility)
 
-Both of the above programs have native TGM support, which is mandatory for all maps being submitted to this repository. Anytime you want to make changes to a map, it is imperative you use the [Map Merging tools](https://tgstation13.org/wiki/Map_Merger). When you clone your repository onto your machine for mapping, it's always a great idea to run `tools/hooks/Install.bat` at the very start of your mapping endeavors, as this will install Git hooks that help you automatically resolve any merge conflicts that come up while mapping.
+Both of the above programs have native TGM support, which is mandatory for all maps being submitted to this repository. Anytime you want to make changes to a map, it is imperative you use the [Map Merging tools](../../tools/mapmerge2/README.md). When you clone your repository onto your machine for mapping, it's always a great idea to run `tools/hooks/Install.bat` at the very start of your mapping endeavors, as this will install Git hooks that help you automatically resolve any merge conflicts that come up while mapping.
 
 ## UPDATEPATHS
 
