@@ -29,7 +29,7 @@
 
 /// Setup actions that change the body or its markings outside set_preference save and close open editors first, as preference changes do.
 /datum/preferences/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
-	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "reset_marking_color", "remove_marking", "change_emissive", "set_preset", "randomize_character")
+	var/static/list/body_actions = list("set_bodypart_aug", "set_bodypart_aug_style", "add_marking", "change_marking", "color_marking", "reset_marking_color", "remove_marking", "change_emissive", "set_preset", "surprise_markings", "randomize_character")
 	if((action in body_actions) && !finish_custom_sprite_editors_for_change(ui?.user))
 		return TRUE
 	return ..()
@@ -180,6 +180,16 @@
 	var/list/preview_recipes
 	/// The preview look preview_recipes were walked from.
 	var/mutable_appearance/preview_recipes_for
+	/// Whether the window has its preview's lights off, so previews come with what glows in them.
+	var/lights_off = FALSE
+	/// Direction -> the glow of that view's preview picture, drawn only with the lights off: a data URL, or "" when
+	/// nothing in the view glows. A view has none until its glow is drawn, and loses it when its picture is drawn again.
+	var/list/glow_urls = list()
+	/// Direction -> the iconforge recipe of each view's glow, from one walk of preview_appearance's emissive overlays,
+	/// or null when nothing in it glows; see glow.dm.
+	var/list/glow_recipes
+	/// The preview look glow_recipes were walked from.
+	var/mutable_appearance/glow_recipes_for
 
 /datum/custom_sprite_editor/New(datum/preferences/preferences, target)
 	var/static/editors_made = 0
@@ -508,6 +518,9 @@
 	preview_appearance = null
 	preview_recipes = null
 	preview_recipes_for = null
+	glow_urls = list()
+	glow_recipes = null
+	glow_recipes_for = null
 	cover_looks = null
 	cover_key = null
 	cover_rows = list()
@@ -583,7 +596,7 @@
 		request_other_views()
 	return TRUE
 
-/// Draws these views of the preview from its walk.
+/// Draws these views of the preview from its walk, and their glows with the lights off.
 /datum/custom_sprite_editor/proc/draw_previews(list/views)
 	var/list/recipes = list()
 	for(var/view in views)
@@ -591,19 +604,49 @@
 	for(var/view, url in custom_sprite_draw_recipes(recipes, CALLBACK(src, PROC_REF(publish_picture)), "[picture_name]_preview"))
 		preview_urls[view] = url
 		stale_previews -= view
+		glow_urls -= view
+	if(lights_off)
+		draw_glows(views)
 
-/// Deferred work: every view the window may turn to next that isn't ready, its guide's cover rows and its preview, so turning draws nothing.
+/**
+ * Draws the glow of each of these views' preview pictures that has none yet, for the window's lights-off view. A view
+ * whose picture is about to be drawn again waits for it, so a picture and its glow always show the same look.
+ */
+/datum/custom_sprite_editor/proc/draw_glows(list/views)
+	var/list/recipes = list()
+	for(var/view in views)
+		if(!isnull(glow_urls[view]) || !preview_urls[view] || stale_previews[view])
+			continue
+		var/recipe = glow_recipe(view)
+		if(recipe)
+			recipes[view] = recipe
+		else
+			glow_urls[view] = ""
+	for(var/view, url in custom_sprite_draw_recipes(recipes, CALLBACK(src, PROC_REF(publish_picture)), "[picture_name]_glow"))
+		glow_urls[view] = url
+
+/// One view's glow as an iconforge recipe, or null when nothing in it glows: the emissive overlays of the look its preview was drawn from.
+/datum/custom_sprite_editor/proc/glow_recipe(view)
+	if(!preview_appearance)
+		return null
+	if(glow_recipes_for != preview_appearance)
+		glow_recipes = custom_sprite_glow_view_recipes(preview_appearance, preview_width, preview_height)
+		glow_recipes_for = preview_appearance
+	return glow_recipes?[view]
+
+/// Deferred work: every view the window may turn to next that isn't ready, its guide's cover rows, its preview and, with the lights off, its glow, so turning draws nothing.
 /datum/custom_sprite_editor/proc/draw_waiting_views()
 	for(var/view in GLOB.custom_sprite_view_facings)
 		if(stale_guides[view])
 			render_guide(view)
-	if(!length(stale_previews) || !preview_appearance || preview_recipes_for != preview_appearance)
-		return
-	var/list/views = list()
-	for(var/view in GLOB.custom_sprite_view_facings)
-		if(stale_previews[view])
-			views += view
-	draw_previews(views)
+	if(length(stale_previews) && preview_appearance && preview_recipes_for == preview_appearance)
+		var/list/views = list()
+		for(var/view in GLOB.custom_sprite_view_facings)
+			if(stale_previews[view])
+				views += view
+		draw_previews(views)
+	if(lights_off)
+		draw_glows(GLOB.custom_sprite_view_facings)
 
 /// The markings palette: the body's mutant colors, then its native marking shades tinted by each, up to 15 colors.
 /datum/custom_sprite_editor/proc/sample_marking_palette()
@@ -762,14 +805,17 @@
 	data["hideUnderwear"] = hide_underwear
 	// TGUI merges updates, so an absent candidate must explicitly clear the previous preview.
 	data["candidate"] = candidate ? list("source" = candidate["source"], "previews" = candidate["previews"], "summary" = candidate["summary"]) : null
+	// Glows only light the preview with its lights off; turned on again, null clears them.
+	data["glows"] = lights_off ? glow_urls : null
+	data["bloom"] = user?.client?.prefs?.read_preference(/datum/preference/numeric/emissive_bloom)
 	return data + context_ui_data()
 
 /datum/custom_sprite_editor/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(. || !can_edit(ui.user))
 		return
-	// Strokes over the budget go in first, in order. Until they have, the window can only send more strokes and switch views: anything else is ignored, and the drain's update shows where things stand.
-	if(length(stroke_queue) && action != "setView" && !(action == "spriteEditorCommand" && params["command"] == "transaction"))
+	// Strokes over the budget go in first, in order. Until they have, the window can only send more strokes, switch views and turn its preview's lights off or on: anything else is ignored, and the drain's update shows where things stand.
+	if(length(stroke_queue) && action != "setView" && action != "previewLights" && !(action == "spriteEditorCommand" && params["command"] == "transaction"))
 		return FALSE
 	// A mirror can be picked up or dropped while this window is open.
 	sync_locked_views(push = FALSE)
@@ -793,6 +839,18 @@
 			return request_base_copy(params, ui)
 		if("baseCopyProblem")
 			transfer_error = params["problem"] == "bounds" ? (target == "hair" ? "The copied hair does not fit here. Choose Bald (Tall Canvas) for taller hair, then paste again." : "The copied pixels do not fit the editable regions here. Keep this view and uncover the destination, then paste again.") : "Wait for this editor to finish changing before pasting its base copy."
+			return TRUE
+		if("previewLights")
+			var/off = params["off"]
+			if(!isnum(off) || !(off in list(TRUE, FALSE)) || off == lights_off)
+				return FALSE
+			lights_off = off
+			// On again, the window just stops lighting its preview, and nothing more is drawn for it.
+			if(!lights_off)
+				return TRUE
+			// The view shown glows at once, the others in the next fire, as turning to them would show.
+			draw_glows(list(visible_direction))
+			request_other_views()
 			return TRUE
 		if("setView")
 			var/direction = params["dir"]
@@ -1293,8 +1351,9 @@
 	drop_pending_body()
 	release_resources()
 	resources_ready = FALSE
-	// The window opens on the Front view again, and only on notices given while it opens.
+	// The window opens on the Front view again, with its lights on, and only on notices given while it opens.
 	visible_direction = "2"
+	lights_off = FALSE
 	transfer_notice = null
 
 /// The draft as a style package.

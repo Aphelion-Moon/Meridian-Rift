@@ -186,6 +186,13 @@ export const eye_emissives: FeatureToggle = {
   component: CheckboxInput,
 };
 
+export const custom_pod_eye_color: FeatureToggle = {
+  name: 'Custom Pod Eye Color',
+  description:
+    'Use your chosen eye color instead of the natural green of Pod eyes. Turning this off keeps your chosen color saved.',
+  component: CheckboxInput,
+};
+
 export const skin_tone_toggle: FeatureToggle = {
   name: 'Skin Tone',
   description:

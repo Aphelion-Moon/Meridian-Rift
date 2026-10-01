@@ -11,6 +11,9 @@
  *
  * Bodies whose paint doesn't sit on those layers alone (a taur), and drafts a save would change
  * (a region over its colour limit), keep drawing the painted body.
+ *
+ * A composed preview's glow, for the window's lights-off view, is composed the same way: the slices' own emissive
+ * overlays, with the canvas between them as its paint shows on the emissive plane; see glow.dm.
  */
 /datum/custom_sprite_editor/markings
 	/// Whether the current previews are composed from slices rather than flattened.
@@ -23,6 +26,12 @@
 	var/list/slice_recipes
 	/// Direction -> the canvas pixels its composed preview was drawn from.
 	var/list/composed_frames = list()
+	/// Direction -> list(under, between, over) iconforge recipes of paintless_look's emissive overlays, null for an empty slice.
+	var/list/glow_slice_recipes
+	/// Whether anything in paintless_look glows, rather than only blocking glow.
+	var/glow_slices_lit = FALSE
+	/// The paintless look glow_slice_recipes were cut from.
+	var/mutable_appearance/glow_slices_for
 
 /// The character thumbnail can show floating paint without changing the authoritative draft. Markings have one layer.
 /datum/custom_sprite_editor/markings/proc/preview_frames()
@@ -63,7 +72,7 @@
 			push()
 	return TRUE
 
-/// Composed previews come from the slices and the canvas; otherwise the painted body is drawn. Every view whose paint changed is drawn at once.
+/// Composed previews come from the slices and the canvas; otherwise the painted body is drawn. Every view whose paint changed is drawn at once, with its glow while the lights are off.
 /datum/custom_sprite_editor/markings/render_preview(direction)
 	if(!preview_composed || !resources_ready)
 		return ..()
@@ -76,7 +85,45 @@
 		preview_urls[view] = url
 		composed_frames[view] = json_encode(frames[view])
 		stale_previews -= view
+		glow_urls -= view
+	if(lights_off)
+		draw_glows(recipes)
 	return TRUE
+
+/// A composed preview's glow is composed too.
+/datum/custom_sprite_editor/markings/glow_recipe(view)
+	if(!preview_composed || !resources_ready)
+		return ..()
+	return composed_glow_recipe(view)
+
+/// One view of the preview's glow as an iconforge recipe: its slices' glows with the canvas's between them, or null when nothing in the view glows.
+/datum/custom_sprite_editor/markings/proc/composed_glow_recipe(direction)
+	var/list/cut = view_glow_slice_recipes()[direction]
+	var/list/paint = paint_recipes(preview_frames()[direction], direction, glow = TRUE)
+	if(!glow_slices_lit && !paint[3])
+		return null
+	var/list/blends = list()
+	for(var/part in list(cut[1], paint[1], cut[2], paint[2], cut[3]))
+		if(part)
+			blends += "{\"type\":\"[RUSTG_ICONFORGE_BLEND_ICON]\",\"icon\":[part],\"blend_mode\":[ICON_OVERLAY],\"x\":1,\"y\":1}"
+	return custom_sprite_boxes_recipe(blends)
+
+/// Every view's glow slices as recipes, cut where the preview's slices are, the first time a glow is composed after each rebuild.
+/datum/custom_sprite_editor/markings/proc/view_glow_slice_recipes()
+	// Captures this rebuild's paintless look, if nothing has yet.
+	view_slice_recipes()
+	if(glow_slices_for == paintless_look && glow_slice_recipes)
+		return glow_slice_recipes
+	glow_slices_for = paintless_look
+	glow_slices_lit = emissive_branches_lit(emissive_branches(paintless_look))
+	var/list/cuts = list()
+	for(var/list/bounds as anything in list(list(-INFINITY, -BODYPARTS_LAYER), list(-BODYPARTS_LAYER, -BODYPARTS_HIGH_LAYER), list(-BODYPARTS_HIGH_LAYER, INFINITY)))
+		var/mutable_appearance/holder = emissive_holder(emissive_branches(paintless_look, bounds[1], bounds[2]), paintless_look)
+		cuts += list(holder ? custom_sprite_view_recipes(holder) : list())
+	glow_slice_recipes = list()
+	for(var/view in GLOB.custom_sprite_view_facings)
+		glow_slice_recipes[view] = list(cuts[1][view], cuts[2][view], cuts[3][view])
+	return glow_slice_recipes
 
 /// One view of the preview as an iconforge recipe: its slices with the canvas pixels between them.
 /datum/custom_sprite_editor/markings/proc/composed_recipe(direction)
@@ -140,13 +187,20 @@
 /**
  * One view's canvas pixels as recipes of boxes, list(everything but the hands, the hands), each null when it has no
  * paint. Paint takes its limb's marking opacity, as in game. One pass over the canvas serves both.
+ *
+ * With `glow`, the paint is drawn as the emissive plane holds it instead: red, as bright as the paint is opaque, where
+ * its region glows in this view, and black where it only blocks; a third entry says whether any of it glows.
  */
-/datum/custom_sprite_editor/markings/proc/paint_recipes(list/frame, direction)
+/datum/custom_sprite_editor/markings/proc/paint_recipes(list/frame, direction, glow = FALSE)
 	var/list/rows = region_map[direction]
 	var/list/zones = region_zones
 	var/list/hand_arms = GLOB.custom_marking_hand_arms
 	// Zone -> alpha suffix for its paint, "" when fully opaque.
 	var/list/alphas = list()
+	// Zone -> the colour its paint takes on the emissive plane, for a glow.
+	var/list/masks = list()
+	var/glowing = FALSE
+	var/allowed = glow && emissives_allowed()
 	var/list/body_boxes = list()
 	var/list/hand_boxes = list()
 	for(var/y in 0 to 31)
@@ -171,12 +225,20 @@
 						if(isnull(alpha))
 							var/obj/item/bodypart/limb = preview_body.get_bodypart(custom_marking_zone_limb(zone))
 							var/limb_alpha = limb?.markings_alpha
-							alpha = isnum(limb_alpha) && limb_alpha < 255 ? copytext(rgb(0, 0, 0, limb_alpha), 8) : ""
+							var/translucent = isnum(limb_alpha) && limb_alpha < 255
+							alpha = translucent ? copytext(rgb(0, 0, 0, limb_alpha), 8) : ""
 							alphas[zone] = alpha
+							if(glow)
+								// As custom_sprite_emissive_mask() makes them: a glow's opacity dims its red, a blocker's is its alpha.
+								var/lit = allowed && workspace.emissive[zone]?[direction]
+								masks[zone] = lit ? copytext(rgb(translucent ? limb_alpha : 255, 0, 0), 1, 8) : "#000000[alpha]"
+								if(lit)
+									glowing = TRUE
+						var/color = glow ? masks[zone] : "[copytext(cell, 1, 8)][alpha]"
 						if(hand_arms[zone])
-							hand_now = "[copytext(cell, 1, 8)][alpha]"
+							hand_now = color
 						else
-							body_now = "[copytext(cell, 1, 8)][alpha]"
+							body_now = color
 			if(body_now != body_color)
 				if(body_color)
 					body_boxes += "{\"type\":\"[RUSTG_ICONFORGE_DRAW_BOX]\",\"color\":\"[body_color]\",\"x1\":[body_start + 1],\"y1\":[row_y],\"x2\":[x],\"y2\":[row_y]}"
@@ -187,7 +249,7 @@
 					hand_boxes += "{\"type\":\"[RUSTG_ICONFORGE_DRAW_BOX]\",\"color\":\"[hand_color]\",\"x1\":[hand_start + 1],\"y1\":[row_y],\"x2\":[x],\"y2\":[row_y]}"
 				hand_start = x
 				hand_color = hand_now
-	return list(custom_sprite_boxes_recipe(body_boxes), custom_sprite_boxes_recipe(hand_boxes))
+	return list(custom_sprite_boxes_recipe(body_boxes), custom_sprite_boxes_recipe(hand_boxes), glowing)
 
 /// A blank tile with these iconforge transforms applied in order, such as DrawBox boxes, as a recipe, or null for none.
 /proc/custom_sprite_boxes_recipe(list/boxes)

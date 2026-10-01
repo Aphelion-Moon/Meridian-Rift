@@ -505,18 +505,17 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 
 /**
  * Returns the entries a species may not wear without mismatched parts, each asked of its marking's allows_species(): the one
- * check of a whole character's markings against a species. Character setup prunes with it when the species changes. Loading
- * never asks, so a save keeps and draws every marking it holds.
+ * check of a whole character's markings against a species. This only reports mismatches: saved markings must never be
+ * removed because a character changes species.
  *
  * Arguments:
  * - species_id: the species' id.
  * - allow_mismatched: TRUE when mismatched parts are allowed, which allows every marking.
- * - prune: TRUE to remove those entries as well. Their zones stay present, as any removal leaves them.
  *
  * Returns:
  * - list: a new list of the entries not allowed, in order, or null when every entry is.
  */
-/datum/body_marking_collection/proc/validate_for_species(species_id, allow_mismatched, prune = FALSE)
+/datum/body_marking_collection/proc/validate_for_species(species_id, allow_mismatched)
 	RETURN_TYPE(/list)
 	if(allow_mismatched)
 		return null
@@ -524,9 +523,6 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	for(var/datum/body_marking_entry/entry as anything in entries)
 		if(!entry.marking.allows_species(species_id))
 			LAZYADD(disallowed, entry)
-	if(prune && disallowed)
-		LAZYREMOVE(entries, disallowed)
-		version++
 	return disallowed
 
 /**

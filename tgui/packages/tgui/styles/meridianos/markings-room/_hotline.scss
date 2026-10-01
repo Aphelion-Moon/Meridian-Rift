@@ -1,0 +1,506 @@
+// THIS IS AN APHELION UI FILE
+// The Hotline markings room, ported from its mockup (the lab's markings-themes run,
+// canvas/project/Main.dc.html) by the themes-impl run's tools/port_room.py: the club room is the base,
+// and these are its changes. Hand edits below the port are marked HAND.
+
+.theme-meridian_hotline .AugmentsRoom {
+  --room-bg:#09040e;
+  --room-panel:#160b20;
+  --room-recess:#0e0615;
+  --room-line:#9857b0;
+  --room-text:#fff0ff;
+  --room-muted:#cbb0d4;
+  --room-faint:#a088a9;
+  --room-neon:#ff57d5;
+  --room-neon-rgb:255 87 213;
+  --room-hot:#ff4d6d;
+  --room-hot-rgb:255 77 109;
+  --room-focus:#edc6ff;
+  --room-cut:14px;
+}
+.theme-meridian_hotline .AugmentsRoom__bg--markings {
+  background:radial-gradient(ellipse 34% 40% at 50% 46%,rgb(255 87 213/.14),transparent 70%),radial-gradient(ellipse 60% 26% at 50% 100%,rgb(150 60 255/.2),transparent 70%),radial-gradient(ellipse 24% 30% at 6% 22%,rgb(255 77 109/.12),transparent 70%),linear-gradient(180deg,rgb(10 4 14/.15),rgb(8 2 12/.55)),var(--mr-hotline-booth,none) 0 0/900px 820px;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-tube {
+  position:absolute;
+  border-radius:3px;
+  background:#ffe2fa;
+  box-shadow:0 0 3px #ff57d5,0 0 10px #ff57d5,0 0 26px 4px rgb(255 87 213/.45);
+}
+.theme-meridian_hotline .AugmentsRoom .ht-tube.h {
+  left:24px;
+  right:calc(50% + 6px);
+  top:59px;
+  height:4px;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-tube.h2 {
+  left:calc(50% + 6px);
+  right:24px;
+  top:59px;
+  height:4px;
+  background:#ffe6ec;
+  box-shadow:0 0 3px #ff4d6d,0 0 10px #ff4d6d,0 0 26px 4px rgb(255 77 109/.45);
+}
+.theme-meridian_hotline .AugmentsRoom .ht-tube.l {
+  left:5px;
+  top:110px;
+  bottom:210px;
+  width:4px;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-tube.r {
+  right:5px;
+  top:110px;
+  bottom:210px;
+  width:4px;
+  background:#ffe6ec;
+  box-shadow:0 0 3px #ff4d6d,0 0 10px #ff4d6d,0 0 26px 4px rgb(255 77 109/.45);
+}
+.theme-meridian_hotline .AugmentsRoom--markings .AugmentsRoom__header {
+  border-bottom:1px solid rgb(255 87 213/.25);
+  background:linear-gradient(180deg,rgb(12 4 18/.86),rgb(12 4 18/.5));
+}
+.theme-meridian_hotline .AugmentsRoom__mode--augments {
+  font:15px/1 'VCR OSD Mono',monospace;
+  background:#9857b0;
+}
+.theme-meridian_hotline .AugmentsRoom__mode--augments::before {
+  background:#160b20;
+}
+.theme-meridian_hotline .AugmentsRoom__mode--markings {
+  padding:0 20px;
+  border-radius:20px;
+  font:34px/1 Neonderthaw,cursive;
+  letter-spacing:0;
+  color:#cbb0d4;
+  background:#14081c;
+  box-shadow:inset 0 0 0 1px #9857b0;
+}
+.theme-meridian_hotline .AugmentsRoom__mode--markings.AugmentsRoom__mode--on {
+  color:#ffe6fb;
+  background:#1a0824;
+  box-shadow:inset 0 0 0 1px rgb(255 87 213/.6),0 0 22px rgb(255 87 213/.28);
+  text-shadow:0 0 2px #fff,0 0 6px #ff57d5,0 0 14px #ff57d5,0 0 28px rgb(255 87 213/.7);
+}
+.theme-meridian_hotline .AugmentsRoom__uv {
+  font:700 12px/1 Rajdhani,sans-serif;
+  letter-spacing:.18em;
+  background:rgb(22 11 32/.8);
+  box-shadow:inset 0 0 0 1px rgb(152 87 176/.6);
+}
+.theme-meridian_hotline .AugmentsRoom .ht-sign {
+  position:absolute;
+  left:394px;
+  top:8px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-lips {
+  width:66px;
+  height:36px;
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:drop-shadow(0 0 2px #ff4d6d) drop-shadow(0 0 7px #ff4d6d) drop-shadow(0 0 16px rgb(255 77 109/.7));
+  animation:room-neonOn 1.2s steps(1) .4s backwards;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-lips .t {
+  stroke:#ff3355;
+  stroke-width:4.4;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-lips .c {
+  stroke:#ffe0e6;
+  stroke-width:1.6;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-vip {
+  display:flex;
+  align-items:center;
+  font:38px/1 Neonderthaw,cursive;
+  color:#ffe6fb;
+  text-shadow:0 0 2px #fff,0 0 6px #ff57d5,0 0 14px #ff57d5,0 0 30px rgb(255 87 213/.7);
+  animation:room-neonOn 1.4s steps(1) .8s backwards,room-hum 7s 3s infinite;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-vip b {
+  margin-left:6px;
+  font:700 18px/1 Rajdhani,sans-serif;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-neon {
+  position:absolute;
+  left:0;
+  top:0;
+  z-index:4;
+  width:360px;
+  height:560px;
+  overflow:visible;
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  pointer-events:none;
+  filter:drop-shadow(0 0 3px #ff57d5) drop-shadow(0 0 10px #ff57d5) drop-shadow(0 0 26px rgb(255 87 213/.55));
+  animation:room-neonOn 1.3s steps(1) .3s backwards;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-neon .t {
+  stroke:#ff4fc9;
+  stroke-width:9;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-neon .c {
+  stroke:#ffe6fb;
+  stroke-width:3.4;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-neon.rd {
+  filter:drop-shadow(0 0 3px #ff4d6d) drop-shadow(0 0 10px #ff4d6d) drop-shadow(0 0 26px rgb(255 77 109/.55));
+}
+.theme-meridian_hotline .AugmentsRoom .ht-neon.rd .t {
+  stroke:#ff3d62;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-neon.rd .c {
+  stroke:#ffe2e8;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-neon .cap {
+  stroke:#3a2e40;
+  stroke-width:12;
+  stroke-linecap:butt;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-clip {
+  position:absolute;
+  z-index:5;
+  width:8px;
+  height:17px;
+  border-radius:2px;
+  background:linear-gradient(90deg,#6a6272,#e2dae8 50%,#6a6272);
+  box-shadow:0 1px 2px rgb(0 0 0/.6);
+}
+.theme-meridian_hotline .AugmentsRoom .ht-clip.a {
+  left:118px;
+  top:17px;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-clip.b {
+  left:234px;
+  top:17px;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-clip.c {
+  left:9px;
+  top:250px;
+  rotate:90deg;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-clip.d {
+  left:343px;
+  top:300px;
+  rotate:90deg;
+}
+.theme-meridian_hotline .MarkingsRoom__glass {
+  left:22px;
+  top:34px;
+  width:316px;
+  height:500px;
+  border-radius:30px;
+  background:radial-gradient(ellipse 70% 30% at 50% 0%,rgb(255 77 109/.16),transparent 70%),radial-gradient(ellipse 90% 70% at 50% 45%,#22102a,#0c0410 85%);
+  box-shadow:inset 0 0 28px rgb(255 87 213/.28),inset 0 0 0 2px #0a030d;
+}
+.theme-meridian_hotline .MarkingsRoom__glass .CharacterPreview--club .CharacterPreview__figure {
+  filter:brightness(.86) saturate(.95);
+}
+.theme-meridian_hotline .MarkingsRoom__rim.MarkingsRoom__rim--top {
+  background:linear-gradient(180deg, rgb(255 150 220/.42) var(--tile-top), rgb(255 87 213/.1) calc(var(--tile-top) + 13.44 * var(--pixel)), transparent calc(var(--tile-top) + 22.4 * var(--pixel)));
+}
+.theme-meridian_hotline .MarkingsRoom__rim.MarkingsRoom__rim--side {
+  background:linear-gradient(270deg, rgb(255 87 213/.46), transparent) calc(var(--tile-left) + 16.333 * var(--pixel)) 0 / calc(7.667 * var(--pixel)) 100% no-repeat, linear-gradient(rgb(255 87 213/.46) 0 0) calc(var(--tile-left) + 24 * var(--pixel)) 0 / calc(100% - var(--tile-left) - 24 * var(--pixel)) 100% no-repeat;
+}
+.theme-meridian_hotline .MarkingsRoom__glare {
+  background:linear-gradient(118deg,transparent 0 30%,rgb(255 220 250/.05) 36%,transparent 44%),radial-gradient(ellipse 50% 8% at 50% 100%,rgb(255 87 213/.12),transparent 70%);
+}
+.theme-meridian_hotline .AugmentsRoom .ht-kiss {
+  position:absolute;
+  width:44px;
+  height:28px;
+  fill:#d81f45;
+  opacity:.78;
+  -webkit-mask-image:repeating-linear-gradient(90deg,#000 0 1.4px,rgb(0 0 0/.6) 1.4px 2.4px);
+  mask-image:repeating-linear-gradient(90deg,#000 0 1.4px,rgb(0 0 0/.6) 1.4px 2.4px);
+}
+.theme-meridian_hotline .AugmentsRoom .ht-kiss .m {
+  fill:none;
+  stroke:#5a0618;
+  stroke-width:1.4;
+  opacity:.6;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-kiss.a {
+  right:30px;
+  bottom:66px;
+  rotate:-16deg;
+}
+.theme-meridian_hotline .AugmentsRoom .ht-xo {
+  position:absolute;
+  right:26px;
+  bottom:38px;
+  font:20px/1 'Permanent Marker',cursive;
+  color:#e8264a;
+  rotate:-9deg;
+  opacity:.85;
+  -webkit-mask-image:repeating-linear-gradient(-30deg,#000 0 1.4px,rgb(0 0 0/.55) 1.4px 2.2px);
+  mask-image:repeating-linear-gradient(-30deg,#000 0 1.4px,rgb(0 0 0/.55) 1.4px 2.2px);
+}
+.theme-meridian_hotline .MarkingsRoom__card {
+  border:0;
+  border-radius:16px;
+  color:#cbb0d4;
+  background:linear-gradient(160deg,rgb(255 255 255/.08),transparent 32%),linear-gradient(180deg,rgb(38 12 50/.9),rgb(16 5 24/.94));
+  box-shadow:0 0 0 1.5px #ffcdf2,0 0 6px 1px rgb(255 87 213/.7),0 0 18px 2px rgb(255 87 213/.26),0 10px 22px rgb(0 0 0/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__card::after {
+  display:none;
+}
+.theme-meridian_hotline .MarkingsRoom__cardX1,
+.theme-meridian_hotline .MarkingsRoom__cardX2 {
+  display:none;
+}
+.theme-meridian_hotline .MarkingsRoom__card.MarkingsRoom__card--lit {
+  box-shadow:0 0 0 2px #fff0fc,0 0 8px 2px #ff57d5,0 0 26px 4px rgb(255 87 213/.5),0 10px 22px rgb(0 0 0/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__card.MarkingsRoom__card--right {
+  box-shadow:0 0 0 1.5px #ffc6d0,0 0 6px 1px rgb(255 77 109/.7),0 0 18px 2px rgb(255 77 109/.26),0 10px 22px rgb(0 0 0/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__card.MarkingsRoom__card--right.MarkingsRoom__card--lit {
+  box-shadow:0 0 0 2px #fff0f2,0 0 8px 2px #ff4d6d,0 0 26px 4px rgb(255 77 109/.5),0 10px 22px rgb(0 0 0/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__card.MarkingsRoom__card--right .MarkingsRoom__cardName {
+  color:#ffdbe2;
+  text-shadow:0 0 6px rgb(255 77 109/.9),0 0 14px rgb(255 77 109/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__cardTag {
+  display:block;
+  right:12px;
+  bottom:10px;
+  padding:3px 8px 2px;
+  border-radius:9px;
+  background:#ff4d6d;
+  color:#1a0820;
+  font:700 10px/1 Rajdhani,sans-serif;
+  letter-spacing:.22em;
+  box-shadow:0 0 8px rgb(255 77 109/.8);
+}
+.theme-meridian_hotline .MarkingsRoom__cardName {
+  font:700 19px/1 Rajdhani,sans-serif;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#ffd9f6;
+  text-shadow:0 0 6px rgb(255 87 213/.9),0 0 14px rgb(255 87 213/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__cardCount {
+  font:600 13px/1 Rajdhani,sans-serif;
+  color:#edc6ff;
+}
+.theme-meridian_hotline .MarkingsRoom__cardNames {
+  max-width:176px;
+  font:600 12px/1.2 Rajdhani,sans-serif;
+  letter-spacing:.04em;
+}
+.theme-meridian_hotline .MarkingsRoom__tile {
+  border-radius:10px;
+  background:#12061a;
+  box-shadow:inset 0 0 0 1px rgb(255 214 245/.45);
+}
+.theme-meridian_hotline .MarkingsRoom__tile.MarkingsRoom__tile--selected {
+  box-shadow:inset 0 0 0 1px rgb(255 214 245/.6),0 0 0 2px #ff57d5,0 0 14px rgb(255 87 213/.6);
+}
+.theme-meridian_hotline .MarkingsRoom__tile.MarkingsRoom__tile--add {
+  border:1.5px dashed rgb(255 214 245/.4);
+  color:#ffb3ea;
+}
+.theme-meridian_hotline .MarkingsRoom__tile.MarkingsRoom__tile--add:hover {
+  border-color:#ff57d5;
+  color:#fff;
+}
+.theme-meridian_hotline .MarkingsRoom__customLabel {
+  font:700 9px/1 Rajdhani,sans-serif;
+  letter-spacing:.12em;
+}
+.theme-meridian_hotline .MarkingsRoom__counter {
+  background:linear-gradient(180deg,#d9c8e6 0 1px,#6a4a7a 1px 3px,#0a0410 3px 5px,transparent 5px),radial-gradient(ellipse 34% 90% at 50% 40%,rgb(150 60 255/.2),transparent 70%),linear-gradient(180deg,#1c0a26,#0c0412);
+  box-shadow:0 -10px 30px rgb(0 0 0/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__counter::before {
+  display:none;
+}
+.theme-meridian_hotline .MarkingsRoom__label,
+.theme-meridian_hotline .MarkingsRoom__markerLabel {
+  font:700 11px/1 Rajdhani,sans-serif;
+  letter-spacing:.2em;
+  color:#cbb0d4;
+}
+.theme-meridian_hotline .MarkingsRoom__selWhere {
+  font:700 11px/1 Rajdhani,sans-serif;
+  letter-spacing:.16em;
+  color:#ff57d5;
+}
+.theme-meridian_hotline .MarkingsRoom__selName {
+  font:700 19px/1.1 Rajdhani,sans-serif;
+  letter-spacing:.04em;
+}
+.theme-meridian_hotline .MarkingsRoom__paints {
+  position:relative;
+  margin:-6px 0 -4px;
+  padding:8px 10px 0;
+  border-radius:12px;
+  background:linear-gradient(180deg,rgb(255 255 255/.07),transparent 30%),rgb(20 6 30/.85);
+  box-shadow:inset 0 0 0 1px rgb(255 214 245/.28),inset 0 0 26px rgb(150 60 255/.3),0 0 14px rgb(255 87 213/.15);
+}
+.theme-meridian_hotline .MarkingsRoom__paints::before {
+  content:'';
+  position:absolute;
+  left:8px;
+  right:8px;
+  top:78px;
+  height:2px;
+  border-radius:1px;
+  background:#ffd6f4;
+  box-shadow:0 0 6px #ff57d5,0 64px 0 #ffd6dc,0 64px 6px #ff4d6d;
+}
+.theme-meridian_hotline .MarkingsRoom__pill {
+  border-radius:17px;
+  font:700 12px/1 Rajdhani,sans-serif;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  background:rgb(20 6 30/.85);
+  box-shadow:inset 0 0 0 1px rgb(255 214 245/.3);
+}
+.theme-meridian_hotline .MarkingsRoom__pill:hover:not(:disabled) {
+  background:rgb(255 87 213/.12);
+  box-shadow:inset 0 0 0 1px #ff57d5,0 0 12px rgb(255 87 213/.3);
+}
+.theme-meridian_hotline .MarkingsRoom__big {
+  border-radius:16px;
+  background:linear-gradient(180deg,rgb(255 255 255/.08),rgb(0 0 0/.18)),rgb(36 10 48/.92);
+  box-shadow:0 0 0 1.5px #ffd0f4,0 0 8px 1px rgb(255 87 213/.6),0 0 20px rgb(255 87 213/.22);
+}
+.theme-meridian_hotline .MarkingsRoom__big:hover {
+  box-shadow:0 0 0 2px #fff0fc,0 0 10px 2px #ff57d5,0 0 28px rgb(255 87 213/.4);
+}
+.theme-meridian_hotline .MarkingsRoom__big b {
+  font:700 18px/1 Rajdhani,sans-serif;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.theme-meridian_hotline .MarkingsRoom__big small {
+  font:600 12px/1 Rajdhani,sans-serif;
+  letter-spacing:.04em;
+}
+.theme-meridian_hotline .MarkingsRoom__big.MarkingsRoom__big--alt {
+  box-shadow:0 0 0 1.5px #ffc6d0,0 0 8px 1px rgb(255 77 109/.6),0 0 20px rgb(255 77 109/.2);
+}
+.theme-meridian_hotline .MarkingsRoom__big.MarkingsRoom__big--alt svg {
+  stroke:#ff4d6d;
+}
+.theme-meridian_hotline .MarkingsRoom__markerCap {
+  width:14px;
+  height:5px;
+  margin-top:5px;
+  border-radius:3px 3px 0 0;
+  background:linear-gradient(90deg,#8a8494,#f0eaf6 45%,#8a8494);
+  box-shadow:none;
+}
+.theme-meridian_hotline .MarkingsRoom__markerBody {
+  width:14px;
+  height:34px;
+  border-radius:1px 1px 3px 3px;
+  background:linear-gradient(90deg,rgb(255 255 255/.42),transparent 38%,rgb(0 0 0/.38)),linear-gradient(160deg,transparent 0 38%,rgb(255 255 255/.8) 38% 46%,transparent 46%) 0 7px/14px 14px no-repeat,linear-gradient(180deg,#d6d0de 0 2px,var(--marker) 2px 27px,#1a0a22 27px 31px,#d6d0de 31px);
+  box-shadow:0 0 12px -3px var(--marker),0 2px 4px rgb(0 0 0/.5);
+}
+.theme-meridian_hotline .MarkingsRoom__marker.MarkingsRoom__marker--current .MarkingsRoom__markerBody {
+  box-shadow:0 0 0 2px #ff57d5,0 0 14px var(--marker);
+}
+.theme-meridian_hotline .MarkingsRoom__marker--mix .MarkingsRoom__markerCap {
+  width:14px;
+  height:5px;
+  margin-top:5px;
+  border-radius:3px 3px 0 0;
+  background:linear-gradient(90deg,#8a8494,#f0eaf6 45%,#8a8494);
+}
+.theme-meridian_hotline .MarkingsRoom__marker--mix .MarkingsRoom__markerBody {
+  width:16px;
+  height:34px;
+  border-radius:1px 1px 3px 3px;
+  background:linear-gradient(90deg,rgb(255 255 255/.42),transparent 38%,rgb(0 0 0/.3)),linear-gradient(180deg,#d6d0de 0 2px,transparent 2px 31px,#d6d0de 31px),conic-gradient(#ff3fa4,#ffb020,#9dff4a,#2ff3e0,#3f8cff,#a066ff,#ff3fa4);
+  box-shadow:0 0 12px -3px #ff57d5;
+}
+.theme-meridian_hotline .MarkingsRoom__drawer {
+  rotate:0deg;
+  border-radius:18px;
+  color:#fff0ff;
+  background:linear-gradient(160deg,rgb(255 255 255/.06),transparent 30%),linear-gradient(180deg,#2a0e36,#14061c);
+  box-shadow:0 0 0 2px #ffd0f4,0 0 8px 2px rgb(255 87 213/.7),0 0 24px rgb(255 87 213/.3),0 24px 60px rgb(0 0 0/.7);
+}
+.theme-meridian_hotline .MarkingsRoom__drawerTitle {
+  font:40px/1 Neonderthaw,cursive;
+  letter-spacing:0;
+  color:#ffe6fb;
+  text-shadow:0 0 2px #fff,0 0 8px #ff57d5,0 0 18px #ff57d5;
+}
+.theme-meridian_hotline .MarkingsRoom__drawerSub,
+.theme-meridian_hotline .MarkingsRoom__footMeta,
+.theme-meridian_hotline .MarkingsRoom__section,
+.theme-meridian_hotline .MarkingsRoom__empty {
+  color:#cbb0d4;
+}
+.theme-meridian_hotline .MarkingsRoom__section {
+  font:700 11px/1 Rajdhani,sans-serif;
+  letter-spacing:.2em;
+  background:linear-gradient(180deg,#240c30 75%,transparent);
+}
+.theme-meridian_hotline .MarkingsRoom__search {
+  background:rgb(0 0 0/.35);
+  box-shadow:inset 0 0 0 1px rgb(255 87 213/.4);
+}
+.theme-meridian_hotline .MarkingsRoom__search input {
+  color:#fff0ff;
+}
+.theme-meridian_hotline .MarkingsRoom__close {
+  color:#cbb0d4;
+  border-color:rgb(255 87 213/.4);
+  border-radius:50%;
+}
+.theme-meridian_hotline .MarkingsRoom__pick {
+  border-radius:12px;
+  background:#12061a;
+  box-shadow:0 0 0 1px rgb(255 214 245/.55);
+}
+.theme-meridian_hotline .MarkingsRoom__pick.MarkingsRoom__pick--peek {
+  box-shadow:0 0 0 2px #ff57d5,0 0 14px rgb(255 87 213/.55);
+}
+.theme-meridian_hotline .MarkingsRoom__foot {
+  border-top-color:rgb(255 87 213/.25);
+}
+@keyframes room-hum {
+  0%,92%,100% {
+    opacity:1;
+  }
+  93% {
+    opacity:.55;
+  }
+  94% {
+    opacity:1;
+  }
+  96% {
+    opacity:.7;
+  }
+}
+@keyframes room-neonOn {
+  0% {
+    opacity:.1;
+  }
+  10% {
+    opacity:1;
+  }
+  14% {
+    opacity:.25;
+  }
+  22% {
+    opacity:1;
+  }
+  26% {
+    opacity:.4;
+  }
+  34%,100% {
+    opacity:1;
+  }
+}

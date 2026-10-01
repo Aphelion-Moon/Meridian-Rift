@@ -39,15 +39,30 @@ import type {
   MarkingPreset,
   PreferencesMenuData,
   RoboticStyle,
-  Species,
 } from '../types';
 import { useServerPrefs } from '../useServerPrefs';
 import { CharacterPreview } from './CharacterPreview';
+import { PreviewLightsButton } from './CharacterPreview/lights';
 import { turnPreview } from './CharacterPreview/turn';
+import {
+  AugmentsLayers,
+  AugmentsRoom,
+  MarkingsRoom,
+  MarkingsTools,
+  useRoomTheme,
+} from './MarkingsRoom';
+import { AugmentsStage } from './MarkingsRoom/augments';
+import {
+  ORGAN_SOCKETS,
+  PART_SOCKETS,
+  STOCK_AUGMENT,
+  type StageOrgan,
+  type StagePart,
+} from './MarkingsRoom/augments/parts';
 
 /** AugmentSlot with selected augment */
 type AugmentData = AugmentSlot & {
-  selectedAug: AugmentItem;
+  selectedAug: AugmentItem | undefined;
 };
 
 /** All the ui_data needed to populate the columns */
@@ -225,6 +240,7 @@ export const RotateCharacterButtons = () => {
         tooltip="Rotate Counter-Clockwise"
         tooltipPosition="bottom"
       />
+      <PreviewLightsButton fontSize="22px" />
     </Box>
   );
 };
@@ -289,6 +305,20 @@ const isAugAllowed = (
   return true;
 };
 
+/** The robotic styles an augment can take on a limb: "None" for anything, the rest when it takes styles, fit the slot and suit its legs. */
+const availableStyles = (
+  styles: RoboticStyle[],
+  aug: AugmentItem | undefined,
+  slot_flag: number | undefined,
+  digi_legs: BooleanLike,
+) =>
+  styles.filter((style) => {
+    if (!aug?.allows_styles && style.name !== 'None') return false;
+    if (slot_flag && !(style.supported_slots & slot_flag)) return false;
+    if (isLegSlot(slot_flag) && digi_legs && !style.has_digi) return false;
+    return true;
+  });
+
 const showsInBodyPartsTab = (bodypart: BodypartData, taur_legs: BooleanLike) =>
   hasAnyOptions(bodypart.aug_options) ||
   (!!taur_legs && isLegSlot(bodypart.slot_flag));
@@ -315,10 +345,6 @@ const buildInternalImplantData = (
 
 // Markings
 
-// Leg shape bitflags -- these must match the MARKING_LEG_* defines in code\__DEFINES\~nova_defines\DNA.dm
-const MARKING_LEG_PLANTIGRADE = 1 << 0;
-const MARKING_LEG_DIGITIGRADE = 1 << 1;
-
 /** What a colour reset gives a row back, by its marking's colour mode. */
 const RESET_COLOR_TOOLTIPS: Record<MarkingColorMode, string> = {
   follows_primary: 'Reset to your mutant color',
@@ -329,39 +355,28 @@ const RESET_COLOR_TOOLTIPS: Record<MarkingColorMode, string> = {
 };
 
 /**
- * Why each offered marking can't go on a zone right now, as the backend refuses it: a marking a row there wears, and any
- * other marking of a worn marking's exclusion group. `renaming` is the row being renamed, whose own marking doesn't count.
+ * The offered markings a zone can't take right now, as the backend refuses them: a marking a row there wears, and any other
+ * marking of a worn marking's exclusion group. `renaming` is the row being renamed, whose own marking doesn't count. The
+ * pickers leave them out.
  */
 const unavailableMarkings = (
   rows: Marking[],
   info: Record<string, MarkingInfo>,
   offered: string[],
   renaming?: Marking,
-): Record<string, string> => {
-  const reasons: Record<string, string> = {};
+): Set<string> => {
+  const unavailable = new Set<string>();
   for (const row of rows) {
     if (row === renaming) continue;
-    reasons[row.name] = 'already worn here';
+    unavailable.add(row.name);
     const group = info[row.name]?.exclusion_group;
     if (!group) continue;
     for (const name of offered) {
-      if (!reasons[name] && info[name]?.exclusion_group === group) {
-        reasons[name] = `can't be worn with ${row.name}`;
-      }
+      if (info[name]?.exclusion_group === group) unavailable.add(name);
     }
   }
-  return reasons;
+  return unavailable;
 };
-
-/** Species names for comma-separated species ids: each one the menu knows by name, else its id. */
-const speciesNames = (
-  ids: string,
-  species: Record<string, Species> | undefined,
-) =>
-  ids
-    .split(',')
-    .map((id) => species?.[id]?.name ?? id)
-    .join(', ');
 
 /** The body parts a preset covers, by their sections' labels: every zone offering one of its markings, in zone order. */
 const presetZones = (
@@ -376,58 +391,6 @@ const presetZones = (
     .map(
       ([zone]) => items.find((item) => item.body_zone === zone)?.slot ?? zone,
     );
-
-type MarkingNote = { text: string; warning?: boolean };
-
-/**
- * What is worth knowing about a row's marking where it sits: that its zone no longer takes it, whom it is meant for when
- * that isn't this species, which leg shape it draws on, and that a chest marking follows physique.
- */
-const markingNotes = (
-  marking: Marking,
-  info: MarkingInfo | undefined,
-  zone: string,
-  zoneOffers: string[] | undefined,
-  context: {
-    species: string;
-    speciesList: Record<string, Species> | undefined;
-    digiLegs: boolean;
-  },
-): MarkingNote[] => {
-  const notes: MarkingNote[] = [];
-  // A save can hold a marking on a zone narrowed since: it draws nothing there, but stays removable.
-  if (!zoneOffers?.includes(marking.name)) {
-    notes.push({ text: 'Not drawn here any more', warning: true });
-  }
-  if (!info) return notes;
-  if (
-    info.recommended_species &&
-    !suitsSpecies(info.recommended_species, context.species)
-  ) {
-    notes.push({
-      text: `Meant for ${speciesNames(info.recommended_species, context.speciesList)}`,
-      warning: true,
-    });
-  }
-  if (zone === 'l_leg' || zone === 'r_leg') {
-    const plantigrade = !!(info.leg_shapes & MARKING_LEG_PLANTIGRADE);
-    const digitigrade = !!(info.leg_shapes & MARKING_LEG_DIGITIGRADE);
-    if (plantigrade !== digitigrade) {
-      notes.push(
-        (context.digiLegs ? digitigrade : plantigrade)
-          ? { text: `${plantigrade ? 'Plantigrade' : 'Digitigrade'} legs only` }
-          : {
-              text: `Not drawn on ${context.digiLegs ? 'digitigrade' : 'plantigrade'} legs`,
-              warning: true,
-            },
-      );
-    }
-  }
-  if (zone === 'chest' && info.gendered) {
-    notes.push({ text: 'Changes with physique' });
-  }
-  return notes;
-};
 
 /**
  * A row's colour, picked in place with the colour picker window's own controls and sent once, on Apply; a suggested colour is
@@ -563,32 +526,21 @@ const MarkingColor = (props: {
   );
 };
 
-/**
- * Adds a marking picked from the zone's choices, the ones it can't take right now shown with the reason; or, from the
- * second button, one at random.
- */
+/** Adds a marking picked from the ones the zone can take right now (`options`), or, from the second button, one at random. */
 const AddMarking = (props: {
   body_zone: string;
   options: string[];
-  unavailable: Record<string, string>;
   icons?: Record<string, string>;
   placement?: ComponentProps<typeof Floating>['placement'];
   tooltipPosition?: ComponentProps<typeof Floating>['placement'];
   onAdd: (marking_name?: string) => void;
 }) => {
-  const {
-    body_zone,
-    options,
-    unavailable,
-    icons,
-    placement,
-    tooltipPosition,
-    onAdd,
-  } = props;
+  const { body_zone, options, icons, placement, tooltipPosition, onAdd } =
+    props;
   const floatingRef = useRef<ComponentRef<typeof Floating>>(null);
   return (
     <Stack>
-      <Stack.Item grow>
+      <Stack.Item grow={!icons}>
         {icons ? (
           <Floating
             ref={floatingRef}
@@ -600,7 +552,6 @@ const AddMarking = (props: {
                 catalog={{ icons }}
                 selected=""
                 options={options}
-                disabledOptions={unavailable}
                 previewArea={MARKING_PREVIEW_AREAS[body_zone]}
                 onSelect={(name) => {
                   onAdd(name);
@@ -609,15 +560,15 @@ const AddMarking = (props: {
               />
             }
           >
-            <Button fluid color="good" icon="plus" aria-label="Add a marking">
-              Add marking
+            <Button color="good" aria-label="Add a marking">
+              +
             </Button>
           </Floating>
         ) : (
           <Dropdown
             width="100%"
             color="good"
-            options={options.filter((name) => !unavailable[name])}
+            options={options}
             selected={null}
             placeholder="Add marking..."
             maxItems={7}
@@ -662,11 +613,9 @@ const Markings = (props: {
   const markingIcons = serverMarkings?.marking_icons?.[body_zone];
   const markingInfo = serverMarkings?.marking_info ?? {};
   const markings = chosen_markings ?? [];
-  const noteContext = {
-    species: data.character_preferences?.misc?.species ?? '',
-    speciesList: serverPrefs?.species,
-    digiLegs: !!data.digi_legs,
-  };
+  // What a new row could wear: anything the rows here don't already wear or keep off the zone.
+  const taken = unavailableMarkings(markings, markingInfo, marking_choices);
+  const addable = marking_choices.filter((name) => !taken.has(name));
   // A taur body takes the legs' place, so they get its drawing instead of markings.
   const taurLeg = !!data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone);
   const drawingZone = taurLeg ? 'taur' : body_zone;
@@ -676,22 +625,18 @@ const Markings = (props: {
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
       {markings.map((marking) => {
-        // A limb takes each marking once and one of each exclusion group, so a row can't take a marking another row wears
-        // or keeps off the zone; the picker shows those with the reason.
+        // A limb takes each marking once and one of each exclusion group, so a row's picker leaves out what another row
+        // wears or keeps off the zone.
         const unavailable = unavailableMarkings(
           markings,
           markingInfo,
           marking_choices,
           marking,
         );
-        const info = markingInfo[marking.name];
-        const notes = markingNotes(
-          marking,
-          info,
-          body_zone,
-          serverMarkings?.marking_choices?.[body_zone],
-          noteContext,
+        const choices = marking_choices.filter(
+          (name) => name === marking.name || !unavailable.has(name),
         );
+        const info = markingInfo[marking.name];
         const changeMarking = (value: string) =>
           act('change_marking', {
             bodypart_slot: body_zone,
@@ -709,8 +654,7 @@ const Markings = (props: {
                   <ChoicedSelectionDropdown
                     name="marking"
                     icons={markingIcons}
-                    options={marking_choices}
-                    disabledOptions={unavailable}
+                    options={choices}
                     selected={marking.name}
                     placement={pickerPlacement}
                     previewArea={MARKING_PREVIEW_AREAS[body_zone]}
@@ -719,9 +663,7 @@ const Markings = (props: {
                 ) : (
                   <Dropdown
                     width="100%"
-                    options={marking_choices.filter(
-                      (name) => name === marking.name || !unavailable[name],
-                    )}
+                    options={choices}
                     selected={marking.name}
                     displayText={marking.name}
                     maxItems={7}
@@ -792,22 +734,6 @@ const Markings = (props: {
                 </Button>
               </Stack.Item>
             </Stack>
-            {!!notes.length && (
-              <div className="LimbsPage__markingNotes">
-                {notes.map((note) => (
-                  <span
-                    key={note.text}
-                    className={
-                      note.warning
-                        ? 'LimbsPage__markingNote LimbsPage__markingNote--warning'
-                        : 'LimbsPage__markingNote'
-                    }
-                  >
-                    {note.text}
-                  </span>
-                ))}
-              </div>
-            )}
           </Stack.Item>
         );
       })}
@@ -815,12 +741,7 @@ const Markings = (props: {
         <Stack.Item>
           <AddMarking
             body_zone={body_zone}
-            options={marking_choices}
-            unavailable={unavailableMarkings(
-              markings,
-              markingInfo,
-              marking_choices,
-            )}
+            options={addable}
             icons={markingIcons}
             placement={pickerPlacement}
             tooltipPosition={tooltipPosition}
@@ -874,18 +795,14 @@ const BodypartAugmentSection = (props: { limb: BodypartData }) => {
   const aug_options = limb.aug_options ?? [];
   const implant_options = limb.implant_options ?? [];
 
-  const stylesForAug = (aug: AugmentItem | undefined) =>
-    (server_data.robotic_styles ?? []).filter((style) => {
-      if (!aug?.allows_styles && style.name !== 'None') return false;
-      if (limb.slot_flag && !(style.supported_slots & limb.slot_flag))
-        return false;
-      if (isLegSlot(limb.slot_flag) && data.digi_legs && !style.has_digi)
-        return false;
-      return true;
-    });
-
   const available_styles = useMemo(
-    () => stylesForAug(limb.selectedAug),
+    () =>
+      availableStyles(
+        server_data.robotic_styles ?? [],
+        limb.selectedAug,
+        limb.slot_flag,
+        data.digi_legs,
+      ),
     [
       server_data.robotic_styles,
       limb.selectedAug,
@@ -1231,6 +1148,8 @@ export const LimbsPage = ({
   const [tab, setTab] = useState<AugmentsTab>(AugmentsTab.Markings);
   const [pendingPreset, setPendingPreset] = useState<string | null>(null);
   const hasWarnedRef = useRef(false);
+  // The theme's fixed room, with the markings in its mirror, once that theme's room is built; the rest keep the columns.
+  const roomTheme = useRoomTheme();
 
   const handleTab = (next: AugmentsTab) => {
     setTab(next);
@@ -1250,6 +1169,7 @@ export const LimbsPage = ({
         'color_marking',
         'reset_marking_color',
         'change_emissive',
+        'surprise_markings',
       ].includes(action)
     ) {
       hasWarnedRef.current = false;
@@ -1380,6 +1300,55 @@ export const LimbsPage = ({
     };
   }, [server_data, data]);
 
+  // The augments stage's sockets, in the room's themes: every body part and internal the server has, as the stage lays them out.
+  const stage = useMemo(() => {
+    if (!roomTheme || !columns || !server_data) return null;
+    const limbs = [...columns.left, ...columns.right, ...columns.center];
+    const limbBySlot = Object.fromEntries(
+      limbs.map((limb) => [limb.slot, limb]),
+    );
+    const parts: StagePart[] = PART_SOCKETS.flatMap((socket) => {
+      const limb = limbBySlot[socket.slot];
+      if (!limb) return [];
+      return [
+        {
+          socket,
+          augment: limb.selectedAug ?? STOCK_AUGMENT,
+          options: limb.aug_options ?? [],
+          finish: limb.chosen_style?.name ?? 'None',
+          finishes: availableStyles(
+            server_data.robotic_styles ?? [],
+            limb.selectedAug,
+            limb.slot_flag,
+            data.digi_legs,
+          ).map((style) => style.name),
+          implant: limb.selectedImplant,
+          implants: limb.has_implant ? (limb.implant_options ?? []) : null,
+          unavailable: !!data.taur_legs && isLegSlot(limb.slot_flag),
+        },
+      ];
+    });
+    const internals = [
+      ...columns.internalImplants.left,
+      ...columns.internalImplants.right,
+    ];
+    const organBySlot = Object.fromEntries(
+      internals.map((organ) => [organ.slot, organ]),
+    );
+    const organs: StageOrgan[] = ORGAN_SOCKETS.flatMap((socket) => {
+      const organ = organBySlot[socket.slot];
+      if (!organ?.selectedAug) return [];
+      return [
+        {
+          socket,
+          installed: organ.selectedAug,
+          options: organ.aug_options ?? [],
+        },
+      ];
+    });
+    return { parts, organs };
+  }, [roomTheme, columns, server_data, data.digi_legs, data.taur_legs]);
+
   const columnForTab = (
     limbs: BodypartData[],
     internal_implants: AugmentData[],
@@ -1404,24 +1373,155 @@ export const LimbsPage = ({
     return null;
   };
 
+  // Asks before a preset replaces markings, unless it already has since the last change by hand.
+  const applyPreset = (preset: string) => {
+    if (!hasWarnedRef.current) setPendingPreset(preset);
+    else act('set_preset', { preset });
+  };
+
+  // The augments, or every marking at once, in three columns round the preview.
+  const columnsView = (
+    <Stack fill>
+      {/* Left column */}
+      <Stack.Item minWidth="33%">
+        {columnForTab(
+          columns?.left ?? [],
+          columns?.internalImplants.left ?? [],
+          'bottom-end',
+        )}
+      </Stack.Item>
+
+      {/* Center column — fixed width so CharacterPreview anchors correctly */}
+      <Stack.Item width="300px">
+        <Stack vertical fill>
+          {/* Preview: takes 45% of the column height */}
+          <Stack.Item
+            height="45%"
+            style={{ overflow: 'hidden', position: 'relative' }}
+          >
+            <PreviewSection />
+          </Stack.Item>
+
+          {/* Extras: anything rendering below the preview, takes remaining space */}
+          {columns &&
+            (tab !== AugmentsTab.InternalImplants ||
+              !!data.quirk_points_enabled) && (
+              <Stack.Item height="55%" style={{ overflow: 'hidden' }}>
+                <Section fill scrollable>
+                  {tab === AugmentsTab.Markings && (
+                    <>
+                      <Box mb={1}>
+                        <Dropdown
+                          width="100%"
+                          options={columns.filteredMarkingPresets}
+                          selected={null}
+                          placeholder="Apply a preset..."
+                          maxItems={7}
+                          searchInput
+                          styledInput
+                          onSelected={applyPreset}
+                        />
+                      </Box>
+                      <Divider />
+                    </>
+                  )}
+                  <CenterColumnExtras
+                    tab={tab}
+                    center={columns.center}
+                    act={actAndResetPresetWarning}
+                  />
+                </Section>
+              </Stack.Item>
+            )}
+        </Stack>
+      </Stack.Item>
+
+      {/* Right column */}
+      <Stack.Item minWidth="33%">
+        {columnForTab(
+          columns?.right ?? [],
+          columns?.internalImplants.right ?? [],
+          'bottom-start',
+        )}
+      </Stack.Item>
+    </Stack>
+  );
+
+  const presetPopup = pendingPreset && (
+    <div style={pendingPresetStyle}>
+      <PresetConfirmPopup
+        preset={pendingPreset}
+        markings={pendingPresetData?.markings ?? null}
+        keepTogether={!!pendingPresetData?.keep_together}
+        zones={pendingPresetZones}
+        onConfirm={() => {
+          hasWarnedRef.current = true;
+          act('set_preset', { preset: pendingPreset });
+          setPendingPreset(null);
+        }}
+        onCancel={() => setPendingPreset(null)}
+      />
+    </div>
+  );
+
+  if (roomTheme) {
+    const markings = tab === AugmentsTab.Markings;
+    return (
+      <>
+        {presetPopup}
+        <div className="LimbsPage__room">
+          <AugmentsRoom
+            theme={roomTheme}
+            mode={markings ? 'markings' : 'augments'}
+            onMode={(mode) =>
+              handleTab(
+                mode === 'markings'
+                  ? AugmentsTab.Markings
+                  : AugmentsTab.BodyParts,
+              )
+            }
+            tools={
+              markings ? (
+                <MarkingsTools theme={roomTheme} />
+              ) : (
+                <AugmentsLayers
+                  internals={tab === AugmentsTab.InternalImplants}
+                  onInternals={(internals) =>
+                    handleTab(
+                      internals
+                        ? AugmentsTab.InternalImplants
+                        : AugmentsTab.BodyParts,
+                    )
+                  }
+                />
+              )
+            }
+          >
+            {markings ? (
+              <MarkingsRoom
+                theme={roomTheme}
+                act={actAndResetPresetWarning}
+                onLook={applyPreset}
+              />
+            ) : (
+              !!stage && (
+                <AugmentsStage
+                  internals={tab === AugmentsTab.InternalImplants}
+                  parts={stage.parts}
+                  organs={stage.organs}
+                  act={act}
+                />
+              )
+            )}
+          </AugmentsRoom>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      {pendingPreset && (
-        <div style={pendingPresetStyle}>
-          <PresetConfirmPopup
-            preset={pendingPreset}
-            markings={pendingPresetData?.markings ?? null}
-            keepTogether={!!pendingPresetData?.keep_together}
-            zones={pendingPresetZones}
-            onConfirm={() => {
-              hasWarnedRef.current = true;
-              act('set_preset', { preset: pendingPreset });
-              setPendingPreset(null);
-            }}
-            onCancel={() => setPendingPreset(null)}
-          />
-        </div>
-      )}
+      {presetPopup}
       <Stack fill vertical>
         <Stack.Item>
           <Stack>
@@ -1460,76 +1560,7 @@ export const LimbsPage = ({
             </Stack.Item>
           </Stack>
         </Stack.Item>
-        <Stack.Item grow>
-          <Stack fill>
-            {/* Left column */}
-            <Stack.Item minWidth="33%">
-              {columnForTab(
-                columns?.left ?? [],
-                columns?.internalImplants.left ?? [],
-                'bottom-end',
-              )}
-            </Stack.Item>
-
-            {/* Center column — fixed width so CharacterPreview anchors correctly */}
-            <Stack.Item width="300px">
-              <Stack vertical fill>
-                {/* Preview: takes 45% of the column height */}
-                <Stack.Item
-                  height="45%"
-                  style={{ overflow: 'hidden', position: 'relative' }}
-                >
-                  <PreviewSection />
-                </Stack.Item>
-
-                {/* Extras: anything rendering below the preview, takes remaining space */}
-                {columns &&
-                  (tab !== AugmentsTab.InternalImplants ||
-                    !!data.quirk_points_enabled) && (
-                    <Stack.Item height="55%" style={{ overflow: 'hidden' }}>
-                      <Section fill scrollable>
-                        {tab === AugmentsTab.Markings && (
-                          <>
-                            <Box mb={1}>
-                              <Dropdown
-                                width="100%"
-                                options={columns.filteredMarkingPresets}
-                                selected={null}
-                                placeholder="Apply a preset..."
-                                maxItems={7}
-                                searchInput
-                                styledInput
-                                onSelected={(value) => {
-                                  if (!hasWarnedRef.current)
-                                    setPendingPreset(value);
-                                  else act('set_preset', { preset: value });
-                                }}
-                              />
-                            </Box>
-                            <Divider />
-                          </>
-                        )}
-                        <CenterColumnExtras
-                          tab={tab}
-                          center={columns.center}
-                          act={actAndResetPresetWarning}
-                        />
-                      </Section>
-                    </Stack.Item>
-                  )}
-              </Stack>
-            </Stack.Item>
-
-            {/* Right column */}
-            <Stack.Item minWidth="33%">
-              {columnForTab(
-                columns?.right ?? [],
-                columns?.internalImplants.right ?? [],
-                'bottom-start',
-              )}
-            </Stack.Item>
-          </Stack>
-        </Stack.Item>
+        <Stack.Item grow>{columnsView}</Stack.Item>
       </Stack>
     </>
   );

@@ -1,6 +1,20 @@
 // THIS IS AN APHELION UI FILE
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
+import {
+  bloomReach,
+  DEFAULT_BLOOM,
+  drawLightsOff,
+  pixelsOf,
+  tiledFloor,
+} from '../../../common/LightsOff';
 import type { CharacterPreviewDrawing } from '../../types';
 import { SPRITE_DIRS, type SpriteDir } from '../SpeciesRegistry/constants';
 
@@ -23,15 +37,17 @@ type FacingCanvas = Pick<
  * Draws one facing of a preview mob at its own size: the frame from the image,
  * then each run of rows a height filter moves, taken again from the rows it
  * shows. The drawing leaves height out; the game shows it as these rows.
+ * `left` takes another frame of the facing's size instead, such as its glow,
+ * whose rows move with the facing's.
  */
 export function drawPreviewFacing(
   context: FacingCanvas,
   image: CanvasImageSource,
   preview: CharacterPreviewDrawing,
   dir: SpriteDir,
+  left = preview.frames[dir],
 ) {
   const { width, height, x, rows } = preview;
-  const left = preview.frames[dir];
   context.imageSmoothingEnabled = false;
   context.clearRect(0, 0, width, height);
   context.drawImage(image, left, 0, width, height, 0, 0, width, height);
@@ -167,9 +183,10 @@ export type PanBounds = {
 
 /**
  * Where a preview stands in a box that everything it draws fills as far as a
- * whole-number scale allows, capped at a tile filling the box's shorter side:
- * its tile's centre across the middle, and all it draws in any facing centred
- * up and down. `x` and `y` are the tile's centre and floor in box pixels.
+ * whole-number scale allows, capped at a tile filling the box's shorter side,
+ * or at `maxScale` when given: its tile's centre across the middle, and all it
+ * draws in any facing centred up and down. `x` and `y` are the tile's centre
+ * and floor in box pixels.
  *
  * `zoom` adds whole steps to that fitted scale, from 1x up to twice the fit,
  * still centred on what the preview draws; `fitScale` is the scale before it.
@@ -183,6 +200,7 @@ export function previewFit(
   height: number,
   bounds?: DrawnBounds,
   zoom = 0,
+  maxScale?: number,
 ) {
   const extent = preview
     ? previewExtent(preview, bounds)
@@ -193,7 +211,7 @@ export function previewFit(
   const fitScale = Math.max(
     1,
     Math.min(
-      fits(Math.min(width, height), TILE),
+      maxScale ?? fits(Math.min(width, height), TILE),
       fits(width, 2 * reach),
       fits(height, top - bottom),
     ),
@@ -218,15 +236,28 @@ export const zoomedScale = (fitScale: number, zoom: number) =>
 export type ShownPreview = {
   preview: CharacterPreviewDrawing;
   image?: HTMLImageElement;
+  /** Its animation's patches, once loaded: their own image, or the drawing's. */
+  moving?: HTMLImageElement;
   /** Where the drawing has pixels, once its image has loaded. */
   bounds?: DrawnBounds;
 };
+
+/** An image once it has loaded, or undefined if it couldn't. */
+function loadImage(source: string) {
+  return new Promise<HTMLImageElement | undefined>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(undefined);
+    image.src = source;
+  });
+}
 
 /**
  * The preview to show, with its image and where it has pixels once that has
  * loaded. A newer preview takes over only when its own image has, so a view
  * goes straight from one drawing to the next, never empty or cutting the old
- * image by the new frames.
+ * image by the new frames. Its animation's patches load with it; a drawing
+ * whose patches don't load shows still.
  */
 export function useShownPreview(
   preview: CharacterPreviewDrawing,
@@ -234,14 +265,27 @@ export function useShownPreview(
   const [loaded, setLoaded] = useState<{
     preview: CharacterPreviewDrawing;
     image: HTMLImageElement;
+    moving?: HTMLImageElement;
   }>();
 
   useEffect(() => {
-    const image = new Image();
-    const show = () => setLoaded({ preview, image });
-    image.addEventListener('load', show);
-    image.src = preview.image;
-    return () => image.removeEventListener('load', show);
+    let current = true;
+    const patches = preview.animation?.image;
+    Promise.all([
+      loadImage(preview.image),
+      patches ? loadImage(patches) : undefined,
+    ]).then(([image, moving]) => {
+      if (current && image) {
+        setLoaded({
+          preview,
+          image,
+          moving: preview.animation ? (patches ? moving : image) : undefined,
+        });
+      }
+    });
+    return () => {
+      current = false;
+    };
   }, [preview.id, preview.image]);
 
   const bounds = useMemo(
@@ -252,6 +296,71 @@ export function useShownPreview(
   return loaded ? { ...loaded, bounds } : { preview };
 }
 
+/**
+ * One facing as a view shows it: the drawing, which way it faces, its scale,
+ * and where its tile's centre and floor stand in the view's box. Whatever is
+ * drawn over the character lines up with it from this.
+ */
+export type PreviewView = {
+  shown: ShownPreview;
+  dir: SpriteDir;
+  scale: number;
+  x: number;
+  y: number;
+  /** Whether the lights are off. */
+  dark: boolean;
+};
+
+/**
+ * Where one facing's frame stands in a view, as PreviewCanvas places it, with
+ * `reach` of its own pixels to spare on every side: height's rows are the
+ * frame's own, and body size transforms it about its tile's centre.
+ */
+export function previewFrameStyle(
+  preview: CharacterPreviewDrawing,
+  scale: number,
+  x: number,
+  y: number,
+  reach = 0,
+): CSSProperties {
+  const { width, height } = preview;
+  const [a, b, c, d, e, f] = preview.transform ?? IDENTITY;
+  return {
+    position: 'absolute',
+    left: `${x - (preview.x + TILE / 2 + reach) * scale}px`,
+    top: `${y - (height - preview.y + reach) * scale}px`,
+    width: `${(width + 2 * reach) * scale}px`,
+    height: `${(height + 2 * reach) * scale}px`,
+    transformOrigin: `${(preview.x + TILE / 2 + reach) * scale}px ${(height - preview.y - TILE / 2 + reach) * scale}px`,
+    // BYOND's y runs up, the page's down.
+    transform: preview.transform
+      ? `matrix(${a}, ${-d}, ${-b}, ${e}, ${c * scale}, ${-f * scale})`
+      : undefined,
+  };
+}
+
+/**
+ * Where a point of a facing's frame, in its pixels from the top left, stands
+ * in the view's box, with body size's transform applied.
+ */
+export function previewFramePoint(
+  preview: CharacterPreviewDrawing,
+  scale: number,
+  x: number,
+  y: number,
+  frameX: number,
+  frameY: number,
+): [number, number] {
+  const [a, b, c, d, e, f] = preview.transform ?? IDENTITY;
+  // From the tile's centre, in box pixels before the transform.
+  const dx = (frameX - preview.x - TILE / 2) * scale;
+  const dy = (frameY - (preview.height - preview.y - TILE / 2)) * scale;
+  return [
+    x + a * dx - b * dy + c * scale,
+    y - (TILE / 2) * scale - d * dx + e * dy - f * scale,
+  ];
+}
+
 type PreviewCanvasProps = {
   shown: ShownPreview;
   dir: SpriteDir;
@@ -260,46 +369,242 @@ type PreviewCanvasProps = {
   x: number;
   y: number;
   className?: string;
+  /** Whether its lights are off, so it shows what glows. */
+  dark?: boolean;
+  /** How far what glows blooms with the lights off: the player's bloom setting. */
+  bloom?: number;
+  /** The background's tile, which the bloom lights round what glows, as it does the floor in game. */
+  floor?: HTMLImageElement;
 };
+
+/**
+ * A canvas the size of one facing, holding that facing or another frame of it.
+ * Lights off reads it back, so it is kept on the CPU: a GPU canvas would stall
+ * the page reading it.
+ */
+function facingCanvas(
+  image: CanvasImageSource,
+  preview: CharacterPreviewDrawing,
+  dir: SpriteDir,
+  left?: number,
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = preview.width;
+  canvas.height = preview.height;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (context) {
+    drawPreviewFacing(context, image, preview, dir, left);
+  }
+  return canvas;
+}
+
+/**
+ * Which of an animation's steps shows `elapsed` ms in, as they loop, and how
+ * many ms are left of it.
+ */
+export function animationStep(steps: [number, number][], elapsed: number) {
+  const period = steps.reduce((total, [, ms]) => total + ms, 0);
+  let into = period > 0 ? elapsed % period : 0;
+  for (let index = 0; index < steps.length; index++) {
+    const ms = steps[index][1];
+    if (into < ms) {
+      return { index, wait: ms - into };
+    }
+    into -= ms;
+  }
+  return { index: 0, wait: steps[0]?.[1] ?? 0 };
+}
+
+/**
+ * Lays a facing as drawn, with each of its moving regions' patches for the
+ * steps they are on, over a canvas the size of the facing, for
+ * drawPreviewFacing() to take as it takes the drawing.
+ */
+export function layAnimationFrame(
+  context: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  moving: CanvasImageSource,
+  preview: CharacterPreviewDrawing,
+  dir: SpriteDir,
+  regionSteps: number[],
+) {
+  const { width, height, animation } = preview;
+  const regions = animation?.facings[dir] ?? [];
+  context.clearRect(0, 0, width, height);
+  context.drawImage(
+    image,
+    preview.frames[dir],
+    0,
+    width,
+    height,
+    0,
+    0,
+    width,
+    height,
+  );
+  regions.forEach(({ box, steps }, index) => {
+    const left = steps[regionSteps[index]]?.[0] ?? -1;
+    if (left < 0) {
+      return;
+    }
+    const [boxX, boxY, boxWidth, boxHeight] = box;
+    context.clearRect(boxX, boxY, boxWidth, boxHeight);
+    context.drawImage(
+      moving,
+      (animation?.left ?? 0) + left,
+      0,
+      boxWidth,
+      boxHeight,
+      boxX,
+      boxY,
+      boxWidth,
+      boxHeight,
+    );
+  });
+}
+
+/** How often a hidden page's animation looks again whether it is shown, in ms. */
+const HIDDEN_RECHECK = 1000;
 
 /**
  * One facing of a drawn preview mob, its tile stood at x and y. Height and
  * body size are drawn as the game draws them: moved rows first, then the mob's
  * transform about its tile's centre.
+ *
+ * With the lights off it is lit as the game lights it in the dark, from its
+ * glow, with room round it for the bloom; see LightsOff.tsx.
+ *
+ * What animates plays, a step at a time, while the page is shown and the
+ * lights are on, as the game plays it whatever the player's system says of
+ * motion: each step lays its patches over the facing and redraws the canvas.
+ * Lights off, it holds still.
  */
 export function PreviewCanvas(props: PreviewCanvasProps) {
-  const { shown, dir, scale, x, y, className } = props;
-  const { preview, image } = shown;
+  const {
+    shown,
+    dir,
+    scale,
+    x,
+    y,
+    className,
+    dark = false,
+    bloom = DEFAULT_BLOOM,
+    floor,
+  } = props;
+  const { preview, image, moving } = shown;
   const { width, height } = preview;
-  const [a, b, c, d, e, f] = preview.transform ?? IDENTITY;
   const canvas = useRef<HTMLCanvasElement>(null);
+  // Room past the drawing on every side for its bloom, in its own pixels.
+  const reach = dark ? bloomReach(bloom) : 0;
+  const regions = preview.animation?.facings[dir];
 
   // Before the browser paints: a new size clears the canvas.
   useLayoutEffect(() => {
     const context = canvas.current?.getContext('2d');
-    if (context && image) {
-      drawPreviewFacing(context, image, preview, dir);
+    if (!context || !image) {
+      return;
     }
-  }, [preview, image, dir]);
+    if (!dark) {
+      drawPreviewFacing(context, image, preview, dir);
+      return;
+    }
+    const glowLeft = preview.glow_frames?.[dir];
+    // The floor's tile repeats from the character's own tile, as the background lays it.
+    const tile = floor && pixelsOf(floor, TILE, TILE);
+    drawLightsOff(
+      context,
+      facingCanvas(image, preview, dir),
+      glowLeft === undefined
+        ? undefined
+        : facingCanvas(image, preview, dir, glowLeft),
+      width,
+      height,
+      bloom,
+      reach,
+      tile &&
+        tiledFloor(
+          tile,
+          TILE,
+          TILE,
+          width + 2 * reach,
+          height + 2 * reach,
+          -reach - preview.x,
+          -reach - height + preview.y + TILE,
+        ),
+    );
+  }, [preview, image, dir, dark, bloom, reach, width, height, floor]);
+
+  // From the facing as drawn above, which is every region's first step, each
+  // region's next step when its time comes, laid over the facing with the
+  // others' and drawn as the facing is. A hidden page looks again every
+  // HIDDEN_RECHECK ms, as well as when it is told it is shown, and skips ahead.
+  useEffect(() => {
+    const context = canvas.current?.getContext('2d');
+    if (!context || !image || !moving || !regions || dark) {
+      return;
+    }
+    const frame = document.createElement('canvas');
+    frame.width = width;
+    frame.height = height;
+    const frameContext = frame.getContext('2d');
+    if (!frameContext) {
+      return;
+    }
+    const start = performance.now();
+    const regionSteps = regions.map(() => 0);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const next = () => {
+      if (document.hidden) {
+        timer = setTimeout(next, HIDDEN_RECHECK);
+        return;
+      }
+      const elapsed = performance.now() - start;
+      let wait = Number.POSITIVE_INFINITY;
+      let moved = false;
+      regions.forEach(({ steps }, index) => {
+        const step = animationStep(steps, elapsed);
+        wait = Math.min(wait, step.wait);
+        if (step.index !== regionSteps[index]) {
+          regionSteps[index] = step.index;
+          moved = true;
+        }
+      });
+      if (moved) {
+        layAnimationFrame(
+          frameContext,
+          image,
+          moving,
+          preview,
+          dir,
+          regionSteps,
+        );
+        drawPreviewFacing(context, frame, preview, dir, 0);
+      }
+      timer = setTimeout(next, wait);
+    };
+    const resume = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        next();
+      }
+    };
+    document.addEventListener('visibilitychange', resume);
+    next();
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', resume);
+    };
+  }, [image, moving, regions, preview, dir, dark, width, height]);
 
   return (
     <canvas
       ref={canvas}
       className={className}
-      width={width}
-      height={height}
+      width={width + 2 * reach}
+      height={height + 2 * reach}
       style={{
-        position: 'absolute',
         imageRendering: 'pixelated',
-        left: `${x - (preview.x + TILE / 2) * scale}px`,
-        top: `${y - (height - preview.y) * scale}px`,
-        width: `${width * scale}px`,
-        height: `${height * scale}px`,
-        transformOrigin: `${(preview.x + TILE / 2) * scale}px ${(height - preview.y - TILE / 2) * scale}px`,
-        // BYOND's y runs up, the page's down.
-        transform: preview.transform
-          ? `matrix(${a}, ${-d}, ${-b}, ${e}, ${c * scale}, ${-f * scale})`
-          : undefined,
+        ...previewFrameStyle(preview, scale, x, y, reach),
       }}
     />
   );

@@ -452,6 +452,11 @@
 			emissive[zone] = current.Copy()
 			emissive[zone][direction] = enabled
 			canvas.emissive = emissive
+			// The paint glows or blocks differently now, though a composed preview's pixels stay as they are.
+			glow_urls = list()
+			if(lights_off)
+				draw_glows(list(visible_direction))
+				request_other_views()
 		if("clear")
 			if(!canvas.clear_region(params["dir"], "[region_zones.Find(zone)]", has_covered_paint(zone, params["dir"]) ? zone : null))
 				return FALSE

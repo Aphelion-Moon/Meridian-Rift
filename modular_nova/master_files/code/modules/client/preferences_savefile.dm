@@ -351,8 +351,8 @@
 
 	if(current_version < VERSION_MARKING_CONTENT)
 		// A marking the character wears that its species may no longer pick, since sets decide who may wear what, stays
-		// editable: mismatched parts go on, and persist, where that changes nothing else the character draws. Nothing has pruned
-		// the markings yet: character setup prunes only when a player changes species.
+		// editable: mismatched parts go on, and persist, where that changes nothing else the character draws.
+		// Existing markings are preserved regardless of whether the toggle can safely be enabled.
 		var/datum/species/species = GLOB.species_prototypes[read_preference(/datum/preference/choiced/species)]
 		if(!CONFIG_GET(flag/disable_mismatched_parts) && !read_preference(/datum/preference/toggle/allow_mismatched_parts) && body_markings.validate_for_species(species.id, FALSE) && mismatched_parts_change_nothing())
 			write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)

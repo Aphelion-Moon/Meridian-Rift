@@ -1,0 +1,289 @@
+// THIS IS AN APHELION UI FILE
+// The Augments+ augments stage (MarkingsRoom/augments), its own rules: its
+// place in the room, the scan chamber's view of the character, and what it
+// draws on the character. The ported rest is _augments-stage.scss.
+//
+// What it draws on the character is lined up with the character's frame and
+// masked by the body's real regions (the markings room's region map), not the
+// mockup's sprite sheets, so it fits any body: the part the pointer is on lit
+// in the hot light with a scan running down it and a halo outside it, a
+// part's chrome while its picker tries one on, the flash and sheen of a part
+// going in, and the internals' x-ray. Each layer that tints the character
+// sits beside its canvas, so it blends with it.
+
+.AugStage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  color: var(--aug-text);
+  font: 12px/1.35 Verdana, Geneva, 'DejaVu Sans', sans-serif;
+
+  // The augments mockup's ground, under the stage.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        ellipse 50% 46% at 50% 42%,
+        rgb(var(--aug-hot-rgb) / 6%),
+        transparent 72%
+      ),
+      linear-gradient(180deg, var(--aug-panel), var(--aug-bg) 70%);
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    background: none;
+    cursor: pointer;
+  }
+
+  [aria-disabled='true'] {
+    cursor: default;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--aug-focus);
+    outline-offset: 2px;
+  }
+}
+
+// MARK: The chamber's view
+
+// The character's view, centred on the mirror's glass as in the markings
+// rooms, and clipped to the chamber.
+.AugStage__view {
+  position: absolute;
+  left: 270px;
+  top: 64px;
+  width: 360px;
+  height: 564px;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.AugStage__box {
+  position: absolute;
+  left: 14px;
+  top: 28px;
+}
+
+.AugStage--hovering:not(.AugStage--internals) .AugStage__view .CharacterPreview {
+  cursor: pointer;
+}
+
+// The chamber draws its own grid and frame round the character: none of the
+// preview's own.
+.CharacterPreview.CharacterPreview--chamber {
+  .CharacterPreview__background,
+  .CharacterPreview__dark,
+  .CharacterPreview__glass,
+  .CharacterPreview__case,
+  .CharacterPreview__trim,
+  .CharacterPreview__mark,
+  .CharacterPreview__clip,
+  .CharacterPreview__rule {
+    display: none;
+  }
+}
+
+// Seen through the x-ray, the body dims and hardens.
+.AugStage--internals .CharacterPreview__figure {
+  filter: brightness(0.5) contrast(1.25);
+  transition: filter 0.35s;
+}
+
+// MARK: On the character
+
+.AugStage__frame,
+.AugStage__xr,
+.AugStage__chrome,
+.AugStage__lit,
+.AugStage__halo,
+.AugStage__flash,
+.AugStage__sheen {
+  pointer-events: none;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.AugStage__xr {
+  animation: aug-fade-in 0.35s both;
+
+  &--tint {
+    background: var(--aug-hot);
+    mix-blend-mode: color;
+  }
+
+  &--lines {
+    background: repeating-linear-gradient(
+      180deg,
+      rgb(var(--aug-hot-rgb) / 22%) 0 1px,
+      transparent 1px 4px
+    );
+  }
+}
+
+// A part being tried on in its picker: chrome over it, pulsing.
+.AugStage__chrome {
+  background: #9fb6c9;
+  mix-blend-mode: color;
+  animation: aug-ghost 1.1s ease-in-out infinite;
+}
+
+.AugStage__lit {
+  animation: aug-fade-in 0.18s both;
+
+  &--tint {
+    background: var(--aug-hot);
+    mix-blend-mode: color;
+    opacity: 0.9;
+  }
+
+  // A band of the hot light running down it.
+  &--scan {
+    overflow: hidden;
+    background: rgb(var(--aug-hot-rgb) / 12%);
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 12%;
+      background: linear-gradient(
+        180deg,
+        transparent,
+        rgb(var(--aug-hot-rgb) / 85%),
+        transparent
+      );
+      animation: aug-zscan 1.2s linear infinite;
+    }
+  }
+}
+
+// The halo: the part's own shape, glowing, then cut away so only the glow
+// outside it shows.
+.AugStage__halo {
+  mask-composite: subtract;
+  filter: drop-shadow(0 0 1.5px rgb(var(--aug-hot-rgb)))
+    drop-shadow(0 0 7px rgb(var(--aug-hot-rgb) / 80%));
+  animation:
+    aug-fade-in 0.18s both,
+    aug-halo 1.4s ease-in-out 0.2s infinite;
+}
+
+.AugStage__haloZone {
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--aug-hot-rgb));
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+// A part going in: a white flash, and a sheen across it.
+.AugStage__flash {
+  background: #fff;
+  opacity: 0;
+  animation: aug-flash 0.6s ease-out 0.4s both;
+}
+
+.AugStage__sheen {
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 35%,
+      rgb(255 255 255 / 60%) 48%,
+      transparent 60%
+    );
+    transform: translateX(-100%);
+    animation: aug-sheen 1s ease-out 0.35s both;
+  }
+}
+
+@keyframes aug-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes aug-ghost {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes aug-halo {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes aug-zscan {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(833%);
+  }
+}
+
+@keyframes aug-flash {
+  0% {
+    opacity: 0;
+  }
+
+  25% {
+    opacity: 0.85;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes aug-sheen {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .AugStage *,
+  .AugStage *::before,
+  .AugStage *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

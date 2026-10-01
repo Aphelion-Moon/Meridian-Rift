@@ -10,3 +10,6 @@
 	low_light_cutoff = list(22, 12, 17)
 	medium_light_cutoff = list(33, 18, 26)
 	high_light_cutoff = list(75, 41, 61)
+
+/obj/item/organ/eyes/pod
+	penlight_message = "are plant-like"

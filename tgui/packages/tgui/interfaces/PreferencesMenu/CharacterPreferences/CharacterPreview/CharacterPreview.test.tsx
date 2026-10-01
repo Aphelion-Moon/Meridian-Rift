@@ -2,11 +2,20 @@
 import { describe, expect, it } from 'bun:test';
 
 import type { CharacterPreviewDrawing } from '../../types';
-import { type DrawnBounds, previewFit } from './drawing';
+import { type Arrival, nextArrival } from './arrival';
+import {
+  animationStep,
+  type DrawnBounds,
+  previewFit,
+  previewFramePoint,
+  previewFrameStyle,
+  type ShownPreview,
+} from './drawing';
 
 const tile: CharacterPreviewDrawing = {
   id: 1,
   species: 'human',
+  slot: 1,
   image: 'data:image/png;base64,tile',
   width: 32,
   height: 32,
@@ -75,5 +84,98 @@ describe('previewFit', () => {
     const taur = { ...tile, width: 64, x: 16 };
     const wide = previewFit(taur, 272, 480, [0, 0, 40, 32]).panBounds;
     expect([wide.minX, wide.maxX]).toEqual([-8, 32]);
+  });
+});
+
+describe('previewFramePoint', () => {
+  it("puts a frame pixel where the frame's own placement does", () => {
+    const style = previewFrameStyle(tile, 12, 166, 446);
+    // The frame's top left, and its pixel 16 across and 8 down.
+    expect([style.left, style.top]).toEqual(['-26px', '62px']);
+    expect(previewFramePoint(tile, 12, 166, 446, 0, 0)).toEqual([-26, 62]);
+    expect(previewFramePoint(tile, 12, 166, 446, 16, 8)).toEqual([166, 158]);
+  });
+
+  it("grows about the tile's centre with body size", () => {
+    const grown = {
+      ...tile,
+      transform: [
+        1.25, 0, 0, 0, 1.25, 4,
+      ] as CharacterPreviewDrawing['transform'],
+    };
+    // The tile's centre stays; a pixel a tile's quarter from it moves out a
+    // quarter more, and the whole lifts 4px.
+    expect(previewFramePoint(grown, 1, 16, 32, 16, 16)).toEqual([16, 12]);
+    expect(previewFramePoint(grown, 1, 16, 32, 24, 16)).toEqual([26, 12]);
+  });
+});
+
+describe('nextArrival', () => {
+  const picture = () => ({}) as HTMLImageElement;
+  const shown = (
+    image: HTMLImageElement | undefined,
+    { slot = 1, species = 'human' as string | null } = {},
+  ): ShownPreview => ({ preview: { ...tile, slot, species }, image });
+  const opened: Arrival = { count: 0 };
+
+  it('waits for a drawing to load, and takes the first as the one the view opened on', () => {
+    expect(nextArrival(opened, shown(undefined))).toBe(opened);
+    expect(nextArrival(opened, shown(picture())).count).toBe(0);
+  });
+
+  it('takes a new drawing of the same character in place', () => {
+    const first = nextArrival(opened, shown(picture()));
+    expect(nextArrival(first, shown(picture())).count).toBe(0);
+  });
+
+  it("counts a drawing for another slot by the drawing's own slot, whenever the window's update comes", () => {
+    const first = nextArrival(opened, shown(picture()));
+    // Still loading: the drawing shown stays as it is.
+    expect(nextArrival(first, shown(first.image, { slot: 2 }))).toBe(first);
+    const next = nextArrival(first, shown(picture(), { slot: 2 }));
+    expect(next.count).toBe(1);
+    expect(nextArrival(next, shown(picture(), { slot: 2 })).count).toBe(1);
+  });
+
+  it("counts a drawing of another species, or a silicon job's", () => {
+    const first = nextArrival(opened, shown(picture()));
+    const lizard = nextArrival(first, shown(picture(), { species: 'lizard' }));
+    expect(lizard.count).toBe(1);
+    expect(nextArrival(lizard, shown(picture(), { species: null })).count).toBe(
+      2,
+    );
+  });
+});
+
+describe('animationStep', () => {
+  // A halo's bob: the facing as drawn for half a second, then its patch.
+  const halo: [number, number][] = [
+    [-1, 500],
+    [0, 500],
+  ];
+
+  it('starts on the facing as drawn', () => {
+    expect(animationStep(halo, 0)).toEqual({ index: 0, wait: 500 });
+  });
+
+  it('moves on when a step has had its time, waiting only what is left of it', () => {
+    expect(animationStep(halo, 499)).toEqual({ index: 0, wait: 1 });
+    expect(animationStep(halo, 500)).toEqual({ index: 1, wait: 500 });
+    expect(animationStep(halo, 750)).toEqual({ index: 1, wait: 250 });
+  });
+
+  it('loops, so a page hidden for a while comes back where the loop has got to', () => {
+    expect(animationStep(halo, 1000)).toEqual({ index: 0, wait: 500 });
+    expect(animationStep(halo, 10_600)).toEqual({ index: 1, wait: 400 });
+  });
+
+  it('keeps steps of their own lengths', () => {
+    const uneven: [number, number][] = [
+      [-1, 80],
+      [12, 240],
+      [24, 80],
+    ];
+    expect(animationStep(uneven, 100).index).toBe(1);
+    expect(animationStep(uneven, 330)).toEqual({ index: 2, wait: 70 });
   });
 });
