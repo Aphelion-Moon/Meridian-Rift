@@ -7,8 +7,8 @@
 	body.dna.features[FEATURE_MUTANT_COLOR] = "#123456"
 	var/hash = body.dna.generate_unique_features()
 	var/total = 0
-	for(var/block_type, block in GLOB.dna_feature_blocks)
-		var/datum/dna_block/feature/block = block
+	for(var/block_type, feature_block in GLOB.dna_feature_blocks)
+		var/datum/dna_block/feature/block = feature_block
 		total += block.block_length
 		TEST_ASSERT_EQUAL(length(block.get_block(hash)), block.block_length, "[block_type] must read back a whole block")
 	TEST_ASSERT_EQUAL(length(hash), total, "The hash must hold every feature block once and nothing else")

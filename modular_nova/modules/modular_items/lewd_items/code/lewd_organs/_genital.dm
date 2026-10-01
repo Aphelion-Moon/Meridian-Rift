@@ -150,27 +150,29 @@
 /// Whether the mob's worn clothing physically covers this genital's location.
 /obj/item/organ/genital/proc/covered_by_clothing(mob/living/carbon/human/human)
 	//Do they have a Uniform or Suit that covers them?
-	if((human.w_uniform && human.w_uniform.body_parts_covered & genital_location) || (human.wear_suit && human.wear_suit.body_parts_covered & genital_location))
+	var/obj/item/worn_suit = human.wear_suit
+	if((human.w_uniform?.body_parts_covered | worn_suit?.body_parts_covered) & genital_location)
 		return TRUE
 	//Do they have a Hospital Gown covering them? (The gown has no body_parts_covered so needs its own check)
-	if(istype(human.wear_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown))
+	if(istype(worn_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown))
 		return TRUE
+	var/hidden_underwear = human.underwear_visibility
 	//Are they wearing an Undershirt?
-	if(human.undershirt != "Nude" && !(human.underwear_visibility & UNDERWEAR_HIDE_SHIRT))
+	if(human.undershirt != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_SHIRT))
 		var/datum/sprite_accessory/clothing/undershirt/worn_undershirt = SSaccessories.undershirt_list[human.undershirt]
 		if(genital_location == CHEST) //(Undershirt always covers chest)
 			return TRUE
 		if(genital_location == GROIN && worn_undershirt?.hides_groin)
 			return TRUE
 	//Are they wearing Underwear?
-	if(human.underwear != "Nude" && !(human.underwear_visibility & UNDERWEAR_HIDE_UNDIES))
+	if(human.underwear != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_UNDIES))
 		var/datum/sprite_accessory/clothing/underwear/worn_underwear = SSaccessories.underwear_list[human.underwear]
 		if(genital_location == GROIN) //(Underwear always covers groin)
 			return TRUE
 		if(genital_location == CHEST && worn_underwear?.hides_breasts)
 			return TRUE
 	//Are they wearing a bra?
-	if(human.bra != "Nude" && !(human.underwear_visibility & UNDERWEAR_HIDE_BRA) && genital_location == CHEST)
+	if(human.bra != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_BRA) && genital_location == CHEST)
 		return TRUE
 	//Nothing they're wearing covers them
 	return FALSE

@@ -44,19 +44,24 @@
 	return TAUR_DIMENSION_X
 
 /datum/sprite_accessory/genital/is_hidden(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/bodypart_overlay)
-	var/obj/item/organ/genital/badonkers = target_mob?.get_organ_slot(associated_organ_slot)
+	// get_organ_slot(), read from the slot list itself: this runs for every genital on every body update.
+	var/obj/item/organ/genital/badonkers = target_mob?.organs_slot?[associated_organ_slot]
 	if(!badonkers)
 		return TRUE
 
 	switch(badonkers.visibility_preference)
-		if(GENITAL_HIDDEN_BY_CLOTHES, GENITAL_CUSTOM)
-			if(badonkers.get_effective_layer_mode() != GENITAL_LAYER_NORMAL)
-				return FALSE
+		if(GENITAL_HIDDEN_BY_CLOTHES)
 			// Single source of coverage truth, shared with is_exposed() - render
 			return badonkers.covered_by_clothing(target_mob)
-		//If not hidden-by-clothes or custom, it defaults to always hidden
-		else
-			return TRUE
+		if(GENITAL_CUSTOM)
+			// get_effective_layer_mode(), inline: any custom layer but the normal one draws over clothing.
+			var/datum/bodypart_overlay/mutant/genital/overlay = badonkers.bodypart_overlay
+			var/layer_mode = overlay?.layer_mode
+			if(layer_mode && layer_mode != GENITAL_LAYER_NORMAL)
+				return FALSE
+			return badonkers.covered_by_clothing(target_mob)
+	//If not hidden-by-clothes or custom, it defaults to always hidden
+	return TRUE
 
 /datum/sprite_accessory/genital/get_sprite_suffix()
 	return "[icon_state]_[max_sprite_size_affix]"

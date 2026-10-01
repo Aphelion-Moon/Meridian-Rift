@@ -21,16 +21,15 @@
 
 /datum/sprite_accessory/wings/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/wings/bodypart_overlay)
 	var/obj/item/clothing/suit/mod/worn_suit = wearer.wear_suit
-	if(isnull(wearer.w_uniform) && isnull(worn_suit))
+	if(!worn_suit && !wearer.w_uniform)
 		return FALSE
 	// Can hide if wearing uniform
-	if(initial(key) in wearer.try_hide_mutant_parts) // initial because some of the wing types have different keys (wings_functional, wings_open, etc)
+	if(wearer.try_hide_mutant_parts?[initial(key)]) // initial because some of the wing types have different keys (wings_functional, wings_open, etc)
 		return TRUE
-	// Exception for MODs
-	if(istype(worn_suit))
-		return FALSE
-	// Hide accessory if flagged to do so, taking species exceptions in account
-	return (wearer.obscured_slots & bodypart_overlay?.slot_blocker)
+	// Hide accessory if flagged to do so, taking species exceptions in account, with an exception for MODs
+	if(!istype(worn_suit) && (wearer.obscured_slots & bodypart_overlay?.slot_blocker))
+		return TRUE
+	return LEWD_ITEM_HIDES_PARTS(wearer, TRUE, TRUE)
 
 /datum/sprite_accessory/wings/none
 	name = SPRITE_ACCESSORY_NONE
@@ -74,23 +73,14 @@
 
 /datum/sprite_accessory/wings_open/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/wings/bodypart_overlay)
 	var/obj/item/clothing/worn_suit = wearer.wear_suit
-	if(isnull(wearer.w_uniform) && isnull(worn_suit))
+	if(!worn_suit && !wearer.w_uniform)
 		return FALSE
 	// Can hide if wearing uniform
-	if(key in wearer.try_hide_mutant_parts)
+	if(wearer.try_hide_mutant_parts?[key])
 		return TRUE
-	if(worn_suit)
-	// Exception for MODs
-		if(istype(worn_suit, /obj/item/clothing/suit/mod))
-			return FALSE
-	// Hide accessory if flagged to do so, taking species exceptions in account
-		else if((worn_suit.flags_inv & HIDEJUMPSUIT) \
-				&& (isnull(worn_suit.species_exception) \
-				|| !is_type_in_list(wearer.dna.species, worn_suit.species_exception)) \
-			)
-			return TRUE
-
-	return FALSE
+	// Hide accessory if flagged to do so, taking species exceptions in account, with an exception for MODs
+	return worn_suit && !istype(worn_suit, /obj/item/clothing/suit/mod) && (worn_suit.flags_inv & HIDEJUMPSUIT) \
+		&& (isnull(worn_suit.species_exception) || !is_type_in_list(wearer.dna.species, worn_suit.species_exception))
 
 /*
 *	MAMMAL
