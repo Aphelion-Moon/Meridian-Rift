@@ -174,6 +174,18 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	for(var/part in (as_user ? interaction.user_required_parts : interaction.target_required_parts))
 		if(part in relayed_parts[portal_mode])
 			return TRUE
+	// A bulge or a chastity device sits where the penis or vagina does, so it goes wherever they do.
+	var/static/list/relayed_requirements = list(
+		GLORYHOLE = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_CAGED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_CAGED, INTERACTION_REQUIRE_TARGET_BELTED),
+	)
+	var/static/list/relayed_user_requirements = list(
+		GLORYHOLE = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_CAGED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_CAGED, INTERACTION_REQUIRE_SELF_BELTED),
+	)
+	for(var/requirement in interaction.interaction_requires)
+		if(requirement in (as_user ? relayed_user_requirements : relayed_requirements)[portal_mode])
+			return TRUE
 	return portal_mode == WALLSTUCK && (interaction.name in (as_user ? lower_body_users : lower_body_targets))
 
 /// Whether interaction touches a part of this mob that a portal is showing somewhere else right now.

@@ -62,6 +62,17 @@
 
 	return ..()
 
+/**
+ * Whether this toy can go into `slot` on `target`, checked before and after the fitting wait.
+ * Say why to `user` when refusing.
+ */
+/obj/item/clothing/sextoy/proc/can_lewd_attach(mob/living/carbon/human/target, mob/living/carbon/human/user, slot)
+	return TRUE
+
+/// Whether `user` can take this toy back out of its lewd slot. Say why when refusing.
+/obj/item/clothing/sextoy/proc/can_lewd_remove(mob/living/carbon/human/user)
+	return TRUE
+
 /// A check to confirm if you can open the toy's color/design radial menu
 /obj/item/clothing/sextoy/proc/check_menu(mob/living/user)
 	if(!istype(user))

@@ -98,7 +98,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 	if(length(user_required_parts))
 		for(var/thing in user_required_parts)
 			var/obj/item/organ/genital/required_part = user.get_organ_slot(thing)
-			if(isnull(required_part))
+			if(isnull(required_part) || required_part.blocked_by)
 				return FALSE
 			if(check_part_exposure && !required_part.is_exposed())
 				return FALSE
@@ -106,7 +106,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 	if(length(target_required_parts))
 		for(var/thing in target_required_parts)
 			var/obj/item/organ/genital/required_part = target.get_organ_slot(thing)
-			if(isnull(required_part))
+			if(isnull(required_part) || required_part.blocked_by)
 				return FALSE
 			if(check_part_exposure && !required_part.is_exposed())
 				return FALSE
@@ -118,6 +118,30 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 					return FALSE
 			if(INTERACTION_REQUIRE_TARGET_HAND)
 				if(!target.get_active_hand())
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_BULGE)
+				if(!user.has_bulge())
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_BULGE)
+				if(!target.has_bulge())
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_CAGED)
+				if(!user.get_blocking_device(ORGAN_SLOT_PENIS))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_CAGED)
+				if(!target.get_blocking_device(ORGAN_SLOT_PENIS))
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_BELTED)
+				if(!user.get_blocking_device(ORGAN_SLOT_VAGINA))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_BELTED)
+				if(!target.get_blocking_device(ORGAN_SLOT_VAGINA))
+					return FALSE
+			if(INTERACTION_REQUIRE_SELF_ARM)
+				if(!user.get_bodypart(BODY_ZONE_L_ARM) && !user.get_bodypart(BODY_ZONE_R_ARM))
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_ARM)
+				if(!target.get_bodypart(BODY_ZONE_L_ARM) && !target.get_bodypart(BODY_ZONE_R_ARM))
 					return FALSE
 
 			else
@@ -335,6 +359,15 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		// Chest words follow the participant's own chest; pecs replace every breast word.
 		for(var/form, word in (participant.has_pecs() ? GLOB.interaction_pec_words : GLOB.interaction_breast_words))
 			formatted_message = replacetext(formatted_message, "%[role]_[form]%", word)
+		// A bulge while one shows, and what it shows through. Only looked up when a template asks.
+		if(findtext(formatted_message, "%[role]_CROTCH%"))
+			formatted_message = replacetext(formatted_message, "%[role]_CROTCH%", participant.has_bulge() ? "bulge" : "crotch")
+		if(findtext(formatted_message, "%[role]_BULGE_COVER%"))
+			formatted_message = replacetext(formatted_message, "%[role]_BULGE_COVER%", participant.bulge_cover_name())
+		// The device closing off the participant's penis, else their vagina, like "chastity cage".
+		if(findtext(formatted_message, "%[role]_DEVICE%"))
+			var/obj/item/device = participant.get_blocking_device(ORGAN_SLOT_PENIS) || participant.get_blocking_device(ORGAN_SLOT_VAGINA)
+			formatted_message = replacetext(formatted_message, "%[role]_DEVICE%", device?.name || "chastity device")
 	return trim(formatted_message, INTERACTION_MAX_CHAR)
 
 /// Whose chest this interaction is about: the user's when it needs their breasts, otherwise the target's.
@@ -382,6 +415,11 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		target.adjust_pleasure(target_pleasure)
 	if(target_arousal)
 		target.adjust_arousal(target_arousal)
+	// Each partner's scent rubs off on the other, where one gives and the other receives.
+	user.leave_scent_on(target)
+	target.leave_scent_on(user)
+	if(user != target)
+		SEND_SIGNAL(target, COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED, user, src)
 	route?.after_effects(user, target)
 
 /datum/interaction/proc/load_from_json(path)

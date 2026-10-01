@@ -62,6 +62,9 @@ Both `USER` and `TARGET` support these tokens:
 | `%USER_PRONOUN_THEIR%`, `%USER_PRONOUN_THEIRS%` | Possessive pronouns |
 | `%USER_PRONOUN_THEM%`, `%USER_PRONOUN_THEY%`, `%USER_PRONOUN_THEMSELVES%` | Other pronoun forms |
 | `%USER_BREASTS%`, `%USER_TITS%`, `%USER_BOOBS%`, `%USER_BREAST%`, `%USER_BOOB%`, `%USER_CHEST%` | Chest words; for a participant with pecs every one reads "pecs" or "pec" |
+| `%USER_CROTCH%` | "bulge" while the participant has one (see `self_bulge` below), otherwise "crotch" |
+| `%USER_BULGE_COVER%` | What a bulge shows through: the suit or uniform's name, a groin-length undershirt ("leotard"), or "underwear" |
+| `%USER_DEVICE%` | The worn device closing off the participant's penis, else their vagina, like "chastity cage" |
 
 For example, `%USER_CAPITAL% wave%USER_VERB_S% to %TARGET_OBJECT%.` works for both
 observer and recipient messages. An optional `name_pecs` gives the menu button its pec wording
@@ -71,6 +74,16 @@ nipples, the optional `name_nippleless`, `message_nippleless`, `user_messages_ni
 `target_messages_nippleless` stand in for the label and message lists, so nipple interactions can read
 sensibly; each falls back to the usual field when absent. Existing private templates need explicit verb-ending
 tokens when their subject can become "you"; the formatter does not conjugate prose.
+
+`interaction_requires` also takes `self_bulge` and `target_bulge`: a penis at least half hard and covered
+by clothes or underwear, exactly when the plain penis interactions would call it unexposed (one set to never
+show has no bulge). Bulge interactions use these instead of `penis` in the required parts, which would ask
+for it to be exposed. Portals relay a bulge wherever they relay the penis.
+
+Likewise `self_caged`/`target_caged` need a penis closed off by a worn device such as a chastity cage, and
+`self_belted`/`target_belted` a vagina closed off by one. `self_arm`/`target_arm` need at least one arm, for
+armpit interactions, whatever hair is there. A genital a device closes off fails every
+interaction that lists it in the required parts, and takes no other toy. See the chastity module's readme.
 
 Configuration loads from `config/nova/interactions/`, including nested JSON files.
 Portal device mappings depend on the external interaction set described in the
