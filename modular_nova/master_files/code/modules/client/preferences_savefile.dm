@@ -417,54 +417,6 @@
 		value_cache -= toggle_type
 	return answers[1] == answers[2]
 
-/**
- * Returns the loaded character as a save from before version 22, for a server that never had this version: its savefile tree
- * with what save_character() would write into it (tg's own "version" stays as the tree holds it, which every save on this
- * server sets to the current one), at modular version 20, with every Hands Feet on an arm named Rat Paw again, as such a
- * server's Hands Feet claims no arm and its Rat Paw does. Every other byte is the same: colours are literal, and what such a
- * server lacks, as the Firewatch marking or a newer set, is simply not there (its renderer skips a marking name it doesn't
- * know). The eight marking preferences version 22 deletes are not written back: they drew nothing on any server this can go
- * to, so deriving them again would be upkeep for nothing. The live character and its savefile are left alone.
- *
- * Returns:
- * - list: a new savefile tree for one character slot.
- */
-/datum/preferences/proc/legacy_character_save()
-	RETURN_TYPE(/list)
-	var/list/save_data = json_decode(json_encode(savefile.get_entry("character[default_slot]") || list()))
-	// What save_character() writes, into the copy: the preferences changed since the last save, as write_preference() writes
-	// them, and the fields it always writes.
-	for(var/datum/preference/preference as anything in get_preferences_in_priority_order())
-		if(preference.savefile_identifier == PREFERENCE_CHARACTER && (preference.type in recently_updated_keys) && (preference.type in value_cache))
-			preference.write(save_data, preference.deserialize(preference.serialize(value_cache[preference.type]), src), src)
-	save_data["randomise"] = randomise
-	save_data["job_preferences"] = job_preferences
-	save_data["all_quirks"] = all_quirks
-	save_character_nova(save_data)
-	// The last version before this branch's marking versions: upstream Nova's, and older Meridian's.
-	save_data["modular_version"] = VERSION_MARKING_DATUMS - 1
-	var/list/markings = save_data["body_markings"]
-	for(var/zone in list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM))
-		var/list/arm = markings[zone]
-		if(!islist(arm) || !("Hands Feet" in arm))
-			continue
-		var/list/renamed = list()
-		for(var/name, value in arm)
-			renamed[name == "Hands Feet" ? "Rat Paw" : name] = value
-		markings[zone] = renamed
-	// Its own lists, none shared with the live character.
-	return json_decode(json_encode(save_data))
-
-ADMIN_VERB(export_legacy_savefile, R_DEBUG, "Export Legacy Savefile", "Download your loaded character as a save from before version 22, for an older server.", ADMIN_CATEGORY_DEBUG)
-	var/datum/preferences/preferences = user.prefs
-	if(!preferences?.savefile)
-		return
-	var/file_path = "tmp/legacy_savefile_[user.ckey].json"
-	fdel(file_path)
-	rustg_file_write(json_encode(preferences.legacy_character_save(), JSON_PRETTY_PRINT), file_path)
-	DIRECT_OUTPUT(user, ftp(file(file_path), "[user.ckey]_character[preferences.default_slot]_legacy.json"))
-	fdel(file_path)
-
 /datum/preferences/proc/check_migration()
 	if(!tgui_prefs_migration)
 		to_chat(parent, boxed_message(span_redtext("CRITICAL FAILURE IN PREFERENCE MIGRATION, REPORT THIS IMMEDIATELY.")))

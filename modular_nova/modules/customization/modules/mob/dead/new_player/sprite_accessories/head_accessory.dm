@@ -18,12 +18,10 @@
 	factual = FALSE
 
 /datum/sprite_accessory/head_accessory/is_hidden(mob/living/carbon/human/owner, datum/bodypart_overlay/mutant/bodypart_overlay)
-	var/obj/item/clothing/head/worn_head = owner.head
-	var/obj/item/clothing/mask/worn_mask = owner.wear_mask
-	if((worn_head?.flags_inv & HIDEHAIR || worn_mask?.flags_inv & HIDEHAIR) \
-		&& !(worn_mask && worn_mask.flags_inv & SHOWSPRITEEARS))
+	var/mask_flags = owner.wear_mask?.flags_inv
+	if(((owner.head?.flags_inv | mask_flags) & HIDEHAIR) && !(mask_flags & SHOWSPRITEEARS))
 		return TRUE
-	return FALSE
+	return LEWD_ITEM_HIDES_PARTS(owner, TRUE, TRUE)
 
 /datum/sprite_accessory/head_accessory/sylveon_bow
 	name = "Sylveon Bow"

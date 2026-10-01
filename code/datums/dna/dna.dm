@@ -215,8 +215,8 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - The blocks joined once, not a longer copy of the hash per block
 	var/list/blocks = list()
-	for(var/block_type, block in GLOB.dna_feature_blocks)
-		var/datum/dna_block/feature/block = block
+	for(var/block_type, feature_block in GLOB.dna_feature_blocks)
+		var/datum/dna_block/feature/block = feature_block
 		if(isnull(features[block.feature_key]))
 			blocks += random_string(block.block_length, GLOB.hex_characters)
 			continue

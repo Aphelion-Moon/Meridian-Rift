@@ -402,22 +402,34 @@
 		clean["modular_version"] = 21
 		TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, clean)), first, "A save without the keys must keep every byte but its version")
 
-/// The legacy export gives the loaded character as a save from before version 22: modular version 20 and Hands Feet on an arm
-/// named Rat Paw again, every other byte as saving would write it, the live save untouched. Read back through this server's
-/// loader it is the same character, byte for byte.
-/datum/unit_test/body_marking_content/legacy_export
+/// Saves, character setup and custom styles name markings, and presets name sets, so one name must stand for one marking and
+/// one set: the registries file each under its name (make_body_marking_references()), where a second of a name would silently
+/// replace the first, for saves too. Nor is a retired name (GLOB.body_marking_renames) given to a marking again: saves and
+/// custom styles still carrying it are read as the marking it became.
+/datum/unit_test/body_marking_content/unique_names
 
-/datum/unit_test/body_marking_content/legacy_export/Run()
-	var/datum/preferences/preferences = fixture_preferences()
-	var/list/saved = load_and_save(preferences, list("version" = 52, "modular_version" = 22, "tgui_prefs_migration" = TRUE, "species" = SPECIES_MAMMAL, "allow_mismatched_parts_toggle" = TRUE, "body_markings" = list(BODY_ZONE_L_ARM = list("Hands Feet" = list("#aa0000", 1), "Bovine" = list("#111111", 0)), BODY_ZONE_PRECISE_L_HAND = list("Hands Feet" = list("#bb0000", 0)), BODY_ZONE_CHEST = list("Firewatch" = list("#ffffff", 0)))))
-	TEST_ASSERT(saved, "The fixture character must load")
-	var/saved_text = json_encode(saved)
-	var/list/legacy = preferences.legacy_character_save()
-	TEST_ASSERT_EQUAL(json_encode(preferences.savefile.get_entry("character[preferences.default_slot]")), saved_text, "Exporting must leave the live save alone")
-	TEST_ASSERT_EQUAL(legacy["modular_version"], 20, "The export must be at version 20")
-	TEST_ASSERT_EQUAL(json_encode(legacy["body_markings"]), "{\"l_arm\":{\"Rat Paw\":\[\"#aa0000\",1],\"Bovine\":\[\"#111111\",0]},\"l_hand\":{\"Hands Feet\":\[\"#bb0000\",0]},\"chest\":{\"Firewatch\":\[\"#ffffff\",0]}}", "Hands Feet on an arm, and only there, must be Rat Paw again")
-	var/list/restored = json_decode(json_encode(legacy))
-	restored["modular_version"] = 22
-	restored["body_markings"] = saved["body_markings"]
-	TEST_ASSERT_EQUAL(json_encode(restored), saved_text, "The export must differ from the save in its version and the arm's name alone")
-	TEST_ASSERT_EQUAL(json_encode(load_and_save(preferences, legacy)), saved_text, "The export must load back through this server's loader as the character it came from")
+/datum/unit_test/body_marking_content/unique_names/Run()
+	// name -> every type of that name; the registries skip a type without one.
+	var/list/markings_by_name = list()
+	for(var/datum/body_marking/marking_type as anything in subtypesof(/datum/body_marking))
+		var/marking_name = initial(marking_type.name)
+		if(marking_name)
+			LAZYADD(markings_by_name[marking_name], marking_type)
+	report_shared(markings_by_name, "Body markings")
+	var/list/sets_by_name = list()
+	for(var/datum/body_marking_set/set_type as anything in subtypesof(/datum/body_marking_set))
+		var/set_name = initial(set_type.name)
+		if(set_name)
+			LAZYADD(sets_by_name[set_name], set_type)
+	report_shared(sets_by_name, "Body marking sets")
+	for(var/retired in GLOB.body_marking_renames)
+		var/datum/body_marking/wearer = GLOB.body_markings[retired]
+		if(wearer)
+			TEST_FAIL("[wearer.type] has the retired marking name \"[retired]\", which saves and custom styles read as [GLOB.body_marking_renames[retired]]")
+
+/// Fails once for every name more than one type has. types_by_name: name -> the types of that name.
+/datum/unit_test/body_marking_content/unique_names/proc/report_shared(list/types_by_name, kind)
+	for(var/shared_name in types_by_name)
+		var/list/named_types = types_by_name[shared_name]
+		if(length(named_types) > 1)
+			TEST_FAIL("[kind] [jointext(named_types, ", ")] share the name \"[shared_name]\": only the last of them is reachable by it")

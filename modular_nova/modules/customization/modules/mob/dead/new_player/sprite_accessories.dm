@@ -141,10 +141,7 @@
 	organ_type = /obj/item/organ/mushroom_cap
 
 /datum/sprite_accessory/caps/is_hidden(mob/living/carbon/human/human, datum/bodypart_overlay/mutant/bodypart_overlay)
-	if(((human.head?.flags_inv & HIDEHAIR) || (human.wear_mask?.flags_inv & HIDEHAIR)) || (key in human.try_hide_mutant_parts))
-		return TRUE
-
-	return FALSE
+	return ((human.head?.flags_inv | human.wear_mask?.flags_inv) & HIDEHAIR) || human.try_hide_mutant_parts?[key]
 
 /datum/sprite_accessory/caps/none
 	name = SPRITE_ACCESSORY_NONE
