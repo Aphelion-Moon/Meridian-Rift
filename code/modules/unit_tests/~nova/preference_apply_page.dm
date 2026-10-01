@@ -6,8 +6,23 @@
 /// type. Each fixture also checks the thing it is about on the character page, so none can pass by building nothing, and each
 /// but one pins the blood type to the test body's own, so only the fixture about blood types depends on it.
 /datum/unit_test/preference_apply_page
+	/// Restore the actual configured choices after this test, including an uninitialized cache.
+	var/list/original_species_choices
 	// Forty-two bodies built and flattened.
 	priority = TEST_LONGER
+
+// These fixtures exercise species-specific bodies, independently of the server's enabled species.
+/datum/unit_test/preference_apply_page/New()
+	. = ..()
+	var/datum/preference/choiced/species/species_preference = GLOB.preference_entries[/datum/preference/choiced/species]
+	original_species_choices = species_preference.cached_values
+	species_preference.cached_values = list(/datum/species/human, /datum/species/mammal)
+
+/datum/unit_test/preference_apply_page/Destroy()
+	var/datum/preference/choiced/species/species_preference = GLOB.preference_entries[/datum/preference/choiced/species]
+	species_preference.cached_values = original_species_choices
+	original_species_choices = null
+	return ..()
 
 /datum/unit_test/preference_apply_page/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)

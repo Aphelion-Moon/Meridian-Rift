@@ -56,6 +56,14 @@ export type CustomSpriteEditorData = {
   maxCustomColors: number;
   guides: Record<Dir, string>;
   previews: Record<Dir, string>;
+  /**
+   * Each view's glow, for the preview's lights-off view: what glows in its
+   * picture, or "" when nothing does. Sent only while the window has its
+   * lights off; a view's comes once it's drawn.
+   */
+  glows?: Partial<Record<Dir, string>> | null;
+  /** How far what glows blooms with the lights off: the player's bloom setting. */
+  bloom?: number | null;
   edited: Record<Dir, boolean>;
   drawBounds: Record<Dir, [number, number, number, number] | null>;
   drawMask?: Partial<Record<Dir, string[]>> | null;

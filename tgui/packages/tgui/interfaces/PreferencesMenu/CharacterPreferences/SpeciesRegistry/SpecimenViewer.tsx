@@ -101,7 +101,8 @@ export function SpecimenViewer(props: Props) {
     }
     const travelled = event.clientX - drag.current.x;
     if (Math.abs(travelled) >= DRAG_STEP_PX) {
-      rotate(travelled > 0 ? 1 : -1);
+      // Move the visible face with the pointer: south to east on a rightward drag.
+      rotate(travelled > 0 ? -1 : 1);
       drag.current = { x: event.clientX };
     }
   };

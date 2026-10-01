@@ -1,0 +1,1091 @@
+// THIS IS AN APHELION UI FILE
+// How a portrait arrives: the specimen in the species chamber, and the
+// character preview on the Character, Loadout and Augments+ tabs. Each theme
+// brings it in the way its own device would show a picture: Wastelander's
+// phosphor tube switches on, Foundry's iris opens, Scavenger's shutter is
+// hauled up, and so on.
+//
+// It plays whenever a portrait first shows: a page opens on it, or it turns
+// to another species, or (on the tabs) to another character. A new drawing of
+// the same character replaces the last in place, with no arrival.
+//
+// Two parts play it, both made anew each time and both covering the whole
+// window the portrait is seen through, so one set of keyframes fits both
+// places:
+// - the portrait (.SpecimenViewer__figure, .CharacterPreview__arrival), which
+//   holds the picture and may move, tint, cut or mask it;
+// - the sweep (.SpecimenViewer__sweep, .CharacterPreview__sweep), a layer over
+//   the portrait and under the frame, for whatever passes in front of it: a
+//   beam, a plate, an iris.
+// The tabs' picture itself is a canvas that the pan moves and body size
+// transforms. Only its wrapper is ever animated, so neither is disturbed.
+//
+// Every portrait's arrival fills both ways, holding its last frame: let go,
+// the picture moved a device pixel as it ended at fractional zoom (Firefox at
+// 125% and 150%), where the animated and the still picture snap differently.
+
+// Plain selector lists: the bundle's minifier copies an :is() list into
+// vendor-prefixed fallbacks, which would triple every rule here.
+$portrait: '.SpecimenViewer__figure, .CharacterPreview__arrival';
+$sweep: '.SpecimenViewer__sweep, .CharacterPreview__sweep';
+$sweep-before: '.SpecimenViewer__sweep::before, .CharacterPreview__sweep::before';
+$sweep-after: '.SpecimenViewer__sweep::after, .CharacterPreview__sweep::after';
+
+// MARK: Parts
+
+.CharacterPreview__arrival,
+.CharacterPreview__sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+// Over the character, under the frame and the loader.
+.CharacterPreview__sweep {
+  z-index: 1;
+}
+
+#{$sweep} {
+  overflow: hidden;
+}
+
+// MARK: Per theme
+
+// Aphelion: the website's spectrum focuses on the portrait. It rises as a
+// silhouette against the low sun, its outline split into the spectrum's two
+// ends, which close on it as it is lit, while warm light comes up from the
+// floor and fades.
+.theme-meridian_aphelion {
+  #{$portrait} {
+    animation: portrait-prism 700ms cubic-bezier(0.25, 0.6, 0.3, 1) both;
+  }
+
+  #{$sweep} {
+    opacity: 0;
+    background: radial-gradient(
+      ellipse 90% 50% at 50% 100%,
+      rgb(255 169 102 / 55%),
+      rgb(255 105 123 / 22%) 45%,
+      transparent 72%
+    );
+    mix-blend-mode: screen;
+    animation: portrait-sunlight 700ms ease-out both;
+  }
+}
+
+@keyframes portrait-prism {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+    filter: brightness(0.15) drop-shadow(-14px 0 rgb(86 212 220 / 90%))
+      drop-shadow(14px 0 rgb(192 107 180 / 90%));
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes portrait-sunlight {
+  0% {
+    opacity: 0;
+    transform: translateY(25%);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+// Classic: stock tgui has no instrument to dress it in, so it fades in.
+.theme-meridian_classic {
+  #{$portrait} {
+    animation: portrait-fade 200ms ease-out both;
+  }
+}
+
+@keyframes portrait-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+// Electra: the console draws the portrait in interlaced fields, a quarter of
+// its lines lit teal, then half, then the whole picture in a flash of its own
+// colour. (A tint can't fade out through hue-rotate without passing every hue
+// on the way, so each theme here drops its tint under a flash instead.)
+.theme-meridian_electra {
+  #{$portrait} {
+    animation: portrait-interlace 520ms both;
+  }
+}
+
+$electra-field: repeating-linear-gradient(180deg, #000 0 2px, transparent 2px 8px);
+
+@keyframes portrait-interlace {
+  0% {
+    filter: brightness(1.8) sepia(1) hue-rotate(125deg) saturate(2.4)
+      drop-shadow(0 0 3px rgb(88 209 201 / 80%));
+    mask-image: $electra-field, $electra-field;
+    mask-position:
+      0 0,
+      0 0;
+    animation-timing-function: step-end;
+  }
+
+  24% {
+    mask-image: $electra-field, $electra-field;
+    mask-position:
+      0 0,
+      0 4px;
+    animation-timing-function: step-end;
+  }
+
+  48% {
+    filter: brightness(1.45) drop-shadow(0 0 3px rgb(88 209 201 / 70%));
+    mask-image: none;
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    filter: none;
+    mask-image: none;
+  }
+}
+
+// Vector: a plotter draws the portrait across the blueprint a step of the
+// carriage at a time, in the sheet's blue; then the ink comes up in colour.
+.theme-meridian_vector {
+  #{$portrait} {
+    animation:
+      portrait-plot 520ms steps(12, jump-start) both,
+      portrait-ink 720ms both;
+  }
+
+  // The carriage: a lit rule with the theme's measurement ticks.
+  #{$sweep-before} {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 8px;
+    background:
+      linear-gradient(#b8f5ff, #b8f5ff) 0 0 / 1px 100% no-repeat,
+      repeating-linear-gradient(0deg, #54a9ff 0 1px, transparent 1px 8px) 1px 0 / 4px 100% no-repeat,
+      repeating-linear-gradient(0deg, #7fc0ff 0 1px, transparent 1px 40px) 1px 0 / 7px 100% no-repeat;
+    filter: drop-shadow(0 0 2px rgb(84 169 255 / 80%));
+    animation:
+      portrait-carriage 520ms steps(12, jump-start) both,
+      portrait-carriage-off 720ms both;
+  }
+}
+
+// The plot and the carriage step together, twelve steps across.
+@keyframes portrait-plot {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes portrait-carriage {
+  from {
+    left: 0%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes portrait-carriage-off {
+  0%,
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// Blueprint blue while it plots, then the ink, under a flash.
+@keyframes portrait-ink {
+  0% {
+    filter: sepia(1) hue-rotate(178deg) saturate(3) brightness(0.95);
+    animation-timing-function: step-end;
+  }
+
+  72% {
+    filter: brightness(1.3);
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+// Synapse: a diagonal cut, parallel to its window's, slides over the glass
+// from the cut corner, and the portrait is behind it, edged in cyan light.
+.theme-meridian_synapse {
+  #{$portrait} {
+    animation: portrait-cut 520ms cubic-bezier(0.45, 0, 0.25, 1) both;
+  }
+
+  #{$sweep} {
+    animation: portrait-cut-edge 520ms cubic-bezier(0.45, 0, 0.25, 1) both;
+  }
+}
+
+// Twice the window's size, a 225deg gradient's middle runs from the window's
+// top right corner, at 0 100%, to its bottom left, at 100% 0.
+$synapse-cut: linear-gradient(225deg, #000 49%, transparent 51%);
+$synapse-edge: linear-gradient(
+  225deg,
+  transparent 48.8%,
+  rgb(56 214 207 / 85%) 49.6%,
+  #e6fffd 50%,
+  rgb(56 214 207 / 60%) 50.5%,
+  transparent 51.4%
+);
+
+@keyframes portrait-cut {
+  from {
+    mask: $synapse-cut -2% 102% / 200% 200% no-repeat;
+  }
+
+  to {
+    mask: $synapse-cut 102% -2% / 200% 200% no-repeat;
+  }
+}
+
+@keyframes portrait-cut-edge {
+  from {
+    opacity: 1;
+    background: $synapse-edge -2% 102% / 200% 200% no-repeat;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    background: $synapse-edge 102% -2% / 200% 200% no-repeat;
+  }
+}
+
+// Highline: accessibility first, so nothing moves; the portrait is just there.
+.theme-meridian_highline {
+  #{$portrait} {
+    animation: none;
+  }
+
+  #{$sweep} {
+    display: none;
+  }
+}
+
+// Hephaestus: the instrument's smoked green glass is focused on the portrait.
+// It sharpens past true and settles back, and the smoke clears off the glass.
+.theme-meridian_hephaestus {
+  #{$portrait} {
+    animation: portrait-focus 700ms cubic-bezier(0.3, 0, 0.2, 1) both;
+  }
+
+  #{$sweep} {
+    background:
+      radial-gradient(ellipse 75% 65% at 50% 55%, transparent 30%, rgb(6 16 12 / 80%)),
+      rgb(52 96 70 / 55%);
+    animation: portrait-smoke 700ms both;
+  }
+
+  // In the chamber, only its glass smokes.
+  .SpecimenViewer__sweep {
+    inset: 9px;
+  }
+}
+
+@keyframes portrait-focus {
+  0% {
+    transform: scale(1.05);
+    filter: blur(6px) brightness(0.6);
+  }
+
+  55% {
+    transform: scale(0.995);
+    filter: blur(0.5px) brightness(1.06);
+  }
+
+  72% {
+    transform: scale(1.002);
+    filter: blur(1.2px) brightness(1);
+  }
+
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+// The smoke holds while the glass is focused, then clears.
+@keyframes portrait-smoke {
+  0% {
+    opacity: 1;
+  }
+
+  45% {
+    opacity: 0.75;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// Diagnostic: acquisition brackets leave the frame's corners and close on the
+// portrait, which blinks in as a green trace; they lock with a blink, it holds
+// in colour once acquired, and they fade back into the frame.
+.theme-meridian_diagnostic {
+  #{$portrait} {
+    animation: portrait-acquire 640ms both;
+  }
+
+  #{$sweep-before} {
+    --bracket: linear-gradient(#88d8ab, #88d8ab);
+
+    content: '';
+    position: absolute;
+    inset: 5px;
+    background:
+      var(--bracket) left top / 12px 2px no-repeat,
+      var(--bracket) left top / 2px 12px no-repeat,
+      var(--bracket) right top / 12px 2px no-repeat,
+      var(--bracket) right top / 2px 12px no-repeat,
+      var(--bracket) left bottom / 12px 2px no-repeat,
+      var(--bracket) left bottom / 2px 12px no-repeat,
+      var(--bracket) right bottom / 12px 2px no-repeat,
+      var(--bracket) right bottom / 2px 12px no-repeat;
+    filter: drop-shadow(0 0 4px rgb(74 216 121 / 90%));
+    animation: portrait-brackets 640ms both;
+  }
+}
+
+@keyframes portrait-acquire {
+  0% {
+    opacity: 0;
+    filter: sepia(1) hue-rotate(80deg) saturate(3) brightness(0.85);
+    animation-timing-function: step-end;
+  }
+
+  10% {
+    opacity: 0.75;
+    animation-timing-function: step-end;
+  }
+
+  18% {
+    opacity: 0.2;
+    animation-timing-function: step-end;
+  }
+
+  28% {
+    opacity: 0.85;
+    animation-timing-function: step-end;
+  }
+
+  36% {
+    opacity: 0.35;
+    animation-timing-function: step-end;
+  }
+
+  46% {
+    opacity: 1;
+    filter: sepia(1) hue-rotate(80deg) saturate(3) brightness(0.85);
+    animation-timing-function: step-end;
+  }
+
+  58% {
+    filter: brightness(1.3);
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes portrait-brackets {
+  0% {
+    opacity: 0;
+    transform: none;
+    animation-timing-function: cubic-bezier(0.3, 0.6, 0.3, 1);
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  46% {
+    opacity: 1;
+    transform: scale(0.72, 0.78);
+    animation-timing-function: step-end;
+  }
+
+  54% {
+    opacity: 0.3;
+    animation-timing-function: step-end;
+  }
+
+  62% {
+    opacity: 1;
+    transform: scale(0.72, 0.78);
+    animation-timing-function: ease-in-out;
+  }
+
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+// Augmentation: the workstation's calibration beam climbs from the floor and
+// the portrait is built behind it as a cyan hologram, then turns solid.
+.theme-meridian_augmentation {
+  #{$portrait} {
+    animation:
+      portrait-scan 680ms both,
+      portrait-hologram 680ms both;
+  }
+
+  // The beam, the chamber's own colours: a red leading edge on white, its
+  // cyan light trailing below.
+  #{$sweep-before} {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 9%;
+    background: linear-gradient(
+      0deg,
+      transparent,
+      rgb(0 229 212 / 10%) 45%,
+      rgb(0 229 212 / 45%) 85%,
+      #dafffb 95%,
+      #f04459 97.5%,
+      transparent
+    );
+    animation: portrait-scan-beam 680ms both;
+  }
+}
+
+// Built from the floor up, 70% of the way through.
+@keyframes portrait-scan {
+  0% {
+    clip-path: inset(100% 0 0 0);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  70%,
+  100% {
+    clip-path: inset(0);
+  }
+}
+
+// The beam's lit edge rides the top of what the scan has built, then climbs
+// out of the window.
+@keyframes portrait-scan-beam {
+  0% {
+    top: 100%;
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+
+  70% {
+    top: 0%;
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    top: -9%;
+    opacity: 0;
+  }
+}
+
+// Cyan while it's built, solid under a flash once it is.
+@keyframes portrait-hologram {
+  0% {
+    filter: sepia(1) hue-rotate(140deg) saturate(3.5) brightness(1.2);
+    animation-timing-function: step-end;
+  }
+
+  70% {
+    filter: brightness(1.45);
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+// Hotline: the portrait strikes like a neon tube, stuttering on in a pink
+// glow before it holds, and the glass's own tube flares with it.
+.theme-meridian_hotline {
+  #{$portrait} {
+    animation: portrait-neon 680ms both;
+  }
+
+  #{$sweep} {
+    opacity: 0;
+    box-shadow:
+      inset 0 0 0 2px rgb(255 116 222 / 90%),
+      inset 0 0 40px rgb(255 87 213 / 65%);
+    animation: portrait-neon-tube 680ms both;
+  }
+}
+
+@keyframes portrait-neon {
+  0% {
+    opacity: 0;
+    filter: brightness(1.7) drop-shadow(0 0 9px #ff57d5);
+    animation-timing-function: step-end;
+  }
+
+  6% {
+    opacity: 1;
+    animation-timing-function: step-end;
+  }
+
+  11% {
+    opacity: 0.1;
+    animation-timing-function: step-end;
+  }
+
+  18% {
+    opacity: 1;
+    animation-timing-function: step-end;
+  }
+
+  23% {
+    opacity: 0.4;
+    animation-timing-function: step-end;
+  }
+
+  30% {
+    opacity: 1;
+    filter: brightness(1.7) drop-shadow(0 0 9px #ff57d5);
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@keyframes portrait-neon-tube {
+  0% {
+    opacity: 0;
+    animation-timing-function: step-end;
+  }
+
+  6% {
+    opacity: 1;
+    animation-timing-function: step-end;
+  }
+
+  11% {
+    opacity: 0.2;
+    animation-timing-function: step-end;
+  }
+
+  18% {
+    opacity: 1;
+    animation-timing-function: step-end;
+  }
+
+  23% {
+    opacity: 0.5;
+    animation-timing-function: step-end;
+  }
+
+  30% {
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// Cyberpunk: the feed tears in. Slices of the portrait land out of register
+// and in the wrong colours before it holds, and the rails tear across with it.
+.theme-meridian_cyberpunk {
+  #{$portrait} {
+    animation:
+      portrait-arrive 420ms cubic-bezier(0.2, 0, 0.2, 1) both,
+      portrait-glitch 360ms steps(1) 120ms both;
+  }
+
+  #{$sweep-before} {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background:
+      linear-gradient(#ff5267, #ff5267) 0 18% / 100% 2px no-repeat,
+      linear-gradient(#00e5d4, #00e5d4) 0 42% / 100% 1px no-repeat;
+    animation: portrait-tear 360ms steps(1) 120ms both;
+  }
+}
+
+@keyframes portrait-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: brightness(2);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes portrait-glitch {
+  0%,
+  100% {
+    clip-path: inset(0);
+    transform: none;
+    filter: none;
+  }
+
+  20% {
+    clip-path: inset(18% 0 58% 0);
+    transform: translateX(-4px);
+    filter: drop-shadow(3px 0 rgb(0 229 212 / 80%)) drop-shadow(-3px 0 rgb(255 82 103 / 80%));
+  }
+
+  40% {
+    clip-path: inset(62% 0 12% 0);
+    transform: translateX(3px);
+    filter: drop-shadow(-3px 0 rgb(0 229 212 / 80%)) drop-shadow(3px 0 rgb(255 82 103 / 80%));
+  }
+
+  60% {
+    clip-path: inset(32% 0 40% 0);
+    transform: translateX(-2px);
+    filter: drop-shadow(2px 0 rgb(0 229 212 / 80%)) drop-shadow(-2px 0 rgb(255 82 103 / 80%));
+  }
+}
+
+// The rails' tears, a red and a cyan line, jump with the slices.
+@keyframes portrait-tear {
+  0% {
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+    background-position:
+      0 18%,
+      0 42%;
+  }
+
+  40% {
+    opacity: 1;
+    background-position:
+      0 62%,
+      0 88%;
+  }
+
+  60% {
+    opacity: 1;
+    background-position:
+      0 32%,
+      0 60%;
+  }
+
+  80%,
+  100% {
+    opacity: 0;
+  }
+}
+
+// Scavenger: a rusted shutter plate is hauled up off the window. It catches
+// once on the way, and the light comes up on the portrait behind it.
+.theme-meridian_scavenger {
+  #{$portrait} {
+    animation: portrait-uncover 600ms ease-out both;
+  }
+
+  // The plate: rust, a bevelled lip with a fastener at each end, and the
+  // shadow it casts on the portrait as it rises.
+  #{$sweep-before} {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      var(--scavenger-fastener) 10px calc(100% - 11px) / 6px 6px no-repeat,
+      var(--scavenger-fastener) calc(100% - 10px) calc(100% - 11px) / 6px 6px no-repeat,
+      linear-gradient(
+        180deg,
+        transparent calc(100% - 7px),
+        #a08a5e calc(100% - 7px) calc(100% - 6px),
+        #3a3126 calc(100% - 6px) calc(100% - 2px),
+        #0e0c09 calc(100% - 2px)
+      ),
+      var(--scavenger-texture) 0 0 / 384px 384px;
+    box-shadow: 0 8px 12px rgb(0 0 0 / 65%);
+    animation: portrait-shutter 600ms both;
+  }
+
+  // In the chamber, the plate runs in the reading window.
+  .SpecimenViewer__sweep {
+    inset: 8px;
+  }
+}
+
+// Yanked, caught on its rail for a moment, then hauled clear.
+@keyframes portrait-shutter {
+  0% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.7, 0.4);
+  }
+
+  22% {
+    transform: translateY(-46%);
+    animation-timing-function: ease-out;
+  }
+
+  30% {
+    transform: translateY(-41%);
+    animation-timing-function: ease-in-out;
+  }
+
+  38% {
+    transform: translateY(-43%);
+    animation-timing-function: cubic-bezier(0.5, 0, 1, 0.5);
+  }
+
+  72%,
+  100% {
+    transform: translateY(-110%);
+  }
+}
+
+@keyframes portrait-uncover {
+  0% {
+    filter: brightness(0.35);
+  }
+
+  22% {
+    filter: brightness(0.6);
+  }
+
+  72% {
+    filter: brightness(1);
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+// Wastelander: the phosphor tube switches on. The picture opens out of a
+// bright line across the middle while a band of phosphor light rolls down.
+.theme-meridian_wastelander {
+  #{$portrait} {
+    animation: portrait-crt-on 520ms ease-out both;
+  }
+
+  #{$sweep-before} {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 26%;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgb(164 186 120 / 18%) 80%,
+      rgb(164 186 120 / 70%) 99%,
+      transparent
+    );
+    animation: portrait-roll 760ms ease-out both;
+  }
+}
+
+@keyframes portrait-crt-on {
+  0% {
+    transform: scale(1, 0.02);
+    filter: brightness(3);
+  }
+
+  45% {
+    transform: scale(1, 1);
+    filter: brightness(1.6);
+  }
+
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes portrait-roll {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(360%);
+  }
+}
+
+// Shadowbroker: the bay's floodlights bank on over the portrait, one lamp
+// block and then the other, each with a visible clunk, then settle.
+.theme-meridian_shadowbroker {
+  #{$portrait} {
+    animation: portrait-floodlights 660ms both;
+  }
+
+  #{$sweep} {
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      animation: portrait-lamp 660ms both;
+    }
+
+    &::before {
+      background: radial-gradient(
+        ellipse 70% 85% at 10% 0%,
+        rgb(244 166 42 / 32%),
+        transparent 70%
+      );
+    }
+
+    &::after {
+      background: radial-gradient(
+        ellipse 70% 85% at 90% 0%,
+        rgb(244 166 42 / 32%),
+        transparent 70%
+      );
+      animation-name: portrait-lamp-late;
+    }
+  }
+}
+
+@keyframes portrait-floodlights {
+  0% {
+    filter: brightness(0.08) sepia(0);
+    animation-timing-function: step-end;
+  }
+
+  24% {
+    filter: brightness(0.5) sepia(0.55);
+    animation-timing-function: step-end;
+  }
+
+  50% {
+    filter: brightness(0.95) sepia(0.2);
+    animation-timing-function: step-end;
+  }
+
+  76% {
+    filter: brightness(1.12) sepia(0);
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes portrait-lamp {
+  0% {
+    opacity: 0;
+    animation-timing-function: step-end;
+  }
+
+  24% {
+    opacity: 1;
+    animation-timing-function: step-end;
+  }
+
+  76% {
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes portrait-lamp-late {
+  0% {
+    opacity: 0;
+    animation-timing-function: step-end;
+  }
+
+  50% {
+    opacity: 1;
+    animation-timing-function: step-end;
+  }
+
+  76% {
+    opacity: 1;
+    animation-timing-function: ease-in;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// Foundry: the six-bladed iris of its loader opens on the portrait, turning
+// as it widens, and the bronze light warms the picture as it comes.
+//
+// The opening is a mask drawn anew every frame, which restyles the blades with
+// it. So their bronze reaches them by inheritance from a background the window
+// carries without painting: substituting var(--forge-texture), a data URL,
+// into every frame's restyle made this arrival cost five times any other.
+$foundry-iris: cubic-bezier(0.55, 0, 0.25, 1);
+
+.theme-meridian_foundry {
+  #{$portrait} {
+    animation: portrait-forge-glow 640ms ease-out both;
+  }
+
+  // The bronze, for the blades to inherit; the chamber's casing is it already.
+  .CharacterPreview {
+    background-image: var(--forge-texture);
+    background-size: 0 0;
+  }
+
+  // The opening: a circle taken out of the whole window.
+  #{$sweep} {
+    background-image: inherit;
+    background-size: 0 0;
+    mask:
+      linear-gradient(#000, #000),
+      radial-gradient(closest-side, #000 calc(100% - 1px), transparent) 50% 50% / 0 0 no-repeat;
+    mask-composite: exclude;
+    animation: portrait-iris 640ms $foundry-iris both;
+  }
+
+  // The blades, twice the window's size so turning never bares a corner: their
+  // bronze, then the seams between them and the shade around the opening.
+  #{$sweep-before},
+  #{$sweep-after} {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    animation: portrait-iris-turn 640ms $foundry-iris both;
+  }
+
+  #{$sweep-before} {
+    background-image: inherit;
+    background-position: 50% 50%;
+    background-size: 360px;
+  }
+
+  #{$sweep-after} {
+    background:
+      repeating-conic-gradient(
+        from 0deg at 50% 50%,
+        rgb(0 0 0 / 70%) 0deg 1.5deg,
+        transparent 1.5deg 60deg
+      ),
+      radial-gradient(circle at 50% 50%, transparent 7%, rgb(0 0 0 / 55%) 38%);
+  }
+
+  // In the chamber, the blades close over its arched window.
+  .SpecimenViewer__sweep {
+    inset: 10px;
+    border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
+  }
+}
+
+@keyframes portrait-iris {
+  from {
+    mask-size:
+      100% 100%,
+      0 0;
+  }
+
+  to {
+    visibility: hidden;
+    mask-size:
+      100% 100%,
+      920px 920px;
+  }
+}
+
+@keyframes portrait-iris-turn {
+  to {
+    transform: rotate(30deg);
+  }
+}
+
+@keyframes portrait-forge-glow {
+  from {
+    filter: brightness(1.5) sepia(0.5);
+  }
+
+  to {
+    filter: none;
+  }
+}
+
+// MARK: Motion and forced colours
+
+@media (prefers-reduced-motion: reduce) {
+  #{$portrait},
+  #{$sweep},
+  #{$sweep-before},
+  #{$sweep-after} {
+    animation: none !important;
+  }
+
+  #{$sweep} {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  #{$sweep} {
+    display: none;
+  }
+}

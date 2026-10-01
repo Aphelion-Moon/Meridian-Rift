@@ -1,7 +1,22 @@
 /// Shared setup for the tests of save version 22's marking content: fixtures loaded the way a connection loads a character, and
 /// bodies signed the way the appearance harness signs them. Abstract, so the runner never runs it on its own.
 /datum/unit_test/body_marking_content
+	/// Restore the actual configured choices after this test, including an uninitialized cache.
+	var/list/original_species_choices
 	abstract_type = /datum/unit_test/body_marking_content
+
+// These fixtures exercise species-specific bodies, independently of the server's enabled species.
+/datum/unit_test/body_marking_content/New()
+	. = ..()
+	var/datum/preference/choiced/species/species_preference = GLOB.preference_entries[/datum/preference/choiced/species]
+	original_species_choices = species_preference.cached_values
+	species_preference.cached_values = list(/datum/species/human, /datum/species/mammal, /datum/species/lizard, /datum/species/moth)
+
+/datum/unit_test/body_marking_content/Destroy()
+	var/datum/preference/choiced/species/species_preference = GLOB.preference_entries[/datum/preference/choiced/species]
+	species_preference.cached_values = original_species_choices
+	original_species_choices = null
+	return ..()
 
 /**
  * Returns memory-only preferences with a mock client, which the savefile fixtures load into.

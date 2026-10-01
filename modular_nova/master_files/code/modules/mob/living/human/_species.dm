@@ -54,3 +54,20 @@
 /// Applies any after effects to the preview icon (such as opacity, color multiplication, etc)
 /datum/species/proc/preview_icon_after_effects(datum/universal_icon/dummy_icon, mob/living/carbon/human/target)
 	return
+
+// APHELION EDIT ADDITION START - Share Nova digitigrade and chassis eligibility with taur leg restoration.
+/// Whether this body gets digitigrade replacements, including species requirements and synthetic chassis limits.
+/datum/species/proc/should_use_digitigrade_legs(mob/living/carbon/target)
+	if(digitigrade_customization != DIGITIGRADE_FORCED && !(digitigrade_customization == DIGITIGRADE_OPTIONAL && target.dna.features[FEATURE_LEGS] == DIGITIGRADE_LEGS))
+		return FALSE
+	if(issynthetic(target))
+		var/datum/mutant_bodypart/chassis = target.dna.mutant_bodyparts[FEATURE_SYNTH_CHASSIS]
+		if(chassis)
+			var/list/chassis_accessory = SSaccessories.sprite_accessories[FEATURE_SYNTH_CHASSIS]
+			var/datum/sprite_accessory/synth_chassis/body_choice
+			if(chassis_accessory)
+				body_choice = chassis_accessory[chassis.name]
+			if(body_choice && !body_choice.is_digi_compatible)
+				return FALSE
+	return TRUE
+// APHELION EDIT ADDITION END

@@ -90,8 +90,7 @@
 	var/datum/body_marking/fox_sock = GLOB.body_markings_by_type[/datum/body_marking/tertiary/fox]
 	TEST_ASSERT(fox.recommended_species && fox.recommended_species == fox_sock.recommended_species, "Markings of the same sets must share one species list")
 
-/// Changing species in character setup removes the markings the new species may not wear unless mismatched parts allow any,
-/// and every zone stays. Loading a character never removes one.
+/// Changing species preserves markings and enables mismatched parts when needed. Loading a character also keeps them.
 /datum/unit_test/body_marking_features/species_change
 
 /datum/unit_test/body_marking_features/species_change/Run()
@@ -113,15 +112,16 @@
 
 	// Another setting changing touches nothing.
 	middleware.post_set_preference(null, "feature_mcolor", "#123456")
-	TEST_ASSERT_EQUAL(json_encode(preferences.body_markings.serialize()), saved_text, "Only a species change may remove markings")
-	// To a human without mismatched parts: only the tattoo stays, and both zones do.
+	TEST_ASSERT_EQUAL(json_encode(preferences.body_markings.serialize()), saved_text, "Other settings must leave markings unchanged")
+	// To a human without mismatched parts: retain every marking and enable the toggle instead.
 	preferences.value_cache[/datum/preference/choiced/species] = GLOB.species_list[SPECIES_HUMAN]
 	middleware.post_set_preference(null, "species", SPECIES_HUMAN)
-	var/list/pruned = list(
-		BODY_ZONE_CHEST = list("Tattoo - Heart" = list("#112222", 0)),
-		BODY_ZONE_HEAD = list(),
-	)
-	TEST_ASSERT_EQUAL(json_encode(preferences.body_markings.serialize()), json_encode(pruned), "A new species must lose the markings it may not wear and keep its zones")
+	TEST_ASSERT_EQUAL(json_encode(preferences.body_markings.serialize()), saved_text, "A species change must keep every marking and zone")
+	TEST_ASSERT(preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts), "A species change must enable mismatched parts when existing markings need it")
+	preferences.save_character()
+	var/list/written = preferences.savefile.get_entry("character[preferences.default_slot]")
+	TEST_ASSERT_EQUAL(written["allow_mismatched_parts_toggle"], TRUE, "Saving must persist the automatically enabled toggle")
+	TEST_ASSERT_EQUAL(json_encode(written["body_markings"]), saved_text, "Saving after a species change must preserve the markings")
 	// With mismatched parts, a species change keeps everything.
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
 	preferences.body_markings = body_marking_collection_from_list(saved)
@@ -418,8 +418,6 @@
 		TEST_ASSERT(info, "[name] must be described")
 		TEST_ASSERT(("exclusion_group" in info) && info["exclusion_group"] == marking.exclusion_group, "[name] must be sent with its exclusion group")
 		TEST_ASSERT_EQUAL(info["color_mode"], marking.color_mode, "[name] must be sent with its colour mode")
-		TEST_ASSERT_EQUAL(info["gendered"], marking.gendered, "[name] must be sent with whether it is gendered")
-		TEST_ASSERT_EQUAL(info["leg_shapes"], marking.leg_shapes, "[name] must be sent with the leg shapes it has art for")
 		var/list/species_ids = marking.recommended_species ? sort_list(assoc_to_keys(marking.recommended_species)) : null
 		var/list/sent_ids = info["recommended_species"] ? sort_list(splittext(info["recommended_species"], ",")) : null
 		TEST_ASSERT_EQUAL(json_encode(sent_ids), json_encode(species_ids), "[name] must be sent with the species it is meant for")

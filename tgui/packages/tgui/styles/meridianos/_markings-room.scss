@@ -1,0 +1,2258 @@
+// THIS IS AN APHELION UI FILE
+// Augments+ in the club themes (Cyberpunk and Augmentation so far): one fixed
+// room, 900 by 820, that never resizes. Its markings are a club's bathroom
+// mirror: grimy subway tiles, a frameless glass stickered and scratched, two
+// neon tubes lighting the character in it, each zone's markings on a die-cut
+// card stuck up either side, and paint markers on a grimy counter below. The
+// Markings tab is lettered in Rye, neon on black. See MarkingsRoom/.
+//
+// The character in the glass is the preview every tab shows; the room only
+// lights it.
+//
+// The rooms' textures and fonts aren't in this bundle, which every window
+// loads: the preferences window gets them from the markings_room module, with
+// a stylesheet that declares each texture as a custom property on the room
+// (--mr-<name>) and each font as a face. A layer reads its texture as
+// var(--mr-<name>, none), so it stays a layer, bare, until that has loaded.
+
+/// A colour at a fraction of its opacity.
+@function faded($color, $amount) {
+  @return color-mix(in srgb, #{$color} #{$amount * 100%}, transparent);
+}
+
+$display: 'VCR OSD Mono', Consolas, monospace;
+$marker: 'Permanent Marker', cursive;
+$cut: polygon(
+  0 0,
+  calc(100% - var(--room-cut)) 0,
+  100% var(--room-cut),
+  100% 100%,
+  var(--room-cut) 100%,
+  0 calc(100% - var(--room-cut))
+);
+// The neon tubes switch on with a stutter.
+$neon-on: markings-neon-on;
+
+// MARK: Room
+
+.AugmentsRoom {
+  // Neon is the theme's own light; hot the second one it shows.
+  --room-neon: var(--console-interaction-accent, #ff5267);
+  --room-hot: var(--console-interaction-selected, #00e5d4);
+  --room-text: var(--console-text-primary, #f7edf0);
+  --room-muted: var(--console-text-secondary, #c9a9b0);
+  --room-faint: var(--console-text-secondary, #9a7c82);
+  --room-focus: var(--console-focus, #74fff5);
+  --room-bg: #0d0404;
+  --room-panel: #140605;
+  --room-panel-hi: #1d0a0b;
+  --room-recess: #070203;
+  --room-line: #752821;
+  --room-cut: 10px;
+  --room-uv: #a46bff;
+  --room-neon-rgb: 255 82 103;
+  --room-hot-rgb: 0 229 212;
+  --room-uv-rgb: 164 107 255;
+
+  position: relative;
+  width: 900px;
+  height: 820px;
+  flex: none;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--room-text);
+  background: var(--room-bg);
+  font: 12px/1.35 Verdana, Geneva, 'DejaVu Sans', sans-serif;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--room-focus);
+    outline-offset: 2px;
+  }
+}
+
+// The room's own buttons, without the browser's dress; classed rules restyle them.
+:where(.AugmentsRoom button, .AugmentsRoom label) {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+:where(.AugmentsRoom button:disabled) {
+  cursor: default;
+}
+
+// The two themes it was drawn in, exactly.
+.theme-meridian_cyberpunk .AugmentsRoom {
+  --room-neon: #ff5267;
+  --room-hot: #00e5d4;
+  --room-text: #f7edf0;
+  --room-muted: #c9a9b0;
+  --room-faint: #9a7c82;
+  --room-focus: #74fff5;
+  --room-bg: #0d0404;
+  --room-panel: #140605;
+  --room-panel-hi: #1d0a0b;
+  --room-recess: #070203;
+  --room-line: #752821;
+  --room-cut: 10px;
+  --room-neon-rgb: 255 82 103;
+  --room-hot-rgb: 0 229 212;
+}
+
+.theme-meridian_augmentation .AugmentsRoom {
+  --room-neon: #00e5d4;
+  --room-hot: #ff6a81;
+  --room-text: #eaf7f6;
+  --room-muted: #a9c7c4;
+  --room-faint: #7b9997;
+  --room-focus: #70fff5;
+  --room-bg: #060a0b;
+  --room-panel: #091114;
+  --room-panel-hi: #0e1c20;
+  --room-recess: #04080a;
+  --room-line: #28575a;
+  --room-cut: 12px;
+  --room-neon-rgb: 0 229 212;
+  --room-hot-rgb: 255 106 129;
+}
+
+// The page holds the room in the middle of the tab.
+.LimbsPage__room {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+}
+
+.AugmentsRoom__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+
+  &--augments {
+    background:
+      radial-gradient(
+        ellipse 50% 46% at 50% 42%,
+        faded(var(--room-hot), 0.06),
+        transparent 72%
+      ),
+      linear-gradient(180deg, var(--room-panel), var(--room-bg) 70%);
+  }
+
+  // The club's tiles, under the neon's spill from above and from the side tube.
+  &--markings {
+    opacity: 0;
+    background:
+      radial-gradient(
+        ellipse 42% 18% at 50% 6%,
+        faded(var(--room-neon), 0.34),
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 18% 46% at 70% 48%,
+        faded(var(--room-hot), 0.16),
+        transparent 70%
+      ),
+      linear-gradient(180deg, rgb(14 8 22 / 58%), rgb(4 2 10 / 80%)),
+      var(--mr-club-tiles, none) 0 0 / 900px 820px;
+  }
+
+  &--uv {
+    opacity: 0;
+    background:
+      radial-gradient(
+        ellipse 40% 50% at 50% 30%,
+        faded(var(--room-uv), 0.22),
+        transparent 70%
+      ),
+      rgb(6 2 16 / 84%);
+  }
+}
+
+.AugmentsRoom--markings {
+  .AugmentsRoom__bg--markings {
+    opacity: 1;
+  }
+
+  .AugmentsRoom__bg--augments {
+    opacity: 0;
+  }
+}
+
+.AugmentsRoom--uv .AugmentsRoom__bg--uv {
+  opacity: 1;
+}
+
+// The augments keep their columns for now, under the header.
+.AugmentsRoom__augments {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 64px;
+  bottom: 8px;
+  z-index: 1;
+}
+
+// MARK: Header
+
+.AugmentsRoom__header {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 56px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--room-line);
+  transition: border-color 0.4s;
+
+  .AugmentsRoom--markings & {
+    border-bottom-color: rgb(255 255 255 / 8%);
+  }
+}
+
+// Tagged on the wall behind the header: each theme's own (markings-room/), the club's in its _base.
+.AugmentsRoom__tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.AugmentsRoom__modes {
+  position: relative;
+  display: flex;
+  gap: 10px;
+}
+
+.AugmentsRoom__mode {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  color: var(--room-muted);
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--room-text);
+  }
+
+  // The augments' tab: a chamfered plate, lit in the hot colour.
+  &--augments {
+    padding: 0 18px;
+    font: 15px/1 $display;
+    letter-spacing: 0.16em;
+    background: var(--room-line);
+    clip-path: $cut;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      z-index: -1;
+      background: var(--room-panel);
+      clip-path: $cut;
+    }
+  }
+
+  &--augments.AugmentsRoom__mode--on {
+    color: var(--room-hot);
+    background: var(--room-hot);
+    text-shadow: 0 0 10px faded(var(--room-hot), 0.75);
+
+    &::before {
+      background:
+        linear-gradient(
+          180deg,
+          faded(var(--room-hot), 0.24),
+          faded(var(--room-hot), 0.06) 70%
+        ),
+        var(--room-panel);
+    }
+  }
+
+  // The markings' tab: lettered in Rye, a neon sign over the door.
+  &--markings {
+    padding: 0 18px;
+    border-radius: 6px;
+    font: 22px/1 Rye, serif;
+    letter-spacing: 0.01em;
+    background: var(--room-panel);
+    box-shadow: inset 0 0 0 1px var(--room-line);
+  }
+
+  &--markings.AugmentsRoom__mode--on {
+    color: #fff0dc;
+    background: #130707;
+    box-shadow:
+      inset 0 0 0 1px faded(var(--room-neon), 0.5),
+      0 0 24px faded(var(--room-neon), 0.28);
+    text-shadow:
+      0 0 2px #fff,
+      0 0 8px var(--room-neon),
+      0 0 18px var(--room-neon),
+      0 0 32px faded(var(--room-neon), 0.6);
+
+    span {
+      animation: $neon-on 1.1s steps(1) 0.15s backwards;
+    }
+  }
+}
+
+.AugmentsRoom__modeIcon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.AugmentsRoom__tools {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.AugmentsRoom__layers {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--room-recess);
+  border: 1px solid var(--room-line);
+}
+
+.AugmentsRoom__layer {
+  height: 30px;
+  padding: 0 14px;
+  font: 12px/30px $display;
+  letter-spacing: 0.14em;
+  color: var(--room-muted);
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+
+  &:hover {
+    color: var(--room-text);
+  }
+
+  &--on {
+    color: var(--room-hot);
+    background: faded(var(--room-hot), 0.13);
+    box-shadow: inset 0 -2px 0 var(--room-hot);
+  }
+}
+
+// The UV lights: a toggle in a pill.
+.AugmentsRoom__uv {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 14px 0 8px;
+  border-radius: 17px;
+  font: 12px/1 $display;
+  letter-spacing: 0.12em;
+  color: var(--room-muted);
+  background: rgb(0 0 0 / 45%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+  transition:
+    color 0.2s,
+    box-shadow 0.2s;
+
+  &:hover {
+    color: var(--room-text);
+  }
+
+  &--on {
+    color: #e4d2ff;
+    box-shadow:
+      inset 0 0 0 1px faded(var(--room-uv), 0.6),
+      0 0 18px faded(var(--room-uv), 0.35);
+  }
+}
+
+.AugmentsRoom__uvTrack {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 9px;
+  background: #1b1420;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
+  transition: background-color 0.25s;
+
+  .AugmentsRoom__uv--on & {
+    background: #2a1450;
+  }
+}
+
+.AugmentsRoom__uvKnob {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6d6377;
+  transition:
+    transform 0.25s cubic-bezier(0.3, 1.4, 0.5, 1),
+    background-color 0.25s,
+    box-shadow 0.25s;
+
+  .AugmentsRoom__uv--on & {
+    transform: translateX(16px);
+    background: #d7c0ff;
+    box-shadow:
+      0 0 8px var(--room-uv),
+      0 0 16px var(--room-uv);
+  }
+}
+
+// MARK: Markings
+
+// Its parts take their places in the room, under the header and over its tiles.
+.MarkingsRoom {
+  position: absolute;
+  inset: 0;
+}
+
+// The mirror: its glass, the clips holding it, and two neon tubes.
+.MarkingsRoom__mirror {
+  position: absolute;
+  left: 270px;
+  top: 66px;
+  width: 360px;
+  height: 560px;
+  z-index: 1;
+  animation: markings-mirror-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+.MarkingsRoom__glass {
+  position: absolute;
+  left: 14px;
+  top: 26px;
+  width: 332px;
+  height: 520px;
+  overflow: hidden;
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, faded(var(--room-neon), 0.1), transparent 26%),
+    radial-gradient(ellipse 90% 70% at 50% 40%, #1b1521, #09070c 85%),
+    // Keep the glass opaque when switching to the translucent UV gradient.
+    #06030c;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 16%),
+    0 0 0 4px #070708,
+    0 22px 40px rgb(0 0 0 / 65%);
+  transition: background 0.5s;
+
+  // Pointing at a part of the body picks it.
+  &[data-zone] .CharacterPreview {
+    cursor: pointer;
+  }
+
+  .AugmentsRoom--uv & {
+    background:
+      radial-gradient(
+        ellipse 90% 50% at 50% 0%,
+        faded(var(--room-uv), 0.3),
+        transparent 70%
+      ),
+      #06030c;
+  }
+}
+
+// The character's view, centred on the club's glass in every room; the page
+// places it. A room's glass clips it.
+.MarkingsRoom__view {
+  position: absolute;
+}
+
+// The UV tube, unlit until the lights go out.
+.MarkingsRoom__uvTube {
+  position: absolute;
+  left: 30px;
+  right: 30px;
+  top: 8px;
+  z-index: 3;
+  height: 5px;
+  border-radius: 3px;
+  background: #cdb0ff;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow:
+    0 0 8px var(--room-uv),
+    0 0 26px 6px faded(var(--room-uv), 0.55);
+
+  .AugmentsRoom--uv & {
+    opacity: 1;
+    animation: $neon-on 1s steps(1) 0.35s backwards;
+  }
+}
+
+.MarkingsRoom__neon {
+  position: absolute;
+  z-index: 3;
+  border-radius: 4px;
+  pointer-events: none;
+  transition: opacity 0.4s;
+
+  // Each hangs on two clips.
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 1px;
+    background: #2c2f33;
+    box-shadow: 0 0 0 1px #111;
+  }
+
+  &--top {
+    left: 28px;
+    right: 28px;
+    top: 8px;
+    height: 7px;
+    background: #ffe3f1;
+    box-shadow:
+      0 0 3px var(--room-neon),
+      0 0 10px var(--room-neon),
+      0 0 26px 4px faded(var(--room-neon), 0.6),
+      0 12px 40px 6px faded(var(--room-neon), 0.25);
+    animation: $neon-on 1.2s steps(1) 0.4s backwards;
+
+    &::before {
+      left: 18px;
+      top: -3px;
+      width: 5px;
+      height: 13px;
+    }
+
+    &::after {
+      right: 18px;
+      top: -3px;
+      width: 5px;
+      height: 13px;
+    }
+  }
+
+  &--side {
+    right: -2px;
+    top: 60px;
+    width: 6px;
+    height: 400px;
+    background: #e3fffd;
+    box-shadow:
+      0 0 3px var(--room-hot),
+      0 0 10px var(--room-hot),
+      0 0 26px 4px faded(var(--room-hot), 0.55),
+      -12px 0 40px 6px faded(var(--room-hot), 0.2);
+    animation:
+      $neon-on 1.2s steps(1) 0.7s backwards,
+      markings-hum 6s 3s infinite;
+
+    &::before {
+      left: -3px;
+      top: 24px;
+      width: 12px;
+      height: 5px;
+    }
+
+    &::after {
+      left: -3px;
+      bottom: 24px;
+      width: 12px;
+      height: 5px;
+    }
+  }
+
+  // Under the UV light the tubes are off.
+  .AugmentsRoom--uv & {
+    opacity: 0.12;
+    animation: none;
+  }
+}
+
+.MarkingsRoom__clip {
+  position: absolute;
+  z-index: 3;
+  width: 18px;
+  height: 9px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #b9bec2, #6c7276);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 60%);
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 2.5px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #2c3033;
+  }
+
+  &--a {
+    left: 24px;
+    top: 22px;
+  }
+
+  &--b {
+    right: 24px;
+    top: 22px;
+  }
+
+  &--c {
+    left: 24px;
+    bottom: 10px;
+  }
+
+  &--d {
+    right: 24px;
+    bottom: 10px;
+  }
+}
+
+// The character's preview, as the mirror shows it: no floor, no frame of its
+// own, lit dimmer than the neon, and coming in as the lights come up.
+.CharacterPreview.CharacterPreview--club {
+  .CharacterPreview__background,
+  .CharacterPreview__dark,
+  .CharacterPreview__sweep,
+  .CharacterPreview__glass,
+  .CharacterPreview__case,
+  .CharacterPreview__trim,
+  .CharacterPreview__mark,
+  .CharacterPreview__clip,
+  .CharacterPreview__rule {
+    display: none;
+  }
+
+  .CharacterPreview__arrival {
+    animation: markings-lights-up 1.2s ease-out 0.25s both;
+  }
+
+  .CharacterPreview__figure {
+    filter: brightness(0.8) saturate(0.88);
+    transition: filter 0.6s ease;
+  }
+
+  // With the lights out it is drawn as the game draws it in the dark.
+  .AugmentsRoom--uv & .CharacterPreview__figure {
+    filter: none;
+  }
+
+  // With the light effects off, the room's light doesn't fall on it at all,
+  // whatever the theme tints it with: it shows as it is.
+  .MarkingsRoom__glass.MarkingsRoom__glass--plain & .CharacterPreview__figure {
+    filter: none;
+  }
+}
+
+// What the mirror draws on the character, lined up with its frame.
+.MarkingsRoom__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.MarkingsRoom__frame {
+  pointer-events: none;
+}
+
+// The neon on its edges: from the tube above, fading down the body, and from
+// the side tube, down its right. Masked by the character's own pixels.
+.MarkingsRoom__rim {
+  pointer-events: none;
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  image-rendering: pixelated;
+  mix-blend-mode: screen;
+  transition: opacity 0.4s;
+
+  &--top {
+    background: linear-gradient(
+      180deg,
+      faded(var(--room-neon), 0.5) var(--tile-top),
+      faded(var(--room-neon), 0.1) calc(var(--tile-top) + 13.44 * var(--pixel)),
+      transparent calc(var(--tile-top) + 22.4 * var(--pixel))
+    );
+  }
+
+  &--side {
+    // Preserve the tile's fade exactly, extending its end colour over wider art.
+    background:
+      linear-gradient(270deg, faded(var(--room-hot), 0.6), transparent)
+        calc(var(--tile-left) + 16.333 * var(--pixel)) 0 /
+        calc(7.667 * var(--pixel)) 100% no-repeat,
+      linear-gradient(faded(var(--room-hot), 0.6) 0 0)
+        calc(var(--tile-left) + 24 * var(--pixel)) 0 /
+        calc(100% - var(--tile-left) - 24 * var(--pixel)) 100% no-repeat;
+  }
+
+  // With the lights out only the UV tube over the glass lights it, from
+  // above, in its own colour (the mockups tint the whole body; the game draws
+  // the rest dark, so the tube's light falls on its top edges).
+  &--uv {
+    opacity: 0;
+    background: linear-gradient(
+      180deg,
+      faded(var(--room-uv), 0.45) var(--tile-top),
+      faded(var(--room-uv), 0.1) calc(var(--tile-top) + 13.44 * var(--pixel)),
+      transparent calc(var(--tile-top) + 22.4 * var(--pixel))
+    );
+  }
+
+  .AugmentsRoom--uv & {
+    opacity: 0;
+  }
+}
+
+.AugmentsRoom--uv .MarkingsRoom__rim--uv {
+  opacity: 1;
+}
+
+// The halo round the part the pointer is on: its glow, outside it only.
+.MarkingsRoom__halo {
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-composite: subtract;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 2px var(--room-neon))
+    drop-shadow(0 0 10px faded(var(--room-neon), 0.7));
+  animation: markings-fade-in 0.25s both;
+}
+
+.MarkingsRoom__haloZone {
+  position: absolute;
+  inset: 0;
+  background: var(--room-neon);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+// Markings tried on shimmer over what the character wears.
+.MarkingsRoom__ghost {
+  animation: markings-ghost 1.1s ease-in-out infinite;
+}
+
+// A marking just put on or painted flares as it goes on, and settles.
+.MarkingsRoom__ink {
+  animation: markings-ink 0.7s ease-out backwards;
+}
+
+// The marking or drawing the pointer is on in its card, lit on the body.
+.MarkingsRoom__lit {
+  filter: drop-shadow(0 0 1.5px var(--room-neon))
+    drop-shadow(0 0 6px faded(var(--room-neon), 0.85));
+  animation: markings-ghost 1.1s ease-in-out infinite;
+}
+
+// What is stuck and scratched on the glass, in front of the character.
+.MarkingsRoom__decor,
+.MarkingsRoom__glare {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.MarkingsRoom__decor {
+  transition: filter 0.6s;
+
+  .AugmentsRoom--uv & {
+    filter: brightness(0.38) saturate(0.7);
+  }
+}
+
+.MarkingsRoom__crack,
+.MarkingsRoom__scratch {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+
+  path {
+    fill: none;
+    stroke-linecap: round;
+  }
+}
+
+.MarkingsRoom__crack path {
+  stroke: rgb(255 255 255 / 40%);
+  stroke-width: 1;
+}
+
+.MarkingsRoom__crack .MarkingsRoom__crackShadow {
+  stroke: rgb(0 0 0 / 60%);
+  stroke-width: 1.6;
+  transform: translate(1px, 1px);
+}
+
+.MarkingsRoom__scratch path {
+  stroke: rgb(255 255 255 / 30%);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+
+.MarkingsRoom__sticker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font: 10px/1 $display;
+  letter-spacing: 0.06em;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 45%);
+
+  &--future {
+    left: 10px;
+    top: 14px;
+    padding: 6px 8px;
+    rotate: -9deg;
+    background: #0d0d0f;
+    color: #f2f2ee;
+    outline: 2px solid #f2f2ee;
+    outline-offset: -4px;
+  }
+
+  &--404 {
+    // Its ink's fluorescent hue, and its glow's bright core (see below).
+    --sticker-fluo: 40 255 224;
+    --sticker-fluo-core: 200 255 246;
+
+    z-index: 2;
+    right: 12px;
+    top: 50px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    rotate: 14deg;
+    background: var(--room-neon);
+    color: #120a10;
+    font-size: 13px;
+    box-shadow:
+      0 0 0 2px #f4f3ef,
+      0 1px 3px rgb(0 0 0 / 50%);
+  }
+
+  // Still "wake up", in an alien hand.
+  &--wake {
+    right: 22px;
+    bottom: 30px;
+    padding: 5px 9px 4px;
+    rotate: -5deg;
+    background: #ffd23f;
+    color: #141210;
+    font: 15px/1 Bloops, Aurebesh, sans-serif;
+    letter-spacing: 0.04em;
+  }
+
+  // Pixel stickers after the game's own sprites, die-cut in their art
+  // (--sticker-art): the harm intent in each club's neon, and a banana peel
+  // just below and right of it. The room's light keeps to their shape.
+  &--harm,
+  &--peel {
+    z-index: 2;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--sticker-art) 0 0 / 100% 100% no-repeat;
+    // A layer of its own: masked and filtered, it would cost the room every
+    // frame the room animates.
+    will-change: transform;
+
+    &::before,
+    &::after {
+      border-radius: 0;
+      mask: var(--sticker-art) 0 0 / 100% 100% no-repeat;
+    }
+
+    // The same sticker in its fluorescent inks (--sticker-uv, from the lab's
+    // tools/club_stickers.py --uv), over the lit one and its light: shown
+    // when the lights go out.
+    .MarkingsRoom__stickerUv {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background: var(--sticker-uv) 0 0 / 100% 100% no-repeat;
+      opacity: 0;
+      transition: opacity 0.6s;
+    }
+  }
+
+  &--harm {
+    --sticker-art: var(--mr-px-harm-augmentation, linear-gradient(#0000, #0000));
+    --sticker-uv: var(--mr-px-harm-augmentation-uv, linear-gradient(#0000, #0000));
+    --sticker-fluo: 40 255 224;
+    --sticker-fluo-core: 200 255 246;
+
+    left: 10px;
+    bottom: 54px;
+    width: 44px;
+    height: 40px;
+    rotate: 7deg;
+  }
+
+  &--peel {
+    --sticker-art: var(--mr-px-banana-peel, linear-gradient(#0000, #0000));
+    --sticker-uv: var(--mr-px-banana-peel-uv, linear-gradient(#0000, #0000));
+    --sticker-fluo: 234 255 34;
+    --sticker-fluo-core: 250 255 172;
+
+    left: 46px;
+    bottom: 22px;
+    width: 46px;
+    height: 40px;
+    rotate: -9deg;
+  }
+}
+
+// Under the blacklight, 404, the harm intent and the banana peel glow as
+// Shadowbroker's smiley does (mal's references: a blacklight face paint and
+// acid stickers). Their inks fluoresce, flat and lit from within, the ink gone
+// dark violet and the edge lavender-white, and each blooms tightly in its own
+// hue (--sticker-fluo), the blacklight's violet round it.
+.MarkingsRoom__sticker--404,
+.MarkingsRoom__sticker--harm,
+.MarkingsRoom__sticker--peel {
+  transition:
+    filter 0.6s,
+    background-color 0.6s,
+    color 0.6s,
+    box-shadow 0.6s;
+}
+
+.AugmentsRoom--uv {
+  .MarkingsRoom__sticker--404,
+  .MarkingsRoom__sticker--harm,
+  .MarkingsRoom__sticker--peel {
+    filter: drop-shadow(0 0 1px rgb(var(--sticker-fluo-core)))
+      drop-shadow(0 0 4px rgb(var(--sticker-fluo) / 75%))
+      drop-shadow(0 0 9px rgb(var(--sticker-fluo) / 40%))
+      drop-shadow(0 0 16px rgb(150 80 255 / 30%));
+  }
+
+  .MarkingsRoom__sticker--404 {
+    background: rgb(var(--sticker-fluo));
+    color: #25073f;
+    box-shadow: 0 0 0 2px #f2ecff;
+  }
+
+  .MarkingsRoom__stickerUv {
+    opacity: 1;
+  }
+}
+
+// Cyberpunk's harm keeps its red, with fighters in its teal; under the
+// blacklight its frame and its 404 go fluorescent rose.
+.theme-meridian_cyberpunk {
+  .MarkingsRoom__sticker--harm {
+    --sticker-art: var(--mr-px-harm-cyberpunk, linear-gradient(#0000, #0000));
+    --sticker-uv: var(--mr-px-harm-cyberpunk-uv, linear-gradient(#0000, #0000));
+    --sticker-fluo: 255 47 150;
+    --sticker-fluo-core: 255 168 218;
+  }
+
+  .MarkingsRoom__sticker--404 {
+    --sticker-fluo: 255 47 150;
+    --sticker-fluo-core: 255 168 218;
+  }
+}
+
+// The stickers are lit by the room, not by themselves, as every room's are
+// (markings-room/_base.scss, from the mockups): the neon tints each one and
+// falls off down it, a vinyl gloss runs along the glass's glare, and a tight
+// shadow and a faint second image sit a glass's thickness behind it. With the
+// lights out the neon's light and the gloss go.
+.MarkingsRoom__sticker {
+  --sticker-lamp: color-mix(in srgb, var(--room-neon) 9%, #fff);
+  --sticker-shade: color-mix(in srgb, var(--room-neon) 7%, #a4a2aa);
+  isolation: isolate;
+  filter: brightness(0.96) saturate(0.92) contrast(0.97)
+    drop-shadow(0 0 0.6px rgb(0 0 0 / 70%))
+    drop-shadow(2px 3px 0.8px rgb(0 0 0 / 30%));
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    display: block;
+    border-radius: inherit;
+    pointer-events: none;
+    transition: opacity 0.6s;
+  }
+
+  &::before {
+    z-index: 1;
+    background: linear-gradient(
+      172deg,
+      var(--sticker-lamp) 0%,
+      color-mix(in srgb, var(--sticker-lamp) 55%, var(--sticker-shade)) 55%,
+      var(--sticker-shade) 100%
+    );
+    mix-blend-mode: multiply;
+    opacity: 0.8;
+  }
+
+  &::after {
+    z-index: 2;
+    background:
+      linear-gradient(
+        118deg,
+        transparent 26%,
+        rgb(255 255 255 / 20%) 38%,
+        rgb(255 255 255 / 6%) 46%,
+        transparent 54%
+      ),
+      linear-gradient(180deg, rgb(255 255 255 / 12%), transparent 26%);
+    mix-blend-mode: screen;
+  }
+
+  .AugmentsRoom--uv &::before,
+  .AugmentsRoom--uv &::after {
+    opacity: 0;
+  }
+}
+
+// The glass dims round the part the pointer is on. Panned with the character,
+// it reaches past the glass every way.
+.MarkingsRoom__spot {
+  position: absolute;
+  inset: -600px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle at calc(var(--spot-x, 0px) + 600px) calc(var(--spot-y, 0px) + 600px),
+    transparent 0 46px,
+    rgb(6 2 12 / 45%) 120px
+  );
+  transition: opacity 0.3s;
+
+  &--on {
+    opacity: 1;
+  }
+}
+
+.MarkingsRoom__glare {
+  background:
+    linear-gradient(0deg, rgb(200 220 255 / 7%), transparent 26%),
+    radial-gradient(
+      ellipse 18% 9% at 22% 70%,
+      rgb(255 255 255 / 5%),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 12% 6% at 78% 32%,
+      rgb(255 255 255 / 4%),
+      transparent 70%
+    ),
+    linear-gradient(
+      118deg,
+      transparent 0 30%,
+      rgb(255 255 255 / 5%) 36%,
+      transparent 44%
+    );
+}
+
+// MARK: Cards
+
+// A zone's card: die-cut, stuck on crooked, its corner peeling.
+.MarkingsRoom__card {
+  position: absolute;
+  width: 246px;
+  height: 130px;
+  z-index: 3;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 3px solid #eceae4;
+  color: rgb(236 234 228 / 62%);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 6%), transparent 40%),
+    #0e0c12;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 40%),
+    0 8px 16px rgb(0 0 0 / 55%);
+  rotate: var(--card-tilt);
+  animation: markings-card-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--card-delay);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.25s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 26px;
+    height: 26px;
+    border-radius: 0 0 14px;
+    background: linear-gradient(
+      135deg,
+      transparent 49%,
+      #8f8d87 50%,
+      #d9d7d0 64%,
+      #f5f4ef 100%
+    );
+    filter: drop-shadow(-1px -1px 2px rgb(0 0 0 / 40%));
+    pointer-events: none;
+  }
+
+  &--lit {
+    border-color: #fff;
+    box-shadow:
+      0 0 0 1px rgb(0 0 0 / 40%),
+      0 0 22px faded(var(--room-neon), 0.45),
+      0 8px 16px rgb(0 0 0 / 55%);
+  }
+}
+
+// A card's head, tiles and names stand over what a theme lays on the card
+// behind them (its __cardX1 and __cardX2).
+.MarkingsRoom__cardHead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+}
+
+.MarkingsRoom__cardName {
+  font: 18px/1 $marker;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--room-neon);
+  text-shadow: 0 0 8px faded(var(--room-neon), 0.5);
+}
+
+.MarkingsRoom__cardCount {
+  font: 11px/1 $display;
+  color: var(--room-muted);
+}
+
+.MarkingsRoom__tiles {
+  position: relative;
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.MarkingsRoom__tile {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #18151d;
+  box-shadow: inset 0 0 0 2px #eceae4;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  &--selected {
+    box-shadow:
+      inset 0 0 0 2px #eceae4,
+      0 0 0 2px var(--room-neon),
+      0 0 12px faded(var(--room-neon), 0.5);
+  }
+
+  // An empty slot, dashed out.
+  &--add {
+    display: grid;
+    place-items: center;
+    background: transparent;
+    box-shadow: none;
+    border: 2px dashed rgb(236 234 228 / 35%);
+
+    svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.6;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: #eceae4;
+      color: #eceae4;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
+
+  // The custom drawing's slot, set apart from the markings.
+  &--custom {
+    margin-left: 9px;
+    overflow: visible;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -9px;
+      top: 4px;
+      bottom: 4px;
+      width: 1px;
+      background: currentColor;
+      opacity: 0.22;
+    }
+  }
+
+  &--custom.MarkingsRoom__tile--add {
+    display: block;
+  }
+}
+
+.MarkingsRoom__thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+// A drop of the marking's paint.
+.MarkingsRoom__drop {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 0 1.5px rgb(0 0 0 / 55%);
+}
+
+.MarkingsRoom__glowBadge {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  padding: 2px 3px;
+  border-radius: 3px;
+  font: 7px/1 $display;
+  letter-spacing: 0.06em;
+  color: #efe3ff;
+  background: rgb(120 70 220 / 85%);
+}
+
+.MarkingsRoom__customInner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.MarkingsRoom__customLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font: 8px/1 $display;
+  letter-spacing: 0.08em;
+
+  svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+}
+
+// A drawing is there: a check on the slot's corner.
+.MarkingsRoom__check {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #3ccf7a;
+  box-shadow: 0 0 0 2px #0b0b0c;
+
+  svg {
+    width: 10px;
+    height: 10px;
+    fill: none;
+    stroke: #08140c;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+.MarkingsRoom__cardNames {
+  position: relative;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--room-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// MARK: Counter
+
+// The counter under the mirror: grimy steel, its edge lit by both tubes.
+.MarkingsRoom__counter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 640px;
+  bottom: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr) 246px;
+  gap: 20px;
+  padding: 16px 16px 14px;
+  background:
+    var(--mr-club-grime, none) 0 0 / 900px 180px,
+    linear-gradient(
+      180deg,
+      #cfcdc5 0,
+      #9c9a92 3px,
+      #5c5a55 10px,
+      #262624 24px,
+      #121212 100%
+    );
+  box-shadow:
+    0 -2px 0 rgb(0 0 0 / 45%),
+    0 -20px 40px rgb(0 0 0 / 50%);
+  animation: markings-fade-up 0.5s 0.15s both;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      faded(var(--room-neon), 0.7) 30%,
+      faded(var(--room-hot), 0.7) 70%,
+      transparent
+    );
+    box-shadow: 0 0 8px faded(var(--room-neon), 0.4);
+  }
+}
+
+.MarkingsRoom__label {
+  font: 10px/1 $display;
+  letter-spacing: 0.16em;
+  color: var(--room-muted);
+}
+
+.MarkingsRoom__selName {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.MarkingsRoom__selWhere {
+  margin-top: 5px;
+  font: 10px/1 $display;
+  letter-spacing: 0.14em;
+  color: var(--room-neon);
+}
+
+.MarkingsRoom__selPaint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--room-muted);
+}
+
+.MarkingsRoom__swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 25%);
+}
+
+.MarkingsRoom__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.MarkingsRoom__pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 17px;
+  font-size: 12px;
+  background: rgb(255 255 255 / 6%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%);
+  transition:
+    background-color 0.15s,
+    box-shadow 0.15s;
+
+  &:hover:not(:disabled) {
+    background: faded(var(--room-neon), 0.12);
+    box-shadow: inset 0 0 0 1px faded(var(--room-neon), 0.6);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+  }
+
+  &--on {
+    box-shadow:
+      inset 0 0 0 1px faded(var(--room-uv), 0.75),
+      0 0 14px faded(var(--room-uv), 0.3);
+  }
+}
+
+.MarkingsRoom__pillDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #4a4152;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
+
+  .MarkingsRoom__pill--on & {
+    background: #d8c3ff;
+    box-shadow:
+      0 0 6px var(--room-uv),
+      0 0 12px var(--room-uv);
+  }
+}
+
+.MarkingsRoom__markers {
+  display: grid;
+  grid-template-columns: repeat(6, 40px);
+  gap: 18px 10px;
+  margin-top: 12px;
+}
+
+// A paint marker: its cap and a band in its colour.
+.MarkingsRoom__marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  height: 46px;
+  transition: transform 0.18s cubic-bezier(0.3, 1.5, 0.5, 1);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-3px) rotate(-5deg);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+  }
+
+  &--current {
+    transform: translateY(-5px);
+  }
+}
+
+.MarkingsRoom__markerCap,
+.MarkingsRoom__markerBody {
+  display: block;
+  flex: none;
+}
+
+.MarkingsRoom__markerCap {
+  width: 16px;
+  height: 13px;
+  margin-top: 2px;
+  border-radius: 4px 4px 1px 1px;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 30%), transparent 50%),
+    var(--marker);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 30%);
+}
+
+.MarkingsRoom__markerBody {
+  width: 16px;
+  height: 29px;
+  border-radius: 1px 1px 4px 4px;
+  background:
+    linear-gradient(
+      90deg,
+      rgb(255 255 255 / 18%),
+      transparent 40%,
+      rgb(0 0 0 / 35%)
+    ),
+    linear-gradient(180deg, var(--marker) 0 5px, #1e1e20 5px);
+  box-shadow: 0 3px 5px rgb(0 0 0 / 50%);
+  transition: box-shadow 0.2s;
+
+  .MarkingsRoom__marker--current & {
+    box-shadow:
+      0 0 0 2px var(--room-neon),
+      0 0 12px var(--marker);
+  }
+}
+
+.MarkingsRoom__markerLabel {
+  position: absolute;
+  top: 49px;
+  font: 9px/1 $display;
+  letter-spacing: 0.1em;
+  color: var(--room-muted);
+  white-space: nowrap;
+
+  // It stays on the shelf when its paint is picked up.
+  .MarkingsRoom__marker--current & {
+    translate: 0 5px;
+  }
+}
+
+// The spray can, for any other colour.
+.MarkingsRoom__marker--mix {
+  .MarkingsRoom__markerCap {
+    width: 10px;
+    height: 6px;
+    margin-top: 6px;
+    border-radius: 2px;
+    background: #d9d9d9;
+    box-shadow: none;
+  }
+
+  .MarkingsRoom__markerBody {
+    width: 22px;
+    height: 32px;
+    border-radius: 5px 5px 3px 3px;
+    background:
+      linear-gradient(
+        90deg,
+        rgb(255 255 255 / 25%),
+        transparent 40%,
+        rgb(0 0 0 / 35%)
+      ),
+      linear-gradient(
+        180deg,
+        #2b2b2e 0 8px,
+        transparent 8px 24px,
+        #2b2b2e 24px
+      ),
+      conic-gradient(
+        #ff3fa4,
+        #ffb020,
+        #9dff4a,
+        #2ff3e0,
+        #3f8cff,
+        #a066ff,
+        #ff3fa4
+      );
+  }
+
+  &.MarkingsRoom__marker--current .MarkingsRoom__markerBody {
+    box-shadow:
+      0 0 0 2px var(--room-neon),
+      0 0 12px var(--room-neon);
+  }
+}
+
+// The colour picker anchors to the can's own cell.
+.MarkingsRoom__mixAnchor {
+  width: 40px;
+  height: 46px;
+}
+
+.MarkingsRoom__room {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.MarkingsRoom__big {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: center;
+  align-content: center;
+  height: 70px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 6%), rgb(0 0 0 / 15%)),
+    faded(var(--room-neon), 0.08);
+  box-shadow:
+    inset 0 0 0 1px faded(var(--room-neon), 0.45),
+    0 0 18px faded(var(--room-neon), 0.12);
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow:
+      inset 0 0 0 1px var(--room-neon),
+      0 0 24px faded(var(--room-neon), 0.35);
+  }
+
+  svg {
+    grid-row: 1 / span 2;
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: var(--room-neon);
+    stroke-width: 1.5;
+  }
+
+  b {
+    font-size: 14px;
+  }
+
+  small {
+    font-size: 11px;
+    color: var(--room-muted);
+  }
+
+  &--alt {
+    height: 52px;
+    background: rgb(255 255 255 / 4%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%);
+
+    &:hover {
+      box-shadow:
+        inset 0 0 0 1px faded(var(--room-neon), 0.7),
+        0 0 20px faded(var(--room-neon), 0.2);
+    }
+  }
+}
+
+// MARK: Drawer
+
+.MarkingsRoom__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  cursor: default;
+}
+
+// A sticker sheet slid out over a column of cards.
+.MarkingsRoom__drawer {
+  position: absolute;
+  top: 64px;
+  width: 300px;
+  height: 564px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 6px;
+  color: #1a1820;
+  background: linear-gradient(180deg, #f3f2ee, #e1dfd8);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 35%),
+    0 24px 60px rgb(0 0 0 / 70%);
+  rotate: -1deg;
+  animation: markings-drawer-in 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.MarkingsRoom__drawerHead {
+  position: relative;
+  padding: 16px 56px 10px 18px;
+}
+
+.MarkingsRoom__drawerTitle {
+  font: 19px/1 $marker;
+  letter-spacing: 0.01em;
+  color: #17151c;
+}
+
+.MarkingsRoom__drawerSub {
+  margin-top: 7px;
+  font-size: 11px;
+  color: #5c5866;
+}
+
+.MarkingsRoom__close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  color: #5c5866;
+  border: 1px solid rgb(0 0 0 / 20%);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+
+  &:hover {
+    color: var(--room-hot);
+    border-color: var(--room-hot);
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+  }
+}
+
+.MarkingsRoom__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 18px 8px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 18%);
+  cursor: text;
+
+  &:focus-within {
+    box-shadow: inset 0 0 0 1px var(--room-neon);
+  }
+
+  svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: #5c5866;
+    stroke-width: 1.6;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #17151c;
+    font: 12px Verdana, Geneva, sans-serif;
+
+    &::placeholder {
+      color: #8a8693;
+    }
+
+    &:focus-visible {
+      outline: 0;
+    }
+  }
+}
+
+.MarkingsRoom__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 18px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 25%) transparent;
+}
+
+.MarkingsRoom__section {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 -18px;
+  padding: 10px 18px 7px;
+  font: 10px/1 $display;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #5c5866;
+  background: linear-gradient(180deg, #eceae4 75%, transparent);
+}
+
+.MarkingsRoom__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 60px);
+  gap: 8px;
+  margin-bottom: 6px;
+
+  &--book {
+    grid-template-columns: repeat(3, 84px);
+  }
+}
+
+// Each marking die-cut from the sheet.
+.MarkingsRoom__pick {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background: #17141b;
+  box-shadow:
+    0 0 0 3px #fff,
+    0 1px 4px 2px rgb(0 0 0 / 25%);
+  animation: markings-pick-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--pick-order) * 14ms + 100ms);
+
+  &--taken {
+    opacity: 0.38;
+    cursor: default;
+  }
+
+  &--peek {
+    box-shadow:
+      0 0 0 3px #fff,
+      0 0 0 5px var(--room-neon);
+  }
+
+  &--book {
+    width: 84px;
+    height: 100px;
+  }
+}
+
+.MarkingsRoom__bookThumb {
+  position: absolute;
+  left: 10px;
+  top: 6px;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+.MarkingsRoom__pickName {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 8px;
+  font-size: 10px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--room-text);
+}
+
+.MarkingsRoom__back {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  font: 8px/1 $display;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: #cfcbd6;
+}
+
+.MarkingsRoom__empty {
+  padding: 30px 0;
+  text-align: center;
+  color: #5c5866;
+}
+
+.MarkingsRoom__foot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 54px;
+  padding: 0 18px;
+  border-top: 1px solid rgb(0 0 0 / 12%);
+}
+
+.MarkingsRoom__footName {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.MarkingsRoom__footMeta {
+  font-size: 11px;
+  color: #5c5866;
+}
+
+// The clubs' drawer in the dark, like their cards, and Aphelion's: near black,
+// die-cut in white, its title in the neon's marker; its picks edged softly,
+// lit in the neon while the pointer tries one on. (mal: "the white is kinda
+// bright".)
+.theme-meridian_cyberpunk,
+.theme-meridian_augmentation,
+.theme-meridian_aphelion {
+  .MarkingsRoom__drawer {
+    color: #eceae4;
+    background:
+      linear-gradient(135deg, rgb(255 255 255 / 6%), transparent 40%),
+      #0e0c12;
+    border: 3px solid #eceae4;
+    box-shadow:
+      0 0 0 1px rgb(0 0 0 / 40%),
+      0 24px 60px rgb(0 0 0 / 70%);
+  }
+
+  .MarkingsRoom__drawerTitle {
+    color: var(--room-neon);
+  }
+
+  .MarkingsRoom__drawerSub,
+  .MarkingsRoom__section,
+  .MarkingsRoom__footMeta,
+  .MarkingsRoom__empty {
+    color: rgb(236 234 228 / 62%);
+  }
+
+  .MarkingsRoom__close {
+    color: rgb(236 234 228 / 62%);
+    border-color: rgb(236 234 228 / 22%);
+  }
+
+  .MarkingsRoom__search {
+    background: rgb(255 255 255 / 6%);
+    box-shadow: inset 0 0 0 1px rgb(236 234 228 / 18%);
+
+    svg {
+      stroke: rgb(236 234 228 / 55%);
+    }
+
+    input {
+      color: #eceae4;
+
+      &::placeholder {
+        color: rgb(236 234 228 / 42%);
+      }
+    }
+  }
+
+  .MarkingsRoom__list {
+    scrollbar-color: rgb(236 234 228 / 22%) transparent;
+  }
+
+  .MarkingsRoom__section {
+    background: linear-gradient(180deg, #0e0c12 75%, transparent);
+  }
+
+  .MarkingsRoom__pick {
+    box-shadow:
+      0 0 0 2px rgb(236 234 228 / 30%),
+      0 1px 4px 2px rgb(0 0 0 / 40%);
+
+    &--peek {
+      box-shadow:
+        0 0 0 2px var(--room-neon),
+        0 0 10px rgb(var(--room-neon-rgb) / 45%);
+    }
+  }
+
+  .MarkingsRoom__foot {
+    border-top-color: rgb(236 234 228 / 12%);
+  }
+}
+
+// MARK: Paint in flight
+
+.MarkingsRoom__fx {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 900px;
+  height: 820px;
+  z-index: 9;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.MarkingsRoom__trail {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 0.24 1.4;
+  stroke-dashoffset: 0.24;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px currentColor);
+  animation: markings-fly 0.6s cubic-bezier(0.45, 0.05, 0.25, 1) both;
+}
+
+.MarkingsRoom__splash {
+  fill: none;
+  stroke-width: 3;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: markings-splash 0.5s ease-out 0.5s both;
+}
+
+// MARK: Motion
+
+@keyframes markings-neon-on {
+  0% {
+    opacity: 0.1;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  14% {
+    opacity: 0.25;
+  }
+
+  22% {
+    opacity: 1;
+  }
+
+  26% {
+    opacity: 0.4;
+  }
+
+  34%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes markings-hum {
+  0%,
+  92%,
+  100% {
+    opacity: 1;
+  }
+
+  93% {
+    opacity: 0.55;
+  }
+
+  94% {
+    opacity: 1;
+  }
+
+  96% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes markings-mirror-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes markings-lights-up {
+  from {
+    filter: brightness(0.08) saturate(0.4);
+  }
+
+  to {
+    filter: none;
+  }
+}
+
+@keyframes markings-card-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--card-from) * -32px));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes markings-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes markings-ink {
+  0% {
+    opacity: 0;
+    filter: brightness(2.6);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes markings-ghost {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes markings-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes markings-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--drawer-from) * -28px)) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes markings-pick-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes markings-fly {
+  0% {
+    opacity: 1;
+    stroke-dashoffset: 0.24;
+  }
+
+  88% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -1;
+  }
+}
+
+@keyframes markings-splash {
+  from {
+    opacity: 0.95;
+    transform: scale(0.2);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+// Reduced motion: everything lands at once, and nothing loops.
+@media (prefers-reduced-motion: reduce) {
+  .AugmentsRoom,
+  .AugmentsRoom *,
+  .AugmentsRoom *::before,
+  .AugmentsRoom *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0s !important;
+  }
+}
+
+// A worn marking's right-click menu is the room's drawer, small, with its
+// actions in the room's own pills, as at the counter. Each theme's drawer and
+// pill rules dress it; only its geometry is set here.
+.AugmentsRoom .MarkingsRoom__drawer.MarkingsRoom__contextMenu {
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 160px;
+  height: auto;
+  padding: 10px;
+  rotate: none;
+  animation: none;
+  // The pills take the room's lettering, as at the counter, not the drawer's:
+  // Foundry's hide drawer is lettered dark, and its pills are dark wood.
+  color: var(--room-text);
+  // A see-through drawer (Vector's) would show the card it opens over:
+  // blurred, the card stays out of the menu's way.
+  backdrop-filter: blur(6px);
+}
+
+// Each action's mark: one box for the glow's dot and the others' icons, so that
+// their names line up.
+.MarkingsRoom__contextMark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.AugmentsRoom .MarkingsRoom__contextMenu .MarkingsRoom__contextAction {
+  width: 100%;
+  justify-content: flex-start;
+
+  &:focus-visible {
+    outline: 2px solid var(--room-neon);
+    outline-offset: 2px;
+  }
+
+  // Set a little apart from the rest.
+  &--remove {
+    margin-top: 4px;
+  }
+}

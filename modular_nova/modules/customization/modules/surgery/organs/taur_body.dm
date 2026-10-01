@@ -345,14 +345,17 @@
 	var/obj/item/bodypart/leg/left/left_leg = organ_owner.get_bodypart(BODY_ZONE_L_LEG)
 	var/obj/item/bodypart/leg/right/right_leg = organ_owner.get_bodypart(BODY_ZONE_R_LEG)
 	var/legs_species_still_matches = (old_legs_species_type == organ_owner.dna.species.type)
+	var/replacement_is_digitigrade = organ_owner.dna.species.should_use_digitigrade_legs(organ_owner)
 
 	if(istype(left_leg, /obj/item/bodypart/leg/left/taur) || istype(left_leg, /obj/item/bodypart/leg/left/synth/taur))
 		left_leg.drop_limb(special = TRUE, move_to_floor = FALSE)
 		qdel(left_leg)
 
 		var/obj/item/bodypart/leg/left/restore_left = legs_species_still_matches ? old_left_leg?.resolve() : null
-		var/left_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_L_LEG]
+		var/obj/item/bodypart/leg/left/left_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_L_LEG]
 		if(!restore_left && left_leg_type) // A legless species gets none back
+			if(replacement_is_digitigrade)
+				left_leg_type = initial(left_leg_type.digitigrade_type) || left_leg_type
 			restore_left = new left_leg_type()
 		restore_left?.replace_limb(organ_owner)
 	old_left_leg = null
@@ -362,8 +365,10 @@
 		qdel(right_leg)
 
 		var/obj/item/bodypart/leg/right/restore_right = legs_species_still_matches ? old_right_leg?.resolve() : null
-		var/right_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_R_LEG]
+		var/obj/item/bodypart/leg/right/right_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_R_LEG]
 		if(!restore_right && right_leg_type)
+			if(replacement_is_digitigrade)
+				right_leg_type = initial(right_leg_type.digitigrade_type) || right_leg_type
 			restore_right = new right_leg_type()
 		restore_right?.replace_limb(organ_owner)
 	old_right_leg = null

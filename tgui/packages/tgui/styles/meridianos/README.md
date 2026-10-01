@@ -174,6 +174,12 @@ to the default theme.
    [`theme.test.ts`](./tests/theme.test.ts) and
    [the backend preference tests](../../../../../code/modules/unit_tests/~nova/meridian_preferences.dm).
    Keep menu order and the backend choice list aligned.
+6. Give it a portrait arrival in
+   [`_portrait-arrival.scss`](./_portrait-arrival.scss): how the species
+   chamber's specimen and the character preview come in, the way the theme's
+   own device would show a picture.
+   [`portrait-arrival.test.ts`](./tests/portrait-arrival.test.ts) fails until
+   it has one.
 
 For example, registration is a direct list of imported objects:
 

@@ -56,6 +56,21 @@
  * the leg swap the legs preference skips when the body already wears the limbs it would give.
  */
 /datum/unit_test/digitigrade_legs_preview_switch
+	/// Restore the actual configured choices after this test, including an uninitialized cache.
+	var/list/original_species_choices
+
+// These fixtures exercise species-specific bodies, independently of the server's enabled species.
+/datum/unit_test/digitigrade_legs_preview_switch/New()
+	. = ..()
+	var/datum/preference/choiced/species/species_preference = GLOB.preference_entries[/datum/preference/choiced/species]
+	original_species_choices = species_preference.cached_values
+	species_preference.cached_values = list(/datum/species/human, /datum/species/lizard, /datum/species/synthetic, /datum/species/mammal)
+
+/datum/unit_test/digitigrade_legs_preview_switch/Destroy()
+	var/datum/preference/choiced/species/species_preference = GLOB.preference_entries[/datum/preference/choiced/species]
+	species_preference.cached_values = original_species_choices
+	original_species_choices = null
+	return ..()
 
 /**
  * Checks the preview body against a new body drawn from the same preferences: both legs' types, shapes, icon keys and colour
@@ -112,6 +127,10 @@
 		list("human plantigrade to lizard digitigrade", SPECIES_LIZARD, DIGITIGRADE_LEGS, null),
 		list("lizard digitigrade to a synthetic in a coloured chassis", SPECIES_SYNTH, NORMAL_LEGS, "Mammal Chassis"),
 		list("coloured chassis to an uncoloured one", SPECIES_SYNTH, NORMAL_LEGS, "Dark Chassis"),
+		list("a synthetic to a mammal taur", SPECIES_MAMMAL, NORMAL_LEGS, null, TRUE),
+		list("a taur to human digitigrade", SPECIES_HUMAN, DIGITIGRADE_LEGS, null, FALSE),
+		list("human digitigrade to a mammal taur", SPECIES_MAMMAL, NORMAL_LEGS, null, TRUE),
+		list("a taur to human plantigrade", SPECIES_HUMAN, NORMAL_LEGS, null, FALSE),
 	)
 	for(var/list/switch_step as anything in switches)
 		var/step_name = switch_step[1]
@@ -123,7 +142,13 @@
 		if(chassis)
 			preferences.write_preference(chassis_pref, chassis)
 			TEST_ASSERT_EQUAL(preferences.read_preference(/datum/preference/choiced/mutant_choice/synth_chassis), chassis, "[step_name]: the preferences must take the [chassis]")
+		if(length(switch_step) >= 5)
+			preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+			preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur], "Bunny")
+			preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/mutant_toggle/taur], switch_step[5])
 		// What loading another character does: redraw the preview, then forget the last preview mode.
 		preferences.character_preview_view.update_body()
 		preferences.previous_preview_pref = null
+		if(length(switch_step) >= 5)
+			TEST_ASSERT_EQUAL(!!preferences.character_preview_view.body.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR), switch_step[5], "[step_name]: the preview must apply the selected taur toggle")
 		check_preview(preferences, step_name, switch_step[3] == DIGITIGRADE_LEGS)

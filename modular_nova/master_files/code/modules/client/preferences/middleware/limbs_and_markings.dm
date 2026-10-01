@@ -197,8 +197,8 @@
  * A marking a save holds on a zone that no longer offers it is here too, so its row can still be shown.
  *
  * Returns:
- * - list: marking name -> its color_mode, gendered, exclusion_group, leg_shapes, recommended_species (comma-separated species
- *   ids, or null for any species) and, only for a marking with some, recommended_colors.
+ * - list: marking name -> its color_mode, exclusion_group, recommended_species (comma-separated species ids, or null for any
+ *   species) and, only for a marking with some, recommended_colors.
  */
 /datum/preference_middleware/limbs_and_markings/proc/build_marking_info()
 	var/list/marking_info = list()
@@ -206,9 +206,7 @@
 		var/datum/body_marking/marking = marking_datum
 		var/list/info = list(
 			"color_mode"          = marking.color_mode,
-			"gendered"            = marking.gendered,
 			"exclusion_group"     = marking.exclusion_group,
-			"leg_shapes"          = marking.leg_shapes,
 			"recommended_species" = marking.recommended_species ? jointext(marking.recommended_species, ",") : null,
 		)
 		// Only a marking with suggested colours sends them.
@@ -285,13 +283,13 @@
 
 	return data
 
-/// Changing species removes the markings the new one may not wear, unless mismatched parts allow any. Zones stay.
+/// Keep existing markings when changing species; enable mismatched parts if the new species needs it.
 /datum/preference_middleware/limbs_and_markings/post_set_preference(mob/user, preference, value)
 	if(preference != "species")
 		return
 	var/datum/species/current_species = edited_species()
-	if(preferences.body_markings.validate_for_species(current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts), prune = TRUE))
-		preferences.character_preview_view?.update_body()
+	if(preferences.body_markings.validate_for_species(current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)))
+		preferences.update_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
 
 /// Returns the species prototype of the character being edited.
 /datum/preference_middleware/limbs_and_markings/proc/edited_species()

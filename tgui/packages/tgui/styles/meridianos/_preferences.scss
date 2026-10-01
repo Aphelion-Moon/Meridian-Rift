@@ -4,6 +4,11 @@
 @include meta.load-css('../interfaces/PreferencesMenu.scss');
 @include meta.load-css('./species.scss');
 @include meta.load-css('./character_preview.scss');
+@include meta.load-css('./portrait-arrival.scss');
+@include meta.load-css('./markings-room.scss');
+@include meta.load-css('./markings-room/index');
+@include meta.load-css('./augments-stage.scss');
+@include meta.load-css('./augments-overlay.scss');
 
 .PreferencesMenu {
   &__LoadoutCategoryTabs > .Tab {
@@ -244,20 +249,6 @@
 // of .PreferencesMenu, so none of this nests under it; the picker's class sits
 // on its own Floating, which closes by unmounting: nothing here hides one.
 .LimbsPage {
-  &__markingNotes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--space-m);
-    margin-top: var(--space-xs);
-    font-size: 11px;
-    line-height: 1.3;
-    color: var(--color-label);
-  }
-
-  &__markingNote--warning {
-    color: var(--color-average);
-  }
-
   &__colorTrigger {
     display: inline-block;
   }

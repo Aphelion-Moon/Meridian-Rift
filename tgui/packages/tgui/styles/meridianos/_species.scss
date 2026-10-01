@@ -867,31 +867,24 @@
     background: radial-gradient(closest-side, rgb(0 0 0 / 70%), transparent);
   }
 
+  // The specimen's arrival and the sweep over it both take the whole window,
+  // as the character preview's do, so each theme's arrival fits both; see
+  // _portrait-arrival.scss. The specimen stands on the chamber's floor.
   &__figure {
-    left: 50%;
-    bottom: 22px;
+    inset: 0;
     z-index: 2;
-    width: var(--specimen-size, 192px);
-    height: var(--specimen-size, 192px);
-    margin-left: calc(var(--specimen-size, 192px) / -2);
-    animation: species-specimen-arrive 420ms cubic-bezier(0.2, 0, 0.2, 1) both;
+
+    > .SpeciesSprite {
+      position: absolute;
+      left: 50%;
+      bottom: 22px;
+      margin-left: calc(var(--specimen-size, 192px) / -2);
+    }
   }
 
   &__sweep {
-    top: 0;
-    left: 0;
-    right: 0;
+    inset: 0;
     z-index: 3;
-    height: 26%;
-    opacity: 0;
-    background: linear-gradient(
-      180deg,
-      transparent,
-      color-mix(in srgb, var(--chamber-glow) 18%, transparent) 80%,
-      color-mix(in srgb, var(--chamber-glow) 70%, transparent) 99%,
-      transparent
-    );
-    animation: species-specimen-sweep 760ms ease-out both;
   }
 
   // A newer drawing of the character on its way, shown only once it takes a moment.
@@ -976,20 +969,6 @@
   }
 }
 
-@keyframes species-specimen-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-    filter: brightness(2);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
-}
-
 @keyframes species-drawing-in {
   from {
     opacity: 0;
@@ -997,22 +976,6 @@
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes species-specimen-sweep {
-  0% {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-
-  12% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(360%);
   }
 }
 
@@ -1032,56 +995,6 @@
 @keyframes species-glyph-feed {
   to {
     transform: translateY(calc(-1 * var(--glyph-tile)));
-  }
-}
-
-@keyframes species-iris-open {
-  from {
-    clip-path: circle(0% at 50% 58%);
-  }
-
-  to {
-    clip-path: circle(75% at 50% 58%);
-  }
-}
-
-@keyframes species-glitch {
-  0%,
-  100% {
-    clip-path: inset(0);
-    transform: none;
-  }
-
-  20% {
-    clip-path: inset(18% 0 58% 0);
-    transform: translateX(-4px);
-  }
-
-  40% {
-    clip-path: inset(62% 0 12% 0);
-    transform: translateX(3px);
-  }
-
-  60% {
-    clip-path: inset(32% 0 40% 0);
-    transform: translateX(-2px);
-  }
-}
-
-@keyframes species-crt-on {
-  0% {
-    transform: scale(1, 0.02);
-    filter: brightness(3);
-  }
-
-  45% {
-    transform: scale(1, 1);
-    filter: brightness(1.6);
-  }
-
-  100% {
-    transform: none;
-    filter: none;
   }
 }
 
@@ -1356,14 +1269,9 @@
   &__backdrop,
   &__grid,
   &__glass,
-  &__sweep,
   &__scale,
   &__corner {
     display: none;
-  }
-
-  &__figure {
-    animation: none;
   }
 }
 
@@ -1624,12 +1532,6 @@
     display: none;
   }
 
-  &__figure {
-    animation:
-      species-specimen-arrive 420ms cubic-bezier(0.2, 0, 0.2, 1) both,
-      species-glitch 360ms steps(1) 120ms both;
-  }
-
   &__corner {
     width: 14px;
     height: 14px;
@@ -1726,11 +1628,6 @@
       radial-gradient(ellipse at 30% 18%, rgb(255 255 255 / 8%), transparent 45%);
   }
 
-  &__figure {
-    filter: sepia(0.35) saturate(0.8) brightness(0.95);
-    animation: species-crt-on 520ms ease-out both;
-  }
-
   &__grid,
   &__corner {
     display: none;
@@ -1781,7 +1678,6 @@
     box-shadow:
       inset 0 0 0 2px #19120d,
       inset 0 0 20px rgb(0 0 0 / 85%);
-    animation: species-iris-open 520ms cubic-bezier(0.3, 0, 0.1, 1) both;
   }
 
   &__grid {
@@ -1821,8 +1717,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .SpecimenViewer {
-    &__figure,
-    &__sweep,
     &__grid,
     &__grid::before,
     &__backdrop,

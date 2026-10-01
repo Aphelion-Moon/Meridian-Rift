@@ -28,6 +28,15 @@ import {
   MARKING_PREVIEW_AREAS,
   type SpriteArea,
 } from '../ChoicedSelection';
+import {
+  bloomSize,
+  DEFAULT_BLOOM,
+  drawLightsOff,
+  LIGHTS_OFF_SHADE,
+  LightsButton,
+  pixelsOf,
+  tiledFloor,
+} from '../LightsOff';
 import { SpriteEditor } from '../SpriteEditor';
 import {
   currentToolAtom,
@@ -206,17 +215,121 @@ const EDITOR_PANEL_WIDTH = '26rem';
 /** Hair's side panel is wider, so a wide (taur) body's preview has room to grow. */
 const HAIR_PANEL_WIDTH = '30rem';
 
+/** A picture's data URL, loaded. */
+const loadPicture = (url: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = url;
+  });
+
+/**
+ * A preview picture lit with its lights off, from it and its glow, drawn again whenever either
+ * changes; see LightsOff.tsx. The bloom falls on the backdrop's tile too, laid as the tile shows
+ * under the picture: as wide as the picture, or its middle half, from the bottom up. Tells `onLoad`
+ * of the picture, as an image would.
+ */
+const LitPicture = (props: {
+  src: string;
+  /** Its glow, or empty or absent while nothing glows in it or its glow is on its way. */
+  glow?: string | null;
+  bloom: number;
+  /** The backdrop's tile under it, or none for the checkerboard. */
+  floor?: string | null;
+  /** Whether it shows only its middle half, on the narrow tile. */
+  half: boolean;
+  alt: string;
+  style: CSSProperties;
+  onLoad: (image: HTMLImageElement) => void;
+}) => {
+  const { src, glow, bloom, floor, half } = props;
+  const canvas = useRef<HTMLCanvasElement>(null);
+  // The latest callback, without drawing again for a new one each render.
+  const onLoad = useRef(props.onLoad);
+  onLoad.current = props.onLoad;
+  useEffect(() => {
+    let current = true;
+    Promise.all([
+      loadPicture(src),
+      glow ? loadPicture(glow) : undefined,
+      floor ? loadPicture(floor) : undefined,
+    ])
+      .then(([picture, glowPicture, floorPicture]) => {
+        const target = canvas.current;
+        const context = target?.getContext('2d');
+        if (!current || !target || !context) {
+          return;
+        }
+        const width = picture.naturalWidth;
+        const height = picture.naturalHeight;
+        target.width = width;
+        target.height = height;
+        // The tile at the picture's own size: as wide as what's shown, its height in proportion.
+        const tileWidth = half ? width / 2 : width;
+        const tileHeight = floorPicture
+          ? Math.round(
+              (tileWidth * floorPicture.naturalHeight) /
+                floorPicture.naturalWidth,
+            )
+          : 0;
+        const tile =
+          floorPicture && pixelsOf(floorPicture, tileWidth, tileHeight);
+        drawLightsOff(
+          context,
+          picture,
+          glowPicture,
+          width,
+          height,
+          bloom,
+          0,
+          tile &&
+            tiledFloor(
+              tile,
+              tileWidth,
+              tileHeight,
+              width,
+              height,
+              half ? -width / 4 : 0,
+              tileHeight - height,
+            ),
+        );
+        onLoad.current(picture);
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [src, glow, bloom, floor, half]);
+  return (
+    <canvas
+      ref={canvas}
+      role="img"
+      aria-label={props.alt}
+      style={props.style}
+    />
+  );
+};
+
 /**
  * The preview at the largest whole number that fits the room the side panel has left for it, which
  * it measures, so its pixels stay square and even. It stands on the chosen background tile. A wide
  * (taur) picture with nothing outside its middle half, as a front or back view is, shows just that
- * half, on the narrow tile.
+ * half, on the narrow tile. With the lights off it is lit from its glow, and the tile dims with it.
  */
 const FittedPicture = (props: {
   src: string;
   alt: string;
   tileStyle: CSSProperties;
   narrowTileStyle: CSSProperties;
+  /** Whether the lights are off, to see what glows. */
+  dark?: boolean;
+  /** The picture's glow, while the lights are off. */
+  glow?: string | null;
+  bloom?: number;
+  /** The backdrop's tiles under the picture and under its middle half, or none for the checkerboard. */
+  floor?: string | null;
+  narrowFloor?: string | null;
 }) => {
   const box = useRef<HTMLDivElement>(null);
   const [boxWidth, boxHeight] = useDimensions(box);
@@ -230,6 +343,15 @@ const FittedPicture = (props: {
           Math.floor(Math.min(boxWidth / shownWidth, boxHeight / natural[1])),
         )
       : 1;
+  const loaded = (image: HTMLImageElement) => {
+    setNatural([image.naturalWidth, image.naturalHeight]);
+    setHalf(pictureFitsMiddleHalf(image));
+  };
+  const tile = half
+    ? { ...props.narrowTileStyle, width: shownWidth * scale }
+    : props.tileStyle;
+  const width = natural ? natural[0] * scale : undefined;
+  const marginLeft = half ? (-shownWidth * scale) / 2 : undefined;
   return (
     <div ref={box} className="CustomSpriteEditor__previewFit">
       <Box
@@ -239,22 +361,37 @@ const FittedPicture = (props: {
           half && 'CustomSpriteEditor__tile--half',
         ])}
         style={
-          half
-            ? { ...props.narrowTileStyle, width: shownWidth * scale }
-            : props.tileStyle
+          props.dark
+            ? {
+                ...tile,
+                // The dark over the tile, under the picture, which lights itself.
+                backgroundImage: `linear-gradient(${LIGHTS_OFF_SHADE}, ${LIGHTS_OFF_SHADE}), ${tile.backgroundImage}`,
+                backgroundSize: '100% 100%, 100% auto',
+                backgroundRepeat: 'no-repeat, repeat-y',
+              }
+            : tile
         }
       >
-        <img
-          src={props.src}
-          alt={props.alt}
-          width={natural ? natural[0] * scale : undefined}
-          style={half ? { marginLeft: (-shownWidth * scale) / 2 } : undefined}
-          onLoad={(event) => {
-            const image = event.currentTarget;
-            setNatural([image.naturalWidth, image.naturalHeight]);
-            setHalf(pictureFitsMiddleHalf(image));
-          }}
-        />
+        {props.dark ? (
+          <LitPicture
+            src={props.src}
+            glow={props.glow}
+            bloom={props.bloom ?? DEFAULT_BLOOM}
+            floor={half ? props.narrowFloor : props.floor}
+            half={half}
+            alt={props.alt}
+            style={{ width, marginLeft }}
+            onLoad={loaded}
+          />
+        ) : (
+          <img
+            src={props.src}
+            alt={props.alt}
+            width={width}
+            style={half ? { marginLeft } : undefined}
+            onLoad={(event) => loaded(event.currentTarget)}
+          />
+        )}
       </Box>
     </div>
   );
@@ -359,6 +496,8 @@ export const CustomSpriteEditor = ({
     maxCustomColors,
     guides,
     previews,
+    glows,
+    bloom,
     edited,
     drawBounds,
     drawMask,
@@ -762,6 +901,12 @@ export const CustomSpriteEditor = ({
   const locked = (dir: Dir) => !!lockedDirections?.includes(String(dir));
   const rotate = (step: number) =>
     setDirection(cycleOption(rotation, direction, step) ?? direction);
+  // The preview's lights. The server draws what glows only while they're off, so it's told each time.
+  const [lightsOff, setLightsOff] = useState(false);
+  const toggleLights = () => {
+    setLightsOff(!lightsOff);
+    act('previewLights', { off: !lightsOff });
+  };
   const savedLabel = salon ? 'Draft saved for this round' : 'Saved';
   const hairTarget = target === 'hair' || target === 'facial_hair';
   // Hair blends Custom colors with the hair color, markings with the body's primary mutant color.
@@ -1546,6 +1691,11 @@ export const CustomSpriteEditor = ({
                             alt="Character with your drawing"
                             tileStyle={tileStyle}
                             narrowTileStyle={narrowTileStyle}
+                            dark={lightsOff}
+                            glow={glows?.[direction]}
+                            bloom={bloomSize(bloom)}
+                            floor={pictureTileUrl}
+                            narrowFloor={tile?.url}
                           />
                         ) : (
                           <div className="CustomSpriteEditor__previewFit" />
@@ -1580,6 +1730,11 @@ export const CustomSpriteEditor = ({
                         )}
                         <Box mt={1}>
                           <ViewRotation onRotate={rotate} />
+                          <LightsButton
+                            fontSize="22px"
+                            off={lightsOff}
+                            onToggle={toggleLights}
+                          />
                         </Box>
                         {!!chosen && Object.keys(hats).length > 0 && (
                           <TryOn
