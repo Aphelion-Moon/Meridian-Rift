@@ -185,6 +185,19 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		cached_character_profiles = create_character_profiles()
 		tainted_character_profiles = FALSE
 	//NOVA EDIT ADDITION BEGIN
+	// The underwear arousal previews only for a character whose preferences give the body a penis, and no aroused
+	// preview at all with ERP disabled. Sent with every update, so the list follows the preferences as they change.
+	var/datum/preference/choiced/genital/penis/preference = GLOB.preference_entries[/datum/preference/choiced/genital/penis]
+	if(CONFIG_GET(flag/disable_erp_preferences))
+		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED)
+	else if(is_factual_sprite_accessory(ORGAN_SLOT_PENIS, read_preference(/datum/preference/choiced/genital/penis)) && preference.is_visible(preferences = src))
+		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_UNDERWEAR_HALF, PREVIEW_PREF_UNDERWEAR_AROUSED, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
+	else
+		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
+	// A preview no longer offered, like an underwear arousal one once the penis is gone, goes back to plain underwear.
+	if(!(preview_pref in data["preview_options"]))
+		preview_pref = PREVIEW_PREF_UNDERWEAR
+		character_preview_view?.update_body()
 	data["preview_selection"] = preview_pref
 	data["erp_pref"] = read_preference(/datum/preference/toggle/master_erp_preferences)
 	data["erp_belly_pref"] = read_preference(/datum/preference/toggle/erp/belly_master)
@@ -207,12 +220,6 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 /datum/preferences/ui_static_data(mob/user)
 	var/list/data = list()
 
-	// NOVA EDIT ADDITION START
-	if(CONFIG_GET(flag/disable_erp_preferences))
-		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED)
-	else
-		data["preview_options"] = list(PREVIEW_PREF_JOB, PREVIEW_PREF_LOADOUT, PREVIEW_PREF_UNDERWEAR, PREVIEW_PREF_NAKED, PREVIEW_PREF_NAKED_AROUSED)
-	// NOVA EDIT ADDITION END
 	// data["character_preview_view"] = character_preview_view.assigned_map // APHELION EDIT REMOVAL - The page draws the preview rather than showing this map
 	data["overflow_role"] = SSjob.get_job_type(SSjob.overflow_role).title
 	data["window"] = current_window

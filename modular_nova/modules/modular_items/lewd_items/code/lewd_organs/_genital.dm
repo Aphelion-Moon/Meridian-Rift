@@ -149,7 +149,7 @@
 		max_sprite_size_affix = accessory.max_sprite_size_affix
 	return
 
-/// Whether the mob's worn clothing physically covers this genital's location.
+/// Whether the mob's worn clothing covers this genital where it is drawn: underclothes do not cover a genital layered above them.
 /obj/item/organ/genital/proc/covered_by_clothing(mob/living/carbon/human/human)
 	//Do they have a Uniform or Suit that covers them?
 	var/obj/item/worn_suit = human.wear_suit
@@ -158,6 +158,9 @@
 	//Do they have a Hospital Gown covering them? (The gown has no body_parts_covered so needs its own check)
 	if(istype(worn_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown))
 		return TRUE
+	//Is it layered above their underclothes? (Custom "Above underwear" draws it over them, under the uniform and suit)
+	if(visibility_preference == GENITAL_CUSTOM && get_effective_layer_mode() == GENITAL_LAYER_ABOVE_UNDIES)
+		return FALSE
 	var/hidden_underwear = human.underwear_visibility
 	//Are they wearing an Undershirt?
 	if(human.undershirt != "Nude" && !(hidden_underwear & UNDERWEAR_HIDE_SHIRT))
@@ -192,7 +195,7 @@
 		if(GENITAL_HIDDEN_BY_CLOTHES, GENITAL_CUSTOM)
 			if(is_shown_over_clothing())
 				return TRUE //Renders over everything, so it's on display regardless of clothing
-			//Every other case - including Custom's under-uniform layers and Custom + Normal - comes down to physical coverage.
+			//Every other case - including Custom's under-uniform layers and Custom + Normal - comes down to what covers it where it is drawn (underclothes do not cover a genital layered above them).
 			return !covered_by_clothing(human)
 		else //Never show, and anything unexpected.
 			return FALSE

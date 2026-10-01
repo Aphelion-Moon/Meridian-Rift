@@ -26,3 +26,10 @@
 	for(var/postfix in SSaccessories.all_layer_postfixes)
 		if(isnull(declared[postfix]))
 			TEST_FAIL("SSaccessories.all_layer_postfixes contains \"[postfix]\" but no bodypart_overlay declares it in a layers list - remove it, or add the overlay layer that should use it.")
+
+/// Primitive kobolds must be able to select their declared ordinary snout family.
+/datum/unit_test/primitive_kobold_snout_admission/Run()
+	var/datum/species/monkey/kobold/species = allocate(__IMPLIED_TYPE__)
+	var/list/choices = accessory_list_of_key_for_species(FEATURE_SNOUT, species, FALSE)
+	TEST_ASSERT(length(choices), "Primitive Kobold has no admitted snout choices.")
+	TEST_ASSERT("Round" in choices, "Primitive Kobold cannot select its declared Round snout.")

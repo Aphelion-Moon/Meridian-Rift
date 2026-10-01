@@ -544,7 +544,12 @@ GLOBAL_LIST_EMPTY(masked_leg_icons_cache)
 		new_leg_icon_lower = icon(limb_overlay.icon, limb_overlay.icon_state)
 		new_leg_icon_lower.Blend(leg_crop_mask_lower, ICON_MULTIPLY)
 
+		/* // APHELION EDIT REMOVAL START - Measure only finalized owned masked-leg icons.
 		GLOB.masked_leg_icons_cache[icon_cache_key] = list(new_leg_icon, new_leg_icon_lower)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - Exact dimensions share the cache entry's ownership lifecycle.
+		set_owned_masked_leg_icons(icon_cache_key, list(new_leg_icon, new_leg_icon_lower))
+		// APHELION EDIT ADDITION END
 	new_leg_icon = GLOB.masked_leg_icons_cache[icon_cache_key][1]
 	new_leg_icon_lower = GLOB.masked_leg_icons_cache[icon_cache_key][2]
 

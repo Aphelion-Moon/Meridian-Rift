@@ -18,3 +18,17 @@
 
 		else if (!has_digi_sprite && clothing_accessory::has_custom_digi_sprite)
 			TEST_FAIL("[clothing_accessory] ([clothing_accessory::icon_state]) has_custom_digi_sprite = TRUE but no '_d' version of the sprite exists (should be FALSE)")
+
+/// A human with no bra (nor underwear, undershirt or socks) draws nothing in BODY_LAYER: the Nude bra draws no empty
+/// appearance and emissive blocker, as the other Nude accessories draw none. With a bra, the bra is drawn there.
+/datum/unit_test/braless_body_layer/Run()
+	var/mob/living/carbon/human/consistent/human = allocate(/mob/living/carbon/human/consistent)
+	human.underwear = "Nude"
+	human.undershirt = "Nude"
+	human.socks = "Nude"
+	human.bra = "Nude"
+	human.update_body()
+	TEST_ASSERT_NULL(human.overlays_standing[BODY_LAYER], "A human with no underclothes draws [length(human.overlays_standing[BODY_LAYER])] appearances in BODY_LAYER.")
+	human.bra = "Bra"
+	human.update_body()
+	TEST_ASSERT(length(human.overlays_standing[BODY_LAYER]), "A human with a bra draws nothing in BODY_LAYER.")

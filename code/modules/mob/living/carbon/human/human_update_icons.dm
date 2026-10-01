@@ -157,6 +157,10 @@ There are several things that need to be remembered:
 			bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, // APHELION EDIT CHANGE - Do not mask fitted Vox pants again - ORIGINAL: bodyshape = bodyshape,
 		)
 
+		// APHELION EDIT ADDITION START - BULGE - A revealing cover is drawn with its lifted part cut away (bulge module).
+		if(organs_slot[ORGAN_SLOT_PENIS])
+			uniform_overlay = bulge_cut_worn(UNIFORM_LAYER, uniform_overlay)
+		// APHELION EDIT ADDITION END
 		apply_height(uniform_overlay, ENTIRE_BODY)
 		var/obj/item/bodypart/chest/my_chest = get_bodypart(BODY_ZONE_CHEST)
 		my_chest?.worn_uniform_offset?.apply_offset(uniform_overlay)
@@ -961,6 +965,10 @@ generate/load female uniform sprites matching all previously decided variables
 		var/datum/sprite_accessory/clothing/underwear/undie_accessory = SSaccessories.underwear_list[underwear]
 		var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape, src) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape)
 		if(underwear_overlay)
+			// APHELION EDIT ADDITION START - BULGE - A revealing loincloth is drawn with its lifted flap cut away (bulge module).
+			if(organs_slot[ORGAN_SLOT_PENIS])
+				underwear_overlay = bulge_cut_worn(BODY_LAYER, underwear_overlay)
+			// APHELION EDIT ADDITION END
 			. += underwear_overlay
 
 	// NOVA EDIT ADDITION START - Bras
@@ -1280,7 +1288,9 @@ generate/load female uniform sprites matching all previously decided variables
 		cached_body_height = max(cached_body_height, overlay.get_cached_height())
 		*/ // APHELION EDIT REMOVAL END
 		// APHELION EDIT ADDITION START - WORN_EMISSIVES - appearances have no procs
-		var/list/dimensions = isnull(overlay.icon) ? null : get_icon_dimensions(overlay.icon)
+		var/list/dimensions = isnull(overlay.icon) ? null : GLOB.owned_masked_leg_icon_dimensions[overlay.icon]
+		if(!isnull(overlay.icon) && isnull(dimensions))
+			dimensions = get_icon_dimensions(overlay.icon)
 		cached_body_width = max(cached_body_width, dimensions?["width"] || 0)
 		cached_body_height = max(cached_body_height, dimensions?["height"] || 0)
 		// APHELION EDIT ADDITION END
