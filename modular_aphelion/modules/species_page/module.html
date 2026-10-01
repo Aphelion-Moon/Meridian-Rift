@@ -1,0 +1,107 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/species_page/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/species_page/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/fdcdc313c1305968dbb344f1e0330cbf4c3e20e3/modular_aphelion/modules/species_page/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/species_page/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="species-page">Species page</h2>
+<p>Module ID: SPECIES_PAGE</p>
+<h3 id="description">Description:</h3>
+<p>Replaces Character Preferences &gt; Species with a character-select style page. The inspected species
+stands in a large turning specimen chamber at the top, and below it the family tabs sit over a
+roster of every species with search. Nothing changes the character until <strong>Select species</strong> is
+pressed; clicking a tile only inspects it. Everything above the inspected species' description keeps
+its height from species to species, so browsing never moves the page under the pointer.</p>
+<ul>
+<li><strong>Families and lineages.</strong> <code>GLOB.species_page_families</code> files each species type under a
+<code>/datum/species_family</code>, and a subtype takes its nearest listed parent's; <code>/datum/species/proc/get_species_family()</code>
+looks it up. Families give their own name, icon and order, the way quirks give their icons, and reach the page
+with the static preference data from <code>/datum/preference_middleware/species_page</code>. A species is a variant of its parent type when
+the page offers that parent too (Felinid of Human, Ash Walker of Lizardperson), Vox Primalis is filed
+with the Vox, and Kobolds with the Lizardpeople. Variants in another family, like the holiday Vampire,
+stand on their own there and still name their parent. The template species, bases for players' own
+creations (Humanoid, Anthromorph, Anthromorphic Insect, Aquatic, Synthetic Humanoid), are filed last,
+under Generic. The roster puts every tile on one grid of columns, and each lineage's box sits in the
+gaps around its tiles, at the start of its row.</li>
+<li><strong>Holiday species</strong> can be picked in character setup all year and are joinable during their
+holiday. <code>/datum/species/proc/get_holiday()</code> names the holiday that makes a species a roundstart
+race, mirroring <code>check_roundstart_eligible()</code>; jobs already refuse species that are not roundstart
+races, so joining needs no new check. While they wait for their holiday they are filed under the
+Holiday family whatever their own, and the page hides them behind a <strong>Show holiday species</strong> toggle
+unless their holiday is on, or the character already is one.</li>
+<li><strong>No placeholder text.</strong> Placeholder and &quot;fill this in&quot; descriptions and lore are left out of the
+page's data, and the page draws nothing in their place.</li>
+<li><strong>Specimen chamber.</strong> The inspected species turns in four directions, in uniform or without, from
+<code>/datum/asset/spritesheet_batched/species_full</code> and
+<code>/datum/asset/spritesheet_batched/species_full/body</code>, which replace the old 64x64 head sheet. Each
+species stands as tall as it does in the round: its dummy takes its height as one filter over the whole
+body, as character setup's does, and since a flatten leaves filters out, the rows the filter moves are
+moved in the render itself, from bands of it (<code>species_page_height()</code>), so Kobolds and Dwarves are
+short. Every MeridianOS theme dresses the chamber from its own materials, and Classic follows stock
+tgui. The chamber's motion pauses while the window is hidden or unfocused.</li>
+<li><strong>The character itself.</strong> While the chamber shows the character's own species, it shows the
+character: the drawing of the preferences preview mob that every tab of character setup shows (see
+the character preview module), with its height and body size, standing where a species sprite
+stands, its own tile on the chamber floor, scaled down only as far as parts that reach past that
+tile, like big ears and wings, need. It never shows the drawing for a species that has since
+replaced it, and the chamber's loader stays up while a newer drawing is on its way.</li>
+<li><strong>Sprites cost nothing until they are wanted.</strong> Neither sheet draws anything during init: both are
+drawn in one pass when either is first realized, by <code>SSasset_loading</code> in the lobby or by the first
+player to open the page, with one walk per species and outfit rather than one per facing. The
+preferences window no longer carries a species sheet; the page asks for the uniform sheet when it
+opens, and for the body sheet only once someone turns a specimen to its body. Every file reaches
+the client before the page hears of it: a stylesheet whose image hasn't arrived stays blank.</li>
+<li>Akula (Generic) is renamed Aquatic, and Aquatic and Unathi get previews that read as themselves.
+The id is unchanged, so saves need no migration.</li>
+</ul>
+<p>Everything the page shows about species is static: the species preference's constant data and
+the species page middleware's families, both in the cached preferences JSON asset
+(<code>useServerPrefs()</code>). Only the character's species and Nova Star status come from <code>useBackend()</code>,
+choosing a species is the usual <code>set_preference</code> act, the sheets come from the middleware's
+<code>species_page_sprites</code> act, and the character's own preview is the character preview's drawing in
+the window's data. Browsing, the family tabs, search and the holiday toggle are local UI state.</p>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<ul>
+<li><code>code/modules/client/preferences/species.dm</code>: <code>/datum/preference/choiced/species/init_possible_values()</code>
+offers holiday species; <code>/datum/preference/choiced/species/compile_constant_data()</code> sends the
+species page's species, text without placeholders, family, lineage and restrictions</li>
+<li><code>code/modules/client/preferences/middleware/species.dm</code>: the preferences window no longer sends a
+species sheet, and <code>/datum/asset/spritesheet_batched/species</code> is commented out</li>
+<li><code>modular_nova/modules/customization/modules/mob/living/carbon/human/species/aquatic.dm</code>: renamed
+to Aquatic</li>
+<li><code>code/modules/asset_cache/spritesheet/batched/universal_icon.dm</code>: <code>/proc/get_flat_uni_icon()</code> writes
+each runtime icon out once instead of on every flatten, which was most of a flatten's cost, and
+<code>uni_icon_facings_json()</code> stamps one walk with each facing, so one walk serves all four. The character
+preview module shares these edits.</li>
+<li><code>code/modules/asset_cache/spritesheet/batched/batched_spritesheet.dm</code>: <code>realize_spritesheets()</code> lets one
+caller generate a sheet (<code>generate_spritesheets()</code>) while any other waits for it
+(<code>generation_in_progress</code>), and a consumed rust-g job's <code>job_id</code> is cleared, so the lobby's loader and the
+page asking for its sheet can't race and lose a job's result; <code>spritesheet_concurrent_loading</code> in
+<code>code/modules/unit_tests/spritesheets.dm</code> covers it</li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx</code>: the window is 40px taller while the
+species page shows, for two whole rows of its roster under the chamber</li>
+</ul>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>modular_aphelion/modules/species_page/code/species_previews.dm</code>:
+<code>/datum/species/aquatic/prepare_human_for_preview()</code>, <code>/datum/species/unathi/prepare_human_for_preview()</code></li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li>N/A</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>modular_aphelion/modules/character_preview/code/</code>: the renders use its <code>character_preview_rows()</code>,
+<code>character_preview_flat_box()</code> and <code>GLOB.character_preview_facings</code></li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesRegistry/</code> (the page)</li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesPage.tsx</code> (the old page, commented out)</li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx</code> (imports the new page,
+and tells the window while it shows)</li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/types.ts</code></li>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/useServerPrefs.ts</code></li>
+<li><code>tgui/packages/tgui/styles/meridianos/_species.scss</code></li>
+<li><code>tgui/packages/tgui/styles/meridianos/_preferences.scss</code> (loads it)</li>
+<li><code>tgui/packages/tgui/styles/meridianos/assets/species/cyberpunk-glyph-pylons.svg</code></li>
+<li><code>tgui/packages/tgfont/icons/zaphelion-alien.svg</code>, <code>zaphelion-orange.svg</code>, <code>zaphelion-pineapple.svg</code></li>
+<li><code>code/modules/unit_tests/screenshots/screenshot_humanoids__datum_species_aquatic.png</code>,
+<code>screenshot_humanoids__datum_species_unathi.png</code> (the humanoid screenshots, with the new previews)</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<ul>
+<li>mal</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/fdcdc313c1305968dbb344f1e0330cbf4c3e20e3">fdcdc31</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
