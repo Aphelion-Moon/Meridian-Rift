@@ -85,7 +85,8 @@
 	var/obj/item/organ/genital/penis/affected_penis = affected_mob.get_organ_slot(ORGAN_SLOT_PENIS)
 	var/obj/item/organ/genital/testicles/affected_testicles = affected_mob.get_organ_slot(ORGAN_SLOT_TESTICLES)
 
-	if(!QDELETED(src) || !QDELETED(strapon_item))
+	// The hand item only exists once it has been taken out at least once.
+	if(!QDELETED(src) && !QDELETED(strapon_item))
 		strapon_item.forceMove(src)
 
 	affected_vagina?.visibility_preference = GENITAL_HIDDEN_BY_CLOTHES

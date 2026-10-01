@@ -242,6 +242,7 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 
 /// Expands a message for an observer by default, or for the recipient of a private notice.
 /// Anonymity takes precedence over recipient identity, including when both roles belong to one mob.
+/// Placeholders match case-sensitively, exactly as templates write them, such as %USER% and %TARGET_PRONOUN_THEIR%.
 /datum/interaction/proc/format_message_for(
 	message_template,
 	mob/living/carbon/human/user,
@@ -281,20 +282,20 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			possessive = "[their] own"
 
 		// Expand possessives before bare names so a recipient never becomes "you's".
-		formatted_message = replacetext(formatted_message, "%[role]%'s", possessive)
-		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%'s", capitalize(possessive))
+		formatted_message = replacetextEx(formatted_message, "%[role]%'s", possessive)
+		formatted_message = replacetextEx(formatted_message, "%[role]_CAPITAL%'s", capitalize(possessive))
 		// A bare target is the object ("kisses %TARGET%"); a sentence-initial one stays the subject.
-		formatted_message = replacetext(formatted_message, "%[role]%", is_user ? participant_name : object_name)
-		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%", capitalize(participant_name))
-		formatted_message = replacetext(formatted_message, "%[role]_OBJECT%", object_name)
+		formatted_message = replacetextEx(formatted_message, "%[role]%", is_user ? participant_name : object_name)
+		formatted_message = replacetextEx(formatted_message, "%[role]_CAPITAL%", capitalize(participant_name))
+		formatted_message = replacetextEx(formatted_message, "%[role]_OBJECT%", object_name)
 		// Templates supply agreement explicitly; do not guess how to conjugate arbitrary prose.
-		formatted_message = replacetext(formatted_message, "%[role]_VERB_S%", is_recipient ? "" : "s")
-		formatted_message = replacetext(formatted_message, "%[role]_VERB_ES%", is_recipient ? "" : "es")
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIR%", their)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIRS%", theirs)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEM%", them)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEY%", they)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
+		formatted_message = replacetextEx(formatted_message, "%[role]_VERB_S%", is_recipient ? "" : "s")
+		formatted_message = replacetextEx(formatted_message, "%[role]_VERB_ES%", is_recipient ? "" : "es")
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEIR%", their)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEIRS%", theirs)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEM%", them)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEY%", they)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
 	return trim(formatted_message, INTERACTION_MAX_CHAR)
 
 /// Applies side effects only while the interaction's original authority remains valid.

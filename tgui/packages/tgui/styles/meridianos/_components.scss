@@ -244,6 +244,16 @@
     min-height: var(--button-height);
   }
 
+  // A Stack with no text line, like the preferences colour swatch, has the same
+  // problem and sat at the top of the box. A one-column grid centres it while
+  // keeping block flow for any content that follows.
+  .Button:not(.Button--compact):not(.Button--hasIcon)
+    > .Button__content:has(> .Stack) {
+    display: grid;
+    min-height: var(--button-height);
+    align-content: center;
+  }
+
   .Button--empty.Button--hasIcon > .Button__content > .Button--icon {
     margin: 0;
   }
@@ -439,6 +449,13 @@
     background: var(--console-surface-recessed);
     border-color: var(--console-border-control);
     box-shadow: inset 0 0 0 1px var(--console-surface-canvas);
+  }
+
+  // Transparent bars stay unpainted as in core; callers stack them over their
+  // own fills (PlantAnalyzer nutrients over its per-reagent segments).
+  .ProgressBar.ProgressBar--color--transparent {
+    background: transparent;
+    box-shadow: none;
   }
 
   // Solid 1px outline, so the label reads on a bright fill and a dark track.
@@ -815,11 +832,25 @@
     align-items: center;
   }
 
+  // Same centring for a text-less Stack, as in the console skins.
+  .Button:not(.Button--compact):not(.Button--hasIcon)
+    > .Button__content:has(> .Stack) {
+    display: grid;
+    min-height: 24px;
+    align-content: center;
+  }
+
   .Button--empty.Button--hasIcon:not(.Button--compact) {
     min-width: 24px;
   }
 
   .Button--empty.Button--hasIcon > .Button__content {
     justify-content: center;
+  }
+
+  // Dropdowns take the same box, so one keeps the top and bottom of the arrow,
+  // play and other buttons beside it. Stock tgui draws them 22px high.
+  :is(.Dropdown__control, .Dropdown__input) {
+    min-height: 24px;
   }
 }

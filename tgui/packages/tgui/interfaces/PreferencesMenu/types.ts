@@ -55,9 +55,21 @@ export type Name = {
 
 export type Species = {
   name: string;
-  desc: string;
-  lore: string[];
+  desc: string | null; // APHELION EDIT CHANGE - Species page: null when nothing is on record - ORIGINAL: desc: string;
+  lore: string[] | null; // APHELION EDIT CHANGE - Species page: null when nothing is on record - ORIGINAL: lore: string[];
   icon: string;
+  // APHELION EDIT ADDITION START - Species page
+  /** A species_families id; unknown or missing ids fall under Unclassified. */
+  family: string | null;
+  /** The species on the page this one is a variant of. */
+  variant_of: string | null;
+  /** Offered in setup, but can't join the station crew. */
+  off_station: BooleanLike;
+  /** The holiday this species can be joined as during, if it waits for one. */
+  holiday: string | null;
+  /** Whether that holiday is on now. */
+  holiday_active: BooleanLike;
+  // APHELION EDIT ADDITION END
 
   use_skintones: BooleanLike;
   sexes: BooleanLike;
@@ -79,6 +91,46 @@ export type Species = {
   };
 };
 
+// APHELION EDIT ADDITION START - Species page
+/** A family on the species page, from /datum/species_family, in page order. */
+export type SpeciesFamily = {
+  id: string;
+  name: string;
+  /** Font Awesome, or tgfont when it starts with tg-. */
+  icon: string;
+};
+// APHELION EDIT ADDITION END
+// APHELION EDIT ADDITION START - Drawn character preview
+/** The character preview every tab shows: the preview mob, facing each way, drawn side by side in one image. */
+export type CharacterPreviewDrawing = {
+  /** Numbers the drawing; any change to it comes as a new one. */
+  id: number;
+  /** The species it was drawn as, or null for a silicon job's preview. */
+  species: string | null;
+  /** The drawing, as a PNG data URL. */
+  image: string;
+  /** One frame's size in pixels; every facing is the same size. */
+  width: number;
+  height: number;
+  /**
+   * How far a frame reaches left of and below the mob's own 32px tile, in
+   * pixels, for parts like wings and big ears.
+   */
+  x: number;
+  y: number;
+  /** Each facing's left edge in the image, in pixels. */
+  frames: Record<'south' | 'west' | 'north' | 'east', number>;
+  /**
+   * Rows a height filter moves, which the drawing leaves out: runs of the
+   * tile's columns as [first frame row, rows, first source row], counting rows
+   * from the frame's top. A source row of -1 leaves the run empty.
+   */
+  rows?: [number, number, number][];
+  /** The mob's transform (body size) about its tile's centre, y upwards: [a, b, c, d, e, f]. */
+  transform?: [number, number, number, number, number, number];
+};
+
+// APHELION EDIT ADDITION END
 export type Perk = {
   ui_icon: string;
   name: string;
@@ -221,7 +273,6 @@ export enum PrefsWindow {
 }
 
 export type CharacterPreferencesData = {
-
   clothing: Record<string, string>;
   features: Record<string, string>;
   game_preferences: Record<string, unknown>;
@@ -251,7 +302,7 @@ export type CharacterPreferencesData = {
 };
 
 export type PreferencesMenuData = {
-  character_preview_view: string;
+  // character_preview_view: string; // APHELION EDIT REMOVAL - Drawn character preview
   character_profiles: (string | null)[];
 
   character_preferences: CharacterPreferencesData;
@@ -270,6 +321,19 @@ export type PreferencesMenuData = {
   job_preferences: JobPreference[];
 
   // NOVA EDIT ADDITION START
+  allow_custom_sprite_editing?: BooleanLike;
+  custom_marking_zones?: string[];
+  /**
+   * The character preview every tab shows, once drawn. It comes in updates of
+   * its own, which the data keeps until the next.
+   */
+  character_preview?: CharacterPreviewDrawing;
+  /** A newer drawing of the character preview is on its way. */
+  character_preview_pending?: BooleanLike;
+  /** How much, in percent, of each language only understood the character follows, by name. */
+  language_understanding?: Record<string, number>;
+  /** A line in each language only understood, as the character would hear it, by name. */
+  language_understanding_samples?: Record<string, string>;
   preview_options: string[];
   preview_selection: string;
 
@@ -338,12 +402,15 @@ export type ServerData = {
   };
   species: Record<string, Species>;
   // NOVA EDIT ADDITION START
-  background_state: { choices: string[] };
+  species_families: SpeciesFamily[];
+  background_state: { choices: string[]; tiles?: Record<string, string> };
   limbs_and_markings?: {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];
     marking_choices: Record<string, MarkingChoice[]>;
+    marking_icons?: Record<string, Record<string, string>>;
     marking_presets: MarkingPreset[];
+    max_markings: number;
   };
   // NOVA EDIT ADDITION END
   [otherKey: string]: unknown;

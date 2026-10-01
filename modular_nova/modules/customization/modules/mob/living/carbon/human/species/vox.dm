@@ -80,7 +80,7 @@
 	return markings
 
 /datum/species/vox/get_custom_worn_icon(item_slot, obj/item/item)
-	// APHELION EDIT CHANGE - Current leg shape is checked by generate_custom_worn_icon().
+	// Current leg shape is checked by generate_custom_worn_icon().
 	return item.worn_icon_vox
 
 /datum/species/vox/set_custom_worn_icon(item_slot, obj/item/item, icon/icon)

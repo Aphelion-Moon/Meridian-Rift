@@ -43,6 +43,7 @@
 	savefile_key = "nv_color"
 	savefile_identifier = PREFERENCE_CHARACTER
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
+	should_update_preview = FALSE
 
 /datum/preference/color/nv_color/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))

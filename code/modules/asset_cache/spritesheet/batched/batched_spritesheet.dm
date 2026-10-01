@@ -22,6 +22,10 @@
 
 	/// If this spritesheet exists in a completed state.
 	var/fully_generated = FALSE
+	// APHELION EDIT ADDITION START - Shared spritesheet generation ownership.
+	/// Only one caller may consume async cache/generation jobs; others await its result.
+	var/generation_in_progress = FALSE
+	// APHELION EDIT ADDITION END
 
 	/// If this asset should be fully loaded on new
 	/// Defaults to false so we can process this stuff nicely
@@ -165,6 +169,23 @@
 /datum/asset/spritesheet_batched/proc/realize_spritesheets(yield)
 	if(fully_generated)
 		return
+	// APHELION EDIT ADDITION START - Keep the original generation body behind one owner.
+	// Background loading and an opening UI can arrive together. Rust-g job results are consumed
+	// on retrieval, so sharing a job ID between two polling callers loses the second one's result.
+	UNTIL(!generation_in_progress)
+	if(fully_generated)
+		return
+	generation_in_progress = TRUE
+	try
+		generate_spritesheets(yield)
+	catch(var/exception/error)
+		generation_in_progress = FALSE
+		throw error
+	generation_in_progress = FALSE
+
+/// Realization's single owner checks the cache, generates missing sheets and registers their assets.
+/datum/asset/spritesheet_batched/proc/generate_spritesheets(yield)
+// APHELION EDIT ADDITION END
 	if(!length(entries))
 		CRASH("Spritesheet [name] ([type]) is empty! What are you doing?")
 
@@ -192,6 +213,7 @@
 			SSasset_loading.assets_generating++
 			job_id = rustg_iconforge_generate_async("data/spritesheets/", name, entries_json, do_cache, FALSE, TRUE)
 		UNTIL((data_out = rustg_iconforge_check(job_id)) != RUSTG_JOB_NO_RESULTS_YET)
+		job_id = null // APHELION EDIT ADDITION - A completed job has been consumed.
 		SSasset_loading.assets_generating--
 	else
 		data_out = rustg_iconforge_generate("data/spritesheets/", name, entries_json, do_cache, FALSE, TRUE)

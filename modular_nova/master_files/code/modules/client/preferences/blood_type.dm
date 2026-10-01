@@ -3,6 +3,7 @@
 	savefile_key = "blood_type"
 	savefile_identifier = PREFERENCE_CHARACTER
 	priority = PREFERENCE_PRIORITY_BODYPARTS // Apply after species, cause that's super important.
+	should_update_preview = FALSE
 
 /datum/preference/choiced/blood_type/init_possible_values()
 	return list(

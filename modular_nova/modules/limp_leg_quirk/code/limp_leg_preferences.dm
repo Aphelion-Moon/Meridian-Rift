@@ -2,6 +2,7 @@
 	savefile_key = "limp_leg"
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/limp_leg/create_default_value()
 	return "Random"

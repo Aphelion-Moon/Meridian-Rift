@@ -89,7 +89,7 @@ GLOBAL_LIST_INIT(canvas_dimensions, init_canvas_dimensions())
 		height,
 		color_mode = SPRITE_EDITOR_COLOR_MODE_RGB,
 		config_flags = NONE,
-		tool_flags = SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_BUCKET,
+		tool_flags = SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_SELECT, // APHELION EDIT CHANGE - ORIGINAL: tool_flags = SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_BUCKET,
 		initial_layer_color = "[canvas_color]ff" // To avoid needing to handle strings of mixed lengths, sprite editor workspaces always use the alpha channel
 	)
 	RegisterSignal(workspace, COMSIG_SPRITE_EDITOR_VALIDATE_COLOR, PROC_REF(validate_color))

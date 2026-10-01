@@ -30,6 +30,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "venomous_bite_venom"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 	/// Format: (reagent typepath -> list(amount to inject per bite, cooldown, can be milked (venom_milker.dm)))
 	var/static/list/venomous_bite_choice_specs = list(
 		/datum/reagent/toxin = list(5, 80 SECONDS, FALSE),

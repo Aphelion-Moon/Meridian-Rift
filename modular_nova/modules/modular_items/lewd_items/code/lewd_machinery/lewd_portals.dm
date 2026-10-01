@@ -743,7 +743,7 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	var/obj/item/organ/organ = owner?.get_organ_slot(organ_slot)
 	var/datum/bodypart_overlay/mutant/organ_overlay = organ?.bodypart_overlay
 	var/datum/sprite_accessory/accessory = organ_overlay?.sprite_datum
-	return accessory?.get_special_icon(owner) == icon_to_compare
+	return accessory?.get_special_icon(owner, organ_overlay) == icon_to_compare
 
 /obj/effect/lewd_portal_relay/attack_hand_secondary(mob/living/user)
 	if(!user.can_perform_action(src, NEED_DEXTERITY | NEED_HANDS | ALLOW_RESTING))

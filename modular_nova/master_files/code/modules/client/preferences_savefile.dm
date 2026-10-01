@@ -79,6 +79,7 @@
 			language = text2path(language)
 		save_languages[language] = value
 	languages = save_languages
+	language_understanding = sanitize_language_understanding(save_data["language_understanding"])
 
 	tgui_prefs_migration = save_data["tgui_prefs_migration"]
 	if(!tgui_prefs_migration && save_data.len) // If save_data is empty, this is definitely a new character
@@ -355,6 +356,7 @@
 	save_data["allow_advanced_colors"] = allow_advanced_colors
 	save_data["alt_job_titles"] = alt_job_titles
 	save_data["languages"] = languages
+	save_data["language_understanding"] = saved_language_understanding()
 	save_data["modular_version"] = MODULAR_SAVEFILE_VERSION_MAX
 	save_data["food_preferences"] = food_preferences
 

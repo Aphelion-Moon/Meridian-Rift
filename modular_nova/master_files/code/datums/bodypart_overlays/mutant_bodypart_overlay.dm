@@ -56,7 +56,7 @@
 	. = list()
 	. += "[get_base_icon_state()]"
 	. += "[get_feature_key_for_overlay()]"
-	. += "[sprite_datum.get_special_icon(limb?.owner)]"
+	. += "[sprite_datum.get_special_icon(limb?.owner, src)]"
 	for(var/layer_postfix, layer_number in layers)
 		. += "layer=[layer_postfix]:[layer_number]"
 
@@ -114,7 +114,7 @@
 	overlay_slots = list()
 
 	var/mob/living/carbon/human/owner = limb?.owner
-	var/sprite_icon = sprite_datum.get_special_icon(owner)
+	var/sprite_icon = sprite_datum.get_special_icon(owner, src)
 	// Every state in each icon file, read once for the round.
 	var/static/list/sprite_states_by_icon = list()
 	var/list/sprite_states = sprite_icon && sprite_states_by_icon[sprite_icon]
@@ -259,7 +259,7 @@
  */
 /datum/bodypart_overlay/mutant/proc/get_singular_image(image_icon_state, layer_index, layer_real, mob/living/carbon/human/owner, icon_override = null, obj/item/bodypart/limb)
 	// We get from icon_override if it is filled, and from sprite_datum.icon if not.
-	var/mutable_appearance/appearance = mutable_appearance(icon_override || sprite_datum.get_special_icon(owner), image_icon_state, layer = layer_real)
+	var/mutable_appearance/appearance = mutable_appearance(icon_override || sprite_datum.get_special_icon(owner, src), image_icon_state, layer = layer_real)
 
 	if(sprite_datum.center)
 		center_image(appearance, sprite_datum.special_x_dimension ? sprite_datum.get_special_x_dimension(owner) : sprite_datum.dimension_x, sprite_datum.dimension_y)

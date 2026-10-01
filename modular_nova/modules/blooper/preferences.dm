@@ -12,6 +12,7 @@
 	category = PREFERENCE_CATEGORY_VOCALS
 	savefile_identifier = PREFERENCE_CHARACTER
 	abstract_type = /datum/preference/choiced/vocals
+	should_update_preview = FALSE
 
 /datum/preference/choiced/vocals/voice_type
 	savefile_key = "voice_type"
@@ -34,6 +35,7 @@
 	can_randomize = FALSE
 	/// These will be grouped together on the preferences menu
 	var/group = "vocals"
+	should_update_preview = FALSE
 
 /datum/preference/toggle/fallback_to_blooper/is_accessible(datum/preferences/preferences)
 	if(!..(preferences))
@@ -69,6 +71,7 @@
 	minimum = BLOOPER_DEFAULT_MINSPEED
 	maximum = BLOOPER_DEFAULT_MAXSPEED
 	step = 0.01
+	should_update_preview = FALSE
 
 /datum/preference/numeric/blooper_speech_speed/is_accessible(datum/preferences/preferences)
 	if(!..(preferences))
@@ -90,6 +93,7 @@
 	minimum = BLOOPER_DEFAULT_MINPITCH
 	maximum = BLOOPER_DEFAULT_MAXPITCH
 	step = 0.01
+	should_update_preview = FALSE
 
 /datum/preference/numeric/blooper_speech_pitch/is_accessible(datum/preferences/preferences)
 	if(!..(preferences))
@@ -111,6 +115,7 @@
 	minimum = BLOOPER_DEFAULT_MINVARY
 	maximum = BLOOPER_DEFAULT_MAXVARY
 	step = 0.01
+	should_update_preview = FALSE
 
 /datum/preference/numeric/blooper_pitch_range/is_accessible(datum/preferences/preferences)
 	if(!..(preferences))
