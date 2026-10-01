@@ -351,6 +351,9 @@
 			source.show_message(span_warning("The item you're holding is not a toy!"))
 			return
 
+		if(existing_item ? !existing_item.can_lewd_remove(source) : !new_item.can_lewd_attach(target, source, item_index))
+			return
+
 		if(can_lewd_strip(source, target, item_index) && is_toy_compatible(new_item, item_index))
 			var/removing_existing = !isnull(existing_item)
 			var/datum/weakref/existing_item_ref = existing_item ? WEAKREF(existing_item) : null
@@ -379,9 +382,9 @@
 				existing_item = existing_item_ref?.resolve()
 				new_item = new_item_ref?.resolve()
 				if(removing_existing)
-					if(QDELETED(existing_item) || target.get_lewd_slot_item(item_index) != existing_item)
+					if(QDELETED(existing_item) || target.get_lewd_slot_item(item_index) != existing_item || !existing_item.can_lewd_remove(source))
 						return
-				else if(QDELETED(new_item) || source.get_active_held_item() != new_item || target.get_lewd_slot_item(item_index) || !is_toy_compatible(new_item, item_index))
+				else if(QDELETED(new_item) || source.get_active_held_item() != new_item || target.get_lewd_slot_item(item_index) || !is_toy_compatible(new_item, item_index) || !new_item.can_lewd_attach(target, source, item_index))
 					return
 
 				if(existing_item)
@@ -423,12 +426,18 @@
 
 			return chest_exposed
 
-		if(ORGAN_SLOT_PENIS)
-			return target.has_penis(required_state = REQUIRE_GENITAL_EXPOSED)
-		if(ORGAN_SLOT_VAGINA)
-			return target.has_vagina(required_state = REQUIRE_GENITAL_EXPOSED)
-		if(ORGAN_SLOT_ANUS)
-			return target.has_anus(required_state = REQUIRE_GENITAL_EXPOSED)
+		if(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)
+			// A genital a worn device closes off takes no other toy, though the device itself can come out.
+			var/obj/item/organ/genital/genital = target.get_organ_slot(slot_index)
+			if(genital?.blocked_by && genital.blocked_by != target.get_lewd_slot_item(slot_index))
+				return FALSE
+			switch(slot_index)
+				if(ORGAN_SLOT_PENIS)
+					return target.has_penis(required_state = REQUIRE_GENITAL_EXPOSED)
+				if(ORGAN_SLOT_VAGINA)
+					return target.has_vagina(required_state = REQUIRE_GENITAL_EXPOSED)
+				if(ORGAN_SLOT_ANUS)
+					return target.has_anus(required_state = REQUIRE_GENITAL_EXPOSED)
 
 /// Decides if a player should be able to insert or remove an item from a provided lewd slot_index.
 /datum/component/interactable/proc/is_toy_compatible(obj/item/clothing/sextoy/item, slot_index)

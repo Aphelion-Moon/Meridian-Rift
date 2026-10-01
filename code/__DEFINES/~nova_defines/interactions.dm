@@ -10,6 +10,21 @@
 // If you add a new requirement you also need to implement its checking. See /datum/interaction/proc/allow_act
 #define INTERACTION_REQUIRE_SELF_HAND "self_hand"
 #define INTERACTION_REQUIRE_TARGET_HAND "target_hand"
+/// A penis that is at least half hard and covered by clothes or underwear, so it shows as a bulge.
+#define INTERACTION_REQUIRE_SELF_BULGE "self_bulge"
+#define INTERACTION_REQUIRE_TARGET_BULGE "target_bulge"
+/// A penis closed off by a worn device, like a chastity cage.
+#define INTERACTION_REQUIRE_SELF_CAGED "self_caged"
+#define INTERACTION_REQUIRE_TARGET_CAGED "target_caged"
+/// A vagina closed off by a worn device, like a chastity belt.
+#define INTERACTION_REQUIRE_SELF_BELTED "self_belted"
+#define INTERACTION_REQUIRE_TARGET_BELTED "target_belted"
+/// At least one arm, for armpit interactions.
+#define INTERACTION_REQUIRE_SELF_ARM "self_arm"
+#define INTERACTION_REQUIRE_TARGET_ARM "target_arm"
+
+/// Sent to the target of someone else's lewd interaction as its effects land: (mob/living/carbon/human/user, datum/interaction/interaction)
+#define COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED "human_lewd_interaction_received"
 
 // Interaction Types: Do we do it to ourself or someone else
 #define INTERACTION_SELF "self"

@@ -94,6 +94,7 @@
 	.["title"] = title
 	.["default_color"] = default
 	.["message"] = message
+	.["mutant_colors"] = user.client?.prefs?.read_preference(/datum/preference/tri_color/mutant_colors) // APHELION EDIT ADDITION - mutant colour shortcuts
 
 /datum/tgui_color_picker/ui_data(mob/user)
 	. = list()

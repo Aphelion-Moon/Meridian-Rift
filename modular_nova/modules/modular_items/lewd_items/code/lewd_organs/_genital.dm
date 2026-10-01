@@ -16,6 +16,8 @@
 	var/internal_fluid_datum
 	/// The currently inserted sex toy.
 	var/obj/item/inserted_item
+	/// A worn device closing this genital off, like a chastity cage. Interactions that need it are refused meanwhile.
+	var/obj/item/blocked_by
 	///Size value of the genital, needs to be translated to proper lengths/diameters/cups
 	var/genital_size = 1
 	///The maximum sprite affix for this type
@@ -272,6 +274,14 @@
 	var/layer_mode = GENITAL_LAYER_NORMAL
 	/// Stacking rank among genitals in the same layer mode. LOWER = rendered on top.
 	var/genital_stack_rank = 1
+	/// Icon file of a worn device drawn in this genital's place, like a chastity cage.
+	var/device_icon
+	/// That device's worn state, without the body's "_m" or "_f". Null while nothing is worn over it.
+	var/device_state
+	/// Whether a device worn over a neighbouring genital covers this one too.
+	var/hidden_by_device = FALSE
+	/// Whether that device's lights glow, from its "_e" emissive state.
+	var/device_glows = FALSE
 
 /datum/bodypart_overlay/mutant/genital/override_color(rgb_value)
 	return draw_color
@@ -293,6 +303,11 @@
 /datum/bodypart_overlay/mutant/genital/icon_render_key(obj/item/bodypart/limb)
 	. = ..()
 	. += is_custom_layered(limb = limb) ? "[layer_mode]" : "default"
+	if(device_state)
+		. += "device=[device_state][device_glows ? "_e" : ""]"
+
+/datum/bodypart_overlay/mutant/genital/can_draw_on_bodypart(obj/item/bodypart/bodypart_owner, mob/living/carbon/owner)
+	return !hidden_by_device && ..()
 
 /datum/bodypart_overlay/mutant/genital/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
 	if(is_custom_layered(layer_index, limb))
@@ -303,6 +318,13 @@
 				layer_real = -(UNDER_UNIFORM_LAYER - 0.1 + genital_stack_rank * GENITAL_STACK_STEP)
 			if(GENITAL_LAYER_ABOVE_ALL)
 				layer_real = -(BODY_FRONT_LAYER - 0.1 + genital_stack_rank * GENITAL_STACK_STEP)
+	// A worn device draws in the genital's place, so it shows and hides and layers exactly as the genital would.
+	if(device_state)
+		var/state = "[device_state]_[limb?.limb_gender || "m"]"
+		. = list(mutable_appearance(device_icon, state, layer = layer_real))
+		if(device_glows)
+			. += emissive_appearance(device_icon, "[state]_e", limb, layer = layer_real)
+		return .
 	return ..()
 
 /// Per-organ menu for genital visibility + render layering.

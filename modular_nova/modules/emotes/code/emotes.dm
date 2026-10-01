@@ -68,8 +68,17 @@
 	message_robot = "synthesizes a yawn."
 	message_AI = "synthesizes a yawns."
 
+/datum/emote/living/sniff
+	message_param = "sniffs %t."
+
 /datum/emote/living/sniff/run_emote(mob/user, params, type_override, intentional)
-	. = ..()
+	// With nothing after the key, sniff whoever you're pulling or facing, and smell them like the Smell verb does.
+	var/mob/living/carbon/human/target = params ? null : get_sniff_target(user)
+	. = ..(user, target ? "[target]" : params, type_override, intentional)
+	if(target && intentional)
+		var/mob/living/carbon/human/sniffer = user
+		if(sniffer.can_see_erp_flavor(target) && !HAS_TRAIT(target, TRAIT_QUICKREFLEXES))
+			sniffer.smell_human(target)
 	var/turf/open/current_turf = get_turf(user)
 	if(istype(current_turf) && current_turf.pollution)
 		if(iscarbon(user))
@@ -78,6 +87,17 @@
 				return
 			carbon_user.next_smell = world.time + SMELL_COOLDOWN
 		current_turf.pollution.smell_act(user)
+
+/// The human a bare *sniff is aimed at: the one [sniffer] is pulling, or the one they face, if adjacent.
+/datum/emote/living/sniff/proc/get_sniff_target(mob/living/sniffer)
+	if(!ishuman(sniffer))
+		return null
+	var/mob/living/carbon/human/pulled = sniffer.pulling
+	if(istype(pulled) && sniffer.Adjacent(pulled))
+		return pulled
+	for(var/mob/living/carbon/human/faced in get_step(sniffer, sniffer.dir))
+		return faced
+	return null
 
 
 /datum/emote/living/peep

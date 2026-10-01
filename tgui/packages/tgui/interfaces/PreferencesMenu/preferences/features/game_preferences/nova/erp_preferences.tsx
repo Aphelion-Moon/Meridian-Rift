@@ -143,6 +143,22 @@ export const genitalia_removal_pref: FeatureToggle = {
   component: CheckboxInput,
 };
 
+export const scent_transfer_give_pref: FeatureToggle = {
+  name: 'Scent transfer: give',
+  category: 'ERP',
+  description:
+    'Lewd interactions leave your scent on partners who receive scents. It lingers for a while, or until washed off.',
+  component: CheckboxInput,
+};
+
+export const scent_transfer_receive_pref: FeatureToggle = {
+  name: 'Scent transfer: receive',
+  category: 'ERP',
+  description:
+    'Partners who give their scent leave it on you during lewd interactions. It lingers for a while, or until you wash.',
+  component: CheckboxInput,
+};
+
 export const new_genitalia_growth_pref: FeatureToggle = {
   name: 'ERP New Genitalia Growth',
   category: 'ERP',

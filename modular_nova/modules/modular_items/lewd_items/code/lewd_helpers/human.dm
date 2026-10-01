@@ -174,6 +174,40 @@
 	var/obj/item/organ/genital/breasts/chest = get_organ_slot(ORGAN_SLOT_BREASTS)
 	return chest?.nippleless
 
+/**
+ * Whether the human's penis shows as a bulge: at least half hard, and covered where it would otherwise show.
+ *
+ * Covered means exactly what `is_exposed()` calls unexposed, so a bulge interaction is on offer just when the plain
+ * penis ones are not. A penis that never shows has no bulge either.
+ */
+/mob/living/carbon/human/proc/has_bulge()
+	var/obj/item/organ/genital/penis/penis = get_organ_slot(ORGAN_SLOT_PENIS)
+	if(!penis || penis.aroused < AROUSAL_PARTIAL || penis.blocked_by)
+		return FALSE
+	if(penis.visibility_preference != GENITAL_HIDDEN_BY_CLOTHES && penis.visibility_preference != GENITAL_CUSTOM)
+		return FALSE
+	return !penis.is_shown_over_clothing() && penis.covered_by_clothing(src)
+
+/// The worn device closing off the genital in `slot`, like a chastity cage, or null.
+/mob/living/carbon/human/proc/get_blocking_device(slot)
+	RETURN_TYPE(/obj/item)
+	var/obj/item/organ/genital/genital = get_organ_slot(slot)
+	return genital?.blocked_by
+
+/// What a bulge shows through: the outermost of what `covered_by_clothing()` finds over the groin.
+/mob/living/carbon/human/proc/bulge_cover_name()
+	if(wear_suit && (wear_suit.body_parts_covered & GROIN || istype(wear_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown)))
+		return wear_suit.name
+	if(w_uniform?.body_parts_covered & GROIN)
+		return w_uniform.name
+	if(undershirt != "Nude" && !(underwear_visibility & UNDERWEAR_HIDE_SHIRT))
+		var/datum/sprite_accessory/clothing/undershirt/shirt = SSaccessories.undershirt_list[undershirt]
+		if(shirt?.hides_groin)
+			// Menu names read like "Shirt - Leotard"; keep the garment.
+			var/dash = findlasttext(shirt.name, " - ")
+			return LOWER_TEXT(dash ? copytext(shirt.name, dash + 3) : shirt.name)
+	return "underwear"
+
 /// Returns true if the human has an accessible anus for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
 /mob/living/carbon/human/proc/has_anus(required_state = REQUIRE_GENITAL_ANY)
 	if(issilicon(src))

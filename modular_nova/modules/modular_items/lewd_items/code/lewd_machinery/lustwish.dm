@@ -131,6 +131,21 @@
 				//hands
 				/obj/item/clothing/gloves/ball_mittens = 8,
 				/obj/item/clothing/gloves/ball_mittens/paw_mittens = 8,
+
+				//chastity
+				/obj/item/clothing/sextoy/chastity = 6,
+				/obj/item/clothing/sextoy/chastity/shielded = 4,
+				/obj/item/clothing/sextoy/chastity/flat = 4,
+				/obj/item/clothing/sextoy/chastity/flat/shielded = 4,
+				/obj/item/clothing/sextoy/chastity/insert = 6,
+				/obj/item/clothing/sextoy/chastity/insert/shielded = 4,
+				/obj/item/clothing/sextoy/chastity/belt = 6,
+				/obj/item/clothing/sextoy/chastity/belt/intersex = 4,
+				/obj/item/clothing/sextoy/chastity/belt/plate = 4,
+				/obj/item/clothing/sextoy/chastity/chrome = 4,
+				/obj/item/clothing/sextoy/chastity/insert/chrome = 4,
+				/obj/item/clothing/sextoy/chastity/industrial = 4,
+				/obj/item/clothing/sextoy/chastity/belt/industrial = 4,
 			),
 		),
 			list(
@@ -194,6 +209,7 @@
 		/obj/item/disk/neuroware/pentacamphor = 10,
 		/obj/item/storage/box/flat/neuroware/hexacrocin = 4,
 		/obj/item/storage/box/flat/neuroware/pentacamphor = 2,
+		/obj/item/clothing/sextoy/chastity/cursed = 1,
 	)
 
 	refill_canister = /obj/item/vending_refill/lustwish

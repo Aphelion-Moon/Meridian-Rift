@@ -520,8 +520,9 @@
 	TEST_ASSERT(wait_for_appearance_timers(), "Appearance timers did not run after arousal decreased.")
 	TEST_ASSERT_EQUAL(portal_penis_icon_state(device), "m_penis_human_5_0_FRONT_UNDER", "A body-driven arousal decrease retained the portal's erect shaft.")
 
-	// A covered penis never redraws the body, so the portal has to hear about it from the genital itself.
+	// A penis hidden under a suit (which hides its bulge too) never redraws the body, so the portal has to hear about it from the genital itself.
 	TEST_ASSERT(wearer.equip_to_slot_if_possible(allocate(/obj/item/clothing/under/color/grey), ITEM_SLOT_ICLOTHING), "The appearance-test wearer could not get dressed.")
+	TEST_ASSERT(wearer.equip_to_slot_if_possible(allocate(/obj/item/clothing/suit/apron), ITEM_SLOT_OCLOTHING), "The appearance-test wearer could not put on a suit.")
 	TEST_ASSERT(wait_for_appearance_timers(), "Appearance timers did not run after dressing the wearer.")
 	var/covered_body_key = wearer.icon_render_keys[BODY_ZONE_CHEST]
 	TEST_ASSERT(test_penis.apply_arousal_label("Very aroused"), "The covered appearance-test penis could not be made erect.")
