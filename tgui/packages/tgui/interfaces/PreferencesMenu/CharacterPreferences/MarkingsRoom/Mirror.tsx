@@ -15,12 +15,23 @@ import {
   previewFrameStyle,
   TILE,
 } from '../CharacterPreview/drawing';
+import { isLeg, TAUR_ZONE } from './constants';
 import { type CustomMarkingView, drawPainted, paintedPixels } from './customs';
 import { type DecorProps, ROOM_DECOR, Tubes } from './decor';
 import { facingImage } from './facing';
 import {
+  type CardLight,
+  markPlaced,
+  pointedZone,
+  setPointedZone,
+  subscribePointer,
+  useCardLight,
+  usePlaced,
+  usePointedZone,
+} from './pointer';
+import {
   type FrameRegions,
-  frameRegions,
+  frameRegionsOf,
   type MarkingRegions,
   regionAt,
   regionBounds,
@@ -43,14 +54,21 @@ const VIEW_MARGIN = 48;
 /** As large as the mirror shows a character: a tile 384px across. */
 const MIRROR_SCALE = 12;
 
-/** What the mirror lights on the character. */
-export type MirrorLights = {
-  /** The zone the pointer is on, on a card or the body: haloed, and the rest of the glass dimmed round it. */
-  zone: string | null;
+/** A card tile's marking or drawing, lit on the body while the pointer is on it. */
+export type CardLit = {
   /** A worn marking to light, in its colour: the one the pointer is on in its card. */
   marking: ThumbMarking | null;
   /** A custom drawing to light: the one whose card slot the pointer is on. */
   custom: CustomMarkingView | null;
+};
+
+/**
+ * What the mirror lights on the character, beyond the zone the pointer is on,
+ * which it reads itself (pointer.ts).
+ */
+export type MirrorLights = {
+  /** What a card's tile lights, by what the pointer is on there. */
+  lightOf: (light: CardLight) => CardLit;
   /**
    * While a drawer is open: the markings a pick puts on, by its name. The one
    * the pointer is trying on (tryOn.ts) shimmers over what the character wears.
@@ -75,15 +93,17 @@ type Props = {
   lights: MirrorLights;
   regions?: MarkingRegions;
   anchor: MutableRefObject<MirrorAnchor>;
-  /** Where the dimming centres, in glass pixels, or null for none. */
-  spot: [number, number] | null;
-  /** Told where the character stands whenever that changes. */
-  onPlaced: () => void;
-  /** The pointer is on a zone of the body, or off it. */
-  onPoint: (zone: string | null) => void;
+  /** The open drawer's zone, which the glass dims round while the pointer is on none; or null. */
+  drawerZone: string | null;
+  /** Whether a taur body stands for both legs, which then light as one. */
+  taurLegs: boolean;
   /** A zone of the body was clicked. */
   onPick: (zone: string) => void;
 };
+
+/** The body region a zone lights: under a taur body, the legs light the taur. */
+const regionOf = (zone: string, taurLegs: boolean) =>
+  isLeg(zone) && taurLegs ? TAUR_ZONE : zone;
 
 /**
  * The room's mirror, as its theme hangs it: the club's is a frameless glass
@@ -93,12 +113,33 @@ type Props = {
  * character. The character is the server's drawing, as every tab shows it;
  * the mirror lights it, halos the part the pointer is on, and shows markings
  * tried on. It stands where the club's does in every room, its view reaching
- * past the room's own glass, which clips it.
+ * past the room's own glass, which clips it. What follows the pointer draws
+ * again on its own; the mirror itself doesn't.
  */
 export function Mirror(props: Props) {
-  const { theme, decor, lights, regions, anchor, spot, onPlaced } = props;
-  const { onPoint, onPick } = props;
+  const { theme, decor, lights, regions, anchor, drawerZone, taurLegs } = props;
+  const { onPick } = props;
   const { Frame, Glass, GlassAfter } = ROOM_DECOR[theme.id];
+  const glass = useRef<HTMLDivElement>(null);
+
+  // The glass is marked with the zone the pointer is on, for its cursor.
+  // Written as the pointer moves, so the mirror doesn't draw again for it.
+  useLayoutEffect(() => {
+    const element = glass.current;
+    if (!element) {
+      return;
+    }
+    const mark = () => {
+      const zone = pointedZone();
+      if (zone) {
+        element.dataset.zone = regionOf(zone, taurLegs);
+      } else {
+        delete element.dataset.zone;
+      }
+    };
+    mark();
+    return subscribePointer(mark);
+  }, [taurLegs]);
 
   const zoneAt = (clientX: number, clientY: number) => {
     const { frame, view, regions: map } = anchor.current;
@@ -124,15 +165,15 @@ export function Mirror(props: Props) {
       {theme.tubes && <Tubes />}
       {!!Frame && <Frame {...decor} />}
       <div
+        ref={glass}
         className={`MarkingsRoom__glass${decor.lightEffects ? '' : ' MarkingsRoom__glass--plain'}`}
-        data-zone={lights.zone ?? undefined}
         onPointerMove={(event) => {
           // A held pointer is turning or panning the character.
           if (!event.buttons) {
-            onPoint(zoneAt(event.clientX, event.clientY));
+            setPointedZone(zoneAt(event.clientX, event.clientY));
           }
         }}
-        onPointerLeave={() => onPoint(null)}
+        onPointerLeave={() => setPointedZone(null)}
       >
         {theme.blacklight && <span className="MarkingsRoom__uvTube" />}
         <span className="MarkingsRoom__behind" />
@@ -163,22 +204,11 @@ export function Mirror(props: Props) {
                 anchor={anchor}
                 rims={decor.lightEffects}
                 blacklight={theme.blacklight}
-                onPlaced={onPlaced}
+                taurLegs={taurLegs}
               />
             )}
           >
-            <span
-              className={`MarkingsRoom__spot${spot ? ' MarkingsRoom__spot--on' : ''}`}
-              data-preview-pan=""
-              style={
-                spot
-                  ? ({
-                      '--spot-x': `${Math.round(spot[0])}px`,
-                      '--spot-y': `${Math.round(spot[1])}px`,
-                    } as CSSProperties)
-                  : undefined
-              }
-            />
+            <Spot anchor={anchor} drawerZone={drawerZone} taurLegs={taurLegs} />
           </CharacterPreview>
         </div>
         <span className="MarkingsRoom__decor" aria-hidden="true">
@@ -196,6 +226,40 @@ export function Mirror(props: Props) {
   );
 }
 
+/**
+ * The glass dimmed round the zone the pointer is on, or the open drawer's,
+ * centred where that zone stands as the character moves. It draws again alone
+ * as the pointer moves.
+ */
+function Spot(props: {
+  anchor: MutableRefObject<MirrorAnchor>;
+  drawerZone: string | null;
+  taurLegs: boolean;
+}) {
+  const { anchor, drawerZone, taurLegs } = props;
+  const pointed = usePointedZone();
+  // Where the character stands has changed: where the zone is has too.
+  usePlaced();
+  const focus = pointed ?? drawerZone;
+  const spot = focus
+    ? (zoneCentre(anchor.current, regionOf(focus, taurLegs)) ?? null)
+    : null;
+  return (
+    <span
+      className={`MarkingsRoom__spot${spot ? ' MarkingsRoom__spot--on' : ''}`}
+      data-preview-pan=""
+      style={
+        spot
+          ? ({
+              '--spot-x': `${Math.round(spot[0])}px`,
+              '--spot-y': `${Math.round(spot[1])}px`,
+            } as CSSProperties)
+          : undefined
+      }
+    />
+  );
+}
+
 type OverlayProps = {
   view: PreviewView;
   lights: MirrorLights;
@@ -205,7 +269,7 @@ type OverlayProps = {
   rims: boolean;
   /** Whether the room's UV tube lights the character when the lights go out. */
   blacklight: boolean;
-  onPlaced: () => void;
+  taurLegs: boolean;
 };
 
 /**
@@ -215,27 +279,23 @@ type OverlayProps = {
  * sprites face south, so those show only while the character does.
  */
 function MirrorOverlay(props: OverlayProps) {
-  const { view, lights, regions, anchor, rims, blacklight, onPlaced } = props;
+  const { view, lights, regions, anchor, rims, blacklight, taurLegs } = props;
   const { shown, dir, scale, x, y } = view;
   const { preview, image } = shown;
   const frame = useRef<HTMLSpanElement>(null);
   const map = useMemo(
-    () => (regions ? frameRegions(preview, regions, dir) : undefined),
+    () => (regions ? frameRegionsOf(preview, regions, dir) : undefined),
     [preview, regions, dir],
   );
   const facingMask = useMemo(
     () => (image ? facingImage(image, preview, dir) : undefined),
     [image, preview, dir],
   );
-  const zoneMask = useMemo(
-    () => (map && lights.zone ? regionMask(map, lights.zone) : undefined),
-    [map, lights.zone],
-  );
 
   // Where the character stands, for pointing at it and for paint to fly to.
   useLayoutEffect(() => {
     anchor.current = { frame: frame.current, view, regions: map ?? null };
-    onPlaced();
+    markPlaced();
   }, [preview.id, dir, scale, x, y, map]);
 
   const style = previewFrameStyle(preview, scale, x, y);
@@ -281,25 +341,7 @@ function MirrorOverlay(props: OverlayProps) {
       )}
       <span className="MarkingsRoom__overlay" data-preview-pan="">
         <span ref={frame} className="MarkingsRoom__frame" style={style} />
-        {!!zoneMask && (
-          <span
-            key={lights.zone}
-            className="MarkingsRoom__halo"
-            style={{
-              ...style,
-              maskImage: `linear-gradient(#000 0 0), url(${zoneMask})`,
-              WebkitMaskImage: `linear-gradient(#000 0 0), url(${zoneMask})`,
-            }}
-          >
-            <span
-              className="MarkingsRoom__haloZone"
-              style={{
-                maskImage: `url(${zoneMask})`,
-                WebkitMaskImage: `url(${zoneMask})`,
-              }}
-            />
-          </span>
-        )}
+        <Halo map={map} style={style} taurLegs={taurLegs} />
         {south && !!lights.tryOn && (
           <TriedOn view={view} tryOn={lights.tryOn} />
         )}
@@ -311,31 +353,88 @@ function MirrorOverlay(props: OverlayProps) {
             markings={[lights.ink.marking]}
           />
         )}
-        {south && !!lights.marking && (
-          <MarkingLayer
-            className="MarkingsRoom__lit"
-            view={view}
-            markings={[lights.marking]}
-          />
-        )}
-        {!!lights.custom && (
-          <FrameCanvas
-            className="MarkingsRoom__lit"
-            view={view}
-            paint={(context, left, top) => {
-              const drawing = lights.custom as CustomMarkingView;
-              drawPainted(
-                context,
-                paintedPixels(drawing, dir),
-                left - (drawing.width - TILE) / 2,
-                top,
-                1,
-              );
-            }}
-            paintKey={lights.custom}
-          />
-        )}
+        <CardLitLayer view={view} lightOf={lights.lightOf} />
       </span>
+    </>
+  );
+}
+
+/**
+ * The halo round the part the pointer is on: its glow, outside it only. It
+ * draws again alone as the pointer moves, and comes in afresh on each part.
+ */
+function Halo(props: {
+  map: FrameRegions | undefined;
+  style: CSSProperties;
+  taurLegs: boolean;
+}) {
+  const { map, style, taurLegs } = props;
+  const pointed = usePointedZone();
+  const zone = pointed ? regionOf(pointed, taurLegs) : null;
+  const zoneMask = useMemo(
+    () => (map && zone ? regionMask(map, zone) : undefined),
+    [map, zone],
+  );
+  if (!zoneMask) {
+    return null;
+  }
+  return (
+    <span
+      key={zone}
+      className="MarkingsRoom__halo"
+      style={{
+        ...style,
+        maskImage: `linear-gradient(#000 0 0), url(${zoneMask})`,
+        WebkitMaskImage: `linear-gradient(#000 0 0), url(${zoneMask})`,
+      }}
+    >
+      <span
+        className="MarkingsRoom__haloZone"
+        style={{
+          maskImage: `url(${zoneMask})`,
+          WebkitMaskImage: `url(${zoneMask})`,
+        }}
+      />
+    </span>
+  );
+}
+
+/** The worn marking or drawing the pointer is on in its card, lit on the body. It draws again alone. */
+function CardLitLayer(props: {
+  view: PreviewView;
+  lightOf: (light: CardLight) => CardLit;
+}) {
+  const { view, lightOf } = props;
+  const { dir } = view;
+  const light = useCardLight();
+  const { marking, custom } = light
+    ? lightOf(light)
+    : { marking: null, custom: null };
+  return (
+    <>
+      {dir === 'south' && !!marking && (
+        <MarkingLayer
+          className="MarkingsRoom__lit"
+          view={view}
+          markings={[marking]}
+        />
+      )}
+      {!!custom && (
+        <FrameCanvas
+          className="MarkingsRoom__lit"
+          view={view}
+          paint={(context, left, top) => {
+            drawPainted(
+              context,
+              paintedPixels(custom, dir),
+              left - (custom.width - TILE) / 2,
+              top,
+              1,
+            );
+          }}
+          paintKey={custom}
+        />
+      )}
     </>
   );
 }

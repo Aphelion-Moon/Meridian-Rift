@@ -9,11 +9,13 @@ import {
   CARD_ZOOM,
   isLeg,
   type MarkingZone,
+  TAUR_ZONE,
   ZONE_BOXES,
   ZONE_NAMES,
 } from './constants';
 import { paintedPixels } from './customs';
 import type { RoomData } from './data';
+import { setCardLight, setPointedZone, usePointedIs } from './pointer';
 import { Thumb } from './Thumb';
 import { cardTag, type RoomTheme } from './themes';
 
@@ -31,13 +33,10 @@ type Props = {
   row: number;
   /** Its place in the deal, for its tilt and when it lands. */
   order: number;
-  /** The pointer is on this zone, here or on the body. */
-  lit: boolean;
+  /** The open drawer's zone, which lights its card while the pointer is on no zone; or null. */
+  drawerZone: MarkingZone | null;
   /** The worn marking selected here, by its place, or null. */
   selected: number | null;
-  onPoint: (zone: MarkingZone | null) => void;
-  /** The pointer is on a worn marking's tile (its place) or the custom drawing's, or off them. */
-  onLight: (light: number | 'custom' | null) => void;
   onSelect: (index: number) => void;
   onMenu: (index: number, anchor: HTMLButtonElement) => void;
   onAdd: () => void;
@@ -52,8 +51,16 @@ type Props = {
  * lines, a corner tag, and a meter of how many markings it wears.
  */
 export function ZoneCard(props: Props) {
-  const { theme, room, zone, side, row, order, lit, selected } = props;
-  const { onPoint, onLight, onSelect, onMenu, onAdd, onDraw } = props;
+  const { theme, room, zone, side, row, order, drawerZone, selected } = props;
+  const { onSelect, onMenu, onAdd, onDraw } = props;
+  const { taurLegs } = room;
+  // Lit while the pointer is on this zone, here or on the body, or on none
+  // while its drawer is open; a taur body stands for both legs. Only a card
+  // whose light changes draws again as the pointer moves.
+  const lit = usePointedIs((pointed) => {
+    const focus = pointed ?? drawerZone;
+    return focus === zone || (focus === TAUR_ZONE && taurLegs && isLeg(zone));
+  });
   const worn = room.wornByZone[zone];
   const body = room.speciesIcon
     ? speciesSpriteClasses(room.speciesIcon, 'south', true)
@@ -66,7 +73,9 @@ export function ZoneCard(props: Props) {
   const drawingZone = room.drawingZone(zone);
   const drawn = room.drawn(drawingZone);
   const drawing = room.customViews[drawingZone];
-  const point = () => onPoint(zone);
+  const point = () => setPointedZone(zone);
+  const onLight = (what: number | 'custom' | null) =>
+    setCardLight(what === null ? null : { zone, what });
 
   const names = underTaur
     ? 'Under the taur body'
@@ -89,7 +98,7 @@ export function ZoneCard(props: Props) {
         } as CSSProperties
       }
       onMouseEnter={point}
-      onMouseLeave={() => onPoint(null)}
+      onMouseLeave={() => setPointedZone(null)}
     >
       <span className="MarkingsRoom__cardX1" />
       <span className="MarkingsRoom__cardX2" />
@@ -121,7 +130,7 @@ export function ZoneCard(props: Props) {
                 aria-label={`Add a marking to the ${name.toLowerCase()}`}
                 onClick={onAdd}
                 onFocus={point}
-                onBlur={() => onPoint(null)}
+                onBlur={() => setPointedZone(null)}
               >
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <path d="M8 3v10M3 8h10" />

@@ -75,24 +75,38 @@
 
 		if(species.always_customizable && !(language.type in lang_holder.spoken_languages)) // For the ghostrole species. We don't want ashwalkers speaking beachtongue now.
 			continue
+		// A language's description and icon are in the constant data; a secret one, which isn't, carries its own.
+		var/list/entry = list("name" = language.name)
+		if(language.secret)
+			entry["description"] = language.desc
+			entry["icon"] = sanitize_css_class_name(language.name)
 		if(preferences.languages[language.type])
-			selected_languages += list(list(
-				"description" = language.desc,
-				"name" = language.name,
-				"icon" = sanitize_css_class_name(language.name),
-				"speaking" = !!(preferences.languages[language.type] == LANGUAGE_SPOKEN),
-			))
+			entry["speaking"] = !!(preferences.languages[language.type] == LANGUAGE_SPOKEN)
+			selected_languages += list(entry)
 		else
-			unselected_languages += list(list(
-				"description" = language.desc,
-				"name" = language.name,
-				"icon" = sanitize_css_class_name(language.name)
-			))
+			unselected_languages += list(entry)
 
 	data["total_language_points"] = max_languages
 	data["selected_languages"] = selected_languages
 	data["unselected_languages"] = unselected_languages
 	return data
+
+/**
+ * Each language's description and icon class, by name, once a round: they never change, so the window's data names the
+ * languages and the page looks the rest up here. A secret language isn't here; a species that may learn one is sent its
+ * description and icon with the window's data, as before.
+ */
+/datum/preference_middleware/languages/get_constant_data()
+	var/list/info = list()
+	for(var/language_path, language_instance in GLOB.language_datum_instances)
+		var/datum/language/language = language_instance
+		if(language.secret)
+			continue
+		info[language.name] = list(
+			"description" = language.desc,
+			"icon" = sanitize_css_class_name(language.name),
+		)
+	return info
 
 /// (Re-)Initializes the `name_to_language` associative list, to ensure that it's properly populated.
 /datum/preference_middleware/languages/proc/initialize_name_to_language()

@@ -16,12 +16,8 @@ import {
 import { Drawer, type DrawerContents, lookMarkings } from './Drawer';
 import { type RoomData, useRoomData, type WornMarking } from './data';
 import { ROOM_DECOR } from './decor';
-import {
-  Mirror,
-  type MirrorAnchor,
-  type MirrorLights,
-  zoneCentre,
-} from './Mirror';
+import { type CardLit, Mirror, type MirrorAnchor } from './Mirror';
+import { type CardLight, resetPointer } from './pointer';
 import { useDecorProps } from './Room';
 import { regionBounds } from './regions';
 import { primeSpriteCells } from './sprites';
@@ -69,9 +65,6 @@ type Ink = {
   at: number;
 };
 
-/** What the pointer has lit on a card: a worn marking by its place, or the custom drawing. */
-type CardLight = { zone: MarkingZone; what: number | 'custom' };
-
 const isMarkingZone = (zone: string | null): zone is MarkingZone =>
   !!zone && (MARKING_ZONES as readonly string[]).includes(zone);
 
@@ -102,9 +95,6 @@ export function MarkingsRoom(props: Props) {
     zone: MarkingZone;
     index: number;
   } | null>(() => firstWorn(room));
-  // The zone the pointer is on, on a card or the body: a marking zone, or the taur's.
-  const [pointed, setPointed] = useState<string | null>(null);
-  const [light, setLight] = useState<CardLight | null>(null);
   const [drawer, setDrawer] = useState<DrawerContents | null>(null);
   const [query, setQuery] = useState('');
   const [contextTarget, setContextTarget] = useState<{
@@ -119,8 +109,6 @@ export function MarkingsRoom(props: Props) {
     : undefined;
   const [flight, setFlight] = useState<Flight | null>(null);
   const [ink, setInk] = useState<Ink | null>(null);
-  // Bumped when the character moves in the glass, so the dimming follows it.
-  const [, setPlaced] = useState(0);
   const anchor = useRef<MirrorAnchor>({
     frame: null,
     view: null,
@@ -131,11 +119,13 @@ export function MarkingsRoom(props: Props) {
   // replacements get their first one selected when they come.
   const reselect = useRef<{ from: unknown } | null>(null);
 
-  // Which body region owns each pixel, asked for each drawing the room is sent.
+  // Which body region owns each pixel, asked for each drawing the room is sent
+  // that the map it holds isn't known to fit; the server sends the map only
+  // if it isn't the one held.
   const previewId = room.preview?.id;
   useEffect(() => {
-    if (previewId !== undefined) {
-      act('markings_room_regions', { id: previewId });
+    if (previewId !== undefined && room.regionsFor !== previewId) {
+      act('markings_room_regions', { id: previewId, have: room.regions?.key });
     }
   }, [previewId]);
 
@@ -174,8 +164,14 @@ export function MarkingsRoom(props: Props) {
     return () => clearTimeout(timer);
   }, [ink, previewId]);
 
-  // Nothing stays tried on once the room goes.
-  useEffect(() => () => setTried(null), []);
+  // Nothing stays tried on, or pointed at, once the room goes.
+  useEffect(
+    () => () => {
+      setTried(null);
+      resetPointer();
+    },
+    [],
+  );
 
   // Escape puts the drawer away, wherever the keyboard is.
   const drawerOpen = !!drawer;
@@ -202,53 +198,48 @@ export function MarkingsRoom(props: Props) {
   }, [flight]);
 
   const drawerZone = drawer && 'zone' in drawer ? drawer.zone : null;
-  // The zone dimmed round in the glass: the one pointed at, or the drawer's.
-  const focus = pointed ?? drawerZone;
   // A taur body stands for both legs.
-  const cardLit = (zone: MarkingZone) =>
-    focus === zone || (focus === TAUR_ZONE && room.taurLegs && isLeg(zone));
   const regionOf = (zone: string) =>
     isLeg(zone) && room.taurLegs ? TAUR_ZONE : zone;
 
-  const lights: MirrorLights = {
-    zone: pointed ? regionOf(pointed) : null,
-    marking: null,
-    custom: null,
-    tryOn: null,
-    ink: ink && { serial: ink.serial, marking: ink.marking },
-  };
-  if (light && light.what === 'custom') {
-    lights.custom = room.customViews[room.drawingZone(light.zone)] ?? null;
-  } else if (light) {
+  /** What a card's tile lights on the body: its worn marking, in its colour, or the custom drawing. */
+  const lightOf = (light: CardLight): CardLit => {
+    if (light.what === 'custom') {
+      return {
+        marking: null,
+        custom: room.customViews[room.drawingZone(light.zone)] ?? null,
+      };
+    }
     const marking = room.wornByZone[light.zone][light.what];
     const icon = marking && room.icons[light.zone]?.[marking.name];
-    lights.marking = icon
-      ? {
-          icon,
-          nativeIcon: room.nativeIcons[light.zone]?.[marking.name],
-          color: marking.color,
-        }
-      : null;
-  }
-  if (drawer) {
-    lights.tryOn = (name) => {
-      if ('book' in drawer) {
-        return lookMarkings(room, name);
-      }
-      const icon = room.icons[drawer.zone]?.[name];
-      return icon
-        ? [
-            {
-              icon,
-              nativeIcon: room.nativeIcons[drawer.zone]?.[name],
-              color: room.startColor(name) ?? '#ffffff',
-            },
-          ]
-        : [];
+    return {
+      marking: icon
+        ? {
+            icon,
+            nativeIcon: room.nativeIcons[light.zone]?.[marking.name],
+            color: marking.color,
+          }
+        : null,
+      custom: null,
     };
-  }
-  const spotZone = focus ? regionOf(focus) : null;
-  const spot = spotZone ? (zoneCentre(anchor.current, spotZone) ?? null) : null;
+  };
+  const tryOn = drawer
+    ? (name: string) => {
+        if ('book' in drawer) {
+          return lookMarkings(room, name);
+        }
+        const icon = room.icons[drawer.zone]?.[name];
+        return icon
+          ? [
+              {
+                icon,
+                nativeIcon: room.nativeIcons[drawer.zone]?.[name],
+                color: room.startColor(name) ?? '#ffffff',
+              },
+            ]
+          : [];
+      }
+    : null;
 
   /** Paint flies from what was clicked to the middle of the part it lands on. */
   const fly = (from: Element, zone: string, color: string) => {
@@ -366,12 +357,15 @@ export function MarkingsRoom(props: Props) {
       <Mirror
         theme={theme}
         decor={decor}
-        lights={lights}
+        lights={{
+          lightOf,
+          tryOn,
+          ink: ink && { serial: ink.serial, marking: ink.marking },
+        }}
         regions={room.regions}
         anchor={anchor}
-        spot={spot}
-        onPlaced={() => setPlaced((count) => count + 1)}
-        onPoint={(zone) => setPointed((last) => (last === zone ? last : zone))}
+        drawerZone={drawerZone}
+        taurLegs={room.taurLegs}
         onPick={pickZone}
       />
       {ZONE_CARDS.map((card, order) => (
@@ -383,12 +377,8 @@ export function MarkingsRoom(props: Props) {
           side={card.side}
           row={card.row}
           order={order}
-          lit={cardLit(card.zone)}
+          drawerZone={drawerZone}
           selected={selection?.zone === card.zone ? selection.index : null}
-          onPoint={setPointed}
-          onLight={(what) =>
-            setLight(what === null ? null : { zone: card.zone, what })
-          }
           onSelect={(index) => {
             setContextTarget(null);
             setSelection({ zone: card.zone, index });
@@ -478,6 +468,17 @@ export function MarkingsRoom(props: Props) {
               setSelection({ zone, index: room.wornByZone[zone].length });
               fly(from, zone, room.startColor(name) ?? '#ffffff');
               inkIn(zone, name, room.startColor(name) ?? '#ffffff');
+            }
+            closeDrawer();
+          }}
+          onRemove={() => {
+            const replace = 'replace' in drawer ? drawer.replace : null;
+            const swapped =
+              drawerZone && replace !== null
+                ? room.wornByZone[drawerZone][replace]
+                : undefined;
+            if (swapped) {
+              removeMarking(swapped);
             }
             closeDrawer();
           }}

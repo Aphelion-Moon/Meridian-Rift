@@ -30,7 +30,8 @@
   border-bottom:2px solid #77868f;
   background:#10151a;
 }
-.theme-meridian_highline .AugmentsRoom--markings .AugmentsRoom__mode {
+.theme-meridian_highline .AugmentsRoom--markings .AugmentsRoom__mode,
+.theme-meridian_highline .AugmentsRoom--augments .AugmentsRoom__mode.AugmentsRoom__mode--markings {
   height:38px;
   padding:0 18px;
   border-radius:0;
@@ -42,7 +43,8 @@
   box-shadow:inset 0 0 0 2px #77868f;
   text-shadow:none;
 }
-.theme-meridian_highline .AugmentsRoom--markings .AugmentsRoom__mode::before {
+.theme-meridian_highline .AugmentsRoom--markings .AugmentsRoom__mode::before,
+.theme-meridian_highline .AugmentsRoom--augments .AugmentsRoom__mode.AugmentsRoom__mode--markings::before {
   display:none;
 }
 .theme-meridian_highline .AugmentsRoom--markings .AugmentsRoom__mode.AugmentsRoom__mode--on {

@@ -105,7 +105,7 @@
   background:linear-gradient(180deg, rgb(184 245 255/.38) var(--tile-top), rgb(84 169 255/.08) calc(var(--tile-top) + 13.44 * var(--pixel)), transparent calc(var(--tile-top) + 22.4 * var(--pixel)));
 }
 .theme-meridian_vector .MarkingsRoom__rim.MarkingsRoom__rim--side {
-  background:linear-gradient(270deg, rgb(84 169 255/.42), transparent) calc(var(--tile-left) + 16.333 * var(--pixel)) 0 / calc(7.667 * var(--pixel)) 100% no-repeat, linear-gradient(rgb(84 169 255/.42) 0 0) calc(var(--tile-left) + 24 * var(--pixel)) 0 / calc(100% - var(--tile-left) - 24 * var(--pixel)) 100% no-repeat;
+  background:linear-gradient(90deg, transparent calc(var(--tile-left) + 16.333 * var(--pixel)), rgb(84 169 255/.42) calc(var(--tile-left) + 24 * var(--pixel)));
 }
 .theme-meridian_vector .MarkingsRoom__glare {
   background:none;
@@ -605,13 +605,13 @@
   background:radial-gradient(ellipse 90% 70% at 50% 40%,#0b0b0d,#030304 85%);
 }
 .theme-meridian_vector .AugmentsRoom__uv.AugmentsRoom__uv--on {
-  color:#ececf0;
-  box-shadow:inset 0 0 0 1px rgb(255 255 255/.3);
+  color:var(--room-text);
+  box-shadow:inset 0 0 0 1px rgb(var(--room-neon-rgb)/.75),0 0 10px rgb(var(--room-neon-rgb)/.25);
 }
 .theme-meridian_vector .AugmentsRoom__uv.AugmentsRoom__uv--on .AugmentsRoom__uvTrack {
-  background:#2a2a30;
+  background:rgb(var(--room-neon-rgb)/.85);
 }
 .theme-meridian_vector .AugmentsRoom__uv.AugmentsRoom__uv--on .AugmentsRoom__uvKnob {
-  background:#e8e8ec;
-  box-shadow:0 0 6px rgb(255 255 255/.3);
+  background:#fff;
+  box-shadow:0 0 0 1px rgb(0 0 0/.3),0 0 6px rgb(var(--room-neon-rgb)/.6);
 }

@@ -36,10 +36,15 @@ type Props = {
   onQuery: (query: string) => void;
   /** A marking was picked, from the tile clicked. */
   onPick: (name: string, from: Element) => void;
+  /** None was picked while swapping one out: it comes off. */
+  onRemove: () => void;
   /** A look was picked. */
   onLook: (name: string, from: Element) => void;
   onClose: () => void;
 };
+
+/** None, in the try-on store while the pointer is on it: no marking is named so. */
+const NONE = '\u0000none';
 
 /** The markings a look puts on each zone, in their starting colours, as the mirror and its picture show them. */
 export function lookMarkings(room: RoomData, preset: string) {
@@ -159,6 +164,17 @@ function MarkingSheet(
   // Every pick's cell in one style pass, before the tiles ask one by one.
   primeSpriteCells([body, ...shown.map((name) => icons[name])]);
 
+  // Swapping one out, the first pick is none at all, which takes it off.
+  const none = swapping && (
+    <NoneTile
+      key={NONE}
+      name={swapping.name}
+      body={body}
+      zone={zone}
+      onRemove={props.onRemove}
+    />
+  );
+  const first = none ? 1 : 0;
   const tile = (name: string, order: number) => {
     const taken = unavailable.has(name);
     const icon = icons[name];
@@ -166,7 +182,7 @@ function MarkingSheet(
       <SheetTile
         key={name}
         name={name}
-        order={order}
+        order={order + first}
         taken={taken}
         icon={icon}
         body={body}
@@ -208,6 +224,7 @@ function MarkingSheet(
               Suits {room.speciesName} · {suiting.length}
             </div>
             <div className="MarkingsRoom__grid">
+              {none}
               {suiting.map((name, order) => tile(name, order))}
             </div>
           </>
@@ -218,30 +235,87 @@ function MarkingSheet(
               Other species · {others.length}
             </div>
             <div className="MarkingsRoom__grid">
+              {!suiting.length && none}
               {others.map((name, order) => tile(name, order + suiting.length))}
             </div>
           </>
         )}
         {!suiting.length && !others.length && (
-          <div className="MarkingsRoom__empty">No markings match that.</div>
+          <>
+            {!!none && <div className="MarkingsRoom__grid">{none}</div>}
+            <div className="MarkingsRoom__empty">No markings match that.</div>
+          </>
         )}
       </div>
-      <SheetFoot room={room} offered={offered} icons={icons} />
+      <SheetFoot
+        room={room}
+        offered={offered}
+        icons={icons}
+        swapping={swapping?.name}
+      />
     </>
   );
 }
 
-/** The sheet's foot: what the pointer is trying on, and how it is coloured. */
+/** None, the sheet's first pick while swapping one out: the bare body, crossed out. Picked, the marking comes off. */
+function NoneTile(props: {
+  name: string;
+  body: string | undefined;
+  zone: MarkingZone;
+  onRemove: () => void;
+}) {
+  const { name, body, zone, onRemove } = props;
+  const peek = useIsTried(NONE);
+  return (
+    <button
+      type="button"
+      className={classes([
+        'MarkingsRoom__tile',
+        'MarkingsRoom__pick',
+        'MarkingsRoom__pick--none',
+        peek && 'MarkingsRoom__pick--peek',
+      ])}
+      style={{ '--pick-order': 0 } as CSSProperties}
+      aria-label={`None, take off ${name}`}
+      onClick={onRemove}
+      onMouseEnter={() => setTried(NONE)}
+      onFocus={() => setTried(NONE)}
+      onBlur={() => setTried(null)}
+    >
+      <SheetPicture icon={undefined} body={body} zone={zone} color="" />
+      <svg
+        className="MarkingsRoom__noneMark"
+        viewBox="0 0 12 12"
+        aria-hidden="true"
+      >
+        <path d="M3 3 9 9M9 3 3 9" />
+      </svg>
+      <span className="MarkingsRoom__back MarkingsRoom__back--none">NONE</span>
+    </button>
+  );
+}
+
+/** The sheet's foot: what the pointer is trying on, and how it is coloured; or, on None, what comes off. */
 function SheetFoot(props: {
   room: RoomData;
   offered: string[];
   icons: Record<string, string>;
+  /** The marking being swapped out, if one is. */
+  swapping?: string;
 }) {
-  const { room, offered, icons } = props;
+  const { room, offered, icons, swapping } = props;
   const trying = useTried();
   const tried = trying && offered.includes(trying) ? trying : null;
   const triedBack = useBlankMarking(tried ? icons[tried] : undefined);
   const triedMode = tried ? room.info[tried]?.color_mode : undefined;
+  if (trying === NONE && swapping) {
+    return (
+      <div className="MarkingsRoom__foot">
+        <span className="MarkingsRoom__footName">None</span>
+        <span className="MarkingsRoom__footMeta">Takes off {swapping}</span>
+      </div>
+    );
+  }
   return (
     <div className="MarkingsRoom__foot">
       <span className="MarkingsRoom__footName">

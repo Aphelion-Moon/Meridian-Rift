@@ -1298,7 +1298,20 @@ export const LimbsPage = ({
       },
       filteredMarkingPresets,
     };
-  }, [server_data, data]);
+    // What it reads of the window's data, not the whole of it: an update that
+    // changes none of these (the preview's drawing, the region map) keeps the
+    // columns, and the augments stage built from them, as they are.
+  }, [
+    server_data,
+    data.character_preferences?.misc?.species,
+    data.ckey,
+    data.allow_mismatched_parts,
+    data.digi_legs,
+    data.taur_legs,
+    data.augment_styles,
+    data.augments,
+    data.markings,
+  ]);
 
   // The augments stage's sockets, in the room's themes: every body part and internal the server has, as the stage lays them out.
   const stage = useMemo(() => {

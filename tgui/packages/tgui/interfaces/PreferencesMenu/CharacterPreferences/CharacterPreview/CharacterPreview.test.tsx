@@ -6,6 +6,7 @@ import { type Arrival, nextArrival } from './arrival';
 import {
   animationStep,
   type DrawnBounds,
+  previewBodyFit,
   previewFit,
   previewFramePoint,
   previewFrameStyle,
@@ -84,6 +85,48 @@ describe('previewFit', () => {
     const taur = { ...tile, width: 64, x: 16 };
     const wide = previewFit(taur, 272, 480, [0, 0, 40, 32]).panBounds;
     expect([wide.minX, wide.maxX]).toEqual([-8, 32]);
+  });
+});
+
+describe('previewBodyFit', () => {
+  // The augments stage's view: 332 x 520, a body's tile at most 12x.
+  const stage = [332, 520] as const;
+  const taur = { ...tile, width: 64, x: 16 };
+
+  it('stands a taur by its tile, at the scale any body stands at', () => {
+    // A human drawn 8px each side of its tile's centre, and a taur whose lower
+    // body runs 16px past each side of its tile.
+    const human = previewBodyFit(tile, ...stage, [8, 2, 24, 32], 0, 12);
+    const body = previewBodyFit(taur, ...stage, [0, 2, 64, 32], 0, 12);
+
+    expect(previewFit(taur, ...stage, [0, 2, 64, 32], 0, 12).scale).toBe(5);
+    expect(body.scale).toBe(12);
+    expect(body.scale).toBe(human.scale);
+    // Its tile's centre and floor where the human's are, so a point of the
+    // tile lands in the same place on both.
+    expect([body.x, body.y]).toEqual([human.x, human.y]);
+    expect(
+      previewFramePoint(taur, body.scale, body.x, body.y, 16 + 13, 2.5),
+    ).toEqual(previewFramePoint(tile, human.scale, human.x, human.y, 13, 2.5));
+  });
+
+  it('fits a body no larger than its tile as previewFit does', () => {
+    const bounds: DrawnBounds = [4, 2, 28, 32];
+
+    expect(previewBodyFit(tile, ...stage, bounds, 0, 12)).toEqual(
+      previewFit(tile, ...stage, bounds, 0, 12),
+    );
+  });
+
+  it('centres what a taur draws inside its tile, before its image has loaded too', () => {
+    // Drawn up to 24 rows above its floor inside its tile: those rows centred,
+    // whatever its lower body draws past the tile.
+    const short = previewBodyFit(taur, ...stage, [0, 8, 64, 32], 0, 12);
+    expect(short.y).toBe(260 + (24 / 2) * 12);
+    // No bounds yet: the whole tile.
+    expect(previewBodyFit(taur, ...stage, undefined, 0, 12).y).toBe(
+      260 + 16 * 12,
+    );
   });
 });
 

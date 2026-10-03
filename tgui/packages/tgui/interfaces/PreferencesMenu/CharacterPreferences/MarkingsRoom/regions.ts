@@ -11,10 +11,22 @@ import type { SpriteDir } from '../SpeciesRegistry/constants';
  * its extra width past each side of the tile.
  */
 export type MarkingRegions = {
+  /** The drawing it was sent for; markings_room_regions_for says which it fits now. */
   id: number;
+  /** What the server knows the map by: the page sends it back with the next drawing, and gets no map if it's the same. */
+  key?: string;
   zones: string[];
   width: number;
   rows: Partial<Record<SpriteDir, string[] | null>>;
+  /**
+   * The visible augments it wears (a pair of eyes, an implant's overlay),
+   * mapped the same way: "N" for the augment in zones[N - 1]'s slot. Null when
+   * none draws on the body.
+   */
+  augments?: {
+    zones: string[];
+    rows: Partial<Record<SpriteDir, string[] | null>>;
+  } | null;
 };
 
 /**
@@ -82,6 +94,56 @@ export function frameRegions(
   return { width, height, zones: regions.zones, index };
 }
 
+// Each map's facings as laid on frames, by the frame's geometry. Most drawings
+// leave the frame as the last one had it (a marking painted or swapped), and
+// the server keeps the map the page holds; so the laid map, and every mask
+// drawn for it, stays the same object between them.
+const laid = new WeakMap<
+  MarkingRegions,
+  Map<string, FrameRegions | undefined>
+>();
+
+/**
+ * One facing's regions on its frame, as frameRegions() lays them, the same
+ * object for as long as the map and the frame's geometry are the same.
+ */
+export function frameRegionsOf(
+  preview: CharacterPreviewDrawing,
+  regions: MarkingRegions,
+  dir: SpriteDir,
+) {
+  const geometry = `${dir} ${preview.width} ${preview.height} ${preview.x} ${preview.y} ${JSON.stringify(preview.rows ?? null)}`;
+  let byGeometry = laid.get(regions);
+  if (!byGeometry) {
+    byGeometry = new Map();
+    laid.set(regions, byGeometry);
+  }
+  if (byGeometry.has(geometry)) {
+    return byGeometry.get(geometry);
+  }
+  const map = frameRegions(preview, regions, dir);
+  byGeometry.set(geometry, map);
+  return map;
+}
+
+const augmentMaps = new WeakMap<MarkingRegions, MarkingRegions | null>();
+
+/** The visible augments' map as a map of its own, kept with the map it came in; null when no augment draws. */
+export function augmentRegions(regions: MarkingRegions) {
+  let known = augmentMaps.get(regions);
+  if (known === undefined) {
+    known = regions.augments
+      ? {
+          ...regions,
+          zones: regions.augments.zones,
+          rows: regions.augments.rows,
+        }
+      : null;
+    augmentMaps.set(regions, known);
+  }
+  return known;
+}
+
 /** The region a frame pixel belongs to, or undefined. */
 export function regionAt(map: FrameRegions, x: number, y: number) {
   if (x < 0 || y < 0 || x >= map.width || y >= map.height) {
@@ -129,7 +191,64 @@ export function regionMask(map: FrameRegions, zone: string) {
  * lights its hand too; undefined when none of them has any.
  */
 export function regionsMask(map: FrameRegions, zones: readonly string[]) {
-  const key = zones.join(' ');
+  return drawMask(map, zones.join(' '), zones, (wanted, words) => {
+    let any = false;
+    for (let at = 0; at < map.index.length; at++) {
+      if (wanted.has(map.index[at])) {
+        words[at] = 0xffffffff;
+        any = true;
+      }
+    }
+    return any;
+  });
+}
+
+/**
+ * The pixels just outside several regions, each touching one of theirs, even
+ * at a corner, as a frame-sized mask image: a line a pixel wide round their
+ * shape, a small square round a lone pixel; undefined when they have none.
+ */
+export function regionsOutline(map: FrameRegions, zones: readonly string[]) {
+  const { width, height, index } = map;
+  return drawMask(map, `outline ${zones.join(' ')}`, zones, (wanted, words) => {
+    const inside = (x: number, y: number) =>
+      x >= 0 &&
+      y >= 0 &&
+      x < width &&
+      y < height &&
+      wanted.has(index[y * width + x]);
+    let any = false;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (inside(x, y)) {
+          continue;
+        }
+        let touches = false;
+        for (let dy = -1; dy <= 1 && !touches; dy++) {
+          for (let dx = -1; dx <= 1 && !touches; dx++) {
+            touches = inside(x + dx, y + dy);
+          }
+        }
+        if (touches) {
+          words[y * width + x] = 0xffffffff;
+          any = true;
+        }
+      }
+    }
+    return any;
+  });
+}
+
+/**
+ * A frame-sized mask image of the pixels `paint` sets, white and opaque, one
+ * write a pixel; kept by the map under `key`. Undefined when it sets none.
+ */
+function drawMask(
+  map: FrameRegions,
+  key: string,
+  zones: readonly string[],
+  paint: (wanted: Set<number>, words: Uint32Array) => boolean,
+) {
   const known = masks.get(map)?.get(key);
   if (known) {
     return known;
@@ -148,16 +267,7 @@ export function regionsMask(map: FrameRegions, zones: readonly string[]) {
   maskCanvas.width = map.width;
   maskCanvas.height = map.height;
   const pixels = context.createImageData(map.width, map.height);
-  // One write a pixel: white, opaque.
-  const words = new Uint32Array(pixels.data.buffer);
-  let any = false;
-  for (let at = 0; at < map.index.length; at++) {
-    if (wanted.has(map.index[at])) {
-      words[at] = 0xffffffff;
-      any = true;
-    }
-  }
-  if (!any) {
+  if (!paint(wanted, new Uint32Array(pixels.data.buffer))) {
     return undefined;
   }
   context.putImageData(pixels, 0, 0);

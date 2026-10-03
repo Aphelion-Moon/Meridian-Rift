@@ -6,7 +6,9 @@ import { decodeView, paintedPixels } from './customs';
 import { lookMarkings } from './Drawer';
 import { type RoomData, unavailableMarkings } from './data';
 import {
+  augmentRegions,
   frameRegions,
+  frameRegionsOf,
   type MarkingRegions,
   regionAt,
   regionBounds,
@@ -118,6 +120,33 @@ describe('frameRegions', () => {
     expect(map && regionAt(map, 16, 12)).toBe('head');
     expect(map && regionAt(map, 16, 30)).toBe('chest');
     expect(map && regionAt(map, 16, 20)).toBe('chest');
+  });
+
+  it('keeps one laid map for drawings of the same shape, and lays another for a new shape', () => {
+    // Another drawing of the same body: a marking painted another colour.
+    const repainted = { ...tile, id: 2, image: 'data:image/png;base64,other' };
+    const laid = frameRegionsOf(tile, regions, 'south');
+    expect(laid).toEqual(frameRegions(tile, regions, 'south'));
+    expect(frameRegionsOf(repainted, regions, 'south')).toBe(laid);
+    // A taller frame is another shape, and so is another facing.
+    const tall = { ...tile, id: 3, height: 40 };
+    expect(frameRegionsOf(tall, regions, 'south')).not.toBe(laid);
+    expect(frameRegionsOf(tile, regions, 'north')).toBeUndefined();
+    // A map sent again is another map.
+    expect(frameRegionsOf(tile, { ...regions }, 'south')).not.toBe(laid);
+  });
+
+  it("gives the visible augments' map once for each map it came in", () => {
+    expect(augmentRegions(regions)).toBeNull();
+    const withEyes: MarkingRegions = {
+      ...regions,
+      augments: { zones: ['Eyes'], rows: { south: rows(32, [[14, 6, '1']]) } },
+    };
+    const eyes = augmentRegions(withEyes);
+    expect(eyes?.zones).toEqual(['Eyes']);
+    expect(augmentRegions(withEyes)).toBe(eyes);
+    const map = eyes && frameRegionsOf(tile, eyes, 'south');
+    expect(map && regionAt(map, 14, 6)).toBe('Eyes');
   });
 
   it("centres a taur's wider canvas on the tile", () => {

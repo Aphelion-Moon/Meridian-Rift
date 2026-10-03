@@ -3,6 +3,7 @@ import { useBackend } from 'tgui/backend';
 import { BlockQuote, Box, Button, Section, Stack } from 'tgui-core/components';
 
 import type { Language, PreferencesMenuData } from '../types';
+import { useServerPrefs } from '../useServerPrefs';
 import { LanguageUnderstanding } from './LanguageUnderstanding';
 
 export function KnownLanguage(props: { language: Language }) {
@@ -129,6 +130,12 @@ export function UnknownLanguage(props: { language: Language }) {
 
 export function LanguagesPage() {
   const { data } = useBackend<PreferencesMenuData>();
+  // The window's data names each language; its description and icon come once, with the constant data.
+  const info = useServerPrefs()?.languages;
+  const described = (language: Language): Language => ({
+    ...info?.[language.name],
+    ...language,
+  });
   return (
     <>
       <Section textAlign="center">
@@ -156,7 +163,7 @@ export function LanguagesPage() {
             }
           >
             <Stack vertical>
-              {data.unselected_languages.map((val) => (
+              {data.unselected_languages.map(described).map((val) => (
                 <UnknownLanguage key={val.icon} language={val} />
               ))}
             </Stack>
@@ -172,7 +179,7 @@ export function LanguagesPage() {
             }
           >
             <Stack vertical>
-              {data.selected_languages.map((val) => (
+              {data.selected_languages.map(described).map((val) => (
                 <KnownLanguage key={val.icon} language={val} />
               ))}
             </Stack>

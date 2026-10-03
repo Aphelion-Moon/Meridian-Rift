@@ -100,10 +100,20 @@
   }
 }
 
-// Seen through the x-ray, the body dims and hardens.
-.AugStage--internals .CharacterPreview__figure {
-  filter: brightness(0.5) contrast(1.25);
-  transition: filter 0.35s;
+// MARK: The chamber's labels
+
+// The species name keeps clear of the scan label across from it: INTERNAL
+// SCAN, the longer, ends about 153px in, so a long name wraps onto balanced
+// lines of its own, still against the right corner (mal: "long species names
+// overlap"). The taller line box keeps a one-line name where it was.
+.AugStage .ch-l.r {
+  max-width: 148px;
+  margin-top: -0.15em;
+  line-height: 1.3;
+  text-align: right;
+  white-space: normal;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 // MARK: On the character
@@ -121,8 +131,15 @@
   image-rendering: pixelated;
 }
 
+// The x-ray: the body dimmed, in the chamber's hot light, scanned. What the
+// visible augments draw (their eyes, an implant's overlay) is left out of it,
+// in their own shapes, so they show as they are, a neon line round each.
 .AugStage__xr {
   animation: aug-fade-in 0.35s both;
+
+  &--dim {
+    background: rgb(0 0 0 / 50%);
+  }
 
   &--tint {
     background: var(--aug-hot);
@@ -136,6 +153,22 @@
       transparent 1px 4px
     );
   }
+}
+
+.AugStage__implants {
+  pointer-events: none;
+  animation: aug-fade-in 0.35s both;
+  filter: drop-shadow(0 0 2px rgb(var(--aug-hot-rgb) / 70%));
+}
+
+// Less than solid, so the augment's own colours lead.
+.AugStage__implantsLine {
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--aug-hot-rgb) / 35%);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  image-rendering: pixelated;
 }
 
 // A part being tried on in its picker: chrome over it, pulsing.
@@ -277,6 +310,62 @@
   to {
     transform: translateX(100%);
   }
+}
+
+// MARK: The pickers' search
+
+// Under a picker's head, as the markings drawer's: the list narrows as you
+// type, by an option's name, description or tags. In the stage's own tokens,
+// so every theme's picker dresses it.
+.AugStage .fly-s {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  margin: 10px 12px 0;
+  padding: 0 10px;
+  color: var(--aug-muted);
+  background: var(--aug-recess);
+  box-shadow: inset 0 0 0 1px var(--aug-line);
+  transition: box-shadow 0.15s;
+
+  &:focus-within {
+    box-shadow: inset 0 0 0 1px var(--aug-hot);
+  }
+
+  svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    font: inherit;
+    font-size: 12px;
+    color: var(--aug-text);
+    background: none;
+  }
+
+  input::placeholder {
+    color: var(--aug-faint);
+  }
+}
+
+.AugStage .fly-none {
+  padding: 18px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--aug-faint);
 }
 
 @media (prefers-reduced-motion: reduce) {
