@@ -571,6 +571,17 @@
     border-color: var(--console-interaction-focus);
   }
 
+  // An image button's focusable cell is clipped by its frame: the frame wears the ring.
+  .ImageButton:has(> .ImageButton__container:focus-visible) {
+    outline: 2px solid var(--console-interaction-focus);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px var(--console-interaction-focus-contrast);
+  }
+
+  .ImageButton__container:focus-visible {
+    outline: none;
+  }
+
   h1,
   h2,
   h3,

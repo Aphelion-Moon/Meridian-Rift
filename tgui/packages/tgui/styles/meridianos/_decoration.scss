@@ -265,22 +265,6 @@
   }
 }
 
-.theme-meridian_foundry {
-  :is(.NoticeBox--type--warning, .NoticeBox--type--danger, .Button--color--danger) {
-    --foundry-hazard-color: currentColor;
-
-    background-image: repeating-linear-gradient(
-      135deg,
-      transparent 0 8px,
-      color-mix(in srgb, var(--foundry-hazard-color) 12%, transparent) 8px 12px
-    );
-  }
-
-  :is(.NoticeBox--type--warning, .NoticeBox--type--danger) {
-    --foundry-hazard-color: var(--noticebox-background);
-  }
-}
-
 .theme-meridian_diagnostic {
   // Retain the existing dot positions and utility spacing after removing the right dot.
   --console-window-pin-reach: 8px;

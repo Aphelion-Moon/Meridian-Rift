@@ -3,6 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import {
   type ComponentProps,
   type CSSProperties,
+  type ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -95,6 +96,11 @@ import {
   useLoadedImages,
 } from './LayerCanvas';
 import { LayerStrip } from './LayerStrip';
+import {
+  isMarkingZone,
+  MarkingSheetPicker,
+  usePrefetchMarkingSheets,
+} from './MarkingSheetPicker';
 import { CustomSpritePalette } from './Palette';
 import { RegionOverlay } from './RegionOverlay';
 import { coverIndexAt, drawScanlines, regionAt, regionBounds } from './regions';
@@ -122,9 +128,19 @@ function CycleDropdown(props: {
   icons?: Record<string, string>;
   name?: string;
   previewArea?: SpriteArea;
+  /** Its own picker in the dropdown's place, such as a base marking's sticker sheet. */
+  picker?: ReactNode;
 }) {
-  const { options, selected, onSelected, disabled, icons, name, previewArea } =
-    props;
+  const {
+    options,
+    selected,
+    onSelected,
+    disabled,
+    icons,
+    name,
+    previewArea,
+    picker,
+  } = props;
   const chevron = (step: number) => (
     <Stack.Item>
       <Button
@@ -146,7 +162,9 @@ function CycleDropdown(props: {
     <Stack align="center">
       {chevron(-1)}
       <Stack.Item grow minWidth={0}>
-        {icons ? (
+        {picker ? (
+          picker
+        ) : icons ? (
           <ChoicedSelectionDropdown
             name={name ?? 'hairstyle'}
             icons={icons}
@@ -509,6 +527,8 @@ export const CustomSpriteEditor = ({
     regionMarkings,
     regionMarkingChoices,
     regionMarkingIcons,
+    markingSheets,
+    markingSheetsKey,
     regionEmissive,
     lockedRegions,
     paletteNotice,
@@ -800,6 +820,31 @@ export const CustomSpriteEditor = ({
     : [];
   // A limb takes each marking once, so a row offers only names no other row has claimed.
   const takenMarkings = new Set(markingRows.map((entry) => entry.name));
+  usePrefetchMarkingSheets(
+    regionMode && isMarkingZone(selectedZone) && !!regionChoices,
+    markingSheets,
+    markingSheetsKey,
+    act,
+  );
+  // The markings room's sticker sheet, opened from a row to swap its marking out
+  // (by its place) or from the add button (null); undefined off a marking zone.
+  const markingSheet = (replace: number | null, trigger: ReactNode) =>
+    isMarkingZone(selectedZone) && regionChoices ? (
+      <MarkingSheetPicker
+        zone={selectedZone}
+        rows={markingRows}
+        replace={replace}
+        choices={regionChoices}
+        icons={regionMarkingIcons?.[selectedZone]}
+        max={maxBaseMarkings ?? 0}
+        sheets={markingSheets}
+        sheetsKey={markingSheetsKey}
+        disabled={!!selectedLock}
+        act={act}
+      >
+        {trigger}
+      </MarkingSheetPicker>
+    ) : undefined;
   const viewLabel =
     directions.find(([dir]) => dir === direction)?.[1] ?? 'Front';
   const regionRows = regions?.[direction];
@@ -1523,7 +1568,7 @@ export const CustomSpriteEditor = ({
                           </Tooltip>
                         }
                       >
-                        {markingRows.map((marking) => {
+                        {markingRows.map((marking, position) => {
                           const choices = regionChoices.filter(
                             (name) =>
                               name === marking.name || !takenMarkings.has(name),
@@ -1547,6 +1592,18 @@ export const CustomSpriteEditor = ({
                                       name,
                                     })
                                   }
+                                  picker={markingSheet(
+                                    position,
+                                    <Button
+                                      fluid
+                                      disabled={!!selectedLock}
+                                      icon="chevron-down"
+                                      iconPosition="right"
+                                      aria-label={`Select ${regionLabel.toLowerCase()} marking`}
+                                    >
+                                      {marking.name}
+                                    </Button>,
+                                  )}
                                 />
                               </Stack.Item>
                               <Stack.Item>
@@ -1586,19 +1643,29 @@ export const CustomSpriteEditor = ({
                             </Stack>
                           );
                         })}
-                        {markingRows.length < (maxBaseMarkings ?? 0) && (
-                          <Button
-                            color="good"
-                            disabled={!!selectedLock}
-                            onClick={() =>
-                              act('addBaseMarking', {
-                                zone: selectedZone,
-                              })
-                            }
-                          >
-                            +
-                          </Button>
-                        )}
+                        {markingRows.length < (maxBaseMarkings ?? 0) &&
+                          (markingSheet(
+                            null,
+                            <Button
+                              color="good"
+                              disabled={!!selectedLock}
+                              aria-label={`Add a ${regionLabel.toLowerCase()} marking`}
+                            >
+                              +
+                            </Button>,
+                          ) ?? (
+                            <Button
+                              color="good"
+                              disabled={!!selectedLock}
+                              onClick={() =>
+                                act('addBaseMarking', {
+                                  zone: selectedZone,
+                                })
+                              }
+                            >
+                              +
+                            </Button>
+                          ))}
                       </Section>
                     </Stack.Item>
                   )}

@@ -10,6 +10,7 @@ import {
   previewFit,
   previewFramePoint,
   previewFrameStyle,
+  previewMovedY,
   type ShownPreview,
 } from './drawing';
 
@@ -150,6 +151,35 @@ describe('previewFramePoint', () => {
     // quarter more, and the whole lifts 4px.
     expect(previewFramePoint(grown, 1, 16, 32, 16, 16)).toEqual([16, 12]);
     expect(previewFramePoint(grown, 1, 16, 32, 24, 16)).toEqual([26, 12]);
+  });
+});
+
+describe('previewMovedY', () => {
+  it('moves a row with the run height shows it in', () => {
+    // A shorter body: its top 20 rows shown a row lower, the row they left
+    // empty, its legs where they were.
+    const short = {
+      ...tile,
+      rows: [
+        [0, 1, -1],
+        [1, 20, 0],
+      ] as CharacterPreviewDrawing['rows'],
+    };
+    expect(previewMovedY(short, 5.5)).toBe(6.5);
+    expect(previewMovedY(short, 0)).toBe(1);
+    expect(previewMovedY(short, 27.5)).toBe(27.5);
+
+    // A taller one: its top 18 rows shown 2 rows higher.
+    const tall = {
+      ...tile,
+      rows: [[0, 18, 2]] as CharacterPreviewDrawing['rows'],
+    };
+    expect(previewMovedY(tall, 6.5)).toBe(4.5);
+    expect(previewMovedY(tall, 1.5)).toBe(1.5);
+  });
+
+  it('leaves every row where it is without height', () => {
+    expect(previewMovedY(tile, 13.5)).toBe(13.5);
   });
 });
 

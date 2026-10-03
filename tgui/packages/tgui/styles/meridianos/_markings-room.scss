@@ -2000,6 +2000,32 @@ $neon-on: markings-neon-on;
   }
 }
 
+// MARK: The editor's sheet
+
+// The custom markings editor's sticker sheet (CustomSpriteEditor/MarkingSheetPicker.tsx):
+// the room's own drawer, floating beside the base marking that opens it. It wears
+// the room's class for the theme's room colours and art, without the room's box.
+.AugmentsRoom--sheet {
+  width: auto;
+  height: auto;
+  overflow: visible;
+  background: none;
+}
+
+// The panel opens as tgui's floating panels do, so the drawer doesn't slide in too,
+// and its stickers are there as it opens rather than dealt in one by one: forty-odd
+// animations starting and ending in turn kept the page's main thread busy.
+.MarkingsRoom__drawer--floating {
+  position: relative;
+  top: auto;
+  height: min(564px, calc(100vh - 24px));
+  animation: none;
+
+  .MarkingsRoom__pick {
+    animation: none;
+  }
+}
+
 // MARK: Paint in flight
 
 .MarkingsRoom__fx {

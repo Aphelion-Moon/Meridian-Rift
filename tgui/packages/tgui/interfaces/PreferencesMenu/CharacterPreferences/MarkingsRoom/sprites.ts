@@ -192,6 +192,18 @@ const settled = Promise.resolve();
 function useSheetImages(urls: string[]) {
   const key = JSON.stringify(urls);
   const [, loaded] = useState(0);
+  const drawable = new Map(
+    urls.map((url) => {
+      const image = images.get(url);
+      return [
+        url,
+        image && loadedImage(image) && decoded(url, image) ? image : undefined,
+      ];
+    }),
+  );
+  // Whether this render went without one of them, which the effect makes up for
+  // if it has come since.
+  const short = urls.some((url) => !drawable.get(url));
   useEffect(() => {
     const wanted: string[] = JSON.parse(key);
     const pending: [HTMLImageElement, () => void][] = [];
@@ -232,6 +244,9 @@ function useSheetImages(urls: string[]) {
       } else if (fresh || !decoded(url, sheet)) {
         // Decoding (perhaps started during render): heard of once it is.
         decode(url, sheet);
+      } else if (short) {
+        // Decoded between the render and now: nothing else would say so.
+        done();
       }
     }
     return () => {
@@ -241,15 +256,7 @@ function useSheetImages(urls: string[]) {
       }
     };
   }, [key]);
-  return new Map(
-    urls.map((url) => {
-      const image = images.get(url);
-      return [
-        url,
-        image && loadedImage(image) && decoded(url, image) ? image : undefined,
-      ];
-    }),
-  );
+  return drawable;
 }
 
 /** A sheet's image, once it has loaded. */

@@ -21,6 +21,7 @@ import {
   type PreviewView,
   previewFramePoint,
   previewFrameStyle,
+  previewMovedY,
   TILE,
 } from '../../CharacterPreview/drawing';
 import { turnPreview } from '../../CharacterPreview/turn';
@@ -320,7 +321,8 @@ export function AugmentsStage(props: Props) {
     [sockets, internals, organBySlot, partBySlot],
   );
 
-  // Where each socket's trace lands, in room pixels, from where the character stands.
+  // Where each socket's trace lands, in room pixels, from where the character
+  // stands: its port moves with the rows height moves, as the body does.
   const anchors = useMemo(() => {
     const out: Record<string, [number, number]> = {};
     if (!placed) {
@@ -338,7 +340,7 @@ export function AugmentsStage(props: Props) {
         view.x,
         view.y,
         preview.x + socket.port[0],
-        tileTop + socket.port[1],
+        previewMovedY(preview, tileTop + socket.port[1]),
       );
       out[socket.slot] = [originX + x, originY + y];
     }

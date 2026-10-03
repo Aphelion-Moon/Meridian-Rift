@@ -332,6 +332,7 @@
 			choices[zone] = marking_choices(zone)
 	.["regionMarkingChoices"] = choices
 	.["regionMarkingIcons"] = custom_sprite_marking_icons()
+	.["markingSheetsKey"] = marking_sheets_key()
 	.["maxBaseMarkings"] = MAXIMUM_MARKINGS_PER_LIMB
 	.["regions"] = region_map
 	.["regionZones"] = region_zones
@@ -428,6 +429,10 @@
 	var/static/list/region_actions = list("selectRegion", "setEmissive", "clear", "setBaseMarking", "addBaseMarking", "removeBaseMarking", "pickBaseMarkingColor")
 	if(action in list("exportStyle", "restorePrevious"))
 		return prompt_action(action, ui.user)
+	// The window sends its own update once the sheets' art has arrived.
+	if(action == "markingSheets")
+		send_marking_sheets(ui, params["have"])
+		return FALSE
 	if(!(action in region_actions))
 		return null
 	var/zone = params["zone"]
@@ -479,6 +484,16 @@
 			var/list/choices = marking_choices(zone) - markings
 			if(!length(choices))
 				return FALSE
+			// One picked from a sheet goes on as it is, unless a worn marking's exclusion group keeps it off.
+			var/picked = params["name"]
+			if(!isnull(picked))
+				if(!istext(picked) || !(picked in choices))
+					return FALSE
+				var/in_the_way = custom_style_marking_conflict(canvas.markings_context[zone], picked)
+				if(in_the_way)
+					transfer_error = "[picked] can't be worn with [in_the_way], which the [LOWER_TEXT(GLOB.custom_marking_zone_labels[zone])] already wears."
+					return TRUE
+				return write_region_marking(zone, null, picked, default_marking_color(picked))
 			// The first choice no worn marking's exclusion group keeps off, as saving would drop it; the window says why if none is.
 			for(var/name in choices)
 				if(!custom_style_marking_conflict(canvas.markings_context[zone], name))

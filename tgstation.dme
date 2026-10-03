@@ -7402,6 +7402,7 @@
 #include "modular_aphelion\modules\language_understanding\code\language_understanding.dm"
 #include "modular_aphelion\modules\markings_room\code\markings_room.dm"
 #include "modular_aphelion\modules\markings_room\code\markings_room_assets.dm"
+#include "modular_aphelion\modules\meridian_ui\code\art_stylesheet.dm"
 #include "modular_aphelion\modules\meridian_ui\code\computer.dm"
 #include "modular_aphelion\modules\meridian_ui\code\preferences.dm"
 #include "modular_aphelion\modules\meridian_ui\code\tgui.dm"

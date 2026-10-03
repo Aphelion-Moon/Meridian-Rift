@@ -63,7 +63,9 @@ keep the columns.
 - assets, `/datum/asset/simple/markings_room`: every room's textures and fonts (`assets/`, see its README), and a
   stylesheet written when the asset registers, declaring each texture as a custom property on the room
   (`--mr-<name>`) and each font as a face, by the URLs the asset transport gives them. They aren't in tgui's bundle,
-  which every window loads. `code/markings_room_assets.dm` lists them.
+  which every window loads. `code/markings_room_assets.dm` lists them; the stylesheet is an art stylesheet's
+  (`meridian_ui`'s `code/art_stylesheet.dm`), as is the Foundry theme's, which sends six of these files under the
+  room's names.
 
 The augments themselves are the limbs and markings middleware's (`set_bodypart_aug`, `set_bodypart_aug_style`,
 `set_internal_implant_aug`).

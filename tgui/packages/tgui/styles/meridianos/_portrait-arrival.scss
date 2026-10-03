@@ -2,7 +2,7 @@
 // How a portrait arrives: the specimen in the species chamber, and the
 // character preview on the Character, Loadout and Augments+ tabs. Each theme
 // brings it in the way its own device would show a picture: Wastelander's
-// phosphor tube switches on, Foundry's iris opens, Scavenger's shutter is
+// phosphor tube switches on, Foundry's smoke clears, Scavenger's shutter is
 // hauled up, and so on.
 //
 // It plays whenever a portrait first shows: a page opens on it, or it turns
@@ -974,98 +974,196 @@ $synapse-edge: linear-gradient(
   }
 }
 
-// Foundry: the six-bladed iris of its loader opens on the portrait, turning
-// as it widens, and the bronze light warms the picture as it comes.
-//
-// The opening is a mask drawn anew every frame, which restyles the blades with
-// it. So their bronze reaches them by inheritance from a background the window
-// carries without painting: substituting var(--forge-texture), a data URL,
-// into every frame's restyle made this arrival cost five times any other.
-$foundry-iris: cubic-bezier(0.55, 0, 0.25, 1);
+// Foundry: the character is conjured out of the forge's smoke, as at a ritual
+// altar. A plume lit from below covers the window and drifts up as it thins, the
+// fire under it flares once and sends a few embers up, and the figure rises
+// into view. In Loadout's mirror the smoke is a mist breathed on the glass
+// instead, which swirls out and clears as a scrying mirror comes clear, a glint
+// crossing it. Every layer is drawn once and moves by transform and opacity
+// alone, which the compositor plays without restyling a frame. The layers are
+// hidden at rest and shown only while the arrival plays (portrait-shown, apart,
+// as visibility is no compositor property), and fill backwards only: nothing of
+// theirs is left in effect when it ends, so none stays a composited layer.
+$foundry-arrival: 800ms;
+$foundry-smoke: 'var(--mt-foundry-smoke, none) center bottom / 100% 100% no-repeat';
+$foundry-ember: '#ffe2a8 0 1px, rgb(255 122 46 / 90%) 1.6px, transparent 3px';
 
 .theme-meridian_foundry {
   #{$portrait} {
-    animation: portrait-forge-glow 640ms ease-out both;
+    animation: portrait-conjure $foundry-arrival cubic-bezier(0.3, 0.1, 0.3, 1) both;
   }
 
-  // The bronze, for the blades to inherit; the chamber's casing is it already.
-  .CharacterPreview {
-    background-image: var(--forge-texture);
-    background-size: 0 0;
-  }
-
-  // The opening: a circle taken out of the whole window.
-  #{$sweep} {
-    background-image: inherit;
-    background-size: 0 0;
-    mask:
-      linear-gradient(#000, #000),
-      radial-gradient(closest-side, #000 calc(100% - 1px), transparent) 50% 50% / 0 0 no-repeat;
-    mask-composite: exclude;
-    animation: portrait-iris 640ms $foundry-iris both;
-  }
-
-  // The blades, twice the window's size so turning never bares a corner: their
-  // bronze, then the seams between them and the shade around the opening.
   #{$sweep-before},
   #{$sweep-after} {
     content: '';
     position: absolute;
-    inset: -50%;
-    animation: portrait-iris-turn 640ms $foundry-iris both;
+    visibility: hidden;
+    pointer-events: none;
   }
 
+  // The plume, taller and wider than the window, so its drift never bares an
+  // edge.
   #{$sweep-before} {
-    background-image: inherit;
-    background-position: 50% 50%;
-    background-size: 360px;
+    inset: -8% -12% -40%;
+    background: #{$foundry-smoke};
+    animation:
+      portrait-forge-smoke $foundry-arrival cubic-bezier(0.45, 0, 0.6, 1) backwards,
+      portrait-shown $foundry-arrival;
   }
 
+  // The fire's flare from below, and its embers: half again the window's height,
+  // its glow centred on the window's foot, so rising never bares its lower edge.
   #{$sweep-after} {
+    inset: 0 0 -50%;
     background:
-      repeating-conic-gradient(
-        from 0deg at 50% 50%,
-        rgb(0 0 0 / 70%) 0deg 1.5deg,
-        transparent 1.5deg 60deg
-      ),
-      radial-gradient(circle at 50% 50%, transparent 7%, rgb(0 0 0 / 55%) 38%);
+      radial-gradient(circle at 34% 56%, #{$foundry-ember}),
+      radial-gradient(circle at 58% 60%, #{$foundry-ember}),
+      radial-gradient(circle at 46% 51%, #{$foundry-ember}),
+      radial-gradient(circle at 66% 53%, #{$foundry-ember}),
+      radial-gradient(circle at 27% 62%, #{$foundry-ember}),
+      radial-gradient(circle at 74% 63%, #{$foundry-ember}),
+      radial-gradient(ellipse 85% 30% at 50% 66.7%, rgb(255 140 50 / 50%), rgb(255 90 20 / 16%) 45%, transparent 75%);
+    mix-blend-mode: screen;
+    animation:
+      portrait-flare $foundry-arrival ease-out backwards,
+      portrait-shown $foundry-arrival;
   }
 
-  // In the chamber, the blades close over its arched window.
+  // In the chamber, the smoke stays in its arched window.
   .SpecimenViewer__sweep {
     inset: 10px;
     border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
   }
+
+  // Loadout's mirror: the reflection comes clear through the mist.
+  .CharacterPreview--mirror {
+    .CharacterPreview__arrival {
+      animation: portrait-scry $foundry-arrival ease-out both;
+    }
+
+    .CharacterPreview__sweep::before {
+      inset: -16%;
+      background: #{$foundry-smoke};
+      background-position: center;
+      mix-blend-mode: screen;
+      animation:
+        portrait-mist $foundry-arrival cubic-bezier(0.4, 0, 0.5, 1) backwards,
+        portrait-shown $foundry-arrival;
+    }
+
+    .CharacterPreview__sweep::after {
+      background: linear-gradient(
+        105deg,
+        transparent 38%,
+        rgb(255 240 220 / 45%) 50%,
+        transparent 62%
+      );
+      mix-blend-mode: screen;
+      animation:
+        portrait-glint $foundry-arrival ease-in-out backwards,
+        portrait-shown $foundry-arrival;
+    }
+  }
 }
 
-@keyframes portrait-iris {
-  from {
-    mask-size:
-      100% 100%,
-      0 0;
+@keyframes portrait-conjure {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translateY(6px);
   }
 
-  to {
-    visibility: hidden;
-    mask-size:
-      100% 100%,
-      920px 920px;
+  70% {
+    opacity: 1;
   }
-}
 
-@keyframes portrait-iris-turn {
-  to {
-    transform: rotate(30deg);
+  100% {
+    opacity: 1;
+    transform: none;
   }
 }
 
-@keyframes portrait-forge-glow {
-  from {
-    filter: brightness(1.5) sepia(0.5);
+@keyframes portrait-forge-smoke {
+  0% {
+    opacity: 1;
+    transform: translateY(6%) scale(1.04);
   }
 
+  25% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-26%) scale(1.14);
+  }
+}
+
+@keyframes portrait-flare {
+  0% {
+    opacity: 0;
+    transform: translateY(5%);
+  }
+
+  22% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-23%);
+  }
+}
+
+@keyframes portrait-scry {
+  0%,
+  25% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes portrait-mist {
+  0% {
+    opacity: 0.95;
+    transform: none;
+  }
+
+  30% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.3) rotate(6deg);
+  }
+}
+
+@keyframes portrait-glint {
+  0%,
+  45% {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(60%);
+  }
+}
+
+// An arrival's layers, shown while it plays.
+@keyframes portrait-shown {
+  from,
   to {
-    filter: none;
+    visibility: visible;
   }
 }
 

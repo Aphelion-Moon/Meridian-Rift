@@ -191,3 +191,76 @@ describe('decoded sheets', () => {
     }
   });
 });
+
+describe('a sheet ready between render and effect', () => {
+  it('renders again with it, with nothing else to wait for', async () => {
+    const originalImage = globalThis.Image;
+    const originalDecode = globalThis.createImageBitmap;
+    const originalFetch = globalThis.fetch;
+    const getStyle = globalThis.getComputedStyle;
+    const made: HTMLImageElement[] = [];
+    globalThis.Image = class extends originalImage {
+      constructor() {
+        super();
+        made.push(this);
+      }
+    };
+    globalThis.fetch = (() =>
+      Promise.resolve({
+        ok: true,
+        blob: () => Promise.resolve(new Blob(['png'])),
+      })) as unknown as typeof fetch;
+    globalThis.createImageBitmap = (() =>
+      Promise.resolve({
+        width: 256,
+        height: 256,
+      } as ImageBitmap)) as unknown as typeof createImageBitmap;
+    const styles = spyOn(globalThis, 'getComputedStyle').mockImplementation(
+      (element) =>
+        element.className === 'race-test'
+          ? ({
+              backgroundImage: 'url("race-test.png")',
+              backgroundPosition: '0px 0px',
+              width: '32px',
+              height: '32px',
+            } as CSSStyleDeclaration)
+          : getStyle(element),
+    );
+    const unmounts: (() => void)[] = [];
+    try {
+      // One thumbnail loads and decodes the sheet.
+      const first = renderHook(() => useSprites(['race-test']));
+      unmounts.push(first.unmount);
+      const [image] = made;
+      let complete = true;
+      Object.defineProperty(image, 'complete', { get: () => complete });
+      Object.defineProperty(image, 'naturalWidth', { value: 256 });
+      act(() => {
+        image.dispatchEvent(new Event('load'));
+      });
+      await waitFor(() => expect(first.result.current[0]).toBeDefined());
+      // The next one renders while the sheet isn't drawable yet, and by its
+      // effect it is: no load or decode is left to tell it so.
+      complete = false;
+      let renders = 0;
+      const second = renderHook(() => {
+        const sprites = useSprites(['race-test']);
+        if (renders++ === 0) {
+          complete = true;
+        }
+        return sprites;
+      });
+      unmounts.push(second.unmount);
+      await waitFor(() => expect(second.result.current[0]).toBeDefined());
+      expect(renders).toBe(2);
+    } finally {
+      for (const unmount of unmounts) {
+        unmount();
+      }
+      styles.mockRestore();
+      globalThis.Image = originalImage;
+      globalThis.createImageBitmap = originalDecode;
+      globalThis.fetch = originalFetch;
+    }
+  });
+});

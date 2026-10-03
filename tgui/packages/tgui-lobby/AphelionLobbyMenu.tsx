@@ -23,6 +23,7 @@ import { MeridianThemePicker } from 'tgui/layouts/MeridianThemePicker';
 import { Icon } from 'tgui-core/components';
 import { assetMap } from './assets';
 import { BootTerminal } from './components/BootTerminal';
+import { ForgePlaque } from './components/ForgePlaque';
 import { NavMenu } from './components/NavMenu';
 import { NoticeBanner } from './components/NoticeBanner';
 import { WhitelistGate } from './components/WhitelistGate';
@@ -178,6 +179,7 @@ export function AphelionLobbyMenu({
         <>
           {!!serverState.notice && <NoticeBanner text={serverState.notice} />}
           <NavMenu serverState={serverState} assetMap={assetMap} />
+          {meridianTheme === 'meridian_foundry' && <ForgePlaque />}
         </>
       )}
 

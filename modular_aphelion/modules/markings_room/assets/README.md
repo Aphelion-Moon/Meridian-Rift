@@ -10,6 +10,11 @@ texture as `var(--mr-<name>, none)`. The few pixel props of a kilobyte or so sta
 `code/markings_room_assets.dm` lists these files. The lab's themes-impl run writes both, with `tools/room_assets.py`,
 from the rooms' styles.
 
+The Foundry window theme draws with six of them: `foundry-cave.jpg`, `foundry-steel.webp`, `forge-wear.webp`,
+`foundry-hide.jpg`, `CaesarDressing-400.woff2` and `Macondo-400.woff2`. Its art asset
+(`meridian_ui/code/art_stylesheet.dm`) sends the same files under this asset's names, so a client fetches and keeps
+each once: renaming or moving one means changing it there too.
+
 ## Textures
 
 Everything in `textures/` is original and procedurally generated for the room mockups, from value noise with fixed

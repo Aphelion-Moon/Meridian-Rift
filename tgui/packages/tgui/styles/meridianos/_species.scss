@@ -1657,26 +1657,29 @@
   }
 }
 
-// Foundry: hammered bronze with a six-blade iris that opens on each specimen.
+// Foundry: the forge room's arched mirror in worn steel, each specimen conjured
+// out of the forge's smoke (_portrait-arrival.scss), the hearth's glow low in
+// the glass.
 .theme-meridian_foundry .SpecimenViewer {
   &__chamber {
-    --chamber-glow: #e7ad52;
-    --chamber-mark: var(--forge-edge, #bd8a52);
+    --chamber-glow: #ffa244;
+    --chamber-mark: #b8a490;
 
-    background: var(--forge-texture) center / 360px;
+    background: var(--mt-foundry-steel, none) center / 256px #2f2924;
     box-shadow:
       inset 0 0 0 1px #000,
-      inset 0 0 0 2px var(--forge-edge, #bd8a52);
+      inset 0 0 0 2px rgb(255 190 120 / 25%),
+      inset 0 24px 30px -18px rgb(255 200 140 / 12%);
   }
 
   &__backdrop {
     inset: 10px;
     border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
     background:
-      radial-gradient(ellipse 70% 40% at 50% 88%, rgb(231 173 82 / 18%), transparent 72%),
-      linear-gradient(180deg, #21170f, #130e09);
+      radial-gradient(ellipse 70% 40% at 50% 88%, rgb(255 110 30 / 22%), transparent 72%),
+      linear-gradient(180deg, #24180f, #120b07);
     box-shadow:
-      inset 0 0 0 2px #19120d,
+      inset 0 0 0 2px rgb(10 6 4 / 80%),
       inset 0 0 20px rgb(0 0 0 / 85%);
   }
 

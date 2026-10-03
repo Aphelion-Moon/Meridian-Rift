@@ -262,37 +262,13 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 
 /**
  * The rooms' textures and fonts, which the preferences window gets with its other assets: in tgui's bundle, which every
- * window loads, every room's would weigh on every window. A stylesheet written when the asset registers declares them
- * by the URLs the asset transport gives them: each texture as a custom property on the room, `--mr-` and its file's
- * name without the extension, and each font as a face. The window loads it as soon as it hears of it. The lists are in
- * markings_room_assets.dm.
+ * window loads, every room's would weigh on every window. The stylesheet the asset writes when it registers
+ * (art_stylesheet.dm) declares each texture as a custom property on the room, `--mr-` and its file's name without the
+ * extension, and each font as a face. The lists are in markings_room_assets.dm.
  */
 /datum/asset/simple/markings_room
-	/// The textures the rooms draw with, by file name.
-	var/list/textures
-	/// The fonts the rooms letter with, by file name: list(family, weight, file).
-	var/list/fonts
-
-/datum/asset/simple/markings_room/register()
-	for(var/file_name, texture in textures)
-		assets["markings_room.[file_name]"] = texture
-	for(var/file_name in fonts)
-		var/list/face = fonts[file_name]
-		assets["markings_room.[file_name]"] = face[3]
-	..()
-	var/list/properties = list()
-	for(var/file_name in textures)
-		properties += "--mr-[copytext(file_name, 1, findlasttext(file_name, "."))]:url('[asset_url("markings_room.[file_name]")]')"
-	var/list/css = list(".AugmentsRoom{[jointext(properties, ";")]}")
-	for(var/file_name in fonts)
-		var/list/face = fonts[file_name]
-		css += "@font-face{font-family:'[face[1]]';font-weight:[face[2]];font-display:block;src:url('[asset_url("markings_room.[file_name]")]')}"
-	var/filename = "data/markings_room.css"
-	fdel(filename)
-	rustg_file_write(jointext(css, "\n"), filename)
-	assets["markings_room.css"] = SSassets.transport.register_asset("markings_room.css", fcopy_rsc(filename))
-	fdel(filename)
-
-/// The URL the asset transport gives one of the asset's files.
-/datum/asset/simple/markings_room/proc/asset_url(asset_name)
-	return SSassets.transport.get_asset_url(asset_name, assets[asset_name])
+	parent_type = /datum/asset/simple/art_stylesheet
+	name_prefix = "markings_room."
+	scope = ".AugmentsRoom"
+	property_prefix = "--mr-"
+	stylesheet = "markings_room.css"

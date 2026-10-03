@@ -41,12 +41,15 @@
 			playsound(src.loc, 'modular_nova/modules/aesthetics/lights/sound/light_on.ogg', 65, 1)
 
 /obj/machinery/light/proc/start_flickering()
+	if(constant_flickering)
+		return
+
 	on = FALSE
 	update(FALSE, instant = TRUE, play_sound = FALSE)
 
 	constant_flickering = TRUE
 
-	flicker_timer = addtimer(CALLBACK(src, PROC_REF(flicker_on)), rand(5, 10))
+	flicker_timer = addtimer(CALLBACK(src, PROC_REF(flicker_on)), rand(5, 10), TIMER_STOPPABLE)
 
 /obj/machinery/light/proc/stop_flickering()
 	constant_flickering = FALSE
@@ -66,11 +69,11 @@
 
 /obj/machinery/light/proc/flicker_on()
 	alter_flicker(TRUE)
-	flicker_timer = addtimer(CALLBACK(src, PROC_REF(flicker_off)), rand(5, 10))
+	flicker_timer = addtimer(CALLBACK(src, PROC_REF(flicker_off)), rand(5, 10), TIMER_STOPPABLE)
 
 /obj/machinery/light/proc/flicker_off()
 	alter_flicker(FALSE)
-	flicker_timer = addtimer(CALLBACK(src, PROC_REF(flicker_on)), rand(5, 50))
+	flicker_timer = addtimer(CALLBACK(src, PROC_REF(flicker_on)), rand(5, 50), TIMER_STOPPABLE)
 
 /obj/machinery/light/Initialize(mapload = TRUE)
 	. = ..()

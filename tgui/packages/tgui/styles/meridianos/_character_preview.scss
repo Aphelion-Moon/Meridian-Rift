@@ -586,12 +586,11 @@
   }
 }
 
-// Hephaestus and Foundry: their own window frames, corner screws and all,
-// drawn thin. The box is cut to the frame's chamfered corners, so no floor
-// shows past them. Their lights keys are brass, so the bulb lights a warm
-// white, apart from the brass round it.
-.theme-meridian_hephaestus .CharacterPreview,
-.theme-meridian_foundry .CharacterPreview {
+// Hephaestus: its own window frame, corner screws and all, drawn thin. The box
+// is cut to the frame's chamfered corners, so no floor shows past them. Its
+// lights key is brass, so the bulb lights a warm white, apart from the brass
+// round it.
+.theme-meridian_hephaestus .CharacterPreview {
   --preview-bezel: 8px;
   --preview-inset: 3px;
   --preview-key-lit: #fff1c6;
@@ -631,10 +630,42 @@
   --preview-clip: #c2ad82;
 }
 
+// Foundry: the forge markings room's mirror rim, a band of worn steel with its
+// warm edge and a rivet in each corner. Its lights key is iron round a bulb that
+// lights warm.
 .theme-meridian_foundry .CharacterPreview {
-  --preview-mark: #e7ad52;
+  --preview-bezel: 8px;
+  --preview-inset: 3px;
+  --preview-key-lit: #fff1c6;
+  --preview-mark: #ffa244;
   --preview-major: #ffda94;
-  --preview-clip: #d7a865;
+  --preview-clip: #d9c29a;
+  --preview-line: rgb(10 6 4 / 80%);
+
+  &__case {
+    border: 8px solid #2f2924;
+    border-image: linear-gradient(180deg, #4d443d, #2f2924 38%, #211c18) 1;
+    box-shadow:
+      inset 0 0 0 1px rgb(10 6 4 / 80%),
+      inset 0 0 0 2px rgb(255 190 120 / 14%);
+    outline: 1px solid rgb(255 190 120 / 25%);
+    outline-offset: -1px;
+  }
+
+  // A rivet in each corner of the band.
+  &__trim {
+    display: block;
+    inset: 0;
+    background:
+      radial-gradient(circle at 4px 4px, #b8a490 0 1px, #4a3a2c 1.5px 2.5px, #16100c 3px, transparent 3.4px) 0 0 / 8px 8px no-repeat,
+      radial-gradient(circle at 4px 4px, #b8a490 0 1px, #4a3a2c 1.5px 2.5px, #16100c 3px, transparent 3.4px) 100% 0 / 8px 8px no-repeat,
+      radial-gradient(circle at 4px 4px, #b8a490 0 1px, #4a3a2c 1.5px 2.5px, #16100c 3px, transparent 3.4px) 0 100% / 8px 8px no-repeat,
+      radial-gradient(circle at 4px 4px, #b8a490 0 1px, #4a3a2c 1.5px 2.5px, #16100c 3px, transparent 3.4px) 100% 100% / 8px 8px no-repeat;
+  }
+
+  &__mark {
+    display: none;
+  }
 }
 
 // Diagnostic: the loader's acquisition reticle, heavier and green.

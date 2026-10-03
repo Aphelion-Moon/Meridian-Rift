@@ -69,6 +69,24 @@ export function drawPreviewFacing(
   }
 }
 
+/**
+ * Where a row of the drawing shows once height has moved its rows, as
+ * drawPreviewFacing() moves them: `frameY` (from the frame's top, its fraction
+ * kept) moved with the run that shows its row, or where it was if none does.
+ */
+export function previewMovedY(
+  preview: CharacterPreviewDrawing,
+  frameY: number,
+) {
+  const row = Math.floor(frameY);
+  for (const [first, count, source] of preview.rows ?? []) {
+    if (source >= 0 && row >= source && row < source + count) {
+      return frameY + first - source;
+    }
+  }
+  return frameY;
+}
+
 /** Where a drawing has pixels: [left, top, right, bottom) in frame pixels, rows from the top. */
 export type DrawnBounds = [number, number, number, number];
 

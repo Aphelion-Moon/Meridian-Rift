@@ -35,10 +35,17 @@ use it.
    `_aphelion.scss` adds the scoped Aphelion window and control treatment.
 10. `_scavenger.scss` applies Scavenger's rust material and casing geometry while
     preserving opaque reading surfaces and caller-owned section colors.
-11. `_forge-materials.scss` shares the Foundry and Hephaestus metal tiles and
-    frame assets with the lobby. `_forge.scss` applies their window and control
-    finishes; `_forge-loaders.scss` places the iris/turbine artwork on the
-    existing loader layers while retaining shared motion and accessibility.
+11. `_forge-materials.scss` shares Hephaestus's gunmetal tiles and frame assets
+    with the lobby. `_forge.scss` applies its window and control finishes;
+    `_forge-loaders.scss` places its turbine artwork on the existing loader
+    layers while retaining shared motion and accessibility. Foundry has its own
+    files: `_foundry-materials.scss` (the forge markings room's steel, iron and
+    ember as tokens), `_foundry.scss` (windows), `_foundry-loader.scss` (its
+    loader) and the lobby's `_foundry.scss` (the plaque). Its textures and faces
+    stay out of the bundle: the `meridian_ui` module's art asset
+    (`modular_aphelion/modules/meridian_ui/code/art_stylesheet.dm`) sends them
+    to Foundry players only, sharing the markings room's own files, and names
+    them on the theme as `--mt-*` custom properties.
 12. `_control-layout.scss` adapts existing upstream form markup through small,
     marked class hooks. `MeridianControlRow` wraps actions; its `__fill` item
     shrinks fields. `MeridianControlGrid` collapses sibling sections, while
@@ -84,8 +91,11 @@ Alongside Electra, the other thirteen palette-bearing MeridianOS skins are:
 - Wastelander — muted phosphor, weathered olive casing, inset label plates,
   and CRT calibration rails.
 - Vector — paired notches, calibration ticks, and measurement rails.
-- Foundry — hammered bronze housings, engraved borders, warm recessed controls,
-  and a six-bladed mechanical iris loader.
+- Foundry — the forge markings room's riveted steel cards and iron pills in an
+  ember-lit cave, Caesar Dressing titles, Macondo controls and Alegreya Sans
+  running text, previews conjured from forge smoke (a scrying mist on the
+  Loadout mirror), and a ritual loader: a rune circle turning against a ring of
+  embers.
 - Diagnostic — square brackets, alignment ticks, and acquisition nodes.
 - Highline — accessibility-first square boundaries and inverse selection.
 - Synapse — aubergine glass, asymmetric cuts, reflective cyan controls, and

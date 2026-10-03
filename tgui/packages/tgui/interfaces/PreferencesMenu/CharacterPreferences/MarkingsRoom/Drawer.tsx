@@ -2,6 +2,7 @@
 import { type CSSProperties, memo } from 'react';
 import { classes } from 'tgui-core/react';
 
+import type { Marking } from '../../types';
 import { speciesSpriteClasses } from '../SpeciesRegistry/constants';
 import {
   BOOK_TILE,
@@ -40,6 +41,40 @@ type Props = {
   onRemove: () => void;
   /** A look was picked. */
   onLook: (name: string, from: Element) => void;
+  onClose: () => void;
+};
+
+/**
+ * What a zone's sticker sheet reads: the room's data, or the custom markings
+ * editor's, which gathers the same for the body it edits.
+ */
+export type SheetSource = Pick<
+  RoomData,
+  | 'choices'
+  | 'icons'
+  | 'info'
+  | 'species'
+  | 'speciesName'
+  | 'speciesIcon'
+  | 'allowMismatched'
+  | 'max'
+  | 'startColor'
+> & {
+  /** The markings each zone wears, in order. */
+  wornByZone: Partial<Record<MarkingZone, readonly Pick<Marking, 'name'>[]>>;
+};
+
+export type SheetProps = {
+  room: SheetSource;
+  zone: MarkingZone;
+  /** The worn marking to swap out, by its place, or null to add one. */
+  replace: number | null;
+  query: string;
+  onQuery: (query: string) => void;
+  /** A marking was picked, from the tile clicked. */
+  onPick: (name: string, from: Element) => void;
+  /** None was picked while swapping one out: it comes off. */
+  onRemove: () => void;
   onClose: () => void;
 };
 
@@ -138,11 +173,14 @@ function DrawerHead(props: {
   );
 }
 
-function MarkingSheet(
-  props: Props & { zone: MarkingZone; replace: number | null },
-) {
+/**
+ * A zone's sticker sheet: the markings it can wear, each on the species' bare
+ * body in the colour it would start in, searchable, the species' own first.
+ * The room's drawer holds it, and so does the custom markings editor's.
+ */
+export function MarkingSheet(props: SheetProps) {
   const { room, zone, replace, query, onQuery, onPick } = props;
-  const worn = room.wornByZone[zone];
+  const worn = room.wornByZone[zone] ?? [];
   const swapping = replace !== null ? worn[replace] : undefined;
   const offered = room.choices[zone] ?? [];
   const icons = room.icons[zone] ?? {};
@@ -297,7 +335,7 @@ function NoneTile(props: {
 
 /** The sheet's foot: what the pointer is trying on, and how it is coloured; or, on None, what comes off. */
 function SheetFoot(props: {
-  room: RoomData;
+  room: SheetSource;
   offered: string[];
   icons: Record<string, string>;
   /** The marking being swapped out, if one is. */

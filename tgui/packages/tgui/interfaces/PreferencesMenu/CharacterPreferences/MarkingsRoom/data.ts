@@ -49,6 +49,28 @@ export type WornMarking = Marking & {
   painted: boolean;
 };
 
+/**
+ * The colour a marking starts in: the mutant colour it follows, or its own
+ * (`defaults`, by name). Undefined for one the server didn't describe.
+ */
+export function markingStartColor(
+  info: Record<string, MarkingInfo>,
+  fur: readonly string[] | null | undefined,
+  defaults: Record<string, string>,
+  name: string,
+) {
+  switch (info[name]?.color_mode) {
+    case 'follows_primary':
+      return fur?.[0];
+    case 'follows_secondary':
+      return fur?.[1];
+    case 'follows_tertiary':
+      return fur?.[2];
+    default:
+      return defaults[name];
+  }
+}
+
 /** Whether something meant for these comma-separated species ids, or for any species when there are none, suits this one. */
 export const suitsSpecies = (
   recommended: string | null | undefined,
@@ -61,10 +83,10 @@ export const suitsSpecies = (
  * `renaming` is the row being swapped out, whose own marking doesn't count.
  */
 export function unavailableMarkings(
-  rows: Marking[],
+  rows: readonly Pick<Marking, 'name'>[],
   info: Record<string, MarkingInfo>,
   offered: string[],
-  renaming?: Marking,
+  renaming?: Pick<Marking, 'name'>,
 ) {
   const unavailable = new Set<string>();
   for (const row of rows) {
@@ -131,18 +153,8 @@ export function useRoomData() {
   const max = markings?.max_markings ?? 3;
 
   /** The colour a marking starts in: the mutant colour it follows, or its own. */
-  const startColor = (name: string) => {
-    switch (info[name]?.color_mode) {
-      case 'follows_primary':
-        return fur?.[0];
-      case 'follows_secondary':
-        return fur?.[1];
-      case 'follows_tertiary':
-        return fur?.[2];
-      default:
-        return defaults[name];
-    }
-  };
+  const startColor = (name: string) =>
+    markingStartColor(info, fur, defaults, name);
 
   const worn = (zone: MarkingZone): WornMarking[] =>
     (data.markings?.[zone] ?? []).map((marking, index) => {
