@@ -42,6 +42,13 @@ function readCell(className: string, style: CSSStyleDeclaration) {
   return cell;
 }
 
+/**
+ * A class's cell if it has been found already, without looking: so whether
+ * its stylesheet has come, at no cost.
+ */
+export const knownSpriteCell = (className: string): SpriteCell | undefined =>
+  cells.get(className);
+
 /** Where a spritesheet class draws from, or undefined while its stylesheet hasn't loaded. */
 export function spriteCell(className: string): SpriteCell | undefined {
   const known = cells.get(className);

@@ -233,6 +233,62 @@ export function previewFit(
 export const zoomedScale = (fitScale: number, zoom: number) =>
   Math.min(2 * fitScale, Math.max(1, fitScale + zoom));
 
+/**
+ * Where a preview stands as `previewFit` stands it, except a drawing larger than
+ * its tile (a taur's lower body, a large icon): that one fits by its tile alone,
+ * at `maxScale` (or a tile filling the box's shorter side), the tile's centre
+ * across the middle and what it draws inside the tile centred up and down. Its
+ * body then stands the size and in the place any other body does, and what it
+ * draws past the tile runs out of the box. A drawing no larger than its tile
+ * fits exactly as `previewFit` fits it.
+ */
+export function previewBodyFit(
+  preview: CharacterPreviewDrawing | undefined,
+  width: number,
+  height: number,
+  bounds?: DrawnBounds,
+  zoom = 0,
+  maxScale?: number,
+) {
+  if (!preview || (preview.width <= TILE && preview.height <= TILE)) {
+    return previewFit(preview, width, height, bounds, zoom, maxScale);
+  }
+  // The tile's box in the frame's pixels, and what is drawn inside it.
+  const tileLeft = preview.x;
+  const tileTop = preview.height - preview.y - TILE;
+  const inside: DrawnBounds = [
+    Math.max(bounds?.[0] ?? tileLeft, tileLeft),
+    Math.max(bounds?.[1] ?? tileTop, tileTop),
+    Math.min(bounds?.[2] ?? tileLeft + TILE, tileLeft + TILE),
+    Math.min(bounds?.[3] ?? tileTop + TILE, tileTop + TILE),
+  ];
+  const extent = previewExtent(
+    preview,
+    inside[2] > inside[0] && inside[3] > inside[1]
+      ? inside
+      : [tileLeft, tileTop, tileLeft + TILE, tileTop + TILE],
+  );
+  const top = Math.max(0, extent.top);
+  const bottom = Math.min(0, extent.bottom);
+  const fitScale = Math.max(
+    1,
+    Math.min(
+      maxScale ?? fits(Math.min(width, height), TILE),
+      fits(height, top - bottom),
+    ),
+  );
+  const scale = zoomedScale(fitScale, zoom);
+  const y = Math.round(height / 2 + ((top + bottom) * scale) / 2);
+  const middle = (y - height / 2) / scale;
+  const panBounds: PanBounds = {
+    minX: -extent.right,
+    maxX: -extent.left,
+    minY: extent.bottom - middle,
+    maxY: extent.top - middle,
+  };
+  return { scale, fitScale, x: width / 2, y, panBounds };
+}
+
 export type ShownPreview = {
   preview: CharacterPreviewDrawing;
   image?: HTMLImageElement;

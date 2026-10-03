@@ -9,9 +9,11 @@ import type {
   PreferencesMenuData,
 } from '../../types';
 import { useServerPrefs } from '../../useServerPrefs';
+import { speciesSpriteClasses } from '../SpeciesRegistry/constants';
 import { isLeg, MARKING_ZONES, type MarkingZone, TAUR_ZONE } from './constants';
 import type { CustomMarkingView } from './customs';
 import type { MarkingRegions } from './regions';
+import { knownSpriteCell } from './sprites';
 
 /** What the room reads beyond the markings data; see modular_aphelion/modules/markings_room. */
 export type MarkingsRoomData = PreferencesMenuData & {
@@ -21,6 +23,8 @@ export type MarkingsRoomData = PreferencesMenuData & {
   custom_marking_views?: Record<string, CustomMarkingView> | null;
   /** Which region owns each pixel of the preview body, once the room has asked. */
   markings_room_regions?: MarkingRegions;
+  /** The drawing those regions fit: the server sends the map again only when the body's shape changes. */
+  markings_room_regions_for?: number;
   /** The station's time when this was sent, in deciseconds into its day: Electra's mirror shows it. */
   markings_room_clock?: number;
   /** Rounds since the engine last delaminated: Hephaestus's tag shows it. */
@@ -112,9 +116,16 @@ export function useRoomData() {
   const fur = data.marking_fur_colors;
   const defaults = constants?.marking_defaults ?? {};
   const allowMismatched = !!data.allow_mismatched_parts;
-  // The species' bare bodies, under every thumbnail: sent when asked for, as the species page asks.
+  // The species' bare bodies, under every thumbnail: sent when asked for, as
+  // the species page asks. Asked for until they've come (the character's body
+  // has its cell by the time the room has drawn), not each time the room opens.
+  const bodyClass = speciesData?.icon
+    ? speciesSpriteClasses(speciesData.icon, 'south', true)
+    : undefined;
   useEffect(() => {
-    act('species_page_sprites', { body: true });
+    if (!bodyClass || !knownSpriteCell(bodyClass)) {
+      act('species_page_sprites', { body: true });
+    }
   }, []);
   const taurLegs = !!data.taur_legs;
   const max = markings?.max_markings ?? 3;
@@ -198,6 +209,7 @@ export function useRoomData() {
     // Glow waits on the character's Allow Emissives; unknown counts as on, and the server decides.
     canGlow: allowEmissives === undefined || !!allowEmissives,
     regions: data.markings_room_regions,
+    regionsFor: data.markings_room_regions_for,
     preview: data.character_preview,
   };
 }

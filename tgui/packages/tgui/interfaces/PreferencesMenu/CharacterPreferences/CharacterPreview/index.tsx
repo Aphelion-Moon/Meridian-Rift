@@ -22,6 +22,7 @@ import { useArrival } from './arrival';
 import {
   PreviewCanvas,
   type PreviewView,
+  previewBodyFit,
   previewFit,
   TILE,
   useShownPreview,
@@ -73,7 +74,22 @@ type Props = {
   children?: ReactNode;
   /** Lit whatever the tabs' lights switch says, as the augments stage's scan chamber always is. */
   lit?: boolean;
+  /**
+   * Whether a drag up or down pans it, as it does unless told not to. The
+   * augments stage's doesn't: its traces are drawn from where the character
+   * stands, and a pan would leave them pointing at nothing.
+   */
+  pannable?: boolean;
+  /**
+   * Fits a drawing larger than its tile (a taur's lower body, a large icon) by
+   * its tile, so its body stands the size and in the place any other does and
+   * the rest runs out of the box. The augments stage's does: its traces land
+   * on a taur's parts where they land on anyone's.
+   */
+  fitBody?: boolean;
 };
+
+const still = () => {};
 
 /**
  * The character preview every tab of character setup shows: the one drawing
@@ -89,8 +105,9 @@ type Props = {
  * Dragging across it turns the character, a quarter per DRAG_STEP pixels, and
  * the wheel zooms it a whole step at a time, from 1x to twice the fit. A drag
  * that sets off up or down pans it instead, every way until the pointer lets
- * go, as far as brings any part of the character to the middle. Double-clicking
- * goes back to the fit, unpanned. The frame stays put through all of it.
+ * go, as far as brings any part of the character to the middle, unless it isn't
+ * `pannable`. Double-clicking goes back to the fit, unpanned. The frame stays
+ * put through all of it.
  */
 export function CharacterPreview(props: Props) {
   const {
@@ -104,6 +121,8 @@ export function CharacterPreview(props: Props) {
     lightKey,
     children,
     lit,
+    pannable = true,
+    fitBody,
   } = props;
   const { data } = useBackend<PreferencesMenuData>();
   const serverData = useServerPrefs();
@@ -124,9 +143,9 @@ export function CharacterPreview(props: Props) {
         // Stored within reach, so wheeling back always moves at once.
         return zoomedScale(base, value + steps) - base;
       }),
-    onPanStart: pan.start,
-    onPan: pan.move,
-    onPanEnd: pan.end,
+    onPanStart: pannable ? pan.start : still,
+    onPan: pannable ? pan.move : still,
+    onPanEnd: pannable ? pan.end : still,
     onTap,
   });
 
@@ -135,7 +154,15 @@ export function CharacterPreview(props: Props) {
     if (!element) {
       return;
     }
-    const measure = () => setSize([element.clientWidth, element.clientHeight]);
+    // The same size draws nothing again: the observer's first word is the
+    // size just measured, and it speaks again for moves that keep the size.
+    const measure = () => {
+      const width = element.clientWidth;
+      const height = element.clientHeight;
+      setSize((last) =>
+        last?.[0] === width && last[1] === height ? last : [width, height],
+      );
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') {
       return;
@@ -185,6 +212,7 @@ export function CharacterPreview(props: Props) {
             dark={dark}
             bloom={bloom}
             maxScale={maxScale}
+            fitBody={fitBody}
             overlay={overlay}
           />
         ) : (
@@ -229,6 +257,8 @@ type DrawnCharacterProps = {
   bloom: number;
   /** The largest scale the fit may take. */
   maxScale?: number;
+  /** Fits a drawing larger than its tile by its tile; see Props. */
+  fitBody?: boolean;
   /** Drawn over the character, in its arrival with it; see Props. */
   overlay?: (view: PreviewView) => ReactNode;
 };
@@ -242,22 +272,16 @@ type DrawnCharacterProps = {
 function DrawnCharacter(props: DrawnCharacterProps) {
   const { width, height, tile, zoom, fitScale, pan, dark, bloom, maxScale } =
     props;
+  const fitTo = props.fitBody ? previewBodyFit : previewFit;
   const shown = useShownPreview(props.drawing);
   const arrival = useArrival(shown);
   const floor = useFloorTile(dark ? tile : undefined);
   const turn = useAtomValue(previewTurnAtom);
   const dir = previewFacing(turn);
   // The frame's scanner rule stays where the fit puts it, whatever the zoom.
-  const fitted = previewFit(
-    shown.preview,
-    width,
-    height,
-    shown.bounds,
-    0,
-    maxScale,
-  );
+  const fitted = fitTo(shown.preview, width, height, shown.bounds, 0, maxScale);
   const fit = zoom
-    ? previewFit(shown.preview, width, height, shown.bounds, zoom, maxScale)
+    ? fitTo(shown.preview, width, height, shown.bounds, zoom, maxScale)
     : fitted;
 
   useLayoutEffect(() => {

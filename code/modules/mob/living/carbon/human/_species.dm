@@ -1615,7 +1615,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	var/list/to_add = list()
 
 	// Brute related
-	if(initial(fake_chest.brute_modifier) > 1)
+	if(fake_chest::brute_modifier > 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.brute_modifier) > 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
 			SPECIES_PERK_ICON = "band-aid",
@@ -1623,7 +1623,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			SPECIES_PERK_DESC = "[plural_form] are weak to brute damage.",
 		))
 
-	if(initial(fake_chest.brute_modifier) < 1)
+	if(fake_chest::brute_modifier < 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.brute_modifier) < 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
 			SPECIES_PERK_ICON = "shield-alt",
@@ -1632,7 +1632,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		))
 
 	// Burn related
-	if(initial(fake_chest.burn_modifier) > 1)
+	if(fake_chest::burn_modifier > 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.burn_modifier) > 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
 			SPECIES_PERK_ICON = "burn",
@@ -1640,7 +1640,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			SPECIES_PERK_DESC = "[plural_form] are weak to burn damage.",
 		))
 
-	if(initial(fake_chest.burn_modifier) < 1)
+	if(fake_chest::burn_modifier < 1) // APHELION EDIT CHANGE - ORIGINAL: if(initial(fake_chest.burn_modifier) < 1)
 		to_add += list(list(
 			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
 			SPECIES_PERK_ICON = "shield-alt",

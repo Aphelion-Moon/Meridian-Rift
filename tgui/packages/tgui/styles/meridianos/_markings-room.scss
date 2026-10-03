@@ -698,14 +698,14 @@ $neon-on: markings-neon-on;
   }
 
   &--side {
-    // Preserve the tile's fade exactly, extending its end colour over wider art.
-    background:
-      linear-gradient(270deg, faded(var(--room-hot), 0.6), transparent)
-        calc(var(--tile-left) + 16.333 * var(--pixel)) 0 /
-        calc(7.667 * var(--pixel)) 100% no-repeat,
-      linear-gradient(faded(var(--room-hot), 0.6) 0 0)
-        calc(var(--tile-left) + 24 * var(--pixel)) 0 /
-        calc(100% - var(--tile-left) - 24 * var(--pixel)) 100% no-repeat;
+    // The tile's fade across its right third, then its end colour held over
+    // wider art: one gradient, as two layers meeting at a fractional pixel
+    // left a seam down a wide character (a wing).
+    background: linear-gradient(
+      90deg,
+      transparent calc(var(--tile-left) + 16.333 * var(--pixel)),
+      faded(var(--room-hot), 0.6) calc(var(--tile-left) + 24 * var(--pixel))
+    );
   }
 
   // With the lights out only the UV tube over the glass lights it, from
@@ -1874,6 +1874,26 @@ $neon-on: markings-neon-on;
   letter-spacing: 0.12em;
   text-align: center;
   color: #cfcbd6;
+}
+
+// None, the sheet's first pick while one is swapped out: the bare body,
+// dimmed, crossed out in the room's neon, captioned as a back-only pick is.
+.MarkingsRoom__pick--none .MarkingsRoom__thumb {
+  opacity: 0.45;
+}
+
+.MarkingsRoom__noneMark {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  fill: none;
+  stroke: var(--room-neon);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 80%));
 }
 
 .MarkingsRoom__empty {

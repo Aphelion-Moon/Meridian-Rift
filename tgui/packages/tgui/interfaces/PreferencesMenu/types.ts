@@ -204,10 +204,18 @@ export type Quirk = {
 
 // NOVA EDIT ADDITION START
 export type Language = {
-  description: string;
+  /** A secret language's own; the rest are in the constant data's languages, by name. */
+  description?: string;
   name: string;
-  icon: string;
+  /** As description. */
+  icon?: string;
   speaking: boolean;
+};
+
+/** A language's description and icon class, as the constant data has them by name. */
+export type LanguageInfo = {
+  description: string;
+  icon: string;
 };
 
 export type Marking = {
@@ -462,6 +470,7 @@ export type ServerData = {
   // NOVA EDIT ADDITION START
   species_families: SpeciesFamily[];
   background_state: { choices: string[]; tiles?: Record<string, string> };
+  languages?: Record<string, LanguageInfo>;
   limbs_and_markings?: {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];

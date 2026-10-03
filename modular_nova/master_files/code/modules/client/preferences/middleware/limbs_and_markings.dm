@@ -2,16 +2,16 @@
 
 /datum/preference_middleware/limbs_and_markings
 	action_delegations = list(
-		"set_bodypart_aug" = PROC_REF(set_bodypart_aug),
-		"set_bodypart_aug_style" = PROC_REF(set_bodypart_aug_style),
-		"add_marking"  = PROC_REF(add_marking),
-		"change_marking" = PROC_REF(change_marking),
-		"color_marking" = PROC_REF(color_marking),
-		"reset_marking_color" = PROC_REF(reset_marking_color),
-		"remove_marking" = PROC_REF(remove_marking),
-		"set_internal_implant_aug" = PROC_REF(set_internal_implant_aug),
-		"set_preset" = PROC_REF(set_preset),
-		"change_emissive" = PROC_REF(change_emissive_marking),
+		"set_bodypart_aug" = PROC_REF(act_set_bodypart_aug),
+		"set_bodypart_aug_style" = PROC_REF(act_set_bodypart_aug_style),
+		"add_marking"  = PROC_REF(act_add_marking),
+		"change_marking" = PROC_REF(act_change_marking),
+		"color_marking" = PROC_REF(act_color_marking),
+		"reset_marking_color" = PROC_REF(act_reset_marking_color),
+		"remove_marking" = PROC_REF(act_remove_marking),
+		"set_internal_implant_aug" = PROC_REF(act_set_internal_implant_aug),
+		"set_preset" = PROC_REF(act_set_preset),
+		"change_emissive" = PROC_REF(act_change_emissive_marking),
 	)
 
 /datum/preference_middleware/limbs_and_markings/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
@@ -579,5 +579,70 @@
 		preferences.body_markings.overwrite_zones_from(assemble_body_markings_from_set(marking_set, marking_seed_features(), current_species))
 	preferences.character_preview_view.update_body()
 	return TRUE
+
+/*
+ * The window's side of each action. An action changes one thing the window shows (the markings, the augments and the
+ * quirk balance they cost, or the augments' finishes), so the open window is sent just that (ui.send_update()) rather
+ * than all of its data again, and the action asks for no full update. The actions themselves return whether they did
+ * anything, as before.
+ */
+
+/// Sends the open character setup window the markings. Returns FALSE: nothing else needs sending.
+/datum/preference_middleware/limbs_and_markings/proc/send_markings(mob/user)
+	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
+	ui?.send_update(list("markings" = fix_colors_on_markings_to_tgui()))
+	return FALSE
+
+/// Sends the open character setup window the augments and the quirk balance, which they cost. Returns FALSE.
+/datum/preference_middleware/limbs_and_markings/proc/send_augments(mob/user)
+	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
+	ui?.send_update(list(
+		"augments" = preferences.augments.Copy(),
+		"quirks_balance" = preferences.GetQuirkBalance(),
+	))
+	return FALSE
+
+/// Sends the open character setup window the augments' finishes. Returns FALSE.
+/datum/preference_middleware/limbs_and_markings/proc/send_augment_styles(mob/user)
+	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
+	ui?.send_update(list("augment_styles" = preferences.augment_limb_styles.Copy()))
+	return FALSE
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_bodypart_aug(list/params, mob/user)
+	var/list/quirks = preferences.all_quirks
+	if(!set_bodypart_aug(params, user))
+		return FALSE
+	// Quirks the augment ruled out went with it, and the window is being sent all of its data again.
+	return quirks != preferences.all_quirks || send_augments(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_bodypart_aug_style(list/params, mob/user)
+	return set_bodypart_aug_style(params, user) && send_augment_styles(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_internal_implant_aug(list/params, mob/user)
+	var/list/quirks = preferences.all_quirks
+	if(!set_internal_implant_aug(params, user))
+		return FALSE
+	return quirks != preferences.all_quirks || send_augments(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_add_marking(list/params, mob/user)
+	return add_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_change_marking(list/params, mob/user)
+	return change_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_color_marking(list/params, mob/user)
+	return color_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_reset_marking_color(list/params, mob/user)
+	return reset_marking_color(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_change_emissive_marking(list/params, mob/user)
+	return change_emissive_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_remove_marking(list/params, mob/user)
+	return remove_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_preset(list/params, mob/user)
+	return set_preset(params, user) && send_markings(user)
 
 #undef DEFAULT_NAME

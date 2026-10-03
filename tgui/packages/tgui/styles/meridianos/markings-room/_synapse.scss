@@ -117,7 +117,7 @@
   background:linear-gradient(0deg, rgb(196 119 232/.3) var(--tile-bottom), rgb(196 119 232/.08) calc(var(--tile-bottom) + 12.8 * var(--pixel)), transparent calc(var(--tile-bottom) + 21.12 * var(--pixel)));
 }
 .theme-meridian_synapse .MarkingsRoom__rim.MarkingsRoom__rim--side {
-  background:linear-gradient(270deg, rgb(56 214 207/.55), transparent) calc(var(--tile-left) + 16.333 * var(--pixel)) 0 / calc(7.667 * var(--pixel)) 100% no-repeat, linear-gradient(rgb(56 214 207/.55) 0 0) calc(var(--tile-left) + 24 * var(--pixel)) 0 / calc(100% - var(--tile-left) - 24 * var(--pixel)) 100% no-repeat;
+  background:linear-gradient(90deg, transparent calc(var(--tile-left) + 16.333 * var(--pixel)), rgb(56 214 207/.55) calc(var(--tile-left) + 24 * var(--pixel)));
 }
 .theme-meridian_synapse .MarkingsRoom__glare {
   background:linear-gradient(118deg,transparent 0 30%,rgb(255 255 255/.04) 36%,transparent 44%);

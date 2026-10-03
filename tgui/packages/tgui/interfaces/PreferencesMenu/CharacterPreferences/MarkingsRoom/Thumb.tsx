@@ -2,6 +2,7 @@
 import { memo, useLayoutEffect, useRef } from 'react';
 
 import { drawPainted, type PaintedPixel } from './customs';
+import { drawInSlices } from './drawSlices';
 import {
   drawSprite,
   isBlankSprite,
@@ -59,33 +60,47 @@ export const Thumb = memo(function Thumb(props: Props) {
   // Drawn once its markings can be, and again with the body once its sheet comes.
   const ready = markingSprites.every((sprite) => !!sprite);
   const key = markings.map((marking) => `${marking.icon}:${marking.color}`);
+  // Whether the canvas holds a picture yet: a new one is blank.
+  const drawn = useRef(false);
 
   useLayoutEffect(() => {
-    const context = canvas.current?.getContext('2d');
-    if (!context) {
+    const element = canvas.current;
+    if (!element) {
       return;
     }
-    context.clearRect(0, 0, size, size);
     if (!ready) {
+      if (drawn.current) {
+        element.getContext('2d')?.clearRect(0, 0, size, size);
+        drawn.current = false;
+      }
       return;
     }
-    const [x, y] = thumbOrigin(size, zoom, centre);
-    if (bodySprite) {
-      drawSprite(context, bodySprite, x, y, zoom);
-    }
-    markings.forEach((marking, index) => {
-      const sprite = markingSprites[index] as Sprite;
-      drawSprite(context, tintedSprite(sprite, marking.color), x, y, zoom);
+    // In order with the rest of a sheet: see drawSlices.ts.
+    return drawInSlices(() => {
+      const context = element.getContext('2d');
+      if (!context) {
+        return;
+      }
+      context.clearRect(0, 0, size, size);
+      drawn.current = true;
+      const [x, y] = thumbOrigin(size, zoom, centre);
+      if (bodySprite) {
+        drawSprite(context, bodySprite, x, y, zoom);
+      }
+      markings.forEach((marking, index) => {
+        const sprite = markingSprites[index] as Sprite;
+        drawSprite(context, tintedSprite(sprite, marking.color), x, y, zoom);
+      });
+      if (painted) {
+        drawPainted(
+          context,
+          painted.pixels,
+          x - ((painted.width - 32) / 2) * zoom,
+          y,
+          zoom,
+        );
+      }
     });
-    if (painted) {
-      drawPainted(
-        context,
-        painted.pixels,
-        x - ((painted.width - 32) / 2) * zoom,
-        y,
-        zoom,
-      );
-    }
   }, [
     ready,
     !!bodySprite,

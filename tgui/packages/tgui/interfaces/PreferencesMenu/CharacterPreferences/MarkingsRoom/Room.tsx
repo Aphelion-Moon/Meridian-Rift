@@ -1,12 +1,20 @@
 // THIS IS AN APHELION UI FILE
 import { useAtom, useAtomValue } from 'jotai';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useBackend } from 'tgui/backend';
 import { resolveMeridianTheme } from 'tgui/constants/theme';
 import { debugThemeAtom, meridianThemeAtom } from 'tgui/events/store';
 import { classes } from 'tgui-core/react';
 
 import { previewLightsOffAtom } from '../CharacterPreview/lights';
+import { rejoinCompositor } from './compositor';
 import type { MarkingsRoomData } from './data';
 import { type DecorProps, ROOM_DECOR } from './decor';
 import { useLightEffects } from './lightEffects';
@@ -74,23 +82,30 @@ function useStationClock(serverTime: number | undefined) {
 /**
  * What the room's decor shows of the world: the lights and their switch,
  * whether they fall on the character, the station's clock, the engine's record.
+ * The same object for as long as none of it changes, so the decor, which is
+ * memoised, draws again only when what it shows does.
  */
 export function useDecorProps(): DecorProps {
   const [off, setOff] = useAtom(previewLightsOffAtom);
   const [lightEffects, onLightEffects] = useLightEffects();
   const { act, data } = useBackend<MarkingsRoomData>();
   const clock = useStationClock(data.markings_room_clock);
-  return {
-    clock,
-    lightsOff: off,
-    onLights: () => {
-      setOff(!off);
-      act('character_preview_lights', { off: !off });
-    },
-    lightEffects,
-    onLightEffects,
-    delamRounds: data.markings_room_delam ?? '—',
-  };
+  const onLights = useCallback(() => {
+    setOff(!off);
+    act('character_preview_lights', { off: !off });
+  }, [off]);
+  const delamRounds = data.markings_room_delam ?? '—';
+  return useMemo(
+    () => ({
+      clock,
+      lightsOff: off,
+      onLights,
+      lightEffects,
+      onLightEffects,
+      delamRounds,
+    }),
+    [clock, off, onLights, lightEffects, onLightEffects, delamRounds],
+  );
 }
 
 export type RoomMode = 'augments' | 'markings';
@@ -125,6 +140,8 @@ export function AugmentsRoom(props: Props) {
         uv && 'AugmentsRoom--uv',
       ])}
       data-window-fit="fixed"
+      // A neon's hum goes to the compositor once its flicker-on is over.
+      onAnimationEnd={rejoinCompositor}
     >
       <div className="AugmentsRoom__bg AugmentsRoom__bg--augments" />
       <div className="AugmentsRoom__bg AugmentsRoom__bg--markings" />

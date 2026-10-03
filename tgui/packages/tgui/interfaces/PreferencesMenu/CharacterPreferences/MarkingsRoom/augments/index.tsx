@@ -4,6 +4,7 @@ import {
   type CSSProperties,
   Fragment,
   memo,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -26,11 +27,19 @@ import { turnPreview } from '../../CharacterPreview/turn';
 import type { MarkingsRoomData } from '../data';
 import { facingImage } from '../facing';
 import {
+  augmentRegions,
   type FrameRegions,
-  frameRegions,
+  frameRegionsOf,
   regionAt,
   regionsMask,
+  regionsOutline,
 } from '../regions';
+import {
+  setStageHover,
+  useStageHover,
+  useStageHoverIs,
+  useStageHovering,
+} from './hover';
 import {
   CARD_LEFT,
   CARD_WIDTH,
@@ -101,7 +110,6 @@ export function AugmentsStage(props: Props) {
   const balance = -(data.quirks_balance ?? 0);
   const turn = useSetAtom(turnPreview);
 
-  const [hover, setHover] = useState<string | null>(null);
   const [open, setOpen] = useState<Open | null>(null);
   const [peek, setPeek] = useState<string | null>(null);
   // What was last installed, and a count that makes its effects play again.
@@ -110,24 +118,34 @@ export function AugmentsStage(props: Props) {
     n: number;
   } | null>(null);
   const [placed, setPlaced] = useState<Placed | null>(null);
+  // Whether the pointer is on a slot (hover.ts): what it is on, only what shows it reads.
+  const hovering = useStageHovering();
   const species =
     useServerPrefs()?.species?.[data.character_preferences?.misc?.species ?? '']
       ?.name;
 
-  // Which body region owns each pixel, asked for each drawing, as the markings room does.
+  // Which body region owns each pixel, asked for each drawing the map held
+  // isn't known to fit, as the markings room does.
   const previewId = data.character_preview?.id;
+  const regionsFor = data.markings_room_regions_for;
   useEffect(() => {
-    if (previewId !== undefined) {
-      act('markings_room_regions', { id: previewId });
+    if (previewId !== undefined && regionsFor !== previewId) {
+      act('markings_room_regions', {
+        id: previewId,
+        have: data.markings_room_regions?.key,
+      });
     }
   }, [previewId]);
 
   // A layer change starts afresh.
   useEffect(() => {
-    setHover(null);
+    setStageHover(null);
     setOpen(null);
     setPeek(null);
   }, [internals]);
+
+  // Nothing stays pointed at once the stage goes.
+  useEffect(() => () => setStageHover(null), []);
 
   // Escape puts the picker away.
   const pickerOpen = !!open;
@@ -154,23 +172,24 @@ export function AugmentsStage(props: Props) {
     [organs],
   );
 
-  const active = open?.slot ?? hover;
-  const activePart = !internals && active ? partBySlot[active] : undefined;
-
-  const openPicker = (socket: Socket, field: Field, row: number) => {
-    if (open?.slot === socket.slot && open.field === field) {
-      setOpen(null);
+  // The same function from render to render, so the cards it's handed to
+  // draw again only when what they show changes.
+  const openPicker = useCallback(
+    (socket: Socket, field: Field, row: number) => {
+      setOpen((current) =>
+        current?.slot === socket.slot && current.field === field
+          ? null
+          : {
+              slot: socket.slot,
+              field,
+              side: socket.side,
+              oy: rowOffset(socket.top, row),
+            },
+      );
       setPeek(null);
-      return;
-    }
-    setOpen({
-      slot: socket.slot,
-      field,
-      side: socket.side,
-      oy: rowOffset(socket.top, row),
-    });
-    setPeek(null);
-  };
+    },
+    [],
+  );
 
   const pick = (slot: string, field: Field, option: Option) => {
     setOpen(null);
@@ -280,10 +299,26 @@ export function AugmentsStage(props: Props) {
     });
   }, [open, partBySlot, organBySlot, pointsOn, balance]);
 
-  const sockets = internals
-    ? organs.map((o) => o.socket)
-    : parts.map((p) => p.socket);
+  const sockets = useMemo(
+    () =>
+      internals ? organs.map((o) => o.socket) : parts.map((p) => p.socket),
+    [internals, organs, parts],
+  );
   const cardHeight = internals ? ORGAN_CARD_HEIGHT : PART_CARD_HEIGHT;
+  // The slots with something installed, whose traces run live.
+  const live = useMemo(
+    () =>
+      new Set(
+        sockets
+          .filter((socket) =>
+            internals
+              ? !isStock(organBySlot[socket.slot]?.installed)
+              : partLive(partBySlot[socket.slot]),
+          )
+          .map((socket) => socket.slot),
+      ),
+    [sockets, internals, organBySlot, partBySlot],
+  );
 
   // Where each socket's trace lands, in room pixels, from where the character stands.
   const anchors = useMemo(() => {
@@ -310,94 +345,45 @@ export function AugmentsStage(props: Props) {
     return out;
   }, [placed, internals]);
 
-  const zoneAt = (clientX: number, clientY: number) => {
-    const frame = placed?.frame;
-    const map = placed?.regions;
-    if (!frame || !map || !placed) {
-      return undefined;
-    }
-    const box = frame.getBoundingClientRect();
-    if (!box.width || !box.height) {
-      return undefined;
-    }
-    const { width, height } = placed.view.shown.preview;
-    return regionAt(
-      map,
-      ((clientX - box.left) / box.width) * width,
-      ((clientY - box.top) / box.height) * height,
-    );
-  };
-  const partAt = (clientX: number, clientY: number) => {
-    const zone = zoneAt(clientX, clientY);
-    return zone
-      ? parts.find((part) => part.socket.zones.includes(zone))
-      : undefined;
-  };
-
   const peeked = open && peek ? options.find((o) => o.key === peek) : undefined;
+  // A part's chrome while its picker tries one on.
+  const peekZones =
+    !internals && open?.field === 'part' && peeked?.item?.path
+      ? (partBySlot[open.slot]?.socket.zones ?? null)
+      : null;
+  // The flash and sheen of the part last put in.
+  const installedPart = useMemo(
+    () =>
+      installed && !internals && partBySlot[installed.slot]
+        ? { zones: partBySlot[installed.slot].socket.zones, n: installed.n }
+        : null,
+    [installed, internals, partBySlot],
+  );
+  const openSlot = open?.slot ?? null;
 
   return (
     <div
       className={classes([
         'AugStage',
         internals && 'AugStage--internals',
-        !!active && 'AugStage--hovering',
+        (!!open || hovering) && 'AugStage--hovering',
       ])}
     >
       <div className="chamber" />
       <div className="pad" />
-      <div
-        className="AugStage__view"
-        onPointerMove={(event) => {
-          if (internals || event.buttons) {
-            return;
-          }
-          const part = partAt(event.clientX, event.clientY);
-          setHover(part ? part.socket.slot : null);
-        }}
-        onPointerLeave={() => !internals && setHover(null)}
-      >
-        <div className="AugStage__box">
-          <CharacterPreview
-            motif="chamber"
-            lit
-            width={`${VIEW.width}px`}
-            height={`${VIEW.height}px`}
-            maxScale={STAGE_SCALE}
-            onTap={(x, y) => {
-              if (internals) {
-                return;
-              }
-              const part = partAt(x, y);
-              if (part) {
-                openPicker(part.socket, 'part', 0);
-              }
-            }}
-            overlay={(view) => (
-              <StageOverlay
-                view={view}
-                regions={data.markings_room_regions}
-                internals={internals}
-                lit={activePart?.socket.zones ?? null}
-                peek={
-                  activePart && open?.field === 'part' && peeked?.item?.path
-                    ? activePart.socket.zones
-                    : null
-                }
-                installed={
-                  installed && !internals && partBySlot[installed.slot]
-                    ? {
-                        zones: partBySlot[installed.slot].socket.zones,
-                        n: installed.n,
-                      }
-                    : null
-                }
-                onPlaced={setPlaced}
-              />
-            )}
-          />
-        </div>
-      </div>
+      <StageView
+        internals={internals}
+        parts={parts}
+        partBySlot={partBySlot}
+        openSlot={openSlot}
+        peek={peekZones}
+        installed={installedPart}
+        regions={data.markings_room_regions}
+        regionsFor={regionsFor}
+        placed={placed}
+        onPlaced={setPlaced}
+        onOpen={openPicker}
+      />
       <div className="beam" />
       <div className="ch-over">
         <span className="brk c-tl" />
@@ -435,51 +421,31 @@ export function AugmentsStage(props: Props) {
         sockets={sockets}
         anchors={anchors}
         cardHeight={cardHeight}
-        active={active}
-        live={(slot) =>
-          internals
-            ? !isStock(organBySlot[slot]?.installed)
-            : partLive(partBySlot[slot])
-        }
+        openSlot={openSlot}
+        live={live}
         bare={internals}
         installed={installed}
       />
       {internals &&
-        sockets.map((socket) => {
-          const at = anchors[socket.slot];
-          if (!at) {
-            return null;
-          }
-          const organ = organBySlot[socket.slot];
-          return (
-            <button
-              key={socket.slot}
-              type="button"
-              className={classes([
-                'node',
-                active === socket.slot && 'on',
-                !isStock(organ?.installed) && 'live',
-              ])}
-              style={{ left: `${at[0]}px`, top: `${at[1]}px` }}
-              aria-label={`${socket.name.toLowerCase()}: open the list`}
-              onMouseEnter={() => setHover(socket.slot)}
-              onMouseLeave={() => setHover(null)}
-              onFocus={() => setHover(socket.slot)}
-              onBlur={() => setHover(null)}
-              onClick={() => openPicker(socket, 'organ', 0)}
-            />
-          );
-        })}
+        sockets.map((socket) => (
+          <Node
+            key={socket.slot}
+            socket={socket}
+            at={anchors[socket.slot]}
+            live={live.has(socket.slot)}
+            openSlot={openSlot}
+            onOpen={openPicker}
+          />
+        ))}
       {internals
         ? organs.map((organ, index) => (
             <OrganCard
               key={organ.socket.slot}
               organ={organ}
               index={index}
-              on={active === organ.socket.slot}
-              open={open}
+              openSlot={openSlot}
+              openField={open?.slot === organ.socket.slot ? open.field : null}
               pointsOn={pointsOn}
-              onHover={setHover}
               onOpen={openPicker}
             />
           ))
@@ -488,17 +454,15 @@ export function AugmentsStage(props: Props) {
               key={part.socket.slot}
               part={part}
               index={index}
-              on={active === part.socket.slot}
-              open={open}
+              openSlot={openSlot}
+              openField={open?.slot === part.socket.slot ? open.field : null}
               pointsOn={pointsOn}
-              onHover={setHover}
               onOpen={openPicker}
             />
           ))}
       <div className="console">
         <Readout
           internals={internals}
-          hover={hover}
           open={open}
           peeked={peeked}
           partBySlot={partBySlot}
@@ -551,10 +515,11 @@ const implantOk = (part: StagePart) =>
 
 type CardProps<T> = {
   index: number;
-  on: boolean;
-  open: Open | null;
+  /** The slot a picker is open on, if any: while it is, only its card is lit. */
+  openSlot: string | null;
+  /** The field of this card a picker is open on, or null. */
+  openField: Field | null;
   pointsOn: boolean;
-  onHover: (slot: string | null) => void;
   onOpen: (socket: Socket, field: Field, row: number) => void;
 } & T;
 
@@ -566,20 +531,26 @@ type Row = {
   cost: number;
 };
 
+/**
+ * A slot's card: lit while the pointer is on its slot, or while its picker is
+ * open. It reads the pointer itself, so only a card whose light changes draws
+ * again as the pointer moves.
+ */
 function Card(props: {
   socket: Socket;
   index: number;
   height: number;
-  on: boolean;
   live: boolean;
-  open: Open | null;
+  openSlot: string | null;
+  openField: Field | null;
   rows: Row[];
   pointsOn: boolean;
-  onHover: (slot: string | null) => void;
   onOpen: (socket: Socket, field: Field, row: number) => void;
 }) {
-  const { socket, index, height, on, live, open, rows, pointsOn } = props;
-  const { onHover, onOpen } = props;
+  const { socket, index, height, live, openSlot, openField, rows } = props;
+  const { pointsOn, onOpen } = props;
+  const hovered = useStageHoverIs(socket.slot);
+  const on = openSlot === null ? hovered : openSlot === socket.slot;
   const left = socket.side === 'l';
   return (
     <div
@@ -593,8 +564,8 @@ function Card(props: {
           '--dir': left ? '1' : '-1',
         } as CSSProperties
       }
-      onMouseEnter={() => onHover(socket.slot)}
-      onMouseLeave={() => onHover(null)}
+      onMouseEnter={() => setStageHover(socket.slot)}
+      onMouseLeave={() => setStageHover(null)}
     >
       <div className="sock-hd">
         <span className="sock-code">{socket.code}</span>
@@ -603,7 +574,7 @@ function Card(props: {
       </div>
       <div className="rule" />
       {rows.map((row, n) => {
-        const isOpen = open?.slot === socket.slot && open.field === row.field;
+        const isOpen = openField === row.field;
         return (
           <button
             key={row.field}
@@ -614,8 +585,8 @@ function Card(props: {
             aria-haspopup="listbox"
             aria-expanded={isOpen}
             onClick={() => !row.off && onOpen(socket, row.field, n)}
-            onFocus={() => onHover(socket.slot)}
-            onBlur={() => onHover(null)}
+            onFocus={() => setStageHover(socket.slot)}
+            onBlur={() => setStageHover(null)}
           >
             <span className="row-k">{FIELD_NAMES[row.field]}</span>
             <span className="row-v">{row.value}</span>
@@ -632,7 +603,8 @@ function Card(props: {
   );
 }
 
-function PartCard(props: CardProps<{ part: StagePart }>) {
+/** A body part's card: its augment, finish and implant. Drawn again only when one of them, or its picker, changes. */
+const PartCard = memo(function PartCard(props: CardProps<{ part: StagePart }>) {
   const { part } = props;
   const { augment } = part;
   const stock = isStock(augment);
@@ -672,18 +644,20 @@ function PartCard(props: CardProps<{ part: StagePart }>) {
       socket={part.socket}
       index={props.index}
       height={PART_CARD_HEIGHT}
-      on={props.on}
       live={partLive(part)}
-      open={props.open}
+      openSlot={props.openSlot}
+      openField={props.openField}
       rows={rows}
       pointsOn={props.pointsOn}
-      onHover={props.onHover}
       onOpen={props.onOpen}
     />
   );
-}
+});
 
-function OrganCard(props: CardProps<{ organ: StageOrgan }>) {
+/** An internal's card: what's in it. Drawn again only when that, or its picker, changes. */
+const OrganCard = memo(function OrganCard(
+  props: CardProps<{ organ: StageOrgan }>,
+) {
   const { organ } = props;
   const stock = isStock(organ.installed);
   return (
@@ -691,9 +665,9 @@ function OrganCard(props: CardProps<{ organ: StageOrgan }>) {
       socket={organ.socket}
       index={props.index}
       height={ORGAN_CARD_HEIGHT}
-      on={props.on}
       live={!stock}
-      open={props.open}
+      openSlot={props.openSlot}
+      openField={props.openField}
       rows={[
         {
           field: 'organ',
@@ -704,23 +678,59 @@ function OrganCard(props: CardProps<{ organ: StageOrgan }>) {
         },
       ]}
       pointsOn={props.pointsOn}
-      onHover={props.onHover}
       onOpen={props.onOpen}
     />
   );
-}
+});
 
-/** The traces from each card to its socket on the body. */
+/**
+ * An internal's node on the x-ray, at its trace's end: lit while the pointer
+ * is on its slot, or while its picker is open. It reads the pointer itself.
+ */
+const Node = memo(function Node(props: {
+  socket: Socket;
+  at: [number, number] | undefined;
+  live: boolean;
+  openSlot: string | null;
+  onOpen: (socket: Socket, field: Field, row: number) => void;
+}) {
+  const { socket, at, live, openSlot, onOpen } = props;
+  const hovered = useStageHoverIs(socket.slot);
+  if (!at) {
+    return null;
+  }
+  const on = openSlot === null ? hovered : openSlot === socket.slot;
+  return (
+    <button
+      type="button"
+      className={classes(['node', on && 'on', live && 'live'])}
+      style={{ left: `${at[0]}px`, top: `${at[1]}px` }}
+      aria-label={`${socket.name.toLowerCase()}: open the list`}
+      onMouseEnter={() => setStageHover(socket.slot)}
+      onMouseLeave={() => setStageHover(null)}
+      onFocus={() => setStageHover(socket.slot)}
+      onBlur={() => setStageHover(null)}
+      onClick={() => onOpen(socket, 'organ', 0)}
+    />
+  );
+});
+
+/** The traces from each card to its socket on the body: the one the pointer or a picker is on runs hot. */
 const Traces = memo(function Traces(props: {
   sockets: Socket[];
   anchors: Record<string, [number, number]>;
   cardHeight: number;
-  active: string | null;
-  live: (slot: string) => boolean;
+  /** The slot a picker is open on, which runs hot whatever the pointer is on. */
+  openSlot: string | null;
+  /** The slots with something installed. */
+  live: ReadonlySet<string>;
   bare: boolean;
   installed: { slot: string; n: number } | null;
 }) {
-  const { sockets, anchors, cardHeight, active, live, bare, installed } = props;
+  const { sockets, anchors, cardHeight, openSlot, live, bare, installed } =
+    props;
+  const hover = useStageHover();
+  const active = openSlot ?? hover;
   return (
     <svg className="traces" viewBox="0 0 900 820" aria-hidden="true">
       {sockets.map((socket, k) => {
@@ -747,7 +757,7 @@ const Traces = memo(function Traces(props: {
             className={classes([
               'tr',
               active === socket.slot && 'on',
-              live(socket.slot) && 'live',
+              live.has(socket.slot) && 'live',
               bare && 'bare',
             ])}
             style={{ '--k': k } as CSSProperties}
@@ -778,6 +788,106 @@ const Traces = memo(function Traces(props: {
 });
 
 /**
+ * The character in the scan chamber: pointing at a part of its body lights
+ * that part's slot, and a tap opens its picker. It reads the pointer itself,
+ * so a part lit on the body draws again only the character's view, whose
+ * pan finds the new layers as it always does.
+ */
+const StageView = memo(function StageView(props: {
+  internals: boolean;
+  parts: StagePart[];
+  partBySlot: Record<string, StagePart>;
+  /** The slot a picker is open on, which stays lit whatever the pointer is on. */
+  openSlot: string | null;
+  /** A part's zones in chrome, while its picker tries one on. */
+  peek: string[] | null;
+  /** The part last put in, for its flash and sheen. */
+  installed: { zones: string[]; n: number } | null;
+  regions: MarkingsRoomData['markings_room_regions'];
+  regionsFor: number | undefined;
+  placed: Placed | null;
+  onPlaced: (placed: Placed) => void;
+  onOpen: (socket: Socket, field: Field, row: number) => void;
+}) {
+  const { internals, parts, partBySlot, openSlot, peek, installed } = props;
+  const { regions, regionsFor, placed, onPlaced, onOpen } = props;
+  const hover = useStageHover();
+  const active = openSlot ?? hover;
+  const activePart = !internals && active ? partBySlot[active] : undefined;
+
+  const zoneAt = (clientX: number, clientY: number) => {
+    const frame = placed?.frame;
+    const map = placed?.regions;
+    if (!frame || !map || !placed) {
+      return undefined;
+    }
+    const box = frame.getBoundingClientRect();
+    if (!box.width || !box.height) {
+      return undefined;
+    }
+    const { width, height } = placed.view.shown.preview;
+    return regionAt(
+      map,
+      ((clientX - box.left) / box.width) * width,
+      ((clientY - box.top) / box.height) * height,
+    );
+  };
+  const partAt = (clientX: number, clientY: number) => {
+    const zone = zoneAt(clientX, clientY);
+    return zone
+      ? parts.find((part) => part.socket.zones.includes(zone))
+      : undefined;
+  };
+
+  return (
+    <div
+      className="AugStage__view"
+      onPointerMove={(event) => {
+        if (internals || event.buttons) {
+          return;
+        }
+        const part = partAt(event.clientX, event.clientY);
+        setStageHover(part ? part.socket.slot : null);
+      }}
+      onPointerLeave={() => !internals && setStageHover(null)}
+    >
+      <div className="AugStage__box">
+        <CharacterPreview
+          motif="chamber"
+          lit
+          pannable={false}
+          fitBody
+          width={`${VIEW.width}px`}
+          height={`${VIEW.height}px`}
+          maxScale={STAGE_SCALE}
+          onTap={(x, y) => {
+            if (internals) {
+              return;
+            }
+            const part = partAt(x, y);
+            if (part) {
+              onOpen(part.socket, 'part', 0);
+            }
+          }}
+          overlay={(view) => (
+            <StageOverlay
+              view={view}
+              regions={regions}
+              regionsFor={regionsFor}
+              internals={internals}
+              lit={activePart?.socket.zones ?? null}
+              peek={activePart ? peek : null}
+              installed={installed}
+              onPlaced={onPlaced}
+            />
+          )}
+        />
+      </div>
+    </div>
+  );
+});
+
+/**
  * Everything the stage draws on the character, lined up with its frame and
  * panning with it: the part the pointer is on, lit in the hot light with a
  * scan running down it and a halo outside it; a part's chrome while its
@@ -787,22 +897,25 @@ const Traces = memo(function Traces(props: {
 function StageOverlay(props: {
   view: PreviewView;
   regions: MarkingsRoomData['markings_room_regions'];
+  /** The drawing the regions fit. */
+  regionsFor: number | undefined;
   internals: boolean;
   lit: string[] | null;
   peek: string[] | null;
   installed: { zones: string[]; n: number } | null;
   onPlaced: (placed: Placed) => void;
 }) {
-  const { view, regions, internals, lit, peek, installed, onPlaced } = props;
+  const { view, regions, regionsFor, internals, lit, peek, installed } = props;
+  const { onPlaced } = props;
   const { shown, dir, scale, x, y } = view;
   const { preview, image } = shown;
   const frame = useRef<HTMLSpanElement>(null);
   const map = useMemo(
     () =>
-      regions && regions.id === preview.id
-        ? frameRegions(preview, regions, dir)
+      regions && regionsFor === preview.id
+        ? frameRegionsOf(preview, regions, dir)
         : undefined,
-    [preview, regions, dir],
+    [preview, regions, regionsFor, dir],
   );
 
   useLayoutEffect(() => {
@@ -821,11 +934,28 @@ function StageOverlay(props: {
   const installedStyle = installed ? masked(installed.zones) : null;
   const facing =
     internals && image ? facingImage(image, preview, dir) : undefined;
+  // The visible augments' own pixels (their eyes, an implant's overlay), which
+  // the x-ray leaves showing as they are, a line round each.
+  const augments = useMemo(() => {
+    const source =
+      internals && regions && regionsFor === preview.id
+        ? augmentRegions(regions)
+        : null;
+    return source ? frameRegionsOf(preview, source, dir) : undefined;
+  }, [internals, preview, regions, regionsFor, dir]);
+  const augmentShape = augments && regionsMask(augments, augments.zones);
+  const augmentLine = augments && regionsOutline(augments, augments.zones);
   const xray = facing
     ? {
         ...style,
-        maskImage: `url(${facing})`,
-        WebkitMaskImage: `url(${facing})`,
+        maskImage: augmentShape
+          ? `url(${facing}), url(${augmentShape})`
+          : `url(${facing})`,
+        WebkitMaskImage: augmentShape
+          ? `url(${facing}), url(${augmentShape})`
+          : `url(${facing})`,
+        maskComposite: augmentShape ? 'subtract' : undefined,
+        WebkitMaskComposite: augmentShape ? 'source-out' : undefined,
       }
     : null;
 
@@ -842,6 +972,11 @@ function StageOverlay(props: {
       {!!xray && (
         <>
           <span
+            className="AugStage__xr AugStage__xr--dim"
+            data-preview-pan=""
+            style={xray}
+          />
+          <span
             className="AugStage__xr AugStage__xr--tint"
             data-preview-pan=""
             style={xray}
@@ -852,6 +987,17 @@ function StageOverlay(props: {
             style={xray}
           />
         </>
+      )}
+      {!!xray && !!augmentLine && (
+        <span className="AugStage__implants" data-preview-pan="" style={style}>
+          <span
+            className="AugStage__implantsLine"
+            style={{
+              maskImage: `url(${augmentLine})`,
+              WebkitMaskImage: `url(${augmentLine})`,
+            }}
+          />
+        </span>
       )}
       {!!peekStyle && (
         <span
@@ -913,15 +1059,15 @@ function StageOverlay(props: {
 /** The console's readout: what the pointer or the picker is on. */
 function Readout(props: {
   internals: boolean;
-  hover: string | null;
   open: Open | null;
   peeked: Option | undefined;
   partBySlot: Record<string, StagePart>;
   organBySlot: Record<string, StageOrgan>;
   pointsOn: boolean;
 }) {
-  const { internals, hover, open, peeked, partBySlot, organBySlot, pointsOn } =
-    props;
+  const { internals, open, peeked, partBySlot, organBySlot, pointsOn } = props;
+  // What the pointer is on: the readout reads it itself, and alone draws again for it.
+  const hover = useStageHover();
   const lines: { text: string; className?: string }[] = [];
   let kicker = 'SCAN IDLE';
   let title = 'PICK A SLOT';
@@ -1032,7 +1178,8 @@ function Readout(props: {
 }
 
 /** The console's list of what's installed, and what it all costs. */
-function Installed(props: {
+/** Drawn again only when what's installed changes. */
+const Installed = memo(function Installed(props: {
   parts: StagePart[];
   organs: StageOrgan[];
   pointsOn: boolean;
@@ -1125,10 +1272,20 @@ function Installed(props: {
       </div>
     </div>
   );
-}
+});
 
-/** A socket's picker, unfolding from the row it was opened from over its side of the stage. */
-function Picker(props: {
+/** Whether an option answers a search, by its name, its description or a tag. */
+const optionMatches = (option: Option, wanted: string) =>
+  !wanted ||
+  [option.name, option.info, ...option.tags.map((tag) => tag.text)].some(
+    (text) => !!text && text.toLowerCase().includes(wanted),
+  );
+
+/**
+ * A socket's picker, unfolding from the row it was opened from over its side
+ * of the stage, its list narrowed by a search as the markings drawer's is.
+ */
+export function Picker(props: {
   open: Open;
   options: Option[];
   peek: string | null;
@@ -1143,6 +1300,11 @@ function Picker(props: {
   const left = open.side === 'l';
   const organ = open.field === 'organ';
   const list = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState('');
+  const wanted = query.trim().toLowerCase();
+  const shown = wanted
+    ? options.filter((option) => optionMatches(option, wanted))
+    : options;
   // The keyboard starts on what's installed.
   useEffect(() => {
     list.current?.querySelector<HTMLButtonElement>('.opt.cur')?.focus({
@@ -1187,13 +1349,29 @@ function Picker(props: {
               </svg>
             </button>
           </div>
+          <label className="fly-s">
+            <svg viewBox="0 0 14 14" aria-hidden="true">
+              <circle cx="6" cy="6" r="4.2" />
+              <path d="M9.2 9.2 12.5 12.5" />
+            </svg>
+            <input
+              type="search"
+              placeholder={`Search ${options.length} options`}
+              value={query}
+              aria-label="Search options"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
           <div
             ref={list}
             className="fly-list"
             role="listbox"
             onMouseLeave={() => onPeek(null)}
           >
-            {options.map((option, i) => (
+            {!shown.length && (
+              <div className="fly-none">No options match that.</div>
+            )}
+            {shown.map((option, i) => (
               <button
                 key={option.key}
                 type="button"

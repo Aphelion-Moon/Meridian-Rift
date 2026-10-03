@@ -24,7 +24,7 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 /datum/preference_middleware/markings_room
 	action_delegations = list(
 		"markings_room_regions" = PROC_REF(send_regions),
-		"surprise_markings" = PROC_REF(surprise_markings),
+		"surprise_markings" = PROC_REF(act_surprise_markings),
 	)
 
 /datum/preference_middleware/markings_room/get_ui_assets()
@@ -92,7 +92,9 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 /**
  * The page asks, for the character drawing it shows (params["id"]), which body region owns each pixel of the preview
  * body, facing each way, for the mirror's halo and for pointing at a part. It gets the custom markings editor's region
- * map, cached by the body's geometry, in an update of its own.
+ * map, cached by the body's geometry, in an update of its own: `markings_room_regions_for`, the drawing the map fits,
+ * and the map itself only when the page doesn't hold it already (params["have"], the key of the one it holds). Most
+ * drawings, a marking painted or swapped, leave the body's shape as it was, and its map with it.
  */
 /datum/preference_middleware/markings_room/proc/send_regions(list/params, mob/user)
 	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
@@ -106,13 +108,113 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 	var/list/rows = list()
 	for(var/facing, direction in GLOB.character_preview_facings)
 		rows[facing] = region_map["[direction]"]
-	ui.send_update(list("markings_room_regions" = list(
-		"id" = params["id"],
+	var/list/regions = list(
 		"zones" = zones,
 		"width" = width,
 		"rows" = rows,
-	)))
+		"augments" = augment_overlay_map(body, width),
+	)
+	var/key = md5(json_encode(regions))
+	var/list/update = list("markings_room_regions_for" = params["id"])
+	if(params["have"] != key)
+		regions["id"] = params["id"]
+		regions["key"] = key
+		update["markings_room_regions"] = regions
+	ui.send_update(update)
 	return FALSE
+
+/**
+ * The visible augments the preview body wears, mapped as its regions are (custom_sprite_region_map()): which one draws
+ * each pixel, facing each way. A pair of eyes, an implant's overlay: the scan chamber's x-ray leaves each showing as it
+ * is, in its own shape. Each one's images are filled with its ID colour and composed in draw order, and the result is
+ * read once per view. Cached by the images that drew it.
+ *
+ * Arguments:
+ * - body: The preview body.
+ * - width: The canvas width, as the body's region map has it.
+ *
+ * Returns list("zones" = the augments' slots, "rows" = facing -> 32 row strings), or null when none draws.
+ */
+/datum/preference_middleware/markings_room/proc/augment_overlay_map(mob/living/carbon/human/body, width)
+	// Bounded cache of composed augment maps, keyed by the images that drew them.
+	var/static/list/maps = list()
+	var/list/slots = list()
+	// Each image the augments draw with: list(layer, index, x, y, icon, icon_state).
+	var/list/parts = list()
+	var/offset_x = (width - 32) / 2
+	for(var/slot, augment_path in preferences.augments)
+		// Organs and implants alike: character setup fits the ones that show (eyes, an implant with an overlay).
+		var/datum/augment_item/augment = GLOB.augment_items[augment_path]
+		if(isnull(augment))
+			continue
+		var/obj/item/organ/organ
+		for(var/obj/item/organ/worn as anything in body.organs)
+			if(worn.type == augment.path)
+				organ = worn
+				break
+		var/index = length(slots) + 1
+		var/drew = FALSE
+		for(var/image/part as anything in augment_overlay_images(organ))
+			if(!part.icon || !part.icon_state || !part.alpha || PLANE_TO_TRUE(part.plane) == EMISSIVE_PLANE)
+				continue
+			parts += list(list(part.layer, index, 1 + offset_x + part.pixel_x + part.pixel_w, 1 + part.pixel_y + part.pixel_z, part.icon, part.icon_state))
+			drew = TRUE
+		if(drew)
+			slots += slot
+	if(!length(slots))
+		return null
+	var/list/geometry = list(width, slots)
+	for(var/list/part as anything in parts)
+		geometry += list(list(part[1], part[2], part[3], part[4], "[part[5]]", part[6]))
+	var/key = md5(json_encode(geometry))
+	if(maps[key])
+		return maps[key]
+	var/list/entries = list()
+	for(var/list/part as anything in parts)
+		var/list/channels = rgb2num(custom_sprite_region_color(part[2]))
+		var/icon/shape = icon(part[5], part[6])
+		// Its ID colour wherever it draws, as solid as it is.
+		shape.MapColors(0, 0, 0, 0, 0, 0, 0, 0, 0, channels[1] / 255, channels[2] / 255, channels[3] / 255)
+		entries += list(list(part[1], part[2], part[3], part[4], shape))
+	// Stable draw order: lower layers first, then augment order within a layer.
+	var/list/ordered = sort_list(entries, GLOBAL_PROC_REF(cmp_custom_sprite_region_layer))
+	var/icon/composite = custom_sprite_blank_icon(width)
+	for(var/list/entry as anything in ordered)
+		composite.Blend(entry[5], ICON_OVERLAY, entry[3], entry[4])
+	var/list/ids = list()
+	for(var/index in 1 to length(slots))
+		ids[custom_sprite_region_color(index)] = "[index]"
+	var/list/map = custom_sprite_icon_rows(composite, width, ids, ordered)
+	var/list/rows = list()
+	for(var/facing, direction in GLOB.character_preview_facings)
+		rows[facing] = map["[direction]"]
+	return custom_sprite_cache_put(maps, key, list("zones" = slots, "rows" = rows))
+
+/**
+ * What an augment draws on the body it's in: an eye's eyes on its head, an implant's overlay, an organ's own overlay.
+ *
+ * Returns a list of images, or null when it draws nothing.
+ */
+/datum/preference_middleware/markings_room/proc/augment_overlay_images(obj/item/organ/organ)
+	if(isnull(organ))
+		return null
+	if(istype(organ, /obj/item/organ/eyes))
+		var/obj/item/bodypart/head/head = organ.owner?.get_bodypart(BODY_ZONE_HEAD)
+		if(isnull(head) || !(head.head_flags & HEAD_EYESPRITES))
+			return null
+		var/obj/item/organ/eyes/eyes = organ
+		return eyes.generate_body_overlay(head)
+	var/obj/item/bodypart/limb = organ.bodypart_owner
+	if(isnull(limb))
+		return null
+	var/datum/bodypart_overlay/overlay = organ.bodypart_overlay
+	if(istype(organ, /obj/item/organ/cyberimp))
+		var/obj/item/organ/cyberimp/implant = organ
+		overlay = implant.bodypart_aug
+	// Only what the limb draws: a Teshari's implants keep their overlays off it.
+	if(isnull(overlay) || !(overlay in limb.bodypart_overlays))
+		return null
+	return overlay.get_all_overlays(limb)
 
 /**
  * Surprise me: a whole new set of markings the species is meant to wear, on every zone at once, in place of every marking
@@ -146,6 +248,13 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 	preferences.body_markings = surprise
 	preferences.character_preview_view?.update_body()
 	return TRUE
+
+/// The window's side of Surprise me: the markings it put on go to the window alone, as every markings action's do.
+/datum/preference_middleware/markings_room/proc/act_surprise_markings(list/params, mob/user)
+	if(!surprise_markings(params, user))
+		return FALSE
+	var/datum/preference_middleware/limbs_and_markings/markings_middleware = locate() in preferences.middleware
+	return markings_middleware ? markings_middleware.send_markings(user) : TRUE
 
 #undef MARKINGS_ROOM_SURPRISE_BARE
 #undef MARKINGS_ROOM_SURPRISE_PAINT

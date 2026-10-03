@@ -418,6 +418,7 @@
 #include "~nova\portal_test_helpers.dm"
 #include "~nova\preference_apply_page.dm"
 #include "~nova\preferences_import.dm"
+#include "~nova\preferences_window_data.dm"
 #include "~nova\random_string.dm"
 #include "~nova\sanitize_hexcolor.dm"
 #include "~nova\shuttle.dm"

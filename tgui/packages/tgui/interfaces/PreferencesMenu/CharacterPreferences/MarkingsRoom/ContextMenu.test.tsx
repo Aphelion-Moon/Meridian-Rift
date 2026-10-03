@@ -163,6 +163,35 @@ describe('worn marking interactions', () => {
     });
   });
 
+  it('offers None first in the swap picker, which takes the marking off', async () => {
+    const act = openRoom();
+    fireEvent.click(
+      within(await openMenu()).getByRole('menuitem', { name: 'Change' }),
+    );
+    const drawer = screen.getByRole('dialog', { name: 'Right arm markings' });
+    const picks = within(drawer)
+      .getAllByRole('button')
+      .filter((button) => button.classList.contains('MarkingsRoom__pick'));
+    expect(picks[0].getAttribute('aria-label')).toBe('None, take off Stripes');
+    fireEvent.click(picks[0]);
+    expect(act).toHaveBeenCalledWith('remove_marking', {
+      bodypart_slot: 'r_arm',
+      marking_id: '3',
+    });
+    expect(screen.queryByRole('dialog') === null).toBe(true);
+  });
+
+  it('offers no None when adding a marking', () => {
+    openRoom();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Add a marking to the right arm' }),
+    );
+    const drawer = screen.getByRole('dialog', { name: 'Right arm markings' });
+    expect(
+      within(drawer).queryByRole('button', { name: /^None/ }) === null,
+    ).toBe(true);
+  });
+
   it('removes the right-clicked marking rather than the previous selection', async () => {
     const act = openRoom();
     fireEvent.click(

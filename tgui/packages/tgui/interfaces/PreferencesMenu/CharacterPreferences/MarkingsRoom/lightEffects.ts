@@ -1,7 +1,7 @@
 // THIS IS AN APHELION UI FILE
 import { storage } from 'common/storage';
 import { atom, useAtom } from 'jotai';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 /** Where the player's choice is kept, so that it stays put between windows. */
 const KEPT = 'markings-room-light-effects';
@@ -29,9 +29,9 @@ export function useLightEffects() {
       }
     });
   }, []);
-  const toggle = () => {
+  const toggle = useCallback(() => {
     setOn(!on);
     storage.set(KEPT, !on);
-  };
+  }, [on]);
   return [on, toggle] as const;
 }
