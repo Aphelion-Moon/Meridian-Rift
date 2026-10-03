@@ -3,7 +3,7 @@
  * You can't really use the non-modular version, least you eventually want asinine merge
  * conflicts and/or potentially disastrous issues to arise, so here's your own.
  */
-#define MODULAR_SAVEFILE_VERSION_MAX 20
+#define MODULAR_SAVEFILE_VERSION_MAX 22
 
 #define MODULAR_SAVEFILE_UP_TO_DATE -1
 
@@ -26,6 +26,8 @@
 #define VERSION_AUGMENT_ITEMS_PATH_CHANGE 18
 #define VERSION_HEIGHT_UPDATE 19
 #define VERSION_HEMOPHAGE_SPECIES_REMOVAL 20
+#define VERSION_MARKING_DATUMS 21
+#define VERSION_MARKING_CONTENT 22
 
 #define INDEX_UNDERWEAR 1
 #define INDEX_BRA 2
@@ -57,7 +59,10 @@
 		if(!GLOB.robotic_styles_list[augment_limb_styles[key]])
 			augment_limb_styles -= key
 
-	body_markings = update_markings(SANITIZE_LIST(save_data["body_markings"]))
+	// A save from before a marking name was retired still holds it: renamed first, as the loader drops a name it doesn't know.
+	if(needs_nova_update >= 0 && needs_nova_update < VERSION_MARKING_CONTENT)
+		body_marking_rename_retired(save_data["body_markings"])
+	body_markings = body_marking_collection_from_list(save_data["body_markings"])
 	mismatched_customization = save_data["mismatched_customization"]
 	allow_advanced_colors = save_data["allow_advanced_colors"]
 
@@ -268,16 +273,14 @@
 			write_preference(GLOB.preference_entries[/datum/preference/loadout], loadout_list)
 
 	if(current_version < VERSION_SKRELL_HAIR_NAME_UPDATE)
-		var/list/mutant_bodyparts = SANITIZE_LIST(save_data["mutant_bodyparts"])
+		// The choice's own key, as the save holds it. The mutant_bodyparts key it was mirrored in is no longer written, and
+		// holds lists, never datums.
+		var/current_skrell_hair = save_data["feature_skrell_hair"]
 
-		var/datum/mutant_bodypart/mutant_part = mutant_bodyparts[FEATURE_SKRELL_HAIR]
-		if(mutant_part)
-			var/current_skrell_hair = mutant_part.name
-
-			if(current_skrell_hair == "Male")
-				write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Short")
-			else if(current_skrell_hair == "Female")
-				write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Long")
+		if(current_skrell_hair == "Male")
+			write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Short")
+		else if(current_skrell_hair == "Female")
+			write_preference(GLOB.preference_entries[/datum/preference/choiced/mutant_choice/skrell_hair], "Long")
 
 		// Sets old insect laugh to the merged moth/insect in case character uses it.
 	if (current_version < VERSION_TG_EMOTE_SOUNDS)
@@ -342,6 +345,78 @@
 			write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMANOID)
 			LAZYADD(save_data["all_quirks"], "Hemophagia")
 
+	if(current_version < VERSION_MARKING_DATUMS)
+		// The markings loaded above, not save_data: load_character_nova() built them before calling this.
+		body_markings.enforce_zone_limits()
+
+	if(current_version < VERSION_MARKING_CONTENT)
+		// A marking the character wears that its species may no longer pick, since sets decide who may wear what, stays
+		// editable: mismatched parts go on, and persist, where that changes nothing else the character draws.
+		// Existing markings are preserved regardless of whether the toggle can safely be enabled.
+		var/datum/species/species = GLOB.species_prototypes[read_preference(/datum/preference/choiced/species)]
+		if(!CONFIG_GET(flag/disable_mismatched_parts) && !read_preference(/datum/preference/toggle/allow_mismatched_parts) && body_markings.validate_for_species(species.id, FALSE) && mismatched_parts_change_nothing())
+			write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+		// The eight marking preferences step 6 deleted drew nothing on upstream Nova or any Meridian since Skyrat #19635 made
+		// them inert (2023): their keys go, and nothing takes their place.
+		for(var/legacy_key in list("feature_body_markings", "body_markings_color", "body_markings_emissive", "body_markings_toggle", "feature_moth_markings", "moth_markings_color", "moth_markings_emissive", "moth_markings_toggle"))
+			save_data -= legacy_key
+
+/**
+ * Returns whether turning allow_mismatched_parts on would leave how this character is drawn as it is. The toggle reaches a body
+ * only through questions an apply_to_human() asks, so this puts each question as it is put there, with the toggle off and then
+ * on, and compares what the answers let onto the body:
+ * - every mutant part and genital preference applies its value where is_visible() says it shows, else its default; the snout
+ *   also snouts the head whenever it shows, None or not (masks and helmets then take their muzzled sprites);
+ * - hair opacity applies its value only where is_visible() says it shows;
+ * - penis taur mode and penis sheath write their value only while is_applicable();
+ * - the knot preference, while it is on, gives the knot only while the penis choice is_applicable();
+ * - the limbs and markings middleware refuses leg augments while the taur choice is_applicable() with a taur chosen.
+ * The answers alone would not do: the IPC screen, chassis and head always count as switched on, so every character but a synth
+ * would see them show with the toggle on, and apply the same None or default either way. Every question is put as a spawn puts
+ * it, without the setup page, so one pass with the toggle off and one with it on decide. The toggle's own value is put back.
+ */
+/datum/preferences/proc/mismatched_parts_change_nothing()
+	var/toggle_type = /datum/preference/toggle/allow_mismatched_parts
+	var/was_cached = (toggle_type in value_cache)
+	var/cached = value_cache[toggle_type]
+	var/datum/preference/penis_choice = GLOB.preference_entries[/datum/preference/choiced/genital/penis]
+	var/datum/preference/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	var/leg_augments = FALSE
+	for(var/augment_slot, augment_path in augments)
+		var/datum/augment_item/limb/limb_augment = astype(GLOB.augment_items[augment_path], /datum/augment_item/limb)
+		if(limb_augment?.slot_flag & (LEG_LEFT|LEG_RIGHT))
+			leg_augments = TRUE
+	var/list/answers = list()
+	for(var/allowed in list(FALSE, TRUE))
+		value_cache[toggle_type] = allowed
+		var/list/found = list()
+		for(var/preference_type, preference_datum in GLOB.preference_entries)
+			var/datum/preference/preference = preference_datum
+			if(preference.savefile_identifier != PREFERENCE_CHARACTER)
+				continue
+			if(istype(preference, /datum/preference/choiced/mutant_choice))
+				var/datum/preference/choiced/mutant_choice/part = preference
+				var/shows = part.is_visible(null, src)
+				found += list(shows ? read_preference(preference_type) : part.create_default_value())
+				if(preference_type == /datum/preference/choiced/mutant_choice/snout)
+					found += shows ? TRUE : FALSE
+			else if(istype(preference, /datum/preference/choiced/genital))
+				var/datum/preference/choiced/genital/genital = preference
+				found += list(genital.is_visible(null, src) ? read_preference(preference_type) : genital.create_default_value())
+			else if(istype(preference, /datum/preference/numeric/hair_opacity))
+				var/datum/preference/numeric/hair_opacity/opacity = preference
+				found += list(opacity.is_visible(null, src) ? read_preference(preference_type) : null)
+			else if(preference_type == /datum/preference/toggle/penis_taur_mode || preference_type == /datum/preference/choiced/penis_sheath)
+				found += list(preference.is_applicable(src) ? read_preference(preference_type) : null)
+		found += (read_preference(/datum/preference/toggle/knotting/has_knot) && penis_choice.is_applicable(src)) ? TRUE : FALSE
+		found += (leg_augments && taur_choice.is_applicable(src) && read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE) ? TRUE : FALSE
+		answers += json_encode(found)
+	if(was_cached)
+		value_cache[toggle_type] = cached
+	else
+		value_cache -= toggle_type
+	return answers[1] == answers[2]
+
 /datum/preferences/proc/check_migration()
 	if(!tgui_prefs_migration)
 		to_chat(parent, boxed_message(span_redtext("CRITICAL FAILURE IN PREFERENCE MIGRATION, REPORT THIS IMMEDIATELY.")))
@@ -351,7 +426,7 @@
 /datum/preferences/proc/save_character_nova(list/save_data)
 	save_data["augments"] = augments
 	save_data["augment_limb_styles"] = augment_limb_styles
-	save_data["body_markings"] = body_markings
+	save_data["body_markings"] = body_markings.serialize()
 	save_data["mismatched_customization"] = mismatched_customization
 	save_data["allow_advanced_colors"] = allow_advanced_colors
 	save_data["alt_job_titles"] = alt_job_titles
@@ -359,14 +434,6 @@
 	save_data["language_understanding"] = saved_language_understanding()
 	save_data["modular_version"] = MODULAR_SAVEFILE_VERSION_MAX
 	save_data["food_preferences"] = food_preferences
-
-/datum/preferences/proc/update_markings(list/markings)
-	if (islist(markings))
-		for (var/marking in markings)
-			for (var/title in markings[marking])
-				if (!islist(markings[marking][title]))
-					markings[marking][title] = list(sanitize_hexcolor(markings[marking][title]), FALSE)
-	return markings
 
 /datum/preferences/proc/load_augments(list/augments_prefs, current_version)
 	if(!length(augments_prefs))
@@ -646,6 +713,8 @@
 #undef VERSION_DONK_MIGRATION
 #undef VERSION_AUGMENT_ITEMS_PATH_CHANGE
 #undef VERSION_HEMOPHAGE_SPECIES_REMOVAL
+#undef VERSION_MARKING_DATUMS
+#undef VERSION_MARKING_CONTENT
 #undef INDEX_UNDERWEAR
 #undef INDEX_BRA
 #undef VERSION_HEIGHT_UPDATE

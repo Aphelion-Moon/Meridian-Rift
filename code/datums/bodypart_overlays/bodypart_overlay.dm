@@ -91,9 +91,12 @@
 /// Returns the husk-ified image, doesn't modify the original image.
 /datum/bodypart_overlay/proc/huskify_image(image/main_image, obj/item/bodypart/limb)
 	PRIVATE_PROC(TRUE)
+	/* // APHELION EDIT REMOVAL START - Each sheet from a file is toned for husks once
 	var/icon/husk_icon = new(main_image.icon)
 	husk_icon.ColorTone(HUSK_COLOR_TONE)
 	main_image.icon = husk_icon
+	*/ // APHELION EDIT REMOVAL END
+	main_image.icon = husk_toned_sheet(main_image.icon) // APHELION EDIT ADDITION - Each sheet from a file is toned for husks once
 	main_image.color = limb.draw_color
 	return main_image
 

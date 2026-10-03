@@ -290,9 +290,20 @@
 
 	name = "[limb_id] [parse_zone(body_zone)]"
 	update_limb(TRUE)
-	update_icon_dropped()
+	// APHELION EDIT CHANGE START - A limb made in nullspace is drawn when it first leaves it - ORIGINAL: update_icon_dropped()
+	if(loc)
+		update_icon_dropped()
+	// APHELION EDIT CHANGE END
 	refresh_bleed_rate()
 
+// APHELION EDIT ADDITION START - A limb made in nullspace is drawn when it first leaves it
+/obj/item/bodypart/Moved(atom/old_loc, movement_dir, forced, list/old_locs, momentum_change = TRUE)
+	. = ..()
+	// Most limbs made in nullspace are attached to a body, or deleted, before anyone could see them dropped.
+	if(isnull(old_loc) && !owner)
+		update_icon_dropped()
+
+// APHELION EDIT ADDITION END
 /obj/item/bodypart/Destroy()
 	if(owner && !QDELETED(owner))
 		forced_removal(special = FALSE, dismembered = TRUE, move_to_floor = FALSE)
@@ -1241,14 +1252,11 @@
 		alpha = owner_species.specific_alpha
 
 	if(!(bodypart_flags & (BODYPART_PSEUDOPART | BODYPART_STUMP)) && !(bodyshape & BODYSHAPE_TAUR))
-		if(body_zone in owner_dna.body_markings)
-			markings = LAZYLISTDUPLICATE(owner_dna.body_markings[body_zone])
-		else
-			LAZYNULL(markings)
-		if(aux_zone && (aux_zone in owner_dna.body_markings))
-			aux_zone_markings = LAZYLISTDUPLICATE(owner_dna.body_markings[aux_zone])
-		else
-			LAZYNULL(aux_zone_markings)
+		// The DNA's own zone lists, shared and never edited in place: a change builds new ones, so a detached limb goes on drawing the one it last got.
+		var/datum/body_marking_collection/owner_markings = owner_dna.body_markings
+		var/list/marking_views = BODY_MARKING_ZONE_VIEWS(owner_markings)
+		markings = marking_views?[body_zone]
+		aux_zone_markings = aux_zone ? marking_views?[aux_zone] : null
 		markings_alpha = owner_species.markings_alpha
 	else
 		LAZYNULL(markings)
@@ -1257,9 +1265,11 @@
 	// Recolors mutant overlays to match new mutant colors
 	for(var/datum/bodypart_overlay/mutant/overlay in bodypart_overlays)
 		overlay.inherit_color(src, force = TRUE)
+	/* // APHELION EDIT REMOVAL START - No limb carries a species body marking overlay any more, see markings_bodypart_overlay.dm.
 	// Ensures marking overlays are updated accordingly as well
 	for(var/datum/bodypart_overlay/simple/body_marking/marking in bodypart_overlays)
 		marking.set_appearance(owner_dna.features[marking.dna_feature_key], species_color)
+	*/ // APHELION EDIT REMOVAL END
 
 	return TRUE
 
@@ -1443,6 +1453,9 @@
 		if(aux_zone)
 			aux.color = limb_color // NOVA EDIT CHANGE - ORIGINAL: aux.color = "[draw_color]"
 
+	// APHELION EDIT ADDITION START - Native markings, composed as the custom sprite editor composes them, go in before the leg split below, so a leg's markings and their glow are masked into both of its layers like the leg, and they face south with a dropped limb like its other images.
+	append_base_marking_overlays(., image_dir = image_dir)
+	// APHELION EDIT ADDITION END
 	// No need to handle leg layering if dropped, we only face south anyways
 	if(!dropped && ((body_zone == BODY_ZONE_R_LEG) || (body_zone == BODY_ZONE_L_LEG)))
 		// Legs are a bit goofy in regards to layering, and we will need two images instead of one to fix that
@@ -1452,9 +1465,11 @@
 			. -= limb_image
 			// Add two masked images based on the old one
 			. += leg_source.generate_masked_leg(limb_image)
+	/* // APHELION EDIT REMOVAL START - The markings go in before the leg split, above.
 	// NOVA EDIT ADDITION START - MARKINGS CODE
 	append_base_marking_overlays(.)
 	// NOVA EDIT ADDITION END - MARKINGS CODE END
+	*/ // APHELION EDIT REMOVAL END
 
 	// Apply height to the overlays we generated so far
 	// This is done before collecting bodypart overlays so we don't apply height twice to the same overlays
@@ -1492,6 +1507,34 @@
 	SEND_SIGNAL(src, COMSIG_BODYPART_GET_LIMB_ICON, ., dropped)
 	return .
 
+// APHELION EDIT ADDITION START - Each sheet from a file is toned for husks once
+/// Icon sheet from a file -> its husk-toned copy in the resource cache; see husk_toned_sheet().
+GLOBAL_LIST_EMPTY(husk_toned_sheets)
+
+/**
+ * Returns an icon sheet toned the way a husk is drawn.
+ *
+ * Toning works on the whole sheet, every state in it, so a sheet from a file is toned once and its copy kept, one per file:
+ * as bounded as the icon files are. A runtime icon or an /icon datum could hold any pixels and is toned afresh every time.
+ *
+ * Arguments:
+ * * sheet - The icon to tone: a file, a runtime icon in the resource cache or an /icon datum.
+ */
+/proc/husk_toned_sheet(sheet)
+	var/from_file = isfile(sheet) && length("[sheet]")
+	if(from_file)
+		var/toned = GLOB.husk_toned_sheets[sheet]
+		if(toned)
+			return toned
+	var/icon/husk_icon = new(sheet)
+	husk_icon.ColorTone(HUSK_COLOR_TONE)
+	if(!from_file)
+		return husk_icon
+	var/toned_copy = fcopy_rsc(husk_icon)
+	GLOB.husk_toned_sheets[sheet] = toned_copy
+	return toned_copy
+
+// APHELION EDIT ADDITION END
 /**
  * Takes in an image and greyscales it to later be recolored to look like a husk
  *
@@ -1499,9 +1542,12 @@
  * May return multiple if the blood overlay has an emissive associated
  */
 /obj/item/bodypart/proc/huskify_image(image/thing_to_husk)
+	/* // APHELION EDIT REMOVAL START - Each sheet from a file is toned for husks once
 	var/icon/husk_icon = new(thing_to_husk.icon)
 	husk_icon.ColorTone(HUSK_COLOR_TONE)
 	thing_to_husk.icon = husk_icon
+	*/ // APHELION EDIT REMOVAL END
+	thing_to_husk.icon = husk_toned_sheet(thing_to_husk.icon) // APHELION EDIT ADDITION - Each sheet from a file is toned for husks once
 
 	var/mutable_appearance/husk_blood = mutable_appearance(icon_husk, "[husk_type]_husk_[body_zone]", thing_to_husk.layer, appearance_flags = RESET_COLOR)
 	. = list(husk_blood)

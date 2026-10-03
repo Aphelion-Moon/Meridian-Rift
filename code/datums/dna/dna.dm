@@ -93,7 +93,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 	// APHELION EDIT ADDITION END
 	//NOVA EDIT ADDITION BEGIN - CUSTOMIZATION
 	new_dna.mutant_bodyparts = LAZYCOPY(mutant_bodyparts)
-	new_dna.body_markings = body_markings.Copy()
+	new_dna.body_markings = body_markings.shallow_copy()
 	new_dna.update_body_size()
 	//NOVA EDIT ADDITION END
 	if(transfer_flags & COPY_DNA_SE)
@@ -105,7 +105,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 			var/mob/living/carbon/as_carbon = new_dna.holder
 			as_carbon.set_blood_type(blood_type)
 			if(transfer_flags & COPY_DNA_SPECIES)
-				as_carbon.set_species(species.type, icon_update = 0, pref_load = FALSE, override_features = features.Copy(), override_mutantparts = LAZYCOPY(mutant_bodyparts), override_markings = body_markings.Copy())
+				as_carbon.set_species(species.type, icon_update = 0, pref_load = FALSE, override_features = features.Copy(), override_mutantparts = LAZYCOPY(mutant_bodyparts), override_markings = body_markings.shallow_copy()) // APHELION EDIT CHANGE - Body markings are a collection; shallow_copy() is its Copy(). ORIGINAL: as_carbon.set_species(species.type, icon_update = 0, pref_load = FALSE, override_features = features.Copy(), override_mutantparts = LAZYCOPY(mutant_bodyparts), override_markings = body_markings.Copy())
 	else
 		new_dna.blood_type = blood_type
 		if(transfer_flags & COPY_DNA_SPECIES)
@@ -204,6 +204,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 		. += block.unique_block(holder)
 
 /datum/dna/proc/generate_unique_features()
+	/* APHELION EDIT REMOVAL START
 	. = ""
 	for(var/block_type in GLOB.dna_feature_blocks)
 		var/datum/dna_block/feature/block = GLOB.dna_feature_blocks[block_type]
@@ -211,6 +212,17 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 			. += random_string(block.block_length, GLOB.hex_characters)
 			continue
 		. += block.unique_block(holder)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - The blocks joined once, not a longer copy of the hash per block
+	var/list/blocks = list()
+	for(var/block_type, feature_block in GLOB.dna_feature_blocks)
+		var/datum/dna_block/feature/block = feature_block
+		if(isnull(features[block.feature_key]))
+			blocks += random_string(block.block_length, GLOB.hex_characters)
+			continue
+		blocks += block.unique_block(holder)
+	return jointext(blocks, "")
+	// APHELION EDIT ADDITION END
 
 /**
  * Picks what mutations this DNA has innate and generates DNA blocks for them
@@ -409,7 +421,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 			stored_dna.species = mrace //not calling any species update procs since we're a brain, not a monkey/human
 
 
-/mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE, list/override_features, list/override_mutantparts, list/override_markings) // NOVA EDIT CHANGE - ORIGINAL: /mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE)
+/mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE, list/override_features, list/override_mutantparts, datum/body_marking_collection/override_markings) // APHELION EDIT CHANGE - Body markings are a collection. ORIGINAL: /mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE, list/override_features, list/override_mutantparts, list/override_markings) // NOVA EDIT CHANGE - ORIGINAL: /mob/living/carbon/set_species(datum/species/mrace, icon_update = TRUE, pref_load = FALSE, replace_missing = TRUE)
 	if(QDELETED(src))
 		CRASH("You're trying to change your species post deletion, this is a recipe for madness")
 	if(isnull(mrace))
@@ -439,9 +451,8 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 			override_mutantparts[feature] = dna.mutant_bodyparts[feature]
 		dna.mutant_bodyparts = override_mutantparts
 
-	if(LAZYLEN(override_markings))
-		for(var/feature in dna.body_markings)
-			override_markings[feature] = dna.body_markings[feature]
+	if(override_markings?.zone_count())
+		override_markings.overwrite_zones_from(dna.body_markings)
 		dna.body_markings = override_markings
 
 	if(LAZYLEN(override_features))
@@ -451,7 +462,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 
 	if(!dna.species.allow_customizable_dna_features) // for species where we do not want to carry anything like this over
 		dna.mutant_bodyparts = dna.species.get_mutant_bodyparts(dna.features)
-		dna.body_markings = list()
+		dna.body_markings = new /datum/body_marking_collection
 	else
 		apply_customizable_dna_features_to_species()
 	dna.unique_features = dna.generate_unique_features()
@@ -534,6 +545,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 
 /mob/living/carbon/human/updateappearance(icon_update = TRUE, mutcolor_update = FALSE, mutations_overlay_update = FALSE)
 	. = ..()
+	/* // APHELION EDIT REMOVAL START
 	for(var/block_type in GLOB.dna_identity_blocks)
 		var/datum/dna_block/identity/block_to_apply = GLOB.dna_identity_blocks[block_type]
 		block_to_apply.apply_to_mob(src, dna.unique_identity)
@@ -542,6 +554,17 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 		var/datum/dna_block/feature/block_to_apply = GLOB.dna_feature_blocks[block_type]
 		if(dna.features[block_to_apply.feature_key])
 			block_to_apply.apply_to_mob(src, dna.unique_features)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - optimization
+	for(var/block_type, block in GLOB.dna_identity_blocks)
+		var/datum/dna_block/identity/block_to_apply = block
+		block_to_apply.apply_to_mob(src, dna.unique_identity)
+
+	for(var/block_type, block in GLOB.dna_feature_blocks)
+		var/datum/dna_block/feature/block_to_apply = block
+		if(dna.features[block_to_apply.feature_key])
+			block_to_apply.apply_to_mob(src, dna.unique_features)
+	// APHELION EDIT ADDITION END
 
 	for(var/obj/item/organ/organ in organs)
 		organ.mutate_feature(dna.unique_features, src)

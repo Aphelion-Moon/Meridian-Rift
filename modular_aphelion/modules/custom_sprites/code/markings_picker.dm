@@ -13,15 +13,41 @@
 		icons_by_zone[zone] = icons
 	return icons_by_zone
 
+/**
+ * Full-size mirror sprite classes for markings whose sheet is larger than a tile. The ordinary 32x32 markings
+ * reuse their picker sprite. Kept beside the picker in the same preferences asset, so hovering requests no drawing.
+ */
+/proc/custom_sprite_native_marking_icons()
+	var/static/list/native_icons
+	if(native_icons)
+		return native_icons
+	if(!length(GLOB.body_markings_per_limb))
+		return list()
+	native_icons = list()
+	for(var/zone, icons in custom_sprite_marking_icons())
+		for(var/name, sprite_class in icons)
+			var/datum/body_marking/marking = GLOB.body_markings[name]
+			var/list/dimensions = get_icon_dimensions(marking.icon)
+			var/width = dimensions["width"]
+			var/height = dimensions["height"]
+			if(width == 32 && height == 32)
+				continue
+			var/state = marking.zone_icon_state(zone) || marking.zone_icon_state(zone, digitigrade = TRUE)
+			if(!icon_exists(marking.icon, state))
+				continue
+			LAZYINITLIST(native_icons[zone])
+			native_icons[zone][name] = "preferences[width]x[height] [sprite_class]_native"
+	return native_icons
+
 /// Adds each zone's native marking once to the same cached sheet used by hair preferences.
 /proc/custom_sprite_insert_marking_icons(datum/asset/spritesheet_batched/preferences/sheet)
 	for(var/zone, icons in custom_sprite_marking_icons())
 		for(var/name, sprite_class in icons)
 			var/datum/body_marking/marking = GLOB.body_markings[name]
-			var/gender_suffix = zone == BODY_ZONE_CHEST && marking.gendered ? "_m" : ""
 			var/icon_file = marking.icon
-			var/icon_state = "[marking.icon_state]_[zone][gender_suffix]"
-			// Some existing choices advertise zones with no artwork. Keep their empty appearance and eligibility.
+			// The state a male chest and a plantigrade leg draw, or a digitigrade leg for a marking with art for no other.
+			var/icon_state = marking.zone_icon_state(zone) || marking.zone_icon_state(zone, digitigrade = TRUE)
+			// Every zone a marking is offered on has its art; one a sheet still lacked would preview blank.
 			if(!icon_exists(icon_file, icon_state))
 				icon_file = 'icons/blanks/32x32.dmi'
 				icon_state = "nothing"
@@ -30,6 +56,10 @@
 			var/width = dimensions["width"]
 			var/height = dimensions["height"]
 			if(width != 32 || height != 32)
+				// The mirror paints in native pixels; only its picker thumbnail is scaled below.
+				var/datum/universal_icon/native = uni_icon(icon_file, icon_state, SOUTH)
+				native.map_colors_rgba(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3)
+				sheet.insert_icon("[sprite_class]_native", native)
 				var/scale = min(1, 32 / max(width, height))
 				width = max(1, round(width * scale))
 				height = max(1, round(height * scale))

@@ -2,19 +2,22 @@
 
 /datum/preference_middleware/limbs_and_markings
 	action_delegations = list(
-		"set_bodypart_aug" = PROC_REF(set_bodypart_aug),
-		"set_bodypart_aug_style" = PROC_REF(set_bodypart_aug_style),
-		"add_marking"  = PROC_REF(add_marking),
-		"change_marking" = PROC_REF(change_marking),
-		"color_marking" = PROC_REF(color_marking),
-		"remove_marking" = PROC_REF(remove_marking),
-		"set_internal_implant_aug" = PROC_REF(set_internal_implant_aug),
-		"set_preset" = PROC_REF(set_preset),
-		"change_emissive" = PROC_REF(change_emissive_marking),
+		"set_bodypart_aug" = PROC_REF(act_set_bodypart_aug),
+		"set_bodypart_aug_style" = PROC_REF(act_set_bodypart_aug_style),
+		"add_marking"  = PROC_REF(act_add_marking),
+		"change_marking" = PROC_REF(act_change_marking),
+		"color_marking" = PROC_REF(act_color_marking),
+		"reset_marking_color" = PROC_REF(act_reset_marking_color),
+		"remove_marking" = PROC_REF(act_remove_marking),
+		"set_internal_implant_aug" = PROC_REF(act_set_internal_implant_aug),
+		"set_preset" = PROC_REF(act_set_preset),
+		"change_emissive" = PROC_REF(act_change_emissive_marking),
 	)
 
 /datum/preference_middleware/limbs_and_markings/apply_to_human(mob/living/carbon/human/target, datum/preferences/preferences, visuals_only = FALSE)
-	target.dna.body_markings = LAZYCOPY(preferences.body_markings)
+	// The body gets entries of its own, so recolouring it (fur dyer, slime colour reset) never reaches the saved character,
+	// and none of them glow while the character's allow_emissives preference is off, as custom sprites are dressed.
+	target.dna.body_markings = preferences.body_markings.copy(allow_emissives = preferences.read_preference(/datum/preference/toggle/allow_emissives))
 
 	var/list/visited_body_zones = list()
 	for(var/key, augment_path in preferences.augments)
@@ -34,7 +37,7 @@
 	var/should_greyscale_limbs
 	if(!preferences.read_preference(/datum/preference/toggle/skin_tone_toggle))
 		var/datum/preference/toggle/skin_tone_toggle/skin_tone_toggle = GLOB.preference_entries[/datum/preference/toggle/skin_tone_toggle]
-		if(skin_tone_toggle.is_accessible(preferences))
+		if(skin_tone_toggle.is_applicable(preferences))
 			should_greyscale_limbs = TRUE
 
 	var/limbs_changed = FALSE
@@ -189,28 +192,45 @@
 
 	return augment_slots_with_items
 
-/// Builds unfiltered marking choices per slot — TSX filters by species/mismatched parts
-/datum/preference_middleware/limbs_and_markings/proc/build_marking_choices()
-	var/list/marking_choices = list()
-	for(var/slot in GLOB.body_markings_per_limb)
-		var/list/slot_choices = list()
-		for(var/marking_name in GLOB.body_markings_per_limb[slot])
-			var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-			slot_choices += list(list(
-				"name"                = marking_name,
-				"recommended_species" = marking.recommended_species ? jointext(marking.recommended_species, ",") : null,
-			))
-		marking_choices[slot] = slot_choices
-	return marking_choices
+/**
+ * Builds what character setup knows of every marking, once, by name: the zones' choices name markings and TSX looks each up here.
+ * A marking a save holds on a zone that no longer offers it is here too, so its row can still be shown.
+ *
+ * Returns:
+ * - list: marking name -> its color_mode, exclusion_group, recommended_species (comma-separated species ids, or null for any
+ *   species) and, only for a marking with some, recommended_colors.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/build_marking_info()
+	var/list/marking_info = list()
+	for(var/marking_name, marking_datum in GLOB.body_markings)
+		var/datum/body_marking/marking = marking_datum
+		var/list/info = list(
+			"color_mode"          = marking.color_mode,
+			"exclusion_group"     = marking.exclusion_group,
+			"recommended_species" = marking.recommended_species ? jointext(marking.recommended_species, ",") : null,
+		)
+		// Only a marking with suggested colours sends them.
+		if(marking.recommended_colors)
+			info["recommended_colors"] = marking.recommended_colors
+		marking_info[marking_name] = info
+	return marking_info
 
 /// Builds unfiltered marking presets — TSX filters by species/mismatched parts
 /datum/preference_middleware/limbs_and_markings/proc/build_marking_presets()
 	var/list/presets = list()
-	for(var/preset_name in GLOB.body_marking_sets)
-		var/datum/body_marking_set/marking_set = GLOB.body_marking_sets[preset_name]
+	for(var/preset_name, set_datum in GLOB.body_marking_sets)
+		var/datum/body_marking_set/marking_set = set_datum
+		// The names of the markings the set puts on, in order, or null for none.
+		var/list/marking_names
+		for(var/marking_type in marking_set.body_marking_list)
+			var/datum/body_marking/marking = GLOB.body_markings_by_type[marking_type]
+			if(marking)
+				LAZYADD(marking_names, marking.name)
 		presets += list(list(
 			"name"                = preset_name,
 			"recommended_species" = marking_set.recommended_species ? jointext(marking_set.recommended_species, ",") : null,
+			"markings"            = marking_names,
+			"keep_together"       = marking_set.keep_together,
 		))
 	return presets
 
@@ -236,7 +256,10 @@
 	data["robotic_styles"] = robotic_styles
 
 	data["augment_items"]    = build_augment_choices()
-	data["marking_choices"]  = build_marking_choices()
+	// Each zone's choices by name, unfiltered, in the zone's order: the shared list itself, which nothing here edits. TSX filters
+	// them by species/mismatched parts with the details marking_info sends once per marking.
+	data["marking_choices"]  = GLOB.body_markings_per_limb
+	data["marking_info"]     = build_marking_info()
 	data["marking_icons"] = custom_sprite_marking_icons()
 	data["marking_presets"]  = build_marking_presets()
 	data["max_markings"]     = MAXIMUM_MARKINGS_PER_LIMB
@@ -259,6 +282,19 @@
 	data["quirk_points_enabled"] = SSquirks.points_enabled
 
 	return data
+
+/// Keep existing markings when changing species; enable mismatched parts if the new species needs it.
+/datum/preference_middleware/limbs_and_markings/post_set_preference(mob/user, preference, value)
+	if(preference != "species")
+		return
+	var/datum/species/current_species = edited_species()
+	if(preferences.body_markings.validate_for_species(current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)))
+		preferences.update_preference(GLOB.preference_entries[/datum/preference/toggle/allow_mismatched_parts], TRUE)
+
+/// Returns the species prototype of the character being edited.
+/datum/preference_middleware/limbs_and_markings/proc/edited_species()
+	RETURN_TYPE(/datum/species)
+	return GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
 
 /// Returns whether a taur body takes the place of this character's legs.
 /datum/preference_middleware/limbs_and_markings/proc/has_taur_legs()
@@ -284,7 +320,7 @@
 	if(aug.ckey_whitelist && !LAZYFIND(aug.ckey_whitelist, user?.client?.ckey))
 		return FALSE
 	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
-	if(taur_choice.is_accessible(prefs) && prefs.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
+	if(taur_choice.is_applicable(prefs) && prefs.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
 		var/datum/augment_item/limb/limb_aug = astype(aug, /datum/augment_item/limb)
 		if(limb_aug?.slot_flag && (limb_aug.slot_flag & (LEG_LEFT|LEG_RIGHT)))
 			return FALSE
@@ -352,51 +388,89 @@
 
 // Marking actions
 /datum/preference_middleware/limbs_and_markings/proc/fix_colors_on_markings_to_tgui()
-	var/list/all_markings = preferences.body_markings
-	if(!length(all_markings))
+	var/datum/body_marking_collection/all_markings = preferences.body_markings
+	if(!all_markings.zone_count())
 		return
 	var/list/result = list()
-	for(var/slot in all_markings)
-		var/list/slot_markings = all_markings[slot]
+	for(var/slot, slot_entries in all_markings.zone_views())
+		var/list/slot_markings = slot_entries
 		if(!length(slot_markings))
 			continue
 		var/list/fixed = list()
 		var/marking_count = 0
-		for(var/marking in slot_markings)
+		for(var/datum/body_marking_entry/entry as anything in slot_markings)
 			marking_count++
 			fixed += list(list(
-				"name"       = marking,
-				"color"      = sanitize_hexcolor(slot_markings[marking][1]),
+				"name"       = entry.marking.name,
+				"color"      = sanitize_hexcolor(entry.get_color()),
 				"marking_id" = "[slot]_[marking_count]",
-				"emissive"   = slot_markings[marking][2],
+				"emissive"   = entry.get_emissive(),
+				// A locked marking's colour is its own, so the row's colour control needs no lookup to know it can't pick one.
+				"locked"     = entry.marking.color_mode == MARKING_COLOR_LOCKED,
 			))
 		result[slot] = fixed
 	return result
 
+/**
+ * Returns the entry a LimbsPage row stands for.
+ *
+ * Arguments:
+ * - zone: the row's zone.
+ * - marking_id: "[zone]_[n]", n counting that zone's markings in order from 1.
+ *
+ * Returns:
+ * - /datum/body_marking_entry, or null when no row has that id.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/marking_entry_by_id(zone, marking_id)
+	var/marking_count = 0
+	for(var/datum/body_marking_entry/entry as anything in preferences.body_markings.entries_for_zone(zone))
+		marking_count++
+		if(marking_id == "[zone]_[marking_count]")
+			return entry
+	return null
+
+/**
+ * Returns the features a new marking's colour is seeded from: the preview body's, which wears the character's mutant colours.
+ *
+ * Returns:
+ * - list: the preview body's own features list. Read it, never edit it.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/marking_seed_features()
+	RETURN_TYPE(/list)
+	return preferences.character_preview_view.body.dna.features
+
+/**
+ * Adds a marking to a zone: the one params["marking_name"] names, or one picked at random without a name. Either comes from
+ * the zone's markings the species may wear (any, with mismatched parts), less the ones the zone wears and the rest of
+ * their exclusion groups. A name that isn't among them is refused.
+ */
 /datum/preference_middleware/limbs_and_markings/proc/add_marking(list/params, mob/user)
 	var/bodypart_slot = params["bodypart_slot"]
+	if(!(bodypart_slot in GLOB.body_markings_per_limb))
+		return
 	// Leg markings never show under a taur body.
 	if((bodypart_slot in list(BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)) && has_taur_legs())
 		return
-	if(!preferences.body_markings[bodypart_slot])
-		preferences.body_markings[bodypart_slot] = list()
-	if(length(preferences.body_markings[bodypart_slot]) >= MAXIMUM_MARKINGS_PER_LIMB)
+	var/datum/body_marking_collection/all_markings = preferences.body_markings
+	all_markings.add_zone(bodypart_slot)
+	if(all_markings.zone_length(bodypart_slot) >= MAXIMUM_MARKINGS_PER_LIMB)
 		return
-	var/datum/species/current_species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
-	// Markings are keyed by name, so one the limb already wears would duplicate that entry.
-	var/list/choices = body_markings_of_zone_for_species(bodypart_slot, current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)) - preferences.body_markings[bodypart_slot]
-	if(!length(choices))
+	var/datum/species/current_species = edited_species()
+	var/list/choices
+	for(var/choice in body_markings_of_zone_for_species(bodypart_slot, current_species.id, preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts)) - all_markings.marking_names(bodypart_slot))
+		// A worn marking keeps the rest of its exclusion group off the zone.
+		var/datum/body_marking/candidate = GLOB.body_markings[choice]
+		if(!candidate.exclusion_group || !all_markings.blocking_entry(bodypart_slot, candidate))
+			LAZYADD(choices, choice)
+	var/marking_name = params["marking_name"]
+	if(isnull(marking_name))
+		if(!LAZYLEN(choices))
+			return
+		marking_name = pick(choices)
+	else if(!(marking_name in choices))
 		return
-	var/marking_name = pick(choices)
 	var/datum/body_marking/marking = GLOB.body_markings[marking_name]
-	var/list/preview_features = preferences.character_preview_view.body.dna.features
-	var/list/features = list(
-		FEATURE_MUTANT_COLOR       = preview_features[FEATURE_MUTANT_COLOR],
-		FEATURE_MUTANT_COLOR_TWO   = preview_features[FEATURE_MUTANT_COLOR_TWO],
-		FEATURE_MUTANT_COLOR_THREE = preview_features[FEATURE_MUTANT_COLOR_THREE],
-		FEATURE_SKIN_COLOR         = skintone2hex(preferences.read_preference(/datum/preference/choiced/skin_tone)),
-	)
-	preferences.body_markings[bodypart_slot] += list("[marking_name]" = list(marking.get_default_color(features, current_species), FALSE))
+	all_markings.add_entry(new /datum/body_marking_entry(marking, bodypart_slot, marking.seed_color(marking_seed_features(), current_species)))
 	preferences.character_preview_view.update_body()
 	return TRUE
 
@@ -404,39 +478,56 @@
 	var/bodypart_slot = params["bodypart_slot"]
 	var/marking_id = params["marking_id"]
 	var/marking_name = params["marking_name"]
-	var/list/markings = preferences.body_markings[bodypart_slot]
-	// Another row's name would merge the two entries into one.
-	if(!(marking_name in GLOB.body_markings_per_limb[bodypart_slot]) || (marking_name in markings))
+	var/datum/body_marking_collection/all_markings = preferences.body_markings
+	// A limb wears each marking once, so another row's marking is refused.
+	if(!(marking_name in GLOB.body_markings_per_limb[bodypart_slot]) || all_markings.find_entry(bodypart_slot, marking_name))
 		return
-	var/list/new_markings = list()
-	var/marking_count = 0
-	for(var/entry, marking_data in markings)
-		marking_count++
-		if(marking_id == "[bodypart_slot]_[marking_count]")
-			new_markings[marking_name] = marking_data
-		else
-			new_markings[entry] = markings[entry]
-	preferences.body_markings[bodypart_slot] = new_markings
+	var/datum/body_marking/replacement = GLOB.body_markings[marking_name]
+	// Without mismatched parts a marking meant for other species is refused, as add_marking never offers one.
+	if(!preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts))
+		var/datum/species/current_species = edited_species()
+		if(!replacement.allows_species(current_species.id))
+			return
+	// Acting on a zone keeps it, even emptied, as the rebuilt nested map did.
+	all_markings.add_zone(bodypart_slot)
+	var/datum/body_marking_entry/renamed = marking_entry_by_id(bodypart_slot, marking_id)
+	if(renamed)
+		// The row keeps its colour, unless its new marking is locked: that starts in its own colour, never the replaced row's.
+		var/color = renamed.get_color()
+		if(replacement.color_mode == MARKING_COLOR_LOCKED)
+			color = replacement.seed_color(marking_seed_features(), edited_species())
+		// Another row wearing a marking of the replacement's exclusion group refuses it.
+		if(!all_markings.replace_entry(renamed, new /datum/body_marking_entry(replacement, bodypart_slot, color, renamed.get_emissive())))
+			return
 	preferences.character_preview_view.update_body()
 	return TRUE
 
+/**
+ * Recolours a row's marking to params["color"], the "#rrggbb" character setup's own colour picker sends. A row that isn't
+ * there, anything else sent as the colour and a locked marking, whose colour is its own, are refused.
+ */
 /datum/preference_middleware/limbs_and_markings/proc/color_marking(list/params, mob/user)
 	var/bodypart_slot = params["bodypart_slot"]
 	var/marking_id = params["marking_id"]
-	var/list/markings = preferences.body_markings[bodypart_slot]
-	var/list/new_markings = list()
-	var/marking_count = 0
-	var/target_entry
-	for(var/entry, marking_data in markings)
-		marking_count++
-		if(marking_id == "[bodypart_slot]_[marking_count]")
-			target_entry = entry
-		new_markings[entry] = marking_data
-	var/new_color = tgui_color_picker(usr, "Select new color", null, preferences.body_markings[bodypart_slot][target_entry][1])
-	if(!new_color)
-		return TRUE
-	new_markings[target_entry][1] = new_color
-	preferences.body_markings[bodypart_slot] = new_markings
+	var/new_color = params["color"]
+	var/datum/body_marking_entry/recoloured = marking_entry_by_id(bodypart_slot, marking_id)
+	// set_color() refuses a locked marking.
+	if(!recoloured || !istext(new_color) || !findtext(new_color, GLOB.is_color) || !recoloured.set_color(new_color))
+		return
+	preferences.character_preview_view.update_body()
+	return TRUE
+
+/**
+ * Gives a row's marking the colour it starts in again, by its colour mode: the preview's mutant colour it follows, or its own.
+ * A locked marking gets its own colour back too, which a recolour can't give it.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/reset_marking_color(list/params, mob/user)
+	var/bodypart_slot = params["bodypart_slot"]
+	var/marking_id = params["marking_id"]
+	var/datum/body_marking_entry/reset = marking_entry_by_id(bodypart_slot, marking_id)
+	if(!reset)
+		return
+	reset.reseed_color(marking_seed_features(), edited_species())
 	preferences.character_preview_view.update_body()
 	return TRUE
 
@@ -444,50 +535,113 @@
 	var/bodypart_slot = params["bodypart_slot"]
 	var/marking_id = params["marking_id"]
 	var/emissive = !params["emissive"]
-	var/list/markings = preferences.body_markings[bodypart_slot]
-	var/list/new_markings = list()
-	var/marking_count = 0
-	var/target_entry
-	for(var/entry, marking_data in markings)
-		marking_count++
-		if(marking_id == "[bodypart_slot]_[marking_count]")
-			target_entry = entry
-		new_markings[entry] = marking_data
-	new_markings[target_entry][2] = sanitize_integer(emissive)
-	preferences.body_markings[bodypart_slot] = new_markings
+	var/datum/body_marking_entry/toggled = marking_entry_by_id(bodypart_slot, marking_id)
+	if(!toggled)
+		return
+	// A glow waits on the character's allow_emissives preference, as custom sprite glow does.
+	if(!toggled.set_emissive(sanitize_integer(emissive), preferences.read_preference(/datum/preference/toggle/allow_emissives)))
+		return
 	preferences.character_preview_view.update_body()
 	return TRUE
 
 /datum/preference_middleware/limbs_and_markings/proc/remove_marking(list/params, mob/user)
 	var/bodypart_slot = params["bodypart_slot"]
 	var/marking_id = params["marking_id"]
-	var/list/markings = preferences.body_markings[bodypart_slot]
-	var/list/new_markings = list()
-	var/marking_count = 0
-	for(var/entry, marking_data in markings)
-		marking_count++
-		if(marking_id == "[bodypart_slot]_[marking_count]")
-			continue
-		new_markings[entry] = marking_data
-	preferences.body_markings[bodypart_slot] = new_markings
+	var/datum/body_marking_collection/all_markings = preferences.body_markings
+	// Acting on a zone keeps it, even emptied, as the rebuilt nested map did.
+	all_markings.add_zone(bodypart_slot)
+	var/datum/body_marking_entry/removed = marking_entry_by_id(bodypart_slot, marking_id)
+	if(removed)
+		all_markings.remove_entry(removed)
 	preferences.character_preview_view.update_body()
 	return TRUE
 
 /datum/preference_middleware/limbs_and_markings/proc/set_preset(list/params, mob/user)
 	var/preset = params["preset"]
-	if(preset)
-		var/datum/body_marking_set/BMS = GLOB.body_marking_sets[preset]
-		var/species_type = preferences.read_preference(/datum/preference/choiced/species)
-		var/list/preview_features = preferences.character_preview_view.body.dna.features
-		var/list/features = list(
-			FEATURE_MUTANT_COLOR       = preview_features[FEATURE_MUTANT_COLOR],
-			FEATURE_MUTANT_COLOR_TWO   = preview_features[FEATURE_MUTANT_COLOR_TWO],
-			FEATURE_MUTANT_COLOR_THREE = preview_features[FEATURE_MUTANT_COLOR_THREE],
-			FEATURE_SKIN_COLOR         = skintone2hex(preferences.read_preference(/datum/preference/choiced/skin_tone)),
-		)
-		var/datum/species/current_species = GLOB.species_prototypes[species_type]
-		preferences.body_markings = assemble_body_markings_from_set(BMS, features, current_species)
+	// A name no set has returns quietly, where it used to runtime assembling a null set.
+	var/datum/body_marking_set/marking_set = istext(preset) ? GLOB.body_marking_sets[preset] : null
+	if(!marking_set)
+		return
+	var/datum/species/current_species = edited_species()
+	// Without mismatched parts a set meant for other species is refused, as the presets list never offers one.
+	if(!preferences.read_preference(/datum/preference/toggle/allow_mismatched_parts) && !marking_set.allows_species(current_species.id))
+		return
+	if(!length(marking_set.body_marking_list))
+		// A set without markings, "None", clears every zone: the whole collection is replaced, as it always was.
+		preferences.body_markings = new /datum/body_marking_collection
+	else if(marking_set.keep_together)
+		// A set kept together is worn as a unit: it replaces every marking, on the zones it leaves bare as well.
+		preferences.body_markings = assemble_body_markings_from_set(marking_set, marking_seed_features(), current_species)
+	else
+		// A set with markings merges: each zone it covers is replaced by its markings in the set's order, and
+		// every other zone keeps what it wears.
+		preferences.body_markings.overwrite_zones_from(assemble_body_markings_from_set(marking_set, marking_seed_features(), current_species))
 	preferences.character_preview_view.update_body()
 	return TRUE
+
+/*
+ * The window's side of each action. An action changes one thing the window shows (the markings, the augments and the
+ * quirk balance they cost, or the augments' finishes), so the open window is sent just that (ui.send_update()) rather
+ * than all of its data again, and the action asks for no full update. The actions themselves return whether they did
+ * anything, as before.
+ */
+
+/// Sends the open character setup window the markings. Returns FALSE: nothing else needs sending.
+/datum/preference_middleware/limbs_and_markings/proc/send_markings(mob/user)
+	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
+	ui?.send_update(list("markings" = fix_colors_on_markings_to_tgui()))
+	return FALSE
+
+/// Sends the open character setup window the augments and the quirk balance, which they cost. Returns FALSE.
+/datum/preference_middleware/limbs_and_markings/proc/send_augments(mob/user)
+	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
+	ui?.send_update(list(
+		"augments" = preferences.augments.Copy(),
+		"quirks_balance" = preferences.GetQuirkBalance(),
+	))
+	return FALSE
+
+/// Sends the open character setup window the augments' finishes. Returns FALSE.
+/datum/preference_middleware/limbs_and_markings/proc/send_augment_styles(mob/user)
+	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
+	ui?.send_update(list("augment_styles" = preferences.augment_limb_styles.Copy()))
+	return FALSE
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_bodypart_aug(list/params, mob/user)
+	var/list/quirks = preferences.all_quirks
+	if(!set_bodypart_aug(params, user))
+		return FALSE
+	// Quirks the augment ruled out went with it, and the window is being sent all of its data again.
+	return quirks != preferences.all_quirks || send_augments(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_bodypart_aug_style(list/params, mob/user)
+	return set_bodypart_aug_style(params, user) && send_augment_styles(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_internal_implant_aug(list/params, mob/user)
+	var/list/quirks = preferences.all_quirks
+	if(!set_internal_implant_aug(params, user))
+		return FALSE
+	return quirks != preferences.all_quirks || send_augments(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_add_marking(list/params, mob/user)
+	return add_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_change_marking(list/params, mob/user)
+	return change_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_color_marking(list/params, mob/user)
+	return color_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_reset_marking_color(list/params, mob/user)
+	return reset_marking_color(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_change_emissive_marking(list/params, mob/user)
+	return change_emissive_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_remove_marking(list/params, mob/user)
+	return remove_marking(params, user) && send_markings(user)
+
+/datum/preference_middleware/limbs_and_markings/proc/act_set_preset(list/params, mob/user)
+	return set_preset(params, user) && send_markings(user)
 
 #undef DEFAULT_NAME

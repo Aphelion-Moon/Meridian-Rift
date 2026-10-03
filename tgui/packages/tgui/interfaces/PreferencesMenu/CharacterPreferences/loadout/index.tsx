@@ -542,6 +542,7 @@ function LoadoutPreviewSection() {
             width="240px"
             // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
             motif="mirror" // APHELION EDIT ADDITION - Preview frames: the loadout's mirror
+            lightKey // APHELION EDIT ADDITION - Preview lights: the switch is a key on the mirror's glass
           />{' '}
           {/* NOVA EDIT CHANGE - ORIGINAL: <CharacterPreview height="100%" id={data.character_preview_view} /> */}
         </Stack.Item>

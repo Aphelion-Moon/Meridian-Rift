@@ -6,14 +6,11 @@
 	mod_icon_slots = ITEM_SLOT_HEAD
 
 /datum/sprite_accessory/skrell_hair/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/bodypart_overlay)
-	// Exception for MODs
-	if(istype(wearer.head, /obj/item/clothing/head/mod))
-		return FALSE
-
-	if((wearer.head?.flags_inv & HIDEHAIR) || (wearer.wear_mask?.flags_inv & HIDEHAIR))
+	var/obj/item/worn_head = wearer.head
+	// Hide if flagged to, with an exception for MODs
+	if(!istype(worn_head, /obj/item/clothing/head/mod) && ((worn_head?.flags_inv | wearer.wear_mask?.flags_inv) & HIDEHAIR))
 		return TRUE
-
-	return FALSE
+	return LEWD_ITEM_HIDES_PARTS(wearer, TRUE, TRUE)
 
 /datum/sprite_accessory/skrell_hair/none
 	name = SPRITE_ACCESSORY_NONE

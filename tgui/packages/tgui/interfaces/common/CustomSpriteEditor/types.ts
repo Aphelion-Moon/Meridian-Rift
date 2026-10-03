@@ -17,7 +17,13 @@ export type CustomSpriteCandidate = {
   skipped?: string[];
 };
 
-export type RegionMarking = { index: number; name: string; color: string };
+export type RegionMarking = {
+  index: number;
+  name: string;
+  color: string;
+  /** The marking always wears its own colour, so none can be picked. */
+  locked?: BooleanLike;
+};
 
 export type CustomSpriteBackground = {
   name: string;
@@ -50,6 +56,14 @@ export type CustomSpriteEditorData = {
   maxCustomColors: number;
   guides: Record<Dir, string>;
   previews: Record<Dir, string>;
+  /**
+   * Each view's glow, for the preview's lights-off view: what glows in its
+   * picture, or "" when nothing does. Sent only while the window has its
+   * lights off; a view's comes once it's drawn.
+   */
+  glows?: Partial<Record<Dir, string>> | null;
+  /** How far what glows blooms with the lights off: the player's bloom setting. */
+  bloom?: number | null;
   edited: Record<Dir, boolean>;
   drawBounds: Record<Dir, [number, number, number, number] | null>;
   drawMask?: Partial<Record<Dir, string[]>> | null;

@@ -806,7 +806,7 @@
 	user.bra_color = chosen_profile.bra_color
 	user.emissive_eyes = chosen_profile.emissive_eyes
 	user.dna.mutant_bodyparts = LAZYCOPY(chosen_dna.mutant_bodyparts)
-	user.dna.body_markings = chosen_dna.body_markings.Copy()
+	user.dna.body_markings = chosen_dna.body_markings.shallow_copy()
 
 	user.selected_scream = GLOB.scream_types[chosen_profile.scream_type]
 	user.selected_laugh = GLOB.laugh_types[chosen_profile.laugh_type]

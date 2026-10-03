@@ -40,6 +40,13 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 	flat.crop(2 - margin + shift_x - flat_x1, 2 + shift_z - flat_y1, 33 + margin + shift_x - flat_x1, 1 + height + shift_z - flat_y1)
 	return uni_icon_facings_json(flat, GLOB.custom_sprite_view_facings)
 
+/// What of a look glows, in custom_sprite_view_recipes()'s window for each of the editors' views, or null when nothing in it glows; see glow.dm.
+/proc/custom_sprite_glow_view_recipes(image/appearance, width = 32, height = 32, shift_x = 0, shift_z = 0)
+	var/list/branches = emissive_branches(appearance)
+	if(!emissive_branches_lit(branches))
+		return null
+	return custom_sprite_view_recipes(emissive_holder(branches, appearance), width, height, shift_x, shift_z)
+
 /**
  * Draws recipes with iconforge, a picture each, on the main thread: a few tenths of a millisecond per picture,
  * where getFlatIcon() takes several for one view of a body. Each PNG goes to `publish`, a data URL of it when
@@ -425,10 +432,11 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 				box = list(min(box[1], first - 1), min(box[2], y - 1), max(box[3], findlasttext(rows[y], "1") - 1), y - 1)
 		.[direction] = box[3] < 0 ? null : list(max(0, box[1] - 1), max(0, box[2] - 1), min(width - 1, box[3] + 1), min(31, box[4] + 1))
 
-/// Row strings keep the wire payload small and test the same silhouette used by rendering. `wrist` gives a hand its wrist band.
-/proc/custom_sprite_body_draw_mask(mob/living/carbon/human/body, body_zone, width = 32, wrist = TRUE)
-	// Bounded cache of directional limb silhouettes used by editing masks.
-	var/static/list/limb_masks = list()
+/**
+ * What custom_sprite_body_draw_mask() draws a zone's silhouette from, as text: the canvas, the zone, and the icons and
+ * states of the limbs that draw it. The same key draws the same mask, so it stands for the mask's rows in other keys.
+ */
+/proc/custom_sprite_body_draw_mask_key(mob/living/carbon/human/body, body_zone, width = 32, wrist = TRUE)
 	var/list/geometry = list(width, body_zone, wrist)
 	var/limb_zone = GLOB.custom_marking_hand_arms[body_zone] || body_zone
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
@@ -440,7 +448,13 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 		var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 		if(taur && chest)
 			geometry += list(taur.icon_render_key(chest), chest.limb_gender)
-	var/key = json_encode(geometry)
+	return json_encode(geometry)
+
+/// Row strings keep the wire payload small and test the same silhouette used by rendering. `wrist` gives a hand its wrist band.
+/proc/custom_sprite_body_draw_mask(mob/living/carbon/human/body, body_zone, width = 32, wrist = TRUE)
+	// Bounded cache of directional limb silhouettes used by editing masks.
+	var/static/list/limb_masks = list()
+	var/key = custom_sprite_body_draw_mask_key(body, body_zone, width, wrist)
 	if(limb_masks[key])
 		return limb_masks[key]
 	return custom_sprite_cache_put(limb_masks, key, custom_sprite_icon_rows(custom_sprite_body_silhouette(body, body_zone, width, wrist), width))

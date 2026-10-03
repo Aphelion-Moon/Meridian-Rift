@@ -244,7 +244,7 @@
 	human_for_preview.set_hair_gradient_style("Reflected Inverse", update = TRUE)
 	human_for_preview.dna.features[FEATURE_MUTANT_COLOR] = "#5D5662"
 	human_for_preview.set_eye_color("#D6A947")
-	human_for_preview.dna.body_markings[BODY_ZONE_HEAD] = list("Drake Eyes" = list("#C36632", 0), "Eyeliner" = list("#C36632", 0))
+	human_for_preview.dna.body_markings.set_zone_from_list(BODY_ZONE_HEAD, list("Drake Eyes" = list("#C36632", 0), "Eyeliner" = list("#C36632", 0)))
 	human_for_preview.update_body_parts(TRUE)
 
 /// Override so outfits don't break proteans when they try to force a backpack item from an outfit

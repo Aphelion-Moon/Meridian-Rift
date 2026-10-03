@@ -1,8 +1,12 @@
 /datum/dna
+	/// Mutant part key -> /datum/mutant_bodypart. A plain list on purpose: its keys keep the order they arrived in, which
+	/// regenerate_organs() walks, so it is the order parts sharing a layer on a limb draw in. An /alist has an order of its own;
+	/// converting this one was measured and declined (the numbers are in the commit "revert: keep dna.mutant_bodyparts a plain
+	/// list walked in arrival order").
 	var/list/list/mutant_bodyparts = list()
 	features = MANDATORY_FEATURE_LIST
 	///Body markings of the DNA's owner. This is for storing their original state for re-creating the character. They'll get changed on species mutation
-	var/list/list/body_markings = list()
+	var/datum/body_marking_collection/body_markings = new
 	///Current body size, used for proper re-sizing and keeping track of that
 	var/current_body_size = BODY_SIZE_NORMAL
 
@@ -26,7 +30,7 @@
 /mob/living/carbon/proc/apply_customizable_dna_features_to_species()
 	if(!has_dna())
 		CRASH("[src] does not have DNA")
-	dna.body_markings = dna.body_markings.Copy()
+	dna.body_markings = dna.body_markings.shallow_copy()
 	var/list/bodyparts_to_add = LAZYCOPY(dna.mutant_bodyparts)
 	for(var/key, part in bodyparts_to_add)
 		var/datum/mutant_bodypart/mutant_part = part

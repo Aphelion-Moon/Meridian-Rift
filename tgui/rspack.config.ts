@@ -76,8 +76,11 @@ export default defineConfig({
       {
         test: /\.(png|jpg)$/,
         // APHELION EDIT ADDITION START - CSS textures ship inside the cached bundle.
-        exclude:
+        exclude: [
           /(?:aphelion-grain-blue-noise-512\.png|glowstick-liquid\.png|scavenger-rust\.jpg|foundry-bronze\.jpg|hephaestus-gunmetal\.jpg)$/,
+          // The markings rooms' pixel props (their textures are the markings_room module's).
+          /[\\/]assets[\\/]markings[\\/][^\\/]+\.(?:png|jpg)$/,
+        ],
         type: 'asset/resource',
         // APHELION EDIT ADDITION END
         generator: {
@@ -88,7 +91,10 @@ export default defineConfig({
       {
         // Fonts and the theme material tiles stay self-contained in
         // BYOND's asset-cached stylesheet, with no extra resource requests.
-        test: /(?:\.(?:woff2|otf|ttf)|aphelion-grain-blue-noise-512\.png|glowstick-liquid\.png|scavenger-rust\.jpg|foundry-bronze\.jpg|hephaestus-gunmetal\.jpg)$/,
+        test: [
+          /(?:\.(?:woff2|otf|ttf)|aphelion-grain-blue-noise-512\.png|glowstick-liquid\.png|scavenger-rust\.jpg|foundry-bronze\.jpg|hephaestus-gunmetal\.jpg)$/,
+          /[\\/]assets[\\/]markings[\\/][^\\/]+\.(?:png|jpg)$/,
+        ],
         type: 'asset/inline',
       },
       // APHELION EDIT ADDITION END

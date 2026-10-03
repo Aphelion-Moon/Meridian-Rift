@@ -57,6 +57,15 @@
 		parts[zone] = get_bodypart(zone)
 	return parts
 
+// APHELION EDIT ADDITION START - A carbon reads each limb from its cache, without a get_bodypart() call per zone
+/mob/living/carbon/get_bodyparts_by_zones()
+	var/list/parts = list()
+	for(var/zone in get_all_limbs())
+		// What get_bodypart(zone) returns without stumps.
+		parts[zone] = real_bodypart_cache[zone]
+	return parts
+
+// APHELION EDIT ADDITION END
 /// Replaces a single limb and deletes the old one if there was one
 /mob/living/carbon/proc/del_and_replace_bodypart(obj/item/bodypart/new_limb, special)
 	var/obj/item/bodypart/old_limb = get_bodypart(new_limb.body_zone)

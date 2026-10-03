@@ -153,12 +153,8 @@
 	regenerate_organs(akula, src, visual_only = TRUE)
 	akula.update_body(TRUE)
 
-/datum/species/akula/get_random_body_markings(list/passed_features)
-	var/datum/body_marking_set/body_marking_set = GLOB.body_marking_sets["Akula"]
-	var/list/markings = list()
-	if(body_marking_set)
-		markings = assemble_body_markings_from_set(body_marking_set, passed_features, src)
-	return markings
+/datum/species/akula/get_random_marking_sets()
+	return /datum/body_marking_set/akula/akula
 
 /datum/species/akula/pre_equip_species_outfit(datum/job/job, mob/living/carbon/human/equipping, visuals_only = FALSE)
 	//should not call parent
