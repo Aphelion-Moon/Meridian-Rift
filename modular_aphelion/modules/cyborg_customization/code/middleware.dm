@@ -45,7 +45,9 @@
 	return preference == /datum/preference/cyborg_layout::savefile_key
 
 /datum/preference_middleware/cyborg_character/proc/set_page(list/params, mob/user)
-	if(!islist(params) || length(params) != 1 || (user?.client && user.client != preferences.parent))
+	if(!islist(params) || length(params) != 1 || !("active" in params) || !(params["active"] in list(TRUE, FALSE)))
+		return FALSE
+	if(user?.client && user.client != preferences.parent)
 		return FALSE
 	var/active = params["active"] == TRUE
 	if(active == page_active)
@@ -560,12 +562,15 @@
 		return
 	if(!result)
 		save_error = "Could not save the current setup. Your edits are retained; retry saving."
-	else if(!isnull(staged_revision) && staged_revision == draft_revision && draft_slot == preferences.default_slot)
-		saved_revision = staged_revision
-		dirty = FALSE
-		session_only = result == JSON_SAVE_SESSION_ONLY
-		save_error = null
-	staged_revision = null
+		// The failed disk write did not change the staged tree. Reuse it on retry;
+		// newer edits/replacement still invalidate it through revision/context checks.
+	else
+		if(!isnull(staged_revision) && staged_revision == draft_revision && draft_slot == preferences.default_slot)
+			saved_revision = staged_revision
+			dirty = FALSE
+			session_only = result == JSON_SAVE_SESSION_ONLY
+			save_error = null
+		staged_revision = null
 	SStgui.update_uis(preferences)
 
 /** The only editor entry into native staging plus writing; hooks never call this. */

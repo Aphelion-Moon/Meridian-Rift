@@ -6,6 +6,7 @@
 	var/fail_layout_stage = FALSE
 	var/save_preferences_calls = 0
 	var/sprite_reads = 0
+	var/layout_stage_calls = 0
 
 /datum/preferences/cyborg_save_failure_test/read_preference(preference_type)
 	if(ispath(preference_type, /datum/preference/choiced/cyborg_sprite))
@@ -17,8 +18,10 @@
 	return ..()
 
 /datum/preferences/cyborg_save_failure_test/write_preference(datum/preference/preference, preference_value)
-	if(fail_layout_stage && istype(preference, /datum/preference/cyborg_layout))
-		return FALSE
+	if(istype(preference, /datum/preference/cyborg_layout))
+		layout_stage_calls++
+		if(fail_layout_stage)
+			return FALSE
 	return ..()
 
 /datum/unit_test/cyborg_save_failure_retains_draft
@@ -45,12 +48,14 @@
 	store.path = "unused_cyborg_write_failure.json"
 	TEST_ASSERT(!editor.commit_draft(), "Injected disk write failure was acknowledged.")
 	TEST_ASSERT(editor.dirty && editor.draft == draft, "Write failure discarded the owned draft.")
+	var/failed_stage_calls = preferences.layout_stage_calls
 	TEST_ASSERT_EQUAL(preferences.load_character(2), PREFERENCES_LOAD_ABORTED, "Direct slot load did not veto the failed save.")
 	preferences.switch_to_slot(2)
 	TEST_ASSERT_EQUAL(preferences.default_slot, 1, "Failed save changed the character slot.")
 	TEST_ASSERT_NULL(store.get_entry("character2"), "An aborted slot change initialized a missing character.")
 	store.forced_result = ""
 	TEST_ASSERT(editor.commit_draft(), "Retry after write recovery failed.")
+	TEST_ASSERT_EQUAL(preferences.layout_stage_calls, failed_stage_calls, "Retry normalized an unchanged revision already staged in the save tree.")
 	TEST_ASSERT(!editor.dirty && !editor.save_error, "Successful retry did not clear pending/error state.")
 	TEST_ASSERT_EQUAL(editor.saved_revision, revision, "Retry acknowledged the wrong revision.")
 	TEST_ASSERT_EQUAL(store.get_entry("character1")["silicon_genital_layout_presets"]["active"]["penis"]["pixel_x"], 19, "Retry lost accepted placement data.")
@@ -334,6 +339,8 @@
 		TEST_ASSERT(!editor.set_preview(list("context" = editor.context_generation, "model" = model_id), null), "A closed creator accepted a delayed preview action.")
 
 	editor.set_page(list("active" = TRUE), null)
+	TEST_ASSERT(!editor.set_page(list("unexpected" = FALSE), null), "Unknown page input closed the editor.")
+	TEST_ASSERT(editor.page_active, "Malformed page input changed the editor lifecycle.")
 	editor.on_character_replaced()
 	var/list/future = list("schema_version" = 2, "active" = list("penis" = list("pixel_x" = 99)))
 	preferences.savefile.set_entry("character1", list("version" = 52, "silicon_genital_layout_presets" = future))
@@ -1083,6 +1090,14 @@
 	TEST_ASSERT_EQUAL(store["preset_models"][full_name], model_a, "Roundtrip lost the full-length preset's model binding.")
 	TEST_ASSERT_EQUAL(store["active_preset"], full_name, "Roundtrip lost the active preset name.")
 	TEST_ASSERT_EQUAL(store["model_presets"][model_a], full_name, "Roundtrip lost the named spawn assignment.")
+	var/before_serialization = json_encode(store)
+	var/list/serialized = preference.serialize(store)
+	serialized["active"]["penis"]["pixel_x"] = 88
+	serialized["model_defaults"][model_a]["penis"]["pixel_x"] = 99
+	TEST_ASSERT_EQUAL(json_encode(store), before_serialization, "Serialized active/default data aliased the preference cache.")
+	var/list/reloaded = preference.deserialize(serialized)
+	TEST_ASSERT_EQUAL(reloaded["active"]["penis"]["pixel_x"], 88, "Serialized active geometry did not survive native deserialization.")
+	TEST_ASSERT_EQUAL(reloaded["model_defaults"][model_a]["penis"]["pixel_x"], 99, "Serialized model default did not survive native deserialization.")
 
 /datum/unit_test/cyborg_imported_preset_names/Run()
 	var/model_a = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")

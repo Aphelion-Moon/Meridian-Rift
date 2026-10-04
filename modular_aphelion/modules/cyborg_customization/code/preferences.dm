@@ -11,7 +11,9 @@
 	return cyborg_layout_normalize(input)
 
 /datum/preference/cyborg_layout/serialize(input)
-	return cyborg_layout_normalize(input)
+	// Native writes deserialize first; cached values are already canonical. Keep the
+	// serialized tree isolated without normalizing every saved snapshot a second time.
+	return cyborg_layout_copy(input)
 
 /// The creator middleware supplies its UI projection; ordinary pages need no saved layouts.
 /datum/preference/cyborg_layout/compile_ui_data(mob/user, value)
