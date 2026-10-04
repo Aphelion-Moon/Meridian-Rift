@@ -8,9 +8,13 @@ MODULE ID: MODULAR_ITEMS
 
 A modular folder for various single-item additions that don't deserve their own folder, be it new ones or old-skyrat ported items.
 
+See [portal devices](lewd_items/readme.md) for their controls, ownership, configuration, and tests.
+
 ### TG Proc Changes:
 
-- N/A
+- `code/game/objects/items/wall_mounted.dm`: `requires_floor` and `consume_after_attach` default to `TRUE`, preserving ordinary wallframe placement and consumption. Portal bores set both to `FALSE`: they allow the user to stand on a non-floor turf and remain as controllers after mounting either endpoint. Support selection, cardinal alignment, occupancy checks, and the `atom_mounted` lifecycle use the standard wallframe path.
+
+- `code/__HELPERS/global_lists.dm`: wall portals belong to `WALLITEMS_INTERIOR`, so the shared placement checks reject an occupied wall position.
 
 ### Defines:
 

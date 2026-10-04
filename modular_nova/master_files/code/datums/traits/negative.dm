@@ -28,6 +28,7 @@
 	abstract_type = /datum/preference/numeric/fragile_customization
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 	minimum = 1.25
 	maximum = 5 // 5x damage, arbitrary

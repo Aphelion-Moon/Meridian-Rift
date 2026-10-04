@@ -265,6 +265,7 @@ def main() -> int:
     code_dirs = [
         repo_root / 'code',
         repo_root / 'modular_nova', # APHELION EDIT ADDITION - modular trees, now expressed via upstream's multi-directory support
+        repo_root / 'modular_aphelion', # APHELION EDIT ADDITION - our own modular tree
     ]
 
     for code_dir in code_dirs:

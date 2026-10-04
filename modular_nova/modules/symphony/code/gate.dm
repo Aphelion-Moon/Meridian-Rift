@@ -24,7 +24,7 @@
 /// Resolve admission as open, blocked, or unavailable, preserving the reason for a denial.
 /// Uses the whitelist cache and may sleep on a miss. Never call from process().
 /mob/dead/new_player/proc/symphony_gate_state()
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return SYMPHONY_GATE_OPEN
 	if(!client)
 		return SYMPHONY_GATE_BLOCKED
@@ -35,7 +35,7 @@
 	var/answer = symphony_whitelist_lookup(checked_ckey)
 	if(QDELETED(src) || !client || client != checked_client || ckey != checked_ckey)
 		return SYMPHONY_GATE_BLOCKED
-	if(!CONFIG_GET(flag/symphony_enabled) || client.holder)
+	if(!SSsymphony.enabled || client.holder)
 		return SYMPHONY_GATE_OPEN
 	// A failed query blocks admission but must be displayed as an outage.
 	if(isnull(answer))
@@ -67,7 +67,7 @@
 	var/client/checked_client = client || prepared_body?.client
 	if(!checked_client)
 		return TRUE // Preserve the existing transfer behavior for disconnected characters.
-	if(!CONFIG_GET(flag/symphony_enabled) || checked_client.holder)
+	if(!SSsymphony.enabled || checked_client.holder)
 		return TRUE
 	var/checked_ckey = checked_client.ckey
 	var/answer = symphony_whitelist_lookup(checked_ckey)
@@ -77,7 +77,7 @@
 		return !client && !prepared_body.client
 	if(checked_client.ckey != checked_ckey || GLOB.directory[checked_ckey] != checked_client || (checked_client.mob != src && checked_client.mob != prepared_body))
 		return FALSE
-	if(!CONFIG_GET(flag/symphony_enabled) || checked_client.holder || answer)
+	if(!SSsymphony.enabled || checked_client.holder || answer)
 		return TRUE
 	// The old lobby no longer owns a mind. Leave the equipped body intact and create a fresh lobby mind.
 	new_character = null
@@ -95,7 +95,7 @@
 /// Non-sleeping admission check: TRUE blocks play, FALSE permits it, and null means uncached.
 /// Keeping unknown separate from denied prevents a rejection flash when the cache expires.
 /mob/dead/new_player/proc/symphony_blocks_play_cached()
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return FALSE
 	if(!client)
 		return TRUE
@@ -117,7 +117,7 @@
 	if(!istype(player))
 		return SYMPHONY_GATE_OPEN
 	// Disabled enforcement and staff exemptions require no cache lookup or refresh.
-	if(!CONFIG_GET(flag/symphony_enabled) || client.holder)
+	if(!SSsymphony.enabled || client.holder)
 		return SYMPHONY_GATE_OPEN
 	var/cached = symphony_whitelist_cache_peek(player.ckey)
 	if(!isnull(cached))

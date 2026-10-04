@@ -94,7 +94,7 @@
 	for(var/added_overlay in generated_overlays)
 		if(istype(added_overlay, /mutable_appearance))
 			var/mutable_appearance/overlay_image = added_overlay
-			if(findtext(overlay_image.icon_state, fill_icon_state) != 0)
+			if(findtextEx(overlay_image.icon_state, fill_icon_state) != 0)
 				overlay_image.layer = layer - 0.01
 				chem_color = overlay_image.color
 

@@ -4,11 +4,17 @@
  * @license MIT
  */
 
-import { useEffect, useRef } from 'react';
+import { useAtomValue } from 'jotai'; // APHELION EDIT ADDITION - MERIDIAN_UI
+import { useCallback } from 'react'; // APHELION EDIT CHANGE - Scroll tracking - ORIGINAL: import { useEffect, useRef } from 'react';
 import type { Box } from 'tgui-core/components';
 import { addScrollableNode, removeScrollableNode } from 'tgui-core/events';
 import { classes } from 'tgui-core/react';
 import { computeBoxClassName, computeBoxProps } from 'tgui-core/ui';
+// APHELION EDIT ADDITION START - MERIDIAN_UI
+import { resolveMeridianTheme } from '../constants/theme';
+import { debugThemeAtom, meridianThemeAtom } from '../events/store';
+import { useRootThemeClasses } from '../hooks/useRootThemeClasses';
+// APHELION EDIT ADDITION END
 
 type BoxProps = React.ComponentProps<typeof Box>;
 
@@ -20,14 +26,28 @@ type Props = Partial<{
 export function Layout(props: Props) {
   const { className, theme = 'nanotrasen', children, ...rest } = props;
 
+  /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
   const themeClass = `theme-${theme}`;
 
   useEffect(() => {
     document.documentElement.className = themeClass;
   }, [themeClass]);
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START - MERIDIAN_UI
+  const debugTheme = useAtomValue(debugThemeAtom);
+  const preferredTheme = useAtomValue(meridianThemeAtom);
+  const resolvedTheme = resolveMeridianTheme({
+    requested: theme,
+    preferred: preferredTheme,
+    debugOverride: process.env.NODE_ENV !== 'production' ? debugTheme : null,
+  });
+  const managedClasses = resolvedTheme.classes;
+  const managedClassKey = managedClasses.join(' ');
+  useRootThemeClasses(managedClasses);
+  // APHELION EDIT ADDITION END
 
   return (
-    <div className={themeClass}>
+    <div className={managedClassKey} data-theme={resolvedTheme.base}> {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <div className={themeClass}> */}
       <div
         className={classes(['Layout', className, computeBoxClassName(rest)])}
         {...computeBoxProps(rest)}
@@ -45,6 +65,7 @@ type ContentProps = Partial<{
 
 function LayoutContent(props: ContentProps) {
   const { className, scrollable, children, ...rest } = props;
+  /* // APHELION EDIT REMOVAL START - Scroll tracking: an effect never saw scrollable change after mount
   const node = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,6 +80,24 @@ function LayoutContent(props: ContentProps) {
       }
     };
   }, []);
+  */ // APHELION EDIT REMOVAL END
+  // APHELION EDIT ADDITION START - Scroll tracking, as tgui-core's Section does it
+  // A ref callback cleans up with the node it was given, and runs again when
+  // the content starts or stops scrolling.
+  const node = useCallback(
+    (self: HTMLDivElement) => {
+      if (scrollable) {
+        addScrollableNode(self);
+      }
+      return () => {
+        if (scrollable) {
+          removeScrollableNode(self);
+        }
+      };
+    },
+    [scrollable],
+  );
+  // APHELION EDIT ADDITION END
 
   return (
     <div

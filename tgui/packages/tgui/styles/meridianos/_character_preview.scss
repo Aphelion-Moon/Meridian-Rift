@@ -1,0 +1,622 @@
+// THIS IS AN APHELION UI FILE
+// The character preview every tab of character setup shows: the server's
+// drawing of the character, on its background, in a frame of the theme's own.
+//
+// The frame never paints the floor the player picked. Its casing sits on the
+// box's edge, built from materials the themes already ship, as the species
+// chamber's is; what it draws over the floor is small and carries a dark
+// keyline, so it reads on White as well as on Black. Each tab adds one motif:
+// a portrait's corners (Character), a fitting mirror's glass and clips
+// (Loadout), or a scanner's rule along the character's tile (Augments+).
+// Nothing in it moves or takes the pointer.
+.CharacterPreview {
+  // The theme's materials, set per theme below.
+  --preview-line: var(--console-border-strong, rgb(255 255 255 / 22%));
+  --preview-mark: var(--console-text-secondary, #c8cfd2);
+  --preview-tick: var(--preview-mark);
+  --preview-major: var(--preview-mark);
+  --preview-clip: var(--preview-mark);
+  // A dark keyline round each mark; the neon themes add their glow to it.
+  --preview-mark-filter: drop-shadow(0 0 1px rgb(0 0 0 / 85%));
+  --preview-glass: 7%;
+  --preview-glass-soft: 3.5%;
+  // The casing's band, and where the marks sit inside it.
+  --preview-bezel: 0px;
+  --preview-inset: 5px;
+  --preview-corner: 10px;
+  --preview-weight: 1px;
+
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  isolation: isolate;
+  // Dragging across turns the character, up or down pans it, and the wheel
+  // zooms it.
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // Dragged up or down: the view pans. The page moves the character and its
+  // floor itself, each by its own translate, and each has a layer of its own
+  // while the pan lasts, so moving them repaints nothing. The frame stays put.
+  &[data-panning] {
+    cursor: move;
+
+    .CharacterPreview__background,
+    .CharacterPreview__figure {
+      will-change: translate;
+    }
+  }
+
+  // The page sets it a tile past the box above and to the left, so the floor
+  // can move by up to a tile and still fill it.
+  &__background {
+    position: absolute;
+    inset: 0;
+    background-repeat: repeat;
+    image-rendering: pixelated;
+  }
+
+  // A newer drawing on its way, shown only once it takes a moment. The frame
+  // stays over it.
+  &__drawing {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    background: rgb(0 0 0 / 25%);
+    animation: character-preview-drawing-in 160ms ease-out 150ms both;
+    // The loader takes half the box's shorter side, whichever tab it is on.
+    container-type: size;
+
+    .DiagnosticLoader {
+      --diagnostic-loader-size: clamp(64px, 50cqmin, 176px);
+      min-height: 0;
+    }
+  }
+
+  // MARK: Frame
+
+  &__glass,
+  &__case,
+  &__trim,
+  &__mark,
+  &__clip,
+  &__rule {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  // The mirror's glass: the species chamber's two light bands, faint enough to
+  // vanish on a light floor.
+  &__glass {
+    z-index: 2;
+    display: none;
+    inset: var(--preview-bezel);
+    background: linear-gradient(
+      118deg,
+      rgb(255 255 255 / var(--preview-glass)) 0 17%,
+      transparent 17.5% 58%,
+      rgb(255 255 255 / var(--preview-glass-soft)) 58.5% 63%,
+      transparent 63.5%
+    );
+  }
+
+  &__case {
+    z-index: 3;
+    inset: 0;
+    box-shadow: inset 0 0 0 1px var(--preview-line);
+  }
+
+  // A theme's own extra: a rule in the sill, rails, lamps, a shaped window,
+  // fasteners.
+  &__trim {
+    z-index: 3;
+    display: none;
+  }
+
+  &__mark,
+  &__clip,
+  &__rule {
+    z-index: 4;
+    filter: var(--preview-mark-filter);
+  }
+
+  &__mark {
+    width: var(--preview-corner);
+    height: var(--preview-corner);
+    border: 0 solid var(--preview-mark);
+
+    &--nw,
+    &--ne {
+      top: calc(var(--preview-bezel) + var(--preview-inset));
+      border-top-width: var(--preview-weight);
+    }
+
+    &--sw,
+    &--se {
+      bottom: calc(var(--preview-bezel) + var(--preview-inset));
+      border-bottom-width: var(--preview-weight);
+    }
+
+    &--nw,
+    &--sw {
+      left: calc(var(--preview-bezel) + var(--preview-inset));
+      border-left-width: var(--preview-weight);
+    }
+
+    &--ne,
+    &--se {
+      right: calc(var(--preview-bezel) + var(--preview-inset));
+      border-right-width: var(--preview-weight);
+    }
+  }
+
+  // The mirror's clips: two hang from the top of the glass, two hold its foot.
+  &__clip {
+    display: none;
+    width: 12px;
+    height: 4px;
+    background: var(--preview-clip);
+
+    &--nw,
+    &--ne {
+      top: var(--preview-bezel);
+      border-radius: 0 0 2px 2px;
+    }
+
+    &--sw,
+    &--se {
+      bottom: var(--preview-bezel);
+      border-radius: 2px 2px 0 0;
+    }
+
+    &--nw,
+    &--sw {
+      left: calc(22% - 6px);
+    }
+
+    &--ne,
+    &--se {
+      right: calc(22% - 6px);
+    }
+  }
+
+  // The scanner's rule, placed on the character's tile by the page: a tick
+  // every two of the drawing's pixels, a long one every eighth.
+  &__rule {
+    display: none;
+    left: calc(var(--preview-bezel) + 4px);
+    width: 7px;
+    background:
+      repeating-linear-gradient(
+          0deg,
+          var(--preview-tick) 0 1px,
+          transparent 1px calc(2 * var(--preview-pixel, 8px))
+        )
+        left bottom / 4px 100% no-repeat,
+      repeating-linear-gradient(
+          0deg,
+          var(--preview-major) 0 1px,
+          transparent 1px calc(8 * var(--preview-pixel, 8px))
+        )
+        left bottom / 7px 100% no-repeat;
+  }
+}
+
+@keyframes character-preview-drawing-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+// MARK: Motifs
+
+// Character: a portrait, framed at its corners like an ID photo. The corner
+// marks show by default.
+
+// Loadout: a fitting mirror, its glass held by four clips.
+.CharacterPreview--mirror {
+  .CharacterPreview__mark {
+    display: none;
+  }
+
+  .CharacterPreview__glass,
+  .CharacterPreview__clip {
+    display: block;
+  }
+}
+
+// Augments+: a scanner bed, measuring the character's tile in its own pixels.
+.CharacterPreview--scanner {
+  .CharacterPreview__mark {
+    display: none;
+  }
+
+  .CharacterPreview__rule {
+    display: block;
+  }
+}
+
+// MARK: Frame per theme
+
+// Aphelion: the species chamber's warm casing, with the website's six-stop
+// calibration rule set into its sill.
+.theme-meridian_aphelion .CharacterPreview {
+  --preview-line: #453f36;
+  --preview-mark: #a89f90;
+  --preview-major: #ece5d8;
+  --preview-clip: #a89f90;
+  --preview-bezel: 5px;
+  --preview-inset: 4px;
+
+  &__case {
+    box-shadow:
+      inset 0 0 0 1px #453f36,
+      inset 0 0 0 4px #1a1714,
+      inset 0 0 0 5px #2e2a25;
+  }
+
+  &__trim {
+    display: block;
+    left: 14%;
+    right: 14%;
+    bottom: 2px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      #56d4dc 12%,
+      #7bc86f 28%,
+      #e5c25b 44%,
+      #e0863f 60%,
+      #d95f4c 76%,
+      #c06bb4 90%,
+      transparent
+    );
+  }
+}
+
+// Classic: stock tgui paint, no console construction.
+.theme-nanotrasen .CharacterPreview {
+  --preview-line: rgb(255 255 255 / 15%);
+
+  &__glass,
+  &__mark,
+  &__clip,
+  &__rule {
+    display: none;
+  }
+}
+
+// Electra: its strong line, the focus yellow at the corners.
+.theme-meridian_electra .CharacterPreview {
+  --preview-mark: var(--console-interaction-focus);
+  --preview-tick: var(--console-interaction-accent);
+  --preview-major: var(--console-interaction-focus);
+  --preview-clip: var(--console-interaction-accent);
+}
+
+// Vector: chamfered like its windows, with solid registration triangles.
+.theme-meridian_vector .CharacterPreview {
+  --preview-line: #426b96;
+  --preview-mark: #54a9ff;
+  --preview-major: #7fc0ff;
+  --preview-clip: #54a9ff;
+  --preview-corner: 6px;
+
+  clip-path: polygon(
+    6px 0,
+    calc(100% - 6px) 0,
+    100% 6px,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    6px 100%,
+    0 calc(100% - 6px),
+    0 6px
+  );
+
+  &__mark {
+    border: 0;
+
+    &--nw {
+      background: linear-gradient(135deg, var(--preview-mark) 50%, transparent 50%);
+    }
+
+    &--ne {
+      background: linear-gradient(225deg, var(--preview-mark) 50%, transparent 50%);
+    }
+
+    &--sw {
+      background: linear-gradient(45deg, var(--preview-mark) 50%, transparent 50%);
+    }
+
+    &--se {
+      background: linear-gradient(315deg, var(--preview-mark) 50%, transparent 50%);
+    }
+  }
+}
+
+// Synapse: one deep asymmetric cut edged in cyan, which stands for the top
+// right corner mark, and a clearer glass.
+.theme-meridian_synapse .CharacterPreview {
+  --preview-line: #885094;
+  --preview-mark: #38d6cf;
+  --preview-major: #c9bcff;
+  --preview-clip: #38d6cf;
+  --preview-glass: 11%;
+  --preview-glass-soft: 5%;
+
+  clip-path: polygon(
+    0 0,
+    calc(100% - 20px) 0,
+    100% 20px,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+
+  &__trim {
+    display: block;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 100%;
+    opacity: 0.8;
+    background:
+      linear-gradient(
+          to top right,
+          transparent calc(50% - 1.5px),
+          #38d6cf calc(50% - 1.5px) 50%,
+          transparent 50%
+        )
+        right top / 20px 20px no-repeat,
+      linear-gradient(#38d6cf, #38d6cf) right bottom / 2px calc(100% - 20px)
+        no-repeat;
+  }
+
+  &__mark--ne {
+    display: none;
+  }
+
+  &__mark--sw {
+    bottom: 9px;
+    left: 9px;
+  }
+}
+
+// Highline: accessibility first. A flat plate edge, and nothing drawn over
+// the floor.
+.theme-meridian_highline .CharacterPreview {
+  &__case {
+    box-shadow: inset 0 0 0 2px var(--console-border-control);
+  }
+
+  &__glass,
+  &__mark,
+  &__clip,
+  &__rule {
+    display: none;
+  }
+}
+
+// Hephaestus and Foundry: their own window frames, corner screws and all,
+// drawn thin. The box is cut to the frame's chamfered corners, so no floor
+// shows past them.
+.theme-meridian_hephaestus .CharacterPreview,
+.theme-meridian_foundry .CharacterPreview {
+  --preview-bezel: 8px;
+  --preview-inset: 3px;
+
+  clip-path: polygon(
+    3px 0,
+    calc(100% - 3px) 0,
+    100% 3px,
+    100% calc(100% - 3px),
+    calc(100% - 3px) 100%,
+    3px 100%,
+    0 calc(100% - 3px),
+    0 3px
+  );
+
+  &__case {
+    box-shadow: none;
+    border-width: 8px;
+    border-style: solid;
+    border-color: transparent;
+    border-image-source: var(--forge-frame);
+    border-image-slice: 32;
+    border-image-width: 1;
+    border-image-outset: 0;
+    border-image-repeat: stretch;
+  }
+
+  &__mark {
+    display: none;
+  }
+}
+
+.theme-meridian_hephaestus .CharacterPreview {
+  --preview-mark: #dcad62;
+  --preview-tick: #b4c6a3;
+  --preview-major: #f3d39a;
+  --preview-clip: #c2ad82;
+}
+
+.theme-meridian_foundry .CharacterPreview {
+  --preview-mark: #e7ad52;
+  --preview-major: #ffda94;
+  --preview-clip: #d7a865;
+}
+
+// Diagnostic: the loader's acquisition reticle, heavier and green.
+.theme-meridian_diagnostic .CharacterPreview {
+  --preview-line: #3f7354;
+  --preview-mark: #88d8ab;
+  --preview-major: #b1ffd8;
+  --preview-clip: #88d8ab;
+  --preview-corner: 12px;
+  --preview-weight: 2px;
+}
+
+// Augmentation: the red casing line, cyan telemetry that glows.
+.theme-meridian_augmentation .CharacterPreview {
+  --preview-line: #c0152a;
+  --preview-mark: #00e5d4;
+  --preview-major: #70fff5;
+  --preview-clip: #00e5d4;
+  --preview-mark-filter: drop-shadow(0 0 1px rgb(0 0 0 / 85%))
+    drop-shadow(0 0 3px rgb(0 229 212 / 55%));
+}
+
+// Hotline: a neon pink tube round the glass, and marks that glow with it.
+.theme-meridian_hotline .CharacterPreview {
+  --preview-mark: #ff74de;
+  --preview-major: #edc6ff;
+  --preview-clip: #ff74de;
+  --preview-mark-filter: drop-shadow(0 0 1px rgb(0 0 0 / 85%))
+    drop-shadow(0 0 3px rgb(255 87 213 / 70%));
+
+  &__case {
+    box-shadow:
+      inset 0 0 0 1px #ff57d5,
+      inset 0 0 10px rgb(255 87 213 / 28%);
+  }
+}
+
+// Cyberpunk: broken red rails top and bottom, glowing cyan registration.
+.theme-meridian_cyberpunk .CharacterPreview {
+  --preview-mark: #00e5d4;
+  --preview-major: #74fff5;
+  --preview-clip: #ff5267;
+  --preview-corner: 14px;
+  --preview-mark-filter: drop-shadow(0 0 1px rgb(0 0 0 / 85%))
+    drop-shadow(0 0 3px rgb(0 229 212 / 80%));
+
+  &__case {
+    box-shadow: none;
+    background:
+      linear-gradient(90deg, #c0152a 0 38%, transparent 38% 46%, #c0152a 46% 100%) top / 100% 2px
+        no-repeat,
+      linear-gradient(90deg, #c0152a 0 64%, transparent 64% 70%, #c0152a 70% 100%) bottom / 100% 2px
+        no-repeat;
+  }
+}
+
+// Scavenger: a rust plate casing riveted at the corners, round a lined window.
+// Its corner marks are the rivets, on every tab.
+.theme-meridian_scavenger .CharacterPreview {
+  --preview-bezel: 6px;
+  --preview-inset: -6px;
+  --preview-corner: 6px;
+  --preview-mark: #d5a84c;
+  --preview-major: #ffe6a3;
+  --preview-clip: #89775b;
+
+  &__case {
+    box-shadow: none;
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent;
+    border-image-source: var(--scavenger-texture);
+    border-image-slice: 16;
+    border-image-width: 1;
+    border-image-outset: 0;
+    border-image-repeat: repeat;
+  }
+
+  &__trim {
+    display: block;
+    inset: 6px;
+    box-shadow:
+      inset 0 0 0 1px #7c6e50,
+      inset 0 2px 5px rgb(0 0 0 / 45%);
+  }
+
+  &__mark {
+    display: block;
+    border: 0;
+    background: var(--scavenger-fastener);
+    filter: none;
+  }
+}
+
+// Wastelander: a curved phosphor tube sunk into olive casing.
+.theme-meridian_wastelander .CharacterPreview {
+  --preview-bezel: 6px;
+  --preview-mark: #a4ba78;
+  --preview-major: #d3be7e;
+  --preview-clip: #657653;
+
+  &__case {
+    z-index: 4;
+    box-shadow:
+      inset 0 0 0 1px #657653,
+      inset 0 -3px 0 #090d08;
+  }
+
+  &__trim {
+    display: block;
+    inset: 6px;
+    border-radius: 12px / 10px;
+    box-shadow:
+      0 0 0 2px #090d08,
+      0 0 0 40px #22291b;
+  }
+
+  &__mark {
+    display: none;
+  }
+}
+
+// Shadowbroker: an equipment bay, amber lamp blocks over a hazard sill. The
+// mirror's clips stay grey, so they don't read as more lamps.
+.theme-meridian_shadowbroker .CharacterPreview {
+  --preview-line: #747e7a;
+  --preview-bezel: 5px;
+  --preview-mark: #bcb7a8;
+  --preview-major: #f4a62a;
+  --preview-clip: #bcb7a8;
+
+  &__case {
+    background: repeating-linear-gradient(-45deg, #f4a62a 0 5px, #080a0b 5px 10px) left bottom / 100% 5px
+      no-repeat;
+  }
+
+  &__trim {
+    display: block;
+    top: 5px;
+    left: 6px;
+    right: 6px;
+    height: 4px;
+    background: linear-gradient(
+      90deg,
+      #f4a62a 0 18px,
+      transparent 18px calc(100% - 18px),
+      #f4a62a calc(100% - 18px)
+    );
+  }
+}
+
+// MARK: Forced colours
+
+@media (forced-colors: active) {
+  .CharacterPreview {
+    &__glass,
+    &__trim,
+    &__mark,
+    &__clip,
+    &__rule {
+      display: none;
+    }
+  }
+}

@@ -12,6 +12,58 @@
 	var/obj/item/nipples = null
 	var/obj/item/penis = null
 
+/// Gets the item held in one of our `ORGAN_SLOT_*` lewd slots.
+/mob/living/carbon/human/proc/get_lewd_slot_item(slot)
+	switch(slot)
+		if(ORGAN_SLOT_VAGINA)
+			return vagina
+		if(ORGAN_SLOT_ANUS)
+			return anus
+		if(ORGAN_SLOT_NIPPLES)
+			return nipples
+		if(ORGAN_SLOT_PENIS)
+			return penis
+
+/// Sets an item in one of our `ORGAN_SLOT_*` lewd slots. Returns FALSE when the slot isn't supported.
+/mob/living/carbon/human/proc/set_lewd_slot_item(slot, obj/item/new_item)
+	switch(slot)
+		if(ORGAN_SLOT_VAGINA)
+			vagina = new_item
+		if(ORGAN_SLOT_ANUS)
+			anus = new_item
+		if(ORGAN_SLOT_NIPPLES)
+			nipples = new_item
+		if(ORGAN_SLOT_PENIS)
+			penis = new_item
+		else
+			return FALSE
+	return TRUE
+
+/**
+ * Returns whether this mob can put one of their own parts against a portal device.
+ *
+ * This is the device end only. The receiver end sits on its part underneath any clothing, so it never
+ * checks this. Genitals follow the same exposure rule as a face to face interaction, sheathed or not.
+ * The mouth only needs to be free of a mask or helmet that covers it, so oral works while clothed.
+ *
+ * Arguments:
+ * - target_part: An ORGAN_SLOT_ genital, BODY_ZONE_PRECISE_MOUTH, or an arm or leg zone.
+ */
+/mob/living/carbon/human/proc/portal_target_is_accessible(target_part)
+	switch(target_part)
+		if(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)
+			var/obj/item/organ/genital/genital = get_organ_slot(target_part)
+			return genital?.is_exposed()
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return get_bodypart(BODY_ZONE_HEAD) && !is_mouth_covered()
+		if(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM)
+			var/obj/item/bodypart/active_hand = has_hand_for_held_index(active_hand_index)
+			return active_hand && active_hand.body_zone == target_part
+		if(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG)
+			var/obj/item/bodypart/leg = get_bodypart(target_part)
+			return leg && !leg.bodypart_disabled
+	return FALSE
+
 
 /*
 *	This code needed to determine if the human is naked in that part of body or not
@@ -36,6 +88,18 @@
 /mob/living/carbon/human/proc/is_head_uncovered()
 	return (head?.body_parts_covered & HEAD)
 
+/**
+ * Both preferences a portal needs before it will act on, relay, or reveal this mob.
+ *
+ * Portals put someone's body somewhere they can't see, so the sex-toy pref is required on top of the master ERP one.
+ * Silent by design: portal code revalidates this constantly, and `check_erp_prefs()` is the one to reach for when a
+ * single deliberate attempt is worth logging.
+ */
+/mob/proc/allows_portal_use()
+	var/datum/client_interface/portal_client = GET_CLIENT(src)
+	return portal_client?.prefs?.read_preference(/datum/preference/toggle/erp) \
+		&& portal_client.prefs.read_preference(/datum/preference/toggle/erp/sex_toy)
+
 /// Returns true if the human has an accessible penis for the parameter. Accepts any of the `REQUIRE_GENITAL_` defines.
 /mob/living/carbon/human/proc/has_penis(required_state = REQUIRE_GENITAL_ANY)
 	var/obj/item/organ/genital/genital = get_organ_slot(ORGAN_SLOT_PENIS)
@@ -46,9 +110,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -62,9 +126,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -78,9 +142,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -94,9 +158,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_topless()
+			return genital.is_shown_over_clothing() || is_topless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_topless()
+			return !genital.is_shown_over_clothing() && !is_topless()
 		else
 			return TRUE
 
@@ -112,9 +176,9 @@
 		if(REQUIRE_GENITAL_ANY)
 			return TRUE
 		if(REQUIRE_GENITAL_EXPOSED)
-			return genital.visibility_preference == GENITAL_ALWAYS_SHOW || is_bottomless()
+			return genital.is_shown_over_clothing() || is_bottomless()
 		if(REQUIRE_GENITAL_UNEXPOSED)
-			return genital.visibility_preference != GENITAL_ALWAYS_SHOW && !is_bottomless()
+			return !genital.is_shown_over_clothing() && !is_bottomless()
 		else
 			return TRUE
 
@@ -335,7 +399,8 @@
 	var/mutable_appearance/penis_overlay
 
 	if(!penis_overlay)
-		penis_overlay = sex_toy?.build_worn_icon(default_layer = PENIS_CLOTHING_LAYER, default_icon_file = 'icons/mob/clothing/under/default.dmi', isinhands = FALSE, override_file = icon_file)
+		// Keep worn items above the exposed organ while retaining its standing-overlay cache slot.
+		penis_overlay = sex_toy?.build_worn_icon(default_layer = OUTER_HAIR_LAYER - (2 * GENITAL_STACK_STEP), default_icon_file = 'icons/mob/clothing/under/default.dmi', isinhands = FALSE, override_file = icon_file)
 
 	var/obj/item/bodypart/chest/chest_part = get_bodypart(BODY_ZONE_CHEST)
 	chest_part?.worn_uniform_offset?.apply_offset(penis_overlay) // we can never escape, we are forever governed by sex(two)

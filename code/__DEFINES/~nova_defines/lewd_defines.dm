@@ -1,7 +1,6 @@
 #define GENITAL_SKIP_VISIBILITY 0
 #define GENITAL_NEVER_SHOW 1
 #define GENITAL_HIDDEN_BY_CLOTHES 2
-#define GENITAL_ALWAYS_SHOW 3
 /// Special layering defines beyond normal genital visibility modes.
 #define GENITAL_LAYER_BELOW_UNDIES 4
 #define GENITAL_LAYER_NORMAL 5

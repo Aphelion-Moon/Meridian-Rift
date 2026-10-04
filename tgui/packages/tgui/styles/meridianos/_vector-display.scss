@@ -1,0 +1,181 @@
+// THIS IS AN APHELION UI FILE
+// Blue phosphor behind crisp original strokes. The circular Blue Phosphor
+// loading instrument sits alongside the darker Rangefinder menu treatment.
+@keyframes meridian-vector-loader-turn {
+  to { transform: rotate(1turn); }
+}
+
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  .theme-meridian_vector {
+    --vector-display-blue: #2877ff;
+    --vector-display-core: #abd9ff;
+
+    .lobby-title-art {
+      // The selected Blue Phosphor logo keeps its own color and bloom intensity.
+      --lobby-title-mark-background: linear-gradient(
+        180deg, #54a9ff 0%, #7fc0ff 45%, #64b2ff 70%, #4384c3 100%
+      );
+      --lobby-title-screen: #02060f;
+
+      .lobby-title-art__mark {
+        background-image:
+          repeating-linear-gradient(0deg, rgb(4 27 74 / 13%) 0 1px, transparent 1px 3px),
+          var(--lobby-title-mark-background);
+        filter: none;
+      }
+
+      .lobby-title-art__bloom-source {
+        background-image: linear-gradient(#398aff, #398aff);
+      }
+
+      .lobby-title-art__bloom--near {
+        filter: blur(clamp(1px, 0.24cqmin, 2.5px));
+        opacity: 0.56;
+      }
+
+      .lobby-title-art__bloom--far {
+        filter: blur(clamp(3px, 0.9cqmin, 9px));
+        opacity: 0.48;
+      }
+
+      &.lobby-title-art--overlay .lobby-title-art__bloom {
+        mix-blend-mode: screen;
+      }
+    }
+
+    .boot_terminal,
+    .DiagnosticLoader {
+      // Keep the selected loading screen's light separate from the menu rails.
+      --vector-display-blue: #398aff;
+      --vector-display-core: #9dccff;
+    }
+
+    .boot_terminal {
+      --boot-boundary: #35669f;
+    }
+
+    .DiagnosticLoader__instrument {
+      --console-loader-crown-color: #3974b7;
+      --console-loader-progress-core: var(--vector-display-core);
+      --console-loader-progress-track: #142641;
+      --console-border-control: #447cbd;
+      --console-interaction-accent: var(--vector-display-core);
+      --console-interaction-selected: #549bff;
+      --console-interaction-focus: #a3d9ff;
+      // The original cage colors resolved on the Blue Phosphor theme root.
+      // Restate its pattern here so the Rangefinder control border cannot tint it.
+      --console-loader-cage-pattern: conic-gradient(
+        from -90deg,
+        #559fff 0deg 118deg,
+        transparent 118deg 128deg,
+        #35669f 128deg 260deg,
+        transparent 260deg 274deg,
+        #94c7ff 274deg 344deg,
+        transparent 344deg
+      );
+      contain: layout style;
+      overflow: visible;
+    }
+
+    .DiagnosticLoader__light {
+      --console-loader-progress-core: var(--vector-display-blue);
+      --console-interaction-accent: var(--vector-display-blue);
+      --console-interaction-selected: var(--vector-display-blue);
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.78;
+      filter: blur(0.8px)
+        drop-shadow(0 0 3px var(--vector-display-blue))
+        drop-shadow(0 0 6px color-mix(in srgb, var(--vector-display-blue) 44%, transparent));
+
+      .DiagnosticLoader__core {
+        background: var(--vector-display-blue);
+      }
+    }
+
+    .DiagnosticLoader__core {
+      background:
+        repeating-linear-gradient(0deg, rgb(4 27 74 / 13%) 0 1px, transparent 1px 3px),
+        linear-gradient(155deg, var(--vector-display-core), var(--vector-display-blue) 67%, #28598c);
+    }
+
+    // A shared new name restarts the foreground and its light copy together
+    // when entering Vector from another material theme.
+    .DiagnosticLoader--indeterminate[data-motion='running']:not(.DiagnosticLoader--motion-reduced)
+      .DiagnosticLoader__outerCage {
+      animation-name: meridian-vector-loader-turn;
+    }
+
+    .lobby {
+      --menu-panel: linear-gradient(180deg, #08182c, #040b16 75%), #040b16;
+      --menu-frame: #35649a;
+      --menu-shadow: 0 0 0 3px #02060f, inset 0 0 25px rgb(39 104 187 / 5%),
+        0 0 11px rgb(31 104 234 / 13%);
+      --menu-accent: #9dccff;
+      --menu-secondary: #75b2ff;
+      --menu-muted: #8caacb;
+      --menu-hover-face: #102849;
+      --menu-rule: repeating-linear-gradient(90deg, #75b2ff 0 1px, transparent 1px 12px);
+      --menu-rule-width: 100%;
+      --menu-border-top: 1px;
+      --menu-border-right: 1px;
+      --menu-border-bottom: 1px;
+      --menu-border-left: 1px;
+
+      // Resting rows share the housing surface; only interaction adds a face.
+      .menu_button:not(:disabled):not(.info_display):not(.menu_readout) {
+        &:is(:hover, :focus-visible) {
+          background: linear-gradient(90deg, rgb(44 121 239 / 15%), rgb(44 121 239 / 4%));
+          box-shadow: inset 2px 0 0 var(--vector-display-core),
+            inset 0 0 12px rgb(57 138 255 / 7%);
+        }
+      }
+
+      .container_nav::before {
+        filter: drop-shadow(0 0 3px color-mix(in srgb, var(--vector-display-blue) 45%, transparent));
+      }
+
+      .lobby-terminal-phase {
+        text-shadow: 0 0 5px color-mix(in srgb, var(--vector-display-blue) 28%, transparent);
+      }
+    }
+
+    .container_terminal::before {
+      background: linear-gradient(180deg, var(--vector-display-core), var(--vector-display-blue));
+      box-shadow: 0 0 6px color-mix(in srgb, var(--vector-display-blue) 30%, transparent);
+    }
+
+    .container_terminal__lamp,
+    .boot_terminal__cursor {
+      box-shadow: 0 0 5px color-mix(in srgb, var(--vector-display-blue) 50%, transparent);
+    }
+
+    .boot_terminal .DiagnosticLoader__label {
+      color: #d5e7ff;
+      border-color: #315b8f;
+      background: linear-gradient(90deg, transparent, rgb(45 102 182 / 6%), transparent);
+      text-shadow: none;
+    }
+
+    .boot_terminal::before {
+      background-color: rgb(2 6 15 / 96%);
+      background-image: radial-gradient(ellipse at 50% var(--boot-instrument-anchor),
+        rgb(31 101 240 / 9%), transparent 44%);
+    }
+
+    .lobby--transparent .boot_terminal::before {
+      background: none;
+    }
+
+  }
+
+  @supports ((mask-image: url('')) or (-webkit-mask-image: url(''))) {
+    .theme-meridian_vector .lobby-title-art:not(.lobby-title-art--screen)
+      .lobby-title-art__bloom {
+      display: block;
+    }
+  }
+}

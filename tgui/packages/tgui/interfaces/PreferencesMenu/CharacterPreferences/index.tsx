@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'; // NOVA EDIT CHANGE - ORIGINAL: import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'; // APHELION EDIT CHANGE - ORIGINAL: import { useState, useMemo } from 'react'; // NOVA EDIT CHANGE - ORIGINAL: import { useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Dropdown, Stack } from 'tgui-core/components'; // NOVA EDIT CHANGE - ORIGINAL: import { Button, Stack } from 'tgui-core/components';
 import { exhaustiveCheck } from 'tgui-core/exhaustive';
@@ -14,7 +14,7 @@ import { AugmentsTab, LimbsPage } from './LimbsPage';
 import { LoadoutPage } from './loadout';
 import { MainPage } from './MainPage';
 import { QuirkPersonalityPage } from './QuirksPage';
-import { SpeciesPage } from './SpeciesPage';
+import { SpeciesPage } from './SpeciesRegistry'; // APHELION EDIT CHANGE - ORIGINAL: import { SpeciesPage } from './SpeciesPage';
 
 enum Page {
   Antags,
@@ -114,10 +114,19 @@ export function CharacterPreferenceWindow(props) {
 // NOVA EDIT ADDITION START
 export function CharacterPreferenceWindow(props: {
   onAugmentsTabChange?: (tab: import('./LimbsPage').AugmentsTab | null) => void;
+  onSpeciesPageShown?: (shown: boolean) => void;
 }) {
   const { act, data } = useBackend<PreferencesMenuData>();
+  /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
+  */ // APHELION EDIT REMOVAL END
   const [currentPage, setCurrentPageRaw] = useState(Page.Main);
+  // The character preview every tab shows: asked for once the window opens, then sent
+  // whenever the character changes, unless the window already holds it.
+  const heldPreview = data.character_preview?.id;
+  useEffect(() => {
+    act('character_preview', { have: heldPreview });
+  }, []);
   const setCurrentPage = (page: Page) => {
     if (page !== Page.Limbs) props.onAugmentsTabChange?.(null);
     else props.onAugmentsTabChange?.(AugmentsTab.Markings);
@@ -143,7 +152,7 @@ export function CharacterPreferenceWindow(props: {
       break;
     case Page.Species:
       pageContents = (
-        <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} />
+        <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} onShown={props.onSpeciesPageShown} /* APHELION EDIT CHANGE - ORIGINAL: <SpeciesPage closeSpecies={() => setCurrentPage(Page.Main)} /> */ />
       );
 
       break;
@@ -160,7 +169,7 @@ export function CharacterPreferenceWindow(props: {
         <LimbsPage
           onTabChange={(tab) => {
             props.onAugmentsTabChange?.(tab);
-            setAugmentsTab(tab);
+            // setAugmentsTab(tab); // APHELION EDIT REMOVAL - MERIDIAN_UI
           }}
         />
       );

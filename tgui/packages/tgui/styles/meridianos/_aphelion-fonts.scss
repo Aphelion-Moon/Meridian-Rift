@@ -1,0 +1,63 @@
+// THIS IS AN APHELION UI FILE
+// Approved website typography. Local font assets are inlined by Rspack.
+// Copyright and license notices are in assets/aphelion/.
+@font-face {
+  font-family: 'Aphelion Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('tgui/styles/meridianos/assets/aphelion/AtkinsonHyperlegibleNext-Latin-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Aphelion Atkinson Hyperlegible Next';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('tgui/styles/meridianos/assets/aphelion/AtkinsonHyperlegibleNext-Latin-VariableItalic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Aphelion IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('tgui/styles/meridianos/assets/aphelion/ibm-plex-mono-latin-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Aphelion IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('tgui/styles/meridianos/assets/aphelion/ibm-plex-mono-latin-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Aphelion Behavior';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('tgui/styles/meridianos/assets/aphelion/Behavior-Regular.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Aphelion Telematic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('tgui/styles/meridianos/assets/aphelion/Telematic-Regular.ttf') format('truetype');
+}
+
+.theme-meridian_aphelion {
+  --aphelion-font-sans: 'Aphelion Atkinson Hyperlegible Next', Arial, sans-serif;
+  --aphelion-font-mono: 'Aphelion IBM Plex Mono', Consolas, monospace;
+  --aphelion-font-display: 'Aphelion Behavior', Arial, sans-serif;
+  --aphelion-font-brand: 'Aphelion Telematic', Arial, sans-serif;
+}
+
+// The independent Aphelion bezel uses the same grain with every player theme.
+.theme-meridian_aphelion,
+.lobby-title-art--bezel-aphelion {
+  --aphelion-grain: url('tgui/styles/meridianos/assets/aphelion/aphelion-grain-blue-noise-512.png');
+}

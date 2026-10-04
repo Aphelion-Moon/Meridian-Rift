@@ -22,6 +22,7 @@
 
 /obj/item/clothing/suit/toggle/suspenders
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	greyscale_config_worn_vox = /datum/greyscale_config/suspenders/worn/vox
 
 /obj/item/clothing/suit/toggle/labcoat/paramedic
 	worn_icon_digi = null

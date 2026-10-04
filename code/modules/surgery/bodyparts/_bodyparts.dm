@@ -44,7 +44,7 @@
 	///Defines when a bodypart should not be changed. Example: BP_BLOCK_CHANGE_SPECIES prevents the limb from being overwritten on species gain
 	var/change_exempt_flags = NONE
 	///Random flags that describe this bodypart
-	var/bodypart_flags = BODYPART_VIRGIN
+	var/bodypart_flags = NONE
 	///Does this part have an internal or external anatomy biostate? Assigned on init based on biological_state
 	VAR_FINAL/bio_status = NONE
 	///Mangling state (interior, exterior) of the bodypart
@@ -261,6 +261,8 @@
 
 /obj/item/bodypart/Initialize(mapload)
 	. = ..()
+	bodypart_flags |= BODYPART_VIRGIN
+
 	if(can_be_disabled)
 		RegisterSignal(src, SIGNAL_ADDTRAIT(TRAIT_PARALYSIS), PROC_REF(on_paralysis_trait_gain))
 		RegisterSignal(src, SIGNAL_REMOVETRAIT(TRAIT_PARALYSIS), PROC_REF(on_paralysis_trait_loss))
@@ -1188,7 +1190,7 @@
 	if(IS_ORGANIC_LIMB(src))
 		// Try to add a cached blood type data, we must do it in here because for some reason DNA gets initialized AFTER the mob's limbs are created.
 		// Should be fine as this gets called before all the important stuff happens
-		if(is_creating && !(bodypart_flags & ORGAN_VIRGIN))
+		if(is_creating && !(bodypart_flags & BODYPART_VIRGIN))
 			blood_dna_info = owner.get_blood_dna_list()
 			// need to remove the synethic blood DNA that is initialized
 			// wash also adds the blood dna again
@@ -1451,60 +1453,7 @@
 			// Add two masked images based on the old one
 			. += leg_source.generate_masked_leg(limb_image)
 	// NOVA EDIT ADDITION START - MARKINGS CODE
-	var/override_color
-	var/atom/offset_spokesman = owner || src
-	// First, check to see if this bodypart is husked. If so, we don't want to apply our sparkledog colors to the limb.
-	if(is_husked)
-		override_color = "#888888"
-	// We need to check that the owner exists(could be a placed bodypart) and that it's not a chainsawhand and that they're a human with usable DNA.
-	if(!(bodypart_flags & (BODYPART_PSEUDOPART | BODYPART_STUMP)) && (!(bodyshape & BODYSHAPE_TAUR))) // taur legs never ever render
-		for(var/key, marking in markings) // Cycle through all of our currently selected markings.
-			var/datum/body_marking/body_marking = GLOB.body_markings[key]
-			if (!body_marking) // Edge case prevention.
-				continue
-
-			var/gender_modifier = ""
-			if(body_zone == BODY_ZONE_CHEST) // Chest markings have male and female versions.
-				if(body_marking.gendered)
-					gender_modifier = is_dimorphic ? "_[limb_gender]" : "_m"
-			var/digi_modifier = ""
-			if(bodyshape & BODYSHAPE_DIGITIGRADE)
-				digi_modifier = "digitigrade_"
-			var/mutable_appearance/accessory_overlay
-			var/mutable_appearance/emissive
-			accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[digi_modifier][body_zone][gender_modifier]", -BODYPARTS_LAYER)
-			accessory_overlay.alpha = markings_alpha
-			if(marking[2])
-				emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
-			if(override_color)
-				accessory_overlay.color = override_color
-			else
-				accessory_overlay.color = marking[1]
-			. += accessory_overlay
-			if (emissive)
-				. += emissive
-
-		if(aux_zone)
-			for(var/key, marking in aux_zone_markings)
-				var/datum/body_marking/body_marking = GLOB.body_markings[key]
-				if (!body_marking) // Edge case prevention.
-					continue
-
-				var/render_limb_string = aux_zone
-
-				var/mutable_appearance/emissive
-				var/mutable_appearance/accessory_overlay
-				accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[render_limb_string]", -aux_layer)
-				accessory_overlay.alpha = markings_alpha
-				if (marking[2])
-					emissive = emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
-				if(override_color)
-					accessory_overlay.color = override_color
-				else
-					accessory_overlay.color = marking[1]
-				. += accessory_overlay
-				if (emissive)
-					. += emissive
+	append_base_marking_overlays(.)
 	// NOVA EDIT ADDITION END - MARKINGS CODE END
 
 	// Apply height to the overlays we generated so far
@@ -1884,6 +1833,10 @@
 		factor *= current_gauze.splint_factor
 	return factor
 
+/// Returns TRUE if the limb is splinted with gauze or tape with an effective splint factor
+/obj/item/bodypart/proc/is_splinted()
+	return get_splint_factor() < 1
+
 /**
  * Attempts to use up some of gauze applied
  * If we use up all of the gauze, it is deleted
@@ -1905,7 +1858,7 @@
 	return TRUE
 
 ///A multi-purpose setter for all things immediately important to the icon and iconstate of the limb.
-/obj/item/bodypart/proc/change_appearance(icon, id, greyscale, dimorphic)
+/obj/item/bodypart/proc/change_appearance(icon, id, greyscale, dimorphic, update_owner = TRUE) // APHELION EDIT CHANGE - ORIGINAL: /obj/item/bodypart/proc/change_appearance(icon, id, greyscale, dimorphic)
 	var/icon_holder
 	if(greyscale)
 		icon_greyscale = icon
@@ -1924,16 +1877,16 @@
 
 	if(!owner)
 		update_icon_dropped()
-	else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+	else if(update_owner && !(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS)) // APHELION EDIT CHANGE - ORIGINAL: else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		owner.update_body_parts()
 
 	//This foot gun needs a safety
 	if(!icon_exists(icon_holder, "[limb_id]_[body_zone][is_dimorphic ? "_[limb_gender]" : ""][(bodyshape & BODYSHAPE_DIGITIGRADE) ? "_[ICON_KEY_DIGI]" : ""]")) // NOVA EDIT CHANGE - ORIGINAL: if(!icon_exists(icon_holder, "[limb_id]_[body_zone][is_dimorphic ? "_[limb_gender]" : ""]"))
-		reset_appearance()
+		reset_appearance(update_owner = update_owner) // APHELION EDIT CHANGE - ORIGINAL: reset_appearance()
 		stack_trace("change_appearance([icon], [id], [greyscale], [dimorphic]) generated null icon")
 
 ///Resets the base appearance of a limb to it's default values.
-/obj/item/bodypart/proc/reset_appearance()
+/obj/item/bodypart/proc/reset_appearance(update_owner = TRUE) // APHELION EDIT CHANGE - ORIGINAL: /obj/item/bodypart/proc/reset_appearance()
 	icon_static = initial(icon_static)
 	icon_greyscale = initial(icon_greyscale)
 	limb_id = initial(limb_id)
@@ -1942,7 +1895,7 @@
 
 	if(!owner)
 		update_icon_dropped()
-	else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
+	else if(update_owner && !(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS)) // APHELION EDIT CHANGE - ORIGINAL: else if(!(owner.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		owner.update_body_parts()
 
 // Note: For effects on subtypes, use the emp_effect() proc instead

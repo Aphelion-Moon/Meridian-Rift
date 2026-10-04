@@ -1,0 +1,22 @@
+{
+	"pants": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_pants",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	],
+	"shorts": [
+		{
+			"type": "icon_state",
+			"icon_state": "template_shorts",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		}
+	]
+}

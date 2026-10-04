@@ -448,6 +448,7 @@
 	desc = "A folded and unloaded mounted machine gun, ready to be deployed and used."
 	icon = 'modular_nova/modules/mounted_machine_gun/icons/turret_objects.dmi'
 	icon_state = "folded_hmg"
+	inhand_icon_state = "folded_hmg"
 	max_integrity = 250
 	w_class = WEIGHT_CLASS_BULKY
 	slot_flags = ITEM_SLOT_BACK

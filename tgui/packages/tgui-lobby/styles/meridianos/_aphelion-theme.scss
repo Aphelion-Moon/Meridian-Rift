@@ -1,0 +1,274 @@
+// THIS IS AN APHELION UI FILE
+@use '../../../tgui/styles/meridianos/aphelion-neon' as neon;
+
+// The website's warm panels, typography, and spectrum rule carry into the lobby.
+.theme-meridian_aphelion .lobby {
+  font-synthesis: none;
+
+  --aphelion-menu-inset: clamp(14px, 1.6vmin, 22px);
+  --aphelion-menu-gutter: clamp(22px, 2.4vmin, 32px);
+
+  &:not(.lobby--transparent) .boot_terminal::before {
+    background-color: var(--lobby-canvas);
+    background-image: none;
+  }
+
+  .boot_terminal .DiagnosticLoader__label {
+    border-color: var(--aphelion-line-strong);
+    font-weight: 400;
+    letter-spacing: 0.08em;
+  }
+
+  .container_terminal {
+    border-color: var(--boot-accent);
+
+    &::before {
+      @include neon.rail;
+      top: -31px;
+    }
+  }
+
+  .container_terminal__header {
+    letter-spacing: 0.08em;
+  }
+
+  .container_terminal__log {
+    scrollbar-color: var(--aphelion-line-strong) var(--boot-surface-recessed);
+  }
+
+  .terminal_text {
+    color: var(--boot-text-secondary);
+    letter-spacing: 0;
+  }
+
+  .terminal_text__channel {
+    font-size: 0.9em;
+  }
+
+  .terminal_text--warning,
+  .terminal_text--warning .terminal_text__channel {
+    color: var(--boot-warning);
+  }
+
+  .terminal_prompt {
+    color: var(--boot-text);
+  }
+
+  .container_progress {
+    border-color: var(--aphelion-line-strong);
+    border-radius: 2px;
+  }
+
+  .container_nav {
+    padding: var(--aphelion-menu-inset);
+    scrollbar-color: var(--aphelion-line-strong) var(--lobby-recessed);
+    border: 1px solid var(--aphelion-line-strong);
+    border-radius: 2px;
+    color: var(--lobby-text);
+    background: var(--lobby-panel);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
+
+    &::before {
+      content: '';
+      position: absolute;
+      @include neon.rail;
+      top: -31px;
+    }
+
+    hr {
+      margin: clamp(7px, 0.85vmin, 12px) 0;
+      background: var(--aphelion-line);
+    }
+  }
+
+  .lobby-terminal-heading {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+    padding: 4px 4px clamp(12px, 1.4vmin, 18px);
+    border-bottom: 1px solid var(--aphelion-line);
+    color: var(--lobby-text-muted);
+    font-family: var(--aphelion-font-mono);
+    font-size: clamp(11px, 1.15vmin, 15px);
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    line-height: 1.5;
+  }
+
+  .lobby-terminal-heading > span:first-child {
+    font-family: var(--aphelion-font-brand);
+    font-size: clamp(14px, 1.5vmin, 19px);
+    letter-spacing: 0.015em;
+  }
+
+  .lobby-terminal-phase {
+    padding-left: 12px;
+    border-left: 1px solid var(--aphelion-line-strong);
+    font-size: 0.92em;
+    letter-spacing: 0.08em;
+  }
+
+  .menu_button {
+    min-height: clamp(32px, 3.5vmin, 46px);
+    padding: 6px 12px 6px var(--aphelion-menu-gutter);
+    border-left: 2px solid transparent;
+    border-radius: 2px;
+    color: var(--lobby-text);
+    font-family: 'VCR OSD Mono', Consolas, monospace;
+    font-size: clamp(16px, 1.9vmin, 25px);
+    letter-spacing: 0.025em;
+    line-height: 1.4;
+
+    &:first-of-type {
+      font-weight: 400;
+    }
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      padding-left: var(--aphelion-menu-gutter);
+      color: var(--lobby-text);
+      border-left-color: var(--lobby-focus);
+      background: var(--console-surface-raised);
+    }
+
+    &:hover:not(:disabled)::before,
+    &:focus-visible::before {
+      left: 6px;
+      color: var(--lobby-focus);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--lobby-focus);
+    }
+
+    &:active:not(:disabled) {
+      padding-left: var(--aphelion-menu-gutter);
+      background: var(--aphelion-surface-selected);
+    }
+
+    &.info_display {
+      color: var(--lobby-text-muted);
+      font-family: var(--aphelion-font-mono);
+      font-size: clamp(12px, 1.4vmin, 18px);
+      letter-spacing: 0.04em;
+    }
+  }
+
+  #character_slot,
+  .unchecked {
+    color: var(--lobby-text-muted);
+  }
+
+  .checked {
+    color: var(--lobby-accent);
+  }
+
+  .trait_list {
+    padding-left: var(--aphelion-menu-gutter);
+  }
+
+  .trait_button {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 32px;
+    border-radius: 2px;
+    color: var(--lobby-text);
+    font-family: 'VCR OSD Mono', Consolas, monospace;
+    font-size: clamp(16px, 1.7vmin, 23px);
+    letter-spacing: 0;
+    line-height: 1.4;
+
+    &:hover {
+      color: var(--lobby-focus);
+    }
+  }
+
+  .trait_name {
+    min-width: 0;
+  }
+
+  .trait_feedback {
+    padding-left: var(--aphelion-menu-gutter);
+    color: var(--lobby-text-muted);
+    font-family: var(--aphelion-font-mono);
+    font-size: clamp(12px, 1.3vmin, 17px);
+    line-height: 1.5;
+    text-align: left;
+    text-shadow: none;
+    overflow-wrap: anywhere;
+  }
+
+  .menu_newpoll {
+    padding-left: var(--aphelion-menu-gutter);
+    border-left-color: var(--lobby-accent);
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-meridian_aphelion .lobby {
+    &:not(.lobby--transparent) .boot_terminal::before {
+      background: Canvas;
+    }
+
+    .container_terminal,
+    .terminal_prompt {
+      color: CanvasText;
+      background: Canvas;
+      border-color: CanvasText;
+      forced-color-adjust: auto;
+    }
+
+    .container_terminal::before {
+      display: none;
+    }
+
+    .boot_terminal .DiagnosticLoader__label,
+    .container_terminal__header,
+    .container_progress {
+      border-color: CanvasText;
+    }
+
+    .container_terminal__header,
+    .terminal_text,
+    .terminal_text__channel,
+    .terminal_text--warning,
+    .terminal_text--warning .terminal_text__channel {
+      color: CanvasText;
+    }
+
+    .container_nav {
+      color: CanvasText;
+      background: Canvas;
+      border-color: CanvasText;
+      box-shadow: none;
+
+      &::before {
+        display: none;
+      }
+    }
+
+    .menu_button,
+    .menu_button.info_display,
+    .trait_button,
+    .trait_feedback,
+    .lobby-terminal-heading,
+    .lobby-terminal-phase,
+    .checked,
+    .unchecked,
+    #character_slot {
+      color: CanvasText;
+    }
+
+    .lobby-terminal-heading,
+    .lobby-terminal-phase {
+      border-color: CanvasText;
+    }
+
+    .menu_button:focus-visible {
+      outline-color: Highlight;
+      border-left-color: Highlight;
+      color: CanvasText;
+      background: Canvas;
+    }
+  }
+}

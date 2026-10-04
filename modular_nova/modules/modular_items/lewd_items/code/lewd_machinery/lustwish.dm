@@ -46,6 +46,7 @@
 				/obj/item/borg/upgrade/dominatrixmodule = 5,
 				/obj/item/reagent_containers/venom_milker = 5,
 				/obj/item/petclicker = 4,
+				/obj/item/storage/box/erp/portal_fleshlight = 8,
 			),
 		),
 		list(
@@ -167,6 +168,7 @@
 				/obj/item/storage/box/strippole_kit = 4,
 				/obj/item/storage/box/xstand_kit = 4,
 				/obj/item/holosign_creator/privacy = 4,
+				/obj/item/wallframe/lewd_portal = 8,
 			),
 		),
 	)

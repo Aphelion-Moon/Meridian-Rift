@@ -113,7 +113,7 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 	var/has_role = symphony_holds_whitelist_role(ckey)
 	if(!src || prefs != import_prefs || GLOB.preferences_datums[ckey] != import_prefs || GLOB.directory[ckey] != src || persistent_client?.client != src)
 		return FALSE
-	if(!has_role || !CONFIG_GET(flag/symphony_enabled) || CONFIG_GET(flag/forbid_preferences_import))
+	if(!has_role || !SSsymphony.enabled || CONFIG_GET(flag/forbid_preferences_import))
 		to_chat(src, span_warning("Importing is no longer available. It requires the whitelist role and must be enabled on this server."))
 		return FALSE
 	return TRUE
@@ -146,6 +146,7 @@ GAME_VERB_PROC_DESC(/client, import_preferences, "Import Character Preferences",
 
 /// After successful replacement, old UI/disconnect callbacks must only write to memory.
 /proc/prefs_import_invalidate_cache(target_ckey)
+	custom_sprites_after_import(target_ckey)
 	var/client/connected = GLOB.directory[target_ckey]
 	for(var/datum/preferences/old_prefs as anything in list(GLOB.preferences_datums[target_ckey], connected?.prefs))
 		if(!old_prefs)

@@ -30,18 +30,30 @@
 
 /datum/computer_file/program/portrait_printer/ui_data(mob/user)
 	var/list/data = list()
+	/* // APHELION EDIT REMOVAL START - Search state and artwork are sent only for the active gallery view.
 	data["paintings"] = matching_paintings || SSpersistent_paintings.painting_ui_data()
 	data["search_string"] = search_string
 	data["search_mode"] = search_mode == PAINTINGS_FILTER_SEARCH_TITLE ? "Title" : "Author"
+	*/ // APHELION EDIT REMOVAL END
+	add_art_galaxy_data(user, data) // APHELION EDIT ADDITION - ART_GALAXY
 	return data
 
 /datum/computer_file/program/portrait_printer/ui_assets(mob/user)
+	/* // APHELION EDIT REMOVAL START - Send only the current page's PNGs with its payload.
 	return list(
 		get_asset_datum(/datum/asset/simple/portraits)
 	)
+	*/ // APHELION EDIT REMOVAL END
+	return list() // APHELION EDIT ADDITION - Art Galaxy delivers assets for its active page only.
 
 /datum/computer_file/program/portrait_printer/ui_act(action, params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
+	// APHELION EDIT ADDITION START - ART_GALAXY - Owner controls and confirmed Nova imports.
+	if(.)
+		return
+	if(handle_art_galaxy_action(action, params, ui))
+		return TRUE
+	// APHELION EDIT ADDITION END
 	switch(action)
 		if("search")
 			if(search_string != params["to_search"])
@@ -72,6 +84,10 @@
 
 	//canvas printing!
 	var/datum/painting/chosen_portrait = locate(selected_painting) in SSpersistent_paintings.paintings
+	// APHELION EDIT ADDITION START - ART_GALAXY - Reject stale or invalid painting selections.
+	if(!chosen_portrait || (!length(chosen_portrait.tags) && chosen_portrait.creator_ckey != usr?.ckey))
+		return
+	// APHELION EDIT ADDITION END
 
 	var/obj/item/canvas/new_canvas = chosen_portrait.spawn_canvas(get_turf(computer.physical))
 	if(!new_canvas)
@@ -83,6 +99,10 @@
 
 /datum/computer_file/program/portrait_printer/proc/download_painting(selected_painting)
 	var/datum/painting/chosen_portrait = locate(selected_painting) in SSpersistent_paintings.paintings
+	// APHELION EDIT ADDITION START - ART_GALAXY - Reject stale or invalid painting selections.
+	if(!chosen_portrait || (!length(chosen_portrait.tags) && chosen_portrait.creator_ckey != usr?.ckey))
+		return
+	// APHELION EDIT ADDITION END
 	var/icon/portrait_icon = chosen_portrait.get_icon()
 	var/datum/computer_file/image/image_file = new(portrait_icon, display_name = chosen_portrait.title, source_photo_or_painting = chosen_portrait)
 	if(!computer.store_file(image_file, usr))

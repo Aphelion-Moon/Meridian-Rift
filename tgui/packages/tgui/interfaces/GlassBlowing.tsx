@@ -75,7 +75,7 @@ export const GlassBlowing = (props) => {
             />
           }
         />
-        {glass && !glass.chosenItem && (
+        {!!glass && !glass.chosenItem && (
           <Section title="Pick a craft">
             <Stack fill vertical>
               <Stack.Item>
@@ -119,7 +119,7 @@ export const GlassBlowing = (props) => {
             </Stack>
           </Section>
         )}
-        {glass?.chosenItem && (
+        {!!glass?.chosenItem && (
           <>
             <Section title="Steps Remaining:">
               <Stack fill vertical>
@@ -131,7 +131,7 @@ export const GlassBlowing = (props) => {
                   </Box>
                 </Stack.Item>
                 <Table>
-                  <Stack.Item>
+                  <Stack.Item className="MeridianControlRow">
                     {glass.stepsRemaining.blow !== 0 && (
                       <Table.Cell>
                         <Button
@@ -223,7 +223,7 @@ export const GlassBlowing = (props) => {
             </Section>
           </>
         )}
-        {glass && glass.timeLeft !== 0 && (
+        {!!glass && glass.timeLeft !== 0 && (
           <Section title="Heat level">
             <ProgressBar
               value={glass.timeLeft / glass.totalTime}
@@ -246,10 +246,10 @@ export const GlassBlowing = (props) => {
             </ProgressBar>
           </Section>
         )}
-        {glass && glass.timeLeft === 0 && (
+        {!!glass && glass.timeLeft === 0 && (
           <Section title="Heat level">
             <ProgressBar
-              value={0 / 0}
+              value={0}
               ranges={{}}
               style={{
                 backgroundImage: 'grey',

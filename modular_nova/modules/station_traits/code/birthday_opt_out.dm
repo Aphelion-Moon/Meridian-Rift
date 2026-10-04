@@ -5,6 +5,7 @@
 	default_value = FALSE
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "birthday_opt_out"
+	should_update_preview = FALSE
 
 /datum/preference/toggle/birthday_opt_out/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return

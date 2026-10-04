@@ -185,7 +185,7 @@ GLOBAL_DATUM_INIT(gas_data, /datum/gas_data, new)
 	fusion_power = 7
 	gas_overlay = "nitrium"
 	moles_visible = MOLES_GAS_VISIBLE
-	cargo_flags = GAS_PURCHASABLE | GAS_DANGEROUS
+	cargo_flags = GAS_DANGEROUS | GAS_EXPORTABLE
 	rarity = 1
 	base_value = 6
 	desc = "An experimental (and slightly toxic) performance enhancing gas that increases speed and alertness when inhaled."

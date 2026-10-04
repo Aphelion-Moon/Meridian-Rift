@@ -141,6 +141,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	default_value = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/toggle/hemophage_masquerade/is_accessible(datum/preferences/preferences)
 	if(!..(preferences))

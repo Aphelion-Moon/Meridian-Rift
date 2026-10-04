@@ -30,7 +30,7 @@ const ShippingHub = (props) => {
 
   return (
     <Section
-      title="NTOS Shipping Hub."
+      title="MeridianOS Shipping Hub." // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: title="NTOS Shipping Hub."
       buttons={
         <Button
           icon="eject"

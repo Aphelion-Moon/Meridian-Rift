@@ -1,15 +1,13 @@
 /// Announce a revoke, block pending admission, and schedule enforcement after the grace period.
 /proc/symphony_revoke(target_ckey)
 	// The panel pushes revokes whether we're enforcing or not.
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return
 	target_ckey = ckey(target_ckey)
 	symphony_seed_whitelist_cache(target_ckey, FALSE)
 	var/client/found = GLOB.directory[target_ckey]
-	if(!found)
-		return
 	// Staff retain the same exemption as the admission gate.
-	if(found.holder)
+	if(!found || found.holder)
 		return
 	if(isnewplayer(found.mob))
 		var/mob/dead/new_player/lobby = found.mob
@@ -20,25 +18,23 @@
 		found.lobby_menu?.set_whitelist_gate(TRUE)
 		lobby.show_title_screen()
 		return
-	var/grace = CONFIG_GET(number/symphony_grace_seconds)
+	var/grace = SSsymphony.grace_seconds
 	to_chat(found, span_userdanger("Your Discord whitelist role was removed. You will be returned to the lobby in [grace] seconds unless it is restored."))
 	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(symphony_enforce_kick), target_ckey), grace SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE)
 
 /// Recheck a revoke after its grace period, then return the player to the lobby.
 /// A failed query leaves them in the round; the periodic sweep retries when the database recovers.
 /proc/symphony_enforce_kick(target_ckey)
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return
 	target_ckey = ckey(target_ckey)
 	var/client/found = GLOB.directory[target_ckey]
-	if(!found || isnewplayer(found.mob))
-		return
 	// Staff status may have changed during the grace period.
-	if(found.holder)
+	if(!found || isnewplayer(found.mob) || found.holder)
 		return
 	var/whitelisted = symphony_whitelist_lookup(target_ckey)
 	// The query can sleep through a disconnect, staff promotion, lobby return, or enforcement toggle.
-	if(!CONFIG_GET(flag/symphony_enabled) || !found || GLOB.directory[target_ckey] != found || found.holder || !found.mob || isnewplayer(found.mob))
+	if(!SSsymphony.enabled || !found || GLOB.directory[target_ckey] != found || found.holder || !found.mob || isnewplayer(found.mob))
 		return
 	// An outage is not a confirmed revoke. The periodic sweep will retry.
 	if(isnull(whitelisted))
@@ -75,7 +71,7 @@
 	. = ..()
 	if(!.)
 		return
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return
 	if(!ckey || !mob || isnewplayer(mob)) // the lobby has its own gate
 		return
@@ -83,7 +79,7 @@
 		return
 	// Only a confirmed FALSE justifies announcing a revoke; null means a database outage.
 	var/whitelisted = symphony_whitelist_lookup(ckey)
-	if(!src || !CONFIG_GET(flag/symphony_enabled) || holder || !mob || isnewplayer(mob))
+	if(!src || !SSsymphony.enabled || holder || !mob || isnewplayer(mob))
 		return
 	if(isnull(whitelisted) || whitelisted)
 		return
@@ -91,7 +87,7 @@
 
 /proc/symphony_notify_grant(target_ckey)
 	// Disabled enforcement must not announce or change the lobby gate.
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		return
 	symphony_seed_whitelist_cache(target_ckey, TRUE)
 	var/client/found = GLOB.directory[ckey(target_ckey)]

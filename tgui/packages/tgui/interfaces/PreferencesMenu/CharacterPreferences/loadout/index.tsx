@@ -1,6 +1,7 @@
+import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
 import { Fragment, useState } from 'react';
 import { useBackend } from 'tgui/backend';
-import { CharacterPreview } from 'tgui/interfaces/common/CharacterPreview';
+// import { CharacterPreview } from 'tgui/interfaces/common/CharacterPreview'; // APHELION EDIT REMOVAL - Drawn character preview
 import { removeAllSkiplines } from 'tgui/interfaces/TextInputModal'; // NOVA EDIT ADDITION: Multiple loadout presets
 import {
   Box,
@@ -19,6 +20,8 @@ import {
 
 import type { PreferencesMenuData } from '../../types'; // NOVA EDIT ADDITION: Multiple loadout presets
 import { useServerPrefs } from '../../useServerPrefs';
+import { CharacterPreview } from '../CharacterPreview'; // APHELION EDIT ADDITION - Drawn character preview
+import { turnPreview } from '../CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import type {
   LoadoutCategory,
   LoadoutItem,
@@ -28,6 +31,11 @@ import type {
 import { ItemIcon, LoadoutTabDisplay, SearchDisplay } from './ItemDisplay';
 import { LoadoutModifyDimmer } from './ModifyPanel';
 
+// APHELION EDIT ADDITION START - MERIDIAN_UI
+export const LOADOUT_CATEGORY_TABS_CLASS =
+  'PreferencesMenu__LoadoutCategoryTabs';
+
+// APHELION EDIT ADDITION END
 export function LoadoutPage(props) {
   const serverData = useServerPrefs();
   const loadout_tabs = serverData?.loadout.loadout_tabs || [];
@@ -145,7 +153,7 @@ export function LoadoutPage(props) {
         )}
         <Section
           fitted
-          title="&nbsp;"
+          // APHELION EDIT REMOVAL - MERIDIAN_UI - ORIGINAL: title="&nbsp;"
           buttons={
             <Input
               width="200px"
@@ -155,7 +163,7 @@ export function LoadoutPage(props) {
             />
           }
         >
-          <Tabs fluid align="center">
+          <Tabs className={LOADOUT_CATEGORY_TABS_CLASS} /* APHELION EDIT ADDITION */ fluid align="center">
             {loadout_tabs // NOVA EDIT CHANGE - Adds filter before map()
               // NOVA EDIT ADDITION START - Prefslocked tabs
               .filter(
@@ -365,6 +373,38 @@ type LoadoutSelectedItemProps = {
   setModifyItemDimmer: (dimmer: LoadoutItem | null) => void;
 };
 
+// APHELION EDIT ADDITION START - MERIDIAN_UI - shared loadout action buttons
+type LoadoutActionButtonProps = {
+  icon: string;
+  iconColor: string;
+  iconSize: number;
+  label: string;
+  onClick: () => void;
+};
+
+const LOADOUT_ACTION_BUTTON_ROLE = { role: 'button' } as const;
+
+export function LoadoutActionButton(props: LoadoutActionButtonProps) {
+  return (
+    <Button
+      {...LOADOUT_ACTION_BUTTON_ROLE}
+      aria-label={props.label}
+      align="center"
+      color="none"
+      icon={props.icon}
+      iconColor={props.iconColor}
+      iconSize={props.iconSize}
+      height="32px"
+      onClick={props.onClick}
+      tooltip={props.label}
+      tooltipPosition="bottom"
+      verticalAlignContent="middle"
+      width="32px"
+    />
+  );
+}
+// APHELION EDIT ADDITION END
+
 function LoadoutSelectedItem(props: LoadoutSelectedItemProps) {
   const { all_tabs, path, modifyItemDimmer, setModifyItemDimmer } = props;
   const { act } = useBackend();
@@ -382,6 +422,7 @@ function LoadoutSelectedItem(props: LoadoutSelectedItemProps) {
       <Stack.Item width="55%">{item.name}</Stack.Item>
       {item.buttons.length ? (
         <Stack.Item>
+          {/* // APHELION EDIT REMOVAL START - MERIDIAN_UI
           <Button
             color="none"
             width="32px"
@@ -391,11 +432,24 @@ function LoadoutSelectedItem(props: LoadoutSelectedItemProps) {
           >
             <Icon size={1.8} name="cogs" color="grey" />
           </Button>
+          // APHELION EDIT REMOVAL END */}
+          {/* APHELION EDIT ADDITION START - MERIDIAN_UI */}
+          <LoadoutActionButton
+            icon="cogs"
+            iconColor="grey"
+            iconSize={1.8}
+            label={`Configure ${item.name}`}
+            onClick={() => {
+              setModifyItemDimmer(item);
+            }}
+          />
+          {/* APHELION EDIT ADDITION END */}
         </Stack.Item>
       ) : (
         <Stack.Item width="32px" /> // empty space
       )}
       <Stack.Item>
+        {/* // APHELION EDIT REMOVAL START - MERIDIAN_UI
         <Button
           color="none"
           width="32px"
@@ -403,6 +457,16 @@ function LoadoutSelectedItem(props: LoadoutSelectedItemProps) {
         >
           <Icon size={2.4} name="times" color="red" />
         </Button>
+        // APHELION EDIT REMOVAL END */}
+        {/* APHELION EDIT ADDITION START - MERIDIAN_UI */}
+        <LoadoutActionButton
+          icon="times"
+          iconColor="red"
+          iconSize={2}
+          label={`Remove ${item.name}`}
+          onClick={() => act('select_item', { path: path, deselect: true })}
+        />
+        {/* APHELION EDIT ADDITION END */}
       </Stack.Item>
     </Stack>
   );
@@ -455,6 +519,7 @@ function LoadoutSelectedSection(props: LoadoutSelectedSectionProps) {
 
 function LoadoutPreviewSection() {
   const { act, data } = useBackend<LoadoutManagerData>();
+  const turn = useSetAtom(turnPreview); // APHELION EDIT ADDITION - Drawn character preview
 
   return (
     <Section
@@ -475,7 +540,8 @@ function LoadoutPreviewSection() {
           <CharacterPreview
             height="100%"
             width="240px"
-            id={data.character_preview_view}
+            // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
+            motif="mirror" // APHELION EDIT ADDITION - Preview frames: the loadout's mirror
           />{' '}
           {/* NOVA EDIT CHANGE - ORIGINAL: <CharacterPreview height="100%" id={data.character_preview_view} /> */}
         </Stack.Item>
@@ -498,21 +564,27 @@ function LoadoutPreviewSection() {
             <Stack.Item>
               <Button
                 icon="chevron-left"
+                /* // APHELION EDIT REMOVAL START - The page turns the drawn preview.
                 onClick={() =>
                   act('rotate_dummy', {
                     dir: 'left',
                   })
                 }
+                */ // APHELION EDIT REMOVAL END
+                onClick={() => turn(false)} // APHELION EDIT ADDITION - The page turns the drawn preview.
               />
             </Stack.Item>
             <Stack.Item>
               <Button
                 icon="chevron-right"
+                /* // APHELION EDIT REMOVAL START - The page turns the drawn preview.
                 onClick={() =>
                   act('rotate_dummy', {
                     dir: 'right',
                   })
                 }
+                */ // APHELION EDIT REMOVAL END
+                onClick={() => turn(true)} // APHELION EDIT ADDITION - The page turns the drawn preview.
               />
             </Stack.Item>
           </Stack>

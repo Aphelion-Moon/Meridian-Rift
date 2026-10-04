@@ -1,5 +1,6 @@
 import { sortBy } from 'es-toolkit';
 import { filter, map } from 'es-toolkit/compat';
+import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
 import { type ReactNode, useState } from 'react';
 import { useBackend } from 'tgui/backend';
 import { sendAct } from 'tgui/events/act';
@@ -7,16 +8,17 @@ import {
   Box,
   Button,
   Floating,
-  Input,
+  // Input, // APHELION EDIT REMOVAL - shared icon picker
   Icon, // NOVA EDIT ADDITION
   LabeledList,
-  Section,
+  // Section, // APHELION EDIT REMOVAL - shared icon picker
   Stack,
 } from 'tgui-core/components';
 import { exhaustiveCheck } from 'tgui-core/exhaustive'; // NOVA EDIT ADDITION
 import { classes } from 'tgui-core/react';
-import { createSearch } from 'tgui-core/string';
-import { CharacterPreview } from '../../common/CharacterPreview';
+// import { createSearch } from 'tgui-core/string'; // APHELION EDIT REMOVAL - shared icon picker
+// import { CharacterPreview } from '../../common/CharacterPreview'; // APHELION EDIT REMOVAL - Drawn character preview
+import { ChoicedSelection } from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
 import { PageButton } from '../components/PageButton'; // NOVA EDIT ADDITION
 import { RandomizationButton } from '../components/RandomizationButton';
 import { SideDropdown } from '../components/SideDropdown'; // NOVA EDIT ADDITION
@@ -34,16 +36,20 @@ import {
 } from '../types';
 import { useRandomToggleState } from '../useRandomToggleState';
 import { useServerPrefs } from '../useServerPrefs';
+import { CharacterPreview } from './CharacterPreview'; // APHELION EDIT ADDITION - Drawn character preview
+import { turnPreview } from './CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import { DeleteCharacterPopup } from './DeleteCharacterPopup';
 import { MultiNameInput, NameInput } from './names';
 import { VocalsInput, VoiceInput } from './vocals'; // NOVA EDIT ADDITION
 
 const CLOTHING_CELL_SIZE = 48;
-const CLOTHING_SIDEBAR_ROWS = 13.4; // NOVA EDIT CHANGE - ORIGINAL:  9
+const CLOTHING_SIDEBAR_ROWS = 13.6; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: 9
 
+/* // APHELION EDIT REMOVAL START - Icon picker sizing now lives in common/ChoicedSelection.tsx.
 const CLOTHING_SELECTION_CELL_SIZE = 48;
 const CLOTHING_SELECTION_WIDTH = 5.4;
 const CLOTHING_SELECTION_MULTIPLIER = 5.2;
+*/ // APHELION EDIT REMOVAL END
 
 type CharacterControlsProps = {
   handleRotate: (backwards: boolean) => void; // NOVA EDIT CHANGE - Original: handleRotate: () => void;
@@ -125,6 +131,7 @@ function CharacterControls(props: CharacterControlsProps) {
   );
 }
 
+/* // APHELION EDIT REMOVAL START - Extracted to common/ChoicedSelection.tsx for reuse by custom editors.
 type ChoicedSelectionProps = {
   name: string;
   catalog: FeatureChoicedServerData;
@@ -228,6 +235,7 @@ function searchInCatalog(searchText = '', catalog: Record<string, string>) {
   }
   return items;
 }
+*/ // APHELION EDIT REMOVAL END
 
 type GenderButtonProps = {
   handleSetGender: (gender: Gender) => void;
@@ -265,6 +273,7 @@ function GenderButton(props: GenderButtonProps) {
         <Button
           fontSize="22px"
           icon={GENDERS[props.gender].icon}
+          my={0} // APHELION EDIT ADDITION - MERIDIAN_UI - Match the toolbar's Stack spacing.
           tooltip="Gender"
           tooltipPosition="top"
         />
@@ -287,7 +296,7 @@ type MainFeatureProps = {
 };
 
 function MainFeature(props: MainFeatureProps) {
-  const { data } = useBackend<PreferencesMenuData>();
+  const { data, act } = useBackend<PreferencesMenuData>(); // APHELION EDIT CHANGE - ORIGINAL: const { data } = useBackend<PreferencesMenuData>();
   const {
     catalog,
     currentValue,
@@ -297,12 +306,21 @@ function MainFeature(props: MainFeatureProps) {
   } = props;
 
   const supplementalFeature = catalog.supplemental_feature;
+  // APHELION EDIT ADDITION START
+  const customTarget =
+    supplementalFeature === 'hair_color'
+      ? 'hair'
+      : supplementalFeature === 'facial_hair_color'
+        ? 'facial_hair'
+        : undefined;
+  // APHELION EDIT ADDITION END
 
   return (
     <Floating
       stopChildPropagation
       placement="right-start"
       content={
+        /* // APHELION EDIT REMOVAL START - Supplemental controls are supplied as shared-picker content.
         <ChoicedSelection
           name={catalog.name}
           catalog={catalog}
@@ -316,6 +334,42 @@ function MainFeature(props: MainFeatureProps) {
           }
           onSelect={handleSelect}
         />
+        */ // APHELION EDIT REMOVAL END
+        // APHELION EDIT ADDITION START - Shared icon picker, with a button for a custom drawing
+        <ChoicedSelection
+          name={catalog.name}
+          catalog={catalog}
+          selected={currentValue}
+          buttons={
+            supplementalFeature && (
+              <FeatureValueInput
+                shrink
+                feature={features[supplementalFeature]}
+                featureId={supplementalFeature}
+                value={
+                  data.character_preferences.supplemental_features[
+                    supplementalFeature
+                  ]
+                }
+              />
+            )
+          }
+          onSelect={handleSelect}
+        >
+          {!!data.allow_custom_sprite_editing && customTarget && (
+            <Button
+              mt={1}
+              fluid
+              icon="paintbrush"
+              onClick={() =>
+                act('open_custom_sprite_editor', { target: customTarget })
+              }
+            >
+              {`Custom ${customTarget.replace('_', ' ')} drawing`}
+            </Button>
+          )}
+        </ChoicedSelection>
+        // APHELION EDIT ADDITION END
       }
     >
       <Button
@@ -480,6 +534,7 @@ type MainPageProps = {
 
 export function MainPage(props: MainPageProps) {
   const { act, data } = useBackend<PreferencesMenuData>();
+  const turn = useSetAtom(turnPreview); // APHELION EDIT ADDITION - Drawn character preview
 
   const [deleteCharacterPopupOpen, setDeleteCharacterPopupOpen] =
     useState(false);
@@ -629,7 +684,7 @@ export function MainPage(props: MainPageProps) {
                 handleOpenSpecies={props.openSpecies}
                 handleRotate={(value) => {
                   // NOVA EDIT CHANGE - Original: handleRotate={() => {
-                  act('rotate', { backwards: value }); // NOVA EDIT CHANGE - Original: act('rotate');
+                  turn(value); // APHELION EDIT CHANGE - Drawn character preview - ORIGINAL: act('rotate', { backwards: value }); // NOVA EDIT CHANGE - Original: act('rotate');
                 }}
                 setGender={createSetPreference(act, 'gender')}
                 showGender={
@@ -652,7 +707,7 @@ export function MainPage(props: MainPageProps) {
             <Stack.Item grow>
               <CharacterPreview
                 height="100%"
-                id={data.character_preview_view}
+                // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
               />
             </Stack.Item>
 
@@ -705,7 +760,8 @@ export function MainPage(props: MainPageProps) {
           </Stack>
         </Stack.Item>
 
-        <Stack.Item>
+        {/* APHELION EDIT ADDITION - MERIDIAN_UI casing hook */}
+        <Stack.Item className="PreferencesMenu__appearanceRail">
           <Stack fill vertical wrap>
             {mainFeatures.map(([clothingKey, clothing]) => {
               const catalog = serverData?.[
@@ -736,7 +792,8 @@ export function MainPage(props: MainPageProps) {
 
         {/* NOVA EDIT CHANGE: Swappable pref menus */}
         {/* ORIGINAL: <Stack.Item grow basis={0}> */}
-        <Stack.Item grow basis={0} ml="4px">
+        {/* APHELION EDIT ADDITION - MERIDIAN_UI opaque reading surface */}
+        <Stack.Item grow basis={0} ml="4px" className="PreferencesMenu__settings">
           <Stack vertical fill>
             {/* // NOVA EDIT REMOVAL START
              <PreferenceList

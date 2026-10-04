@@ -141,7 +141,6 @@ SUBSYSTEM_DEF(ticker)
 			*/ // NOVA EDIT REMOVAL END
 			current_state = GAME_STATE_PREGAME
 			SStitle.change_title_screen() // NOVA EDIT ADDITION - Title screen
-			addtimer(CALLBACK(SStitle, TYPE_PROC_REF(/datum/controller/subsystem/title, change_title_screen)), 1 SECONDS) // NOVA EDIT ADDITION - Title screen
 			SEND_SIGNAL(src, COMSIG_TICKER_ENTER_PREGAME)
 			fire()
 		if(GAME_STATE_PREGAME)
@@ -290,6 +289,7 @@ SUBSYSTEM_DEF(ticker)
 	alert_sound_to_playing(sound(SSstation.announcer.get_rand_welcome_sound())) // NOVA EDIT CHANGE - ORIGINAL: SEND_SOUND(world, sound(SSstation.announcer.get_rand_welcome_sound()))
 
 	current_state = GAME_STATE_PLAYING
+	world.update_status() // APHELION EDIT ADDITION
 	Master.SetRunLevel(RUNLEVEL_GAME)
 
 	if(length(GLOB.holidays))

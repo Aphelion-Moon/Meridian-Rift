@@ -33,7 +33,6 @@ Clothing sprites:
 - modular_nova/master_files/icons/mob/clothing/head_vox.dmi #CHANGE
 - modular_nova/master_files/icons/mob/clothing/mask_vox.dmi #CHANGE
 - modular_nova/master_files/icons/mob/clothing/species/vox/back.dmi #ADD
-- modular_nova/master_files/icons/mob/clothing/species/vox/color_gags_vox.dmi #ADD
 - modular_nova/master_files/icons/mob/clothing/species/vox/ears.dmi #ADD
 - modular_nova/master_files/icons/mob/clothing/species/vox/eyes.dmi #ADD
 - modular_nova/master_files/icons/mob/clothing/species/vox/feet.dmi #ADD

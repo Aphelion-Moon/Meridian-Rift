@@ -85,7 +85,8 @@
 	var/obj/item/organ/genital/penis/affected_penis = affected_mob.get_organ_slot(ORGAN_SLOT_PENIS)
 	var/obj/item/organ/genital/testicles/affected_testicles = affected_mob.get_organ_slot(ORGAN_SLOT_TESTICLES)
 
-	if(!QDELETED(src) || !QDELETED(strapon_item))
+	// The hand item only exists once it has been taken out at least once.
+	if(!QDELETED(src) && !QDELETED(strapon_item))
 		strapon_item.forceMove(src)
 
 	affected_vagina?.visibility_preference = GENITAL_HIDDEN_BY_CLOTHES
@@ -220,7 +221,7 @@
 			if(!vagina)
 				to_chat(user, span_danger("[target_mob] doesn't have suitable genitalia for that!"))
 				return
-			if(!(target_mob.is_bottomless() || vagina.visibility_preference == GENITAL_ALWAYS_SHOW))
+			if(!(target_mob.is_bottomless() || vagina.is_shown_over_clothing()))
 				to_chat(user, span_danger("[target_mob]'s groin is covered!"))
 				return
 			message = pick(

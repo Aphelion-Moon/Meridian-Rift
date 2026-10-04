@@ -31,7 +31,7 @@
 
 	return TRUE
 
-/datum/sprite_accessory/genital/get_special_icon(mob/living/carbon/human/target_mob)
+/datum/sprite_accessory/genital/get_special_icon(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/bodypart_overlay)
 	if(!uses_taur_sprite(target_mob))
 		return icon
 
@@ -386,6 +386,22 @@
 	icon_state = "anus"
 	name = "Anus"
 	color_src = null
+
+/datum/sprite_accessory/genital/anus/donut
+	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/anus_onmob.dmi'
+	icon_state = "donut"
+	name = "Donut"
+	color_src = USE_MATRIXED_COLORS
+	has_skintone_shading = TRUE
+	always_color_customizable = TRUE
+
+/datum/sprite_accessory/genital/anus/squished
+	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/anus_onmob.dmi'
+	icon_state = "squished"
+	name = "Squished"
+	color_src = USE_MATRIXED_COLORS
+	has_skintone_shading = TRUE
+	always_color_customizable = TRUE
 
 /datum/sprite_accessory/genital/breasts
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/genitals/breasts_onmob.dmi'
