@@ -113,6 +113,40 @@
 	target.adjust_moles(/datum/gas/oxygen, 100)
 	TEST_ASSERT(target.total_moles() > source.total_moles(), "Modifying a copy must not affect the original")
 
+// APHELION EDIT ADDITION START - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
+/** Pipeline reconciliation conserves gas and energy across distinct mixtures, including vacuum. */
+/datum/unit_test/gas_mixture_golden_pipeline
+
+/datum/unit_test/gas_mixture_golden_pipeline/Run()
+	var/datum/gas_mixture/first = allocate(/datum/gas_mixture)
+	var/datum/gas_mixture/second = allocate(/datum/gas_mixture)
+	var/datum/gas_mixture/empty = allocate(/datum/gas_mixture)
+	first.set_volume(100)
+	second.set_volume(300)
+	empty.set_volume(400)
+	first.set_temperature(300)
+	second.set_temperature(600)
+	first.set_moles(/datum/gas/oxygen, 4)
+	second.set_moles(/datum/gas/nitrogen, 12)
+	var/expected_energy = first.thermal_energy() + second.thermal_energy()
+	var/expected_temperature = expected_energy / (first.heat_capacity() + second.heat_capacity())
+	var/list/datum/gas_mixture/mixtures = list(first, second, empty)
+
+	// A repeated reference must not count its gas or volume a second time.
+	dogmos_reconcile_pipeline_mixtures(list(first, second, empty, first))
+	TEST_ASSERT_EQUAL(first.return_volume(), 100, "Pipeline reconciliation should preserve the first mixture's volume")
+	TEST_ASSERT_EQUAL(second.return_volume(), 300, "Pipeline reconciliation should preserve the second mixture's volume")
+	TEST_ASSERT_EQUAL(empty.return_volume(), 400, "Pipeline reconciliation should preserve the vacuum member's volume")
+	for(var/datum/gas_mixture/mixture as anything in mixtures)
+		var/fraction = mixture.return_volume() / 800
+		TEST_ASSERT_EQUAL(round(mixture.get_moles(/datum/gas/oxygen), 0.01), 4 * fraction, "Pipeline oxygen should follow each mixture's volume fraction")
+		TEST_ASSERT_EQUAL(round(mixture.get_moles(/datum/gas/nitrogen), 0.01), 12 * fraction, "Pipeline nitrogen should follow each mixture's volume fraction")
+		TEST_ASSERT_EQUAL(round(mixture.return_temperature(), 0.01), round(expected_temperature, 0.01), "Pipeline members should reach the energy-weighted temperature")
+	TEST_ASSERT_EQUAL(round(first.thermal_energy() + second.thermal_energy() + empty.thermal_energy(), 0.01), round(expected_energy, 0.01), "Pipeline reconciliation should conserve total thermal energy")
+#endif
+// APHELION EDIT ADDITION END
+
 /// Reaction gating: hypernoblium suppresses reactions outright before any of them run.
 /datum/unit_test/gas_mixture_golden_reactions
 

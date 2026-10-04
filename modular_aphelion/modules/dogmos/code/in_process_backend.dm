@@ -66,11 +66,7 @@
 		volume_sum += gas_mixture.return_volume()
 		var/list/giver_cached_moles = gas_mixture.get_moles_list()
 		var/heat_capacity = values_dot(giver_cached_moles, cached_specific_heat)
-		var/list/gas_deltas = list()
-		for(var/gas_id, amount in giver_cached_moles)
-			gas_deltas += list(gas_id, amount)
-		if(length(gas_deltas))
-			total_gas_mixture.adjust_multi(arglist(gas_deltas))
+		total_gas_mixture.adjust_multiple_gases(giver_cached_moles)
 		total_heat_capacity += heat_capacity
 		total_thermal_energy += gas_mixture.return_temperature() * heat_capacity
 	if(volume_sum == 0)
