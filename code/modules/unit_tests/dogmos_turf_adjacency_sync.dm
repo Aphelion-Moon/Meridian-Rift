@@ -59,3 +59,37 @@
 	var/expected_blocked = ALL_CARDINALS & ~floor.conductivity_directions()
 	TEST_ASSERT_EQUAL(floor.conductivity_blocked_directions, expected_blocked, \
 		"conductivity_blocked_directions ([floor.conductivity_blocked_directions]) does not match ALL_CARDINALS & ~conductivity_directions() ([expected_blocked]) - it fell out of sync with the adjacency rebuild that just ran, which is exactly what sync_dogmos_adjacency() exists to prevent.")
+
+	// APHELION EDIT ADDITION START - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
+	TEST_ASSERT(dogmos_wait_for_stage_boundary(), "Native adjacency work did not settle before deferred initialization.")
+	TEST_ASSERT(!isnull(middle.dogmos_heat_temperature()), "The omitted neighbor must initially have a native heat node.")
+	var/original_conductivity = middle.thermal_conductivity
+	var/original_middle_cycle = middle.current_cycle
+	var/original_floor_cycle = floor.current_cycle
+	var/original_excited = floor.excited
+	middle.thermal_conductivity = 0
+	middle.current_cycle = 0
+	var/list/initialized = list()
+	SSair.dogmos_initialize_turf_batch(list(floor), initialized, -1, defer_dogmos_adjacency = TRUE)
+	var/source_registered = floor.dogmos_air_registration_is_current()
+	var/omitted_neighbor_updated = isnull(middle.dogmos_heat_temperature())
+	for(var/turf/initialized_turf as anything in initialized)
+		initialized_turf.sync_dogmos_adjacency()
+	var/reciprocal = (middle in floor.atmos_adjacent_turfs) && (floor in middle.atmos_adjacent_turfs)
+	var/zero_flags = floor.atmos_adjacent_turfs[middle] == NONE && middle.atmos_adjacent_turfs[floor] == NONE
+	var/masks_current = floor.conductivity_blocked_directions == (ALL_CARDINALS & ~floor.conductivity_directions())
+	// Restore before asserting so a failed regression leaves no stale fixture metadata behind.
+	middle.thermal_conductivity = original_conductivity
+	middle.current_cycle = original_middle_cycle
+	floor.current_cycle = original_floor_cycle
+	floor.excited = original_excited
+	floor.immediate_calculate_adjacent_turfs()
+	var/runtime_neighbor_restored = !isnull(middle.dogmos_heat_temperature())
+	dogmos_restore_fixture_scheduling()
+	TEST_ASSERT(source_registered, "Deferred initialization lost the source's initial native registration.")
+	TEST_ASSERT(omitted_neighbor_updated, "Deferred initialization skipped a changed neighbor outside its final sweep.")
+	TEST_ASSERT(reciprocal && zero_flags && masks_current, "Deferred initialization did not retain reciprocal zero-flag adjacency and current conductivity masks.")
+	TEST_ASSERT(runtime_neighbor_restored, "The ordinary runtime rebuild did not restore the omitted neighbor's heat node.")
+#endif
+	// APHELION EDIT ADDITION END

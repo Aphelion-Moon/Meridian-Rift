@@ -61,6 +61,16 @@
 	resync_turf_for_dogmos(turf_a)
 	resync_turf_for_dogmos(turf_b)
 
+	// APHELION EDIT ADDITION START - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
+	TEST_ASSERT(dogmos_wait_for_stage_boundary(), "Native heat topology did not settle before deferred initialization.")
+	var/list/initialized = list()
+	SSair.dogmos_initialize_turf_batch(pair, initialized, -1, defer_dogmos_adjacency = TRUE)
+	for(var/turf/initialized_turf as anything in initialized)
+		initialized_turf.sync_dogmos_adjacency()
+#endif
+	// APHELION EDIT ADDITION END
+
 	TEST_ASSERT(!(turf_b in turf_a.atmos_adjacent_turfs), \
 		"turf_b is still gas-adjacent to turf_a after being marked blocks_air - the heat edge this test depends on only exists for NON-gas-adjacent neighbors, so the setup did not take.")
 	TEST_ASSERT(!(turf_a.conductivity_blocked_directions & EAST) && !(turf_b.conductivity_blocked_directions & WEST), \

@@ -200,7 +200,7 @@ GLOBAL_LIST_EMPTY(station_turfs)
 	SEND_SIGNAL(occupant, COMSIG_MOVABLE_TURF_INITIALIZING, src)
 
 /// Initializes our adjacent turfs. If you want to avoid this, do not override it, instead set init_air to FALSE
-/turf/proc/Initalize_Atmos(time)
+/turf/proc/Initalize_Atmos(time, defer_dogmos_adjacency = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /turf/proc/Initalize_Atmos(time)
 	CALCULATE_ADJACENT_TURFS(src, NORMAL_TURF)
 
 // APHELION EDIT ADDITION START - TURF_CONTEXT

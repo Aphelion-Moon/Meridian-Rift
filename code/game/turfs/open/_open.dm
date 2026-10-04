@@ -510,12 +510,12 @@
 	icon_state = /turf/open/floor/stone::icon_state
 	name = /turf/open/floor/stone::name
 
-/turf/open/Initalize_Atmos(time)
+/turf/open/Initalize_Atmos(time, defer_dogmos_adjacency = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /turf/open/Initalize_Atmos(time)
 	excited = FALSE
 	update_visuals()
 
 	current_cycle = time
-	init_immediate_calculate_adjacent_turfs()
+	init_immediate_calculate_adjacent_turfs(defer_dogmos_adjacency) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: init_immediate_calculate_adjacent_turfs()
 
 /turf/open/GetHeatCapacity()
 	. = air.heat_capacity()

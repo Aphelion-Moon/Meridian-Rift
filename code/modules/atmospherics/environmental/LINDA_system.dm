@@ -70,7 +70,7 @@
 /// This proc is a more deeply optimized version of immediate_calculate_adjacent_turfs
 /// It contains dumbshit, and also stuff I just can't do at runtime
 /// If you're not editing behavior, just read that proc. It's less bad
-/turf/proc/init_immediate_calculate_adjacent_turfs()
+/turf/proc/init_immediate_calculate_adjacent_turfs(defer_dogmos_adjacency = FALSE)
 	//Basic optimization, if we can't share why bother asking other people ya feel?
 	// You know it's gonna be stupid when they include a unit test in the atmos code
 	// Yes, inlining the string concat does save 0.1 seconds
@@ -123,7 +123,10 @@
 	UNSETEMPTY(atmos_adjacent_turfs)
 	src.atmos_adjacent_turfs = atmos_adjacent_turfs
 	SEND_SIGNAL(src, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
-	sync_dogmos_adjacency()
+	// Cold native setup performs a final full sync after all endpoints register. Neighbors above
+	// still sync immediately: space and late-loaded turfs may be outside that final sweep.
+	if(!defer_dogmos_adjacency)
+		sync_dogmos_adjacency()
 
 /turf/proc/immediate_calculate_adjacent_turfs()
 	LAZYINITLIST(src.atmos_adjacent_turfs)

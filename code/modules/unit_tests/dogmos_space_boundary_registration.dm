@@ -7,6 +7,12 @@
 /datum/unit_test/dogmos_space_boundary_registration/Run()
 	var/turf/open/interior = run_loc_floor_bottom_left
 	TEST_ASSERT(istype(interior), "run_loc_floor_bottom_left is not an open turf - this test needs one.")
+	// APHELION EDIT ADDITION START - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
+	// Fence before opening the breach so setup cannot drain the gas we intend to measure.
+	TEST_ASSERT(dogmos_wait_for_stage_boundary(), "Native gas topology did not settle before deferred initialization.")
+#endif
+	// APHELION EDIT ADDITION END
 
 	var/datum/gas_mixture/air_interior = interior.air
 	var/before_moles = air_interior.total_moles()
@@ -16,6 +22,19 @@
 	var/list/conversion = convert_neighbor_to_space(interior)
 	var/turf/open/space/vacuum_neighbor = conversion[1]
 	original_neighbor_type = conversion[2]
+
+	// APHELION EDIT ADDITION START - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
+	var/list/initialized = list()
+	vacuum_neighbor.current_cycle = 0
+	SSair.dogmos_initialize_turf_batch(list(interior), initialized, -1, defer_dogmos_adjacency = TRUE)
+	for(var/turf/initialized_turf as anything in initialized)
+		initialized_turf.sync_dogmos_adjacency()
+	before_moles = air_interior.total_moles()
+	TEST_ASSERT(before_moles > 0, "Deferred space setup exhausted the fixture gas before the measured diffusion window.")
+	dogmos_restore_fixture_scheduling()
+#endif
+	// APHELION EDIT ADDITION END
 
 	TEST_ASSERT(vacuum_neighbor.dogmos_air_registration_is_current(register_space_boundary = TRUE), \
 		"The real space neighbor did not retain the current shared-boundary mixture identity after registration.")

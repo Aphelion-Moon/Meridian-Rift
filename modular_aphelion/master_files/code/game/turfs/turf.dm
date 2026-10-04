@@ -49,7 +49,7 @@
 		&& (dogmos_registered_mixture_generation || 0) == (expected_mixture?.dogmos_generation || 0)
 #endif
 
-/turf/Initalize_Atmos(time)
+/turf/Initalize_Atmos(time, defer_dogmos_adjacency = FALSE)
 	register_dogmos_air()
 	return ..()
 

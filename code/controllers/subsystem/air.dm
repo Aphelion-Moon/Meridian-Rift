@@ -1250,8 +1250,10 @@ SUBSYSTEM_DEF(air)
 	queued_for_activation.Cut()
 
 // APHELION EDIT ADDITION START - DOGMOS
-/** Prefetches own gas before initialization reads its visuals, preserving turf order and cycle stamps. */
-/datum/controller/subsystem/air/proc/dogmos_initialize_turf_batch(list/batch, list/difference_check, time)
+/** Initializes a batch in turf order, prefetching service gas before visual reads.
+ * Native cold setup may defer source adjacency until its final full sync; other callers stay immediate.
+ */
+/datum/controller/subsystem/air/proc/dogmos_initialize_turf_batch(list/batch, list/difference_check, time, defer_dogmos_adjacency = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /datum/controller/subsystem/air/proc/dogmos_initialize_turf_batch(list/batch, list/difference_check, time)
 #ifndef DOGMOS_IN_PROCESS
 	var/list/mixtures = list()
 	for(var/turf/open/setup as anything in batch)
@@ -1262,7 +1264,7 @@ SUBSYSTEM_DEF(air)
 	for(var/turf/setup as anything in batch)
 		if(QDELETED(setup) || !setup.init_air)
 			continue
-		setup.Initalize_Atmos(time)
+		setup.Initalize_Atmos(time, defer_dogmos_adjacency)
 		difference_check += setup
 		if(CHECK_TICK)
 			time--
@@ -1294,6 +1296,10 @@ SUBSYSTEM_DEF(air)
 	var/list/turf/open/difference_check = list()
 	// APHELION EDIT ADDITION START - DOGMOS
 	var/list/initialization_batch = list()
+	var/defer_dogmos_adjacency = FALSE
+#ifdef DOGMOS_IN_PROCESS
+	defer_dogmos_adjacency = TRUE
+#endif
 	// APHELION EDIT ADDITION END
 	for(var/turf/setup as anything in ALL_TURFS())
 		if (!setup.init_air)
@@ -1302,7 +1308,7 @@ SUBSYSTEM_DEF(air)
 		if(DOGMOS)
 			initialization_batch += setup
 			if(length(initialization_batch) >= ACTIVE_TURFS_WALK_BATCH_SIZE)
-				time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
+				time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time, defer_dogmos_adjacency)
 				initialization_batch.Cut()
 			continue
 		// APHELION EDIT ADDITION END
@@ -1316,11 +1322,11 @@ SUBSYSTEM_DEF(air)
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(DOGMOS)
 		if(length(initialization_batch))
-			time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time)
+			time = dogmos_initialize_turf_batch(initialization_batch, difference_check, time, defer_dogmos_adjacency)
 #ifdef DOGMOS_IN_PROCESS
-		// Rebuild edges after every endpoint has registered, independent of map order.
+		// Refresh masks, heat metadata and edges after every endpoint has registered.
 		for(var/turf/registered_turf as anything in difference_check)
-			registered_turf.__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+			registered_turf.sync_dogmos_adjacency()
 			CHECK_TICK
 #else
 		SSdogmos.retry_startup_turf_adjacencies()
