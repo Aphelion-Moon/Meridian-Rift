@@ -16,12 +16,8 @@
 	var/list/completed = list(FALSE, FALSE)
 	/// Submitted symbols.
 	var/list/buffer = list()
-	/// Cell indices already consumed by this attempt.
+	/// Cell indices in pulse order; also determines the current position and next axis.
 	var/list/used_cells = list()
-	/// Last selected cell; zero means start on the top row.
-	var/last_cell = 0
-	/// The next pulse must use the last cell's row, otherwise its column.
-	var/select_row = TRUE
 	/// Absolute server deadline; zero until the first pulse.
 	var/deadline = 0
 	/// Whether the one-use recovery action has been consumed.
@@ -70,7 +66,8 @@
 		return FALSE
 	if(!isnum(index) || index != round(index) || index < 1 || index > length(cells) || (index in used_cells))
 		return FALSE
-	return shares_line(index, last_cell, select_row)
+	var/pulses = length(used_cells)
+	return shares_line(index, pulses ? used_cells[pulses] : 0, pulses % 2 == 0)
 
 /// Accepts one legal pulse, then resolves signatures and terminal conditions.
 /datum/cache_lock_puzzle/proc/select_cell(index)
@@ -80,15 +77,17 @@
 		deadline = world.time + time_limit
 	used_cells += index
 	buffer += cells[index]
-	last_cell = index
-	select_row = !select_row
 	revision++
 	resolve_buffer()
 	return TRUE
 
+/// Shared by the action and UI so recovery availability cannot drift from its rules.
+/datum/cache_lock_puzzle/proc/can_stabilize()
+	return deadline && world.time < deadline && !solved && !failed && !recovery_used && length(buffer) < buffer_limit - 1
+
 /// Trades one unused buffer slot for additional trace time, preserving signature progress.
 /datum/cache_lock_puzzle/proc/stabilize()
-	if(!deadline || world.time >= deadline || solved || failed || recovery_used || length(buffer) >= buffer_limit - 1)
+	if(!can_stabilize())
 		return FALSE
 	recovery_used = TRUE
 	buffer_limit--

@@ -98,12 +98,12 @@
 	cache.owner_ckey = "cache-test-owner"
 	cache.owner_name = "Cache test owner"
 	cache.update_gps_state()
-	TEST_ASSERT(cache.gps_active, "Unheld attuned cache did not transmit")
-	cache.remove_gps_signal()
+	TEST_ASSERT_NOTNULL(cache.GetComponent(/datum/component/gps), "Unheld attuned cache did not transmit")
+	qdel(cache.GetComponent(/datum/component/gps))
 	bag.forceMove(run_loc_floor_top_right)
-	TEST_ASSERT(cache.gps_active, "Moving a containing bag did not refresh GPS")
+	TEST_ASSERT_NOTNULL(cache.GetComponent(/datum/component/gps), "Moving a containing bag did not refresh GPS")
 	cache.clear_owner()
-	TEST_ASSERT(!cache.gps_active, "Clearing attunement retained GPS")
+	TEST_ASSERT_NULL(cache.GetComponent(/datum/component/gps), "Clearing attunement retained GPS")
 
 	var/obj/item/storage/box/survival/ordinary_box = allocate(/obj/item/storage/box/survival)
 	ordinary_box.cache_locked = TRUE
@@ -126,6 +126,8 @@
 	var/datum/cache_lock_session/session = new(cache, user, FALSE)
 	cache.active_hack = session
 	TEST_ASSERT_EQUAL(session.ui_status(other_user, GLOB.hands_state), UI_CLOSE, "Another mob could use the session")
+	var/list/ui_data = session.ui_data(user)
+	TEST_ASSERT(!ui_data["can_stabilize"], "Planning UI offered recovery before the trace")
 	qdel(session)
 	TEST_ASSERT_NULL(cache.active_hack, "Closing planning did not release cache")
 	TEST_ASSERT_EQUAL(cache.hack_cooldown_until, 0, "Planning cancellation applied a lockout")
@@ -133,6 +135,11 @@
 	session = new(cache, user, FALSE)
 	cache.active_hack = session
 	session.puzzle.select_cell(1)
+	ui_data = session.ui_data(user)
+	TEST_ASSERT(ui_data["can_stabilize"], "Active UI hid valid recovery")
+	session.puzzle.deadline = world.time - 1
+	ui_data = session.ui_data(user)
+	TEST_ASSERT(!ui_data["can_stabilize"], "Expired UI offered recovery")
 	qdel(session)
 	TEST_ASSERT(cache.hack_cooldown_until > world.time, "Started real attempt escaped lockout")
 	cache.hack_cooldown_until = 0
@@ -164,7 +171,8 @@
 			client.prefs.write_preference(GLOB.preference_entries[/datum/preference/choiced/loadout_override_preference], delivery)
 			client.prefs.write_preference(GLOB.preference_entries[/datum/preference/loadout], list("Default" = list(
 				/obj/item/tank/internals/emergency_oxygen = list(),
-				/obj/item/multitool = list(),
+				/obj/item/multitool = list(INFO_NAMED = "Cache test tool"),
+				/obj/item/clothing/head/beret = list(),
 			)))
 			client.prefs.write_preference(GLOB.preference_entries[/datum/preference/loadout_index], "Default")
 			var/datum/outfit/job/outfit = allocate(/datum/outfit/job)
@@ -176,6 +184,17 @@
 			var/list/cache_contents = cache.get_all_contents()
 			var/obj/item/multitool/tool = locate() in cache_contents
 			TEST_ASSERT_NOTNULL(tool, "[delivery] failed to deliver tool into [box_type]")
+			TEST_ASSERT_EQUAL(tool.name, "Cache test tool", "[delivery] skipped Cache customization")
+			var/obj/item/clothing/head/beret/hat = locate() in user.get_all_gear()
+			TEST_ASSERT_NOTNULL(hat, "[delivery] lost ordinary loadout clothing")
+			switch(delivery)
+				if(LOADOUT_OVERRIDE_CASE)
+					TEST_ASSERT(istype(hat.loc, /obj/item/storage/briefcase/empty), "Suitcase delivery equipped the hat instead")
+				if(LOADOUT_OVERRIDE_CACHE_POUCH)
+					TEST_ASSERT(istype(hat.loc, /obj/item/storage/box/cache_pouch/loadout), "Cache delivery missed the loadout matrix")
+					TEST_ASSERT(HAS_TRAIT_FROM(hat, TRAIT_LOADOUT_POUCH_ITEM, REF(hat.loc)), "Packed loadout item lost its matrix identity")
+				else
+					TEST_ASSERT_EQUAL(user.head, hat, "Default delivery failed to equip the hat")
 			var/tanks = 0
 			for(var/obj/item/tank/internals/tank in cache_contents)
 				tanks++

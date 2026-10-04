@@ -53,104 +53,67 @@
 	var/obj/item/storage/box/cache_pouch/erp/erpbox // NOVA EDIT CHANGE - PERSONAL_CACHE - ORIGINAL: var/obj/item/storage/box/erp/erpbox
 	var/obj/item/storage/box/cache_pouch/loadout/pouch // NOVA EDIT ADDITION - PERSONAL_CACHE
 	var/erp_enabled = !CONFIG_GET(flag/disable_erp_preferences)
-	// APHELION EDIT ADDITION START - PERSONAL_CACHE
-	// Spawn Cache selections after the outfit, retaining their exact instances so
-	// a matching stock tank or another loadout selection cannot be customized instead.
-	var/list/cache_selections = list()
-	if(!visuals_only)
-		for(var/datum/loadout_item/cache/item in loadout_datums)
-			if(item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only) && item.is_equippable(src, loadout_list?[item.item_path] || list()))
-				cache_selections += item
-	loadout_datums -= cache_selections
-	// APHELION EDIT ADDITION END
+	var/pouch_in_hand = FALSE
+	// APHELION EDIT CHANGE START - PERSONAL_CACHE
 	if(override_preference == LOADOUT_OVERRIDE_CASE && !visuals_only)
 		briefcase = new(loc)
-		for(var/datum/loadout_item/item as anything in loadout_datums)
-			if (erp_enabled && item.erp_box)
-				if (isnull(erpbox))
-					erpbox = new(loc)
-				new item.item_path(erpbox)
-			else
-				if (!item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only))
-					continue
-				new item.item_path(briefcase)
-
 		briefcase.name = "[preference_source.read_preference(/datum/preference/name/real_name)]'s travel suitcase"
-		equipOutfit(equipped_outfit, visuals_only)
-		INVOKE_ASYNC(src, PROC_REF(put_in_hands), briefcase)
-	// NOVA EDIT ADDITION START - PERSONAL_CACHE
 	else if(override_preference == LOADOUT_OVERRIDE_CACHE_POUCH && !visuals_only)
+		// This destination lives in the outfit's survival box, so equip that first.
 		equipOutfit(equipped_outfit, visuals_only)
-
 		var/obj/item/storage/box/survival/cache_box = locate(/obj/item/storage/box/survival) in get_all_gear()
-		var/pouch_in_hand = !istype(cache_box, /obj/item/storage/box/personal_cache) || cache_box.cache_locked
+		pouch_in_hand = !istype(cache_box, /obj/item/storage/box/personal_cache) || cache_box.cache_locked
 		pouch = new /obj/item/storage/box/cache_pouch/loadout(pouch_in_hand ? loc : cache_box)
 
-		for(var/datum/loadout_item/item as anything in loadout_datums)
-			if (erp_enabled && item.erp_box)
-				if (isnull(erpbox))
-					erpbox = new(loc)
-				new item.item_path(erpbox)
-			else
-				if (!item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only))
-					continue
-				var/obj/item/loadout_item = new item.item_path(pouch)
+	var/obj/item/storage/loadout_container = briefcase || pouch
+	for(var/datum/loadout_item/item as anything in loadout_datums)
+		if(istype(item, /datum/loadout_item/cache))
+			continue // Spawn directly into the customization pass after the outfit exists.
+		if(erp_enabled && item.erp_box)
+			if(isnull(erpbox))
+				erpbox = new(loc)
+			new item.item_path(erpbox)
+			continue
+		if(!item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only))
+			continue
+		if(loadout_container)
+			var/obj/item/loadout_item = new item.item_path(loadout_container)
+			if(pouch)
 				loadout_item.AddElement(/datum/element/loadout_pouch_item, REF(pouch))
+			continue
 
-		if(pouch_in_hand)
-			INVOKE_ASYNC(src, PROC_REF(put_in_hands), pouch)
-	// NOVA EDIT ADDITION END
-	else
-		for(var/datum/loadout_item/item as anything in loadout_datums)
-			if (erp_enabled && item.erp_box)
-				if (isnull(erpbox))
-					erpbox = new(loc)
-				new item.item_path(erpbox)
-			else
-				if (!item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only))
-					continue
-
-				// Make sure the item is not overriding an important for life outfit item
-				var/datum/outfit/outfit_important_for_life = dna.species.outfit_important_for_life
-				if(!outfit_important_for_life || !item.pre_equip_item(equipped_outfit, outfit_important_for_life, src, visuals_only))
-					item.insert_path_into_outfit(equipped_outfit, src, visuals_only, override_preference)
+		// Preserve species-critical clothing when applying loadout overrides.
+		var/datum/outfit/outfit_important_for_life = dna.species.outfit_important_for_life
+		if(!outfit_important_for_life || !item.pre_equip_item(equipped_outfit, outfit_important_for_life, src, visuals_only))
+			item.insert_path_into_outfit(equipped_outfit, src, visuals_only, override_preference)
+	if(!pouch)
 		equipOutfit(equipped_outfit, visuals_only)
+	if(briefcase || pouch_in_hand)
+		INVOKE_ASYNC(src, PROC_REF(put_in_hands), loadout_container)
 
-	// NOVA EDIT CHANGE START - PERSONAL_CACHE - ORIGINAL: var/list/new_contents = isnull(briefcase) ? get_all_gear() : briefcase.get_all_contents()
-	var/list/new_contents
-	if(!isnull(briefcase))
-		new_contents = briefcase.get_all_contents()
-	else if(!isnull(pouch))
-		new_contents = pouch.get_all_contents()
-	else
-		new_contents = get_all_gear()
-	// NOVA EDIT CHANGE END
-
-	var/obj/item/storage/box/personal_cache/cache = locate(/obj/item/storage/box/personal_cache) in get_all_gear() // NOVA EDIT ADDITION - PERSONAL_CACHE - hoisted above the loop so the cache-pick lookup below can use it too
-	// APHELION EDIT ADDITION START - PERSONAL_CACHE
-	var/list/spawned_cache_items = list()
-	for(var/datum/loadout_item/cache/item as anything in cache_selections)
-		spawned_cache_items[item] = new item.item_path(loc)
-	loadout_datums += cache_selections
-	// APHELION EDIT ADDITION END
+	var/list/new_contents = loadout_container ? loadout_container.get_all_contents() : get_all_gear()
+	var/obj/item/storage/box/personal_cache/cache = locate(/obj/item/storage/box/personal_cache) in get_all_gear()
+	// APHELION EDIT CHANGE END
 
 	var/update = NONE
 	for(var/datum/loadout_item/item as anything in loadout_datums)
 		if(!item.is_equippable(src, loadout_list?[item.item_path] || list()))
-			loadout_datums -= item
 			continue
 		if(item.restricted_roles && equipping_job && !(equipping_job.title in item.restricted_roles))
 			continue
 
-		// NOVA EDIT CHANGE START - PERSONAL_CACHE - ORIGINAL: var/obj/item/equipped / if(erpbox && item.erp_box) / equipped = locate(item.item_path) in erpbox / else / equipped = locate(item.item_path) in new_contents
+		// APHELION EDIT CHANGE START - PERSONAL_CACHE
 		var/obj/item/equipped
-		if(erpbox && item.erp_box)
+		if(istype(item, /datum/loadout_item/cache))
+			if(visuals_only || !item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only))
+				continue
+			// Use the selected instance, never a matching stock survival item.
+			equipped = new item.item_path(loc)
+		else if(erpbox && item.erp_box)
 			equipped = locate(item.item_path) in erpbox
-		else if(istype(item, /datum/loadout_item/cache))
-			equipped = spawned_cache_items[item]
 		else
 			equipped = locate(item.item_path) in new_contents
-		// NOVA EDIT CHANGE END
+		// APHELION EDIT CHANGE END
 
 		if(isnull(equipped))
 			continue

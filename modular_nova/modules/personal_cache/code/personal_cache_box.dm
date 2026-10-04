@@ -1,12 +1,12 @@
 // THIS IS A MODULAR NOVA SECTOR ITEM - PERSONAL_CACHE
-/// Storage for the Bluespace Cache. 6 slots = room for every standing/optional matrix plus one spare for the auto-sort catch-all below.
+/// Holds five possible matrices plus one staging slot for automatic sorting.
 /datum/storage/box/personal_cache
-	// Has to be at least as big as our biggest matrix (loadout/erp, both NORMAL) so they can be filled, and no bigger than NORMAL or the cache itself gets rejected going into an ordinary backpack (see can_insert()'s bigger_fish check in storage.dm).
+	// Match the largest matrix's capacity while remaining compatible with backpacks.
 	max_specific_storage = WEIGHT_CLASS_NORMAL
 	max_slots = 6
 	allow_big_nesting = TRUE // lets NORMAL-sized storage (ration packs) get far enough in for the matrices to claim it
 	allow_quick_gather = TRUE // click a pile on the floor to sweep it straight into the matrices
-	allow_quick_empty = TRUE // and drag the cache onto a tile to shake every matrix back out
+	allow_quick_empty = TRUE // dump matrix contents while leaving the matrices attached
 
 /datum/storage/box/personal_cache/New(atom/parent, max_slots, max_specific_storage, max_total_storage, rustle_sound, remove_rustle_sound)
 	. = ..()
@@ -31,19 +31,17 @@
 	var/owner_ckey
 	/// Display name of the bound owner, used to build the box's name and GPS tag.
 	var/owner_name
-	/// Whether a GPS component is currently attached (box is lost/stolen).
-	var/gps_active = FALSE
 	/// The sole active hacking session, including an owner's practice attempt.
 	var/datum/cache_lock_session/active_hack
 	/// Failed or abandoned real attempts prevent immediate brute-force retries.
 	var/hack_cooldown_until = 0
-	/// Matrices every cache is born with. Add a pouch type here to give every cache one for free - sort order isn't decided here, it lives on each pouch's sort_priority.
+	/// Default matrices; each pouch's sort_priority controls routing order.
 	var/static/list/standing_pouches = list(
 		/obj/item/storage/box/cache_pouch/survival,
 		/obj/item/storage/box/cache_pouch/rations,
 		/obj/item/storage/box/cache_pouch/general,
 	)
-	/// cache_slot -> which standing pouch swallows Cache tab picks of that slot (unlisted slots just fall to the box root). New slot? New line here, and add its pouch to standing_pouches above.
+	/// Cache selection slot -> destination matrix type. Unlisted slots use the root.
 	var/static/list/slot_to_pouch = list(
 		CACHE_SLOT_TANK = /obj/item/storage/box/cache_pouch/survival,
 		CACHE_SLOT_MASK = /obj/item/storage/box/cache_pouch/survival,
@@ -68,11 +66,11 @@
 	var/pouch_type = slot_to_pouch[cache_slot]
 	return pouch_type ? (locate(pouch_type) in src) : null
 
-/// Low priority first - the picky matrices get first refusal, the junk drawer eats last. sortTim is stable, so ties keep contents order.
+/// Lower priorities sort first; stable sorting preserves contents order for ties.
 /proc/cmp_cache_pouch_priority(obj/item/storage/box/cache_pouch/a, obj/item/storage/box/cache_pouch/b)
 	return a.sort_priority - b.sort_priority
 
-/// Every matrix currently threaded into the cache, lowest sort_priority first. The bulk paths below all work off this so nothing has to know which matrices exist.
+/// Returns attached matrices in routing priority order.
 /obj/item/storage/box/personal_cache/proc/get_sorted_matrices()
 	. = list()
 	for(var/obj/item/storage/box/cache_pouch/pouch in contents)
@@ -80,7 +78,7 @@
 	if(length(.) > 1)
 		sortTim(., GLOBAL_PROC_REF(cmp_cache_pouch_priority))
 
-/// Which matrix would take thing? Asked in sort_priority order, so the optional ones (loadout, love) get first refusal on their own gear instead of watching general scoop it up. Null means nobody wants it - which is the cache's cue to turn it away at the door rather than let it squat in the root.
+/// Returns the first accepting matrix, giving identity/type restrictions priority over general storage.
 /obj/item/storage/box/personal_cache/proc/find_matrix_for(obj/item/thing, mob/user)
 	if(istype(thing, /obj/item/storage/box/cache_pouch)) // matrices don't nest inside each other
 		return null
@@ -89,7 +87,7 @@
 			return pouch
 	return null
 
-/// Files thing into whichever matrix find_matrix_for() picked. Used at spawn (see PopulateContents) and on every drop-in (see attempt_insert below). Returns the matrix it landed in, or null if nothing wanted it.
+/// Routes an item during population or insertion; returns its matrix, or null on rejection.
 /obj/item/storage/box/personal_cache/proc/sort_into_matrix(obj/item/thing, mob/user)
 	var/obj/item/storage/box/cache_pouch/destination = find_matrix_for(thing, user)
 	if(isnull(destination))
@@ -98,19 +96,19 @@
 		return null
 	return destination
 
-// Matrices first, then let survival's PopulateContents do its normal thing, evict the candle, and sweep whatever's left loose (mask, tank, medipen, and anything else survival felt like giving us) into its matrix.
+/// Create matrices before routing the inherited survival supplies.
 /obj/item/storage/box/personal_cache/PopulateContents()
 	for(var/pouch_type in standing_pouches)
 		new pouch_type(src)
 
 	. = ..()
 
-	qdel(locate(/obj/item/oxygen_candle) in src)// Fuck you go away dumb candle you suck
+	qdel(locate(/obj/item/oxygen_candle) in src)
 
 	for(var/obj/item/loose_item in contents.Copy())
 		sort_into_matrix(loose_item)
 
-// Survival's version pokes at src's direct contents, but by now the mask and tank are tucked inside the survival matrix, so it finds nothing and dumps the replacement tank loose in the root. Dig properly, then file the new one like anything else. No parent call - it'd no-op on the search and spawn us a second tank.
+/// Replace nested species-specific gas gear; the parent only searches direct contents.
 /obj/item/storage/box/personal_cache/wardrobe_removal()
 	if(!isplasmaman(loc) && !isvox(loc))
 		return
@@ -123,7 +121,6 @@
 			qdel(thing)
 	sort_into_matrix(replacement)
 
-// The pitch: what it does, who it answers to, and how to work its lock
 /obj/item/storage/box/personal_cache/examine(mob/user)
 	. = ..()
 	. += span_notice("A personal bluespace field keeps its contents auto-sorted into dedicated matrices - no more digging for your gas mask.")
@@ -136,7 +133,6 @@
 		. += span_notice("It's attuned to [owner_name || "someone else"]. A multitool gets you a shot at cracking the lock, nothing more.")
 	. += span_notice("While attuned and out of its owner's hands, it broadcasts a GPS signal.")
 
-// Multitool tap = the owner dance.
 /obj/item/storage/box/personal_cache/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
 	if(!istype(tool, /obj/item/multitool))
 		return ..()
@@ -150,7 +146,7 @@
 	crack_bluespace_lock(living_user, self_test = TRUE)
 	return CLICK_ACTION_SUCCESS
 
-// Unowned? Claim it. Yours? Drop it. Someone else's? Go crack it.
+/// Claim an unbound cache, release one's own attunement, or challenge another owner's lock.
 /obj/item/storage/box/personal_cache/proc/rebind_owner(mob/living/user)
 	if(!user.ckey || user.incapacitated || !user.can_perform_action(src, NEED_DEXTERITY))
 		return ITEM_INTERACT_BLOCKING
@@ -166,7 +162,6 @@
 
 	return crack_bluespace_lock(user)
 
-// Cache hacking
 /// Starts a routing puzzle, or reopens this user's existing attempt.
 /obj/item/storage/box/personal_cache/proc/crack_bluespace_lock(mob/living/user, self_test = FALSE)
 	if(!user.ckey || user.incapacitated || isnull(owner_ckey) || (self_test != (user.ckey == owner_ckey)))
@@ -192,7 +187,7 @@
 	active_hack.ui_interact(user)
 	return ITEM_INTERACT_SUCCESS
 
-/// The puzzle solved itself. Real crack = attunement's toast. Self-test = just bragging rights.
+/// Apply a successful attempt; practice preserves ownership.
 /obj/item/storage/box/personal_cache/proc/on_lock_cracked(mob/living/user, self_test)
 	if(self_test)
 		to_chat(user, span_notice("[src]'s bluespace lock clicks open cleanly - your own security holds up. This time."))
@@ -200,18 +195,18 @@
 	to_chat(user, span_notice("You feel [src]'s bluespace lock give way. Its attunement dissolves."))
 	clear_owner()
 
-/// Slaps new_owner's name on the cache and syncs the GPS
+/// Bind ownership and refresh the name and GPS tag.
 /obj/item/storage/box/personal_cache/proc/set_owner(mob/living/new_owner)
 	if(!new_owner.ckey)
 		return
 	QDEL_NULL(active_hack)
-	remove_gps_signal()
+	qdel(GetComponent(/datum/component/gps))
 	owner_ckey = new_owner.ckey
 	owner_name = new_owner.real_name
 	name = "[owner_name]'s bluespace cache"
 	update_gps_state()
 
-/// Scrubs ownership clean, name and GPS included
+/// Release ownership, active hacking, and tracking.
 /obj/item/storage/box/personal_cache/proc/clear_owner()
 	QDEL_NULL(active_hack)
 	owner_ckey = null
@@ -219,51 +214,35 @@
 	name = initial(name)
 	update_gps_state()
 
-/// Are we in our owner's hands? No GPS needed then. Anywhere else, start beeping.
+/// Keep a GPS component only while the attuned cache is outside its owner's inventory.
 /obj/item/storage/box/personal_cache/proc/update_gps_state()
-	if(QDELETED(src) || isnull(owner_ckey))
-		remove_gps_signal()
-		return
-
+	var/datum/component/gps/gps = GetComponent(/datum/component/gps)
 	var/mob/holder = get(src, /mob) // walks up through backpacks, pockets, whatever it's buried in
-	if(holder && holder.ckey == owner_ckey)
-		remove_gps_signal()
-	else
-		add_gps_signal()
-
-// Adds and removes the GPS signal
-/obj/item/storage/box/personal_cache/proc/add_gps_signal()
-	if(gps_active || QDELETED(src))// Prevents a runtime through the preview dummy
+	if(QDELETED(src) || isnull(owner_ckey) || (holder && holder.ckey == owner_ckey))
+		qdel(gps)
 		return
-	gps_active = TRUE
-	AddComponent(/datum/component/gps, "[owner_name || "UNKNOWN"]'s Bluespace Cache")
+	if(!gps)
+		AddComponent(/datum/component/gps, "[owner_name || "UNKNOWN"]'s Bluespace Cache")
 
-/obj/item/storage/box/personal_cache/proc/remove_gps_signal()
-	if(!gps_active)
-		return
-	gps_active = FALSE
-	qdel(GetComponent(/datum/component/gps))
-
-// Runs the GPS proc every time the box itself is handled
 /obj/item/storage/box/personal_cache/Moved(atom/old_loc, movement_dir, forced, list/old_locs, momentum_change = TRUE)
 	. = ..()
 	update_gps_state()
 
-// The root is a hallway, not a shelf. If no matrix would claim it, it doesn't come in at all - that spare slot exists so sorting has somewhere to breathe, not for loose junk to squat in.
+/// Reject items without an accepting matrix; the root is only a staging area.
 /datum/storage/box/personal_cache/can_insert(obj/item/to_insert, mob/user, messages = TRUE, force = STORAGE_NOT_LOCKED)
 	. = ..()
 	if(!.)
 		return
 
 	var/obj/item/storage/box/personal_cache/cache = parent
-	if(!length(cache.get_sorted_matrices())) // no matrices at all (admin-spawned oddity) - don't brick the box, just behave like a normal one
+	if(!(locate(/obj/item/storage/box/cache_pouch) in cache)) // Empty admin-spawned caches retain ordinary storage behavior.
 		return
 	if(isnull(cache.find_matrix_for(to_insert, user)))
 		if(messages && user)
 			user.balloon_alert(user, "no matrix for that!")
 		return FALSE
 
-// Nobody drops stuff loose in a nicely organized box. If it lands in the root, file it - and say where, so the auto-sort doesn't just read as the box eating things.
+/// Sort successful insertions and report their destination.
 /datum/storage/box/personal_cache/attempt_insert(obj/item/to_insert, mob/user, override = FALSE, force = STORAGE_NOT_LOCKED, messages = TRUE)
 	. = ..()
 	if(!. || QDELETED(to_insert) || to_insert.loc != parent)
@@ -274,7 +253,7 @@
 	if(messages && user && landed_in)
 		parent.balloon_alert(user, "filed: [landed_in.name]")
 
-// Drag the cache onto a tile to shake every matrix out at once. Vanilla would dump the box's own contents - which is just the matrices, and those are fused in - so we reach one level deeper and empty each of them instead. Takes a while; you're collapsing a bluespace field by hand.
+/// Empty matrix contents after a delay, preserving the fused matrices themselves.
 /datum/storage/box/personal_cache/dump_content_at(atom/dest_object, dump_loc, mob/user)
 	if(locked)
 		user.balloon_alert(user, "closed!")
@@ -313,7 +292,7 @@
 	parent.update_appearance()
 	SEND_SIGNAL(src, COMSIG_STORAGE_DUMP_POST_TRANSFER, dest_object, user)
 
-// If you somehow manage to target the damn things to try and remove them, throw a special balloon alert.
+/// Matrices remain attached even when accessed through the storage UI.
 /datum/storage/box/personal_cache/attempt_remove(obj/item/thing, atom/remove_to_loc, silent = FALSE, visual_updates = TRUE)
 	if(istype(thing, /obj/item/storage/box/cache_pouch))
 		var/mob/holder = get(parent, /mob) // not ismob(parent.loc) - the cache normally lives in a backpack, not a hand

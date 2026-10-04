@@ -79,10 +79,10 @@
 		"completed" = puzzle.completed,
 		"buffer" = puzzle.buffer,
 		"buffer_limit" = puzzle.buffer_limit,
-		"select_row" = puzzle.select_row,
+		"select_row" = length(puzzle.used_cells) % 2 == 0,
 		"started" = !!puzzle.deadline,
 		"seconds_left" = puzzle.deadline ? max(0, CEILING((puzzle.deadline - world.time) / (1 SECONDS), 1)) : puzzle.time_limit / (1 SECONDS),
-		"can_stabilize" = puzzle.deadline && !puzzle.recovery_used && length(puzzle.buffer) < puzzle.buffer_limit - 1,
+		"can_stabilize" = puzzle.can_stabilize(),
 		"recovery_seconds" = puzzle.recovery_time / (1 SECONDS),
 		"self_test" = self_test,
 		"revision" = puzzle.revision,
@@ -99,6 +99,7 @@
 		return TRUE
 	if(params["revision"] != puzzle.revision)
 		return FALSE
+	var/previous_deadline = puzzle.deadline
 	var/accepted = FALSE
 	switch(action)
 		if("pulse")
@@ -119,9 +120,10 @@
 		to_chat(hacker, span_warning("The routing buffer cannot complete the remaining signatures. The attempt has ended."))
 		qdel(src)
 		return TRUE
-	if(trace_timer)
-		deltimer(trace_timer)
-	trace_timer = addtimer(CALLBACK(src, PROC_REF(trace_expired)), puzzle.deadline - world.time, TIMER_STOPPABLE)
+	if(puzzle.deadline != previous_deadline)
+		if(trace_timer)
+			deltimer(trace_timer)
+		trace_timer = addtimer(CALLBACK(src, PROC_REF(trace_expired)), puzzle.deadline - world.time, TIMER_STOPPABLE)
 	return TRUE
 
 /// The deadline is enforced even when the player stops sending UI actions.
