@@ -2,7 +2,8 @@
 
 Module ID: UPLINK_SHELLS
 
-The [amended workplan](workplan.md) records the feature's design contracts.
+The [amended workplan](workplan.md) records the original design. The saved-body,
+scrapping and AI control contracts below supersede its earlier restrictions.
 Compilation and focused automated checks are separate from in-game acceptance
 and release qualification.
 
@@ -18,16 +19,16 @@ its deadline. Fresh construction is separate from live appearance application.
 
 | Category | Existing path and policy |
 | --- | --- |
-| Physiology | `/datum/species/synthetic`; fixed robotic limbs, oil and native synthetic organs. No organic species powers. |
+| Physiology | `/datum/species/synthetic`, oil and native synthetic organs, with compatible saved augments and quirks. No organic species powers. |
 | Body shape | `body_type` preference and `bodypart.change_appearance`; retain presentation on synthetic limbs. Non-renderable anatomy falls back to the previewed humanoid chassis. |
 | Colors/hair | Existing color, skin tone, hair and facial-hair preference applicators; preserve rendering values. |
-| Markings | `preferences.body_markings` to `dna.body_markings`, deep copied; do not run augment middleware. |
-| External features | Existing mutant-choice/color applicators and mutant-bodypart renderer; preserve supported cosmetic parts. Mechanical external abilities are excluded. |
+| Markings | `preferences.body_markings` and per-limb styles are deep copied; native limb middleware runs only on fresh bodies. |
+| External features | Existing mutant-choice/color applicators and visual organ regeneration install supported anatomy, including taur and wings. |
 | Pronouns | `gender` preference; preserve. |
 | Voice/presentation | Existing voice preferences; retain approved presentation without importing employment, banking or mind data. |
-| Quirks | Not installed. Report normalization in preview. |
-| Augments | Not installed. Explicitly report conflicts; brain, synthetic internal organs, left power cord and right toolkit are reserved. |
-| Middleware | `limbs_and_markings.apply_to_human` installs augments and species middleware can change anatomy; do not invoke blanket `apply_prefs_to`. Apply an explicit appearance policy instead. |
+| Quirks | Enabled, species-compatible saved quirks. Visual quirks apply at publication; remaining effects initialize once after first connection. Datums stay on the body across reconnects. |
+| Augments | Native compatibility checks and saved limb styles apply. AI brain, left power cord and right toolkit replace conflicting implants. |
+| Middleware | Fresh-only `limbs_and_markings.apply_to_human`, visual organ regeneration and synthetic supplementary styling; no blanket `apply_prefs_to` or copied character mind. |
 | Live customization | Apply appearance only to existing physical parts; no set_species, organ installation, outfit or resource initialization. |
 
 ### Baseline manifest
@@ -36,13 +37,13 @@ Initial and replacement construction consume one outfit/builder definition.
 
 | Output | Slot/mount and starting resources | Salvage policy |
 | --- | --- | --- |
-| Synthetic chassis | `/datum/species/synthetic`, its normal internal organs, Uplink brain replacing synthetic brain | Normal medical/salvage interactions; body is never deleted by retirement. |
+| Synthetic chassis | `/datum/species/synthetic`, saved assembly and quirks, Uplink brain replacing synthetic brain | Retirement, body death, gibbing and dusting produce one scrap heap after returning control. Installed anatomy is dismantled. |
 | Fuel cell | `/obj/item/organ/stomach/synth`, `NUTRITION_LEVEL_FULL` | Normal organ salvage and EMP damage; charging uses existing `COMSIG_PROCESS_BORGCHARGER_OCCUPANT`, no repair allowance. |
 | Clothing | `/obj/item/clothing/under/color/grey`, uniform; `/obj/item/clothing/shoes/sneakers/black`, shoes | Transferable ordinary clothing. |
 | Backpack | `/obj/item/storage/backpack/industrial`, back | Transferable; never copy old contents. |
 | Toolkit | Narrow `/obj/item/organ/cyberimp/arm/toolkit/toolset` subtype, right arm | Six persistent cyborg tools; existing no-material handling, no exportable loose tool supply. Native welder fuel/refilling, no extra speed multiplier. |
 | Power cord | `/obj/item/organ/cyberimp/arm/toolkit/power_cord/left_arm` | Native synthetic power arrangement. |
-| Camera | Narrow `/obj/machinery/camera/silicon` subtype inside chassis, SS13 network | Current personal authorization only; stop feed on retirement, retain hardware. No container visibility bypass. |
+| Camera | Narrow `/obj/machinery/camera/silicon` subtype inside chassis, SS13 network | Current personal authorization only; dismantled with the body. No container visibility bypass. |
 | Overflow | `/obj/item/storage/briefcase/empty` when needed | Transferable container; retains legitimate personal gear. |
 | Physical credentials | None | No repeat-issued access card. Network authority remains the core's. |
 
@@ -93,6 +94,14 @@ handler after the shell range/visibility check. Already committed native ability
 effects retain their existing timing and costs. Service portability still needs
 in-game verification with an attached player client.
 
+The existing AI keybinding category contains unbound entries for services, verbs,
+camera bookmarks, connections and acquired abilities. Both hotkey modes start
+unbound; existing saved mappings remain intact. `commands.dm` is shared by the
+menu and bindings. Cyborg authority requires a matching control session, and its
+stun/lock restrictions still apply. Camera controls return to AI View first;
+local targeting stays within the occupied endpoint's visible wireless range.
+Safe return, private laws and diagnostics remain available without core services.
+
 ## Build and validation
 
 Repository entry point: `tools/build/build.bat`. `dm` compiles DM plus required icon
@@ -100,6 +109,9 @@ and behavior-tree build inputs; the default build also compiles TGUI/fonts.
 New module `.dm` files require explicit `tgstation.dme` includes. Native regression
 coverage is in `code/modules/unit_tests/~nova/uplink_shells.dm`; the issuance and
 replacement UI tests are in `tgui/packages/tgui/interfaces/UplinkShell.test.tsx`.
+`tgui/packages/tgui-panel/statbrowser.test.ts` executes the shipped statbrowser
+and checks bounded full-refresh acknowledgements, incremental tab changes and
+selection recovery when a body transfer removes a category.
 Run runtime checks in an isolated test world with external integrations disabled.
 The Windows build helper uses BYOND's `dd.exe` console runner so test execution
 waits for world shutdown and preserves its output.
@@ -113,15 +125,18 @@ remove delivered bodies.
 
 Only the AI job spawn hook grants personal entitlement. The management action
 follows the mind through control transfers. A snapshot is built privately for
-preview; confirmation publishes that same body and its contents in one allocation
+preview; a separately owned native character preview retains size transforms and
+height filters. Confirmation publishes the prepared body and contents in one allocation
 commit. Before that commit, cleanup deletes only objects in the private delivery
 container. The body is never reconstructed on confirmation. Preference or loadout
 eligibility changes require a new preview. Replacement uses the frozen blueprint
-with baseline equipment only. No worn items, backpack contents or resource state
+with its saved assembly, quirks and baseline equipment. Ordinary quirk supplies
+are first-issue only; the original heirloom and identity skill grant are retained.
+No worn items, backpack contents or resource state
 are copied from the old body.
 
 Replacement acceptance safely returns only an occupied personal endpoint, retires
-its registration immediately, and starts the retained deadline. Cancel/resubmit
+its registration immediately, scraps the body and starts the retained deadline. Cancel/resubmit
 uses the same not-before time, shown even when delivery is canceled. Management
 reopens at the core after retiring an occupied personal shell. A blocked delivery
 retains the prepared preview and can be retried after clearing a connected floor
@@ -130,7 +145,7 @@ tile in the core's area. A bounded flood search prefers a reachable
 clearance and practical exit routes still require the deferred in-game check.
 
 Core death cancels pending work while preserving allocation history and the
-committed blueprint. Normal revival and compatible brain surgery restore
+committed blueprint. Core revival and compatible surgery on a living shell restore
 availability, never automatic control. Registry VV actions provide inspection,
 safe return and retry of a ready request without resetting claims. Return/AI View
 invalidates control callbacks but preserves personal body observation; retirement
@@ -138,23 +153,23 @@ invalidates personal tools and camera as well. A nearby crew member can request
 attention from the body's examination link. Logout stows tools and closes service
 interfaces; it does not issue or retire a body.
 
-## Limits and intentional physical salvage
+## Body configuration and scrapping
 
-Supported cosmetic external categories are tail, ears, snout, horns, frills,
+Supported external categories are tail, taur, wings, ears, snout, horns, frills,
 spines, fluff, synthetic chassis/head/screen/antenna and moth markings. Humanoid
 synthetic limb mechanics are retained while supported species sprites, gender,
 height, skin/color, hair, markings and voice settings are applied. Unsupported
-body sprites/anatomy (including additional limb layouts), species mechanics,
-quirks and saved augments are excluded and reported as normalization in preview.
+body sprites and organic species mechanics use the shown synthetic fallback.
 Live Self-Actualization customization changes existing presentation only; missing
 physical parts stay missing and the committed replacement blueprint is unchanged.
 
-Retired bodies, synthetic organs/fuel cells, clothing, backpacks and overflow
-containers remain normally salvageable. Camera hardware remains but loses the
-personal feed; its ordinary dismantling can yield camera components. These are
-intentional repeat-issued physical outputs behind the replacement delay. Issued
-tools and the toolkit/camera have no raw custom materials; normal toolkit removal
-and organ salvage remain possible. Approved fresh charge and welder fuel are
+Retirement and body death dismantle the shell into an Uplink scrap heap. Worn
+gear, loose possessions, storage-implant contents and occupants are released onto
+the floor; ordinary containers retain their contents. Installed organs, limbs,
+camera and toolkit are disposed with the chassis. Private preview cleanup creates
+no scrap or loose possessions. Resume is attached to its target's lifetime, hides
+when the body cannot connect, and is removed when that body is deleted.
+Normal surgery remains possible on a living shell. Fresh charge and welder fuel are
 replacement supplies, not a refill of an existing body. The issued toolkit cannot
 be used with stale authorization or emaged to add a weapon. No economy-wide
 salvage rules or acquired items are modified.
@@ -170,8 +185,8 @@ explicit core-view fallback; same-region uncovered locations retain camera masks
 
 Shared hooks intentionally generalize `deployed_shell` and connect/return to living
 endpoints. Damage/mains-loss persistence applies to Uplink brain sessions, while
-ordinary cyborg failure policy remains. UI/radio adapters are conditional on active
-Uplink sessions; shuttle availability uses the active controlled player's client.
+ordinary cyborg failure policy remains. UI transport uses captured Uplink or
+cyborg sessions; shuttle availability uses the active controlled player's client.
 Alt-click inventory uses the active viewer's client; portrait actions use the
 authoritative AI UI owner even when its client controls a shell. Core radio
 forwarding accepts department channels. Core-owned malf state survives shell
@@ -187,6 +202,11 @@ Shared ownership boundaries:
 - `code/modules/tgui/tgui.dm`: `get_config` resolves one transport client for each payload while retaining the original UI user as authority.
 - `blueprint.dm`: `uplink_camera_available` owns the live registration, location and power checks used for both camera updates and access.
 - `registry.dm`: the private delivery container owns unpublished contents through normal movable destruction; publication moves them out before disposing the container.
+- `commands.dm`, `keybindings.dm`, `services.dm`: shared AI command dispatch, unbound preference entries and captured-session transport. Core AI/robot keybinding files preserve existing saved names; the former hardcoded AI camera keys are removed.
+- `code/_onclick/cyborg.dm`: emits the session click signal after native stun/lock checks. AI visibility/waypoint hooks and TGUI/chat/radial adapters accept either authenticated endpoint type.
+- `code/modules/client/preferences.dm`: `char_preview.update_canvas` renders an already-configured dummy without reloading its job/species preferences. The Uplink candidate owns and disposes its view.
+- `html/statbrowser.js`, `code/modules/client/client_procs.dm`: full tab refreshes use one validated list acknowledgement; incremental updates and real Topic limits are preserved.
+- Native/Nova quirk gift helpers, Spacer and Family Heirloom: first-issuance supplies without skipping physical initialization. Skilled records its identity grant; Underworld cleanup tolerates a returned mind; Big Boned reads the frozen body preferences.
 
 The full AC-01 through AC-17 acceptance matrix, multiplayer service portability,
 and measured gameplay performance require separate qualification. Focused checks

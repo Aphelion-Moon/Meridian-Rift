@@ -224,6 +224,12 @@
  * * notify_player - If TRUE, adds strings to where_items_spawned list to be output to the player in [/datum/quirk/item_quirk/post_add()]
  */
 /datum/quirk/item_quirk/proc/give_item_to_holder(obj/item/quirk_item, list/valid_slots, flavour_text = null, default_location = "at your feet", notify_player = FALSE)
+	// APHELION EDIT ADDITION START - preserve physical add_unique effects without reissuing supplies.
+	if(!uplink_gifts_allowed())
+		if(isitem(quirk_item))
+			qdel(quirk_item)
+		return
+	// APHELION EDIT ADDITION END
 	if(ispath(quirk_item))
 		quirk_item = new quirk_item(get_turf(quirk_holder))
 

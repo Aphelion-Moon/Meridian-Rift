@@ -1,6 +1,7 @@
 import { Box, Button, NoticeBox, Section } from 'tgui-core/components';
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
+import { CharacterPreview } from './common/CharacterPreview';
 
 type Data = {
   status?: string;
@@ -103,13 +104,13 @@ export const UplinkShell = () => {
                 <Box mt={2} mb={1}>
                   {data.profile} — {data.preset}
                 </Box>
-                <img
-                  alt="Uplink body awaiting confirmation"
-                  src={`data:image/png;base64,${data.preview}`}
-                  width={128}
-                  height={128}
-                  style={{ imageRendering: 'pixelated' }}
-                />
+                <Box aria-label="Uplink body awaiting confirmation">
+                  <CharacterPreview
+                    id={data.preview}
+                    width="192px"
+                    height="192px"
+                  />
+                </Box>
                 {data.adjustments?.map((text) => (
                   <Box key={text} mb={1} color="label">
                     {text}
@@ -140,13 +141,14 @@ export const UplinkShell = () => {
             {data.denial && <NoticeBox danger>{data.denial}</NoticeBox>}
             <Box mb={1}>
               {data.hasBody
-                ? 'Retiring disconnects you and disables this shell’s personal connection, toolkit and camera immediately. The body and its belongings stay where they are.'
+                ? 'Retiring returns you to the core and turns this shell into scrap. Its worn and stored belongings are left on the floor.'
                 : 'The previous shell is retired or unavailable. A replacement does not recover its belongings.'}
             </Box>
             <Box mb={1} color="label">
               Personal loadout:{' '}
               {data.loadout === 'issued' ? 'already delivered' : 'declined'}.
-              Replacements include baseline equipment only.
+              Replacements retain your saved assembly and quirks, with baseline
+              equipment. Personal items and quirk supplies are not reissued.
             </Box>
             {!data.replacementStarted && (
               <Box mb={1}>
@@ -202,8 +204,8 @@ export const UplinkShell = () => {
           AI View returns you to the real AI eye at the shell’s location. Resume
           reconnects to that body after it moves. It remains vulnerable while
           unattended. Engineering Toolkit requires an empty right hand; drop
-          retracts tools. Uplink AI Services provides core interfaces and a
-          local network toggle. Physical interaction is the default.
+          retracts tools. AI Services provides core interfaces and a local
+          network toggle. Physical interaction is the default.
         </Section>
       </Window.Content>
     </Window>

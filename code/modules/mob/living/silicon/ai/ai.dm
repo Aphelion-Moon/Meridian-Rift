@@ -136,6 +136,8 @@
 	sprint = 5
 	announce_init_to_others = FALSE
 
+/* APHELION EDIT REMOVAL START - camera shortcuts now use unbound AI preference entries.
+ORIGINAL:
 /mob/living/silicon/ai/key_down(_key, client/user)
 	if(findtext(_key, "numpad")) //if it's a numpad number, we can convert it to just the number
 		_key = _key[7] //strings, lists, same thing really
@@ -157,6 +159,7 @@
 				eyeobj.setLoc(cam_hotkeys[_key])
 				return
 	return ..()
+APHELION EDIT REMOVAL END */
 
 /mob/living/silicon/ai/Destroy()
 	QDEL_NULL(uplink_resume_action)
@@ -329,7 +332,7 @@ GAME_VERB_DESC(/mob/living/silicon/ai, pick_status_display, "Set AI Status Displ
 			C.post_status("shuttle")
 
 /mob/living/silicon/ai/can_interact_with(atom/A, treat_mob_as_adjacent)
-	if(shell_session?.brain)
+	if(shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(shell_session?.brain)
 		return shell_session.local_target(A)
 	. = ..()
 	if (.)
@@ -512,7 +515,7 @@ GAME_VERB(/mob/living/silicon/ai, toggle_anchor, "Toggle Floor Bolts", "AI Comma
 
 
 /mob/living/silicon/ai/proc/switchCamera(obj/machinery/camera/C)
-	if(shell_session?.brain)
+	if(shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(shell_session?.brain)
 		to_chat(uplink_player(), span_notice("Enter AI View to operate remote cameras."))
 		return FALSE
 	if(QDELETED(C))
@@ -537,7 +540,7 @@ GAME_VERB_PROC_DESC(/mob/living/silicon/ai, botcall, "Access Robot Control", "Wi
 
 /mob/living/silicon/ai/proc/set_waypoint(atom/A)
 	var/turf/turf_check = get_turf(A)
-	if(shell_session?.brain)
+	if(shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(shell_session?.brain)
 		if(shell_session.local_target(A))
 			call_bot(turf_check)
 		return
@@ -829,7 +832,7 @@ GAME_VERB_PROC_DESC(/mob/living/silicon/ai, set_automatic_say_channel, "Set Auto
 	return can_see(target) && ..() //stop AIs from leaving windows open and using then after they lose vision
 
 /mob/living/silicon/ai/proc/can_see(atom/A)
-	if(shell_session?.brain)
+	if(shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(shell_session?.brain)
 		return shell_session.local_target(A)
 	if(isturf(loc)) //AI in core, check if on cameras
 		//get_turf_pixel() is because APCs in maint aren't actually in view of the inner camera

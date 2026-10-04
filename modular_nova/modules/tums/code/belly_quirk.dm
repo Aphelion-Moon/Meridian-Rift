@@ -97,8 +97,16 @@
 			the_bwelly.remove_from_user(the_bwelly.lastuser)
 	/// Search for the client connected to the mob- and if it doesn't have the quirk, do NOT keep treating this as active.
 	/// This is primarily a fallback in case people do brain swaps for some reason.  There are...very few other ways this could come up.
-	if(quirk_holder?.client?.prefs)
-		if(!(src.name in quirk_holder.client.prefs.all_quirks))
+	// APHELION EDIT CHANGE START - a personal shell retains its frozen body configuration.
+	// ORIGINAL: if(quirk_holder?.client?.prefs)
+	// ORIGINAL:     if(!(src.name in quirk_holder.client.prefs.all_quirks))
+	var/datum/preferences/body_preferences = quirk_holder?.client?.prefs
+	if(istype(quirk_holder, /mob/living/carbon/human/uplink))
+		var/mob/living/carbon/human/uplink/body = quirk_holder
+		body_preferences = body.registry?.blueprint?.preferences || body_preferences
+	if(body_preferences)
+		if(!(src.name in body_preferences.all_quirks))
+	// APHELION EDIT CHANGE END
 			if(the_bwelly.loc != src)
 				the_bwelly.loc = src
 				if(the_bwelly.overlay_south != null && the_bwelly.lastuser != null)

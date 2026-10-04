@@ -38,6 +38,9 @@
 	var/last_warning = 0
 	var/last_health = 100
 	var/low_charge_warned = FALSE
+	/// Identity effects and unique possessions survive physical replacement.
+	var/quirk_skill_granted = FALSE
+	var/datum/weakref/quirk_heirloom
 
 /datum/uplink_registry/New(datum/mind/new_identity, mob/living/silicon/ai/new_core)
 	identity = new_identity
@@ -143,6 +146,7 @@
 		brain.personal_authorization_revoked = FALSE
 		brain.connected_ai = core
 	body.update_uplink_camera()
+	core.uplink_resume_action?.refresh()
 
 /datum/uplink_registry/proc/observe_body(mob/living/carbon/human/uplink/body)
 	var/mob/living/carbon/human/uplink/old = personal_body?.resolve()
@@ -268,6 +272,8 @@
 	for(var/atom/movable/item as anything in delivery.contents.Copy())
 		item.forceMove(destination)
 	qdel(delivery)
+	blueprint.apply_quirks(body, visual_only = TRUE)
+	QDEL_NULL(blueprint.preview_view)
 	refresh_binding()
 	last_status = "Delivered at [get_area_name(body)]. Connect when ready. AI View leaves this body unattended; Resume returns to it. Your loadout decision is final."
 	log_game("UPLINK delivered identity=[REF(identity)] registration=[registration_generation] loadout=[loadout_outcome] at [AREACOORD(body)]")
@@ -278,7 +284,7 @@
 		return
 	var/token = request_generation
 	var/wait_time = replacement_deadline ? max(0, replacement_deadline - world.time) : CONFIG_GET(number/uplink_replacement_delay)
-	var/confirmation = tgui_alert(user, "Accepting retires your current personal shell and disables its connection, camera and toolkit immediately. Its body and possessions remain where they are. A baseline replacement can arrive in [DisplayTimeText(wait_time)]. Canceling delivery will not undo retirement or restart this wait. Continue?", "Schedule Uplink replacement", list("Schedule replacement", "Cancel"))
+	var/confirmation = tgui_alert(user, "Accepting returns you to your core and turns your current personal shell into scrap. Its possessions are left on the floor. A replacement with your saved body configuration can arrive in [DisplayTimeText(wait_time)]; personal loadout items are not reissued. Canceling delivery will not undo retirement or restart this wait. Continue?", "Schedule Uplink replacement", list("Schedule replacement", "Cancel"))
 	if(confirmation != "Schedule replacement" || !viewer_valid(user) || token != request_generation || request_pending || delivery_denial())
 		return
 	var/mob/living/carbon/human/uplink/body = personal_body?.resolve()
@@ -296,10 +302,11 @@
 		body.stow_uplink_tools()
 		body.update_uplink_camera()
 		if(core.uplink_resume?.resolve() == body)
-			core.uplink_resume = null
+			core.set_uplink_resume(null)
 	observe_body(null)
 	bound_brain = null
 	registration_generation++
+	body?.scrap_uplink()
 	if(!replacement_deadline)
 		replacement_deadline = world.time + CONFIG_GET(number/uplink_replacement_delay)
 	request_pending = TRUE
@@ -336,6 +343,7 @@
 	if(!ui)
 		ui = new(user, src, "UplinkShell", "Manage Uplink Shell")
 		ui.open()
+	candidate?.preview_view?.display_to(user, ui.window)
 
 /datum/uplink_registry/ui_data(mob/user)
 	var/mob/living/carbon/human/uplink/body = personal_body?.resolve()
@@ -360,9 +368,9 @@
 		"core" = core ? "[core] — integrity [round(core.health)]/[core.maxHealth], backup [core.battery]/200" : "Core unavailable",
 	)
 
-/** The body preview is immutable between preparations; do not resend its PNG on every status tick. */
+/** The native preview map is owned by the candidate and remains unchanged between preparations. */
 /datum/uplink_registry/ui_static_data(mob/user)
-	return list("preview" = candidate?.preview_icon, "profile" = candidate?.profile_name, "preset" = candidate?.preset_name, "adjustments" = candidate?.adjustments)
+	return list("preview" = candidate?.preview_view?.assigned_map, "profile" = candidate?.profile_name, "preset" = candidate?.preset_name, "adjustments" = candidate?.adjustments)
 
 /datum/uplink_registry/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
@@ -400,6 +408,7 @@
 			core.shell_session?.finish("AI View", ai_view = TRUE)
 	if(action in list("label", "preview", "loadout", "issue"))
 		update_static_data(usr, ui, always_instant = TRUE)
+		candidate?.preview_view?.display_to(usr, ui.window)
 	return TRUE
 
 /datum/action/innate/manage_uplink

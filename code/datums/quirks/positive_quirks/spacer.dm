@@ -65,6 +65,10 @@
 	human_quirker.set_mob_height(modded_height)
 
 /datum/quirk/spacer_born/post_add()
+	// APHELION EDIT ADDITION START - replacement bodies do not repeat the pay bonus or supplies.
+	if(!uplink_gifts_allowed())
+		return
+	// APHELION EDIT ADDITION END
 	var/on_a_planet = SSmapping.is_planetary()
 	var/planet_job = istype(quirk_holder.mind?.assigned_role, /datum/job/shaft_miner)
 	if(!on_a_planet && !planet_job)

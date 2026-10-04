@@ -66,13 +66,17 @@
 	return TRUE
 
 /datum/keybinding/robot/undeploy
+	parent_type = /datum/keybinding/artificial_intelligence // APHELION EDIT ADDITION - preserve the saved binding name across all AI endpoints.
+	command = "Return to core" // APHELION EDIT ADDITION
 	category = CATEGORY_AI
-	hotkey_keys = list("=")
+	hotkey_keys = list(UNBOUND_KEY) // APHELION EDIT CHANGE - ORIGINAL: hotkey_keys = list("=")
 	name = "undeploy"
 	full_name = "Disconnect from shell"
 	description = "Returns you to your AI core"
 	keybind_signal = COMSIG_KB_SILION_UNDEPLOY_DOWN
 
+/* APHELION EDIT REMOVAL START - inherited AI dispatcher handles safe return.
+ORIGINAL:
 /datum/keybinding/robot/undeploy/down(client/user, turf/target, mousepos_x, mousepos_y)
 	. = ..()
 	if(.)
@@ -83,3 +87,4 @@
 		return
 	our_shell.undeploy()
 	return TRUE
+APHELION EDIT REMOVAL END */

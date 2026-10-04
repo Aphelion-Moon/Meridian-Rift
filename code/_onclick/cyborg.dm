@@ -18,6 +18,10 @@
 		return
 
 	var/list/modifiers = params2list(params)
+	// APHELION EDIT ADDITION START - AI session targeting retains the native stun/lock checks above.
+	if(SEND_SIGNAL(src, COMSIG_MOB_CLICKON, A, modifiers) & COMSIG_MOB_CANCEL_CLICKON)
+		return
+	// APHELION EDIT ADDITION END
 	if(LAZYACCESS(modifiers, SHIFT_CLICK))
 		if(LAZYACCESS(modifiers, CTRL_CLICK))
 			CtrlShiftClickOn(A)

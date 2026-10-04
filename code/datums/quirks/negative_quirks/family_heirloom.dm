@@ -11,6 +11,12 @@
 	mail_goodies = list(/obj/item/storage/briefcase/secure)
 
 /datum/quirk/item_quirk/family_heirloom/add_unique(client/client_source)
+	// APHELION EDIT ADDITION START - keep the original heirloom, including when it was lost.
+	if(!uplink_gifts_allowed())
+		var/mob/living/carbon/human/uplink/body = quirk_holder
+		heirloom = body.registry?.quirk_heirloom
+		return
+	// APHELION EDIT ADDITION END
 	var/mob/living/carbon/human/human_holder = quirk_holder
 	var/obj/item/heirloom_type
 

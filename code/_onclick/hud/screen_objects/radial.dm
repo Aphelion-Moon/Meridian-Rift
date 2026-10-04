@@ -401,7 +401,7 @@ GLOBAL_LIST_EMPTY(radial_menus)
 	var/embodied_input = FALSE
 	if(isAI(user))
 		var/mob/living/silicon/ai/core = user
-		if(core.shell_session?.brain)
+		if(core.shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(core.shell_session?.brain)
 			input_session = core.shell_session
 			embodied_input = TRUE
 			user = core.uplink_player()

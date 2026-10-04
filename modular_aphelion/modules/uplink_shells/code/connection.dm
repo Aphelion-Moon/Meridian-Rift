@@ -40,11 +40,11 @@
 	return null
 
 /** Shared by control requests and their UI; null means this endpoint can accept our mind now. */
-/mob/living/silicon/ai/proc/shell_connection_denial(mob/living/target, obj/item/organ/brain/cybernetic/ai/brain)
+/mob/living/silicon/ai/proc/shell_connection_denial(mob/living/target, obj/item/organ/brain/cybernetic/ai/brain, require_client = TRUE)
 	var/reason = shell_control_denial(target)
 	if(reason)
 		return reason
-	if(shell_session || deployed_shell || !mind || mind.current != src || !client || target.mind || target.key || target.ai_shell_session)
+	if(shell_session || deployed_shell || !mind || mind.current != src || (require_client && !client) || target.mind || target.key || target.ai_shell_session)
 		return "Return to your AI core and ensure the target body is unoccupied before connecting."
 	if(brain)
 		if(brain.organ_flags & ORGAN_FAILING)
@@ -98,6 +98,7 @@
 /datum/ai_shell_session/proc/start()
 	SStgui.close_user_uis(core)
 	core.end_multicam()
+	core.uplink_resume_action?.Remove(core)
 	core.shell_session = src
 	core.deployed_shell = endpoint
 	endpoint.ai_shell_session = src
@@ -106,11 +107,11 @@
 	RegisterSignal(identity, COMSIG_MIND_TRANSFERRED, PROC_REF(mind_moved))
 	RegisterSignal(endpoint, COMSIG_MOB_LOGOUT, PROC_REF(player_left))
 	RegisterSignal(endpoint, COMSIG_MOB_STATCHANGE, PROC_REF(endpoint_state_changed))
+	RegisterSignal(endpoint, COMSIG_MOB_CLICKON, PROC_REF(network_click))
+	services_action = new(src)
+	services_action.Grant(endpoint)
 	if(brain)
 		brain.deploy_init(core)
-		RegisterSignal(endpoint, COMSIG_MOB_CLICKON, PROC_REF(network_click))
-		services_action = new(src)
-		services_action.Grant(endpoint)
 		ADD_TRAIT(identity, TRAIT_UNCONVERTABLE, REF(brain))
 		ADD_TRAIT(core, TRAIT_MIND_TEMPORARILY_GONE, REF(brain))
 		endpoint.copy_languages(core.get_language_holder())
@@ -119,6 +120,9 @@
 		robot.deploy_init(core)
 		ADD_TRAIT(endpoint, TRAIT_LOUD_BINARY, REF(core))
 	identity.transfer_to(endpoint)
+	if(istype(endpoint, /mob/living/carbon/human/uplink))
+		var/mob/living/carbon/human/uplink/body = endpoint
+		body.initialize_uplink_quirks()
 	core.diag_hud_set_deployed()
 	return matches()
 
@@ -180,10 +184,6 @@
 	SStgui.close_user_uis(core)
 	if(brain)
 		brain.end_shell_session()
-		core.uplink_resume = WEAKREF(endpoint)
-		if(!core.uplink_resume_action)
-			core.uplink_resume_action = new
-		core.uplink_resume_action.Grant(core)
 	else
 		var/mob/living/silicon/robot/robot = endpoint
 		robot.end_shell_deployment(core)
@@ -201,6 +201,10 @@
 			endpoint.ghostize(FALSE)
 			endpoint.mind = null
 			identity.set_current(null)
+	if(brain && !terminal)
+		core.set_uplink_resume(endpoint)
+	else
+		core.uplink_resume_action?.refresh()
 	core.diag_hud_set_deployed()
 	if(core.client && ai_view && launch_turf && !core.shell_service_denial())
 		core.ai_tracking_tool?.reset_tracking()
@@ -229,14 +233,49 @@
 	desc = "Reconnect to the same authorized body at its current location."
 	button_icon = 'icons/mob/actions/actions_AI.dmi'
 	button_icon_state = "ai_last_shell"
+	/// Kept while the button is hidden because the body is temporarily unavailable.
+	var/mob/living/silicon/ai/core
+
+/// The action is owned by the last body, so deleting that body also removes its Resume button.
+/mob/living/silicon/ai/proc/set_uplink_resume(mob/living/carbon/body)
+	QDEL_NULL(uplink_resume_action)
+	uplink_resume = null
+	if(QDELETED(body) || body.stat == DEAD)
+		return
+	uplink_resume = WEAKREF(body)
+	uplink_resume_action = new(body, src)
+	uplink_resume_action.refresh()
+
+/datum/action/innate/uplink_resume/New(mob/living/carbon/body, mob/living/silicon/ai/new_core)
+	..(body)
+	core = new_core
+	RegisterSignals(body, list(COMSIG_CARBON_GAIN_ORGAN, COMSIG_CARBON_LOSE_ORGAN, COMSIG_MOB_STATCHANGE), PROC_REF(body_changed))
+
+/datum/action/innate/uplink_resume/Destroy()
+	if(core?.uplink_resume_action == src)
+		core.uplink_resume_action = null
+		core.uplink_resume = null
+	core = null
+	return ..()
+
+/datum/action/innate/uplink_resume/proc/body_changed()
+	SIGNAL_HANDLER
+	// Organ signals can arrive before the slot table has finished changing.
+	addtimer(CALLBACK(src, PROC_REF(refresh)), 0, TIMER_UNIQUE)
+
+/// Hide unavailable candidates without forgetting a body that surgery can make usable again.
+/datum/action/innate/uplink_resume/proc/refresh()
+	var/mob/living/carbon/body = target
+	var/obj/item/organ/brain/cybernetic/ai/brain = body?.get_organ_by_type(/obj/item/organ/brain/cybernetic/ai)
+	if(QDELETED(core) || QDELETED(body) || !brain || brain.connected_ai != core || core.shell_connection_denial(body, brain, require_client = FALSE))
+		if(owner)
+			Remove(owner)
+		return FALSE
+	Grant(core)
+	return TRUE
 
 /datum/action/innate/uplink_resume/Trigger(mob/clicker, trigger_flags)
-	if(!..() || !isAI(owner))
+	if(!refresh() || !..())
 		return FALSE
-	var/mob/living/silicon/ai/core = owner
-	var/mob/living/carbon/target = core.uplink_resume?.resolve()
-	var/obj/item/organ/brain/cybernetic/ai/brain = target?.get_organ_by_type(/obj/item/organ/brain/cybernetic/ai)
-	if(!brain || brain.connected_ai != core)
-		to_chat(owner, span_warning("The previous Uplink binding is unavailable."))
-		return FALSE
-	return core.connect_shell(target, brain)
+	var/mob/living/carbon/body = target
+	return core.connect_shell(body, body.get_organ_by_type(/obj/item/organ/brain/cybernetic/ai))

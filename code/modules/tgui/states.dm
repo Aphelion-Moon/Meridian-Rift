@@ -86,7 +86,7 @@
 		return UI_INTERACTIVE
 	if(lacks_power())
 		return UI_DISABLED
-	if(shell_session?.brain)
+	if(shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(shell_session?.brain)
 		return shell_session.services_available() ? UI_INTERACTIVE : UI_CLOSE
 	return ..()
 

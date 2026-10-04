@@ -486,6 +486,12 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		body.wipe_state()
 
 	appearance = preferences.render_new_preview_appearance(body, show_job_clothes)
+	// APHELION EDIT ADDITION START - share canvas sizing with already-configured Uplink previews.
+	update_canvas()
+
+/// Render the configured dummy without reapplying character/job preferences.
+/atom/movable/screen/map_view/char_preview/proc/update_canvas()
+	// APHELION EDIT ADDITION END
 
 	// NOVA EDIT ADDITION BEGIN: Better character preview
 	var/canvas_size = 0

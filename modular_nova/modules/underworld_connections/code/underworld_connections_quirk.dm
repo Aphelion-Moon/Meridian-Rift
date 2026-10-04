@@ -54,8 +54,17 @@
 			our_record.security_note += "DO NOT ISSUE WEAPON PERMITS. Subject has suspected links to covert criminal elements."
 
 /datum/quirk/item_quirk/underworld_connections/remove()
-	quirk_holder.mind.has_exploitables_override = FALSE
-	quirk_holder.mind.handle_exploitables()
+	// APHELION EDIT CHANGE START - a scrapped shell has already returned its mind to the core.
+	// ORIGINAL: quirk_holder.mind.has_exploitables_override = FALSE
+	// ORIGINAL: quirk_holder.mind.handle_exploitables()
+	var/datum/mind/identity = quirk_holder.mind
+	if(!identity && iscarbon(quirk_holder))
+		var/mob/living/carbon/body = quirk_holder
+		identity = body.last_mind
+	if(identity)
+		identity.has_exploitables_override = FALSE
+		identity.handle_exploitables()
+	// APHELION EDIT CHANGE END
 	if (ishuman(quirk_holder))
 		var/mob/living/carbon/human/human_holder = quirk_holder
 		var/datum/record/crew/our_record = find_record(human_holder.name)

@@ -1260,7 +1260,15 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 		if("Remove-Tabs")
 			panel_tabs -= payload["tab"]
 		if("Send-Tabs")
-			panel_tabs |= payload["tab"]
+			// APHELION EDIT CHANGE START - batch automatic tab acknowledgements during body transfers.
+			// ORIGINAL: panel_tabs |= payload["tab"]
+			var/list/tabs = payload["tabs"]
+			if(!islist(tabs))
+				tabs = list(payload["tab"])
+			for(var/tab in tabs)
+				if(istext(tab) && length(tab))
+					panel_tabs |= tab
+			// APHELION EDIT CHANGE END
 		if("Reset-Tabs")
 			panel_tabs = list()
 		if("Set-Tab")

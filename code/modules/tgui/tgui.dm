@@ -62,7 +62,7 @@
 	src.user = user
 	if(isAI(user))
 		var/mob/living/silicon/ai/core = user
-		if(core.shell_session?.brain && core.shell_session.matches())
+		if(core.shell_session?.matches()) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(core.shell_session?.brain && core.shell_session.matches())
 			uplink_session = core.shell_session
 	src.src_object = src_object
 	src.window_key = "[REF(src_object)]-main"

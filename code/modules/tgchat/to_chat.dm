@@ -24,7 +24,7 @@
 
 	if(isAI(target))
 		var/mob/living/silicon/ai/core = target
-		if(core.shell_session?.brain)
+		if(core.shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(core.shell_session?.brain)
 			target = core.uplink_player()
 
 	if(!target)
@@ -75,7 +75,7 @@
 
 	if(isAI(target))
 		var/mob/living/silicon/ai/core = target
-		if(core.shell_session?.brain)
+		if(core.shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(core.shell_session?.brain)
 			target = core.uplink_player()
 
 	if(!target)

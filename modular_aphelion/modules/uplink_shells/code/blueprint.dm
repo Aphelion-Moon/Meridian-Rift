@@ -10,6 +10,7 @@
 	snapshot_player = deep_copy_list(source.get_save_data_for_savefile_identifier(PREFERENCE_PLAYER) || list())
 	body_markings = deep_copy_list(source.body_markings)
 	augments = deep_copy_list(source.augments)
+	augment_limb_styles = deep_copy_list(source.augment_limb_styles)
 	all_quirks = source.all_quirks.Copy()
 	default_slot = source.default_slot
 	unlock_content = source.unlock_content
@@ -41,7 +42,8 @@
 	var/preset_name
 	var/display_label
 	var/include_loadout
-	var/preview_icon
+	/// Native map view preserves body transforms, height filters and external anatomy.
+	var/atom/movable/screen/map_view/char_preview/uplink/preview_view
 	var/fingerprint
 	var/loadout_policy
 	var/list/adjustments
@@ -53,18 +55,17 @@
 	display_label = label
 	include_loadout = with_loadout
 	fingerprint = preferences_fingerprint(source)
-	adjustments = list("Fixed synthetic physiology, organs and power. Species powers, quirks and saved augments are not installed.", "Left arm: power cord. Right arm: engineering toolkit. Selected augments cannot occupy these mounts.", "Personal items use the selected preset and its customizations, delivered in a suitcase; baseline clothing remains equipped.", "Only supported humanoid body sprites and cosmetic external parts are retained. Unsupported anatomy uses the shown synthetic fallback. No employment records, credentials, bank account or character mind are copied.")
-	if(length(preferences.augments))
-		adjustments += "Your profile contains [length(preferences.augments)] augment selections. All are excluded from this chassis; ordinary surgery remains available after delivery."
+	adjustments = list("Synthetic physiology and power are retained. Saved chassis, head, limbs, external anatomy, markings and compatible augments configure the body.", "The AI brain, left-arm power cord and right-arm engineering toolkit replace conflicting implants.", "Personal items use the selected preset and its customizations, delivered in a suitcase; baseline clothing remains equipped.", "Body quirks persist between connections. Remaining quirk effects initialize on first connection; quirk supplies are issued only with the first body.", "Species powers, employment records, credentials, bank account and character mind are not copied.")
 	if(length(preferences.all_quirks))
-		adjustments += "Excluded quirks: [jointext(preferences.all_quirks, ", ")]."
+		adjustments += "Saved quirks: [jointext(preferences.all_quirks, ", ")]."
 
 /datum/uplink_blueprint/Destroy()
+	QDEL_NULL(preview_view)
 	QDEL_NULL(preferences)
 	return ..()
 
 /datum/uplink_blueprint/proc/preferences_fingerprint(datum/preferences/source)
-	return md5(json_encode(list(source.default_slot, source.value_cache, source.get_save_data_for_savefile_identifier(PREFERENCE_CHARACTER), source.body_markings, source.augments, source.all_quirks, CONFIG_GET(flag/disable_erp_preferences), CONFIG_GET(flag/disable_mismatched_parts))))
+	return md5(json_encode(list(source.default_slot, source.value_cache, source.get_save_data_for_savefile_identifier(PREFERENCE_CHARACTER), source.body_markings, source.augments, source.augment_limb_styles, source.all_quirks, CONFIG_GET(flag/disable_erp_preferences), CONFIG_GET(flag/disable_mismatched_parts))))
 
 /datum/uplink_blueprint/proc/matches_preferences(datum/preferences/source)
 	return fingerprint == preferences_fingerprint(source)
@@ -81,9 +82,9 @@
 	return md5(json_encode(eligibility))
 
 /// Shared with live customization: no species changes, limb/organ creation or equipment/resource reset.
-/datum/uplink_blueprint/proc/apply_appearance(mob/living/carbon/human/uplink/body, fresh = FALSE)
+/datum/uplink_blueprint/proc/apply_appearance(mob/living/carbon/human/body, fresh = FALSE)
 	var/static/list/simple_preferences = list(/datum/preference/choiced/gender, /datum/preference/choiced/body_type, /datum/preference/choiced/mob_height, /datum/preference/choiced/skin_tone, /datum/preference/color/eye_color, /datum/preference/choiced/hairstyle, /datum/preference/color/hair_color, /datum/preference/choiced/hair_gradient, /datum/preference/color/hair_gradient, /datum/preference/choiced/facial_hairstyle, /datum/preference/color/facial_hair_color, /datum/preference/choiced/facial_hair_gradient, /datum/preference/color/facial_hair_gradient, /datum/preference/tri_color/mutant_colors, /datum/preference/choiced/voice, /datum/preference/numeric/tts_voice_pitch, /datum/preference/choiced/tts_blip_base)
-	var/static/list/cosmetic_parts = list(FEATURE_TAIL, FEATURE_EARS, FEATURE_SNOUT, FEATURE_HORNS, FEATURE_FRILLS, FEATURE_SPINES, FEATURE_FLUFF, FEATURE_SYNTH_CHASSIS, FEATURE_SYNTH_HEAD, FEATURE_SYNTH_SCREEN, FEATURE_SYNTH_ANTENNA, FEATURE_MOTH_MARKINGS)
+	var/static/list/cosmetic_parts = list(FEATURE_TAIL, FEATURE_TAUR, FEATURE_WINGS, FEATURE_EARS, FEATURE_SNOUT, FEATURE_HORNS, FEATURE_FRILLS, FEATURE_SPINES, FEATURE_FLUFF, FEATURE_SYNTH_CHASSIS, FEATURE_SYNTH_HEAD, FEATURE_SYNTH_SCREEN, FEATURE_SYNTH_ANTENNA, FEATURE_MOTH_MARKINGS)
 	for(var/datum/preference/preference as anything in get_preferences_in_priority_order())
 		if(preference.type in simple_preferences)
 			preference.apply_to_human(body, preferences.read_preference(preference.type), preferences)
@@ -99,8 +100,18 @@
 				preference.apply_to_human(body, preferences.read_preference(preference.type), preferences)
 	body.dna.body_markings = deep_copy_list(preferences.body_markings)
 	if(fresh)
+		var/datum/preference/size_preference = GLOB.preference_entries[/datum/preference/numeric/body_size]
+		size_preference.apply_to_human(body, preferences.read_preference(size_preference.type), preferences)
+		var/datum/preference/skin_preference = GLOB.preference_entries[/datum/preference/toggle/skin_tone_toggle]
+		skin_preference.apply_to_human(body, preferences.read_preference(skin_preference.type), preferences)
+		var/datum/preference/eyes_preference = GLOB.preference_entries[/datum/preference/toggle/eye_emissives]
+		eyes_preference.apply_to_human(body, preferences.read_preference(eyes_preference.type), preferences)
 		body.dna.features[FEATURE_LEGS] = preferences.read_preference(/datum/preference/choiced/digitigrade_legs)
 		body.dna.species.replace_body(body, body.dna.species)
+		body.dna.species.regenerate_organs(body, body.dna.species, visual_only = TRUE)
+		var/datum/preference_middleware/limbs_and_markings/limbs = new(preferences)
+		limbs.apply_to_human(body, preferences)
+		qdel(limbs)
 	var/species_path = preferences.read_preference(/datum/preference/choiced/species)
 	var/datum/species/presentation = GLOB.species_prototypes[species_path]
 	if(TRAIT_USES_SKINTONES in presentation?.inherent_traits)
@@ -111,11 +122,11 @@
 		ADD_TRAIT(body, TRAIT_MUTANT_COLORS, "uplink_presentation")
 	if(ispath(species_path, /datum/species/synthetic))
 		for(var/obj/item/bodypart/limb as anything in body.bodyparts)
-			if(limb.bodytype & BODYTYPE_SYNTHETIC)
+			if(initial(limb.limb_id) == SPECIES_SYNTH)
 				limb.remove_color_override(LIMB_COLOR_SYNTH)
 				// Sprite IDs are presentation, not physiology; restore the native synthetic styling input.
 				limb.reset_appearance(update_owner = FALSE)
-		body.dna.species.apply_supplementary_body_changes(body, preferences, TRUE)
+		body.dna.species.apply_supplementary_body_changes(body, preferences, !fresh)
 	else
 		for(var/obj/item/bodypart/limb as anything in body.bodyparts)
 			if(!(limb.bodytype & BODYTYPE_SYNTHETIC))
@@ -137,29 +148,25 @@
 	body.real_name = display_label
 	body.name = display_label
 	body.dna.real_name = display_label
-	if(fresh)
-		body.dna.species.regenerate_organs(body, body.dna.species, visual_only = TRUE)
-	else
+	if(!fresh)
 		for(var/obj/item/organ/organ as anything in body.organs)
 			if(organ.bodypart_overlay)
 				organ.bodypart_overlay.set_appearance_from_dna(body.dna, limb = organ.bodypart_owner)
 	// This refreshes render data on existing limbs; it does not create missing physical parts.
 	body.update_body(is_creating = TRUE)
 	body.update_hair()
-	body.apply_uplink_protections()
+	body.dna.update_body_size()
+	if(istype(body, /mob/living/carbon/human/uplink))
+		var/mob/living/carbon/human/uplink/uplink = body
+		uplink.apply_uplink_protections()
 
 /datum/uplink_blueprint/proc/build(obj/effect/uplink_delivery/delivery, datum/uplink_registry/registry, client/loadout_client)
 	var/mob/living/carbon/human/uplink/body = new(delivery)
 	body.set_species(/datum/species/synthetic)
 	apply_appearance(body, TRUE)
-	var/obj/item/organ/brain/cybernetic/ai/brain = new
-	if(!brain.Insert(body, movement_flags = DELETE_IF_REPLACED))
-		qdel(brain)
+	if(!install_control_organs(body, registry))
 		qdel(body)
 		return null
-	var/obj/item/organ/cyberimp/arm/toolkit/toolset/uplink/toolkit = new
-	toolkit.registry = registry
-	toolkit.Insert(body, movement_flags = DELETE_IF_REPLACED)
 	body.nutrition = NUTRITION_LEVEL_FULL
 	if(include_loadout && loadout_client)
 		loadout_policy = loadout_policy_fingerprint(body, loadout_client)
@@ -173,8 +180,57 @@
 	body.uplink_camera = new(body)
 	body.uplink_camera.c_tag = "[display_label] — personal Uplink"
 	body.apply_uplink_protections()
-	preview_icon = icon2base64(getFlatIcon(body))
+	body.issue_quirk_items = !!loadout_client
+	if(loadout_client)
+		QDEL_NULL(preview_view)
+		preview_view = new(null, null, preferences)
+		preview_view.generate_view("uplink_preview_[REF(preview_view)]_map")
+		preview_view.create_body()
+		var/mob/living/carbon/human/dummy/preview = preview_view.body
+		preview.set_species(/datum/species/synthetic)
+		apply_appearance(preview, TRUE)
+		preview.equipOutfit(/datum/outfit/uplink_shell, visuals_only = TRUE)
+		apply_quirks(preview, visual_only = TRUE)
+		install_control_organs(preview, registry)
+		preview_view.update_body()
 	return body
+
+/// Required mounts are identical in the displayed preview and the physical body.
+/datum/uplink_blueprint/proc/install_control_organs(mob/living/carbon/human/body, datum/uplink_registry/registry)
+	var/obj/item/organ/brain/cybernetic/ai/brain = new
+	if(!brain.Insert(body, movement_flags = DELETE_IF_REPLACED))
+		qdel(brain)
+		return FALSE
+	var/obj/item/organ/cyberimp/arm/toolkit/power_cord/left_arm/cord = new
+	cord.Insert(body, movement_flags = DELETE_IF_REPLACED)
+	var/obj/item/organ/cyberimp/arm/toolkit/toolset/uplink/toolkit = new
+	toolkit.registry = registry
+	toolkit.Insert(body, movement_flags = DELETE_IF_REPLACED)
+	return TRUE
+
+/// This view owns a configured dummy; it must not reload the player's job or species selection.
+/atom/movable/screen/map_view/char_preview/uplink/update_body()
+	body.dna.update_body_size()
+	body.apply_height(body, ENTIRE_BODY)
+	update_canvas()
+
+/// Use the same visual-quirk filter as character setup; never borrow or mutate the player's live preferences.
+/datum/uplink_blueprint/proc/apply_quirks(mob/living/carbon/human/body, visual_only = FALSE)
+	var/datum/client_interface/source = new
+	source.prefs = preferences
+	for(var/quirk_name in preferences.all_quirks)
+		var/datum/quirk/quirk_type = SSquirks.quirks[quirk_name]
+		if(!quirk_type || (visual_only && !(initial(quirk_type.quirk_flags) & QUIRK_CHANGES_APPEARANCE)))
+			continue
+		var/datum/quirk/prototype = SSquirks.quirk_prototypes[quirk_type]
+		if(!prototype.is_species_appropriate(body.dna.species.type))
+			continue
+		body.add_quirk(quirk_type, source, announce = FALSE)
+	if(visual_only && !isdummy(body))
+		var/datum/quirk/belly/belly = locate() in body.quirks
+		belly?.add()
+	source.prefs = null
+	qdel(source)
 
 /datum/outfit/uplink_shell
 	name = "Personal Uplink baseline"
@@ -190,6 +246,20 @@
 	var/provisional = TRUE
 	var/uplink_light_on = FALSE
 	var/next_attention_request = 0
+	/// Unique quirk supplies belong to the first issuance, independently of reconnects.
+	var/issue_quirk_items = FALSE
+	/// Mind-dependent effects initialize only once, after the first successful connection.
+	var/quirks_initialized = FALSE
+
+/// Keep quirk datums on their physical holder throughout later control transfers.
+/mob/living/carbon/human/uplink/proc/initialize_uplink_quirks()
+	if(quirks_initialized || provisional || !mind || !registry?.is_current(src))
+		return
+	quirks_initialized = TRUE
+	registry.blueprint?.apply_quirks(src)
+	if(issue_quirk_items)
+		var/datum/quirk/item_quirk/family_heirloom/heirloom_quirk = locate() in quirks
+		registry.quirk_heirloom = heirloom_quirk?.heirloom
 
 /mob/living/carbon/human/uplink/Initialize(mapload)
 	. = ..()

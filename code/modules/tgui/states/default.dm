@@ -37,7 +37,7 @@ GLOBAL_DATUM_INIT(default_state, /datum/ui_state/default, new)
 	return UI_DISABLED // Otherwise they can keep the UI open.
 
 /mob/living/silicon/ai/default_can_use_topic(src_object)
-	if(shell_session?.brain)
+	if(shell_session) // APHELION EDIT CHANGE - include cyborg sessions; ORIGINAL: if(shell_session?.brain)
 		if(src_object == src || src_object == radio || src_object == modularInterface)
 			return shell_session.services_available() ? UI_INTERACTIVE : UI_CLOSE
 		return shell_session.local_target(src_object) ? UI_INTERACTIVE : UI_CLOSE

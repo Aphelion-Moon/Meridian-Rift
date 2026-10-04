@@ -54,7 +54,7 @@ function run_after_focus(callback) {
   setTimeout(callback, 0);
 }
 
-function createStatusTab(name) {
+function createStatusTab(name, notify = true) { // APHELION EDIT CHANGE - ORIGINAL: function createStatusTab(name) {
   if (name.indexOf('.') != -1) {
     var splitName = name.split('.');
     if (split_admin_tabs && splitName[0] === 'Admin') name = splitName[1];
@@ -74,12 +74,12 @@ function createStatusTab(name) {
   };
   button.id = name;
   button.textContent = name;
-  button.className = 'button';
+  button.className = name == current_tab ? 'button active' : 'button'; // APHELION EDIT CHANGE - ORIGINAL: button.className = 'button';
   //ORDERING ALPHABETICALLY
   button.style.order = { Status: 1, MC: 2, Favourites: 3 }[name] || name.charCodeAt(0); // APHELION EDIT CHANGE - ORIGINAL:  button.style.order = { Status: 1, MC: 2 }[name] || name.charCodeAt(0);
   //END ORDERING
   menu.appendChild(button);
-  SendTabToByond(name);
+  if (notify) SendTabToByond(name); // APHELION EDIT CHANGE - ORIGINAL: SendTabToByond(name);
 }
 
 function removeStatusTab(name) {
@@ -124,7 +124,7 @@ function removePermanentTab(name) {
 }
 
 function checkStatusTab() {
-  for (var i = 0; i < menu.children.length; i++) {
+  for (var i = menu.children.length - 1; i >= 0; i--) { // APHELION EDIT CHANGE - ORIGINAL: for (var i = 0; i < menu.children.length; i++) {
     if (
       !verb_tabs.includes(menu.children[i].id) &&
       !permanent_tabs.includes(menu.children[i].id)
@@ -201,11 +201,18 @@ function update_verbs() {
 }
 
 function SendTabsToByond() {
+  // APHELION EDIT CHANGE START - one acknowledgement per refresh, including unchanged tabs.
+  /* ORIGINAL:
   var tabstosend = [];
   tabstosend = tabstosend.concat(permanent_tabs, verb_tabs);
   for (var i = 0; i < tabstosend.length; i++) {
     SendTabToByond(tabstosend[i]);
   }
+  */
+  Byond.sendMessage('Send-Tabs', {
+    tabs: [...new Set([...permanent_tabs, ...verb_tabs])],
+  });
+  // APHELION EDIT CHANGE END
 }
 
 function SendTabToByond(tab) {
@@ -1002,7 +1009,7 @@ function getCookie(cname) {
   return '';
 }
 
-function add_verb_list(payload) {
+function add_verb_list(payload, notify = true) { // APHELION EDIT CHANGE - ORIGINAL: function add_verb_list(payload) {
   var to_add = payload; // list of a list with category and verb inside it
   to_add.sort(); // sort what we're adding
   for (var i = 0; i < to_add.length; i++) {
@@ -1023,7 +1030,7 @@ function add_verb_list(payload) {
     } else if (category) {
       verb_tabs.push(category);
       verbs.push(part);
-      createStatusTab(category);
+      createStatusTab(category, notify); // APHELION EDIT CHANGE - ORIGINAL: createStatusTab(category);
     }
   }
 }
@@ -1067,13 +1074,13 @@ Byond.subscribeTo('init_verbs', (payload) => {
   var cat = '';
   for (var i = 0; i < verb_tabs.length; i++) {
     cat = verb_tabs[i];
-    createStatusTab(cat); // create a category if the verb doesn't exist yet
+    createStatusTab(cat, false); // APHELION EDIT CHANGE - ORIGINAL: createStatusTab(cat); // create a category if the verb doesn't exist yet
   }
   if (verb_tabs.includes(current_tab)) {
     do_update = true;
   }
   if (payload.verblist) {
-    add_verb_list(payload.verblist);
+    add_verb_list(payload.verblist, false); // APHELION EDIT CHANGE - ORIGINAL: add_verb_list(payload.verblist);
     sortVerbs(); // sort them
     if (do_update) {
       draw_verbs(current_tab);
@@ -1085,6 +1092,11 @@ Byond.subscribeTo('init_verbs', (payload) => {
   }
   // APHELION EDIT ADDITION END
   SendTabsToByond();
+  // APHELION EDIT ADDITION START - a body transfer may remove the selected category.
+  if (!permanent_tabs.includes(current_tab) && !verb_tabs.includes(current_tab)) {
+    tab_change(defaultTab);
+  }
+  // APHELION EDIT ADDITION END
 });
 
 // APHELION EDIT ADDITION START

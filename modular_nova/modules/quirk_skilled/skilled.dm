@@ -28,6 +28,14 @@ GLOBAL_LIST_INIT(skill_choices, init_skill_choices())
 	customization_options = list(/datum/preference/choiced/skilled)
 
 /datum/quirk/skilled/add(client/client_source)
+	// APHELION EDIT ADDITION START - experience belongs to the AI identity, not each replacement body.
+	if(istype(quirk_holder, /mob/living/carbon/human/uplink))
+		var/mob/living/carbon/human/uplink/body = quirk_holder
+		if(body.registry?.quirk_skill_granted)
+			return
+		if(body.registry)
+			body.registry.quirk_skill_granted = TRUE
+	// APHELION EDIT ADDITION END
 	var/datum/mind/holder_mind = quirk_holder.mind
 
 	var/our_skill = client_source?.prefs?.read_preference(/datum/preference/choiced/skilled)
