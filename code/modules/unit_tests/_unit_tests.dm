@@ -384,6 +384,9 @@
 #include "~nova\shuttle.dm"
 // NOVA EDIT END
 // END_INCLUDE
+// APHELION EDIT ADDITION START - PERSONAL_CACHE
+#include "../../../modular_aphelion/modules/personal_cache/code/cache_tests.dm"
+// APHELION EDIT ADDITION END
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter
 #include "find_reference_sanity.dm"
 #endif

@@ -33,8 +33,10 @@
 	var/owner_name
 	/// Whether a GPS component is currently attached (box is lost/stolen).
 	var/gps_active = FALSE
-	/// Prevents two concurrent crack attempts on the same box.
-	var/lock_being_cracked = FALSE
+	/// The sole active hacking session, including an owner's practice attempt.
+	var/datum/cache_lock_session/active_hack
+	/// Failed or abandoned real attempts prevent immediate brute-force retries.
+	var/hack_cooldown_until = 0
 	/// Matrices every cache is born with. Add a pouch type here to give every cache one for free - sort order isn't decided here, it lives on each pouch's sort_priority.
 	var/static/list/standing_pouches = list(
 		/obj/item/storage/box/cache_pouch/survival,
@@ -48,6 +50,19 @@
 		CACHE_SLOT_RATION = /obj/item/storage/box/cache_pouch/rations,
 		CACHE_SLOT_GENERAL = /obj/item/storage/box/cache_pouch/general,
 	)
+
+/obj/item/storage/box/personal_cache/Initialize(mapload)
+	. = ..()
+	AddComponent(/datum/component/connect_containers, src, list(COMSIG_MOVABLE_MOVED = PROC_REF(on_container_moved)))
+
+/obj/item/storage/box/personal_cache/Destroy()
+	QDEL_NULL(active_hack)
+	return ..()
+
+/// A containing backpack can change hands without moving the cache itself.
+/obj/item/storage/box/personal_cache/proc/on_container_moved()
+	SIGNAL_HANDLER
+	update_gps_state()
 
 /obj/item/storage/box/personal_cache/get_pouch_for_slot(cache_slot)
 	var/pouch_type = slot_to_pouch[cache_slot]
@@ -116,7 +131,7 @@
 	if(isnull(owner_ckey))
 		. += span_notice("Its bluespace lock is unattuned. Use a multitool on [src] to claim it.")
 	else if(user.ckey == owner_ckey)
-		. += span_notice("It's attuned to you. Multitool it again to wipe that, or alt-click it in hand to put your own lock through its paces.")
+		. += span_notice("It's attuned to you. Multitool it again to wipe that, or Ctrl-Shift-click it in hand to test the lock.")
 	else
 		. += span_notice("It's attuned to [owner_name || "someone else"]. A multitool gets you a shot at cracking the lock, nothing more.")
 	. += span_notice("While attuned and out of its owner's hands, it broadcasts a GPS signal.")
@@ -127,7 +142,7 @@
 		return ..()
 	return rebind_owner(user)
 
-// Alt-click your own cache to test-crack it, just for kicks - no tool needed. Ctrl-click was tried first but the client eats it for dragging before it ever reaches us.
+/// Owners can practice without a tool or changing their attunement.
 /obj/item/storage/box/personal_cache/click_ctrl_shift(mob/user)
 	if(!isliving(user) || user.ckey != owner_ckey)
 		return NONE
@@ -137,6 +152,8 @@
 
 // Unowned? Claim it. Yours? Drop it. Someone else's? Go crack it.
 /obj/item/storage/box/personal_cache/proc/rebind_owner(mob/living/user)
+	if(!user.ckey || user.incapacitated || !user.can_perform_action(src, NEED_DEXTERITY))
+		return ITEM_INTERACT_BLOCKING
 	if(isnull(owner_ckey))
 		set_owner(user)
 		to_chat(user, span_notice("You attune [src]'s bluespace lock to yourself. It will transmit a GPS signal whenever you're not holding it."))
@@ -150,73 +167,45 @@
 	return crack_bluespace_lock(user)
 
 // Cache hacking
-/// Not your cache? Pulse its resonance nodes in the right order to force the lock open. self_test lets an owner run the same puzzle on their own cache without actually unbinding it - handy for a demo, or just messing around. Widen the lock by adding a name/color pair to lock_nodes - nothing else needs touching.
+/// Starts a routing puzzle, or reopens this user's existing attempt.
 /obj/item/storage/box/personal_cache/proc/crack_bluespace_lock(mob/living/user, self_test = FALSE)
-	if(!user.is_holding(src)) // the whole puzzle runs off is_holding(), so bail loudly instead of teasing them with a radial that closes itself
+	if(!user.ckey || user.incapacitated || isnull(owner_ckey) || (self_test != (user.ckey == owner_ckey)))
+		return ITEM_INTERACT_BLOCKING
+	if(!user.is_holding(src))
 		balloon_alert(user, "pick it up first!")
 		return ITEM_INTERACT_BLOCKING
 
-	if(lock_being_cracked)
-		to_chat(user, span_warning("[src]'s lock is already being tampered with!"))
+	if(active_hack)
+		if(active_hack.ui_status(active_hack.hacker, GLOB.hands_state) == UI_CLOSE)
+			qdel(active_hack)
+		else
+			if(active_hack.hacker == user)
+				active_hack.ui_interact(user)
+			else
+				to_chat(user, span_warning("[src]'s lock is already being tampered with!"))
+			return ITEM_INTERACT_BLOCKING
+	if(!self_test && world.time < hack_cooldown_until)
+		to_chat(user, span_warning("The lock is recovering. Try again in [CEILING((hack_cooldown_until - world.time) / (1 SECONDS), 1)] seconds."))
 		return ITEM_INTERACT_BLOCKING
 
-	lock_being_cracked = TRUE
-	if(self_test)
-		to_chat(user, span_notice("You put [src]'s bluespace lock through its paces."))
-	else
-		to_chat(user, span_warning("[src]'s bluespace lock resists you - it isn't yours. You'll have to crack it."))
-
-	var/static/list/lock_nodes = list("Node Alpha" = COLOR_RED, "Node Beta" = COLOR_YELLOW, "Node Gamma" = COLOR_CYAN, "Node Delta" = COLOR_PURPLE)
-
-	var/list/node_names = list()
-	var/list/radial_choices = list()
-	for(var/node_name in lock_nodes)
-		node_names += node_name
-		var/image/node_icon = image(icon = 'icons/hud/radial.dmi', icon_state = "radial_lock")
-		node_icon.color = lock_nodes[node_name]
-		radial_choices[node_name] = node_icon
-
-	var/datum/gizmo_puzzle/lock_puzzle = new()
-	lock_puzzle.cryptic_pulse = node_names // node names double as the puzzle's pulse keys
-	lock_puzzle.code_length = 3
-	lock_puzzle.generate_code_sequences(list(CALLBACK(src, PROC_REF(on_lock_cracked), user, self_test)))
-
-	. = ITEM_INTERACT_BLOCKING
-	while(TRUE)
-		var/picked = show_radial_menu(user, src, radial_choices, custom_check = CALLBACK(src, PROC_REF(check_still_cracking), user, self_test), require_near = TRUE)
-		if(isnull(picked) || !check_still_cracking(user, self_test))
-			break
-		var/result = lock_puzzle.on_pulse(node_names.Find(picked), user, src)
-		if(result == GIZMO_PUZZLE_SOLVED)
-			. = ITEM_INTERACT_SUCCESS
-			break
-
-	lock_being_cracked = FALSE
-	qdel(lock_puzzle)
-	return .
+	active_hack = new(src, user, self_test)
+	active_hack.ui_interact(user)
+	return ITEM_INTERACT_SUCCESS
 
 /// The puzzle solved itself. Real crack = attunement's toast. Self-test = just bragging rights.
-/obj/item/storage/box/personal_cache/proc/on_lock_cracked(mob/living/user, self_test, atom/movable/holder)
+/obj/item/storage/box/personal_cache/proc/on_lock_cracked(mob/living/user, self_test)
 	if(self_test)
 		to_chat(user, span_notice("[src]'s bluespace lock clicks open cleanly - your own security holds up. This time."))
 		return
 	to_chat(user, span_notice("You feel [src]'s bluespace lock give way. Its attunement dissolves."))
 	clear_owner()
 
-/// Bails out of a crack attempt the moment it stops making sense - user wandered off, someone else already won, ownership changed, etc.
-/obj/item/storage/box/personal_cache/proc/check_still_cracking(mob/living/user, self_test = FALSE)
-	if(QDELETED(src) || !istype(user))
-		return FALSE
-	if(user.incapacitated || !user.is_holding(src))
-		return FALSE
-	if(self_test)
-		return user.ckey == owner_ckey // still testing your own lock, not someone else's
-	if(isnull(owner_ckey) || user.ckey == owner_ckey) // it got unbound or claimed out from under you - stop
-		return FALSE
-	return TRUE
-
 /// Slaps new_owner's name on the cache and syncs the GPS
 /obj/item/storage/box/personal_cache/proc/set_owner(mob/living/new_owner)
+	if(!new_owner.ckey)
+		return
+	QDEL_NULL(active_hack)
+	remove_gps_signal()
 	owner_ckey = new_owner.ckey
 	owner_name = new_owner.real_name
 	name = "[owner_name]'s bluespace cache"
@@ -224,6 +213,7 @@
 
 /// Scrubs ownership clean, name and GPS included
 /obj/item/storage/box/personal_cache/proc/clear_owner()
+	QDEL_NULL(active_hack)
 	owner_ckey = null
 	owner_name = null
 	name = initial(name)
@@ -291,9 +281,6 @@
 		return
 	if(!parent.IsReachableBy(user) || !dest_object.IsReachableBy(user))
 		return
-	if(SEND_SIGNAL(dest_object, COMSIG_STORAGE_DUMP_CONTENT, src, user) & STORAGE_DUMP_HANDLED)
-		return
-
 	var/obj/item/storage/box/personal_cache/cache = parent
 	var/list/matrices = cache.get_sorted_matrices()
 	if(!length(matrices))
@@ -304,6 +291,8 @@
 		return
 	if(QDELETED(parent) || QDELETED(dest_object))
 		return
+	if(locked || !parent.IsReachableBy(user) || !dest_object.IsReachableBy(user))
+		return
 
 	if(do_rustle && rustle_sound)
 		playsound(parent, rustle_sound, 50, TRUE, -5)
@@ -311,6 +300,10 @@
 	// Dumping into another container hands over the contents, never the matrices themselves.
 	var/datum/storage/receiver = dest_object.atom_storage
 	for(var/obj/item/storage/box/cache_pouch/pouch as anything in matrices)
+		if(QDELETED(pouch) || pouch.loc != parent || pouch.atom_storage.locked)
+			continue
+		if(SEND_SIGNAL(dest_object, COMSIG_STORAGE_DUMP_CONTENT, pouch.atom_storage, user) & STORAGE_DUMP_HANDLED)
+			continue
 		if(isnull(receiver))
 			pouch.atom_storage.remove_all(dump_loc)
 			continue

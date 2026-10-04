@@ -9525,6 +9525,8 @@
 #include "modular_nova\modules\personal_cache\code\cache_pouches.dm"
 #include "modular_nova\modules\personal_cache\code\loadout_cache.dm"
 #include "modular_nova\modules\personal_cache\code\personal_cache_box.dm"
+#include "modular_aphelion\modules\personal_cache\code\cache_lock_puzzle.dm"
+#include "modular_aphelion\modules\personal_cache\code\cache_lock_session.dm"
 #include "modular_nova\modules\pet_owner\pet_owner.dm"
 #include "modular_nova\modules\pet_size\pet_size.dm"
 #include "modular_nova\modules\photocopier_module\photocopier.dm"
