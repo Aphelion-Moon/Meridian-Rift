@@ -1,15 +1,19 @@
 # Initialization and first-three-minute measurements
 
-Run only the opt-in observation case through the existing RIFT controller:
+Run only the opt-in observation case through the existing RIFT controller. The
+installed in-process DLL uses the ordinary CI profile without a service overlay:
 
 ```powershell
 .\RIFT.cmd test --profile ci --map _maps/metastation.json `
     --focus /datum/unit_test/dogmos_shift_start_performance `
-    --shim dogmos.dll --service dogmosd.exe `
     --wall-timeout-seconds 1800 --readiness-timeout-seconds 900 --format result
 python modular_aphelion/tools/dogmos_performance/analyze.py `
-    data/rift-runs/<run-id> --output data/performance-qualification/<label>.json
+    data/rift-runs/<run-id> --output <CENTRAL_AGENT_DOCS>/<label>.json
 ```
+
+For the retained service backend, add both `--shim dogmos.dll --service dogmosd.exe`.
+The shared observer records backend-specific health and work counters; native
+measurements cover DreamDaemon, which owns the gas arenas and heat worker.
 
 The CI configuration needs its local database. The `ci` profile retains the full map's
 auxiliary levels; `dogmos-ci` deliberately skips Lavaland and space levels, so it is a
@@ -26,7 +30,7 @@ These are controlled test-build observations. The unit-test framework adds a fix
 about ten seconds into gameplay, and its debug instrumentation differs from production.
 Use identical builds, map, seed, population, configuration and sampling for each comparison.
 They do not replace a production server Tracy capture. A passing observation case establishes
-coverage and service availability, not acceptable speed or settled turfs.
+coverage and backend availability, not acceptable speed or settled turfs.
 
 An unfocused full unit suite is also a different initialization workload, even with
 the same map JSON. `PERFORM_ALL_TESTS(maptest_log_mapping)` forces eligible ruins
@@ -99,6 +103,10 @@ and continuous-child rules. A checkout with partial Dogmos markers fails closed
 instead of being treated as a baseline. Record the RIFT summary and
 `dogmos-performance.jsonl` together; this is a matched control/candidate
 measurement, not a production performance qualification.
+
+The comparison wrapper currently requires paired service artifacts and does not
+accept an in-process candidate. For native before/after changes, use the direct
+RIFT observer above with the same DLL, configuration and sampling in both cohorts.
 
 The wrapper records hashes of the observer, wrapper, selected map, and candidate
 native pair as run artifacts. It records the selected cache mode and provenance;

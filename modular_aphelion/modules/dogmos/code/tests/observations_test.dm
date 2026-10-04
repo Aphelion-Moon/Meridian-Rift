@@ -1,7 +1,6 @@
 #if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
 
 
-#include "../shift_start_performance_test.dm"
 
 #define DOGMOS_WORLD_GENERATION_WORD_MAX 65535
 #define DOGMOS_TEST_STAGE_EXCITED_GROUPS 1

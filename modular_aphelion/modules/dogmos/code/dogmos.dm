@@ -1,3 +1,7 @@
+#if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
+#include "shift_start_performance_test.dm"
+#endif
+
 /// Runtime count captured after subsystem initialization.
 GLOBAL_VAR_INIT(runtimes_at_init_complete, 0)
 
@@ -53,7 +57,7 @@ SUBSYSTEM_DEF(dogmos)
 		return SS_INIT_FAILURE
 
 	gases_registered = TRUE
-	#if defined(UNIT_TESTS) && !defined(DOGMOS_IN_PROCESS)
+	#ifdef UNIT_TESTS
 	if(GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
 		|| GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile))
 		INVOKE_ASYNC(src, PROC_REF(record_shift_start_performance))
