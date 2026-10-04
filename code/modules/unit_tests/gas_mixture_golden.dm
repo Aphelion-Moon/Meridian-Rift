@@ -46,6 +46,23 @@
 	var/datum/gas_mixture/empty_mix = allocate(/datum/gas_mixture)
 	TEST_ASSERT_EQUAL(empty_mix.heat_capacity(), 0, "An empty non-turf mixture should have no heat capacity")
 
+	// APHELION EDIT ADDITION START - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
+	// Meridian gases have no legacy burnability metadata; exercise both exported queries and their argument fallback.
+	for(var/immutable in list(FALSE, TRUE))
+		if(immutable)
+			mix.mark_immutable()
+		TEST_ASSERT_EQUAL(mix.get_fuel_amount(), 0, "An omitted fuel-query temperature should use current state")
+		TEST_ASSERT_EQUAL(mix.get_oxidation_power(), 0, "An omitted oxidizer-query temperature should use current state")
+		for(var/temperature in list(null, "not a temperature", -1, 1000))
+			TEST_ASSERT_EQUAL(mix.get_fuel_amount(temperature), 0, "A hypothetical fuel query should accept the existing argument contract")
+			TEST_ASSERT_EQUAL(mix.get_oxidation_power(temperature), 0, "A hypothetical oxidizer query should accept the existing argument contract")
+		TEST_ASSERT_EQUAL(mix.return_temperature(), T20C, "Burnability queries must not change stored temperature")
+		TEST_ASSERT_EQUAL(round(mix.total_moles(), 0.01), round(MOLES_CELLSTANDARD, 0.01), "Burnability queries must not change stored moles")
+		TEST_ASSERT_EQUAL(mix.is_immutable(), immutable, "Burnability queries must not change immutability")
+#endif
+	// APHELION EDIT ADDITION END
+
 /// merge() conserves both matter and energy.
 /datum/unit_test/gas_mixture_golden_merge
 
