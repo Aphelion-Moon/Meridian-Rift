@@ -40,6 +40,10 @@
 		"cyborg_layout" = PROC_REF(edit_layout),
 	)
 
+/// Layout writes require editor context checks or the explicit import boundary.
+/datum/preference_middleware/cyborg_character/pre_set_preference(mob/user, preference, value)
+	return preference == /datum/preference/cyborg_layout::savefile_key
+
 /datum/preference_middleware/cyborg_character/proc/set_page(list/params, mob/user)
 	var/active = params["active"] == TRUE
 	if(active == page_active)
@@ -64,7 +68,7 @@
 		return FALSE
 	if(user && user.client && user.client != preferences.parent)
 		return FALSE
-	var/list/catalog = cyborg_catalog_for(preferences, "creator")
+	var/list/catalog = cyborg_model_catalog()
 	if(istext(params["model"]) && catalog[params["model"]])
 		if(preview_model != params["model"])
 			context_generation++
@@ -123,11 +127,11 @@
 	if(!cyborg_visuals_allowed(preferences))
 		status_message = "Enable the relevant character preferences first."
 		return TRUE
-	var/list/catalog = cyborg_catalog_for(preferences, "creator")
+	var/list/catalog = cyborg_model_catalog()
 	if(!catalog[preview_model])
 		status_message = "This chassis is no longer available. Select an eligible chassis."
 		return TRUE
-	if(preview_layout_source == "model_default" && (params["operation"] in list("set", "set_placement", "inherit_placement", "reset", "reset_position", "reset_colors", "reset_overrides", "save", "save_default")))
+	if(preview_layout_source == "model_default" && (params["operation"] in list("set", "set_placement", "nudge_placement", "inherit_placement", "reset", "reset_position", "reset_colors", "reset_overrides", "save", "save_default")))
 		status_message = "Load this model default into the active layout before editing it."
 		return TRUE
 	var/list/store = begin_draft()
@@ -166,7 +170,7 @@
 /datum/preference_middleware/cyborg_character/get_ui_data(mob/user)
 	if(!page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES)
 		return list()
-	var/list/catalog = cyborg_catalog_for(preferences, "creator")
+	var/list/catalog = cyborg_model_catalog()
 	if(!catalog[preview_model] && length(catalog))
 		var/list/draft = begin_draft()
 		preview_model = catalog[draft?["active_model"]] ? draft["active_model"] : catalog[1]
@@ -174,9 +178,10 @@
 	var/list/descriptor = catalog[preview_model]
 	var/list/store = begin_draft()
 	if(!store)
+		var/needs_clear = resource_key != "unsupported"
 		preview_resources = null
-		resource_key = null
-		if(user?.client)
+		resource_key = "unsupported"
+		if(needs_clear && user?.client)
 			preferences.update_static_data(user, always_instant = TRUE)
 		return list("cyborg_customization" = list("unsupported" = TRUE, "message" = "This slot contains a newer layout schema. Its saved data has been preserved; use a compatible server or another character slot."))
 	var/layout_source = preview_layout_source
@@ -188,10 +193,19 @@
 		else
 			layout_source = "active"
 			preview_layout_source = "active"
-	refresh_resources(user, catalog, descriptor, preview_layout, layout_source)
 	var/list/layers = cyborg_preview_layers(preferences, descriptor, preview_layout, preview_direction, preview_pose, preview_arousal, layout_source == "model_default")
+	refresh_resources(user, catalog, descriptor, preview_layout, layout_source, layers)
 	for(var/list/layer as anything in layers)
 		layer -= "icon"
+	// Saved snapshots stay server-side. Controls only need preset names and this model's default.
+	var/list/ui_store = store.Copy()
+	var/list/preset_names = list()
+	for(var/name in store["presets"])
+		preset_names[name] = TRUE
+	ui_store["presets"] = preset_names
+	ui_store["model_defaults"] = list()
+	if(islist(defaults?[preview_model]))
+		ui_store["model_defaults"][preview_model] = defaults[preview_model]
 	return list("cyborg_customization" = list(
 		"unsupported" = FALSE,
 		"model" = preview_model,
@@ -210,7 +224,7 @@
 		"context" = context_generation,
 		"revision" = draft_revision,
 		"save_status" = list("pending" = dirty, "revision" = saved_revision, "session_only" = session_only, "error" = save_error),
-		"store" = store,
+		"store" = ui_store,
 		"layout_source" = layout_source,
 		"model_default_available" = islist(defaults) && islist(defaults[preview_model]),
 		"layers" = layers,
@@ -249,12 +263,12 @@
 	var/group = params["placement_group"]
 	if(!isnull(group) && !(group in list("north", "south", "side")))
 		return list("message" = "Unknown placement group.")
-	if((operation in list("set", "set_placement", "inherit_placement", "reset_position", "reset_colors", "reset_overrides")) && !(slot in cyborg_layout_supported_slots()))
+	if((operation in list("set", "set_placement", "nudge_placement", "inherit_placement", "reset_position", "reset_colors", "reset_overrides")) && !(slot in cyborg_layout_supported_slots()))
 		return list("message" = "Choose a valid layout slot.")
 	if(operation == "reset" && !isnull(slot) && !(slot in cyborg_layout_supported_slots()))
 		return list("message" = "Choose a valid layout slot.")
 	switch(operation)
-		if("set_placement", "inherit_placement")
+		if("set_placement", "nudge_placement", "inherit_placement")
 			if(!cyborg_layout_apply_placement(next["active"][slot], params, cyborg_model_catalog()[model_id]))
 				return list("message" = "Invalid placement target or values. Refresh the editor and try again.")
 		if("set")
@@ -408,8 +422,11 @@
 		return TRUE
 	if(!islist(changes) || !length(changes) || length(changes) > 6)
 		return FALSE
-	for(var/field in changes)
-		if(!(field in list("pixel_x", "pixel_y", "rotation", "scale", "visible", "priority")) || !isnum(changes[field]))
+	var/nudge = params["operation"] == "nudge_placement"
+	for(var/field, value in changes)
+		if(!(field in list("pixel_x", "pixel_y", "rotation", "scale", "visible", "priority")) || !isnum(value))
+			return FALSE
+		if(nudge && (!(field in list("pixel_x", "pixel_y")) || !(value in list(-1, 0, 1))))
 			return FALSE
 		if(scope == "base" && (field in list("visible", "priority")))
 			return FALSE
@@ -417,17 +434,17 @@
 	if(scope == "base")
 		var/group = (TRAIT_R_WIDE in descriptor["features"]) ? (direction == "north" ? "north" : direction == "south" ? "south" : "side") : null
 		var/list/position = cyborg_layout_edit_position(entry, group)
-		for(var/field in values)
+		for(var/field, value in values)
 			if(field == "scale")
-				entry[field] = values[field]
+				entry[field] = value
 			else
-				position[field] = values[field]
+				position[field] = nudge ? clamp(position[field] + value, CYBORG_LAYOUT_MIN_PIXEL_OFFSET, CYBORG_LAYOUT_MAX_PIXEL_OFFSET) : value
 		return TRUE
 	var/list/directional = list("visible" = TRUE, "pixel_x" = 0, "pixel_y" = 0, "rotation" = 0, "scale" = 1, "priority" = 5)
 	var/list/inherited = advanced[key] || advanced[direction]
 	if(inherited)
-		for(var/field in inherited)
-			directional[field] = islist(inherited[field]) ? deep_copy_list(inherited[field]) : inherited[field]
+		for(var/field, value in inherited)
+			directional[field] = islist(value) ? deep_copy_list(value) : value
 	advanced[key] = directional
 	var/list/destination = directional
 	if(scope == "arousal")
@@ -436,8 +453,9 @@
 		if(!islist(directional["arousal"][arousal]))
 			directional["arousal"][arousal] = list()
 		destination = directional["arousal"][arousal]
-	for(var/field in values)
-		destination[field] = values[field]
+	for(var/field, value in values)
+		var/current = isnull(destination[field]) ? directional[field] : destination[field]
+		destination[field] = nudge ? clamp(current + value, CYBORG_LAYOUT_MIN_PIXEL_OFFSET, CYBORG_LAYOUT_MAX_PIXEL_OFFSET) : value
 	return TRUE
 
 /** Returns the owned canonical draft without normalizing or copying its collections.
@@ -449,7 +467,7 @@
 	var/list/save_data = preferences.get_save_data_for_savefile_identifier(PREFERENCE_CHARACTER)
 	if(cyborg_layout_import_is_future(save_data?["silicon_genital_layout_presets"]))
 		return null
-	discard_draft("replace")
+	discard_draft()
 	draft_slot = preferences.default_slot
 	draft = cyborg_layout_normalize(preferences.read_preference(/datum/preference/cyborg_layout))
 	session_only = !preferences.savefile.path || preferences.path == DEV_PREFS_PATH
@@ -487,7 +505,7 @@
 	var/datum/preference/cyborg_layout/preference = GLOB.preference_entries[/datum/preference/cyborg_layout]
 	if(isnull(preferences.get_save_data_for_savefile_identifier(PREFERENCE_CHARACTER)))
 		preferences.savefile.set_entry("character[draft_slot]", list())
-	if(!preferences.write_preference(preference, preference.serialize(draft)))
+	if(!preferences.write_preference(preference, draft))
 		save_error = "Could not stage the current setup. Retry saving."
 		return FALSE
 	preferences.recently_updated_keys -= preference.type
@@ -525,7 +543,7 @@
 	commit_draft()
 
 /** Releases draft ownership on explicit replacement or teardown, never on write failure. */
-/datum/preference_middleware/cyborg_character/proc/discard_draft(reason)
+/datum/preference_middleware/cyborg_character/proc/discard_draft()
 	if(draft_timer)
 		deltimer(draft_timer)
 		draft_timer = null
@@ -543,18 +561,18 @@
 	return commit_draft()
 
 /datum/preference_middleware/cyborg_character/before_character_load(slot, replacing_current_slot)
-	discard_draft("load")
+	discard_draft()
 
 /datum/preference_middleware/cyborg_character/on_character_replaced()
-	discard_draft("replacement")
+	discard_draft()
 
 /datum/preference_middleware/cyborg_character/on_preferences_destroy()
 	if(dirty && save_error)
 		stack_trace("Cyborg preference teardown after a failed save; unsaved draft cannot survive destruction.")
-	discard_draft("destroy")
+	discard_draft()
 
 /datum/preference_middleware/cyborg_character/Destroy()
-	discard_draft("destroy")
+	discard_draft()
 	return ..()
 
 /** Static data is private to this preferences UI; never register sensitive PNGs globally. */
@@ -562,7 +580,15 @@
 	return list("cyborg_resources" = page_active && cyborg_visuals_allowed(preferences) ? preview_resources : null)
 
 /** Pixel dependencies exclude placement/rotation/scale, so a drag sends only transforms. */
-/datum/preference_middleware/cyborg_character/proc/refresh_resources(mob/user, list/catalog, list/descriptor, list/preview_layout, layout_source)
+/datum/preference_middleware/cyborg_character/proc/refresh_resources(mob/user, list/catalog, list/descriptor, list/preview_layout, layout_source, list/layers)
+	if(!cyborg_visuals_allowed(preferences))
+		// A slot replacement clears our cache before TGUI drops the previous slot's static data.
+		var/needs_clear = resource_key != "denied"
+		resource_key = "denied"
+		preview_resources = null
+		if(needs_clear && user?.client)
+			preferences.update_static_data(user, always_instant = TRUE)
+		return
 	var/list/dependencies = list(preview_model, preview_direction, preview_pose, preview_arousal, preview_moving, gallery_open, gallery_department, selected_part, layout_source, cyborg_visuals_allowed(preferences))
 	for(var/id in catalog)
 		dependencies += id
@@ -574,12 +600,12 @@
 	if(new_key == resource_key)
 		return
 	resource_key = new_key
-	preview_resources = build_resources(catalog, descriptor, preview_layout, layout_source)
+	preview_resources = build_resources(catalog, descriptor, preview_layout, layout_source, layers)
 	if(user?.client)
 		preferences.update_static_data(user, always_instant = TRUE)
 
 /** Regenerates only when a pixel dependency changes; existing global cache budgets still apply. */
-/datum/preference_middleware/cyborg_character/proc/build_resources(list/catalog, list/descriptor, list/preview_layout, layout_source)
+/datum/preference_middleware/cyborg_character/proc/build_resources(list/catalog, list/descriptor, list/preview_layout, layout_source, list/layers)
 	var/list/models = list()
 	for(var/id in catalog)
 		var/list/model_entry = catalog[id]
@@ -597,10 +623,8 @@
 		if(layout_source == "model_default" && !isnull(part_entry["sprite"]))
 			choice = part_entry["sprite"]
 		parts[slot] = cyborg_accessory_metadata(slot, choice, part_entry?["colors"] || list("#ffffff", "#ffffff", "#ffffff"), preview_arousal, descriptor ? cyborg_part_sprite_direction(descriptor, part_entry, preview_direction) : SOUTH, part_entry?["sprite_size"] || cyborg_layout_default_sprite_size(slot), slot == selected_part)
-	if(!cyborg_visuals_allowed(preferences))
-		parts = list()
 	var/list/layer_icons = list()
-	for(var/list/layer as anything in cyborg_preview_layers(preferences, descriptor, preview_layout, preview_direction, preview_pose, preview_arousal, layout_source == "model_default"))
+	for(var/list/layer as anything in layers)
 		layer_icons[layer["slot"]] = layer["icon"]
 	var/list/dimensions = descriptor ? get_icon_dimensions(descriptor["icon"]) : list()
 	return list(

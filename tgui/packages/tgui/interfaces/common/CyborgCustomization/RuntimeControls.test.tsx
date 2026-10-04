@@ -37,7 +37,17 @@ it('exposes only configured usage controls and reports the independent viewer ga
   expect(screen.queryByText('Save default')).toBeNull();
   expect(screen.queryByText('Sheath')).toBeNull();
   fireEvent.click(screen.getByLabelText('Hide penis'));
+  fireEvent.click(screen.getByLabelText('Show penis'));
+  fireEvent.click(screen.getByLabelText('Unaroused penis'));
+  fireEvent.click(screen.getByLabelText('Partially aroused penis'));
+  fireEvent.click(screen.getByLabelText('Fully aroused penis'));
+  fireEvent.click(screen.getByText('Show cyborg parts to me'));
   expect(actions).toEqual([
     { operation: 'activate', slot: 'penis', value: false, character_slot: 2 },
+    { operation: 'activate', slot: 'penis', value: true, character_slot: 2 },
+    { operation: 'arousal', slot: 'penis', value: 'none', character_slot: 2 },
+    { operation: 'arousal', slot: 'penis', value: 'partial', character_slot: 2 },
+    { operation: 'arousal', slot: 'penis', value: 'full', character_slot: 2 },
+    { operation: 'viewer', value: true, character_slot: 2 },
   ]);
 });

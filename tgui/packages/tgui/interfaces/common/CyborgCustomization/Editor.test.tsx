@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from 'bun:test';
+import { afterEach, expect, it, spyOn } from 'bun:test';
 import {
   act,
   cleanup,
@@ -6,15 +6,142 @@ import {
   render,
   screen,
 } from '@testing-library/react';
+import { useState } from 'react';
 import { AdjustmentSlider } from '../AdjustmentSlider';
 import { CyborgCharacterEditor } from './CharacterEditor';
 import { CyborgPreview } from './CyborgPreview';
 import { LayoutControls } from './LayoutControls';
+import { ModelPicker } from './ModelPicker';
 import { PresetControls } from './PresetControls';
 import { PreviewPart } from './PreviewPart';
-import { CYBORG_SLOTS, type LayoutStore } from './types';
+import {
+  CYBORG_SLOTS,
+  type CyborgCustomizationData,
+  type CyborgSlot,
+  type LayoutStore,
+} from './types';
 
 afterEach(cleanup);
+
+const baseControls = {
+  slot: 'penis' as const,
+  placementTarget: 'base' as const,
+  onPlacementTarget: () => {},
+  preview: { direction: 'south', pose: 'idle', arousal: 'none' },
+};
+
+it('closes the server gallery in the same request that changes model context', async () => {
+  const actions: Record<string, unknown>[] = [];
+  render(
+    <ModelPicker
+      data={{
+        allowed: true,
+        moving: false,
+        model: 'first',
+        models: [
+          { id: 'first', department: 'Service', skin: 'First chassis' },
+          { id: 'second', department: 'Service', skin: 'Second chassis' },
+        ],
+        body: null,
+        body_width: 32,
+        body_height: 32,
+        body_scale: 1,
+        pose: 'idle',
+        poses: ['idle'],
+        direction: 2,
+        arousal: 'none',
+        store: layoutStore(),
+      }}
+      onPreview={(action) => actions.push(action)}
+    />,
+  );
+  fireEvent.click(screen.getByLabelText('Choose preview model'));
+  fireEvent.click(await screen.findByText('Second chassis'));
+  expect(actions.find((action) => action.model === 'second')).toEqual({
+    model: 'second',
+    gallery_open: false,
+  });
+});
+
+it('sends each held-key step independently of server replies, including mirrored west placement', () => {
+  const canvas = spyOn(
+    HTMLCanvasElement.prototype,
+    'getContext',
+  ).mockReturnValue({
+    drawImage: () => {},
+    getImageData: () => ({ data: new Uint8ClampedArray([0, 0, 0, 255]) }),
+  } as unknown as CanvasRenderingContext2D);
+  try {
+    const actions: Record<string, unknown>[] = [];
+    const data: CyborgCustomizationData = {
+      allowed: true,
+      moving: false,
+      model: 'test',
+      models: [],
+      body: null,
+      body_width: 64,
+      body_height: 32,
+      body_scale: 1,
+      wide: true,
+      pose: 'idle',
+      poses: ['idle'],
+      direction: 8,
+      arousal: 'none',
+      store: layoutStore(),
+      layers: [
+        {
+          slot: 'penis',
+          icon: '',
+          x: 0,
+          y: 0,
+          rotation: 0,
+          scale: 1,
+          priority: 5,
+          mirror_x: -1,
+        },
+      ],
+    };
+    render(
+      <CyborgPreview data={data} onLayout={(action) => actions.push(action)} />,
+    );
+    fireEvent.click(screen.getByText('Place parts'));
+    const sprite = screen.getByAltText('Penis preview');
+    Object.defineProperties(sprite, {
+      naturalWidth: { value: 1 },
+      naturalHeight: { value: 1 },
+    });
+    fireEvent.load(sprite);
+    const handle = screen.getByRole('button', { name: 'Place Penis' });
+    for (const key of ['ArrowRight', 'ArrowRight', 'ArrowUp'])
+      fireEvent.keyDown(handle, { key });
+    const final = actions.reduce<{ pixel_x: number; pixel_y: number }>(
+      (position, action) => {
+        const changes = action.changes as { pixel_x: number; pixel_y: number };
+        return action.operation === 'nudge_placement'
+          ? {
+              pixel_x: position.pixel_x + changes.pixel_x,
+              pixel_y: position.pixel_y + changes.pixel_y,
+            }
+          : changes;
+      },
+      { pixel_x: 0, pixel_y: 0 },
+    );
+    expect(final).toEqual({ pixel_x: -2, pixel_y: 1 });
+    expect(actions.map((action) => action.operation)).toEqual([
+      'nudge_placement',
+      'nudge_placement',
+      'nudge_placement',
+    ]);
+    expect(actions.map((action) => action.changes)).toEqual([
+      { pixel_x: -1, pixel_y: 0 },
+      { pixel_x: -1, pixel_y: 0 },
+      { pixel_x: -0, pixel_y: 1 },
+    ]);
+    expect(data.store.active.penis.pixel_x).toBe(0);
+  } finally {
+    canvas.mockRestore();
+  }
+});
 
 it('uses the same pose target for visual dragging and sliders without mirroring pose corrections', () => {
   const store = layoutStore();
@@ -367,6 +494,7 @@ it('coalesces palette changes across channels and preserves the final colors on 
   const actions: Record<string, unknown>[] = [];
   const view = render(
     <LayoutControls
+      {...baseControls}
       store={layoutStore()}
       part={{ sizes: [], color_channels: [1, 2] }}
       onAction={(action) => actions.push(action)}
@@ -398,12 +526,12 @@ it('coalesces palette changes across channels and preserves the final colors on 
 
 it('rounds exact pixel positions to whole numbers in base and override controls', () => {
   const actions: Record<string, unknown>[] = [];
-  render(
-    <LayoutControls
-      store={layoutStore()}
-      onAction={(action) => actions.push(action)}
-    />,
-  );
+  const props = {
+    ...baseControls,
+    store: layoutStore(),
+    onAction: (action: Record<string, unknown>) => actions.push(action),
+  };
+  const view = render(<LayoutControls {...props} />);
   const horizontal = screen.getByLabelText('Horizontal position exact value');
   fireEvent.change(horizontal, { target: { value: '-15.6' } });
   fireEvent.blur(horizontal);
@@ -411,7 +539,7 @@ it('rounds exact pixel positions to whole numbers in base and override controls'
     operation: 'set_placement',
     changes: { pixel_x: -16 },
   });
-  fireEvent.click(screen.getByText('This pose'));
+  view.rerender(<LayoutControls {...props} placementTarget="pose" />);
   const vertical = screen.getByLabelText(
     'Override: Vertical position exact value',
   );
@@ -449,6 +577,7 @@ it('separates authored sprite sizes from a 200 percent maximum scale and filters
   const actions: Record<string, unknown>[] = [];
   render(
     <LayoutControls
+      {...baseControls}
       store={layoutStore()}
       part={{
         sizes: [
@@ -482,6 +611,7 @@ it.each([
   const actions: Record<string, unknown>[] = [];
   render(
     <LayoutControls
+      {...baseControls}
       store={layoutStore()}
       onAction={(action) => actions.push(action)}
     />,
@@ -497,7 +627,7 @@ it.each([
   ]);
 });
 
-it('drags parts in world pixels and sends one atomic placement, while camera panning never edits', () => {
+it('selects an unselected part while dragging and sends one atomic placement, while camera panning never edits', () => {
   const actions: Record<string, unknown>[] = [];
   const data = {
     allowed: true,
@@ -525,13 +655,18 @@ it('drags parts in world pixels and sends one atomic placement, while camera pan
       },
     ],
   };
-  const view = render(
-    <CyborgPreview
-      data={data}
-      slot="penis"
-      onLayout={(action) => actions.push(action)}
-    />,
-  );
+  function SelectablePreview({ data }: { data: CyborgCustomizationData }) {
+    const [slot, setSlot] = useState<CyborgSlot>('sheath');
+    return (
+      <CyborgPreview
+        data={data}
+        slot={slot}
+        onSelectSlot={setSlot}
+        onLayout={(action) => actions.push(action)}
+      />
+    );
+  }
+  const view = render(<SelectablePreview data={data} />);
   const stage = view.container.querySelector(
     '.CyborgPreview__stage',
   ) as HTMLElement;
@@ -574,11 +709,7 @@ it('drags parts in world pixels and sends one atomic placement, while camera pan
     pointerId: 3,
   });
   view.rerender(
-    <CyborgPreview
-      data={{ ...data, context: 2, model: 'replacement' }}
-      slot="penis"
-      onLayout={(action) => actions.push(action)}
-    />,
+    <SelectablePreview data={{ ...data, context: 2, model: 'replacement' }} />,
   );
   fireEvent.pointerUp(stage, { clientX: 60, clientY: 50, pointerId: 3 });
   expect(actions).toHaveLength(1);
@@ -588,6 +719,7 @@ it('offers bounded placement sliders and sends the final numeric offset', () => 
   const actions: Record<string, unknown>[] = [];
   render(
     <LayoutControls
+      {...baseControls}
       store={layoutStore()}
       onAction={(action) => actions.push(action)}
     />,
@@ -609,12 +741,11 @@ it('does not delete a named preset on the first click', () => {
   store.presets.Example = store.active;
   const actions: Record<string, unknown>[] = [];
   render(
-    <LayoutControls
+    <PresetControls
       store={store}
       onAction={(action) => actions.push(action)}
     />,
   );
-  fireEvent.click(screen.getByText('Presets'));
   fireEvent.change(screen.getByPlaceholderText('Preset name'), {
     target: { value: 'Example' },
   });
@@ -628,12 +759,11 @@ it('requires a fresh confirmation after changing the targeted preset', () => {
   store.presets.Second = store.active;
   const actions: Record<string, unknown>[] = [];
   render(
-    <LayoutControls
+    <PresetControls
       store={store}
       onAction={(action) => actions.push(action)}
     />,
   );
-  fireEvent.click(screen.getByText('Presets'));
   fireEvent.change(screen.getByPlaceholderText('Preset name'), {
     target: { value: 'First' },
   });
@@ -745,19 +875,17 @@ it('applies an arousal override to the state visible in the preview', () => {
   const actions: Record<string, unknown>[] = [];
   render(
     <LayoutControls
+      {...baseControls}
+      placementTarget="arousal"
       store={layoutStore()}
       onAction={(action) => actions.push(action)}
       preview={{
         direction: 'east',
         pose: 'sit',
-        poses: ['idle', 'sit'],
         arousal: 'full',
-        onChange: () => {},
       }}
     />,
   );
-  fireEvent.click(screen.getByText('This pose', { exact: true }));
-  fireEvent.click(screen.getByText('This arousal'));
   fireEvent.change(
     screen.getByRole('slider', { name: 'Override: Vertical position' }),
     { target: { value: '15' } },
@@ -787,7 +915,6 @@ it('shows the named spawn assignment and keeps it separate from loading a preset
   const actions: Record<string, unknown>[] = [];
   render(
     <PresetControls
-      embedded
       store={store}
       model="drake"
       onAction={(action) => actions.push(action)}
@@ -801,4 +928,147 @@ it('shows the named spawn assignment and keeps it separate from loading a preset
   expect(actions).toEqual([]);
   fireEvent.click(screen.getByText('Confirm?'));
   expect(actions).toEqual([{ operation: 'assign_default', name: 'Workshop' }]);
+});
+
+it('keeps compact preset summaries loadable, assignable, and deletable', () => {
+  const actions: Record<string, unknown>[] = [];
+  render(
+    <PresetControls
+      store={{
+        ...layoutStore(),
+        presets: { Workshop: true },
+        preset_models: { Workshop: 'drake' },
+      }}
+      model="drake"
+      onAction={(action) => actions.push(action)}
+    />,
+  );
+  fireEvent.change(screen.getByPlaceholderText('Preset name'), {
+    target: { value: 'Workshop' },
+  });
+  for (const label of ['Load preset', 'Use on spawn', 'Delete preset']) {
+    fireEvent.click(screen.getByText(label));
+    fireEvent.click(screen.getByText('Confirm?'));
+  }
+  expect(actions).toEqual([
+    { operation: 'load', name: 'Workshop' },
+    { operation: 'assign_default', name: 'Workshop' },
+    { operation: 'delete', name: 'Workshop' },
+  ]);
+});
+
+it('advances animated images and pauses at the first frame for placement', async () => {
+  const data = {
+    allowed: true,
+    moving: false,
+    model: 'test',
+    models: [],
+    body: 'first',
+    body_width: 64,
+    body_height: 32,
+    body_scale: 1,
+    pose: 'idle',
+    poses: ['idle'],
+    direction: 2,
+    arousal: 'none',
+    store: layoutStore(),
+    animation: [
+      { body: 'first', occlusion: 'mask-first', x: 0, y: 0, delay: 10 },
+      { body: 'second', occlusion: 'mask-second', x: 3, y: 2, delay: 60000 },
+    ],
+  };
+  render(<CyborgPreview data={data} onLayout={() => {}} />);
+  await pause(30);
+  expect(screen.getByAltText('Cyborg preview').getAttribute('src')).toEndWith(
+    ',second',
+  );
+  expect(screen.getByAltText('Body occlusion').getAttribute('src')).toEndWith(
+    ',mask-second',
+  );
+  fireEvent.click(screen.getByText('Place parts'));
+  await pause(30);
+  expect(screen.getByAltText('Cyborg preview').getAttribute('src')).toEndWith(
+    ',first',
+  );
+  expect(screen.getByAltText('Body occlusion').getAttribute('src')).toEndWith(
+    ',mask-first',
+  );
+  fireEvent.click(screen.getByText('Move camera'));
+  await pause(30);
+  expect(screen.getByAltText('Cyborg preview').getAttribute('src')).toEndWith(
+    ',second',
+  );
+});
+
+it.each([
+  'model',
+  'context',
+  'permission',
+] as const)('replaces pending slider and color drafts when the %s changes', async (changed) => {
+  const actions: Record<string, unknown>[] = [];
+  const data: CyborgCustomizationData = {
+    allowed: true,
+    moving: false,
+    context: 1,
+    model: 'first',
+    models: [],
+    body: null,
+    body_width: 32,
+    body_height: 32,
+    body_scale: 1,
+    pose: 'idle',
+    poses: ['idle'],
+    direction: 2,
+    arousal: 'none',
+    store: layoutStore(),
+    parts: { penis: { sizes: [], color_channels: [1] } },
+  };
+  const editor = (data: CyborgCustomizationData) => (
+    <CyborgCharacterEditor
+      data={data}
+      name="Test"
+      values={{}}
+      renderPreference={() => null}
+      onName={() => {}}
+      onPreview={() => {}}
+      onLayout={(action) =>
+        actions.push({ ...action, context: data.context, model: data.model })
+      }
+    />
+  );
+  const view = render(editor(data));
+  fireEvent.click(screen.getByText('Shared placement'));
+  fireEvent.change(
+    screen.getByRole('slider', { name: 'Horizontal position' }),
+    {
+      target: { value: '99' },
+    },
+  );
+  fireEvent.change(screen.getByLabelText('Color channel 1'), {
+    target: { value: '#112233' },
+  });
+  const replacement = structuredClone(data);
+  if (changed === 'context') replacement.context = 2;
+  else if (changed === 'model') replacement.model = 'second';
+  else replacement.allowed = false;
+  if (changed !== 'permission') {
+    replacement.store.active.penis.pixel_x = 4;
+    replacement.store.active.penis.colors[0] = '#abcdef';
+  }
+  view.rerender(editor(replacement));
+  expect(
+    (
+      screen.getByLabelText(
+        'Horizontal position exact value',
+      ) as HTMLInputElement
+    ).value,
+  ).toBe(String(replacement.store.active.penis.pixel_x));
+  expect(
+    (screen.getByLabelText('Color channel 1') as HTMLInputElement).value,
+  ).toBe(replacement.store.active.penis.colors[0]);
+  await pause(400);
+  expect(actions).toHaveLength(2);
+  expect(
+    actions.every((action) => action.context === 1 && action.model === 'first'),
+  ).toBe(true);
 });

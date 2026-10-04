@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Dropdown } from 'tgui-core/components';
 import { AdjustmentSlider } from '../AdjustmentSlider';
 import { editorLabel } from './LayoutControls';
@@ -60,9 +60,13 @@ export function CyborgPreview({
           : 1,
     };
   };
-  const place = (part: CyborgSlot, position: { x: number; y: number }) => {
+  const place = (
+    part: CyborgSlot,
+    position: { x: number; y: number },
+    operation: 'set_placement' | 'nudge_placement' = 'set_placement',
+  ) => {
     onLayout?.({
-      operation: 'set_placement',
+      operation,
       slot: part,
       target: {
         scope: placementTarget,
@@ -130,13 +134,7 @@ export function CyborgPreview({
     mirrorX?: number;
     group?: string;
   } | null>(null);
-  const [frameIndex, setFrameIndex] = useState(0);
   const frames = data.animation;
-  const frame = frames?.[frameIndex % (frames.length || 1)];
-  useEffect(
-    () => setFrameIndex(0),
-    [data.model, data.direction, data.pose, data.moving, mode],
-  );
   useEffect(() => {
     drag.current = null;
     setDraft(null);
@@ -148,19 +146,17 @@ export function CyborgPreview({
     data.arousal,
     editable,
     placementTarget,
-    slot,
   ]);
+  useEffect(() => {
+    // Selecting the part under the pointer is part of starting that same drag.
+    if (drag.current?.part && drag.current.part !== slot) {
+      drag.current = null;
+      setDraft(null);
+    }
+  }, [slot]);
   useEffect(() => {
     if (data.moving || !editable) setMode('camera');
   }, [data.moving, editable]);
-  useEffect(() => {
-    if (mode === 'parts' || !frames || frames.length < 2) return;
-    const timer = setTimeout(
-      () => setFrameIndex((index) => (index + 1) % frames.length),
-      frame?.delay || 100,
-    );
-    return () => clearTimeout(timer);
-  }, [frames, frameIndex, frame?.delay, mode]);
   useEffect(() => {
     const element = stage.current;
     if (!element) return;
@@ -347,67 +343,44 @@ export function CyborgPreview({
             pointerEvents: 'none',
           }}
         >
-          {data.body && (
-            <img
-              draggable={false}
-              alt="Cyborg preview"
-              src={`data:image/png;base64,${frame?.body || data.body}`}
-              style={{
-                position: 'absolute',
-                left: -data.body_width / 2,
-                top: 16 - data.body_height,
-              }}
-            />
-          )}
-          {data.layers?.map((layer, index) => (
-            <PreviewPart
-              key={layer.slot || index}
-              layer={layer}
-              x={
-                layer.x +
-                (frame?.x || 0) +
-                (draft && draft.slot === layer.slot
-                  ? (draft.x - draft.baseX) * draft.mirrorX
-                  : 0)
-              }
-              y={
-                layer.y +
-                (frame?.y || 0) +
-                (draft && draft.slot === layer.slot ? draft.y - draft.baseY : 0)
-              }
-              placing={mode === 'parts' && editable}
-              selected={layer.slot === slot}
-              onNudge={(dx, dy) => {
-                if (!layer.slot) return;
-                onSelectSlot?.(layer.slot);
-                const entry = editingPosition(layer.slot);
-                place(
-                  layer.slot,
-                  dragPlacement(
-                    entry.pixel_x,
-                    entry.pixel_y,
-                    dx,
-                    -dy,
-                    1,
-                    entry.mirrorX,
-                  ),
-                );
-              }}
-            />
-          ))}
-          {(frame?.occlusion || data.occlusion) && (
-            <img
-              draggable={false}
-              alt="Body occlusion"
-              src={`data:image/png;base64,${frame?.occlusion || data.occlusion}`}
-              style={{
-                position: 'absolute',
-                left: -data.body_width / 2,
-                top: 16 - data.body_height,
-                zIndex: 11,
-              }}
-            />
-          )}
+          <AnimatedPreview data={data} paused={mode === 'parts'}>
+            {data.layers?.map((layer, index) => (
+              <PreviewPart
+                key={layer.slot || index}
+                layer={layer}
+                x={
+                  layer.x +
+                  (draft && draft.slot === layer.slot
+                    ? (draft.x - draft.baseX) * draft.mirrorX
+                    : 0)
+                }
+                y={
+                  layer.y +
+                  (draft && draft.slot === layer.slot
+                    ? draft.y - draft.baseY
+                    : 0)
+                }
+                placing={mode === 'parts' && editable}
+                selected={layer.slot === slot}
+                onNudge={(dx, dy) => {
+                  if (!layer.slot) return;
+                  onSelectSlot?.(layer.slot);
+                  place(
+                    layer.slot,
+                    {
+                      x:
+                        dx *
+                        (placementTarget === 'base'
+                          ? (layer.mirror_x ?? 1)
+                          : 1),
+                      y: dy,
+                    },
+                    'nudge_placement',
+                  );
+                }}
+              />
+            ))}
+          </AnimatedPreview>
           {showReference && data.reference && (
             <div
               className="CyborgPreview__reference"
@@ -568,5 +541,66 @@ export function CyborgPreview({
         </details>
       </div>
     </div>
+  );
+}
+
+/** Only frame images and their shared anchor change on an animation tick. */
+function AnimatedPreview({
+  data,
+  paused,
+  children,
+}: {
+  data: CyborgCustomizationData;
+  paused: boolean;
+  children: ReactNode;
+}) {
+  const [frameIndex, setFrameIndex] = useState(0);
+  const frames = data.animation;
+  const frame = frames?.[frameIndex % (frames.length || 1)];
+  useEffect(
+    () => setFrameIndex(0),
+    [data.model, data.direction, data.pose, data.moving, paused],
+  );
+  useEffect(() => {
+    if (paused || !frames || frames.length < 2) return;
+    const timer = setTimeout(
+      () => setFrameIndex((index) => (index + 1) % frames.length),
+      frame?.delay || 100,
+    );
+    return () => clearTimeout(timer);
+  }, [frames, frameIndex, frame?.delay, paused]);
+  const bodyStyle = {
+    position: 'absolute' as const,
+    left: -data.body_width / 2,
+    top: 16 - data.body_height,
+  };
+  return (
+    <>
+      {data.body && (
+        <img
+          draggable={false}
+          alt="Cyborg preview"
+          src={`data:image/png;base64,${frame?.body || data.body}`}
+          style={bodyStyle}
+        />
+      )}
+      <div
+        style={{
+          position: 'absolute',
+          left: frame?.x || 0,
+          top: -(frame?.y || 0),
+        }}
+      >
+        {children}
+      </div>
+      {(frame?.occlusion || data.occlusion) && (
+        <img
+          draggable={false}
+          alt="Body occlusion"
+          src={`data:image/png;base64,${frame?.occlusion || data.occlusion}`}
+          style={{ ...bodyStyle, zIndex: 11 }}
+        />
+      )}
+    </>
   );
 }

@@ -113,6 +113,14 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	owner = null
 	return ..()
 
+/obj/effect/client_image_holder/cyborg_customization/on_changed_z_level(turf/old_turf, turf/new_turf, same_z_layer, notify_contents)
+	. = ..()
+	if(QDELETED(src) || same_z_layer)
+		return
+	// The parent moves only shown_image; rebuild its filter and both companion images.
+	render_key = null
+	update_from_owner()
+
 /obj/effect/client_image_holder/cyborg_customization/proc/viewer_login(datum/source, mob/player)
 	SIGNAL_HANDLER
 	refresh_viewer(player)

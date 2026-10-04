@@ -1,5 +1,5 @@
 /// Only cyborgs use the new fields; AI and other silicon preferences retain their behavior.
-/proc/cyborg_identity_model(mob/living/silicon/robot/robot, datum/preferences/preferences, fallback)
+/proc/cyborg_identity_model(datum/preferences/preferences, fallback)
 	return cyborg_preference_value(preferences, "custom_species_silicon") || fallback
 
 /proc/cyborg_identity_lore(datum/preferences/preferences, fallback)

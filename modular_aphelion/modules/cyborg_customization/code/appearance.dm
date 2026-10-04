@@ -36,17 +36,15 @@
 		robot.cyborg_customization_sync_permissions(preferences)
 		robot.cyborg_customization_refresh_model()
 		return
-	var/list/current
-	if(!robot.cyborg_appearance_store || robot.cyborg_appearance_slot == preferences.default_slot || robot.cyborg_appearance_owner != robot.ckey)
-		var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
-		current = editor.begin_draft()
-		if(!current)
-			robot.cyborg_appearance_store = null
-			robot.cyborg_appearance_layout = null
-			robot.cyborg_appearance_active = list()
-			QDEL_NULL(robot.cyborg_appearance_holder)
-			robot.cyborg_customization_message = "This character has a newer layout schema. Its saved data has been preserved."
-			return
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/list/current = editor.begin_draft()
+	if(!current)
+		robot.cyborg_appearance_store = null
+		robot.cyborg_appearance_layout = null
+		robot.cyborg_appearance_active = list()
+		QDEL_NULL(robot.cyborg_appearance_holder)
+		robot.cyborg_customization_message = "This character has a newer layout schema. Its saved data has been preserved."
+		return
 	var/same_owner = robot.cyborg_appearance_owner == robot.ckey && robot.cyborg_appearance_slot == preferences.default_slot
 	if(!same_owner)
 		robot.cyborg_appearance_active = list()

@@ -48,6 +48,10 @@ export type LayoutStore = {
   presets: Record<string, Layout>;
   model_defaults: Record<string, Layout>;
 };
+/** Preset bodies remain on the server; the UI only tests their presence by name. */
+export type CyborgEditorStore = Omit<LayoutStore, 'presets'> & {
+  presets: Record<string, unknown>;
+};
 export type CyborgCustomizationData = {
   /** Replaced drafts invalidate commands; ordinary edits only advance revision. */
   context?: number;
@@ -102,7 +106,7 @@ export type CyborgCustomizationData = {
     scale: number;
     priority: number;
   }[];
-  store: LayoutStore;
+  store: CyborgEditorStore;
   message?: string;
 };
 export type PartMetadata = {
@@ -112,7 +116,7 @@ export type PartMetadata = {
 };
 export type LayoutAction = (params: Record<string, unknown>) => void;
 export type PlacementCommand = {
-  operation: 'set_placement' | 'inherit_placement';
+  operation: 'set_placement' | 'nudge_placement' | 'inherit_placement';
   slot: CyborgSlot;
   target: {
     scope: 'base' | 'pose' | 'arousal';

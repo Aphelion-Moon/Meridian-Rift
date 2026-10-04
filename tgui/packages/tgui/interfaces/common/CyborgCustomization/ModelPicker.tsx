@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Button, Dropdown, Floating, Input } from 'tgui-core/components';
 import type { CyborgCustomizationData, LayoutAction } from './types';
 
@@ -28,11 +28,19 @@ export function ModelPicker({
     );
     return () => clearInterval(timer);
   }, [open, rotating]);
-  const models = data.models.filter(
-    (model) =>
-      model.department === department &&
-      model.skin.toLowerCase().includes(search.toLowerCase()),
+  const departments = useMemo(
+    () => [...new Set(data.models.map((model) => model.department))],
+    [data.models],
   );
+  const models = useMemo(() => {
+    if (!open) return [];
+    const query = search.toLowerCase();
+    return data.models.filter(
+      (model) =>
+        model.department === department &&
+        model.skin.toLowerCase().includes(query),
+    );
+  }, [data.models, department, search, open]);
   return (
     <Floating
       ref={floating}
@@ -64,9 +72,7 @@ export function ModelPicker({
             <Dropdown
               width="100%"
               selected={department}
-              options={[
-                ...new Set(data.models.map((model) => model.department)),
-              ]}
+              options={departments}
               onSelected={(value) => {
                 setDepartment(value);
                 onPreview({ gallery_department: value, gallery_open: true });
@@ -119,7 +125,7 @@ export function ModelPicker({
                   selected={model.id === data.model}
                   tooltip={model.skin}
                   onClick={() => {
-                    onPreview({ model: model.id });
+                    onPreview({ model: model.id, gallery_open: false });
                     floating.current?.close();
                   }}
                 >

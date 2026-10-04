@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Box, NoticeBox } from 'tgui-core/components';
 import { CyborgCharacterEditor } from '../../common/CyborgCustomization/CharacterEditor';
@@ -15,23 +15,43 @@ export function CyborgCharacterPage() {
   }, [act]);
   const state = data.cyborg_customization;
   const resources = data.cyborg_resources;
-  const customization = state && {
-    ...resources,
-    ...state,
-    models: resources?.models ?? [],
-    body: resources?.body ?? null,
-    body_width: resources?.body_width ?? 32,
-    body_height: resources?.body_height ?? 32,
-    layers: state.layers?.map((layer) => ({
-      ...layer,
-      icon: resources?.layer_icons?.[layer.slot || ''] || '',
-    })),
-  };
+  const customization = useMemo(
+    () =>
+      state && {
+        ...resources,
+        ...state,
+        models: resources?.models ?? [],
+        body: resources?.body ?? null,
+        body_width: resources?.body_width ?? 32,
+        body_height: resources?.body_height ?? 32,
+        layers: state.layers?.map((layer) => ({
+          ...layer,
+          icon: resources?.layer_icons?.[layer.slot || ''] || '',
+        })),
+      },
+    [state, resources],
+  );
+  const values = useMemo(
+    () => cyborgPreferenceValues(data.character_preferences),
+    [data.character_preferences],
+  );
+  const onPreview = useCallback(
+    (params) => act('cyborg_preview', { ...params, context: state?.context }),
+    [act, state?.context],
+  );
+  const onLayout = useCallback(
+    (params) =>
+      act('cyborg_layout', {
+        ...params,
+        character_slot: data.active_slot,
+        context: state?.context,
+      }),
+    [act, data.active_slot, state?.context],
+  );
   if (!customization)
     return <NoticeBox>Loading cyborg customization…</NoticeBox>;
   if (customization.unsupported)
     return <NoticeBox>{customization.message}</NoticeBox>;
-  const values = cyborgPreferenceValues(data.character_preferences);
   return (
     <CyborgCharacterEditor
       key={data.active_slot}
@@ -41,16 +61,8 @@ export function CyborgCharacterPage() {
       onName={(value) =>
         act('set_preference', { preference: 'cyborg_name', value })
       }
-      onPreview={(params) =>
-        act('cyborg_preview', { ...params, context: customization.context })
-      }
-      onLayout={(params) =>
-        act('cyborg_layout', {
-          ...params,
-          character_slot: data.active_slot,
-          context: customization.context,
-        })
-      }
+      onPreview={onPreview}
+      onLayout={onLayout}
       renderPreference={(key) =>
         values[key] !== undefined && features[key] ? (
           <>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { editorLabel } from './LayoutControls';
 import { opaqueBounds, pngSize } from './previewGeometry';
 import type { CyborgCustomizationData } from './types';
@@ -23,7 +23,7 @@ export function PreviewPart({
     icon: string;
     bounds: ReturnType<typeof opaqueBounds>;
   } | null>(null);
-  const { width, height } = pngSize(layer.icon);
+  const { width, height } = useMemo(() => pngSize(layer.icon), [layer.icon]);
   const bounds = mask?.icon === layer.icon ? mask.bounds : undefined;
   return (
     <div

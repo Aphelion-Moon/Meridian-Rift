@@ -142,7 +142,6 @@ export function CyborgCharacterEditor(props: {
             models={data.models}
             model={data.model}
             onAction={onLayout}
-            embedded
             disabled={readonly || !data.allowed}
           />
         </>
@@ -231,7 +230,7 @@ export function CyborgCharacterEditor(props: {
               </div>
             </Section>
             <LayoutControls
-              key={`${readonly}-${slot}`}
+              key={`${data.context}-${data.model}-${data.allowed}-${readonly}-${slot}`}
               slot={slot}
               placementTarget={placementTarget}
               onPlacementTarget={setPlacementTarget}
@@ -245,9 +244,7 @@ export function CyborgCharacterEditor(props: {
                     }
                   : data.store
               }
-              model={data.model}
               disabled={readonly || !data.allowed}
-              hidePresets
               spriteControl={
                 <>
                   <Box color="label" mb={0.5}>
@@ -272,15 +269,7 @@ export function CyborgCharacterEditor(props: {
                     (key) => CYBORG_DIRECTIONS[key] === data.direction,
                   ) || 'south',
                 pose: data.pose,
-                poses: data.poses,
                 arousal: data.arousal,
-                onChange: (change) =>
-                  onPreview({
-                    ...change,
-                    direction: change.direction
-                      ? CYBORG_DIRECTIONS[change.direction]
-                      : undefined,
-                  }),
               }}
               onAction={onLayout}
             />

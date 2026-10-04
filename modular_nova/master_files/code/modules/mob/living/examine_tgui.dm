@@ -125,7 +125,7 @@
 			headshot += preferences.read_preference(/datum/preference/text/headshot/silicon)
 			if(iscyborg(holder))
 				headshot_nsfw = preferences.read_preference(/datum/preference/text/headshot/silicon_nsfw)
-				custom_species = cyborg_identity_model(holder, preferences, custom_species)
+				custom_species = cyborg_identity_model(preferences, custom_species)
 				custom_species_lore = cyborg_identity_lore(preferences, custom_species_lore)
 				ooc_notes += cyborg_identity_text(preferences, /datum/preference/text/ooc_notes_silicon, /datum/preference/text/ooc_notes)
 				ooc_notes_nsfw += cyborg_identity_text(preferences, /datum/preference/text/ooc_notes_silicon/nsfw, /datum/preference/text/ooc_notes_nsfw)

@@ -163,38 +163,41 @@
 	return normalized
 
 /proc/cyborg_layout_normalize(raw, normalize_model_defaults = TRUE, allow_legacy_aliases = FALSE)
-	var/list/empty = cyborg_layout_default()
 	if(!islist(raw))
-		return empty
+		return cyborg_layout_default()
 	var/version = raw["schema_version"]
 	if(!isnull(version) && (!isnum(version) || version > CYBORG_LAYOUT_SCHEMA_VERSION))
-		return empty
+		return cyborg_layout_default()
 	var/list/normalized = cyborg_layout_default()
 	normalized["active"] = cyborg_layout_normalize_slots(raw["active"], allow_legacy_aliases)
 	var/list/raw_presets = raw["presets"]
+	// Only accepted raw names may supply references or metadata after canonicalization.
+	var/list/preset_names = list()
 	if(islist(raw_presets))
 		var/preset_candidates = 0
-		for(var/raw_name in raw_presets)
+		for(var/raw_name, raw_layout in raw_presets)
 			preset_candidates++
 			if(preset_candidates > CYBORG_LAYOUT_MAX_PRESETS)
 				break
 			if(!istext(raw_name))
 				continue
-			var/name = trim(raw_name, CYBORG_LAYOUT_MAX_PRESET_NAME_LENGTH)
+			var/name = trim(raw_name, CYBORG_LAYOUT_MAX_PRESET_NAME_LENGTH + 1)
 			if(!length(name) || (name in normalized["presets"]))
 				continue
-			normalized["presets"][name] = cyborg_layout_normalize_slots(raw_presets[raw_name], allow_legacy_aliases)
+			normalized["presets"][name] = cyborg_layout_normalize_slots(raw_layout, allow_legacy_aliases)
+			preset_names[raw_name] = name
 	var/list/catalog = cyborg_model_catalog()
 	var/active_model = cyborg_canonical_model_id(raw["active_model"])
 	if(active_model && catalog[active_model])
 		normalized["active_model"] = active_model
 	var/list/raw_preset_models = raw["preset_models"]
-	for(var/name in normalized["presets"])
-		var/model_id = cyborg_canonical_model_id(islist(raw_preset_models) ? raw_preset_models[name] : null)
+	for(var/raw_name, name in preset_names)
+		var/model_id = cyborg_canonical_model_id(islist(raw_preset_models) ? raw_preset_models[raw_name] : null)
 		if(model_id && catalog[model_id])
 			normalized["preset_models"][name] = model_id
-	if(istext(raw["active_preset"]) && normalized["presets"][raw["active_preset"]])
-		normalized["active_preset"] = raw["active_preset"]
+	var/active_preset = istext(raw["active_preset"]) ? preset_names[raw["active_preset"]] : null
+	if(active_preset)
+		normalized["active_preset"] = active_preset
 	if(!normalize_model_defaults)
 		return normalized
 	var/list/raw_defaults = raw["model_defaults"]
@@ -202,7 +205,8 @@
 		return normalized
 	var/default_candidates = 0
 	var/default_candidate_limit = max(1, length(catalog) * 2)
-	for(var/model_id in raw_defaults)
+	var/list/raw_assignments = raw["model_presets"]
+	for(var/model_id, raw_default in raw_defaults)
 		default_candidates++
 		if(default_candidates > default_candidate_limit)
 			break
@@ -215,14 +219,14 @@
 			continue
 		if(canonical_id != model_id && raw_defaults[canonical_id])
 			continue
-		normalized["model_defaults"][canonical_id] = cyborg_layout_normalize_slots(raw_defaults[model_id], allow_legacy_aliases)
-	var/list/raw_assignments = raw["model_presets"]
-	if(islist(raw_assignments))
-		// Bound by accepted models, never recurse through imported assignment data.
-		for(var/model_id in normalized["model_defaults"])
-			var/name = raw_assignments[model_id]
-			if(istext(name) && normalized["presets"][name] && normalized["preset_models"][name] == model_id)
-				normalized["model_presets"][model_id] = name
+		normalized["model_defaults"][canonical_id] = cyborg_layout_normalize_slots(raw_default, allow_legacy_aliases)
+		// Follow the accepted snapshot's original key before canonicalizing its assignment.
+		var/raw_name = islist(raw_assignments) ? raw_assignments[model_id] : null
+		var/name = istext(raw_name) ? preset_names[raw_name] : null
+		if(name && normalized["preset_models"][name] == canonical_id)
+			normalized["model_presets"][canonical_id] = name
+		else
+			normalized["model_presets"] -= canonical_id
 	return normalized
 
 /// Pass-one import sanitation may use this before preference rebuilds call deserialize.

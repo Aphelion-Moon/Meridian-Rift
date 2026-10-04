@@ -13,6 +13,7 @@ import {
   CYBORG_SLOTS,
   type CyborgCustomizationData,
   type LayoutStore,
+  type PlacementCommand,
 } from '../interfaces/common/CyborgCustomization/types';
 import { MainContent } from '../interfaces/InteractionPanel/MainContent';
 import {
@@ -132,7 +133,15 @@ async function main() {
         ),
       })),
       poses: ['idle', 'rest', 'sit'],
-      store,
+      store: {
+        ...store,
+        presets: Object.fromEntries(
+          Object.keys(store.presets).map((name) => [name, true]),
+        ),
+        model_defaults: store.model_defaults[state.model]
+          ? { [state.model]: store.model_defaults[state.model] }
+          : {},
+      },
       model_default_available: !!store.model_defaults[state.model],
       layers: [
         {
@@ -265,17 +274,85 @@ async function main() {
                     )
                       ? position
                       : part)[String(params.field)] = params.value;
-                  if (params.operation === 'place')
-                    Object.assign(position, {
-                      pixel_x: params.x,
-                      pixel_y: params.y,
-                    });
+                  if (
+                    params.operation === 'set_placement' ||
+                    params.operation === 'nudge_placement' ||
+                    params.operation === 'inherit_placement'
+                  ) {
+                    const { target, changes } = params as PlacementCommand;
+                    const pose = posePlacement(
+                      part,
+                      target.direction,
+                      target.pose,
+                      target.arousal,
+                    );
+                    const nudge = params.operation === 'nudge_placement';
+                    if (target.scope === 'base') {
+                      const group = placementGroup(
+                        model.width > 32,
+                        target.direction,
+                      );
+                      if (group) {
+                        part.placement_groups ??= {};
+                        part.placement_groups[group] ??= {
+                          pixel_x: part.pixel_x,
+                          pixel_y: part.pixel_y,
+                          rotation: part.rotation,
+                        };
+                      }
+                      for (const [key, value] of Object.entries(
+                        changes || {},
+                      )) {
+                        const destination =
+                          key === 'scale' || !group
+                            ? part
+                            : part.placement_groups![group];
+                        destination[key] = nudge
+                          ? Math.max(
+                              -128,
+                              Math.min(128, destination[key] + Number(value)),
+                            )
+                          : value;
+                      }
+                    } else if (params.operation === 'inherit_placement') {
+                      if (target.scope === 'arousal')
+                        delete part.advanced[pose.key]?.arousal?.[
+                          target.arousal
+                        ];
+                      else delete part.advanced[pose.key];
+                    } else {
+                      part.advanced[pose.key] ??= pose.directional;
+                      let destination = part.advanced[pose.key];
+                      if (target.scope === 'arousal') {
+                        destination.arousal ??= {};
+                        destination.arousal[target.arousal] ??= {};
+                        destination = destination.arousal[
+                          target.arousal
+                        ] as typeof destination;
+                      }
+                      for (const [key, value] of Object.entries(
+                        changes || {},
+                      )) {
+                        destination[key] = nudge
+                          ? Math.max(
+                              -128,
+                              Math.min(
+                                128,
+                                (destination[key] ?? pose.directional[key]) +
+                                  Number(value),
+                              ),
+                            )
+                          : value;
+                      }
+                    }
+                  }
                   if (params.operation === 'reset_position')
                     Object.assign(next.active[String(params.slot)], {
                       pixel_x: 0,
                       pixel_y: 0,
                       rotation: 0,
                       scale: 1,
+                      placement_groups: {},
                     });
                   if (params.operation === 'reset_colors')
                     next.active[String(params.slot)].colors = [
@@ -297,6 +374,30 @@ async function main() {
                   if (params.operation === 'save') {
                     next.presets[presetName] = structuredClone(next.active);
                     next.preset_models[presetName] = state.model;
+                    next.active_preset = presetName;
+                    for (const [model, assigned] of Object.entries(
+                      next.model_presets,
+                    )) {
+                      if (assigned !== presetName) continue;
+                      if (model === state.model)
+                        next.model_defaults[model] = structuredClone(
+                          next.active,
+                        );
+                      else delete next.model_presets[model];
+                    }
+                  }
+                  if (params.operation === 'delete') {
+                    delete next.presets[presetName];
+                    delete next.preset_models[presetName];
+                    if (next.active_preset === presetName)
+                      delete next.active_preset;
+                    for (const [model, assigned] of Object.entries(
+                      next.model_presets,
+                    )) {
+                      if (assigned === presetName) {
+                        delete next.model_presets[model];
+                      }
+                    }
                   }
                   if (params.operation === 'load') {
                     next.active = structuredClone(next.presets[presetName]);

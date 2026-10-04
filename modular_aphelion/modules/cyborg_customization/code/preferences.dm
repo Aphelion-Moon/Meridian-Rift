@@ -13,14 +13,16 @@
 /datum/preference/cyborg_layout/serialize(input)
 	return cyborg_layout_normalize(input)
 
+/// The creator middleware supplies its UI projection; ordinary pages need no saved layouts.
+/datum/preference/cyborg_layout/compile_ui_data(mob/user, value)
+	return null
+
 /datum/preference/cyborg_layout/create_default_value()
 	return cyborg_layout_default()
 
 /datum/preference/cyborg_layout/is_valid(value, datum/preferences/preferences)
-	if(!islist(value))
-		return FALSE
-	var/list/normalized = cyborg_layout_normalize(value)
-	return normalized["schema_version"] == CYBORG_LAYOUT_SCHEMA_VERSION
+	// Both native write paths deserialize before validation; the schema is already canonical.
+	return islist(value) && value["schema_version"] == CYBORG_LAYOUT_SCHEMA_VERSION
 
 /datum/preference/cyborg_layout/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
@@ -107,16 +109,6 @@
 	savefile_identifier = PREFERENCE_PLAYER
 	savefile_key = "see_cyborg_genitalia"
 	default_value = FALSE
-
-/datum/preference/text/cyborg_identity
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
-	savefile_identifier = PREFERENCE_CHARACTER
-	should_update_preview = FALSE
-	can_randomize = FALSE
-	abstract_type = /datum/preference/text/cyborg_identity
-
-/datum/preference/text/cyborg_identity/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return
 
 /datum/preference/text/custom_species_silicon
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL

@@ -1,18 +1,16 @@
 import { useState } from 'react';
-import { Box, Button, Dropdown, Input, Section } from 'tgui-core/components';
-import type { LayoutAction, LayoutStore } from './types';
+import { Box, Button, Dropdown, Input } from 'tgui-core/components';
+import type { CyborgEditorStore, LayoutAction } from './types';
 
 export function PresetControls({
   store,
   model,
   onAction,
   models = [],
-  embedded = false,
   disabled = false,
 }: {
-  embedded?: boolean;
   disabled?: boolean;
-  store: LayoutStore;
+  store: CyborgEditorStore;
   model?: string;
   models?: { id: string; department: string; skin: string }[];
   onAction: LayoutAction;
@@ -31,18 +29,16 @@ export function PresetControls({
   };
   const assigned = model ? store.model_presets?.[model] : undefined;
   const hasDefault = !!model && !!store.model_defaults[model];
-  const content = (
+  return (
     <div className="CyborgEditor__presets">
-      {embedded && (
-        <div
-          className="CyborgEditor__presetHeading"
-          title="A preset saves its chassis, selected parts, placement, colors, and overrides. Loading edits your setup; Use on spawn assigns it to a chassis."
-        >
-          <Box bold mb={1}>
-            Saved setups
-          </Box>
-        </div>
-      )}
+      <div
+        className="CyborgEditor__presetHeading"
+        title="A preset saves its chassis, selected parts, placement, colors, and overrides. Loading edits your setup; Use on spawn assigns it to a chassis."
+      >
+        <Box bold mb={1}>
+          Saved setups
+        </Box>
+      </div>
       <div
         className="CyborgEditor__presetGroup"
         title="Load restores the preset and its saved chassis. Update saves your edits. Use on spawn chooses what that chassis starts with."
@@ -187,13 +183,5 @@ export function PresetControls({
         )}
       </div>
     </div>
-  );
-  return embedded ? (
-    content
-  ) : (
-    <details className="CyborgEditor__disclosure">
-      <summary>Presets</summary>
-      <Section>{content}</Section>
-    </details>
   );
 }

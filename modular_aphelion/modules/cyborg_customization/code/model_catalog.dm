@@ -93,9 +93,6 @@
 	catalogs[cache_key] = catalog
 	return catalog
 
-/proc/cyborg_catalog_for(datum/preferences/preferences, context)
-	return cyborg_model_catalog()
-
 /// Donor keys are accepted only when exactly one current descriptor matches.
 /proc/cyborg_model_legacy_id(alias)
 	if(!istext(alias))

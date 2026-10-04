@@ -1,16 +1,14 @@
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Box, Button, Dropdown, Section, Tabs } from 'tgui-core/components';
 import { AdjustmentSlider } from '../AdjustmentSlider';
 import { ColorControls } from './ColorControls';
-import { PresetControls } from './PresetControls';
 import { placementBase, placementGroup } from './placementGroups';
 import { type PlacementTarget, posePlacement } from './posePlacement';
 import {
-  CYBORG_SLOTS,
+  type CyborgEditorStore,
   type CyborgSlot,
   type DirectionEntry,
   type LayoutAction,
-  type LayoutStore,
   type PartMetadata,
   type PlacementCommand,
 } from './types';
@@ -51,47 +49,27 @@ const adjustments = {
 };
 
 export function LayoutControls(props: {
-  store: LayoutStore;
-  model?: string;
+  store: CyborgEditorStore;
   onAction: LayoutAction;
-  slot?: CyborgSlot;
+  slot: CyborgSlot;
   part?: PartMetadata;
-  parts?: Partial<Record<CyborgSlot, PartMetadata>>;
   spriteControl?: ReactNode;
-  hidePresets?: boolean;
   disabled?: boolean;
   wide?: boolean;
-  placementTarget?: PlacementTarget;
-  onPlacementTarget?: (target: PlacementTarget) => void;
-  preview?: {
+  placementTarget: PlacementTarget;
+  onPlacementTarget: (target: PlacementTarget) => void;
+  preview: {
     direction: string;
     pose: string;
-    poses: string[];
     arousal: string;
-    onChange: (change: {
-      direction?: string;
-      pose?: string;
-      arousal?: string;
-    }) => void;
   };
 }) {
-  const { store, model, onAction } = props;
-  const [localSlot, setSlot] = useState<CyborgSlot>('penis');
-  const slot = props.slot ?? localSlot;
-  const [localDirection, setDirection] = useState('south');
-  const [localPose, setPose] = useState('idle');
-  const [localArousal, setArousal] = useState('none');
-  const [localTarget, setLocalTarget] = useState<PlacementTarget>('base');
-  const target = props.placementTarget ?? localTarget;
-  const setTarget = props.onPlacementTarget ?? setLocalTarget;
+  const { store, slot, part, onAction, placementTarget: target } = props;
   const stateOverride = target === 'arousal';
-  const direction = props.preview?.direction ?? localDirection;
-  const pose = props.preview?.pose ?? localPose;
-  const arousal = props.preview?.arousal ?? localArousal;
+  const { direction, pose, arousal } = props.preview;
   const entry = store.active[slot];
   const group = placementGroup(!!props.wide, direction);
   const base = placementBase(entry, group);
-  const part = props.part ?? props.parts?.[slot];
   const sizeIndex = Math.max(
     0,
     part?.sizes.findIndex(
@@ -157,18 +135,6 @@ export function LayoutControls(props: {
   return (
     <>
       <Section title={`${editorLabel(slot)} appearance`}>
-        {!props.slot && (
-          <Dropdown
-            width="100%"
-            options={CYBORG_SLOTS.map((value) => ({
-              value,
-              displayText: editorLabel(value),
-            }))}
-            selected={slot}
-            displayText={editorLabel(slot)}
-            onSelected={(value) => setSlot(value as CyborgSlot)}
-          />
-        )}
         {props.spriteControl}
         <Tabs mt={1}>
           {(
@@ -181,7 +147,7 @@ export function LayoutControls(props: {
             <Tabs.Tab
               key={value}
               selected={target === value}
-              onClick={() => setTarget(value)}
+              onClick={() => props.onPlacementTarget(value)}
             >
               {label}
             </Tabs.Tab>
@@ -290,42 +256,6 @@ export function LayoutControls(props: {
                 above parts.
               </Box>
             </div>
-            {!props.slot &&
-              (['direction', 'pose', 'arousal'] as const).map((key) => (
-                <Box mb={1} key={key}>
-                  <Dropdown
-                    width="100%"
-                    selected={{ direction, pose, arousal }[key]}
-                    displayText={editorLabel({ direction, pose, arousal }[key])}
-                    options={(key === 'direction'
-                      ? ['north', 'south', 'east', 'west']
-                      : key === 'pose'
-                        ? (props.preview?.poses ?? [
-                            'idle',
-                            'rest',
-                            'sit',
-                            'bellyup',
-                            'rest_deep',
-                            'rest_alt',
-                            'sit_alt',
-                          ])
-                        : ['none', 'partial', 'full']
-                    ).map((value) => ({
-                      value,
-                      displayText: editorLabel(value),
-                    }))}
-                    onSelected={(value) =>
-                      props.preview
-                        ? props.preview.onChange({ [key]: value })
-                        : {
-                            direction: setDirection,
-                            pose: setPose,
-                            arousal: setArousal,
-                          }[key](value)
-                    }
-                  />
-                </Box>
-              ))}
             <Box my={1} color="label">
               {stateOverride ? editorLabel(arousal) : 'All arousal states'} ·{' '}
               {editorLabel(pose)} · {editorLabel(direction)}
@@ -375,9 +305,6 @@ export function LayoutControls(props: {
           ))}
         </div>
       </Section>
-      {!props.hidePresets && (
-        <PresetControls store={store} model={model} onAction={onAction} />
-      )}
     </>
   );
 }

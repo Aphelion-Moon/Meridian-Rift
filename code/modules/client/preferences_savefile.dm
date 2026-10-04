@@ -530,9 +530,6 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 /datum/preferences/proc/remove_current_slot()
 	PRIVATE_PROC(TRUE)
-	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
-		preference_middleware.on_character_replaced()
-
 	var/closest_slot
 	for (var/other_slot in default_slot - 1 to 1 step -1)
 		var/save_data = savefile.get_entry("character[other_slot]")
@@ -548,9 +545,10 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 				break
 
 	if (isnull(closest_slot))
-		stack_trace("remove_current_slot() being called when there are no slots to go to, the client should prevent this")
 		return
 
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.on_character_replaced()
 	savefile.remove_entry("character[default_slot]")
 	tainted_character_profiles = TRUE
 	switch_to_slot(closest_slot)
