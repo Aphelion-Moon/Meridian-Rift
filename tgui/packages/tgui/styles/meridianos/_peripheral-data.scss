@@ -1,0 +1,65 @@
+// THIS IS AN APHELION UI FILE
+// Original dense glyph tiles with independently masked, irregular gaps.
+// CSS-imported SVGs are inlined by Rspack into BYOND's cached stylesheet.
+.theme-meridian_cyberpunk,
+.theme-meridian_augmentation {
+  --peripheral-mask-left: url('tgui/styles/meridianos/assets/neon/mask-irregular-left.svg');
+  --peripheral-mask-right: url('tgui/styles/meridianos/assets/neon/mask-irregular-right.svg');
+}
+
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  .theme-meridian_cyberpunk {
+    --peripheral-data-texture: url('tgui/styles/meridianos/assets/neon/cyberpunk-peripheral-data.svg');
+  }
+
+  .theme-meridian_augmentation {
+    --peripheral-data-texture: url('tgui/styles/meridianos/assets/neon/augmentation-peripheral-data.svg');
+  }
+
+  :is(.theme-meridian_cyberpunk, .theme-meridian_augmentation) {
+    .Window > .Window__rest {
+      // Contain negative decoration above the Window background, but below
+      // every content/control layer. No layout or pointer area is changed.
+      isolation: isolate;
+    }
+
+    .Window > .Window__rest::before,
+    .Window > .Window__rest::after {
+      content: '';
+      position: absolute;
+      top: 7px;
+      bottom: 5px;
+      width: 10px;
+      z-index: -1;
+      pointer-events: none;
+      user-select: none;
+      background-image: var(--peripheral-data-texture);
+      background-size: 260px 390px;
+      background-repeat: repeat-y;
+      opacity: 0.76;
+      -webkit-mask-size: 10px 1024px;
+      mask-size: 10px 1024px;
+      -webkit-mask-repeat: repeat-y;
+      mask-repeat: repeat-y;
+      mask-mode: alpha;
+    }
+
+    .Window > .Window__rest::before {
+      left: 0;
+      background-position: left top;
+      -webkit-mask-image: var(--peripheral-mask-left);
+      mask-image: var(--peripheral-mask-left);
+      -webkit-mask-position: left top;
+      mask-position: left top;
+    }
+
+    .Window > .Window__rest::after {
+      right: 0;
+      background-position: right top;
+      -webkit-mask-image: var(--peripheral-mask-right);
+      mask-image: var(--peripheral-mask-right);
+      -webkit-mask-position: right top;
+      mask-position: right top;
+    }
+  }
+}

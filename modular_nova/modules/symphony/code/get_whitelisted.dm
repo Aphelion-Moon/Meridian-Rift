@@ -3,10 +3,10 @@ GAME_VERB_DESC(/client, get_whitelisted, "Get Whitelisted", "Link your Discord a
 	if(is_guest_key(key)) // `key`, not `ckey` - ckey() strips the hyphen that is_guest_key matches on
 		to_chat(src, span_warning("BYOND guest accounts cannot be whitelisted. Sign in with a real BYOND account and reconnect."))
 		return
-	if(!CONFIG_GET(flag/symphony_enabled))
+	if(!SSsymphony.enabled)
 		to_chat(src, span_warning("Discord whitelisting is not enabled on this server."))
 		return
-	var/base_url = CONFIG_GET(string/symphony_url)
+	var/base_url = SSsymphony.url
 	if(!base_url)
 		to_chat(src, span_warning("The whitelist service is not configured. Contact an admin."))
 		return

@@ -73,6 +73,10 @@
 /obj/item/clothing/suit/hooded/wintercoat,
 /turf/open/floor/iron/dark,
 /area/station/common/cryopods)
+"X" = (
+/obj/effect/landmark/navigate_destination/cryo,
+/turf/template_noop,
+/area/station/common/cryopods)
 
 (1,1,1) = {"
 g
@@ -119,7 +123,7 @@ g
 (7,1,1) = {"
 q
 b
-g
+X
 D
 g
 "}

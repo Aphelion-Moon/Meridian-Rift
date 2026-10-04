@@ -5,6 +5,7 @@
 	category = PREFERENCE_CATEGORY_ERP
 	savefile_identifier = PREFERENCE_CHARACTER
 	maximum_value_length = MAX_FLAVOR_ERP_TEXT_LEN
+	should_update_preview = FALSE
 
 /datum/preference/text/erp_flavor/is_accessible(datum/preferences/preferences)
 	if(!..(preferences))

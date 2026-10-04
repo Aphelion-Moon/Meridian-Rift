@@ -1,10 +1,10 @@
 // THIS IS A NOVA SECTOR UI FILE
 import { type ReactNode, useState } from 'react';
-import { Button, ByondUi, Section, Stack } from 'tgui-core/components';
-
+import { Button, Section, Stack } from 'tgui-core/components';
 import { resolveAsset } from '../../assets';
 import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
+import { ByondUi } from '../../layouts/ByondUi';
 import type { ExaminePanelData } from './data';
 
 function formatURLs(text: string) {

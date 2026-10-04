@@ -1,0 +1,81 @@
+// THIS IS AN APHELION UI FILE
+// Behavior and geometry shared by every HTML menu. Theme profiles own materials,
+// typography, spacing, state colors, and any deliberate layout differences.
+.lobby {
+  .container_nav {
+    top: auto;
+    bottom: clamp(28px, 9vmin, 124px);
+    width: min(88vmin, 1080px, calc(100% - 12vmin));
+    max-height: min(60vmin, calc(100% - 28vmin));
+    min-height: 0;
+    transform: translateX(-50%);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    opacity: 1;
+
+    hr {
+      height: 1px;
+      box-shadow: none;
+    }
+  }
+
+  .lobby-terminal-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .menu_button {
+    position: relative;
+    height: auto;
+    font-weight: 400;
+    text-shadow: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+
+    &:hover:not(:disabled)::before,
+    &:focus-visible::before {
+      content: '›';
+      position: absolute;
+      top: 50%;
+      width: auto;
+      transform: translateY(-50%);
+      animation: none;
+    }
+
+    &:focus-visible {
+      outline-offset: -2px;
+    }
+
+    &:active:not(:disabled) {
+      transform: none;
+    }
+
+    &:active::before {
+      content: '›';
+      animation: none;
+    }
+  }
+
+  .trait_button {
+    text-align: left;
+    text-shadow: none;
+  }
+
+  .trait_name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .menu_newpoll {
+    animation: none;
+
+    &::before,
+    &::after {
+      content: none;
+    }
+  }
+}

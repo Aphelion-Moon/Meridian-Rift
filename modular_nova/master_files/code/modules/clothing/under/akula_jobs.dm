@@ -162,6 +162,7 @@
 	icon_state = "medical"
 	base_icon_state = "medical"
 	armor_type = /datum/armor/clothing_under/wetsuit/medical
+	vox_primalis_force_pants = TRUE
 
 /datum/armor/clothing_under/wetsuit/medical
 	acid = 95

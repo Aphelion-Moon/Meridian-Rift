@@ -2109,6 +2109,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	desc = "A miniaturized version of the debug chem synthesizer. You can see an ampoule with subspace condensate creeping and sticking around inside it's glass prison. You think its best not to question it."
 	icon = 'icons/obj/devices/remote.dmi'
 	icon_state = "camera_bug"
+	inhand_icon_state = "camera_bug"
 	w_class = WEIGHT_CLASS_TINY
 	slot_flags = ITEM_SLOT_ADMIN
 	resistance_flags = INDESTRUCTIBLE

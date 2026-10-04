@@ -3,9 +3,10 @@
 
 /datum/preference_middleware/species/get_ui_assets()
 	return list(
-		get_asset_datum(/datum/asset/spritesheet_batched/species),
+		// get_asset_datum(/datum/asset/spritesheet_batched/species), // APHELION EDIT REMOVAL - The species page asks for its sprites when it opens, from /datum/preference_middleware/species_page.
 	)
 
+/* // APHELION EDIT REMOVAL START - The species page draws whole bodies from /datum/asset/spritesheet_batched/species_full.
 /datum/asset/spritesheet_batched/species
 	name = "species"
 	early = TRUE
@@ -27,3 +28,4 @@
 		insert_icon(sanitize_css_class_name(initial(species_type.name)), dummy_icon)
 
 		SSatoms.prepare_deletion(dummy)
+*/ // APHELION EDIT REMOVAL END

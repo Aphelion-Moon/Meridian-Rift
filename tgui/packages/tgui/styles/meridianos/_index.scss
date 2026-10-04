@@ -1,0 +1,20 @@
+// THIS IS AN APHELION UI FILE
+@use 'sass:meta';
+
+@include meta.load-css('./shared.scss');
+@include meta.load-css('./components.scss');
+@include meta.load-css('./control-layout.scss');
+@include meta.load-css('./window-sizing.scss');
+@include meta.load-css('./theme-picker.scss');
+@include meta.load-css('./loader.scss');
+@include meta.load-css('./decoration.scss');
+@include meta.load-css('./forge.scss');
+@include meta.load-css('./forge-loaders.scss');
+@include meta.load-css('./scavenger.scss');
+@include meta.load-css('./aphelion.scss');
+@include meta.load-css('./title-art.scss');
+@include meta.load-css('./finishes.scss');
+// Window-border glyph artwork has no consumer in the lobby.
+@include meta.load-css('./peripheral-data.scss');
+@include meta.load-css('./motion.scss');
+@include meta.load-css('../interfaces/TimeoutBar.scss');

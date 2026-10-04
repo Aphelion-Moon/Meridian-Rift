@@ -44,6 +44,7 @@
 	expected_types += /obj/item/storage/photo_album/hos
 	expected_types += /obj/item/storage/photo_album/qm
 	expected_types += /obj/item/storage/photo_album/rd
+	expected_types += /obj/effect/landmark/navigate_destination/cryo // APHELION EDIT ADDITION
 
 /// Types that must never be mapped in.
 /// Anything listed here is expected to be spawned by code instead.

@@ -398,6 +398,25 @@
 		if(isnull(right_leg.loc))
 			qdel(right_leg)
 
+/obj/item/organ/taur_body/on_bodypart_insert(obj/item/bodypart/limb)
+	. = ..()
+	// Grown after our own overlay went on, so the tail draws over the body on the layers they share.
+	var/datum/sprite_accessory/taur/accessory = bodypart_overlay.sprite_datum
+	if(isnull(limb.owner) || !accessory?.has_tail)
+		return
+	var/obj/item/organ/tail/taur/tail = new
+	tail.organ_flags &= ~(ORGAN_ORGANIC | ORGAN_ROBOTIC)
+	tail.organ_flags |= organ_flags & (ORGAN_ORGANIC | ORGAN_ROBOTIC)
+	tail.Insert(limb.owner, special = TRUE, movement_flags = DELETE_IF_REPLACED)
+
+/obj/item/organ/taur_body/on_bodypart_remove(obj/item/bodypart/limb, movement_flags)
+	var/mob/living/carbon/tail_owner = limb.owner
+	var/obj/item/organ/tail/taur/tail = tail_owner?.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAIL)
+	if(istype(tail) && !QDELETED(tail_owner))
+		tail.Remove(tail_owner, special = TRUE)
+		qdel(tail)
+	return ..()
+
 /obj/item/organ/taur_body/proc/get_riding_offset(oversized = FALSE)
 	var/size_scaling = (owner.dna.features["body_size"] / BODY_SIZE_NORMAL) - 1
 	var/scaling_mult = 1 + (size_scaling * riding_offset_scaling_mult)
@@ -454,7 +473,7 @@ GAME_VERB_PROC(/mob/living/carbon/human, toggle_laying, "(Taur) Toggle Laying Do
 		owner.pixel_y += overlay.laydown_offset
 		owner.update_body_parts()
 
-		owner.Immobilize(INFINITY, TRUE)
+		owner.SetImmobilized(INFINITY, TRUE)
 		ADD_TRAIT(owner, TRAIT_UNDENSE, TRAIT_TAUR_LOAF)
 		to_chat(owner, span_notice("You lay down."))
 		if(owner.has_gravity())

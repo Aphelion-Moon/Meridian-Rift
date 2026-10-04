@@ -165,8 +165,10 @@ const LoginPage = () => {
           </NoticeBox>
         </Stack.Item>
         <Stack.Item width="100%">
-          <Flex>
-            <Flex.Item grow mr={1}>
+          {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Flex> */}
+          <Flex className="MeridianControlRow">
+            {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Flex.Item grow mr={1}> */}
+            <Flex.Item grow mr={1} className="MeridianControlRow__fill">
               <Button
                 fluid
                 ellipsis
@@ -207,8 +209,10 @@ const IdCardPage = (props) => {
     <Section>
       <Stack wrap="wrap">
         <Stack.Item width="100%">
-          <Flex>
-            <Flex.Item grow mr={1}>
+          {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Flex> */}
+          <Flex className="MeridianControlRow">
+            {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Flex.Item grow mr={1}> */}
+            <Flex.Item grow mr={1} className="MeridianControlRow__fill">
               <Button
                 fluid
                 ellipsis
@@ -237,9 +241,11 @@ const IdCardPage = (props) => {
       </Stack>
       {!!(modified_card && authed_user) && (
         <>
-          <Stack mt={1}>
+          {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack mt={1}> */}
+          <Stack mt={1} className="MeridianControlRow">
             <Stack.Item align="center">Details:</Stack.Item>
-            <Stack.Item grow={1} mr={1} ml={1}>
+            {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item grow={1} mr={1} ml={1}> */}
+            <Stack.Item grow={1} mr={1} ml={1} className="MeridianControlRow__fill">
               <Input
                 width="100%"
                 value={modified_card.id_owner}
@@ -265,9 +271,11 @@ const IdCardPage = (props) => {
               />
             </Stack.Item>
           </Stack>
-          <Stack>
+          {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack> */}
+          <Stack className="MeridianControlRow">
             <Stack.Item align="center">Assignment:</Stack.Item>
-            <Stack.Item grow={1} ml={1}>
+            {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item grow={1} ml={1}> */}
+            <Stack.Item grow={1} ml={1} className="MeridianControlRow__fill">
               <Input
                 fluid
                 mt={1}

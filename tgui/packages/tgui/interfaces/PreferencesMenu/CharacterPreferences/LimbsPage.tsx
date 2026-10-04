@@ -1,5 +1,12 @@
 // THIS IS A NOVA SECTOR UI FILE
-import { type ComponentProps, useMemo, useRef, useState } from 'react';
+import { useSetAtom } from 'jotai';
+import {
+  type ComponentProps,
+  type ComponentRef,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useBackend } from 'tgui/backend';
 import {
   Box,
@@ -7,6 +14,7 @@ import {
   ColorBox,
   Divider,
   Dropdown,
+  Floating,
   Icon,
   Modal,
   Section,
@@ -14,7 +22,10 @@ import {
 } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
 
-import { CharacterPreview } from '../../common/CharacterPreview';
+import {
+  ChoicedSelectionDropdown,
+  MARKING_PREVIEW_AREAS,
+} from '../../common/ChoicedSelection';
 import type {
   AugmentItem,
   AugmentSlot,
@@ -23,6 +34,8 @@ import type {
   RoboticStyle,
 } from '../types';
 import { useServerPrefs } from '../useServerPrefs';
+import { CharacterPreview } from './CharacterPreview';
+import { turnPreview } from './CharacterPreview/turn';
 
 /** AugmentSlot with selected augment */
 type AugmentData = AugmentSlot & {
@@ -48,25 +61,30 @@ type ColumnData = {
   filteredMarkingPresets: string[];
 };
 
-// On hover, used to display extra_info tooltips.
-// Uses visibility/opacity toggle instead of conditional rendering to avoid
-// DOM node insertion/removal
+// Portal descriptions above section stacking contexts while retaining the animation.
 const HoverText = (props: { text: string; children: any }) => {
-  const [visible, setVisible] = useState(false);
+  const floatingRef = useRef<ComponentRef<typeof Floating>>(null);
   return (
-    <div
-      className="LimbsPage__hover-text"
-      onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
-      onMouseDown={() => setVisible(false)}
-    >
-      {props.children}
-      <div
-        className={`LimbsPage__hover-text--tooltip-wrapper${visible && props.text ? ' visible' : ''}`}
-      >
+    <Floating
+      ref={floatingRef}
+      hoverOpen
+      hoverDelay={1}
+      disabled={!props.text}
+      placement="bottom-start"
+      contentOffset={4}
+      animationDuration={600}
+      contentClasses="LimbsPage__hover-text--tooltip-wrapper"
+      content={
         <div className="LimbsPage__hover-text--tooltip">{props.text}</div>
+      }
+    >
+      <div
+        className="LimbsPage__hover-text"
+        onMouseDown={() => floatingRef.current?.close()}
+      >
+        {props.children}
       </div>
-    </div>
+    </Floating>
   );
 };
 
@@ -153,18 +171,18 @@ const InternalImplantTitle = (props: { name: string; icon: string }) => (
 );
 
 export const RotateCharacterButtons = () => {
-  const { act } = useBackend<PreferencesMenuData>();
+  const turn = useSetAtom(turnPreview);
   return (
     <Box mt={1}>
       <Button
-        onClick={() => act('rotate', { backwards: false })}
+        onClick={() => turn(false)}
         fontSize="22px"
         icon="redo"
         tooltip="Rotate Clockwise"
         tooltipPosition="bottom"
       />
       <Button
-        onClick={() => act('rotate', { backwards: true })}
+        onClick={() => turn(true)}
         fontSize="22px"
         icon="undo"
         tooltip="Rotate Counter-Clockwise"
@@ -259,32 +277,67 @@ const Markings = (props: {
   chosen_markings: Marking[] | null;
   marking_choices: string[];
   act: (action: string, params?: Record<string, unknown>) => void;
+  pickerPlacement?: ComponentProps<typeof Floating>['placement'];
+  tooltipPosition?: ComponentProps<typeof Floating>['placement'];
 }) => {
-  const { body_zone, chosen_markings, marking_choices, act } = props;
+  const {
+    body_zone,
+    chosen_markings,
+    marking_choices,
+    act,
+    pickerPlacement,
+    tooltipPosition,
+  } = props;
+  const { data } = useBackend<PreferencesMenuData>();
+  const serverMarkings = useServerPrefs()?.limbs_and_markings;
+  const maxMarkings = serverMarkings?.max_markings ?? 0;
+  const markingIcons = serverMarkings?.marking_icons?.[body_zone];
+  const markings = chosen_markings ?? [];
+  const takenMarkings = new Set(markings.map((marking) => marking.name));
+  // A taur body takes the legs' place, so they get its drawing instead of markings.
+  const taurLeg = !!data.taur_legs && ['l_leg', 'r_leg'].includes(body_zone);
+  const drawingZone = taurLeg ? 'taur' : body_zone;
+  // The drawing button lights up once it has paint; an empty canvas saves nothing.
+  const drawn = !!data.custom_marking_zones?.includes(drawingZone);
   return (
     <Stack fill vertical>
       <Stack.Item>Markings:</Stack.Item>
-      {(chosen_markings ?? []).map((marking) => {
+      {markings.map((marking) => {
+        // A limb takes each marking once, so a row offers only names no other row has claimed.
+        const choices = marking_choices.filter(
+          (name) => name === marking.name || !takenMarkings.has(name),
+        );
+        const changeMarking = (value: string) =>
+          act('change_marking', {
+            bodypart_slot: body_zone,
+            marking_id: marking.marking_id,
+            marking_name: value,
+          });
         return (
           <Stack.Item key={marking.marking_id}>
             <Stack fill>
               <Stack.Item grow style={{ minWidth: 0, overflow: 'hidden' }}>
-                <Dropdown
-                  width="100%"
-                  options={marking_choices}
-                  selected={marking.name}
-                  displayText={marking.name}
-                  maxItems={7}
-                  searchInput
-                  styledInput
-                  onSelected={(value) =>
-                    act('change_marking', {
-                      bodypart_slot: body_zone,
-                      marking_id: marking.marking_id,
-                      marking_name: value,
-                    })
-                  }
-                />
+                {markingIcons ? (
+                  <ChoicedSelectionDropdown
+                    name="marking"
+                    icons={markingIcons}
+                    options={choices}
+                    selected={marking.name}
+                    placement={pickerPlacement}
+                    previewArea={MARKING_PREVIEW_AREAS[body_zone]}
+                    onSelect={changeMarking}
+                  />
+                ) : (
+                  <Dropdown
+                    width="100%"
+                    options={choices}
+                    selected={marking.name}
+                    displayText={marking.name}
+                    maxItems={7}
+                    styledInput
+                    onSelected={changeMarking}
+                  />
+                )}
               </Stack.Item>
               <Stack.Item>
                 <Button
@@ -301,6 +354,7 @@ const Markings = (props: {
               <Stack.Item>
                 <Button
                   color={marking.emissive ? 'good' : 'bad'}
+                  tooltipPosition={tooltipPosition}
                   tooltip="The 'E' is for 'Emissive' — does it glow? Green = glow, Red = no glow."
                   onClick={() =>
                     act('change_emissive', {
@@ -330,14 +384,37 @@ const Markings = (props: {
           </Stack.Item>
         );
       })}
-      <Stack.Item>
-        <Button
-          color="good"
-          onClick={() => act('add_marking', { bodypart_slot: body_zone })}
-        >
-          +
-        </Button>
-      </Stack.Item>
+      {!taurLeg && markings.length < maxMarkings && (
+        <Stack.Item>
+          <Button
+            color="good"
+            onClick={() => act('add_marking', { bodypart_slot: body_zone })}
+          >
+            +
+          </Button>
+        </Stack.Item>
+      )}
+      {!!data.allow_custom_sprite_editing && (
+        <Stack.Item>
+          <Button
+            icon="paintbrush"
+            selected={drawn}
+            tooltip={`Lets you draw a custom marking over ${
+              taurLeg ? 'your taur body' : 'this limb'
+            }.${drawn ? ' You have one drawn; click to edit it.' : ''}`}
+            tooltipPosition={tooltipPosition}
+            onClick={() =>
+              act('open_custom_sprite_editor', {
+                target: 'markings',
+                body_zone: drawingZone,
+              })
+            }
+          >
+            {taurLeg ? 'Taur body' : 'Custom'}
+            {drawn && <Icon name="check" ml={0.5} />}
+          </Button>
+        </Stack.Item>
+      )}
     </Stack>
   );
 };
@@ -569,16 +646,20 @@ const InternalImplantSection = (props: { internal_implant: AugmentData }) => {
 const MarkingsColumn = (props: {
   limbs: BodypartData[];
   act: (action: string, params?: Record<string, unknown>) => void;
+  tooltipPosition: ComponentProps<typeof Floating>['placement'];
 }) => (
   <Section fill scrollable title="Markings">
     {props.limbs.map((bodypart) => (
       <div key={bodypart.slot} style={{ marginBottom: '1.5em' }}>
         <Section fill title={bodypart.slot}>
+          {/* Sideways pickers and centred tooltips would land under the preview's map control. */}
           <Markings
             body_zone={bodypart.body_zone ?? bodypart.slot}
             chosen_markings={bodypart.chosen_markings}
             marking_choices={bodypart.marking_choices}
             act={props.act}
+            pickerPlacement="bottom-start"
+            tooltipPosition={props.tooltipPosition}
           />
         </Section>
       </div>
@@ -677,11 +758,11 @@ const CenterColumnExtras = (props: {
 };
 
 // The character preview section at the top of the center column
-const PreviewSection = (props: { id: string }) => (
+const PreviewSection = () => (
   <Section fill title="Character Preview" align="center">
     <Stack vertical fill>
       <Stack.Item grow align="center">
-        <CharacterPreview id={props.id} height="100%" width="280px" />
+        <CharacterPreview height="100%" width="280px" motif="scanner" />
       </Stack.Item>
       <Stack.Divider />
       <Stack.Item align="center">
@@ -846,9 +927,16 @@ export const LimbsPage = ({
   const columnForTab = (
     limbs: BodypartData[],
     internal_implants: AugmentData[],
+    tooltipPosition: ComponentProps<typeof Floating>['placement'],
   ) => {
     if (tab === AugmentsTab.Markings)
-      return <MarkingsColumn limbs={limbs} act={actAndResetPresetWarning} />;
+      return (
+        <MarkingsColumn
+          limbs={limbs}
+          act={actAndResetPresetWarning}
+          tooltipPosition={tooltipPosition}
+        />
+      );
     if (tab === AugmentsTab.BodyParts)
       return (
         <BodyPartsColumn
@@ -920,6 +1008,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.left ?? [],
                 columns?.internalImplants.left ?? [],
+                'bottom-end',
               )}
             </Stack.Item>
 
@@ -931,7 +1020,7 @@ export const LimbsPage = ({
                   height="45%"
                   style={{ overflow: 'hidden', position: 'relative' }}
                 >
-                  <PreviewSection id={data.character_preview_view} />
+                  <PreviewSection />
                 </Stack.Item>
 
                 {/* Extras: anything rendering below the preview, takes remaining space */}
@@ -977,6 +1066,7 @@ export const LimbsPage = ({
               {columnForTab(
                 columns?.right ?? [],
                 columns?.internalImplants.right ?? [],
+                'bottom-start',
               )}
             </Stack.Item>
           </Stack>

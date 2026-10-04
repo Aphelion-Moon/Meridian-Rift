@@ -77,6 +77,7 @@
 	desc = "A device with a very complex name, that serves as the stationary target of a linked two-way bluespace entanglement device."
 	icon = 'icons/obj/devices/tracker.dmi'
 	icon_state = "beacon"
+	inhand_icon_state = "beacon"
 	lefthand_file = 'icons/mob/inhands/items/devices_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/items/devices_righthand.dmi'
 	anchored = FALSE

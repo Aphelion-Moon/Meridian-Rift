@@ -840,6 +840,38 @@
 	var/list/payload = component.ui_data(human)
 	TEST_ASSERT("Miscellaneous" in payload["interactions"], "The robot interaction payload omitted the safe action category.")
 	TEST_ASSERT("Cheer" in payload["interactions"]["Miscellaneous"], "The robot interaction payload omitted the safe Cheer action.")
+	var/datum/component/interactable/human_component = human.GetComponent(/datum/component/interactable)
+	TEST_ASSERT_NOTNULL(human_component, "The human interaction target lacked its component.")
+	human_component.build_interactions_list()
+	payload = human_component.ui_data(robot)
+	TEST_ASSERT("Cheer" in payload["interactions"]["Miscellaneous"], "The cyborg viewer could not see the safe Cheer action on a human.")
+	TEST_ASSERT_EQUAL(human_component.ui_status(robot), UI_INTERACTIVE, "A cyborg viewer could not use the human interaction menu.")
+	TEST_ASSERT_EQUAL(component.ui_status(robot), UI_INTERACTIVE, "A cyborg could not use its own interaction menu.")
+	payload = component.ui_data(robot)
+	TEST_ASSERT("cyborg_runtime" in payload, "The cyborg's own interaction menu omitted its runtime controls.")
+	TEST_ASSERT_NULL(component.get_interaction_route(cheer, human), "Cyborg targets must not enter human portal routing.")
+	TEST_ASSERT_NULL(human_component.get_interaction_route(cheer, robot), "Cyborg actors must not enter human portal routing.")
+
+	var/datum/tgui/human_ui = allocate(/datum/tgui, human, component, "InteractionPanel")
+	var/datum/tgui/robot_ui = allocate(/datum/tgui, robot, human_component, "InteractionPanel")
+	human_ui.status = UI_INTERACTIVE
+	robot_ui.status = UI_INTERACTIVE
+	component.interact_next = world.time - 1
+	human_component.interact_next = world.time - 1
+	TEST_ASSERT(component.ui_act("interact", list("interaction" = cheer.name), human_ui), "The bound UI rejected a human cheering at a cyborg.")
+	TEST_ASSERT_EQUAL(component.interact_next, human_component.interact_next, "A cyborg interaction did not share the cooldown between participants.")
+	TEST_ASSERT(!human_component.ui_act("interact", list("interaction" = cheer.name), robot_ui), "Reversing actor and target bypassed the shared cooldown.")
+	component.interact_next = world.time - 1
+	human_component.interact_next = world.time - 1
+	TEST_ASSERT(human_component.ui_act("interact", list("interaction" = cheer.name), robot_ui), "The bound UI rejected a cyborg cheering at a human.")
+	component.interact_next = world.time - 1
+	human_component.interact_next = world.time - 1
+	TEST_ASSERT(!human_component.ui_act("interact", list("interaction" = cheer.name), human_ui), "A foreign component's UI entered cyborg interaction dispatch.")
+	TEST_ASSERT(!component.ui_act("set_genital_visibility", list(), human_ui), "A human body action was accepted for a cyborg target.")
+	TEST_ASSERT(!human_component.ui_act("set_all_underwear_visibility", list(), robot_ui), "A cyborg actor entered human body configuration.")
+	TEST_ASSERT(!component.ui_act("interact", list("item_slot" = ORGAN_SLOT_PENIS), human_ui), "A cyborg target entered human item interaction handling.")
+	cheer.lewd = TRUE
+	TEST_ASSERT(!component.ui_act("interact", list("interaction" = cheer.name), human_ui), "A cyborg interaction dispatched a lewd message outside its whitelist.")
 
 /datum/unit_test/cyborg_future_layout_apply_preserves_raw_data/Run()
 	var/datum/preferences/preferences = create_preferences()

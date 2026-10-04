@@ -2,6 +2,12 @@
 	icon = 'modular_nova/master_files/icons/mob/clothing/underwear.dmi'
 	layer = UNDER_UNIFORM_LAYER
 
+/datum/sprite_accessory/clothing/underwear/make_appearance(color = COLOR_WHITE, physique = MALE, bodyshape = BODYSHAPE_HUMANOID, atom/wearer)
+	// Primalis use custom limbs but need digitigrade underwear.
+	if(ishuman(wearer) && isvoxprimalis(wearer))
+		bodyshape |= BODYSHAPE_DIGITIGRADE
+	return ..(color, physique, bodyshape, wearer)
+
 /datum/sprite_accessory/clothing/underwear/get_icon_state(physique, bodyshape)
 	if(has_custom_digi_sprite && (bodyshape & BODYSHAPE_DIGITIGRADE))
 		return icon_state + "_d"

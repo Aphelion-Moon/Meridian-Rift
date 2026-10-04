@@ -38,6 +38,7 @@
 
 /mob/living/carbon/proc/apply_overlay(cache_index)
 	if((. = overlays_standing[cache_index]))
+		. = overlays_standing[cache_index] = prepare_worn_emissive_overlays(cache_index, .) // APHELION EDIT ADDITION - WORN_EMISSIVES
 		add_overlay(.)
 	SEND_SIGNAL(src, COMSIG_CARBON_APPLY_OVERLAY, cache_index, .)
 
@@ -408,6 +409,7 @@
 			limb_count_update += 1
 
 	. = limb_count_update
+	/* // APHELION EDIT REMOVAL START
 	if(!.)
 		return
 
@@ -417,6 +419,14 @@
 		overlays_standing[BODYPARTS_LAYER] = new_limbs
 
 	apply_overlay(BODYPARTS_LAYER)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - Cached limbs must not skip forced hair/eye refreshes below.
+	if(.)
+		remove_overlay(BODYPARTS_LAYER)
+		if(new_limbs.len)
+			overlays_standing[BODYPARTS_LAYER] = new_limbs
+		apply_overlay(BODYPARTS_LAYER)
+	// APHELION EDIT ADDITION END
 	// for legacy support, head changes triggers an eye/hair update
 	// also run hair/eyes update on mob creation and other forced data updates to apply any custom changes made
 	if(head_update || update_limb_data)

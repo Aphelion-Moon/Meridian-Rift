@@ -12,7 +12,7 @@ jobs:
   setup_build_artifact:
     name: Setup build artifact (${{ format('{0}.{1}', inputs.major, inputs.minor) }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 6 # APHELION EDIT CHANGE - ORIGINAL: timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
       - name: Setup Bun
@@ -22,6 +22,14 @@ jobs:
         with:
           major: ${{ inputs.major }}
           minor: ${{ inputs.minor }}
+      # APHELION EDIT ADDITION START - Package the painting library with runtime test artifacts.
+      - name: Build painting-store runtime library
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y gcc-multilib libc6-dev-i386
+          rustup toolchain install 1.89.0 --profile minimal --target i686-unknown-linux-gnu
+          bash tools/painting_store/build.sh
+      # APHELION EDIT ADDITION END
       - name: Compile
         run: |
           source $HOME/BYOND/byond/bin/byondsetup

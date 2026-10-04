@@ -146,7 +146,8 @@ export const NtosNetDownloader = (props) => {
             onChange={setSearchItem}
           />
         </Section>
-        <Stack>
+        {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack> */}
+        <Stack className="MeridianControlRow MeridianControlRow--top">
           <Stack.Item minWidth="105px" shrink={0} basis={0}>
             <Tabs vertical>
               {categories.map((category) => (
@@ -160,7 +161,8 @@ export const NtosNetDownloader = (props) => {
               ))}
             </Tabs>
           </Stack.Item>
-          <Stack.Item grow={1} basis={0}>
+          {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item grow={1} basis={0}> */}
+          <Stack.Item grow={1} basis={0} className="MeridianControlRow__fill MeridianControlRow__fill--wide">
             {items?.map((program) => (
               <Program key={program.filename} program={program} />
             ))}
@@ -185,8 +187,10 @@ const Program = (props) => {
   const disk_free = disk_size - disk_used;
   return (
     <Section>
-      <Stack align="baseline">
-        <Stack.Item grow bold>
+      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack align="baseline"> */}
+      <Stack align="baseline" className="MeridianControlRow">
+        {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item grow bold> */}
+        <Stack.Item grow bold className="MeridianControlRow__fill">
           <Icon name={program.icon} mr={1} />
           {program.filedesc}
         </Stack.Item>

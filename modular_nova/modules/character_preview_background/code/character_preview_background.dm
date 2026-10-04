@@ -2,6 +2,8 @@
 /datum/preference/choiced/background_state
 	savefile_key = "background_state"
 	savefile_identifier = PREFERENCE_CHARACTER
+	// The page draws the background behind the character preview's drawing.
+	should_update_preview = FALSE
 
 GLOBAL_LIST_INIT(background_state_options, list(
 	"Black",

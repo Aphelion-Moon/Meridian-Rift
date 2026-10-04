@@ -43,7 +43,6 @@
 	desc = "A tree straight from the tropics."
 	icon = 'icons/obj/fluff/beach2.dmi'
 	icon_state = "palm1"
-	icon_state = "palm1"
 	icon_living = "palm1"
 	icon_dead = "palm1"
 	icon_gib = "palm1"
@@ -66,7 +65,6 @@
 	desc = "It's full of watery goodness. <br>\
 	This one has been trained to become a competition-grade racer."
 	icon = 'icons/obj/service/hydroponics/harvest.dmi'
-	icon_state = "watermelon"
 	icon_state = "watermelon"
 	icon_living = "watermelon"
 	icon_dead = "watermelon"

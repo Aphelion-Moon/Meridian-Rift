@@ -19,7 +19,7 @@
 
 /obj/item/clothing/shoes/sneakers/get_general_color(icon/base_icon)
 	var/colors = SSgreyscale.ParseColorString(greyscale_colors)
-	return colors ? colors[1] : ..()
+	return length(colors) ? colors[1] : ..() // APHELION EDIT CHANGE - Sample static sneakers when the palette is empty.
 
 /obj/item/clothing/shoes/sneakers/generate_digitigrade_icons(icon/base_icon, greyscale_colors)
 	return icon(SSgreyscale.GetColoredIconByType(/datum/greyscale_config/digitigrade, greyscale_colors), "sneakers_worn")

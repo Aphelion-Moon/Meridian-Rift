@@ -128,10 +128,10 @@
 				return FALSE
 
 			var/target_organs = list()
-			if(currently_bottomless || penis.visibility_preference == GENITAL_ALWAYS_SHOW)
+			if(currently_bottomless || penis.is_shown_over_clothing())
 				target_organs += "penis"
 
-			if(currently_bottomless || vagina.visibility_preference == GENITAL_ALWAYS_SHOW)
+			if(currently_bottomless || vagina.is_shown_over_clothing())
 				target_organs += "vagina"
 
 			if(!length(target_organs))
@@ -144,7 +144,7 @@
 
 		if(BODY_ZONE_CHEST)
 			var/obj/item/organ/genital/breasts = target.get_organ_slot(ORGAN_SLOT_BREASTS)
-			if(!(target.is_topless() || breasts.visibility_preference == GENITAL_ALWAYS_SHOW))
+			if(!(target.is_topless() || breasts.is_shown_over_clothing()))
 				to_chat(user, span_danger("Looks like [target]'s chest is covered!"))
 				return FALSE
 

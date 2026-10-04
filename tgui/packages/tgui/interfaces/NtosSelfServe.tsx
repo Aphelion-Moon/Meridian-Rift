@@ -21,7 +21,7 @@ type Data = {
 export const NtosSelfServe = (props) => {
   return (
     <NtosWindow width={400} height={522}>
-      <NtosWindow.Content>
+      <NtosWindow.Content scrollable>
         <Stack>
           <Stack.Item width="100%">
             <SelfServePage />
@@ -66,8 +66,8 @@ const SelfServePage = (props) => {
         <Section title="Punch Clock">
           <Stack wrap="wrap">
             <Stack.Item width="100%" mt={1} ml={0}>
-              <Stack>
-                <Stack.Item>
+              <Stack className="MeridianControlRow">
+                <Stack.Item className="MeridianControlRow__fill">
                   <Button
                     width="342px"
                     disabled={

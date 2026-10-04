@@ -243,7 +243,7 @@ const StatusBar = (props: StatusBarProps) => {
         100%
       </Box>
       <Box className="NtosNotepad__StatusBar__entry" minWidth="12rem">
-        NtOS (LF)
+        MeridianOS (LF) {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: NtOS (LF) */}
       </Box>
       <Box className="NtosNotepad__StatusBar__entry" minWidth="12rem">
         UTF-8
@@ -327,10 +327,10 @@ const AboutDialog = (props: AboutDialogProps) => {
   return (
     <Dialog title="About Notepad" onClose={close} width={'500px'}>
       <div className="Dialog__body">
-        <span className="NtosNotepad__AboutDialog__logo">NtOS</span>
+        <span className="NtosNotepad__AboutDialog__logo">MeridianOS</span> {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <span className="NtosNotepad__AboutDialog__logo">NtOS</span> */}
         <Divider />
         <Box className="NtosNotepad__AboutDialog__text">
-          <span style={paragraphStyle}>Nanotrasen NtOS</span>
+          <span style={paragraphStyle}>MeridianOS</span> {/* APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: <span style={paragraphStyle}>Nanotrasen NtOS</span> */}
           <span style={paragraphStyle}>
             Version 7815696ecbf1c96e6894b779456d330e
           </span>
@@ -338,9 +338,16 @@ const AboutDialog = (props: AboutDialogProps) => {
             &copy; NT Corporation. All rights reserved.
           </span>
           <span style={{ padding: '3rem 1rem 3rem 2rem' }}>
+            {/* // APHELION EDIT REMOVAL START - MERIDIAN_UI
             The NtOS operating system and its user interface are protected by
             trademark and other pending or existing intellectual property rights
             in the Sol system and other regions.
+            // APHELION EDIT REMOVAL END */}
+            {/* APHELION EDIT ADDITION START - MERIDIAN_UI */}
+            The MeridianOS operating system and its user interface are protected
+            by trademark and other pending or existing intellectual property
+            rights in the Sol system and other regions.
+            {/* APHELION EDIT ADDITION END */}
           </span>
           <span
             style={{

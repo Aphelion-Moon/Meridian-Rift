@@ -14,6 +14,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	maximum_value_length = 64 // We may want to lower this for sanity.
+	should_update_preview = FALSE
 
 /datum/preference/text/custom_tongue/serialize(input)
 	var/regex/unwanted_characters = regex(@"[^a-zA-Z]") // Prevent people from inputting slop into my text fields. No, you CAN'T have an eggplant emoji for when you whisper.

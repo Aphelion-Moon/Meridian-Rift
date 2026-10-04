@@ -17,6 +17,7 @@ GLOBAL_LIST_EMPTY(name_to_appearance)
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
 	maximum_value_length = MAX_FLAVOR_LEN
+	should_update_preview = FALSE
 
 // TGUI gets angry if you don't define a default on text preferences
 /datum/preference/text/character_ad/create_default_value()
@@ -30,6 +31,7 @@ GLOBAL_LIST_EMPTY(name_to_appearance)
 	savefile_key = "attraction"
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/attraction/init_possible_values()
 	return list(
@@ -58,6 +60,7 @@ GLOBAL_LIST_EMPTY(name_to_appearance)
 	savefile_key = "display_gender"
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/display_gender/init_possible_values()
 	return list(

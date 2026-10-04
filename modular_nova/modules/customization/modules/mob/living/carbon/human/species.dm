@@ -178,8 +178,13 @@ GLOBAL_LIST_EMPTY(customizable_races)
 	. = ..()
 
 	var/robot_organs = HAS_TRAIT(organ_holder, TRAIT_ROBOTIC_DNA_ORGANS)
+	var/datum/mutant_bodypart/taur_part = organ_holder.dna.mutant_bodyparts[FEATURE_TAUR]
+	var/datum/sprite_accessory/taur/taur_accessory = taur_part && SSaccessories.sprite_accessories[FEATURE_TAUR][taur_part.name]
 
 	for (var/key, mutant_part in organ_holder.dna.mutant_bodyparts)
+		// A taur that brings its own tail owns the tail slot, as its preferences already decide.
+		if(key == FEATURE_TAIL && taur_accessory?.has_tail)
+			continue
 		var/list/accessory_category = SSaccessories.sprite_accessories[key]
 		if(!islist(accessory_category))
 			stack_trace("Mutant bodypart key [key] has no sprite accessory category")

@@ -4,6 +4,7 @@
 	priority = PREFERENCE_PRIORITY_NAMES
 	savefile_identifier = PREFERENCE_CHARACTER
 	abstract_type = /datum/preference/name
+	should_update_preview = FALSE // APHELION EDIT ADDITION
 
 	/// The display name when showing on the "other names" panel
 	var/explanation

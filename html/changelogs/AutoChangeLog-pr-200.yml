@@ -1,0 +1,6 @@
+author: "vinylspiders"
+delete-after: True
+changes:
+  - rscadd: "adds the ability to paint custom hairstyle and markings in character creator"
+  - rscadd: "barber update - you can now give custom haircuts to players and they can choose to keep it permanently or just for the round, hair trimmings actually look like your hair now, and more"
+  - rscadd: "adds a tattoo gun - you can find it in the barber's locker and barbervend, this item lets you paint custom markings on yourself or other players"

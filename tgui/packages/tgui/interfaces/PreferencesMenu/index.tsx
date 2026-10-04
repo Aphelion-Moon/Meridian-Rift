@@ -1,3 +1,4 @@
+import { useSetAtom } from 'jotai'; // APHELION EDIT ADDITION - Drawn character preview
 import { Suspense, useEffect, useState } from 'react';
 import { exhaustiveCheck } from 'tgui-core/exhaustive';
 import { fetchRetry } from 'tgui-core/http';
@@ -10,6 +11,7 @@ import { LoadingScreen } from '../common/LoadingScreen';
 import { CharacterPreferenceWindow } from './CharacterPreferences';
 // NOVA EDIT ADDITION START
 import type { AugmentsTab } from './CharacterPreferences/LimbsPage';
+import { previewTurnAtom } from './CharacterPreferences/CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import { GamePreferenceWindow } from './GamePreferences';
 import {
   GamePreferencesSelectedPage,
@@ -22,19 +24,27 @@ import { ServerPrefs } from './useServerPrefs';
 
 // Window dimensions per state
 const WINDOW_WIDTH = 920;
-const WINDOW_HEIGHT_DEFAULT = 780;
-const WINDOW_HEIGHT_MARKINGS_BODYPARTS = 940; // taller to fit three-column markings layout
+const WINDOW_HEIGHT_DEFAULT = 820;
+const WINDOW_HEIGHT_MARKINGS_BODYPARTS = 980; // taller to fit three-column markings layout
 // NOVA EDIT ADDITION END
+const WINDOW_HEIGHT_SPECIES = 860; // APHELION EDIT ADDITION - Species page: two whole rows of its roster, in every theme, under the chamber.
 
 export function PreferencesMenu(props) {
   // NOVA EDIT ADDITION START
   const [cyborgTab, setCyborgTab] = useState(false);
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
+  const [speciesShown, setSpeciesShown] = useState(false);
+  // Drawn character preview: tgui keeps a closed window's page for the next, so the
+  // character is turned back to face south as the window opens, as the game's preview was.
+  const setPreviewTurn = useSetAtom(previewTurnAtom);
+  useEffect(() => setPreviewTurn(0), []);
 
   const height =
     cyborgTab || augmentsTab !== null
       ? WINDOW_HEIGHT_MARKINGS_BODYPARTS
-      : WINDOW_HEIGHT_DEFAULT;
+      : speciesShown
+        ? WINDOW_HEIGHT_SPECIES
+        : WINDOW_HEIGHT_DEFAULT;
   // NOVA EDIT ADDITION END
   return (
     <Window
@@ -47,6 +57,7 @@ export function PreferencesMenu(props) {
         <Suspense fallback={<LoadingScreen />}>
           <PrefsWindowInner
             onCyborgTabChange={setCyborgTab}
+            onSpeciesPageShown={setSpeciesShown}
             onAugmentsTabChange={
               setAugmentsTab
             } /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> */
@@ -63,6 +74,7 @@ export function PreferencesMenu(props) {
 function PrefsWindowInner(props: {
   onCyborgTabChange: (active: boolean) => void;
   onAugmentsTabChange: (tab: AugmentsTab | null) => void;
+  onSpeciesPageShown: (shown: boolean) => void;
 }) {
   // NOVA EDIT ADDITION END
   const { data } = useBackend<PreferencesMenuData>();
@@ -89,6 +101,7 @@ function PrefsWindowInner(props: {
       content = (
         <CharacterPreferenceWindow
           onCyborgTabChange={props.onCyborgTabChange}
+          onSpeciesPageShown={props.onSpeciesPageShown}
           onAugmentsTabChange={
             props.onAugmentsTabChange
           } /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */

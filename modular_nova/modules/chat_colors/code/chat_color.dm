@@ -3,6 +3,7 @@
 	priority = PREFERENCE_PRIORITY_NAME_MODIFICATIONS
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "ic_chat_color"
+	should_update_preview = FALSE
 
 /datum/preference/color/chat_color/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	target.apply_preference_chat_color(value)

@@ -1,0 +1,102 @@
+// THIS IS AN APHELION UI FILE
+@use 'sass:meta';
+@use '../base';
+
+@include meta.load-css('../layouts/TitleBar.scss');
+
+.TitleBar {
+  &__title {
+    min-width: 0;
+  }
+
+  &__buttons {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+  }
+
+  &__utilities {
+    pointer-events: all;
+    position: relative;
+    z-index: 102;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: base.rem(2px);
+    margin: 0 base.rem(9px);
+  }
+
+  &__utilityButton {
+    appearance: none;
+    cursor: var(--cursor-pointer);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: base.rem(24px);
+    min-width: base.rem(24px);
+    height: base.rem(24px);
+    min-height: base.rem(24px);
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+    border: 0;
+    font: inherit;
+  }
+
+  &__close {
+    appearance: none;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    font: inherit;
+  }
+
+  // The theme picker and the development toggle are bare icons like the close button beside them:
+  // its colour and opacity, a full-height cell each, lit on hover. The cells keep their width, so
+  // a theme's frame pin keeps its lane between them and the close button.
+  &__utilities {
+    align-self: stretch;
+
+    > .MeridianThemePicker {
+      align-self: stretch;
+    }
+  }
+
+  &__utilities :is(.MeridianThemePicker__trigger, .TitleBar__utilityButton) {
+    height: 100%;
+    min-height: 0;
+    color: var(--color-text);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    opacity: 0.5;
+    font-size: base.rem(14px);
+    transition-property: background-color, opacity;
+    transition-duration: var(--transition-time-medium);
+
+    &:hover,
+    &[aria-expanded='true'] {
+      opacity: 1;
+      background: color-mix(in srgb, var(--color-text) 12%, transparent);
+      transition-duration: 0s;
+    }
+
+    &:active {
+      background: color-mix(in srgb, var(--color-text) 20%, transparent);
+    }
+  }
+
+  // The development toggle keeps its green, on the icon, and stays lit while its showcase is open.
+  &__utilities .TitleBar__KitchenSink {
+    color: var(--color-green);
+
+    &:hover {
+      background: color-mix(in srgb, var(--color-green) 16%, transparent) !important;
+    }
+
+    &[aria-pressed='true'] {
+      opacity: 1;
+    }
+  }
+}

@@ -98,10 +98,16 @@ There are several things that need to be remembered:
 		var/woman
 		var/female_sprite_flags = uniform.female_sprite_flags
 		//BEGIN SPECIES HANDLING
-		if(digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION))
+		// APHELION EDIT ADDITION START - Vox templates must precede generic digitigrade sprites.
+		var/vox_icon_file
+		if(isvox(src) && (bodyshape & BODYSHAPE_CUSTOM))
+			vox_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_UNIFORM, uniform, src)
+			icon_file = vox_icon_file
+		// APHELION EDIT ADDITION END
+		if(!icon_file && digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION)) // APHELION EDIT CHANGE - ORIGINAL: if(digi && (uniform.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION))
 			icon_file = uniform.worn_icon_digi || DIGITIGRADE_UNIFORM_FILE // NOVA EDIT CHANGE - ORIGINAL: icon_file = DIGITIGRADE_UNIFORM_FILE
 		// NOVA EDIT ADDITION START - birbs
-		else if(bodyshape & BODYSHAPE_CUSTOM)
+		else if(!icon_file && (bodyshape & BODYSHAPE_CUSTOM))
 			icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_UNIFORM, w_uniform, src) // Might have to refactor how this works eventually, maybe.
 		// NOVA EDIT ADDITION END
 		//Female sprites have lower priority than digitigrade sprites
@@ -135,6 +141,11 @@ There are several things that need to be remembered:
 			uniform.worn_x_offset = 0
 		// NOVA EDIT ADDITION END
 
+		// APHELION EDIT ADDITION START - Keep the existing upper-only female shaping for digitigrade Vox.
+		if(vox_icon_file && digi && female_sprite_flags)
+			female_sprite_flags &= ~FEMALE_UNIFORM_FULL
+			female_sprite_flags |= FEMALE_UNIFORM_TOP_ONLY
+		// APHELION EDIT ADDITION END
 		//END SPECIES HANDLING
 		var/mutable_appearance/uniform_overlay = uniform.build_worn_icon(
 			default_layer = UNIFORM_LAYER,
@@ -143,13 +154,13 @@ There are several things that need to be remembered:
 			female_uniform = woman ? female_sprite_flags : null,
 			override_state = target_overlay,
 			override_file = handled_by_bodyshape ? icon_file : null,
-			bodyshape = bodyshape,
+			bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, // APHELION EDIT CHANGE - Do not mask fitted Vox pants again - ORIGINAL: bodyshape = bodyshape,
 		)
 
 		apply_height(uniform_overlay, ENTIRE_BODY)
 		var/obj/item/bodypart/chest/my_chest = get_bodypart(BODY_ZONE_CHEST)
 		my_chest?.worn_uniform_offset?.apply_offset(uniform_overlay)
-		overlays_standing[UNIFORM_LAYER] = uniform_overlay
+		overlays_standing[UNIFORM_LAYER] = uniform.get_worn_undersuit_appearances(src, uniform_overlay, icon_file) // APHELION EDIT CHANGE - ORIGINAL: overlays_standing[UNIFORM_LAYER] = uniform_overlay
 
 	update_body_parts()
 	apply_overlay(UNIFORM_LAYER)
@@ -353,7 +364,15 @@ There are several things that need to be remembered:
 		// NOVA EDIT ADDITION START
 		var/mutant_override = FALSE
 
-		if((bodyshape & BODYSHAPE_DIGITIGRADE) && (worn_item.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION))
+		// APHELION EDIT ADDITION START - Fit Vox footwear before generic digitigrade handling.
+		var/vox_icon_file
+		if(isvox(src) && (bodyshape & BODYSHAPE_CUSTOM))
+			vox_icon_file = dna.species.generate_custom_worn_icon(LOADOUT_ITEM_SHOES, shoes, src)
+			if(vox_icon_file)
+				icon_file = vox_icon_file
+				mutant_override = TRUE
+		// APHELION EDIT ADDITION END
+		if(!mutant_override && (bodyshape & BODYSHAPE_DIGITIGRADE) && (worn_item.supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION))
 			var/obj/item/bodypart/leg = src.get_bodypart(BODY_ZONE_L_LEG)
 			if(leg.bodyshape & BODYSHAPE_DIGITIGRADE) //Snowflakey and bad. But it makes it look consistent. // NOVA EDIT CHANGE - ORIGINAL: if(leg.limb_id == BODYPART_ID_DIGITIGRADE || leg.bodyshape & BODYSHAPE_DIGITIGRADE)//Snowflakey and bad. But it makes it look consistent.
 				icon_file = worn_item.worn_icon_digi || DIGITIGRADE_SHOES_FILE // NOVA EDIT CHANGE
@@ -366,7 +385,7 @@ There are several things that need to be remembered:
 		if(bodyshape & BODYSHAPE_HIDE_SHOES)
 			return // We just don't want shoes that float if we're not displaying legs (useful for taurs, for now)
 		// NOVA EDIT ADDITION END
-		var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
+		var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, override_file = mutant_override ? icon_file : null) // APHELION EDIT CHANGE - Preserve fitted Vox footwear - ORIGINAL: var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape, override_file = mutant_override ? icon_file : null) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shoes_overlay = shoes.build_worn_icon(default_layer = SHOES_LAYER, default_icon_file = icon_file, bodyshape = bodyshape)
 
 		var/feature_y_offset = 0
 		for (var/body_zone in GLOB.leg_zones)
@@ -953,21 +972,21 @@ generate/load female uniform sprites matching all previously decided variables
 	// Underwear, Undershirts & Socks
 	if(underwear && !(underwear_visibility & UNDERWEAR_HIDE_UNDIES)) // NOVA EDIT CHANGE - ORIGINAL: if(underwear)
 		var/datum/sprite_accessory/clothing/underwear/undie_accessory = SSaccessories.underwear_list[underwear]
-		var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape)
+		var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape, src) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/underwear_overlay = undie_accessory?.make_appearance(underwear_color, physique, bodyshape)
 		if(underwear_overlay)
 			. += underwear_overlay
 
 	// NOVA EDIT ADDITION START - Bras
 	if(bra && !(underwear_visibility & UNDERWEAR_HIDE_BRA))
 		var/datum/sprite_accessory/clothing/bra/bra_accessory = SSaccessories.bra_list[bra]
-		var/mutable_appearance/bra_overlay = bra_accessory?.make_appearance(bra_color, physique, bodyshape)
+		var/mutable_appearance/bra_overlay = bra_accessory?.make_appearance(bra_color, physique, bodyshape, src)
 		if(bra_accessory)
 			. += bra_overlay
 
 	// NOVA EDIT ADDITION END - Bras
 	if(undershirt && !(underwear_visibility & UNDERWEAR_HIDE_SHIRT)) // NOVA EDIT CHANGE - ORIGINAL: if(undershirt))
 		var/datum/sprite_accessory/clothing/undershirt/shirt_accessory = SSaccessories.undershirt_list[undershirt]
-		var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(undershirt_color, physique, bodyshape) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(null, physique, bodyshape)
+		var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(undershirt_color, physique, bodyshape, src) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(undershirt_color, physique, bodyshape) // NOVA EDIT CHANGE - ORIGINAL: var/mutable_appearance/shirt_overlay = shirt_accessory?.make_appearance(null, physique, bodyshape)
 		if(shirt_overlay)
 			. += shirt_overlay
 
@@ -983,7 +1002,7 @@ generate/load female uniform sprites matching all previously decided variables
 		var/datum/mutant_bodypart/taur_body = dna.mutant_bodyparts[FEATURE_TAUR]
 		if(isnull(taur_body))
 			var/datum/sprite_accessory/clothing/socks/sock_accessory = SSaccessories.socks_list[socks]
-			var/mutable_appearance/socks_overlay = sock_accessory?.make_appearance(socks_color, physique, bodyshape)
+			var/mutable_appearance/socks_overlay = sock_accessory?.make_appearance(socks_color, physique, bodyshape, src) // APHELION EDIT CHANGE - ORIGINAL: var/mutable_appearance/socks_overlay = sock_accessory?.make_appearance(socks_color, physique, bodyshape)
 			if(socks_overlay)
 				. += socks_overlay
 	// NOVA EDIT ADDITION END
@@ -1261,7 +1280,7 @@ generate/load female uniform sprites matching all previously decided variables
 	var/i = 1
 	while (i <= length(parsed_overlays))
 		var/mutable_appearance/overlay = parsed_overlays[i]
-		if (!isimage(overlay)) // Malformed overlays, etc
+		if (!isimage(overlay) && !isappearance(overlay)) // Malformed overlays, etc // APHELION EDIT CHANGE - WORN_EMISSIVES - nested sprites read back as appearances - ORIGINAL: if (!isimage(overlay)) // Malformed overlays, etc
 			i += 1
 			continue
 		var/overlay_x = overlay.pixel_x + overlay.pixel_w
@@ -1269,8 +1288,15 @@ generate/load female uniform sprites matching all previously decided variables
 		if (!isnull(parsed_overlays[overlay])) // Nested overlay
 			overlay_x += parsed_overlays[overlay][SUB_OVERLAY_X_INDEX]
 			overlay_y += parsed_overlays[overlay][SUB_OVERLAY_Y_INDEX]
+		/* // APHELION EDIT REMOVAL START - WORN_EMISSIVES - appearances have no procs
 		cached_body_width = max(cached_body_width, overlay.get_cached_width())
 		cached_body_height = max(cached_body_height, overlay.get_cached_height())
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - WORN_EMISSIVES - appearances have no procs
+		var/list/dimensions = isnull(overlay.icon) ? null : get_icon_dimensions(overlay.icon)
+		cached_body_width = max(cached_body_width, dimensions?["width"] || 0)
+		cached_body_height = max(cached_body_height, dimensions?["height"] || 0)
+		// APHELION EDIT ADDITION END
 		cached_body_min_x_offset = min(cached_body_min_x_offset, overlay_x)
 		cached_body_min_y_offset = min(cached_body_min_y_offset, overlay_y)
 		for (var/sub_overlay in overlay.overlays)
