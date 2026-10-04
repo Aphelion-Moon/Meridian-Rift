@@ -326,11 +326,17 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 /// Preference-level export boundary, separate from the generic JSON file transport.
 /datum/preferences/proc/export_to_client(mob/requester, account_name)
+	return savefile?.export_json_to_client(requester, account_name, CALLBACK(src, PROC_REF(prepare_export), requester, savefile))
+
+/// A confirmation can outlive the client or an imported/replaced preference file.
+/datum/preferences/proc/prepare_export(mob/requester, datum/json_savefile/export_file)
+	if(QDELETED(src) || QDELETED(requester) || !parent || GET_CLIENT(requester) != parent || parent.prefs != src || savefile != export_file || QDELETED(export_file))
+		return FALSE
 	if(!save_character() || !save_preferences())
 		if(requester)
 			to_chat(requester, span_warning("Preferences could not be saved. Retry before exporting."))
 		return FALSE
-	savefile.export_json_to_client(requester, account_name)
+	return TRUE
 
 /datum/preferences/proc/save_preferences()
 	if(!savefile)

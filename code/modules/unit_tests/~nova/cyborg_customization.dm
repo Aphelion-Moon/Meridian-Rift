@@ -5,6 +5,12 @@
 	parent_type = /datum/preferences/preferences_import_test
 	var/fail_layout_stage = FALSE
 	var/save_preferences_calls = 0
+	var/sprite_reads = 0
+
+/datum/preferences/cyborg_save_failure_test/read_preference(preference_type)
+	if(ispath(preference_type, /datum/preference/choiced/cyborg_sprite))
+		sprite_reads++
+	return ..()
 
 /datum/preferences/cyborg_save_failure_test/save_preferences()
 	save_preferences_calls++
@@ -415,19 +421,119 @@
 	editor.set_page(list("active" = FALSE), null)
 
 /datum/unit_test/cyborg_export_includes_pending_draft/Run()
-	var/datum/preferences/preferences = create_preferences()
+	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
+	var/datum/preferences/cyborg_save_failure_test/preferences = create_preferences(robot, /datum/preferences/cyborg_save_failure_test)
+	var/datum/json_savefile/save_result_test/export_test/store = allocate(/datum/json_savefile/save_result_test/export_test, null)
+	store.path = "unused_export_injection.json"
+	preferences.savefile = store
+	preferences.default_slot = 1
+	store.set_entry("character1", list("version" = 52))
+	preferences.value_cache = list()
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/list/draft = editor.begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 23
+	editor.update_draft(draft)
+	var/saves_before = preferences.save_preferences_calls
+	TEST_ASSERT(!preferences.export_to_client(null, null), "Export without a recipient must fail before preparation.")
+	store.accept_export = FALSE
+	TEST_ASSERT(!preferences.export_to_client(robot, null), "Cancelled export was accepted.")
+	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves_before, "Rejected/cancelled export performed a native save.")
+	TEST_ASSERT(editor.dirty && editor.draft_timer, "Cancelled export consumed a pending edit.")
+	TEST_ASSERT(!store.export_pending, "Cancellation retained the export reservation.")
+	store.accept_export = TRUE
+	store.during_confirmation = CALLBACK(src, PROC_REF(edit_during_export), preferences, robot)
+	TEST_ASSERT(preferences.export_to_client(robot, null), "Confirmed export failed.")
+	var/list/exported = json_decode(store.exported_contents)
+	TEST_ASSERT_EQUAL(exported["character1"]?["silicon_genital_layout_presets"]?["active"]?["penis"]?["pixel_x"], 24, "Export omitted an edit accepted while its confirmation was open.")
+	TEST_ASSERT_NULL(editor.draft_timer, "Export left the exported edit waiting on its debounce timer.")
+	TEST_ASSERT_EQUAL(store.export_calls, 1, "Overlapping confirmation completed more than once.")
+	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves_before + 1, "Export saved more than once.")
+	store.during_confirmation = null
+	var/prompts_before = store.confirmation_calls
+	TEST_ASSERT(!preferences.export_to_client(robot, null), "Export bypassed its download cooldown.")
+	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves_before + 1, "Cooldown rejection performed save preparation.")
+	TEST_ASSERT_EQUAL(store.confirmation_calls, prompts_before, "Cooldown rejection opened a confirmation.")
+
+	COOLDOWN_RESET(store, download_cooldown)
+	for(var/replacement in list("file", "owner", "connection", "path"))
+		store.during_confirmation = CALLBACK(src, PROC_REF(replace_during_export), preferences, robot, replacement)
+		TEST_ASSERT(!preferences.export_to_client(robot, null), "Export survived a changed [replacement] during confirmation.")
+		TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves_before + 1, "A changed [replacement] allowed stale export preparation.")
+		TEST_ASSERT(!store.export_pending, "A changed [replacement] retained the export reservation.")
+		preferences.savefile = store
+		preferences.parent.prefs = preferences
+		robot.mock_client = preferences.parent
+		store.path = "unused_export_injection.json"
+	store.during_confirmation = null
+	store.forced_result = "Injected export write failure"
+	draft["active"]["penis"]["pixel_x"] = 25
+	editor.update_draft(draft)
+	TEST_ASSERT(!preferences.export_to_client(robot, null), "Failed native preparation still exported a file.")
+	TEST_ASSERT(editor.dirty && !store.export_pending, "Failed export lost the draft or retained its reservation.")
+	TEST_ASSERT_EQUAL(store.export_calls, 1, "Failed preparation reached file transport.")
+	TEST_ASSERT(COOLDOWN_FINISHED(store, download_cooldown), "Failed preparation consumed the download cooldown.")
+	store.forced_result = ""
+	TEST_ASSERT(preferences.export_to_client(robot, null), "Export could not retry after a failed save.")
+	TEST_ASSERT(!editor.dirty && !store.export_pending, "Successful export retry did not release pending state.")
+	TEST_ASSERT_EQUAL(store.export_calls, 2, "Export retry did not complete exactly once.")
+
+/datum/unit_test/cyborg_export_includes_pending_draft/proc/edit_during_export(datum/preferences/preferences, mob/requester)
+	TEST_ASSERT(!preferences.export_to_client(requester, null), "A second export entered while its confirmation was pending.")
+	var/list/draft = preferences.cyborg_session().begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 24
+	preferences.cyborg_session().update_draft(draft)
+
+/datum/unit_test/cyborg_export_includes_pending_draft/proc/replace_during_export(datum/preferences/preferences, mob/requester, replacement)
+	switch(replacement)
+		if("file")
+			preferences.savefile = allocate(/datum/json_savefile, null)
+		if("owner")
+			preferences.parent.prefs = null
+		if("connection")
+			requester.mock_client = null
+		if("path")
+			preferences.savefile.path = "replacement_export_injection.json"
+
+/// Rejected creator requests must leave the draft/context intact and skip save preparation.
+/datum/unit_test/cyborg_creator_admission
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_creator_admission/Run()
+	var/datum/preferences/cyborg_save_failure_test/preferences = create_preferences(preference_type = /datum/preferences/cyborg_save_failure_test)
 	preferences.default_slot = 1
 	preferences.savefile.set_entry("character1", list("version" = 52))
 	preferences.value_cache = list()
-	var/list/draft = preferences.cyborg_session().begin_draft()
-	draft["active"]["penis"]["pixel_x"] = 23
-	preferences.cyborg_session().update_draft(draft)
-	// No recipient exercises export preparation while skipping the file-transfer UI.
-	// There is deliberately no sleep: export must contain the edit before debounce fires.
-	preferences.export_to_client(null, null)
-	var/list/saved = preferences.savefile.get_entry("character1")
-	TEST_ASSERT_EQUAL(saved?["silicon_genital_layout_presets"]?["active"]?["penis"]?["pixel_x"], 23, "Immediate export omitted the pending creator edit from its JSON tree.")
-	TEST_ASSERT_NULL(preferences.cyborg_session().draft_timer, "Export left the exported edit waiting on its debounce timer.")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "model" = model_id), null), "A catalog model failed bounded preview admission.")
+	for(var/id, descriptor in cyborg_model_catalog())
+		TEST_ASSERT(length(id) <= CYBORG_PREVIEW_MAX_IDENTIFIER_LENGTH && length(descriptor["department"]) <= CYBORG_PREVIEW_MAX_IDENTIFIER_LENGTH, "A catalog identifier exceeds the preview input bound.")
+	var/context = editor.context_generation
+	var/long_text = repeat_string(100000, "x")
+	TEST_ASSERT(!editor.set_preview(list("context" = context, "model" = long_text), null), "Oversized preview identifier was accepted.")
+	TEST_ASSERT(!editor.set_preview(list("context" = context, "model" = list(model_id)), null), "Nested preview identifier was accepted.")
+	TEST_ASSERT(!editor.set_preview(list("context" = context, "unexpected" = TRUE), null), "Unknown preview input was accepted.")
+	TEST_ASSERT_EQUAL(editor.context_generation, context, "Rejected preview input replaced the context.")
+	TEST_ASSERT_EQUAL(editor.preview_model, model_id, "Rejected preview input replaced the chassis.")
+	var/list/draft = editor.begin_draft()
+	var/before = json_encode(draft)
+	var/sprite_reads = preferences.sprite_reads
+	var/saves = preferences.save_preferences_calls
+	for(var/name in list(long_text, "", "                         "))
+		editor.edit_layout(list("character_slot" = 1, "context" = context, "operation" = "save", "name" = name), null)
+	TEST_ASSERT_EQUAL(preferences.sprite_reads, sprite_reads, "Rejected preset names performed sprite snapshot preparation.")
+	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves, "Rejected preset names performed native saves.")
+	TEST_ASSERT_EQUAL(json_encode(draft), before, "Rejected preset names mutated the draft.")
+	TEST_ASSERT(editor.edit_layout(list("character_slot" = 1, "context" = context, "operation" = "save", "name" = "Valid"), null), "Valid preset save was rejected.")
+	TEST_ASSERT(editor.draft["presets"]["Valid"], "Valid preset save did not retain its snapshot.")
+	sprite_reads = preferences.sprite_reads
+	saves = preferences.save_preferences_calls
+	editor.edit_layout(list("character_slot" = 1, "context" = context, "operation" = "save", "name" = "Valid"), null)
+	TEST_ASSERT_EQUAL(preferences.sprite_reads, sprite_reads, "Refused implicit overwrite performed snapshot preparation.")
+	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves, "Refused implicit overwrite performed a native save.")
 
 /// A short real-GC regression for the leak found by the full create/destroy sweep.
 /datum/unit_test/cyborg_mock_preferences_cleanup

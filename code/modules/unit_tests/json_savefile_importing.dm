@@ -96,6 +96,25 @@
 /datum/json_savefile/save_result_test/read_file(source)
 	return short_write ? "{" : written_contents
 
+/// Exercise export admission with real save preparation, without dialogs or FTP.
+/datum/json_savefile/save_result_test/export_test
+	forced_result = ""
+	var/accept_export = TRUE
+	var/confirmation_calls = 0
+	var/export_calls = 0
+	var/datum/callback/during_confirmation
+	var/exported_contents
+
+/datum/json_savefile/save_result_test/export_test/confirm_json_export(mob/requester)
+	confirmation_calls++
+	during_confirmation?.Invoke()
+	return accept_export
+
+/datum/json_savefile/save_result_test/export_test/send_json_export(mob/requester, account_name)
+	export_calls++
+	exported_contents = json_encode(get_entry())
+	return TRUE
+
 /datum/unit_test/json_savefile_write_result/Run()
 	var/datum/json_savefile/save_result_test/store = allocate(/datum/json_savefile/save_result_test, null)
 	TEST_ASSERT_EQUAL(store.save(), JSON_SAVE_SESSION_ONLY, "Memory-only saving must not claim a disk write.")

@@ -45,6 +45,8 @@
 	return preference == /datum/preference/cyborg_layout::savefile_key
 
 /datum/preference_middleware/cyborg_character/proc/set_page(list/params, mob/user)
+	if(!islist(params) || length(params) != 1 || (user?.client && user.client != preferences.parent))
+		return FALSE
 	var/active = params["active"] == TRUE
 	if(active == page_active)
 		return TRUE
@@ -64,6 +66,14 @@
 	return TRUE
 
 /datum/preference_middleware/cyborg_character/proc/set_preview(list/params, mob/user)
+	if(!islist(params) || length(params) > 10)
+		return FALSE
+	for(var/key, value in params)
+		if(!(key in list("context", "model", "direction", "pose", "arousal", "moving", "selected_part", "gallery_open", "gallery_department", "layout_source")))
+			return FALSE
+		// All valid identifiers come from the finite server catalog. Bound text before lookup.
+		if(islist(value) || (istext(value) && length(value) > CYBORG_PREVIEW_MAX_IDENTIFIER_LENGTH))
+			return FALSE
 	if(!page_active || params["context"] != context_generation)
 		return FALSE
 	if(user && user.client && user.client != preferences.parent)
@@ -115,7 +125,7 @@
 	return TRUE
 
 /datum/preference_middleware/cyborg_character/proc/edit_layout(list/params, mob/user)
-	if(length(params) > 8)
+	if(!islist(params) || length(params) > 8)
 		return FALSE
 	if(!page_active || params["character_slot"] != preferences.default_slot || params["context"] != context_generation)
 		return FALSE
@@ -138,12 +148,7 @@
 	if(!store)
 		status_message = "This slot contains a newer layout schema. Its saved data has been preserved."
 		return TRUE
-	if(params["operation"] in list("save", "save_default"))
-		store = store.Copy()
-		store["active"] = deep_copy_list(store["active"])
-		for(var/part_slot in cyborg_layout_supported_slots())
-			store["active"][part_slot]["sprite"] = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
-	var/list/result = cyborg_layout_action(store, params, preview_model)
+	var/list/result = cyborg_layout_action(store, params, preview_model, preferences)
 	if(result["model"] && !catalog[result["model"]])
 		status_message = "This preset's chassis is no longer available."
 		return TRUE
@@ -252,7 +257,7 @@
  * The result takes over draft ownership. Unchanged branches may be shared with
  * the old draft; mutation copies its branch, and saved/body snapshots stay deep copies.
  */
-/proc/cyborg_layout_action(list/store, list/params, model_id)
+/proc/cyborg_layout_action(list/store, list/params, model_id, datum/preferences/preferences)
 	var/message = "Working setup updated."
 	var/restored_model
 	var/operation = params["operation"]
@@ -264,6 +269,27 @@
 		return list("message" = "Choose a valid layout slot.")
 	if(operation == "reset" && !isnull(slot) && !(slot in cyborg_layout_supported_slots()))
 		return list("message" = "Choose a valid layout slot.")
+	var/name = params["name"]
+	if(operation in list("save", "load", "delete", "assign_default"))
+		if(!istext(name))
+			return list("message" = "Enter a preset name.")
+		// UTF-8 needs at most four bytes per character; cap work before trimming/counting.
+		if(length(name) > CYBORG_LAYOUT_MAX_PRESET_NAME_LENGTH * 4)
+			return list("message" = "Preset names must be 1 to 24 characters.")
+		name = trim(name)
+		if(!length(name) || length_char(name) > CYBORG_LAYOUT_MAX_PRESET_NAME_LENGTH)
+			return list("message" = "Preset names must be 1 to 24 characters.")
+		var/list/presets = store["presets"]
+		if(operation == "save")
+			if(presets[name] && params["overwrite"] != TRUE)
+				return list("message" = "That preset exists. Use Update preset to replace it.")
+			if(!presets[name] && length(presets) >= CYBORG_LAYOUT_MAX_PRESETS)
+				return list("message" = "Ten presets are already saved. Delete one first.")
+		else if(!presets[name])
+			return list("message" = "That preset no longer exists.")
+	if(operation in list("save_default", "load_default", "delete_default", "assign_default"))
+		if(!cyborg_model_catalog()[model_id])
+			return list("message" = "Select an eligible model first.")
 	// Copy collection indices only for operations that replace their snapshots.
 	var/list/collections
 	switch(operation)
@@ -285,6 +311,13 @@
 	// Six slot references are cheap; copy the selected entry only when editing it.
 	var/list/active = store["active"]
 	next["active"] = active.Copy()
+	if(preferences && (operation in list("save", "save_default")))
+		// Snapshot selected art only after admission, keeping the source draft untouched.
+		for(var/part_slot in cyborg_layout_supported_slots())
+			var/list/entry = active[part_slot]
+			entry = entry.Copy()
+			entry["sprite"] = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
+			next["active"][part_slot] = entry
 	switch(operation)
 		if("set_placement", "nudge_placement", "inherit_placement")
 			next["active"][slot] = deep_copy_list(active[slot])
@@ -328,18 +361,8 @@
 			else
 				next["active"] = cyborg_layout_default_slots()
 		if("save", "load", "delete")
-			var/name = params["name"]
-			if(!istext(name))
-				return list("message" = "Enter a preset name.")
-			name = trim(name)
-			if(!length(name) || length_char(name) > CYBORG_LAYOUT_MAX_PRESET_NAME_LENGTH)
-				return list("message" = "Preset names must be 1 to 24 characters.")
 			var/list/presets = next["presets"]
 			if(operation == "save")
-				if(presets[name] && params["overwrite"] != TRUE)
-					return list("message" = "That preset exists. Use Update preset to replace it.")
-				if(!presets[name] && length(presets) >= CYBORG_LAYOUT_MAX_PRESETS)
-					return list("message" = "Ten presets are already saved. Delete one first.")
 				presets[name] = cyborg_layout_copy(next["active"])
 				if(model_id && cyborg_model_catalog()[model_id])
 					next["preset_models"][name] = model_id
@@ -355,8 +378,6 @@
 						next["model_presets"] -= assigned_model
 				message = "Preset saved."
 			else
-				if(!presets[name])
-					return list("message" = "That preset no longer exists.")
 				if(operation == "load")
 					next["active"] = cyborg_layout_copy(presets[name])
 					next["active_preset"] = name
@@ -374,9 +395,6 @@
 							next["model_presets"] -= assigned_model
 					message = "Preset deleted."
 		if("assign_default")
-			var/name = params["name"]
-			if(!istext(name) || !next["presets"][name] || !cyborg_model_catalog()[model_id])
-				return list("message" = "Select a saved preset and chassis first.")
 			var/preset_model = next["preset_models"][name]
 			if(preset_model && preset_model != model_id)
 				return list("message" = "Load this preset to switch to its chassis first.")
@@ -385,9 +403,6 @@
 			next["model_presets"][model_id] = name
 			message = "[name] will load when a new body selects this chassis."
 		if("save_default", "load_default", "delete_default")
-			var/list/catalog = cyborg_model_catalog()
-			if(!catalog[model_id])
-				return list("message" = "Select an eligible model first.")
 			var/list/defaults = next["model_defaults"]
 			if(operation in list("save_default", "delete_default"))
 				next["model_presets"] -= model_id
