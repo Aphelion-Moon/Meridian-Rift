@@ -227,6 +227,11 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:dogmos_in_process_identity_ffi")
 	return call_ext(loaded)()
 
+/// Includes accepted heat work that has not yet acquired its task guard.
+/datum/controller/subsystem/air/proc/thread_running()
+	var/static/loaded = load_ext(DOGMOS, "byond:thread_running_hook_ffi")
+	return call_ext(loaded)()
+
 /// Marks the mix as immutable, meaning it will never change. This cannot be undone.
 /datum/gas_mixture/proc/mark_immutable()
 	var/static/loaded = load_ext(DOGMOS, "byond:mark_immutable_hook_ffi")
@@ -313,11 +318,6 @@
 /datum/gas_mixture/proc/heat_capacity()
 	var/static/loaded = load_ext(DOGMOS, "byond:heat_cap_hook_ffi")
 	return call_ext(loaded)(src)
-
-/// Returns: If a processing thread is running or not.
-/datum/controller/subsystem/air/proc/thread_running()
-	var/static/loaded = load_ext(DOGMOS, "byond:thread_running_hook_ffi")
-	return call_ext(loaded)()
 
 /// Returns: If this cycle is interrupted by overtiming or not. Calls all outstanding callbacks created by other processes, usually ones that can't run on other threads and only the main thread.
 /datum/controller/subsystem/air/proc/finish_turf_processing_auxtools(time_remaining)
@@ -454,4 +454,4 @@
 #define DOGMOS_FUSION_NATIVE_AVAILABLE 1
 
 // Local in-process build identity; generated with the matching DLL.
-#define DOGMOS_IN_PROCESS_IDENTITY "in-process:9626bc2da0173c6dbf8b28a45d275aeb5a4486998cb757ae901279b39404db3b"
+#define DOGMOS_IN_PROCESS_IDENTITY "in-process:3a32bccbb95b3f7d76bf4d715ced085349428368ee4ad355c1bb6f62f4ada885"

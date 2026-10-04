@@ -20,6 +20,7 @@
 	/// Second test-owned Kennel UI deleted during cleanup.
 	var/datum/tgui/dogmos_kennel/second_test_ui
 
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 /** Returns one hand-checked fixed-width process-metrics fixture. */
 /datum/unit_test/dogmos_kennel_process_metrics/proc/valid_fixture()
 	return list(
@@ -34,7 +35,19 @@
 		17, 18, 19, 20,
 	)
 
+#endif
 /datum/unit_test/dogmos_kennel_process_metrics/Run()
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	var/list/decoded = json_decode(dogmos_in_process_metrics())
+	TEST_ASSERT_EQUAL(length(decoded), 1, "Native process telemetry must describe only its DreamDaemon host.")
+	TEST_ASSERT_NULL(decoded["dogmosd"], "Native process telemetry invented an external service.")
+	TEST_ASSERT_NULL(decoded["combined"], "Native process telemetry exposed a combined total.")
+	var/list/dreamdaemon = decoded["dreamdaemon"]
+	TEST_ASSERT_EQUAL(length(dreamdaemon), 4, "Native process telemetry changed the host metric contract.")
+	TEST_ASSERT_EQUAL(dreamdaemon["available"], TRUE, "The supported native host memory sample was unavailable.")
+	for(var/metric in list("private_bytes", "virtual_bytes", "working_set_bytes"))
+		TEST_ASSERT(IS_FINITE(dreamdaemon[metric]) && dreamdaemon[metric] > 0, "Native host [metric] must be finite and positive.")
+#else
 	var/list/valid_words = valid_fixture()
 	var/list/decoded = SSdogmos.decode_process_metrics(valid_words)
 	TEST_ASSERT_NOTNULL(decoded, "Dogmos rejected a valid fixed-width process snapshot.")
@@ -109,6 +122,8 @@
 	TEST_ASSERT_EQUAL(partial["dreamdaemon"]["available"], FALSE, "Dogmos marked a partial DreamDaemon sample available.")
 	TEST_ASSERT_EQUAL(partial["dogmosd"]["available"], FALSE, "Dogmos marked a partial dogmosd sample available.")
 
+#endif
+
 	original_slow_mode = SSair.kennel_slow_mode
 	original_process_metric_samples = GLOB.dogmos_kennel.producer_process_metric_samples
 	original_machinery_candidates_inspected = GLOB.dogmos_kennel.producer_machinery_candidates_inspected
@@ -130,19 +145,26 @@
 	TEST_ASSERT_EQUAL(producer_telemetry["active_viewers"], 0, "Kennel reported viewers for an empty UI registry.")
 	var/list/payload = data["process_metrics"]
 	TEST_ASSERT_NOTNULL(payload, "The Dogmos Kennel omitted process_metrics from its live payload.")
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	TEST_ASSERT_EQUAL(length(payload), 1, "Native Kennel must describe only DreamDaemon.")
+	TEST_ASSERT_NULL(payload["dogmosd"], "Native Kennel invented an external service.")
+#else
 	TEST_ASSERT_EQUAL(length(payload), 2, "The Dogmos Kennel exposed a combined or unexpected process role.")
-	TEST_ASSERT("dreamdaemon" in payload, "The Dogmos Kennel omitted the DreamDaemon process role.")
 	TEST_ASSERT("dogmosd" in payload, "The Dogmos Kennel omitted the dogmosd process role.")
+#endif
+	TEST_ASSERT("dreamdaemon" in payload, "The Dogmos Kennel omitted the DreamDaemon process role.")
 	TEST_ASSERT_NULL(payload["combined"], "The Dogmos Kennel exposed combined process memory.")
 	TEST_ASSERT_EQUAL(length(payload["dreamdaemon"]), 4, "The Dogmos Kennel changed the DreamDaemon metric contract.")
 	TEST_ASSERT("private_bytes" in payload["dreamdaemon"], "The Dogmos Kennel omitted DreamDaemon private bytes.")
 	TEST_ASSERT("virtual_bytes" in payload["dreamdaemon"], "The Dogmos Kennel omitted DreamDaemon virtual bytes.")
 	TEST_ASSERT("working_set_bytes" in payload["dreamdaemon"], "The Dogmos Kennel omitted DreamDaemon working-set bytes.")
 	TEST_ASSERT("available" in payload["dreamdaemon"], "The Dogmos Kennel omitted DreamDaemon availability.")
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	TEST_ASSERT_EQUAL(length(payload["dogmosd"]), 3, "The Dogmos Kennel changed the dogmosd metric contract.")
 	TEST_ASSERT("rss_bytes" in payload["dogmosd"], "The Dogmos Kennel omitted dogmosd resident-set bytes.")
 	TEST_ASSERT("cpu_total_milliseconds" in payload["dogmosd"], "The Dogmos Kennel omitted dogmosd cumulative CPU milliseconds.")
 	TEST_ASSERT("available" in payload["dogmosd"], "The Dogmos Kennel omitted dogmosd availability.")
+#endif
 	TEST_ASSERT(!("process_metrics" in GLOB.dogmos_kennel.vars), "The Dogmos Kennel retained the latest process snapshot.")
 	TEST_ASSERT(!("process_metrics_history" in GLOB.dogmos_kennel.vars), "The Dogmos Kennel retained process-metrics history.")
 	TEST_ASSERT(!("process_metrics" in SSair.vars), "SSair retained the latest process snapshot.")

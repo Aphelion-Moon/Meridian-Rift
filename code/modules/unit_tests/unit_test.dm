@@ -63,6 +63,10 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/normal_floor_required = FALSE
 	/// Stop the suite if an isolated native fixture cannot release its authoritative stage.
 	var/dogmos_fixture_aborted = FALSE
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	/// Scheduling ownership held until topology and atmosphere cleanup have both finished.
+	var/dogmos_fixture_can_fire
+#endif
 
 /proc/cmp_unit_test_priority(datum/unit_test/a, datum/unit_test/b)
 	return initial(a.priority) - initial(b.priority)
@@ -102,6 +106,9 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	if(normal_floor_required)
 		for(var/turf/open/turf in get_area_turfs(run_loc_floor_bottom_left.loc))
 			turf.ChangeTurf(/turf/open/indestructible)
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	dogmos_restore_fixture_scheduling()
+#endif
 	return ..()
 
 /datum/unit_test/proc/Run()
@@ -152,6 +159,99 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		"turf_a and turf_b are not gas-adjacent (atmos_adjacent_turfs) - this test needs two turfs Dogmos will actually share gas between.")
 	return list(turf_a, turf_b)
 
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+/** Stops new cycles only after the scheduled cycle completes, then settles accepted heat work. */
+/datum/unit_test/proc/dogmos_wait_for_stage_boundary()
+	try
+		if(isnull(dogmos_fixture_can_fire))
+			for(var/attempt in 1 to 200)
+				if(SSair.state == SS_IDLE && !length(SSair.adjacent_rebuild))
+					dogmos_fixture_can_fire = SSair.can_fire
+					SSair.can_fire = FALSE
+					break
+				sleep(SSair.wait)
+			if(isnull(dogmos_fixture_can_fire))
+				return dogmos_abort_fixture("Atmos did not finish its scheduled cycle before the native fixture.")
+		if(dogmos_complete_fixture_heat())
+			return TRUE
+	catch(var/exception/error)
+		return dogmos_abort_fixture("Native fixture boundary raised [error.name].")
+	return dogmos_abort_fixture("Native heat work did not settle before the fixture.")
+
+/datum/unit_test/proc/dogmos_restore_fixture_scheduling()
+	if(!dogmos_fixture_aborted && !isnull(dogmos_fixture_can_fire))
+		SSair.can_fire = dogmos_fixture_can_fire
+		dogmos_fixture_can_fire = null
+
+/datum/unit_test/proc/dogmos_abort_fixture(reason)
+	dogmos_fixture_aborted = TRUE
+	SSair.can_fire = FALSE
+	Fail(reason, __FILE__, __LINE__)
+	return FALSE
+
+/datum/unit_test/proc/dogmos_drain_fixture_callbacks()
+	for(var/batch in 1 to 4096)
+		if(!SSair.finish_turf_processing_auxtools(100))
+			return TRUE
+	return FALSE
+
+/** Admit one interval (or retry the existing deferred interval), then wait for the native fence. */
+/datum/unit_test/proc/dogmos_complete_fixture_heat()
+	var/admitted = FALSE
+	for(var/attempt in 1 to 200)
+		if(!admitted)
+			admitted = !SSair.process_turf_heat()
+		if(admitted && !SSair.thread_running())
+			return dogmos_drain_fixture_callbacks()
+		sleep(world.tick_lag)
+	return FALSE
+
+/** Native stages scan the registered graph; a DM frontier swap cannot isolate them.
+ * The stopped scheduler and closed room provide the fixture boundary. Group/equalizer seeds
+ * must be prepared by a separate FDM pass before the caller records its measured state.
+ */
+/datum/unit_test/proc/dogmos_run_fixture_stage(stage, list/turfs, use_fdm_cadence = FALSE, chunk_budget_ms = 100, require_budget_use = FALSE)
+	if(isnull(dogmos_fixture_can_fire) || SSair.can_fire || SSair.state != SS_IDLE)
+		return dogmos_abort_fixture("Native fixture stage requires a stopped scheduler at a cycle boundary.")
+	var/list/original_pressure_queue = SSair.high_pressure_delta.Copy()
+	var/list/original_pressure = list()
+	for(var/turf/open/fixture_turf in get_area_turfs(run_loc_floor_bottom_left.loc))
+		original_pressure[fixture_turf] = list(fixture_turf.pressure_difference, fixture_turf.pressure_direction)
+	var/original_share_steps = SSair.share_max_steps
+	var/completed = FALSE
+	var/failure = "Native fixture stage [stage] exceeded its completion bound."
+	try
+		switch(stage)
+			if(1)
+				completed = !SSair.process_excited_groups_auxtools(chunk_budget_ms)
+			if(2)
+				completed = !SSair.process_turf_equalize_auxtools(chunk_budget_ms)
+			if(3)
+				completed = dogmos_complete_fixture_heat()
+			if(4)
+				SSair.share_max_steps = 1
+				completed = !SSair.process_turfs_auxtools(chunk_budget_ms)
+		if(completed)
+			completed = dogmos_drain_fixture_callbacks()
+	catch(var/exception/error)
+		failure = "Native fixture stage [stage] raised [error.name]."
+	SSair.share_max_steps = original_share_steps
+	// Whole-graph stages also publish legitimate pressure work outside this fixture.
+	var/list/outside_pressure = list()
+	for(var/turf/open/pressure_turf as anything in SSair.high_pressure_delta)
+		if(!(pressure_turf in original_pressure) && !(pressure_turf in original_pressure_queue))
+			outside_pressure += pressure_turf
+	SSair.high_pressure_delta.Cut()
+	SSair.high_pressure_delta += original_pressure_queue
+	SSair.high_pressure_delta += outside_pressure
+	for(var/turf/open/fixture_turf as anything in original_pressure)
+		var/list/pressure = original_pressure[fixture_turf]
+		fixture_turf.pressure_difference = pressure[1]
+		fixture_turf.pressure_direction = pressure[2]
+	if(!completed)
+		return dogmos_abort_fixture(failure)
+	return TRUE
+#else
 /** Waits a bounded number of subsystem fires before beginning an isolated native-stage fixture. */
 /datum/unit_test/proc/dogmos_wait_for_stage_boundary()
 	var/failure = "Dogmos did not establish a healthy fixture boundary within its bound."
@@ -256,6 +356,8 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		return FALSE
 	// APHELION EDIT ADDITION END
 	return restored
+
+#endif
 
 /** Re-registers a turf and rebuilds its Dogmos heat-graph adjacency. */
 /datum/unit_test/proc/resync_turf_for_dogmos(turf/open/target)

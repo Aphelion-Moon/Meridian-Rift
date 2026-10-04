@@ -66,6 +66,9 @@
 	TEST_ASSERT(!(turf_a.conductivity_blocked_directions & EAST) && !(turf_b.conductivity_blocked_directions & WEST), \
 		"The test pair's directional conductivity masks do not expose a reciprocal east-west heat edge.")
 
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	TEST_ASSERT(dogmos_wait_for_stage_boundary(), "Native heat topology did not settle before seeding.")
+#else
 	for(var/attempt in 1 to 20)
 		if(!length(SSair.adjacent_rebuild) && !SSair.dogmos_pending_frontier_epoch && SSdogmos.flush_turf_registration_batch())
 			break
@@ -75,6 +78,7 @@
 	// the Dogmos-side pending dicts have no visibility into.
 	TEST_ASSERT(!length(SSdogmos.dogmos_pending_turf_heat) && !length(SSdogmos.dogmos_pending_turf_heat_adjacency) && !length(SSair.adjacent_rebuild), \
 		"The test pair's heat topology did not reach dogmosd before temperature seeding (SSair.adjacent_rebuild: [length(SSair.adjacent_rebuild)]).")
+#endif
 	turf_a.set_temperature(700)
 	turf_b.set_temperature(T20C)
 	SSair.remove_from_active(turf_a)
@@ -91,7 +95,11 @@
 	var/b_after = b_before
 	// APHELION EDIT ADDITION START - DOGMOS
 	var/list/progress_samples = list()
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	SSair.dogmos_stage_test_samples = list()
+#else
+	dogmos_restore_fixture_scheduling()
+#endif
 	// APHELION EDIT ADDITION END
 	for(var/attempt in 1 to 20)
 		sleep(SSair.wait)
@@ -109,8 +117,10 @@
 			"visual" = SSair.dogmos_visual_refresh_cursor,
 			"adjacency" = length(SSair.adjacent_rebuild),
 			"current_run" = length(SSair.currentrun),
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 			"stage" = SSair.dogmos_pending_stage,
 			"remaining" = SSair.dogmos_stage_remaining_estimate,
+#endif
 			"fdm_steps" = SSair.dogmos_fdm_steps_completed,
 			"allocation" = SSair.tick_allocation_last,
 			"hot" = a_after,
@@ -121,8 +131,10 @@
 			break
 	// APHELION EDIT ADDITION START - DOGMOS
 	file("[GLOB.log_directory]/dogmos-superconduction-progress.json") << json_encode(progress_samples)
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	file("[GLOB.log_directory]/dogmos-stage-budget.json") << json_encode(SSair.dogmos_stage_test_samples)
 	SSair.dogmos_stage_test_samples = null
+#endif
 	// APHELION EDIT ADDITION END
 
 	TEST_ASSERT(a_after < a_before, \
@@ -132,7 +144,16 @@
 	TEST_ASSERT(a_after > b_after, \
 		"turf_a's temperature ([a_after]) dropped to or below turf_b's ([b_after]) after conduction - this should not overshoot past equilibrium.")
 
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+/datum/unit_test/dogmos_superconduction_golden/restore_atmos()
+	if(!dogmos_fixture_aborted && isnull(dogmos_fixture_can_fire))
+		dogmos_wait_for_stage_boundary()
+	return ..()
+#endif
+
 /datum/unit_test/dogmos_superconduction_golden/Destroy()
+	if(dogmos_fixture_aborted) // APHELION EDIT ADDITION - DOGMOS
+		return ..()
 	// Unconditional, matching dogmos_turf_registration.dm's convention: a TEST_ASSERT abort in Run()
 	// skips any cleanup there, and blocks_air/heat_capacity are persistent turf state every later test
 	// would inherit. restore_atmos() does not cover either of them.

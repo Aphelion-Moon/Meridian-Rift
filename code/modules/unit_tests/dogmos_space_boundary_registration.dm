@@ -43,7 +43,7 @@
 		if(after_moles < before_moles)
 			break
 	TEST_ASSERT(after_moles < before_moles, \
-		"The interior turf's total moles ([before_moles] -> [after_moles]) did not decrease after [SSair.times_fired - initial_cycle] completed SSair fires over [(world.time - start_time) / (1 SECONDS)] seconds (limits: ten fires or 180 seconds); state: [SSair.state], enabled: [SSair.can_fire], adjacency queue: [length(SSair.adjacent_rebuild)], pending stage: [SSair.dogmos_pending_stage].")
+		"The interior turf's total moles ([before_moles] -> [after_moles]) did not decrease after [SSair.times_fired - initial_cycle] completed SSair fires over [(world.time - start_time) / (1 SECONDS)] seconds (limits: ten fires or 180 seconds); state: [SSair.state], enabled: [SSair.can_fire], adjacency queue: [length(SSair.adjacent_rebuild)], pending stage: [SSair.currentpart].")
 	log_test("Space boundary diffusion: [before_moles] -> [after_moles] moles after [SSair.times_fired - initial_cycle] completed fires over [(world.time - start_time) / (1 SECONDS)] seconds.")
 	// APHELION EDIT ADDITION END
 

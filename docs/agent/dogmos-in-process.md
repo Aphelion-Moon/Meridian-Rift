@@ -27,8 +27,16 @@ This candidate is Windows-only. Generated bindings select `libdogmos_in_process`
 on Linux so the retained `libdogmos.so` service shim cannot be loaded accidentally.
 No Linux in-process binary is shipped by this workflow.
 
-The current preparation gate is compilation only. Boot, gameplay tests,
-profiling, memory comparisons, numerical equivalence and release qualification
-are deferred to the maintainer. Use the compiled game with its matching root
-DLL for manual play-testing; service-specific RIFT profiles require paired
-service artifacts and are not applicable to this candidate.
+The bundle remains unqualified: synchronization and compilation do not establish
+runtime, numerical, performance or release acceptance. Run in-process integration
+fixtures with the installed DLL through the ordinary `ci` profile, for example:
+
+```powershell
+RIFT.cmd test --profile ci --map _maps/runtimestation.json --focus /datum/unit_test/dogmos_gas_fdm_golden
+```
+
+The shared numerical, recovery and Kennel fixtures select the installed backend's
+contract. Keep focused tests, native-load boot, the full suite and repeated
+whole-DreamDaemon performance/memory comparisons as separate evidence.
+Service-specific RIFT profiles require paired service artifacts and are not
+applicable to this candidate.

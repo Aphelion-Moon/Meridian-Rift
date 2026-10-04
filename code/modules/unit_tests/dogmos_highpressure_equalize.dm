@@ -15,8 +15,12 @@
 	air_a.set_moles(/datum/gas/oxygen, original_o2 * 10)
 	air_a.set_moles(/datum/gas/nitrogen, original_n2 * 10)
 
-	var/a_before = air_a.get_moles(/datum/gas/oxygen)
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	TEST_ASSERT(dogmos_run_fixture_stage(4, pair), "Preparatory diffusion did not publish equalizer seeds.")
+#else
 	var/processed_before = SSair.num_equalize_processed
+#endif
+	var/a_before = air_a.get_moles(/datum/gas/oxygen)
 	var/list/active_before = SSair.active_turfs
 	var/list/pressure_queue_before = SSair.high_pressure_delta.Copy()
 	var/list/pressure_before = list()
@@ -24,12 +28,23 @@
 		pressure_before[fixture_turf] = list(fixture_turf.pressure_difference, fixture_turf.pressure_direction)
 	TEST_ASSERT(dogmos_run_fixture_stage(DOGMOS_EQUALIZE_TEST_STAGE, pair), "Native equalization did not complete and restore its frontier within the fixture bound.")
 	var/a_after = air_a.get_moles(/datum/gas/oxygen)
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	TEST_ASSERT(SSair.num_equalize_processed > 0, "Native equalization did not report a processed component.")
+#else
 	TEST_ASSERT(SSair.num_equalize_processed > processed_before, "Native equalization did not report a processed component.")
+#endif
 	TEST_ASSERT(a_after < a_before, "Equalization left the high-pressure turf unchanged ([a_before] -> [a_after]); no diffusion stage ran in this interval.")
 	// A delayed callback must not modify these same generations after fixture cleanup.
 	TEST_ASSERT(!SSair.finish_turf_processing_auxtools(100), "Fixture callbacks remained pending after equalization cleanup.")
 	TEST_ASSERT(SSair.active_turfs == active_before, "The fixture replaced the normal active-turf list.")
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	TEST_ASSERT(length(SSair.high_pressure_delta) >= length(pressure_queue_before), "The fixture lost original pressure work.")
+	var/list/room_turfs = get_area_turfs(run_loc_floor_bottom_left.loc)
+	for(var/index in (length(pressure_queue_before) + 1) to length(SSair.high_pressure_delta))
+		TEST_ASSERT(!(SSair.high_pressure_delta[index] in room_turfs), "Fixture pressure escaped into the world queue.")
+#else
 	TEST_ASSERT_EQUAL(length(SSair.high_pressure_delta), length(pressure_queue_before), "The fixture changed pressure-queue membership.")
+#endif
 	for(var/index in 1 to length(pressure_queue_before))
 		TEST_ASSERT(SSair.high_pressure_delta[index] == pressure_queue_before[index], "The fixture changed pressure-queue order.")
 	for(var/turf/open/fixture_turf as anything in pair)

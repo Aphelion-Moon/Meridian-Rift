@@ -1,7 +1,11 @@
-/** Verifies SSair recovery preserves DM state without replacing service-owned atmosphere state. */
+/** Verifies SSair recovery preserves DM state without replacing native atmosphere state. */
 /datum/unit_test/dogmos_ssair_recovery
 	/// Synthetic recovery fields must never be used by subsequent live IPC or test teardown.
 	var/list/recovery_air_state
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	/// Restore the live registration owner even if a recovery assertion aborts.
+	var/recovery_gases_registered
+#endif
 	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/recovery_dogmos_state
 	*/ // APHELION EDIT REMOVAL END
@@ -9,20 +13,28 @@
 	var/datum/controller/subsystem/dogmos/recovery_test_copy/recovered_dogmos
 
 /datum/unit_test/dogmos_ssair_recovery/Run()
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	TEST_ASSERT(SSdogmos.gases_registered, "Native gases were not registered before recovery.")
+	TEST_ASSERT_EQUAL(dogmos_in_process_identity(), DOGMOS_IN_PROCESS_IDENTITY, "Native identity did not match the generated bindings.")
+#else
 	if(!SSdogmos.service_ready || !dogmos_service_health())
 		return Fail("dogmosd was not healthy before the SSair recovery test.", __FILE__, __LINE__)
+#endif
 	TEST_ASSERT(dogmos_wait_for_stage_boundary(), "Recovery fixture could not reach a healthy stage boundary.")
 	var/datum/controller/subsystem/air/original_air = SSair
 	var/original_air_initialized = SSair.initialized
 	var/list/original_adjacent_rebuild = SSair.adjacent_rebuild
 	var/list/air_recovery_fields = list(
+		"currentpart", "times_fired", // APHELION EDIT ADDITION - DOGMOS
 		"equalize_enabled", "kennel_slow_mode", "kennel_high_cost_ms_threshold",
 		"kennel_push_cursor", "active_turfs_walk_cursor", "recent_breaches", "active_turfs",
 		"kennel_jump_targets", "kennel_jump_target_counts", "can_fire",
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_frontier_epoch", "dogmos_stage_epoch", "dogmos_pending_stage",
 		"dogmos_async_stages", "dogmos_job", "dogmos_job_last_poll_tick", // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_pending_frontier_epoch", "dogmos_committed_frontier",
 		"dogmos_stage_remaining_estimate", "dogmos_stage_work_limit",
+#endif
 		"dogmos_active_turf_stages_complete", "dogmos_fdm_steps_completed",
 		"dogmos_equalize_stage_complete", // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_active_walk_complete", "dogmos_visual_refresh_cursor", "dogmos_visual_refresh_batch", // APHELION EDIT ADDITION - DOGMOS
@@ -31,10 +43,12 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		"dogmos_machine_prefetch_start", "dogmos_machine_prefetch_end", "dogmos_machine_prefetch_cursor",
 		"dogmos_machine_prefetch_air_cursor", "dogmos_machine_prefetch_ready", "dogmos_machine_prefetch_mixtures",
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 		"dogmos_frontier_source", "dogmos_frontier_revision", "dogmos_frontier_upload_epoch",
 		"dogmos_frontier_journal", "dogmos_frontier_needs_rescan", "dogmos_frontier_candidate",
 		"dogmos_frontier_retired", "dogmos_frontier_scan_revision", "dogmos_frontier_scan_cursor",
 		"dogmos_frontier_scan_total", "dogmos_frontier_sync_pending", "dogmos_frontier_upload_cursor",
+#endif
 		// APHELION EDIT ADDITION END
 	)
 	recovery_air_state = list()
@@ -43,8 +57,10 @@
 	SSair.can_fire = FALSE
 
 	var/datum/controller/subsystem/dogmos/original_dogmos = SSdogmos
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	var/original_service_pid = dogmos_service_pid()
 	var/list/original_world_generation = dogmos_service_world_generation()
+#endif
 	var/list/original_active_turfs = SSair.active_turfs
 	var/turf/jump_target = run_loc_floor_bottom_left
 	var/jump_key = REF(jump_target)
@@ -54,6 +70,7 @@
 	SSair.kennel_high_cost_ms_threshold = 7.5
 	SSair.kennel_push_cursor = 3
 	SSair.active_turfs_walk_cursor = 25
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	SSair.dogmos_frontier_epoch = list(1, 2, 3, 4)
 	SSair.dogmos_stage_epoch = list(5, 6, 7, 8)
 	SSair.dogmos_pending_stage = 4
@@ -70,6 +87,13 @@
 	SSair.dogmos_job.committed_unit = list(7, 9, 10, 65535)
 	SSair.dogmos_job.committed_counts = list(11, 12, 13, 14, 15, 16, 17, 18)
 	SSair.dogmos_job_last_poll_tick = world.time
+	// APHELION EDIT ADDITION END
+#endif
+	// APHELION EDIT ADDITION START - DOGMOS
+	SSair.dogmos_active_turf_stages_complete = TRUE
+	SSair.dogmos_fdm_steps_completed = 2
+	SSair.currentpart = SSAIR_HIGHPRESSURE
+	SSair.times_fired = 123
 	// APHELION EDIT ADDITION END
 	SSair.dogmos_equalize_stage_complete = TRUE // APHELION EDIT ADDITION - DOGMOS
 	// APHELION EDIT ADDITION START - DOGMOS
@@ -104,6 +128,7 @@
 	SSair.dogmos_machine_prefetch_air_cursor = 257
 	SSair.dogmos_machine_prefetch_ready = FALSE
 	SSair.dogmos_machine_prefetch_mixtures = list(sentinel)
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	SSair.dogmos_frontier_upload_epoch = list(9, 10, 11, 12)
 	SSair.dogmos_frontier_upload_cursor = 512
 	SSair.dogmos_frontier_candidate = list(jump_target)
@@ -112,21 +137,29 @@
 	// APHELION EDIT ADDITION END
 	var/sentinel_slot = sentinel.dogmos_slot
 	var/sentinel_generation = sentinel.dogmos_generation
+#endif
+
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	var/sentinel_pointer = sentinel._extools_pointer_gasmixture
+#endif
 
 	// Exercise the production Recover payload without deleting the instance held
 	// by the running Master's cached scheduler lists.
 	recovered_air = new
 	recovered_air.Recover()
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	TEST_ASSERT(isnull(recovered_air.dogmos_frontier_upload_cursor), "Recovery retained an upload cursor without its captured revision.") // APHELION EDIT ADDITION - DOGMOS
 	// APHELION EDIT ADDITION START - DOGMOS
 	TEST_ASSERT(recovered_air.dogmos_async_stages, "SSair recovery changed the boot-selected job mode.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_job, SSair.dogmos_job, "SSair recovery lost exact job/publication ownership.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_job_last_poll_tick, SSair.dogmos_job_last_poll_tick, "SSair recovery would poll twice in the same tick.")
 	// APHELION EDIT ADDITION END
+#endif
 	TEST_ASSERT_EQUAL(recovered_air.initialized, original_air_initialized, "SSair recovery lost its completed initialization state.")
 
 	TEST_ASSERT_EQUAL(SSdogmos, original_dogmos, \
 		"SSair recovery replaced the authoritative Dogmos subsystem datum.")
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	TEST_ASSERT_EQUAL(dogmos_service_pid(), original_service_pid, \
 		"SSair recovery replaced the healthy dogmosd process.")
 	var/list/recovered_world_generation = dogmos_service_world_generation()
@@ -140,10 +173,14 @@
 		"SSair recovery changed the sentinel mixture slot.")
 	TEST_ASSERT_EQUAL(sentinel.dogmos_generation, sentinel_generation, \
 		"SSair recovery changed the sentinel mixture generation.")
+#endif
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	TEST_ASSERT_EQUAL(sentinel._extools_pointer_gasmixture, sentinel_pointer, "SSair recovery changed the native mixture handle.")
+#endif
 	TEST_ASSERT_EQUAL(sentinel.return_temperature(), 321.5, \
-		"SSair recovery changed the service-owned sentinel temperature.")
+		"SSair recovery changed the native sentinel temperature.")
 	TEST_ASSERT_EQUAL(sentinel.get_moles(/datum/gas/oxygen), 7.25, \
-		"SSair recovery changed the service-owned sentinel oxygen amount.")
+		"SSair recovery changed the native sentinel oxygen amount.")
 
 	TEST_ASSERT_EQUAL(recovered_air.equalize_enabled, FALSE, \
 		"SSair recovery did not retain the equalization setting.")
@@ -175,6 +212,7 @@
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_machine_prefetch_mixtures[1], sentinel, "Recovery lost the bounded pending mixture request.")
 	recovered_air.dogmos_clear_machinery_prefetch()
 	TEST_ASSERT_EQUAL(length(SSair.dogmos_machine_prefetch_mixtures), 1, "Recovered machinery scratch aliases the old subsystem.")
+#ifndef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
 	TEST_ASSERT(recovered_air.dogmos_frontier_needs_rescan, "Recovery did not schedule a bounded frontier reconciliation.")
 	TEST_ASSERT_EQUAL(length(recovered_air.dogmos_frontier_journal), 0, "Recovery trusted an incomplete membership journal.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_committed_frontier, SSair.dogmos_committed_frontier, "Recovery copied the world-sized acknowledged frontier.")
@@ -195,13 +233,34 @@
 		"SSair recovery did not retain the pending Dogmos work estimate.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_stage_work_limit, 128, \
 		"SSair recovery did not retain the Dogmos stage work limit.")
+#endif
 	// APHELION EDIT ADDITION START - DOGMOS
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_active_turf_stages_complete, TRUE, "Recovery repeated completed active-turf stages.")
+	TEST_ASSERT_EQUAL(recovered_air.dogmos_fdm_steps_completed, 2, "Recovery lost completed diffusion steps.")
+	TEST_ASSERT_EQUAL(recovered_air.currentpart, SSAIR_HIGHPRESSURE, "Recovery lost the active phase.")
+	TEST_ASSERT_EQUAL(recovered_air.times_fired, 123, "Recovery lost the cycle count.")
 	TEST_ASSERT_EQUAL(recovered_air.dogmos_equalize_stage_complete, TRUE, \
 		"SSair recovery lost completed equalization during a pressure continuation.")
 	// APHELION EDIT ADDITION END
 	TEST_ASSERT_EQUAL(recovered_air.resolve_kennel_jump_target(jump_key), jump_target, \
 		"SSair recovery did not rebuild the bounded Kennel jump-target index.")
 
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	recovered_dogmos = new
+	recovered_dogmos.ss_flags &= ~SS_NO_INIT
+	recovery_gases_registered = SSdogmos.gases_registered
+	recovered_dogmos.Recover()
+	// Restore the scheduled owner's flag before any assertion can return from Run().
+	var/source_released = !SSdogmos.gases_registered
+	SSdogmos.gases_registered = recovery_gases_registered
+	var/destination_adopted = recovered_dogmos.gases_registered
+	recovered_dogmos.gases_registered = FALSE
+	TEST_ASSERT(source_released && destination_adopted, "Native recovery did not transfer registration ownership.")
+	TEST_ASSERT_EQUAL(SSdogmos, original_dogmos, "Recovery replaced the scheduled Dogmos subsystem.")
+	TEST_ASSERT(recovered_dogmos.ss_flags & SS_NO_INIT, "Recovery would repeat native initialization.")
+	TEST_ASSERT_EQUAL(recovered_dogmos.initialized, original_dogmos.initialized, "Native recovery lost initialization state.")
+	TEST_ASSERT_EQUAL(sentinel._extools_pointer_gasmixture, sentinel_pointer, "Dogmos recovery changed the native mixture handle.")
+#else
 	// APHELION EDIT ADDITION START - DOGMOS
 	// Copy an explicit test inventory into an inert source: adoption must never revoke
 	// the running owner's registry or expose synthetic queue entries to live IPC.
@@ -326,6 +385,7 @@
 		TEST_ASSERT_EQUAL(original_dogmos.vars[field_name], original_dogmos_state[field_name], \
 			"The inert recovery fixture changed the live owner's [field_name].")
 		// APHELION EDIT ADDITION END
+#endif
 	TEST_ASSERT_EQUAL(sentinel.return_temperature(), 321.5, \
 		"Dogmos recovery invalidated the sentinel mixture temperature.")
 	TEST_ASSERT_EQUAL(sentinel.get_moles(/datum/gas/oxygen), 7.25, \
@@ -341,13 +401,23 @@
 	TEST_ASSERT(dogmos_run_fixture_stage(4, list(jump_target)), "Recovered atmosphere state could not execute a real native stage after fixture cleanup.")
 	// Direct native calls bypass the Master scheduler. A natural completed cycle
 	// additionally proves the fixture has not detached the live subsystem.
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	dogmos_restore_fixture_scheduling()
+#endif
 	var/times_fired_before = SSair.times_fired
 	var/deadline = world.time + 60 SECONDS
 	while(SSair.times_fired == times_fired_before && world.time < deadline)
 		sleep(SSair.wait)
-	TEST_ASSERT(SSair.times_fired > times_fired_before, "Atmospherics did not complete a naturally scheduled cycle after the recovery fixture (phase [SSair.currentpart], walk [SSair.active_turfs_walk_cursor]/[length(SSair.dogmos_visual_refresh_batch)], prefetch [SSair.dogmos_walk_prefetch_end], visuals [SSair.dogmos_visual_refresh_cursor], stage [SSair.dogmos_pending_stage]).")
+	TEST_ASSERT(SSair.times_fired > times_fired_before, "Atmospherics did not complete a naturally scheduled cycle after the recovery fixture (phase [SSair.currentpart], walk [SSair.active_turfs_walk_cursor]/[length(SSair.dogmos_visual_refresh_batch)], prefetch [SSair.dogmos_walk_prefetch_end], visuals [SSair.dogmos_visual_refresh_cursor]).")
 
 /datum/unit_test/dogmos_ssair_recovery/proc/restore_recovery_state()
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	if(!isnull(recovery_gases_registered))
+		SSdogmos.gases_registered = recovery_gases_registered
+		recovery_gases_registered = null
+	if(recovered_dogmos)
+		recovered_dogmos.gases_registered = FALSE
+#endif
 	QDEL_NULL(recovered_air)
 	QDEL_NULL(recovered_dogmos)
 	/* // APHELION EDIT REMOVAL START - DOGMOS
@@ -362,6 +432,10 @@
 /datum/unit_test/dogmos_ssair_recovery/restore_atmos()
 	// RunUnitTest restores gas before Destroy(), including after an assertion aborts Run().
 	restore_recovery_state()
+#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+	if(!dogmos_fixture_aborted && isnull(dogmos_fixture_can_fire))
+		dogmos_wait_for_stage_boundary()
+#endif
 	return ..()
 
 /datum/unit_test/dogmos_ssair_recovery/Destroy()
