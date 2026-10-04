@@ -1,0 +1,335 @@
+[
+  {
+    "family": "list",
+    "size": 0,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 616448.0,
+    "bytes_per_object": 51.370666666666665,
+    "metric": "private_commit_bytes",
+    "artifact": "list-0-0/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 0,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 610304.0,
+    "bytes_per_object": 50.858666666666664,
+    "metric": "private_commit_bytes",
+    "artifact": "list-0-1/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 0,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 675840.0,
+    "bytes_per_object": 56.32,
+    "metric": "private_commit_bytes",
+    "artifact": "list-0-2/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 8,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 2117632.0,
+    "bytes_per_object": 176.46933333333334,
+    "metric": "private_commit_bytes",
+    "artifact": "list-8-0/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 8,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 1974272.0,
+    "bytes_per_object": 164.52266666666668,
+    "metric": "private_commit_bytes",
+    "artifact": "list-8-1/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 8,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 2056192.0,
+    "bytes_per_object": 171.34933333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "list-8-2/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 32,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 4395008.0,
+    "bytes_per_object": 366.2506666666667,
+    "metric": "private_commit_bytes",
+    "artifact": "list-32-0/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 32,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 4292608.0,
+    "bytes_per_object": 357.71733333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "list-32-1/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 32,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 4403200.0,
+    "bytes_per_object": 366.93333333333334,
+    "metric": "private_commit_bytes",
+    "artifact": "list-32-2/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 128,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 13873152.0,
+    "bytes_per_object": 1156.096,
+    "metric": "private_commit_bytes",
+    "artifact": "list-128-0/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 128,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 13836288.0,
+    "bytes_per_object": 1153.024,
+    "metric": "private_commit_bytes",
+    "artifact": "list-128-1/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 128,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 13864960.0,
+    "bytes_per_object": 1155.4133333333334,
+    "metric": "private_commit_bytes",
+    "artifact": "list-128-2/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 64,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 7561216.0,
+    "bytes_per_object": 630.1013333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "list-64-0/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 64,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 7692288.0,
+    "bytes_per_object": 641.024,
+    "metric": "private_commit_bytes",
+    "artifact": "list-64-1/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 64,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 7548928.0,
+    "bytes_per_object": 629.0773333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "list-64-2/telemetry.json"
+  },
+  {
+    "family": "assoc",
+    "size": 32,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 20934656.0,
+    "bytes_per_object": 1744.5546666666667,
+    "metric": "private_commit_bytes",
+    "artifact": "assoc-32-0/telemetry.json"
+  },
+  {
+    "family": "assoc",
+    "size": 32,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 20832256.0,
+    "bytes_per_object": 1736.0213333333334,
+    "metric": "private_commit_bytes",
+    "artifact": "assoc-32-1/telemetry.json"
+  },
+  {
+    "family": "assoc",
+    "size": 32,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 21151744.0,
+    "bytes_per_object": 1762.6453333333334,
+    "metric": "private_commit_bytes",
+    "artifact": "assoc-32-2/telemetry.json"
+  },
+  {
+    "family": "alist",
+    "size": 32,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 16605184.0,
+    "bytes_per_object": 1383.7653333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "alist-32-0/telemetry.json"
+  },
+  {
+    "family": "alist",
+    "size": 32,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 16510976.0,
+    "bytes_per_object": 1375.9146666666666,
+    "metric": "private_commit_bytes",
+    "artifact": "alist-32-1/telemetry.json"
+  },
+  {
+    "family": "alist",
+    "size": 32,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 16801792.0,
+    "bytes_per_object": 1400.1493333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "alist-32-2/telemetry.json"
+  },
+  {
+    "family": "shrink",
+    "size": 128,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 13836288.0,
+    "bytes_per_object": 1153.024,
+    "metric": "private_commit_bytes",
+    "artifact": "shrink-128-0/telemetry.json",
+    "after_shrink_delta_bytes": 1269760.0
+  },
+  {
+    "family": "shrink",
+    "size": 128,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 13852672.0,
+    "bytes_per_object": 1154.3893333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "shrink-128-1/telemetry.json",
+    "after_shrink_delta_bytes": 1294336.0
+  },
+  {
+    "family": "shrink",
+    "size": 128,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 13836288.0,
+    "bytes_per_object": 1153.024,
+    "metric": "private_commit_bytes",
+    "artifact": "shrink-128-2/telemetry.json",
+    "after_shrink_delta_bytes": 1314816.0
+  },
+  {
+    "family": "datum_empty",
+    "size": 0,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 684032.0,
+    "bytes_per_object": 57.00266666666667,
+    "metric": "private_commit_bytes",
+    "artifact": "datum_empty-0-0/telemetry.json"
+  },
+  {
+    "family": "datum_empty",
+    "size": 0,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 864256.0,
+    "bytes_per_object": 72.02133333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "datum_empty-0-1/telemetry.json"
+  },
+  {
+    "family": "datum_empty",
+    "size": 0,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 847872.0,
+    "bytes_per_object": 70.656,
+    "metric": "private_commit_bytes",
+    "artifact": "datum_empty-0-2/telemetry.json"
+  },
+  {
+    "family": "datum_fields",
+    "size": 0,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 770048.0,
+    "bytes_per_object": 64.17066666666666,
+    "metric": "private_commit_bytes",
+    "artifact": "datum_fields-0-0/telemetry.json"
+  },
+  {
+    "family": "datum_fields",
+    "size": 0,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 831488.0,
+    "bytes_per_object": 69.29066666666667,
+    "metric": "private_commit_bytes",
+    "artifact": "datum_fields-0-1/telemetry.json"
+  },
+  {
+    "family": "datum_fields",
+    "size": 0,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 856064.0,
+    "bytes_per_object": 71.33866666666667,
+    "metric": "private_commit_bytes",
+    "artifact": "datum_fields-0-2/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 96,
+    "count": 12000,
+    "repetition": 0,
+    "delta_bytes": 10727424.0,
+    "bytes_per_object": 893.952,
+    "metric": "private_commit_bytes",
+    "artifact": "list-96-0/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 96,
+    "count": 12000,
+    "repetition": 1,
+    "delta_bytes": 10805248.0,
+    "bytes_per_object": 900.4373333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "list-96-1/telemetry.json"
+  },
+  {
+    "family": "list",
+    "size": 96,
+    "count": 12000,
+    "repetition": 2,
+    "delta_bytes": 10682368.0,
+    "bytes_per_object": 890.1973333333333,
+    "metric": "private_commit_bytes",
+    "artifact": "list-96-2/telemetry.json"
+  }
+]

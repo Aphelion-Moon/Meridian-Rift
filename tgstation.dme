@@ -10209,4 +10209,7 @@
 #include "modular_nova\modules\xenomorph\alien.dm"
 #include "modular_nova\modules\xenomorph\queen.dm"
 #include "modular_nova\modules\zubbers_taur\code\taur.dm"
+// APHELION EDIT ADDITION START - MEMORY_PROFILER
+#include "modular_aphelion\modules\memory_profiler\code\integration.dm"
+// APHELION EDIT ADDITION END
 // END_INCLUDE

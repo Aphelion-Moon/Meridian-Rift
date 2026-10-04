@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "model_id": "byond-516.1687-nt-fresh-list-v2",
+  "byond": "516.1687",
+  "os": "MS Windows",
+  "architecture": "x86",
+  "metric": "private_commit_bytes",
+  "families": [
+    {
+      "kind": "list",
+      "intercept": 103.19644444444447,
+      "slope": 8.21231746031746,
+      "min_length": 8,
+      "max_length": 128,
+      "supported": true
+    },
+    {
+      "kind": "list",
+      "intercept": 51.370666666666665,
+      "slope": 0,
+      "min_length": 0,
+      "max_length": 0,
+      "supported": true,
+      "basis": "Three independent empty-list populations; empirical equivalent, not a capacity guarantee."
+    }
+  ],
+  "holdout_size": 96,
+  "holdout_relative_errors": [
+    0.002654593719885766,
+    0.009837900285208766,
+    0.0015520011685656824
+  ],
+  "calibration_sha256": "0d850840ed690d2a3013924d67ed7b844c0da5de0d49b1a5f8430c531c7008e8",
+  "limitations": "Fresh null-filled lists, process-private-commit delta/population; allocator/page rounding, no confidence interval, historical capacity unknown. Datum/associative rows are family-specific observations, not universal coefficients."
+}

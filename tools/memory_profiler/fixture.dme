@@ -1,0 +1,4 @@
+#define MEMORY_CAPTURE_DELETED(value) FALSE
+#define MEMORY_CAPTURE_EXCLUDED(value) FALSE
+#include "../../modular_aphelion/modules/memory_profiler/code/capture.dm"
+#include "fixture.dm"
