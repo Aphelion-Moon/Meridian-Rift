@@ -722,11 +722,12 @@ SUBSYSTEM_DEF(air)
 			return
 
 
-/** Requests native heat work; only the service backend reports a resumable synchronous stage. */ // APHELION EDIT CHANGE - DOGMOS
+/** Requests native heat work and resumes the same stage when the backend defers it. */ // APHELION EDIT CHANGE - DOGMOS
 /datum/controller/subsystem/air/proc/process_super_conductivity(resumed = FALSE)
 	// APHELION EDIT ADDITION START - DOGMOS
 #ifdef DOGMOS_IN_PROCESS
-	process_turf_heat()
+	if(process_turf_heat())
+		pause_until_next_tick()
 #else
 	if(process_turf_heat())
 		pause()

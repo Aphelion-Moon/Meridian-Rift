@@ -1,11 +1,24 @@
 {
   "artifacts": {
-    "dogmos-source-snapshot.json": "afaa3befb9af6f971c6b26c08f46b7242835980cd3f2b8b5b7ec6f7c428592e9",
-    "dogmos.dll": "6e9a06a13fc15ce8f0a637a41743ff8a6c6fe5a1bf2777853ae0fe8139048f6a",
-    "dogmos.pdb": "28dfabff4089e53709658f5fe6f5824cd06d6f9a53e1fee29e77c17b1d1ec38c",
-    "dogmos_bindings.dm": "4220fc4ac35859b43d058fc42864b62a470cb4d3f1eed2a6b51c25728d18aced"
+    "dogmos-source-snapshot.json": "0b80847081016760b14dcb52c0cc641d0c7dce18f78b79b81bf8968d5c0b6fc7",
+    "dogmos.dll": "fd8b478ffd02ca1191ca311383cfe4ffb072545b62085893e09f89dc7f9e871b",
+    "dogmos.pdb": "1b403060a5677cbff6feb37d98b09c9284c1d6ab1c571a483bbbf59e344c4df3",
+    "dogmos_bindings.dm": "4a6eb971f4a1e3646ab07a2b10bedf15107d0111896e4ac1de6c874667b406a0"
   },
   "backend": "in-process",
+  "build_provenance": {
+    "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "cpu_requirements": [],
+    "flag_sha256": {},
+    "linker": {
+      "artifact_pe_linker_version": "14.51",
+      "command": null,
+      "selection": "cargo-rustc-configuration",
+      "version": null
+    },
+    "profile_override_sha256": {},
+    "rustc_verbose": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-pc-windows-msvc\nrelease: 1.98.0\nLLVM version: 22.1.8"
+  },
   "cargo_arguments": [
     "+1.98.0",
     "build",
@@ -32,8 +45,8 @@
   "kind": "unqualified-in-process-playtest",
   "runtime_qualified": false,
   "schema_version": 1,
-  "source_revision": "9d3d2c16078ffe9e462c554a76f6f705dc1c69cb",
-  "source_sha256": "afaa3befb9af6f971c6b26c08f46b7242835980cd3f2b8b5b7ec6f7c428592e9",
+  "source_revision": "28a1fdb53559afc8e5d551f29371025acf1440ba",
+  "source_sha256": "0b80847081016760b14dcb52c0cc641d0c7dce18f78b79b81bf8968d5c0b6fc7",
   "target": "i686-pc-windows-msvc",
   "tests_run": false,
   "toolchain": "1.98.0"

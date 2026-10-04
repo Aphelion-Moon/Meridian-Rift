@@ -185,6 +185,17 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:set_volume_hook_ffi")
 	return call_ext(loaded)(src, vol_arg)
 
+/// Atomically loads a complete gas string. Invalid input leaves the mixture unchanged.
+/datum/gas_mixture/proc/__auxtools_parse_gas_string(string)
+	var/static/loaded = load_ext(DOGMOS, "byond:parse_gas_string_ffi")
+	return call_ext(loaded)(src, string)
+
+/// Classifies the live adjacency without constructing three temporary DM lists per visit.
+/// Numerical locks are released before invoking DM's ordinary neighbor/machinery wake path.
+/datum/controller/subsystem/air/proc/__turf_settled(turf)
+	var/static/loaded = load_ext(DOGMOS, "byond:turf_settled_hook_ffi")
+	return call_ext(loaded)(src, turf)
+
 /// Clears the gas mixture my removing all of its gases.
 /datum/gas_mixture/proc/clear()
 	var/static/loaded = load_ext(DOGMOS, "byond:clear_hook_ffi")
@@ -221,6 +232,22 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:mark_immutable_hook_ffi")
 	return call_ext(loaded)(src)
 
+/// On-demand, bounded generic eligibility only; never executes a reaction body.
+/datum/gas_mixture/proc/dogmos_explain_reactions()
+	var/static/loaded = load_ext(DOGMOS, "byond:dogmos_explain_reactions_ffi")
+	return call_ext(loaded)(src)
+
+/// Read-only loaded-build report. A loaded identity does not assert runtime qualification.
+/proc/dogmos_in_process_capabilities()
+	var/static/loaded = load_ext(DOGMOS, "byond:dogmos_in_process_capabilities_ffi")
+	return call_ext(loaded)()
+
+/// Read-only, per-turf batch. Returns source immutability followed by neighbor states:
+/// 0 = matching, 1 = differing immutable, 2 = differing mutable. No state is cached.
+/datum/gas_mixture/proc/__settlement_batch(neighbors)
+	var/static/loaded = load_ext(DOGMOS, "byond:settlement_batch_hook_ffi")
+	return call_ext(loaded)(src, neighbors)
+
 /// Refreshes the reaction cache after DM changes the reaction table.
 /datum/controller/subsystem/air/proc/auxtools_update_reactions()
 	var/static/loaded = load_ext(DOGMOS, "byond:update_reactions_ffi")
@@ -232,7 +259,7 @@
 	return call_ext(loaded)(gas_data)
 
 /// Returns Dogmos' Rust-side operation and arena telemetry as JSON. Process memory is sampled
-/// externally so DreamDaemon and any future Dogmos service remain separate measurements.
+/// externally to measure complete DreamDaemon memory.
 /proc/dogmos_perf_snapshot()
 	var/static/loaded = load_ext(DOGMOS, "byond:dogmos_perf_snapshot_ffi")
 	return call_ext(loaded)()
@@ -359,12 +386,7 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:compare_hook_ffi")
 	return call_ext(loaded)(src, other)
 
-/// Returns: true. Parses gas strings like "o2=2500;plasma=5000;TEMP=370" and turns src mixes into the parsed gas mixture, invalid patterns will be ignored
-/datum/gas_mixture/proc/__auxtools_parse_gas_string(string)
-	var/static/loaded = load_ext(DOGMOS, "byond:parse_gas_string_ffi")
-	return call_ext(loaded)(src, string)
-
-/// Samples the host directly without scanning the gas arena or claiming a service is running.
+/// Samples the host directly without scanning the gas arena.
 /proc/dogmos_in_process_metrics()
 	var/static/loaded = load_ext(DOGMOS, "byond:dogmos_in_process_metrics_ffi")
 	return call_ext(loaded)()
@@ -383,6 +405,17 @@
 	var/static/loaded = load_ext(DOGMOS, "byond:hook_infos_ffi")
 	return call_ext(loaded)(src, _max_x, _max_y)
 
+/// Updates the visual overlays for the given turf.
+/// Will use a cached overlay list if one exists.
+///
+/// Gas overlays are indexed by gas id, plane offset, and visibility factor because each z-level uses
+/// a distinct render plane. The overlay objects are shared with the DM gas metadata.
+/// # Errors
+/// If auxgm wasn't implemented properly or there's an invalid gas mixture.
+/turf/open/proc/__update_dogmos_visuals()
+	var/static/loaded = load_ext(DOGMOS, "byond:update_visuals_ffi")
+	return call_ext(loaded)(src)
+
 /datum/controller/subsystem/air/proc/process_turf_heat()
 	var/static/loaded = load_ext(DOGMOS, "byond:process_heat_notify_ffi")
 	return call_ext(loaded)(src)
@@ -400,6 +433,25 @@
 	return call_ext(loaded)(src)
 
 #define DOGMOS_IN_PROCESS
+#define DOGMOS_FUSION_PROFILE_VERSION 1
+#define DOGMOS_FUSION_MIN_MOLES 250
+#define DOGMOS_FUSION_MIN_TEMPERATURE 10000
+#define DOGMOS_FUSION_MAX_TEMPERATURE 100000000
+#define DOGMOS_FUSION_MAX_VOLUME 1000000
+#define DOGMOS_FUSION_MAX_MOLES 1000000000
+#define DOGMOS_FUSION_STEP_DECISECONDS 20
+#define DOGMOS_FUSION_FUEL_PER_STEP 1
+#define DOGMOS_FUSION_TOROID_THRESHOLD 5.96
+#define DOGMOS_FUSION_GAS_POWER_FACTOR 3
+#define DOGMOS_FUSION_BINDING_ENERGY 20000000
+#define DOGMOS_FUSION_ENDOTHERMAL_THRESHOLD 2
+#define DOGMOS_FUSION_WASTE_COEFFICIENT 0.002
+#define DOGMOS_FUSION_SCALE_DIVISOR 10
+#define DOGMOS_FUSION_MIN_SCALE 50
+#define DOGMOS_FUSION_BASE_TEMP_SCALE 6
+#define DOGMOS_FUSION_SLOPE_DIVISOR 1250
+#define DOGMOS_FUSION_MAX_ENERGY_FRACTION 0.25
+#define DOGMOS_FUSION_NATIVE_AVAILABLE 1
 
 // Local in-process build identity; generated with the matching DLL.
-#define DOGMOS_IN_PROCESS_IDENTITY "in-process:afaa3befb9af6f971c6b26c08f46b7242835980cd3f2b8b5b7ec6f7c428592e9"
+#define DOGMOS_IN_PROCESS_IDENTITY "in-process:0b80847081016760b14dcb52c0cc641d0c7dce18f78b79b81bf8968d5c0b6fc7"
