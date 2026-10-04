@@ -7,6 +7,8 @@
 	var/test_volume = 70
 	var/test_track = 'sound/music/lobby_music/title2.ogg'
 	var/stop_during_query = FALSE
+	var/volume_during_query = FALSE
+	var/capture_state = FALSE
 
 /datum/lobby_music_player/test/is_enabled()
 	return test_enabled
@@ -20,7 +22,7 @@
 /datum/lobby_music_player/test/resolve_track()
 	return test_track
 
-/datum/lobby_music_player/test/wait_for_music()
+/datum/lobby_music_player/test/wait_for_music(request)
 	return
 
 /datum/lobby_music_player/test/query_sound()
@@ -28,6 +30,9 @@
 	if(stop_during_query)
 		stop_during_query = FALSE
 		stop()
+	if(volume_during_query)
+		volume_during_query = FALSE
+		update_volume()
 	return result
 
 /datum/lobby_music_player/test/send_sound(sound/music)
@@ -41,7 +46,8 @@
 		active_sound = music.file ? music : null
 
 /datum/lobby_music_player/test/send_state()
-	return
+	if(capture_state)
+		return ..()
 
 /datum/unit_test/lobby_music_transitions/Run()
 	var/datum/client_interface/owner = allocate(/datum/client_interface)
@@ -86,6 +92,11 @@
 	player.test_volume = 60
 	player.update_volume()
 	TEST_ASSERT_NULL(player.active_sound, "Changing volume undid an explicit stop.")
+	player.test_volume = 0
+	player.update_volume()
+	player.test_volume = 60
+	player.update_volume()
+	TEST_ASSERT_NULL(player.active_sound, "Muting and unmuting undid an explicit stop.")
 	player.play()
 	TEST_ASSERT(player.active_sound, "Play did not resume stopped music.")
 	player.test_volume = 0
@@ -100,6 +111,14 @@
 	player.stop_during_query = TRUE
 	player.play(restart = TRUE)
 	TEST_ASSERT_NULL(player.active_sound, "An older asynchronous play request overrode a newer stop.")
+	player.test_in_lobby = FALSE
+	player.volume_during_query = TRUE
+	player.play()
+	TEST_ASSERT(player.active_sound, "A volume change cancelled an in-game play request.")
+	player.test_track = 'sound/music/lobby_music/title2.ogg'
+	player.volume_during_query = TRUE
+	player.play(restart = TRUE)
+	TEST_ASSERT_EQUAL(player.active_sound.file, player.test_track, "A volume change cancelled a track selection.")
 	player.test_enabled = FALSE
 	player.play()
 	TEST_ASSERT_NULL(player.active_sound, "Server-disabled title music still played.")
@@ -112,6 +131,46 @@
 
 /datum/lobby_music_catalog/test/server_track()
 	return test_server_track
+
+/datum/client_interface/lobby_music_test
+	var/datum/lobby_music_panel_test/tgui_panel
+
+/datum/client_interface/lobby_music_test/Destroy(force)
+	tgui_panel = null
+	prefs = null
+	return ..()
+
+/// Capture the transport boundary while exercising the real state-query coalescing.
+/datum/lobby_music_panel_test
+	var/datum/lobby_music_window_test/window
+
+/datum/lobby_music_panel_test/proc/is_ready()
+	return TRUE
+
+/datum/lobby_music_window_test
+	var/list/states = list()
+
+/datum/lobby_music_window_test/proc/send_message(type, list/payload)
+	if(type == "audio/lobby/state")
+		states += list(payload)
+
+/datum/unit_test/lobby_music_state/Run()
+	var/datum/client_interface/lobby_music_test/owner = allocate(/datum/client_interface/lobby_music_test)
+	owner.prefs = allocate(/datum/preferences, owner)
+	owner.tgui_panel = allocate(/datum/lobby_music_panel_test)
+	var/datum/lobby_music_window_test/window = allocate(/datum/lobby_music_window_test)
+	owner.tgui_panel.window = window
+	var/datum/lobby_music_catalog/test/catalog = allocate(/datum/lobby_music_catalog/test)
+	var/datum/lobby_music_player/test/player = allocate(/datum/lobby_music_player/test, owner, catalog)
+	player.play()
+	player.capture_state = TRUE
+	player.stop_during_query = TRUE
+	player.send_state()
+	TEST_ASSERT_EQUAL(length(window.states), 1, "A stop during a pending state query did not send replacement state.")
+	var/list/state = window.states[1]
+	TEST_ASSERT(!state["playing"], "A stale state query reported playback after stopping.")
+	TEST_ASSERT(!player.state_pending, "The completed query left future state updates blocked.")
+	TEST_ASSERT_NULL(player.active_sound, "Refreshing the stopped state resumed playback.")
 
 /datum/unit_test/lobby_music_preferences/Run()
 	var/datum/client_interface/owner = allocate(/datum/client_interface)

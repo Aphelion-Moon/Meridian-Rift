@@ -58,8 +58,9 @@
 /datum/lobby_music_player/proc/send_sound(sound/music)
 	SEND_SOUND(client, music)
 
-/datum/lobby_music_player/proc/wait_for_music()
-	UNTIL(SSticker.login_music)
+/datum/lobby_music_player/proc/wait_for_music(request = null)
+	// A missing server song must not strand controls or disconnected clients in this wait.
+	UNTIL(QDELETED(src) || !client || (!isnull(request) && request != request_id) || SSticker.login_music || SSticker.initialized)
 
 /// Returning to the lobby resumes an existing track; only explicit restart or a new selection replaces it.
 /datum/lobby_music_player/proc/play(restart = FALSE, new_volume_multiplier = 1)
@@ -70,7 +71,7 @@
 	if(!is_enabled())
 		stop(manual = FALSE)
 		return
-	wait_for_music()
+	wait_for_music(request)
 	if(QDELETED(src) || !client || request != request_id)
 		return
 	var/track = resolve_track()
@@ -102,7 +103,8 @@
 
 /datum/lobby_music_player/proc/update_volume()
 	set waitfor = FALSE
-	var/request = ++request_id
+	// Volume edits use the latest preference without cancelling a pending play/selection.
+	var/request = request_id
 	var/sound/playing = query_sound()
 	if(QDELETED(src) || !client || request != request_id)
 		return
@@ -118,7 +120,7 @@
 
 /datum/lobby_music_player/proc/stop(manual = TRUE)
 	request_id++
-	manually_stopped = manual
+	manually_stopped ||= manual
 	current_track = null
 	if(client)
 		send_sound(sound(null, channel = CHANNEL_LOBBYMUSIC))
@@ -138,7 +140,11 @@
 	var/track = resolve_track()
 	var/sound/playing = query_sound()
 	state_pending = FALSE
-	if(QDELETED(src) || !client || request != request_id)
+	if(QDELETED(src) || !client)
+		return
+	if(request != request_id)
+		// A control action may have requested state while this query was pending.
+		send_state()
 		return
 	if(playing && in_lobby() && current_track != track)
 		// Refreshing the open controls also applies a stale-choice fallback while in the lobby.

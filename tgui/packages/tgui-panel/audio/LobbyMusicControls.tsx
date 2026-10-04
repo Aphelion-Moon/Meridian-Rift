@@ -32,7 +32,6 @@ export function LobbyMusicControls() {
               searchInput
               width="100%"
               maxItems={8}
-              menuWidth="100%"
               disabled={!music.enabled}
               selected={music.selected}
               displayText={
