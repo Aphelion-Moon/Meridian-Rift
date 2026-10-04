@@ -12,6 +12,7 @@ from typing import Any
 
 HEX_40 = re.compile(r"^[0-9a-f]{40}$")
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
+IN_PROCESS_TOOLCHAIN = "1.98.0"
 EXPECTED_ARTIFACTS = {
     ("linux", "service"): ("x86_64-unknown-linux-gnu", "x86_64", "elf"),
     ("linux", "shim"): ("i686-unknown-linux-gnu", "i686", "elf"),
@@ -332,7 +333,7 @@ def validate_in_process_manifest(manifest: dict[str, Any]) -> None:
             or manifest.get("kind") != "unqualified-in-process-playtest"
             or manifest.get("backend") != "in-process"
             or manifest.get("target") != "i686-pc-windows-msvc"
-            or manifest.get("toolchain") != "1.98.0"
+            or manifest.get("toolchain") != IN_PROCESS_TOOLCHAIN
             or manifest.get("tests_run") is not False
             or manifest.get("runtime_qualified") is not False):
         raise ContractError("unsupported in-process play-test contract")
@@ -343,7 +344,7 @@ def validate_in_process_manifest(manifest: dict[str, Any]) -> None:
                 "superconductivity", "turf_processing"]
     if manifest.get("features") != features:
         raise ContractError("in-process feature selection differs from the play-test contract")
-    arguments = ["+1.98.0", "build", "-p", "dogmos", "--lib", "--example", "generate_bindings",
+    arguments = [f"+{IN_PROCESS_TOOLCHAIN}", "build", "-p", "dogmos", "--lib", "--example", "generate_bindings",
                  "--release", "--locked", "--target", "i686-pc-windows-msvc",
                  "--no-default-features", "--features", ",".join(features)]
     if manifest.get("cargo_arguments") != arguments:
