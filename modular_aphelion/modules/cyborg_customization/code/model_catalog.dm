@@ -48,21 +48,18 @@
 /// Cached descriptors contain resources and copied lists only; temporary models have no host.
 /proc/cyborg_model_catalog()
 	var/static/list/catalogs = list()
-	var/list/models = cyborg_appearance_models()
-	var/cache_key = models.Join("|")
+	var/cache_key = "[CONFIG_GET(flag/disable_peaceborg)]|[CONFIG_GET(flag/disable_secborg)]"
 	if(catalogs[cache_key])
 		return catalogs[cache_key]
 	var/list/catalog = list()
-	for(var/department in models)
-		var/obj/item/robot_model/model_type = models[department]
+	for(var/department, model_type in cyborg_appearance_models())
 		// BYOND initial() returns null for list-valued instance initializers.
 		// The existing null-location model path skips tools/storage/robot registrations.
 		// Medical/miner Initialize overrides only append type paths before that guard.
 		var/obj/item/robot_model/snapshot = new model_type(null)
 		var/list/skins = deep_copy_list(snapshot.borg_skins)
 		qdel(snapshot)
-		for(var/skin in skins)
-			var/list/details = skins[skin]
+		for(var/skin, details in skins)
 			// Ignore malformed declarations without manufacturing a playable skin.
 			if(!istext(skin) || !islist(details) || !istext(details[SKIN_ICON_STATE]))
 				continue
@@ -99,8 +96,7 @@
 		return null
 	var/list/catalog = cyborg_model_catalog()
 	var/match
-	for(var/id in catalog)
-		var/list/descriptor = catalog[id]
+	for(var/id, descriptor in catalog)
 		if(LOWER_TEXT(alias) != LOWER_TEXT("[descriptor["department"]]#[descriptor["skin"]]") && LOWER_TEXT(alias) != LOWER_TEXT(descriptor["icon_state"]))
 			continue
 		if(match)

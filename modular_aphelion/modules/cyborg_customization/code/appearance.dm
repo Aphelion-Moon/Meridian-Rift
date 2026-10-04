@@ -51,7 +51,10 @@
 		robot.cyborg_appearance_arousal = list()
 	robot.cyborg_appearance_owner = robot.ckey
 	robot.cyborg_appearance_slot = preferences.default_slot
-	robot.cyborg_appearance_store = cyborg_layout_copy(current)
+	robot.cyborg_appearance_store = list(
+		"active" = cyborg_layout_copy(current["active"]),
+		"model_defaults" = cyborg_layout_copy(current["model_defaults"]),
+	)
 	robot.cyborg_appearance_choices = list()
 	for(var/slot in cyborg_layout_supported_slots())
 		robot.cyborg_appearance_choices[slot] = cyborg_preference_value(preferences, "silicon_[slot]_sprite")

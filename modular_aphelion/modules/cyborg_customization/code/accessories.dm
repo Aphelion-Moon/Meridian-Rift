@@ -113,13 +113,13 @@
 	var/static/list/states_by_icon = list()
 	var/static/cache_bytes = 0
 	var/effective_size = cyborg_accessory_effective_size(slot, choice, cyborg_layout_sprite_size(sprite_size, slot))
-	var/cache_key = "[slot]|[choice]|[json_encode(colors)]|[arousal]|[direction]|[effective_size]"
-	if(cache[cache_key])
-		return cache[cache_key]
 	var/list/direct_catalog = cyborg_direct_accessories(slot)
 	var/list/direct = direct_catalog[choice]
 	if(direct)
 		return cyborg_direct_accessory_render(direct, colors, arousal, direction, effective_size)
+	var/cache_key = "[slot]|[choice]|[colors.Join(",")]|[arousal]|[direction]|[effective_size]"
+	if(cache[cache_key])
+		return cache[cache_key]
 	var/datum/sprite_accessory/genital/accessory = SSaccessories.sprite_accessories[slot]?[choice]
 	if(!istype(accessory) || !accessory.factual || !accessory.icon)
 		return null

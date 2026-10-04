@@ -72,14 +72,18 @@
 /proc/cyborg_layout_normalize_entry(raw, allow_legacy_aliases = FALSE, slot = null)
 	if(!islist(raw))
 		return cyborg_layout_default_entry(slot)
-	var/list/entry = cyborg_layout_default_entry(slot)
-	entry["pixel_x"] = cyborg_layout_number(raw["pixel_x"], CYBORG_LAYOUT_MIN_PIXEL_OFFSET, CYBORG_LAYOUT_MAX_PIXEL_OFFSET, 0, 1)
-	entry["pixel_y"] = cyborg_layout_number(raw["pixel_y"], CYBORG_LAYOUT_MIN_PIXEL_OFFSET, CYBORG_LAYOUT_MAX_PIXEL_OFFSET, 0, 1)
-	entry["rotation"] = cyborg_layout_number(raw["rotation"], CYBORG_LAYOUT_MIN_ROTATION, CYBORG_LAYOUT_MAX_ROTATION, 0, 1)
-	entry["scale"] = cyborg_layout_number(raw["scale"], CYBORG_LAYOUT_MIN_SCALE, CYBORG_LAYOUT_MAX_SCALE, 1, 0.05)
-	entry["sprite_size"] = cyborg_layout_sprite_size(raw["sprite_size"], slot)
-	entry["mirror_sides"] = isnull(raw["mirror_sides"]) ? TRUE : !!raw["mirror_sides"]
-	entry["reuse_south"] = !!raw["reuse_south"]
+	var/list/entry = list(
+		"pixel_x" = cyborg_layout_number(raw["pixel_x"], CYBORG_LAYOUT_MIN_PIXEL_OFFSET, CYBORG_LAYOUT_MAX_PIXEL_OFFSET, 0, 1),
+		"pixel_y" = cyborg_layout_number(raw["pixel_y"], CYBORG_LAYOUT_MIN_PIXEL_OFFSET, CYBORG_LAYOUT_MAX_PIXEL_OFFSET, 0, 1),
+		"rotation" = cyborg_layout_number(raw["rotation"], CYBORG_LAYOUT_MIN_ROTATION, CYBORG_LAYOUT_MAX_ROTATION, 0, 1),
+		"scale" = cyborg_layout_number(raw["scale"], CYBORG_LAYOUT_MIN_SCALE, CYBORG_LAYOUT_MAX_SCALE, 1, 0.05),
+		"sprite_size" = cyborg_layout_sprite_size(raw["sprite_size"], slot),
+		"mirror_sides" = isnull(raw["mirror_sides"]) ? TRUE : !!raw["mirror_sides"],
+		"reuse_south" = !!raw["reuse_south"],
+		"placement_groups" = list(),
+		"colors" = list(),
+		"advanced" = cyborg_layout_normalize_advanced(raw["advanced"], allow_legacy_aliases),
+	)
 	if(istext(raw["sprite"]) && length_char(raw["sprite"]) <= 100)
 		entry["sprite"] = raw["sprite"]
 	var/list/groups = raw["placement_groups"]
@@ -94,11 +98,9 @@
 				"rotation" = cyborg_layout_number(position["rotation"], CYBORG_LAYOUT_MIN_ROTATION, CYBORG_LAYOUT_MAX_ROTATION, entry["rotation"], 1),
 			)
 	var/list/raw_colors = raw["colors"]
-	entry["colors"] = list()
 	for(var/index in 1 to 3)
 		var/color = islist(raw_colors) && length(raw_colors) >= index ? raw_colors[index] : null
 		entry["colors"] += cyborg_layout_color(color)
-	entry["advanced"] = cyborg_layout_normalize_advanced(raw["advanced"], allow_legacy_aliases)
 	return entry
 
 /proc/cyborg_layout_normalize_advanced(raw, allow_legacy_aliases = FALSE)
@@ -168,8 +170,14 @@
 	var/version = raw["schema_version"]
 	if(!isnull(version) && (!isnum(version) || version > CYBORG_LAYOUT_SCHEMA_VERSION))
 		return cyborg_layout_default()
-	var/list/normalized = cyborg_layout_default()
-	normalized["active"] = cyborg_layout_normalize_slots(raw["active"], allow_legacy_aliases)
+	var/list/normalized = list(
+		"schema_version" = CYBORG_LAYOUT_SCHEMA_VERSION,
+		"active" = cyborg_layout_normalize_slots(raw["active"], allow_legacy_aliases),
+		"presets" = list(),
+		"preset_models" = list(),
+		"model_presets" = list(),
+		"model_defaults" = list(),
+	)
 	var/list/raw_presets = raw["presets"]
 	// Only accepted raw names may supply references or metadata after canonicalization.
 	var/list/preset_names = list()

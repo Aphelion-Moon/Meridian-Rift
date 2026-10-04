@@ -4,6 +4,11 @@
 /datum/preferences/cyborg_save_failure_test
 	parent_type = /datum/preferences/preferences_import_test
 	var/fail_layout_stage = FALSE
+	var/save_preferences_calls = 0
+
+/datum/preferences/cyborg_save_failure_test/save_preferences()
+	save_preferences_calls++
+	return ..()
 
 /datum/preferences/cyborg_save_failure_test/write_preference(datum/preference/preference, preference_value)
 	if(fail_layout_stage && istype(preference, /datum/preference/cyborg_layout))
@@ -175,7 +180,7 @@
 
 /datum/unit_test/cyborg_model_default_parts_and_runtime_usage/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
-	var/datum/preferences/preferences = create_preferences(robot)
+	var/datum/preferences/cyborg_save_failure_test/preferences = create_preferences(robot, /datum/preferences/cyborg_save_failure_test)
 	preferences.default_slot = 2
 	preferences.savefile.remove_entry("character2")
 	preferences.value_cache -= /datum/preference/cyborg_layout
@@ -209,11 +214,50 @@
 	TEST_ASSERT(!robot.cyborg_runtime_action(list("operation" = "place", "slot" = "penis", "x" = 100, "y" = 100, "character_slot" = 2, "context" = middleware.context_generation), robot), "Runtime placement must be rejected server-side.")
 	TEST_ASSERT_EQUAL(json_encode(robot.cyborg_appearance_layout), before, "Rejected runtime editing must leave layout untouched.")
 	TEST_ASSERT(robot.cyborg_runtime_action(list("operation" = "activate", "slot" = "penis", "value" = FALSE, "character_slot" = 2, "context" = middleware.context_generation), robot), "Usage controls must allow hiding configured parts.")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/see_cyborg_genitalia], FALSE)
+	var/revision = robot.cyborg_appearance_revision
+	var/image/unchanged_image = robot.cyborg_appearance_holder.shown_image
+	var/saves = preferences.save_preferences_calls
+	for(var/repeat in 1 to 10)
+		robot.cyborg_runtime_action(list("operation" = "activate", "slot" = "penis", "value" = FALSE, "character_slot" = 2), robot)
+		robot.cyborg_runtime_action(list("operation" = "arousal", "slot" = "penis", "value" = "none", "character_slot" = 2), robot)
+		robot.cyborg_runtime_action(list("operation" = "viewer", "value" = FALSE, "character_slot" = 2), robot)
+	TEST_ASSERT_EQUAL(robot.cyborg_appearance_revision, revision, "Identical usage controls rebuilt native appearance.")
+	TEST_ASSERT(robot.cyborg_appearance_holder.shown_image == unchanged_image, "Identical usage controls replaced the image.")
+	TEST_ASSERT_EQUAL(preferences.save_preferences_calls, saves, "Identical viewer controls wrote the whole preference file.")
 	apply_cyborg_customization(robot, preferences, "login")
 	TEST_ASSERT(!robot.cyborg_appearance_active["penis"], "Reconnect must preserve an explicit hidden state.")
 	TEST_ASSERT_EQUAL(robot.cyborg_appearance_choices["penis"], "Dogborg Knotted", "Reconnect must preserve the model's saved sprite.")
 	TEST_ASSERT(middleware.edit_layout(list("operation" = "load_default", "character_slot" = 2, "context" = middleware.context_generation), robot), "Creator must load the saved default.")
 	TEST_ASSERT_EQUAL(preferences.read_preference(/datum/preference/choiced/cyborg_sprite/penis), "Dogborg Knotted", "Loading a default must restore the sprite selector too.")
+	middleware.set_preview(list("context" = middleware.context_generation, "model" = model_id), null)
+	middleware.commit_draft()
+	var/draft_revision = middleware.draft_revision
+	middleware.set_preview(list("context" = middleware.context_generation, "model" = model_id), null)
+	TEST_ASSERT_EQUAL(middleware.draft_revision, draft_revision, "Selecting the current model created another draft revision.")
+	TEST_ASSERT(!middleware.dirty && !middleware.draft_timer, "Selecting the current model scheduled another save.")
+
+/datum/unit_test/cyborg_action_snapshot_isolation/Run()
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	var/list/store = cyborg_layout_default()
+	store["active"]["penis"]["pixel_x"] = 9
+	store["presets"]["Original"] = cyborg_layout_copy(store["active"])
+	store["preset_models"]["Original"] = model_id
+	store["model_defaults"][model_id] = cyborg_layout_copy(store["active"])
+	store["model_presets"][model_id] = "Original"
+	var/before = json_encode(store)
+	for(var/operation in list("set", "reset_position", "reset_colors", "reset_overrides", "reset", "save", "load", "delete", "assign_default", "save_default", "load_default", "delete_default"))
+		var/list/params = list("operation" = operation, "slot" = "penis", "name" = "Original", "overwrite" = TRUE, "field" = "colors", "value" = list("#123456"))
+		var/list/next = cyborg_layout_action(store, params, model_id)["store"]
+		TEST_ASSERT(next, "Valid [operation] failed during ownership regression.")
+		TEST_ASSERT_EQUAL(json_encode(store), before, "[operation] mutated the previous draft.")
+		var/list/edited = cyborg_layout_action(next, list("operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 31)), model_id)["store"]
+		TEST_ASSERT(edited, "Placement after [operation] was rejected.")
+		TEST_ASSERT_EQUAL(json_encode(store), before, "Placement after [operation] leaked through a shared branch.")
+		if(edited["presets"]["Original"])
+			TEST_ASSERT_NULL(edited["presets"]["Original"]["penis"]["placement_groups"]["south"], "Placement after [operation] mutated a saved preset.")
+		if(edited["model_defaults"][model_id])
+			TEST_ASSERT_NULL(edited["model_defaults"][model_id]["penis"]["placement_groups"]["south"], "Placement after [operation] mutated a saved default.")
 
 /datum/unit_test/cyborg_creator_draft_lifecycle/Run()
 	var/datum/preferences/preferences = create_preferences()
@@ -792,7 +836,15 @@
 	robot.pixel_x = robot.base_pixel_x
 	robot.base_pixel_z = descriptor["pixel_y"]
 	robot.pixel_z = robot.base_pixel_z
+	var/list/draft = preferences.cyborg_session().begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 11
+	var/other_model = cyborg_appearance_model_id(/obj/item/robot_model/service, "Drake")
+	var/list/other_default = cyborg_layout_copy(draft["active"])
+	other_default["penis"]["pixel_x"] = 22
+	draft["model_defaults"][other_model] = other_default
+	draft["presets"]["Editor only"] = cyborg_layout_copy(draft["active"])
 	apply_cyborg_customization(robot, preferences, "spawn")
+	TEST_ASSERT_NULL(robot.cyborg_appearance_store["presets"], "Spawn retained the editor's unused preset library.")
 	var/starting_size = robot.cyborg_appearance_requested_size
 	var/datum/preference_middleware/cyborg_character/editor = new(preferences)
 	allocated += editor
@@ -838,6 +890,19 @@
 	TEST_ASSERT_EQUAL(holder.animation_image.plane, current_plane, "A plane transition left the movement carrier behind.")
 	TEST_ASSERT(length(holder.shown_image.filters), "A plane transition discarded the native animation filter.")
 	TEST_ASSERT_EQUAL(holder.shown_image.filters[1]:size, 127, "A plane transition changed animation displacement.")
+	draft["active"]["penis"]["pixel_x"] = 88
+	other_default["penis"]["pixel_x"] = 99
+	QDEL_NULL(robot.model)
+	robot.model = new /obj/item/robot_model/service(robot)
+	robot.model.cyborg_customization_skin = "Drake"
+	robot.cyborg_customization_refresh_model()
+	TEST_ASSERT_EQUAL(robot.cyborg_appearance_layout["penis"]["pixel_x"], 22, "Switching chassis read later editor edits instead of the spawn default snapshot.")
+	TEST_ASSERT(robot.cyborg_runtime_data()["model_default"], "The projected snapshot lost its runtime model-default badge.")
+	QDEL_NULL(robot.model)
+	robot.model = new /obj/item/robot_model/engineering(robot)
+	robot.model.cyborg_customization_skin = "Drake"
+	robot.cyborg_customization_refresh_model()
+	TEST_ASSERT_EQUAL(robot.cyborg_appearance_layout["penis"]["pixel_x"], 11, "Switching back lost the original fallback snapshot.")
 
 /datum/unit_test/cyborg_inspect_portrait_bounds/Run()
 	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()

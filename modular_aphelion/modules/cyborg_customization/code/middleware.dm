@@ -75,7 +75,7 @@
 			preview_layout_source = "active"
 		preview_model = params["model"]
 		var/list/draft = begin_draft()
-		if(draft)
+		if(draft && draft["active_model"] != preview_model)
 			draft["active_model"] = preview_model
 			update_draft(draft)
 		preview_pose = "idle"
@@ -93,8 +93,8 @@
 	if(!isnull(params["gallery_open"]))
 		gallery_open = params["gallery_open"] == TRUE
 	if(istext(params["gallery_department"]))
-		for(var/id in catalog)
-			if(catalog[id]["department"] == params["gallery_department"])
+		for(var/id, model in catalog)
+			if(model["department"] == params["gallery_department"])
 				gallery_department = params["gallery_department"]
 				break
 	var/previous_source = preview_layout_source
@@ -139,7 +139,8 @@
 		status_message = "This slot contains a newer layout schema. Its saved data has been preserved."
 		return TRUE
 	if(params["operation"] in list("save", "save_default"))
-		store = deep_copy_list(store)
+		store = store.Copy()
+		store["active"] = deep_copy_list(store["active"])
 		for(var/part_slot in cyborg_layout_supported_slots())
 			store["active"][part_slot]["sprite"] = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
 	var/list/result = cyborg_layout_action(store, params, preview_model)
@@ -247,15 +248,11 @@
 	preview_resources = null
 	resource_key = null
 
-/// Creator layout action protocol; the middleware owns slot and actor checks.
+/** Creator action protocol; the middleware owns slot and actor checks.
+ * The result takes over draft ownership. Unchanged branches may be shared with
+ * the old draft; mutation copies its branch, and saved/body snapshots stay deep copies.
+ */
 /proc/cyborg_layout_action(list/store, list/params, model_id)
-	// Owned session data is canonical; copying must not renormalize every preset.
-	var/list/next = store.Copy()
-	next["active"] = deep_copy_list(store["active"])
-	// Collections only replace whole snapshots, so copying their indices is sufficient.
-	for(var/key in list("presets", "preset_models", "model_presets", "model_defaults"))
-		var/list/collection = store[key]
-		next[key] = collection.Copy()
 	var/message = "Working setup updated."
 	var/restored_model
 	var/operation = params["operation"]
@@ -267,8 +264,30 @@
 		return list("message" = "Choose a valid layout slot.")
 	if(operation == "reset" && !isnull(slot) && !(slot in cyborg_layout_supported_slots()))
 		return list("message" = "Choose a valid layout slot.")
+	// Copy collection indices only for operations that replace their snapshots.
+	var/list/collections
+	switch(operation)
+		if("save")
+			collections = list("presets", "preset_models", "model_presets", "model_defaults")
+		if("delete")
+			collections = list("presets", "preset_models", "model_presets")
+		if("assign_default")
+			collections = list("preset_models", "model_presets", "model_defaults")
+		if("save_default", "delete_default")
+			collections = list("model_presets", "model_defaults")
+		else
+			if(!(operation in list("set", "set_placement", "nudge_placement", "inherit_placement", "reset", "reset_position", "reset_colors", "reset_overrides", "load", "load_default")))
+				return list("message" = "Unknown layout action.")
+	var/list/next = store.Copy()
+	for(var/key in collections)
+		var/list/collection = store[key]
+		next[key] = collection.Copy()
+	// Six slot references are cheap; copy the selected entry only when editing it.
+	var/list/active = store["active"]
+	next["active"] = active.Copy()
 	switch(operation)
 		if("set_placement", "nudge_placement", "inherit_placement")
+			next["active"][slot] = deep_copy_list(active[slot])
 			if(!cyborg_layout_apply_placement(next["active"][slot], params, cyborg_model_catalog()[model_id]))
 				return list("message" = "Invalid placement target or values. Refresh the editor and try again.")
 		if("set")
@@ -283,17 +302,25 @@
 				for(var/color in params["value"])
 					if(!istext(color) || length(color) > 9)
 						return list("message" = "Choose valid colors.")
-			next["active"][slot][field] = params["value"]
-			next["active"][slot] = cyborg_layout_normalize_entry(next["active"][slot], slot = slot)
+			var/list/entry = active[slot]
+			entry = entry.Copy()
+			entry[field] = params["value"]
+			next["active"][slot] = cyborg_layout_normalize_entry(entry, slot = slot)
 		if("reset_position")
+			var/list/entry = active[slot]
+			next["active"][slot] = entry.Copy()
 			next["active"][slot]["placement_groups"] = list()
 			next["active"][slot]["pixel_x"] = 0
 			next["active"][slot]["pixel_y"] = 0
 			next["active"][slot]["rotation"] = 0
 			next["active"][slot]["scale"] = 1
 		if("reset_colors")
+			var/list/entry = active[slot]
+			next["active"][slot] = entry.Copy()
 			next["active"][slot]["colors"] = list("#ffffff", "#ffffff", "#ffffff")
 		if("reset_overrides")
+			var/list/entry = active[slot]
+			next["active"][slot] = entry.Copy()
 			next["active"][slot]["advanced"] = list()
 		if("reset")
 			if(slot in cyborg_layout_supported_slots())
@@ -319,8 +346,8 @@
 				else
 					next["preset_models"] -= name
 				next["active_preset"] = name
-				for(var/assigned_model in next["model_presets"])
-					if(next["model_presets"][assigned_model] != name)
+				for(var/assigned_model, assigned_name in next["model_presets"])
+					if(assigned_name != name)
 						continue
 					if(assigned_model == model_id)
 						next["model_defaults"][assigned_model] = cyborg_layout_copy(presets[name])
@@ -342,8 +369,8 @@
 					next["preset_models"] -= name
 					if(next["active_preset"] == name)
 						next -= "active_preset"
-					for(var/assigned_model in next["model_presets"])
-						if(next["model_presets"][assigned_model] == name)
+					for(var/assigned_model, assigned_name in next["model_presets"])
+						if(assigned_name == name)
 							next["model_presets"] -= assigned_model
 					message = "Preset deleted."
 		if("assign_default")
@@ -607,8 +634,7 @@
 /** Regenerates only when a pixel dependency changes; existing global cache budgets still apply. */
 /datum/preference_middleware/cyborg_character/proc/build_resources(list/catalog, list/descriptor, list/preview_layout, layout_source, list/layers)
 	var/list/models = list()
-	for(var/id in catalog)
-		var/list/model_entry = catalog[id]
+	for(var/id, model_entry in catalog)
 		var/list/model = list("id" = id, "department" = model_entry["department"], "skin" = model_entry["skin"])
 		if(gallery_open && gallery_department && model_entry["department"] == gallery_department)
 			var/list/directions = list()

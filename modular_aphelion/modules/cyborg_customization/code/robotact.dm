@@ -35,7 +35,10 @@
 		return FALSE
 	if(operation == "viewer")
 		var/datum/preference/preference = GLOB.preference_entries[/datum/preference/toggle/see_cyborg_genitalia]
-		preferences.write_preference(preference, params["value"] == TRUE)
+		var/value = params["value"] == TRUE
+		if(preferences.read_preference(preference.type) == value && !preferences.savefile?.last_save_error)
+			return TRUE
+		preferences.write_preference(preference, value)
 		preferences.save_preferences()
 		for(var/obj/effect/client_image_holder/cyborg_customization/holder as anything in GLOB.cyborg_customization_holders)
 			holder.refresh_viewer(src)
@@ -48,8 +51,15 @@
 	if(!(slot in cyborg_layout_supported_slots()) || !cyborg_appearance_choices?[slot] || cyborg_appearance_choices[slot] == SPRITE_ACCESSORY_NONE)
 		return FALSE
 	if(operation == "activate")
-		cyborg_appearance_active[slot] = params["value"] == TRUE
+		var/value = params["value"] == TRUE
+		if(!!cyborg_appearance_active[slot] == value)
+			cyborg_customization_message = null
+			return TRUE
+		cyborg_appearance_active[slot] = value
 	else if((slot in list("penis", "testicles", "vagina", "breasts")) && (params["value"] in list("none", "partial", "full")))
+		if((cyborg_appearance_arousal[slot] || "none") == params["value"])
+			cyborg_customization_message = null
+			return TRUE
 		cyborg_appearance_arousal[slot] = params["value"]
 	else
 		return FALSE
