@@ -37,7 +37,7 @@
 			radio.talk_into(src, message, , spans, language, message_mods)
 			do_tts_message(message, language, message_mods, list(), list())
 		return NOPASS
-	else if(message_mods[RADIO_EXTENSION] in GLOB.default_radio_channels)
+	else if(message_mods[RADIO_EXTENSION] == MODE_DEPARTMENT || (message_mods[RADIO_EXTENSION] in GLOB.default_radio_channels)) // APHELION EDIT CHANGE - UPLINK_SHELLS - retain the shell's department radio shortcut - ORIGINAL: else if(message_mods[RADIO_EXTENSION] in GLOB.default_radio_channels)
 		if(radio)
 			radio.talk_into(src, message, message_mods[RADIO_EXTENSION], spans, language, message_mods)
 			do_tts_message(message, language, message_mods, list(), list())

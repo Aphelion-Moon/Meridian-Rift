@@ -45,7 +45,7 @@
 /obj/item/organ/cyberimp/arm/toolkit/toolset/uplink/Retract()
 	if(istype(active_item, /obj/item/weldingtool))
 		var/obj/item/weldingtool/welder = active_item
-		welder.set_welding(FALSE)
+		welder.switched_off()
 	return ..()
 
 /obj/item/organ/cyberimp/arm/toolkit/toolset/uplink/on_limb_detached(obj/item/bodypart/source)

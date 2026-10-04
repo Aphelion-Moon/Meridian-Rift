@@ -6,8 +6,8 @@
  * very similar to centcom_podlauncher in terms of how this is coded, so i kept a lot of comments from it
  */
 /datum/portrait_picker
-	/// Client of whoever is using this datum
-	var/client/holder
+	// APHELION EDIT REMOVAL - UPLINK_SHELLS - UI ownership already identifies the AI; its client may be in a shell.
+	// ORIGINAL: var/client/holder
 	/// The last input in the search tab.
 	var/search_string
 	/// Whether the search function will check the title of the painting or the author's name.
@@ -15,14 +15,15 @@
 	/// Stores the result of the search.
 	var/list/matching_paintings
 
-/datum/portrait_picker/New(user)//user can either be a client or a mob due to byondcode(tm)
-	if (istype(user, /client))
-		var/client/user_client = user
-		holder = user_client //if its a client, assign it to holder
-	else
-		var/mob/user_mob = user
-		holder = user_mob.client //if its a mob, assign the mob's client to holder
-
+// APHELION EDIT REMOVAL START - UPLINK_SHELLS - use the authoritative UI user instead of caching its client.
+// /datum/portrait_picker/New(user)
+// 	if (istype(user, /client))
+// 		var/client/user_client = user
+// 		holder = user_client
+// 	else
+// 		var/mob/user_mob = user
+// 		holder = user_mob.client
+// APHELION EDIT REMOVAL END
 /datum/portrait_picker/ui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
@@ -51,7 +52,7 @@
 	. = ..()
 	if(.)
 		return
-	if(!isAI(holder.mob))
+	if(!isAI(ui.user)) // APHELION EDIT CHANGE - UPLINK_SHELLS - ORIGINAL: if(!isAI(holder.mob))
 		qdel(src)
 		return
 	switch(action)
@@ -73,7 +74,7 @@
 				return
 			var/png = "data/paintings/images/[chosen_portrait.md5].png"
 			var/icon/portrait_icon = new(png)
-			var/mob/living/silicon/ai/ai = holder.mob
+			var/mob/living/silicon/ai/ai = ui.user // APHELION EDIT CHANGE - UPLINK_SHELLS - ORIGINAL: var/mob/living/silicon/ai/ai = holder.mob
 			var/w = portrait_icon.Width()
 			var/h = portrait_icon.Height()
 

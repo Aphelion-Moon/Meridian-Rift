@@ -399,6 +399,7 @@
 #include "~nova\symphony_whitelist.dm"
 #include "~nova\taur_tails.dm"
 #include "~nova\title_screen_settings.dm"
+#include "~nova\uplink_shells.dm"
 #include "~nova\world_topic_log_redaction.dm"
 // NOVA EDIT ADDITION END
 // END_INCLUDE

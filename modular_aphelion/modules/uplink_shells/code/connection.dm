@@ -39,30 +39,38 @@
 		return "Core network services require restored mains power. Physical Uplink control and safe return remain separate."
 	return null
 
-/mob/living/silicon/ai/proc/connect_shell(mob/living/target, obj/item/organ/brain/cybernetic/ai/brain)
+/** Shared by control requests and their UI; null means this endpoint can accept our mind now. */
+/mob/living/silicon/ai/proc/shell_connection_denial(mob/living/target, obj/item/organ/brain/cybernetic/ai/brain)
 	var/reason = shell_control_denial(target)
 	if(reason)
-		to_chat(uplink_player(), span_warning(reason))
-		return FALSE
+		return reason
 	if(shell_session || deployed_shell || !mind || mind.current != src || !client || target.mind || target.key || target.ai_shell_session)
-		return FALSE
+		return "Return to your AI core and ensure the target body is unoccupied before connecting."
 	if(brain)
 		if(brain.organ_flags & ORGAN_FAILING)
-			return FALSE
+			return "The Uplink brain needs repair before it can connect."
 		if(brain.personal_authorization_revoked)
-			return FALSE
+			return "This Uplink brain's personal authorization has been retired."
 		if(brain.personal_registry && !brain.personal_registry.authorize(target, brain, src))
-			return FALSE
+			return "This Uplink is not registered to your AI identity."
 		if(istype(target, /mob/living/carbon/human/uplink))
 			var/mob/living/carbon/human/uplink/body = target
 			if(!body.registry?.authorize(body, brain, src))
-				return FALSE
+				return "This body no longer has a valid personal Uplink binding."
 		if(brain.owner != target || brain.mainframe || (brain.connected_ai && brain.connected_ai != src) || !brain.is_sufficiently_augmented())
-			return FALSE
+			return "The Uplink requires an available brain and compatible synthetic organs."
 	else
 		var/mob/living/silicon/robot/robot = target
 		if(!istype(robot) || !robot.shell || robot.deployed || (robot.connected_ai && robot.connected_ai != src))
-			return FALSE
+			return "This cyborg shell is unavailable or belongs to another AI."
+	return null
+
+/** Transfer control only after the same checks used to explain availability in the UI. */
+/mob/living/silicon/ai/proc/connect_shell(mob/living/target, obj/item/organ/brain/cybernetic/ai/brain)
+	var/reason = shell_connection_denial(target, brain)
+	if(reason)
+		to_chat(uplink_player(), span_warning(reason))
+		return FALSE
 	var/datum/ai_shell_session/session = new(src, target, brain)
 	return session.start()
 
@@ -180,6 +188,11 @@
 		var/mob/living/silicon/robot/robot = endpoint
 		robot.deployed = FALSE
 		robot.undeployment_action.Remove(robot)
+		if(robot.lamp_enabled)
+			robot.toggle_headlamp(turn_off = TRUE)
+		robot.update_icons()
+		if(!QDELETED(robot.builtInCamera))
+			robot.builtInCamera.c_tag = robot.real_name
 		REMOVE_TRAIT(robot, TRAIT_LOUD_BINARY, REF(core))
 		robot.radio?.recalculateChannels()
 		robot.mainframe = null

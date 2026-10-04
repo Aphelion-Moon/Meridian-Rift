@@ -147,7 +147,7 @@
 		if(target.ai_click_alt(src) & CLICK_ACTION_ANY)
 			return
 
-	client.loot_panel.open(get_turf(target))
+	uplink_player().client?.loot_panel.open(get_turf(target)) // APHELION EDIT CHANGE - UPLINK_SHELLS - use the controlling player's loot panel - ORIGINAL: client.loot_panel.open(get_turf(target))
 
 
 /*

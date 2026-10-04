@@ -108,8 +108,9 @@
 		return "New Uplink issuance is disabled. Existing bodies may still return safely."
 	if(QDELETED(core) || core.stat == DEAD || core.uplink_registry != src)
 		return "Your authoritative AI core is offline."
-	if(core.shell_service_denial())
-		return core.shell_service_denial()
+	var/service_denial = core.shell_service_denial()
+	if(service_denial)
+		return service_denial
 	if(!viewer_valid(identity.current))
 		return "Delivery is ready but requires your connected AI identity."
 	return null
@@ -118,7 +119,11 @@
 	return body && personal_body?.resolve() == body && body.registry == src && !body.retired && body.registration_generation == registration_generation
 
 /datum/uplink_registry/proc/authorize(mob/living/carbon/human/uplink/body, obj/item/organ/brain/cybernetic/ai/brain, mob/living/silicon/ai/requester)
-	return !QDELETED(brain) && !QDELETED(requester) && is_current(body) && requester == core && core.stat != DEAD && bound_brain?.resolve() == brain && brain.owner == body && body.get_organ_slot(ORGAN_SLOT_BRAIN) == brain
+	if(QDELETED(identity) || QDELETED(brain) || QDELETED(requester) || requester != core || core.uplink_registry != src)
+		return FALSE
+	// A different mind occupying the same physical core does not inherit this allocation.
+	var/datum/mind/controller = core.shell_session?.identity || core.mind
+	return controller == identity && is_current(body) && core.stat != DEAD && bound_brain?.resolve() == brain && brain.owner == body && body.get_organ_slot(ORGAN_SLOT_BRAIN) == brain
 
 /// Surgery only refreshes availability; it never starts a control session.
 /datum/uplink_registry/proc/refresh_binding()
@@ -167,8 +172,6 @@
 		last_health = body.health
 	if(!low_charge)
 		low_charge_warned = FALSE
-	if(body.stat && body.ai_shell_session?.core == core)
-		body.ai_shell_session.finish("Uplink body incapacitated")
 	body.update_uplink_camera()
 
 /datum/uplink_registry/proc/body_deleted()
@@ -221,6 +224,10 @@
 	if(personal_body?.resolve())
 		last_status = "A personal shell is already registered. Retire it before requesting another."
 		return FALSE
+	// A blocked tile should neither discard a confirmed preview nor build a replacement in nullspace.
+	if(!core.find_uplink_delivery_turf())
+		last_status = "Delivery blocked: free a connected floor tile near your AI core, then retry. Your preview and allowance are unchanged."
+		return FALSE
 	if(initial_issue)
 		if(!candidate || !provisional_body || !candidate.matches_preferences(user.client.prefs) || candidate.include_loadout != include_loadout || (include_loadout && candidate.loadout_policy != candidate.loadout_policy_fingerprint(provisional_body, user.client)))
 			prepare(user)
@@ -270,8 +277,9 @@
 	if(!viewer_valid(user) || request_pending || issuing || loadout_outcome == UPLINK_LOADOUT_OPEN)
 		return
 	var/token = request_generation
-	var/confirmation = tgui_alert(user, "Accepting immediately retires your current personal shell and its camera/tools. Its body and possessions remain where they are. A baseline replacement becomes available after the retained deadline (normally five minutes). Repair and charging remain alternatives. Continue?", "Retire personal Uplink", list("Retire and replace", "Keep current shell"))
-	if(confirmation != "Retire and replace" || !viewer_valid(user) || token != request_generation || request_pending || delivery_denial())
+	var/wait_time = replacement_deadline ? max(0, replacement_deadline - world.time) : CONFIG_GET(number/uplink_replacement_delay)
+	var/confirmation = tgui_alert(user, "Accepting retires your current personal shell and disables its connection, camera and toolkit immediately. Its body and possessions remain where they are. A baseline replacement can arrive in [DisplayTimeText(wait_time)]. Canceling delivery will not undo retirement or restart this wait. Continue?", "Schedule Uplink replacement", list("Schedule replacement", "Cancel"))
+	if(confirmation != "Schedule replacement" || !viewer_valid(user) || token != request_generation || request_pending || delivery_denial())
 		return
 	var/mob/living/carbon/human/uplink/body = personal_body?.resolve()
 	if(body?.ai_shell_session?.core == core)
@@ -299,6 +307,8 @@
 	addtimer(CALLBACK(src, PROC_REF(replacement_ready), request_generation), max(0, replacement_deadline - world.time))
 	log_game("UPLINK replacement accepted identity=[REF(identity)] request=[request_generation] not_before=[replacement_deadline]")
 	last_status = "Personal registration retired. The replacement deadline survives cancellation and reconnect."
+	// Returning the mind closed its old UI; keep the accepted request visible in the receiving core.
+	ui_interact(identity.current)
 
 /datum/uplink_registry/proc/replacement_ready(token)
 	if(token != request_generation || !request_pending)
@@ -307,6 +317,8 @@
 		to_chat(identity.current, span_notice("Your replacement request is ready or blocked. Use Manage Uplink Shell to retry; the deadline is retained."))
 
 /datum/uplink_registry/proc/cancel_request()
+	if(!request_pending)
+		return
 	request_pending = FALSE
 	request_generation++
 	last_status = "Request canceled. Retirement and the accepted not-before deadline remain in force."
@@ -327,7 +339,30 @@
 
 /datum/uplink_registry/ui_data(mob/user)
 	var/mob/living/carbon/human/uplink/body = personal_body?.resolve()
-	return list("status" = last_status, "denial" = delivery_denial(), "loadout" = loadout_outcome, "includeLoadout" = include_loadout, "initial" = loadout_outcome == UPLINK_LOADOUT_OPEN, "pending" = request_pending, "remaining" = max(0, round((replacement_deadline - world.time) / 10)), "body" = body ? "[body] — [get_area_name(body)], integrity [round(body.health)]/[body.maxHealth], charge [round(body.nutrition / NUTRITION_LEVEL_FULL * 100)]%" : "No current personal body", "preview" = candidate?.preview_icon, "profile" = candidate?.profile_name, "preset" = candidate?.preset_name, "adjustments" = candidate?.adjustments, "core" = core ? "[core] — integrity [round(core.health)]/[core.maxHealth], backup [core.battery]/200" : "Core unavailable")
+	var/obj/item/organ/brain/cybernetic/ai/brain = bound_brain?.resolve()
+	var/controlling_shell = core?.shell_session?.matches()
+	return list(
+		"status" = last_status,
+		"denial" = delivery_denial(),
+		"loadout" = loadout_outcome,
+		"includeLoadout" = include_loadout,
+		"initial" = loadout_outcome == UPLINK_LOADOUT_OPEN,
+		"pending" = request_pending,
+		"replacementStarted" = !!replacement_deadline,
+		"replacementDelay" = CONFIG_GET(number/uplink_replacement_delay) / (1 SECONDS),
+		"remaining" = max(0, CEILING((replacement_deadline - world.time) / (1 SECONDS), 1)),
+		"hasBody" = !!body,
+		"controllingShell" = !!controlling_shell,
+		"control" = controlling_shell ? "[core.shell_session.endpoint]" : "AI core",
+		"connectionDenial" = body ? core?.shell_connection_denial(body, brain) : "Issue a personal shell first.",
+		"returnDenial" = controlling_shell ? core.shell_return_denial(identity) : null,
+		"body" = body ? "[body] — [get_area_name(body)], integrity [round(body.health)]/[body.maxHealth], charge [round(body.nutrition / NUTRITION_LEVEL_FULL * 100)]%" : "No current personal body",
+		"core" = core ? "[core] — integrity [round(core.health)]/[core.maxHealth], backup [core.battery]/200" : "Core unavailable",
+	)
+
+/** The body preview is immutable between preparations; do not resend its PNG on every status tick. */
+/datum/uplink_registry/ui_static_data(mob/user)
+	return list("preview" = candidate?.preview_icon, "profile" = candidate?.profile_name, "preset" = candidate?.preset_name, "adjustments" = candidate?.adjustments)
 
 /datum/uplink_registry/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
@@ -363,6 +398,8 @@
 				core.connect_shell(body, brain)
 		if("return")
 			core.shell_session?.finish("AI View", ai_view = TRUE)
+	if(action in list("label", "preview", "loadout", "issue"))
+		update_static_data(usr, ui, always_instant = TRUE)
 	return TRUE
 
 /datum/action/innate/manage_uplink

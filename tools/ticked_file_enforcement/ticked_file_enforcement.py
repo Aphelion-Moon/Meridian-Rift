@@ -85,7 +85,7 @@ for code_file in scannable_files:
     else:
         dm_path = os.path.basename(code_file)
         # NOVA EDIT START - Modular unit tests - have to append this again after it gets removed; this was not designed upstream with subfolders for unit tests in mind so we must cope.
-        if("~nova/" in code_file):
+        if("~nova/" in code_file.replace("\\", "/")): # APHELION EDIT - Normalize Windows glob separators.
             dm_path = "~nova\\" + dm_path
         # NOVA EDIT END
 

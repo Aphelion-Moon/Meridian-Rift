@@ -88,6 +88,13 @@
 		if(preference.type in simple_preferences)
 			preference.apply_to_human(body, preferences.read_preference(preference.type), preferences)
 		else if(preference.relevant_mutant_bodypart in cosmetic_parts)
+			if(istype(preference, /datum/preference/choiced/mutant_choice))
+				var/datum/preference/choiced/mutant_choice/choice = preference
+				var/value = choice.is_visible(body, preferences) ? preferences.read_preference(choice.type) : choice.create_default_value()
+				var/datum/mutant_bodypart/part = body.dna.mutant_bodyparts[choice.relevant_mutant_bodypart]
+				// Native preference application skips None; live edits must also hide an existing part.
+				if(part && value == SPRITE_ACCESSORY_NONE)
+					part.name = SPRITE_ACCESSORY_NONE
 			if(istype(preference, /datum/preference/choiced/mutant_choice) || istype(preference, /datum/preference/color/mutant) || istype(preference, /datum/preference/tri_color) || istype(preference, /datum/preference/tri_bool))
 				preference.apply_to_human(body, preferences.read_preference(preference.type), preferences)
 	body.dna.body_markings = deep_copy_list(preferences.body_markings)
@@ -103,11 +110,17 @@
 		REMOVE_TRAIT(body, TRAIT_USES_SKINTONES, "uplink_presentation")
 		ADD_TRAIT(body, TRAIT_MUTANT_COLORS, "uplink_presentation")
 	if(ispath(species_path, /datum/species/synthetic))
+		for(var/obj/item/bodypart/limb as anything in body.bodyparts)
+			if(limb.bodytype & BODYTYPE_SYNTHETIC)
+				limb.remove_color_override(LIMB_COLOR_SYNTH)
+				// Sprite IDs are presentation, not physiology; restore the native synthetic styling input.
+				limb.reset_appearance(update_owner = FALSE)
 		body.dna.species.apply_supplementary_body_changes(body, preferences, TRUE)
 	else
 		for(var/obj/item/bodypart/limb as anything in body.bodyparts)
 			if(!(limb.bodytype & BODYTYPE_SYNTHETIC))
 				continue
+			limb.remove_color_override(LIMB_COLOR_SYNTH)
 			var/obj/item/bodypart/style = presentation?.bodypart_overrides[limb.body_zone]
 			if(ispath(style, /obj/item/bodypart/leg) && (limb.bodyshape & BODYSHAPE_DIGITIGRADE))
 				var/obj/item/bodypart/leg/leg_style = style
@@ -130,8 +143,8 @@
 		for(var/obj/item/organ/organ as anything in body.organs)
 			if(organ.bodypart_overlay)
 				organ.bodypart_overlay.set_appearance_from_dna(body.dna, limb = organ.bodypart_owner)
-	body.update_body(is_creating = fresh)
-	body.update_body_parts()
+	// This refreshes render data on existing limbs; it does not create missing physical parts.
+	body.update_body(is_creating = TRUE)
 	body.update_hair()
 	body.apply_uplink_protections()
 

@@ -2,11 +2,9 @@
 
 Module ID: UPLINK_SHELLS
 
-Implementation baseline: `dd4b69bcc5f0d33a82b071d3f44fa75f332192f7`, branch `ai-roundstart-uplinks`.
-The supplied [amended workplan](workplan.md) is retained as design input. The user's
-execution instruction is development and compilation only; automated tests, live
-portability checks and the in-game acceptance matrix are deferred to the user.
-Compilation is not evidence of runtime acceptance or release qualification.
+The [amended workplan](workplan.md) records the feature's design contracts.
+Compilation and focused automated checks are separate from in-game acceptance
+and release qualification.
 
 ## Implementation contracts
 
@@ -92,22 +90,26 @@ TGUI retains the original core as the authority and sends its window to the curr
 shell client. UI actions, text/list/color/number/alert prompts and radial selections
 revalidate the originating session. Local network clicks run the existing AI click
 handler after the shell range/visibility check. Already committed native ability
-effects retain their existing timing and costs. Runtime portability and every
-operation-level acceptance check remain unverified until the user's test pass.
+effects retain their existing timing and costs. Service portability still needs
+in-game verification with an attached player client.
 
 ## Build and validation
 
 Repository entry point: `tools/build/build.bat`. `dm` compiles DM plus required icon
-and behavior-tree build inputs; the default build also compiles TGUI/fonts. Do not
-use `all`, `test`, `dm-test` or run a server during this implementation pass.
-New module `.dm` files require explicit `tgstation.dme` includes.
+and behavior-tree build inputs; the default build also compiles TGUI/fonts.
+New module `.dm` files require explicit `tgstation.dme` includes. Native regression
+coverage is in `code/modules/unit_tests/~nova/uplink_shells.dm`; the issuance and
+replacement UI tests are in `tgui/packages/tgui/interfaces/UplinkShell.test.tsx`.
+Run runtime checks in an isolated test world with external integrations disabled.
+The Windows build helper uses BYOND's `dd.exe` console runner so test execution
+waits for world shutdown and preserves its output.
 
 ## Rollout and recovery
 
 The feature is disabled by default. Uncomment `ENABLE_PERSONAL_UPLINK_SHELLS` in
 `config/game_options.txt` to permit issuance. `UPLINK_REPLACEMENT_DELAY` is in
 deciseconds (default 3000). Disabling issuance does not disable safe return or
-remove delivered bodies. No server has been started or configured for deployment.
+remove delivered bodies.
 
 Only the AI job spawn hook grants personal entitlement. The management action
 follows the mind through control transfers. A snapshot is built privately for
@@ -120,8 +122,10 @@ are copied from the old body.
 
 Replacement acceptance safely returns only an occupied personal endpoint, retires
 its registration immediately, and starts the retained deadline. Cancel/resubmit
-uses the same not-before time. A blocked delivery can be retried after clearing a
-connected floor tile in the core's area. A bounded flood search prefers a reachable
+uses the same not-before time, shown even when delivery is canceled. Management
+reopens at the core after retiring an occupied personal shell. A blocked delivery
+retains the prepared preview and can be retried after clearing a connected floor
+tile in the core's area. A bounded flood search prefers a reachable
 `/obj/effect/landmark/uplink_delivery`; no map files are changed. Map-specific
 clearance and practical exit routes still require the deferred in-game check.
 
@@ -162,33 +166,20 @@ mind need individual runtime qualification. Camera tracking and remote camera
 controls use normal AI View, not a shell renderer. Unsupported z-levels produce an
 explicit core-view fallback; same-region uncovered locations retain camera masks.
 
-## Validation record and shared-code scope
-
-Changes are uncommitted on `ai-roundstart-uplinks`; HEAD remains the baseline SHA
-above. There is no new implementation commit SHA yet. The workplan is design
-input, not authorization to deploy or run its testing phases.
-
-Source inspection covered registry/session boundaries, original cyborg deployment,
-brain removal, core damage/power/death, job allocation, loadout eligibility,
-synthetic organs/recharging, existing toolkit resources, TGUI ownership, AI click
-range, radio delivery and built-in HUD service entry points. Early structural DM
-compilation and an integrated default DM/TGUI build succeeded. The final compile
-command is `tools/build/build.bat dm tgui-tsc tgui`; its output is retained locally
-in `data/uplink-build/final-compile.log` (an ignored build artifact).
-Final result: exit 0; BYOND 516.1687 compiled DM with 0 errors and 0 warnings;
-TypeScript compilation and the Rspack TGUI bundle succeeded. `git diff --check`
-also passed. No test target was invoked.
+## Shared-code scope
 
 Shared hooks intentionally generalize `deployed_shell` and connect/return to living
 endpoints. Damage/mains-loss persistence applies to Uplink brain sessions, while
 ordinary cyborg failure policy remains. UI/radio adapters are conditional on active
 Uplink sessions; shuttle availability uses the active controlled player's client.
-Core-owned malf state survives shell transfers, and removal resolves its owner
+Alt-click inventory uses the active viewer's client; portrait actions use the
+authoritative AI UI owner even when its client controls a shell. Core radio
+forwarding accepts department channels. Core-owned malf state survives shell
+transfers, and removal resolves its owner
 back to the core. Loadout delivery adds an optional private container and corrects
 the existing per-item details lookup to use the selected preset's nested list.
 The AI job retains its existing initialization before granting the registry.
 
-No automated tests, DreamDaemon runtime, multiplayer portability probes, or AC-01
-through AC-17 acceptance scenarios have been run. All are deferred by the user's
-explicit instruction. Compilation establishes syntax/type/build compatibility,
-not runtime correctness, operation parity, visual accuracy or release acceptance.
+The full AC-01 through AC-17 acceptance matrix, multiplayer service portability,
+and measured gameplay performance require separate qualification. Focused checks
+do not establish those broader guarantees.
