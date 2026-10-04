@@ -3,16 +3,20 @@
 
 /// Slaps TRAIT_LOADOUT_POUCH_ITEM on whatever it's stuck to, so the loadout matrix can recognize its own stuff on sight.
 /datum/element/loadout_pouch_item
-	element_flags = ELEMENT_DETACH_ON_HOST_DESTROY
+	element_flags = ELEMENT_DETACH_ON_HOST_DESTROY|ELEMENT_BESPOKE
+	argument_hash_start_idx = 2
+	/// The originating matrix's reference string, without retaining the matrix.
+	var/matrix_signature
 
-/datum/element/loadout_pouch_item/Attach(datum/target)
+/datum/element/loadout_pouch_item/Attach(datum/target, matrix_signature)
 	. = ..()
 	if(!isitem(target))
 		return ELEMENT_INCOMPATIBLE
-	ADD_TRAIT(target, TRAIT_LOADOUT_POUCH_ITEM, ELEMENT_TRAIT(type))
+	src.matrix_signature = matrix_signature
+	ADD_TRAIT(target, TRAIT_LOADOUT_POUCH_ITEM, matrix_signature)
 
 /datum/element/loadout_pouch_item/Detach(datum/source)
-	REMOVE_TRAIT(source, TRAIT_LOADOUT_POUCH_ITEM, ELEMENT_TRAIT(type))
+	REMOVE_TRAIT(source, TRAIT_LOADOUT_POUCH_ITEM, matrix_signature)
 	return ..()
 
 // Empty abstract matrix. If you want it.
@@ -156,7 +160,7 @@
 	. = ..()
 	if(!.) // parent already said why - "too big!", "no room!", whatever - so don't talk over it
 		return
-	if(!HAS_TRAIT(to_insert, TRAIT_LOADOUT_POUCH_ITEM))
+	if(!HAS_TRAIT_FROM(to_insert, TRAIT_LOADOUT_POUCH_ITEM, REF(parent)))
 		if(messages && user)
 			user.balloon_alert(user, "not imprinted on this matrix!")
 		return FALSE

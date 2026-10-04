@@ -53,6 +53,16 @@
 	var/obj/item/storage/box/cache_pouch/erp/erpbox // NOVA EDIT CHANGE - PERSONAL_CACHE - ORIGINAL: var/obj/item/storage/box/erp/erpbox
 	var/obj/item/storage/box/cache_pouch/loadout/pouch // NOVA EDIT ADDITION - PERSONAL_CACHE
 	var/erp_enabled = !CONFIG_GET(flag/disable_erp_preferences)
+	// APHELION EDIT ADDITION START - PERSONAL_CACHE
+	// Spawn Cache selections after the outfit, retaining their exact instances so
+	// a matching stock tank or another loadout selection cannot be customized instead.
+	var/list/cache_selections = list()
+	if(!visuals_only)
+		for(var/datum/loadout_item/cache/item in loadout_datums)
+			if(item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only) && item.is_equippable(src, loadout_list?[item.item_path] || list()))
+				cache_selections += item
+	loadout_datums -= cache_selections
+	// APHELION EDIT ADDITION END
 	if(override_preference == LOADOUT_OVERRIDE_CASE && !visuals_only)
 		briefcase = new(loc)
 		for(var/datum/loadout_item/item as anything in loadout_datums)
@@ -73,7 +83,7 @@
 		equipOutfit(equipped_outfit, visuals_only)
 
 		var/obj/item/storage/box/survival/cache_box = locate(/obj/item/storage/box/survival) in get_all_gear()
-		var/pouch_in_hand = isnull(cache_box) || cache_box.cache_locked
+		var/pouch_in_hand = !istype(cache_box, /obj/item/storage/box/personal_cache) || cache_box.cache_locked
 		pouch = new /obj/item/storage/box/cache_pouch/loadout(pouch_in_hand ? loc : cache_box)
 
 		for(var/datum/loadout_item/item as anything in loadout_datums)
@@ -84,12 +94,8 @@
 			else
 				if (!item.can_be_applied_to(src, preference_source, equipping_job, allow_mechanical_loadout_items, visuals_only))
 					continue
-				if(istype(item, /datum/loadout_item/cache))
-					var/datum/loadout_item/cache/cache_item = item
-					cache_item.place_in_cache(cache_box, new item.item_path(loc))
-				else
-					var/obj/item/loadout_item = new item.item_path(pouch)
-					loadout_item.AddElement(/datum/element/loadout_pouch_item)
+				var/obj/item/loadout_item = new item.item_path(pouch)
+				loadout_item.AddElement(/datum/element/loadout_pouch_item, REF(pouch))
 
 		if(pouch_in_hand)
 			INVOKE_ASYNC(src, PROC_REF(put_in_hands), pouch)
@@ -121,10 +127,16 @@
 	// NOVA EDIT CHANGE END
 
 	var/obj/item/storage/box/personal_cache/cache = locate(/obj/item/storage/box/personal_cache) in get_all_gear() // NOVA EDIT ADDITION - PERSONAL_CACHE - hoisted above the loop so the cache-pick lookup below can use it too
+	// APHELION EDIT ADDITION START - PERSONAL_CACHE
+	var/list/spawned_cache_items = list()
+	for(var/datum/loadout_item/cache/item as anything in cache_selections)
+		spawned_cache_items[item] = new item.item_path(loc)
+	loadout_datums += cache_selections
+	// APHELION EDIT ADDITION END
 
 	var/update = NONE
 	for(var/datum/loadout_item/item as anything in loadout_datums)
-		if(!item.is_equippable(src, item_details?[item.item_path] || list()))
+		if(!item.is_equippable(src, loadout_list?[item.item_path] || list()))
 			loadout_datums -= item
 			continue
 		if(item.restricted_roles && equipping_job && !(equipping_job.title in item.restricted_roles))
@@ -135,8 +147,7 @@
 		if(erpbox && item.erp_box)
 			equipped = locate(item.item_path) in erpbox
 		else if(istype(item, /datum/loadout_item/cache))
-			// Cache picks get filed into a matrix the moment they spawn, so dig the whole cache - back.contents only ever sees the backpack root and would miss every one of them.
-			equipped = isnull(cache) ? null : (locate(item.item_path) in cache.get_all_contents())
+			equipped = spawned_cache_items[item]
 		else
 			equipped = locate(item.item_path) in new_contents
 		// NOVA EDIT CHANGE END
