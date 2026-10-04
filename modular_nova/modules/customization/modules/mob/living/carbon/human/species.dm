@@ -40,6 +40,15 @@ GLOBAL_LIST_EMPTY(customizable_races)
 /datum/species/proc/handle_mutant_bodyparts(mob/living/carbon/human/source, forced_colour)
 	return
 
+/**
+ * Returns whether this species grows legs of its own.
+ *
+ * A legless species, like the Cerulean, wears its lower body as an organ instead. That organ owns the tail
+ * slot, and there are no legs for a taur body to replace.
+ */
+/datum/species/proc/grows_legs()
+	return bodypart_overrides[BODY_ZONE_L_LEG] || bodypart_overrides[BODY_ZONE_R_LEG]
+
 /// Replacing organs with oversized versions, for the oversized quirk. Add implementation for species-specific oversized organs as needed
 /datum/species/proc/gain_oversized_organs(mob/living/carbon/human/human_holder, datum/quirk/oversized/oversized_quirk)
 	if(isnull(human_holder.loc))
@@ -175,6 +184,13 @@ GLOBAL_LIST_EMPTY(customizable_races)
 	return list()
 
 /datum/species/regenerate_organs(mob/living/carbon/organ_holder, datum/species/old_species, replace_current = TRUE, list/excluded_zones, visual_only = FALSE, replace_missing = TRUE)
+	var/legless = !grows_legs()
+	// A legless species sheds a taur body first, or the taur's unremovable tail holds the slot its own lower body grows into.
+	var/obj/item/organ/taur_body/taur_body = organ_holder.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR)
+	if(legless && taur_body)
+		taur_body.Remove(organ_holder, special = TRUE, movement_flags = KEEP_IN_MUTANT_BODYPARTS)
+		qdel(taur_body)
+
 	. = ..()
 
 	var/robot_organs = HAS_TRAIT(organ_holder, TRAIT_ROBOTIC_DNA_ORGANS)
@@ -184,6 +200,10 @@ GLOBAL_LIST_EMPTY(customizable_races)
 	for (var/key, mutant_part in organ_holder.dna.mutant_bodyparts)
 		// A taur that brings its own tail owns the tail slot, as its preferences already decide.
 		if(key == FEATURE_TAIL && taur_accessory?.has_tail)
+			continue
+		// So does a legless species' own lower body, which leaves nothing for a taur to replace.
+		// Both entries stay in the DNA for when the mob grows legs again.
+		if(legless && (key == FEATURE_TAIL || key == FEATURE_TAUR))
 			continue
 		var/list/accessory_category = SSaccessories.sprite_accessories[key]
 		if(!islist(accessory_category))

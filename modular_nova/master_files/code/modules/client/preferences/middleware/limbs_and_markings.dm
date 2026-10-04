@@ -284,7 +284,8 @@
 	if(aug.ckey_whitelist && !LAZYFIND(aug.ckey_whitelist, user?.client?.ckey))
 		return FALSE
 	var/datum/preference/choiced/mutant_choice/taur/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
-	if(taur_choice.is_accessible(prefs) && prefs.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE)
+	var/has_taur = taur_choice.is_accessible(prefs) && prefs.read_preference(/datum/preference/choiced/mutant_choice/taur) != SPRITE_ACCESSORY_NONE
+	if(has_taur || !species.grows_legs()) // No legs of its own to replace
 		var/datum/augment_item/limb/limb_aug = astype(aug, /datum/augment_item/limb)
 		if(limb_aug?.slot_flag && (limb_aug.slot_flag & (LEG_LEFT|LEG_RIGHT)))
 			return FALSE

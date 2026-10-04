@@ -381,6 +381,7 @@
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
 #include "~nova\bodypart_texture_flags.dm"
+#include "~nova\cerulean.dm"
 #include "~nova\character_preview_rebuilds.dm"
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"

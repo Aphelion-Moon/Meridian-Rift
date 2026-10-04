@@ -4,7 +4,7 @@
 	icon = 'modular_nova/modules/syndie_edits/icons/obj.dmi'
 	worn_icon = 'modular_nova/modules/syndie_edits/icons/worn.dmi'
 	icon_state = "syndievest"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 /obj/item/clothing/suit/armor/vest/capcarapace/syndicate/Initialize(mapload)
 	. = ..()
@@ -240,8 +240,8 @@
 	icon_state = "ip_miner"
 	can_adjust = TRUE
 	alt_covers_chest = FALSE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/syndicate/nova/interdyne/deckofficer
 	name = "deck officer's jumpsuit"

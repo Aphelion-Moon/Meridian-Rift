@@ -136,7 +136,7 @@
 		CRASH("Trying to call get_images() on [type] while it didn't have a sprite_datum. This shouldn't happen, report it as soon as possible.")
 
 	var/returned_images = list()
-	var/gender = (limb?.limb_gender == FEMALE) ? "f" : "m"
+	var/gender = limb?.limb_gender || "m"
 
 	overlay_indexes_to_color = list()
 	overlay_slots = list()
