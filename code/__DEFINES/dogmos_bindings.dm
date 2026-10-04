@@ -454,4 +454,4 @@
 #define DOGMOS_FUSION_NATIVE_AVAILABLE 1
 
 // Local in-process build identity; generated with the matching DLL.
-#define DOGMOS_IN_PROCESS_IDENTITY "in-process:0b80847081016760b14dcb52c0cc641d0c7dce18f78b79b81bf8968d5c0b6fc7"
+#define DOGMOS_IN_PROCESS_IDENTITY "in-process:fb09b07f220de820eb64984f5588ce903bf43aebb63d07f9505b67b5cd4bdbed"
