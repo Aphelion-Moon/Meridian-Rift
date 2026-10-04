@@ -174,4 +174,5 @@
 
 /** Returns the existing editor owner; preferences own only native persistence. */
 /datum/preferences/proc/cyborg_session()
+	RETURN_TYPE(/datum/preference_middleware/cyborg_character)
 	return locate(/datum/preference_middleware/cyborg_character) in middleware
