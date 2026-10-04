@@ -23,6 +23,7 @@
  * visuals_only - whether we call special equipped procs, or if we just look like we equipped it
  * preference_source - the preferences of the thing we're equipping
  * equipping_job - The job that's being applied.
+ * uplink_container - Optional private suitcase; forces container delivery while preserving the outfit and preferences. APHELION EDIT - UPLINK_SHELLS
  */
 /mob/living/carbon/human/equip_outfit_and_loadout(
 	datum/outfit/outfit = /datum/outfit,
@@ -45,7 +46,7 @@
 	else
 		CRASH("Outfit passed to equip_outfit_and_loadout was neither a path nor an instantiated type!")
 
-	var/override_preference = preference_source.read_preference(/datum/preference/choiced/loadout_override_preference)
+	var/override_preference = uplink_container ? LOADOUT_OVERRIDE_CASE : preference_source.read_preference(/datum/preference/choiced/loadout_override_preference) // APHELION EDIT CHANGE - UPLINK_SHELLS - Explicit container delivery. ORIGINAL: var/override_preference = preference_source.read_preference(/datum/preference/choiced/loadout_override_preference)
 
 	var/list/item_details = preference_source.read_preference(/datum/preference/loadout)
 	var/list/loadout_list = item_details[preference_source.read_preference(/datum/preference/loadout_index)]

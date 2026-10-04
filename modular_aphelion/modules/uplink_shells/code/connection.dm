@@ -186,17 +186,8 @@
 		core.uplink_resume_action.Grant(core)
 	else
 		var/mob/living/silicon/robot/robot = endpoint
-		robot.deployed = FALSE
-		robot.undeployment_action.Remove(robot)
-		if(robot.lamp_enabled)
-			robot.toggle_headlamp(turn_off = TRUE)
-		robot.update_icons()
-		if(!QDELETED(robot.builtInCamera))
-			robot.builtInCamera.c_tag = robot.real_name
-		REMOVE_TRAIT(robot, TRAIT_LOUD_BINARY, REF(core))
-		robot.radio?.recalculateChannels()
+		robot.end_shell_deployment(core)
 		robot.mainframe = null
-		robot.diag_hud_set_aishell()
 		core.redeploy_action.last_used_shell = robot
 		core.redeploy_action.Grant(core)
 	endpoint.ai_shell_session = null

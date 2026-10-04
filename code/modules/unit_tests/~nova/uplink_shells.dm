@@ -32,6 +32,8 @@
 	var/datum/mind/identity = core.mind
 	var/mob/living/silicon/robot/robot = allocate(/mob/living/silicon/robot)
 	robot.make_shell(allocate(/obj/item/borg/upgrade/ai))
+	robot.radio.recalculateChannels()
+	var/initial_radio_channels = json_encode(robot.radio.channels)
 	var/datum/ai_shell_session/session = new(core, robot)
 	TEST_ASSERT(session.start(), "The fixture should deploy the AI mind into its cyborg shell.")
 	robot.toggle_headlamp()
@@ -42,6 +44,25 @@
 	TEST_ASSERT(!robot.lamp_enabled, "Returning an AI must shut off the unattended cyborg's headlamp.")
 	TEST_ASSERT_NULL(robot.mainframe, "Returning a cyborg must release its mainframe reference.")
 	TEST_ASSERT_NULL(core.shell_session, "Return must clear the active session.")
+	TEST_ASSERT_EQUAL(robot.builtInCamera.c_tag, robot.real_name, "Returning must restore the unattended camera tag.")
+	TEST_ASSERT(!HAS_TRAIT(robot, TRAIT_LOUD_BINARY), "Returning must remove the deployed binary trait.")
+	TEST_ASSERT_EQUAL(json_encode(robot.radio.channels), initial_radio_channels, "Returning must restore the cyborg's radio channels.")
+
+	// The native fallback must use the same endpoint cleanup without requiring a session.
+	robot.deploy_init(core)
+	identity.transfer_to(robot)
+	core.deployed_shell = robot
+	ADD_TRAIT(robot, TRAIT_LOUD_BINARY, REF(core))
+	robot.toggle_headlamp()
+	robot.builtInCamera.c_tag = "Temporary camera tag"
+	robot.undeploy()
+	TEST_ASSERT_EQUAL(identity.current, core, "Native return must restore the AI mind.")
+	TEST_ASSERT(!robot.deployed && !robot.lamp_enabled, "Native return must clear deployment and shut off the headlamp.")
+	TEST_ASSERT_NULL(robot.mainframe, "Native return must release the mainframe after using it.")
+	TEST_ASSERT_NULL(core.deployed_shell, "Native return must clear the core's shell binding.")
+	TEST_ASSERT_EQUAL(robot.builtInCamera.c_tag, robot.real_name, "Native return must restore the camera tag.")
+	TEST_ASSERT(!HAS_TRAIT(robot, TRAIT_LOUD_BINARY), "Native return must remove the deployed binary trait.")
+	TEST_ASSERT_EQUAL(json_encode(robot.radio.channels), initial_radio_channels, "Native return must restore the cyborg's radio channels.")
 
 /** Stowing a lit welder shuts down its combat properties immediately without restoring fuel. */
 /datum/unit_test/uplink_toolkit_retraction/Run()
@@ -120,3 +141,83 @@
 	TEST_ASSERT_EQUAL(body.get_organ_by_type(/obj/item/organ/cyberimp/arm/toolkit/toolset/uplink), toolkit, "Cosmetic changes must preserve the toolkit.")
 	TEST_ASSERT_EQUAL(body.nutrition, 123, "Cosmetic changes must not recharge the shell.")
 	TEST_ASSERT_EQUAL(welder.get_fuel(), fuel_before, "Cosmetic changes must not refill the welder.")
+
+/** Abandoned private outputs are deleted together; published outputs survive container disposal. */
+/datum/unit_test/uplink_provisional_cleanup/Run()
+	var/mob/living/carbon/human/operator = allocate(/mob/living/carbon/human/consistent)
+	operator.mind_initialize()
+	var/mob/living/silicon/ai/core = allocate(/mob/living/silicon/ai, null, operator, null, null, TRUE)
+	var/datum/uplink_registry/registry = allocate(/datum/uplink_registry, core.mind, core)
+	var/initial_outcome = registry.loadout_outcome
+	var/obj/effect/uplink_delivery/delivery = allocate(/obj/effect/uplink_delivery)
+	var/mob/living/carbon/human/uplink/body = new(delivery)
+	var/obj/item/storage/briefcase/empty/overflow = new(delivery)
+	var/obj/item/cane/item = new(overflow)
+	registry.provisional_delivery = delivery
+	registry.provisional_body = body
+	registry.issuing = TRUE
+	var/request_before = registry.request_generation
+	registry.clear_candidate()
+	TEST_ASSERT(!QDELETED(delivery) && !QDELETED(body), "Canceling during construction must let the builder release its own outputs.")
+	TEST_ASSERT_EQUAL(registry.request_generation, request_before + 1, "Canceling during construction must invalidate its request token.")
+	registry.issuing = FALSE
+	registry.clear_candidate()
+	TEST_ASSERT(QDELETED(body) && QDELETED(overflow) && QDELETED(item), "Abandoning a preview must delete all its private outputs.")
+	TEST_ASSERT_NULL(registry.provisional_body, "Cleanup must release the preview body reference.")
+	TEST_ASSERT_NULL(registry.provisional_delivery, "Cleanup must release the private container reference.")
+	TEST_ASSERT_EQUAL(registry.loadout_outcome, initial_outcome, "Abandoning a preview must not spend the loadout decision.")
+
+	delivery = allocate(/obj/effect/uplink_delivery)
+	body = new(delivery)
+	overflow = new(delivery)
+	item = new(overflow)
+	for(var/atom/movable/output as anything in delivery.contents.Copy())
+		output.forceMove(run_loc_floor_bottom_left)
+	qdel(delivery)
+	TEST_ASSERT(!QDELETED(body) && !QDELETED(overflow) && !QDELETED(item), "Disposing an emptied delivery container must preserve published outputs and their contents.")
+
+/** An explicit Uplink suitcase preserves the baseline outfit and preference values. */
+/datum/unit_test/uplink_loadout_container/Run()
+	var/datum/preferences/preferences = allocate(/datum/preferences, allocate(/datum/client_interface))
+	preferences.value_cache[/datum/preference/choiced/loadout_override_preference] = LOADOUT_OVERRIDE_BACKPACK
+	preferences.value_cache[/datum/preference/loadout_index] = "Uplink test"
+	preferences.value_cache[/datum/preference/loadout] = list("Uplink test" = list(/obj/item/clothing/gloves/color/black = list(INFO_NAMED = "Shell gloves")))
+	var/mob/living/carbon/human/body = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/storage/briefcase/empty/overflow = allocate(/obj/item/storage/briefcase/empty)
+	body.equip_outfit_and_loadout(/datum/outfit/uplink_shell, preferences, equipping_job = SSjob.get_job_type(/datum/job/ai), uplink_container = overflow)
+	TEST_ASSERT(locate(/obj/item/clothing/gloves/color/black) in overflow, "Selected personal items must go into the supplied suitcase regardless of the outfit override preference.")
+	var/obj/item/clothing/gloves/selected_gloves = locate() in overflow
+	TEST_ASSERT_EQUAL(selected_gloves.name, "Shell gloves", "Suitcase items must retain their selected preset's customizations.")
+	TEST_ASSERT_NULL(body.gloves, "Suitcase delivery must not equip the selected personal gloves.")
+	TEST_ASSERT(istype(body.w_uniform, /obj/item/clothing/under/color/grey), "Suitcase delivery must retain the baseline uniform.")
+	TEST_ASSERT_EQUAL(preferences.read_preference(/datum/preference/choiced/loadout_override_preference), LOADOUT_OVERRIDE_BACKPACK, "Explicit delivery must not rewrite the player's loadout preference.")
+
+/** Camera reads reject unavailable bodies immediately, before the next camera update tick. */
+/datum/unit_test/uplink_camera_availability/Run()
+	var/mob/living/carbon/human/operator = allocate(/mob/living/carbon/human/consistent)
+	operator.mind_initialize()
+	var/mob/living/silicon/ai/core = allocate(/mob/living/silicon/ai, null, operator, null, null, TRUE)
+	var/datum/uplink_registry/registry = allocate(/datum/uplink_registry, core.mind, core)
+	var/mob/living/carbon/human/uplink/body = allocate(/mob/living/carbon/human/uplink)
+	body.registry = registry
+	registry.observe_body(body)
+	body.uplink_camera = new(body)
+	body.nutrition = NUTRITION_LEVEL_FULL
+	body.update_uplink_camera()
+	TEST_ASSERT(body.uplink_camera.can_use(), "A live registered body on the floor should have an available camera.")
+	body.nutrition = 0
+	TEST_ASSERT(!body.uplink_camera.can_use(), "Exhausted power must deny camera use before the next update tick.")
+	body.nutrition = NUTRITION_LEVEL_FULL
+	body.stat = DEAD
+	TEST_ASSERT(!body.uplink_camera.can_use(), "A dead body must deny camera use before the next update tick.")
+	body.stat = initial(body.stat)
+	body.retired = TRUE
+	TEST_ASSERT(!body.uplink_camera.can_use(), "Retirement must immediately deny camera use.")
+	body.retired = FALSE
+	var/obj/effect/uplink_delivery/container = allocate(/obj/effect/uplink_delivery)
+	body.forceMove(container)
+	TEST_ASSERT(!body.uplink_camera.can_use(), "Contained bodies must not expose their surroundings through the camera.")
+	body.forceMove(run_loc_floor_bottom_left)
+	TEST_ASSERT(body.uplink_camera.can_use(), "Returning an authorized body to the floor should restore its feed.")
+	core.stat = DEAD
+	TEST_ASSERT(!body.uplink_camera.can_use(), "Core death must immediately deny the personal feed.")

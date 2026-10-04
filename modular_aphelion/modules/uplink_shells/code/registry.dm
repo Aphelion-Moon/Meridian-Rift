@@ -184,10 +184,10 @@
 	if(issuing)
 		request_generation++
 		return
-	QDEL_NULL(provisional_body)
+	// The private container owns all unpublished outputs, including the preview body.
+	provisional_body = null
 	QDEL_NULL(provisional_delivery)
 	QDEL_NULL(candidate)
-	issuing = FALSE
 
 /datum/uplink_registry/proc/prepare(mob/user)
 	if(!viewer_valid(user) || issuing || loadout_outcome != UPLINK_LOADOUT_OPEN || delivery_denial())
@@ -462,12 +462,6 @@
 
 /obj/effect/uplink_delivery
 	name = "provisional Uplink delivery"
-
-/obj/effect/uplink_delivery/Destroy()
-	// A committed delivery has already moved every output out of this private container.
-	for(var/atom/movable/output as anything in contents.Copy())
-		qdel(output)
-	return ..()
 
 /datum/uplink_registry/vv_get_dropdown()
 	. = ..()

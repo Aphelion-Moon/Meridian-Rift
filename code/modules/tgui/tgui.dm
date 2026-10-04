@@ -272,25 +272,26 @@
 // APHELION EDIT ADDITION START
 /// Build the configuration shared by full, partial, and config-only updates.
 /datum/tgui/proc/get_config()
+	var/client/transport_client = uplink_ui_client()
 	return list(
 // APHELION EDIT ADDITION END
 		"title" = title,
 		"status" = status,
 		"interface" = list(
 			"name" = interface,
-			"layout" = uplink_ui_client().prefs.read_preference(src_object.layout_prefs_used),
+			"layout" = transport_client.prefs.read_preference(src_object.layout_prefs_used),
 		),
 		"refreshing" = refreshing,
 		"window" = list(
 			"key" = window_key,
 			"size" = window_size,
-			"locked" = uplink_ui_client().prefs.read_preference(/datum/preference/toggle/tgui_lock),
-			"scale" = uplink_ui_client().prefs.read_preference(/datum/preference/toggle/ui_scale),
+			"locked" = transport_client.prefs.read_preference(/datum/preference/toggle/tgui_lock),
+			"scale" = transport_client.prefs.read_preference(/datum/preference/toggle/ui_scale),
 		),
 		"client" = list(
-			"ckey" = uplink_ui_client().ckey,
-			"address" = uplink_ui_client().address,
-			"computer_id" = uplink_ui_client().computer_id,
+			"ckey" = transport_client.ckey,
+			"address" = transport_client.address,
+			"computer_id" = transport_client.computer_id,
 		),
 		"user" = list(
 			"name" = "[user]",

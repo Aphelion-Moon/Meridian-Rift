@@ -166,10 +166,7 @@
 		var/obj/item/storage/briefcase/empty/overflow = new(delivery)
 		// Client exists only for existing eligibility checks; it is never kept in the blueprint.
 		preferences.parent = loadout_client
-		var/original_override = preferences.read_preference(/datum/preference/choiced/loadout_override_preference)
-		preferences.value_cache[/datum/preference/choiced/loadout_override_preference] = LOADOUT_OVERRIDE_CASE
 		body.equip_outfit_and_loadout(/datum/outfit/uplink_shell, preferences, equipping_job = SSjob.get_job_type(/datum/job/ai), uplink_container = overflow)
-		preferences.value_cache[/datum/preference/choiced/loadout_override_preference] = original_override
 		preferences.parent = null
 	else
 		body.equipOutfit(/datum/outfit/uplink_shell)
@@ -219,10 +216,14 @@
 	var/obj/item/organ/cyberimp/arm/toolkit/toolset/uplink/toolkit = get_organ_by_type(/obj/item/organ/cyberimp/arm/toolkit/toolset/uplink)
 	toolkit?.Retract()
 
+/// Registration, physical location and live power must allow the feed even between update ticks.
+/mob/living/carbon/human/uplink/proc/uplink_camera_available()
+	return registry?.is_current(src) && !QDELETED(registry.core) && registry.core.stat != DEAD && stat != DEAD && nutrition > 0 && isturf(loc)
+
 /mob/living/carbon/human/uplink/proc/update_uplink_camera()
 	if(QDELETED(uplink_camera))
 		return
-	var/allowed = registry?.is_current(src) && !QDELETED(registry.core) && registry.core.stat != DEAD && stat != DEAD && nutrition > 0 && isturf(loc)
+	var/allowed = uplink_camera_available()
 	if(uplink_camera.camera_enabled != !!allowed)
 		uplink_camera.toggle_cam(null, FALSE)
 	if(!allowed && uplink_light_on)
@@ -256,7 +257,7 @@
 
 /obj/machinery/camera/silicon/uplink/can_use()
 	var/mob/living/carbon/human/uplink/body = living_host
-	return ..() && istype(body) && body.registry?.is_current(body) && !QDELETED(body.registry.core) && body.registry.core.stat != DEAD && isturf(body.loc)
+	return ..() && istype(body) && body.uplink_camera_available()
 
 /obj/item/organ/brain/cybernetic/ai
 	var/datum/uplink_registry/personal_registry

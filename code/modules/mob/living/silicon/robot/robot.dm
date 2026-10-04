@@ -956,6 +956,21 @@
 	return TRUE
 
 
+// APHELION EDIT ADDITION START - UPLINK_SHELLS - Shared cyborg endpoint cleanup.
+/// Reset cyborg-local deployment state; the caller owns mind transfer and mainframe lifetime.
+/mob/living/silicon/robot/proc/end_shell_deployment(mob/living/silicon/ai/controller)
+	deployed = FALSE
+	undeployment_action.Remove(src)
+	if(lamp_enabled)
+		toggle_headlamp(TRUE)
+	update_icons()
+	REMOVE_TRAIT(src, TRAIT_LOUD_BINARY, REF(controller))
+	radio?.recalculateChannels()
+	if(!QDELETED(builtInCamera))
+		builtInCamera.c_tag = real_name
+	diag_hud_set_aishell()
+// APHELION EDIT ADDITION END
+
 /mob/living/silicon/robot/proc/undeploy()
 	if(ai_shell_session)
 		return ai_shell_session.finish("Returned from cyborg shell", ai_view = TRUE)
@@ -965,6 +980,7 @@
 	mainframe.redeploy_action.Grant(mainframe)
 	mainframe.redeploy_action.last_used_shell = src
 	mind.transfer_to(mainframe)
+	/* APHELION EDIT REMOVAL START - UPLINK_SHELLS - Endpoint cleanup is shared with session return.
 	deployed = FALSE
 	mainframe.deployed_shell = null
 	undeployment_action.Remove(src)
@@ -977,6 +993,11 @@
 	if(!QDELETED(builtInCamera))
 		builtInCamera.c_tag = real_name //update the camera name too
 	diag_hud_set_aishell()
+	APHELION EDIT REMOVAL END */
+	// APHELION EDIT ADDITION START - UPLINK_SHELLS
+	mainframe.deployed_shell = null
+	end_shell_deployment(mainframe)
+	// APHELION EDIT ADDITION END
 	mainframe.diag_hud_set_deployed()
 	if(mainframe.laws)
 		mainframe.laws.show_laws(mainframe) //Always remind the AI when switching

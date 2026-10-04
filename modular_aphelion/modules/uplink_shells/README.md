@@ -180,6 +180,14 @@ back to the core. Loadout delivery adds an optional private container and correc
 the existing per-item details lookup to use the selected preset's nested list.
 The AI job retains its existing initialization before granting the registry.
 
+Shared ownership boundaries:
+
+- `code/modules/mob/living/silicon/robot/robot.dm`: `end_shell_deployment` owns cyborg-local cleanup for both native `undeploy` and `ai_shell_session.finish`; callers retain mind transfer and mainframe lifetime.
+- `modular_nova/modules/loadouts/loadout_ui/loadout_outfit_helpers.dm`: an explicit `uplink_container` selects suitcase delivery without changing the preference snapshot.
+- `code/modules/tgui/tgui.dm`: `get_config` resolves one transport client for each payload while retaining the original UI user as authority.
+- `blueprint.dm`: `uplink_camera_available` owns the live registration, location and power checks used for both camera updates and access.
+- `registry.dm`: the private delivery container owns unpublished contents through normal movable destruction; publication moves them out before disposing the container.
+
 The full AC-01 through AC-17 acceptance matrix, multiplayer service portability,
 and measured gameplay performance require separate qualification. Focused checks
 do not establish those broader guarantees.
