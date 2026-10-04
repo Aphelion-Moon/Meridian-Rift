@@ -94,6 +94,25 @@
 	if(!first_table || state_error)
 		failure = "Initial load_on_top table did not register one elevation listener per signal: [state_error || "table was not created"]."
 
+	// Shuttle transfers use abstract_move(), so ordinary entering/exiting signals do not fire.
+	var/turf/destination = run_loc_floor_bottom_left
+	first_table.onShuttleMove(destination, loaded_turf, list(), EAST, null, null)
+	state_error = turf_context_elevation_state_error(loaded_turf, elevation, FALSE)
+	if(state_error || HAS_TRAIT(loaded_turf, TRAIT_TURF_HAS_ELEVATED_OBJ(12)))
+		failure ||= "Shuttle transfer left elevation ownership on the old reservation turf: [state_error || "trait remained"]."
+	state_error = turf_context_elevation_state_error(destination, elevation, TRUE)
+	if(state_error || !HAS_TRAIT_FROM(destination, TRAIT_TURF_HAS_ELEVATED_OBJ(12), ref(first_table)))
+		failure ||= "Shuttle transfer did not register elevation on its destination: [state_error || "source trait missing"]."
+
+	// Exercise ordinary movement too and restore the fixture before its existing empty/reload checks.
+	first_table.forceMove(loaded_turf)
+	state_error = turf_context_elevation_state_error(destination, elevation, FALSE)
+	if(state_error || HAS_TRAIT(destination, TRAIT_TURF_HAS_ELEVATED_OBJ(12)))
+		failure ||= "Moving the table back left elevation ownership on the shuttle destination: [state_error || "trait remained"]."
+	state_error = turf_context_elevation_state_error(loaded_turf, elevation, TRUE)
+	if(state_error || !HAS_TRAIT_FROM(loaded_turf, TRAIT_TURF_HAS_ELEVATED_OBJ(12), ref(first_table)))
+		failure ||= "Ordinary movement did not restore elevation on the reservation turf: [state_error || "source trait missing"]."
+
 	loaded_turf.empty(RESERVED_TURF_TYPE, RESERVED_TURF_TYPE, null, TRUE)
 	fixture_turf = locate(fixture_x, fixture_y, fixture_z)
 	state_error = turf_context_elevation_state_error(fixture_turf, elevation, FALSE)
@@ -203,6 +222,67 @@
 /datum/unit_test/turf_context_elevation_constructor/proc/on_turf_change(turf/source, path, list/new_baseturfs, flags, list/post_change_callbacks)
 	SIGNAL_HANDLER
 	change_callbacks++
+
+/** Entry callbacks can delete an elevating object before its final Moved signal. */
+/datum/unit_test/turf_context_elevation_entered_deletion
+	var/obj/structure/table/wood/moving_table
+
+/datum/unit_test/turf_context_elevation_entered_deletion/Run()
+	var/turf/origin = run_loc_floor_bottom_left
+	var/turf/destination = get_step(origin, EAST)
+	moving_table = allocate(/obj/structure/table/wood, origin)
+	var/obj/structure/table/wood/remaining_table = allocate(/obj/structure/table/wood, origin)
+	var/datum/element/elevation/elevation = SSdcs.GetElement(list(/datum/element/elevation, "pixel_shift" = 12), FALSE)
+	var/datum/element/give_turf_traits/table_traits = SSdcs.GetElement(list(/datum/element/give_turf_traits, moving_table.turf_traits), FALSE)
+	var/datum/element/footstep_override/table_steps = SSdcs.GetElement(list(/datum/element/footstep_override, "priority" = STEP_SOUND_TABLE_PRIORITY), FALSE)
+	RegisterSignal(destination, COMSIG_ATOM_ENTERED, PROC_REF(delete_entrant))
+	moving_table.forceMove(destination)
+	UnregisterSignal(destination, COMSIG_ATOM_ENTERED)
+
+	var/remaining_source = REF(remaining_table)
+	var/remaining_owned = (remaining_table in table_steps.occupied_turfs[origin]) && (remaining_source in table_traits.trait_sources?[origin])
+	var/remaining_steps = turf_context_elevation_listener_count(origin, COMSIG_TURF_PREPARE_STEP_SOUND, table_steps)
+	var/remaining_traits = turf_context_elevation_listener_count(origin, COMSIG_TURF_CHANGE, table_traits)
+	for(var/trait in table_traits.traits)
+		remaining_owned &&= HAS_TRAIT_FROM(origin, trait, remaining_source)
+	qdel(remaining_table)
+
+	var/shared_ownership_error = FALSE
+	for(var/turf/location as anything in list(origin, destination))
+		var/list/step_handlers = table_steps._signal_procs?[location]
+		var/list/trait_handlers = table_traits._signal_procs?[location]
+		if(length(table_steps.occupied_turfs[location]) || length(table_traits.trait_sources?[location]) \
+			|| turf_context_elevation_listener_count(location, COMSIG_TURF_PREPARE_STEP_SOUND, table_steps) \
+			|| turf_context_elevation_listener_count(location, COMSIG_TURF_CHANGE, table_traits) \
+			|| step_handlers?[COMSIG_TURF_PREPARE_STEP_SOUND] || trait_handlers?[COMSIG_TURF_CHANGE])
+			shared_ownership_error = TRUE
+		for(var/trait in table_traits.traits)
+			shared_ownership_error ||= HAS_TRAIT_FROM(location, trait, REF(moving_table))
+		// Capture the failure first, then prevent a red fixture from retaining a deleted table.
+		table_steps.vacate_turf(moving_table, location)
+		table_traits.remove_from_occupied_turfs(location, moving_table)
+
+	var/origin_error = turf_context_elevation_state_error(origin, elevation, FALSE)
+	var/destination_error = turf_context_elevation_state_error(destination, elevation, FALSE)
+	var/origin_has_source = HAS_TRAIT_FROM(origin, TRAIT_TURF_HAS_ELEVATED_OBJ(12), ref(moving_table))
+	var/destination_has_source = HAS_TRAIT_FROM(destination, TRAIT_TURF_HAS_ELEVATED_OBJ(12), ref(moving_table))
+	// Repair the old side even on failure so the regression cannot poison later fixtures.
+	elevation.unregister_turf(moving_table, origin)
+	if(!QDELETED(moving_table))
+		Fail("The destination callback did not delete the entering table.", __FILE__, __LINE__)
+	if(!remaining_owned || remaining_steps != 1 || remaining_traits != 1)
+		Fail("Entry-time deletion disturbed the table remaining on the origin turf.", __FILE__, __LINE__)
+	if(shared_ownership_error)
+		Fail("Entry-time deletion left footstep or turf-trait ownership after the last table was deleted.", __FILE__, __LINE__)
+	if(origin_error || origin_has_source)
+		Fail("Entry-time deletion left old turf elevation ownership: [origin_error || "trait remained"].", __FILE__, __LINE__)
+	if(destination_error || destination_has_source)
+		Fail("Entry-time deletion left destination elevation ownership: [destination_error || "trait remained"].", __FILE__, __LINE__)
+
+/datum/unit_test/turf_context_elevation_entered_deletion/proc/delete_entrant(turf/source, atom/movable/entrant)
+	SIGNAL_HANDLER
+	if(entrant == moving_table)
+		qdel(entrant)
 
 /// Returns the number of registrations for one listener in a turf's target-side signal lookup.
 /proc/turf_context_elevation_listener_count(turf/target, signal_type, datum/listener)

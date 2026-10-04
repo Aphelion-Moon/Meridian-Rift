@@ -30,11 +30,17 @@
 	src.priority = priority
 
 	RegisterSignal(target, COMSIG_MOVABLE_MOVED, PROC_REF(on_moved))
+	// APHELION EDIT ADDITION START - TURF_CONTEXT
+	RegisterSignal(target, COMSIG_ATOM_EXITING, PROC_REF(on_exiting))
+	// APHELION EDIT ADDITION END
 	if(isturf(target.loc))
 		occupy_turf(target, target.loc)
 
 /datum/element/footstep_override/Detach(atom/movable/source)
 	UnregisterSignal(source, COMSIG_MOVABLE_MOVED)
+	// APHELION EDIT ADDITION START - TURF_CONTEXT
+	UnregisterSignal(source, COMSIG_ATOM_EXITING)
+	// APHELION EDIT ADDITION END
 	if(isturf(source.loc))
 		vacate_turf(source, source.loc)
 	return ..()
@@ -45,6 +51,14 @@
 		vacate_turf(source, oldloc)
 	if(isturf(source.loc))
 		occupy_turf(source, source.loc)
+
+// APHELION EDIT ADDITION START - TURF_CONTEXT
+/// Entered() can delete the source before Moved(), so release the old turf on exit.
+/datum/element/footstep_override/proc/on_exiting(atom/movable/source, atom/exiting)
+	SIGNAL_HANDLER
+	if(isturf(exiting))
+		vacate_turf(source, exiting)
+// APHELION EDIT ADDITION END
 
 /**
  * Adds the movable to the list of movables with the element occupying the turf.
@@ -64,6 +78,10 @@
  * unregistered from it
  */
 /datum/element/footstep_override/proc/vacate_turf(atom/movable/movable, turf/location)
+	// APHELION EDIT ADDITION START - TURF_CONTEXT
+	if(!(movable in occupied_turfs[location]))
+		return
+	// APHELION EDIT ADDITION END
 	LAZYREMOVE(occupied_turfs[location], movable)
 	if(!occupied_turfs[location])
 		occupied_turfs -= location
