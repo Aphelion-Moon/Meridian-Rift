@@ -14,7 +14,6 @@ import { LobbyMusicControls } from './LobbyMusicControls';
 const initialMusic: LobbyMusicState = {
   enabled: true,
   playing: true,
-  looping: true,
   volume: 80,
   selected: 'server',
   currentTrack: 'Geoxor Virtual',

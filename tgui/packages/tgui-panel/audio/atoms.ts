@@ -16,7 +16,6 @@ export const metaAtom = atom<Meta | null>(null);
 export type LobbyMusicState = {
   enabled: boolean;
   playing: boolean;
-  looping: boolean;
   volume: number;
   selected: string;
   currentTrack: string;

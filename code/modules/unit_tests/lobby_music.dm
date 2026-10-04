@@ -1,7 +1,7 @@
 /// Native output is captured so transitions can be tested without connecting a Dream Seeker client.
 /datum/lobby_music_player/test
 	var/sound/active_sound
-	var/list/sent_sounds = list()
+	var/sound/last_sound
 	var/test_in_lobby = TRUE
 	var/test_enabled = TRUE
 	var/test_volume = 70
@@ -36,7 +36,7 @@
 	return result
 
 /datum/lobby_music_player/test/send_sound(sound/music)
-	sent_sounds += music
+	last_sound = music
 	if(music.status & SOUND_UPDATE)
 		if(active_sound)
 			active_sound.volume = music.volume
@@ -57,13 +57,11 @@
 	TEST_ASSERT(player.active_sound.repeat, "Title music did not loop in the lobby.")
 	player.active_sound.offset = 42
 	player.play()
-	var/sound/update = player.sent_sounds[length(player.sent_sounds)]
-	TEST_ASSERT(update.status & SOUND_UPDATE, "Showing the title screen restarted a playing track.")
+	TEST_ASSERT(player.last_sound.status & SOUND_UPDATE, "Showing the title screen restarted a playing track.")
 	TEST_ASSERT_EQUAL(player.active_sound.offset, 42, "Showing the title screen sought the track.")
 	player.test_in_lobby = FALSE
 	player.update_context()
-	update = player.sent_sounds[length(player.sent_sounds)]
-	TEST_ASSERT(update.status & SOUND_UPDATE, "Joining/observing stopped the current track.")
+	TEST_ASSERT(player.last_sound.status & SOUND_UPDATE, "Joining/observing stopped the current track.")
 	TEST_ASSERT(player.active_sound, "Joining/observing cleared playback.")
 	TEST_ASSERT(!player.active_sound.repeat, "Music kept looping after leaving the lobby.")
 	TEST_ASSERT_EQUAL(player.active_sound.offset, 42, "Leaving the lobby changed playback position.")
@@ -75,8 +73,7 @@
 	player.play()
 	TEST_ASSERT(player.active_sound, "Returning after natural completion did not restart music.")
 	player.play(restart = TRUE)
-	update = player.sent_sounds[length(player.sent_sounds)]
-	TEST_ASSERT(!(update.status & SOUND_UPDATE), "Explicit restart only updated the current sound.")
+	TEST_ASSERT(!(player.last_sound.status & SOUND_UPDATE), "Explicit restart only updated the current sound.")
 
 /datum/unit_test/lobby_music_controls/Run()
 	var/datum/client_interface/owner = allocate(/datum/client_interface)

@@ -23,13 +23,11 @@ GLOBAL_DATUM_INIT(lobby_music_catalog, /datum/lobby_music_catalog, new)
 	tracks = list()
 	var/directory = "[global.config.directory]/title_music/sounds/"
 	for(var/filename in sort_list(flist(directory)))
-		if(IS_SOUND_FILE(filename) && fexists("[directory][filename]"))
+		if(IS_SOUND_FILE(filename))
 			add_track("[directory][filename]")
 	// These remain available even on installations without custom title music.
 	for(var/path in world.file2list("strings/round_start_sounds.txt", "\n"))
-		var/source = available_source(path)
-		if(source)
-			add_track(source)
+		add_track(path)
 
 /// fexists() only checks the filesystem; compiled sound resources are valid without a disk file.
 /datum/lobby_music_catalog/proc/available_source(path)
@@ -48,7 +46,7 @@ GLOBAL_DATUM_INIT(lobby_music_catalog, /datum/lobby_music_catalog, new)
 	if(!path)
 		return
 	var/id = track_id(path, md5(isfile(path) ? path : file(path)))
-	tracks[id] = list("id" = id, "name" = lobby_music_name(path), "path" = path)
+	tracks[id] = list("name" = lobby_music_name(path), "path" = path)
 
 /datum/lobby_music_catalog/proc/track_id(path, fingerprint)
 	return md5("[path]:[fingerprint]")

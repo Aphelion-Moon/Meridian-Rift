@@ -153,7 +153,6 @@
 	client.tgui_panel.window.send_message("audio/lobby/state", list(
 		"enabled" = is_enabled() && !!track,
 		"playing" = !!playing,
-		"looping" = playing ? !!playing.repeat : in_lobby(),
 		"volume" = client.prefs.read_preference(/datum/preference/numeric/volume/sound_lobby_volume),
 		"selected" = client.prefs.read_preference(/datum/preference/lobby_music_track),
 		"currentTrack" = lobby_music_name(playing ? current_track : track),
