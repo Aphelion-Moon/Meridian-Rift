@@ -110,7 +110,7 @@
 		body.dna.species.replace_body(body, body.dna.species)
 		body.dna.species.regenerate_organs(body, body.dna.species, visual_only = TRUE)
 		var/datum/preference_middleware/limbs_and_markings/limbs = new(preferences)
-		limbs.apply_to_human(body, preferences)
+		limbs.apply_to_human(body, preferences, visuals_only = body.visual_only_organs)
 		qdel(limbs)
 	var/species_path = preferences.read_preference(/datum/preference/choiced/species)
 	var/datum/species/presentation = GLOB.species_prototypes[species_path]
@@ -122,7 +122,8 @@
 		ADD_TRAIT(body, TRAIT_MUTANT_COLORS, "uplink_presentation")
 	if(ispath(species_path, /datum/species/synthetic))
 		for(var/obj/item/bodypart/limb as anything in body.bodyparts)
-			if(initial(limb.limb_id) == SPECIES_SYNTH)
+			// Preview augments restyle native limbs in place; retain their selected appearance.
+			if(initial(limb.limb_id) == SPECIES_SYNTH && (!fresh || !body.visual_only_organs || limb.limb_id == SPECIES_SYNTH))
 				limb.remove_color_override(LIMB_COLOR_SYNTH)
 				// Sprite IDs are presentation, not physiology; restore the native synthetic styling input.
 				limb.reset_appearance(update_owner = FALSE)
@@ -130,6 +131,8 @@
 	else
 		for(var/obj/item/bodypart/limb as anything in body.bodyparts)
 			if(!(limb.bodytype & BODYTYPE_SYNTHETIC))
+				continue
+			if(fresh && body.visual_only_organs && limb.limb_id != SPECIES_SYNTH)
 				continue
 			limb.remove_color_override(LIMB_COLOR_SYNTH)
 			var/obj/item/bodypart/style = presentation?.bodypart_overrides[limb.body_zone]

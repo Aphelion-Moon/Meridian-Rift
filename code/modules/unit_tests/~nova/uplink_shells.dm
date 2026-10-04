@@ -236,6 +236,13 @@
 	)
 	for(var/index in 1 to length(configurations))
 		var/list/configuration = configurations[index]
+		// Internal augments must configure the issued body without requiring organs on its visual-only dummy.
+		preferences.augments = index == 1 ? list(
+			AUGMENT_SLOT_TONGUE = /datum/augment_item/organ/tongue/cybernetic/forked,
+			AUGMENT_SLOT_CHEST_IMPLANT = /datum/augment_item/implant/chest/nutriment_pump,
+			AUGMENT_SLOT_L_ARM_IMPLANT = /datum/augment_item/implant/l_arm/electrical_toolset,
+			AUGMENT_SLOT_R_ARM_IMPLANT = /datum/augment_item/implant/r_arm/arc_welder,
+		) : list()
 		preferences.value_cache[/datum/preference/choiced/mutant_choice/synth_chassis] = configuration["chassis"]
 		preferences.value_cache[/datum/preference/choiced/mutant_choice/synth_head] = configuration["head"]
 		preferences.value_cache[/datum/preference/choiced/mutant_choice/taur] = configuration["taur"]
@@ -250,6 +257,12 @@
 		var/mob/living/carbon/human/uplink/body = blueprint.build(delivery, null, player)
 		TEST_ASSERT_NOTNULL(body, "Configuration [index] must build.")
 		TEST_ASSERT_NOTNULL(blueprint.preview_view?.body, "Configuration [index] must retain a native visual-quirk preview.")
+		if(index == 1)
+			TEST_ASSERT(istype(body.get_organ_slot(ORGAN_SLOT_TONGUE), /obj/item/organ/tongue/lizard/cybernetic), "The selected internal tongue augment must be installed on the physical body.")
+			TEST_ASSERT_NOTNULL(body.get_organ_by_type(/obj/item/organ/cyberimp/chest/nutriment), "The compatible chest implant must survive assembly.")
+			TEST_ASSERT_NOTNULL(body.get_organ_by_type(/obj/item/organ/cyberimp/arm/toolkit/power_cord/left_arm), "The required left power cord must replace the conflicting saved implant.")
+			TEST_ASSERT_NOTNULL(body.get_organ_by_type(/obj/item/organ/cyberimp/arm/toolkit/toolset/uplink), "The required right toolkit must replace the conflicting saved implant.")
+			TEST_ASSERT_NULL(blueprint.preview_view.body.get_organ_slot(ORGAN_SLOT_TONGUE), "The visual-only preview must not require an internal tongue.")
 		body.forceMove(run_loc_floor_bottom_left)
 		blueprint.apply_quirks(body, visual_only = TRUE)
 		var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
@@ -270,15 +283,20 @@
 		qdel(body)
 
 	preferences.augments = list(AUGMENT_SLOT_L_ARM = /datum/augment_item/limb/l_arm/cyborg)
-	preferences.augment_limb_styles = list(AUGMENT_SLOT_L_ARM = "Security")
-	var/datum/uplink_blueprint/styled = allocate(/datum/uplink_blueprint, preferences, "Styled fixture", FALSE)
-	preferences.augment_limb_styles[AUGMENT_SLOT_L_ARM] = "Standard"
-	TEST_ASSERT_EQUAL(styled.preferences.augment_limb_styles[AUGMENT_SLOT_L_ARM], "Security", "The limb-style snapshot must be detached.")
-	TEST_ASSERT(!styled.matches_preferences(preferences), "Changing a limb style must invalidate an unconfirmed preview.")
-	var/obj/effect/uplink_delivery/delivery = allocate(/obj/effect/uplink_delivery)
-	var/mob/living/carbon/human/uplink/body = styled.build(delivery, null)
-	var/obj/item/bodypart/arm = body.get_bodypart(BODY_ZONE_L_ARM)
-	TEST_ASSERT_EQUAL(arm.current_style, "Security", "Fresh assembly must install the selected augment style.")
+	for(var/species_path in list(/datum/species/synthetic, /datum/species/human))
+		preferences.value_cache[/datum/preference/choiced/species] = species_path
+		preferences.augment_limb_styles = list(AUGMENT_SLOT_L_ARM = "Security")
+		var/datum/uplink_blueprint/styled = allocate(/datum/uplink_blueprint, preferences, "Styled fixture", FALSE)
+		preferences.augment_limb_styles[AUGMENT_SLOT_L_ARM] = "Standard"
+		TEST_ASSERT_EQUAL(styled.preferences.augment_limb_styles[AUGMENT_SLOT_L_ARM], "Security", "The limb-style snapshot must be detached.")
+		TEST_ASSERT(!styled.matches_preferences(preferences), "Changing a limb style must invalidate an unconfirmed preview.")
+		var/obj/effect/uplink_delivery/delivery = allocate(/obj/effect/uplink_delivery)
+		var/mob/living/carbon/human/uplink/body = styled.build(delivery, null, player)
+		var/obj/item/bodypart/arm = body.get_bodypart(BODY_ZONE_L_ARM)
+		TEST_ASSERT_EQUAL(arm.current_style, "Security", "Fresh assembly must install the selected augment style.")
+		var/obj/item/bodypart/preview_arm = styled.preview_view.body.get_bodypart(BODY_ZONE_L_ARM)
+		TEST_ASSERT_EQUAL(preview_arm.limb_id, arm.limb_id, "The preview must retain the selected limb sprite identity for [species_path].")
+		TEST_ASSERT_EQUAL(preview_arm.current_style, arm.current_style, "The preview must retain the selected augment style for [species_path].")
 
 /** Every destructive exit preserves belongings and safely returns the controlling AI. */
 /datum/unit_test/uplink_scrap_contents/Run()
