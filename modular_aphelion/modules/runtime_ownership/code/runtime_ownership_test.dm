@@ -83,4 +83,35 @@
 /datum/unit_test/runtime_ownership_reentrant_pickup/deleted
 	delete_in_callback = TRUE
 
+/** Already queued owner-deletion callbacks must tolerate another listener destroying their bar first. */
+/datum/unit_test/runtime_ownership_progressbar_delete
+
+/** Uses the wall healer's real callback ordering and an ordinary bar sharing the same owner. */
+/datum/unit_test/runtime_ownership_progressbar_delete/Run()
+	var/mob/living/carbon/human/first_user = allocate(/mob/living/carbon/human/consistent)
+	var/obj/machinery/wall_healer/free/healer = allocate(/obj/machinery/wall_healer/free, run_loc_floor_bottom_left)
+	healer.set_using_mob(first_user)
+	var/list/healer_bars = first_user.progressbars[healer]
+	if(length(healer_bars) != 1)
+		return Fail("The wall healer did not create one progress bar for its user.", __FILE__, __LINE__)
+	var/datum/progressbar/wall_healer/healer_bar = healer_bars[1]
+	var/datum/progressbar/ordinary_bar = allocate(/datum/progressbar, first_user, 1, run_loc_floor_bottom_left)
+	qdel(first_user)
+	if(!QDELETED(healer_bar) || healer_bar.user || healer_bar.bar_loc || healer_bar.user_client)
+		return Fail("Wall-healer cleanup retained its deleted user's progress bar ownership.", __FILE__, __LINE__)
+	if(!QDELETED(ordinary_bar) || ordinary_bar.user || ordinary_bar.bar_loc)
+		return Fail("An ordinary progress bar missed user-deletion cleanup after another bar was already destroyed.", __FILE__, __LINE__)
+
+	var/mob/living/carbon/human/second_user = allocate(/mob/living/carbon/human/consistent)
+	healer.set_using_mob(second_user)
+	var/list/replacement_bars = second_user.progressbars[healer]
+	if(length(replacement_bars) != 1)
+		return Fail("The wall healer could not create a fresh bar after its previous user was deleted.", __FILE__, __LINE__)
+	var/datum/progressbar/wall_healer/replacement_bar = replacement_bars[1]
+	if(replacement_bar.user != second_user)
+		return Fail("The replacement progress bar retained the wrong user.", __FILE__, __LINE__)
+	healer.clear_using_mob()
+	if(!QDELETED(replacement_bar) || replacement_bar.user || length(second_user.progressbars))
+		return Fail("Ending the replacement user's interaction retained a progress bar.", __FILE__, __LINE__)
+
 #endif

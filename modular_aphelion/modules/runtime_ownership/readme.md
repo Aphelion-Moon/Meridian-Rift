@@ -2,8 +2,8 @@
 
 Module ID: `RUNTIME_OWNERSHIP`
 
-Focused ownership fixtures for failures found by the full game create-and-destroy gate.
-They check AI escape-target deletion tracking and inventory transfers using real production APIs.
+Focused ownership fixtures for failures found by the full game suite.
+They check AI escape-target deletion tracking, inventory transfers and progress-bar cleanup using real production APIs.
 No creative content is supplied by this module.
 
 ## Core changes
@@ -17,11 +17,19 @@ movement signals. A listener may delete the item or move it to another holder be
 original pickup resumes. That pickup now fails before writing a stale hand slot. The check
 is a narrow marked addition; normal pickup and transfer behavior stays covered separately.
 
+A progress bar ignores a queued user-deletion callback when another listener has already
+destroyed the bar and cleared its user. Signal dispatch intentionally finishes its queued calls;
+unregistering during destruction cannot cancel that delivery. The regression uses a wall healer,
+a second ordinary bar and a replacement user to cover both cleanup orders and later reuse.
+
 ## Upstream tracking
 
 No upstream issue or PR has been filed from this local task. The escape decorators belong to
 this checkout's behavior-tree implementation; remove the local assignment patches when its
 upstream supplies equivalent deletion-tracked assignments, retaining regression coverage.
+The progress-bar guard fixes an inherited tgstation lifecycle bug exposed during the local full
+suite. No upstream issue or PR has been filed for it; remove the local guard when upstream handles
+queued user-deletion callbacks after bar destruction, retaining the regression fixture.
 
 ## Inclusion and verification
 
