@@ -62,6 +62,8 @@ SUBSYSTEM_DEF(memory_profiler)
 	var/datum/memory_capture/job
 	/// Collision-free suffix within this server lifetime.
 	var/capture_number = 0
+	/// Assigned once; wall-time minus simulation-time drifts under load and is not a run ID.
+	var/run_id
 
 /datum/controller/subsystem/memory_profiler/fire(resumed)
 	if(!job || job.state == "done")
@@ -75,10 +77,12 @@ SUBSYSTEM_DEF(memory_profiler)
 	if(!CONFIG_GET(flag/memory_profiler_enabled) || (job && job.state != "done"))
 		return FALSE
 	capture_number++
+	if(!run_id)
+		run_id = "[time2text(world.realtime, "YYYYMMDD-hhmmss")]-[world.port]"
 	var/capture_id = "[time2text(world.realtime, "YYYYMMDD-hhmmss")]-[capture_number]"
 	job = new("[GLOB.log_directory]/memory-[capture_id].ndjson", list(
 		"capture_id" = capture_id,
-		"run_id" = "[GLOB.round_id]-[world.system_type]-[time2text(world.realtime - world.time, "YYYYMMDD-hhmmss")]",
+		"run_id" = run_id,
 		"timestamp_local" = time2text(world.realtime, "YYYY-MM-DD hh:mm:ss"),
 		"byond" = "[world.byond_version].[world.byond_build]",
 		"os" = world.system_type,

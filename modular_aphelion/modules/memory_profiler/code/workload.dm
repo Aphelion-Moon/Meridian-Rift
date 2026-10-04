@@ -93,7 +93,7 @@ SUBSYSTEM_DEF(memory_workload)
 
 /** Label each real engine capture with the exact simulated activity phase. */
 /datum/controller/subsystem/memory_workload/proc/capture_phase(label)
-	text2file(label, "memory-[label].marker")
+	text2file(label, "[GLOB.log_directory]/memory-[label].marker")
 	if(world.params["memory-profile-off"])
 		// Paired control uses the measured on-run capture interval supplied by the
 		// runner, so background subsystems receive the same observation window.

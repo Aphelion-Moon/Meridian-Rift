@@ -13,6 +13,7 @@ import shutil
 import statistics
 import subprocess
 import time
+from urllib.parse import parse_qs
 
 
 def memory(process):
@@ -58,6 +59,16 @@ def run(daemon, dmb, directory, params='', timeout=180, copy_binary=True, game_d
     if game_dir:
         args += ['-cd', str(game_dir)]
     samples, markers, seen = [], [], set()
+    marker_dir = directory
+    if game_dir:
+        log_name = parse_qs(params).get('log-directory', [None])[0]
+        if not log_name:
+            raise ValueError('Full game telemetry requires a unique log-directory parameter')
+        log_root = (game_dir / 'data' / 'logs').resolve()
+        marker_dir = (log_root / log_name).resolve()
+        if not marker_dir.is_relative_to(log_root) or marker_dir.exists():
+            raise ValueError('Use a new contained game log directory for each run')
+    prior_markers = {p.name: p.stat().st_mtime_ns for p in marker_dir.glob('*.marker')}
     started = time.monotonic()
     with (directory / 'runtime.log').open('w') as log:
         process = subprocess.Popen(args, cwd=directory, stdout=log, stderr=subprocess.STDOUT,
@@ -72,8 +83,8 @@ def run(daemon, dmb, directory, params='', timeout=180, copy_binary=True, game_d
                 except (OSError, ProcessLookupError):
                     if process.poll() is None:
                         raise
-                for marker in (game_dir or directory).glob('*.marker'):
-                    if marker.name not in seen:
+                for marker in marker_dir.glob('*.marker'):
+                    if marker.name not in seen and marker.stat().st_mtime_ns != prior_markers.get(marker.name):
                         seen.add(marker.name)
                         markers.append({'name': marker.stem, 'offset_ms': round(elapsed, 3)})
                 time.sleep(0.1)
@@ -166,6 +177,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.daemon = args.daemon.resolve(); args.dmb = args.dmb.resolve(); args.out = args.out.resolve()
     if args.command == 'calibrate':
+        installed = subprocess.run([str(args.daemon), '-version'], capture_output=True, text=True, check=True)
+        if args.byond not in installed.stdout + installed.stderr:
+            raise ValueError('Requested BYOND version does not match daemon -version')
         args.out.mkdir(parents=True, exist_ok=False)
         calibrate(args)
     else:
