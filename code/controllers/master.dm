@@ -133,6 +133,10 @@ GLOBAL_REAL(Master, /datum/controller/master)
 	return QDEL_HINT_HARDDEL_NOW
 
 /datum/controller/master/Shutdown()
+	// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
+	// A preview can await Mapping.fire during reservation clearing or expansion.
+	SScondos?.stop_preview_renders()
+	// APHELION EDIT ADDITION END
 	processing = FALSE
 	sortTim(subsystems, GLOBAL_PROC_REF(cmp_subsystem_init))
 	reverse_range(subsystems)

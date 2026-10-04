@@ -7452,6 +7452,8 @@
 #include "modular_aphelion\modules\painting_gallery\code\nova_import.dm"
 #include "modular_aphelion\modules\painting_gallery\code\painting_achievements.dm"
 #include "modular_aphelion\modules\painting_gallery\code\painting_store.dm"
+#include "modular_aphelion\modules\runtime_ownership\code\condo_previews.dm"
+#include "modular_aphelion\modules\runtime_ownership\code\condo_previews_test.dm"
 #include "modular_aphelion\modules\runtime_ownership\code\runtime_ownership_test.dm"
 #include "modular_aphelion\modules\species_page\code\species_families.dm"
 #include "modular_aphelion\modules\species_page\code\species_holidays.dm"

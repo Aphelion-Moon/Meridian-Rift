@@ -2,8 +2,8 @@
 
 Module ID: `RUNTIME_OWNERSHIP`
 
-Focused ownership fixtures for failures found by the full game suite.
-They check AI escape-target deletion tracking, inventory transfers and progress-bar cleanup using real production APIs.
+Ownership guards and focused fixtures for failures found by game verification.
+They cover AI escape-target deletion tracking, inventory transfers, progress-bar cleanup and condo preview shutdown using production APIs.
 No creative content is supplied by this module.
 
 ## Core changes
@@ -22,6 +22,13 @@ destroyed the bar and cleared its user. Signal dispatch intentionally finishes i
 unregistering during destruction cannot cancel that delivery. The regression uses a wall healer,
 a second ordinary bar and a replacement user to cover both cleanup orders and later reuse.
 
+Condo preview shutdown closes admission and waits for suspended photographs before Master
+stops scheduling: reservation expansion can itself await Mapping's turf reclamation. Atoms,
+Mapping and Dogmos remain available until that work finishes. Startup and admin-upload previews use the same
+ownership wrapper. The preview loop stops between interiors; an already running map load finishes
+through reservation release. Mapping's queued turf reclamation is not awaited after its scheduler
+has stopped. Inert subsystem copies cover concurrent photographs, late calls and exception cleanup.
+
 ## Upstream tracking
 
 No upstream issue or PR has been filed from this local task. The escape decorators belong to
@@ -30,9 +37,12 @@ upstream supplies equivalent deletion-tracked assignments, retaining regression 
 The progress-bar guard fixes an inherited tgstation lifecycle bug exposed during the local full
 suite. No upstream issue or PR has been filed for it; remove the local guard when upstream handles
 queued user-deletion callbacks after bar destruction, retaining the regression fixture.
+The condo preview barrier fixes inherited Nova initialization work surviving subsystem shutdown.
+No upstream issue or PR has been filed; remove the wrapper and marked hooks when upstream joins
+in-flight photographs before dependent subsystems shut down, retaining regression coverage.
 
 ## Inclusion and verification
 
-`modular_aphelion/tools/update_module_includes.py --write` regenerates module includes from
+`modular_aphelion/tools/update_module_includes.py --module runtime_ownership --write` regenerates this module's includes from
 the maintained source files. Run the repository ticked-file gate afterward.
 Tests are enabled only for `UNIT_TESTS` or `SPACEMAN_DMM`.
