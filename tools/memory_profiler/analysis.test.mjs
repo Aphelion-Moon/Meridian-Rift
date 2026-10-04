@@ -20,12 +20,18 @@ test('numeric sort, nulls last, zero baseline and capture-local removed IDs', ()
   const a = capture(), b = capture(); b.observations.nodes[0].type = '/datum/new';
   const delta = compare(a, b); assert.equal(delta.find(r => r.key === '/datum/new').percent, null);
   assert.equal(delta.find(r => r.key === '/datum/a').comparison_source, 'baseline');
+  const removed = delta.find(r => r.key === '/datum/a');
+  assert.equal(removed.slots, 0); assert.equal(removed.estimated_bytes, null);
+  assert.equal(removed.detail_count, 1); assert.equal(removed.detail_unknown, 1);
+  assert.throws(() => compare(a, b, 'instance'), /capture-local/);
 });
 test('malformed graphs and unsupported versions rejected; future fields accepted', () => {
   assert.throws(() => validate({ ...capture(), schema_version: 5 }), /Unsupported/);
   const c = capture(); c.observations.edges[0].target = 99; assert.throws(() => validate(c), /edge/);
   assert.throws(() => validate({ ...capture(), quality: null }), /quality/);
   assert.doesNotThrow(() => validate({ ...capture(), future_field: true }));
+  const overflow = capture(); overflow.observations.nodes[0].estimated_bytes = 1e308;
+  assert.throws(() => validate(overflow), /byte estimate/);
 });
 test('pathological path amplification is bounded and cycles terminate offline', () => {
   const c = capture(); c.observations.nodes = []; c.observations.edges = [];
@@ -39,7 +45,10 @@ test('interrupted output remains readable, sequence and footer mismatches reject
   assert.throws(() => finalize(header + '\n' + header), /sequence/);
   assert.throws(() => finalize(header + '\n' + JSON.stringify({ record: 'footer', sequence: 2, nodes: 1, edges: 0, retained_references: 0 })), /counts/);
 });
-test('CSV neutralizes spreadsheet formulas', () => assert.match(csv([{ key: '=HYPERLINK("x")' }]), /'=/));
+test('CSV neutralizes text formulas while preserving numeric negative deltas', () => {
+  assert.match(csv([{ key: '=HYPERLINK("x")' }]), /'=/);
+  assert.match(csv([{ key: 'delta', delta: -2 }]), /"-2"/);
+});
 
 const actual = process.env.MEMORY_FIXTURE;
 test('actual BYOND fixture: identity, list keys and values, numeric alists, privacy and cleanup', { skip: !actual }, () => {
@@ -51,6 +60,9 @@ test('actual BYOND fixture: identity, list keys and values, numeric alists, priv
   const shared = edges.filter(e => e.field === 'shared'); assert.equal(shared.length, 2); assert.equal(shared[0].target, shared[1].target);
   assert.notEqual(edges.find(e => e.field === 'equal_independent').target, shared[0].target);
   const cycle = edges.find(e => e.field === 'self_cycle').target; assert.ok(edges.some(e => e.owner === cycle && e.target === cycle));
+  const mutual = edges.find(e => e.field === 'mutual_cycle').target;
+  const other = edges.find(e => e.owner === mutual).target;
+  assert.notEqual(other, mutual); assert.ok(edges.some(e => e.owner === other && e.target === mutual));
   const keyed = edges.find(e => e.field === 'keys_and_values').target;
   assert.ok(edges.some(e => e.owner === keyed && e.field.endsWith(':key')));
   assert.ok(edges.some(e => e.owner === keyed && e.field.endsWith(':value')));

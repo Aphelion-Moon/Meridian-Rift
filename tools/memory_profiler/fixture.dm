@@ -5,6 +5,7 @@
 
 /datum/memory_fixture
 	var/list/self_cycle
+	var/list/mutual_cycle
 	var/list/shared
 	var/list/equal_independent
 	var/list/keys_and_values
@@ -19,6 +20,9 @@
 	var/datum/memory_fixture/root = new
 	root.self_cycle = list()
 	root.self_cycle += list(root.self_cycle)
+	root.mutual_cycle = list()
+	var/list/other_cycle = list(root.mutual_cycle)
+	root.mutual_cycle += list(other_cycle)
 	root.shared = list(1, 1, 2, null, "private game text never exported")
 	root.equal_independent = root.shared.Copy()
 	var/list/key = list("secret key")
@@ -60,6 +64,12 @@
 			capture.output_path = "."
 		if("cancel_early")
 			capture.finish("cancelled", "fixture_cancel_early")
+		if("delete")
+			// Prepare the two queued identities at a deterministic lifecycle boundary.
+			// This mode checks deletion handling, not scheduler timing.
+			for(var/setup_step in 1 to 4)
+				capture.advance()
+			del(second)
 	var/ticks = 0
 	while(capture.state != "done")
 		capture.tick()
@@ -70,8 +80,6 @@
 					capture.finish("cancelled", "fixture_cancel")
 				if("mutation")
 					root.huge.len = 50
-				if("delete")
-					del(second)
 		sleep(world.tick_lag)
 	if(length(capture.entries) || length(capture.identities) || length(capture.roots))
 		world.log << "MEMORY_FIXTURE_FAILURE retained references"

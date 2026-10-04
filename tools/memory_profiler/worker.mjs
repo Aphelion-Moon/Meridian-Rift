@@ -11,12 +11,14 @@ self.onmessage = ({ data }) => {
       const current = captures[data.current];
       if (!current) return;
       const baseline = captures[data.baseline];
-      const rows = baseline && baseline !== current ? compare(baseline, current, data.grouping, data.options.kind) : summarize(current, data.grouping, data.options.kind);
+      const comparing = baseline && baseline !== current;
+      const instances = data.grouping === 'instance';
+      const rows = comparing && !instances ? compare(baseline, current, data.grouping, data.options.kind) : summarize(current, data.grouping, data.options.kind);
       filtered = query(rows, { ...data.options, kind: '' });
       self.postMessage({ action: 'rows', rows: filtered.slice(data.page * 75, (data.page + 1) * 75).map(row => ({ ...row, detail_capture: row.comparison_source === 'baseline' ? data.baseline : data.current })), total: filtered.length,
         coverage: current.coverage, quality: current.quality, provenance: current.provenance,
         legacy: current.comparison_context?.legacy_rows?.slice(0, 100),
-        incompatible: baseline && baseline !== current ? compatibility(baseline, current) : [],
+        incompatible: comparing ? (instances ? ['Instance IDs are capture-local; showing current objects without instance deltas.'] : compatibility(baseline, current)) : [],
         timeline: captures.map(c => ({ id: c.provenance.capture_id, nodes: c.observations.nodes.length, status: c.coverage.status })) });
     } else if (data.action === 'detail') {
       const c = captures[data.current]; const ids = new Set(data.ids.slice(0, 100));

@@ -21,7 +21,7 @@
       "id": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
       "kind": {"type": "string", "maxLength": 1024}, "type": {"type": "string", "maxLength": 1024},
       "length": {"anyOf": [{"type": "integer", "minimum": 0, "maximum": 16777215}, {"type": "null"}]},
-      "estimated_bytes": {"type": ["number", "null"], "minimum": 0}, "estimate_reason": {"type": "string"}
+      "estimated_bytes": {"type": ["number", "null"], "minimum": 0, "maximum": 900719925474.0991}, "estimate_reason": {"type": "string"}
     }},
     "edge": {"type": "object", "required": ["owner", "target", "field"], "properties": {
       "owner": {"$ref": "#/$defs/count"}, "target": {"type": "integer", "minimum": 1, "maximum": 9007199254740991}, "field": {"type": "string", "maxLength": 1024}

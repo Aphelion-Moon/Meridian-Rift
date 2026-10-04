@@ -10,10 +10,20 @@ async function importFile(file) {
   try { worker.postMessage({ action: 'import', text: await file.text() }); }
   catch (e) { tell(e.message); }
 }
-$('files').onchange = () => { for (const file of $('files').files) importFile(file); };
+async function importFiles(files) { for (const file of Array.from(files).slice(0, 12)) await importFile(file); }
+$('files').onchange = () => importFiles($('files').files);
 $('drop').ondragover = event => event.preventDefault();
-$('drop').ondrop = event => { event.preventDefault(); for (const file of event.dataTransfer.files) importFile(file); };
+$('drop').ondrop = event => { event.preventDefault(); importFiles(event.dataTransfer.files); };
 $('sample').onclick = async () => { try { const r = await fetch('./examples/fixture.memory.json'); if (!r.ok) throw Error('Example unavailable; run the documented fixture/finalizer.'); worker.postMessage({ action: 'import', text: await r.text() }); } catch(e) { tell(e.message); } };
+$('round-sample').onclick = async () => {
+  try {
+    for (const phase of ['loaded-map', 'warm-equipped', 'sustained-activity', 'churn-event', 'ordinary-cleanup']) {
+      const response = await fetch(`./examples/round-${phase}.memory.json`);
+      if (!response.ok) throw Error('Round example unavailable.');
+      worker.postMessage({ action: 'import', text: await response.text() });
+    }
+  } catch (error) { tell(error.message); }
+};
 for (const id of ['current', 'baseline', 'group', 'search', 'prefix', 'kind', 'root', 'confidence']) $(id).oninput = () => { page = 0; refresh(); };
 $('reset').onclick = () => { for (const id of ['search', 'prefix', 'kind', 'root', 'confidence']) $(id).value = ''; sort = [{ key: 'score', direction: -1 }]; page = 0; refresh(); };
 for (const button of document.querySelectorAll('[data-sort]')) button.onclick = event => {
@@ -37,7 +47,7 @@ worker.onmessage = ({ data }) => {
     tell(`${data.coverage.status.toUpperCase()}: ${data.coverage.reason ?? 'selected scope completed'}. ${data.incompatible.length ? `Comparison warnings: ${data.incompatible.join(', ')}.` : ''}`);
     $('cards').replaceChildren();
     for (const [label, value] of [['Engine', data.provenance.byond], ['Evidence', data.provenance.evidence_class], ['Worst step (ms)', data.quality.worst_atomic_ms_before_footer], ['Retained after cleanup', data.quality.retained_references]]) {
-      const card = document.createElement('div'); const small = document.createElement('small'); small.textContent = label; const strong = document.createElement('strong'); strong.textContent = typeof value === 'number' ? number(value) : value ?? 'Unavailable'; card.append(small, strong); $('cards').append(card);
+      const card = document.createElement('div'); const small = document.createElement('small'); small.textContent = label; const strong = document.createElement('strong'); strong.textContent = typeof value === 'number' ? (label.includes('(ms)') ? value.toLocaleString(undefined, { maximumFractionDigits: 4 }) : number(value)) : value ?? 'Unavailable'; strong.title = String(value ?? 'Unavailable'); card.append(small, strong); $('cards').append(card);
     }
     $('scope').textContent = `Scope: ${data.coverage.scope}. ${data.coverage.limitations?.join(' ') ?? ''}`;
     $('timeline').textContent = `Capture series: ${data.timeline.map(t => `${t.id}: ${t.nodes} observed nodes (${t.status})`).join(' → ')}`;
@@ -45,7 +55,7 @@ worker.onmessage = ({ data }) => {
     $('legacy-panel').hidden = !data.legacy;
     $('rows').replaceChildren();
     for (const row of data.rows) {
-      const tr = document.createElement('tr'); const td = document.createElement('td'); const button = document.createElement('button'); button.className = 'row-link'; button.textContent = row.key; button.onclick = () => { worker.postMessage({ action: 'detail', current: row.detail_capture, ids: row.ids, summary: {key:row.key, distribution:row.distribution, paths:row.paths, estimate_coverage:`${row.count-row.unknown}/${row.count} objects`, evidence:row.evidence} }); }; td.append(button); tr.append(td);
+      const tr = document.createElement('tr'); const td = document.createElement('td'); const button = document.createElement('button'); button.className = 'row-link'; button.textContent = row.key; button.onclick = () => { const count = row.detail_count ?? row.count, unknown = row.detail_unknown ?? row.unknown; worker.postMessage({ action: 'detail', current: row.detail_capture, ids: row.ids, summary: {key:row.key, distribution:row.distribution, paths:row.paths, estimate_coverage:`${count-unknown}/${count} objects`, evidence:row.evidence} }); }; td.append(button); tr.append(td);
       for (const key of ['count', 'estimated_bytes', 'slots', 'largest', 'empty', 'shared', 'delta', 'percent', 'byte_delta', 'score']) { const cell = document.createElement('td'); cell.textContent = key === 'percent' && row.baseline === 0 ? row.change : number(row[key]); cell.title = row[key] == null ? 'Unknown, not zero' : String(row[key]); tr.append(cell); }
       $('rows').append(tr);
     }

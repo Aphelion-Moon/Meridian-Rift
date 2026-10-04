@@ -17,7 +17,7 @@ export function validate(capture) {
   for (const node of nodes) {
     if (!integer(node.id) || !node.id || ids.has(node.id) || !text(node.type) || !text(node.kind)) fail('Invalid or duplicate node.');
     if (node.length !== null && (!integer(node.length) || node.length > 16777215)) fail('Invalid or inexact DM length.');
-    if (node.estimated_bytes != null && (!Number.isFinite(node.estimated_bytes) || node.estimated_bytes < 0)) fail('Invalid byte estimate.');
+    if (node.estimated_bytes != null && (!Number.isFinite(node.estimated_bytes) || node.estimated_bytes < 0 || node.estimated_bytes > Number.MAX_SAFE_INTEGER / 10000)) fail('Invalid byte estimate.');
     ids.add(node.id);
   }
   for (const edge of edges) {
@@ -90,12 +90,16 @@ export function compatibility(a, b) {
 }
 
 export function compare(a, b, grouping = 'type', kindFilter = '') {
+  if (grouping === 'instance') fail('Instance IDs are capture-local; compare stable type, field or root groups.');
   const old = new Map(summarize(a, grouping, kindFilter).map(r => [r.key, r]));
   const current = new Map(summarize(b, grouping, kindFilter).map(r => [r.key, r]));
   return [...new Set([...old.keys(), ...current.keys()])].map(key => {
     const before = old.get(key); const after = current.get(key);
     const baseline = before?.count ?? 0; const count = after?.count ?? 0;
-    return { ...(after ?? before), key, count, baseline, comparison_source: after ? 'current' : 'baseline', delta: count - baseline, percent: baseline === 0 ? null : (count - baseline) / baseline * 100,
+    const detail = after ?? before;
+    return { ...detail, ...(!after ? { slots: 0, empty: 0, largest: 0, shared: 0, known_bytes: 0, unknown: 0, estimated_bytes: null, score: 0, confidence: 'count-only' } : {}), key, count, baseline,
+      baseline_estimated_bytes: before?.estimated_bytes ?? null, detail_count: detail.count, detail_unknown: detail.unknown,
+      comparison_source: after ? 'current' : 'baseline', delta: count - baseline, percent: baseline === 0 ? null : (count - baseline) / baseline * 100,
       change: baseline === 0 ? (count ? 'newly observed' : 'unchanged') : 'observed delta',
       byte_delta: before?.estimated_bytes != null && after?.estimated_bytes != null && JSON.stringify(a.models) === JSON.stringify(b.models) ? after.estimated_bytes - before.estimated_bytes : null };
   });
@@ -118,6 +122,6 @@ export function query(rows, options = {}) {
 
 export function csv(rows) {
   const columns = ['key', 'kind', 'count', 'slots', 'empty', 'largest', 'shared', 'estimated_bytes', 'unknown', 'delta', 'percent', 'byte_delta'];
-  const cell = v => { let s = v == null ? '' : String(v); if (/^[=+@\-\t\r]/.test(s)) s = `'${s}`; return `"${s.replaceAll('"', '""')}"`; };
+  const cell = v => { let s = v == null ? '' : String(v); if (typeof v === 'string' && /^[=+@\-\t\r]/.test(s)) s = `'${s}`; return `"${s.replaceAll('"', '""')}"`; };
   return [columns.join(','), ...rows.map(r => columns.map(c => cell(r[c])).join(','))].join('\r\n');
 }
