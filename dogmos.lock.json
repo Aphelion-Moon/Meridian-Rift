@@ -1,9 +1,9 @@
 {
   "artifacts": {
-    "dogmos-source-snapshot.json": "3a32bccbb95b3f7d76bf4d715ced085349428368ee4ad355c1bb6f62f4ada885",
-    "dogmos.dll": "f474092c125f8a8794d3e77bbe03e8a695208806863f90459f96e18959687a20",
-    "dogmos.pdb": "c4da8e874e54579e614614365b642f926b4c7c235c4da0a65a9fd239ff38a393",
-    "dogmos_bindings.dm": "f89a4c46f4510b1fae0888951446b63744113a8641b07327dc6e209fb2d3159e"
+    "dogmos-source-snapshot.json": "5f8e4b6ece53ba63b2de57572a95bdcf94f037a000c5ee9141f5d99509296605",
+    "dogmos.dll": "ff22adcefd9fd6cb88d0cd5140e7aa62ffb7072fdc406cfd8ae48830a3ab4942",
+    "dogmos.pdb": "e05bccb88bb63c36e41b9f13313892f6b675770f2f67528db660ec993ef39711",
+    "dogmos_bindings.dm": "11af684f63f1585b2d59ed8d4d5146ecc2817ef498ea07b93eb2884102b1fab7"
   },
   "backend": "in-process",
   "build_provenance": {
@@ -45,8 +45,8 @@
   "kind": "unqualified-in-process-playtest",
   "runtime_qualified": false,
   "schema_version": 1,
-  "source_revision": "ab6e92f0886fa384fdceec628923b58e7a6c281c",
-  "source_sha256": "3a32bccbb95b3f7d76bf4d715ced085349428368ee4ad355c1bb6f62f4ada885",
+  "source_revision": "8d845b0d71d28b2f81dcaaa1ffb2723079f64b2e",
+  "source_sha256": "5f8e4b6ece53ba63b2de57572a95bdcf94f037a000c5ee9141f5d99509296605",
   "target": "i686-pc-windows-msvc",
   "tests_run": false,
   "toolchain": "1.98.0"
