@@ -60,6 +60,17 @@
 	var/list/identities = list()
 	/// Breadth-first queue retaining at most node_limit identities.
 	var/list/entries = list()
+	/// At most four structural records from one traversal step; no gameplay values.
+	var/list/records = list()
+	/// Edges awaiting output reserve capacity without counting as successful writes.
+	var/queued_edges = 0
+	/// Peak bounded record queue, excluding collector data from gameplay totals.
+	var/record_peak = 0
+	/// Instrumentation separates encoding and synchronous file writes.
+	var/encoding_ms = 0
+	var/writing_ms = 0
+	var/write_calls = 0
+	var/worst_writes_per_step = 0
 	/// Next root.
 	var/root_cursor = 1
 	/// Next queue entry.
@@ -94,6 +105,8 @@
 	var/list/tick_histogram = list(0, 0, 0, 0, 0, 0)
 	/// A tick may be serviced at most once, even if the subsystem is resumed.
 	var/last_tick = -1
+	/// Current tick's start, allowing a footer in the first tick to report its cost.
+	var/tick_start_usage
 	/// Opt-in pause; duration still expires while paused.
 	var/paused = FALSE
 	/// Absolute caps may be reduced by tests/operators, never raised by integration.
@@ -119,7 +132,7 @@
 	/// Number of truncations/unsupported traversals; never extrapolated.
 	var/truncations = 0
 	/// Measured phase cost; footer's own write is reported by runtime harnesses.
-	var/list/phase_ms = list("header" = 0, "roots" = 0, "walk" = 0, "cleanup" = 0, "footer" = 0)
+	var/list/phase_ms = list("header" = 0, "roots" = 0, "walk" = 0, "output" = 0, "cleanup" = 0, "footer" = 0)
 
 /** Initialize one job. Roots are added individually, outside any global census. */
 /datum/memory_capture/New(path, list/metadata)
@@ -137,17 +150,39 @@
 
 /** Begin incremental release on every terminal path. */
 /datum/memory_capture/proc/finish(status, why)
-	if(state == "done" || state == "footer" || state == "cleanup")
+	if(state == "done" || state == "footer" || state == "draining" || state == "cleanup")
 		return
 	result = status
 	reason = why
+	// A cancellation before the first flush still needs its queued header.
+	var/list/first_record = length(records) ? records[1] : null
+	if(!sequence && first_record?["record"] == "header")
+		records.Cut(2)
+	else
+		records.Cut()
+	queued_edges = 0
 	state = "cleanup"
 
-/** Append only bounded structural records. text2file is measured but non-preemptible. */
+/** Queue structural metadata; advance drains it before inspecting another slot. */
 /datum/memory_capture/proc/emit(list/record, footer = FALSE)
+	records += list(record)
+	if(record["record"] == "edge")
+		queued_edges++
+	record_peak = max(record_peak, length(records))
+
+/** Write one record per bounded step. text2file remains non-preemptible. */
+/datum/memory_capture/proc/flush_record()
+	var/list/record = records[1]
+	records.Cut(1, 2)
+	var/kind = record["record"]
+	var/footer = kind == "footer"
+	if(kind == "edge")
+		queued_edges--
 	sequence++
 	record["sequence"] = sequence
+	var/start_usage = world.tick_usage
 	var/encoded = json_encode(record)
+	encoding_ms += max(0, (world.tick_usage - start_usage) * world.tick_lag)
 	var/byte_count = length(encoded) + 1
 	if(byte_count > 4096 || output_bytes + byte_count > output_limit + (footer ? 4096 : 0))
 		sequence--
@@ -155,20 +190,34 @@
 		if(footer)
 			result = "error"
 			reason = "footer_output_limit"
+			state = "done"
 		return FALSE
-	if(!text2file(encoded, output_path))
+	start_usage = world.tick_usage
+	write_calls++
+	var/written = text2file(encoded, output_path)
+	writing_ms += max(0, (world.tick_usage - start_usage) * world.tick_lag)
+	if(!written)
 		sequence--
 		finish("error", "write_failed")
+		result = "error"
+		reason = "write_failed"
 		if(footer)
 			result = "error"
 			reason = "footer_write_failed"
+			state = "done"
 		return FALSE
 	output_bytes += byte_count
+	if(kind == "node")
+		emitted_nodes++
+	else if(kind == "edge")
+		edge_count++
+	else if(footer)
+		state = "done"
 	return TRUE
 
 /** Record identity and edge without serializing values or association key contents. */
 /datum/memory_capture/proc/observe(value, owner, field, depth)
-	if(edge_count >= edge_limit)
+	if(edge_count + queued_edges >= edge_limit)
 		finish("partial", "edge_limit")
 		return
 	var/kind
@@ -220,17 +269,18 @@
 		entry.size = size
 		identities[reference] = entry
 		entries += entry
-		if(emit(list("record" = "node", "id" = entry.id, "kind" = kind, "type" = type_name, "length" = size > 16777215 ? null : size, "depth" = depth, "observed_ds" = world.time - started_at)))
-			emitted_nodes++
+		emit(list("record" = "node", "id" = entry.id, "kind" = kind, "type" = type_name, "length" = size > 16777215 ? null : size, "depth" = depth, "observed_ds" = world.time - started_at))
 	if(state == "cleanup")
 		return
-	if(emit(list("record" = "edge", "owner" = owner, "target" = entry.id, "field" = field, "observed_ds" = world.time - started_at)))
-		edge_count++
+	emit(list("record" = "edge", "owner" = owner, "target" = entry.id, "field" = field, "observed_ds" = world.time - started_at))
 
 /** Do exactly one bounded unit. All nested containers are queued, never recursed. */
 /datum/memory_capture/proc/advance()
+	if(length(records))
+		flush_record()
+		return
 	if(state == "header" || (state == "cleanup" && !sequence && provenance))
-		emit(list("record" = "header", "schema_version" = 1, "collector_version" = "1.0", "provenance" = provenance, "scope" = "selected-roots-v1", "roots" = root_names, "settings" = list("nodes" = node_limit, "edges" = edge_limit, "work" = work_limit, "slots" = slot_limit, "alist_copy" = MEMORY_ALIST_LIMIT, "depth" = depth_limit, "duration_ds" = duration_limit, "output_bytes" = output_limit, "budget_ms" = budget_ms, "tick_fraction" = tick_fraction)))
+		emit(list("record" = "header", "schema_version" = 1, "collector_version" = "1.1", "provenance" = provenance, "scope" = "selected-roots-v1", "roots" = root_names, "settings" = list("nodes" = node_limit, "edges" = edge_limit, "work" = work_limit, "slots" = slot_limit, "alist_copy" = MEMORY_ALIST_LIMIT, "depth" = depth_limit, "duration_ds" = duration_limit, "output_bytes" = output_limit, "budget_ms" = budget_ms, "tick_fraction" = tick_fraction)))
 		provenance = null
 		if(state != "cleanup")
 			state = "roots"
@@ -336,8 +386,13 @@
 		state = "footer"
 		return
 	if(state == "footer")
-		emit(list("record" = "footer", "status" = result, "reason" = reason, "nodes" = emitted_nodes, "edges" = edge_count, "work" = work, "duration_ds" = world.time - started_at, "mutations" = mutations, "deletions" = deletions, "skipped" = skipped, "truncations" = truncations, "backoffs" = backoffs, "total_ms_before_footer" = total_ms, "worst_tick_ms_before_footer" = worst_tick_ms, "worst_atomic_ms_before_footer" = worst_atomic_ms, "tick_histogram_before_footer" = tick_histogram, "phase_ms_before_footer" = phase_ms, "retained_references" = length(entries) + length(roots)), TRUE)
-		state = "done"
+		var/current_ms = isnull(tick_start_usage) ? 0 : max(0, (world.tick_usage - tick_start_usage) * world.tick_lag)
+		var/list/footer_histogram = tick_histogram.Copy()
+		if(!isnull(tick_start_usage))
+			var/bucket = current_ms <= 0.1 ? 1 : (current_ms <= 0.25 ? 2 : (current_ms <= 0.5 ? 3 : (current_ms <= 1 ? 4 : (current_ms <= 2 ? 5 : 6))))
+			footer_histogram[bucket]++
+		emit(list("record" = "footer", "status" = result, "reason" = reason, "nodes" = emitted_nodes, "edges" = edge_count, "work" = work, "duration_ds" = world.time - started_at, "mutations" = mutations, "deletions" = deletions, "skipped" = skipped, "truncations" = truncations, "backoffs" = backoffs, "total_ms_before_footer" = total_ms + current_ms, "worst_tick_ms_before_footer" = max(worst_tick_ms, current_ms), "worst_atomic_ms_before_footer" = worst_atomic_ms, "tick_histogram_before_footer" = footer_histogram, "phase_ms_before_footer" = phase_ms, "encoding_ms_before_footer" = encoding_ms, "writing_ms_before_footer" = writing_ms, "write_calls_before_footer" = write_calls, "worst_writes_per_step" = worst_writes_per_step, "record_queue_peak" = record_peak, "retained_references" = length(entries) + length(roots)), TRUE)
+		state = "draining"
 
 /** Service once per tick, with a shared budget across every phase. */
 /datum/memory_capture/proc/tick()
@@ -346,22 +401,25 @@
 	last_tick = world.time
 	if(world.time - started_at > duration_limit)
 		finish("partial", "duration_limit")
-	var/cleaning = state == "cleanup" || state == "footer"
+	var/cleaning = state == "cleanup" || state == "footer" || state == "draining"
 	if(!cleaning && (paused || world.tick_usage > 50))
 		backoffs++
 		return
 	var/start_usage = world.tick_usage
+	tick_start_usage = start_usage
 	var/limit_ms = min(budget_ms, world.tick_lag * 100 * tick_fraction)
 	var/steps = 0
 	while(state != "done" && steps < 32)
 		var/atomic_start = world.tick_usage
-		var/phase = state
+		var/phase = length(records) ? "output" : state
+		var/writes_before = write_calls
 		try
 			advance()
 		catch
 			finish("error", "runtime_exception")
 		work++
 		steps++
+		worst_writes_per_step = max(worst_writes_per_step, write_calls - writes_before)
 		var/atomic_ms = max(0, (world.tick_usage - atomic_start) * world.tick_lag)
 		phase_ms[phase] += atomic_ms
 		worst_atomic_ms = max(worst_atomic_ms, atomic_ms)
@@ -376,3 +434,4 @@
 	worst_tick_ms = max(worst_tick_ms, elapsed_ms)
 	var/bucket = elapsed_ms <= 0.1 ? 1 : (elapsed_ms <= 0.25 ? 2 : (elapsed_ms <= 0.5 ? 3 : (elapsed_ms <= 1 ? 4 : (elapsed_ms <= 2 ? 5 : 6))))
 	tick_histogram[bucket]++
+	tick_start_usage = null

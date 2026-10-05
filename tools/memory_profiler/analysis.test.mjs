@@ -54,6 +54,8 @@ const actual = process.env.MEMORY_FIXTURE;
 test('actual BYOND fixture: identity, list keys and values, numeric alists, privacy and cleanup', { skip: !actual }, () => {
   const raw = fs.readFileSync(actual, 'utf8'); const c = finalize(raw);
   assert.equal(c.quality.retained_references, 0);
+  assert.equal(c.quality.worst_writes_per_step, 1);
+  assert.ok(c.quality.record_queue_peak <= 4);
   assert.equal(c.coverage.status, 'partial'); assert.equal(c.coverage.reason, 'bounded_scope');
   assert.ok(!raw.includes('private game text') && !raw.includes('secret key') && !raw.includes('secret value'));
   const edges = c.observations.edges;

@@ -54,6 +54,8 @@
 			capture.tick_fraction = 0.02
 		if("nodes")
 			capture.node_limit = 3
+		if("edges")
+			capture.edge_limit = 3
 		if("output")
 			capture.output_limit = 1400
 		if("work")
@@ -67,7 +69,9 @@
 		if("delete")
 			// Prepare the two queued identities at a deterministic lifecycle boundary.
 			// This mode checks deletion handling, not scheduler timing.
-			for(var/setup_step in 1 to 4)
+			for(var/setup_step in 1 to 16)
+				if(capture.state == "walk")
+					break
 				capture.advance()
 			del(second)
 	var/ticks = 0
@@ -81,7 +85,9 @@
 				if("mutation")
 					root.huge.len = 50
 		sleep(world.tick_lag)
-	if(length(capture.entries) || length(capture.identities) || length(capture.roots))
+	if(length(capture.entries) || length(capture.identities) || length(capture.roots) || length(capture.records) || capture.queued_edges)
 		world.log << "MEMORY_FIXTURE_FAILURE retained references"
+	if(capture.worst_writes_per_step > 1 || capture.record_peak > 4)
+		world.log << "MEMORY_FIXTURE_FAILURE output step exceeded bound"
 	world.log << "MEMORY_FIXTURE_DONE status=[capture.result] nodes=[capture.node_count] edges=[capture.edge_count] retained=[length(capture.entries)] worst=[capture.worst_atomic_ms]ms"
 	shutdown()

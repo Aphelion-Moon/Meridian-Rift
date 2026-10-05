@@ -8,8 +8,10 @@ SUBSYSTEM_DEF(memory_random_workload)
 	var/list/mob/living/carbon/human/actors = list()
 	/// Spawn candidates near station machinery, collected once outside the collector.
 	var/list/turf/spawns = list()
-	/// Switches whose original state must be restored after the exercise.
+	/// Original light state per controlled area, shared by all its switches.
 	var/list/original_lights = list()
+	/// One surviving switch per area provides the ordinary restoration path.
+	var/list/light_representatives = list()
 	/// Reaction vessels mapped to their observation deadline.
 	var/list/reaction_vessels = list()
 	/// Current phase and its fixed label.
@@ -167,10 +169,12 @@ SUBSYSTEM_DEF(memory_random_workload)
 				qdel(actor)
 				return
 			if(!cleanup_until)
-				for(var/obj/machinery/light_switch/switch_object as anything in original_lights)
+				for(var/area/controlled_area as anything in original_lights)
+					var/obj/machinery/light_switch/switch_object = light_representatives[controlled_area]
 					if(!QDELETED(switch_object))
-						switch_object.set_lights(original_lights[switch_object])
+						switch_object.set_lights(original_lights[controlled_area])
 				original_lights.Cut()
+				light_representatives.Cut()
 				cleanup_until = world.time + 60 SECONDS
 			ready = world.time >= cleanup_until && !length(reaction_vessels)
 	if(ready && !capture_requested)
@@ -233,16 +237,19 @@ SUBSYSTEM_DEF(memory_random_workload)
 			counts["switch_attempt"]++
 			for(var/obj/machinery/light_switch/switch_object in range(1, actor))
 				var/old_state = switch_object.area.lightswitch
-				if(!(switch_object in original_lights))
-					original_lights[switch_object] = old_state
+				if(!(switch_object.area in original_lights))
+					original_lights[switch_object.area] = old_state
+				light_representatives[switch_object.area] = switch_object
 				actor.ClickOn(switch_object, "")
 				counts["switch_changed"] += switch_object.area.lightswitch != old_state
 				break
 		if(10)
 			counts["door_attempt"]++
 			for(var/obj/machinery/door/door in range(1, actor))
+				var/was_operating = door.operating
+				var/was_dense = door.density
 				actor.ClickOn(door, "")
-				counts["door_activated"] += door.operating || !door.density
+				counts["door_activation_started"] += (!was_operating && door.operating) || (was_dense != door.density)
 				break
 
 /** Pour through the normal item interaction and retain the target until SSreagents has processed it. */
@@ -293,7 +300,7 @@ SUBSYSTEM_DEF(memory_random_workload)
 	pending.output_path = "[GLOB.log_directory]/memory-[label].ndjson"
 	pending.provenance["capture_id"] = label
 	pending.provenance["evidence_class"] = "running_test_round_simulated_actors"
-	pending.provenance["workload"] = "seeded-random-station-actions-v2"
+	pending.provenance["workload"] = "seeded-random-station-actions-v3"
 	pending.provenance["simulated_actors"] = length(actors)
 	pending.provenance["phase"] = label
 	pending.provenance["seed"] = seed
