@@ -72,8 +72,8 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
 - `code/colour_cache.dm`, `code/adaptive_colour.dm`: the cloth colour sampler and the adaptive palette.
 - `code/interaction_text.dm`: the armpit interactions' pit-hair texts.
 - `icons/templates/`: 5 sheets, 460 states: the shapes up to small_cap, the skirts' clearances and flaps and the large
-  heart boxers, described in `icons/README.md`. `tools/bulge_assets.py` checks and previews them and names what is
-  derived.
+  heart boxers, described in `icons/README.md`. `tools/bulge_assets.py` checks, re-encodes and previews them and
+  names what is derived.
 - Outside the module: `code/__DEFINES/~aphelion_defines/bulge.dm`; two calls to `bulge_cut_worn()` in
   `human_update_icons.dm`; the texture skip for the bulge's cloth in `_bodyparts.dm`; `bulge_cached_output_matches()`
   in `greyscale.dm`; `has_bulge()` and `bulge_cover_name()`, which bulge interactions ask, in Nova's
@@ -107,8 +107,9 @@ Upstream changes to these sheets will conflict with ours; take upstream's change
 ### Adding or editing a shape
 
 Up to a family's small_cap, draw it in its sheet under the name the accessors compute (`icons/README.md`), in the
-five kind greys, and run `python tools/bulge_assets.py verify`. A garment look that no family's shapes give is a new
-family subtype in `code/families.dm`.
+five kind greys, and run `python tools/bulge_assets.py verify`, then `python tools/bulge_assets.py fix` if it reports a
+sheet that is not an 8-bit palette PNG: Dream Maker re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot
+read. A garment look that no family's shapes give is a new family subtype in `code/families.dm`.
 
 Past small_cap nothing is drawn: a family's shapes there follow from its vars (`top_row`, `hem`, `contained`,
 `curtain`, `long`, `large_digi_forms`) and the penis sprites, and its loincloth drapes and cuts from its loincloth vars
@@ -151,7 +152,9 @@ or warns somewhere you did not touch, look at the names your change added before
 ### Checks
 
 - `python tools/bulge_assets.py verify`: every sheet (it prints each one's state count), name and identity, the names
-  past small_cap that are derived, and the PNGs' bit depth (only the tool checks that).
+  past small_cap that are derived, and that every sheet is an 8-bit palette PNG (only the tool checks that). Dream Maker
+  re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot read: then run `python tools/bulge_assets.py fix`,
+  which re-encodes them at 8 bits with the same pixels and DMI metadata and prints the proof.
 - The ordinary unit tests:
   - `bulge_manifest` pins every family's data, every sheet's MD5, and for every garment type with a bulge value what
     it inherits (family, print, suit rule, cloth layer) and what the renderer reads from its own definition (worn

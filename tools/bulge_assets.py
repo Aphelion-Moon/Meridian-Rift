@@ -12,6 +12,9 @@ cuts have no sheet: the server derives them at run time from the game's penis, t
 draw them.
 
   python tools/bulge_assets.py verify                     check every sheet, name and identity
+  python tools/bulge_assets.py fix [SHEET...]             re-encode every sheet named (all by default) that is not an
+                                                          8-bit palette PNG as one, with the same pixels and DMI
+                                                          metadata, and print the proof
   python tools/bulge_assets.py find TEXT                  sheet states, derived templates, families and garments
                                                           matching TEXT
   python tools/bulge_assets.py preview STATE --output DIR [--garment FILE:STATE]
@@ -21,11 +24,12 @@ draw them.
       A derived template has no sheet state to preview: the tool says so.
 
 Run from any directory; Pillow is the only requirement (tools/bulge_assets_requirements.txt). Edit the sheets in
-Dream Maker. Do not run ZopfliPNG or other PNG optimisers over them: rust-g's DMI reader, behind tg's icon_exists(),
-failed on some of their output.
+Dream Maker, then run verify, and fix where it says so: Dream Maker re-saves a sheet of few colours as a 1-bit or 4-bit
+palette PNG, which rust-g's DMI reader, behind tg's icon_exists(), cannot read. Do not run ZopfliPNG or other PNG
+optimisers over them: rust-g's DMI reader failed on some of their output.
 """
 from __future__ import annotations
-import argparse, colorsys, re, sys
+import argparse, colorsys, hashlib, io, os, re, struct, sys, zlib
 from pathlib import Path
 from PIL import Image
 
@@ -105,6 +109,125 @@ class Sheets:
 
     def tiles(self, sheet, state):
         return self.files[sheet][0][state][2]
+
+
+# ---------------------------------------------------------------- PNG encoding
+# Every sheet is an 8-bit palette PNG. Dream Maker re-saves a sheet of few colours as a 1-bit or 4-bit palette PNG,
+# which rust-g's DMI reader (behind tg's icon_exists()) cannot read; fix re-encodes such a sheet at eight bits.
+PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
+COLOUR_TYPES = {0: 'greyscale', 2: 'RGB', 3: 'palette', 4: 'greyscale and alpha', 6: 'RGBA'}
+
+
+def png_header(data: bytes):
+    """-> (width, height, bit depth, colour type, interlace method) from a PNG's IHDR, or None if `data` is no PNG."""
+    if len(data) < 29 or data[:8] != PNG_SIGNATURE or data[12:16] != b'IHDR':
+        return None
+    width, height, depth, colour, _, _, interlace = struct.unpack('>IIBBBBB', data[16:29])
+    return width, height, depth, colour, interlace
+
+
+def describe_header(header):
+    """'324x324, 4-bit palette' for a png_header()."""
+    width, height, depth, colour, interlace = header
+    kind = COLOUR_TYPES.get(colour, 'colour type %d' % colour)
+    return '%dx%d, %d-bit %s%s' % (width, height, depth, kind, ', interlaced' if interlace else '')
+
+
+def encoding_problem(header):
+    """Why a sheet with this IHDR (png_header()) is not the 8-bit palette PNG every sheet is, or None."""
+    if header is None:
+        return 'not a PNG'
+    if header[2:4] == (8, 3):
+        return None
+    if header[3] == 3:
+        return 'a %s PNG, which rust-g cannot read: run fix' % describe_header(header)
+    return 'a %s PNG, not an 8-bit palette PNG; fix re-encodes palette PNGs only' % describe_header(header)
+
+
+def png_chunks(data: bytes):
+    """-> [(type, body)] of a PNG's chunks in order, IHDR first and IEND last; ValueError if it is damaged."""
+    if data[:8] != PNG_SIGNATURE:
+        raise ValueError('not a PNG')
+    chunks, pos = [], 8
+    while not chunks or chunks[-1][0] != b'IEND':
+        if pos + 12 > len(data):
+            raise ValueError('cut short')
+        length, kind = struct.unpack('>I4s', data[pos:pos + 8])
+        body = data[pos + 8:pos + 8 + length]
+        if data[pos + 8 + length:pos + 12 + length] != struct.pack('>I', zlib.crc32(kind + body)):
+            raise ValueError('a damaged %s chunk' % kind.decode('latin-1'))
+        chunks.append((kind, body))
+        pos += 12 + length
+    if chunks[0][0] != b'IHDR' or pos != len(data):
+        raise ValueError('no IHDR first, or bytes after IEND')
+    return chunks
+
+
+def unfilter(line: bytearray, kind, previous):
+    """Undoes a scanline's PNG filter `kind` in place and returns it; `previous` is the scanline above, unfiltered.
+    One byte stands for a pixel here, as at every bit depth under eight."""
+    if kind > 4:
+        raise ValueError('filter type %d' % kind)
+    for i in range(len(line) if kind else 0):
+        left, up, up_left = (line[i - 1], previous[i], previous[i - 1]) if i else (0, previous[i], 0)
+        if kind == 1:
+            line[i] = (line[i] + left) & 0xff
+        elif kind == 2:
+            line[i] = (line[i] + up) & 0xff
+        elif kind == 3:
+            line[i] = (line[i] + (left + up) // 2) & 0xff
+        else:
+            p = left + up - up_left
+            near_left, near_up, near_up_left = abs(p - left), abs(p - up), abs(p - up_left)
+            if near_left <= near_up and near_left <= near_up_left:
+                line[i] = (line[i] + left) & 0xff
+            else:
+                line[i] = (line[i] + (up if near_up <= near_up_left else up_left)) & 0xff
+    return line
+
+
+def repack_palette(data: bytes) -> bytes:
+    """A palette PNG of 1, 2 or 4 bits per pixel -> the same image as an 8-bit palette PNG: IHDR at bit depth 8; the
+    pixels one byte each, filter type 0 on every row, in one IDAT where the first one was; a tRNS table widened to one
+    alpha per palette entry, the entries a short table leaves out opaque as before; every other chunk (PLTE, the DMI
+    metadata's zTXt, any other) byte for byte and in its place. ValueError for anything else."""
+    chunks = png_chunks(data)
+    width, height, depth, colour, compression, filtering, interlace = struct.unpack('>IIBBBBB', chunks[0][1])
+    if colour != 3 or depth not in (1, 2, 4) or (compression, filtering, interlace) != (0, 0, 0):
+        raise ValueError('a %s PNG; fix re-encodes palette PNGs of bit depth 1, 2 or 4, not interlaced' % describe_header(
+            (width, height, depth, colour, interlace)))
+    palettes = [body for kind, body in chunks if kind == b'PLTE']
+    alphas = [body for kind, body in chunks if kind == b'tRNS']
+    entries = len(palettes[0]) // 3 if len(palettes) == 1 and len(palettes[0]) % 3 == 0 else 0
+    if not entries or len(alphas) > 1 or alphas and len(alphas[0]) > entries:
+        raise ValueError('its PLTE or tRNS chunk is not valid')
+    stride = (width * depth + 7) // 8
+    raw = zlib.decompress(b''.join(body for kind, body in chunks if kind == b'IDAT'))
+    if len(raw) != height * (stride + 1):
+        raise ValueError('%d bytes of image data, where %d are wanted' % (len(raw), height * (stride + 1)))
+    mask, shifts = (1 << depth) - 1, range(8 - depth, -1, -depth)
+    spread = [bytes((byte >> shift) & mask for shift in shifts) for byte in range(256)]
+    rows, previous = [], bytearray(stride)
+    for y in range(height):
+        start = y * (stride + 1) + 1
+        previous = unfilter(bytearray(raw[start:start + stride]), raw[start - 1], previous)
+        indices = b''.join(spread[byte] for byte in previous)[:width]
+        if max(indices) >= entries:
+            raise ValueError('a pixel past the palette, in row %d' % y)
+        rows.append(b'\0' + indices)
+    pixels = zlib.compress(b''.join(rows), 9)
+    out = [PNG_SIGNATURE]
+    for kind, body in chunks:
+        if kind == b'IHDR':
+            body = struct.pack('>IIBBBBB', width, height, 8, 3, 0, 0, 0)
+        elif kind == b'tRNS':
+            body += b'\xff' * (entries - len(body))
+        elif kind == b'IDAT':
+            if pixels is None:
+                continue
+            body, pixels = pixels, None
+        out.append(struct.pack('>I', len(body)) + kind + body + struct.pack('>I', zlib.crc32(kind + body)))
+    return b''.join(out)
 
 
 # ---------------------------------------------------------------- DM data
@@ -440,10 +563,10 @@ def verify(args):
         per_sheet[sheet] = len(states)
         path = sheets.folder / (sheet + '.dmi')
         totals['sheets'] += 1
-        # rust-g's DMI reader (behind tg's icon_exists()) cannot read a PNG of fewer than eight bits per sample.
-        header = path.read_bytes()[:26]
-        if header[:8] != b'\x89PNG\r\n\x1a\n' or header[12:16] != b'IHDR' or header[24] != 8:
-            problems.append('%s: not an 8-bit PNG (bit depth %s); rust-g cannot read it' % (sheet, header[24] if len(header) > 24 else '?'))
+        # Every sheet is an 8-bit palette PNG: rust-g cannot read the 1-bit and 4-bit ones Dream Maker saves; fix.
+        problem = encoding_problem(png_header(path.read_bytes()))
+        if problem:
+            problems.append('%s: %s' % (sheet, problem))
         totals['states'] += len(states)
         totals['bytes'] += path.stat().st_size
         with Image.open(path) as image:
@@ -514,6 +637,56 @@ def verify(args):
     print({**totals, 'states_per_sheet': per_sheet, 'identities': counts, 'states_reached': len(reached),
            'derived_templates': {k: len(v) for k, v in sorted(derived.items())}, 'problems': len(problems)})
     return 1 if problems else 0
+
+
+def decoded(data: bytes):
+    """-> (size, DMI metadata text, RGBA bytes) of a PNG's bytes as Pillow decodes it, for fix's proof."""
+    with Image.open(io.BytesIO(data)) as image:
+        return image.size, image.info.get('Description'), image.convert('RGBA').tobytes()
+
+
+def fix(args):
+    """Re-encodes every sheet named (all by default) that is a palette PNG under eight bits as an 8-bit palette PNG
+    (repack_palette()), and writes it only once Pillow decodes both files to the same size, the same RGBA pixels and
+    the same DMI metadata, and every chunk but IHDR, tRNS and IDAT is the same bytes; prints both IHDRs and the proof.
+    An 8-bit palette sheet is left as it is."""
+    names = [name.removesuffix('.dmi') for name in args.query] or [path.stem for path in sorted(SHEETS.glob('*.dmi'))]
+    failed = 0
+    for name in names:
+        path = SHEETS / (name + '.dmi')
+        data = path.read_bytes() if path.is_file() else b''
+        header = png_header(data)
+        if not encoding_problem(header):
+            print('%s: %s; left as it is' % (name, describe_header(header)))
+            continue
+        try:
+            fixed = repack_palette(data)
+        except ValueError as error:
+            print('PROBLEM %s: %s' % (name, error if data else 'no sheet at %s' % path))
+            failed += 1
+            continue
+        before, after = decoded(data), decoded(fixed)
+        others = [[chunk for chunk in png_chunks(png) if chunk[0] not in (b'IHDR', b'tRNS', b'IDAT')] for png in (data, fixed)]
+        alphas = [[len(body) for kind, body in png_chunks(png) if kind == b'tRNS'] or ['none'] for png in (data, fixed)]
+        proof = {'size': before[0] == after[0], 'RGBA': before[2] == after[2],
+                 'Description': before[1] is not None and before[1] == after[1],
+                 'every chunk but IHDR, tRNS and IDAT': others[0] == others[1]}
+        print('%s: IHDR %s -> %s; %d -> %d bytes; tRNS entries %s -> %s' % (
+            name, describe_header(header), describe_header(png_header(fixed)), len(data), len(fixed), alphas[0][0], alphas[1][0]))
+        print('  proof, as Pillow decodes both: %s; RGBA %d bytes, MD5 %s; Description %d characters' % (
+            ', '.join('%s %s' % (k, 'equal' if v else 'DIFFERS') for k, v in proof.items()), len(after[2]),
+            hashlib.md5(after[2]).hexdigest(), len(after[1] or '')))
+        if not all(proof.values()) or encoding_problem(png_header(fixed)):
+            print('PROBLEM %s: not written, as the re-encoded sheet differs' % name)
+            failed += 1
+            continue
+        temporary = path.with_name(path.name + '.tmp')
+        temporary.write_bytes(fixed)
+        os.replace(temporary, path)
+        written = path.read_bytes() == fixed
+        print('  written' if written else '  PROBLEM: the file on disk is not the one proved')
+        failed += not written
+    return 1 if failed else 0
 
 
 def derived_names(rules: Rules):
@@ -692,14 +865,17 @@ def preview(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('command', choices=('verify', 'find', 'preview'))
-    parser.add_argument('query', nargs='?')
+    parser.add_argument('command', choices=('verify', 'fix', 'find', 'preview'))
+    parser.add_argument('query', nargs='*', help='find: the text; preview: the state; fix: the sheets, all by default')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--garment', help='FILE:STATE of a worn sprite (32x32, four directions), FILE from the repository root')
     args = parser.parse_args()
     if args.command == 'verify':
         sys.exit(verify(args))
-    assert args.query, 'Supply a state name or search text.'
+    if args.command == 'fix':
+        sys.exit(fix(args))
+    assert len(args.query) == 1, 'Supply one state name or search text.'
+    args.query = args.query[0]
     if args.command == 'find':
         find(args)
         return
