@@ -177,7 +177,7 @@ or warns somewhere you did not touch, look at the names your change added before
     and the 760 garment colours in `bulge_palette_colours.txt`, in three finishes) is hashed against the approved
     values. A failure means a change to the arithmetic moved an approved colour; the failing test writes the game's
     palettes to `data/bulge_palette_lines.txt` to compare.
-  - `bulge_render_corpus/pixels` draws 27 cases of the pixel corpus (adaptive and printed garments, the large hearts,
+  - `bulge_render_corpus/pixels` draws 28 cases of the pixel corpus (adaptive and printed garments, the large hearts,
     every skirt style half and hard, a loincloth reveal as underwear and as a uniform, digitigrade legs, a tall wearer,
     a suit, blood, a big tentacle, Custom above and below the underwear) and compares a hash of their pixels with the
     hash of the images the corpus comparator expects.
