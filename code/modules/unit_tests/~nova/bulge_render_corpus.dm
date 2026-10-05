@@ -17,7 +17,7 @@
  * Each case's facts (the look, the drawn sprite, the colour's sample source) go into a JSON file per batch.
  *
  * The full corpus and its comparator live outside the repository (the module readme says where, and how to run them);
- * bulge_render_corpus/pixels, below, checks 27 of its cases in every run of the suite.
+ * bulge_render_corpus/pixels, below, checks 28 of its cases in every run of the suite.
  *
  * Runs only with world.params["bulge_render_corpus"]: "full", or "subset" with bulge_render_corpus_start and
  * bulge_render_corpus_count. Input: data/bulge_render_corpus/manifest.json, cases as lists of id, garment typepath,
@@ -523,7 +523,7 @@
 	return built
 
 /**
- * The approved look in the repository: 27 cases of the pixel corpus above, drawn as the corpus draws them: an adaptive
+ * The approved look in the repository: 28 cases of the pixel corpus above, drawn as the corpus draws them: an adaptive
  * look small and large (with the exposed tip), a printed uniform and printed underwear, the large hearts, each skirt
  * style half and hard, a loincloth reveal as underwear and as a uniform, digitigrade legs, a tall wearer, a suit as the
  * cover, a bloody cover and blood on a cut one, a big tentacle, and a penis layered above and below the underwear.
@@ -547,6 +547,7 @@
 		list("fa2:u_c148_07", "/obj/item/clothing/under/rank/prisoner", null, null, "plain", "/datum/sprite_accessory/genital/penis/human", 1, 12, 1, null, "u", "902732a7219ecb30cb490bec72021e78"), // printed uniform
 		list("add:hearts:human:toned:plain:hard:1", "/datum/sprite_accessory/clothing/underwear/male_hearts", null, null, "plain", "/datum/sprite_accessory/genital/penis/human", 1, 4, 1, "#34466b", "b", "58738597ec318a39e32c5c4f7ca88207"), // printed underwear
 		list("cov:u02_plain_half_5", "/datum/sprite_accessory/clothing/underwear/male_hearts", null, null, "plain", "/datum/sprite_accessory/genital/penis/human", 1, 37, 0, "#34466b", "b", "aa5821416b9fc5f4e68941f077403d59"), // large hearts
+		list("cov:u02_plain_hard_6", "/datum/sprite_accessory/clothing/underwear/male_hearts", null, null, "plain", "/datum/sprite_accessory/genital/penis/human", 1, 49, 1, "#34466b", "b", "ce164b1ea8384a555af1fa192f6b3acb"), // large hearts hard, mal's report
 		list("fa2:g050_a_plain_half_4", "/obj/item/clothing/under/costume/nova/kimono/sigmar", null, null, "plain", "/datum/sprite_accessory/genital/penis/human", 1, 12, 0, null, "u", "5178fda604db03ab3ea9fda26501935e"), // skirt/short_closed_lift half
 		list("fa2:g050_a_plain_hard_4", "/obj/item/clothing/under/costume/nova/kimono/sigmar", null, null, "plain", "/datum/sprite_accessory/genital/penis/human", 1, 12, 1, null, "u", "9f0934a8f18b520a83e8d21391d8d375"), // skirt/short_closed_lift hard
 		list("fa2:g022_b_plain_half_4", "/obj/item/clothing/under/costume/buttondown/skirt", null, null, "plain", "/datum/sprite_accessory/genital/penis/human", 1, 12, 0, null, "u", "922c7a92e35d7cb21defa3c3b0b2357e"), // skirt/short_reveal half
