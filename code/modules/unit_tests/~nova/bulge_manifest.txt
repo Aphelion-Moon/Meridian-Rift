@@ -45,11 +45,11 @@ family /datum/bulge_family/skirt/short_kilt_apron shapes=short_kilt_apron small_
 family /datum/bulge_family/skirt/long_cone shapes=long_cone small_cap=8
 family /datum/bulge_family/skirt/long_curtain clearance=1 shapes=long_curtain small_cap=8
 family /datum/bulge_family/skirt/long_pressed shapes=long_pressed small_cap=8
-sheet cloth_small.dmi e860a0e02d9140df5499f800433892b7
-sheet printed_patches.dmi 7ada34a5bd48b8e07e2ecf9a42e2b2d0
-sheet skirt_clearance.dmi 8810b24f38ad369aca884448fb1401c1
-sheet skirt_flaps.dmi a72251a38acb5784ed9efc0f54301869
-sheet skirt_shapes.dmi 4b9ee71ad2141a56fd1a9af0b853c9db
+sheet cloth_small.dmi bbddc7ab2d688124251523ca13908daf
+sheet printed_patches.dmi 63e35023363a09c7a0ea6347e9a280f1
+sheet skirt_clearance.dmi e6248bc9100343096660ce2c8a4e323b
+sheet skirt_flaps.dmi 0649a6761b47e87d97aaecaaa8883a0b
+sheet skirt_shapes.dmi 6428dcff4c1aaaafc4ffa2f0a13d2eb4
 garment /datum/sprite_accessory/clothing/undershirt/nova/corset family=briefs icon=modular_nova/master_files/icons/mob/clothing/underwear.dmi:corset static=1 layer=19.1 groin=1 colours=#FFFFFF#FFFFFF#FFFFFF female=1
 garment /datum/sprite_accessory/clothing/undershirt/nova/leotard family=briefs icon=modular_nova/master_files/icons/mob/clothing/underwear.dmi:leotard static=0 layer=19.1 groin=1 colours=#FFFFFF#FFFFFF#FFFFFF female=1
 garment /datum/sprite_accessory/clothing/undershirt/nova/leotard/turtleneck family=briefs icon=modular_nova/master_files/icons/mob/clothing/underwear.dmi:leotard_turtleneck static=0 layer=19.1 groin=1 colours=#FFFFFF#FFFFFF#FFFFFF female=1
