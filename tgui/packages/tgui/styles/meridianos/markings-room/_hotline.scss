@@ -95,6 +95,7 @@
   align-items:center;
   gap:14px;
 }
+// HAND: strikes slower than the port did (room-htNeonOn, below).
 .theme-meridian_hotline .AugmentsRoom .ht-lips {
   width:66px;
   height:36px;
@@ -102,7 +103,7 @@
   stroke-linecap:round;
   stroke-linejoin:round;
   filter:drop-shadow(0 0 2px #ff4d6d) drop-shadow(0 0 7px #ff4d6d) drop-shadow(0 0 16px rgb(255 77 109/.7));
-  animation:room-neonOn 1.2s steps(1) .4s backwards;
+  animation:room-htNeonOn 1.44s steps(1) .4s backwards;
 }
 .theme-meridian_hotline .AugmentsRoom .ht-lips .t {
   stroke:#ff3355;
@@ -112,18 +113,21 @@
   stroke:#ffe0e6;
   stroke-width:1.6;
 }
+// HAND: strikes slower than the port did (room-htNeonOn, below), and no slower than that needs: with its hum, it
+// animates opacity twice, so its strike plays on the page's main thread.
 .theme-meridian_hotline .AugmentsRoom .ht-vip {
   display:flex;
   align-items:center;
   font:38px/1 Neonderthaw,cursive;
   color:#ffe6fb;
   text-shadow:0 0 2px #fff,0 0 6px #ff57d5,0 0 14px #ff57d5,0 0 30px rgb(255 87 213/.7);
-  animation:room-neonOn 1.4s steps(1) .8s backwards,room-hum 7s 3s infinite;
+  animation:room-htNeonOn 1.44s steps(1) .8s backwards,room-hum 7s 3s infinite;
 }
 .theme-meridian_hotline .AugmentsRoom .ht-vip b {
   margin-left:6px;
   font:700 18px/1 Rajdhani,sans-serif;
 }
+// HAND: strikes slower than the port did (room-htNeonOn, below).
 .theme-meridian_hotline .AugmentsRoom .ht-neon {
   position:absolute;
   left:0;
@@ -137,7 +141,7 @@
   stroke-linejoin:round;
   pointer-events:none;
   filter:drop-shadow(0 0 3px #ff57d5) drop-shadow(0 0 10px #ff57d5) drop-shadow(0 0 26px rgb(255 87 213/.55));
-  animation:room-neonOn 1.3s steps(1) .3s backwards;
+  animation:room-htNeonOn 1.56s steps(1) .3s backwards;
 }
 .theme-meridian_hotline .AugmentsRoom .ht-neon .t {
   stroke:#ff4fc9;
@@ -160,6 +164,11 @@
   stroke:#3a2e40;
   stroke-width:12;
   stroke-linecap:butt;
+}
+// HAND: with the lights off the tube stays dim from the start, as every room's lamps do (.AugmentsRoom--uv .lamp):
+// its own strike outranked that rule, so the room opened in the dark with the tube flickering at full brightness.
+.theme-meridian_hotline .AugmentsRoom--uv .ht-neon {
+  animation:none;
 }
 .theme-meridian_hotline .AugmentsRoom .ht-clip {
   position:absolute;
@@ -470,37 +479,50 @@
 .theme-meridian_hotline .MarkingsRoom__foot {
   border-top-color:rgb(255 87 213/.25);
 }
+// HAND: its dips slowed as the neons' strike is: each step takes at least 1/6s.
 @keyframes room-hum {
-  0%,92%,100% {
+  0%,80%,100% {
     opacity:1;
   }
-  93% {
+  82.5% {
     opacity:.55;
   }
-  94% {
+  85% {
     opacity:1;
   }
-  96% {
+  90% {
     opacity:.7;
   }
 }
-@keyframes room-neonOn {
+// HAND: the port's room-neonOn stutter, slowed for photosensitivity (mal, 2026-10-05): no lit or dark step is
+// shorter than 1/6s, so it flashes at most three times a second (WCAG 2.3.1). It ends as the tube holds rather than
+// at a later 100%, so the VIP sign has struck before its hum begins (3s) and the hum is back on the compositor
+// (MarkingsRoom/compositor.ts) before it plays.
+@keyframes room-htNeonOn {
   0% {
     opacity:.1;
   }
-  10% {
+  29.4% {
     opacity:1;
   }
-  14% {
+  41.2% {
     opacity:.25;
   }
-  22% {
+  64.7% {
     opacity:1;
   }
-  26% {
+  76.5% {
     opacity:.4;
   }
-  34%,100% {
+  100% {
     opacity:1;
   }
+}
+
+// HAND: the club's Markings sign and UV tube strike as slowly as Hotline's own neons (room-htNeonOn).
+.theme-meridian_hotline .AugmentsRoom__mode--markings.AugmentsRoom__mode--on span {
+  animation:room-htNeonOn 1.44s steps(1) .15s backwards;
+}
+.theme-meridian_hotline .AugmentsRoom--uv .MarkingsRoom__uvTube {
+  animation:room-htNeonOn 1.44s steps(1) .35s backwards;
 }
