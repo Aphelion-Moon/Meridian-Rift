@@ -58,8 +58,10 @@
 		layered(mode, "plaid skirt", 37, /obj/item/clothing/under/dress/skirt/plaid, null)
 	layered("Below underwear", "loincloth underwear", 12, null, /datum/sprite_accessory/clothing/underwear/loincloth)
 	layered("Below underwear", "boxers", 49, null, /datum/sprite_accessory/clothing/underwear/male_boxers)
+	layered("Below underwear", "heart boxers", 49, null, /datum/sprite_accessory/clothing/underwear/male_hearts)
 	drawn_over("loincloth underwear", 12, /datum/sprite_accessory/clothing/underwear/loincloth)
 	drawn_over("boxers", 49, /datum/sprite_accessory/clothing/underwear/male_boxers)
+	drawn_over("heart boxers", 49, /datum/sprite_accessory/clothing/underwear/male_hearts)
 
 /datum/unit_test/portal_test/bulge_renderer/custom_layering/proc/drawn_over(name, length, accessory_type)
 	var/mob/living/carbon/human/owner = dressed_wearer(length, null, accessory_type)
@@ -108,6 +110,11 @@
 			if(part.name != BULGE_CLOTH_NAME)
 				shown++
 		TEST_ASSERT(shown, "[mode], [name]: none of the penis is drawn over the cloth")
+	if(overlay.bulge_sheet_patch)
+		// A precoloured patch is drawn over the anatomy it leaves bare, at the same layer.
+		var/list/drawn = look_images(owner)
+		var/image/last = drawn[length(drawn)]
+		TEST_ASSERT_EQUAL(last.icon_state, overlay.bulge_sheet_patch.icon_state, "[mode], [name]: the patch is not drawn over the penis")
 
 /// A textured chest (checkered, which also whitens what it textures): the cloth a look draws keeps its palette and
 /// takes no texture; the anatomy it shows over the cloth takes the texture like the rest of the skin.

@@ -86,8 +86,11 @@
 	bulge_layer = bulge_cover_layer(cover, standing)
 	var/printed = bulge_cover_printed(cover)
 	if(printed)
-		bulge_sheet_patch = bulge_printed_patch(family, hard, size, digi) // The heart boxers past size 4, drawn alone.
-	if(!bulge_sheet_patch)
+		bulge_sheet_patch = bulge_printed_patch(family, hard, size, digi) // The heart boxers past size 4.
+	if(bulge_sheet_patch)
+		// The patch stands in for the shape of the family whose shapes it draws, over the anatomy that shape leaves bare.
+		bulge_anatomy_mask = bulge_exposed(initial(family.large_shapes_of) || family, hard, size, digi, shape, toned)
+	else
 		if(hard && initial(family.loincloth))
 			// A hard loincloth: its drape over the penis, shown behind the cover cut away under it.
 			bulge_template = bulge_drape(family, size, sprite_size, shape, toned)

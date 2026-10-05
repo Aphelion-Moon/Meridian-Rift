@@ -295,7 +295,8 @@ GLOBAL_LIST(bulge_sheet_states)
 
 /**
  * Where a family's shape for an identity is (see bulge_shape()), or null when the family has none there. Where the
- * family has a precoloured printed patch (bulge_printed_patch()), the patch is drawn alone: no shape. The sheet is
+ * family has a precoloured printed patch (bulge_printed_patch()), the patch is drawn instead: no shape (the look shows
+ * the anatomy the shape of large_shapes_of leaves bare, under the patch: bulge_resolve()). The sheet is
  * chosen by the garment's own family (a skirt reads skirt_shapes.dmi whichever family owns the shape), and a family
  * named by half_shapes_of, hard_shapes_of or large_shapes_of is followed one level only: it must own its shapes. Past
  * small_cap the shape has no sheet: the derived state named as bulge_large_name() names it.

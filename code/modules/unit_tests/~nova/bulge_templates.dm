@@ -38,9 +38,10 @@
 				TEST_ASSERT_EQUAL(!!patch, size > 4, "Heart boxers [hard ? "hard" : "half"] [size] [digi ? "digi" : "plain"]: a precoloured patch past size 4 only")
 				var/datum/bulge_print_template/shape = bulge_shape(hearts_family, hard, size, digi, /datum/sprite_accessory/genital/penis/human, TRUE)
 				if(size > 4)
-					// The patch is drawn alone: no cloth shape and no bare anatomy with it.
-					TEST_ASSERT_NULL(shape, "Heart boxers past size 4 draw their patch alone")
-					TEST_ASSERT_NULL(bulge_exposed(hearts_family, hard, size, digi, /datum/sprite_accessory/genital/penis/human, TRUE), "Heart boxers past size 4 show no anatomy")
+					// The patch is drawn in place of a shape: no cloth shape of their own. The anatomy it leaves bare is the
+					// boxers' (bulge_resolve(), bulge_renderer/custom_layering).
+					TEST_ASSERT_NULL(shape, "Heart boxers past size 4 draw their patch in place of a shape")
+					TEST_ASSERT_NULL(bulge_exposed(hearts_family, hard, size, digi, /datum/sprite_accessory/genital/penis/human, TRUE), "Heart boxers past size 4 have no shapes of their own")
 				else
 					TEST_ASSERT_EQUAL(shape, bulge_shape(/datum/bulge_family/loose_boxers, hard, size, digi, /datum/sprite_accessory/genital/penis/human, TRUE), "Heart boxers draw the loose boxers' shapes up to size 4")
 	var/datum/sprite_accessory/clothing/underwear/accessory = /datum/sprite_accessory/clothing/underwear/male_stripe
