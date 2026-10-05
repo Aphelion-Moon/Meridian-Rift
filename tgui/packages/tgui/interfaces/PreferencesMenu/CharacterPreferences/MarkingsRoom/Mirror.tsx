@@ -189,7 +189,6 @@ export function Mirror(props: Props) {
             width={`${GLASS_WIDTH + 2 * VIEW_MARGIN}px`}
             height={`${GLASS_HEIGHT + 2 * VIEW_MARGIN}px`}
             maxScale={MIRROR_SCALE}
-            lit={!decor.lightEffects}
             onTap={(x, y) => {
               const zone = zoneAt(x, y);
               if (zone) {

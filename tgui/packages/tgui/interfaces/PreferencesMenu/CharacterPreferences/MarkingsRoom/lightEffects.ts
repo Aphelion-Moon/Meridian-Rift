@@ -8,8 +8,8 @@ const KEPT = 'markings-room-light-effects';
 
 /**
  * Whether the room's lighting falls on the character: its lamps' tint and rim
- * light, its dark with the lights off, its blacklight. Off, the character
- * shows as it is, whatever the room around it does.
+ * light, its blacklight. Off, the character shows as it is, whatever the room
+ * around it does; with the lights off it still goes dark, as the game draws it.
  */
 export const lightEffectsAtom = atom(true);
 

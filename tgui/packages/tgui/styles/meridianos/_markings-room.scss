@@ -661,7 +661,8 @@ $neon-on: markings-neon-on;
   }
 
   // With the light effects off, the room's light doesn't fall on it at all,
-  // whatever the theme tints it with: it shows as it is.
+  // whatever the theme tints it with: it shows as it is, dark with the lights
+  // out but without the UV tube's light.
   .MarkingsRoom__glass.MarkingsRoom__glass--plain & .CharacterPreview__figure {
     filter: none;
   }

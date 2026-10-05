@@ -2,15 +2,22 @@
 // Foundry's lobby: the menu on the forge markings room's plaque, after the refresh
 // mockup and its art review. The plaque's artwork (steel, rivet band, field, the boss
 // at its apex and the torches on its shoulders) is components/ForgePlaque.tsx, drawn
-// behind the menu and placed round it by anchor; the menu itself only lays out and
-// scrolls. --forge-u is one of the mockup's pixels, so the plaque scales as one piece
-// with the window: by its short side, never wider than the plaque and its torches (602
-// units) fit, and never so tall that the plaque and its boss (676 units at the most) rise
-// past the title, which ends a fifth of the way down. Its lettering keeps 12px at the least.
+// behind the menu and placed round it by anchor; the menu itself only lays out, and the
+// plaque grows with it to hold every row. --forge-u is one of the mockup's pixels, so the
+// plaque scales as one piece with the window: by its short side, never wider than the
+// plaque and its torches (602 units) fit, and never so tall that the plaque and its boss
+// rise past the title, which ends a fifth of the way down. The plaque's measured height
+// (--forge-h, from ForgePlaque) sets that last bound: up to 676 units with the boss it
+// keeps the same scale, and a taller menu scales it down only as far as it needs. Its
+// lettering keeps 12px at the least.
 .theme-meridian_foundry .lobby {
   --forge-u: clamp(
     0.5px,
-    min(0.125vmin, calc((100vw - 24px) / 602), calc((77vh - clamp(28px, 9vmin, 124px)) / 676)),
+    min(
+      0.125vmin,
+      calc((100vw - 24px) / 602),
+      calc((77vh - clamp(28px, 9vmin, 124px)) / max(676, var(--forge-h, 640) + 36))
+    ),
     1.3px
   );
   // The plaque's rivet band, round the field.
@@ -19,15 +26,17 @@
     calc(6 * var(--forge-u)) / calc(82 * var(--forge-u)) calc(82 * var(--forge-u)) calc(6 * var(--forge-u))
     calc(6 * var(--forge-u));
 
-  // The menu is the plaque's field: it scrolls inside the field's arch, and the rivet band
-  // lies outside it, so nothing scrolled ever crosses a rivet.
+  // The menu is the plaque's field, as tall as its rows, and the rivet band lies outside
+  // it. It ends where the plaque and its boss (72 units round it) would rise past the title,
+  // with two units to spare: only a window too short for the plaque at its smallest scale
+  // makes it scroll, in the field's arch, where nothing scrolled ever crosses a rivet.
   .container_nav {
     anchor-name: --forge-plaque;
     left: 50%;
     bottom: calc(clamp(28px, 9vmin, 124px) + var(--forge-band));
     width: calc(504 * var(--forge-u));
     min-height: calc(384 * var(--forge-u));
-    max-height: min(calc(604 * var(--forge-u)), calc(100% - 18vmin - 2 * var(--forge-band)));
+    max-height: calc(77vh - clamp(28px, 9vmin, 124px) - 70 * var(--forge-u));
     margin-left: calc(-252 * var(--forge-u));
     padding: calc(30 * var(--forge-u)) calc(26 * var(--forge-u)) calc(22 * var(--forge-u));
     transform: none;
