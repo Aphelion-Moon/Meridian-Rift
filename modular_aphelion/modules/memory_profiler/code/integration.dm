@@ -146,3 +146,4 @@ ADMIN_VERB(memory_capture_control, R_DEBUG, "Memory Capture", "Control a bounded
 		to_chat(user, "No memory capture has been started.")
 
 #include "workload.dm"
+#include "random_workload.dm"
