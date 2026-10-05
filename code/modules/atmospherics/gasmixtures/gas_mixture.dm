@@ -95,11 +95,11 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 
 /// Returns the typepaths of all gases present in the mixture.
 /datum/gas_mixture/proc/get_gases()
-	var/list/ids = __get_gases()
-	var/list/paths = new/list(length(ids))
-	for(var/i in 1 to length(ids))
-		paths[i] = gas_id2path(ids[i])
-	return paths
+	// Both native backends return a fresh list, so conversion needs no second allocation.
+	var/list/gases = __get_gases()
+	for(var/i in 1 to length(gases))
+		gases[i] = gas_id2path(gases[i])
+	return gases
 
 ///Merges all air from giver into self. Deletes giver. Returns: 1 if we are mutable, 0 otherwise
 /datum/gas_mixture/proc/merge(datum/gas_mixture/giver)

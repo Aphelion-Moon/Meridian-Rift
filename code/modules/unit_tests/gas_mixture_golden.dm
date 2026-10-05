@@ -68,6 +68,17 @@
 	TEST_ASSERT_EQUAL(empty_mix.heat_capacity(), 0, "An empty non-turf mixture should have no heat capacity")
 
 	// APHELION EDIT ADDITION START - DOGMOS
+	var/list/gas_ids = mix.__get_gases()
+	var/list/gas_paths = mix.get_gases()
+	TEST_ASSERT_EQUAL(length(gas_paths), 2, "Standard air should enumerate exactly two gas typepaths")
+	TEST_ASSERT(/datum/gas/oxygen in gas_paths, "Gas enumeration must include oxygen")
+	TEST_ASSERT(/datum/gas/nitrogen in gas_paths, "Gas enumeration must include nitrogen")
+	for(var/index in 1 to length(gas_ids))
+		TEST_ASSERT(istext(gas_ids[index]), "A separate raw enumeration must retain string identifiers")
+		TEST_ASSERT_EQUAL(gas_string_id(gas_paths[index]), gas_ids[index], "Gas typepath conversion must preserve native order")
+	gas_paths.Cut()
+	TEST_ASSERT_EQUAL(length(mix.get_gases()), 2, "Mutating a returned list must not change later enumerations")
+	TEST_ASSERT_EQUAL(length(empty_mix.get_gases()), 0, "Vacuum must enumerate an empty list")
 #ifdef DOGMOS_IN_PROCESS
 	// Meridian gases have no legacy burnability metadata; exercise both exported queries and their argument fallback.
 	for(var/immutable in list(FALSE, TRUE))
