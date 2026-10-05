@@ -11,7 +11,8 @@
  * (BULGE_ABOVE_COVER, BULGE_BEHIND_COVER), whatever layer the penis itself is set to draw at.
  * - A printed garment: one patch derived from the cover's drawn sprite (print_derivation.dm), its emissive blocker.
  * - Any other garment: the shape's kinds as white masks tinted with the adaptive palette, and one emissive blocker.
- * - The heart boxers past size 4: their precoloured patch alone.
+ * - The heart boxers past size 4: their precoloured patch, over the bare part of the penis the shape it stands in for
+ *   leaves bare.
  * - A hard loincloth: its drape over the penis, which shows through the cover cut away under it (cut_cover.dm).
  * - A revealing or curtain skirt: the penis behind the skirt, and over the cloth inside the skirt's clearance.
  * - Past a family's small_cap: the bare part of the penis, inside the exposed mask, over the cloth.
@@ -205,7 +206,7 @@
 		if(testicles)
 			images += testicles
 	var/list/cloth = bulge_cloth_images(limb, front)
-	if(cloth)
+	if(cloth && !bulge_sheet_patch)
 		images += cloth
 	for(var/mutable_appearance/over as anything in bulge_over)
 		images += new /mutable_appearance(over) // Its blood and dirt over the cloth, as over the garment around it.
@@ -222,6 +223,10 @@
 			shown.icon_state = ""
 			shown.layer = front // Over the cloth, whatever layer the penis is set to draw at.
 			images += shown
+	if(cloth && bulge_sheet_patch)
+		// A precoloured patch over the anatomy it leaves bare: its art fits one penis shape, and covers what it covers of
+		// another.
+		images += cloth
 	if(bulge_cover_x || bulge_cover_y)
 		for(var/mutable_appearance/drawn as anything in images)
 			drawn.pixel_w += bulge_cover_x

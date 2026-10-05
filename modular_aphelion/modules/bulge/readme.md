@@ -49,7 +49,8 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
 - **Revealing skirts and loincloths, when hard:** the cover is drawn with its lifted flap cut away (the uniform and
   underwear renders call `bulge_cut_worn()`), and the penis shows through it: under a loincloth's drape, or behind
   the skirt and over its cloth inside the skirt's clearance.
-- **Sizes 5 to 8:** the penis shows over the cloth inside the shape's exposed mask.
+- **Sizes 5 to 8:** the penis shows over the cloth inside the shape's exposed mask. The large heart boxers draw their
+  patch in place of the boxers' shape, over the same bare part of the penis.
 - **Templates:** the shapes up to a family's small_cap, the skirts' clearances and flaps, and the large heart boxers'
   patches are read from the template sheets. Past small_cap the shapes, the anatomy each leaves bare, and a hard
   loincloth's drape and cut have no sheet: they are derived on the server from the game's own penis, testicle and
@@ -208,12 +209,13 @@ expectation and its comparator live in the lab run folder
 `Meridian-Rift-BYOND-Lab/runs/bulge-system-20260929/continuation/fable-orchestration-20261002/`:
 
 - `N4a-renderer/data/corpus/expect.json`: the frozen expectation;
-- `N5-closing/data/corpus/`: the case manifest, the rows added since (`expect-extra.json`) and the rows whose look
-  changed on purpose (`intended.json`: Custom above the underwear, blood on a cut cover);
-- `N5-closing/scripts/`: `make_copy.py <commit> <copy>` extracts a `git archive` of a commit into the lab, and
-  `corpus_proof.py <copy> <commit> <label>` builds that copy focused on the corpus, runs it (one DreamDaemon, after
-  the machine's memory guard), and compares every case pixel for pixel with `s10_compare.py`, which reads the sheets
-  and the tool from this worktree, at that commit.
+- `N10-penis-over-underwear/data/corpus/`: the case manifest, the rows added since (`expect-extra.json`) and the
+  rows whose look changed on purpose (`intended.json`: Custom above the underwear, blood on a cut cover, the large
+  heart boxers over the bare penis);
+- `N10-penis-over-underwear/harness/`: `make_copy.py <commit> <copy>` extracts a `git archive` of a commit into the
+  lab, and `corpus_proof.py <copy> <commit> <label>` builds that copy focused on the corpus, runs it (one
+  DreamDaemon, after the machine's memory guard), and compares every case pixel for pixel with `s10_compare.py`,
+  which reads the sheets and the tool from this worktree, at that commit.
 
 ### Credits:
 
