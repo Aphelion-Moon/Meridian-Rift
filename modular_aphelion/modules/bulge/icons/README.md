@@ -74,14 +74,15 @@ From the repository root (`python -m pip install -r tools/bulge_assets_requireme
 
 ```powershell
 python tools/bulge_assets.py verify
+python tools/bulge_assets.py fix
 python tools/bulge_assets.py find hem_24
 python tools/bulge_assets.py find boxers_hard_6_plain
 python tools/bulge_assets.py preview briefs_hard_3_digi --output preview-output
 python tools/bulge_assets.py preview short_reveal_hem_24_hard_1_plain --output preview-output --garment icons/mob/clothing/under/color.dmi:jumpskirt
 ```
 
-`verify` checks every sheet (an 8-bit PNG, four directions and one frame, only the kind greys or white, names that
-follow the convention, the window inside the tile), that every identity the families declare finds its state in a
+`verify` checks every sheet (an 8-bit palette PNG, four directions and one frame, only the kind greys or white, names
+that follow the convention, the window inside the tile), that every identity the families declare finds its state in a
 sheet or, past `small_cap`, a name to be derived under that follows the convention, and that no sheet state is left
 that nothing reaches; it prints each sheet's state count and how many templates are derived. The unit test
 `bulge_template_identities` resolves the same identities through the game's own accessors, and `bulge_derivation`
@@ -96,6 +97,10 @@ A changed sheet also changes its MD5 in the reviewed manifest the `bulge_manifes
 is reviewed, copy the `data/bulge_manifest.txt` the failing test writes over
 `code/modules/unit_tests/~nova/bulge_manifest.txt`.
 
-Save sheets from Dream Maker. Do not run ZopfliPNG or other PNG optimisers over them: rust-g's DMI reader, behind
-tg's `icon_exists()`, failed on their output (PNGs of fewer than eight bits per sample, Zopfli streams); `verify`
-checks the bit depth.
+Save sheets from Dream Maker, then run `verify`, and `fix` where it says so. Dream Maker re-saves a sheet of few
+colours as a 1-bit or 4-bit palette PNG, which rust-g's DMI reader, behind tg's `icon_exists()`, cannot read: `verify`
+reports every sheet that is not an 8-bit palette PNG, and `fix` re-encodes those as 8-bit palette PNGs with the same
+pixels and DMI metadata, and prints the proof (both files decode to the same RGBA pixels and the same metadata text).
+It leaves an 8-bit palette sheet as it is. A re-encoded sheet has a new MD5 for the manifest, as above. Do not run
+ZopfliPNG or other PNG optimisers over the sheets: rust-g's DMI reader failed on their output too (PNGs of fewer than
+eight bits per sample, Zopfli streams).
