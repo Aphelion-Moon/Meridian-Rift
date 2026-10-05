@@ -26,10 +26,8 @@ def read_include_records(path):
     defines = set()
     reading = False
     branches = []
-    markers = {
-        "// APHELION EDIT ADDITION START", "// NOVA EDIT ADDITION START",
-        "// APHELION EDIT ADDITION END", "// NOVA EDIT ADDITION END",
-    }
+    # NOVA spellings kept so upstream ports don't break.
+    marker = re.compile(r"// (?:APHELION|NOVA) EDIT ADDITION (?:START(?: - [A-Z][A-Z0-9_]*)?|END)")
     with open(path) as source:
         for number, raw in enumerate(source, 1):
             line = raw.strip()
@@ -42,7 +40,7 @@ def read_include_records(path):
                 if branches:
                     raise ValueError(f"line {number}: unclosed conditional include block")
                 return records, sorted(defines), number - len(records)
-            if line in markers:
+            if marker.fullmatch(line):
                 continue
             if re.fullmatch(r'#include "[^"]+"', line):
                 records.append((number, "include", line))

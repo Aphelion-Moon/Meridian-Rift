@@ -65,8 +65,8 @@
 
 	/// Scheduled world.time for next fire()
 	var/next_fire = 0
-
 	// APHELION EDIT ADDITION START - DOGMOS
+
 	/// Earliest world.time to resume a paused run waiting for external work; zero permits ordinary budget reuse.
 	var/resume_after = 0
 	// APHELION EDIT ADDITION END
@@ -290,8 +290,8 @@
 /datum/controller/subsystem/proc/pause_until_next_tick()
 	resume_after = world.time + world.tick_lag
 	return pause()
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /// Called after the config has been loaded or reloaded.
 /datum/controller/subsystem/proc/OnConfigLoad()
 

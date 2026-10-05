@@ -22,14 +22,32 @@
 	var/datum/gas_mixture/first_mix = allocate(/datum/gas_mixture)
 	var/datum/gas_mixture/second_mix = allocate(/datum/gas_mixture)
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	first_mix.volume = 200
+	second_mix.volume = 200
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	first_mix.set_volume(200)
 	second_mix.set_volume(200)
+	// APHELION EDIT ADDITION END
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	first_mix.moles[/datum/gas/hypernoblium] = nob_moles
+	first_mix.temperature = nob_temp
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	first_mix.set_moles(/datum/gas/hypernoblium, nob_moles)
 	first_mix.set_temperature(nob_temp)
+	// APHELION EDIT ADDITION END
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	second_mix.moles[/datum/gas/tritium] = trit_moles
+	second_mix.temperature = trit_temp
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	second_mix.set_moles(/datum/gas/tritium, trit_moles)
 	second_mix.set_temperature(trit_temp)
+	// APHELION EDIT ADDITION END
 
 	var/initial_pressure = second_mix.return_pressure()
 	// A fixed number would mean transfer is too small for high temps. So we make it scaled.

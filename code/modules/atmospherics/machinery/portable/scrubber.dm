@@ -88,15 +88,15 @@
 	if(air_contents.return_pressure() >= overpressure_m * ONE_ATMOSPHERE)
 		return FALSE
 
-	var/list/cached_moles = environment.get_moles_list()
+	var/list/cached_moles = environment.get_moles_list() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/list/cached_moles = environment.moles
 
 	//contains all of the gas we're sucking out of the tile, gets put into our parent pipenet
 	var/datum/gas_mixture/filtered_out = new
 
-	filtered_out.set_temperature(environment.return_temperature())
+	filtered_out.set_temperature(environment.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: filtered_out.temperature = environment.temperature
 
 	//maximum percentage of the turfs gas we can filter
-	var/removal_ratio =  min(1, volume_rate / environment.return_volume())
+	var/removal_ratio =  min(1, volume_rate / environment.return_volume()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/removal_ratio =  min(1, volume_rate / environment.volume)
 
 	var/total_moles_to_remove = 0
 	for(var/gas_id, value in cached_moles & scrubbing)
@@ -108,9 +108,18 @@
 	for(var/gas_id, value in cached_moles & scrubbing)
 		var/transferred_moles = max(QUANTIZE(value * removal_ratio * (value / total_moles_to_remove)), min(MOLAR_ACCURACY*1000, value))
 
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		filtered_out.moles[gas_id] += transferred_moles
+		cached_moles[gas_id] -= transferred_moles
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		filtered_out.adjust_moles(gas_id, transferred_moles)
 		environment.adjust_moles(gas_id, -transferred_moles)
+	// APHELION EDIT ADDITION END
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	environment.garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
 	//Remix the resulting gases
 	air_contents.merge(filtered_out)
 	return TRUE

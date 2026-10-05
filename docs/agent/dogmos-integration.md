@@ -4,17 +4,9 @@ Dogmos replaces the inherited gas-mixture representation and environmental atmos
 
 ## Ownership
 
-DM owns datum/turf identity, `/datum/gas_mixture` compatibility procs, `SSair` scheduling and time budgets, atmos machinery/pipenets, player/admin input, atom movement, gameplay effects, logging, TGUI, and callback consumption. Rust owns gas arrays, validated mixture math, reaction kernels, FDM/Katmos/TurfHeat numerical work, graphs, and native workers. In the implemented service architecture those growing Rust structures live only in 64-bit `dogmosd`; the 32-bit shim translates values and dispatches typed events. The installed artifact contract selects the pair; qualification is recorded separately in the gates described by [Dogmos service lifecycle](dogmos-service-lifecycle.md).
+DM owns datum/turf identity, gas-mixture compatibility procs, SSair scheduling, machinery/pipenets, gameplay, logging and UI. The native in-process engine owns gas arrays, numerical kernels, graphs and workers within DreamDaemon. Do not duplicate authoritative gas state. Only main-thread callbacks may resolve game objects and perform gameplay effects; preserve order and deleted-target checks.
 
-Do not create a second authoritative gas store. DM handles are opaque, generation-checked identities rather than application state. Rust never receives or retains DM refs. The shim never decides gameplay policy.
-
-Service callbacks are typed, sequence-numbered events containing numeric handles and generations,
-never closures or DM refs. Keep the queue and its history in `dogmosd`; DreamMaker drains bounded
-batches and resolves targets on its main thread. Saturation is a fail-closed error, not permission
-to drop critical gameplay work. Before replacing an existing callback, inventory its ordering,
-stale-target fence, arguments, error behavior, and visible side effects, then prove equivalence.
-The required envelope, inventory, ownership, and commit rules are defined in
-[Dogmos gameplay events](dogmos-gameplay-events.md).
+See [the build contract](dogmos-in-process.md) and [gameplay callbacks](dogmos-gameplay-events.md).
 
 ## Narrow fork-owned exception
 

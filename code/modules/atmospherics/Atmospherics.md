@@ -8,8 +8,7 @@ the DM and Rust sources linked below.
 
 Dogmos owns gas storage and the hot environmental simulation in Rust. In the current audited build,
 that Rust state lives inside the 32-bit `dogmos.dll` loaded by DreamDaemon; a DLL allocation is still
-a DreamDaemon allocation. The target architecture moves growing state and compute into the separate
-64-bit `dogmosd` service while retaining a fixed-size BYOND adapter in-process. DM retains the public
+a DreamDaemon allocation. DM retains the public
 `/datum/gas_mixture` API, reactions, atmospheric machinery, pipeline machinery, player feedback,
 and subsystem scheduling. The two sides share registered gas and turf handles through the bindings
 in `code/__DEFINES/dogmos_bindings.dm`.
@@ -55,9 +54,7 @@ zero-cost synchronous DM proc.
 
 ## Gas mixtures
 
-Rust currently stores mixtures in an in-process lock-protected arena. The service migration moves the
-arena out of DreamDaemon without changing the public DM procs. DM datums keep an opaque,
-generation-checked handle and expose operations
+Rust stores mixtures in an in-process lock-protected arena. DM datums keep an opaque native index and expose operations
 such as `get_moles`, `set_moles`, `adjust_moles`, `remove`, `copy_from`, `share`, `react`, and
 `return_pressure`. Use those procs instead of writing implementation state directly.
 

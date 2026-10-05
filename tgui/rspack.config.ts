@@ -108,10 +108,12 @@ export default defineConfig({
           filename: '[name][ext]',
         },
       },
+// APHELION EDIT ADDITION START - DOGMOS
       {
         test: /\.md$/,
         type: 'asset/source',
       },
+// APHELION EDIT ADDITION END
     ],
   },
   optimization: {

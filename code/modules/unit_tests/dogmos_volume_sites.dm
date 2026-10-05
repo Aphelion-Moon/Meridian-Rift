@@ -7,6 +7,8 @@
 	var/obj/machinery/atmospherics/components/unary/hypertorus/core/core = allocate(/obj/machinery/atmospherics/components/unary/hypertorus/core)
 	var/obj/machinery/hypertorus/interface/panel = allocate(/obj/machinery/hypertorus/interface)
 	panel.connected_core = core
+	TEST_ASSERT(core.internal_fusion.dogmos_fusion_excluded, "HFR fusion internals must be excluded from mixture fusion.")
+	TEST_ASSERT(core.moderator_internal.dogmos_fusion_excluded, "HFR moderator internals must be excluded from mixture fusion.")
 
 	var/datum/gas_mixture/core_coolant = core.airs[1]
 	TEST_ASSERT_NOTNULL(core_coolant, "The HFR core did not get an airs[1] gas mixture from Initialize()")

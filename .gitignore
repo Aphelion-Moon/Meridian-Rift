@@ -36,7 +36,7 @@
 
 # Ignore compiled linux libs in the root folder, e.g. librust_g.so
 /*.so
-!/libdogmos.so
+!/libdogmos_in_process.so
 
 #Ignore compiled files and other files generated during compilation.
 *.mdme

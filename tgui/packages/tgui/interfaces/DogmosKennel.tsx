@@ -19,11 +19,10 @@ import { createSearch } from 'tgui-core/string';
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
-import { MarkdownRenderer } from './MarkdownViewer';
-
 import aboutContent from './DogmosKennel/docs/about.md';
 import creditsContent from './DogmosKennel/docs/credits.md';
 import glossaryContent from './DogmosKennel/docs/glossary.md';
+import { MarkdownRenderer } from './MarkdownViewer';
 
 type DogmosCosts = {
   turfs: number;
@@ -33,6 +32,13 @@ type DogmosCosts = {
   superconductivity: number;
   // APHELION EDIT ADDITION START - DOGMOS
   pipenets: number;
+  atmos_machinery: number;
+  hotspots: number;
+  atoms: number;
+  rebuilds: number;
+  adjacent: number;
+  fdm: number;
+  mc_total: number;
   // APHELION EDIT ADDITION END
   post_process: number;
 };
@@ -43,11 +49,6 @@ type ProcessMetrics = {
     private_bytes: number;
     virtual_bytes: number;
     working_set_bytes: number;
-    available: BooleanLike;
-  };
-  dogmosd: {
-    rss_bytes: number;
-    cpu_total_milliseconds: number;
     available: BooleanLike;
   };
 };
@@ -109,7 +110,24 @@ type MachineBrowseEntry = {
   area: string;
 };
 
+// APHELION EDIT ADDITION START - DOGMOS
+type ReactionExplanation = {
+  target: string;
+  reference?: string;
+  index: number;
+  count: number;
+  time: number;
+  fusion: string;
+  suppressed: BooleanLike;
+  immutable: BooleanLike;
+  rows: [string, string, number, BooleanLike, string][];
+  loaded_build: { identity: string; fusion_profile: number };
+};
+// APHELION EDIT ADDITION END
 type Data = {
+  // APHELION EDIT ADDITION START - DOGMOS
+  reaction_explanation?: ReactionExplanation;
+  // APHELION EDIT ADDITION END
   active_size: number;
   hotspots_size: number;
   conducting_size: number;
@@ -154,6 +172,7 @@ type Data = {
   atmos_machinery_browse?: MachineBrowseEntry[];
   atmos_machinery_browse_page?: number;
   atmos_machinery_browse_pages?: number;
+  selected_tab?: TABS;
   atmos_machinery_browse_total?: number;
   atmos_machinery_browse_search?: string;
   kennel_browse_page_size: number;
@@ -164,6 +183,13 @@ type Data = {
   kennel_profile_reactions: BooleanLike;
   kennel_high_cost_ms_threshold: number;
 };
+
+const KENNEL_THRESHOLDS = [
+  ['fire_group_notable_size', 'Fire Group Notable Size'],
+  ['reaction_magnitude_threshold', 'Reaction Event Threshold'],
+  ['machine_cost_ms_threshold', 'Machine Auto-Pin Threshold (ms)'],
+  ['high_cost_ms_threshold', 'High-Cost Reaction Threshold (ms)'],
+] as const;
 
 enum TABS {
   Overview = 'Overview',
@@ -215,7 +241,15 @@ const StageCostRow = (props: StageCostRowProps) => {
       ? inactiveTooltip
       : undefined;
   // APHELION EDIT ADDITION END
-  const color = !validCost ? 'bad' : !active ? 'grey' : cost >= 10 ? 'bad' : cost >= 5 ? 'average' : 'good';
+  const color = !validCost
+    ? 'bad'
+    : !active
+      ? 'grey'
+      : cost >= 10
+        ? 'bad'
+        : cost >= 5
+          ? 'average'
+          : 'good';
   return (
     <Table.Row>
       <Table.Cell collapsing align="center">
@@ -255,11 +289,11 @@ const formatBinaryBytes = (bytes: number) => {
 
 const ProcessMetricsPanel = () => {
   const { data } = useBackend<Data>();
-  const { dreamdaemon, dogmosd } = data.process_metrics;
+  const { dreamdaemon } = data.process_metrics;
   return (
     <Section title="Process Snapshots (operational only)">
       <Stack>
-        <Stack.Item grow basis="50%">
+        <Stack.Item grow>
           <Section title="DreamDaemon (32-bit host)" fill>
             {!dreamdaemon.available ? (
               <NoticeBox>Unavailable</NoticeBox>
@@ -273,22 +307,6 @@ const ProcessMetricsPanel = () => {
                 </LabeledList.Item>
                 <LabeledList.Item label="Working-set bytes">
                   {formatBinaryBytes(dreamdaemon.working_set_bytes)}
-                </LabeledList.Item>
-              </LabeledList>
-            )}
-          </Section>
-        </Stack.Item>
-        <Stack.Item grow basis="50%">
-          <Section title="dogmosd (64-bit service)" fill>
-            {!dogmosd.available ? (
-              <NoticeBox>Unavailable</NoticeBox>
-            ) : (
-              <LabeledList>
-                <LabeledList.Item label="Resident-set bytes">
-                  {formatBinaryBytes(dogmosd.rss_bytes)}
-                </LabeledList.Item>
-                <LabeledList.Item label="Cumulative CPU">
-                  {dogmosd.cpu_total_milliseconds.toLocaleString()} ms
                 </LabeledList.Item>
               </LabeledList>
             )}
@@ -336,17 +354,29 @@ const KennelControls = () => {
   );
 };
 
+const STAGE_COSTS = [
+  ['turfs', 'Active Turfs (whole phase)'],
+  ['groups', 'Excited Groups'],
+  ['highpressure', 'Pressure / Equalization'],
+  ['superconductivity', 'Superconductivity'],
+  ['pipenets', 'Pipenets'],
+  ['atmos_machinery', 'Atmos Machinery'],
+  ['hotspots', 'Hotspots'],
+  ['atoms', 'Atom Exposure'],
+  ['rebuilds', 'Pipenet Rebuilds (last slice)'],
+  ['adjacent', 'Adjacency Rebuilds (last slice)'],
+] as const;
+
 const OverviewPanel = (props) => {
   const { act, data } = useBackend<Data>();
   const costs = data.dogmos_costs || ({} as DogmosCosts);
-  const equalizeActive = !!data.equalize_enabled;
   return (
     <>
       <Section title="Kennel Overview">
         <Stack fill>
           <Stack.Item grow>
             <LabeledList>
-              <LabeledList.Item label="Fire Count">
+              <LabeledList.Item label="Atmos Cycles">
                 {data.fire_count}
               </LabeledList.Item>
               <LabeledList.Item label="Active Turfs">
@@ -394,34 +424,45 @@ const OverviewPanel = (props) => {
       {/* APHELION EDIT ADDITION START - DOGMOS */}
       <ProcessMetricsPanel />
       {/* APHELION EDIT ADDITION END */}
-      <Section title="Atmospherics Stage Costs (smoothed wall time)">
+      <Section title="Atmospherics Costs (milliseconds)">
         <Table>
-          <StageCostRow label="Active Turfs / FDM" cost={costs.turfs ?? 0} active />
-          <StageCostRow
-            label="Excited Groups"
-            cost={costs.groups ?? 0}
-            active
-          />
-          <StageCostRow
-            label="Pressure Equalization"
-            cost={costs.highpressure ?? 0}
-            active={equalizeActive}
-            inactiveTooltip="Katmos Pressure Equalizer is off (below)"
-          />
-          <StageCostRow
-            label="Superconductivity"
-            cost={costs.superconductivity ?? 0}
-            active
-          />
-          {/* APHELION EDIT ADDITION START - DOGMOS */}
-          <StageCostRow label="Pipenets" cost={costs.pipenets ?? 0} active />
-          {/* APHELION EDIT ADDITION END */}
+          {STAGE_COSTS.map(([key, label]) => (
+            <StageCostRow
+              key={key}
+              label={label}
+              cost={costs[key] ?? 0}
+              active
+            />
+          ))}
         </Table>
+        {/* APHELION EDIT ADDITION START - DOGMOS */}
+        <LabeledList>
+          <LabeledList.Item label="MC total (smoothed)">
+            {(costs.mc_total ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+          <LabeledList.Item label="Native FDM (within Active Turfs)">
+            {(costs.fdm ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+          <LabeledList.Item label="Native post-process (within Active Turfs)">
+            {(costs.post_process ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+          <LabeledList.Item label="Native equalizer (within Pressure Equalization)">
+            {(costs.equalize ?? 0).toFixed(2)} ms
+          </LabeledList.Item>
+        </LabeledList>
+        <Box color="label" mt={1}>
+          Active Turfs includes maintenance, diffusion, reactions, callbacks and
+          visuals. Native subtotals are already included. MC also includes UI
+          updates and scheduling overhead, and smooths faster than the stage
+          counters. Rebuilds show the latest slice; values can differ while a
+          cycle is paused or the display refreshes.
+        </Box>
+        {/* APHELION EDIT ADDITION END */}
       </Section>
       {!!data.kennel_slow_mode && (
         <NoticeBox>
-          Slow mode is on - the machinery browse is gated and refresh cadence
-          is reduced. All bounded event histories remain available.
+          Slow mode reduces diagnostic refresh cadence. Machinery browsing is
+          available on the Structures/Machines panel.
         </NoticeBox>
       )}
       <Section title="Configuration">
@@ -453,54 +494,17 @@ const OverviewPanel = (props) => {
           </Stack.Item>
           <Stack.Item grow basis="45%">
             <LabeledList>
-              <LabeledList.Item label="Fire Group Notable Size">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_fire_group_notable_size}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'fire_group_notable_size',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
-              <LabeledList.Item label="Reaction Event Threshold">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_reaction_magnitude_threshold}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'reaction_magnitude_threshold',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
-              <LabeledList.Item label="Machine Auto-Pin Threshold (ms)">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_machine_cost_ms_threshold}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'machine_cost_ms_threshold',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
-              <LabeledList.Item label="High-Cost Reaction Threshold (ms)">
-                <Input
-                  width="4em"
-                  value={`${data.kennel_high_cost_ms_threshold}`}
-                  onChange={(value) =>
-                    act('kennel_set_threshold', {
-                      threshold: 'high_cost_ms_threshold',
-                      value,
-                    })
-                  }
-                />
-              </LabeledList.Item>
+              {KENNEL_THRESHOLDS.map(([threshold, label]) => (
+                <LabeledList.Item key={threshold} label={label}>
+                  <Input
+                    width="4em"
+                    value={`${data[`kennel_${threshold}`]}`}
+                    onChange={(value) =>
+                      act('kennel_set_threshold', { threshold, value })
+                    }
+                  />
+                </LabeledList.Item>
+              ))}
             </LabeledList>
           </Stack.Item>
         </Stack>
@@ -547,9 +551,7 @@ function EventHistoryTable<T extends { jump_to?: string | null }>(props: {
                 {col.label}
               </Table.Cell>
             ))}
-            {hasTargets && (
-              <Table.Cell collapsing>Track</Table.Cell>
-            )}
+            {hasTargets && <Table.Cell collapsing>Track</Table.Cell>}
           </Table.Row>
           {filtered.map((entry, i) => (
             <tr key={i}>
@@ -606,15 +608,16 @@ const HighCostZonesPanel = (props) => {
       {!data.kennel_profile_reactions && (
         <NoticeBox>
           Reaction profiling is off in the Profiling tab - this list stays empty
-          until it's enabled. It has a real, opt-in Rust-side cost per
-          reaction call, so it defaults off.
+          until it's enabled. It has a real, opt-in Rust-side cost per reaction
+          call, so it defaults off.
         </NoticeBox>
       )}
-      {!!data.kennel_profile_reactions && !data.recent_high_cost_zones.length && (
-        <NoticeBox>
-          Profiling is on - no reactions have crossed the threshold yet.
-        </NoticeBox>
-      )}
+      {!!data.kennel_profile_reactions &&
+        !data.recent_high_cost_zones.length && (
+          <NoticeBox>
+            Profiling is on - no reactions have crossed the threshold yet.
+          </NoticeBox>
+        )}
       <EventHistoryTable
         entries={data.recent_high_cost_zones}
         searchKeys={(entry) => `${entry.area} ${entry.reaction}`}
@@ -681,14 +684,16 @@ const ProfilingPanel = (props) => {
         <Box mb={1}>
           The Reaction Events table answers a different question: which reaction
           amounts changed enough to be operationally interesting. It is an event
-          history, not a timing measurement, and remains available when profiling
-          is off. Use the amount threshold to reduce noise in that history; use
-          the profiling threshold to find expensive individual calls.
+          history, not a timing measurement, and remains available when
+          profiling is off. Use the amount threshold to reduce noise in that
+          history; use the profiling threshold to find expensive individual
+          calls.
         </Box>
         <Box>
-          Profiling adds real work to every reaction call, so leave it off during
-          ordinary station operation. Turn it on for a bounded investigation,
-          inspect the recorded areas and reactions, then turn it off again.
+          Profiling adds real work to every reaction call, so leave it off
+          during ordinary station operation. Turn it on for a bounded
+          investigation, inspect the recorded areas and reactions, then turn it
+          off again.
         </Box>
       </Section>
       <Section
@@ -786,17 +791,13 @@ const StructuresPanel = (props) => {
                 <td>
                   <Button
                     icon="crosshairs"
-                    onClick={() =>
-                      act('move-to-target', { spot: entry.ref })
-                    }
+                    onClick={() => act('move-to-target', { spot: entry.ref })}
                   />
                   <Button
                     icon="times"
                     color="bad"
                     tooltip="Unleash"
-                    onClick={() =>
-                      act('kennel_unpin', { ref: entry.ref })
-                    }
+                    onClick={() => act('kennel_unpin', { ref: entry.ref })}
                   />
                 </td>
               </tr>
@@ -807,9 +808,7 @@ const StructuresPanel = (props) => {
       <Section title="Leash a Machine">
         {!data.atmos_machinery_browse && (
           <NoticeBox>
-            Turn off Kennel Slow Mode in Kennel Controls to browse and manually
-            leash any registered atmos machine/canister - this list can be
-            large, so it's not sent while slow mode is on.
+            Select this panel to load a bounded page of registered machinery.
           </NoticeBox>
         )}
         {!!data.atmos_machinery_browse && (
@@ -835,6 +834,15 @@ const StructuresPanel = (props) => {
                       content="Leash"
                       onClick={() => act('kennel_pin', { ref: entry.ref })}
                     />
+                    {/* APHELION EDIT ADDITION START - DOGMOS */}
+                    <Button
+                      onClick={() =>
+                        act('kennel_explain_reactions', { ref: entry.ref })
+                      }
+                    >
+                      Inspect reactions
+                    </Button>
+                    {/* APHELION EDIT ADDITION END */}
                   </td>
                 </tr>
               ))}
@@ -852,8 +860,9 @@ const StructuresPanel = (props) => {
                 </Button>
               </Stack.Item>
               <Stack.Item grow textAlign="center" color="label">
-                Page {browsePage} of {browsePages}; {browseTotal} matching
-                machines; at most {data.kennel_browse_page_size} rows per page
+                Page {browsePage} of {browsePages}; {browseTotal} matches on
+                this page; at most {data.kennel_browse_page_size} candidates
+                inspected
               </Stack.Item>
               <Stack.Item>
                 <Button
@@ -874,10 +883,84 @@ const StructuresPanel = (props) => {
   );
 };
 
+// APHELION EDIT ADDITION START - DOGMOS
+const ReactionExplanationPanel = () => {
+  const { act, data } = useBackend<Data>();
+  const report = data.reaction_explanation;
+  return (
+    <Section
+      title="Reaction inspection"
+      buttons={
+        <Button onClick={() => act('kennel_explain_reactions')}>
+          Inspect local air
+        </Button>
+      }
+    >
+      {report && (
+        <>
+          <Box>
+            {report.target}, mixture {report.index}/{report.count}, sampled at
+            round time {report.time / 10}s
+          </Box>
+          <NoticeBox>
+            Present-state generic eligibility only. Reaction bodies were not
+            run; previous body declines and chain stops are not recorded here.
+            Up to 128 reactions.
+            {!!report.suppressed && ' Hypernoblium suppression is active.'}
+            {!!report.immutable && ' This mixture is immutable.'}
+          </NoticeBox>
+          <Box>Fusion: {report.fusion}</Box>
+          <Button
+            disabled={report.index <= 1}
+            onClick={() =>
+              act('kennel_explain_reactions', {
+                ref: report.reference,
+                index: report.index - 1,
+              })
+            }
+          >
+            Previous mixture
+          </Button>
+          <Button
+            disabled={report.index >= report.count}
+            onClick={() =>
+              act('kennel_explain_reactions', {
+                ref: report.reference,
+                index: report.index + 1,
+              })
+            }
+          >
+            Next mixture
+          </Button>
+          <Box color="label">
+            {report.loaded_build.identity}; profile{' '}
+            {report.loaded_build.fusion_profile}
+          </Box>
+          <Table>
+            {report.rows.map(
+              ([id, implementation, priority, eligible, detail]) => (
+                <Table.Row key={id}>
+                  <Table.Cell>
+                    {id} ({implementation}, {priority})
+                  </Table.Cell>
+                  <Table.Cell>
+                    {eligible ? 'Requirements met' : 'Requirements not met'}
+                  </Table.Cell>
+                  <Table.Cell>{detail}</Table.Cell>
+                </Table.Row>
+              ),
+            )}
+          </Table>
+        </>
+      )}
+    </Section>
+  );
+};
+// APHELION EDIT ADDITION END
 export const DogmosKennel = (props) => {
-  const { data } = useBackend<Data>();
+  const { act, data } = useBackend<Data>();
   const tabs = Object.keys(TABS) as TABS[];
-  const [currentTab, setCurrentTab] = useState<TABS>(tabs[0]);
+  const currentTab = data.selected_tab || TABS.Overview;
 
   let componentShown;
   switch (currentTab) {
@@ -900,13 +983,19 @@ export const DogmosKennel = (props) => {
       componentShown = <BreachesPanel />;
       break;
     case TABS.About:
-      componentShown = <DocumentationPanel title="About Dogmos" content={aboutContent} />;
+      componentShown = (
+        <DocumentationPanel title="About Dogmos" content={aboutContent} />
+      );
       break;
     case TABS.Glossary:
-      componentShown = <DocumentationPanel title="Dogmos Glossary" content={glossaryContent} />;
+      componentShown = (
+        <DocumentationPanel title="Dogmos Glossary" content={glossaryContent} />
+      );
       break;
     case TABS.Credits:
-      componentShown = <DocumentationPanel title="Dogmos Credits" content={creditsContent} />;
+      componentShown = (
+        <DocumentationPanel title="Dogmos Credits" content={creditsContent} />
+      );
       break;
     default:
       componentShown = <OverviewPanel />;
@@ -916,6 +1005,9 @@ export const DogmosKennel = (props) => {
     <Window title="🐾 Dogmos Kennel" width={900} height={680}>
       <Window.Content scrollable>
         <KennelControls />
+        {/* APHELION EDIT ADDITION START - DOGMOS */}
+        <ReactionExplanationPanel />
+        {/* APHELION EDIT ADDITION END */}
         <Tabs>
           {tabs.map((tab) => {
             const eventCountKey = TAB_EVENT_COUNT_KEYS[tab];
@@ -926,7 +1018,7 @@ export const DogmosKennel = (props) => {
               <Tabs.Tab
                 key={tab}
                 selected={currentTab === tab}
-                onClick={() => setCurrentTab(tab)}
+                onClick={() => act('kennel_select_tab', { tab })}
               >
                 {tab}
                 {!!eventCount && ` (${eventCount})`}

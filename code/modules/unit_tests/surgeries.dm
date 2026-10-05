@@ -379,8 +379,8 @@
 	var/obj/item/pillow/pillow = EASY_ALLOCATE()
 	var/pillow_quality = UNLINT(surgery.get_tool_quality(pillow))
 	TEST_ASSERT_EQUAL(pillow_quality, 0, "Incise skin surgery returned a non-zero tool quality for a pillow, which is not a valid generic scalpel substitute")
-
 // APHELION EDIT ADDITION START - DETACHED_SURGERY_PATIENT
+
 /// Cancels at the supported pre-operation hook, after the real patient and stasis checks.
 /// Abstract so the fixture never enters the global operation registry.
 /datum/surgery_operation/limb/incise_skin/unit_test_patient_guard

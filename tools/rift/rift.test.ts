@@ -5,12 +5,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
+  authenticatedDescendants,
   type OwnedProcess,
   type ProcessHooks,
   type ProcessResult,
   type ProcessSpec,
+  runEncodedPowerShell,
   runProbeProcess,
   startOwnedProcess,
+  stopOwnedProcessTree,
+  unresolvedDescendants,
 } from './process';
 import {
   hashArtifact,
@@ -26,7 +30,9 @@ import {
   allocateRun,
   applyNativeOverlays,
   assertDmDiagnostics,
+  assertTestCompleteness,
   classifyFailure,
+  classifyTestExit,
   collectDeploymentArtifacts,
   compileFast,
   compileFull,
@@ -248,20 +254,14 @@ describe('profile document', () => {
       'ci',
       'dogmos',
       'dogmos-ci',
+      'dogmos-qualification',
+      'dogmos-test-compile',
     ]);
     expect(profiles.get('default')?.minimum_tests).toBe(1);
     expect(profiles.get('dogmos')).toMatchObject({
       config_source: 'repository',
       default_map: '_maps/runtimestation.json',
-      required_children: [
-        {
-          role: 'dogmosd',
-          process_name: 'dogmosd.exe',
-          min_count: 1,
-          max_count: 1,
-          continuous_after_readiness: true,
-        },
-      ],
+      required_children: [],
     });
     expect(profiles.get('dogmos-ci')).toMatchObject({
       config_source: 'ci',
@@ -277,14 +277,7 @@ describe('profile document', () => {
         .get('dogmos')
         ?.fatal_log_rules.map(({ id }) => id)
         .sort(),
-    ).toEqual([
-      'dogmos_lifecycle_rejection',
-      'dogmos_malformed_stage',
-      'dogmos_panic',
-      'dogmos_pending_stage',
-      'dogmos_stage_conflict',
-      'runtime_error',
-    ]);
+    ).toEqual(['dogmos_panic', 'runtime_error']);
     expect(RIFT_SCHEMA_VERSION).toBe(1);
   });
 
@@ -828,7 +821,7 @@ describe('run report', () => {
     });
   });
 
-  test('keeps DreamDaemon and dogmosd memory separate in Dogmos results', async () => {
+  test('reports only host memory in Dogmos results', async () => {
     await withTempDirectory(async (root) => {
       const recorder = await RunRecorder.create({
         runDir: root,
@@ -846,7 +839,7 @@ describe('run report', () => {
           samples: 3,
         },
         {
-          role: 'dogmosd',
+          role: 'fixture-child',
           private_bytes_max: 300,
           working_set_bytes_max: 400,
           samples: 3,
@@ -861,11 +854,6 @@ describe('run report', () => {
         dreamdaemon: {
           private_bytes_max: 100,
           working_set_bytes_max: 200,
-          samples: 3,
-        },
-        service: {
-          private_bytes_max: 300,
-          working_set_bytes_max: 400,
           samples: 3,
         },
         runtime_signatures: [],
@@ -1036,60 +1024,16 @@ describe('CLI and preflight qualification', () => {
     });
   });
 
-  test('accepts paired native overlays for every runtime workflow', () => {
-    for (const argv of [
-      ['run', '--shim', 'shim.dll', '--service', 'service.exe'],
-      ['test', '--shim', 'shim.dll', '--service', 'service.exe'],
-      [
-        'soak',
-        '--run-seconds',
-        '30',
-        '--shim',
-        'shim.dll',
-        '--service',
-        'service.exe',
-      ],
-    ]) {
-      expect(parseCli(argv, {})).toMatchObject({
-        shim: 'shim.dll',
-        service: 'service.exe',
-      });
-    }
+  test('accepts one native overlay and installed Dogmos profiles', () => {
     for (const command of ['run', 'test', 'soak']) {
-      const argv =
-        command === 'soak'
-          ? [command, '--run-seconds', '30', '--shim', 'shim.dll']
-          : [command, '--shim', 'shim.dll'];
-      expect(() => parseCli(argv, {})).toThrow(
-        '--shim and --service must be supplied together',
-      );
+      const duration = command === 'soak' ? ['--run-seconds', '30'] : [];
+      expect(
+        parseCli([command, ...duration, '--native', 'native.dll'], {}),
+      ).toMatchObject({ native: 'native.dll' });
+      expect(() =>
+        parseCli([command, ...duration, '--profile', 'dogmos'], {}),
+      ).not.toThrow();
     }
-  });
-
-  test('requires explicit native overlays for Dogmos runtime workflows', () => {
-    for (const argv of [
-      ['run', '--profile', 'dogmos'],
-      ['test', '--profile', 'dogmos-ci'],
-      ['soak', '--profile', 'dogmos', '--run-seconds', '30'],
-    ]) {
-      expect(() => parseCli(argv, {})).toThrow(
-        'Dogmos runtime profiles require --shim and --service',
-      );
-    }
-    expect(() =>
-      parseCli(
-        [
-          'run',
-          '--profile',
-          'dogmos',
-          '--shim',
-          'dogmos.dll',
-          '--service',
-          'dogmosd.exe',
-        ],
-        {},
-      ),
-    ).not.toThrow();
   });
 
   test('runs the installed Dogmos contract verifier as a supervised preflight', async () => {
@@ -1586,7 +1530,7 @@ describe('Windows launchers', () => {
         'result',
       ]);
     });
-  });
+  }, 20000);
 });
 
 describe('run allocation and locking', () => {
@@ -1816,6 +1760,32 @@ describe('run allocation and locking', () => {
 });
 
 describe('Windows process supervision', () => {
+  test.skipIf(process.platform !== 'win32')(
+    'preserves complete Windows exit codes, including a zero low byte',
+    async () => {
+      await withTempDirectory(async (root) => {
+        for (const exitCode of [256, 0xc00000fd]) {
+          const result = await startOwnedProcess(
+            {
+              ...processSpec(path.join(root, 'unused.ts')),
+              executable: 'powershell.exe',
+              args: [
+                '-NoProfile',
+                '-NonInteractive',
+                '-Command',
+                `[Environment]::Exit(${exitCode | 0})`,
+              ],
+            },
+            processHooks(),
+          ).result;
+          expect(result.termination).toBe('natural');
+          expect(result.exitCode).toBe(exitCode);
+        }
+      });
+    },
+    20_000,
+  );
+
   test('distinguishes a reused PID from the owned process instance', async () => {
     const processModule = (await import(
       './process'
@@ -2187,14 +2157,13 @@ describe('compile workflows', () => {
 });
 
 describe('isolated deployment', () => {
-  test('copies paired native overlays only into the isolated workspace', async () => {
+  test('copies native overlays only into the isolated workspace', async () => {
     await withTempDirectory(async (root) => {
       const rift = (await import('./rift')) as typeof import('./rift') & {
         applyNativeOverlays?: (
           repositoryRoot: string,
           deployment: { root: string },
-          shim: string | null,
-          service: string | null,
+          native: string | null,
           enforceInstalledContract?: boolean,
         ) => Promise<void>;
       };
@@ -2204,28 +2173,19 @@ describe('isolated deployment', () => {
       }
       const deployment = { root: path.join(root, 'workspace') };
       await fs.mkdir(deployment.root);
-      await Bun.write(path.join(root, 'candidate.dll'), 'shim-v2');
-      await Bun.write(path.join(root, 'candidate.exe'), 'service-v2');
+      await Bun.write(path.join(root, 'candidate.dll'), 'native-v2');
 
-      await rift.applyNativeOverlays(
-        root,
-        deployment,
-        'candidate.dll',
-        'candidate.exe',
-      );
+      await rift.applyNativeOverlays(root, deployment, 'candidate.dll');
 
       expect(
         await Bun.file(path.join(deployment.root, 'dogmos.dll')).text(),
-      ).toBe('shim-v2');
-      expect(
-        await Bun.file(path.join(deployment.root, 'dogmosd.exe')).text(),
-      ).toBe('service-v2');
+      ).toBe('native-v2');
       expect(await Bun.file(path.join(root, 'dogmos.dll')).exists()).toBe(
         false,
       );
-      expect(await Bun.file(path.join(root, 'dogmosd.exe')).exists()).toBe(
-        false,
-      );
+      expect(
+        await Bun.file(path.join(root, 'fixture-child.exe')).exists(),
+      ).toBe(false);
     });
   });
 
@@ -2233,19 +2193,11 @@ describe('isolated deployment', () => {
     await withTempDirectory(async (root) => {
       const deployment = { root: path.join(root, 'workspace') };
       await fs.mkdir(deployment.root);
-      await Bun.write(path.join(root, 'dogmos.dll'), 'installed-shim');
-      await Bun.write(path.join(root, 'dogmosd.exe'), 'installed-service');
-      await Bun.write(path.join(root, 'candidate.dll'), 'different-shim');
-      await Bun.write(path.join(root, 'candidate.exe'), 'installed-service');
+      await Bun.write(path.join(root, 'dogmos.dll'), 'installed-native');
+      await Bun.write(path.join(root, 'candidate.dll'), 'different-native');
 
       await expect(
-        applyNativeOverlays(
-          root,
-          deployment,
-          'candidate.dll',
-          'candidate.exe',
-          true,
-        ),
+        applyNativeOverlays(root, deployment, 'candidate.dll', true),
       ).rejects.toThrow('dogmos_overlay_contract_mismatch: dogmos.dll');
     });
   });
@@ -3009,7 +2961,7 @@ describe('bounded soak workflow', () => {
         },
         {
           timestamp: '2026-08-31T00:00:00.000Z',
-          role: 'dogmosd',
+          role: 'fixture-child',
           pid: 200,
           private_bytes: 300,
           working_set_bytes: 400,
@@ -3018,16 +2970,16 @@ describe('bounded soak workflow', () => {
       ]),
     ).toEqual([
       {
-        role: 'dogmosd',
-        private_bytes_max: 300,
-        working_set_bytes_max: 400,
-        samples: 1,
-      },
-      {
         role: 'dreamdaemon',
         private_bytes_max: 150,
         working_set_bytes_max: 200,
         samples: 3,
+      },
+      {
+        role: 'fixture-child',
+        private_bytes_max: 300,
+        working_set_bytes_max: 400,
+        samples: 1,
       },
     ]);
   });
@@ -3391,6 +3343,11 @@ describe('isolated unit-test workflow', () => {
         },
       }),
     ).toEqual({
+      identities: [
+        '/datum/unit_test/fail',
+        '/datum/unit_test/pass',
+        '/datum/unit_test/skip',
+      ],
       recorded: 3,
       passed: 1,
       failed: 1,
@@ -3614,6 +3571,10 @@ describe('isolated unit-test workflow', () => {
               },
             }),
           );
+          await Bun.write(
+            path.join(data, 'unit_test_inventory.json'),
+            JSON.stringify(['/datum/unit_test/simple_animal_freeze']),
+          );
           await Bun.write(path.join(logs, 'clean_run.lk'), 'clean');
           await Bun.sleep(150);
           resolveResult({
@@ -3724,4 +3685,170 @@ describe('isolated unit-test workflow', () => {
       ).toEqual([]);
     });
   });
+});
+
+describe('maintainability evidence contracts', () => {
+  test('long Icebox observations require explicit qualification profile selection', () => {
+    expect(
+      parseCli(
+        [
+          'soak',
+          '--run-seconds',
+          '10800',
+          '--wall-timeout-seconds',
+          '12600',
+          '--profile',
+          'dogmos-qualification',
+        ],
+        {},
+      ),
+    ).toMatchObject({ runSeconds: 10800, wallTimeoutSeconds: 12600 });
+    expect(() =>
+      parseCli(['soak', '--profile', 'dogmos', '--run-seconds', '10800'], {}),
+    ).toThrow('run seconds');
+    expect(() =>
+      parseCli(
+        ['soak', '--profile', 'dogmos-qualification', '--run-seconds', '10801'],
+        {},
+      ),
+    ).toThrow();
+    expect(() =>
+      validateMapPath(process.cwd(), '_maps/icebox.json', true),
+    ).toThrow('representative map');
+    expect(
+      validateMapPath(process.cwd(), '_maps/icebox.json', true, true),
+    ).toBe('_maps/icebox.json');
+  });
+
+  test('failed inspection cannot certify empty cleanup', async () => {
+    await expect(
+      stopOwnedProcessTree(999999, [], undefined, new Map(), async () => {
+        throw new Error('fixture inspection denied');
+      }),
+    ).rejects.toThrow('cleanup verification unknown');
+  });
+
+  test('natural parent exit cleans authenticated children before inherited output drain', async () => {
+    await withTempDirectory(async (root) => {
+      const script = path.join(root, 'parent.ts');
+      const release = path.join(root, 'release');
+      await Bun.write(
+        script,
+        `
+        Bun.spawn({cmd: [process.execPath, '-e', "console.log('child-ready'); setInterval(() => {}, 1000)"], stdout: 'inherit', stderr: 'inherit', windowsHide: true});
+        while (!(await Bun.file(${JSON.stringify(release)}).exists())) await Bun.sleep(25);
+        console.log('parent-exit'); process.exit(0);
+      `,
+      );
+      const lines: string[] = [];
+      const owner = startOwnedProcess(
+        processSpec(script, { wallTimeoutMs: 20000, idleTimeoutMs: 20000 }),
+        {
+          ...processHooks(lines),
+          onOwnedPids: async (pids) => {
+            if (pids.length > 1) await Bun.write(release, 'authenticated');
+          },
+        },
+      );
+      const result = await owner.result;
+      expect(result.termination).toBe('natural');
+      expect(result.ownedPids.length).toBeGreaterThan(1);
+      expect(result.cleanupErrors).toEqual([]);
+      expect(lines).toContain('stdout:parent-exit');
+    });
+  }, 30000);
+
+  test('rejects unrelated focus, partial full suite, duplicate inventory and unclassified exits', () => {
+    const name = '/datum/unit_test/one';
+    const tests = parseUnitTestResults({
+      [name]: { name, duration: 1, message: '', runtimes: 0, status: 0 },
+    });
+    expect(() => assertTestCompleteness(tests, [name], [name])).not.toThrow();
+    expect(() =>
+      assertTestCompleteness(tests, ['/datum/unit_test/two'], [name]),
+    ).toThrow('focus_mismatch');
+    expect(() =>
+      assertTestCompleteness(tests, [], [name, '/datum/unit_test/two']),
+    ).toThrow('inventory_mismatch');
+    expect(() => assertTestCompleteness(tests, [], [name, name])).toThrow(
+      'inventory_mismatch',
+    );
+    for (const exitCode of [0, 176])
+      expect(
+        classifyTestExit(
+          { termination: 'natural', exitCode } as ProcessResult,
+          '516.1687',
+        ),
+      ).toBeTruthy();
+    for (const exitCode of [1, 7, 255, 256, 0xc00000b0, 0xc00000fd, null])
+      expect(() =>
+        classifyTestExit(
+          { termination: 'natural', exitCode } as ProcessResult,
+          '516.1687',
+        ),
+      ).toThrow('process_failed');
+    for (const version of ['515.1647', '516.1688']) {
+      expect(() =>
+        classifyTestExit(
+          { termination: 'natural', exitCode: 176 } as ProcessResult,
+          version,
+        ),
+      ).toThrow('process_failed');
+    }
+  });
+
+  test('does not adopt a reused root or descendants without an authenticated live parent', () => {
+    const root = {
+      pid: 1,
+      parentPid: null,
+      name: 'parent.exe',
+      creationTime: '2026-09-23T01:00:00Z',
+    };
+    const child = {
+      pid: 2,
+      parentPid: 1,
+      name: 'child.exe',
+      creationTime: '2026-09-23T01:00:01Z',
+    };
+    const known = new Map([[root.pid, root]]);
+    expect(authenticatedDescendants([root, child], known)).toEqual([
+      root,
+      child,
+    ]);
+    expect(
+      authenticatedDescendants(
+        [{ ...root, creationTime: '2026-09-23T02:00:00Z' }, child],
+        known,
+      ),
+    ).toEqual([]);
+    expect(authenticatedDescendants([child], known)).toEqual([]);
+    expect(unresolvedDescendants([child], known, root.pid)).toEqual([child]);
+    const reusedRoot = { ...root, creationTime: '2026-09-23T02:00:00Z' };
+    expect(unresolvedDescendants([reusedRoot, child], known, root.pid)).toEqual(
+      [child],
+    );
+    expect(
+      unresolvedDescendants(
+        [reusedRoot, { ...child, creationTime: '2026-09-23T02:00:01Z' }],
+        known,
+        root.pid,
+      ),
+    ).toEqual([]);
+  });
+
+  test('bounds and cancels a hung PowerShell helper', async () => {
+    const started = Date.now();
+    await expect(
+      runEncodedPowerShell('Start-Sleep -Seconds 30'),
+    ).rejects.toThrow('timed out');
+    expect(Date.now() - started).toBeLessThan(8000);
+    const abort = new AbortController();
+    const helper = runEncodedPowerShell(
+      'Start-Sleep -Seconds 30',
+      {},
+      abort.signal,
+    );
+    abort.abort();
+    await expect(helper).rejects.toThrow('cancelled');
+  }, 15000);
 });

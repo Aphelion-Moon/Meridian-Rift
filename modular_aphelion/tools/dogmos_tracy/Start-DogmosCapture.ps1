@@ -25,8 +25,11 @@ function Test-CaptureAdministrator {
 }
 
 function Get-CaptureDeployment([string]$Root) {
+    if (-not (Test-Path -LiteralPath (Join-Path $Root 'tgstation.dme') -PathType Leaf)) {
+        throw 'The one-click launcher requires a developer checkout with native contract verification sources. Use Capture-Dogmos.ps1 for a separately verified deployed game.'
+    }
     $records = @()
-    $files = @('tgstation.dmb','dogmos.lock.json','dogmos.dll','dogmosd.exe')
+    $files = @('tgstation.dmb','dogmos.lock.json','dogmos.dll')
     if (Test-Path -LiteralPath (Join-Path $Root 'tgstation.rsc') -PathType Leaf) { $files += 'tgstation.rsc' }
     foreach ($name in $files) {
         $file = Join-Path $Root $name
@@ -36,15 +39,9 @@ function Get-CaptureDeployment([string]$Root) {
     }
     $lock = Get-Content -LiteralPath (Join-Path $Root 'dogmos.lock.json') -Raw | ConvertFrom-Json
     if ($lock.schema_version -ne 1) { throw 'Unsupported Dogmos lock schema.' }
-    foreach ($role in @('shim','service')) {
-        $expected = @($lock.artifacts | Where-Object { $_.platform -eq 'windows' -and $_.role -eq $role })
-        $name = if ($role -eq 'shim') {'dogmos.dll'} else {'dogmosd.exe'}
-        $architecture = if ($role -eq 'shim') {'i686'} else {'x86_64'}
-        $actual = @($records | Where-Object { $_.path -eq $name })[0]
-        if ($expected.Count -ne 1 -or $expected[0].file -ne ('windows/'+$name) -or $expected[0].architecture -ne $architecture -or $expected[0].size -ne $actual.bytes -or $expected[0].sha256 -ne $actual.sha256) {
-            throw "The deployed $name does not match dogmos.lock.json."
-        }
-    }
+    $verifier = Join-Path $Root 'tools/dogmos/verify_contract.py'
+    & python -B $verifier verify-installed --root $Root
+    if ($LASTEXITCODE -ne 0) { throw 'The deployed native artifact contract failed verification.' }
     return $records
 }
 
@@ -73,7 +70,7 @@ if (Test-Path -LiteralPath $settingsPath) {
     if (-not $GameDirectory) { $GameDirectory = [string]$settings.GameDirectory }
     if (-not $DreamDaemonPath) { $DreamDaemonPath = [string]$settings.DreamDaemonPath }
 }
-$GameDirectory = Read-CapturePath $GameDirectory 'TGS deployment folder containing tgstation.dmb and data'
+$GameDirectory = Read-CapturePath $GameDirectory 'Developer checkout containing tgstation.dme, tgstation.dmb and data'
 $gameRoot = (Resolve-Path -LiteralPath $GameDirectory).Path
 $captureScript = Join-Path $PSScriptRoot 'Capture-Dogmos.ps1'
 $check = & $captureScript -Mode Check -GameDirectory $gameRoot -BundleDirectory $PSScriptRoot

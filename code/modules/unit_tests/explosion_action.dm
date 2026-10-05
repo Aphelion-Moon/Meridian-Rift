@@ -233,8 +233,8 @@
 	TEST_ASSERT_NULL(dropped_frame, "Violently destroying a painting created a zero-integrity wallframe.")
 	if(dropped_frame)
 		qdel(dropped_frame)
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /// Sets up a fully armored corgi for testing purposes. Split out into its own proc as to not clutter up the main test.
 /datum/unit_test/explosion_action/proc/set_up_test_dog()
 	var/mob/living/basic/pet/dog/corgi/returnable_dog = allocate(/mob/living/basic/pet/dog/corgi)

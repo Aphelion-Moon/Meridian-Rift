@@ -14,7 +14,7 @@ Keep maintained source documentation, agent instructions, workload definitions, 
 - Routing: [docs/agent/README.md](docs/agent/README.md) and [docs/agent/source-authority.md](docs/agent/source-authority.md).
 - Placement: [docs/agent/placement-and-markers.md](docs/agent/placement-and-markers.md) and [modular_nova/readme.md](modular_nova/readme.md).
 - General gates: [docs/agent/verification.md](docs/agent/verification.md), [docs/agent/meridian-mcp.md](docs/agent/meridian-mcp.md), [docs/agent/rift-controller.md](docs/agent/rift-controller.md), [docs/agent/generated-content.md](docs/agent/generated-content.md), and [docs/agent/upstream-drift.md](docs/agent/upstream-drift.md).
-- Dogmos ownership: [docs/agent/dogmos-integration.md](docs/agent/dogmos-integration.md), [docs/agent/dogmos-gameplay-events.md](docs/agent/dogmos-gameplay-events.md), and [docs/agent/dogmos-service-lifecycle.md](docs/agent/dogmos-service-lifecycle.md).
+- Dogmos ownership: [docs/agent/dogmos-integration.md](docs/agent/dogmos-integration.md), [docs/agent/dogmos-gameplay-events.md](docs/agent/dogmos-gameplay-events.md).
 - Dogmos measurement and gates: [docs/agent/dogmos-performance-and-memory.md](docs/agent/dogmos-performance-and-memory.md) and [docs/agent/dogmos-verification.md](docs/agent/dogmos-verification.md).
 - Native contract: [docs/agent/native-artifacts.md](docs/agent/native-artifacts.md).
 
@@ -34,6 +34,6 @@ Human-authored critical infrastructure remains protected for changes outside the
 
 Authorized implementation and verification work includes rebuilding native binaries, regenerating bindings, contract defines, manifests and artifact lock data, and synchronizing the verified matching artifact set into a local development or test checkout. Do not request separate per-file permission for these operations because an output or its authority file is described as protected. Necessary in-scope protocol and generator updates follow the same task authorization, with their required review and verification gates.
 
-Use the maintained build, generation and synchronization tools, preserve unrelated changes, and verify the complete shim/service contract. Generated outputs must never be hand-edited. This rule supersedes older local plans that require exact-file approval to regenerate protected outputs.
+Use the maintained build, generation and synchronization tools, preserve unrelated changes, and verify the complete native artifact contract. Generated outputs must never be hand-edited. This rule supersedes older local plans that require exact-file approval to regenerate protected outputs.
 
-Dogmos optimization targets DreamDaemon's constrained address space. Rust allocations in the currently loaded 32-bit DLL are DreamDaemon allocations. The selected Windows play-test uses the in-process root engine; see [the in-process contract](docs/agent/dogmos-in-process.md). Retained service guides and paired artifact gates apply when selecting the service backend. Measure service memory separately when that backend is used.
+Dogmos optimization targets DreamDaemon's constrained address space. Native allocations consume DreamDaemon memory. The production target is the in-process root engine; follow [the build contract](docs/agent/dogmos-in-process.md). Compare repeated equivalent workloads and preserve numerical/gameplay behavior.

@@ -27,16 +27,16 @@ RIFT.cmd doctor
 RIFT.cmd compile --mode fast|full [--force]
 RIFT.cmd run [--compile-mode fast|full] [--map <_maps/file.json>]
     [--port <1-65535>] [--readiness-timeout-seconds <n>]
-    [--run-seconds <0-1800>] [--shim <dogmos.dll>]
-    [--service <dogmosd.exe>]
+    [--run-seconds <0-1800>] [--native <dogmos.dll>]
+
 RIFT.cmd test [--focus </datum/unit_test/name>]...
     [--map <_maps/file.json>] [--minimum-tests <n>]
-    [--readiness-timeout-seconds <n>] [--shim <dogmos.dll>]
-    [--service <dogmosd.exe>]
+    [--readiness-timeout-seconds <n>] [--native <dogmos.dll>]
+
 RIFT.cmd soak --run-seconds <30-1800>
     [--compile-mode fast|full] [--map <_maps/file.json>]
     [--readiness-timeout-seconds <n>]
-    [--shim <dogmos.dll>] [--service <dogmosd.exe>]
+    [--native <dogmos.dll>]
 RIFT.cmd report <run-id> [--format human|jsonl|result]
 ```
 
@@ -58,8 +58,8 @@ The checked-in profiles are:
 
 - `default`: repository configuration, suitable for normal boot/soak work.
 - `ci`: `tools/ci/ci_config.txt`, `-close`, required clean-run and unit-test artifacts, and `_maps/metastation.json` by default.
-- `dogmos`: repository configuration, full RuntimeStation, Dogmos fatal rules, and exactly one continuous `dogmosd.exe` child.
-- `dogmos-ci`: CI configuration, MetaStation with full CentCom, skipped Lavaland/space levels, Dogmos fatal rules, and exactly one continuous `dogmosd.exe` child. `MINIMAL_CENTCOM` is incompatible with this representative-map profile.
+- `dogmos`: repository configuration, full RuntimeStation, Dogmos fatal rules, and native panic detection.
+- `dogmos-ci`: CI configuration, MetaStation with full CentCom, skipped Lavaland/space levels, Dogmos fatal rules, and native panic detection. `MINIMAL_CENTCOM` is incompatible with this representative-map profile.
 
 `test` selects `ci` when `--profile` is omitted; other commands select `default`. A test profile is rejected unless it uses the CI config, requests natural `-close` shutdown, and requires nonempty unit-test and clean-run artifacts.
 
@@ -95,11 +95,11 @@ The MCP shim accepts validated `MERIDIAN_RIFT_WALL_TIMEOUT_SECONDS` and `MERIDIA
 
 `run`, `test`, and `soak` deploy required inputs into the run's `workspace` directory. Repository configuration and map files are copied; they are never rewritten for a run. DreamDaemon starts in that isolated directory, and readiness and fatal rules are monitored continuously until natural completion or requested stop. Process cleanup targets only descendants captured with matching PID, executable name, and creation time; a PID without verified instance identity is never force-killed. `run` returns `ready_then_stopped` after readiness or the requested bounded window.
 
-`test` performs a `CIBUILDING` compile and validates `data/unit_tests.json`, minimum counts, failures, profile artifacts, and natural DreamDaemon termination. BYOND 516.1687/Bun 1.3.5 on Windows produced different native exit values (224 and 176) for otherwise identical clean MetaStation test shutdowns. RIFT therefore records the native value but does not use it as the success classifier after natural termination; fresh passing result JSON, minimum counts, zero runtime failures, and required clean artifacts are authoritative. The CI profile uses MetaStation by default. Database-backed game tests still require the repository's configured MariaDB service. A disposable local MariaDB container is one optional way to supply it, but Docker is not configured or managed by RIFT.
+`test` performs a `CIBUILDING` compile and validates exact selected test identities, failures, profile artifacts, runtime logs and natural DreamDaemon termination. Nonzero exits require the narrow version-specific classification described below. The CI profile uses MetaStation by default. Database-backed game tests still require the configured MariaDB service; RIFT does not manage it.
 
-`soak` requires a bounded 30-1800 second window, monitors fatal logs and continuous child rules, samples private and working-set bytes by stable role, and records normalized runtime signatures. When both Dogmos overlay arguments are supplied, their nonempty inputs are copied only into the isolated workspace as `dogmos.dll` and `dogmosd.exe`.
+`soak` requires a bounded 30-1800 second window, monitors fatal logs and continuous child rules, samples private and working-set bytes by stable role, and records normalized runtime signatures. An optional native overlay is copied only into the isolated workspace.
 
-Dogmos runtime profiles require both overlay arguments. Before compile or launch, RIFT runs the checked-in installed-contract verifier against `dogmos.lock.json`, bindings, contract defines, and all four platform binaries. The supplied Windows overlay pair must byte-match that verified installed contract. Source-to-game release synchronization remains an explicit `tools/dogmos/sync_contract.ps1` operation.
+Dogmos profiles verify the installed platform library, lock, bindings and contract defines. An optional `--native` overlay must byte-match that contract. Synchronize source-bound bundles with `tools/dogmos/sync_in_process.py`.
 
 Ctrl+C and Ctrl+Break mark the workflow cancelled, terminate only active owned process trees, perform normal collection/cleanup, write the final summary, and return 130.
 
@@ -149,3 +149,36 @@ exit $LASTEXITCODE
 ```
 
 Leave the worktree uncommitted unless the user explicitly requests a commit. Preserve stale scratch evidence and unrelated processes; `doctor` reports stale RIFT scratch names but does not delete them.
+
+## Test completeness and bounded supervision
+
+The compiled test driver writes `data/unit_test_inventory.json` before execution.
+RIFT requires a fresh result for every concrete selected identity and rejects
+unexpected results. Focused requests must match the normalized selected inventory
+exactly. Full runs use that inventory rather than an arbitrary minimum count.
+Runtime errors fail their owning test, including synchronous teardown errors.
+Full Windows DreamDaemon exit 176 on BYOND 516.1687 is accepted only after complete passing results,
+required artifacts and clean runtime logs; other nonzero exits remain failures.
+
+Wall/idle deadlines and cancellation run independently of process sampling.
+PowerShell helpers have a five-second bound; only one sample is in flight.
+A query-only Windows process handle preserves the full 32-bit exit status because
+the pinned Bun runtime truncates its reported exit code to one byte. The handle
+is captured synchronously after spawn and closed on every terminal path.
+Cleanup authenticates process creation identities, stops owned survivors before
+draining inherited output, and bounds the final drain. Failed inspection means
+unknown cleanup and a failed result. Process records retain both supervision and
+cleanup failures, including in the terminal report.
+
+`tools/dogmos/boot_probe.ps1`, `test_compile_check.ps1`, `run_tests.ps1`, and
+`run_liveness_soak.ps1` translate arguments to the pinned RIFT entry point.
+`-SkipCompile` is retired: a fresh RIFT build provides verifiable artifact identity.
+Select BYOND through `DM_EXE`/the wrapper's `DmPath`; DreamDaemon must be its sibling.
+The boot wrapper accepts `-CompileMode full` to exercise the authoritative build before booting.
+The `dogmos-test-compile` profile compiles the CIBUILDING configuration without running it.
+
+The explicitly selected `dogmos-qualification` profile permits Icebox and up to
+10,800 seconds of observation with a 12,600-second wall bound. Ordinary profiles
+retain their existing short-run limits. A long idle soak is still only a soak;
+the profile does not simulate players or confer qualification. Arrange any
+representative live workload and human review separately.

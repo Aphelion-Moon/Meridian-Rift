@@ -118,7 +118,7 @@
 		active = FALSE
 		return
 
-	var/datum/gas_mixture/removed = input_air.remove_ratio(transfer_rate / input_air.return_volume())
+	var/datum/gas_mixture/removed = input_air.remove_ratio(transfer_rate / input_air.return_volume()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/datum/gas_mixture/removed = input_air.remove_ratio(transfer_rate / input_air.volume)
 	if(!removed)
 		return
 
@@ -170,7 +170,7 @@
 	new_record.name = "Log Recording #[record_number]"
 	new_record.experiment_source = inserted_tank.name
 	new_record.timestamp = "[server_timestamp(ic_time = TRUE)] (PT: [round_timestamp()])"
-	for(var/gas_path, amount in leaked_gas_buffer.get_moles_list())
+	for(var/gas_path, amount in leaked_gas_buffer.get_moles_list()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/gas_path, amount in leaked_gas_buffer.moles)
 		new_record.gas_data[gas_path] = amount
 
 	compressor_record += new_record

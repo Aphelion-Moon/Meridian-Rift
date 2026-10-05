@@ -29,9 +29,7 @@
 		/area/station/engineering/atmos/space_catwalk,
 	))
 
-	// APHELION EDIT ADDITION START - MAP_SPACE_VALIDATION
-	var/intentional_condo_boundaries = 0
-	// APHELION EDIT ADDITION END
+	var/intentional_condo_boundaries = 0 // APHELION EDIT ADDITION - MAP_SPACE_VALIDATION
 	// We aren't planetary, so let's check area placements and ensure stuff lines up.
 	for(var/turf/iterated_turf in ALL_TURFS())
 		var/area/turf_area = get_area(iterated_turf)
@@ -47,9 +45,7 @@
 		// APHELION EDIT ADDITION END
 		// We need turf_area.type for the error message because we have fifteen million ruin areas named "Unexplored Location" and it's completely unhelpful here.
 		TEST_FAIL("Space turf [iterated_turf.type] found in non-allowed area ([turf_area.type]) at [AREACOORD(iterated_turf)]! Please ensure that all space turfs are in an /area/space!")
-	// APHELION EDIT ADDITION START - MAP_SPACE_VALIDATION
-	log_test("Map space validation accepted [intentional_condo_boundaries] intentional reserved condo boundary turfs.")
-	// APHELION EDIT ADDITION END
+	log_test("Map space validation accepted [intentional_condo_boundaries] intentional reserved condo boundary turfs.") // APHELION EDIT ADDITION - MAP_SPACE_VALIDATION
 
 
 /// Verifies that there are ZERO space turfs on a valid planetary station. We NEVER want space turfs here, so we do not check for /area/space here since something completely undesirable is happening.

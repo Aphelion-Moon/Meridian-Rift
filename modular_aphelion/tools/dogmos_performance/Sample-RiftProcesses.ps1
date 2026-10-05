@@ -3,7 +3,7 @@
 .SYNOPSIS
 Read-only 250 ms process sampling for one existing RIFT run.
 .DESCRIPTION
-Start during compilation. Discovers only DreamDaemon and dogmosd identities reported
+Start during compilation. Discovers only DreamDaemon identities reported
 by this run's event stream; never launches, changes, or stops those processes.
 #>
 [CmdletBinding()]
@@ -49,7 +49,7 @@ try {
             if ([string]::IsNullOrWhiteSpace($lines[$index])) { continue }
             $eventRecord = $lines[$index] | ConvertFrom-Json
             foreach ($sample in $eventRecord.data.resource_samples) {
-                if ($sample.role -notin @('dreamdaemon', 'dogmosd')) { continue }
+                if ($sample.role -notin @('dreamdaemon')) { continue }
                 if (-not $sample.creationTime) { continue }
                 # PowerShell 7 may deserialize JSON dates; avoid a culture-sensitive string round trip.
                 $expected = ([DateTimeOffset]$sample.creationTime).UtcDateTime

@@ -105,3 +105,72 @@
 		"reaction_results wasn't populated for /datum/gas_reaction/standard/freonfire.")
 
 	qdel(freon_air)
+
+// APHELION EDIT ADDITION START - DOGMOS
+/** Fresh combustion must rescue an exhausted hotspot without replacing its identity. */
+/datum/unit_test/dogmos_hotspot_reignition
+	/// Shared test turf whose atmosphere is restored even after an assertion fails.
+	var/turf/open/fire_turf
+	/// Original gas state; allocated with the test so cleanup owns it.
+	var/datum/gas_mixture/original_air
+	/// The previous reaction bookkeeping belongs to the shared turf, not this test.
+	var/list/original_reaction_results
+	/// Whether an earlier callback had already marked this turf as reacting.
+	var/original_reacted
+	/// Whether this turf was already scheduled before the fixture ignited it.
+	var/original_excited
+
+/datum/unit_test/dogmos_hotspot_reignition/Run()
+	fire_turf = run_loc_floor_bottom_left
+	original_air = allocate(/datum/gas_mixture, CELL_VOLUME)
+	original_air.copy_from(fire_turf.air)
+	original_reaction_results = fire_turf.air.reaction_results
+	original_reacted = SSair.dogmos_reacted_turfs[fire_turf]
+	original_excited = fire_turf.excited
+	var/datum/gas_mixture/fuel = allocate(/datum/gas_mixture, CELL_VOLUME)
+	fuel.set_moles(/datum/gas/plasma, 50)
+	fuel.set_moles(/datum/gas/oxygen, 200)
+	fuel.set_temperature(1000)
+	fire_turf.air.copy_from(fuel)
+	fire_turf.hotspot_expose(1000, CELL_VOLUME)
+	var/obj/effect/hotspot/original_hotspot = fire_turf.active_hotspot
+	TEST_ASSERT_NOTNULL(original_hotspot, "Fixture failed to ignite a real hotspot.")
+	original_hotspot.just_spawned = FALSE
+	// A previous exposure found no combustion. Before hotspot processing resumes,
+	// diffusion replenishes the turf and its normal reaction callback burns again.
+	original_hotspot.volume = 0
+	fire_turf.air.copy_from(fuel)
+	fire_turf.dogmos_react()
+	TEST_ASSERT(fire_turf.air.reaction_results[/datum/gas_reaction/standard/plasmafire] > 0, "The replenished turf did not burn.")
+	var/plasma_after_reaction = fire_turf.air.get_moles(/datum/gas/plasma)
+	var/temperature_after_reaction = fire_turf.air.return_temperature()
+	original_hotspot.process()
+	TEST_ASSERT(!QDELETED(original_hotspot) && fire_turf.active_hotspot == original_hotspot, "Fresh combustion was followed by deletion of the existing hotspot.")
+	TEST_ASSERT_EQUAL(fire_turf.air.get_moles(/datum/gas/plasma), plasma_after_reaction, "Refreshing a sustained fire burned an extra gas sample.")
+	TEST_ASSERT_EQUAL(fire_turf.air.return_temperature(), temperature_after_reaction, "Refreshing a sustained fire changed its thermal state.")
+	// Extinction must still work; a visual repair must not keep a dead fire alive.
+	original_hotspot.volume = 0
+	fire_turf.air.set_moles(/datum/gas/plasma, 0)
+	fire_turf.air.set_moles(/datum/gas/tritium, 0)
+	fire_turf.air.set_moles(/datum/gas/hydrogen, 0)
+	fire_turf.dogmos_react()
+	original_hotspot.process()
+	TEST_ASSERT(QDELETED(original_hotspot) && !fire_turf.active_hotspot, "A genuinely exhausted hotspot remained alive.")
+
+/datum/unit_test/dogmos_hotspot_reignition/Destroy()
+	if(fire_turf && original_air)
+		QDEL_NULL(fire_turf.active_hotspot)
+		fire_turf.air.copy_from(original_air)
+		fire_turf.air.reaction_results = original_reaction_results
+		if(isnull(original_reacted))
+			SSair.dogmos_reacted_turfs -= fire_turf
+		else
+			SSair.dogmos_reacted_turfs[fire_turf] = original_reacted
+		fire_turf.update_visuals()
+		if(!original_excited)
+			SSair.remove_from_active(fire_turf)
+	fire_turf = null
+	original_air = null
+	original_reaction_results = null
+	return ..()
+// APHELION EDIT ADDITION END

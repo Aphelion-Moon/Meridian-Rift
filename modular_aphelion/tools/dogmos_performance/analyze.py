@@ -33,7 +33,7 @@ def dense_process_resources(run, begin, end):
     instances = {}
     with path.open(encoding="utf-8-sig", newline="") as stream:
         for row in csv.DictReader(stream):
-            if row["role"] not in ("dreamdaemon", "dogmosd"):
+            if row["role"] not in ("dreamdaemon",):
                 continue
             timestamp = dt.datetime.fromisoformat(row["utc"].replace("Z", "+00:00")).timestamp()
             phase = "gameplay" if begin <= timestamp <= end else "initialization" if timestamp < begin else None
@@ -75,7 +75,7 @@ def analyze(run):
         timestamp = dt.datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00")).timestamp()
         for process in event.get("data", {}).get("resource_samples", []):
             role = process.get("role", "").lower()
-            if role not in ("dreamdaemon", "dogmosd"):
+            if role not in ("dreamdaemon",):
                 continue
             phase = "gameplay" if begin <= timestamp <= end else "initialization" if timestamp < begin else None
             if phase is None:

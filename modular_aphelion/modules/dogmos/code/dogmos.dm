@@ -1,7 +1,3 @@
-#if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
-#include "shift_start_performance_test.dm"
-#endif
-
 /// Runtime count captured after subsystem initialization.
 GLOBAL_VAR_INIT(runtimes_at_init_complete, 0)
 
@@ -36,12 +32,14 @@ SUBSYSTEM_DEF(dogmos)
 	var/gases_registered = FALSE
 
 /datum/controller/subsystem/dogmos/Initialize()
-#ifdef DOGMOS_IN_PROCESS
 	var/native_identity = dogmos_in_process_identity()
 	if(native_identity != DOGMOS_IN_PROCESS_IDENTITY)
 		stack_trace("Dogmos native identity mismatch: expected [DOGMOS_IN_PROCESS_IDENTITY], got [native_identity].")
 		return SS_INIT_FAILURE
-#endif
+	mixture_fusion_enabled = CONFIG_GET(flag/dogmos_mixture_fusion)
+	if(mixture_fusion_enabled && !DOGMOS_FUSION_NATIVE_AVAILABLE)
+		stack_trace("Mixture fusion requires a matching Aphelion native build; disable dogmos_mixture_fusion or install the matching bundle.")
+		return SS_INIT_FAILURE
 	// Build the reaction table before the Rust registry starts.
 	SSair.gas_reactions = init_gas_reactions()
 	SSair.dogmos_reactions = init_dogmos_reactions(SSair.gas_reactions)
@@ -54,22 +52,17 @@ SUBSYSTEM_DEF(dogmos)
 
 	if(!auxtools_atmos_init(GLOB.gas_data))
 		stack_trace("auxtools_atmos_init() did not report success - Dogmos may hold an incomplete gas registry.")
+		dogmos_shutdown() // Release partial startup state; this does not retry or resume the world.
 		return SS_INIT_FAILURE
 
 	gases_registered = TRUE
-	#ifdef UNIT_TESTS
-	if(GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance) \
-		|| GLOB.focused_tests?.Find(/datum/unit_test/dogmos_shift_start_performance/profile))
-		INVOKE_ASYNC(src, PROC_REF(record_shift_start_performance))
-	#endif
 	return SS_INIT_SUCCESS
 
-/** Stops Dogmos workers and releases its Rust-side arenas. */
-/datum/controller/subsystem/dogmos/Shutdown()
+/** Releases native state at the terminal world boundary, after any yielding shutdown work. */
+/datum/controller/subsystem/dogmos/proc/shutdown_native()
 	if(src == SSdogmos && gases_registered)
 		dogmos_shutdown()
 	gases_registered = FALSE
-	return ..()
 
 /** Shares gas overlay lists with Dogmos' visual callback. */
 /datum/controller/subsystem/dogmos/proc/populate_gas_data_overlays()

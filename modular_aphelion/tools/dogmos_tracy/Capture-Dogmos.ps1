@@ -115,16 +115,6 @@ $run = [ordered]@{ schema = 1; started_utc = [DateTime]::UtcNow.ToString('o'); f
         'Process sampling excludes address-space region maps and native per-operation timing.') }
 
 function Sample-Processes {
-    if ($script:daemonId -gt 0 -and [DateTime]::UtcNow -ge $script:nextDiscovery) {
-        $script:nextDiscovery = [DateTime]::UtcNow.AddSeconds(1)
-        $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $script:daemonId" | Where-Object { $_.Name -ieq 'dogmosd.exe' })
-        foreach ($child in $children) {
-            if ($script:targets.Id -notcontains [int]$child.ProcessId) {
-                $service = Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
-                if ($null -ne $service) { $script:targets += @{ Id=$service.Id; Role='dogmosd'; StartTicks=$service.StartTime.ToUniversalTime().Ticks } }
-            }
-        }
-    }
     foreach ($target in $script:targets) {
         try {
             $process = Get-Process -Id $target.Id -ErrorAction Stop

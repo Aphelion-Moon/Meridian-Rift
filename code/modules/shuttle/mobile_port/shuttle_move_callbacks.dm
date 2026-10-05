@@ -77,9 +77,7 @@ All ShuttleMove procs go here
 	blocks_air = TRUE
 	air_update_turf(TRUE, TRUE)
 	*/ // APHELION EDIT REMOVAL END
-	// APHELION EDIT ADDITION START - DOGMOS
-	SSdogmos.block_shuttle_turfs(src, new_turf)
-	// APHELION EDIT ADDITION END
+	SSdogmos.block_shuttle_turfs(src, new_turf) // APHELION EDIT ADDITION - DOGMOS
 	if(isopenturf(new_turf))
 		var/turf/open/new_open = new_turf
 		new_open.copy_air_with_tile(src)

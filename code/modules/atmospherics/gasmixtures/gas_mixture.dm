@@ -18,20 +18,16 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	// APHELION EDIT ADDITION START - DOGMOS
 	/// Whether Dogmos has accepted this mixture's monotonic immutable finalization.
 	var/dogmos_immutable = FALSE
-	// APHELION EDIT ADDITION END
+// APHELION EDIT ADDITION END
 
-/datum/gas_mixture/New(volume, datum/gas_mixture/copy_source) // APHELION EDIT CHANGE - DOGMOS_COPY_CREATION
+/datum/gas_mixture/New(volume, datum/gas_mixture/copy_source)
 	if(!isnull(volume))
 		initial_volume = volume
 	if(initial_volume <= 0)
 		stack_trace("Created a gas mixture with zero volume!")
-#ifdef DOGMOS_IN_PROCESS
 	__gasmixture_register()
 	if(copy_source)
 		copy_from(copy_source)
-#else
-	__gasmixture_register(copy_source) // APHELION EDIT CHANGE - DOGMOS_COPY_CREATION
-#endif
 	reaction_results = new
 
 /datum/gas_mixture/Del()
@@ -239,7 +235,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/list/sharer_gases = sharer.get_gases()
 	var/list/gas_list = our_gases | sharer_gases
 
-	var/temperature_delta = return_temperature() - sharer.return_temperature()
+	var/self_temperature_before = return_temperature()
+	var/sharer_temperature_before = sharer.return_temperature()
+	var/temperature_delta = self_temperature_before - sharer_temperature_before
 	var/temp_delta_threshold = abs(temperature_delta) > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER
 
 	var/old_self_heat_capacity = 0
@@ -255,9 +253,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/abs_moved_moles = 0
 
 	var/list/cached_specific_heat = GAS_META[META_GAS_SPECIFIC_HEAT]
-	// Deltas are collected and applied as two batched IPC calls after the loop instead of two
+	// Deltas are collected and applied as two batched native calls after the loop instead of two
 	// adjust_moles() round trips per gas type inside it - share() is called per machine, per tick,
-	// so an unbatched loop here was doubling the pipenet reconciliation IPC cost.
+	// so an unbatched loop here was doubling the pipenet reconciliation boundary cost.
 	var/list/self_deltas = list()
 	var/list/sharer_deltas = list()
 	for(var/gas_id in gas_list) //transfer gases
@@ -299,12 +297,18 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		var/new_self_heat_capacity = old_self_heat_capacity + heat_capacity_sharer_to_self - heat_capacity_self_to_sharer
 		var/new_sharer_heat_capacity = old_sharer_heat_capacity + heat_capacity_self_to_sharer - heat_capacity_sharer_to_self
 
-		//transfer of thermal energy (via changed heat capacity) between self and sharer
+		// Both energy balances use the same pre-transfer state.
+		var/self_temperature_after = self_temperature_before
+		var/sharer_temperature_after = sharer_temperature_before
 		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
-			set_temperature((old_self_heat_capacity*return_temperature() - heat_capacity_self_to_sharer*return_temperature() + heat_capacity_sharer_to_self*sharer.return_temperature())/new_self_heat_capacity)
+			self_temperature_after = (old_self_heat_capacity*self_temperature_before - heat_capacity_self_to_sharer*self_temperature_before + heat_capacity_sharer_to_self*sharer_temperature_before)/new_self_heat_capacity
 
 		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
-			sharer.set_temperature((old_sharer_heat_capacity*sharer.return_temperature()-heat_capacity_sharer_to_self*sharer.return_temperature() + heat_capacity_self_to_sharer*return_temperature())/new_sharer_heat_capacity)
+			sharer_temperature_after = (old_sharer_heat_capacity*sharer_temperature_before - heat_capacity_sharer_to_self*sharer_temperature_before + heat_capacity_self_to_sharer*self_temperature_before)/new_sharer_heat_capacity
+		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			set_temperature(self_temperature_after)
+		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			sharer.set_temperature(sharer_temperature_after)
 		//thermal energy of the system (self and sharer) is unchanged
 
 			if(abs(old_sharer_heat_capacity) > MINIMUM_HEAT_CAPACITY)
@@ -457,7 +461,9 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 	var/solution
 	if(IS_FINITE(a) && IS_FINITE(b) && IS_FINITE(c))
 		solution = max(SolveQuadratic(a, b, c))
-		if(solution > lower_limit && solution < upper_limit) //SolveQuadratic can return empty lists so be careful here
+		// At large mole counts the absolute tolerance rounds away; the physical bounds are inclusive.
+		// SolveQuadratic can return no roots, so do not let null compare as a valid zero.
+		if(isnum(solution) && IS_FINITE(solution) && solution >= lower_limit && solution <= upper_limit)
 			return solution
 	stack_trace("Failed to solve pressure quadratic equation. A: [a]. B: [b]. C:[c]. Current value = [solution]. Expected lower limit: [lower_limit]. Expected upper limit: [upper_limit].")
 	return FALSE
@@ -473,7 +479,7 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		for (var/iteration in 1 to ATMOS_PRESSURE_APPROXIMATION_ITERATIONS)
 			var/diff = (a*solution**2 + b*solution + c) / (2*a*solution + b) // f(sol) / f'(sol)
 			solution -= diff // xn+1 = xn - f(sol) / f'(sol)
-			if(abs(diff) < MOLAR_ACCURACY && (solution > lower_limit) && (solution < upper_limit))
+			if(abs(diff) < MOLAR_ACCURACY && IS_FINITE(solution) && (solution >= lower_limit) && (solution <= upper_limit))
 				return solution
 	stack_trace("Newton's Approximation for pressure failed after [ATMOS_PRESSURE_APPROXIMATION_ITERATIONS] iterations. A: [a]. B: [b]. C:[c]. Current value: [solution]. Expected lower limit: [lower_limit]. Expected upper limit: [upper_limit].")
 	return FALSE

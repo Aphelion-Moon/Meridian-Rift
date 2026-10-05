@@ -107,14 +107,20 @@
 	if(cold_air && hot_air)
 		var/cold_air_heat_capacity = cold_air.heat_capacity()
 		var/hot_air_heat_capacity = hot_air.heat_capacity()
-		var/delta_temperature = hot_air.return_temperature() - cold_air.return_temperature()
+		var/delta_temperature = hot_air.return_temperature() - cold_air.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/delta_temperature = hot_air.temperature - cold_air.temperature
 		if(delta_temperature > 0 && cold_air_heat_capacity > 0 && hot_air_heat_capacity > 0)
 			var/efficiency = TEG_EFFICIENCY
 			var/energy_transfer = delta_temperature*hot_air_heat_capacity*cold_air_heat_capacity/(hot_air_heat_capacity+cold_air_heat_capacity)
 			var/heat = energy_transfer*(1-efficiency)
 			lastgen += energy_transfer*efficiency
+			/* // APHELION EDIT REMOVAL START - DOGMOS
+			hot_air.temperature = hot_air.temperature - energy_transfer/hot_air_heat_capacity
+			cold_air.temperature = cold_air.temperature + heat/cold_air_heat_capacity
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
 			hot_air.set_temperature(hot_air.return_temperature() - energy_transfer/hot_air_heat_capacity)
 			cold_air.set_temperature(cold_air.return_temperature() + heat/cold_air_heat_capacity)
+	// APHELION EDIT ADDITION END
 
 	if(hot_air)
 		var/datum/gas_mixture/hot_circ_air1 = hot_circ.airs[1]
@@ -162,15 +168,27 @@
 	data["last_power_output"] = display_power(lastgenlev)
 
 	var/list/cold_data = list()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	cold_data["temperature_inlet"] = round(cold_circ_air2.temperature, 0.1)
+	cold_data["temperature_outlet"] = round(cold_circ_air1.temperature, 0.1)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	cold_data["temperature_inlet"] = round(cold_circ_air2.return_temperature(), 0.1)
 	cold_data["temperature_outlet"] = round(cold_circ_air1.return_temperature(), 0.1)
+	// APHELION EDIT ADDITION END
 	cold_data["pressure_inlet"] = round(cold_circ_air2.return_pressure(), 0.1)
 	cold_data["pressure_outlet"] = round(cold_circ_air1.return_pressure(), 0.1)
 	data["cold_data"] = list(cold_data)
 
 	var/list/hot_data = list()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	hot_data["temperature_inlet"] = round(hot_circ_air2.temperature, 0.1)
+	hot_data["temperature_outlet"] = round(hot_circ_air1.temperature, 0.1)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	hot_data["temperature_inlet"] = round(hot_circ_air2.return_temperature(), 0.1)
 	hot_data["temperature_outlet"] = round(hot_circ_air1.return_temperature(), 0.1)
+	// APHELION EDIT ADDITION END
 	hot_data["pressure_inlet"] = round(hot_circ_air2.return_pressure(), 0.1)
 	hot_data["pressure_outlet"] = round(hot_circ_air1.return_pressure(), 0.1)
 	data["hot_data"] = list(hot_data)

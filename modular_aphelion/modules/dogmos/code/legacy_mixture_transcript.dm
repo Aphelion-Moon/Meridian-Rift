@@ -2,7 +2,7 @@
 
 #define DOGMOS_LEGACY_TRANSCRIPT_PATH "data/dogmos_legacy_mixture_transcript_v1.txt"
 
-/** Captures legacy public gas-mixture results and state for service replay. */
+/** Captures legacy public gas-mixture results and state for regression comparison. */
 /datum/unit_test/dogmos_legacy_mixture_transcript
 	test_flags = UNIT_TEST_FOCUS
 

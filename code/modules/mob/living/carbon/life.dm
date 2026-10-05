@@ -190,12 +190,25 @@
 
 	// Breath may be null, so use a fallback "empty breath" for convenience.
 	if(!breath)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		/// Fallback "empty breath" for convenience.
+		var/static/datum/gas_mixture/immutable/empty_breath = new(BREATH_VOLUME)
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		var/static/datum/gas_mixture/immutable/empty_breath
 		// Lazy construction ensures Dogmos is initialized before the fallback registers.
 		if(isnull(empty_breath))
 			empty_breath = new(BREATH_VOLUME)
+		// APHELION EDIT ADDITION END
 		breath = empty_breath
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	// Ensure gas volumes are present.
+	breath.assert_gases(/datum/gas/bz, /datum/gas/carbon_dioxide, /datum/gas/freon, /datum/gas/plasma, /datum/gas/pluoxium, /datum/gas/miasma, /datum/gas/nitrous_oxide, /datum/gas/nitrium, /datum/gas/oxygen)
+
+	/// The list of gases in the breath.
+	var/list/breath_moles = breath.moles
+	*/ // APHELION EDIT REMOVAL END
 	/// Indicates if there are moles of gas in the breath.
 	var/has_moles = breath.total_moles() != 0
 
@@ -240,16 +253,33 @@
 	if(has_moles)
 		// Breath has more than 0 moles of gas.
 		// Partial pressures of "main gases".
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		pluoxium_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/pluoxium])
+		o2_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/oxygen] + (PLUOXIUM_PROPORTION * pluoxium_pp))
+		plasma_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/plasma])
+		co2_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/carbon_dioxide])
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		pluoxium_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/pluoxium))
 		o2_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/oxygen) + (PLUOXIUM_PROPORTION * pluoxium_pp))
 		plasma_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/plasma))
 		co2_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/carbon_dioxide))
+		// APHELION EDIT ADDITION END
 		// Partial pressures of "trace" gases.
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		bz_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/bz])
+		freon_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/freon])
+		miasma_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/miasma])
+		n2o_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/nitrous_oxide])
+		nitrium_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/nitrium])
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		bz_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/bz))
 		freon_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/freon))
 		miasma_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/miasma))
 		n2o_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/nitrous_oxide))
 		nitrium_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/nitrium))
+	// APHELION EDIT ADDITION END
 
 	// Breath has 0 moles of gas.
 	else if(can_breathe_vacuum)
@@ -267,7 +297,7 @@
 	// Behaves like Oxygen with 8X efficacy, but metabolizes into a reagent.
 	if(pluoxium_pp)
 		// Inhale Pluoxium. Exhale nothing.
-		breath.set_moles(/datum/gas/pluoxium, 0)
+		breath.set_moles(/datum/gas/pluoxium, 0) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: breath_moles[/datum/gas/pluoxium] = 0
 		// Metabolize to reagent.
 		if(pluoxium_pp > gas_stimulation_min)
 			var/existing = reagents.get_reagent_amount(/datum/reagent/pluoxium)
@@ -279,7 +309,7 @@
 	// Minimum Oxygen effects. "Too little oxygen!"
 	if(!can_breathe_vacuum && (o2_pp < safe_oxygen_min))
 		// Breathe insufficient amount of O2.
-		oxygen_used = handle_suffocation(o2_pp, safe_oxygen_min, breath.get_moles(/datum/gas/oxygen))
+		oxygen_used = handle_suffocation(o2_pp, safe_oxygen_min, breath.get_moles(/datum/gas/oxygen)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: oxygen_used = handle_suffocation(o2_pp, safe_oxygen_min, breath_moles[/datum/gas/oxygen])
 		if(!HAS_TRAIT(src, TRAIT_ANOSMIA))
 			throw_alert(ALERT_NOT_ENOUGH_OXYGEN, /atom/movable/screen/alert/not_enough_oxy)
 	else
@@ -288,14 +318,20 @@
 		clear_alert(ALERT_NOT_ENOUGH_OXYGEN)
 		if(o2_pp)
 			// Inhale O2.
-			oxygen_used = breath.get_moles(/datum/gas/oxygen)
+			oxygen_used = breath.get_moles(/datum/gas/oxygen) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: oxygen_used = breath_moles[/datum/gas/oxygen]
 			// Heal mob if not in crit.
 			if(health >= crit_threshold)
 				adjust_oxy_loss(-5)
 	// Exhale equivalent amount of CO2.
 	if(o2_pp)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		breath_moles[/datum/gas/oxygen] -= oxygen_used
+		breath_moles[/datum/gas/carbon_dioxide] += oxygen_used
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		breath.adjust_moles(/datum/gas/oxygen, -oxygen_used)
 		breath.adjust_moles(/datum/gas/carbon_dioxide, oxygen_used)
+	// APHELION EDIT ADDITION END
 
 	//-- CARBON DIOXIDE --//
 	// Maximum CO2 effects. "Too much CO2!"
@@ -325,7 +361,7 @@
 	// Maximum Plasma effects. "Too much Plasma!"
 	if(plasma_pp > safe_plas_max)
 		// Plasma side-effects.
-		var/ratio = (breath.get_moles(/datum/gas/plasma) / safe_plas_max) * 10
+		var/ratio = (breath.get_moles(/datum/gas/plasma) / safe_plas_max) * 10 // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/ratio = (breath_moles[/datum/gas/plasma] / safe_plas_max) * 10
 		adjust_tox_loss(clamp(ratio, MIN_TOXIC_GAS_DAMAGE, MAX_TOXIC_GAS_DAMAGE))
 		if(!HAS_TRAIT(src, TRAIT_ANOSMIA))
 			throw_alert(ALERT_TOO_MUCH_PLASMA, /atom/movable/screen/alert/too_much_plas)
@@ -426,6 +462,10 @@
 	if(has_moles)
 		handle_breath_temperature(breath)
 
+/* // APHELION EDIT REMOVAL START - DOGMOS
+	breath.garbage_collect()
+
+*/ // APHELION EDIT REMOVAL END
 /// Applies suffocation side-effects to a given Human, scaling based on ratio of required pressure VS "true" pressure.
 /// If pressure is greater than 0, the return value will represent the amount of gas successfully breathed.
 /mob/living/carbon/proc/handle_suffocation(breath_pp = 0, safe_breath_min = 0, true_pp = 0)
@@ -460,7 +500,7 @@
 /// Fourth and final link in a breath chain
 /mob/living/carbon/proc/handle_breath_temperature(datum/gas_mixture/breath)
 	// The air you breathe out should match your body temperature
-	breath.set_temperature(bodytemperature)
+	breath.set_temperature(bodytemperature) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: breath.temperature = bodytemperature
 
 /// Attempts to take a breath from the external or internal air tank.
 /mob/living/carbon/proc/get_breath_from_internal(volume_needed)

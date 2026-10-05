@@ -77,11 +77,26 @@
 	return TRUE
 
 /datum/element/atmos_requirements/proc/get_atmos_req_list(turf/open/open_turf)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/open_turf_moles = open_turf.air.moles
+	open_turf.air.assert_gases(/datum/gas/oxygen, /datum/gas/pluoxium, /datum/gas/nitrogen, /datum/gas/carbon_dioxide, /datum/gas/plasma)
+
+	*/ // APHELION EDIT REMOVAL END
 	var/list/return_gases = list()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	return_gases["plas"] = open_turf_moles[/datum/gas/plasma]
+	return_gases["oxy"] = open_turf_moles[/datum/gas/oxygen] + (open_turf_moles[/datum/gas/pluoxium] * PLUOXIUM_PROPORTION)
+	return_gases["n2"] = open_turf_moles[/datum/gas/nitrogen]
+	return_gases["co2"] = open_turf_moles[/datum/gas/carbon_dioxide]
+
+	open_turf.air.garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	return_gases["plas"] = open_turf.air.get_moles(/datum/gas/plasma)
 	return_gases["oxy"] = open_turf.air.get_moles(/datum/gas/oxygen) + (open_turf.air.get_moles(/datum/gas/pluoxium) * PLUOXIUM_PROPORTION)
 	return_gases["n2"] = open_turf.air.get_moles(/datum/gas/nitrogen)
 	return_gases["co2"] = open_turf.air.get_moles(/datum/gas/carbon_dioxide)
+	// APHELION EDIT ADDITION END
 
 	return return_gases
 

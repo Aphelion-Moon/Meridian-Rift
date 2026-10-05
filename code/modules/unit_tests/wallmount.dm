@@ -27,6 +27,7 @@
 	wallmount_component = test_button.GetComponent(/datum/component/atom_mounted)
 	TEST_ASSERT_NOTNULL(wallmount_component, "[test_button.type] 24y offsets failed to mount!")
 	TEST_ASSERT(isindestructiblewall(wallmount_component.hanging_support_atom), "[test_button.type] 24y offsets failed to mount on wall!")
+// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
 
 /// A map-edge lookup can produce a null candidate before a valid support turf.
 /datum/unit_test/wallmount_missing_neighbor
@@ -51,3 +52,4 @@
 
 /obj/effect/wallmount_missing_neighbor_fixture/get_turfs_to_mount_on()
 	return list(null, get_turf(src))
+// APHELION EDIT ADDITION END

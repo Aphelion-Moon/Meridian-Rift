@@ -24,15 +24,14 @@
 
 	TEST_ASSERT(length(SSair.dogmos_reactions), "SSair.dogmos_reactions is empty - Dogmos would have no reactions at all")
 
-	// Dogmos keys reactions by priority and silently drops duplicates, so a collision here means
-	// reactions vanish at runtime with no error.
+	// Dogmos rejects duplicate priorities before publishing a registry; diagnose the DM producer too.
 	var/list/seen_priorities = list()
 	for(var/datum/gas_reaction/reaction as anything in SSair.dogmos_reactions)
 		TEST_ASSERT(isnum(reaction.priority), "[reaction.type] has a non-numeric Dogmos priority")
-		TEST_ASSERT(!seen_priorities["[reaction.priority]"], "[reaction.type] shares Dogmos priority [reaction.priority] with another reaction - one of them would be silently discarded")
+		TEST_ASSERT(!seen_priorities["[reaction.priority]"], "[reaction.type] shares Dogmos priority [reaction.priority] with another reaction - native registration must reject that collision")
 		seen_priorities["[reaction.priority]"] = TRUE
 
-	// Every requirement key must be a gas id string or a recognised sentinel, or Dogmos ignores it.
+	// Every requirement key must be a gas id string or a recognised sentinel, or Dogmos rejects the registry.
 	var/list/meta_gas_id = GLOB.meta_gas_info[META_GAS_ID]
 	var/list/known_gas_ids = list()
 	for(var/gas_path in meta_gas_id)

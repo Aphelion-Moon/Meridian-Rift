@@ -347,7 +347,15 @@ export class RunRecorder {
 
   async addProcess(result: ProcessResult): Promise<void> {
     this.#assertOpen();
+    const snapshot = structuredClone(result);
     await this.#queue(async () => {
+      result = snapshot;
+      if (result.cleanupErrors?.length) {
+        this.#summary.cleanup.passed = false;
+        this.#summary.cleanup.leftovers.push(
+          `process:${result.role}:${result.rootPid}`,
+        );
+      }
       this.#summary.processes.push({
         role: result.role,
         root_pid: result.rootPid,
@@ -358,6 +366,8 @@ export class RunRecorder {
         started_at: result.startedAt,
         finished_at: result.finishedAt,
         duration_ms: result.durationMs,
+        supervision_errors: result.supervisionErrors ?? [],
+        cleanup_errors: result.cleanupErrors ?? [],
       });
     });
   }
@@ -382,11 +392,15 @@ export class RunRecorder {
 
   async setCleanup(cleanup: RiftSummary['cleanup']): Promise<void> {
     this.#assertOpen();
+    const snapshot = structuredClone(cleanup);
     await this.#queue(async () => {
+      const processLeftovers = this.#summary.cleanup.leftovers.filter((entry) =>
+        entry.startsWith('process:'),
+      );
       this.#summary.cleanup = {
-        passed: cleanup.passed,
-        leftovers: [...cleanup.leftovers],
-        retained: [...cleanup.retained],
+        passed: snapshot.passed && processLeftovers.length === 0,
+        leftovers: [...new Set([...snapshot.leftovers, ...processLeftovers])],
+        retained: [...snapshot.retained],
       };
     });
   }

@@ -1,10 +1,3 @@
-// APHELION EDIT ADDITION START - DOGMOS
-/// Select service-owned atmosphere preparation only at boot, during qualification.
-/datum/config_entry/flag/dogmos_async_stages
-	default = FALSE
-	protection = CONFIG_ENTRY_LOCKED
-// APHELION EDIT ADDITION END
-
 /// if autoadmin is enabled
 /datum/config_entry/flag/autoadmin
 	protection = CONFIG_ENTRY_LOCKED

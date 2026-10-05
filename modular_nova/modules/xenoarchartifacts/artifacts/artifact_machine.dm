@@ -234,30 +234,33 @@
 	if((first_effect?.trigger & TRIGGER_ATMOS) || (secondary_effect?.trigger & TRIGGER_ATMOS))
 		var/turf/our_turf = get_turf(src)
 		var/datum/gas_mixture/env = our_turf.return_air()
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		var/loc_gases = env.moles
+		*/ // APHELION EDIT REMOVAL END
 		if(env)
 			//COLD ACTIVATION
-			if(env.return_temperature() < 225)
+			if(env.return_temperature() < 225) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(env.temperature < 225)
 				toggle_effects_on(TRIGGER_COLD)
 			else toggle_effects_off(TRIGGER_COLD)
 			//HEAT ACTIVATION
-			if(env.return_temperature() > 375)
+			if(env.return_temperature() > 375) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(env.temperature > 375)
 				toggle_effects_on(TRIGGER_HEAT)
 			else toggle_effects_off(TRIGGER_HEAT)
 			//PLASMA GAS ACTIVATION.
 			//Update 07.05.2024. No one remembers phoron anymore :( People say "plasma"
-			if(env.get_moles(/datum/gas/plasma) >= 10)
+			if(env.get_moles(/datum/gas/plasma) >= 10) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(loc_gases[/datum/gas/plasma] >= 10)
 				toggle_effects_on(TRIGGER_PLASMA)
 			else toggle_effects_off(TRIGGER_PLASMA)
 			//OXYGEN GAS ACTIVATION
-			if(env.get_moles(/datum/gas/oxygen) >= 10)
+			if(env.get_moles(/datum/gas/oxygen) >= 10) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(loc_gases[/datum/gas/oxygen] >= 10)
 				toggle_effects_on(TRIGGER_OXY)
 			else toggle_effects_off(TRIGGER_OXY)
 			//CO2 GAS ACTIVATION
-			if(env.get_moles(/datum/gas/carbon_dioxide) >= 10)
+			if(env.get_moles(/datum/gas/carbon_dioxide) >= 10) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(loc_gases[/datum/gas/carbon_dioxide] >= 10)
 				toggle_effects_on(TRIGGER_CO2)
 			else toggle_effects_off(TRIGGER_CO2)
 			//NITROGEN GAS ACTIVATION
-			if(env.get_moles(/datum/gas/nitrogen) >= 10)
+			if(env.get_moles(/datum/gas/nitrogen) >= 10) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(loc_gases[/datum/gas/nitrogen] >= 10)
 				toggle_effects_on(TRIGGER_NITRO)
 			else toggle_effects_off(TRIGGER_NITRO)
 	//TRIGGER_PROXY ACTIVATION

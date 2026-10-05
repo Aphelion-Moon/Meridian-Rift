@@ -54,23 +54,34 @@
 	var/on_state = on && nodes[1] && nodes[2] && nodes[3] && is_operational
 	icon_state = "filter_[on_state ? "on" : "off"]-[set_overlay_offset(piping_layer)][flipped ? "_f" : ""]"
 
-/** Transfers filtered gas, sleeping when no transfer can occur until a known wake event. */
+/** Transfers filtered gas, sleeping when no transfer can occur until a known wake event. */ // APHELION EDIT ADDITION - DOGMOS
 /obj/machinery/atmospherics/components/trinary/filter/process_atmos()
 	..()
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	if(!on || !(nodes[1] && nodes[2] && nodes[3]) || !is_operational)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	if(!on || !is_operational)
-		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
+		return PROCESS_KILL
 	if(!(nodes[1] && nodes[2] && nodes[3]))
+		// APHELION EDIT ADDITION END
 		return
 
 	//Early return
 	var/datum/gas_mixture/air1 = airs[1]
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	if(!air1 || air1.temperature <= 0)
+		return
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	if(!air1 || air1.return_temperature() <= 0)
-		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
+		return PROCESS_KILL
+	// APHELION EDIT ADDITION END
 
 	var/datum/gas_mixture/air2 = airs[2]
 	var/datum/gas_mixture/air3 = airs[3]
 
-	var/transfer_ratio = transfer_rate / air1.return_volume()
+	var/transfer_ratio = transfer_rate / air1.return_volume() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transfer_ratio = transfer_rate / air1.volume
 
 	if(transfer_ratio <= 0)
 		return
@@ -86,13 +97,18 @@
 
 	// If both output ports are full, there's nothing we can do. Don't bother removing anything from the input.
 	if (side_output_full && main_output_full)
-		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
+		return PROCESS_KILL // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: return
 
 	var/datum/gas_mixture/removed = air1.remove_ratio(transfer_ratio)
 
 	if(!removed || !removed.total_moles())
+		/* // APHELION EDIT REMOVAL START - DOGMOS
+		return
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
 		qdel(removed)
-		return PROCESS_KILL // NOVA EDIT ADDITION - DOGMOS
+		return PROCESS_KILL
+	// APHELION EDIT ADDITION END
 
 	var/filtering = TRUE
 	if(!filter_type.len)
@@ -103,7 +119,7 @@
 	if(filtering)
 		var/datum/gas_mixture/filtered_out = new
 
-		for(var/gas in removed.get_gases() & filter_type)
+		for(var/gas in removed.get_gases() & filter_type) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/gas in removed.moles & filter_type)
 			var/datum/gas_mixture/removing = removed.remove_specific_ratio(gas, 1)
 			if(removing)
 				filtered_out.merge(removing)
@@ -113,6 +129,10 @@
 			air1.merge(filtered_out)
 		else
 			air2.merge(filtered_out)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+		// Make sure we don't send any now-empty gas entries to the main output
+		removed.garbage_collect()
+	*/ // APHELION EDIT REMOVAL END
 
 	// Send things to the main output if we can, return them to the input if we can't.
 	// This lets filtered gases continue to flow to the side output in a manner consistent with the main output behavior.

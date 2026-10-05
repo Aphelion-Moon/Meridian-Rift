@@ -229,9 +229,9 @@
 
 	var/datum/gas_mixture/environment = connected_alarm.get_enviroment()
 	pressure.set_output(round(environment.return_pressure()))
-	temperature.set_output(round(environment.return_temperature()))
+	temperature.set_output(round(environment.return_temperature())) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: temperature.set_output(round(environment.temperature))
 	if(ispath(options_map[current_option]))
-		gas_amount.set_output(round(environment.get_moles(options_map[current_option])))
+		gas_amount.set_output(round(environment.get_moles(options_map[current_option]))) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: gas_amount.set_output(round(environment.moles[options_map[current_option]]))
 
 	update_received.set_output(COMPONENT_SIGNAL)
 

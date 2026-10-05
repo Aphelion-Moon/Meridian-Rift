@@ -1,6 +1,11 @@
 
+/** Applies thrown damage only while the target still has an intact damage lifecycle. */ // APHELION EDIT ADDITION - DOGMOS
 /obj/hitby(atom/movable/hit_by, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
 	..()
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
+		return
+	// APHELION EDIT ADDITION END
 	var/damage_taken = hit_by.throwforce
 	if(isitem(hit_by))
 		var/obj/item/as_item = hit_by
@@ -12,7 +17,13 @@
 		return FALSE
 
 	. = ..() //contents explosion
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(QDELETED(src))
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
+		// APHELION EDIT ADDITION END
 		return TRUE
 	if(target == src)
 		take_damage(INFINITY, BRUTE, BOMB, 0)
@@ -124,13 +135,21 @@
 
 ///Called when the obj is exposed to fire.
 /obj/fire_act(exposed_temperature, exposed_volume)
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
+		return
+	// APHELION EDIT ADDITION END
 	if(HAS_TRAIT(src, TRAIT_UNDERFLOOR))
 		return
 	SEND_SIGNAL(src, COMSIG_ATOM_PRE_FIRE_ACT, exposed_temperature, exposed_volume) // NOVA EDIT ADDITION
+	// APHELION EDIT ADDITION START - DOGMOS
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
+		return
+	// APHELION EDIT ADDITION END
 	var/potential_damage = 0.02 * exposed_temperature
 	if(exposed_temperature && !(resistance_flags & FIRE_PROOF) && (potential_damage > damage_deflection))
 		take_damage(clamp(potential_damage, 0, 20), BURN, FIRE, 0)
-	if(QDELETED(src)) // take_damage() can send our obj to an early grave, let's stop here if that happens
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(QDELETED(src)) // take_damage() can send our obj to an early grave, let's stop here if that happens
 		return
 	if(!(resistance_flags & ON_FIRE) && (resistance_flags & FLAMMABLE) && !(resistance_flags & FIRE_PROOF))
 		AddComponent(/datum/component/burning, custom_fire_overlay() || GLOB.fire_overlay, burning_particles)

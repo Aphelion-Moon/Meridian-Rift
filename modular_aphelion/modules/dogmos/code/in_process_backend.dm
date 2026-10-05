@@ -25,9 +25,18 @@
 /turf/open/proc/dogmos_react()
 	if(QDELETED(src) || !air)
 		return
+	var/obj/effect/hotspot/previous_hotspot = active_hotspot
 	. = air.react(src)
 	if(. && !QDELETED(src))
 		SSair.dogmos_reacted_turfs[src] = TRUE
+		// A previous exposure may have exhausted the hotspot before diffusion
+		// supplied new fuel. Keep the same effect when this cycle burned again.
+		if((. & REACTING) && previous_hotspot && active_hotspot == previous_hotspot && !QDELETED(previous_hotspot) && previous_hotspot.volume <= 1)
+			previous_hotspot.refresh_exhausted_fire(air)
+
+/obj/machinery
+	/// Stable text identity for frequent Kennel cost samples; never owns another datum.
+	var/dogmos_kennel_cost_ref
 
 /** Preserves the shuttle's destination-before-source atmosphere update ordering. */
 /datum/controller/subsystem/dogmos/proc/block_shuttle_turfs(turf/source_turf, turf/destination_turf)
@@ -44,34 +53,10 @@
 		affected_turf.air_update_turf(TRUE, TRUE)
 		affected_turf.levelupdate()
 
-/** Samples the DreamDaemon host; there is no dogmosd process in this backend. */
+/** Samples the DreamDaemon host directly. */
 /proc/dogmos_process_metrics_snapshot()
 	return json_decode(dogmos_in_process_metrics())
 
-/** Retains pipeline mass/energy arithmetic while accessing native mixtures directly. */
+/** Reconciles unique native mixtures in one call, preserving gas, energy and member volumes. */
 /proc/dogmos_reconcile_pipeline_mixtures(list/datum/gas_mixture/gas_mixture_list)
-	var/static/process_id = 0
-	process_id = WRAP_UID(process_id + 1)
-	var/list/datum/gas_mixture/unique_mixtures = list()
-	var/datum/gas_mixture/total_gas_mixture = new
-	var/list/cached_specific_heat = GAS_META[META_GAS_SPECIFIC_HEAT]
-	var/total_thermal_energy = 0
-	var/total_heat_capacity = 0
-	var/volume_sum = 0
-	for(var/datum/gas_mixture/gas_mixture as anything in gas_mixture_list)
-		if(gas_mixture.pipeline_cycle == process_id)
-			continue
-		gas_mixture.pipeline_cycle = process_id
-		unique_mixtures += gas_mixture
-		volume_sum += gas_mixture.return_volume()
-		var/list/giver_cached_moles = gas_mixture.get_moles_list()
-		var/heat_capacity = values_dot(giver_cached_moles, cached_specific_heat)
-		total_gas_mixture.adjust_multiple_gases(giver_cached_moles)
-		total_heat_capacity += heat_capacity
-		total_thermal_energy += gas_mixture.return_temperature() * heat_capacity
-	if(volume_sum == 0)
-		return
-	total_gas_mixture.set_volume(volume_sum)
-	total_gas_mixture.set_temperature(total_heat_capacity ? total_thermal_energy / total_heat_capacity : 0)
-	for(var/datum/gas_mixture/gas_mixture as anything in unique_mixtures)
-		gas_mixture.copy_from_ratio(total_gas_mixture, gas_mixture.return_volume() / volume_sum)
+	equalize_all_gases_in_list(gas_mixture_list)
