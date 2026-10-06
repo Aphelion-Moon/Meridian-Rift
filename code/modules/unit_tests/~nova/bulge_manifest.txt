@@ -46,7 +46,7 @@ family /datum/bulge_family/skirt/long_cone shapes=long_cone small_cap=8
 family /datum/bulge_family/skirt/long_curtain clearance=1 shapes=long_curtain small_cap=8
 family /datum/bulge_family/skirt/long_pressed shapes=long_pressed small_cap=8
 sheet cloth_small.dmi bbddc7ab2d688124251523ca13908daf
-sheet printed_patches.dmi 63e35023363a09c7a0ea6347e9a280f1
+sheet printed_patches.dmi 477643b7799d1712c2bcfbc5b0501311
 sheet skirt_clearance.dmi e6248bc9100343096660ce2c8a4e323b
 sheet skirt_flaps.dmi 0649a6761b47e87d97aaecaaa8883a0b
 sheet skirt_shapes.dmi 6428dcff4c1aaaafc4ffa2f0a13d2eb4
