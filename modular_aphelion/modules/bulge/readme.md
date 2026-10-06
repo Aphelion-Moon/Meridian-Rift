@@ -185,7 +185,7 @@ or warns somewhere you did not touch, look at the names your change added before
     and the 760 garment colours in `bulge_palette_colours.txt`, in three finishes) is hashed against the approved
     values. A failure means a change to the arithmetic moved an approved colour; the failing test writes the game's
     palettes to `data/bulge_palette_lines.txt` to compare.
-  - `bulge_render_corpus/pixels` draws 29 cases of the pixel corpus (adaptive and printed garments, the large hearts,
+  - `bulge_render_corpus/pixels` draws 30 cases of the pixel corpus (adaptive and printed garments, the large hearts,
     every skirt style half and hard, a loincloth reveal as underwear and as a uniform, digitigrade legs, a tall wearer,
     a suit, blood, a big tentacle, Custom above and below the underwear) and compares a hash of their pixels with the
     hash of the images the corpus comparator expects.
@@ -210,17 +210,18 @@ found to `data/bulge_manifest.txt`. Before copying that over the committed file:
 
 #### The full pixel corpus
 
-`bulge_render_corpus` draws every approved case (13,394 rows) when the server runs with
+`bulge_render_corpus` draws every approved case (13,395 rows) when the server runs with
 `-params bulge_render_corpus=full` and the case manifest in `data/bulge_render_corpus/manifest.json`, and writes what
 the game draws to `data/bulge_render_corpus/out/`. The tables its expectation was built from are gone, so the
 expectation and its comparator live in the lab run folder
 `Meridian-Rift-BYOND-Lab/runs/bulge-system-20260929/continuation/fable-orchestration-20261002/`:
 
 - `N4a-renderer/data/corpus/expect.json`: the frozen expectation;
-- `N11-heart-patches-shapes/data/corpus/`: the case manifest, the rows added since (`expect-extra.json`) and the
+- `N12-heart-patches-rest/data/corpus/`: the case manifest, the rows added since (`expect-extra.json`) and the
   rows whose look changed on purpose (`intended.json`: Custom above the underwear, blood on a cut cover, the large
-  heart boxers over the bare penis, and over a knotted or hemi penis in the patch drawn for its profile);
-- `N11-heart-patches-shapes/harness/`: `make_copy.py <commit> <copy>` extracts a `git archive` of a commit into the
+  heart boxers over the bare penis, over a penis shape in the patch drawn for its profile, and over a tentacle in
+  the size 4 shape and its print);
+- `N12-heart-patches-rest/harness/`: `make_copy.py <commit> <copy>` extracts a `git archive` of a commit into the
   lab, and `corpus_proof.py <copy> <commit> <label>` builds that copy focused on the corpus, runs it (one
   DreamDaemon, after the machine's memory guard), and compares every case pixel for pixel with `s10_compare.py`,
   which reads the sheets and the tool from this worktree, at that commit.
