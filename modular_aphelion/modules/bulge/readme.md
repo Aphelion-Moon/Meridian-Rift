@@ -51,7 +51,9 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
   the skirt and over its cloth inside the skirt's clearance.
 - **Sizes 5 to 8:** the penis shows over the cloth inside the shape's exposed mask. The large heart boxers draw their
   patch in place of the boxers' shape, over the same bare part of the penis: the patch drawn for that penis shape's
-  profile where the sheet has one (knotted and hemi), else the human penis's.
+  profile where the sheet has one (and for its untoned sprites, where they differ), else the human penis's. The
+  tentacles, and Nondescript (Alt), Tapered (Alt) and Hemi (Alt) past their `print_cap` (4), draw the size 4 shape
+  and its print under them instead (mal, 2026-10-06).
 - **Templates:** the shapes up to a family's small_cap, the skirts' clearances and flaps, and the large heart boxers'
   patches are read from the template sheets. Past small_cap the shapes, the anatomy each leaves bare, and a hard
   loincloth's drape and cut have no sheet: they are derived on the server from the game's own penis, testicle and
@@ -130,10 +132,12 @@ its bulges, the anatomy they leave bare and the loincloths' drapes are derived f
   (`BULGE_SPRITE_*` in `code/templates.dm`; `bulge_derivation/pin` fails a sprite that draws outside it);
 - its caps: `max_sprite_size_affix`, and `skintone_max_sprite_size_affix` where its skin-toned sprites stop sooner;
 - in `code/templates.dm`, `bulge_untoned = TRUE` when its untoned sprites draw differently, or `bulge_hyper = FALSE`,
-  as the tentacles have, when it should draw the small_cap shape past small_cap and show no anatomy.
+  as the tentacles have, when it should draw the small_cap shape past small_cap and show no anatomy; and `print_cap`
+  below 8 when past it the large heart boxers should draw it so too (their size 4 shape and its print).
 
 Under the large heart boxers it draws the human penis's patch, unless `printed_patches.dmi` has patches named for its
-icon state, hand-drawn for its profile (`icons/README.md`).
+icon state (and `_untoned` ones where its untoned sprites draw differently), hand-drawn for its profile
+(`icons/README.md`).
 
 The merge that adds it fails `bulge_derivation/pin`, `bulge_derivation` and `bulge_template_identities`, whose frozen
 records count every penis shape. Review its bulges with the full corpus; once mal has approved them, record the new
