@@ -86,7 +86,7 @@
 	bulge_layer = bulge_cover_layer(cover, standing)
 	var/printed = bulge_cover_printed(cover)
 	if(printed)
-		bulge_sheet_patch = bulge_printed_patch(family, hard, size, digi) // The heart boxers past size 4.
+		bulge_sheet_patch = bulge_printed_patch(family, hard, size, digi, shape) // The heart boxers past size 4.
 	if(bulge_sheet_patch)
 		// The patch stands in for the shape of the family whose shapes it draws, over the anatomy that shape leaves bare.
 		bulge_anatomy_mask = bulge_exposed(initial(family.large_shapes_of) || family, hard, size, digi, shape, toned)

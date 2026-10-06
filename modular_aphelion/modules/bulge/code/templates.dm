@@ -96,7 +96,8 @@ BULGE_GLOBAL_ALIST(bulge_loincloth_cut_memo)
 BULGE_GLOBAL_ALIST(bulge_clearance_memo)
 /// Skirt flaps by identity: family -> BULGE_FORM_SLOT (hard) -> template or FALSE.
 BULGE_GLOBAL_ALIST(bulge_flap_memo)
-/// Precoloured printed patches by identity: family -> BULGE_FORM_SLOT -> /datum/bulge_sheet_state or FALSE.
+/// Precoloured printed patches by identity: family -> penis shape (or the family) -> BULGE_FORM_SLOT ->
+/// /datum/bulge_sheet_state or FALSE.
 BULGE_GLOBAL_ALIST(bulge_printed_patch_memo)
 /// Sheet states by "[sheet]|[state]", a derived state's sheet left empty: one /datum/bulge_sheet_state per state however
 /// many identities draw it.
@@ -938,22 +939,31 @@ GLOBAL_LIST(bulge_sheet_states)
 
 /**
  * A printed garment's precoloured patch past its family's small_cap (a /datum/bulge_sheet_state, drawn as it is),
- * or null when its prints there are derived or it has none. Arguments as bulge_shape(), without the penis shape.
+ * or null when its prints there are derived or it has none: the patch drawn for the penis shape's profile where the
+ * sheet has one (the human penis's name with the shape's icon state appended), else the human penis's. Arguments as
+ * bulge_shape(), without toned; with no penis shape, the human penis's.
  */
-/proc/bulge_printed_patch(family, hard, size, digi)
+/proc/bulge_printed_patch(family, hard, size, digi, datum/sprite_accessory/genital/penis/shape)
 	SHOULD_NOT_SLEEP(TRUE)
 	if(size < 1 || size > 8 || !ISINTEGER(size))
 		return null
+	if(shape && !ispath(shape, /datum/sprite_accessory/genital/penis))
+		stack_trace("Bulge printed patch asked for with [shape], which is no penis shape typepath.")
+		return null
+	var/second = shape || family
 	var/slot = BULGE_FORM_SLOT(hard, size, digi)
-	var/known = GLOB.bulge_printed_patch_memo?[family]?[slot]
+	var/known = GLOB.bulge_printed_patch_memo?[family]?[second]?[slot]
 	if(!isnull(known))
 		return known || null
 	var/datum/bulge_family/family_type = family
 	var/datum/bulge_sheet_state/patch
 	if(ispath(family, /datum/bulge_family) && initial(family_type.printed_patches) && size > initial(family_type.small_cap) && size <= initial(family_type.print_cap))
-		patch = bulge_sheet_state(BULGE_SHEET_PRINTED_PATCHES, "[initial(family_type.printed_patches)]_[hard ? "hard" : "half"]_[size]_[digi ? "digi" : "plain"]", BULGE_PRINTED_PATCHES_X, BULGE_PRINTED_PATCHES_Y)
+		var/name = "[initial(family_type.printed_patches)]_[hard ? "hard" : "half"]_[size]_[digi ? "digi" : "plain"]"
+		if(shape)
+			patch = bulge_sheet_state(BULGE_SHEET_PRINTED_PATCHES, "[name]_[initial(shape.icon_state)]", BULGE_PRINTED_PATCHES_X, BULGE_PRINTED_PATCHES_Y)
+		patch ||= bulge_sheet_state(BULGE_SHEET_PRINTED_PATCHES, name, BULGE_PRINTED_PATCHES_X, BULGE_PRINTED_PATCHES_Y)
 	GLOB.bulge_printed_patch_memo ||= alist()
-	var/list/slots = bulge_memo_list(GLOB.bulge_printed_patch_memo, family, 32)
+	var/list/slots = bulge_memo_slots(GLOB.bulge_printed_patch_memo, family, second, 32)
 	slots[slot] = patch || FALSE
 	return patch
 

@@ -20,7 +20,7 @@
 /// (0 differed): change it only with approval, after checking the corpus.
 #define BULGE_DERIVATION_RECORD "{\"shape\":630,\"bare\":577,\"drape\":353,\"cut\":16}; 53 covering; digest b60eb5968107a3f0418b2b301e126c5a"
 /// The identities bulge_template_identities resolves, by kind, and the states of the sheets they reach.
-#define BULGE_IDENTITIES_RECORD "{\"shape\":3816,\"exposed\":2932,\"patch\":16,\"covering shape\":218,\"drape\":840,\"cut\":840,\"clearance\":200,\"flap\":256}; 460 states in 5 sheets"
+#define BULGE_IDENTITIES_RECORD "{\"shape\":3816,\"exposed\":2932,\"patch\":40,\"covering shape\":218,\"drape\":840,\"cut\":840,\"clearance\":200,\"flap\":256}; 484 states in 5 sheets"
 
 /datum/unit_test/bulge_templates
 
@@ -46,6 +46,14 @@
 					TEST_ASSERT_EQUAL(shape, bulge_shape(/datum/bulge_family/loose_boxers, hard, size, digi, /datum/sprite_accessory/genital/penis/human, TRUE), "Heart boxers draw the loose boxers' shapes up to size 4")
 	var/datum/sprite_accessory/clothing/underwear/accessory = /datum/sprite_accessory/clothing/underwear/male_stripe
 	TEST_ASSERT_NULL(bulge_printed_patch(initial(accessory.bulge_family), TRUE, 6, FALSE), "Other loose boxers have no hand-drawn patches")
+	// Past size 4 a penis shape draws the patch drawn for its profile where the sheet has one (knotted and hemi, facing
+	// east and west; mal, 2026-10-06), any other the human penis's.
+	var/datum/bulge_sheet_state/where = bulge_printed_patch(hearts_family, TRUE, 7, FALSE, /datum/sprite_accessory/genital/penis/knotted)
+	TEST_ASSERT_EQUAL(where?.icon_state, "heart_boxers_hard_7_plain_knotted", "A knotted penis's own patch, hard 7")
+	where = bulge_printed_patch(hearts_family, FALSE, 5, TRUE, /datum/sprite_accessory/genital/penis/hemi)
+	TEST_ASSERT_EQUAL(where?.icon_state, "heart_boxers_half_5_digi_hemi", "A hemi penis's own patch, half 5 on digitigrade legs")
+	TEST_ASSERT_EQUAL(bulge_printed_patch(hearts_family, TRUE, 6, FALSE, /datum/sprite_accessory/genital/penis/knotted), bulge_printed_patch(hearts_family, TRUE, 6, FALSE), "Hard 6, where the sheet has no knotted patch, a knotted penis draws the human penis's")
+	TEST_ASSERT_EQUAL(bulge_printed_patch(hearts_family, TRUE, 7, FALSE, /datum/sprite_accessory/genital/penis/human), bulge_printed_patch(hearts_family, TRUE, 7, FALSE), "The human penis draws the human penis's patch")
 
 	// The shorter loincloths: the long ones' half-hard shapes, their own drapes and cuts.
 	var/datum/sprite_accessory/clothing/underwear/short_bottom = /datum/sprite_accessory/clothing/underwear/loincloth_alt
@@ -102,7 +110,7 @@
  * declares. For every family that draws, in both forms, at every size up to its cap and on both legs: its shape (past
  * small_cap one per penis shape, with and without skin tones where the shape has them, derived), the anatomy that shape
  * leaves bare (derived; none where it covers the penis), a skirt's flap and (on either legs) its clearance, a printed
- * family's precoloured patch;
+ * family's precoloured patch and each penis shape's own, where the sheet has one for its profile;
  * and for each loincloth its drape and cut under every penis shape, at every length from 1 to 100 inches (derived). A
  * penis shape with no shapes of its own (the tentacles) draws the family's small_cap shape and no anatomy. The counts,
  * by kind, must be BULGE_IDENTITIES_RECORD's.
@@ -138,6 +146,10 @@
 						else if(initial(family.printed_patches) && size <= initial(family.print_cap))
 							var/datum/bulge_sheet_state/patch = bulge_printed_patch(family, hard, size, digi)
 							resolve("patch", what, patch?.icon, patch?.icon_state)
+							for(var/penis in shapes)
+								var/datum/bulge_sheet_state/where = bulge_printed_patch(family, hard, size, digi, penis)
+								if(where != patch)
+									resolve("patch", "[what] [penis]", where?.icon, where?.icon_state)
 							if(bulge_shape_where(family, hard, size, digi, /datum/sprite_accessory/genital/penis/human, TRUE))
 								TEST_FAIL("[what]: a precoloured patch is drawn alone, with no shape")
 						else

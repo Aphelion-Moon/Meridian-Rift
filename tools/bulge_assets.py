@@ -56,7 +56,7 @@ NAME_PATTERNS = {
     'skirt_shapes': r'[a-z0-9_]+_(half|hard)_[1-8]_(plain|digi)',
     'skirt_clearance': r'[a-z0-9_]+_(half|hard)_[1-8]',
     'skirt_flaps': r'[a-z0-9_]+_hard_[1-8]_(plain|digi)',
-    'printed_patches': r'[a-z_]+_(half|hard)_[5-8]_(plain|digi)',
+    'printed_patches': r'[a-z_]+_(half|hard)_[5-8]_(plain|digi)(_[a-z_]+)?',
 }
 # The templates the server derives at run time (templates.dm), by kind, and the names they are derived under: a shape
 # past small_cap (whose bare anatomy, if it leaves any, is derived under the same name), a loincloth's drape, and the cut
@@ -439,11 +439,15 @@ class Rules:
         name = '%s_%s_%d%s%s' % (stem, self.d.penis.get(shape, 'icon_state'), sprite_size, '_untoned' if untoned else '', '_flat' if flat else '')
         return (None, name, 0, 0)  # Derived at run time (bulge_derive_drape()).
 
-    def printed_patch_where(self, family, hard, size, digi):
+    def printed_patch_where(self, family, hard, size, digi, shape=None):
+        """A printed family's patch (bulge_printed_patch()): the one drawn for the penis shape's profile where the sheet
+        has one, named with the shape's icon state appended, else the human penis's."""
         stem = self.d.fam(family, 'printed_patches') if family in self.d.families.blocks else None
         if not stem or size <= self.d.fam(family, 'small_cap') or size > self.d.fam(family, 'print_cap'):
             return None
-        return self.where('printed_patches', '%s_%s_%d_%s' % (stem, 'hard' if hard else 'half', size, 'digi' if digi else 'plain'))
+        name = '%s_%s_%d_%s' % (stem, 'hard' if hard else 'half', size, 'digi' if digi else 'plain')
+        own = self.where('printed_patches', '%s_%s' % (name, self.d.penis.get(shape, 'icon_state'))) if shape else None
+        return own or self.where('printed_patches', name)
 
 
 def skirt_clearance_name(shape_name):
@@ -520,7 +524,12 @@ def declared(rules: Rules):
                         if size <= d.fam(family, 'small_cap'):
                             yield 'shape', (family, hard, size, digi), rules.shape_where(family, hard, size, digi)
                         elif d.fam(family, 'printed_patches') and size <= d.fam(family, 'print_cap'):
-                            yield 'patch', (family, hard, size, digi), rules.printed_patch_where(family, hard, size, digi)
+                            where = rules.printed_patch_where(family, hard, size, digi)
+                            yield 'patch', (family, hard, size, digi), where
+                            for shape in d.penis_types:
+                                own = rules.printed_patch_where(family, hard, size, digi, shape)
+                                if own != where:  # The penis shape's own patch, drawn for its profile.
+                                    yield 'patch', (family, hard, size, digi, shape), own
                         else:
                             for shape in d.penis_types:
                                 if d.penis.get(shape, 'bulge_hyper'):
