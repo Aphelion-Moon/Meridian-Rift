@@ -37,7 +37,7 @@
 #define BULGE_SKIRT_FLAPS_Y 3
 #define BULGE_SHEET_PRINTED_PATCHES 'modular_aphelion/modules/bulge/icons/templates/printed_patches.dmi'
 #define BULGE_PRINTED_PATCHES_X 1
-#define BULGE_PRINTED_PATCHES_Y 5
+#define BULGE_PRINTED_PATCHES_Y 4
 
 // The fixed grey of each kind in a kind map: the approved shading (BULGE_KIND_*) over cloth of #808080.
 #define BULGE_GREY_CLOTH "#808080"
