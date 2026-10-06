@@ -1,7 +1,7 @@
 # Bulge template sheets
 
 `templates/` holds the shapes a bulge is drawn from up to each family's `small_cap`, the skirts' clearances and flaps,
-and the large heart boxers: 5 sheets, 460 states, each with four directions (north is empty) and one frame. Open them
+and the large heart boxers: 5 sheets, 484 states, each with four directions (north is empty) and one frame. Open them
 in Dream Maker's icon editor. A state is named for what it is, and the code finds it by that name; nothing maps one
 name to another.
 
@@ -18,7 +18,7 @@ and cut are derived at run time from the game's own penis, testicle and loinclot
 | `skirt_shapes` | 186 | every skirt style, and each revealing skirt's own hem where it differs |
 | `skirt_clearance` | 42 | where a skirt's shaft shows above the cloth; an empty state draws the anatomy behind the skirt only |
 | `skirt_flaps` | 54 | the flap a revealing skirt lifts away when hard |
-| `printed_patches` | 16 | the large heart boxers, sizes 5 to 8, made by the print rule and approved by mal |
+| `printed_patches` | 40 | the large heart boxers, sizes 5 to 8 (24 for knotted and hemi), made by the print rule and approved by mal |
 
 A shape is a kind map: each kind of pushed-out cloth in its own grey, the approved shading over mid-grey cloth, so a
 sheet shows the bulges as they look on grey cloth. Cloth `#808080`, light `#a3a3a3`, highlight `#b7b7b7`, shade
@@ -38,6 +38,13 @@ sheet shows the bulges as they look on grey cloth. Cloth `#808080`, light `#a3a3
 - Drapes, derived: `<drapes>_<penis shape>_<sprite size>`, with `_untoned`, and `_flat` from the family's
   `flat_tip_from`. Cuts, derived: `<drapes>_cut_<hem>`, the hem being the lowest row the drape reaches facing south
   (the family's `lifted_hem` for a drape that stays above the hem rows).
+- The large heart boxers' patches: `<printed_patches>_<half|hard>_<size>_<plain|digi>` for the human penis, drawn by
+  every penis shape without a patch of its own; a shape's own patch is named the same with the penis shape's icon state
+  appended, for example `heart_boxers_hard_7_plain_knotted`. The knotted and hemi shapes have their own (24 states)
+  where their profile facing east and west needs one: drawn there along the anatomy the shape leaves bare, north and
+  south copied from the human patch. Knotted hard 7 and 8 also cover the underside of the shaft below the hem, as the
+  boxers' leg hangs over it (mal, 2026-10-06). Each frame is 30x8, one row taller than the human patches need, as hemi
+  half 5 reaches a row lower.
 
 `<shapes>` and `<drapes>` are the family's vars in `code/families.dm`. A family that draws another family's shapes
 by design names it there (`half_shapes_of`, `hard_shapes_of`, `large_shapes_of`); a garment whose approved look
