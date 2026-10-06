@@ -1,0 +1,117 @@
+{
+	"raid": [
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		}
+	],
+	"raid_on": [
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid_on-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid_on-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid_on-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid_on-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid_on-add",
+			"blend_mode": "add"
+		}
+	],
+	"raid_headset": [
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "obj-raid-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "mic-raid_obj_mic-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		}
+	]
+}

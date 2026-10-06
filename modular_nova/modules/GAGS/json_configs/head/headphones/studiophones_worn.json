@@ -1,0 +1,56 @@
+{
+	"studiophones": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-studiophones-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-studiophones-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-studiophones-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-studiophones-add",
+			"blend_mode": "add"
+		}
+	],
+	"studiophones_neck": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-studiophones_neck-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-studiophones_neck-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-studiophones_neck-add",
+			"blend_mode": "add"
+		}
+	]
+}
