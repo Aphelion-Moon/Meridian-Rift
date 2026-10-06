@@ -159,12 +159,12 @@
 						else if(initial(family.printed_patches) && size <= initial(family.print_cap))
 							var/datum/bulge_sheet_state/patch = bulge_printed_patch(family, hard, size, digi)
 							resolve("patch", what, patch?.icon, patch?.icon_state)
-							var/datum/bulge_sheet_state/small_cap_where = bulge_shape_where(family, hard, initial(family.small_cap), digi, null, TRUE)
+							var/datum/bulge_sheet_state/capped = bulge_shape_where(family, hard, initial(family.small_cap), digi, null, TRUE)
 							for(var/datum/sprite_accessory/genital/penis/penis as anything in shapes)
 								if(bulge_shape_size(family, hard, size, penis) <= initial(family.small_cap))
 									// The tentacles, and a shape past its print_cap: the small_cap shape and its print, no patch.
 									var/datum/bulge_sheet_state/where = bulge_printed_patch(family, hard, size, digi, penis, TRUE)
-									if(where || bulge_shape_where(family, hard, size, digi, penis, TRUE) != small_cap_where || bulge_exposed(family, hard, size, digi, penis, TRUE))
+									if(where || bulge_shape_where(family, hard, size, digi, penis, TRUE) != capped || bulge_exposed(family, hard, size, digi, penis, TRUE))
 										TEST_FAIL("[what] [penis]: not the small_cap shape alone (patch [where?.icon_state])")
 									continue
 								// Its own patch where it differs from the human penis's, then, drawn without skin tones, its untoned one
@@ -249,14 +249,14 @@
 
 /// A family's shapes past small_cap, one per penis shape, derived, and the anatomy each leaves bare.
 /datum/unit_test/bulge_template_identities/proc/check_large(datum/bulge_family/family, hard, size, digi, list/shapes, what)
-	var/datum/bulge_sheet_state/small_cap_where = bulge_shape_where(family, hard, initial(family.small_cap), digi, null, TRUE)
+	var/datum/bulge_sheet_state/capped = bulge_shape_where(family, hard, initial(family.small_cap), digi, null, TRUE)
 	for(var/datum/sprite_accessory/genital/penis/shape as anything in shapes)
 		for(var/toned in (initial(shape.has_skintone_shading) ? list(TRUE, FALSE) : list(FALSE)))
 			var/identity = "[what] [shape] [toned ? "toned" : "untoned"]"
 			var/datum/bulge_sheet_state/where = bulge_shape_where(family, hard, size, digi, shape, toned)
 			var/datum/bulge_sheet_state/exposed = bulge_exposed(family, hard, size, digi, shape, toned)
 			if(!initial(shape.bulge_hyper))
-				if(where != small_cap_where || exposed)
+				if(where != capped || exposed)
 					TEST_FAIL("[identity]: draws [where?.icon_state] and [exposed?.icon_state], not the small_cap shape alone")
 				continue
 			if(where?.icon)
