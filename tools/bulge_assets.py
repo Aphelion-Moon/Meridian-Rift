@@ -399,8 +399,19 @@ class Rules:
             return 0
         return min(size, self.cap(family, hard) or 0)
 
-    def shape_where(self, family, hard, size, digi, shape=None, toned=True):
+    def shape_size(self, family, hard, size, shape=None):
+        """The size whose shape a family draws for a bulge of `size` on a penis shape (bulge_shape_size()): its own up to
+        its cap, except that past small_cap a shape with no shapes of its own (bulge_hyper FALSE, the tentacles), and one
+        past its print_cap under a family with precoloured printed patches, draw small_cap's shape; 0 for none."""
         size = self.family_size(family, hard, size)
+        small_cap = self.d.fam(family, 'small_cap')
+        if size > small_cap and shape and (not self.d.penis.get(shape, 'bulge_hyper') or (
+                self.d.fam(family, 'printed_patches') and size > self.d.penis.get(shape, 'print_cap'))):
+            return small_cap
+        return size
+
+    def shape_where(self, family, hard, size, digi, shape=None, toned=True):
+        size = self.shape_size(family, hard, size, shape)
         if not size or (hard and self.d.fam(family, 'loincloth')):
             return None
         if size > self.d.fam(family, 'small_cap') and self.d.fam(family, 'printed_patches') and size <= self.d.fam(family, 'print_cap'):
@@ -439,14 +450,20 @@ class Rules:
         name = '%s_%s_%d%s%s' % (stem, self.d.penis.get(shape, 'icon_state'), sprite_size, '_untoned' if untoned else '', '_flat' if flat else '')
         return (None, name, 0, 0)  # Derived at run time (bulge_derive_drape()).
 
-    def printed_patch_where(self, family, hard, size, digi, shape=None):
+    def printed_patch_where(self, family, hard, size, digi, shape=None, toned=True):
         """A printed family's patch (bulge_printed_patch()): the one drawn for the penis shape's profile where the sheet
-        has one, named with the shape's icon state appended, else the human penis's."""
+        has one, named with the shape's icon state appended (and "_untoned" after it first, for a shape drawn without
+        skin tones whose untoned sprites draw differently), else the human penis's; none for a shape that draws
+        small_cap's shape there (shape_size(): the tentacles, a shape past its print_cap)."""
         stem = self.d.fam(family, 'printed_patches') if family in self.d.families.blocks else None
-        if not stem or size <= self.d.fam(family, 'small_cap') or size > self.d.fam(family, 'print_cap'):
+        if not stem or self.shape_size(family, hard, size, shape) <= self.d.fam(family, 'small_cap') or size > self.d.fam(family, 'print_cap'):
             return None
         name = '%s_%s_%d_%s' % (stem, 'hard' if hard else 'half', size, 'digi' if digi else 'plain')
-        own = self.where('printed_patches', '%s_%s' % (name, self.d.penis.get(shape, 'icon_state'))) if shape else None
+        own = None
+        if shape:
+            if not toned and self.d.penis.get(shape, 'bulge_untoned'):
+                own = self.where('printed_patches', '%s_%s_untoned' % (name, self.d.penis.get(shape, 'icon_state')))
+            own = own or self.where('printed_patches', '%s_%s' % (name, self.d.penis.get(shape, 'icon_state')))
         return own or self.where('printed_patches', name)
 
 
@@ -527,9 +544,14 @@ def declared(rules: Rules):
                             where = rules.printed_patch_where(family, hard, size, digi)
                             yield 'patch', (family, hard, size, digi), where
                             for shape in d.penis_types:
-                                own = rules.printed_patch_where(family, hard, size, digi, shape)
-                                if own != where:  # The penis shape's own patch, drawn for its profile.
-                                    yield 'patch', (family, hard, size, digi, shape), own
+                                if rules.shape_size(family, hard, size, shape) <= d.fam(family, 'small_cap'):
+                                    continue  # small_cap's shape and its print, no patch: the tentacles, a shape past its print_cap
+                                known = where
+                                for toned in ((True, False) if d.penis.get(shape, 'bulge_untoned') else (True,)):
+                                    own = rules.printed_patch_where(family, hard, size, digi, shape, toned)
+                                    if own != known:  # The penis shape's own patch (untoned: its own untoned one).
+                                        yield 'patch', (family, hard, size, digi, shape, toned), own
+                                    known = own
                         else:
                             for shape in d.penis_types:
                                 if d.penis.get(shape, 'bulge_hyper'):

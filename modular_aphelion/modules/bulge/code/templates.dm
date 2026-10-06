@@ -96,7 +96,7 @@ BULGE_GLOBAL_ALIST(bulge_loincloth_cut_memo)
 BULGE_GLOBAL_ALIST(bulge_clearance_memo)
 /// Skirt flaps by identity: family -> BULGE_FORM_SLOT (hard) -> template or FALSE.
 BULGE_GLOBAL_ALIST(bulge_flap_memo)
-/// Precoloured printed patches by identity: family -> penis shape (or the family) -> BULGE_FORM_SLOT ->
+/// Precoloured printed patches by identity: family -> penis shape (or the family) -> BULGE_SHAPE_SLOT ->
 /// /datum/bulge_sheet_state or FALSE.
 BULGE_GLOBAL_ALIST(bulge_printed_patch_memo)
 /// Sheet states by "[sheet]|[state]", a derived state's sheet left empty: one /datum/bulge_sheet_state per state however
@@ -110,6 +110,9 @@ GLOBAL_LIST(bulge_sheet_states)
 	var/bulge_hyper = TRUE
 	/// Whether this shape drawn without skin tones has bulge shapes of its own: its untoned sprites draw differently.
 	var/bulge_untoned = FALSE
+	/// The largest bulge size a garment with precoloured printed patches (the large heart boxers) draws this shape's
+	/// own look at; past it, the family's small_cap shape and its print (bulge_shape_size()): mal, 2026-10-06.
+	var/print_cap = 8
 
 /datum/sprite_accessory/genital/penis/human/alt
 	bulge_untoned = TRUE
@@ -119,6 +122,13 @@ GLOBAL_LIST(bulge_sheet_states)
 
 /datum/sprite_accessory/genital/penis/hemi/alt
 	bulge_untoned = FALSE
+	print_cap = 4
+
+/datum/sprite_accessory/genital/penis/nondescript/alt
+	print_cap = 4
+
+/datum/sprite_accessory/genital/penis/tapered/alt
+	print_cap = 4
 
 /datum/sprite_accessory/genital/penis/tentacle
 	bulge_hyper = FALSE
@@ -283,14 +293,15 @@ GLOBAL_LIST(bulge_sheet_states)
 /**
  * The size whose shape a family draws for a bulge of `size` on a penis shape: bulge_family_size(), except that past the
  * family's small_cap, where shapes follow the penis shape, a shape with none of its own (bulge_hyper FALSE, the
- * tentacles) draws the family's small_cap shape, as any other shape draws at that size; 0 for none.
+ * tentacles) draws the family's small_cap shape, as any other shape draws at that size, and so does a shape past its
+ * print_cap under a family with precoloured printed patches (the large heart boxers); 0 for none.
  */
 /proc/bulge_shape_size(datum/bulge_family/family, hard, size, datum/sprite_accessory/genital/penis/shape)
 	size = bulge_family_size(family, hard, size)
 	if(!size)
 		return 0
 	var/small_cap = initial(family.small_cap)
-	if(size > small_cap && ispath(shape, /datum/sprite_accessory/genital/penis) && !initial(shape.bulge_hyper))
+	if(size > small_cap && ispath(shape, /datum/sprite_accessory/genital/penis) && (!initial(shape.bulge_hyper) || (initial(family.printed_patches) && size > initial(shape.print_cap))))
 		return small_cap
 	return size
 
@@ -940,10 +951,12 @@ GLOBAL_LIST(bulge_sheet_states)
 /**
  * A printed garment's precoloured patch past its family's small_cap (a /datum/bulge_sheet_state, drawn as it is),
  * or null when its prints there are derived or it has none: the patch drawn for the penis shape's profile where the
- * sheet has one (the human penis's name with the shape's icon state appended), else the human penis's. Arguments as
- * bulge_shape(), without toned; with no penis shape, the human penis's.
+ * sheet has one (the human penis's name with the shape's icon state appended, and "_untoned" after it first for a shape
+ * drawn without skin tones whose untoned sprites draw differently), else the human penis's. None for a penis shape
+ * that draws the family's small_cap shape there (bulge_shape_size(): the tentacles, a shape past its print_cap), which
+ * keeps that shape's print. Arguments as bulge_shape(); with no penis shape, the human penis's.
  */
-/proc/bulge_printed_patch(family, hard, size, digi, datum/sprite_accessory/genital/penis/shape)
+/proc/bulge_printed_patch(family, hard, size, digi, datum/sprite_accessory/genital/penis/shape, toned)
 	SHOULD_NOT_SLEEP(TRUE)
 	if(size < 1 || size > 8 || !ISINTEGER(size))
 		return null
@@ -951,19 +964,21 @@ GLOBAL_LIST(bulge_sheet_states)
 		stack_trace("Bulge printed patch asked for with [shape], which is no penis shape typepath.")
 		return null
 	var/second = shape || family
-	var/slot = BULGE_FORM_SLOT(hard, size, digi)
+	var/slot = BULGE_SHAPE_SLOT(hard, size, digi, toned)
 	var/known = GLOB.bulge_printed_patch_memo?[family]?[second]?[slot]
 	if(!isnull(known))
 		return known || null
 	var/datum/bulge_family/family_type = family
 	var/datum/bulge_sheet_state/patch
-	if(ispath(family, /datum/bulge_family) && initial(family_type.printed_patches) && size > initial(family_type.small_cap) && size <= initial(family_type.print_cap))
+	if(ispath(family, /datum/bulge_family) && initial(family_type.printed_patches) && bulge_shape_size(family, hard, size, shape) > initial(family_type.small_cap) && size <= initial(family_type.print_cap))
 		var/name = "[initial(family_type.printed_patches)]_[hard ? "hard" : "half"]_[size]_[digi ? "digi" : "plain"]"
 		if(shape)
-			patch = bulge_sheet_state(BULGE_SHEET_PRINTED_PATCHES, "[name]_[initial(shape.icon_state)]", BULGE_PRINTED_PATCHES_X, BULGE_PRINTED_PATCHES_Y)
+			if(!toned && initial(shape.bulge_untoned))
+				patch = bulge_sheet_state(BULGE_SHEET_PRINTED_PATCHES, "[name]_[initial(shape.icon_state)]_untoned", BULGE_PRINTED_PATCHES_X, BULGE_PRINTED_PATCHES_Y)
+			patch ||= bulge_sheet_state(BULGE_SHEET_PRINTED_PATCHES, "[name]_[initial(shape.icon_state)]", BULGE_PRINTED_PATCHES_X, BULGE_PRINTED_PATCHES_Y)
 		patch ||= bulge_sheet_state(BULGE_SHEET_PRINTED_PATCHES, name, BULGE_PRINTED_PATCHES_X, BULGE_PRINTED_PATCHES_Y)
 	GLOB.bulge_printed_patch_memo ||= alist()
-	var/list/slots = bulge_memo_slots(GLOB.bulge_printed_patch_memo, family, second, 32)
+	var/list/slots = bulge_memo_slots(GLOB.bulge_printed_patch_memo, family, second, 64)
 	slots[slot] = patch || FALSE
 	return patch
 
