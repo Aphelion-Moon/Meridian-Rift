@@ -11,6 +11,7 @@
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
 	AddElement(/datum/element/bitrunning_objective)
+	AddElement(/datum/element/empprotection, EMP_PROTECT_SELF) // EMP presses would skip the self-delete
 
 /obj/machinery/button/door/indestructible/ancient_milsim/screwdriver_act()
 	return
