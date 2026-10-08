@@ -48,6 +48,10 @@
 					TEST_ASSERT_EQUAL(shape, bulge_shape(/datum/bulge_family/loose_boxers, hard, size, digi, /datum/sprite_accessory/genital/penis/human, TRUE), "Heart boxers draw the loose boxers' shapes up to size 4")
 	var/datum/sprite_accessory/clothing/underwear/accessory = /datum/sprite_accessory/clothing/underwear/male_stripe
 	TEST_ASSERT_NULL(bulge_printed_patch(initial(accessory.bulge_family), TRUE, 6, FALSE), "Other loose boxers have no hand-drawn patches")
+	// Printed loose boxers, briefs, jeans and track pants keep the print derived from their sprite to size 8 (mal,
+	// 2026-10-08).
+	for(var/datum/bulge_family/owner as anything in list(/datum/bulge_family/loose_boxers, /datum/bulge_family/briefs, /datum/bulge_family/jeans, /datum/bulge_family/track_pants))
+		TEST_ASSERT_EQUAL(initial(owner.print_cap), 8, "[owner]'s prints go to size 8")
 	// Past size 4 a penis shape draws the patch drawn for its profile where the sheet has one (facing east and west; mal,
 	// 2026-10-06), any other the human penis's; drawn without skin tones, a shape whose untoned sprites draw differently
 	// draws its untoned patch where the sheet has one.

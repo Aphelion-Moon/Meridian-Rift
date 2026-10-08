@@ -10,16 +10,16 @@
 family /datum/bulge_family clearance=0 contained=0 curtain=0 drapes=null drop=0 finish=cloth first_column=0 flaps=0 flat_tip_from=0 half_cap=4 half_shapes_of=null hard_cap=4 hard_shapes_of=null hem=0 large_digi_forms=0 large_shapes_of=null last_column=0 lifted_hem=0 loincloth=0 long=0 own_clearance_sizes=0 own_flap_sizes=0 own_shape_sizes=0 printed_patches=null print_cap=4 shapes=null small_cap=4 start_x=0 start_y=0 top_row=20 worn_icon=null worn_icon_state=null
 family /datum/bulge_family/none half_cap=0 hard_cap=0 print_cap=0
 family /datum/bulge_family/boxers contained=16 curtain=16 half_cap=8 hard_cap=8 hem=24 shapes=boxers
-family /datum/bulge_family/loose_boxers half_cap=8 hard_cap=8 large_shapes_of=/datum/bulge_family/boxers shapes=loose_boxers
+family /datum/bulge_family/loose_boxers half_cap=8 hard_cap=8 large_shapes_of=/datum/bulge_family/boxers print_cap=8 shapes=loose_boxers
 family /datum/bulge_family/loose_boxers/hearts half_cap=8 hard_cap=8 large_shapes_of=/datum/bulge_family/boxers printed_patches=heart_boxers print_cap=8 shapes=loose_boxers
-family /datum/bulge_family/briefs contained=16 half_cap=8 hard_cap=8 hem=23 shapes=briefs
+family /datum/bulge_family/briefs contained=16 half_cap=8 hard_cap=8 hem=23 print_cap=8 shapes=briefs
 family /datum/bulge_family/jockstrap shapes=jockstrap
-family /datum/bulge_family/jeans finish=denim hard_cap=8 hem=31 shapes=jeans small_cap=5
+family /datum/bulge_family/jeans finish=denim hard_cap=8 hem=31 print_cap=8 shapes=jeans small_cap=5
 family /datum/bulge_family/long_johns half_cap=8 half_shapes_of=/datum/bulge_family/jeans hard_cap=8 hard_shapes_of=/datum/bulge_family/jockstrap hem=24 large_digi_forms=1 long=1 shapes=long_johns
 family /datum/bulge_family/jumpsuits shapes=jumpsuits
 family /datum/bulge_family/khaki_shorts shapes=khaki_shorts
 family /datum/bulge_family/athletic_shorts contained=16 half_cap=8 hard_cap=8 hem=25 shapes=athletic_shorts
-family /datum/bulge_family/track_pants half_cap=8 hard_cap=8 large_shapes_of=/datum/bulge_family/long_johns shapes=track_pants
+family /datum/bulge_family/track_pants half_cap=8 hard_cap=8 large_shapes_of=/datum/bulge_family/long_johns print_cap=8 shapes=track_pants
 family /datum/bulge_family/leather_loincloth drapes=leather_loincloth drop=8 finish=leather first_column=12 flat_tip_from=6 half_cap=8 hard_cap=8 hem=28 last_column=18 lifted_hem=28 loincloth=1 shapes=leather_loincloth start_x=19 start_y=21 top_row=21 worn_icon=icons/mob/clothing/under/costume.dmi worn_icon_state=loincloth
 family /datum/bulge_family/colourable_loincloth drapes=colourable_loincloth drop=7 first_column=14 half_cap=8 hard_cap=8 hem=27 last_column=16 lifted_hem=27 loincloth=1 shapes=colourable_loincloth start_x=18 start_y=20 top_row=21 worn_icon=modular_nova/master_files/icons/mob/clothing/underwear.dmi worn_icon_state=loincloth
 family /datum/bulge_family/colourable_loincloth/short drapes=short_loincloth drop=5 first_column=14 half_cap=8 hard_cap=8 hem=27 last_column=16 lifted_hem=25 loincloth=1 shapes=colourable_loincloth start_x=18 start_y=20 top_row=21 worn_icon=modular_nova/master_files/icons/mob/clothing/underwear.dmi worn_icon_state=loincloth_alt

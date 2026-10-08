@@ -45,7 +45,8 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
   matrix or filter carries no print: its cloth is sampled from the untreated sprite and drawn through the same filter.
 - **Printed garments** (mal's printed selections and every reviewed skirt): one patch derived on the server from the
   sprite the garment is drawn with, by the approved print rule, so it follows recolours, species fits and digitigrade
-  sprites.
+  sprites. Printed loose boxers, briefs, jeans and track pants keep it to size 8, on the shapes past small_cap
+  (`print_cap`; mal, 2026-10-08); the large heart boxers draw their precoloured patches instead.
 - **Revealing skirts and loincloths, when hard:** the cover is drawn with its lifted flap cut away (the uniform and
   underwear renders call `bulge_cut_worn()`), and the penis shows through it: under a loincloth's drape, or behind
   the skirt and over its cloth inside the skirt's clearance.
