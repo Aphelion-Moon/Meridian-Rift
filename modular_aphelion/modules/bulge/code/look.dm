@@ -362,6 +362,29 @@
 		&& known[10] == testicles_overlay.dye_color && known[11] == testicles_overlay.sprite_datum)
 
 /**
+ * What of the penis its bulge look still shows, for interactions (INTERACTION_REQUIRE_SELF_POKES_OUT and
+ * INTERACTION_REQUIRE_TARGET_POKES_OUT) and anything else: BULGE_POKES_PAST_CLOTH while the look draws some of it over
+ * the cloth (the tip or head past the garment, what a printed patch leaves bare, the shaft over a revealing skirt), and
+ * BULGE_POKES_UNDER_COVER while it draws it behind a cover cut or lifted for it (a revealing skirt or a loincloth,
+ * hard); NONE with no look, or one that covers all of it. Any pixel the look draws counts, in any facing: the two-pixel
+ * tip past a waistband facing east and west too.
+ *
+ * It reads the look as drawn (bulge_resolve()), so it follows the layering, Custom "Above underwear" and suits as the
+ * renderer does, and is current as has_bulge() is: a few var reads, no icons. Two looks it does not answer exactly, as
+ * the look does not record what of them shows: a penis drawn behind a cover not cut for it (a skirt half hard, a long
+ * curtain skirt) shows wherever it reaches past the cover, below the hem or past the curtain, and is not counted; and
+ * the smallest Tentacled (Alt) penis under a hard loincloth counts as under the cover, though its drape hides all of it.
+ */
+/mob/living/carbon/human/proc/bulge_pokes_out()
+	var/obj/item/organ/genital/penis/penis = get_organ_slot(ORGAN_SLOT_PENIS)
+	var/datum/bodypart_overlay/mutant/genital/penis/overlay = penis?.bodypart_overlay
+	if(!istype(overlay) || isnull(overlay.bulge_key) || overlay.bulge_wearer != src)
+		return NONE
+	. = overlay.bulge_anatomy_mask ? BULGE_POKES_PAST_CLOTH : NONE
+	if(overlay.bulge_anatomy_behind && (overlay.bulge_uniform_cut || overlay.bulge_body_cut))
+		. |= BULGE_POKES_UNDER_COVER
+
+/**
  * The cover garment a bulge shows through, outermost first: a suit unless it is reviewed to leave the groin clear,
  * else a uniform over the groin, else a groin-length undershirt, else the underwear. Null for none, or for a suit that
  * hides the bulge. A garment covers the penis only when it is drawn in front of it: for a penis the player has layered

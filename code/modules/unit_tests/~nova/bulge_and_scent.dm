@@ -18,6 +18,12 @@
 	var/datum/interaction/grind = allocate(/datum/interaction)
 	grind.name = "Grind your bulge"
 	grind.interaction_requires = list(INTERACTION_REQUIRE_SELF_BULGE)
+	var/datum/interaction/grope = allocate(/datum/interaction)
+	grope.name = "Grope the tip"
+	grope.interaction_requires = list(INTERACTION_REQUIRE_TARGET_POKES_OUT)
+	var/datum/interaction/flash = allocate(/datum/interaction)
+	flash.name = "Flash the tip"
+	flash.interaction_requires = list(INTERACTION_REQUIRE_SELF_POKES_OUT)
 	var/datum/interaction/stroke = allocate(/datum/interaction)
 	stroke.name = "Stroke"
 	stroke.target_required_parts = list(ORGAN_SLOT_PENIS)
@@ -26,6 +32,7 @@
 	// Hard but out in the open is no bulge.
 	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The hard writer was unavailable.")
 	TEST_ASSERT(!owner.has_bulge(), "An exposed penis was a bulge.")
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), NONE, "An exposed penis poked out of a bulge.")
 	TEST_ASSERT(!rub.allow_act(partner, owner), "A bulge interaction was offered on an exposed penis.")
 
 	var/obj/item/clothing/under/color/grey/jumpsuit = allocate(/obj/item/clothing/under/color/grey)
@@ -35,6 +42,10 @@
 	TEST_ASSERT(!rub.allow_act(owner, partner), "A target bulge interaction checked the user's bulge.")
 	TEST_ASSERT(grind.allow_act(owner, partner), "A self bulge interaction was refused on the user's bulge.")
 	TEST_ASSERT(!grind.allow_act(partner, owner), "A self bulge interaction checked the target's bulge.")
+	// The jumpsuit covers all of it: a bulge with nothing poking out.
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), NONE, "A penis the jumpsuit covers poked out of it.")
+	TEST_ASSERT(!grope.allow_act(partner, owner), "An interaction needing the penis to poke out was offered on a covered bulge.")
+	TEST_ASSERT(!flash.allow_act(owner, partner), "An interaction needing the user's penis to poke out was offered on a covered bulge.")
 	TEST_ASSERT_EQUAL(rub.format_message_for(template, partner, owner), "bulge [jumpsuit.name]", "Bulge words under a jumpsuit are wrong.")
 	TEST_ASSERT_EQUAL(rub.format_message_for("%TARGET_CROTCH%", owner, partner), "crotch", "Someone without a bulge had one in the words.")
 
@@ -42,6 +53,7 @@
 	TEST_ASSERT(owner.has_bulge(), "A half-hard penis under a jumpsuit was not a bulge.")
 	TEST_ASSERT(penis.apply_arousal_label("Not aroused"), "The soft writer was unavailable.")
 	TEST_ASSERT(!owner.has_bulge(), "A soft penis was a bulge.")
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), NONE, "A soft penis poked out.")
 	TEST_ASSERT_EQUAL(rub.format_message_for("%TARGET_CROTCH%", partner, owner), "crotch", "A soft penis read as a bulge.")
 	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The hard writer was unavailable.")
 
@@ -133,8 +145,11 @@
 	TEST_ASSERT(portal.relays_interaction(grind, as_user = TRUE), "A wall portal did not relay its occupant's own bulge.")
 	TEST_ASSERT(!portal.relays_interaction(grind), "A wall portal relayed the other side's bulge.")
 	TEST_ASSERT(!portal.relays_interaction(headpat), "A wall portal relayed an interaction with no lower body part.")
+	TEST_ASSERT(portal.relays_interaction(grope), "A wall portal did not relay what pokes out of a bulge.")
+	TEST_ASSERT(portal.relays_interaction(flash, as_user = TRUE), "A wall portal did not relay what pokes out of its occupant's own bulge.")
 	portal.portal_mode = "gloryhole"
 	TEST_ASSERT(portal.relays_interaction(rub), "A gloryhole did not relay a bulge.")
+	TEST_ASSERT(portal.relays_interaction(grope), "A gloryhole did not relay what pokes out of a bulge.")
 
 	// The penis's own overlay draws the bulge: the jumpsuit's shape, tinted from the jumpsuit's cloth.
 	owner.underwear = "Nude"
@@ -155,6 +170,42 @@
 	var/obj/item/clothing/suit/apron/overapron = allocate(/obj/item/clothing/suit/apron)
 	TEST_ASSERT(owner.equip_to_slot_if_possible(overapron, ITEM_SLOT_OCLOTHING), "Could not put the apron back on.")
 	TEST_ASSERT_NULL(drawing.bulge_key, "A hiding suit left the bulge drawn.")
+
+	// What of the penis a bulge still shows (bulge_pokes_out()), for the interactions that need some of it to: nothing
+	// under a hiding suit, nor through the jumpsuit, which covers all of it at size 4.
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), NONE, "A penis under a hiding suit poked out.")
+	owner.dropItemToGround(overapron)
+	TEST_ASSERT(owner.has_bulge() && !owner.bulge_pokes_out(), "A penis the jumpsuit covers at size 4 poked out of it.")
+	owner.dropItemToGround(pants)
+	// Hard jeans at size 6: the tip past the waistband is drawn over the cloth, and the interactions that need it see it
+	// on that participant alone.
+	var/obj/item/clothing/under/pants/jeans/garment = allocate(/obj/item/clothing/under/pants/jeans)
+	TEST_ASSERT(owner.equip_to_slot_if_possible(garment, ITEM_SLOT_ICLOTHING), "Could not put the jeans on.")
+	penis.set_size(49)
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), BULGE_POKES_PAST_CLOTH, "The tip past hard jeans at size 6 did not poke out over the cloth.")
+	TEST_ASSERT(grope.allow_act(partner, owner), "An interaction needing the target's penis to poke out was refused on one that does.")
+	TEST_ASSERT(!grope.allow_act(owner, partner), "A target pokes-out interaction checked the user.")
+	TEST_ASSERT(flash.allow_act(owner, partner), "An interaction needing the user's penis to poke out was refused on one that does.")
+	TEST_ASSERT(!flash.allow_act(partner, owner), "A self pokes-out interaction checked the target.")
+	owner.dropItemToGround(garment)
+	// A hard loincloth at size 4 lifts its flap: the penis is drawn behind it, the cover cut away under the drape.
+	var/obj/item/clothing/under/costume/loincloth/loincloth = allocate(/obj/item/clothing/under/costume/loincloth)
+	TEST_ASSERT(owner.equip_to_slot_if_possible(loincloth, ITEM_SLOT_ICLOTHING), "Could not put the loincloth on.")
+	penis.set_size(12)
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), BULGE_POKES_UNDER_COVER, "The penis under a hard loincloth's drape did not poke out under the cover.")
+	TEST_ASSERT(grope.allow_act(partner, owner), "An interaction needing the penis to poke out was refused under a hard loincloth.")
+	owner.dropItemToGround(loincloth)
+	// A revealing skirt hard at size 4 has its flap cut away: the shaft shows through it and over its cloth. Half hard it
+	// is not cut, and the penis drawn behind it is not counted, though some of it can show below the hem: the gap
+	// bulge_pokes_out() documents, pinned here.
+	var/obj/item/clothing/under/costume/buttondown/skirt/skirt = allocate(/obj/item/clothing/under/costume/buttondown/skirt)
+	TEST_ASSERT(owner.equip_to_slot_if_possible(skirt, ITEM_SLOT_ICLOTHING), "Could not put the skirt on.")
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), BULGE_POKES_PAST_CLOTH|BULGE_POKES_UNDER_COVER, "The shaft through a hard revealing skirt did not poke out both ways.")
+	TEST_ASSERT(penis.apply_arousal_label("Partly aroused"), "The half-hard writer was unavailable.")
+	TEST_ASSERT(drawing.bulge_key && drawing.bulge_anatomy_behind && !drawing.bulge_uniform_cut, "The half-hard skirt no longer draws the penis behind it uncut: the gap this pins has changed.")
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), NONE, "A penis behind a skirt not cut for it poked out.")
+	TEST_ASSERT(!grope.allow_act(partner, owner), "An interaction needing the penis to poke out was offered behind an uncut skirt.")
+	owner.dropItemToGround(skirt)
 
 /// What the chest is missing of the jumpsuit's bulge shape for this form and size, in its white kind masks; null when
 /// it draws it.

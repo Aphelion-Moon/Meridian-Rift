@@ -27,6 +27,17 @@ penis layered above its only cover. Whatever starts or ends a look (arousal, clo
 ends in the body update that resolves it, so the answer is current from that update on. `bulge_cover_name()` names
 the garment the look is drawn on.
 
+`bulge_pokes_out()` (`code/look.dm`) answers what of the penis a drawn look still shows, for the interactions that ask
+for it (`self_pokes_out`, `target_pokes_out`) and anything else: `BULGE_POKES_PAST_CLOTH` while some of it is drawn
+over the cloth (`bulge_anatomy_mask`: the tip or head past the garment, what a printed patch leaves bare, the shaft over
+a revealing skirt), `BULGE_POKES_UNDER_COVER` while it is drawn behind a cover cut or lifted for it
+(`bulge_anatomy_behind` on a cover drawn cut: a revealing skirt or a loincloth, hard), NONE otherwise. Any pixel the
+look draws counts, in any facing. It reads a few of the look's vars, so it follows the layering and suits as the
+renderer does. Two looks it does not answer exactly, as the look does not record what of them shows: a penis drawn
+behind a cover not cut for it (a skirt half hard, a long curtain skirt) shows wherever it reaches past the cover, below
+the hem or past the curtain, and is not counted; and the smallest Tentacled (Alt) penis under a hard loincloth counts as
+under the cover, though its drape hides all of it. Answering those exactly would take a test of each such look's pixels.
+
 Layered above the underwear, the penis is exposed instead (mal, 2026-10-04): Nova's `covered_by_clothing()`
 (`lewd_organs/_genital.dm`) does not count the undershirt, underwear or bra over a genital set to Custom "Above
 underwear", which is drawn over them, so `is_exposed()` offers it to the plain interactions (and to portals, examine and
@@ -70,7 +81,8 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
 ### Files
 
 - `code/bulge.dm`: the penis overlay's virtuals, the look's vars, the size rules, the images a look draws.
-- `code/look.dm`: resolving a look: the cover, the suit's verdict, the cloth colour, printed or adaptive.
+- `code/look.dm`: resolving a look: the cover, the suit's verdict, the cloth colour, printed or adaptive; what of the
+  penis a look shows (`bulge_pokes_out()`).
 - `code/cut_cover.dm`: drawing a revealing cover cut. `code/redraw.dm`: redrawing on an erection or a new length.
 - `code/print_derivation.dm`: the icons derived on the server: printed patches, kind masks, anatomy kept to a mask,
   cut covers, a cover's blood kept to the cloth.
@@ -92,9 +104,9 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
   `mutant_bodypart_overlay.dm` and in pod hair's colouring (`pod.dm`); the Nude bra building no appearance (Nova's
   `bras.dm`) and the bra block adding only a built bra (`human_update_icons.dm`, inside Nova's markers);
   underclothes not covering a genital layered above them, in Nova's `covered_by_clothing()` (`_genital.dm`); and the
-  bulge interaction requirements, `INTERACTION_REQUIRE_SELF_BULGE` and `INTERACTION_REQUIRE_TARGET_BULGE` in Nova's
-  `~nova_defines/interactions.dm`, checked in Nova's `interaction_datum.dm`, which also fills in the
-  `%[role]_BULGE_COVER%` token.
+  bulge interaction requirements, `INTERACTION_REQUIRE_SELF_BULGE` and `INTERACTION_REQUIRE_TARGET_BULGE` and their
+  `_POKES_OUT` pair, in Nova's `~nova_defines/interactions.dm`, checked in Nova's `interaction_datum.dm`, which also
+  fills in the `%[role]_BULGE_COVER%` token, and relayed by Nova's portals (`lewd_portals.dm`).
 
 ### Adding a garment
 
