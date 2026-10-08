@@ -181,7 +181,7 @@ export function SpecimenViewer(props: Props) {
           <Button
             icon="sync-alt"
             selected={spinning}
-            tooltip={spinning ? 'Stop turntable' : 'Turntable'}
+            tooltip={spinning ? 'Stop spinning' : 'Start spinning'}
             tooltipPosition="bottom"
             onClick={() => setSpinning(!spinning)}
           />

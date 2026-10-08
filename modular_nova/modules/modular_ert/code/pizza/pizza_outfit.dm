@@ -1,3 +1,12 @@
+/obj/item/storage/box/ingredients/italian
+	theme_name = "italian"
+
+/obj/item/storage/box/ingredients/italian/PopulateContents()
+	for(var/i in 1 to 3)
+		new /obj/item/food/grown/tomato(src)
+		new /obj/item/food/meatball(src)
+	new /obj/item/reagent_containers/cup/glass/bottle/wine(src)
+
 /datum/outfit/centcom/ert/pizza //da pizza for you and me
 	name = "Pizza Delivery Boy"
 	id = /obj/item/card/id/advanced/centcom/ert

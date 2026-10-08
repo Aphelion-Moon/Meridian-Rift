@@ -2,19 +2,37 @@
 	digitigrade_customization = DIGITIGRADE_NEVER
 
 // The fish tail is the Cerulean's lower body, so there are no tail or legs choices to make.
+// Frills and snout offer the fish styles (Aquatic, Fish) without mismatched parts.
 /datum/species/human/cerulean/get_default_mutant_bodyparts()
 	return list(
 		FEATURE_EARS = MUTPART_BLUEPRINT(SPRITE_ACCESSORY_NONE, is_randomizable = FALSE),
+		FEATURE_FRILLS = MUTPART_BLUEPRINT(SPRITE_ACCESSORY_NONE, is_randomizable = FALSE),
+		FEATURE_SNOUT = MUTPART_BLUEPRINT(SPRITE_ACCESSORY_NONE, is_randomizable = FALSE),
 		FEATURE_WINGS = MUTPART_BLUEPRINT(SPRITE_ACCESSORY_NONE, is_randomizable = FALSE),
 	)
+
+// Frills come from the mutant bodyparts, in the tail's colour, and the preview wears no snout.
+/datum/species/human/cerulean/prepare_human_for_preview(mob/living/carbon/human/cerulean)
+	cerulean.set_haircolor("#C2DFED", update = FALSE)
+	cerulean.set_hairstyle(/datum/sprite_accessory/hair/highponytail::name, update = TRUE)
+	var/tail_color = cerulean.dna.features[FEATURE_TAIL_FISH_COLOR]
+	cerulean.dna.mutant_bodyparts[FEATURE_FRILLS] = build_mutant_part(/datum/sprite_accessory/frills/aquatic::name, list(tail_color, tail_color, tail_color))
+	regenerate_organs(cerulean, excluded_zones = GLOB.leg_zones)
+	cerulean.update_body(is_creating = TRUE)
+
+// Nova's get_features() has no relevant_organ check, which is how upstream offers the tail colour to Ceruleans.
+/datum/species/human/cerulean/get_features()
+	var/list/features = ..()
+	features |= /datum/preference/color/fish_tail_color::savefile_key
+	return features
 
 /obj/item/organ/tail/fish/cerulean
 	// Not a styled tail: it neither writes nor clears the DNA's tail entry, which the DNA pass would swap it for.
 	mutantpart_key = null
 
 /obj/item/organ/frills/on_mob_insert(mob/living/carbon/organ_owner, special, movement_flags)
-	// Frills without a colour of their own wear the Cerulean's tail colour: a player with no frills preference
-	// (mismatched parts off), or a body spawned without preferences. Nova's insert hook then stores it in the DNA.
+	// Frills without a colour of their own, as on a body spawned without preferences, wear the Cerulean's tail colour.
+	// Nova's insert hook then stores it in the DNA.
 	if(organ_owner.dna && isnull(organ_owner.dna.mutant_bodyparts[FEATURE_FRILLS]) && organ_owner.has_cerulean_tail())
 		var/tail_color = organ_owner.dna.features[FEATURE_TAIL_FISH_COLOR]
 		bodypart_overlay.draw_color = list(tail_color, tail_color, tail_color)
@@ -36,12 +54,6 @@
 	frills_part?.set_colors(colors)
 	frills.bodypart_overlay.draw_color = colors
 	update_body_parts()
-
-/datum/preference/toggle/cerulean_frills/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	// Frills from the mutant part preferences (mismatched parts on) stand. Rebuilding for the aquatic default would delete them.
-	if(target.dna.mutant_bodyparts[FEATURE_FRILLS])
-		return
-	return ..()
 
 /mob/living/carbon/human/species/cerulean/abyss/set_species(datum/species/mrace, icon_update, pref_load, replace_missing, list/override_features, list/override_mutantparts, list/override_markings)
 	. = ..()

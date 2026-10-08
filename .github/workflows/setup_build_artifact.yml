@@ -23,20 +23,20 @@ jobs:
           minor: ${{ inputs.minor }}
 
       - parallel:
-          - name: Setup Bun
-            uses: ./.github/actions/setup_bun
+        - name: Setup Bun
+          uses: ./.github/actions/setup_bun
 
-          - name: Restore or install BYOND
-            uses: ./.github/actions/restore_or_install_byond
-          # APHELION EDIT ADDITION START - Package the painting library with runtime test artifacts.
-          - name: Build painting-store runtime library
-            run: |
-              sudo apt-get update
-              sudo apt-get install --no-install-recommends -y gcc-multilib libc6-dev-i386
-              rustup toolchain install 1.89.0 --profile minimal --target i686-unknown-linux-gnu
-              bash tools/painting_store/build.sh
-        # APHELION EDIT ADDITION END
+        - name: Restore or install BYOND
+          uses: ./.github/actions/restore_or_install_byond
+      # APHELION EDIT ADDITION START - Package the painting library with runtime test artifacts.
+      - name: Build painting-store runtime library
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y gcc-multilib libc6-dev-i386
+          rustup toolchain install 1.89.0 --profile minimal --target i686-unknown-linux-gnu
+          bash tools/painting_store/build.sh
 
+      # APHELION EDIT ADDITION END
       - name: Compile
         run: |
           source $HOME/BYOND/byond/bin/byondsetup

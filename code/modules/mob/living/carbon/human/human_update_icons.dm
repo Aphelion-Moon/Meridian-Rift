@@ -141,8 +141,8 @@ There are several things that need to be remembered:
 			uniform.worn_x_offset = 0
 		// NOVA EDIT ADDITION END
 
-		// APHELION EDIT ADDITION START - Keep the existing upper-only female shaping for digitigrade Vox.
-		if(vox_icon_file && digi && female_sprite_flags)
+		// APHELION EDIT ADDITION START - Upper-only female shaping for digitigrade Vox, and for a Cerulean's tail as for taurs.
+		if(female_sprite_flags && ((vox_icon_file && digi) || (bodyshape & BODYSHAPE_CERULEAN)))
 			female_sprite_flags &= ~FEMALE_UNIFORM_FULL
 			female_sprite_flags |= FEMALE_UNIFORM_TOP_ONLY
 		// APHELION EDIT ADDITION END
@@ -672,7 +672,7 @@ There are several things that need to be remembered:
 #define FEMALE_RELEVANT_BODYSHAPE (BODYSHAPE_DIGITIGRADE | BODYSHAPE_TAUR)
 /// Modifies a sprite slightly to conform to female body shapes
 /proc/wear_female_version(icon_state, icon_file_path, icon, type, greyscale_colors, bodyshape)
-	var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]"
+	var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]-[type]-[bodyshape & BODYSHAPE_DIGITIGRADE]" // APHELION EDIT CHANGE - Key by the mask: taurs and Ceruleans ask for the top-only cut of the same state - ORIGINAL: var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]"
 	var/static/list/female_clothing_icons = list()
 	var/icon/female_clothing_icon = female_clothing_icons[index]
 	if(!female_clothing_icon) //Create standing/laying icons if they don't exist

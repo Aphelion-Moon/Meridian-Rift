@@ -801,6 +801,11 @@
 	var/datum/sprite_accessory/taur/taur = SSaccessories.sprite_accessories[FEATURE_TAUR][read_preference(/datum/preference/choiced/mutant_choice/taur)]
 	return taur?.has_tail
 
+/// Returns whether these preferences give the character a taur body.
+/datum/preferences/proc/has_taur_body()
+	var/datum/preference/choiced/mutant_choice/taur/taur_preference = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
+	return taur_preference.is_visible(preferences = src) && is_factual_sprite_accessory(FEATURE_TAUR, read_preference(/datum/preference/choiced/mutant_choice/taur))
+
 /// Xenodorsal
 
 /datum/preference/toggle/mutant_toggle/xenodorsal
