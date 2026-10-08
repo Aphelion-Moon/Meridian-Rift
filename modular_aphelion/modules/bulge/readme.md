@@ -49,11 +49,15 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
 - **Revealing skirts and loincloths, when hard:** the cover is drawn with its lifted flap cut away (the uniform and
   underwear renders call `bulge_cut_worn()`), and the penis shows through it: under a loincloth's drape, or behind
   the skirt and over its cloth inside the skirt's clearance.
-- **Sizes 5 to 8:** the penis shows over the cloth inside the shape's exposed mask. The large heart boxers draw their
-  patch in place of the boxers' shape, over the same bare part of the penis: the patch drawn for that penis shape's
-  profile where the sheet has one (and for its untoned sprites, where they differ), else the human penis's. The
-  tentacles, and Nondescript (Alt), Tapered (Alt) and Hemi (Alt) past their `print_cap` (4), draw the size 4 shape
-  and its print under them instead (mal, 2026-10-06).
+- **Sizes 5 to 8:** the penis shows over the cloth inside the shape's exposed mask. Facing east and west, every penis
+  shape but the human one takes mal's amendments to the derived shape (2026-10-06 under the heart boxers, 2026-10-08
+  in every family): no curtain under the tip, the head held below the waistband where it pokes out above it, a
+  one-row dip of the shaft below the hem covered, and gaps of one or two pixels in the cloth filled. The large heart
+  boxers draw their patch in place of the boxers' shape, over the same bare part of the penis: the patch drawn for
+  that penis shape's profile where the sheet has one (and for its untoned sprites, where they differ), else the human
+  penis's. The tentacles, and Nondescript (Alt), Tapered (Alt) and Hemi (Alt) past their `print_cap` (4), draw the
+  family's small_cap shape (and its print) instead, in every family (mal, 2026-10-06 under the heart boxers,
+  2026-10-08 everywhere).
 - **Templates:** the shapes up to a family's small_cap, the skirts' clearances and flaps, and the large heart boxers'
   patches are read from the template sheets. Past small_cap the shapes, the anatomy each leaves bare, and a hard
   loincloth's drape and cut have no sheet: they are derived on the server from the game's own penis, testicle and
@@ -115,11 +119,12 @@ five kind greys, and run `python tools/bulge_assets.py verify`, then `python too
 sheet that is not an 8-bit palette PNG: Dream Maker re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot
 read. A garment look that no family's shapes give is a new family subtype in `code/families.dm`.
 
-Past small_cap nothing is drawn: a family's shapes there follow from its vars (`top_row`, `hem`, `contained`,
-`curtain`, `long`, `large_digi_forms`) and the penis sprites, and its loincloth drapes and cuts from its loincloth vars
-and its own sprite. A change to those vars changes bulges on screen: `bulge_derivation` then fails against its frozen
-record, and the full corpus shows what changed. Once mal has approved it, record the new value the test prints in
-`BULGE_DERIVATION_RECORD` (`code/modules/unit_tests/~nova/bulge_templates.dm`).
+Past small_cap nothing is drawn: a family's shapes there follow from its vars (`top_row`, `hem`, `contained`, `curtain`,
+`long`, `large_digi_forms`) and the penis sprites, with mal's amendments for every penis shape but the human one
+(`bulge_derive_large()`), and its loincloth drapes and cuts from its loincloth vars and its own sprite. A change to
+those vars changes bulges on screen: `bulge_derivation` then fails against its frozen record, and the full corpus shows
+what changed. Once mal has approved it, record the new value the test prints in `BULGE_DERIVATION_RECORD`
+(`code/modules/unit_tests/~nova/bulge_templates.dm`).
 
 ### Adding a penis shape
 
@@ -133,7 +138,7 @@ its bulges, the anatomy they leave bare and the loincloths' drapes are derived f
 - its caps: `max_sprite_size_affix`, and `skintone_max_sprite_size_affix` where its skin-toned sprites stop sooner;
 - in `code/templates.dm`, `bulge_untoned = TRUE` when its untoned sprites draw differently, or `bulge_hyper = FALSE`,
   as the tentacles have, when it should draw the small_cap shape past small_cap and show no anatomy; and `print_cap`
-  below 8 when past it the large heart boxers should draw it so too (their size 4 shape and its print).
+  below 8 when past it every family should draw it so too (its small_cap shape, and its print where printed).
 
 Under the large heart boxers it draws the human penis's patch, unless `printed_patches.dmi` has patches named for its
 icon state (and `_untoned` ones where its untoned sprites draw differently), hand-drawn for its profile

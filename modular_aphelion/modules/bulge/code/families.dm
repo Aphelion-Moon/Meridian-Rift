@@ -55,8 +55,8 @@
 	/// Sizes past small_cap (BULGE_SIZE_BIT()) at which the cloth still holds the whole penis below top_row: only its head
 	/// shows, below the hem when half hard and at the tip facing east and west when hard.
 	var/contained = NONE
-	/// Sizes past small_cap at which the hard bulge hangs a curtain of cloth from the tip down to the hem, facing east and
-	/// west.
+	/// Sizes past small_cap at which the hard bulge of the human penis hangs a curtain of cloth from the tip down to the
+	/// hem, facing east and west (every other penis shape takes mal's amendments there: bulge_derive_large()).
 	var/curtain = NONE
 	/// Long legs: past small_cap the cloth holds the whole penis below top_row and never bares the head of a half-hard
 	/// one, which it presses flat along the thigh, facing east and west.

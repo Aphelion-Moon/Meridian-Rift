@@ -110,8 +110,9 @@ GLOBAL_LIST(bulge_sheet_states)
 	var/bulge_hyper = TRUE
 	/// Whether this shape drawn without skin tones has bulge shapes of its own: its untoned sprites draw differently.
 	var/bulge_untoned = FALSE
-	/// The largest bulge size a garment with precoloured printed patches (the large heart boxers) draws this shape's
-	/// own look at; past it, the family's small_cap shape and its print (bulge_shape_size()): mal, 2026-10-06.
+	/// The largest bulge size a garment draws this shape's own look at; past it, the family's small_cap shape, and its
+	/// print where the garment is printed (bulge_shape_size()): mal, 2026-10-06 under the large heart boxers, 2026-10-08
+	/// in every family.
 	var/print_cap = 8
 
 /datum/sprite_accessory/genital/penis/human/alt
@@ -294,14 +295,14 @@ GLOBAL_LIST(bulge_sheet_states)
  * The size whose shape a family draws for a bulge of `size` on a penis shape: bulge_family_size(), except that past the
  * family's small_cap, where shapes follow the penis shape, a shape with none of its own (bulge_hyper FALSE, the
  * tentacles) draws the family's small_cap shape, as any other shape draws at that size, and so does a shape past its
- * print_cap under a family with precoloured printed patches (the large heart boxers); 0 for none.
+ * print_cap (Nondescript (Alt), Tapered (Alt) and Hemi (Alt)); 0 for none.
  */
 /proc/bulge_shape_size(datum/bulge_family/family, hard, size, datum/sprite_accessory/genital/penis/shape)
 	size = bulge_family_size(family, hard, size)
 	if(!size)
 		return 0
 	var/small_cap = initial(family.small_cap)
-	if(size > small_cap && ispath(shape, /datum/sprite_accessory/genital/penis) && (!initial(shape.bulge_hyper) || (initial(family.printed_patches) && size > initial(shape.print_cap))))
+	if(size > small_cap && ispath(shape, /datum/sprite_accessory/genital/penis) && (!initial(shape.bulge_hyper) || size > initial(shape.print_cap)))
 		return small_cap
 	return size
 
@@ -413,9 +414,11 @@ GLOBAL_LIST(bulge_sheet_states)
  * Derives a shape past small_cap from the penis and testicle sprites by the approved rule (the preview pipeline's
  * hyper.py, ported exactly, in whole numbers): the cloth the bulge pushes out, as a kind map, or with `mask` the anatomy
  * it leaves bare, as a white mask (null where it covers the whole penis). Pixels facing south, east and west, in the
- * order bulge_decode_template() reads a sheet, as the sheet states it replaced held them. The kind map is kept for the
- * round, by its name, with the decoded templates; the mask is not (bulge_exposed() keeps the tile drawn from it).
- * Arguments as bulge_large_name(): `owner` is the family whose shapes past small_cap these are.
+ * order bulge_decode_template() reads a sheet, as the sheet states it replaced held them; facing east and west, every
+ * penis shape but the human one takes mal's amendments to that rule (see below), and its mask is what the amended
+ * cloth leaves bare. The kind map is kept for the round, by its name, with the decoded templates; the mask is not
+ * (bulge_exposed() keeps the tile drawn from it). Arguments as bulge_large_name(): `owner` is the family whose shapes
+ * past small_cap these are.
  */
 /proc/bulge_derive_large(datum/bulge_family/owner, hard, size, digi, datum/sprite_accessory/genital/penis/shape, toned, mask)
 	SHOULD_NOT_SLEEP(TRUE)
@@ -531,6 +534,78 @@ GLOBAL_LIST(bulge_sheet_states)
 			else if(row > hem)
 				continue
 			grid[at] = TRUE
+		// mal's amendments (2026-10-06 under the heart boxers, 2026-10-08 in every family), facing east and west, for
+		// every penis shape but the human one, whose shapes are the approved art: no curtain (below); then, hard, where
+		// the cloth holds the penis and its head pokes out above top_row, the head's pixels below top_row are cloth but
+		// the two farthest out on top_row; or, hard, where the shaft's underside dips one row below the cloth and nowhere
+		// deeper, that row is cloth; then gaps of one or two pixels between cloth pixels in a row or a column are cloth,
+		// until none is left, half hard not a gap in a row alone that opens below (between the testicles and the penis).
+		var/profile = facing != SOUTH && shape != /datum/sprite_accessory/genital/penis/human
+		if(profile)
+			if(hard && contained && tip >= 0)
+				var/head = FALSE
+				for(var/row in 0 to top - 1)
+					if(penis[row * 32 + (facing == WEST ? 31 - tip : tip) + 1])
+						head = TRUE
+						break
+				if(head)
+					var/first = 0
+					var/second = 0
+					for(var/reach = tip; reach >= 0 && !second; reach--)
+						var/at = top * 32 + (facing == WEST ? 31 - reach : reach) + 1
+						if(penis[at])
+							if(first)
+								second = at
+							else
+								first = at
+					for(var/reach in max(tip - 2, 0) to tip)
+						for(var/at = top * 32 + (facing == WEST ? 31 - reach : reach) + 1; at <= 1024; at += 32)
+							if(penis[at] && at != first && at != second)
+								grid[at] = TRUE
+			else if(hard && !contained)
+				var/list/run
+				var/overflow = FALSE
+				for(var/column in 0 to 31)
+					for(var/row = 31; row >= top; row--)
+						var/at = row * 32 + column + 1
+						if(!grid[at])
+							continue
+						if(row < 31 && penis[at + 32])
+							if(row < 30 && penis[at + 64])
+								overflow = TRUE
+							LAZYADD(run, at + 32)
+						break
+				if(!overflow)
+					for(var/at in run)
+						grid[at] = TRUE
+			// The gaps, filled as a pass over the cloth meets them, until a pass fills none: as filling one never keeps
+			// another from being filled, the same cloth as filling each pass's gaps all at once. A pass reads the cloth's
+			// rows (down to the row below the hem, where the cloth is not contained) inside the window the sprites draw in,
+			// which holds all of it. A gap filled off the sprites joins the silhouette, which the kinds are taken over.
+			var/left = facing == EAST ? BULGE_SPRITE_EAST_LEFT : 0
+			var/right = facing == EAST ? 31 : BULGE_SPRITE_WEST_RIGHT
+			var/last = contained ? 31 : min(hem + 1, 31)
+			var/filled = TRUE
+			while(filled)
+				filled = FALSE
+				for(var/row in top to last)
+					for(var/at in row * 32 + left + 1 to row * 32 + right + 1)
+						if(!grid[at])
+							continue
+						var/column = (at - 1) & 31
+						if(column < 30 && !grid[at + 1] && (grid[at + 2] || (column < 29 && grid[at + 3])))
+							for(var/mark in at + 1 to (grid[at + 2] ? at + 1 : at + 2))
+								if(hard || (mark <= 992 && grid[mark + 32]))
+									grid[mark] = TRUE
+									filled = TRUE
+									if(!stacked[mark])
+										silhouette += mark
+						if(row < 30 && !grid[at + 32] && (grid[at + 64] || (row < 29 && grid[at + 96])))
+							for(var/mark in at + 32 to (grid[at + 64] ? at + 32 : at + 64) step 32)
+								grid[mark] = TRUE
+								filled = TRUE
+								if(!stacked[mark])
+									silhouette += mark
 		var/list/found
 		if(mask)
 			// The bare anatomy: what the cloth leaves of the anatomy as drawn bare.
@@ -543,17 +618,19 @@ GLOBAL_LIST(bulge_sheet_states)
 			// The cloth's kinds: its top edge light (the head of the penis under it highlit: hard, its last two columns
 			// facing east or west and its top two rows facing south; half hard, its two lowest rows), its bottom edge in
 			// shade, and inside it the luminance of what it covers, ranked between the darkest and the brightest:
-			// light above 0.82, shade below 0.18, in whole numbers. The covered penis's reach, top and lowest row:
+			// light above 0.82, shade below 0.18, in whole numbers (a gap filled off the sprites is cloth). The covered
+			// sprite pixels' luminance and the covered penis's reach, top and lowest row:
 			var/lo = 0
 			var/hi = 0
 			var/outer = -1
 			var/highest = 32
 			var/lowest = -1
 			for(var/at in silhouette)
-				if(!grid[at])
+				var/lum = stacked[at]
+				if(!lum || !grid[at])
 					continue
-				lo = lo ? min(lo, stacked[at]) : stacked[at]
-				hi = max(hi, stacked[at])
+				lo = lo ? min(lo, lum) : lum
+				hi = max(hi, lum)
 				if(penis[at])
 					outer = max(outer, facing == WEST ? 31 - ((at - 1) & 31) : (at - 1) & 31)
 					highest = min(highest, (at - 1) >> 5)
@@ -571,14 +648,16 @@ GLOBAL_LIST(bulge_sheet_states)
 							kind = BULGE_KIND_HIGHLIGHT
 				else if(row == 31 || !grid[at + 32])
 					kind = BULGE_KIND_SHADE
-				else
+				else if(stacked[at])
 					var/num = (stacked[at] - lo) * 50
 					kind = num > 41 * span ? BULGE_KIND_LIGHT : (num < 9 * span ? BULGE_KIND_SHADE : BULGE_KIND_CLOTH)
+				else
+					kind = BULGE_KIND_CLOTH
 				grid[at] = kind
-			if(curtain && facing != SOUTH && outer >= 0)
-				// A curtain: from the thigh's front at the hem (its base) to the tip, cloth hangs from what covers each column
-				// (or from below the tip) down a curve to the hem; cloth off the covered penis at the curtain's outer side
-				// or its bottom is in shade.
+			if(curtain && !profile && facing != SOUTH && outer >= 0)
+				// A curtain (the human penis's alone): from the thigh's front at the hem (its base) to the tip, cloth hangs
+				// from what covers each column (or from below the tip) down a curve to the hem; cloth off the covered penis
+				// at the curtain's outer side or its bottom is in shade.
 				var/sign = facing == EAST ? 1 : -1
 				var/base = hem <= 21 ? 19 : (hem == 22 ? 18 : 17)
 				var/list/pen = new /list(1024)

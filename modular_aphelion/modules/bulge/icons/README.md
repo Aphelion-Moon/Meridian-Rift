@@ -18,7 +18,7 @@ and cut are derived at run time from the game's own penis, testicle and loinclot
 | `skirt_shapes` | 186 | every skirt style, and each revealing skirt's own hem where it differs |
 | `skirt_clearance` | 42 | where a skirt's shaft shows above the cloth; an empty state draws the anatomy behind the skirt only |
 | `skirt_flaps` | 54 | the flap a revealing skirt lifts away when hard |
-| `printed_patches` | 212 | the large heart boxers, sizes 5 to 8 (196 for the profiles of the other penis shapes), made by the print rule and approved by mal |
+| `printed_patches` | 214 | the large heart boxers, sizes 5 to 8 (198 for the profiles of the other penis shapes), made by the print rule and approved by mal |
 
 A shape is a kind map: each kind of pushed-out cloth in its own grey, the approved shading over mid-grey cloth, so a
 sheet shows the bulges as they look on grey cloth. Cloth `#808080`, light `#a3a3a3`, highlight `#b7b7b7`, shade
@@ -43,14 +43,15 @@ sheet shows the bulges as they look on grey cloth. Cloth `#808080`, light `#a3a3
   appended, for example `heart_boxers_hard_7_plain_knotted`, and `_untoned` after that for a shape drawn without skin
   tones whose untoned sprites draw differently (`bulge_untoned`), where its untoned profile needs a patch of its own:
   Human (Alt) half and hard 6 to 8, for example `heart_boxers_hard_7_plain_human_alt_untoned`; untoned at 5 it draws
-  its skin-toned patch. Every other penis shape has its own (196 states) where its profile facing east and west needs
+  its skin-toned patch. Every other penis shape has its own (198 states) where its profile facing east and west needs
   one: drawn there along the anatomy the shape leaves bare, north and south copied from the human patch. Where the
   penis reaches below the hem (the shaft's underside, hard 6 to 8, in the knotted, barbknot, flared, hemiknot and
   tapered profiles), the cloth covers it too, as the boxers' leg hangs over it, and at hard 5 the cloth ends at the
-  shaft's lower outline, with no curtain below it (mal, 2026-10-06). The tentacles, and Nondescript (Alt), Tapered
-  (Alt) and Hemi (Alt), whose `print_cap` is 4 (`code/templates.dm`; mal, 2026-10-06), have none: under the heart
-  boxers they draw the size 4 shape and its print at every size. Each frame is 32x10, the tile's whole width from row
-  20 to row 29 counted from the top (the patches reach row 28).
+  shaft's lower outline, with no curtain below it (mal, 2026-10-06); knotted hard 6 has its own patch for that row
+  (mal, 2026-10-08). The tentacles, and Nondescript (Alt), Tapered (Alt) and Hemi (Alt), whose `print_cap` is 4
+  (`code/templates.dm`; mal, 2026-10-06), have none: in every family they draw the family's small_cap shape past it,
+  and under the heart boxers its print, at every size. Each frame is 32x10, the tile's whole width from row 20 to row
+  29 counted from the top (the patches reach row 28).
 
 `<shapes>` and `<drapes>` are the family's vars in `code/families.dm`. A family that draws another family's shapes
 by design names it there (`half_shapes_of`, `hard_shapes_of`, `large_shapes_of`); a garment whose approved look
