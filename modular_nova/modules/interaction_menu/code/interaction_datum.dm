@@ -125,6 +125,12 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 			if(INTERACTION_REQUIRE_TARGET_BULGE)
 				if(!target.has_bulge())
 					return FALSE
+			if(INTERACTION_REQUIRE_SELF_POKES_OUT)
+				if(!user.bulge_pokes_out())
+					return FALSE
+			if(INTERACTION_REQUIRE_TARGET_POKES_OUT)
+				if(!target.bulge_pokes_out())
+					return FALSE
 			if(INTERACTION_REQUIRE_SELF_CAGED)
 				if(!user.get_blocking_device(ORGAN_SLOT_PENIS))
 					return FALSE

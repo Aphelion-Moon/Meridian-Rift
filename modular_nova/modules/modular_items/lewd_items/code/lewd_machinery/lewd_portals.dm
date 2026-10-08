@@ -174,14 +174,15 @@ GLOBAL_LIST_INIT(portal_visual_signals, list(
 	for(var/part in (as_user ? interaction.user_required_parts : interaction.target_required_parts))
 		if(part in relayed_parts[portal_mode])
 			return TRUE
-	// A bulge or a chastity device sits where the penis or vagina does, so it goes wherever they do.
+	// A bulge (and what of the penis pokes out of it) or a chastity device sits where the penis or vagina does, so it
+	// goes wherever they do.
 	var/static/list/relayed_requirements = list(
-		GLORYHOLE = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_CAGED),
-		WALLSTUCK = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_CAGED, INTERACTION_REQUIRE_TARGET_BELTED),
+		GLORYHOLE = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_POKES_OUT, INTERACTION_REQUIRE_TARGET_CAGED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_TARGET_BULGE, INTERACTION_REQUIRE_TARGET_POKES_OUT, INTERACTION_REQUIRE_TARGET_CAGED, INTERACTION_REQUIRE_TARGET_BELTED),
 	)
 	var/static/list/relayed_user_requirements = list(
-		GLORYHOLE = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_CAGED),
-		WALLSTUCK = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_CAGED, INTERACTION_REQUIRE_SELF_BELTED),
+		GLORYHOLE = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_POKES_OUT, INTERACTION_REQUIRE_SELF_CAGED),
+		WALLSTUCK = list(INTERACTION_REQUIRE_SELF_BULGE, INTERACTION_REQUIRE_SELF_POKES_OUT, INTERACTION_REQUIRE_SELF_CAGED, INTERACTION_REQUIRE_SELF_BELTED),
 	)
 	for(var/requirement in interaction.interaction_requires)
 		if(requirement in (as_user ? relayed_user_requirements : relayed_requirements)[portal_mode])

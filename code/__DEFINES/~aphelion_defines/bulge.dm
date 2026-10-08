@@ -50,3 +50,10 @@
 /// The name the cloth a bulge draws carries: it is clothing, so the textures a limb draws its skin with skip it
 /// (/obj/item/bodypart/proc/get_limb_icon()).
 #define BULGE_CLOTH_NAME "bulge cloth"
+
+// What of a penis drawn as a bulge still shows, as bits (/mob/living/carbon/human/proc/bulge_pokes_out()).
+/// Some of it is drawn over the cloth: the tip or head past the garment, what a printed patch leaves bare, the shaft
+/// over a revealing skirt.
+#define BULGE_POKES_PAST_CLOTH (1<<0)
+/// It is drawn behind a cover cut or lifted for it: a revealing skirt or a loincloth, hard.
+#define BULGE_POKES_UNDER_COVER (1<<1)

@@ -13,6 +13,10 @@
 /// A penis shown as a bulge: true while its bulge look is drawn (has_bulge()).
 #define INTERACTION_REQUIRE_SELF_BULGE "self_bulge"
 #define INTERACTION_REQUIRE_TARGET_BULGE "target_bulge"
+/// A bulge that still shows some of the penis: drawn over the cloth, or behind a cover cut or lifted for it
+/// (bulge_pokes_out()).
+#define INTERACTION_REQUIRE_SELF_POKES_OUT "self_pokes_out"
+#define INTERACTION_REQUIRE_TARGET_POKES_OUT "target_pokes_out"
 /// A penis closed off by a worn device, like a chastity cage.
 #define INTERACTION_REQUIRE_SELF_CAGED "self_caged"
 #define INTERACTION_REQUIRE_TARGET_CAGED "target_caged"
