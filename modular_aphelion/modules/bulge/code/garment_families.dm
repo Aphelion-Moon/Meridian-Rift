@@ -344,7 +344,7 @@
 
 /obj/item/clothing/under/rank/civilian/clown/clown_bunnysuit
 	bulge_family = /datum/bulge_family/long_johns
-	bulge_printed = FALSE // A reset: its parent is printed.
+	bulge_printed = FALSE // Not printed, though /obj/item/clothing/under/rank/civilian/clown is.
 
 /obj/item/clothing/under/rank/civilian/cook_bunnysuit
 	bulge_family = /datum/bulge_family/long_johns

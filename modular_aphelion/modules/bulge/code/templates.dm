@@ -536,10 +536,11 @@ GLOBAL_LIST(bulge_sheet_states)
 			grid[at] = TRUE
 		// mal's amendments (2026-10-06 under the heart boxers, 2026-10-08 in every family), facing east and west, for
 		// every penis shape but the human one, whose shapes are the approved art: no curtain (below); then, hard, where
-		// the cloth holds the penis and its head pokes out above top_row, the head's pixels below top_row are cloth but
-		// the two farthest out on top_row; or, hard, where the shaft's underside dips one row below the cloth and nowhere
-		// deeper, that row is cloth; then gaps of one or two pixels between cloth pixels in a row or a column are cloth,
-		// until none is left, half hard not a gap in a row alone that opens below (between the testicles and the penis).
+		// the cloth holds the penis and its head pokes out above top_row, the head's pixels from top_row down are cloth
+		// but the two farthest out on top_row; or, hard, where the shaft's underside dips one row below the cloth and
+		// nowhere deeper, that row is cloth; then gaps of one or two pixels between cloth pixels in a row or a column
+		// are cloth, until none is left, half hard not a gap in a row alone that opens below (between the testicles and
+		// the penis).
 		var/profile = facing != SOUTH && shape != /datum/sprite_accessory/genital/penis/human
 		if(profile)
 			if(hard && contained && tip >= 0)
