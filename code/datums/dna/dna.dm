@@ -204,7 +204,7 @@ GLOBAL_LIST_INIT(total_uf_len_by_block, populate_total_uf_len_by_block())
 		. += block.unique_block(holder)
 
 /datum/dna/proc/generate_unique_features()
-	/* APHELION EDIT REMOVAL START
+	/* // APHELION EDIT REMOVAL START
 	. = ""
 	for(var/block_type in GLOB.dna_feature_blocks)
 		var/datum/dna_block/feature/block = GLOB.dna_feature_blocks[block_type]
