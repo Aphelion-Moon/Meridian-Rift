@@ -45,20 +45,20 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
   matrix or filter carries no print: its cloth is sampled from the untreated sprite and drawn through the same filter.
 - **Printed garments** (mal's printed selections and every reviewed skirt): one patch derived on the server from the
   sprite the garment is drawn with, by the approved print rule, so it follows recolours, species fits and digitigrade
-  sprites. Printed loose boxers, briefs, jeans and track pants keep it to size 8, on the shapes past small_cap
-  (`print_cap`; mal, 2026-10-08); the large heart boxers draw their precoloured patches instead.
+  sprites. Printed loose boxers, briefs, jeans and track pants keep it past size 4, to size 8 (`print_cap`; mal,
+  2026-10-08); the large heart boxers draw their precoloured patches instead.
 - **Revealing skirts and loincloths, when hard:** the cover is drawn with its lifted flap cut away (the uniform and
   underwear renders call `bulge_cut_worn()`), and the penis shows through it: under a loincloth's drape, or behind
   the skirt and over its cloth inside the skirt's clearance.
 - **Sizes 5 to 8:** the penis shows over the cloth inside the shape's exposed mask. Facing east and west, every penis
   shape but the human one takes mal's amendments to the derived shape (2026-10-06 under the heart boxers, 2026-10-08
-  in every family): no curtain under the tip, the head held below the waistband where it pokes out above it, a
-  one-row dip of the shaft below the hem covered, and gaps of one or two pixels in the cloth filled. The large heart
-  boxers draw their patch in place of the boxers' shape, over the same bare part of the penis: the patch drawn for
-  that penis shape's profile where the sheet has one (and for its untoned sprites, where they differ), else the human
-  penis's. The tentacles, and Nondescript (Alt), Tapered (Alt) and Hemi (Alt) past their `print_cap` (4), draw the
-  family's small_cap shape (and its print) instead, in every family (mal, 2026-10-06 under the heart boxers,
-  2026-10-08 everywhere).
+  in every family): no curtain under the tip, the head covered from the waistband down where it pokes out above it
+  (but for its two outermost pixels on the waistband), a one-row dip of the shaft below the hem covered, and gaps of
+  one or two pixels in the cloth filled. The large heart boxers draw their patch in place of the boxers' shape, over
+  the same bare part of the penis: the patch drawn for that penis shape's profile where the sheet has one (and for
+  its untoned sprites, where they differ), else the human penis's. The tentacles, and Nondescript (Alt), Tapered
+  (Alt) and Hemi (Alt) past their `print_cap` (4), draw the family's small_cap shape (and its print) instead, in
+  every family (mal, 2026-10-06 under the heart boxers, 2026-10-08 everywhere).
 - **Templates:** the shapes up to a family's small_cap, the skirts' clearances and flaps, and the large heart boxers'
   patches are read from the template sheets. Past small_cap the shapes, the anatomy each leaves bare, and a hard
   loincloth's drape and cut have no sheet: they are derived on the server from the game's own penis, testicle and

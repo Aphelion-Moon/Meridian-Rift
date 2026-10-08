@@ -24,7 +24,9 @@
 /// Print templates by "[sheet]|[state]", or by name for a derived one (templates.dm): /datum/bulge_print_template. Lazy.
 GLOBAL_LIST(bulge_print_templates)
 /// Printed patches by "[sprite ref]|[state]|[template key]", with "|[colour]" for a tinted sprite: a registered icon,
-/// or FALSE when the sprite has no print to carry. Lazy; its length counts the failed requests too.
+/// or FALSE when the sprite has no print to carry. Lazy; its length counts the failed requests too. A printed sprite,
+/// state and colour gets at most one patch per shape its family prints: the sheet shapes to small_cap, and past it to
+/// print_cap the shapes derived for the family (96 for loose boxers and for briefs, 33 for jeans, 144 for track pants).
 GLOBAL_LIST(bulge_print_patches)
 /// Cut covers by "[sprite ref]|[state]|[flap key]" or "[sprite ref]|[state]||[cut name]": a registered icon, or FALSE
 /// when nothing could be cut. Lazy.
