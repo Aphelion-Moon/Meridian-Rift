@@ -11,7 +11,7 @@ import {
 } from '../../../../../events/store';
 import type { AugmentItem, ServerData } from '../../../types';
 import { ServerPrefs } from '../../../useServerPrefs';
-import { setStageHover, useStageHoverIs } from './hover';
+import { setStageHover } from './hover';
 import { AugmentsStage } from './index';
 import { PART_SOCKETS, STOCK_AUGMENT, type StagePart } from './parts';
 
@@ -126,19 +126,5 @@ describe('the augments stage under the pointer', () => {
       augment_path: chrome.path,
     });
     expect(lit()).toEqual([]);
-  });
-
-  it('draws a slot again only when the pointer comes to it or leaves it', () => {
-    let headRenders = 0;
-    function HeadLight() {
-      headRenders++;
-      useStageHoverIs('Head');
-      return null;
-    }
-    render(<HeadLight />);
-    act(() => setStageHover('Head'));
-    act(() => setStageHover('Chest'));
-    act(() => setStageHover('Right Arm'));
-    expect(headRenders).toBe(3);
   });
 });

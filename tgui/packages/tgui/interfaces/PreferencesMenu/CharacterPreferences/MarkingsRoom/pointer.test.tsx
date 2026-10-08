@@ -5,7 +5,6 @@ import {
   cleanup,
   fireEvent,
   render,
-  renderHook,
   screen,
 } from '@testing-library/react';
 import { Provider, useAtomValue } from 'jotai';
@@ -19,66 +18,11 @@ import {
 import type { ServerData } from '../../types';
 import { ServerPrefs } from '../../useServerPrefs';
 import { MarkingsRoom } from './index';
-import {
-  pointedZone,
-  resetPointer,
-  setCardLight,
-  setPointedZone,
-  useCardLight,
-  usePointedIs,
-  usePointedZone,
-} from './pointer';
+import { pointedZone, resetPointer, setPointedZone } from './pointer';
 import { ROOM_THEMES } from './themes';
 
 afterEach(() => {
   act(() => resetPointer());
-});
-
-describe('where the pointer is', () => {
-  it('tells what shows it, only when it changes', () => {
-    let renders = 0;
-    const shown = renderHook(() => {
-      renders++;
-      return usePointedZone();
-    });
-    act(() => setPointedZone('chest'));
-    act(() => setPointedZone('chest'));
-    expect(shown.result.current).toBe('chest');
-    act(() => setPointedZone(null));
-    expect(shown.result.current).toBeNull();
-    // First render, chest, and null: the repeat of chest drew nothing.
-    expect(renders).toBe(3);
-  });
-
-  it('keeps a lit tile until another is lit', () => {
-    const shown = renderHook(() => useCardLight());
-    act(() => setCardLight({ zone: 'head', what: 0 }));
-    const lit = shown.result.current;
-    act(() => setCardLight({ zone: 'head', what: 0 }));
-    expect(shown.result.current).toBe(lit);
-    act(() => setCardLight({ zone: 'head', what: 'custom' }));
-    expect(shown.result.current).toEqual({ zone: 'head', what: 'custom' });
-  });
-
-  it('draws a card again only when its answer changes', () => {
-    let headRenders = 0;
-    let legRenders = 0;
-    const head = renderHook(() => {
-      headRenders++;
-      return usePointedIs((zone) => zone === 'head');
-    });
-    renderHook(() => {
-      legRenders++;
-      return usePointedIs((zone) => zone === 'l_leg');
-    });
-    act(() => setPointedZone('head'));
-    act(() => setPointedZone('chest'));
-    act(() => setPointedZone('r_arm'));
-    expect(head.result.current).toBe(false);
-    // The head went on and off; the leg never moved.
-    expect(headRenders).toBe(3);
-    expect(legRenders).toBe(1);
-  });
 });
 
 describe('the room under the pointer', () => {

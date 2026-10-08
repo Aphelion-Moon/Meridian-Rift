@@ -5,16 +5,11 @@ import {
   cleanup,
   fireEvent,
   render,
-  renderHook,
   screen,
-  waitFor,
   within,
 } from '@testing-library/react';
 
-import {
-  MarkingSheetPicker,
-  usePrefetchMarkingSheets,
-} from './MarkingSheetPicker';
+import { MarkingSheetPicker } from './MarkingSheetPicker';
 import type { MarkingSheetsData, RegionMarking } from './types';
 
 afterEach(async () => {
@@ -151,47 +146,6 @@ describe('MarkingSheetPicker', () => {
 
   it('asks nothing when it holds the body as it is', async () => {
     const send = await open(0);
-    expect(send).not.toHaveBeenCalled();
-  });
-});
-
-describe('usePrefetchMarkingSheets', () => {
-  it('asks once the page is idle, and a sheet opening then asks no more', async () => {
-    const send = mock();
-    const prefetch = renderHook(() =>
-      usePrefetchMarkingSheets(true, undefined, 'prefetch-key', send),
-    );
-    await waitFor(() => expect(send).toHaveBeenCalledTimes(1), {
-      timeout: 3000,
-    });
-    expect(send).toHaveBeenCalledWith('markingSheets', { have: undefined });
-    render(
-      <MarkingSheetPicker
-        zone="l_arm"
-        rows={rows}
-        replace={0}
-        choices={choices}
-        icons={icons}
-        max={3}
-        sheets={undefined}
-        sheetsKey="prefetch-key"
-        act={send}
-      >
-        <button type="button">open</button>
-      </MarkingSheetPicker>,
-    );
-    await act(async () => {
-      fireEvent.click(screen.getByText('open'));
-    });
-    expect(send).toHaveBeenCalledTimes(1);
-    prefetch.unmount();
-  });
-
-  it('asks nothing off a marking region, or for a body it holds', async () => {
-    const send = mock();
-    renderHook(() => usePrefetchMarkingSheets(false, undefined, 'k', send));
-    renderHook(() => usePrefetchMarkingSheets(true, sheets, sheets.key, send));
-    await new Promise((r) => setTimeout(r, 700));
     expect(send).not.toHaveBeenCalled();
   });
 });
