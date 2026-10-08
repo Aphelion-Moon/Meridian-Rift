@@ -199,7 +199,8 @@
 
 // ===== Uniforms ======================================================================================================
 
-// Briefs: a cut that ends at the groin. Briefs, panties, bikinis, swimsuits, leotards, bodysuits and bunny suits.
+// Briefs: a cut that ends at the groin. Briefs, panties, bikinis, swimsuits, leotards, bodysuits and costume
+// bunny suits.
 
 /obj/item/clothing/under/bodysuit_koruu
 	bulge_family = /datum/bulge_family/briefs
@@ -249,162 +250,6 @@
 /obj/item/clothing/under/pants/half_leotard_cosmiclaer
 	bulge_family = /datum/bulge_family/briefs
 
-/obj/item/clothing/under/rank/captain/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/cargo/bitrunner/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/cargo/cargo_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/cargo/mailman_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/cargo/miner/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/cargo/quartermaster_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/bartender_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/chaplain_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/clown/clown_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/cook_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/curator_bunnysuit_green
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/curator_bunnysuit_red
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/curator_bunnysuit_teal
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/hop_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/hydroponics/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/janitor/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_black
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_blue
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_good
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_red
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/mime_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/civilian/psychologist_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/engineering/atmos_tech_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/engineering/chief_engineer/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/engineering/engineer_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/medical/chemist/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/medical/cmo_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/medical/coroner_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/medical/doctor_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/medical/paramedic_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/medical/pathologist_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/rnd/geneticist/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/rnd/research_director/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/rnd/scientist/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/rnd/scientist/roboticist_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/security/brig_phys_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/security/detective_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/security/detective_bunnysuit/noir
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/security/head_of_security/bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/security/prisoner_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/security/security_assistant_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/rank/security/security_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
-/obj/item/clothing/under/rank/security/warden_bunnysuit
-	bulge_family = /datum/bulge_family/briefs
-
 /obj/item/clothing/under/syndicate/syndibunny
 	bulge_family = /datum/bulge_family/briefs
 
@@ -451,10 +296,15 @@
 /obj/item/clothing/under/shorts/jeanshorts
 	bulge_family = /datum/bulge_family/jeans
 
+/obj/item/clothing/under/syndicate/rus_army
+	bulge_family = /datum/bulge_family/jeans
+	bulge_printed = TRUE
+
 /obj/item/clothing/under/techpants
 	bulge_family = /datum/bulge_family/jeans
 
-// Long johns: skin-tight legs. Long johns, wetsuits, skinsuits, catsuits and yoga pants.
+// Long johns: skin-tight legs. Long johns, wetsuits, skinsuits, catsuits, yoga pants and the job bunny suits
+// (mal, 2026-10-08).
 
 /obj/item/clothing/under/akula_wetsuit
 	bulge_family = /datum/bulge_family/long_johns
@@ -468,7 +318,134 @@
 /obj/item/clothing/under/pants/nova/yoga
 	bulge_family = /datum/bulge_family/long_johns
 
+/obj/item/clothing/under/rank/captain/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/cargo/bitrunner/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/cargo/cargo_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/cargo/mailman_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/cargo/miner/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/cargo/quartermaster_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/bartender_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/chaplain_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/clown/clown_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+	bulge_printed = FALSE // A reset: its parent is printed.
+
+/obj/item/clothing/under/rank/civilian/cook_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/curator_bunnysuit_green
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/curator_bunnysuit_red
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/curator_bunnysuit_teal
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/hop_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/hydroponics/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/janitor/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_black
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_blue
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_good
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/lawyer_bunnysuit_red
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/mime_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/civilian/psychologist_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/engineering/atmos_tech_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/engineering/chief_engineer/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/engineering/engineer_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/medical/chemist/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/medical/cmo_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/medical/coroner_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/medical/doctor_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/medical/paramedic_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/medical/pathologist_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/rnd/geneticist/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/rnd/research_director/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/rnd/scientist/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/rnd/scientist/roboticist_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/security/brig_phys_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/security/detective_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/security/head_of_security/bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
 /obj/item/clothing/under/rank/security/nova/modskin
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/security/prisoner_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/security/security_assistant_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/security/security_bunnysuit
+	bulge_family = /datum/bulge_family/long_johns
+
+/obj/item/clothing/under/rank/security/warden_bunnysuit
 	bulge_family = /datum/bulge_family/long_johns
 
 /obj/item/clothing/under/skinsuit
@@ -1335,10 +1312,6 @@
 	bulge_family = /datum/bulge_family/track_pants
 
 /obj/item/clothing/under/rank/blueshield/russian
-	bulge_family = /datum/bulge_family/track_pants
-	bulge_printed = TRUE
-
-/obj/item/clothing/under/syndicate/rus_army
 	bulge_family = /datum/bulge_family/track_pants
 	bulge_printed = TRUE
 
