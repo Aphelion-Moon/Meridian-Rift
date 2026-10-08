@@ -19,10 +19,10 @@
 
 	var/icon/changing = icon('icons/blanks/32x32.dmi', "nothing")
 	changing.Scale(64, 64)
-	var/list/before_change = get_icon_dimensions(changing)
+	var/list/before = get_icon_dimensions(changing)
 	changing.Scale(32, 32)
 	var/list/after_change = get_icon_dimensions(changing)
-	TEST_ASSERT_EQUAL(before_change["width"], 64, "An /icon datum must be measured as it is")
+	TEST_ASSERT_EQUAL(before["width"], 64, "An /icon datum must be measured as it is")
 	TEST_ASSERT_EQUAL(after_change["width"], 32, "An /icon datum must be measured again after it changes")
 
 	// More distinct runtime icons than the cache holds: it must stop growing.
