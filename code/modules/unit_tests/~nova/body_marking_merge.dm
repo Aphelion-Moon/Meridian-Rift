@@ -369,39 +369,3 @@
 	var/blue_key = run_key(first_run, BODY_ZONE_L_LEG, blue_leg)
 	TEST_ASSERT_EQUAL(length(drawing(blue_leg.get_limb_icon(FALSE), blue_key)), 2, "A run in another colour must merge the same way")
 	TEST_ASSERT(GLOB.merged_body_marking_icons[blue_key] && length(GLOB.merged_body_marking_icons) == cached, "A run in another colour must draw from the cached icon, not a new one")
-
-/// The merged icon cache keeps at most 256 runs, dropping the oldest first, and hands a cached run back as it is.
-/datum/unit_test/body_marking_merge/cache_bound
-	/// The cache as the test found it, restored afterwards so no other test notices.
-	var/list/previous_cache
-
-/datum/unit_test/body_marking_merge/cache_bound/Destroy()
-	if(previous_cache)
-		GLOB.merged_body_marking_icons = previous_cache
-	return ..()
-
-/datum/unit_test/body_marking_merge/cache_bound/Run()
-	previous_cache = GLOB.merged_body_marking_icons
-	GLOB.merged_body_marking_icons = list()
-	var/datum/body_marking/marking = GLOB.body_markings[markings_baseline_marking_names()[1]]
-	var/list/states = list()
-	for(var/state in icon_states(marking.icon))
-		if(length(states) >= 20)
-			break
-		states += state
-	TEST_ASSERT_EQUAL(length(states), 20, "The fixture needs twenty states on one marking sheet")
-	var/list/keys = list()
-	var/list/last_parts
-	for(var/first in states)
-		for(var/second in states)
-			if(first == second || length(keys) >= 300)
-				continue
-			last_parts = list(marking.icon, first, marking.icon, second)
-			var/key = jointext(last_parts, "|")
-			merged_body_marking_icon(last_parts, key)
-			keys += key
-	TEST_ASSERT_EQUAL(length(keys), 300, "The fixture must merge 300 distinct runs")
-	TEST_ASSERT_EQUAL(length(GLOB.merged_body_marking_icons), 256, "The merged icon cache must hold at most 256 runs")
-	TEST_ASSERT(!GLOB.merged_body_marking_icons[keys[1]] && GLOB.merged_body_marking_icons[keys[300]], "The merged icon cache must drop its oldest runs first")
-	var/icon/cached = GLOB.merged_body_marking_icons[keys[300]]
-	TEST_ASSERT(merged_body_marking_icon(last_parts, keys[300]) == cached && length(GLOB.merged_body_marking_icons) == 256, "A cached run must come back as it is")

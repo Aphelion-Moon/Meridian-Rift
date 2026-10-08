@@ -1,5 +1,5 @@
 /// Saved marking maps exactly as preferences.json holds them, written out by hand so no loader or serializer
-/// change can regenerate them. Every zone wears the markings the markings baselines wear, each of which
+/// change can regenerate them. Every zone wears the fixture's markings (body_marking_fixture.dm), each of which
 /// claims all eight zones, in an order no zone list or marking list sorts into, with glow mixed.
 /proc/body_marking_compat_full()
 	var/list/zones = list(
