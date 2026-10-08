@@ -182,6 +182,31 @@
 	post_init_icon_state = "raid"
 	boom_mic = FALSE
 
+/// The loadout's Raid Headphones, as they come or as the Raid Headset - one entry, with the boom mic as a reskin.
+/datum/atom_skin/raid_headphones
+	abstract_type = /datum/atom_skin/raid_headphones
+	greyscale_item_path = /obj/item/instrument/piano_synth/headphones/neon/raid/no_mic
+	change_worn_icon_state = FALSE // worn states follow base_icon_state, see worn_state()
+
+/datum/atom_skin/raid_headphones/headphones
+	preview_name = "Raid Headphones"
+	new_icon_state = "raid"
+
+/datum/atom_skin/raid_headphones/headset
+	preview_name = "Raid Headset"
+	new_desc = /obj/item/instrument/piano_synth/headphones/neon/raid::desc
+	new_icon_state = "raid_headset" // the map icon with the mic
+
+/datum/atom_skin/raid_headphones/headset/apply(obj/item/instrument/piano_synth/headphones/neon/raid/apply_to, mob/user)
+	. = ..()
+	// The headset's name here rather than as new_name, whose \improper would show in the loadout's reskin list.
+	if(!HAS_TRAIT(apply_to, TRAIT_WAS_RENAMED))
+		apply_to.name = /obj/item/instrument/piano_synth/headphones/neon/raid::name
+	apply_to.gender = NEUTER
+	apply_to.boom_mic = TRUE
+	apply_to.update_greyscale() // makes the mic's icon
+	apply_to.update_appearance()
+
 /obj/item/instrument/piano_synth/headphones/neon/halo
 	name = "\improper Halo Phones"
 	desc = "Sleek headphones with a glowing ring round each cup, which spins while the music plays."

@@ -26,7 +26,8 @@ studio headphones, Streetjack Cans, Raid Headset, Raid Headphones, Halo Phones a
   so both share every other config and glow mask. Its map icon is `raid_headset`, the item with the mic.
 - **Space pods and Nova's cat-ear headphones** have no neck sprite (`neck_icon_state = null`) and keep tg's behaviour.
 - **Loadout.** Every new set is under Ears, next to tg's headphones. Being wearable on the neck doesn't earn them a
-  Neck entry.
+  Neck entry. The Raid is one entry, Raid Headphones, with the Raid Headset as its reskin
+  (`/datum/atom_skin/raid_headphones`), which puts the boom mic on.
 - **Icons.** `headphones_gags.dmi` holds every GAGS template, `headphones_emissive.dmi` every glow mask and
   `headphones.dmi` the static sprites (tg's neck sprite and the notes). The lab's export script writes them and the
   json from the approved art.

@@ -9,13 +9,10 @@
 	name = "Streetjack Cans"
 	item_path = /obj/item/instrument/piano_synth/headphones/neon/streetjack
 
-/datum/loadout_item/ears/raid_headset
-	name = "Raid Headset"
-	item_path = /obj/item/instrument/piano_synth/headphones/neon/raid
-
 /datum/loadout_item/ears/raid_headphones
 	name = "Raid Headphones"
 	item_path = /obj/item/instrument/piano_synth/headphones/neon/raid/no_mic
+	reskin_datum = /datum/atom_skin/raid_headphones
 
 /datum/loadout_item/ears/halo_phones
 	name = "Halo Phones"
