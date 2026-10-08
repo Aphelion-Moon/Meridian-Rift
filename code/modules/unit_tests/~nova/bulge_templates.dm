@@ -17,10 +17,12 @@
 #define BULGE_DERIVATION_INPUTS "0364ce1abfeb2cce921ca59c264e523c"
 /// What bulge_derivation derives: its states by kind, the shapes that cover the whole penis, and the digest of every
 /// pixel derived. Frozen when the sheets those states lived in were deleted, after it had matched them pixel for pixel
-/// (0 differed): change it only with approval, after checking the corpus.
-#define BULGE_DERIVATION_RECORD "{\"shape\":630,\"bare\":577,\"drape\":353,\"cut\":16}; 53 covering; digest b60eb5968107a3f0418b2b301e126c5a"
+/// (0 differed): change it only with approval, after checking the corpus. Recorded again for mal's amendments past
+/// small_cap and the Alt shapes capped in every family (2026-10-08); it was 630 shapes, 577 bare, 53 covering, digest
+/// b60eb5968107a3f0418b2b301e126c5a.
+#define BULGE_DERIVATION_RECORD "{\"shape\":561,\"bare\":513,\"drape\":353,\"cut\":16}; 48 covering; digest 6f0323cde0d61593ca605e8ed72d3649"
 /// The identities bulge_template_identities resolves, by kind, and the states of the sheets they reach.
-#define BULGE_IDENTITIES_RECORD "{\"shape\":3816,\"exposed\":2932,\"patch\":212,\"covering shape\":218,\"drape\":840,\"cut\":840,\"clearance\":200,\"flap\":256}; 656 states in 5 sheets"
+#define BULGE_IDENTITIES_RECORD "{\"shape\":3438,\"exposed\":2576,\"patch\":214,\"covering shape\":196,\"drape\":840,\"cut\":840,\"clearance\":200,\"flap\":256}; 658 states in 5 sheets"
 
 /datum/unit_test/bulge_templates
 
@@ -59,13 +61,21 @@
 	TEST_ASSERT_EQUAL(where?.icon_state, "heart_boxers_hard_7_plain_human_alt_untoned", "An untoned Human (Alt) penis's own untoned patch, hard 7")
 	where = bulge_printed_patch(hearts_family, TRUE, 5, FALSE, /datum/sprite_accessory/genital/penis/human/alt, FALSE)
 	TEST_ASSERT_EQUAL(where?.icon_state, "heart_boxers_hard_5_plain_human_alt", "Hard 5, where the sheet has no untoned Human (Alt) patch, its skin-toned one")
-	TEST_ASSERT_EQUAL(bulge_printed_patch(hearts_family, TRUE, 6, FALSE, /datum/sprite_accessory/genital/penis/knotted, TRUE), bulge_printed_patch(hearts_family, TRUE, 6, FALSE), "Hard 6, where the sheet has no knotted patch, a knotted penis draws the human penis's")
+	// Knotted hard 6 has its own patch, which covers the row of the shaft its amended shape takes below the hem (mal,
+	// 2026-10-08); hemi hard 6 has none, and draws the human penis's.
+	where = bulge_printed_patch(hearts_family, TRUE, 6, FALSE, /datum/sprite_accessory/genital/penis/knotted, TRUE)
+	TEST_ASSERT_EQUAL(where?.icon_state, "heart_boxers_hard_6_plain_knotted", "A knotted penis's own patch, hard 6")
+	TEST_ASSERT_EQUAL(bulge_printed_patch(hearts_family, TRUE, 6, FALSE, /datum/sprite_accessory/genital/penis/hemi, TRUE), bulge_printed_patch(hearts_family, TRUE, 6, FALSE), "Hard 6, where the sheet has no hemi patch, a hemi penis draws the human penis's")
 	TEST_ASSERT_EQUAL(bulge_printed_patch(hearts_family, TRUE, 7, FALSE, /datum/sprite_accessory/genital/penis/human, TRUE), bulge_printed_patch(hearts_family, TRUE, 7, FALSE), "The human penis draws the human penis's patch")
 	// The tentacles, and Nondescript (Alt), Tapered (Alt) and Hemi (Alt) past their print_cap (4), draw the size 4 shape
-	// and its print under the heart boxers, and no patch (mal, 2026-10-06).
+	// and its print under the heart boxers, and no patch (mal, 2026-10-06); in every family, the family's small_cap shape
+	// and no anatomy (mal, 2026-10-08).
 	for(var/penis in list(/datum/sprite_accessory/genital/penis/tentacle, /datum/sprite_accessory/genital/penis/nondescript/alt, /datum/sprite_accessory/genital/penis/tapered/alt, /datum/sprite_accessory/genital/penis/hemi/alt))
 		TEST_ASSERT_NULL(bulge_printed_patch(hearts_family, TRUE, 7, FALSE, penis, TRUE), "[penis] draws no patch under the heart boxers past size 4")
 		TEST_ASSERT_EQUAL(bulge_shape(hearts_family, TRUE, 7, FALSE, penis, TRUE), bulge_shape(hearts_family, TRUE, 4, FALSE, penis, TRUE), "[penis] draws the size 4 shape under the heart boxers past size 4")
+		TEST_ASSERT_EQUAL(bulge_shape(/datum/bulge_family/boxers, FALSE, 6, FALSE, penis, TRUE), bulge_shape(/datum/bulge_family/boxers, FALSE, 4, FALSE, penis, TRUE), "[penis] draws the boxers' size 4 shape past size 4")
+		TEST_ASSERT_NULL(bulge_exposed(/datum/bulge_family/boxers, FALSE, 6, FALSE, penis, TRUE), "[penis] shows no anatomy under the boxers past size 4")
+		TEST_ASSERT_EQUAL(bulge_shape(/datum/bulge_family/jeans, TRUE, 7, FALSE, penis, TRUE), bulge_shape(/datum/bulge_family/jeans, TRUE, 5, FALSE, penis, TRUE), "[penis] draws the jeans' size 5 shape past size 5")
 
 	// The shorter loincloths: the long ones' half-hard shapes, their own drapes and cuts.
 	var/datum/sprite_accessory/clothing/underwear/short_bottom = /datum/sprite_accessory/clothing/underwear/loincloth_alt
@@ -125,8 +135,8 @@
  * family's precoloured patch and each penis shape's own, where the sheet has one for its profile (and one for its
  * untoned sprites, where they differ); and for each loincloth its drape and cut under every penis shape, at every
  * length from 1 to 100 inches (derived). A penis shape with no shapes of its own (the tentacles) draws the family's
- * small_cap shape and no anatomy, and so does a shape past its print_cap under a printed family's patches, with no
- * patch. The counts, by kind, must be BULGE_IDENTITIES_RECORD's.
+ * small_cap shape and no anatomy, and so does a shape past its print_cap, in every family (under a printed family's
+ * patches, with no patch). The counts, by kind, must be BULGE_IDENTITIES_RECORD's.
  */
 /datum/unit_test/bulge_template_identities
 	/// "[sheet]|[state]" -> TRUE for every sheet state an identity resolved to.
@@ -255,7 +265,7 @@
 			var/identity = "[what] [shape] [toned ? "toned" : "untoned"]"
 			var/datum/bulge_sheet_state/where = bulge_shape_where(family, hard, size, digi, shape, toned)
 			var/datum/bulge_sheet_state/exposed = bulge_exposed(family, hard, size, digi, shape, toned)
-			if(!initial(shape.bulge_hyper))
+			if(bulge_shape_size(family, hard, size, shape) <= initial(family.small_cap)) // The tentacles, a shape past its print_cap.
 				if(where != capped || exposed)
 					TEST_FAIL("[identity]: draws [where?.icon_state] and [exposed?.icon_state], not the small_cap shape alone")
 				continue
@@ -347,8 +357,8 @@
 			for(var/size in initial(family.small_cap) + 1 to (hard ? initial(family.hard_cap) : initial(family.half_cap)))
 				for(var/digi in list(FALSE, TRUE))
 					for(var/datum/sprite_accessory/genital/penis/shape as anything in shapes)
-						if(!initial(shape.bulge_hyper))
-							continue
+						if(bulge_shape_size(family, hard, size, shape) <= initial(family.small_cap))
+							continue // The tentacles, and a shape past its print_cap: the small_cap shape, nothing derived.
 						for(var/toned in (initial(shape.has_skintone_shading) ? list(TRUE, FALSE) : list(FALSE)))
 							var/datum/bulge_sheet_state/where = bulge_shape_where(family, hard, size, digi, shape, toned)
 							if(!where || visited["shape [where.icon_state]"])

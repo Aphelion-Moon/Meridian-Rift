@@ -402,11 +402,10 @@ class Rules:
     def shape_size(self, family, hard, size, shape=None):
         """The size whose shape a family draws for a bulge of `size` on a penis shape (bulge_shape_size()): its own up to
         its cap, except that past small_cap a shape with no shapes of its own (bulge_hyper FALSE, the tentacles), and one
-        past its print_cap under a family with precoloured printed patches, draw small_cap's shape; 0 for none."""
+        past its print_cap (Nondescript (Alt), Tapered (Alt) and Hemi (Alt)), draw small_cap's shape; 0 for none."""
         size = self.family_size(family, hard, size)
         small_cap = self.d.fam(family, 'small_cap')
-        if size > small_cap and shape and (not self.d.penis.get(shape, 'bulge_hyper') or (
-                self.d.fam(family, 'printed_patches') and size > self.d.penis.get(shape, 'print_cap'))):
+        if size > small_cap and shape and (not self.d.penis.get(shape, 'bulge_hyper') or size > self.d.penis.get(shape, 'print_cap')):
             return small_cap
         return size
 
@@ -554,7 +553,8 @@ def declared(rules: Rules):
                                     known = own
                         else:
                             for shape in d.penis_types:
-                                if d.penis.get(shape, 'bulge_hyper'):
+                                # Not the tentacles, nor a shape past its print_cap: small_cap's shape, no anatomy.
+                                if rules.shape_size(family, hard, size, shape) > d.fam(family, 'small_cap'):
                                     for toned in toned_options(d, shape):
                                         ident = (family, hard, size, digi, shape, toned)
                                         yield 'shape', ident, rules.shape_where(*ident)
