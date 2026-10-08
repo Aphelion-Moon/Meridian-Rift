@@ -7,7 +7,7 @@
  * No body, custom paint or external-organ overlays are included.
  *
  * Arguments:
- * - output: The caller-owned overlay list to append to.
+ * - output: The caller-owned list of overlays to their flags to append to. Markings texture like the limb itself.
  * - zone: A body or auxiliary zone to include, or null for both in native order.
  * - include_emissive: Whether native emissive appearances accompany the visible markings.
  * - alpha_override: An explicit visible marking opacity, or null to use markings_alpha.
@@ -36,7 +36,7 @@
 			var/mutable_appearance/accessory_overlay = mutable_appearance(body_marking.icon, "[body_marking.icon_state]_[digi_modifier][marking_zone][gender_modifier]", aux ? -aux_layer : -BODYPARTS_LAYER)
 			accessory_overlay.alpha = isnull(alpha_override) ? markings_alpha : alpha_override
 			accessory_overlay.color = override_color || marking[1]
-			output += accessory_overlay
+			output[accessory_overlay] = LIMB_OVERLAY_TEXTURED|LIMB_OVERLAY_CORE
 			if(include_emissive && marking[2])
-				output += emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)
+				output[emissive_appearance(accessory_overlay.icon, accessory_overlay.icon_state, offset_spokesman = offset_spokesman, layer = accessory_overlay.layer)] = LIMB_OVERLAY_META
 	return output

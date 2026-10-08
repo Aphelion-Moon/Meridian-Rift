@@ -351,10 +351,10 @@
 		qdel(left_leg)
 
 		var/obj/item/bodypart/leg/left/restore_left = legs_species_still_matches ? old_left_leg?.resolve() : null
-		if(!restore_left)
-			var/left_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_L_LEG] || /obj/item/bodypart/leg/left
+		var/left_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_L_LEG]
+		if(!restore_left && left_leg_type) // A legless species gets none back
 			restore_left = new left_leg_type()
-		restore_left.replace_limb(organ_owner)
+		restore_left?.replace_limb(organ_owner)
 	old_left_leg = null
 
 	if(istype(right_leg, /obj/item/bodypart/leg/right/taur) || istype(right_leg, /obj/item/bodypart/leg/right/synth/taur))
@@ -362,10 +362,10 @@
 		qdel(right_leg)
 
 		var/obj/item/bodypart/leg/right/restore_right = legs_species_still_matches ? old_right_leg?.resolve() : null
-		if(!restore_right)
-			var/right_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_R_LEG] || /obj/item/bodypart/leg/right
+		var/right_leg_type = organ_owner.dna.species.bodypart_overrides[BODY_ZONE_R_LEG]
+		if(!restore_right && right_leg_type)
 			restore_right = new right_leg_type()
-		restore_right.replace_limb(organ_owner)
+		restore_right?.replace_limb(organ_owner)
 	old_right_leg = null
 	old_legs_species_type = null
 

@@ -26,8 +26,8 @@
 	desc = "A black combat sweater thrown over the standard issue shirt, perfect for wake up calls."
 	name = "corrections officer's sweater"
 	icon_state = "corrections_officer_sweat"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/security/corrections_officer/sweater/skirt

@@ -54,16 +54,14 @@
 
 	ADD_TRAIT(target, TRAIT_XRAY_HEARING, ADMIN_TRAIT)
 	ADD_TRAIT(target, TRAIT_ADMIN_WALLHACKS, ADMIN_TRAIT)
-	target.sight |= (SEE_TURFS|SEE_MOBS|SEE_OBJS)
-	target.see_invisible = SEE_INVISIBLE_LIVING
-	target.lighting_cutoff = LIGHTING_CUTOFF_FULLBRIGHT
+	target.AddElement(/datum/element/admin_wallhacks)
 	target.update_sight()
 
 /**
  * Switches wallhacks off again, restoring the sight state captured when they were enabled.
  *
  * Restores rather than clearing, so sight bits owned by something else - mesons, an x-ray implant, a cyborg's
- * sight_mode - survive the toggle. Targets the mob wallhacks were applied to, which may not be the current one.
+ * vision toggles - survive the toggle. Targets the mob wallhacks were applied to, which may not be the current one.
  */
 /client/proc/disable_admin_wallhacks()
 	admin_wallhacks_enabled = FALSE
@@ -74,7 +72,40 @@
 
 	REMOVE_TRAIT(target, TRAIT_XRAY_HEARING, ADMIN_TRAIT)
 	REMOVE_TRAIT(target, TRAIT_ADMIN_WALLHACKS, ADMIN_TRAIT)
+	target.RemoveElement(/datum/element/admin_wallhacks)
 	target.sight = admin_wallhacks_prior_sight
 	target.see_invisible = admin_wallhacks_prior_see_invisible
 	target.lighting_cutoff = admin_wallhacks_prior_lighting_cutoff
 	target.update_sight()
+
+/**
+ * Reapplies wallhacks at the end of every update_sight().
+ *
+ * update_sight() rebuilds sight, see_invisible and lighting_cutoff from scratch on living mobs, so values set once are
+ * lost on the next call. COMSIG_MOB_UPDATE_SIGHT is sent after that rebuild and before the lighting plane syncs.
+ */
+/datum/element/admin_wallhacks
+
+/datum/element/admin_wallhacks/Attach(datum/target)
+	. = ..()
+	if(!ismob(target))
+		return ELEMENT_INCOMPATIBLE
+	RegisterSignal(target, COMSIG_MOB_UPDATE_SIGHT, PROC_REF(on_update_sight))
+
+/datum/element/admin_wallhacks/Detach(datum/source)
+	UnregisterSignal(source, COMSIG_MOB_UPDATE_SIGHT)
+	return ..()
+
+/**
+ * Adds x-ray sight and full-bright to whatever update_sight() just built.
+ *
+ * See-invisible only gets raised to SEE_INVISIBLE_LIVING, so a ghost keeps its ghost vision.
+ * Arguments:
+ * * source - the mob whose sight was just updated
+ */
+/datum/element/admin_wallhacks/proc/on_update_sight(mob/source)
+	SIGNAL_HANDLER
+	source.add_sight(SEE_TURFS|SEE_MOBS|SEE_OBJS)
+	if(source.see_invisible < SEE_INVISIBLE_LIVING)
+		source.set_invis_see(SEE_INVISIBLE_LIVING)
+	source.lighting_cutoff = LIGHTING_CUTOFF_FULLBRIGHT

@@ -27,6 +27,18 @@ GLOBAL_LIST_EMPTY(taur_clothing_icons)
 	return replace_icon_legs(base_icon, legs)
 
 /**
+ * Cuts the legs (y 1-11) off a worn icon and staples new_legs on.
+ *
+ * Upstream replaced this with apply_icon_mask(LEGS_MASK), which only cuts y 1-9.
+ * The big legs and vox leg templates are drawn to replace all 11 rows, so the
+ * upstream cut leaves stray human thigh pixels around them.
+ */
+/proc/replace_icon_legs(icon/base_icon, icon/new_legs)
+	base_icon.DrawBox(null, 1, 1, base_icon.Width(), 11)
+	base_icon.Blend(new_legs, ICON_OVERLAY)
+	return base_icon
+
+/**
  * Proc to generate a taur variation of clothes, with the intent of caching them.
  * It is meant for suits and uniforms at the moment, to cut out the bottom half so that
  * it doesn't look too out of place.

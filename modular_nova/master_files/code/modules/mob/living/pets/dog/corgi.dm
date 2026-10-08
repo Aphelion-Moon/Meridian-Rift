@@ -43,7 +43,7 @@
 	AddElement(/datum/element/death_drops, borgi_drops)
 
 	var/datum/component/overlay_lighting/lighting_object = src.GetComponent(/datum/component/overlay_lighting)
-	var/image/cone = lighting_object.cone
+	var/image/cone = lighting_object.light.cone // he does not like the light cone of shame
 	cone.transform = cone.transform.Translate(0, -8)
 
 	// Defense protocol

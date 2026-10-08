@@ -48,7 +48,7 @@
 	// The preview's features are reset before every render, so this runs on each one.
 	var/already_batched = target.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS
 	target.living_flags |= STOP_OVERLAY_UPDATE_BODY_PARTS
-	target.dna.species.replace_body(target, target.dna.species) // TODO: Replace this with something less stupidly expensive.
+	target.dna.species.replace_body(target, target.dna.species, target.dna.species) // TODO: Replace this with something less stupidly expensive.
 	if(!already_batched)
 		target.living_flags &= ~STOP_OVERLAY_UPDATE_BODY_PARTS
 		target.update_body()

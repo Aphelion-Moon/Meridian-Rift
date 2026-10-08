@@ -684,7 +684,7 @@ Admin Variants of Common Tools
 	ammo_type = list(/obj/item/ammo_casing/energy/medical)
 	cell_type = /obj/item/stock_parts/power_store/cell/medigun
 	pin = /obj/item/firing_pin/admin
-	maxcells = 13
+	max_cells = 13
 	allowed_cells = list(/obj/item/weaponcell/medical)
 	item_flags = null
 	gun_flags = null

@@ -66,7 +66,7 @@
 	name = "pencilskirt and shirt"
 	desc = "A clean shirt with a tight-fitting pencilskirt."
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 	gets_cropped_on_taurs = FALSE
 	greyscale_colors = "#37373e#ffffff"
 	icon = 'icons/map_icons/clothing/under/_under.dmi'
@@ -241,6 +241,7 @@
 	gets_cropped_on_taurs = FALSE
 	worn_icon_vox = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
 	worn_icon_better_vox = 'modular_nova/master_files/icons/mob/clothing/under/suits_digi.dmi'
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/suit/nova/inferno/skirt/setup_reskins()
 	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/inferno_suitskirt)

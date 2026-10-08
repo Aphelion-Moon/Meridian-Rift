@@ -249,6 +249,7 @@
 	layers = list("" = BODYPARTS_LAYER)
 	draw_on_husks = HUSK_OVERLAY_NONE
 	offset_location = ENTIRE_BODY
+	overlay_flags = LIMB_OVERLAY_TEXTURED|LIMB_OVERLAY_CORE // Textured like the limb under it, so suit meshes skip it too
 	/// Private drawing snapshot owned by this limb overlay.
 	var/list/drawing
 	/// Full drawing identity used to skip unchanged overlay updates.
@@ -323,20 +324,22 @@
 				split_overlay.layer = lower_layer ? -BODYPARTS_LOW_LAYER : -BODYPARTS_LAYER
 				split_overlays += split_overlay
 		. = split_overlays
-	var/list/visible_overlays = list()
+	var/list/flagged_overlays = list()
 	var/list/masks = list()
 	var/index = 0
 	for(var/image/overlay as anything in .)
 		if(PLANE_TO_TRUE(overlay.plane) == EMISSIVE_PLANE)
 			continue
-		visible_overlays += overlay
+		flagged_overlays[overlay] = overlay_flags
 		index++
 		var/geometry_key = "marking|[key]|split=[split_leg]|[index]|[overlay.layer]"
 		custom_sprite_append_mask(masks, overlay.icon, geometry_key, drawing?["emissive"], TRUE, overlay, limb)
 		if(blocks_emissive != EMISSIVE_BLOCK_NONE)
 			custom_sprite_append_mask(masks, overlay.icon, geometry_key, drawing?["emissive"], FALSE, overlay, limb)
 	// Each facing emits OR blocks; translucent edges must not receive both masks.
-	. = visible_overlays + masks
+	for(var/mask in masks)
+		flagged_overlays[mask] = LIMB_OVERLAY_META
+	return flagged_overlays
 
 /// Native layer ownership stays with the external organ; paint only reads this cached list.
 /datum/bodypart_overlay/mutant/taur_body/proc/custom_sprite_layers()
@@ -344,6 +347,7 @@
 
 /// Lower-body paint uses the actual taur organ, never its invisible leg slots.
 /datum/bodypart_overlay/custom_marking/taur
+	overlay_flags = LIMB_OVERLAY_TEXTURED|LIMB_OVERLAY_WIDE_ICON // Textured like the taur body under it, suit meshes included
 
 /// How far taur paint sits above each of the organ's own layers: less than the gap to any other mob layer.
 #define CUSTOM_SPRITE_TAUR_PAINT_LIFT 0.001

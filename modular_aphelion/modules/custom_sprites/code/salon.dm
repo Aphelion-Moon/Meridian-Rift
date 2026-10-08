@@ -405,7 +405,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
  * A hand mirror you're holding, or a mounted mirror you're standing by.
  */
 /proc/custom_sprite_self_mirror(mob/living/carbon/human/user)
-	if(locate(/obj/item/hhmirror) in user.held_items)
+	if(user.is_holding_item_of_type(/obj/item/hhmirror))
 		return TRUE
 	for(var/obj/structure/mirror/mirror in range(1, user))
 		if(!mirror.broken)
@@ -748,7 +748,7 @@ GLOBAL_LIST_EMPTY(custom_sprite_salon_cooldowns)
 	var/obj/item/tool = tool_ref?.resolve()
 	if(!QDELETED(tool) && artist.is_holding(tool))
 		return tool
-	tool = locate(tool_type) in artist.held_items
+	tool = artist.is_holding_item_of_type(tool_type)
 	if(tool)
 		tool_ref = WEAKREF(tool)
 	return tool

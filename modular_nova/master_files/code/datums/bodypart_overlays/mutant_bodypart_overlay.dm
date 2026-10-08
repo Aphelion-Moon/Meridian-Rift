@@ -44,9 +44,37 @@
 // We do this here like this so that we handle matrixed color bodypart overlays and emissives.
 /datum/bodypart_overlay/mutant/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
 	inherit_color(limb) // If draw_color is not set yet, go ahead and do that (matches upstream, needed for ORGAN_COLOR_INHERIT overlays)
-	. = get_images(limb, layer_index, layer_real)
-	color_images(., limb, layer_index)
-	. = add_emissives(., limb, layer_index)
+	var/list/images = get_images(limb, layer_index, layer_real)
+	color_images(images, limb, layer_index)
+	var/image_flags = get_sprite_overlay_flags(limb?.owner)
+	. = list()
+	for(var/image in images)
+		.[image] = image_flags
+	add_emissives(., images, limb, layer_index)
+
+
+/**
+ * Returns the overlay flags for this overlay's sprites.
+ *
+ * Bodypart textures are filters centered on each sprite, one tile wide. Sprites bigger than a tile,
+ * like wings, taurs and big ears, get the wide or tall flag so the texture covers all of them.
+ * Sizes come from the icon file itself, not the sprite accessory's dimensions, which only matter when centering.
+ *
+ * Arguments:
+ * - owner: The mob the sprites are drawn for, since some accessories pick their icon per mob. Can be null.
+ */
+/datum/bodypart_overlay/mutant/proc/get_sprite_overlay_flags(mob/living/carbon/human/owner)
+	. = overlay_flags
+	if(!(. & LIMB_OVERLAY_TEXTURED))
+		return
+	var/sprite_icon = sprite_datum.get_special_icon(owner, src)
+	if(!sprite_icon)
+		return
+	var/list/dimensions = get_icon_dimensions(sprite_icon)
+	if(dimensions["width"] > ICON_SIZE_X)
+		. |= LIMB_OVERLAY_WIDE_ICON
+	if(dimensions["height"] > ICON_SIZE_Y)
+		. |= LIMB_OVERLAY_TALL_ICON
 
 
 /// Generate a unique key based on our sprites. So that if we've aleady drawn these sprites,
@@ -108,7 +136,7 @@
 		CRASH("Trying to call get_images() on [type] while it didn't have a sprite_datum. This shouldn't happen, report it as soon as possible.")
 
 	var/returned_images = list()
-	var/gender = (limb?.limb_gender == FEMALE) ? "f" : "m"
+	var/gender = limb?.limb_gender || "m"
 
 	overlay_indexes_to_color = list()
 	overlay_slots = list()
@@ -271,6 +299,7 @@
  * Adds glow or blockers to the emissive plane in the same order as the visible color layers.
  *
  * Arguments:
+ * * output - The list of overlays to their flags, which the emissive overlays are added to.
  * * overlays - The list of mutable appearances previously generated and colored.
  * * limb - The limb containing this bodypart_overlay. Cannot be null, otherwise
  * there's going to be issues with how the emissives are generated, so it won't
@@ -278,11 +307,10 @@
  * * layer_index - The icon state postfix of the layer being drawn. Every sprite on a
  * layer listed in the sprite accessory's `emissive_layers` glows, regardless of prefs.
  */
-/datum/bodypart_overlay/mutant/proc/add_emissives(list/mutable_appearance/overlays, obj/item/bodypart/limb, layer_index)
+/datum/bodypart_overlay/mutant/proc/add_emissives(list/output, list/mutable_appearance/overlays, obj/item/bodypart/limb, layer_index)
 	if(!limb)
-		return overlays
+		return
 
-	var/list/mutable_appearance/emissive_overlays
 	var/max_emissive_index = min(MAX_MATRIXED_COLORS, length(emissive_eligibility_by_color_index))
 	var/emissive_layer = (layer_index in sprite_datum.emissive_layers)
 	for(var/index = 1 to length(overlays))
@@ -302,9 +330,7 @@
 		// These helpers create fresh appearances and do not inherit center_image()'s offsets.
 		emissive_overlay.pixel_w = overlay.pixel_w
 		emissive_overlay.pixel_z = overlay.pixel_z
-		LAZYADD(emissive_overlays, emissive_overlay)
-
-	return emissive_overlays ? (overlays + emissive_overlays) : overlays
+		output[emissive_overlay] = LIMB_OVERLAY_META
 
 
 #undef MAX_MATRIXED_COLORS

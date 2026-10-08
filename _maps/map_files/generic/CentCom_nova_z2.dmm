@@ -737,12 +737,12 @@
 /area/centcom/holding/cafe)
 "amH" = (
 /obj/structure/closet/crate,
-/obj/item/storage/box/ingredients/vegetarian,
-/obj/item/storage/box/ingredients/italian,
-/obj/item/storage/box/ingredients/fruity,
-/obj/item/storage/box/ingredients/fiesta,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/storage/box/ingredients/american,
-/obj/item/storage/box/ingredients/exotic,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/reagent_containers/condiment/flour{
 	list_reagents = list(/datum/reagent/consumable/flour = 90);
 	name = "large flour sack";
@@ -758,10 +758,10 @@
 /obj/item/storage/box/donkpockets{
 	pixel_x = 7
 	},
-/obj/item/choice_beacon/ingredient,
-/obj/item/choice_beacon/ingredient,
-/obj/item/choice_beacon/ingredient,
-/obj/item/choice_beacon/ingredient,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/reagent_containers/condiment/red_bay,
 /obj/item/reagent_containers/condiment/curry_powder,
 /obj/item/storage/part_replacer/bluespace/tier4/cafe,
@@ -15457,12 +15457,12 @@
 /area/centcom/interlink)
 "qnA" = (
 /obj/structure/closet/crate,
-/obj/item/storage/box/ingredients/vegetarian,
-/obj/item/storage/box/ingredients/italian,
-/obj/item/storage/box/ingredients/fruity,
-/obj/item/storage/box/ingredients/fiesta,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/storage/box/ingredients/american,
-/obj/item/storage/box/ingredients/exotic,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/reagent_containers/condiment/flour{
 	list_reagents = list(/datum/reagent/consumable/flour = 90);
 	name = "large flour sack";
