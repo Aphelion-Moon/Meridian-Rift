@@ -12,6 +12,7 @@
 		else
 			add_overlay("[model.cyborg_base_icon]_cl")
 	update_altborg_icons()
+	cyborg_customization_refresh_model()
 
 /mob/living/silicon/robot/proc/update_altborg_icons()
 	var/extra_overlay

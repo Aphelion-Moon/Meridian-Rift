@@ -51,6 +51,22 @@
 /datum/preference_middleware/proc/on_new_character(mob/user)
 	return
 
+/// Called when the preferences UI closes, before the current character is saved.
+/datum/preference_middleware/proc/on_ui_close()
+	return
+
+/// Called before the active character slot is serialized.
+/datum/preference_middleware/proc/before_character_save()
+	return TRUE
+
+/// Called before a character slot replaces the currently loaded values.
+/datum/preference_middleware/proc/before_character_load(slot, replacing_current_slot)
+	return
+
+/// Called while the owning preferences datum is being destroyed.
+/datum/preference_middleware/proc/on_preferences_destroy()
+	return
+
 /// Called after every update_preference
 /datum/preference_middleware/proc/post_set_preference(mob/user, preference, value)
 	return
@@ -61,3 +77,17 @@
 	SHOULD_CALL_PARENT(FALSE)
 	return
 // NOVA EDIT ADDITION END
+
+// APHELION EDIT ADDITION START - CYBORG_CUSTOMIZATION - native save and replacement boundaries
+/// Called with the checked native save outcome; staging alone must never acknowledge saving.
+/datum/preference_middleware/proc/after_preferences_save(result)
+	return
+
+/// Preflight before a user-requested slot switch; FALSE aborts without loading a slot.
+/datum/preference_middleware/proc/can_change_character()
+	return TRUE
+
+/// Authorized delete/import invalidates any draft and delayed actions for replaced data.
+/datum/preference_middleware/proc/on_character_replaced()
+	return
+// APHELION EDIT ADDITION END

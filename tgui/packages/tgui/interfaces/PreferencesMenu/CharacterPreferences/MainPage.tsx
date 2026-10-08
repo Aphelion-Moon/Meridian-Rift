@@ -19,6 +19,7 @@ import { classes } from 'tgui-core/react';
 // import { createSearch } from 'tgui-core/string'; // APHELION EDIT REMOVAL - shared icon picker
 // import { CharacterPreview } from '../../common/CharacterPreview'; // APHELION EDIT REMOVAL - Drawn character preview
 import { ChoicedSelection } from '../../common/ChoicedSelection'; // APHELION EDIT ADDITION
+import { CYBORG_ONLY_KEYS } from '../../common/CyborgCustomization/types';
 import { PageButton } from '../components/PageButton'; // NOVA EDIT ADDITION
 import { RandomizationButton } from '../components/RandomizationButton';
 import { SideDropdown } from '../components/SideDropdown'; // NOVA EDIT ADDITION
@@ -456,6 +457,7 @@ export function PreferenceList(props: PreferenceListProps) {
       <LabeledList>
         {sortPreferences(Object.entries(preferences)).map(
           ([featureId, value]) => {
+            if (CYBORG_ONLY_KEYS.has(featureId)) return null;
             const feature = features[featureId];
             const randomSetting = randomizations[featureId];
 
@@ -624,18 +626,18 @@ export function MainPage(props: MainPageProps) {
       );
       break;
     case PrefPage.ERP:
-    prefPageContents = (
-      <PreferenceList
-        randomizations={getRandomization(
-          erpPreferences,
-          serverData,
-          randomBodyEnabled,
-        )}
-        preferences={erpPreferences}
-        maxHeight="auto"
-      />
-    );
-    break;
+      prefPageContents = (
+        <PreferenceList
+          randomizations={getRandomization(
+            erpPreferences,
+            serverData,
+            randomBodyEnabled,
+          )}
+          preferences={erpPreferences}
+          maxHeight="auto"
+        />
+      );
+      break;
     default:
       exhaustiveCheck(filteredCurrentPrefPage);
   }
@@ -793,7 +795,12 @@ export function MainPage(props: MainPageProps) {
         {/* NOVA EDIT CHANGE: Swappable pref menus */}
         {/* ORIGINAL: <Stack.Item grow basis={0}> */}
         {/* APHELION EDIT ADDITION - MERIDIAN_UI opaque reading surface */}
-        <Stack.Item grow basis={0} ml="4px" className="PreferencesMenu__settings">
+        <Stack.Item
+          grow
+          basis={0}
+          ml="4px"
+          className="PreferencesMenu__settings"
+        >
           <Stack vertical fill>
             {/* // NOVA EDIT REMOVAL START
              <PreferenceList
@@ -836,17 +843,17 @@ export function MainPage(props: MainPageProps) {
                   Character Profile
                 </PageButton>
               </Stack.Item>
-             {erpEnabled && (
-              <Stack.Item grow={0.5}>
-                <PageButton
-                  currentPage={currentPrefPage}
-                  page={PrefPage.ERP}
-                  setPage={setCurrentPrefPage}
-                >
-                <Icon name="heart" />
-                </PageButton>
-              </Stack.Item>
-            )}
+              {erpEnabled && (
+                <Stack.Item grow={0.5}>
+                  <PageButton
+                    currentPage={currentPrefPage}
+                    page={PrefPage.ERP}
+                    setPage={setCurrentPrefPage}
+                  >
+                    <Icon name="heart" />
+                  </PageButton>
+                </Stack.Item>
+              )}
             </Stack>
             {prefPageContents}
           </Stack>

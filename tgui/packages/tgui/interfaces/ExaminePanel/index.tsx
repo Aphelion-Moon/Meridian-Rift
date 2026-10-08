@@ -58,12 +58,15 @@ export function ExaminePanel(props) {
   } = data;
   const [oocNotesIndex, setOocNotesIndex] = useState('SFW');
   const [flavorTextIndex, setFlavorTextIndex] = useState('SFW');
+  const [headshotIndex, setHeadshotIndex] = useState('SFW');
+  const displayedHeadshot =
+    headshotIndex === 'NSFW' ? data.headshot_nsfw : headshot;
   return (
     <Window title={character_name} width={900} height={670} theme="ntos">
       <Window.Content>
         <Stack fill>
           <Stack.Item width="30%">
-            {!headshot ? (
+            {!headshot && !data.headshot_nsfw ? (
               <Section fill title="Character Preview">
                 <ByondUi
                   height="100%"
@@ -88,12 +91,31 @@ export function ExaminePanel(props) {
                     }}
                   />
                 </Section>
-                <Section height="310px" title="Headshot">
-                  <img
-                    src={resolveAsset(headshot)}
-                    height="250px"
-                    width="250px"
-                  />
+                <Section
+                  height="310px"
+                  title="Headshot"
+                  buttons={
+                    data.headshot_nsfw && (
+                      <Button
+                        selected={headshotIndex === 'NSFW'}
+                        onClick={() =>
+                          setHeadshotIndex(
+                            headshotIndex === 'SFW' ? 'NSFW' : 'SFW',
+                          )
+                        }
+                      >
+                        {headshotIndex === 'SFW' ? 'Show NSFW' : 'Show SFW'}
+                      </Button>
+                    )
+                  }
+                >
+                  {displayedHeadshot && (
+                    <img
+                      src={resolveAsset(displayedHeadshot)}
+                      height="250px"
+                      width="250px"
+                    />
+                  )}
                 </Section>
               </>
             )}

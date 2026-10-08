@@ -70,10 +70,6 @@
 /datum/json_savefile/custom_sprites/proc/write_verified(contents, destination)
 	return !length(write_file(contents, destination)) && rustg_file_read(destination) == contents
 
-/// Writes `contents` to `destination` and returns rust-g's error text, empty on success. Tests override it to fail.
-/datum/json_savefile/custom_sprites/proc/write_file(contents, destination)
-	return rustg_file_write(contents, destination)
-
 /**
  * Writes the tree when it has changed or the last write failed, and returns whether the file on disk now holds it.
  *

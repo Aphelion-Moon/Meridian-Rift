@@ -43,6 +43,14 @@
 /// File path to the dev preference json file, which is loaded by guests while localhosting.
 #define DEV_PREFS_PATH "config/dev_preferences.json"
 
+// APHELION EDIT ADDITION START - CYBORG_CUSTOMIZATION - checked native save outcomes
+#define JSON_SAVE_FAILED 0
+#define JSON_SAVE_WRITTEN 1
+#define JSON_SAVE_SESSION_ONLY 2
+/// A veto is distinct from the missing-slot FALSE that triggers initialization.
+#define PREFERENCES_LOAD_ABORTED -1
+// APHELION EDIT ADDITION END
+
 #define PARALLAX_INSANE "Insane"
 #define PARALLAX_HIGH "High"
 #define PARALLAX_MED "Medium"

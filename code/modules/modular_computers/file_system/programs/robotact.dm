@@ -49,6 +49,8 @@
 	var/mob/living/silicon/robot/cyborg = tablet.silicon_owner
 
 	data["borgName"] = cyborg.name
+	if(cyborg_customization_owner(user))
+		data["reproductionManagement"] = cyborg.cyborg_runtime_data()
 	data["designation"] = cyborg.model
 	data["masterAI"] = cyborg.connected_ai
 	data["MasterAI_connected"] = !!cyborg.connected_ai //Need a bool for this on the other side
@@ -130,6 +132,11 @@
 
 /datum/computer_file/program/robotact/ui_act(action, params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
+	if(.)
+		return
+	if(action == "cyborg_customization")
+		var/mob/living/silicon/robot/owner = cyborg_customization_owner(ui.user)
+		return owner?.cyborg_runtime_action(params, ui.user)
 	//Implied type, memes
 	var/obj/item/modular_computer/pda/silicon/tablet = computer
 	var/mob/living/silicon/robot/cyborg = tablet.silicon_owner

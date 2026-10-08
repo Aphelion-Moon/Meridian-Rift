@@ -324,12 +324,26 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 	return TRUE
 
+/// Preference-level export boundary, separate from the generic JSON file transport.
+/datum/preferences/proc/export_to_client(mob/requester, account_name)
+	return savefile?.export_json_to_client(requester, account_name, CALLBACK(src, PROC_REF(prepare_export), requester, savefile))
+
+/// A confirmation can outlive the client or an imported/replaced preference file.
+/datum/preferences/proc/prepare_export(mob/requester, datum/json_savefile/export_file)
+	if(QDELETED(src) || QDELETED(requester) || !parent || GET_CLIENT(requester) != parent || parent.prefs != src || savefile != export_file || QDELETED(export_file))
+		return FALSE
+	if(!save_character() || !save_preferences())
+		if(requester)
+			to_chat(requester, span_warning("Preferences could not be saved. Retry before exporting."))
+		return FALSE
+	return TRUE
+
 /datum/preferences/proc/save_preferences()
 	if(!savefile)
 		CRASH("Attempted to save the preferences of [parent] without a savefile. This should have been handled by load_preferences()")
 	if(path == DEV_PREFS_PATH)
 		// Don't save over dev preferences
-		return TRUE
+		return finish_preferences_save(JSON_SAVE_SESSION_ONLY) // APHELION EDIT CHANGE - CYBORG_CUSTOMIZATION - ORIGINAL: return TRUE
 
 	savefile.set_entry("version", SAVEFILE_VERSION_MAX) //updates (or failing that the sanity checks) will ensure data is not invalid at load. Assume up-to-date
 
@@ -366,12 +380,25 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 	savefile.set_entry("preferred_spawn_outfits", serialized_spawn_outfits)
 
 	// NOVA EDIT ADDITION END
-	savefile.save()
-	return TRUE
+	return finish_preferences_save(savefile.save()) // APHELION EDIT CHANGE - CYBORG_CUSTOMIZATION - ORIGINAL: savefile.save(); return TRUE
+
+/// Acknowledge staged revisions only after the native write has an observable result.
+/datum/preferences/proc/finish_preferences_save(result)
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.after_preferences_save(result)
+	return result
 
 /datum/preferences/proc/load_character(slot = default_slot)
 	SHOULD_NOT_SLEEP(TRUE)
 	slot = sanitize_integer(slot, 1, max_save_slots, initial(default_slot))
+	// APHELION EDIT ADDITION START - CYBORG_CUSTOMIZATION - direct loads also preserve the old slot
+	if(slot != default_slot)
+		for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+			if(!preference_middleware.can_change_character())
+				return PREFERENCES_LOAD_ABORTED
+	// APHELION EDIT ADDITION END
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.before_character_load(slot, slot == default_slot)
 	var/original_default_slot = default_slot
 	if(slot != default_slot)
 		default_slot = slot
@@ -436,7 +463,10 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 /datum/preferences/proc/save_character()
 	SHOULD_NOT_SLEEP(TRUE)
-	if(!path)
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		if(!preference_middleware.before_character_save())
+			return FALSE
+	if(!savefile) // APHELION EDIT CHANGE - CYBORG_CUSTOMIZATION - permit native memory-only staging; ORIGINAL: if(!path)
 		return FALSE
 	var/tree_key = "character[default_slot]"
 	if(!(tree_key in savefile.get_entry()))
@@ -477,10 +507,15 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 /datum/preferences/proc/switch_to_slot(new_slot)
 	if(new_slot == default_slot) // sanity check, nothing to do here.
-		return
-	close_custom_sprite_editors() // APHELION EDIT ADDITION - Commit to the old slot before switching
+		return TRUE
+	if(!close_custom_sprite_editors()) // APHELION EDIT ADDITION - Commit to the old slot before switching
+		return FALSE
 	// SAFETY: `load_character` performs sanitization on the slot number
-	if (!load_character(new_slot))
+	// APHELION EDIT CHANGE START - CYBORG_CUSTOMIZATION - distinguish save veto from a missing character
+	var/load_result = load_character(new_slot)
+	if(load_result == PREFERENCES_LOAD_ABORTED)
+		return FALSE
+	if (!load_result) // Original: if (!load_character(new_slot))
 		tainted_character_profiles = TRUE
 		randomise_appearance_prefs()
 		all_quirks = list()
@@ -499,10 +534,11 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 	character_preview_view.update_body()
 	SSstatpanels.update_job_estimation(ckey = parent.ckey) // update the job estimations with their new char // NOVA EDIT ADDITION
 	previous_preview_pref = null // NOVA EDIT ADDITION
+	// APHELION EDIT CHANGE END
+	return TRUE
 
 /datum/preferences/proc/remove_current_slot()
 	PRIVATE_PROC(TRUE)
-
 	var/closest_slot
 	for (var/other_slot in default_slot - 1 to 1 step -1)
 		var/save_data = savefile.get_entry("character[other_slot]")
@@ -518,9 +554,10 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 				break
 
 	if (isnull(closest_slot))
-		stack_trace("remove_current_slot() being called when there are no slots to go to, the client should prevent this")
 		return
 
+	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
+		preference_middleware.on_character_replaced()
 	close_custom_sprite_editors(FALSE) // APHELION EDIT ADDITION
 	remove_custom_sprite_slot(default_slot) // APHELION EDIT ADDITION - A reused slot starts empty
 	savefile.remove_entry("character[default_slot]")

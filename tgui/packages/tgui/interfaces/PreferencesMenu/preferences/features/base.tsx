@@ -39,6 +39,7 @@ export type Feature<
   component: FeatureValue<TReceiving, TSending, TServerData>;
   category?: string;
   description?: string;
+  placeholder?: string;
 };
 
 /**
@@ -62,6 +63,7 @@ export type FeatureValueProps<
   handleSetValue: (newValue: TSending) => void;
   serverData: TServerData | undefined;
   shrink?: boolean;
+  placeholder?: string;
   value: TReceiving;
   character_preferences: CharacterPreferencesData;
 }>;
@@ -159,14 +161,20 @@ export function createDropdownInput<T extends string | number = string>(
   };
 }
 
-export type FeatureChoicedServerData = {
-  choices: string[];
-  display_names?: Record<string, string>;
-  icons?: Record<string, string>;
-  extra_quirk_data?: Record<string, string>; // NOVA EDIT ADDITION
-};
+export type FeatureChoicedServerData<TChoice extends string | number = string> =
+  {
+    choices: TChoice[];
+    display_names?: Record<string, string>;
+    icons?: Record<string, string>;
+    extra_quirk_data?: Record<string, string>; // NOVA EDIT ADDITION
+  };
 
 export type FeatureChoiced = Feature<string, string, FeatureChoicedServerData>;
+export type FeatureNumericChoiced = Feature<
+  number,
+  number,
+  FeatureChoicedServerData<number>
+>;
 
 export type FeatureNumericData = {
   minimum: number;
@@ -242,6 +250,7 @@ export function FeatureValueInput(props: FeatureValueInputProps) {
     featureId: props.featureId,
     serverData: serverData?.[props.featureId] as any,
     shrink: props.shrink,
+    placeholder: feature.placeholder,
     handleSetValue: changeValue,
     value: predictedValue,
     character_preferences: data.character_preferences,
@@ -281,6 +290,7 @@ export const FeatureLongTextInput = (
     <TextArea
       height="100px"
       fluid
+      placeholder={props.placeholder}
       value={value}
       maxLength={serverData?.maximum_length}
       onBlur={(value) => handleSetValue(value)}

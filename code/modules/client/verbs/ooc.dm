@@ -429,7 +429,7 @@ GAME_VERB_PROC_DESC(/client, export_preferences, "Export Preferences", "Export y
 
 	ASSERT(prefs, "User attempted to export preferences while preferences were null!") // what the fuck
 
-	prefs.savefile.export_json_to_client(usr, ckey)
+	prefs.export_to_client(usr, ckey)
 
 GAME_VERB_DESC(/client, map_vote_tally_count, "Show Map Vote Tallies", "View the current map vote tally counts.", "OOC")
 	to_chat(mob, SSmap_vote.tally_printout)

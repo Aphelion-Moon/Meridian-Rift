@@ -9,6 +9,8 @@ import { Window } from '../../layouts';
 import { logger } from '../../logging';
 import { LoadingScreen } from '../common/LoadingScreen';
 import { CharacterPreferenceWindow } from './CharacterPreferences';
+// NOVA EDIT ADDITION START
+import type { AugmentsTab } from './CharacterPreferences/LimbsPage';
 import { previewTurnAtom } from './CharacterPreferences/CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import { GamePreferenceWindow } from './GamePreferences';
 import {
@@ -19,18 +21,17 @@ import {
 } from './types';
 import { RandomToggleState } from './useRandomToggleState';
 import { ServerPrefs } from './useServerPrefs';
-// NOVA EDIT ADDITION START
-import type { AugmentsTab } from './CharacterPreferences/LimbsPage';
 
 // Window dimensions per state
-const WINDOW_WIDTH  = 920;
-const WINDOW_HEIGHT_DEFAULT  = 820;
+const WINDOW_WIDTH = 920;
+const WINDOW_HEIGHT_DEFAULT = 820;
 const WINDOW_HEIGHT_MARKINGS_BODYPARTS = 980; // taller to fit three-column markings layout
 // NOVA EDIT ADDITION END
 const WINDOW_HEIGHT_SPECIES = 860; // APHELION EDIT ADDITION - Species page: two whole rows of its roster, in every theme, under the chamber.
 
 export function PreferencesMenu(props) {
   // NOVA EDIT ADDITION START
+  const [cyborgTab, setCyborgTab] = useState(false);
   const [augmentsTab, setAugmentsTab] = useState<AugmentsTab | null>(null);
   const [speciesShown, setSpeciesShown] = useState(false);
   // Drawn character preview: tgui keeps a closed window's page for the next, so the
@@ -39,17 +40,27 @@ export function PreferencesMenu(props) {
   useEffect(() => setPreviewTurn(0), []);
 
   const height =
-    augmentsTab !== null
+    cyborgTab || augmentsTab !== null
       ? WINDOW_HEIGHT_MARKINGS_BODYPARTS
       : speciesShown
         ? WINDOW_HEIGHT_SPECIES
         : WINDOW_HEIGHT_DEFAULT;
   // NOVA EDIT ADDITION END
   return (
-    <Window width={WINDOW_WIDTH} height={height} /* NOVA EDIT CHANGE - ORIGINAL: <Window width={920} height={770}> */>
+    <Window
+      width={cyborgTab ? 1200 : WINDOW_WIDTH}
+      height={
+        height
+      } /* NOVA EDIT CHANGE - ORIGINAL: <Window width={920} height={770}> */
+    >
       <Window.Content>
         <Suspense fallback={<LoadingScreen />}>
-          <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} onSpeciesPageShown={setSpeciesShown} /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> */ // APHELION EDIT CHANGE - Species page - ORIGINAL: <PrefsWindowInner onAugmentsTabChange={setAugmentsTab} /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> *//>
+          <PrefsWindowInner
+            onCyborgTabChange={setCyborgTab}
+            onSpeciesPageShown={setSpeciesShown}
+            onAugmentsTabChange={
+              setAugmentsTab
+            } /* NOVA EDIT CHANGE - ORIGINAL: <PrefsWindowInner /> */
           />
         </Suspense>
       </Window.Content>
@@ -61,10 +72,11 @@ export function PreferencesMenu(props) {
 //function PrefsWindowInner(props) { // NOVA EDIT REMOVAL
 // NOVA EDIT ADDITION START
 function PrefsWindowInner(props: {
-  onAugmentsTabChange: (tab: AugmentsTab | null) => void; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: onAugmentsTabChange: (tab: AugmentsTab) => void;
+  onCyborgTabChange: (active: boolean) => void;
+  onAugmentsTabChange: (tab: AugmentsTab | null) => void;
   onSpeciesPageShown: (shown: boolean) => void;
 }) {
-// NOVA EDIT ADDITION END
+  // NOVA EDIT ADDITION END
   const { data } = useBackend<PreferencesMenuData>();
   const { window } = data;
 
@@ -86,8 +98,15 @@ function PrefsWindowInner(props: {
   let title;
   switch (window) {
     case PrefsWindow.Character:
-      content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} onSpeciesPageShown={props.onSpeciesPageShown} /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */ // APHELION EDIT CHANGE - Species page - ORIGINAL: content = <CharacterPreferenceWindow onAugmentsTabChange={props.onAugmentsTabChange} /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */ />
-      />
+      content = (
+        <CharacterPreferenceWindow
+          onCyborgTabChange={props.onCyborgTabChange}
+          onSpeciesPageShown={props.onSpeciesPageShown}
+          onAugmentsTabChange={
+            props.onAugmentsTabChange
+          } /* NOVA EDIT CHANGE - ORIGINAL: content = <CharacterPreferenceWindow />; */
+        />
+      );
       title = 'Character Preferences';
       break;
     case PrefsWindow.Game:

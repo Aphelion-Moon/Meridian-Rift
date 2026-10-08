@@ -12,11 +12,11 @@ import {
   Stack,
   Tabs,
 } from 'tgui-core/components';
-import { formatEnergy } from 'tgui-core/format';
-import { formatPower } from 'tgui-core/format';
+import { formatEnergy, formatPower } from 'tgui-core/format';
 
 import { useBackend } from '../backend';
 import { NtosWindow } from '../layouts';
+import { RuntimeControls } from './common/CyborgCustomization/RuntimeControls';
 
 export const NtosRobotact = (props) => {
   return (
@@ -66,6 +66,11 @@ export const NtosRobotactContent = (props) => {
     <Flex direction={'column'}>
       <Flex.Item position="relative" mb={1}>
         <Tabs>
+          {data.reproductionManagement && (
+            <Tabs.Tab selected={tab_main === 4} onClick={() => setTab_main(4)}>
+              Genital Options
+            </Tabs.Tab>
+          )}
           <Tabs.Tab
             icon="list"
             lineHeight="23px"
@@ -92,6 +97,12 @@ export const NtosRobotactContent = (props) => {
           </Tabs.Tab>
         </Tabs>
       </Flex.Item>
+      {tab_main === 4 && data.reproductionManagement && (
+        <RuntimeControls
+          data={data.reproductionManagement}
+          onAction={(params) => act('cyborg_customization', params)}
+        />
+      )}
       {tab_main === 1 && (
         <>
           <Flex direction={'row'}>

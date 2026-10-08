@@ -1,0 +1,16 @@
+/// Versioned, bounded cyborg-layout storage contract shared by preferences and renderers.
+#define CYBORG_LAYOUT_SCHEMA_VERSION 1
+#define CYBORG_LAYOUT_MAX_PRESETS 10
+#define CYBORG_LAYOUT_MAX_PRESET_NAME_LENGTH 24
+/// Preview identifiers include model type paths and skin names from the server catalog.
+#define CYBORG_PREVIEW_MAX_IDENTIFIER_LENGTH 256
+#define CYBORG_LAYOUT_MIN_PIXEL_OFFSET -128
+#define CYBORG_LAYOUT_MAX_PIXEL_OFFSET 128
+#define CYBORG_LAYOUT_MIN_ROTATION -180
+#define CYBORG_LAYOUT_MAX_ROTATION 180
+#define CYBORG_LAYOUT_MIN_SCALE 0.25
+#define CYBORG_LAYOUT_MAX_SCALE 2
+#define CYBORG_LAYOUT_MIN_SPRITE_SIZE 1
+#define CYBORG_LAYOUT_MAX_SPRITE_SIZE 16
+#define CYBORG_LAYOUT_MIN_PRIORITY 1
+#define CYBORG_LAYOUT_MAX_PRIORITY 10

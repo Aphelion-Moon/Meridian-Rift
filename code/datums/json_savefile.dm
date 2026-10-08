@@ -8,8 +8,12 @@
 	VAR_PRIVATE/list/tree
 	/// If this is set to true, calling set_entry or remove_entry will automatically call save(), this does not catch modifying a sub-tree, nor do I know how to do that
 	var/auto_save = FALSE
+	/// Error reported by the most recent write, cleared on successful or memory-only saves.
+	var/last_save_error
 	/// Cooldown that tracks the time between attempts to download the savefile.
 	COOLDOWN_DECLARE(download_cooldown)
+	/// One confirmation/transfer may own this file at a time, including across yields.
+	var/export_pending = FALSE
 
 GENERAL_PROTECT_DATUM(/datum/json_savefile)
 
@@ -56,8 +60,35 @@ GENERAL_PROTECT_DATUM(/datum/json_savefile)
 		return FALSE
 
 /datum/json_savefile/proc/save()
-	if(path)
-		rustg_file_write(json_encode(tree, JSON_PRETTY_PRINT), path)
+	// APHELION EDIT CHANGE START - CYBORG_CUSTOMIZATION - expose the native write outcome
+	// Original: if(path) rustg_file_write(json_encode(tree, JSON_PRETTY_PRINT), path)
+	last_save_error = null
+	if(!path)
+		return JSON_SAVE_SESSION_ONLY
+	try
+		var/serialized = json_encode(tree, JSON_PRETTY_PRINT)
+		var/write_error = write_file(serialized, path)
+		// Pinned rust-g 6.2.0 returns an empty string on success, error text on failure.
+		if(isnull(write_error) || !istext(write_error) || length(write_error))
+			last_save_error = istext(write_error) ? write_error : "Native file write returned no result."
+			return JSON_SAVE_FAILED
+		// 6.2.0 discards the byte count from Write::write; no error alone cannot exclude a short write.
+		if(read_file(path) != serialized)
+			last_save_error = "Saved contents did not match the requested JSON."
+			return JSON_SAVE_FAILED
+	catch(var/exception/error)
+		last_save_error = "[error]"
+		return JSON_SAVE_FAILED
+	return JSON_SAVE_WRITTEN
+	// APHELION EDIT CHANGE END
+
+/// Native write seam shared with savefile subclasses and focused failure-injection tests.
+/datum/json_savefile/proc/write_file(contents, destination)
+	return rustg_file_write(contents, destination)
+
+/// Readback verifies complete contents; it does not make the existing write atomic.
+/datum/json_savefile/proc/read_file(source)
+	return rustg_file_read(source)
 
 /datum/json_savefile/serialize_list(list/options, list/semvers)
 	SHOULD_CALL_PARENT(FALSE)
@@ -87,25 +118,48 @@ GENERAL_PROTECT_DATUM(/datum/json_savefile)
 /// Proc that handles generating a JSON file (prettified if 515 and over!) of a user's preferences and showing it to them.
 /// Requester is passed in to the ftp() and tgui_alert() procs, and account_name is just used to generate the filename.
 /// We don't _need_ to pass in account_name since this is reliant on the json_savefile datum already knowing what we correspond to, but it's here to help people keep track of their stuff.
-/datum/json_savefile/proc/export_json_to_client(mob/requester, account_name)
-	if(!istype(requester) || !path)
-		return
+/datum/json_savefile/proc/export_json_to_client(mob/requester, account_name, datum/callback/before_export)
+	if(QDELETED(src) || !istype(requester) || QDELETED(requester) || !GET_CLIENT(requester) || !path || export_pending)
+		return FALSE
+	export_pending = TRUE
+	try
+		. = prepare_json_export(requester, account_name, before_export)
+	catch(var/exception/error)
+		export_pending = FALSE
+		throw error
+	export_pending = FALSE
 
+/// Keep preparation inside the reservation and after the user accepts the download.
+/datum/json_savefile/proc/prepare_json_export(mob/requester, account_name, datum/callback/before_export)
+	PRIVATE_PROC(TRUE)
+	var/client/connection = GET_CLIENT(requester)
+	var/export_path = path
 	if(!json_export_checks(requester))
-		return
+		return FALSE
+	if(QDELETED(src) || QDELETED(requester) || !connection || GET_CLIENT(requester) != connection || path != export_path || !COOLDOWN_FINISHED(src, download_cooldown))
+		return FALSE
+	if(before_export && !before_export.Invoke())
+		return FALSE
+	if(QDELETED(src) || QDELETED(requester) || !connection || GET_CLIENT(requester) != connection || path != export_path || !COOLDOWN_FINISHED(src, download_cooldown))
+		return FALSE
 
 	COOLDOWN_START(src, download_cooldown, (CONFIG_GET(number/seconds_cooldown_for_preferences_export) * (1 SECONDS)))
+	return send_json_export(requester, account_name)
+
+/// File transport stays separate so admission and save failures can be tested without FTP.
+/datum/json_savefile/proc/send_json_export(mob/requester, account_name)
 	var/file_name = "[account_name ? "[account_name]_" : ""]preferences_[time2text(world.timeofday, "MMM_DD_YYYY_hh-mm-ss", TIMEZONE_UTC)].json"
 	var/temporary_file_storage = "data/preferences_export_working_directory/[file_name]"
 
 	if(!text2file(json_encode(tree, JSON_PRETTY_PRINT), temporary_file_storage))
 		tgui_alert(requester, "Failed to export preferences to JSON! You might need to try again later.", "Export Preferences JSON")
-		return
+		return FALSE
 
 	var/exportable_json = file(temporary_file_storage)
 
 	DIRECT_OUTPUT(requester, ftp(exportable_json, file_name))
 	fdel(temporary_file_storage)
+	return TRUE
 
 /// Proc that just handles all of the checks for exporting a preferences file, returns TRUE if all checks are passed, FALSE otherwise.
 /// Just done like this to make the code in the export_json_to_client() proc a bit cleaner.
@@ -114,10 +168,10 @@ GENERAL_PROTECT_DATUM(/datum/json_savefile)
 		tgui_alert(requester, "You must wait [DisplayTimeText(COOLDOWN_TIMELEFT(src, download_cooldown))] before exporting your preferences again!", "Export Preferences JSON")
 		return FALSE
 
-	if(tgui_alert(requester, "Are you sure you want to export your preferences as a JSON file? This will save to a file on your computer.", "Export Preferences JSON", list("Cancel", "Yes")) == "Yes")
-		return TRUE
+	return confirm_json_export(requester)
 
-	return FALSE
+/datum/json_savefile/proc/confirm_json_export(mob/requester)
+	return tgui_alert(requester, "Are you sure you want to export your preferences as a JSON file? This will save to a file on your computer.", "Export Preferences JSON", list("Cancel", "Yes")) == "Yes"
 
 /// Copies the entire tree to another json savefile datum, overwriting whatever was in the other datum before.
 /datum/json_savefile/proc/copy_to_savefile(datum/json_savefile/other_savefile)

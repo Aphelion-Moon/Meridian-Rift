@@ -335,6 +335,9 @@
 	TEST_ASSERT(!(editor.save_drawing() || editor.save_revision || !editor.save_error), "A failed editor save must report an error without acknowledging a new revision.")
 	editor.finish(TRUE)
 	TEST_ASSERT(!(QDELETED(editor) || editor.closing || !preferences.custom_sprite_editors?["hair"]), "Save and close must retain the editor and workspace after a disk failure.")
+	TEST_ASSERT(!preferences.switch_to_slot(2), "A failed drawing save must refuse a character slot switch.")
+	TEST_ASSERT_EQUAL(preferences.default_slot, 1, "A failed drawing save changed the character slot.")
+	TEST_ASSERT(!QDELETED(editor) && preferences.custom_sprite_editors?["hair"] == editor, "A refused slot switch lost the unsaved drawing editor.")
 	store.fail_destination = null
 	TEST_ASSERT(!(!editor.save_drawing() || editor.save_revision != 1 || editor.save_error), "Successful retry must acknowledge the saved revision and clear the error.")
 	editor.finish(TRUE)
