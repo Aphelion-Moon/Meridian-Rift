@@ -32,11 +32,9 @@
 			var/height = dimensions["height"]
 			if(width == 32 && height == 32)
 				continue
-			var/state = marking.zone_icon_state(zone) || marking.zone_icon_state(zone, digitigrade = TRUE)
-			if(!icon_exists(marking.icon, state))
+			if(!icon_exists(marking.icon, marking.zone_icon_state(zone) || marking.zone_icon_state(zone, digitigrade = TRUE)))
 				continue
-			LAZYINITLIST(native_icons[zone])
-			native_icons[zone][name] = "preferences[width]x[height] [sprite_class]_native"
+			LAZYSET(native_icons[zone], name, "preferences[width]x[height] [sprite_class]_native")
 	return native_icons
 
 /// Adds each zone's native marking once to the same cached sheet used by hair preferences.
@@ -132,11 +130,7 @@
 		"key" = key,
 		"info" = info,
 		"defaults" = defaults,
-		"fur" = list(
-			sanitize_hexcolor(features[FEATURE_MUTANT_COLOR]),
-			sanitize_hexcolor(features[FEATURE_MUTANT_COLOR_TWO]),
-			sanitize_hexcolor(features[FEATURE_MUTANT_COLOR_THREE]),
-		),
+		"fur" = marking_fur_colors(features),
 		"species" = species.id,
 		"speciesName" = species.name,
 		"speciesIcon" = sanitize_css_class_name(species.name),

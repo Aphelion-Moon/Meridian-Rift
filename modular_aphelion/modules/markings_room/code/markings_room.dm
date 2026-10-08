@@ -24,7 +24,7 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 /datum/preference_middleware/markings_room
 	action_delegations = list(
 		"markings_room_regions" = PROC_REF(send_regions),
-		"surprise_markings" = PROC_REF(act_surprise_markings),
+		"surprise_markings" = PROC_REF(surprise_markings),
 	)
 
 /datum/preference_middleware/markings_room/get_ui_assets()
@@ -59,7 +59,7 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 			"dirs" = dirs,
 		))
 	return list(
-		"marking_fur_colors" = fur_colors(),
+		"marking_fur_colors" = marking_fur_colors(preferences.character_preview_view?.body?.dna?.features),
 		"custom_marking_views" = views,
 		// The station's clock as the round's: Electra's mirror shows it. The page ticks it on from each update, which
 		// sets it right again, so it goes with every one rather than once.
@@ -73,14 +73,13 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 	)
 
 /**
- * Returns the three mutant colours a marking can follow, as the preview body wears them: what a new marking, a preset or
- * a colour reset gives it.
+ * Returns the three mutant colours a marking can follow, as a body's DNA features hold them: what a new marking, a
+ * preset or a colour reset gives it.
  *
  * Returns:
- * - list: three "#rrggbb" colours, or null without a preview body.
+ * - list: three "#rrggbb" colours, or null without features.
  */
-/datum/preference_middleware/markings_room/proc/fur_colors()
-	var/list/features = preferences.character_preview_view?.body?.dna?.features
+/proc/marking_fur_colors(list/features)
 	if(isnull(features))
 		return null
 	return list(
@@ -220,6 +219,7 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
  * Surprise me: a whole new set of markings the species is meant to wear, on every zone at once, in place of every marking
  * worn now. A zone is left bare MARKINGS_ROOM_SURPRISE_BARE percent of the time and otherwise gets one or two markings,
  * now and then in a marker's paint and, when the character allows glow, glowing. Legs under a taur body get none.
+ * The markings it put on go to the window alone, as every markings action's do.
  */
 /datum/preference_middleware/markings_room/proc/surprise_markings(list/params, mob/user)
 	var/datum/species/species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
@@ -247,13 +247,6 @@ GLOBAL_LIST_INIT(markings_room_paints, list(
 			surprise.add_entry(entry)
 	preferences.body_markings = surprise
 	preferences.character_preview_view?.update_body()
-	return TRUE
-
-/// The window's side of Surprise me: the markings it put on go to the window alone, as every markings action's do.
-/datum/preference_middleware/markings_room/proc/act_surprise_markings(list/params, mob/user)
-	if(!surprise_markings(params, user))
-		return FALSE
-	var/datum/preference_middleware/limbs_and_markings/markings_middleware = locate() in preferences.middleware
 	return markings_middleware ? markings_middleware.send_markings(user) : TRUE
 
 #undef MARKINGS_ROOM_SURPRISE_BARE

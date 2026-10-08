@@ -90,16 +90,12 @@
 		draw_glows(recipes)
 	return TRUE
 
-/// A composed preview's glow is composed too.
+/// A composed preview's glow is composed too: its slices' glows with the canvas's between them, or null when nothing in the view glows.
 /datum/custom_sprite_editor/markings/glow_recipe(view)
 	if(!preview_composed || !resources_ready)
 		return ..()
-	return composed_glow_recipe(view)
-
-/// One view of the preview's glow as an iconforge recipe: its slices' glows with the canvas's between them, or null when nothing in the view glows.
-/datum/custom_sprite_editor/markings/proc/composed_glow_recipe(direction)
-	var/list/cut = view_glow_slice_recipes()[direction]
-	var/list/paint = paint_recipes(preview_frames()[direction], direction, glow = TRUE)
+	var/list/cut = view_glow_slice_recipes()[view]
+	var/list/paint = paint_recipes(preview_frames()[view], view, glow = TRUE)
 	if(!glow_slices_lit && !paint[3])
 		return null
 	var/list/blends = list()

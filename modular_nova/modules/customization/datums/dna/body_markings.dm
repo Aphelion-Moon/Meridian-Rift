@@ -277,7 +277,6 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	for(var/datum/body_marking_entry/entry as anything in entries)
 		if(entry.zone == zone && entry.marking.name == name)
 			return entry
-	return null
 
 /**
  * Returns the entry that keeps a marking off a zone: one wearing the same marking or, unless told not to look, one wearing
@@ -301,7 +300,6 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 			continue
 		if(entry.marking.name == marking.name || (group && entry.marking.exclusion_group == group))
 			return entry
-	return null
 
 /**
  * Adds an entry after every entry already on its zone, adding the zone first when it is absent.
@@ -519,11 +517,9 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 	RETURN_TYPE(/list)
 	if(allow_mismatched)
 		return null
-	var/list/disallowed
 	for(var/datum/body_marking_entry/entry as anything in entries)
 		if(!entry.marking.allows_species(species_id))
-			LAZYADD(disallowed, entry)
-	return disallowed
+			LAZYADD(., entry)
 
 /**
  * Drops what editing could never have put on a zone, keeping the order of the rest: a second marking of an exclusion group,
@@ -557,19 +553,6 @@ GLOBAL_VAR_INIT(body_marking_entry_revision, 0)
 		entries = kept
 		version++
 
-/**
- * Counts the lists this collection holds right now, caches included. The markings benchmark reports it.
- *
- * Returns:
- * - number: the list count.
- */
-/datum/body_marking_collection/proc/count_lists()
-	. = 0
-	for(var/list/held as anything in list(entries, zones, zone_cache, key_cache))
-		if(held)
-			.++
-	. += length(zone_cache)
-
 /// Marking names a save or a custom-style package may still carry although no marking has them any more, each -> the name of
 /// the marking that draws the same art now. A save has them renamed by the migration of the save version that retired them,
 /// before the loader, which drops a name it doesn't know (body_marking_rename_retired()); a custom-style package is read
@@ -596,11 +579,9 @@ GLOBAL_LIST_INIT(body_marking_renames, list(
 	if(!islist(raw))
 		return
 	for(var/zone, zone_value in raw)
-		if(!istext(zone))
+		if(!istext(zone) || !islist(zone_value))
 			continue
 		var/list/raw_zone = zone_value
-		if(!islist(raw_zone))
-			continue
 		var/found = FALSE
 		for(var/name in raw_zone)
 			if(istext(name) && GLOB.body_marking_renames[name])
@@ -645,11 +626,8 @@ GLOBAL_LIST_INIT(body_marking_renames, list(
 	if(!islist(raw))
 		return collection
 	for(var/zone, zone_value in raw)
-		if(!istext(zone) || !(zone in GLOB.marking_zones))
-			continue
-		var/list/raw_zone = zone_value
-		if(islist(raw_zone))
-			collection.set_zone_entries(zone, body_marking_entries_from_list(zone, raw_zone), keep_group_conflicts = TRUE)
+		if(istext(zone) && (zone in GLOB.marking_zones) && islist(zone_value))
+			collection.set_zone_entries(zone, body_marking_entries_from_list(zone, zone_value), keep_group_conflicts = TRUE)
 	return collection
 
 /**

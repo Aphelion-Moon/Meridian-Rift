@@ -28,16 +28,14 @@
 /datum/asset/simple/art_stylesheet/register()
 	for(var/file_name, texture in textures)
 		assets[asset_name(file_name)] = texture
-	for(var/file_name in fonts)
-		var/list/face = fonts[file_name]
+	for(var/file_name, face in fonts)
 		assets[asset_name(file_name)] = face[3]
 	..()
 	var/list/properties = list()
 	for(var/file_name in textures)
 		properties += "[property_prefix][copytext(file_name, 1, findlasttext(file_name, "."))]:url('[asset_url(asset_name(file_name))]')"
 	var/list/css = list("[scope]{[jointext(properties, ";")]}")
-	for(var/file_name in fonts)
-		var/list/face = fonts[file_name]
+	for(var/file_name, face in fonts)
 		css += "@font-face{font-family:'[face[1]]';font-weight:[face[2]];font-display:block;src:url('[asset_url(asset_name(file_name))]')}"
 	var/filename = "data/[stylesheet]"
 	fdel(filename)
@@ -98,7 +96,6 @@
 	switch(theme)
 		if("meridian_foundry")
 			return get_asset_datum(/datum/asset/simple/art_stylesheet/meridian_foundry)
-	return null
 
 /**
  * Hands a client its MeridianOS theme's art: the files first, waiting for them to arrive, then their stylesheet to its

@@ -417,7 +417,6 @@
 		var/datum/body_marking/worn = GLOB.body_markings[entry["name"]]
 		if(worn?.exclusion_group == group)
 			return entry["name"]
-	return null
 
 /// Whether a region's saved paint in one view includes any the canvas can't show, under other limbs or outside every region.
 /datum/custom_sprite_editor/markings/proc/has_covered_paint(zone, direction)

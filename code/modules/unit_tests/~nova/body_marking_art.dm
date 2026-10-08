@@ -139,13 +139,13 @@
 	marking.icon = art
 	marking.icon_state = "art_test"
 	marking.affected_bodyparts = ARM_LEFT | HAND_LEFT
-	var/drawn_state = marking.zone_icon_state(BODY_ZONE_L_ARM)
+	var/state = marking.zone_icon_state(BODY_ZONE_L_ARM)
 	var/missing_state = marking.zone_icon_state(BODY_ZONE_PRECISE_L_HAND)
 	var/mob/living/carbon/human/body = dressed_body(marking, list(BODY_ZONE_L_ARM, BODY_ZONE_PRECISE_L_HAND), emissive = TRUE)
 	var/obj/item/bodypart/arm = body.get_bodypart(BODY_ZONE_L_ARM)
 	TEST_ASSERT_EQUAL(length(arm.markings) + length(arm.aux_zone_markings), 2, "The arm must wear the marking on itself and on its hand")
 	var/list/drawn = arm.get_limb_icon(FALSE)
-	TEST_ASSERT_EQUAL(count_state(drawn, drawn_state), 2, "The arm must draw the marking and its glow where the sheet has art")
+	TEST_ASSERT_EQUAL(count_state(drawn, state), 2, "The arm must draw the marking and its glow where the sheet has art")
 	TEST_ASSERT_EQUAL(count_state(drawn, missing_state), 0, "The hand must draw neither the marking nor its glow where the sheet has no art")
 	// All the marked arm draws beyond the bare arm is the arm's marking and its glow.
 	var/marked_count = length(drawn)
@@ -170,8 +170,8 @@
 	marking.leg_shapes = MARKING_LEG_DIGITIGRADE
 	TEST_ASSERT_NULL(marking.zone_icon_state(BODY_ZONE_L_LEG, FALSE), "A digitigrade-only marking must ask for nothing on a plantigrade leg")
 	TEST_ASSERT_EQUAL(marking.zone_icon_state(BODY_ZONE_L_LEG, TRUE), digitigrade_state, "A digitigrade-only marking must ask for its digitigrade art on a digitigrade leg")
-	var/mob/living/carbon/human/plantigrade_body = dressed_body(marking, list(BODY_ZONE_L_LEG))
-	var/obj/item/bodypart/plantigrade_leg = plantigrade_body.get_bodypart(BODY_ZONE_L_LEG)
+	var/mob/living/carbon/human/body = dressed_body(marking, list(BODY_ZONE_L_LEG))
+	var/obj/item/bodypart/plantigrade_leg = body.get_bodypart(BODY_ZONE_L_LEG)
 	TEST_ASSERT(!(plantigrade_leg.bodyshape & BODYSHAPE_DIGITIGRADE) && length(plantigrade_leg.markings), "The plantigrade fixture leg must wear the marking")
 	var/list/plantigrade_drawn = plantigrade_leg.get_limb_icon(FALSE)
 	TEST_ASSERT_EQUAL(count_state(plantigrade_drawn, plantigrade_state) + count_state(plantigrade_drawn, digitigrade_state), 0, "A digitigrade-only marking must draw nothing on a plantigrade leg")

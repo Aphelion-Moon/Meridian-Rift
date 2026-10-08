@@ -383,8 +383,7 @@
 	var/datum/preference/taur_choice = GLOB.preference_entries[/datum/preference/choiced/mutant_choice/taur]
 	var/leg_augments = FALSE
 	for(var/augment_slot, augment_path in augments)
-		var/datum/augment_item/limb/limb_augment = astype(GLOB.augment_items[augment_path], /datum/augment_item/limb)
-		if(limb_augment?.slot_flag & (LEG_LEFT|LEG_RIGHT))
+		if(astype(GLOB.augment_items[augment_path], /datum/augment_item/limb)?.slot_flag & (LEG_LEFT|LEG_RIGHT))
 			leg_augments = TRUE
 	var/list/answers = list()
 	for(var/allowed in list(FALSE, TRUE))

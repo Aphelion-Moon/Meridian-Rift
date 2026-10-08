@@ -128,8 +128,7 @@
 	var/datum/augment_item/augment = GLOB.augment_items[preferences.augments?[AUGMENT_SLOT_EYES]]
 	if(augment)
 		return ispath(augment.path, /obj/item/organ/eyes/pod)
-	var/species_type = preferences.read_preference(/datum/preference/choiced/species)
-	var/datum/species/species = GLOB.species_prototypes[species_type]
+	var/datum/species/species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
 	return ispath(species?.mutanteyes, /obj/item/organ/eyes/pod)
 
 /datum/preference/toggle/custom_pod_eye_color/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)

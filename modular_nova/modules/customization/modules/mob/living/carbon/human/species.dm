@@ -205,9 +205,7 @@ GLOBAL_LIST_EMPTY(customizable_races)
 		var/list/set_types = set_type
 		set_type = length(set_types) ? pick(set_types) : null
 	var/datum/body_marking_set/marking_set = set_type ? GLOB.body_marking_sets_by_type[set_type] : null
-	if(!marking_set)
-		return new /datum/body_marking_collection
-	return assemble_body_markings_from_set(marking_set, features, src)
+	return marking_set ? assemble_body_markings_from_set(marking_set, features, src) : new /datum/body_marking_collection
 
 /datum/species/regenerate_organs(mob/living/carbon/organ_holder, datum/species/old_species, replace_current = TRUE, list/excluded_zones, visual_only = FALSE, replace_missing = TRUE)
 	var/legless = !grows_legs()

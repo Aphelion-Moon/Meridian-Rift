@@ -1,4 +1,4 @@
-/// Blended runs of body marking states by content key, bounded by custom_sprite_cache_put(). See merged_body_marking_icon().
+/// Blended runs of body marking states by content key, bounded by custom_sprite_cache_put(). See merge_body_marking_run().
 GLOBAL_LIST_EMPTY(merged_body_marking_icons)
 
 /**
@@ -176,35 +176,26 @@ GLOBAL_LIST_EMPTY(merged_body_marking_icons)
  * it included: that appearance takes the run's blended icon and keeps its own colour, alpha, layer, plane, flags and
  * facing, so it draws what the run's appearances drew one on another.
  *
+ * The blended icon holds the run's states blended uncoloured, in order, on a canvas of their sheets' size in all four
+ * cardinals. Its key, the parts joined by "|", is colour-free, so every body drawing the same states shares it, in any
+ * colour and husked or not. Built on a cache miss, into a bounded cache. The blend sits under a state named by the key
+ * as well. An appearance reads its runtime icon back as empty text, and the leg split keys its masked halves by that
+ * text and the appearance's state (handle_masking()), so only the state tells two runs apart there. The same content
+ * keys keep custom paint's own leg split safe (appearance.dm).
+ *
  * Arguments:
  * - first: the run's first appearance in the output list, built for this render.
- * - parts: the run's sheets and states, alternating, in drawing order.
+ * - parts: the run's sheets and states, alternating, in drawing order. Its sheets share one size.
  */
 /proc/merge_body_marking_run(image/first, list/parts)
 	var/key = jointext(parts, "|")
-	first.icon = merged_body_marking_icon(parts, key)
-	first.icon_state = key
-
-/**
- * Returns one icon holding a run of body marking states blended uncoloured, in order, on a canvas of their sheets' size in
- * all four cardinals. The key is colour-free, so every body drawing the same states shares it, in any colour and husked or
- * not. Built on a cache miss, into a bounded cache.
- *
- * The blend sits under a state named by the key as well. An appearance reads its runtime icon back as empty text, and the
- * leg split keys its masked halves by that text and the appearance's state (handle_masking()), so only the state
- * tells two runs apart there. The same content keys keep custom paint's own leg split safe (appearance.dm).
- *
- * Arguments:
- * - parts: the run's sheets and states, alternating, in drawing order. Its sheets share one size.
- * - key: parts joined by "|".
- */
-/proc/merged_body_marking_icon(list/parts, key)
 	var/icon/merged = GLOB.merged_body_marking_icons[key]
-	if(merged)
-		return merged
-	var/list/dimensions = get_icon_dimensions(parts[1])
-	merged = custom_sprite_blank_icon(dimensions["width"], dimensions["height"])
-	for(var/index in 1 to length(parts) step 2)
-		merged.Blend(icon(parts[index], parts[index + 1]), ICON_OVERLAY)
-	merged.Insert(icon(merged), key)
-	return custom_sprite_cache_put(GLOB.merged_body_marking_icons, key, merged)
+	if(!merged)
+		var/list/dimensions = get_icon_dimensions(parts[1])
+		merged = custom_sprite_blank_icon(dimensions["width"], dimensions["height"])
+		for(var/index in 1 to length(parts) step 2)
+			merged.Blend(icon(parts[index], parts[index + 1]), ICON_OVERLAY)
+		merged.Insert(icon(merged), key)
+		custom_sprite_cache_put(GLOB.merged_body_marking_icons, key, merged)
+	first.icon = merged
+	first.icon_state = key

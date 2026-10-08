@@ -302,11 +302,6 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	animation_read = FALSE
 	SScharacter_preview.reading_waiters -= src
 
-/// Animated icon states a drawing drew still have been read: the look draws again, moving.
-/datum/preference_middleware/character_preview/proc/animation_read()
-	animation_read = TRUE
-	preview_changed()
-
 /**
  * Draws a walk's facings into one strip with iconforge, or finds the same look already drawn, and returns the page's
  * data for the strip, or null if it couldn't be drawn.

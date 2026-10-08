@@ -40,13 +40,6 @@ GLOBAL_LIST_INIT(custom_sprite_view_facings, list("1" = NORTH, "2" = SOUTH, "4" 
 	flat.crop(2 - margin + shift_x - flat_x1, 2 + shift_z - flat_y1, 33 + margin + shift_x - flat_x1, 1 + height + shift_z - flat_y1)
 	return uni_icon_facings_json(flat, GLOB.custom_sprite_view_facings)
 
-/// What of a look glows, in custom_sprite_view_recipes()'s window for each of the editors' views, or null when nothing in it glows; see glow.dm.
-/proc/custom_sprite_glow_view_recipes(image/appearance, width = 32, height = 32, shift_x = 0, shift_z = 0)
-	var/list/branches = emissive_branches(appearance)
-	if(!emissive_branches_lit(branches))
-		return null
-	return custom_sprite_view_recipes(emissive_holder(branches, appearance), width, height, shift_x, shift_z)
-
 /**
  * Draws recipes with iconforge, a picture each, on the main thread: a few tenths of a millisecond per picture,
  * where getFlatIcon() takes several for one view of a body. Each PNG goes to `publish`, a data URL of it when

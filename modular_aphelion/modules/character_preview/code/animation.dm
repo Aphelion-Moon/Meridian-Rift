@@ -62,7 +62,6 @@ GLOBAL_LIST_EMPTY(character_preview_animations)
 			continue
 		return (GLOB.character_preview_animations[key] = reading.result())
 	readings[key] = reading
-	return null
 
 /// Reads what waits to be read, a frame at a time, while the tick has room. Once nothing waits, every preview drawn still
 /// meanwhile draws again.
@@ -70,8 +69,7 @@ GLOBAL_LIST_EMPTY(character_preview_animations)
 	while(length(readings))
 		var/key = readings[1]
 		var/datum/preview_animation_reading/reading = readings[key]
-		var/done = reading.read_next()
-		if(done)
+		if(reading.read_next())
 			GLOB.character_preview_animations[key] = reading.result()
 			readings -= key
 		if(MC_TICK_CHECK)
@@ -94,7 +92,8 @@ GLOBAL_LIST_EMPTY(character_preview_animations)
 	var/list/waiters = reading_waiters
 	reading_waiters = list()
 	for(var/datum/preference_middleware/character_preview/waiter as anything in waiters)
-		waiter.animation_read()
+		waiter.animation_read = TRUE
+		waiter.preview_changed()
 
 /// A reading of an animated icon state, or null for one that is drawn still without reading it.
 /proc/preview_animation_reading(file, state)
@@ -114,7 +113,6 @@ GLOBAL_LIST_EMPTY(character_preview_animations)
 		if(frames < 2 || frames > CHARACTER_PREVIEW_ANIMATION_MAX_FRAMES || state_data["loop_count"])
 			return null
 		return new /datum/preview_animation_reading(file, state, delays, !!state_data["rewind"], state_data["dirs"], width, height)
-	return null
 
 /**
  * Reads which pixels of an animated icon state change, and between which frames, a frame at a time: each frame is
@@ -395,8 +393,7 @@ GLOBAL_LIST_INIT(preview_animation_amplify, list(255, 255, 255, 0, 255, 255, 255
 		var/list/region = all_regions[index]
 		var/list/steps = region["steps"]
 		var/sharing = length(all_regions) - index + 1
-		var/keep = min(length(steps) - 1, round(patches_left / sharing), round(pixels_left / sharing / region["area"]))
-		steps = preview_animation_fewer_steps(steps, keep)
+		steps = preview_animation_fewer_steps(steps, min(length(steps) - 1, round(patches_left / sharing), round(pixels_left / sharing / region["area"])))
 		region["steps"] = steps
 		patches_left -= length(steps) - 1
 		pixels_left -= (length(steps) - 1) * region["area"]
@@ -476,8 +473,7 @@ GLOBAL_LIST_INIT(preview_animation_amplify, list(255, 255, 255, 0, 255, 255, 255
 	// A blank as big as every patch side by side, with each laid on it.
 	var/datum/universal_icon/moving = uni_icon('icons/blanks/32x32.dmi', "nothing")
 	moving.crop(1, 1, moving_width, moving_height)
-	var/moving_json = moving.to_json()
-	. = list("json" = list("\"moving\":[copytext(moving_json, 1, -2)]") + patch_json + "]}", "facings" = facings)
+	. = list("json" = list("\"moving\":[copytext(moving.to_json(), 1, -2)]") + patch_json + "]}", "facings" = facings)
 	if(pending)
 		.["pending"] = TRUE
 
@@ -559,11 +555,9 @@ GLOBAL_LIST_INIT(preview_animation_amplify, list(255, 255, 255, 0, 255, 255, 255
 			common = rest
 			rest = next
 		if(period / common > CHARACTER_PREVIEW_ANIMATION_MAX_PERIOD / cycle)
-			period = -1
+			period = longest
 			break
 		period = period / common * cycle
-	if(period < 0)
-		period = longest
 	var/alist/seen = alist()
 	var/list/times = list()
 	for(var/list/track as anything in tracks)

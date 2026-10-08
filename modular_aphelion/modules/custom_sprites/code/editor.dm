@@ -637,7 +637,8 @@
 	if(!preview_appearance)
 		return null
 	if(glow_recipes_for != preview_appearance)
-		glow_recipes = custom_sprite_glow_view_recipes(preview_appearance, preview_width, preview_height)
+		var/list/branches = emissive_branches(preview_appearance)
+		glow_recipes = emissive_branches_lit(branches) ? custom_sprite_view_recipes(emissive_holder(branches, preview_appearance), preview_width, preview_height) : null
 		glow_recipes_for = preview_appearance
 	return glow_recipes?[view]
 

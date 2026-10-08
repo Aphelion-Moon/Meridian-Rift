@@ -201,7 +201,7 @@
  *   species) and, only for a marking with some, recommended_colors.
  */
 /datum/preference_middleware/limbs_and_markings/proc/build_marking_info()
-	var/list/marking_info = list()
+	. = list()
 	for(var/marking_name, marking_datum in GLOB.body_markings)
 		var/datum/body_marking/marking = marking_datum
 		var/list/info = list(
@@ -212,8 +212,7 @@
 		// Only a marking with suggested colours sends them.
 		if(marking.recommended_colors)
 			info["recommended_colors"] = marking.recommended_colors
-		marking_info[marking_name] = info
-	return marking_info
+		.[marking_name] = info
 
 /// Builds unfiltered marking presets — TSX filters by species/mismatched parts
 /datum/preference_middleware/limbs_and_markings/proc/build_marking_presets()
@@ -428,7 +427,6 @@
 		marking_count++
 		if(marking_id == "[zone]_[marking_count]")
 			return entry
-	return null
 
 /**
  * Returns the features a new marking's colour is seeded from: the preview body's, which wears the character's mutant colours.
@@ -523,9 +521,7 @@
  * A locked marking gets its own colour back too, which a recolour can't give it.
  */
 /datum/preference_middleware/limbs_and_markings/proc/reset_marking_color(list/params, mob/user)
-	var/bodypart_slot = params["bodypart_slot"]
-	var/marking_id = params["marking_id"]
-	var/datum/body_marking_entry/reset = marking_entry_by_id(bodypart_slot, marking_id)
+	var/datum/body_marking_entry/reset = marking_entry_by_id(params["bodypart_slot"], params["marking_id"])
 	if(!reset)
 		return
 	reset.reseed_color(marking_seed_features(), edited_species())
@@ -610,19 +606,15 @@
 
 /datum/preference_middleware/limbs_and_markings/proc/act_set_bodypart_aug(list/params, mob/user)
 	var/list/quirks = preferences.all_quirks
-	if(!set_bodypart_aug(params, user))
-		return FALSE
 	// Quirks the augment ruled out went with it, and the window is being sent all of its data again.
-	return quirks != preferences.all_quirks || send_augments(user)
+	return set_bodypart_aug(params, user) && (quirks != preferences.all_quirks || send_augments(user))
 
 /datum/preference_middleware/limbs_and_markings/proc/act_set_bodypart_aug_style(list/params, mob/user)
 	return set_bodypart_aug_style(params, user) && send_augment_styles(user)
 
 /datum/preference_middleware/limbs_and_markings/proc/act_set_internal_implant_aug(list/params, mob/user)
 	var/list/quirks = preferences.all_quirks
-	if(!set_internal_implant_aug(params, user))
-		return FALSE
-	return quirks != preferences.all_quirks || send_augments(user)
+	return set_internal_implant_aug(params, user) && (quirks != preferences.all_quirks || send_augments(user))
 
 /datum/preference_middleware/limbs_and_markings/proc/act_add_marking(list/params, mob/user)
 	return add_marking(params, user) && send_markings(user)

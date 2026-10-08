@@ -97,16 +97,15 @@
  * description and icon with the window's data, as before.
  */
 /datum/preference_middleware/languages/get_constant_data()
-	var/list/info = list()
+	. = list()
 	for(var/language_path, language_instance in GLOB.language_datum_instances)
 		var/datum/language/language = language_instance
 		if(language.secret)
 			continue
-		info[language.name] = list(
+		.[language.name] = list(
 			"description" = language.desc,
 			"icon" = sanitize_css_class_name(language.name),
 		)
-	return info
 
 /// (Re-)Initializes the `name_to_language` associative list, to ensure that it's properly populated.
 /datum/preference_middleware/languages/proc/initialize_name_to_language()
