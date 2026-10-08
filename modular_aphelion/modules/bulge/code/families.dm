@@ -101,21 +101,23 @@
 	contained = BULGE_SIZE_BIT(5)
 	curtain = BULGE_SIZE_BIT(5)
 
-/// Loose boxers past size 4 are drawn with the boxers' shapes.
+/// Loose boxers past size 4 are drawn with the boxers' shapes; a printed pair keeps its print on them (mal, 2026-10-08).
 /datum/bulge_family/loose_boxers
 	half_cap = 8
 	hard_cap = 8
+	print_cap = 8
 	shapes = "loose_boxers"
 	large_shapes_of = /datum/bulge_family/boxers
 
-/// The heart boxers keep their print past size 4, in large hearts made by the print rule and approved by mal.
+/// The heart boxers' print past size 4 is in large hearts made by the print rule and approved by mal.
 /datum/bulge_family/loose_boxers/hearts
-	print_cap = 8
 	printed_patches = "heart_boxers"
 
+/// A printed pair of briefs keeps its print past size 4 (mal, 2026-10-08).
 /datum/bulge_family/briefs
 	half_cap = 8
 	hard_cap = 8
+	print_cap = 8
 	shapes = "briefs"
 	hem = 23
 	contained = BULGE_SIZE_BIT(5)
@@ -123,10 +125,12 @@
 /datum/bulge_family/jockstrap
 	shapes = "jockstrap"
 
-/// Jeans when hard at size 5 keep one shape for every penis (the approved size 5 trial); past it they follow it.
+/// Jeans when hard at size 5 keep one shape for every penis (the approved size 5 trial); past it they follow it. A
+/// printed pair keeps its print past size 4, on that shape too (mal, 2026-10-08).
 /datum/bulge_family/jeans
 	finish = BULGE_FINISH_DENIM
 	hard_cap = 8
+	print_cap = 8
 	shapes = "jeans"
 	small_cap = 5
 	hem = 31
@@ -156,10 +160,12 @@
 	hem = 25
 	contained = BULGE_SIZE_BIT(5)
 
-/// Track pants past size 4 are drawn with the long johns' shapes.
+/// Track pants past size 4 are drawn with the long johns' shapes; a printed pair keeps its print on them (mal,
+/// 2026-10-08).
 /datum/bulge_family/track_pants
 	half_cap = 8
 	hard_cap = 8
+	print_cap = 8
 	shapes = "track_pants"
 	large_shapes_of = /datum/bulge_family/long_johns
 
