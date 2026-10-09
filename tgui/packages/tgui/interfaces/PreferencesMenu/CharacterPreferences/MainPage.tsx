@@ -708,6 +708,7 @@ export function MainPage(props: MainPageProps) {
               <CharacterPreview
                 height="100%"
                 // id={data.character_preview_view} // APHELION EDIT REMOVAL - Drawn character preview
+                lightKey // APHELION EDIT ADDITION - Preview lights: the switch is a key on the portrait's frame
               />
             </Stack.Item>
 

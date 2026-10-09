@@ -41,6 +41,34 @@ Augments+ and the species page's chamber) shows that one drawing.
   (Loadout), or a scanner's rule along the character's tile, ticked in the drawing's pixels (Augments+).
   The floor is never painted over: what the frame draws on it is small and keylined, so it reads on every
   background. The frame never draws again once shown, nothing in it moves, and it takes no pointer.
+- **A room of its own.** The club themes' Augments+ Markings frames the preview itself, as a club's mirror (see the
+  markings_room module): its `club` motif draws no floor and no frame, `maxScale` lets the fit pass a tile filling
+  the box, `overlay` draws layers lined up with the character in its arrival (each marked `data-preview-pan` pans
+  with it, beside its canvas so a layer can blend with it), and `onTap` reports a press let go before it dragged.
+- **Lights off, to see what glows.** A lightbulb beside each tab's turn buttons turns the preview's lights off, on
+  every tab at once, as a turn holds. The page then lights the character as the game's lighting plate does in an
+  unlit room: every pixel, the floor's included, is multiplied by its light, which is the 10% the game's dark leaves
+  plus the bloom's light falling on it, the colours of what blooms grown and blurred as the game's bloom filter
+  spreads them at the player's own bloom setting; and a pixel that glows keeps its own colour, through anything worn
+  over it that blocks the glow, as the game's emissive plane has it. The frame stays lit. The page works from each facing's glow, drawn beside
+  it in the same strip: the look's emissive overlays alone, flattened as the emissive plane holds them, red where
+  something glows and blooms, green where it glows without, black where a blocker hides it (`glow.dm`). The server
+  draws it only while a window has its lights off, and only for a look with something that glows; a lights-on window,
+  or a look with nothing glowing, draws exactly what it drew before. Turning them off draws the look once more with
+  its glow, unless the drawing already has it; turning them on again draws nothing. A window opens with its lights
+  on. The custom hair and markings editors' previews have the same switch; see that module.
+- **What animates, animates.** A look with something animated, like a halo's bob, an IPC screen's blink, fairy wings'
+  flutter or a galaxy suit's twinkle, plays it in the preview, as the game does. iconforge draws a look's first frame
+  only, so the drawing carries, beside its facings, patches: the look at each later step of its animation, cropped to
+  the box of pixels that changes, side by side in one more image. The page lays each over the facing in turn, on its
+  1x canvas before height's rows move, a step at a time, while the window is shown and the lights are on; with them
+  off, the preview holds still. It plays whatever the player's system says of motion, as the game's own client does:
+  the game's client reports reduced motion for a window's first moments anyway. Which pixels an animated icon state
+  changes, and between which of its frames, is read once a round, in `SScharacter_preview`'s spare time, a frame at a
+  time (`animation.dm`); a look shown before then is drawn still, and drawn again once it has been. What moves apart
+  keeps its own time, a quick flutter and a slow flick each theirs, and what overlaps moves on one timeline. A drawing
+  carries at most 32 patches and 16384 of their pixels, shared out cheapest first: an animation with more steps than
+  fit keeps fewer, evenly, each shown for the time of those dropped after it, so it still runs its whole length.
 - **Nothing lands on the player's disk.** The strip travels inside the data as a PNG data URL, in a small
   update of its own that leaves the rest of the preferences data alone. BYOND keeps every file a client is
   sent in its cache for good, and a map kept every look the preview mob had; the player's cache doesn't
@@ -99,6 +127,34 @@ speed or with the CPU slowed four times; a move restyles what it moves in about 
 lays out, paints, rasters and renders nothing. Taking the layers and letting them go costs about 8 ms of
 raster, once a pan.
 
+The lights off, measured in DreamDaemon 516.1687 on three characters over two runs: a plain human, a lizard with
+three glowing markings and glowing eyes, and that lizard in a jumpsuit. A drawing with the lights on costs nothing
+more. With them off, finding whether anything glows takes 5 to 47 µs; for a look that glows, its glow adds a second
+walk of about 1.2 ms (the look's own walk took 0.9 to 1.2 ms), about 0.3 ms of iconforge's own thread with its caches
+warm (3 to 4.5 ms cold), and 0.55 to 0.75 KB to the 4.5 to 5.5 KB data URL. The page lights a facing on its 1x canvas
+when it turns, a drawing comes or the switch flips, and draws nothing in between.
+
+The lights-off look was matched to the game's own render: a lab client standing a glowing lizard in a sealed, unlit
+room and in one lit at 18%, captured at 4x and lined up with its preview drawing, for two characters at the default
+bloom and one at bloom 5. The game shows a glowing pixel in exactly its own colour, leaves 10% of the light elsewhere,
+and lights what lies round a blooming pixel with its colour, grown by the bloom filter's offset and blurred 1.2 times
+its size across, at 0.95 of its strength: fitted to the first capture within 1.5 of 255 levels (12.3 without the
+bloom). The page's own drawing, run in Chromium on the same drawings and floors, came out within 0.0 to 0.07 RMS on
+glowing pixels, 1.4 to 3.2 on the rest of the character and 0.8 to 1.6 on the floor of the dark captures, and within
+2.3 to 5.3 and 2.8 to 3.3 of the dim ones.
+
+The animation, measured in DreamDaemon 516.1687 on six looks: a halo, fairy wings, an IPC's pink screen, a galaxy
+suit, a lizard's slow tongue flick and an ethereal. Reading a state, once a round: 1.3 ms for a halo, 2.1 to 2.5 for
+an ethereal's head or an IPC screen, 5 to 6.5 for wings or a lit cigarette, 29 for the galaxy suit's 32 frames and 110
+to 120 for the flick's 80, in calls of at most 1.7 ms. A walk of a look with nothing animated takes about 30 µs more,
+to find that out; one of a look that animates, 0.4 to 1.1 ms more, to work out its steps and write its patches'
+recipes; and iconforge's own thread 0.1 to 1.2 ms more. The patches add 0.3 to 0.8 KB to the data for the halo, the
+screen and the flick, and 13 to 23 KB for the wings, the galaxy suit and the ethereal, whose patches are capped. The
+page's own laying of the patches, run in Chromium on those drawings and on a lizard with both wings and a flick, gave
+exactly iconforge's whole drawing of each facing at each step's start, every pixel: 136 checks. In the game's own
+client, character setup opened on that lizard, untouched, played from its first moments, each step at its time to
+within 10 ms.
+
 ### TG Proc/File Changes:
 
 Edits to tg files are marked `APHELION EDIT`, with their original code retained, except inside Nova's existing edit
@@ -106,7 +162,7 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
 
 | File | Procs or declarations changed |
 | --- | --- |
-| `code/modules/client/preferences.dm` | `/datum/preferences/ui_interact()` no longer shows the preview map, `ui_static_data()` no longer sends `character_preview_view`, and `ui_close()` lets the drawing go. `/atom/movable/screen/map_view/char_preview`: Nova's canvas vars and their code in `Destroy()` and `update_body()` are commented out, and Aphelion's earlier `preview_bounds` and `display_to_client()`, which went with them, are gone; `var/image/silicon_preview` stays, where `update_body()` keeps a silicon job's image. `update_body()` takes `catching_up`: with setup open, a change leaves the body stale and asks for a drawing (`defer_rebuild()`), whose rebuild is the one catching up; `Destroy()` takes the view out of the rebuild queue. |
+| `code/modules/client/preferences.dm` | `/datum/preferences/ui_interact()` no longer shows the preview map, `ui_static_data()` no longer sends `character_preview_view`, and `ui_close()` lets the drawing go. `/atom/movable/screen/map_view/char_preview`: Nova's canvas vars and their code in `Destroy()` and `update_body()` are commented out, and Aphelion's earlier `preview_bounds` and `display_to_client()`, which went with them, are gone; `var/image/silicon_preview` stays, where `update_body()` keeps a silicon job's image. `update_body()` takes `catching_up`: with setup open, a change leaves the body stale and asks for a drawing (`defer_rebuild()`), whose rebuild is the one catching up; `Destroy()` takes the view out of the rebuild queue. `update_body()` records the preview mode it drew (`previous_preview_pref`), which Nova's `update_preview` action no longer sets: set there, a deferred rebuild saw no change of mode, skipped the mob's `update_body()`, and showed naked or underwear one change late. |
 | `code/controllers/subsystem/asset_loading.dm` | `/datum/controller/subsystem/asset_loading/fire()` doesn't tell iconforge to let go while a character preview is being drawn (`character_preview_drawing_under_way()`). |
 | `code/modules/asset_cache/spritesheet/batched/universal_icon.dm` | `/proc/get_flat_uni_icon()` passes over an appearance without an icon, names a runtime icon's file by the md5 of its content, writing it once, and takes `grow`: the canvas then fits every overlay, and the new `flat_x1`, `flat_y1`, `flat_width` and `flat_height` vars say where the look sits in it. Adds `/proc/uni_icon_facings_json()`. |
 | `code/__HELPERS/icons.dm` | `getFlatIcon()` takes the same `grow`, with `grown_origin` to say where the grown canvas starts, and `get_flat_human_icon()` passes `grow` on. |
@@ -114,28 +170,41 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
 | `code/modules/client/preferences/age.dm`, `names.dm`, `paraplegic.dm`, `playtime_reward_cloak.dm`, `random.dm`, `trans_prosthetic.dm` | Preferences the preview doesn't show set `should_update_preview = FALSE` (three in `random.dm`), so changing them doesn't rebuild the preview mob. |
 | `modular_nova/modules/character_preview_background/code/character_preview_background.dm` | `/datum/preference/choiced/background_state` no longer rebuilds the preview mob (`should_update_preview = FALSE`), and the map's `/atom/movable/screen/map_view/char_preview/setDir()` override is removed. |
 | Nova preference and quirk files under `modular_nova/` | Set `should_update_preview = FALSE` on the preferences the preview doesn't show: text, sounds, opt-ins, quirk options and the like. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx` | `PreferencesMenu` turns the character back to face south as the window opens. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/index.tsx` | `PreferencesMenu` turns the character back to face south, with its lights on, as the window opens. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx` | `CharacterPreferenceWindow` asks for the drawing when it mounts. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | `MainPage` shows the drawn preview, and `handleRotate` turns it. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/loadout/index.tsx` | `LoadoutPreviewSection` shows the drawn preview, framed as a mirror, and its arrows turn it. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx` | `RotateCharacterButtons` turn the drawn preview, and `PreviewSection` shows it, framed as a scanner. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MainPage.tsx` | `MainPage` shows the drawn preview, `handleRotate` turns it, and `CharacterControls` has its lights switch. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/loadout/index.tsx` | `LoadoutPreviewSection` shows the drawn preview, framed as a mirror, its arrows turn it, and its lights switch sits beside them. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx` | `RotateCharacterButtons` turn the drawn preview and switch its lights, and `PreviewSection` shows it, framed as a scanner. |
 | `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/QuirksPage.tsx` | `QuirkPage` no longer keeps a hidden map preview alive for appearance quirks. |
-| `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Adds `CharacterPreviewDrawing`, `PreferencesMenuData`'s `character_preview` and `character_preview_pending`, and `ServerData`'s `background_state.tiles`; `character_preview_view` is commented out. |
+| `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts` | Adds `CharacterPreviewDrawing` (with each facing's `glow_frames`, and its `CharacterPreviewAnimation`), `PreferencesMenuData`'s `character_preview` and `character_preview_pending`, and `ServerData`'s `background_state.tiles`; `character_preview_view` is commented out. |
 
 ### Modular Overrides:
 
 - `code/drawing.dm`: `/datum/preference_middleware/character_preview`, which answers the window and draws the
-  preview; `/datum/preferences/var/preview_drawing` with `character_preview_changed()` and `character_preview_open()`;
+  preview, with its glow while the window's lights are off (`set_lights()`, the `character_preview_lights` action);
+  `/datum/preferences/var/preview_drawing` with `character_preview_changed()` and `character_preview_open()`;
   `character_preview_walk()`, `character_preview_flat_box()` and `character_preview_turns_itself()`, which make the
   recipes; and `/proc/iconforge_drawn()` with the globals it keeps: the drawings under way and how many looks' worth
   iconforge has drawn since it last let go of what it keeps, the custom sprite editors' pictures counting a tenth
   each; `/proc/character_preview_drawing_under_way()`.
+- `code/animation.dm`: what animates. `SScharacter_preview`'s `animation_of()` gives what animating an icon state
+  takes, once `read_animations()` has read it, a frame at a time in the subsystem's spare time (`readings`), and tells
+  the drawings that waited for it (`reading_waiters`); `/datum/preview_animation_reading` reads one, with
+  `preview_animation_split()` and `preview_animation_difference()`; `character_preview_animation()` makes a walk's
+  patches, from `preview_animated_leaves()`, `preview_animation_track()`, `preview_animation_steps()`,
+  `preview_animation_frames_at()`, `preview_animation_fewer_steps()` and `preview_animation_tokens()`; and
+  `GLOB.character_preview_animations` keeps what has been read this round.
+- `code/glow.dm`: what of a look glows. `emissive_branches()` takes a look's own emissive overlays, the glowing and
+  the blocking, within a span of layers; `emissive_branches_lit()` and `emissive_branch_lit()` say whether any of them
+  glows; `emissive_holder()` holds them for a flatten to draw as the emissive plane does; `character_preview_glow()`
+  flattens a look's glow onto its drawing's canvas. The custom sprite editors use them for their previews' glows.
 - `code/effects.dm`: `character_preview_effects()`, what the page draws over the drawing: the body's transform, and
   the rows tg's height filters move, which `character_preview_rows()` reads from their displacement maps
   (`character_preview_map_rows()`). The species page moves its renders' rows with it too.
 - `code/backgrounds.dm`: `/datum/preference/choiced/background_state/compile_constant_data()` also sends each
   background's tile, taken from the custom sprite editors' `custom_sprite_background_tiles()`.
-- `code/rebuilds.dm`: `SScharacter_preview`, the queue of preview mobs waiting to be rebuilt, and
+- `code/rebuilds.dm`: `SScharacter_preview`, the queue of preview mobs waiting to be rebuilt, which reads animated
+  icon states in its spare time, and
   `/atom/movable/screen/map_view/char_preview`'s `body_stale`, `turns` and `defer_rebuild()`.
 
 ### Defines:
@@ -144,12 +213,25 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
   `CHARACTER_PREVIEW_CLEANUP_EVERY` and `CHARACTER_PREVIEW_JOB_TIMEOUT`. File-local.
 - `code/rebuilds.dm`: `CHARACTER_PREVIEW_OVERRUN_BUDGET`, `CHARACTER_PREVIEW_OVERRUN_BURST` and
   `CHARACTER_PREVIEW_REBUILD_OVERDUE`. File-local.
+- `code/animation.dm`: `CHARACTER_PREVIEW_ANIMATION_MAX_PATCHES`, `CHARACTER_PREVIEW_ANIMATION_MAX_PIXELS`,
+  `CHARACTER_PREVIEW_ANIMATION_MAX_PERIOD`, `CHARACTER_PREVIEW_ANIMATION_MAX_FRAMES`,
+  `CHARACTER_PREVIEW_ANIMATION_MAX_AREA` and `CHARACTER_PREVIEW_ANIMATION_MIN_DELAY`. File-local.
 
 ### Included files that are not contained in this module:
 
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/CharacterPreview/`: the preview, its drawing and
-  fit (`drawing.tsx`), the turn every tab shares (`turn.ts`), its drag and wheel gestures (`gestures.ts`) and pan
-  (`pan.ts`), and tests for the fit.
+  fit and its animation (`drawing.tsx`), the turn every tab shares (`turn.ts`), the lights switch every tab shares
+  (`lights.tsx`), its drag and wheel gestures (`gestures.ts`) and pan (`pan.ts`), and tests for the fit and the
+  animation's steps.
+- `tgui/packages/tgui/interfaces/common/LightsOff.tsx`, `LightsOff.test.ts`: a picture lit with its lights off from its
+  glow, the light it keeps and its bloom, and the lights switch, shared with the custom sprite editors; and their tests.
+- `code/modules/unit_tests/~nova/character_preview_animation.dm`, included from
+  `code/modules/unit_tests/_unit_tests.dm`: a DM unit test that a state's moving box and frames are read as they are,
+  that a look whose states wait to be read is drawn still and drawn again once they have been, that a halo moves in
+  one patch a facing, and how steps come round together, skip frames that look alike and are kept fewer.
+- `code/modules/unit_tests/~nova/character_preview_glow.dm`, included from `code/modules/unit_tests/_unit_tests.dm`: a
+  DM unit test that glow is drawn only with the lights off and only for a look that glows, on the drawing's canvas,
+  and that a jumpsuit over a glowing marking hides its glow.
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/SpeciesRegistry/`: the species chamber shows the same drawing (`SpeciesSprite.tsx`, `SpecimenViewer.tsx`, `index.tsx`, `model.ts`).
 - `tgui/packages/tgui/styles/meridianos/_character_preview.scss`, loaded by `_preferences.scss`: the preview and
   its frame in every theme.

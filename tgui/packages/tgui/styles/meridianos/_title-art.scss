@@ -437,6 +437,69 @@
   }
 }
 
+// Foundry: the forge cave behind the glass, and the wordmark cast in molten
+// metal, pale gold over ember, set on a dark drop with a low glow (the refresh's
+// lobby title, chosen in its art review). For a flat title in the room's lit
+// ember, make the mark background #ffb35c.
+.theme-meridian_foundry .lobby-title-art {
+  --lobby-title-phosphor: #ffb35c;
+  --lobby-title-phosphor-secondary: #ff8a34;
+  --lobby-title-screen:
+    radial-gradient(ellipse 62% 80% at 50% 50%, transparent 55%, rgb(0 0 0 / 42%) 100%),
+    radial-gradient(ellipse 70% 30% at 50% 108%, rgb(255 100 25 / 32%), transparent 70%),
+    radial-gradient(ellipse 46% 40% at 50% 46%, rgb(255 150 70 / 7%), transparent 70%),
+    linear-gradient(180deg, rgb(10 6 4 / 35%), rgb(8 5 3 / 62%)),
+    var(--mt-foundry-cave, none) center / 1200px auto,
+    #170f09;
+  --lobby-title-edge: rgb(255 190 120 / 10%);
+  --lobby-title-mark-background: linear-gradient(180deg, #ffe0a4 8%, #ffb35c 48%, #ff8a34 92%);
+
+  // The alpha master's lettering occupies y=12-20%: the ramp spans that band.
+  .lobby-title-art__mark,
+  .lobby-title-art__bloom-source {
+    background-position: center 13%;
+    background-repeat: no-repeat;
+    background-size: 100% 9%;
+  }
+
+  .lobby-title-art__mark {
+    filter: none;
+  }
+
+  // The drop and the glow, as unmasked copies beneath the lettering. The drop moves
+  // its lettering, not its layer, so nothing reaches past the glass.
+  .lobby-title-art__bloom--near {
+    opacity: 0.9;
+
+    .lobby-title-art__bloom-source {
+      translate: 0 2px;
+      background-color: #1a0a03;
+      background-image: none;
+      background-size: auto;
+    }
+  }
+
+  .lobby-title-art__bloom--far {
+    filter: blur(clamp(3px, 0.7cqmin, 7px));
+    opacity: 0.42;
+
+    .lobby-title-art__bloom-source {
+      background-color: #ff7a2e;
+      background-image: none;
+      background-size: auto;
+    }
+  }
+}
+
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  @supports ((mask-image: url('')) or (-webkit-mask-image: url(''))) {
+    .theme-meridian_foundry .lobby-title-art:not(.lobby-title-art--screen)
+      .lobby-title-art__bloom {
+      display: block;
+    }
+  }
+}
+
 @media (prefers-contrast: more) {
   .lobby-title-art__mark {
     filter: none;

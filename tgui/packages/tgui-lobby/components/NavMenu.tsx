@@ -113,7 +113,12 @@ export function NavMenu({
 
       <hr />
 
-      <MenuButton onClick={() => sendAction('changelog')}>CHANGELOG</MenuButton>
+      <MenuButton
+        className="menu_changelog"
+        onClick={() => sendAction('changelog')}
+      >
+        CHANGELOG
+      </MenuButton>
 
       {!!serverState.isLocalhost &&
         (serverState.gamePhase === 'startup' ||

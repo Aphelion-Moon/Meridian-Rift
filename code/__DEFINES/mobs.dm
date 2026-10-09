@@ -865,10 +865,18 @@ GLOBAL_ALIST_INIT(human_heights_to_offsets, alist(
 	#define UNDER_HEAD_LAYER 6.1
 /// Facemask layer (gas masks, breath masks, etc.)
 #define FACEMASK_LAYER 7
+	// APHELION EDIT ADDITION START - Headphones on the neck
+	/// Headphones worn on the neck with the band over hair - above hair, below facemasks
+	#define HEADPHONES_NECK_OVER_HAIR_LAYER 7.5
+	// APHELION EDIT ADDITION END
 /// Hair layer (mess with the fro and you got to go!)
 #define HAIR_LAYER 8
 	/// Special layer for rendering beneath hair, for special facemasks
 	#define BENEATH_HAIR_LAYER 8.1
+	// APHELION EDIT ADDITION START - Headphones on the neck
+	/// Headphones worn on the neck with the band under hair - below hair, but above backpack straps
+	#define HEADPHONES_NECK_UNDER_HAIR_LAYER 8.5
+	// APHELION EDIT ADDITION END
 /// Back layer (for backpacks and equipment on your back)
 #define BACK_LAYER 9
 /// Neck layer (for wearing capes and bedsheets)

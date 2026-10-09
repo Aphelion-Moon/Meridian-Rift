@@ -1,5 +1,6 @@
 // THIS IS AN APHELION UI FILE
 import type { BooleanLike } from 'tgui-core/react';
+import type { MarkingInfo } from '../../PreferencesMenu/types';
 import type {
   BaseCopyInfo,
   BaseCopyResult,
@@ -17,7 +18,31 @@ export type CustomSpriteCandidate = {
   skipped?: string[];
 };
 
-export type RegionMarking = { index: number; name: string; color: string };
+export type RegionMarking = {
+  index: number;
+  name: string;
+  color: string;
+  /** The marking always wears its own colour, so none can be picked. */
+  locked?: BooleanLike;
+};
+
+/**
+ * What the base markings' sticker sheets draw from, as character setup's
+ * markings room has it, sent the first time one opens (send_marking_sheets()).
+ */
+export type MarkingSheetsData = {
+  /** The body it was made for; the static markingSheetsKey says which the body is now. */
+  key: string;
+  info: Record<string, MarkingInfo>;
+  /** The colour each fixed marking starts in, by name. */
+  defaults: Record<string, string>;
+  /** The three mutant colours the rest follow. */
+  fur: [string, string, string];
+  species: string;
+  speciesName: string;
+  /** The species' class on the species page's sheets. */
+  speciesIcon: string;
+};
 
 export type CustomSpriteBackground = {
   name: string;
@@ -50,6 +75,14 @@ export type CustomSpriteEditorData = {
   maxCustomColors: number;
   guides: Record<Dir, string>;
   previews: Record<Dir, string>;
+  /**
+   * Each view's glow, for the preview's lights-off view: what glows in its
+   * picture, or "" when nothing does. Sent only while the window has its
+   * lights off; a view's comes once it's drawn.
+   */
+  glows?: Partial<Record<Dir, string>> | null;
+  /** How far what glows blooms with the lights off: the player's bloom setting. */
+  bloom?: number | null;
   edited: Record<Dir, boolean>;
   drawBounds: Record<Dir, [number, number, number, number] | null>;
   drawMask?: Partial<Record<Dir, string[]>> | null;
@@ -88,6 +121,10 @@ export type CustomSpriteEditorData = {
   regionMarkings?: Record<string, RegionMarking[]>;
   regionMarkingChoices?: Record<string, string[]>;
   regionMarkingIcons?: Record<string, Record<string, string>>;
+  /** Static: the key of the sheets' data for the body as it is now. */
+  markingSheetsKey?: string;
+  /** Sent once a sheet first asks, and kept. */
+  markingSheets?: MarkingSheetsData;
   regionEmissive?: Record<string, Record<Dir, boolean>>;
   lockedRegions?: Record<string, string> | null;
   paletteNotice?: string | null;

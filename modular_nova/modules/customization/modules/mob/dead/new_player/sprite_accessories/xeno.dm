@@ -24,17 +24,12 @@
 	icon_state = "down"
 
 /datum/sprite_accessory/xenodorsal/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/bodypart_overlay)
-	var/obj/item/clothing/suit/mod/worn_suit = wearer.wear_suit
-	if(!wearer.w_uniform && isnull(worn_suit))
+	if(!wearer.wear_suit && !wearer.w_uniform)
 		return FALSE
 	// Can hide if wearing uniform
-	if(key in wearer.try_hide_mutant_parts)
+	if(wearer.try_hide_mutant_parts?[key])
 		return TRUE
-	// Exception for MODs
-	if(istype(worn_suit))
-		return FALSE
-
-//TAILS
+	return LEWD_ITEM_HIDES_PARTS(wearer, TRUE, TRUE)
 /datum/sprite_accessory/tails/mammal/wagging/xeno_tail
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/xeno_parts.dmi'
 	name = "Xenomorph Tail"

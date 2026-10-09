@@ -53,7 +53,7 @@
 	relevant_inherent_trait = TRAIT_USES_SKINTONES
 
 /datum/preference/toggle/skin_tone_toggle/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	if (is_accessible(preferences) && !value)
+	if (is_applicable(preferences) && !value)
 		REMOVE_TRAIT(target, TRAIT_USES_SKINTONES, SPECIES_TRAIT)
 		ADD_TRAIT(target, TRAIT_MUTANT_COLORS, SPECIES_TRAIT)
 		for(var/obj/item/bodypart/bodypart_to_change as anything in target.bodyparts)
@@ -115,59 +115,37 @@
 /datum/preference/toggle/eye_emissives/proc/is_allowed(datum/preferences/preferences)
 	return preferences.read_preference(/datum/preference/toggle/allow_emissives)
 
-// Body Markings - This isn't used anymore and thus I'm making it not do anything.
-
-/datum/preference/toggle/mutant_toggle/body_markings
-	savefile_key = "body_markings_toggle"
-	relevant_mutant_bodypart = "body_markings"
-
-/datum/preference/toggle/mutant_toggle/body_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
-
-/datum/preference/toggle/mutant_toggle/body_markings/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return FALSE
-
-/datum/preference/choiced/mutant_choice/body_markings
-	savefile_key = "feature_body_markings"
-	relevant_mutant_bodypart = "body_markings"
-	type_to_check = /datum/preference/toggle/mutant_toggle/body_markings
-	default_accessory_type = /datum/sprite_accessory/lizard_markings/none
-
-/datum/preference/choiced/mutant_choice/body_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
-
-/datum/preference/choiced/mutant_choice/body_markings/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return FALSE
-
-/datum/preference/tri_color/body_markings
-	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
+/// Pod eyes stay green unless the player explicitly opts into their saved eye color.
+/datum/preference/toggle/custom_pod_eye_color
+	savefile_key = "custom_pod_eye_color"
 	savefile_identifier = PREFERENCE_CHARACTER
-	savefile_key = "body_markings_color"
-	relevant_mutant_bodypart = "body_markings"
-	type_to_check = /datum/preference/toggle/mutant_toggle/body_markings
-
-/datum/preference/tri_color/body_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
-
-/datum/preference/tri_color/body_markings/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return FALSE
-
-/datum/preference/tri_bool/body_markings
 	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
-	savefile_identifier = PREFERENCE_CHARACTER
-	savefile_key = "body_markings_emissive"
-	relevant_mutant_bodypart = "body_markings"
-	type_to_check = /datum/preference/toggle/mutant_toggle/body_markings
+	priority = PREFERENCE_PRORITY_LATE_BODY_TYPE
+	default_value = FALSE
+	can_randomize = FALSE
 
-/datum/preference/tri_bool/body_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
+/datum/preference/toggle/custom_pod_eye_color/has_relevant_feature(datum/preferences/preferences)
+	var/datum/augment_item/augment = GLOB.augment_items[preferences.augments?[AUGMENT_SLOT_EYES]]
+	if(augment)
+		return ispath(augment.path, /obj/item/organ/eyes/pod)
+	var/datum/species/species = GLOB.species_prototypes[preferences.read_preference(/datum/preference/choiced/species)]
+	return ispath(species?.mutanteyes, /obj/item/organ/eyes/pod)
 
-/datum/preference/tri_bool/body_markings/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return FALSE
+/datum/preference/toggle/custom_pod_eye_color/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
+	var/obj/item/organ/eyes/pod/eyes = target.get_organ_slot(ORGAN_SLOT_EYES)
+	if(!istype(eyes))
+		return
+	// Runs after the normal eye preference, which still retains the chosen color on the human.
+	eyes.eye_color_left = value ? target.eye_color_left : initial(eyes.eye_color_left)
+	// Heterochromia already overrides the right eye independently of the fixed Pod color.
+	eyes.eye_color_right = (value || target.eye_color_heterochromatic) ? target.eye_color_right : initial(eyes.eye_color_right)
+	eyes.refresh()
+
+/datum/preference/color/eye_color/is_accessible(datum/preferences/preferences)
+	if(!..())
+		return FALSE
+	var/datum/preference/preference = GLOB.preference_entries[/datum/preference/toggle/custom_pod_eye_color]
+	return !preference.has_relevant_feature(preferences) || preferences.read_preference(preference.type)
 
 /// Tails
 
@@ -428,57 +406,6 @@
 	savefile_key = "moth_antennae_emissive"
 	relevant_mutant_bodypart = FEATURE_MOTH_ANTENNAE
 	type_to_check = /datum/preference/toggle/mutant_toggle/moth_antennae
-
-/// Moth Markings - They don't work, and we use regular markings for those anyway, so we're going to disable them.
-
-/datum/preference/toggle/mutant_toggle/moth_markings
-	savefile_key = "moth_markings_toggle"
-	relevant_mutant_bodypart = FEATURE_MOTH_MARKINGS
-
-/datum/preference/toggle/mutant_toggle/moth_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
-
-/datum/preference/choiced/mutant_choice/moth_markings
-	savefile_key = "feature_moth_markings"
-	relevant_mutant_bodypart = FEATURE_MOTH_MARKINGS
-	type_to_check = /datum/preference/toggle/mutant_toggle/moth_markings
-	default_accessory_type = /datum/sprite_accessory/moth_markings/none
-
-/datum/preference/choiced/mutant_choice/moth_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
-
-/datum/preference/choiced/mutant_choice/moth_markings/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return FALSE
-
-/datum/preference/tri_color/moth_markings
-	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
-	savefile_identifier = PREFERENCE_CHARACTER
-	savefile_key = "moth_markings_color"
-	relevant_mutant_bodypart = FEATURE_MOTH_MARKINGS
-	type_to_check = /datum/preference/toggle/mutant_toggle/moth_markings
-
-/datum/preference/tri_color/moth_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
-
-/datum/preference/tri_color/moth_markings/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return FALSE
-
-/datum/preference/tri_bool/moth_markings
-	category = PREFERENCE_CATEGORY_SECONDARY_FEATURES
-	savefile_identifier = PREFERENCE_CHARACTER
-	savefile_key = "moth_markings_emissive"
-	relevant_mutant_bodypart = FEATURE_MOTH_MARKINGS
-	type_to_check = /datum/preference/toggle/mutant_toggle/moth_markings
-
-/datum/preference/tri_bool/moth_markings/is_accessible(datum/preferences/preferences)
-	. = ..() // Got to do this because of linters.
-	return FALSE
-
-/datum/preference/tri_bool/moth_markings/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return FALSE
 
 /// Fluff
 

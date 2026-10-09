@@ -47,7 +47,7 @@ theme finishes enter once through TGUI's `_finishes.scss`, after these menus.
 | Electra      | Navy inset panel, thin frame, segmented teal rule.                                             |
 | Classic      | Subdued purple-to-blue CRT surface, pixel lettering, shallow stepped rim.                      |
 | Vector       | Blue calibration ticks, precise double frame, monospaced labels.                               |
-| Foundry      | Hammered bronze casing, engraved frame, cast-metal heading, and recessed ember-lit controls.   |
+| Foundry      | Riveted steel plaque, steel boss and pixel torches (own layout), molten title, ember items.    |
 | Diagnostic   | Dark green readout, narrow side brackets, short registration ticks.                            |
 | Hephaestus   | Blue-grey gunmetal casing, aged bronze frame, recessed controls, and smoked green phase glass. |
 | Shadowbroker | Manufactured shell, lower reinforcement, fasteners, orange/cyan rule.                          |

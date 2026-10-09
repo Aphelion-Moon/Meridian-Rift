@@ -143,9 +143,12 @@ describe('LobbyMenu MeridianOS integration', () => {
     expect(
       document.querySelector('.lobby')?.getAttribute('data-menu-treatment'),
     ).toBe(
-      ['meridian_aphelion', 'meridian_highline', 'meridian_wastelander'].includes(
-        meridianTheme,
-      )
+      [
+        'meridian_aphelion',
+        'meridian_foundry',
+        'meridian_highline',
+        'meridian_wastelander',
+      ].includes(meridianTheme)
         ? null
         : 'instrument',
     );

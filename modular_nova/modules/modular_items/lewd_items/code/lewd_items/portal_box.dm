@@ -22,6 +22,7 @@
 	default_raw_text = "Thank you for purchasing the Lustwish Portal Fleshlight / Dildo!<br>\
 		To use, link the portal device with the provided receiver by using either item on the other. Equip the receiver in a specific genital slot through the interaction panel, or as a mask to connect to the mouth.<br>\
 		Activate the portal device in hand to cycle the target used when selecting the groin. Other selected body zones choose their corresponding endpoint.<br>\
+		Use the portal device on yourself or your partner to put the selected part against it, or Ctrl-Shift-click it to pick from every interaction.<br>\
 		Both the fleshlight and underwear can be toggled to anonymous mode by right-clicking them.<br>\
 		Have fun lovers,<br>\
 		<br>\

@@ -455,6 +455,7 @@
 	. = ..()
 	eye_color_left = initial(eye_color_left)
 	eye_color_right = initial(eye_color_right)
+	is_emissive = initial(is_emissive) // APHELION EDIT ADDITION - Recycled preview eyes must not retain another character's glow.
 	fix_scar(LEFT_EYE_SCAR)
 	fix_scar(RIGHT_EYE_SCAR)
 

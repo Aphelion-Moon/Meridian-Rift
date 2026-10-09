@@ -1,0 +1,80 @@
+// THIS IS AN APHELION UI FILE
+// Foundry's materials, from its markings room: dark slate, worn iron and ember, shared by
+// every window and the lobby. The textures and the two faces are the theme's art asset
+// (modular_aphelion/modules/meridian_ui/code/art_stylesheet.dm), not the bundle's: it names
+// each texture on the theme as --mt-<file>, and until it arrives the colours under the
+// textures carry the look alone.
+//
+// Values carried over from the art review of the refresh (lab foundry-refresh-mockup,
+// REVIEW.md), each a one-line revert: a card's top light .06 and blue heat tint .18 (the
+// room's .09 and .24), small text on steel #d9c29a (the palette's muted text) and counts in
+// brass #f0c074, for contrast on the real steel. The ember of headings is #ffae58: the room's
+// #ff9a3c, nudged by the review to #ffa244, still measured 4.2 to 4.4:1 at the brightest
+// decile of real wide cards' steel and heat tint.
+.theme-meridian_foundry {
+  --foundry-cave: #170f09;
+  --foundry-slate: #24180f;
+  --foundry-recess: #120b07;
+  --foundry-rim: #7a5a34;
+  --foundry-edge: rgb(255 190 120 / 28%);
+  --foundry-parchment: #f1dfbc;
+  --foundry-body: #d9c29a;
+  --foundry-label: #c6ad88;
+  --foundry-faint: #9c8664;
+  --foundry-pill-text: #e8d3ad;
+  --foundry-brass: #f0c074;
+  --foundry-ember: #ffae58;
+  --foundry-lit: #ffb35c;
+  --foundry-hot: #ff7a2e;
+  --foundry-quench: #b4321e;
+  --foundry-quench-text: #ffab96;
+  // The three faces. Caesar Dressing titles and heads; Macondo letters short UI text
+  // (buttons, labels, field names, short values), set by role in _foundry.scss; running
+  // text (descriptions, notices, tooltips, logs, prose) is the page's own face, a plainer
+  // humanist one that stays legible small and in paragraphs.
+  --foundry-display: 'Caesar Dressing', 'Macondo', Georgia, serif;
+  --foundry-face: 'Macondo', Georgia, serif;
+  --foundry-text-face: 'Alegreya Sans', 'Segoe UI', Verdana, sans-serif;
+  --foundry-heading-glow: 0 1px 0 #000, 0 0 10px rgb(255 122 46 / 35%);
+  // A rivet's dome in a 10px tile: the room's cards and plates.
+  --foundry-rivet: radial-gradient(
+    circle at 5px 5px,
+    #b8a490 0 1.2px,
+    #4a3a2c 1.8px 3.2px,
+    #16100c 3.8px,
+    transparent 4.2px
+  );
+  --foundry-wear: var(--mt-forge-wear, none) 0 0 / 256px 256px;
+  --foundry-steel: var(--mt-foundry-steel, none) 0 0 / 256px 256px;
+  // The room's steel plate (its big buttons and the title strap): wear, top light, steel.
+  --foundry-plate:
+    var(--foundry-wear),
+    linear-gradient(180deg, rgb(255 200 140 / 9%), transparent 40%, rgb(0 0 0 / 32%)),
+    var(--foundry-steel),
+    #2f2924;
+  // The room's card: wear, ember underglow, top light, heat tint, steel.
+  --foundry-card:
+    var(--foundry-wear),
+    radial-gradient(ellipse 90% 70% at 50% 125%, rgb(255 110 30 / 20%), transparent 70%),
+    linear-gradient(180deg, rgb(255 200 140 / 6%), transparent 30%, rgb(0 0 0 / 30%)),
+    linear-gradient(120deg, rgb(70 100 190 / 18%), transparent 30%, transparent 62%, rgb(190 120 40 / 26%)),
+    var(--foundry-steel),
+    #2f2924;
+  // The room's iron pill.
+  --foundry-pill: var(--foundry-wear), linear-gradient(180deg, #2a1c12, #170f09);
+  --foundry-card-shadow:
+    inset 0 0 0 1px rgb(255 190 120 / 28%),
+    inset 0 0 0 3px rgb(10 6 4 / 60%),
+    inset 0 0 20px rgb(0 0 0 / 55%),
+    0 8px 18px rgb(0 0 0 / 60%);
+  // An engraved cut: a dark line with a lit lip beneath it.
+  --foundry-cut-line: rgb(0 0 0 / 55%);
+  --foundry-cut-lip: 0 1px 0 rgb(255 190 120 / 7%);
+
+  --font-family: var(--foundry-text-face);
+  // tgui's label colour (a blue-grey, resolved on :root) reads under 4.5:1 on the cards, and
+  // its link blue belongs to no forge.
+  --color-label: var(--console-text-secondary);
+  --color-hyperlink: var(--foundry-lit);
+  --color-hyperlink-visited: var(--foundry-quench-text);
+}

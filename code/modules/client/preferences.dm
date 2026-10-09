@@ -317,7 +317,6 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 		if("update_preview")
 			preview_pref = params["updated_preview"]
 			character_preview_view.update_body()
-			previous_preview_pref = preview_pref
 			return TRUE
 
 		if ("open_food")
@@ -495,6 +494,8 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	// appearance = preferences.render_new_preview_appearance(body, show_job_clothes) // APHELION EDIT REMOVAL
 	// APHELION EDIT ADDITION START - Keep a silicon job's image for the drawn preview
 	var/rendered = preferences.render_new_preview_appearance(body, show_job_clothes)
+	// The mode this body now shows: a rebuild deferred past the action that changed the mode still sees it as new.
+	preferences.previous_preview_pref = preferences.preview_pref
 	appearance = rendered
 	// The human path returns the dummy's own appearance; only the AI/Cyborg path returns a standalone /image.
 	silicon_preview = isimage(rendered) ? rendered : null

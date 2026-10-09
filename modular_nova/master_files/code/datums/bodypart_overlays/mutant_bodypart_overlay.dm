@@ -124,7 +124,8 @@
 	var/mob/living/carbon/human/human = owner || bodypart_owner.owner
 	if(!istype(human))
 		return TRUE
-	return !isnull(sprite_datum) && !sprite_datum.is_hidden(human)
+	// The accessory reads this overlay's own state, as wings read their slot_blocker.
+	return !isnull(sprite_datum) && !sprite_datum.is_hidden(human, src)
 
 
 /// Get the images we need to draw on the person. Called from get_overlay() which is called from _bodyparts.dm.
