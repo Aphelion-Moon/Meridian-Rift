@@ -168,10 +168,10 @@
 		TEST_ASSERT(check_dimensions(readback, width, height, "actual producer readback"), "Dimensions are measured after both native blends")
 		sizes += list(list(width, height))
 
-	var/list/hit_drawn = call(leg, "handle_masking")(source)
+	var/list/cached = call(leg, "handle_masking")(source)
 	TEST_ASSERT_EQUAL(GLOB.masked_leg_icons_cache[producer_key], producer_icons, "A real cache hit reuses the owner pair")
 	for(var/index in 1 to 2)
-		var/image/appearance_entry = hit_drawn[index]
+		var/image/appearance_entry = cached[index]
 		TEST_ASSERT_EQUAL(appearance_entry.icon, GLOB.owned_masked_leg_icon_dimensions[producer_icons[index]]["canonical_file"], "A real cache hit returns the registered native file alias")
 		TEST_ASSERT(appearance_entry.icon != producer_icons[index], "Cache hit preserves native dynamic-icon to file conversion")
 		TEST_ASSERT_EQUAL(GLOB.owned_masked_leg_icon_references[appearance_entry.icon], 1, "Cache hits do not republish or increment resource ownership")
