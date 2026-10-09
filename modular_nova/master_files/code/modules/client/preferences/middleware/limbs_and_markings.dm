@@ -19,19 +19,23 @@
 	// and none of them glow while the character's allow_emissives preference is off, as custom sprites are dressed.
 	target.dna.body_markings = preferences.body_markings.copy(allow_emissives = preferences.read_preference(/datum/preference/toggle/allow_emissives))
 
-	// A preview body is redrawn for every change and its species only gives back its own organs - take out the ones augments
-	// fitted last time, so an implant swapped for a hidden one or for none goes too.
-	if(visuals_only)
-		remove_augment_organs(target)
-
 	var/list/visited_body_zones = list()
+	// The organ types the chosen augments fit, which a preview body keeps.
+	var/list/chosen_organs
 	for(var/key, augment_path in preferences.augments)
 		var/visited_body_zone
 		if(is_aug_valid_for_prefs(GLOB.augment_items[augment_path], key, target, preferences))
 			var/datum/augment_item/aug = GLOB.augment_items[augment_path]
 			visited_body_zone = aug.apply(target, visuals_only, prefs = preferences)
+			if(visuals_only)
+				LAZYSET(chosen_organs, aug.path, TRUE)
 		if(visited_body_zone)
 			visited_body_zones += visited_body_zone
+
+	// A preview body is redrawn for every change and keeps the organs it had - take out the ones augments fitted that no
+	// chosen augment fits now, so an implant swapped for a hidden one or for none goes too.
+	if(visuals_only)
+		remove_unchosen_augment_organs(target, chosen_organs)
 
 	target.synchronize_bodytypes()
 	target.synchronize_bodyshapes()
@@ -65,8 +69,14 @@
 	if(limbs_changed && !(target.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		target.update_body_parts()
 
-/// Takes the organs augments fitted out of a body, but not its species' own.
-/datum/preference_middleware/limbs_and_markings/proc/remove_augment_organs(mob/living/carbon/human/target)
+/**
+ * Takes the organs augments fitted out of a body when no chosen augment fits them now, leaving its species' own.
+ *
+ * Arguments:
+ * - target - The preview body.
+ * - chosen_organs - The organ types the chosen augments fit, as a set, or null for none.
+ */
+/datum/preference_middleware/limbs_and_markings/proc/remove_unchosen_augment_organs(mob/living/carbon/human/target, list/chosen_organs)
 	// Every organ type an augment fits, built once.
 	var/static/list/augment_organs
 	if(isnull(augment_organs))
@@ -76,11 +86,11 @@
 			if(ispath(augment.path, /obj/item/organ))
 				augment_organs[augment.path] = TRUE
 	var/datum/species/species = target.dna.species
-	var/list/fitted
+	var/list/unchosen
 	for(var/obj/item/organ/organ as anything in target.organs)
-		if(augment_organs[organ.type] && species.get_mutant_organ_type_for_slot(organ.slot) != organ.type)
-			LAZYADD(fitted, organ)
-	for(var/obj/item/organ/organ as anything in fitted)
+		if(augment_organs[organ.type] && !chosen_organs?[organ.type] && species.get_mutant_organ_type_for_slot(organ.slot) != organ.type)
+			LAZYADD(unchosen, organ)
+	for(var/obj/item/organ/organ as anything in unchosen)
 		organ.Remove(target, special = TRUE)
 		qdel(organ)
 
