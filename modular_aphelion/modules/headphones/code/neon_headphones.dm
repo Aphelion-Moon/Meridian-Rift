@@ -103,7 +103,7 @@
 
 /obj/item/instrument/piano_synth/headphones/neon/streetjack
 	name = "\improper Streetjack Cans"
-	desc = "Chunky street cans: a split neon panel and a level meter on each cup, and a copper jack on the cable."
+	desc = "These look like they will wake you the hell up."
 	icon_state = "/obj/item/instrument/piano_synth/headphones/neon/streetjack"
 	post_init_icon_state = "streetcans"
 	base_icon_state = "streetcans"
@@ -124,7 +124,7 @@
 
 /obj/item/instrument/piano_synth/headphones/neon/raid
 	name = "\improper Raid Headset"
-	desc = "A camo gaming headset with LED strips along the band and the inner ears, and a boom mic to call the shots."
+	desc = "A headset, for raiding."
 	gender = NEUTER
 	icon_state = "/obj/item/instrument/piano_synth/headphones/neon/raid"
 	post_init_icon_state = "raid_headset" // the map icon and the recolour menu's first view: the item with its mic
@@ -176,7 +176,7 @@
 /// The Raid Headset without its boom mic.
 /obj/item/instrument/piano_synth/headphones/neon/raid/no_mic
 	name = "\improper Raid Headphones"
-	desc = "The Raid Headset's camo shell and LED strips, without the boom mic."
+	desc = "A pair of headphones, for raiding."
 	gender = PLURAL
 	icon_state = "/obj/item/instrument/piano_synth/headphones/neon/raid/no_mic"
 	post_init_icon_state = "raid"
@@ -209,7 +209,7 @@
 
 /obj/item/instrument/piano_synth/headphones/neon/halo
 	name = "\improper Halo Phones"
-	desc = "Sleek headphones with a glowing ring round each cup, which spins while the music plays."
+	desc = "A pair of sleek headphones that light up! Wings sold separately."
 	icon_state = "/obj/item/instrument/piano_synth/headphones/neon/halo"
 	post_init_icon_state = "halophones"
 	base_icon_state = "halophones"
@@ -227,6 +227,6 @@
 /// Halo Phones in cherry-blossom colours: the same GAGS configs, its own default colours.
 /obj/item/instrument/piano_synth/headphones/neon/halo/sakura
 	name = "\improper Sakura Halo Phones"
-	desc = "Halo Phones in cherry-blossom pinks."
+	desc = parent_type::desc + " These ones are pink!"
 	icon_state = "/obj/item/instrument/piano_synth/headphones/neon/halo/sakura"
 	greyscale_colors = "#8e5675#ffb3d9#c9709a#ff5a8a"

@@ -1,7 +1,7 @@
 /// Studio headphones in tg's headphone shapes, recolourable, with a logo badge that can glow.
 /obj/item/instrument/piano_synth/headphones/studio
 	name = "studio headphones"
-	desc = "Closed-back studio headphones: a glossy shell, soft cushions and a logo badge on each cup."
+	desc = "A pair of doctor-approved closed back headphones."
 	icon = 'icons/map_icons/items/_item.dmi'
 	icon_state = "/obj/item/instrument/piano_synth/headphones/studio"
 	gender = PLURAL

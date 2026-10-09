@@ -19,6 +19,11 @@
 	// and none of them glow while the character's allow_emissives preference is off, as custom sprites are dressed.
 	target.dna.body_markings = preferences.body_markings.copy(allow_emissives = preferences.read_preference(/datum/preference/toggle/allow_emissives))
 
+	// A preview body is redrawn for every change and its species only gives back its own organs - take out the ones augments
+	// fitted last time, so an implant swapped for a hidden one or for none goes too.
+	if(visuals_only)
+		remove_augment_organs(target)
+
 	var/list/visited_body_zones = list()
 	for(var/key, augment_path in preferences.augments)
 		var/visited_body_zone
@@ -59,6 +64,25 @@
 
 	if(limbs_changed && !(target.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		target.update_body_parts()
+
+/// Takes the organs augments fitted out of a body, but not its species' own.
+/datum/preference_middleware/limbs_and_markings/proc/remove_augment_organs(mob/living/carbon/human/target)
+	// Every organ type an augment fits, built once.
+	var/static/list/augment_organs
+	if(isnull(augment_organs))
+		augment_organs = list()
+		for(var/augment_path, augment_instance in GLOB.augment_items)
+			var/datum/augment_item/augment = augment_instance
+			if(ispath(augment.path, /obj/item/organ))
+				augment_organs[augment.path] = TRUE
+	var/datum/species/species = target.dna.species
+	var/list/fitted
+	for(var/obj/item/organ/organ as anything in target.organs)
+		if(augment_organs[organ.type] && species.get_mutant_organ_type_for_slot(organ.slot) != organ.type)
+			LAZYADD(fitted, organ)
+	for(var/obj/item/organ/organ as anything in fitted)
+		organ.Remove(target, special = TRUE)
+		qdel(organ)
 
 /// Builds the unified augment_items list in render order and returns it
 /datum/preference_middleware/limbs_and_markings/proc/build_augment_choices()
