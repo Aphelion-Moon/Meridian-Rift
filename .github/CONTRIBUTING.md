@@ -35,7 +35,7 @@ First things first, we want to make it clear how you can contribute (if you've n
 If you want to contribute the first thing you'll need to do is [set up Git](https://hackmd.io/@tgstation/HJ8OdjNBc) so you can download the source code.
 After setting it up, optionally navigate your git commandline to the project folder and run the command: `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
-We have a [list of guides on the wiki](http://tgstation13.org/wiki/Guides#Development_and_Contribution_Guides) that will help you get started contributing to /tg/station with Git and Dream Maker. For beginners, it is recommended you work on small projects like bugfixes at first. If you need help learning to program in BYOND, check out this [repository of resources](http://www.byond.com/developer/articles/resources).
+Our [development guides](guides) cover downloading, building, mapping, and contributing to Meridian Rift with Git and Dream Maker. For beginners, it is recommended you work on small projects like bugfixes at first. If you need help learning to program in BYOND, check out this [repository of resources](http://www.byond.com/developer/articles/resources).
 
 There is an open list of approachable issues for [your inspiration here](https://github.com/tgstation/tgstation/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22).
 
@@ -135,7 +135,7 @@ There is no strict process when it comes to merging pull requests. Pull requests
 
 - You are going to be expected to document all your changes in the pull request. Failing to do so will mean delaying it as we will have to question why you made the change. On the other hand, you can speed up the process by making the pull request readable and easy to understand, with diagrams or before/after data. Should you be optimizing a routine you must provide proof by way of profiling that your changes are faster.
 
-- We ask that you use the changelog system to document your player facing changes, which prevents our players from being caught unaware by said changes - you can find more information about this [on this wiki page](http://tgstation13.org/wiki/Guide_to_Changelogs).
+- We ask that you use the changelog system to document your player facing changes, which prevents our players from being caught unaware by said changes - see the [changelog instructions](../html/changelogs/__CHANGELOG_README.txt).
 
 - If you are proposing multiple changes, which change many different aspects of the code, you are expected to section them off into different pull requests in order to make it easier to review them and to deny/accept the changes that are deemed acceptable.
 

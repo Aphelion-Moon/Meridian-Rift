@@ -4,8 +4,7 @@ The **Map Merger** is a collection of scripts that keep this repository's maps
 in a format which is easier to track in Git and less likely to cause merge
 conflicts. When merge conflicts do occur, it can sometimes resolve them.
 
-For detailed troubleshooting instructions and other tips, visit the
-[Map Merger] wiki article.
+Use the [Git hooks] for automatic merging, or follow the manual steps below.
 
 ## Installation
 
@@ -21,7 +20,8 @@ If using a Git GUI which is not compatible with the hooks:
 
 The console will show whether the operation succeeded.
 
-For more details, see the [Map Merger] wiki article.
+If conflicts remain, resolve them in your map editor and review the resulting
+map before staging it.
 
 ## What Map Merging Is
 
@@ -59,5 +59,4 @@ Implementation modules:
 version of any map saved in the index (`git add`ed) with the old version stored
 in Git when run.
 
-[Map Merger]: https://tgstation13.org/wiki/Map_Merger
 [Git hooks]: ../hooks/README.md
