@@ -16,6 +16,7 @@
 	express_lock = FALSE
 	order_flags = ORDER_COMPANY
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/energy/microstar/basic_energy_weapons/disabler
 	contains = list(/obj/item/gun/energy/disabler)
 
@@ -30,10 +31,12 @@
 	access_view = ACCESS_WEAPONS
 	express_lock = TRUE
 	order_flags = ORDER_GOODY
+*/ // APHELION EDIT REMOVAL END
 
 /datum/supply_pack/companies/energy/microstar/basic_energy_weapons/mini_egun
 	contains = list(/obj/item/gun/energy/e_gun/mini)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/energy/microstar/basic_energy_weapons/laser_pistol
 	contains = list(/obj/item/gun/energy/laser/pistol)
 
@@ -174,3 +177,4 @@
 /datum/supply_pack/companies/energy/hc_surplus/zaibas_a
 	contains = list(/obj/item/gun/ballistic/rifle/pulse_sniper)
 	cost = CARGO_CRATE_VALUE * 7
+*/ // APHELION EDIT REMOVAL END
