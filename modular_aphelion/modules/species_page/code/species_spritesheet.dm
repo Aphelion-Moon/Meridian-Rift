@@ -76,26 +76,27 @@
 	dummy.dna.species.preview_icon_after_effects(template, dummy)
 	template = species_page_height(template, dummy)
 	var/list/recipes = uni_icon_facings_json(template, GLOB.character_preview_facings)
+	// What no sprite on the body shows goes on each facing's recipe as one more blend, where it is facing that way.
+	var/list/held = dummy.dna.species.species_page_held_icon(dummy)
+	var/list/held_recipes = held && uni_icon_facings_json(held[1], GLOB.character_preview_facings)
 	for (var/facing, dir in GLOB.character_preview_facings)
-		var/list/held = dummy.dna.species.species_page_held_icon(dummy, dir)
-		if (!held)
-			entries["[icon_key]-[facing]"] = json_decode(recipes[facing])
-			continue
-		var/datum/universal_icon/facing_icon = template.copy()
-		facing_icon.blend_icon(held[1], ICON_OVERLAY, held[2], held[3])
-		entries["[icon_key]-[facing]"] = json_decode(replacetext(facing_icon.to_json(), "\"dir\":[UP]", "\"dir\":[dir]"))
+		var/list/entry = json_decode(recipes[facing])
+		if (held)
+			var/list/at = held[2]["[dir]"]
+			entry["transform"] += list(list("type" = RUSTG_ICONFORGE_BLEND_ICON, "icon" = json_decode(held_recipes[facing]), "blend_mode" = ICON_OVERLAY, "x" = at[1], "y" = at[2]))
+		entries["[icon_key]-[facing]"] = entry
 
 /**
- * Something the species page draws over this species' render facing one way, which no sprite on the body shows - a
- * Dullahan's head in its hand. Every facing shares the one render, so this is blended onto each on its own.
+ * Something the species page draws over this species' render, which no sprite on the body shows - a Dullahan's head in
+ * its hand. Every facing shares the one render, so this is blended onto each where it goes facing that way.
  *
  * Arguments:
  * - dummy - The dummy the render was flattened from.
- * - dir - The facing's direction.
  *
- * Returns list(universal icon, x, y) to blend over the render with its lower left at (x, y), or null for nothing.
+ * Returns list(universal icon flattened facing UP, list("[dir]" = list(x, y)) - its lower left on the render, facing each
+ * way), or null for nothing.
  */
-/datum/species/proc/species_page_held_icon(mob/living/carbon/human/dummy, dir)
+/datum/species/proc/species_page_held_icon(mob/living/carbon/human/dummy)
 	return null
 
 /**

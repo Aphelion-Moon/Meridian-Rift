@@ -60,18 +60,14 @@
 
 /// The head in the hand the round puts it in, the left, where tg's in-hand sprites hold things facing each way - no in-hand
 /// sprite draws a held head. It faces the way the body does.
-/datum/species/dullahan/species_page_held_icon(mob/living/carbon/human/dullahan, dir)
+/datum/species/dullahan/species_page_held_icon(mob/living/carbon/human/dullahan)
 	var/obj/item/bodypart/head/head = dullahan.is_holding_item_of_type(/obj/item/bodypart/head)
 	if(isnull(head))
 		return null
-	var/datum/universal_icon/head_icon = get_flat_uni_icon(head, dir)
-	switch(dir)
-		if(SOUTH)
-			return list(head_icon, 7, -6)
-		if(NORTH)
-			return list(head_icon, -6, -6)
-		if(EAST)
-			return list(head_icon, 5, -6)
-		if(WEST)
-			return list(head_icon, 3, -6)
-	return null
+	var/static/list/in_hand = list(
+		"[SOUTH]" = list(7, -6),
+		"[NORTH]" = list(-6, -6),
+		"[EAST]" = list(5, -6),
+		"[WEST]" = list(3, -6),
+	)
+	return list(get_flat_uni_icon(head, UP), in_hand)
