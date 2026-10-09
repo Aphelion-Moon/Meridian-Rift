@@ -15,7 +15,7 @@ derived from the sprite the game actually draws, so a recoloured or species-fitt
 Each garment names a family (`code/garment_families.dm`): boxers, loose boxers, briefs, jockstrap, jeans, long johns,
 jumpsuits, khaki shorts, athletic shorts, track pants, two loincloths, and six skirt styles. A suit over the groin
 hides the bulge unless it was reviewed to leave the groin clear (`bulge_suit_rule`). A chastity device, a sheath
-(until fully hard), a husk, a taur body, "Never show" and "Above all clothing" draw none.
+(until fully hard), a husk, a taur or Cerulean body, "Never show" and "Above all clothing" draw none.
 
 A garment covers the penis only when it is drawn in front of it. With Custom "Above underwear" the penis is drawn over
 the underwear and undershirt as Nova draws it: no bulge on them and nothing cut, until the player layers it back
@@ -96,7 +96,7 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
   heart boxers, described in `icons/README.md`. `tools/bulge_assets.py` checks, re-encodes and previews them and
   names what is derived.
 - Outside the module: `code/__DEFINES/~aphelion_defines/bulge.dm`; two calls to `bulge_cut_worn()` in
-  `human_update_icons.dm`; the texture skip for the bulge's cloth in `_bodyparts.dm`; `bulge_cached_output_matches()`
+  `human_update_icons.dm`; `bulge_cached_output_matches()`
   in `greyscale.dm`; `has_bulge()` and `bulge_cover_name()`, which bulge interactions ask, in Nova's
   `lewd_helpers/human.dm`; the uniform and suit redrawn after a leg swap, in `try_attach_limb()` (`dismemberment.dm`)
   and Nova's legs preference (`digitigrade_legs.dm`), without which they stay drawn for the old legs

@@ -18,8 +18,9 @@
  * - Past a family's small_cap: the bare part of the penis, inside the exposed mask, over the cloth.
  * - What the cover draws over its own sprite (its blood, its dirt), over the cloth too, kept to the cloth's pixels.
  * Anatomy is the penis overlay's own images (and the testicles' behind a cover), restricted by masks where it shows
- * over the cloth; it keeps their colours, emissives and skin textures. The cloth is clothing: it carries
- * BULGE_CLOTH_NAME, and the textures a limb draws its skin with leave it alone.
+ * over the cloth; it keeps their colours, emissives, skin textures and LIMB_OVERLAY_* flags. The cloth is clothing: it
+ * is drawn without LIMB_OVERLAY_TEXTURED, so the textures a limb draws its skin with leave it alone, and carries
+ * BULGE_CLOTH_NAME.
  */
 
 /// The bulge size, 1 to 4, of a penis this long in inches.
@@ -194,14 +195,14 @@
 	if(layer_index != EXTERNAL_FRONT_UNDER_CLOTHES)
 		return list() // The look stands in for the whole penis: nothing behind the body.
 	var/front = -(bulge_layer - BULGE_ABOVE_COVER)
-	var/list/images = list()
+	var/list/images = list() // Each image to its LIMB_OVERLAY_* flags, as get_limb_icon() reads them.
 	if(bulge_anatomy_behind)
 		var/behind = -(bulge_layer + BULGE_BEHIND_COVER)
 		// The genital's own images come at the layer the penis is set to draw at in the open (Custom layering moves
-		// it below or above the underwear); behind its cover they draw at the look's.
-		for(var/mutable_appearance/anatomy as anything in ..(limb, EXTERNAL_FRONT_UNDER_CLOTHES, behind))
+		// it below or above the underwear); behind its cover they draw at the look's, with their own flags.
+		images = ..(limb, EXTERNAL_FRONT_UNDER_CLOTHES, behind)
+		for(var/mutable_appearance/anatomy as anything in images)
 			anatomy.layer = behind
-			images += anatomy
 		var/list/testicles = bulge_testicle_images(limb, behind)
 		if(testicles)
 			images += testicles
@@ -209,9 +210,9 @@
 	if(cloth && !bulge_sheet_patch)
 		images += cloth
 	for(var/mutable_appearance/over as anything in bulge_over)
-		images += new /mutable_appearance(over) // Its blood and dirt over the cloth, as over the garment around it.
+		images[new /mutable_appearance(over)] = NONE // Its blood and dirt over the cloth, as over the garment around it.
 	if(bulge_anatomy_mask)
-		for(var/mutable_appearance/anatomy as anything in ..(limb, EXTERNAL_FRONT_UNDER_CLOTHES, front))
+		for(var/mutable_appearance/anatomy, image_flags in ..(limb, EXTERNAL_FRONT_UNDER_CLOTHES, front))
 			// The mask is placed on the tile: an image drawn off it (a taur sprite, centred) would show the wrong part.
 			if(anatomy.pixel_x || anatomy.pixel_y || anatomy.pixel_w || anatomy.pixel_z)
 				continue
@@ -222,7 +223,7 @@
 			shown.icon = masked
 			shown.icon_state = ""
 			shown.layer = front // Over the cloth, whatever layer the penis is set to draw at.
-			images += shown
+			images[shown] = image_flags // Textured like the penis it is cut from.
 	if(cloth && bulge_sheet_patch)
 		// A precoloured patch over the anatomy it leaves bare: its art fits one penis shape, and covers what it covers of
 		// another.
@@ -233,14 +234,18 @@
 			drawn.pixel_z += bulge_cover_y
 	return images
 
-/// The cloth a look draws at `front`: its patch, or its kinds tinted with its palette, and one emissive blocker. The
-/// cloth carries BULGE_CLOTH_NAME, so the textures a limb draws its skin with leave it alone.
+/// The cloth a look draws at `front`, each image to its LIMB_OVERLAY_* flags: its patch, or its kinds tinted with its
+/// palette, and one emissive blocker. The cloth carries no LIMB_OVERLAY_TEXTURED, so the textures a limb draws its skin
+/// with leave it alone, and is named BULGE_CLOTH_NAME.
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_cloth_images(obj/item/bodypart/limb, front)
 	if(bulge_patch)
 		var/mutable_appearance/patch = mutable_appearance(bulge_patch, "", front)
 		patch.alpha = bulge_alpha
 		patch.name = BULGE_CLOTH_NAME
-		return list(patch, emissive_blocker(bulge_patch, "", limb, front, bulge_alpha))
+		. = list()
+		.[patch] = NONE
+		.[emissive_blocker(bulge_patch, "", limb, front, bulge_alpha)] = LIMB_OVERLAY_META
+		return
 	if(bulge_sheet_patch)
 		var/mutable_appearance/patch = mutable_appearance(bulge_sheet_patch.icon, bulge_sheet_patch.icon_state, front)
 		var/mutable_appearance/blocker = emissive_blocker(bulge_sheet_patch.icon, bulge_sheet_patch.icon_state, limb, front)
@@ -249,7 +254,10 @@
 		patch.pixel_y = bulge_sheet_patch.pixel_y
 		blocker.pixel_x = bulge_sheet_patch.pixel_x
 		blocker.pixel_y = bulge_sheet_patch.pixel_y
-		return list(patch, blocker)
+		. = list()
+		.[patch] = NONE
+		.[blocker] = LIMB_OVERLAY_META
+		return
 	if(!bulge_template?.mask_union)
 		return null
 	// A cover drawn through a colour treatment draws its cloth through it too: its colour filter as it is, or its colour
@@ -260,16 +268,16 @@
 		filter = color_matrix_filter(color_to_full_rgba_matrix(filter), FILTER_COLOR_RGB)
 	. = list()
 	if(bulge_template.mask_cloth)
-		. += bulge_kind_image(bulge_template.mask_cloth, bulge_cloth, front, filter)
+		.[bulge_kind_image(bulge_template.mask_cloth, bulge_cloth, front, filter)] = NONE
 	if(bulge_template.mask_light)
-		. += bulge_kind_image(bulge_template.mask_light, bulge_light, front, filter)
+		.[bulge_kind_image(bulge_template.mask_light, bulge_light, front, filter)] = NONE
 	if(bulge_template.mask_highlight)
-		. += bulge_kind_image(bulge_template.mask_highlight, bulge_highlight, front, filter)
+		.[bulge_kind_image(bulge_template.mask_highlight, bulge_highlight, front, filter)] = NONE
 	if(bulge_template.mask_shade)
-		. += bulge_kind_image(bulge_template.mask_shade, bulge_shade, front, filter)
+		.[bulge_kind_image(bulge_template.mask_shade, bulge_shade, front, filter)] = NONE
 	if(bulge_template.mask_deep_shade)
-		. += bulge_kind_image(bulge_template.mask_deep_shade, bulge_deep_shade, front, filter)
-	. += emissive_blocker(bulge_template.mask_union, "", limb, front)
+		.[bulge_kind_image(bulge_template.mask_deep_shade, bulge_deep_shade, front, filter)] = NONE
+	.[emissive_blocker(bulge_template.mask_union, "", limb, front)] = LIMB_OVERLAY_META
 
 /// One kind of an adaptive look: its white mask in its palette colour, through the cover's colour filter, if any.
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_kind_image(mask, colour, front, list/filter)
@@ -288,8 +296,8 @@
 	var/datum/bodypart_overlay/mutant/genital/testicles_overlay = testicles.bodypart_overlay
 	return testicles_overlay.bulge_front_images(limb, layer)
 
-/// The genital's own front images at `layer`, for a bulge drawing it behind a cover, whatever layer it is set to draw
-/// at.
+/// The genital's own front images at `layer`, each to its LIMB_OVERLAY_* flags, for a bulge drawing it behind a cover,
+/// whatever layer it is set to draw at.
 /datum/bodypart_overlay/mutant/genital/proc/bulge_front_images(obj/item/bodypart/limb, layer)
 	. = get_overlay(limb, EXTERNAL_FRONT_UNDER_CLOTHES, layer)
 	for(var/mutable_appearance/drawn as anything in .)

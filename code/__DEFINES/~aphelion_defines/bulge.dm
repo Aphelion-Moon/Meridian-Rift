@@ -47,8 +47,8 @@
 #define BULGE_ABOVE_COVER 0.05
 /// How far below its cover's layer the anatomy a cover shows draws: under the cover, over whatever is under it.
 #define BULGE_BEHIND_COVER 0.0005
-/// The name the cloth a bulge draws carries: it is clothing, so the textures a limb draws its skin with skip it
-/// (/obj/item/bodypart/proc/get_limb_icon()).
+/// The name the cloth a bulge draws carries, which tells it apart from the anatomy drawn with it. Its flags, without
+/// LIMB_OVERLAY_TEXTURED, keep the textures a limb draws its skin with off it (/obj/item/bodypart/proc/get_limb_icon()).
 #define BULGE_CLOTH_NAME "bulge cloth"
 
 // What of a penis drawn as a bulge still shows, as bits (/mob/living/carbon/human/proc/bulge_pokes_out()).

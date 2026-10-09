@@ -99,7 +99,8 @@
 /datum/bodypart_overlay/mutant/body_hair/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
 	var/mutable_appearance/hair = mutable_appearance(sprite_datum.icon, "[sprite_datum.icon_state]_[limb?.limb_gender || "m"]", layer = layer_real)
 	hair.color = get_hair_colour(limb)
-	return list(hair)
+	. = list()
+	.[hair] = overlay_flags // Textured with the skin under it, as every mutant part is by default.
 
 /datum/bodypart_overlay/mutant/body_hair/icon_render_key(obj/item/bodypart/limb)
 	return list(feature_key, sprite_datum.icon_state, limb?.limb_gender, get_hair_colour(limb))

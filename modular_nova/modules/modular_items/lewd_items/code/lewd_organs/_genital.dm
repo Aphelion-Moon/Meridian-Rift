@@ -324,9 +324,10 @@
 	// A worn device draws in the genital's place, so it shows and hides and layers exactly as the genital would.
 	if(device_state)
 		var/state = "[device_state]_[limb?.limb_gender || "m"]"
-		. = list(mutable_appearance(device_icon, state, layer = layer_real))
+		. = list()
+		.[mutable_appearance(device_icon, state, layer = layer_real)] = NONE // A worn item, not skin: no limb texture.
 		if(device_glows)
-			. += emissive_appearance(device_icon, "[state]_e", limb, layer = layer_real)
+			.[emissive_appearance(device_icon, "[state]_e", limb, layer = layer_real)] = LIMB_OVERLAY_META
 		return .
 	return ..()
 

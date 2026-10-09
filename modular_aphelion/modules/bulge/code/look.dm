@@ -189,10 +189,10 @@
  * How the penis is layered under what covers it, while it shows a bulge through it: GENITAL_LAYER_NORMAL (hidden by
  * clothes, or Custom and Normal), or Custom below or above the underwear (GENITAL_LAYER_BELOW_UNDIES,
  * GENITAL_LAYER_ABOVE_UNDIES); NONE when it shows none: closed off by a device, in its sheath, never shown, drawn over
- * all clothing, or on a taur body. Arousal is checked by the caller.
+ * all clothing, or on a taur or Cerulean body (no legs for the templates). Arousal is checked by the caller.
  */
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_layering(mob/living/carbon/human/wearer, obj/item/organ/genital/penis/penis)
-	if(penis.blocked_by || (sheath_datum && penis.aroused != AROUSAL_FULL) || (wearer.bodyshape & BODYSHAPE_TAUR))
+	if(penis.blocked_by || (sheath_datum && penis.aroused != AROUSAL_FULL) || (wearer.bodyshape & (BODYSHAPE_TAUR|BODYSHAPE_CERULEAN)))
 		return NONE
 	switch(penis.visibility_preference)
 		if(GENITAL_HIDDEN_BY_CLOTHES)
@@ -413,14 +413,14 @@
 /**
  * What a worn suit does to a bulge (BULGE_SUIT_*). A suit leaves the groin clear, or is itself the cover, only in the
  * cells its bulge_suit_rule names: its own unmodified appearance in its default or toggled worn state, on plain or
- * digitigrade legs, on a body its sprites fit (no Vox, custom or taur body), untinted and without offsets.
+ * digitigrade legs, on a body its sprites fit (no Vox, custom, taur or Cerulean body), untinted and without offsets.
  */
 /mob/living/carbon/human/proc/bulge_suit_verdict(obj/item/worn_suit)
 	if(!istype(worn_suit, /obj/item/clothing))
 		return BULGE_SUIT_HIDES
 	var/obj/item/clothing/suit = worn_suit
 	var/rule = suit.bulge_suit_rule
-	if(!rule || isvox(src) || (bodyshape & (BODYSHAPE_CUSTOM|BODYSHAPE_TAUR)))
+	if(!rule || isvox(src) || (bodyshape & (BODYSHAPE_CUSTOM|BODYSHAPE_TAUR|BODYSHAPE_CERULEAN)))
 		return BULGE_SUIT_HIDES
 	if(suit.worn_x_offset || suit.worn_y_offset || suit.worn_x_dimension != 32 || suit.worn_y_dimension != 32 || suit.alpha != 255)
 		return BULGE_SUIT_HIDES
