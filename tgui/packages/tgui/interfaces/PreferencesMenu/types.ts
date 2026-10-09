@@ -63,6 +63,8 @@ export type Species = {
   family: string | null;
   /** The species on the page this one is a variant of. */
   variant_of: string | null;
+  /** A template, a base for players' own species: last in its family, marked custom. */
+  template: BooleanLike;
   /** Offered in setup, but can't join the station crew. */
   off_station: BooleanLike;
   /** The holiday this species can be joined as during, if it waits for one. */

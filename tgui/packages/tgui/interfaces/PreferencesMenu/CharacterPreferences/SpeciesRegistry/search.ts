@@ -8,11 +8,13 @@ import { type FamilyLookup, getParentId, type SpeciesMap } from './taxonomy';
 export const MIN_QUERY_LENGTH = 2;
 /** Free text is noisy; only search prose once the query says something. */
 const MIN_PROSE_QUERY_LENGTH = 4;
+/** What a template species answers to: its ribbon, and the family's name it once had. */
+const TEMPLATE_WORDS = ['Template', 'Custom', 'Generic'];
 
 /**
- * How closely a species matches: its name, then its family, the species it
- * is a variant of, a trait, a liked food, and last its description or lore.
- * Null when it does not match at all.
+ * How closely a species matches: its name, then its family (or, for a
+ * template, being one), the species it is a variant of, a trait, a liked
+ * food, and last its description or lore. Null when it does not match at all.
  */
 function matchRank(
   species: SpeciesMap,
@@ -26,7 +28,10 @@ function matchRank(
   if (matches(entry.name)) {
     return 0;
   }
-  if (matches(getFamily(entry.family).name)) {
+  if (
+    matches(getFamily(entry.family).name) ||
+    (entry.template && TEMPLATE_WORDS.some(matches))
+  ) {
     return 1;
   }
   const parent = getParentId(species, id);

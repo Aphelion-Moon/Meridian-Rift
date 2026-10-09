@@ -76,8 +76,27 @@
 	dummy.dna.species.preview_icon_after_effects(template, dummy)
 	template = species_page_height(template, dummy)
 	var/list/recipes = uni_icon_facings_json(template, GLOB.character_preview_facings)
-	for (var/facing in recipes)
-		entries["[icon_key]-[facing]"] = json_decode(recipes[facing])
+	for (var/facing, dir in GLOB.character_preview_facings)
+		var/list/held = dummy.dna.species.species_page_held_icon(dummy, dir)
+		if (!held)
+			entries["[icon_key]-[facing]"] = json_decode(recipes[facing])
+			continue
+		var/datum/universal_icon/facing_icon = template.copy()
+		facing_icon.blend_icon(held[1], ICON_OVERLAY, held[2], held[3])
+		entries["[icon_key]-[facing]"] = json_decode(replacetext(facing_icon.to_json(), "\"dir\":[UP]", "\"dir\":[dir]"))
+
+/**
+ * Something the species page draws over this species' render facing one way, which no sprite on the body shows - a
+ * Dullahan's head in its hand. Every facing shares the one render, so this is blended onto each on its own.
+ *
+ * Arguments:
+ * - dummy - The dummy the render was flattened from.
+ * - dir - The facing's direction.
+ *
+ * Returns list(universal icon, x, y) to blend over the render with its lower left at (x, y), or null for nothing.
+ */
+/datum/species/proc/species_page_held_icon(mob/living/carbon/human/dummy, dir)
+	return null
 
 /**
  * A dummy's flat render with the rows its height filters move moved in it, as the game draws them, so a species

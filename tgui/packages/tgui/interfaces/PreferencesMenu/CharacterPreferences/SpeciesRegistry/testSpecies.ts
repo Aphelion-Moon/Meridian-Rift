@@ -10,6 +10,7 @@ export function testSpecies(overrides: Partial<Species> = {}): Species {
     icon: 'test',
     family: null,
     variant_of: null,
+    template: false,
     off_station: false,
     holiday: null,
     holiday_active: false,
@@ -34,5 +35,4 @@ export const testFamilies: SpeciesFamily[] = [
   { id: 'xenobiological', name: 'Exotic', icon: 'tg-zaphelion-alien' },
   { id: 'paranormal', name: 'Paranormal', icon: 'fa-ghost' },
   { id: 'holiday', name: 'Holiday', icon: 'fa-gift' },
-  { id: 'generic', name: 'Generic', icon: 'fa-pen-ruler' },
 ];

@@ -43,6 +43,22 @@ describe('searchSpecies', () => {
     expect(search('grain')).toEqual(['baker']);
   });
 
+  it('finds the templates as template, custom or generic', () => {
+    const withTemplate: SpeciesMap = {
+      ...species,
+      anthro: testSpecies({
+        name: 'Anthromorph',
+        family: 'mammalian',
+        template: true,
+      }),
+    };
+    const find = (query: string) =>
+      searchSpecies(withTemplate, [...order, 'anthro'], query, getFamily);
+    expect(find('template')).toEqual(['anthro']);
+    expect(find('custom')).toEqual(['anthro']);
+    expect(find('generic')).toEqual(['anthro']);
+  });
+
   it('leaves prose alone until the query says something', () => {
     expect(search('rem')).toEqual([]);
     expect(search('remember')).toEqual(['sage']);
