@@ -14,7 +14,7 @@
 	return SPRITE_ACCESSORY_NONE
 
 /datum/preference/choiced/body_hair/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	if(preferences && !is_accessible(preferences))
+	if(preferences && !is_applicable(preferences)) // Whatever setup page was last open.
 		value = SPRITE_ACCESSORY_NONE
 	var/colour = preferences?.read_preference(/datum/preference/color/body_hair) || BODY_HAIR_DEFAULT_COLOR
 	target.dna.mutant_bodyparts[feature_key] = build_mutant_part(value, list(colour, colour, colour))
