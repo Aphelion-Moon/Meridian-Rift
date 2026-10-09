@@ -244,3 +244,6 @@
       hunter cosplays.
   PapaMichael:
   - bugfix: Harmonicas and headphones play music while equipped again
+  vinylspiders:
+  - bugfix: fixes ore bags throwing runtimes when you get in and out of closets/containers
+      or drop them inside one
