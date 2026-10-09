@@ -3,5 +3,13 @@
 	"scannable_directory": "code/modules/unit_tests/",
 	"subdirectories": false,
 	"excluded_files": ["find_reference_sanity.dm"],
-	"forbidden_includes": []
+	"forbidden_includes": [
+		"*/~nova/portal_device.dm",
+		"*/~nova/portal_lifecycle.dm",
+		"*/~nova/portal_routes.dm",
+		"*/~nova/body_marking_fixes.dm",
+		"*/~nova/body_marking_merge.dm",
+		"*/~nova/custom_sprites/hardening.dm",
+		"*/~nova/custom_sprites/salon.dm"
+	]
 }

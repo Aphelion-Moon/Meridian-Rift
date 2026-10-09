@@ -385,9 +385,7 @@
 #include "~nova\body_marking_colors.dm"
 #include "~nova\body_marking_content.dm"
 #include "~nova\body_marking_features.dm"
-#include "~nova\body_marking_fixes.dm"
 #include "~nova\body_marking_fixture.dm"
-#include "~nova\body_marking_merge.dm"
 #include "~nova\bodypart_dropped_icon.dm"
 #include "~nova\cerulean.dm"
 #include "~nova\character_preview_animation.dm"
@@ -406,9 +404,6 @@
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
 #include "~nova\painting_gallery.dm"
-#include "~nova\portal_device.dm"
-#include "~nova\portal_lifecycle.dm"
-#include "~nova\portal_routes.dm"
 #include "~nova\portal_test_helpers.dm"
 #include "~nova\preference_apply_page.dm"
 #include "~nova\preferences_import.dm"
@@ -424,7 +419,6 @@
 #include "~nova\custom_sprites\codec.dm"
 #include "~nova\custom_sprites\composite.dm"
 #include "~nova\custom_sprites\editor.dm"
-#include "~nova\custom_sprites\hardening.dm"
 #include "~nova\custom_sprites\lifted_hair.dm"
 #include "~nova\custom_sprites\markings_editor.dm"
 #include "~nova\custom_sprites\palette.dm"
@@ -432,7 +426,6 @@
 #include "~nova\custom_sprites\preview_glow.dm"
 #include "~nova\custom_sprites\region_selection.dm"
 #include "~nova\custom_sprites\regions.dm"
-#include "~nova\custom_sprites\salon.dm"
 #include "~nova\custom_sprites\save_compatibility.dm"
 #include "~nova\custom_sprites\saved_styles.dm"
 #include "~nova\custom_sprites\selection_placement.dm"
@@ -442,6 +435,15 @@
 #include "~nova\custom_sprites\workspace.dm"
 // NOVA EDIT ADDITION END
 // END_INCLUDE
+// APHELION EDIT ADDITION START - Temporarily disabled: the unit test build hits the var cap. Also listed in forbidden_includes in tools/ticked_file_enforcement/schemas/unit_tests.json
+//#include "~nova\portal_device.dm"
+//#include "~nova\portal_lifecycle.dm"
+//#include "~nova\portal_routes.dm"
+//#include "~nova\body_marking_fixes.dm"
+//#include "~nova\body_marking_merge.dm"
+//#include "~nova\custom_sprites\hardening.dm"
+//#include "~nova\custom_sprites\salon.dm"
+// APHELION EDIT ADDITION END
 #ifdef REFERENCE_TRACKING_DEBUG //Don't try and parse this file if ref tracking isn't turned on. IE: don't parse ref tracking please mr linter
 #include "find_reference_sanity.dm"
 #endif
