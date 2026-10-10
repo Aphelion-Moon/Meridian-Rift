@@ -200,7 +200,7 @@ GLOBAL_LIST_EMPTY(station_turfs)
 	SEND_SIGNAL(occupant, COMSIG_MOVABLE_TURF_INITIALIZING, src)
 
 /// Initializes our adjacent turfs. If you want to avoid this, do not override it, instead set init_air to FALSE
-/turf/proc/Initalize_Atmos(time)
+/turf/proc/Initalize_Atmos(time, defer_dogmos_adjacency = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /turf/proc/Initalize_Atmos(time)
 	CALCULATE_ADJACENT_TURFS(src, NORMAL_TURF)
 
 /turf/Destroy(force)
@@ -790,10 +790,18 @@ GLOBAL_LIST_EMPTY(station_turfs)
 	. = heat_capacity
 
 /turf/proc/GetTemperature()
-	. = temperature
+	. = blocks_air ? get_dogmos_blocked_temperature() : temperature // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: . = temperature
 
 /turf/proc/TakeTemperature(temp)
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	temperature += temp
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	// set_temperature(), not a direct var write - a blocks_air turf (e.g. a wall an H/E pipe runs
+	// through, datum_pipeline.dm's temperature_interact()) reaches this base version, and a direct
+	// write here would silently desync Rust's TurfHeat copy of that turf's temperature.
+	set_temperature(temperature + temp)
+// APHELION EDIT ADDITION END
 
 // I'm sorry, this is the only way that both makes sense and is cheap
 /turf/set_explosion_block(explosion_block)

@@ -437,7 +437,13 @@
 	mod.wearer.add_traits(traits_to_add, REF(src))
 	RegisterSignal(mod.wearer, COMSIG_TRY_MODIFY_SPEECH, PROC_REF(on_speech_modification))
 	var/obj/item/organ/tongue/user_tongue = mod.wearer.get_organ_slot(ORGAN_SLOT_TONGUE)
+	/* // APHELION EDIT REMOVAL START - INFILTRATOR_ORGAN_LIFECYCLE
 	user_tongue.temp_say_mod = "states"
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - INFILTRATOR_ORGAN_LIFECYCLE
+	if(user_tongue)
+		user_tongue.temp_say_mod = "states"
+	// APHELION EDIT ADDITION END
 	var/obj/item/clothing/head_cover = mod.get_part_from_slot(ITEM_SLOT_HEAD)
 	if(istype(head_cover))
 		head_cover.flash_protect = FLASH_PROTECTION_WELDER_HYPER_SENSITIVE
@@ -446,7 +452,13 @@
 	mod.wearer.remove_traits(traits_to_add, REF(src))
 	UnregisterSignal(mod.wearer, COMSIG_TRY_MODIFY_SPEECH)
 	var/obj/item/organ/tongue/user_tongue = mod.wearer.get_organ_slot(ORGAN_SLOT_TONGUE)
+	/* // APHELION EDIT REMOVAL START - INFILTRATOR_ORGAN_LIFECYCLE
 	user_tongue.temp_say_mod = initial(user_tongue.temp_say_mod)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - INFILTRATOR_ORGAN_LIFECYCLE
+	if(user_tongue)
+		user_tongue.temp_say_mod = initial(user_tongue.temp_say_mod)
+	// APHELION EDIT ADDITION END
 	if(deleting)
 		return
 	var/obj/item/clothing/head_cover = mod.get_part_from_slot(ITEM_SLOT_HEAD)

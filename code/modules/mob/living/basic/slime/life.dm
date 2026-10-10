@@ -18,9 +18,16 @@
 
 ///Handles if a slime's environment would cause it to enter stasis. Ignores TRAIT_STASIS
 /mob/living/basic/slime/proc/handle_slime_stasis()
-	var/datum/gas_mixture/environment = loc.return_air()
+	var/datum/gas_mixture/environment = loc?.return_air() // APHELION EDIT CHANGE - DOGMOS_PLAYTEST_REGRESSIONS - ORIGINAL: var/datum/gas_mixture/environment = loc.return_air()
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS_PLAYTEST_REGRESSIONS
 	var/bz_percentage = environment.moles[/datum/gas/bz] / environment.total_moles()
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS_PLAYTEST_REGRESSIONS
+	// Vacuum and missing air contain no BZ; continue so existing stasis can end.
+	var/total_moles = environment?.total_moles()
+	var/bz_percentage = total_moles > 0 ? environment.get_moles(/datum/gas/bz) / total_moles : 0
+	// APHELION EDIT ADDITION END
 
 	if(bz_percentage >= 0.05 && bodytemperature < (T0C + 100)) //Check if we should be in stasis
 		if(!has_status_effect(/datum/status_effect/grouped/stasis)) //Check if we don't have the status effect yet

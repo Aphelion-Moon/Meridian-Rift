@@ -91,6 +91,12 @@
 /datum/progressbar/proc/on_user_delete(datum/source)
 	SIGNAL_HANDLER
 
+	// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
+	// An earlier deletion listener may destroy this bar after its callback was queued.
+	if(!user)
+		return
+	// APHELION EDIT ADDITION END
+
 	user.progressbars = null //We can simply nuke the list and stop worrying about updating other prog bars if the user itself is gone.
 	user = null
 	qdel(src)

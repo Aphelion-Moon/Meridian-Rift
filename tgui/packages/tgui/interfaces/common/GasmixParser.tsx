@@ -13,6 +13,10 @@ export type Gasmix = {
   total_moles: number;
   reactions: ReactionEntry[]; // ID, name, and amount.
   reference: string;
+  // APHELION EDIT ADDITION START - DOGMOS
+  fusion_status?: string;
+  fusion_instability?: number | null;
+  // APHELION EDIT ADDITION END
 };
 
 type GasmixParserProps = {
@@ -67,7 +71,7 @@ export const GasmixParser = (props: GasmixParserProps) => {
                 }
                 key={gas[1]}
               >
-                {gas[2].toFixed(2) +
+                {gas[2].toFixed(4) +
                   ' mol (' +
                   ((gas[2] / total_moles) * 100).toFixed(2) +
                   ' %)'}

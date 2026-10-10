@@ -1,0 +1,53 @@
+{
+  "artifacts": {
+    "dogmos-source-snapshot.json": "3055a36f155ac777998b3f888c9b223f8c17d3c02f8bef0b1773b48663a26ac3",
+    "dogmos.dll": "6d37c313ba643573847efcc740567dcabc75d4d1ada45969686c6c34ab0733af",
+    "dogmos.pdb": "325b786656be623e8dd17c14ea1aaeb47bf55091d1e5d35061dd8959223a96a0",
+    "dogmos_bindings.dm": "cfbbd714cf718e97e3dceb1199b1d0388a891e406f82d4c67b88e15f3cb60bf9"
+  },
+  "backend": "in-process",
+  "build_provenance": {
+    "cargo_version": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "cpu_requirements": [],
+    "flag_sha256": {},
+    "linker": {
+      "artifact_pe_linker_version": "14.51",
+      "command": null,
+      "selection": "cargo-rustc-configuration",
+      "version": null
+    },
+    "profile_override_sha256": {},
+    "rustc_verbose": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-pc-windows-msvc\nrelease: 1.98.0\nLLVM version: 22.1.8"
+  },
+  "cargo_arguments": [
+    "+1.98.0",
+    "build",
+    "-p",
+    "dogmos",
+    "--lib",
+    "--example",
+    "generate_bindings",
+    "--release",
+    "--locked",
+    "--target",
+    "i686-pc-windows-msvc",
+    "--no-default-features",
+    "--features",
+    "aphelion_reactions,katmos,katmos_slow_decompression,superconductivity,turf_processing"
+  ],
+  "features": [
+    "aphelion_reactions",
+    "katmos",
+    "katmos_slow_decompression",
+    "superconductivity",
+    "turf_processing"
+  ],
+  "kind": "unqualified-in-process-playtest",
+  "runtime_qualified": false,
+  "schema_version": 1,
+  "source_revision": "ba65383d65464ff7d603d5e51441bc1bccd60a9f",
+  "source_sha256": "3055a36f155ac777998b3f888c9b223f8c17d3c02f8bef0b1773b48663a26ac3",
+  "target": "i686-pc-windows-msvc",
+  "tests_run": false,
+  "toolchain": "1.98.0"
+}

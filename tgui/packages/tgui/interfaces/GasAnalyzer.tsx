@@ -1,4 +1,4 @@
-import { Section, Stack } from 'tgui-core/components';
+import { Box, Section, Stack } from 'tgui-core/components';
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
@@ -22,6 +22,15 @@ export const GasAnalyzerContent = () => {
       <Stack.Item>
         {gasmixes?.map((gasmix) => (
           <Section title={gasmix.name} key={gasmix.reference}>
+            {/* APHELION EDIT ADDITION START - DOGMOS */}
+            {gasmix.fusion_status && (
+              <Box>
+                Fusion: {gasmix.fusion_status}
+                {gasmix.fusion_instability != null &&
+                  `; instability ${gasmix.fusion_instability.toFixed(2)}`}
+              </Box>
+            )}
+            {/* APHELION EDIT ADDITION END */}
             <GasmixParser
               gasmix={gasmix}
               gasesOnClick={setActiveGasId}

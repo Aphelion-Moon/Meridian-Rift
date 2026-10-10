@@ -2,8 +2,10 @@ import codecs
 import fnmatch
 import functools
 import glob
+import itertools
 import json
 import os
+import re
 import sys
 
 # simple way to check if we're running on github actions, or on a local machine
@@ -17,6 +19,72 @@ def red(text):
 
 def blue(text):
     return "\033[34m" + str(text) + "\033[0m"
+
+def read_include_records(path):
+    """Read the managed block without merging mutually exclusive backend includes."""
+    records = []
+    defines = set()
+    reading = False
+    branches = []
+    # NOVA spellings kept so upstream ports don't break.
+    marker = re.compile(r"// (?:APHELION|NOVA) EDIT ADDITION (?:START(?: - [A-Z][A-Z0-9_]*)?|END)")
+    with open(path) as source:
+        for number, raw in enumerate(source, 1):
+            line = raw.strip()
+            if line == "// BEGIN_INCLUDE":
+                reading = True
+                continue
+            if not reading:
+                continue
+            if line == "// END_INCLUDE":
+                if branches:
+                    raise ValueError(f"line {number}: unclosed conditional include block")
+                return records, sorted(defines), number - len(records)
+            if marker.fullmatch(line):
+                continue
+            if re.fullmatch(r'#include "[^"]+"', line):
+                records.append((number, "include", line))
+                continue
+            directive = line.partition("//")[0].strip()
+            condition = re.fullmatch(r'#(ifdef|ifndef)\s+([A-Za-z_]\w*)', directive)
+            if condition:
+                kind, name = condition.groups()
+                defines.add(name)
+                branches.append(False)
+                records.append((number, kind, name))
+            elif directive == "#else":
+                if not branches or branches[-1]:
+                    raise ValueError(f"line {number}: unmatched or repeated #else")
+                branches[-1] = True
+                records.append((number, "else", None))
+            elif directive == "#endif":
+                if not branches:
+                    raise ValueError(f"line {number}: unmatched #endif")
+                branches.pop()
+                records.append((number, "endif", None))
+            else:
+                raise ValueError(f"line {number}: unsupported include-block line: {line}")
+    raise ValueError("missing managed include block or // END_INCLUDE")
+
+
+def include_configurations(records, defines):
+    """Check every define assignment, including correlated and nested conditionals."""
+    for assignment in itertools.product((False, True), repeat=len(defines)):
+        values = dict(zip(defines, assignment))
+        active = [True]
+        includes = []
+        for number, kind, value in records:
+            if kind == "include":
+                if active[-1]:
+                    includes.append((number, value))
+            elif kind in ("ifdef", "ifndef"):
+                enabled = values[value] if kind == "ifdef" else not values[value]
+                active.append(active[-1] and enabled)
+            elif kind == "else":
+                active[-1] = active[-2] and not active[-1]
+            else:
+                active.pop()
+        yield values, includes
 
 schema = json.load(sys.stdin)
 file_reference = schema["file"]
@@ -39,32 +107,13 @@ for excluded_file in excluded_files:
 
 file_extensions = ("dm", "dmf")
 
-reading = False
-lines = []
-total = 0
-
-with open(file_reference, 'r') as file:
-    for line in file:
-        total += 1
-        line = line.strip()
-
-        if line == "// BEGIN_INCLUDE":
-            reading = True
-            continue
-        elif line == "// END_INCLUDE":
-            break
-        elif not reading:
-            continue
-        # APHELION EDIT ADDITION START - Modular unit tests. NOVA spellings kept so upstream ports don't break.
-        elif line in ("// APHELION EDIT ADDITION START", "// NOVA EDIT ADDITION START"):
-            continue
-        elif line in ("// APHELION EDIT ADDITION END", "// NOVA EDIT ADDITION END"):
-            continue
-        # APHELION EDIT ADDITION END
-
-        lines.append(line)
-
-offset = total - len(lines)
+# Keep coverage checks across all branches; ordering checks run per configuration below.
+try:
+    records, defines, offset = read_include_records(file_reference)
+except ValueError as error:
+    post_error(str(error))
+    sys.exit(1)
+lines = [line for _, kind, line in records if kind == "include"]
 print(blue(f"Ticked File Enforcement: {offset} lines were ignored in output for [{file_reference}]."))
 fail_no_include = False
 
@@ -165,10 +214,14 @@ def compare_lines(a, b):
     print(f"Two lines were exactly the same ({a} vs. {b})")
     sys.exit(1)
 
-sorted_lines = sorted(lines, key = functools.cmp_to_key(compare_lines))
-for (index, line) in enumerate(lines):
-    if sorted_lines[index] != line:
-        post_error(f"The include at line {index + offset} is out of order ({line}, expected {sorted_lines[index]})")
-        sys.exit(1)
+configuration_count = 0
+for values, includes in include_configurations(records, defines):
+    configuration_count += 1
+    active_lines = [line for _, line in includes]
+    sorted_lines = sorted(active_lines, key=functools.cmp_to_key(compare_lines))
+    for (index, (number, line)) in enumerate(includes):
+        if sorted_lines[index] != line:
+            post_error(f"The include at line {number} is out of order ({line}, expected {sorted_lines[index]}; defines={values})")
+            sys.exit(1)
 
-print(green(f"Ticked File Enforcement: [{file_reference}] All includes (for {len(scannable_files)} scanned files) are in order!"))
+print(green(f"Ticked File Enforcement: [{file_reference}] All includes (for {len(scannable_files)} scanned files, {configuration_count} configurations) are in order!"))
