@@ -29,6 +29,14 @@ character's name, independently of who owns the device. Identical pixels are the
 same artwork, so saving a drawing that is already archived changes nothing, and the
 saved image is written to the image log like any other artwork drawn on a device.
 
+**Open from Art Galaxy** lists the signed-in artist's own collection and reopens a
+painting as a new drawing, which is how saved artwork is carried into a later shift.
+Only their own work is listed, and the server rechecks `creator_ckey` before opening;
+other artists' paintings are downloaded from Art Galaxy as images instead. The record
+stays with the drawing, so it keeps its title for the next save, and the drawing is
+not the painting: saving the changes archives a separate painting of its own, leaving
+the original where it is.
+
 Accounts can store **500 unique paintings**, counting personal, framed, imported,
 and website-public artwork together. Copies and additional frames do not consume
 extra slots. The native transaction checks the final collection under its writer
@@ -237,8 +245,8 @@ Replacement behavior lives in this module where possible.
 - [code/art_galaxy.dm](code/art_galaxy.dm): portrait printer `New`, `Destroy`, `ui_interact`, and `ui_close`.
 - [code/painting_achievements.dm](code/painting_achievements.dm): the **A Brush with Greatness** award,
   `/datum/award/achievement/misc/public_painter`; `code/achievements.dm` awards it.
-- [code/nanopaint.dm](code/nanopaint.dm): NanoPaint's Art Galaxy save, and the pixel
-  string a drawing is archived as; the `create` transaction in
+- [code/nanopaint.dm](code/nanopaint.dm): NanoPaint's Art Galaxy save and reopen, and
+  the pixel string a drawing is archived as; the `create` transaction in
   [code/painting_store.dm](code/painting_store.dm) takes finished pixels from it,
   sharing the archive transaction's staging and duplicate rules.
 - The remaining `code/` files add subsystem, canvas, preference, admin, asset, and
@@ -257,7 +265,8 @@ Replacement behavior lives in this module where possible.
 - `tgui/packages/tgui/interfaces/ArtGalaxy/`: frontend; `NtosPortraitPrinter.tsx`
   remains the interface discovery entrypoint.
 - `tgui/packages/tgui/interfaces/NtosNanopaint/dialogs/NanopaintGalleryDialog.tsx`:
-  the application's save form and its outcome.
+  the application's save form and its outcome;
+  `NanopaintGalleryOpenDialog.tsx`: the artist's collection, listed to reopen from.
 - `tools/painting_store/`: native helper, build/verification scripts, and staging
   tool; `meridian_painting_store.dll`: Windows runtime dependency.
 - `config/nova/config_nova.txt`: disabled import flag; `.gitignore`: private backup

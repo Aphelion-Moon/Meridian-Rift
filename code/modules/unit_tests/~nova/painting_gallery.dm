@@ -443,3 +443,27 @@
 	TEST_ASSERT_EQUAL(copytext(image_data, 1, 10), "#ff0000ff", "The drawn pixel moved or lost its colour")
 	TEST_ASSERT_EQUAL(copytext(image_data, 10, 19), "[/obj/item/canvas::canvas_color]ff", "A clear pixel was archived as anything but blank canvas")
 	TEST_ASSERT_NULL(painting_pixels_from_icon(flattened, 12, 12), "A mismatched canvas size was accepted")
+
+/// Avoid a real device while exercising the gallery open list and its ownership gate.
+/datum/computer_file/program/nanopaint/gallery_fixture
+
+/datum/computer_file/program/nanopaint/gallery_fixture/New()
+	return
+
+/// NanoPaint offers the artist their own archived work to open again, and no one else's.
+/datum/unit_test/gallery_nanopaint_open/Run()
+	var/datum/computer_file/program/nanopaint/gallery_fixture/program = allocate(/datum/computer_file/program/nanopaint/gallery_fixture)
+	var/datum/controller/subsystem/persistent_paintings/gallery_fixture/store = allocate(/datum/controller/subsystem/persistent_paintings/gallery_fixture)
+	var/list/row = gallery_test_row("nanopaint-open", "nanopainter")
+	row["title"] = "Pixel Study"
+	store.test_snapshot = list("version" = 3, "paintings" = list(row, gallery_test_row("nanopaint-other", "someoneelse")))
+	store.run_store_operation("sync")
+	var/list/entries = program.gallery_open_entries(null, store.get_owned_paintings("nanopainter"))
+	TEST_ASSERT_EQUAL(length(entries), 1, "The open list lost the artist's painting, or showed another artist's")
+	TEST_ASSERT_EQUAL(entries[1]["name"], "Pixel Study", "The open list named the painting wrongly")
+	TEST_ASSERT_EQUAL(entries[1]["size"], "11x11", "The open list sized the painting wrongly")
+	var/datum/painting/own_painting = store.paintings_by_id[row["md5"]]
+	var/datum/painting/other_painting = store.paintings_by_id[md5("nanopaint-other")]
+	TEST_ASSERT(program.gallery_painting(REF(own_painting), "nanopainter", store.paintings) == own_painting, "The artist could not open their own painting")
+	TEST_ASSERT_NULL(program.gallery_painting(REF(other_painting), "nanopainter", store.paintings), "Another artist's painting could be opened")
+	TEST_ASSERT_NULL(program.gallery_painting(REF(own_painting), null, store.paintings), "A user with no account opened a painting")
