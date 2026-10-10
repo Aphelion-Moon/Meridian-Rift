@@ -257,6 +257,10 @@
 	name = "Crocin Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/crocin
 
+/datum/loadout_item/erp/crocin/medipen
+	name = "Crocin Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/crocin
+
 /datum/loadout_item/erp/camphor/pill
 	name = "Camphor Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/camphor
@@ -264,6 +268,10 @@
 /datum/loadout_item/erp/hexacrocin/pill
 	name = "Hexacrocin Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/hexacrocin
+
+/datum/loadout_item/erp/hexacrocin/medipen
+	name = "Hexacrocin Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/crocin/hexacrocin
 
 /datum/loadout_item/erp/pentacamphor/pill
 	name = "Pentacamphor Pill"
@@ -273,9 +281,21 @@
 	name = "Succubus Milk Bottle"
 	item_path = /obj/item/reagent_containers/cup/bottle/succubus_milk
 
+/datum/loadout_item/erp/succubus_milk/medipen
+	name = "Succubus Milk Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/succubus_milk
+
 /datum/loadout_item/erp/incubus_draft
 	name = "Incubus Draft Bottle"
 	item_path = /obj/item/reagent_containers/cup/bottle/incubus_draft
+
+/datum/loadout_item/erp/incubus_draft/medipen
+	name = "Incubus Draft Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/incubus_draft
+
+/datum/loadout_item/erp/coom_bomb
+	name = "La Coom Bomb Medipen"
+	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/coom_bomb
 
 /datum/loadout_item/erp/crocin_neuroware
 	name = "EroStim Neuroware Chip"
@@ -308,6 +328,10 @@
 /datum/loadout_item/erp/pentacamphor_neuroware_box
 	name = "Neuroware Chips Box (Nobido Xtreme)"
 	item_path = /obj/item/storage/box/flat/neuroware/pentacamphor
+
+/datum/loadout_item/erp/lewd_medipen_box
+	name = "Lewd Medipen Box"
+	item_path = /obj/item/storage/box/medipens/lewd
 
 /*
 *	STRUCTURES
