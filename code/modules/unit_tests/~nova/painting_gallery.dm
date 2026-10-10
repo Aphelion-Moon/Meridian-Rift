@@ -398,3 +398,48 @@
 	TEST_ASSERT_EQUAL(data["selected_painting"]?["ref"], "own-painting", "Another viewer's navigation cleared the owner's detail")
 	program.add_gallery_page(data, list(), owner)
 	TEST_ASSERT_NULL(data["selected_painting"], "Deleting the selected artwork must still close its detail")
+
+/// A drawing saved from NanoPaint reaches the archive privately, under its own pixel identity.
+/datum/unit_test/gallery_nanopaint_create/Run()
+	var/datum/controller/subsystem/persistent_paintings/gallery_fixture/store = allocate(/datum/controller/subsystem/persistent_paintings/gallery_fixture)
+	var/datum/painting/painting = new
+	painting.title = "Pixel Study"
+	painting.creator_ckey = "nanopainter"
+	painting.creator_name = "Anonymous"
+	painting.width = 11
+	painting.height = 11
+	var/list/pixels = list()
+	for(var/i in 1 to 11 * 11)
+		pixels += "#ffffffff"
+	var/image_data = pixels.Join("")
+	var/list/result = store.run_store_operation("create", list("painting" = painting, "pixels" = image_data))
+	TEST_ASSERT(result["ok"], "A NanoPaint save failed: [store.store_result_message(result)]")
+	TEST_ASSERT_EQUAL(painting.md5, md5(image_data), "The saved painting took an identity other than its pixels")
+	var/list/row = store.test_commit["candidate"]["paintings"][1]
+	TEST_ASSERT_EQUAL(row["creator_ckey"], "nanopainter", "The artist did not own their saved painting")
+	TEST_ASSERT_EQUAL(length(row["tags"]), 0, "A personal save joined the station rotation")
+	TEST_ASSERT_EQUAL(row["show_in_webgallery"], 0, "A personal save was published without consent")
+	TEST_ASSERT_EQUAL(store.test_commit["images"][1]["source"], "staged", "The saved image was not staged for the commit")
+	var/datum/painting/copy = new
+	copy.title = "Pixel Study"
+	copy.creator_ckey = "nanopainter"
+	copy.width = 11
+	copy.height = 11
+	var/list/again = store.run_store_operation("create", list("painting" = copy, "pixels" = image_data))
+	TEST_ASSERT(again["ok"], "Saving the same drawing twice reported a failure")
+	TEST_ASSERT(!again["changed"], "The same drawing was archived twice")
+	TEST_ASSERT_EQUAL(store.test_commits, 1, "A duplicate save still opened a transaction")
+
+/// Clear pixels have no place on a canvas: the archived image is opaque, blank where nothing was drawn.
+/datum/unit_test/gallery_nanopaint_pixels/Run()
+	var/datum/sprite_editor_workspace/workspace = new(11, 11, 1, null, SPRITE_EDITOR_COLOR_MODE_RGBA, ALL, ALL, "#00000000")
+	var/list/grid = workspace.get_first_layer_pixel_data()
+	grid[1][1] = "#ff0000ff"
+	var/icon/flattened = workspace.to_icon()
+	TEST_ASSERT_NOTNULL(flattened, "The workspace could not be flattened")
+	flattened.Blend(/obj/item/canvas::canvas_color, ICON_UNDERLAY)
+	var/image_data = painting_pixels_from_icon(flattened, 11, 11)
+	TEST_ASSERT_EQUAL(length(image_data), 11 * 11 * 9, "The painting pixel string did not cover the whole canvas")
+	TEST_ASSERT_EQUAL(copytext(image_data, 1, 10), "#ff0000ff", "The drawn pixel moved or lost its colour")
+	TEST_ASSERT_EQUAL(copytext(image_data, 10, 19), "[/obj/item/canvas::canvas_color]ff", "A clear pixel was archived as anything but blank canvas")
+	TEST_ASSERT_NULL(painting_pixels_from_icon(flattened, 12, 12), "A mismatched canvas size was accepted")
