@@ -229,6 +229,10 @@
 	name = "Condom Pack"
 	item_path = /obj/item/condom_pack
 
+/datum/loadout_item/erp/condom_box
+	name = "Condom Box"
+	item_path = /obj/item/storage/box/condoms
+
 /datum/loadout_item/erp/serviette_pack
 	name = "Serviette Pack"
 	item_path = /obj/item/serviette_pack

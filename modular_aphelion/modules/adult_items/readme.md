@@ -16,18 +16,25 @@ neighbours do, and each family reaches players through the same vendor or loadou
   illustration drawn on. LustWish sells the crocin, succubus milk and incubus draft pens beside its lewd bottles and,
   once hacked, the hexacrocin pen, the La Coom Bomb and the box beside its hexacrocin stock. Every pen and the box also
   has an entry in the Erotic loadout, beside the lewd bottles, pills and neuroware boxes.
+- **Condom box** (`code/condom_box.dm`). The surplus condom box (`/obj/item/storage/box/condoms`) comes with ten of
+  Nova's condom packs and holds only condom packs, ten at most. Its sprite is the box of love's body with a condom
+  packet drawn on its label. LustWish sells it beside the condom packs, and it has an Erotic loadout entry beside
+  theirs.
 
 ### Modular Overrides:
 
-- `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens and the box in the Erotic loadout.
+- `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box and the condom box in
+  the Erotic loadout.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/_erp_disabled_item_enforcement.dm`: `Initialize()`
-  of `/obj/item/reagent_containers/hypospray/medipen/lewd` and `/obj/item/storage/box/medipens/lewd`.
-- `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens and the box in the
-  LustWish stock.
+  of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd` and
+  `/obj/item/storage/box/condoms`.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box and the
+  condom box in the LustWish stock.
 
 ### Included files that are not contained in this module:
 
 - `code/modules/unit_tests/~nova/lewd_medipens.dm`: the medipens' unit test.
+- `code/modules/unit_tests/~nova/condom_box.dm`: the condom box's unit test.
 
 ### Credits:
 
@@ -49,3 +56,13 @@ neighbours do, and each family reaches players through the same vendor or loadou
     (`#9764ab`, `#76428a`, from `lewd_portals.dmi`); the La Coom Bomb's seven-frame cycle started at its yellow-green
     frame and slowed to tg's delay 3; the `epipen` illustration recoloured as the crocin pen and drawn onto `medbox`
     as one state, `medbox_lewd`, so menus show the box with its illustration.
+- **Condom box.**
+  - Code and text from S.P.L.U.R.T-tg's `modular_zzplurt/code/modules/modular_items/lewd_items/code/condom_box.dm`
+    (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+  - Sprite: `icons/condom_box.dmi`, `condom_box` - [Nova Sector](https://github.com/NovaSector/NovaSector)'s `hugbox`
+    (the box of love's body), from `modular_nova/modules/aesthetics/storage/icons/storage.dmi` (CC BY-SA 3.0; that
+    module credits TauCeti station and Gandalf2k15), with an Aphelion-original face on its label: one condom foil
+    packet with its ring, in the colours of Nova's condom pack. One state, so menus show the box with its face.
+  - Modified: the storage is its own `/datum/storage/box/condoms`, as tg's matchbox has, and takes condom packs
+    back - S.P.L.U.R.T's box set the storage's `can_hold` typecache to a plain list, which refuses every insertion.

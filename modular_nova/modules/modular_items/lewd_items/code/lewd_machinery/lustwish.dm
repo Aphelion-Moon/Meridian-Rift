@@ -154,6 +154,7 @@
 			"products" = list(
 				//Sex toys
 				/obj/item/condom_pack = 20,
+				/obj/item/storage/box/condoms = 10,
 				/obj/item/serviette_pack = 10,
 				/obj/item/fancy_pillow = 32,
 
