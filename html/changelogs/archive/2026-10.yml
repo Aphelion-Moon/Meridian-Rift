@@ -247,3 +247,64 @@
   vinylspiders:
   - bugfix: fixes ore bags throwing runtimes when you get in and out of closets/containers
       or drop them inside one
+2026-10-10:
+  Co0kie-GG:
+  - bugfix: The AI will no longer see its eyes after revive
+  - bugfix: The AI's second eyes are removed upon death or loading onto the card
+  FalloutFalcon:
+  - bugfix: AI attempting to destroy obstructions wont friendly fire random other
+      mobs.
+  FlufflesTheDog:
+  - bugfix: Apples, tower caps, starthistle seeds, and randomly-mutated crops now
+      go into plant bags on harvest.
+  - bugfix: APCs rotate properly with shuttles
+  - bugfix: cable networks on shuttles  should maintain proper connections better
+  - bugfix: shuttle subrooms no longer have free power
+  Melbert:
+  - bugfix: Maybe fixes lighting
+  - balance: Megafauna / Tendrils prevent mining mobs within 10 / 7 tiles of them
+      from respawning during a storm
+  - balance: The radius that which candelas block mining mob respawns during storms
+      now reaches through walls
+  - balance: Living players prevent mining mobs within 3 tiles from respawning during
+      a storm (if the respawn point is in sight).
+  SmArtKar:
+  - bugfix: Fixed raptors not inheriting their parents' food stat modifications
+  - bugfix: Fixed amphibious lungs functionally giving the user nobreath
+  - bugfix: Fixed tendril melee being able to queue multiple attacks and oneshot mobs
+  TealSeer:
+  - bugfix: fixed miners not having access to the ORM windoor on kilostation
+  - bugfix: fixed save button in NTOS Notepad doing nothing
+  alexguinea:
+  - rscadd: Added the litigation set of forms to the blanks in the photocopier.
+  tontyGH:
+  - qol: Added multiple new keybinds for hand control
+  - qol: Hand-related keybinds were moved to DEXTROUS category
+  - bugfix: Cycling hands would get stuck on offhand items instead of skipping over
+      them
+  - bugfix: Catching now tries to put caught items in every possible open hand instead
+      of just the active offhand
+  - bugfix: Tentacle's aggro grab had weird behaviour that made it ignore a lot of
+      systems
+  vinylspiders:
+  - bugfix: catching a basketball and dribbling it no longer leaves a phantom ball
+      stuck in your other hand
+  - bugfix: a basketball you've let go of no longer keeps bouncing when you walk,
+      or gets pulled back to your feet when you're knocked down
+  - bugfix: if you're holding two basketballs and drop one, the one still in your
+      hand does the dribbling now
+  - refactor: markings system backend got a facelift
+  - bugfix: fixes a spammy runtime when microwaves eject their content
+  - bugfix: suit meshes and the voidwalker curse now cover large wings completely,
+      instead of missing their left side and edges.
+  - bugfix: ventcrawling once again shows only the pipes and the layout of the area
+      around you, not the mobs and objects in it.
+  - bugfix: engineering and mining cyborgs' meson vision and syndicate saboteur cyborgs'
+      thermal vision tint dark areas again.
+  - bugfix: syndicate saboteur cyborgs can turn their thermal vision off again.
+  - bugfix: engineering scanner goggles only give meson vision in meson mode again.
+      Shuttle region scanners, atmospheric thermal imaging goggles and admin imaging
+      goggles no longer give meson vision at all.
+  - bugfix: manning a deployable turret gives you its controls in your hands again.
+  - bugfix: the prototype emitter's manual firing mode gives you its controls in your
+      hands again.
