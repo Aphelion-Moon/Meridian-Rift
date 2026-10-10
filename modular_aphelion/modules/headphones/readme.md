@@ -28,6 +28,8 @@ studio headphones, Streetjack Cans, Raid Headset, Raid Headphones, Halo Phones a
 - **Loadout.** Every new set is under Ears, next to tg's headphones. Being wearable on the neck doesn't earn them a
   Neck entry. The Raid is one entry, Raid Headphones, with the Raid Headset as its reskin
   (`/datum/atom_skin/raid_headphones`), which puts the boom mic on.
+- **ClothesMate.** The clothing vendor sells the loadout's five sets under Accessories, five of each, at tg's
+  headphone price (`custom_price`). Its Raid is Raid Headphones; the Raid Headset stays the loadout's reskin.
 - **Icons.** `headphones_gags.dmi` holds every GAGS template, `headphones_emissive.dmi` every glow mask and
   `headphones.dmi` the static sprites (tg's neck sprite and the notes). The lab's export script writes them and the
   json from the approved art.
@@ -45,3 +47,4 @@ studio headphones, Streetjack Cans, Raid Headset, Raid Headphones, Halo Phones a
 ### Included files that are not contained in this module:
 
 - `modular_nova/modules/GAGS/json_configs/head/headphones/`: the GAGS json.
+- `modular_nova/modules/modular_vending/code/clothesmate.dm`: the five sets in the ClothesMate's Accessories.
