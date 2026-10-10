@@ -235,3 +235,15 @@
       of their own
   - bugfix: random personalities can no longer come with two that contradict each
       other, like loyal and disillusioned.
+2026-10-09:
+  JohnFulpWillard:
+  - qol: Precise Drop's default action is now CtrlQ instead of CtrlX, to match Drop
+      once again being Q.
+  KingkumaArt:
+  - bugfix: Giantslayer Spear shows when equipped in suit storage. Enjoy your monster
+      hunter cosplays.
+  PapaMichael:
+  - bugfix: Harmonicas and headphones play music while equipped again
+  vinylspiders:
+  - bugfix: fixes ore bags throwing runtimes when you get in and out of closets/containers
+      or drop them inside one
