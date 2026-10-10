@@ -6,8 +6,11 @@ Module ID: ADULT_ITEMS
 
 Adult items ported from S.P.L.U.R.T. One family per file in `code/`, with its own icon sheets in `icons/` and its own
 line under Credits. Every item has an `Initialize()` stanza in Nova's `_erp_disabled_item_enforcement.dm`, so the
-lewd-items config removes it. Items that fit the box of love carry `obj_flags_nova = ERP_ITEM`, as their Nova
-neighbours do, and each family reaches players through the same vendor or loadout as its Nova neighbours.
+lewd-items config removes it, and every family lists its top types on one line of `adult_items_gated_types()` in
+`code/_gated_types.dm` - a new family adds its line there. The `adult_items_kill_switch` unit test makes every
+concrete type under them and fails on any that survives with lewd items disabled or does not spawn with them enabled.
+Items that fit the box of love carry `obj_flags_nova = ERP_ITEM`, as their Nova neighbours do, and each family
+reaches players through the same vendor or loadout as its Nova neighbours.
 
 - **Medipens** (`code/medipens.dm`). Five one-shot 30u medipens under the abstract
   `/obj/item/reagent_containers/hypospray/medipen/lewd`: crocin, hexacrocin, succubus milk, incubus draft, and the
@@ -31,8 +34,14 @@ neighbours do, and each family reaches players through the same vendor or loadou
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box and the
   condom box in the LustWish stock.
 
+### Defines:
+
+- `code/__DEFINES/~aphelion_defines/adult_items.dm`: `TEST_SKIP_IF_LEWD_ITEMS_DISABLED`, the first line of every
+  family's unit test - it ends the test with a notice when lewd items are disabled.
+
 ### Included files that are not contained in this module:
 
+- `code/modules/unit_tests/~nova/adult_items_kill_switch.dm`: the lewd-items config test for every family.
 - `code/modules/unit_tests/~nova/lewd_medipens.dm`: the medipens' unit test.
 - `code/modules/unit_tests/~nova/condom_box.dm`: the condom box's unit test.
 
