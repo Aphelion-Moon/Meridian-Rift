@@ -405,6 +405,7 @@
 #include "~nova\character_preview_rebuilds.dm"
 #include "~nova\chastity.dm"
 #include "~nova\clothing_variation_icons.dm"
+#include "~nova\condom_box.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\language_understanding.dm"
