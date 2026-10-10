@@ -467,3 +467,46 @@
 	TEST_ASSERT(program.gallery_painting(REF(own_painting), "nanopainter", store.paintings) == own_painting, "The artist could not open their own painting")
 	TEST_ASSERT_NULL(program.gallery_painting(REF(other_painting), "nanopainter", store.paintings), "Another artist's painting could be opened")
 	TEST_ASSERT_NULL(program.gallery_painting(REF(own_painting), null, store.paintings), "A user with no account opened a painting")
+
+/// A resize keeps the drawing and blanks what the canvas gains; a smaller canvas cuts what falls outside it.
+/datum/unit_test/gallery_nanopaint_resize/Run()
+	var/datum/computer_file/program/nanopaint/gallery_fixture/program = allocate(/datum/computer_file/program/nanopaint/gallery_fixture)
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset(-1, 4), 0, "The first edge did not hold the drawing")
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset(0, 4), 2, "A centred drawing was not centred")
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset(1, 4), 4, "The last edge did not hold the drawing")
+	TEST_ASSERT_EQUAL(program.gallery_anchor_offset("nonsense", 4), 2, "A malformed anchor was not centred")
+
+	var/datum/sprite_editor_workspace/workspace = new(4, 4, 1, null, SPRITE_EDITOR_COLOR_MODE_RGBA, ALL, ALL, "#00000000")
+	var/list/grid = workspace.get_first_layer_pixel_data()
+	grid[1][1] = "#ff0000ff"
+	grid[4][4] = "#00ff00ff"
+	workspace.undo_stack += list(list("name" = "a pencil stroke"))
+	workspace.undo_names += "a pencil stroke"
+
+	TEST_ASSERT(workspace.resize_canvas(6, 6, 1, 1), "A resize to another size reported no change")
+	TEST_ASSERT_EQUAL(workspace.width, 6, "The workspace kept its old width")
+	grid = workspace.get_first_layer_pixel_data()
+	TEST_ASSERT_EQUAL(length(grid), 6, "The drawing did not gain rows")
+	TEST_ASSERT_EQUAL(length(grid[1]), 6, "The drawing did not gain columns")
+	TEST_ASSERT_EQUAL(grid[2][2], "#ff0000ff", "The drawing did not move with its anchor")
+	TEST_ASSERT_EQUAL(grid[5][5], "#00ff00ff", "The far corner of the drawing was lost")
+	TEST_ASSERT_EQUAL(grid[1][1], "#00000000", "The space the canvas gained is not blank")
+	TEST_ASSERT_EQUAL(length(workspace.undo_stack), 0, "The undo history survived a resize")
+	TEST_ASSERT_EQUAL(length(workspace.undo_names), 0, "The undo history survived a resize")
+
+	TEST_ASSERT(workspace.resize_canvas(3, 3), "A resize to a smaller canvas reported no change")
+	grid = workspace.get_first_layer_pixel_data()
+	TEST_ASSERT_EQUAL(length(grid), 3, "The drawing did not lose its rows")
+	TEST_ASSERT_EQUAL(grid[2][2], "#ff0000ff", "The kept corner moved when the canvas was cut")
+	TEST_ASSERT(!workspace.resize_canvas(3, 3), "A resize to the size it already is still rebuilt the drawing")
+
+	// What the dialog actually drives: the anchor becomes an offset, and the editor's limits still hold.
+	program.current_workspace = workspace
+	program.resize_workspace(5, 5, 1, 1)
+	TEST_ASSERT_EQUAL(workspace.width, 5, "The command did not resize the drawing")
+	grid = workspace.get_first_layer_pixel_data()
+	TEST_ASSERT_EQUAL(grid[4][4], "#ff0000ff", "The anchor did not hold the drawing against the last edges")
+	TEST_ASSERT_NULL(program.dialog, "A resize left a dialog open")
+	program.resize_workspace(0, 5, 0, 0)
+	TEST_ASSERT_EQUAL(program.dialog?["type"], "error", "A size outside the editor's limits was accepted")
+	TEST_ASSERT_EQUAL(workspace.width, 5, "A refused resize still changed the drawing")

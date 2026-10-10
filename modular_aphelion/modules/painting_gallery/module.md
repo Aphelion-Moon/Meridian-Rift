@@ -29,6 +29,14 @@ character's name, independently of who owns the device. Identical pixels are the
 same artwork, so saving a drawing that is already archived changes nothing, and the
 saved image is written to the image log like any other artwork drawn on a device.
 
+**Canvas Size** moves a drawing onto a canvas of another size without redrawing it: the
+overlap is kept, the space it gains is blank, and anything outside a smaller canvas is
+cut. Nine anchors say which edges the drawing keeps. The undo history is cleared by a
+resize, since every recorded transaction addresses pixels of the canvas it was drawn on,
+and the drawing stops counting as the photo or painting it came from. It exists so a
+drawing started at the wrong size can still be archived; New Project now starts at a
+canvas size for the same reason.
+
 **Open from Art Galaxy** lists the signed-in artist's own collection and reopens a
 painting as a new drawing, which is how saved artwork is carried into a later shift.
 Only their own work is listed, and the server rechecks `creator_ckey` before opening;
@@ -245,7 +253,8 @@ Replacement behavior lives in this module where possible.
 - [code/art_galaxy.dm](code/art_galaxy.dm): portrait printer `New`, `Destroy`, `ui_interact`, and `ui_close`.
 - [code/painting_achievements.dm](code/painting_achievements.dm): the **A Brush with Greatness** award,
   `/datum/award/achievement/misc/public_painter`; `code/achievements.dm` awards it.
-- [code/nanopaint.dm](code/nanopaint.dm): NanoPaint's Art Galaxy save and reopen, and
+- [code/nanopaint.dm](code/nanopaint.dm): NanoPaint's Art Galaxy save and reopen, its
+  Canvas Size command and `/datum/sprite_editor_workspace/proc/resize_canvas`, and
   the pixel string a drawing is archived as; the `create` transaction in
   [code/painting_store.dm](code/painting_store.dm) takes finished pixels from it,
   sharing the archive transaction's staging and duplicate rules.
@@ -266,7 +275,9 @@ Replacement behavior lives in this module where possible.
   remains the interface discovery entrypoint.
 - `tgui/packages/tgui/interfaces/NtosNanopaint/dialogs/NanopaintGalleryDialog.tsx`:
   the application's save form and its outcome;
-  `NanopaintGalleryOpenDialog.tsx`: the artist's collection, listed to reopen from.
+  `NanopaintGalleryOpenDialog.tsx`: the artist's collection, listed to reopen from;
+  `NanopaintResizeDialog.tsx`: the Canvas Size form. `NanopaintNewDialog.tsx` starts a
+  new drawing at a canvas size.
 - `tools/painting_store/`: native helper, build/verification scripts, and staging
   tool; `meridian_painting_store.dll`: Windows runtime dependency.
 - `config/nova/config_nova.txt`: disabled import flag; `.gitignore`: private backup

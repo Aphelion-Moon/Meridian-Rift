@@ -15,6 +15,7 @@ import { NanopaintErrorDialog } from './dialogs/NanopaintErrorDialog';
 import { NanopaintGalleryDialog } from './dialogs/NanopaintGalleryDialog'; // APHELION EDIT ADDITION - Art Galaxy.
 import { NanopaintGalleryOpenDialog } from './dialogs/NanopaintGalleryOpenDialog'; // APHELION EDIT ADDITION - Art Galaxy.
 import { NanopaintNewDialog } from './dialogs/NanopaintNewDialog';
+import { NanopaintResizeDialog } from './dialogs/NanopaintResizeDialog'; // APHELION EDIT ADDITION - Canvas Size.
 import { NanopaintSelectDialog } from './dialogs/NanopaintSelectDialog';
 import { NanopaintMenuBar } from './NanopaintMenuBar';
 import type { NanopaintData } from './types';
@@ -107,6 +108,20 @@ export const NtosNanopaint = (props) => {
     }
     case 'galleryOpen': {
       dialogNode = <NanopaintGalleryOpenDialog galleryFiles={galleryFiles} />;
+      break;
+    }
+    case 'resize': {
+      dialogNode = (
+        <NanopaintResizeDialog
+          {...{
+            width: dialog.width,
+            height: dialog.height,
+            minSize,
+            maxSize,
+            templateSizes,
+          }}
+        />
+      );
       break;
     }
     // APHELION EDIT ADDITION END
