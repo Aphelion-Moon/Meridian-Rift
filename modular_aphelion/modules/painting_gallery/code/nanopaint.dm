@@ -28,6 +28,16 @@
 /// Runs before the program's own actions and reports whether this was an Art Galaxy one.
 /datum/computer_file/program/nanopaint/proc/handle_gallery_action(action, list/params, datum/tgui/ui)
 	switch(action)
+		if("resizeDialog")
+			if(!current_workspace)
+				return TRUE
+			dialog = list("type" = "resize", "width" = current_workspace.width, "height" = current_workspace.height)
+			return TRUE
+		if("resize")
+			if(!check_dialog(null, "resize") || !current_workspace)
+				return TRUE
+			resize_workspace(params["width"], params["height"], params["anchorX"], params["anchorY"])
+			return TRUE
 		if("galleryOpenDialog")
 			dialog = list("type" = "galleryOpen")
 			return TRUE
@@ -145,6 +155,71 @@
 	fill_grid_from_icon(current_workspace.get_first_layer_pixel_data(), artwork)
 	source_photo_or_painting = painting
 	SStgui.update_uis(computer)
+/// Put the drawing on a canvas of another size, keeping what it already has; the anchors are -1, 0 or 1 per axis.
+/datum/computer_file/program/nanopaint/proc/resize_workspace(new_width, new_height, anchor_x, anchor_y)
+	// The program undefines its own editing limit before this file compiles, so take it from what it tells the UI.
+	var/max_size = ui_static_data()["maxSize"]
+	if(!current_workspace || !isnum(new_width) || !isnum(new_height))
+		return
+	new_width = round(new_width)
+	new_height = round(new_height)
+	if(!ISINRANGE(new_width, 1, max_size) || !ISINRANGE(new_height, 1, max_size))
+		dialog = list("type" = "error", "message" = "A drawing must be between 1 and [max_size] pixels on each side.")
+		return
+	dialog = null
+	var/spare_width = new_width - current_workspace.width
+	var/spare_height = new_height - current_workspace.height
+	var/offset_x = gallery_anchor_offset(anchor_x, spare_width)
+	var/offset_y = gallery_anchor_offset(anchor_y, spare_height)
+	if(!current_workspace.resize_canvas(new_width, new_height, offset_x, offset_y))
+		return
+	// Reshaping is not drawing, but the result is no longer the photo or painting it came from.
+	source_photo_or_painting = null
+	source_on_undo_all = null
+
+/// Where the old drawing sits in the space a resize frees: against the first edge, centred, or against the last.
+/datum/computer_file/program/nanopaint/proc/gallery_anchor_offset(anchor, spare)
+	anchor = isnum(anchor) ? clamp(round(anchor), -1, 1) : 0
+	if(anchor < 0)
+		return 0
+	return anchor > 0 ? spare : round(spare / 2)
+
+/// Move a drawing onto a canvas of another size without redrawing it: the overlap is kept, the new space is blank.
+/// The undo history goes with it, since every recorded transaction addresses pixels of the canvas it was drawn on.
+/datum/sprite_editor_workspace/proc/resize_canvas(new_width, new_height, offset_x = 0, offset_y = 0)
+	if(new_width == width && new_height == height)
+		return FALSE
+	var/old_width = width
+	var/old_height = height
+	width = new_width
+	height = new_height
+	// A canvas has no clear pixels; anything else starts from the blank a new workspace starts from.
+	var/blank = color_mode == SPRITE_EDITOR_COLOR_MODE_RGB ? "#ffffffff" : "#00000000"
+	for(var/list/layer as anything in layers)
+		var/list/old_data = layer["data"]
+		var/list/new_data = create_layer_data(blank)
+		for(var/dir_key in new_data)
+			var/list/old_grid = old_data[dir_key]
+			var/list/new_grid = new_data[dir_key]
+			if(!islist(old_grid))
+				continue
+			for(var/y in 1 to old_height)
+				var/row = y + offset_y
+				if(row < 1 || row > new_height)
+					continue
+				var/list/old_row = old_grid[y]
+				var/list/new_row = new_grid[row]
+				for(var/x in 1 to old_width)
+					var/column = x + offset_x
+					if(column < 1 || column > new_width)
+						continue
+					new_row[column] = old_row[x]
+		layer["data"] = new_data
+	undo_stack = list()
+	undo_names = list()
+	redo_stack = list()
+	redo_names = list()
+	return TRUE
 /// A painting is a filled canvas, so the layers are flattened over the colour a blank canvas starts at.
 /datum/computer_file/program/nanopaint/proc/flatten_for_gallery()
 	var/icon/flattened = current_workspace.to_icon()

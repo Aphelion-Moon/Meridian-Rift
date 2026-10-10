@@ -66,6 +66,14 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
         <MenuBar.Dropdown.MenuItem
           {...getMenuItemProps('open', 'Open', () => act('openDialog'))}
         />
+        {/* APHELION EDIT ADDITION START - Canvas Size. */}
+        <MenuBar.Dropdown.MenuItem
+          {...getMenuItemProps('resize', 'Canvas Size', () =>
+            act('resizeDialog'),
+          )}
+          disabled={!workspaceOpen}
+        />
+        {/* APHELION EDIT ADDITION END */}
         <MenuBar.Dropdown.MenuItem
           {...getMenuItemProps('save', 'Save', () => act('save'))}
           disabled={!workspaceOpen}

@@ -46,6 +46,12 @@ export type NanopaintGalleryOpenDialogData = {
   type: 'galleryOpen';
 };
 
+export type NanopaintResizeDialogData = {
+  type: 'resize';
+  width: number;
+  height: number;
+};
+
 export type NanopaintGalleryDialogData = {
   type: 'gallery';
   defaultTitle?: string;
@@ -63,6 +69,7 @@ export type NanopaintDialogData =
   | NanopaintConfirmDialogData
   | NanopaintGalleryDialogData // APHELION EDIT ADDITION - Art Galaxy.
   | NanopaintGalleryOpenDialogData // APHELION EDIT ADDITION - Art Galaxy.
+  | NanopaintResizeDialogData // APHELION EDIT ADDITION - Canvas Size.
   | NanopaintErrorDialogData;
 
 export type NanopaintData = {
