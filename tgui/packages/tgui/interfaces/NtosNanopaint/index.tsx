@@ -13,6 +13,7 @@ import {
 import { NanopaintConfirmDialog } from './dialogs/NanopaintConfirmDialog';
 import { NanopaintErrorDialog } from './dialogs/NanopaintErrorDialog';
 import { NanopaintGalleryDialog } from './dialogs/NanopaintGalleryDialog'; // APHELION EDIT ADDITION - Art Galaxy.
+import { NanopaintGalleryOpenDialog } from './dialogs/NanopaintGalleryOpenDialog'; // APHELION EDIT ADDITION - Art Galaxy.
 import { NanopaintNewDialog } from './dialogs/NanopaintNewDialog';
 import { NanopaintSelectDialog } from './dialogs/NanopaintSelectDialog';
 import { NanopaintMenuBar } from './NanopaintMenuBar';
@@ -37,6 +38,7 @@ export const NtosNanopaint = (props) => {
     dialog,
     diskInserted,
     galleryBusy, // APHELION EDIT ADDITION - Art Galaxy.
+    galleryFiles, // APHELION EDIT ADDITION - Art Galaxy.
   } = data;
 
   const hasEditorData = isWorkspaceOpen(workspaceOpen, editorData);
@@ -101,6 +103,10 @@ export const NtosNanopaint = (props) => {
     case 'gallery': {
       const { type, ...galleryProps } = dialog;
       dialogNode = <NanopaintGalleryDialog {...galleryProps} />;
+      break;
+    }
+    case 'galleryOpen': {
+      dialogNode = <NanopaintGalleryOpenDialog galleryFiles={galleryFiles} />;
       break;
     }
     // APHELION EDIT ADDITION END

@@ -76,6 +76,11 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
         />
         {/* APHELION EDIT ADDITION START - Art Galaxy. */}
         <MenuBar.Dropdown.MenuItem
+          {...getMenuItemProps('galleryOpen', 'Open from Art Galaxy', () =>
+            act('galleryOpenDialog'),
+          )}
+        />
+        <MenuBar.Dropdown.MenuItem
           {...getMenuItemProps('gallery', 'Save to Art Galaxy', () =>
             act('galleryDialog'),
           )}

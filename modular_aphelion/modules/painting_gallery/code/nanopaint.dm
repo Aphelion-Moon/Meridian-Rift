@@ -21,10 +21,22 @@
 /// Art Galaxy state for the menu bar; an archive transaction holds the entry until it finishes.
 /datum/computer_file/program/nanopaint/proc/add_gallery_data(mob/user, list/data)
 	data["galleryBusy"] = persistence_saving
+	// The artist's own collection is only worth sending while they are looking through it.
+	if(check_dialog(null, "galleryOpen"))
+		data["galleryFiles"] = gallery_open_entries(user)
 
 /// Runs before the program's own actions and reports whether this was an Art Galaxy one.
 /datum/computer_file/program/nanopaint/proc/handle_gallery_action(action, list/params, datum/tgui/ui)
 	switch(action)
+		if("galleryOpenDialog")
+			dialog = list("type" = "galleryOpen")
+			return TRUE
+		if("galleryOpen")
+			if(!check_dialog(null, "galleryOpen"))
+				return TRUE
+			dialog = null
+			INVOKE_ASYNC(src, PROC_REF(open_gallery_painting), ui.user, params["ref"])
+			return TRUE
 		if("galleryDialog")
 			open_gallery_dialog(ui.user)
 			return TRUE
@@ -104,6 +116,35 @@
 	dialog = result["ok"] ? list("type" = "gallery", "message" = outcome) : list("type" = "error", "message" = outcome)
 	SStgui.update_uis(computer)
 
+/// The artist's own archived paintings, listed for the gallery's own Open dialog.
+/datum/computer_file/program/nanopaint/proc/gallery_open_entries(mob/user, list/owned = SSpersistent_paintings.get_owned_paintings(user?.ckey))
+	var/list/entries = list()
+	for(var/list/entry as anything in owned)
+		entries += list(list("name" = entry["title"], "ref" = entry["ref"], "size" = "[entry["width"]]x[entry["height"]]"))
+	return entries
+
+/// The artist's own painting with this reference: a gallery open never reaches anyone else's work.
+/datum/computer_file/program/nanopaint/proc/gallery_painting(painting_ref, ckey, list/collection = SSpersistent_paintings.paintings)
+	var/datum/painting/painting = locate(painting_ref) in collection
+	return ckey && painting?.creator_ckey == ckey ? painting : null
+
+/// Open one of the artist's own paintings as a fresh workspace, keeping the record as the drawing's source.
+/datum/computer_file/program/nanopaint/proc/open_gallery_painting(mob/user, painting_ref)
+	var/datum/painting/painting = gallery_painting(painting_ref, user?.ckey)
+	if(!painting)
+		dialog = list("type" = "error", "message" = "That painting is no longer in your collection.")
+		SStgui.update_uis(computer)
+		return
+	if(!fexists("data/paintings/images/[painting.md5].png"))
+		dialog = list("type" = "error", "message" = "[painting.title] - the archived image could not be read.")
+		SStgui.update_uis(computer)
+		return
+	var/icon/artwork = painting.get_icon()
+	close_workspace()
+	current_workspace = new(artwork.Width(), artwork.Height())
+	fill_grid_from_icon(current_workspace.get_first_layer_pixel_data(), artwork)
+	source_photo_or_painting = painting
+	SStgui.update_uis(computer)
 /// A painting is a filled canvas, so the layers are flattened over the colour a blank canvas starts at.
 /datum/computer_file/program/nanopaint/proc/flatten_for_gallery()
 	var/icon/flattened = current_workspace.to_icon()
