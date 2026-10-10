@@ -380,6 +380,7 @@
 #include "wizard_loadout.dm"
 // NOVA EDIT ADDITION START
 #include "~nova\accessory_layers.dm"
+#include "~nova\adult_items_kill_switch.dm"
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
 #include "~nova\body_hair.dm"
