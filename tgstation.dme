@@ -7443,6 +7443,7 @@
 #include "modular_aphelion\modules\painting_gallery\code\assets.dm"
 #include "modular_aphelion\modules\painting_gallery\code\canvas.dm"
 #include "modular_aphelion\modules\painting_gallery\code\migration.dm"
+#include "modular_aphelion\modules\painting_gallery\code\nanopaint.dm"
 #include "modular_aphelion\modules\painting_gallery\code\nova_import.dm"
 #include "modular_aphelion\modules\painting_gallery\code\painting_achievements.dm"
 #include "modular_aphelion\modules\painting_gallery\code\painting_store.dm"

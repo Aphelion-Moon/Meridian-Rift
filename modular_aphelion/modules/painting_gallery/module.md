@@ -20,6 +20,15 @@ from account ownership. **A Brush with Greatness** rewards successfully enabling
 publication for an owned saved painting; imports and loading existing records do
 not award it.
 
+**NanoPaint** saves a drawing to My Artwork from its File menu, as privately as a
+finished canvas does and under the same 500-painting account limit. A painting is a
+filled canvas, so only the canvas sizes are offered: a drawing of any other size is
+refused by name, and transparent pixels are archived as blank canvas. The artist
+titles it and chooses whether to sign it in the application; the signature is the
+character's name, independently of who owns the device. Identical pixels are the
+same artwork, so saving a drawing that is already archived changes nothing, and the
+saved image is written to the image log like any other artwork drawn on a device.
+
 Accounts can store **500 unique paintings**, counting personal, framed, imported,
 and website-public artwork together. Copies and additional frames do not consume
 extra slots. The native transaction checks the final collection under its writer
@@ -215,6 +224,7 @@ Replacement behavior lives in this module where possible.
 | `code/modules/art/paintings.dm` | Track pending canvases; save finished canvases privately; transact archive, patronage, and frame changes |
 | `code/modules/admin/painting_manager.dm` | Transact edits/deletions after dialogs |
 | `code/modules/modular_computers/file_system/programs/portrait_printer.dm` | Add authenticated owner data/actions and validate stale selections |
+| `code/modules/modular_computers/file_system/programs/nanopaint.dm` | Add Art Galaxy data and actions to the drawing application |
 | `code/modules/modular_computers/computers/item/pda.dm` | Install Art Galaxy once, including curator PDAs |
 | `code/modules/asset_cache/assets/portraits.dm` | Keep portrait assets available when the collection starts empty, named `paintings_<md5>.png` |
 | `tgui/packages/tgui/interfaces/PaintingAdminPanel.tsx` | Resolve portrait assets by their `.png` names |
@@ -227,6 +237,10 @@ Replacement behavior lives in this module where possible.
 - [code/art_galaxy.dm](code/art_galaxy.dm): portrait printer `New`, `Destroy`, `ui_interact`, and `ui_close`.
 - [code/painting_achievements.dm](code/painting_achievements.dm): the **A Brush with Greatness** award,
   `/datum/award/achievement/misc/public_painter`; `code/achievements.dm` awards it.
+- [code/nanopaint.dm](code/nanopaint.dm): NanoPaint's Art Galaxy save, and the pixel
+  string a drawing is archived as; the `create` transaction in
+  [code/painting_store.dm](code/painting_store.dm) takes finished pixels from it,
+  sharing the archive transaction's staging and duplicate rules.
 - The remaining `code/` files add subsystem, canvas, preference, admin, asset, and
   achievement helpers; [painting_gallery.dm](../../../code/modules/unit_tests/~nova/painting_gallery.dm) isolates
   consent, migration, and transaction behavior.
@@ -236,11 +250,14 @@ Replacement behavior lives in this module where possible.
 - `code/__DEFINES/paintings.dm`: `PAINTINGS_DATA_FORMAT_VERSION` and
   `NOVA_PAINTING_IMPORT_ANSWER`.
 - `code/art_galaxy.dm`: `ART_GALAXY_PAGE_SIZE`, the 24 paintings per page. File-local.
+- `code/nanopaint.dm`: `NANOPAINT_MEDIUM`, the medium recorded for a drawn painting. File-local.
 
 ### Included files that are not contained in this module:
 
 - `tgui/packages/tgui/interfaces/ArtGalaxy/`: frontend; `NtosPortraitPrinter.tsx`
   remains the interface discovery entrypoint.
+- `tgui/packages/tgui/interfaces/NtosNanopaint/dialogs/NanopaintGalleryDialog.tsx`:
+  the application's save form and its outcome.
 - `tools/painting_store/`: native helper, build/verification scripts, and staging
   tool; `meridian_painting_store.dll`: Windows runtime dependency.
 - `config/nova/config_nova.txt`: disabled import flag; `.gitignore`: private backup
