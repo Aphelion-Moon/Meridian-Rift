@@ -35,12 +35,12 @@
 	var/obj/item/melee/baton/security/baton = allocate(/obj/item/melee/baton/security)
 	if(!first.put_in_hands(baton))
 		return Fail("Initial baton pickup failed.", __FILE__, __LINE__)
-	if(!second.put_in_hands(baton) || (baton in first.held_items) || !(baton in second.held_items))
+	if(!second.put_in_hands(baton) || first.is_holding(baton) || !second.is_holding(baton))
 		return Fail("Moving a held baton retained the previous owner's slot.", __FILE__, __LINE__)
 	if(!second.put_in_hands(baton))
 		return Fail("Moving a baton between the same owner's hands failed.", __FILE__, __LINE__)
 	qdel(baton)
-	if((baton in first.held_items) || (baton in second.held_items))
+	if(first.is_holding(baton) || second.is_holding(baton))
 		return Fail("Deleting the transferred baton retained a hand slot.", __FILE__, __LINE__)
 
 /** A movement callback may transfer an item before the original pickup resumes. */
@@ -60,8 +60,8 @@
 	RegisterSignal(baton, COMSIG_MOVABLE_MOVED, PROC_REF(transfer_during_move))
 	var/picked_up = original_human.put_in_active_hand(baton)
 	UnregisterSignal(baton, COMSIG_MOVABLE_MOVED)
-	var/stale_slot = (baton in original_human.held_items)
-	var/transferred = delete_in_callback ? QDELETED(baton) : (baton.loc == receiving_human && (baton in receiving_human.held_items))
+	var/stale_slot = original_human.is_holding(baton)
+	var/transferred = delete_in_callback ? QDELETED(baton) : (baton.loc == receiving_human && receiving_human.is_holding(baton))
 	// Release any broken slot before the fixture leaves; the assertion still reports it.
 	if(stale_slot)
 		original_human.temporarilyRemoveItemFromInventory(baton, force = TRUE)
