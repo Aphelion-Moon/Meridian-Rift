@@ -164,6 +164,9 @@
 				/obj/item/reagent_containers/cup/bottle/camphor = 3,
 				/obj/item/reagent_containers/cup/bottle/succubus_milk = 6, //Those are legal 'cause you can just turn off prefs in round in "CLOWN SMOKE MACHINE+PENIS ENLARGEMENT CHEMICAL CASE". Yes, i have special code-phrase for this. I've seen some shit.
 				/obj/item/reagent_containers/cup/bottle/incubus_draft = 6,
+				/obj/item/reagent_containers/hypospray/medipen/lewd/crocin = 6,
+				/obj/item/reagent_containers/hypospray/medipen/lewd/succubus_milk = 6,
+				/obj/item/reagent_containers/hypospray/medipen/lewd/incubus_draft = 6,
 
 				//neurowares
 				/obj/item/disk/neuroware/crocin = 30,
@@ -205,10 +208,13 @@
 		/obj/item/reagent_containers/applicator/pill/pentacamphor = 5,
 		/obj/item/reagent_containers/cup/bottle/hexacrocin = 4,
 		/obj/item/reagent_containers/cup/bottle/pentacamphor = 2,
+		/obj/item/reagent_containers/hypospray/medipen/lewd/crocin/hexacrocin = 4,
+		/obj/item/reagent_containers/hypospray/medipen/lewd/coom_bomb = 4,
 		/obj/item/disk/neuroware/hexacrocin = 15,
 		/obj/item/disk/neuroware/pentacamphor = 10,
 		/obj/item/storage/box/flat/neuroware/hexacrocin = 4,
 		/obj/item/storage/box/flat/neuroware/pentacamphor = 2,
+		/obj/item/storage/box/medipens/lewd = 4,
 		/obj/item/clothing/sextoy/chastity/cursed = 1,
 	)
 

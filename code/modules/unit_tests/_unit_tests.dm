@@ -408,6 +408,7 @@
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\language_understanding.dm"
+#include "~nova\lewd_medipens.dm"
 #include "~nova\limb_marking_cache.dm"
 #include "~nova\limb_markings.dm"
 #include "~nova\liver_nova.dm"
