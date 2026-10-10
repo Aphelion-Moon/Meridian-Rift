@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/meridian_ui/assets/README.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>MeridianOS theme art <aside>modular_aphelion/modules/meridian_ui/assets/README.md</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_aphelion/modules/meridian_ui/assets/README.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/meridian_ui/assets/README.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>Art a MeridianOS theme draws with that is too big for tgui's bundle, which every window loads and the lobby inlines.
+<code>/datum/asset/simple/art_stylesheet</code> (<code>code/art_stylesheet.dm</code>) sends a theme's files to its players' windows and lobby
+with a stylesheet it writes when it registers, naming each texture as a custom property on the theme
+(<code>--mt-&lt;file name without extension&gt;</code>) and each font as a face. Foundry's textures and its title and label faces are the
+forge markings room's own files (<code>modular_aphelion/modules/markings_room/assets/</code>); what is here is the theme's own.</p>
+<h2 id="textures">Textures</h2><table><thead><tr><th>File</th><th>What</th><th>Source</th></tr></thead><tbody>
+<tr><td><code>textures/foundry-smoke.webp</code></td><td>Foundry's arrival smoke: a soft-alpha plume of forge smoke lit warm from below, 128x176</td><td>Original, procedural</td></tr>
+</tbody></table>
+<p>The smoke is value-noise fBm with a domain warp, stretched upward into wisps, densest low and in the middle, fading to
+nothing at the edges, made with a fixed seed by the lab's foundry-theme run (<code>smoke/make_smoke.py</code>). Nothing
+third-party goes into it. A portrait's arrival scales and drifts it while it fades (<code>_portrait-arrival.scss</code>), so it
+is drawn small and soft.</p>
+<h2 id="fonts">Fonts</h2><table><thead><tr><th>File</th><th>Family</th><th>Source</th><th>Licence</th></tr></thead><tbody>
+<tr><td><code>fonts/AlegreyaSans-400.woff2</code>, <code>-700</code></td><td>Alegreya Sans</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>fonts/licences/AlegreyaSans-OFL.txt</code>)</td></tr>
+</tbody></table>
+<p>Alegreya Sans is Foundry's running text (descriptions, notices, tooltips, logs, prose): a humanist sans from the
+Alegreya superfamily, with the same calligraphic roots as the theme's Macondo and Caesar Dressing, compact enough to
+take Macondo's place without reflowing windows, with lining figures for data. Retrieved 2026-10-03:</p>
+<ul>
+<li><code>AlegreyaSans-400.woff2</code>, from <a href="https://fonts.gstatic.com/s/alegreyasans/v28/5aUz9_-1phKLFgshYDvh6Vwt7VptvQ.woff2">https://fonts.gstatic.com/s/alegreyasans/v28/5aUz9_-1phKLFgshYDvh6Vwt7VptvQ.woff2</a>,
+SHA-256 <code>b2a5a35a2563a2f9bf9fb91939fc6ea6c115e9811cda5c4a37d02f623c7c4dbe</code>.</li>
+<li><code>AlegreyaSans-700.woff2</code>, from <a href="https://fonts.gstatic.com/s/alegreyasans/v28/5aUu9_-1phKLFgshYDvh6Vwt5eFIqEp2iw.woff2">https://fonts.gstatic.com/s/alegreyasans/v28/5aUu9_-1phKLFgshYDvh6Vwt5eFIqEp2iw.woff2</a>,
+SHA-256 <code>5acd19a588614d23e52b741a21dd8555178ab4932c3195c6d8fb4b296f84acae</code>.</li>
+</ul>
+<p>Alegreya Sans is copyright 2013 The Alegreya Sans Project Authors (Huerta Tipográfica).</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/5cec204da500c61fa94fdaf5c5a138764920e2c1">5cec204</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

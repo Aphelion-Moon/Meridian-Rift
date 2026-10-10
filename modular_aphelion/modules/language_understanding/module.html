@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/language_understanding/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/language_understanding/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_aphelion/modules/language_understanding/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/language_understanding/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="partial-language-understanding">Partial language understanding</h2>
+<p>Module ID: LANGUAGE_UNDERSTANDING</p>
+<h3 id="description">Description:</h3>
+<p>A language a character can only understand can be understood in part. On the Languages page, every language set to
+&quot;Can only understand&quot; gets a slider, from 25% to every word in steps of 5%, under a readout of how much gets through
+(&quot;Understands most words&quot;, 75%) and above a line in the language as the character would hear it. The readout follows
+the slider as it moves; the level is sent when the slider is let go. A language the character speaks is always
+understood in full.</p>
+<ul>
+<li><strong>tg's own partial understanding.</strong> The level is granted to the body as its language holder's partial
+understanding (<code>grant_partial_language()</code>, from <code>LANGUAGE_MIND</code>), the system the Common Second Language quirk
+uses: each word gets through with that chance, common words more often. 25% is that quirk's lowest setting.
+Applying preferences clears the old levels first, so a level never outlives a change.</li>
+<li><strong>Checked on the server.</strong> <code>set_language_understanding</code> takes a level only for a language the character has
+picked and only understands, and only a number, which it snaps to a step. It never adds a language.</li>
+<li><strong>Saves stay small and compatible.</strong> Only understood-only languages set below 100% are saved, under
+<code>language_understanding</code>, keyed by their type. A save without the key loads with every language followed in full,
+as before. Loading drops unknown languages and anything that isn't a number, and snaps the rest into range. Code
+without this module ignores the key.</li>
+<li><strong>Samples are kept.</strong> Each language's sample line is scrambled once per level and kept.</li>
+<li><strong>Loads never leave a character mute.</strong> Loading a character (an import included) reads what it knows of each
+language as spoken or understood whatever a file holds: text, like <code>&quot;2&quot;</code>, or tg's language flags, where 3 is
+spoken and understood. Before, anything but the number 2 was understood only, so a character imported from such a
+file showed every language as &quot;Can only understand&quot; and spawned speaking none. A language known not at all is
+dropped, and a character left with no languages gets its species' spoken ones, where before it spawned with none
+unless the Languages page had been drawn for it.</li>
+</ul>
+<h3 id="tg-proc-file-changes">TG Proc/File Changes:</h3>
+<p>Edits to tg files are marked <code>APHELION EDIT</code>, except inside Nova's existing edit blocks, which aren't tagged again;
+Nova's modular files are edited directly.</p>
+<table><thead><tr><th>File</th><th>Procs or declarations changed</th></tr></thead><tbody>
+<tr><td><code>code/modules/client/preferences_savefile.dm</code></td><td><code>/datum/preferences/proc/switch_to_slot()</code>: a slot that fails to load also clears the levels.</td></tr>
+<tr><td><code>modular_nova/master_files/code/modules/client/preferences_savefile.dm</code></td><td><code>load_character_nova()</code> and <code>save_character_nova()</code> read and write <code>language_understanding</code>.</td></tr>
+<tr><td><code>modular_nova/modules/customization/modules/client/preferences.dm</code></td><td><code>/datum/preferences/proc/sanitize_languages()</code> reads each language's knowledge as spoken or understood whatever form it is in, and gives a character with no languages its species' spoken ones.</td></tr>
+<tr><td><code>modular_nova/master_files/code/modules/language/language_holder.dm</code></td><td><code>/datum/language_holder/proc/adjust_languages_to_prefs()</code> clears the levels it granted, then grants each understood-only language set below full as partial understanding.</td></tr>
+<tr><td><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LanguagesMenu.tsx</code></td><td><code>KnownLanguage</code> shows the slider for a language only understood.</td></tr>
+<tr><td><code>tgui/packages/tgui/interfaces/PreferencesMenu/types.ts</code></td><td>Adds <code>PreferencesMenuData</code>'s <code>language_understanding</code> and <code>language_understanding_samples</code>.</td></tr>
+</tbody></table>
+<h3 id="modular-overrides">Modular Overrides:</h3>
+<ul>
+<li><code>code/language_understanding.dm</code>: adds <code>/datum/preferences/var/language_understanding</code> with
+<code>language_understanding_level()</code> and <code>saved_language_understanding()</code>; <code>sanitize_language_understanding()</code>,
+<code>snap_language_understanding()</code> and <code>language_understanding_sample()</code>; and the
+<code>/datum/preference_middleware/language_understanding</code> middleware, whose <code>set_language_understanding</code> action sets a
+level.</li>
+</ul>
+<h3 id="defines">Defines:</h3>
+<ul>
+<li><code>code/language_understanding.dm</code>: <code>LANGUAGE_UNDERSTANDING_MIN</code>, <code>LANGUAGE_UNDERSTANDING_STEP</code> and
+<code>LANGUAGE_UNDERSTANDING_SAMPLE</code>. File-local.</li>
+</ul>
+<h3 id="included-files-that-are-not-contained-in-this-module">Included files that are not contained in this module:</h3>
+<ul>
+<li><code>tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LanguageUnderstanding.tsx</code>: the readout, the
+slider and the sample line.</li>
+<li><code>tgui/packages/tgui/styles/meridianos/_preferences.scss</code>: their styles.</li>
+<li><code>code/modules/unit_tests/~nova/language_understanding.dm</code>, included from <code>code/modules/unit_tests/_unit_tests.dm</code>: DM
+unit tests.</li>
+<li><code>tgstation.dme</code></li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<ul>
+<li>mal</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/5cec204da500c61fa94fdaf5c5a138764920e2c1">5cec204</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

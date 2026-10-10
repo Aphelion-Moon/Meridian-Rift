@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/markings_room/assets/README.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>Markings room assets <aside>modular_aphelion/modules/markings_room/assets/README.md</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_aphelion/modules/markings_room/assets/README.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/markings_room/assets/README.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><p>The textures and fonts of the Augments+ rooms, every theme's. They aren't in tgui's bundle, which every tgui window
+loads. <code>/datum/asset/simple/markings_room</code> (<code>code/markings_room.dm</code>) sends them with the preferences window, together
+with a stylesheet it writes when it registers. That stylesheet declares each texture as a custom property on the room,
+<code>--mr-&lt;file name without extension&gt;</code>, and each font as a face. The rooms' styles (<code>tgui/.../styles/meridianos/</code>) read a
+texture as <code>var(--mr-&lt;name&gt;, none)</code>. The few pixel props of a kilobyte or so stay inline in the bundle
+(<code>styles/meridianos/assets/markings/</code>).</p>
+<p><code>code/markings_room_assets.dm</code> lists these files. The lab's themes-impl run writes both, with <code>tools/room_assets.py</code>,
+from the rooms' styles.</p>
+<p>The Foundry window theme draws with six of them: <code>foundry-cave.jpg</code>, <code>foundry-steel.webp</code>, <code>forge-wear.webp</code>,
+<code>foundry-hide.jpg</code>, <code>CaesarDressing-400.woff2</code> and <code>Macondo-400.woff2</code>. Its art asset
+(<code>meridian_ui/code/art_stylesheet.dm</code>) sends the same files under this asset's names, so a client fetches and keeps
+each once: renaming or moving one means changing it there too.</p>
+<h2 id="textures">Textures</h2>
+<p>Everything in <code>textures/</code> is original and procedurally generated for the room mockups, from value noise with fixed
+seeds: the club's tiles and grime by <code>club_textures.py</code>, every other theme's by <code>prep_themes.py</code>, and the pixel props
+by <code>pixel_props.py</code> (all in the lab). Nothing third-party goes into them. The exceptions are <code>scavenger-rust.jpg</code> and
+<code>hephaestus-gunmetal.jpg</code>, which are the MeridianOS theme textures of the same names
+(<code>tgui/packages/tgui/styles/meridianos/assets/</code>).</p>
+<p>A texture ships as whichever is smallest of three:</p>
+<ul>
+<li>its source;</li>
+<li>a lossless PNG or WebP;</li>
+<li>a WebP or re-encoded JPEG that keeps it: 42 dB PSNR against the source, and its fine detail within 5%.</li>
+</ul>
+<p>Pixel art is only ever lossless.</p>
+<h2 id="fonts">Fonts</h2><table><thead><tr><th>File</th><th>Family</th><th>Source</th><th>Licence</th></tr></thead><tbody>
+<tr><td><code>Rye-Latin-Regular.woff2</code></td><td>Rye</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1, reserved name &quot;Rye&quot; (<code>licences/Rye-OFL.txt</code>)</td></tr>
+<tr><td><code>PermanentMarker-Latin-Regular.woff2</code></td><td>Permanent Marker</td><td>Google Fonts, latin subset, unmodified</td><td>Apache 2.0 (<code>licences/PermanentMarker-LICENSE.txt</code>)</td></tr>
+<tr><td><code>CaesarDressing-400.woff2</code></td><td>Caesar Dressing</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/CaesarDressing-OFL.txt</code>)</td></tr>
+<tr><td><code>AtkinsonHyperlegible-400.woff2</code>, <code>-700</code></td><td>Atkinson Hyperlegible</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/AtkinsonHyperlegible-OFL.txt</code>)</td></tr>
+<tr><td><code>Macondo-400.woff2</code></td><td>Macondo</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/Macondo-OFL.txt</code>)</td></tr>
+<tr><td><code>Michroma-400.woff2</code></td><td>Michroma</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/Michroma-OFL.txt</code>)</td></tr>
+<tr><td><code>Monoton-400.woff2</code></td><td>Monoton</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/Monoton-OFL.txt</code>)</td></tr>
+<tr><td><code>Neonderthaw-400.woff2</code></td><td>Neonderthaw</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/Neonderthaw-OFL.txt</code>)</td></tr>
+<tr><td><code>Rajdhani-600.woff2</code>, <code>-700</code></td><td>Rajdhani</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/Rajdhani-OFL.txt</code>)</td></tr>
+<tr><td><code>ShareTechMono-400.woff2</code></td><td>Share Tech Mono</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/ShareTechMono-OFL.txt</code>)</td></tr>
+<tr><td><code>StardosStencil-700.woff2</code></td><td>Stardos Stencil</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/StardosStencil-OFL.txt</code>)</td></tr>
+<tr><td><code>Syncopate-700.woff2</code></td><td>Syncopate</td><td>Google Fonts, latin subset, unmodified</td><td>Apache 2.0 (<code>licences/Syncopate-LICENSE.txt</code>)</td></tr>
+<tr><td><code>VT323-400.woff2</code></td><td>VT323</td><td>Google Fonts, latin subset, unmodified</td><td>SIL OFL 1.1 (<code>licences/VT323-OFL.txt</code>)</td></tr>
+<tr><td><code>Aurebesh.ttf</code></td><td>Aurebesh</td><td>SilvinoR, unmodified</td><td>SIL OFL 1.1 (<code>licences/Aurebesh-OFL.txt</code>)</td></tr>
+<tr><td><code>AurebeshBloopsAF.woff2</code></td><td>Bloops</td><td>AurekFonts, as WOFF2</td><td>CC0</td></tr>
+<tr><td><code>AurebeshAF-CanonTech.woff2</code></td><td>AF Canon Tech</td><td>AurekFonts, as WOFF2</td><td>CC0</td></tr>
+<tr><td><code>DroidobeshDepot-Regular.woff2</code></td><td>Droid Depot</td><td>Vamplify and AurekFonts, as WOFF2</td><td>CC0</td></tr>
+<tr><td><code>OuterRimAF-Regular.woff2</code></td><td>Outer Rim</td><td>AurekFonts, as WOFF2</td><td>CC0</td></tr>
+<tr><td><code>SithAF.woff2</code></td><td>Sith</td><td>Ender Smith and AurekFonts, as WOFF2</td><td>CC BY 3.0 US: &quot;Sith&quot; by Ender Smith, AurekFonts; converted from OpenType to WOFF2</td></tr>
+</tbody></table>
+<p>The Google Fonts files were retrieved 2026-10-01 and 2026-10-02. The AurekFonts files were converted from their
+OpenType originals with fontTools. Nothing else about them was changed.</p>
+<p>The club's two came first, with the club mirror:</p>
+<ul>
+<li><code>Rye-Latin-Regular.woff2</code>, from <a href="https://fonts.gstatic.com/s/rye/v17/r05XGLJT86YzEZ7t.woff2">https://fonts.gstatic.com/s/rye/v17/r05XGLJT86YzEZ7t.woff2</a>, SHA-256
+<code>00de26ff9e435fb8f9e3ad15877f9deb4b70f3945ae0abcf7f0ed278d593014b</code>. Rye is copyright 2011 Sorkin Type Co.</li>
+<li><code>PermanentMarker-Latin-Regular.woff2</code>, from
+<a href="https://fonts.gstatic.com/s/permanentmarker/v16/Fh4uPib9Iyv2ucM6pGQMWimMp004La2Cfw.woff2">https://fonts.gstatic.com/s/permanentmarker/v16/Fh4uPib9Iyv2ucM6pGQMWimMp004La2Cfw.woff2</a>, SHA-256
+<code>4884fec2c73aa52a2461073c1b87d1ceb80f400520391b43f97ca7d3c39eeb24</code>. Permanent Marker is by Font Diner.</li>
+</ul></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/5cec204da500c61fa94fdaf5c5a138764920e2c1">5cec204</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

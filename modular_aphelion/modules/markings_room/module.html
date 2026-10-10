@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>modular_aphelion/modules/markings_room/module.md - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>modular_aphelion/modules/markings_room/module.md <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_aphelion/modules/markings_room/module.md"><img src="git.png" width="16" height="16" title="modular_aphelion/modules/markings_room/module.md"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2 id="the-markings-rooms-augments">The markings rooms (Augments+)</h2>
+<p>Module ID: MARKINGS_ROOM</p>
+<h3 id="description">Description:</h3>
+<p>In every MeridianOS theme, Augments+ is one fixed room, 900 by 820, that never resizes, after the theme's mockup. Its
+header switches between the augments and the markings. The markings are a mirror in the theme's room: the club's
+bathroom mirror in Cyberpunk and Augmentation (grimy subway tiles, a frameless glass held by clips, two neon tubes,
+stickers among them the game's harm intent in the club's neon and a banana peel, and its drawers dark like its cards),
+and each other theme's own room round its own glass, lamps and props. Each zone's markings are on a card stuck up
+either side, and a counter of paints is below. The augments are a scan chamber. Windows without a MeridianOS theme
+keep the columns.</p>
+<ul>
+<li><strong>The character is the preview every tab shows.</strong> The mirror is the tabs' drawn preview (<code>character_preview</code>) in
+its <code>club</code> motif: no floor and no frame of its own, scaled up to 12x, turned, zoomed and panned as on every tab. It
+stands where the club's does in every room, its view reaching past the room's own glass, which clips it. The room
+only lights it: rim light from its lamps, screened onto the character's own pixels.</li>
+<li><strong>Pointing lights the part.</strong> A card, one of its tiles or the body itself halos that zone on the character, glows
+outside it only, and dims the glass round it. The body is pointed at pixel for pixel: the room asks for the custom
+markings editor's region map of the preview body (<code>custom_sprite_region_map()</code>, cached by geometry), each facing
+laid on the drawing's frame with height's moved rows, so it lines up whatever the species, size or facing. A tile
+lights its marking on the body; the custom slot, its drawing. Clicking a part on the body opens its drawer, or
+selects its first marking when it is full.</li>
+<li><strong>Cards.</strong> Each zone's card shows its markings as thumbnails, its empty slots dashed, and apart from them its
+custom drawing, which opens the custom markings editor on that zone (the taur body's on the legs of a taur). A
+thumbnail is the species' bare body from the species page's sheet, the marking's preference sprite over it in its
+colour, multiplied in as the game colours it, or the drawing's own pixels.</li>
+<li><strong>The drawer and the marking sets.</strong> Adding or swapping a marking slides out a sticker sheet of the markings the
+zone offers, the species' own first, searchable; the ones it can't take now (worn, or of a worn marking's exclusion
+group) are greyed. A marking drawn only on the back says so. The pointer on one tries it on in the mirror. Marking
+Sets does the same for the presets, and asks before replacing markings, as the preset dropdown does.</li>
+<li><strong>The counter.</strong> The selected marking's swap, glow (refused while the character doesn't allow emissives) and
+removal; paints for it, the first giving back the colour it starts in (the mutant colour it follows, or its own);
+one that opens character setup's colour picker; and Surprise me, which puts a whole new set of markings the species
+is meant to wear on every zone at once (<code>surprise_markings</code>), now and then in a paint and, when the character allows
+it, glowing.</li>
+<li><strong>Paint flies.</strong> Paint, a marking or a look flies from what was clicked to the part it lands on, and the marking
+inks in at once, in its new colour, while the server draws it.</li>
+<li><strong>Lights off.</strong> The header's switch is the tabs' lights-off switch: the room goes dark and the character is lit as
+the game lights it in the dark, so only what glows shows. The clubs, Aphelion, Hotline, Shadowbroker and Synapse
+hang a blacklight, which lights the character from above in its colour; under Shadowbroker's, a smiley sticker
+glows.</li>
+<li><strong>The augments.</strong> A scan chamber with the character in it: each body part's slot card and each organ's, traces
+from the cards to the parts on the character, and a console totting up what is fitted. Pointing at a card lights
+its part on the character, masked by the same region map; a card's rows open a picker of the augments, finishes
+and implants that fit it, refusing what the character's quirk points can't pay for, and its part shows the pick
+while the pointer is on it. The internals switch shows the organs through an x-ray of the character.</li>
+</ul>
+<h3 id="what-the-server-sends">What the server sends</h3>
+<p><code>/datum/preference_middleware/markings_room</code>:</p>
+<ul>
+<li>constant data, <code>markings_room.marking_defaults</code>: the colour each marking with one of its own starts in, by name;
+and <code>native_marking_icons</code>, each marking's full-size sprite for the mirror;</li>
+<li>static data, <code>markings_room_delam</code>: the engine's record, for Hephaestus's tag;</li>
+<li>ui data: <code>marking_fur_colors</code>, the preview body's three mutant colours, which every other marking follows;
+<code>custom_marking_views</code>, each zone's custom drawing as saved (its palette and every view's run-length code); and
+<code>markings_room_clock</code>, the station's time for Electra's clock, which the page ticks on from each update;</li>
+<li><code>markings_room_regions</code> (action, answered in an update of its own): the region map for the drawing the page names;</li>
+<li><code>surprise_markings</code> (action): Surprise me. Open custom sprite editors are finished first, as for every other marking
+action;</li>
+<li>assets, <code>/datum/asset/simple/markings_room</code>: every room's textures and fonts (<code>assets/</code>, see its README), and a
+stylesheet written when the asset registers, declaring each texture as a custom property on the room
+(<code>--mr-&lt;name&gt;</code>) and each font as a face, by the URLs the asset transport gives them. They aren't in tgui's bundle,
+which every window loads. <code>code/markings_room_assets.dm</code> lists them; the stylesheet is an art stylesheet's
+(<code>meridian_ui</code>'s <code>code/art_stylesheet.dm</code>), as is the Foundry theme's, which sends six of these files under the
+room's names.</li>
+</ul>
+<p>The augments themselves are the limbs and markings middleware's (<code>set_bodypart_aug</code>, <code>set_bodypart_aug_style</code>,
+<code>set_internal_implant_aug</code>).</p>
+<h3 id="tgui">TGUI:</h3>
+<ul>
+<li><code>CharacterPreferences/MarkingsRoom/</code>: the room (<code>Room.tsx</code>), each theme's look (<code>themes.ts</code>) and props (<code>decor/</code>),
+the markings (<code>index.tsx</code>), the mirror and what it draws on the character (<code>Mirror.tsx</code>), cards, counter, drawer,
+what the drawer's pointer tries on (<code>tryOn.ts</code>), thumbnails (<code>Thumb.tsx</code>, <code>sprites.ts</code>), the region map on a frame
+(<code>regions.ts</code>), the character's own outline (<code>facing.ts</code>), drawings (<code>customs.ts</code>) and the augments stage
+(<code>augments/</code>). <code>LimbsPage.tsx</code> shows the room in the MeridianOS themes.</li>
+<li><code>CharacterPreview</code>: the <code>club</code> and <code>chamber</code> motifs, <code>maxScale</code>, <code>lit</code>, an <code>overlay</code> drawn with the character
+(layers marked <code>data-preview-pan</code> pan with it) and <code>onTap</code>.</li>
+<li><code>styles/meridianos/_markings-room.scss</code> (the club's room, the base of every other), <code>markings-room/</code> (each theme's
+changes), <code>_augments-stage.scss</code> and <code>_augments-overlay.scss</code>. The pixel props inline in the bundle are in
+<code>styles/meridianos/assets/markings/</code>.</li>
+<li>The room is marked <code>data-window-fit=&quot;fixed&quot;</code>: what changes inside it never makes the window measure its content
+again (<code>hooks/useWindowSizing.ts</code>).</li>
+</ul>
+<h3 id="credits">Credits:</h3>
+<p>The fonts' sources and licences are in <code>assets/README.md</code>, their licence texts in <code>assets/fonts/licences/</code>. Sith is
+by Ender Smith and AurekFonts, CC BY 3.0 US. The textures and pixel props are original, generated for the mockups.</p></td></tr></table></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/5cec204da500c61fa94fdaf5c5a138764920e2c1">5cec204</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>

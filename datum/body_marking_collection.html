@@ -1,0 +1,187 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/body_marking_collection - /tg/ Station 13</title></head><body><header><a href="index.html">/tg/ Station 13</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/body_marking_collection.html#var">Var Details</a> - <a href="datum/body_marking_collection.html#proc">Proc Details</a></header><main><h1>body_marking_collection <aside>/<a href="datum.html">datum</a>/<a href="datum/body_marking_collection.html">body_marking_collection</a></aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L136"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 136"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/body_marking_collection.html#var/entries">entries</a></th><td>Every worn entry in the order it was added. A zone's markings are this list filtered by zone.</td></tr><tr><th><a href="datum/body_marking_collection.html#var/key_cache">key_cache</a></th><td>zone -&gt; cache key fragment. Dropped on a version bump or a new entry revision.</td></tr><tr><th><a href="datum/body_marking_collection.html#var/key_cache_revision">key_cache_revision</a></th><td>The entry revision key_cache was built at.</td></tr><tr><th><a href="datum/body_marking_collection.html#var/key_cache_version">key_cache_version</a></th><td>The version key_cache was built at.</td></tr><tr><th><a href="datum/body_marking_collection.html#var/version">version</a></th><td>Bumped by every structural change: a zone or an entry added, an entry removed or replaced. Read-only outside this
+type, where only BODY_MARKING_ZONE_VIEWS() reads it.</td></tr><tr><th><a href="datum/body_marking_collection.html#var/zone_cache">zone_cache</a></th><td>zone -&gt; that zone's entries in order, for every zone wearing any, in zone order. Built on first use after a
+version bump and always replaced rather than edited, so a list handed out earlier stays a stable snapshot.
+Read-only outside this type, where only BODY_MARKING_ZONE_VIEWS() reads it.</td></tr><tr><th><a href="datum/body_marking_collection.html#var/zone_cache_version">zone_cache_version</a></th><td>The version zone_cache was built at. Read-only outside this type, where only BODY_MARKING_ZONE_VIEWS() reads it.</td></tr><tr><th><a href="datum/body_marking_collection.html#var/zones">zones</a></th><td>Zones in the order they first appeared. An emptied zone keeps its place, as the nested map kept its key.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/body_marking_collection.html#proc/add_entry">add_entry</a></th><td>Adds an entry after every entry already on its zone, adding the zone first when it is absent.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/add_zone">add_zone</a></th><td>Adds a zone with no markings yet, where a new key of the nested map would have gone: at the end.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/blocking_entry">blocking_entry</a></th><td>Returns the entry that keeps a marking off a zone: one wearing the same marking or, unless told not to look, one wearing
+another marking of its exclusion group. add_entry(), replace_entry() and set_zone_entries() refuse through here, and
+character setup asks it which markings a zone can still take.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/cache_key_for_zone">cache_key_for_zone</a></th><td>Returns a string standing for one zone's markings, in order, with their colours and glow.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/copy">copy</a></th><td>Returns a new collection with new entries in the same zones and order, colours and glow. Nothing is shared.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/enforce_zone_limits">enforce_zone_limits</a></th><td>Drops what editing could never have put on a zone, keeping the order of the rest: a second marking of an exclusion group,
+then every entry past MAXIMUM_MARKINGS_PER_LIMB. A save from before version 21 gets this once as it loads; nothing else
+calls it, so a save written since keeps what it holds.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/entries_for_zone">entries_for_zone</a></th><td>Returns one zone's entries in order.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/entry_count">entry_count</a></th><td>Returns how many entries there are across every zone.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/find_entry">find_entry</a></th><td>Returns the entry wearing a marking on a zone.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/has_zone">has_zone</a></th><td>Returns whether a zone is present, with markings or emptied.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/marking_names">marking_names</a></th><td>Returns the names one zone wears, in order.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/overwrite_zones_from">overwrite_zones_from</a></th><td>Gives every zone another collection holds that collection's entries, as assigning its zone maps did.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/remove_entry">remove_entry</a></th><td>Removes an entry. Its zone stays present, emptied or not.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/replace_entry">replace_entry</a></th><td>Puts a replacement in an entry's place, so it keeps its position on the zone.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/reseed_colors">reseed_colors</a></th><td>Gives every marking its starting colour again, as a colour reset does, except locked ones: a locked marking keeps its
+colour, a custom one a save holds included. Glow is left alone.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/serialize">serialize</a></th><td>Rebuilds the nested shape preferences.json stores: zone -&gt; (marking name -&gt; list(color, emissive)).</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/set_zone_entries">set_zone_entries</a></th><td>Replaces everything on one zone. An absent zone is added at the end, a present one keeps its place.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/set_zone_from_list">set_zone_from_list</a></th><td>Replaces everything on one zone from the nested shape a savefile holds, with new entries.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/shallow_copy">shallow_copy</a></th><td>Returns a new collection holding these same entries.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/validate_for_species">validate_for_species</a></th><td>Returns the entries a species may not wear without mismatched parts, each asked of its marking's allows_species(): the one
+check of a whole character's markings against a species. This only reports mismatches: saved markings must never be
+removed because a character changes species.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/zone_count">zone_count</a></th><td>Returns how many zones are present, emptied ones included.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/zone_length">zone_length</a></th><td>Returns how many entries one zone wears.</td></tr><tr><th><a href="datum/body_marking_collection.html#proc/zone_views">zone_views</a></th><td>Returns the entries of every zone that wears any, in zone order.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/entries"><aside class="declaration">var </aside>entries <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L138"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 138"></a></h3><p>Every worn entry in the order it was added. A zone's markings are this list filtered by zone.</p><h3 id="var/key_cache"><aside class="declaration">var </aside>key_cache <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L151"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 151"></a></h3><p>zone -&gt; cache key fragment. Dropped on a version bump or a new entry revision.</p><h3 id="var/key_cache_revision"><aside class="declaration">var </aside>key_cache_revision <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L155"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 155"></a></h3><p>The entry revision key_cache was built at.</p><h3 id="var/key_cache_version"><aside class="declaration">var </aside>key_cache_version <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L153"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 153"></a></h3><p>The version key_cache was built at.</p><h3 id="var/version"><aside class="declaration">var </aside>version <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L143"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 143"></a></h3><p>Bumped by every structural change: a zone or an entry added, an entry removed or replaced. Read-only outside this
+type, where only BODY_MARKING_ZONE_VIEWS() reads it.</p><h3 id="var/zone_cache"><aside class="declaration">var </aside>zone_cache <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L147"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 147"></a></h3><p>zone -&gt; that zone's entries in order, for every zone wearing any, in zone order. Built on first use after a
+version bump and always replaced rather than edited, so a list handed out earlier stays a stable snapshot.
+Read-only outside this type, where only BODY_MARKING_ZONE_VIEWS() reads it.</p><h3 id="var/zone_cache_version"><aside class="declaration">var </aside>zone_cache_version <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L149"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 149"></a></h3><p>The version zone_cache was built at. Read-only outside this type, where only BODY_MARKING_ZONE_VIEWS() reads it.</p><h3 id="var/zones"><aside class="declaration">var </aside>zones <aside>– /list</aside> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L140"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 140"></a></h3><p>Zones in the order they first appeared. An emptied zone keeps its place, as the nested map kept its key.</p><h2 id="proc">Proc Details</h2><h3 id="proc/add_entry"><aside class="declaration">proc </aside>add_entry<aside>(/<a href="datum.html">datum</a>/<a href="datum/body_marking_entry.html">body_marking_entry</a>/entry)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L317"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 317"></a></aside></h3><p>Adds an entry after every entry already on its zone, adding the zone first when it is absent.</p>
+<p>A zone wears each marking at most once, which the name-keyed nested map used to guarantee, and at most one marking
+of an exclusion group.</p>
+<p>Arguments:</p>
+<ul>
+<li>entry: the entry to add. It is held by reference, not copied.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE if added. FALSE for an entry without a marking or off the marking zones, or one its zone already wears the
+marking of, or a marking of its exclusion group.</li>
+</ul><h3 id="proc/add_zone"><aside class="declaration">proc </aside>add_zone<aside>(zone)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L166"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 166"></a></aside></h3><p>Adds a zone with no markings yet, where a new key of the nested map would have gone: at the end.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: one of GLOB.marking_zones. Anything else is ignored.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE if the zone was added, FALSE if it was already present or is not a marking zone.</li>
+</ul><h3 id="proc/blocking_entry"><aside class="declaration">proc </aside>blocking_entry<aside>(zone, /<a href="datum.html">datum</a>/<a href="datum/body_marking.html">body_marking</a>/marking, /<a href="datum.html">datum</a>/<a href="datum/body_marking_entry.html">body_marking_entry</a>/ignored, check_group) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/body_marking_entry.html">body_marking_entry</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L295"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 295"></a></aside></h3><p>Returns the entry that keeps a marking off a zone: one wearing the same marking or, unless told not to look, one wearing
+another marking of its exclusion group. add_entry(), replace_entry() and set_zone_entries() refuse through here, and
+character setup asks it which markings a zone can still take.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: the zone the marking would go on.</li>
+<li>marking: the marking that would go on.</li>
+<li>ignored: an entry to leave out, as the one a replacement takes the place of.</li>
+<li>check_group: FALSE to look for the same marking only.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>/datum/body_marking_entry, or null when nothing on the zone stands in the way.</li>
+</ul><h3 id="proc/cache_key_for_zone"><aside class="declaration">proc </aside>cache_key_for_zone<aside>(zone)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L477"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 477"></a></aside></h3><p>Returns a string standing for one zone's markings, in order, with their colours and glow.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: the zone to describe.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>string: each entry's cache_key() joined by &quot;-&quot;, or &quot;&quot; for none. Cached until the zone or an entry changes.</li>
+</ul><h3 id="proc/copy"><aside class="declaration">proc </aside>copy<aside>(allow_emissives) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/body_marking_collection.html">body_marking_collection</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L426"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 426"></a></aside></h3><p>Returns a new collection with new entries in the same zones and order, colours and glow. Nothing is shared.</p>
+<p>Arguments:</p>
+<ul>
+<li>allow_emissives: FALSE to copy every entry without its glow, as a body is dressed while its character's
+allow_emissives preference is off. The glow this collection holds is kept either way.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>/datum/body_marking_collection: the copy.</li>
+</ul><h3 id="proc/enforce_zone_limits"><aside class="declaration">proc </aside>enforce_zone_limits<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L532"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 532"></a></aside></h3><p>Drops what editing could never have put on a zone, keeping the order of the rest: a second marking of an exclusion group,
+then every entry past MAXIMUM_MARKINGS_PER_LIMB. A save from before version 21 gets this once as it loads; nothing else
+calls it, so a save written since keeps what it holds.</p>
+<p>Returns:</p>
+<ul>
+<li>number: how many entries were dropped.</li>
+</ul><h3 id="proc/entries_for_zone"><aside class="declaration">proc </aside>entries_for_zone<aside>(zone) <span class="as"> as </span>/list <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L244"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 244"></a></aside></h3><p>Returns one zone's entries in order.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: the zone to read.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: a shared, read-only list of entries, or null when the zone wears nothing, emptied or absent.</li>
+</ul><h3 id="proc/entry_count"><aside class="declaration">proc </aside>entry_count<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L191"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 191"></a></aside></h3><p>Returns how many entries there are across every zone.</p><h3 id="proc/find_entry"><aside class="declaration">proc </aside>find_entry<aside>(zone, name) <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/body_marking_entry.html">body_marking_entry</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L275"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 275"></a></aside></h3><p>Returns the entry wearing a marking on a zone.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: the zone to look on.</li>
+<li>name: the marking's name.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>/datum/body_marking_entry, or null when the zone doesn't wear that marking.</li>
+</ul><h3 id="proc/has_zone"><aside class="declaration">proc </aside>has_zone<aside>(zone)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L179"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 179"></a></aside></h3><p>Returns whether a zone is present, with markings or emptied.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: the zone to look for.</li>
+</ul><h3 id="proc/marking_names"><aside class="declaration">proc </aside>marking_names<aside>(zone) <span class="as"> as </span>/list <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L260"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 260"></a></aside></h3><p>Returns the names one zone wears, in order.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: the zone to read.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: a new list of marking names, or null when the zone wears nothing.</li>
+</ul><h3 id="proc/overwrite_zones_from"><aside class="declaration">proc </aside>overwrite_zones_from<aside>(/<a href="datum.html">datum</a>/<a href="datum/body_marking_collection.html">body_marking_collection</a>/other)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L412"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 412"></a></aside></h3><p>Gives every zone another collection holds that collection's entries, as assigning its zone maps did.</p>
+<p>A zone present here keeps its place and a new one goes at the end. A zone the other holds emptied is emptied
+here too. Each zone is taken whole, as the other holds it. The entries are shared, not copied.</p>
+<p>Arguments:</p>
+<ul>
+<li>other: the collection whose zones win.</li>
+</ul><h3 id="proc/remove_entry"><aside class="declaration">proc </aside>remove_entry<aside>(/<a href="datum.html">datum</a>/<a href="datum/body_marking_entry.html">body_marking_entry</a>/entry)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L334"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 334"></a></aside></h3><p>Removes an entry. Its zone stays present, emptied or not.</p>
+<p>Arguments:</p>
+<ul>
+<li>entry: the entry to remove.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE if the entry was held here and is now gone.</li>
+</ul><h3 id="proc/replace_entry"><aside class="declaration">proc </aside>replace_entry<aside>(/<a href="datum.html">datum</a>/<a href="datum/body_marking_entry.html">body_marking_entry</a>/old_entry, /<a href="datum.html">datum</a>/<a href="datum/body_marking_entry.html">body_marking_entry</a>/replacement)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L352"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 352"></a></aside></h3><p>Puts a replacement in an entry's place, so it keeps its position on the zone.</p>
+<p>Arguments:</p>
+<ul>
+<li>old_entry: the entry to replace.</li>
+<li>replacement: the entry taking its place. It must sit on the same zone and not wear a marking another
+entry on that zone already wears, or a marking of that entry's exclusion group.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE if replaced.</li>
+</ul><h3 id="proc/reseed_colors"><aside class="declaration">proc </aside>reseed_colors<aside>(/list/features, /<a href="datum.html">datum</a>/<a href="datum/species.html">species</a>/species)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L499"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 499"></a></aside></h3><p>Gives every marking its starting colour again, as a colour reset does, except locked ones: a locked marking keeps its
+colour, a custom one a save holds included. Glow is left alone.</p>
+<p>Arguments:</p>
+<ul>
+<li>features: the character's features, where a following mode reads its mutant colour.</li>
+<li>species: the character's species.</li>
+</ul><h3 id="proc/serialize"><aside class="declaration">proc </aside>serialize<aside>() <span class="as"> as </span>/list <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L460"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 460"></a></aside></h3><p>Rebuilds the nested shape preferences.json stores: zone -&gt; (marking name -&gt; list(color, emissive)).</p>
+<p>Zones and entries keep their order, an emptied zone writes as [], colours are the stored lowercase #rrggbb
+and emissive is the integer 0 or 1, so a loaded save writes back byte for byte. With no zones this is an
+empty list, which json_encode() writes as [].</p>
+<p>Returns:</p>
+<ul>
+<li>list: a new nested list the caller owns.</li>
+</ul><h3 id="proc/set_zone_entries"><aside class="declaration">proc </aside>set_zone_entries<aside>(zone, /list/zone_entries, keep_group_conflicts)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L375"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 375"></a></aside></h3><p>Replaces everything on one zone. An absent zone is added at the end, a present one keeps its place.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: one of GLOB.marking_zones.</li>
+<li>zone_entries: the zone's new entries, in order. They are held by reference. Entries for another zone, repeats of
+a marking and a second marking of an exclusion group are skipped. Null or an empty list empties the zone, which
+stays present.</li>
+<li>keep_group_conflicts: TRUE to keep markings of one exclusion group side by side, as a save or another collection
+holds them. Only the savefile loader and whole-zone transfers pass it; the version 21 savefile pass resolves what a
+save held.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE if the zone was set.</li>
+</ul><h3 id="proc/set_zone_from_list"><aside class="declaration">proc </aside>set_zone_from_list<aside>(zone, /list/raw_zone)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L400"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 400"></a></aside></h3><p>Replaces everything on one zone from the nested shape a savefile holds, with new entries.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: one of GLOB.marking_zones.</li>
+<li>raw_zone: marking name -&gt; list(color, emissive), read as body_marking_entries_from_list() reads it.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>TRUE if the zone was set.</li>
+</ul><h3 id="proc/shallow_copy"><aside class="declaration">proc </aside>shallow_copy<aside>() <span class="as"> as </span>/<a href="datum.html">datum</a>/<a href="datum/body_marking_collection.html">body_marking_collection</a> <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L443"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 443"></a></aside></h3><p>Returns a new collection holding these same entries.</p>
+<p>Adding, removing or replacing entries on one leaves the other alone, but a recoloured entry changes in
+both: the sharing the nested lists' shallow Copy() gave, kept until each copy site is decided on.</p>
+<p>Returns:</p>
+<ul>
+<li>/datum/body_marking_collection: the copy.</li>
+</ul><h3 id="proc/validate_for_species"><aside class="declaration">proc </aside>validate_for_species<aside>(species_id, allow_mismatched) <span class="as"> as </span>/list <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L516"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 516"></a></aside></h3><p>Returns the entries a species may not wear without mismatched parts, each asked of its marking's allows_species(): the one
+check of a whole character's markings against a species. This only reports mismatches: saved markings must never be
+removed because a character changes species.</p>
+<p>Arguments:</p>
+<ul>
+<li>species_id: the species' id.</li>
+<li>allow_mismatched: TRUE when mismatched parts are allowed, which allows every marking.</li>
+</ul>
+<p>Returns:</p>
+<ul>
+<li>list: a new list of the entries not allowed, in order, or null when every entry is.</li>
+</ul><h3 id="proc/zone_count"><aside class="declaration">proc </aside>zone_count<aside>()  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L185"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 185"></a></aside></h3><p>Returns how many zones are present, emptied ones included.</p><h3 id="proc/zone_length"><aside class="declaration">proc </aside>zone_length<aside>(zone)  <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L200"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 200"></a></aside></h3><p>Returns how many entries one zone wears.</p>
+<p>Arguments:</p>
+<ul>
+<li>zone: the zone to count.</li>
+</ul><h3 id="proc/zone_views"><aside class="declaration">proc </aside>zone_views<aside>() <span class="as"> as </span>/list <a href="https://github.com/Aphelion-Moon/Meridian-Rift/blob/5cec204da500c61fa94fdaf5c5a138764920e2c1/modular_nova/modules/customization/datums/dna/body_markings.dm#L214"><img src="git.png" width="16" height="16" title="modular_nova/modules/customization/datums/dna/body_markings.dm 214"></a></aside></h3><p>Returns the entries of every zone that wears any, in zone order.</p>
+<p>The returned list and the lists inside it are shared and must not be edited: limbs hold these zone lists as
+their markings. A structural change builds new ones, so a list already handed out keeps what it held. A zone
+that wears nothing, emptied or absent, has no list here; has_zone() tells the two apart. Hot callers read the
+same views through BODY_MARKING_ZONE_VIEWS(), which calls this only when they are out of date.</p>
+<p>Returns:</p>
+<ul>
+<li>list: zone -&gt; list of entries, or null when no zone wears any.</li>
+</ul></main><footer>tgstation.dme <a href="https://github.com/Aphelion-Moon/Meridian-Rift/tree/5cec204da500c61fa94fdaf5c5a138764920e2c1">5cec204</a> (master) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.11.0</a></footer></body></html>
