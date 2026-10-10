@@ -19,6 +19,7 @@
 
 	RegisterSignals(target, list(COMSIG_ATOM_ENTERING, COMSIG_MOVABLE_TURF_INITIALIZING), PROC_REF(on_source_entering))
 	RegisterSignal(target, COMSIG_ATOM_EXITING, PROC_REF(on_source_exiting))
+	RegisterSignal(target, COMSIG_ATOM_AFTER_SHUTTLE_MOVE, PROC_REF(on_source_after_shuttle_move))
 	// APHELION EDIT ADDITION START - TURF_CONTEXT
 	RegisterSignal(target, COMSIG_MOVABLE_MOVED, PROC_REF(on_source_moved))
 	// APHELION EDIT ADDITION END
@@ -27,7 +28,7 @@
 	register_turf(atom_target, atom_target.loc)
 
 /datum/element/elevation/Detach(atom/movable/source)
-	UnregisterSignal(source, list(COMSIG_ATOM_ENTERING, COMSIG_MOVABLE_TURF_INITIALIZING, COMSIG_ATOM_EXITING))
+	UnregisterSignal(source, list(COMSIG_ATOM_ENTERING, COMSIG_MOVABLE_TURF_INITIALIZING, COMSIG_ATOM_EXITING, COMSIG_ATOM_AFTER_SHUTTLE_MOVE))
 	// APHELION EDIT ADDITION START - TURF_CONTEXT
 	UnregisterSignal(source, COMSIG_MOVABLE_MOVED)
 	// APHELION EDIT ADDITION END
@@ -71,6 +72,14 @@
 	if(isturf(source.loc) && !HAS_TRAIT_FROM(source.loc, TRAIT_TURF_HAS_ELEVATED_OBJ(pixel_shift), source_ref))
 		register_turf(source, source.loc)
 // APHELION EDIT ADDITION END
+
+/// Shuttle movement bypasses ordinary entry/exit
+/datum/element/elevation/proc/on_source_after_shuttle_move(atom/movable/source, turf/old_turf)
+	SIGNAL_HANDLER
+	if(source.loc == old_turf)
+		return
+	unregister_turf(source, old_turf)
+	register_turf(source, source.loc)
 
 /datum/element/elevation/proc/register_turf(atom/movable/source, atom/location)
 	if(!isturf(location))

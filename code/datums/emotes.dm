@@ -577,6 +577,9 @@
 			continue
 		// APHELION EDIT ADDITION END
 
+		if(user.invisibility > AI.see_invisible)
+			continue
+
 		if(AI in viewers(user))// Avoid duplicates if the AI is nearby
 			continue
 

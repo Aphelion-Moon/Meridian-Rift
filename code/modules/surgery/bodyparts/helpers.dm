@@ -57,6 +57,15 @@
 		parts[zone] = get_bodypart(zone)
 	return parts
 
+// APHELION EDIT ADDITION START - A carbon reads each limb from its cache, without a get_bodypart() call per zone
+/mob/living/carbon/get_bodyparts_by_zones()
+	var/list/parts = list()
+	for(var/zone in get_all_limbs())
+		// What get_bodypart(zone) returns without stumps.
+		parts[zone] = real_bodypart_cache[zone]
+	return parts
+
+// APHELION EDIT ADDITION END
 /// Replaces a single limb and deletes the old one if there was one
 /mob/living/carbon/proc/del_and_replace_bodypart(obj/item/bodypart/new_limb, special)
 	var/obj/item/bodypart/old_limb = get_bodypart(new_limb.body_zone)
@@ -264,28 +273,28 @@
 
 /// Makes sure that the owner's bodytype flags match the flags of all of its parts and organs
 /mob/living/carbon/proc/synchronize_bodytypes()
-	var/all_limb_flags = NONE
+	var/all_overlay_flags = NONE
 	for(var/obj/item/bodypart/limb as anything in get_bodyparts(include_stumps = TRUE))
 		for(var/obj/item/organ/organ in limb)
-			all_limb_flags |= organ.external_bodytypes
-		all_limb_flags |= limb.bodytype
+			all_overlay_flags |= organ.external_bodytypes
+		all_overlay_flags |= limb.bodytype
 
-	bodytype = all_limb_flags
+	bodytype = all_overlay_flags
 
 /// Makes sure that the owner's bodyshape flags match the flags of all of its parts and organs
 /mob/living/carbon/proc/synchronize_bodyshapes()
-	var/all_limb_flags = NONE
+	var/all_overlay_flags = NONE
 	for(var/obj/item/bodypart/limb as anything in get_bodyparts(include_stumps = TRUE))
 		for(var/obj/item/organ/organ in limb)
-			all_limb_flags |= organ.external_bodyshapes
-		all_limb_flags |= limb.bodyshape
+			all_overlay_flags |= organ.external_bodyshapes
+		all_overlay_flags |= limb.bodyshape
 
 	/* // NOVA EDIT REMOVAL START - On TG, HIDESNOUT means the snout should not exist period, whereas we use it to hide the snout from rendering and poking out from snouted icons
 	if(obscured_slots & HIDESNOUT)
-		all_limb_flags &= ~BODYSHAPE_SNOUTED
+		all_overlay_flags &= ~BODYSHAPE_SNOUTED
 	*/ // NOVA EDIT REMOVAL END - For us bodyshape must remain the anatomical truth in this case, or snouted helmets will be wrongly affected by masks that 'hide' snouts.
 
-	bodyshape = all_limb_flags
+	bodyshape = all_overlay_flags
 
 /proc/skintone2hex(skin_tone)
 	. = 0

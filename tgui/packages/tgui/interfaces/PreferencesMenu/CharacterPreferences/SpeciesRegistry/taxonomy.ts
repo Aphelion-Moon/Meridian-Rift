@@ -49,11 +49,14 @@ export function getParentId(species: SpeciesMap, id: string): string | null {
 
 /**
  * The parent a species is grouped under. A variant filed under another
- * family, like the holiday Vampire, stands on its own there.
+ * family, like the holiday Vampire, stands on its own there, as does one of a
+ * template, which keeps to the end of its family.
  */
 function lineageParentId(species: SpeciesMap, id: string): string | null {
   const parent = getParentId(species, id);
-  return parent && species[parent].family === species[id].family
+  return parent &&
+    species[parent].family === species[id].family &&
+    !species[parent].template
     ? parent
     : null;
 }
@@ -115,7 +118,8 @@ const hasVariants = (lineage: SpeciesLineage) => lineage.members.length > 1;
 /**
  * Families in display order, each holding lineages: a root species followed
  * by its variants, depth first. Most lineages are a single species. Humans
- * lead, then the lineages with variants, so every row starts with its boxes.
+ * lead, then the lineages with variants, so every row starts with its boxes,
+ * and the templates for players' own species come last.
  */
 export function groupSpecies(
   species: SpeciesMap,
@@ -150,6 +154,8 @@ export function groupSpecies(
       // Sorting is stable, so each kind stays in name order.
       lineages.sort(
         (a, b) =>
+          Number(!!species[a.root].template) -
+            Number(!!species[b.root].template) ||
           Number(leadsWithHumans(b)) - Number(leadsWithHumans(a)) ||
           Number(hasVariants(b)) - Number(hasVariants(a)),
       );

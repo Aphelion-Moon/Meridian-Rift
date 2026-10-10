@@ -21,12 +21,15 @@ function RosterTile(props: { model: SpeciesBrowserModel; id: string }) {
         'SpeciesRoster__tile',
         id === model.current && 'SpeciesRoster__tile--current',
         locked && 'SpeciesRoster__tile--locked',
+        !!entry.template && 'SpeciesRoster__tile--template',
       ])}
       data-species={id}
     >
       <Button
         selected={id === model.inspected}
-        tooltip={entry.name}
+        tooltip={
+          entry.template ? `${entry.name}, a template species` : entry.name
+        }
         tooltipPosition="top"
         onClick={() => model.inspect(id)}
         onDoubleClick={() => !locked && model.choose(id)}
@@ -34,6 +37,9 @@ function RosterTile(props: { model: SpeciesBrowserModel; id: string }) {
         <SpeciesSprite icon={entry.icon} scale={2} />
         <span className="SpeciesRoster__name">{entry.name}</span>
       </Button>
+      {!!entry.template && (
+        <span className="SpeciesRoster__ribbon">Template</span>
+      )}
     </span>
   );
 }

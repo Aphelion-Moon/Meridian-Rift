@@ -131,7 +131,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 /datum/preferences/proc/custom_style_saved_package(target, zone)
 	load_custom_sprites()
 	var/list/drawing = custom_style_hair_target(target) ? (target == "facial_hair" ? custom_facial_hair : custom_hair) : custom_limb_markings?[zone]
-	var/list/markings = target == "markings" && (zone in GLOB.body_markings_per_limb) ? custom_style_marking_entries(body_markings?[zone]) : null
+	var/list/markings = target == "markings" && (zone in GLOB.body_markings_per_limb) ? custom_style_marking_entries(body_markings.entries_for_zone(zone)) : null
 	return custom_style_package(target, zone, drawing, custom_style_hair_target(target) ? custom_style_hair_context(target) : null, markings)
 
 /// A copy of the previous saved style for a target, or null.
@@ -281,7 +281,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 			return list("error" = "Character setup has unsaved hair changes. Close character setup, then try again.")
 	return list("package" = package, "current" = current, "hair_changed" = hair_changed, "markings_changed" = markings_changed)
 
-/// Native marking lists may alias the save tree; compare the actual saved file for recipient saves.
+/// Recipient saves compare against the actual saved file, which pending character setup edits haven't reached.
 /datum/preferences/proc/custom_style_pending_markings_problem(slot, zone)
 	var/list/slot_data = savefile.get_entry("character[slot]")
 	if(load_and_save)
@@ -294,7 +294,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 			return "That character slot has no saved data yet. Save the character first."
 		slot_data = disk_tree["character[slot]"]
 	var/list/saved = custom_style_marking_entries(slot_data?["body_markings"]?[zone])
-	if(json_encode(saved) != json_encode(custom_style_marking_entries(body_markings?[zone])))
+	if(json_encode(saved) != json_encode(custom_style_marking_entries(body_markings.entries_for_zone(zone))))
 		return "Character setup has unsaved base marking changes for this limb. Close character setup, then try again."
 	return null
 
@@ -314,7 +314,7 @@ GLOBAL_LIST_INIT(custom_style_hair_preferences, list(
 	var/list/slot_data = custom_style_markings_slot_data(savefile.get_entry("character[slot]"), zone, markings)
 	if(slot_data)
 		savefile.set_entry("character[slot]", slot_data)
-	LAZYSET(body_markings, zone, custom_style_marking_data(markings))
+	body_markings.set_zone_from_list(zone, custom_style_marking_data(markings))
 	refresh_custom_sprite_preview()
 
 /// Copy a character's saved native markings and replace exactly the selected zone, including Clear.

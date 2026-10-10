@@ -19,6 +19,8 @@
   --species-warn: var(--console-status-warning, var(--color-average, #f2711c));
   --species-info: var(--console-status-information, #63b4ff);
   --species-like: #ef8fbf;
+  // The ribbon a template species wears.
+  --species-template: #c9852f;
   --species-display: var(--console-font-display, var(--font-family));
   --species-mono: var(--font-family-mono, Consolas, monospace);
   --species-case: var(--console-heading-case, uppercase);
@@ -258,6 +260,17 @@
     .Icon {
       color: var(--species-accent);
     }
+  }
+
+  // The roster tile's ribbon, laid flat.
+  &__template {
+    padding: 1px 4px;
+    background: var(--species-template);
+    color: #1b1206;
+    font-size: 0.8em;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   &__parent.Button {
@@ -553,6 +566,40 @@
       box-shadow: 0 0 5px 1px color-mix(in srgb, var(--species-good) 50%, transparent);
       pointer-events: none;
     }
+
+    // A template, a base for players' own species: its sprite on drafting paper in the theme's accent, under a
+    // ribbon that says so.
+    &--template {
+      overflow: hidden;
+
+      .SpeciesSprite {
+        background-color: var(--button-background-default);
+        background-image:
+          linear-gradient(color-mix(in srgb, var(--species-accent) 20%, transparent) 1px, transparent 1px),
+          linear-gradient(90deg, color-mix(in srgb, var(--species-accent) 20%, transparent) 1px, transparent 1px);
+        background-position: -1px -1px;
+        background-size: 8px 8px;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--species-accent) 55%, transparent);
+      }
+    }
+  }
+
+  &__ribbon {
+    position: absolute;
+    top: 9px;
+    left: -19px;
+    width: 68px;
+    transform: rotate(-45deg);
+    background: var(--species-template);
+    box-shadow: 0 1px 2px #0000008c;
+    color: #1b1206;
+    font-size: 6.5px;
+    font-weight: bold;
+    line-height: 10px;
+    letter-spacing: 0.8px;
+    text-align: center;
+    text-transform: uppercase;
+    pointer-events: none;
   }
 
   &__name {
@@ -867,31 +914,24 @@
     background: radial-gradient(closest-side, rgb(0 0 0 / 70%), transparent);
   }
 
+  // The specimen's arrival and the sweep over it both take the whole window,
+  // as the character preview's do, so each theme's arrival fits both; see
+  // _portrait-arrival.scss. The specimen stands on the chamber's floor.
   &__figure {
-    left: 50%;
-    bottom: 22px;
+    inset: 0;
     z-index: 2;
-    width: var(--specimen-size, 192px);
-    height: var(--specimen-size, 192px);
-    margin-left: calc(var(--specimen-size, 192px) / -2);
-    animation: species-specimen-arrive 420ms cubic-bezier(0.2, 0, 0.2, 1) both;
+
+    > .SpeciesSprite {
+      position: absolute;
+      left: 50%;
+      bottom: 22px;
+      margin-left: calc(var(--specimen-size, 192px) / -2);
+    }
   }
 
   &__sweep {
-    top: 0;
-    left: 0;
-    right: 0;
+    inset: 0;
     z-index: 3;
-    height: 26%;
-    opacity: 0;
-    background: linear-gradient(
-      180deg,
-      transparent,
-      color-mix(in srgb, var(--chamber-glow) 18%, transparent) 80%,
-      color-mix(in srgb, var(--chamber-glow) 70%, transparent) 99%,
-      transparent
-    );
-    animation: species-specimen-sweep 760ms ease-out both;
   }
 
   // A newer drawing of the character on its way, shown only once it takes a moment.
@@ -976,20 +1016,6 @@
   }
 }
 
-@keyframes species-specimen-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-    filter: brightness(2);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
-}
-
 @keyframes species-drawing-in {
   from {
     opacity: 0;
@@ -997,22 +1023,6 @@
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes species-specimen-sweep {
-  0% {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-
-  12% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(360%);
   }
 }
 
@@ -1032,56 +1042,6 @@
 @keyframes species-glyph-feed {
   to {
     transform: translateY(calc(-1 * var(--glyph-tile)));
-  }
-}
-
-@keyframes species-iris-open {
-  from {
-    clip-path: circle(0% at 50% 58%);
-  }
-
-  to {
-    clip-path: circle(75% at 50% 58%);
-  }
-}
-
-@keyframes species-glitch {
-  0%,
-  100% {
-    clip-path: inset(0);
-    transform: none;
-  }
-
-  20% {
-    clip-path: inset(18% 0 58% 0);
-    transform: translateX(-4px);
-  }
-
-  40% {
-    clip-path: inset(62% 0 12% 0);
-    transform: translateX(3px);
-  }
-
-  60% {
-    clip-path: inset(32% 0 40% 0);
-    transform: translateX(-2px);
-  }
-}
-
-@keyframes species-crt-on {
-  0% {
-    transform: scale(1, 0.02);
-    filter: brightness(3);
-  }
-
-  45% {
-    transform: scale(1, 1);
-    filter: brightness(1.6);
-  }
-
-  100% {
-    transform: none;
-    filter: none;
   }
 }
 
@@ -1356,14 +1316,9 @@
   &__backdrop,
   &__grid,
   &__glass,
-  &__sweep,
   &__scale,
   &__corner {
     display: none;
-  }
-
-  &__figure {
-    animation: none;
   }
 }
 
@@ -1624,12 +1579,6 @@
     display: none;
   }
 
-  &__figure {
-    animation:
-      species-specimen-arrive 420ms cubic-bezier(0.2, 0, 0.2, 1) both,
-      species-glitch 360ms steps(1) 120ms both;
-  }
-
   &__corner {
     width: 14px;
     height: 14px;
@@ -1726,11 +1675,6 @@
       radial-gradient(ellipse at 30% 18%, rgb(255 255 255 / 8%), transparent 45%);
   }
 
-  &__figure {
-    filter: sepia(0.35) saturate(0.8) brightness(0.95);
-    animation: species-crt-on 520ms ease-out both;
-  }
-
   &__grid,
   &__corner {
     display: none;
@@ -1760,28 +1704,30 @@
   }
 }
 
-// Foundry: hammered bronze with a six-blade iris that opens on each specimen.
+// Foundry: the forge room's arched mirror in worn steel, each specimen conjured
+// out of the forge's smoke (_portrait-arrival.scss), the hearth's glow low in
+// the glass.
 .theme-meridian_foundry .SpecimenViewer {
   &__chamber {
-    --chamber-glow: #e7ad52;
-    --chamber-mark: var(--forge-edge, #bd8a52);
+    --chamber-glow: #ffa244;
+    --chamber-mark: #b8a490;
 
-    background: var(--forge-texture) center / 360px;
+    background: var(--mt-foundry-steel, none) center / 256px #2f2924;
     box-shadow:
       inset 0 0 0 1px #000,
-      inset 0 0 0 2px var(--forge-edge, #bd8a52);
+      inset 0 0 0 2px rgb(255 190 120 / 25%),
+      inset 0 24px 30px -18px rgb(255 200 140 / 12%);
   }
 
   &__backdrop {
     inset: 10px;
     border-radius: 50% 50% 6px 6px / 38% 38% 6px 6px;
     background:
-      radial-gradient(ellipse 70% 40% at 50% 88%, rgb(231 173 82 / 18%), transparent 72%),
-      linear-gradient(180deg, #21170f, #130e09);
+      radial-gradient(ellipse 70% 40% at 50% 88%, rgb(255 110 30 / 22%), transparent 72%),
+      linear-gradient(180deg, #24180f, #120b07);
     box-shadow:
-      inset 0 0 0 2px #19120d,
+      inset 0 0 0 2px rgb(10 6 4 / 80%),
       inset 0 0 20px rgb(0 0 0 / 85%);
-    animation: species-iris-open 520ms cubic-bezier(0.3, 0, 0.1, 1) both;
   }
 
   &__grid {
@@ -1821,8 +1767,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .SpecimenViewer {
-    &__figure,
-    &__sweep,
     &__grid,
     &__grid::before,
     &__backdrop,

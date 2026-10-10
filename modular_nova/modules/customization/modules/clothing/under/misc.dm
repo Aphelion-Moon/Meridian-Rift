@@ -4,7 +4,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/uniforms.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/uniform.dmi'
 	icon_state = "tracksuit_blue"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/tachawaiian
 	name = "orange tactical hawaiian outfit"
@@ -12,7 +12,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/uniforms.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/uniform.dmi'
 	icon_state = "tacticool_hawaiian_orange"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/tachawaiian/blue
 	name = "blue tactical hawaiian outfit"
@@ -32,7 +32,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/uniforms.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/uniform.dmi'
 	icon_state = "texas"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/doug_dimmadome
 	name = "dimmadome formal outfit"
@@ -40,7 +40,7 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/uniforms.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/uniform.dmi'
 	icon_state = "doug_dimmadome"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/pants/tactical
 	icon = 'modular_nova/master_files/icons/obj/clothing/under/shorts_pants_shirts.dmi'
@@ -78,7 +78,7 @@
 	greyscale_colors = "#4d4d4d#666633#c0c0c0"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	alternate_worn_layer = LOW_FACEMASK_LAYER
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/pants/nova/hakama
 	worn_icon_digi = null

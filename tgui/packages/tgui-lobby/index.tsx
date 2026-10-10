@@ -2,17 +2,9 @@ import './styles/main.scss';
 
 import { loadMappings, loadStyleSheet } from 'common/assets';
 import { createRoot, type Root } from 'react-dom/client';
-import { focusMap } from 'tgui/focus';
-import { globalEvents } from 'tgui-core/events';
 import { assetMap } from './assets';
 import { LobbyMenu } from './LobbyMenu';
 import { updateScaling } from './scaling';
-// APHELION EDIT ADDITION START - MERIDIAN_UI
-import {
-  isLobbyDisplayControlInteractionTarget,
-  isLobbyKeyboardInteractionTarget,
-} from './themeFocus';
-// APHELION EDIT ADDITION END
 
 let reactRoot: Root | null = null;
 
@@ -25,31 +17,56 @@ document.onreadystatechange = () => {
     updateScaling();
   });
 
-  globalEvents.on('keydown', (key) => {
-    /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
-    if (key.isModifierKey()) return;
-    */ // APHELION EDIT REMOVAL END
-    // APHELION EDIT ADDITION START - MERIDIAN_UI
-    if (
-      key.isModifierKey() ||
-      key.event.key === 'Tab' ||
-      isLobbyKeyboardInteractionTarget(key.event.target)
-    ) {
-      return;
-    }
-    // APHELION EDIT ADDITION END
-    setTimeout(focusMap);
+  const KEY_CODE_TO_BYOND: Record<string, string> = {
+    DEL: 'Delete',
+    DELETE: 'Delete',
+    DOWN: 'South',
+    ARROWDOWN: 'South',
+    END: 'Southwest',
+    HOME: 'Northwest',
+    INSERT: 'Insert',
+    LEFT: 'West',
+    ARROWLEFT: 'West',
+    PAGEDOWN: 'Southeast',
+    PAGEUP: 'Northeast',
+    RIGHT: 'East',
+    ARROWRIGHT: 'East',
+    ' ': 'Space',
+    UP: 'North',
+    ARROWUP: 'North',
+    ESCAPE: 'Escape',
+    TAB: 'Tab',
+    ENTER: 'Enter',
+    BACKSPACE: 'Back',
+    SHIFT: 'Shift',
+    CONTROL: 'Ctrl',
+    ALT: 'Alt',
+  };
+
+  function toBYONDKey(e: KeyboardEvent): string {
+    const upper = e.key.toUpperCase();
+    let text = '';
+    if (e.altKey && upper !== 'ALT') text += 'Alt';
+    if (e.ctrlKey && upper !== 'CONTROL') text += 'Ctrl';
+    if (e.shiftKey && upper !== 'SHIFT') text += 'Shift';
+    text += KEY_CODE_TO_BYOND[upper] || upper;
+    return text;
+  }
+
+  const heldKeys = new Set<string>();
+
+  window.addEventListener('keydown', (e) => {
+    const key = toBYONDKey(e);
+    if (!key || heldKeys.has(key)) return;
+    heldKeys.add(key);
+    Byond.command(`KeyDown "${key}" 0 0 0 0`);
   });
-  /* // APHELION EDIT REMOVAL START - MERIDIAN_UI
-  window.addEventListener('mouseup', () => {
-  */ // APHELION EDIT REMOVAL END
-  // APHELION EDIT ADDITION START - MERIDIAN_UI
-  window.addEventListener('mouseup', (event) => {
-    if (isLobbyDisplayControlInteractionTarget(event.target)) {
-      return;
-    }
-    // APHELION EDIT ADDITION END
-    setTimeout(focusMap);
+
+  window.addEventListener('keyup', (e) => {
+    const key = toBYONDKey(e);
+    if (!key || !heldKeys.has(key)) return;
+    heldKeys.delete(key);
+    Byond.command(`KeyUp "${key}" 0 0 0 0`);
   });
 
   Byond.winget('mapwindow.map_lobby_selector').then(

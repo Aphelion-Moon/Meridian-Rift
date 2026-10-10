@@ -9,6 +9,8 @@ import { Window } from '../../layouts';
 import { logger } from '../../logging';
 import { LoadingScreen } from '../common/LoadingScreen';
 import { CharacterPreferenceWindow } from './CharacterPreferences';
+import { previewLightsOffAtom } from './CharacterPreferences/CharacterPreview/lights'; // APHELION EDIT ADDITION - Preview lights
+import { useRoomTheme } from './CharacterPreferences/MarkingsRoom/Room'; // APHELION EDIT ADDITION - MERIDIAN_UI
 import { previewTurnAtom } from './CharacterPreferences/CharacterPreview/turn'; // APHELION EDIT ADDITION - Drawn character preview
 import { GamePreferenceWindow } from './GamePreferences';
 import {
@@ -23,7 +25,7 @@ import { ServerPrefs } from './useServerPrefs';
 import type { AugmentsTab } from './CharacterPreferences/LimbsPage';
 
 // Window dimensions per state
-const WINDOW_WIDTH  = 920;
+const WINDOW_WIDTH_DEFAULT = 920;
 const WINDOW_HEIGHT_DEFAULT  = 820;
 const WINDOW_HEIGHT_MARKINGS_BODYPARTS = 980; // taller to fit three-column markings layout
 // NOVA EDIT ADDITION END
@@ -37,13 +39,22 @@ export function PreferencesMenu(props) {
   // character is turned back to face south as the window opens, as the game's preview was.
   const setPreviewTurn = useSetAtom(previewTurnAtom);
   useEffect(() => setPreviewTurn(0), []);
+  // Its lights come back on too, as the server's do when the window closes.
+  const setPreviewLightsOff = useSetAtom(previewLightsOffAtom);
+  useEffect(() => setPreviewLightsOff(false), []);
 
+  // A theme's Augments+ room keeps its size whatever the theme frames the window with: a thicker frame takes a
+  // larger window.
+  const roomTheme = useRoomTheme();
+  const [frameWidth, frameHeight] =
+    augmentsTab !== null && roomTheme ? roomTheme.frame : [0, 0];
+  const WINDOW_WIDTH = WINDOW_WIDTH_DEFAULT + frameWidth;
   const height =
-    augmentsTab !== null
+    (augmentsTab !== null
       ? WINDOW_HEIGHT_MARKINGS_BODYPARTS
       : speciesShown
         ? WINDOW_HEIGHT_SPECIES
-        : WINDOW_HEIGHT_DEFAULT;
+        : WINDOW_HEIGHT_DEFAULT) + frameHeight;
   // NOVA EDIT ADDITION END
   return (
     <Window width={WINDOW_WIDTH} height={height} /* NOVA EDIT CHANGE - ORIGINAL: <Window width={920} height={770}> */>

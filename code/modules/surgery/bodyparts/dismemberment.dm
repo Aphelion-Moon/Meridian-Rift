@@ -92,7 +92,12 @@
 	SEND_SIGNAL(owner, COMSIG_CARBON_REMOVE_LIMB, src, special, dismembered)
 	SEND_SIGNAL(src, COMSIG_BODYPART_REMOVED, owner, special, dismembered)
 	bodypart_flags &= ~BODYPART_IMPLANTED //limb is out and about, it can't really be considered an implant
-	add_mob_blood(owner)
+	// APHELION EDIT CHANGE START - Only a limb that lands somewhere takes its owner's blood - ORIGINAL: add_mob_blood(owner)
+	// A limb with nowhere to drop to is deleted below; one not moved to the floor stays inside its owner, unseen, unless
+	// something already moved it off the body.
+	if(move_to_floor ? drop_loc : (loc && loc != owner))
+		add_mob_blood(owner)
+	// APHELION EDIT CHANGE END
 	owner.remove_bodypart(src, special)
 
 	for(var/datum/scar/scar as anything in scars)
@@ -390,6 +395,8 @@
 
 	if(length(excluded_zones))
 		zone_list -= excluded_zones
+	if(HAS_TRAIT(src, TRAIT_BLOCK_ATTACHING_LEGS))
+		zone_list -= GLOB.leg_zones
 	for(var/limb_zone in zone_list)
 		regenerate_limb(limb_zone, dismembered_by_copy)
 

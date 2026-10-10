@@ -1,6 +1,7 @@
+/* // APHELION EDIT REMOVAL START - Species body marking overlays: nothing adds them any more, Nova's body markings draw every marking.
 /// For body markings applied on the species, which need some extra code
 /datum/bodypart_overlay/simple/body_marking
-	layers = list(EXTERNAL_ADJACENT = BODY_ADJ_LAYER)
+	layers = list("" = BODY_ADJ_LAYER)
 	offset_location = ENTIRE_BODY
 	/// Listen to the gendercode, if the limb is bimorphic
 	var/use_gender = FALSE
@@ -51,3 +52,4 @@
 /datum/bodypart_overlay/simple/body_marking/lizard
 	dna_feature_key = FEATURE_LIZARD_MARKINGS
 	applies_to = list(/obj/item/bodypart/chest)
+*/ // APHELION EDIT REMOVAL END

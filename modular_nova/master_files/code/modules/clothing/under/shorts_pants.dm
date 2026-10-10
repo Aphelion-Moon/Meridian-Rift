@@ -3,7 +3,7 @@
 
 /obj/item/clothing/under/shorts
 	worn_icon_digi = SHORTS_PANTS_SHIRTS_DIGIFILE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION //That's right, TG, I have icons for ALL of these!! Mwahahaha!!!!
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS //That's right, TG, I have icons for ALL of these!! Mwahahaha!!!!
 	greyscale_config_worn_digi = /datum/greyscale_config/shorts/worn/digi
 	vox_primalis_force_pants = TRUE
 
@@ -224,8 +224,8 @@
 	greyscale_colors = "#cccccc"
 	flags_1 = IS_PLAYER_COLORABLE_1
 	body_parts_covered = CHEST|GROIN|LEGS
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	can_adjust = FALSE
 	worn_icon_digi = null
 	greyscale_config_worn_vox = /datum/greyscale_config/overalls/shorted_overall/worn/vox

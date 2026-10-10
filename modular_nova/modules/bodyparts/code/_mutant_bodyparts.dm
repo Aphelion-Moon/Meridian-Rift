@@ -1,10 +1,12 @@
 /obj/item/bodypart
-	/// A list of all of our bodypart markings.
+	/// The /datum/body_marking_entry list this limb draws on its body zone, or null for none. Normally the owner DNA
+	/// collection's own list for that zone, shared with it and read-only: replace it by assigning another list, never
+	/// edit it. A detached limb goes on drawing the list it last got.
 	var/list/markings
-	/// A list of all our aux zone markings(hands)
+	/// The same for its aux zone (hands).
 	var/list/aux_zone_markings
-	/// The alpha override of our markings.
-	var/markings_alpha
+	/// The alpha our markings are drawn at. A creating update_limb() sets it from the owner's species.
+	var/markings_alpha = 255
 	/// What is our normal limb ID? used for squashing legs.
 
 /obj/item/bodypart/leg

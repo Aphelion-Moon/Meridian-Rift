@@ -89,7 +89,7 @@
 		linked_fleshlight.update_appearance()
 	else if(current_target)
 		audible_message("[icon2html(src, hearers(src))] *beep* *beep* *beep*")
-		playsound(src, 'sound/machines/beep/triple_beep.ogg', ASSEMBLY_BEEP_VOLUME, TRUE)
+		playsound_if_pref(src, 'sound/machines/beep/triple_beep.ogg', ASSEMBLY_BEEP_VOLUME, TRUE)
 		to_chat(user, span_notice("The panties are not linked to a portal fleshlight."))
 
 /// Redraws the linked device on the next tick when the wearer's body art or genitals change.
@@ -106,7 +106,7 @@
 		return .
 
 	anonymous = !anonymous
-	playsound(src, 'sound/machines/ping.ogg', 50, FALSE)
+	playsound_if_pref(src, 'sound/machines/ping.ogg', 50, FALSE)
 	balloon_alert(user, "anonymous mode: [anonymous ? "ON" : "OFF"]")
 	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 

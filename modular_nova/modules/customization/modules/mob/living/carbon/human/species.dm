@@ -4,8 +4,6 @@ GLOBAL_LIST_EMPTY(customizable_races)
 	digitigrade_customization = DIGITIGRADE_OPTIONAL // Doing this so that the legs preference actually works for everyone.
 	/// Whether or not the gender shaping is disabled for this species
 	var/no_gender_shaping
-	///A list of actual body markings on the owner of the species. Associative lists with keys named by limbs defines, pointing to a list with names and colors for the marking to be rendered. This is also stored in the DNA
-	var/list/list/body_markings = list()
 	///How are we treated regarding processing reagents, by default we process them as if we're organic
 	var/reagent_flags = PROCESS_ORGANIC
 	///Whether a species can use augmentations in preferences
@@ -39,6 +37,15 @@ GLOBAL_LIST_EMPTY(customizable_races)
 
 /datum/species/proc/handle_mutant_bodyparts(mob/living/carbon/human/source, forced_colour)
 	return
+
+/**
+ * Returns whether this species grows legs of its own.
+ *
+ * A legless species, like the Cerulean, wears its lower body as an organ instead. That organ owns the tail
+ * slot, and there are no legs for a taur body to replace.
+ */
+/datum/species/proc/grows_legs()
+	return bodypart_overrides[BODY_ZONE_L_LEG] || bodypart_overrides[BODY_ZONE_R_LEG]
 
 /// Replacing organs with oversized versions, for the oversized quirk. Add implementation for species-specific oversized organs as needed
 /datum/species/proc/gain_oversized_organs(mob/living/carbon/human/human_holder, datum/quirk/oversized/oversized_quirk)
@@ -171,10 +178,43 @@ GLOBAL_LIST_EMPTY(customizable_races)
 
 	return mutantpart_list
 
-/datum/species/proc/get_random_body_markings(list/features) //Needs features to base the colour off of
-	return list()
+/**
+ * Returns the body marking sets a random character of this species may start with.
+ *
+ * Returns:
+ * - A /datum/body_marking_set typepath to always wear, a new list of them meaning one at random, or null for none.
+ */
+/datum/species/proc/get_random_marking_sets()
+	return null
+
+/**
+ * Returns the body markings a random character of this species starts with: the set get_random_marking_sets() gives,
+ * or one of the sets it lists.
+ *
+ * Arguments:
+ * - features: the character's features, where markings following a mutant colour read it.
+ *
+ * Returns:
+ * - /datum/body_marking_collection: always a new collection, empty when there is no set to wear.
+ */
+/datum/species/proc/get_random_body_markings(list/features)
+	RETURN_TYPE(/datum/body_marking_collection)
+	var/set_type = get_random_marking_sets()
+	// Only a choice draws from the random generator; a single set is simply worn.
+	if(islist(set_type))
+		var/list/set_types = set_type
+		set_type = length(set_types) ? pick(set_types) : null
+	var/datum/body_marking_set/marking_set = set_type ? GLOB.body_marking_sets_by_type[set_type] : null
+	return marking_set ? assemble_body_markings_from_set(marking_set, features, src) : new /datum/body_marking_collection
 
 /datum/species/regenerate_organs(mob/living/carbon/organ_holder, datum/species/old_species, replace_current = TRUE, list/excluded_zones, visual_only = FALSE, replace_missing = TRUE)
+	var/legless = !grows_legs()
+	// A legless species sheds a taur body first, or the taur's unremovable tail holds the slot its own lower body grows into.
+	var/obj/item/organ/taur_body/taur_body = organ_holder.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR)
+	if(legless && taur_body)
+		taur_body.Remove(organ_holder, special = TRUE, movement_flags = KEEP_IN_MUTANT_BODYPARTS)
+		qdel(taur_body)
+
 	. = ..()
 
 	var/robot_organs = HAS_TRAIT(organ_holder, TRAIT_ROBOTIC_DNA_ORGANS)
@@ -184,6 +224,10 @@ GLOBAL_LIST_EMPTY(customizable_races)
 	for (var/key, mutant_part in organ_holder.dna.mutant_bodyparts)
 		// A taur that brings its own tail owns the tail slot, as its preferences already decide.
 		if(key == FEATURE_TAIL && taur_accessory?.has_tail)
+			continue
+		// So does a legless species' own lower body, which leaves nothing for a taur to replace.
+		// Both entries stay in the DNA for when the mob grows legs again.
+		if(legless && (key == FEATURE_TAIL || key == FEATURE_TAUR))
 			continue
 		var/list/accessory_category = SSaccessories.sprite_accessories[key]
 		if(!islist(accessory_category))

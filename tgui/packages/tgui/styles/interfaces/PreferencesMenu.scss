@@ -144,6 +144,10 @@
       &--hidden {
         opacity: 0;
         pointer-events: none;
+
+        @at-root .Floating:has(> #{&}) {
+          pointer-events: none;
+        }
       }
     }
 

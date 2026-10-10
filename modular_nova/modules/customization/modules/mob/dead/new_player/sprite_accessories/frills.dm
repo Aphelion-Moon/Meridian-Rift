@@ -4,10 +4,7 @@
 	organ_type = /obj/item/organ/frills
 
 /datum/sprite_accessory/frills/is_hidden(mob/living/carbon/human/human, datum/bodypart_overlay/mutant/bodypart_overlay)
-	if((human.head?.flags_inv & HIDEEARS) || (key in human.try_hide_mutant_parts))
-		return TRUE
-
-	return FALSE
+	return (human.head?.flags_inv & HIDEEARS) || human.try_hide_mutant_parts?[key] || LEWD_ITEM_HIDES_PARTS(human, TRUE, TRUE)
 
 /datum/sprite_accessory/frills/none
 	name = SPRITE_ACCESSORY_NONE

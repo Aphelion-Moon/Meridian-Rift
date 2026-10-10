@@ -54,6 +54,34 @@
 #define MARKING_INDEX_COLOR 1
 #define MARKING_INDEX_EMISSIVE 2
 
+/// A /datum/body_marking_collection's zone views as its zone_views() returns them, read with no proc call while they are
+/// current. The collection is evaluated up to three times, so pass a typed local.
+#define BODY_MARKING_ZONE_VIEWS(collection) (collection.zone_cache_version == collection.version ? collection.zone_cache : collection.zone_views())
+
+/// The icon state a /datum/body_marking draws for a limb's request, or FALSE for nothing, as its drawn_state() answers, read
+/// from the marking's own cache with no proc call once answered. The marking and request are evaluated up to three times, so
+/// pass typed locals.
+#define BODY_MARKING_DRAWN_STATE(marking, request, zone, digitigrade, limb_gender) (isnull(marking.drawn_states?[request]) ? marking.drawn_state(request, zone, digitigrade, limb_gender) : marking.drawn_states[request])
+
+// Where a newly worn body marking takes its colour from: a /datum/body_marking's color_mode. Text, so a mode can never be
+// mistaken for one of the DEFAULT_* sprite accessory numbers above, nor for a colour.
+/// Starts in the character's primary mutant colour, then recolours freely.
+#define MARKING_COLOR_FOLLOWS_PRIMARY "follows_primary"
+/// Starts in the character's secondary mutant colour, then recolours freely.
+#define MARKING_COLOR_FOLLOWS_SECONDARY "follows_secondary"
+/// Starts in the character's tertiary mutant colour, then recolours freely.
+#define MARKING_COLOR_FOLLOWS_TERTIARY "follows_tertiary"
+/// Starts in the marking's own default_color, then recolours freely.
+#define MARKING_COLOR_FIXED_DEFAULT "fixed_default"
+/// Starts in the marking's own default_color and keeps it: a recolour is refused.
+#define MARKING_COLOR_LOCKED "locked"
+
+// The leg shapes a /datum/body_marking has art for: its leg_shapes. A leg of a shape its marking has no art for draws none of it.
+/// Plantigrade legs, drawn from "[icon_state]_[zone]".
+#define MARKING_LEG_PLANTIGRADE (1<<0)
+/// Digitigrade legs, drawn from "[icon_state]_digitigrade_[zone]".
+#define MARKING_LEG_DIGITIGRADE (1<<1)
+
 //The color list that is passed to color matrixed things when a person is husked
 #define HUSK_COLOR_LIST list(list(0.64, 0.64, 0.64, 0), list(0.64, 0.64, 0.64, 0), list(0.64, 0.64, 0.64, 0), list(0, 0, 0, 1))
 
@@ -98,7 +126,6 @@
 
 #define FEATURE_MUTANT_COLOR_TWO "mcolor2"
 #define FEATURE_MUTANT_COLOR_THREE "mcolor3"
-#define FEATURE_MARKING_GENERIC "body_markings"
 #define FEATURE_TAIL "tail"
 #define FEATURE_TAUR "taur"
 #define FEATURE_SKIN_COLOR "skin_color"
@@ -134,6 +161,7 @@
 	FEATURE_MUTANT_COLOR_TWO = "#FFFFBB",\
 	FEATURE_MUTANT_COLOR_THREE = "#FFFFBB",\
 	FEATURE_ETHEREAL_COLOR = "#FFCCCC",\
+	FEATURE_TAIL_FISH_COLOR = "#8AC7ED",\
 	FEATURE_SKIN_COLOR = "#FFEEDD",\
 	EXAMINE_DNA_FLAVOR_TEXT = "",\
 	"breasts_size" = 1,\

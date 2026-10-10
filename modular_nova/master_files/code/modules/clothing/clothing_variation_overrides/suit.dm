@@ -12,7 +12,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/toggle/jacket/trenchcoat
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 /obj/item/clothing/suit/toggle/jacket/det_trench
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
@@ -56,13 +56,13 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/costume/pirate/captain
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 /obj/item/clothing/suit/jacket/curator
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/jacket/oversized
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN
 	gets_cropped_on_taurs = FALSE
 
 /obj/item/clothing/suit/mothcoat/winter
@@ -89,7 +89,7 @@
 	worn_icon_digi = null
 
 /obj/item/clothing/suit/armor/hos/trenchcoat
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN
 	worn_icon_digi = null
 
 /obj/item/clothing/suit/armor/vest
@@ -210,7 +210,7 @@
 
 /obj/item/clothing/suit/bio_suit
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/suit/bio_suit/general
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
@@ -231,10 +231,10 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/suit/armor/vest/capcarapace/captains_formal
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 /obj/item/clothing/suit/armor/vest/warden
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 /obj/item/clothing/suit/armor/vest/leather
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
@@ -252,13 +252,13 @@
 
 /obj/item/clothing/suit/hooded/explorer
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/suit/armor/hos/hos_formal
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 /obj/item/clothing/suit/hooded/cloak/goliath
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 //Chaplain Suits
 //TG neglected to sort between legged and robed, so we'll have to just manually set each one
@@ -359,7 +359,7 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
 
 /obj/item/clothing/suit/mothcoat
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN
 
 /obj/item/clothing/suit/pillow_suit
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
@@ -565,18 +565,50 @@
  */
 /obj/item/clothing/suit/apron
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/suit/atmos_overalls
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/suit/utility/beekeeper_suit
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/suit/jacket/straight_jacket
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/suit/apron/waders
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+
+/**
+ * CERULEAN COAT MASK
+ * Upstream gives these their own flags for the Cerulean coat mask, which replaced the digitigrade flags they inherit here.
+ */
+
+/obj/item/clothing/suit/armor/centcom_formal
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/costume/pirate
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/costume/drfreeze_coat
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/costume/gothcoat
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/toggle/owlwings
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/toggle/owlwings/griffinwings
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/armor/vest/hop
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/toggle/jacket/det_trench/noir
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN
+
+/obj/item/clothing/suit/jacket/leather_trenchcoat
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_INBETWEEN

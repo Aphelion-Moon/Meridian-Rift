@@ -120,9 +120,11 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	/// DOES have random body on, will this already be randomized?
 	var/randomize_by_default = TRUE
 
+	/* // APHELION EDIT REMOVAL START - Species body marking overlays are gone, see markings_bodypart_overlay.dm.
 	/// If the selected species has this in its /datum/species/body_markings,
 	/// will show the feature as selectable.
 	var/datum/bodypart_overlay/simple/body_marking/relevant_body_markings = null
+	*/ // APHELION EDIT REMOVAL END
 
 	/// If the selected species has this in its /datum/species/inherent_traits,
 	/// will show the feature as selectable.
@@ -350,7 +352,7 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 
 /// Checks if this preference is relevant and thus visible to the passed preferences object.
 /datum/preference/proc/has_relevant_feature(datum/preferences/preferences)
-	if(isnull(relevant_inherent_trait) && isnull(relevant_organ) && isnull(relevant_head_flag) && isnull(relevant_body_markings) && isnull(relevant_mutant_bodypart)) // NOVA EDIT CHANGE - Add check for relevant_mutant_bodypart - Original: if(isnull(relevant_inherent_trait) && isnull(relevant_organ) && isnull(relevant_head_flag) && isnull(relevant_body_markings))
+	if(isnull(relevant_inherent_trait) && isnull(relevant_organ) && isnull(relevant_head_flag) && isnull(relevant_mutant_bodypart)) // APHELION EDIT CHANGE - relevant_body_markings is gone. NOVA EDIT CHANGE - Add check for relevant_mutant_bodypart - Original: if(isnull(relevant_inherent_trait) && isnull(relevant_organ) && isnull(relevant_head_flag) && isnull(relevant_body_markings))
 		return TRUE
 
 	return current_species_has_savekey(preferences)
@@ -364,7 +366,7 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	if (!has_relevant_feature(preferences))
 		return FALSE
 
-	if (!should_show_on_page(preferences.current_window))
+	if (!should_show_on_page(preferences.current_window) && !preferences.asking_applicability) // APHELION EDIT CHANGE - is_applicable() asks without the page - ORIGINAL: if (!should_show_on_page(preferences.current_window))
 		return FALSE
 
 	return TRUE
@@ -376,6 +378,31 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	var/is_character_preference = savefile_identifier == PREFERENCE_CHARACTER
 	return is_on_character_page == is_character_preference
 
+// APHELION EDIT ADDITION START - What a character gets must not depend on the setup page its player last had open
+/datum/preferences
+	/// TRUE while is_applicable() asks a preference: is_accessible() then leaves out its setup page test. Set by it alone.
+	var/asking_applicability = FALSE
+
+/**
+ * Returns whether a character built from these preferences gets this preference: is_accessible() without its setup page
+ * test. The menu shows a page's preferences only while that page is open, so is_accessible() answers by the page the player
+ * last opened, which is still the page when they spawn. Code deciding what a character gets (an apply_to_human(), a
+ * middleware's apply) asks this instead, so the same preferences build the same character whatever page is open; the menu
+ * keeps asking is_accessible(). Every override's own conditions still apply, and so do those of the preferences they ask in
+ * turn, which are asked without the page as well.
+ *
+ * Arguments:
+ * * preferences - The preferences the character is built from.
+ */
+/datum/preference/proc/is_applicable(datum/preferences/preferences)
+	SHOULD_NOT_OVERRIDE(TRUE)
+	SHOULD_NOT_SLEEP(TRUE)
+	var/was_asking = preferences.asking_applicability
+	preferences.asking_applicability = TRUE
+	. = is_accessible(preferences)
+	preferences.asking_applicability = was_asking
+
+// APHELION EDIT ADDITION END
 /// Helper for checking if one/any of the passed job types are the highest priority job for the passed preferences object
 /// Useful for filtering out certain preferences unless certain jobs are/are not active
 /datum/preference/proc/highest_priority_job_is(datum/preferences/preferences, job_type_or_types)
@@ -485,9 +512,11 @@ GLOBAL_LIST_INIT(preference_entries_by_key, init_preference_entries_by_key())
 	if(relevant_organ && relevant_organ::bodypart_overlay)
 		feature_key ||= relevant_organ::bodypart_overlay::feature_key
 		main_feature_name ||= capitalize(relevant_organ::name)
+	/* // APHELION EDIT REMOVAL START - relevant_body_markings is gone.
 	if(relevant_body_markings)
 		feature_key ||= relevant_body_markings::dna_feature_key
 		main_feature_name ||= "Body markings"
+	*/ // APHELION EDIT REMOVAL END
 	if(isnull(feature_key))
 		CRASH("`feature_key` was not set or inferable for [type]!")
 

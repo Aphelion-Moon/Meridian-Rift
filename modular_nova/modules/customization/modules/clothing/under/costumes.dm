@@ -7,8 +7,8 @@
 	icon_state = "cyberpunksleek"
 	body_parts_covered = CHEST|ARMS|GROIN|LEGS
 	can_adjust = FALSE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/costume/cybersleek/long
 	name = "long modern coat"
@@ -53,7 +53,7 @@
 	greyscale_config = /datum/greyscale_config/bunnysuit
 	greyscale_config_worn = /datum/greyscale_config/bunnysuit_worn
 	flags_1 = IS_PLAYER_COLORABLE_1
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/syndicate/syndibunny //heh
 	name = "blood-red bunny suit"
@@ -114,8 +114,8 @@
 	greyscale_config = /datum/greyscale_config/custom_bunnysuit
 	greyscale_config_worn = /datum/greyscale_config/custom_bunnysuit_worn
 	greyscale_config_worn_digi = /datum/greyscale_config/custom_bunnysuit_worn/digi
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	flags_1 = IS_PLAYER_COLORABLE_1
 
 //CAPTAIN

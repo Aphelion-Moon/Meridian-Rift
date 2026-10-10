@@ -95,12 +95,21 @@
   --console-heading-tracking: 0.12em;
 }
 
+// The forge markings room's casing: a thin dark edge round the cave, no chamfer and no pin
+// (the title strap's rivets stand for it). The finish is _foundry.scss.
 .theme-meridian_foundry {
-  --console-corner-cut: 8px;
-  --console-frame-layer: 2px;
-  --console-corner-layer: 12px;
-  --console-title-rail: 72px;
+  --console-frame-gap: 0px;
+  --console-frame-top-weight: 2px;
+  --console-frame-left-weight: 2px;
+  --console-frame-right-weight: 2px;
+  --console-frame-bottom-weight: 2px;
+  --console-corner-cut: 0px;
+  --console-frame-layer: 1px;
+  --console-corner-layer: 0px;
+  --console-title-rail: 0px;
+  --console-window-pin-width: 0px;
   --console-segment-pattern: 12px;
+  --console-heading-tracking: 0.06em;
   --console-loader-tick-step: 30deg;
   --console-loader-tick-width: 10deg;
   --console-loader-tick-depth: 9%;
@@ -114,7 +123,7 @@
     0 100%,
     0 12%
   );
-  --console-control-depth: inset 2px 2px 0 var(--console-surface-recessed), inset -1px -1px 0 var(--console-border-control);
+  --console-control-depth: 0 2px 0 rgb(0 0 0 / 55%);
 }
 
 .theme-meridian_diagnostic {

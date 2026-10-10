@@ -681,6 +681,21 @@ world
 	mask_icon.MapColors(0,0,0,0, 0,0,0,0, 0,0,0,0, 255,255,255,-255, 1,1,1,1)
 	return mask_icon
 
+/**
+ * A simple helper proc to apply a mask to an icon
+ * Arguments:
+ * * base_icon - the icon which the proc will apply the mask on
+ * * mask_to_use - the mask to use from code\__DEFINES\icon_masks.dm
+ * * replacement - an icon to overlay after the masking
+ */
+/proc/apply_icon_mask(icon/base_icon, mask_to_use, icon/replacement)
+	if(isnull(mask_to_use))
+		return
+	var/icon/mask = icon('icons/mob/clothing/under/masking_helpers.dmi', mask_to_use)
+	base_icon.Blend(mask, ICON_SUBTRACT)
+	if(!isnull(replacement))
+		base_icon.Blend(replacement, ICON_OVERLAY)
+	return base_icon
 
 /mob/proc/AddCamoOverlay(atom/A)//A is the atom which we are using as the overlay.
 	var/icon/opacity_icon = new(A.icon, A.icon_state)//Don't really care for overlays/underlays.
@@ -1325,6 +1340,13 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 		bound_width = ICON_SIZE_X
 		bound_height = size * ICON_SIZE_Y
 
+// APHELION EDIT ADDITION START - Runtime icon sizes are cached, bounded
+/// How many runtime icons get_icon_dimensions() keeps the size of, the oldest forgotten first.
+#define RUNTIME_ICON_DIMENSIONS_LIMIT 256
+/// Runtime icon in the resource cache -> its width and height; see get_icon_dimensions().
+GLOBAL_LIST_EMPTY(runtime_icon_dimensions)
+
+// APHELION EDIT ADDITION END
 /// Returns a list containing the width and height of an icon file
 /proc/get_icon_dimensions(icon_path)
 	if(istype(icon_path, /datum/universal_icon))
@@ -1334,6 +1356,20 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 	// Runtime generated dynamic icons are an unbounded concept cache identity wise, the same icon can exist millions of ways and holding them in a list as a key can lead to unbounded memory usage if called often by consumers.
 	// Check distinctly that this is something that has this unspecified concept, and thus that we should not cache.
 	if (!istext(icon_path) && (!isfile(icon_path) || !length("[icon_path]")))
+		// APHELION EDIT ADDITION START - Runtime icon sizes are cached, bounded
+		// A runtime icon already in the resource cache never changes, so its size is kept, for a bounded number of them;
+		// an /icon datum can still change and is measured every time.
+		if (isfile(icon_path))
+			var/list/known = GLOB.runtime_icon_dimensions[icon_path]
+			if (known)
+				return known
+			var/icon/resource_icon = icon(icon_path)
+			known = list("width" = resource_icon.Width(), "height" = resource_icon.Height())
+			if (length(GLOB.runtime_icon_dimensions) >= RUNTIME_ICON_DIMENSIONS_LIMIT)
+				GLOB.runtime_icon_dimensions.Cut(1, 2)
+			GLOB.runtime_icon_dimensions[icon_path] = known
+			return known
+		// APHELION EDIT ADDITION END
 		var/icon/my_icon = icon(icon_path)
 		return list("width" = my_icon.Width(), "height" = my_icon.Height())
 	if (isnull(GLOB.icon_dimensions[icon_path]))
@@ -1349,6 +1385,7 @@ GLOBAL_LIST_EMPTY(transformation_animation_objects)
 		GLOB.icon_dimensions[icon_path] = result
 
 	return GLOB.icon_dimensions[icon_path]
+#undef RUNTIME_ICON_DIMENSIONS_LIMIT // APHELION EDIT ADDITION
 
 /// Returns a list containing the width and height of an icon file, without using rustg for pure function calls
 /proc/get_icon_dimensions_pure(icon_path)

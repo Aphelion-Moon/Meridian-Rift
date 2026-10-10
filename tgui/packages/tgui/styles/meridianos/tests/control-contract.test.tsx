@@ -228,6 +228,7 @@ describe('MeridianOS shared control geometry', () => {
     }
   });
 
+  // Every skin against the full compiled stylesheet takes ~5 s on CI runners, bun's default timeout.
   it('uses one theme-console contract for every MeridianOS skin', () => {
     expect(COMPONENT_SOURCE).toMatch(/^(?:\/\/[^\n]*\n)*\.theme-console \{/);
 
@@ -430,7 +431,7 @@ describe('MeridianOS shared control geometry', () => {
 
       cleanup();
     }
-  });
+  }, 20_000);
 
   it('keeps compact sizing out of individual skin decoration', () => {
     for (const source of [DECORATION_SOURCE, THEME_SOURCE]) {

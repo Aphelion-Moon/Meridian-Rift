@@ -63,6 +63,8 @@ export type Species = {
   family: string | null;
   /** The species on the page this one is a variant of. */
   variant_of: string | null;
+  /** A template, a base for players' own species: last in its family, marked custom. */
+  template: BooleanLike;
   /** Offered in setup, but can't join the station crew. */
   off_station: BooleanLike;
   /** The holiday this species can be joined as during, if it waits for one. */
@@ -107,6 +109,8 @@ export type CharacterPreviewDrawing = {
   id: number;
   /** The species it was drawn as, or null for a silicon job's preview. */
   species: string | null;
+  /** The character slot it was drawn for. */
+  slot: number;
   /** The drawing, as a PNG data URL. */
   image: string;
   /** One frame's size in pixels; every facing is the same size. */
@@ -121,6 +125,12 @@ export type CharacterPreviewDrawing = {
   /** Each facing's left edge in the image, in pixels. */
   frames: Record<'south' | 'west' | 'north' | 'east', number>;
   /**
+   * Each facing's glow's left edge in the image, on the facing's canvas: what
+   * glows, for the preview's lights-off view. Drawn only while the window has
+   * its lights off, and only for a look with something that glows.
+   */
+  glow_frames?: Record<'south' | 'west' | 'north' | 'east', number>;
+  /**
    * Rows a height filter moves, which the drawing leaves out: runs of the
    * tile's columns as [first frame row, rows, first source row], counting rows
    * from the frame's top. A source row of -1 leaves the run empty.
@@ -128,6 +138,38 @@ export type CharacterPreviewDrawing = {
   rows?: [number, number, number][];
   /** The mob's transform (body size) about its tile's centre, y upwards: [a, b, c, d, e, f]. */
   transform?: [number, number, number, number, number, number];
+  /**
+   * What moves, for a look with something animated: patches of the look at
+   * each later step of its animation, cropped to the box that changes, to lay
+   * over each facing in turn.
+   */
+  animation?: CharacterPreviewAnimation;
+};
+
+/** A drawing's animation; see CharacterPreviewDrawing. */
+export type CharacterPreviewAnimation = {
+  /**
+   * The patches, side by side and top aligned, as a PNG data URL; without
+   * it, they are in the drawing's own image.
+   */
+  image?: string;
+  /** Where the patches start in their image, in pixels. */
+  left: number;
+  /**
+   * Each facing's regions that move, each on its own timeline: its box,
+   * [x, y, width, height] from the frame's top left, which each of its patches
+   * covers; and its steps in turn, each [patch's left edge from `left`, or -1
+   * for the facing as drawn, ms shown].
+   */
+  facings: Partial<
+    Record<
+      'south' | 'west' | 'north' | 'east',
+      {
+        box: [number, number, number, number];
+        steps: [number, number][];
+      }[]
+    >
+  >;
 };
 
 // APHELION EDIT ADDITION END
@@ -164,10 +206,18 @@ export type Quirk = {
 
 // NOVA EDIT ADDITION START
 export type Language = {
-  description: string;
+  /** A secret language's own; the rest are in the constant data's languages, by name. */
+  description?: string;
   name: string;
-  icon: string;
+  /** As description. */
+  icon?: string;
   speaking: boolean;
+};
+
+/** A language's description and icon class, as the constant data has them by name. */
+export type LanguageInfo = {
+  description: string;
+  icon: string;
 };
 
 export type Marking = {
@@ -175,6 +225,7 @@ export type Marking = {
   color: string;
   marking_id: string;
   emissive: boolean;
+  locked: BooleanLike;
 };
 
 // Augment data types (from get_constant_data)
@@ -193,16 +244,33 @@ export type AugmentItem = {
   ckey_whitelist: string[] | null;
 };
 
-/** One marking option with optional species restriction */
-export type MarkingChoice = {
-  name: string;
+/** Where a newly worn marking takes its colour from: a /datum/body_marking's color_mode, one of the MARKING_COLOR_* defines */
+export type MarkingColorMode =
+  | 'follows_primary'
+  | 'follows_secondary'
+  | 'follows_tertiary'
+  | 'fixed_default'
+  | 'locked';
+
+/** What character setup knows of one marking, sent once by name: models /datum/body_marking */
+export type MarkingInfo = {
+  color_mode: MarkingColorMode;
+  /** Markings sharing a group are alternatives: a zone wears at most one of them */
+  exclusion_group: string | null;
+  /** Comma-separated ids of the species it is meant for, or null for any species */
   recommended_species: string | null;
+  /** Colours suggested beside the colour picker; sent only for a marking that has some */
+  recommended_colors?: string[];
 };
 
 /** One preset with optional species restriction */
 export type MarkingPreset = {
   name: string;
   recommended_species: string | null;
+  /** The markings it puts on, in order, or null for none */
+  markings: string[] | null;
+  /** Whether it replaces every marking when picked, rather than only the zones it covers */
+  keep_together: BooleanLike;
 };
 
 /** Models /datum/robotic_style */
@@ -404,10 +472,12 @@ export type ServerData = {
   // NOVA EDIT ADDITION START
   species_families: SpeciesFamily[];
   background_state: { choices: string[]; tiles?: Record<string, string> };
+  languages?: Record<string, LanguageInfo>;
   limbs_and_markings?: {
     robotic_styles: RoboticStyle[];
     augment_items: AugmentSlot[];
-    marking_choices: Record<string, MarkingChoice[]>;
+    marking_choices: Record<string, string[]>;
+    marking_info: Record<string, MarkingInfo>;
     marking_icons?: Record<string, Record<string, string>>;
     marking_presets: MarkingPreset[];
     max_markings: number;

@@ -36,6 +36,7 @@
 /datum/preference/choiced/meridian_theme/apply_to_client_updated(client/client, value)
 	if(isnull(client))
 		return
+	deliver_meridian_theme_art(client, value)
 	var/mob/client_mob = client.mob
 	for(var/datum/tgui/open_ui as anything in client_mob?.tgui_open_uis)
 		open_ui.send_config_update()

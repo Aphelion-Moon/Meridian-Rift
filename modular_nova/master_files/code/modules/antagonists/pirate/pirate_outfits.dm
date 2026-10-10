@@ -10,3 +10,7 @@
 
 /datum/outfit/pirate/medieval/warlord
 	backpack_contents = null
+
+// Its back holds an electric guitar, not a satchel.
+/datum/outfit/pirate/siren
+	backpack_contents = null

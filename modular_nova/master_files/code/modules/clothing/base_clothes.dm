@@ -65,8 +65,8 @@
 	supports_variations_flags = NONE
 
 /obj/item/clothing/under
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/suit
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION

@@ -9,7 +9,9 @@
 @include meta.load-css('./loader.scss');
 @include meta.load-css('./decoration.scss');
 @include meta.load-css('./forge.scss');
+@include meta.load-css('./foundry.scss');
 @include meta.load-css('./forge-loaders.scss');
+@include meta.load-css('./foundry-loader.scss');
 @include meta.load-css('./scavenger.scss');
 @include meta.load-css('./aphelion.scss');
 @include meta.load-css('./title-art.scss');

@@ -232,10 +232,14 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			message_admins("Deprecated sound handling for '[html_encode(name)]'. Correct format is a list with one entry. This message will only show once.")
 			sound_possible = list(sound_possible)
 		sound_cache = pick(sound_possible)
-		if (lewd)
-			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, max(0, -SOUND_RANGE + sound_range), pref_to_check = /datum/preference/toggle/erp/sounds)
+		// The sound reaches sound_range tiles, as its JSON says or one by default.
+		if(route?.muffles_sound())
+			// Muffled under clothes: it fades like a worn vibrator's, and reaches no further than in person or a vibrator.
+			playsound_if_pref(target, sound_cache, 50, sound_vary, min(sound_range - SOUND_RANGE, SILENCED_SOUND_EXTRARANGE), falloff_exponent = 5, pref_to_check = /datum/preference/toggle/erp/sounds)
+		else if (lewd)
+			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE, pref_to_check = /datum/preference/toggle/erp/sounds)
 		else
-			playsound(target.loc, sound_cache, 50, sound_vary, max(0, -SOUND_RANGE + sound_range))
+			playsound(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE)
 
 	INVOKE_ASYNC(src, PROC_REF(apply_effects), WEAKREF(user), WEAKREF(target), route)
 	return TRUE

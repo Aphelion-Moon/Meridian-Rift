@@ -28,6 +28,9 @@
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], species)
+	// Fixed body colours, not the random ones a new character rolls: what a comparison meets must not depend on the tests run
+	// before this one. Some translucent colours compose a step further off than same_pixel() allows.
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/tri_color/mutant_colors], list("#4488cc", "#cc4422", "#33aa55"))
 	var/datum/custom_sprite_editor/markings/hardening_test/editor = allocate(/datum/custom_sprite_editor/markings/hardening_test, preferences, BODY_ZONE_CHEST)
 	LAZYSET(preferences.custom_sprite_editors, "markings", editor)
 	return list(editor, allocate(/datum/tgui, mock_client.mob, editor, "CustomMarkingsEditor"))

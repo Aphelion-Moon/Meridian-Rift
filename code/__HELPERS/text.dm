@@ -441,9 +441,18 @@ GLOBAL_LIST_INIT(numerals, list("1","2","3","4","5","6","7","8","9","0"))
 GLOBAL_LIST_INIT(space, list(" "))
 GLOBAL_LIST_INIT(binary, list("0","1"))
 /proc/random_string(length, list/characters)
+	/* APHELION EDIT REMOVAL START
 	. = ""
 	for(var/i in 1 to length)
 		. += pick(characters)
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - One join, not a new string per character
+	// Still one pick() per character, in order, so a seed draws the same text as before.
+	var/list/picked = list()
+	for(var/i in 1 to length)
+		picked += pick(characters)
+	return jointext(picked, "")
+	// APHELION EDIT ADDITION END
 
 /proc/repeat_string(times, string="")
 	. = ""

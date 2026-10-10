@@ -74,8 +74,10 @@
   background-repeat: repeat-y;
   image-rendering: pixelated;
 
-  // Flush on the tile, with no inline descender gap, and shrinking to fit a narrow window.
-  img {
+  // Flush on the tile, with no inline descender gap, and shrinking to fit a narrow window. With the
+  // lights off, the picture is a canvas the page lights itself.
+  img,
+  canvas {
     display: block;
     max-width: 100%;
     height: auto;
@@ -86,7 +88,8 @@
 .CustomSpriteEditor__tile--half {
   overflow: hidden;
 
-  img {
+  img,
+  canvas {
     max-width: none;
   }
 }

@@ -13,6 +13,10 @@
 /datum/bodypart_overlay/mutant/tail/get_global_feature_list()
 	return SSaccessories.sprite_accessories[FEATURE_TAIL]
 
+/// Infusion fish tails roll and restyle from the fish tails only; every Nova tail has no fish_tail states.
+/datum/bodypart_overlay/mutant/tail/fish/get_global_feature_list()
+	return SSaccessories.feature_list[FEATURE_TAIL_FISH]
+
 /datum/bodypart_overlay/mutant/tail/override_color(rgb_value)
 	return draw_color
 

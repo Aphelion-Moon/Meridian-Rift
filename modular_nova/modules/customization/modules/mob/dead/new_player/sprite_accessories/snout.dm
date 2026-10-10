@@ -84,6 +84,17 @@
 	factual = FALSE
 	natural_spawn = FALSE
 
+// TG Cerulean fish snout, which is tg's own Round + Light sprite
+/datum/sprite_accessory/snouts/fish
+	name = "Fish"
+	icon = 'icons/mob/human/species/lizard/lizard_misc.dmi'
+	icon_state = "roundlight"
+	recommended_species = list(
+		SPECIES_AKULA = 1,
+		SPECIES_AQUATIC = 1,
+		SPECIES_CERULEAN = 1,
+	)
+
 /datum/sprite_accessory/snouts/mammal
 	icon = 'modular_nova/master_files/icons/mob/sprite_accessory/snouts.dmi'
 	color_src = USE_MATRIXED_COLORS
