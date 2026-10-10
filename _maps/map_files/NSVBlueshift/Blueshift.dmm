@@ -748,10 +748,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 6
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -5272,10 +5269,7 @@
 /area/station/maintenance/port/fore)
 "beZ" = (
 /obj/item/beacon,
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -19874,10 +19868,7 @@
 /area/station/common/night_club)
 "dZA" = (
 /obj/effect/turf_decal/siding/thinplating/dark,
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -32764,10 +32755,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 5
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -33226,10 +33214,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 10
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -77851,10 +77836,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 4
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -82227,10 +82209,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 1
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -103415,10 +103394,7 @@
 /turf/open/floor/iron/dark,
 /area/station/security/interrogation)
 "uNl" = (
-/turf/open/floor/iron/stairs{
-	icon_state = "stairs_wood";
-	icon = 'icons/obj/stairs.dmi'
-	},
+/turf/open/floor/iron/stairs/wood,
 /area/station/common/pool)
 "uNn" = (
 /obj/effect/landmark/start/hangover,
@@ -110293,10 +110269,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 8
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)
@@ -119125,10 +119098,7 @@
 /obj/effect/turf_decal/siding/thinplating/dark{
 	dir = 9
 	},
-/turf/open/indestructible{
-	base_icon_state = "reinf_glass";
-	icon = 'icons/turf/floors/reinf_glass.dmi';
-	icon_state = "reinf_glass-0";
+/turf/open/indestructible/reinforced_glass{
 	name = "Ultra Reinforced Glass Floor"
 	},
 /area/station/ai/satellite/interior)

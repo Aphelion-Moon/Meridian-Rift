@@ -28087,10 +28087,7 @@
 /area/station/hallway/secondary/exit/departure_lounge)
 "gmQ" = (
 /obj/effect/spawner/liquids_spawner/shoulders,
-/turf/open/floor/iron/pool{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "bcircuit"
-	},
+/turf/open/floor/iron/pool/bcircuit,
 /area/station/ai/upload/chamber)
 "gmS" = (
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4{
@@ -29723,10 +29720,7 @@
 /area/station/science/ordnance/testlab)
 "gWy" = (
 /obj/effect/spawner/liquids_spawner/shoulders,
-/turf/open/floor/iron/pool{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "bcircuit"
-	},
+/turf/open/floor/iron/pool/bcircuit,
 /area/station/ai/satellite/foyer)
 "gWz" = (
 /obj/structure/disposalpipe/segment,
@@ -31280,10 +31274,7 @@
 /area/station/hallway/primary/central/fore)
 "hGZ" = (
 /obj/effect/spawner/liquids_spawner/shoulders,
-/turf/open/floor/iron/pool{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "bcircuit"
-	},
+/turf/open/floor/iron/pool/bcircuit,
 /area/station/ai/satellite/equipment)
 "hHa" = (
 /obj/effect/mapping_helpers/airlock/access/any/science/minisat,
@@ -34067,10 +34058,7 @@
 /area/station/hallway/primary/aft)
 "iUF" = (
 /obj/effect/spawner/liquids_spawner/shoulders,
-/turf/open/floor/iron/pool{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "bcircuit"
-	},
+/turf/open/floor/iron/pool/bcircuit,
 /area/station/ai/satellite/chamber)
 "iUU" = (
 /obj/effect/turf_decal/siding/wood{

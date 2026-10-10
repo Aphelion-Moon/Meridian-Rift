@@ -72,6 +72,17 @@
 /turf/open/floor/iron/shuttle/ferry/airless
 	initial_gas_mix = AIRLESS_ATMOS
 
+/turf/open/floor/iron/shuttle/ferry/edged
+	icon_state = "floor"
+
+/turf/open/floor/iron/shuttle/ferry/outlined
+	icon_state = "sign_1"
+	base_icon_state = "sign_1"
+
+/turf/open/floor/iron/shuttle/ferry/hazard
+	icon_state = "sign_2"
+	base_icon_state = "sign_2"
+
 /*
  *	EVAC
  */
@@ -92,6 +103,10 @@
 /turf/open/floor/iron/shuttle/evac/airless
 	initial_gas_mix = AIRLESS_ATMOS
 
+/turf/open/floor/iron/shuttle/evac/security
+	icon_state = "floorsec2"
+	base_icon_state = "floorsec2"
+
 /*
  *	ARRIVALS
  */
@@ -111,6 +126,18 @@
 
 /turf/open/floor/iron/shuttle/arrivals/airless
 	initial_gas_mix = AIRLESS_ATMOS
+
+/turf/open/floor/iron/shuttle/arrivals/hazard
+	icon_state = "sign_1"
+	base_icon_state = "sign_1"
+
+/turf/open/floor/iron/shuttle/arrivals/arrow
+	icon_state = "sign_2"
+	base_icon_state = "sign_2"
+
+/turf/open/floor/iron/shuttle/arrivals/wheelchair
+	icon_state = "sign_3"
+	base_icon_state = "sign_3"
 
 /*
  *	CARGO

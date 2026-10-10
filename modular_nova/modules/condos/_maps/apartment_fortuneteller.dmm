@@ -10,10 +10,8 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/siding/wood,
-/turf/open/floor/iron/stairs{
-	dir = 8;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 8
 	},
 /area/misc/condo)
 "bj" = (
@@ -183,10 +181,8 @@
 	dir = 4
 	},
 /obj/effect/turf_decal/siding/wideplating/dark/corner,
-/turf/open/floor/iron/stairs{
-	dir = 1;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 1
 	},
 /area/misc/condo)
 "dS" = (
@@ -200,10 +196,8 @@
 	dir = 1
 	},
 /obj/effect/turf_decal/siding/wood,
-/turf/open/floor/iron/stairs{
-	dir = 4;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 4
 	},
 /area/misc/condo)
 "ef" = (
@@ -219,10 +213,8 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 4
 	},
-/turf/open/floor/iron/stairs{
-	dir = 1;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 1
 	},
 /area/misc/condo)
 "eA" = (
@@ -261,10 +253,7 @@
 /turf/closed/indestructible/stone,
 /area/misc/condo)
 "gd" = (
-/turf/open/floor/iron/stairs{
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
-	},
+/turf/open/floor/iron/stairs/wood,
 /area/misc/condo)
 "gD" = (
 /obj/effect/turf_decal/siding/thinplating/dark{
@@ -277,10 +266,7 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 8
 	},
-/turf/open/floor/iron/stairs{
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
-	},
+/turf/open/floor/iron/stairs/wood,
 /area/misc/condo)
 "hH" = (
 /obj/effect/turf_decal/siding/wideplating_new/light/end{
@@ -342,17 +328,13 @@
 /obj/effect/turf_decal/siding/wideplating/dark/corner{
 	dir = 8
 	},
-/turf/open/floor/iron/stairs{
-	dir = 1;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 1
 	},
 /area/misc/condo)
 "ja" = (
-/turf/open/floor/iron/stairs{
-	dir = 1;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 1
 	},
 /area/misc/condo)
 "jy" = (
@@ -557,10 +539,8 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
 	},
-/turf/open/floor/iron/stairs{
-	dir = 8;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 8
 	},
 /area/misc/condo)
 "qp" = (
@@ -588,10 +568,7 @@
 	pixel_y = 1
 	},
 /obj/effect/decal/cleanable/glitter,
-/turf/open/floor/iron/stairs{
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
-	},
+/turf/open/floor/iron/stairs/wood,
 /area/misc/condo)
 "rn" = (
 /obj/structure/decorative{
@@ -877,10 +854,8 @@
 	dir = 8
 	},
 /obj/effect/turf_decal/siding/wideplating/dark/corner,
-/turf/open/floor/iron/stairs{
-	dir = 4;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 4
 	},
 /area/misc/condo)
 "xI" = (
@@ -911,10 +886,8 @@
 /turf/open/floor/iron/dark/smooth_large,
 /area/misc/condo)
 "ya" = (
-/turf/open/floor/iron/stairs{
-	dir = 8;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 8
 	},
 /area/misc/condo)
 "yE" = (
@@ -929,10 +902,8 @@
 	},
 /obj/structure/wargame_hologram/dust,
 /obj/effect/decal/cleanable/glitter,
-/turf/open/floor/iron/stairs{
-	dir = 4;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 4
 	},
 /area/misc/condo)
 "yV" = (
@@ -944,10 +915,8 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 1
 	},
-/turf/open/floor/iron/stairs{
-	dir = 4;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 4
 	},
 /area/misc/condo)
 "yY" = (
@@ -1117,10 +1086,7 @@
 /obj/effect/turf_decal/siding/wideplating/dark/corner{
 	dir = 8
 	},
-/turf/open/floor/iron/stairs{
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
-	},
+/turf/open/floor/iron/stairs/wood,
 /area/misc/condo)
 "HP" = (
 /obj/effect/turf_decal/siding/wood{
@@ -1175,10 +1141,8 @@
 	dir = 8
 	},
 /obj/effect/turf_decal/siding/wideplating/dark/corner,
-/turf/open/floor/iron/stairs{
-	dir = 8;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 8
 	},
 /area/misc/condo)
 "IM" = (
@@ -1346,17 +1310,13 @@
 	pixel_y = -9
 	},
 /obj/effect/decal/cleanable/glitter,
-/turf/open/floor/iron/stairs{
-	dir = 8;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 8
 	},
 /area/misc/condo)
 "MI" = (
-/turf/open/floor/iron/stairs{
-	dir = 4;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 4
 	},
 /area/misc/condo)
 "Nf" = (
@@ -1561,10 +1521,8 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 8
 	},
-/turf/open/floor/iron/stairs{
-	dir = 1;
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
+/turf/open/floor/iron/stairs/wood{
+	dir = 1
 	},
 /area/misc/condo)
 "Up" = (
@@ -1803,10 +1761,7 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 4
 	},
-/turf/open/floor/iron/stairs{
-	icon = 'icons/obj/stairs.dmi';
-	icon_state = "stairs_wood"
-	},
+/turf/open/floor/iron/stairs/wood,
 /area/misc/condo)
 "ZW" = (
 /obj/structure/decorative{
