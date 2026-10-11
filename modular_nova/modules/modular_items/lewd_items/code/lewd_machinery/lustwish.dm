@@ -133,6 +133,7 @@
 				//hands
 				/obj/item/clothing/gloves/ball_mittens = 8,
 				/obj/item/clothing/gloves/ball_mittens/paw_mittens = 8,
+				/obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws = 5,
 
 				//chastity
 				/obj/item/clothing/sextoy/chastity = 6,

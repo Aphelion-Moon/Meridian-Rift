@@ -419,6 +419,7 @@
 #include "~nova\mod_accessories.dm"
 #include "~nova\neuroware_chips.dm"
 #include "~nova\opposing_force.dm"
+#include "~nova\paw_mittens_mood.dm"
 #include "~nova\pecs.dm"
 #include "~nova\portal_test_helpers.dm"
 #include "~nova\preference_apply_page.dm"

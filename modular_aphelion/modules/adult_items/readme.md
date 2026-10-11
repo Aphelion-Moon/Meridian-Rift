@@ -45,23 +45,38 @@ neighbours.
   of its wearer's parts and leaves a taur's body in sight: paw, hoof and snake taurs wear it cropped, and big-legged
   taurs wear the plain sprite. LustWish, the under loadout and the Grimoire Libidine NIFSoft offer it beside the
   catsuit.
+- **Paw mood and cat paws** (in Nova's `lewd_gloves.dm`). Worn as gloves, Nova's paw mittens put their wearer in the
+  paw mood ("So-ft... Ro-und... Use-less... Lo-ve it!"), which goes when they come off. The cat paws
+  (`/obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws`) are paw mittens of a bigger, rounder shape, with toe
+  beans and a tag at the cuff, coloured in three parts through a GAGS template of their own; they restrain as the
+  mittens do and bring the paw mood too. LustWish sells them beside the paw mittens, and the Erotic loadout offers
+  both kinds beside the ball mittens. The sex-toy preference guards both as it guards the ball mittens - the paw
+  mittens had slipped past it - and Nova's ball-mittens stanza removes them with the lewd-items config.
 
 ### TG Proc/File Changes:
 
 - `icons/map_icons/clothing/shoes.dmi`: the pointe boots' map icon, as `SSgreyscale_previews` generates it.
+- `icons/map_icons/clothing/_clothing.dmi`: the cat paws' map icon, as `SSgreyscale_previews` generates it.
 
 ### Modular Overrides:
 
+- `modular_nova/modules/GAGS/nsfw/gloves.dm` and
+  `modular_nova/modules/GAGS/nsfw/json_configs/clothing/gloves/cat_paws.json` (new): the cat paws' GAGS configs,
+  after the paw mittens'.
 - `modular_nova/modules/GAGS/nsfw/shoes.dm` and
   `modular_nova/modules/GAGS/nsfw/json_configs/clothing/shoes/pointe_boots.json` (new): the pointe boots' GAGS
   configs, after the ballet heel's.
-- `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box and the condom box in
-  the Erotic loadout.
+- `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box, the condom box, the
+  paw mittens and the cat paws in the Erotic loadout.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_shoes.dm`: the pointe boots in the shoes loadout.
 - `modular_nova/modules/loadouts/loadout_items/under/loadout_datum_under.dm`: the latex half-catsuit in the under
   loadout, after the catsuit.
 - `modular_nova/modules/modular_implants/code/nifsofts/dorms.dm`: the pointe boots and the latex half-catsuit in the
   Grimoire Libidine NIFSoft.
+- `modular_nova/modules/modular_items/lewd_items/code/clothing_pref_check.dm`: Nova's paw mittens and the cat paws
+  in the sex-toy preference check.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_gloves.dm`: the paw mood on the paw
+  mittens, and the cat paws.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`: the pointe boots.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/_erp_disabled_item_enforcement.dm`: `Initialize()`
   of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd`,
@@ -70,7 +85,10 @@ neighbours.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
-  condom box, the bluespace fleshlight, the pointe boots and the latex half-catsuit in the LustWish stock.
+  condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit and the cat paws in the LustWish
+  stock.
+- `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_gloves.dmi`: the cat paws'
+  greyscale template, states `catpaws`, `catpaws-pawpad` and `catpaws-tag`, after the existing states.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_shoes.dmi` and
   `modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi`: the pointe boots'
   greyscale template, state `pointe_boots`, after the existing states.
@@ -88,6 +106,7 @@ neighbours.
 - `code/modules/unit_tests/~nova/bluespace_fleshlight.dm`: the bluespace fleshlight's unit test.
 - `code/modules/unit_tests/~nova/leash_line.dm`: the leash line's unit test.
 - `code/modules/unit_tests/~nova/latex_halfcatsuit.dm`: the latex half-catsuit's unit test.
+- `code/modules/unit_tests/~nova/paw_mittens_mood.dm`: the paw mood's unit test.
 
 ### Credits:
 
@@ -193,3 +212,22 @@ neighbours.
     which never drew and which #4913 cut from Nova's catsuit; the drag-and-drop plug, as a worn uniform cannot be
     dragged off here; and the 64x32 taur sheet, drawn for Bubberstation's big-legged taurs (`worn_icon_taur_big` at
     the pin), who here wear the plain sprite.
+- **Paw mood and cat paws.**
+  - Code and text from S.P.L.U.R.T-tg's
+    `modular_skyrat/modules/modular_items/lewd_items/code/lewd_clothing/lewd_gloves.dm` (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026),
+    where the cat paws are the ball mittens' "Cat Paws" skin and its `loadout_paw` subtype - NanoCats' work for
+    Bubberstation ([PR #5664](https://github.com/Bubberstation/Bubberstation/pull/5664), "Ball Mittens: Expanded and
+    Enhanced"), merged upstream into S.P.L.U.R.T-tg as
+    [`4f36062120`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/commit/4f36062120a254b92b651abc94dcbd97f133e06f).
+  - Sprites credited to Onule in the same PR, which redrew the GAGS layers of the cat gloves theselfish added to
+    Bubberstation ([PR #4692](https://github.com/Bubberstation/Bubberstation/pull/4692); its code calls them
+    "seemingly by Taomayo of MonkeStation"), CC BY-SA 3.0. Taken from states `catglove`, `catglove_paws` and
+    `catgloves_tag` of `modular_skyrat/modules/GAGS/icons/catglove{,_worn}.dmi` at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+  - Modified: their own GAGS type, a child of Nova's paw mittens, named cat paws where S.P.L.U.R.T's were latex paw
+    mittens. Not a reskin of the ball mittens, so they stay Nova's full restraint and players colour them as any
+    GAGS item, without the skin's own spray-paint menu. No accent light: its switch, a link in the examine text,
+    checked only that the paws were worn, so under Nova's full restraint it would either slip the restraint or never
+    work. The three states renamed for Nova's sheets and their greys moved onto the paw mittens' ramp, the worn tag
+    a plain state where S.P.L.U.R.T's was a movement state. The paw mood's text without its trailing line break.
