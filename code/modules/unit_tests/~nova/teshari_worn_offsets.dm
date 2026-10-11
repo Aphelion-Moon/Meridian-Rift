@@ -83,3 +83,37 @@
 		var/datum/worn_feature_offset/worn_offset = offset
 		offsets[feature_key] = list(worn_offset.offset_x, worn_offset.offset_y)
 	return json_encode(offsets)
+
+/**
+ * A Teshari whose head is not drawn in a Teshari's shape - the generic cyborg head, or another species' head by surgery -
+ * wears snouted gear from the human sprites, as that head's own species would, while their own head still has it shifted
+ * to fit.
+ */
+/datum/unit_test/teshari_worn_offsets/other_heads
+
+/datum/unit_test/teshari_worn_offsets/other_heads/Run()
+	// The report - a snouted mask with no Teshari sprite, on the generic cyborg head, read an offset that head does not have
+	TEST_ASSERT_EQUAL(drawn_as_human(/datum/augment_item/limb/head/cyborg::path, /obj/item/clothing/mask/balaclava, ITEM_SLOT_MASK, FACEMASK_LAYER, 'icons/mob/clothing/mask.dmi', SNOUTED_MASK_FILE), TRUE, "A balaclava on a Teshari's cyborg head must be drawn as on a human's")
+	// Another species' head has offsets of its own, which must not shift a sprite made for a Teshari's head
+	TEST_ASSERT_EQUAL(drawn_as_human(/obj/item/bodypart/head/mutant/vox, /obj/item/clothing/head/utility/beekeeper_head, ITEM_SLOT_HEAD, HEAD_LAYER, 'icons/mob/clothing/head/default.dmi', SNOUTED_HEAD_FILE), TRUE, "A beekeeper hat on a Teshari's Vox head must be drawn from the human sprites, as on a Vox's")
+	TEST_ASSERT_EQUAL(drawn_as_human(null, /obj/item/clothing/mask/gas/sechailer, ITEM_SLOT_MASK, FACEMASK_LAYER, 'icons/mob/clothing/mask.dmi', SNOUTED_MASK_FILE), FALSE, "A sechailer on a Teshari's own head must be drawn shifted to fit it")
+
+/**
+ * Dresses a new Teshari, on a head of the given type if one is given, in a new item - TRUE when it is drawn from the human
+ * sprites, plain or snouted, FALSE when from one made for a Teshari, null when it is not drawn
+ */
+/datum/unit_test/teshari_worn_offsets/proc/drawn_as_human(obj/item/bodypart/head/head_type, obj/item/gear_type, slot, layer, plain_file, snouted_file)
+	var/mob/living/carbon/human/consistent/bird = allocate(/mob/living/carbon/human/consistent)
+	bird.set_species(/datum/species/teshari)
+	if(head_type)
+		var/obj/item/bodypart/head/head = put_on(bird, head_type)
+		if(head.owner != bird)
+			TEST_FAIL("[head_type] must replace a Teshari's own head")
+			return
+	var/obj/item/gear = allocate(gear_type)
+	if(!bird.equip_to_slot_if_possible(gear, slot))
+		TEST_FAIL("A Teshari must be able to wear [gear]")
+		return
+	var/mutable_appearance/drawn = drawn_on(bird, layer)
+	if(drawn)
+		return drawn.icon == (gear.worn_icon || plain_file) || drawn.icon == (gear.worn_icon_muzzled || snouted_file)
