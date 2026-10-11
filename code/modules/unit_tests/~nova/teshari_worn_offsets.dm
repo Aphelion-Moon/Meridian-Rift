@@ -1,5 +1,5 @@
 /**
- * A Teshari's raptoral prosthetics are drawn in her own shape, so what she wears and holds sits on them as it does on her
+ * Raptoral prosthetics are drawn in a Teshari's own shape, so what a Teshari wears and holds sits on them as on their
  * own limbs - whether they were put on as a spawning character's augments are, or attached by surgery.
  */
 /datum/unit_test/teshari_worn_offsets
@@ -30,10 +30,12 @@
 	TEST_ASSERT_EQUAL(on_cybernetic_head.pixel_z, own_head_y, "A headset must sit as low on a raptoral cybernetic head as on a Teshari's own")
 
 	// Every raptoral limb the augment preferences offer
+	var/augments_checked = 0
 	for(var/augment_path, augment_instance in GLOB.augment_items)
 		var/datum/augment_item/limb/augment = augment_instance
 		if(!istype(augment) || !LAZYACCESS(augment.species_whitelist, SPECIES_TESHARI))
 			continue
+		augments_checked++
 		var/obj/item/bodypart/limb = put_on(bird, augment.path)
 		if(limb.owner != bird)
 			TEST_FAIL("[augment.path] from the augment preferences must replace a Teshari's [limb.body_zone]")
@@ -41,6 +43,7 @@
 		var/limb_offsets = offsets_text(limb)
 		if(limb_offsets != own_offsets[limb.body_zone])
 			TEST_FAIL("[augment.path] from the augment preferences carries the worn offsets [limb_offsets], not a Teshari's own [limb.body_zone]'s [own_offsets[limb.body_zone]]")
+	TEST_ASSERT_EQUAL(augments_checked, 10, "The augment preferences must offer a Teshari ten raptoral limbs to check - if they offer more or fewer now, count them again")
 
 	// The advanced raptoral forelimbs, which only surgery attaches
 	for(var/obj/item/bodypart/arm/forelimb_type as anything in list(/obj/item/bodypart/arm/left/robot/teshari_advanced, /obj/item/bodypart/arm/right/robot/teshari_advanced))
