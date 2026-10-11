@@ -27,6 +27,7 @@
 	icon_static = 'modular_nova/modules/tesh_augments/icons/augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	unarmed_damage_low = TESHARI_PUNCH_LOW
 	unarmed_damage_high = TESHARI_PUNCH_HIGH
@@ -42,6 +43,7 @@
 	icon = 'modular_nova/modules/tesh_augments/icons/augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	unarmed_damage_low = TESHARI_PUNCH_LOW
 	unarmed_damage_high = TESHARI_PUNCH_HIGH
@@ -89,6 +91,7 @@
 	icon = 'modular_nova/modules/tesh_augments/icons/augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	brute_modifier = 1
 	burn_modifier = 0.9
@@ -103,6 +106,7 @@
 	icon = 'modular_nova/modules/tesh_augments/icons/augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	unarmed_damage_low = TESHARI_PUNCH_LOW
 	unarmed_damage_high = TESHARI_PUNCH_HIGH
@@ -123,6 +127,7 @@
 	icon = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 0.3
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 0.5
@@ -142,6 +147,7 @@
 	icon = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 0.3
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 0.5
@@ -284,6 +290,7 @@
 	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
@@ -304,6 +311,7 @@
 	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
 	limb_id = BODYPART_ID_TESH_ROBOTIC
+	worn_offsets_species = /datum/species/teshari
 
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3

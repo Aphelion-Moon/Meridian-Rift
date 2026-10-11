@@ -430,6 +430,7 @@
 #include "~nova\symphony_moderation.dm"
 #include "~nova\symphony_whitelist.dm"
 #include "~nova\taur_tails.dm"
+#include "~nova\teshari_worn_offsets.dm"
 #include "~nova\world_topic_log_redaction.dm"
 #include "~nova\custom_sprites\appearance.dm"
 #include "~nova\custom_sprites\codec.dm"

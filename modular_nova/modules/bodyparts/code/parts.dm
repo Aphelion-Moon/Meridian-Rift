@@ -1,3 +1,7 @@
+/obj/item/bodypart
+	/// The species whose worn offsets this limb carries, for a limb drawn in that species' shape whoever made it - see [/datum/species/proc/add_worn_offsets]
+	var/datum/species/worn_offsets_species
+
 /obj/item/bodypart/chest
 	/// The offset datum for our accessory overlay.
 	var/datum/worn_feature_offset/worn_accessory_offset
