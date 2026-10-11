@@ -381,6 +381,7 @@
 #include "~nova\adult_items_kill_switch.dm"
 #include "~nova\augment_items.dm"
 #include "~nova\automapper.dm"
+#include "~nova\bluespace_fleshlight.dm"
 #include "~nova\body_hair.dm"
 #include "~nova\body_marking_art.dm"
 #include "~nova\body_marking_collection.dm"
