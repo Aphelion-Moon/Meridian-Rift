@@ -408,6 +408,7 @@
 #include "~nova\condom_box.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
+#include "~nova\involuntary_climax.dm"
 #include "~nova\language_understanding.dm"
 #include "~nova\latex_halfcatsuit.dm"
 #include "~nova\leash_line.dm"

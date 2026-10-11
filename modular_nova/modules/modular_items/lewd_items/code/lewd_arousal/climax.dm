@@ -86,7 +86,10 @@
 		return null
 	return partner_human
 
+/// Never makes its caller wait - adjust_pleasure() climaxes from Life(), process() and status effects, which must not
+/// sleep, and a climax can stop to ask where to finish. Its caller then gets null, and it ends when the player answers.
 /mob/living/carbon/human/proc/climax(manual = TRUE)
+	set waitfor = FALSE
 	if (CONFIG_GET(flag/disable_erp_preferences))
 		return
 
