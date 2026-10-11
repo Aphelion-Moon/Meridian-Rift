@@ -58,8 +58,8 @@
 	SIGNAL_HANDLER
 	if(isturf(exiting))
 		vacate_turf(source, exiting)
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /**
  * Adds the movable to the list of movables with the element occupying the turf.
  * If the turf was not on the list of occupied turfs before, a signal will be registered
