@@ -7371,6 +7371,7 @@
 #include "modular_aphelion\modules\admin_tech\code\legacy.dm"
 #include "modular_aphelion\modules\adult_items\code\_gated_types.dm"
 #include "modular_aphelion\modules\adult_items\code\condom_box.dm"
+#include "modular_aphelion\modules\adult_items\code\latex_halfcatsuit.dm"
 #include "modular_aphelion\modules\adult_items\code\medipens.dm"
 #include "modular_aphelion\modules\body_hair\code\body_hair.dm"
 #include "modular_aphelion\modules\body_hair\code\body_hair_prefs.dm"
