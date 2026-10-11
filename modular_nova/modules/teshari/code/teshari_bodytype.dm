@@ -1,6 +1,3 @@
-#define MASK_SNOUT_EXTRA_OFFSET_X 1
-#define MASK_SNOUT_EXTRA_OFFSET_Y 1
-
 /obj/item
 	var/datum/greyscale_config/greyscale_config_worn_teshari_fallback
 	var/datum/greyscale_config/greyscale_config_worn_teshari_fallback_skirt
@@ -41,6 +38,11 @@
 			human_icon = item.worn_icon_muzzled || SNOUTED_MASK_FILE
 			selected_offset = my_head?.worn_mask_offset
 
+		// Only a head drawn in a Teshari's shape holds gear where its offsets put it - any other wears the human sprite as its
+		// own species would, and leaves the cache below to Teshari-shaped heads
+		if(my_head?.worn_offsets_species != /datum/species/teshari)
+			return
+
 		//#ifdef UNIT_TESTS - TODO - Unit test supports_variations_flags
 		// Did the snout variation flag lie to us?
 		if(!icon_exists(human_icon, human_icon_state))
@@ -60,6 +62,3 @@
 		new_icon = fcopy_rsc(new_icon)
 		set_custom_worn_icon_cached(human_icon, human_icon_state, "m", new_icon)
 		return new_icon
-
-#undef MASK_SNOUT_EXTRA_OFFSET_X
-#undef MASK_SNOUT_EXTRA_OFFSET_Y
