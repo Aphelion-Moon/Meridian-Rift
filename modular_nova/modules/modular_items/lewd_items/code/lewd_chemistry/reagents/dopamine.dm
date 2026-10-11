@@ -34,6 +34,9 @@
 
 /datum/reagent/drug/aphrodisiac/dopamine/overdose_start(mob/living/carbon/human/exposed_mob, metabolization_ratio)
 	. = ..()
+	var/datum/client_interface/player = GET_CLIENT(exposed_mob)
+	if(!player?.prefs?.read_preference(overdose_pref_datum))
+		return
 	to_chat(exposed_mob, span_purple("You feel so happy!"))
 	exposed_mob.add_mood_event("[type]_overdose", /datum/mood_event/overgasm, name)
 

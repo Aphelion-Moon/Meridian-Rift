@@ -52,6 +52,13 @@ neighbours.
   mittens do and bring the paw mood too. LustWish sells them beside the paw mittens, and the Erotic loadout offers
   both kinds beside the ball mittens. The sex-toy preference guards both as it guards the ball mittens - the paw
   mittens had slipped past it - and Nova's ball-mittens stanza removes them with the lewd-items config.
+- **R.U.T.T.** (`code/rutt.dm`). `/datum/reagent/drug/aphrodisiac/rutt` is an aphrodisiac far stronger than
+  hexacrocin, behind the aphrodisiac preference as crocin is: it arouses after ten cycles and brings pleasure that
+  climbs to 15 a cycle after twenty-five; from the forty-fifth its taker drools, shivers and twitches, and now and
+  then climaxes, if they let their body climax on its own. It mixes from crocin, dopamine, femcum and epinephrine at
+  322 K, and dopamine, which only a climax made before, mixes from diethylamine, ephedrine, hydrogen and phenol at
+  373 K; the ERP config removes both reactions, as it does Nova's. Once hacked, LustWish sells its bottle and its
+  pill, which looks like the dopamine pill, beside the hexacrocin; the Erotic loadout offers both.
 
 ### TG Proc/File Changes:
 
@@ -67,7 +74,7 @@ neighbours.
   `modular_nova/modules/GAGS/nsfw/json_configs/clothing/shoes/pointe_boots.json` (new): the pointe boots' GAGS
   configs, after the ballet heel's.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box, the condom box, the
-  paw mittens and the cat paws in the Erotic loadout.
+  paw mittens, the cat paws and R.U.T.T. in the Erotic loadout.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_shoes.dm`: the pointe boots in the shoes loadout.
 - `modular_nova/modules/loadouts/loadout_items/under/loadout_datum_under.dm`: the latex half-catsuit in the under
   loadout, after the catsuit.
@@ -75,18 +82,22 @@ neighbours.
   Grimoire Libidine NIFSoft.
 - `modular_nova/modules/modular_items/lewd_items/code/clothing_pref_check.dm`: Nova's paw mittens and the cat paws
   in the sex-toy preference check.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_chemistry/reagents/dopamine.dm`: a dopamine overdose's
+  happy message and its mood only for players who take aphrodisiacs, now that anyone can mix enough dopamine to
+  overdose.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_gloves.dm`: the paw mood on the paw
   mittens, and the cat paws.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`: the pointe boots.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/_erp_disabled_item_enforcement.dm`: `Initialize()`
   of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd`,
-  `/obj/item/storage/box/condoms`, `/obj/item/clothing/shoes/ballet_heels/pointe_boots` and
-  `/obj/item/clothing/under/misc/latex_halfcatsuit`.
+  `/obj/item/storage/box/condoms`, `/obj/item/clothing/shoes/ballet_heels/pointe_boots`,
+  `/obj/item/clothing/under/misc/latex_halfcatsuit`, `/obj/item/reagent_containers/cup/bottle/rutt` and
+  `/obj/item/reagent_containers/applicator/pill/rutt`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
-  condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit and the cat paws in the LustWish
-  stock.
+  condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit, the cat paws and R.U.T.T. in the
+  LustWish stock.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_gloves.dmi`: the cat paws'
   greyscale template, states `catpaws`, `catpaws-pawpad` and `catpaws-tag`, after the existing states.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_shoes.dmi` and
@@ -107,6 +118,7 @@ neighbours.
 - `code/modules/unit_tests/~nova/leash_line.dm`: the leash line's unit test.
 - `code/modules/unit_tests/~nova/latex_halfcatsuit.dm`: the latex half-catsuit's unit test.
 - `code/modules/unit_tests/~nova/paw_mittens_mood.dm`: the paw mood's unit test.
+- `code/modules/unit_tests/~nova/lewd_chemistry.dm`: the lewd reagents' unit tests.
 
 ### Credits:
 
@@ -231,3 +243,14 @@ neighbours.
     checked only that the paws were worn, so under Nova's full restraint it would either slip the restraint or never
     work. The three states renamed for Nova's sheets and their greys moved onto the paw mittens' ramp, the worn tag
     a plain state where S.P.L.U.R.T's was a movement state. The paw mood's text without its trailing line break.
+- **R.U.T.T.**
+  - Code and text from S.P.L.U.R.T-tg's `modular_zzplurt/code/modules/lewd/lewd_chemistry/reagents/rutt.dm` and the
+    dopamine reaction in `modular_zzplurt/code/modules/lewd/lewd_chemistry/reagents/dopamine.dm` (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+  - Nothing imported: the bottle is tg's, and the pill wears Nova's `dopamine` pill state.
+  - Modified: its effects run in `life_effects()` behind the aphrodisiac preference, as Nova's crocin's do, in place
+    of S.P.L.U.R.T's own preference checks; the 10u pill is named so, where S.P.L.U.R.T's said 25u; and "You can't
+    stop cumming!" follows only a climax that went through at once, where S.P.L.U.R.T's also followed one the
+    preferences refused. Left out: the flag that let R.U.T.T. be synthesized, which would put it in random pills and
+    the Odysseus' syringe gun (Nova's aphrodisiacs go without it), and S.P.L.U.R.T's new name and description for
+    dopamine, which Nova's own reagent keeps.

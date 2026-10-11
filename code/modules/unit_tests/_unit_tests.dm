@@ -412,6 +412,7 @@
 #include "~nova\language_understanding.dm"
 #include "~nova\latex_halfcatsuit.dm"
 #include "~nova\leash_line.dm"
+#include "~nova\lewd_chemistry.dm"
 #include "~nova\lewd_medipens.dm"
 #include "~nova\limb_marking_cache.dm"
 #include "~nova\limb_markings.dm"
