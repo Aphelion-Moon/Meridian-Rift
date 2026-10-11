@@ -45,8 +45,8 @@
 	SIGNAL_HANDLER
 	if(isturf(exiting))
 		remove_from_occupied_turfs(exiting, source)
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /**
  * Registers the turf signals if it was previously unoccupied and adds it to the list of occupied turfs.
  * Otherwise, it just adds the movable to the assoc value of lists occupying the turf.
