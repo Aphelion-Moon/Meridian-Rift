@@ -7374,6 +7374,7 @@
 #include "modular_aphelion\modules\admin_tech\code\debug_boxes.dm"
 #include "modular_aphelion\modules\admin_tech\code\legacy.dm"
 #include "modular_aphelion\modules\adult_items\code\_gated_types.dm"
+#include "modular_aphelion\modules\adult_items\code\bridle.dm"
 #include "modular_aphelion\modules\adult_items\code\butt_enlarger.dm"
 #include "modular_aphelion\modules\adult_items\code\condom_box.dm"
 #include "modular_aphelion\modules\adult_items\code\latex_halfcatsuit.dm"

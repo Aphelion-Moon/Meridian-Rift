@@ -99,6 +99,7 @@
 				/obj/item/clothing/mask/muzzle/ballgag = 8,
 				/obj/item/clothing/mask/muzzle/ballgag/choking = 8,
 				/obj/item/clothing/mask/muzzle/ring = 4,
+				/obj/item/clothing/mask/bridle = 8,
 				/obj/item/clothing/head/deprivation_helmet = 5,
 				/obj/item/clothing/glasses/blindfold/dorms = 5,
 				/obj/item/clothing/ears/dorms_headphones = 5,

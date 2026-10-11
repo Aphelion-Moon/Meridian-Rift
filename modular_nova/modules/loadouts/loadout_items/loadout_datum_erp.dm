@@ -160,6 +160,10 @@
 	name = "Ring Gag"
 	item_path = /obj/item/clothing/mask/muzzle/ring
 
+/datum/loadout_item/erp/bridle
+	name = "Bridle"
+	item_path = /obj/item/clothing/mask/bridle
+
 /datum/loadout_item/erp/deprivation_helmet
 	name = "Deprivation Helmet"
 	item_path = /obj/item/clothing/head/deprivation_helmet

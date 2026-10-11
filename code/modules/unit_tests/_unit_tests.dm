@@ -390,6 +390,7 @@
 #include "~nova\body_marking_colors.dm"
 #include "~nova\body_marking_fixture.dm"
 #include "~nova\bodypart_dropped_icon.dm"
+#include "~nova\bridle.dm"
 #include "~nova\bulge_and_scent.dm"
 #include "~nova\bulge_colour.dm"
 #include "~nova\bulge_interaction_framework.dm"

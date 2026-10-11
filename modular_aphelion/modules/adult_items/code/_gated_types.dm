@@ -12,5 +12,6 @@
 		/obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws,
 		/obj/item/reagent_containers/cup/bottle/rutt, /obj/item/reagent_containers/applicator/pill/rutt,
 		/obj/item/reagent_containers/cup/bottle/butt_enlarger,
+		/obj/item/clothing/mask/bridle,
 	)
 #endif
