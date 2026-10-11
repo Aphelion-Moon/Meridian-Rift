@@ -81,6 +81,7 @@
 	speed_modifier = -0.1
 
 /// Teshari limbs sit lower and narrower than a human's, and so do the raptoral prosthetics drawn in their shape
+/// An offset the same whichever way they face is one entry, which turning leaves alone
 /datum/species/teshari/add_worn_offsets(obj/item/bodypart/limb)
 	switch(limb.body_zone)
 		if(BODY_ZONE_HEAD)
@@ -88,7 +89,7 @@
 			head.worn_ears_offset = new /datum/worn_feature_offset(
 				attached_part = head,
 				feature_key = OFFSET_EARS,
-				offset_y = list("north" = -4, "south" = -4, "east" = -4, "west" = -4),
+				offset_y = list("south" = -4),
 			)
 			head.worn_head_offset = new /datum/worn_feature_offset(
 				attached_part = head,
@@ -99,19 +100,19 @@
 			head.worn_mask_offset = new /datum/worn_feature_offset(
 				attached_part = head,
 				feature_key = OFFSET_FACEMASK,
-				offset_y = list("north" = -5, "south" = -5, "east" = -5, "west" = -5),
+				offset_y = list("south" = -5),
 			)
 		if(BODY_ZONE_CHEST)
 			var/obj/item/bodypart/chest/chest = limb
 			chest.worn_back_offset = new /datum/worn_feature_offset(
 				attached_part = chest,
 				feature_key = OFFSET_BACK,
-				offset_y = list("north" = -4, "south" = -4, "east" = -4, "west" = -4),
+				offset_y = list("south" = -4),
 			)
 			chest.worn_accessory_offset = new /datum/worn_feature_offset(
 				attached_part = chest,
 				feature_key = OFFSET_ACCESSORY,
-				offset_y = list("north" = -4, "south" = -4, "east" = -4, "west" = -4),
+				offset_y = list("south" = -4),
 			)
 		if(BODY_ZONE_L_ARM)
 			var/obj/item/bodypart/arm/left_arm = limb
