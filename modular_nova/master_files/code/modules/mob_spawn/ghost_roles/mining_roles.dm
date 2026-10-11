@@ -249,7 +249,7 @@
 
 /obj/item/radio/headset/interdyne/Initialize(mapload)
 	. = ..()
-	AddComponent(/datum/component/wearertargeting/earprotection, list(ITEM_SLOT_EARS))
+	AddComponent(/datum/component/wearertargeting/earprotection)
 
 /obj/item/radio/headset/interdyne/command
 	name = "\improper Interdyne command headset"
