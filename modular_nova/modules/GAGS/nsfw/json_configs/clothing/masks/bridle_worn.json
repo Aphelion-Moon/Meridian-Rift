@@ -1,0 +1,42 @@
+{
+	"bridle": [
+		{
+			"type": "icon_state",
+			"icon_state": "bridle_strap",
+			"blend_mode": "overlay",
+			"color_ids": [1]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "bridle_blinders_up",
+			"blend_mode": "overlay",
+			"color_ids": [2]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "bridle_fittings",
+			"blend_mode": "overlay",
+			"color_ids": [3]
+		}
+	],
+	"bridle_blinders": [
+		{
+			"type": "icon_state",
+			"icon_state": "bridle_strap",
+			"blend_mode": "overlay",
+			"color_ids": [1]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "bridle_blinders_down",
+			"blend_mode": "overlay",
+			"color_ids": [2]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "bridle_fittings",
+			"blend_mode": "overlay",
+			"color_ids": [3]
+		}
+	]
+}

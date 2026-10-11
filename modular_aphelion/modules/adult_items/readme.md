@@ -66,11 +66,21 @@ neighbours.
   moves a butt back to its preference size, as it does the other genitals. It mixes from saline-glucose, sugar,
   silicon and crocin; LustWish sells its bottle beside the succubus milk and incubus draft, and the Erotic loadout
   offers it.
+- **Bridle** (`code/bridle.dm`). `/obj/item/clothing/mask/bridle` is a horse bridle that players colour in three parts
+  (straps, blinders and fittings). Lowered, its blinders darken the wearer's sight as a welding mask does; set, its
+  bit covers their mouth and muffles their speech, emotes and spoken spells through tg's `muffles_speech` element. The
+  wearer moves each with an action button, and alt-click steps through none, blinders, bit and both. From the strip
+  menu, a player who takes part in ERP takes that step on a wearer who takes sex toys, in the time it takes to strip a
+  mask; the wearer and onlookers are warned first, and the step is logged. Secured in hand, the straps hold the
+  blinders and the bit where they are. It has muzzled sprites of its own and can't be put on a player who does not
+  take sex toys; LustWish and the Erotic loadout offer it beside the ring gag.
 
 ### TG Proc/File Changes:
 
 - `icons/map_icons/clothing/shoes.dmi`: the pointe boots' map icon, as `SSgreyscale_previews` generates it.
 - `icons/map_icons/clothing/_clothing.dmi`: the cat paws' map icon, as `SSgreyscale_previews` generates it.
+- `icons/map_icons/clothing/mask.dmi`: the bridle's map icon, as `SSgreyscale_previews` generates it.
+- `tgui/packages/tgui/interfaces/StripMenu.tsx`: the strip menu's "Adjust bridle" button.
 
 ### Modular Overrides:
 
@@ -79,18 +89,21 @@ neighbours.
 - `modular_nova/modules/GAGS/nsfw/gloves.dm` and
   `modular_nova/modules/GAGS/nsfw/json_configs/clothing/gloves/cat_paws.json` (new): the cat paws' GAGS configs,
   after the paw mittens'.
+- `modular_nova/modules/GAGS/nsfw/masks.dm`, `modular_nova/modules/GAGS/nsfw/json_configs/clothing/masks/bridle.json`
+  and `modular_nova/modules/GAGS/nsfw/json_configs/clothing/masks/bridle_worn.json` (both new): the bridle's world,
+  worn and muzzled GAGS configs, after the choke gag's.
 - `modular_nova/modules/GAGS/nsfw/shoes.dm` and
   `modular_nova/modules/GAGS/nsfw/json_configs/clothing/shoes/pointe_boots.json` (new): the pointe boots' GAGS
   configs, after the ballet heel's.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box, the condom box, the
-  paw mittens, the cat paws, R.U.T.T. and denbu tincture in the Erotic loadout.
+  paw mittens, the cat paws, R.U.T.T., denbu tincture and the bridle in the Erotic loadout.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_shoes.dm`: the pointe boots in the shoes loadout.
 - `modular_nova/modules/loadouts/loadout_items/under/loadout_datum_under.dm`: the latex half-catsuit in the under
   loadout, after the catsuit.
 - `modular_nova/modules/modular_implants/code/nifsofts/dorms.dm`: the pointe boots and the latex half-catsuit in the
   Grimoire Libidine NIFSoft.
-- `modular_nova/modules/modular_items/lewd_items/code/clothing_pref_check.dm`: Nova's paw mittens and the cat paws
-  in the sex-toy preference check.
+- `modular_nova/modules/modular_items/lewd_items/code/clothing_pref_check.dm`: Nova's paw mittens, the cat paws and
+  the bridle in the sex-toy preference check.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_chemistry/reagents/_aphrodisiac.dm`: the aphrodisiacs'
   preference gates read the player through `GET_CLIENT`, so a unit test's mock player counts.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_chemistry/reagents/camphor.dm`: camphor's overdose moves a
@@ -105,14 +118,19 @@ neighbours.
   of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd`,
   `/obj/item/storage/box/condoms`, `/obj/item/clothing/shoes/ballet_heels/pointe_boots`,
   `/obj/item/clothing/under/misc/latex_halfcatsuit`, `/obj/item/reagent_containers/cup/bottle/rutt`,
-  `/obj/item/reagent_containers/applicator/pill/rutt` and `/obj/item/reagent_containers/cup/bottle/butt_enlarger`.
+  `/obj/item/reagent_containers/applicator/pill/rutt`, `/obj/item/reagent_containers/cup/bottle/butt_enlarger` and
+  `/obj/item/clothing/mask/bridle`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
-  condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit, the cat paws, R.U.T.T. and denbu
-  tincture in the LustWish stock.
+  condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit, the cat paws, R.U.T.T., denbu
+  tincture and the bridle in the LustWish stock.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_gloves.dmi`: the cat paws'
   greyscale template, states `catpaws`, `catpaws-pawpad` and `catpaws-tag`, after the existing states.
+- `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_masks.dmi` and
+  `modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_masks_muzzled.dmi`: the bridle's
+  greyscale template, states `bridle_strap`, `bridle_blinders_up`, `bridle_blinders_down` (worn only) and
+  `bridle_fittings`, after the existing states.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_shoes.dmi` and
   `modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi`: the pointe boots'
   greyscale template, state `pointe_boots`, after the existing states.
@@ -134,6 +152,7 @@ neighbours.
 - `code/modules/unit_tests/~nova/latex_halfcatsuit.dm`: the latex half-catsuit's unit test.
 - `code/modules/unit_tests/~nova/paw_mittens_mood.dm`: the paw mood's unit test.
 - `code/modules/unit_tests/~nova/lewd_chemistry.dm`: the lewd reagents' unit tests.
+- `code/modules/unit_tests/~nova/bridle.dm`: the bridle's unit test.
 
 ### Credits:
 
@@ -285,3 +304,25 @@ neighbours.
     nothing; the strain bruises the chest, where S.P.L.U.R.T's hit a random limb; and the growth message comes once to
     the taker and to onlookers with ERP on. Left out: the butt shrinkage preference and its procs, which nothing in
     S.P.L.U.R.T called.
+- **Bridle.**
+  - Code and text by ibexgoetia for Bubberstation
+    ([PR #5162](https://github.com/Bubberstation/Bubberstation/pull/5162), "Horse bridles"), from S.P.L.U.R.T-tg's
+    `modular_zubbers/code/modules/lewd_machinery/bridle.dm` and its button in
+    `tgui/packages/tgui/interfaces/StripMenu.tsx` (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+  - Sprites by ibexgoetia in the same PR, brought to S.P.L.U.R.T-tg in its upstream update
+    ([PR #813](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/pull/813)), CC BY-SA 3.0. Taken from
+    `modular_zubbers/icons/obj/clothing/mask/mask.dmi` (`bridle`) and
+    `modular_zubbers/icons/mob/clothing/mask/mask.dmi` (`bridle`, `bridle_blinders`) at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+  - Modified: made GAGS in three colours, each state split into layers appended to Nova's `lewd_masks.dmi` pair
+    (`bridle_strap`, `bridle_blinders_up`, `bridle_blinders_down`, `bridle_fittings`), the shapes kept to the pixel
+    and the browns and steels moved onto Nova's template greys. The muzzled worn states in `lewd_masks_muzzled.dmi`
+    are adapted from the plain ones: south and north unchanged, east and west with the cheek ring, drop strap and bit
+    ring 2 px forward along the snout. The bit muffles through tg's `muffles_speech` element, which S.P.L.U.R.T
+    copied, so it also stops spoken spells; S.P.L.U.R.T's pass for horse emotes is left out, as Nova has none. One
+    mode serves the buttons, alt-click and the strip menu, and each move is told once, where some of S.P.L.U.R.T's
+    were told twice. It can't be put on, or adjusted from the strip menu on, a player who does not take sex toys, nor
+    adjusted there by one who does not take part in ERP, which S.P.L.U.R.T did not check; the strip-menu step warns
+    the wearer and onlookers and is logged; and it is in the Erotic loadout, where S.P.L.U.R.T put it in the mask
+    loadout.
