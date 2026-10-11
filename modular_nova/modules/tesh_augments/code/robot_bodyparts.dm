@@ -210,93 +210,12 @@
 
 	biological_state = (BIO_METAL|BIO_JOINTED)
 
-/obj/item/bodypart/arm/left/robot/teshari_surplus
-	name = "prosthetic left raptoral forelimb"
-	desc = "A skeletal, robotic wing. Outdated and fragile, but it's still better than nothing. A layer of membranous feathers hides the cheap assembly."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 0.3
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 0.5
-
-	brute_modifier = 1.25
-	burn_modifier = 1.2
-
-	max_damage = LIMB_MAX_HP_PROSTHESIS
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_PROSTHESIS
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
-
-/obj/item/bodypart/arm/right/robot/teshari_surplus
-	name = "prosthetic right raptoral forelimb"
-	desc = "A skeletal, robotic wing. Outdated and fragile, but it's still better than nothing. A layer of membranous feathers hides the cheap assembly."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 0.3
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 0.5
-
-	brute_modifier = 1.25
-	burn_modifier = 1.2
-
-	max_damage = LIMB_MAX_HP_PROSTHESIS
-
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_PROSTHESIS
-
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
-
-/obj/item/bodypart/leg/left/robot/teshari_surplus
-	name = "prosthetic left raptoral hindlimb"
-	desc = "A skeletal, robotic hindlimb. Outdated and fragile, but it's still better than nothing. A layer of membranous feathers hides the cheap assembly."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 0.3
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 0.5
-
-	brute_modifier = 1.25
-	burn_modifier = 1.2
-	speed_modifier = -0.1
-
-	max_damage = LIMB_MAX_HP_PROSTHESIS
-
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_PROSTHESIS
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
-
-/obj/item/bodypart/leg/right/robot/teshari_surplus
-	name = "prosthetic right raptoral hindlimb"
-	desc = "A skeletal, robotic hindlimb. Outdated and fragile, but it's still better than nothing. A layer of membranous feathers hides the cheap assembly."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/surplus_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 0.3
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 0.5
-
-	brute_modifier = 1.25
-	burn_modifier = 1.2
-	speed_modifier = -0.1
-
-	max_damage = LIMB_MAX_HP_PROSTHESIS
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_PROSTHESIS
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
-
 // teshari_ advanced
 
 /obj/item/bodypart/arm/left/robot/teshari_advanced
 	name = "advanced left raptoral forelimb"
 	keeps_type_name = TRUE
-	desc = "An advanced robotic hindlimb. These designs are usually reserved for those still on the search for Avalon."
+	desc = "An advanced robotic forelimb. These designs are usually reserved for those still on the search for Avalon."
 	icon_static = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
 	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
@@ -306,8 +225,8 @@
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
 
-	brute_modifier = 0.8
-	burn_modifier = 1
+	brute_modifier = 1
+	burn_modifier = 0.9
 
 	max_damage = LIMB_MAX_HP_ADVANCED
 	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
@@ -318,7 +237,7 @@
 /obj/item/bodypart/arm/right/robot/teshari_advanced
 	name = "advanced right raptoral forelimb"
 	keeps_type_name = TRUE
-	desc = "An advanced robotic hindlimb. These designs are usually reserved for those still on the search for Avalon."
+	desc = "An advanced robotic forelimb. These designs are usually reserved for those still on the search for Avalon."
 	icon_static = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
 	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
 	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
@@ -328,8 +247,8 @@
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
 
-	brute_modifier = 0.8
-	burn_modifier = 1
+	brute_modifier = 1
+	burn_modifier = 0.9
 
 	max_damage = LIMB_MAX_HP_ADVANCED
 	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
@@ -349,8 +268,8 @@
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
 
-	brute_modifier = 0.8
-	burn_modifier = 1
+	brute_modifier = 1
+	burn_modifier = 0.9
 	speed_modifier = -0.1
 
 	max_damage = LIMB_MAX_HP_ADVANCED
@@ -371,8 +290,8 @@
 	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
 	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
 
-	brute_modifier = 0.8
-	burn_modifier = 1
+	brute_modifier = 1
+	burn_modifier = 0.9
 	speed_modifier = -0.1
 
 	max_damage = LIMB_MAX_HP_ADVANCED
@@ -380,84 +299,6 @@
 
 	biological_state = (BIO_METAL|BIO_JOINTED)
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 5, /datum/material/titanium = SHEET_MATERIAL_AMOUNT * 3, /datum/material/gold = SHEET_MATERIAL_AMOUNT * 3)
-
-/obj/item/bodypart/arm/left/robot/teshari_advanced
-	name = "advanced left raptoral forelimb"
-	desc = "An advanced robotic hindlimb. These designs are usually reserved for those still on the search for Avalon."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
-
-	brute_modifier = 1
-	burn_modifier = 0.9
-
-	max_damage = LIMB_MAX_HP_ADVANCED
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
-
-/obj/item/bodypart/arm/right/robot/teshari_advanced
-	name = "advanced right raptoral forelimb"
-	desc = "An advanced robotic hindlimb. These designs are usually reserved for those still on the search for Avalon."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
-
-	brute_modifier = 1
-	burn_modifier = 0.9
-
-	max_damage = LIMB_MAX_HP_ADVANCED
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
-
-/obj/item/bodypart/leg/left/robot/teshari_advanced
-	name = "advanced left raptoral hindlimb"
-	desc = "An advanced robotic hindlimb. These designs are usually reserved for those still on the search for Avalon."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
-
-	brute_modifier = 1
-	burn_modifier = 0.9
-	speed_modifier = -0.1
-
-	max_damage = LIMB_MAX_HP_ADVANCED
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
-
-/obj/item/bodypart/leg/right/robot/teshari_advanced
-	name = "advanced right raptoral hindlimb"
-	desc = "An advanced robotic hindlimb. These designs are usually reserved for those still on the search for Avalon."
-	icon_static = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	icon = 'modular_nova/modules/tesh_augments/icons/advanced_augments_teshari.dmi'
-	bodyshape = parent_type::bodyshape | BODYSHAPE_CUSTOM
-	limb_id = BODYPART_ID_TESH_ROBOTIC
-
-	unarmed_damage_low = TESHARI_PUNCH_LOW * 2
-	unarmed_damage_high = TESHARI_PUNCH_HIGH * 3
-
-	brute_modifier = 1
-	burn_modifier = 0.9
-	speed_modifier = -0.1
-
-	max_damage = LIMB_MAX_HP_ADVANCED
-	body_damage_coeff = LIMB_BODY_DAMAGE_COEFFICIENT_ADVANCED
-
-	biological_state = (BIO_METAL|BIO_JOINTED)
 
 #undef ROBOTIC_LIGHT_BRUTE_MSG
 #undef ROBOTIC_MEDIUM_BRUTE_MSG
