@@ -71,8 +71,8 @@
 		unregister_turf(source, old_loc)
 	if(isturf(source.loc) && !HAS_TRAIT_FROM(source.loc, TRAIT_TURF_HAS_ELEVATED_OBJ(pixel_shift), source_ref))
 		register_turf(source, source.loc)
-// APHELION EDIT ADDITION END
 
+// APHELION EDIT ADDITION END
 /// Shuttle movement bypasses ordinary entry/exit
 /datum/element/elevation/proc/on_source_after_shuttle_move(atom/movable/source, turf/old_turf)
 	SIGNAL_HANDLER
