@@ -326,14 +326,11 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	var/pressure = environment.return_pressure()
 	if(environment.return_temperature() >= FIRE_MINIMUM_TEMPERATURE_TO_EXIST || pressure > WARNING_HIGH_PRESSURE)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		return FIRELOCK_ALARM_TYPE_HOT
 	if(environment.get_moles(/datum/gas/antinoblium) > MINIMUM_MOLE_COUNT) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(environment.moles[/datum/gas/antinoblium] > MINIMUM_MOLE_COUNT)
 		return FIRELOCK_ALARM_TYPE_HOT
-	/* // APHELION EDIT REMOVAL START - DOGMOS
-	if(environment.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT || pressure < WARNING_LOW_PRESSURE) //NOVA EDIT CHANGE ADDITION - ORIGINAL: if(environment.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT)
-	*/ // APHELION EDIT REMOVAL END
-	if(environment.return_temperature() <= BODYTEMP_COLD_DAMAGE_LIMIT || pressure < WARNING_LOW_PRESSURE) // APHELION EDIT ADDITION - DOGMOS
+	if(environment.return_temperature() <= BODYTEMP_COLD_DAMAGE_LIMIT || pressure < WARNING_LOW_PRESSURE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(environment.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT || pressure < WARNING_LOW_PRESSURE) //NOVA EDIT CHANGE ADDITION - ORIGINAL: if(environment.temperature <= BODYTEMP_COLD_DAMAGE_LIMIT)
 		return FIRELOCK_ALARM_TYPE_COLD
 	return
 

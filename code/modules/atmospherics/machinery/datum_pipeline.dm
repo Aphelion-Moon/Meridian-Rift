@@ -225,7 +225,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		member.air_temporary = new(member.volume)
 		member.air_temporary.equalize_with(air)
-// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 /datum/pipeline/proc/temperature_interact(turf/target, share_volume, thermal_conductivity)
 	var/total_heat_capacity = air.heat_capacity()
@@ -369,7 +369,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	for(var/datum/gas/gas_path as anything in air.get_gases())
 		var/gas_weight = air.get_moles(gas_path)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		if(!gas_weight)
 			continue
 		var/gas_color = initial(gas_path.primary_color)

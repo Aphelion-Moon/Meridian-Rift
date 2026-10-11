@@ -1,4 +1,3 @@
-// APHELION EDIT ADDITION START - DOGMOS_PLAYTEST_REGRESSIONS
 /// A controlled atmosphere for testing slime stasis without changing shared map air.
 /obj/effect/dogmos_slime_test_environment
 	/// Mixture owned by the enclosing unit test.
@@ -56,9 +55,7 @@
 	TEST_ASSERT_EQUAL(air.gas_pressure_approximate(1, -8388608, 0, 8388608, 8389632), 8388608, "The fallback solver must accept an exact boundary root.")
 	TEST_ASSERT_EQUAL(air.gas_pressure_quadratic(1, -3, -4, 0, 4), 4, "The upper boundary is inclusive too.")
 	TEST_ASSERT_EQUAL(air.gas_pressure_quadratic(1, -3, -4, 0, 5), 4, "Ordinary interior roots must be unchanged.")
-// APHELION EDIT ADDITION END
 
-// APHELION EDIT ADDITION START - DOGMOS_PLAYTEST_REGRESSIONS
 /// Cold fire spreading from valid floor-temperature gas must not emit a sub-TCMB exposure.
 /datum/unit_test/dogmos_cold_fire_spread
 	parent_type = /datum/unit_test/dogmos_hotspot_reignition
@@ -95,4 +92,3 @@
 		fire_turf.atmos_adjacent_turfs = original_adjacency
 	original_adjacency = null
 	return ..()
-// APHELION EDIT ADDITION END

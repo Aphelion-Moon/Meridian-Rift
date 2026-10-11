@@ -60,7 +60,6 @@
 	TEST_ASSERT_EQUAL(floor.conductivity_blocked_directions, expected_blocked, \
 		"conductivity_blocked_directions ([floor.conductivity_blocked_directions]) does not match ALL_CARDINALS & ~conductivity_directions() ([expected_blocked]) - it fell out of sync with the adjacency rebuild that just ran, which is exactly what sync_dogmos_adjacency() exists to prevent.")
 
-	// APHELION EDIT ADDITION START - DOGMOS
 #ifdef DOGMOS_IN_PROCESS
 	TEST_ASSERT(dogmos_wait_for_stage_boundary(), "Native adjacency work did not settle before deferred initialization.")
 	TEST_ASSERT(!isnull(middle.dogmos_heat_temperature()), "The omitted neighbor must initially have a native heat node.")
@@ -92,4 +91,3 @@
 	TEST_ASSERT(reciprocal && zero_flags && masks_current, "Deferred initialization did not retain reciprocal zero-flag adjacency and current conductivity masks.")
 	TEST_ASSERT(runtime_neighbor_restored, "The ordinary runtime rebuild did not restore the omitted neighbor's heat node.")
 #endif
-	// APHELION EDIT ADDITION END

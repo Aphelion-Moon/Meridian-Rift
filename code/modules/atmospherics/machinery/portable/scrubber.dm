@@ -115,11 +115,9 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		filtered_out.adjust_moles(gas_id, transferred_moles)
 		environment.adjust_moles(gas_id, -transferred_moles)
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
-	/* // APHELION EDIT REMOVAL START - DOGMOS
-	environment.garbage_collect()
-	*/ // APHELION EDIT REMOVAL END
+	// environment.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 	//Remix the resulting gases
 	air_contents.merge(filtered_out)
 	return TRUE

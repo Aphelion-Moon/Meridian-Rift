@@ -78,7 +78,7 @@
 		pipe_air.set_temperature(avg_temp)
 	if(!temperature_interacted && !has_buckled_mobs())
 		return PROCESS_KILL
-// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 /obj/machinery/atmospherics/pipe/heat_exchanging/process(seconds_per_tick)
 	if(!parent)
@@ -96,7 +96,7 @@
 	if(pipe_air.return_temperature() && (icon_temperature > 500 || pipe_air.return_temperature() > 500)) //glow starts at 500K
 		if(abs(pipe_air.return_temperature() - icon_temperature) > 10)
 			icon_temperature = pipe_air.return_temperature()
-			// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 
 			var/h_r = heat2colour_r(icon_temperature)
 			var/h_g = heat2colour_g(icon_temperature)

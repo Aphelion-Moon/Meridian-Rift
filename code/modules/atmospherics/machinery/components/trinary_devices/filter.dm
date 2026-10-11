@@ -64,7 +64,7 @@
 	if(!on || !is_operational)
 		return PROCESS_KILL
 	if(!(nodes[1] && nodes[2] && nodes[3]))
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		return
 
 	//Early return
@@ -108,7 +108,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		qdel(removed)
 		return PROCESS_KILL
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	var/filtering = TRUE
 	if(!filter_type.len)

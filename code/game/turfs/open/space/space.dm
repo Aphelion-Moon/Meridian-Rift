@@ -55,9 +55,6 @@ GLOBAL_LIST_EMPTY(starlight)
 	thermal_conductivity = OPEN_HEAT_TRANSFER_COEFFICIENT
 	heat_capacity = 700000
 
-	/* // APHELION EDIT REMOVAL START - DOGMOS
-	var/static/datum/gas_mixture/immutable/space/space_gas = new
-	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
 	// Deliberately NOT constructed here (`= new`). A type-level static initializer runs at world
 	// load, before Master exists and before any subsystem - almost certainly the first-ever call
@@ -66,8 +63,8 @@ GLOBAL_LIST_EMPTY(starlight)
 	// so every space tile's later gas comparisons read a null gas mixture pointer. Constructed lazily
 	// on first Initialize() instead - see space_EXPENSIVE.dm - which runs during normal subsystem-
 	// driven boot, the same point every other gas mixture in the game is safely constructed at.
-	var/static/datum/gas_mixture/immutable/space/space_gas
 	// APHELION EDIT ADDITION END
+	var/static/datum/gas_mixture/immutable/space/space_gas // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/static/datum/gas_mixture/immutable/space/space_gas = new
 	// We do NOT want atmos adjacent turfs
 	init_air = FALSE
 	run_later = TRUE

@@ -48,7 +48,6 @@
 	TEST_ASSERT_EQUAL(kennel.producer_browse_pages_built, 2, "A closed browse panel still scanned.")
 	kennel.open_uis.Cut()
 
-// APHELION EDIT ADDITION START - DOGMOS
 /// A real machinery entry that asks the atmosphere scheduler to retire it.
 /obj/machinery/dogmos_kennel_retiring_test/process_atmos()
 	return PROCESS_KILL
@@ -105,4 +104,3 @@
 	TEST_ASSERT_EQUAL(sampled_costs[engine_key], 0.1, "The stable engine identity lost its cost sample.")
 	TEST_ASSERT_EQUAL(sampled_costs[first_tag_key], 0.2, "A tagged machine used its cached engine identity.")
 	TEST_ASSERT_EQUAL(sampled_costs[second_tag_key], 0.3, "Changing a machine tag did not update its cost identity.")
-// APHELION EDIT ADDITION END

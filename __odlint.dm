@@ -13,6 +13,6 @@
 // OpenDream cannot load BYOND native extensions; declare the builtin for CI linting only.
 /proc/load_ext(library, proc_name)
 	CRASH("load_ext is unavailable in OpenDream CI lint builds")
+#endif
 // APHELION EDIT ADDITION END
 #endif
-#endif // APHELION EDIT ADDITION - DOGMOS_OPENDREAM_LINT

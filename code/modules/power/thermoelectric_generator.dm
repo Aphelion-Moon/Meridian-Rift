@@ -120,7 +120,7 @@
 			// APHELION EDIT ADDITION START - DOGMOS
 			hot_air.set_temperature(hot_air.return_temperature() - energy_transfer/hot_air_heat_capacity)
 			cold_air.set_temperature(cold_air.return_temperature() + heat/cold_air_heat_capacity)
-	// APHELION EDIT ADDITION END
+			// APHELION EDIT ADDITION END
 
 	if(hot_air)
 		var/datum/gas_mixture/hot_circ_air1 = hot_circ.airs[1]

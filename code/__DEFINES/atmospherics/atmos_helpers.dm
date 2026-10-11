@@ -81,13 +81,8 @@ GLOBAL_LIST_INIT(atmos_adjacent_savings, list(0,0))
 #endif
 
 //If you're doing spreading things related to atmos, DO NOT USE CANATMOSPASS, IT IS NOT CHEAP. use this instead, the info is cached after all. it's tweaked just a bit to allow for circular checks
-/* // APHELION EDIT REMOVAL START - DOGMOS
-#define TURFS_CAN_SHARE(T1, T2) (LAZYACCESS(T2.atmos_adjacent_turfs, T1) || LAZYLEN(T1.atmos_adjacent_turfs & T2.atmos_adjacent_turfs))
-*/ // APHELION EDIT REMOVAL END
-// APHELION EDIT ADDITION START - DOGMOS
-// Ordinary Dogmos edges have NONE flags; connectivity depends on key membership.
-#define TURFS_CAN_SHARE(T1, T2) ((T1 in T2.atmos_adjacent_turfs) || LAZYLEN(T1.atmos_adjacent_turfs & T2.atmos_adjacent_turfs))
-// APHELION EDIT ADDITION END
+// Ordinary Dogmos edges have NONE flags; connectivity depends on key membership. // APHELION EDIT ADDITION - DOGMOS
+#define TURFS_CAN_SHARE(T1, T2) ((T1 in T2.atmos_adjacent_turfs) || LAZYLEN(T1.atmos_adjacent_turfs & T2.atmos_adjacent_turfs)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: #define TURFS_CAN_SHARE(T1, T2) (LAZYACCESS(T2.atmos_adjacent_turfs, T1) || LAZYLEN(T1.atmos_adjacent_turfs & T2.atmos_adjacent_turfs))
 //Use this to see if a turf is fully blocked or not, think windows or firelocks. Fails with 1x1 non full tile windows, but it's not worth the cost.
 #define TURF_SHARES(T) (LAZYLEN(T.atmos_adjacent_turfs))
 

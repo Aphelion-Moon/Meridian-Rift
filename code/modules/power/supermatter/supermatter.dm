@@ -684,7 +684,7 @@ GLOBAL_DATUM(main_supermatter_engine, /obj/machinery/power/supermatter_crystal)
 	// APHELION EDIT ADDITION START - DOGMOS
 	for (var/gas_path in absorbed_gasmix.get_gases())
 		var/mole_count = absorbed_gasmix.get_moles(gas_path)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		if(mole_count < MINIMUM_MOLE_COUNT) //save processing power from small amounts like these
 			continue
 		gas_percentage[gas_path] = mole_count / total_moles

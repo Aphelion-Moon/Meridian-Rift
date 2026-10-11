@@ -2,10 +2,10 @@ import codecs
 import fnmatch
 import functools
 import glob
-import itertools
+import itertools # APHELION EDIT ADDITION - DOGMOS
 import json
 import os
-import re
+import re # APHELION EDIT ADDITION - DOGMOS
 import sys
 
 # simple way to check if we're running on github actions, or on a local machine
@@ -19,6 +19,7 @@ def red(text):
 
 def blue(text):
     return "\033[34m" + str(text) + "\033[0m"
+# APHELION EDIT ADDITION START - DOGMOS
 
 def read_include_records(path):
     """Read the managed block without merging mutually exclusive backend includes."""
@@ -41,6 +42,10 @@ def read_include_records(path):
                     raise ValueError(f"line {number}: unclosed conditional include block")
                 return records, sorted(defines), number - len(records)
             if marker.fullmatch(line):
+                continue
+            inline_include = re.fullmatch(r'(#include "[^"]+") // APHELION EDIT ADDITION - [A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*', line)
+            if inline_include:
+                records.append((number, "include", inline_include.group(1)))
                 continue
             if re.fullmatch(r'#include "[^"]+"', line):
                 records.append((number, "include", line))
@@ -85,6 +90,7 @@ def include_configurations(records, defines):
             else:
                 active.pop()
         yield values, includes
+# APHELION EDIT ADDITION END
 
 schema = json.load(sys.stdin)
 file_reference = schema["file"]
@@ -107,6 +113,35 @@ for excluded_file in excluded_files:
 
 file_extensions = ("dm", "dmf")
 
+# APHELION EDIT REMOVAL START - DOGMOS
+# reading = False
+# lines = []
+# total = 0
+#
+# with open(file_reference, 'r') as file:
+#     for line in file:
+#         total += 1
+#         line = line.strip()
+#
+#         if line == "// BEGIN_INCLUDE":
+#             reading = True
+#             continue
+#         elif line == "// END_INCLUDE":
+#             break
+#         elif not reading:
+#             continue
+#         # APHELION EDIT ADDITION START - Modular unit tests. NOVA spellings kept so upstream ports don't break.
+#         elif line in ("// APHELION EDIT ADDITION START", "// NOVA EDIT ADDITION START"):
+#             continue
+#         elif line in ("// APHELION EDIT ADDITION END", "// NOVA EDIT ADDITION END"):
+#             continue
+#         # APHELION EDIT ADDITION END
+#
+#         lines.append(line)
+#
+# offset = total - len(lines)
+# APHELION EDIT REMOVAL END
+# APHELION EDIT ADDITION START - DOGMOS
 # Keep coverage checks across all branches; ordering checks run per configuration below.
 try:
     records, defines, offset = read_include_records(file_reference)
@@ -114,6 +149,7 @@ except ValueError as error:
     post_error(str(error))
     sys.exit(1)
 lines = [line for _, kind, line in records if kind == "include"]
+# APHELION EDIT ADDITION END
 print(blue(f"Ticked File Enforcement: {offset} lines were ignored in output for [{file_reference}]."))
 fail_no_include = False
 
@@ -214,6 +250,14 @@ def compare_lines(a, b):
     print(f"Two lines were exactly the same ({a} vs. {b})")
     sys.exit(1)
 
+# APHELION EDIT REMOVAL START - DOGMOS
+# sorted_lines = sorted(lines, key = functools.cmp_to_key(compare_lines))
+# for (index, line) in enumerate(lines):
+#     if sorted_lines[index] != line:
+#         post_error(f"The include at line {index + offset} is out of order ({line}, expected {sorted_lines[index]})")
+#         sys.exit(1)
+# APHELION EDIT REMOVAL END
+# APHELION EDIT ADDITION START - DOGMOS
 configuration_count = 0
 for values, includes in include_configurations(records, defines):
     configuration_count += 1
@@ -223,5 +267,6 @@ for values, includes in include_configurations(records, defines):
         if sorted_lines[index] != line:
             post_error(f"The include at line {number} is out of order ({line}, expected {sorted_lines[index]}; defines={values})")
             sys.exit(1)
+# APHELION EDIT ADDITION END
 
-print(green(f"Ticked File Enforcement: [{file_reference}] All includes (for {len(scannable_files)} scanned files, {configuration_count} configurations) are in order!"))
+print(green(f"Ticked File Enforcement: [{file_reference}] All includes (for {len(scannable_files)} scanned files, {configuration_count} configurations) are in order!")) # APHELION EDIT CHANGE - DOGMOS - ORIGINAL: print(green(f"Ticked File Enforcement: [{file_reference}] All includes (for {len(scannable_files)} scanned files) are in order!"))

@@ -89,6 +89,23 @@ class MarkerCheckTests(unittest.TestCase):
 		errors = validate_diff(diff("// NOVA EDIT ADDITION START - NEW_FEATURE"))
 		self.assertIn("new_nova_marker", {error.code for error in errors})
 
+	def test_accepts_inherited_nova_marker_only_in_canonical_original(self) -> None:
+		self.assertEqual(validate_diff(diff(
+			"changed_behavior() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: old_behavior() // NOVA EDIT CHANGE - ORIGINAL: upstream_behavior()",
+		)), [])
+
+	def test_rejects_new_nova_marker_before_canonical_original(self) -> None:
+		errors = validate_diff(diff(
+			"changed_behavior() // NOVA EDIT ADDITION - NEW_FEATURE // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: old_behavior() // NOVA EDIT CHANGE - ORIGINAL: upstream_behavior()",
+		))
+		self.assertIn("new_nova_marker", {error.code for error in errors})
+
+	def test_malformed_change_does_not_exempt_nova_original(self) -> None:
+		for marker in ("APHELION EDIT CHANGE - dogmos - ORIGINAL:", "APHELION EDIT CHANGE - ORIGINAL:", "APHELION EDIT ADDITION - DOGMOS - ORIGINAL:"):
+			with self.subTest(marker=marker):
+				errors = validate_diff(diff("changed_behavior() // " + marker + " old_behavior() // NOVA EDIT ADDITION - NEW_FEATURE"))
+				self.assertIn("new_nova_marker", {error.code for error in errors})
+
 	def test_reports_invalid_or_unclosed_aphelion_markers(self) -> None:
 		errors = validate_diff(diff("// APHELION EDIT ADDITION START - bad-id"))
 		self.assertEqual({error.code for error in errors}, {"invalid_module_id", "unclosed_marker"})

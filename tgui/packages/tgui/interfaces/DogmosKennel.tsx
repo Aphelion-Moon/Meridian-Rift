@@ -1,4 +1,4 @@
-// THIS IS A NOVA SECTOR UI FILE
+// THIS IS AN APHELION UI FILE
 import { useState } from 'react';
 import {
   Box,
@@ -30,7 +30,6 @@ type DogmosCosts = {
   highpressure: number;
   equalize: number;
   superconductivity: number;
-  // APHELION EDIT ADDITION START - DOGMOS
   pipenets: number;
   atmos_machinery: number;
   hotspots: number;
@@ -39,11 +38,9 @@ type DogmosCosts = {
   adjacent: number;
   fdm: number;
   mc_total: number;
-  // APHELION EDIT ADDITION END
   post_process: number;
 };
 
-// APHELION EDIT ADDITION START - DOGMOS
 type ProcessMetrics = {
   dreamdaemon: {
     private_bytes: number;
@@ -52,7 +49,6 @@ type ProcessMetrics = {
     available: BooleanLike;
   };
 };
-// APHELION EDIT ADDITION END
 
 type FireGroupEntry = {
   time: string;
@@ -110,7 +106,6 @@ type MachineBrowseEntry = {
   area: string;
 };
 
-// APHELION EDIT ADDITION START - DOGMOS
 type ReactionExplanation = {
   target: string;
   reference?: string;
@@ -123,11 +118,8 @@ type ReactionExplanation = {
   rows: [string, string, number, BooleanLike, string][];
   loaded_build: { identity: string; fusion_profile: number };
 };
-// APHELION EDIT ADDITION END
 type Data = {
-  // APHELION EDIT ADDITION START - DOGMOS
   reaction_explanation?: ReactionExplanation;
-  // APHELION EDIT ADDITION END
   active_size: number;
   hotspots_size: number;
   conducting_size: number;
@@ -145,9 +137,7 @@ type Data = {
     callback_enqueue_failures: number;
   };
   dogmos_costs: DogmosCosts;
-  // APHELION EDIT ADDITION START - DOGMOS
   process_metrics: ProcessMetrics;
-  // APHELION EDIT ADDITION END
   frozen: BooleanLike;
   show_all: BooleanLike;
   realistic_space_radiation: BooleanLike;
@@ -232,7 +222,6 @@ type StageCostRowProps = {
 /// Displays one Dogmos stage cost with its activity state and severity band.
 const StageCostRow = (props: StageCostRowProps) => {
   const { label, cost, active, inactiveTooltip } = props;
-  // APHELION EDIT ADDITION START - DOGMOS
   const validCost = Number.isFinite(cost) && cost >= 0;
   const displayCost = validCost ? cost : 0;
   const tooltip = !validCost
@@ -240,7 +229,6 @@ const StageCostRow = (props: StageCostRowProps) => {
     : !active
       ? inactiveTooltip
       : undefined;
-  // APHELION EDIT ADDITION END
   const color = !validCost
     ? 'bad'
     : !active
@@ -275,7 +263,6 @@ const StageCostRow = (props: StageCostRowProps) => {
   );
 };
 
-// APHELION EDIT ADDITION START - DOGMOS
 const formatBinaryBytes = (bytes: number) => {
   const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
   let value = bytes;
@@ -316,7 +303,6 @@ const ProcessMetricsPanel = () => {
     </Section>
   );
 };
-// APHELION EDIT ADDITION END
 
 const KennelControls = () => {
   const { act, data } = useBackend<Data>();
@@ -421,9 +407,7 @@ const OverviewPanel = (props) => {
           </Stack.Item>
         </Stack>
       </Section>
-      {/* APHELION EDIT ADDITION START - DOGMOS */}
       <ProcessMetricsPanel />
-      {/* APHELION EDIT ADDITION END */}
       <Section title="Atmospherics Costs (milliseconds)">
         <Table>
           {STAGE_COSTS.map(([key, label]) => (
@@ -435,7 +419,6 @@ const OverviewPanel = (props) => {
             />
           ))}
         </Table>
-        {/* APHELION EDIT ADDITION START - DOGMOS */}
         <LabeledList>
           <LabeledList.Item label="MC total (smoothed)">
             {(costs.mc_total ?? 0).toFixed(2)} ms
@@ -457,7 +440,6 @@ const OverviewPanel = (props) => {
           counters. Rebuilds show the latest slice; values can differ while a
           cycle is paused or the display refreshes.
         </Box>
-        {/* APHELION EDIT ADDITION END */}
       </Section>
       {!!data.kennel_slow_mode && (
         <NoticeBox>
@@ -834,7 +816,6 @@ const StructuresPanel = (props) => {
                       content="Leash"
                       onClick={() => act('kennel_pin', { ref: entry.ref })}
                     />
-                    {/* APHELION EDIT ADDITION START - DOGMOS */}
                     <Button
                       onClick={() =>
                         act('kennel_explain_reactions', { ref: entry.ref })
@@ -842,7 +823,6 @@ const StructuresPanel = (props) => {
                     >
                       Inspect reactions
                     </Button>
-                    {/* APHELION EDIT ADDITION END */}
                   </td>
                 </tr>
               ))}
@@ -883,7 +863,6 @@ const StructuresPanel = (props) => {
   );
 };
 
-// APHELION EDIT ADDITION START - DOGMOS
 const ReactionExplanationPanel = () => {
   const { act, data } = useBackend<Data>();
   const report = data.reaction_explanation;
@@ -956,7 +935,6 @@ const ReactionExplanationPanel = () => {
     </Section>
   );
 };
-// APHELION EDIT ADDITION END
 export const DogmosKennel = (props) => {
   const { act, data } = useBackend<Data>();
   const tabs = Object.keys(TABS) as TABS[];
@@ -1005,9 +983,7 @@ export const DogmosKennel = (props) => {
     <Window title="🐾 Dogmos Kennel" width={900} height={680}>
       <Window.Content scrollable>
         <KennelControls />
-        {/* APHELION EDIT ADDITION START - DOGMOS */}
         <ReactionExplanationPanel />
-        {/* APHELION EDIT ADDITION END */}
         <Tabs>
           {tabs.map((tab) => {
             const eventCountKey = TAB_EVENT_COUNT_KEYS[tab];

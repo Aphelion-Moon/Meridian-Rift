@@ -536,7 +536,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		if(environment && environment.get_moles(/datum/gas/plasma))
 			. += power * min(MAX_HEAL_COEFFICIENT_INTERNALS, environment.get_moles(/datum/gas/plasma) * HEALING_PER_MOL)
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	// Check for reagents in bloodstream
 	if(carbon_host.reagents.has_reagent(/datum/reagent/toxin/plasma, needs_metabolizing = TRUE))

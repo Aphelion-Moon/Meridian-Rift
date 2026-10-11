@@ -324,7 +324,7 @@
 
 	if(!fan_overclocked)
 		return PROCESS_KILL
-// APHELION EDIT ADDITION END
+			// APHELION EDIT ADDITION END
 
 /obj/machinery/atmospherics/components/unary/vent_pump/update_name()
 	. = ..()

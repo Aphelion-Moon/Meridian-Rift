@@ -15,10 +15,9 @@
 	for(var/i in 1 to 1900)
 		bloated += turf_a
 		bloated += turf_b
-	SSair.dogmos_replace_active_frontier(bloated) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = bloated
+	SSair.dogmos_replace_active_frontier(bloated)
 	var/original_cursor = SSair.active_turfs_walk_cursor
 	SSair.active_turfs_walk_cursor = 0
-	// APHELION EDIT ADDITION START - DOGMOS
 	var/list/original_snapshot = SSair.dogmos_visual_refresh_batch
 	var/original_prefetch_end = SSair.dogmos_walk_chunk_end
 	SSair.dogmos_walk_chunk_end = 0
@@ -33,19 +32,15 @@
 	SSair.dogmos_visual_refresh_batch = bloated.Copy()
 	SSair.state = SS_RUNNING
 	Master.current_ticklimit = TICK_USAGE + 100 / world.tick_lag
-	// APHELION EDIT ADDITION END
 
 	var/start_tick_usage = TICK_USAGE_REAL
-	// APHELION EDIT ADDITION START - DOGMOS
 	var/more_work = SSair.walk_active_turfs_batch()
 	var/visited_entries = SSair.active_turfs_walk_cursor
 	var/chunk_entries = SSair.dogmos_walk_chunk_end
-	// APHELION EDIT ADDITION END
 	var/cost_ms = TICK_USAGE_TO_MS(start_tick_usage)
 
-	SSair.dogmos_replace_active_frontier(original_active_turfs) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: SSair.active_turfs = original_active_turfs
+	SSair.dogmos_replace_active_frontier(original_active_turfs)
 	SSair.active_turfs_walk_cursor = original_cursor
-	// APHELION EDIT ADDITION START - DOGMOS
 	SSair.dogmos_visual_refresh_batch = original_snapshot
 	SSair.dogmos_walk_chunk_end = original_prefetch_end
 	SSair.state = original_state
@@ -56,9 +51,7 @@
 		fixture_turf.excited_group = original_turf_state[2]
 		fixture_turf.current_cycle = original_turf_state[3]
 		fixture_turf.archived_cycle = original_turf_state[4]
-	// APHELION EDIT ADDITION END
 
-	// APHELION EDIT ADDITION START - DOGMOS
 	// Shared CI runner speed and native-call overhead are observations, not a work-bound contract.
 	log_test("Active-turf bloat walk: [visited_entries] visited, [chunk_entries] chunked, [cost_ms]ms.")
 	TEST_ASSERT(chunk_entries > 0 && chunk_entries <= ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES, \
@@ -66,6 +59,5 @@
 	TEST_ASSERT(visited_entries >= 0 && visited_entries <= chunk_entries, \
 		"Active-turf maintenance walked outside its chunked chunk: [visited_entries] visited, [chunk_entries] chunked.")
 	TEST_ASSERT(more_work, "A single bounded maintenance call must leave work pending in the bloated snapshot.")
-	// APHELION EDIT ADDITION END
 
 #undef ACTIVE_TURFS_BLOAT_TEST_MAX_ENTRIES

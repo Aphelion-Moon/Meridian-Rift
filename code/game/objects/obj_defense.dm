@@ -17,13 +17,7 @@
 		return FALSE
 
 	. = ..() //contents explosion
-	/* // APHELION EDIT REMOVAL START - DOGMOS
-	if(QDELETED(src))
-	*/ // APHELION EDIT REMOVAL END
-	// APHELION EDIT ADDITION START - DOGMOS
-
-	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0))
-		// APHELION EDIT ADDITION END
+	if(QDELETED(src) || (uses_integrity && get_integrity() <= 0)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(QDELETED(src))
 		return TRUE
 	if(target == src)
 		take_damage(INFINITY, BRUTE, BOMB, 0)

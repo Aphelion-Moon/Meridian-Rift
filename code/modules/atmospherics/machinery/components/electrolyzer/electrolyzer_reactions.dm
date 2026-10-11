@@ -100,9 +100,7 @@ GLOBAL_LIST_INIT(electrolyzer_reactions, electrolyzer_reactions_list())
 /datum/gas_reaction/electrolyzer/nob_conversion/react(datum/gas_mixture/air_mixture, working_power, list/electrolyzer_args = list())
 	/// The supermatter zap power_level.
 	var/supermatter_power = electrolyzer_args[ELECTROLYSIS_ARGUMENT_SUPERMATTER_POWER]
-	/* // APHELION EDIT REMOVAL START - DOGMOS
-	var/list/cached_moles = air_mixture.moles
-	*/ // APHELION EDIT REMOVAL END
+	// var/list/cached_moles = air_mixture.moles // APHELION EDIT REMOVAL - DOGMOS
 	var/old_heat_capacity = air_mixture.heat_capacity()
 	/* // APHELION EDIT REMOVAL START - DOGMOS
 	air_mixture.assert_gases(/datum/gas/hypernoblium, /datum/gas/antinoblium)

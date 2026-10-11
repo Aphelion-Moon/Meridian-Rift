@@ -71,7 +71,7 @@ export const GasmixParser = (props: GasmixParserProps) => {
                 }
                 key={gas[1]}
               >
-                {gas[2].toFixed(4) +
+                {gas[2].toFixed(4) + // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {gas[2].toFixed(2) +
                   ' mol (' +
                   ((gas[2] / total_moles) * 100).toFixed(2) +
                   ' %)'}

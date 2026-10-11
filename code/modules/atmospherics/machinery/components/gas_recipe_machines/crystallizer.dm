@@ -134,7 +134,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	if((internal.return_temperature() >= (selected_recipe.min_temp * MIN_DEVIATION_RATE) && internal.return_temperature() <= selected_recipe.min_temp) || \
 		(internal.return_temperature() >= selected_recipe.max_temp && internal.return_temperature() <= (selected_recipe.max_temp * MAX_DEVIATION_RATE)))
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		quality_loss = min(quality_loss + progress_amount_to_quality, 100)
 
 	var/median_temperature = (selected_recipe.max_temp + selected_recipe.min_temp) / 2
@@ -174,9 +174,7 @@
 /obj/machinery/atmospherics/components/binary/crystallizer/proc/dump_gases()
 	var/datum/gas_mixture/remove = internal.remove(internal.total_moles())
 	airs[2].merge(remove)
-/* // APHELION EDIT REMOVAL START - DOGMOS
-	internal.garbage_collect()
-*/ // APHELION EDIT REMOVAL END
+	// internal.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 
 /obj/machinery/atmospherics/components/binary/crystallizer/process_atmos()
 	if(!on || !is_operational || selected_recipe == null)
@@ -280,7 +278,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		for(var/gasid in internal.get_gases())
 			var/amount = internal.get_moles(gasid)
-			// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 			internal_gas_data.Add(list(list(
 			"name"= cached_gas_name[gasid],
 			"id" = cached_gas_id[gasid],

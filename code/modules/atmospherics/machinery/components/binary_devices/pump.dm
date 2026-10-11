@@ -64,7 +64,7 @@
 	if(!on)
 		return PROCESS_KILL
 	if(!is_operational)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		return
 
 	var/datum/gas_mixture/input_air = airs[1]
@@ -76,7 +76,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		return
 	return PROCESS_KILL
-// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 /obj/machinery/atmospherics/components/binary/pump/ui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)

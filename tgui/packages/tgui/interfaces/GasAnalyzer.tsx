@@ -1,4 +1,4 @@
-import { Box, Section, Stack } from 'tgui-core/components';
+import { Box, Section, Stack } from 'tgui-core/components'; // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: import { Section, Stack } from 'tgui-core/components';
 
 import { useBackend } from '../backend';
 import { Window } from '../layouts';

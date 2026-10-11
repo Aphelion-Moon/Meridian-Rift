@@ -53,6 +53,7 @@
 /atom/movable/proc/block_superconductivity() // objects that block air and don't let superconductivity act
 	return FALSE
 
+// APHELION EDIT ADDITION START - DOGMOS
 /**
  * The AdjacentFlags value Dogmos expects for an edge between src and other (DOGMOS_ADJACENT_FIRELOCK,
  * or NONE for an ordinary edge). Shared by both adjacency-calculation procs below rather than
@@ -67,10 +68,11 @@
 		return DOGMOS_ADJACENT_FIRELOCK
 	return NONE
 
+// APHELION EDIT ADDITION END
 /// This proc is a more deeply optimized version of immediate_calculate_adjacent_turfs
 /// It contains dumbshit, and also stuff I just can't do at runtime
 /// If you're not editing behavior, just read that proc. It's less bad
-/turf/proc/init_immediate_calculate_adjacent_turfs(defer_dogmos_adjacency = FALSE)
+/turf/proc/init_immediate_calculate_adjacent_turfs(defer_dogmos_adjacency = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /turf/proc/init_immediate_calculate_adjacent_turfs()
 	//Basic optimization, if we can't share why bother asking other people ya feel?
 	// You know it's gonna be stupid when they include a unit test in the atmos code
 	// Yes, inlining the string concat does save 0.1 seconds
@@ -109,24 +111,32 @@
 		// (direction & (UP | DOWN)) is just "is this vertical" by the by
 		if(canpass && CANATMOSPASS(current_turf, src, (direction & (UP|DOWN))) && !(blocks_air || current_turf.blocks_air))
 			LAZYINITLIST(current_turf.atmos_adjacent_turfs)
+			/* // APHELION EDIT REMOVAL START - DOGMOS
+			atmos_adjacent_turfs[current_turf] = TRUE
+			current_turf.atmos_adjacent_turfs[src] = TRUE
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
 			var/adjacency_flags = atmos_adjacency_flags_with(current_turf)
 			atmos_adjacent_turfs[current_turf] = adjacency_flags
 			current_turf.atmos_adjacent_turfs[src] = adjacency_flags
+			// APHELION EDIT ADDITION END
 		else
 			atmos_adjacent_turfs -= current_turf
 			if (current_turf.atmos_adjacent_turfs)
 				current_turf.atmos_adjacent_turfs -= src
 			UNSETEMPTY(current_turf.atmos_adjacent_turfs)
 		SEND_SIGNAL(current_turf, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
-		current_turf.sync_dogmos_adjacency()
+		current_turf.sync_dogmos_adjacency() // APHELION EDIT ADDITION - DOGMOS
 
 	UNSETEMPTY(atmos_adjacent_turfs)
 	src.atmos_adjacent_turfs = atmos_adjacent_turfs
 	SEND_SIGNAL(src, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
+	// APHELION EDIT ADDITION START - DOGMOS
 	// Cold native setup performs a final full sync after all endpoints register. Neighbors above
 	// still sync immediately: space and late-loaded turfs may be outside that final sweep.
 	if(!defer_dogmos_adjacency)
 		sync_dogmos_adjacency()
+	// APHELION EDIT ADDITION END
 
 /turf/proc/immediate_calculate_adjacent_turfs()
 	LAZYINITLIST(src.atmos_adjacent_turfs)
@@ -141,23 +151,30 @@
 		// (direction & (UP | DOWN)) is just "is this vertical" by the by
 		if(canpass && CANATMOSPASS(current_turf, src, (direction & (UP|DOWN))) && !(blocks_air || current_turf.blocks_air))
 			LAZYINITLIST(current_turf.atmos_adjacent_turfs)
+			/* // APHELION EDIT REMOVAL START - DOGMOS
+			atmos_adjacent_turfs[current_turf] = TRUE
+			current_turf.atmos_adjacent_turfs[src] = TRUE
+			*/ // APHELION EDIT REMOVAL END
+			// APHELION EDIT ADDITION START - DOGMOS
 			var/adjacency_flags = atmos_adjacency_flags_with(current_turf)
 			atmos_adjacent_turfs[current_turf] = adjacency_flags
 			current_turf.atmos_adjacent_turfs[src] = adjacency_flags
+			// APHELION EDIT ADDITION END
 		else
 			atmos_adjacent_turfs -= current_turf
 			if (current_turf.atmos_adjacent_turfs)
 				current_turf.atmos_adjacent_turfs -= src
 			UNSETEMPTY(current_turf.atmos_adjacent_turfs)
 		SEND_SIGNAL(current_turf, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
-		current_turf.sync_dogmos_adjacency()
+		current_turf.sync_dogmos_adjacency() // APHELION EDIT ADDITION - DOGMOS
 
 	UNSETEMPTY(atmos_adjacent_turfs)
 	src.atmos_adjacent_turfs = atmos_adjacent_turfs
 	SEND_SIGNAL(src, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
-	sync_dogmos_adjacency()
+	sync_dogmos_adjacency() // APHELION EDIT ADDITION - DOGMOS
 
 	update_adjacent_pollutants() //NOVA EDIT ADDITION //Atmos adjacency could unlock/block adjacent pollutants, this is dirty flags anyway so its fine having it here
+// APHELION EDIT ADDITION START - DOGMOS
 
 /** Refreshes Dogmos' gas and heat adjacency graphs after a structural change.
  * Re-registration is required because a breach changes the heat graph's space-boundary flag as well
@@ -171,6 +188,7 @@
 	conductivity_blocked_directions = ALL_CARDINALS & ~conductivity_directions()
 	register_dogmos_air()
 	__update_auxtools_turf_adjacency_info(world.maxx, world.maxy)
+// APHELION EDIT ADDITION END
 
 /**
  * returns a list of adjacent turfs that can share air with this one.
@@ -197,11 +215,11 @@
 
 		for (var/check_direction in GLOB.cardinals_multiz)
 			var/turf/secondary_turf = get_step(checked_turf, check_direction)
-			if(!(secondary_turf in checked_turf.atmos_adjacent_turfs))
+			if(!(secondary_turf in checked_turf.atmos_adjacent_turfs)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!checked_turf.atmos_adjacent_turfs || !checked_turf.atmos_adjacent_turfs[secondary_turf])
 				continue
 
-			// Count original cardinal routes, not diagonals already added to the result.
-			if (secondary_turf in atmos_adjacent_turfs)
+			// Count original cardinal routes, not diagonals already added to the result. // APHELION EDIT ADDITION - DOGMOS
+			if (secondary_turf in atmos_adjacent_turfs) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if (adjacent_turfs[secondary_turf])
 				matching_directions++
 
 			if (matching_directions >= 2)
@@ -211,7 +229,7 @@
 	return adjacent_turfs
 
 /atom/proc/air_update_turf(update = FALSE, remove = FALSE)
-	if(!SSair.initialized)
+	if(!SSair.initialized) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!SSair.initialized) // I'm sorry for polutting user code, I'll do 10 hail giacom's
 		return
 	var/turf/local_turf = get_turf(loc)
 	if(!local_turf)
@@ -228,10 +246,12 @@
  * * remove - Are you removing an active turf (Read wall), or adding one
 */
 /turf/air_update_turf(update = FALSE, remove = FALSE)
-	if(!SSair.initialized)
+	if(!SSair.initialized) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(!SSair.initialized) // I'm sorry for polutting user code, I'll do 10 hail giacom's
 		return
+	// APHELION EDIT ADDITION START - DOGMOS
 	// Retry registration for turfs whose air datum was not ready during map setup.
 	register_dogmos_air()
+	// APHELION EDIT ADDITION END
 	if(update)
 		immediate_calculate_adjacent_turfs()
 	if(remove)

@@ -305,7 +305,7 @@
 	if (air.get_moles(/datum/gas/plasma))
 		var/scrub_amt = min(30, air.get_moles(/datum/gas/plasma)) //Absorb some plasma
 		air.adjust_moles(/datum/gas/plasma, -scrub_amt)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		absorbed_plasma += scrub_amt
 	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if (air.temperature > T20C)
@@ -471,10 +471,11 @@
 		*/ // APHELION EDIT REMOVAL END
 		for(var/gas_id in air.get_gases()) // APHELION EDIT ADDITION - DOGMOS
 			if(!(ignored_gases[gas_id]))
-				air.set_moles(gas_id, 0) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: cached_moles[gas_id] = 0
-	/* // APHELION EDIT REMOVAL START - DOGMOS
+				/* // APHELION EDIT REMOVAL START - DOGMOS
+				cached_moles[gas_id] = 0
 		air.garbage_collect()
-	*/ // APHELION EDIT REMOVAL END
+				*/ // APHELION EDIT REMOVAL END
+				air.set_moles(gas_id, 0) // APHELION EDIT ADDITION - DOGMOS
 
 	for(var/obj/machinery/atmospherics/components/unary/comp in location)
 		if(!comp.welded)

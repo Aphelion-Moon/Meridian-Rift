@@ -172,7 +172,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	var/reaction_occurred = air_contents.react(src)
 	if(reaction_occurred)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		update_parents()
 
 	/* // APHELION EDIT REMOVAL START - DOGMOS
@@ -181,7 +181,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	var/overpressure = air_contents.return_pressure() > max_pressure
 	if(overpressure)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		take_damage(0.1, BRUTE, sound_effect = FALSE)
 		if(prob(40))
 			playsound(src, pick(breaking_sounds), 30, vary = TRUE)
@@ -190,7 +190,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(!reaction_occurred && !overpressure && !air_contents.dogmos_fusion_waiting(src))
 		return PROCESS_KILL
-// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 
 ///////////////////////////////////////////////////////////////////
 // Port stuff

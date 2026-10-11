@@ -203,7 +203,7 @@
 		parsed_mix["fusion_status"] = air.dogmos_fusion_display_status(target)
 		parsed_mix["fusion_instability"] = parsed_mix["fusion_status"] == "active" ? air.dogmos_fusion_instability : null
 		new_gasmix_data += list(parsed_mix)
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 	last_gasmix_data = new_gasmix_data
 	last_scanned = WEAKREF(target)
 

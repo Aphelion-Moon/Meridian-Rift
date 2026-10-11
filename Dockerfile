@@ -1,5 +1,6 @@
 # base = ubuntu + full apt update
-# Native i686 artifact requires glibc >= 2.34; Jammy provides 2.35.
+# Native i686 artifact requires glibc >= 2.34; Jammy provides 2.35. # APHELION EDIT ADDITION - DOGMOS
+# APHELION EDIT CHANGE - DOGMOS - ORIGINAL: FROM ubuntu:xenial AS base
 FROM ubuntu:22.04 AS base
 
 RUN dpkg --add-architecture i386 \
@@ -71,16 +72,18 @@ RUN . ./dependencies.sh \
     && git checkout FETCH_HEAD \
     && env PKG_CONFIG_ALLOW_CROSS=1 ~/.cargo/bin/cargo build --release --target i686-unknown-linux-gnu
 
-# final = byond + runtime deps + rust_g + native artifacts + build
+# final = byond + runtime deps + rust_g + native artifacts + build # APHELION EDIT CHANGE - DOGMOS - ORIGINAL: # final = byond + runtime deps + rust_g + build
 FROM byond
 WORKDIR /tgstation
 
 RUN apt-get install -y --no-install-recommends \
+# APHELION EDIT CHANGE - DOGMOS - ORIGINAL: libssl1.0.0:i386 \
         libssl3:i386 \
         zlib1g:i386
 
 COPY --from=build /deploy ./
 COPY --from=rust_g /rust_g/target/i686-unknown-linux-gnu/release/librust_g.so ./librust_g.so
+# APHELION EDIT ADDITION - DOGMOS
 COPY libdogmos_in_process.so ./libdogmos_in_process.so
 
 VOLUME [ "/tgstation/config", "/tgstation/data" ]

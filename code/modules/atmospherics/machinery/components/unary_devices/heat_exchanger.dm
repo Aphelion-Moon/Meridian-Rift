@@ -86,7 +86,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		air_contents.set_temperature(new_temperature)
 		partnerair_contents.set_temperature(new_temperature)
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	if(abs(old_temperature - air_contents.return_temperature()) > 1) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(abs(old_temperature - air_contents.temperature) > 1)
 		update_parents()

@@ -228,9 +228,7 @@
 #include "food_edibility_check.dm"
 #include "food_processor.dm"
 #include "full_heal.dm"
-// APHELION EDIT ADDITION START - DOGMOS
-#include "gas_mixture_golden.dm"
-// APHELION EDIT ADDITION END
+#include "gas_mixture_golden.dm" // APHELION EDIT ADDITION - DOGMOS
 #include "gas_transfer.dm"
 #include "get_turf_pixel.dm"
 #include "geyser.dm"
@@ -429,9 +427,7 @@
 #include "~nova\character_preview_animation.dm"
 #include "~nova\character_preview_glow.dm"
 #include "~nova\character_preview_rebuilds.dm"
-// APHELION EDIT ADDITION START - DOGMOS
-#include "~nova\cigarettes.dm"
-// APHELION EDIT ADDITION END
+#include "~nova\cigarettes.dm" // APHELION EDIT ADDITION - DOGMOS
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
@@ -472,9 +468,7 @@
 #include "~nova\custom_sprites\workspace.dm"
 // NOVA EDIT ADDITION END
 // END_INCLUDE
-// APHELION EDIT ADDITION START - DOGMOS
-#include "../../../modular_aphelion/modules/dogmos/code/mixture_fusion_tests.dm"
-// APHELION EDIT ADDITION END
+#include "../../../modular_aphelion/modules/dogmos/code/mixture_fusion_tests.dm" // APHELION EDIT ADDITION - DOGMOS
 // APHELION EDIT ADDITION START - Temporarily disabled: the unit test build hits the var cap. Also listed in forbidden_includes in tools/ticked_file_enforcement/schemas/unit_tests.json
 //#include "~nova\body_marking_content.dm"
 //#include "~nova\body_marking_features.dm"
@@ -494,10 +488,7 @@
 #include "find_reference_sanity.dm"
 #endif
 
-// APHELION EDIT ADDITION START - CUSTOMIZATION_CI_FIXES
-#include "../../../modular_aphelion/modules/customization_fixes/code/regressions.dm"
-
-// APHELION EDIT ADDITION END
+#include "../../../modular_aphelion/modules/customization_fixes/code/regressions.dm" // APHELION EDIT ADDITION - CUSTOMIZATION_CI_FIXES
 #undef TEST_ASSERT
 #undef TEST_ASSERT_EQUAL
 #undef TEST_ASSERT_NOTEQUAL

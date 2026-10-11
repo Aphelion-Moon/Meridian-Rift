@@ -195,9 +195,7 @@
 			continue
 
 		call(src, on_loss)(organ_owner, dummy, partial_pressure)
-/* // APHELION EDIT REMOVAL START - DOGMOS
-	dummy.garbage_collect()
-*/ // APHELION EDIT REMOVAL END
+	// dummy.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 
 /**
  * Tells the lungs to pay attention to the passed in gas type
@@ -678,14 +676,8 @@
 	// NOVA EDIT ADDITION - Akula breathing trait
 	if(is_species(breather, /datum/species/akula))
 		if(!breather.has_status_effect(/datum/status_effect/fire_handler/wet_stacks))
-			/* // APHELION EDIT REMOVAL START - DOGMOS
-			for(var/gas_id in breath.moles)
+			for(var/gas_id in breath.get_gases()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/gas_id in breath.moles)
 				breath.set_gas(gas_id, 0) //cant filter gas out of the air unless wet
-			*/ // APHELION EDIT REMOVAL END
-			// APHELION EDIT ADDITION START - DOGMOS
-			for(var/gas_id in breath.get_gases())
-				breath.set_gas(gas_id, 0) //cant filter gas out of the air unless wet
-	// APHELION EDIT ADDITION END
 	// NOVA EDIT ADDITION END
 	// Indicates if there are moles of gas in the breath.
 	var/has_moles = breath.total_moles() != 0
@@ -796,11 +788,9 @@
 		// whatever accumulates fresh. Its temperature isn't reset here because the top of this proc
 		// unconditionally overwrites it from breath's temperature before anything reads it again.
 		breath_out.clear()
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
-	/* // APHELION EDIT REMOVAL START - DOGMOS
-	breath.garbage_collect()
-	*/ // APHELION EDIT REMOVAL END
+	// breath.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 	// Returning FALSE indicates the breath failed.
 	if(!breather.failed_last_breath)
 		return TRUE
@@ -851,8 +841,14 @@
 	return .
 
 /obj/item/organ/lungs/proc/handle_breath_temperature(datum/gas_mixture/breath, mob/living/carbon/human/breather) // called by human/life, handles temperatures
-	var/breath_temperature = breath.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/breath_temperature = breath.temperature
-	breath.set_temperature(breather.bodytemperature) // The air you breathe out should match your body temperature // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: breath.temperature = breather.bodytemperature
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/breath_temperature = breath.temperature
+	breath.temperature = breather.bodytemperature // The air you breathe out should match your body temperature
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/breath_temperature = breath.return_temperature()
+	breath.set_temperature(breather.bodytemperature) // The air you breathe out should match your body temperature
+	// APHELION EDIT ADDITION END
 
 	if((breath_temperature > cold_level_1_threshold) || (breath_temperature < heat_level_1_threshold))
 		return // safe air that isn't too hot or cold
@@ -1040,7 +1036,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	if (breath?.get_moles(/datum/gas/plasma))
 		var/plasma_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/plasma))
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		breather_slime.adjust_blood_volume(0.2 * plasma_pp) // 10/s when breathing literally nothing but plasma, which will suffocate you.
 
 /obj/item/organ/lungs/smoker_lungs

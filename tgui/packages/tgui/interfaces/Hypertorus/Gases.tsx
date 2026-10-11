@@ -148,8 +148,7 @@ const GasList = (props: GasListProps) => {
               minValue={0}
               maxValue={minimumScale}
             >
-              {/* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {`${toFixed(gas.amount, 2)} moles`} */}
-              {`${toFixed(gas.amount, 4)} moles`}
+              {`${toFixed(gas.amount, 4)} moles` /* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {`${toFixed(gas.amount, 2)} moles`} */}
             </ProgressBar>
           </LabeledList.Item>
         );

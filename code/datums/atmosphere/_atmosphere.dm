@@ -66,7 +66,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		gasmix.adjust_moles(gastype, -gasmix.get_moles(gastype) * 0.1)
 	gasmix.set_moles(gastype, FLOOR(gasmix.get_moles(gastype), 0.1))
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	// Now finally lets make that string
 	var/list/gas_string_builder = list()

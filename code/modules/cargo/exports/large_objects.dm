@@ -129,9 +129,7 @@
 	var/datum/gas_mixture/canister_mix = canister.return_air()
 	if(!canister_mix.total_moles())
 		return 0
-	/* // APHELION EDIT REMOVAL START - DOGMOS
-	var/cached_moles = canister_mix.moles
-	*/ // APHELION EDIT REMOVAL END
+	// var/cached_moles = canister_mix.moles // APHELION EDIT REMOVAL - DOGMOS
 
 	var/worth = cost
 	for(var/datum/gas/gas as anything in GLOB.meta_gas_info[META_GAS_ID])
@@ -146,7 +144,7 @@
 		var/moles = canister_mix.get_moles(gas)
 		if(moles > 0)
 			worth += get_gas_value(gas, moles)
-			// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 			if(worth > MAX_GAS_CREDITS)
 				worth = MAX_GAS_CREDITS
 				break

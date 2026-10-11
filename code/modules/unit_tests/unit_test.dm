@@ -61,12 +61,14 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	var/static/datum/space_level/reservation
 	/// If this unit test requires a normal turf to run.
 	var/normal_floor_required = FALSE
+	// APHELION EDIT ADDITION START - DOGMOS
 	/// Stop the suite if an isolated native fixture cannot release its authoritative stage.
 	var/dogmos_fixture_aborted = FALSE
-#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
 	/// Scheduling ownership held until topology and atmosphere cleanup have both finished.
 	var/dogmos_fixture_can_fire
 #endif
+	// APHELION EDIT ADDITION END
 
 /proc/cmp_unit_test_priority(datum/unit_test/a, datum/unit_test/b)
 	return initial(a.priority) - initial(b.priority)
@@ -106,9 +108,11 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	if(normal_floor_required)
 		for(var/turf/open/turf in get_area_turfs(run_loc_floor_bottom_left.loc))
 			turf.ChangeTurf(/turf/open/indestructible)
-#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+// APHELION EDIT ADDITION START - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
 	dogmos_restore_fixture_scheduling()
 #endif
+// APHELION EDIT ADDITION END
 	return ..()
 
 /datum/unit_test/proc/Run()
@@ -160,7 +164,7 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		"turf_a and turf_b are not gas-adjacent (atmos_adjacent_turfs) - this test needs two turfs Dogmos will actually share gas between.")
 	return list(turf_a, turf_b)
 
-#ifdef DOGMOS_IN_PROCESS // APHELION EDIT ADDITION - DOGMOS
+#ifdef DOGMOS_IN_PROCESS
 /** Stops new cycles only after the scheduled cycle completes, then settles accepted heat work. */
 /datum/unit_test/proc/dogmos_wait_for_stage_boundary()
 	try
@@ -247,15 +251,12 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	for(var/turf/open/restore in to_restore)
 		var/datum/gas_mixture/GM = SSair.parse_gas_string(restore.initial_gas_mix, /datum/gas_mixture/turf)
 		restore.copy_air(GM)
-		/* // APHELION EDIT REMOVAL START - DOGMOS
-		restore.temperature = initial(restore.temperature)
-		*/ // APHELION EDIT REMOVAL END
 		// APHELION EDIT ADDITION START - DOGMOS
 		// set_temperature(), not a direct var write - Dogmos owns turf temperature (TurfHeat) now, and
 		// a direct restore.temperature = ... write only touches the DM var, leaving Rust's copy stale
 		// for every subsequent test. See modular_aphelion/master_files/code/game/turfs/turf.dm.
-		restore.set_temperature(initial(restore.temperature))
 		// APHELION EDIT ADDITION END
+		restore.set_temperature(initial(restore.temperature)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: restore.temperature = initial(restore.temperature)
 		restore.air_update_turf(update = FALSE, remove = FALSE)
 
 /datum/unit_test/proc/test_screenshot(name, icon/icon)
@@ -350,12 +351,12 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		test.Run()
 		if(test.priority < TEST_CREATE_AND_DESTROY) //We shouldn't care about restoring atmos after create_and_destroy.
 			test.restore_atmos()
-		// APHELION EDIT ADDITION START - DOGMOS
 
+		// APHELION EDIT ADDITION START - DOGMOS
 		// Restore-time runtimes are attributed to the test that dirtied the turf, not the next one.
 		runtimes_during = GLOB.total_runtimes - runtimes_before
-		// APHELION EDIT ADDITION END
 
+		// APHELION EDIT ADDITION END
 		duration = REALTIMEOFDAY - duration
 		GLOB.current_test = null
 		GLOB.failed_any_test |= !test.succeeded || runtimes_during // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: GLOB.failed_any_test |= !test.succeeded
@@ -393,18 +394,19 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	if ((!test.succeeded || runtimes_during) && !skip_test) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if (!test.succeeded && !skip_test)
 		log_world("::error::[TEST_OUTPUT_RED("FAIL")] [test_output_desc]")
 
-	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded && !runtimes_during ? UNIT_TEST_PASSED : UNIT_TEST_FAILED) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
 	/* // APHELION EDIT REMOVAL START - DOGMOS
+	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
 	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path)
 	*/ // APHELION EDIT REMOVAL END
 	// APHELION EDIT ADDITION START - DOGMOS
+	var/final_status = skip_test ? UNIT_TEST_SKIPPED : (test.succeeded && !runtimes_during ? UNIT_TEST_PASSED : UNIT_TEST_FAILED)
 	// Record elapsed duration for timing checks; skipped tests report zero.
 	test_results[test_path] = list("status" = final_status, "message" = message, "name" = test_path, "runtimes" = runtimes_during, "duration" = skip_test ? 0 : duration)
 	// APHELION EDIT ADDITION END
 
-	// APHELION EDIT ADDITION START - DOGMOS - attribute synchronous teardown errors
-	var/runtimes_before_teardown = GLOB.total_runtimes
+	var/runtimes_before_teardown = GLOB.total_runtimes // APHELION EDIT ADDITION - DOGMOS
 	qdel(test)
+	// APHELION EDIT ADDITION START - DOGMOS
 	var/teardown_runtimes = GLOB.total_runtimes - runtimes_before_teardown
 	if(teardown_runtimes)
 		var/list/result = test_results[test_path]
@@ -582,7 +584,7 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 
 	var/list/test_results = list()
 
-	// APHELION EDIT ADDITION START - DOGMOS - authoritative selected-suite inventory
+	// APHELION EDIT ADDITION START - DOGMOS
 	var/list/test_inventory = list()
 	for(var/datum/unit_test/unit_path as anything in tests_to_run)
 		if(ispath(unit_path, /datum/unit_test/focus_only) || unit_path::abstract_type == unit_path || unit_path::times_to_run <= 0)

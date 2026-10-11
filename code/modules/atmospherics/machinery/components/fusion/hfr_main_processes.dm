@@ -102,7 +102,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	for(var/gas_id in moderator_internal.get_gases())
 		var/amount = moderator_internal.get_moles(gas_id)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		moderator_list[gas_id] = amount
 		scaled_moderator_list[gas_id] = max((amount - FUSION_MOLE_THRESHOLD) / scale_factor, 0)
 
@@ -357,13 +357,17 @@
 			if(moderator_list[/datum/gas/healium] > 100)
 				if(critical_threshold_proximity > 400)
 					critical_threshold_proximity = max(critical_threshold_proximity - (moderator_list[/datum/gas/healium] / 100 * seconds_per_tick ), 0)
-					moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.get_moles(/datum/gas/healium), scaled_production * 20)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.moles[/datum/gas/healium], scaled_production * 20))
-			if(moderator_internal.return_temperature() < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(moderator_internal.temperature < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50))
+					/* // APHELION EDIT REMOVAL START - DOGMOS
+					moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.moles[/datum/gas/healium], scaled_production * 20))
+			if(moderator_internal.temperature < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50))
+					*/ // APHELION EDIT REMOVAL END
+					// APHELION EDIT ADDITION START - DOGMOS
+					moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.get_moles(/datum/gas/healium), scaled_production * 20))
+			if(moderator_internal.return_temperature() < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50))
+					// APHELION EDIT ADDITION END
 				internal_output.adjust_gas(/datum/gas/antinoblium, dirty_production_rate * 0.9 / 0.065 * seconds_per_tick)
 		if(6)
-			/* // APHELION EDIT REMOVAL START - DOGMOS
-			internal_output.assert_gases(/datum/gas/antinoblium)
-			*/ // APHELION EDIT REMOVAL END
+			// internal_output.assert_gases(/datum/gas/antinoblium) // APHELION EDIT REMOVAL - DOGMOS
 			if(moderator_list[/datum/gas/plasma] > 30)
 				internal_output.adjust_gas(/datum/gas/bz, scaled_production * 1.15)
 				moderator_internal.adjust_gas(/datum/gas/plasma, -min(moderator_internal.get_moles(/datum/gas/plasma), scaled_production * 1.45)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: moderator_internal.adjust_gas(/datum/gas/plasma, -min(moderator_internal.moles[/datum/gas/plasma], scaled_production * 1.45))
@@ -393,7 +397,7 @@
 	if(internal_fusion.return_temperature() <= FUSION_MAXIMUM_TEMPERATURE * temperature_modifier)
 		internal_fusion.set_temperature(clamp(
 			internal_fusion.return_temperature() + heat_output * seconds_per_tick,
-			// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 			TCMB,
 			FUSION_MAXIMUM_TEMPERATURE * temperature_modifier,
 		)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: )
@@ -545,7 +549,7 @@
 			// APHELION EDIT ADDITION START - DOGMOS
 			if(internal_fusion.get_moles(gas_id) > 0)
 				internal_remove = internal_fusion.remove_specific(gas_id, internal_fusion.get_moles(gas_id) * (1 - (1 - 0.25) ** seconds_per_tick))
-				// APHELION EDIT ADDITION END
+			// APHELION EDIT ADDITION END
 				linked_output.airs[1].merge(internal_remove)
 /* // APHELION EDIT REMOVAL START - DOGMOS
 	internal_fusion.garbage_collect()
@@ -564,7 +568,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		internal_fusion.set_temperature(max(internal_fusion.return_temperature() - fusion_heat_amount / internal_fusion.heat_capacity(), TCMB))
 		moderator_internal.set_temperature(max(moderator_internal.return_temperature() + fusion_heat_amount / moderator_internal.heat_capacity(), TCMB))
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	if(airs[1].total_moles() * 0.05 <= MINIMUM_MOLE_COUNT)
 		return
@@ -581,7 +585,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		cooling_remove.set_temperature(max(cooling_remove.return_temperature() - cooling_heat_amount / cooling_remove.heat_capacity(), TCMB))
 		moderator_internal.set_temperature(max(moderator_internal.return_temperature() + cooling_heat_amount / moderator_internal.heat_capacity(), TCMB))
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	else if(internal_fusion.total_moles() > 0)
 		var/coolant_temperature_delta = cooling_remove.return_temperature() - internal_fusion.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/coolant_temperature_delta = cooling_remove.temperature - internal_fusion.temperature
@@ -593,7 +597,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		cooling_remove.set_temperature(max(cooling_remove.return_temperature() - cooling_heat_amount / cooling_remove.heat_capacity(), TCMB))
 		internal_fusion.set_temperature(max(internal_fusion.return_temperature() + cooling_heat_amount / internal_fusion.heat_capacity(), TCMB))
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 	cooling_port.merge(cooling_remove)
 
 /obj/machinery/atmospherics/components/unary/hypertorus/core/proc/inject_from_side_components(seconds_per_tick)
@@ -611,9 +615,7 @@
 
 	var/datum/gas_mixture/fuel_port = linked_input.airs[1]
 	for(var/gas_type in selected_fuel.requirements)
-		/* // APHELION EDIT REMOVAL START - DOGMOS
-		internal_fusion.assert_gas(gas_type)
-		*/ // APHELION EDIT REMOVAL END
+		// internal_fusion.assert_gas(gas_type) // APHELION EDIT REMOVAL - DOGMOS
 		internal_fusion.merge(fuel_port.remove_specific(gas_type, fuel_injection_rate * seconds_per_tick / length(selected_fuel.requirements)))
 		linked_input.update_parents()
 

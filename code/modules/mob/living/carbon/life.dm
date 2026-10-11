@@ -279,7 +279,7 @@
 		miasma_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/miasma))
 		n2o_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/nitrous_oxide))
 		nitrium_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/nitrium))
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	// Breath has 0 moles of gas.
 	else if(can_breathe_vacuum)
@@ -331,7 +331,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		breath.adjust_moles(/datum/gas/oxygen, -oxygen_used)
 		breath.adjust_moles(/datum/gas/carbon_dioxide, oxygen_used)
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 	//-- CARBON DIOXIDE --//
 	// Maximum CO2 effects. "Too much CO2!"

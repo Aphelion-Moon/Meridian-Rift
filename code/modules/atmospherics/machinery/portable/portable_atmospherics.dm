@@ -64,7 +64,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		air_contents.set_temperature(T20C)
 	air_contents.set_volume(volume)
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 	SSair.start_processing_machine(src)
 	AddElement(/datum/element/climbable, climb_time = 3 SECONDS, climb_stun = 3 SECONDS)
 	AddElement(/datum/element/elevation, pixel_shift = 8)

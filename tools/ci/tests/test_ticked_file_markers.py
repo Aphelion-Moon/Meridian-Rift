@@ -26,6 +26,24 @@ class TickedFileMarkerTests(unittest.TestCase):
         result = self.check_fixture('// APHELION EDIT ADDITION START - DOGMOS\n#include "a.dm"\n// APHELION EDIT ADDITION END\n#include "b.dm"', ["a.dm", "b.dm"])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_inline_addition_markers_preserve_include_records(self):
+        result = self.check_fixture('#include "a.dm" // APHELION EDIT ADDITION - DOGMOS\n#include "b.dm"', ["a.dm", "b.dm"])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_inline_markers_cannot_hide_missing_or_misordered_includes(self):
+        for includes in ('#include "a.dm" // APHELION EDIT ADDITION - DOGMOS', '#include "b.dm" // APHELION EDIT ADDITION - DOGMOS\n#include "a.dm"'):
+            with self.subTest(includes=includes):
+                result = self.check_fixture(includes, ["a.dm", "b.dm"])
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertRegex(result.stdout, "Missing include|out of order")
+
+    def test_inline_markers_reject_unknown_or_noncanonical_comments(self):
+        for comment in ("unrecognized comment", "APHELION EDIT ADDITION - dogmos", "APHELION EDIT ADDITION - DOGMOS__TEST", "APHELION EDIT ADDITION - DOGMOS_", "APHELION EDIT ADDITION START - DOGMOS", "APHELION EDIT ADDITION - DOGMOS trailing text", "NOVA EDIT ADDITION - DOGMOS"):
+            with self.subTest(comment=comment):
+                result = self.check_fixture('#include "a.dm" // ' + comment, ["a.dm"])
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn("unsupported include-block line", result.stdout)
+
     def test_nova_subdirectory_uses_portable_path_separator(self):
         result = self.check_fixture('#include "a.dm"\n// NOVA EDIT ADDITION START\n#include "~nova\\b.dm"\n// NOVA EDIT ADDITION END', ["a.dm", "~nova/b.dm"])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

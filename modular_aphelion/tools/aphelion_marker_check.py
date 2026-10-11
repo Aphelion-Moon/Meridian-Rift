@@ -16,7 +16,7 @@ from dataclasses import dataclass
 MODULE_ID = r"[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*"
 START = re.compile(rf"APHELION EDIT (ADDITION|REMOVAL) START - (?P<module>\S+)")
 END = re.compile(r"APHELION EDIT (ADDITION|REMOVAL) END")
-CHANGE = re.compile(rf"APHELION EDIT CHANGE - (?P<module>{MODULE_ID}) - ORIGINAL: .+")
+CHANGE = re.compile(rf"APHELION EDIT CHANGE - (?P<module>{MODULE_ID}) - ORIGINAL: (?P<original>.+)")
 IGNORED_SUFFIXES = (".md", ".py")
 DOGMOS_OWNED_PATHS = (
 	"code/modules/atmospherics/gasmixtures/",
@@ -125,7 +125,10 @@ def validate_diff(diff_text: str, *, allow_nova_sync: bool = False) -> list[Mark
 		for line_number, line in changed_file.added_lines:
 			if path.endswith(IGNORED_SUFFIXES):
 				continue
-			if "NOVA EDIT" in line and not path.startswith("modular_nova/") and not allow_nova_sync:
+			change = CHANGE.search(line)
+			# The complete original line can retain inherited Nova ownership.
+			current_edit = line[:change.start("original")] if change else line
+			if "NOVA EDIT" in current_edit and not path.startswith("modular_nova/") and not allow_nova_sync:
 				if "THIS IS A NOVA SECTOR UI FILE" not in line:
 					errors.append(MarkerError("new_nova_marker", path, line_number, "new Meridian work must use APHELION EDIT"))
 			start = START.search(line)

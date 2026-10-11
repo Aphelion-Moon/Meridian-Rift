@@ -30,6 +30,7 @@
 			fill += gas
 	return to_return
 
+// APHELION EDIT ADDITION START - DOGMOS
 GLOBAL_DATUM_INIT(gas_data, /datum/gas_data, new)
 
 /**
@@ -52,16 +53,25 @@ GLOBAL_DATUM_INIT(gas_data, /datum/gas_data, new)
 	for(var/datum/gas/gas_path as anything in subtypesof(/datum/gas))
 		datums[gas_path] = new gas_path
 
+// APHELION EDIT ADDITION END
 /proc/gas_id2path(id)
 	var/list/meta_gas_id = GLOB.meta_gas_info[META_GAS_ID]
 	if(id in meta_gas_id)
 		return id
+	/* // APHELION EDIT REMOVAL START - DOGMOS
+	for(var/path, meta_id in meta_gas_id)
+		if(meta_id == id)
+			return path
+	return ""
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	var/static/list/id_to_path
 	if(isnull(id_to_path))
 		id_to_path = list()
 		for(var/path, meta_id in meta_gas_id)
 			id_to_path[meta_id] = path
 	return id_to_path[id] || ""
+	// APHELION EDIT ADDITION END
 
 /**
  * # Gas datums

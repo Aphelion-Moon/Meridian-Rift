@@ -156,3 +156,4 @@
 		space_turf = locate(src.x, src.y, pick(levels))
 
 	AddComponent(/datum/component/chasm, space_turf, mapload)
+

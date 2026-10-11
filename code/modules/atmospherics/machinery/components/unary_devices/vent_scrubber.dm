@@ -255,9 +255,7 @@
 			// APHELION EDIT ADDITION END
 
 			if(total_moles_to_remove == 0)//sometimes this gets non gc'd values
-				/* // APHELION EDIT REMOVAL START - DOGMOS
-				environment.garbage_collect()
-				*/ // APHELION EDIT REMOVAL END
+				// environment.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 				return FALSE
 
 			/* // APHELION EDIT REMOVAL START - DOGMOS
@@ -267,7 +265,7 @@
 			// APHELION EDIT ADDITION START - DOGMOS
 			for(var/gas_id in filter_types & env_gases)
 				var/gas_amount = environment.get_moles(gas_id)
-				// APHELION EDIT ADDITION END
+			// APHELION EDIT ADDITION END
 				//take this gases portion of removal_ratio of the turfs air, or all of that gas_id if less than or equal to MINIMUM_MOLES_TO_SCRUB
 				var/transferred_moles = max(QUANTIZE(gas_amount * removal_ratio * (gas_amount / total_moles_to_remove)), min(MINIMUM_MOLES_TO_SCRUB, gas_amount)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/transferred_moles = max(QUANTIZE(env_cached_moles[gas_id] * removal_ratio * (env_cached_moles[gas_id] / total_moles_to_remove)), min(MINIMUM_MOLES_TO_SCRUB, env_cached_moles[gas_id]))
 
@@ -280,7 +278,7 @@
 				// APHELION EDIT ADDITION START - DOGMOS
 				filtered_out.set_moles(gas_id, transferred_moles)
 				environment.adjust_moles(gas_id, -transferred_moles)
-			// APHELION EDIT ADDITION END
+				// APHELION EDIT ADDITION END
 
 			// NOVA EDIT ADDITION
 			if(isopenturf(tile))

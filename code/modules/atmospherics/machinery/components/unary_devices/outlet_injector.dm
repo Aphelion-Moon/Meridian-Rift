@@ -105,7 +105,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	if(air_contents.return_temperature() > 0)
 		var/transfer_moles = (air_contents.return_pressure() * volume_rate) / (air_contents.return_temperature() * R_IDEAL_GAS_EQUATION)
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 
 		if(!transfer_moles)
 			return

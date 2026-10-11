@@ -67,7 +67,6 @@
 	var/datum/gas_mixture/empty_mix = allocate(/datum/gas_mixture)
 	TEST_ASSERT_EQUAL(empty_mix.heat_capacity(), 0, "An empty non-turf mixture should have no heat capacity")
 
-	// APHELION EDIT ADDITION START - DOGMOS
 	var/list/gas_ids = mix.__get_gases()
 	var/list/gas_paths = mix.get_gases()
 	TEST_ASSERT_EQUAL(length(gas_paths), 2, "Standard air should enumerate exactly two gas typepaths")
@@ -93,7 +92,6 @@
 		TEST_ASSERT_EQUAL(round(mix.total_moles(), 0.01), round(MOLES_CELLSTANDARD, 0.01), "Burnability queries must not change stored moles")
 		TEST_ASSERT_EQUAL(mix.is_immutable(), immutable, "Burnability queries must not change immutability")
 #endif
-	// APHELION EDIT ADDITION END
 
 /// merge() conserves both matter and energy.
 /datum/unit_test/gas_mixture_golden_merge
@@ -172,7 +170,6 @@
 	TEST_ASSERT_EQUAL(refcount(source), source_refs_before, "Native batch operations retained the source mixture.")
 	TEST_ASSERT_EQUAL(refcount(target), target_refs_before, "Native batch operations retained a member mixture.")
 
-// APHELION EDIT ADDITION START - DOGMOS
 #ifdef DOGMOS_IN_PROCESS
 /** Pipeline reconciliation conserves gas and energy across distinct mixtures, including vacuum. */
 /datum/unit_test/gas_mixture_golden_pipeline
@@ -204,7 +201,6 @@
 		TEST_ASSERT_EQUAL(round(mixture.return_temperature(), 0.01), round(expected_temperature, 0.01), "Pipeline members should reach the energy-weighted temperature")
 	TEST_ASSERT_EQUAL(round(first.thermal_energy() + second.thermal_energy() + empty.thermal_energy(), 0.01), round(expected_energy, 0.01), "Pipeline reconciliation should conserve total thermal energy")
 #endif
-// APHELION EDIT ADDITION END
 
 /// Reaction gating: hypernoblium suppresses reactions outright before any of them run.
 /datum/unit_test/gas_mixture_golden_reactions

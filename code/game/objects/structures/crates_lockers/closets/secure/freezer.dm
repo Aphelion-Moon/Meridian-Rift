@@ -34,7 +34,7 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		var/temperature_decrease_this_tick = min(cooling_rate_per_second * seconds_per_tick, internal_air.return_temperature() - minimum_temperature)
 		internal_air.set_temperature(internal_air.return_temperature() - temperature_decrease_this_tick)
-// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 
 /obj/structure/closet/secure_closet/freezer/ex_act()
 	if(jones)

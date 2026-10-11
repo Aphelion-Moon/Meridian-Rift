@@ -17,16 +17,16 @@ declare module '*.jpg' {
 }
 
 declare module '*.svg' {
-// APHELION EDIT ADDITION START - DOGMOS
   const content: string;
   export default content;
 }
+// APHELION EDIT ADDITION START - DOGMOS
 
 declare module '*.md' {
-// APHELION EDIT ADDITION END
   const content: string;
   export default content;
 }
+// APHELION EDIT ADDITION END
 
 namespace JSX {
   interface IntrinsicElements {

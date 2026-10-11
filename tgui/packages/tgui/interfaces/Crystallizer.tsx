@@ -157,8 +157,7 @@ const Gases = (props) => {
               minValue={0}
               maxValue={1000}
             >
-              {/* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {`${toFixed(amount, 2)} moles`} */}
-              {`${toFixed(amount, 4)} moles`}
+              {`${toFixed(amount, 4)} moles` /* APHELION EDIT CHANGE - DOGMOS - ORIGINAL: {`${toFixed(amount, 2)} moles`} */}
             </ProgressBar>
           </LabeledList.Item>
         ))}

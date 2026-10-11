@@ -41,7 +41,6 @@
 	TEST_ASSERT_NULL(GLOB.gas_data.overlays[nitrogen_id], \
 		"GLOB.gas_data.overlays has an entry for nitrogen, which has no moles_visible and should never have generated any overlay objects to reference.")
 
-	// APHELION EDIT ADDITION START - DOGMOS
 	// Exercise the renderer at and above the old native 20-state cap.
 	site = run_loc_floor_bottom_left
 	saved_air = site.air
@@ -59,7 +58,6 @@
 	site.update_visuals()
 	TEST_ASSERT_EQUAL(length(site.atmos_overlay_types), 0, "Consumed gas left a stale overlay.")
 	TEST_ASSERT_EQUAL(refcount(sample), sample_references, "Visual updates retained native gas references.")
-	// APHELION EDIT ADDITION END
 
 /** Probe only; the surrounding test verifies cleanup after its expected early failure. */
 /datum/unit_test/dogmos_gas_overlays/cleanup_probe

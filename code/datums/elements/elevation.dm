@@ -20,18 +20,14 @@
 	RegisterSignals(target, list(COMSIG_ATOM_ENTERING, COMSIG_MOVABLE_TURF_INITIALIZING), PROC_REF(on_source_entering))
 	RegisterSignal(target, COMSIG_ATOM_EXITING, PROC_REF(on_source_exiting))
 	RegisterSignal(target, COMSIG_ATOM_AFTER_SHUTTLE_MOVE, PROC_REF(on_source_after_shuttle_move))
-	// APHELION EDIT ADDITION START - TURF_CONTEXT
-	RegisterSignal(target, COMSIG_MOVABLE_MOVED, PROC_REF(on_source_moved))
-	// APHELION EDIT ADDITION END
+	RegisterSignal(target, COMSIG_MOVABLE_MOVED, PROC_REF(on_source_moved)) // APHELION EDIT ADDITION - TURF_CONTEXT
 
 	var/atom/atom_target = target
 	register_turf(atom_target, atom_target.loc)
 
 /datum/element/elevation/Detach(atom/movable/source)
 	UnregisterSignal(source, list(COMSIG_ATOM_ENTERING, COMSIG_MOVABLE_TURF_INITIALIZING, COMSIG_ATOM_EXITING, COMSIG_ATOM_AFTER_SHUTTLE_MOVE))
-	// APHELION EDIT ADDITION START - TURF_CONTEXT
-	UnregisterSignal(source, COMSIG_MOVABLE_MOVED)
-	// APHELION EDIT ADDITION END
+	UnregisterSignal(source, COMSIG_MOVABLE_MOVED) // APHELION EDIT ADDITION - TURF_CONTEXT
 	unregister_turf(source, source.loc)
 	REMOVE_TRAIT(source, TRAIT_ELEVATING_OBJECT, ref(src))
 	return ..()
@@ -99,7 +95,7 @@
 		reset_elevation(location)
 
 /// When a turf with elevated objects changes, we need to unregister all the elevating objects on it. When a turf Initializes(),
-/// it calls initialize_occupant() on its movable contents, which invokes on_source_entering() and registers each elevating
+/// it calls initialize_occupant() on its movable contents, which invokes on_source_entering() and registers each elevating // APHELION EDIT CHANGE - TURF_CONTEXT - ORIGINAL: /// it calls Entered() on all of its moveable contents, which will invoke on_source_entering(), which will register each elevating
 /// object with the new turf. We need to do this because turfs do not keep their traits when changed, and so the check for
 /// TRAIT_TURF_HAS_ELEVATED_OBJ above will fail and cause override runtimes when we attempt to register the signals again.
 /datum/element/elevation/proc/pre_change_turf(turf/changed, path, list/new_baseturfs, flags, list/post_change_callbacks)

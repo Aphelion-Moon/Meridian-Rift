@@ -133,7 +133,7 @@
 	// APHELION EDIT ADDITION START - DOGMOS
 	distro_air.set_volume(1000)
 	waste_air.set_volume(1000)
-// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 
 /obj/machinery/atmospherics/components/unary/airlock_pump/post_machine_initialize()
 	. = ..()

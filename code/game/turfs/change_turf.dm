@@ -303,7 +303,7 @@ GLOBAL_LIST_INIT(blacklisted_automated_baseturfs, typecacheof(list(
 		if(air)
 			set_temperature(temperature)
 	else if(!(flags & CHANGETURF_INHERIT_AIR))
-		// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 		Assimilate_Air()
 
 //////Assimilate Air//////

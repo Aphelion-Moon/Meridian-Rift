@@ -304,12 +304,10 @@
 		// APHELION EDIT ADDITION START - DOGMOS
 		if(air.get_moles(/datum/gas/plasma))
 			var/mole_count = air.get_moles(/datum/gas/plasma)
-			// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 			air.adjust_gas(/datum/gas/nitrogen, mole_count)
 			air.adjust_gas(/datum/gas/plasma, -mole_count)
-		/* // APHELION EDIT REMOVAL START - DOGMOS
-			air.garbage_collect()
-		*/ // APHELION EDIT REMOVAL END
+			// air.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 
 		for(var/obj/effect/hotspot/fire in chilly)
 			qdel(fire)

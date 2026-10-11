@@ -118,9 +118,7 @@ Chilling extracts:
 			*/ // APHELION EDIT REMOVAL END
 			G.set_moles(/datum/gas/plasma, 0) // APHELION EDIT ADDITION - DOGMOS
 			filtered = TRUE
-			/* // APHELION EDIT REMOVAL START - DOGMOS
-			G.garbage_collect()
-			*/ // APHELION EDIT REMOVAL END
+			// G.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 			T.air_update_turf(FALSE, FALSE)
 	if(filtered)
 		user.visible_message(span_notice("Cracks spread throughout [src], and some air is sucked in!"))

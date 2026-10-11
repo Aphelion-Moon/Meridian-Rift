@@ -115,7 +115,7 @@ GLOBAL_LIST_INIT(sm_gas_behavior, init_sm_gas())
 		// APHELION EDIT ADDITION START - DOGMOS
 		sm.absorbed_gasmix.get_moles(/datum/gas/carbon_dioxide),
 		sm.absorbed_gasmix.get_moles(/datum/gas/oxygen)
-	// APHELION EDIT ADDITION END
+		// APHELION EDIT ADDITION END
 	)
 	if(!consumed_co2)
 		return
