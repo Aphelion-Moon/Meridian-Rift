@@ -189,6 +189,14 @@
 	name = "Ball Mittens"
 	item_path = /obj/item/clothing/gloves/ball_mittens
 
+/datum/loadout_item/erp/paw_mittens
+	name = "Paw Mittens"
+	item_path = /obj/item/clothing/gloves/ball_mittens/paw_mittens
+
+/datum/loadout_item/erp/cat_paws
+	name = "Cat Paws"
+	item_path = /obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws
+
 /datum/loadout_item/erp/collar_shock
 	name = "Shock Collar"
 	item_path = /obj/item/electropack/shockcollar
