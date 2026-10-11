@@ -59,13 +59,14 @@
 
 		var/chosen_style_name = prefs?.augment_limb_styles[slot]
 		if(uses_robotic_styles && chosen_style_name)
-			apply_style_to_limb(new_limb, GLOB.robotic_styles_list[chosen_style_name], slot, digi_legs, prefs)
+			apply_style_to_limb(new_limb, GLOB.robotic_styles_list[chosen_style_name], slot, digi_legs, prefs, worn_offsets = TRUE)
 
 		new_limb.replace_limb(augmented)
 		qdel(old_limb)
 
-/// Applies a robotic style to a bodypart, setting limb_id, bodyshape, dimorphic override, and icon
-/datum/augment_item/limb/proc/apply_style_to_limb(obj/item/bodypart/limb, datum/robotic_style/chosen_style, slot, has_digi_legs, datum/preferences/prefs)
+/// Applies a robotic style to a bodypart, setting limb_id, bodyshape, dimorphic override, and icon - and with worn_offsets, for a
+/// limb made to wear the style, the worn offsets of the species the style draws it as (a preview body's own limbs keep theirs)
+/datum/augment_item/limb/proc/apply_style_to_limb(obj/item/bodypart/limb, datum/robotic_style/chosen_style, slot, has_digi_legs, datum/preferences/prefs, worn_offsets = FALSE)
 	var/style_valid = (chosen_style.supported_slots & slot_flag) && (!has_digi_legs || chosen_style.has_digi)
 	if(!style_valid)
 		prefs?.augment_limb_styles -= slot
@@ -82,6 +83,9 @@
 		limb.set_icon_static(chosen_style.icon)
 	else
 		limb.set_icon_greyscale(chosen_style.icon)
+	if(worn_offsets && chosen_style.worn_offsets_species)
+		limb.worn_offsets_species = chosen_style.worn_offsets_species
+		GLOB.species_prototypes[limb.worn_offsets_species].add_worn_offsets(limb)
 	return TRUE
 
 //HEADS

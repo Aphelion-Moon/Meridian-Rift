@@ -426,6 +426,7 @@
 #include "~nova\preference_apply_page.dm"
 #include "~nova\preferences_import.dm"
 #include "~nova\preferences_window_data.dm"
+#include "~nova\robotic_style_worn_offsets.dm"
 #include "~nova\shuttle.dm"
 #include "~nova\surgery_optional_patient.dm"
 #include "~nova\symphony_moderation.dm"
