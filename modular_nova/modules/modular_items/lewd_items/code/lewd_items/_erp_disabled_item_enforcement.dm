@@ -63,6 +63,16 @@
 	if(CONFIG_GET(flag/disable_lewd_items))
 		return INITIALIZE_HINT_QDEL
 
+/obj/item/reagent_containers/cup/bottle/rutt/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
+/obj/item/reagent_containers/applicator/pill/rutt/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
 /obj/item/clothing/mask/gas/bdsm_mask/Initialize(mapload)
 	. = ..()
 	if(CONFIG_GET(flag/disable_lewd_items))

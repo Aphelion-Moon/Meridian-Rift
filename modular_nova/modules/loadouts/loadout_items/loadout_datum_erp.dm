@@ -289,6 +289,14 @@
 	name = "Pentacamphor Pill"
 	item_path = /obj/item/reagent_containers/applicator/pill/pentacamphor
 
+/datum/loadout_item/erp/rutt
+	name = "R.U.T.T. Bottle"
+	item_path = /obj/item/reagent_containers/cup/bottle/rutt
+
+/datum/loadout_item/erp/rutt/pill
+	name = "R.U.T.T. Pill"
+	item_path = /obj/item/reagent_containers/applicator/pill/rutt
+
 /datum/loadout_item/erp/succubus_milk
 	name = "Succubus Milk Bottle"
 	item_path = /obj/item/reagent_containers/cup/bottle/succubus_milk

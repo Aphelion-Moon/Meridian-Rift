@@ -10,5 +10,6 @@
 		/obj/item/clothing/shoes/ballet_heels/pointe_boots,
 		/obj/item/clothing/under/misc/latex_halfcatsuit,
 		/obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws,
+		/obj/item/reagent_containers/cup/bottle/rutt, /obj/item/reagent_containers/applicator/pill/rutt,
 	)
 #endif

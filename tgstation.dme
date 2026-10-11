@@ -7373,6 +7373,7 @@
 #include "modular_aphelion\modules\adult_items\code\condom_box.dm"
 #include "modular_aphelion\modules\adult_items\code\latex_halfcatsuit.dm"
 #include "modular_aphelion\modules\adult_items\code\medipens.dm"
+#include "modular_aphelion\modules\adult_items\code\rutt.dm"
 #include "modular_aphelion\modules\body_hair\code\body_hair.dm"
 #include "modular_aphelion\modules\body_hair\code\body_hair_prefs.dm"
 #include "modular_aphelion\modules\body_hair\code\facial_hair.dm"
