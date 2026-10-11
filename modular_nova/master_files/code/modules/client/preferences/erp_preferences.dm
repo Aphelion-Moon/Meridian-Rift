@@ -108,6 +108,9 @@
 /datum/preference/toggle/erp/breast_shrinkage
 	savefile_key = "breast_shrinkage_pref"
 
+/datum/preference/toggle/erp/butt_enlargement
+	savefile_key = "butt_enlargement_pref"
+
 /datum/preference/toggle/erp/penis_enlargement
 	savefile_key = "penis_enlargement_pref"
 

@@ -313,6 +313,10 @@
 	name = "Incubus Draft Medipen"
 	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/incubus_draft
 
+/datum/loadout_item/erp/butt_enlarger
+	name = "Denbu Tincture Bottle"
+	item_path = /obj/item/reagent_containers/cup/bottle/butt_enlarger
+
 /datum/loadout_item/erp/coom_bomb
 	name = "La Coom Bomb Medipen"
 	item_path = /obj/item/reagent_containers/hypospray/medipen/lewd/coom_bomb

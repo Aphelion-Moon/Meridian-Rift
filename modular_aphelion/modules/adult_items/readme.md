@@ -59,6 +59,13 @@ neighbours.
   322 K, and dopamine, which only a climax made before, mixes from diethylamine, ephedrine, hydrogen and phenol at
   373 K; the ERP config removes both reactions, as it does Nova's. Once hacked, LustWish sells its bottle and its
   pill, which looks like the dopamine pill, beside the hexacrocin; the Erotic loadout offers both.
+- **Denbu tincture** (`code/butt_enlarger.dm`). `/datum/reagent/drug/aphrodisiac/butt_enlarger` grows the butt a size
+  every twenty cycles, up to the largest size a player can pick, for players who take butt enlargement - a preference
+  beside breast enlargement - and first grows a size-1 butt on a player without one, if they take new genitalia. A
+  butt in clothes strains and bruises from two sizes short of the largest until it gets there. Camphor's overdose
+  moves a butt back to its preference size, as it does the other genitals. It mixes from saline-glucose, sugar,
+  silicon and crocin; LustWish sells its bottle beside the succubus milk and incubus draft, and the Erotic loadout
+  offers it.
 
 ### TG Proc/File Changes:
 
@@ -67,6 +74,8 @@ neighbours.
 
 ### Modular Overrides:
 
+- `modular_nova/master_files/code/modules/client/preferences/erp_preferences.dm`: the butt enlargement preference,
+  after breast shrinkage.
 - `modular_nova/modules/GAGS/nsfw/gloves.dm` and
   `modular_nova/modules/GAGS/nsfw/json_configs/clothing/gloves/cat_paws.json` (new): the cat paws' GAGS configs,
   after the paw mittens'.
@@ -74,7 +83,7 @@ neighbours.
   `modular_nova/modules/GAGS/nsfw/json_configs/clothing/shoes/pointe_boots.json` (new): the pointe boots' GAGS
   configs, after the ballet heel's.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box, the condom box, the
-  paw mittens, the cat paws and R.U.T.T. in the Erotic loadout.
+  paw mittens, the cat paws, R.U.T.T. and denbu tincture in the Erotic loadout.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_shoes.dm`: the pointe boots in the shoes loadout.
 - `modular_nova/modules/loadouts/loadout_items/under/loadout_datum_under.dm`: the latex half-catsuit in the under
   loadout, after the catsuit.
@@ -82,6 +91,10 @@ neighbours.
   Grimoire Libidine NIFSoft.
 - `modular_nova/modules/modular_items/lewd_items/code/clothing_pref_check.dm`: Nova's paw mittens and the cat paws
   in the sex-toy preference check.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_chemistry/reagents/_aphrodisiac.dm`: the aphrodisiacs'
+  preference gates read the player through `GET_CLIENT`, so a unit test's mock player counts.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_chemistry/reagents/camphor.dm`: camphor's overdose moves a
+  butt back to its preference size.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_chemistry/reagents/dopamine.dm`: a dopamine overdose's
   happy message and its mood only for players who take aphrodisiacs, now that anyone can mix enough dopamine to
   overdose.
@@ -91,18 +104,20 @@ neighbours.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/_erp_disabled_item_enforcement.dm`: `Initialize()`
   of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd`,
   `/obj/item/storage/box/condoms`, `/obj/item/clothing/shoes/ballet_heels/pointe_boots`,
-  `/obj/item/clothing/under/misc/latex_halfcatsuit`, `/obj/item/reagent_containers/cup/bottle/rutt` and
-  `/obj/item/reagent_containers/applicator/pill/rutt`.
+  `/obj/item/clothing/under/misc/latex_halfcatsuit`, `/obj/item/reagent_containers/cup/bottle/rutt`,
+  `/obj/item/reagent_containers/applicator/pill/rutt` and `/obj/item/reagent_containers/cup/bottle/butt_enlarger`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
-  condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit, the cat paws and R.U.T.T. in the
-  LustWish stock.
+  condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit, the cat paws, R.U.T.T. and denbu
+  tincture in the LustWish stock.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_gloves.dmi`: the cat paws'
   greyscale template, states `catpaws`, `catpaws-pawpad` and `catpaws-tag`, after the existing states.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_shoes.dmi` and
   `modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi`: the pointe boots'
   greyscale template, state `pointe_boots`, after the existing states.
+- `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/nova/erp_preferences.tsx`: the
+  butt enlargement toggle, after the breast toggles.
 
 ### Defines:
 
@@ -254,3 +269,19 @@ neighbours.
     preferences refused. Left out: the flag that let R.U.T.T. be synthesized, which would put it in random pills and
     the Odysseus' syringe gun (Nova's aphrodisiacs go without it), and S.P.L.U.R.T's new name and description for
     dopamine, which Nova's own reagent keeps.
+- **Denbu tincture.**
+  - Code and text from S.P.L.U.R.T-tg's `modular_zzplurt/code/modules/lewd/lewd_chemistry/reagents/butt_enlarger.dm`,
+    the butt parts of `modular_zzplurt/code/modules/lewd/lewd_chemistry/reagents/_aphrodisiac.dm` and
+    `modular_zzplurt/code/modules/lewd/lewd_chemistry/reagents/camphor.dm`, the bottle in
+    `modular_zzplurt/code/modules/lewd/lewd_chemistry/items/bottles.dm`, and the butt enlargement preference in
+    `modular_zzplurt/code/modules/client/preferences/erp_preferences.dm` with its toggle in
+    `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/splurt/erp_preferences.tsx`
+    (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+  - Nothing imported: the bottle is tg's, and a grown butt wears Nova's butt sprites.
+  - Modified: a new butt is first named "Pair" in the DNA, as Nova's `create_breasts()` names its breasts, where
+    S.P.L.U.R.T's left the DNA as it was, so a player's new butt kept the DNA's "None" and drew nothing (a mob with no
+    entry got a random sprite); it starts at size 1, the smallest drawn, where S.P.L.U.R.T's started at 0, which draws
+    nothing; the strain bruises the chest, where S.P.L.U.R.T's hit a random limb; and the growth message comes once to
+    the taker and to onlookers with ERP on. Left out: the butt shrinkage preference and its procs, which nothing in
+    S.P.L.U.R.T called.

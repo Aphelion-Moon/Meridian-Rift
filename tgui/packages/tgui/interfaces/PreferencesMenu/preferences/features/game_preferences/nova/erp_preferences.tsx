@@ -88,6 +88,14 @@ export const breast_removal_pref: FeatureToggle = {
   component: CheckboxInput,
 };
 
+export const butt_enlargement_pref: FeatureToggle = {
+  name: 'Butt enlargement',
+  category: 'ERP',
+  description:
+    'Determines if you wish to receive the effects of butt enlargement chemicals.',
+  component: CheckboxInput,
+};
+
 export const penis_enlargement_pref: FeatureToggle = {
   name: 'Penis enlargement',
   category: 'ERP',
