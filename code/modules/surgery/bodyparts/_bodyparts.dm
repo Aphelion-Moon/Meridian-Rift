@@ -273,6 +273,11 @@
 		texture_bodypart_overlay = new texture_bodypart_overlay()
 		add_bodypart_overlay(texture_bodypart_overlay, update = FALSE)
 
+	// APHELION EDIT ADDITION START - A limb drawn in a species' shape carries that species' worn offsets, whoever made it
+	if(worn_offsets_species)
+		GLOB.species_prototypes[worn_offsets_species].add_worn_offsets(src)
+
+	// APHELION EDIT ADDITION END
 	if(IS_ORGANIC_LIMB(src))
 		blood_dna_info = list("Unknown DNA" = get_blood_type(/datum/blood_type/human/o_plus))
 
