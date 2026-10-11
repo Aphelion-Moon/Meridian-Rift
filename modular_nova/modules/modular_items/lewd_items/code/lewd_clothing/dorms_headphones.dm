@@ -22,7 +22,7 @@
 	. = ..()
 	AddElement(/datum/element/update_icon_updates_onmob)
 	AddElement(/datum/element/earhealing) // idk either; man, earmuffs do it too
-	AddComponent(/datum/component/wearertargeting/earprotection, list(ITEM_SLOT_EARS))
+	AddComponent(/datum/component/wearertargeting/earprotection)
 
 /obj/item/clothing/ears/dorms_headphones/update_icon_state()
 	. = ..()
