@@ -30,8 +30,6 @@
 
 /datum/quirk/item_quirk/breather/water_breather/add_unique(client/client_source)
 	. = ..()
-	if(!.)
-		return FALSE
 	RegisterSignal(quirk_holder, COMSIG_MOB_GRANTED_ACTION, PROC_REF(on_hydrophobia_action_granted))
 	// Clean up any action that might already exist
 	for (var/datum/action/cooldown/spell/slime_hydrophobia/hydrophobia_action in quirk_holder.actions)

@@ -12,13 +12,17 @@
 	///this stores the old lungs so we can grant them on removal of the quirk
 	var/obj/item/organ/lungs/old_lungs
 
+/// Check initial lung eligibility before attaching to the holder.
+/datum/quirk/item_quirk/breather/add_to_holder(mob/living/new_holder, quirk_transfer = FALSE, client/client_source, unique = TRUE, announce = TRUE)
+	if(!quirk_transfer && unique && ishuman(new_holder) && !new_holder.get_organ_slot(ORGAN_SLOT_LUNGS))
+		// Preserve the base proc's duplicate and ownership assertions.
+		if(!quirk_holder && !new_holder.has_quirk(type))
+			to_chat(new_holder, span_warning("Your [name] quirk couldn't properly execute due to your species/body lacking a pair of lungs!"))
+			return FALSE
+	return ..()
+
 /datum/quirk/item_quirk/breather/add_unique(client/client_source)
 	var/obj/item/organ/lungs/lungs_holder = quirk_holder.get_organ_slot(ORGAN_SLOT_LUNGS)
-	if(isnull(lungs_holder))
-		to_chat(quirk_holder, span_warning("Your [name] quirk couldn't properly execute due to your species/body lacking a pair of lungs!"))
-		qdel(src)
-		return FALSE
-
 	// preserve the old lungs
 	old_lungs = SSwardrobe.provide_type(lungs_holder.type)
 	old_lungs.moveToNullspace()
