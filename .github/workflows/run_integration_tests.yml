@@ -53,6 +53,10 @@ jobs:
             tools/ci/mysql_config.cnf
             tools/ci/run_server.sh
 
+      # APHELION EDIT ADDITION START - DOGMOS
+      - name: Checkout Dogmos runtime dependencies
+        run: git sparse-checkout add tools/dogmos code/__DEFINES
+      # APHELION EDIT ADDITION END
       - name: Configure BYOND version
         uses: ./.github/actions/configure_byond_version
         with:
