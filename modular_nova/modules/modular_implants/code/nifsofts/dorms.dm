@@ -60,6 +60,7 @@
 					//Feet items
 					/obj/item/clothing/shoes/latex_socks,
 					/obj/item/clothing/shoes/ballet_heels,
+					/obj/item/clothing/shoes/ballet_heels/pointe_boots,
 	)
 	purchase_price = 150
 
