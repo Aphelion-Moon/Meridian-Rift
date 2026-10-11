@@ -197,6 +197,7 @@
 		/obj/item/clothing/neck/collar/thick/holocollar = 3,
 		/obj/item/clothing/neck/collar/leather/holocollar = 3,
 		/obj/item/clothing/neck/size_collar = 8,//It only works in the Interlink anyways
+		/obj/item/clothing/sextoy/fleshlight/bluespace = 1,
 	)
 
 	contraband = list(
