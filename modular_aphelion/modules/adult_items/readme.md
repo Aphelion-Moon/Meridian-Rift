@@ -32,18 +32,35 @@ reaches players through the same vendor or loadout as its Nova neighbours.
 - **Leash line** (in Nova's `leash.dm`). While Nova's leash is hooked, a line in the colour of its strap runs from the
   hand holding it to the leashed. It is blank while a wall or a window stands between the two, or while either is
   inside something or on another z-level, and drawn again once they are back in reach; unhooking takes it away.
+- **Pointe boots** (in Nova's `lewd_shoes.dm`). `/obj/item/clothing/shoes/ballet_heels/pointe_boots` are Nova's ballet
+  heels with the feet held en pointe: they keep the heels' lace-up shaft, four heel sounds and default colour, and
+  players colour them through a GAGS template of their own, digitigrade legs included. LustWish, the shoes loadout
+  and the Grimoire Libidine NIFSoft offer them, as they offer the ballet heels.
+
+### TG Proc/File Changes:
+
+- `icons/map_icons/clothing/shoes.dmi`: the pointe boots' map icon, as `SSgreyscale_previews` generates it.
 
 ### Modular Overrides:
 
+- `modular_nova/modules/GAGS/nsfw/shoes.dm` and
+  `modular_nova/modules/GAGS/nsfw/json_configs/clothing/shoes/pointe_boots.json` (new): the pointe boots' GAGS
+  configs, after the ballet heel's.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box and the condom box in
   the Erotic loadout.
+- `modular_nova/modules/loadouts/loadout_items/loadout_datum_shoes.dm`: the pointe boots in the shoes loadout.
+- `modular_nova/modules/modular_implants/code/nifsofts/dorms.dm`: the pointe boots in the Grimoire Libidine NIFSoft.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`: the pointe boots.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/_erp_disabled_item_enforcement.dm`: `Initialize()`
-  of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd` and
-  `/obj/item/storage/box/condoms`.
+  of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd`,
+  `/obj/item/storage/box/condoms` and `/obj/item/clothing/shoes/ballet_heels/pointe_boots`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
-  condom box and the bluespace fleshlight in the LustWish stock.
+  condom box, the bluespace fleshlight and the pointe boots in the LustWish stock.
+- `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_shoes.dmi` and
+  `modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi`: the pointe boots'
+  greyscale template, state `pointe_boots`, after the existing states.
 
 ### Defines:
 
@@ -107,3 +124,24 @@ reaches players through the same vendor or loadout as its Nova neighbours.
     S.P.L.U.R.T's was always purple; owned by the leash component, so it also goes when the leashed breaks free; and
     blank only while out of reach, inside something or on another z-level - S.P.L.U.R.T's never came back once the
     two were out of reach.
+- **Pointe boots.**
+  - Code from S.P.L.U.R.T-tg's `modular_skyrat/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`
+    (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026),
+    where the boots are `/obj/item/clothing/shoes/latex_heels/ballet_heels`.
+  - Sprites by KittenColony for Bubberstation ([PR #5044](https://github.com/Bubberstation/Bubberstation/pull/5044),
+    "Add Ballet Heels"), merged upstream into S.P.L.U.R.T-tg as
+    [`968de8f897`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/commit/968de8f8970833bbd0096e2362f3c6d3e98742a5),
+    CC BY-SA 3.0. Taken from state `balletheels` of
+    `modular_skyrat/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_shoes.dmi` and
+    `modular_skyrat/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi` at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+    The boot is drawn over the latex heels of the same sheets, the Skyrat art Nova's ballet heels are made from.
+  - Modified: named pointe boots and described anew, as Nova's lace-up heel already carries the name ballet heels;
+    a child of Nova's `ballet_heels` (S.P.L.U.R.T's `latex_heels`, renamed and made GAGS by
+    [NovaSector #5022](https://github.com/NovaSector/NovaSector/pull/5022)), so they click and colour as the heels
+    do. The shape kept to the pixel and made one GAGS greyscale template, state `pointe_boots` in Nova's three
+    `lewd_shoes` sheets. Where the boot keeps the latex heels' pixels it takes the greys of Nova's `ballet_heels`
+    template (BluBerry016); elsewhere each colour takes the grey Nova gave it, four pixels set by hand. Black stays
+    black only in the creases, as on the heels: the toe platforms take the heels' darkest grey, so they colour with
+    the rest. Default colour `#383840`, as the ballet heels.

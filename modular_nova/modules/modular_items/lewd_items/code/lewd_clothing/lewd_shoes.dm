@@ -29,6 +29,16 @@
 	greyscale_config_worn_digi = null
 	post_init_icon_state = null
 
+/// Ballet heels that hold the feet en pointe - only the look is their own.
+/obj/item/clothing/shoes/ballet_heels/pointe_boots
+	name = "pointe boots"
+	desc = "Knee-high boots that hold the feet en pointe, like a ballerina's. Somehow even harder to walk in than heels."
+	icon_state = "/obj/item/clothing/shoes/ballet_heels/pointe_boots"
+	post_init_icon_state = "pointeboots"
+	greyscale_config = /datum/greyscale_config/pointe_boots
+	greyscale_config_worn = /datum/greyscale_config/pointe_boots/worn
+	greyscale_config_worn_digi = /datum/greyscale_config/pointe_boots/worn/digi
+
 /*
 *	LATEX SOCKS
 */
