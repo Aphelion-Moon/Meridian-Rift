@@ -590,8 +590,8 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 		test_inventory += "[unit_path]"
 	fdel("data/unit_test_inventory.json")
 	file("data/unit_test_inventory.json") << json_encode(test_inventory)
-	// APHELION EDIT ADDITION END
 
+	// APHELION EDIT ADDITION END
 	//Hell code, we're bound to end the round somehow so let's stop if from ending while we work
 	SSticker.delay_end = TRUE
 	for(var/datum/unit_test/unit_path as anything in tests_to_run)
