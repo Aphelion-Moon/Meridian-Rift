@@ -29,6 +29,9 @@ reaches players through the same vendor or loadout as its Nova neighbours.
   to twelve tiles along its path. The throw is gentle, so whatever ends it - usually a wall - stops the user without
   the stun and bruises of a crash, and a wizard in rod form is set down unharmed where the rod was. LustWish sells one
   as a premium item at ten command paychecks. Nova's sex-toy stanza removes it with the lewd-items config.
+- **Leash line** (in Nova's `leash.dm`). While Nova's leash is hooked, a line in the colour of its strap runs from the
+  hand holding it to the leashed. It is blank while a wall or a window stands between the two, or while either is
+  inside something or on another z-level, and drawn again once they are back in reach; unhooking takes it away.
 
 ### Modular Overrides:
 
@@ -38,6 +41,7 @@ reaches players through the same vendor or loadout as its Nova neighbours.
   of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd` and
   `/obj/item/storage/box/condoms`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
   condom box and the bluespace fleshlight in the LustWish stock.
 
@@ -52,6 +56,7 @@ reaches players through the same vendor or loadout as its Nova neighbours.
 - `code/modules/unit_tests/~nova/lewd_medipens.dm`: the medipens' unit test.
 - `code/modules/unit_tests/~nova/condom_box.dm`: the condom box's unit test.
 - `code/modules/unit_tests/~nova/bluespace_fleshlight.dm`: the bluespace fleshlight's unit test.
+- `code/modules/unit_tests/~nova/leash_line.dm`: the leash line's unit test.
 
 ### Credits:
 
@@ -92,3 +97,13 @@ reaches players through the same vendor or loadout as its Nova neighbours.
     after one step under gravity - and lands without a crash's stun and damage; a wizard in rod form is set down
     before the rod is deleted, where S.P.L.U.R.T deleted the wizard with it; menus show it teal; LustWish sells it as
     premium, where S.P.L.U.R.T hid it in contraband.
+- **Leash line.**
+  - Behaviour from S.P.L.U.R.T-tg's `modular_skyrat/modules/modular_items/lewd_items/code/lewd_items/leash.dm`
+    (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+  - Nothing imported: the line is tg's `fishing_line` beam state.
+  - Modified: drawn on tg's held beam with the borg vacuum hose's hand offsets (`/datum/beam/held/vacuum`) instead of
+    S.P.L.U.R.T's copy of the fishing line's beam with every offset at zero; coloured as the leash's strap, where
+    S.P.L.U.R.T's was always purple; owned by the leash component, so it also goes when the leashed breaks free; and
+    blank only while out of reach, inside something or on another z-level - S.P.L.U.R.T's never came back once the
+    two were out of reach.
