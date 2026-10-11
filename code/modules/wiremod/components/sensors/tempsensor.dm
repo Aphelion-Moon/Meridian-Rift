@@ -30,3 +30,4 @@
 		result.set_output(round(environment.return_temperature(),1)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: result.set_output(round(environment.temperature,1))
 	else
 		result.set_output(0)
+
