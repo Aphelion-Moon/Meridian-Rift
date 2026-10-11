@@ -409,6 +409,7 @@
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\language_understanding.dm"
+#include "~nova\latex_halfcatsuit.dm"
 #include "~nova\leash_line.dm"
 #include "~nova\lewd_medipens.dm"
 #include "~nova\limb_marking_cache.dm"

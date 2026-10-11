@@ -8,5 +8,6 @@
 		/obj/item/storage/box/condoms,
 		/obj/item/clothing/sextoy/fleshlight/bluespace,
 		/obj/item/clothing/shoes/ballet_heels/pointe_boots,
+		/obj/item/clothing/under/misc/latex_halfcatsuit,
 	)
 #endif

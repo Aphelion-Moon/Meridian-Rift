@@ -7,11 +7,12 @@ Module ID: ADULT_ITEMS
 Adult items ported from S.P.L.U.R.T. A family with no Nova counterpart gets its own file in `code/`, with its own
 icon sheets in `icons/`, while an addition to a Nova family goes in that family's Nova file. Each family has its own
 line under Credits. Every item has an `Initialize()` stanza in Nova's `_erp_disabled_item_enforcement.dm`, so the
-lewd-items config removes it, and every family lists its top types on one line of `adult_items_gated_types()` in
-`code/_gated_types.dm` - a new family adds its line there. The `adult_items_kill_switch` unit test makes every
-concrete type under them and fails on any that survives with lewd items disabled or does not spawn with them enabled.
-Items that fit the box of love carry `obj_flags_nova = ERP_ITEM`, as their Nova neighbours do, and each family
-reaches players through the same vendor or loadout as its Nova neighbours.
+lewd-items config removes it, and every family that adds items lists its top types on one line of
+`adult_items_gated_types()` in `code/_gated_types.dm` - a new family adds its line there. The
+`adult_items_kill_switch` unit test makes every concrete type under them and fails on any that survives with lewd
+items disabled or does not spawn with them enabled. Items that fit the box of love carry `obj_flags_nova = ERP_ITEM`,
+as their Nova neighbours do, and each family reaches players through the same vendor or loadout as its Nova
+neighbours.
 
 - **Medipens** (`code/medipens.dm`). Five one-shot 30u medipens under the abstract
   `/obj/item/reagent_containers/hypospray/medipen/lewd`: crocin, hexacrocin, succubus milk, incubus draft, and the
@@ -36,6 +37,14 @@ reaches players through the same vendor or loadout as its Nova neighbours.
   heels with the feet held en pointe: they keep the heels' lace-up shaft, four heel sounds and default colour, and
   players colour them through a GAGS template of their own, digitigrade legs included. LustWish, the shoes loadout
   and the Grimoire Libidine NIFSoft offer them, as they offer the ballet heels.
+- **Latex half-catsuit** (`code/latex_halfcatsuit.dm`). `/obj/item/clothing/under/misc/latex_halfcatsuit` is Nova's
+  latex catsuit with the legs cut off. Like the catsuit, it takes six seconds to peel off yourself and has a male and
+  a female sprite; it picks one by its wearer's body type, and unlike the catsuit's, its pick shows in the character
+  preview. It has digitigrade, Vox, Vox Primalis and Teshari sprites of its own, the Vox ones with the catsuit's latex
+  hand covers. A sibling of the catsuit, not its subtype, it does not bulge as the catsuit's long johns do, hides none
+  of its wearer's parts and leaves a taur's body in sight: paw, hoof and snake taurs wear it cropped, and big-legged
+  taurs wear the plain sprite. LustWish, the under loadout and the Grimoire Libidine NIFSoft offer it beside the
+  catsuit.
 
 ### TG Proc/File Changes:
 
@@ -49,15 +58,19 @@ reaches players through the same vendor or loadout as its Nova neighbours.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`: the pens, the medipen box and the condom box in
   the Erotic loadout.
 - `modular_nova/modules/loadouts/loadout_items/loadout_datum_shoes.dm`: the pointe boots in the shoes loadout.
-- `modular_nova/modules/modular_implants/code/nifsofts/dorms.dm`: the pointe boots in the Grimoire Libidine NIFSoft.
+- `modular_nova/modules/loadouts/loadout_items/under/loadout_datum_under.dm`: the latex half-catsuit in the under
+  loadout, after the catsuit.
+- `modular_nova/modules/modular_implants/code/nifsofts/dorms.dm`: the pointe boots and the latex half-catsuit in the
+  Grimoire Libidine NIFSoft.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`: the pointe boots.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/_erp_disabled_item_enforcement.dm`: `Initialize()`
   of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd`,
-  `/obj/item/storage/box/condoms` and `/obj/item/clothing/shoes/ballet_heels/pointe_boots`.
+  `/obj/item/storage/box/condoms`, `/obj/item/clothing/shoes/ballet_heels/pointe_boots` and
+  `/obj/item/clothing/under/misc/latex_halfcatsuit`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
-  condom box, the bluespace fleshlight and the pointe boots in the LustWish stock.
+  condom box, the bluespace fleshlight, the pointe boots and the latex half-catsuit in the LustWish stock.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_shoes.dmi` and
   `modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_shoes_digi.dmi`: the pointe boots'
   greyscale template, state `pointe_boots`, after the existing states.
@@ -74,6 +87,7 @@ reaches players through the same vendor or loadout as its Nova neighbours.
 - `code/modules/unit_tests/~nova/condom_box.dm`: the condom box's unit test.
 - `code/modules/unit_tests/~nova/bluespace_fleshlight.dm`: the bluespace fleshlight's unit test.
 - `code/modules/unit_tests/~nova/leash_line.dm`: the leash line's unit test.
+- `code/modules/unit_tests/~nova/latex_halfcatsuit.dm`: the latex half-catsuit's unit test.
 
 ### Credits:
 
@@ -145,3 +159,37 @@ reaches players through the same vendor or loadout as its Nova neighbours.
     template (BluBerry016); elsewhere each colour takes the grey Nova gave it, four pixels set by hand. Black stays
     black only in the creases, as on the heels: the toe platforms take the heels' darkest grey, so they colour with
     the rest. Default colour `#383840`, as the ballet heels.
+- **Latex half-catsuit.**
+  - Code and text from S.P.L.U.R.T-tg's `modular_zubbers/modules/lewd_clothing/latex_halfcatsuit.dm` (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026),
+    where it came from Bubberstation ([PR #3508](https://github.com/Bubberstation/Bubberstation/pull/3508),
+    CatoChristopherMrow).
+  - Sprites by CatoChristopherMrow for Bubberstation
+    ([PR #3508](https://github.com/Bubberstation/Bubberstation/pull/3508)), CC BY-SA 3.0: the latex catsuit's sprites
+    (StrangeWeirdKitten, [Skyrat-tg #14527](https://github.com/Skyrat-SS13/Skyrat-tg/pull/14527)) with the legs cut
+    away. Taken from states `latex_halfcatsuit_female` and `latex_halfcatsuit_male` of
+    `modular_skyrat/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lewd_uniform.dmi` and
+    `modular_skyrat/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/lewd_uniform.dmi` at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026);
+    the item sprites, the catsuit's own there, are cut to the worn half's V here, the new edges in the icon's outline
+    colour.
+  - Digitigrade sprites: [Nova Sector](https://github.com/NovaSector/NovaSector)'s digitigrade catsuit,
+    `modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/lewd_uniform-digi.dmi` (CC
+    BY-SA 3.0), cut as S.P.L.U.R.T cut the plain one: every row above the hem whole, the V where the plain half has
+    it, and in side view the hem's ends on the digitigrade thigh's own front and back edges.
+  - Vox and Vox Primalis sprites: the latex catsuit's Vox states by Bloop (Meridian-Rift, "Vox update", `fa441ada5a6`)
+    in `modular_nova/master_files/icons/mob/clothing/species/vox/uniform.dmi` and
+    `modular_nova/modules/better_vox/icons/clothing/uniform.dmi`, cut by the same rule with the V on each body's own
+    crotch; the hand covers (`_hands`) are the catsuit's, unchanged.
+  - Teshari sprites by aKromatopzia for Bubberstation
+    ([PR #2925](https://github.com/Bubberstation/Bubberstation/pull/2925)), CC BY-SA 3.0: S.P.L.U.R.T's Teshari latex
+    catsuit (`latex_catsuit_female` and `latex_catsuit_male` of
+    `modular_skyrat/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/lewd_uniform_teshari.dmi` at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026)),
+    cut by the same rule, the new edges in that sprite's own outline colour.
+  - Modified: it covers no legs, and another player strips it off in one second, as Nova's catsuit
+    ([NovaSector #4913](https://github.com/NovaSector/NovaSector/pull/4913)), where S.P.L.U.R.T's took eight; its
+    sprite follows the wearer's body type in `visual_equipped()`, so previews show it. Left out: the breasts overlay,
+    which never drew and which #4913 cut from Nova's catsuit; the drag-and-drop plug, as a worn uniform cannot be
+    dragged off here; and the 64x32 taur sheet, drawn for Bubberstation's big-legged taurs (`worn_icon_taur_big` at
+    the pin), who here wear the plain sprite.

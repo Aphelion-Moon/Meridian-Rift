@@ -46,6 +46,7 @@
 
 					//Torso / Belt Items
 					/obj/item/clothing/under/misc/latex_catsuit,
+					/obj/item/clothing/under/misc/latex_halfcatsuit,
 					/obj/item/clothing/suit/corset,
 					/obj/item/clothing/suit/straight_jacket/latex_straight_jacket,
 					/obj/item/clothing/suit/straight_jacket/shackles,

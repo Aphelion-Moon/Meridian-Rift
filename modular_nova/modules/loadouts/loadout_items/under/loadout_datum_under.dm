@@ -544,6 +544,12 @@
 	erp_item = TRUE
 	group = "Costumes"
 
+/datum/loadout_item/under/miscellaneous/latex_halfcatsuit
+	name = "Latex Half-Catsuit"
+	item_path = /obj/item/clothing/under/misc/latex_halfcatsuit
+	erp_item = TRUE
+	group = "Costumes"
+
 /datum/loadout_item/under/miscellaneous/stripper_outfit
 	name = "Tearaway Garments"
 	item_path = /obj/item/clothing/under/tearaway_garments
