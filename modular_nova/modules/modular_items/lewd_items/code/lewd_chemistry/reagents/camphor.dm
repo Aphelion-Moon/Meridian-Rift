@@ -77,6 +77,15 @@
 				mob_testicles.update_sprite_suffix()
 				modified_genitals = TRUE
 
+	// The butt, a size a dose. Its preference is read through GET_CLIENT, so a unit test's mock player counts.
+	var/obj/item/organ/genital/butt/mob_butt = exposed_mob.get_organ_slot(ORGAN_SLOT_BUTT)
+	var/datum/client_interface/player = GET_CLIENT(exposed_mob)
+	var/original_butt_size = player?.prefs?.read_preference(/datum/preference/numeric/butt_size)
+	if(mob_butt && original_butt_size && mob_butt.genital_size != original_butt_size)
+		mob_butt.genital_size += (mob_butt.genital_size < original_butt_size) ? 1 : -1
+		mob_butt.update_sprite_suffix()
+		modified_genitals = TRUE
+
 	if(modified_genitals)
 		exposed_mob.update_body()
 
