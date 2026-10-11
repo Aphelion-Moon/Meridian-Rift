@@ -52,8 +52,10 @@
 		return
 
 	ouppy.AddComponent(/datum/component/leash/erp, src, 2)
-	if(our_leash_component.resolve()) // The component will immediately delete itself if there's an existing one; this sanity checks for feedback on if it failed.
+	var/datum/component/leash/erp/hooked = our_leash_component?.resolve()
+	if(hooked) // The component will immediately delete itself if there's an existing one; this sanity checks for feedback on if it failed.
 		ouppy.balloon_alert(user, "leashed!")
+		hooked.draw_line()
 		return
 	else to_chat(user, span_danger("There's a leash attached to [ouppy] already."))
 
@@ -68,6 +70,8 @@
 
 /datum/component/leash/erp
 	dupe_mode = COMPONENT_DUPE_UNIQUE
+	/// The line from the hand holding the leash to the leashed
+	var/datum/beam/held/vacuum/leash/line
 
 // 'owner' refers the leash item, while 'parent' refers to the one it's affixed to.
 /datum/component/leash/erp/RegisterWithParent()
@@ -89,11 +93,26 @@
 
 /datum/component/leash/erp/Destroy() // Have to do this here too
 	UnregisterSignal(owner, list(COMSIG_ITEM_ATTACK_SELF, COMSIG_ITEM_DROPPED))
+	QDEL_NULL(line)
 	if(istype(owner, /obj/item/clothing/erp_leash))
 		var/obj/item/clothing/erp_leash/our_leash = owner
 		our_leash.our_leash_component = null
 	return ..()
 
+/// Draws the line from the hand holding the leash to the leashed, in the colour of the leash's strap
+/datum/component/leash/erp/proc/draw_line()
+	var/mob/holder = owner.loc
+	if(!ismob(holder))
+		return
+	line = new(holder, parent, icon_state = "fishing_line", beam_color = SSgreyscale.ParseColorString(owner.greyscale_colors)[1], emissive = FALSE)
+	line.lefthand = IS_LEFT_INDEX(holder.get_held_index_of_item(owner))
+	RegisterSignal(line, COMSIG_QDELETING, PROC_REF(on_line_deleted))
+	INVOKE_ASYNC(line, TYPE_PROC_REF(/datum/beam, Start))
+
+/// The line is deleted with either of its ends
+/datum/component/leash/erp/proc/on_line_deleted(datum/source)
+	SIGNAL_HANDLER
+	line = null
 
 /datum/component/leash/erp/proc/on_item_attack_self(datum/source, mob/user)
 	SIGNAL_HANDLER
@@ -134,3 +153,20 @@
 			to_chat(our_parent, span_notice("You unhook yourself from the leash."))
 			qdel(src)
 	else qdel(src) // If they're not an item; something is very wrong - qdel anyways without the breakout time.
+
+/// The leash's line - it leaves the hand where the borg vacuum's hose does, and is blank while the two are out of reach
+/datum/beam/held/vacuum/leash
+
+/// Blanks the line, where a beam would delete itself, while an end is inside something or on another z-level
+/datum/beam/held/vacuum/leash/redrawing(atom/movable/mover, atom/oldloc, direction)
+	if(QDELETED(origin) || QDELETED(target) || (isturf(origin.loc) && isturf(target.loc) && origin.z == target.z))
+		return ..()
+	Draw()
+
+/// Each draw runs `CheckToolReach` - a dummy obj, up to six `Move()` calls and a `qdel` - as tg's fishing line does
+/datum/beam/held/vacuum/leash/Draw(atom/movable/mover, atom/oldloc)
+	// 6 is past the leash's 2 tiles, so a leashed being pulled along keeps the line
+	if(isturf(origin.loc) && isturf(target.loc) && CheckToolReach(origin, target, 6))
+		return ..()
+	QDEL_LIST(elements)
+	last_draw_valid = FALSE // back in reach, the line is drawn where the two are instead of gliding from where it was
