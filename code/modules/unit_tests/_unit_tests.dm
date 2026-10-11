@@ -414,6 +414,7 @@
 #include "~nova\lewd_medipens.dm"
 #include "~nova\limb_marking_cache.dm"
 #include "~nova\limb_markings.dm"
+#include "~nova\limb_names.dm"
 #include "~nova\liver_nova.dm"
 #include "~nova\matrixed_accessories.dm"
 #include "~nova\mod_accessories.dm"

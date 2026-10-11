@@ -293,7 +293,10 @@
 	if(innate_state)
 		add_surgical_state(innate_state)
 
-	name = "[limb_id] [parse_zone(body_zone)]"
+	// APHELION EDIT CHANGE START - Our limbs keep the names their types give them, and tg's name for the rest reads a limb_id as words - ORIGINAL: name = "[limb_id] [parse_zone(body_zone)]"
+	if(!keeps_type_name)
+		name = "[replacetextEx(limb_id, "_", " ")] [parse_zone(body_zone)]"
+	// APHELION EDIT CHANGE END
 	update_limb(TRUE)
 	// APHELION EDIT CHANGE START - A limb made in nullspace is drawn when it first leaves it - ORIGINAL: update_icon_dropped()
 	if(loc)
