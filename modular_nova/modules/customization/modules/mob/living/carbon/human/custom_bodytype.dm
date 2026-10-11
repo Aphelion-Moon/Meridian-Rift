@@ -19,7 +19,7 @@
 
 /**
  * Gives a limb drawn in this species' shape the worn offsets for its zone, made or replaced however it was - called from
- * the limb's Initialize when its worn_offsets_species names this species.
+ * its Initialize when its worn_offsets_species names this species, or when a new limb takes a robotic style that does.
  */
 /datum/species/proc/add_worn_offsets(obj/item/bodypart/limb)
 	CRASH("[limb.type] takes its worn offsets from [type], which gives none")
