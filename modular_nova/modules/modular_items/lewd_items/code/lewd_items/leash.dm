@@ -44,8 +44,8 @@
 	if(!to_be_leashed.check_erp_prefs(/datum/preference/toggle/erp/sex_toy, user, src))
 		to_chat(user, span_danger("[to_be_leashed] doesn't want you to do that."))
 		return
-	to_be_leashed.visible_message(span_warning("[user] raises the [src] to [to_be_leashed]'s neck!"),\
-				span_userdanger("[user] starts to bring the [src] to your neck!"),\
+	to_be_leashed.visible_message(span_warning("[user] raises [src] to [to_be_leashed]'s neck!"),\
+				span_userdanger("[user] starts to bring [src] to your neck!"),\
 				span_hear("You hear a light click as pressure builds in the air around your neck."))
 	if(!do_after(user, 2 SECONDS, to_be_leashed) || hook)
 		return
@@ -194,20 +194,25 @@
 	if(next == GET_TURF_ABOVE(landing))
 		return rope_to(at, landing, route_hops(at, length(trail) - 1))
 
-/// Whether the straight line between two turfs on one level crosses nothing the leashed could not pass, and, from safe
-/// footing, nowhere they would not cross safely
+/// Whether the straight line between two turfs on one level crosses nothing the leashed could not pass, nor anywhere
+/// they would not cross safely from `start`
 /datum/component/erp_leash/proc/no_wall_between(turf/start, turf/finish)
 	for(var/turf/step = get_step_towards(start, finish); step != finish; step = get_step_towards(step, finish))
-		if(step.is_blocked_turf(exclude_mobs = TRUE) || (!can_cross_safely(step) && can_cross_safely(start)))
+		if(step.is_blocked_turf(exclude_mobs = TRUE) || !can_cross_safely(step, start))
 			return FALSE
 	return TRUE
 
 /// Whether the leashed crosses `place` safely - tg's test, where a lattice or catwalk over space is footing too, and
-/// anywhere but a turf is safe. From safe footing the leash never steps them where this fails; adrift, anywhere.
-/datum/component/erp_leash/proc/can_cross_safely(turf/place)
-	return !isturf(place) || place.can_cross_safely(parent) || (isspaceturf(place) && (locate(/obj/structure/lattice) in place))
+/// anywhere but a turf is safe. Bare space is safe `from` footing that fails it, so the adrift are led. Weightless,
+/// the leashed is judged as the leash is - tg calls a hole safe for a floater, but one with gravity drops them.
+/datum/component/erp_leash/proc/can_cross_safely(turf/place, turf/from)
+	var/atom/movable/crossing = HAS_TRAIT_FROM_ONLY(parent, TRAIT_MOVE_FLOATING, NO_GRAVITY_TRAIT) ? leash : parent
+	if(!isturf(place) || place.can_cross_safely(crossing))
+		return TRUE
+	return isspaceturf(place) && ((locate(/obj/structure/lattice) in place) || (from && !can_cross_safely(from)))
 
-/// The leading end moved from `old` to `now` - a step that hops adds `old` to the route, and a loop walked back over is cut
+/// The leading end moved from `old` to `now` - a step that hops adds `old` to the route,
+/// and a loop walked back over is cut
 /datum/component/erp_leash/proc/add_to_trail(turf/old, turf/now, hop)
 	var/index = trail?.Find(now)
 	if(index)
@@ -334,13 +339,12 @@
 /datum/component/erp_leash/proc/fell(atom/movable/mover, turf/old)
 	return (mover.currently_z_moving == CURRENTLY_Z_FALLING || mover.currently_z_moving == CURRENTLY_Z_FALLING_FROM_MOVE) && GET_TURF_BELOW(old) == mover.loc
 
-/// The leashed steps. Stepped by the leash from safe footing, they never take a diagonal by a corner they would not cross
-/// safely, and tg takes the other; on their own, they go no further from their holder than the leash allows.
+/// The leashed steps. Stepped by the leash, they never take a diagonal by a corner they would not cross safely, and tg
+/// takes the other; on their own, they go no further from their holder than the leash allows.
 /datum/component/erp_leash/proc/on_collar_pre_move(mob/living/source, turf/new_loc)
 	SIGNAL_HANDLER
 	if(moving)
-		return new_loc != moving && !can_cross_safely(new_loc) && can_cross_safely(source.loc) \
-			? COMPONENT_MOVABLE_BLOCK_PRE_MOVE : NONE
+		return new_loc != moving && !can_cross_safely(new_loc, source.loc) ? COMPONENT_MOVABLE_BLOCK_PRE_MOVE : NONE
 	if(free_end == source || free_end == leash)
 		return NONE
 	var/turf/at = source.loc
@@ -526,7 +530,7 @@
 	deltimer(drag_timer)
 	drag_timer = null
 
-/// The holder tugs the leash - the leashed takes a step toward them, never off safe footing
+/// The holder tugs the leash - the leashed takes a step toward them; one they would not cross safely is refused
 /datum/component/erp_leash/proc/on_tug(obj/item/source, mob/user)
 	SIGNAL_HANDLER
 	var/mob/living/leashed = parent
@@ -534,11 +538,13 @@
 		return
 	COOLDOWN_START(src, tug_cd, 1 SECONDS)
 	var/turf/target = get_step_towards(leashed, user)
-	if(can_cross_safely(target) || !can_cross_safely(leashed.loc))
-		take_step(leashed, leashed.loc, target)
+	if(!can_cross_safely(target, leashed.loc))
+		leashed.balloon_alert(user, "won't pull [leashed.p_them()] there!")
+		return
+	take_step(leashed, leashed.loc, target)
 	leashed.adjust_stamina_loss(10)
-	leashed.visible_message(span_warning("[leashed] is pulled in as [user] tugs the [source]!"),\
-			span_userdanger("[user] suddenly tugs the [source], pulling you closer!"),\
+	leashed.visible_message(span_warning("[leashed] is pulled in as [user] tugs [source]!"),\
+			span_userdanger("[user] suddenly tugs [source], pulling you closer!"),\
 			span_userdanger("A sudden tug against your neck pulls you ahead!"))
 
 /datum/component/erp_leash/proc/on_resist(datum/source, mob/living/user)
