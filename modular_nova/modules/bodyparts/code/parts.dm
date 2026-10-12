@@ -3,6 +3,8 @@
 	var/datum/species/worn_offsets_species
 	/// Set on our limbs whose types name them, which keep that name - tg names every other limb for its limb_id and zone, as "robotic left arm"
 	var/keeps_type_name = FALSE
+	/// Set on our limbs whose limb_id does not read as words - tg's name starts with this instead, as "vox primalis left arm" for vox_primalis
+	var/prefix
 
 /obj/item/bodypart/chest
 	/// The offset datum for our accessory overlay.
