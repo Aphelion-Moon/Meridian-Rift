@@ -30,9 +30,20 @@ neighbours.
   to twelve tiles along its path. The throw is gentle, so whatever ends it - usually a wall - stops the user without
   the stun and bruises of a crash, and a wizard in rod form is set down unharmed where the rod was. LustWish sells one
   as a premium item at ten command paychecks. Nova's sex-toy stanza removes it with the lewd-items config.
-- **Leash line** (in Nova's `leash.dm`). While Nova's leash is hooked, a line in the colour of its strap runs from the
-  hand holding it to the leashed. It is blank while a wall or a window stands between the two, or while either is
-  inside something or on another z-level, and drawn again once they are back in reach; unhooking takes it away.
+- **Leash** (in Nova's `leash.dm`). Nova's leash pulls like a real one. The leashed follows their holder a real step
+  per step along the route the holder walked - round corners and any hole, chasm or lava the holder stepped round,
+  along a lattice or catwalk over space without being pulled off it, through the door the holder opened, up and down
+  stairs, out of deep water - and where they cannot follow (a wall, a door they lack access to, buckled or anchored)
+  the leash pulls taut and holds the holder at its two tiles until they let go. A tug never pulls them onto a hole,
+  chasm or lava, or off a lattice into space. A leashed who falls to a lower level drags their holder to the hole, a
+  step every second and a half after a moment to let go; a buckled holder, or one over a hole they cannot fall through,
+  is held near it instead. Dropping the leash leaves it hooked: it lies on the floor and trails the leashed, light
+  enough never to hold them back, and anyone the leashed's sex toy preference allows can pick it up and lead. Only the
+  holder using it on the leashed, the leashed breaking free, or the safeword verb unhooks it. A ride on a shuttle or a
+  lift together keeps it in hand; a move that leaves the two out of reach (a teleport, a jaunt, the holder falling
+  away) leaves it at the leashed's feet. A line in the colour of its strap runs to the leashed from the hand holding
+  it, or from the leash where it lies; it is blank while a wall or a window stands between the two, or while either is
+  inside something or on another z-level.
 - **Pointe boots** (in Nova's `lewd_shoes.dm`). `/obj/item/clothing/shoes/ballet_heels/pointe_boots` are Nova's ballet
   heels with the feet held en pointe: they keep the heels' lace-up shaft, four heel sounds and default colour, and
   players colour them through a GAGS template of their own, digitigrade legs included. LustWish, the shoes loadout
@@ -143,7 +154,7 @@ neighbours.
   `/obj/item/clothing/mask/bridle`, `/obj/item/mod/construction/plating/lustwish`, `/obj/item/mod/module/lustwish` and
   `/obj/item/mod/remote`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
-- `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash's pull and its line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
   condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit, the cat paws, R.U.T.T., denbu
   tincture, the bridle and the lustwish MOD set (a MOD Suit category) in the LustWish stock.
@@ -207,8 +218,11 @@ neighbours.
     after one step under gravity - and lands without a crash's stun and damage; a wizard in rod form is set down
     before the rod is deleted, where S.P.L.U.R.T deleted the wizard with it; menus show it teal; LustWish sells it as
     premium, where S.P.L.U.R.T hid it in contraband.
-- **Leash line.**
-  - Behaviour from S.P.L.U.R.T-tg's `modular_skyrat/modules/modular_items/lewd_items/code/lewd_items/leash.dm`
+- **Leash.**
+  - The pull, the hold, the drag to a hole and the leash left hooked on the floor are Meridian's own (mal, 2026-10-12):
+    Nova's leash walked a pathfound route in one tick or teleported the leashed to the holder, and dropping it
+    unhooked it.
+  - The line's behaviour from S.P.L.U.R.T-tg's `modular_skyrat/modules/modular_items/lewd_items/code/lewd_items/leash.dm`
     (AGPL-3.0), at
     [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
   - Nothing imported: the line is tg's `fishing_line` beam state.
@@ -216,7 +230,7 @@ neighbours.
     S.P.L.U.R.T's copy of the fishing line's beam with every offset at zero; coloured as the leash's strap, where
     S.P.L.U.R.T's was always purple; owned by the leash component, so it also goes when the leashed breaks free; and
     blank only while out of reach, inside something or on another z-level - S.P.L.U.R.T's never came back once the
-    two were out of reach.
+    two were out of reach; drawn from the leash itself while it lies on the floor.
 - **Pointe boots.**
   - Code from S.P.L.U.R.T-tg's `modular_skyrat/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`
     (AGPL-3.0), at

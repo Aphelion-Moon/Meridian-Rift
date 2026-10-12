@@ -39,7 +39,7 @@ GAME_VERB_DESC(/mob/living/carbon/human, safeword, "Remove Lewd Items", "Removes
 		dropItemToGround(equipped_item, TRUE)
 
 	// Leashes are treated a smidge different than the rest of the clothing; and need their own handling here.
-	var/leash_check = src?.GetComponent(/datum/component/leash/erp)
+	var/leash_check = src?.GetComponent(/datum/component/erp_leash)
 	if(leash_check)
 		qdel(leash_check)
 
