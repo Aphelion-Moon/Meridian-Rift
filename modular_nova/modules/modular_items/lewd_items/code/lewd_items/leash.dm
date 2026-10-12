@@ -104,11 +104,12 @@
 	RegisterSignal(parent, COMSIG_MOVABLE_PRE_MOVE, PROC_REF(on_collar_pre_move))
 	RegisterSignal(parent, COMSIG_MOVABLE_MOVED, PROC_REF(on_collar_moved))
 	RegisterSignal(parent, COMSIG_CAN_Z_MOVE, PROC_REF(on_collar_z_move))
+	RegisterSignal(parent, COMSIG_MOVABLE_CHASM_DROPPED, PROC_REF(on_chasm_dropped))
 	RegisterSignal(parent, COMSIG_LIVING_RESIST, PROC_REF(on_resist))
 	set_free_end(ismob(leash.loc) ? leash.loc : leash)
 
 /datum/component/erp_leash/UnregisterFromParent()
-	UnregisterSignal(parent, list(COMSIG_MOVABLE_PRE_MOVE, COMSIG_MOVABLE_MOVED, COMSIG_CAN_Z_MOVE, COMSIG_LIVING_RESIST))
+	UnregisterSignal(parent, list(COMSIG_MOVABLE_PRE_MOVE, COMSIG_MOVABLE_MOVED, COMSIG_CAN_Z_MOVE, COMSIG_MOVABLE_CHASM_DROPPED, COMSIG_LIVING_RESIST))
 
 /datum/component/erp_leash/Destroy(force)
 	QDEL_NULL(line)
@@ -119,19 +120,25 @@
 	free_end = null
 	return ..()
 
-/// The leash changed hands or was put down - the line comes from the new free end, and the route starts over
+/// The leash changed hands or was put down - the line comes from the new free end, and the route starts over. Let go
+/// while the leashed is down a hole, it goes down after them.
 /datum/component/erp_leash/proc/set_free_end(atom/movable/end)
 	if(free_end && free_end != leash && free_end != parent)
-		UnregisterSignal(free_end, list(COMSIG_MOVABLE_PRE_MOVE, COMSIG_MOVABLE_MOVED, COMSIG_QDELETING))
+		UnregisterSignal(free_end, list(COMSIG_MOVABLE_PRE_MOVE, COMSIG_MOVABLE_MOVED, COMSIG_MOVABLE_CHASM_DROPPED, COMSIG_QDELETING))
 	free_end = end
 	trail = null
+	var/turf/drop = hole
 	stop_drag()
 	QDEL_NULL(line)
 	if(end == parent)
 		return
-	if(end != leash)
+	if(end == leash)
+		if(drop && isturf(leash.loc))
+			leash.forceMove(drop)
+	else
 		RegisterSignal(end, COMSIG_MOVABLE_PRE_MOVE, PROC_REF(on_holder_pre_move))
 		RegisterSignal(end, COMSIG_MOVABLE_MOVED, PROC_REF(on_holder_moved))
+		RegisterSignal(end, COMSIG_MOVABLE_CHASM_DROPPED, PROC_REF(on_chasm_dropped))
 		RegisterSignal(end, COMSIG_QDELETING, PROC_REF(separate))
 	line = new(end, parent, icon_state = "fishing_line", beam_color = SSgreyscale.ParseColorString(leash.greyscale_colors)[1], emissive = FALSE)
 	if(ismob(end))
@@ -335,8 +342,13 @@
 	if(forced && isturf(leashed.loc) && rope_to(leashed.loc, now) > ERP_LEASH_LENGTH)
 		retrace(leashed, leashed.loc, now, source.glide_size)
 
-/// Whether a movable just fell from `old` to the level below
+/// Whether a movable just fell from `old` to the level below, or the leashed down the chasm they drop into - into its
+/// depths, or to where it leads
 /datum/component/erp_leash/proc/fell(atom/movable/mover, turf/old)
+	if(hole && old == hole)
+		var/datum/component/chasm/chasm = hole.GetComponent(/datum/component/chasm)
+		if(chasm && ((!isturf(mover.loc) && get_turf(mover) == hole) || mover.loc == chasm.target_turf))
+			return TRUE
 	return (mover.currently_z_moving == CURRENTLY_Z_FALLING || mover.currently_z_moving == CURRENTLY_Z_FALLING_FROM_MOVE) && GET_TURF_BELOW(old) == mover.loc
 
 /// The leashed steps. Stepped by the leash, they never take a diagonal by a corner they would not cross safely, and tg
@@ -383,11 +395,11 @@
 	var/turf/old = old_loc
 	if(free_end == source)
 		return
-	if(!isturf(now) || !isturf(old))
+	var/fall = fell(source, old)
+	if(!fall && (!isturf(now) || !isturf(old)))
 		jumped()
 		return
-	var/near = ERP_LEASH_NEAR(old, now)
-	var/fall = !near && fell(source, old)
+	var/near = !fall && ERP_LEASH_NEAR(old, now)
 	if(!near && !fall && source.currently_z_moving != CURRENTLY_Z_ASCENDING)
 		jumped()
 		return
@@ -400,7 +412,7 @@
 	if(!isturf(hand))
 		return
 	if(hole)
-		if(rope_to(now, hand) <= ERP_LEASH_LENGTH)
+		if(isturf(now) && rope_to(now, hand) <= ERP_LEASH_LENGTH)
 			stop_drag() // back up beside their holder
 	else if(fall && rope_to(now, hand) > ERP_LEASH_LENGTH)
 		start_drag(old)
@@ -453,12 +465,13 @@
 	trail = null
 	addtimer(CALLBACK(src, PROC_REF(check_reach)), 0, TIMER_UNIQUE | TIMER_NO_HASH_WAIT)
 
-/// The ends after a jump - still in reach, the leash holds them together; else it stays with the collar
+/// The ends after a jump - in reach, or in one place such as a chasm's depths, the leash holds them together; else it
+/// stays with the collar
 /datum/component/erp_leash/proc/check_reach()
 	var/atom/movable/leashed = parent
 	if(free_end == leashed)
 		return
-	if(isturf(leashed.loc) && isturf(free_end.loc) && ERP_LEASH_IN_REACH(leashed.loc, free_end.loc))
+	if((leashed.loc && leashed.loc == free_end.loc) || (isturf(leashed.loc) && isturf(free_end.loc) && ERP_LEASH_IN_REACH(leashed.loc, free_end.loc)))
 		stop_drag()
 	else
 		separate()
@@ -485,6 +498,20 @@
 	else
 		holder.dropItemToGround(leash, force = TRUE)
 
+/// The leashed or their holder drops into a chasm. The leashed's drop drags their holder toward it as a hole does, and
+/// the chasm's move into its depths or to where it leads is the fall (`fell`). A holder dropping in after them is done
+/// being dragged; one dropping in alone loses their grip as they go - a tick on, as the chasm also drops whoever stands
+/// on it when the line's own draw lays a segment there.
+/datum/component/erp_leash/proc/on_chasm_dropped(atom/movable/source, turf/chasm)
+	SIGNAL_HANDLER
+	if(source == parent)
+		if(!hole && free_end != source && ismob(free_end) && source.loc == chasm)
+			start_drag(chasm)
+	else if(chasm == hole)
+		stop_drag()
+	else
+		addtimer(CALLBACK(src, PROC_REF(separate)), 0, TIMER_UNIQUE)
+
 /// The leashed has fallen down `drop` - their holder gets a moment to let go before the leash drags them toward it
 /datum/component/erp_leash/proc/start_drag(turf/drop)
 	var/mob/living/holder = free_end
@@ -501,8 +528,14 @@
 	drag_timer = addtimer(CALLBACK(src, PROC_REF(drag_to_hole)), ERP_LEASH_DRAG_DELAY, TIMER_STOPPABLE | TIMER_LOOP | TIMER_DELETE_ME)
 
 /// The holder is dragged a real step toward the hole and falls in like anyone stepping onto it - or, buckled or on a hole
-/// they cannot fall through, the drag ends and the leash holds them near it
+/// they cannot fall through, the drag ends and the leash holds them near it. A leashed the drop did not take, or who came
+/// back up, ends it, and the ends are checked as after a jump.
 /datum/component/erp_leash/proc/drag_to_hole()
+	var/mob/living/leashed = parent
+	// on the hole's level, and not on it falling in (a chasm's TRAIT_NO_TRANSFORM) - wings, pulled off it, or back up
+	if(isturf(leashed.loc) && leashed.z == hole.z && (leashed.loc != hole || !HAS_TRAIT(leashed, TRAIT_NO_TRANSFORM)))
+		check_reach()
+		return
 	var/mob/living/holder = free_end
 	var/turf/at = holder.loc
 	if(!isturf(at) || at.z != hole.z)
@@ -514,14 +547,14 @@
 		if(QDELETED(src))
 			return
 	var/turf/now = holder.loc
-	if(held || now == hole)
+	if(!isturf(now) || !ERP_LEASH_NEAR(at, now))
+		jumped() // fell in after them, or carried off - checked once done
+	else if(held || now == hole)
 		deltimer(drag_timer)
 		drag_timer = null
 		to_chat(holder, held ? span_warning("[leash] strains against you and holds you where you are.") \
 			: span_warning("[leash] runs taut down the drop and holds you there."))
-	else if(!isturf(now) || !ERP_LEASH_NEAR(at, now))
-		jumped() // fell in after them, or carried off - checked once done
-	else if(now != at)
+	else if(now != at && hole) // no hole: a chasm took them after the leashed - no drag message
 		to_chat(holder, span_danger("[leash] drags you toward the drop!"))
 
 /// The drag or the hold near the hole ends - dropped, followed, unhooked or climbed back up
@@ -581,10 +614,10 @@
 		return ..()
 	Draw()
 
-/// Each draw runs `CheckToolReach` - a dummy obj, up to six `Move()` calls and a `qdel` - as tg's fishing line does
+/// Drawn while the ends lie on one level in reach of each other - with no `CheckToolReach`, whose dummy obj would fall
+/// into a chasm the line spans
 /datum/beam/held/vacuum/leash/Draw(atom/movable/mover, atom/oldloc)
-	// 6 is past the leash's 2 tiles, so a leashed being pulled along keeps the line
-	if(isturf(origin.loc) && isturf(target.loc) && CheckToolReach(origin, target, 6))
+	if(isturf(origin.loc) && isturf(target.loc) && ERP_LEASH_IN_REACH(origin.loc, target.loc))
 		return ..()
 	QDEL_LIST(elements)
 	last_draw_valid = FALSE // back in reach, the line is drawn where the two are instead of gliding from where it was

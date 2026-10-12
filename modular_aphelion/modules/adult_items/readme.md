@@ -35,15 +35,17 @@ neighbours.
   along a lattice or catwalk over space without being pulled off it, through the door the holder opened, up and down
   stairs, out of deep water - and where they cannot follow (a wall, a door they lack access to, buckled or anchored)
   the leash pulls taut and holds the holder at its two tiles until they let go. A tug never pulls them onto a hole,
-  chasm or lava, or off a lattice into space. A leashed who falls to a lower level drags their holder to the hole, a
-  step every second and a half after a moment to let go; a buckled holder, or one over a hole they cannot fall through,
-  is held near it instead. Dropping the leash leaves it hooked: it lies on the floor and trails the leashed, light
-  enough never to hold them back, and anyone the leashed's sex toy preference allows can pick it up and lead. Only the
-  holder using it on the leashed, the leashed breaking free, or the safeword verb unhooks it. A ride on a shuttle or a
-  lift together keeps it in hand; a move that leaves the two out of reach (a teleport, a jaunt, the holder falling
-  away) leaves it at the leashed's feet. A line in the colour of its strap runs to the leashed from the hand holding
-  it, or from the leash where it lies; it is blank while a wall or a window stands between the two, or while either is
-  inside something or on another z-level.
+  chasm or lava, or off a lattice into space. A leashed who falls to a lower level or into a chasm drags their holder
+  to the hole, a step every second and a half after a moment to let go, and on into the chasm after them; a buckled
+  holder, or one over a hole they cannot fall through, is held near it instead. Dropping the leash leaves it hooked:
+  it lies on the floor and trails the leashed, down a hole or a chasm too, light enough never to hold them back, and
+  anyone the leashed's sex toy preference allows can pick it up and lead. Only the holder using it on the leashed, the
+  leashed breaking free, or the safeword verb unhooks it. A ride on a shuttle or a lift together keeps it in hand, and
+  two in one place - a locker shut on both, or a chasm's depths - stay hooked; a move that leaves the two out of reach
+  (a teleport, a jaunt, the holder falling away) leaves it at the leashed's feet. A line in the colour of its strap
+  runs straight to the leashed from the hand holding it, or from the leash where it lies, while the two are in reach -
+  even across a hole, a wall corner or a window; it is blank while they are out of reach, or while either is inside
+  something or on another z-level.
 - **Pointe boots** (in Nova's `lewd_shoes.dm`). `/obj/item/clothing/shoes/ballet_heels/pointe_boots` are Nova's ballet
   heels with the feet held en pointe: they keep the heels' lace-up shaft, four heel sounds and default colour, and
   players colour them through a GAGS template of their own, digitigrade legs included. LustWish, the shoes loadout
