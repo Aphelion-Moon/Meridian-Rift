@@ -4,6 +4,8 @@
 #define ERP_LEASH_TRAIL_MAX (ERP_LEASH_LENGTH * 4)
 /// How long a holder has to let go after the leashed falls, and then between the steps they are dragged
 #define ERP_LEASH_DRAG_DELAY (1.5 SECONDS)
+/// How long the line takes to follow the hand round as its holder turns in place
+#define ERP_LEASH_TURN_GLIDE (0.1 SECONDS)
 /// Whether two turfs are on one level and at most a tile apart
 #define ERP_LEASH_NEAR(a, b) ((a).z == (b).z && get_dist(a, b) <= 1)
 /// Whether two turfs are on one level and at most a tile past the length apart, as a leash picked up beside it can be
@@ -262,21 +264,18 @@
 		return drop && ERP_LEASH_NEAR(at, drop) && take_step(follower, at, drop, null, glide)
 	return FALSE
 
-/// Moves an end one real step from `at` onto `target`, while its own move handlers stand aside - and the line, drawn
-/// once the step is done rather than at each half of a diagonal
+/// Moves an end one real step from `at` onto `target`, while its own move handlers stand aside. Gliding with the other
+/// end's move (`glide`), it leaves the line to be drawn once that move is done.
 /datum/component/erp_leash/proc/take_step(atom/movable/follower, turf/at, turf/target, direction, glide)
 	moving = target
-	if(line)
+	if(line && glide)
 		line.stepping = TRUE
 	follower.Move(target, direction || get_dir(at, target), glide)
 	moving = null
+	line?.stepping = FALSE
 	. = follower.loc != at
 	if(.)
 		last_step = world.time
-	if(line)
-		line.stepping = FALSE
-		if(.)
-			line.redrawing(follower)
 
 /// Refuses a move past the leash's length, and says so once a second at most
 /datum/component/erp_leash/proc/taut(mob/living/mover, message)
@@ -313,6 +312,8 @@
 	// held where the leash would run further than it does now, or where no route measures it
 	if(after <= ERP_LEASH_LENGTH || (after < INFINITY && after <= rope_to(at, here)))
 		return NONE
+	if(last_step == world.time)
+		line?.redrawing(leashed) // the holder stays, so the leashed's step this tick draws the line
 	return taut(source, "leash pulls taut!")
 
 /// The holder moved - a step grows the route, the stairs pull the leashed after them, and a jump is checked once done
@@ -424,7 +425,9 @@
 	if(isturf(at) && (rope_to(at, now) <= ERP_LEASH_LENGTH || last_step == world.time || retrace(leash, at, now, leashed.glide_size)))
 		return
 	last_step = world.time
+	line?.stepping = TRUE // the leashed's move draws the line once it is done
 	leash.forceMove(behind)
+	line?.stepping = FALSE
 
 /// The leash moving on its own while it lies - thrown, pushed or swept - stops at its length
 /datum/component/erp_leash/proc/on_leash_pre_move(obj/item/source, atom/new_loc)
@@ -616,8 +619,22 @@
 	lefthand_w_py = -6
 	lefthand_n_px = -7
 	lefthand_n_py = -3
-	/// TRUE while the leash steps an end itself, which draws the line once the step is done
+	/// TRUE while an end steps with the other's move, which draws the line once it is done
 	var/stepping = FALSE
+	/// TRUE from a step or a turn left to a later move until the line is drawn - by that move, or `catch_up`
+	var/stale = FALSE
+
+/// A turn moves the hand - a move in the same tick draws the line from it, or `catch_up` does
+/datum/beam/held/leash/handle_dir_change(atom/movable/source, olddir, newdir)
+	update_offsets(newdir)
+	stale = TRUE
+	addtimer(CALLBACK(src, PROC_REF(catch_up)), 0, TIMER_UNIQUE)
+
+/// No move drew the line after a step or a turn left to it - it follows over its glide, or a moment on turning in place
+/datum/beam/held/leash/proc/catch_up()
+	if(stale)
+		pending_animate_time = max(pending_animate_time, ERP_LEASH_TURN_GLIDE)
+		redrawing()
 
 /// A leash on the floor draws its line from where it lies, not from a hand
 /datum/beam/held/leash/update_offsets(user_dir)
@@ -626,9 +643,16 @@
 	override_origin_pixel_x = origin.pixel_x
 	override_origin_pixel_y = origin.pixel_y
 
-/// Blanks the line, where a beam would delete itself, while an end is inside something or on another z-level
+/**
+ * Drawn once a tick, gliding from where it is, as the last end to move is done. A step with the other end's move, or a
+ * diagonal's first half, leaves it to the move after, gliding as the slower of the two - or to `catch_up`, if no move
+ * follows. Blank, where a beam would delete itself, while an end is inside something or on another z-level.
+ */
 /datum/beam/held/leash/redrawing(atom/movable/mover, atom/oldloc, direction)
-	if(stepping)
+	if(stepping || mover?.moving_diagonally == FIRST_DIAG_STEP)
+		pending_animate_time = max(pending_animate_time, ICON_SIZE_ALL / max(mover.glide_size, MIN_GLIDE_SIZE) * world.tick_lag)
+		stale = TRUE
+		addtimer(CALLBACK(src, PROC_REF(catch_up)), 0, TIMER_UNIQUE)
 		return
 	if(QDELETED(origin) || QDELETED(target) || (isturf(origin.loc) && isturf(target.loc) && origin.z == target.z))
 		return ..()
@@ -637,6 +661,7 @@
 /// Drawn while the ends lie on one level in reach of each other - with no `CheckToolReach`, whose dummy obj would fall
 /// into a chasm the line spans
 /datum/beam/held/leash/Draw(atom/movable/mover, atom/oldloc)
+	stale = FALSE
 	if(isturf(origin.loc) && isturf(target.loc) && ERP_LEASH_IN_REACH(origin.loc, target.loc))
 		return ..()
 	QDEL_LIST(elements)
@@ -645,5 +670,6 @@
 #undef ERP_LEASH_LENGTH
 #undef ERP_LEASH_TRAIL_MAX
 #undef ERP_LEASH_DRAG_DELAY
+#undef ERP_LEASH_TURN_GLIDE
 #undef ERP_LEASH_NEAR
 #undef ERP_LEASH_IN_REACH
