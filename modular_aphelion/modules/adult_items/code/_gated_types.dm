@@ -13,5 +13,6 @@
 		/obj/item/reagent_containers/cup/bottle/rutt, /obj/item/reagent_containers/applicator/pill/rutt,
 		/obj/item/reagent_containers/cup/bottle/butt_enlarger,
 		/obj/item/clothing/mask/bridle,
+		/obj/item/mod/construction/plating/lustwish, /obj/item/mod/module/lustwish, /obj/item/mod/remote,
 	)
 #endif

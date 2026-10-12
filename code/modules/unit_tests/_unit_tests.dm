@@ -421,6 +421,7 @@
 #include "~nova\limb_markings.dm"
 #include "~nova\limb_names.dm"
 #include "~nova\liver_nova.dm"
+#include "~nova\lustwish_mod.dm"
 #include "~nova\matrixed_accessories.dm"
 #include "~nova\meridian_preferences.dm"
 #include "~nova\mod_accessories.dm"
