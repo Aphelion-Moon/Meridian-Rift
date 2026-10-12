@@ -84,7 +84,7 @@
 	/// When the following end last took a step - it takes one a tick at most
 	var/last_step
 	/// The line from the free end to the leashed
-	var/datum/beam/held/vacuum/leash/line
+	var/datum/beam/held/leash/line
 	COOLDOWN_DECLARE(tug_cd)
 	COOLDOWN_DECLARE(taut_cd)
 
@@ -594,20 +594,40 @@
 		to_chat(leashed, span_notice("You unhook yourself from the leash."))
 		qdel(src)
 
-/// The leash's line - it leaves the hand where the borg vacuum's hose does, and is blank while the two are out of reach
-/datum/beam/held/vacuum/leash
+/**
+ * The leash's line, blank while the two are out of reach. It leaves the outer edge of the holding hand, read off the
+ * human body sprite: on the front and the back at the same height, at the hand's front edge from the side - the near
+ * hand's and the far one's alike, west the mirror of east.
+ */
+/datum/beam/held/leash
+	righthand_s_px = -7
+	righthand_s_py = -3
+	righthand_e_px = 0
+	righthand_e_py = -6
+	righthand_w_px = -5
+	righthand_w_py = -6
+	righthand_n_px = 7
+	righthand_n_py = -3
+	lefthand_s_px = 7
+	lefthand_s_py = -3
+	lefthand_e_px = 5
+	lefthand_e_py = -6
+	lefthand_w_px = 0
+	lefthand_w_py = -6
+	lefthand_n_px = -7
+	lefthand_n_py = -3
 	/// TRUE while the leash steps an end itself, which draws the line once the step is done
 	var/stepping = FALSE
 
 /// A leash on the floor draws its line from where it lies, not from a hand
-/datum/beam/held/vacuum/leash/update_offsets(user_dir)
+/datum/beam/held/leash/update_offsets(user_dir)
 	if(ismob(origin))
 		return ..()
 	override_origin_pixel_x = origin.pixel_x
 	override_origin_pixel_y = origin.pixel_y
 
 /// Blanks the line, where a beam would delete itself, while an end is inside something or on another z-level
-/datum/beam/held/vacuum/leash/redrawing(atom/movable/mover, atom/oldloc, direction)
+/datum/beam/held/leash/redrawing(atom/movable/mover, atom/oldloc, direction)
 	if(stepping)
 		return
 	if(QDELETED(origin) || QDELETED(target) || (isturf(origin.loc) && isturf(target.loc) && origin.z == target.z))
@@ -616,7 +636,7 @@
 
 /// Drawn while the ends lie on one level in reach of each other - with no `CheckToolReach`, whose dummy obj would fall
 /// into a chasm the line spans
-/datum/beam/held/vacuum/leash/Draw(atom/movable/mover, atom/oldloc)
+/datum/beam/held/leash/Draw(atom/movable/mover, atom/oldloc)
 	if(isturf(origin.loc) && isturf(target.loc) && ERP_LEASH_IN_REACH(origin.loc, target.loc))
 		return ..()
 	QDEL_LIST(elements)

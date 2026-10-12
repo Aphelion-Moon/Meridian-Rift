@@ -228,11 +228,11 @@ neighbours.
     (AGPL-3.0), at
     [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
   - Nothing imported: the line is tg's `fishing_line` beam state.
-  - Modified: drawn on tg's held beam with the borg vacuum hose's hand offsets (`/datum/beam/held/vacuum`) instead of
-    S.P.L.U.R.T's copy of the fishing line's beam with every offset at zero; coloured as the leash's strap, where
-    S.P.L.U.R.T's was always purple; owned by the leash component, so it also goes when the leashed breaks free; and
-    blank only while out of reach, inside something or on another z-level - S.P.L.U.R.T's never came back once the
-    two were out of reach; drawn from the leash itself while it lies on the floor.
+  - Modified: drawn on tg's held beam (`/datum/beam/held`) from the outer edge of the holding hand, its offsets read off
+    the human body sprite, instead of S.P.L.U.R.T's copy of the fishing line's beam with every offset at zero; coloured
+    as the leash's strap, where S.P.L.U.R.T's was always purple; owned by the leash component, so it also goes when the
+    leashed breaks free; and blank only while out of reach, inside something or on another z-level - S.P.L.U.R.T's
+    never came back once the two were out of reach; drawn from the leash itself while it lies on the floor.
 - **Pointe boots.**
   - Code from S.P.L.U.R.T-tg's `modular_skyrat/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`
     (AGPL-3.0), at
