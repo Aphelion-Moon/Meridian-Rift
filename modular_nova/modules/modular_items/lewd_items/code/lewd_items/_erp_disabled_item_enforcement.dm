@@ -103,6 +103,21 @@
 	if(CONFIG_GET(flag/disable_lewd_items))
 		return INITIALIZE_HINT_QDEL
 
+/obj/item/mod/construction/plating/lustwish/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
+/obj/item/mod/module/lustwish/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
+/obj/item/mod/remote/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
 /obj/item/clothing/shoes/ballet_heels/domina_heels/Initialize(mapload)
 	. = ..()
 	if(CONFIG_GET(flag/disable_lewd_items))

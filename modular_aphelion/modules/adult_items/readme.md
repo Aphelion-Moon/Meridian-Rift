@@ -74,6 +74,22 @@ neighbours.
   mask; the wearer and onlookers are warned first, and the step is logged. Secured in hand, the straps hold the
   blinders and the bit where they are. It has muzzled sprites of its own and can't be put on a player who does not
   take sex toys; LustWish and the Erotic loadout offer it beside the ring gag.
+- **Lustwish MOD suit** (`code/lustwish_mod.dm`). `/datum/mod_theme/standard/lustwish` is the standard MOD suit - its
+  stats, its seals and its lore - in LustWish's skin, with seal messages of its own and a purple hardlight, and
+  `/obj/item/mod/construction/plating/lustwish` builds it. The MOD hypnotic visor,
+  `/obj/item/mod/module/lustwish/hypno_visor`, fills its wearer's head with its phrase as Nova's hypnotic goggles do,
+  through the one status effect both share, `/datum/status_effect/hypnotic_phrase`, for players who take sex toys:
+  while it is toggled on, or whenever the helmet is sealed once its control wire is snipped. On the lustwish helmet it
+  draws a spiral. The MOD remote control module, `/obj/item/mod/module/lustwish/remote_control`, holds its remote,
+  `/obj/item/mod/remote`, and goes into a suit only once the remote is out; the remote then drives the suit while its
+  wearer is within seven tiles on the same z-level (farther off, its window stays open but inert and says so), for a
+  wearer who takes sex toys and a holder who takes part in ERP: the suit's activation, parts, modules and lock, run as
+  the holder through the suit's own interface, and a forced emote, judged as the holder's own words. The two modules
+  share the abstract parent `/obj/item/mod/module/lustwish`. LustWish sells the plating and the two modules in a MOD
+  Suit category of their own. Known issue: the custom emote still runs its own check on the wearer (`emote_is_valid()`
+  in `code/modules/mob/living/emote.dm`), so a forced emote that opens with "says", "exclaims", "yells" or "asks" puts
+  "Invalid emote." in the wearer's chat and tells the holder nothing; that check judges whoever emotes, with no way to
+  judge the holder instead, and a copy of its rule in the remote would drift from tg's.
 
 ### TG Proc/File Changes:
 
@@ -111,6 +127,11 @@ neighbours.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_chemistry/reagents/dopamine.dm`: a dopamine overdose's
   happy message and its mood only for players who take aphrodisiacs, now that anyone can mix enough dopamine to
   overdose.
+- `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/hypnogoggles.dm`: the goggles' hypnosis is the
+  status effect `/datum/status_effect/hypnotic_phrase`, which the MOD hypnotic visor shares; it also ends when the
+  goggles are deleted, its log lines name the device ("was hypnotized by" and "is no longer hypnotized by", where they
+  read "was hypnogoggled" and "is no longer hypnogoggled"), and its hallucinated whisper now starts through
+  `cause_hallucination()`, where the goggles' own was never started and stayed in `GLOB.all_ongoing_hallucinations`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_gloves.dm`: the paw mood on the paw
   mittens, and the cat paws.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_clothing/lewd_shoes.dm`: the pointe boots.
@@ -118,13 +139,14 @@ neighbours.
   of `/obj/item/reagent_containers/hypospray/medipen/lewd`, `/obj/item/storage/box/medipens/lewd`,
   `/obj/item/storage/box/condoms`, `/obj/item/clothing/shoes/ballet_heels/pointe_boots`,
   `/obj/item/clothing/under/misc/latex_halfcatsuit`, `/obj/item/reagent_containers/cup/bottle/rutt`,
-  `/obj/item/reagent_containers/applicator/pill/rutt`, `/obj/item/reagent_containers/cup/bottle/butt_enlarger` and
-  `/obj/item/clothing/mask/bridle`.
+  `/obj/item/reagent_containers/applicator/pill/rutt`, `/obj/item/reagent_containers/cup/bottle/butt_enlarger`,
+  `/obj/item/clothing/mask/bridle`, `/obj/item/mod/construction/plating/lustwish`, `/obj/item/mod/module/lustwish` and
+  `/obj/item/mod/remote`.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/fleshlight.dm`: the bluespace fleshlight.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_items/leash.dm`: the leash line.
 - `modular_nova/modules/modular_items/lewd_items/code/lewd_machinery/lustwish.dm`: the pens, the medipen box, the
   condom box, the bluespace fleshlight, the pointe boots, the latex half-catsuit, the cat paws, R.U.T.T., denbu
-  tincture and the bridle in the LustWish stock.
+  tincture, the bridle and the lustwish MOD set (a MOD Suit category) in the LustWish stock.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_gloves.dmi`: the cat paws'
   greyscale template, states `catpaws`, `catpaws-pawpad` and `catpaws-tag`, after the existing states.
 - `modular_nova/modules/modular_items/lewd_items/icons/{obj,mob}/lewd_clothing/lewd_masks.dmi` and
@@ -153,6 +175,8 @@ neighbours.
 - `code/modules/unit_tests/~nova/paw_mittens_mood.dm`: the paw mood's unit test.
 - `code/modules/unit_tests/~nova/lewd_chemistry.dm`: the lewd reagents' unit tests.
 - `code/modules/unit_tests/~nova/bridle.dm`: the bridle's unit test.
+- `code/modules/unit_tests/~nova/lustwish_mod.dm`: the lustwish MOD set's unit tests, and the hypnotic goggles'.
+- `tgui/packages/tgui/interfaces/MODsuitRemote.tsx`: the MOD remote's window.
 
 ### Credits:
 
@@ -326,3 +350,43 @@ neighbours.
     adjusted there by one who does not take part in ERP, which S.P.L.U.R.T did not check; the strip-menu step warns
     the wearer and onlookers and is logged; and it is in the Erotic loadout, where S.P.L.U.R.T put it in the mask
     loadout.
+- **Lustwish MOD suit.**
+  - Code and text from S.P.L.U.R.T-tg (AGPL-3.0), at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026):
+    `modular_zubbers/code/modules/mod/modules_lustwish.dm`, the lustwish theme in
+    `modular_zubbers/code/modules/mod/mod_theme.dm` and `tgui/packages/tgui/interfaces/MODsuitremote.tsx`, which came
+    from Bubberstation: StrangeWeirdKitten's [PR #4218](https://github.com/Bubberstation/Bubberstation/pull/4218) (the
+    suit and the visor) and [PR #4328](https://github.com/Bubberstation/Bubberstation/pull/4328) (the remote),
+    MintyPhresh's [PR #5110](https://github.com/Bubberstation/Bubberstation/pull/5110),
+    [PR #5220](https://github.com/Bubberstation/Bubberstation/pull/5220) and
+    [PR #5387](https://github.com/Bubberstation/Bubberstation/pull/5387) (the visor's toggle and settings), and
+    NanoCats' [PR #6251](https://github.com/Bubberstation/Bubberstation/pull/6251) (the purple hardlight).
+  - Sprites by Toriate, commissioned by StrangeWeirdKitten for Bubberstation
+    ([PR #4218](https://github.com/Bubberstation/Bubberstation/pull/4218)), and the remote's, added with it in
+    [PR #4328](https://github.com/Bubberstation/Bubberstation/pull/4328), which names no artist; CC BY-SA 3.0. Taken
+    unchanged into `icons/lustwish_mod.dmi` and `icons/lustwish_mod_worn.dmi` from
+    `modular_zubbers/icons/obj/clothing/modsuit/mod_lustwish.dmi`,
+    `modular_zubbers/icons/mob/clothing/modsuit/mod_lustwish.dmi` and
+    `modular_zubbers/icons/mob/clothing/modsuit/mod_modules.dmi` at
+    [`ad77f89e2fa`](https://github.com/SPLURT-Station/S.P.L.U.R.T-tg/tree/ad77f89e2fafe5156601fe8224a662a31ed0d026).
+    The remote's inhand is tg's `electronic`.
+  - Digitigrade and snouted sprites drawn for this codebase, CC BY-SA 3.0, in `icons/lustwish_mod_worn_mutant.dmi`:
+    `lustwish-helmet` and `lustwish-helmet-sealed` (snouted), `lustwish-chestplate`, `lustwish-chestplate-sealed`,
+    `lustwish-boots` and `lustwish-boots-sealed` (digitigrade). Made from Toriate's plain states above, fitted to the
+    digitigrade legs and snout of Nova's `civilian-*` states in
+    `modular_nova/master_files/icons/mob/clothing/modsuit/mod_clothing_mutant.dmi`: the helmets' chin one row deeper
+    in front (the civilian snouted helmet's muzzle cup); the boots on the digitigrade thighs and knee, and in side
+    view as two boots on the spread legs, with the civilian digitigrade boots' feet. The chestplates are the plain
+    states: the leotard ends above the legs.
+  - Modified: the hypnosis is the goggles' status effect, where S.P.L.U.R.T's gave the `induced_hypnosis` brain trauma
+    Nova removed, and is gated, as the goggles are, on the sex-toy preference, where S.P.L.U.R.T's also read a
+    hypnosis preference this codebase lacks; the remote drives the suit only for a wearer who takes sex toys and a
+    holder who takes part in ERP, checked on the server where S.P.L.U.R.T's only greyed out the emote field, only
+    within seven tiles on the same z-level where S.P.L.U.R.T's reached anywhere, and only the suit's activation,
+    parts, modules and lock, where S.P.L.U.R.T's passed on every action of the suit's window, its MODlink calls, pAI
+    eject and pinned buttons included; its forced emote is refused as the me verb and the custom emote refuse the
+    holder's own words (admin-disabled speech, an emote ban, an IC mute, the IC filters, which refuse a soft-filtered
+    word where the custom emote asks, and an admin's words too) and sanitised as the me verb sanitises them; off the
+    lustwish skin the visor keeps its spiral setting but draws nothing and hides the setting, where S.P.L.U.R.T's
+    switched it off when installed, and a snipped visor takes no settings. Left out: the remote's Protean controls, as
+    Nova's Protean has no such interface, and the pre-equipped lustwish suit, which nothing in S.P.L.U.R.T spawned.
