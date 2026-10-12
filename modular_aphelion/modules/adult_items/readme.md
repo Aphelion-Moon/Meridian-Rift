@@ -161,21 +161,11 @@ neighbours.
 
 ### Defines:
 
-- `code/__DEFINES/~aphelion_defines/adult_items.dm`: `TEST_SKIP_IF_LEWD_ITEMS_DISABLED`, the first line of every
-  family's unit test - it ends the test with a notice when lewd items are disabled.
+- N/A
 
 ### Included files that are not contained in this module:
 
 - `code/modules/unit_tests/~nova/adult_items_kill_switch.dm`: the lewd-items config test for every family.
-- `code/modules/unit_tests/~nova/lewd_medipens.dm`: the medipens' unit test.
-- `code/modules/unit_tests/~nova/condom_box.dm`: the condom box's unit test.
-- `code/modules/unit_tests/~nova/bluespace_fleshlight.dm`: the bluespace fleshlight's unit test.
-- `code/modules/unit_tests/~nova/leash_line.dm`: the leash line's unit test.
-- `code/modules/unit_tests/~nova/latex_halfcatsuit.dm`: the latex half-catsuit's unit test.
-- `code/modules/unit_tests/~nova/paw_mittens_mood.dm`: the paw mood's unit test.
-- `code/modules/unit_tests/~nova/lewd_chemistry.dm`: the lewd reagents' unit tests.
-- `code/modules/unit_tests/~nova/bridle.dm`: the bridle's unit test.
-- `code/modules/unit_tests/~nova/lustwish_mod.dm`: the lustwish MOD set's unit tests, and the hypnotic goggles'.
 - `tgui/packages/tgui/interfaces/MODsuitRemote.tsx`: the MOD remote's window.
 
 ### Credits:

@@ -435,7 +435,6 @@
 #include "code\__DEFINES\traits\macros.dm"
 #include "code\__DEFINES\traits\sources.dm"
 #include "code\__DEFINES\~aphelion_defines\admin_tech.dm"
-#include "code\__DEFINES\~aphelion_defines\adult_items.dm"
 #include "code\__DEFINES\~aphelion_defines\banning.dm"
 #include "code\__DEFINES\~aphelion_defines\body_hair.dm"
 #include "code\__DEFINES\~aphelion_defines\bulge.dm"
