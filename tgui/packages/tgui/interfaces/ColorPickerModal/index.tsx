@@ -23,6 +23,7 @@ interface ColorPickerData {
   title: string;
   default_color: string;
   mutant_colors?: string[] | null; // APHELION EDIT ADDITION - mutant colour shortcuts
+  skin_tone?: string | null; // APHELION EDIT ADDITION - skin tone shortcut
 }
 
 type ColorPickerModalProps = any;
@@ -60,6 +61,7 @@ export const ColorPickerModal: React.FC<ColorPickerModalProps> = () => {
             <Stack.Item>
               <MutantColorButtons
                 colors={data.mutant_colors}
+                skinTone={data.skin_tone}
                 setColor={setSelectedColor}
               />
             </Stack.Item>

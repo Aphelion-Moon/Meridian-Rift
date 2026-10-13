@@ -43,6 +43,11 @@
 
 	return TAUR_DIMENSION_X
 
+/**
+ * Hides the genital as its visibility preference says. The overlay drawing it asks with itself as `bodypart_overlay`, and
+ * examine without one: a genital that shapes the body draws under the underclothes examine reads as covering it
+ * (/obj/item/organ/genital/proc/hidden_by_clothing()).
+ */
 /datum/sprite_accessory/genital/is_hidden(mob/living/carbon/human/target_mob, datum/bodypart_overlay/mutant/bodypart_overlay)
 	// get_organ_slot(), read from the slot list itself: this runs for every genital on every body update.
 	var/obj/item/organ/genital/badonkers = target_mob?.organs_slot?[associated_organ_slot]
@@ -52,14 +57,14 @@
 	switch(badonkers.visibility_preference)
 		if(GENITAL_HIDDEN_BY_CLOTHES)
 			// Single source of coverage truth, shared with is_exposed() - render
-			return badonkers.covered_by_clothing(target_mob)
+			return badonkers.hidden_by_clothing(target_mob, !isnull(bodypart_overlay))
 		if(GENITAL_CUSTOM)
 			// get_effective_layer_mode(), inline: any custom layer but the normal one draws over clothing.
 			var/datum/bodypart_overlay/mutant/genital/overlay = badonkers.bodypart_overlay
 			var/layer_mode = overlay?.layer_mode
 			if(layer_mode && layer_mode != GENITAL_LAYER_NORMAL)
 				return FALSE
-			return badonkers.covered_by_clothing(target_mob)
+			return badonkers.hidden_by_clothing(target_mob, !isnull(bodypart_overlay))
 	//If not hidden-by-clothes or custom, it defaults to always hidden
 	return TRUE
 
@@ -420,7 +425,7 @@
 	max_sprite_size_affix = 5
 	/// Pec shapes are muscle, not breasts: one sprite whatever the size, and "pecs" wherever interactions name the chest.
 	var/pecs = FALSE
-	/// For pec shapes: the bigger of the two sizes.
+	/// For pec shapes: one of the sizes above the normal pecs, which examine text calls big and heavy.
 	var/pecs_big = FALSE
 	/// For pec shapes: whether the nipples are drawn.
 	var/pecs_nipples = TRUE
@@ -500,6 +505,16 @@
 /datum/sprite_accessory/genital/breasts/pecs/big/nippleless
 	icon_state = "pecs_big_nippleless"
 	name = "Bigger pecs (Nippleless)"
+	pecs_nipples = FALSE
+
+/datum/sprite_accessory/genital/breasts/pecs/biggest
+	icon_state = "pecs_biggest"
+	name = "Biggest pecs"
+	pecs_big = TRUE
+
+/datum/sprite_accessory/genital/breasts/pecs/biggest/nippleless
+	icon_state = "pecs_biggest_nippleless"
+	name = "Biggest pecs (Nippleless)"
 	pecs_nipples = FALSE
 
 // BUTT

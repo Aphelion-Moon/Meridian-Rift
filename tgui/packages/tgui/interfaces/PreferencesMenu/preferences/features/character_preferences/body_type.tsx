@@ -1,3 +1,4 @@
+import { withPhysiqueAdvanced } from '../../../CharacterPreferences/PhysiqueAdvanced'; // APHELION EDIT ADDITION - Fitness levels
 import { Gender } from '../../gender';
 import type { FeatureChoiced } from '../base';
 import {
@@ -8,7 +9,7 @@ import {
 
 export const body_type: FeatureChoiced = {
   name: 'Body type',
-  component: FeatureBodyTypeDropdownInput,
+  component: withPhysiqueAdvanced(FeatureBodyTypeDropdownInput), // APHELION EDIT CHANGE - Fitness levels - ORIGINAL: component: FeatureBodyTypeDropdownInput,
 };
 
 function FeatureBodyTypeDropdownInput(props: DropdownInputProps) {

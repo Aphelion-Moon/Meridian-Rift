@@ -27,7 +27,9 @@ Each is a mutant bodypart like genitals: the choice goes into `dna.mutant_bodypa
 grows a small hidden organ, and its overlay draws `<style>_<m|f>` from `icons/body_hair.dmi` over the skin and
 under underwear, clothes and genitals, which cover it where they overlap. Ratwood's art is used as drawn, refitted
 to our bodies (armpits a pixel lower on the male body and a pixel higher on the female one, pubic hair a pixel
-lower on the male body); Untamed on the male body uses a softer, fuzzier take.
+lower on the male body); Untamed on the male body uses a softer, fuzzier take. Female Natural also sits a pixel
+further out than the rest, in the armpit rather than the waist notch beside it, and female Trimmed's side view a
+pixel lower, clear of pecs.
 
 A razor used on the chest or groin (not in combat mode) trims them to any style or shaves them off, like a beard,
 once clothing and underwear are out of the way. Trimming someone else's pubic hair needs their ERP preference.

@@ -406,6 +406,7 @@
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
+#include "~nova\fitness.dm"
 #include "~nova\involuntary_climax.dm"
 #include "~nova\language_understanding.dm"
 #include "~nova\limb_marking_cache.dm"

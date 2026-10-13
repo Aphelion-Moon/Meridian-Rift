@@ -51,20 +51,13 @@
 				icon_state = "nothing"
 			var/datum/universal_icon/preview = uni_icon(icon_file, icon_state, SOUTH)
 			var/list/dimensions = get_icon_dimensions(icon_file)
-			var/width = dimensions["width"]
-			var/height = dimensions["height"]
-			if(width != 32 || height != 32)
-				// The mirror paints in native pixels; only its picker thumbnail is scaled below.
+			if(dimensions["width"] != 32 || dimensions["height"] != 32)
+				// The mirror paints in native pixels.
 				var/datum/universal_icon/native = uni_icon(icon_file, icon_state, SOUTH)
 				native.map_colors_rgba(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3)
 				sheet.insert_icon("[sprite_class]_native", native)
-				var/scale = min(1, 32 / max(width, height))
-				width = max(1, round(width * scale))
-				height = max(1, round(height * scale))
-				preview.scale(width, height)
-				var/left = round((32 - width) / 2)
-				var/bottom = round((32 - height) / 2)
-				preview.crop(1 - left, 1 - bottom, 32 - left, 32 - bottom)
+				// Pickers lay this over a 32x32 body, so it keeps the tile the game draws there: an overlay hangs from its bottom left.
+				preview.crop(1, 1, 32, 32)
 			// Many markings are faint shading; tripled opacity shows their shape in pickers.
 			preview.map_colors_rgba(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 3)
 			sheet.insert_icon(sprite_class, preview)

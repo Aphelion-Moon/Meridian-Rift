@@ -884,6 +884,7 @@ generate/load female uniform sprites matching all previously decided variables
 			greyscale_colors = greyscale_colors,
 			bodyshape = bodyshape,
 		)
+	building_icon = fit_worn_icon(building_icon, file2use, t_state, female_uniform, bodyshape, isinhands) // APHELION EDIT ADDITION - FITNESS - Fitted to the wearer's fitness limbs, after every step that redraws the legs
 	if(building_icon)
 		draw_target = mutable_appearance(building_icon, layer = -layer2use)
 	else
@@ -892,6 +893,7 @@ generate/load female uniform sprites matching all previously decided variables
 	//Get the overlays for this item when it's being worn
 	//eg: ammo counters, primed grenade flashes, etc.
 	var/list/worn_overlays = worn_overlays(draw_target, isinhands, file2use, bodyshape)
+	fit_worn_glows(worn_overlays, file2use, t_state, bodyshape, isinhands) // APHELION EDIT ADDITION - FITNESS - Glows drawn from the worn sheet take the sprite's fit
 	if(length(worn_overlays))
 		draw_target.overlays += worn_overlays
 	draw_target = color_atom_overlay(draw_target)

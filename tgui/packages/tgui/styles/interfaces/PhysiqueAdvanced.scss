@@ -1,0 +1,18 @@
+// THIS IS AN APHELION UI FILE
+// Character setup's Physique (Advanced) button, under the body type, and its menu. The menu is a Floating portaled out
+// of .PreferencesMenu, so nothing here nests under it.
+
+.PhysiqueAdvanced {
+  &__trigger {
+    margin-top: var(--space-xs);
+  }
+
+  &__menu {
+    min-width: 16em;
+    padding: var(--space-m);
+    background-color: var(--dropdown-menu-background);
+    border: var(--dropdown-menu-border);
+    border-radius: var(--dropdown-menu-border-radius);
+    box-shadow: var(--dropdown-menu-blur);
+  }
+}

@@ -1,4 +1,5 @@
 /// Every pec shape has its still states, and twins on its jiggle and every flex sheet, with and without skin tone shading.
+/// A shape drawn with a back (an ADJ state) has its back on every sheet too: the back draws from the animation sheet while one plays.
 /datum/unit_test/pec_states
 
 /datum/unit_test/pec_states/Run()
@@ -6,10 +7,11 @@
 	for(var/datum/sprite_accessory/genital/breasts/shape as anything in typesof(/datum/sprite_accessory/genital/breasts/pecs))
 		var/list/sheets = list(initial(shape.icon), initial(shape.jiggle_icon), BREASTS_ICON_PEC_BOUNCE, BREASTS_ICON_PEC_BOUNCE_ALTERNATE, BREASTS_ICON_PEC_BOUNCE_SLOW, BREASTS_ICON_PEC_BOUNCE_ALTERNATE_SLOW)
 		for(var/suffix in suffixes)
-			var/state = "m_breasts_[initial(shape.icon_state)]_0[suffix]_FRONT_UNDER"
+			var/state = "m_breasts_[initial(shape.icon_state)]_0[suffix]"
+			var/has_back = icon_exists(initial(shape.icon), "[state]_ADJ")
 			for(var/sheet in sheets)
-				if(!icon_exists(sheet, state))
-					TEST_FAIL("[shape] has no [state] state in [sheet].")
+				TEST_ASSERT(icon_exists(sheet, "[state]_FRONT_UNDER"), "[shape] has no [state]_FRONT_UNDER state in [sheet].")
+				TEST_ASSERT(!has_back || icon_exists(sheet, "[state]_ADJ"), "[shape] has no [state]_ADJ state in [sheet], so its back vanishes while it animates.")
 
 /// Every state on a breast sheet has a bouncing twin, under the same name, on that sheet's jiggle sheet.
 /datum/unit_test/breast_jiggle_states
@@ -213,3 +215,86 @@
 	chest.pecs = pecs
 	chest.nippleless = nippleless
 	chest.Insert(owner, special = TRUE)
+
+/// Pecs are part of the body's shape: drawn under the underclothes that cover them, as their nippleless twin, and hidden by a
+/// uniform. Examine still reads them as covered. A top over them is fitted to them, and cached apart for each pec shape, with
+/// nipples and without. Breasts stay hidden by underclothes.
+/datum/unit_test/breast_bounce/under_underclothes
+
+/datum/unit_test/breast_bounce/under_underclothes/Run()
+	if(CONFIG_GET(flag/disable_erp_preferences) || CONFIG_GET(flag/disable_lewd_items))
+		TEST_NOTICE(src, "Pecs under underclothes need genitals, which the ERP config disables.")
+		return
+
+	var/mob/living/carbon/human/consistent/owner = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/organ/genital/breasts/pecs = give_breasts(owner, /datum/sprite_accessory/genital/breasts/pecs::name, 0)
+	TEST_ASSERT_NOTNULL(pecs, "The test human did not get pecs.")
+	var/datum/bodypart_overlay/mutant/genital/breasts/pec_overlay = pecs.bodypart_overlay
+	var/obj/item/bodypart/chest/chest = owner.get_bodypart(BODY_ZONE_CHEST)
+	owner.undershirt = /datum/sprite_accessory/clothing/undershirt/shirt::name
+	TEST_ASSERT(pec_overlay.can_draw_on_bodypart(chest, owner), "Pecs under an undershirt were hidden rather than drawn under it.")
+	TEST_ASSERT(("[/datum/sprite_accessory/genital/breasts/pecs/nippleless::icon_state]_0" in pec_overlay.icon_render_key(chest)), "Pecs drawn under an undershirt kept their nipples.")
+	TEST_ASSERT(!pecs.is_exposed() && !(pecs.get_description_string(pec_overlay.sprite_datum) in owner.get_genital_description_lines()), "Examine read pecs under an undershirt as bare.")
+
+	var/obj/item/clothing/under/uniform = allocate(/obj/item/clothing/under/color/grey)
+	TEST_ASSERT(owner.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING), "Could not dress the test human.")
+	TEST_ASSERT(!pec_overlay.can_draw_on_bodypart(chest, owner), "A uniform did not hide pecs.")
+
+	// A bare chest's top is drawn straight from its sheet; each pec shape, with nipples and without, fits it its own way.
+	var/list/drawn_tops = list(/datum/sprite_accessory/clothing/undershirt/shirt::icon)
+	for(var/datum/sprite_accessory/genital/breasts/shape as anything in typesof(/datum/sprite_accessory/genital/breasts/pecs))
+		var/mob/living/carbon/human/consistent/wearer = allocate(/mob/living/carbon/human/consistent)
+		wearer.physique = MALE
+		wearer.socks = "Nude"
+		TEST_ASSERT_NOTNULL(give_breasts(wearer, shape::name, 0), "The test human did not get [shape::name].")
+		wearer.undershirt = /datum/sprite_accessory/clothing/undershirt/shirt::name
+		wearer.update_body()
+		SSgarment_fitting.finish_all()
+		var/drawn_top = drawn_underclothes(wearer)?.icon
+		TEST_ASSERT(!(drawn_top in drawn_tops), "A top over [shape::name] was drawn as over another chest: unfitted, or fitted and cached for other pecs.")
+		drawn_tops += drawn_top
+
+	var/mob/living/carbon/human/consistent/breast_owner = allocate(/mob/living/carbon/human/consistent)
+	var/obj/item/organ/genital/breasts/breasts = give_breasts(breast_owner, /datum/sprite_accessory/genital/breasts/pair::name, 3)
+	breast_owner.undershirt = /datum/sprite_accessory/clothing/undershirt/shirt::name
+	var/datum/bodypart_overlay/mutant/genital/breasts/breast_overlay = breasts?.bodypart_overlay
+	TEST_ASSERT(breast_overlay && !breast_overlay.can_draw_on_bodypart(breast_owner.get_bodypart(BODY_ZONE_CHEST), breast_owner), "Breasts under an undershirt were drawn.")
+
+/// Tops cut for a chest with breasts draw their version for one without on any chest without breasts, pecs or none, but a
+/// female body's without pecs: pure mesh for mesh tops with a bra drawn in, and pasties where each pec size has its nipples,
+/// nippled or nippleless alike. Over breasts they're drawn as they are.
+/datum/unit_test/breast_bounce/flat_mesh
+
+/datum/unit_test/breast_bounce/flat_mesh/Run()
+	var/datum/sprite_accessory/clothing/mesh = allocate(/datum/sprite_accessory/clothing/bra/fishnet_sleeves)
+	var/datum/sprite_accessory/clothing/pasties = allocate(/datum/sprite_accessory/clothing/bra/pasties)
+	var/mob/living/carbon/human/consistent/bare = allocate(/mob/living/carbon/human/consistent)
+	var/flat_mesh = mesh.get_icon_state(MALE, bare.bodyshape, bare)
+	var/flat_pasties = pasties.get_icon_state(MALE, bare.bodyshape, bare)
+	TEST_ASSERT(flat_mesh != mesh.icon_state && icon_exists(mesh.icon, flat_mesh), "A mesh top on a male chest without breasts didn't draw its pure mesh.")
+	TEST_ASSERT(flat_pasties != pasties.icon_state && icon_exists(pasties.icon, flat_pasties), "Pasties on a male chest without breasts didn't draw their own state.")
+	TEST_ASSERT_EQUAL(mesh.get_icon_state(FEMALE, bare.bodyshape, bare), mesh.icon_state, "A mesh top on a female chest without breasts lost its bra.")
+	TEST_ASSERT_EQUAL(pasties.get_icon_state(FEMALE, bare.bodyshape, bare), pasties.icon_state, "Pasties on a female chest without breasts moved.")
+	if(CONFIG_GET(flag/disable_erp_preferences) || CONFIG_GET(flag/disable_lewd_items))
+		TEST_NOTICE(src, "Tops over breasts and pecs need genitals, which the ERP config disables.")
+		return
+
+	var/mob/living/carbon/human/consistent/breast_owner = allocate(/mob/living/carbon/human/consistent)
+	TEST_ASSERT_NOTNULL(give_breasts(breast_owner, /datum/sprite_accessory/genital/breasts/pair::name, 3), "The test human did not get breasts.")
+	TEST_ASSERT_EQUAL(mesh.get_icon_state(MALE, breast_owner.bodyshape, breast_owner), mesh.icon_state, "A mesh top over breasts lost its bra.")
+	TEST_ASSERT_EQUAL(pasties.get_icon_state(MALE, breast_owner.bodyshape, breast_owner), pasties.icon_state, "Pasties over breasts moved.")
+	// Each pec size's pasties are its own, and nippled and nippleless pecs of a size share them.
+	var/list/pasties_by_size = list()
+	for(var/datum/sprite_accessory/genital/breasts/shape as anything in typesof(/datum/sprite_accessory/genital/breasts/pecs))
+		var/mob/living/carbon/human/consistent/pec_owner = allocate(/mob/living/carbon/human/consistent)
+		TEST_ASSERT_NOTNULL(give_breasts(pec_owner, shape::name, 0), "The test human did not get [shape::name].")
+		TEST_ASSERT_EQUAL(mesh.get_icon_state(FEMALE, pec_owner.bodyshape, pec_owner), flat_mesh, "A mesh top over [shape::name] kept its bra.")
+		var/pec_pasties = pasties.get_icon_state(FEMALE, pec_owner.bodyshape, pec_owner)
+		TEST_ASSERT(icon_exists(pasties.icon, pec_pasties), "Pasties over [shape::name] draw [pec_pasties], which their sheet doesn't have.")
+		var/size = shape::garment_fit_shape
+		TEST_ASSERT(isnull(pasties_by_size[size]) || pasties_by_size[size] == pec_pasties, "Pasties over [shape::name] aren't those over its size's other pecs.")
+		pasties_by_size[size] = pec_pasties
+	var/list/drawn = list(pasties.icon_state, flat_pasties)
+	for(var/size, size_pasties in pasties_by_size)
+		TEST_ASSERT(!(size_pasties in drawn), "Pasties over [size] are drawn as over another chest.")
+		drawn += size_pasties

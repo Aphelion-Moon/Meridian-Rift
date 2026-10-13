@@ -28,12 +28,18 @@
 	feature_key = ORGAN_SLOT_BREASTS
 	layers = list(
 		EXTERNAL_FRONT_UNDER_CLOTHES = BREASTS_LAYER,
+		// The back of a chest that shows from behind, like bigger pecs: under clothing whatever the chest's layering. Shapes without an ADJ state draw nothing here.
+		EXTERNAL_ADJACENT = BODY_ADJ_LAYER,
 		EXTERNAL_BEHIND = BODY_BEHIND_LAYER,
 	)
 	offset_location = ENTIRE_BODY
 	genital_stack_rank = 1
 	/// The sheet the chest animates from (a jiggle or a pec flex), or null while it's still. See the shape's get_special_icon().
 	var/animation_icon
+	/// While the back layer is drawn, whether its body takes skin tones; null otherwise. See get_base_icon_state().
+	var/back_on_skin_tone
+	/// While the chest is drawn or keyed, whether it draws its pecs' nippleless twin (nipples_covered()). See get_base_icon_state().
+	var/draws_nippleless = FALSE
 
 /obj/item/organ/genital/breasts/get_description_string(datum/sprite_accessory/genital/breasts/breasts)
 	if(pecs)
@@ -102,8 +108,63 @@
 	nippleless = accessory.pecs && !accessory.pecs_nipples
 	return ..()
 
+// Pecs are muscle: underclothes draw over them.
+/obj/item/organ/genital/breasts/shapes_body()
+	return pecs
+
 /datum/bodypart_overlay/mutant/genital/breasts/get_global_feature_list()
 	return SSaccessories.sprite_accessories[ORGAN_SLOT_BREASTS]
+
+/datum/bodypart_overlay/mutant/genital/breasts/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
+	draws_nippleless = nipples_covered(limb)
+	if(layer_index == EXTERNAL_ADJACENT)
+		back_on_skin_tone = !!limb?.skin_tone
+	. = ..()
+	back_on_skin_tone = null
+	draws_nippleless = FALSE
+
+// The limb icon cache keys the chest by the state it draws.
+/datum/bodypart_overlay/mutant/genital/breasts/icon_render_key(obj/item/bodypart/limb)
+	draws_nippleless = nipples_covered(limb)
+	. = ..()
+	draws_nippleless = FALSE
+
+/**
+ * Whether the chest draws its pecs' nippleless twin: pecs with nipples, drawn in their normal layers under the underclothes
+ * that cover them, which the nipples would show through.
+ *
+ * Arguments:
+ * - limb: The chest drawn on.
+ */
+/datum/bodypart_overlay/mutant/genital/breasts/proc/nipples_covered(obj/item/bodypart/limb)
+	var/datum/sprite_accessory/genital/breasts/shape = sprite_datum
+	if(!shape?.pecs || !shape.pecs_nipples || !ishuman(limb?.owner))
+		return FALSE
+	var/mob/living/carbon/human/owner = limb.owner
+	var/obj/item/organ/genital/breasts/chest = owner.organs_slot[ORGAN_SLOT_BREASTS]
+	return chest?.bodypart_overlay == src && chest.get_effective_layer_mode() == GENITAL_LAYER_NORMAL && chest.covered_by_underclothes(owner)
+
+// The back is skin, so it shades for its body whatever shading the chest uses: "_s" on a skin-tone body, plain on any other.
+// Pecs under underclothes draw their nippleless twin.
+/datum/bodypart_overlay/mutant/genital/breasts/get_base_icon_state()
+	. = ..()
+	if(draws_nippleless)
+		var/shape_state = sprite_datum.icon_state
+		. = "[shape_state]_nippleless[copytext(., length(shape_state) + 1)]"
+	if(isnull(back_on_skin_tone))
+		return
+	if(copytext(., -2) == "_s")
+		. = copytext(., 1, -2)
+	if(back_on_skin_tone)
+		. += "_s"
+
+// The back is skin: it takes the body's colour, whatever colour the chest itself is drawn in.
+/datum/bodypart_overlay/mutant/genital/breasts/color_images(list/image/overlays, obj/item/bodypart/limb, layer_index)
+	. = ..()
+	if(layer_index != EXTERNAL_ADJACENT || !limb?.draw_color)
+		return
+	for(var/image/back as anything in overlays)
+		back.color = limb.draw_color
 
 /obj/item/organ/genital/breasts/on_mob_remove(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
