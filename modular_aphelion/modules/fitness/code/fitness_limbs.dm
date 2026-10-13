@@ -77,30 +77,54 @@ GLOBAL_LIST_INIT(fitness_limb_sheets, init_fitness_limb_sheets())
 	return (level_sheet && icon_exists(level_sheet, custom_sprite_limb_state(src))) ? level_sheet : sheet
 
 /**
- * Keeps a fitness limb on its level's art whatever sheet it was last given: its type's own, the humanoid one skin tones off
- * give it, or a reset's. A body's redraw runs this on each limb before making the limb's icon cache key.
+ * A fitness level's limb icon cache key, written out for the levels there are so a redraw doesn't build the text.
  */
-/obj/item/bodypart/update_limb(dropping_limb = FALSE, is_creating = FALSE)
-	. = ..()
-	if(fitness_level && should_draw_greyscale)
-		icon_greyscale = fitness_sheet(icon_greyscale)
+#define FITNESS_ICON_KEY(level) (level == 1 ? "fitness_1" : level == 2 ? "fitness_2" : level == 3 ? "fitness_3" : level == 4 ? "fitness_4" : level == 5 ? "fitness_5" : "fitness_[level]")
 
 /**
- * Keys a fitness limb by its level: the fitness sheets share the plain sheets' state names, and the limb icon cache is shared
- * by every body, so without it a level's art and today's would be served for each other.
+ * Gives a limb family's fitness subtypes (`family`/fitness/level_N) the overrides they draw with. They sit on the fitness
+ * subtypes rather than on /obj/item/bodypart, so a plain limb's redraw runs none of them.
+ *
+ * - update_limb() keeps the limb on its level's art whatever sheet it was last given: its type's own, the humanoid one skin
+ *   tones off give it, or a reset's. A body's redraw runs it on each limb before making the limb's icon cache key. Only a
+ *   plain sheet that has fitness sheets is looked up again; a limb already on its level's sheet keeps it.
+ * - generate_icon_key() and generate_husk_key() key the limb by its level: the fitness sheets share the plain sheets' state
+ *   names, and the limb icon cache is shared by every body, so without it a level's art and today's would be served for each
+ *   other. A husk is toned from the sheet the limb draws.
+ *
+ * Arguments:
+ * - family: The limb type the fitness subtypes are under, like /obj/item/bodypart/arm/left.
  */
-/obj/item/bodypart/generate_icon_key()
-	. = ..()
-	if(fitness_level)
-		. += "fitness_[fitness_level]"
+#define FITNESS_LIMB_DRAWING(family) \
+family/fitness/update_limb(dropping_limb = FALSE, is_creating = FALSE) { \
+	. = ..(); \
+	if(should_draw_greyscale && GLOB.fitness_limb_sheets[icon_greyscale]) { \
+		icon_greyscale = fitness_sheet(icon_greyscale); \
+	} \
+} \
+family/fitness/generate_icon_key() { \
+	. = ..(); \
+	. += FITNESS_ICON_KEY(fitness_level); \
+} \
+family/fitness/generate_husk_key() { \
+	. = ..(); \
+	. += FITNESS_ICON_KEY(fitness_level); \
+}
 
-/**
- * Keys a husked fitness limb by its level too: a husk is toned from the sheet the limb draws.
- */
-/obj/item/bodypart/generate_husk_key()
-	. = ..()
-	if(fitness_level)
-		. += "fitness_[fitness_level]"
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/chest)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/arm/left)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/arm/right)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/left)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/right)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/left/digitigrade)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/right/digitigrade)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/chest/humanoid)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/arm/left/humanoid)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/arm/right/humanoid)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/left/humanoid)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/right/humanoid)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/left/digitigrade/human/humanoid)
+FITNESS_LIMB_DRAWING(/obj/item/bodypart/leg/right/digitigrade/human/humanoid)
 
 // One subtype per level of each limb drawn from the human or humanoid sheet, and of the digitigrade legs those limbs turn into.
 // A subtype differs from its base only in the art it draws.
@@ -426,6 +450,8 @@ GLOBAL_LIST_INIT(fitness_limb_sheets, init_fitness_limb_sheets())
 /obj/item/bodypart/leg/right/digitigrade/human/humanoid/fitness/level_5
 	fitness_level = 5
 
+#undef FITNESS_ICON_KEY
+#undef FITNESS_LIMB_DRAWING
 #undef FITNESS_SHEET_HUMAN_1
 #undef FITNESS_SHEET_HUMAN_2
 #undef FITNESS_SHEET_HUMAN_3

@@ -1,4 +1,4 @@
-/// Armpit and pubic hair grow, restyle, colour and shave like hair; armpit interactions need an arm, not hair.
+/// Armpit and pubic hair grow, restyle, colour and shave like hair and hide under clothes; armpit interactions need an arm, not hair.
 /datum/unit_test/portal_test/body_hair
 
 /datum/unit_test/portal_test/body_hair/Run()
@@ -37,6 +37,7 @@
 	var/obj/item/clothing/under/color/grey/pants = allocate(/obj/item/clothing/under/color/grey)
 	TEST_ASSERT(person.equip_to_slot_if_possible(pants, ITEM_SLOT_ICLOTHING), "Could not dress the test human.")
 	TEST_ASSERT_EQUAL(person.get_body_hair_cover(FEATURE_PUBES), pants, "Pants didn't keep a razor off pubic hair.")
+	TEST_ASSERT(!chest_draws(person, "pubes_heart_m"), "Pubic hair drew under pants.")
 
 	// The colour picker only shows while body hair doesn't match the head.
 	var/datum/client_interface/person_client = attach_portal_preferences(person)
