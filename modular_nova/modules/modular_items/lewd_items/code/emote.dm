@@ -63,7 +63,7 @@
 
 /datum/emote/living/lewd/jiggle/select_message_type(mob/living/carbon/human/user, msg, intentional)
 	. = ..()
-	if(user.has_pecs())
+	if(. && user.has_pecs())
 		return "flexes and bounces their pecs!"
 
 /datum/emote/living/lewd/jiggle/run_emote(mob/living/carbon/human/user, params, type_override, intentional)
@@ -77,13 +77,19 @@
 		return
 	return ..(user, null, type_override, intentional)
 
+/// The jiggle without its chat line: only the bounce plays. `*bbounce 6` keeps it up for six seconds; using it again stops.
+/datum/emote/living/lewd/jiggle/silent
+	key = "bbounce"
+	key_third_person = null
+	name = "breast bounce"
+	message = null
+
 // Not lewd: the pecs flex and bounce from their own sheets, and clothes only hide the sprite.
-/// Flexes so both pecs bounce. `*pbounce 6` keeps it up for six seconds; using it again stops.
+/// Flexes so both pecs bounce, with no chat line. `*pbounce 6` keeps it up for six seconds; using it again stops.
 /// No key_third_person on these: "pbounces" is the slow flex's key.
 /datum/emote/living/carbon/human/pecbounce
 	key = "pbounce"
 	name = "pec bounce"
-	message = "flexes, bouncing their pecs."
 	/// The pecs take turns instead of bouncing together.
 	var/alternating = FALSE
 	/// Slowed down, each flex held longer.
@@ -93,19 +99,16 @@
 /datum/emote/living/carbon/human/pecbounce/alternate
 	key = "pbounce2"
 	name = "pec bounce 2"
-	message = "bounces their pecs one after the other."
 	alternating = TRUE
 
 /datum/emote/living/carbon/human/pecbounce/slow
 	key = "pbounces"
 	name = "pec bounce (slow)"
-	message = "slowly flexes, bouncing their pecs."
 	slow = TRUE
 
 /datum/emote/living/carbon/human/pecbounce/alternate/slow
 	key = "pbounce2s"
 	name = "pec bounce 2 (slow)"
-	message = "slowly bounces their pecs one after the other."
 	slow = TRUE
 
 /datum/emote/living/carbon/human/pecbounce/can_run_emote(mob/living/carbon/human/user, status_check = TRUE, intentional, params)
@@ -124,8 +127,6 @@
 	if(chest?.is_playing(chest.flex_sheet(alternating, slow)))
 		chest.stop_bounce()
 		return
-	// Text after the key is how many seconds to keep it up, so it never stands in for the message.
+	// Text after the key is how many seconds to keep it up. The parent isn't called: it would print that text as the emote.
 	var/seconds = text2num(params)
-	if(!chest?.start_flex(alternating, slow, seconds > 0 ? seconds SECONDS : BREAST_BOUNCE_DEFAULT_DURATION))
-		return
-	return ..(user, null, type_override, intentional)
+	chest?.start_flex(alternating, slow, seconds > 0 ? seconds SECONDS : BREAST_BOUNCE_DEFAULT_DURATION)

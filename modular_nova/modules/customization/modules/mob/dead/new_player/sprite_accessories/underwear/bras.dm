@@ -156,6 +156,36 @@
 	icon_state = "fishnet_body_alt"
 	use_static = FALSE
 
+// A bra drawn into the mesh: pure mesh on a chest without breasts.
+/datum/sprite_accessory/clothing/bra/fishnet_sleeves/get_icon_state(physique, bodyshape, mob/living/carbon/human/wearer)
+	return chest_cut_state(physique, wearer, "_flat")
+
+/datum/sprite_accessory/clothing/bra/fishnet_base/get_icon_state(physique, bodyshape, mob/living/carbon/human/wearer)
+	return chest_cut_state(physique, wearer, "_flat")
+
+/**
+ * Returns the state a top cut for a chest with breasts draws on `wearer`: its own state over breasts, and on a female body
+ * unless its breasts are pecs; on any other chest, without breasts or with pecs, the state its suffixes name.
+ *
+ * Arguments:
+ * - physique: The physique it's drawn for.
+ * - wearer: Who wears it, if anyone. Worn by nobody, like a mannequin's, it draws its own state.
+ * - flat_suffix: The suffix of its state for a chest without breasts.
+ * - pec_suffixes: Pec shape, as `garment_fit_shape` names it -> the suffix of its state over those pecs, for a top drawn
+ *   apart for some of them; any other pecs take `flat_suffix`.
+ */
+/datum/sprite_accessory/clothing/proc/chest_cut_state(physique, mob/living/carbon/human/wearer, flat_suffix, list/pec_suffixes)
+	if(!ishuman(wearer))
+		return icon_state
+	var/obj/item/organ/genital/breasts/chest = wearer.organs_slot[ORGAN_SLOT_BREASTS]
+	if(chest?.pecs)
+		var/datum/sprite_accessory/genital/breasts/shape = chest.get_shape()
+		var/pec_shape = shape?.garment_fit_shape
+		return "[icon_state][(pec_shape && pec_suffixes?[pec_shape]) || flat_suffix]"
+	if(chest || physique == FEMALE)
+		return icon_state
+	return "[icon_state][flat_suffix]"
+
 //ERP Accessories
 /datum/sprite_accessory/clothing/bra/bra_latex
 	name = "Bra - Latex"
@@ -177,6 +207,15 @@
 	name = "Pasties (Alt)"
 	icon_state = "pasties_alt"
 	erp_accessory = TRUE
+
+// Over the nipples of a chest without breasts, where each pec shape has them.
+/datum/sprite_accessory/clothing/bra/pasties/get_icon_state(physique, bodyshape, mob/living/carbon/human/wearer)
+	var/static/list/pec_suffixes = list("pecs" = "_m1", "pecs_big" = "_m2", "pecs_biggest" = "_m3")
+	return chest_cut_state(physique, wearer, "_m", pec_suffixes)
+
+/datum/sprite_accessory/clothing/bra/pasties_alt/get_icon_state(physique, bodyshape, mob/living/carbon/human/wearer)
+	var/static/list/pec_suffixes = list("pecs" = "_m1", "pecs_big" = "_m2", "pecs_biggest" = "_m3")
+	return chest_cut_state(physique, wearer, "_m", pec_suffixes)
 
 /datum/sprite_accessory/clothing/bra/shibari
 	name = "Shibari"

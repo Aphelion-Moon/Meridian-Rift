@@ -35,7 +35,7 @@ export type MarkingsRoomData = PreferencesMenuData & {
 type MarkingsRoomConstants = {
   /** The colour each marking with one of its own starts in, by name. */
   marking_defaults: Record<string, string>;
-  /** Full-size mirror classes for art whose picker thumbnail was scaled. */
+  /** Full-size mirror classes for art on sheets larger than the picker's 32x32 tile. */
   native_marking_icons?: Record<string, Record<string, string>>;
 };
 

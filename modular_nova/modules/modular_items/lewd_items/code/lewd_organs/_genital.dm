@@ -151,13 +151,30 @@
 
 /// Whether the mob's worn clothing covers this genital where it is drawn: underclothes do not cover a genital layered above them.
 /obj/item/organ/genital/proc/covered_by_clothing(mob/living/carbon/human/human)
+	return covered_by_outer_clothing(human) || covered_by_underclothes(human)
+
+/**
+ * Whether the mob's uniform, suit or hospital gown covers this genital.
+ *
+ * Arguments:
+ * - human: The genital's owner.
+ */
+/obj/item/organ/genital/proc/covered_by_outer_clothing(mob/living/carbon/human/human)
 	//Do they have a Uniform or Suit that covers them?
 	var/obj/item/worn_suit = human.wear_suit
 	if((human.w_uniform?.body_parts_covered | worn_suit?.body_parts_covered) & genital_location)
 		return TRUE
 	//Do they have a Hospital Gown covering them? (The gown has no body_parts_covered so needs its own check)
-	if(istype(worn_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown))
-		return TRUE
+	return istype(worn_suit, /obj/item/clothing/suit/toggle/labcoat/nova/surgical_gown)
+
+/**
+ * Whether the mob's undershirt, underwear or bra covers this genital where it is drawn: they do not cover a genital layered
+ * above them.
+ *
+ * Arguments:
+ * - human: The genital's owner.
+ */
+/obj/item/organ/genital/proc/covered_by_underclothes(mob/living/carbon/human/human)
 	//Is it layered above their underclothes? (Custom "Above underwear" draws it over them, under the uniform and suit)
 	if(visibility_preference == GENITAL_CUSTOM && get_effective_layer_mode() == GENITAL_LAYER_ABOVE_UNDIES)
 		return FALSE
@@ -181,6 +198,27 @@
 		return TRUE
 	//Nothing they're wearing covers them
 	return FALSE
+
+/**
+ * Whether this genital is part of the body's shape, like pecs: the underclothes covering it are drawn over it
+ * rather than hiding it (hidden_by_clothing()).
+ */
+/obj/item/organ/genital/proc/shapes_body()
+	return FALSE
+
+/**
+ * Whether clothing hides this genital: whatever covers it where it is drawn (covered_by_clothing()). A genital that shapes the
+ * body (shapes_body()) is the exception while drawn: it draws under the underclothes covering it, and only a uniform, suit or
+ * gown hides it. Examine still reads it as covered by them.
+ *
+ * Arguments:
+ * - human: The genital's owner.
+ * - drawing: Whether its overlay asks, to draw it.
+ */
+/obj/item/organ/genital/proc/hidden_by_clothing(mob/living/carbon/human/human, drawing)
+	if(drawing && shapes_body())
+		return covered_by_outer_clothing(human)
+	return covered_by_clothing(human)
 
 /obj/item/organ/genital/proc/is_exposed()
 	if(!owner)
