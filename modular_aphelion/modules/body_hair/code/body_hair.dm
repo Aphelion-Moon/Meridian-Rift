@@ -5,6 +5,10 @@
 	icon = 'modular_aphelion/modules/body_hair/icons/body_hair.dmi'
 	color_src = USE_ONE_COLOR
 
+/// Hidden while anything covers it: see get_body_hair_cover().
+/datum/sprite_accessory/body_hair/is_hidden(mob/living/carbon/human/owner, datum/bodypart_overlay/mutant/bodypart_overlay)
+	return !isnull(owner.get_body_hair_cover(key))
+
 /datum/sprite_accessory/body_hair/pits
 	key = FEATURE_PITS
 	organ_type = /obj/item/organ/body_hair/pits
@@ -78,7 +82,7 @@
 	mutantpart_key = FEATURE_PUBES
 	bodypart_overlay = /datum/bodypart_overlay/mutant/body_hair/pubes
 
-/// Draws the hair as "<style>_<m|f>" over the skin and under underwear and clothes, which cover it where they overlap.
+/// Draws the hair as "<style>_<m|f>" over the skin and under underwear and clothes. Only what bares it is ever drawn over it: anything else hides it.
 /datum/bodypart_overlay/mutant/body_hair
 	layers = list(EXTERNAL_FRONT = BODY_HAIR_LAYER)
 	color_source = ORGAN_COLOR_OVERRIDE
@@ -141,18 +145,34 @@
 	var/datum/mutant_bodypart/part = dna.mutant_bodyparts[feature]
 	return part?.name || SPRITE_ACCESSORY_NONE
 
-/// What keeps a razor off this body hair: clothing or underwear over it, or null when it's bare.
+/**
+ * Returns what hides this body hair, or null when it shows. Armpit hair shows on a bare chest and under clothing that bares
+ * the armpits (GLOB.body_hair_baring_clothing); no bra or underwear hides it. Pubic hair shows on a bare groin and under
+ * underwear that bares it. Drawing asks on every body update (is_hidden()), so this allocates nothing.
+ *
+ * Arguments:
+ * - feature: FEATURE_PITS or FEATURE_PUBES.
+ *
+ * Returns:
+ * - The suit or uniform over the hair, the undershirt or underwear accessory worn over it, or null.
+ */
 /mob/living/carbon/human/proc/get_body_hair_cover(feature)
-	var/zone = feature == FEATURE_PUBES ? GROIN : CHEST
-	if(wear_suit?.body_parts_covered & zone)
+	var/pubes = feature == FEATURE_PUBES
+	var/zone = pubes ? GROIN : CHEST
+	var/list/baring = GLOB.body_hair_baring_clothing
+	// Clothing only ever bares the armpits.
+	if((wear_suit?.body_parts_covered & zone) && (pubes || !baring[wear_suit.type]))
 		return wear_suit
-	if(w_uniform?.body_parts_covered & zone)
+	if((w_uniform?.body_parts_covered & zone) && (pubes || !baring[w_uniform.type]))
 		return w_uniform
-	if(feature == FEATURE_PUBES)
-		if(underwear != "Nude" && !(underwear_visibility & UNDERWEAR_HIDE_UNDIES))
-			return "[p_their()] underwear"
-	else if(undershirt != "Nude" && !(underwear_visibility & UNDERWEAR_HIDE_SHIRT))
-		return "[p_their()] undershirt"
+	if(undershirt != "Nude" && !(underwear_visibility & UNDERWEAR_HIDE_SHIRT))
+		var/datum/sprite_accessory/clothing/undershirt/shirt = SSaccessories.undershirt_list[undershirt]
+		if(shirt && (pubes ? shirt.hides_groin : !baring[shirt.type]))
+			return shirt
+	if(pubes && underwear != "Nude" && !(underwear_visibility & UNDERWEAR_HIDE_UNDIES))
+		var/datum/sprite_accessory/clothing/underwear/pants = SSaccessories.underwear_list[underwear]
+		if(pants && !baring[pants.type])
+			return pants
 	return null
 
 /**
@@ -170,6 +190,9 @@
 			return
 	var/covering = target.get_body_hair_cover(feature)
 	if(covering)
+		// Underclothes are accessories, not items: name them as the wearer's.
+		if(istype(covering, /datum/sprite_accessory))
+			covering = "[target.p_their()] [istype(covering, /datum/sprite_accessory/clothing/undershirt) ? "undershirt" : "underwear"]"
 		to_chat(user, span_warning("[covering] is in the way!"))
 		return
 	var/list/choices = list("Shave it all off" = SPRITE_ACCESSORY_NONE)

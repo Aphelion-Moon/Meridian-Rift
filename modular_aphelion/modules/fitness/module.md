@@ -154,8 +154,9 @@ starts, with the sheet metadata (`SSgarment_fitting`).
 
 - `modular_aphelion/modules/fitness/code/fitness_body.dm`: `/datum/species/on_species_gain()`,
   `/mob/living/carbon/human/synchronize_bodyshapes()`
-- `modular_aphelion/modules/fitness/code/fitness_limbs.dm`: `/obj/item/bodypart/update_limb()`,
-  `/obj/item/bodypart/generate_icon_key()`, `/obj/item/bodypart/generate_husk_key()`
+- `modular_aphelion/modules/fitness/code/fitness_limbs.dm`: `update_limb()`, `generate_icon_key()` and
+  `generate_husk_key()` on each limb family's fitness subtypes (`FITNESS_LIMB_DRAWING()`), never on
+  `/obj/item/bodypart`, so a plain limb's redraw costs what it did before fitness
 - `modular_aphelion/modules/fitness/code/worn_fitting.dm`: `/obj/item/bodypart/try_attach_limb()`,
   `/obj/item/bodypart/drop_limb()`
 - `modular_aphelion/modules/fitness/code/garment_fit_styles.dm`: `fit_mode` on underclothes styles, and
@@ -167,8 +168,8 @@ starts, with the sheet metadata (`SSgarment_fitting`).
   `FEATURE_FITNESS_LEGS`, `FEATURE_FITNESS_TORSO`, `FITNESS_LIMB_TYPE`, `GARMENT_FIT_SOLID`, `GARMENT_FIT_PATTERN`,
   `GARMENT_FIT_SHADED_SLEEVES`, `GARMENT_FIT_KNIT`, the `GARMENT_FIT_PEC_SMILE_*` modes, `GARMENT_FIT_MAX_FRAMES`,
   `GARMENT_FITS_DEFERRED` and the `GARMENT_FIT_REDRAW_*` flags
-- `modular_aphelion/modules/fitness/code/fitness_limbs.dm`: `FITNESS_SHEET_HUMAN_1` to `_5` and
-  `FITNESS_SHEET_HUMANOID_1` to `_5`. File-local.
+- `modular_aphelion/modules/fitness/code/fitness_limbs.dm`: `FITNESS_SHEET_HUMAN_1` to `_5`,
+  `FITNESS_SHEET_HUMANOID_1` to `_5`, `FITNESS_ICON_KEY` and `FITNESS_LIMB_DRAWING`. File-local.
 - `modular_aphelion/modules/fitness/code/garment_fitting.dm`: `FIT_INDEX`, `PEC_PANEL_MAX_MOVE` and the `SLEEVE_*`
   thresholds. File-local.
 - `modular_aphelion/modules/fitness/code/worn_fitting.dm`: `WORN_FIT_BODYSHAPES` and `WORN_FIT_REDRAW`. File-local.
