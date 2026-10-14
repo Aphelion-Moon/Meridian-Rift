@@ -56,7 +56,7 @@
 	var/list/balaclava_adjustment = list()
 
 /obj/item/clothing/mask/balaclava/adjustable/Initialize(mapload)
-	.=..()
+	. = ..()
 	balaclava_adjustment = list(
 		"Balaclava" = image(icon = src.icon, icon_state = "balaclava_adj"),
 		"Open Face" = image(icon = src.icon, icon_state = "balaclava_adj_open"),
@@ -84,7 +84,7 @@
 	if(!choice)
 		return FALSE
 
-	if(src && choice && !user.incapacitated && in_range(user,src))
+	if(src && choice && !user.incapacitated && in_range(user, src) && user.can_perform_action(src, interaction_flags_click | SILENT_ADJACENCY))
 		icon_state = options[choice]
 		switch(choice)
 			if("Balaclava")
@@ -107,7 +107,7 @@
 		return TRUE
 
 /obj/item/clothing/mask/balaclava/adjustable/click_alt(mob/user)
-	ui_action_click(user)
+	return ui_action_click(user) ? CLICK_ACTION_SUCCESS : CLICK_ACTION_BLOCKING
 
 /obj/item/clothing/mask/balaclava/adjustable/attack_self(mob/user)
 	return //prevents following the parent's use and getting bugged while set to beanie
