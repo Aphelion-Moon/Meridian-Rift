@@ -9,6 +9,7 @@
 		"*/~nova/body_marking_fixes.dm",
 		"*/~nova/body_marking_merge.dm",
 		"*/~nova/meridian_preferences.dm",
+		"*/~nova/neuroware_chips.dm",
 		"*/~nova/painting_gallery.dm",
 		"*/~nova/portal_device.dm",
 		"*/~nova/portal_lifecycle.dm",

@@ -31,10 +31,8 @@ function renderPicker() {
     <Picker
       open={{ slot: 'Eyes', field: 'organ', side: 'l', oy: 0 }}
       options={OPTIONS}
-      peek={null}
       title="EYES"
       pointsOn={false}
-      onPeek={() => {}}
       onPick={() => {}}
       onClose={() => {}}
     />,

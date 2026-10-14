@@ -1,0 +1,533 @@
+// THIS IS AN APHELION UI FILE
+// The Augments+ stage's recolourable finishes (MarkingsRoom/augments/paint.tsx):
+// the palette on a card's FINISH row and in the console's readout, the finish
+// list's tag, and the colour editor, a flyout in the pickers' look (.fly, in
+// _augments-stage.scss) with parts of its own. All in the stage's tokens, so
+// every theme dresses it.
+
+// MARK: The palette
+
+// Its own button over the FINISH row's left edge: a row is a button, which
+// can't hold another.
+.AugStage .row-paintable {
+  position: relative;
+  margin-top: 4px;
+
+  .row {
+    margin-top: 0;
+    padding-left: 30px;
+  }
+}
+
+.AugStage .row-paint {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 1px;
+  width: 25px;
+  display: grid;
+  place-items: center;
+  color: var(--aug-muted);
+  border-right: 1px solid var(--aug-line-dim);
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+
+  &:hover,
+  &.open {
+    color: var(--aug-hot);
+    background: rgb(var(--aug-hot-rgb) / 16%);
+  }
+}
+
+.AugStage .ro-paint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  > .Icon {
+    color: var(--aug-hot);
+  }
+}
+
+.AugStage .ro-paint-btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 18px;
+  color: var(--aug-hot);
+  border: 1px solid var(--aug-line);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    opacity 0.15s;
+
+  &:not([aria-disabled='true']):hover {
+    border-color: var(--aug-hot);
+    box-shadow: 0 0 8px rgb(var(--aug-hot-rgb) / 35%);
+  }
+
+  // It can only be reached while a flyout keeps the readout on its slot.
+  &[aria-disabled='true'] {
+    opacity: 0.45;
+  }
+}
+
+.AugStage .ro-chip {
+  width: 12px;
+  height: 12px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 12%),
+    0 0 0 1px rgb(0 0 0 / 55%);
+}
+
+// While a flyout keeps the readout on a part with a palette, the console sits
+// over the scrim so the palette can be reached; no flyout reaches down to it.
+// Any other picker keeps the console as its click-away area.
+.AugStage.AugStage--palette .console {
+  z-index: 7;
+}
+
+.AugStage .tag.paint {
+  color: var(--aug-hot);
+  border-color: rgb(var(--aug-hot-rgb) / 55%);
+}
+
+// A tag that is an icon, named for readers by its label: the finish list's palette.
+.AugStage .tag-icon {
+  padding: 0 4px;
+  font-size: 10px;
+}
+
+// MARK: Trying on
+
+// A finish tried on, over the character in the scan, lined up with its frame.
+// A far leg in profile shows only past the near one, which the game draws over
+// it: tryOn.tsx sets --aug-try-behind (the near leg's region on the frame).
+// Unset, there is no mask.
+.AugStage__try {
+  pointer-events: none;
+  image-rendering: pixelated;
+  mask-image: linear-gradient(#000 0 0), var(--aug-try-behind);
+  mask-composite: subtract;
+  mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+}
+
+// The limb it replaces, masked out of the character's own canvas: tryOn.tsx
+// sets --aug-try-hide on the canvas's holder (the limb's zones as the region
+// map lays them on the frame) and --aug-try-inset (how far the canvas reaches
+// past the frame, for the bloom, in the dark). Unset, there is no mask.
+.AugStage .CharacterPreview__figure {
+  mask-image: linear-gradient(#000 0 0), var(--aug-try-hide);
+  mask-composite: subtract;
+  mask-repeat: no-repeat;
+  mask-position:
+    0 0,
+    var(--aug-try-inset) var(--aug-try-inset);
+  mask-size:
+    100% 100%,
+    calc(100% - 2 * var(--aug-try-inset))
+      calc(100% - 2 * var(--aug-try-inset));
+}
+
+// The scan's own controls, the rotate buttons and the lights key, over the
+// scrim a picker or the colour editor lays on the stage, and under the flyout
+// itself, which comes later at the same height: the character can be turned
+// and lit with one open, and it stays open. The key sits in a box with its
+// preview's class where the preview's box is (.AugStage__box), so it keeps
+// the preview's look in every theme.
+.AugStage .ch-ctl {
+  position: absolute;
+  left: 270px;
+  top: 64px;
+  width: 360px;
+  height: 564px;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.AugStage .ch-keys {
+  position: absolute;
+  left: 14px;
+  top: 28px;
+  width: 332px;
+  height: 520px;
+  pointer-events: none;
+}
+
+// The lights key every other tab's preview has, in the scan's bottom left
+// corner as theirs is in their frame's: just past the corner bracket, where
+// a picker or the colour editor unfolding over the stage's left side
+// (FLY_LEFT, 300 wide) stops short of it.
+.AugStage .CharacterPreview__light {
+  left: 32px;
+  bottom: 2px;
+  pointer-events: auto;
+}
+
+// MARK: The editor
+
+.AugStage .paint {
+  .fly-hd {
+    padding-right: 52px;
+  }
+
+  .fly-t {
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.AugStage .paint-k {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 20px;
+  font: 10px/1 'VCR OSD Mono', Consolas, monospace;
+  letter-spacing: 0.16em;
+  color: var(--aug-muted);
+}
+
+// The scan: the part in each facing over the body, tinted by the filters in
+// .paint-defs, which an invisible box keeps working (display: none wouldn't).
+.AugStage .paint-scan {
+  position: relative;
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--aug-line);
+}
+
+.AugStage .paint-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+// The body's silhouette, in the hot light.
+.AugStage .paint-flood {
+  flood-color: var(--aug-hot);
+  flood-opacity: 0.18;
+}
+
+.AugStage .paint-lights {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 20px;
+  color: var(--aug-muted);
+  border: 1px solid var(--aug-line);
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background-color 0.15s,
+    box-shadow 0.15s;
+
+  &:hover {
+    color: var(--aug-hot);
+    border-color: var(--aug-hot);
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--aug-hot);
+    border-color: var(--aug-hot);
+    background: rgb(var(--aug-hot-rgb) / 16%);
+    box-shadow: 0 0 10px rgb(var(--aug-hot-rgb) / 35%);
+  }
+}
+
+.AugStage .paint-view {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.AugStage .paint-cell {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 60% 70% at 50% 55%,
+      rgb(var(--aug-hot-rgb) / 9%),
+      transparent 75%
+    ),
+    var(--aug-recess);
+  box-shadow: inset 0 0 0 1px var(--aug-line-dim);
+  transition: background-color 0.25s;
+
+  // Each 32px sprite at twice its size, its pixels kept square.
+  .augment_paint32x32 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: scale(2);
+    transform-origin: 0 0;
+    image-rendering: pixelated;
+  }
+}
+
+.AugStage .paint-part {
+  position: absolute;
+  inset: 0;
+  transition: filter 0.25s;
+}
+
+// In the dark only the lights keep their light, and glow.
+.AugStage .paint-view.dark {
+  .paint-cell {
+    background: #000;
+  }
+
+  .paint-part {
+    filter: brightness(0.3);
+  }
+}
+
+// The presets and channels, scrolling under the scan while a picker is open.
+.AugStage .paint-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 12px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--aug-line) transparent;
+}
+
+.AugStage .paint-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin: 4px 0 10px;
+}
+
+.AugStage .paint-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px 7px;
+  background: var(--aug-recess);
+  border: 1px solid var(--aug-line-dim);
+  transition:
+    border-color 0.12s,
+    background-color 0.12s;
+
+  &:hover {
+    border-color: var(--aug-hot);
+    background:
+      linear-gradient(90deg, rgb(var(--aug-hot-rgb) / 14%), transparent 80%),
+      var(--aug-recess);
+  }
+
+  // Worn: the picker's mark for what's installed.
+  &[aria-pressed='true'] {
+    border-color: var(--aug-line-hi);
+    box-shadow: inset 3px 0 0 var(--aug-line-hi);
+  }
+}
+
+.AugStage .paint-bar {
+  display: flex;
+  height: 6px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 45%);
+
+  > span {
+    flex: 1;
+  }
+}
+
+.AugStage .paint-preset-n {
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.AugStage .paint-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px 60px;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+  width: 100%;
+  min-height: 30px;
+  margin-top: 4px;
+  padding: 6px 10px 6px 12px;
+  background: var(--aug-recess);
+  border: 1px solid var(--aug-line-dim);
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+
+  &:hover,
+  &.open {
+    border-color: var(--aug-hot);
+    background:
+      linear-gradient(90deg, rgb(var(--aug-hot-rgb) / 16%), transparent 75%),
+      var(--aug-recess);
+  }
+}
+
+.AugStage .paint-row-k {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.AugStage .paint-swatch {
+  width: 16px;
+  height: 16px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 12%),
+    0 0 0 1px rgb(0 0 0 / 55%);
+}
+
+.AugStage .paint-hex {
+  font: 11px/1 'VCR OSD Mono', Consolas, monospace;
+  letter-spacing: 0.06em;
+  text-align: right;
+  color: var(--aug-muted);
+}
+
+.AugStage .paint-note {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--aug-hot);
+}
+
+// A channel's picker, under its row: the colour picker window's controls in
+// the stage's square corners, the channel's suggested colours, Apply and Cancel.
+.AugStage .paint-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--aug-recess);
+  border: 1px solid var(--aug-hot);
+  border-top: 0;
+
+  .react-colorful {
+    width: 100%;
+    height: 112px;
+  }
+
+  .react-colorful__saturation_value {
+    border-bottom-width: 6px;
+    border-bottom-color: var(--aug-recess);
+    border-radius: 0;
+  }
+
+  .react-colorful__hue {
+    flex: none;
+    height: 12px;
+    border-radius: 0;
+  }
+
+  .react-colorful__pointer {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.AugStage .paint-sws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.AugStage .paint-sw {
+  width: 16px;
+  height: 16px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 12%),
+    0 0 0 1px rgb(0 0 0 / 55%);
+  transition: box-shadow 0.12s;
+
+  &:hover,
+  &.on {
+    box-shadow:
+      0 0 0 1px var(--aug-recess),
+      0 0 0 2px var(--aug-hot);
+  }
+}
+
+.AugStage .paint-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  // The theme's own input, fitted to the row.
+  .Input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: 26px;
+    font: 12px/1 'VCR OSD Mono', Consolas, monospace;
+    letter-spacing: 0.08em;
+  }
+}
+
+.AugStage .paint-act {
+  flex: none;
+  height: 26px;
+  padding: 0 10px;
+  font: 11px/24px 'VCR OSD Mono', Consolas, monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid var(--aug-line);
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background-color 0.15s;
+
+  &:not([aria-disabled='true']):hover {
+    color: var(--aug-hot);
+    border-color: var(--aug-hot);
+    background: rgb(var(--aug-hot-rgb) / 12%);
+  }
+
+  &.hot:not([aria-disabled='true']) {
+    color: var(--aug-bg);
+    background: var(--aug-hot);
+    border-color: var(--aug-hot);
+
+    &:hover {
+      color: var(--aug-bg);
+      background: var(--aug-hot-hi);
+    }
+  }
+
+  &[aria-disabled='true'] {
+    opacity: 0.45;
+  }
+}
+
+// Copy, reset, and the editor's one-line status ("Saved"), which never takes a
+// row of its own.
+.AugStage .paint-ft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--aug-line);
+}
+
+.AugStage .paint-status {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: right;
+  font: 11px/1 'VCR OSD Mono', Consolas, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--aug-hot);
+}

@@ -19,8 +19,11 @@ Augments+ and the species page's chamber) shows that one drawing.
   turned and walked once per facing instead, each walk cropped to the canvas that fits all four, as the map
   turned the mob itself when it turned. Height and body size, which a flatten leaves out, go with the
   drawing: `character_preview_effects()` reads which rows tg's height filters move from their displacement
-  maps, and the mob's transform. The page moves those rows on a canvas at 1x and applies the transform in
-  CSS, which samples at screen resolution as the map does. A silicon job's preview draws its image.
+  maps, and the mob's transform. The page moves those rows on a canvas at 1x, then transforms that canvas,
+  each pixel taking the one under its centre (`sizedFacingPixels()`), and only then zooms it, as the game
+  draws its map at the sprites' own pixel size before zooming it. So a fractional body size doubles and drops
+  the whole pixels it does in game (checked against the client's own renders; a pixel exactly between two can
+  differ, as it does from sprite to sprite in game). A silicon job's preview draws its image.
 - **Fitted by the page.** Each tab shows the character at the largest whole-number scale at which everything
   it draws, in any facing, fits the box, up to a tile filling the box's shorter side, so its pixels stay
   square. The chosen background's tile repeats under it at the same scale, one tile under the character's
@@ -186,7 +189,10 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
   `character_preview_walk()`, `character_preview_flat_box()` and `character_preview_turns_itself()`, which make the
   recipes; and `/proc/iconforge_drawn()` with the globals it keeps: the drawings under way and how many looks' worth
   iconforge has drawn since it last let go of what it keeps, the custom sprite editors' pictures counting a tenth
-  each; `/proc/character_preview_drawing_under_way()`.
+  each; `/proc/character_preview_drawing_under_way()`. `/datum/preference_middleware/proc/add_preview_answer()`, which
+  `start_answer()` asks of every middleware: each may add to an answer what it reads from the preview mob, which has just
+  been rebuilt for the changes the answer covers, while the window's own data may have read the mob before that. The
+  recolourable augments' editor sends its skin this way (`/datum/preference_middleware/augment_paint`).
 - `code/animation.dm`: what animates. `SScharacter_preview`'s `animation_of()` gives what animating an icon state
   takes, once `read_animations()` has read it, a frame at a time in the subsystem's spare time (`readings`), and tells
   the drawings that waited for it (`reading_waiters`); `/datum/preview_animation_reading` reads one, with

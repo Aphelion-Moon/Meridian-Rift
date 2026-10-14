@@ -161,7 +161,20 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	if(!isnull(id) && id != preview_on_page)
 		update["character_preview"] = preview
 		preview_on_page = id
+	for(var/datum/preference_middleware/middleware as anything in preferences?.middleware)
+		middleware.add_preview_answer(update)
 	send_preview_update(update)
+
+/**
+ * Adds what this middleware reads from the preview mob to an answer, which goes to the page right after the mob is rebuilt
+ * for the changes the answer covers (start_answer()). The window's own data, sent as each change is made, may read the mob
+ * before it is rebuilt. Add only what changed since the page last got it.
+ *
+ * Arguments:
+ * - update: The keys the answer sends the page. Changed in place.
+ */
+/datum/preference_middleware/proc/add_preview_answer(list/update)
+	return
 
 #undef CHARACTER_PREVIEW_SETTLE
 #undef CHARACTER_PREVIEW_MAX_WAIT

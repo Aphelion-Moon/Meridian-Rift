@@ -93,10 +93,30 @@ Each style has a `fit_mode` (`code/garment_fit_styles.dm`):
 |---|---|---|
 | `GARMENT_FIT_SOLID` | every style by default | Moves the garment's edge out to the limb's new edge and fills the gap with the pixel inside it. Rows above an arm's old top are fitted only for a sleeve, so straps stay put. |
 | `GARMENT_FIT_PATTERN` | fishnets and the shibari sleeves | Draws only the new pixels, each copied from 2 pixels further in, so the mesh keeps its rhythm and rope its gaps. |
-| `GARMENT_FIT_SHADED_SLEEVES` | plain long sleeves | Solid, then the arms' muscle shading in the garment's own colours, and the moved edge a shade darker. |
+| `GARMENT_FIT_SHADED_SLEEVES` | plain long sleeves | Solid, then the arms' muscle shading in each sleeve's own colours, and the moved edge a shade darker. |
 | `GARMENT_FIT_KNIT` | the ribbed turtleneck and turtleneck leotard | Solid, then the ribs laid again along each sleeve, its inner shadow thinned and its cuff ribbed. |
 
 Shaded sleeves take the size's own arm shading, at no definition, whatever the arm's definition.
+
+Shaded sleeves step down the garment's colours, brightest to darkest, through each sleeve's own colours alone
+(`sleeve_colours()`): those the garment has over that arm, and its other colours of the same family. A lit colour is of the
+family when it's a grey and the sleeve has a lit grey, or when its hue is within 20 degrees of every lit hue the sleeve has,
+which keeps the sleeve one hue as `garment_sleeve_mode()` judges it. A dark one, an outline's or a shadow's, is of the family
+when it's a grey and the sleeve has a grey, or its hue is within 20 degrees of any the sleeve has. A garment of one material
+shades as it did with its whole ramp. A uniform's sleeve no longer takes its skirt's, belt's or boots' colour, which the whole
+ramp gave the sailor dress's and the cowboy uniform's moved edges (Pol, 2026-10-14).
+
+Each step also keeps the stepped pixel's own family (`garment_colours_kin()`), so a sleeve of a hue and a grey doesn't step
+one into the other: DutchUniform's grey edge took its red, and janimaid's grey frill its navy. A step may go:
+
+- into a charcoal or a black, a dark near-grey, which shades and outlines every colour;
+- from a dark colour, an outline's or a shadow's, to another;
+- from a near-grey to another, a near-grey's channels spreading under 24% of its brightest, so a greyscale garment's own
+  faintly blue shading stays one ramp;
+- or into a hue within 20 degrees of the pixel's hue, or of a charcoal's cast, its hue however slight: a grey never steps
+  into a hue, while a blue-cast charcoal may step into navy, as the security uniforms' edges do.
+
+A step that doesn't fit takes the next darker one that does, and a pixel with none is left as it is.
 
 **Sleeves.** Whether a garment has a sleeve over an arm is judged once, from its front view, where the arms show whole: it does
 when it covers at least half of the upper third of the arm's baseline pixels there. A short sleeve covers the upper arm and
@@ -127,8 +147,9 @@ like the turtlenecks, the leotard and the mesh. The female chest and the Athleti
 only while its chest is a fitness chest drawn male (`limb_gender`), so a fitness chest refits its body's garments each time
 it's set up for the body, which sets its male or female art.
 
-The fitting is a port of the fitting spec's reference fitters (`fitref.py` with `fitref_v6.py`'s rules and
-`fitref_v10.py`'s polo forearm, `pecref.py` and `sleeve_mode.py`) and must stay pixel for pixel equal to them.
+The fitting is a port of the fitting spec's reference fitters (`fitref.py` with `fitref_v6.py`'s rules,
+`fitref_v10.py`'s polo forearm, `fitref_v11.py`'s sleeve colours and `fitref_v12.py`'s own-family steps, `pecref.py` and
+`sleeve_mode.py`) and must stay pixel for pixel equal to them.
 
 **What fitting costs.** A body keeps its fit (`garment_fit` on `/mob/living/carbon/human`: each fitness arm's and leg's size,
 and its chest's where it has glutes to fit), worked out again only when its limbs or body shape change
