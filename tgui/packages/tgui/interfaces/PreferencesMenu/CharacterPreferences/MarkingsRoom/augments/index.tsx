@@ -4,6 +4,7 @@ import {
   type CSSProperties,
   Fragment,
   memo,
+  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -12,9 +13,10 @@ import {
   useState,
 } from 'react';
 import { useBackend } from 'tgui/backend';
+import { Icon } from 'tgui-core/components';
 import { classes } from 'tgui-core/react';
 
-import type { AugmentItem } from '../../../types';
+import type { AugmentItem, PaintFinish } from '../../../types';
 import { useServerPrefs } from '../../../useServerPrefs';
 import { CharacterPreview } from '../../CharacterPreview';
 import {
@@ -24,6 +26,7 @@ import {
   previewMovedY,
   TILE,
 } from '../../CharacterPreview/drawing';
+import { PreviewLightKey } from '../../CharacterPreview/lights';
 import { turnPreview } from '../../CharacterPreview/turn';
 import type { MarkingsRoomData } from '../data';
 import { facingImage } from '../facing';
@@ -35,33 +38,105 @@ import {
   regionsMask,
   regionsOutline,
 } from '../regions';
+import { useBrandSpritesWhenIdle } from './brands';
 import {
   setStageHover,
   useStageHover,
   useStageHoverIs,
   useStageHovering,
 } from './hover';
+import { AugmentPaint, channelColor } from './paint';
 import {
   CARD_LEFT,
   CARD_WIDTH,
   FIELD_NAMES,
   type Field,
+  FLY_LEFT,
   isStock,
+  landingsOf,
   ORGAN_CARD_HEIGHT,
   PART_CARD_HEIGHT,
   points,
   rowOffset,
   type Socket,
   type StageOrgan,
+  type StagePaint,
   type StagePart,
   tracePath,
 } from './parts';
+import {
+  crossTried,
+  dropKept,
+  heldTried,
+  holdTried,
+  keepTried,
+  setTried,
+  triedNow,
+  untry,
+  useTried,
+} from './tried';
+import { FinishTryOn, useFinishTryOn } from './tryOn';
 
 /** The scan chamber, in room pixels, and the character's view inside it, centred where the mirror's is. */
 const CHAMBER = { left: 270, top: 64, width: 360, height: 564 } as const;
 const VIEW = { left: 14, top: 28, width: 332, height: 520 } as const;
 /** As large as the stage shows a character: a tile 384px across, as the mirror does. */
 const STAGE_SCALE = 12;
+/**
+ * The scan's own controls, which turn and light the character with a flyout
+ * open: they sit over the stage's scrim, keep the flyout open, and keep what
+ * is tried on (leaveTried).
+ */
+const SCAN_CONTROLS = '.AugStage .rot, .AugStage .CharacterPreview__light';
+/** A picker's rows, each of which tries itself on. */
+const PICKER_ROWS = '.AugStage .fly .opt';
+/**
+ * What the pointer crosses between a picker's rows and the scan's controls:
+ * the scrim over the stage, the flyout's own edge, and the list's padding and
+ * the gaps between its rows.
+ */
+const TRANSIT =
+  '.AugStage .scrim, .AugStage .fly, .AugStage .fly-in, .AugStage .fly-list';
+/** How long the pointer rests on a row it came onto heading out for the stage before that row is tried on. */
+const ROW_REST_MS = 120;
+
+/**
+ * The pointer left a picker's rows or the scan's controls for `next`: onto
+ * the controls, what is tried on stays, so it can be turned and lit; onto a
+ * row, that row tries itself on; onto the stage between the two, it stays
+ * while the pointer moves on (holdTried); anywhere else, it comes off.
+ */
+function leaveTried(next: EventTarget | null) {
+  const to = next instanceof Element ? next : null;
+  if (to?.closest(SCAN_CONTROLS)) {
+    keepTried();
+  } else if (to?.matches(TRANSIT)) {
+    holdTried();
+  } else if (!to?.closest(PICKER_ROWS)) {
+    setTried(null);
+  }
+}
+
+/** Whether an event's other target, as where focus goes, is in what these select. */
+const isIn = (next: EventTarget | null, selector: string) =>
+  next instanceof Element && !!next.closest(selector);
+
+/**
+ * What a press may land on and keep a flyout open: the flyout itself; the
+ * stage's scrim, which closes it on its click so the press lands nowhere
+ * else; the scan's own controls; the readout's palette, which swaps one
+ * flyout for the other; and the window's own drag and resize handles.
+ */
+const KEEPS_FLYOUT = [
+  '.AugStage .fly',
+  '.AugStage .scrim',
+  SCAN_CONTROLS,
+  '.ro-paint-btn',
+  '.TitleBar__dragZone',
+  '.Window__resizeHandle__e',
+  '.Window__resizeHandle__s',
+  '.Window__resizeHandle__se',
+].join();
 
 type Props = {
   /** Body parts, or the internals. */
@@ -87,7 +162,8 @@ type Option = {
   cost: number;
   info: string;
   item: AugmentItem | null;
-  tags: { text: string; className?: string }[];
+  /** Its tags: words, or an icon named by its text. */
+  tags: { text: string; className?: string; icon?: string }[];
   current: boolean;
   /** Too dear for the points left. */
   dear: boolean;
@@ -110,9 +186,11 @@ export function AugmentsStage(props: Props) {
   // Positive is over the budget; the backend refuses those, so the pickers do too.
   const balance = -(data.quirks_balance ?? 0);
   const turn = useSetAtom(turnPreview);
+  useBrandSpritesWhenIdle();
 
   const [open, setOpen] = useState<Open | null>(null);
-  const [peek, setPeek] = useState<string | null>(null);
+  // The slot the colour editor is open on: one flyout at a time, it or a picker.
+  const [paintSlot, setPaintSlot] = useState<string | null>(null);
   // What was last installed, and a count that makes its effects play again.
   const [installed, setInstalled] = useState<{
     slot: string;
@@ -121,9 +199,11 @@ export function AugmentsStage(props: Props) {
   const [placed, setPlaced] = useState<Placed | null>(null);
   // Whether the pointer is on a slot (hover.ts): what it is on, only what shows it reads.
   const hovering = useStageHovering();
+  const serverPrefs = useServerPrefs();
   const species =
-    useServerPrefs()?.species?.[data.character_preferences?.misc?.species ?? '']
+    serverPrefs?.species?.[data.character_preferences?.misc?.species ?? '']
       ?.name;
+  const paintFinishes = serverPrefs?.augment_paint?.finishes;
 
   // Which body region owns each pixel, asked for each drawing the map held
   // isn't known to fit, as the markings room does.
@@ -138,36 +218,67 @@ export function AugmentsStage(props: Props) {
     }
   }, [previewId]);
 
+  // Puts the picker or the colour editor away, and what was tried on with it.
+  const closeFlyout = useCallback(() => {
+    setOpen(null);
+    setPaintSlot(null);
+    setTried(null);
+  }, []);
+
   // A layer change starts afresh.
   useEffect(() => {
     setStageHover(null);
-    setOpen(null);
-    setPeek(null);
+    closeFlyout();
   }, [internals]);
 
-  // Nothing stays pointed at once the stage goes.
-  useEffect(() => () => setStageHover(null), []);
+  // Nothing stays pointed at, or tried on, once the stage goes.
+  useEffect(
+    () => () => {
+      setStageHover(null);
+      setTried(null);
+    },
+    [],
+  );
 
-  // Escape puts the picker away.
-  const pickerOpen = !!open;
+  // Escape, or a press anywhere else in the window, puts a flyout away.
+  const flyoutOpen = !!open || !!paintSlot;
   useEffect(() => {
-    if (!pickerOpen) {
+    if (!flyoutOpen) {
       return;
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setOpen(null);
-        setPeek(null);
+        closeFlyout();
+      }
+    };
+    const onPress = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      // An alt-drag moves the window, as its handles do.
+      if (!event.altKey && !target?.closest(KEEPS_FLYOUT)) {
+        closeFlyout();
       }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [pickerOpen]);
+    document.addEventListener('pointerdown', onPress, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPress, true);
+    };
+  }, [flyoutOpen]);
 
   const partBySlot = useMemo(
     () => Object.fromEntries(parts.map((part) => [part.socket.slot, part])),
     [parts],
   );
+  // The part the colour editor is open on, while its finish is recolourable.
+  const painting = paintSlot ? partBySlot[paintSlot] : undefined;
+  const paintable = !!painting?.paint;
+  // A finish that stops being recolourable closes its editor.
+  useEffect(() => {
+    if (paintSlot && !paintable) {
+      setPaintSlot(null);
+    }
+  }, [paintSlot, paintable]);
   const organBySlot = useMemo(
     () => Object.fromEntries(organs.map((organ) => [organ.socket.slot, organ])),
     [organs],
@@ -187,14 +298,19 @@ export function AugmentsStage(props: Props) {
               oy: rowOffset(socket.top, row),
             },
       );
-      setPeek(null);
+      setTried(null);
+      setPaintSlot(null);
     },
     [],
   );
+  const openPaint = useCallback((slot: string) => {
+    setPaintSlot((current) => (current === slot ? null : slot));
+    setOpen(null);
+    setTried(null);
+  }, []);
 
   const pick = (slot: string, field: Field, option: Option) => {
-    setOpen(null);
-    setPeek(null);
+    closeFlyout();
     if (option.current || option.dear) {
       return;
     }
@@ -218,6 +334,15 @@ export function AugmentsStage(props: Props) {
     }
     setInstalled((last) => ({ slot, n: (last?.n ?? 0) + 1 }));
   };
+  // The same function while a picker stays open, so its rows don't draw again for it.
+  const onPick = useCallback(
+    (option: Option) => {
+      if (open) {
+        pick(open.slot, open.field, option);
+      }
+    },
+    [open, act],
+  );
 
   // The picker's options, for what it's open on.
   const options: Option[] = useMemo(() => {
@@ -250,17 +375,29 @@ export function AugmentsStage(props: Props) {
       return [];
     }
     if (open.field === 'finish') {
-      return part.finishes.map((name) => ({
-        key: name,
-        name,
-        cost: 0,
-        info: '',
-        item: null,
-        tags:
-          name === part.finish ? [{ text: 'INSTALLED', className: 'cur' }] : [],
-        current: name === part.finish,
-        dear: false,
-      }));
+      return part.finishes.map((name) => {
+        const tags: Option['tags'] = [];
+        if (name === part.finish) {
+          tags.push({ text: 'INSTALLED', className: 'cur' });
+        }
+        if (paintFinishes?.[name]) {
+          tags.push({
+            text: 'Recolourable',
+            className: 'paint',
+            icon: 'palette',
+          });
+        }
+        return {
+          key: name,
+          name,
+          cost: 0,
+          info: '',
+          item: null,
+          tags,
+          current: name === part.finish,
+          dear: false,
+        };
+      });
     }
     const leg = /Leg/.test(part.socket.slot);
     const list =
@@ -298,7 +435,7 @@ export function AugmentsStage(props: Props) {
         dear: dear && !isCurrent,
       };
     });
-  }, [open, partBySlot, organBySlot, pointsOn, balance]);
+  }, [open, partBySlot, organBySlot, pointsOn, balance, paintFinishes]);
 
   const sockets = useMemo(
     () =>
@@ -321,8 +458,19 @@ export function AugmentsStage(props: Props) {
     [sockets, internals, organBySlot, partBySlot],
   );
 
+  // Where each part's trace lands on the body in this facing (landingsOf).
+  // Once per region map, which is one per drawing and facing; a taur's or any
+  // wider sprite's map lays its frame as the mirror's does.
+  const map = placed?.regions;
+  const taurLegs = !!data.taur_legs;
+  const landings = useMemo(
+    () => landingsOf(map ?? undefined, sockets, taurLegs),
+    [map, sockets, taurLegs],
+  );
+
   // Where each socket's trace lands, in room pixels, from where the character
-  // stands: its port moves with the rows height moves, as the body does.
+  // stands. Without a region map, or for an internal, its port on the tile,
+  // moved with the rows height moves.
   const anchors = useMemo(() => {
     const out: Record<string, [number, number]> = {};
     if (!placed) {
@@ -334,25 +482,23 @@ export function AugmentsStage(props: Props) {
     const originX = CHAMBER.left + VIEW.left;
     const originY = CHAMBER.top + VIEW.top;
     for (const socket of sockets) {
+      const [frameX, frameY] = landings[socket.slot] ?? [
+        preview.x + socket.port[0],
+        previewMovedY(preview, tileTop + socket.port[1]),
+      ];
       const [x, y] = previewFramePoint(
         preview,
         view.scale,
         view.x,
         view.y,
-        preview.x + socket.port[0],
-        previewMovedY(preview, tileTop + socket.port[1]),
+        frameX,
+        frameY,
       );
       out[socket.slot] = [originX + x, originY + y];
     }
     return out;
-  }, [placed, internals]);
+  }, [placed, sockets, landings]);
 
-  const peeked = open && peek ? options.find((o) => o.key === peek) : undefined;
-  // A part's chrome while its picker tries one on.
-  const peekZones =
-    !internals && open?.field === 'part' && peeked?.item?.path
-      ? (partBySlot[open.slot]?.socket.zones ?? null)
-      : null;
   // The flash and sheen of the part last put in.
   const installedPart = useMemo(
     () =>
@@ -361,15 +507,26 @@ export function AugmentsStage(props: Props) {
         : null,
     [installed, internals, partBySlot],
   );
-  const openSlot = open?.slot ?? null;
+  const paintOpen = paintable ? paintSlot : null;
+  const openSlot = open?.slot ?? paintOpen;
+  // The readout keeps to a part with a palette, which it can then be clicked through.
+  const palettePinned =
+    !!paintOpen || (!!open && !!partBySlot[open.slot]?.paint);
 
   return (
     <div
       className={classes([
         'AugStage',
         internals && 'AugStage--internals',
-        (!!open || hovering) && 'AugStage--hovering',
+        (!!open || !!paintOpen || hovering) && 'AugStage--hovering',
+        palettePinned && 'AugStage--palette',
       ])}
+      // A crossing ends where the pointer lands: on the scan's controls, a
+      // row, more of the stage between them, or anywhere else, the window
+      // past the stage included.
+      onMouseOver={(event) => heldTried() && leaveTried(event.target)}
+      onMouseMove={() => heldTried() && crossTried()}
+      onMouseLeave={(event) => heldTried() && leaveTried(event.relatedTarget)}
     >
       <div className="chamber" />
       <div className="pad" />
@@ -377,8 +534,9 @@ export function AugmentsStage(props: Props) {
         internals={internals}
         parts={parts}
         partBySlot={partBySlot}
-        openSlot={openSlot}
-        peek={peekZones}
+        openSlot={open?.slot ?? null}
+        openField={open?.field ?? null}
+        unlit={!!paintOpen}
         installed={installedPart}
         regions={data.markings_room_regions}
         regionsFor={regionsFor}
@@ -398,6 +556,25 @@ export function AugmentsStage(props: Props) {
         <span className="ch-l r">{(species ?? '').toUpperCase()}</span>
         <div className="ruler" />
         <div className="sweep" />
+      </div>
+      {/* The scan's controls, over a flyout's scrim. The lights key sits in a
+          box of its preview's own, where the preview's is, so it keeps the
+          preview's look in every theme. */}
+      <div
+        className="ch-ctl"
+        onMouseOut={(event) => {
+          const from = (event.target as Element).closest(SCAN_CONTROLS);
+          if (from && !from.contains(event.relatedTarget as Node | null)) {
+            leaveTried(event.relatedTarget);
+          }
+        }}
+        onBlur={(event) => {
+          const to = event.relatedTarget;
+          if (!isIn(to, SCAN_CONTROLS) && !isIn(to, PICKER_ROWS)) {
+            dropKept();
+          }
+        }}
+      >
         <button
           type="button"
           className="rot l"
@@ -418,6 +595,9 @@ export function AugmentsStage(props: Props) {
             <path d="M12.5 8a4.5 4.5 0 1 1-1.4-3.3M12.5 2.5v2.6H9.9" />
           </svg>
         </button>
+        <div className="CharacterPreview CharacterPreview--chamber ch-keys">
+          <PreviewLightKey />
+        </div>
       </div>
       <Traces
         sockets={sockets}
@@ -460,16 +640,21 @@ export function AugmentsStage(props: Props) {
               openField={open?.slot === part.socket.slot ? open.field : null}
               pointsOn={pointsOn}
               onOpen={openPicker}
+              painting={paintOpen === part.socket.slot}
+              onPaint={openPaint}
             />
           ))}
       <div className="console">
         <Readout
           internals={internals}
           open={open}
-          peeked={peeked}
+          options={options}
           partBySlot={partBySlot}
           organBySlot={organBySlot}
           pointsOn={pointsOn}
+          paintSlot={paintOpen}
+          paintFinishes={paintFinishes}
+          onPaint={openPaint}
         />
         <Installed parts={parts} organs={organs} pointsOn={pointsOn} />
       </div>
@@ -477,19 +662,24 @@ export function AugmentsStage(props: Props) {
         <Picker
           open={open}
           options={options}
-          peek={peek}
           title={
             internals
               ? (organBySlot[open.slot]?.socket.name ?? open.slot)
               : (partBySlot[open.slot]?.socket.name ?? open.slot)
           }
           pointsOn={pointsOn}
-          onPeek={setPeek}
-          onPick={(option) => pick(open.slot, open.field, option)}
-          onClose={() => {
-            setOpen(null);
-            setPeek(null);
-          }}
+          onPick={onPick}
+          onClose={closeFlyout}
+        />
+      )}
+      {!!paintOpen && !!painting && (
+        <AugmentPaint
+          key={paintOpen}
+          part={painting}
+          side={painting.socket.side}
+          oy={rowOffset(painting.socket.top, 1)}
+          act={act}
+          onClose={() => setPaintSlot(null)}
         />
       )}
     </div>
@@ -548,9 +738,14 @@ function Card(props: {
   rows: Row[];
   pointsOn: boolean;
   onOpen: (socket: Socket, field: Field, row: number) => void;
+  /** A recolourable finish's colours: a palette on the FINISH row opens its editor. */
+  paint?: StagePaint | null;
+  /** Whether that editor is open. */
+  painting?: boolean;
+  onPaint?: (slot: string) => void;
 }) {
   const { socket, index, height, live, openSlot, openField, rows } = props;
-  const { pointsOn, onOpen } = props;
+  const { pointsOn, onOpen, paint, painting, onPaint } = props;
   const hovered = useStageHoverIs(socket.slot);
   const on = openSlot === null ? hovered : openSlot === socket.slot;
   const left = socket.side === 'l';
@@ -577,7 +772,7 @@ function Card(props: {
       <div className="rule" />
       {rows.map((row, n) => {
         const isOpen = openField === row.field;
-        return (
+        const button = (
           <button
             key={row.field}
             type="button"
@@ -600,13 +795,41 @@ function Card(props: {
             </svg>
           </button>
         );
+        if (row.field !== 'finish' || !paint || !onPaint) {
+          return button;
+        }
+        // Its own button over the row's left edge: a row is a button, which can't hold another.
+        return (
+          <div key={row.field} className="row-paintable">
+            {button}
+            <button
+              type="button"
+              className={classes(['row-paint', painting && 'open'])}
+              aria-label={`Recolour ${socket.name}`}
+              aria-haspopup="dialog"
+              aria-expanded={!!painting}
+              onClick={() => onPaint(socket.slot)}
+              onFocus={() => setStageHover(socket.slot)}
+              onBlur={() => setStageHover(null)}
+            >
+              <Icon name="palette" />
+            </button>
+          </div>
+        );
       })}
     </div>
   );
 }
 
 /** A body part's card: its augment, finish and implant. Drawn again only when one of them, or its picker, changes. */
-const PartCard = memo(function PartCard(props: CardProps<{ part: StagePart }>) {
+const PartCard = memo(function PartCard(
+  props: CardProps<{
+    part: StagePart;
+    /** Whether the colour editor is open on it. */
+    painting: boolean;
+    onPaint: (slot: string) => void;
+  }>,
+) {
   const { part } = props;
   const { augment } = part;
   const stock = isStock(augment);
@@ -652,6 +875,9 @@ const PartCard = memo(function PartCard(props: CardProps<{ part: StagePart }>) {
       rows={rows}
       pointsOn={props.pointsOn}
       onOpen={props.onOpen}
+      paint={part.paint}
+      painting={props.painting}
+      onPaint={props.onPaint}
     />
   );
 });
@@ -793,7 +1019,8 @@ const Traces = memo(function Traces(props: {
  * The character in the scan chamber: pointing at a part of its body lights
  * that part's slot, and a tap opens its picker. It reads the pointer itself,
  * so a part lit on the body draws again only the character's view, whose
- * pan finds the new layers as it always does.
+ * pan finds the new layers as it always does. Its lights key is the other
+ * tabs' own, and turns the lights off here too, to show what glows.
  */
 const StageView = memo(function StageView(props: {
   internals: boolean;
@@ -801,8 +1028,13 @@ const StageView = memo(function StageView(props: {
   partBySlot: Record<string, StagePart>;
   /** The slot a picker is open on, which stays lit whatever the pointer is on. */
   openSlot: string | null;
-  /** A part's zones in chrome, while its picker tries one on. */
-  peek: string[] | null;
+  /** What that picker picks, for what the body tries on from it. */
+  openField: Field | null;
+  /**
+   * Nothing lights, the pointer's part included: the colour editor is open,
+   * and the part shows its colours as they are.
+   */
+  unlit: boolean;
   /** The part last put in, for its flash and sheen. */
   installed: { zones: string[]; n: number } | null;
   regions: MarkingsRoomData['markings_room_regions'];
@@ -811,11 +1043,12 @@ const StageView = memo(function StageView(props: {
   onPlaced: (placed: Placed) => void;
   onOpen: (socket: Socket, field: Field, row: number) => void;
 }) {
-  const { internals, parts, partBySlot, openSlot, peek, installed } = props;
-  const { regions, regionsFor, placed, onPlaced, onOpen } = props;
+  const { internals, parts, partBySlot, openSlot, openField, unlit } = props;
+  const { installed, regions, regionsFor, placed, onPlaced, onOpen } = props;
   const hover = useStageHover();
-  const active = openSlot ?? hover;
+  const active = unlit ? null : (openSlot ?? hover);
   const activePart = !internals && active ? partBySlot[active] : undefined;
+  const pickerPart = !internals && openSlot ? partBySlot[openSlot] : undefined;
 
   const zoneAt = (clientX: number, clientY: number) => {
     const frame = placed?.frame;
@@ -856,7 +1089,6 @@ const StageView = memo(function StageView(props: {
       <div className="AugStage__box">
         <CharacterPreview
           motif="chamber"
-          lit
           pannable={false}
           fitBody
           width={`${VIEW.width}px`}
@@ -878,7 +1110,8 @@ const StageView = memo(function StageView(props: {
               regionsFor={regionsFor}
               internals={internals}
               lit={activePart?.socket.zones ?? null}
-              peek={activePart ? peek : null}
+              pickerPart={pickerPart}
+              pickerField={openField}
               installed={installed}
               onPlaced={onPlaced}
             />
@@ -893,8 +1126,10 @@ const StageView = memo(function StageView(props: {
  * Everything the stage draws on the character, lined up with its frame and
  * panning with it: the part the pointer is on, lit in the hot light with a
  * scan running down it and a halo outside it; a part's chrome while its
- * picker tries one on; the flash and sheen of a part going in; and the
- * internals' x-ray. Tells the stage where the character stands.
+ * picker tries one on, and a finish itself while its picker tries that on;
+ * the flash and sheen of a part going in; and the internals' x-ray. Tells
+ * the stage where the character stands. It reads what the picker tries on
+ * itself (tried.ts), so only it draws again as the pointer moves down a list.
  */
 function StageOverlay(props: {
   view: PreviewView;
@@ -903,21 +1138,49 @@ function StageOverlay(props: {
   regionsFor: number | undefined;
   internals: boolean;
   lit: string[] | null;
-  peek: string[] | null;
+  /** The part a picker is open on, and what it picks. */
+  pickerPart: StagePart | undefined;
+  pickerField: Field | null;
   installed: { zones: string[]; n: number } | null;
   onPlaced: (placed: Placed) => void;
 }) {
-  const { view, regions, regionsFor, internals, lit, peek, installed } = props;
-  const { onPlaced } = props;
+  const { view, regions, regionsFor, internals, lit, installed } = props;
+  const { pickerPart, pickerField, onPlaced } = props;
+  const tried = useTried();
+  // A part tried on: its chrome. A finish: the finish itself, over the limb it replaces.
+  const peek =
+    tried &&
+    pickerField === 'part' &&
+    pickerPart?.options.some((item) => !!item.path && item.path === tried)
+      ? pickerPart.socket.zones
+      : null;
+  const finishTry = useFinishTryOn(
+    view,
+    pickerPart,
+    pickerField === 'finish' ? tried : null,
+  );
   const { shown, dir, scale, x, y } = view;
   const { preview, image } = shown;
   const frame = useRef<HTMLSpanElement>(null);
-  const map = useMemo(
+  // The regions that fit the drawing: the server's for it, or, until they
+  // come, the last ones while the frame keeps its geometry, as the mirror
+  // holds its map; so a redraw moves nothing on the body for the round trip.
+  const geometry = useMemo(
     () =>
-      regions && regionsFor === preview.id
-        ? frameRegionsOf(preview, regions, dir)
-        : undefined,
-    [preview, regions, regionsFor, dir],
+      `${preview.width} ${preview.height} ${preview.x} ${preview.y} ${JSON.stringify(preview.rows ?? null)}`,
+    [preview],
+  );
+  const fitted = useRef<string | null>(null);
+  const confirmed = !!regions && regionsFor === preview.id;
+  const fits = confirmed || fitted.current === geometry;
+  useLayoutEffect(() => {
+    if (confirmed) {
+      fitted.current = geometry;
+    }
+  }, [confirmed, geometry]);
+  const map = useMemo(
+    () => (regions && fits ? frameRegionsOf(preview, regions, dir) : undefined),
+    [preview, regions, dir, fits],
   );
 
   useLayoutEffect(() => {
@@ -931,7 +1194,8 @@ function StageOverlay(props: {
       ? { ...style, maskImage: `url(${url})`, WebkitMaskImage: `url(${url})` }
       : null;
   };
-  const litStyle = internals ? null : masked(lit);
+  // A finish tried on shows as it is, unlit.
+  const litStyle = internals || finishTry ? null : masked(lit);
   const peekStyle = internals ? null : masked(peek);
   const installedStyle = installed ? masked(installed.zones) : null;
   const facing =
@@ -1001,6 +1265,7 @@ function StageOverlay(props: {
           />
         </span>
       )}
+      {!!finishTry && <FinishTryOn view={view} map={map} {...finishTry} />}
       {!!peekStyle && (
         <span
           key={`peek ${peek?.join()}`}
@@ -1058,19 +1323,30 @@ function StageOverlay(props: {
   );
 }
 
-/** The console's readout: what the pointer or the picker is on. */
+/** The console's readout: what the pointer, the picker or the colour editor is on. */
 function Readout(props: {
   internals: boolean;
   open: Open | null;
-  peeked: Option | undefined;
+  /** The open picker's options, one of which the pointer may be on. */
+  options: Option[];
   partBySlot: Record<string, StagePart>;
   organBySlot: Record<string, StageOrgan>;
   pointsOn: boolean;
+  /** The slot the colour editor is open on. */
+  paintSlot: string | null;
+  paintFinishes: Record<string, PaintFinish> | undefined;
+  onPaint: (slot: string) => void;
 }) {
-  const { internals, open, peeked, partBySlot, organBySlot, pointsOn } = props;
-  // What the pointer is on: the readout reads it itself, and alone draws again for it.
+  const { internals, open, options, partBySlot, organBySlot, pointsOn } = props;
+  const { paintSlot, paintFinishes, onPaint } = props;
+  // What the pointer is on, a slot or a picker's option: the readout reads both itself, and alone draws again for them.
   const hover = useStageHover();
-  const lines: { text: string; className?: string }[] = [];
+  const tried = useTried();
+  const peeked =
+    open && tried ? options.find((option) => option.key === tried) : undefined;
+  // The slots' colours, read here and in the colour editor only.
+  const augmentColors = useBackend<MarkingsRoomData>().data.augment_colors;
+  const lines: { text: string; className?: string; node?: ReactNode }[] = [];
   let kicker = 'SCAN IDLE';
   let title = 'PICK A SLOT';
   const costLine = (cost: number) =>
@@ -1087,7 +1363,9 @@ function Readout(props: {
               className: 'refund',
             }
           : { text: 'No point cost', className: 'dim' };
-  const target = open?.slot ?? hover;
+  const target = open?.slot ?? paintSlot ?? hover;
+  // Following the pointer, the readout can't be reached: its palette acts only while it keeps to a flyout's slot.
+  const pinned = !!open || !!paintSlot;
   if (open && peeked) {
     const socket = (internals ? organBySlot[open.slot] : partBySlot[open.slot])
       ?.socket;
@@ -1095,6 +1373,18 @@ function Readout(props: {
     title = peeked.name.toUpperCase();
     if (peeked.info) {
       lines.push({ text: peeked.info });
+    }
+    if (open.field === 'finish' && paintFinishes?.[peeked.name]) {
+      lines.push({
+        text: 'Recolourable',
+        className: 'ro-paint',
+        node: (
+          <>
+            <Icon name="palette" />
+            Recolourable
+          </>
+        ),
+      });
     }
     if (open.field !== 'finish' && !peeked.item?.path) {
       lines.push({
@@ -1143,6 +1433,37 @@ function Readout(props: {
     if (finishOk(part)) {
       lines.push({ text: `Finish: ${part.finish}` });
     }
+    const { paint } = part;
+    if (paint) {
+      const colors = augmentColors?.[part.socket.slot] ?? paint.finish.default;
+      lines.push({
+        text: 'Colours',
+        className: 'ro-paint',
+        node: (
+          <>
+            <button
+              type="button"
+              className="ro-paint-btn"
+              aria-label={`Recolour ${part.socket.name}`}
+              aria-disabled={!pinned}
+              aria-haspopup="dialog"
+              aria-expanded={paintSlot === part.socket.slot}
+              onClick={() => pinned && onPaint(part.socket.slot)}
+            >
+              <Icon name="palette" />
+            </button>
+            Colours
+            {paint.finish.channels.map(({ key }) => (
+              <span
+                key={key}
+                className="ro-chip"
+                style={{ backgroundColor: channelColor(colors, key) }}
+              />
+            ))}
+          </>
+        ),
+      });
+    }
     if (part.implants) {
       lines.push({
         text: `Implant: ${
@@ -1172,7 +1493,7 @@ function Readout(props: {
       </div>
       {lines.map((line) => (
         <div key={line.text} className={classes(['ro-l', line.className])}>
-          {line.text}
+          {line.node ?? line.text}
         </div>
       ))}
     </div>
@@ -1286,32 +1607,70 @@ const optionMatches = (option: Option, wanted: string) =>
 /**
  * A socket's picker, unfolding from the row it was opened from over its side
  * of the stage, its list narrowed by a search as the markings drawer's is.
+ * The option the pointer or the keyboard is on is tried on (tried.ts), which
+ * draws none of its rows again.
  */
 export function Picker(props: {
   open: Open;
   options: Option[];
-  peek: string | null;
   title: string;
   pointsOn: boolean;
-  onPeek: (key: string | null) => void;
   onPick: (option: Option) => void;
   onClose: () => void;
 }) {
-  const { open, options, peek, title, pointsOn, onPeek, onPick, onClose } =
-    props;
+  const { open, options, title, pointsOn, onPick, onClose } = props;
   const left = open.side === 'l';
   const organ = open.field === 'organ';
   const list = useRef<HTMLDivElement>(null);
+  // The pointer's heading over the list. A row it comes onto heading out
+  // sideways for the stage, as to the scan's controls, doesn't take over from
+  // what is tried on while it keeps on: only once it rests there, or turns
+  // back into the list. Down the list, each row is tried on at once.
+  const heading = useRef({ x: 0, y: 0, dx: 0, dy: 0 });
+  const crossed = useRef<{ key: string; rest?: ReturnType<typeof setTimeout> }>(
+    undefined,
+  );
+  const toStage = left ? 1 : -1;
+  const headingOut = () =>
+    heading.current.dx * toStage > Math.abs(heading.current.dy) / 2;
+  const settleRow = useCallback(() => {
+    const row = crossed.current;
+    crossed.current = undefined;
+    clearTimeout(row?.rest);
+    if (row) {
+      setTried(row.key);
+    }
+  }, []);
+  const tryRow = useCallback(
+    (key: string) => {
+      clearTimeout(crossed.current?.rest);
+      crossed.current = undefined;
+      if (triedNow() !== null && headingOut()) {
+        crossed.current = { key, rest: setTimeout(settleRow, ROW_REST_MS) };
+      } else {
+        setTried(key);
+      }
+    },
+    [toStage],
+  );
+  const passRow = useCallback(() => {
+    clearTimeout(crossed.current?.rest);
+    crossed.current = undefined;
+  }, []);
   const [query, setQuery] = useState('');
   const wanted = query.trim().toLowerCase();
   const shown = wanted
     ? options.filter((option) => optionMatches(option, wanted))
     : options;
-  // The keyboard starts on what's installed.
+  // The keyboard starts on what's installed; nothing stays tried on once the picker goes.
   useEffect(() => {
     list.current?.querySelector<HTMLButtonElement>('.opt.cur')?.focus({
       preventScroll: false,
     });
+    return () => {
+      clearTimeout(crossed.current?.rest);
+      setTried(null);
+    };
   }, []);
   return (
     <>
@@ -1325,7 +1684,7 @@ export function Picker(props: {
         className="fly"
         style={
           {
-            left: `${left ? 12 : 588}px`,
+            left: `${FLY_LEFT[open.side]}px`,
             '--oy': `${open.oy}px`,
             '--dir': left ? '1' : '-1',
           } as CSSProperties
@@ -1368,47 +1727,43 @@ export function Picker(props: {
             ref={list}
             className="fly-list"
             role="listbox"
-            onMouseLeave={() => onPeek(null)}
+            onMouseEnter={(event) => {
+              heading.current = {
+                x: event.clientX,
+                y: event.clientY,
+                dx: 0,
+                dy: 0,
+              };
+            }}
+            onMouseMove={(event) => {
+              const h = heading.current;
+              h.dx = h.dx / 2 + event.clientX - h.x;
+              h.dy = h.dy / 2 + event.clientY - h.y;
+              h.x = event.clientX;
+              h.y = event.clientY;
+              const row = crossed.current;
+              if (row && headingOut()) {
+                clearTimeout(row.rest);
+                row.rest = setTimeout(settleRow, ROW_REST_MS);
+              } else if (row) {
+                settleRow();
+              }
+            }}
+            onMouseLeave={(event) => leaveTried(event.relatedTarget)}
           >
             {!shown.length && (
               <div className="fly-none">No options match that.</div>
             )}
             {shown.map((option, i) => (
-              <button
+              <PickerOption
                 key={option.key}
-                type="button"
-                className={classes([
-                  'opt',
-                  option.current && 'cur',
-                  peek === option.key && 'peek',
-                  option.dear && 'dear',
-                ])}
-                style={{ '--i': Math.min(i, 18) } as CSSProperties}
-                role="option"
-                aria-selected={option.current}
-                aria-disabled={option.dear}
-                onClick={() => onPick(option)}
-                onMouseEnter={() => onPeek(option.key)}
-                onFocus={() => onPeek(option.key)}
-              >
-                <span className="opt-n">{option.name}</span>
-                <span
-                  className={classes(['opt-c', option.cost < 0 && 'refund'])}
-                >
-                  {pointsOn ? points(option.cost) : ''}
-                </span>
-                {!!option.info && <span className="opt-x">{option.info}</span>}
-                <span className="opt-tags">
-                  {option.tags.map((tag) => (
-                    <span
-                      key={tag.text}
-                      className={classes(['tag', tag.className])}
-                    >
-                      {tag.text}
-                    </span>
-                  ))}
-                </span>
-              </button>
+                option={option}
+                index={i}
+                pointsOn={pointsOn}
+                onPick={onPick}
+                onTry={tryRow}
+                onPass={passRow}
+              />
             ))}
           </div>
         </div>
@@ -1416,3 +1771,69 @@ export function Picker(props: {
     </>
   );
 }
+
+/**
+ * An option in a picker: trying it on is the pointer's or the keyboard's
+ * business (tried.ts), lit here by :hover and :focus, so it draws again only
+ * when the option itself changes.
+ */
+const PickerOption = memo(function PickerOption(props: {
+  option: Option;
+  index: number;
+  pointsOn: boolean;
+  onPick: (option: Option) => void;
+  /** The pointer came onto it: tries it on, at once or once it stops there. */
+  onTry: (key: string) => void;
+  /** The pointer went on past it. */
+  onPass: () => void;
+}) {
+  const { option, index, pointsOn, onPick, onTry, onPass } = props;
+  return (
+    <button
+      type="button"
+      className={classes([
+        'opt',
+        option.current && 'cur',
+        option.dear && 'dear',
+      ])}
+      style={{ '--i': Math.min(index, 18) } as CSSProperties}
+      role="option"
+      aria-selected={option.current}
+      aria-disabled={option.dear}
+      onClick={() => onPick(option)}
+      onMouseEnter={() => onTry(option.key)}
+      onMouseLeave={onPass}
+      onFocus={() => setTried(option.key)}
+      onBlur={(event) =>
+        isIn(event.relatedTarget, SCAN_CONTROLS)
+          ? keepTried()
+          : untry(option.key)
+      }
+    >
+      <span className="opt-n">{option.name}</span>
+      <span className={classes(['opt-c', option.cost < 0 && 'refund'])}>
+        {pointsOn ? points(option.cost) : ''}
+      </span>
+      {!!option.info && <span className="opt-x">{option.info}</span>}
+      <span className="opt-tags">
+        {option.tags.map((tag) =>
+          tag.icon ? (
+            <span
+              key={tag.text}
+              className={classes(['tag', 'tag-icon', tag.className])}
+              role="img"
+              aria-label={tag.text}
+              title={tag.text}
+            >
+              <Icon name={tag.icon} />
+            </span>
+          ) : (
+            <span key={tag.text} className={classes(['tag', tag.className])}>
+              {tag.text}
+            </span>
+          ),
+        )}
+      </span>
+    </button>
+  );
+});

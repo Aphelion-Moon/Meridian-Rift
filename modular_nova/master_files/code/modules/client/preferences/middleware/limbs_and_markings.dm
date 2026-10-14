@@ -61,11 +61,16 @@
 		target_bodypart.bodyshape      = initial(target_bodypart.bodyshape)
 		target_bodypart.limb_id        = initial(target_bodypart.limb_id)
 		target_bodypart.is_dimorphic   = initial(target_bodypart.is_dimorphic)
+		target_bodypart.current_style  = null
+		target_bodypart.clear_augment_finish()
 		if(should_greyscale_limbs)
 			target_bodypart.change_appearance(icon = BODYPART_ICON_HUMANOID, id = SPECIES_HUMANOID, greyscale = TRUE, update_owner = FALSE)
 		else
 			target_bodypart.reset_appearance(update_owner = FALSE)
 
+	// The loop gave limbs their own shapes and sizes back after the body's shape and garment fit were taken from them.
+	if(limbs_changed)
+		target.synchronize_bodyshapes()
 	if(limbs_changed && !(target.living_flags & STOP_OVERLAY_UPDATE_BODY_PARTS))
 		target.update_body_parts()
 
@@ -120,6 +125,19 @@
 			"species_whitelist"  = LAZYLISTDUPLICATE(augment.species_whitelist),
 			"ckey_whitelist"     = LAZYLISTDUPLICATE(augment.ckey_whitelist),
 		)
+		// The augments editor tints a brand finish's try-on with the skin when a styled augment draws greyscale.
+		if(limb_augment?.uses_robotic_styles && limb_augment.uses_greyscale)
+			entry["uses_greyscale"] = TRUE
+		// The brand style it tries on for "None": one drawing this augment's own plantigrade look, apply()'s icon and state.
+		if(limb_augment?.uses_robotic_styles)
+			var/obj/item/bodypart/new_limb_path = augment.path
+			var/icon_file = "[limb_augment.uses_greyscale ? UNLINT(new_limb_path::icon_greyscale) : new_limb_path::icon]"
+			for(var/style_name, style in GLOB.robotic_styles_list)
+				var/datum/robotic_style/brand = style
+				var/list/zones = "[brand.icon]" == icon_file ? brand.augment_brand_states() : null
+				if(zones?[new_limb_path::body_zone] == "[new_limb_path::limb_id]_[new_limb_path::body_zone]")
+					entry["default_style"] = style_name
+					break
 		switch(augment.category)
 			if(AUGMENT_CATEGORY_LIMBS)
 				if(!limb_catalogue[slot])
@@ -388,10 +406,14 @@
 	var/style_name = params["style_name"]
 	if(!style_name || style_name == DEFAULT_NAME)
 		preferences.augment_limb_styles -= augment_slot
+		preferences.augment_limb_colors -= augment_slot
 	else
 		var/datum/robotic_style/style = GLOB.robotic_styles_list[style_name]
 		if(isnull(style))
 			return
+		// Another finish starts in its own default colours.
+		if(preferences.augment_limb_styles[augment_slot] != style_name)
+			preferences.augment_limb_colors -= augment_slot
 		preferences.augment_limb_styles[augment_slot] = style_name
 	preferences.character_preview_view.update_body()
 	return TRUE
@@ -632,10 +654,13 @@
 	))
 	return FALSE
 
-/// Sends the open character setup window the augments' finishes. Returns FALSE.
+/// Sends the open character setup window the augments' finishes, and their colours, which a new finish clears. Returns FALSE.
 /datum/preference_middleware/limbs_and_markings/proc/send_augment_styles(mob/user)
 	var/datum/tgui/ui = SStgui.get_open_ui(user, preferences)
-	ui?.send_update(list("augment_styles" = preferences.augment_limb_styles.Copy()))
+	ui?.send_update(list(
+		"augment_styles" = preferences.augment_limb_styles.Copy(),
+		"augment_colors" = preferences.augment_limb_colors.Copy(),
+	))
 	return FALSE
 
 /datum/preference_middleware/limbs_and_markings/proc/act_set_bodypart_aug(list/params, mob/user)

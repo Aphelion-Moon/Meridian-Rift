@@ -69,6 +69,98 @@ export function drawPreviewFacing(
   }
 }
 
+/** How far past an edge between two pixels a sample sitting on it is taken to be. */
+const EDGE = 1e-6;
+
+/**
+ * How many of its own pixels body size carries a facing past its frame, on its
+ * farthest side: the room a canvas needs round the frame to hold the facing
+ * sized. None for a body that isn't sized, or only shrinks.
+ */
+export function previewGrowth(preview: CharacterPreviewDrawing) {
+  if (!preview.transform) {
+    return 0;
+  }
+  const { width, height, x, y } = preview;
+  const [a, b, c, d, e, f] = preview.transform;
+  // The frame's edges about the tile's centre, y upwards.
+  const left = -x - TILE / 2;
+  const right = width - x - TILE / 2;
+  const bottom = -y - TILE / 2;
+  const top = height - y - TILE / 2;
+  let past = 0;
+  for (const cornerX of [left, right]) {
+    for (const cornerY of [bottom, top]) {
+      const turnedX = a * cornerX + b * cornerY + c;
+      const turnedY = d * cornerX + e * cornerY + f;
+      past = Math.max(
+        past,
+        left - turnedX,
+        turnedX - right,
+        bottom - turnedY,
+        turnedY - top,
+      );
+    }
+  }
+  return Math.max(0, Math.ceil(past - EDGE));
+}
+
+/**
+ * A facing's pixels, the frame's size as drawPreviewFacing() draws it, sized as
+ * the game sizes the mob: transformed about its tile's centre into a frame
+ * `grow` pixels larger on every side, each pixel taking the one under its
+ * centre, as PIXEL_SCALE has it. The game draws its map at the sprites' own
+ * pixel size and only then zooms it, so a fractional size doubles and drops
+ * whole pixels; the page zooms this the same way.
+ */
+export function sizedFacingPixels(
+  pixels: Uint8ClampedArray,
+  preview: CharacterPreviewDrawing,
+  grow: number,
+) {
+  const { width, height, x, y } = preview;
+  const [a, b, c, d, e, f] = preview.transform ?? IDENTITY;
+  const sizedWidth = width + 2 * grow;
+  const sizedHeight = height + 2 * grow;
+  const sized = new Uint8ClampedArray(sizedWidth * sizedHeight * 4);
+  const determinant = a * e - b * d;
+  if (!determinant) {
+    return sized;
+  }
+  // The tile's centre in frame pixels, rows from the top.
+  const centreX = x + TILE / 2;
+  const centreY = height - y - TILE / 2;
+  for (let row = 0; row < sizedHeight; row++) {
+    // This row's centre about the tile's centre, y upwards, less the transform's offset.
+    const upward = centreY - (row - grow + 0.5) - f;
+    for (let column = 0; column < sizedWidth; column++) {
+      const across = column - grow + 0.5 - centreX - c;
+      // Back through the transform to the drawing. A centre on the edge
+      // between two pixels takes the one left of it, and the one above: the
+      // game breaks such ties on rounding noise, and these match it most.
+      const fromColumn = Math.floor(
+        centreX + (e * across - b * upward) / determinant - EDGE,
+      );
+      const fromRow = Math.floor(
+        centreY - (a * upward - d * across) / determinant - EDGE,
+      );
+      if (
+        fromColumn >= 0 &&
+        fromColumn < width &&
+        fromRow >= 0 &&
+        fromRow < height
+      ) {
+        const from = (fromRow * width + fromColumn) * 4;
+        sized.set(
+          pixels.subarray(from, from + 4),
+          (row * sizedWidth + column) * 4,
+        );
+      }
+    }
+  }
+  return sized;
+}
+
 /**
  * Where a row of the drawing shows once height has moved its rows, as
  * drawPreviewFacing() moves them: `frameY` (from the frame's top, its fraction
@@ -473,6 +565,92 @@ function facingCanvas(
 }
 
 /**
+ * A preview's frame as PreviewCanvas holds it once body size is drawn into it:
+ * `grow` pixels larger on every side, with no transform left to apply.
+ */
+function sizedFrame(
+  preview: CharacterPreviewDrawing,
+  grow: number,
+): CharacterPreviewDrawing {
+  if (!preview.transform) {
+    return preview;
+  }
+  return {
+    ...preview,
+    width: preview.width + 2 * grow,
+    height: preview.height + 2 * grow,
+    x: preview.x + grow,
+    y: preview.y + grow,
+    transform: undefined,
+  };
+}
+
+/** Puts a facing drawn at its own size into `context`, sized as the game sizes the mob. */
+function drawSizedFacing(
+  context: CanvasRenderingContext2D,
+  facing: CanvasImageSource,
+  preview: CharacterPreviewDrawing,
+  grow: number,
+) {
+  const pixels = pixelsOf(facing, preview.width, preview.height);
+  if (!pixels) {
+    return;
+  }
+  context.putImageData(
+    new ImageData(
+      sizedFacingPixels(pixels, preview, grow),
+      preview.width + 2 * grow,
+      preview.height + 2 * grow,
+    ),
+    0,
+    0,
+  );
+}
+
+/** Draws a facing, or another frame of it, as drawPreviewFacing() does, then sized. */
+function drawShownFacing(
+  context: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  preview: CharacterPreviewDrawing,
+  dir: SpriteDir,
+  grow: number,
+  left?: number,
+) {
+  if (!preview.transform) {
+    drawPreviewFacing(context, image, preview, dir, left);
+    return;
+  }
+  drawSizedFacing(
+    context,
+    facingCanvas(image, preview, dir, left),
+    preview,
+    grow,
+  );
+}
+
+/** A facing, or another frame of it, on a canvas of its own as drawShownFacing() draws it. */
+function shownFacingCanvas(
+  image: CanvasImageSource,
+  preview: CharacterPreviewDrawing,
+  dir: SpriteDir,
+  grow: number,
+  left?: number,
+) {
+  const facing = facingCanvas(image, preview, dir, left);
+  if (!preview.transform) {
+    return facing;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = preview.width + 2 * grow;
+  canvas.height = preview.height + 2 * grow;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (context) {
+    drawSizedFacing(context, facing, preview, grow);
+  }
+  return canvas;
+}
+
+/**
  * Which of an animation's steps shows `elapsed` ms in, as they loop, and how
  * many ms are left of it.
  */
@@ -543,7 +721,8 @@ const HIDDEN_RECHECK = 1000;
 /**
  * One facing of a drawn preview mob, its tile stood at x and y. Height and
  * body size are drawn as the game draws them: moved rows first, then the mob's
- * transform about its tile's centre.
+ * transform about its tile's centre, at the sprites' own pixel size, before
+ * the page zooms it (sizedFacingPixels()).
  *
  * With the lights off it is lit as the game lights it in the dark, from its
  * glow, with room round it for the bloom; see LightsOff.tsx.
@@ -566,8 +745,11 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
     floor,
   } = props;
   const { preview, image, moving } = shown;
-  const { width, height } = preview;
   const canvas = useRef<HTMLCanvasElement>(null);
+  // The room body size needs round the frame, and the frame the canvas holds once it's drawn in.
+  const grow = useMemo(() => previewGrowth(preview), [preview]);
+  const sized = useMemo(() => sizedFrame(preview, grow), [preview, grow]);
+  const { width, height } = sized;
   // Room past the drawing on every side for its bloom, in its own pixels.
   const reach = dark ? bloomReach(bloom) : 0;
   const regions = preview.animation?.facings[dir];
@@ -579,18 +761,19 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
       return;
     }
     if (!dark) {
-      drawPreviewFacing(context, image, preview, dir);
+      drawShownFacing(context, image, preview, dir, grow);
       return;
     }
     const glowLeft = preview.glow_frames?.[dir];
     // The floor's tile repeats from the character's own tile, as the background lays it.
     const tile = floor && pixelsOf(floor, TILE, TILE);
+    // Lit once sized, as the game lights the sized mob, so the floor keeps its own size.
     drawLightsOff(
       context,
-      facingCanvas(image, preview, dir),
+      shownFacingCanvas(image, preview, dir, grow),
       glowLeft === undefined
         ? undefined
-        : facingCanvas(image, preview, dir, glowLeft),
+        : shownFacingCanvas(image, preview, dir, grow, glowLeft),
       width,
       height,
       bloom,
@@ -602,11 +785,11 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
           TILE,
           width + 2 * reach,
           height + 2 * reach,
-          -reach - preview.x,
-          -reach - height + preview.y + TILE,
+          -reach - sized.x,
+          -reach - height + sized.y + TILE,
         ),
     );
-  }, [preview, image, dir, dark, bloom, reach, width, height, floor]);
+  }, [preview, image, dir, dark, bloom, reach, grow, sized, floor]);
 
   // From the facing as drawn above, which is every region's first step, each
   // region's next step when its time comes, laid over the facing with the
@@ -618,8 +801,8 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
       return;
     }
     const frame = document.createElement('canvas');
-    frame.width = width;
-    frame.height = height;
+    frame.width = preview.width;
+    frame.height = preview.height;
     const frameContext = frame.getContext('2d');
     if (!frameContext) {
       return;
@@ -652,7 +835,7 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
           dir,
           regionSteps,
         );
-        drawPreviewFacing(context, frame, preview, dir, 0);
+        drawShownFacing(context, frame, preview, dir, grow, 0);
       }
       timer = setTimeout(next, wait);
     };
@@ -668,7 +851,7 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', resume);
     };
-  }, [image, moving, regions, preview, dir, dark, width, height]);
+  }, [image, moving, regions, preview, dir, dark, grow]);
 
   return (
     <canvas
@@ -678,7 +861,7 @@ export function PreviewCanvas(props: PreviewCanvasProps) {
       height={height + 2 * reach}
       style={{
         imageRendering: 'pixelated',
-        ...previewFrameStyle(preview, scale, x, y, reach),
+        ...previewFrameStyle(sized, scale, x, y, reach),
       }}
     />
   );

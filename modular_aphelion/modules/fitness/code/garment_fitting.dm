@@ -383,25 +383,11 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	// Whether the sleeves have each hue, by whole degree + 1.
 	var/list/hues = new /list(360)
 	for(var/colour, colour_channels in lit)
-		var/list/channels = colour_channels
-		var/red = channels[1]
-		var/green = channels[2]
-		var/blue = channels[3]
-		var/high = max(red, green, blue)
-		var/spread = high - min(red, green, blue)
-		if(spread * 100 < SLEEVE_GREY_PERCENT * high)
+		var/hue = garment_colour_hue(colour_channels)
+		if(hue < 0)
 			greys++
 			continue
 		hued++
-		var/hue
-		if(high == red)
-			hue = floor(60 * (green - blue) / spread)
-			if(hue < 0)
-				hue += 360
-		else if(high == green)
-			hue = 120 + floor(60 * (blue - red) / spread)
-		else
-			hue = 240 + floor(60 * (red - green) / spread)
 		hues[hue + 1] = TRUE
 	if(!hued)
 		return greys <= SLEEVE_MAX_COLOURS ? GARMENT_FIT_SHADED_SLEEVES : GARMENT_FIT_SOLID
@@ -421,6 +407,71 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 		last_hue = degree
 	widest_gap = max(widest_gap, first_hue + 360 - last_hue)
 	return 360 - widest_gap <= SLEEVE_MAX_HUE_SPREAD ? GARMENT_FIT_SHADED_SLEEVES : GARMENT_FIT_SOLID
+
+/**
+ * Returns a colour's hue as the sleeve modes judge it (garment_sleeve_mode()), in whole degrees from 0 to 359, or -1 for a
+ * grey: one whose channels spread less than `percent` percent of its brightest one, black included.
+ *
+ * Arguments:
+ * - channels: The colour's red, green and blue, from rgb2num().
+ * - percent: The grey line. 0 gives a colour's cast, its hue however slight, and only equal channels are grey.
+ */
+/proc/garment_colour_hue(list/channels, percent = SLEEVE_GREY_PERCENT)
+	var/red = channels[1]
+	var/green = channels[2]
+	var/blue = channels[3]
+	var/high = max(red, green, blue)
+	var/spread = high - min(red, green, blue)
+	if(!spread || spread * 100 < percent * high)
+		return -1
+	if(high == red)
+		var/hue = floor(60 * (green - blue) / spread)
+		return hue < 0 ? hue + 360 : hue
+	if(high == green)
+		return 120 + floor(60 * (blue - red) / spread)
+	return 240 + floor(60 * (red - green) / spread)
+
+/**
+ * Whether a colour is a near-grey: its channels spread less than twice SLEEVE_GREY_PERCENT percent of its brightest one,
+ * black included. A greyscale garment's own faintly blue shading falls either side of the grey line, but is near-grey.
+ *
+ * Arguments:
+ * - channels: The colour's red, green and blue, from rgb2num().
+ */
+/proc/garment_near_grey(list/channels)
+	var/high = max(channels[1], channels[2], channels[3])
+	var/spread = high - min(channels[1], channels[2], channels[3])
+	return !spread || spread * 100 < 2 * SLEEVE_GREY_PERCENT * high
+
+/**
+ * Whether a shaded sleeve may step a pixel from colour `source` to the darker `colour`, keeping to `source`'s family. A
+ * colour is lit when its brightest channel is at least SLEEVE_LIT_MIN, and dark otherwise. It may when:
+ * - `colour` is a charcoal or a black, a dark near-grey (garment_near_grey()): every colour darkens into one;
+ * - both are dark: outlines and shadows shading among themselves;
+ * - both are near-greys: one grey ramp, across the grey line;
+ * - `colour` is a hue, not a near-grey, and `source` is a hue or a charcoal or a black, their casts (their hues however
+ *   slight, garment_colour_hue()) within SLEEVE_MAX_HUE_SPREAD degrees of each other: so a grey never steps into a hue,
+ *   while a blue-cast charcoal may step into navy.
+ *
+ * Arguments:
+ * - source: The pixel's colour, without alpha.
+ * - colour: The darker colour, without alpha.
+ */
+/proc/garment_colours_kin(source, colour)
+	var/list/channels = rgb2num(source)
+	var/list/other = rgb2num(colour)
+	if(max(other[1], other[2], other[3]) < SLEEVE_LIT_MIN && garment_near_grey(other))
+		return TRUE
+	if(max(channels[1], channels[2], channels[3]) < SLEEVE_LIT_MIN && max(other[1], other[2], other[3]) < SLEEVE_LIT_MIN)
+		return TRUE
+	if(garment_near_grey(channels) && garment_near_grey(other))
+		return TRUE
+	if(garment_near_grey(other) || (garment_near_grey(channels) && max(channels[1], channels[2], channels[3]) >= SLEEVE_LIT_MIN))
+		return FALSE
+	var/hue = garment_colour_hue(channels, 0)
+	var/degree = garment_colour_hue(other, 0)
+	var/distance = abs(hue - degree)
+	return hue >= 0 && degree >= 0 && min(distance, 360 - distance) <= SLEEVE_MAX_HUE_SPREAD
 
 /**
  * One view of a garment being fitted: its frame, the pixels read from it, and the pixels the fitting writes over them.
@@ -500,8 +551,9 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	apply_bands(limb_templates(list("chest_m")), pattern)
 	switch(mode)
 		if(GARMENT_FIT_SHADED_SLEEVES)
-			shade_arm_form()
-			darken_moved_edges()
+			var/list/colours = sleeve_colours()
+			shade_arm_form(colours)
+			darken_moved_edges(colours)
 		if(GARMENT_FIT_KNIT)
 			knit_sleeves()
 	if(view != "E" && view != "W")
@@ -772,9 +824,14 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 
 /**
  * Shaded sleeves, first step: the garment's brightest colour over an arm takes the arm's muscle tone, mapped into the
- * garment's own ramp (skin tones 0-5 to ramp steps 0, 0, 1, 1, 2, 2).
+ * garment's own ramp (skin tones 0-5 to ramp steps 0, 0, 1, 1, 2, 2). A step whose colour isn't the sleeve's own
+ * (sleeve_colours()) or kin to that brightest colour (garment_colours_kin()) takes the next darker one that is, and a pixel
+ * with none is left as it is.
+ *
+ * Arguments:
+ * - colours: Each fitted arm's sleeve's own colours, from sleeve_colours().
  */
-/datum/garment_fit_view/proc/shade_arm_form()
+/datum/garment_fit_view/proc/shade_arm_form(list/colours)
 	var/static/list/ramp_step_of_tone = list(0, 0, 1, 1, 2, 2)
 	var/list/arm_templates = limb_templates(list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM))
 	if(!length(arm_templates))
@@ -785,16 +842,24 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	begin_pass()
 	for(var/arm, arm_template in arm_templates)
 		var/list/template = arm_template
+		var/list/steps = sleeve_steps(ramp, colours[arm], ramp[1])
 		for(var/list/tone as anything in template["tones"])
 			var/pixel = pixel(tone[1], tone[2])
 			if(pixel && copytext(pixel, 1, 8) == ramp[1])
-				write(tone[1], tone[2], recolour(ramp[min(ramp_step_of_tone[tone[3] + 1] + 1, length(ramp))], pixel))
+				var/shade = steps[min(ramp_step_of_tone[tone[3] + 1] + 1, length(ramp))]
+				if(shade)
+					write(tone[1], tone[2], recolour(shade, pixel))
 	end_pass()
 
 /**
- * Shaded sleeves, second step: the pixel at each fitted arm row's new edge goes one step darker in the garment's ramp.
+ * Shaded sleeves, second step: the pixel at each fitted arm row's new edge goes one step darker in the garment's ramp, to the
+ * next darker colour that's the sleeve's own (sleeve_colours()) and kin to the pixel's (garment_colours_kin()), or stays as
+ * it is when none is.
+ *
+ * Arguments:
+ * - colours: Each fitted arm's sleeve's own colours, from sleeve_colours().
  */
-/datum/garment_fit_view/proc/darken_moved_edges()
+/datum/garment_fit_view/proc/darken_moved_edges(list/colours)
 	var/list/arm_templates = limb_templates(list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM))
 	if(!length(arm_templates))
 		return
@@ -802,14 +867,100 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	begin_pass()
 	for(var/arm, arm_template in arm_templates)
 		var/list/template = arm_template
+		// The steps from each edge colour, made the first time it's met.
+		var/list/cache = list()
 		for(var/list/band as anything in template["bands"])
 			var/pixel = pixel(band[3], band[1])
 			if(!pixel)
 				continue
-			var/ramp_step = ramp.Find(copytext(pixel, 1, 8))
-			if(ramp_step && ramp_step < length(ramp))
-				write(band[3], band[1], recolour(ramp[ramp_step + 1], pixel))
+			var/colour = copytext(pixel, 1, 8)
+			var/ramp_step = ramp.Find(colour)
+			if(!ramp_step)
+				continue
+			var/list/steps = cache[colour]
+			if(!steps)
+				steps = sleeve_steps(ramp, colours[arm], colour)
+				cache[colour] = steps
+			var/shade = steps[ramp_step + 1]
+			if(shade)
+				write(band[3], band[1], recolour(shade, pixel))
 	end_pass()
+
+/**
+ * Returns each fitted arm's sleeve's own colours, the only ones shaded sleeves step through: fitted arm -> its colours, each
+ * colour -> TRUE. Read once, after the limbs are fitted and before the sleeves are shaded, so both steps of the shading take
+ * the same colours. The garment's whole ramp would give a sleeve its skirt's, belt's or boots' colours.
+ *
+ * A sleeve's own colours are those the view has over the arm, and the view's other colours of the same family, so a garment
+ * of one material keeps its whole ramp. A lit colour is of the family when it's a grey and a lit colour over the arm is too,
+ * or its hue is within SLEEVE_MAX_HUE_SPREAD degrees of every lit hue there, which keeps the sleeve one hue, as
+ * garment_sleeve_mode() judges plain sleeves. A dark one, an outline's or a shadow's, whose hue tells less, when it's a grey
+ * and a colour over the arm is too, or its hue is within the spread of any hue there.
+ */
+/datum/garment_fit_view/proc/sleeve_colours()
+	. = list()
+	var/list/ramp = ramp()
+	for(var/arm, arm_template in limb_templates(list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM)))
+		var/list/template = arm_template
+		var/list/colours = list()
+		// The hues over the arm (garment_colour_hue()), of every colour and of the lit ones.
+		var/list/hues = list()
+		var/list/lit = list()
+		for(var/list/tone as anything in template["tones"])
+			var/pixel = pixel(tone[1], tone[2])
+			if(!pixel)
+				continue
+			var/colour = copytext(pixel, 1, 8)
+			if(colours[colour])
+				continue
+			colours[colour] = TRUE
+			var/list/channels = rgb2num(colour)
+			var/hue = garment_colour_hue(channels)
+			hues |= hue
+			if(max(channels[1], channels[2], channels[3]) >= SLEEVE_LIT_MIN)
+				lit |= hue
+		for(var/colour in ramp)
+			if(colours[colour])
+				continue
+			var/list/channels = rgb2num(colour)
+			var/hue = garment_colour_hue(channels)
+			if(max(channels[1], channels[2], channels[3]) < SLEEVE_LIT_MIN)
+				for(var/degree in hues)
+					var/distance = abs(hue - degree)
+					if(hue == degree || (hue >= 0 && degree >= 0 && min(distance, 360 - distance) <= SLEEVE_MAX_HUE_SPREAD))
+						colours[colour] = TRUE
+						break
+			else if(hue < 0)
+				if(lit.Find(-1))
+					colours[colour] = TRUE
+			else
+				var/within = FALSE
+				for(var/degree in lit)
+					if(degree < 0)
+						continue
+					var/distance = abs(hue - degree)
+					within = min(distance, 360 - distance) <= SLEEVE_MAX_HUE_SPREAD
+					if(!within)
+						break
+				if(within)
+					colours[colour] = TRUE
+		.[arm] = colours
+
+/**
+ * Returns the colour a pixel of colour `source` takes at each step of the view's ramp: the step's own colour where it's the
+ * sleeve's own and kin to `source` (garment_colours_kin()), otherwise the next darker one that is, or null when none is. One
+ * step longer than the ramp, its last null, so the step past the darkest can be asked for.
+ *
+ * Arguments:
+ * - ramp: The view's colours, brightest first, from ramp().
+ * - colours: The sleeve's own colours, from sleeve_colours().
+ * - source: The stepped pixel's colour, without alpha.
+ */
+/datum/garment_fit_view/proc/sleeve_steps(list/ramp, list/colours, source)
+	. = new /list(length(ramp) + 1)
+	for(var/ramp_step in length(ramp) to 1 step -1)
+		var/colour = ramp[ramp_step]
+		.[ramp_step] = (colours[colour] && garment_colours_kin(source, colour)) ? colour : .[ramp_step + 1]
 
 /**
  * Returns the fitted ones of `limbs` for this view, in order: template limb -> its template.

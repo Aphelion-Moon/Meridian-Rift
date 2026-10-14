@@ -58,6 +58,7 @@
 	for(var/key in augment_limb_styles)
 		if(!GLOB.robotic_styles_list[augment_limb_styles[key]])
 			augment_limb_styles -= key
+	load_augment_colors(save_data)
 
 	// A save from before a marking name was retired still holds it: renamed first, as the loader drops a name it doesn't know.
 	if(needs_nova_update >= 0 && needs_nova_update < VERSION_MARKING_CONTENT)
@@ -425,6 +426,7 @@
 /datum/preferences/proc/save_character_nova(list/save_data)
 	save_data["augments"] = augments
 	save_data["augment_limb_styles"] = augment_limb_styles
+	save_data["augment_limb_colors"] = augment_limb_colors
 	save_data["body_markings"] = body_markings.serialize()
 	save_data["mismatched_customization"] = mismatched_customization
 	save_data["allow_advanced_colors"] = allow_advanced_colors
