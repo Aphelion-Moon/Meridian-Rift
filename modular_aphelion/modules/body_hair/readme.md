@@ -37,6 +37,15 @@ suits, sleeveless dresses, vests and the like). No bra or underwear hides it. Pu
 under a jockstrap or mankini. The list came from a sprite check: every chest-covering garment whose worn sprite covers
 less than a third of the upper arm, confirmed by eye.
 
+Pubic hair is drawn a pixel or more past the crotch's outline, to frame genitals. Over a bare groin it's drawn just so.
+Under a jockstrap or mankini, its only cover, it keeps only the pixels on bare skin (Pol, 2026-10-14: "on the body,
+outside the underwear"): on the body as it's drawn, the chest and legs from their own sprites (any muscle size, a female
+or male chest, digitigrade legs, another species' limbs), and outside the underwear's span in each row, from its leftmost
+pixel there to its rightmost, in each direction. A taur's or Cerulean's legs draw nothing of their own, so there it keeps
+to the chest. `clip_pubic_hair()` (`code/body_hair.dm`) makes each clipped sprite once a round, for each hair style,
+underwear sprite (with its female cut) and body; its colour is the overlay's. The chest's cache key carries the same, so a
+change of underwear, legs or muscle size draws it again. Armpit hair is never clipped.
+
 A razor used on the chest or groin (not in combat mode) trims them to any style or shaves them off, like a beard,
 while they show: whatever hides them keeps the razor off too. Trimming someone else's pubic hair needs their ERP
 preference.

@@ -151,7 +151,7 @@ There are several things that need to be remembered:
 			default_layer = UNIFORM_LAYER,
 			default_icon_file = icon_file,
 			isinhands = FALSE,
-			female_uniform = woman ? female_sprite_flags : null,
+			female_uniform = woman ? female_cut_over_pecs(src, female_sprite_flags, bodyshape) : null, // APHELION EDIT CHANGE - FITNESS - Pecs keep the torso out of the female cut - ORIGINAL: female_uniform = woman ? female_sprite_flags : null,
 			override_state = target_overlay,
 			override_file = handled_by_bodyshape ? icon_file : null,
 			bodyshape = vox_icon_file ? (bodyshape & ~BODYSHAPE_DIGITIGRADE) : bodyshape, // APHELION EDIT CHANGE - Do not mask fitted Vox pants again - ORIGINAL: bodyshape = bodyshape,
@@ -681,7 +681,7 @@ There are several things that need to be remembered:
 	var/icon/female_clothing_icon = female_clothing_icons[index]
 	if(!female_clothing_icon) //Create standing/laying icons if they don't exist
 		var/female_icon_state = "female[type == FEMALE_UNIFORM_FULL ? "_full" : ((!type || type & FEMALE_UNIFORM_TOP_ONLY) || bodyshape & BODYSHAPE_DIGITIGRADE ? "_top" : "")][type & FEMALE_UNIFORM_NO_BREASTS ? "_no_breasts" : ""]"
-		var/icon/female_cropping_mask = icon('icons/mob/clothing/under/masking_helpers.dmi', female_icon_state)
+		var/icon/female_cropping_mask = (type & FEMALE_UNIFORM_LOWER_ONLY) ? female_lower_cut_mask() : icon('icons/mob/clothing/under/masking_helpers.dmi', female_icon_state) // APHELION EDIT CHANGE - FITNESS - The lower body's cut alone, over pecs - ORIGINAL: var/icon/female_cropping_mask = icon('icons/mob/clothing/under/masking_helpers.dmi', female_icon_state)
 		female_clothing_icon = icon(icon, icon_state)
 		female_clothing_icon.Blend(female_cropping_mask, ICON_MULTIPLY)
 		female_clothing_icon = fcopy_rsc(female_clothing_icon)
@@ -1117,6 +1117,11 @@ generate/load female uniform sprites matching all previously decided variables
 	var/static/icon/lenghten_torso_mask = icon('icons/effects/cut.dmi', "Cut3")
 	var/static/icon/lenghten_legs_mask = icon('icons/effects/cut.dmi', "Cut4")
 	var/static/icon/lenghten_arms_mask = icon('icons/effects/cut.dmi', "Cut5")
+	// APHELION EDIT ADDITION START - FITNESS - A human torso stretches and shrinks below the pecs (fitness module.md, Height)
+	var/static/icon/human_cut_torso_mask = icon('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "cut_torso")
+	var/static/icon/human_gnome_cut_torso_mask = icon('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "gnome_cut_torso")
+	var/static/icon/human_lenghten_torso_mask = icon('modular_aphelion/modules/fitness/icons/height_cuts.dmi', "lengthen_torso")
+	// APHELION EDIT ADDITION END
 
 	appearance.remove_filter(list(
 		"Cut_Torso",
@@ -1179,7 +1184,7 @@ generate/load female uniform sprites matching all previously decided variables
 					list(
 						"name" = "Gnome_Cut_Torso",
 						"priority" = 1,
-						"params" = displacement_map_filter(cut_torso_mask, x = 0, y = 0, size = 2),
+						"params" = displacement_map_filter(human_gnome_cut_torso_mask, x = 0, y = 0, size = 2), // APHELION EDIT CHANGE - FITNESS - ORIGINAL: "params" = displacement_map_filter(cut_torso_mask, x = 0, y = 0, size = 2),
 					),
 					list(
 						"name" = "Gnome_Cut_Legs",
@@ -1193,7 +1198,7 @@ generate/load female uniform sprites matching all previously decided variables
 				list(
 					"name" = "Cut_Torso",
 					"priority" = 1,
-					"params" = displacement_map_filter(cut_torso_mask, x = 0, y = 0, size = 1),
+					"params" = displacement_map_filter(human_cut_torso_mask, x = 0, y = 0, size = 1), // APHELION EDIT CHANGE - FITNESS - ORIGINAL: "params" = displacement_map_filter(cut_torso_mask, x = 0, y = 0, size = 1),
 				),
 				list(
 					"name" = "Cut_Legs",
@@ -1210,7 +1215,7 @@ generate/load female uniform sprites matching all previously decided variables
 				list(
 					"name" = "Lenghten_Torso",
 					"priority" = 1,
-					"params" = displacement_map_filter(lenghten_torso_mask, x = 0, y = 0, size = 1),
+					"params" = displacement_map_filter(human_lenghten_torso_mask, x = 0, y = 0, size = 1), // APHELION EDIT CHANGE - FITNESS - ORIGINAL: "params" = displacement_map_filter(lenghten_torso_mask, x = 0, y = 0, size = 1),
 				),
 				list(
 					"name" = "Lenghten_Legs",
@@ -1223,7 +1228,7 @@ generate/load female uniform sprites matching all previously decided variables
 				list(
 					"name" = "Lenghten_Torso",
 					"priority" = 1,
-					"params" = displacement_map_filter(lenghten_torso_mask, x = 0, y = 0, size = 1),
+					"params" = displacement_map_filter(human_lenghten_torso_mask, x = 0, y = 0, size = 1), // APHELION EDIT CHANGE - FITNESS - ORIGINAL: "params" = displacement_map_filter(lenghten_torso_mask, x = 0, y = 0, size = 1),
 				),
 				list(
 					"name" = "Lenghten_Arms",

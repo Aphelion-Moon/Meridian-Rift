@@ -21,7 +21,10 @@
  * Resolves the penis's bulge look for a body update; TRUE when it draws one. A look resolved from the same inputs as
  * the last is kept as it is: a body update that changed nothing compares a few vars, and one that drew a slot again
  * without changing the cover or how it is drawn (drawn at all, included) also checks the cover
- * (bulge_cover_unchanged()).
+ * (bulge_cover_unchanged()) and the underwear under it (bulge_restraint()).
+ *
+ * Underwear always takes precedence over what is worn over it (Pol, 2026-10-14): the look is still drawn on the outermost
+ * cover, but underwear under that cover holds the penis in, unless it lets it out itself (bulge_held_size()).
  */
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_resolve(mob/living/carbon/human/wearer)
 	var/obj/item/organ/genital/penis/penis = wearer.organs_slot[ORGAN_SLOT_PENIS]
@@ -42,8 +45,10 @@
 	if(same_penis && bulge_suit_drawn == drawn[SUIT_LAYER] && bulge_uniform_drawn == drawn[UNIFORM_LAYER] && bulge_body_drawn == drawn[BODY_LAYER])
 		return !!bulge_key
 
-	// A slot was drawn again, or the penis changed. The cover, and how it is drawn.
-	var/datum/cover = wearer.bulge_cover(bulge_custom_layer(mode))
+	// A slot was drawn again, or the penis changed. The cover, how it is drawn, and the underwear under it.
+	var/chosen_layer = bulge_custom_layer(mode)
+	var/datum/cover = wearer.bulge_cover(chosen_layer)
+	var/datum/sprite_accessory/clothing/underwear/restraint = wearer.bulge_restraint(chosen_layer, cover)
 	var/slot = bulge_cover_slot(cover)
 	var/standing = slot ? drawn[slot] : null
 	var/image/root = bulge_drawn_root(standing)
@@ -51,7 +56,7 @@
 	// What the cover draws over its sprite (its blood), read once for the check and the record below.
 	var/over = bulge_over_signature(bulge_over_overlays(root, leaf))
 	var/same_cover = bulge_cover_unchanged(wearer, cover, root, leaf, over)
-	if(same_penis && same_cover)
+	if(same_penis && same_cover && bulge_restraint == restraint)
 		// Drawn again as it was: the look stands. (A cover that stopped being drawn, as underwear on a species that
 		// wears none, is not drawn as it was.)
 		bulge_suit_drawn = drawn[SUIT_LAYER]
@@ -73,41 +78,49 @@
 	var/shape = sprite_datum.type
 	var/toned = penis.uses_skintones
 	var/sprite_size = bulge_sprite_size(penis.genital_size, penis.max_sprite_size_affix)
+	// Underwear under the cover holding the penis in: at a size it caps, with none of the penis drawn and nothing cut.
+	var/held = restraint ? bulge_held_size(restraint, hard, size, digi, shape, toned) : null
+	if(held)
+		size = held
 	// A cover drawn with a cut the look no longer wants is drawn again first: the body update that follows resolves
 	// the look from the new drawing.
-	var/datum/cut = (hard && family) ? bulge_cut_for(family, size, digi, shape, toned, sprite_size) : null
+	var/datum/cut = (hard && family && isnull(held)) ? bulge_cut_for(family, size, digi, shape, toned, sprite_size) : null
 	if(bulge_redraw_cuts(wearer, slot == UNIFORM_LAYER ? cut : null, slot == BODY_LAYER ? cut : null))
 		return !!bulge_key
 
 	bulge_clear()
-	bulge_remember(wearer, penis, cover, root, leaf, over)
-	if(!family || family == /datum/bulge_family/none || !standing)
-		return FALSE // Nothing covers it with a bulge, or the cover is not drawn.
+	bulge_remember(wearer, penis, cover, restraint, root, leaf, over)
+	if(!family || family == /datum/bulge_family/none || !standing || held == 0)
+		return FALSE // Nothing covers it with a bulge, the cover is not drawn, or the underwear holds it in completely.
 	bulge_layer = bulge_cover_layer(cover, standing)
 	var/printed = bulge_cover_printed(cover)
 	if(printed)
 		bulge_sheet_patch = bulge_printed_patch(family, hard, size, digi, shape, toned) // The heart boxers past size 4.
 	if(bulge_sheet_patch)
 		// The patch stands in for the shape of the family whose shapes it draws, over the anatomy that shape leaves bare.
-		bulge_anatomy_mask = bulge_exposed(initial(family.large_shapes_of) || family, hard, size, digi, shape, toned)
+		if(!held)
+			bulge_anatomy_mask = bulge_exposed(initial(family.large_shapes_of) || family, hard, size, digi, shape, toned)
 	else
 		if(hard && initial(family.loincloth))
-			// A hard loincloth: its drape over the penis, shown behind the cover cut away under it.
-			bulge_template = bulge_drape(family, size, sprite_size, shape, toned)
-			bulge_anatomy_behind = !!bulge_template
+			// A hard loincloth: its drape over the penis, shown behind the cover cut away under it. Held in by underwear
+			// it is not lifted, and a loincloth has no hard shape of its own: no look.
+			if(!held)
+				bulge_template = bulge_drape(family, size, sprite_size, shape, toned)
+				bulge_anatomy_behind = !!bulge_template
 		else
 			bulge_template = bulge_shape(family, hard, size, digi, shape, toned)
 			if(bulge_template)
 				if(printed && bulge_shape_size(family, hard, size, shape) <= initial(family.print_cap))
 					bulge_print(standing, slot)
-				bulge_anatomy_mask = bulge_exposed(family, hard, size, digi, shape, toned)
-				if(!bulge_anatomy_mask && initial(family.clearance))
-					// A skirt the shaft shows through: behind it, and over its cloth inside the clearance where that shows
-					// any of it (an empty clearance shows none, and nothing is derived for it).
-					var/datum/bulge_sheet_state/clearance = bulge_clearance(family, hard, size)
-					bulge_anatomy_behind = !!clearance
-					if(clearance && bulge_mask_shows(clearance))
-						bulge_anatomy_mask = clearance
+				if(!held)
+					bulge_anatomy_mask = bulge_exposed(family, hard, size, digi, shape, toned)
+					if(!bulge_anatomy_mask && initial(family.clearance))
+						// A skirt the shaft shows through: behind it, and over its cloth inside the clearance where that
+						// shows any of it (an empty clearance shows none, and nothing is derived for it).
+						var/datum/bulge_sheet_state/clearance = bulge_clearance(family, hard, size)
+						bulge_anatomy_behind = !!clearance
+						if(clearance && bulge_mask_shows(clearance))
+							bulge_anatomy_mask = clearance
 		if(bulge_template && !bulge_patch)
 			if(kept_cloth)
 				bulge_template_masks(bulge_template)
@@ -123,7 +136,7 @@
 				bulge_template = null // No colour to draw its cloth in: what it shows of the penis still draws.
 	if(!bulge_template && !bulge_patch && !bulge_sheet_patch && !bulge_anatomy_behind)
 		bulge_clear()
-		bulge_remember(wearer, penis, cover, root, leaf, over) // Nothing to draw for these inputs.
+		bulge_remember(wearer, penis, cover, restraint, root, leaf, over) // Nothing to draw for these inputs.
 		return FALSE
 	if(bulge_cover_over && bulge_template)
 		bulge_over_cloth(bulge_over_overlays(root, leaf), root) // Blood or dirt on the cover: over the cloth too.
@@ -131,12 +144,14 @@
 	bulge_key = "bulge:[bulge_layer]:[bulge_patch ? ref(bulge_patch) : null]:[bulge_sheet_patch ? ref(bulge_sheet_patch) : null]:[bulge_template ? ref(bulge_template) : null]:[bulge_cloth][bulge_light][bulge_highlight][bulge_shade][bulge_deep_shade]:[bulge_anatomy_mask ? ref(bulge_anatomy_mask) : null]:[bulge_anatomy_behind]:[kept]:[bulge_alpha]:[bulge_cover_x],[bulge_cover_y]:[bulge_cover_over]:[bulge_cover_filtered ? json_encode(bulge_cover_filtered) : null]"
 	return TRUE
 
-/// Records what a look was resolved from (see bulge_resolve()): the penis, the slots as drawn, and the cover and how it
-/// is drawn (its drawn appearance's root and leaf, and what it draws over its sprite, as bulge_cover_unchanged() reads
-/// them). The cover's worn offset, as drawn, is the offset of everything the look draws.
-/datum/bodypart_overlay/mutant/genital/penis/proc/bulge_remember(mob/living/carbon/human/wearer, obj/item/organ/genital/penis/penis, datum/cover, image/root, image/leaf, over)
+/// Records what a look was resolved from (see bulge_resolve()): the penis, the slots as drawn, the cover and how it is
+/// drawn (its drawn appearance's root and leaf, and what it draws over its sprite, as bulge_cover_unchanged() reads
+/// them), and the underwear under it (bulge_restraint()). The cover's worn offset, as drawn, is the offset of everything
+/// the look draws.
+/datum/bodypart_overlay/mutant/genital/penis/proc/bulge_remember(mob/living/carbon/human/wearer, obj/item/organ/genital/penis/penis, datum/cover, datum/sprite_accessory/clothing/underwear/restraint, image/root, image/leaf, over)
 	var/list/drawn = wearer.overlays_standing
 	bulge_wearer = wearer
+	bulge_restraint = restraint
 	bulge_aroused = penis.aroused
 	bulge_length = penis.genital_size
 	bulge_suffix = sprite_suffix
@@ -411,6 +426,23 @@
 	return null
 
 /**
+ * The underwear worn under a look's cover (bulge_cover()), which holds the penis in unless it lets it out itself
+ * (bulge_held_size()): underwear always takes precedence over what is worn over it (Pol, 2026-10-14). It counts while it
+ * is worn and drawn, as get_underwear_overlays() draws it, and in front of the penis as the player layered it at
+ * `chosen_layer` (bulge_custom_layer()).
+ *
+ * Returns the underwear, or null for none: no underwear, underwear the body does not draw or the penis is layered above,
+ * or underwear that is itself the cover.
+ */
+/mob/living/carbon/human/proc/bulge_restraint(chosen_layer, datum/cover)
+	if((underwear_visibility & UNDERWEAR_HIDE_UNDIES) || HAS_TRAIT(src, TRAIT_HUSK) || HAS_TRAIT(src, TRAIT_INVISIBLE_MAN) || HAS_TRAIT(src, TRAIT_NO_UNDERWEAR))
+		return null
+	var/datum/sprite_accessory/clothing/underwear/bottom = SSaccessories.underwear_list[underwear]
+	if(!bottom || bottom == cover || istype(bottom, /datum/sprite_accessory/clothing/underwear/nude) || !BULGE_IN_FRONT(bottom.layer, chosen_layer))
+		return null
+	return bottom
+
+/**
  * What a worn suit does to a bulge (BULGE_SUIT_*). A suit leaves the groin clear, or is itself the cover, only in the
  * cells its bulge_suit_rule names: its own unmodified appearance in its default or toggled worn state, on plain or
  * digitigrade legs, on a body its sprites fit (no Vox, custom, taur or Cerulean body), untinted and without offsets.
@@ -635,6 +667,35 @@
 	if(initial(family.flaps))
 		return bulge_flap(family, size, digi)
 	return null
+
+/**
+ * What the underwear under a look's cover (bulge_restraint()) leaves of the look. Underwear always takes precedence (Pol,
+ * 2026-10-14): it holds the penis in, unless its own look would show some of it at this size and arousal, the anatomy
+ * its exposed mask leaves bare (briefs from size 5, long johns' tip hard from size 5) or a loincloth's drape when hard.
+ * bulge_resolve() and bulge_wanted_cut() both decide by it, so a cover is drawn cut only for a look that shows the penis
+ * through it.
+ *
+ * Arguments:
+ * - restraint: The underwear.
+ * - hard, size, digi, shape, toned: The look's identity, as bulge_shape() takes it.
+ *
+ * Returns:
+ * - null: The underwear lets the penis out, and the cover's look is what it would be without it.
+ * - 0: It holds the penis in completely (/datum/bulge_family/none: the chastity sprites, groin plating): no look.
+ * - 1 to 8: It holds the penis in at this size, its family's cap for the arousal where the bulge is bigger: the cover
+ *   draws its own shape at it, and none of the penis (no exposed anatomy, clearance, drape or cut).
+ */
+/proc/bulge_held_size(datum/sprite_accessory/clothing/underwear/restraint, hard, size, digi, shape, toned)
+	var/datum/bulge_family/family = restraint.bulge_family
+	var/held = bulge_family_size(family, hard, size)
+	if(!held)
+		return 0
+	if(hard && initial(family.loincloth))
+		return null
+	var/datum/bulge_family/baring = family
+	if(restraint.bulge_printed && bulge_printed_patch(family, hard, size, digi, shape, toned))
+		baring = initial(family.large_shapes_of) || family // The heart boxers' patch shows what the boxers' shape leaves bare.
+	return bulge_exposed(baring, hard, size, digi, shape, toned) ? null : held
 
 #undef BULGE_SUIT_HIDES
 #undef BULGE_SUIT_PASSES

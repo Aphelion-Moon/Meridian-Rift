@@ -1,7 +1,7 @@
-"""Generates the garment fitting templates from the real fitness DMIs.
+"""Generates the garment fitting templates from the muscle size sheets.
 
-For every limb (r_arm, l_arm, r_leg, l_leg, and the digitigrade legs r_leg_digi, l_leg_digi), fitness level 1-5 and
-view (S, N, E, W):
+For every limb (r_arm, l_arm, r_leg, l_leg, and the digitigrade legs r_leg_digi, l_leg_digi), muscle size (1 Athletic,
+2 Muscular) and view (S, N, E, W):
   bands: [y, s, new_edge, old_edge, d, cap]
       a row where the limb's outer edge moved from old_edge out to new_edge (d pixels);
       s is the step pointing back into the limb (+1 or -1); cap marks a row the limb grew into
@@ -9,7 +9,12 @@ view (S, N, E, W):
   core:  baseline limb pixels [[x, y], ...] (the "does this garment cover the limb" test)
   tones: the fitted limb's pixels as indices into the skin ramp [[x, y, i], ...] (form shading)
 Arms use the convex envelope of their new outline (sleeves bridge the elbow pinch); legs are exact.
-Coordinates are PIL-style: x 0-31 from the left, y 0-31 from the top.
+
+Plus "chest_m", for each size whose male chest reaches past today's: the glute bump's bands in the side views, the chest
+growing towards the back past today's body (chest and legs), as gen_pec_templates.py measures a pec's front bulge; no core
+or tones. The female chest keeps today's outline at every size.
+Coordinates are PIL-style: x 0-31 from the left, y 0-31 from the top. Definition never changes an outline, so it has no
+templates.
 
 Run `python tools/fitness/gen_fit_templates.py` whenever the limb art changes, and commit the fit_templates.json it
 writes to modular_aphelion/modules/fitness/fitting/.
@@ -26,7 +31,8 @@ from dmi import Dmi, SOUTH, NORTH, EAST, WEST  # noqa: E402
 
 BASE = ROOT + "modular_nova/modules/bodyparts/icons/human_parts_greyscale.dmi"
 MAMMAL = ROOT + "modular_nova/modules/bodyparts/icons/mammal_parts_greyscale.dmi"  # a human's digitigrade legs
-LEVEL = ROOT + "modular_aphelion/modules/fitness/icons/human_parts_fitness_{}.dmi"
+SIZES = {1: ROOT + "modular_aphelion/modules/fitness/icons/human_parts_athletic.dmi",
+         2: ROOT + "modular_aphelion/modules/fitness/icons/human_parts_muscular.dmi"}
 DIRS = {"S": SOUTH, "N": NORTH, "E": EAST, "W": WEST}
 LIMBS = ["r_arm", "l_arm", "r_leg", "l_leg", "r_leg_digi", "l_leg_digi"]
 SKIN_RAMP = [(255, 255, 255), (249, 238, 242), (234, 217, 220), (225, 199, 203), (218, 180, 178), (197, 153, 151)]
@@ -69,10 +75,10 @@ def sheet_state(limb):
     return (MAMMAL, "mammal_" + limb) if limb.endswith("_digi") else (BASE, "human_" + limb)
 
 
-def bands_for(limb, level, d):
+def bands_for(limb, size, d):
     base, name = sheet_state(limb)
     old = set(pixels(base, name, d))
-    new_px = pixels(LEVEL.format(level), name, d)
+    new_px = pixels(SIZES[size], name, d)
     new = set(new_px)
     outline = set()
     digi = limb.endswith("_digi")
@@ -129,12 +135,43 @@ def bands_for(limb, level, d):
     return {"bands": sorted(bands), "core": sorted([list(p) for p in old]), "tones": tones}
 
 
+def chest_bands(chest, size, d):
+    """Side views: where the size's chest reaches past today's body (its chest and legs) towards the back (E -x, W +x), as
+    a pec's front bulge is measured. Front and back views: none; the chest's outline there must be today's."""
+    body = set(pixels(BASE, "human_" + chest, d)) | set(pixels(BASE, "human_r_leg", d)) | set(pixels(BASE, "human_l_leg", d))
+    feat = set(pixels(SIZES[size], "human_" + chest, d))
+    if d in ("S", "N"):
+        assert feat == set(pixels(BASE, "human_" + chest, d)), (chest, size, d, "the chest's front/back outline moved")
+        return []
+    grows = -1 if d == "E" else +1
+    bands = []
+    for y in sorted({y for _, y in feat}):
+        nx = [x for x, yy in feat | body if yy == y]
+        ox = [x for x, yy in body if yy == y]
+        if not ox:
+            continue
+        new_edge, old_edge = (min(nx), min(ox)) if grows < 0 else (max(nx), max(ox))
+        dd = (old_edge - new_edge) * -grows
+        if dd > 0:
+            bands.append([y, -grows, new_edge, old_edge, dd, False])
+    return sorted(bands)
+
+
 def main(out_path):
-    data = {"version": 1, "skin_ramp": ["#%02x%02x%02x" % c for c in SKIN_RAMP], "limbs": {}}
+    data = {"version": 2, "skin_ramp": ["#%02x%02x%02x" % c for c in SKIN_RAMP], "limbs": {}}
     for limb in LIMBS:
         data["limbs"][limb] = {}
-        for level in range(1, 6):
-            data["limbs"][limb][str(level)] = {d: bands_for(limb, level, d) for d in DIRS}
+        for size in SIZES:
+            data["limbs"][limb][str(size)] = {d: bands_for(limb, size, d) for d in DIRS}
+    for chest in ("chest_m", "chest_f"):
+        sizes = {}
+        for size in SIZES:
+            views = {d: chest_bands(chest, size, d) for d in DIRS}
+            if any(views.values()):
+                sizes[str(size)] = {d: {"bands": bands, "core": [], "tones": []} for d, bands in views.items()}
+        assert chest == "chest_m" or not sizes, "the female chest grew past today's"
+        if sizes:
+            data["limbs"][chest] = sizes
     with open(out_path, "w") as f:
         json.dump(data, f, separators=(",", ":"))
     return data

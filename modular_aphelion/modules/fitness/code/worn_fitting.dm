@@ -20,9 +20,9 @@
  * legs it draws.
  *
  * Each fit is made once a round and cached by the fit and what draws the icon (its sheet, state, type, female cut, body shape
- * and colours), never by wearer, in nested lists: a draw at the baseline reads the wearer's fit and nothing more, and a fitted
- * draw that's cached looks its sprite up. The first draw of a new fit is drawn as it is while SSgarment_fitting makes it,
- * then drawn again (GARMENT_FITS_DEFERRED), except on a dummy, whose fits are made as they're drawn.
+ * and colours), never by wearer, in nested lists: a draw on a Normal-sized body reads the wearer's fit and nothing more, and a
+ * fitted draw that's cached looks its sprite up. The first draw of a new fit is drawn as it is while SSgarment_fitting makes
+ * it, then drawn again (GARMENT_FITS_DEFERRED), except on a dummy, whose fits are made as they're drawn.
  *
  * Arguments:
  * - building_icon: The icon build_worn_icon() has built, after the female cut and body shape masks, or null to draw the worn
@@ -207,22 +207,23 @@
 		update_worn_gloves()
 
 /**
- * Refits the worn clothing of a body a fitness arm or leg is attached to: attaching a leg redraws only the uniform and suit, and
- * an arm only the gloves.
+ * Refits the worn clothing of a body a fitness arm, leg or chest above the Normal size is attached to: attaching a leg redraws
+ * only the uniform and suit, an arm only the gloves, and a chest none of them.
  */
 /obj/item/bodypart/try_attach_limb(mob/living/carbon/new_limb_owner, special, lazy)
 	. = ..()
-	if(. && !lazy && fitness_level && ishuman(new_limb_owner) && (body_zone in GLOB.garment_fit_limbs))
+	if(. && !lazy && muscle_size && ishuman(new_limb_owner) && (body_zone in GLOB.fitness_zones))
 		var/mob/living/carbon/human/wearer = new_limb_owner
 		wearer.refit_worn_clothing()
 
 /**
- * Refits the worn clothing of a body a fitness arm or leg comes off, whether lost or swapped for another limb.
+ * Refits the worn clothing of a body a fitness arm, leg or chest above the Normal size comes off, whether lost or swapped for
+ * another limb.
  */
 /obj/item/bodypart/drop_limb(special, dismembered, move_to_floor = TRUE)
 	var/mob/living/carbon/human/wearer = owner
 	. = ..()
-	if(fitness_level && ishuman(wearer) && !QDELETED(wearer) && (body_zone in GLOB.garment_fit_limbs))
+	if(muscle_size && ishuman(wearer) && !QDELETED(wearer) && (body_zone in GLOB.fitness_zones))
 		wearer.refit_worn_clothing()
 
 #undef WORN_FIT_BODYSHAPES

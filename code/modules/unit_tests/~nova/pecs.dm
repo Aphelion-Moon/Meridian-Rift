@@ -260,6 +260,76 @@
 	var/datum/bodypart_overlay/mutant/genital/breasts/breast_overlay = breasts?.bodypart_overlay
 	TEST_ASSERT(breast_overlay && !breast_overlay.can_draw_on_bodypart(breast_owner.get_bodypart(BODY_ZONE_CHEST), breast_owner), "Breasts under an undershirt were drawn.")
 
+/// A top over flexing pecs moves with them from their first flex, a frame for each of the flex's, and stops with them: its fits
+/// over every flex are made in the background as soon as it's drawn over the pecs, before any flex asks for one.
+/datum/unit_test/breast_bounce/flexing_top
+
+/datum/unit_test/breast_bounce/flexing_top/Run()
+	if(CONFIG_GET(flag/disable_erp_preferences) || CONFIG_GET(flag/disable_lewd_items))
+		TEST_NOTICE(src, "Pec flexes need genitals, which the ERP config disables.")
+		return
+
+	var/mob/living/carbon/human/consistent/flexer = allocate(/mob/living/carbon/human/consistent)
+	flexer.physique = MALE
+	flexer.socks = "Nude"
+	var/obj/item/organ/genital/breasts/pecs = give_breasts(flexer, /datum/sprite_accessory/genital/breasts/pecs/big::name, 0)
+	TEST_ASSERT_NOTNULL(pecs, "The test human did not get pecs.")
+	flexer.undershirt = /datum/sprite_accessory/clothing/undershirt/shirt::name
+	flexer.update_body()
+	SSgarment_fitting.finish_all()
+	var/still_top = drawn_underclothes(flexer)?.icon
+	TEST_ASSERT(isfile(still_top), "A top over pecs wasn't fitted to them.")
+
+	TEST_ASSERT(pecs.start_flex(), "The pec flex did not start.")
+	var/flexing_top = drawn_underclothes(flexer)?.icon
+	TEST_ASSERT(isfile(flexing_top) && flexing_top != still_top, "A top over pecs stayed still through their first flex.")
+	TEST_ASSERT_EQUAL(garment_frame_count(icon(flexing_top)), length(garment_pec_flex(BREASTS_ICON_PEC_BOUNCE)["delays"]), "A top over flexing pecs isn't animated a frame for each of the flex's.")
+	pecs.stop_bounce()
+	TEST_ASSERT_EQUAL(drawn_underclothes(flexer)?.icon, still_top, "A top kept moving once the flex stopped.")
+	TEST_ASSERT(pecs.start_flex(alternating = TRUE, slow = TRUE), "The alternating slow flex did not start.")
+	var/alternating_top = drawn_underclothes(flexer)?.icon
+	TEST_ASSERT(isfile(alternating_top) && alternating_top != still_top && alternating_top != flexing_top, "A top over pecs stayed still through their first alternating slow flex.")
+	pecs.stop_bounce()
+
+/// Pecs keep a female body's torso out of the female cut, which then shapes its lower body alone: a top-only uniform is drawn
+/// over them as on a male body, and a full one is cut apart from both a male body's and a female body's without pecs.
+/datum/unit_test/breast_bounce/female_cut
+
+/datum/unit_test/breast_bounce/female_cut/Run()
+	if(CONFIG_GET(flag/disable_erp_preferences) || CONFIG_GET(flag/disable_lewd_items))
+		TEST_NOTICE(src, "Pecs need genitals, which the ERP config disables.")
+		return
+
+	var/list/bodies = list()
+	for(var/physique in list(MALE, FEMALE, FEMALE))
+		var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+		body.physique = physique
+		bodies += body
+	TEST_ASSERT_NOTNULL(give_breasts(bodies[3], /datum/sprite_accessory/genital/breasts/pecs::name, 0), "The test human did not get pecs.")
+	for(var/mob/living/carbon/human/body as anything in bodies)
+		body.update_body(is_creating = TRUE)
+	var/list/drawn = drawn_uniforms(bodies, /obj/item/clothing/under/color/jumpskirt/grey)
+	TEST_ASSERT_NOTEQUAL(drawn[2], drawn[1], "A female body's top-only uniform isn't cut.")
+	TEST_ASSERT_EQUAL(drawn[3], drawn[1], "A top-only uniform over pecs on a female body is cut.")
+	var/list/jumpsuits = drawn_uniforms(bodies, /obj/item/clothing/under/color/grey)
+	TEST_ASSERT(jumpsuits[3] != jumpsuits[1] && jumpsuits[3] != jumpsuits[2], "A full uniform over pecs on a female body isn't cut to its lower body alone.")
+
+/**
+ * Returns the icon each body draws a uniform of `uniform_type` with, in order, and takes the uniforms off again.
+ *
+ * Arguments:
+ * - bodies: The test humans.
+ * - uniform_type: The uniform's type.
+ */
+/datum/unit_test/breast_bounce/female_cut/proc/drawn_uniforms(list/bodies, uniform_type)
+	. = list()
+	for(var/mob/living/carbon/human/body as anything in bodies)
+		var/obj/item/clothing/under/uniform = allocate(uniform_type)
+		if(!body.equip_to_slot_if_possible(uniform, ITEM_SLOT_ICLOTHING))
+			TEST_FAIL("Could not dress the test human in [uniform_type].")
+		. += list(drawn_worn_sprite(body, UNIFORM_LAYER)?.icon)
+		qdel(uniform)
+
 /// Tops cut for a chest with breasts draw their version for one without on any chest without breasts, pecs or none, but a
 /// female body's without pecs: pure mesh for mesh tops with a bra drawn in, and pasties where each pec size has its nipples,
 /// nippled or nippleless alike. Over breasts they're drawn as they are.

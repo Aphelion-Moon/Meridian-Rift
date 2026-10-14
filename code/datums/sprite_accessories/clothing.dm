@@ -33,6 +33,10 @@
 	var/icon_state_to_use = get_icon_state(physique, bodyshape, wearer) // APHELION EDIT CHANGE - FITNESS - A state can depend on the wearer, like mesh tops without their bra on a chest without breasts - ORIGINAL: var/icon_state_to_use = get_icon_state(physique, bodyshape)
 	if((use_digi || (bodyshape & (BODYSHAPE_TAUR|BODYSHAPE_CERULEAN))) && female_sprite_flags_to_use) // APHELION EDIT CHANGE - No bottom shaping over a taur body or Cerulean tail either - ORIGINAL: if(use_digi && female_sprite_flags_to_use)
 		female_sprite_flags_to_use = FEMALE_UNIFORM_TOP_ONLY // No bottom gender shaping for the digi legs
+	// APHELION EDIT ADDITION START - FITNESS - Pecs keep the torso out of the female cut
+	female_sprite_flags_to_use = female_cut_over_pecs(wearer, use_female && female_sprite_flags_to_use)
+	use_female = !!female_sprite_flags_to_use
+	// APHELION EDIT ADDITION END
 
 	var/key = "[icon]-[icon_state_to_use]-[greyscale_config || "ng"]-[use_female && female_sprite_flags_to_use]-[use_digi]-[greyscale_colors]" // APHELION EDIT CHANGE - Key by the sheet and the cut - ORIGINAL: var/key = "[icon_state_to_use]-[greyscale_config || "ng"]-[use_female]-[use_digi]-[greyscale_colors]"
 	var/mutable_appearance/result

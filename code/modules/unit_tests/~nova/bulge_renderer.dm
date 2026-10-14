@@ -139,6 +139,56 @@
 	owner.update_body()
 	TEST_ASSERT_NULL(overlay.bulge_key, "Taking the underwear off left its bulge drawn.")
 
+/// Underwear under an outer cover holds the penis in, unless it lets it out itself (Pol, 2026-10-14): a hard skirt over
+/// briefs still tents but shows none of the penis and is drawn whole, a chastity sprite leaves no bulge at all, and a
+/// jockstrap under the leotard keeps its bulge to the jockstrap's size. Each is swapped under a cover left as it is, which
+/// the look follows.
+/datum/unit_test/portal_test/bulge_renderer/underwear_restrains
+
+/datum/unit_test/portal_test/bulge_renderer/underwear_restrains/check()
+	var/mob/living/carbon/human/owner = make_wearer()
+	TEST_ASSERT_NOTNULL(owner, "No wearer.")
+	var/obj/item/organ/genital/penis/penis = owner.get_organ_slot(ORGAN_SLOT_PENIS)
+	var/datum/bodypart_overlay/mutant/genital/penis/overlay = penis.bodypart_overlay
+	penis.set_size(12)
+	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The hard writer was unavailable.")
+	var/obj/item/clothing/under/dress/skirt/plaid/skirt = allocate(/obj/item/clothing/under/dress/skirt/plaid)
+	TEST_ASSERT(owner.equip_to_slot_if_possible(skirt, ITEM_SLOT_ICLOTHING), "Could not put the skirt on.")
+	var/cut_skirt = drawn_leaf(owner, UNIFORM_LAYER)?.icon
+	TEST_ASSERT(overlay.bulge_anatomy_behind && cut_skirt && cut_skirt == overlay.bulge_cut_icon, "A hard revealing skirt over nothing is not drawn cut to show the penis: the test needs one that is.")
+
+	owner.underwear = /datum/sprite_accessory/clothing/underwear/male_briefs::name
+	owner.update_body()
+	TEST_ASSERT(owner.has_bulge(), "A hard skirt over briefs no longer tents.")
+	TEST_ASSERT(!overlay.bulge_anatomy_mask && !overlay.bulge_anatomy_behind, "The penis was drawn through a skirt over briefs.")
+	TEST_ASSERT(isnull(overlay.bulge_uniform_cut) && drawn_leaf(owner, UNIFORM_LAYER)?.icon != cut_skirt, "A skirt over briefs is still drawn cut.")
+	TEST_ASSERT_EQUAL(owner.bulge_pokes_out(), NONE, "The penis poked out of a skirt over briefs.")
+	owner.underwear = "Nude"
+	owner.update_body()
+	TEST_ASSERT(overlay.bulge_anatomy_behind && drawn_leaf(owner, UNIFORM_LAYER)?.icon == cut_skirt, "The skirt was not cut again once the briefs came off under it.")
+
+	owner.underwear = /datum/sprite_accessory/clothing/underwear/chastcage::name
+	owner.update_body()
+	TEST_ASSERT(!owner.has_bulge(), "A chastity cage under a skirt left a bulge.")
+	TEST_ASSERT(isnull(overlay.bulge_uniform_cut) && drawn_leaf(owner, UNIFORM_LAYER)?.icon != cut_skirt, "A skirt over a chastity cage was drawn cut.")
+	owner.dropItemToGround(skirt)
+
+	// The leotard over nothing shows the head at size 6; a jockstrap under it holds the bulge to the jockstrap's size.
+	var/datum/bulge_family/leotard = /datum/sprite_accessory/clothing/undershirt/nova/leotard::bulge_family
+	var/datum/bulge_family/jockstrap = /datum/sprite_accessory/clothing/underwear/male_kinky::bulge_family
+	owner.underwear = "Nude"
+	owner.undershirt = /datum/sprite_accessory/clothing/undershirt/nova/leotard::name
+	penis.set_size(49)
+	owner.update_body()
+	TEST_ASSERT(overlay.bulge_anatomy_mask, "The leotard over nothing shows no head at size 6: the test needs one that does.")
+	owner.underwear = /datum/sprite_accessory/clothing/underwear/male_kinky::name
+	owner.update_body()
+	TEST_ASSERT_EQUAL(overlay.bulge_template, bulge_shape(leotard, TRUE, initial(jockstrap.hard_cap), FALSE, overlay.sprite_datum.type, penis.uses_skintones), "A jockstrap under the leotard did not hold its bulge to the jockstrap's size.")
+	TEST_ASSERT_NULL(overlay.bulge_anatomy_mask, "The head showed over a leotard worn over a jockstrap.")
+	owner.underwear = "Nude"
+	owner.update_body()
+	TEST_ASSERT(overlay.bulge_anatomy_mask, "The head did not show again once the jockstrap came off under the leotard.")
+
 /// A GAGS recolour of an adaptive garment (a new palette, no new icon) and of a printed one (the print follows), a
 /// dyed garment, and an admin's refresh of the garment's GAGS config from disk.
 /datum/unit_test/portal_test/bulge_renderer/recolours

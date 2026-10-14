@@ -1,0 +1,29 @@
+// THIS IS AN APHELION UI FILE
+// Character setup's muscle inputs under the body type: whether the character's muscles follow their stats, and a slider
+// each for their definition and size. Labels in one column, inputs in the other.
+
+.Muscles {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-xs) var(--space-m);
+  margin-top: var(--space-xs);
+
+  &__label {
+    white-space: nowrap;
+
+    &--hint {
+      cursor: help;
+      text-decoration: underline dotted;
+      text-underline-offset: 0.2em;
+    }
+  }
+
+  &__input {
+    min-width: 0;
+  }
+
+  &__slider {
+    width: 100%;
+  }
+}

@@ -21,11 +21,26 @@ A garment covers the penis only when it is drawn in front of it. With Custom "Ab
 the underwear and undershirt as Nova draws it: no bulge on them and nothing cut, until the player layers it back
 ("Below underwear" or "Hidden by clothes"). A uniform or a suit over it still carries the bulge (mal, 2026-10-04).
 
+Underwear always takes precedence over what is worn over it (Pol, 2026-10-14): "You shouldn't show a dick hanging out
+of a skirt if they're wearing underwear, unless that underwear also has the dick out." The bulge is still drawn on the
+outermost cover, in its cloth, colour, layer and offsets, but underwear worn and drawn under that cover, in front of
+the penis as it is layered, holds the penis in (`bulge_restraint()`, `bulge_held_size()` in `code/look.dm`):
+
+- The cover draws its own shape at the underwear family's cap for the arousal, where the bulge is bigger: a skirt over
+  briefs or a jockstrap still tents, and a jockstrap under the leotard keeps the leotard's bulge at size 4.
+- None of the penis is drawn: no exposed tip or head, no clearance or drape, and the cover is never cut. A hard
+  loincloth over underwear that holds the penis in is not lifted, and draws no bulge.
+- Underwear whose family is `none` (the chastity belt and cage sprites, groin plating) holds it in completely: no bulge
+  on any garment over it.
+- Underwear whose own look would show some of the penis at that size and arousal lets it out, and the cover's look is
+  as it would be without it: past size 4, where its shape leaves anatomy bare (briefs from size 5, long johns' tip hard
+  from size 5), and a loincloth when hard (its drape).
+
 Bulge interactions ask `has_bulge()` (Nova's `lewd_helpers/human.dm`), which is true exactly while a bulge look is
-drawn: not under a suit that hides it, on a garment that draws none, on underwear the body does not draw, or with the
-penis layered above its only cover. Whatever starts or ends a look (arousal, clothing, a device, layering, organs)
-ends in the body update that resolves it, so the answer is current from that update on. `bulge_cover_name()` names
-the garment the look is drawn on.
+drawn: not under a suit that hides it, on a garment that draws none, on underwear the body does not draw, over a
+chastity sprite worn as underwear, or with the penis layered above its only cover. Whatever starts or ends a look
+(arousal, clothing, a device, layering, organs) ends in the body update that resolves it, so the answer is current from
+that update on. `bulge_cover_name()` names the garment the look is drawn on.
 
 `bulge_pokes_out()` (`code/look.dm`) answers what of the penis a drawn look still shows, for the interactions that ask
 for it (`self_pokes_out`, `target_pokes_out`) and anything else: `BULGE_POKES_PAST_CLOTH` while some of it is drawn
@@ -47,8 +62,14 @@ on, such a penis has no bulge interaction and the plain penis interactions inste
 ### How it draws
 
 One renderer, on the penis's own bodypart overlay: a body update asks the overlay whether it draws, and a covered
-penis resolves its look, keeps it, and resolves it again only when something it was resolved from has changed. The
-look's key stands in for the penis's own render key, so the chest's limb icon cache holds a bulge like any limb image.
+penis resolves its look, keeps it, and resolves it again only when something it was resolved from has changed: the
+penis, the slots as drawn, the cover and how it is drawn, and the underwear under the cover, so underwear swapped under
+an unchanged skirt or leotard redraws its look and its cut. The look's key stands in for the penis's own render key, so
+the chest's limb icon cache holds a bulge like any limb image.
+
+Underwear under the cover is read before anything is drawn (above): it can cap the size every shape below is drawn at,
+and take away the anatomy and cut they would draw. `bulge_wanted_cut()`, which a cover's own render asks, decides by the
+same `bulge_held_size()`, so a skirt over underwear that holds the penis in is drawn whole.
 
 - **Plain garments:** the shape's kinds of cloth (cloth, light, highlight, shade, deep shade) as white masks, tinted
   on the client with the adaptive palette of the garment's cloth colour. The masks are derived once per shape; the
@@ -81,8 +102,8 @@ look's key stands in for the penis's own render key, so the chest's limb icon ca
 ### Files
 
 - `code/bulge.dm`: the penis overlay's virtuals, the look's vars, the size rules, the images a look draws.
-- `code/look.dm`: resolving a look: the cover, the suit's verdict, the cloth colour, printed or adaptive; what of the
-  penis a look shows (`bulge_pokes_out()`).
+- `code/look.dm`: resolving a look: the cover, the suit's verdict, the underwear under the cover, the cloth colour,
+  printed or adaptive; what of the penis a look shows (`bulge_pokes_out()`).
 - `code/cut_cover.dm`: drawing a revealing cover cut. `code/redraw.dm`: redrawing on an erection or a new length.
 - `code/print_derivation.dm`: the icons derived on the server: printed patches, kind masks, anatomy kept to a mask,
   cut covers, a cover's blood kept to the cloth.

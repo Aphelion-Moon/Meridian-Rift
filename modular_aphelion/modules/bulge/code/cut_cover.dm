@@ -40,8 +40,8 @@
 
 /**
  * The cut the wearer's look wants for the cover drawn in `slot`: that cover's flap or derived cut while the penis
- * shows hard through it (bulge_cut_for()), else null. Decided as bulge_resolve() decides it, without the drawn
- * appearance.
+ * shows hard through it (bulge_cut_for()), else null: none while underwear under the cover holds the penis in
+ * (bulge_held_size()). Decided as bulge_resolve() decides it, without the drawn appearance.
  */
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_wanted_cut(mob/living/carbon/human/wearer, slot)
 	var/obj/item/organ/genital/penis/penis = wearer.get_organ_slot(ORGAN_SLOT_PENIS)
@@ -51,14 +51,19 @@
 	var/mode = bulge_layering(wearer, penis)
 	if(!mode)
 		return null
-	var/datum/cover = wearer.bulge_cover(bulge_custom_layer(mode))
+	var/chosen_layer = bulge_custom_layer(mode)
+	var/datum/cover = wearer.bulge_cover(chosen_layer)
 	if(!cover || bulge_cover_slot(cover) != slot)
 		return null
 	var/datum/bulge_family/family = bulge_cover_family(cover)
 	if(!family)
 		return null
 	var/digi = isvox(wearer) || (wearer.bodyshape & BODYSHAPE_DIGITIGRADE)
-	return bulge_cut_for(family, bulge_size(penis.genital_size), digi, sprite_datum.type, penis.uses_skintones, bulge_sprite_size(penis.genital_size, penis.max_sprite_size_affix))
+	var/size = bulge_size(penis.genital_size)
+	var/datum/sprite_accessory/clothing/underwear/restraint = wearer.bulge_restraint(chosen_layer, cover)
+	if(restraint && !isnull(bulge_held_size(restraint, TRUE, size, digi, sprite_datum.type, penis.uses_skintones)))
+		return null
+	return bulge_cut_for(family, size, digi, sprite_datum.type, penis.uses_skintones, bulge_sprite_size(penis.genital_size, penis.max_sprite_size_affix))
 
 /**
  * Swaps the drawn sprite of a worn appearance for its cut: the appearance itself, or the first child of the
