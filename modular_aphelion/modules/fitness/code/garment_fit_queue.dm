@@ -191,7 +191,7 @@ SUBSYSTEM_DEF(garment_fitting)
 	var/list/view_colours
 	/// How many views it has, four for each frame, once set up.
 	var/views
-	/// The next view to fit.
+	/// The next of its views to fit, counted in the order they're fitted (GARMENT_FIT_PIECE_VIEW()).
 	var/next_view = 1
 	/// Whether a view changed.
 	var/changed = FALSE
@@ -252,12 +252,31 @@ SUBSYSTEM_DEF(garment_fitting)
 		views = 4 * max(length(delays), 1)
 		return FALSE
 	if(next_view <= views)
-		if(fit_garment_view(garment, next_view, mode, fit, delays, view_colours?[next_view]))
+		if(fit_view(GARMENT_FIT_PIECE_VIEW(next_view, views / 4)))
 			changed = TRUE
 		next_view++
 		return FALSE
 	cache[cache_key] = changed ? finish() : FALSE
 	return TRUE
+
+/**
+ * Fits one view of the sprite in place (fit_garment_view()).
+ *
+ * Arguments:
+ * - view: Which view, numbered as fit_garment_view() numbers them.
+ *
+ * Returns whether the view changed.
+ */
+/datum/garment_fit_job/proc/fit_view(view)
+	return fit_garment_view(garment, view, mode, fit, delays, view_colours?[view], straight_over_pecs(), bares_near_forearm())
+
+/// Whether the garment hangs straight over pecs drawn under it, its chest panel left as drawn (fit_garment_view()).
+/datum/garment_fit_job/proc/straight_over_pecs()
+	return FALSE
+
+/// Whether the garment leaves the near forearm bare in its side views, shown at the arm's own width (fit_garment_view()).
+/datum/garment_fit_job/proc/bares_near_forearm()
+	return FALSE
 
 /// Makes the whole fit now.
 /datum/garment_fit_job/proc/run_to_end()
@@ -378,10 +397,61 @@ SUBSYSTEM_DEF(garment_fitting)
 		view_colours = garment_sheet_metadata(sheet)?["colours"]?[icon_state_to_use]
 	return TRUE
 
+/datum/garment_fit_job/underclothes/straight_over_pecs()
+	return style.hangs_straight_over_pecs()
+
+/datum/garment_fit_job/underclothes/bares_near_forearm()
+	return style.bares_near_forearm()
+
 /datum/garment_fit_job/underclothes/finish()
 	if(cut && !digitigrade_mask)
 		garment = wear_female_version("", "fitted [fit.key] [style.type] [icon_state_to_use]", garment, cut)
 	return fcopy_rsc(garment)
+
+/**
+ * An underclothes style's sprite fitted over flexing pecs (its fit's pec_flex), so the top moves with them: animated as the
+ * flex is, each frame fitted to the pecs on that frame of it (garment_pec_flex()) over one fit of the limbs a view, then cut
+ * for a female body, all as the still fit is. The frames are drawn over a state of the flex's own sheet, so the sprite keeps
+ * its delays and loops as the pecs do. A style whose state is animated itself keeps its still fit.
+ *
+ * Nobody is drawn again for it: a top that starts moving partway through a flex would move out of step with the pecs. A body
+ * that drew it unfitted, its still fit in its place, draws it from its next flex on. So fitted_sprite() queues one for each
+ * flex sheet as soon as the top is drawn over pecs, ahead of any flex, and nobody waits for those.
+ */
+/datum/garment_fit_job/underclothes/flex
+	/// The direction being fitted, fitted to the limbs alone: each of its frames is a copy, fitted on to that frame's pecs.
+	var/datum/garment_fit_view/limb_view
+
+/datum/garment_fit_job/underclothes/flex/wait(mob/living/carbon/human/wearer, redraw)
+	return
+
+/datum/garment_fit_job/underclothes/flex/setup()
+	if(!..() || garment_frame_count(garment) > 1)
+		return FALSE
+	delays = garment_pec_flex(fit.pec_flex)["delays"]
+	var/icon/still = garment
+	garment = icon(fit.pec_flex, icon_states(fit.pec_flex)[1])
+	for(var/frame in 1 to length(delays))
+		for(var/dir in GLOB.cardinals)
+			garment.Insert(icon(still, "", dir), "", dir, frame, 0, delays[frame])
+	return TRUE
+
+/datum/garment_fit_job/underclothes/flex/fit_view(view)
+	var/static/list/view_names = list("S", "N", "E", "W")
+	var/static/list/view_dirs = list(SOUTH, NORTH, EAST, WEST)
+	var/frames = length(delays)
+	var/view_index = ceil(view / frames)
+	var/frame = view - (view_index - 1) * frames
+	// A direction's frames are fitted in order, and its first is still the style's own, as are the front's sleeves.
+	if(frame == 1)
+		limb_view = new(icon(garment, "", view_dirs[view_index], 1), view_names[view_index], fit.sizes, view_colours?[view_index] ? unpack_garment_colours(view_colours[view_index]) : null)
+		limb_view.fit_limbs(mode, garment_front_sleeves(garment, 1, fit.sizes), bares_near_forearm())
+	var/datum/garment_fit_view/fitting = limb_view.copy()
+	fitting.fit_pecs(garment_pec_flex(fit.pec_flex)["shapes"][fit.pec_shape][frame], fit.pec_nipples, mode, straight_over_pecs())
+	if(!fitting.draw())
+		return FALSE
+	garment.Insert(fitting.frame, "", view_dirs[view_index], frame, 0, delays[frame])
+	return TRUE
 
 #undef GARMENT_FIT_MAX_PIECES
 #undef GARMENT_FIT_MAX_FINISH_ROUNDS

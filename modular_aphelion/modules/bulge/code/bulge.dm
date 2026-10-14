@@ -17,6 +17,8 @@
  * - A revealing or curtain skirt: the penis behind the skirt, and over the cloth inside the skirt's clearance.
  * - Past a family's small_cap: the bare part of the penis, inside the exposed mask, over the cloth.
  * - What the cover draws over its own sprite (its blood, its dirt), over the cloth too, kept to the cloth's pixels.
+ * - Over underwear that holds the penis in (look.dm, bulge_held_size()): the cover's own shape at the size the underwear
+ *   holds it to, and none of the penis, nor a cut; nothing at all over a chastity sprite.
  * Anatomy is the penis overlay's own images (and the testicles' behind a cover), restricted by masks where it shows
  * over the cloth; it keeps their colours, emissives, skin textures and LIMB_OVERLAY_* flags. The cloth is clothing: it
  * is drawn without LIMB_OVERLAY_TEXTURED, so the textures a limb draws its skin with leave it alone, and carries
@@ -108,6 +110,8 @@
 	var/bulge_cover_x
 	/// The cover's worn offset from the bottom, as drawn.
 	var/bulge_cover_y
+	/// The underwear under the cover, holding the penis in or letting it out (bulge_restraint()), or null.
+	var/datum/sprite_accessory/clothing/underwear/bulge_restraint
 
 	// The current look; bulge_key is null when there is none.
 	/// The look's render key, standing in for the penis's own.
@@ -320,6 +324,7 @@
 	bulge_cover_over = null
 	bulge_cover_x = null
 	bulge_cover_y = null
+	bulge_restraint = null
 	bulge_key = null
 	bulge_template = null
 	bulge_patch = null

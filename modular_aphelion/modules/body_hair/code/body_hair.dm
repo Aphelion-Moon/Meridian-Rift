@@ -118,6 +118,127 @@
 	var/obj/item/bodypart/head/head = owner.get_bodypart(BODY_ZONE_HEAD)
 	return head?.get_rendered_hair_color() || own
 
+// Pubic hair under a baring underwear keeps only its pixels on bare skin (pubic_hair_clip()); the cache key follows what it's
+// clipped to, so the chest is drawn again when the underwear, the legs or a muscle size changes.
+/datum/bodypart_overlay/mutant/body_hair/pubes/icon_render_key(obj/item/bodypart/limb)
+	. = ..()
+	var/list/parts = pubic_hair_clip(limb)
+	if(parts)
+		. += parts[1]
+
+/datum/bodypart_overlay/mutant/body_hair/pubes/get_overlay(obj/item/bodypart/limb, layer_index, layer_real)
+	. = ..()
+	var/list/parts = pubic_hair_clip(limb)
+	if(!parts)
+		return
+	var/clipped = clip_pubic_hair(sprite_datum.icon, "[sprite_datum.icon_state]_[limb.limb_gender || "m"]", parts)
+	for(var/mutable_appearance/hair as anything in .)
+		hair.icon = clipped
+		hair.icon_state = ""
+
+/**
+ * Returns what this pubic hair is clipped to on `limb`'s owner, while a baring underwear (GLOB.body_hair_baring_clothing) is
+ * worn and drawn over it, its only cover (Pol, 2026-10-14: "on the body, outside the underwear"). The hair is drawn past the
+ * crotch's outline to frame the genitals: over a bare groin that's as drawn, and under such underwear it would float in the
+ * air or show through the underwear's gaps.
+ *
+ * Arguments:
+ * - limb: The chest the hair is drawn on.
+ *
+ * Returns:
+ * - A list: the clip's key first; the underwear, then its state, female cut and whether the GAGS digitigrade mask draws its
+ *   legs, all as make_appearance() draws it before any fitting; then the sheet and state the chest, right leg and left leg
+ *   each draw their own sprite from (/obj/item/bodypart/proc/drawn_sheet()), both null for a part that draws none, like a taur's
+ *   legs.
+ * - null: The hair isn't clipped. Nothing it's drawn under covers the groin, or the hair is on no one.
+ */
+/datum/bodypart_overlay/mutant/body_hair/pubes/proc/pubic_hair_clip(obj/item/bodypart/limb)
+	var/mob/living/carbon/human/owner = limb?.owner
+	if(!ishuman(owner) || owner.underwear == "Nude" || (owner.underwear_visibility & UNDERWEAR_HIDE_UNDIES))
+		return null
+	if(HAS_TRAIT(owner, TRAIT_HUSK) || HAS_TRAIT(owner, TRAIT_INVISIBLE_MAN) || HAS_TRAIT(owner, TRAIT_NO_UNDERWEAR))
+		return null
+	var/datum/sprite_accessory/clothing/underwear/pants = SSaccessories.underwear_list[owner.underwear]
+	if(!pants || !GLOB.body_hair_baring_clothing[pants.type])
+		return null
+	// As the underwear's make_appearance() draws it.
+	var/shape = owner.bodyshape
+	if(isvoxprimalis(owner))
+		shape |= BODYSHAPE_DIGITIGRADE
+	var/digi = pants.digi_icon_state && (shape & BODYSHAPE_DIGITIGRADE)
+	var/cut = owner.physique == FEMALE ? pants.female_sprite_flags : NONE
+	if(cut && (digi || (shape & (BODYSHAPE_TAUR|BODYSHAPE_CERULEAN))))
+		cut = FEMALE_UNIFORM_TOP_ONLY
+	cut = female_cut_over_pecs(owner, cut)
+	var/state = pants.get_icon_state(owner.physique, shape, owner)
+	var/list/body = list()
+	for(var/zone in list(BODY_ZONE_CHEST, BODY_ZONE_R_LEG, BODY_ZONE_L_LEG))
+		var/obj/item/bodypart/part = zone == BODY_ZONE_CHEST ? limb : owner.get_bodypart(zone)
+		var/sheet = part?.drawn_sheet()
+		body += list(sheet, sheet ? custom_sprite_limb_state(part) : null)
+	return list("[pants.type]|[state]|[cut]|[!!digi]|[jointext(body, "|")]", pants, state, cut, !!digi) + body
+
+/**
+ * Returns the sheet this limb's own sprite is drawn from, as get_limb_icon() draws it, or null when it draws none of its own:
+ * a stump, an invisible limb, or a taur's legs, which its taur body stands in for.
+ */
+/obj/item/bodypart/proc/drawn_sheet()
+	if(IS_STUMP(src) || is_invisible || is_actually_just_invisible)
+		return null
+	return custom_sprite_icon_file()
+
+/**
+ * Returns pubic hair clipped to the bare skin under a baring underwear: each of its pixels is kept only where the body is drawn,
+ * the chest and legs, and outside the underwear's span in its row, from the underwear's leftmost pixel there to its rightmost,
+ * each direction on its own (hairclip.py, rule "on the body, outside the underwear"). The hair's colour is the overlay's, so
+ * it's left out: made once a round for each hair state, underwear sprite and body, a cached resource.
+ *
+ * All of it is icon operations on the four directions at once. A row's span is the pixels with underwear at or left of them,
+ * and at or right of them: each found by spreading the underwear's pixels right, or left, by 1, 2, 4, 8 and 16.
+ *
+ * Arguments:
+ * - hair_icon, icon_state: The hair's sheet and state.
+ * - parts: What it's clipped to, from /datum/bodypart_overlay/mutant/body_hair/pubes/proc/pubic_hair_clip().
+ */
+/proc/clip_pubic_hair(hair_icon, icon_state, list/parts)
+	var/static/alist/clipped
+	var/key = "[hair_icon]|[icon_state]|[parts[1]]"
+	. = clipped?[key]
+	if(.)
+		return
+	var/datum/sprite_accessory/clothing/underwear/pants = parts[2]
+	var/state = parts[3]
+	var/cut = parts[4]
+	// The underwear's pixels, then its span in each row, opaque white.
+	var/sheet = pants.greyscale_config ? SSgreyscale.GetColoredIconByType(pants.greyscale_config, pants.greyscale_colors) : pants.icon
+	var/icon/left = cut ? wear_female_version(state, sheet, pants.icon, cut) : icon(sheet, state)
+	if(parts[5])
+		left = apply_icon_mask(left, LEGS_MASK, icon(SSgreyscale.GetColoredIconByType(/datum/greyscale_config/digitigrade_underwear, pants.greyscale_colors), pants.digi_icon_state))
+	left.MapColors(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0)
+	var/icon/right = icon(left)
+	for(var/distance in list(1, 2, 4, 8, 16))
+		var/icon/spread = icon(left)
+		spread.Shift(EAST, distance)
+		left.Blend(spread, ICON_OVERLAY)
+		spread = icon(right)
+		spread.Shift(WEST, distance)
+		right.Blend(spread, ICON_OVERLAY)
+	left.Blend(right, ICON_MULTIPLY)
+	// Everything outside the span.
+	left.MapColors(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 1, 1, 1, 1)
+	// The body: the chest, then each leg that draws its own sprite.
+	var/icon/body = icon(parts[6], parts[7])
+	for(var/index in list(8, 10))
+		if(parts[index])
+			body.Blend(icon(parts[index], parts[index + 1]), ICON_OVERLAY)
+	body.MapColors(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0)
+	body.Blend(left, ICON_MULTIPLY)
+	var/icon/hair = icon(hair_icon, icon_state)
+	hair.Blend(body, ICON_MULTIPLY)
+	. = fcopy_rsc(hair)
+	clipped ||= alist()
+	clipped[key] = .
+
 /// Sets this human's armpit or pubic hair to `style`, growing, restyling or removing the organ to match.
 /mob/living/carbon/human/proc/set_body_hair(feature, style)
 	var/datum/mutant_bodypart/part = dna.mutant_bodyparts[feature]

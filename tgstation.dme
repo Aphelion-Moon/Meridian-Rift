@@ -7434,6 +7434,7 @@
 #include "modular_aphelion\modules\custom_sprites\code\workspace.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc.dm"
 #include "modular_aphelion\modules\department_ooc\code\department_ooc_preference.dm"
+#include "modular_aphelion\modules\fitness\code\female_cut.dm"
 #include "modular_aphelion\modules\fitness\code\fitness_body.dm"
 #include "modular_aphelion\modules\fitness\code\fitness_limbs.dm"
 #include "modular_aphelion\modules\fitness\code\fitness_prefs.dm"

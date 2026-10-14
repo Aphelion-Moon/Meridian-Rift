@@ -1,6 +1,3 @@
-/// The limbs underclothes are fitted to, in the order a garment's fit lists their levels.
-GLOBAL_LIST_INIT(garment_fit_limbs, list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM, BODY_ZONE_R_LEG, BODY_ZONE_L_LEG))
-
 /// Index of a pixel of a 32x32 view in the fitting's pixel lists, from x and y counted from the view's top left from 0, as the
 /// templates give them.
 #define FIT_INDEX(x, y) ((y) * 32 + (x) + 1)
@@ -24,97 +21,157 @@ GLOBAL_LIST_INIT(garment_fit_limbs, list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM, BODY_
  * SSgarment_fitting reads them as the server starts. The file is compiled into the resource file, so a server has it wherever
  * it runs.
  *
- * `limbs` holds, for each limb, fitness level and view ("S", "N", "E" or "W"), the rows its outline grew in as
- * `bands` (y, step back into the limb, new edge, old edge, distance, and whether the row is one an arm grew into above its
- * old top, which only a sleeve is fitted over), its baseline pixels as `core` and its fitted pixels' skin tones as `tones`. The
- * limbs are the arms and legs by zone, and a digitigrade body's legs, "r_leg_digi" and "l_leg_digi". A leg in a side view
- * grows toward both its front and its back.
+ * `limbs` holds, for each limb, muscle size and view ("S", "N", "E" or "W"), the rows its outline grew in as `bands` (y, step
+ * back into the limb, new edge, old edge, distance, and whether the row is one an arm grew into above its old top, which only
+ * a sleeve is fitted over), its baseline pixels as `core`, the upper third of those by rows as `upper_core`, made here for the
+ * sleeve test, and its fitted pixels' skin tones as `tones`. The limbs are the arms and legs by zone, a digitigrade body's
+ * legs, "r_leg_digi" and "l_leg_digi", and "chest_m", a male chest's glutes in the side views at the sizes where they reach
+ * past today's, which has bands alone. A leg in a side view grows toward both its front and its back.
  */
 /proc/garment_fit_templates()
 	var/static/list/templates
 	if(!templates)
 		templates = json_decode(file2text('modular_aphelion/modules/fitness/fitting/fit_templates.json'))
+		for(var/limb, limb_sizes in templates["limbs"])
+			var/list/sizes = limb_sizes
+			for(var/size, size_views in sizes)
+				var/list/views = size_views
+				for(var/view, view_entry in views)
+					var/list/view_template = view_entry
+					view_template["upper_core"] = garment_fit_upper_core(view_template["core"])
 	return templates
 
 /**
- * Returns the templates tops are fitted to pecs with, read from fitting/pec_templates.json the first time they're asked for, as
- * the limb templates are.
+ * Returns the upper third, by rows, of a limb template's baseline pixels: on an arm, what a sleeve covers and a strap over the
+ * shoulder doesn't. The sleeve test reads it (/datum/garment_fit_view/proc/apply_bands(), garment_front_sleeves()).
+ *
+ * Arguments:
+ * - core: The template's baseline pixels, as x, y pairs.
+ */
+/proc/garment_fit_upper_core(list/core)
+	. = list()
+	if(!length(core))
+		return
+	var/top = 31
+	var/bottom = 0
+	for(var/list/core_pixel as anything in core)
+		top = min(top, core_pixel[2])
+		bottom = max(bottom, core_pixel[2])
+	var/cut = top + ceil((bottom - top + 1) / 3)
+	for(var/list/core_pixel as anything in core)
+		if(core_pixel[2] < cut)
+			. += list(core_pixel)
+
+/**
+ * Returns the templates tops are fitted to pecs with, read from fitting/pec_templates.json and fitting/pec_flex_templates.json
+ * the first time they're asked for, as the limb templates are.
  *
  * `centre` is the chest's centre column and `chest` the chest's own outline, per view and row, as its outermost x on each side.
  * `shapes` holds, for each pec shape and view: in front and back views, the pec's outermost x on each side per row as `rows`
  * (null where it has none) and its pixels as `pixels`, also kept by FIT_INDEX() as `mask`; in side views, its bulge past the
  * body's front as `bands`, in the limb templates' form; in the front view, the pixels its smile shades as `smile`, for pecs
- * with and without nipples.
+ * with and without nipples. `flexes` holds, for each pec flex by its sheet's path, the flex's frame `delays` and, for each
+ * shape, its templates of the same form on each frame of the flex as `shapes` (garment_pec_flex()).
  */
 /proc/garment_pec_templates()
 	var/static/list/templates
 	if(!templates)
 		templates = json_decode(file2text('modular_aphelion/modules/fitness/fitting/pec_templates.json'))
+		templates["flexes"] = json_decode(file2text('modular_aphelion/modules/fitness/fitting/pec_flex_templates.json'))["flexes"]
+		// Each shape's templates by view: its still ones, then its ones on each frame of each flex.
+		var/list/shape_templates = list()
 		for(var/shape_name, shape_views in templates["shapes"])
+			shape_templates += list(shape_views)
+		for(var/flex_sheet, flex in templates["flexes"])
+			for(var/shape_name, shape_frames in flex["shapes"])
+				shape_templates += shape_frames
+		for(var/list/shape_views as anything in shape_templates)
 			for(var/view_name, view_template in shape_views)
+				var/list/pec_pixels = view_template["pixels"]
+				if(!length(pec_pixels))
+					continue
 				var/list/mask = new /list(1024)
-				for(var/list/pec_pixel as anything in view_template["pixels"])
+				for(var/list/pec_pixel as anything in pec_pixels)
 					mask[FIT_INDEX(pec_pixel[1], pec_pixel[2])] = TRUE
 				view_template["mask"] = mask
 	return templates
+
+/**
+ * Returns a pec flex's templates, as garment_pec_templates() holds them under `flexes`: its frame `delays`, and its `shapes`,
+ * each shape's templates by view on each of its frames. Null for a sheet that isn't a pec flex's, like a jiggle's, or none.
+ *
+ * Arguments:
+ * - sheet: The sheet a chest animates from (/datum/bodypart_overlay/mutant/genital/breasts/var/animation_icon).
+ */
+/proc/garment_pec_flex(sheet)
+	return sheet ? garment_pec_templates()["flexes"]["[sheet]"] : null
 
 /// Every garment fit, by its key: each is made once and shared (get_garment_fit()), so fitted sprites are cached by it.
 GLOBAL_ALIST_EMPTY(garment_fits)
 
 /**
- * What a garment is fitted to: the fitness level of each limb it fits, and pecs drawn under it. Each is made once and shared
+ * What a garment is fitted to: the muscle size of each limb it fits, and pecs drawn under it. Each is made once and shared
  * (get_garment_fit()): a body keeps its own (/mob/living/carbon/human/var/garment_fit), and fitted sprites are cached by it.
  */
 /datum/garment_fit
-	/// Template limb -> fitness level, for each limb above the baseline, in GLOB.garment_fit_limbs order: "r_arm", "l_arm", and
-	/// the legs by zone or, fitted through their digitigrade templates, "r_leg_digi" and "l_leg_digi".
-	var/list/levels
+	/// Template limb -> muscle size, for each limb above the Normal size, in GLOB.fitness_zones order: "r_arm", "l_arm", the legs
+	/// by zone or, fitted through their digitigrade templates, "r_leg_digi" and "l_leg_digi", and "chest_m" for a male chest's
+	/// glutes.
+	var/list/sizes
 	/// The shape of pecs drawn under the garment, as the pec templates name it ("pecs", "pecs_big" or "pecs_biggest"), or null.
 	var/pec_shape
 	/// Whether those pecs draw nipples. Pecs under underclothes draw their nippleless twin either way; this is the shape's own.
 	var/pec_nipples
+	/// The sheet those pecs flex from, a pec flex's (garment_pec_flex()), or null while they're still. A top over flexing pecs
+	/// is animated with them (/datum/garment_fit_job/underclothes/flex).
+	var/pec_flex
 	/// The fit as text, unique to it.
 	var/key
 	/// This fit with its legs fitted through their digitigrade templates, for digitigrade art: itself when it fits no legs or
 	/// already fits them so.
 	var/datum/garment_fit/digitigrade
-	/// Pec shapes this fit was asked for under a top -> this fit over them. See over_pecs().
-	var/alist/pec_fits
+	/// The fits made from this one, by what they add: a pec shape it was asked for under a top -> this fit over those pecs
+	/// (over_pecs()), and a flex's sheet -> this fit over its pecs flexing from it (flexing()).
+	var/alist/derived_fits
 
-/datum/garment_fit/New(list/levels, pec_shape, pec_nipples, key)
-	src.levels = levels
+/datum/garment_fit/New(list/sizes, pec_shape, pec_nipples, pec_flex, key)
+	src.sizes = sizes
 	src.pec_shape = pec_shape
 	src.pec_nipples = pec_nipples
+	src.pec_flex = pec_flex
 	src.key = key
 
 /**
- * Returns the garment fit to these levels and pecs, made the first time it's asked for.
+ * Returns the garment fit to these muscle sizes and pecs, made the first time it's asked for.
  *
  * Arguments:
- * - levels: Template limb -> fitness level, as /datum/garment_fit has them, or null for no limb above the baseline.
+ * - sizes: Template limb -> muscle size, as /datum/garment_fit has them, or null for no limb above the Normal size.
  * - pec_shape: The shape of pecs drawn under the garment, as /datum/garment_fit has it, or null.
  * - pec_nipples: Whether those pecs draw nipples.
+ * - pec_flex: The sheet those pecs flex from, as /datum/garment_fit has it, or null.
  */
-/proc/get_garment_fit(list/levels, pec_shape, pec_nipples)
+/proc/get_garment_fit(list/sizes, pec_shape, pec_nipples, pec_flex)
 	var/static/list/digitigrade_legs = list(BODY_ZONE_R_LEG = "[BODY_ZONE_R_LEG]_digi", BODY_ZONE_L_LEG = "[BODY_ZONE_L_LEG]_digi")
-	levels ||= list()
+	sizes ||= list()
 	var/key = ""
-	for(var/limb, level in levels)
-		key += "[limb][level]"
+	for(var/limb, size in sizes)
+		key += "[limb][size]"
 	if(pec_shape)
 		key += "[pec_shape][pec_nipples ? "" : "_nippleless"]"
+	if(pec_flex)
+		key += " flexing [pec_flex]"
 	var/datum/garment_fit/fit = GLOB.garment_fits[key]
 	if(fit)
 		return fit
-	fit = new(levels, pec_shape, pec_nipples, key)
+	fit = new(sizes, pec_shape, pec_nipples, pec_flex, key)
 	GLOB.garment_fits[key] = fit
-	var/list/digitigrade_levels = list()
+	var/list/digitigrade_sizes = list()
 	var/has_legs = FALSE
-	for(var/limb, level in levels)
+	for(var/limb, size in sizes)
 		var/digitigrade_leg = digitigrade_legs[limb]
 		has_legs ||= !isnull(digitigrade_leg)
-		digitigrade_levels[digitigrade_leg || limb] = level
-	fit.digitigrade = has_legs ? get_garment_fit(digitigrade_levels, pec_shape, pec_nipples) : fit
+		digitigrade_sizes[digitigrade_leg || limb] = size
+	fit.digitigrade = has_legs ? get_garment_fit(digitigrade_sizes, pec_shape, pec_nipples, pec_flex) : fit
 	return fit
 
 /**
@@ -124,15 +181,30 @@ GLOBAL_ALIST_EMPTY(garment_fits)
  * - shape: The pecs' shape, one with a garment_fit_shape.
  */
 /datum/garment_fit/proc/over_pecs(datum/sprite_accessory/genital/breasts/shape)
-	var/datum/garment_fit/fit = pec_fits?[shape]
+	var/datum/garment_fit/fit = derived_fits?[shape]
 	if(!fit)
-		fit = get_garment_fit(levels, shape.garment_fit_shape, shape.pecs_nipples)
-		pec_fits ||= alist()
-		pec_fits[shape] = fit
+		fit = get_garment_fit(sizes, shape.garment_fit_shape, shape.pecs_nipples)
+		derived_fits ||= alist()
+		derived_fits[shape] = fit
 	return fit
 
 /**
- * Fits a garment's state in place: each direction, and each animation frame, is fitted on its own (fit_garment_view()).
+ * Returns this fit, one over pecs, with the pecs flexing from `sheet`, made the first time it's asked for.
+ *
+ * Arguments:
+ * - sheet: A pec flex's sheet (garment_pec_flex()).
+ */
+/datum/garment_fit/proc/flexing(sheet)
+	var/datum/garment_fit/fit = derived_fits?[sheet]
+	if(!fit)
+		fit = get_garment_fit(sizes, pec_shape, pec_nipples, sheet)
+		derived_fits ||= alist()
+		derived_fits[sheet] = fit
+	return fit
+
+/**
+ * Fits a garment's state in place: each direction, and each animation frame, is fitted on its own (fit_garment_view()), the
+ * front views last (GARMENT_FIT_PIECE_VIEW()).
  *
  * Arguments:
  * - garment: The garment's state, a 32x32 /icon with four directions, named "". Changed in place.
@@ -140,20 +212,26 @@ GLOBAL_ALIST_EMPTY(garment_fits)
  * - fit: What it is fitted to.
  * - delays: An animated state's frame delays, from its sheet, or null for a state of one frame.
  * - view_colours: Each view's colours, as fit_garment_view() takes them, by view, or null to read them from the pixels.
+ * - straight: Whether the garment hangs straight over pecs drawn under it (fit_garment_view()).
+ * - bare: Whether the garment leaves the near forearm bare in its side views at the arm's own width
+ *   (fit_garment_view()).
  *
  * Returns:
  * - The /icon passed in, fitted: some view changed.
  * - null: The fit changes no view, and the garment is drawn as it is.
  */
-/proc/fit_garment_frames(icon/garment, mode, datum/garment_fit/fit, list/delays, list/view_colours)
-	for(var/view in 1 to 4 * max(length(delays), 1))
-		if(fit_garment_view(garment, view, mode, fit, delays, view_colours?[view]))
+/proc/fit_garment_frames(icon/garment, mode, datum/garment_fit/fit, list/delays, list/view_colours, straight, bare)
+	var/frames = max(length(delays), 1)
+	for(var/piece in 1 to 4 * frames)
+		var/view = GARMENT_FIT_PIECE_VIEW(piece, frames)
+		if(fit_garment_view(garment, view, mode, fit, delays, view_colours?[view], straight, bare))
 			. = garment
 
 /**
  * Fits one view of a garment's state in place, one direction's animation frame (/datum/garment_fit_view), and draws it back
  * over the state's own when the fit changes it. A state's views are numbered direction by direction (S, N, E, W), and frame by
- * frame within each.
+ * frame within each. Its arms' sleeves are judged from its frame's front view (garment_front_sleeves()), which must still be
+ * the garment's own: fit the front views last.
  *
  * Arguments:
  * - garment: The garment's state, a 32x32 /icon with four directions, named "". Changed in place.
@@ -164,20 +242,49 @@ GLOBAL_ALIST_EMPTY(garment_fits)
  *   without one, Insert() gives a frame of the first direction a neighbouring frame's delay.
  * - colours: The view's colours and how many pixels have each, packed as garment_sheet_metadata() holds them, for a view of
  *   a static sheet's own state; or null, to read them from its pixels.
+ * - straight: Whether the garment hangs straight over pecs drawn under it, its chest panel left as drawn
+ *   (/datum/sprite_accessory/clothing/proc/hangs_straight_over_pecs()).
+ * - bare: Whether the garment leaves the near forearm bare in its side views at the arm's own width
+ *   (/datum/sprite_accessory/clothing/proc/bares_near_forearm()).
  *
  * Returns whether the view changed.
  */
-/proc/fit_garment_view(icon/garment, view, mode, datum/garment_fit/fit, list/delays, colours)
+/proc/fit_garment_view(icon/garment, view, mode, datum/garment_fit/fit, list/delays, colours, straight, bare)
 	var/static/list/view_names = list("S", "N", "E", "W")
 	var/static/list/view_dirs = list(SOUTH, NORTH, EAST, WEST)
 	var/frames = max(length(delays), 1)
 	var/view_index = ceil(view / frames)
 	var/frame = view - (view_index - 1) * frames
-	var/datum/garment_fit_view/fitting = new(icon(garment, "", view_dirs[view_index], frame), view_names[view_index], fit.levels, colours ? unpack_garment_colours(colours) : null)
-	if(!fitting.fit(mode, fit.pec_shape, fit.pec_nipples))
+	var/datum/garment_fit_view/fitting = new(icon(garment, "", view_dirs[view_index], frame), view_names[view_index], fit.sizes, colours ? unpack_garment_colours(colours) : null)
+	if(!fitting.fit(mode, fit.pec_shape, fit.pec_nipples, garment_front_sleeves(garment, frame, fit.sizes), straight, bare))
 		return FALSE
 	garment.Insert(fitting.frame, "", view_dirs[view_index], frame, 0, delays?[frame])
 	return TRUE
+
+/**
+ * Returns which of a garment's fitted arms it has a sleeve over, judged from its front view, where the arms show whole: fitted
+ * arm -> whether the garment covers at least half of the upper third of the arm's baseline pixels there. A short sleeve
+ * covers the upper arm and counts, where a strap over the shoulder covers a pixel or two of it. Every view's fit uses it
+ * (/datum/garment_fit_view/proc/apply_bands()). Null when no arm is fitted.
+ *
+ * Arguments:
+ * - garment: The garment's state, a 32x32 /icon with four directions, named "", its front views as the garment draws them.
+ * - frame: The animation frame.
+ * - sizes: Template limb -> muscle size, as /datum/garment_fit has them.
+ */
+/proc/garment_front_sleeves(icon/garment, frame, list/sizes)
+	for(var/arm in list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM))
+		var/size = sizes[arm]
+		if(!size)
+			continue
+		var/list/upper_core = garment_fit_templates()["limbs"][arm]["[size]"]["S"]["upper_core"]
+		var/covered = 0
+		for(var/list/core_pixel as anything in upper_core)
+			if(garment.GetPixel(core_pixel[1] + 1, 32 - core_pixel[2], "", SOUTH, frame))
+				covered++
+		if(!.)
+			. = list()
+		.[arm] = length(upper_core) && covered * 2 >= length(upper_core)
 
 /**
  * Returns what garment fitting knows of a sheet without reading its pixels, from fitting/garment_metadata.json, which
@@ -327,8 +434,8 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	var/icon/frame
 	/// The view's key in the templates: "S", "N", "E" or "W".
 	var/view
-	/// Template limb -> its fitness level, as /datum/garment_fit has them.
-	var/list/levels
+	/// Template limb -> its muscle size, as /datum/garment_fit has them.
+	var/list/sizes
 	/// The view's pixels as the fitting has them so far, by FIT_INDEX(): a pixel, or null where the frame isn't read yet.
 	var/list/pixels
 	/// The frame's own pixels, by FIT_INDEX(), wherever read: what the fitted pixels are compared with to draw them.
@@ -343,40 +450,75 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	/// The frame's own colour counts, known without reading its pixels (garment_sheet_metadata()), or null.
 	var/list/frame_colours
 
-/datum/garment_fit_view/New(icon/frame, view, list/levels, list/frame_colours)
+/datum/garment_fit_view/New(icon/frame, view, list/sizes, list/frame_colours)
 	src.frame = frame
 	src.view = view
-	src.levels = levels
+	src.sizes = sizes
 	src.frame_colours = frame_colours
 	pixels = new /list(1024)
 	original = new /list(1024)
 
 /**
- * Fits the view to its limbs in `mode`, then to pecs drawn under it, and draws what changed onto `frame`.
+ * Fits the view to its limbs in `mode` (fit_limbs()), then to pecs drawn under it, still (fit_pecs()), and draws what changed
+ * onto `frame`.
  *
  * Arguments:
  * - mode: A GARMENT_FIT_* define.
  * - pec_shape: The shape of pecs drawn under the garment, as /datum/garment_fit has it, or null.
  * - pec_nipples: Whether those pecs draw nipples.
+ * - sleeves: Fitted arm -> whether the garment has a sleeve over it, from garment_front_sleeves(), or null.
+ * - straight: Whether the garment hangs straight over those pecs (fit_pecs()).
+ * - bare: Whether the garment leaves the near forearm bare in its side views at the arm's own width (fit_limbs()).
  *
  * Returns:
  * - TRUE: The frame changed.
  * - FALSE: Nothing in this view changed, and the frame is the state's own.
  */
-/datum/garment_fit_view/proc/fit(mode, pec_shape, pec_nipples)
+/datum/garment_fit_view/proc/fit(mode, pec_shape, pec_nipples, list/sleeves, straight, bare)
+	fit_limbs(mode, sleeves, bare)
+	if(pec_shape)
+		fit_pecs(garment_pec_templates()["shapes"][pec_shape], pec_nipples, mode, straight)
+	return draw()
+
+/**
+ * Fits the view to its limbs in `mode`: the arms, the legs and a male chest's glutes, then the mode's own shading, then, in a
+ * side view, a sleeve's hem down the bigger arm (close_hem()) and, for a garment that leaves the near forearm bare, that
+ * forearm at its own width (bare_near_forearm()).
+ *
+ * Arguments:
+ * - mode: A GARMENT_FIT_* define.
+ * - sleeves: Fitted arm -> whether the garment has a sleeve over it, from garment_front_sleeves(), or null.
+ * - bare: Whether the garment leaves the near forearm bare in its side views
+ *   (/datum/sprite_accessory/clothing/proc/bares_near_forearm()).
+ */
+/datum/garment_fit_view/proc/fit_limbs(mode, list/sleeves, bare)
 	// A fit has one pair of legs: a digitigrade body's are fitted through their own templates.
 	var/static/list/legs = list(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG, "[BODY_ZONE_R_LEG]_digi", "[BODY_ZONE_L_LEG]_digi")
 	var/pattern = mode == GARMENT_FIT_PATTERN
-	apply_bands(limb_templates(list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM)), pattern)
+	apply_bands(limb_templates(list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM)), pattern, sleeves)
 	apply_bands(limb_templates(legs), pattern)
+	apply_bands(limb_templates(list("chest_m")), pattern)
 	switch(mode)
 		if(GARMENT_FIT_SHADED_SLEEVES)
 			shade_arm_form()
 			darken_moved_edges()
 		if(GARMENT_FIT_KNIT)
 			knit_sleeves()
-	if(pec_shape)
-		fit_pecs(pec_shape, pec_nipples, mode)
+	if(view != "E" && view != "W")
+		return
+	if(sleeves && !pattern)
+		close_hem(sleeves)
+	if(bare)
+		bare_near_forearm()
+
+/**
+ * Draws the pixels the fitting changed onto `frame`.
+ *
+ * Returns:
+ * - TRUE: The frame changed.
+ * - FALSE: Nothing changed, and the frame is the state's own.
+ */
+/datum/garment_fit_view/proc/draw()
 	. = FALSE
 	for(var/index in written_indexes)
 		var/pixel = pixels[index]
@@ -386,16 +528,28 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 		. = TRUE
 
 /**
- * Returns the template of `limb` at its level for this view, or null when the limb isn't fitted.
+ * Returns a copy of the view as fitted so far, on a copy of its frame, which fits on from where this one is and leaves it
+ * as it is: a top over flexing pecs fits each view to its limbs once, and each frame of the flex to the pecs over a copy.
+ */
+/datum/garment_fit_view/proc/copy()
+	var/datum/garment_fit_view/fitting = new(icon(frame), view, sizes, frame_colours)
+	fitting.pixels = pixels.Copy()
+	fitting.original = original.Copy()
+	fitting.written_indexes = written_indexes.Copy()
+	fitting.colour_counts = colour_counts?.Copy()
+	return fitting
+
+/**
+ * Returns the template of `limb` at its muscle size for this view, or null when the limb isn't fitted.
  *
  * Arguments:
  * - limb: A template limb, as /datum/garment_fit names it.
  */
 /datum/garment_fit_view/proc/template_for(limb)
-	var/level = levels[limb]
-	if(!level)
+	var/size = sizes[limb]
+	if(!size)
 		return null
-	return garment_fit_templates()["limbs"][limb]["[level]"][view]
+	return garment_fit_templates()["limbs"][limb]?["[size]"]?[view]
 
 /**
  * Returns the view's pixel at x, y as the fitting has it so far, reading the frame the first time.
@@ -497,11 +651,10 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	return "[colour][copytext(pixel, 8)]"
 
 /**
- * Whether the garment covers at least half of a limb's baseline pixels: a sleeve, which is fitted over the rows the limb grew
- * above its old top. Straps over the shoulder are not.
+ * Whether the garment covers at least half of some of a limb's baseline pixels.
  *
  * Arguments:
- * - core: The limb template's baseline pixels, as x, y pairs.
+ * - core: The pixels, as x, y pairs; none covers nothing.
  */
 /datum/garment_fit_view/proc/covers(list/core)
 	if(!length(core))
@@ -517,24 +670,32 @@ GLOBAL_ALIST_EMPTY(garment_fits)
  * moves its edge pixel out to the new edge and fills the gap with that inside pixel. Pattern: each new pixel copies the pixel 2
  * further in, wherever the garment covers any of the 3 pixels from the old edge in.
  *
+ * A row a limb grew into above its old top is fitted only under a sleeve, so straps over the shoulder stay put. Under a
+ * sleeve, a solid row is also fitted where the garment covers its old edge alone, a hem a pixel thick against the arm's edge,
+ * and its gap takes the edge pixel when the one inside it is bare. An arm's sleeve is judged from the garment's front view
+ * (`sleeves`), anything else's from the upper third of its own baseline pixels in this view; a template without them, like a
+ * pec's, never has one.
+ *
  * Arguments:
- * - templates: The templates, fitted in order: a limb's, or another part of the body's in the same form.
+ * - templates: The templates, fitted in order: template limb -> its template, or a part of the body by any name -> its
+ *   template in the same form.
  * - pattern: Whether to fit as pattern rather than solid.
+ * - sleeves: Template limb -> whether the garment has a sleeve over it, from garment_front_sleeves(), or null.
  */
-/datum/garment_fit_view/proc/apply_bands(list/templates, pattern)
+/datum/garment_fit_view/proc/apply_bands(list/templates, pattern, list/sleeves)
 	begin_pass()
-	for(var/list/template as anything in templates)
-		var/sleeve
+	for(var/name, band_template in templates)
+		var/list/template = band_template
+		var/sleeve = sleeves?[name]
+		if(isnull(sleeve))
+			sleeve = covers(template["upper_core"])
 		for(var/list/band as anything in template["bands"])
 			var/y = band[1]
 			var/step = band[2]
 			var/new_edge = band[3]
 			var/old_edge = band[4]
-			if(band[6])
-				if(isnull(sleeve))
-					sleeve = covers(template["core"])
-				if(!sleeve)
-					continue
+			if(band[6] && !sleeve)
+				continue
 			var/distance = band[5]
 			if(pattern)
 				if(!pixel(old_edge, y) && !pixel(old_edge + step, y) && !pixel(old_edge + 2 * step, y))
@@ -543,13 +704,71 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 					var/x = new_edge + offset * step
 					write(x, y, pixel(x + 2 * step, y))
 				continue
+			var/edge_pixel = pixel(old_edge, y)
 			var/inside = pixel(old_edge + step, y)
-			if(!pixel(old_edge, y) || !inside)
+			if(!edge_pixel || (!inside && !sleeve))
 				continue
-			write(new_edge, y, pixel(old_edge, y))
+			write(new_edge, y, edge_pixel)
+			var/fill = inside || edge_pixel
 			for(var/offset in 1 to distance)
-				write(new_edge + offset * step, y, inside)
+				write(new_edge + offset * step, y, fill)
 	end_pass()
+
+/**
+ * Side views, under a sleeve: the sleeve covers the arm down to where today's arm begins, so each of the bigger arm's pixels in
+ * those rows the garment leaves bare takes the colour of the nearest garment pixel in its row, the one nearer the left first.
+ * Works on the view in place, one pixel after another, so a filled pixel counts for the next. Never for a pattern, whose gaps
+ * are its own.
+ *
+ * Arguments:
+ * - sleeves: Fitted arm -> whether the garment has a sleeve over it, from garment_front_sleeves().
+ */
+/datum/garment_fit_view/proc/close_hem(list/sleeves)
+	for(var/arm in list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM))
+		if(!sleeves[arm])
+			continue
+		var/list/template = template_for(arm)
+		if(!length(template?["core"]))
+			continue
+		var/top = 31
+		for(var/list/core_pixel as anything in template["core"])
+			top = min(top, core_pixel[2])
+		for(var/list/tone as anything in template["tones"])
+			var/x = tone[1]
+			var/y = tone[2]
+			if(y > top || pixel(x, y))
+				continue
+			for(var/distance in 1 to 31)
+				var/nearest = pixel(x - distance, y) || pixel(x + distance, y)
+				if(nearest)
+					write(x, y, nearest)
+					break
+
+/**
+ * Side views, for a garment that leaves the near forearm bare below its sleeve, like the polo shirts
+ * (/datum/sprite_accessory/clothing/proc/bares_near_forearm()): the forearm shows at the bigger arm's own width.
+ *
+ * A forearm row is one where the garment as drawn leaves some of today's near arm bare. In each, the garment is cleared over
+ * the whole near arm of the fitted size. That also takes away the strip a polo edges its cut-out with, which apply_bands()
+ * moves out across the bigger arm as it would a sleeve's one-pixel hem. Rows where the garment covers all of today's arm,
+ * its sleeve, are left as fitted. The near arm is the right one facing east and the left one facing west; one at the Normal
+ * size has no template, and nothing changes.
+ */
+/datum/garment_fit_view/proc/bare_near_forearm()
+	var/list/template = template_for(view == "E" ? BODY_ZONE_R_ARM : BODY_ZONE_L_ARM)
+	if(!template)
+		return
+	// The forearm rows, by y + 1: those the garment as drawn leaves some of today's arm bare in.
+	var/list/rows = new /list(32)
+	for(var/list/core_pixel as anything in template["core"])
+		var/x = core_pixel[1]
+		var/y = core_pixel[2]
+		pixel(x, y)
+		if(!original[FIT_INDEX(x, y)])
+			rows[y + 1] = TRUE
+	for(var/list/tone as anything in template["tones"])
+		if(rows[tone[2] + 1])
+			write(tone[1], tone[2], 0)
 
 /**
  * Shaded sleeves, first step: the garment's brightest colour over an arm takes the arm's muscle tone, mapped into the
@@ -564,7 +783,8 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	if(!length(ramp))
 		return
 	begin_pass()
-	for(var/list/template as anything in arm_templates)
+	for(var/arm, arm_template in arm_templates)
+		var/list/template = arm_template
 		for(var/list/tone as anything in template["tones"])
 			var/pixel = pixel(tone[1], tone[2])
 			if(pixel && copytext(pixel, 1, 8) == ramp[1])
@@ -580,7 +800,8 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 		return
 	var/list/ramp = ramp()
 	begin_pass()
-	for(var/list/template as anything in arm_templates)
+	for(var/arm, arm_template in arm_templates)
+		var/list/template = arm_template
 		for(var/list/band as anything in template["bands"])
 			var/pixel = pixel(band[3], band[1])
 			if(!pixel)
@@ -591,7 +812,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	end_pass()
 
 /**
- * Returns the templates of the fitted ones of `limbs` for this view, in order.
+ * Returns the fitted ones of `limbs` for this view, in order: template limb -> its template.
  *
  * Arguments:
  * - limbs: Template limbs, as /datum/garment_fit names them.
@@ -601,7 +822,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	for(var/limb in limbs)
 		var/list/template = template_for(limb)
 		if(template)
-			. += list(template)
+			.[limb] = template
 
 /**
  * Ribbed knit sleeves: each sleeve's ribs laid again from its outer edge, in columns anchored to its widest row, its shadow
@@ -620,7 +841,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	var/list/walks = sleeve_walks[view]
 	var/any_sleeve = FALSE
 	for(var/limb in walks)
-		any_sleeve ||= levels[limb]
+		any_sleeve ||= sizes[limb]
 	if(!any_sleeve)
 		return
 	var/list/ramp = ramp()
@@ -641,7 +862,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 		var/list/arm_templates = list(template)
 		if(side_view)
 			for(var/other_limb in list(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM))
-				if(other_limb != limb && levels[other_limb])
+				if(other_limb != limb && sizes[other_limb])
 					arm_templates += list(template_for(other_limb))
 		for(var/list/arm_template as anything in arm_templates)
 			for(var/list/tone as anything in arm_template["tones"])
@@ -741,35 +962,43 @@ GLOBAL_ALIST_EMPTY(garment_fits)
  * pixel for pixel equal to.
  *
  * Front and back views: where a pec reaches the chest's own side, the garment's chest panel moves out over it
- * (pec_panel_bands()), then the front view shades the pecs' lower curve, in the modes the GARMENT_FIT_PEC_SMILE_* defines
- * pick (shade_pec_smile()). Side views: the pec's bulge past the body's front is fitted as a limb's bands are.
+ * (pec_panel_bands()), unless the garment hangs straight over the pecs, then the front view shades the pecs' lower curve, in
+ * the modes the GARMENT_FIT_PEC_SMILE_* defines pick (shade_pec_smile()). Side views: the pec's bulge past the body's front
+ * is fitted as a limb's bands are.
  *
  * Arguments:
- * - shape: The pecs' shape, as the pec templates name it.
+ * - templates: The pecs' templates by view: their shape's still ones, or its ones on one frame of a flex
+ *   (garment_pec_flex()).
  * - nipples: Whether the pecs draw nipples, which picks the smile's pixels.
  * - mode: A GARMENT_FIT_* define.
+ * - straight: Whether the garment hangs straight over the pecs, its chest panel left as drawn and the pecs peeking out past
+ *   it at the armholes.
  */
-/datum/garment_fit_view/proc/fit_pecs(shape, nipples, mode)
+/datum/garment_fit_view/proc/fit_pecs(list/templates, nipples, mode, straight)
 	var/static/list/smiles = list(
 		GARMENT_FIT_SOLID = GARMENT_FIT_PEC_SMILE_SOLID,
 		GARMENT_FIT_SHADED_SLEEVES = GARMENT_FIT_PEC_SMILE_SHADED_SLEEVES,
 		GARMENT_FIT_KNIT = GARMENT_FIT_PEC_SMILE_KNIT,
 		GARMENT_FIT_PATTERN = GARMENT_FIT_PEC_SMILE_PATTERN,
 	)
-	var/list/template = garment_pec_templates()["shapes"][shape][view]
+	var/list/template = templates[view]
 	var/pattern = mode == GARMENT_FIT_PATTERN
 	if(view == "E" || view == "W")
-		apply_bands(list(template), pattern)
+		apply_bands(list("pecs" = template), pattern)
+		return
+	var/smile = view == "S" && smiles[mode]
+	if(straight && !smile)
 		return
 	var/list/brightness = ramp()
 	if(!length(brightness))
 		return
-	var/list/bands = pec_panel_bands(template, brightness)
-	if(pattern)
-		apply_bands(list(list("bands" = bands)), TRUE)
-	else
-		move_panel_edges(bands, fill_colour(brightness), mode == GARMENT_FIT_KNIT)
-	if(view == "S" && smiles[mode])
+	if(!straight)
+		var/list/bands = pec_panel_bands(template, brightness)
+		if(pattern)
+			apply_bands(list("panel" = list("bands" = bands)), TRUE)
+		else
+			move_panel_edges(bands, fill_colour(brightness), mode == GARMENT_FIT_KNIT)
+	if(smile)
 		shade_pec_smile(template["smile"][nipples ? "nipples" : "nippleless"])
 
 /**
