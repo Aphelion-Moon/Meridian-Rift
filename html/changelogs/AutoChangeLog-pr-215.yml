@@ -1,0 +1,5 @@
+author: "IsBannedFromArgo"
+delete-after: True
+changes:
+  - qol: "Adjustable Balaclava now uses a radial menu to select its state (and has a rolled-up state to match other balaclavas!)"
+  - bugfix: "fixed Three-Hole/Adjustable Balaclavas not properly covering what they were meant to when toggled, as well as related broken icons"
