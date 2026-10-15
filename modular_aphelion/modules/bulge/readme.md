@@ -114,7 +114,7 @@ same `bulge_held_size()`, so a skirt over underwear that holds the penis in is d
 - `code/colour_cache.dm`, `code/adaptive_colour.dm`: the cloth colour sampler and the adaptive palette.
 - `code/interaction_text.dm`: the armpit interactions' pit-hair texts.
 - `icons/templates/`: 5 sheets, 460 states: the shapes up to small_cap, the skirts' clearances and flaps and the large
-  heart boxers, described in `icons/README.md`. `tools/bulge_assets.py` checks, re-encodes and previews them and
+  heart boxers, described in `icons/README.md`. `lab/bulge/bulge_assets.py` checks, re-encodes and previews them and
   names what is derived.
 - Outside the module: `code/__DEFINES/~aphelion_defines/bulge.dm`; two calls to `bulge_cut_worn()` in
   `human_update_icons.dm`; `bulge_cached_output_matches()`
@@ -149,7 +149,7 @@ Upstream changes to these sheets will conflict with ours; take upstream's change
 ### Adding or editing a shape
 
 Up to a family's small_cap, draw it in its sheet under the name the accessors compute (`icons/README.md`), in the
-five kind greys, and run `python tools/bulge_assets.py verify`, then `python tools/bulge_assets.py fix` if it reports a
+five kind greys, and run `python lab/bulge/bulge_assets.py verify`, then `python lab/bulge/bulge_assets.py fix` if it reports a
 sheet that is not an 8-bit palette PNG: Dream Maker re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot
 read. A garment look that no family's shapes give is a new family subtype in `code/families.dm`.
 
@@ -199,9 +199,9 @@ or warns somewhere you did not touch, look at the names your change added before
 
 ### Checks
 
-- `python tools/bulge_assets.py verify`: every sheet (it prints each one's state count), name and identity, the names
+- `python lab/bulge/bulge_assets.py verify`: every sheet (it prints each one's state count), name and identity, the names
   past small_cap that are derived, and that every sheet is an 8-bit palette PNG (only the tool checks that). Dream Maker
-  re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot read: then run `python tools/bulge_assets.py fix`,
+  re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot read: then run `python lab/bulge/bulge_assets.py fix`,
   which re-encodes them at 8 bits with the same pixels and DMI metadata and prints the proof.
 - The ordinary unit tests:
   - `bulge_manifest` pins every family's data, every sheet's MD5, and for every garment type with a bulge value what
@@ -239,9 +239,9 @@ found to `data/bulge_manifest.txt`. Before copying that over the committed file:
 
 1. Diff the two. On a garment line, a new worn file or state is a re-sprite, `groin=0` means the garment no longer
    covers the groin (no bulge), a new `gags=` or `colours=` changes the colour the cloth is sampled from.
-2. Look at it. `python tools/bulge_assets.py find <garment type>` prints the garment's family, `find <family type>` that
+2. Look at it. `python lab/bulge/bulge_assets.py find <garment type>` prints the garment's family, `find <family type>` that
    family's `shapes=` name, and `find <that name>` the sheet states and derived templates named after it; then
-   `python tools/bulge_assets.py preview <state> --output <folder> --garment <worn file>:<worn state>` draws a shape
+   `python lab/bulge/bulge_assets.py preview <state> --output <folder> --garment <worn file>:<worn state>` draws a shape
    over the garment's sprite as the server derives it (printed, cut, clearance). Preview it over the old sprite
    (`git show`) and the new, side by side. For a family or sheet line, preview the states it changes.
 3. Run `bulge_render_corpus/pixels`, and the full corpus for anything beyond a garment or two.

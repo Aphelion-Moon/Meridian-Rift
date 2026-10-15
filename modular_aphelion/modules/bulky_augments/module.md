@@ -131,8 +131,9 @@ augment item with the finish kept keeps them.
   `default`, `presets` (`{name, colors}`) and `zones` (zone to `{paint, glow}`, 0 or 1, read from the paint sheet), the
   editor's `swatches`, `metal` for paint, accent and frame, and `lights`, and `brands`: each brand style by name, with its
   `key` and the `zones` it has sprites for (below);
-- window data: `augment_colors` (slot to colour string), `augment_paint_skin` (`{color, humanoid}`: the preview body's
-  chest colour, and whether it is a mutant colour) and `augment_paint_emissive` (whether the lights glow);
+- window data: `augment_colors` (slot to colour string), `augment_paint_skin` (`{color, humanoid, feminine}`: the preview
+  body's chest colour, whether it is a mutant colour, and whether the body is drawn feminine, its `limb_gender` "f", so a
+  dimorphic brand head or chest tries on as `head_f` or `chest_f`) and `augment_paint_emissive` (whether the lights glow);
 - the `augment_paint` spritesheet, sent with the window;
 - the actions `set_augment_colors {slot, colors}` (a colour string, or null for the finish's default) and
   `copy_augment_colors {slot}` (to every slot wearing a recolourable finish). Each needs a slot wearing a recolourable finish,
@@ -154,8 +155,8 @@ views, which the editor recolours on the client:
 - `augment_paint32x32 body-<dir>`, the Muscular body, the preview's silhouette.
 
 `/datum/asset/spritesheet_batched/augment_brands` (`code/assets.dm`) holds the finish picker's try-on sprites,
-`augment_brands32x32 brand-<key>-<zone>-<dir>`: each brand style's limbs as the game draws them. They are about 141 KB (680
-sprites, against the finishes' 162 KB), and only the finish picker's try-on uses them. So they are not sent with the window,
+`augment_brands32x32 brand-<key>-<zone>-<dir>`: each brand style's limbs, head and chest as the game draws them. They are
+about 240 KB (932 sprites, against the finishes' 162 KB), and only the finish picker's try-on uses them. So they are not sent with the window,
 which would make every preferences open pay for them. The window asks for the sheet once, in the background, as the Augments room is about to be needed
 (`augment_brand_sprites`), and nobody who stays away from it loads it.
 
@@ -163,17 +164,21 @@ A brand sprite is the state an augment limb in that style draws (`augment_brand_
 `apply_style_to_limb()` and `get_limb_icon()` resolve it: `<limb id>_<zone>` in the style's icon, the limb id being the
 style's `limb_id_override` or `robotic`, which every styled augment limb has. An arm's hand comes with it. A digitigrade leg
 is the zone `r_leg_digi` or `l_leg_digi`, state `<limb id>_<leg>_digi`, only for a style that keeps the digitigrade shape
-(`has_digi` and no `bodyshape_override` dropping it): the others draw their plain leg on a digitigrade body. Only zones a
-slot can wear the style on, and states with four directions, are in. `key` is the last part of the style's type
+(`has_digi` and no `bodyshape_override` dropping it): the others draw their plain leg on a digitigrade body. A head and a
+chest are the zones `head` and `chest`. Where the style's `dimorphic_overrides` make one dimorphic, the game ends its state
+in the body's `limb_gender`: `head` or `chest` is then the masculine body's `<limb id>_<zone>_m`, and `head_f` or `chest_f`
+every other body's `<limb id>_<zone>_f`. The robotic head and chest a styled augment is aren't dimorphic of themselves, so
+the brands without overrides have plain `<limb id>_head` and `<limb id>_chest`. Only zones a slot can wear the style on,
+and states with four directions, are in. `key` is the last part of the style's type
 (`augment_brand_key()`). A brand sprite is drawn as is; the game tints it with the body's skin when its augment item draws
 greyscale, which character setup's augment items carry as `uses_greyscale`.
 
 A styled augment item also carries `default_style` (`build_augment_choices()`), the brand whose sprites are exactly its own
 plantigrade look with no style chosen, which the finish picker tries on for "None": apply()'s look, the limb type's icon, or
-its greyscale icon, and state in its zone, an arm's hand coming with it. The Cyborg arms and legs take `Cyborg` and the
-Prosthetic ones `Surplus`, greyscale variants included. Heads and chests take none, since the brand sprites leave them out,
-and for them hovering "None" draws nothing. A leg tries "None" on only on a plantigrade body: on a digitigrade body it
-becomes a digitigrade cybernetic leg (`digitigrade_parts.dmi`), which no brand draws, so the room shows no leg there.
+its greyscale icon, and state in its zone, an arm's hand coming with it. The Cyborg head, chest, arms and legs take
+`Cyborg` and the Prosthetic arms and legs `Surplus`, greyscale variants included. A leg tries "None" on only on a
+plantigrade body: on a digitigrade body it becomes a digitigrade cybernetic leg (`digitigrade_parts.dmi`), which no brand
+draws, so the room shows no leg there.
 
 Iconforge makes both sheets from the game's icons, in the background at init (`SSasset_loading`), and the batched
 spritesheets' smart cache keeps them across rounds, so each is made once per change of its icons.
@@ -185,42 +190,47 @@ a lights-off view; the finish's presets; a row per channel with a picker and qui
 to default. Nothing reaches the server until Apply, a preset, a copy or a reset. With `allow_emissives` off, the lights row
 says the lights won't glow until it's on.
 
-In the finish picker, a part's finishes are thumbnails (`thumbs.tsx`), four to a row: "None" first, then the recolourable
-finishes and the brand styles under headings of their own. Each is the slot's limb in that finish facing south, drawn up
-four times in a crop that holds the slot's limbs in every style: a recolourable finish in its default colours, or the
-slot's own on the one it wears, a brand in its sprites, tinted with the skin where the item draws greyscale, and "None" in
-the augment's own look, or crossed out where it has none. A check marks the installed finish and a palette a recolourable
-one, and each tile's accessible name says both. One floating tooltip names the tile under the pointer or the keyboard,
-below its tile where there's no room above and moved along to keep 8 px inside the window. The search narrows the tiles,
-scrolling stops on whole rows, and the picker opens with the installed finish's row in full view; the arrow keys go round
-the grid, Home and End to its ends, and Tab leaves it. Until the brand sheet comes, a brand tile shows the body's
-silhouette faintly, and fills in where it stands. A tile's art is drawn once from its sprites and colours and kept: the
-tiles in view draw before the picker's first frame and the rest once the window is idle, and once the stage has shown and
-the window is idle, every limb's thumbnails are drawn ahead a few at a time, which a press or a key puts off.
+In the finish picker, a part's finishes are thumbnails (`thumbs.tsx`), four to a row: "None" first, then the
+recolourable finishes and the brand styles under headings of their own. A head and a chest, which take no recolourable
+finish, show "None" and the brand styles. Each is the slot's part in that finish facing south, drawn up four times in a
+crop that holds the slot's part in every style: a recolourable finish in its default colours, or the slot's own on the
+one it wears, a brand in its sprites, tinted with the skin where the item draws greyscale, and "None" in the augment's
+own look, or crossed out where it has none. A check marks the installed finish and a palette a recolourable one, and
+each tile's accessible name says both. One floating tooltip names the tile under the pointer or the keyboard, below its
+tile where there's no room above and moved along to keep 8 px inside the window. The search narrows the tiles, scrolling
+stops on whole rows, and the picker opens with the installed finish's row in full view; the arrow keys go round the
+grid, Home and End to its ends, and Tab leaves it. Until the brand sheet comes, a brand tile shows the body's silhouette
+faintly, and fills in where it stands. A tile's art is drawn once from its sprites and colours and kept: the tiles in
+view draw before the picker's first frame and the rest once the window is idle, and once the stage has shown and the
+window is idle, every slot's thumbnails are drawn ahead a few at a time, which a press or a key puts off.
 
 The finish under the pointer or the keyboard is tried on the body scan at once, client side, as the markings room tries
 markings on: its sprites from the `augment_paint` sheet, or a brand finish's from `augment_brands`, drawn over the
-scan's facing and lined up with it, with the limb it replaces masked out of the character through the preview's region
-map, and a far leg in profile kept behind the near one. The finish the part wears is not tried on, and "None" shows the
-augment's own look when its item names a brand style for it (`default_style`), except on a digitigrade body's leg, where
-it shows nothing. A finish whose sprites can't be drawn yet, as a brand finish's before its sheet has come, changes
-nothing on the body until they can. The window asks for that sheet once the pointer or the keyboard rests 100 ms on the
-Augments+ tab or the room's Augments button, or once the stage has shown and the window is idle, and a window opened
-again asks again, in case an ask went unanswered. On a digitigrade body every slot offers only the styles with
-digitigrade sprites, the ones the server keeps there. Only a pick reaches the server. A press anywhere outside an open
-picker or editor closes it, except on the window's drag and resize handles and on the scan's rotate buttons and lights
-key, which sit over the stage's scrim so the character can be turned and lit with one open. What is tried on stays on
-through the trip to them and while they are used: tiles or rows the pointer crosses heading out for them don't take
-over, and it comes off once the pointer rests anywhere else. The scan has the other previews' lights key, and each
-card's trace lands on its part's pixels in the scan's current facing: a part hidden in that facing lands on its pair, a
-missing limb keeps its card's fixed port, and a taur's legs land on its taur body.
+scan's facing and lined up with it, with the part it replaces masked out of the character through the preview's region
+map, and a far leg in profile kept behind the near one. A brand's head or chest on a body drawn feminine
+(`augment_paint_skin.feminine`) is its feminine sprite, where it has one. The visible augments' own pixels, a pair of
+cybernetic eyes or an implant's overlay, stay over what's tried on, as the game draws them over the part; the rest of
+what's drawn over a head goes with its pixels, as the preview is one picture, and a Cyborg head draws no hair. The
+finish the part wears is not tried on, and "None" shows the augment's own look when its item names a brand style for it
+(`default_style`), except on a digitigrade body's leg, where it shows nothing. A finish whose sprites can't be drawn
+yet, as a brand finish's before its sheet has come, changes nothing on the body until they can. The window asks for that
+sheet once the pointer or the keyboard rests 100 ms on the Augments+ tab or the room's Augments button, or once the
+stage has shown and the window is idle, and a window opened again asks again, in case an ask went unanswered. On a
+digitigrade body every slot offers only the styles with digitigrade sprites, the ones the server keeps there. Only a
+pick reaches the server. A press anywhere outside an open picker or editor closes it, except on the window's drag and
+resize handles and on the scan's rotate buttons and lights key, which sit over the stage's scrim so the character can be
+turned and lit with one open. What is tried on stays on through the trip to them and while they are used: tiles or rows
+the pointer crosses heading out for them don't take over, and it comes off once the pointer rests anywhere else. The
+scan has the other previews' lights key, and each card's trace lands on its part's pixels in the scan's current facing:
+a part hidden in that facing lands on its pair, a missing limb keeps its card's fixed port, and a taur's legs land on
+its taur body.
 
 **Not done yet:**
 
 - Digitigrade art. Like every brand finish, these draw plantigrade legs on a digitigrade body (`bodyshape_override =
   BODYSHAPE_HUMANOID` with `has_digi`), and the body's clothes follow its legs. Digi art needs `_digi` states, on the
   Muscular digi outline (`mammal_*_leg_digi` in the size sheets), and each finish's `bodyshape_override` dropped.
-- Heads and chests.
+- Recolourable heads and chests: the finishes are arms and legs only, while brand styles try on everywhere.
 - Recolouring in the round: colours are set in character setup and travel with the limb.
 - The spraycan restyle, which hands `image()` a `/datum/robotic_style` (`crayons.dm`) and so breaks every finish.
 - Lit hands. A finish whose art lit a hand but not its arm would not glow there: the glow follows the limb's own zone.
@@ -264,6 +274,8 @@ missing limb keeps its card's fixed port, and a taur's legs land on its taur bod
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx`: the Augments+ tab asks for the brand sprites
   on intent
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/Room.tsx`: the room's Augments button does too
+- `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/regions.ts`: `regionsMask()` leaves out
+  another map's pixels, the visible augments a try-on keeps over it
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/augments/`: `index.tsx`, `parts.ts`,
   `brands.ts`, `paint.tsx`, `thumbs.tsx`, `tried.ts`, `tryOn.tsx`, `brands.test.tsx`, `paint.test.tsx`, `picker.test.tsx`,
   `stage.test.tsx` and `tryOn.test.tsx`

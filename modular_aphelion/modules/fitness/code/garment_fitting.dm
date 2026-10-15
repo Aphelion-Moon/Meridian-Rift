@@ -288,7 +288,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 
 /**
  * Returns what garment fitting knows of a sheet without reading its pixels, from fitting/garment_metadata.json, which
- * tools/fitness/gen_garment_metadata.py writes: `sleeves`, its states whose own sleeves pick shaded sleeves -> TRUE, and `colours`,
+ * lab/fitness/gen_garment_metadata.py writes: `sleeves`, its states whose own sleeves pick shaded sleeves -> TRUE, and `colours`,
  * for each state whose fits read whole views, those views' colours as fit_garment_view() takes them, or null for a view read
  * from its pixels. Null for a sheet it doesn't know, like a generated icon, or one that changed after the file was written:
  * those are read from their pixels.
@@ -661,7 +661,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
  * frame's own counts and what has been written over them, when they're known, otherwise by reading the whole view.
  *
  * Brightness is 299 R + 587 G + 114 B, the spec's luminance in whole numbers. Colours as bright as each other keep the order
- * they were counted in, which only a read gives; tools/fitness/gen_garment_metadata.py leaves out the views that have any.
+ * they were counted in, which only a read gives; lab/fitness/gen_garment_metadata.py leaves out the views that have any.
  */
 /datum/garment_fit_view/proc/ramp()
 	if(!colour_counts && frame_colours)

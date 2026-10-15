@@ -5,7 +5,7 @@
  * heart boxers' large prints, the shorter loincloths' own drapes and cuts, each revealing skirt's hem).
  *
  * bulge_template_identities: every identity the families declare resolves to a template, in a sheet or derived; every
- * state of the sheets is reached by one and holds what its sheet may hold, as `tools/bulge_assets.py verify` checks
+ * state of the sheets is reached by one and holds what its sheet may hold, as `lab/bulge/bulge_assets.py verify` checks
  * them (CI runs this test, not the tool); and the identities resolved, by kind, are the frozen record's.
  *
  * bulge_derivation: what is derived past small_cap is the frozen record of the sheet states it replaced;
@@ -132,7 +132,7 @@
 
 /**
  * Every identity the families declare resolves through the accessors, to a state in the template sheets or to one
- * derived at run time, and every state of the sheets is reached by one: the identities `tools/bulge_assets.py verify`
+ * derived at run time, and every state of the sheets is reached by one: the identities `lab/bulge/bulge_assets.py verify`
  * declares. For every family that draws, in both forms, at every size up to its cap and on both legs: its shape (past
  * small_cap one per penis shape, with and without skin tones where the shape has them, derived), the anatomy that shape
  * leaves bare (derived; none where it covers the penis), a skirt's flap and (on either legs) its clearance, a printed
@@ -221,7 +221,7 @@
 
 /**
  * What is wrong with a state of a template sheet (`metadata`: its DMI metadata, icon_metadata()), or null, as
- * `tools/bulge_assets.py verify` judges it: four directions and one frame; a kind map (the small cloth shapes, skirt
+ * `lab/bulge/bulge_assets.py verify` judges it: four directions and one frame; a kind map (the small cloth shapes, skirt
  * shapes) holds only the five kind greys, opaque, and a mask (skirt clearances and flaps) only opaque white, neither
  * drawn facing north; a precoloured patch (the large heart boxers) holds any colour, any way. The PNG's bit depth is the
  * tool's to check.

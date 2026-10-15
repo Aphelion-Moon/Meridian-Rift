@@ -41,7 +41,7 @@ import {
 import { paintMatrices, tintMatrix } from './paint';
 import type { StagePart } from './parts';
 import { setTried } from './tried';
-import { noFinishStyle, type TryOn, tryOnOf } from './tryOn';
+import { bodyOf, noFinishStyle, type TryOn, tryOnOf } from './tryOn';
 
 /** A finish, as the picker offers it: index.tsx's options for the finish field. */
 export type FinishOption = {
@@ -65,25 +65,34 @@ const GRID_KEYS = [
   'End',
 ];
 /**
- * Each limb slot's crop on the 32 px cell, facing south, left, top, right and
- * bottom: its limbs in every style together, an arm's hand included, as the
+ * Each slot's crop on the 32 px cell, facing south, left, top, right and
+ * bottom: its part in every style together, an arm's hand included, as the
  * augment_paint and augment_brands sheets draw them; a digitigrade leg's
- * sprites sit inside its plain leg's. Measured from the generated sheets.
+ * sprites sit inside its plain leg's, and a head's or chest's feminine
+ * sprites are in its box. Measured from the generated sheets.
  */
 const CROPS: Record<string, readonly [number, number, number, number]> = {
+  Head: [10, 1, 21, 13],
+  Chest: [9, 9, 22, 24],
   'Right Arm': [6, 10, 13, 25],
   'Left Arm': [18, 10, 25, 25],
   'Right Leg': [9, 18, 16, 32],
   'Left Leg': [15, 18, 22, 32],
 };
+
+/** Whether a part's finish picker shows thumbnails: a slot the sheets draw, with a crop. */
+export const hasThumbnails = (part: StagePart) =>
+  Object.hasOwn(CROPS, part.socket.slot);
+
 /** The body's silhouette, which a tile shows faintly until its own sprites can be drawn. */
 const BODY = 'augment_paint32x32 body-south';
 const NO_FINISH = 'None';
 
 // Each thumbnail's art at 1x, by what it draws, drawn once and kept, as
-// Thumb.tsx keeps its tints: a picker opened again only copies it up.
+// Thumb.tsx keeps its tints: a picker opened again only copies it up. In the
+// order it was last used, so the least recently used goes first.
 const drawn = new Map<string, HTMLCanvasElement>();
-/** How many pieces of art are kept before they are dropped and drawn again as needed. */
+/** How many pieces of art are kept, the least recently used dropped past it and drawn again if needed. */
 const DRAWN_KEPT = 256;
 
 /** The art a tile draws for a finish, drawn from its sprites or kept. */
@@ -96,6 +105,8 @@ function thumbArt(
 ) {
   let art = drawn.get(key);
   if (art) {
+    drawn.delete(key);
+    drawn.set(key, art);
     return art;
   }
   const [left, top, right, bottom] = crop;
@@ -112,7 +123,10 @@ function thumbArt(
     drawSprite(context, sprites[index], -left, -top, 1);
   });
   if (drawn.size >= DRAWN_KEPT) {
-    drawn.clear();
+    const oldest = drawn.keys().next().value;
+    if (oldest !== undefined) {
+      drawn.delete(oldest);
+    }
   }
   drawn.set(key, art);
   return art;
@@ -144,9 +158,10 @@ function placeholderArt(
 type Look = { tryOn: TryOn | null; colors: string | null };
 
 /**
- * The looks of a part's finishes, by name: the slot's limbs in each, facing
- * south, "None" in its augment's own look (noFinishStyle), and a recolourable
- * finish in its default colours, or the slot's own on the one it wears.
+ * The looks of a part's finishes, by name: the slot's part in each, facing
+ * south, on the body as it's drawn (tryOnOf), "None" in its augment's own look
+ * (noFinishStyle), and a recolourable finish in its default colours, or the
+ * slot's own on the one it wears.
  */
 function finishLooks(
   part: StagePart,
@@ -154,23 +169,14 @@ function finishLooks(
   paint: AugmentPaintServerData | undefined,
   data: PreferencesMenuData,
 ) {
-  const humanoid = !!data.augment_paint_skin?.humanoid;
-  const digi = !!data.digi_legs;
+  const body = bodyOf(data);
   const greyscale = !!part.augment.uses_greyscale;
   const saved = data.augment_colors?.[part.socket.slot];
   return new Map(
     names.map((name) => {
-      const style = name === NO_FINISH ? noFinishStyle(part, digi) : name;
+      const style = name === NO_FINISH ? noFinishStyle(part, body.digi) : name;
       const tryOn = style
-        ? tryOnOf(
-            paint,
-            style,
-            part.socket.zones,
-            'south',
-            humanoid,
-            digi,
-            greyscale,
-          )
+        ? tryOnOf(paint, style, part.socket.zones, 'south', body, greyscale)
         : null;
       const finish = paint?.finishes?.[name];
       const look: Look = {
@@ -193,11 +199,19 @@ const palettesOf = (looks: Iterable<Look>) => [
   ...new Set([...looks].flatMap((look) => (look.colors ? [look.colors] : []))),
 ];
 
-/** The filters art is drawn through, by ink, from the TileInks of `id`. */
-const inksOf = (id: string, palette: number) => ({
-  skin: `aug-tile-skin-${id}`,
-  paint: `aug-tile-paint-${id}-${palette}`,
-  glow: `aug-tile-glow-${id}-${palette}`,
+/** A colour string as part of an element id. */
+const idPart = (colors: string | null) =>
+  colors ? colors.replace(/[^0-9a-z]/gi, '') : 'none';
+
+/**
+ * The filters art is drawn through, by ink, from the TileInks of `id`: named
+ * by the colours they carry, so a draw that waited can't take another
+ * palette's, whatever the search has left.
+ */
+const inksOf = (id: string, colors: string | null, skin: string) => ({
+  skin: `aug-tile-skin-${id}-${idPart(skin)}`,
+  paint: `aug-tile-paint-${id}-${idPart(colors)}`,
+  glow: `aug-tile-glow-${id}-${idPart(colors)}`,
 });
 
 /**
@@ -212,12 +226,12 @@ function TileInks(props: {
   const { id, skin, palettes } = props;
   return (
     <svg className="paint-defs" aria-hidden="true">
-      <filter id={inksOf(id, 0).skin} colorInterpolationFilters="sRGB">
+      <filter id={inksOf(id, null, skin).skin} colorInterpolationFilters="sRGB">
         <feColorMatrix type="matrix" values={tintMatrix(skin)} />
       </filter>
-      {palettes.map((colors, palette) => {
+      {palettes.map((colors) => {
         const matrices = paintMatrices(colors);
-        const inks = inksOf(id, palette);
+        const inks = inksOf(id, colors, skin);
         return [
           <filter
             key={`paint-${colors}`}
@@ -265,7 +279,7 @@ const AHEAD_WITHIN_MS = 2000;
  * sprites come; whatever isn't drawn ahead draws as its picker opens.
  */
 export function ThumbsAhead(props: {
-  /** The parts whose finish pickers can open. */
+  /** The parts whose finish pickers can open with thumbnails (hasThumbnails). */
   parts: readonly StagePart[];
 }) {
   const [idle, setIdle] = useState(false);
@@ -281,9 +295,6 @@ function DrawAhead(props: { parts: readonly StagePart[] }) {
   const { jobs, palettes, classNames } = useMemo(() => {
     const jobs = props.parts.flatMap((part) => {
       const crop = CROPS[part.socket.slot];
-      if (!crop) {
-        return [];
-      }
       const looks = finishLooks(part, part.finishes, paint, data).values();
       return [...looks].flatMap(({ tryOn, colors }) =>
         tryOn ? [{ tryOn, colors, crop }] : [],
@@ -321,7 +332,7 @@ function DrawAhead(props: { parts: readonly StagePart[] }) {
             tryOn,
             found as Sprite[],
             crop,
-            inksOf(id, palettes.indexOf(colors ?? '')),
+            inksOf(id, colors, skin),
           );
         }
       }
@@ -390,7 +401,7 @@ export function ThumbTip() {
   );
   // Kept mounted, with no tile at first: useFloating's root context keeps the
   // first reference it's given, so one mounted on a tile would stay on it.
-  const { refs, floatingStyles, middlewareData } = useFloating({
+  const { refs, floatingStyles, middlewareData, update } = useFloating({
     elements: { reference: target?.tile ?? null },
     placement: 'top',
     middleware: [
@@ -399,16 +410,26 @@ export function ThumbTip() {
       shift({ padding: 8 }),
       hide(),
     ],
-    // Placed again as the grid or the window scrolls or resizes. A tile never
-    // changes size or moves by itself, and the name changes with its tile.
+    // Placed again as the grid or the window scrolls or resizes, and as the
+    // opening animations end, below. A tile never changes size, and the name
+    // changes with its tile.
     whileElementsMounted: (reference, floating, update) =>
       autoUpdate(reference, floating, update, {
         elementResize: false,
         layoutShift: false,
       }),
   });
+  // A tile moves by itself only while the picker opens: the flyout unfolds
+  // and the tiles slide in. Placed again as each of those ends.
+  const tile = target?.tile;
+  useEffect(() => {
+    const flyout = tile?.closest('.fly');
+    flyout?.addEventListener('animationend', update);
+    return () => flyout?.removeEventListener('animationend', update);
+  }, [tile, update]);
   useEffect(() => () => setPointed(null), []);
-  if (!target) {
+  // A tile the search took away, gone before the grid has dropped its name.
+  if (!target?.tile.isConnected) {
     return null;
   }
   return (
@@ -436,7 +457,7 @@ export function ThumbTip() {
  * column, or the last tile of a shorter row, across sets. Undefined where
  * there's nowhere further to go.
  */
-export function nextTile(
+function nextTile(
   sets: readonly (readonly string[])[],
   key: string,
   move: string,
@@ -519,6 +540,35 @@ function revealRow(grid: HTMLElement, tile: HTMLElement) {
 const inView = (grid: HTMLElement, tile: HTMLElement) =>
   tile.offsetTop < grid.scrollTop + grid.clientHeight &&
   tile.offsetTop + tile.offsetHeight > grid.scrollTop;
+
+/** The space under the last row, as the list keeps under its last option (_augments-paint.scss). */
+const END_GAP = 14;
+
+/**
+ * Pads the grid's end so its furthest scroll is a stop, a whole row or a
+ * heading at its top, and not a sliver of one: END_GAP under the last row,
+ * and as much more as takes the furthest scroll on to the next stop. Set as
+ * the grid's own bottom padding, which restyles only the grid: an inherited
+ * custom property restyled every tile, and cost the open 2 ms.
+ */
+function padEnd(grid: HTMLElement) {
+  const tiles = [...grid.querySelectorAll<HTMLElement>('.tile')];
+  const bottom =
+    Math.max(0, ...tiles.map((tile) => tile.offsetTop + tile.offsetHeight)) +
+    END_GAP;
+  const furthest = bottom - grid.clientHeight;
+  const stop = [...grid.querySelectorAll<HTMLElement>('.tile, .fly-sec')]
+    .map((element) => element.offsetTop)
+    .filter((top) => top >= furthest)
+    .sort((a, b) => a - b)[0];
+  const pad =
+    furthest > 0 && stop !== undefined ? END_GAP + stop - furthest : END_GAP;
+  // No more than END_GAP: the stylesheet's own padding, with nothing set.
+  const padding = pad === END_GAP ? '' : `${pad}px`;
+  if (grid.style.paddingBottom !== padding) {
+    grid.style.paddingBottom = padding;
+  }
+}
 
 /**
  * The longest a tile out of view waits to draw, in ms: under the 110 ms its
@@ -617,7 +667,7 @@ export function FinishGrid(props: {
     [options, part, paint, data],
   );
   const palettes = palettesOf(looks.values());
-  const crop = CROPS[part.socket.slot] ?? CROPS['Right Arm'];
+  const crop = CROPS[part.socket.slot];
   const [bodyFound] = useSprites([BODY]);
   const body = useMemo(() => bodyFound, [!!bodyFound]);
 
@@ -632,6 +682,7 @@ export function FinishGrid(props: {
       return;
     }
     opened.current = true;
+    padEnd(view);
     const tile = view.querySelector<HTMLElement>('.tile.cur');
     if (tile) {
       tile.focus({ preventScroll: true });
@@ -655,6 +706,16 @@ export function FinishGrid(props: {
     openOnInstalled();
     opening.current = false;
   }, []);
+
+  // The search changes how far the grid goes: its end padded again. Not on
+  // the grid's first commit, whose opening has padded it.
+  const searched = useRef(false);
+  useLayoutEffect(() => {
+    if (searched.current && grid.current) {
+      padEnd(grid.current);
+    }
+    searched.current = true;
+  }, [options]);
 
   // A tile the search takes away takes its name with it.
   useEffect(() => {
@@ -690,7 +751,7 @@ export function FinishGrid(props: {
 
   const tile = (option: FinishOption, index: number) => {
     const look = looks.get(option.key);
-    const inks = inksOf(uid, palettes.indexOf(look?.colors ?? ''));
+    const inks = inksOf(uid, look?.colors ?? null, skin);
     return (
       <FinishTile
         key={option.key}
@@ -727,22 +788,34 @@ export function FinishGrid(props: {
     >
       <TileInks id={uid} skin={skin} palettes={palettes} />
       {!!sets.none.length && (
-        <div className="tile-set">
+        <div className="tile-set" role="none">
           {sets.none.map((option) => tile(option, index++))}
         </div>
       )}
       {!!sets.paintable.length && (
         <>
-          <div className="fly-sec">Recolourable finishes</div>
-          <div className="tile-set">
+          <div id={`${uid}-paintable`} className="fly-sec" aria-hidden="true">
+            Recolourable finishes
+          </div>
+          <div
+            className="tile-set"
+            role="group"
+            aria-labelledby={`${uid}-paintable`}
+          >
             {sets.paintable.map((option) => tile(option, index++))}
           </div>
         </>
       )}
       {!!sets.brands.length && (
         <>
-          <div className="fly-sec">Brand styles</div>
-          <div className="tile-set">
+          <div id={`${uid}-brands`} className="fly-sec" aria-hidden="true">
+            Brand styles
+          </div>
+          <div
+            className="tile-set"
+            role="group"
+            aria-labelledby={`${uid}-brands`}
+          >
             {sets.brands.map((option) => tile(option, index++))}
           </div>
         </>
@@ -776,7 +849,10 @@ const FinishTile = memo(function FinishTile(props: {
   body: Sprite | undefined;
   tabbable: boolean;
   /** Draws its canvas now or soon, by where it is in the grid: returns what forgets a draw still waiting. */
-  drawTile: (canvas: HTMLCanvasElement, draw: () => void) => (() => void) | undefined;
+  drawTile: (
+    canvas: HTMLCanvasElement,
+    draw: () => void,
+  ) => (() => void) | undefined;
   onPick: (option: FinishOption) => void;
   onTry: (key: string) => void;
   onPass: () => void;

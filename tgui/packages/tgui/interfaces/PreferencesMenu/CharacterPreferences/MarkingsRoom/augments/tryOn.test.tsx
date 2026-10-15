@@ -53,6 +53,10 @@ const SURPLUS = {
   key: 'surplus',
   zones: ['r_arm', 'r_hand', 'r_leg', 'r_leg_digi'],
 };
+/** A dimorphic brand: a feminine head and chest of its own. */
+const AKULA = { key: 'akula', zones: ['head', 'head_f', 'chest', 'chest_f'] };
+/** One head for every body, a feminine chest. */
+const LIZARD = { key: 'lizard', zones: ['head', 'chest', 'chest_f'] };
 const chrome: AugmentItem = {
   ...STOCK_AUGMENT,
   path: '/datum/augment_item/limb/chrome',
@@ -114,16 +118,25 @@ afterEach(() => {
   sprites.mockRestore();
 });
 
-function tryOn(probePart: StagePart, name: string, digi = false) {
+function tryOn(
+  probePart: StagePart,
+  name: string,
+  digi = false,
+  feminine = false,
+) {
   store.set(gameDataAtom, {
-    augment_paint_skin: { color: '#d9ae96', humanoid: 0 },
+    augment_paint_skin: {
+      color: '#d9ae96',
+      humanoid: 0,
+      feminine: feminine ? 1 : 0,
+    },
     digi_legs: digi ? 1 : 0,
   });
   const server = {
     augment_paint: {
       finishes: {},
       swatches: { metal: [], lights: [] },
-      brands: { Surplus: SURPLUS },
+      brands: { Surplus: SURPLUS, Akula: AKULA, Lizard: LIZARD },
     },
   } as unknown as ServerData;
   render(
@@ -158,6 +171,24 @@ describe("the augments stage's try-on", () => {
       'augment_brands32x32 brand-surplus-r_leg-south',
     );
     expect(tryOn(leg, 'None', true)).toBeNull();
+  });
+
+  it("tries a brand's feminine head and chest on a feminine body, where it has them", () => {
+    const head = part('None', chrome, PART_SOCKETS[0]);
+    const chest = part('None', chrome, PART_SOCKETS[3]);
+    expect(tryOn(chest, 'Akula', false, true)).toBe(
+      'augment_brands32x32 brand-akula-chest_f-south',
+    );
+    expect(tryOn(chest, 'Akula')).toBe(
+      'augment_brands32x32 brand-akula-chest-south',
+    );
+    expect(tryOn(head, 'Akula', false, true)).toBe(
+      'augment_brands32x32 brand-akula-head_f-south',
+    );
+    // A brand that draws one head for every body.
+    expect(tryOn(head, 'Lizard', false, true)).toBe(
+      'augment_brands32x32 brand-lizard-head-south',
+    );
   });
 
   it('tries nothing on until its sprites can be drawn, as before its sheet has come', () => {

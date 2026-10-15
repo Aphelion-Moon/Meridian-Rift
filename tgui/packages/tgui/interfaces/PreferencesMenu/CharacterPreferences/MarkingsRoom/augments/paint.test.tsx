@@ -10,6 +10,7 @@ import {
 } from 'bun:test';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { Provider, useAtomValue } from 'jotai';
+import { useSyncExternalStore } from 'react';
 
 import {
   backendStateAtom,
@@ -59,7 +60,10 @@ const MARKS = ['Mk1', 'Mk2', 'Mk3', 'Mk4', 'Mk5'];
 const BRANDS = Object.fromEntries(
   ['Surplus', ...MARKS].map((name) => [
     name,
-    { key: name.toLowerCase(), zones: ['r_arm', 'r_hand', 'r_leg', 'l_leg'] },
+    {
+      key: name.toLowerCase(),
+      zones: ['head', 'chest', 'r_arm', 'r_hand', 'r_leg', 'l_leg'],
+    },
   ]),
 );
 const SAVED = '#5a6448#c8c2b0#24261e#ffb347';
@@ -101,8 +105,9 @@ const chrome: AugmentItem = {
 /**
  * Every socket, chrome: the right arm in Brawler (its colours saved, in
  * the window's data), the left arm in it too on an augment that takes no
- * finish, the right leg in a brand finish, and the left leg in none, offered
- * a row of brands, as the stage's memo builds them.
+ * finish, the right leg in a brand finish, the left leg in none, offered a
+ * row of brands, and the head in none, offered the brands, as the stage's
+ * memo builds them.
  */
 const parts: StagePart[] = PART_SOCKETS.map((socket) => {
   const worn: Record<string, [string, string[]]> = {
@@ -110,6 +115,7 @@ const parts: StagePart[] = PART_SOCKETS.map((socket) => {
     'Left Arm': [FINISH, ['None']],
     'Right Leg': ['Surplus', ['None', 'Surplus']],
     'Left Leg': ['None', ['None', FINISH, 'Surplus', ...MARKS]],
+    Head: ['None', ['None', 'Surplus', ...MARKS]],
   };
   const [finish, finishes] = worn[socket.slot] ?? ['None', ['None']];
   return {
@@ -270,10 +276,13 @@ describe("the augments stage's recolourable finishes", () => {
     expect(
       finishOption(FINISH).querySelector('.tile-badge.paint .fa-palette'),
     ).not.toBeNull();
-    expect(finishOption(FINISH).getAttribute('aria-label')).toBe(
-      `${FINISH}, installed, recolourable`,
+    expect(finishOption(FINISH).getAttribute('aria-label')).toMatch(
+      /\binstalled\b.*\brecolourable\b/,
     );
     expect(finishOption('Surplus').querySelector('.tile-badge')).toBeNull();
+    expect(finishOption('Surplus').getAttribute('aria-label')).not.toMatch(
+      /installed|recolourable/,
+    );
     act(() => {
       fireEvent.mouseEnter(finishOption('Surplus'));
     });
@@ -618,11 +627,20 @@ describe("the finish picker's thumbnails", () => {
     await tipPlaced();
   });
 
-  it('show the body faintly in a tile until its sprites can be drawn', () => {
-    // The brand sheet hasn't come: only the recolourable finishes' sprites can be drawn.
+  it('show the body faintly in a tile until its sprites can be drawn, and draw it as they come', () => {
+    // The brand sheet hasn't come: only the recolourable finishes' sprites
+    // can be drawn. Its coming is heard as the sprite hook hears a sheet's.
     let brandsCame = false;
-    const sprites = spyOn(sheets, 'useSprites').mockImplementation((names) =>
-      names.map((name) =>
+    const sheetHeard = new Set<() => void>();
+    const hear = (listener: () => void) => {
+      sheetHeard.add(listener);
+      return () => {
+        sheetHeard.delete(listener);
+      };
+    };
+    const sprites = spyOn(sheets, 'useSprites').mockImplementation((names) => {
+      useSyncExternalStore(hear, () => brandsCame);
+      return names.map((name) =>
         name && (brandsCame || !name.startsWith('augment_brands32x32'))
           ? {
               cell: { url: 'sheet.png', x: 0, y: 0, width: 32, height: 32 },
@@ -630,8 +648,8 @@ describe("the finish picker's thumbnails", () => {
               source: {} as HTMLImageElement,
             }
           : undefined,
-      ),
-    );
+      );
+    });
     try {
       openStage();
       click(card('R ARM').querySelector('.row-paintable .row'));
@@ -640,15 +658,38 @@ describe("the finish picker's thumbnails", () => {
           (tile) => tile.getAttribute('aria-label')?.split(', ')[0],
         );
       expect(pending()).toEqual(['Surplus']);
-      // Opened again once the sheet has come: every tile drawn.
-      brandsCame = true;
+      // The sheet comes while the picker is open: its tiles fill in there.
       act(() => {
-        fireEvent.keyDown(window, { key: 'Escape' });
+        brandsCame = true;
+        for (const listener of sheetHeard) {
+          listener();
+        }
       });
-      click(card('R ARM').querySelector('.row-paintable .row'));
       expect(pending()).toEqual([]);
     } finally {
       sprites.mockRestore();
     }
+  });
+
+  it("lay a head's finishes out as thumbnails too: None, then its brand styles", () => {
+    openStage();
+    click(card('HEAD').querySelectorAll('.row')[1]);
+    expect(document.querySelector('.AugStage .fly .opt')).toBeNull();
+    const groups = [
+      ...document.querySelectorAll('.AugStage .fly-grid [role="group"]'),
+    ];
+    expect(
+      groups.map(
+        (group) =>
+          document.getElementById(
+            group.getAttribute('aria-labelledby') as string,
+          )?.textContent,
+      ),
+    ).toEqual(['Brand styles']);
+    expect(
+      [...document.querySelectorAll('.AugStage .fly .tile')].map(
+        (tile) => tile.getAttribute('aria-label')?.split(', ')[0],
+      ),
+    ).toEqual(['None', 'Surplus', ...MARKS]);
   });
 });

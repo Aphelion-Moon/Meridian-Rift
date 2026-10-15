@@ -450,8 +450,16 @@ export type PreferencesMenuData = {
   // APHELION EDIT ADDITION START - Recolourable augments
   /** Each slot's saved colours; a slot with none wears its finish's default. */
   augment_colors: Record<string, string>;
-  /** The skin the colour editor tints its preview with, and whether it is a mutant colour (the humanoid ramp). */
-  augment_paint_skin: { color: string; humanoid: BooleanLike };
+  /**
+   * The skin the colour editor tints its preview with, whether it is a mutant colour (the
+   * humanoid ramp), and whether the body's head and chest are drawn feminine, which a dimorphic
+   * brand head or chest tries on as its own `<zone>_f` sprite.
+   */
+  augment_paint_skin: {
+    color: string;
+    humanoid: BooleanLike;
+    feminine: BooleanLike;
+  };
   /** The character's Allow Emissives: without it the lights don't glow. */
   augment_paint_emissive: BooleanLike;
   // APHELION EDIT ADDITION END

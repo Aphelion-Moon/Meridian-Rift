@@ -71,7 +71,7 @@ differ at some sizes (`code/families.dm` says which). Which class fits cannot be
 revealing skirt by eye:
 
 1. Preview the common class over the garment's worn sprite at each hard size, on plain and digitigrade legs:
-   `python tools/bulge_assets.py preview short_reveal_hard_3_plain --output preview-output --garment FILE:STATE`.
+   `python lab/bulge/bulge_assets.py preview short_reveal_hard_3_plain --output preview-output --garment FILE:STATE`.
    `_cut.png` shows the garment with its flap cut away and its print carried onto the bulge; `_clearance.png` shows
    in magenta where the shaft shows over the cloth. A GAGS garment has no worn file: preview its greyscale state in
    its config's sheet.
@@ -84,15 +84,16 @@ revealing skirt by eye:
 
 ## Tools
 
-From the repository root (`python -m pip install -r tools/bulge_assets_requirements.txt` once):
+From the repository root (`python -m pip install -r lab/bulge/bulge_assets_requirements.txt` once). The tool lives in
+`lab/bulge/`, a git-ignored folder kept out of commits; a checkout without it has only the sheets.
 
 ```powershell
-python tools/bulge_assets.py verify
-python tools/bulge_assets.py fix
-python tools/bulge_assets.py find hem_24
-python tools/bulge_assets.py find boxers_hard_6_plain
-python tools/bulge_assets.py preview briefs_hard_3_digi --output preview-output
-python tools/bulge_assets.py preview short_reveal_hem_24_hard_1_plain --output preview-output --garment icons/mob/clothing/under/color.dmi:jumpskirt
+python lab/bulge/bulge_assets.py verify
+python lab/bulge/bulge_assets.py fix
+python lab/bulge/bulge_assets.py find hem_24
+python lab/bulge/bulge_assets.py find boxers_hard_6_plain
+python lab/bulge/bulge_assets.py preview briefs_hard_3_digi --output preview-output
+python lab/bulge/bulge_assets.py preview short_reveal_hem_24_hard_1_plain --output preview-output --garment icons/mob/clothing/under/color.dmi:jumpskirt
 ```
 
 `verify` checks every sheet (an 8-bit palette PNG, four directions and one frame, only the kind greys or white, names

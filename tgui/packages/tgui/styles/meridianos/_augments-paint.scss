@@ -169,24 +169,32 @@
 // MARK: The finish picker's thumbnails
 
 // A finish picker's finishes as thumbnails (thumbs.tsx), laid out as the
-// markings drawer lays its stickers out: 60 px tiles, four to a row, 8 px
-// apart. The grid scrolls below the gap the list keeps under the search, so
-// no tile ever sits under or against it, and it stops on whole rows.
+// markings drawer lays its stickers out: four tiles to a row, 8 px apart, each
+// 60 px of art inside its 1 px frame, so the art's pixels are drawn up four
+// times exactly. The grid scrolls below the gap the list keeps under the
+// search, so no tile ever sits under or against it, and it stops on whole
+// rows: thumbs.tsx pads its end past these 14 px (padEnd) so even its
+// furthest scroll does. Four 62 px tiles and their gaps take 272 px, which the
+// right padding leaves beside the thin scrollbar's gutter, kept whether it
+// scrolls or not, with no room to spare: a wider scrollbar clips the row's
+// edge rather than scrolling the grid sideways.
 .AugStage .fly-grid {
   position: relative;
   flex: 1;
   min-height: 0;
   margin-top: 10px;
-  padding: 0 12px 14px;
+  padding: 0 6px 14px 12px;
+  overflow-x: hidden;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
   scrollbar-width: thin;
   scrollbar-color: var(--aug-line) transparent;
+  scrollbar-gutter: stable;
 }
 
 .AugStage .tile-set {
   display: grid;
-  grid-template-columns: repeat(4, 60px);
+  grid-template-columns: repeat(4, 62px);
   justify-content: center;
   gap: 8px;
 }
@@ -203,8 +211,8 @@
 
 .AugStage .tile {
   position: relative;
-  width: 60px;
-  height: 60px;
+  width: 62px;
+  height: 62px;
   padding: 0;
   scroll-snap-align: start;
   background: var(--aug-recess);
@@ -226,7 +234,13 @@
         transparent 70%
       ),
       var(--aug-recess);
-    outline: none;
+  }
+
+  // The stage's focus ring, inside the frame, where the grid's edges can't
+  // clip it, and apart from the installed tile's frame.
+  &:focus-visible {
+    outline: 2px solid var(--aug-focus);
+    outline-offset: -3px;
   }
 
   &.cur {
