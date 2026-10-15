@@ -14,6 +14,11 @@
 		return TRUE
 
 /datum/loadout_item/belts/insert_path_into_outfit(datum/outfit/outfit, mob/living/carbon/human/equipper, visuals_only = FALSE, override_items = LOADOUT_OVERRIDE_BACKPACK)
+	// The job PDA leaves the belt - into the backpack, or deleted with "Delete job items"
+	var/datum/outfit/job/job_outfit = outfit
+	if(!visuals_only && istype(job_outfit) && job_outfit.pda_slot == ITEM_SLOT_BELT && ispath(outfit.belt, /obj/item/modular_computer/pda))
+		job_outfit.pda_slot = override_items == LOADOUT_OVERRIDE_BACKPACK ? ITEM_SLOT_BACK : null
+
 	if(override_items == LOADOUT_OVERRIDE_BACKPACK && !visuals_only)
 		if(outfit.belt)
 			LAZYADD(outfit.backpack_contents, outfit.belt)
