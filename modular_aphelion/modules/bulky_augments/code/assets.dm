@@ -56,8 +56,9 @@
  * Made and cached as the other batched spritesheets are.
  *
  * Every sprite is one 32x32 view, class augment_brands32x32 and the name brand-<key>-<zone>-<dir>: a brand style's limb
- * state as the game draws it (augment_brand_states()), `key` its augment_brand_key(), `zone` an arm, hand or leg, or
- * r_leg_digi and l_leg_digi for its digitigrade legs, `dir` south, north, east or west.
+ * state as the game draws it (augment_brand_states()), `key` its augment_brand_key(), `zone` an arm, hand or leg,
+ * r_leg_digi and l_leg_digi for its digitigrade legs, head and chest, and head_f and chest_f for a dimorphic head and
+ * chest on a body that isn't masculine, `dir` south, north, east or west.
  */
 /datum/asset/spritesheet_batched/augment_brands
 	name = "augment_brands"
@@ -85,7 +86,10 @@
  * them: <limb id>_<zone> in the style's icon, the limb id its limb_id_override or the robotic id every styled augment limb
  * has. An arm draws its hand along with it. A leg on a digitigrade body draws <limb id>_<leg>_digi, listed as <leg>_digi,
  * unless the style's bodyshape_override drops the digitigrade shape, when it draws the plain leg; a style without has_digi
- * can't be worn there. Only zones a slot can wear the style on and whose state has four directions are listed.
+ * can't be worn there. A head or chest the style's dimorphic_overrides make dimorphic draws <limb id>_<zone>_m on a
+ * masculine body and <limb id>_<zone>_f on any other, listed as <zone> and <zone>_f; the robotic head and chest a styled
+ * augment is aren't dimorphic of themselves. Only zones a slot can wear the style on and whose state has four directions
+ * are listed.
  */
 /datum/robotic_style/proc/augment_brand_states()
 	var/list/zones = list()
@@ -97,14 +101,24 @@
 	for(var/leg_zone, slot in list(BODY_ZONE_R_LEG = LEG_RIGHT, BODY_ZONE_L_LEG = LEG_LEFT))
 		if(supported_slots & slot)
 			zones += (digi ? list(leg_zone, "[leg_zone]_[ICON_KEY_DIGI]") : leg_zone)
+	// A dimorphic zone names the end of its state: the body's limb_gender, "m" or "f".
+	for(var/zone, slot in list(BODY_ZONE_HEAD = HEAD, BODY_ZONE_CHEST = CHEST))
+		if(!(supported_slots & slot))
+			continue
+		if(LAZYACCESS(dimorphic_overrides, zone))
+			zones[zone] = "[zone]_m"
+			zones["[zone]_f"] = "[zone]_f"
+		else
+			zones += zone
 	var/list/state_dirs = list()
 	for(var/list/state_data as anything in icon_metadata(icon)?["states"])
 		state_dirs[state_data["name"]] = state_data["dirs"]
 	var/limb_id = limb_id_override || BODYPART_ID_ROBOTIC
 	. = list()
 	for(var/zone in zones)
-		if(state_dirs["[limb_id]_[zone]"] >= 4)
-			.[zone] = "[limb_id]_[zone]"
+		var/state = "[limb_id]_[zones[zone] || zone]"
+		if(state_dirs[state] >= 4)
+			.[zone] = state
 
 /**
  * A recolourable finish draws through its own sheets, so it has no brand states.

@@ -65,7 +65,7 @@ import {
   type StagePart,
   tracePath,
 } from './parts';
-import { FinishGrid, ThumbsAhead, ThumbTip } from './thumbs';
+import { FinishGrid, hasThumbnails, ThumbsAhead, ThumbTip } from './thumbs';
 import {
   crossTried,
   dropKept,
@@ -289,8 +289,11 @@ export function AugmentsStage(props: Props) {
     () => Object.fromEntries(parts.map((part) => [part.socket.slot, part])),
     [parts],
   );
-  // The parts whose finish pickers open, which have their thumbnails drawn ahead.
-  const finishable = useMemo(() => parts.filter(finishOk), [parts]);
+  // The parts whose finish pickers open on thumbnails, which are drawn ahead.
+  const finishable = useMemo(
+    () => parts.filter((part) => finishOk(part) && hasThumbnails(part)),
+    [parts],
+  );
   // The part the colour editor is open on, while its finish is recolourable.
   const painting = paintSlot ? partBySlot[paintSlot] : undefined;
   const paintable = !!painting?.paint;
@@ -1224,16 +1227,20 @@ function StageOverlay(props: {
   const facing =
     internals && image ? facingImage(image, preview, dir) : undefined;
   // The visible augments' own pixels (their eyes, an implant's overlay), which
-  // the x-ray leaves showing as they are, a line round each.
+  // the x-ray leaves showing as they are, a line round each, and a finish
+  // tried on leaves over it, as the game draws them over the part.
+  const trying = !!finishTry;
   const augments = useMemo(() => {
     const source =
-      internals && regions && regionsFor === preview.id
+      (internals || trying) && regions && regionsFor === preview.id
         ? augmentRegions(regions)
         : null;
     return source ? frameRegionsOf(preview, source, dir) : undefined;
-  }, [internals, preview, regions, regionsFor, dir]);
-  const augmentShape = augments && regionsMask(augments, augments.zones);
-  const augmentLine = augments && regionsOutline(augments, augments.zones);
+  }, [internals, trying, preview, regions, regionsFor, dir]);
+  const augmentShape =
+    internals && augments && regionsMask(augments, augments.zones);
+  const augmentLine =
+    internals && augments && regionsOutline(augments, augments.zones);
   const xray = facing
     ? {
         ...style,
@@ -1288,7 +1295,9 @@ function StageOverlay(props: {
           />
         </span>
       )}
-      {!!finishTry && <FinishTryOn view={view} map={map} {...finishTry} />}
+      {!!finishTry && (
+        <FinishTryOn view={view} map={map} kept={augments} {...finishTry} />
+      )}
       {!!peekStyle && (
         <span
           key={`peek ${peek?.join()}`}
@@ -1644,8 +1653,8 @@ export function Picker(props: {
   onClose: () => void;
 }) {
   const { open, options, title, pointsOn, part, onPick, onClose } = props;
-  // A finish picker lays its finishes out as thumbnails (thumbs.tsx).
-  const thumbnails = open.field === 'finish' && !!part;
+  // A finish picker lays its finishes out as thumbnails, for a slot the sheets draw (thumbs.tsx).
+  const thumbnails = open.field === 'finish' && !!part && hasThumbnails(part);
   const left = open.side === 'l';
   const organ = open.field === 'organ';
   const list = useRef<HTMLDivElement>(null);
@@ -1716,9 +1725,15 @@ export function Picker(props: {
   );
   const [query, setQuery] = useState('');
   const wanted = query.trim().toLowerCase();
-  const shown = wanted
-    ? options.filter((option) => optionMatches(option, wanted))
-    : options;
+  // The same list while the options and the search are, so a picker drawn
+  // again for anything else draws none of its rows or tiles again.
+  const shown = useMemo(
+    () =>
+      wanted
+        ? options.filter((option) => optionMatches(option, wanted))
+        : options,
+    [options, wanted],
+  );
   // The keyboard starts on what's installed; nothing stays tried on once the picker goes.
   useEffect(() => {
     list.current?.querySelector<HTMLButtonElement>('.opt.cur')?.focus({

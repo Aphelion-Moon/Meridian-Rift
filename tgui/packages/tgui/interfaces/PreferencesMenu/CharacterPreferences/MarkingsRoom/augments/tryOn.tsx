@@ -45,19 +45,37 @@ const NOTHING: TryOn = { layers: [], zones: [] };
 // hover looks them up, it never builds them twice.
 const tried = new WeakMap<AugmentPaintServerData, Map<string, TryOn>>();
 
+/** The body a finish is tried on, as the window's data draws it. */
+export type TryOnBody = {
+  /** Its skin is a mutant colour, which the humanoid ramp draws. */
+  humanoid: boolean;
+  /** Its legs are digitigrade. */
+  digi: boolean;
+  /** Its head and chest are drawn feminine. */
+  feminine: boolean;
+};
+
+/** The body a finish is tried on, from the window's data. */
+export const bodyOf = (data: PreferencesMenuData): TryOnBody => ({
+  humanoid: !!data.augment_paint_skin?.humanoid,
+  digi: !!data.digi_legs,
+  feminine: !!data.augment_paint_skin?.feminine,
+});
+
 /**
  * The sprites a finish draws on a part's zones facing `dir`: a recolourable
  * finish's skin base, paint and glow for each zone, from the augment_paint
- * spritesheet the window opens with, or a brand finish's own limb sprites,
- * from the augment_brands one it asks for (brands.ts). A brand finish's legs on
- * a digitigrade body take its digitigrade sprites where it lists them; one that
+ * spritesheet the window opens with, or a brand finish's own sprites, from the
+ * augment_brands one it asks for (brands.ts). A brand finish's legs on a
+ * digitigrade body take its digitigrade sprites where it lists them; one that
  * doesn't draws its plain legs there, as the game does when the style's
  * bodyshape drops the digitigrade shape (the server lists <leg>_digi only for a
  * style that draws one, and a style that can't be worn on such legs isn't
- * offered). Nothing when the server sent no sprites for it.
+ * offered). Its head and chest on a feminine body take its feminine sprites
+ * (<zone>_f) where it lists them, as a dimorphic head or chest draws there; the
+ * plain ones otherwise. Nothing when the server sent no sprites for it.
  *
  * Arguments:
- * - humanoid: The body's skin is a mutant colour, which the humanoid ramp draws.
  * - greyscale: The part's augment draws greyscale, which the skin colour tints.
  */
 export function tryOnOf(
@@ -65,8 +83,7 @@ export function tryOnOf(
   name: string,
   zones: readonly string[],
   dir: SpriteDir,
-  humanoid: boolean,
-  digi: boolean,
+  body: TryOnBody,
   greyscale: boolean,
 ): TryOn {
   if (!data) {
@@ -77,10 +94,10 @@ export function tryOnOf(
     known = new Map();
     tried.set(data, known);
   }
-  const key = `${name}|${zones.join()}|${dir}|${+humanoid}${+digi}${+greyscale}`;
+  const key = `${name}|${zones.join()}|${dir}|${+body.humanoid}${+body.digi}${+body.feminine}${+greyscale}`;
   let tryOn = known.get(key);
   if (!tryOn) {
-    tryOn = buildTryOn(data, name, zones, dir, humanoid, digi, greyscale);
+    tryOn = buildTryOn(data, name, zones, dir, body, greyscale);
     known.set(key, tryOn);
   }
   return tryOn;
@@ -91,8 +108,7 @@ function buildTryOn(
   name: string,
   zones: readonly string[],
   dir: SpriteDir,
-  humanoid: boolean,
-  digi: boolean,
+  body: TryOnBody,
   greyscale: boolean,
 ): TryOn {
   const finish = data.finishes?.[name];
@@ -102,7 +118,7 @@ function buildTryOn(
       const has = finish.zones?.[zone];
       return [
         {
-          className: `${base}-${humanoid ? 'skinh' : 'skin'}-${dir}`,
+          className: `${base}-${body.humanoid ? 'skinh' : 'skin'}-${dir}`,
           ink: 'skin' as const,
         },
         ...(has?.paint
@@ -120,9 +136,11 @@ function buildTryOn(
     return NOTHING;
   }
   const sprite = (zone: string) =>
-    digi && isLeg(zone) && brand.zones.includes(`${zone}_digi`)
+    body.digi && isLeg(zone) && brand.zones.includes(`${zone}_digi`)
       ? `${zone}_digi`
-      : zone;
+      : body.feminine && brand.zones.includes(`${zone}_f`)
+        ? `${zone}_f`
+        : zone;
   const drawn = zones.filter((zone) => brand.zones.includes(sprite(zone)));
   if (!drawn.length) {
     return NOTHING;
@@ -185,8 +203,7 @@ export function useFinishTryOn(
           style,
           part.socket.zones,
           view.dir,
-          !!skin?.humanoid,
-          !!data.digi_legs,
+          bodyOf(data),
           !!part.augment.uses_greyscale,
         )
       : NOTHING;
@@ -249,11 +266,14 @@ function frameScratch(width: number, height: number) {
  * with its frame pixel for pixel (height's rows moved as the drawing moves
  * them), and tinted on the GPU through the same matrices as the colour
  * editor: no pixel is read, so a sheet served from elsewhere draws too. The
- * limb it replaces is masked out of the character's own canvas through the
+ * part it replaces is masked out of the character's own canvas through the
  * body's region map, when the stage has one: `--aug-try-hide` on the
  * character's frame holder, which _augments-paint.scss turns into a mask. A
  * far leg in profile is masked the same way (`--aug-try-behind`), so it shows
- * only past the near leg. In the dark only its lights keep their light.
+ * only past the near leg. The visible augments' own pixels, a pair of
+ * cybernetic eyes or an implant's overlay, stay the character's, over it, as
+ * the game draws them over the part. In the dark only its lights keep their
+ * light.
  */
 export function FinishTryOn(props: {
   view: PreviewView;
@@ -266,12 +286,15 @@ export function FinishTryOn(props: {
   skin: string;
   /** Whether its lights glow, in the dark view. */
   glowing: boolean;
-  /** The body's regions in this facing, to hide the limb it replaces. */
+  /** The body's regions in this facing, to hide the part it replaces. */
   map: FrameRegions | undefined;
+  /** The visible augments' pixels in this facing, which stay over it. */
+  kept: FrameRegions | undefined;
   /** How far the character's canvas reaches past its frame, for the bloom in the dark. */
   reach: number;
 }) {
-  const { view, tryOn, sprites, colors, skin, glowing, map, reach } = props;
+  const { view, tryOn, sprites, colors, skin, glowing, map, kept, reach } =
+    props;
   const { shown, dir, scale, x, y, dark } = view;
   const { preview } = shown;
   const uid = useId();
@@ -315,12 +338,20 @@ export function FinishTryOn(props: {
     }
     source.filter = 'none';
     drawPreviewFacing(context, source.canvas, preview, dir, 0);
-  }, [preview, dir, dark, glowing, sprites, matrices, skin, uid]);
+    if (kept) {
+      for (let at = 0; at < kept.index.length; at++) {
+        if (kept.index[at]) {
+          context.clearRect(at % kept.width, Math.floor(at / kept.width), 1, 1);
+        }
+      }
+    }
+  }, [preview, dir, dark, glowing, sprites, matrices, skin, uid, kept]);
 
-  // The limb it replaces, hidden: the character's canvas is the frame, grown by the bloom's reach in the dark.
+  // The part it replaces, hidden, but for the visible augments' pixels: the
+  // character's canvas is the frame, grown by the bloom's reach in the dark.
   useLayoutEffect(() => {
     const holder = canvas.current?.parentElement;
-    const hide = map ? regionsMask(map, tryOn.zones) : undefined;
+    const hide = map ? regionsMask(map, tryOn.zones, kept) : undefined;
     if (!holder || !hide) {
       return;
     }
@@ -330,7 +361,7 @@ export function FinishTryOn(props: {
       holder.style.removeProperty('--aug-try-hide');
       holder.style.removeProperty('--aug-try-inset');
     };
-  }, [map, tryOn, reach, scale]);
+  }, [map, kept, tryOn, reach, scale]);
 
   return (
     <>

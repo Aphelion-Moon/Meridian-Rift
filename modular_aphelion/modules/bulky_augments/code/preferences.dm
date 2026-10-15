@@ -25,7 +25,7 @@
 		"copy_augment_colors" = PROC_REF(copy_augment_colors),
 		"augment_brand_sprites" = PROC_REF(send_augment_brand_sprites),
 	)
-	/// The preview skin the page last got, as colour and ramp run together, so an answer sends it only when it changed.
+	/// The preview skin the page last got, as colour, ramp and body run together, so an answer sends it only when it changed.
 	var/sent_skin
 
 /**
@@ -81,7 +81,7 @@
  */
 /datum/preference_middleware/augment_paint/get_ui_data(mob/user)
 	var/list/skin = preview_skin()
-	sent_skin = "[skin["color"]][skin["humanoid"]]"
+	sent_skin = "[skin["color"]][skin["humanoid"]][skin["feminine"]]"
 	return list(
 		"augment_colors" = preferences.augment_limb_colors.Copy(),
 		"augment_paint_skin" = skin,
@@ -95,7 +95,7 @@
  */
 /datum/preference_middleware/augment_paint/add_preview_answer(list/update)
 	var/list/skin = preview_skin()
-	var/skin_key = "[skin["color"]][skin["humanoid"]]"
+	var/skin_key = "[skin["color"]][skin["humanoid"]][skin["feminine"]]"
 	if(skin_key == sent_skin)
 		return
 	sent_skin = skin_key
@@ -128,11 +128,16 @@
 
 /**
  * Returns the skin the editor tints its preview's skin base with: the preview body's chest colour, and whether it is a mutant
- * colour, which the humanoid skin ramp draws.
+ * colour, which the humanoid skin ramp draws. With it, whether the body is drawn feminine (`limb_gender` "f"), so a dimorphic
+ * brand head or chest tries on as its head_f or chest_f sprite.
  */
 /datum/preference_middleware/augment_paint/proc/preview_skin()
 	var/obj/item/bodypart/chest = preferences.character_preview_view?.body?.get_bodypart(BODY_ZONE_CHEST)
-	return list("color" = chest?.draw_color || "#d9ae96", "humanoid" = !!chest?.species_color)
+	return list(
+		"color" = chest?.draw_color || "#d9ae96",
+		"humanoid" = !!chest?.species_color,
+		"feminine" = chest?.limb_gender == "f",
+	)
 
 /**
  * Sets one slot's colours, or with no colours its finish's default. The slot's finish must be recolourable.

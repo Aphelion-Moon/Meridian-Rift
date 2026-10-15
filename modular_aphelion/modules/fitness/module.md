@@ -171,7 +171,8 @@ every queued fit at once, for tests and anything else that must see a body fitte
 fitted state's views' colours, so a fit of one of their states reads only the pixels it moves; a generated icon, a female
 cut or a body shape mask is read from its pixels. Each sheet is checked against its hash the first time it's used each
 round, and one changed since the file was written is read from its pixels too. Run
-`python tools/fitness/gen_garment_metadata.py` whenever one of those sheets changes, and commit the JSON it writes.
+`python lab/fitness/gen_garment_metadata.py` whenever one of those sheets changes, and commit the JSON it writes. `lab/` is
+a git-ignored folder kept out of commits, so a checkout without it has only the JSON.
 
 **Worn clothing.** A uniform, suit, shoes and gloves worn by a human are fitted the same way, as they're drawn
 (`code/worn_fitting.dm`). `build_worn_icon()` fits the icon it has built, after the female cut and every body shape mask
@@ -255,8 +256,8 @@ toward both its front and its back, and its rows never take the cap rule, which 
 `fitting/pec_templates.json` holds each pec shape's outline, pixels, side bulge and smile, and the chest's own outline, and
 `fitting/pec_flex_templates.json` the same for each frame of each pec flex sheet, with the sheet's frame delays; a frame's
 smile is the still smile, lifted in each column as far as the pec's crease lifts on that frame.
-`tools/fitness/gen_fit_templates.py` and `gen_pec_templates.py` make them from the sprites: run
-`python tools/fitness/gen_fit_templates.py` (and `gen_pec_templates.py`, which writes both pec files) whenever the size or pec
+`lab/fitness/gen_fit_templates.py` and `gen_pec_templates.py` make them from the sprites: run
+`python lab/fitness/gen_fit_templates.py` (and `gen_pec_templates.py`, which writes both pec files) whenever the size or pec
 art changes, and commit the JSON they write. Definition needs no templates. The files are compiled into the resource file and read as the server starts,
 with the sheet metadata (`SSgarment_fitting`).
 
@@ -345,8 +346,6 @@ monkeys keep tg's torso maps. Medium, Short and Tall bodies don't move a torso r
 - `tgui/packages/tgui/styles/interfaces/Muscles.scss`, loaded by `tgui/packages/tgui/styles/meridianos/_index.scss`
 - `code/modules/unit_tests/~nova/fitness.dm`, included from `code/modules/unit_tests/_unit_tests.dm`
 - `code/modules/unit_tests/~nova/pecs.dm`: the `flat_mesh`, `under_underclothes`, `flexing_top` and `female_cut` tests
-- `tools/fitness/`: `gen_fit_templates.py`, `gen_pec_templates.py` and `gen_garment_metadata.py`, which write the
-  `fitting/` JSON files
 - `tgstation.dme`
 
 ### Credits:
