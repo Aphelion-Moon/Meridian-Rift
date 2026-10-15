@@ -127,34 +127,60 @@ export function sizedFacingPixels(
   if (!determinant) {
     return sized;
   }
+  // Whole pixels at once, without a view made for each.
+  const from = new Uint32Array(
+    pixels.buffer,
+    pixels.byteOffset,
+    width * height,
+  );
+  const to = new Uint32Array(sized.buffer);
   // The tile's centre in frame pixels, rows from the top.
   const centreX = x + TILE / 2;
   const centreY = height - y - TILE / 2;
-  for (let row = 0; row < sizedHeight; row++) {
-    // This row's centre about the tile's centre, y upwards, less the transform's offset.
-    const upward = centreY - (row - grow + 0.5) - f;
+  // Back through the transform to the drawing, from a pixel's centre about the
+  // tile's centre (y upwards, less the transform's offset). A centre on the
+  // edge between two pixels takes the one left of it, and the one above: the
+  // game breaks such ties on rounding noise, and these match it most.
+  const columnOf = (across: number, upward: number) =>
+    Math.floor(centreX + (e * across - b * upward) / determinant - EDGE);
+  const rowOf = (across: number, upward: number) =>
+    Math.floor(centreY - (a * upward - d * across) / determinant - EDGE);
+  const acrossOf = (column: number) => column - grow + 0.5 - centreX - c;
+  const upwardOf = (row: number) => centreY - (row - grow + 0.5) - f;
+  if (!b && !d) {
+    // Upright: a column's source column, and a row's source row, are the same
+    // all along it, so each is found once.
+    const columns = new Int32Array(sizedWidth);
     for (let column = 0; column < sizedWidth; column++) {
-      const across = column - grow + 0.5 - centreX - c;
-      // Back through the transform to the drawing. A centre on the edge
-      // between two pixels takes the one left of it, and the one above: the
-      // game breaks such ties on rounding noise, and these match it most.
-      const fromColumn = Math.floor(
-        centreX + (e * across - b * upward) / determinant - EDGE,
-      );
-      const fromRow = Math.floor(
-        centreY - (a * upward - d * across) / determinant - EDGE,
-      );
+      columns[column] = columnOf(acrossOf(column), 0);
+    }
+    for (let row = 0; row < sizedHeight; row++) {
+      const fromRow = rowOf(0, upwardOf(row));
+      if (fromRow < 0 || fromRow >= height) {
+        continue;
+      }
+      for (let column = 0; column < sizedWidth; column++) {
+        const fromColumn = columns[column];
+        if (fromColumn >= 0 && fromColumn < width) {
+          to[row * sizedWidth + column] = from[fromRow * width + fromColumn];
+        }
+      }
+    }
+    return sized;
+  }
+  for (let row = 0; row < sizedHeight; row++) {
+    const upward = upwardOf(row);
+    for (let column = 0; column < sizedWidth; column++) {
+      const across = acrossOf(column);
+      const fromColumn = columnOf(across, upward);
+      const fromRow = rowOf(across, upward);
       if (
         fromColumn >= 0 &&
         fromColumn < width &&
         fromRow >= 0 &&
         fromRow < height
       ) {
-        const from = (fromRow * width + fromColumn) * 4;
-        sized.set(
-          pixels.subarray(from, from + 4),
-          (row * sizedWidth + column) * 4,
-        );
+        to[row * sizedWidth + column] = from[fromRow * width + fromColumn];
       }
     }
   }

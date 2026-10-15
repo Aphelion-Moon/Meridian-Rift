@@ -142,16 +142,23 @@ const PLAIN = '#ffffff'.repeat(4);
 const NO_FINISH = 'None';
 
 /**
+ * The brand style that "None" looks like on a part: its augment's own look,
+ * when its item names the style that look is (`default_style`), but never on
+ * a digitigrade body's leg, whose own look is a digitigrade cybernetic leg
+ * that no brand draws.
+ */
+export const noFinishStyle = (part: StagePart, digi: boolean) =>
+  digi && part.socket.zones.some(isLeg) ? null : part.augment.default_style;
+
+/**
  * What the body tries on for a finish under a picker's pointer, as
  * FinishTryOn takes it, or null for nothing: the finish the part wears
  * already shows as it is, under its clothes; "None" shows the augment's own
- * look, when its item names the brand style that look is (`default_style`),
- * but never on a digitigrade body's leg, whose own look is a digitigrade
- * cybernetic leg no brand draws; and a finish the server sent no sprites for
- * shows nothing. Nor does one whose sprites can't be drawn yet, as a brand
- * finish's can't until its sheet has come: until they can, nothing on the
- * body changes, and they show as soon as they can. A recolourable finish
- * wears its default colours.
+ * look, where a brand draws it (noFinishStyle); and a finish the server sent
+ * no sprites for shows nothing. Nor does one whose sprites can't be drawn
+ * yet, as a brand finish's can't until its sheet has come: until they can,
+ * nothing on the body changes, and they show as soon as they can. A
+ * recolourable finish wears its default colours.
  *
  * Arguments:
  * - part: The part the finish picker is open on.
@@ -169,9 +176,7 @@ export function useFinishTryOn(
       ? null
       : name !== NO_FINISH
         ? name
-        : data.digi_legs && part.socket.zones.some(isLeg)
-          ? null
-          : part.augment.default_style;
+        : noFinishStyle(part, !!data.digi_legs);
   const skin = data.augment_paint_skin;
   const tryOn =
     part && style

@@ -1,5 +1,13 @@
 // THIS IS AN APHELION UI FILE
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { Provider, useAtomValue } from 'jotai';
 
@@ -14,6 +22,7 @@ import type { AugmentItem, PaintFinish, ServerData } from '../../../types';
 import { ServerPrefs } from '../../../useServerPrefs';
 import { previewLightsOffAtom } from '../../CharacterPreview/lights';
 import { previewTurnAtom } from '../../CharacterPreview/turn';
+import * as sheets from '../sprites';
 import { setStageHover } from './hover';
 import { AugmentsStage } from './index';
 import {
@@ -25,8 +34,8 @@ import {
 import { useTried } from './tried';
 
 /** A finish without lights: its colour string still carries one, unused. */
-const GORILLA: PaintFinish = {
-  id: 'gorilla',
+const BRAWLER: PaintFinish = {
+  id: 'brawler',
   channels: [
     { key: 'paint', label: 'Plating' },
     { key: 'accent', label: 'Knuckles' },
@@ -42,8 +51,17 @@ const GORILLA: PaintFinish = {
     r_hand: { paint: 1, glow: 0 },
   },
 };
-const FINISH = 'Gorilla Arms';
-const FINISHES = { [FINISH]: GORILLA };
+const FINISH = 'Brawler';
+const FINISHES = { [FINISH]: BRAWLER };
+/** More brands, for the grid's rows. */
+const MARKS = ['Mk1', 'Mk2', 'Mk3', 'Mk4', 'Mk5'];
+/** The brands' sprites, by name, as the server lists them. */
+const BRANDS = Object.fromEntries(
+  ['Surplus', ...MARKS].map((name) => [
+    name,
+    { key: name.toLowerCase(), zones: ['r_arm', 'r_hand', 'r_leg', 'l_leg'] },
+  ]),
+);
 const SAVED = '#5a6448#c8c2b0#24261e#ffb347';
 
 const originalConfig = store.get(configAtom);
@@ -81,15 +99,17 @@ const chrome: AugmentItem = {
 };
 
 /**
- * Every socket, chrome: the right arm in Gorilla Arms (its colours saved, in
+ * Every socket, chrome: the right arm in Brawler (its colours saved, in
  * the window's data), the left arm in it too on an augment that takes no
- * finish, the right leg in a brand finish, as the stage's memo builds them.
+ * finish, the right leg in a brand finish, and the left leg in none, offered
+ * a row of brands, as the stage's memo builds them.
  */
 const parts: StagePart[] = PART_SOCKETS.map((socket) => {
   const worn: Record<string, [string, string[]]> = {
     'Right Arm': [FINISH, ['None', 'Surplus', FINISH]],
     'Left Arm': [FINISH, ['None']],
     'Right Leg': ['Surplus', ['None', 'Surplus']],
+    'Left Leg': ['None', ['None', FINISH, 'Surplus', ...MARKS]],
   };
   const [finish, finishes] = worn[socket.slot] ?? ['None', ['None']];
   return {
@@ -137,6 +157,7 @@ function openStage() {
   const server = {
     species: {},
     augment_paint: {
+      brands: BRANDS,
       finishes: FINISHES,
       swatches: { metal: ['#e8eaee', '#26262b'], lights: ['#46ebff'] },
     },
@@ -171,12 +192,18 @@ const button = (text: string) =>
 const colorSends = (send: ReturnType<typeof mock>) =>
   send.mock.calls.filter(([action]) => action === 'set_augment_colors');
 const finishList = () => document.querySelector('.AugStage .fly:not(.paint)');
+/** A finish's tile in the finish picker, by the name its accessible name starts with. */
 const finishOption = (name: string) =>
-  [...document.querySelectorAll('.AugStage .fly .opt')].find(
-    (option) => option.querySelector('.opt-n')?.textContent === name,
+  [...document.querySelectorAll('.AugStage .fly .tile')].find(
+    (tile) => tile.getAttribute('aria-label')?.split(', ')[0] === name,
   ) as HTMLElement;
 const triedNow = () =>
   document.querySelector('.tried-probe')?.getAttribute('data-tried');
+/** A test that showed the tooltip ends once floating-ui has placed it, a tick later. */
+const tipPlaced = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve));
+  });
 
 describe("the augments stage's recolourable finishes", () => {
   it('puts a palette on a recolourable finish the part wears, which opens its editor', () => {
@@ -237,18 +264,16 @@ describe("the augments stage's recolourable finishes", () => {
     ]);
   });
 
-  it('tries a finish on from its list, sending nothing, and marks the recolourable ones', () => {
+  it('tries a finish on from its list, sending nothing, and marks the recolourable ones', async () => {
     const send = openStage();
     click(card('R ARM').querySelector('.row-paintable .row'));
     expect(
-      finishOption(FINISH).querySelector('.tag-icon .fa-palette'),
+      finishOption(FINISH).querySelector('.tile-badge.paint .fa-palette'),
     ).not.toBeNull();
-    expect(
-      finishOption(FINISH)
-        .querySelector('.tag-icon')
-        ?.getAttribute('aria-label'),
-    ).toBeTruthy();
-    expect(finishOption('Surplus').querySelector('.tag-icon')).toBeNull();
+    expect(finishOption(FINISH).getAttribute('aria-label')).toBe(
+      `${FINISH}, installed, recolourable`,
+    );
+    expect(finishOption('Surplus').querySelector('.tile-badge')).toBeNull();
     act(() => {
       fireEvent.mouseEnter(finishOption('Surplus'));
     });
@@ -258,10 +283,11 @@ describe("the augments stage's recolourable finishes", () => {
     });
     expect(triedNow()).toBe(FINISH);
     act(() => {
-      fireEvent.mouseLeave(document.querySelector('.fly-list') as Element);
+      fireEvent.mouseLeave(document.querySelector('.fly-grid') as Element);
     });
     expect(triedNow()).toBe('');
     expect(send.mock.calls).toEqual([]);
+    await tipPlaced();
   });
 
   it('puts a flyout away at a press anywhere else in the window, but not on its handles', () => {
@@ -358,7 +384,7 @@ describe("the scan's controls with a flyout open", () => {
   it('keep what is tried on for the trip to them, and take it off past them', async () => {
     openStage();
     click(card('R ARM').querySelector('.row-paintable .row'));
-    const list = document.querySelector('.fly-list') as Element;
+    const list = document.querySelector('.fly-grid') as Element;
     act(() => {
       fireEvent.mouseEnter(finishOption('Surplus'));
     });
@@ -413,10 +439,10 @@ describe("the scan's controls with a flyout open", () => {
     expect(triedNow()).toBe('');
   });
 
-  it('keep it across the list on the way back to a row, and lose it by keyboard only if they held it', () => {
+  it('keep it across the list on the way back to a row, and lose it by keyboard only if they held it', async () => {
     openStage();
     click(card('R ARM').querySelector('.row-paintable .row'));
-    const list = document.querySelector('.fly-list') as Element;
+    const list = document.querySelector('.fly-grid') as Element;
     act(() => {
       fireEvent.mouseEnter(finishOption('Surplus'));
       fireEvent.mouseLeave(list, { relatedTarget: scan('.rot.r') });
@@ -451,12 +477,13 @@ describe("the scan's controls with a flyout open", () => {
       (card('HEAD').querySelector('.row') as HTMLElement).focus();
     });
     expect(triedNow()).toBe('');
+    await tipPlaced();
   });
 
   it("aren't lost to the rows the pointer crosses on its way out to them", async () => {
     openStage();
     click(card('R ARM').querySelector('.row-paintable .row'));
-    const list = document.querySelector('.fly-list') as Element;
+    const list = document.querySelector('.fly-grid') as Element;
     const at = (x: number, y: number) => ({ clientX: x, clientY: y });
     // From one row onto the next, as React hears it: the first one's mouseout.
     const onto = (from: string, to: string, x: number, y: number) =>
@@ -498,5 +525,130 @@ describe("the scan's controls with a flyout open", () => {
       onto(FINISH, 'Surplus', 280, 300);
     });
     expect(triedNow()).toBe('Surplus');
+  });
+});
+
+/** The tooltip's name, or null when none shows. */
+const tip = () =>
+  document.querySelector('.AugStage__tip:not(.AugStage__tip--hidden)')
+    ?.textContent ?? null;
+const focused = () =>
+  document.activeElement?.getAttribute('aria-label')?.split(', ')[0];
+const pressKey = (key: string) =>
+  act(() => {
+    fireEvent.keyDown(document.activeElement as Element, { key });
+  });
+
+describe("the finish picker's thumbnails", () => {
+  it('name the tile the pointer or the keyboard is on, and only that one', async () => {
+    openStage();
+    click(card('R ARM').querySelector('.row-paintable .row'));
+    // Opened on what's installed: the keyboard is there, unnamed until it moves.
+    expect(focused()).toBe(FINISH);
+    expect(tip()).toBeNull();
+    act(() => {
+      fireEvent.mouseEnter(finishOption('Surplus'));
+    });
+    expect(tip()).toBe('Surplus');
+    act(() => {
+      fireEvent.mouseLeave(finishOption('Surplus'), {
+        relatedTarget: finishOption(FINISH),
+      });
+    });
+    expect(tip()).toBe(FINISH);
+    act(() => {
+      fireEvent.mouseLeave(finishOption(FINISH), {
+        relatedTarget: document.querySelector('.elsewhere'),
+      });
+    });
+    expect(tip()).toBeNull();
+    pressKey('Home');
+    expect(focused()).toBe('None');
+    expect(tip()).toBe('None');
+    act(() => {
+      (document.activeElement as HTMLElement).blur();
+    });
+    expect(tip()).toBeNull();
+    await tipPlaced();
+  });
+
+  it('go round the grid with the arrow keys, Home and End, and leave it with Tab', async () => {
+    openStage();
+    // None, then Brawler alone, then Surplus and the marks four to a row.
+    click(card('L LEG').querySelectorAll('.row')[1]);
+    expect(focused()).toBe('None');
+    pressKey('ArrowLeft');
+    expect(focused()).toBe('None');
+    pressKey('ArrowDown');
+    expect(focused()).toBe(FINISH);
+    pressKey('ArrowDown');
+    expect(focused()).toBe('Surplus');
+    pressKey('ArrowRight');
+    pressKey('ArrowRight');
+    pressKey('ArrowRight');
+    expect(focused()).toBe('Mk3');
+    // A shorter row below: its last tile.
+    pressKey('ArrowDown');
+    expect(focused()).toBe('Mk5');
+    pressKey('ArrowUp');
+    expect(focused()).toBe('Mk1');
+    // Up out of a set: the row above, in the set before.
+    pressKey('ArrowUp');
+    expect(focused()).toBe(FINISH);
+    pressKey('End');
+    expect(focused()).toBe('Mk5');
+    pressKey('Home');
+    expect(focused()).toBe('None');
+    // Only the tile the keyboard is on is in the tab order.
+    const tabbable = [...document.querySelectorAll('.AugStage .tile')].filter(
+      (tile) => tile.getAttribute('tabindex') === '0',
+    );
+    expect(tabbable.map((tile) => tile.getAttribute('aria-label'))).toEqual([
+      'None, installed',
+    ]);
+    const tab = new KeyboardEvent('keydown', {
+      key: 'Tab',
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => {
+      document.activeElement?.dispatchEvent(tab);
+    });
+    expect(tab.defaultPrevented).toBe(false);
+    await tipPlaced();
+  });
+
+  it('show the body faintly in a tile until its sprites can be drawn', () => {
+    // The brand sheet hasn't come: only the recolourable finishes' sprites can be drawn.
+    let brandsCame = false;
+    const sprites = spyOn(sheets, 'useSprites').mockImplementation((names) =>
+      names.map((name) =>
+        name && (brandsCame || !name.startsWith('augment_brands32x32'))
+          ? {
+              cell: { url: 'sheet.png', x: 0, y: 0, width: 32, height: 32 },
+              image: {} as HTMLImageElement,
+              source: {} as HTMLImageElement,
+            }
+          : undefined,
+      ),
+    );
+    try {
+      openStage();
+      click(card('R ARM').querySelector('.row-paintable .row'));
+      const pending = () =>
+        [...document.querySelectorAll('.AugStage .tile--pending')].map(
+          (tile) => tile.getAttribute('aria-label')?.split(', ')[0],
+        );
+      expect(pending()).toEqual(['Surplus']);
+      // Opened again once the sheet has come: every tile drawn.
+      brandsCame = true;
+      act(() => {
+        fireEvent.keyDown(window, { key: 'Escape' });
+      });
+      click(card('R ARM').querySelector('.row-paintable .row'));
+      expect(pending()).toEqual([]);
+    } finally {
+      sprites.mockRestore();
+    }
   });
 });
