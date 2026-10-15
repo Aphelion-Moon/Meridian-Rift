@@ -4,6 +4,7 @@ import {
   type CSSProperties,
   Fragment,
   memo,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -64,6 +65,7 @@ import {
   type StagePart,
   tracePath,
 } from './parts';
+import { FinishGrid, ThumbsAhead, ThumbTip } from './thumbs';
 import {
   crossTried,
   dropKept,
@@ -88,15 +90,23 @@ const STAGE_SCALE = 12;
  * is tried on (leaveTried).
  */
 const SCAN_CONTROLS = '.AugStage .rot, .AugStage .CharacterPreview__light';
-/** A picker's rows, each of which tries itself on. */
-const PICKER_ROWS = '.AugStage .fly .opt';
+/** A picker's rows, and the finish picker's tiles, each of which tries itself on. */
+const PICKER_ROWS = '.AugStage .fly .opt, .AugStage .fly .tile';
 /**
  * What the pointer crosses between a picker's rows and the scan's controls:
  * the scrim over the stage, the flyout's own edge, and the list's padding and
- * the gaps between its rows.
+ * the gaps between its rows; or the grid's, between its tiles and over its
+ * headings.
  */
-const TRANSIT =
-  '.AugStage .scrim, .AugStage .fly, .AugStage .fly-in, .AugStage .fly-list';
+const TRANSIT = [
+  '.AugStage .scrim',
+  '.AugStage .fly',
+  '.AugStage .fly-in',
+  '.AugStage .fly-list',
+  '.AugStage .fly-grid',
+  '.AugStage .tile-set',
+  '.AugStage .fly-sec',
+].join();
 /** How long the pointer rests on a row it came onto heading out for the stage before that row is tried on. */
 const ROW_REST_MS = 120;
 
@@ -120,6 +130,15 @@ function leaveTried(next: EventTarget | null) {
 /** Whether an event's other target, as where focus goes, is in what these select. */
 const isIn = (next: EventTarget | null, selector: string) =>
   next instanceof Element && !!next.closest(selector);
+
+/** The keyboard left a row or a tile for `next`: onto the scan's controls, what it tried on stays, theirs; else it comes off. */
+function blurOption(key: string, next: EventTarget | null) {
+  if (isIn(next, SCAN_CONTROLS)) {
+    keepTried();
+  } else {
+    untry(key);
+  }
+}
 
 /**
  * What a press may land on and keep a flyout open: the flyout itself; the
@@ -270,6 +289,8 @@ export function AugmentsStage(props: Props) {
     () => Object.fromEntries(parts.map((part) => [part.socket.slot, part])),
     [parts],
   );
+  // The parts whose finish pickers open, which have their thumbnails drawn ahead.
+  const finishable = useMemo(() => parts.filter(finishOk), [parts]);
   // The part the colour editor is open on, while its finish is recolourable.
   const painting = paintSlot ? partBySlot[paintSlot] : undefined;
   const paintable = !!painting?.paint;
@@ -530,6 +551,7 @@ export function AugmentsStage(props: Props) {
     >
       <div className="chamber" />
       <div className="pad" />
+      <ThumbsAhead parts={finishable} />
       <StageView
         internals={internals}
         parts={parts}
@@ -668,6 +690,7 @@ export function AugmentsStage(props: Props) {
               : (partBySlot[open.slot]?.socket.name ?? open.slot)
           }
           pointsOn={pointsOn}
+          part={internals ? undefined : partBySlot[open.slot]}
           onPick={onPick}
           onClose={closeFlyout}
         />
@@ -1615,10 +1638,14 @@ export function Picker(props: {
   options: Option[];
   title: string;
   pointsOn: boolean;
+  /** The part a finish picker is open on, which its thumbnails draw. */
+  part?: StagePart;
   onPick: (option: Option) => void;
   onClose: () => void;
 }) {
-  const { open, options, title, pointsOn, onPick, onClose } = props;
+  const { open, options, title, pointsOn, part, onPick, onClose } = props;
+  // A finish picker lays its finishes out as thumbnails (thumbs.tsx).
+  const thumbnails = open.field === 'finish' && !!part;
   const left = open.side === 'l';
   const organ = open.field === 'organ';
   const list = useRef<HTMLDivElement>(null);
@@ -1657,6 +1684,36 @@ export function Picker(props: {
     clearTimeout(crossed.current?.rest);
     crossed.current = undefined;
   }, []);
+  // Where the pointer goes over the list or the grid, for the rows or tiles it crosses.
+  const crossing = useMemo(
+    () => ({
+      onMouseEnter: (event: ReactMouseEvent<HTMLElement>) => {
+        heading.current = {
+          x: event.clientX,
+          y: event.clientY,
+          dx: 0,
+          dy: 0,
+        };
+      },
+      onMouseMove: (event: ReactMouseEvent<HTMLElement>) => {
+        const h = heading.current;
+        h.dx = h.dx / 2 + event.clientX - h.x;
+        h.dy = h.dy / 2 + event.clientY - h.y;
+        h.x = event.clientX;
+        h.y = event.clientY;
+        const row = crossed.current;
+        if (row && headingOut()) {
+          clearTimeout(row.rest);
+          row.rest = setTimeout(settleRow, ROW_REST_MS);
+        } else if (row) {
+          settleRow();
+        }
+      },
+      onMouseLeave: (event: ReactMouseEvent<HTMLElement>) =>
+        leaveTried(event.relatedTarget),
+    }),
+    [toStage],
+  );
   const [query, setQuery] = useState('');
   const wanted = query.trim().toLowerCase();
   const shown = wanted
@@ -1723,51 +1780,37 @@ export function Picker(props: {
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-          <div
-            ref={list}
-            className="fly-list"
-            role="listbox"
-            onMouseEnter={(event) => {
-              heading.current = {
-                x: event.clientX,
-                y: event.clientY,
-                dx: 0,
-                dy: 0,
-              };
-            }}
-            onMouseMove={(event) => {
-              const h = heading.current;
-              h.dx = h.dx / 2 + event.clientX - h.x;
-              h.dy = h.dy / 2 + event.clientY - h.y;
-              h.x = event.clientX;
-              h.y = event.clientY;
-              const row = crossed.current;
-              if (row && headingOut()) {
-                clearTimeout(row.rest);
-                row.rest = setTimeout(settleRow, ROW_REST_MS);
-              } else if (row) {
-                settleRow();
-              }
-            }}
-            onMouseLeave={(event) => leaveTried(event.relatedTarget)}
-          >
-            {!shown.length && (
-              <div className="fly-none">No options match that.</div>
-            )}
-            {shown.map((option, i) => (
-              <PickerOption
-                key={option.key}
-                option={option}
-                index={i}
-                pointsOn={pointsOn}
-                onPick={onPick}
-                onTry={tryRow}
-                onPass={passRow}
-              />
-            ))}
-          </div>
+          {thumbnails ? (
+            <FinishGrid
+              options={shown}
+              part={part}
+              onPick={onPick}
+              onTry={tryRow}
+              onPass={passRow}
+              onBlurOption={blurOption}
+              crossing={crossing}
+            />
+          ) : (
+            <div ref={list} className="fly-list" role="listbox" {...crossing}>
+              {!shown.length && (
+                <div className="fly-none">No options match that.</div>
+              )}
+              {shown.map((option, i) => (
+                <PickerOption
+                  key={option.key}
+                  option={option}
+                  index={i}
+                  pointsOn={pointsOn}
+                  onPick={onPick}
+                  onTry={tryRow}
+                  onPass={passRow}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
+      {thumbnails && <ThumbTip />}
     </>
   );
 }
@@ -1804,11 +1847,7 @@ const PickerOption = memo(function PickerOption(props: {
       onMouseEnter={() => onTry(option.key)}
       onMouseLeave={onPass}
       onFocus={() => setTried(option.key)}
-      onBlur={(event) =>
-        isIn(event.relatedTarget, SCAN_CONTROLS)
-          ? keepTried()
-          : untry(option.key)
-      }
+      onBlur={(event) => blurOption(option.key, event.relatedTarget)}
     >
       <span className="opt-n">{option.name}</span>
       <span className={classes(['opt-c', option.cost < 0 && 'refund'])}>

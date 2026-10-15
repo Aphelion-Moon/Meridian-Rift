@@ -6,7 +6,7 @@
 /datum/unit_test/augment_paint_cache
 
 /datum/unit_test/augment_paint_cache/Run()
-	var/datum/robotic_style/recolorable/finish = GLOB.robotic_styles_list[/datum/robotic_style/recolorable/silverhand::name]
+	var/datum/robotic_style/recolorable/finish = GLOB.robotic_styles_list[/datum/robotic_style/recolorable/chrome_rebel::name]
 	var/mob/living/carbon/human/consistent/first = allocate(/mob/living/carbon/human/consistent)
 	var/mob/living/carbon/human/consistent/second = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/bodypart/first_arm = put_on_finish(first, finish, "#b2202a#cdd2dc#2a282e#8ce8ff")
@@ -70,7 +70,7 @@
 	prefs.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)
 	prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_emissives], TRUE)
 	prefs.augments[AUGMENT_SLOT_R_ARM] = /datum/augment_item/limb/r_arm/cyborg
-	prefs.augment_limb_styles[AUGMENT_SLOT_R_ARM] = /datum/robotic_style/recolorable/silverhand::name
+	prefs.augment_limb_styles[AUGMENT_SLOT_R_ARM] = /datum/robotic_style/recolorable/chrome_rebel::name
 	var/datum/augment_item/limb/augment = GLOB.augment_items[/datum/augment_item/limb/r_arm/cyborg]
 
 	var/mob/living/carbon/human/consistent/spawned = allocate(/mob/living/carbon/human/consistent)
@@ -130,7 +130,7 @@
 /datum/unit_test/augment_paint_save/Run()
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/prefs = allocate(/datum/preferences/preferences_import_test, mock_client)
-	var/finish_name = /datum/robotic_style/recolorable/gorilla::name
+	var/finish_name = /datum/robotic_style/recolorable/brawler::name
 	var/list/save_data = list(
 		"augment_limb_styles" = list(AUGMENT_SLOT_R_ARM = finish_name, AUGMENT_SLOT_L_ARM = /datum/robotic_style/surplus::name, AUGMENT_SLOT_L_LEG = finish_name),
 		"augment_limb_colors" = list(

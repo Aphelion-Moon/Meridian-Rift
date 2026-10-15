@@ -13,16 +13,16 @@ there.
 
 | Finish | Id | Channels the editor shows | Lit zones |
 |---|---|---|---|
-| Jet Plating | `jet` | Plating (paint), Joints (frame) | none |
-| Silverhand | `silverhand` | Chrome, Panel, Frame, Lights | arms |
-| Ghostrunner | `ghostrunner` | Plating (frame), Lights | arms, legs |
-| Maelstrom Wired | `maelstrom_wired` | Hose, Wrap, Frame, Lights | legs |
-| Gorilla Arms | `gorilla` | Plating, Knuckles, Frame | none |
-| Maelstrom Brute | `maelstrom_brute` | Iron, Brass, Frame, Lights | arms, legs |
+| Bounty Hunter | `bounty_hunter` | Plating (paint), Joints (frame) | none |
+| Chrome Rebel | `chrome_rebel` | Chrome, Panel, Frame, Lights | arms |
+| Phantom | `phantom` | Plating (frame), Lights | arms, legs |
+| Street Wired | `street_wired` | Hose, Wrap, Frame, Lights | legs |
+| Brawler | `brawler` | Plating, Knuckles, Frame | none |
+| Iron Brute | `iron_brute` | Iron, Brass, Frame, Lights | arms, legs |
 | Synthflesh | `synthflesh` | Chassis, Seams, LED | arms, legs |
-| Maine | `maine` | Gauntlets, Knuckles, Seams | none |
-| Automail | `automail` | Plates, Brass, Joints | none |
-| Jet Boots | `jet_boots` | Plating, Joints | none |
+| Merc | `merc` | Gauntlets, Knuckles, Seams | none |
+| Mechanist | `mechanist` | Plates, Brass, Joints | none |
+| Bounty Hunter Boots | `bounty_hunter_boots` | Plating, Joints | none |
 | Synthskin | `synthskin` | Seams (frame); no metal | none |
 
 A finish is data only: its states in the sheets and a subtype. A finish's `name` is its save key, so renaming one drops it
@@ -45,9 +45,10 @@ the fourth colour unused.
 Each slot keeps its own colours (`/datum/preferences/var/augment_limb_colors`, slot to colour string), and a slot without
 any draws its finish's `default_colors`.
 
-**Sheets.** `python tools/bulky_augments/gen_augment_sheets.py` writes three sheets from each finish's art sources in
-`tools/bulky_augments/art/<id>/` (see `tools/bulky_augments/README.md`). Rerun it whenever an art source changes, commit the
-sheets with it, and never edit the sheets by hand. Every state is 32x32 in four directions, and `zone` is one of
+**Sheets.** `python lab/bulky_augments/gen_augment_sheets.py` writes three sheets from each finish's art sources in
+`lab/bulky_augments/art/<id>/` (see its `README.md`). `lab/` is a git-ignored folder kept out of commits, so a checkout
+without it has only the sheets. Rerun it whenever an art source changes, commit the sheets with it, and never edit the
+sheets by hand. Every state is 32x32 in four directions, and `zone` is one of
 `BULKY_AUGMENT_ZONES`: `r_arm`, `l_arm`, `r_hand`, `l_hand`, `r_leg` or `l_leg`.
 
 | Sheet | States | What they hold |
@@ -184,22 +185,35 @@ a lights-off view; the finish's presets; a row per channel with a picker and qui
 to default. Nothing reaches the server until Apply, a preset, a copy or a reset. With `allow_emissives` off, the lights row
 says the lights won't glow until it's on.
 
-In the finish picker, a recolourable finish carries a palette tag, and the finish under the pointer or the keyboard is tried
-on the body scan at once, client side, as the markings room tries markings on: its sprites from the `augment_paint` sheet,
-or a brand finish's from `augment_brands`, drawn over the scan's facing and lined up with it, with the limb it replaces
-masked out of the character through the preview's region map, and a far leg in profile kept behind the near one. The finish
-the part wears is not tried on, and "None" shows the augment's own look when its item names a brand style for it
-(`default_style`), except on a digitigrade body's leg, where it shows nothing. A finish whose sprites can't be drawn yet, as
-a brand finish's before its sheet has come, changes nothing on the body until they can. The window asks for that sheet once
-the pointer or the keyboard rests 100 ms on the Augments+ tab or the room's Augments button, or once the stage has shown and
-the window is idle, and a window opened again asks again, in case an ask went unanswered. On a digitigrade body every slot
-offers only the styles with digitigrade sprites, the ones the server keeps there. Only a pick reaches the server. A press
-anywhere outside an open picker or editor closes it, except on the window's drag and resize handles and on the scan's rotate
-buttons and lights key, which sit over the stage's scrim so the character can be turned and lit with one open. What is tried
-on stays on through the trip to them and while they are used: rows the pointer crosses heading out for them don't take over,
-and it comes off once the pointer rests anywhere else. The scan has the other previews' lights key, and each card's trace
-lands on its part's pixels in the scan's current facing: a part hidden in that facing lands on its pair, a missing limb
-keeps its card's fixed port, and a taur's legs land on its taur body.
+In the finish picker, a part's finishes are thumbnails (`thumbs.tsx`), four to a row: "None" first, then the recolourable
+finishes and the brand styles under headings of their own. Each is the slot's limb in that finish facing south, drawn up
+four times in a crop that holds the slot's limbs in every style: a recolourable finish in its default colours, or the
+slot's own on the one it wears, a brand in its sprites, tinted with the skin where the item draws greyscale, and "None" in
+the augment's own look, or crossed out where it has none. A check marks the installed finish and a palette a recolourable
+one, and each tile's accessible name says both. One floating tooltip names the tile under the pointer or the keyboard,
+below its tile where there's no room above and moved along to keep 8 px inside the window. The search narrows the tiles,
+scrolling stops on whole rows, and the picker opens with the installed finish's row in full view; the arrow keys go round
+the grid, Home and End to its ends, and Tab leaves it. Until the brand sheet comes, a brand tile shows the body's
+silhouette faintly, and fills in where it stands. A tile's art is drawn once from its sprites and colours and kept: the
+tiles in view draw before the picker's first frame and the rest once the window is idle, and once the stage has shown and
+the window is idle, every limb's thumbnails are drawn ahead a few at a time, which a press or a key puts off.
+
+The finish under the pointer or the keyboard is tried on the body scan at once, client side, as the markings room tries
+markings on: its sprites from the `augment_paint` sheet, or a brand finish's from `augment_brands`, drawn over the
+scan's facing and lined up with it, with the limb it replaces masked out of the character through the preview's region
+map, and a far leg in profile kept behind the near one. The finish the part wears is not tried on, and "None" shows the
+augment's own look when its item names a brand style for it (`default_style`), except on a digitigrade body's leg, where
+it shows nothing. A finish whose sprites can't be drawn yet, as a brand finish's before its sheet has come, changes
+nothing on the body until they can. The window asks for that sheet once the pointer or the keyboard rests 100 ms on the
+Augments+ tab or the room's Augments button, or once the stage has shown and the window is idle, and a window opened
+again asks again, in case an ask went unanswered. On a digitigrade body every slot offers only the styles with
+digitigrade sprites, the ones the server keeps there. Only a pick reaches the server. A press anywhere outside an open
+picker or editor closes it, except on the window's drag and resize handles and on the scan's rotate buttons and lights
+key, which sit over the stage's scrim so the character can be turned and lit with one open. What is tried on stays on
+through the trip to them and while they are used: tiles or rows the pointer crosses heading out for them don't take
+over, and it comes off once the pointer rests anywhere else. The scan has the other previews' lights key, and each
+card's trace lands on its part's pixels in the scan's current facing: a part hidden in that facing lands on its pair, a
+missing limb keeps its card's fixed port, and a taur's legs land on its taur body.
 
 **Not done yet:**
 
@@ -245,16 +259,14 @@ keeps its card's fixed port, and a taur's legs land on its taur body.
   which `start_answer()` asks every middleware for
 - `code/modules/unit_tests/~nova/bulky_augments.dm`: `augment_paint_cache`, `augment_paint_fit`, `augment_paint_save` and
   `augment_paint_sheets`, included from `code/modules/unit_tests/_unit_tests.dm`
-- `tools/bulky_augments/`: `gen_augment_sheets.py`, which writes the three sheets, its `README.md`, and the art sources in
-  `art/<id>/`
 - `tgui/packages/tgui/interfaces/PreferencesMenu/types.ts`
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/LimbsPage.tsx`
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/index.tsx`: the Augments+ tab asks for the brand sprites
   on intent
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/Room.tsx`: the room's Augments button does too
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/augments/`: `index.tsx`, `parts.ts`,
-  `brands.ts`, `paint.tsx`, `tried.ts`, `tryOn.tsx`, `brands.test.tsx`, `paint.test.tsx`, `picker.test.tsx`, `stage.test.tsx` and
-  `tryOn.test.tsx`
+  `brands.ts`, `paint.tsx`, `thumbs.tsx`, `tried.ts`, `tryOn.tsx`, `brands.test.tsx`, `paint.test.tsx`, `picker.test.tsx`,
+  `stage.test.tsx` and `tryOn.test.tsx`
 - `tgui/packages/tgui/styles/meridianos/_augments-paint.scss`, loaded by `tgui/packages/tgui/styles/meridianos/_preferences.scss`,
   and `tgui/packages/tgui/styles/meridianos/_augments-stage.scss`
 - `tgstation.dme`

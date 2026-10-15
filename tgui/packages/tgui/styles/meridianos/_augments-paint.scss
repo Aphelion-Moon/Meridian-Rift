@@ -166,6 +166,149 @@
   pointer-events: auto;
 }
 
+// MARK: The finish picker's thumbnails
+
+// A finish picker's finishes as thumbnails (thumbs.tsx), laid out as the
+// markings drawer lays its stickers out: 60 px tiles, four to a row, 8 px
+// apart. The grid scrolls below the gap the list keeps under the search, so
+// no tile ever sits under or against it, and it stops on whole rows.
+.AugStage .fly-grid {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+  padding: 0 12px 14px;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--aug-line) transparent;
+}
+
+.AugStage .tile-set {
+  display: grid;
+  grid-template-columns: repeat(4, 60px);
+  justify-content: center;
+  gap: 8px;
+}
+
+// A set's heading, as small as the flyout's own kicker.
+.AugStage .fly-sec {
+  margin: 14px 4px 8px;
+  font: 10px/1 'VCR OSD Mono', Consolas, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--aug-muted);
+  scroll-snap-align: start;
+}
+
+.AugStage .tile {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  scroll-snap-align: start;
+  background: var(--aug-recess);
+  border: 1px solid var(--aug-line-dim);
+  cursor: pointer;
+  animation: aug-optIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--i) * 12ms + 110ms);
+  transition:
+    border-color 0.12s,
+    background-color 0.12s;
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--aug-hot);
+    background:
+      radial-gradient(
+        circle at 50% 55%,
+        rgb(var(--aug-hot-rgb) / 20%),
+        transparent 70%
+      ),
+      var(--aug-recess);
+    outline: none;
+  }
+
+  &.cur {
+    border-color: var(--aug-line-hi);
+  }
+}
+
+.AugStage .tile-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+// Its sprites not come yet, as a brand's before the augment_brands sheet: the
+// body's silhouette, faint, where its limb will be.
+.AugStage .tile--pending .tile-art {
+  opacity: 0.2;
+}
+
+// "None" for an augment with no look of its own, crossed out as the markings
+// drawer crosses out its None.
+.AugStage .tile-none {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: var(--aug-muted);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+// The installed finish's check, bottom left, and a recolourable one's palette,
+// bottom right.
+.AugStage .tile-badge {
+  position: absolute;
+  bottom: 2px;
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+  line-height: 1;
+  pointer-events: none;
+
+  &.cur {
+    left: 2px;
+    color: var(--aug-bg);
+    background: var(--aug-line-hi);
+  }
+
+  &.paint {
+    right: 2px;
+    color: var(--aug-hot);
+    border: 1px solid rgb(var(--aug-hot-rgb) / 55%);
+    background: rgb(0 0 0 / 35%);
+  }
+}
+
+// The name of the tile the pointer or the keyboard is on, in the theme's own
+// tooltip (.Tooltip): thumbs.tsx places it over the flyout, above the tile or
+// below, inside the window. A long name wraps between its words, and breaks
+// inside one only when the word itself is too long.
+.AugStage__tip {
+  z-index: 8;
+  width: max-content;
+  max-width: 200px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  pointer-events: none;
+
+  &--hidden {
+    visibility: hidden;
+  }
+}
+
 // MARK: The editor
 
 .AugStage .paint {
