@@ -260,12 +260,12 @@ describe('profile document', () => {
     expect(profiles.get('default')?.minimum_tests).toBe(1);
     expect(profiles.get('dogmos')).toMatchObject({
       config_source: 'repository',
-      default_map: '_maps/runtimestation.json',
+      default_map: '_maps/map_jsons/runtimestation.json',
       required_children: [],
     });
     expect(profiles.get('dogmos-ci')).toMatchObject({
       config_source: 'ci',
-      default_map: '_maps/metastation.json',
+      default_map: '_maps/map_jsons/metastation.json',
     });
     // The minimal base is only compatible with runtimestation_minimal. It clips
     // MetaStation during centering and omits the Mafia arena used by the suite.
@@ -1195,7 +1195,7 @@ describe('CLI and preflight qualification', () => {
         'map path escapes _maps',
       );
       await Bun.write(
-        path.join(root, '_maps', 'runtimestation_minimal.json'),
+        path.join(root, '_maps', 'map_jsons', 'runtimestation_minimal.json'),
         '{}\n',
       );
       expect(() =>
@@ -1205,7 +1205,7 @@ describe('CLI and preflight qualification', () => {
             selectedMap: string,
             completionEvidence: boolean,
           ) => string
-        )(repository.root, '_maps/runtimestation_minimal.json', true),
+        )(repository.root, '_maps/map_jsons/runtimestation_minimal.json', true),
       ).toThrow('representative map');
     });
   });
@@ -3713,11 +3713,11 @@ describe('maintainability evidence contracts', () => {
       ),
     ).toThrow();
     expect(() =>
-      validateMapPath(process.cwd(), '_maps/icebox.json', true),
+      validateMapPath(process.cwd(), '_maps/map_jsons/icebox.json', true),
     ).toThrow('representative map');
     expect(
-      validateMapPath(process.cwd(), '_maps/icebox.json', true, true),
-    ).toBe('_maps/icebox.json');
+      validateMapPath(process.cwd(), '_maps/map_jsons/icebox.json', true, true),
+    ).toBe('_maps/map_jsons/icebox.json');
   });
 
   test('failed inspection cannot certify empty cleanup', async () => {

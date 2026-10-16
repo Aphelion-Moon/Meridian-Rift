@@ -57,21 +57,21 @@ Readiness timeouts are limited to 1-900 seconds. `--force` is valid only for a f
 The checked-in profiles are:
 
 - `default`: repository configuration, suitable for normal boot/soak work.
-- `ci`: `tools/ci/ci_config.txt`, `-close`, required clean-run and unit-test artifacts, and `_maps/metastation.json` by default.
+- `ci`: `tools/ci/ci_config.txt`, `-close`, required clean-run and unit-test artifacts, and `_maps/map_jsons/metastation.json` by default.
 - `dogmos`: repository configuration, full RuntimeStation, Dogmos fatal rules, and native panic detection.
 - `dogmos-ci`: CI configuration, MetaStation with full CentCom, skipped Lavaland/space levels, Dogmos fatal rules, and native panic detection. `MINIMAL_CENTCOM` is incompatible with this representative-map profile.
 
 `test` selects `ci` when `--profile` is omitted; other commands select `default`. A test profile is rejected unless it uses the CI config, requests natural `-close` shutdown, and requires nonempty unit-test and clean-run artifacts.
 
-Run, test, and soak commands enforce a representative map. The only accepted completion-evidence maps are `_maps/metastation.json` and `_maps/runtimestation.json`; `_maps/runtimestation_minimal.json` and other debug maps are rejected.
+Run, test, and soak commands enforce a representative map. The only accepted completion-evidence maps are `_maps/map_jsons/metastation.json` and `_maps/map_jsons/runtimestation.json`; `_maps/map_jsons/runtimestation_minimal.json` and other debug maps are rejected.
 
 Examples:
 
 ```powershell
 .\RIFT.cmd compile --mode fast --network offline
-.\RIFT.cmd run --profile default --map _maps/metastation.json --port 1339 --run-seconds 30 --network offline
-.\RIFT.cmd test --profile ci --map _maps/metastation.json --focus /datum/unit_test/simple_animal_freeze --network offline
-.\RIFT.cmd soak --profile default --map _maps/runtimestation.json --run-seconds 30 --network offline
+.\RIFT.cmd run --profile default --map _maps/map_jsons/metastation.json --port 1339 --run-seconds 30 --network offline
+.\RIFT.cmd test --profile ci --map _maps/map_jsons/metastation.json --focus /datum/unit_test/simple_animal_freeze --network offline
+.\RIFT.cmd soak --profile default --map _maps/map_jsons/runtimestation.json --run-seconds 30 --network offline
 .\RIFT.cmd report 20260831T010425Z-cc8d910f --format human
 ```
 

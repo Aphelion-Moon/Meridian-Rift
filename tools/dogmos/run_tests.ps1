@@ -6,7 +6,7 @@ param(
     [ValidateSet('RuntimeStation','MetaStation')][string]$Map = 'RuntimeStation'
 )
 $ErrorActionPreference = 'Stop'
-$mapPath = if ($Map -eq 'RuntimeStation') { '_maps/runtimestation.json' } else { '_maps/metastation.json' }
+$mapPath = if ($Map -eq 'RuntimeStation') { '_maps/map_jsons/runtimestation.json' } else { '_maps/map_jsons/metastation.json' }
 $riftArguments = @('test','--profile','dogmos-ci','--map',$mapPath,'--wall-timeout-seconds',"$TimeoutSeconds",'--format','result')
 foreach ($test in $Focus) { $riftArguments += @('--focus',$test) }
 if ($MinimumTests) { $riftArguments += @('--minimum-tests',"$MinimumTests") }

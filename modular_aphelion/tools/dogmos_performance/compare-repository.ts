@@ -20,10 +20,10 @@ import {
 } from '../../../tools/rift/rift';
 
 const OBSERVER_FOCUS = '/datum/unit_test/dogmos_shared_baseline_observer';
-const DEFAULT_MAP = '_maps/metastation.json';
+const DEFAULT_MAP = '_maps/map_jsons/metastation.json';
 const ALLOWED_MAPS = new Set([
-  '_maps/metastation.json',
-  '_maps/runtimestation.json',
+  '_maps/map_jsons/metastation.json',
+  '_maps/map_jsons/runtimestation.json',
 ]);
 const OBSERVER_FILE = path.resolve(
   import.meta.dir,
@@ -43,7 +43,7 @@ type Arguments = {
 };
 
 const usage = () =>
-  'usage: bun compare-repository.ts --repository <root> [--map _maps/metastation.json|_maps/runtimestation.json] [--cache-mode shared-pinned|cold-isolated] [--cache-root <path>]';
+  'usage: bun compare-repository.ts --repository <root> [--map _maps/map_jsons/metastation.json|_maps/map_jsons/runtimestation.json] [--cache-mode shared-pinned|cold-isolated] [--cache-root <path>]';
 
 const parseArguments = (argv: string[]): Arguments => {
   let repository: string | null = null;

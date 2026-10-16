@@ -12,6 +12,6 @@ if ($DreamDaemonPath -ne 'dreamdaemon.exe') { throw 'Select the pinned BYOND ins
 $previousDm = $env:DM_EXE
 try {
     if ($DmPath -ne 'dm.exe') { $env:DM_EXE = $DmPath }
-    & (Join-Path $PSScriptRoot '../../RIFT.cmd') run --compile-mode $CompileMode --profile dogmos --map _maps/runtimestation.json --run-seconds 0 --wall-timeout-seconds $TimeoutSeconds --readiness-timeout-seconds ([Math]::Min($TimeoutSeconds,900)) --format result
+    & (Join-Path $PSScriptRoot '../../RIFT.cmd') run --compile-mode $CompileMode --profile dogmos --map _maps/map_jsons/runtimestation.json --run-seconds 0 --wall-timeout-seconds $TimeoutSeconds --readiness-timeout-seconds ([Math]::Min($TimeoutSeconds,900)) --format result
     exit $LASTEXITCODE
 } finally { $env:DM_EXE = $previousDm }

@@ -54,10 +54,10 @@ unchanged.
 & "<RIFT_REPOSITORY_ROOT>\tools\bootstrap\.cache\bun-v<BUN_VERSION>-x64\bun.exe" `
     modular_aphelion/tools/dogmos_performance/compare-repository.ts `
     --repository <BASELINE_REPOSITORY_ROOT> `
-    --map _maps/metastation.json
+    --map _maps/map_jsons/metastation.json
 ```
 
-Repeat with `_maps/runtimestation.json` for the full Runtime Station map.
+Repeat with `_maps/map_jsons/runtimestation.json` for the full Runtime Station map.
 Keep the CI profile, map, fixed `UNIT_TESTS` seed, observer window, profiling
 mode, and cache state identical between control and candidate runs. The wrapper
 auto-detects a complete installed Dogmos pair and then verifies it against the

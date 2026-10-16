@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $gameRepository = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Push-Location -LiteralPath $gameRepository
 try {
-    $mapPath = if ($Map -eq 'RuntimeStation') { '_maps/runtimestation.json' } else { '_maps/metastation.json' }
+    $mapPath = if ($Map -eq 'RuntimeStation') { '_maps/map_jsons/runtimestation.json' } else { '_maps/map_jsons/metastation.json' }
     & (Join-Path $gameRepository 'RIFT.cmd') soak --profile dogmos --map $mapPath --run-seconds $SoakSeconds
     if ($LASTEXITCODE -ne 0) { throw 'Native liveness soak failed.' }
 } finally { Pop-Location }

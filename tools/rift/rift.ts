@@ -1012,12 +1012,12 @@ export const validateMapPath = (
     .replaceAll('\\', '/');
   if (
     completionEvidence &&
-    relativePath.toLowerCase() !== '_maps/metastation.json' &&
-    relativePath.toLowerCase() !== '_maps/runtimestation.json' &&
-    !(qualification && relativePath.toLowerCase() === '_maps/icebox.json')
+    relativePath.toLowerCase() !== '_maps/map_jsons/metastation.json' &&
+    relativePath.toLowerCase() !== '_maps/map_jsons/runtimestation.json' &&
+    !(qualification && relativePath.toLowerCase() === '_maps/map_jsons/icebox.json')
   ) {
     throw new Error(
-      'completion evidence requires a representative map: _maps/metastation.json or _maps/runtimestation.json',
+      'completion evidence requires a representative map: _maps/map_jsons/metastation.json or _maps/map_jsons/runtimestation.json',
     );
   }
   return relativePath;
