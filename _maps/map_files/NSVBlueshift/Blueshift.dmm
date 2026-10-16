@@ -48663,9 +48663,7 @@
 "jRe" = (
 /obj/structure/table/reinforced,
 /obj/machinery/door/firedoor,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /obj/machinery/door/poddoor/shutters/preopen{
 	id = "Barshutters";
 	name = "Bar Shutters"
@@ -57667,9 +57665,7 @@
 /area/station/hallway/primary/upper)
 "lIO" = (
 /obj/structure/table/reinforced,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /obj/effect/turf_decal/siding/thinplating/dark,
 /turf/open/floor/iron/dark,
 /area/station/common/night_club)
@@ -77212,7 +77208,7 @@
 "pFS" = (
 /obj/item/radio/intercom/directional/north,
 /obj/structure/table/wood,
-/obj/structure/displaycase/forsale/kitchen,
+/obj/structure/tipjar/prefilled,
 /obj/machinery/light/directional/north,
 /turf/open/floor/iron/dark,
 /area/station/service/barber)
@@ -80182,9 +80178,7 @@
 	name = "Kitchen Counter Shutters"
 	},
 /obj/machinery/door/firedoor,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/iron/dark,
 /area/station/service/kitchen)
 "qkG" = (
@@ -89484,9 +89478,7 @@
 	dir = 8
 	},
 /obj/structure/window/spawner/directional/south,
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/iron/dark,
 /area/station/common/tailoring)
 "sba" = (
@@ -97370,7 +97362,7 @@
 /obj/effect/turf_decal/siding/wood{
 	dir = 8
 	},
-/obj/structure/displaycase/forsale,
+/obj/structure/tipjar,
 /obj/machinery/camera/autoname/directional/north,
 /obj/structure/cable,
 /obj/machinery/power/apc/auto_name/directional/north,
@@ -111163,9 +111155,7 @@
 	id = "Barshutters";
 	name = "Bar Shutters"
 	},
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/iron/dark,
 /area/station/service/bar)
 "wne" = (
