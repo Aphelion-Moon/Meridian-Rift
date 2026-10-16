@@ -180,6 +180,7 @@
 #include "dogmos_aphelion_reactions.dm"
 #include "dogmos_assimilate_air_temperature_sync.dm"
 #include "dogmos_callback_delivery.dm"
+#include "dogmos_cold_reservoir_heat_gate.dm"
 #include "dogmos_decompression_feedback.dm"
 #include "dogmos_decompression_floor_rip.dm"
 #include "dogmos_del_cost.dm"
