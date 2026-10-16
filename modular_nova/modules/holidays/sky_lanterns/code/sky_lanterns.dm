@@ -7,6 +7,7 @@
 	light_power = 1.2
 	light_color = "#ffd966"
 	light_system = OVERLAY_LIGHT
+	obj_flags = NONE
 	custom_materials = list(/datum/material/paper = HALF_SHEET_MATERIAL_AMOUNT, /datum/material/iron = SMALL_MATERIAL_AMOUNT * 0.1, /datum/material/glass = SMALL_MATERIAL_AMOUNT * 0.1)
 	///check if we're floating to prevent redundant add/remove
 	var/is_floating = FALSE
@@ -48,7 +49,7 @@
 /obj/item/flashlight/sky_lantern/LateInitialize()
 	update_floating_state_immediate()
 
-/obj/item/flashlight/sky_lantern/toggle_light(mob/user)
+/obj/item/flashlight/sky_lantern/toggle_light(mob/living/user)
 	. = ..()
 	update_floating_state_immediate()
 

@@ -24,7 +24,7 @@
 	can_adjust = FALSE
 	slot_flags = ITEM_SLOT_ICLOTHING | ITEM_SLOT_OCLOTHING
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/misc/nova/gear_harness/suit // Functionally the same, this is just so the loadout system allows you to pick either one
 	worn_icon_digi = null
@@ -39,7 +39,7 @@
 	desc = "Three leaves, designed to cover the nipples and genetalia of the wearer. A foe so proud will first the weaker seek."
 	icon_state = "eve"
 	worn_icon_digi = null
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	body_parts_covered = CHEST|GROIN
 
 /obj/item/clothing/under/misc/nova/gear_harness/adam
@@ -47,7 +47,7 @@
 	desc = "A single leaf, designed to cover the genitalia of the wearer. Seek not temptation."
 	icon_state = "adam"
 	worn_icon_digi = null
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	body_parts_covered = GROIN
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 
@@ -55,7 +55,7 @@
 	name = "tacticasual uniform"
 	desc = "A white wifebeater on top of some cargo pants. For when you need to carry various beers."
 	icon_state = "tac_s"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/misc/nova/mechanic
 	name = "mechanic's overalls"
@@ -88,7 +88,7 @@
 	greyscale_config_worn = /datum/greyscale_config/modskin/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/modskin/worn/digi
 	greyscale_colors = "#39393F#B3B3B3"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 	flags_1 = IS_PLAYER_COLORABLE_1
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY

@@ -66,7 +66,7 @@ export function SpeciesSearch(props: { model: SpeciesBrowserModel }) {
         <Button.Checkbox
           className="SpeciesSearch__holiday"
           checked={model.showHoliday}
-          tooltip={`${model.holidayCount} holiday species. You can create them any time, and join as one during its holiday.`}
+          tooltip={`${model.holidayCount} holiday species. You can create them any time, but can only join as one during its holiday.`}
           tooltipPosition="bottom"
           onClick={() => model.setShowHoliday(!model.showHoliday)}
         >

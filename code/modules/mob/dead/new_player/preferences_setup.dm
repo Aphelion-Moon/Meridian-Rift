@@ -118,7 +118,8 @@
 	)
 	*/ // NOVA EDIT REMOVAL END
 	// NOVA EDIT ADDITION START
-	var/needs_update = preview_pref != previous_preview_pref
+	// The last mode drawn is the preview's own body's: any other body, new each time, is drawn in full.
+	var/needs_update = preview_pref != previous_preview_pref || mannequin != character_preview_view?.body
 	switch(preview_pref)
 		if(PREVIEW_PREF_JOB)
 			mannequin.job = preview_job.title

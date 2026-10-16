@@ -141,8 +141,8 @@ There are several things that need to be remembered:
 			uniform.worn_x_offset = 0
 		// NOVA EDIT ADDITION END
 
-		// APHELION EDIT ADDITION START - Keep the existing upper-only female shaping for digitigrade Vox.
-		if(vox_icon_file && digi && female_sprite_flags)
+		// APHELION EDIT ADDITION START - Upper-only female shaping for digitigrade Vox, and for a Cerulean's tail as for taurs.
+		if(female_sprite_flags && ((vox_icon_file && digi) || (bodyshape & BODYSHAPE_CERULEAN)))
 			female_sprite_flags &= ~FEMALE_UNIFORM_FULL
 			female_sprite_flags |= FEMALE_UNIFORM_TOP_ONLY
 		// APHELION EDIT ADDITION END
@@ -593,12 +593,8 @@ There are several things that need to be remembered:
 		held_right.overlays.Cut()
 		held_right.underlays.Cut()
 	// NOVA EDIT ADDITION END
-	for(var/obj/item/worn_item in held_items)
-		var/held_index = get_held_index_of_item(worn_item)
-		var/t_state = worn_item.inhand_icon_state
-		if(!t_state)
-			t_state = worn_item.icon_state
-
+	for(var/held_index in get_active_held_indexes())
+		var/obj/item/worn_item = get_item_for_held_index(held_index)
 
 		var/icon_file = IS_RIGHT_INDEX(held_index) ? worn_item.righthand_file : worn_item.lefthand_file
 		var/mutable_appearance/hand_overlay = worn_item.build_worn_icon(default_layer = HANDS_LAYER, default_icon_file = icon_file, isinhands = TRUE, bodyshape = bodyshape)
@@ -676,7 +672,7 @@ There are several things that need to be remembered:
 #define FEMALE_RELEVANT_BODYSHAPE (BODYSHAPE_DIGITIGRADE | BODYSHAPE_TAUR)
 /// Modifies a sprite slightly to conform to female body shapes
 /proc/wear_female_version(icon_state, icon_file_path, icon, type, greyscale_colors, bodyshape)
-	var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]"
+	var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]-[type]-[bodyshape & BODYSHAPE_DIGITIGRADE]" // APHELION EDIT CHANGE - Key by the mask: taurs and Ceruleans ask for the top-only cut of the same state - ORIGINAL: var/index = "[icon_file_path]-[icon_state]-[greyscale_colors]"
 	var/static/list/female_clothing_icons = list()
 	var/icon/female_clothing_icon = female_clothing_icons[index]
 	if(!female_clothing_icon) //Create standing/laying icons if they don't exist
@@ -693,6 +689,9 @@ There are several things that need to be remembered:
 /// Modifies a sprite to conform to custom body shapes
 /obj/item/proc/get_bodyshape_icon(icon/base_icon, key, greyscale_colors, bodyshape)
 	ASSERT(istext(key), "get_bodyshape_icon: no key passed")
+	if(bodyshape & BODYSHAPE_CERULEAN)
+		if((bodyshapes_with_variations & BODYSHAPE_CERULEAN) || (supports_variations_flags & (CERULEAN_MASKING)))
+			return generate_cerulean_icons(base_icon, key, greyscale_colors, bodyshape)
 	if((bodyshape & BODYSHAPE_DIGITIGRADE) && (supports_variations_flags & CLOTHING_DIGITIGRADE_MASK) && !(supports_variations_flags & CLOTHING_DIGITIGRADE_VARIATION)) // NOVA EDIT CHANGE - ORIGINAL: if((bodyshape & BODYSHAPE_DIGITIGRADE) && (supports_variations_flags & CLOTHING_DIGITIGRADE_MASK))
 		var/used_greyscale = greyscale_colors
 		if(isnull(used_greyscale) || length(SSgreyscale.ParseColorString(used_greyscale)) > 1)
@@ -736,18 +735,6 @@ There are several things that need to be remembered:
 			return icon(resulting_icon)
 	return base_icon
 	// NOVA EDIT ADDITION END
-
-/// Modifies a sprite to replace the legs with a new version
-/proc/replace_icon_legs(icon/base_icon, icon/new_legs)
-	var/static/icon/leg_mask
-	if(!leg_mask)
-		leg_mask = icon('icons/mob/clothing/under/masking_helpers.dmi', "digi_leg_mask")
-
-	// cuts the legs off
-	base_icon.Blend(leg_mask, ICON_SUBTRACT)
-	// staples the new legs on
-	base_icon.Blend(new_legs, ICON_OVERLAY)
-	return base_icon
 
 /**
  * Generates a digitigrade version of this item's worn icon
@@ -1285,7 +1272,7 @@ generate/load female uniform sprites matching all previously decided variables
 			continue
 		var/overlay_x = overlay.pixel_x + overlay.pixel_w
 		var/overlay_y = overlay.pixel_y + overlay.pixel_z
-		if (!isnull(parsed_overlays[overlay])) // Nested overlay
+		if (islist(parsed_overlays[overlay])) // Nested overlay
 			overlay_x += parsed_overlays[overlay][SUB_OVERLAY_X_INDEX]
 			overlay_y += parsed_overlays[overlay][SUB_OVERLAY_Y_INDEX]
 		/* // APHELION EDIT REMOVAL START - WORN_EMISSIVES - appearances have no procs

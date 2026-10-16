@@ -73,12 +73,6 @@
 	icon = FA_ICON_GIFT
 	sort_order = 10
 
-/// Template species, bases for players' own creations. Last, so the species with a story come first.
-/datum/species_family/generic
-	name = "Generic"
-	icon = FA_ICON_PEN_RULER
-	sort_order = 11
-
 /// The id the species page knows a family by: the last part of its typepath.
 /proc/species_family_id(datum/species_family/family_type)
 	var/type_text = "[family_type]"

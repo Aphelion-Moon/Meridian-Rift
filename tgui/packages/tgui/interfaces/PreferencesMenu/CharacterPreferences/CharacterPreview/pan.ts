@@ -16,14 +16,15 @@ const lessTiles = (length: number, tile: number) =>
   ((length % tile) + tile) % tile;
 
 /** Moves an element by whole pixels, or puts it back. */
-function translate(element: HTMLElement | null, x: number, y: number) {
-  if (!element) {
+function translate(element: Element | null, x: number, y: number) {
+  const style = (element as HTMLElement | SVGElement | null)?.style;
+  if (!style) {
     return;
   }
   if (x || y) {
-    element.style.setProperty('translate', `${x}px ${y}px`);
+    style.setProperty('translate', `${x}px ${y}px`);
   } else {
-    element.style.removeProperty('translate');
+    style.removeProperty('translate');
   }
 }
 
@@ -47,9 +48,10 @@ export type PreviewPan = {
  * character never leaves the box.
  *
  * It moves the parts it pans itself, each by its own inline `translate`: the
- * drawing and its floor. A pan re-renders nothing and restyles only those two,
- * and a move that changes no whole pixel writes nothing. The frame, the
- * scanner's rule included, stays where it is.
+ * drawing, anything a tab lines up with it (marked `data-preview-pan`), and
+ * its floor. A pan re-renders nothing and restyles only those, and a move that
+ * changes no whole pixel writes nothing. The frame, the scanner's rule
+ * included, stays where it is.
  */
 export function createPreviewPan(
   box: RefObject<HTMLElement | null>,
@@ -59,8 +61,8 @@ export function createPreviewPan(
   // The pointer holding the drawing: where it took hold, the pan it took hold
   // of, and where it is.
   let grab: { from: Point; pan: Point; at: Point } | undefined;
-  let parts: Record<'figure' | 'floor', HTMLElement | null> = {
-    figure: null,
+  let parts: { figures: Element[]; floor: Element | null } = {
+    figures: [],
     floor: null,
   };
   let written = '';
@@ -77,7 +79,9 @@ export function createPreviewPan(
       return;
     }
     written = shown;
-    translate(parts.figure, x, y);
+    for (const figure of parts.figures) {
+      translate(figure, x, y);
+    }
     // The floor repeats every tile, so it moves by the pan less whole tiles.
     translate(parts.floor, lessTiles(x, tile), lessTiles(y, tile));
   };
@@ -100,7 +104,11 @@ export function createPreviewPan(
       // A render may have drawn the parts anew, so find them and move them again.
       const element = box.current;
       parts = {
-        figure: element?.querySelector('.CharacterPreview__figure') ?? null,
+        figures: Array.from(
+          element?.querySelectorAll(
+            '.CharacterPreview__figure, [data-preview-pan]',
+          ) ?? [],
+        ),
         floor: element?.querySelector('.CharacterPreview__background') ?? null,
       };
       written = '';

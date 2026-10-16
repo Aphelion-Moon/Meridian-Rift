@@ -1,0 +1,20 @@
+// THIS IS AN APHELION UI FILE
+// Every theme's markings room: the club's room (../_markings-room.scss) is the base, these are each theme's changes,
+// ported from the mockups by the themes-impl run's tools (port_room.py, decor.py). Their textures and fonts are the
+// markings_room module's (room_assets.py).
+@use 'sass:meta';
+
+@include meta.load-css('./base');
+@include meta.load-css('./aphelion');
+@include meta.load-css('./classic');
+@include meta.load-css('./electra');
+@include meta.load-css('./vector');
+@include meta.load-css('./synapse');
+@include meta.load-css('./highline');
+@include meta.load-css('./hephaestus');
+@include meta.load-css('./diagnostic');
+@include meta.load-css('./hotline');
+@include meta.load-css('./scavenger');
+@include meta.load-css('./wastelander');
+@include meta.load-css('./shadowbroker');
+@include meta.load-css('./foundry');

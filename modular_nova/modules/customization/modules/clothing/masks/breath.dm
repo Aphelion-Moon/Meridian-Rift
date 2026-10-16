@@ -52,33 +52,65 @@
 	icon = 'modular_nova/master_files/icons/obj/clothing/masks.dmi'
 	worn_icon = 'modular_nova/master_files/icons/mob/clothing/mask.dmi'
 	icon_state = "balaclava_adj"
-	var/open = 0 //0 = full, 1 = head only, 2 = face only
-	actions_types = list(/datum/action/item_action/toggle)
+	actions_types = list(/datum/action/item_action/adjust_style)
+	var/list/balaclava_adjustment = list()
+
+/obj/item/clothing/mask/balaclava/adjustable/Initialize(mapload)
+	. = ..()
+	balaclava_adjustment = list(
+		"Balaclava" = image(icon = src.icon, icon_state = "balaclava_adj"),
+		"Open Face" = image(icon = src.icon, icon_state = "balaclava_adj_open"),
+		"Neck Gaiter" = image(icon = src.icon, icon_state = "balaclava_adj_mouth"),
+		"Beanie" = image(icon = src.icon, icon_state = "balaclava_adj_up")
+		)
+
+/obj/item/clothing/mask/balaclava/adjustable/examine(mob/user)
+	. = ..()
+	if(!in_range(user, src) && !isobserver(user))
+		return
+	. += span_notice("[EXAMINE_HINT("Alt-click")] to adjust how it's worn.")
+
+/obj/item/clothing/mask/balaclava/adjustable/ui_action_click(mob/user)
+	if(!istype(user) || user.incapacitated)
+		return
+
+	var/list/options = list()
+	options["Balaclava"] = "balaclava_adj"
+	options["Open Face"] = "balaclava_adj_open"
+	options["Neck Gaiter"] = "balaclava_adj_mouth"
+	options["Beanie"] = "balaclava_adj_up"
+
+	var/choice = show_radial_menu(user, src, balaclava_adjustment, custom_check = FALSE, radius = 36, require_near = TRUE)
+	if(!choice)
+		return FALSE
+
+	if(src && choice && !user.incapacitated && in_range(user, src) && user.can_perform_action(src, interaction_flags_click | SILENT_ADJACENCY))
+		icon_state = options[choice]
+		switch(choice)
+			if("Balaclava")
+				flags_inv = HIDEFACE|HIDEFACIALHAIR|HIDEHAIR|HIDESNOUT|SHOWSPRITEEARS
+				to_chat(user, span_notice("You pull the balaclava down to cover your whole face."))
+			if("Open Face")
+				flags_inv = HIDEHAIR|SHOWSPRITEEARS
+				to_chat(user, span_notice("You pull the balaclava down to reveal your face."))
+			if("Neck Gaiter")
+				flags_inv = HIDEFACE|HIDEFACIALHAIR|HIDESNOUT
+				to_chat(user, span_notice("You pull the balaclava over to only cover your mouth."))
+				alternate_worn_layer = BENEATH_HAIR_LAYER //prevents the neck-height sprite from going through long hair
+			if("Beanie")
+				flags_inv = HIDEHAIR|SHOWSPRITEEARS
+				to_chat(user, span_notice("You roll the balaclava up to wear as a beanie."))
+		if(choice != "Neck Gaiter") //make sure that it goes back to the intended layer if it's not in neck gaiter
+			alternate_worn_layer = LOW_FACEMASK_LAYER
+		user.update_clothing(ITEM_SLOT_MASK)
+		user.refresh_obscured()
+		return TRUE
+
+/obj/item/clothing/mask/balaclava/adjustable/click_alt(mob/user)
+	return ui_action_click(user) ? CLICK_ACTION_SUCCESS : CLICK_ACTION_BLOCKING
 
 /obj/item/clothing/mask/balaclava/adjustable/attack_self(mob/user)
-	adjust_mask(user)
-
-/obj/item/clothing/mask/balaclava/adjustable/proc/adjust_mask(mob/living/carbon/human/user)
-	if(!istype(user))
-		return
-	if(!user.incapacitated)
-		switch(open)
-			if (0)
-				flags_inv = HIDEHAIR
-				icon_state = initial(icon_state) + "_open"
-				to_chat(user, span_notice("You pull the balaclava away, revealing your face."))
-				open = 1
-			if (1)
-				flags_inv = HIDEFACE|HIDEFACIALHAIR|HIDESNOUT
-				icon_state = initial(icon_state) + "_mouth"
-				to_chat(user, span_notice("You adjust the balaclava up to cover your mouth."))
-				open = 2
-			else
-				flags_inv = HIDEFACE|HIDEFACIALHAIR|HIDEHAIR
-				icon_state = initial(icon_state)
-				to_chat(user, span_notice("You pull the balaclava up to cover your whole head."))
-				open = 0
-		user.update_clothing(slot_flags)
+	return //prevents following the parent's use and getting bugged while set to beanie
 
 /obj/item/clothing/mask/balaclava/threehole
 	name = "three hole balaclava"
@@ -87,7 +119,7 @@
 	icon_state = "balaclavam"
 	inhand_icon_state = "balaclava"
 	flags_inv = HIDEFACE|HIDEHAIR|HIDEFACIALHAIR
-	visor_flags_inv = HIDEHAIR
+	visor_flags_inv = HIDEFACE|HIDEFACIALHAIR
 
 /obj/item/clothing/mask/balaclava/threehole/green
 	name = "three hole green balaclava"

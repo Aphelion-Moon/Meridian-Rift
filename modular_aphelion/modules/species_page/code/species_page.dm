@@ -102,7 +102,8 @@ GLOBAL_LIST_INIT(species_page_filler_text, list(
 
 /**
  * Adds what the species page needs beyond the preference's species data: the family,
- * the species this is a variant of, and what keeps it off the station, if anything.
+ * the species this is a variant of, whether it is a template, and what keeps it off the
+ * station, if anything.
  *
  * Arguments:
  * * entry - The species' entry in the species preference's constant data.
@@ -114,6 +115,7 @@ GLOBAL_LIST_INIT(species_page_filler_text, list(
 	var/datum/species_family/family = holiday ? /datum/species_family/holiday : get_species_family()
 	entry["family"] = family ? species_family_id(family) : null
 	entry["variant_of"] = get_variant_of(page_ids)
+	entry["template"] = !!GLOB.species_page_templates[type]
 	entry["holiday"] = holiday
 	entry["holiday_active"] = !!(holiday && check_holidays(holiday))
 	entry["off_station"] = !holiday && !get_selectable_species()[id]

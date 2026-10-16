@@ -9,23 +9,23 @@
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
 
 /obj/item/clothing/under/rank/civilian/janitor/maid
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	gets_cropped_on_taurs = FALSE
 	worn_icon_digi = null
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/costume/schoolgirl
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	gets_cropped_on_taurs = FALSE
 
 /obj/item/clothing/under/rank/centcom/intern
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/security/officer/spacepol
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/engineering/chief_engineer/skirt
@@ -223,6 +223,7 @@
 
 /obj/item/clothing/under/rank/captain/suit/skirt
 	gets_cropped_on_taurs = FALSE
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/color/jumpskirt
 	greyscale_config_worn_digi = null
@@ -230,8 +231,8 @@
 	gets_cropped_on_taurs = FALSE
 
 /obj/item/clothing/under/changeling
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/rnd/research_director/alt/skirt
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_BIG_LEGS_MASK
@@ -248,12 +249,12 @@
 	gets_cropped_on_taurs = FALSE
 
 /obj/item/clothing/under/trek/q
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/ethereal_tunic
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/centcom/officer_skirt
 	gets_cropped_on_taurs = FALSE
@@ -275,8 +276,8 @@
 
 /obj/item/clothing/under/rank/civilian/lawyer/galaxy/red
 	gets_cropped_on_taurs = FALSE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/engineering/chief_engineer/turtleneck/skirt
 	gets_cropped_on_taurs = FALSE
@@ -295,13 +296,13 @@
  * Clothing that has a digitigrade version, but its parent was set to something else earlier in this file.
  */
 /obj/item/clothing/under/misc/bouncer
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/color
 	greyscale_config_worn_digi = /datum/greyscale_config/jumpsuit/worn/digi
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/civilian/curator/nasa // this is really just a black jumpsuit, with stupid pathing
 	greyscale_config_worn_digi = /datum/greyscale_config/jumpsuit/worn/digi
@@ -310,24 +311,24 @@
 	greyscale_config_worn_teshari = /datum/greyscale_config/jumpsuit/worn/teshari
 
 /obj/item/clothing/under/suit/waiter
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/prisoner
 	greyscale_config_worn_digi = /datum/greyscale_config/jumpsuit/prison/worn/digi
 	greyscale_config_worn_teshari = /datum/greyscale_config/jumpsuit/prison/worn/teshari
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	greyscale_config_worn_better_vox = /datum/greyscale_config/jumpsuit/prison/worn/better_vox
 	greyscale_config_worn_vox = /datum/greyscale_config/jumpsuit/prison/worn/vox
 
 /obj/item/clothing/under/rank/security/officer
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/medical/scrubs
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/dress/striped
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
@@ -352,97 +353,97 @@
 	worn_icon_digi = null
 
 /obj/item/clothing/under/syndicate/combat
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/syndicate/sniper
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/syndicate/bloodred
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/syndicate/camo
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/syndicate/soviet
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/syndicate/rus_army
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/plasmaman
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /**
  * DIGITIGRADE MASK
  */
 /obj/item/clothing/under/abductor
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/costume/captain
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/costume/gamberson
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/costume/head_of_personnel
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/costume/russian_officer
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/costume/traditional
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/misc/adminsuit
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/misc/coordinator
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/captain/royal
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/civilian/curator/treasure_hunter
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/civilian/lawyer/galaxy
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/security/constable
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/security/detective
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/security/head_of_security/formal
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/security/officer/beatcop
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/security/warden/formal
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/rank/station_trait/human_ai
-	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_MASK | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_DIGITIGRADE | BODYSHAPE_CERULEAN
 
 
 /**
@@ -450,19 +451,19 @@
  * Skirts, robes and coats, etc
  */
 /obj/item/clothing/under/costume/dutch/syndicate
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /obj/item/clothing/under/costume/gi
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /obj/item/clothing/under/costume/henchmen
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /obj/item/clothing/under/costume/loincloth
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /obj/item/clothing/under/costume/seifuku
@@ -470,19 +471,19 @@
 	worn_icon_digi = null
 
 /obj/item/clothing/under/costume/singer/red
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /obj/item/clothing/under/misc/syndicate_souvenir
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/civilian/chaplain/divine_archer
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /obj/item/clothing/under/rank/security/head_of_security/parade/female
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	worn_icon_digi = null
 
 /**
@@ -504,8 +505,8 @@
 	greyscale_config_worn_vox = /datum/greyscale_config/jumpsuit/worn/vox
 	greyscale_config_worn_better_vox = /datum/greyscale_config/jumpsuit/worn/better_vox
 	greyscale_config_worn_teshari = /datum/greyscale_config/jumpsuit/worn/teshari
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /**
  * Inherited a mutant sprite file that nothing under them uses.
@@ -535,7 +536,7 @@
 
 /obj/item/clothing/under/costume/geisha
 	worn_icon_digi = null
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/costume/gladiator
 	worn_icon_digi = null
@@ -546,11 +547,11 @@
 
 /obj/item/clothing/under/costume/roman
 	worn_icon_digi = null
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/costume/singer/yellow
 	worn_icon_digi = null
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/rank/cargo/tech/skirt/alt
 	worn_icon_digi = null

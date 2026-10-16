@@ -138,7 +138,7 @@
 	. += span_notice("The status light is [portal_open ? "on" : "off"]. The portal is [portal_open ? "open" : "closed"].")
 	. += span_notice("The current target is set to: [current_target]")
 	if(portal_open)
-		. += span_notice("Use it on yourself, or Ctrl-Shift-click it from up to a tile away, to interact through the portal.")
+		. += span_notice("Use it on yourself or someone else to put the part you aim at against it, the groin using the current target. Ctrl-Shift-click it from up to a tile away to pick from every interaction instead.")
 
 /obj/item/clothing/sextoy/portal_fleshlight/attack_self(mob/user)
 	. = ..()
@@ -152,10 +152,8 @@
 	. = ..()
 	if(.)
 		return
-	if(target_mob == user)
-		open_wearer_panel(user)
-		return TRUE
 
+	// Whoever it's used on, yourself included, puts the aimed part against the device.
 	var/local_target = user.zone_selected == BODY_ZONE_PRECISE_GROIN ? current_target : user.zone_selected
 	var/list/options = available_interactions(user, target_mob, linked_panties, local_target, src)
 	perform_interaction(user, target_mob, linked_panties, local_target, src, length(options) ? options[1] : null)
@@ -356,7 +354,7 @@
 	linked_panties = panties
 	panties.linked_fleshlight = src
 
-	playsound(src, 'sound/machines/ping.ogg', 50, FALSE)
+	playsound_if_pref(src, 'sound/machines/ping.ogg', 50, FALSE)
 	to_chat(user, span_notice("You link [src] to [panties]."))
 
 	update_appearance()
@@ -439,19 +437,25 @@
 			var/portal_sprite_suffix = penis.get_sprite_size_string(minimum_sprite_affix = 4)
 			var/current_suffix_token = "_[penis.sprite_suffix]_"
 			var/portal_suffix_token = "_[portal_sprite_suffix]_"
-			var/list/penis_appearances = list()
-			for(var/mutable_appearance/penis_appearance as anything in penis_overlay.get_all_overlays(penis.bodypart_owner))
-				var/mutable_appearance/portal_penis = make_mutable_appearance_directional(penis_appearance, WEST)
-				portal_penis.icon_state = replacetextEx(portal_penis.icon_state, current_suffix_token, portal_suffix_token)
-				if(portal_penis.icon && !icon_exists(portal_penis.icon, portal_penis.icon_state))
-					continue
-				penis_appearances += portal_penis
-			// Seat everything by the first layer with art facing west, front layers first. A sheath's primary layer has none.
+			var/list/native_appearances = penis_overlay.get_all_overlays(penis.bodypart_owner)
+			var/list/penis_appearances
 			var/list/portal_offset
-			for(var/front_first in list(TRUE, FALSE))
-				for(var/mutable_appearance/candidate as anything in penis_appearances)
-					if(!portal_offset && candidate.icon && !!findtextEx(candidate.icon_state, "_FRONT_UNDER") == front_first)
-						portal_offset = portal_penis_offset(candidate)
+			// Side on, unless nothing shows from the side: a tucked-in slit lies flush with the body, so it shows from the front.
+			for(var/view_dir in list(WEST, SOUTH))
+				penis_appearances = list()
+				for(var/mutable_appearance/penis_appearance as anything in native_appearances)
+					var/mutable_appearance/portal_penis = make_mutable_appearance_directional(penis_appearance, view_dir)
+					portal_penis.icon_state = replacetextEx(portal_penis.icon_state, current_suffix_token, portal_suffix_token)
+					if(portal_penis.icon && !icon_exists(portal_penis.icon, portal_penis.icon_state))
+						continue
+					penis_appearances += portal_penis
+				// Seat everything by the first layer with art in this view, front layers first. A sheath's primary layer has none side on.
+				for(var/front_first in list(TRUE, FALSE))
+					for(var/mutable_appearance/candidate as anything in penis_appearances)
+						if(!portal_offset && candidate.icon && !!findtextEx(candidate.icon_state, "_FRONT_UNDER") == front_first)
+							portal_offset = portal_penis_offset(candidate, view_dir)
+				if(portal_offset)
+					break
 			if(!portal_offset)
 				return
 			for(var/mutable_appearance/portal_penis as anything in penis_appearances)
@@ -477,34 +481,56 @@
 		. += extra_overlay
 	. += organ
 
-/// Seats a native WEST frame by the root that actually appears in its DMI state. Null when the frame is empty.
+/**
+ * Seats a native frame by the root that actually appears in its DMI state. Null when the frame is empty.
+ *
+ * Arguments:
+ * - penis_appearance: The layer to seat, already turned to view_dir.
+ * - view_dir: WEST for the side view, seated by the root at its body edge. Nothing sticks out of the body in a front
+ *   view, so its middle goes where the root would.
+ */
 /obj/item/clothing/sextoy/portal_fleshlight/proc/portal_penis_offset(
 	mutable_appearance/penis_appearance,
+	view_dir = WEST,
 )
 	var/static/list/cached_offsets = list()
-	var/cache_key = "[penis_appearance.icon]#[penis_appearance.icon_state]#[penis_appearance.pixel_w]#[penis_appearance.pixel_z]"
+	var/cache_key = "[penis_appearance.icon]#[penis_appearance.icon_state]#[penis_appearance.pixel_w]#[penis_appearance.pixel_z]#[view_dir]"
 	if(cache_key in cached_offsets)
 		return cached_offsets[cache_key]
 	cached_offsets[cache_key] = null
 
-	var/icon/west_frame = icon(penis_appearance.icon, penis_appearance.icon_state, WEST)
-	var/frame_width = west_frame.Width()
-	var/frame_height = west_frame.Height()
+	var/icon/view_frame = icon(penis_appearance.icon, penis_appearance.icon_state, view_dir)
+	var/frame_width = view_frame.Width()
+	var/frame_height = view_frame.Height()
 	var/root_x = 0
-	for(var/x in 1 to frame_width)
-		for(var/y in 1 to frame_height)
-			if(west_frame.GetPixel(x, y))
-				root_x = x
-	if(!root_x)
-		return null
+	var/root_y
+	if(view_dir == WEST)
+		for(var/x in 1 to frame_width)
+			for(var/y in 1 to frame_height)
+				if(view_frame.GetPixel(x, y))
+					root_x = x
+		if(!root_x)
+			return null
 
-	var/list/root_rows = list()
-	for(var/edge_x in max(1, root_x - 1) to root_x)
-		for(var/edge_y in 1 to frame_height)
-			if(west_frame.GetPixel(edge_x, edge_y))
-				root_rows += edge_y
-	sortTim(root_rows, GLOBAL_PROC_REF(cmp_numeric_dsc))
-	var/root_y = root_rows[floor(length(root_rows) / 2) + 1]
+		var/list/root_rows = list()
+		for(var/edge_x in max(1, root_x - 1) to root_x)
+			for(var/edge_y in 1 to frame_height)
+				if(view_frame.GetPixel(edge_x, edge_y))
+					root_rows += edge_y
+		sortTim(root_rows, GLOBAL_PROC_REF(cmp_numeric_dsc))
+		root_y = root_rows[floor(length(root_rows) / 2) + 1]
+	else
+		var/list/drawn_columns = list()
+		var/list/drawn_rows = list()
+		for(var/x in 1 to frame_width)
+			for(var/y in 1 to frame_height)
+				if(view_frame.GetPixel(x, y))
+					drawn_columns += x
+					drawn_rows += y
+		if(!length(drawn_columns))
+			return null
+		root_x = floor((min(drawn_columns) + max(drawn_columns)) / 2)
+		root_y = floor((min(drawn_rows) + max(drawn_rows)) / 2)
 
 	var/pixel_w = 12 - (penis_appearance.pixel_w + root_x)
 	var/pixel_z = 16 - (penis_appearance.pixel_z + root_y)
@@ -551,7 +577,7 @@
 		return .
 
 	anonymous = !anonymous
-	playsound(src, 'sound/machines/ping.ogg', 50, FALSE)
+	playsound_if_pref(src, 'sound/machines/ping.ogg', 50, FALSE)
 	balloon_alert(user, "anonymous mode: [anonymous ? "ON" : "OFF"]")
 	return SECONDARY_ATTACK_CANCEL_ATTACK_CHAIN
 

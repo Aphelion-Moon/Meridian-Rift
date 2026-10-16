@@ -55,6 +55,12 @@ export function SpeciesHeading(props: Props) {
             </Button>
           </>
         )}
+        {!parent && !!entry.template && (
+          <>
+            <span className="SpeciesHeading__template">Template</span>
+            <span>A base for your own species</span>
+          </>
+        )}
       </div>
     </div>
   );

@@ -13,7 +13,8 @@ module implements two routes:
 - `portal_relay` reaches the half of a wall portal's occupant that its body relay shows.
   The rest of the occupant can only be reached in person.
 - `portal_device` checks the operator, held device, worn receiver, links, and selected
-  parts. It also supports the receiver wearer filling both interaction roles.
+  parts. It also supports the receiver wearer filling both interaction roles. Its
+  `muffles_sound()` keeps interaction sounds around the wearer quieter than in person.
 
 Movables that represent a participant can implement `interaction_route_for()`.
 The component asks the device linked to any receiver its parent wears first, then a

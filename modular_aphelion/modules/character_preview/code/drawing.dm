@@ -57,13 +57,27 @@ GLOBAL_VAR(character_preview_cleanup_due)
  *
  * Answers reach the page as small updates of their own, so none of them rebuilds the preferences data, and the drawing
  * travels inside the data rather than as a file: BYOND keeps every file a client is sent in its cache for good.
+ *
+ * While the window has its lights off, a look with something that glows is drawn with its glow beside each facing, for
+ * the page to light it as the game does in the dark; see glow.dm. Otherwise no glow is drawn at all.
+ *
+ * A look with something animated, like a halo or a galaxy suit, carries patches of what moves for the page to play over
+ * each facing; see animation.dm. An animated icon state is read once a round, in SScharacter_preview's spare time, and
+ * a look drawn still while one waited to be read is drawn again once it has been.
  */
 /datum/preference_middleware/character_preview
 	action_delegations = list(
 		"character_preview" = PROC_REF(request_preview),
+		"character_preview_lights" = PROC_REF(set_lights),
 	)
 	/// The look last drawn, held rather than its ref kept, so the ref can't be reused.
 	var/drawn_look
+	/// Whether the window has its lights off, so drawings carry what glows.
+	var/lights_off = FALSE
+	/// Whether the look last drawn was drawn with what glows.
+	var/drawn_lights_off = FALSE
+	/// Set when animated icon states a drawing drew still have been read since, so the look draws again, moving.
+	var/animation_read = FALSE
 	/// The drawing as the page reads it: its image, frame size, each facing's offset, and what the page draws over
 	/// them. Null until drawn.
 	var/list/preview
@@ -99,6 +113,17 @@ GLOBAL_VAR(character_preview_cleanup_due)
 /datum/preference_middleware/character_preview/proc/request_preview(list/params, mob/user)
 	preview_on_page = params["have"]
 	preview_changed()
+	return FALSE
+
+/// The window turns its lights off, or on again. Off, a drawing made without what glows is drawn again with it; on, the
+/// page just stops lighting what it has, and later drawings leave the glow out.
+/datum/preference_middleware/character_preview/proc/set_lights(list/params, mob/user)
+	var/off = !!params["off"]
+	if(off == lights_off)
+		return FALSE
+	lights_off = off
+	if(off && !drawn_lights_off)
+		preview_changed()
 	return FALSE
 
 /// Something to draw: once whatever changed the look has finished, or once a burst of changes settles.
@@ -183,10 +208,17 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	if(isnull(body) && isnull(silicon))
 		return
 	var/look_now = silicon ? silicon.appearance : body.appearance
-	if(look_now == drawn_look)
+	// A drawing with what glows serves the lights on too. Another slot's character is drawn even when it looks the
+	// same, so the page knows it for another character.
+	if(look_now == drawn_look && (drawn_lights_off || !lights_off) && !animation_read && preview?["slot"] == preferences.default_slot)
 		return
+	var/glow = lights_off
+	animation_read = FALSE
 
-	var/list/walk = character_preview_walk(silicon || body)
+	var/list/walk = character_preview_walk(silicon || body, glow, animate = TRUE)
+	// Drawn still while what animates waits to be read: told once it has been, even while this waits for iconforge.
+	if(walk["animation"]?["pending"])
+		SScharacter_preview.reading_waiters |= src
 	var/height = walk["height"]
 	// What the flatten leaves out and the page draws itself: rows moved by height, and body size.
 	var/list/effects = silicon ? list() : character_preview_effects(body, height, walk["y"])
@@ -202,9 +234,10 @@ GLOBAL_VAR(character_preview_cleanup_due)
 		forget_unshown(drawn["name"])
 		return
 	drawn_look = look_now
+	drawn_lights_off = glow
 
 	var/name = drawn["name"]
-	var/key = "[name] [species] [json_encode(effects)]"
+	var/key = "[name] [species] [preferences.default_slot] [json_encode(effects)]"
 	if(key == preview_key)
 		return
 	preview_key = key
@@ -215,6 +248,9 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	preview = drawn.Copy()
 	preview["id"] = ++preview_serial
 	preview["species"] = species
+	// Whose drawing it is. The page brings another character in with the theme's arrival, and knows one by its drawings
+	// alone, whenever the window's own update with the slot comes.
+	preview["slot"] = preferences.default_slot
 	for(var/effect, value in effects)
 		preview[effect] = value
 
@@ -260,6 +296,11 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	preview_key = null
 	drawn_look = null
 	preview_on_page = null
+	// A window opens with its lights on.
+	lights_off = FALSE
+	drawn_lights_off = FALSE
+	animation_read = FALSE
+	SScharacter_preview.reading_waiters -= src
 
 /**
  * Draws a walk's facings into one strip with iconforge, or finds the same look already drawn, and returns the page's
@@ -267,9 +308,19 @@ GLOBAL_VAR(character_preview_cleanup_due)
  */
 /datum/preference_middleware/character_preview/proc/draw_preview(list/walk)
 	var/list/recipes = walk["recipes"]
+	var/list/glow_recipes = walk["glow_recipes"]
 	var/list/entries = list()
 	for(var/facing, recipe in recipes)
 		entries += "\"[facing]\":[recipe]"
+	// Each facing's glow, on the facing's canvas, goes into the same strip.
+	for(var/facing, recipe in glow_recipes)
+		entries += "\"[facing]_glow\":[recipe]"
+	// What moves, its patches side by side in one image, "moving", which goes in a strip of its own unless it happens to
+	// be the facings' size.
+	var/list/animation = walk["animation"]
+	var/list/moving_json = animation?["json"]
+	if(moving_json)
+		entries += jointext(moving_json, "")
 	var/entries_json = "{[jointext(entries, ",")]}"
 	var/name = "preview_[rustg_hash_string(RUSTG_HASH_MD5, entries_json)]"
 	var/list/drawn = GLOB.character_preview_drawings[name]
@@ -303,17 +354,24 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/list/sizes = output["sizes"]
 	var/size_id = sprites?["south"]?["size_id"]
 	var/image = isnull(size_id) ? null : rustg_hash_file(RUSTG_HASH_BASE64, "[CHARACTER_PREVIEW_DIR][sheet]_[size_id].png")
+	var/moving_size_id = moving_json ? sprites?["moving"]?["size_id"] : null
+	var/moving_apart = !isnull(moving_size_id) && moving_size_id != size_id
+	var/moving_image = moving_apart ? rustg_hash_file(RUSTG_HASH_BASE64, "[CHARACTER_PREVIEW_DIR][sheet]_[moving_size_id].png") : null
 	for(var/size in sizes)
 		fdel("[CHARACTER_PREVIEW_DIR][sheet]_[size].png")
-	// The facings of one mob are one size, so they share a strip.
-	if(!image || length(sizes) != 1 || length(sprites) != length(recipes))
+	// The facings of one mob are one size, and so are their glows, so they share a strip.
+	if(!image || length(sizes) != (moving_apart ? 2 : 1) || (moving_apart && !moving_image) || length(sprites) != length(recipes) + length(glow_recipes) + (moving_json ? 1 : 0))
 		return null
 	var/list/size = splittext(size_id, "x")
 	var/width = text2num(size[1])
 	// iconforge lays the facings out in any order.
 	var/list/frames = list()
+	var/list/glow_frames
 	for(var/facing, sprite in sprites)
-		frames[facing] = sprite["position"] * width
+		if(recipes[facing])
+			frames[facing] = sprite["position"] * width
+		else if(facing != "moving")
+			LAZYSET(glow_frames, copytext(facing, 1, -length("_glow")), sprite["position"] * width)
 	drawn = list(
 		"name" = name,
 		"image" = "data:image/png;base64,[image]",
@@ -325,6 +383,16 @@ GLOBAL_VAR(character_preview_cleanup_due)
 		"x" = walk["x"],
 		"y" = walk["y"],
 	)
+	// Each facing's glow, drawn only with the lights off and only for a look that has something to glow.
+	if(glow_frames)
+		drawn["glow_frames"] = glow_frames
+	// What moves: each facing's regions, each its box and its steps, a patch's left edge in "moving" (-1 for the facing
+	// as drawn) and how long it shows. "moving" the facings' size shares their strip, at its own place in it.
+	if(moving_json)
+		var/list/moving = list("left" = moving_apart ? 0 : sprites["moving"]["position"] * width, "facings" = animation["facings"])
+		if(moving_apart)
+			moving["image"] = "data:image/png;base64,[moving_image]"
+		drawn["animation"] = moving
 	GLOB.character_preview_drawings[name] = drawn
 	return drawn
 
@@ -375,18 +443,41 @@ GLOBAL_VAR(character_preview_cleanup_due)
  * One walk serves all four facings, stamped with each; see uni_icon_facings_json(). A mob something redraws when it
  * turns, like a head whose worn feature offsets move glasses and hats to the side it faces (golems, Teshari), is turned
  * and walked once per facing instead, each walk cropped to the canvas that fits all four.
+ *
+ * With `glow`, a look with something that glows also gets "glow_recipes": each facing's glow on the same canvas; see
+ * character_preview_glow(). A look with nothing that glows draws no more than it would without.
+ *
+ * With `animate`, a look with something animated also gets "animation": its patches and their steps; see
+ * character_preview_animation().
  */
-/proc/character_preview_walk(atom/look)
+/proc/character_preview_walk(atom/look, glow = FALSE, animate = FALSE)
 	var/mob/living/body = look
 	if(!istype(body) || !character_preview_turns_itself(body))
 		var/datum/universal_icon/flat = get_flat_uni_icon(look, UP, grow = TRUE)
 		var/list/box = character_preview_flat_box(flat)
-		return list("recipes" = uni_icon_facings_json(flat, GLOB.character_preview_facings), "height" = box[4], "x" = 1 - box[1], "y" = 1 - box[2])
+		. = list("recipes" = uni_icon_facings_json(flat, GLOB.character_preview_facings), "height" = box[4], "x" = 1 - box[1], "y" = 1 - box[2])
+		var/datum/universal_icon/glow_flat = glow ? character_preview_glow(look, UP, box) : null
+		if(glow_flat)
+			.["glow_recipes"] = uni_icon_facings_json(glow_flat, GLOB.character_preview_facings)
+		if(animate)
+			var/list/same_flat = list()
+			for(var/facing in GLOB.character_preview_facings)
+				same_flat[facing] = flat
+			var/list/animation = character_preview_animation(same_flat, TRUE, box[3], box[4])
+			if(animation)
+				.["animation"] = animation
+		return
 	var/old_dir = body.dir
 	var/list/flats = list()
+	var/list/glows = glow && emissive_branches_lit(emissive_branches(body)) ? list() : null
 	for(var/facing, dir in GLOB.character_preview_facings)
 		body.setDir(dir)
-		flats[facing] = get_flat_uni_icon(body, dir, grow = TRUE)
+		var/datum/universal_icon/flat = get_flat_uni_icon(body, dir, grow = TRUE)
+		flats[facing] = flat
+		// On the facing's own canvas for now; both are cropped to the one that fits all four below. Every facing has
+		// one, blank if nothing glows that way.
+		if(glows)
+			glows[facing] = character_preview_glow(body, dir, character_preview_flat_box(flat), always = TRUE)
 	body.setDir(old_dir)
 	// The canvas that fits every facing, from the look's own lower left pixel.
 	var/x1 = INFINITY
@@ -400,12 +491,24 @@ GLOBAL_VAR(character_preview_cleanup_due)
 		x2 = max(x2, box[1] + box[3] - 1)
 		y2 = max(y2, box[2] + box[4] - 1)
 	var/list/recipes = list()
+	var/list/glow_recipes
 	for(var/facing in flats)
 		var/datum/universal_icon/flat = flats[facing]
 		var/list/box = character_preview_flat_box(flat)
 		flat.crop(x1 - box[1] + 1, y1 - box[2] + 1, x2 - box[1] + 1, y2 - box[2] + 1)
 		recipes[facing] = flat.to_json()
-	return list("recipes" = recipes, "height" = y2 - y1 + 1, "x" = 1 - x1, "y" = 1 - y1)
+		// The glow was cropped to the facing's canvas, so it moves as the facing does.
+		var/datum/universal_icon/glow_flat = glows?[facing]
+		if(glow_flat)
+			glow_flat.crop(x1 - box[1] + 1, y1 - box[2] + 1, x2 - box[1] + 1, y2 - box[2] + 1)
+			LAZYSET(glow_recipes, facing, glow_flat.to_json())
+	. = list("recipes" = recipes, "height" = y2 - y1 + 1, "x" = 1 - x1, "y" = 1 - y1)
+	if(glow_recipes)
+		.["glow_recipes"] = glow_recipes
+	if(animate)
+		var/list/animation = character_preview_animation(flats, FALSE, x2 - x1 + 1, y2 - y1 + 1)
+		if(animation)
+			.["animation"] = animation
 
 /**
  * A flat icon's canvas, list(x1, y1, width, height): where its lower left pixel sits, counted from the flattened look's

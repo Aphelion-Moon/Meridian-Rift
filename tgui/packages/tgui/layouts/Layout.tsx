@@ -5,7 +5,7 @@
  */
 
 import { useAtomValue } from 'jotai'; // APHELION EDIT ADDITION - MERIDIAN_UI
-import { useCallback } from 'react'; // APHELION EDIT CHANGE - Scroll tracking - ORIGINAL: import { useEffect, useRef } from 'react';
+import { useCallback } from 'react'; // APHELION EDIT CHANGE - MERIDIAN_UI - ORIGINAL: import { useCallback, useEffect } from 'react';
 import type { Box } from 'tgui-core/components';
 import { addScrollableNode, removeScrollableNode } from 'tgui-core/events';
 import { classes } from 'tgui-core/react';
@@ -65,25 +65,6 @@ type ContentProps = Partial<{
 
 function LayoutContent(props: ContentProps) {
   const { className, scrollable, children, ...rest } = props;
-  /* // APHELION EDIT REMOVAL START - Scroll tracking: an effect never saw scrollable change after mount
-  const node = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const self = node.current;
-
-    if (self && scrollable) {
-      addScrollableNode(self);
-    }
-    return () => {
-      if (self && scrollable) {
-        removeScrollableNode(self);
-      }
-    };
-  }, []);
-  */ // APHELION EDIT REMOVAL END
-  // APHELION EDIT ADDITION START - Scroll tracking, as tgui-core's Section does it
-  // A ref callback cleans up with the node it was given, and runs again when
-  // the content starts or stops scrolling.
   const node = useCallback(
     (self: HTMLDivElement) => {
       if (scrollable) {
@@ -97,7 +78,6 @@ function LayoutContent(props: ContentProps) {
     },
     [scrollable],
   );
-  // APHELION EDIT ADDITION END
 
   return (
     <div

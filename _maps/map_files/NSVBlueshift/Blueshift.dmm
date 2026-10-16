@@ -13051,10 +13051,10 @@
 /area/station/hallway/primary/aft)
 "cFf" = (
 /obj/structure/closet/secure_closet/freezer/fridge/all_access,
-/obj/item/storage/box/ingredients/vegetarian,
-/obj/item/storage/box/ingredients/italian,
-/obj/item/storage/box/ingredients/fruity,
-/obj/item/storage/box/ingredients/fiesta,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/storage/box/ingredients/american,
 /obj/item/reagent_containers/condiment/flour{
 	list_reagents = list(/datum/reagent/consumable/flour=600);
@@ -25987,10 +25987,10 @@
 /area/station/hallway/primary/port)
 "fhV" = (
 /obj/structure/closet/secure_closet/freezer/fridge/all_access,
-/obj/item/storage/box/ingredients/vegetarian,
-/obj/item/storage/box/ingredients/italian,
-/obj/item/storage/box/ingredients/fruity,
-/obj/item/storage/box/ingredients/fiesta,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
+/obj/item/storage/box/ingredients/wildcard,
 /obj/item/storage/box/ingredients/american,
 /obj/item/reagent_containers/condiment/flour{
 	list_reagents = list(/datum/reagent/consumable/flour=600);
@@ -84728,7 +84728,7 @@
 /obj/machinery/recharger{
 	pixel_y = 3
 	},
-/obj/item/borg/sight/hud/sec{
+/obj/item/clothing/glasses/hud/security{
 	pixel_y = 17
 	},
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden/layer4,

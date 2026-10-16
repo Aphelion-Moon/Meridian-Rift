@@ -1,0 +1,617 @@
+// THIS IS AN APHELION UI FILE
+// The Vector markings room, ported from its mockup (the lab's markings-themes run,
+// canvas/project/Main.dc.html) by the themes-impl run's tools/port_room.py: the club room is the base,
+// and these are its changes. Hand edits below the port are marked HAND.
+
+.theme-meridian_vector .AugmentsRoom {
+  --room-bg:#070d16;
+  --room-panel:#0b1626;
+  --room-recess:#08111d;
+  --room-line:#426b96;
+  --room-text:#e7f1ff;
+  --room-muted:#9cb3cf;
+  --room-faint:#7890ad;
+  --room-neon:#54a9ff;
+  --room-neon-rgb:84 169 255;
+  --room-hot:#b8f5ff;
+  --room-hot-rgb:184 245 255;
+  --room-focus:#b8f5ff;
+  --room-cut:6px;
+}
+.theme-meridian_vector .AugmentsRoom__bg--markings {
+  background:radial-gradient(ellipse 40% 40% at 50% 44%,rgb(84 169 255/.1),transparent 70%),linear-gradient(180deg,rgb(4 10 22/.2),rgb(4 10 22/.5)),var(--mr-vector-blueprint,none) 0 0/900px 820px;
+}
+.theme-meridian_vector .AugmentsRoom--markings .AugmentsRoom__header {
+  border-bottom:1px solid rgb(159 208 255/.45);
+}
+.theme-meridian_vector .AugmentsRoom__mode--markings {
+  padding:0 18px;
+  border-radius:0;
+  font:17px/1 'Share Tech Mono',monospace;
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  background:transparent;
+  box-shadow:inset 0 0 0 1px rgb(159 208 255/.4);
+}
+.theme-meridian_vector .AugmentsRoom__mode--markings.AugmentsRoom__mode--on {
+  color:#e7f1ff;
+  background:rgb(84 169 255/.12);
+  box-shadow:inset 0 0 0 1px #b8f5ff,0 0 14px rgb(84 169 255/.35);
+  text-shadow:0 0 6px rgb(84 169 255/.9);
+}
+.theme-meridian_vector .AugmentsRoom__mode--augments {
+  background:rgb(159 208 255/.5);
+}
+.theme-meridian_vector .AugmentsRoom__mode--augments::before {
+  background:#0b1626;
+}
+.theme-meridian_vector .AugmentsRoom__uv {
+  border-radius:0;
+  background:rgb(4 12 26/.6);
+  box-shadow:inset 0 0 0 1px rgb(159 208 255/.4);
+}
+.theme-meridian_vector .AugmentsRoom .vlamp {
+  position:absolute;
+  left:66px;
+  right:66px;
+  top:3px;
+  z-index:3;
+  height:12px;
+  border:1px solid #b8f5ff;
+  box-shadow:0 0 6px rgb(84 169 255/.6);
+}
+.theme-meridian_vector .AugmentsRoom .vlamp::after {
+  content:'';
+  position:absolute;
+  left:6px;
+  right:6px;
+  top:4px;
+  height:2px;
+  background:#e7f9ff;
+  box-shadow:0 0 4px #b8f5ff,0 0 12px #54a9ff,0 0 32px 6px rgb(84 169 255/.45),0 12px 40px 8px rgb(84 169 255/.18);
+}
+.theme-meridian_vector .AugmentsRoom .dims {
+  position:absolute;
+  left:0;
+  top:0;
+  z-index:3;
+  width:360px;
+  height:560px;
+  overflow:visible;
+  pointer-events:none;
+}
+.theme-meridian_vector .AugmentsRoom .dims path,
+.theme-meridian_vector .AugmentsRoom .dims line {
+  fill:none;
+  stroke:rgb(184 225 255/.75);
+  stroke-width:1;
+}
+.theme-meridian_vector .AugmentsRoom .dims text {
+  font:9px 'Share Tech Mono',monospace;
+  fill:rgb(184 225 255/.85);
+  letter-spacing:.1em;
+}
+.theme-meridian_vector .MarkingsRoom__glass {
+  left:14px;
+  top:26px;
+  border-radius:0;
+  background:linear-gradient(180deg,rgb(84 169 255/.08),transparent 30%),rgb(6 16 34/.72);
+  box-shadow:0 0 0 1px #9fd0ff,0 0 0 4px rgb(6 16 34),0 0 0 5px #9fd0ff,0 0 16px rgb(84 169 255/.35);
+}
+.theme-meridian_vector .MarkingsRoom__glass .CharacterPreview--club .CharacterPreview__figure {
+  filter:brightness(.86) saturate(.9);
+}
+.theme-meridian_vector .MarkingsRoom__rim.MarkingsRoom__rim--top {
+  background:linear-gradient(180deg, rgb(184 245 255/.38) var(--tile-top), rgb(84 169 255/.08) calc(var(--tile-top) + 13.44 * var(--pixel)), transparent calc(var(--tile-top) + 22.4 * var(--pixel)));
+}
+.theme-meridian_vector .MarkingsRoom__rim.MarkingsRoom__rim--side {
+  background:linear-gradient(90deg, transparent calc(var(--tile-left) + 16.333 * var(--pixel)), rgb(84 169 255/.42) calc(var(--tile-left) + 24 * var(--pixel)));
+}
+.theme-meridian_vector .MarkingsRoom__glare {
+  background:none;
+}
+.theme-meridian_vector .AugmentsRoom .hatch {
+  position:absolute;
+  width:70px;
+  height:70px;
+  background:repeating-linear-gradient(135deg,rgb(159 208 255/.35) 0 1px,transparent 1px 9px);
+}
+.theme-meridian_vector .AugmentsRoom .hatch.a {
+  right:0;
+  top:0;
+  clip-path:polygon(30% 0,100% 0,100% 70%);
+}
+.theme-meridian_vector .AugmentsRoom .hatch.b {
+  right:0;
+  bottom:0;
+  clip-path:polygon(100% 30%,100% 100%,30% 100%);
+}
+.theme-meridian_vector .AugmentsRoom .vcl {
+  position:absolute;
+  left:165px;
+  top:10px;
+  bottom:10px;
+  width:1px;
+  background:repeating-linear-gradient(180deg,rgb(206 232 255/.38) 0 14px,transparent 14px 18px,rgb(206 232 255/.38) 18px 20px,transparent 20px 24px);
+}
+.theme-meridian_vector .AugmentsRoom .vscale {
+  position:absolute;
+  left:16px;
+  bottom:16px;
+  display:grid;
+  gap:4px;
+  color:rgb(222 240 255/.85);
+}
+.theme-meridian_vector .AugmentsRoom .vscale i {
+  display:block;
+  width:100px;
+  height:6px;
+  border:1px solid currentColor;
+  background:linear-gradient(90deg,currentColor 0 25%,transparent 25% 50%,currentColor 50% 75%,transparent 75%);
+}
+.theme-meridian_vector .AugmentsRoom .vscale span {
+  display:flex;
+  justify-content:space-between;
+  width:110px;
+  margin-left:-3px;
+  font:9px/1 'Share Tech Mono',monospace;
+  letter-spacing:.06em;
+}
+.theme-meridian_vector .AugmentsRoom .vscale b {
+  font-weight:normal;
+}
+.theme-meridian_vector .AugmentsRoom .vsec {
+  position:absolute;
+  right:16px;
+  top:16px;
+  display:grid;
+  place-items:center;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  border:1px solid rgb(222 240 255/.85);
+  font:11px/1 'Share Tech Mono',monospace;
+  color:rgb(222 240 255/.9);
+  background:linear-gradient(transparent 49%,rgb(222 240 255/.85) 49% 51%,transparent 51%);
+}
+.theme-meridian_vector .AugmentsRoom .vsec i {
+  font-style:normal;
+  translate:0 6px;
+}
+.theme-meridian_vector .AugmentsRoom .vsec::before {
+  content:'';
+  position:absolute;
+  left:-14px;
+  top:50%;
+  width:12px;
+  height:1px;
+  background:rgb(222 240 255/.85);
+}
+.theme-meridian_vector .AugmentsRoom .vsec::after {
+  content:'';
+  position:absolute;
+  left:-3px;
+  top:-6px;
+  border:6px solid transparent;
+  border-bottom-color:rgb(222 240 255/.85);
+  border-top:0;
+  rotate:-90deg;
+}
+.theme-meridian_vector .MarkingsRoom__card {
+  border:0;
+  border-radius:0;
+  color:#9cb3cf;
+  background:linear-gradient(180deg,rgb(11 22 38/.92),rgb(8 17 29/.94));
+  box-shadow:none;
+  clip-path:polygon(0 8px,8px 8px,8px 0,calc(100% - 8px) 0,calc(100% - 8px) 8px,100% 8px,100% calc(100% - 8px),calc(100% - 8px) calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 8px),0 calc(100% - 8px));
+}
+.theme-meridian_vector .MarkingsRoom__card::after {
+  display:none;
+}
+.theme-meridian_vector .MarkingsRoom__cardX1 {
+  inset:0;
+  border:1px solid rgb(159 208 255/.6);
+  clip-path:inherit;
+}
+.theme-meridian_vector .MarkingsRoom__cardX2 {
+  left:12px;
+  right:12px;
+  bottom:6px;
+  height:4px;
+  background:repeating-linear-gradient(90deg,rgb(159 208 255/.6) 0 1px,transparent 1px 6px);
+}
+.theme-meridian_vector .MarkingsRoom__card.MarkingsRoom__card--lit .MarkingsRoom__cardX1 {
+  border-color:#b8f5ff;
+  box-shadow:inset 0 0 16px rgb(84 169 255/.25);
+}
+.theme-meridian_vector .MarkingsRoom__cardTag {
+  display:block;
+  right:14px;
+  bottom:12px;
+  font:8px/1 'Share Tech Mono',monospace;
+  letter-spacing:.16em;
+  color:rgb(159 208 255/.6);
+}
+.theme-meridian_vector .MarkingsRoom__cardName {
+  font:16px/1 'Share Tech Mono',monospace;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#e7f1ff;
+  text-shadow:0 0 6px rgb(84 169 255/.7);
+}
+.theme-meridian_vector .MarkingsRoom__tile {
+  border-radius:0;
+  background:rgb(4 12 26/.7);
+  box-shadow:inset 0 0 0 1px rgb(159 208 255/.55);
+}
+.theme-meridian_vector .MarkingsRoom__tile.MarkingsRoom__tile--selected {
+  box-shadow:inset 0 0 0 1px #b8f5ff,0 0 0 2px #b8f5ff,0 0 14px rgb(84 169 255/.6);
+}
+.theme-meridian_vector .MarkingsRoom__tile.MarkingsRoom__tile--add {
+  border:1px dashed rgb(159 208 255/.45);
+  color:#9fd0ff;
+}
+.theme-meridian_vector .MarkingsRoom__counter {
+  background:linear-gradient(180deg,rgb(255 255 255/.04),transparent 10px),repeating-linear-gradient(90deg,rgb(159 208 255/.08) 0 1px,transparent 1px 12px),linear-gradient(180deg,#0d2342,#081629);
+  box-shadow:0 -1px 0 #9fd0ff,0 -20px 40px rgb(0 0 0/.45);
+}
+.theme-meridian_vector .MarkingsRoom__counter::before {
+  height:10px;
+  background:repeating-linear-gradient(90deg,rgb(206 232 255/.85) 0 1px,transparent 1px 6px) 0 0/100% 5px no-repeat,repeating-linear-gradient(90deg,rgb(206 232 255/.85) 0 1px,transparent 1px 30px) 0 0/100% 10px no-repeat;
+  box-shadow:none;
+}
+.theme-meridian_vector .MarkingsRoom__pill,
+.theme-meridian_vector .MarkingsRoom__big {
+  border-radius:0;
+}
+.theme-meridian_vector .MarkingsRoom__big {
+  background:rgb(84 169 255/.06);
+  box-shadow:inset 0 0 0 1px rgb(159 208 255/.6);
+}
+.theme-meridian_vector .MarkingsRoom__big svg {
+  stroke:#b8f5ff;
+}
+.theme-meridian_vector .MarkingsRoom__label,
+.theme-meridian_vector .MarkingsRoom__markerLabel {
+  font-family:'Share Tech Mono',monospace;
+}
+.theme-meridian_vector .MarkingsRoom__markerCap {
+  width:11px;
+  height:12px;
+  margin-top:0;
+  border-radius:2px 2px 0 0;
+  background:linear-gradient(90deg,rgb(255 255 255/.35),transparent 50%,rgb(0 0 0/.2)),var(--marker);
+  box-shadow:inset -3px 0 0 rgb(255 255 255/.25);
+}
+.theme-meridian_vector .MarkingsRoom__markerBody {
+  width:9px;
+  height:28px;
+  border-radius:0 0 1px 1px;
+  background:linear-gradient(90deg,rgb(255 255 255/.18),transparent 40%,rgb(0 0 0/.4)),linear-gradient(180deg,var(--marker) 0 2px,#10141c 2px 22px,#9aa8b4 22px);
+  clip-path:polygon(0 0,100% 0,100% 80%,62% 100%,38% 100%,0 80%);
+  box-shadow:none;
+}
+.theme-meridian_vector .MarkingsRoom__marker.MarkingsRoom__marker--current .MarkingsRoom__markerBody {
+  filter:drop-shadow(0 0 4px #b8f5ff) drop-shadow(0 0 8px var(--marker));
+}
+.theme-meridian_vector .MarkingsRoom__marker--mix .MarkingsRoom__markerCap {
+  width:14px;
+  height:6px;
+  margin-top:4px;
+  border-radius:1px;
+  background:#10141c;
+}
+.theme-meridian_vector .MarkingsRoom__marker--mix .MarkingsRoom__markerBody {
+  width:22px;
+  height:30px;
+  border-radius:2px;
+  clip-path:none;
+  background:linear-gradient(90deg,rgb(255 255 255/.25),transparent 40%,rgb(0 0 0/.35)),linear-gradient(180deg,transparent 0 10px,#e7f1ff 10px 20px,transparent 20px),conic-gradient(#ff3fa4,#ffb020,#9dff4a,#2ff3e0,#3f8cff,#a066ff,#ff3fa4);
+}
+.theme-meridian_vector .MarkingsRoom__drawer {
+  rotate:0deg;
+  border-radius:0;
+  color:#e7f1ff;
+  background:linear-gradient(180deg,rgb(8 20 40/.9),rgb(6 15 30/.94)),var(--mr-vector-blueprint,none) 0 0/900px 820px;
+  box-shadow:0 0 0 1px #9fd0ff,0 24px 60px rgb(0 0 0/.7);
+}
+.theme-meridian_vector .MarkingsRoom__drawerTitle {
+  font:17px/1 'Share Tech Mono',monospace;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#e7f1ff;
+}
+.theme-meridian_vector .MarkingsRoom__drawerSub,
+.theme-meridian_vector .MarkingsRoom__footMeta,
+.theme-meridian_vector .MarkingsRoom__section,
+.theme-meridian_vector .MarkingsRoom__empty {
+  color:#9cb3cf;
+}
+.theme-meridian_vector .MarkingsRoom__section {
+  background:linear-gradient(180deg,#0b1a31 75%,transparent);
+}
+.theme-meridian_vector .MarkingsRoom__search {
+  border-radius:0;
+  background:rgb(4 12 26/.8);
+  box-shadow:inset 0 0 0 1px rgb(159 208 255/.5);
+}
+.theme-meridian_vector .MarkingsRoom__search input {
+  color:#e7f1ff;
+}
+.theme-meridian_vector .MarkingsRoom__close {
+  border-color:rgb(159 208 255/.5);
+  color:#9fd0ff;
+}
+.theme-meridian_vector .MarkingsRoom__pick {
+  border-radius:0;
+  background:rgb(4 12 26/.7);
+  box-shadow:0 0 0 1px rgb(159 208 255/.6);
+}
+.theme-meridian_vector .MarkingsRoom__pick.MarkingsRoom__pick--peek {
+  box-shadow:0 0 0 2px #b8f5ff,0 0 14px rgb(84 169 255/.5);
+}
+.theme-meridian_vector .MarkingsRoom__foot {
+  border-top-color:rgb(159 208 255/.3);
+}
+.theme-meridian_vector .AugmentsRoom {
+  --room-neon:#8fd8ff;
+  --room-neon-rgb:143 216 255;
+  --room-hot:#ffb24a;
+  --room-hot-rgb:255 178 74;
+}
+.theme-meridian_vector .AugmentsRoom__bg--markings {
+  background:radial-gradient(ellipse 46% 44% at 50% 42%,rgb(40 120 255/.16),transparent 70%),linear-gradient(180deg,rgb(4 10 22/.22),rgb(4 10 22/.52)),var(--mr-vector-blueprint,none) 0 0/900px 820px;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud {
+  position:absolute;
+  inset:0;
+  width:900px;
+  height:820px;
+  filter:drop-shadow(0 0 3px rgb(90 170 255/.5));
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .t {
+  fill:none;
+  stroke:rgb(150 210 255/.42);
+  stroke-width:1;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .d {
+  fill:none;
+  stroke:rgb(150 210 255/.36);
+  stroke-width:1;
+  stroke-dasharray:2 6;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .a {
+  fill:none;
+  stroke:rgb(170 220 255/.5);
+  stroke-width:2;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .tk {
+  fill:none;
+  stroke:rgb(150 210 255/.42);
+  stroke-width:1;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .ry {
+  fill:none;
+  stroke:rgb(150 210 255/.1);
+  stroke-width:1;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .acc {
+  fill:none;
+  stroke:#ffb24a;
+  stroke-width:3;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .mk {
+  fill:#ffb24a;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .fl {
+  fill:none;
+  stroke:rgb(110 180 255/.22);
+  stroke-width:1;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud .wv {
+  fill:none;
+  stroke:rgb(160 225 255/.5);
+  stroke-width:1.2;
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud text {
+  font:13px 'AF Canon Tech',sans-serif;
+  fill:rgb(160 215 255/.62);
+}
+.theme-meridian_vector .AugmentsRoom .vh-hud text.n {
+  font:12px 'Droid Depot',sans-serif;
+  fill:rgb(255 190 110/.78);
+}
+.theme-meridian_vector .AugmentsRoom--markings .AugmentsRoom__header {
+  background:rgb(2 8 20/.55);
+  border-bottom:1px solid rgb(159 208 255/.5);
+}
+.theme-meridian_vector .AugmentsRoom .dims,
+.theme-meridian_vector .AugmentsRoom .hatch.b {
+  display:none;
+}
+.theme-meridian_vector .AugmentsRoom .hatch.a,
+.theme-meridian_vector .AugmentsRoom .vscale,
+.theme-meridian_vector .AugmentsRoom .vsec,
+.theme-meridian_vector .AugmentsRoom .vcl {
+  filter:drop-shadow(0 0 2px #54a9ff) drop-shadow(0 0 6px rgb(84 169 255/.75));
+}
+.theme-meridian_vector .AugmentsRoom .hatch.a {
+  background:repeating-linear-gradient(135deg,rgb(214 236 255/.6) 0 1px,transparent 1px 9px);
+}
+.theme-meridian_vector .AugmentsRoom .vscale {
+  color:#e6f3ff;
+}
+.theme-meridian_vector .AugmentsRoom .vsec {
+  color:#e6f3ff;
+  border-color:#e6f3ff;
+}
+.theme-meridian_vector .MarkingsRoom__glass {
+  background:radial-gradient(ellipse 80% 60% at 50% 46%,rgb(40 110 230/.16),transparent 70%),rgb(3 10 24/.38);
+  box-shadow:0 0 0 1px #bfe4ff,0 0 0 4px rgb(3 10 24/.5),0 0 0 5px #bfe4ff,0 0 16px 2px rgb(84 169 255/.55);
+}
+.theme-meridian_vector .MarkingsRoom__glass::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:3;
+  background:repeating-linear-gradient(180deg,rgb(140 200 255/.05) 0 1px,transparent 1px 4px);
+  pointer-events:none;
+}
+.theme-meridian_vector .AugmentsRoom .vcl {
+  opacity:.6;
+}
+.theme-meridian_vector .MarkingsRoom__card {
+  background:linear-gradient(180deg,rgb(60 140 255/.12),transparent 40%),rgb(8 24 48/.5);
+}
+.theme-meridian_vector .MarkingsRoom__cardX1 {
+  border-color:#bfe4ff;
+  box-shadow:0 0 8px rgb(84 169 255/.55),inset 0 0 12px rgb(84 169 255/.2);
+}
+.theme-meridian_vector .MarkingsRoom__card.MarkingsRoom__card--lit .MarkingsRoom__cardX1 {
+  box-shadow:0 0 14px rgb(84 169 255/.85),inset 0 0 20px rgb(84 169 255/.35);
+}
+.theme-meridian_vector .MarkingsRoom__cardName {
+  color:#eef8ff;
+  text-shadow:0 0 6px rgb(143 216 255/.9);
+}
+.theme-meridian_vector .MarkingsRoom__cardName::after {
+  content:attr(data-n);
+  position:absolute;
+  left:0;
+  top:-10px;
+  font:9px/1 'AF Canon Tech',sans-serif;
+  letter-spacing:.08em;
+  text-transform:none;
+  color:rgb(160 215 255/.55);
+  text-shadow:none;
+}
+.theme-meridian_vector .MarkingsRoom__cardHead {
+  margin-top:3px;
+}
+.theme-meridian_vector .MarkingsRoom__cardCount {
+  display:none;
+}
+.theme-meridian_vector .MarkingsRoom__cardMeter {
+  display:block;
+  position:absolute;
+  right:14px;
+  top:17px;
+  width:58px;
+  height:10px;
+  border:1px solid rgb(191 228 255/.8);
+  background:repeating-linear-gradient(90deg,transparent 0 18.3px,rgb(191 228 255/.7) 18.3px 19.3px);
+  box-shadow:0 0 6px rgb(84 169 255/.5);
+}
+.theme-meridian_vector .MarkingsRoom__cardMeter::before {
+  content:'';
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:0;
+  background:linear-gradient(90deg,rgb(255 178 74/.15),#ffb24a);
+  clip-path:polygon(0 100%,100% 0,100% 100%);
+}
+.theme-meridian_vector .MarkingsRoom__cardMeter.MarkingsRoom__cardMeter--m1::before {
+  width:33.3%;
+}
+.theme-meridian_vector .MarkingsRoom__cardMeter.MarkingsRoom__cardMeter--m2::before {
+  width:66.6%;
+}
+.theme-meridian_vector .MarkingsRoom__cardMeter.MarkingsRoom__cardMeter--m3::before {
+  width:100%;
+}
+.theme-meridian_vector .MarkingsRoom__cardMeter i {
+  display:none;
+}
+.theme-meridian_vector .MarkingsRoom__tile {
+  background:rgb(2 8 20/.55);
+}
+.theme-meridian_vector .MarkingsRoom__counter {
+  background:linear-gradient(180deg,rgb(255 255 255/.04),transparent 10px),repeating-linear-gradient(90deg,rgb(159 208 255/.09) 0 1px,transparent 1px 12px),repeating-linear-gradient(0deg,rgb(159 208 255/.05) 0 1px,transparent 1px 12px),linear-gradient(180deg,rgb(13 35 66/.86),rgb(8 22 41/.92));
+  box-shadow:0 -1px 0 #bfe4ff,0 0 14px rgb(84 169 255/.35);
+}
+.theme-meridian_vector .MarkingsRoom__counter::before {
+  filter:drop-shadow(0 0 3px rgb(84 169 255/.8));
+}
+.theme-meridian_vector .MarkingsRoom__big {
+  background:rgb(3 10 24/.55);
+}
+.theme-meridian_vector .MarkingsRoom__marker {
+  height:50px;
+}
+.theme-meridian_vector .MarkingsRoom__markerCap {
+  width:10px;
+  height:10px;
+  margin-top:3px;
+  border-radius:1px;
+  rotate:45deg;
+  background:var(--marker);
+  box-shadow:0 0 6px var(--marker),0 0 14px var(--marker);
+}
+.theme-meridian_vector .MarkingsRoom__markerBody {
+  width:26px;
+  height:26px;
+  margin-top:3px;
+  border-radius:0;
+  clip-path:polygon(40% 0,60% 0,100% 70%,100% 100%,0 100%,0 70%);
+  background:linear-gradient(180deg,transparent 0 18px,#0c1a30 18px 23px,#6f9fd0 23px 24px,#0c1a30 24px),linear-gradient(180deg,transparent,var(--marker));
+  opacity:.92;
+  box-shadow:none;
+  filter:none;
+}
+.theme-meridian_vector .MarkingsRoom__marker.MarkingsRoom__marker--current .MarkingsRoom__markerBody {
+  opacity:1;
+  filter:drop-shadow(0 0 5px var(--marker));
+}
+.theme-meridian_vector .MarkingsRoom__marker.MarkingsRoom__marker--current .MarkingsRoom__markerCap {
+  box-shadow:0 0 0 2px #fff,0 0 10px var(--marker),0 0 20px var(--marker);
+}
+.theme-meridian_vector .MarkingsRoom__marker--mix .MarkingsRoom__markerCap {
+  width:10px;
+  height:10px;
+  margin-top:3px;
+  border-radius:1px;
+  background:conic-gradient(#ff3fa4,#ffb020,#9dff4a,#2ff3e0,#3f8cff,#a066ff,#ff3fa4);
+  box-shadow:0 0 8px rgb(255 255 255/.7);
+}
+.theme-meridian_vector .MarkingsRoom__marker--mix .MarkingsRoom__markerBody {
+  width:26px;
+  height:26px;
+  margin-top:3px;
+  border-radius:0;
+  clip-path:polygon(40% 0,60% 0,100% 70%,100% 100%,0 100%,0 70%);
+  background:linear-gradient(180deg,transparent 0 18px,#0c1a30 18px 23px,#6f9fd0 23px 24px,#0c1a30 24px),linear-gradient(180deg,transparent,rgb(255 255 255/.85));
+}
+.theme-meridian_vector .MarkingsRoom__drawer {
+  background:linear-gradient(180deg,rgb(4 14 30/.82),rgb(2 8 20/.9));
+  box-shadow:0 0 0 1px #bfe4ff,0 0 16px rgb(84 169 255/.55),0 24px 60px rgb(0 0 0/.7);
+}
+.theme-meridian_vector .MarkingsRoom__drawerTitle::after {
+  content:attr(data-n);
+  margin-left:10px;
+  font:11px/1 'AF Canon Tech',sans-serif;
+  letter-spacing:.08em;
+  text-transform:none;
+  color:rgb(160 215 255/.55);
+}
+.theme-meridian_vector .MarkingsRoom__uvTube {
+  display:none;
+}
+.theme-meridian_vector .AugmentsRoom--uv .AugmentsRoom__bg--uv {
+  background:rgb(4 4 6/.86);
+}
+.theme-meridian_vector .AugmentsRoom--uv .MarkingsRoom__glass {
+  background:radial-gradient(ellipse 90% 70% at 50% 40%,#0b0b0d,#030304 85%);
+}
+.theme-meridian_vector .AugmentsRoom__uv.AugmentsRoom__uv--on {
+  color:var(--room-text);
+  box-shadow:inset 0 0 0 1px rgb(var(--room-neon-rgb)/.75),0 0 10px rgb(var(--room-neon-rgb)/.25);
+}
+.theme-meridian_vector .AugmentsRoom__uv.AugmentsRoom__uv--on .AugmentsRoom__uvTrack {
+  background:rgb(var(--room-neon-rgb)/.85);
+}
+.theme-meridian_vector .AugmentsRoom__uv.AugmentsRoom__uv--on .AugmentsRoom__uvKnob {
+  background:#fff;
+  box-shadow:0 0 0 1px rgb(0 0 0/.3),0 0 6px rgb(var(--room-neon-rgb)/.6);
+}
