@@ -883,14 +883,8 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 /**
  * Returns the partial pressure of the gas in the breath based on BREATH_VOLUME
  * eg:
- /* // APHELION EDIT REMOVAL START - DOGMOS
- * Plas_PP = get_breath_partial_pressure(gas_mixture.moles[/datum/gas/plasma])
- * O2_PP = get_breath_partial_pressure(gas_mixture.moles[/datum/gas/oxygen])
- */ // APHELION EDIT REMOVAL END
- // APHELION EDIT ADDITION START - DOGMOS
  * Plas_PP = get_breath_partial_pressure(gas_mixture.get_moles(/datum/gas/plasma))
  * O2_PP = get_breath_partial_pressure(gas_mixture.get_moles(/datum/gas/oxygen))
- // APHELION EDIT ADDITION END
  * get_breath_partial_pressure(gas_mole_count) --> PV = nRT, P = nRT/V
  *
  * 10/20*5 = 2.5
