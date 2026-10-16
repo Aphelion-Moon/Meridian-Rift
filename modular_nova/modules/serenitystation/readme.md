@@ -49,7 +49,7 @@ To rerun the cutting tool move the relevant .dmi .png and .png.toml files to the
 
 - `modular_nova/master_files/code/controllers/subsystem/mapping.dm` -> added proc to return is_planetary_with_space maps
 - `_maps/map_files/SerenityStation/SerenityStation.dmm`
-- `_maps/serenitystation.json`
+- `_maps/map_jsons/serenitystation.json`
 - `_maps/shuttles/nova/planetary_planetary_ferry.dmm`
 - `code/__DEFINES/~nova_defines/atmospherics.dm`
 

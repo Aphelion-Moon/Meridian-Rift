@@ -308,3 +308,9 @@
   - bugfix: manning a deployable turret gives you its controls in your hands again.
   - bugfix: the prototype emitter's manual firing mode gives you its controls in your
       hands again.
+2026-10-14:
+  IsBannedFromArgo:
+  - qol: Adjustable Balaclava now uses a radial menu to select its state (and has
+      a rolled-up state to match other balaclavas!)
+  - bugfix: fixed Three-Hole/Adjustable Balaclavas not properly covering what they
+      were meant to when toggled, as well as related broken icons
