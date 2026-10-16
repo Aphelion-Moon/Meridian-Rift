@@ -38401,9 +38401,6 @@
 	id = "AI";
 	pixel_x = -22
 	},
-/obj/machinery/power/apc/auto_name/directional/south{
-	pixel_x = 25
-	},
 /turf/open/floor/circuit,
 /area/station/ai/satellite/chamber)
 "lab" = (
@@ -57788,6 +57785,7 @@
 /turf/open/floor/wood/large,
 /area/station/service/library)
 "qFI" = (
+/obj/machinery/power/apc/auto_name/directional/south,
 /obj/machinery/door/poddoor/shutters/preopen{
 	dir = 4;
 	id = "AI Core shutters";
