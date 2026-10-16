@@ -18,3 +18,4 @@ changes:
   - qol: "The Cyborg editor uses shared, pose, and arousal placement tabs, aligned part-size controls, sidebar saving status, and SFW/NSFW headshot labels."
   - bugfix: "Cyborg preview 1:1 measures the current game map zoom and accounts for display scaling while preserving body size."
   - bugfix: "Cyborg part placement and animation use screen offsets so cosmetic positioning does not change map depth ordering."
+  - bugfix: "Cyborgs with a positronic brain preference get their brain, scream, and voice preferences again, including on admin-given control."

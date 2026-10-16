@@ -27,12 +27,20 @@
 		&& preferences.read_preference(/datum/preference/toggle/master_erp_preferences) \
 		&& preferences.read_preference(/datum/preference/toggle/allow_genitals)
 
+/// Silicons other than cyborgs have no customization to apply.
+/mob/living/silicon/proc/transfer_cyborg_customization_pref(client/player_client)
+	return
+
+/// Called through transfer_silicon_prefs(), which covers job spawns, ghost roles and mind transfers.
+/mob/living/silicon/robot/transfer_cyborg_customization_pref(client/player_client)
+	apply_cyborg_customization(src, player_client?.prefs)
+
 /// Preference application is separate from model selection, hardware, laws and names.
-/proc/apply_cyborg_customization(mob/living/silicon/robot/robot, datum/preferences/preferences, reason)
+/proc/apply_cyborg_customization(mob/living/silicon/robot/robot, datum/preferences/preferences)
 	if(!robot || !preferences || robot.shell)
 		return
-	// Existing bodies keep their spawn snapshot, including across reconnects.
-	if(reason == "login" && robot.cyborg_appearance_owner == robot.ckey && robot.cyborg_appearance_store)
+	// Existing bodies keep their spawn snapshot when the same player enters them again.
+	if(robot.cyborg_appearance_owner == robot.ckey && robot.cyborg_appearance_store)
 		robot.cyborg_customization_sync_permissions(preferences)
 		robot.cyborg_customization_refresh_model()
 		return

@@ -36,7 +36,7 @@
 	if(operation == "viewer")
 		var/datum/preference/preference = GLOB.preference_entries[/datum/preference/toggle/see_cyborg_genitalia]
 		var/value = params["value"] == TRUE
-		if(preferences.read_preference(preference.type) == value && !preferences.savefile?.last_save_error)
+		if(preferences.read_preference(preference.type) == value)
 			return TRUE
 		preferences.write_preference(preference, value)
 		preferences.save_preferences()

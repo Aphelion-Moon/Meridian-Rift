@@ -6,11 +6,12 @@ Cyborg customization adds a character-setup page, shared RoboTact and interactio
 
 | Concern | Owner |
 | --- | --- |
-| Layout schema, normalization, and import migration | `code/layout_schema.dm`, `code/preferences.dm`; native preference import sanitation |
+| Layout schema, normalization, and import migration | `code/layout_schema.dm`, `code/persistence.dm`; native preference import sanitation |
 | Editor draft and request lifetime | `code/middleware.dm`; the middleware owns a slot-bound draft and guards work with `context_generation` and `draft_revision` |
-| Durable preference write | Native JSON preference save hooks; the middleware stages a revision and accepts only the save result |
+| Durable layout write | `code/persistence.dm`; the `cyborg_customization.json` sidecar beside `preferences.json` |
 | Model catalog and preview | `code/model_catalog.dm`, `code/preview.dm`; `CyborgCharacterPage.tsx` |
 | Live appearance and geometry | `code/appearance.dm`, `code/rendering.dm`; a per-owner image holder uses shared static resources |
+| Applying preferences to a body | `transfer_silicon_prefs()`, beside the brain, emote, blooper and chat-color preferences |
 | Accessory data | `code/accessories.dm`, `code/direct_accessories.dm`; a cyborg-only catalog |
 | Animation and occlusion data | `code/animation.dm`, `animation_manifest.json`, generated occlusion resource table |
 | Identity and runtime controls | `code/identity.dm`, `code/robotact.dm` |
@@ -20,15 +21,15 @@ Static catalogs, profile tables, and generated resource paths are shared definit
 
 ## Saved data and policy
 
-The character preference key is `silicon_genital_layout_presets`, schema version 1. Its top-level fields are `active`, `presets`, `preset_models`, `model_presets`, and `model_defaults`. Each visual part can store sprite choice, position, rotation, scale, sprite size, colors, and optional directional, pose, or arousal overrides. The six visual slots are penis, sheath, testicles, vagina, anus, and breasts. Imported known values are normalized and bounded. A future schema is preserved and the editor refuses to write it; donor key aliases are migrated only during import. This layout schema is separate from the generated animation-manifest format version.
+Layouts are stored in `cyborg_customization.json` beside the account's `preferences.json`, keyed `character<slot>` like the custom-sprite sidecar. They are not character preferences and never enter `preferences.json`. The layout schema is version 1. Its top-level fields are `active`, `presets`, `preset_models`, `model_presets`, and `model_defaults`. Each visual part can store sprite choice, position, rotation, scale, sprite size, colors, and optional directional, pose, or arousal overrides. The six visual slots are penis, sheath, testicles, vagina, anus, and breasts. Imported known values are normalized and bounded. A future schema is preserved and the editor refuses to write it. A donor file's `silicon_genital_layout_presets` slot key is moved into the sidecar during import, with its key aliases migrated, and stripped from the imported `preferences.json`. This layout schema is separate from the generated animation-manifest format version.
 
-Ordinary edits debounce for two seconds; explicit preset/default collection changes save immediately. Preset names are trimmed to 24 characters, overflow is refused, and overwrite is explicit. The pinned native writer is not atomic; success requires its empty error result and exact content readback.
+Ordinary edits debounce for two seconds; explicit preset/default collection changes and leaving the cyborg page save immediately. Preset names are trimmed to 24 characters, overflow is refused, and overwrite is explicit. A write succeeds when rust-g returns no error text.
 
-The middleware binds edits and debounce timers to the active character slot, page context, and draft revision. It stages the current revision through the native preference save path and distinguishes `JSON_SAVE_FAILED`, `JSON_SAVE_WRITTEN`, and `JSON_SAVE_SESSION_ONLY`. Failure retains the dirty draft for retry. Session-only success is not durable file confirmation and must be shown as such. Slot replacement, delete/import replacement, close, export, and teardown follow their explicit draft lifecycle paths; test them rather than assuming every close is a save.
+The middleware binds edits and debounce timers to the draft's character slot, page context, and draft revision, and writes the draft to that slot in the sidecar. A slot change writes any pending draft to its own slot before loading the new one; a stale timer cannot write a replaced draft or older revision. A failed write keeps the dirty draft for retry. Guests and dev preferences keep the sidecar in memory, which the UI shows as session-only. Deleting a character removes its layout and drops its draft; an import replaces the whole sidecar; teardown writes any pending draft. Preference export does not include layouts, as it does not include custom sprites.
 
 New presets snapshot selected sprites as well as layout. Older layout-only records keep their geometry and use current sprite preferences until resaved. Bound presets remember their chassis; legacy unbound presets and anonymous defaults remain loadable. The editor's model selection does not alter character model eligibility.
 
-Configured appearance and size are captured for the body at spawn. Editor edits and reconnect do not replace that body configuration. Owner consent and the server ERP preference gate display; each viewer separately opts in through `see_cyborg_genitalia`, which defaults off. Runtime controls affect visibility and arousal, not the saved setup.
+Configured appearance and size are captured for the body when `transfer_silicon_prefs()` runs: job spawns, ghost cafe and mapped ghost roles, mind transfers, and admin Give Direct Control. The same player re-entering the body keeps its snapshot; editor edits and reconnect do not replace it. Owner consent and the server ERP preference gate display; each viewer separately opts in through `see_cyborg_genitalia`, which defaults off. Runtime controls affect visibility and arousal, not the saved setup.
 
 Visual slots do not create physical organs or grant anatomy-dependent actions. Supported message interactions are Cheer by cyborg actors and Cheer, Beckon, Headpat, and Pat by humans targeting cyborgs, under the audited distance and hand requirements. Surgery, insertion, vore, and anatomy-dependent sexual effects are not implied by visual configuration.
 
@@ -88,17 +89,16 @@ Dogborg source suffixes expose authored size variants independently of the share
 
 ## Core integration inventory
 
-Module ID: `CYBORG_CUSTOMIZATION`. Core preference hooks are narrow lifecycle adapters; session policy remains in the cyborg middleware.
+Module ID: `CYBORG_CUSTOMIZATION`. The core preference save path is untouched; layout persistence lives in the module's sidecar.
 
 | Core touchpoint | Reason |
 | --- | --- |
-| `code/__DEFINES/preferences.dm`, `code/datums/json_savefile.dm` | Explicit failed/written/session-only outcomes and complete-write readback |
-| `code/modules/client/preferences/middleware/_middleware.dm` | Staging, write acknowledgement, slot veto and replacement hooks |
-| `code/modules/client/preferences_savefile.dm` | Stage before saving/exporting; veto failed slot transitions before initialization |
-| `code/modules/client/preferences.dm` | Native close/destroy save boundary and visible slot-transition failure |
-| `modular_nova/modules/preferences_import/code/import_verb.dm` | Invalidate the replaced character's draft during import |
+| `code/modules/client/preferences_savefile.dm` | One line beside the custom-sprite call: deleting a character removes its layout |
+| `modular_nova/modules/preferences_import/code/import_verb.dm`, `_sanitise.dm` | Carry imported layouts into the sidecar; strip them and donor identity aliases from `preferences.json` |
+| `modular_nova/modules/synths/code/bodyparts/organs/internal/brain/silicon_alt_brains.dm` | Apply customization in `transfer_silicon_prefs()`; also run it on admin direct control; keep the brain preference from runtiming on positronic processors, which skipped every later step; add the interaction component |
+| `code/modules/mob/living/silicon/robot/robot.dm`, `robot_model.dm` | Holder teardown and facing, shared model list, chosen skin |
 
-Revert the targeted frontend/backend protocol together, the middleware lifecycle with its callers, and the generated manifest with its reader. Player layout schema remains version 1, so rollback requires no save reset. Shared controls with the separate custom-sprite editor are deferred until both real consumers can be integrated.
+Revert the targeted frontend/backend protocol together, the middleware with `code/persistence.dm`, and the generated manifest with its reader. Layouts live in their own sidecar, so rollback leaves `preferences.json` untouched. Shared controls with the separate custom-sprite editor are deferred until both real consumers can be integrated.
 
 ## Verification
 

@@ -237,18 +237,14 @@
 			normalized["model_presets"] -= canonical_id
 	return normalized
 
-/// Pass-one import sanitation may use this before preference rebuilds call deserialize.
-/proc/cyborg_layout_pref_slot_data(raw)
-	return cyborg_layout_normalize(raw, allow_legacy_aliases = TRUE)
-
 /proc/cyborg_layout_import_is_future(raw)
 	if(!islist(raw))
 		return FALSE
 	var/version = raw["schema_version"]
 	return !isnull(version) && (!isnum(version) || version > CYBORG_LAYOUT_SCHEMA_VERSION)
 
-/// Import-only migration keeps donor aliases out of ordinary save/load paths.
-/proc/cyborg_layout_import_sanitize_slot(list/slot, list/import_root)
+/// Import-only migration of donor identity keys. Layouts are read separately into the sidecar.
+/proc/cyborg_identity_import_sanitize_slot(list/slot)
 	if(!islist(slot))
 		return
 	if("headshot_silicon" in slot)
@@ -259,10 +255,4 @@
 		if(!("silicon_headshot_nsfw" in slot))
 			slot["silicon_headshot_nsfw"] = slot["headshot_silicon_nsfw"]
 		slot -= "headshot_silicon_nsfw"
-	if(!("silicon_genital_layout_presets" in slot))
-		return
-	var/list/layout = slot["silicon_genital_layout_presets"]
-	if(cyborg_layout_import_is_future(layout))
-		import_root["aphelion_cyborg_layout_import_notice"] = "A newer cyborg layout was preserved without loading because this server does not understand its schema."
-		return
-	slot["silicon_genital_layout_presets"] = cyborg_layout_pref_slot_data(layout)
+	slot -= "silicon_genital_layout_presets"

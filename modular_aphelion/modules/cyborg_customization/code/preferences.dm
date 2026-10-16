@@ -1,33 +1,4 @@
-/// Character preferences consumed by the cyborg creator and later live renderer.
-
-/datum/preference/cyborg_layout
-	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
-	savefile_identifier = PREFERENCE_CHARACTER
-	savefile_key = "silicon_genital_layout_presets"
-	should_update_preview = FALSE
-	can_randomize = FALSE
-
-/datum/preference/cyborg_layout/deserialize(input, datum/preferences/preferences)
-	return cyborg_layout_normalize(input)
-
-/datum/preference/cyborg_layout/serialize(input)
-	// Native writes deserialize first; cached values are already canonical. Keep the
-	// serialized tree isolated without normalizing every saved snapshot a second time.
-	return cyborg_layout_copy(input)
-
-/// The creator middleware supplies its UI projection; ordinary pages need no saved layouts.
-/datum/preference/cyborg_layout/compile_ui_data(mob/user, value)
-	return null
-
-/datum/preference/cyborg_layout/create_default_value()
-	return cyborg_layout_default()
-
-/datum/preference/cyborg_layout/is_valid(value, datum/preferences/preferences)
-	// Both native write paths deserialize before validation; the schema is already canonical.
-	return islist(value) && value["schema_version"] == CYBORG_LAYOUT_SCHEMA_VERSION
-
-/datum/preference/cyborg_layout/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
-	return
+/// Character preferences consumed by the cyborg creator and live renderer. Layouts live in the cyborg_customization.json sidecar.
 
 /datum/preference/choiced/cyborg_sprite
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
@@ -156,21 +127,6 @@
 	if(length(value))
 		return value
 	return preferences.read_preference(fallback_preference_type)
-
-/proc/cyborg_layout_preference_types()
-	return list(
-		"layout" = /datum/preference/cyborg_layout,
-		"sprites" = list(
-			"penis" = /datum/preference/choiced/cyborg_sprite/penis,
-			"sheath" = /datum/preference/choiced/cyborg_sprite/sheath,
-			"testicles" = /datum/preference/choiced/cyborg_sprite/testicles,
-			"vagina" = /datum/preference/choiced/cyborg_sprite/vagina,
-			"anus" = /datum/preference/choiced/cyborg_sprite/anus,
-			"breasts" = /datum/preference/choiced/cyborg_sprite/breasts,
-		),
-		"size" = /datum/preference/choiced/cyborg_size,
-		"viewer" = /datum/preference/toggle/see_cyborg_genitalia,
-	)
 
 /** Returns the existing editor owner; preferences own only native persistence. */
 /datum/preferences/proc/cyborg_session()

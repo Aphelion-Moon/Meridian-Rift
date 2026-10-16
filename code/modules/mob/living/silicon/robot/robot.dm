@@ -66,7 +66,6 @@
 	. = ..()
 
 	LoadComponent(/datum/component/bloodysoles/bot)
-	AddComponent(/datum/component/interactable)
 
 	//If this body is meant to be a borg controlled by the AI player
 	if(shell)
@@ -126,7 +125,7 @@
 
 //If there's an MMI in the robot, have it ejected when the mob goes away. --NEO
 /mob/living/silicon/robot/Destroy()
-	QDEL_NULL(cyborg_appearance_holder)
+	QDEL_NULL(cyborg_appearance_holder) // APHELION EDIT ADDITION
 	if(connected_ai)
 		set_connected_ai(null)
 	if(shell)
@@ -172,9 +171,9 @@
 		to_chat(src,span_userdanger("ERROR: Lockdown is engaged. Please disengage lockdown to pick module."))
 		return
 
-	// NOVA EDIT START - Making the cyborg model list static to reduce how many times it's generated.
+	// NOVA EDIT ADDITION START - Making the cyborg model list static to reduce how many times it's generated.
 	if(!length(GLOB.cyborg_model_list))
-		GLOB.cyborg_model_list = cyborg_selectable_models()
+		GLOB.cyborg_model_list = cyborg_selectable_models() // APHELION EDIT CHANGE - CYBORG_CUSTOMIZATION - ORIGINAL: inline model list, now shared with the creator catalog
 
 		for(var/model in GLOB.cyborg_model_list)
 			// Creating the lists here since we know all the model icons will need them right after.
@@ -186,7 +185,7 @@
 			var/obj/item/robot_model/model = GLOB.cyborg_model_list[option]
 			var/model_icon = initial(model.cyborg_base_icon)
 			GLOB.cyborg_base_models_icon_list[option] = image(icon = 'modular_nova/master_files/icons/mob/robots.dmi', icon_state = model_icon) // NOVA EDIT - CARGO BORGS - ORIGINAL: model_icons[option] = image(icon = 'icons/mob/robots.dmi', icon_state = model_icon)
-	// NOVA EDIT END
+	// NOVA EDIT ADDITION END
 
 	var/input_model = show_radial_menu(src, src, GLOB.cyborg_base_models_icon_list, radius = 42)
 	if(!input_model || model.type != /obj/item/robot_model)
@@ -363,7 +362,7 @@
 /mob/living/silicon/robot/setDir(newdir)
 	var/old_dir = dir
 	. = ..()
-	cyborg_appearance_holder?.update_from_owner()
+	cyborg_appearance_holder?.update_from_owner() // APHELION EDIT ADDITION
 	if(. != old_dir)
 		update_worn_icons()
 

@@ -13,7 +13,7 @@ Use this checklist for the final source revision. Record the exact commit/source
 
 ## Automated and build gates
 
-- [ ] Run the focused DM tests covering draft revisions, character-slot changes, future-schema refusal/preservation, failed writes, written saves, and session-only saves.
+- [ ] Run the focused DM tests covering draft revisions, character-slot changes, slot deletion, future-schema refusal/preservation, failed and retried sidecar writes, session-only saves, and application through `transfer_silicon_prefs()`.
 - [ ] Run the focused TGUI tests for editor actions, export, open/edit/close, preview camera, directional/pose targeting, mirroring, south-art reuse, sprite selection, and input pacing.
 - [ ] Run the production game build and record the exact command and exit result.
 - [ ] Record applicable repository CI gates for the same source revision. Keep focused local checks separate from hosted CI and full release qualification; a partial, timed-out, or earlier-revision run does not close a required gate.
@@ -21,10 +21,10 @@ Use this checklist for the final source revision. Record the exact commit/source
 ## Persistence and draft lifecycle
 
 - [ ] Create/edit presets and model defaults in multiple character slots; switch slots during a pending debounce and verify a stale context or revision cannot save into the new slot.
-- [ ] Verify `JSON_SAVE_WRITTEN` clears the saved revision only after native save acknowledgement.
-- [ ] Exercise `JSON_SAVE_FAILED`; confirm the draft remains dirty, visible as failed, and retryable.
-- [ ] Exercise `JSON_SAVE_SESSION_ONLY`; confirm the UI does not claim durable storage.
-- [ ] Verify explicit export includes the latest edit, and verify close, teardown, slot switch, deletion, and import replacement follow their documented save/discard behavior.
+- [ ] Verify layouts are written to `cyborg_customization.json` and never to `preferences.json`.
+- [ ] Make the sidecar unwritable; confirm the draft remains dirty, visible as failed, and retryable, and that a later write clears the error.
+- [ ] As a guest or with dev preferences, confirm the UI does not claim durable storage.
+- [ ] Verify page close, teardown, slot switch, deletion, and import replacement follow their documented save/discard behavior.
 - [ ] Load old layout-only records, old unbound presets, and future-version records; verify compatibility and refusal/preservation behavior without accidental migration or downgrade.
 
 ## Native visual and two-client acceptance
@@ -32,7 +32,7 @@ Use this checklist for the final source revision. Record the exact commit/source
 - [ ] In the production compiled game and real DreamSeeker, compare editor preview and live appearance for a standard and a wide body across north, south, east, west, standing/rest/sit poses, movement, and supported arousal states.
 - [ ] Verify authored animation anchors, fallback/static cases, occlusion masks, body-mask order, per-part layer order, side mirroring, south-art reuse, and fit/center/1:1 framing.
 - [ ] Confirm 1:1 matches the current DreamSeeker map zoom and remains correct after map resize; record the client resolution and map zoom used.
-- [ ] Verify spawn captures the selected body setup, later editor edits do not mutate the spawned body, and reconnect preserves the expected body configuration and temporary activation.
+- [ ] Verify the body setup is captured, and matches, for a roundstart cyborg, a latejoin cyborg, a ghost cafe cyborg, and an admin-spawned cyborg given direct control. Later editor edits do not mutate the spawned body, and reconnect preserves the expected body configuration and temporary activation.
 - [ ] With two clients, verify owner consent and server policy gates, viewer opt-in default-off behavior, visibility changes, login/logout refresh, and no image leakage to a non-opted-in viewer.
 - [ ] Exercise RoboTact and interaction controls, including disabled/no-owner states and return-to-character-slot behavior.
 

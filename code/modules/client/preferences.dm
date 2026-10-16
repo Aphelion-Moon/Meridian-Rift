@@ -101,11 +101,6 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 
 /datum/preferences/Destroy(force)
 	close_custom_sprite_editors() // APHELION EDIT ADDITION
-	if(path && load_and_save)
-		if(save_character())
-			save_preferences()
-	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
-		preference_middleware.on_preferences_destroy()
 	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
 	QDEL_NULL(character_preview_view)
 	QDEL_LIST(middleware)
@@ -254,14 +249,9 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	switch (action)
 		if ("change_slot")
 			// Save existing character
-			// APHELION EDIT CHANGE START - CYBORG_CUSTOMIZATION - visible save veto, not missing-slot initialization
-			if(!save_character())
-				to_chat(usr, span_warning("Could not save this character. The slot is unchanged; reopen the affected customization editor and retry saving."))
-				return TRUE
+			save_character()
 			// SAFETY: `switch_to_slot` performs sanitization on the slot number
-			if(!switch_to_slot(params["slot"]))
-				to_chat(usr, span_warning("Could not save this character. The slot is unchanged; reopen the affected customization editor and retry saving."))
-			// APHELION EDIT CHANGE END
+			switch_to_slot(params["slot"])
 			return TRUE
 		if ("remove_current_slot")
 			remove_current_slot()
@@ -390,10 +380,8 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 
 /datum/preferences/ui_close(mob/user)
 	close_custom_sprite_editors() // APHELION EDIT ADDITION - Flush before the parent preview disappears
-	for(var/datum/preference_middleware/preference_middleware as anything in middleware)
-		preference_middleware.on_ui_close()
-	if(save_character())
-		save_preferences()
+	save_character()
+	save_preferences()
 	QDEL_NULL(character_preview_view)
 	preview_drawing?.window_closed() // APHELION EDIT ADDITION - The drawn preview goes with the window
 	cached_character_profiles = null

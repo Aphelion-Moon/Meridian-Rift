@@ -147,7 +147,6 @@ export const CYBORG_LORE_KEYS = [
 export const CYBORG_ONLY_KEYS = new Set([
   'silicon_headshot_nsfw',
   'cyborg_size',
-  'silicon_genital_layout_presets',
   ...CYBORG_SLOTS.map((slot) => `silicon_${slot}_sprite`),
   'custom_species_silicon',
   'ooc_notes_silicon',

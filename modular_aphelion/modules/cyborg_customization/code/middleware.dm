@@ -25,11 +25,9 @@
 	var/context_generation = 0
 	/// Stoppable two-second autosave callback.
 	var/draft_timer
-	/// Whether accepted edits still require a successful native save.
+	/// Whether accepted edits still require a successful sidecar write.
 	var/dirty = FALSE
-	/// Revision staged by the current native character-save sequence.
-	var/staged_revision
-	/// Last acknowledged revision and its durability.
+	/// Last written revision and whether it only reached memory.
 	var/saved_revision = 0
 	var/session_only = FALSE
 	/// A retryable write or staging failure, kept across UI close/reopen.
@@ -39,10 +37,6 @@
 		"cyborg_preview" = PROC_REF(set_preview),
 		"cyborg_layout" = PROC_REF(edit_layout),
 	)
-
-/// Layout writes require editor context checks or the explicit import boundary.
-/datum/preference_middleware/cyborg_character/pre_set_preference(mob/user, preference, value)
-	return preference == /datum/preference/cyborg_layout::savefile_key
 
 /datum/preference_middleware/cyborg_character/proc/set_page(list/params, mob/user)
 	if(!islist(params) || length(params) != 1 || !("active" in params) || !(params["active"] in list(TRUE, FALSE)))
@@ -246,14 +240,6 @@
 	preview_layout_source = "active"
 	gallery_open = FALSE
 	gallery_department = null
-
-/datum/preference_middleware/cyborg_character/on_ui_close()
-	page_active = FALSE
-	context_generation++
-	gallery_open = FALSE
-	gallery_department = null
-	preview_resources = null
-	resource_key = null
 
 /** Creator action protocol; the middleware owns slot and actor checks.
  * The result takes over draft ownership. Unchanged branches may be shared with
@@ -504,17 +490,20 @@
 
 /** Returns the owned canonical draft without normalizing or copying its collections.
  * Callers must use the action path or update_draft to accept mutations.
+ * The sidecar is keyed by slot, so a draft left by a slot change is written to its own slot first.
  */
 /datum/preference_middleware/cyborg_character/proc/begin_draft()
 	if(draft && draft_slot == preferences.default_slot)
 		return draft
-	var/list/save_data = preferences.get_save_data_for_savefile_identifier(PREFERENCE_CHARACTER)
-	if(cyborg_layout_import_is_future(save_data?["silicon_genital_layout_presets"]))
+	if(draft && !commit_draft())
+		stack_trace("Cyborg layout draft for slot [draft_slot] could not be written before the slot changed.")
+	var/list/saved = preferences.read_cyborg_layout()
+	if(cyborg_layout_import_is_future(saved))
 		return null
 	discard_draft()
 	draft_slot = preferences.default_slot
-	draft = cyborg_layout_normalize(preferences.read_preference(/datum/preference/cyborg_layout))
-	session_only = !preferences.savefile.path || preferences.path == DEV_PREFS_PATH
+	draft = cyborg_layout_normalize(saved)
+	session_only = !preferences.cyborg_layout_store().path
 	return draft
 
 /** Takes ownership of canonical action output and schedules the existing debounce. */
@@ -533,58 +522,27 @@
 		deltimer(draft_timer)
 	draft_timer = addtimer(CALLBACK(src, PROC_REF(flush_timer), draft_slot, context_generation, draft_revision), 2 SECONDS, TIMER_STOPPABLE)
 
-/** Stages a revision into native preferences; only after_preferences_save acknowledges it. */
-/datum/preference_middleware/cyborg_character/before_character_save()
-	if(dirty && !isnull(staged_revision) && staged_revision == draft_revision && draft_slot == preferences.default_slot)
-		return TRUE
-	staged_revision = null
-	if(!dirty || !draft)
-		return TRUE
-	if(draft_slot != preferences.default_slot)
-		save_error = "This draft belongs to another character slot."
-		return FALSE
-	if(draft_timer)
-		deltimer(draft_timer)
-		draft_timer = null
-	var/datum/preference/cyborg_layout/preference = GLOB.preference_entries[/datum/preference/cyborg_layout]
-	if(isnull(preferences.get_save_data_for_savefile_identifier(PREFERENCE_CHARACTER)))
-		preferences.savefile.set_entry("character[draft_slot]", list())
-	if(!preferences.write_preference(preference, draft))
-		save_error = "Could not stage the current setup. Retry saving."
-		return FALSE
-	preferences.recently_updated_keys -= preference.type
-	staged_revision = draft_revision
-	return TRUE
-
-/** Completes only the staged revision; failed writes leave the owned draft retryable. */
-/datum/preference_middleware/cyborg_character/after_preferences_save(result)
-	if(!dirty)
-		return
-	if(!result)
-		save_error = "Could not save the current setup. Your edits are retained; retry saving."
-		// The failed disk write did not change the staged tree. Reuse it on retry;
-		// newer edits/replacement still invalidate it through revision/context checks.
-	else
-		if(!isnull(staged_revision) && staged_revision == draft_revision && draft_slot == preferences.default_slot)
-			saved_revision = staged_revision
-			dirty = FALSE
-			session_only = result == JSON_SAVE_SESSION_ONLY
-			save_error = null
-		staged_revision = null
-	SStgui.update_uis(preferences)
-
-/** The only editor entry into native staging plus writing; hooks never call this. */
+/** Writes the draft to its slot in the sidecar. A failed write keeps the draft dirty for retry. */
 /datum/preference_middleware/cyborg_character/proc/commit_draft()
 	if(!dirty)
 		return TRUE
-	if(!preferences.save_character())
-		after_preferences_save(JSON_SAVE_FAILED)
+	if(draft_timer)
+		deltimer(draft_timer)
+		draft_timer = null
+	if(!preferences.write_cyborg_layout(draft_slot, draft))
+		save_error = "Could not save the current setup. Your edits are retained; retry saving."
+		SStgui.update_uis(preferences)
 		return FALSE
-	return preferences.save_preferences()
+	saved_revision = draft_revision
+	dirty = FALSE
+	session_only = !preferences.cyborg_layout_store().path
+	save_error = null
+	SStgui.update_uis(preferences)
+	return TRUE
 
-/** A stale timer cannot write a new slot, replaced draft, or newer edit. */
+/** A stale timer cannot write a replaced draft or an older revision. */
 /datum/preference_middleware/cyborg_character/proc/flush_timer(slot, context, revision)
-	if(slot != draft_slot || slot != preferences.default_slot || context != context_generation || revision != draft_revision)
+	if(slot != draft_slot || context != context_generation || revision != draft_revision)
 		return
 	draft_timer = null
 	commit_draft()
@@ -599,26 +557,12 @@
 	draft = null
 	draft_slot = null
 	dirty = FALSE
-	staged_revision = null
 	save_error = null
 	context_generation++
 	draft_revision++
 
-/datum/preference_middleware/cyborg_character/can_change_character()
-	return commit_draft()
-
-/datum/preference_middleware/cyborg_character/before_character_load(slot, replacing_current_slot)
-	discard_draft()
-
-/datum/preference_middleware/cyborg_character/on_character_replaced()
-	discard_draft()
-
-/datum/preference_middleware/cyborg_character/on_preferences_destroy()
-	if(dirty && save_error)
-		stack_trace("Cyborg preference teardown after a failed save; unsaved draft cannot survive destruction.")
-	discard_draft()
-
 /datum/preference_middleware/cyborg_character/Destroy()
+	commit_draft()
 	discard_draft()
 	return ..()
 

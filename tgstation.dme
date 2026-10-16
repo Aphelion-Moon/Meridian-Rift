@@ -7395,6 +7395,7 @@
 #include "modular_aphelion\modules\cyborg_customization\code\layout_schema.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\middleware.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\model_catalog.dm"
+#include "modular_aphelion\modules\cyborg_customization\code\persistence.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\preferences.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\preview.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\rendering.dm"
