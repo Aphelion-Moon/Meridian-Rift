@@ -76,9 +76,6 @@
 		if(ITEM_SLOT_HEAD)
 			head = equipping
 			update_worn_head()
-		if(ITEM_SLOT_DEX_STORAGE)
-			internal_storage = equipping
-			update_inv_internal_storage()
 		if(ITEM_SLOT_LPOCKET)
 			l_store = equipping
 			update_pockets()
@@ -86,8 +83,12 @@
 			r_store = equipping
 			update_pockets()
 		else
-			to_chat(src, span_danger("You are trying to equip this item to an unsupported inventory slot!"))
-			return
+			// Back, belt and suit storage all fill the internal storage
+			if(!(slot & ITEM_SLOT_STORAGE))
+				to_chat(src, span_danger("You are trying to equip this item to an unsupported inventory slot!"))
+				return
+			internal_storage = equipping
+			update_inv_internal_storage()
 
 	has_equipped(equipping, slot)
 
