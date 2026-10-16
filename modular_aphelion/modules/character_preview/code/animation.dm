@@ -414,6 +414,8 @@ GLOBAL_LIST_INIT(preview_animation_amplify, list(255, 255, 255, 0, 255, 255, 255
 		if(facing_flat in flats_marked)
 			continue
 		flats_marked += facing_flat
+		// A look of one icon alone, like an AI's core, flattens to that icon with no transforms yet.
+		facing_flat.transform ||= new
 		// Not with crop(), which takes only numbers.
 		facing_flat.transform.transforms += list(list("type" = RUSTG_ICONFORGE_CROP, "x1" = "@X1@", "y1" = "@Y1@", "x2" = "@X2@", "y2" = "@Y2@"))
 	var/list/tokens_by_facing = list()
