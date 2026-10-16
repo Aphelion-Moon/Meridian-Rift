@@ -357,11 +357,11 @@
 	else if(length(issue_turfs))
 		issue_turfs -= checked_turf
 		if(length(issue_turfs) && alarm_type != FIRELOCK_ALARM_TYPE_GENERIC)
-			// APHELION EDIT ADDITION START - DOGMOS
 			return
+		// APHELION EDIT ADDITION START - DOGMOS
 		if(!COOLDOWN_FINISHED(src, alarm_min_hold)) // still within FIRELOCK_MIN_ALARM_HOLD - see its define comment
-			// APHELION EDIT ADDITION END
 			return
+		// APHELION EDIT ADDITION END
 		alarm_type = null
 		if(!ignore_alarms)
 			start_deactivation_process()

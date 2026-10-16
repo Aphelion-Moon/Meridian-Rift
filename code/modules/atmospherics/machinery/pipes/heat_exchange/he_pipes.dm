@@ -51,14 +51,8 @@
 			var/turf/open/open_local = local_turf
 			environment_temperature = open_local.GetTemperature()
 	else
-		/* // APHELION EDIT REMOVAL START - DOGMOS
-		environment_temperature = local_turf.temperature
-	if(abs(environment_temperature-pipe_air.temperature) > minimum_temperature_difference)
-		*/ // APHELION EDIT REMOVAL END
-		// APHELION EDIT ADDITION START - DOGMOS
-		return
-	if(abs(environment_temperature-pipe_air.return_temperature()) > minimum_temperature_difference)
-		// APHELION EDIT ADDITION END
+		return // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: environment_temperature = local_turf.temperature
+	if(abs(environment_temperature-pipe_air.return_temperature()) > minimum_temperature_difference) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(abs(environment_temperature-pipe_air.temperature) > minimum_temperature_difference)
 		parent.temperature_interact(local_turf, volume, thermal_conductivity)
 		temperature_interacted = TRUE // APHELION EDIT ADDITION - DOGMOS
 

@@ -108,11 +108,11 @@ GLOBAL_VAR_INIT(focused_tests, focused_tests())
 	if(normal_floor_required)
 		for(var/turf/open/turf in get_area_turfs(run_loc_floor_bottom_left.loc))
 			turf.ChangeTurf(/turf/open/indestructible)
-// APHELION EDIT ADDITION START - DOGMOS
+	// APHELION EDIT ADDITION START - DOGMOS
 #ifdef DOGMOS_IN_PROCESS
 	dogmos_restore_fixture_scheduling()
 #endif
-// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION END
 	return ..()
 
 /datum/unit_test/proc/Run()

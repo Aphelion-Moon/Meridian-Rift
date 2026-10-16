@@ -357,14 +357,8 @@
 			if(moderator_list[/datum/gas/healium] > 100)
 				if(critical_threshold_proximity > 400)
 					critical_threshold_proximity = max(critical_threshold_proximity - (moderator_list[/datum/gas/healium] / 100 * seconds_per_tick ), 0)
-					/* // APHELION EDIT REMOVAL START - DOGMOS
-					moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.moles[/datum/gas/healium], scaled_production * 20))
-			if(moderator_internal.temperature < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50))
-					*/ // APHELION EDIT REMOVAL END
-					// APHELION EDIT ADDITION START - DOGMOS
-					moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.get_moles(/datum/gas/healium), scaled_production * 20))
-			if(moderator_internal.return_temperature() < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50))
-					// APHELION EDIT ADDITION END
+					moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.get_moles(/datum/gas/healium), scaled_production * 20)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: moderator_internal.adjust_gas(/datum/gas/healium, -min(moderator_internal.moles[/datum/gas/healium], scaled_production * 20))
+			if(moderator_internal.return_temperature() < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50)) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(moderator_internal.temperature < 1e7 || (moderator_list[/datum/gas/plasma] > 100 && moderator_list[/datum/gas/bz] > 50))
 				internal_output.adjust_gas(/datum/gas/antinoblium, dirty_production_rate * 0.9 / 0.065 * seconds_per_tick)
 		if(6)
 			// internal_output.assert_gases(/datum/gas/antinoblium) // APHELION EDIT REMOVAL - DOGMOS

@@ -246,16 +246,17 @@
 		return
 	if(!nodes[1])
 		set_on(FALSE)
-		/* // APHELION EDIT REMOVAL START - DOGMOS
+		return PROCESS_KILL // APHELION EDIT ADDITION - DOGMOS
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	if(!on || welded)
-		*/ // APHELION EDIT REMOVAL END
-		// APHELION EDIT ADDITION START - DOGMOS
-		return PROCESS_KILL
+		return
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
 	if(!on)
 		return PROCESS_KILL
 	if(welded)
-		// APHELION EDIT ADDITION END
 		return
+	// APHELION EDIT ADDITION END
 	var/turf/open/us = loc
 	if(!istype(us))
 		return

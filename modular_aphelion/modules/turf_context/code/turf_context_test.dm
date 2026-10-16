@@ -65,7 +65,6 @@
 	SIGNAL_HANDLER
 	entered_callbacks++
 
-// APHELION EDIT ADDITION START - TURF_CONTEXT
 /// A reservation's empty/reload cycles must leave one elevation listener per signal.
 /datum/unit_test/turf_context_elevation_reservation
 	/// Number of retained external listeners delivered while the reservation is replaced.
@@ -311,7 +310,6 @@
 	if(reset_count || change_count || reset_handler || change_handler)
 		return "found stale reset=[reset_count]/change=[change_count] target listeners or listener handlers=[!!reset_handler]/[!!change_handler]"
 	return null
-// APHELION EDIT ADDITION END - TURF_CONTEXT
 
 /** Deletes the old decal during construction, before ChangeTurf restores saved listeners. */
 /turf/open/floor/plating/turf_context_cleanup_test

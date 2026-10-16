@@ -465,17 +465,11 @@
 		for(var/obj/effect/hotspot/fire in location)
 			qdel(fire)
 
-		/* // APHELION EDIT REMOVAL START - DOGMOS
-		var/list/cached_moles = air.moles
-		for(var/gas_id in cached_moles)
-		*/ // APHELION EDIT REMOVAL END
-		for(var/gas_id in air.get_gases()) // APHELION EDIT ADDITION - DOGMOS
+		// var/list/cached_moles = air.moles // APHELION EDIT REMOVAL - DOGMOS
+		for(var/gas_id in air.get_gases()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: for(var/gas_id in cached_moles)
 			if(!(ignored_gases[gas_id]))
-				/* // APHELION EDIT REMOVAL START - DOGMOS
-				cached_moles[gas_id] = 0
-		air.garbage_collect()
-				*/ // APHELION EDIT REMOVAL END
-				air.set_moles(gas_id, 0) // APHELION EDIT ADDITION - DOGMOS
+				air.set_moles(gas_id, 0) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: cached_moles[gas_id] = 0
+		// air.garbage_collect() // APHELION EDIT REMOVAL - DOGMOS
 
 	for(var/obj/machinery/atmospherics/components/unary/comp in location)
 		if(!comp.welded)

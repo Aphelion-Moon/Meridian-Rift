@@ -66,10 +66,8 @@
 /// Maximum machinery entries retained for Kennel inspection.
 #define KENNEL_STRUCTURE_INTEREST_CAP 250
 
-// APHELION EDIT ADDITION START - DOGMOS
 /// Minimum time between player-facing decompression messages in the same area.
 #define DOGMOS_DECOMPRESSION_FEEDBACK_COOLDOWN (5 SECONDS)
-// APHELION EDIT ADDITION END
 
 /// Overlay objects by category and plane; images are kept in kennel_overlay_images for client toggles.
 GLOBAL_LIST_EMPTY(kennel_overlay_turfs)
@@ -132,7 +130,6 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 		tracker.Cut(1, 2)
 		kennel_hide_overlay(evicted, category)
 
-// APHELION EDIT ADDITION START - DOGMOS
 /** Returns whether decompression feedback is available for this turf's area. */
 /datum/dogmos_diagnostics/proc/kennel_decompression_feedback_available(turf/breach_turf)
 	if(!istype(breach_turf))
@@ -157,7 +154,6 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 		kennel_breach_feedback_times -= oldest_key
 	kennel_breach_feedback_times[feedback_key] = world.time
 	return TRUE
-// APHELION EDIT ADDITION END
 
 /** Records a bounded Kennel event and its optional server-owned jump target. */
 /datum/dogmos_diagnostics/proc/record_kennel_event(list/bucket, list/entry, atom/jump_target)
@@ -259,12 +255,10 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 /datum/dogmos_diagnostics/proc/check_kennel_machine_cost(obj/machinery/M, cost_ms)
 	if(!M)
 		return
-	// APHELION EDIT ADDITION START - DOGMOS
 	// Cache the stable engine identity, but honor mutable tags just as REF() does.
 	if(isnull(M.dogmos_kennel_cost_ref))
 		M.dogmos_kennel_cost_ref = text_ref(M)
-	var/key = (M.datum_flags & DF_USE_TAG) ? REF(M) : M.dogmos_kennel_cost_ref // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/key = REF(M)
-	// APHELION EDIT ADDITION END
+	var/key = (M.datum_flags & DF_USE_TAG) ? REF(M) : M.dogmos_kennel_cost_ref
 	var/previous = kennel_machine_cost_ewma[key]
 	var/ewma = isnull(previous) ? cost_ms : MC_AVERAGE(previous, cost_ms)
 	kennel_machine_cost_ewma[key] = ewma
@@ -283,7 +277,6 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 			if(!expires_in || !isnull(entry["expires"]))
 				entry["reason"] = reason
 				entry["expires"] = expires_in ? world.time + expires_in : null
-			// APHELION EDIT ADDITION START - DOGMOS
 			var/datum/weakref/old_turf_ref = kennel_pinned_turfs[key]
 			var/turf/old_turf = old_turf_ref?.resolve()
 			var/turf/current_turf = get_turf(target)
@@ -294,7 +287,6 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 					kennel_show_overlay(current_turf, KENNEL_OVERLAY_STRUCTURE)
 				else
 					kennel_pinned_turfs -= key
-			// APHELION EDIT ADDITION END
 			return
 	var/area/target_area = get_area(target)
 	structures_of_interest.Insert(1, list(list(
@@ -355,9 +347,7 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 				kennel_pinned_turfs[ref] = WEAKREF(current_turf)
 				kennel_show_overlay(current_turf, KENNEL_OVERLAY_STRUCTURE)
 
-// APHELION EDIT ADDITION START - DOGMOS
 #undef DOGMOS_DECOMPRESSION_FEEDBACK_COOLDOWN
-// APHELION EDIT ADDITION END
 #undef KENNEL_EVENT_HISTORY_CAP
 #undef KENNEL_STRUCTURE_INTEREST_CAP
 
@@ -369,3 +359,21 @@ GLOBAL_LIST_EMPTY(kennel_overlay_images_by_category)
 /** Stable native profiling callback retained for callers using the SSair proc path. */
 /datum/controller/subsystem/air/proc/kennel_record_reaction_cost(reaction_name, atom/holder, cost_ms)
 	return diagnostics.kennel_record_reaction_cost(arglist(args))
+
+/// Fire cycles between shared Dogmos Kennel UI updates while slow mode is enabled.
+#define KENNEL_SLOW_MODE_PUSH_INTERVAL 4
+
+/**
+ * Cadence half of Kennel slow mode (payload half is in /datum/dogmos_kennel/ui_data()): pushed every
+ * cycle when off, every KENNEL_SLOW_MODE_PUSH_INTERVAL-th cycle when on (~2s at wait = 0.5s) via a
+ * small round-robin cursor, so multiple simultaneous viewers don't multiply real per-cycle push cost.
+ */
+/datum/controller/subsystem/air/proc/push_kennel_updates()
+	if(!diagnostics.kennel_slow_mode)
+		SStgui.update_uis(GLOB.dogmos_kennel)
+		return
+	diagnostics.kennel_push_cursor = (diagnostics.kennel_push_cursor + 1) % KENNEL_SLOW_MODE_PUSH_INTERVAL
+	if(!diagnostics.kennel_push_cursor)
+		SStgui.update_uis(GLOB.dogmos_kennel)
+
+#undef KENNEL_SLOW_MODE_PUSH_INTERVAL
