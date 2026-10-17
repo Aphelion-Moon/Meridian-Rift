@@ -2174,15 +2174,21 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/structure/sign/poster/contraband/korpstech, 32)
 
 #undef TOASTER_IMPLANT_COOLDOWN
 
+// Upstream's shard is abstract and carries no items of its own, so neither does our grouping type.
+/obj/item/organ/cyberimp/arm/toolkit/shard/donator
+	abstract_type = /obj/item/organ/cyberimp/arm/toolkit/shard/donator
+
 // donator item for Sciamach
 /obj/item/organ/cyberimp/arm/toolkit/shard/donator/theurgic_crystal
 	name = "theurgic stone"
 	desc = "An eerie crystalline shard that pulses with theurgic energy. Tendrils of crimson energy seem to dance along its surface."
 	icon = 'modular_nova/master_files/icons/donator/obj/custom.dmi'
 	icon_state = "crystal"
-	items_to_create = list(/obj/item/melee/implantarmblade/theurgic_knife)
 	extend_sound = 'sound/items/haunted/ghostitemattack.ogg'
 	retract_sound = 'sound/items/haunted/ghostitemattack.ogg'
+
+/obj/item/organ/cyberimp/arm/toolkit/shard/donator/theurgic_crystal/get_init_items()
+	return list(/obj/item/melee/implantarmblade/theurgic_knife)
 
 /obj/item/melee/implantarmblade/theurgic_knife
 	name = "cursed ritual knife"
