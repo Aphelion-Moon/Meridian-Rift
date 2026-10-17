@@ -19,6 +19,7 @@
 	// Take a "breath" of the air
 	var/datum/gas_mixture/breath = mix.remove(mix.total_moles() * BREATH_PERCENTAGE)
 
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	var/list/breath_moles = breath.moles
 
 	breath.assert_gases(
@@ -36,6 +37,15 @@
 	var/carbon_dioxide_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/carbon_dioxide])
 	var/bz_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/bz])
 	var/miasma_pp = breath.get_breath_partial_pressure(breath_moles[/datum/gas/miasma])
+	*/ // APHELION EDIT REMOVAL END
+	// APHELION EDIT ADDITION START - DOGMOS
+	var/oxygen_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/oxygen))
+	var/nitrogen_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/nitrogen))
+	var/plasma_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/plasma))
+	var/carbon_dioxide_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/carbon_dioxide))
+	var/bz_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/bz))
+	var/miasma_pp = breath.get_breath_partial_pressure(breath.get_moles(/datum/gas/miasma))
+	// APHELION EDIT ADDITION END
 
 	safe_oxygen_min = max(0, oxygen_pp - GAS_TOLERANCE)
 	safe_nitro_min = max(0, nitrogen_pp - GAS_TOLERANCE)

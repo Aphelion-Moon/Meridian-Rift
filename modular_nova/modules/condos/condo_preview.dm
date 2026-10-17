@@ -70,6 +70,10 @@
 /datum/controller/subsystem/condos/proc/prerender_previews()
 	var/datum/asset/simple/condo_previews/preview_assets = get_asset_datum(/datum/asset/simple/condo_previews)
 	for(var/interior_name in condo_templates)
+		// APHELION EDIT ADDITION START - RUNTIME_OWNERSHIP
+		if(previews_shutting_down)
+			return
+		// APHELION EDIT ADDITION END
 		var/datum/map_template/condo/chosen = condo_templates[interior_name]
 		var/icon/photo = load_or_render_preview(chosen)
 		if(photo)
@@ -100,7 +104,7 @@
 	return photo
 
 /// Loads one interior into a temp reservation, flattens it to an icon, frees the room.
-/datum/controller/subsystem/condos/proc/photograph_interior(datum/map_template/condo/chosen)
+/datum/controller/subsystem/condos/proc/render_interior(datum/map_template/condo/chosen) // APHELION EDIT CHANGE - RUNTIME_OWNERSHIP - ORIGINAL: /datum/controller/subsystem/condos/proc/photograph_interior(datum/map_template/condo/chosen)
 	var/datum/turf_reservation/condo/room = SSmapping.request_turf_block_reservation(chosen.width, chosen.height, 1, reservation_type = /datum/turf_reservation/condo)
 	if(!room)
 		return null

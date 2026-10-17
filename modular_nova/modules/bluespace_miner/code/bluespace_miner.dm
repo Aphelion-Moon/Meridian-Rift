@@ -148,7 +148,7 @@
 			return // This is allmighty
 
 	// if it's hotter than (or equal to) room temp, don't work
-	if(environment.temperature >= T20C)
+	if(environment.return_temperature() >= T20C) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: if(environment.temperature >= T20C)
 		mining_stat = mining_stat | BLUESPACE_MINER_TOO_HOT
 
 	// if it's lesser than(or equal to) normal pressure, don't work. Same goes for over(or equal to) 150% pressure
@@ -193,13 +193,19 @@
 
 	// Generate all the waste gas
 	var/datum/gas_mixture/merger = new
+	/* // APHELION EDIT REMOVAL START - DOGMOS
 	merger.assert_gas(/datum/gas/carbon_dioxide)
 	merger.moles[/datum/gas/carbon_dioxide] = MOLES_CELLSTANDARD
+	*/ // APHELION EDIT REMOVAL END
+	merger.set_moles(/datum/gas/carbon_dioxide, MOLES_CELLSTANDARD) // APHELION EDIT ADDITION - DOGMOS
 	if(obj_flags & EMAGGED)
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		merger.assert_gas(/datum/gas/tritium)
 		merger.moles[/datum/gas/tritium] = MOLES_CELLSTANDARD
+		*/ // APHELION EDIT REMOVAL END
+		merger.set_moles(/datum/gas/tritium, MOLES_CELLSTANDARD) // APHELION EDIT ADDITION - DOGMOS
 
-	merger.temperature = (T20C + gas_temp)
+	merger.set_temperature(T20C + gas_temp) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: merger.temperature = (T20C + gas_temp)
 	var/turf/src_turf = get_turf(src)
 	src_turf.assume_air(merger)
 	// Finally spawn the mats

@@ -1,5 +1,9 @@
 GLOBAL_VAR_INIT(total_runtimes, GLOB.total_runtimes || 0)
 GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
+// APHELION EDIT ADDITION START - DOGMOS
+// runtimes_at_init_complete lives in modular_aphelion/modules/dogmos/code/dogmos.dm - it exists
+// solely to support /datum/unit_test/no_runtimes_during_init, so it moved with the rest of that module.
+// APHELION EDIT ADDITION END
 
 #ifdef USE_CUSTOM_ERROR_HANDLER
 #define ERROR_USEFUL_LEN 2
@@ -8,7 +12,20 @@ GLOBAL_VAR_INIT(total_runtimes_skipped, 0)
 	GLOB.total_runtimes++
 
 	if(!istype(E)) //Something threw an unusual exception
+		/* // APHELION EDIT REMOVAL START - DOGMOS
 		log_world("uncaught runtime error: [E]")
+		*/ // APHELION EDIT REMOVAL END
+		// APHELION EDIT ADDITION START - DOGMOS
+		var/list/throw_stack = list()
+		try
+			var/callee/frame = caller
+			while(frame && length(throw_stack) < 32)
+				throw_stack += "[frame.proc]"
+				frame = frame.caller
+		catch
+			throw_stack += "<stack unavailable>"
+		log_world("uncaught runtime error: [E]; source: [e_src?.type]; stack: [jointext(throw_stack, " -> ")]")
+		// APHELION EDIT ADDITION END
 		return ..()
 
 	//this is snowflake because of a byond bug (ID:2306577), do not attempt to call non-builtin procs in this block OR BEFORE IT

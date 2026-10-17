@@ -25,10 +25,15 @@
 	energy = 100
 	fire = 40
 
+/** Stops processing and releases target references for both pipe and turf meters. */ // APHELION EDIT ADDITION - DOGMOS
 /obj/machinery/meter/Destroy()
 	SSair.stop_processing_machine(src)
 	if(!isnull(target))
 		UnregisterSignal(target, COMSIG_QDELETING)
+		// APHELION EDIT ADDITION START - DOGMOS
+		if(istype(target, /obj/machinery/atmospherics/pipe))
+			LAZYREMOVE(target.dogmos_pipeline_meters, src)
+		// APHELION EDIT ADDITION END
 		target = null
 	return ..()
 
@@ -54,6 +59,7 @@
 			candidate = pipe
 	if(candidate)
 		target = candidate
+		LAZYOR(target.dogmos_pipeline_meters, src) // APHELION EDIT ADDITION - DOGMOS
 		RegisterSignal(target, COMSIG_QDELETING, PROC_REF(drop_meter))
 		setAttachLayer(candidate.piping_layer)
 
@@ -114,7 +120,7 @@
 		new_meter_value = "4"
 		new_button_value = "4"
 
-	var/env_temperature = pipe_air.temperature
+	var/env_temperature = pipe_air.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: var/env_temperature = pipe_air.temperature
 	var/new_greyscale = greyscale_colors
 
 	if(env_pressure == 0 || env_temperature == 0)
@@ -144,6 +150,7 @@
 		meter_value = new_meter_value
 		button_value = new_button_value
 		update_appearance(UPDATE_OVERLAYS)
+	return PROCESS_KILL // APHELION EDIT ADDITION - DOGMOS
 
 /obj/machinery/meter/update_overlays()
 	. = ..()
@@ -158,7 +165,7 @@
 	if (target)
 		var/datum/gas_mixture/pipe_air = target.return_air()
 		if(pipe_air)
-			. = "The pressure gauge reads [round(pipe_air.return_pressure(), 0.01)] kPa; [round(pipe_air.temperature,0.01)] K ([round(pipe_air.temperature-T0C,0.01)]&deg;C)."
+			. = "The pressure gauge reads [round(pipe_air.return_pressure(), 0.01)] kPa; [round(pipe_air.return_temperature(),0.01)] K ([round(pipe_air.return_temperature()-T0C,0.01)]&deg;C)." // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: . = "The pressure gauge reads [round(pipe_air.return_pressure(), 0.01)] kPa; [round(pipe_air.temperature,0.01)] K ([round(pipe_air.temperature-T0C,0.01)]&deg;C)."
 		else
 			. = "The sensor error light is blinking."
 	else
@@ -230,7 +237,7 @@
 		return
 	var/datum/gas_mixture/environment = connected_meter.target.return_air()
 	pressure.set_output(environment.return_pressure())
-	temperature.set_output(environment.temperature)
+	temperature.set_output(environment.return_temperature()) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: temperature.set_output(environment.temperature)
 
 // TURF METER - REPORTS A TILE'S AIR CONTENTS
 // why are you yelling?

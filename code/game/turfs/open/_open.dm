@@ -4,6 +4,10 @@
 	plane = FLOOR_PLANE
 	///negative for faster, positive for slower
 	var/slowdown = 0
+	// APHELION EDIT ADDITION START - DOGMOS
+	/// Last observed reaction invocation's list identity; equal yields in a new invocation still log.
+	var/list/kennel_last_reaction_results
+	// APHELION EDIT ADDITION END
 
 	var/footstep = null
 	var/barefootstep = null
@@ -505,21 +509,21 @@
 	icon_state = /turf/open/floor/stone::icon_state
 	name = /turf/open/floor/stone::name
 
-/turf/open/Initalize_Atmos(time)
+/turf/open/Initalize_Atmos(time, defer_dogmos_adjacency = FALSE) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: /turf/open/Initalize_Atmos(time)
 	excited = FALSE
 	update_visuals()
 
 	current_cycle = time
-	init_immediate_calculate_adjacent_turfs()
+	init_immediate_calculate_adjacent_turfs(defer_dogmos_adjacency) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: init_immediate_calculate_adjacent_turfs()
 
 /turf/open/GetHeatCapacity()
 	. = air.heat_capacity()
 
 /turf/open/GetTemperature()
-	. = air.temperature
+	. = blocks_air ? get_dogmos_blocked_temperature() : air.return_temperature() // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: . = air.temperature
 
 /turf/open/TakeTemperature(temp)
-	air.temperature += temp
+	air.set_temperature(air.return_temperature() + temp) // APHELION EDIT CHANGE - DOGMOS - ORIGINAL: air.temperature += temp
 	air_update_turf(FALSE, FALSE)
 
 /turf/open/proc/freeze_turf()
