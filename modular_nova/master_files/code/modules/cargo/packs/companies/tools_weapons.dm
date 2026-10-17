@@ -13,11 +13,15 @@
 /datum/supply_pack/companies/tools_weapons/blacksteel/ranged/knife
 	contains = list(/obj/item/knife/combat/throwing)
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/tools_weapons/blacksteel/buckler
 	contains = list(/obj/item/shield/buckler)
+*/ // APHELION EDIT REMOVAL END
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/tools_weapons/blacksteel/kite
 	contains = list(/obj/item/shield/kite)
+*/ // APHELION EDIT REMOVAL END
 
 /datum/supply_pack/companies/tools_weapons/blacksteel/blade/hunting_knife
 	contains = list(/obj/item/knife/hunting)
@@ -67,9 +71,11 @@
 
 /datum/supply_pack/companies/tools_weapons/sol_fed
 
+/* // APHELION EDIT REMOVAL START - PRIVATE_PURCHASES
 /datum/supply_pack/companies/tools_weapons/sol_fed/tele_shield
 	cost = CARGO_CRATE_VALUE
 	contains = list(/obj/item/shield/riot/tele)
+*/ // APHELION EDIT REMOVAL END
 
 // HC
 
