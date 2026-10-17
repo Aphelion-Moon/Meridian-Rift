@@ -2879,6 +2879,7 @@
 	c_tag = "Cargo - Quartermaster's Office";
 	name = "cargo camera"
 	},
+/obj/item/toy/cattoy,
 /turf/open/floor/iron/white,
 /area/station/command/heads_quarters/cmo)
 "ahV" = (
@@ -23874,8 +23875,10 @@
 /turf/open/floor/iron/white,
 /area/space)
 "bdR" = (
-/obj/structure/bed/double,
-/obj/item/bedsheet/cmo/double,
+/obj/structure/table/wood/fancy/blue,
+/obj/item/flashlight/lamp{
+	pixel_y = 5
+	},
 /turf/open/floor/carpet/royalblue,
 /area/station/command/heads_quarters/cmo)
 "bdS" = (
@@ -26647,8 +26650,11 @@
 /turf/open/floor/iron,
 /area/station/hallway/primary/central/fore)
 "bki" = (
-/obj/structure/table/glass,
-/obj/machinery/fax/heads/cmo{
+/obj/structure/table/reinforced/rglass,
+/obj/item/clothing/neck/stethoscope{
+	dir = 1
+	},
+/obj/item/stamp/head/cmo{
 	dir = 1
 	},
 /turf/open/floor/carpet/royalblue,
@@ -27622,18 +27628,7 @@
 /turf/open/floor/iron/dark/diagonal,
 /area/station/security/execution/transfer)
 "bmc" = (
-/obj/structure/table/glass,
-/obj/item/clothing/neck/stethoscope{
-	dir = 1
-	},
-/obj/item/toy/figure/cmo{
-	pixel_x = -5;
-	pixel_y = -2
-	},
-/obj/item/stamp/head/cmo{
-	dir = 1;
-	pixel_y = -8
-	},
+/obj/structure/table/reinforced/rglass,
 /turf/open/floor/carpet/royalblue,
 /area/station/command/heads_quarters/cmo)
 "bmd" = (
@@ -29607,6 +29602,7 @@
 	dir = 8
 	},
 /obj/item/radio/intercom/directional/west,
+/obj/machinery/computer/security/telescreen/entertainment/directional/south,
 /turf/open/floor/iron,
 /area/station/command/heads_quarters/ce)
 "bqv" = (
@@ -30424,6 +30420,9 @@
 /area/station/command/heads_quarters/cmo)
 "bsn" = (
 /obj/machinery/atmospherics/pipe/smart/manifold4w/scrubbers/hidden/layer2,
+/obj/effect/turf_decal/siding/corner{
+	dir = 4
+	},
 /turf/open/floor/iron/white,
 /area/station/command/heads_quarters/cmo)
 "bso" = (
@@ -30474,6 +30473,10 @@
 /turf/closed/wall/r_wall,
 /area/station/security/prison/garden)
 "bsw" = (
+/obj/structure/table/reinforced/rglass,
+/obj/machinery/fax/heads/cmo{
+	dir = 1
+	},
 /turf/open/floor/iron/white,
 /area/station/command/heads_quarters/cmo)
 "bsx" = (
@@ -30728,7 +30731,6 @@
 /area/station/command/heads_quarters/ce)
 "cNn" = (
 /obj/machinery/newscaster/directional/north,
-/obj/structure/table/glass,
 /obj/item/paper_bin{
 	dir = 1;
 	pixel_x = 2;
@@ -30741,10 +30743,17 @@
 	pixel_x = -9
 	},
 /obj/item/folder/white,
+/obj/structure/table/reinforced/rglass,
 /turf/open/floor/carpet/royalblue,
 /area/station/command/heads_quarters/cmo)
 "cWs" = (
 /obj/machinery/airalarm/directional/south,
+/obj/structure/table/reinforced/rglass,
+/obj/machinery/computer/records/medical/laptop{
+	dir = 1;
+	pixel_x = 4;
+	pixel_y = 2
+	},
 /turf/open/floor/iron/white,
 /area/station/command/heads_quarters/cmo)
 "cXV" = (
@@ -31093,6 +31102,9 @@
 /area/station/command/heads_quarters/blueshield)
 "fgX" = (
 /obj/machinery/firealarm/directional/south,
+/obj/machinery/digital_clock/directional/south{
+	pixel_y = -37
+	},
 /turf/open/floor/iron/white,
 /area/station/command/heads_quarters/cmo)
 "fmg" = (
@@ -31162,14 +31174,11 @@
 /turf/open/floor/iron/dark,
 /area/station/command/bridge)
 "fIS" = (
-/obj/structure/bed/double{
-	dir = 1
+/obj/effect/turf_decal/siding{
+	dir = 5
 	},
-/obj/item/bedsheet/qm/double{
-	dir = 1
-	},
-/turf/open/floor/carpet/black,
-/area/station/command/heads_quarters/qm)
+/turf/open/floor/iron/white,
+/area/station/command/heads_quarters/cmo)
 "fTb" = (
 /obj/effect/landmark/start/paramedic,
 /obj/structure/chair/office,
@@ -31226,6 +31235,12 @@
 /obj/structure/water_source/puddle,
 /turf/open/floor/grass,
 /area/station/security/prison/garden)
+"gcK" = (
+/obj/structure/chair/office/light{
+	dir = 4
+	},
+/turf/open/floor/carpet/royalblue,
+/area/station/command/heads_quarters/cmo)
 "ghw" = (
 /turf/closed/wall/r_wall,
 /area/station/security/execution/transfer)
@@ -31235,6 +31250,10 @@
 /area/station/security/execution/transfer)
 "gGh" = (
 /obj/structure/sign/poster/official/random/directional/north,
+/obj/effect/turf_decal/siding{
+	dir = 4
+	},
+/obj/machinery/computer/security/telescreen/entertainment/directional/west,
 /turf/open/floor/iron/white,
 /area/station/command/heads_quarters/cmo)
 "gJG" = (
@@ -31845,6 +31864,9 @@
 	name = "Chief Medical Officer's Office"
 	},
 /obj/effect/mapping_helpers/airlock/access/all/medical/general,
+/obj/effect/turf_decal/siding/corner{
+	dir = 1
+	},
 /turf/open/floor/iron/dark,
 /area/station/command/heads_quarters/cmo)
 "mfX" = (
@@ -32063,10 +32085,27 @@
 /obj/machinery/computer/security/telescreen/vault/directional/north,
 /turf/open/floor/wood,
 /area/space)
+"ovg" = (
+/obj/structure/sign/warning/no_smoking/directional/east,
+/turf/open/floor/iron/dark,
+/area/station/command/bridge)
 "ovi" = (
 /obj/machinery/light/directional/east,
 /turf/open/floor/iron,
 /area/station/hallway/primary/fore)
+"oxM" = (
+/obj/structure/dresser,
+/obj/item/toy/figure/cmo{
+	pixel_y = 15
+	},
+/turf/open/floor/carpet/royalblue,
+/area/station/command/heads_quarters/cmo)
+"ozC" = (
+/obj/effect/turf_decal/siding{
+	dir = 1
+	},
+/turf/open/floor/iron/white,
+/area/station/command/heads_quarters/cmo)
 "oIf" = (
 /obj/structure/bed/dogbed/ian,
 /obj/item/toy/figure/hop{
@@ -32134,7 +32173,13 @@
 /area/station/command/heads_quarters/captain)
 "pgr" = (
 /obj/structure/closet/secure_closet/chief_medical,
-/turf/open/floor/carpet/royalblue,
+/obj/item/book/manual/wiki/mediguns,
+/obj/item/clothing/head/costume/nursehat,
+/obj/effect/turf_decal/bot,
+/obj/effect/turf_decal/stripes/line{
+	dir = 1
+	},
+/turf/open/floor/iron/dark/smooth_large,
 /area/station/command/heads_quarters/cmo)
 "pgv" = (
 /obj/structure/flora/tree/jungle/small/style_5,
@@ -32146,6 +32191,11 @@
 	},
 /turf/open/floor/carpet,
 /area/station/command/bridge)
+"prg" = (
+/obj/item/bedsheet/cmo/double,
+/obj/structure/bed/double,
+/turf/open/floor/carpet/royalblue,
+/area/station/command/heads_quarters/cmo)
 "prI" = (
 /obj/effect/turf_decal/trimline/yellow/line{
 	dir = 1
@@ -32219,6 +32269,12 @@
 /obj/structure/cable,
 /turf/open/floor/plating,
 /area/station/security/armory)
+"qmR" = (
+/obj/effect/turf_decal/siding/corner{
+	dir = 4
+	},
+/turf/open/floor/iron/white,
+/area/station/command/heads_quarters/cmo)
 "qnu" = (
 /obj/effect/landmark/start/atmospheric_technician,
 /turf/open/floor/iron,
@@ -32247,8 +32303,15 @@
 /area/space)
 "qvB" = (
 /obj/machinery/status_display/ai/directional/north,
+/obj/machinery/photocopier/prebuilt,
 /turf/open/floor/iron/dark,
 /area/station/command/bridge)
+"qzr" = (
+/obj/effect/turf_decal/siding{
+	dir = 4
+	},
+/turf/open/floor/iron/white,
+/area/station/command/heads_quarters/cmo)
 "qAd" = (
 /obj/effect/turf_decal/trimline/brown/filled/line,
 /turf/open/floor/iron/dark/smooth_edge{
@@ -32285,6 +32348,7 @@
 "qSG" = (
 /obj/structure/closet/secure_closet/quartermaster,
 /obj/item/circuitboard/machine/bluespace_miner,
+/obj/machinery/computer/security/telescreen/entertainment/directional/west,
 /turf/open/floor/iron/dark/smooth_large,
 /area/station/command/heads_quarters/qm)
 "qTS" = (
@@ -32313,7 +32377,6 @@
 /turf/open/floor/plating,
 /area/station/command/heads_quarters/rd)
 "rjo" = (
-/obj/machinery/light/small/directional/south,
 /obj/effect/decal/cleanable/dirt{
 	dir = 2
 	},
@@ -32357,6 +32420,11 @@
 	},
 /turf/open/floor/wood/large,
 /area/station/command/heads_quarters/blueshield)
+"rvZ" = (
+/obj/structure/bed/double,
+/obj/item/bedsheet/qm/double,
+/turf/open/floor/carpet/black,
+/area/station/command/heads_quarters/qm)
 "ryn" = (
 /obj/structure/bed/double,
 /turf/open/floor/carpet/royalblue,
@@ -32501,6 +32569,10 @@
 	dir = 8
 	},
 /area/space)
+"sAL" = (
+/obj/machinery/computer/security/telescreen/entertainment/directional/west,
+/turf/open/floor/iron/dark,
+/area/station/command/heads_quarters/rd)
 "sCG" = (
 /obj/machinery/modular_computer/preset/command,
 /turf/open/floor/iron/dark,
@@ -33117,7 +33189,8 @@
 /area/station/science/robotics/mechbay)
 "xVJ" = (
 /obj/machinery/suit_storage_unit/cmo,
-/turf/open/floor/iron/white,
+/obj/effect/turf_decal/bot,
+/turf/open/floor/iron/white/smooth_large,
 /area/station/command/heads_quarters/cmo)
 "ydi" = (
 /obj/effect/spawner/structure/window/reinforced,
@@ -67199,7 +67272,7 @@ aaa
 jPH
 aXp
 aXp
-aXp
+sAL
 jPH
 jPH
 jPH
@@ -67977,7 +68050,7 @@ big
 blq
 blq
 blq
-blq
+ovg
 blq
 blq
 blq
@@ -68493,7 +68566,7 @@ bpe
 bqo
 ayr
 gGh
-bsw
+qzr
 bsn
 pyb
 xVJ
@@ -68749,10 +68822,10 @@ bmg
 bmG
 iQR
 ayr
-bsw
-bsw
-bsw
-bsw
+gcK
+gcK
+fIS
+qmR
 fgX
 lFY
 bfE
@@ -69009,7 +69082,7 @@ ayr
 cNn
 bmc
 bki
-bsw
+ozC
 ahU
 lFY
 bfE
@@ -69266,7 +69339,7 @@ ayr
 vSB
 bia
 bfd
-bsw
+ozC
 cWs
 lFY
 bno
@@ -69513,7 +69586,7 @@ aaa
 aaa
 aaa
 bqa
-fIS
+wWO
 bsr
 iLD
 bpe
@@ -69523,7 +69596,7 @@ ayr
 nkH
 qrj
 bfy
-bsw
+ozC
 bsw
 lFY
 bfE
@@ -69771,7 +69844,7 @@ aaa
 aaa
 bqa
 cZd
-wWO
+rvZ
 aKg
 izW
 lmT
@@ -70036,7 +70109,7 @@ ayr
 aaa
 aaa
 bsm
-bfd
+oxM
 bfd
 pgr
 lFY
@@ -70294,7 +70367,7 @@ aaa
 aaa
 bsm
 bdR
-bfd
+prg
 lFY
 lFY
 ghw
