@@ -1,0 +1,487 @@
+.AdjustmentSlider {
+  --adjustment-number-width: 5.5rem;
+  --adjustment-unit-width: 1.5rem;
+  --adjustment-gap: 0.5rem;
+  margin: 0.8rem 0;
+  > label {
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+  &__row {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr) var(--adjustment-number-width)
+      var(--adjustment-unit-width);
+    align-items: center;
+    gap: var(--adjustment-gap);
+  }
+  input[type='range'] {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    height: 1.8rem;
+    margin: 0;
+    accent-color: #69b8ed;
+    cursor: pointer;
+  }
+  &__number {
+    width: 100%;
+    min-width: 0;
+    padding: 0.2rem 0.4rem;
+  }
+  &__limits {
+    display: flex;
+    justify-content: space-between;
+    margin-right: calc(
+      var(--adjustment-number-width) + var(--adjustment-unit-width) + 2 *
+        var(--adjustment-gap)
+    );
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+  input:focus-visible {
+    outline: 2px solid #69b8ed;
+    outline-offset: 2px;
+  }
+  input:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.CyborgEditor {
+  container: cyborg-editor / inline-size;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  &__status {
+    padding: 0.5rem 0.75rem;
+    background: rgba(105, 184, 237, 0.1);
+    border-left: 2px solid #69b8ed;
+    margin-top: auto;
+    flex-shrink: 0;
+  }
+  &__workspace,
+  &__profile {
+    display: grid;
+    grid-template-columns: minmax(285px, 0.85fr) minmax(310px, 1fr) minmax(
+        330px,
+        1fr
+      );
+    gap: 0.65rem;
+    flex: 1;
+    min-height: 0;
+  }
+  &__sidebar,
+  &__inspector {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.25rem;
+  }
+  &__sidebar {
+    display: flex;
+    flex-direction: column;
+    > * {
+      flex-shrink: 0;
+    }
+  }
+  &__center {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  &__viewControls {
+    padding: 0.65rem;
+  }
+  &__thumbnail {
+    display: block;
+    width: 100%;
+    height: 64px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    margin-top: 0.5rem;
+  }
+  &__disclosure {
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  &__disclosure > summary {
+    cursor: pointer;
+    padding: 0.75rem;
+    font-weight: bold;
+  }
+  &__disclosure > summary:focus-visible {
+    outline: 2px solid #69b8ed;
+    outline-offset: -2px;
+  }
+  &__profile > .CyborgEditor__inspector {
+    grid-column: 2 / span 2;
+  }
+  &__profileFields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 0.65rem;
+    > :first-child {
+      grid-column: 1 / -1;
+    }
+  }
+  &__profileField {
+    min-width: 0;
+    margin-bottom: 1rem;
+  }
+  input[type='color'] {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+  &__row {
+    display: flex;
+    align-items: end;
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+    > * {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+  &__nameRow > :last-child {
+    flex: 0 0 6rem;
+  }
+  &__divider,
+  &__presets {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 1rem;
+    margin-top: 1rem;
+  }
+  &__layoutSource {
+    align-items: center;
+    > .Button {
+      margin: 0;
+    }
+  }
+  &__presetHeading {
+    cursor: help;
+  }
+  &__presetGroup {
+    cursor: help;
+  }
+  &__modelDefaults {
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  &__presetActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 0.3rem;
+    > .Button {
+      margin: 0;
+      text-align: center;
+    }
+    > .Button:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+  &__parts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.3rem;
+    > .Button {
+      // Grid gaps own spacing; Button's last-child margins distort the last cell.
+      margin: 0;
+    }
+  }
+  &__resets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.3rem;
+    margin-top: 1rem;
+  }
+  &__resets .Button {
+    margin: 0;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: normal;
+    text-align: center;
+  }
+  &__size {
+    margin: 0.75rem 0;
+  }
+  &__sizeOptions {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    margin-top: 0.4rem;
+  }
+  &__sizeOptions .Button {
+    margin: 0;
+    min-width: 2rem;
+    text-align: center;
+  }
+  &__sizeOptions .Dropdown {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+  }
+  &__sizeOptions > .Button,
+  &__sizeOptions .Dropdown__control {
+    height: 24px;
+    line-height: 24px;
+    align-self: center;
+  }
+  &__sizeOptions img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    display: block;
+  }
+  .AdjustmentSlider {
+    margin: 0.6rem 0;
+    > label {
+      margin-bottom: 0.1rem;
+    }
+  }
+}
+
+.CyborgPreview {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  &__stage {
+    position: relative;
+    flex: 1;
+    min-height: 120px;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+  }
+  &__stage:active {
+    cursor: grabbing;
+  }
+  &__camera {
+    padding: 0.65rem;
+  }
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+  &__toolbar .Button {
+    margin: 0;
+  }
+  &__divider {
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+    height: 1.4rem;
+    margin: 0 0.4rem;
+  }
+  &__partHandle {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: move;
+  }
+  &__reference {
+    transform-origin: 0 0;
+    pointer-events: none;
+    &::before {
+      content: '';
+      position: absolute;
+      left: -16px;
+      width: 32px;
+      border-top: 1px solid #9daeba;
+    }
+    span {
+      position: absolute;
+      top: 2px;
+      left: -16px;
+      width: 32px;
+      text-align: center;
+      font-size: 7px;
+      color: #c4cdd3;
+    }
+  }
+  &__settings {
+    margin-top: 0.5rem;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  &__settings > summary {
+    cursor: pointer;
+  }
+}
+
+.CyborgModelPicker {
+  width: min(570px, 85vw);
+  max-height: 80vh;
+  padding: 1rem;
+  background: #252b33;
+  border: 1px solid #69b8ed;
+  box-shadow: 0 8px 32px #0008;
+  &__controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    .Button,
+    .Dropdown {
+      margin: 0;
+      vertical-align: middle;
+    }
+    .CyborgPreview__toolbar {
+      margin: 0;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .Button,
+    .Dropdown__control {
+      height: 24px;
+      line-height: 24px;
+    }
+  }
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-height: 330px;
+    overflow-y: auto;
+  }
+  &__grid .Button {
+    margin: 0;
+    height: 112px;
+    padding: 4px;
+    display: block;
+  }
+  &__tileContent {
+    display: grid;
+    grid-template-rows: 72px minmax(0, 1fr);
+    height: 100%;
+  }
+  &__grid .Button__content {
+    height: 100%;
+  }
+  &__image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+  &__grid img {
+    height: 64px;
+    width: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  &__tileContent > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: normal;
+    line-height: 1.1;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+}
+
+.CyborgEditor__portrait {
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  background: #15191e;
+  img {
+    display: block;
+    max-width: 100%;
+    max-height: 160px;
+    object-fit: contain;
+  }
+}
+
+.CyborgUsage__buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  .Button {
+    margin: 0;
+  }
+}
+
+@container cyborg-editor (max-width: 1000px) {
+  .CyborgEditor__workspace,
+  .CyborgEditor__profile {
+    grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.2fr);
+    grid-template-rows: minmax(240px, 0.85fr) minmax(300px, 1fr);
+  }
+  .CyborgEditor__sidebar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .CyborgEditor__center {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .CyborgEditor__inspector {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .CyborgEditor__profile {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .CyborgEditor__profile .CyborgEditor__inspector {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+@container cyborg-editor (max-width: 620px) {
+  .CyborgEditor__profileFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .CyborgEditor__workspace,
+  .CyborgEditor__profile {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .CyborgEditor__sidebar,
+  .CyborgEditor__inspector {
+    flex: none;
+    overflow: visible;
+  }
+  .CyborgEditor__center {
+    flex: none;
+    height: 400px;
+  }
+}

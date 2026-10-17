@@ -53,6 +53,7 @@
 // APHELION EDIT ADDITION START - MERIDIAN_UI
 @include meta.load-css('./meridianos/preferences.scss');
 // APHELION EDIT ADDITION END
+@include meta.load-css('./interfaces/CyborgEditor.scss');
 @include meta.load-css('./interfaces/RequestManager.scss');
 @include meta.load-css('./interfaces/Roulette.scss');
 @include meta.load-css('./interfaces/Safe.scss');

@@ -390,6 +390,8 @@
 #include "~nova\character_preview_glow.dm"
 #include "~nova\character_preview_rebuilds.dm"
 #include "~nova\clothing_variation_icons.dm"
+#include "~nova\cyborg_appearance.dm"
+#include "~nova\cyborg_customization.dm"
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\language_understanding.dm"
