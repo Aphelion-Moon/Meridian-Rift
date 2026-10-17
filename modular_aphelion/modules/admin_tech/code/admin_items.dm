@@ -2483,6 +2483,7 @@ GLOBAL_LIST_INIT(subspace_ballmatter_spheres, list(
 	icon = 'modular_aphelion/modules/admin_tech/icons/admin_items.dmi'
 	icon_state = "sub-multitool"
 	inhand_icon_state = "multitool"
+	toolspeed = 0.1 // Matches the rest of the subspace tools. Without it this is slower than the stock cyborg multitool it replaces.
 	apc_scanner = FALSE
 	w_class = WEIGHT_CLASS_TINY
 	slot_flags = ITEM_SLOT_ADMIN

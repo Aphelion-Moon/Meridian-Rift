@@ -19,42 +19,47 @@
 // Someone smarter than me will have to fix this one
 //
 // TODO: Needs custom icons
-// TODO: Item list revists
 // TODO: Explore more borg hands? How many hands can a borg reasonably have?
 // Baseline CC model, total generalist. Can do a bit of everything but lacks specialized tools.
 // When you need a general ERT or CC Borg, pick this.
+// The CC walkers (this one, Frontline, Backline, Technical) are meant to be piloted by players, so their kits avoid anything
+// gated behind client.holder. Each specialist should also out-equip a fully upgraded station cyborg of the same job.
+// The gated admin tools live on the Bluespace and Subspace walkers instead. CC-only cyborg gear is in admin_robot_items.dm.
 /obj/item/robot_model/admin
 	name = "Central Command"
 	basic_modules = list(
 		/obj/item/assembly/flash/cyborg,
 		/obj/item/extinguisher,
-		/obj/item/weldingtool/electric,
-		/obj/item/multitool/cyborg,
-		/obj/item/crowbar/cyborg/power,
-		/obj/item/screwdriver/cyborg/power,
-		/obj/item/construction/rcd/borg/syndicate,
-		/obj/item/lightreplacer,
+		/obj/item/weldingtool/advanced/admin,
+		/obj/item/multitool/admin,
+		/obj/item/crowbar/power/alien/admin,
+		/obj/item/screwdriver/power/alien/admin,
+		/obj/item/construction/rcd/borg/centcom,
+		/obj/item/lightreplacer/blue/admin,
 		/obj/item/stack/sheet/iron,
 		/obj/item/stack/sheet/glass,
 		/obj/item/borg/apparatus/sheet_manipulator,
 		/obj/item/stack/rods/cyborg,
-		/obj/item/stack/tile/iron,
+		/obj/item/stack/tile/iron/base/cyborg,
 		/obj/item/stack/cable_coil,
 		/obj/item/restraints/handcuffs/cable/zipties,
 		/obj/item/stack/medical/wrap/gauze,
-		/obj/item/shockpaddles/cyborg,
-		/obj/item/healthanalyzer/advanced,
+		/obj/item/shockpaddles/syndicate/nanotrasen/cyborg,
+		/obj/item/healthanalyzer/advanced/admin,
 		/obj/item/surgical_drapes,
-		/obj/item/retractor/advanced,
-		/obj/item/cautery/advanced,
-		/obj/item/scalpel/advanced,
+		/obj/item/scalpel/advanced/alien/admin,
+		/obj/item/retractor/advanced/alien/admin,
+		/obj/item/cautery/advanced/alien/admin,
+		/obj/item/blood_filter/advanced/alien/admin,
 		/obj/item/gun/medbeam,
-		/obj/item/reagent_containers/borghypo/syndicate,
+		/obj/item/reagent_containers/borghypo/medical/centcom,
 		/obj/item/borg/lollipop,
 		/obj/item/holosign_creator/cyborg,
-		/obj/item/stamp/chameleon,
+		/obj/item/stamp/centcom,
+		/obj/item/pinpointer/response_team_cyborg,
 		/obj/item/borg_shapeshifter,
 	)
+	radio_channels = list(RADIO_CHANNEL_COMMAND)
 	model_traits = list(TRAIT_NEGATES_GRAVITY, TRAIT_PUSHIMMUNE)
 	canDispose = TRUE
 	cyborg_base_icon = "tachi"
@@ -282,26 +287,58 @@
 	ionpulse = TRUE
 	set_model = /obj/item/robot_model/admin
 	cell = /obj/item/stock_parts/power_store/cell/infinite
-	radio = /obj/item/radio/borg/syndicate
+	radio = /obj/item/radio/borg/centcom
 
 // Bluespace Walker, a bluespace technician stand-alone.
+// This is the admin walker, so unlike the CC walkers it carries the admin tool set, holder-gated items included.
 /obj/item/robot_model/admin/bluespace
 	name = "Bluespace Walker"
 	basic_modules = list(
 		/obj/item/assembly/flash/cyborg,
-		/obj/item/crowbar/cyborg/power,
-		/obj/item/screwdriver/cyborg/power,
-		/obj/item/multitool/cyborg,
-		/obj/item/extinguisher,
+		/obj/item/crowbar/power/alien/admin,
+		/obj/item/screwdriver/power/alien/admin,
+		/obj/item/weldingtool/advanced/admin,
+		/obj/item/multitool/admin,
+		/obj/item/extinguisher/subspace,
+		/obj/item/card/emag/admin,
+		/obj/item/door_remote/admin,
+		/obj/item/construction/rcd/arcd/mattermanipulator/admin,
+		/obj/item/construction/rld/admin,
+		/obj/item/construction/plumbing/admin,
+		/obj/item/lightreplacer/blue/admin,
+		/obj/item/holosign_creator/atmos/admin,
+		/obj/item/forcefield_projector/admin,
+		/obj/item/storage/part_replacer/bluespace/admin,
+		/obj/item/healthanalyzer/advanced/admin,
+		/obj/item/ph_meter/admin,
+		/obj/item/surgical_drapes,
+		/obj/item/scalpel/advanced/alien/admin,
+		/obj/item/retractor/advanced/alien/admin,
+		/obj/item/cautery/advanced/alien/admin,
+		/obj/item/blood_filter/advanced/alien/admin,
+		/obj/item/shears/admin,
+		/obj/item/reagent_containers/hypospray/combat/subspace,
+		/obj/item/reagent_containers/syringe/admin,
 		/obj/item/handheld_debug_chem_synth,
 		/obj/item/gun/chem/admin,
+		/obj/item/gun/energy/recharge/fisher/admin,
 		/obj/item/gun/magic/subspace/dagenblicky,
 		/obj/item/pneumatic_cannon/subspace,
 		/obj/item/melee/baseball_bat/admin,
 		/obj/item/laser_pointer/admin,
+		/obj/item/pinpointer/crew/admin,
 		/obj/item/modular_computer/pda/admin,
 		/obj/item/summon_beacon/vendors/debug,
 		/obj/item/borg_shapeshifter,
+	)
+	radio_channels = list(
+		RADIO_CHANNEL_COMMAND,
+		RADIO_CHANNEL_SECURITY,
+		RADIO_CHANNEL_ENGINEERING,
+		RADIO_CHANNEL_MEDICAL,
+		RADIO_CHANNEL_SCIENCE,
+		RADIO_CHANNEL_SUPPLY,
+		RADIO_CHANNEL_SERVICE,
 	)
 
 // The mob for the walker itself.
@@ -320,48 +357,88 @@
 	icon_state = "tachi"
 
 // Frontline Walker - the laser pointer needs a hitscan icon
+// Out-guns a station security cyborg: pulse carbine and e-sword on top of the disabler, baton and hailer it would have had.
 /obj/item/robot_model/admin/frontline
 	name = "Frontline Walker"
 	basic_modules = list(
 		/obj/item/assembly/flash/cyborg,
 		/obj/item/melee/energy/sword/saber/cyborg,
+		/obj/item/melee/baton/security/loaded,
 		/obj/item/melee/baseball_bat/admin,
-		/obj/item/gun/energy/printer,
-		/obj/item/gun/ballistic/revolver/grenadelauncher/cyborg,
+		/obj/item/gun/energy/pulse/carbine/cyborg,
+		/obj/item/gun/energy/disabler/cyborg,
 		/obj/item/laser_pointer/admin,
-		/obj/item/card/emag,
+		/obj/item/card/emag/centcom,
 		/obj/item/restraints/handcuffs/cable/zipties,
-		/obj/item/crowbar/cyborg,
+		/obj/item/clothing/mask/gas/sechailer/cyborg,
+		/obj/item/crowbar/power/alien/admin,
 		/obj/item/extinguisher/mini,
-		/obj/item/pinpointer/syndicate_cyborg,
+		/obj/item/pinpointer/response_team_cyborg,
 	)
+	radio_channels = list(RADIO_CHANNEL_COMMAND, RADIO_CHANNEL_SECURITY)
 
 // The mob for the walker itself.
 /mob/living/silicon/robot/model/admin/frontline
 	set_model = /obj/item/robot_model/admin/frontline
 	icon_state = "tachi"
 
-// Backline Walker - the reagent gun carries this atm
+// Backline Walker
+// Covers everything a fully upgraded station medical cyborg gets from its upgrade chips, then beats each of them:
+// a bigger and faster piercing hypo, combat paddles, subspace surgical tools, the subspace analyzers, and a built-in crew monitor.
+// The subspace reagent projector used to live here, but it only works for admins, so it stays on the Bluespace Walker.
 /obj/item/robot_model/admin/backline
 	name = "Backline Walker"
 	basic_modules = list(
 		/obj/item/assembly/flash/cyborg,
-		/obj/item/reagent_containers/borghypo/syndicate,
-		/obj/item/gun/chem/admin,
-		/obj/item/shockpaddles/syndicate/cyborg,
-		/obj/item/healthanalyzer,
-		/obj/item/borg/cyborg_omnitool/medical,
-		/obj/item/blood_filter,
+		/obj/item/reagent_containers/borghypo/medical/centcom,
+		/obj/item/shockpaddles/syndicate/nanotrasen/cyborg,
+		/obj/item/healthanalyzer/advanced/admin,
+		/obj/item/ph_meter/admin,
+		/obj/item/autopsy_scanner,
+		/obj/item/surgical_processor,
+		/obj/item/surgical_drapes,
+		/obj/item/scalpel/advanced/alien/admin,
+		/obj/item/retractor/advanced/alien/admin,
+		/obj/item/cautery/advanced/alien/admin,
+		/obj/item/blood_filter/advanced/alien/admin,
 		/obj/item/melee/energy/sword/saber/cyborg/saw,
+		/obj/item/gun/medbeam,
+		/obj/item/borg/apparatus/beaker,
+		/obj/item/borg/apparatus/beaker/extra,
+		/obj/item/borg/apparatus/sheet_manipulator/chemistry,
+		/obj/item/reagent_containers/dropper,
+		/obj/item/reagent_containers/syringe/admin,
 		/obj/item/emergency_bed/silicon,
-		/obj/item/crowbar/cyborg,
-		/obj/item/extinguisher/mini,
-		/obj/item/pinpointer/syndicate_cyborg,
+		/obj/item/holosign_creator/medical/treatment_zone,
+		/obj/item/borg/cyborghug/medical,
 		/obj/item/stack/medical/wrap/gauze,
 		/obj/item/stack/medical/bone_gel,
 		/obj/item/borg/apparatus/organ_storage,
 		/obj/item/storage/bag/chemistry,
+		/obj/item/pinpointer/crew,
+		/obj/item/pinpointer/response_team_cyborg,
+		/obj/item/borg/lollipop,
+		/obj/item/crowbar/cyborg,
+		/obj/item/extinguisher/mini,
 	)
+	radio_channels = list(RADIO_CHANNEL_COMMAND, RADIO_CHANNEL_MEDICAL)
+	model_traits = list(TRAIT_NEGATES_GRAVITY, TRAIT_PUSHIMMUNE, TRAIT_FASTMED)
+	var/datum/weakref/crew_monitor_ref
+
+/obj/item/robot_model/admin/backline/Destroy(force)
+	var/datum/action/crew_monitor = crew_monitor_ref?.resolve()
+	qdel(crew_monitor)
+	crew_monitor_ref = null
+	return ..()
+
+/obj/item/robot_model/admin/backline/be_transformed_to(obj/item/robot_model/old_model, forced = FALSE)
+	. = ..()
+	if(!.)
+		return FALSE
+	var/mob/living/silicon/robot/borg = loc
+	var/datum/action/cooldown/borg_crew_monitor/crew_monitor = new(borg)
+	crew_monitor.Grant(borg)
+	crew_monitor_ref = WEAKREF(crew_monitor)
 
 // The mob for the walker itself.
 /mob/living/silicon/robot/model/admin/backline
@@ -369,29 +446,48 @@
 	icon_state = "tachi"
 
 // Technical / Engie Walker
+// Covers everything a fully upgraded station engineering cyborg gets (RPED, RLD, inducer, both apparatus, advanced materials)
+// and replaces the omnitool with the subspace tool set. The saboteur's chameleon projector is gone, since the walker
+// already has its own disguise action.
 /obj/item/robot_model/admin/engineer
 	name = "Technical Walker"
 	basic_modules = list(
 		/obj/item/assembly/flash/cyborg,
-		/obj/item/construction/rcd/borg/syndicate,
+		/obj/item/construction/rcd/borg/centcom,
 		/obj/item/pipe_dispenser,
-		/obj/item/restraints/handcuffs/cable/zipties,
+		/obj/item/construction/rtd/borg,
+		/obj/item/construction/rld/admin,
 		/obj/item/extinguisher,
-		/obj/item/weldingtool/largetank/cyborg,
+		/obj/item/weldingtool/advanced/admin,
+		/obj/item/crowbar/power/alien/admin,
+		/obj/item/screwdriver/power/alien/admin,
+		/obj/item/multitool/admin,
+		/obj/item/t_scanner,
 		/obj/item/analyzer,
-		/obj/item/borg/cyborg_omnitool/engineering,
+		/obj/item/holosign_creator/atmos/admin,
+		/obj/item/assembly/signaler/cyborg,
+		/obj/item/blueprints/cyborg,
+		/obj/item/electroadaptive_pseudocircuit,
+		/obj/item/inducer/cyborg,
+		/obj/item/storage/part_replacer/bluespace,
+		/obj/item/lightreplacer/blue/admin,
 		/obj/item/stack/sheet/iron,
 		/obj/item/stack/sheet/glass,
+		/obj/item/stack/sheet/plasteel/cyborg,
+		/obj/item/stack/sheet/titaniumglass/cyborg,
 		/obj/item/borg/apparatus/sheet_manipulator,
+		/obj/item/borg/apparatus/engineering,
+		/obj/item/borg/apparatus/engineering,
 		/obj/item/stack/rods/cyborg,
-		/obj/item/construction/rtd/borg,
+		/obj/item/stack/tile/iron/base/cyborg,
+		/obj/item/stack/cable_coil,
 		/obj/item/airlock_painter/decal/cyborg,
 		/obj/item/dest_tagger/borg,
-		/obj/item/stack/cable_coil,
-		/obj/item/pinpointer/syndicate_cyborg,
-		/obj/item/borg_chameleon,
-		/obj/item/card/emag,
+		/obj/item/restraints/handcuffs/cable/zipties,
+		/obj/item/card/emag/centcom,
+		/obj/item/pinpointer/response_team_cyborg,
 	)
+	radio_channels = list(RADIO_CHANNEL_COMMAND, RADIO_CHANNEL_ENGINEERING)
 
 // The mob for the walker itself.
 /mob/living/silicon/robot/model/admin/engineer
