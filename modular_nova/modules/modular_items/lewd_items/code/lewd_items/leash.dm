@@ -145,7 +145,8 @@
 	line = new(end, parent, icon_state = "fishing_line", beam_color = SSgreyscale.ParseColorString(leash.greyscale_colors)[1], emissive = FALSE)
 	if(ismob(end))
 		var/mob/holder = end
-		line.lefthand = IS_LEFT_INDEX(holder.get_held_index_of_item(leash))
+		line.held_index = holder.get_held_index_of_item(leash)
+		line.lefthand = IS_LEFT_INDEX(line.held_index)
 	RegisterSignal(line, COMSIG_QDELETING, PROC_REF(on_line_deleted))
 	INVOKE_ASYNC(line, TYPE_PROC_REF(/datum/beam, Start))
 
@@ -623,6 +624,8 @@
 	var/stepping = FALSE
 	/// TRUE from a step or a turn left to a later move until the line is drawn - by that move, or `catch_up`
 	var/stale = FALSE
+	/// The holding hand's index - a hand past the first pair draws held items shifted, so the line leaves from there too
+	var/held_index = 0
 
 /// A turn moves the hand - a move in the same tick draws the line from it, or `catch_up` does
 /datum/beam/held/leash/handle_dir_change(atom/movable/source, olddir, newdir)
@@ -639,9 +642,29 @@
 /// A leash on the floor draws its line from where it lies, not from a hand
 /datum/beam/held/leash/update_offsets(user_dir)
 	if(ismob(origin))
-		return ..()
+		. = ..()
+		add_extra_hand_offset(user_dir)
+		return
 	override_origin_pixel_x = origin.pixel_x
 	override_origin_pixel_y = origin.pixel_y
+
+/// Extra hands, such as a moth's chest arms, draw held items shifted by their own offset - the line leaves from there too
+/datum/beam/held/leash/proc/add_extra_hand_offset(user_dir)
+	if(held_index <= 2 || !iscarbon(origin))
+		return
+	var/mob/living/carbon/holder = origin
+	if(held_index > length(holder.hand_bodyparts))
+		return
+	var/obj/item/bodypart/arm/hand = holder.hand_bodyparts[held_index]
+	var/datum/worn_feature_offset/offset = hand?.held_hand_offset
+	if(isnull(offset))
+		return
+	// The turn's new direction, not the holder's, which hasn't turned yet when this runs
+	var/dir_name = dir2text(ISDIAGONALDIR(user_dir) ? (user_dir & (EAST|WEST)) : user_dir)
+	if(length(offset.offset_x))
+		override_origin_pixel_x += (dir_name in offset.offset_x) ? offset.offset_x[dir_name] : offset.offset_x["south"]
+	if(length(offset.offset_y))
+		override_origin_pixel_y += (dir_name in offset.offset_y) ? offset.offset_y[dir_name] : offset.offset_y["south"]
 
 /**
  * Drawn once a tick, gliding from where it is, as the last end to move is done. A step with the other end's move, or a
