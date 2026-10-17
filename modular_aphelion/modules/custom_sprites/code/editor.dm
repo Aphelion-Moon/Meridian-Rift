@@ -325,8 +325,8 @@
 /datum/custom_sprite_editor/proc/hide_obstructing_parts()
 	var/list/hidden
 	for(var/obj/item/bodypart/limb as anything in preview_body.bodyparts)
-		for(var/datum/bodypart_overlay/mutant/part in LAZYCOPY(limb.bodypart_overlays))
-			if(istype(part, /datum/bodypart_overlay/mutant/taur_body))
+		for(var/datum/bodypart_overlay/part in LAZYCOPY(limb.bodypart_overlays))
+			if(!custom_sprite_obstructing_overlay(part))
 				continue
 			limb.remove_bodypart_overlay(part, FALSE)
 			LAZYSET(hidden, part, limb)

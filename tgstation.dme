@@ -7752,6 +7752,7 @@
 #include "modular_nova\master_files\code\modules\client\preferences\quirks\death_consequences.dm"
 #include "modular_nova\master_files\code\modules\client\preferences\quirks\unsteady.dm"
 #include "modular_nova\master_files\code\modules\client\preferences\species_features\digitigrade_legs.dm"
+#include "modular_nova\master_files\code\modules\client\preferences\species_features\moth.dm"
 #include "modular_nova\master_files\code\modules\clothing\base_clothes.dm"
 #include "modular_nova\master_files\code\modules\clothing\chameleon.dm"
 #include "modular_nova\master_files\code\modules\clothing\clothing.dm"

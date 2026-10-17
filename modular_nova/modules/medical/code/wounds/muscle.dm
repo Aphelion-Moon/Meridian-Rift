@@ -35,7 +35,7 @@
 	var/obj/item/held_item = victim.get_item_for_held_index(limb.held_index || 0)
 	if(held_item && (disabling || prob(30 * severity)))
 		if(istype(held_item, /obj/item/offhand))
-			held_item = victim.get_inactive_held_item()
+			held_item = victim.get_item_for_held_index(victim.get_offhand_index(limb.held_index))
 
 		if(held_item && victim.dropItemToGround(held_item))
 			victim.visible_message(span_danger("[victim] drops [held_item] in shock!"), \
@@ -79,7 +79,7 @@
 /datum/wound/muscle/proc/attack_with_hurt_hand(mob/M, atom/target, proximity)
 	SIGNAL_HANDLER
 
-	if(victim.get_active_hand() != limb || !victim.combat_mode || !ismob(target) || severity <= WOUND_SEVERITY_MODERATE)
+	if(victim.has_hand_for_held_index(victim.active_hand_index) != limb || !victim.combat_mode || !ismob(target) || severity <= WOUND_SEVERITY_MODERATE)
 		return
 
 	// 15% of 30% chance to proc pain on hit
