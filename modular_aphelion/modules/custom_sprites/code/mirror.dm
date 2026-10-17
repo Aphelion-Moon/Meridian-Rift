@@ -29,6 +29,15 @@
 	return appearance
 
 /**
+ * Whether a bodypart overlay hangs over the limb's paint: every mutant part except the taur body,
+ * which carries its own paint, and a moth chest's extra arms.
+ */
+/proc/custom_sprite_obstructing_overlay(datum/bodypart_overlay/part)
+	if(istype(part, /datum/bodypart_overlay/mutant))
+		return !istype(part, /datum/bodypart_overlay/mutant/taur_body)
+	return istype(part, /datum/bodypart_overlay/simple/moth_arms)
+
+/**
  * The looks that can hide paint: the hair, every mutant part drawn on the body, each piece of
  * underwear and, given a `wearer`, each item they have on. Each look carries its images, offset
  * the way get_limb_icon() draws them, the highest layer it draws on and a label for the window;
@@ -57,8 +66,8 @@
 		if(key)
 			key += custom_sprite_hair_cover_key(body)
 	for(var/obj/item/bodypart/limb as anything in body.bodyparts)
-		for(var/datum/bodypart_overlay/mutant/part in limb.bodypart_overlays)
-			if(istype(part, /datum/bodypart_overlay/mutant/taur_body) || !part.can_draw_on_bodypart(limb, body))
+		for(var/datum/bodypart_overlay/part in limb.bodypart_overlays)
+			if(!custom_sprite_obstructing_overlay(part) || !part.can_draw_on_bodypart(limb, body))
 				continue
 			var/list/images = list()
 			var/top = -INFINITY
@@ -72,7 +81,9 @@
 					key += custom_sprite_placement_key(image)
 			if(!length(images))
 				continue
-			looks += list(list("label" = replacetext(part.feature_key, "_", " "), "layer" = top, "images" = images))
+			var/datum/bodypart_overlay/mutant/mutant_part = part
+			var/label = istype(mutant_part) ? replacetext(mutant_part.feature_key, "_", " ") : "chest arms"
+			looks += list(list("label" = label, "layer" = top, "images" = images))
 			if(key)
 				// The part's render key names its art; generated icons have no path to key by.
 				key += list(json_encode(part.icon_render_key(limb)), "[limb.limb_gender]|[part.offset_location]")

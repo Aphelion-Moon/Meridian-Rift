@@ -542,6 +542,14 @@
 	var/list/datum/supply_pack/pack_types
 
 /datum/design/cargo_weapon/on_station_research()
+	// APHELION EDIT ADDITION START - SSresearch initialises before SSatoms, because machines want the
+	// techweb, and SSshuttle only builds supply_packs after SSatoms. Designs researched while the station
+	// techweb is being built therefore have no pack list yet, which Nova's starting nodes do to all of
+	// them. Queue up and let SSshuttle flag us once it has its packs.
+	if(!length(SSshuttle.supply_packs))
+		LAZYOR(SSshuttle.designs_awaiting_packs, src)
+		return
+	// APHELION EDIT ADDITION END
 	// No native support for dynamic pack IDs here. buyer beware
 	for(var/datum/supply_pack/pack_type as anything in pack_types)
 		var/datum/supply_pack/pack_real = SSshuttle.supply_packs[pack_type::id || pack_type]
