@@ -32,6 +32,18 @@
 		if(isnull(old_limb))
 			return body_zone
 
+		// Stumps have their own attachment behavior and no sprite; copying their vars cannot turn a real limb into one.
+		var/stump_preview = new_limb_path::bodypart_flags & BODYPART_STUMP
+		if((IS_STUMP(old_limb) || stump_preview) && old_limb.type != new_limb_path)
+			var/obj/item/bodypart/replacement = new new_limb_path(augmented)
+			if(!replacement.replace_limb(augmented))
+				qdel(replacement)
+				CRASH("Character preview could not replace [body_zone] with [new_limb_path].")
+			qdel(old_limb)
+			old_limb = replacement
+		if(stump_preview)
+			return body_zone
+
 		// for the prefs menu, we're going to swap the icon and vars around to achieve our preview result, instead of allocating and deleting limbs. it's cheaper.
 		old_limb.limb_id        = new_limb_path::limb_id
 		old_limb.bodyshape      = new_limb_path::bodyshape

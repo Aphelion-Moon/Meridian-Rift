@@ -7391,6 +7391,7 @@
 #include "modular_aphelion\modules\bulge\code\redraw.dm"
 #include "modular_aphelion\modules\bulge\code\templates.dm"
 #include "modular_aphelion\modules\character_preview\code\animation.dm"
+#include "modular_aphelion\modules\character_preview\code\runtime_visual_repairs_tests.dm"
 #include "modular_aphelion\modules\character_preview\code\backgrounds.dm"
 #include "modular_aphelion\modules\character_preview\code\drawing.dm"
 #include "modular_aphelion\modules\character_preview\code\effects.dm"

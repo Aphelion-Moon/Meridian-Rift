@@ -198,11 +198,12 @@
 	return !load_and_save || !custom_sprite_savefile.dirty || custom_sprite_savefile.save()
 
 /// Saves and closes every open editor. Returns FALSE when one couldn't be saved; it stays open with its error.
-/datum/preferences/proc/close_custom_sprite_editors(save_changes = TRUE)
+/// When the preferences window or owner is closing, drain accepted strokes before the save instead of waiting for a retry.
+/datum/preferences/proc/close_custom_sprite_editors(save_changes = TRUE, drain_pending_strokes = FALSE)
 	. = TRUE
 	for(var/target in LAZYCOPY(custom_sprite_editors))
 		var/datum/custom_sprite_editor/editor = custom_sprite_editors[target]
-		editor.finish(save_changes)
+		editor.finish(save_changes, drain_pending_strokes)
 		if(!QDELETED(editor))
 			. = FALSE
 

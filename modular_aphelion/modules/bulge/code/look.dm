@@ -161,6 +161,7 @@
 	bulge_cover_state = leaf?.icon_state
 	bulge_cover_tint = leaf?.color
 	bulge_cover_alpha = root ? root.alpha * leaf?.alpha : null
+	bulge_alpha = leaf ? (root == leaf ? leaf.alpha : round(root.alpha * leaf.alpha / 255)) : 255
 	bulge_cover_filtered = istype(garment) ? BULGE_COLOUR_TREATMENT(garment) : null
 	bulge_cover_over = over
 	bulge_cover_x = root ? root.pixel_x + root.pixel_w : 0
@@ -263,8 +264,6 @@
 		state = bulge_uncut_state
 	var/colour = (leaf.color && leaf.color != COLOR_WHITE && leaf.color != "#ffffff") ? leaf.color : null
 	bulge_patch = bulge_print_patch(sprite, state, bulge_template, colour)
-	if(bulge_patch)
-		bulge_alpha = root == leaf ? leaf.alpha : round(root.alpha * leaf.alpha / 255)
 
 /**
  * An adaptive look's palette, from the cover's cloth colour in the family's finish; FALSE when the cover has no colour

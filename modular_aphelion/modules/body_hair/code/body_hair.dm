@@ -163,11 +163,9 @@
 /obj/item/razor/proc/groom_body_hair(mob/living/user, mob/living/carbon/human/target, location)
 	var/feature = location == BODY_ZONE_PRECISE_GROIN ? FEATURE_PUBES : FEATURE_PITS
 	var/hair_name = feature == FEATURE_PUBES ? "pubic hair" : "armpit hair"
-	if(feature == FEATURE_PUBES && target != user)
-		var/datum/client_interface/target_client = GET_CLIENT(target)
-		if(!target_client?.prefs?.read_preference(/datum/preference/toggle/erp))
-			to_chat(user, span_warning("You'd rather not take a razor to [target] there."))
-			return
+	if(!can_groom_body_hair(user, target, feature))
+		to_chat(user, span_warning("You'd rather not take a razor to [target] there."))
+		return
 	var/covering = target.get_body_hair_cover(feature)
 	if(covering)
 		to_chat(user, span_warning("[covering] is in the way!"))
@@ -177,7 +175,7 @@
 		if(style != SPRITE_ACCESSORY_NONE)
 			choices[style] = style
 	var/choice = tgui_input_list(user, "Groom [target == user ? "your" : "[target]'s"] [hair_name] to:", "Grooming", choices)
-	if(isnull(choice) || !user.can_perform_action(src, FORBID_TELEKINESIS_REACH) || !user.Adjacent(target))
+	if(isnull(choice) || !can_groom_body_hair(user, target, feature) || !user.can_perform_action(src, FORBID_TELEKINESIS_REACH) || !user.Adjacent(target))
 		return
 	var/style = choices[choice]
 	if(target.get_body_hair(feature) == style)
@@ -188,10 +186,17 @@
 	if(!self_grooming)
 		to_chat(target, span_notice("[user] starts on your [hair_name] with [src]."))
 	playsound(src, 'sound/items/hair-clippers.ogg', 40, TRUE)
-	if(!do_after(user, shaving_time, target = target) || target.get_body_hair_cover(feature))
+	if(!do_after(user, shaving_time, target = target, extra_checks = CALLBACK(src, PROC_REF(can_groom_body_hair), user, target, feature)) || target.get_body_hair_cover(feature))
 		return
 	target.set_body_hair(feature, style)
 	var/done = style == SPRITE_ACCESSORY_NONE ? "shave off" : "trim"
 	to_chat(user, span_notice("You [done] [self_grooming ? "your" : "[target]'s"] [hair_name][style == SPRITE_ACCESSORY_NONE ? "" : " to [LOWER_TEXT(style)]"]."))
 	if(!self_grooming)
 		to_chat(target, span_notice("[user] [done]s your [hair_name][style == SPRITE_ACCESSORY_NONE ? "" : " to [LOWER_TEXT(style)]"]."))
+
+/// Whether `user` may groom `target`'s `feature` hair - someone else's pubic hair needs their ERP preference.
+/obj/item/razor/proc/can_groom_body_hair(mob/living/user, mob/living/carbon/human/target, feature)
+	if(feature != FEATURE_PUBES || target == user)
+		return TRUE
+	var/datum/client_interface/target_client = GET_CLIENT(target)
+	return target_client?.prefs?.read_preference(/datum/preference/toggle/erp)

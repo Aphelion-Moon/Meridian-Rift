@@ -125,21 +125,32 @@
 	if(istype(mod.theme, /datum/mod_theme/standard/lustwish))
 		.["visor_effect"] = add_ui_configuration("Visor Effect", "bool", visor_effect)
 
-/obj/item/mod/module/lustwish/hypno_visor/configure_edit(key, value)
+/obj/item/mod/module/lustwish/hypno_visor/configure_edit(key, value, datum/tgui/ui)
 	if(module_type != MODULE_TOGGLE) // a snipped wire takes no settings
 		return
 	switch(key)
 		if("hypno_message")
-			if(rewrite_phrase(usr) && active)
+			if(rewrite_phrase(usr, ui) && active)
 				balloon_alert(usr, "restart to finalize changes")
 		if("visor_effect")
 			visor_effect = text2num(value)
 			update_clothing_slots()
 
-/// Asks `user` for a new phrase - a blank one is "Obey". Returns whether they gave one.
-/obj/item/mod/module/lustwish/hypno_visor/proc/rewrite_phrase(mob/user)
+/// Asks `user` for a new phrase - a blank one is "Obey". Returns whether they gave one while they could still set it,
+/// through the window that asked (`ui`) or in hand.
+/obj/item/mod/module/lustwish/hypno_visor/proc/rewrite_phrase(mob/user, datum/tgui/ui)
+	var/obj/item/mod/control/suit = mod
 	var/new_phrase = tgui_input_text(user, "Change the hypnotic phrase.", "Hypnotic Phrase", hypno_message, MAX_MESSAGE_LEN)
-	if(isnull(new_phrase))
+	if(isnull(new_phrase) || mod != suit)
+		return FALSE
+	if(ui) // the window that asked must still let them act
+		if(QDELETED(ui))
+			return FALSE
+		ui.process_status() // the prompt slept - SStgui refreshes this about once a second
+		var/obj/item/mod/remote/remote = ui.src_object
+		if(ui.status != UI_INTERACTIVE || (istype(remote) && (remote.module?.mod != suit || !remote.toy_wearer() || !remote.takes_part(user))))
+			return FALSE
+	else if(!user.is_holding(src))
 		return FALSE
 	hypno_message = new_phrase || initial(hypno_message)
 	return TRUE

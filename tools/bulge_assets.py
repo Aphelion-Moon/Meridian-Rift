@@ -79,13 +79,19 @@ def read_dmi(path: Path):
         atlas = source.convert('RGBA')
     width = int(re.search(r'width\s*=\s*(\d+)', description)[1])
     height = int(re.search(r'height\s*=\s*(\d+)', description)[1])
-    assert atlas.width % width == 0 and atlas.height % height == 0, path
+    if width <= 0 or height <= 0 or atlas.width % width or atlas.height % height:
+        raise ValueError(f"{path.name}: invalid frame dimensions {width}x{height} for atlas {atlas.size}")
     columns = atlas.width // width
+    capacity = columns * (atlas.height // height)
     states, offset = {}, 0
     for match in re.finditer(r'state = "([^"]*)"(.*?)(?=state =|# END|\Z)', description, re.S):
         name, metadata = match.groups()
         directions = int(re.search(r'dirs\s*=\s*(\d+)', metadata)[1])
         frames = int(re.search(r'frames\s*=\s*(\d+)', metadata)[1])
+        if directions <= 0 or frames <= 0:
+            raise ValueError(f"{path.name}: {name} needs positive direction and frame counts")
+        if offset + directions * frames > capacity:
+            raise ValueError(f"{path.name}: {name} declares frames beyond the atlas capacity ({capacity})")
         tiles = []
         for _ in range(directions * frames):
             x, y = (offset % columns) * width, (offset // columns) * height
@@ -607,7 +613,7 @@ def verify(args):
         if kind is None or window is None:
             problems.append('%s: a sheet no rule reads (no window in templates.dm; past small_cap nothing is read from a sheet)' % sheet)
             continue
-        if window[0] + w > 32 or window[1] + h > 32:
+        if window[0] < 0 or window[1] < 0 or window[0] + w > 32 or window[1] + h > 32:
             problems.append('%s: its %dx%d window at %s leaves the 32x32 tile' % (sheet, w, h, window))
         pattern = NAME_PATTERNS[sheet]
         for name, (dirs, frames, tiles) in states.items():
