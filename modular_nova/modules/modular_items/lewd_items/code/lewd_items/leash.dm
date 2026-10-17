@@ -457,11 +457,14 @@
 	else if(end == leash && isturf(leash.loc))
 		followed(leash.loc)
 
-/// Equipped by someone who is not its free end - a hand refused by `on_leash_moved` - the leash goes back to the collar
+/// Equipped by someone who is not its free end - a hand refused by `on_leash_moved` - the leash goes back to the collar.
+/// Moved to another of the free end's hands, the line leaves from that one.
 /datum/component/erp_leash/proc/on_leash_equipped(obj/item/source, mob/equipper, slot)
 	SIGNAL_HANDLER
 	if(free_end == leash)
 		let_go(equipper)
+	else if(free_end == equipper && line)
+		line.set_hand(equipper.get_held_index_of_item(leash))
 
 /// An end moved where no step explains - a teleport, a jaunt, a fall, a shuttle or a lift. A ride moves one end and then
 /// the other, so the ends are checked once the move is done.
@@ -630,6 +633,16 @@
 /// A turn moves the hand - a move in the same tick draws the line from it, or `catch_up` does
 /datum/beam/held/leash/handle_dir_change(atom/movable/source, olddir, newdir)
 	update_offsets(newdir)
+	stale = TRUE
+	addtimer(CALLBACK(src, PROC_REF(catch_up)), 0, TIMER_UNIQUE)
+
+/// The leash went to another of the holder's hands - the line leaves from that one, drawn as after a turn
+/datum/beam/held/leash/proc/set_hand(hand_index)
+	if(!hand_index || hand_index == held_index)
+		return
+	held_index = hand_index
+	lefthand = IS_LEFT_INDEX(held_index)
+	update_offsets(origin.dir)
 	stale = TRUE
 	addtimer(CALLBACK(src, PROC_REF(catch_up)), 0, TIMER_UNIQUE)
 
