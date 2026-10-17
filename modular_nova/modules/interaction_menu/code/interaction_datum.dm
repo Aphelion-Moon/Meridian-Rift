@@ -84,10 +84,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	for(var/requirement in interaction_requires)
 		switch(requirement)
 			if(INTERACTION_REQUIRE_SELF_HAND)
-				if(!user.get_active_hand())
+				if(!user.get_active_hand() && !user.has_hand_for_held_index(user.active_hand_index))
 					return FALSE
 			if(INTERACTION_REQUIRE_TARGET_HAND)
-				if(!target.get_active_hand())
+				if(!target.get_active_hand() && !target.has_hand_for_held_index(target.active_hand_index))
 					return FALSE
 
 			else

@@ -57,7 +57,7 @@
  * If a valid ammo HUD is available, it is enabled and the item is
  * marked as displaying an ammo HUD via a trait.
  *
- * Also registers a hand-swap signal when both hands are holding
+ * Also registers a hand-swap signal when more than one hand is holding
  * HUD-capable items to ensure the display reflects the active hand.
  *
  * Signal handler for COMSIG_ITEM_EQUIPPED.
@@ -77,11 +77,10 @@
 	if(hud)
 		hud.turn_on()
 		ADD_TRAIT(source, TRAIT_DISPLAYING_AMMO_HUD, REF(src))
-		update_hud(source, hud)
+		update_hud(get_display_item(equipper) || source, hud)
 
-		// If the inactive item is also HUD-capable, listen for COMSIG_MOB_SWAP_HANDS so we can switch ammo HUDs
-		var/obj/item/inactive_held_item = equipper.get_inactive_held_item()
-		if(inactive_held_item && HAS_TRAIT(inactive_held_item, TRAIT_DISPLAYING_AMMO_HUD))
+		// If another held item is also HUD-capable, listen for COMSIG_MOB_SWAP_HANDS so we can switch ammo HUDs
+		if(count_display_items(equipper) > 1)
 			RegisterSignal(equipper, COMSIG_MOB_SWAP_HANDS, PROC_REF(on_hands_swap), override = TRUE)
 
 /**
@@ -102,25 +101,17 @@
 /datum/element/ammo_hud/proc/on_dropped(datum/source, mob/living/dropper)
 	SIGNAL_HANDLER
 
+	REMOVE_TRAIT(source, TRAIT_DISPLAYING_AMMO_HUD, REF(src))
 	var/atom/movable/screen/ammo_counter/hud = get_hud(dropper)
-	var/obj/item/active_held_item = dropper.get_active_held_item()
-	var/obj/item/inactive_held_item = dropper.get_inactive_held_item()
 	if(hud)
-		// Determine if we still have a HUD-capable item in either hand
-		if(isnull(inactive_held_item) || !HAS_TRAIT(inactive_held_item, TRAIT_DISPLAYING_AMMO_HUD))
-			inactive_held_item = null
-		if(isnull(active_held_item) || !HAS_TRAIT(active_held_item, TRAIT_DISPLAYING_AMMO_HUD))
-			active_held_item = null
-
 		// Turn off our ammo HUD only if there are no guns in our hands
-		var/obj/item/remaining_item = active_held_item || inactive_held_item
+		var/obj/item/remaining_item = get_display_item(dropper)
 		if(remaining_item)
 			update_hud(remaining_item, hud)
 		else
 			hud.turn_off()
 
-	REMOVE_TRAIT(source, TRAIT_DISPLAYING_AMMO_HUD, REF(src))
-	if(isnull(active_held_item) || isnull(inactive_held_item)) // only unregister if we no longer are dual wielding ammo counter items
+	if(count_display_items(dropper) < 2) // only unregister if we no longer are dual wielding ammo counter items
 		UnregisterSignal(dropper, COMSIG_MOB_SWAP_HANDS)
 
 /**
@@ -139,12 +130,13 @@
 /datum/element/ammo_hud/proc/on_hands_swap(mob/living/source, obj/item/swapped_to, obj/item/swapped_from)
 	SIGNAL_HANDLER
 
-	if(isnull(swapped_to) || !HAS_TRAIT(swapped_to, TRAIT_DISPLAYING_AMMO_HUD))
+	var/obj/item/held_item = get_display_item(source)
+	if(isnull(held_item))
 		return
 
 	var/atom/movable/screen/ammo_counter/hud = get_hud(source)
 	if(hud && hud.on)
-		update_hud(swapped_to, hud)
+		update_hud(held_item, hud)
 
 /**
  * Determines whether the given item should currently update the ammo HUD.
@@ -162,16 +154,40 @@
  * * FALSE if the update should be suppressed.
  */
 /datum/element/ammo_hud/proc/should_update(obj/item/to_update)
-	// Make sure we are not updating the inactive hand when we have an active hand counter already
+	// Make sure only the item the HUD is showing updates it, so held counters don't fight over the display
 	var/mob/living/equipper = to_update.loc
 	if(!ismob(equipper))
 		return FALSE
-	var/obj/item/active_held_item = equipper.get_active_held_item()
-	var/obj/item/inactive_held_item = equipper.get_inactive_held_item()
-	if(!isnull(active_held_item) && inactive_held_item == to_update && HAS_TRAIT(active_held_item, TRAIT_DISPLAYING_AMMO_HUD))
-		return FALSE
 
-	return HAS_TRAIT(to_update, TRAIT_DISPLAYING_AMMO_HUD)
+	return HAS_TRAIT(to_update, TRAIT_DISPLAYING_AMMO_HUD) && get_display_item(equipper) == to_update
+
+/**
+ * Returns the held item the ammo HUD should show: the active hand's item
+ * if it displays one, otherwise the first held item that does.
+ *
+ * Arguments:
+ * * holder - The mob holding the items.
+ */
+/datum/element/ammo_hud/proc/get_display_item(mob/holder)
+	var/obj/item/active_held_item = holder.get_active_held_item()
+	if(active_held_item && HAS_TRAIT(active_held_item, TRAIT_DISPLAYING_AMMO_HUD))
+		return active_held_item
+	for(var/obj/item/held_item as anything in holder.get_held_items())
+		if(HAS_TRAIT(held_item, TRAIT_DISPLAYING_AMMO_HUD))
+			return held_item
+	return null
+
+/**
+ * Counts how many held items display an ammo HUD.
+ *
+ * Arguments:
+ * * holder - The mob holding the items.
+ */
+/datum/element/ammo_hud/proc/count_display_items(mob/holder)
+	. = 0
+	for(var/obj/item/held_item as anything in holder.get_held_items())
+		if(HAS_TRAIT(held_item, TRAIT_DISPLAYING_AMMO_HUD))
+			.++
 
 /**
  * Dispatches an ammo HUD update based on the item's type.

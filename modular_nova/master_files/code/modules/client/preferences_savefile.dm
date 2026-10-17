@@ -3,7 +3,7 @@
  * You can't really use the non-modular version, least you eventually want asinine merge
  * conflicts and/or potentially disastrous issues to arise, so here's your own.
  */
-#define MODULAR_SAVEFILE_VERSION_MAX 22
+#define MODULAR_SAVEFILE_VERSION_MAX 23
 
 #define MODULAR_SAVEFILE_UP_TO_DATE -1
 
@@ -28,6 +28,7 @@
 #define VERSION_HEMOPHAGE_SPECIES_REMOVAL 20
 #define VERSION_MARKING_DATUMS 21
 #define VERSION_MARKING_CONTENT 22
+#define VERSION_MOTH_EXTRA_ARMS 23
 
 #define INDEX_UNDERWEAR 1
 #define INDEX_BRA 2
@@ -360,6 +361,10 @@
 		// them inert (2023): their keys go, and nothing takes their place.
 		for(var/legacy_key in list("feature_body_markings", "body_markings_color", "body_markings_emissive", "body_markings_toggle", "feature_moth_markings", "moth_markings_color", "moth_markings_emissive", "moth_markings_toggle"))
 			save_data -= legacy_key
+
+	// Moths made before moths grew chest arms keep the two they had; new moths, and old characters made moths later, start with four
+	if(current_version < VERSION_MOTH_EXTRA_ARMS && ispath(read_preference(/datum/preference/choiced/species), /datum/species/moth))
+		write_preference(GLOB.preference_entries[/datum/preference/toggle/moth_extra_arms], FALSE)
 
 /**
  * Returns whether turning allow_mismatched_parts on would leave how this character is drawn as it is. The toggle reaches a body
@@ -714,6 +719,7 @@
 #undef VERSION_HEMOPHAGE_SPECIES_REMOVAL
 #undef VERSION_MARKING_DATUMS
 #undef VERSION_MARKING_CONTENT
+#undef VERSION_MOTH_EXTRA_ARMS
 #undef INDEX_UNDERWEAR
 #undef INDEX_BRA
 #undef VERSION_HEIGHT_UPDATE

@@ -1227,9 +1227,7 @@
 "art" = (
 /obj/machinery/door/firedoor,
 /obj/structure/table/reinforced,
-/obj/structure/displaycase/forsale{
-	pixel_y = 8
-	},
+/obj/structure/tipjar,
 /turf/open/floor/wood,
 /area/station/hallway/secondary/entry)
 "ary" = (
@@ -9160,9 +9158,7 @@
 /area/station/engineering/supermatter/room)
 "cJP" = (
 /obj/structure/table/wood,
-/obj/structure/displaycase/forsale{
-	pixel_y = 8
-	},
+/obj/structure/tipjar,
 /obj/structure/railing{
 	dir = 6
 	},
@@ -12719,9 +12715,7 @@
 /area/station/service/kitchen/abandoned)
 "dJF" = (
 /obj/structure/table/wood,
-/obj/structure/displaycase/forsale{
-	pixel_y = 8
-	},
+/obj/structure/tipjar,
 /obj/structure/railing{
 	dir = 10
 	},
@@ -14618,9 +14612,7 @@
 /turf/open/floor/mineral/plastitanium/pod/dark,
 /area/station/service/chapel)
 "ein" = (
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /obj/machinery/door/firedoor,
 /obj/structure/table/reinforced,
 /obj/machinery/door/poddoor/shutters/preopen{
@@ -41368,9 +41360,7 @@
 /area/station/maintenance/department/engine/atmos/lesser)
 "lEn" = (
 /obj/structure/table/wood,
-/obj/structure/displaycase/forsale{
-	pixel_y = 8
-	},
+/obj/structure/tipjar,
 /obj/structure/railing{
 	dir = 5
 	},
@@ -45837,9 +45827,7 @@
 	id = "kitchen_counter";
 	name = "Kitchen Counter Shutters"
 	},
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/iron/cafeteria,
 /area/station/service/kitchen)
 "mPl" = (
@@ -49993,9 +49981,7 @@
 /area/station/command/teleporter)
 "nWc" = (
 /obj/structure/table/wood,
-/obj/structure/displaycase/forsale{
-	pixel_y = 8
-	},
+/obj/structure/tipjar,
 /obj/structure/railing{
 	dir = 9
 	},
@@ -86024,9 +86010,7 @@
 "xNd" = (
 /obj/machinery/door/firedoor,
 /obj/structure/table/reinforced,
-/obj/structure/displaycase/forsale{
-	pixel_y = 8
-	},
+/obj/structure/tipjar,
 /obj/effect/turf_decal/siding/wood{
 	dir = 8
 	},

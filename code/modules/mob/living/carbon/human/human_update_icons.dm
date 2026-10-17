@@ -606,7 +606,7 @@ There are several things that need to be remembered:
 		hands += hand_overlay
 		*/ // NOVA EDIT REMOVAL END
 		// NOVA EDIT ADDITION START - Psionic holding
-		if(HAS_TRAIT(src, TRAIT_FLOATING_HELD))
+		if(HAS_TRAIT(src, TRAIT_FLOATING_HELD) && held_index <= 2) // one hover holder per side, so extra hands hold normally
 			if(!held_left)
 				held_left = new(src)
 				held_left.render_target = "*[REF(src)]_hover_left"
