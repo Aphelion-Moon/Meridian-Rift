@@ -70,7 +70,7 @@
 	if(!gallery_canvas_size())
 		dialog = list("type" = "error", "message" = "[current_workspace.width]x[current_workspace.height] is not a canvas size. Art Galaxy accepts [gallery_size_list()].")
 		return
-	var/datum/painting/source_painting = source_photo_or_painting
+	var/datum/painting/source_painting = source_photo_or_painting || source_on_undo_all
 	dialog = list(
 		"type" = "gallery",
 		"defaultTitle" = istype(source_painting) ? source_painting.title : "Untitled Artwork",

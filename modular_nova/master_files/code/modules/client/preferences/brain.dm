@@ -35,9 +35,7 @@
 
 	new_brain = new new_brain()
 
-	new_brain.modular_persistence = old_brain.modular_persistence
-	old_brain.modular_persistence = null
-	new_brain.modular_persistence?.owner_brain = WEAKREF(new_brain)
+	old_brain.modular_persistence?.transfer_to_brain(new_brain)
 
 	new_brain.Insert(target, movement_flags = DELETE_IF_REPLACED)
 

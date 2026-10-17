@@ -113,7 +113,7 @@
 			var/obj/item/mod/module/module = locate(params["ref"]) in modules
 			if(!module)
 				return
-			module.configure_edit(params["key"], params["value"])
+			module.configure_edit(params["key"], params["value"], ui) // APHELION EDIT CHANGE - ADULT_ITEMS - ORIGINAL: module.configure_edit(params["key"], params["value"])
 		if("pin")
 			var/obj/item/mod/module/module = locate(params["ref"]) in modules
 			if(!module)

@@ -100,9 +100,13 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	var/list/cached_character_profiles
 
 /datum/preferences/Destroy(force)
-	close_custom_sprite_editors() // APHELION EDIT ADDITION
-	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
+	// APHELION EDIT ADDITION START - CUSTOM_EDITOR_LIFETIME - Saving editors must not rebuild a departing preview.
+	preview_drawing?.window_closed()
 	QDEL_NULL(character_preview_view)
+	// APHELION EDIT ADDITION END
+	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT CHANGE - CUSTOM_EDITOR_LIFETIME - ORIGINAL: close_custom_sprite_editors()
+	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
+	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.
 	QDEL_LIST(middleware)
 	value_cache = null
 	return ..()
@@ -385,11 +389,14 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	return FALSE
 
 /datum/preferences/ui_close(mob/user)
-	close_custom_sprite_editors() // APHELION EDIT ADDITION - Flush before the parent preview disappears
+	// APHELION EDIT ADDITION START - CUSTOM_EDITOR_LIFETIME - End the drawing session before editor saves publish their changes.
+	preview_drawing?.window_closed()
+	QDEL_NULL(character_preview_view)
+	// APHELION EDIT ADDITION END
+	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT CHANGE - CUSTOM_EDITOR_LIFETIME - ORIGINAL: close_custom_sprite_editors()
 	save_character()
 	save_preferences()
-	QDEL_NULL(character_preview_view)
-	preview_drawing?.window_closed() // APHELION EDIT ADDITION - The drawn preview goes with the window
+	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.
 	cached_character_profiles = null
 
 /datum/preferences/Topic(href, list/href_list)

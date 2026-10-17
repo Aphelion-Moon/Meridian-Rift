@@ -356,7 +356,7 @@
 	return list("display_name" = display_name, "type" = type, "value" = value, "values" = values)
 
 /// Receives configure edits from the TGUI and edits the vars
-/obj/item/mod/module/proc/configure_edit(key, value)
+/obj/item/mod/module/proc/configure_edit(key, value, datum/tgui/ui) // APHELION EDIT CHANGE - ADULT_ITEMS - ORIGINAL: /obj/item/mod/module/proc/configure_edit(key, value)
 	return
 
 /// Called when the device moves to a different place on active modules
