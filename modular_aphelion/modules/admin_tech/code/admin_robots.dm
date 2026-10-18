@@ -101,8 +101,7 @@
 	disguise_action_ref = WEAKREF(disguise)
 	xray_vision.Grant(borg)
 	xray_vision_ref = WEAKREF(xray_vision)
-	borg.sight_mode |= BORGXRAY
-	borg.update_sight()
+	ADD_TRAIT(borg, TRAIT_XRAY_VISION, ACTION_TRAIT)
 
 // Sets up a new action to divorce the shapeshifter item into a hard function, so admin borgs can remain stealthed as whatever regardless what they are doing.
 // This does use a lot of the original item code. I don't know if this can be done better.
@@ -257,18 +256,18 @@
 	button_icon_state = "meson"
 	cooldown_time = 0.5 SECONDS
 
-// Processes the action and sets our sightmodes
+// Processes the action and toggles our x-ray vision
 /datum/action/cooldown/borg_xray/Activate()
-	var/mob/living/silicon/robot/borg = owner
-	if(!istype(borg))
-		return
-	if(borg.sight_mode & BORGXRAY)
-		borg.sight_mode &= ~BORGXRAY
+	if(HAS_TRAIT_FROM(owner, TRAIT_XRAY_VISION, ACTION_TRAIT))
+		REMOVE_TRAIT(owner, TRAIT_XRAY_VISION, ACTION_TRAIT)
 	else
-		borg.sight_mode |= BORGXRAY
-	borg.update_sight()
+		ADD_TRAIT(owner, TRAIT_XRAY_VISION, ACTION_TRAIT)
 	..()
 	return TRUE
+
+/datum/action/cooldown/borg_xray/Remove(mob/remove_from)
+	REMOVE_TRAIT(remove_from, TRAIT_XRAY_VISION, ACTION_TRAIT)
+	return ..()
 
 // Spawnable Mob for the base model + additional config and benefits
 /mob/living/silicon/robot/model/admin

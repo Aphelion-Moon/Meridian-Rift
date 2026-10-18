@@ -110,15 +110,16 @@
 		RegisterSignal(SSdcs, COMSIG_GLOB_TRAPDOOR_LINK, PROC_REF(on_link_requested))
 	else
 		RegisterSignal(assembly, COMSIG_ASSEMBLY_PULSED, PROC_REF(toggle_trapdoor))
+		RegisterSignal(parent, COMSIG_ATOM_TOOL_ACT(TOOL_MULTITOOL), PROC_REF(try_unlink))
 	// NOVA EDIT START - Trapdoors shouldn't be targeted by SSDecay.
 	if(isturf(parent))
 		var/turf/turf_parent = parent
 		turf_parent.turf_flags &= ~CAN_DECAY_BREAK_1
 	// NOVA EDIT END
-		RegisterSignal(parent, COMSIG_ATOM_TOOL_ACT(TOOL_MULTITOOL), PROC_REF(try_unlink))
 	RegisterSignal(parent, COMSIG_ATOM_ITEM_INTERACTION, PROC_REF(try_link))
 	RegisterSignal(parent, COMSIG_SHUTTLE_TURF_SHOULD_MOVE_SPECIAL, PROC_REF(should_move_special))
 	RegisterSignal(parent, COMSIG_SHUTTLE_TURF_ON_MOVE_SPECIAL, PROC_REF(on_move_special))
+	RegisterSignal(parent, COMSIG_ATOM_EMP_ACT, PROC_REF(on_emp_act))
 
 /datum/component/trapdoor/UnregisterFromParent()
 	. = ..()
@@ -131,6 +132,7 @@
 	UnregisterSignal(parent, COMSIG_ATOM_ITEM_INTERACTION)
 	UnregisterSignal(parent, COMSIG_SHUTTLE_TURF_SHOULD_MOVE_SPECIAL)
 	UnregisterSignal(parent, COMSIG_SHUTTLE_TURF_ON_MOVE_SPECIAL)
+	UnregisterSignal(parent, COMSIG_ATOM_EMP_ACT)
 
 /datum/component/trapdoor/proc/try_unlink(turf/source, mob/user, obj/item/tool)
 	SIGNAL_HANDLER
@@ -330,6 +332,15 @@
 	SIGNAL_HANDLER
 	new_turf.TakeComponent(src)
 
+/datum/component/trapdoor/proc/on_emp_act(datum/source, severity, protection)
+	SIGNAL_HANDLER
+
+	if(protection & EMP_PROTECT_SELF)
+		return
+
+	if(prob(75 / severity))
+		toggle_trapdoor()
+
 #undef IS_OPEN
 
 /obj/item/assembly/trapdoor
@@ -454,6 +465,16 @@
 	COOLDOWN_START(src, trapdoor_cooldown, trapdoor_cooldown_time)
 	internals.pulsed(user)
 	return TRUE
+
+/obj/item/trapdoor_remote/emp_act(severity)
+	. = ..()
+	if(. & EMP_PROTECT_SELF)
+		return
+	if(!(internals?.linked))
+		return
+
+	if(prob(75 / severity))
+		internals.pulsed()
 
 /obj/item/trapdoor_remote/item_ctrl_click(mob/user)
 	if (!user.is_holding(src))

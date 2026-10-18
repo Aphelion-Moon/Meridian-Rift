@@ -70,6 +70,34 @@ describe('groupSpecies', () => {
     ]);
   });
 
+  it('lists templates after their family, with their subtypes on their own', () => {
+    const withTemplates: SpeciesMap = {
+      ...species,
+      anthro: testSpecies({
+        name: 'Anthromorph',
+        family: 'mammalian',
+        template: true,
+      }),
+      synthetic: testSpecies({
+        name: 'Synthetic',
+        family: 'synthetic',
+        template: true,
+      }),
+      holosynth: testSpecies({
+        name: 'Holosynth',
+        family: 'synthetic',
+        variant_of: 'synthetic',
+      }),
+    };
+    const grouped = groupSpecies(withTemplates, testFamilies);
+    const roots = (id: string) =>
+      grouped
+        .find(({ family }) => family.id === id)
+        ?.lineages.map(({ root }) => root);
+    expect(roots('mammalian')).toEqual(['human', 'dwarf', 'anthro']);
+    expect(roots('synthetic')).toEqual(['holosynth', 'synthetic']);
+  });
+
   it('lists every species once, even through a variant_of cycle', () => {
     const cyclic: SpeciesMap = {
       a: testSpecies({ name: 'A', family: 'avian', variant_of: 'b' }),

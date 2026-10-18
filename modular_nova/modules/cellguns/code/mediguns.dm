@@ -12,7 +12,7 @@
 	modifystate = 1
 	ammo_x_offset = 3
 	charge_sections = 3
-	maxcells = 3
+	max_cells = 3
 	allowed_cells = list(/obj/item/weaponcell/medical)
 	item_flags = null
 	gun_flags = TURRET_INCOMPATIBLE
@@ -31,7 +31,7 @@
 	name = "\improper Vey-Medical CWM-479-FC cell-powered medigun"
 	desc = "This is an upgraded variant of the standard CWM-479 medigun. The chamber has been expanded to fit another medicell, in addition to a larger, faster charging battery."
 	cell_type = /obj/item/stock_parts/power_store/cell/medigun/upgraded
-	maxcells = 4
+	max_cells = 4
 
 /obj/item/gun/energy/cell_loaded/medigun/upgraded/Initialize(mapload)
 	. = ..()
@@ -43,7 +43,7 @@
 	name = "\improper Vey-Medical CWM-479-CC cell-powered medigun"
 	desc = "The most advanced version of the CWM-479 line of mediguns. It features slots for five medicells and the largest battery produced by Vey-Med."
 	cell_type = /obj/item/stock_parts/power_store/cell/medigun/experimental
-	maxcells = 5
+	max_cells = 5
 	selfcharge = 1
 	can_charge = FALSE
 
@@ -106,7 +106,7 @@
 
 /obj/item/device/custom_kit/medigun_fastcharge/pre_convert_check(obj/target_obj, mob/user)
 	var/obj/item/gun/energy/cell_loaded/medigun/standard/our_medigun = target_obj
-	if(length(our_medigun.installedcells))
+	if(length(our_medigun.installed_cells))
 		balloon_alert(user, "unload it first!")
 		return FALSE
 	return TRUE

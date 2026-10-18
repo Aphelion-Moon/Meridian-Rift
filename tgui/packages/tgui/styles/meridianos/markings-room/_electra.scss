@@ -1,0 +1,372 @@
+// THIS IS AN APHELION UI FILE
+// The Electra markings room, ported from its mockup (the lab's markings-themes run,
+// canvas/project/Main.dc.html) by the themes-impl run's tools/port_room.py: the club room is the base,
+// and these are its changes. Hand edits below the port are marked HAND.
+
+.theme-meridian_electra .AugmentsRoom {
+  --room-bg:#080d10;
+  --room-panel:#0d171d;
+  --room-recess:#091217;
+  --room-line:#4b6b78;
+  --room-text:#e6eef1;
+  --room-muted:#9fb2bc;
+  --room-faint:#7a8f99;
+  --room-neon:#58d1c9;
+  --room-neon-rgb:88 209 201;
+  --room-hot:#ffd84d;
+  --room-hot-rgb:255 216 77;
+  --room-focus:#ffd84d;
+  --room-cut:4px;
+}
+.theme-meridian_electra .AugmentsRoom__bg--markings {
+  background:radial-gradient(ellipse 32% 46% at 50% 44%,rgb(88 209 201/.16),transparent 72%),linear-gradient(180deg,rgb(4 8 11/.42),rgb(3 6 8/.8)),var(--mr-electra-slate,none) 0 0/900px 820px;
+}
+.theme-meridian_electra .AugmentsRoom--markings .AugmentsRoom__header {
+  border-bottom-color:rgb(88 209 201/.22);
+}
+.theme-meridian_electra .AugmentsRoom__mode--markings {
+  padding:0 18px;
+  border-radius:2px;
+  font:14px/1 Michroma,sans-serif;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+.theme-meridian_electra .AugmentsRoom__mode--markings.AugmentsRoom__mode--on {
+  color:#e6fbf9;
+  background:#0b1a1f;
+  box-shadow:inset 0 0 0 1px rgb(88 209 201/.55),inset 0 -2px 0 #58d1c9,0 0 18px rgb(88 209 201/.22);
+  text-shadow:0 0 8px rgb(88 209 201/.8);
+}
+.theme-meridian_electra .AugmentsRoom__mode--markings.AugmentsRoom__mode--on::before,
+.theme-meridian_electra .AugmentsRoom__mode--markings.AugmentsRoom__mode--on::after {
+  content:'';
+  position:absolute;
+  width:8px;
+  height:8px;
+  border:0 solid #ffd84d;
+}
+.theme-meridian_electra .AugmentsRoom__mode--markings.AugmentsRoom__mode--on::before {
+  left:-3px;
+  top:-3px;
+  border-width:2px 0 0 2px;
+}
+.theme-meridian_electra .AugmentsRoom__mode--markings.AugmentsRoom__mode--on::after {
+  right:-3px;
+  bottom:-3px;
+  border-width:0 2px 2px 0;
+}
+.theme-meridian_electra .AugmentsRoom__uv {
+  border-radius:2px;
+}
+.theme-meridian_electra .MarkingsRoom__glass {
+  left:20px;
+  top:22px;
+  width:320px;
+  height:528px;
+  border-radius:24px;
+  background:linear-gradient(180deg,rgb(88 209 201/.06),transparent 30%),radial-gradient(ellipse 90% 70% at 50% 40%,#122028,#060b0e 85%);
+  box-shadow:0 0 0 1px rgb(220 255 252/.28),0 0 0 3px #071014,0 0 26px 6px rgb(88 209 201/.42),0 0 80px 18px rgb(88 209 201/.14),0 22px 40px rgb(0 0 0/.6);
+}
+.theme-meridian_electra .MarkingsRoom__glass::after {
+  content:'';
+  position:absolute;
+  inset:7px;
+  z-index:3;
+  border-radius:18px;
+  box-shadow:inset 0 0 0 1px rgb(88 209 201/.32),inset 0 0 14px rgb(88 209 201/.12);
+  pointer-events:none;
+}
+.theme-meridian_electra .MarkingsRoom__rim.MarkingsRoom__rim--top {
+  background:linear-gradient(180deg, rgb(160 245 238/.34) var(--tile-top), rgb(88 209 201/.08) calc(var(--tile-top) + 13.44 * var(--pixel)), transparent calc(var(--tile-top) + 22.4 * var(--pixel)));
+}
+.theme-meridian_electra .MarkingsRoom__rim.MarkingsRoom__rim--side {
+  background:linear-gradient(90deg, transparent calc(var(--tile-left) + 16.333 * var(--pixel)), rgb(88 209 201/.42) calc(var(--tile-left) + 24 * var(--pixel)));
+}
+.theme-meridian_electra .MarkingsRoom__glare {
+  background:linear-gradient(118deg,transparent 0 24%,rgb(255 255 255/.045) 31%,transparent 40%);
+}
+.theme-meridian_electra .AugmentsRoom .hud-time {
+  position:absolute;
+  left:26px;
+  top:22px;
+  font:28px/1 Michroma,sans-serif;
+  letter-spacing:.04em;
+  color:rgb(230 248 246/.86);
+  text-shadow:0 0 12px rgb(88 209 201/.45);
+}
+.theme-meridian_electra .AugmentsRoom .hud-env {
+  position:absolute;
+  right:28px;
+  top:24px;
+  text-align:right;
+  font:9px/1.7 Michroma,sans-serif;
+  letter-spacing:.16em;
+  color:rgb(159 178 188/.85);
+}
+.theme-meridian_electra .AugmentsRoom .hud-env b {
+  display:block;
+  font:16px/1.2 Michroma,sans-serif;
+  letter-spacing:.04em;
+  color:rgb(230 248 246/.82);
+}
+.theme-meridian_electra .AugmentsRoom .hud-env small {
+  margin-left:2px;
+  font:11px/1 Verdana,sans-serif;
+  vertical-align:4px;
+}
+.theme-meridian_electra .AugmentsRoom .hud-keys {
+  position:absolute;
+  left:50%;
+  bottom:24px;
+  display:flex;
+  gap:16px;
+  transform:translateX(-50%);
+}
+.theme-meridian_electra .AugmentsRoom .hud-keys span {
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  box-shadow:inset 0 0 0 1px rgb(88 209 201/.45);
+  background:rgb(5 12 15/.5);
+}
+.theme-meridian_electra .AugmentsRoom .hud-keys .hk-light {
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  pointer-events:auto;
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgb(88 209 201/.45);
+  background:rgb(5 12 15/.5);
+  transition:box-shadow .2s,background-color .2s;
+}
+.theme-meridian_electra .AugmentsRoom .hud-keys .hk-light:hover {
+  box-shadow:inset 0 0 0 1px #a0f5ee,0 0 10px rgb(88 209 201/.45);
+}
+.theme-meridian_electra .AugmentsRoom .hud-keys .hk-light.on {
+  background:rgb(255 216 77/.16);
+  box-shadow:inset 0 0 0 1px #ffd84d,0 0 12px rgb(255 216 77/.55);
+}
+.theme-meridian_electra .AugmentsRoom .hud-keys .hk-light.on svg {
+  stroke:#ffe68a;
+}
+.theme-meridian_electra .AugmentsRoom--uv .MarkingsRoom__decor .hk-light {
+  filter:brightness(2.6);
+}
+.theme-meridian_electra .AugmentsRoom .hud-keys svg {
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:rgb(160 245 238/.85);
+  stroke-width:1.4;
+  stroke-linecap:round;
+}
+.theme-meridian_electra .AugmentsRoom .ycorner {
+  position:absolute;
+  width:14px;
+  height:14px;
+  border:0 solid #ffd84d;
+  filter:drop-shadow(0 0 3px rgb(255 216 77/.6));
+}
+.theme-meridian_electra .AugmentsRoom .ycorner.a {
+  left:14px;
+  top:14px;
+  border-width:2px 0 0 2px;
+  border-top-left-radius:10px;
+}
+.theme-meridian_electra .AugmentsRoom .ycorner.b {
+  right:14px;
+  top:14px;
+  border-width:2px 2px 0 0;
+  border-top-right-radius:10px;
+}
+.theme-meridian_electra .AugmentsRoom .ycorner.c {
+  left:14px;
+  bottom:14px;
+  border-width:0 0 2px 2px;
+  border-bottom-left-radius:10px;
+}
+.theme-meridian_electra .AugmentsRoom .ycorner.d {
+  right:14px;
+  bottom:14px;
+  border-width:0 2px 2px 0;
+  border-bottom-right-radius:10px;
+}
+.theme-meridian_electra .MarkingsRoom__card {
+  border:1px solid rgb(88 209 201/.36);
+  border-radius:3px;
+  color:#9fb2bc;
+  background:linear-gradient(180deg,rgb(24 48 58/.92),rgb(12 22 28/.95));
+  box-shadow:0 8px 18px rgb(0 0 0/.5);
+}
+.theme-meridian_electra .MarkingsRoom__card::after {
+  display:none;
+}
+.theme-meridian_electra .MarkingsRoom__card.MarkingsRoom__card--lit {
+  border-color:#58d1c9;
+  box-shadow:0 0 0 1px rgb(88 209 201/.4),0 0 22px rgb(88 209 201/.28),0 8px 18px rgb(0 0 0/.5);
+}
+.theme-meridian_electra .MarkingsRoom__cardX1,
+.theme-meridian_electra .MarkingsRoom__cardX2 {
+  width:10px;
+  height:10px;
+  border:0 solid #ffd84d;
+}
+.theme-meridian_electra .MarkingsRoom__cardX1 {
+  left:-1px;
+  top:-1px;
+  border-width:2px 0 0 2px;
+}
+.theme-meridian_electra .MarkingsRoom__cardX2 {
+  right:-1px;
+  bottom:-1px;
+  border-width:0 2px 2px 0;
+}
+.theme-meridian_electra .MarkingsRoom__cardName {
+  font:12px/1 Michroma,sans-serif;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#58d1c9;
+  text-shadow:0 0 8px rgb(88 209 201/.45);
+}
+.theme-meridian_electra .MarkingsRoom__tile {
+  border-radius:4px;
+  background:#0a1418;
+  box-shadow:inset 0 0 0 1px rgb(88 209 201/.45);
+}
+.theme-meridian_electra .MarkingsRoom__tile.MarkingsRoom__tile--selected {
+  box-shadow:inset 0 0 0 1px rgb(88 209 201/.45),0 0 0 2px #ffd84d,0 0 12px rgb(255 216 77/.45);
+}
+.theme-meridian_electra .MarkingsRoom__tile.MarkingsRoom__tile--add {
+  border:1px dashed rgb(88 209 201/.4);
+  color:#58d1c9;
+}
+.theme-meridian_electra .MarkingsRoom__tile.MarkingsRoom__tile--add:hover {
+  border-color:#58d1c9;
+  color:#a0f5ee;
+}
+.theme-meridian_electra .MarkingsRoom__counter {
+  background:linear-gradient(180deg,rgb(255 255 255/.06),transparent 8px),linear-gradient(180deg,rgb(6 12 15/.35),rgb(4 8 10/.7)),var(--mr-electra-slate,none) 0 -480px/900px 820px;
+  box-shadow:0 -2px 0 rgb(0 0 0/.5),0 -20px 40px rgb(0 0 0/.5);
+}
+.theme-meridian_electra .MarkingsRoom__counter::before {
+  height:2px;
+  background:#58d1c9;
+  box-shadow:0 0 6px #58d1c9,0 0 18px rgb(88 209 201/.6);
+}
+.theme-meridian_electra .MarkingsRoom__pill,
+.theme-meridian_electra .MarkingsRoom__big {
+  border-radius:3px;
+}
+.theme-meridian_electra .MarkingsRoom__big {
+  background:linear-gradient(180deg,rgb(255 255 255/.05),rgb(0 0 0/.15)),rgb(88 209 201/.06);
+}
+.theme-meridian_electra .MarkingsRoom__big.MarkingsRoom__big--alt:hover,
+.theme-meridian_electra .MarkingsRoom__pill:hover:not(:disabled) {
+  box-shadow:inset 0 0 0 1px #ffd84d,0 0 14px rgb(255 216 77/.2);
+}
+.theme-meridian_electra .MarkingsRoom__markerCap {
+  width:6px;
+  height:8px;
+  margin-top:1px;
+  border-radius:50% 50% 1px 1px/90% 90% 1px 1px;
+  background:var(--marker);
+  box-shadow:0 0 5px var(--marker),0 0 12px var(--marker);
+}
+.theme-meridian_electra .MarkingsRoom__markerBody {
+  width:9px;
+  height:34px;
+  border-radius:1px 1px 4px 4px;
+  background:linear-gradient(90deg,rgb(255 255 255/.22),transparent 40%,rgb(0 0 0/.45)),linear-gradient(180deg,#c8d2d6 0 3px,#1c262b 3px 24px,var(--marker) 24px 26px,#1c262b 26px);
+  box-shadow:0 2px 4px rgb(0 0 0/.5);
+}
+.theme-meridian_electra .MarkingsRoom__marker.MarkingsRoom__marker--current .MarkingsRoom__markerBody {
+  box-shadow:0 0 0 2px #ffd84d,0 0 10px var(--marker);
+}
+.theme-meridian_electra .MarkingsRoom__marker--mix .MarkingsRoom__markerCap {
+  width:6px;
+  height:8px;
+  margin-top:1px;
+  border-radius:50% 50% 1px 1px/90% 90% 1px 1px;
+  background:conic-gradient(#ff3fa4,#ffb020,#9dff4a,#2ff3e0,#3f8cff,#a066ff,#ff3fa4);
+  box-shadow:0 0 8px rgb(255 255 255/.6);
+}
+.theme-meridian_electra .MarkingsRoom__marker--mix .MarkingsRoom__markerBody {
+  width:9px;
+  height:34px;
+  border-radius:1px 1px 4px 4px;
+  background:linear-gradient(90deg,rgb(255 255 255/.22),transparent 40%,rgb(0 0 0/.45)),linear-gradient(180deg,#c8d2d6 0 3px,#1c262b 3px 22px,#ff3fa4 22px 24px,#2ff3e0 24px 26px,#ffb020 26px 28px,#1c262b 28px);
+}
+.theme-meridian_electra .MarkingsRoom__drawer {
+  rotate:0deg;
+  border-radius:4px;
+  color:#e6eef1;
+  background:linear-gradient(180deg,#132730,#0b161b);
+  box-shadow:0 0 0 1px rgb(88 209 201/.45),0 24px 60px rgb(0 0 0/.7);
+}
+.theme-meridian_electra .MarkingsRoom__drawerTitle {
+  font:15px/1 Michroma,sans-serif;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:#58d1c9;
+}
+.theme-meridian_electra .MarkingsRoom__drawerSub,
+.theme-meridian_electra .MarkingsRoom__footMeta,
+.theme-meridian_electra .MarkingsRoom__section,
+.theme-meridian_electra .MarkingsRoom__empty {
+  color:#9fb2bc;
+}
+.theme-meridian_electra .MarkingsRoom__section {
+  background:linear-gradient(180deg,#112229 75%,transparent);
+}
+.theme-meridian_electra .MarkingsRoom__search {
+  border-radius:3px;
+  background:#081114;
+  box-shadow:inset 0 0 0 1px rgb(88 209 201/.35);
+}
+.theme-meridian_electra .MarkingsRoom__search input {
+  color:#e6eef1;
+}
+.theme-meridian_electra .MarkingsRoom__close {
+  color:#9fb2bc;
+  border-color:rgb(88 209 201/.35);
+}
+.theme-meridian_electra .MarkingsRoom__pick {
+  border-radius:4px;
+  background:#0a1418;
+  box-shadow:0 0 0 1px rgb(88 209 201/.5);
+}
+.theme-meridian_electra .MarkingsRoom__pick.MarkingsRoom__pick--peek {
+  box-shadow:0 0 0 2px #ffd84d,0 0 12px rgb(255 216 77/.4);
+}
+.theme-meridian_electra .MarkingsRoom__foot {
+  border-top-color:rgb(88 209 201/.25);
+}
+.theme-meridian_electra .AugmentsRoom--uv .hud-time,
+.theme-meridian_electra .AugmentsRoom--uv .hud-date,
+.theme-meridian_electra .AugmentsRoom--uv .hud-env {
+  opacity:.5;
+}
+.theme-meridian_electra .MarkingsRoom__uvTube {
+  display:none;
+}
+.theme-meridian_electra .AugmentsRoom--uv .AugmentsRoom__bg--uv {
+  background:rgb(4 4 6/.86);
+}
+.theme-meridian_electra .AugmentsRoom--uv .MarkingsRoom__glass {
+  background:radial-gradient(ellipse 90% 70% at 50% 40%,#0b0b0d,#030304 85%);
+}
+.theme-meridian_electra .AugmentsRoom__uv.AugmentsRoom__uv--on {
+  color:var(--room-text);
+  box-shadow:inset 0 0 0 1px rgb(var(--room-neon-rgb)/.75),0 0 10px rgb(var(--room-neon-rgb)/.25);
+}
+.theme-meridian_electra .AugmentsRoom__uv.AugmentsRoom__uv--on .AugmentsRoom__uvTrack {
+  background:rgb(var(--room-neon-rgb)/.85);
+}
+.theme-meridian_electra .AugmentsRoom__uv.AugmentsRoom__uv--on .AugmentsRoom__uvKnob {
+  background:#fff;
+  box-shadow:0 0 0 1px rgb(0 0 0/.3),0 0 6px rgb(var(--room-neon-rgb)/.6);
+}

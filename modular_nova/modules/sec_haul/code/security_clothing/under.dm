@@ -134,7 +134,7 @@
 	name = "guard utility uniform"
 	desc = "A utility uniform worn by trained guards."
 	icon_state = "util_sec"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	alt_covers_chest = TRUE
 
@@ -171,7 +171,7 @@
 	greyscale_colors = "#A52F29"
 	body_parts_covered = GROIN|LEGS
 	can_adjust = FALSE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 	female_sprite_flags = FEMALE_UNIFORM_NO_BREASTS|FEMALE_UNIFORM_TOP_ONLY
 	vox_short_legs = TRUE
 
@@ -191,8 +191,8 @@
 	greyscale_colors = "#A52F29"
 	body_parts_covered = GROIN|LEGS
 	can_adjust = FALSE
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	female_sprite_flags = FEMALE_UNIFORM_NO_BREASTS
 
 /obj/item/clothing/under/rank/security/nova/trousers/blue
@@ -209,9 +209,9 @@
 	greyscale_config_worn = /datum/greyscale_config/modskin/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/modskin/worn/digi
 	greyscale_colors = "#39393F#A52F29"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 	flags_1 = IS_PLAYER_COLORABLE_1
-	bodyshapes_with_variations = NONE
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 
 /obj/item/clothing/under/rank/security/nova/modskin/blue
@@ -228,7 +228,7 @@
 	greyscale_config_worn = /datum/greyscale_config/depgag_pantsuit/worn
 	greyscale_config_worn_digi = /datum/greyscale_config/depgag_pantsuit/worn/digi
 	greyscale_colors = "#A52F29#39393F#39393F#39393F"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/rank/security/nova/depgag_pantsuit/blue
 	icon_state = "/obj/item/clothing/under/rank/security/nova/depgag_pantsuit/blue"
@@ -296,7 +296,7 @@
 	desc = "A female head of security's luxury-wear, for special occasions."
 	icon_state = "hos_parade_fem_blue"
 	worn_icon_digi = null
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 
 /obj/item/clothing/under/rank/security/head_of_security/nova/alt

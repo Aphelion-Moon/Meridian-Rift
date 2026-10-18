@@ -61,8 +61,9 @@
 	// Bounded cache of composed region maps, keyed by the geometry that produced them.
 	var/static/list/maps = list()
 	var/list/geometry = list(width, zones)
+	// Each zone's mask by its key, which names what it's drawn from: the masks themselves are whole pictures.
 	for(var/zone in zones)
-		geometry += list(custom_sprite_body_draw_mask(body, zone, custom_marking_zone_width(zone), wrist = FALSE))
+		geometry += custom_sprite_body_draw_mask_key(body, zone, custom_marking_zone_width(zone), FALSE)
 	var/datum/bodypart_overlay/mutant/taur_body/taur = custom_sprite_taur_overlay(body)
 	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
 	if(taur && chest)

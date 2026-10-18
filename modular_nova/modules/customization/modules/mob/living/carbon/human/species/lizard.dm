@@ -1,5 +1,4 @@
 /datum/species/lizard
-	body_markings = list()
 	mutant_organs = list(
 		/obj/item/organ/fangs/lizard,
 	)
@@ -12,7 +11,6 @@
 		FEATURE_SPINES = MUTPART_BLUEPRINT("Long + Membrane", is_randomizable = TRUE),
 		FEATURE_FRILLS = MUTPART_BLUEPRINT("Short", is_randomizable = TRUE),
 		FEATURE_HORNS = MUTPART_BLUEPRINT("Curled", is_randomizable = TRUE),
-		FEATURE_MARKING_GENERIC = MUTPART_BLUEPRINT("Light Belly", is_randomizable = TRUE),
 		FEATURE_LEGS = MUTPART_BLUEPRINT(DIGITIGRADE_LEGS, is_randomizable = FALSE, is_feature = TRUE),
 		FEATURE_TAUR = MUTPART_BLUEPRINT(SPRITE_ACCESSORY_NONE, is_randomizable = FALSE),
 		FEATURE_WINGS = MUTPART_BLUEPRINT(SPRITE_ACCESSORY_NONE, is_randomizable = FALSE),

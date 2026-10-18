@@ -36,6 +36,12 @@
 	var/datum/species/species = GLOB.species_prototypes[species_type]
 	return !(TRAIT_NO_UNDERWEAR in species.inherent_traits)
 
+/datum/preference/choiced/underwear/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
+	// The default boxers are made for legs: taurs and Ceruleans go without, unless they picked a pair.
+	if(value == create_default_value() && (preferences.has_taur_body() || !preferences.species_grows_legs()))
+		value = /datum/sprite_accessory/clothing/underwear/nude::name
+	return ..()
+
 /datum/preference/choiced/bra
 	savefile_key = "bra"
 	savefile_identifier = PREFERENCE_CHARACTER

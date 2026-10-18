@@ -31,10 +31,10 @@
 	var/use_digi = digi_icon_state && (bodyshape & BODYSHAPE_DIGITIGRADE)
 	var/female_sprite_flags_to_use = female_sprite_flags
 	var/icon_state_to_use = get_icon_state(physique, bodyshape)
-	if(use_digi && female_sprite_flags_to_use)
+	if((use_digi || (bodyshape & (BODYSHAPE_TAUR|BODYSHAPE_CERULEAN))) && female_sprite_flags_to_use) // APHELION EDIT CHANGE - No bottom shaping over a taur body or Cerulean tail either - ORIGINAL: if(use_digi && female_sprite_flags_to_use)
 		female_sprite_flags_to_use = FEMALE_UNIFORM_TOP_ONLY // No bottom gender shaping for the digi legs
 
-	var/key = "[icon_state_to_use]-[greyscale_config || "ng"]-[use_female]-[use_digi]-[greyscale_colors]"
+	var/key = "[icon_state_to_use]-[greyscale_config || "ng"]-[use_female && female_sprite_flags_to_use]-[use_digi]-[greyscale_colors]" // APHELION EDIT CHANGE - Key by the cut - ORIGINAL: var/key = "[icon_state_to_use]-[greyscale_config || "ng"]-[use_female]-[use_digi]-[greyscale_colors]"
 	var/mutable_appearance/result
 	if(cached_icons[key]) // it's already cached
 		result = mutable_appearance(icon(cached_icons[key]))
@@ -46,7 +46,7 @@
 			created = wear_female_version(icon_state_to_use, icon_file_path, icon, female_sprite_flags_to_use)
 		if(use_digi)
 			var/icon/replacement = icon(SSgreyscale.GetColoredIconByType(/datum/greyscale_config/digitigrade_underwear, greyscale_colors), digi_icon_state)
-			created = replace_icon_legs(created, replacement)
+			created = apply_icon_mask(created, LEGS_MASK, replacement)
 
 		cached_icons[key] = fcopy_rsc(created)
 		result = mutable_appearance(created)

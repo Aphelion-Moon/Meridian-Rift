@@ -17,6 +17,7 @@
 	if (type == "world")
 		return ..() //shunt world topic banchecks to purely to byond's internal ban system
 
+	UNTIL(config.loaded) // APHELION EDIT ADDITION START - TGS can yield before config.Load(); keep player connections pending until it finishes.
 	var/admin = FALSE
 	var/ckey = ckey(key)
 

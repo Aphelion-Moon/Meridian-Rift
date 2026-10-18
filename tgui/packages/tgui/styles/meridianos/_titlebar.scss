@@ -13,6 +13,14 @@
     display: flex;
     flex: 0 1 auto;
     align-items: center;
+
+    // In a narrow window a search field gives up its width before the buttons beside it go
+    // past the clipped edge: the alt-click loot window (300px) lost its grouping toggle in
+    // seven themes, whose frames take more of the bar.
+    > *,
+    .Input {
+      min-width: 0;
+    }
   }
 
   &__utilities {

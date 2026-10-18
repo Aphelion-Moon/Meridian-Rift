@@ -38,3 +38,36 @@
 	unathi.set_eye_color("#E3A21A")
 	regenerate_organs(unathi, src, visual_only = TRUE)
 	unathi.update_body(TRUE)
+
+/**
+ * Headless, with the head in a hand, as in the round. A body in nullspace keeps its head on - on_species_gain() has
+ * nowhere to drop it - so it comes off here, with the plain eyes the round gives it. A dummy's head has no brain, which
+ * would draw it opened up; the round's has one.
+ */
+/datum/species/dullahan/prepare_human_for_preview(mob/living/carbon/human/dullahan)
+	var/obj/item/bodypart/head/head = dullahan.get_bodypart(BODY_ZONE_HEAD)
+	if(isnull(head))
+		return
+	head.head_flags &= ~HEAD_DEBRAIN
+	head.drop_limb(special = TRUE, move_to_floor = FALSE)
+	var/obj/item/organ/eyes/eyes = new /obj/item/organ/eyes(head)
+	eyes.eye_color_left = dullahan.eye_color_left
+	eyes.eye_color_right = dullahan.eye_color_right
+	eyes.bodypart_insert(head)
+	head.update_limb()
+	head.update_icon_dropped()
+	dullahan.put_in_hands(head)
+
+/// The head in the hand the round puts it in, the left, where tg's in-hand sprites hold things facing each way - no in-hand
+/// sprite draws a held head. It faces the way the body does.
+/datum/species/dullahan/species_page_held_icon(mob/living/carbon/human/dullahan)
+	var/obj/item/bodypart/head/head = dullahan.is_holding_item_of_type(/obj/item/bodypart/head)
+	if(isnull(head))
+		return null
+	var/static/list/in_hand = list(
+		"[SOUTH]" = list(7, -6),
+		"[NORTH]" = list(-6, -6),
+		"[EAST]" = list(5, -6),
+		"[WEST]" = list(3, -6),
+	)
+	return list(get_flat_uni_icon(head, UP), in_hand)

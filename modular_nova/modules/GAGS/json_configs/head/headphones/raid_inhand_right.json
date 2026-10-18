@@ -1,0 +1,28 @@
+{
+	"raid": [
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-raid-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-raid-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "inhand_r-raid-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		}
+	]
+}

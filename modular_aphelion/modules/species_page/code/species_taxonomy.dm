@@ -40,12 +40,23 @@ GLOBAL_LIST_INIT(species_page_families, list(
 	/datum/species/shadow = /datum/species_family/paranormal,
 	/datum/species/spirit = /datum/species_family/paranormal,
 	/datum/species/monkey = /datum/species_family/paranormal,
-	// The template species: bases for players' own creations, which say so or have no lore of their own.
-	/datum/species/humanoid = /datum/species_family/generic,
-	/datum/species/mammal = /datum/species_family/generic,
-	/datum/species/aquatic = /datum/species_family/generic,
-	/datum/species/insect = /datum/species_family/generic,
-	/datum/species/synthetic = /datum/species_family/generic,
+	// The template species: bases for players' own creations, which say so or have no lore of their own. Each is filed
+	// under the family it is a template for - see GLOB.species_page_templates.
+	/datum/species/humanoid = /datum/species_family/mammalian,
+	/datum/species/mammal = /datum/species_family/mammalian,
+	/datum/species/aquatic = /datum/species_family/aquatic,
+	/datum/species/insect = /datum/species_family/insectoid,
+	/datum/species/synthetic = /datum/species_family/synthetic,
+))
+
+/// The template species, which the page lists after their family's own species, marked custom. Only these types - a
+/// subtype is a species of its own.
+GLOBAL_LIST_INIT(species_page_templates, list(
+	/datum/species/humanoid = TRUE,
+	/datum/species/mammal = TRUE,
+	/datum/species/aquatic = TRUE,
+	/datum/species/insect = TRUE,
+	/datum/species/synthetic = TRUE,
 ))
 
 // Vox Primalis is not a subtype of Vox, but it is one of their kin.

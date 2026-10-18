@@ -1,9 +1,10 @@
 // THIS IS AN APHELION UI FILE
-// Original mechanical instruments for the Hammered Forge and Iron Cathedral
-// materials. The crown and inner rotor turn independently of the progress arc,
-// with the shared visibility and reduced-motion gates governing both layers.
+// Hephaestus's original mechanical instrument, for its Iron Cathedral material
+// (Foundry's loader is _foundry-loader.scss). The crown and inner rotor turn
+// independently of the progress arc, with the shared visibility and
+// reduced-motion gates governing both layers.
 @media (forced-colors: none) {
-  :is(.theme-meridian_foundry, .theme-meridian_hephaestus) {
+  .theme-meridian_hephaestus {
     .DiagnosticLoader__instrument {
       --console-loader-turn-duration: 12s;
       --forge-loader-gear-duration: 18s;
@@ -109,11 +110,6 @@
         }
       }
     }
-  }
-
-  .theme-meridian_foundry .DiagnosticLoader__instrument {
-    --forge-loader-bezel: url('tgui/styles/meridianos/assets/forge/foundry-bezel.svg');
-    --forge-loader-rotor: url('tgui/styles/meridianos/assets/forge/foundry-iris.svg');
   }
 
   .theme-meridian_hephaestus {

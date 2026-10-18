@@ -1,0 +1,675 @@
+// THIS IS AN APHELION UI FILE
+// Foundry: every window in its markings room's forge, after the theme's refresh mockup and
+// its art review (lab foundry-refresh-mockup). A cave behind, the room's riveted steel cards
+// for panels, iron pills for buttons, Caesar Dressing for titles, tabs and panel headings and
+// Macondo for the rest (12px at least), and ember for what is lit: a chosen tab, a hovered
+// control, a heading.
+//
+// Rivets sit only in a top-level card's corner squares: its 20px side padding keeps content
+// out of them, a nested panel or a fitted, scrolling or caller-painted card takes none, and a
+// fitted or scrolling one keeps its top pair only when its title row holds them clear. The
+// materials are in _foundry-materials.scss; the loader in _foundry-loader.scss.
+@media (forced-colors: none) {
+  .theme-meridian_foundry {
+    // MARK: Type
+
+    // Running text is the page's face (--foundry-text-face), its figures lining for data,
+    // and its glyphs drawn a size up (an x-height of half the font size, as Alegreya Sans
+    // at 13px) without growing what is laid out in ems. Short UI text takes Macondo by
+    // role, at its own size: controls, labels, field names, short values, table heads and
+    // a recess's own title. Icon fonts keep their size.
+    font-variant-numeric: lining-nums;
+
+    body {
+      font-size-adjust: 0.5;
+    }
+
+    .Button,
+    .LabeledList__label,
+    .LabeledList__content,
+    .Table__row--header .Table__cell,
+    .Table__cell--header,
+    .Input,
+    .NumberInput,
+    .Dropdown__control,
+    .Dropdown__menu--entry,
+    .ProgressBar__content,
+    .NtosWindow__header {
+      font-family: var(--foundry-face);
+      font-size-adjust: none;
+    }
+
+    .TitleBar,
+    .Tab,
+    .Section__titleText,
+    .Icon,
+    .fa,
+    .fas,
+    .far,
+    .fab,
+    .tg {
+      font-size-adjust: none;
+    }
+
+    // Macondo keeps 12px and up: what a page letters smaller inline takes the running-text
+    // face at that size, which stays legible there. Icons keep their own font.
+    [style*='font-size: 0.'],
+    [style*='font-size: 8px'],
+    [style*='font-size: 8.'],
+    [style*='font-size: 9px'],
+    [style*='font-size: 9.'],
+    [style*='font-size: 10px'],
+    [style*='font-size: 10.'],
+    [style*='font-size: 11px'],
+    [style*='font-size: 11.'] {
+      &:not(.AugmentsRoom *, .Icon, .fa, .fas, .far, .fab, .tg) {
+        font-family: var(--foundry-text-face);
+        font-size-adjust: 0.5;
+      }
+    }
+
+    // The markings room letters itself: it keeps the page face it was drawn with.
+    .AugmentsRoom {
+      font-family: Verdana, Geneva, sans-serif;
+      font-size-adjust: none;
+      font-variant-numeric: normal;
+    }
+
+    // MARK: Window and title strap
+
+    .Window {
+      background-color: var(--foundry-cave);
+      background-image:
+        radial-gradient(ellipse 70% 34% at 50% 110%, rgb(255 110 30 / 30%), transparent 70%),
+        radial-gradient(ellipse 30% 40% at 0% 40%, rgb(255 150 60 / 8%), transparent 70%),
+        linear-gradient(180deg, rgb(10 6 4 / 40%), rgb(8 5 3 / 70%)),
+        var(--mt-foundry-cave, none);
+      background-size:
+        auto,
+        auto,
+        auto,
+        900px 820px;
+      box-shadow: inset 0 0 60px rgb(0 0 0 / 70%);
+    }
+
+    // The casing's edge: dark, with a warm line inside it.
+    .Window::before {
+      border-color: #0a0604;
+      clip-path: none;
+      box-shadow: inset 0 0 0 1px rgb(255 190 120 / 20%);
+    }
+
+    .Window::after {
+      display: none;
+    }
+
+    .Window__contentPadding {
+      --console-chrome-air: 8px;
+    }
+
+    // The strap: a steel plate with a rivet at each end, clear of the eye's cell and of the
+    // close button's.
+    .TitleBar {
+      padding-inline: 17px 27px;
+      background: var(--foundry-plate);
+      border-top-color: transparent;
+      border-bottom-color: transparent;
+      box-shadow:
+        inset 0 -1px 0 rgb(255 190 120 / 28%),
+        0 3px 0 rgb(0 0 0 / 55%);
+    }
+
+    .TitleBar::after {
+      display: block;
+      top: 50%;
+      bottom: auto;
+      left: 6px;
+      right: 6px;
+      width: auto;
+      height: 10px;
+      margin-top: -5px;
+      background:
+        var(--foundry-rivet) 0 0 / 10px 10px no-repeat,
+        var(--foundry-rivet) 100% 0 / 10px 10px no-repeat;
+    }
+
+    // Caesar Dressing is wide: the title shrinks in a narrow window (13px at 300px, the full
+    // 17px from 500px) so a prompt's title keeps its words as tgui's own face did.
+    .TitleBar__title {
+      font-family: var(--foundry-display);
+      font-size: clamp(13px, calc(13px + (100vw - 300px) / 50), 17px);
+      font-weight: 400;
+      line-height: 1.2;
+      color: var(--foundry-ember);
+      text-shadow: var(--foundry-heading-glow);
+    }
+
+    .TitleBar__close,
+    .TitleBar__utilities .MeridianThemePicker__trigger,
+    .TitleBar__utilities .TitleBar__utilityButton {
+      color: var(--foundry-pill-text);
+    }
+
+    // MARK: Cards
+
+    .Section {
+      margin-bottom: 8px;
+      border: 0;
+      border-radius: 5px 3px 7px 4px;
+      background: var(--foundry-card);
+      box-shadow: var(--foundry-card-shadow);
+    }
+
+    .Section > .Section__title {
+      padding-inline: 20px;
+      background: var(--section-title-background, none);
+      border-bottom: 1px solid var(--foundry-cut-line);
+      box-shadow: var(--foundry-cut-lip);
+    }
+
+    .Section > .Section__title::after {
+      display: none;
+    }
+
+    .Section > .Section__title > .Section__titleText {
+      font-family: var(--foundry-display);
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.15;
+      color: var(--foundry-ember);
+      text-shadow: var(--foundry-heading-glow);
+    }
+
+    // A list prompt's question is its message, read as text rather than a heading.
+    .ListInput__Section > .Section__title > .Section__titleText {
+      font-family: var(--foundry-text-face);
+      font-size: 13px;
+      font-size-adjust: 0.5;
+      letter-spacing: 0.01em;
+      line-height: 1.3;
+      text-transform: none;
+      color: var(--foundry-parchment);
+      text-shadow: none;
+    }
+
+    // Content keeps 20px from a card's sides, as the room's cards do; a narrow card (a side
+    // column under about 340px) gives it what it has, down to tgui's own 6px at 250px, so a
+    // layout drawn for tgui's padding still fits it. The corner squares stay clear by height.
+    .Section > .Section__rest > .Section__content {
+      padding-inline: clamp(6px, 16% - 34px, 20px);
+    }
+
+    .Section--fitted > .Section__rest > .Section__content {
+      padding-inline: 0;
+    }
+
+    // The corner rivets: the room's two strips, top and bottom. In the card's own stacking
+    // order, so a dimmed window dims them too and they need no layers of their own.
+    .Section::before,
+    .Section::after {
+      content: '';
+      display: block;
+      position: absolute;
+      inset: auto 6px;
+      height: 10px;
+      opacity: 1;
+      border: 0;
+      background:
+        var(--foundry-rivet) 0 0 / 10px 10px no-repeat,
+        var(--foundry-rivet) 100% 0 / 10px 10px no-repeat;
+      pointer-events: none;
+    }
+
+    .Section::before {
+      top: 5px;
+    }
+
+    .Section::after {
+      bottom: 5px;
+    }
+
+    // Where content or a scrollbar can reach a corner square, the rivets there stay off.
+    .Section--fitted::after,
+    .Section--scrollable::after,
+    .Section--scrollableHorizontal::after,
+    .Section--fitted:not(:has(> .Section__title))::before,
+    .Section--scrollable:not(:has(> .Section__title))::before,
+    .Section--scrollableHorizontal:not(:has(> .Section__title))::before {
+      display: none;
+    }
+
+    // Elsewhere a card keeps its corner squares clear as the room's cards do, 18px at its foot
+    // and at a head no title row holds, so even content wider than the card's padding (a
+    // fixed-width control centred in a narrow column) passes clear of the rivets.
+    .Section:not(.Section *, .Section--fitted, .Section--scrollable, .Section--scrollableHorizontal, [style*='background'])
+      > .Section__rest
+      > .Section__content {
+      padding-bottom: 18px;
+    }
+
+    .Section:not(
+        .Section *,
+        :has(> .Section__title),
+        .Section--fitted,
+        .Section--scrollable,
+        .Section--scrollableHorizontal,
+        [style*='background']
+      )
+      > .Section__rest
+      > .Section__content {
+      padding-top: 18px;
+    }
+
+    // A caller's own surface stays as it was, without rivets.
+    .Section[style*='background'] {
+      background: var(--section-background);
+      box-shadow: inset 0 0 0 1px var(--foundry-edge);
+    }
+
+    .Section[style*='background']::before,
+    .Section[style*='background']::after {
+      display: none;
+    }
+
+    // Tabs keep inside a card's padding, clear of its rivets.
+    .Section:not(.Section--fitted) .Tabs {
+      margin-inline: 0;
+    }
+
+    // MARK: Recesses
+
+    // Panels within a card are the room's dark recesses, labelled as its fields are.
+    .Section .Section {
+      margin-inline: 0;
+      border: 0;
+      border-radius: 4px;
+      background: rgb(8 5 3 / 50%);
+      box-shadow:
+        inset 0 2px 6px rgb(0 0 0 / 70%),
+        inset 0 0 0 1px rgb(255 190 120 / 14%);
+    }
+
+    .Section .Section::before,
+    .Section .Section::after {
+      display: none;
+    }
+
+    // tgui pulls a card's first recess up into the card's padding: here that padding keeps the
+    // corner squares, so the recess stays below it.
+    .Section .Section:first-child {
+      margin-top: 0;
+    }
+
+    .Section .Section > .Section__title {
+      padding-inline: 10px;
+    }
+
+    .Section .Section > .Section__title > .Section__titleText {
+      font-family: var(--foundry-face);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      color: var(--foundry-label);
+      text-shadow: none;
+    }
+
+    .Section .Section > .Section__rest > .Section__content {
+      padding-inline: 10px;
+    }
+
+    .Section .Section--fitted > .Section__rest > .Section__content {
+      padding-inline: 0;
+    }
+
+    // MARK: Buttons
+
+    .Button {
+      letter-spacing: 0.04em;
+    }
+
+    // The job matrix's cells are painted by their caller, square (_preferences.scss).
+    .Button:not(.PreferencesMenu__Jobs__departments__priority) {
+      border-radius: 4px 9px 5px 10px;
+    }
+
+    // The room's iron pill, for every button that carries no colour or surface of its own. A
+    // button its caller letters black keeps the fill that lettering was chosen for.
+    .Button--color--default:not([style*='background']):not([class*='color-bg-']):not(.color-black):not(
+        .Button--selected
+      ):not(.Button--disabled):not([aria-disabled='true']):not([aria-pressed='true']):not(
+        [aria-checked='true']
+      ) {
+      color: var(--foundry-pill-text);
+      border-color: var(--foundry-rim);
+      background: var(--foundry-pill);
+      box-shadow: 0 2px 0 rgb(0 0 0 / 55%);
+    }
+
+    .Button--color--default:not([style*='background']):not([class*='color-bg-']):not(.color-black):not(
+        .Button--selected
+      ):not(.Button--disabled):not([aria-disabled='true']):not([aria-pressed='true']):not(
+        [aria-checked='true']
+      ):hover {
+      color: #ffd9a0;
+      border-color: var(--foundry-lit);
+      box-shadow:
+        0 0 10px rgb(255 122 46 / 30%),
+        0 2px 0 rgb(0 0 0 / 55%);
+    }
+
+    // Chosen: the iron heated through, lettered dark as every theme's filled selection is.
+    .Button--selected:not(.Button--color--transparent):not(.Button--disabled),
+    .Button[aria-pressed='true']:not(.Button--color--transparent):not(.Button--disabled),
+    .Button[aria-checked='true']:not(.Button--color--transparent):not(.Button--disabled) {
+      border-color: var(--foundry-lit);
+      background-image: linear-gradient(180deg, rgb(255 236 196 / 38%), transparent 46%, rgb(150 50 0 / 22%));
+      box-shadow:
+        0 0 12px rgb(255 122 46 / 35%),
+        0 2px 0 rgb(0 0 0 / 55%);
+    }
+
+    // A coloured button keeps its colour, worn as the rim and lettering of an iron pill, as
+    // the room's danger button wears its quench red: every named colour, good to pink. The
+    // red ones take the room's own quench. One its caller letters black keeps its fill.
+    .Button--color--bad,
+    .Button--color--danger,
+    .Button--color--red {
+      --color: var(--foundry-quench);
+    }
+
+    .Button:not(.Button--color--default):not(.Button--color--transparent):not([style*='background']):not(
+        [class*='color-bg-']
+      ):not(.color-black):not(.Button--selected):not(.Button--disabled):not([aria-disabled='true']):not(
+        [aria-pressed='true']
+      ):not([aria-checked='true']) {
+      --button-color: color-mix(in srgb, var(--color) 50%, #fff2e0);
+      color: var(--button-color);
+      border-color: var(--color);
+      background: var(--foundry-pill);
+      box-shadow:
+        inset 0 0 8px color-mix(in srgb, var(--color) 35%, transparent),
+        0 2px 0 rgb(0 0 0 / 55%);
+    }
+
+    .Button:not(.Button--color--default):not(.Button--color--transparent):not([style*='background']):not(
+        [class*='color-bg-']
+      ):not(.color-black):not(.Button--selected):not(.Button--disabled):not([aria-disabled='true']):not(
+        [aria-pressed='true']
+      ):not([aria-checked='true']):hover {
+      border-color: var(--button-color);
+      box-shadow:
+        inset 0 0 8px color-mix(in srgb, var(--color) 45%, transparent),
+        0 0 10px color-mix(in srgb, var(--color) 40%, transparent),
+        0 2px 0 rgb(0 0 0 / 55%);
+    }
+
+    // The shared state rail would sit inside the rim: the rim says it here.
+    .Button--color--danger::before,
+    .Button--color--bad::before {
+      display: none;
+    }
+
+    .Button--color--transparent:not(.Button--selected):hover {
+      color: #ffd9a0;
+    }
+
+    // MARK: Tabs
+
+    .Tabs {
+      gap: 3px;
+      background: none;
+      border-bottom: 0;
+      box-shadow: none;
+    }
+
+    .Tabs--horizontal {
+      padding: 2px 0 0;
+    }
+
+    .Tabs--vertical {
+      padding: 2px 0;
+    }
+
+    .Tab {
+      min-height: 2.25em;
+      font-family: var(--foundry-display);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--foundry-label);
+      background: linear-gradient(180deg, #24180f, #170f09);
+      border: 1px solid var(--foundry-rim);
+      border-radius: 3px 8px 4px 9px;
+      box-shadow: none;
+    }
+
+    // The lit rim marks the chosen tab: no bar beneath it.
+    .Tab::before {
+      display: none;
+    }
+
+    // A vertical tab list is a list of names, often long: Macondo as written, the
+    // chosen one lit as a tab is.
+    .Tabs--vertical .Tab {
+      font-family: var(--foundry-face);
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .Tab:not(.Tab--selected):not([aria-selected='true']):hover {
+      color: #ffd9a0;
+      background: linear-gradient(180deg, #24180f, #170f09);
+      border-color: var(--foundry-lit);
+      box-shadow: 0 0 10px rgb(255 122 46 / 30%);
+    }
+
+    .Tab--selected,
+    .Tab[aria-selected='true'] {
+      color: var(--foundry-lit);
+      background: #1c120a;
+      border-color: rgb(255 150 70 / 55%);
+      box-shadow: 0 0 18px rgb(255 122 46 / 26%);
+      text-shadow:
+        0 0 6px rgb(255 122 46 / 70%),
+        0 1px 0 #000;
+    }
+
+    // MARK: Fields
+
+    .Input,
+    .NumberInput,
+    .TextArea,
+    .Dropdown__control {
+      color: var(--foundry-parchment);
+      background-color: var(--foundry-recess);
+      border-color: rgb(255 190 120 / 32%);
+      border-radius: 4px;
+      box-shadow: inset 0 2px 5px rgb(0 0 0 / 85%);
+    }
+
+    .Input::placeholder,
+    .Input input::placeholder,
+    .TextArea textarea::placeholder {
+      color: #a8916d;
+    }
+
+    // Focused: the hot ring inside the theme's gold one.
+    .Input:focus-within,
+    .NumberInput:focus-within,
+    .TextArea:focus-within,
+    .Dropdown:focus-within .Dropdown__control {
+      border-color: var(--foundry-hot);
+      box-shadow:
+        inset 0 2px 5px rgb(0 0 0 / 85%),
+        0 0 12px rgb(255 122 46 / 45%);
+    }
+
+    .Dropdown__arrow-button,
+    .Dropdown__icon {
+      color: var(--foundry-ember);
+    }
+
+    .Dropdown__menu--wrapper {
+      border-color: var(--foundry-rim);
+      border-radius: 4px;
+      background: var(--foundry-pill);
+    }
+
+    // MARK: Readouts
+
+    .LabeledList__label {
+      color: var(--foundry-body);
+    }
+
+    .Table__row--header .Table__cell,
+    .Table__cell--header {
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      color: var(--foundry-label);
+      background: rgb(0 0 0 / 22%);
+    }
+
+    .Table__cell,
+    .LabeledList__cell {
+      border-bottom-color: var(--foundry-cut-line);
+    }
+
+    // tgui's status lettering, made light enough to read on the steel as the room's quench
+    // lettering is (tgui's own measured 2.2 to 4.5:1 there).
+    .color-good {
+      color: #a6dd85 !important;
+    }
+
+    .color-average {
+      color: var(--foundry-brass) !important;
+    }
+
+    .color-bad {
+      color: #ffb3a1 !important;
+    }
+
+    .Divider--horizontal {
+      border-top-color: var(--foundry-cut-line);
+      box-shadow: var(--foundry-cut-lip);
+    }
+
+    .ProgressBar {
+      border-color: rgb(255 190 120 / 25%);
+      border-radius: 3px;
+      background-color: #0f0a06;
+      box-shadow: inset 0 2px 5px rgb(0 0 0 / 85%);
+    }
+
+    // A bar's fill is its state colour under a dark glaze, with the colour bright in a molten
+    // line along its foot: its lettering reads on the glaze whatever the colour (4.5:1 even
+    // for a white fill). A transparent bar stays the caller's to paint.
+    .ProgressBar:not(.ProgressBar--color--transparent) > .ProgressBar__fill {
+      border-radius: 2px;
+      background-image: linear-gradient(rgb(15 10 6 / 62%), rgb(15 10 6 / 62%));
+      box-shadow: inset 0 1px 0 rgb(255 240 200 / 12%);
+    }
+
+    .ProgressBar--segmented:not(.ProgressBar--color--transparent) > .ProgressBar__fill {
+      background-image:
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 calc(var(--console-segment-pattern) - 1px),
+          var(--console-surface-recessed) calc(var(--console-segment-pattern) - 1px)
+            var(--console-segment-pattern)
+        ),
+        linear-gradient(rgb(15 10 6 / 62%), rgb(15 10 6 / 62%));
+    }
+
+    .ProgressBar:not(.ProgressBar--color--transparent) > .ProgressBar__fill::after {
+      content: '';
+      position: absolute;
+      inset: auto 0 0;
+      height: 2px;
+      border-radius: 0 0 2px 2px;
+      background-color: inherit;
+    }
+
+    // MARK: Notices and overlays
+
+    .NoticeBox {
+      color: var(--foundry-parchment);
+      border: 0;
+      border-radius: 4px;
+      background: rgb(8 5 3 / 55%);
+      box-shadow:
+        inset 0 0 0 1px rgb(255 190 120 / 25%),
+        inset 0 2px 5px rgb(0 0 0 / 60%);
+    }
+
+    .NoticeBox--type--warning,
+    .NoticeBox--color--average,
+    .NoticeBox--color--orange,
+    .NoticeBox--color--yellow {
+      color: #ffd9a0;
+      background:
+        linear-gradient(90deg, rgb(255 122 46 / 20%), rgb(255 122 46 / 6%)),
+        rgb(8 5 3 / 45%);
+      box-shadow:
+        inset 0 0 0 1px rgb(255 150 70 / 55%),
+        0 0 12px rgb(255 122 46 / 20%);
+    }
+
+    .NoticeBox--type--danger,
+    .NoticeBox--color--bad,
+    .NoticeBox--color--red {
+      color: #ffb4a0;
+      background:
+        linear-gradient(rgb(120 20 10 / 30%), rgb(120 20 10 / 30%)),
+        rgb(8 5 3 / 45%);
+      box-shadow: inset 0 0 0 1px var(--foundry-quench);
+    }
+
+    .NoticeBox--type--success,
+    .NoticeBox--color--good,
+    .NoticeBox--color--green {
+      color: #cfeab0;
+      background:
+        linear-gradient(rgb(50 110 30 / 22%), rgb(50 110 30 / 22%)),
+        rgb(8 5 3 / 45%);
+      box-shadow: inset 0 0 0 1px #4f8a34;
+    }
+
+    // The leather note: a tooltip on the room's hide, stitched.
+    .Tooltip {
+      color: var(--foundry-parchment);
+      border: 0;
+      border-radius: 4px 7px 5px 8px;
+      background:
+        linear-gradient(180deg, rgb(20 10 4 / 35%), rgb(20 10 4 / 60%)),
+        var(--mt-foundry-hide, none) 0 0 / 300px 564px,
+        #4a2c16;
+      box-shadow:
+        inset 0 0 0 1px rgb(0 0 0 / 60%),
+        0 4px 10px rgb(0 0 0 / 60%);
+      outline: 1px dashed rgb(255 220 170 / 35%);
+      outline-offset: -4px;
+    }
+
+    .Modal,
+    .Dialog__content {
+      border: 0;
+      border-radius: 5px 3px 7px 4px;
+      background: var(--foundry-card);
+      box-shadow: var(--foundry-card-shadow);
+    }
+
+    .Dimmer {
+      background-color: rgb(8 5 3 / 75%);
+    }
+
+    // MARK: NtOS
+
+    .NtosWindow__header {
+      color: var(--foundry-body);
+      background: rgb(8 5 3 / 60%);
+      border-bottom: 1px solid var(--foundry-cut-line);
+      box-shadow: var(--foundry-cut-lip);
+    }
+
+    scrollbar-color: var(--foundry-rim) var(--foundry-recess);
+  }
+}

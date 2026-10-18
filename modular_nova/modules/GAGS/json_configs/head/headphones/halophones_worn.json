@@ -1,0 +1,226 @@
+{
+	"halophones": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones-add",
+			"blend_mode": "add"
+		}
+	],
+	"halophones_on": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_on-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_on-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_on-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_on-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_on-add",
+			"blend_mode": "add"
+		}
+	],
+	"halophones_unlit": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_unlit-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_unlit-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		}
+	],
+	"halophones_neck": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck-add",
+			"blend_mode": "add"
+		}
+	],
+	"halophones_neck_on": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck_on-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck_on-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck_on-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck_on-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck_on-add",
+			"blend_mode": "add"
+		}
+	],
+	"halophones_neck_unlit": [
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck-c1",
+			"blend_mode": "overlay",
+			"color_ids": [
+				1
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck_unlit-c2",
+			"blend_mode": "overlay",
+			"color_ids": [
+				2
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck_unlit-c3",
+			"blend_mode": "overlay",
+			"color_ids": [
+				3
+			]
+		},
+		{
+			"type": "icon_state",
+			"icon_state": "worn-halophones_neck-c4",
+			"blend_mode": "overlay",
+			"color_ids": [
+				4
+			]
+		}
+	]
+}

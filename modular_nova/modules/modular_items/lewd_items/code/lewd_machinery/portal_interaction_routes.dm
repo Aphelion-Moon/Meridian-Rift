@@ -123,6 +123,10 @@
 /datum/interaction_route/portal_device/validates_part_access()
 	return TRUE
 
+/// The far end of the portal is the receiver, worn on the body underneath the wearer's clothes.
+/datum/interaction_route/portal_device/muffles_sound()
+	return TRUE
+
 /datum/interaction_route/portal_device/user_is_anonymous()
 	if(receiver_is_user)
 		var/obj/item/clothing/sextoy/portal_panties/receiver = receiver_ref?.resolve()

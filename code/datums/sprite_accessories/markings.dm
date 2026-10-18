@@ -1,3 +1,4 @@
+/* // APHELION EDIT REMOVAL START - Lizard markings are Nova body markings; nothing reads these accessories.
 /datum/sprite_accessory/lizard_markings
 	icon = 'icons/mob/human/species/lizard/lizard_markings.dmi'
 
@@ -15,6 +16,7 @@
 	name = "Light Belly"
 	icon_state = "lbelly"
 	gender_specific = TRUE
+*/ // APHELION EDIT REMOVAL END
 
 /datum/sprite_accessory/moth_markings // the markings that moths can have. finally something other than the boring tan
 	icon = 'icons/mob/human/species/moth/moth_markings.dmi'

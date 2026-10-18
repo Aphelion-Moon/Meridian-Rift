@@ -45,10 +45,12 @@ SUBSYSTEM_DEF(character_preview)
 	drawings = SScharacter_preview.drawings
 	queue = SScharacter_preview.queue
 	rebuild_cost = SScharacter_preview.rebuild_cost
+	readings = SScharacter_preview.readings
+	reading_waiters = SScharacter_preview.reading_waiters
 
 /**
  * Rebuilds waiting previews' mobs in order while the tick has room, then starts the drawings asked for since the last
- * fire. Waiting mobs go first: they were asked for earlier, and however many drawings wait to start, the queue never
+ * fire, then reads animated icon states drawings show, in whatever time is left; see animation.dm. Waiting mobs go first: they were asked for earlier, and however many drawings wait to start, the queue never
  * goes longer than CHARACTER_PREVIEW_REBUILD_OVERDUE without a rebuild while this fires, which is what ends every wait
  * for a turn. The first rebuild may take what is left of the tick, and later ones only this subsystem's share of it.
  *
@@ -73,6 +75,7 @@ SUBSYSTEM_DEF(character_preview)
 		INVOKE_ASYNC(drawing, TYPE_PROC_REF(/datum/preference_middleware/character_preview, start_answer))
 		if(MC_TICK_CHECK)
 			return
+	read_animations()
 
 /// Shows how many previews wait, what a rebuild costs, and what is left of the overrun budget.
 /datum/controller/subsystem/character_preview/stat_entry(msg)

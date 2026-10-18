@@ -68,6 +68,8 @@ type GestureHandlers = {
   onPan: (x: number, y: number) => void;
   /** The panning pointer let go. */
   onPanEnd: () => void;
+  /** A press let go before it dragged or was held, where it went down, in page pixels. */
+  onTap?: (x: number, y: number) => void;
 };
 
 type Drag = {
@@ -127,7 +129,8 @@ export function usePreviewGestures(
   // A pointer still held as the box goes stops waiting to pan.
   useEffect(() => () => clearTimeout(drag.current?.hold), []);
 
-  const letGo = () => {
+  // A press let go before it dragged, or was held long enough to pan, is a tap when `tapped`.
+  const letGo = (tapped = false) => {
     const held = drag.current;
     if (!held) {
       return;
@@ -136,6 +139,8 @@ export function usePreviewGestures(
     drag.current = null;
     if (held.gesture === 'pan') {
       latest.current.onPanEnd();
+    } else if (tapped && !held.gesture) {
+      latest.current.onTap?.(held.downX, held.downY);
     }
   };
 
@@ -196,7 +201,11 @@ export function usePreviewGestures(
         latest.current.onTurn(turns);
       }
     },
-    onPointerUp: release,
+    onPointerUp(event: ReactPointerEvent<HTMLElement>) {
+      if (drag.current?.pointer === event.pointerId) {
+        letGo(true);
+      }
+    },
     onPointerCancel: release,
   };
 }

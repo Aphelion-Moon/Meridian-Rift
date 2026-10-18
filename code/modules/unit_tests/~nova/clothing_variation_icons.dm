@@ -102,9 +102,9 @@
 	if(has_gags_digi && !wants_variation)
 		TEST_FAIL("[item_path] sets greyscale_config_worn_digi but not CLOTHING_DIGITIGRADE_VARIATION - the generated digi sprite can never be used.")
 
-	var/stray_bodyshapes = initial(item_path.bodyshapes_with_variations) & ~BODYSHAPE_DIGITIGRADE
+	var/stray_bodyshapes = initial(item_path.bodyshapes_with_variations) & ~(BODYSHAPE_DIGITIGRADE|BODYSHAPE_CERULEAN)
 	if(stray_bodyshapes)
-		report(FALSE, "[item_path] lists bodyshapes get_bodyshape_icon() can't act on in bodyshapes_with_variations ([stray_bodyshapes]) - only BODYSHAPE_DIGITIGRADE does anything there.")
+		report(FALSE, "[item_path] lists bodyshapes get_bodyshape_icon() can't act on in bodyshapes_with_variations ([stray_bodyshapes]) - only BODYSHAPE_DIGITIGRADE and BODYSHAPE_CERULEAN do anything there.")
 
 	// GAGS owns the sprite from here, see check_gags_config().
 	if(has_gags_digi || !(is_under || is_suit || is_shoes))

@@ -8,8 +8,8 @@
 	base_icon_state = "shoredress_refit"
 	worn_icon = 'modular_nova/modules/modular_items/icons/akulasuit.dmi'
 	female_sprite_flags = FEMALE_UNIFORM_FULL
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
-	bodyshapes_with_variations = NONE
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
+	bodyshapes_with_variations = BODYSHAPE_CERULEAN
 
 /obj/item/clothing/under/akula_wetsuit/refit/Initialize(mapload)
 	. = ..()

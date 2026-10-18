@@ -15,3 +15,15 @@
 			send_config_update()
 		return TRUE
 	return ..()
+
+/// Every window also gets the art of its player's theme that isn't in tgui's bundle (art_stylesheet.dm), arrived before
+/// the window draws, as tgui's own assets are.
+/datum/tgui/send_assets()
+	. = ..()
+	if(window?.send_asset(meridian_theme_art(user.client?.prefs?.read_preference(/datum/preference/choiced/meridian_theme))))
+		user.client.browse_queue_flush()
+
+/// The lobby gets the art of its player's theme that isn't in its bundle (art_stylesheet.dm) once it has started.
+/datum/lobby_menu/initialize_browser()
+	. = ..()
+	deliver_meridian_theme_art(client, client?.prefs?.read_preference(/datum/preference/choiced/meridian_theme))
