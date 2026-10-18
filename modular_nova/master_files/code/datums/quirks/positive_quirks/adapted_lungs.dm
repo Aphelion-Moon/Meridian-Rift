@@ -180,6 +180,7 @@ GLOBAL_LIST_INIT(possible_adapted_lungs, list(
 	savefile_key = "adapted_lungs"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/adapted_lungs/init_possible_values()
 	return list("Random") + assoc_to_keys(GLOB.possible_adapted_lungs)

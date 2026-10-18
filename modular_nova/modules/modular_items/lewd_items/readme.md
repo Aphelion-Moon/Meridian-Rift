@@ -13,10 +13,11 @@ and a body relay for their occupant. Both use the generic
   or equip it as a mask for the mouth endpoint.
 - Activate the handheld device in hand to cycle the target used when selecting
   the groin. Other selected body zones choose their corresponding endpoint.
-- Use the handheld device on yourself, or Ctrl-Shift-click it from up to a tile
-  away, to open the interaction panel of the receiver's wearer, listing what your
-  own parts can do through the portal. The wearer can do the same to reach their
-  own receiver.
+- Use the handheld device on yourself or someone else to put the part you aim at
+  against it, the groin using the device's target. Ctrl-Shift-click it from up to
+  a tile away to open the interaction panel of the receiver's wearer instead,
+  listing everything your own parts can do through the portal. The wearer can do
+  the same to reach their own receiver.
 - Use one linked device on another to pick from the interactions between their
   two wearers. The device in your hand is the active side.
 - Right-click the device or receiver to toggle that item's anonymity. Alt-click

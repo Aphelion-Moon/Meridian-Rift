@@ -86,7 +86,7 @@
 /// Returns TRUE if the attack was successful, FALSE if it missed
 /datum/martial_art/blood_steal/proc/feedbacker(mob/living/attacker, mob/living/defender)
 
-	var/obj/item/bodypart/arm/active_arm = attacker.get_active_hand()
+	var/obj/item/bodypart/arm/active_arm = attacker.has_hand_for_held_index(attacker.active_hand_index) || attacker.get_active_hand()
 
 	//The values between which damage is rolled for punches
 	var/lower_force = active_arm.unarmed_damage_low + 5

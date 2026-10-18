@@ -76,6 +76,7 @@ GLOBAL_LIST_INIT(genetic_mutation_choice, list(
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "genetic_mutation"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/genetic_mutation/init_possible_values()
 	return GLOB.genetic_mutation_choice

@@ -13,7 +13,7 @@
 /// You do not need to raise this if you are adding new values that have sane defaults.
 /// Only raise this value when changing the meaning/format/name/layout of an existing value
 /// where you would want the updater procs below to run
-#define SAVEFILE_VERSION_MAX 52
+#define SAVEFILE_VERSION_MAX 53
 
 #define IS_DATA_OBSOLETE(version) (version == SAVE_DATA_OBSOLETE)
 #define SHOULD_UPDATE_DATA(version) (version >= SAVE_DATA_NO_ERROR && version < SAVEFILE_VERSION_MAX)
@@ -106,6 +106,12 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 
 	if (current_version < 44)
 		update_tts_blip_prefs()
+
+	if(current_version < 53)
+		if("swap_hands" in key_bindings)
+			var/keys = key_bindings["swap_hands"]
+			key_bindings -= "swap_hands"
+			key_bindings["swap_hands_row"] = keys
 
 /datum/preferences/proc/update_character(current_version, list/save_data)
 	if (current_version < 41)
@@ -478,6 +484,7 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 /datum/preferences/proc/switch_to_slot(new_slot)
 	if(new_slot == default_slot) // sanity check, nothing to do here.
 		return
+	close_custom_sprite_editors() // APHELION EDIT ADDITION - Commit to the old slot before switching
 	// SAFETY: `load_character` performs sanitization on the slot number
 	if (!load_character(new_slot))
 		tainted_character_profiles = TRUE
@@ -485,8 +492,9 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		all_quirks = list()
 		// APHELION EDIT ADDITION START
 		augments = list()
-		body_markings = list()
+		body_markings = new /datum/body_marking_collection
 		languages = list()
+		language_understanding = null
 		// APHELION EDIT ADDITION END
 		recently_updated_keys |= /datum/preference/name/real_name
 		save_character()
@@ -519,6 +527,8 @@ SAVEFILE UPDATING/VERSIONING - 'Simplified', or rather, more coder-friendly ~Car
 		stack_trace("remove_current_slot() being called when there are no slots to go to, the client should prevent this")
 		return
 
+	close_custom_sprite_editors(FALSE) // APHELION EDIT ADDITION
+	remove_custom_sprite_slot(default_slot) // APHELION EDIT ADDITION - A reused slot starts empty
 	savefile.remove_entry("character[default_slot]")
 	tainted_character_profiles = TRUE
 	switch_to_slot(closest_slot)

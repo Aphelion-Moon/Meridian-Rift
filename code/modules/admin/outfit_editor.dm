@@ -80,6 +80,7 @@
 		showDirs = list(SOUTH),
 		outfit_override = drip,
 		no_anim = TRUE,
+		grow = TRUE, // APHELION EDIT ADDITION - The preview shows wings, tails and big hats whole.
 	)
 	data["dummy64"] = icon2base64(dummysprite)
 

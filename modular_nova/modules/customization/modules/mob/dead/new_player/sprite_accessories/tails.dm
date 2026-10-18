@@ -10,20 +10,15 @@
 	// Emote exception
 	if(wearer.owned_turf?.name == FEATURE_TAIL)
 		return TRUE
-
 	var/obj/item/clothing/suit/mod/worn_suit = wearer.wear_suit
-	if(isnull(wearer.w_uniform) && isnull(worn_suit))
+	if(!worn_suit && !wearer.w_uniform)
 		return FALSE
-	if(key in wearer.try_hide_mutant_parts)
+	if(wearer.try_hide_mutant_parts?[key])
 		return TRUE
-
-	if(worn_suit)
-		// Exception for MODs
-		if(istype(worn_suit))
-			return FALSE
-		// Hide accessory if flagged to do so
-		else if(worn_suit.flags_inv & HIDETAIL)
-			return TRUE
+	// Hide accessory if flagged to do so, with an exception for MODs
+	if(worn_suit && !istype(worn_suit) && (worn_suit.flags_inv & HIDETAIL))
+		return TRUE
+	return LEWD_ITEM_HIDES_PARTS(wearer, FALSE, TRUE)
 
 /datum/sprite_accessory/tails/none
 	name = SPRITE_ACCESSORY_NONE

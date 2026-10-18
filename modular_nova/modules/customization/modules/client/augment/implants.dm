@@ -21,6 +21,11 @@
 /datum/augment_item/implant/apply(mob/living/carbon/human/organ_receiver, character_setup = FALSE, datum/preferences/prefs)
 	if(character_setup && !has_visual)
 		return
+	var/obj/item/organ/organ_path = path
+	var/obj/item/organ/old_organ = organ_receiver.get_organ_slot(organ_path::slot)
+	// A preview body keeps the one an earlier drawing fitted.
+	if(character_setup && old_organ?.type == path)
+		return
 	var/obj/item/organ/new_organ = new path
 	new_organ.Insert(organ_receiver, special = FALSE, movement_flags = DELETE_IF_REPLACED)
 

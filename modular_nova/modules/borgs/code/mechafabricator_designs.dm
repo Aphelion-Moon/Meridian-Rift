@@ -227,7 +227,7 @@
 	custom_materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 2.5)
 
 /datum/design/rld
-	name = "Cyborg Rapid Lighting Device"
+	name = "Cyborg Rapid Lighting Device (RLD)"
 	build_type = MECHFAB
 	materials = list(/datum/material/iron = SHEET_MATERIAL_AMOUNT * 7.5, /datum/material/glass = SHEET_MATERIAL_AMOUNT * 2.5, /datum/material/silver = HALF_SHEET_MATERIAL_AMOUNT * 2.5)
 	build_path = /obj/item/borg/upgrade/rld

@@ -78,7 +78,7 @@
 			span_danger("Your veins burst from the sheer stress put on them!")
 		)
 
-		var/obj/item/bodypart/bodypart = pick(our_guy.bodyparts)
+		var/obj/item/bodypart/bodypart = pick(our_guy.get_bodyparts())
 		var/datum/wound/slash/flesh/critical/crit_wound = new()
 		crit_wound.apply_wound(bodypart)
 		bodypart.receive_damage(brute = METABOLISM_END_LIMB_DAMAGE, wound_bonus = CANT_WOUND)

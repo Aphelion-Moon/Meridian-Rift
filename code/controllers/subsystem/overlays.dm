@@ -20,6 +20,13 @@ SUBSYSTEM_DEF(overlays)
 	// As anything because we're basically doing type coercion, rather then actually filtering for mutable appearances
 	for(var/mutable_appearance/overlay as anything in overlays)
 		var/key = "[overlay.icon]-[overlay.icon_state]-[overlay.dir]"
+		// APHELION EDIT ADDITION START - iconless wrappers all print as "--dir", so name the first sprite inside them
+		if(isnull(overlay.icon) && length(overlay.overlays))
+			var/mutable_appearance/inner = overlay
+			while(isnull(inner.icon) && length(inner.overlays))
+				inner = inner.overlays[1]
+			key += " wrapper: plane [PLANE_TO_TRUE(overlay.plane)], layer [overlay.layer], [length(overlay.overlays)] inside, first [inner.icon]-[inner.icon_state]"
+		// APHELION EDIT ADDITION END
 		unique_overlays[key] += 1
 	var/list/output_text = list()
 	for(var/key in unique_overlays)

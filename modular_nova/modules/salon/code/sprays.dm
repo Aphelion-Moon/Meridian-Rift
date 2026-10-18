@@ -3,6 +3,9 @@
 	desc = "Changes hair colour RANDOMLY! Don't forget to read the label!"
 	icon = 'modular_nova/modules/salon/icons/items.dmi'
 	icon_state = "hairspraywhite"
+	inhand_icon_state = "hairspraywhite"
+	lefthand_file = 'modular_nova/modules/salon/icons/items_lefthand.dmi'
+	righthand_file = 'modular_nova/modules/salon/icons/items_righthand.dmi'
 	amount_per_transfer_from_this = 1
 	possible_transfer_amounts = list(1, 5)
 	list_reagents = list(/datum/reagent/hair_dye = 30)
@@ -13,6 +16,9 @@
 	desc = "Causes baldness, exessive use may cause customer disatisfaction."
 	icon = 'modular_nova/modules/salon/icons/items.dmi'
 	icon_state = "hairremoval"
+	inhand_icon_state = "hairspraywhite"
+	lefthand_file = 'modular_nova/modules/salon/icons/items_lefthand.dmi'
+	righthand_file = 'modular_nova/modules/salon/icons/items_righthand.dmi'
 	amount_per_transfer_from_this = 1
 	possible_transfer_amounts = list(1, 5)
 	list_reagents = list(/datum/reagent/baldium = 30)
@@ -23,6 +29,9 @@
 	desc = "Causes rapid hair and facial hair growth!"
 	icon = 'modular_nova/modules/salon/icons/items.dmi'
 	icon_state = "hairaccelerator"
+	inhand_icon_state = "hairspraywhite"
+	lefthand_file = 'modular_nova/modules/salon/icons/items_lefthand.dmi'
+	righthand_file = 'modular_nova/modules/salon/icons/items_righthand.dmi'
 	amount_per_transfer_from_this = 1
 	possible_transfer_amounts = list(1, 5)
 	list_reagents = list(/datum/reagent/barbers_aid = 50)
@@ -33,6 +42,9 @@
 	desc = "Causes SUPER rapid hair and facial hair growth!"
 	icon = 'modular_nova/modules/salon/icons/items.dmi'
 	icon_state = "hairaccelerator"
+	inhand_icon_state = "hairspraywhite"
+	lefthand_file = 'modular_nova/modules/salon/icons/items_lefthand.dmi'
+	righthand_file = 'modular_nova/modules/salon/icons/items_righthand.dmi'
 	amount_per_transfer_from_this = 1
 	possible_transfer_amounts = list(1, 5)
 	list_reagents = list(/datum/reagent/concentrated_barbers_aid = 30)

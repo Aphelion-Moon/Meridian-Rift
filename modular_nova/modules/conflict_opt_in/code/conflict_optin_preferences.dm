@@ -2,6 +2,7 @@
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "conflict_opt_in_status_pref"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/conflict_opt_in_status/init_possible_values()
 	return list(CONFLICT_OPT_OUT, CONFLICT_OPT_IN_PARTIAL, CONFLICT_OPT_IN_YES_KILL, CONFLICT_OPT_IN_YES_ROUND_REMOVE)

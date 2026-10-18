@@ -98,13 +98,26 @@ export const NoWarningParameter = new Juke.Parameter({
 export const PaintingStoreTarget = new Juke.Target({
   executes: async () => {
     if (process.platform === 'win32') {
-      await Juke.exec('powershell.exe', [
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
+      // A quiet run reports failure through its exit code instead of throwing.
+      const powershell = (script: string, quiet = false) =>
+        Juke.exec(
+          'powershell.exe',
+          ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script],
+          { silent: quiet, throw: !quiet },
+        );
+      const verified = await powershell(
         'tools/painting_store/verify.ps1',
-      ]);
+        true,
+      );
+      if (verified.code === 0) {
+        return;
+      }
+      // A source change must never stop a build: rebuild the DLL and manifest from it, like Linux does.
+      Juke.logger.warn(
+        `Rebuilding the painting-store DLL: ${verified.combined.split(/\r?\n/)[0]}`,
+      );
+      await powershell('tools/painting_store/build.ps1');
+      await powershell('tools/painting_store/verify.ps1');
     } else {
       await Juke.exec('bash', ['tools/painting_store/build.sh']);
     }

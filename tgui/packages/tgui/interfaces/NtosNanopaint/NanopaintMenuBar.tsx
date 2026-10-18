@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction, useState } from 'react';
 import { sendAct as act } from 'tgui/events/act';
 import { MenuBar } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
+import { useSpriteEditorHistory } from '../common/SpriteEditor/useSpriteEditorHotkeys'; // APHELION EDIT ADDITION
 
 type NanopaintMenuBarProps = {
   undoHistory: string[];
@@ -14,6 +15,7 @@ type NanopaintMenuBarProps = {
 };
 
 export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
+  const history = useSpriteEditorHistory(); // APHELION EDIT ADDITION
   const {
     undoHistory,
     redoHistory,
@@ -32,7 +34,7 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
     action: () => void,
   ) => {
     return {
-      key: value,
+      // key: value, // APHELION EDIT REMOVAL
       value,
       displayText,
       onClick: (_value) => {
@@ -82,7 +84,7 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
           {...getMenuItemProps(
             'undo',
             `Undo${undoHistory.length > 0 ? ` ${undoHistory[0]}` : ''}`,
-            () => act('spriteEditorCommand', { command: 'undo' }),
+            () => history('undo'), // APHELION EDIT CHANGE - ORIGINAL: () => act('spriteEditorCommand', { command: 'undo' }),
           )}
           disabled={undoHistory.length === 0}
         />
@@ -90,7 +92,7 @@ export const NanopaintMenuBar = (props: NanopaintMenuBarProps) => {
           {...getMenuItemProps(
             'redo',
             `Redo${undoHistory.length > 0 ? ` ${redoHistory[0]}` : ''}`,
-            () => act('spriteEditorCommand', { command: 'redo' }),
+            () => history('redo'), // APHELION EDIT CHANGE - ORIGINAL: () => act('spriteEditorCommand', { command: 'redo' }),
           )}
           disabled={redoHistory.length === 0}
         />

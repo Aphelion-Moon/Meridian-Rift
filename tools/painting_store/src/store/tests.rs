@@ -293,6 +293,14 @@ fn competing_os_lock_rejects_snapshot() {
     drop(lock);
     snapshot(&store);
 }
+/// A dropped writer lock must be free at once, not whenever Windows gets to the closed handle.
+#[test]
+fn released_writer_lock_is_immediately_available() {
+    let (_dir, store) = fixture();
+    for _ in 0..500 {
+        drop(store.lock().unwrap());
+    }
+}
 /// Verify that writer exclusion applies across processes, not merely threads.
 #[test]
 fn second_process_cannot_acquire_writer_lock() {

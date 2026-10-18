@@ -15,10 +15,6 @@ IBM Plex Mono supplies the small telemetry face.
 | AtkinsonHyperlegibleNext-Latin-VariableItalic.woff2 | 400     | Italic body text                          |
 | Telematic-Regular.ttf                               | 400     | Lobby access heading                      |
 
-`Neuromax-Regular.otf` and its source notice remain available as source assets.
-No theme selects that face, so it has no active `@font-face` registration and
-is not embedded in the bundles.
-
 The reading faces are the Latin WOFF2 subsets of Atkinson Hyperlegible Next.
 Their original copyright and SIL Open Font License are in
 `AtkinsonHyperlegibleNext-OFL.txt`; `AtkinsonHyperlegibleNext-source.json` records

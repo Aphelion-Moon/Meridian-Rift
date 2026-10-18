@@ -141,6 +141,7 @@
 	gets_cropped_on_taurs = FALSE
 	greyscale_config_worn_vox = /datum/greyscale_config/qipao/worn
 	greyscale_config_worn_better_vox = /datum/greyscale_config/qipao/worn
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/costume/nova/qipao/customtrim
 	greyscale_colors = "#2b2b2b#ffce5b"
@@ -168,6 +169,7 @@
 	flags_1 = IS_PLAYER_COLORABLE_1
 	greyscale_config_worn_vox = /datum/greyscale_config/cheongsam/worn
 	greyscale_config_worn_better_vox = /datum/greyscale_config/cheongsam/worn
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/costume/nova/cheongsam/customtrim
 	greyscale_colors = "#2b2b2b#ffce5b#353535"
@@ -193,6 +195,7 @@
 	greyscale_config_worn_digi = /datum/greyscale_config/yukata/worn/digi
 	flags_1 = IS_PLAYER_COLORABLE_1
 	gets_cropped_on_taurs = FALSE
+	bodyshapes_with_variations = NONE
 
 /obj/item/clothing/under/costume/nova/kamishimo
 	name = "kamishimo"
@@ -217,7 +220,7 @@
 	desc = "A traditional ancient Earth Japanese Shihakusho."
 	icon_state = "shihakusho"
 	body_parts_covered = CHEST|GROIN|ARMS
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION_NO_NEW_ICON | CLOTHING_CERULEAN_MASK_LEGS
 
 /obj/item/clothing/under/costume/nova/chima_jeogori
 	name = "chima jeogori"

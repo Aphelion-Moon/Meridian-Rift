@@ -1,8 +1,11 @@
 /datum/body_marking/moth
 	icon = 'modular_nova/master_files/icons/mob/body_markings/moth_markings.dmi'
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#FFFFFF"
 	recommended_species = list(SPECIES_MOTH = 1)
 	affected_bodyparts = HEAD | CHEST | ARM_LEFT | ARM_RIGHT | LEG_RIGHT | LEG_LEFT
+	gendered = FALSE // Every moth marking draws one chest for both physiques.
+	leg_shapes = MARKING_LEG_PLANTIGRADE // No moth marking has digitigrade art.
 
 /datum/body_marking/moth/reddish
 	name = "Reddish"
@@ -60,8 +63,14 @@
 	name = "Lightbearer"
 	icon_state = "lightbearer"
 
+/datum/body_marking/moth/firewatch
+	name = "Firewatch"
+	icon_state = "firewatch"
+
 /datum/body_marking/moth/grayscale
 	icon = 'modular_nova/master_files/icons/mob/body_markings/moth_grayscale_markings.dmi'
+	color_mode = MARKING_COLOR_FOLLOWS_PRIMARY // Grey art, made to be tinted: it starts in the primary mutant colour.
+	default_color = null
 
 /datum/body_marking/moth/grayscale/reddish
 	name = "Reddish Grayscale"
@@ -114,3 +123,7 @@
 /datum/body_marking/moth/grayscale/lovers
 	name = "Lovers Grayscale"
 	icon_state = "lovers"
+
+/datum/body_marking/moth/grayscale/firewatch
+	name = "Firewatch Grayscale"
+	icon_state = "firewatch"

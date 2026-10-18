@@ -24,7 +24,8 @@
 */
 
 /datum/painting
-	/// Pixel-data identity and filename; not a PNG checksum. // APHELION EDIT CHANGE - ORIGINAL: /// md5 of the png file, also the filename.
+	// APHELION EDIT CHANGE - ORIGINAL: /// md5 of the png file, also the filename.
+	/// Pixel-data identity and filename; not a PNG checksum.
 	var/md5
 	/// Title
 	var/title

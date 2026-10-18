@@ -21,7 +21,6 @@ type Data = {
 export const NtosSelfServe = (props) => {
   return (
     <NtosWindow width={400} height={522}>
-      {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <NtosWindow.Content> */}
       <NtosWindow.Content scrollable>
         <Stack>
           <Stack.Item width="100%">
@@ -67,9 +66,7 @@ const SelfServePage = (props) => {
         <Section title="Punch Clock">
           <Stack wrap="wrap">
             <Stack.Item width="100%" mt={1} ml={0}>
-              {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack> */}
               <Stack className="MeridianControlRow">
-                {/* APHELION EDIT CHANGE - responsive controls; ORIGINAL: <Stack.Item> */}
                 <Stack.Item className="MeridianControlRow__fill">
                   <Button
                     width="342px"

@@ -107,7 +107,7 @@ SUBSYSTEM_DEF(accessories) // just 'accessories' for brevity
 	// lizards
 	feature_list[FEATURE_FRILLS] = INIT_OPTIONAL_ACCESSORY(/datum/sprite_accessory/frills)
 	feature_list[FEATURE_HORNS] = INIT_OPTIONAL_ACCESSORY(/datum/sprite_accessory/horns)
-	feature_list[FEATURE_LIZARD_MARKINGS] = INIT_OPTIONAL_ACCESSORY(/datum/sprite_accessory/lizard_markings)
+	// feature_list[FEATURE_LIZARD_MARKINGS] = INIT_OPTIONAL_ACCESSORY(/datum/sprite_accessory/lizard_markings) // APHELION EDIT REMOVAL - Nova body markings replace them
 	feature_list[FEATURE_SNOUT] = INIT_ACCESSORY(/datum/sprite_accessory/snouts)
 	feature_list[FEATURE_SPINES] = INIT_OPTIONAL_ACCESSORY(/datum/sprite_accessory/spines)
 	feature_list[FEATURE_TAILSPINES] = INIT_OPTIONAL_ACCESSORY(/datum/sprite_accessory/tail_spines)

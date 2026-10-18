@@ -1,15 +1,15 @@
 {
-  "api": 1,
-  "target": "i686-pc-windows-msvc",
-  "rust": "1.89.0",
-  "binary": "meridian_painting_store.dll",
-  "sha256": "d177ac0b6af6d2a7939c6936488fdda307578f9fdd56ebd7fe162f9cbc4d539d",
-  "sources": {
-    "Cargo.toml": "8478f0f954baad520733063d597b46d57d8076c16fd0f49601a9a81a0053ab31",
-    "Cargo.lock": "c83f473bf79f0876ad5086760622f27ae399d505bd6afdb83c075537af8f8ddb",
-    "rust-toolchain.toml": "af97a255440d84ccd35ba218937b58a1a5345687a9ae1a4293f45c570eae35a2",
-    "src/lib.rs": "2057ec0ffde1414d8dde3ecf826cd03801a825ed6b13b2bb3921e9340bec6df0",
-    "src/store.rs": "80f32903e3cd566e3c660d8765252803690019c35b4cd3f61daa860e3123bd59",
-    "src/store/tests.rs": "709a1027d24f1afe0d2c95ed16f143daeed98743484e71a516de2db4a5b2d9b6"
-  }
+    "api":  1,
+    "target":  "i686-pc-windows-msvc",
+    "rust":  "1.89.0",
+    "binary":  "meridian_painting_store.dll",
+    "sha256":  "de79d97424ec8a4460734733d9c42d468f62f1e86e575d8cce06f1b331afb748",
+    "sources":  {
+                    "Cargo.toml":  "8478f0f954baad520733063d597b46d57d8076c16fd0f49601a9a81a0053ab31",
+                    "Cargo.lock":  "c83f473bf79f0876ad5086760622f27ae399d505bd6afdb83c075537af8f8ddb",
+                    "rust-toolchain.toml":  "af97a255440d84ccd35ba218937b58a1a5345687a9ae1a4293f45c570eae35a2",
+                    "src/lib.rs":  "2057ec0ffde1414d8dde3ecf826cd03801a825ed6b13b2bb3921e9340bec6df0",
+                    "src/store.rs":  "c3a3519f6c8edad89db41adec112776861b429cfc263c190021b061499e1e5ac",
+                    "src/store/tests.rs":  "c2db89ed73ae488f64400c96c666ddb101ee16a8bdde7083ad19c4cd8dde8e9c"
+                }
 }

@@ -28,6 +28,7 @@ export const ServerPrefs = createContext<ServerData | undefined>({
     loadout_tabs: [],
   },
   species: {},
+  species_families: [], // APHELION EDIT ADDITION - Species page
   // NOVA EDIT ADDITION START - Background Selection
   background_state: {
     choices: [],

@@ -50,6 +50,7 @@
 	category = PREFERENCE_CATEGORY_ERP
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_belly_button"
+	should_update_preview = FALSE
 
 /datum/preference/toggle/erp_vore_button/create_default_value()
 	return FALSE
@@ -76,6 +77,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_belly_vore_prey"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/erp_vore_prey_pref/init_possible_values()
 	return list(
@@ -196,6 +198,7 @@
 	step = 0.01
 	minimum = 0
 	maximum = 10
+	should_update_preview = FALSE
 
 /datum/preference/numeric/erp_bellyquirk_sizemod_nutrition/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
@@ -211,6 +214,7 @@
 	step = 0.01
 	minimum = 0
 	maximum = 10
+	should_update_preview = FALSE
 
 /datum/preference/numeric/erp_bellyquirk_sizemod_audio/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
@@ -242,6 +246,7 @@
 	step = 1
 	minimum = 0
 	maximum = 10000
+	should_update_preview = FALSE
 
 /datum/preference/numeric/erp_bellyquirk_size_full/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
@@ -270,6 +275,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_bellyquirk_sound_groans"
+	should_update_preview = FALSE
 
 /datum/preference/toggle/erp_bellyquirk_groans/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
@@ -279,6 +285,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_bellyquirk_sound_gurgles"
+	should_update_preview = FALSE
 
 /datum/preference/toggle/erp_bellyquirk_gurgles/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
@@ -288,6 +295,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_bellyquirk_sound_move_creaks"
+	should_update_preview = FALSE
 
 /datum/preference/toggle/erp_bellyquirk_move_creaks/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
@@ -297,6 +305,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_bellyquirk_sound_move_sloshes"
+	should_update_preview = FALSE
 
 /datum/preference/toggle/erp_bellyquirk_move_sloshes/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE
@@ -307,6 +316,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "erp_bellyquirk_pred"
+	should_update_preview = FALSE
 
 /datum/preference/choiced/erp_bellyquirk_pred_pref/init_possible_values()
 	return list(
@@ -384,6 +394,7 @@
 	step = 1
 	minimum = 0
 	maximum = 10000
+	should_update_preview = FALSE
 
 /datum/preference/numeric/erp_bellyquirk_size_endo/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return FALSE

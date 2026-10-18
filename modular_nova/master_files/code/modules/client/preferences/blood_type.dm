@@ -3,6 +3,7 @@
 	savefile_key = "blood_type"
 	savefile_identifier = PREFERENCE_CHARACTER
 	priority = PREFERENCE_PRIORITY_BODYPARTS // Apply after species, cause that's super important.
+	should_update_preview = FALSE
 
 /datum/preference/choiced/blood_type/init_possible_values()
 	return list(
@@ -28,6 +29,6 @@
 
 /datum/preference/choiced/blood_type/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	var/datum/preference/choiced/blood_type/blood_type_pref = GLOB.preference_entries[/datum/preference/choiced/blood_type]
-	if(!blood_type_pref.is_accessible(preferences))
+	if(!blood_type_pref.is_applicable(preferences))
 		return
 	target.set_blood_type(value)

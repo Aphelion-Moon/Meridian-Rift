@@ -242,21 +242,17 @@
 
 	switch(vision_mode)// the active switcher
 		if(0)// normal sight. this switch disables everything when hit
-			reset_vision(human_user)
+			reset_vision()
 			balloon_alert(user, "vision: normal")
 		if(1)// perfect sight. Goldilocks land
-			vision_flags |= (SEE_TURFS|SEE_MOBS|SEE_OBJS)
-			attach_clothing_traits(TRAIT_XRAY_VISION)
-			ADD_TRAIT(human_user, TRAIT_XRAY_HEARING, ADMIN_TRAIT)
-			human_user.see_invisible = SEE_INVISIBLE_OBSERVER// primary diff between this and switch 2
+			attach_clothing_traits(list(TRAIT_XRAY_VISION, TRAIT_XRAY_HEARING))
+			invis_override = SEE_INVISIBLE_OBSERVER// primary diff between this and switch 2
 			lighting_cutoff = LIGHTING_CUTOFF_FULLBRIGHT
 			add_filter("admin_active_item", 1, outline_filter(1, "#cc00ff", OUTLINE_SQUARE))
 			balloon_alert(user, "vision: perfect")
 		if(2)// omniscience. pretty much the same as last, except for
-			vision_flags |= (SEE_TURFS|SEE_MOBS|SEE_OBJS)
-			attach_clothing_traits(TRAIT_XRAY_VISION)
-			ADD_TRAIT(human_user, TRAIT_XRAY_HEARING, ADMIN_TRAIT)
-			human_user.see_invisible = INVISIBILITY_ABSTRACT// show me weird things so i dont have to take out sdmm or vv
+			attach_clothing_traits(list(TRAIT_XRAY_VISION, TRAIT_XRAY_HEARING))
+			invis_override = INVISIBILITY_ABSTRACT// show me weird things so i dont have to take out sdmm or vv
 			lighting_cutoff = LIGHTING_CUTOFF_FULLBRIGHT
 			add_filter("admin_active_item", 1, outline_filter(2, "#ff0000", OUTLINE_SQUARE))// its worth adding an active outline differentiating the state. pretty sure this is the only place i've done this so far, atow
 			balloon_alert(user, "vision: omniscient")
@@ -267,28 +263,22 @@
 /**
  * Winds the goggles back to mode 0 and strips everything the higher modes handed out.
  *
- * Shared by the mode cycle and by dropped(), so taking the goggles off in mode 1 or 2 can't leave the wearer
- * with wall-hearing and x-ray for the rest of the round. Does not call update_sight() - the callers do.
- * Arguments:
- * * wearer - whoever is currently wearing them. Non-humans only get the item-side state reset.
+ * Shared by the mode cycle and by dropped(), so goggles taken off in mode 1 or 2 don't go back on still in it.
+ * Wall-hearing and x-ray are clothing traits, sourced to these goggles, so removing them leaves the same traits
+ * from admin wallhacks alone. Does not call update_sight() - the callers do.
  */
-/obj/item/clothing/glasses/meson/engine/admin/debug/proc/reset_vision(mob/wearer)
+/obj/item/clothing/glasses/meson/engine/admin/debug/proc/reset_vision()
 	vision_mode = 0
-	vision_flags &= ~(SEE_TURFS|SEE_MOBS|SEE_OBJS)
-	detach_clothing_traits(TRAIT_XRAY_VISION)
+	detach_clothing_traits(list(TRAIT_XRAY_VISION, TRAIT_XRAY_HEARING))
+	invis_override = initial(invis_override)
 	lighting_cutoff = LIGHTING_CUTOFF_HIGH
 	remove_filter("admin_active_item")// clears outlines set by the higher modes
-	if(!ishuman(wearer))
-		return
-	var/mob/living/carbon/human/human_wearer = wearer
-	REMOVE_TRAIT(human_wearer, TRAIT_XRAY_HEARING, ADMIN_TRAIT)// wall ears
-	human_wearer.see_invisible = initial(invis_view)// our actual see_invis processor
 
 /obj/item/clothing/glasses/meson/engine/admin/debug/dropped(mob/user)
 	. = ..()
 	if(!vision_mode)
 		return
-	reset_vision(user)
+	reset_vision()
 	user.update_sight()
 
 #undef MODE_NONE

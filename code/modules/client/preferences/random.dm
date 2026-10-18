@@ -3,6 +3,7 @@
 	savefile_key = "random_body"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE // APHELION EDIT ADDITION
 
 /datum/preference/choiced/random_body/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
@@ -23,6 +24,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	default_value = FALSE
+	should_update_preview = FALSE // APHELION EDIT ADDITION
 
 /datum/preference/toggle/random_hardcore/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
@@ -38,6 +40,7 @@
 	savefile_key = "random_name"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE // APHELION EDIT ADDITION
 
 /datum/preference/choiced/random_name/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return

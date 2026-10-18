@@ -1,8 +1,7 @@
 // THIS IS AN APHELION UI FILE
-// B: cast bronze and engraved seams. D: gunmetal with fitted bronze hardware.
+// Hephaestus: gunmetal with fitted bronze hardware. (Foundry's finish is _foundry.scss.)
 // Nine-slice artwork keeps the corner fittings intact as the window resizes.
 @media (forced-colors: none) {
-  .theme-meridian_foundry,
   .theme-meridian_hephaestus {
     .Window {
       background-color: var(--forge-recess);
@@ -195,7 +194,7 @@
 @media (forced-colors: active) {
   // Core derives selected fills with relative HSL. Use the system pair directly
   // so forced colors cannot turn the fill into Canvas behind HighlightText.
-  .theme-console:is(.theme-meridian_foundry, .theme-meridian_hephaestus) {
+  .theme-console.theme-meridian_hephaestus {
     .Button:is(
         .Button--selected,
         [aria-pressed='true'],

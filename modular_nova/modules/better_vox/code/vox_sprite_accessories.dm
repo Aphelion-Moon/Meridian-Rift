@@ -81,6 +81,7 @@
 // MARKINGS
 /datum/body_marking/vox_primalis
 	icon = 'modular_nova/modules/better_vox/icons/accessories/vox_bodymarkings.dmi'
+	color_mode = MARKING_COLOR_FIXED_DEFAULT
 	default_color = "#64e8ff"
 	recommended_species = list(SPECIES_VOX_PRIMALIS = 1)
 	affected_bodyparts = CHEST

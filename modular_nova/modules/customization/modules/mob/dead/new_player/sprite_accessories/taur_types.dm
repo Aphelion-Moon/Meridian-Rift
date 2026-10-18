@@ -66,7 +66,8 @@
 	return ..()
 
 /datum/sprite_accessory/taur/is_hidden(mob/living/carbon/human/target, datum/bodypart_overlay/mutant/bodypart_overlay)
-	var/obj/item/organ/taur_body/taur_body = target.get_organ_slot(ORGAN_SLOT_EXTERNAL_TAUR)
+	// get_organ_slot(), read from the slot list itself: this runs on every body update.
+	var/obj/item/organ/taur_body/taur_body = target.organs_slot[ORGAN_SLOT_EXTERNAL_TAUR]
 	if (taur_body?.hide_self)
 		return TRUE
 
@@ -101,11 +102,7 @@
 					if (worn_uniform.worn_icon_taur_hoof)
 						return TRUE
 
-	if(target.owned_turf)
-		if(target.owned_turf.name == "tail")
-			return TRUE
-
-	return FALSE
+	return target.owned_turf?.name == "tail"
 
 /datum/sprite_accessory/taur/none
 	name = SPRITE_ACCESSORY_NONE

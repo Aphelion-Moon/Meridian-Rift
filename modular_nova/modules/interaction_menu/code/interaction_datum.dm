@@ -84,10 +84,10 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 	for(var/requirement in interaction_requires)
 		switch(requirement)
 			if(INTERACTION_REQUIRE_SELF_HAND)
-				if(!user.get_active_hand())
+				if(!user.get_active_hand() && !user.has_hand_for_held_index(user.active_hand_index))
 					return FALSE
 			if(INTERACTION_REQUIRE_TARGET_HAND)
-				if(!target.get_active_hand())
+				if(!target.get_active_hand() && !target.has_hand_for_held_index(target.active_hand_index))
 					return FALSE
 
 			else
@@ -232,16 +232,21 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			message_admins("Deprecated sound handling for '[html_encode(name)]'. Correct format is a list with one entry. This message will only show once.")
 			sound_possible = list(sound_possible)
 		sound_cache = pick(sound_possible)
-		if (lewd)
-			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, max(0, -SOUND_RANGE + sound_range), pref_to_check = /datum/preference/toggle/erp/sounds)
+		// The sound reaches sound_range tiles, as its JSON says or one by default.
+		if(route?.muffles_sound())
+			// Muffled under clothes: it fades like a worn vibrator's, and reaches no further than in person or a vibrator.
+			playsound_if_pref(target, sound_cache, 50, sound_vary, min(sound_range - SOUND_RANGE, SILENCED_SOUND_EXTRARANGE), falloff_exponent = 5, pref_to_check = /datum/preference/toggle/erp/sounds)
+		else if (lewd)
+			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE, pref_to_check = /datum/preference/toggle/erp/sounds)
 		else
-			playsound(target.loc, sound_cache, 50, sound_vary, max(0, -SOUND_RANGE + sound_range))
+			playsound(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE)
 
 	INVOKE_ASYNC(src, PROC_REF(apply_effects), WEAKREF(user), WEAKREF(target), route)
 	return TRUE
 
 /// Expands a message for an observer by default, or for the recipient of a private notice.
 /// Anonymity takes precedence over recipient identity, including when both roles belong to one mob.
+/// Placeholders match case-sensitively, exactly as templates write them, such as %USER% and %TARGET_PRONOUN_THEIR%.
 /datum/interaction/proc/format_message_for(
 	message_template,
 	mob/living/carbon/human/user,
@@ -281,20 +286,20 @@ GLOBAL_LIST_EMPTY_TYPED(interaction_instances, /datum/interaction)
 			possessive = "[their] own"
 
 		// Expand possessives before bare names so a recipient never becomes "you's".
-		formatted_message = replacetext(formatted_message, "%[role]%'s", possessive)
-		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%'s", capitalize(possessive))
+		formatted_message = replacetextEx(formatted_message, "%[role]%'s", possessive)
+		formatted_message = replacetextEx(formatted_message, "%[role]_CAPITAL%'s", capitalize(possessive))
 		// A bare target is the object ("kisses %TARGET%"); a sentence-initial one stays the subject.
-		formatted_message = replacetext(formatted_message, "%[role]%", is_user ? participant_name : object_name)
-		formatted_message = replacetext(formatted_message, "%[role]_CAPITAL%", capitalize(participant_name))
-		formatted_message = replacetext(formatted_message, "%[role]_OBJECT%", object_name)
+		formatted_message = replacetextEx(formatted_message, "%[role]%", is_user ? participant_name : object_name)
+		formatted_message = replacetextEx(formatted_message, "%[role]_CAPITAL%", capitalize(participant_name))
+		formatted_message = replacetextEx(formatted_message, "%[role]_OBJECT%", object_name)
 		// Templates supply agreement explicitly; do not guess how to conjugate arbitrary prose.
-		formatted_message = replacetext(formatted_message, "%[role]_VERB_S%", is_recipient ? "" : "s")
-		formatted_message = replacetext(formatted_message, "%[role]_VERB_ES%", is_recipient ? "" : "es")
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIR%", their)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEIRS%", theirs)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEM%", them)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEY%", they)
-		formatted_message = replacetext(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
+		formatted_message = replacetextEx(formatted_message, "%[role]_VERB_S%", is_recipient ? "" : "s")
+		formatted_message = replacetextEx(formatted_message, "%[role]_VERB_ES%", is_recipient ? "" : "es")
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEIR%", their)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEIRS%", theirs)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEM%", them)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEY%", they)
+		formatted_message = replacetextEx(formatted_message, "%[role]_PRONOUN_THEMSELVES%", themselves)
 	return trim(formatted_message, INTERACTION_MAX_CHAR)
 
 /// Applies side effects only while the interaction's original authority remains valid.

@@ -3,6 +3,7 @@
 	priority = PREFERENCE_PRIORITY_DEFAULT
 	savefile_key = "loadout_override_preference"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/loadout_override_preference/init_possible_values()
 	return list(LOADOUT_OVERRIDE_JOB, LOADOUT_OVERRIDE_BACKPACK, LOADOUT_OVERRIDE_CASE)

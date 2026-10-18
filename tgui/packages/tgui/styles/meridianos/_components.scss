@@ -451,6 +451,13 @@
     box-shadow: inset 0 0 0 1px var(--console-surface-canvas);
   }
 
+  // Transparent bars stay unpainted as in core; callers stack them over their
+  // own fills (PlantAnalyzer nutrients over its per-reagent segments).
+  .ProgressBar.ProgressBar--color--transparent {
+    background: transparent;
+    box-shadow: none;
+  }
+
   // Solid 1px outline, so the label reads on a bright fill and a dark track.
   .ProgressBar__content {
     color: var(--console-text-primary);
@@ -562,6 +569,17 @@
 
   :is(.Input, .TextArea, .NumberInput, .Dropdown):focus-within {
     border-color: var(--console-interaction-focus);
+  }
+
+  // An image button's focusable cell is clipped by its frame: the frame wears the ring.
+  .ImageButton:has(> .ImageButton__container:focus-visible) {
+    outline: 2px solid var(--console-interaction-focus);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px var(--console-interaction-focus-contrast);
+  }
+
+  .ImageButton__container:focus-visible {
+    outline: none;
   }
 
   h1,
@@ -839,5 +857,11 @@
 
   .Button--empty.Button--hasIcon > .Button__content {
     justify-content: center;
+  }
+
+  // Dropdowns take the same box, so one keeps the top and bottom of the arrow,
+  // play and other buttons beside it. Stock tgui draws them 22px high.
+  :is(.Dropdown__control, .Dropdown__input) {
+    min-height: 24px;
   }
 }

@@ -28,6 +28,10 @@
 	for (var/species_id in get_customizable_races())
 		values += GLOB.species_list[species_id]
 	//NOVA EDIT END
+	// APHELION EDIT ADDITION START - Species page: holiday species can be made all year, and joined during their holiday.
+	for (var/species_id in get_holiday_races())
+		values |= GLOB.species_list[species_id]
+	// APHELION EDIT ADDITION END
 
 	return values
 
@@ -43,15 +47,16 @@
 
 /datum/preference/choiced/species/compile_constant_data()
 	var/list/data = list()
+	var/list/page_ids = get_species_page_ids() // APHELION EDIT ADDITION - Species page
 
-	for (var/species_id in (get_selectable_species() + get_customizable_races())) // NOVA EDIT CHANGE - ORIGINAL: for (var/species_id in get_selectable_species())
+	for (var/species_id in page_ids) // APHELION EDIT CHANGE - Species page - ORIGINAL: for (var/species_id in (get_selectable_species() + get_customizable_races())) // NOVA EDIT CHANGE - ORIGINAL: for (var/species_id in get_selectable_species())
 		var/species_type = GLOB.species_list[species_id]
 		var/datum/species/species = GLOB.species_prototypes[species_type]
 
 		data[species_id] = list()
 		data[species_id]["name"] = species.name
-		data[species_id]["desc"] = species.get_species_description()
-		data[species_id]["lore"] = species.get_species_lore()
+		data[species_id]["desc"] = species.get_species_page_description() // APHELION EDIT CHANGE - ORIGINAL: data[species_id]["desc"] = species.get_species_description()
+		data[species_id]["lore"] = species.get_species_page_lore() // APHELION EDIT CHANGE - ORIGINAL: data[species_id]["lore"] = species.get_species_lore()
 		data[species_id]["icon"] = sanitize_css_class_name(species.name)
 		data[species_id]["use_skintones"] = (TRAIT_USES_SKINTONES in species.inherent_traits)
 		data[species_id]["sexes"] = species.sexes
@@ -59,5 +64,6 @@
 		data[species_id]["perks"] = species.get_species_perks()
 		data[species_id]["diet"] =  species.get_species_diet()
 		data[species_id]["nova_stars_only"] = species.nova_stars_only // NOVA EDIT ADDITION - Veteran races
+		species.add_species_page_data(data[species_id], page_ids) // APHELION EDIT ADDITION - Species page families, lineages and restrictions
 
 	return data

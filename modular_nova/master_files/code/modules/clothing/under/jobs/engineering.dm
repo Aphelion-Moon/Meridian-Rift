@@ -20,7 +20,7 @@
 	name = "engineering utility uniform"
 	desc = "A utility uniform worn by Engineering personnel."
 	icon_state = "util_eng"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
 	alt_covers_chest = TRUE
 
@@ -89,7 +89,7 @@
 	name = "advanced atmospherics uniform"
 	desc = "A jumpsuit worn by advanced atmospherics crews."
 	icon_state = "util_atmos"
-	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK
+	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_BIG_LEGS_MASK | CLOTHING_CERULEAN_MASK_LEGS
 	armor_type = /datum/armor/clothing_under/atmos_adv
 	can_adjust = FALSE
 

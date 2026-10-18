@@ -22,6 +22,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "photophobia_severity"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/choiced/photophobia_severity/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))

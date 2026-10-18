@@ -67,6 +67,7 @@
 	savefile_key = "echolocation_outline"
 	savefile_identifier = PREFERENCE_CHARACTER
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
+	should_update_preview = FALSE
 
 /datum/preference/color/echolocation_outline/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))
@@ -82,6 +83,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "echolocation_use_echo"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/toggle/echolocation_overlay/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))

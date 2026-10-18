@@ -8,23 +8,16 @@
 /datum/sprite_accessory/horns/is_hidden(mob/living/carbon/human/wearer, datum/bodypart_overlay/mutant/bodypart_overlay)
 	var/obj/item/clothing/head/worn_head = wearer.head
 	var/obj/item/clothing/mask/worn_mask = wearer.wear_mask
-	if(isnull(worn_head) && isnull(worn_mask))
-		return FALSE
-
-	// Can hide if wearing hat
-	if(key in wearer.try_hide_mutant_parts)
-		return TRUE
-
-	// Exception for MODs
-	if(istype(wearer.head, /obj/item/clothing/head/mod))
-		return FALSE
-
-	// Hide accessory if flagged to do so
-	if((worn_head?.flags_inv & HIDEHAIR || worn_mask?.flags_inv & HIDEHAIR) \
-		&& !(worn_mask && worn_mask.flags_inv & SHOWSPRITEEARS))
-		return TRUE
-
-	return FALSE
+	if(worn_head || worn_mask)
+		// Can hide if wearing hat
+		if(wearer.try_hide_mutant_parts?[key])
+			return TRUE
+		// Hide accessory if flagged to do so, with an exception for MODs
+		if(!istype(worn_head, /obj/item/clothing/head/mod))
+			var/mask_flags = worn_mask?.flags_inv
+			if(((worn_head?.flags_inv | mask_flags) & HIDEHAIR) && !(mask_flags & SHOWSPRITEEARS))
+				return TRUE
+	return LEWD_ITEM_HIDES_PARTS(wearer, TRUE, TRUE)
 
 /datum/sprite_accessory/horns/none
 	name = SPRITE_ACCESSORY_NONE

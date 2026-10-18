@@ -248,6 +248,7 @@
 	savefile_key = "entombed_skin"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/entombed_skin/init_possible_values()
 	return list(
@@ -279,6 +280,7 @@
 	savefile_key = "entombed_hardlight_theme"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/choiced/entombed_hardlight_theme/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return
@@ -319,6 +321,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	maximum_value_length = 64
+	should_update_preview = FALSE
 
 /datum/preference/text/entombed_mod_name/is_accessible(datum/preferences/preferences)
 	if (!..())
@@ -344,6 +347,7 @@
 	savefile_key = "entombed_mod_desc"
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
+	should_update_preview = FALSE
 
 /datum/preference/text/entombed_mod_desc/is_accessible(datum/preferences/preferences)
 	if (!..())
@@ -370,6 +374,7 @@
 	savefile_identifier = PREFERENCE_CHARACTER
 	can_randomize = FALSE
 	maximum_value_length = 16
+	should_update_preview = FALSE
 
 /datum/preference/text/entombed_mod_prefix/is_accessible(datum/preferences/preferences)
 	if (!..())
@@ -393,6 +398,7 @@
 	category = PREFERENCE_CATEGORY_MANUALLY_RENDERED
 	savefile_key = "entombed_deploy_lock"
 	savefile_identifier = PREFERENCE_CHARACTER
+	should_update_preview = FALSE
 
 /datum/preference/toggle/entombed_deploy_lock/is_accessible(datum/preferences/preferences)
 	if (!..(preferences))

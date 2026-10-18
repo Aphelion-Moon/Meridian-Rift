@@ -1,9 +1,13 @@
-const BASE_WIDTH = 640;
+const REFERENCE_WIDTH = 608;
+const REFERENCE_HEIGHT = 480;
 
 export function updateScaling() {
-  const width = window.innerWidth;
+  const scaleX = window.innerWidth / REFERENCE_WIDTH;
+  const scaleY = window.innerHeight / REFERENCE_HEIGHT;
+  const scale = Math.min(scaleX, scaleY);
+
   document.documentElement.style.setProperty(
     '--lobby-scale',
-    `${width / BASE_WIDTH}`,
+    `${scale}`,
   );
 }

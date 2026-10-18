@@ -5,6 +5,7 @@
 
 /obj/machinery/button/door/indestructible/blackmarket_trader/Initialize(mapload, ndir, built)
 	. = ..()
+	AddElement(/datum/element/empprotection, EMP_PROTECT_SELF) // EMPs would drop the shield from outside
 
 /obj/machinery/button/door/indestructible/blackmarket_trader/screwdriver_act()
 	return

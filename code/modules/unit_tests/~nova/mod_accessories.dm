@@ -101,3 +101,30 @@
 	reference.Blend(icon('modular_nova/modules/customization/modules/mob/living/carbon/human/MOD_sprite_accessories/icons/MOD_mask.dmi', "standard_blue"), ICON_MULTIPLY)
 	var/icon/result = icon(first_icon)
 	TEST_ASSERT_EQUAL(icon2base64(result), icon2base64(reference), "Caching changed the masked icon's pixels.")
+
+/// Wings show on a bare body and over a jumpsuit, and hide under a suit that blocks their slot (the overlay's slot_blocker).
+/// The wings accessory reads that blocker from the overlay asking it, so the overlay must pass itself to is_hidden().
+/datum/unit_test/mutant_wings_hide_under_suits/Run()
+	var/datum/sprite_accessory/wings/accessory
+	for(var/name, candidate in SSaccessories.sprite_accessories[FEATURE_WINGS])
+		var/datum/sprite_accessory/wings/real = candidate
+		if(name != SPRITE_ACCESSORY_NONE && istype(real) && real.factual && real.organ_type)
+			accessory = real
+			break
+	TEST_ASSERT(accessory, "The fixture needs a wings accessory with an organ.")
+	var/mob/living/carbon/human/consistent/body = allocate(/mob/living/carbon/human/consistent)
+	body.dna.mutant_bodyparts[FEATURE_WINGS] = new /datum/mutant_bodypart(accessory.name, list("#ffffff", "#ffffff", "#ffffff"))
+	body.dna.species.regenerate_organs(body)
+	var/obj/item/organ/wings/wings = body.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS)
+	TEST_ASSERT(istype(wings), "The fixture body must grow wings.")
+	var/datum/bodypart_overlay/mutant/wings/overlay = wings.bodypart_overlay
+	TEST_ASSERT(istype(overlay) && overlay.slot_blocker, "The wings must draw through a wings overlay with a slot blocker.")
+	var/obj/item/bodypart/chest = body.get_bodypart(BODY_ZONE_CHEST)
+	TEST_ASSERT(overlay.can_draw_on_bodypart(chest, body), "Wings must draw on a bare body.")
+	body.equip_to_slot_or_del(new /obj/item/clothing/under/color/grey(body), ITEM_SLOT_ICLOTHING)
+	TEST_ASSERT(body.w_uniform, "The fixture jumpsuit must go on.")
+	TEST_ASSERT(overlay.can_draw_on_bodypart(chest, body), "Wings must draw over a jumpsuit.")
+	var/obj/item/clothing/suit/space/blocking = new(body)
+	body.equip_to_slot_or_del(blocking, ITEM_SLOT_OCLOTHING)
+	TEST_ASSERT(body.wear_suit == blocking && (body.obscured_slots & overlay.slot_blocker), "The fixture suit must go on and block the wings' slot.")
+	TEST_ASSERT(!overlay.can_draw_on_bodypart(chest, body), "Wings must hide under a suit that blocks their slot.")
