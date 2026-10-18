@@ -21,6 +21,8 @@
 		/obj/item/bodypart/leg/left/ghetto = "peg left leg",
 		/obj/item/bodypart/arm/left/robot/weak = "robotic left arm",
 		/obj/item/bodypart/head/mutant/vox_primalis = "vox primalis head",
+		/obj/item/bodypart/arm/left/moth/inner = "left chest-arm",
+		/obj/item/bodypart/arm/right/moth/inner = "right chest-arm",
 	)
 	var/list/other_sides = list(BODY_ZONE_L_ARM = "right", BODY_ZONE_L_LEG = "right", BODY_ZONE_R_ARM = "left", BODY_ZONE_R_LEG = "left")
 	for(var/obj/item/bodypart/limb_type as anything in subtypesof(/obj/item/bodypart))
