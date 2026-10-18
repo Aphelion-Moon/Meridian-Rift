@@ -116,8 +116,9 @@
 		if(!(closes & flag))
 			continue
 		var/obj/item/organ/genital/genital = target.get_organ_slot(genital_slot)
-		if(genital?.blocked_by)
-			to_chat(user, span_warning("[target] already has [genital.blocked_by] on."))
+		var/obj/item/occupant = target.get_lewd_slot_item(genital_slot) || genital?.blocked_by
+		if(occupant)
+			to_chat(user, span_warning("[target] already has [occupant] on."))
 			return FALSE
 	return TRUE
 
@@ -140,6 +141,18 @@
 /// Closes the wearer's genitals off and draws the device in place of the one it sits over.
 /obj/item/clothing/sextoy/chastity/proc/fit(mob/living/carbon/human/wearer)
 	wearer_ref = WEAKREF(wearer)
+	refresh_organs(wearer)
+	RegisterSignal(wearer, COMSIG_CARBON_LOSE_ORGAN, PROC_REF(on_organ_lost))
+	RegisterSignal(wearer, COMSIG_CARBON_GAIN_ORGAN, PROC_REF(on_organ_gained))
+	RegisterSignal(wearer, COMSIG_ATOM_TOOL_ACT(pick_tool), PROC_REF(on_pick_tool))
+	RegisterSignal(wearer, COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED, PROC_REF(on_lewd_received))
+	START_PROCESSING(SSobj, src)
+	wearer.update_body_parts()
+
+/// Reconciles the device's organ state without repeating fitting effects or signal registration.
+/obj/item/clothing/sextoy/chastity/proc/refresh_organs(mob/living/carbon/human/wearer)
+	for(var/genital_slot, flag in genital_flags)
+		release(wearer.get_organ_slot(genital_slot), genital_slot == drawn_over, covers & flag)
 	drawn_over = draw_slot_for(wearer)
 	for(var/genital_slot, flag in genital_flags)
 		var/obj/item/organ/genital/genital = wearer.get_organ_slot(genital_slot)
@@ -156,11 +169,6 @@
 			overlay.device_glows = status_lights && locked
 		else if(covers & flag)
 			overlay.hidden_by_device = TRUE
-	RegisterSignal(wearer, COMSIG_CARBON_LOSE_ORGAN, PROC_REF(on_organ_lost))
-	RegisterSignal(wearer, COMSIG_ATOM_TOOL_ACT(pick_tool), PROC_REF(on_pick_tool))
-	RegisterSignal(wearer, COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED, PROC_REF(on_lewd_received))
-	START_PROCESSING(SSobj, src)
-	wearer.update_body_parts()
 
 /// Lets the wearer's genitals go again. Safe to call when it isn't worn.
 /obj/item/clothing/sextoy/chastity/proc/unfit()
@@ -171,7 +179,7 @@
 	STOP_PROCESSING(SSobj, src)
 	if(!wearer)
 		return
-	UnregisterSignal(wearer, list(COMSIG_CARBON_LOSE_ORGAN, COMSIG_ATOM_TOOL_ACT(pick_tool), COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED))
+	UnregisterSignal(wearer, list(COMSIG_CARBON_LOSE_ORGAN, COMSIG_CARBON_GAIN_ORGAN, COMSIG_ATOM_TOOL_ACT(pick_tool), COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED))
 	for(var/genital_slot, flag in genital_flags)
 		release(wearer.get_organ_slot(genital_slot), genital_slot == drawn_slot, covers & flag)
 	wearer.update_body_parts()
@@ -195,17 +203,22 @@
 /// A genital it holds came off the body (surgery, a lost limb), so the device drops off with nothing to hold.
 /obj/item/clothing/sextoy/chastity/proc/on_organ_lost(mob/living/carbon/human/source, obj/item/organ/genital/lost, special)
 	SIGNAL_HANDLER
-	if(!istype(lost) || (lost.blocked_by != src && lost.slot != drawn_over))
+	if(!istype(lost))
 		return
+	var/held = lost.blocked_by == src || lost.slot == drawn_over
 	release(lost, lost.slot == drawn_over, covers & genital_flags[lost.slot])
-	come_off(source)
+	if(held)
+		come_off(source)
+
+/// Newly inserted organs acquire the worn device's restrictions and drawing state.
+/obj/item/clothing/sextoy/chastity/proc/on_organ_gained(mob/living/carbon/human/source, obj/item/organ/genital/gained, special)
+	SIGNAL_HANDLER
+	if(istype(gained) && ((closes | covers) & genital_flags[gained.slot]))
+		refresh_organs(source) // Insert() redraws the body once the organ is on its limb
 
 /// Takes it off the wearer whether locked or not, and drops it at their feet.
 /obj/item/clothing/sextoy/chastity/proc/come_off(mob/living/carbon/human/wearer)
-	var/slot = current_equipped_slot
-	wearer.dropItemToGround(src, force = TRUE)
-	if(wearer.get_lewd_slot_item(slot) == src)
-		wearer.set_lewd_slot_item(slot, null)
+	wearer.drop_lewd_slot_item(current_equipped_slot)
 	wearer.update_inv_lewd()
 
 /// Locks or unlocks it, from close by or through a remote. Returns FALSE if a broken lock won't catch.

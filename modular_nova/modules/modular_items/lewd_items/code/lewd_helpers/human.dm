@@ -39,6 +39,16 @@
 			return FALSE
 	return TRUE
 
+/// Drops what one of our `ORGAN_SLOT_*` lewd slots holds at our feet, locked or not, and empties the slot. Returns the
+/// item - the caller redraws the slots.
+/mob/living/carbon/human/proc/drop_lewd_slot_item(slot)
+	var/obj/item/lewd_item = get_lewd_slot_item(slot)
+	if(lewd_item?.loc == src)
+		dropItemToGround(lewd_item, force = TRUE) // dropped() still finds it in its slot, so a device lets go first
+	if(get_lewd_slot_item(slot) == lewd_item)
+		set_lewd_slot_item(slot, null)
+	return lewd_item
+
 /**
  * Returns whether this mob can put one of their own parts against a portal device.
  *

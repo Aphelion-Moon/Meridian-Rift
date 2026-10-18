@@ -474,18 +474,39 @@
 		fdel(file_path_tmp) // delete the old one
 		curicon = file(file_path)
 		*/ // APHELION EDIT REMOVAL END
-		// APHELION EDIT ADDITION START - Runtime icons: each is written out once
-		// A cache entry never changes, so write each out once rather than on every flatten, where copying and
-		// hashing it was most of the flatten's cost.
+		// APHELION EDIT ADDITION START - CHARACTER_PREVIEW
+		// Resource-cache icons are immutable. Cache only files whose serialized content was validated and published.
 		var/static/list/runtime_icon_paths = list()
+		var/static/serialization_id = 0
 		var/runtime_icon_ref = isfile(curicon) ? REF(curicon) : null
 		var/file_path = runtime_icon_ref && runtime_icon_paths[runtime_icon_ref]
 		if(isnull(file_path) || !fexists(file_path))
-			// Named by a hash of the resource itself, so the same icon is the same file between runs, as the
-			// smart cache needs, and a new one is written with one file operation rather than four.
-			file_path = "tmp/uni_icon-[md5(fcopy_rsc(curicon))].dmi"
-			if(!fexists(file_path))
-				fcopy(curicon, file_path)
+			serialization_id++
+			var/staging_path = "tmp/uni_icon-tmp-[serialization_id].dmi"
+			var/unpublished_path
+			try
+				if(!fcopy(curicon, staging_path))
+					CRASH("Failed to serialize a runtime icon to '[staging_path]'.")
+				var/list/metadata = rustg_dmi_read_metadata(staging_path)
+				if(!islist(metadata) || !length(metadata))
+					CRASH("Invalid serialized runtime icon '[staging_path]': [metadata]")
+				// md5() is overridden to hash disk paths: generated resources have no path to hash.
+				var/file_hash = rustg_hash_file(RUSTG_HASH_MD5, staging_path)
+				if(length(file_hash) != 32)
+					CRASH("Failed to hash serialized runtime icon '[staging_path]': [file_hash]")
+				file_path = "tmp/uni_icon-[file_hash].dmi"
+				if(!fexists(file_path) || rustg_hash_file(RUSTG_HASH_MD5, file_path) != file_hash)
+					unpublished_path = file_path
+					if(!fcopy(staging_path, file_path) || rustg_hash_file(RUSTG_HASH_MD5, file_path) != file_hash)
+						CRASH("Failed to publish serialized runtime icon '[file_path]'.")
+					unpublished_path = null
+			catch(var/exception/error)
+				fdel(staging_path)
+				if(unpublished_path)
+					fdel(unpublished_path)
+				throw error
+			fdel(staging_path)
+			// These synchronous operations never yield; consumers see the path only after the complete file exists.
 			if(runtime_icon_ref)
 				runtime_icon_paths[runtime_icon_ref] = file_path
 		curicon = file(file_path)

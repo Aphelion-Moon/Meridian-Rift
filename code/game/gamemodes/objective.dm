@@ -890,11 +890,11 @@ GLOBAL_LIST_EMPTY(possible_items)
 	var/mob/living/silicon/ai/target_ai
 	var/opt_in_disabled = CONFIG_GET(flag/disable_antag_opt_in_preferences) // NOVA EDIT ADDITION - ANTAG OPT-IN
 	for (var/mob/living/silicon/ai/possible_target as anything in shuffle(possible_targets))
-		if (!opt_in_disabled && !opt_in_valid(possible_target))
+		if (!opt_in_disabled && !opt_in_valid(possible_target.mind))
 			continue
 		target_ai = possible_target
 	// NOVA EDIT ADDITION END
-	target = target_ai.mind
+	target = target_ai?.mind // APHELION EDIT CHANGE - AI_OBJECTIVE_CONTRACTS - ORIGINAL: target = target_ai.mind
 	update_explanation_text()
 	return target
 

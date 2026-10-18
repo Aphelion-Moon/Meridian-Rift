@@ -641,3 +641,38 @@
 	var/fresh = drawn_leaf(owner, UNIFORM_LAYER)?.icon
 	TEST_ASSERT(fresh && fresh != before, "The jumpsuit draws one sprite for both legs; the test needs one that does not.")
 	TEST_ASSERT_EQUAL(drawn, fresh, "After [how] the jumpsuit was still drawn for the old legs.")
+
+/// Adaptive and printed cloth follow changes to the worn garment's alpha.
+/datum/unit_test/portal_test/bulge_renderer/cover_alpha
+
+/datum/unit_test/portal_test/bulge_renderer/cover_alpha/check()
+	for(var/garment_type in list(/obj/item/clothing/under/color/grey, /obj/item/clothing/under/camo/gags))
+		for(var/bloodied in list(FALSE, TRUE))
+			var/mob/living/carbon/human/owner = dressed_wearer(12, garment_type, null)
+			TEST_ASSERT_NOTNULL(owner, "No dressed wearer.")
+			var/obj/item/organ/genital/penis/penis = owner.get_organ_slot(ORGAN_SLOT_PENIS)
+			TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The arousal writer was unavailable.")
+			if(bloodied)
+				owner.w_uniform.add_blood_DNA(list("Test DNA" = get_blood_type(/datum/blood_type/human/o_minus)))
+			for(var/opacity in list(128, 0, 255))
+				owner.w_uniform.alpha = opacity
+				owner.update_worn_undersuit()
+				var/image/root = bulge_drawn_root(owner.overlays_standing[UNIFORM_LAYER])
+				TEST_ASSERT_EQUAL(root.alpha, opacity, "The garment did not take its requested alpha.")
+				if(bloodied)
+					TEST_ASSERT(root != bulge_drawn_leaf(root), "Blood did not create a nested worn appearance.")
+				var/cloth_count = 0
+				for(var/image/part as anything in look_images(owner))
+					if(part.name != BULGE_CLOTH_NAME)
+						continue
+					cloth_count++
+					TEST_ASSERT_EQUAL(part.alpha, opacity, "The bulge cloth did not follow its garment's alpha.")
+				TEST_ASSERT(cloth_count, "No cloth was available for the alpha check.")
+				var/datum/bodypart_overlay/mutant/genital/penis/overlay = look(owner)
+				var/blockers = 0
+				for(var/image/part, flags in overlay.bulge_cloth_images(penis.bodypart_owner, -(overlay.bulge_layer - BULGE_ABOVE_COVER)))
+					if(!(flags & LIMB_OVERLAY_META))
+						continue
+					blockers++
+					TEST_ASSERT_EQUAL(part.alpha, opacity, "The cloth emissive blocker did not follow garment alpha.")
+				TEST_ASSERT(blockers, "The alpha check found no cloth emissive blocker.")

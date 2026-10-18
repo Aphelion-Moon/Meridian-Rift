@@ -405,33 +405,18 @@ GLOBAL_LIST_INIT(preview_animation_amplify, list(255, 255, 255, 0, 255, 255, 255
 
 	// The recipes, split where each patch fills in its own numbers. "moving" is joined into the job's JSON only once, in
 	// draw_preview(): BYOND takes its time over every long string made, and patches are long and much alike.
-	for(var/index in 1 to length(leaves))
-		var/datum/universal_icon/leaf = leaves[index]
-		leaf.frame = "@F[index]@"
-	var/list/flats_marked = list()
-	for(var/facing, flat in flats)
-		var/datum/universal_icon/facing_flat = flat
-		if(facing_flat in flats_marked)
-			continue
-		flats_marked += facing_flat
-		// A look of one icon alone, like an AI's core, flattens to that icon with no transforms yet.
-		facing_flat.transform ||= new
-		// Not with crop(), which takes only numbers.
-		facing_flat.transform.transforms += list(list("type" = RUSTG_ICONFORGE_CROP, "x1" = "@X1@", "y1" = "@Y1@", "x2" = "@X2@", "y2" = "@Y2@"))
 	var/list/tokens_by_facing = list()
-	if(stamped)
-		var/datum/universal_icon/template = flats_marked[1]
-		var/list/tokens = preview_animation_tokens(json_encode(template.to_list()))
-		for(var/facing in flats)
-			tokens_by_facing[facing] = tokens
-	else
-		for(var/facing, flat in flats)
-			var/datum/universal_icon/facing_flat = flat
-			tokens_by_facing[facing] = preview_animation_tokens(facing_flat.to_json())
-	for(var/datum/universal_icon/facing_flat as anything in flats_marked)
-		facing_flat.transform.transforms.len--
-	for(var/datum/universal_icon/leaf as anything in leaves)
-		leaf.frame = null
+	for(var/facing, flat in flats)
+		if(stamped && length(tokens_by_facing))
+			tokens_by_facing[facing] = tokens_by_facing[tokens_by_facing[1]]
+			continue
+		var/datum/universal_icon/facing_flat = flat
+		// to_list() detaches the entire recipe, including an empty transform list for identity icons.
+		// Marking it never changes shared leaves or transformers, even if serialization fails.
+		var/list/recipe = facing_flat.to_list()
+		preview_animation_mark_frames(facing_flat, recipe, leaves)
+		recipe["transform"] += list(list("type" = RUSTG_ICONFORGE_CROP, "x1" = "@X1@", "y1" = "@Y1@", "x2" = "@X2@", "y2" = "@Y2@"))
+		tokens_by_facing[facing] = preview_animation_tokens(json_encode(recipe))
 
 	// Each patch, laid into "moving" at its left edge.
 	var/list/patch_json = list()
@@ -478,6 +463,20 @@ GLOBAL_LIST_INIT(preview_animation_amplify, list(255, 255, 255, 0, 255, 255, 255
 	. = list("json" = list("\"moving\":[copytext(moving.to_json(), 1, -2)]") + patch_json + "]}", "facings" = facings)
 	if(pending)
 		.["pending"] = TRUE
+
+/**
+ * Marks animated leaves in a detached to_list() recipe, using their source identities to keep shared leaves on the
+ * same track. The source tree and its transformer lists remain untouched.
+ */
+/proc/preview_animation_mark_frames(datum/universal_icon/node, list/recipe, list/leaves)
+	var/leaf_index = leaves.Find(node)
+	if(leaf_index)
+		recipe["frame"] = "@F[leaf_index]@"
+	var/list/transforms = node.transform?.transforms
+	for(var/index in 1 to length(transforms))
+		var/list/transform = transforms[index]
+		if(transform["type"] == RUSTG_ICONFORGE_BLEND_ICON)
+			preview_animation_mark_frames(transform["icon"], recipe["transform"][index]["icon"], leaves)
 
 /// Orders regions by what all their patches would take, cheapest first.
 /proc/cmp_preview_region_cost(list/a, list/b)

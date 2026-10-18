@@ -252,7 +252,8 @@
 		return
 	if(bulge_sheet_patch)
 		var/mutable_appearance/patch = mutable_appearance(bulge_sheet_patch.icon, bulge_sheet_patch.icon_state, front)
-		var/mutable_appearance/blocker = emissive_blocker(bulge_sheet_patch.icon, bulge_sheet_patch.icon_state, limb, front)
+		var/mutable_appearance/blocker = emissive_blocker(bulge_sheet_patch.icon, bulge_sheet_patch.icon_state, limb, front, bulge_alpha)
+		patch.alpha = bulge_alpha
 		patch.name = BULGE_CLOTH_NAME
 		patch.pixel_x = bulge_sheet_patch.pixel_x
 		patch.pixel_y = bulge_sheet_patch.pixel_y
@@ -281,12 +282,13 @@
 		.[bulge_kind_image(bulge_template.mask_shade, bulge_shade, front, filter)] = NONE
 	if(bulge_template.mask_deep_shade)
 		.[bulge_kind_image(bulge_template.mask_deep_shade, bulge_deep_shade, front, filter)] = NONE
-	.[emissive_blocker(bulge_template.mask_union, "", limb, front)] = LIMB_OVERLAY_META
+	.[emissive_blocker(bulge_template.mask_union, "", limb, front, bulge_alpha)] = LIMB_OVERLAY_META
 
 /// One kind of an adaptive look: its white mask in its palette colour, through the cover's colour filter, if any.
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_kind_image(mask, colour, front, list/filter)
 	var/mutable_appearance/kind = mutable_appearance(mask, "", front)
 	kind.color = colour
+	kind.alpha = bulge_alpha
 	kind.name = BULGE_CLOTH_NAME
 	if(filter)
 		kind.add_filter(ATOM_PRIORITY_COLOR_FILTER, ATOM_PRIORITY_COLOR_FILTER_PRIORITY, filter)

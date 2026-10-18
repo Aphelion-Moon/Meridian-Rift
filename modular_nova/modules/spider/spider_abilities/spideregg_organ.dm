@@ -28,12 +28,16 @@
 	taste_description = "wriggling goop"
 	ph = 0.5
 
-/datum/reagent/spidereggs/expose_mob(mob/living/carbon/human/exposed_mob, methods=TOUCH, reac_volume)
+/// Silently inserts a spider egg only into a carbon host with an unoccupied parasite slot.
+/datum/reagent/spidereggs/expose_mob(mob/living/exposed_mob, methods = TOUCH, reac_volume)
 	. = ..()
-	// Silently add the spideregg organ, similar to the fleshymass from abductor organs
-	if(!exposed_mob.get_organ_slot(ORGAN_SLOT_PARASITE_EGG))
-		var/obj/item/organ/body_egg/spideregg_infection/SpiderEgg = new()
-		SpiderEgg.Insert(exposed_mob)
+	if(!iscarbon(exposed_mob))
+		return
+	var/mob/living/carbon/carbon_host = exposed_mob
+	if(carbon_host.get_organ_slot(ORGAN_SLOT_PARASITE_EGG))
+		return
+	var/obj/item/organ/body_egg/spideregg_infection/spider_egg = new()
+	spider_egg.Insert(carbon_host)
 
 // Organ actions - mirrored to xeno parasites
 /obj/item/organ/body_egg/spideregg_infection/on_find(mob/living/finder)
