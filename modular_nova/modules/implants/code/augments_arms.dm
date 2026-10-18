@@ -525,9 +525,8 @@ GAME_VERB_DESC(/obj/item/pickaxe/drill/implant, spin, "Spin Drillbit", "Click to
 
 /obj/item/gun/ballistic/shotgun/shell_launcher
 	name = "shell launch system"
-	desc = "A mounted cannon seated comfortably in a forearm compartment. This humanitarian device is capable in normal \
-		mode of firing essentially any shotgun shell, and can be wrenched to a .980 Tydhouer grenade mode, \
-		shells famously seen in the 'Kiboko' launcher."
+	desc = "A mounted cannon seated comfortably in a forearm compartment. This humanitarian device is capable \
+		of firing essentially any twelve gauge shotgun shell."
 	icon = 'modular_nova/modules/implants/icons/implants.dmi'
 	icon_state = "shell_cannon_weapon"
 	righthand_file = 'modular_nova/modules/implants/icons/inhands/righthand.dmi'
@@ -545,9 +544,6 @@ GAME_VERB_DESC(/obj/item/pickaxe/drill/implant, spin, "Spin Drillbit", "Click to
 	bolt_type = BOLT_TYPE_NO_BOLT
 	can_be_sawn_off = FALSE
 	pb_knockback = 2
-	can_modify_ammo = TRUE
-	initial_caliber = CALIBER_SHOTGUN
-	alternative_caliber = CALIBER_980TYDHOUER
 	recoil = 4
 	inhand_x_dimension = 32
 	inhand_y_dimension = 32
@@ -564,7 +560,7 @@ GAME_VERB_DESC(/obj/item/pickaxe/drill/implant, spin, "Spin Drillbit", "Click to
 
 /obj/item/organ/cyberimp/arm/toolkit/shell_launcher
 	name = "shell launch system implant"
-	desc = "A mounted, single-shot housing for a shell launch cannon; capable of firing either twelve gauge shotgun shells, or .980 Tydhouer grenades."
+	desc = "A mounted, single-shot housing for a shell launch cannon; capable of firing twelve gauge shotgun shells."
 	icon = 'modular_nova/modules/implants/icons/implants.dmi'
 	icon_state = "shell_cannon"
 	aug_overlay = "toolkit"
