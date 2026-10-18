@@ -1,7 +1,7 @@
 // THIS IS A NOVA SECTOR UI FILE
 import { Stack } from 'tgui-core/components';
 
-// APHELION EDIT - Meridian shares one policy page across antagonist roles.
+// Meridian shares one policy page across antagonist roles.
 export const Rules = () => (
   <Stack vertical>
     <Stack.Item bold>Special Rules:</Stack.Item>

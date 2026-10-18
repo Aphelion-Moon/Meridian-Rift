@@ -182,6 +182,7 @@
 		<div class='column spacer'>
 		"}
 	var/option_count = 0
+	// APHELION EDIT CHANGE - Below, wiki url: ORIGINAL: <a href='[CONFIG_GET(string/wikiurl)]/Guide_to_poll_types'>Which poll type should I use?</a>
 	if(!poll)
 		output += {"<input type='hidden' name='initializepoll' value='1'>
 		<input type='submit' value='Initialize Question'>
