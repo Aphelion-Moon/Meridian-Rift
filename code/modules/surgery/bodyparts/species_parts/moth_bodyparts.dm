@@ -150,17 +150,14 @@
 	plaintext_zone = "left chest-arm"
 
 /obj/item/bodypart/arm/left/moth/inner/Initialize(mapload)
-	// name = "left chest-arm" // APHELION EDIT REMOVAL - Named below, after the parent names limbs by body zone
 	held_hand_offset =  new(
 		attached_part = src,
 		feature_key = OFFSET_HELD,
 		offset_x = list("north" = 2, "south" = -2, "east" = 2, "west" = -8),
 		offset_y = list("south" = -12), // shhh
 	)
-	// APHELION EDIT CHANGE START - The parent names limbs by body zone, which these arms don't have - ORIGINAL: return ..()
 	. = ..()
-	name = "left chest-arm"
-	// APHELION EDIT CHANGE END
+	name = "left chest-arm" // goes after the parent call, which names limbs by their (null) body zone
 
 /obj/item/bodypart/arm/left/moth/inner/drop_limb(special, dismembered, move_to_floor)
 	if(special)
@@ -177,17 +174,14 @@
 	plaintext_zone = "right chest-arm"
 
 /obj/item/bodypart/arm/right/moth/inner/Initialize(mapload)
-	// name = "left chest-arm" // APHELION EDIT REMOVAL - Named below, after the parent names limbs by body zone
 	held_hand_offset = new (
 		attached_part = src,
 		feature_key = OFFSET_HELD,
 		offset_x = list("north" = -2, "south" = 2, "east" = 8, "west" = -2),
 		offset_y = list("south" = -12),
 	)
-	// APHELION EDIT CHANGE START - The parent names limbs by body zone, which these arms don't have - ORIGINAL: return ..()
 	. = ..()
 	name = "right chest-arm"
-	// APHELION EDIT CHANGE END
 
 /obj/item/bodypart/arm/right/moth/inner/drop_limb(special, dismembered, move_to_floor)
 	if(special)
