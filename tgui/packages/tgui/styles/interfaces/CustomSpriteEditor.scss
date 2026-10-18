@@ -186,13 +186,18 @@
   }
 }
 
-// The two turn buttons, under the canvas and under the preview.
+// The turn buttons, under the canvas and under the preview, and whatever shares their row.
 .CustomSpriteEditor__turnButtons {
   display: inline-flex;
   gap: 4px;
 
   > .Button {
     margin: 0;
+    // The turn arrows are square glyphs and the lights bulb is a narrower one, so without a floor
+    // its button comes out visibly smaller than the two beside it. An icon em plus the button's
+    // own half-em of padding either side.
+    min-width: 2em;
+    text-align: center;
   }
 }
 
