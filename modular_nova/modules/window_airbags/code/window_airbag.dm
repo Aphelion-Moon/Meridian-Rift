@@ -167,13 +167,12 @@
 /obj/item/airbag/proc/blow_up_arm(mob/living/carbon/human/victim)
 	var/datum/wound_pregen_data/pregen_data = GLOB.all_wound_pregen_data[/datum/wound/blunt/bone/moderate]
 	var/obj/item/bodypart/arm/limb = victim.get_bodypart(pick(GLOB.arm_zones))
-	if(victim.get_item_for_held_index(LEFT_HANDS) == src)
-		limb = victim.get_bodypart(BODY_ZONE_L_ARM)
-	else if(victim.get_item_for_held_index(RIGHT_HANDS) == src)
-		limb = victim.get_bodypart(BODY_ZONE_R_ARM)
-	if(pregen_data.can_be_applied_to(limb, random_roll = FALSE) && (limb.biological_state & BIO_JOINTED))
+	var/held_index = victim.get_held_index_of_item(src)
+	if(held_index) // extra hands (moth chest arms) map to the arm on their side
+		limb = victim.get_bodypart(IS_RIGHT_INDEX(held_index) ? BODY_ZONE_R_ARM : BODY_ZONE_L_ARM)
+	if(limb && pregen_data.can_be_applied_to(limb, random_roll = FALSE) && (limb.biological_state & BIO_JOINTED))
 		limb.force_wound_upwards(/datum/wound/blunt/bone/moderate)
-	victim.apply_damage(20, BRUTE, limb.body_zone, wound_bonus = 10)
+	victim.apply_damage(20, BRUTE, limb?.body_zone || BODY_ZONE_CHEST, wound_bonus = 10)
 	victim.throw_at(get_edge_target_turf(src, pick(GLOB.cardinals)), rand(7, 10), 5)
 
 /obj/item/airbag/immediate_arm

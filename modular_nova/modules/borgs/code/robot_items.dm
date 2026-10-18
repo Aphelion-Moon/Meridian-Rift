@@ -762,7 +762,7 @@
 	) // technically can store any sheet, but it's meant for chemistry materials primarily.
 
 /obj/item/construction/rld/cyborg
-	name = "cyborg rapid-light-device"
+	name = "cyborg rapid lighting device (RLD)"
 	desc = "A device used to rapidly provide lighting sources to an area. Runs off a cyborg's internal power supply"
 	/// The multiplier that determines the energy use for each use. Same as the cost for a borg RCD
 	var/energy_factor = /obj/item/construction/rcd/borg::energyfactor

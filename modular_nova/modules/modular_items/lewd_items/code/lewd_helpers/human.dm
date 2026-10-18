@@ -58,7 +58,7 @@
 			return get_bodypart(BODY_ZONE_HEAD) && !is_mouth_covered()
 		if(BODY_ZONE_R_ARM, BODY_ZONE_L_ARM)
 			var/obj/item/bodypart/active_hand = has_hand_for_held_index(active_hand_index)
-			return active_hand && active_hand.body_zone == target_part
+			return active_hand && (IS_RIGHT_INDEX(active_hand_index) ? BODY_ZONE_R_ARM : BODY_ZONE_L_ARM) == target_part // by side, extra hands have no zone
 		if(BODY_ZONE_R_LEG, BODY_ZONE_L_LEG)
 			var/obj/item/bodypart/leg = get_bodypart(target_part)
 			return leg && !leg.bodypart_disabled
