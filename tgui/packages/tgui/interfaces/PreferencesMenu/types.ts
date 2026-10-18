@@ -239,8 +239,8 @@ export type AugmentItem = {
   has_digi: BooleanLike;
   allows_styles: BooleanLike;
   allows_implants: BooleanLike;
-  uses_greyscale?: BooleanLike; // APHELION EDIT ADDITION - Recolourable augments: the limb takes the body's skin colour
-  default_style?: string; // APHELION EDIT ADDITION - Recolourable augments: the brand style whose sprites are its own unstyled look
+  uses_greyscale?: BooleanLike; // The limb takes the body's skin colour
+  default_style?: string; // The brand style whose sprites are its own unstyled look
   species_blacklist: Record<string, number> | null;
   species_whitelist: Record<string, number> | null;
   ckey_whitelist: string[] | null;
@@ -282,7 +282,6 @@ export type RoboticStyle = {
   has_digi: BooleanLike;
 };
 
-// APHELION EDIT ADDITION START - Recolourable augments
 /** A recolourable finish's colour channel. */
 export type PaintChannel = 'paint' | 'accent' | 'frame' | 'lights';
 
@@ -313,7 +312,6 @@ export type AugmentPaintServerData = {
   brands?: Record<string, BrandFinish>;
 };
 
-// APHELION EDIT ADDITION END
 export type AugmentSlot = {
   slot: string;
   body_zone?: string;
@@ -447,7 +445,6 @@ export type PreferencesMenuData = {
   markings: Record<string, Marking[]>;
   augments: Record<string, string>;
   augment_styles: Record<string, string>;
-  // APHELION EDIT ADDITION START - Recolourable augments
   /** Each slot's saved colours; a slot with none wears its finish's default. */
   augment_colors: Record<string, string>;
   /**
@@ -462,7 +459,6 @@ export type PreferencesMenuData = {
   };
   /** The character's Allow Emissives: without it the lights don't glow. */
   augment_paint_emissive: BooleanLike;
-  // APHELION EDIT ADDITION END
 
   allow_mismatched_parts: BooleanLike;
   digi_legs: BooleanLike;
@@ -532,7 +528,7 @@ export type ServerData = {
     marking_presets: MarkingPreset[];
     max_markings: number;
   };
-  augment_paint?: AugmentPaintServerData; // APHELION EDIT ADDITION - Recolourable augments
+  augment_paint?: AugmentPaintServerData;
   // NOVA EDIT ADDITION END
   [otherKey: string]: unknown;
 };

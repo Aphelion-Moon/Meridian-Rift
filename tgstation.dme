@@ -7404,7 +7404,6 @@
 #include "modular_aphelion\modules\bulky_augments\code\limbs.dm"
 #include "modular_aphelion\modules\bulky_augments\code\preferences.dm"
 #include "modular_aphelion\modules\character_preview\code\animation.dm"
-#include "modular_aphelion\modules\character_preview\code\runtime_visual_repairs_tests.dm"
 #include "modular_aphelion\modules\character_preview\code\backgrounds.dm"
 #include "modular_aphelion\modules\character_preview\code\drawing.dm"
 #include "modular_aphelion\modules\character_preview\code\effects.dm"

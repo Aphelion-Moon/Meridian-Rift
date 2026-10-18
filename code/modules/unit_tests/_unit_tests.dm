@@ -429,6 +429,7 @@
 #include "~nova\runtime_fennec_breeding.dm"
 #include "~nova\runtime_silicon_tracking.dm"
 #include "~nova\runtime_spidereggs.dm"
+#include "~nova\runtime_visual_repairs.dm"
 #include "~nova\shuttle.dm"
 #include "~nova\surgery_optional_patient.dm"
 #include "~nova\symphony_moderation.dm"

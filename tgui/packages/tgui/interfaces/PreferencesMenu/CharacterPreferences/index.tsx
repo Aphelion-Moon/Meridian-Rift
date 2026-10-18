@@ -240,7 +240,7 @@ export function CharacterPreferenceWindow(props: {
             </PageButton>
           </Stack.Item>
           {/* NOVA EDIT ADDITION START */}
-          <Stack.Item grow {...BRAND_SPRITES_INTENT} /* APHELION EDIT CHANGE - Recolourable augments: the brand sprites, asked for on intent - ORIGINAL: <Stack.Item grow> */>
+          <Stack.Item grow {...BRAND_SPRITES_INTENT}>
             <PageButton
               currentPage={currentPage}
               page={Page.Limbs}

@@ -104,7 +104,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	preview_drawing?.window_closed()
 	QDEL_NULL(character_preview_view)
 	// APHELION EDIT ADDITION END
-	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT CHANGE - CUSTOM_EDITOR_LIFETIME - ORIGINAL: close_custom_sprite_editors()
+	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT ADDITION - CUSTOM_EDITOR_LIFETIME
 	QDEL_NULL(custom_sprite_savefile) // APHELION EDIT ADDITION
 	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.
 	QDEL_LIST(middleware)
@@ -393,7 +393,7 @@ GLOBAL_LIST_EMPTY(preferences_datums)
 	preview_drawing?.window_closed()
 	QDEL_NULL(character_preview_view)
 	// APHELION EDIT ADDITION END
-	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT CHANGE - CUSTOM_EDITOR_LIFETIME - ORIGINAL: close_custom_sprite_editors()
+	close_custom_sprite_editors(drain_pending_strokes = TRUE) // APHELION EDIT ADDITION - CUSTOM_EDITOR_LIFETIME
 	save_character()
 	save_preferences()
 	// QDEL_NULL(character_preview_view) // APHELION EDIT REMOVAL - CUSTOM_EDITOR_LIFETIME - Released before saving editors.

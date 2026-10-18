@@ -1,5 +1,3 @@
-#if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
-
 #define RUNTIME_VISUAL_HALO 'modular_nova/master_files/icons/mob/sprite_accessory/halo.dmi'
 #define RUNTIME_VISUAL_HALO_STATE "m_head_acc_halo_FRONT"
 
@@ -157,5 +155,3 @@
 
 #undef RUNTIME_VISUAL_HALO
 #undef RUNTIME_VISUAL_HALO_STATE
-
-#endif

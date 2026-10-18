@@ -161,7 +161,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/generation = window_generation
 	answer_due = FALSE
 	update_preview()
-	if(QDELETED(src) || generation != window_generation)
+	if(session_over(generation))
 		return
 	COOLDOWN_START(src, preview_cooldown, CHARACTER_PREVIEW_SETTLE)
 	var/list/update = list("character_preview_pending" = !isnull(waiting_since))
@@ -194,6 +194,15 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/datum/tgui/ui = client && SStgui.get_open_ui(client.mob, preferences)
 	return ui?.initialized && !ui.closing ? ui : null
 
+/// Whether the window session that `generation` was read in has closed since, or this middleware has gone.
+/datum/preference_middleware/character_preview/proc/session_over(generation)
+	return QDELETED(src) || generation != window_generation
+
+/// Whether a drawing begun for `view` in `window`, in session `generation`, no longer belongs to the open window - setup
+/// may have closed, or reopened with another view, while it waited.
+/datum/preference_middleware/character_preview/proc/drawing_stale(generation, atom/movable/screen/map_view/char_preview/view, datum/tgui/window)
+	return session_over(generation) || QDELETED(view) || preferences?.character_preview_view != view || open_window() != window
+
 /// Sends the page only these keys. tgui merges them into the data it has, which keeps them until they are sent again.
 /datum/preference_middleware/character_preview/proc/send_preview_update(list/update)
 	var/datum/tgui/ui = open_window()
@@ -202,8 +211,8 @@ GLOBAL_VAR(character_preview_cleanup_due)
 /// Draws the preview mob if its look has changed since it was last drawn. One update at a time; another waits for it.
 /datum/preference_middleware/character_preview/proc/update_preview()
 	var/generation = window_generation
-	UNTIL(!drawing || QDELETED(src) || generation != window_generation)
-	if(QDELETED(src) || generation != window_generation)
+	UNTIL(!drawing || session_over(generation))
+	if(session_over(generation))
 		return
 	drawing = TRUE
 	try
@@ -226,7 +235,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 		return
 	catch_up(view)
 	// The window or its view may have been replaced while this waited for a rebuild.
-	if(QDELETED(src) || generation != window_generation || QDELETED(view) || preferences?.character_preview_view != view || open_window() != window)
+	if(drawing_stale(generation, view, window))
 		return
 	var/mob/living/carbon/human/dummy/body = view.body
 	// A silicon job's preview shows its image instead of the mob.
@@ -252,7 +261,7 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	var/species = silicon ? null : body.dna.species.id
 	var/list/drawn = draw_preview(walk)
 	// The result belongs to the window and view that requested it, even if setup has reopened since.
-	if(isnull(drawn) || QDELETED(src) || generation != window_generation || QDELETED(view) || preferences?.character_preview_view != view || open_window() != window)
+	if(isnull(drawn) || drawing_stale(generation, view, window))
 		forget_unshown(drawn?["name"])
 		return
 	if(drawn["height"] != height)
@@ -295,9 +304,9 @@ GLOBAL_VAR(character_preview_cleanup_due)
 	// No time limit: with many players in line, the queue can take a while to get here, a turn every
 	// CHARACTER_PREVIEW_REBUILD_OVERDUE at worst, and drawings that gave up would rebuild outside it, all at once. The
 	// wait sleeps each tick, so it can't hold the server up, and a queue that fires always gets to it.
-	UNTIL(QDELETED(src) || generation != window_generation || QDELETED(view) || view.turns != turns || !SScharacter_preview.can_fire)
+	UNTIL(session_over(generation) || QDELETED(view) || view.turns != turns || !SScharacter_preview.can_fire)
 	// Its turn would never come. A closed session must not rebuild it instead.
-	if(!QDELETED(src) && generation == window_generation && !QDELETED(view) && view.turns == turns)
+	if(!session_over(generation) && !QDELETED(view) && view.turns == turns)
 		SScharacter_preview.rebuild(view)
 
 /// This character stops showing a drawing. Once no character shows it, it is forgotten.
