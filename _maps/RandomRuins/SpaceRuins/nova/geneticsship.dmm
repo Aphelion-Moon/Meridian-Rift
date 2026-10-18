@@ -268,7 +268,6 @@
 /obj/item/gun/ballistic/automatic/wt550{
 	pixel_x = 4;
 	pixel_y = -7;
-	can_misfire = 1;
 	spawnwithmagazine = 0;
 	misfire_probability = 10
 	},
@@ -320,8 +319,7 @@
 /area/ruin/space/unpowered)
 "wD" = (
 /obj/effect/decal/cleanable/blood,
-/obj/item/gun/ballistic/revolver/badass{
-	can_misfire = 1;
+/obj/item/gun/ballistic/revolver/syndicate/badass{
 	misfire_probability = 25
 	},
 /obj/effect/mob_spawn/corpse/human/syndicatesoldier,
