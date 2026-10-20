@@ -98,21 +98,21 @@
 
 /datum/unit_test/gas_mixture_golden_merge/Run()
 	var/datum/gas_mixture/receiver = allocate_standard_mix()
-	var/datum/gas_mixture/giver = allocate(/datum/gas_mixture)
-	giver.set_volume(CELL_VOLUME)
-	giver.set_moles(/datum/gas/plasma, 50)
-	giver.set_temperature(1000)
+	var/datum/gas_mixture/source = allocate(/datum/gas_mixture)
+	source.set_volume(CELL_VOLUME)
+	source.set_moles(/datum/gas/plasma, 50)
+	source.set_temperature(1000)
 
-	var/total_moles_before = receiver.total_moles() + giver.total_moles()
-	var/total_energy_before = receiver.thermal_energy() + giver.thermal_energy()
-	var/giver_moles_before = giver.total_moles()
+	var/before = receiver.total_moles() + source.total_moles()
+	var/energy = receiver.thermal_energy() + source.thermal_energy()
+	var/moles = source.total_moles()
 
-	TEST_ASSERT(receiver.merge(giver), "merge() should report success when given a mixture")
+	TEST_ASSERT(receiver.merge(source), "merge() should report success when given a mixture")
 
-	TEST_ASSERT_EQUAL(round(receiver.total_moles(), 0.01), round(total_moles_before, 0.01), "merge() should conserve total moles")
-	TEST_ASSERT_EQUAL(round(receiver.thermal_energy(), 0.01), round(total_energy_before, 0.01), "merge() should conserve thermal energy")
+	TEST_ASSERT_EQUAL(round(receiver.total_moles(), 0.01), round(before, 0.01), "merge() should conserve total moles")
+	TEST_ASSERT_EQUAL(round(receiver.thermal_energy(), 0.01), round(energy, 0.01), "merge() should conserve thermal energy")
 	TEST_ASSERT_EQUAL(round(receiver.get_moles(/datum/gas/plasma), 0.01), 50, "merge() should transfer the giver's plasma")
-	TEST_ASSERT_EQUAL(round(giver.total_moles(), 0.01), round(giver_moles_before, 0.01), "merge() must not modify the giver")
+	TEST_ASSERT_EQUAL(round(source.total_moles(), 0.01), round(moles, 0.01), "merge() must not modify the giver")
 
 	TEST_ASSERT(!receiver.merge(null), "merge(null) should report failure rather than runtime")
 
@@ -121,12 +121,12 @@
 
 /datum/unit_test/gas_mixture_golden_remove/Run()
 	var/datum/gas_mixture/source = allocate_standard_mix()
-	var/starting_moles = source.total_moles()
+	var/before = source.total_moles()
 
 	var/datum/gas_mixture/removed = source.remove(10)
 	TEST_ASSERT_NOTNULL(removed, "remove() should return a mixture when there is gas to take")
 	TEST_ASSERT_EQUAL(round(removed.total_moles(), 0.01), 10, "remove(10) should take exactly 10 moles")
-	TEST_ASSERT_EQUAL(round(source.total_moles() + removed.total_moles(), 0.01), round(starting_moles, 0.01), "remove() should conserve total moles")
+	TEST_ASSERT_EQUAL(round(source.total_moles() + removed.total_moles(), 0.01), round(before, 0.01), "remove() should conserve total moles")
 	TEST_ASSERT_EQUAL(round(removed.return_temperature(), 0.01), round(source.return_temperature(), 0.01), "Removed gas should keep the source temperature")
 
 	// Ratios split proportionally, and the removed portion is a genuinely separate mixture.
@@ -134,14 +134,14 @@
 	TEST_ASSERT_EQUAL(round(half.total_moles(), 0.01), round(source.total_moles(), 0.01), "remove_ratio(0.5) should split the mixture evenly")
 
 	// Over-removal clamps rather than going negative.
-	var/datum/gas_mixture/everything = source.remove(1e9)
+	var/datum/gas_mixture/result = source.remove(1e9)
 	TEST_ASSERT_EQUAL(round(source.total_moles(), 0.01), 0, "Removing more than exists should empty the mixture")
-	TEST_ASSERT(everything.total_moles() > 0, "Over-removal should still return the gas that was there")
+	TEST_ASSERT(result.total_moles() > 0, "Over-removal should still return the gas that was there")
 
 	// The two zero cases differ in shape, and callers depend on that difference.
-	var/datum/gas_mixture/nothing = allocate_standard_mix()
-	TEST_ASSERT_NULL(nothing.remove(0), "remove(0) returns null")
-	TEST_ASSERT_NOTNULL(nothing.remove_ratio(0), "remove_ratio(0) returns an empty mixture, not null")
+	var/datum/gas_mixture/empty = allocate_standard_mix()
+	TEST_ASSERT_NULL(empty.remove(0), "remove(0) returns null")
+	TEST_ASSERT_NOTNULL(empty.remove_ratio(0), "remove_ratio(0) returns an empty mixture, not null")
 
 /// copy_from() and equalize-style operations reproduce state faithfully.
 /datum/unit_test/gas_mixture_golden_copy
@@ -162,13 +162,13 @@
 
 	var/list/members = list(source, target)
 	var/list/neighbors = list(target)
-	var/source_refs_before = refcount(source)
-	var/target_refs_before = refcount(target)
+	var/before = refcount(source)
+	var/refs = refcount(target)
 	for(var/iteration in 1 to 20)
 		dogmos_reconcile_pipeline_mixtures(members)
 		source.__settlement_batch(neighbors)
-	TEST_ASSERT_EQUAL(refcount(source), source_refs_before, "Native batch operations retained the source mixture.")
-	TEST_ASSERT_EQUAL(refcount(target), target_refs_before, "Native batch operations retained a member mixture.")
+	TEST_ASSERT_EQUAL(refcount(source), before, "Native batch operations retained the source mixture.")
+	TEST_ASSERT_EQUAL(refcount(target), refs, "Native batch operations retained a member mixture.")
 
 #ifdef DOGMOS_IN_PROCESS
 /** Pipeline reconciliation conserves gas and energy across distinct mixtures, including vacuum. */
