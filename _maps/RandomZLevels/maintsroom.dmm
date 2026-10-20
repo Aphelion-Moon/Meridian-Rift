@@ -776,7 +776,7 @@
 	},
 /obj/item/clothing/neck/cross,
 /obj/item/clothing/mask/gas/nightlight,
-/obj/item/gun/ballistic/revolver/cowboy,
+/obj/item/gun/ballistic/revolver/syndicate/cowboy,
 /obj/item/storage/backpack/tinypakc,
 /obj/effect/light_emitter/fake_outdoors,
 /obj/item/storage/belt/holster,
@@ -2639,8 +2639,7 @@
 	},
 /area/awaymission/caves/maintsroom)
 "iy" = (
-/turf/open/floor/plating{
-	icon_state = "wall_thermite";
+/turf/open/floor/plating/melted{
 	name = "melted wall"
 	},
 /area/awaymission/caves/maintsroom)
@@ -4268,9 +4267,7 @@
 	dir = 4;
 	id = "abandoned_kitchen"
 	},
-/obj/structure/displaycase/forsale/kitchen{
-	pixel_y = 8
-	},
+/obj/structure/tipjar/prefilled,
 /turf/open/floor/plating,
 /area/awaymission/caves/maintsroom)
 "nV" = (
@@ -7125,9 +7122,7 @@
 /turf/open/floor/plating,
 /area/awaymission/caves/maintsroom)
 "xV" = (
-/turf/open/floor/plating{
-	icon_state = "foam_plating"
-	},
+/turf/open/floor/plating/foam_pattern,
 /area/awaymission/caves/maintsroom)
 "xW" = (
 /obj/structure/chair/stool/directional/west,
@@ -15131,9 +15126,7 @@
 /area/awaymission/caves/maintsroom)
 "Zn" = (
 /obj/item/grenade/stingbang/mega,
-/turf/open/floor/plating{
-	icon_state = "foam_plating"
-	},
+/turf/open/floor/plating/foam_pattern,
 /area/awaymission/caves/maintsroom)
 "Zo" = (
 /obj/effect/turf_decal/weather/snow,

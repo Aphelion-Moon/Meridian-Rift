@@ -422,8 +422,15 @@ const NO_HATS: Record<string, TryOnHat> = {};
 const blankFrame = (width: number, height: number): StringLayer =>
   Array.from({ length: height }, () => Array(width).fill('#00000000'));
 
-/** Both canvases turn the same view, through the same control. */
-const ViewRotation = ({ onRotate }: { onRotate: (step: number) => void }) => (
+/** Both canvases turn the same view, through the same control. Anything passed as children
+ * joins the same row, rather than sitting beside it on the inline baseline. */
+const ViewRotation = ({
+  onRotate,
+  children,
+}: {
+  onRotate: (step: number) => void;
+  children?: ReactNode;
+}) => (
   <span className="CustomSpriteEditor__turnButtons">
     <Button
       fontSize="22px"
@@ -441,6 +448,7 @@ const ViewRotation = ({ onRotate }: { onRotate: (step: number) => void }) => (
       tooltipPosition="bottom"
       onClick={() => onRotate(-1)}
     />
+    {children}
   </span>
 );
 
@@ -1796,12 +1804,13 @@ export const CustomSpriteEditor = ({
                           </Stack>
                         )}
                         <Box mt={1}>
-                          <ViewRotation onRotate={rotate} />
-                          <LightsButton
-                            fontSize="22px"
-                            off={lightsOff}
-                            onToggle={toggleLights}
-                          />
+                          <ViewRotation onRotate={rotate}>
+                            <LightsButton
+                              fontSize="22px"
+                              off={lightsOff}
+                              onToggle={toggleLights}
+                            />
+                          </ViewRotation>
                         </Box>
                         {!!chosen && Object.keys(hats).length > 0 && (
                           <TryOn

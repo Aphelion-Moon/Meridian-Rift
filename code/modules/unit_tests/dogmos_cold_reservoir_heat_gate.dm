@@ -12,6 +12,7 @@
 	// Open turfs that share air exchange heat through gas, so heat edges only cross blocked turfs.
 	// A blocked neighbour stands in for the wall or mineral rock beside a room.
 	neighbor.blocks_air = TRUE
+	neighbor.can_atmos_pass = ATMOS_PASS_NO
 	// The test room is indestructible flooring with infinite heat capacity; give the room an ordinary
 	// floor's finite capacity so it can change, while the neighbour stays an infinite reservoir like rock.
 	room.heat_capacity = 20000
@@ -47,6 +48,7 @@
 	var/turf/open/neighbor = get_step(room, EAST)
 	if(istype(neighbor))
 		neighbor.blocks_air = initial(neighbor.blocks_air)
+		neighbor.can_atmos_pass = initial(neighbor.can_atmos_pass)
 	if(istype(room))
 		room.heat_capacity = initial(room.heat_capacity)
 	for(var/turf/open/target in list(room, neighbor))

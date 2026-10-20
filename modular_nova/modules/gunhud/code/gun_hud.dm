@@ -40,6 +40,18 @@
 /atom/movable/screen/ammo_counter/proc/turn_off()
 	invisibility = INVISIBILITY_ABSTRACT
 	maptext = null
+	clear_oth()
+	on = FALSE
+
+/**
+ * Clears the OTH backing, digits and indicator, leaving only the icon_state behind.
+ *
+ * Always go through this rather than cut_overlays(): that empties overlays behind update_icon()'s
+ * back, so managed_overlays still lists the digits that were just wiped. The next paint of the same
+ * gun then builds an identical list, update_icon() takes it for already drawn and skips it, and the
+ * counter stays blank until something happens to paint a different set.
+ */
+/atom/movable/screen/ammo_counter/proc/clear_oth()
 	backing_color = COLOR_RED
 	oth_backing = ""
 	oth_o = ""
@@ -47,7 +59,6 @@
 	oth_h = ""
 	indicator = ""
 	update_appearance()
-	on = FALSE
 
 ///This proc turns the hud on, but does not set it to anything other than the currently set values
 /atom/movable/screen/ammo_counter/proc/turn_on()
