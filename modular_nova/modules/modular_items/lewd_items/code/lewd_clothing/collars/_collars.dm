@@ -1,3 +1,15 @@
+/datum/atom_skin/choker
+	abstract_type = /datum/atom_skin/choker
+	greyscale_item_path = /obj/item/clothing/neck/collar
+
+/datum/atom_skin/choker/thin
+	preview_name = "Thin"
+	new_icon_state = "thin_choker"
+
+/datum/atom_skin/choker/thick
+	preview_name = "Thick"
+	new_icon_state = "thick_choker"
+
 // Basetype is actually a choker, but functionally it makes the most sense
 /obj/item/clothing/neck/collar
 	name = "choker"
@@ -8,8 +20,8 @@
 	icon = 'icons/map_icons/clothing/neck.dmi'
 	icon_state = "/obj/item/clothing/neck/collar"
 	post_init_icon_state = "thin_choker"
-	greyscale_config = /datum/greyscale_config/thin_collar
-	greyscale_config_worn = /datum/greyscale_config/thin_collar/worn
+	greyscale_config = /datum/greyscale_config/choker
+	greyscale_config_worn = /datum/greyscale_config/choker/worn
 	obj_flags = parent_type::obj_flags | UNIQUE_RENAME
 	body_parts_covered = NECK
 	slot_flags = ITEM_SLOT_NECK
@@ -23,6 +35,9 @@
 	var/locked = FALSE
 	/// Is the lock busted?
 	var/broken_lock = FALSE
+
+/obj/item/clothing/neck/collar/setup_reskins()
+	AddComponent(/datum/component/reskinable_item, /datum/atom_skin/choker, initial_skin = "Thin")
 
 /obj/item/clothing/neck/collar/examine(mob/user)
 	. = ..()
@@ -148,3 +163,18 @@
 		return ITEM_INTERACT_SUCCESS
 	to_chat(user, span_warning("This isn't the correct key!"))
 	return ITEM_INTERACT_BLOCKING
+N
+// I originally scrapped this when I was working through these again but I don't feel particularly comfortable just killing them off here either
+// So, in lieu of figuring out their resprite finally - weird compromise with an old sprite lol
+/obj/item/clothing/neck/collar/spike
+	name = "spiked collar"
+	desc = "A collar, fit with a locking clasp and a handful of dull spikes."
+	icon = 'icons/map_icons/clothing/neck.dmi'
+	icon_state = "/obj/item/clothing/neck/collar/spike"
+	post_init_icon_state = "spike"
+	greyscale_config = /datum/greyscale_config/collar_spike
+	greyscale_config_worn = /datum/greyscale_config/collar_spike/worn
+	greyscale_colors = "#292929#C0C0C0"
+
+/obj/item/clothing/neck/collar/spike/setup_reskins()
+	return //No reskins on this one
