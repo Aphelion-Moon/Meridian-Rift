@@ -48,7 +48,7 @@
 		"Neither by way of research or force, has the problem of fertility and their degrading faculties seen a resolution. \
 		So poor was the situation, in fact, that their species hardly lives upwards of a century. \
 		Even with the finest of medical intervention, the species goes through an almost planned obsolescence. \
-		For the mind gives out first, slowly, yet with an assured of long-term memory. \
+		For the mind gives out first, slowly, yet with an assured loss of long-term memory. \
 		Such is followed by an absence of the self, as their personality radically shifts. Finally, the body, as it becomes atrophic. \
 		Undergoing a process easily described as cellular degradation in the final stages. \
 		Muscle and keratin sloughing away. To call it horrific would be an understatement. \
