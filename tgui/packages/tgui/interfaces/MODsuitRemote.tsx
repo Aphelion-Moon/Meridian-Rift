@@ -17,7 +17,7 @@ type Data = {
   refusal: string | null;
 };
 
-/** The MOD remote - the suit's own interface, used from nearby, and a forced emote; DM says why it is refused. */
+/** The MOD remote: the suit's own interface plus a forced emote, or the server's reason it can't be used. */
 export const MODsuitRemote = (props) => {
   const { act, data } = useBackend<Data>();
   const { ui_theme, refusal } = data;

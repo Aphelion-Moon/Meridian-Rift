@@ -1,11 +1,11 @@
-/// The lustwish MOD theme - the standard suit's stats and seals in LustWish's own skin.
+/// The standard MOD suit in LustWish's skin.
 /datum/mod_theme/standard/lustwish
 	name = "lustwish"
 	desc = "A specialty designed lustwish themed modsuit which is based entirely off of earlier civilian modsuits."
 	default_skin = "lustwish"
 	ui_theme = "ntos_darkmode"
-	hardlight_theme = "royal_purple" // Nova's ROYAL_PURPLE, a define private to its list of hardlight colours
-	cerulean_tail_palette = null // a Cerulean's tail takes the suit's own colour, not the standard suit's greys
+	hardlight_theme = "royal_purple" // ROYAL_PURPLE, which is file-local to the hardlight colours
+	cerulean_tail_palette = null // Cerulean tails take the suit's colour, not the standard greys
 	cerulean_flipper_palette = FLIPPERS
 	variants = list(
 		"lustwish" = list(
@@ -57,8 +57,8 @@
 	icon = 'modular_aphelion/modules/adult_items/icons/lustwish_mod.dmi'
 	overlay_icon_file = 'modular_aphelion/modules/adult_items/icons/lustwish_mod_worn.dmi'
 
-/// Fills its wearer's head with its phrase, as the hypnotic goggles do - while toggled on, or whenever the helmet is
-/// sealed once its control wire is snipped - and draws a spiral on the lustwish helmet.
+/// Hypnotizes the wearer with its phrase like the hypnotic goggles: while on, or whenever the helmet is sealed once its
+/// control wire is cut. Draws a spiral on the lustwish helmet.
 /obj/item/mod/module/lustwish/hypno_visor
 	name = "\improper MOD hypnotic visor module"
 	desc = "A module inserted into the visor of a suit in which commands can be processed."
@@ -108,7 +108,7 @@
 /obj/item/mod/module/lustwish/hypno_visor/on_deactivation(mob/activator, display_message = TRUE, deleting = FALSE)
 	mod.wearer?.remove_status_effect(/datum/status_effect/hypnotic_phrase, src)
 
-/// Puts the phrase in the wearer's head, if they take sex toys.
+/// Applies the hypnotic phrase. Fails if the wearer has the sex toy preference off.
 /obj/item/mod/module/lustwish/hypno_visor/proc/hypnotize()
 	if(!mod.wearer.apply_status_effect(/datum/status_effect/hypnotic_phrase, src, hypno_message))
 		to_chat(mod.wearer, span_warning("Mind resilient to hypnotic effects."))
@@ -126,7 +126,7 @@
 		.["visor_effect"] = add_ui_configuration("Visor Effect", "bool", visor_effect)
 
 /obj/item/mod/module/lustwish/hypno_visor/configure_edit(key, value, datum/tgui/ui)
-	if(module_type != MODULE_TOGGLE) // a snipped wire takes no settings
+	if(module_type != MODULE_TOGGLE) // A cut wire locks the settings.
 		return
 	switch(key)
 		if("hypno_message")
@@ -136,17 +136,17 @@
 			visor_effect = text2num(value)
 			update_clothing_slots()
 
-/// Asks `user` for a new phrase - a blank one is "Obey". Returns whether they gave one while they could still set it,
-/// through the window that asked (`ui`) or in hand.
+/// Asks `user` for a new phrase; a blank one resets it. Returns TRUE if they set it while still allowed to, through
+/// `ui` or holding the module.
 /obj/item/mod/module/lustwish/hypno_visor/proc/rewrite_phrase(mob/user, datum/tgui/ui)
 	var/obj/item/mod/control/suit = mod
 	var/new_phrase = tgui_input_text(user, "Change the hypnotic phrase.", "Hypnotic Phrase", hypno_message, MAX_MESSAGE_LEN)
 	if(isnull(new_phrase) || mod != suit)
 		return FALSE
-	if(ui) // the window that asked must still let them act
+	if(ui) // The window that asked must still allow it.
 		if(QDELETED(ui))
 			return FALSE
-		ui.process_status() // the prompt slept - SStgui refreshes this about once a second
+		ui.process_status() // The prompt slept, so refresh the status.
 		var/obj/item/mod/remote/remote = ui.src_object
 		if(ui.status != UI_INTERACTIVE || (istype(remote) && (remote.module?.mod != suit || !remote.toy_wearer() || !remote.takes_part(user))))
 			return FALSE
@@ -155,7 +155,7 @@
 	hypno_message = new_phrase || initial(hypno_message)
 	return TRUE
 
-/// Holds its own remote until it is installed; the remote then drives the suit.
+/// Comes with its remote, which has to be taken out before installing. The remote then controls the suit.
 /obj/item/mod/module/lustwish/remote_control
 	name = "\improper MOD remote control module"
 	desc = "A module, once inserted, will allow anyone with its linked remote to control the suit from nearby. \
@@ -178,9 +178,8 @@
 /obj/item/mod/module/lustwish/remote_control/can_install(obj/item/mod/control/mod)
 	return !(locate(/obj/item/mod/remote) in src) && ..()
 
-/// Drives the suit its module is installed in, from within `control_range` tiles of its wearer on their z-level - its
-/// activation, parts, modules and lock, used as whoever holds the remote, and a forced emote - for a wearer who takes
-/// sex toys and a holder who takes part in ERP.
+/// Controls its module's suit from within `control_range` tiles: activation, parts, modules, lock and forced emotes.
+/// Needs the wearer's sex toy preference and the holder's ERP preference.
 /obj/item/mod/remote
 	name = "\improper MOD remote"
 	desc = "A remote that allows control of a modsuit once its paired module is inserted."
@@ -190,9 +189,9 @@
 	lefthand_file = 'icons/mob/inhands/items/devices_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/items/devices_righthand.dmi'
 	w_class = WEIGHT_CLASS_SMALL
-	/// The module whose suit this remote drives.
+	/// The module whose suit this controls.
 	var/obj/item/mod/module/lustwish/remote_control/module
-	/// How many tiles from its holder, on the same z-level, the wearer can be driven - about as far as one can see.
+	/// How many tiles away, on the same z-level, the wearer can be controlled from.
 	var/control_range = 7
 
 /obj/item/mod/remote/Initialize(mapload, obj/item/mod/module/lustwish/remote_control/module)
@@ -206,7 +205,7 @@
 	module = null
 	return ..()
 
-/// Its module is gone, so it drives nothing.
+/// Drops the module when it's deleted.
 /obj/item/mod/remote/proc/on_module_deleted(datum/source)
 	SIGNAL_HANDLER
 	module = null
@@ -218,7 +217,7 @@
 		ui.open()
 
 /obj/item/mod/remote/ui_status(mob/user, datum/ui_state/state)
-	return in_reach(user) ? ..() : min(..(), UI_UPDATE) // out of reach, the window stays open but inert and says why
+	return in_reach(user) ? ..() : min(..(), UI_UPDATE) // Out of reach, the window stays open but can't act.
 
 /obj/item/mod/remote/ui_data(mob/user)
 	var/obj/item/mod/control/mod = module?.mod
@@ -226,7 +225,7 @@
 		return list("refusal" = !mod ? "Not Installed" : !mod.wearer ? "MODsuit Not Worn" : "Control Refused")
 	if(!in_reach(user))
 		return list("refusal" = "Out of Range")
-	// The suit's static data rides along: the module can go into a suit while this window is open.
+	// Static data too, since the module can be installed while the window is open.
 	var/list/data = mod.ui_data(user) + mod.ui_static_data(user)
 	data["refusal"] = null
 	return data
@@ -240,10 +239,10 @@
 			force_emote(ui.user, params["emote"])
 		if("activate", "deploy", "select", "configure", "lock")
 			return module.mod.ui_act(action, params, ui, state)
-		if("call", "eject_pai", "pin") // the suit's MODlink calls, pAI and pinned buttons stay its wearer's
+		if("call", "eject_pai", "pin") // Wearer only.
 			balloon_alert(ui.user, "not from a remote!")
 
-/// The suit's wearer, if they take sex toys - nobody else is driven.
+/// Returns the suit's wearer if they have the sex toy preference on.
 /obj/item/mod/remote/proc/toy_wearer()
 	var/mob/living/carbon/human/wearer = module?.mod?.wearer
 	if(!wearer)
@@ -251,17 +250,16 @@
 	var/datum/client_interface/player = GET_CLIENT(wearer)
 	return player?.prefs?.read_preference(/datum/preference/toggle/erp/sex_toy) ? wearer : null
 
-/// Whether `holder` takes part in ERP - nobody else drives the suit.
+/// Whether `holder` has the ERP preference on.
 /obj/item/mod/remote/proc/takes_part(mob/holder)
 	var/datum/client_interface/player = GET_CLIENT(holder)
 	return player?.prefs?.read_preference(/datum/preference/toggle/erp)
 
-/// Whether `user` is within `control_range` tiles of the suit's wearer, on their z-level - or nobody wears the suit.
+/// Whether `user` is within `control_range` of the wearer, or nobody wears the suit.
 /obj/item/mod/remote/proc/in_reach(mob/user)
 	return !module?.mod?.wearer || IN_GIVEN_RANGE(user, module.mod.wearer, control_range)
 
-/// Makes the suit's wearer emote `message`, typed by `user` and judged as `user`'s own words - refused as the me verb
-/// and the custom emote refuse them, and sanitised as the me verb sanitises them.
+/// Makes the wearer emote `message` for `user`. `user`'s mutes, emote ban and the IC filters apply, as for the me verb.
 /obj/item/mod/remote/proc/force_emote(mob/user, message)
 	var/mob/living/carbon/human/wearer = toy_wearer()
 	if(!wearer || !takes_part(user) || !istext(message))
@@ -279,7 +277,7 @@
 	message = trim(copytext_char(sanitize(message), 1, MAX_MESSAGE_LEN))
 	if(!message)
 		return FALSE
-	// The IC filters, soft ones too, refuse even an admin's words here - the wearer's own check would ask the wearer.
+	// Filtered here, soft filters and admins included: the emote's own check would ask the wearer, not `user`.
 	var/list/filter_result = is_ic_filtered(message) || is_soft_ic_filtered(message)
 	if(filter_result)
 		REPORT_CHAT_FILTER_TO_USER(user, filter_result)

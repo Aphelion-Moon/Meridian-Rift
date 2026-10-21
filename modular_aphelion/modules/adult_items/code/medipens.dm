@@ -1,4 +1,4 @@
-/// Lewd medipens - one 30u shot of an aphrodisiac each.
+/// Single-use 30u aphrodisiac medipens.
 /obj/item/reagent_containers/hypospray/medipen/lewd
 	abstract_type = /obj/item/reagent_containers/hypospray/medipen/lewd
 	icon = 'modular_aphelion/modules/adult_items/icons/medipens.dmi'
@@ -6,7 +6,7 @@
 	righthand_file = 'modular_aphelion/modules/adult_items/icons/medipens_righthand.dmi'
 	volume = 30
 	amount_per_transfer_from_this = 30
-	custom_price = null // priced like the lewd bottles LustWish sells beside them
+	custom_price = null // LustWish's default prices, like the lewd bottles
 	custom_premium_price = null
 	obj_flags_nova = ERP_ITEM
 
@@ -18,7 +18,7 @@
 	base_icon_state = "crocinpen"
 	list_reagents = list(/datum/reagent/drug/aphrodisiac/crocin = 30)
 
-/// Keeps the crocin pen's inhand sprite.
+/// A crocin pen subtype to share its inhand sprite.
 /obj/item/reagent_containers/hypospray/medipen/lewd/crocin/hexacrocin
 	name = "shot of concentrated lust"
 	desc = "Use this when a case of low libido can't be cured using conventional aphrodisiacs."

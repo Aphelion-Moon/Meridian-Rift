@@ -299,6 +299,8 @@
 		var/datum/robotic_style/style = style_instance
 		if(!style.supported_slots) // 0 = not for augments (e.g. dimorphic)
 			continue
+		if(!BULKY_FINISHES_OFFERED && istype(style, /datum/robotic_style/recolorable))
+			continue
 		robotic_styles += list(list(
 			"name"            = style_name,
 			"supported_slots" = style.supported_slots,
@@ -409,7 +411,7 @@
 		preferences.augment_limb_colors -= augment_slot
 	else
 		var/datum/robotic_style/style = GLOB.robotic_styles_list[style_name]
-		if(isnull(style))
+		if(isnull(style) || (!BULKY_FINISHES_OFFERED && istype(style, /datum/robotic_style/recolorable)))
 			return
 		// Another finish starts in its own default colours.
 		if(preferences.augment_limb_styles[augment_slot] != style_name)

@@ -1,5 +1,5 @@
-/// Nova's latex catsuit with the legs cut off. Its sibling, not its subtype - a subtype would bulge as long johns, hide
-/// its wearer's ears, horns and wings (LEWD_ITEM_HIDES_PARTS) and hide a taur's body (HIDETAUR).
+/// The latex catsuit with the legs cut off. Not a catsuit subtype, which would bulge like long johns and hide the
+/// wearer's ears, horns, wings (LEWD_ITEM_HIDES_PARTS) and taur body (HIDETAUR).
 /obj/item/clothing/under/misc/latex_halfcatsuit
 	name = "latex half-catsuit"
 	desc = "A shiny uniform that fits snugly to the skin. The legs have been cut off this one."
@@ -19,17 +19,16 @@
 	strip_delay = 1 SECONDS
 	// The full female mask would cut off the tip of the V.
 	female_sprite_flags = FEMALE_UNIFORM_TOP_ONLY
-	// Nova's uniform default less CLOTHING_BIG_LEGS_MASK, which would draw jumpsuit legs on a big-legged taur.
+	// The uniform default without CLOTHING_BIG_LEGS_MASK, which would draw jumpsuit legs on big-legged taurs.
 	supports_variations_flags = CLOTHING_DIGITIGRADE_VARIATION | CLOTHING_CERULEAN_MASK_LEGS
 
-/// Takes six seconds to peel off yourself, as the catsuit does.
+/// Takes six seconds to take off yourself, like the catsuit.
 /obj/item/clothing/under/misc/latex_halfcatsuit/attack_hand(mob/user, list/modifiers)
 	if(user.get_item_by_slot(ITEM_SLOT_ICLOTHING) == src && !do_after(user, 6 SECONDS, target = src))
 		return
 	return ..()
 
-/// Takes the sprite of the body under it - female where the chest is drawn female (body type) - in visual_equipped(),
-/// which preview dummies get, not equipped().
+/// Picks the male or female sprite from the wearer's body type. Done here, not in equipped(), so previews show it.
 /obj/item/clothing/under/misc/latex_halfcatsuit/visual_equipped(mob/living/carbon/human/user, slot)
 	. = ..()
 	if(!(slot & ITEM_SLOT_ICLOTHING))
@@ -40,14 +39,13 @@
 		icon_state = body_state
 		user.update_worn_undersuit()
 
-/// The Vox halves are fitted to their bodies, as the catsuit's are (vox_clothing.dm) - no female mask.
+/// The Vox sprites are already fitted, so they skip the female mask, like the catsuit's.
 /obj/item/clothing/under/misc/latex_halfcatsuit/build_worn_icon(default_layer = 0, default_icon_file, isinhands = FALSE, female_uniform = NO_FEMALE_UNIFORM, override_state, override_file, bodyshape = NONE)
 	if(override_file == worn_icon_vox || override_file == worn_icon_better_vox)
 		female_uniform = NO_FEMALE_UNIFORM
 	return ..(default_layer, default_icon_file, isinhands, female_uniform, override_state, override_file, bodyshape)
 
-/// The Vox halves' latex hand covers, as the catsuit's (vox_clothing.dm) - a sibling of the suit, so they can cover the
-/// hands, and below gloves.
+/// Adds the Vox latex hand covers, drawn under gloves, like the catsuit's.
 /obj/item/clothing/under/misc/latex_halfcatsuit/get_worn_undersuit_appearances(mob/living/carbon/human/wearer, mutable_appearance/uniform_overlay, icon_file)
 	if(icon_file != worn_icon_vox && icon_file != worn_icon_better_vox)
 		return ..()

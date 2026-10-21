@@ -8,7 +8,7 @@
 	can_randomize = FALSE
 
 /datum/preference/toggle/muscles_automatic/is_accessible(datum/preferences/preferences)
-	return ..() && species_has_fitness_limbs(preferences.read_preference(/datum/preference/choiced/species))
+	return MUSCLE_OPTIONS_OFFERED && ..() && species_has_fitness_limbs(preferences.read_preference(/datum/preference/choiced/species))
 
 /datum/preference/toggle/muscles_automatic/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	return // The muscle size and definition read it.
@@ -30,7 +30,7 @@
 	return 0
 
 /datum/preference/numeric/muscles/is_accessible(datum/preferences/preferences)
-	return ..() && species_has_fitness_limbs(preferences.read_preference(/datum/preference/choiced/species))
+	return MUSCLE_OPTIONS_OFFERED && ..() && species_has_fitness_limbs(preferences.read_preference(/datum/preference/choiced/species))
 
 /datum/preference/numeric/muscles/apply_to_human(mob/living/carbon/human/target, value, datum/preferences/preferences)
 	if(preferences && (!is_applicable(preferences) || preferences.read_preference(/datum/preference/toggle/muscles_automatic)))

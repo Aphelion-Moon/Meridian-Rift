@@ -1,6 +1,6 @@
 #if defined(UNIT_TESTS) || defined(SPACEMAN_DMM)
-/// The types the adult-items families add, one line per family, for the `adult_items_kill_switch` unit test. List a
-/// family's top types only - the test makes every concrete type under them, as a stanza covers its subtypes.
+/// Each adult items family's top types, one line per family. The `adult_items_kill_switch` unit test checks every
+/// concrete subtype.
 /proc/adult_items_gated_types()
 	return list(
 		/obj/item/reagent_containers/hypospray/medipen/lewd, /obj/item/storage/box/medipens/lewd,

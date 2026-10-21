@@ -1,5 +1,5 @@
-/// An aphrodisiac far stronger than hexacrocin. After ten cycles it arouses, after twenty-five it brings up to 15
-/// pleasure a cycle, and from the forty-fifth its taker drools, shivers and twitches, and now and then climaxes.
+/// A much stronger aphrodisiac than hexacrocin. Arouses after 10 cycles, adds up to 15 pleasure a cycle after 25, and
+/// from cycle 45 makes the mob drool, shiver, twitch and sometimes climax.
 /datum/reagent/drug/aphrodisiac/rutt
 	name = "R.U.T.T."
 	description = "Chemically condensed dopamine, sexual proteins, estrogens, and adrenalines. This aphrodisiac is an extremely powerful narcotic which may cause unintended climax."
@@ -27,8 +27,7 @@
 		if(45 to INFINITY)
 			if(SPT_PROB(20, SSMOBS_DT))
 				exposed_mob.try_lewd_autoemote(pick("drool", "shiver", "twitch"))
-			// Only a finished climax says so - climax() returns null when refused or while it asks where to finish, and
-			// TRUE without the climax status for a mob that can't.
+			// climax() returns TRUE even for a mob that can't climax, so check for the status.
 			if(SPT_PROB(2, SSMOBS_DT) && exposed_mob.climax(manual = FALSE) && exposed_mob.has_status_effect(/datum/status_effect/climax))
 				to_chat(exposed_mob, span_userlove("You can't stop cumming!"))
 
@@ -43,7 +42,7 @@
 	list_reagents = list(/datum/reagent/drug/aphrodisiac/rutt = 30)
 	obj_flags_nova = ERP_ITEM
 
-/// Wears the dopamine pill's sprite, so the two look alike.
+/// Uses the dopamine pill sprite.
 /obj/item/reagent_containers/applicator/pill/rutt
 	name = "\improper R.U.T.T. pill (10u)"
 	desc = "This aphrodisiac is an extremely powerful narcotic which may cause unintended climax."
@@ -65,7 +64,7 @@
 	erp_reaction = TRUE
 	reaction_tags = REACTION_TAG_CHEMICAL | REACTION_TAG_HARD | REACTION_TAG_DRUG
 
-/// Dopamine from scratch - without it, R.U.T.T.'s dopamine only comes from a climax.
+/// Makes dopamine mixable. Otherwise the only source is climaxing.
 /datum/chemical_reaction/dopamine
 	results = list(/datum/reagent/drug/aphrodisiac/dopamine = 10)
 	required_reagents = list(

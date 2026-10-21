@@ -1,5 +1,5 @@
-/// Denbu tincture grows the butt a size every twenty cycles up to the largest a player can pick, and first grows one on
-/// a mob without, if they take new genitalia. A butt in clothes strains and bruises in its last two sizes of growth.
+/// Grows the butt a size every 20 cycles, up to the largest size players can pick, or grows a new one if the mob allows
+/// new genital growth. Clothes strain and hurt over the last two sizes.
 /datum/reagent/drug/aphrodisiac/butt_enlarger
 	name = "denbu tincture"
 	description = "A mixture of natural vitamins and valentines plant extract, causing butt enlargement in humanoids."
@@ -15,7 +15,7 @@
 		create_butt(exposed_mob)
 		return
 	var/largest = /datum/preference/numeric/butt_size::maximum
-	if(butt.genital_size >= largest) // A butt that grows no more strains no more.
+	if(butt.genital_size >= largest) // Fully grown: no more growth or strain.
 		return
 	enlargement_amount += enlarger_increase_step
 	if(enlargement_amount >= enlargement_threshold)
@@ -33,8 +33,7 @@
 		to_chat(exposed_mob, span_danger("Your bottom strains against your clothes!"))
 		exposed_mob.apply_damage(1, BRUTE, BODY_ZONE_PRECISE_GROIN)
 
-/// Grows a size-1 butt, the smallest its sprites draw, on a mob that takes new genitalia. As Nova's `create_breasts()`
-/// does, it first names the DNA's butt Pair - a DNA "None" would draw nothing, and no entry a random sprite.
+/// Gives the mob a size 1 butt if they allow new genital growth, setting the DNA's butt to "Pair" so it draws.
 /datum/reagent/drug/aphrodisiac/butt_enlarger/proc/create_butt(mob/living/carbon/human/exposed_mob)
 	if(CONFIG_GET(flag/disable_lewd_items)) // A new genital would delete itself.
 		return

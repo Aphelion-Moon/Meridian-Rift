@@ -34,17 +34,17 @@
 
 /obj/item/clothing/glasses/hypno/dropped(mob/living/user)
 	. = ..()
-	user?.remove_status_effect(/datum/status_effect/hypnotic_phrase, src) // a microwave ejects them with no mob
+	user?.remove_status_effect(/datum/status_effect/hypnotic_phrase, src) // No user when a microwave ejects them.
 
-/// A hypnotic device's phrase echoing in its wearer's head, for players who take sex toys - the hypnotic goggles' and
-/// the MOD hypnotic visor's. It mimics the brain trauma - yes, brain trauma - these goggles used to give.
+/// A hypnotic phrase echoing in the wearer's head, from the hypnotic goggles or the MOD hypnotic visor. Needs the sex
+/// toy preference. Stands in for the brain trauma the goggles used to give.
 /datum/status_effect/hypnotic_phrase
 	id = "hypnotic_phrase"
-	status_type = STATUS_EFFECT_MULTIPLE // one for each device
-	alert_type = null // the hypnosis alert is thrown for 30 seconds instead
+	status_type = STATUS_EFFECT_MULTIPLE // One per device.
+	alert_type = null // A 30 second hypnosis alert is thrown instead.
 	processing_speed = STATUS_EFFECT_NORMAL_PROCESS
 	tick_interval = 2 SECONDS
-	/// The device putting the phrase there - the effect ends when it is deleted.
+	/// The device giving the phrase. The effect ends when it's deleted.
 	var/obj/item/source
 	/// The phrase.
 	var/phrase
@@ -71,13 +71,13 @@
 	return removing_source == source
 
 /datum/status_effect/hypnotic_phrase/on_remove()
-	if(isnull(source)) // refused by on_apply(), which said nothing
+	if(isnull(source)) // Refused by on_apply(), silently.
 		return
 	log_game("[key_name(owner)] is no longer hypnotized by [source].")
 	to_chat(owner, span_userdanger("You suddenly snap out of your hypnosis. The phrase '[phrase]' no longer feels important to you."))
 
 /datum/status_effect/hypnotic_phrase/Destroy()
-	. = ..() // on_remove() reads the source
+	. = ..() // on_remove() reads the source.
 	source = null
 
 /datum/status_effect/hypnotic_phrase/tick(seconds_between_ticks)
@@ -91,7 +91,7 @@
 	else
 		owner.cause_hallucination(/datum/hallucination/chat, "[source]", force_radio = TRUE, specific_message = span_hypnophrase("[phrase]"))
 
-/// The device is gone, and its phrase with it.
+/// Ends the effect when its device is deleted.
 /datum/status_effect/hypnotic_phrase/proc/on_source_deleted(datum/deleted)
 	SIGNAL_HANDLER
 	qdel(src)

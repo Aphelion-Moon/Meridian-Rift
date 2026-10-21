@@ -105,6 +105,8 @@
  * Returns the editor's sprites, the finishes' sheets cut up for its preview.
  */
 /datum/preference_middleware/augment_paint/get_ui_assets()
+	if(!BULKY_FINISHES_OFFERED)
+		return list()
 	return list(get_asset_datum(/datum/asset/spritesheet_batched/augment_paint))
 
 /**

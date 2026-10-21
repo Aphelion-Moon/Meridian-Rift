@@ -1,4 +1,7 @@
 // Muscle size and definition: how built a body is drawn. See modular_aphelion/modules/fitness.
+/// Whether character setup offers muscle size and definition. While it doesn't, every character is drawn Normal with no
+/// definition.
+#define MUSCLE_OPTIONS_OFFERED FALSE
 /// Today's limbs.
 #define MUSCLE_SIZE_NORMAL 0
 #define MUSCLE_SIZE_ATHLETIC 1

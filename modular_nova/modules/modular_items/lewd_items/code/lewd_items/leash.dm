@@ -1,14 +1,15 @@
-/// How many tiles of leash run between the collar and the free end
+/// Leash length in tiles.
 #define ERP_LEASH_LENGTH 2
-/// The most turfs of the leading end's route the leash remembers
+/// The most turfs of the leader's route kept.
 #define ERP_LEASH_TRAIL_MAX (ERP_LEASH_LENGTH * 4)
-/// How long a holder has to let go after the leashed falls, and then between the steps they are dragged
+/// Time a holder gets to let go after the leashed falls, and between each step they're dragged.
 #define ERP_LEASH_DRAG_DELAY (1.5 SECONDS)
-/// How long the line takes to follow the hand round as its holder turns in place
+/// How long the line takes to follow the hand when the holder turns in place.
 #define ERP_LEASH_TURN_GLIDE (0.1 SECONDS)
-/// Whether two turfs are on one level and at most a tile apart
+/// Whether two turfs are on the same z-level and at most a tile apart.
 #define ERP_LEASH_NEAR(a, b) ((a).z == (b).z && get_dist(a, b) <= 1)
-/// Whether two turfs are on one level and at most a tile past the length apart, as a leash picked up beside it can be
+/// Whether two turfs are on the same z-level and within the leash length plus one, enough to pick up a leash lying at
+/// full length.
 #define ERP_LEASH_IN_REACH(a, b) ((a).z == (b).z && get_dist(a, b) <= ERP_LEASH_LENGTH + 1)
 
 /obj/item/clothing/erp_leash
@@ -27,10 +28,10 @@
 	obj_flags_nova = ERP_ITEM
 	breakouttime = 3 SECONDS
 	flags_1 = IS_PLAYER_COLORABLE_1
-	/// The leash's hook on the leashed, while it is clipped to someone
+	/// The component on the leashed, while it's clipped to someone.
 	var/datum/component/erp_leash/hook
 
-/// Clips the leash to someone's neck, after their sex toy preference and two seconds; used on the leashed, unhooks it
+/// Clips the leash to someone's neck after two seconds, if their sex toy preference allows. Used on the leashed, unhooks it.
 /obj/item/clothing/erp_leash/attack(mob/living/carbon/human/to_be_leashed, mob/living/user, params)
 	if(hook)
 		if(hook.parent != to_be_leashed)
@@ -57,35 +58,35 @@
 	to_be_leashed.AddComponent(/datum/component/erp_leash, src)
 	to_be_leashed.balloon_alert(user, "leashed!")
 
-/// A hooked leash only goes to a hand the leashed would let lead them
+/// A hooked leash can only be picked up by someone the leashed allows to lead them.
 /obj/item/clothing/erp_leash/attempt_pickup(mob/living/user, skip_grav)
 	if(hook && user != hook.free_end && !hook.may_hold(user))
 		return TRUE
 	return ..()
 
 /**
- * The leash's hook on the leashed. The free end is the mob holding or wearing the leash, or the leash where it lies.
+ * The leash's hook on the leashed. The free end is whoever holds or wears the leash, or the leash itself on the floor.
  *
- * A holder leads - the leashed follows a real step at a time along the holder's route, and holds the holder back where it
- * cannot. The leash on the floor follows the leashed the same way, but it is light and never holds them back.
+ * The leashed follows their holder's route a step at a time, and holds the holder back where they can't follow. A leash
+ * on the floor follows the leashed the same way, but never holds them back.
  */
 /datum/component/erp_leash
 	dupe_mode = COMPONENT_DUPE_UNIQUE
-	/// The leash
+	/// The leash.
 	var/obj/item/clothing/erp_leash/leash
-	/// The mob holding or wearing the leash, the leashed among them, or the leash where it lies
+	/// Whoever holds or wears the leash (the leashed included), or the leash itself on the floor.
 	var/atom/movable/free_end
-	/// The turfs the leading end walked, oldest first, for the following end to retrace; null when empty
+	/// Turfs the leader walked, oldest first, for the follower to retrace. Null when empty.
 	var/list/turf/trail
-	/// The hole the leashed fell through, while their holder is dragged toward it or held near it
+	/// The hole the leashed fell down, while their holder is dragged to it or held by it.
 	var/turf/hole
-	/// The timer dragging the holder toward the hole - TIMER_DELETE_ME, so it can be stopped from its own callback
+	/// The timer dragging the holder to the hole. TIMER_DELETE_ME so its own callback can stop it.
 	var/drag_timer
-	/// The turf the leash is stepping an end onto, while it does - the ends' own move handlers stand aside
+	/// The turf the leash is moving an end onto. The ends' move handlers skip that move.
 	var/turf/moving
-	/// When the following end last took a step - it takes one a tick at most
+	/// When the follower last stepped. At most one step a tick.
 	var/last_step
-	/// The line from the free end to the leashed
+	/// The line from the free end to the leashed.
 	var/datum/beam/held/leash/line
 	COOLDOWN_DECLARE(tug_cd)
 	COOLDOWN_DECLARE(taut_cd)
@@ -122,8 +123,8 @@
 	free_end = null
 	return ..()
 
-/// The leash changed hands or was put down - the line comes from the new free end, and the route starts over. Let go
-/// while the leashed is down a hole, it goes down after them.
+/// Sets the free end, redrawing the line and clearing the route. Dropped while the leashed is down a hole, the leash
+/// goes down after them.
 /datum/component/erp_leash/proc/set_free_end(atom/movable/end)
 	if(free_end && free_end != leash && free_end != parent)
 		UnregisterSignal(free_end, list(COMSIG_MOVABLE_PRE_MOVE, COMSIG_MOVABLE_MOVED, COMSIG_MOVABLE_CHASM_DROPPED, COMSIG_QDELETING))
@@ -150,12 +151,12 @@
 	RegisterSignal(line, COMSIG_QDELETING, PROC_REF(on_line_deleted))
 	INVOKE_ASYNC(line, TYPE_PROC_REF(/datum/beam, Start))
 
-/// The line is deleted with either of its ends
+/// Clears the line, which is deleted with either end.
 /datum/component/erp_leash/proc/on_line_deleted(datum/source)
 	SIGNAL_HANDLER
 	line = null
 
-/// Whether `user` may hold the leash and so lead the leashed - their sex toy preference, as for hooking it
+/// Whether `user` can hold the leash, checked against the leashed's sex toy preference.
 /datum/component/erp_leash/proc/may_hold(mob/user)
 	var/mob/living/leashed = parent
 	if(user == leashed || leashed.check_erp_prefs(/datum/preference/toggle/erp/sex_toy, user, leash))
@@ -163,7 +164,7 @@
 	to_chat(user, span_danger("[leashed] doesn't want you to do that."))
 	return FALSE
 
-/// Hops of route from `at` to the leader - from the furthest of the trail's first `last` turfs it stands on or beside
+/// Steps of route from `at` to the leader, from the newest of the trail's first `last` turfs that `at` is on or beside.
 /datum/component/erp_leash/proc/route_hops(turf/at, last)
 	for(var/index in last to 1 step -1)
 		var/turf/step = trail[index]
@@ -173,8 +174,8 @@
 			return last - index + 2
 	return INFINITY
 
-/// How much leash runs from `at` to the leader at `here` - `hops` along the route (the whole trail's by default), or the
-/// straight line where that is shorter and within the length past nothing in the way, or off the route the straight line
+/// Leash needed from `at` to the leader at `here`: `hops` along the route (the whole trail by default), or the straight
+/// line if it's shorter, clear and within the leash length, or if `at` is off the route.
 /datum/component/erp_leash/proc/rope_to(turf/at, turf/here, hops)
 	if(at == here)
 		return 0
@@ -189,8 +190,8 @@
 		return min(hops, straight)
 	return hops
 
-/// How much leash would run from `at` once the leader steps from `here` to `next` - a step back along the route, or back
-/// down the stairs it climbed, cuts the route there, and a diagonal's second half is one hop with its first
+/// Leash needed from `at` after the leader steps from `here` to `next`. Stepping back along the route, or back down
+/// stairs it climbed, shortens the route, and both halves of a diagonal count as one step.
 /datum/component/erp_leash/proc/rope_after(turf/at, turf/here, turf/next, moving_diagonally)
 	if(ERP_LEASH_NEAR(at, next))
 		return 1
@@ -204,25 +205,23 @@
 	if(next == GET_TURF_ABOVE(landing))
 		return rope_to(at, landing, route_hops(at, length(trail) - 1))
 
-/// Whether the straight line between two turfs on one level crosses nothing the leashed could not pass, nor anywhere
-/// they would not cross safely from `start`
+/// Whether the straight line between two turfs on the same z-level is passable and safe for the leashed.
 /datum/component/erp_leash/proc/no_wall_between(turf/start, turf/finish)
 	for(var/turf/step = get_step_towards(start, finish); step != finish; step = get_step_towards(step, finish))
 		if(step.is_blocked_turf(exclude_mobs = TRUE) || !can_cross_safely(step, start))
 			return FALSE
 	return TRUE
 
-/// Whether the leashed crosses `place` safely - tg's test, where a lattice or catwalk over space is footing too, and
-/// anywhere but a turf is safe. Bare space is safe `from` footing that fails it, so the adrift are led. Weightless,
-/// the leashed is judged as the leash is - tg calls a hole safe for a floater, but one with gravity drops them.
+/// Whether the leashed can safely cross `place`. Lattices and catwalks count as footing, and space is safe coming from
+/// unsafe footing, so someone adrift can be led. Without gravity the leash is checked instead, as holes count as safe
+/// for floaters.
 /datum/component/erp_leash/proc/can_cross_safely(turf/place, turf/from)
 	var/atom/movable/crossing = HAS_TRAIT_FROM_ONLY(parent, TRAIT_MOVE_FLOATING, NO_GRAVITY_TRAIT) ? leash : parent
 	if(!isturf(place) || place.can_cross_safely(crossing))
 		return TRUE
 	return isspaceturf(place) && ((locate(/obj/structure/lattice) in place) || (from && !can_cross_safely(from)))
 
-/// The leading end moved from `old` to `now` - a step that hops adds `old` to the route,
-/// and a loop walked back over is cut
+/// Records the leader's step from `old` to `now`, cutting the route back where it doubles back on itself.
 /datum/component/erp_leash/proc/add_to_trail(turf/old, turf/now, hop)
 	var/index = trail?.Find(now)
 	if(index)
@@ -234,16 +233,15 @@
 		if(length(trail) > ERP_LEASH_TRAIL_MAX)
 			trail.Cut(1, 2)
 
-/// The following end moved - the route behind the turf it stands on is done
+/// Drops the route behind the follower's turf.
 /datum/component/erp_leash/proc/followed(turf/at)
 	var/index = trail?.Find(at)
 	if(index > 1)
 		trail.Cut(1, index)
 
 /**
- * The following end takes one real step toward the leader at `here`, gliding as the leader does - straight at them while
- * the leash runs straight past nothing in the way, else along the route: round the corner, through the door, up the
- * stairs or down the hole the leader took.
+ * Moves the follower one step toward the leader at `here`, gliding with them. Goes straight at them when the way is
+ * clear, otherwise along the route: round corners, through doors, up stairs and down holes.
  */
 /datum/component/erp_leash/proc/retrace(atom/movable/follower, turf/at, turf/here, glide)
 	var/mob/living/leashed = parent
@@ -265,8 +263,8 @@
 		return drop && ERP_LEASH_NEAR(at, drop) && take_step(follower, at, drop, null, glide)
 	return FALSE
 
-/// Moves an end one real step from `at` onto `target`, while its own move handlers stand aside. Gliding with the other
-/// end's move (`glide`), it leaves the line to be drawn once that move is done.
+/// Moves an end one step from `at` onto `target`, skipping its own move handlers. With `glide`, the line is drawn once
+/// the other end's move is done.
 /datum/component/erp_leash/proc/take_step(atom/movable/follower, turf/at, turf/target, direction, glide)
 	moving = target
 	if(line && glide)
@@ -278,14 +276,14 @@
 	if(.)
 		last_step = world.time
 
-/// Refuses a move past the leash's length, and says so once a second at most
+/// Blocks a move past the leash length, with a balloon alert at most once a second.
 /datum/component/erp_leash/proc/taut(mob/living/mover, message)
 	if(COOLDOWN_FINISHED(src, taut_cd))
 		COOLDOWN_START(src, taut_cd, 1 SECONDS)
 		mover.balloon_alert(mover, message)
 	return COMPONENT_MOVABLE_BLOCK_PRE_MOVE
 
-/// The holder steps - the leashed follows where it must, and holds the holder back where it cannot
+/// Pulls the leashed along when the holder steps, or holds the holder back where the leashed can't follow.
 /datum/component/erp_leash/proc/on_holder_pre_move(mob/living/source, atom/new_loc)
 	SIGNAL_HANDLER
 	var/turf/here = source.loc
@@ -294,12 +292,11 @@
 	if(moving || !isturf(here) || !isturf(new_loc) || !isturf(at))
 		return NONE
 	if(hole)
-		// dragged, they may only come closer; held near it, they keep within the length of it
+		// Being dragged, they can only get closer. Held by it, they stay within the leash length.
 		if(get_dist(new_loc, hole) <= (drag_timer ? get_dist(here, hole) : ERP_LEASH_LENGTH))
 			return NONE
 		return taut(source, "leash pulls taut!")
-	// a diagonal's second half goes through once the leashed stepped this tick - by its first half, or rarely a tug -
-	// and from beside the leashed a step runs two hops at most
+	// Allowed: a diagonal's second half once the leashed has stepped this tick, or a step starting or ending beside them.
 	if((source.moving_diagonally == SECOND_DIAG_STEP && last_step == world.time) || ERP_LEASH_NEAR(at, here) || ERP_LEASH_NEAR(at, new_loc))
 		return NONE
 	var/after = rope_after(at, here, new_loc, source.moving_diagonally)
@@ -310,14 +307,14 @@
 		if(free_end != source || !isturf(at))
 			return NONE
 		after = rope_after(at, here, new_loc, source.moving_diagonally)
-	// held where the leash would run further than it does now, or where no route measures it
+	// Held back if the leash would run longer than now, or no route measures it.
 	if(after <= ERP_LEASH_LENGTH || (after < INFINITY && after <= rope_to(at, here)))
 		return NONE
 	if(last_step == world.time)
-		line?.redrawing(leashed) // the holder stays, so the leashed's step this tick draws the line
+		line?.redrawing(leashed) // The holder isn't moving, so draw the line for the leashed's step.
 	return taut(source, "leash pulls taut!")
 
-/// The holder moved - a step grows the route, the stairs pull the leashed after them, and a jump is checked once done
+/// Records the holder's step on the route, pulls the leashed after a forced move like stairs, and checks jumps once done.
 /datum/component/erp_leash/proc/on_holder_moved(mob/living/source, atom/old_loc, dir, forced)
 	SIGNAL_HANDLER
 	var/turf/now = source.loc
@@ -331,21 +328,20 @@
 	var/fall = !near && fell(source, old)
 	if(hole)
 		if(fall && old == hole)
-			stop_drag() // fell in after them
+			stop_drag() // Fell in after them.
 		else if(!near)
 			jumped()
 		return
 	if(!near && source.currently_z_moving != CURRENTLY_Z_ASCENDING && !(fall && (locate(/obj/structure/stairs) in now)))
 		jumped()
 		return
-	// a fall is part of the step onto the hole, and a diagonal's second half part of its first
+	// A fall belongs to the step onto the hole, and a diagonal's two halves are one step.
 	add_to_trail(old, now, !fall && source.moving_diagonally != SECOND_DIAG_STEP)
 	var/mob/living/leashed = parent
 	if(forced && isturf(leashed.loc) && rope_to(leashed.loc, now) > ERP_LEASH_LENGTH)
 		retrace(leashed, leashed.loc, now, source.glide_size)
 
-/// Whether a movable just fell from `old` to the level below, or the leashed down the chasm they drop into - into its
-/// depths, or to where it leads
+/// Whether `mover` just fell from `old` to the level below, or into the chasm the leashed dropped down.
 /datum/component/erp_leash/proc/fell(atom/movable/mover, turf/old)
 	if(hole && old == hole)
 		var/datum/component/chasm/chasm = hole.GetComponent(/datum/component/chasm)
@@ -353,8 +349,8 @@
 			return TRUE
 	return (mover.currently_z_moving == CURRENTLY_Z_FALLING || mover.currently_z_moving == CURRENTLY_Z_FALLING_FROM_MOVE) && GET_TURF_BELOW(old) == mover.loc
 
-/// The leashed steps. Stepped by the leash, they never take a diagonal by a corner they would not cross safely, and tg
-/// takes the other; on their own, they go no further from their holder than the leash allows.
+/// Keeps the leashed within the leash length. When the leash moves them, an unsafe corner is refused so a diagonal
+/// takes the other one.
 /datum/component/erp_leash/proc/on_collar_pre_move(mob/living/source, turf/new_loc)
 	SIGNAL_HANDLER
 	if(moving)
@@ -366,7 +362,7 @@
 	if(!isturf(at) || !isturf(new_loc) || !isturf(hand))
 		return NONE
 	if(hole)
-		// fallen - they can move about under the hole while their holder above is dragged toward it or held near it
+		// Fallen: they can move around under the hole while their holder is dragged to it or held by it.
 		var/turf/under = GET_TURF_BELOW(hole)
 		if(under?.z != new_loc.z || get_dist(new_loc, under) <= max(1, get_dist(at, under)))
 			return NONE
@@ -376,7 +372,7 @@
 			return NONE
 	return taut(source, "too far!")
 
-/// The leashed cannot climb a level away from their holder
+/// Stops the leashed climbing a z-level away from their holder.
 /datum/component/erp_leash/proc/on_collar_z_move(mob/living/source, turf/start, turf/destination)
 	SIGNAL_HANDLER
 	if(moving || hole || free_end == source || free_end == leash || GET_TURF_ABOVE(start) != destination)
@@ -388,8 +384,8 @@
 	return COMPONENT_CANT_Z_MOVE
 
 /**
- * The leashed moved. Leading the leash on the floor, it follows them; following a holder, the route behind them is done,
- * and a fall away from the holder starts the drag. A jump is checked once done.
+ * Handles the leashed moving. A leash on the floor follows them. With a holder, the route behind them is dropped, and a
+ * fall away from the holder starts the drag. Jumps are checked once done.
  */
 /datum/component/erp_leash/proc/on_collar_moved(mob/living/source, atom/old_loc, dir, forced)
 	SIGNAL_HANDLER
@@ -415,22 +411,22 @@
 		return
 	if(hole)
 		if(isturf(now) && rope_to(now, hand) <= ERP_LEASH_LENGTH)
-			stop_drag() // back up beside their holder
+			stop_drag() // Back up beside their holder.
 	else if(fall && rope_to(now, hand) > ERP_LEASH_LENGTH)
 		start_drag(old)
 
-/// The leash on the floor follows the leashed a real step, or, being light, is pulled straight onto the turf behind them
+/// Moves a leash on the floor after the leashed: a step along the route, or straight onto the turf behind them.
 /datum/component/erp_leash/proc/drag_floor_end(turf/behind, turf/now)
 	var/turf/at = leash.loc
 	var/mob/living/leashed = parent
 	if(isturf(at) && (rope_to(at, now) <= ERP_LEASH_LENGTH || last_step == world.time || retrace(leash, at, now, leashed.glide_size)))
 		return
 	last_step = world.time
-	line?.stepping = TRUE // the leashed's move draws the line once it is done
+	line?.stepping = TRUE // The leashed's move draws the line once done.
 	leash.forceMove(behind)
 	line?.stepping = FALSE
 
-/// The leash moving on its own while it lies - thrown, pushed or swept - stops at its length
+/// Stops a leash on the floor being thrown, pushed or swept past its length.
 /datum/component/erp_leash/proc/on_leash_pre_move(obj/item/source, atom/new_loc)
 	SIGNAL_HANDLER
 	var/turf/collar = get_turf(parent)
@@ -442,8 +438,8 @@
 		return NONE
 	return COMPONENT_MOVABLE_BLOCK_PRE_MOVE
 
-/// The leash was picked up, put down or moved - whoever holds it is the free end. A hand the leashed would not let lead
-/// them, or one out of reach of the collar, is not, and lets go once the leash is in it (`on_leash_equipped`).
+/// Updates the free end when the leash is picked up, put down or moved. A holder the leashed doesn't allow, or one out
+/// of reach, drops it again (on_leash_equipped()).
 /datum/component/erp_leash/proc/on_leash_moved(obj/item/source, atom/old_loc, dir, forced)
 	SIGNAL_HANDLER
 	var/atom/movable/end = ismob(leash.loc) ? leash.loc : leash
@@ -457,8 +453,7 @@
 	else if(end == leash && isturf(leash.loc))
 		followed(leash.loc)
 
-/// Equipped by someone who is not its free end - a hand refused by `on_leash_moved` - the leash goes back to the collar.
-/// Moved to another of the free end's hands, the line leaves from that one.
+/// Makes a holder refused by on_leash_moved() let go, and moves the line when the holder swaps hands.
 /datum/component/erp_leash/proc/on_leash_equipped(obj/item/source, mob/equipper, slot)
 	SIGNAL_HANDLER
 	if(free_end == leash)
@@ -466,14 +461,14 @@
 	else if(free_end == equipper && line)
 		line.set_hand(equipper.get_held_index_of_item(leash))
 
-/// An end moved where no step explains - a teleport, a jaunt, a fall, a shuttle or a lift. A ride moves one end and then
-/// the other, so the ends are checked once the move is done.
+/// Called when an end moves without stepping: a teleport, jaunt, fall, shuttle or lift. Reach is checked once the move
+/// is done, since a ride moves the ends one at a time.
 /datum/component/erp_leash/proc/jumped()
 	trail = null
 	addtimer(CALLBACK(src, PROC_REF(check_reach)), 0, TIMER_UNIQUE | TIMER_NO_HASH_WAIT)
 
-/// The ends after a jump - in reach, or in one place such as a chasm's depths, the leash holds them together; else it
-/// stays with the collar
+/// After a jump, keeps the ends together if they're in reach or in the same place, like a chasm's depths. Otherwise
+/// separates them.
 /datum/component/erp_leash/proc/check_reach()
 	var/atom/movable/leashed = parent
 	if(free_end == leashed)
@@ -483,7 +478,7 @@
 	else
 		separate()
 
-/// The ends parted - the leash stays with the collar, still hooked, at the leashed's feet
+/// Leaves the leash, still hooked, at the leashed's feet.
 /datum/component/erp_leash/proc/separate()
 	SIGNAL_HANDLER
 	stop_drag()
@@ -496,7 +491,7 @@
 	else
 		let_go(free_end)
 
-/// `holder` loses their grip on the leash, and it lands at the leashed's feet
+/// Makes `holder` drop the leash at the leashed's feet.
 /datum/component/erp_leash/proc/let_go(mob/holder)
 	to_chat(holder, span_warning("[leash] is yanked out of your grip!"))
 	var/turf/feet = get_turf(parent)
@@ -505,10 +500,9 @@
 	else
 		holder.dropItemToGround(leash, force = TRUE)
 
-/// The leashed or their holder drops into a chasm. The leashed's drop drags their holder toward it as a hole does, and
-/// the chasm's move into its depths or to where it leads is the fall (`fell`). A holder dropping in after them is done
-/// being dragged; one dropping in alone loses their grip as they go - a tick on, as the chasm also drops whoever stands
-/// on it when the line's own draw lays a segment there.
+/// The leashed or their holder drops into a chasm. The leashed dropping drags their holder toward it, like a hole. A
+/// holder dropping in after them stops the drag; one dropping in alone lets go a tick later, as the drop can fire while
+/// the line is being drawn.
 /datum/component/erp_leash/proc/on_chasm_dropped(atom/movable/source, turf/chasm)
 	SIGNAL_HANDLER
 	if(source == parent)
@@ -519,7 +513,7 @@
 	else
 		addtimer(CALLBACK(src, PROC_REF(separate)), 0, TIMER_UNIQUE)
 
-/// The leashed has fallen down `drop` - their holder gets a moment to let go before the leash drags them toward it
+/// Starts dragging the holder toward `drop`, the hole the leashed fell down, after a moment to let go.
 /datum/component/erp_leash/proc/start_drag(turf/drop)
 	var/mob/living/holder = free_end
 	if(holder.z != drop.z)
@@ -534,12 +528,11 @@
 		to_chat(holder, span_userdanger("[leashed] falls, and [leash] drags you toward the drop! Let go of it, or follow!"))
 	drag_timer = addtimer(CALLBACK(src, PROC_REF(drag_to_hole)), ERP_LEASH_DRAG_DELAY, TIMER_STOPPABLE | TIMER_LOOP | TIMER_DELETE_ME)
 
-/// The holder is dragged a real step toward the hole and falls in like anyone stepping onto it - or, buckled or on a hole
-/// they cannot fall through, the drag ends and the leash holds them near it. A leashed the drop did not take, or who came
-/// back up, ends it, and the ends are checked as after a jump.
+/// Drags the holder a step toward the hole, where they fall in as normal. If they're buckled or can't fall through, the
+/// leash holds them there instead. Ends if the leashed didn't fall or came back up.
 /datum/component/erp_leash/proc/drag_to_hole()
 	var/mob/living/leashed = parent
-	// on the hole's level, and not on it falling in (a chasm's TRAIT_NO_TRANSFORM) - wings, pulled off it, or back up
+	// The leashed is on the hole's level and not mid-fall (a chasm's TRAIT_NO_TRANSFORM).
 	if(isturf(leashed.loc) && leashed.z == hole.z && (leashed.loc != hole || !HAS_TRAIT(leashed, TRAIT_NO_TRANSFORM)))
 		check_reach()
 		return
@@ -555,22 +548,22 @@
 			return
 	var/turf/now = holder.loc
 	if(!isturf(now) || !ERP_LEASH_NEAR(at, now))
-		jumped() // fell in after them, or carried off - checked once done
+		jumped() // Fell in after them, or was carried off.
 	else if(held || now == hole)
 		deltimer(drag_timer)
 		drag_timer = null
 		to_chat(holder, held ? span_warning("[leash] strains against you and holds you where you are.") \
 			: span_warning("[leash] runs taut down the drop and holds you there."))
-	else if(now != at && hole) // no hole: a chasm took them after the leashed - no drag message
+	else if(now != at && hole) // No hole means a chasm took them, so no drag message.
 		to_chat(holder, span_danger("[leash] drags you toward the drop!"))
 
-/// The drag or the hold near the hole ends - dropped, followed, unhooked or climbed back up
+/// Ends the drag toward the hole, or the hold by it.
 /datum/component/erp_leash/proc/stop_drag()
 	hole = null
 	deltimer(drag_timer)
 	drag_timer = null
 
-/// The holder tugs the leash - the leashed takes a step toward them; one they would not cross safely is refused
+/// Pulls the leashed a step toward the holder, unless the step is unsafe.
 /datum/component/erp_leash/proc/on_tug(obj/item/source, mob/user)
 	SIGNAL_HANDLER
 	var/mob/living/leashed = parent
@@ -591,7 +584,7 @@
 	SIGNAL_HANDLER
 	INVOKE_ASYNC(src, PROC_REF(break_out))
 
-/// The leashed works the hook loose over the leash's breakout time
+/// The leashed unhooks themselves over the leash's breakout time.
 /datum/component/erp_leash/proc/break_out()
 	var/mob/living/leashed = parent
 	leashed.visible_message(span_warning("[leashed] attempts to unhook [leashed.p_them()]self from the leash!"), \
@@ -602,9 +595,8 @@
 		qdel(src)
 
 /**
- * The leash's line, blank while the two are out of reach. It leaves the outer edge of the holding hand, read off the
- * human body sprite: on the front and the back at the same height, at the hand's front edge from the side - the near
- * hand's and the far one's alike, west the mirror of east.
+ * The leash's line, blank while the ends are out of reach. It leaves the outer edge of the holding hand, with offsets
+ * read off the human body sprite. West mirrors east.
  */
 /datum/beam/held/leash
 	righthand_s_px = -7
@@ -623,20 +615,20 @@
 	lefthand_w_py = -6
 	lefthand_n_px = -7
 	lefthand_n_py = -3
-	/// TRUE while an end steps with the other's move, which draws the line once it is done
+	/// TRUE while an end steps with the other end's move, which draws the line once done.
 	var/stepping = FALSE
-	/// TRUE from a step or a turn left to a later move until the line is drawn - by that move, or `catch_up`
+	/// TRUE while a redraw is waiting for a later move or catch_up().
 	var/stale = FALSE
-	/// The holding hand's index - a hand past the first pair draws held items shifted, so the line leaves from there too
+	/// The holding hand's index. Hands past the first pair draw held items shifted, so the line shifts too.
 	var/held_index = 0
 
-/// A turn moves the hand - a move in the same tick draws the line from it, or `catch_up` does
+/// Turning moves the hand, so the line is redrawn from it this tick.
 /datum/beam/held/leash/handle_dir_change(atom/movable/source, olddir, newdir)
 	update_offsets(newdir)
 	stale = TRUE
 	addtimer(CALLBACK(src, PROC_REF(catch_up)), 0, TIMER_UNIQUE)
 
-/// The leash went to another of the holder's hands - the line leaves from that one, drawn as after a turn
+/// Moves the line to another of the holder's hands.
 /datum/beam/held/leash/proc/set_hand(hand_index)
 	if(!hand_index || hand_index == held_index)
 		return
@@ -646,13 +638,13 @@
 	stale = TRUE
 	addtimer(CALLBACK(src, PROC_REF(catch_up)), 0, TIMER_UNIQUE)
 
-/// No move drew the line after a step or a turn left to it - it follows over its glide, or a moment on turning in place
+/// Draws a waiting redraw that no move picked up, gliding over the step or ERP_LEASH_TURN_GLIDE for a turn.
 /datum/beam/held/leash/proc/catch_up()
 	if(stale)
 		pending_animate_time = max(pending_animate_time, ERP_LEASH_TURN_GLIDE)
 		redrawing()
 
-/// A leash on the floor draws its line from where it lies, not from a hand
+/// A leash on the floor draws its line from itself, not a hand.
 /datum/beam/held/leash/update_offsets(user_dir)
 	if(ismob(origin))
 		. = ..()
@@ -661,7 +653,7 @@
 	override_origin_pixel_x = origin.pixel_x
 	override_origin_pixel_y = origin.pixel_y
 
-/// Extra hands, such as a moth's chest arms, draw held items shifted by their own offset - the line leaves from there too
+/// Extra hands, like a moth's chest arms, shift held items, so the line shifts with them.
 /datum/beam/held/leash/proc/add_extra_hand_offset(user_dir)
 	if(held_index <= 2 || !iscarbon(origin))
 		return
@@ -680,9 +672,9 @@
 		override_origin_pixel_y += (dir_name in offset.offset_y) ? offset.offset_y[dir_name] : offset.offset_y["south"]
 
 /**
- * Drawn once a tick, gliding from where it is, as the last end to move is done. A step with the other end's move, or a
- * diagonal's first half, leaves it to the move after, gliding as the slower of the two - or to `catch_up`, if no move
- * follows. Blank, where a beam would delete itself, while an end is inside something or on another z-level.
+ * Draws the line once a tick, after the last end has moved. A step with the other end's move, or a diagonal's first
+ * half, waits for the next move or catch_up(). Blank while an end is inside something or on another z-level, where a
+ * normal beam would delete itself.
  */
 /datum/beam/held/leash/redrawing(atom/movable/mover, atom/oldloc, direction)
 	if(stepping || mover?.moving_diagonally == FIRST_DIAG_STEP)
@@ -694,14 +686,14 @@
 		return ..()
 	Draw()
 
-/// Drawn while the ends lie on one level in reach of each other - with no `CheckToolReach`, whose dummy obj would fall
-/// into a chasm the line spans
+/// Draws only while the ends are on one z-level and in reach. Skips CheckToolReach(), whose dummy object would fall into
+/// a chasm under the line.
 /datum/beam/held/leash/Draw(atom/movable/mover, atom/oldloc)
 	stale = FALSE
 	if(isturf(origin.loc) && isturf(target.loc) && ERP_LEASH_IN_REACH(origin.loc, target.loc))
 		return ..()
 	QDEL_LIST(elements)
-	last_draw_valid = FALSE // back in reach, the line is drawn where the two are instead of gliding from where it was
+	last_draw_valid = FALSE // Back in reach, it's drawn fresh instead of gliding from its old position.
 
 #undef ERP_LEASH_LENGTH
 #undef ERP_LEASH_TRAIL_MAX

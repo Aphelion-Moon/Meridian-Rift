@@ -81,7 +81,7 @@
 								'modular_nova/modules/modular_items/lewd_items/sounds/bang5.ogg',
 								'modular_nova/modules/modular_items/lewd_items/sounds/bang6.ogg'), 70, 1, -1)
 
-/// Catches an immovable rod in one pass, and the rod's momentum flings its user along the rod's path to a soft landing
+/// Catches an immovable rod, which flings the user along its path to a soft landing.
 /obj/item/clothing/sextoy/fleshlight/bluespace
 	name = "bluespace fleshlight"
 	desc = "Internal design based on the captain's mother."
@@ -98,7 +98,7 @@
 		effects_we_clear = list(/obj/effect/immovablerod), \
 	)
 
-/// The effect remover's callback, just before it deletes the rod - a wizard in rod form is set down unharmed first
+/// Called just before the rod is deleted. A wizard in rod form is set down unharmed first.
 /obj/item/clothing/sextoy/fleshlight/bluespace/proc/catch_rod(obj/effect/immovablerod/rod, mob/living/user)
 	astype(rod, /obj/effect/immovablerod/wizard)?.eject_wizard()
 	user.throw_at(get_edge_target_turf(user, rod.dir), 12, 4, gentle = TRUE)

@@ -29,7 +29,7 @@
 	greyscale_config_worn_digi = null
 	post_init_icon_state = null
 
-/// Ballet heels that hold the feet en pointe - only the look is their own.
+/// Ballet heels with the feet held en pointe. Only the sprite differs.
 /obj/item/clothing/shoes/ballet_heels/pointe_boots
 	name = "pointe boots"
 	desc = "Knee-high boots that hold the feet en pointe, like a ballerina's. Somehow even harder to walk in than heels."

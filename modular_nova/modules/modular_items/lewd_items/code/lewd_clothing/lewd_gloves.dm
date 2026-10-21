@@ -32,7 +32,7 @@
 	if(breakouttime == initial(breakouttime))
 		. += span_notice("You could probably reinforce it with a pair of [span_bold("handcuffs")]...")
 
-/// Paw mittens - ball mittens shaped like paws, which put their wearer in the paw mood
+/// Ball mittens shaped like paws. Wearing them gives the paw mood.
 /obj/item/clothing/gloves/ball_mittens/paw_mittens
 	name = "paw mittens"
 	desc = "Mittens that compress the hand into a tight space, and restrict fine motor control."
@@ -43,7 +43,7 @@
 	greyscale_config = /datum/greyscale_config/paw_mittens
 	greyscale_config_worn = /datum/greyscale_config/paw_mittens/worn
 
-/// The paw mood while worn as gloves, one per pair as tg's onwear_mood keys it, so a held pair's drop leaves it.
+/// Gives the paw mood while worn as gloves. Keyed to the pair, so dropping a held pair doesn't clear a worn one's.
 /obj/item/clothing/gloves/ball_mittens/paw_mittens/equipped(mob/living/user, slot)
 	. = ..()
 	if(slot & ITEM_SLOT_GLOVES)
@@ -57,7 +57,7 @@
 /datum/mood_event/paw_mittens
 	description = span_purple("So-ft... Ro-und... Use-less... Lo-ve it!")
 
-/// Cat paws - bigger, rounder paws than the paw mittens, with toe beans and a tag at the cuff
+/// Bigger, rounder paw mittens with toe beans and a cuff tag.
 /obj/item/clothing/gloves/ball_mittens/paw_mittens/cat_paws
 	name = "cat paws"
 	desc = "A pair of inflatable latex mittens shaped like rounded paws. Helpless AND humiliating."

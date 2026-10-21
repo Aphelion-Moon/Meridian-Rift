@@ -7,6 +7,9 @@ Module ID: FITNESS
 Bodies drawn from the human and humanoid sheets come in three muscle sizes, each with four steps of muscle definition. A
 body has one size and one definition, for its chest, arms and legs alike.
 
+**Not offered yet.** While `MUSCLE_OPTIONS_OFFERED` is FALSE, character setup hides the muscle inputs: the muscle
+preferences aren't accessible, so every character is drawn Normal with no definition.
+
 | Size | Look |
 |---|---|
 | Normal | today's sprites |
@@ -308,7 +311,7 @@ monkeys keep tg's torso maps. Medium, Short and Tall bodies don't move a torso r
 
 ### Defines:
 
-- `code/__DEFINES/~aphelion_defines/fitness.dm`: `MUSCLE_SIZE_NORMAL`, `MUSCLE_SIZE_ATHLETIC`, `MUSCLE_SIZE_MUSCULAR`,
+- `code/__DEFINES/~aphelion_defines/fitness.dm`: `MUSCLE_OPTIONS_OFFERED`, `MUSCLE_SIZE_NORMAL`, `MUSCLE_SIZE_ATHLETIC`, `MUSCLE_SIZE_MUSCULAR`,
   `MUSCLE_DEFINITION_MAX`, `FEATURE_MUSCLE_SIZE`, `FEATURE_MUSCLE_DEFINITION`, `FITNESS_LIMB_TYPE`, `GARMENT_FIT_SOLID`,
   `GARMENT_FIT_PATTERN`, `GARMENT_FIT_SHADED_SLEEVES`, `GARMENT_FIT_KNIT`, the `GARMENT_FIT_PEC_SMILE_*` modes,
   `GARMENT_FIT_MAX_FRAMES`, `GARMENT_FIT_PIECE_VIEW`, `GARMENT_FITS_DEFERRED`, the `GARMENT_FIT_REDRAW_*` flags and

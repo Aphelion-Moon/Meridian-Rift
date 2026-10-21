@@ -7,6 +7,10 @@ Module ID: BULKY_AUGMENTS
 Bulky augment finishes for cybernetic arms, with their hands, and legs, drawn on the fitness module's Muscular outline in
 colours the player picks for each augment slot in character setup. The finishes whose design has lights glow.
 
+**Not offered yet.** While `BULKY_FINISHES_OFFERED` is FALSE, the finish pickers leave the finishes out, the server
+refuses one picked anyway, and the paint sheet isn't sent with the preferences window. A character saved wearing a
+finish still wears it.
+
 **Finishes.** Each finish is a `/datum/robotic_style/recolorable` subtype (`code/finishes.dm`), so it joins
 `GLOB.robotic_styles_list`, the augments' finish picker and every path that takes a robotic style, with no special case
 there.
@@ -246,7 +250,7 @@ its taur body.
 
 ### Defines:
 
-- `code/__DEFINES/~aphelion_defines/bulky_augments.dm`: `BULKY_AUGMENTS_SHEET`, `BULKY_AUGMENTS_SHEET_HUMANOID`,
+- `code/__DEFINES/~aphelion_defines/bulky_augments.dm`: `BULKY_FINISHES_OFFERED`, `BULKY_AUGMENTS_SHEET`, `BULKY_AUGMENTS_SHEET_HUMANOID`,
   `BULKY_AUGMENTS_PAINT_SHEET`, `BULKY_AUGMENT_ZONES`, `AUGMENT_SHINE_W` and `AUGMENT_SHINE_X`
 
 ### Included files that are not contained in this module:
@@ -258,7 +262,8 @@ its taur body.
   loop clears a finish, and the body's shape and garment fit are taken again after it; `set_bodypart_aug_style()` clears a
   slot's colours for a new finish, `send_augment_styles()` sends the colours with the finishes, and
   `build_augment_choices()` marks the augment items that take a style and draw greyscale (`uses_greyscale`, only on those)
-  and gives a styled item its `default_style` where a brand draws its own plantigrade look
+  and gives a styled item its `default_style` where a brand draws its own plantigrade look. While `BULKY_FINISHES_OFFERED`
+  is FALSE, `get_constant_data()` leaves the finishes out of `robotic_styles` and `set_bodypart_aug_style()` refuses them
 - `modular_nova/master_files/code/modules/client/preferences_savefile.dm`: `load_character_nova()` and
   `save_character_nova()`
 - `modular_nova/modules/preferences_import/code/_sanitise.dm`: `prefs_import_pass1()` keeps `augment_limb_colors`

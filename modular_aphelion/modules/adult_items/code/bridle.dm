@@ -1,10 +1,8 @@
 #define BRIDLE_BLINDERS (1<<0)
 #define BRIDLE_BIT (1<<1)
 
-/// A horse bridle in three colours - straps, blinders and fittings. Lowered blinders darken the wearer's sight; a set
-/// bit covers their mouth and muffles them through tg's muffles_speech element. The wearer moves either with an action
-/// button, alt-click steps through none, blinders, bit and both, and another player takes that step from the strip menu.
-/// Secured in hand, the straps hold the blinders and the bit where they are.
+/// A three-colour horse bridle. Lowered blinders darken the wearer's sight and a set bit muffles their speech. Toggled
+/// with the action buttons or alt-click, or by others from the strip menu. Securing the straps locks both in place.
 /obj/item/clothing/mask/bridle
 	name = "bridle"
 	desc = "A Sunny Stables design of a leather horse bridle, complete with blinders and a bit. It's made of several leather straps and metal fittings. You can tighten or loosen the straps to make sure that the blinders and the bit stay in place."
@@ -26,9 +24,9 @@
 	actions_types = list(/datum/action/item_action/bridle_blinders, /datum/action/item_action/bridle_bit)
 	action_slots = ITEM_SLOT_MASK
 	obj_flags_nova = ERP_ITEM
-	/// BRIDLE_BLINDERS while the blinders are lowered, BRIDLE_BIT while the bit is set - changed only by set_mode().
+	/// BRIDLE_BLINDERS if the blinders are lowered, BRIDLE_BIT if the bit is set. Only set_mode() changes it.
 	var/mode = NONE
-	/// The straps are secured, holding the blinders and the bit where they are.
+	/// Whether the straps are secured, locking the blinders and bit.
 	var/straps_locked = FALSE
 
 /obj/item/clothing/mask/bridle/Initialize(mapload)
@@ -51,11 +49,11 @@
 /obj/item/clothing/mask/bridle/ui_action_click(mob/user, actiontype)
 	set_mode(mode ^ (istype(actiontype, /datum/action/item_action/bridle_bit) ? BRIDLE_BIT : BRIDLE_BLINDERS), user)
 
-/// Steps through none, blinders, bit and both - counting in binary.
+/// Cycles through none, blinders, bit and both.
 /obj/item/clothing/mask/bridle/proc/cycle_mode(mob/user)
 	return set_mode((mode + 1) & (BRIDLE_BLINDERS | BRIDLE_BIT), user)
 
-/// Lowers or raises the blinders and sets or loosens the bit to match `new_mode`, unless the straps are secured.
+/// Sets the blinders and bit to match `new_mode`. Returns FALSE if the straps are secured.
 /obj/item/clothing/mask/bridle/proc/set_mode(new_mode, mob/user)
 	if(straps_locked)
 		to_chat(user, span_warning("[src]'s straps are too secure to adjust!"))
@@ -81,8 +79,8 @@
 			bitted ? "muffling your speech" : "letting you speak freely")
 	return TRUE
 
-/// Muffles the wearer through tg's muffles_speech element while the bit is set. The element hooks a wearer only as the
-/// bridle goes on or comes off, so one already wearing it is hooked, or freed before the element comes off, here.
+/// Adds or removes the muffles_speech element. The element only hooks the wearer on equip and drop, so a worn bridle
+/// hooks and unhooks them here.
 /obj/item/clothing/mask/bridle/proc/set_muffled(bitted, mob/living/carbon/wearer)
 	var/datum/element/muffles_speech/muffler = wearer ? SSdcs.GetElement(list(/datum/element/muffles_speech)) : null
 	if(bitted)
@@ -92,14 +90,14 @@
 	muffler?.dropped(src, wearer)
 	RemoveElement(/datum/element/muffles_speech)
 
-/// Tells `user` they moved the `part` - a wearer who is someone else learns what it does, and by whom unless blind.
+/// Tells `user` they moved `part`, and tells the wearer, if someone else, what changed and who did it.
 /obj/item/clothing/mask/bridle/proc/tell_moved(mob/user, mob/living/carbon/wearer, moved, part, effect)
 	to_chat(user, span_notice("You [moved] [src]'s [part][wearer == user ? ", [effect]" : ""]."))
 	if(wearer && wearer != user)
 		to_chat(wearer, span_userdanger("[wearer.is_blind() ? "Someone" : user] [moved]s your bridle's [part], [effect]!"))
 
-/// Whether `user` may adjust the bridle `wearer` wears from the strip menu - only on a face, and only for an adjuster
-/// who takes part in ERP and a wearer who takes sex toys. The strip menu's owner may be any atom, so it is checked first.
+/// Whether `user` can adjust the bridle on `wearer`'s face from the strip menu. Needs the wearer's sex toy preference
+/// and the user's ERP preference.
 /obj/item/clothing/mask/bridle/proc/strip_adjustable(mob/living/carbon/wearer, mob/user)
 	if(!istype(wearer) || wearer.get_item_by_slot(ITEM_SLOT_MASK) != src)
 		return FALSE
@@ -120,10 +118,10 @@
 	INVOKE_ASYNC(src, PROC_REF(strip_adjust), owner, user)
 	return COMPONENT_ALT_ACTION_DONE
 
-/// The strip menu's "Adjust bridle" - one step of the alt-click cycle after as long as taking the bridle off would take,
-/// the wearer and onlookers warned first and both sides logged. Secured straps refuse at once, without the wait.
+/// The strip menu's "Adjust bridle": warns the wearer, waits the strip delay, then cycles the mode once and logs it.
+/// Secured straps refuse without the wait.
 /obj/item/clothing/mask/bridle/proc/strip_adjust(mob/living/carbon/wearer, mob/user)
-	if(DOING_INTERACTION_WITH_TARGET(user, wearer)) // The strip menu lets clicks through mid-wait - warn once.
+	if(DOING_INTERACTION_WITH_TARGET(user, wearer)) // Ignore repeat clicks while waiting.
 		return
 	if(!straps_locked)
 		wearer.visible_message(span_warning("[user] tries to adjust [wearer]'s bridle."),
