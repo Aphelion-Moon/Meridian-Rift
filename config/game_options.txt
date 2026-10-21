@@ -426,6 +426,9 @@ ROUNDSTART_RACES protean
 ROUNDSTART_RACES shadekin
 ROUNDSTART_RACES holosynth
 
+## Meridian species, here.
+ROUNDSTART_RACES gypak
+
 ##-------------------------------------------------------------------------------------------
 
 ## Roundstart no-reset races
