@@ -58,8 +58,7 @@
 /// the caps from about 22.5 to 17 MB; 10 MiB of art and 4,000 placements wrote about 13.5 MB, so 5 MiB writes about
 /// 8 MB. Both new figures are worked out from the measured ones at 10 MiB.
 #define GRAFFITI_MAP_ART_BYTES (5 * 1024 * 1024)
-/// Most unique arts shown in one round: everything within the map caps. Ranking still orders evictions and loading,
-/// and SSgraffiti's display_budget, which starts at this, lets tests lower it.
+/// Most unique arts shown in one round: everything within the map caps. Ranking still orders evictions and loading.
 #define GRAFFITI_DISPLAY_BUDGET GRAFFITI_MAP_UNIQUE_CAP
 /// Most placements one account keeps on one map: a tenth of GRAFFITI_MAP_PLACEMENT_CAP.
 #define GRAFFITI_CKEY_PLACEMENT_CAP 400

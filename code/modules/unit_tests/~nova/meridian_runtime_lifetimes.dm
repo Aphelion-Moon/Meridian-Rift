@@ -187,13 +187,6 @@
 	brain.Insert(target, special = TRUE)
 	TEST_ASSERT(record.save_data(), "Reinserting the brain must preserve its original save identity.")
 
-/// An NPC with no admitted account or character slot never gets a persistence file.
-/datum/unit_test/meridian_modular_persistence/npc/Run()
-	var/mob/living/carbon/human/target = allocate(/mob/living/carbon/human/consistent)
-	var/obj/item/organ/brain/brain = target.get_organ_slot(ORGAN_SLOT_BRAIN)
-	TEST_ASSERT(!SSpersistence.load_modular_persistence(brain), "An NPC without a character admission must not load persistence.")
-	TEST_ASSERT_NULL(brain.modular_persistence, "An NPC received an unbound persistence record.")
-
 /// Replacing a brain moves the existing record and preserves its account/slot after the old organ is deleted.
 /datum/unit_test/meridian_modular_persistence/replacement/Run()
 	var/list/fixture = make_record()

@@ -1,10 +1,10 @@
 // Which bulge each garment draws, as vars on the garment types. Edit by hand: one block per type that differs
-// from its parent; subtypes inherit the rest. Generated once from mal's reviewed selections. The bulge_manifest unit
+// from its parent; subtypes inherit the rest. Generated once from the reviewed selections. The bulge_manifest unit
 // test pins what every garment resolves to (code/modules/unit_tests/~nova/bulge_manifest.txt): an edit here, or a
 // new subtype of a listed garment from a merge, fails it until someone has reviewed the change and updated the file.
 //
 // To add a garment, give its type a block naming its family (bulge_family, a /datum/bulge_family typepath: for a
-// skirt the style mal picked; for a revealing skirt whose hem is not the common one, its hem's subtype) and only
+// skirt the style picked for it; for a revealing skirt whose hem is not the common one, its hem's subtype) and only
 // the other values it needs: bulge_printed when its own print should carry onto the bulge, bulge_cloth_layer when
 // its cloth is not the first GAGS layer, bulge_suit_rule for a suit that leaves the crotch clear. A subtype of a
 // garment listed here bulges like its parent unless it has a block of its own, so a new subtype of a listed
@@ -21,8 +21,8 @@
 	var/bulge_suit_rule = NONE
 
 /obj/item/clothing/under
-	/// Drawn from the garment's own print (mal's printed selections) instead of the adaptive palette, while the
-	/// garment keeps its default appearance.
+	/// Drawn from the garment's own print instead of the adaptive palette, while the garment keeps its default
+	/// appearance.
 	var/bulge_printed = FALSE
 	/// Which greyscale layer of a GAGS garment is the cloth the adaptive colour is sampled from.
 	var/bulge_cloth_layer = 1
@@ -303,8 +303,7 @@
 /obj/item/clothing/under/techpants
 	bulge_family = /datum/bulge_family/jeans
 
-// Long johns: skin-tight legs. Long johns, wetsuits, skinsuits, catsuits, yoga pants and the job bunny suits
-// (mal, 2026-10-08).
+// Long johns: skin-tight legs. Long johns, wetsuits, skinsuits, catsuits, yoga pants and the job bunny suits.
 
 /obj/item/clothing/under/akula_wetsuit
 	bulge_family = /datum/bulge_family/long_johns
@@ -2104,7 +2103,7 @@
 	bulge_cloth_layer = 2
 
 // No bulge: subtypes of the garments above that were never reviewed themselves. Explicit values keep them as they are today
-// (no bulge); mal may decide later to let them inherit their parent's treatment.
+// (no bulge) until they are reviewed.
 
 /obj/item/clothing/under/costume/dutch/syndicate
 	bulge_family = /datum/bulge_family/none

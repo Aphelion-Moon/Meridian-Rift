@@ -75,6 +75,14 @@
 	panties.linked_fleshlight = fleshlight
 
 /// Whether the item displays the requested portal overlay.
+/// Puts `receiver` in `wearer`'s mouth slot, as the interaction panel does. TRUE on success.
+/datum/unit_test/portal_device/proc/put_in_mouth(mob/living/carbon/human/wearer, obj/item/clothing/sextoy/portal_panties/receiver)
+	if(wearer.get_lewd_slot_item(BODY_ZONE_PRECISE_MOUTH) || !wearer.set_lewd_slot_item(BODY_ZONE_PRECISE_MOUTH, receiver))
+		return FALSE
+	receiver.forceMove(wearer)
+	receiver.lewd_equipped(wearer, BODY_ZONE_PRECISE_MOUTH)
+	return TRUE
+
 /datum/unit_test/portal_device/proc/has_portal_overlay_state(obj/item/device, overlay_state)
 	for(var/image/overlay as anything in device.overlays)
 		if(overlay:icon == 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_items/portal.dmi' \
@@ -260,23 +268,20 @@
 		TEST_NOTICE(src, "Portal-device ownership tests require lewd items to be enabled by the test configuration.")
 		return
 
-	for(var/slot in list(ITEM_SLOT_MASK, ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS))
+	for(var/slot in list(BODY_ZONE_PRECISE_MOUTH, ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS))
 		var/mob/living/carbon/human/consistent/wearer = allocate(/mob/living/carbon/human/consistent)
 		var/obj/item/clothing/sextoy/portal_fleshlight/fleshlight = allocate(/obj/item/clothing/sextoy/portal_fleshlight)
 		var/obj/item/clothing/sextoy/portal_panties/receiver = allocate(/obj/item/clothing/sextoy/portal_panties)
 		var/worn_layer
 		receiver.forceMove(wearer)
-		if(slot == ITEM_SLOT_MASK)
-			wearer.wear_mask = receiver
-		else
-			TEST_ASSERT(wearer.set_lewd_slot_item(slot, receiver), "Could not place the receiver in [slot].")
-			switch(slot)
-				if(ORGAN_SLOT_PENIS)
-					worn_layer = PENIS_CLOTHING_LAYER
-				if(ORGAN_SLOT_VAGINA)
-					worn_layer = VAGINA_CLOTHING_LAYER
-				if(ORGAN_SLOT_ANUS)
-					worn_layer = ANUS_CLOTHING_LAYER
+		TEST_ASSERT(wearer.set_lewd_slot_item(slot, receiver), "Could not place the receiver in [slot].")
+		switch(slot)
+			if(ORGAN_SLOT_PENIS)
+				worn_layer = PENIS_CLOTHING_LAYER
+			if(ORGAN_SLOT_VAGINA)
+				worn_layer = VAGINA_CLOTHING_LAYER
+			if(ORGAN_SLOT_ANUS)
+				worn_layer = ANUS_CLOTHING_LAYER
 		receiver.update_target(wearer, slot)
 		link_pair(fleshlight, receiver)
 		if(worn_layer)
@@ -285,10 +290,8 @@
 
 		qdel(receiver)
 		TEST_ASSERT(QDELETED(receiver), "Deleting a receiver from [slot] did not delete it.")
-		if(slot == ITEM_SLOT_MASK)
-			TEST_ASSERT_NULL(wearer.wear_mask, "Deleting a mask receiver left its wearer slot occupied.")
-		else
-			TEST_ASSERT_NULL(wearer.get_lewd_slot_item(slot), "Deleting a receiver from [slot] left its wearer slot occupied.")
+		TEST_ASSERT_NULL(wearer.get_lewd_slot_item(slot), "Deleting a receiver from [slot] left its wearer slot occupied.")
+		if(worn_layer)
 			TEST_ASSERT_NULL(wearer.overlays_standing[worn_layer], "Deleting a receiver from [slot] left its worn overlay behind.")
 		TEST_ASSERT_NULL(fleshlight.linked_panties, "Deleting a receiver from [slot] left its surviving peer linked.")
 
@@ -303,12 +306,12 @@
 	receiver.forceMove(wearer)
 
 	receiver.current_target = BODY_ZONE_PRECISE_MOUTH
-	TEST_ASSERT_NULL(receiver.get_equipped_wearer(), "A receiver loose in inventory was trusted as an equipped mask.")
+	TEST_ASSERT_NULL(receiver.get_equipped_wearer(), "A receiver loose in inventory was trusted as worn in the mouth.")
 
-	wearer.wear_mask = receiver
-	TEST_ASSERT_EQUAL(receiver.get_equipped_wearer(), wearer, "The receiver rejected its authoritative mask-slot wearer.")
-	wearer.wear_mask = null
-	TEST_ASSERT_NULL(receiver.get_equipped_wearer(), "A removed mask receiver retained authority from stale presentation state.")
+	wearer.mouth = receiver
+	TEST_ASSERT_EQUAL(receiver.get_equipped_wearer(), wearer, "The receiver rejected its authoritative mouth-slot wearer.")
+	wearer.mouth = null
+	TEST_ASSERT_NULL(receiver.get_equipped_wearer(), "A removed mouth receiver retained authority from stale presentation state.")
 
 	receiver.current_target = ORGAN_SLOT_PENIS
 	wearer.penis = receiver
@@ -392,8 +395,8 @@
 
 	var/mob/living/carbon/human/consistent/receiver_wearer = allocate(/mob/living/carbon/human/consistent)
 	var/obj/item/clothing/sextoy/portal_panties/mouth_receiver = allocate(/obj/item/clothing/sextoy/portal_panties)
-	TEST_ASSERT(receiver_wearer.equip_to_slot_if_possible(mouth_receiver, ITEM_SLOT_MASK), "The receiver wearer could not equip the mouth receiver.")
-	TEST_ASSERT_EQUAL(mouth_receiver.current_target, BODY_ZONE_PRECISE_MOUTH, "The equipped mask receiver selected the wrong target.")
+	TEST_ASSERT(put_in_mouth(receiver_wearer, mouth_receiver), "The receiver wearer could not take the mouth receiver.")
+	TEST_ASSERT_EQUAL(mouth_receiver.current_target, BODY_ZONE_PRECISE_MOUTH, "The mouth receiver selected the wrong target.")
 	var/obj/item/clothing/head/utility/bomb_hood/covering_head = allocate(/obj/item/clothing/head/utility/bomb_hood)
 	TEST_ASSERT(receiver_wearer.equip_to_slot_if_possible(covering_head, ITEM_SLOT_HEAD), "The receiver wearer could not equip a mouth-covering head item.")
 	TEST_ASSERT(receiver_wearer.is_mouth_covered(), "The test head item did not cover the receiver mouth.")
@@ -430,7 +433,7 @@
 	var/obj/item/clothing/sextoy/portal_fleshlight/device = allocate(/obj/item/clothing/sextoy/portal_fleshlight, run_loc_floor_bottom_left)
 	var/obj/item/clothing/sextoy/portal_panties/receiver = allocate(/obj/item/clothing/sextoy/portal_panties, run_loc_floor_bottom_left)
 	link_pair(device, receiver)
-	TEST_ASSERT(wearer.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The appearance-test wearer could not equip the receiver as a mask.")
+	TEST_ASSERT(put_in_mouth(wearer, receiver), "The appearance-test wearer could not take the receiver in the mouth.")
 	TEST_ASSERT(device.is_portal_open(), "An uncovered equipped mouth did not open the linked portal device.")
 	TEST_ASSERT_EQUAL(device.name, "portal fleshlight", "An open mouth receiver selected the wrong device name.")
 	TEST_ASSERT(has_portal_overlay_state(device, "portal_mouth"), "An open mouth receiver rendered no portal-device mouth art.")
@@ -443,13 +446,13 @@
 	TEST_ASSERT(has_portal_overlay_state(device, "portal_mouth"), "Covering the receiver mouth removed the portal-device mouth art.")
 	TEST_ASSERT(wearer.transferItemToLoc(covering_head, wearer.loc, force = TRUE, silent = TRUE), "The appearance-test wearer could not remove the mouth-covering head item.")
 
-	TEST_ASSERT(wearer.transferItemToLoc(receiver, wearer.loc, force = TRUE, silent = TRUE), "The appearance-test wearer could not take off the receiver.")
+	TEST_ASSERT_EQUAL(wearer.drop_lewd_slot_item(BODY_ZONE_PRECISE_MOUTH), receiver, "The appearance-test wearer could not take out the receiver.")
 	TEST_ASSERT(!device.is_portal_open(), "Taking off the receiver left the portal open.")
 	TEST_ASSERT_EQUAL(device.name, initial(device.name), "Closing the portal did not restore the device name.")
 	TEST_ASSERT(!has_portal_overlay_state(device, "portal_mouth"), "Closing the portal retained stale mouth art.")
 	TEST_ASSERT(!has_portal_overlay_state(device, "portal_mouth_lips"), "Closing the portal retained stale lip art.")
 
-	TEST_ASSERT(wearer.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The appearance-test wearer could not put the receiver back on.")
+	TEST_ASSERT(put_in_mouth(wearer, receiver), "The appearance-test wearer could not put the receiver back in.")
 	TEST_ASSERT(device.is_portal_open(), "Putting the receiver back on did not reopen the portal.")
 	TEST_ASSERT_EQUAL(device.name, "portal fleshlight", "Reopening the mouth receiver did not restore the device name.")
 	TEST_ASSERT(has_portal_overlay_state(device, "portal_mouth_lips"), "Reopening the mouth receiver did not restore portal-device lip art.")
@@ -467,7 +470,7 @@
 	var/obj/item/clothing/sextoy/portal_fleshlight/appearance_unit_test/device = allocate(/obj/item/clothing/sextoy/portal_fleshlight/appearance_unit_test, run_loc_floor_bottom_left)
 	var/obj/item/clothing/sextoy/portal_panties/receiver = allocate(/obj/item/clothing/sextoy/portal_panties, run_loc_floor_bottom_left)
 	link_pair(device, receiver)
-	TEST_ASSERT(wearer.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The held-item test wearer could not equip the receiver.")
+	TEST_ASSERT(put_in_mouth(wearer, receiver), "The held-item test wearer could not take the receiver.")
 	TEST_ASSERT(device.is_portal_open(), "The held-item test did not start with an open portal.")
 	TEST_ASSERT(wait_for_appearance_timers(), "Setup appearance timers did not run before the held-item test.")
 	device.appearance_updates = 0
@@ -561,7 +564,7 @@
 	link_pair(device, receiver)
 
 	TEST_ASSERT(local_participant.put_in_active_hand(device, forced = TRUE), "The local participant could not hold the portal device.")
-	TEST_ASSERT(remote_participant.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The remote participant could not equip the receiver as a mask.")
+	TEST_ASSERT(put_in_mouth(remote_participant, receiver), "The remote participant could not take the receiver in the mouth.")
 	TEST_ASSERT_EQUAL(receiver.get_equipped_wearer(), remote_participant, "The receiver did not derive authority from the equipped mask slot.")
 
 	var/datum/component/interactable/local_component = local_participant.GetComponent(/datum/component/interactable)
@@ -576,9 +579,9 @@
 	TEST_ASSERT(device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "A fully authoritative mouth-to-mouth device route did not resolve its live interaction.")
 	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_CHEST, device), "The validator accepted an unsupported local body-part combination.")
 
-	remote_participant.wear_mask = null
+	remote_participant.mouth = null
 	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "A receiver merely retained in inventory was trusted after its authoritative slot was cleared.")
-	remote_participant.wear_mask = receiver
+	remote_participant.mouth = receiver
 
 	TEST_ASSERT(remote_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp/sex_toy], FALSE), "Could not disable the remote sex-toy preference.")
 	TEST_ASSERT(!device.validate_interaction(tongue_kiss, local_participant, local_participant, receiver, BODY_ZONE_PRECISE_MOUTH, device), "The validator accepted a sex-toy preference refusal.")
@@ -791,7 +794,7 @@
 	link_pair(device, receiver)
 
 	TEST_ASSERT(local_participant.put_in_active_hand(device, forced = TRUE), "The local participant could not hold the portal device.")
-	TEST_ASSERT(remote_participant.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The remote participant could not equip the receiver as a mask.")
+	TEST_ASSERT(put_in_mouth(remote_participant, receiver), "The remote participant could not take the receiver in the mouth.")
 	var/datum/component/interactable/local_component = local_participant.GetComponent(/datum/component/interactable)
 	var/datum/component/interactable/remote_component = remote_participant.GetComponent(/datum/component/interactable)
 	TEST_ASSERT_NOTNULL(local_component, "The local participant lacked an interaction component.")
@@ -825,13 +828,13 @@
 	), "A stale device link was accepted by portal-device context validation.")
 	device.linked_panties = linked_receiver
 
-	remote_participant.wear_mask = null
+	remote_participant.mouth = null
 	TEST_ASSERT(!route.is_still_valid(
 		tongue_kiss,
 		local_participant,
 		remote_participant,
 	), "A receiver removed from its authoritative slot was accepted by portal-device context validation.")
-	remote_participant.wear_mask = receiver
+	remote_participant.mouth = receiver
 
 	TEST_ASSERT(!route.is_still_valid(
 		tongue_kiss,
@@ -853,7 +856,7 @@
 		ignore_cooldown = TRUE,
 	), "Ignoring cooldown rejected an otherwise authoritative portal-device context.")
 
-	remote_participant.wear_mask = null
+	remote_participant.mouth = null
 	TEST_ASSERT(!route.is_still_valid(
 		tongue_kiss,
 		local_participant,
@@ -862,8 +865,8 @@
 	), "Ignoring cooldown bypassed receiver equipment authority.")
 
 	receiver.forceMove(local_participant)
-	local_participant.wear_mask = receiver
-	receiver.update_target(local_participant, ITEM_SLOT_MASK)
+	local_participant.mouth = receiver
+	receiver.update_target(local_participant, BODY_ZONE_PRECISE_MOUTH)
 	local_component.interact_next = world.time - 1
 	var/datum/interaction_route/portal_device/self_route = new(device, local_participant, receiver, device, BODY_ZONE_PRECISE_MOUTH)
 	TEST_ASSERT(!tongue_kiss.allow_act(local_participant, local_participant), "An ordinary other-person interaction accepted one mob in both roles.")
@@ -899,7 +902,7 @@
 	link_pair(device, receiver)
 
 	TEST_ASSERT(operator.put_in_active_hand(device, forced = TRUE), "The operator could not hold the portal device.")
-	TEST_ASSERT(wearer.equip_to_slot_if_possible(receiver, ITEM_SLOT_MASK), "The remote wearer could not equip the receiver as a mask.")
+	TEST_ASSERT(put_in_mouth(wearer, receiver), "The remote wearer could not take the receiver in the mouth.")
 	TEST_ASSERT(!operator.Adjacent(wearer), "The remote menu fixture placed the operator next to the wearer.")
 	var/datum/component/interactable/operator_component = operator.GetComponent(/datum/component/interactable)
 	var/datum/component/interactable/wearer_component = wearer.GetComponent(/datum/component/interactable)

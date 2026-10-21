@@ -4,13 +4,11 @@ Module ID: BULGE
 
 ### Description:
 
-A penis that is covered and at least half hard shows through what covers it: half hard a soft bulge, fully hard a
-tent. The size follows the penis's length: sizes 1 to 4 under 5, 8 and 11 inches and from 11 up, and for the garments
-that go further, sizes 5 to 8 from 37, 49, 57 and 65 inches, where the penis starts to show past the cloth. Every
-look was drawn and approved in the preview pipeline first; the game draws it by the approved rules. A print is
-derived from the sprite the game actually draws, so a recoloured or species-fitted garment carries its own print
-(mal's decision D1), and a tentacle penis past size 4 draws the size-4 bulge (mal, 2026-10-03). The pixel corpus
-(Checks, below) holds the game to those rules case by case.
+A penis that is covered and at least half hard shows through what covers it: half hard a soft bulge, fully hard a tent.
+The size follows the penis's length: sizes 1 to 4 under 5, 8 and 11 inches and from 11 up, and for the garments that go
+further, sizes 5 to 8 from 37, 49, 57 and 65 inches, where the penis starts to show past the cloth. A print is derived
+from the sprite the game actually draws, so a recoloured or species-fitted garment carries its own print, and a tentacle
+penis past size 4 draws the size-4 bulge.
 
 Each garment names a family (`code/garment_families.dm`): boxers, loose boxers, briefs, jockstrap, jeans, long johns,
 jumpsuits, khaki shorts, athletic shorts, track pants, two loincloths, and six skirt styles. A suit over the groin
@@ -19,12 +17,12 @@ hides the bulge unless it was reviewed to leave the groin clear (`bulge_suit_rul
 
 A garment covers the penis only when it is drawn in front of it. With Custom "Above underwear" the penis is drawn over
 the underwear and undershirt as Nova draws it: no bulge on them and nothing cut, until the player layers it back
-("Below underwear" or "Hidden by clothes"). A uniform or a suit over it still carries the bulge (mal, 2026-10-04).
+("Below underwear" or "Hidden by clothes"). A uniform or a suit over it still carries the bulge.
 
-Underwear always takes precedence over what is worn over it (Pol, 2026-10-14): "You shouldn't show a dick hanging out
-of a skirt if they're wearing underwear, unless that underwear also has the dick out." The bulge is still drawn on the
-outermost cover, in its cloth, colour, layer and offsets, but underwear worn and drawn under that cover, in front of
-the penis as it is layered, holds the penis in (`bulge_restraint()`, `bulge_held_size()` in `code/look.dm`):
+Underwear always takes precedence over what is worn over it: no penis hangs out of a skirt over underwear unless the
+underwear lets it out too. The bulge is still drawn on the outermost cover, in its cloth, colour, layer and offsets, but
+underwear worn and drawn under that cover, in front of the penis as it is layered, holds the penis in
+(`bulge_restraint()`, `bulge_held_size()` in `code/look.dm`):
 
 - The cover draws its own shape at the underwear family's cap for the arousal, where the bulge is bigger: a skirt over
   briefs or a jockstrap still tents, and a jockstrap under the leotard keeps the leotard's bulge at size 4.
@@ -53,11 +51,11 @@ behind a cover not cut for it (a skirt half hard, a long curtain skirt) shows wh
 the hem or past the curtain, and is not counted; and the smallest Tentacled (Alt) penis under a hard loincloth counts as
 under the cover, though its drape hides all of it. Answering those exactly would take a test of each such look's pixels.
 
-Layered above the underwear, the penis is exposed instead (mal, 2026-10-04): Nova's `covered_by_clothing()`
-(`lewd_organs/_genital.dm`) does not count the undershirt, underwear or bra over a genital set to Custom "Above
-underwear", which is drawn over them, so `is_exposed()` offers it to the plain interactions (and to portals, examine and
-a breast bounce) while only underclothes are worn. A uniform or a suit over it still covers it. With only underclothes
-on, such a penis has no bulge interaction and the plain penis interactions instead; every other layering is as before.
+Layered above the underwear, the penis is exposed instead: Nova's `covered_by_clothing()` (`lewd_organs/_genital.dm`)
+does not count the undershirt, underwear or bra over a genital set to Custom "Above underwear", which is drawn over
+them, so `is_exposed()` offers it to the plain interactions (and to portals, examine and a breast bounce) while only
+underclothes are worn. A uniform or a suit over it still covers it. With only underclothes on, such a penis has no bulge
+interaction and the plain penis interactions instead; every other layering is as before.
 
 ### How it draws
 
@@ -75,22 +73,21 @@ same `bulge_held_size()`, so a skirt over underwear that holds the penis in is d
   on the client with the adaptive palette of the garment's cloth colour. The masks are derived once per shape; the
   colour is sampled once per sprite and tint, its palette computed once per colour. A garment drawn through a colour
   matrix or filter carries no print: its cloth is sampled from the untreated sprite and drawn through the same filter.
-- **Printed garments** (mal's printed selections and every reviewed skirt): one patch derived on the server from the
+- **Printed garments** (those marked `bulge_printed` and every reviewed skirt): one patch derived on the server from the
   sprite the garment is drawn with, by the approved print rule, so it follows recolours, species fits and digitigrade
-  sprites. Printed loose boxers, briefs, jeans and track pants keep it past size 4, to size 8 (`print_cap`; mal,
-  2026-10-08); the large heart boxers draw their precoloured patches instead.
+  sprites. Printed loose boxers, briefs, jeans and track pants keep it past size 4, to size 8 (`print_cap`); the large
+  heart boxers draw their precoloured patches instead.
 - **Revealing skirts and loincloths, when hard:** the cover is drawn with its lifted flap cut away (the uniform and
   underwear renders call `bulge_cut_worn()`), and the penis shows through it: under a loincloth's drape, or behind
   the skirt and over its cloth inside the skirt's clearance.
 - **Sizes 5 to 8:** the penis shows over the cloth inside the shape's exposed mask. Facing east and west, every penis
-  shape but the human one takes mal's amendments to the derived shape (2026-10-06 under the heart boxers, 2026-10-08
-  in every family): no curtain under the tip, the head covered from the waistband down where it pokes out above it
-  (but for its two outermost pixels on the waistband), a one-row dip of the shaft below the hem covered, and gaps of
-  one or two pixels in the cloth filled. The large heart boxers draw their patch in place of the boxers' shape, over
-  the same bare part of the penis: the patch drawn for that penis shape's profile where the sheet has one (and for
-  its untoned sprites, where they differ), else the human penis's. The tentacles, and Nondescript (Alt), Tapered
-  (Alt) and Hemi (Alt) past their `print_cap` (4), draw the family's small_cap shape (and its print) instead, in
-  every family (mal, 2026-10-06 under the heart boxers, 2026-10-08 everywhere).
+  shape but the human one takes amendments to the derived shape: no curtain under the tip, the head covered from the
+  waistband down where it pokes out above it (but for its two outermost pixels on the waistband), a one-row dip of the
+  shaft below the hem covered, and gaps of one or two pixels in the cloth filled. The large heart boxers draw their
+  patch in place of the boxers' shape, over the same bare part of the penis: the patch drawn for that penis shape's
+  profile where the sheet has one (and for its untoned sprites, where they differ), else the human penis's. The
+  tentacles, and Nondescript (Alt), Tapered (Alt) and Hemi (Alt) past their `print_cap` (4), draw the family's small_cap
+  shape (and its print) instead, in every family.
 - **Templates:** the shapes up to a family's small_cap, the skirts' clearances and flaps, and the large heart boxers'
   patches are read from the template sheets. Past small_cap the shapes, the anatomy each leaves bare, and a hard
   loincloth's drape and cut have no sheet: they are derived on the server from the game's own penis, testicle and
@@ -114,8 +111,7 @@ same `bulge_held_size()`, so a skirt over underwear that holds the penis in is d
 - `code/colour_cache.dm`, `code/adaptive_colour.dm`: the cloth colour sampler and the adaptive palette.
 - `code/interaction_text.dm`: the armpit interactions' pit-hair texts.
 - `icons/templates/`: 5 sheets, 460 states: the shapes up to small_cap, the skirts' clearances and flaps and the large
-  heart boxers, described in `icons/README.md`. `lab/bulge/bulge_assets.py` checks, re-encodes and previews them and
-  names what is derived.
+  heart boxers, described in `icons/README.md`.
 - Outside the module: `code/__DEFINES/~aphelion_defines/bulge.dm`; two calls to `bulge_cut_worn()` in
   `human_update_icons.dm`; `bulge_cached_output_matches()`
   in `greyscale.dm`; `has_bulge()` and `bulge_cover_name()`, which bulge interactions ask, in Nova's
@@ -135,7 +131,7 @@ Give its type a block in `code/garment_families.dm` naming its family, and only 
 `bulge_printed = TRUE` when its own print should carry onto the bulge, `bulge_cloth_layer` when its cloth is not its
 first GAGS layer, `bulge_suit_rule` for a suit that leaves the groin clear. Subtypes inherit their parent's bulge, so
 a new subtype of a listed garment either keeps it or gets a block of its own. A revealing skirt's hem class is chosen
-with the tool's preview (`icons/README.md`). Then update the reviewed manifest (below).
+by eye (`icons/README.md`). Then update the reviewed manifest (below).
 
 Mind the type order: `garment_families.dm` lives in modular_aphelion, which compiles before modular_nova, so its
 blocks declare Nova's garment types before Nova does and move them earlier in BYOND's type order (`typesof()` lists
@@ -148,16 +144,15 @@ Upstream changes to these sheets will conflict with ours; take upstream's change
 
 ### Adding or editing a shape
 
-Up to a family's small_cap, draw it in its sheet under the name the accessors compute (`icons/README.md`), in the
-five kind greys, and run `python lab/bulge/bulge_assets.py verify`, then `python lab/bulge/bulge_assets.py fix` if it reports a
-sheet that is not an 8-bit palette PNG: Dream Maker re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot
-read. A garment look that no family's shapes give is a new family subtype in `code/families.dm`.
+Up to a family's small_cap, draw it in its sheet under the name the accessors compute (`icons/README.md`), in the five
+kind greys, and keep the sheet an 8-bit palette PNG: Dream Maker re-saves sheets as 1-bit or 4-bit palette PNGs, which
+rust-g cannot read. A garment look that no family's shapes give is a new family subtype in `code/families.dm`.
 
 Past small_cap nothing is drawn: a family's shapes there follow from its vars (`top_row`, `hem`, `contained`, `curtain`,
-`long`, `large_digi_forms`) and the penis sprites, with mal's amendments for every penis shape but the human one
+`long`, `large_digi_forms`) and the penis sprites, with the amendments for every penis shape but the human one
 (`bulge_derive_large()`), and its loincloth drapes and cuts from its loincloth vars and its own sprite. A change to
-those vars changes bulges on screen: `bulge_derivation` then fails against its frozen record, and the full corpus shows
-what changed. Once mal has approved it, record the new value the test prints in `BULGE_DERIVATION_RECORD`
+those vars changes bulges on screen: `bulge_derivation` then fails against its frozen record. Once the change is
+approved, record the new value the test prints in `BULGE_DERIVATION_RECORD`
 (`code/modules/unit_tests/~nova/bulge_templates.dm`).
 
 ### Adding a penis shape
@@ -179,8 +174,8 @@ icon state (and `_untoned` ones where its untoned sprites draw differently), han
 (`icons/README.md`).
 
 The merge that adds it fails `bulge_derivation/pin`, `bulge_derivation` and `bulge_template_identities`, whose frozen
-records count every penis shape. Review its bulges with the full corpus; once mal has approved them, record the new
-values the tests print in `BULGE_DERIVATION_INPUTS`, `BULGE_DERIVATION_RECORD` and `BULGE_IDENTITIES_RECORD` in
+records count every penis shape. Review its bulges; once they are approved, record the new values the tests print in
+`BULGE_DERIVATION_INPUTS`, `BULGE_DERIVATION_RECORD` and `BULGE_IDENTITIES_RECORD` in
 `code/modules/unit_tests/~nova/bulge_templates.dm`.
 
 ### When the compiler fails in a file you did not touch
@@ -192,45 +187,31 @@ used), or compile code that fails at run time: here one added name, and later on
 `_species.dm` warn that `basic_holder` was unused and fail at initialisation on `spoken_languages`. The effect does not
 grow with the count; a count that builds cleanly can stop one name later and build again two names later.
 
-So: reuse a name the tree already declares for any new variable (a local named like others elsewhere costs nothing),
-add no `var/static` local you can do without, and read a build's whole warning list, not its count. When a build breaks
-or warns somewhere you did not touch, look at the names your change added before suspecting the code: the lab's
-`N5-closing/scripts/count_identifiers.py` lists them against another tree, and `frag_probe.py` builds a copy to check.
+So: reuse a name the tree already declares for any new variable (a local named like others elsewhere costs nothing), add
+no `var/static` local you can do without, and read a build's whole warning list, not its count. When a build breaks or
+warns somewhere you did not touch, look at the names your change added before suspecting the code.
 
 ### Checks
 
-- `python lab/bulge/bulge_assets.py verify`: every sheet (it prints each one's state count), name and identity, the names
-  past small_cap that are derived, and that every sheet is an 8-bit palette PNG (only the tool checks that). Dream Maker
-  re-saves sheets as 1-bit or 4-bit palette PNGs, which rust-g cannot read: then run `python lab/bulge/bulge_assets.py fix`,
-  which re-encodes them at 8 bits with the same pixels and DMI metadata and prints the proof.
-- The ordinary unit tests:
-  - `bulge_manifest` pins every family's data, every sheet's MD5, and for every garment type with a bulge value what
-    it inherits (family, print, suit rule, cloth layer) and what the renderer reads from its own definition (worn
-    sprite and state, digitigrade sprite, GAGS configs and colours, groin coverage, worn layer, the sprites and GAGS
-    configs it declares for a species' body; a suit's toggled state, offsets, dimensions, alpha and colour; an
-    underclothes accessory's sprite, static colour, layer, GAGS colours, digitigrade state and groin coverage), against
-    `code/modules/unit_tests/~nova/bulge_manifest.txt`. Reviewing a change: below.
-  - `bulge_template_identities` resolves every identity the tool declares through the DM accessors and checks every
-    sheet state it reaches as the tool's `verify` does: four directions, one frame, only kind greys or opaque white,
-    nothing facing north. Past small_cap every identity must derive, and the identities resolved, by kind, must be its
-    frozen record (`BULGE_IDENTITIES_RECORD`).
-  - `bulge_derivation` derives every shape past small_cap, the anatomy each leaves bare, and every loincloth drape and
-    cut, and holds them to a frozen record (`BULGE_DERIVATION_RECORD`: the states by kind, the shapes that cover the
-    whole penis, and a digest of every pixel, the mask tiles and the cuts' keep masks included), taken from the sheet
-    states they replaced, which they matched pixel for pixel. `bulge_derivation/pin` pins what they are derived from:
-    the penis and testicle sprites, the loincloths' own sprites and the penis shapes' data. Either failing means bulges
-    past small_cap look different on screen.
-  - `bulge_palette` and `bulge_palette_hash` pin the adaptive palettes: every approved colour (the 4,096-colour grid
-    and the 760 garment colours in `bulge_palette_colours.txt`, in three finishes) is hashed against the approved
-    values. A failure means a change to the arithmetic moved an approved colour; the failing test writes the game's
-    palettes to `data/bulge_palette_lines.txt` to compare.
-  - `bulge_render_corpus/pixels` draws 32 cases of the pixel corpus (adaptive and printed garments, printed ones past
-    size 4 too, the large hearts, every skirt style half and hard, a loincloth reveal as underwear and as a uniform,
-    digitigrade legs, a tall wearer, a suit, blood, a big tentacle, Custom above and below the underwear) and compares
-    a hash of their pixels with the hash of the images the corpus comparator expects.
-  - `bulge_templates`, `bulge_renderer/*`, `portal_test/bulge` and `bulge_cache_retention` test the approved special
-    looks and the renderer's behaviour.
-- The full pixel corpus: see below.
+The unit tests:
+
+- `bulge_manifest` pins every family's data, every sheet's MD5, and for every garment type with a bulge value what it
+  inherits (family, print, suit rule, cloth layer) and what the renderer reads from its own definition (worn sprite
+  and state, digitigrade sprite, GAGS configs and colours, groin coverage, worn layer, the sprites and GAGS configs it
+  declares for a species' body; a suit's toggled state, offsets, dimensions, alpha and colour; an underclothes
+  accessory's sprite, static colour, layer, GAGS colours, digitigrade state and groin coverage), against
+  `code/modules/unit_tests/~nova/bulge_manifest.txt`. Reviewing a change: below.
+- `bulge_template_identities` resolves every identity the families declare through the accessors and checks every
+  sheet state it reaches: four directions, one frame, only kind greys or opaque white, nothing facing north. Past
+  small_cap every identity must derive, and the identities resolved, by kind, must be its frozen record
+  (`BULGE_IDENTITIES_RECORD`).
+- `bulge_derivation` derives every shape past small_cap, the anatomy each leaves bare, and every loincloth drape and
+  cut, and holds them to a frozen record (`BULGE_DERIVATION_RECORD`: the states by kind, the shapes that cover the
+  whole penis, and a digest of every pixel, the mask tiles and the cuts' keep masks included), taken from the sheet
+  states they replaced, which they matched pixel for pixel. `bulge_derivation/pin` pins what they are derived from:
+  the penis and testicle sprites, the loincloths' own sprites and the penis shapes' data. Either failing means bulges
+  past small_cap look different on screen.
+- `bulge_renderer/*` and `portal_test/bulge` test the renderer's behaviour.
 
 #### Reviewing a manifest change
 
@@ -239,32 +220,6 @@ found to `data/bulge_manifest.txt`. Before copying that over the committed file:
 
 1. Diff the two. On a garment line, a new worn file or state is a re-sprite, `groin=0` means the garment no longer
    covers the groin (no bulge), a new `gags=` or `colours=` changes the colour the cloth is sampled from.
-2. Look at it. `python lab/bulge/bulge_assets.py find <garment type>` prints the garment's family, `find <family type>` that
-   family's `shapes=` name, and `find <that name>` the sheet states and derived templates named after it; then
-   `python lab/bulge/bulge_assets.py preview <state> --output <folder> --garment <worn file>:<worn state>` draws a shape
-   over the garment's sprite as the server derives it (printed, cut, clearance). Preview it over the old sprite
-   (`git show`) and the new, side by side. For a family or sheet line, preview the states it changes.
-3. Run `bulge_render_corpus/pixels`, and the full corpus for anything beyond a garment or two.
-4. Then copy the file over and commit it with the change, saying what was reviewed.
-
-#### The full pixel corpus
-
-`bulge_render_corpus` draws every approved case (13,395 rows) when the server runs with
-`-params bulge_render_corpus=full` and the case manifest in `data/bulge_render_corpus/manifest.json`, and writes what
-the game draws to `data/bulge_render_corpus/out/`. The tables its expectation was built from are gone, so the
-expectation and its comparator live in the lab run folder
-`Meridian-Rift-BYOND-Lab/runs/bulge-system-20260929/continuation/fable-orchestration-20261002/`:
-
-- `N4a-renderer/data/corpus/expect.json`: the frozen expectation;
-- `N12-heart-patches-rest/data/corpus/`: the case manifest, the rows added since (`expect-extra.json`) and the
-  rows whose look changed on purpose (`intended.json`: Custom above the underwear, blood on a cut cover, the large
-  heart boxers over the bare penis, over a penis shape in the patch drawn for its profile, and over a tentacle in
-  the size 4 shape and its print);
-- `N12-heart-patches-rest/harness/`: `make_copy.py <commit> <copy>` extracts a `git archive` of a commit into the
-  lab, and `corpus_proof.py <copy> <commit> <label>` builds that copy focused on the corpus, runs it (one
-  DreamDaemon, after the machine's memory guard), and compares every case pixel for pixel with `s10_compare.py`,
-  which reads the sheets and the tool from this worktree, at that commit.
-
-### Credits:
-
-Shapes, prints and palettes: the bulge preview pipeline, approved by mal.
+2. Look at it in game: dress a character in the garment, soft, half hard and hard, and compare its bulge with the
+   old sprite's. For a family or sheet line, check the looks it changes.
+3. Then copy the file over and commit it with the change, saying what was reviewed.

@@ -1318,9 +1318,3 @@ are also required.
 | `tgui/packages/tgui/layouts/Window.tsx`, `Window.test.tsx` | Current-event Alt handling and respecting gestures already claimed by a control. |
 | `tgui/packages/tgui/styles/interfaces/CustomSpriteEditor.scss`, `tgui/packages/tgui/styles/main.scss` | Custom editor styling and its stylesheet registration. |
 | `icons/blanks/32x32.dmi`, `icons/mob/leg_masks.dmi` | Existing blank frames and leg-layer masks. Hair/body/marking assets are resolved from the character's existing accessories and bodyparts. |
-
-### Credits:
-
-- ImogenOC.
-- Built on the existing /tg/station SpriteEditor, painting canvas, NanoPaint and
-  unit-test/screenshot infrastructure, plus Nova's character customization.

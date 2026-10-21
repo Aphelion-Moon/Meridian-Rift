@@ -31,7 +31,7 @@ GAME_VERB(/mob/living, reflexes_verb, "Toggle Reflexes", "IC")
 
 GAME_VERB_DESC(/mob/living/carbon/human, safeword, "Remove Lewd Items", "Removes any and all lewd items from you.", "OOC")
 	log_message("[key_name(src)] used the Remove Lewd Items verb.", LOG_ATTACK)
-	for(var/slot in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS, ORGAN_SLOT_NIPPLES))
+	for(var/slot in list(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS, ORGAN_SLOT_NIPPLES, BODY_ZONE_PRECISE_MOUTH))
 		var/obj/item/lewd_item = drop_lewd_slot_item(slot)
 		if(lewd_item)
 			log_message("[lewd_item] was removed from [key_name(src)].", LOG_ATTACK)

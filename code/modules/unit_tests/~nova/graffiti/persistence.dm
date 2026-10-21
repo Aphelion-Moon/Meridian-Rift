@@ -16,7 +16,6 @@
  */
 /proc/graffiti_registry_test_end()
 	SSgraffiti.wipe_for_test()
-	SSgraffiti.display_budget = GRAFFITI_DISPLAY_BUDGET
 	SSgraffiti.placement_cap = GRAFFITI_MAP_PLACEMENT_CAP
 	SSgraffiti.art_byte_budget = GRAFFITI_MAP_ART_BYTES
 	SSgraffiti.sheet_root = GRAFFITI_SHEET_DIRECTORY
@@ -269,34 +268,6 @@
 	return ..()
 
 /**
- * Names and descriptions live in the library only: a version 1 map file, whose placements still carry them and whose
- * anchors record `wall`, loads, and the file saved after it is the current version, keeps neither, and records each
- * anchor's `surface`.
- */
-/datum/unit_test/graffiti_placements_drop_names/Run()
-	var/path = "data/graffiti_test/names.json"
-	graffiti_registry_test_begin(path)
-	var/list/art = graffiti_test_art(1)
-	var/hash = graffiti_art_hash(art)
-	var/list/arts = list()
-	arts[hash] = art
-	var/list/entry = list("anchor" = list("kind" = GRAFFITI_ANCHOR_STATION, "x" = 1, "y" = 1, "z" = 1, "area" = "/area/graffiti_test_nowhere", "wall" = 1), "art" = hash, "ckey" = "graffiti_test", "who" = "Jane Doe", "name" = "x", "desc" = "y", "at" = "1792800000", "pid" = "graffiti_test-named", "half" = 0, "miss" = 0)
-	rustg_file_write(json_encode(list("version" = 1, "art" = arts, "placements" = list(entry), "seen" = list())), path)
-	SSgraffiti.load_file(path)
-	TEST_ASSERT_EQUAL(length(SSgraffiti.placements), 1, "A placement that still has a name and description must load.")
-	SSgraffiti.save_now(TRUE)
-	var/text = rustg_file_read(path)
-	TEST_ASSERT(!findtext(text, "\"name\"") && !findtext(text, "\"desc\""), "The saved map file must keep no name or description: [text]")
-	TEST_ASSERT(findtext(text, "\"version\":[GRAFFITI_MAP_VERSION],") && !findtext(text, "\"wall\":") && findtext(text, "\"surface\":\"wall\""), "The saved map file must be version [GRAFFITI_MAP_VERSION] and record each anchor's `surface` rather than `wall`: [text]")
-
-/**
- * Puts the registry back and deletes the test's files.
- */
-/datum/unit_test/graffiti_placements_drop_names/Destroy()
-	graffiti_registry_test_end()
-	return ..()
-
-/**
  * Washing graffiti off a wall, or turning the wall into plating, removes the graffiti for good, from the saved file too.
  * A file changed outside the server between two saves is kept as the backup, and the next save still writes the registry.
  */
@@ -445,50 +416,6 @@
  * Puts the registry back and deletes the test's files.
  */
 /datum/unit_test/graffiti_registry_halves/Destroy()
-	graffiti_registry_test_end()
-	return ..()
-
-/**
- * Within a display budget of one, the art of the owner seen most recently shows and the other owner's stays dormant,
- * and a connected owner's art shows above a newer piece by an owner seen since.
- */
-/datum/unit_test/graffiti_registry_rank/Run()
-	var/path = "data/graffiti_test/rank.json"
-	graffiti_registry_test_begin(path)
-	var/list/turfs = graffiti_test_walls(2)
-	TEST_ASSERT_EQUAL(length(turfs), 2, "Runtime Station must have two walls side by side between floors.")
-	var/first = SSgraffiti.add_placement(turfs[1], graffiti_test_art(1), "graffiti_recent", "Jane Doe", "graffiti_recent-1")
-	var/second = SSgraffiti.add_placement(turfs[2], graffiti_test_art(2), "graffiti_absent", "John Doe", "graffiti_absent-1")
-	TEST_ASSERT((first in SSgraffiti.placements) && (second in SSgraffiti.placements), "Both placements must be added.")
-	SSgraffiti.seen["graffiti_recent"] = "1792886400"
-	SSgraffiti.seen["graffiti_absent"] = "1792800000"
-	SSgraffiti.save_now()
-	SSgraffiti.wipe_for_test()
-	SSgraffiti.display_budget = 1
-	SSgraffiti.load_file(path)
-	SSgraffiti.place_all()
-	TEST_ASSERT(graffiti_test_placement("graffiti_recent-1", SSgraffiti.placements) && !graffiti_test_placement("graffiti_recent-1", SSgraffiti.dormant) && graffiti_tile_decal(turfs[1]), "The art of the owner seen a day later must show.")
-	TEST_ASSERT(graffiti_test_placement("graffiti_absent-1", SSgraffiti.dormant) && !graffiti_tile_decal(turfs[2]), "The other owner's art must stay dormant within a budget of one.")
-	// Written as a map file, so the connected owner's piece can be the older one, and its owner the one seen longer ago.
-	var/datum/client_interface/online = allocate(/datum/client_interface)
-	var/list/arts = list()
-	var/list/entries = list()
-	for(var/position in 1 to 2)
-		var/list/art = graffiti_test_art(position + 2)
-		arts[graffiti_art_hash(art)] = art
-		entries += list(list("anchor" = graffiti_anchor_for(turfs[position]), "art" = graffiti_art_hash(art), "ckey" = position == 1 ? online.ckey : "graffiti_offline", "who" = "Jane Doe", "at" = position == 1 ? "1792800000" : "1792886400", "pid" = "graffiti_test-[position]", "half" = 0, "miss" = 0))
-	var/list/times = list("graffiti_offline" = "1792886400")
-	times[online.ckey] = "1792800000"
-	rustg_file_write(json_encode(list("version" = GRAFFITI_MAP_VERSION, "art" = arts, "placements" = entries, "seen" = times)), path)
-	SSgraffiti.wipe_for_test()
-	SSgraffiti.load_file(path)
-	SSgraffiti.place_all()
-	TEST_ASSERT(graffiti_test_placement("graffiti_test-1", SSgraffiti.placements) && !graffiti_test_placement("graffiti_test-1", SSgraffiti.dormant) && graffiti_test_placement("graffiti_test-2", SSgraffiti.dormant), "Within a budget of one, a connected owner's art must show above a newer piece by an owner seen since.")
-
-/**
- * Puts the registry back and deletes the test's files.
- */
-/datum/unit_test/graffiti_registry_rank/Destroy()
 	graffiti_registry_test_end()
 	return ..()
 

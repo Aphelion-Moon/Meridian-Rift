@@ -3,13 +3,13 @@
 /obj/item/clothing/under/misc/latex_halfcatsuit
 	name = "latex half-catsuit"
 	desc = "A shiny uniform that fits snugly to the skin. The legs have been cut off this one."
-	icon = 'modular_aphelion/modules/adult_items/icons/latex_halfcatsuit.dmi'
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/latex_halfcatsuit.dmi'
 	icon_state = "latex_halfcatsuit_female"
-	worn_icon = 'modular_aphelion/modules/adult_items/icons/latex_halfcatsuit_worn.dmi'
-	worn_icon_digi = 'modular_aphelion/modules/adult_items/icons/latex_halfcatsuit_worn_digi.dmi'
-	worn_icon_vox = 'modular_aphelion/modules/adult_items/icons/latex_halfcatsuit_worn_vox.dmi'
-	worn_icon_better_vox = 'modular_aphelion/modules/adult_items/icons/latex_halfcatsuit_worn_better_vox.dmi'
-	worn_icon_teshari = 'modular_aphelion/modules/adult_items/icons/latex_halfcatsuit_worn_teshari.dmi'
+	worn_icon = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/latex_halfcatsuit_worn.dmi'
+	worn_icon_digi = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/latex_halfcatsuit_worn_digi.dmi'
+	worn_icon_vox = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/latex_halfcatsuit_worn_vox.dmi'
+	worn_icon_better_vox = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/latex_halfcatsuit_worn_better_vox.dmi'
+	worn_icon_teshari = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lewd_uniform/latex_halfcatsuit_worn_teshari.dmi'
 	inhand_icon_state = "latex_catsuit"
 	lefthand_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_inhands/lewd_inhand_left.dmi'
 	righthand_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_inhands/lewd_inhand_right.dmi'

@@ -9,10 +9,10 @@
 	cerulean_flipper_palette = FLIPPERS
 	variants = list(
 		"lustwish" = list(
-			MOD_ICON_OVERRIDE = 'modular_aphelion/modules/adult_items/icons/lustwish_mod.dmi',
-			MOD_WORN_ICON_OVERRIDE = 'modular_aphelion/modules/adult_items/icons/lustwish_mod_worn.dmi',
-			MOD_DIGITIGRADE_ICON_OVERRIDE = 'modular_aphelion/modules/adult_items/icons/lustwish_mod_worn_mutant.dmi',
-			MOD_SNOUT_ICON_OVERRIDE = 'modular_aphelion/modules/adult_items/icons/lustwish_mod_worn_mutant.dmi',
+			MOD_ICON_OVERRIDE = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lustwish_mod.dmi',
+			MOD_WORN_ICON_OVERRIDE = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lustwish_mod_worn.dmi',
+			MOD_DIGITIGRADE_ICON_OVERRIDE = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lustwish_mod_worn_mutant.dmi',
+			MOD_SNOUT_ICON_OVERRIDE = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lustwish_mod_worn_mutant.dmi',
 			/obj/item/clothing/head/mod = list(
 				UNSEALED_LAYER = NECK_LAYER,
 				UNSEALED_CLOTHING = SNUG_FIT,
@@ -47,15 +47,15 @@
 	)
 
 /obj/item/mod/construction/plating/lustwish
-	icon = 'modular_aphelion/modules/adult_items/icons/lustwish_mod.dmi'
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lustwish_mod.dmi'
 	icon_state = "lustwish-plating"
 	theme = /datum/mod_theme/standard/lustwish
 
 /// LustWish's MOD modules.
 /obj/item/mod/module/lustwish
 	abstract_type = /obj/item/mod/module/lustwish
-	icon = 'modular_aphelion/modules/adult_items/icons/lustwish_mod.dmi'
-	overlay_icon_file = 'modular_aphelion/modules/adult_items/icons/lustwish_mod_worn.dmi'
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lustwish_mod.dmi'
+	overlay_icon_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_clothing/lustwish_mod_worn.dmi'
 
 /// Hypnotizes the wearer with its phrase like the hypnotic goggles: while on, or whenever the helmet is sealed once its
 /// control wire is cut. Draws a spiral on the lustwish helmet.
@@ -183,7 +183,7 @@
 /obj/item/mod/remote
 	name = "\improper MOD remote"
 	desc = "A remote that allows control of a modsuit once its paired module is inserted."
-	icon = 'modular_aphelion/modules/adult_items/icons/lustwish_mod.dmi'
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_clothing/lustwish_mod.dmi'
 	icon_state = "remote_item"
 	inhand_icon_state = "electronic"
 	lefthand_file = 'icons/mob/inhands/items/devices_lefthand.dmi'

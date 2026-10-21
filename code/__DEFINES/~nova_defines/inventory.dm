@@ -3,3 +3,4 @@
 #define LEWD_SLOT_PENIS (1<<1)
 #define LEWD_SLOT_ANUS (1<<2)
 #define LEWD_SLOT_NIPPLES (1<<3)
+#define LEWD_SLOT_MOUTH (1<<4)

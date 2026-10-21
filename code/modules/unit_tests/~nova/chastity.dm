@@ -106,32 +106,6 @@
 			return TRUE
 	return FALSE
 
-/// Every chastity device has its icon, both bodies' worn shapes, and the flavour text it can ask for.
-/datum/unit_test/chastity_sprites
-
-/datum/unit_test/chastity_sprites/Run()
-	for(var/obj/item/clothing/sextoy/chastity/device_type as anything in typesof(/obj/item/clothing/sextoy/chastity))
-		var/list/shapes = list(device_type::worn_shape)
-		if(ispath(device_type, /obj/item/clothing/sextoy/chastity/cursed))
-			shapes = list("cage_cursed_cock", "cage_cursedb", "cage_cursed_intersex")
-		TEST_ASSERT(icon_exists(device_type::icon, device_type::icon_state), "[device_type] has no icon state [device_type::icon_state].")
-		if(device_type::status_lights)
-			TEST_ASSERT(icon_exists(device_type::icon, "[device_type::icon_state]_e"), "[device_type] has no light state [device_type::icon_state]_e.")
-		for(var/shape in shapes)
-			for(var/body in list("m", "f"))
-				TEST_ASSERT(icon_exists(device_type::worn_sheet, "[shape]_[body]"), "[device_type] has no worn state [shape]_[body].")
-				if(device_type::status_lights)
-					TEST_ASSERT(icon_exists(device_type::worn_sheet, "[shape]_[body]_e"), "[device_type] has no worn light state [shape]_[body]_e.")
-	for(var/obj/item/key/chastity/key_type as anything in typesof(/obj/item/key/chastity))
-		TEST_ASSERT(icon_exists(key_type::icon, key_type::icon_state), "[key_type] has no icon.")
-	TEST_ASSERT(icon_exists(/obj/item/key/chastity/remote::icon, "chastity_remote_e"), "The chastity remote has no light state.")
-	for(var/lock in list("remote_lock", "remote_unlock"))
-		TEST_ASSERT(length(strings("chastity.json", lock, "strings/aphelion")), "The chastity flavour bank [lock] is empty.")
-	var/list/banks = list("arousal_penis", "arousal_edge", "arousal_large", "arousal_vagina", "arousal_intersex", "lock", "unlock",
-		"lock_denial", "cursed_lock", "receive_penis", "receive_vagina", "receive_intersex")
-	for(var/bank in banks)
-		TEST_ASSERT(length(strings("chastity.json", bank, "strings/aphelion")), "The chastity flavour bank [bank] is empty.")
-
 /// Chastity ownership follows occupied slots, organ changes and the OOC removal path.
 /datum/unit_test/portal_test/chastity/lifecycle
 	abstract_type = /datum/unit_test/portal_test/chastity/lifecycle

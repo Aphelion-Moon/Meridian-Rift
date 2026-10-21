@@ -56,7 +56,7 @@
 	/// shows, below the hem when half hard and at the tip facing east and west when hard.
 	var/contained = NONE
 	/// Sizes past small_cap at which the hard bulge of the human penis hangs a curtain of cloth from the tip down to the
-	/// hem, facing east and west (every other penis shape takes mal's amendments there: bulge_derive_large()).
+	/// hem, facing east and west (every other penis shape is amended there instead: bulge_derive_large()).
 	var/curtain = NONE
 	/// Long legs: past small_cap the cloth holds the whole penis below top_row and never bares the head of a half-hard
 	/// one, which it presses flat along the thigh, facing east and west.
@@ -101,7 +101,7 @@
 	contained = BULGE_SIZE_BIT(5)
 	curtain = BULGE_SIZE_BIT(5)
 
-/// Loose boxers past size 4 are drawn with the boxers' shapes; a printed pair keeps its print on them (mal, 2026-10-08).
+/// Loose boxers past size 4 are drawn with the boxers' shapes; a printed pair keeps its print on them.
 /datum/bulge_family/loose_boxers
 	half_cap = 8
 	hard_cap = 8
@@ -109,11 +109,11 @@
 	shapes = "loose_boxers"
 	large_shapes_of = /datum/bulge_family/boxers
 
-/// The heart boxers' print past size 4 is in large hearts made by the print rule and approved by mal.
+/// The heart boxers' print past size 4 is in large hearts made by the print rule.
 /datum/bulge_family/loose_boxers/hearts
 	printed_patches = "heart_boxers"
 
-/// A printed pair of briefs keeps its print past size 4 (mal, 2026-10-08).
+/// A printed pair of briefs keeps its print past size 4.
 /datum/bulge_family/briefs
 	half_cap = 8
 	hard_cap = 8
@@ -126,7 +126,7 @@
 	shapes = "jockstrap"
 
 /// Jeans when hard at size 5 keep one shape for every penis (the approved size 5 trial); past it they follow it. A
-/// printed pair keeps its print past size 4, on that shape too (mal, 2026-10-08).
+/// printed pair keeps its print past size 4, on that shape too.
 /datum/bulge_family/jeans
 	finish = BULGE_FINISH_DENIM
 	hard_cap = 8
@@ -160,8 +160,7 @@
 	hem = 25
 	contained = BULGE_SIZE_BIT(5)
 
-/// Track pants past size 4 are drawn with the long johns' shapes; a printed pair keeps its print on them (mal,
-/// 2026-10-08).
+/// Track pants past size 4 are drawn with the long johns' shapes; a printed pair keeps its print on them.
 /datum/bulge_family/track_pants
 	half_cap = 8
 	hard_cap = 8
@@ -214,8 +213,8 @@
 	drop = 5
 
 /**
- * Skirts, dresses, robes and kilts: cloth that hangs free over the crotch. The style is mal's pick for each garment
- * from the skirt review: a short or a long hem, and how the cloth meets the bulge. Every reviewed skirt is printed
+ * Skirts, dresses, robes and kilts: cloth that hangs free over the crotch. Each garment's style was picked in the skirt
+ * review: a short or a long hem, and how the cloth meets the bulge. Every reviewed skirt is printed
  * from its own sprite. Skirt shapes never depend on the penis shape.
  */
 /datum/bulge_family/skirt

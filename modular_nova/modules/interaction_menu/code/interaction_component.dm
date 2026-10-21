@@ -228,6 +228,8 @@
 			if(self.has_anus())
 				parts += list(generate_strip_entry(ORGAN_SLOT_ANUS, self, user, self.anus))
 			parts += list(generate_strip_entry(ORGAN_SLOT_NIPPLES, self, user, self.nipples))
+			if(self.get_bodypart(BODY_ZONE_HEAD))
+				parts += list(generate_strip_entry(BODY_ZONE_PRECISE_MOUTH, self, user, self.mouth))
 
 	data["lewd_slots"] = parts
 
@@ -340,7 +342,7 @@
 	if(params["item_slot"])
 		// This code should be easy enough to follow... I hope.
 		var/item_index = params["item_slot"]
-		if(!(item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_ANUS, ORGAN_SLOT_NIPPLES)))
+		if(!(item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_PENIS, ORGAN_SLOT_ANUS, ORGAN_SLOT_NIPPLES, BODY_ZONE_PRECISE_MOUTH)))
 			return
 		var/mob/living/carbon/human/source = actor
 
@@ -362,7 +364,7 @@
 			var/removing_existing = !isnull(existing_item)
 			var/datum/weakref/existing_item_ref = existing_item ? WEAKREF(existing_item) : null
 			var/datum/weakref/new_item_ref = new_item ? WEAKREF(new_item) : null
-			var/internal = (item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS))
+			var/internal = (item_index in list(ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS, BODY_ZONE_PRECISE_MOUTH))
 			var/insert_or_attach = internal ? "insert" : "attach"
 			var/into_or_onto = internal ? "into" : "onto"
 
@@ -430,6 +432,9 @@
 
 			return chest_exposed
 
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return target.get_bodypart(BODY_ZONE_HEAD) && !target.is_mouth_covered()
+
 		if(ORGAN_SLOT_PENIS, ORGAN_SLOT_VAGINA, ORGAN_SLOT_ANUS)
 			// A genital a worn device closes off takes no other toy, though the device itself can come out.
 			var/obj/item/organ/genital/genital = target.get_organ_slot(slot_index)
@@ -457,6 +462,8 @@
 			return item.lewd_slot_flags & LEWD_SLOT_ANUS
 		if(ORGAN_SLOT_NIPPLES)
 			return item.lewd_slot_flags & LEWD_SLOT_NIPPLES
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return item.lewd_slot_flags & LEWD_SLOT_MOUTH
 		else
 			return FALSE
 

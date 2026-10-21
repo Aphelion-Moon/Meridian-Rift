@@ -115,12 +115,12 @@
 	return list(list(red, green, blue), light, brightest, shade, deepest)
 
 /**
- * The palettes this float32 port computes one off in a channel from the approved values (the preview pipeline's
- * bulge_v4.adaptive() in float64), with the approved palette to use instead: 71 channels in 38 (colour, finish)
- * pairs, all where float64 lands on the other side of a half (#afafaf's shade is exactly 136.5). Found by sweeping
- * every colour the approved palettes were made for, the 4,096-colour grid of multiples of 17 and 760 garment
- * colours, natively against them; every other one of their 218,520 channels the float32 computation gives exactly.
- * A change to the arithmetic above needs that sweep again. Null when the computation stands.
+ * The palettes this float32 port computes one off in a channel from the approved values (computed in float64), with the
+ * approved palette to use instead: 71 channels in 38 (colour, finish) pairs, all where float64 lands on the other side
+ * of a half (#afafaf's shade is exactly 136.5). Found by sweeping every colour the approved palettes were made for, the
+ * 4,096-colour grid of multiples of 17 and 760 garment colours, natively against them; every other one of their 218,520
+ * channels the float32 computation gives exactly. A change to the arithmetic above needs that sweep again. Null when
+ * the computation stands.
  */
 /proc/bulge_palette_exception(red, green, blue, finish)
 	switch(red * 65536 + green * 256 + blue)

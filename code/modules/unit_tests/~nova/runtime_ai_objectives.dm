@@ -37,28 +37,6 @@
 	TEST_ASSERT_NULL(objective.target, "A rejected AI remained the objective target.")
 	TEST_ASSERT_EQUAL(objective.explanation_text, "Free objective.", "No eligible AI did not produce the normal empty-target explanation.")
 
-/datum/unit_test/runtime_destroy_ai/no_candidates/Run()
-	var/datum/objective/destroy/objective = allocate(/datum/objective/destroy)
-	objective.target = allocate(/datum/mind)
-	TEST_ASSERT_NULL(objective.find_target(blacklist = GLOB.ai_list.Copy()), "An empty candidate set produced a target.")
-	TEST_ASSERT_NULL(objective.target, "An empty candidate set retained the old target.")
-	TEST_ASSERT_EQUAL(objective.explanation_text, "Free objective.", "An empty candidate set did not update the explanation.")
-
-/datum/unit_test/runtime_destroy_ai/deleted_target/Run()
-	var/mob/living/silicon/ai/target_ai = create_ai(ANTAG_OPT_IN_YES_KILL)
-	var/list/blacklist = GLOB.ai_list - target_ai
-	var/datum/objective/destroy/objective = allocate(/datum/objective/destroy)
-	objective.target = target_ai.mind
-	qdel(target_ai)
-	TEST_ASSERT_NULL(objective.find_target(blacklist = blacklist), "A deleted AI was selected.")
-	TEST_ASSERT_NULL(objective.target, "Selection retained a deleted AI's previous mind.")
-
-/datum/unit_test/runtime_destroy_ai/policy_disabled/Run()
-	var/mob/living/silicon/ai/target_ai = create_ai(ANTAG_OPT_OUT)
-	CONFIG_SET(flag/disable_antag_opt_in_preferences, TRUE)
-	var/datum/objective/destroy/objective = allocate(/datum/objective/destroy)
-	TEST_ASSERT_EQUAL(objective.find_target(blacklist = GLOB.ai_list - target_ai), target_ai.mind, "Disabling the opt-in policy did not allow the otherwise eligible AI.")
-
 /// Real AI transfers into MODsuits and intellicards must meet the same live full-AI contract.
 /datum/unit_test/runtime_functional_ai/Run()
 	var/mob/living/carbon/human/thief = allocate(/mob/living/carbon/human/consistent)

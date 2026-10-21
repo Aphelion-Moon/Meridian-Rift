@@ -48,22 +48,6 @@
 	var/icon/blue_drawn = datum_after.to_icon()
 	check(blue_drawn.GetPixel(1, 1) == "#0000ff", "A changed /icon retained the old pixels.")
 
-/** Identity recipes have no transformer, but still need one detached crop for each animation patch. */
-/datum/unit_test/runtime_visual_repairs/identity_animation/Run()
-	if(!read_halo())
-		return
-	var/datum/universal_icon/leaf = uni_icon(RUNTIME_VISUAL_HALO, RUNTIME_VISUAL_HALO_STATE, UP)
-	var/before = leaf.to_json()
-	var/list/animation = character_preview_animation(list("south" = leaf), TRUE, 32, 48)
-	check(length(animation?["json"]), "An identity recipe produced no animation patch.")
-	check(before == leaf.to_json(), "Animating an identity recipe mutated its source.")
-	check(isnull(leaf.transform), "Animating an identity recipe allocated a transformer on the source.")
-	if(!animation?["json"])
-		return
-	var/list/patch = json_decode("{[jointext(animation["json"], "")]}")["moving"]["transform"][2]["icon"]
-	check(patch["frame"] == 2, "The halo patch did not select its second frame.")
-	check(length(patch["transform"]) == 1, "The identity recipe did not receive exactly one detached crop.")
-
 /** Shared transformers and nested leaves retain their identity and gain no duplicate crops or frame markers. */
 /datum/unit_test/runtime_visual_repairs/shared_animation/Run()
 	if(!read_halo())

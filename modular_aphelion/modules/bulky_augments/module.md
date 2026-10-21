@@ -49,11 +49,9 @@ the fourth colour unused.
 Each slot keeps its own colours (`/datum/preferences/var/augment_limb_colors`, slot to colour string), and a slot without
 any draws its finish's `default_colors`.
 
-**Sheets.** `python lab/bulky_augments/gen_augment_sheets.py` writes three sheets from each finish's art sources in
-`lab/bulky_augments/art/<id>/` (see its `README.md`). `lab/` is a git-ignored folder kept out of commits, so a checkout
-without it has only the sheets. Rerun it whenever an art source changes, commit the sheets with it, and never edit the
-sheets by hand. Every state is 32x32 in four directions, and `zone` is one of
-`BULKY_AUGMENT_ZONES`: `r_arm`, `l_arm`, `r_hand`, `l_hand`, `r_leg` or `l_leg`.
+**Sheets.** Three sheets are generated from each finish's art sources; regenerate them whenever an art source changes
+rather than editing them by hand. Every state is 32x32 in four directions, and `zone` is one of `BULKY_AUGMENT_ZONES`:
+`r_arm`, `l_arm`, `r_hand`, `l_hand`, `r_leg` or `l_leg`.
 
 | Sheet | States | What they hold |
 |---|---|---|
@@ -282,12 +280,8 @@ its taur body.
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/regions.ts`: `regionsMask()` leaves out
   another map's pixels, the visible augments a try-on keeps over it
 - `tgui/packages/tgui/interfaces/PreferencesMenu/CharacterPreferences/MarkingsRoom/augments/`: `index.tsx`, `parts.ts`,
-  `brands.ts`, `paint.tsx`, `thumbs.tsx`, `tried.ts`, `tryOn.tsx`, `brands.test.tsx`, `paint.test.tsx`, `picker.test.tsx`,
-  `stage.test.tsx` and `tryOn.test.tsx`
+  `brands.ts`, `paint.tsx`, `thumbs.tsx`, `tried.ts`, `tryOn.tsx`, `brands.test.tsx`, `paint.test.tsx`, `stage.test.tsx` and
+  `tryOn.test.tsx`
 - `tgui/packages/tgui/styles/meridianos/_augments-paint.scss`, loaded by `tgui/packages/tgui/styles/meridianos/_preferences.scss`,
   and `tgui/packages/tgui/styles/meridianos/_augments-stage.scss`
 - `tgstation.dme`
-
-### Credits:
-
-- mal

@@ -1,9 +1,9 @@
 /// Single-use 30u aphrodisiac medipens.
 /obj/item/reagent_containers/hypospray/medipen/lewd
 	abstract_type = /obj/item/reagent_containers/hypospray/medipen/lewd
-	icon = 'modular_aphelion/modules/adult_items/icons/medipens.dmi'
-	lefthand_file = 'modular_aphelion/modules/adult_items/icons/medipens_lefthand.dmi'
-	righthand_file = 'modular_aphelion/modules/adult_items/icons/medipens_righthand.dmi'
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_items/medipens.dmi'
+	lefthand_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_inhands/medipens_lefthand.dmi'
+	righthand_file = 'modular_nova/modules/modular_items/lewd_items/icons/mob/lewd_inhands/medipens_righthand.dmi'
 	volume = 30
 	amount_per_transfer_from_this = 30
 	custom_price = null // LustWish's default prices, like the lewd bottles
@@ -57,7 +57,7 @@
 /obj/item/storage/box/medipens/lewd
 	name = "lewd medipen box"
 	desc = "A box full of medipens meant to cause interesting effects on people. None of them has anything close to a medical use."
-	icon = 'modular_aphelion/modules/adult_items/icons/medipens.dmi'
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_items/medipens.dmi'
 	icon_state = "medbox_lewd"
 	illustration = null
 

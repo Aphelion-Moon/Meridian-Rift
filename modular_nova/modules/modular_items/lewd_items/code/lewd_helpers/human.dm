@@ -11,8 +11,9 @@
 	var/obj/item/anus = null
 	var/obj/item/nipples = null
 	var/obj/item/penis = null
+	var/obj/item/mouth = null
 
-/// Gets the item held in one of our `ORGAN_SLOT_*` lewd slots.
+/// Gets the item held in one of our lewd slots: an `ORGAN_SLOT_*` genital, or BODY_ZONE_PRECISE_MOUTH.
 /mob/living/carbon/human/proc/get_lewd_slot_item(slot)
 	switch(slot)
 		if(ORGAN_SLOT_VAGINA)
@@ -23,8 +24,10 @@
 			return nipples
 		if(ORGAN_SLOT_PENIS)
 			return penis
+		if(BODY_ZONE_PRECISE_MOUTH)
+			return mouth
 
-/// Sets an item in one of our `ORGAN_SLOT_*` lewd slots. Returns FALSE when the slot isn't supported.
+/// Sets an item in one of our lewd slots, as get_lewd_slot_item() names them. Returns FALSE when the slot isn't supported.
 /mob/living/carbon/human/proc/set_lewd_slot_item(slot, obj/item/new_item)
 	switch(slot)
 		if(ORGAN_SLOT_VAGINA)
@@ -35,11 +38,13 @@
 			nipples = new_item
 		if(ORGAN_SLOT_PENIS)
 			penis = new_item
+		if(BODY_ZONE_PRECISE_MOUTH)
+			mouth = new_item
 		else
 			return FALSE
 	return TRUE
 
-/// Drops what one of our `ORGAN_SLOT_*` lewd slots holds at our feet, locked or not, and empties the slot. Returns the
+/// Drops what one of our lewd slots holds at our feet, locked or not, and empties the slot. Returns the
 /// item - the caller redraws the slots.
 /mob/living/carbon/human/proc/drop_lewd_slot_item(slot)
 	var/obj/item/lewd_item = get_lewd_slot_item(slot)

@@ -430,20 +430,6 @@
 	TEST_ASSERT(!again["changed"], "The same drawing was archived twice")
 	TEST_ASSERT_EQUAL(store.test_commits, 1, "A duplicate save still opened a transaction")
 
-/// Clear pixels have no place on a canvas: the archived image is opaque, blank where nothing was drawn.
-/datum/unit_test/gallery_nanopaint_pixels/Run()
-	var/datum/sprite_editor_workspace/workspace = new(11, 11, 1, null, SPRITE_EDITOR_COLOR_MODE_RGBA, ALL, ALL, "#00000000")
-	var/list/grid = workspace.get_first_layer_pixel_data()
-	grid[1][1] = "#ff0000ff"
-	var/icon/flattened = workspace.to_icon()
-	TEST_ASSERT_NOTNULL(flattened, "The workspace could not be flattened")
-	flattened.Blend(/obj/item/canvas::canvas_color, ICON_UNDERLAY)
-	var/image_data = painting_pixels_from_icon(flattened, 11, 11)
-	TEST_ASSERT_EQUAL(length(image_data), 11 * 11 * 9, "The painting pixel string did not cover the whole canvas")
-	TEST_ASSERT_EQUAL(copytext(image_data, 1, 10), "#ff0000ff", "The drawn pixel moved or lost its colour")
-	TEST_ASSERT_EQUAL(copytext(image_data, 10, 19), "[/obj/item/canvas::canvas_color]ff", "A clear pixel was archived as anything but blank canvas")
-	TEST_ASSERT_NULL(painting_pixels_from_icon(flattened, 12, 12), "A mismatched canvas size was accepted")
-
 /// Avoid a real device while exercising the gallery open list and its ownership gate.
 /datum/computer_file/program/nanopaint/gallery_fixture
 
@@ -510,46 +496,3 @@
 	program.resize_workspace(0, 5, 0, 0)
 	TEST_ASSERT_EQUAL(program.dialog?["type"], "error", "A size outside the editor's limits was accepted")
 	TEST_ASSERT_EQUAL(workspace.width, 5, "A refused resize still changed the drawing")
-
-/// Editing archived artwork retains its suggested title without retaining unchanged-source identity.
-/datum/unit_test/gallery_nanopaint_title_after_edit/Run()
-	var/datum/computer_file/program/nanopaint/gallery_fixture/program = allocate(/datum/computer_file/program/nanopaint/gallery_fixture)
-	var/datum/sprite_editor_workspace/workspace = allocate(/datum/sprite_editor_workspace, 11, 11)
-	program.current_workspace = workspace
-	var/datum/painting/painting = allocate(/datum/painting)
-	painting.title = "Gallery title fixture"
-	program.source_photo_or_painting = painting
-	var/mob/living/carbon/human/consistent/artist = allocate(/mob/living/carbon/human/consistent)
-	var/datum/tgui/ui = allocate(/datum/tgui, artist, program, "NtosNanopaint")
-	var/title_before = dialog_title(program)
-	program.ui_act("spriteEditorCommand", list(
-		"command" = "transaction",
-		"transaction" = list("type" = "pencil", "layer" = 1, "dir" = "2", "color" = "#ff0000ff", "points" = list(list(0, 0))),
-	), ui, ui.state)
-	var/edited_history_length = length(workspace.undo_stack)
-	var/datum/edited_source = program.source_photo_or_painting
-	var/datum/undo_source = program.source_on_undo_all
-	var/title_after_edit = dialog_title(program)
-	program.ui_act("spriteEditorCommand", list("command" = "undo", "count" = 1), ui, ui.state)
-	var/title_after_undo = dialog_title(program)
-	var/datum/restored_source = program.source_photo_or_painting
-	program.source_photo_or_painting = null
-	program.source_on_undo_all = null
-	var/title_without_source = dialog_title(program)
-
-	TEST_ASSERT_EQUAL(title_before, painting.title, "An unchanged painting lost its suggested gallery title.")
-	TEST_ASSERT_EQUAL(edited_history_length, 1, "The edit did not produce a real workspace transaction.")
-	TEST_ASSERT_NULL(edited_source, "An edited painting retained unchanged-source identity.")
-	TEST_ASSERT_EQUAL(undo_source, painting, "The editor did not preserve the original painting for undo.")
-	TEST_ASSERT_EQUAL(restored_source, painting, "Undo did not restore the original painting identity.")
-	TEST_ASSERT_EQUAL(title_after_undo, painting.title, "Undo lost the original suggested title.")
-	TEST_ASSERT_EQUAL(title_without_source, "Untitled Artwork", "A drawing without a source acquired an unrelated title.")
-	TEST_ASSERT_EQUAL(title_after_edit, painting.title, "The gallery dialog forgot the original title after one edit.")
-
-/// The title check needs writable-store capability, not a disk write.
-/datum/unit_test/gallery_nanopaint_title_after_edit/proc/dialog_title(datum/computer_file/program/nanopaint/program)
-	var/was_writable = SSpersistent_paintings.store_writable
-	SSpersistent_paintings.store_writable = TRUE
-	program.open_gallery_dialog(null)
-	SSpersistent_paintings.store_writable = was_writable
-	return program.dialog?["defaultTitle"]

@@ -231,10 +231,6 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
   animation's steps.
 - `tgui/packages/tgui/interfaces/common/LightsOff.tsx`, `LightsOff.test.ts`: a picture lit with its lights off from its
   glow, the light it keeps and its bloom, and the lights switch, shared with the custom sprite editors; and their tests.
-- `code/modules/unit_tests/~nova/character_preview_animation.dm`, included from
-  `code/modules/unit_tests/_unit_tests.dm`: a DM unit test that a state's moving box and frames are read as they are,
-  that a look whose states wait to be read is drawn still and drawn again once they have been, that a halo moves in
-  one patch a facing, and how steps come round together, skip frames that look alike and are kept fewer.
 - `code/modules/unit_tests/~nova/character_preview_glow.dm`, included from `code/modules/unit_tests/_unit_tests.dm`: a
   DM unit test that glow is drawn only with the lights off and only for a look that glows, on the drawing's canvas,
   and that a jumpsuit over a glowing marking hides its glow.
@@ -246,7 +242,3 @@ blocks, which aren't tagged again; Nova's modular files are edited directly.
 - `code/modules/unit_tests/~nova/character_preview_rebuilds.dm`, included from `code/modules/unit_tests/_unit_tests.dm`:
   a DM unit test that, with setup open, changes wait for their turn and one rebuild takes them all in.
 - `tgstation.dme`
-
-### Credits:
-
-- mal

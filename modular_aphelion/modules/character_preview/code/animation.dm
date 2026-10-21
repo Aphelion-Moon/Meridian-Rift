@@ -76,16 +76,6 @@ GLOBAL_LIST_EMPTY(character_preview_animations)
 			return
 	tell_reading_waiters()
 
-/// Reads everything waiting to be read at once, then has every preview drawn still meanwhile draw again.
-/datum/controller/subsystem/character_preview/proc/read_animations_now()
-	for(var/key, reading in readings)
-		var/datum/preview_animation_reading/state_reading = reading
-		while(!state_reading.read_next())
-			continue
-		GLOB.character_preview_animations[key] = state_reading.result()
-	readings.Cut()
-	tell_reading_waiters()
-
 /datum/controller/subsystem/character_preview/proc/tell_reading_waiters()
 	if(!length(reading_waiters))
 		return

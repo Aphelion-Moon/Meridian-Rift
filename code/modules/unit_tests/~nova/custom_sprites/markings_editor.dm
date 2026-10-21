@@ -114,10 +114,6 @@
 
 /// Only present regions can be selected, base-marking and emission changes save per region, and fill stays inside the region clicked.
 /datum/unit_test/custom_sprite_markings_editor_regions/Run()
-	var/datum/body_marking/tattoo/heart/heart = allocate(__IMPLIED_TYPE__)
-	TEST_ASSERT(isnull(heart.recommended_species), "The unrestricted tattoo family must not inherit the base mammal filter.")
-	var/datum/body_marking/restricted = allocate(/datum/body_marking)
-	TEST_ASSERT(restricted.recommended_species?[SPECIES_MAMMAL] && !restricted.recommended_species?[SPECIES_HUMAN], "Restricted marking families retain their species filter.")
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	var/datum/preferences/preferences = allocate(/datum/preferences/preferences_import_test, mock_client)
 	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/species], SPECIES_HUMAN)

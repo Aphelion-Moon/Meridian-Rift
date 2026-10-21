@@ -23,8 +23,8 @@
  * without changing the cover or how it is drawn (drawn at all, included) also checks the cover
  * (bulge_cover_unchanged()) and the underwear under it (bulge_restraint()).
  *
- * Underwear always takes precedence over what is worn over it (Pol, 2026-10-14): the look is still drawn on the outermost
- * cover, but underwear under that cover holds the penis in, unless it lets it out itself (bulge_held_size()).
+ * Underwear always takes precedence over what is worn over it: the look is still drawn on the outermost cover, but
+ * underwear under that cover holds the penis in, unless it lets it out itself (bulge_held_size()).
  */
 /datum/bodypart_overlay/mutant/genital/penis/proc/bulge_resolve(mob/living/carbon/human/wearer)
 	var/obj/item/organ/genital/penis/penis = wearer.organs_slot[ORGAN_SLOT_PENIS]
@@ -403,7 +403,7 @@
  * else a uniform over the groin, else a groin-length undershirt, else the underwear. Null for none, or for a suit that
  * hides the bulge. A garment covers the penis only when it is drawn in front of it: for a penis the player has layered
  * at `chosen_layer` (bulge_custom_layer()), a garment drawn behind that layer is passed over, as Nova draws the penis
- * over it (mal, 2026-10-04: Custom "Above underwear" wins over the underwear).
+ * over it (Custom "Above underwear" wins over the underwear).
  */
 /mob/living/carbon/human/proc/bulge_cover(chosen_layer)
 	if(wear_suit && BULGE_IN_FRONT(wear_suit.alternate_worn_layer || SUIT_LAYER, chosen_layer))
@@ -426,9 +426,9 @@
 
 /**
  * The underwear worn under a look's cover (bulge_cover()), which holds the penis in unless it lets it out itself
- * (bulge_held_size()): underwear always takes precedence over what is worn over it (Pol, 2026-10-14). It counts while it
- * is worn and drawn, as get_underwear_overlays() draws it, and in front of the penis as the player layered it at
- * `chosen_layer` (bulge_custom_layer()).
+ * (bulge_held_size()): underwear always takes precedence over what is worn over it. It counts while it is worn and
+ * drawn, as get_underwear_overlays() draws it, and in front of the penis as the player layered it at `chosen_layer`
+ * (bulge_custom_layer()).
  *
  * Returns the underwear, or null for none: no underwear, underwear the body does not draw or the penis is layered above,
  * or underwear that is itself the cover.
@@ -668,8 +668,8 @@
 	return null
 
 /**
- * What the underwear under a look's cover (bulge_restraint()) leaves of the look. Underwear always takes precedence (Pol,
- * 2026-10-14): it holds the penis in, unless its own look would show some of it at this size and arousal, the anatomy
+ * What the underwear under a look's cover (bulge_restraint()) leaves of the look. Underwear always takes precedence: it
+ * holds the penis in, unless its own look would show some of it at this size and arousal, the anatomy
  * its exposed mask leaves bare (briefs from size 5, long johns' tip hard from size 5) or a loincloth's drape when hard.
  * bulge_resolve() and bulge_wanted_cut() both decide by it, so a cover is drawn cut only for a look that shows the penis
  * through it.

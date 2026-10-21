@@ -83,4 +83,4 @@
 
 /// Returns if the item is inside a lewd slot.
 /obj/item/clothing/sextoy/proc/is_inside_lewd_slot(mob/living/carbon/human/target)
-	return (src == target.penis || src == target.vagina || src == target.anus || src == target.nipples)
+	return (src == target.penis || src == target.vagina || src == target.anus || src == target.nipples || src == target.mouth)

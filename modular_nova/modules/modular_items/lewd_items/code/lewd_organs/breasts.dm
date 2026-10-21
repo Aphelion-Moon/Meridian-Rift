@@ -17,12 +17,10 @@
 	var/pecs = FALSE
 	/// Pecs drawn without nipples, which read an interaction's nippleless text where it has some.
 	var/nippleless = FALSE
-	/// Cycles still to come in the chest's current animation.
+	/// Cycles still to come in the pecs' current flex.
 	var/bounce_cycles_left = 0
-	/// Timer for the next cycle.
+	/// Timer for the flex's next cycle.
 	var/bounce_timer
-	/// The current animation is a jiggle, which hops the owner each cycle and needs a bare chest. Pec flexes do neither.
-	var/bounce_hops = FALSE
 
 /datum/bodypart_overlay/mutant/genital/breasts
 	feature_key = ORGAN_SLOT_BREASTS
@@ -196,43 +194,42 @@
 		return "You need to be on your feet."
 	return null
 
-/// Jiggles on the spot for `duration`, in whole cycles. Returns FALSE if the breasts can't right now.
-/obj/item/organ/genital/breasts/proc/start_bounce(duration = BREAST_BOUNCE_DEFAULT_DURATION)
-	if(bounce_blocker())
-		return FALSE
-	play_animation(get_shape().jiggle_icon, duration, hops = TRUE)
-	return TRUE
+/// Draws the chest jiggling, or back on its still sprites, as a bounce (/datum/status_effect/bouncing) asks. A pec flex
+/// playing keeps its own sheet.
+/obj/item/organ/genital/breasts/proc/set_jiggling(jiggling)
+	var/sheet = get_shape()?.jiggle_icon
+	if(!jiggling)
+		if(is_playing(sheet))
+			set_animation_icon(null)
+	else if(!is_bouncing())
+		set_animation_icon(sheet)
 
 /// Flexes the pecs for `duration`: together, or taking turns if `alternating`, and held longer if `slow`.
 /// Returns FALSE if they can't right now.
 /obj/item/organ/genital/breasts/proc/start_flex(alternating = FALSE, slow = FALSE, duration = BREAST_BOUNCE_DEFAULT_DURATION)
 	if(flex_blocker())
 		return FALSE
-	play_animation(flex_sheet(alternating, slow), duration, hops = FALSE)
+	play_animation(flex_sheet(alternating, slow), duration)
 	return TRUE
 
-/// Draws the chest from `sheet` for `duration`, in whole cycles, hopping each cycle if `hops`.
-/obj/item/organ/genital/breasts/proc/play_animation(sheet, duration, hops)
+/// Draws the chest from `sheet` for `duration`, in whole cycles.
+/obj/item/organ/genital/breasts/proc/play_animation(sheet, duration)
 	if(bounce_timer)
 		deltimer(bounce_timer)
-	bounce_hops = hops
 	bounce_cycles_left = max(1, round(min(duration, BREAST_BOUNCE_MAX_DURATION) / BREAST_BOUNCE_CYCLE, 1))
 	set_animation_icon(sheet)
 	bounce_cycle()
 
-/// One cycle (two hops for a jiggle), then the next while there's time left and nothing stops it.
+/// One cycle of the flex, then the next while there's time left and nothing stops it.
 /obj/item/organ/genital/breasts/proc/bounce_cycle()
 	bounce_timer = null
-	if(bounce_cycles_left <= 0 || (bounce_hops ? bounce_blocker() : flex_blocker()))
+	if(bounce_cycles_left <= 0 || flex_blocker())
 		stop_bounce()
 		return
 	bounce_cycles_left--
-	if(bounce_hops)
-		animate(owner, pixel_z = BREAST_BOUNCE_HOP_HEIGHT, time = BREAST_BOUNCE_CYCLE / 4, easing = SINE_EASING | EASE_OUT, loop = 2, flags = ANIMATION_RELATIVE | ANIMATION_PARALLEL)
-		animate(pixel_z = -BREAST_BOUNCE_HOP_HEIGHT, time = BREAST_BOUNCE_CYCLE / 4, easing = SINE_EASING | EASE_IN, flags = ANIMATION_RELATIVE)
 	bounce_timer = addtimer(CALLBACK(src, PROC_REF(bounce_cycle)), BREAST_BOUNCE_CYCLE, TIMER_STOPPABLE)
 
-/// Settles the chest back onto its still sprites.
+/// Ends a pec flex, or any animation, settling the chest back onto its still sprites.
 /obj/item/organ/genital/breasts/proc/stop_bounce()
 	bounce_cycles_left = 0
 	if(bounce_timer)

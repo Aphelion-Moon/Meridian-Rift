@@ -1,15 +1,14 @@
 /**
- * Native ownership proof for H1. Requires the H1 production candidate.
+ * Masked leg icons own their dimensions: the table worn_emissives publishes is read back for every masked leg.
  * The three globals are replaced only for this test and restored in Destroy(), including an assertion's early return.
- * No Python ownership model substitutes for these native /icon, /image, cache and refcount operations.
  */
-/datum/unit_test/bulge_perf_h1_owned_dimensions
+/datum/unit_test/bulge_owned_dimensions
 	var/list/saved_owner_cache
 	var/alist/saved_dimensions
 	var/alist/saved_references
 	var/isolated_globals = FALSE
 
-/datum/unit_test/bulge_perf_h1_owned_dimensions/Destroy()
+/datum/unit_test/bulge_owned_dimensions/Destroy()
 	if(isolated_globals)
 		// Restore the exact old containers; test icons/lists then lose their isolated global roots.
 		GLOB.masked_leg_icons_cache = saved_owner_cache
@@ -21,12 +20,12 @@
 		isolated_globals = FALSE
 	return ..()
 
-/datum/unit_test/bulge_perf_h1_owned_dimensions/proc/sized_icon(width, height)
+/datum/unit_test/bulge_owned_dimensions/proc/sized_icon(width, height)
 	var/icon/result = icon('icons/blanks/32x32.dmi', "nothing")
 	result.Scale(width, height)
 	return result
 
-/datum/unit_test/bulge_perf_h1_owned_dimensions/proc/check_dimensions(icon/owned_icon, width, height, context)
+/datum/unit_test/bulge_owned_dimensions/proc/check_dimensions(icon/owned_icon, width, height, context)
 	var/list/dimensions = GLOB.owned_masked_leg_icon_dimensions[owned_icon]
 	if(isnull(dimensions))
 		TEST_FAIL("[context]: no ownership-scoped dimensions for the exact native icon key")
@@ -36,7 +35,7 @@
 		return FALSE
 	return TRUE
 
-/datum/unit_test/bulge_perf_h1_owned_dimensions/Run()
+/datum/unit_test/bulge_owned_dimensions/Run()
 	saved_owner_cache = GLOB.masked_leg_icons_cache
 	saved_dimensions = GLOB.owned_masked_leg_icon_dimensions
 	saved_references = GLOB.owned_masked_leg_icon_references
@@ -83,7 +82,7 @@
 	TEST_ASSERT_EQUAL(length(GLOB.owned_masked_leg_icon_dimensions), equivalent_file == first_file ? 5 : 6, "Physical aliases are bounded by two per distinct original")
 	if(equivalent_file == first_file)
 		TEST_ASSERT_EQUAL(GLOB.owned_masked_leg_icon_dimensions[equivalent_original], first_dimensions, "Native shared file reuses its logical dimensions row")
-	world.log << "H1 owned dimensions: equivalent originals share a native file=[equivalent_file == first_file]"
+	world.log << "Owned dimensions: equivalent originals share a native file=[equivalent_file == first_file]"
 	set_owned_masked_leg_icons("equivalent", null)
 	TEST_ASSERT_NULL(GLOB.owned_masked_leg_icon_dimensions[equivalent_original], "Eviction removes only the independent original key")
 	TEST_ASSERT_NULL(GLOB.owned_masked_leg_icon_references[equivalent_original], "Eviction removes independent original references")
@@ -137,7 +136,7 @@
 	TEST_ASSERT_EQUAL(length(GLOB.owned_masked_leg_icon_dimensions), 0, "Clear releases every distinct metadata entry")
 	TEST_ASSERT_EQUAL(length(GLOB.owned_masked_leg_icon_references), 0, "Clear releases aliased slot references")
 
-	// Critical consumer boundary: an actual leg returns images, whose .icon readbacks must hit H1.
+	// Critical consumer boundary: an actual leg returns images, whose .icon readbacks must hit the owned dimensions.
 	// One existing leg atom type is owned by allocate(); no atom subtype or extra human is introduced.
 	var/obj/item/bodypart/leg/left/leg = allocate(__IMPLIED_TYPE__)
 	TEST_ASSERT_NOTNULL(leg, "The actual leg producer fixture must exist")
@@ -156,7 +155,7 @@
 	for(var/index in 1 to 2)
 		var/image/appearance_entry = drawn[index]
 		var/icon/readback = appearance_entry.icon
-		TEST_ASSERT_NOTNULL(GLOB.owned_masked_leg_icon_dimensions[readback], "Returned appearance.icon must hit the actual H1 lookup key")
+		TEST_ASSERT_NOTNULL(GLOB.owned_masked_leg_icon_dimensions[readback], "Returned appearance.icon must hit the actual owned-dimensions key")
 		TEST_ASSERT(isfile(readback), "Real producer readback is the native renderer resource")
 		TEST_ASSERT(!isfile(producer_icons[index]), "Producer owner retains the original dynamic icon")
 		TEST_ASSERT_EQUAL(GLOB.owned_masked_leg_icon_dimensions[readback], GLOB.owned_masked_leg_icon_dimensions[producer_icons[index]], "Producer original and file share exact metadata")
@@ -177,7 +176,7 @@
 		TEST_ASSERT_EQUAL(GLOB.owned_masked_leg_icon_references[appearance_entry.icon], 1, "Cache hits do not republish or increment resource ownership")
 		TEST_ASSERT_EQUAL(GLOB.owned_masked_leg_icon_references[producer_icons[index]], 1, "Cache hits do not republish or increment ownership")
 		var/list/size = sizes[index]
-		TEST_ASSERT(check_dimensions(appearance_entry.icon, size[1], size[2], "actual cache hit"), "Image readback remains an H1 hit")
+		TEST_ASSERT(check_dimensions(appearance_entry.icon, size[1], size[2], "actual cache hit"), "Image readback remains an owned-dimensions hit")
 	set_owned_masked_leg_icons(producer_key, null)
 	for(var/index in 1 to 2)
 		var/image/appearance_entry = drawn[index]

@@ -18,7 +18,7 @@
 #define FITNESS_LIMB_TYPE(limb_type, size, definition) (GLOB.fitness_limb_families[limb_type]?[(size) ? (size) + 2 : 1 + !!(definition)])
 
 // How an underclothes style is redrawn over fitness limbs (/datum/sprite_accessory/clothing/var/fit_mode). The values are the
-// mode names of the fitting spec, which the cache keys carry.
+// mode names the cache keys carry.
 /// Each fitted row moves the garment's edge out to the limb's new edge and fills the gap with the pixel inside it.
 #define GARMENT_FIT_SOLID "solid"
 /// Mesh: only the new pixels are drawn, each copied from 2 pixels further in, so the mesh keeps its rhythm.

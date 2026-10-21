@@ -139,7 +139,7 @@
 	owner.update_body()
 	TEST_ASSERT_NULL(overlay.bulge_key, "Taking the underwear off left its bulge drawn.")
 
-/// Underwear under an outer cover holds the penis in, unless it lets it out itself (Pol, 2026-10-14): a hard skirt over
+/// Underwear under an outer cover holds the penis in, unless it lets it out itself: a hard skirt over
 /// briefs still tents but shows none of the penis and is drawn whole, a chastity sprite leaves no bulge at all, and a
 /// jockstrap under the leotard keeps its bulge to the jockstrap's size. Each is swapped under a cover left as it is, which
 /// the look follows.
@@ -229,7 +229,7 @@
 	TEST_ASSERT(overlay.bulge_cloth && overlay.bulge_cloth != grey_cloth, "A dyed jumpsuit drew its bulge in the old colour.")
 
 	// An admin's refresh of the GAGS configs from disk (RefreshConfigsFromFile()) while the files on disk are the ones
-	// compiled in: the jumpsuit is still sampled, so its bulge keeps a cloth through a recolour (N4a fix report). A config
+	// compiled in: the jumpsuit is still sampled, so its bulge keeps a cloth through a recolour. A config
 	// whose files changed on disk (here its json's hash) is not: the garment's iconforge outputs were made from the
 	// compiled files. The config is put back as initialisation left it before anything is asserted.
 	var/datum/greyscale_config/config = SSgreyscale.configurations["[dyed.greyscale_config_worn]"]

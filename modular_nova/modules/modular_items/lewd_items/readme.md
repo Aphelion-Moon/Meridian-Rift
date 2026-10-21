@@ -9,8 +9,8 @@ and a body relay for their occupant. Both use the generic
 ## Controls
 
 - Link the handheld device and receiver by using either item on the other.
-- Equip the receiver in a specific genital slot through the interaction panel,
-  or equip it as a mask for the mouth endpoint.
+- Put the receiver in a genital slot or the mouth slot through the interaction
+  panel. It doesn't show on examine, and a mask can be worn over it.
 - Activate the handheld device in hand to cycle the target used when selecting
   the groin. Other selected body zones choose their corresponding endpoint.
 - Use the handheld device on yourself or someone else to put the part you aim at
@@ -90,3 +90,92 @@ on Windows or `tools/build/build.sh dm-test` on Linux. For a focused local run,
 temporarily add `TEST_FOCUS(/datum/unit_test/portal_device)` and
 `TEST_FOCUS(/datum/unit_test/portal_lifecycle)` after the test includes; remove
 those focus declarations when finished.
+
+# Adult items
+
+A new item family gets its own file and icons here; an addition to an existing
+family goes in that family's file. The lewd items config removes every item
+([`_erp_disabled_item_enforcement.dm`](code/lewd_items/_erp_disabled_item_enforcement.dm)),
+and the `adult_items_kill_switch` unit test checks the top types each family
+lists in `adult_items_gated_types()` ([`_gated_types.dm`](code/lewd_items/_gated_types.dm)).
+A new family adds its line there.
+
+- **Medipens** ([medipens.dm](code/lewd_chemistry/items/medipens.dm)). Five
+  single-use 30u medipens: crocin, hexacrocin, succubus milk, incubus draft, and
+  the La Coom Bomb (10u each of the last three), plus a box with one of each.
+  LustWish sells them (the hexacrocin pen, the La Coom Bomb and the box once
+  hacked), and they're in the Erotic loadout.
+- **Condom box** ([condom_box.dm](code/lewd_items/condom_box.dm)). Ten condom
+  packs, and it only holds condom packs. LustWish and the Erotic loadout.
+- **Bluespace fleshlight** ([fleshlight.dm](code/lewd_items/fleshlight.dm)).
+  Catches an immovable rod, which flings the user up to 12 tiles along its path
+  to a soft landing. A wizard in rod form is set down unharmed. A premium
+  LustWish item at ten command paychecks.
+- **Leash** ([leash.dm](code/lewd_items/leash.dm)). The leashed follows the
+  holder's route a step at a time: round corners and hazards, through doors, up
+  and down stairs. Where they can't follow, the leash goes taut and holds the
+  holder at two tiles. A leashed who falls drags their holder to the hole after
+  a moment to let go. A dropped leash stays hooked and trails the leashed, and
+  anyone their sex toy preference allows can pick it up. It unhooks when the
+  holder uses it on the leashed, when the leashed breaks free, or with the
+  safeword. A line in the strap's colour runs from the holding hand, or from the
+  leash on the floor, while the two are in reach.
+- **Pointe boots** ([lewd_shoes.dm](code/lewd_clothing/lewd_shoes.dm)). Ballet
+  heels with the feet held en pointe, GAGS, with digitigrade sprites. LustWish,
+  the shoes loadout and the Grimoire Libidine NIFSoft.
+- **Latex half-catsuit** ([latex_halfcatsuit.dm](code/lewd_clothing/latex_halfcatsuit.dm)).
+  The latex catsuit without the legs. It picks its male or female sprite by body
+  type, previews included, and has digitigrade, Vox, Vox Primalis and Teshari
+  sprites. Unlike the catsuit, it doesn't bulge or hide the wearer's parts or
+  taur body. LustWish, the under loadout and the Grimoire Libidine NIFSoft.
+- **Paw mood and cat paws** ([lewd_gloves.dm](code/lewd_clothing/lewd_gloves.dm)).
+  Paw mittens give the paw mood while worn. The cat paws are bigger GAGS paw
+  mittens with toe beans and a cuff tag. Both need the sex toy preference.
+  LustWish and the Erotic loadout.
+- **R.U.T.T.** ([rutt.dm](code/lewd_chemistry/reagents/rutt.dm)). A much
+  stronger aphrodisiac than hexacrocin that can cause climaxes, behind the
+  aphrodisiac preference. Mixes from crocin, dopamine, femcum and epinephrine at
+  322K. Dopamine, which only came from climaxing, now mixes from diethylamine,
+  ephedrine, hydrogen and phenol at 373K. The bottle, pill and Rut-Kit neuroware
+  are in a hacked LustWish; the bottle and pill are also in the Erotic loadout.
+- **Denbu tincture** ([butt_enlarger.dm](code/lewd_chemistry/reagents/butt_enlarger.dm)).
+  Grows the butt up to the largest pickable size, behind the butt enlargement
+  preference, and grows one on players who allow new genital growth. Clothes
+  strain and hurt over the last two sizes. A camphor overdose moves the butt back
+  to its preference size. Mixes from saline-glucose, sugar, silicon and crocin.
+  LustWish and the Erotic loadout.
+- **Bridle** ([bridle.dm](code/lewd_clothing/bridle.dm)). A three-colour GAGS
+  bridle. Lowered blinders darken sight like a welding mask, and a set bit
+  muffles speech, emotes and spoken spells. Toggled with action buttons or
+  alt-click, or from the strip menu by someone with ERP on, if the wearer has the
+  sex toy preference on; that warns the wearer and is logged. Securing the straps
+  locks it. LustWish and the Erotic loadout.
+- **Lustwish MOD suit** ([lustwish_mod.dm](code/lewd_clothing/lustwish_mod.dm)).
+  The standard MOD suit in LustWish's skin, with a purple hardlight. The hypnotic
+  visor module hypnotizes the wearer like the hypnotic goggles, while on, or
+  always once its wire is cut. The remote control module comes with a remote
+  that controls the suit from up to seven tiles away: activation, parts, modules,
+  lock and forced emotes. The visor needs the wearer's sex toy preference; the
+  remote needs that and the holder's ERP preference. Sold in LustWish's MOD Suit
+  category.
+  - Known issue: a forced emote starting with "says", "exclaims", "yells" or
+    "asks" shows the wearer "Invalid emote." and tells the holder nothing,
+    because the custom emote's own check (`emote_is_valid()`) judges the wearer.
+
+## Files outside this module
+
+- `icons/map_icons/clothing/shoes.dmi`, `_clothing.dmi` and `mask.dmi`: map
+  icons for the pointe boots, cat paws and bridle.
+- `tgui/packages/tgui/interfaces/StripMenu.tsx`: the "Adjust bridle" button.
+- `tgui/packages/tgui/interfaces/MODsuitRemote.tsx`: the MOD remote's window.
+- `modular_nova/master_files/code/modules/client/preferences/erp_preferences.dm`
+  and `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/game_preferences/nova/erp_preferences.tsx`:
+  the butt enlargement preference and its toggle.
+- `modular_nova/modules/GAGS/nsfw/gloves.dm`, `masks.dm` and `shoes.dm`, with
+  their JSON configs: the cat paws', bridle's and pointe boots' GAGS configs.
+- `modular_nova/modules/loadouts/loadout_items/loadout_datum_erp.dm`,
+  `loadout_datum_shoes.dm` and `under/loadout_datum_under.dm`: loadout entries.
+- `modular_nova/modules/modular_implants/code/nifsofts/dorms.dm`: the pointe
+  boots and half-catsuit in the Grimoire Libidine NIFSoft.
+- `code/modules/unit_tests/~nova/adult_items_kill_switch.dm`: the lewd items
+  config test for every family.

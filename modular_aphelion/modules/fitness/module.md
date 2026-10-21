@@ -107,7 +107,7 @@ family when it's a grey and the sleeve has a lit grey, or when its hue is within
 which keeps the sleeve one hue as `garment_sleeve_mode()` judges it. A dark one, an outline's or a shadow's, is of the family
 when it's a grey and the sleeve has a grey, or its hue is within 20 degrees of any the sleeve has. A garment of one material
 shades as it did with its whole ramp. A uniform's sleeve no longer takes its skirt's, belt's or boots' colour, which the whole
-ramp gave the sailor dress's and the cowboy uniform's moved edges (Pol, 2026-10-14).
+ramp gave the sailor dress's and the cowboy uniform's moved edges.
 
 Each step also keeps the stepped pixel's own family (`garment_colours_kin()`), so a sleeve of a hue and a grey doesn't step
 one into the other: DutchUniform's grey edge took its red, and janimaid's grey frill its navy. A step may go:
@@ -135,12 +135,12 @@ way in each view, from the upper third of its own baseline pixels there. Under a
   a bigger arm.
 
 **Polos.** A polo's side views leave the near forearm bare below the short sleeve, edged at the back by a 1 pixel strip. The
-hem rule above takes that strip for a sleeve's one-pixel hem and moves it out across a bigger forearm, which then looked thin
-(Pol, 2026-10-14). The polos opt in to one more rule after it (`bares_near_forearm()`, on the four tg polos and Nova's): in
-each side-view row where the polo as drawn leaves some of today's near arm bare, the fitted polo is cleared over the whole
-near arm of its size (`bare_near_forearm()`), so the forearm shows at its own width. Rows its sleeve covers are fitted as
-before. Other shirts, and the polo-styled CentCom intern jumpsuit, keep their fit: the jumpsuit leaves the forearm bare
-with no strip, and its one pixel over a Muscular forearm is its own torso, as on the plain shirts.
+hem rule above takes that strip for a sleeve's one-pixel hem and moves it out across a bigger forearm, which then looked thin.
+The polos opt in to one more rule after it (`bares_near_forearm()`, on the four tg polos and Nova's): in each side-view row
+where the polo as drawn leaves some of today's near arm bare, the fitted polo is cleared over the whole near arm of its size
+(`bare_near_forearm()`), so the forearm shows at its own width. Rows its sleeve covers are fitted as before. Other shirts, and
+the polo-styled CentCom intern jumpsuit, keep their fit: the jumpsuit leaves the forearm bare with no strip, and its one pixel
+over a Muscular forearm is its own torso, as on the plain shirts.
 
 **Glutes.** The Muscular male chest's glute bump, 3 pixels behind the hand in the side views, is covered by garments that
 reach the hips' back edge there: its bands (`"chest_m"` in the templates) are fitted after the legs, as a pec's side bulge
@@ -149,10 +149,6 @@ already drawn wide enough at the hips and stay as they are; what changes is the 
 like the turtlenecks, the leotard and the mesh. The female chest and the Athletic one have no bump. A body's fit has the chest
 only while its chest is a fitness chest drawn male (`limb_gender`), so a fitness chest refits its body's garments each time
 it's set up for the body, which sets its male or female art.
-
-The fitting is a port of the fitting spec's reference fitters (`fitref.py` with `fitref_v6.py`'s rules,
-`fitref_v10.py`'s polo forearm, `fitref_v11.py`'s sleeve colours and `fitref_v12.py`'s own-family steps, `pecref.py` and
-`sleeve_mode.py`) and must stay pixel for pixel equal to them.
 
 **What fitting costs.** A body keeps its fit (`garment_fit` on `/mob/living/carbon/human`: each fitness arm's and leg's size,
 and its chest's where it has glutes to fit), worked out again only when its limbs or body shape change
@@ -171,11 +167,9 @@ and so fills the cache for the bodies drawn after it. `GARMENT_FITS_DEFERRED` tu
 every queued fit at once, for tests and anything else that must see a body fitted now.
 
 `fitting/garment_metadata.json` holds, for the static worn and underclothes sheets, which states pick shaded sleeves and each
-fitted state's views' colours, so a fit of one of their states reads only the pixels it moves; a generated icon, a female
-cut or a body shape mask is read from its pixels. Each sheet is checked against its hash the first time it's used each
-round, and one changed since the file was written is read from its pixels too. Run
-`python lab/fitness/gen_garment_metadata.py` whenever one of those sheets changes, and commit the JSON it writes. `lab/` is
-a git-ignored folder kept out of commits, so a checkout without it has only the JSON.
+fitted state's views' colours, so a fit of one of their states reads only the pixels it moves; a generated icon, a female cut
+or a body shape mask is read from its pixels. Each sheet is checked against its hash the first time it's used each round, and
+one changed since the file was written is read from its pixels too. Regenerate the file whenever one of those sheets changes.
 
 **Worn clothing.** A uniform, suit, shoes and gloves worn by a human are fitted the same way, as they're drawn
 (`code/worn_fitting.dm`). `build_worn_icon()` fits the icon it has built, after the female cut and every body shape mask
@@ -191,7 +185,7 @@ get the same fit (`fit_worn_glows()`). Blood, dirt and damage overlays, and unif
   plantigrade sprite on a digitigrade body is fitted as the human legs it draws.
 - An item's mode is its own `fit_mode` if it sets one (on `/obj/item/clothing`). Otherwise shoes and gloves are fitted
   solid, and uniforms and suits by their sleeves in the front view of the icon drawn, GAGS colours included
-  (`garment_sleeve_mode()`, a port of the spec's `sleeve_mode.py`): shaded sleeves where they're one plain colour, solid where
+  (`garment_sleeve_mode()`): shaded sleeves where they're one plain colour, solid where
   they're busy, dark or missing. A glow only shows its shape, so it's fitted solid, or as a pattern for a pattern garment.
 - Each fit is cached once a round by the fit and the sheet, state, item type, female cut, body shape and colours, never by
   wearer, and made as "What fitting costs" says. An animated state is fitted frame by frame.
@@ -219,7 +213,7 @@ shades the smile, and the side views still fit the bulge.
 Fitting a top to pecs needs its front and back views' colours: from the sheet metadata for a static sheet's state, so it
 costs little more than the limbs' fit, and otherwise read from its pixels, about 2.3 ms more for a solid or mesh top.
 
-**Flexing pecs.** While pecs flex (`start_flex()`, the `*pbounce` emotes), a top fitted to them moves with them
+**Flexing pecs.** While pecs flex (`start_flex()`, the `*pbounce1` to `*pbounce4` emotes), a top fitted to them moves with them
 (`/datum/garment_fit_job/underclothes/flex`): its limbs are fitted once a view, and the pecs on each frame of the flex from
 that frame's pec template (`fitting/pec_flex_templates.json`), tanks hanging straight as they do still. The frames are drawn
 over a state of the flex's own sheet, so the top keeps the pecs' delays and loops. A flex starting or stopping redraws the
@@ -258,17 +252,12 @@ from the mammal sheet's, plus `chest_m`, the male chest's glute bands at the siz
 toward both its front and its back, and its rows never take the cap rule, which keeps straps on an arm's shoulder.
 `fitting/pec_templates.json` holds each pec shape's outline, pixels, side bulge and smile, and the chest's own outline, and
 `fitting/pec_flex_templates.json` the same for each frame of each pec flex sheet, with the sheet's frame delays; a frame's
-smile is the still smile, lifted in each column as far as the pec's crease lifts on that frame.
-`lab/fitness/gen_fit_templates.py` and `gen_pec_templates.py` make them from the sprites: run
-`python lab/fitness/gen_fit_templates.py` (and `gen_pec_templates.py`, which writes both pec files) whenever the size or pec
-art changes, and commit the JSON they write. Definition needs no templates. The files are compiled into the resource file and read as the server starts,
-with the sheet metadata (`SSgarment_fitting`).
+smile is the still smile, lifted in each column as far as the pec's crease lifts on that frame. Regenerate them whenever the
+size or pec art changes. Definition needs no templates. The files are compiled into the resource file and read as the server
+starts, with the sheet metadata (`SSgarment_fitting`).
 
-**Making the art.** The six sheets were generated from the approved mockups by a scratch script outside the repository,
-`gen_physique_sheets.py` (session 597eba23's `scratchpad/defwb/`), which needs the mockup tools beside it and reads the old
-fitness level sheets (`git show 4e379c2bd185:modular_aphelion/modules/fitness/icons/human_parts_fitness_<N>.dmi`). Edit the
-sheets themselves from now on, keeping the overlays inside their size's outline, and regenerate the templates after any
-outline change.
+**Making the art.** Edit the six sheets themselves, keeping the overlays inside their size's outline, and regenerate the
+templates after any outline change.
 
 **Height.** tg makes a human taller or shorter with displacement maps that draw one torso row twice, or drop one or two.
 tg's maps do that at row 16 from the top, which is a pec's crease. A flex then drew its crease two pixels thick and jumping
@@ -348,9 +337,5 @@ monkeys keep tg's torso maps. Medium, Short and Tall bodies don't move a torso r
 - `tgui/packages/tgui/interfaces/PreferencesMenu/preferences/features/character_preferences/aphelion/fitness.tsx`
 - `tgui/packages/tgui/styles/interfaces/Muscles.scss`, loaded by `tgui/packages/tgui/styles/meridianos/_index.scss`
 - `code/modules/unit_tests/~nova/fitness.dm`, included from `code/modules/unit_tests/_unit_tests.dm`
-- `code/modules/unit_tests/~nova/pecs.dm`: the `flat_mesh`, `under_underclothes`, `flexing_top` and `female_cut` tests
+- `code/modules/unit_tests/~nova/pecs.dm`: the `under_underclothes`, `flexing_top` and `female_cut` tests
 - `tgstation.dme`
-
-### Credits:
-
-- mal

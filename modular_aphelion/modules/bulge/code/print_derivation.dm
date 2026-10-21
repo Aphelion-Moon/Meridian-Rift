@@ -4,8 +4,7 @@
  *
  * A printed garment keeps its print where a bulge pushes its cloth out. Every pixel of the patch copies a pixel of the
  * garment's own worn sprite, chosen by the approved print rule (the print mirrored in from beside the bulge, rows
- * first, then columns toward the body), and the template's kind shades it. The rule is the preview pipeline's
- * print_interior(), print_at(), OVER and over() (preview_v5.py, bulge_v4.py), ported exactly, in integer arithmetic.
+ * first, then columns toward the body), and the template's kind shades it, in integer arithmetic.
  *
  * A plain-coloured garment's bulge is the template's kinds as white masks, tinted with the adaptive palette by the
  * client: the masks are derived once per shape, so a recolour derives nothing (bulge_template_masks()).

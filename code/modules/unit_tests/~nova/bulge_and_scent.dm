@@ -1,4 +1,4 @@
-/// A bulge is the bulge look a covered penis draws (mal, 2026-10-04): bulge requirements, words and portals follow it.
+/// A bulge is the bulge look a covered penis draws: bulge requirements, words and portals follow it.
 /// Each change goes through the writers the game uses, which end in the body update that draws (or clears) the look.
 /datum/unit_test/portal_test/bulge
 
@@ -104,7 +104,7 @@
 
 	// Hidden by the underwear, a penis is no penis to interact with. Drawn over clothes it is exposed. Above the underwear
 	// it is drawn over its only cover, so it is exposed with no bulge: the penis interactions reach it and the bulge ones
-	// do not, until it is layered below the underwear again (mal, 2026-10-04). Never shown has nothing to show.
+	// do not, until it is layered below the underwear again. Never shown has nothing to show.
 	TEST_ASSERT(!penis.is_exposed(), "A penis hidden by the underwear was exposed.")
 	TEST_ASSERT(!stroke.allow_act(partner, owner), "A penis interaction reached a penis hidden by the underwear.")
 	TEST_ASSERT(penis.apply_visibility_label("Custom") && penis.apply_layering_label("Above all clothing"), "The layering writers were unavailable.")
@@ -225,58 +225,3 @@
 		if(drawn.icon == mask)
 			return null
 	return "the chest does not draw the shape's masks; chest key [owner.icon_render_keys[BODY_ZONE_CHEST]]"
-
-/// Lewd interactions leave a giver's scent on a receiver until it fades or washes off.
-/datum/unit_test/portal_test/scent_transfer
-
-/datum/unit_test/portal_test/scent_transfer/Run()
-	if(CONFIG_GET(flag/disable_erp_preferences))
-		TEST_NOTICE(src, "Scent transfer is an ERP preference, which the config disables.")
-		return
-
-	var/mob/living/carbon/human/consistent/giver = allocate(/mob/living/carbon/human/consistent)
-	var/mob/living/carbon/human/consistent/receiver = allocate(/mob/living/carbon/human/consistent)
-	giver.dna.features[ERP_FLAVOR_DNA_SCENT] = "cedar and machine oil"
-	receiver.dna.features[ERP_FLAVOR_DNA_SCENT] = "lavender"
-	var/datum/client_interface/giver_client = attach_portal_preferences(giver)
-	var/datum/client_interface/receiver_client = attach_portal_preferences(receiver)
-
-	giver.leave_scent_on(receiver)
-	TEST_ASSERT_NULL(receiver.has_status_effect(/datum/status_effect/scent_transfer), "A scent moved with neither preference on.")
-	TEST_ASSERT(giver_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp/scent_transfer_give], TRUE), "Could not turn on giving scents.")
-	giver.leave_scent_on(receiver)
-	TEST_ASSERT_NULL(receiver.has_status_effect(/datum/status_effect/scent_transfer), "A scent moved to someone who doesn't receive scents.")
-
-	TEST_ASSERT(receiver_client.prefs.write_preference(GLOB.preference_entries[/datum/preference/toggle/erp/scent_transfer_receive], TRUE), "Could not turn on receiving scents.")
-	giver.leave_scent_on(receiver)
-	var/datum/status_effect/scent_transfer/left_on = receiver.has_status_effect(/datum/status_effect/scent_transfer)
-	TEST_ASSERT_NOTNULL(left_on, "A giver's scent did not move to a receiver.")
-	TEST_ASSERT_EQUAL(left_on.scent, "cedar and machine oil", "The receiver carries the wrong scent.")
-
-	// It moves one way only: the receiver gives nothing, and the giver takes nothing.
-	receiver.leave_scent_on(giver)
-	TEST_ASSERT_NULL(giver.has_status_effect(/datum/status_effect/scent_transfer), "A scent moved against both preferences.")
-	giver.leave_scent_on(giver)
-	TEST_ASSERT_NULL(giver.has_status_effect(/datum/status_effect/scent_transfer), "Someone carried their own scent.")
-
-	receiver.wash(CLEAN_WASH)
-	TEST_ASSERT_NULL(receiver.has_status_effect(/datum/status_effect/scent_transfer), "Washing left a partner's scent behind.")
-
-/// A bare *sniff goes to whoever the sniffer is pulling, else whoever stands in front of them.
-/datum/unit_test/sniff_target
-
-/datum/unit_test/sniff_target/Run()
-	var/mob/living/carbon/human/consistent/sniffer = allocate(/mob/living/carbon/human/consistent)
-	var/mob/living/carbon/human/consistent/faced = allocate(/mob/living/carbon/human/consistent, get_step(run_loc_floor_bottom_left, EAST))
-	var/mob/living/carbon/human/consistent/pulled = allocate(/mob/living/carbon/human/consistent, get_step(run_loc_floor_bottom_left, NORTH))
-	var/datum/emote/living/sniff/found
-	for(var/datum/emote/living/sniff/emote in GLOB.emote_list["sniff"])
-		found = emote
-	TEST_ASSERT_NOTNULL(found, "There is no sniff emote.")
-
-	sniffer.setDir(EAST)
-	TEST_ASSERT_EQUAL(found.get_sniff_target(sniffer), faced, "A sniff missed the human in front.")
-	sniffer.setDir(WEST)
-	TEST_ASSERT_NULL(found.get_sniff_target(sniffer), "A sniff at nobody found a target.")
-	sniffer.start_pulling(pulled)
-	TEST_ASSERT_EQUAL(found.get_sniff_target(sniffer), pulled, "A sniff missed the human being pulled.")

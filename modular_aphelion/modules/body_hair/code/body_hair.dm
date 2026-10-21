@@ -137,10 +137,9 @@
 		hair.icon_state = ""
 
 /**
- * Returns what this pubic hair is clipped to on `limb`'s owner, while a baring underwear (GLOB.body_hair_baring_clothing) is
- * worn and drawn over it, its only cover (Pol, 2026-10-14: "on the body, outside the underwear"). The hair is drawn past the
- * crotch's outline to frame the genitals: over a bare groin that's as drawn, and under such underwear it would float in the
- * air or show through the underwear's gaps.
+ * Returns what this pubic hair is clipped to on `limb`'s owner, while a baring underwear (GLOB.body_hair_baring_clothing) is worn
+ * and drawn over it, its only cover. The hair is drawn past the crotch's outline to frame the genitals: over a bare groin that's
+ * as drawn, and under such underwear it would float in the air or show through the underwear's gaps.
  *
  * Arguments:
  * - limb: The chest the hair is drawn on.
@@ -190,8 +189,8 @@
 /**
  * Returns pubic hair clipped to the bare skin under a baring underwear: each of its pixels is kept only where the body is drawn,
  * the chest and legs, and outside the underwear's span in its row, from the underwear's leftmost pixel there to its rightmost,
- * each direction on its own (hairclip.py, rule "on the body, outside the underwear"). The hair's colour is the overlay's, so
- * it's left out: made once a round for each hair state, underwear sprite and body, a cached resource.
+ * each direction on its own. The hair's colour is the overlay's, so it's left out: made once a round for each hair state,
+ * underwear sprite and body, a cached resource.
  *
  * All of it is icon operations on the four directions at once. A row's span is the pixels with underwear at or left of them,
  * and at or right of them: each found by spreading the underwear's pixels right, or left, by 1, 2, 4, 8 and 16.

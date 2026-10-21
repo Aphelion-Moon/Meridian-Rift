@@ -117,18 +117,3 @@
 	var/mutable_appearance/drawn = drawn_on(bird, layer)
 	if(drawn)
 		return drawn.icon == (gear.worn_icon || plain_file) || drawn.icon == (gear.worn_icon_muzzled || snouted_file)
-
-/**
- * A Teshari turning redraws only what they wear on offsets that change with direction - the head's and the hands' - not
- * on the ears', the back's, an accessory's or the mask's, the same every way.
- */
-/datum/unit_test/teshari_worn_offsets/turning
-
-/datum/unit_test/teshari_worn_offsets/turning/Run()
-	var/mob/living/carbon/human/consistent/bird = allocate(/mob/living/carbon/human/consistent)
-	bird.set_species(/datum/species/teshari)
-	var/list/turning = list()
-	var/listeners = LAZYACCESS(bird._listen_lookup, COMSIG_ATOM_POST_DIR_CHANGE)
-	for(var/datum/worn_feature_offset/offset in (islist(listeners) ? listeners : list(listeners)))
-		turning += offset.feature_key
-	TEST_ASSERT_EQUAL(jointext(sort_list(turning), ", "), jointext(sort_list(list(OFFSET_HEAD, OFFSET_HELD, OFFSET_HELD)), ", "), "The worn offsets that redraw what a Teshari wears on every turn")

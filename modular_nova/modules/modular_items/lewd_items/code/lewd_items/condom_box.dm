@@ -1,7 +1,7 @@
 /obj/item/storage/box/condoms
 	name = "surplus condom box"
 	desc = "A large collection of condoms, suitable for the safest of sluts!"
-	icon = 'modular_aphelion/modules/adult_items/icons/condom_box.dmi'
+	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_items/condom_box.dmi'
 	icon_state = "condom_box"
 	illustration = null
 	storage_type = /datum/storage/box/condoms

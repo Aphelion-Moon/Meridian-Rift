@@ -112,7 +112,7 @@ const ALTERNATE_ACTIONS: Record<string, AlternateAction> = {
     icon: 'box-open',
     text: 'Open',
   },
-  // APHELION EDIT ADDITION START - the bridle's strip-menu step (adult_items)
+  // APHELION EDIT ADDITION START - the bridle's strip-menu step (lewd_items)
   adjust_bridle: {
     icon: 'mask',
     text: 'Adjust bridle',

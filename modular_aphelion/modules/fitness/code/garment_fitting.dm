@@ -287,11 +287,10 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 		.[arm] = length(upper_core) && covered * 2 >= length(upper_core)
 
 /**
- * Returns what garment fitting knows of a sheet without reading its pixels, from fitting/garment_metadata.json, which
- * lab/fitness/gen_garment_metadata.py writes: `sleeves`, its states whose own sleeves pick shaded sleeves -> TRUE, and `colours`,
- * for each state whose fits read whole views, those views' colours as fit_garment_view() takes them, or null for a view read
- * from its pixels. Null for a sheet it doesn't know, like a generated icon, or one that changed after the file was written:
- * those are read from their pixels.
+ * Returns what garment fitting knows of a sheet without reading its pixels, from fitting/garment_metadata.json: `sleeves`, its
+ * states whose own sleeves pick shaded sleeves -> TRUE, and `colours`, for each state whose fits read whole views, those views'
+ * colours as fit_garment_view() takes them, or null for a view read from its pixels. Null for a sheet it doesn't know, like a
+ * generated icon, or one that changed after the file was written: those are read from their pixels.
  *
  * A sheet is checked against its hash the first time it's asked about each round.
  *
@@ -347,8 +346,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 		.++
 
 /**
- * Returns the mode a worn garment is fitted in when it doesn't set its own, picked from its sleeves in its front view: a port of
- * the fitting spec's sleeve_mode.py, which it must give the same answer as for every garment.
+ * Returns the mode a worn garment is fitted in when it doesn't set its own, picked from its sleeves in its front view.
  *
  * The sleeves are the garment's pixels over the baseline arms (both arms' template `core`). Their lit colours count, where the
  * brightest channel is at least SLEEVE_LIT_MIN; darker ones are outlines and shadows. Plain sleeves, fitted with the arms'
@@ -476,9 +474,8 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 /**
  * One view of a garment being fitted: its frame, the pixels read from it, and the pixels the fitting writes over them.
  *
- * The fitting is a port of the fitting spec's reference fitter, and must stay pixel for pixel equal to it: the same reads,
- * writes and order. Pixels are addressed as the templates give them, from the top left from 0. A pixel is a colour as
- * GetPixel() returns it ("#rrggbb", or "#rrggbbaa" when partly transparent), or 0 where it's clear.
+ * Pixels are addressed as the templates give them, from the top left from 0. A pixel is a colour as GetPixel() returns it
+ * ("#rrggbb", or "#rrggbbaa" when partly transparent), or 0 where it's clear.
  */
 /datum/garment_fit_view
 	/// One direction of the garment's state, which the fitted pixels are drawn on.
@@ -660,8 +657,8 @@ GLOBAL_ALIST_EMPTY(garment_fits)
  * Returns the view's colours, without alpha, brightest first: the garment's own ramp. Counts them the first time: from the
  * frame's own counts and what has been written over them, when they're known, otherwise by reading the whole view.
  *
- * Brightness is 299 R + 587 G + 114 B, the spec's luminance in whole numbers. Colours as bright as each other keep the order
- * they were counted in, which only a read gives; lab/fitness/gen_garment_metadata.py leaves out the views that have any.
+ * Brightness is 299 R + 587 G + 114 B, Rec. 601 luma in whole numbers. Colours as bright as each other keep the order they were
+ * counted in, which only a read gives, so garment_metadata.json leaves out the views that have any.
  */
 /datum/garment_fit_view/proc/ramp()
 	if(!colour_counts && frame_colours)
@@ -1109,8 +1106,7 @@ GLOBAL_ALIST_EMPTY(garment_fits)
 	return pixel_colour == colour || pixel_colour == other_colour
 
 /**
- * Fits the view, after its limbs, to pecs drawn under the garment: a port of the fitting spec's pec fitter, which it must stay
- * pixel for pixel equal to.
+ * Fits the view, after its limbs, to pecs drawn under the garment.
  *
  * Front and back views: where a pec reaches the chest's own side, the garment's chest panel moves out over it
  * (pec_panel_bands()), unless the garment hangs straight over the pecs, then the front view shades the pecs' lower curve, in

@@ -120,9 +120,9 @@ Stage into an offline checkout using the actual extracted backup paths:
 
 ```powershell
 powershell.exe -NoProfile -File tools/painting_store/stage-nova.ps1 `
-  -BackupMetadata 'D:\verified-backup\data\paintings.json' `
-  -BackupImageRoot 'D:\verified-backup\data\paintings\images' `
-  -RepositoryRoot 'C:\Meridian-Rift'
+  -BackupMetadata '<backup>\data\paintings.json' `
+  -BackupImageRoot '<backup>\data\paintings\images' `
+  -RepositoryRoot '<checkout>'
 ```
 
 The script copies exact metadata and referenced PNGs into Git-ignored, read-only

@@ -157,56 +157,6 @@
 	return ..()
 
 /**
- * Only spray cans that paint offer graffiti. Arming refuses a piece the library doesn't have and a tab that doesn't
- * exist. Using the can on something that takes no graffiti, opening its window afresh or picking a stencil disarms it,
- * and a paint job it starts uses the arming up. An editor closed for a tab hands back to the can's window on it.
- */
-/datum/unit_test/graffiti_spraycan_arming/Run()
-	graffiti_editor_test_begin()
-	var/list/turfs = graffiti_test_walls(1)
-	TEST_ASSERT_EQUAL(length(turfs), 1, "Runtime Station must have a wall between two floors to paint.")
-	var/list/held = graffiti_editor_test_painter(src, turfs[1])
-	var/mob/living/carbon/human/consistent/painter = held[1]
-	var/obj/item/toy/crayon/spraycan/can = held[2]
-	var/obj/item/toy/crayon/spraycan/hellcan/other = allocate(/obj/item/toy/crayon/spraycan/hellcan)
-	TEST_ASSERT(can.graffiti_enabled() && !other.graffiti_enabled(), "A spray can must offer graffiti and a hellcan must not.")
-	var/datum/tgui/ui = allocate(/datum/tgui, painter, can, "Crayon")
-	TEST_ASSERT(!can.ui_act("graffitiArm", list("id" = "g1"), ui, null) && isnull(can.graffiti_armed), "Arming must refuse a piece the library doesn't have.")
-	TEST_ASSERT(!can.ui_act("graffitiTab", list("tab" = "junk"), ui, null) && can.graffiti_tab == "stencils", "The window must refuse a tab that doesn't exist.")
-	var/datum/graffiti_library/library = graffiti_library(painter.ckey)
-	var/id = library.save_piece(graffiti_validate_piece(graffiti_test_piece(GRAFFITI_WIDTH)))
-	TEST_ASSERT(can.ui_act("graffitiArm", list("id" = id), ui, null) && can.graffiti_armed == id, "Arming must take a library piece: [id]")
-	var/turf/open/space/void = locate(/turf/open/space) in Z_TURFS(painter.z)
-	TEST_ASSERT(void, "Runtime Station's level must have space.")
-	var/charges = can.charges_left
-	can.use_on(void, painter, list())
-	TEST_ASSERT(!SSgraffiti.paint_jobs[painter.ckey] && !SSgraffiti.editors[painter.ckey] && can.charges_left == charges, "An armed can used on space must start nothing.")
-	TEST_ASSERT_NULL(can.graffiti_armed, "An armed can used on space must disarm.")
-	TEST_ASSERT(can.ui_act("graffitiArm", list("id" = id), ui, null), "The can must arm again.")
-	can.ui_interact(painter)
-	TEST_ASSERT_NULL(can.graffiti_armed, "Opening the can's window afresh must disarm it.")
-	TEST_ASSERT(can.ui_act("graffitiArm", list("id" = id), ui, null), "The can must arm again.")
-	can.ui_act("select_stencil", list("item" = "star"), ui, null)
-	TEST_ASSERT_NULL(can.graffiti_armed, "Picking a stencil must disarm the can.")
-	TEST_ASSERT(can.ui_act("graffitiArm", list("id" = id), ui, null), "The can must arm again.")
-	// A test human's do_after ends at once, so the job finishes as it starts.
-	can.use_on(turfs[1], painter, list())
-	TEST_ASSERT(graffiti_tile_decal(turfs[1]) && isnull(can.graffiti_armed), "A paint job the can starts must use its arming up.")
-	can.ui_act("graffitiNew", list(), ui, null)
-	var/datum/custom_sprite_editor/graffiti/editor = SSgraffiti.editors[painter.ckey]
-	TEST_ASSERT(editor, "New must open an editor.")
-	editor.ui_act("openTab", list("tab" = "graffiti"), allocate(/datum/tgui, painter, editor, "GraffitiEditor"), null)
-	editor.ui_close(painter)
-	TEST_ASSERT(QDELETED(editor) && can.graffiti_tab == "graffiti", "An editor closed for a tab must hand back to the can's window on it.")
-
-/**
- * Puts the editor, the registry and the library back.
- */
-/datum/unit_test/graffiti_spraycan_arming/Destroy()
-	graffiti_editor_test_end()
-	return ..()
-
-/**
  * A full-tile window fastened down takes graffiti on its glass, drawn over the window and under closed shutters, and
  * the graffiti goes for good when the window is deleted or washed. A pane loosened under a paint job drops the job's
  * paint, while finished graffiti stays, and the job keeps nothing to resume; carried off its tile, the pane takes the

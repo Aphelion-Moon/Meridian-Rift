@@ -368,10 +368,10 @@ icon caches, admin deletes, halves, rank with connected owners first, caps with 
 too, sheets and the static-station rule (`persistence.dm`), paint jobs, arming and window surfaces (`placement.dm`), and
 the workspace's layers, colour counts and alpha-00 refusal (`workspace.dm`). `graffiti_registry_caps` and
 `graffiti_library_caps`, about 1.1 s and 1.7 s, run with `TEST_LONGER`. The module adds type vars and globals, and
-var-cap diagnostics are ignored by the owner's decision (2026-10-18). The unit-test build still tipped into a bogus
-`invalid variable` error three times. The first was cleared by moving a new static into an existing one; each of the
-other two took one more `~nova` test file out of the build, the repo's standing remedy: `liver_nova.dm`, then
-`symphony_moderation.dm`. Production builds are unaffected.
+var-cap diagnostics are ignored. The unit-test build still tipped into a bogus `invalid variable` error three times. The
+first was cleared by moving a new static into an existing one; each of the other two took one more `~nova` test file out
+of the build, the repo's standing remedy: `liver_nova.dm`, then `symphony_moderation.dm`. Production builds are
+unaffected.
 
 #### Performance
 
@@ -532,14 +532,13 @@ reveal's timing in `placement.dm`; the alpha floor and the flat colour cap in `p
   also kept each art's save record (`art_text`, about the art's size again) and every stacked decal its merges (13.3
   million characters for 1,334 three-high stacks of 6.8 MB of art): about 33 MB with one tile each and 42 MB in stacks
   of three. So the pass halved the stacked layout, 42 to 16.5 MB, but took one tile each only from 33 to 22.5 MB, short
-  of half; what remained was the arts and decals the caps allow, which the owner's halving of the art bytes took on.
+  of half; what remained was the arts and decals the caps allow, which halving the art bytes took on.
   Each art is held once as its list and encoded at every save, about 50 ms more a save on a full map, rather than as its
   packed text decoded on demand, because a dense record takes 3,670 bytes as a list against about 3,500 as text, under
   0.5 MB at the caps, while every use would decode the text again: `json_decode()` of about 3.5 KB, about 0.07 ms going
   by the 150 ms an 8 MB map file takes, before the 1.2 ms grid decode a merge needs, or a decode cache holding about 20
   KB a dense art. A load adds up to `GRAFFITI_DECODE_BUDGET` (8 MiB) of decoded art while it runs.
-- `GRAFFITI_DISPLAY_BUDGET`: `GRAFFITI_MAP_UNIQUE_CAP`, so everything within the caps shows; tests lower
-  `SSgraffiti.display_budget`.
+- `GRAFFITI_DISPLAY_BUDGET`: `GRAFFITI_MAP_UNIQUE_CAP`, so everything within the caps shows.
 - `GRAFFITI_CKEY_UNIQUE_CAP` 200 and `GRAFFITI_CKEY_PLACEMENT_CAP` 400: a tenth of the map's caps.
 - `GRAFFITI_ICON_CACHE` 128: 128 dense art icons of 4,801 bytes take 0.6 MB, and 128 glow masks of 6,930 bytes 0.9 MB.
 - `GRAFFITI_SHEET_STATES` 32: of the packings whose sheet files stay within 256 KiB, the one with the fewest bytes a
@@ -570,8 +569,8 @@ anchors (`GRAFFITI_ANCHOR_*`, `GRAFFITI_MISS_LIMIT`), map file versions (`GRAFFI
 glow kinds (`GRAFFITI_GLOW_*`), paths (`GRAFFITI_*_DIRECTORY`), the placement index (`GRAFFITI_INFO_*`),
 `GRAFFITI_WORK_COMPOSITE`, `GRAFFITI_SPRAY_LENGTH`, the editor's picked colours (`GRAFFITI_PICKED_COLORS`) and
 `GRAFFITI_ADMIN_PAGE`. The alpha ceiling and floor (`GRAFFITI_ALPHA_CEILING` 204 and `GRAFFITI_ALPHA_FLOOR` 51, 80% and
-20%) are the owner's choice (2026-10-19): every piece of graffiti lets the wall show through, a piece keeps an alpha
-only for paint chosen below the ceiling, and no paint is too faint to see.
+20%) mean every piece of graffiti lets the wall show through, a piece keeps an alpha only for paint chosen below the
+ceiling, and no paint is too faint to see.
 
 ### Included files that are not contained in this module:
 

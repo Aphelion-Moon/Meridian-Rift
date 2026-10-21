@@ -106,13 +106,12 @@ GLOBAL_LIST(bulge_sheet_states)
 /datum/sprite_accessory/genital/penis
 	/// Whether this penis shape has bulge shapes of its own past a family's small_cap (the cloth shapes per penis
 	/// shape, and the flat tip of the leather loincloth's drape). A shape without them, the tentacles, draws the
-	/// family's small_cap shape there (bulge_shape_size()): mal, 2026-10-03, "big tentacles should show the size 4 bulge".
+	/// family's small_cap shape there (bulge_shape_size()), so big tentacles show the size 4 bulge.
 	var/bulge_hyper = TRUE
 	/// Whether this shape drawn without skin tones has bulge shapes of its own: its untoned sprites draw differently.
 	var/bulge_untoned = FALSE
 	/// The largest bulge size a garment draws this shape's own look at; past it, the family's small_cap shape, and its
-	/// print where the garment is printed (bulge_shape_size()): mal, 2026-10-06 under the large heart boxers, 2026-10-08
-	/// in every family.
+	/// print where the garment is printed (bulge_shape_size()).
 	var/print_cap = 8
 
 /datum/sprite_accessory/genital/penis/human/alt
@@ -411,14 +410,13 @@ GLOBAL_LIST(bulge_sheet_states)
 	return null
 
 /**
- * Derives a shape past small_cap from the penis and testicle sprites by the approved rule (the preview pipeline's
- * hyper.py, ported exactly, in whole numbers): the cloth the bulge pushes out, as a kind map, or with `mask` the anatomy
- * it leaves bare, as a white mask (null where it covers the whole penis). Pixels facing south, east and west, in the
- * order bulge_decode_template() reads a sheet, as the sheet states it replaced held them; facing east and west, every
- * penis shape but the human one takes mal's amendments to that rule (see below), and its mask is what the amended
- * cloth leaves bare. The kind map is kept for the round, by its name, with the decoded templates; the mask is not
- * (bulge_exposed() keeps the tile drawn from it). Arguments as bulge_large_name(): `owner` is the family whose shapes
- * past small_cap these are.
+ * Derives a shape past small_cap from the penis and testicle sprites by the approved rule, in whole numbers: the cloth
+ * the bulge pushes out, as a kind map, or with `mask` the anatomy it leaves bare, as a white mask (null where it covers
+ * the whole penis). Pixels facing south, east and west, in the order bulge_decode_template() reads a sheet, as the
+ * sheet states it replaced held them; facing east and west, every penis shape but the human one takes amendments to
+ * that rule (see below), and its mask is what the amended cloth leaves bare. The kind map is kept for the round, by its
+ * name, with the decoded templates; the mask is not (bulge_exposed() keeps the tile drawn from it). Arguments as
+ * bulge_large_name(): `owner` is the family whose shapes past small_cap these are.
  */
 /proc/bulge_derive_large(datum/bulge_family/owner, hard, size, digi, datum/sprite_accessory/genital/penis/shape, toned, mask)
 	SHOULD_NOT_SLEEP(TRUE)
@@ -534,7 +532,7 @@ GLOBAL_LIST(bulge_sheet_states)
 			else if(row > hem)
 				continue
 			grid[at] = TRUE
-		// mal's amendments (2026-10-06 under the heart boxers, 2026-10-08 in every family), facing east and west, for
+		// The amendments, facing east and west, for
 		// every penis shape but the human one, whose shapes are the approved art: no curtain (below); then, hard, where
 		// the cloth holds the penis and its head pokes out above top_row, the head's pixels from top_row down are cloth
 		// but the two farthest out on top_row; or, hard, where the shaft's underside dips one row below the cloth and
@@ -843,12 +841,11 @@ GLOBAL_LIST(bulge_sheet_states)
 	return "[stem]_[initial(shape.icon_state)]_[sprite_size][untoned ? "_untoned" : ""][flat ? "_flat" : ""]"
 
 /**
- * Derives a loincloth's drape, as bulge_drape_name() names it, by the approved rule (the preview pipeline's drape()
- * and reveal_frame(), preview_v7.py, and hyper.py's flat tip): facing east the flap's top edge follows the penis from
- * its hinge, up to BULGE_DRAPE_REACH columns, then the rest of the flap hangs past the tip or, from a penis reaching
- * further, drops over its side; facing west the same, mirrored; facing south the flap's top and hem rows where the
- * loincloth's own sprite has cloth. Kept for the round, by its name, with the decoded templates; pixels in the order
- * bulge_decode_template() reads a sheet. Arguments as bulge_drape_name().
+ * Derives a loincloth's drape, as bulge_drape_name() names it, by the approved rule: facing east the flap's top edge
+ * follows the penis from its hinge, up to BULGE_DRAPE_REACH columns, then the rest of the flap hangs past the tip or,
+ * from a penis reaching further, drops over its side; facing west the same, mirrored; facing south the flap's top and
+ * hem rows where the loincloth's own sprite has cloth. Kept for the round, by its name, with the decoded templates;
+ * pixels in the order bulge_decode_template() reads a sheet. Arguments as bulge_drape_name().
  */
 /proc/bulge_derive_drape(datum/bulge_family/family, size, sprite_size, datum/sprite_accessory/genital/penis/shape, toned)
 	SHOULD_NOT_SLEEP(TRUE)

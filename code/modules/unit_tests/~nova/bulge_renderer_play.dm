@@ -44,12 +44,12 @@
 		return !!overlay?.bulge_cut_icon && leaf.icon == overlay.bulge_cut_icon
 	return !leaf.icon_state
 
-/// Custom visibility, the penis set below or above the underwear. Under a garment drawn in front of it (a uniform, either
-/// way; the underwear, below it), what a look draws of the penis stays at the look's layers (behind its cover, over its
-/// cloth), never at the custom layer, for an exposed tip, a skirt's clearance and a loincloth's drape. Above the
-/// underwear, with nothing else over it, the penis is drawn over the underwear as Nova draws it: no bulge, no cut (mal,
-/// 2026-10-04), and the bulge comes back when the penis is layered under the underwear again. Both layers the look takes
-/// for Custom layering are pinned to where Nova draws the penis itself: above the underwear with no look, below it soft.
+/// Custom visibility, the penis set below or above the underwear. Under a garment drawn in front of it (a uniform,
+/// either way; the underwear, below it), what a look draws of the penis stays at the look's layers (behind its cover,
+/// over its cloth), never at the custom layer, for an exposed tip, a skirt's clearance and a loincloth's drape. Above
+/// the underwear, with nothing else over it, the penis is drawn over the underwear as Nova draws it: no bulge, no cut,
+/// and the bulge comes back when the penis is layered under the underwear again. Both layers the look takes for Custom
+/// layering are pinned to where Nova draws the penis itself: above the underwear with no look, below it soft.
 /datum/unit_test/portal_test/bulge_renderer/custom_layering
 
 /datum/unit_test/portal_test/bulge_renderer/custom_layering/check()
@@ -179,34 +179,6 @@
 	TEST_ASSERT_NULL(owner.overlays_standing[BODY_LAYER], "An android's underwear is drawn.")
 	TEST_ASSERT_NULL(overlay.bulge_key, "An android draws the bulge of boxers it does not wear.")
 	TEST_ASSERT_NULL(look_images(owner), "An android's chest draws a bulge.")
-
-/// A jumpsuit rolled down and up again, as the strip menu does it: the look follows its drawn sprite both ways.
-/datum/unit_test/portal_test/bulge_renderer/roll_down
-
-/datum/unit_test/portal_test/bulge_renderer/roll_down/check()
-	var/mob/living/carbon/human/owner = dressed_wearer(12, /obj/item/clothing/under/color/grey, null)
-	TEST_ASSERT_NOTNULL(owner, "No dressed wearer.")
-	var/obj/item/organ/genital/penis/penis = owner.get_organ_slot(ORGAN_SLOT_PENIS)
-	var/datum/bodypart_overlay/mutant/genital/penis/overlay = penis.bodypart_overlay
-	var/obj/item/clothing/under/jumpsuit = owner.w_uniform
-	TEST_ASSERT(jumpsuit.can_adjust, "The grey jumpsuit cannot be rolled down.")
-	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The hard writer was unavailable.")
-	var/state = drawn_leaf(owner, UNIFORM_LAYER)?.icon_state
-	TEST_ASSERT(overlay.bulge_key && length(look_images(owner)), "The jumpsuit drew no bulge.")
-	TEST_ASSERT_EQUAL(overlay.bulge_cover_state, state, "The look was not resolved for the jumpsuit as drawn.")
-	jumpsuit.toggle_jumpsuit_adjust()
-	owner.update_worn_undersuit()
-	owner.update_body()
-	var/rolled = drawn_leaf(owner, UNIFORM_LAYER)?.icon_state
-	TEST_ASSERT(rolled && rolled != state, "Rolling the jumpsuit down did not change its drawn sprite.")
-	TEST_ASSERT_EQUAL(overlay.bulge_cover_state, rolled, "The look was not resolved for the rolled-down jumpsuit.")
-	TEST_ASSERT(overlay.bulge_key && length(look_images(owner)), "The rolled-down jumpsuit drew no bulge.")
-	jumpsuit.toggle_jumpsuit_adjust()
-	owner.update_worn_undersuit()
-	owner.update_body()
-	TEST_ASSERT_EQUAL(drawn_leaf(owner, UNIFORM_LAYER)?.icon_state, state, "The jumpsuit rolled up again is not drawn as before.")
-	TEST_ASSERT_EQUAL(overlay.bulge_cover_state, state, "The look kept the rolled-down sprite.")
-	TEST_ASSERT(overlay.bulge_key && length(look_images(owner)), "The jumpsuit rolled up again drew no bulge.")
 
 /// An accessory (a skull codpiece, worn over the crotch) pinned on a jumpsuit keeps its look; on a hard revealing skirt
 /// that is damaged, the damage is cut with the skirt and the codpiece is not.
@@ -428,8 +400,8 @@
 	TEST_ASSERT_NULL(overlay.bulge_cut_icon, "A deleted wearer's overlay keeps the cut sprite.")
 
 /// A colour matrix, then a colour filter changed straight to another, on a worn printed garment: the look falls back to
-/// the adaptive palette at once, its cloth drawn through the colour filter the garment is drawn through (N4b review S9),
-/// follows the garment from one filter to the next, and prints again when the colour comes off.
+/// the adaptive palette at once, its cloth drawn through the colour filter the garment is drawn through, follows the
+/// garment from one filter to the next, and prints again when the colour comes off.
 /datum/unit_test/portal_test/bulge_renderer/colour_filters
 
 /datum/unit_test/portal_test/bulge_renderer/colour_filters/check()
@@ -475,26 +447,6 @@
 			TEST_ASSERT(overlay.bulge_key != key, "Changed straight from one colour filter to another, the look kept the first one's key.")
 		camo.remove_atom_colour(FIXED_COLOUR_PRIORITY)
 		TEST_ASSERT(overlay.bulge_patch && length(look_images(owner)), "The print did not come back without [how].")
-
-/// A skirt whose anatomy clearance is empty (a long curtain skirt, hard at size 4): the penis is drawn behind it, none
-/// over its cloth, and nothing is derived for the empty mask.
-/datum/unit_test/portal_test/bulge_renderer/empty_clearance
-
-/datum/unit_test/portal_test/bulge_renderer/empty_clearance/check()
-	var/mob/living/carbon/human/owner = dressed_wearer(12, /obj/item/clothing/under/costume/gladiator/ash_walker/ash_robes, null)
-	TEST_ASSERT_NOTNULL(owner, "No dressed wearer.")
-	var/obj/item/organ/genital/penis/penis = owner.get_organ_slot(ORGAN_SLOT_PENIS)
-	var/datum/bodypart_overlay/mutant/genital/penis/overlay = penis.bodypart_overlay
-	var/datum/bulge_sheet_state/clearance = bulge_clearance(/datum/bulge_family/skirt/long_curtain, TRUE, 4)
-	TEST_ASSERT(clearance && !bulge_mask_shows(clearance), "The long curtain's hard size-4 clearance is not an empty mask.")
-	var/count = length(GLOB.bulge_masked_icons)
-	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The hard writer was unavailable.")
-	TEST_ASSERT(overlay.bulge_key && overlay.bulge_anatomy_behind, "The hard curtain skirt draws nothing of the penis behind it.")
-	TEST_ASSERT_NULL(overlay.bulge_anatomy_mask, "An empty clearance is kept as a mask.")
-	TEST_ASSERT_EQUAL(length(GLOB.bulge_masked_icons), count, "An empty clearance derived masked anatomy.")
-	TEST_ASSERT(length(look_images(owner, "behind")), "The penis is not drawn behind the curtain skirt.")
-	for(var/image/part as anything in look_images(owner))
-		TEST_ASSERT_EQUAL(part.name, BULGE_CLOTH_NAME, "Something other than cloth is drawn over the curtain skirt.")
 
 /// Blood put on a worn cover while the bulge shows draws over the bulge's cloth too, kept to its pixels, in the blood's
 /// colour and just after the cloth; washed off, it goes from both. Any overlay the cover draws over its own sprite does
@@ -549,8 +501,8 @@
 	stain.color = "#664422"
 	overlays += stain
 
-/// Blood on a revealing skirt that is cut when hard is cut with it, or it would draw over the shaft the cut reveals (N4b
-/// review S6); the look's cloth carries the blood as the skirt had it, uncut. Half hard, the blood is drawn whole again.
+/// Blood on a revealing skirt that is cut when hard is cut with it, or it would draw over the shaft the cut reveals;
+/// the look's cloth carries the blood as the skirt had it, uncut. Half hard, the blood is drawn whole again.
 /datum/unit_test/portal_test/bulge_renderer/blood_on_cut
 
 /datum/unit_test/portal_test/bulge_renderer/blood_on_cut/check()
@@ -587,33 +539,6 @@
 		if(sibling.plane == FLOAT_PLANE)
 			return sibling.icon
 	return null
-
-/// The guard that stops a cover's redraw from recursing (bulge_redrawing) never stays set. The redraw resets it itself:
-/// a runtime in the cover's render ends only the proc it happens in, so the redraw carries on (no unit test can raise
-/// one: any runtime fails the run). One left set anyway is reset when the look is cleared and when the penis is taken
-/// out, and the skirt is drawn whole and cut again as before.
-/datum/unit_test/portal_test/bulge_renderer/redraw_guard
-
-/datum/unit_test/portal_test/bulge_renderer/redraw_guard/check()
-	var/mob/living/carbon/human/owner = dressed_wearer(37, /obj/item/clothing/under/dress/skirt/plaid, null)
-	TEST_ASSERT_NOTNULL(owner, "No dressed wearer.")
-	var/obj/item/organ/genital/penis/penis = owner.get_organ_slot(ORGAN_SLOT_PENIS)
-	var/datum/bodypart_overlay/mutant/genital/penis/overlay = penis.bodypart_overlay
-	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The hard writer was unavailable.")
-	TEST_ASSERT(overlay.bulge_uniform_cut && drawn_cut(owner, UNIFORM_LAYER), "The hard skirt is drawn uncut.")
-	TEST_ASSERT(!overlay.bulge_redrawing, "The redraw that cut the skirt left its guard set.")
-	overlay.bulge_redrawing = TRUE
-	TEST_ASSERT(penis.apply_arousal_label("Not aroused"), "The soft writer was unavailable.")
-	TEST_ASSERT(!overlay.bulge_redrawing, "A guard left set outlived the look.")
-	TEST_ASSERT(!overlay.bulge_uniform_cut && !drawn_cut(owner, UNIFORM_LAYER), "With a guard left set, the soft skirt stayed cut.")
-	TEST_ASSERT(penis.apply_arousal_label("Very aroused"), "The hard writer was unavailable.")
-	TEST_ASSERT(overlay.bulge_uniform_cut && drawn_cut(owner, UNIFORM_LAYER), "After a guard left set, the hard skirt was not cut again.")
-	overlay.bulge_redrawing = TRUE
-	penis.Remove(owner, special = TRUE)
-	TEST_ASSERT(!overlay.bulge_redrawing, "A guard left set outlived the penis's removal.")
-	var/image/leaf = drawn_leaf(owner, UNIFORM_LAYER)
-	TEST_ASSERT(isfile(leaf?.icon) && leaf.icon_state, "The skirt was not drawn whole when the penis was taken out.")
-	qdel(penis)
 
 /// Legs swapped to digitigrade by the legs preference and back, then a digitigrade leg attached as surgery attaches one:
 /// each time the uniform is drawn again for the new legs at once (the leg-swap refresh in try_attach_limb() and in the

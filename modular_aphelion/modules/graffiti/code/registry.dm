@@ -161,8 +161,6 @@ SUBSYSTEM_DEF(graffiti)
 	var/save_pending
 	/// Whether the round-end save has run, after which nothing is written.
 	var/frozen = FALSE
-	/// Most unique arts shown in a round. Tests lower it.
-	var/display_budget = GRAFFITI_DISPLAY_BUDGET
 	/// Most placements the map keeps. Tests lower it.
 	var/placement_cap = GRAFFITI_MAP_PLACEMENT_CAP
 	/// The directory every map's sheet files go under. Tests move it.
@@ -275,7 +273,7 @@ SUBSYSTEM_DEF(graffiti)
  * libraries and the painting under way.
  */
 /datum/controller/subsystem/graffiti/Recover()
-	for(var/name in list("art", "art_refs", "art_bytes", "art_byte_budget", "placements", "dormant", "shown", "seen", "sheets", "displayed_unique", "placement_info", "ckey_placements", "ckey_arts", "admin_orders", "admin_areas", "decoded", "total_size", "stack_cache", "store", "map_path", "save_pending", "frozen", "display_budget", "placement_cap", "sheet_root", "sheets_built", "save_failure_told", "loaded", "load_resumed_at", "load_share", "composite_share", "composite_share_at", "composite_line", "editors", "paint_jobs", "start_cooldowns", "libraries", "library_root", "library_revision", "art_icons", "glow_icons", "loaded_templates", "anchor_resolvers"))
+	for(var/name in list("art", "art_refs", "art_bytes", "art_byte_budget", "placements", "dormant", "shown", "seen", "sheets", "displayed_unique", "placement_info", "ckey_placements", "ckey_arts", "admin_orders", "admin_areas", "decoded", "total_size", "stack_cache", "store", "map_path", "save_pending", "frozen", "placement_cap", "sheet_root", "sheets_built", "save_failure_told", "loaded", "load_resumed_at", "load_share", "composite_share", "composite_share_at", "composite_line", "editors", "paint_jobs", "start_cooldowns", "libraries", "library_root", "library_revision", "art_icons", "glow_icons", "loaded_templates", "anchor_resolvers"))
 		vars[name] = SSgraffiti.vars[name]
 
 /**
@@ -788,7 +786,7 @@ SUBSYSTEM_DEF(graffiti)
 			changed[packed] = json_encode(placement)
 			packed = changed[packed]
 		var/hash = placement["art"]
-		if(length(displayed_unique) >= display_budget && !displayed_unique[hash])
+		if(length(displayed_unique) >= GRAFFITI_DISPLAY_BUDGET && !displayed_unique[hash])
 			dormant += packed
 			continue
 		count_shown(hash, 1)
@@ -1364,7 +1362,7 @@ SUBSYSTEM_DEF(graffiti)
 			continue
 		var/list/placement = unpack(packed)
 		var/turf/tile = graffiti_anchor_resolve(placement["anchor"])
-		if(!tile || (length(displayed_unique) >= display_budget && !displayed_unique[placement["art"]]))
+		if(!tile || (length(displayed_unique) >= GRAFFITI_DISPLAY_BUDGET && !displayed_unique[placement["art"]]))
 			continue
 		dormant -= packed
 		if(!display(packed, tile))

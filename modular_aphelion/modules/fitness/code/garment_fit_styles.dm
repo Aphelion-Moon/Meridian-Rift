@@ -97,11 +97,10 @@
 	return FALSE
 
 /**
- * Whether this top leaves the near forearm bare below its sleeve in its side views, edged by a strip of cloth at the back,
- * as the polo shirts do. Fitted over a bigger arm, the forearm then shows at that arm's own width
+ * Whether this top leaves the near forearm bare below its sleeve in its side views, edged by a strip of cloth at the back, as
+ * the polo shirts do. Fitted over a bigger arm, the forearm then shows at that arm's own width
  * (/datum/garment_fit_view/proc/bare_near_forearm()); otherwise the strip moves out across it as a sleeve's hem would, and
- * the forearm looks thin. Only the polos opt in (Pol, 2026-10-14): other shirts keep their fit. A proc, as
- * hangs_straight_over_pecs() is.
+ * the forearm looks thin. Only the polos opt in: other shirts keep their fit. A proc, as hangs_straight_over_pecs() is.
  */
 /datum/sprite_accessory/clothing/proc/bares_near_forearm()
 	return FALSE
