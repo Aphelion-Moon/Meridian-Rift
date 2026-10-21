@@ -32,8 +32,8 @@ in `adult_items_gated_types()` (`code/_gated_types.dm`). A new family adds its l
   paw mittens with toe beans and a cuff tag. Both need the sex toy preference. LustWish and the Erotic loadout.
 - **R.U.T.T.** (`code/rutt.dm`). A much stronger aphrodisiac than hexacrocin that can cause climaxes, behind the
   aphrodisiac preference. Mixes from crocin, dopamine, femcum and epinephrine at 322K. Dopamine, which only came from
-  climaxing, now mixes from diethylamine, ephedrine, hydrogen and phenol at 373K. The bottle and pill are in a hacked
-  LustWish and the Erotic loadout.
+  climaxing, now mixes from diethylamine, ephedrine, hydrogen and phenol at 373K. The bottle, pill and Rut-Kit
+  neuroware are in a hacked LustWish; the bottle and pill are also in the Erotic loadout.
 - **Denbu tincture** (`code/butt_enlarger.dm`). Grows the butt up to the largest pickable size, behind a new butt
   enlargement preference, and grows one on players who allow new genital growth. Clothes strain and hurt over the last
   two sizes. A camphor overdose moves the butt back to its preference size. Mixes from saline-glucose, sugar, silicon and
@@ -138,8 +138,10 @@ noted.
   [#4692](https://github.com/Bubberstation/Bubberstation/pull/4692)). Modified: a GAGS paw mittens subtype instead of a
   ball mittens reskin, on the paw mittens' greys, without the accent light.
 - **R.U.T.T.** Code: `modular_zzplurt/code/modules/lewd/lewd_chemistry/reagents/rutt.dm` and the dopamine reaction in
-  `dopamine.dm`. No sprites imported. Modified: behind the aphrodisiac preference, the pill labelled 10u, and "You can't
-  stop cumming!" only after a real climax. Left out: making it synthesizable, and the dopamine rename.
+  `dopamine.dm`. The pill sprite is Floofies' from NovaSector
+  [#6598](https://github.com/NovaSector/NovaSector/pull/6598). Modified: behind the aphrodisiac preference, the pill
+  labelled 10u, "You can't stop cumming!" only after a real climax, and both reactions yielding 7u, as in #6598. Left
+  out: making it synthesizable.
 - **Denbu tincture.** Code: `modular_zzplurt/code/modules/lewd/lewd_chemistry/reagents/butt_enlarger.dm`, the butt parts
   of `_aphrodisiac.dm` and `camphor.dm`, the bottle, and the butt enlargement preference with its toggle. No sprites
   imported. Modified: a new butt is set to "Pair" and starts at size 1 so it draws, strain hurts the groin, and the

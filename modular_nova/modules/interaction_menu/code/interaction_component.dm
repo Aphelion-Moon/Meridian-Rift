@@ -114,7 +114,11 @@
 	if(!ishuman(user) || QDELETED(user) || QDELETED(self))
 		return UI_CLOSE
 
-	return UI_INTERACTIVE // This UI is always interactive as we handle distance flags via can_interact
+	// Distance is checked per interaction, portals included. As participants_are_actionable() decides, lying down or
+	// restrained still acts; incapacitated only watches.
+	if(IS_UNCONSCIOUS_OR_CRIT(user))
+		return UI_DISABLED
+	return user.incapacitated ? UI_UPDATE : UI_INTERACTIVE
 
 /datum/component/interactable/ui_static_data(mob/user)
 	var/list/data = list()

@@ -155,6 +155,8 @@
 #define TRAIT_SADISM "sadism"
 #define TRAIT_NEVERBONER "neverboner"
 #define TRAIT_BIMBO "bimbo"
+/// Can't climax, as under dapoxetine.
+#define TRAIT_NO_CLIMAX "no_climax"
 #define TRAIT_RIGGER "rigger"
 #define TRAIT_ROPEBUNNY "rope bunny"
 ///traits gained by brain traumas, can be removed if the brain trauma is gone

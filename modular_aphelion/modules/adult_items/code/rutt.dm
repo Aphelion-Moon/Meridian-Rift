@@ -42,17 +42,16 @@
 	list_reagents = list(/datum/reagent/drug/aphrodisiac/rutt = 30)
 	obj_flags_nova = ERP_ITEM
 
-/// Uses the dopamine pill sprite.
 /obj/item/reagent_containers/applicator/pill/rutt
 	name = "\improper R.U.T.T. pill (10u)"
 	desc = "This aphrodisiac is an extremely powerful narcotic which may cause unintended climax."
 	icon = 'modular_nova/modules/modular_items/lewd_items/icons/obj/lewd_items/lewd_pills.dmi'
-	icon_state = "dopamine"
+	icon_state = "rutt"
 	list_reagents = list(/datum/reagent/drug/aphrodisiac/rutt = 10)
 	obj_flags_nova = ERP_ITEM
 
 /datum/chemical_reaction/rutt
-	results = list(/datum/reagent/drug/aphrodisiac/rutt = 20)
+	results = list(/datum/reagent/drug/aphrodisiac/rutt = 7)
 	required_reagents = list(
 		/datum/reagent/drug/aphrodisiac/crocin = 3,
 		/datum/reagent/drug/aphrodisiac/dopamine = 1,
@@ -66,7 +65,7 @@
 
 /// Makes dopamine mixable. Otherwise the only source is climaxing.
 /datum/chemical_reaction/dopamine
-	results = list(/datum/reagent/drug/aphrodisiac/dopamine = 10)
+	results = list(/datum/reagent/drug/aphrodisiac/dopamine = 7)
 	required_reagents = list(
 		/datum/reagent/diethylamine = 1,
 		/datum/reagent/medicine/ephedrine = 1,

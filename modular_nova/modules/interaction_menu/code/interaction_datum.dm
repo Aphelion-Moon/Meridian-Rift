@@ -301,7 +301,7 @@ GLOBAL_LIST_INIT(interaction_pec_words, list(
 		else if (lewd)
 			playsound_if_pref(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE, pref_to_check = /datum/preference/toggle/erp/sounds)
 		else
-			playsound(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE)
+			playsound(target.loc, sound_cache, 50, sound_vary, sound_range - SOUND_RANGE, ignore_walls = FALSE)
 
 	INVOKE_ASYNC(src, PROC_REF(apply_effects), WEAKREF(user), WEAKREF(target), route)
 	return TRUE

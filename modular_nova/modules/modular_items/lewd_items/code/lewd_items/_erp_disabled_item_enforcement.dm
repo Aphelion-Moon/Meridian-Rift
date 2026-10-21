@@ -73,6 +73,16 @@
 	if(CONFIG_GET(flag/disable_lewd_items))
 		return INITIALIZE_HINT_QDEL
 
+/obj/item/reagent_containers/cup/bottle/dapoxetine/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
+/obj/item/reagent_containers/applicator/pill/dapoxetine/Initialize(mapload)
+	. = ..()
+	if(CONFIG_GET(flag/disable_lewd_items))
+		return INITIALIZE_HINT_QDEL
+
 /obj/item/reagent_containers/cup/bottle/butt_enlarger/Initialize(mapload)
 	. = ..()
 	if(CONFIG_GET(flag/disable_lewd_items))

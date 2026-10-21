@@ -1,7 +1,7 @@
 // Dopamine. Generates in character after orgasm.
 /datum/reagent/drug/aphrodisiac/dopamine
-	name = "dopamine...?"
-	description = "Pure happiness"
+	name = "Dopamine"
+	description = "A benzene ring with two hydroxyl side groups, and one amine group attached via an ethyl chain. Moderates pleasure and reward-motivated behavior in mammals."
 	taste_description = "an indescribable, slightly sour taste. Something in it relaxes you, filling you with pleasure."
 	color = "#97ffee"
 	overdose_threshold = 10

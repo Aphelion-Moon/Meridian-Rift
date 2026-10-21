@@ -121,3 +121,6 @@
 /// Gets called on the target, with (hiding, play_feedback = TRUE) as its args.
 /// Used for `/datum/element/can_hide`
 #define COMSIG_MOVABLE_TOGGLE_HIDING "movable_toggle_hiding"
+
+/// From /datum/status_effect/climax/on_apply(), on the mob that climaxed: ()
+#define COMSIG_MOB_CLIMAXED "mob_climaxed"
