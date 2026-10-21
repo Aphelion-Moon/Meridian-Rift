@@ -76,13 +76,13 @@
 	var/third_color
 	var/random = rand(1,3)
 	switch(random)
-		if(1) //First random case - all is the same
+		if(1)
 			second_color = main_color
 			third_color = main_color
-		if(2) //Second case, derrivatory shades, except there's no helpers for that and I dont feel like writing them
+		if(2)
 			second_color = main_color
 			third_color = main_color
-		if(3) //Third case, more randomisation
+		if(3)
 			second_color = "#[random_color()]"
 			third_color = "#[random_color()]"
 	features[FEATURE_MUTANT_COLOR] = main_color
