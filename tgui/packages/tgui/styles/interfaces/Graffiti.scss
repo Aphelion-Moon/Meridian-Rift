@@ -1,0 +1,499 @@
+// THIS IS AN APHELION UI FILE
+// Custom graffiti: the spray can's Custom Graffiti tab (CrayonGraffitiTab.tsx), the editor's graffiti
+// mode (common/CustomSpriteEditor), whose shared parts CustomSpriteEditor.scss draws, and the
+// admins' Graffiti Manager (GraffitiAdminPanel.tsx).
+
+$recessed: var(--console-surface-recessed, rgba(0, 0, 0, 0.3));
+// transparency_checkerboard.svg's greys, in squares that suit pixel art at twice its size.
+$checkerboard: repeating-conic-gradient(#999 0% 25%, #bbb 0% 50%) 0 0 / 8px 8px;
+
+// MARK: The spray can's tab
+
+.Graffiti__crayon {
+  margin-bottom: 0.5em;
+}
+
+.Graffiti__tab {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+// Rows of separate buttons, and whatever shares the row.
+.Graffiti__toolbar,
+.Graffiti__filters,
+.Graffiti__rowButtons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  > .Button {
+    margin: 0;
+  }
+}
+
+.Graffiti__filters > .Input {
+  flex: 1;
+  min-width: 0;
+}
+
+.Graffiti__count {
+  flex: none;
+  margin-left: 4px;
+  color: var(--color-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// What the next click on a wall or floor does, until it's done or disarmed.
+.Graffiti__armed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 3px 3px 10px;
+  border-left: 3px solid var(--appendage-accent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--appendage-accent) 12%, transparent);
+
+  > .Icon {
+    color: var(--appendage-accent);
+  }
+
+  > .Button {
+    margin: 0;
+  }
+}
+
+.Graffiti__armedText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Graffiti__hint,
+.Graffiti__empty {
+  color: var(--color-label);
+}
+
+.Graffiti__empty {
+  padding: 1em;
+  text-align: center;
+}
+
+.Graffiti__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// A piece: its thumbnail, what it is, and its buttons.
+.Graffiti__row,
+.Graffiti__unfinished {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 2px;
+  background: $recessed;
+}
+
+.Graffiti__row--armed {
+  border-color: var(--appendage-accent);
+  box-shadow: inset 3px 0 0 var(--appendage-accent);
+}
+
+// The Unfinished slot: a dashed frame and no number, so it never reads as a saved piece.
+.Graffiti__unfinished {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-label) 65%, transparent);
+  background: transparent;
+}
+
+.Graffiti__unfinishedInfo {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.Graffiti__badge {
+  align-self: flex-start;
+  padding: 0 5px;
+  border: 1px solid var(--color-border-dark);
+  border-radius: 2px;
+  font-size: 9.5px;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--color-label);
+}
+
+.Graffiti__rowInfo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.Graffiti__rowName,
+.Graffiti__rowDesc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.Graffiti__rowName {
+  font-weight: bold;
+}
+
+// A saved piece's name, which opens its name and description for editing, the pencil faint until hovered.
+.Graffiti__rowName--editable {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0 -2px;
+  padding: 0 2px;
+  border-radius: 2px;
+  cursor: pointer;
+
+  > .Icon {
+    flex: none;
+    font-size: 0.85em;
+    color: var(--color-label);
+    opacity: 0.4;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, var(--appendage-accent) 18%, transparent);
+
+    > .Icon {
+      opacity: 1;
+    }
+  }
+}
+
+.Graffiti__rowNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// A saved piece's name and description, open for editing in its row.
+.Graffiti__rename {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Three lines of the description at a time.
+.Graffiti__renameDescription {
+  height: 5.25em;
+}
+
+.Graffiti__rowDesc {
+  color: var(--color-label);
+}
+
+.Graffiti__rowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  font-size: 0.85em;
+  color: var(--color-label);
+}
+
+.Graffiti__glow {
+  color: var(--appendage-over);
+}
+
+.Graffiti__rowButtons {
+  flex: none;
+}
+
+// A thumbnail's pixels stay square over the checkerboard.
+.Graffiti__thumb {
+  flex: none;
+  background: $checkerboard;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  image-rendering: pixelated;
+}
+
+// MARK: The editor
+
+// Graffiti's layers are all alike, in the theme's accent; a glowing one in its over-hat colour.
+.Graffiti__layerTab,
+.Graffiti__layerPanel {
+  --kind: var(--appendage-accent);
+}
+
+.Graffiti__layerTab--glow,
+.Graffiti__layerPanel--glow {
+  --kind: var(--appendage-over);
+}
+
+// The layer panel is its title row alone.
+.Graffiti__layerPanel > .CustomSpriteEditor__panelTitle {
+  border-bottom: 0;
+}
+
+.Graffiti__fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  > .Button {
+    flex: none;
+    margin: 0;
+  }
+}
+
+// The preview: the piece at twice its size on a wall's grey, over what the surface shows already.
+.Graffiti__preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.Graffiti__previewCanvas {
+  width: 64px;
+  height: 64px;
+  background: #5b5f66;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  image-rendering: pixelated;
+}
+
+.Graffiti__previewCanvas--wide {
+  width: 128px;
+}
+
+// The inline picker: ColorPickerModal's controls, flat and stacked to fit the side panel.
+.Graffiti__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .react-colorful {
+    width: 100%;
+    height: 140px;
+    gap: 6px;
+  }
+
+  .react-colorful__saturation_value {
+    border-bottom: 0;
+    border-radius: 0;
+  }
+
+  .react-colorful__hue,
+  .react-colorful__alpha {
+    flex: none;
+    height: 12px;
+    border-radius: 0;
+  }
+
+  .react-colorful__alpha {
+    background: $checkerboard;
+  }
+
+  .react-colorful__pointer {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.Graffiti__pickerRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  > .Input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+}
+
+.Graffiti__pickerSwatch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background: $checkerboard;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+
+  > span {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.Graffiti__pickerAlpha {
+  flex: none;
+  min-width: 3em;
+  color: var(--color-label);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+// The side panel's colours, which scroll once a piece's 63 and the account's 16 outgrow it.
+.Graffiti__palettes {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+// MARK: The admin panel
+
+// The table shrinks beside the viewed piece rather than pushing it out of the window.
+.Graffiti__adminMain {
+  min-width: 0;
+}
+
+.Graffiti__adminToolbar,
+.Graffiti__adminBar,
+.Graffiti__adminPager,
+.Graffiti__adminViewButtons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  > .Button {
+    margin: 0;
+  }
+}
+
+.Graffiti__adminToolbar,
+.Graffiti__adminBar {
+  flex-wrap: wrap;
+}
+
+.Graffiti__adminToolbar > .Input {
+  flex: 1;
+  min-width: 12em;
+}
+
+.Graffiti__adminMap {
+  margin-right: 4px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.Graffiti__adminSearchHelp {
+  color: var(--color-label);
+}
+
+// A column heading that explains itself in a tooltip.
+.Graffiti__adminHelp {
+  cursor: help;
+  text-decoration: underline dotted;
+}
+
+.Graffiti__adminCount {
+  color: var(--color-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// The bulk buttons fall in three groups: the selection, one ckey's graffiti and whole maps.
+.Graffiti__adminTarget {
+  margin-left: 8px;
+}
+
+.Graffiti__adminBar > .Graffiti__adminPush {
+  margin-left: auto;
+}
+
+.Graffiti__adminTable .Table__cell {
+  padding: 2px 4px;
+  vertical-align: middle;
+}
+
+.Graffiti__adminCkey {
+  max-width: 9em;
+}
+
+// Character and area share what the other columns leave, cut short; the view shows them whole.
+.Graffiti__adminWho,
+.Graffiti__adminWhere {
+  min-width: 6em;
+  max-width: 0;
+  white-space: nowrap;
+}
+
+.Graffiti__adminWho {
+  width: 35%;
+}
+
+// Area paths, which say the most.
+.Graffiti__adminWhere {
+  width: 65%;
+}
+
+.Graffiti__adminCut {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// A cell's second line: a tile, or the time of day.
+.Graffiti__adminSub {
+  display: block;
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-label);
+}
+
+.Graffiti__adminState {
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.Graffiti__adminState--shown {
+  color: var(--color-good);
+}
+
+.Graffiti__adminState--dormant {
+  color: var(--color-label);
+}
+
+.Graffiti__adminState--round_only {
+  color: var(--color-average);
+}
+
+.Graffiti__adminRow--viewed {
+  background: color-mix(in srgb, var(--appendage-accent) 18%, transparent);
+}
+
+// The viewed piece, beside the table: its art at six times its size, then what it records.
+.Graffiti__adminView {
+  flex: none;
+  width: 232px;
+}
+
+.Graffiti__adminViewArt {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.Graffiti__adminViewText {
+  overflow-wrap: anywhere;
+}
+
+.Graffiti__adminViewButtons {
+  margin-top: 8px;
+}

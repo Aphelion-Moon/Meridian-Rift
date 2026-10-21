@@ -24,6 +24,7 @@ import {
   Tooltip,
 } from 'tgui-core/components';
 import { classes } from 'tgui-core/react';
+import { decodeHtmlEntities } from 'tgui-core/string';
 import {
   ChoicedSelectionDropdown,
   MARKING_PREVIEW_AREAS,
@@ -76,17 +77,31 @@ import {
   expandHats,
   hatchedPixels,
   layerFate,
+  type StackItem,
   type StackLayer,
+  sameStackItems,
   stackAround,
   type TryOnHat,
 } from './appendages';
 import {
   decodeAppendages,
   decodeCanvas,
+  fillSentViews,
   fitsMiddleHalf,
   pictureFitsMiddleHalf,
+  type SentView,
 } from './canvas';
 import { FinishingOverlay } from './FinishingOverlay';
+import {
+  chargesLine,
+  GraffitiFields,
+  GraffitiSaveButtons,
+  GraffitiTabs,
+  ROUND_ONLY_NOTICE,
+} from './GraffitiFields';
+import { GraffitiPreview, surfaceCanvas } from './GraffitiThumb';
+import { shownColor, shownFrame } from './graffitiCodec';
+import { InlineColorPicker } from './InlineColorPicker';
 import {
   composeBackground,
   composeWorn,
@@ -95,7 +110,8 @@ import {
   TryOn,
   useLoadedImages,
 } from './LayerCanvas';
-import { LayerStrip } from './LayerStrip';
+import { LayerPanel } from './LayerPanel';
+import { GraffitiLayerStrip, LayerStrip } from './LayerStrip';
 import {
   isMarkingZone,
   MarkingSheetPicker,
@@ -104,7 +120,7 @@ import {
 import { CustomSpritePalette } from './Palette';
 import { RegionOverlay } from './RegionOverlay';
 import { coverIndexAt, drawScanlines, regionAt, regionBounds } from './regions';
-import type { CustomSpriteEditorData } from './types';
+import type { CustomSpriteEditorData, GraffitiLayer } from './types';
 
 /** Steps through a list of options with wraparound, for the cycle arrows and rotate buttons. */
 function cycleOption<T>(
@@ -212,7 +228,10 @@ const blendingTooltip = 'Uses Multiply blending on Custom colors.';
 const COVER_TIP_DELAY_MS = 400;
 
 /** A line in the footer's status spot, beside the buttons. */
-type StatusMessage = { text: string; color: 'good' | 'average' | 'bad' };
+type StatusMessage = {
+  text: string;
+  color: 'good' | 'average' | 'bad' | 'label';
+};
 
 /** How long a passing status message shows: two seconds, or long enough to read a longer one. */
 const flashDuration = (text: string) => Math.max(2000, text.length * 60);
@@ -228,6 +247,8 @@ const EDITOR_WINDOW = [1100, 920] as const;
 const HAIR_WINDOW = [1100, 960] as const;
 /** A wide canvas (a taur's whole body) fits by its width, so it gets the width to grow into. */
 const WIDE_WINDOW = [1400, 920] as const;
+/** Graffiti's strips and the panel under its canvas fit as hair's do; a two-tile piece gets the width. */
+const GRAFFITI_WIDE_WINDOW = [1400, 960] as const;
 /** Shares palette rows across hair, markings and their salon editors. */
 const EDITOR_PANEL_WIDTH = '26rem';
 /** Hair's side panel is wider, so a wide (taur) body's preview has room to grow. */
@@ -417,6 +438,15 @@ const FittedPicture = (props: {
 
 const NO_APPENDAGES: Appendage[] = [];
 const NO_HATS: Record<string, TryOnHat> = {};
+const NO_GRAFFITI_LAYERS: GraffitiLayer[] = [];
+
+/** Whether a view shows any paint. */
+const framePainted = (frame: StringLayer | undefined) =>
+  !!frame?.some((row) =>
+    row.some(
+      (pixel) => !!pixel && !(pixel.length === 9 && pixel.endsWith('00')),
+    ),
+  );
 
 /** A view of nothing, while an appendage's view is on its way from the server. */
 const blankFrame = (width: number, height: number): StringLayer =>
@@ -481,7 +511,7 @@ const BlendToggle = (props: {
 export const CustomSpriteEditor = ({
   target,
 }: {
-  target: 'hair' | 'facial_hair' | 'markings';
+  target: 'hair' | 'facial_hair' | 'markings' | 'graffiti';
 }) => {
   const { data, act } = useBackend<CustomSpriteEditorData>();
   const {
@@ -553,10 +583,38 @@ export const CustomSpriteEditor = ({
     tryOn,
     focusLayer,
     tryOnHats,
+    graffiti,
+    defaultPalette,
+    graffitiBackground,
   } = data;
+  // Graffiti sends a layer's view only once it changes: the window keeps every view it was sent.
+  const sentViews = useRef<Record<string, SentView>>({});
+  const filled = useMemo(
+    () =>
+      target === 'graffiti'
+        ? fillSentViews(editorData.sprite, sentViews.current)
+        : { sprite: editorData.sprite, missing: false },
+    [editorData.sprite, target],
+  );
+  const resyncAsked = useRef(0);
+  // Bumped when an ask that came too soon after the last is due, so the views still missing are asked for then.
+  const [resyncRetry, setResyncRetry] = useState(0);
+  useEffect(() => {
+    if (!filled.missing) return;
+    const wait = resyncAsked.current + 1000 - Date.now();
+    if (wait > 0) {
+      const timer = setTimeout(
+        () => setResyncRetry((count) => count + 1),
+        wait,
+      );
+      return () => clearTimeout(timer);
+    }
+    resyncAsked.current = Date.now();
+    act('canvasResync');
+  }, [filled, resyncRetry]);
   const sprite = useMemo(
     () => ({
-      ...decodeCanvas(editorData.sprite),
+      ...decodeCanvas(filled.sprite),
       baseCopyInfo:
         data.baseCopyInfo &&
         (target === 'markings' || data.baseCopyInfo.style === data.hairStyle) &&
@@ -564,7 +622,7 @@ export const CustomSpriteEditor = ({
           ? data.baseCopyInfo
           : undefined,
     }),
-    [editorData.sprite, data.baseCopyInfo, data.hairStyle, target],
+    [filled.sprite, data.baseCopyInfo, data.hairStyle, target],
   );
   useEffect(() => {
     if (data.baseCopyResult) receiveBaseCopy(data.baseCopyResult);
@@ -613,11 +671,32 @@ export const CustomSpriteEditor = ({
   };
   // Hair is painted a layer at a time: the base hair, or one of its appendages.
   const layered = target === 'hair';
-  const windowSize = layered ? HAIR_WINDOW : wide ? WIDE_WINDOW : EDITOR_WINDOW;
+  // Graffiti is painted a layer at a time too, on its one view; its layers are all alike.
+  const graffitiMode = target === 'graffiti';
+  const surfaceSession = graffiti?.kind === 'surface';
+  const windowSize = graffitiMode
+    ? wide
+      ? GRAFFITI_WIDE_WINDOW
+      : HAIR_WINDOW
+    : layered
+      ? HAIR_WINDOW
+      : wide
+        ? WIDE_WINDOW
+        : EDITOR_WINDOW;
   const appendages = (layered && serverAppendages) || NO_APPENDAGES;
+  const graffitiLayers =
+    (graffitiMode && graffiti?.layers) || NO_GRAFFITI_LAYERS;
   const [layerId, setLayerId] = useState('hair');
   const chosen = appendages.find((entry) => entry.id === layerId) ?? null;
-  const chosenId = chosen?.id ?? 'hair';
+  // A graffiti layer that's gone, or none chosen yet, leaves the bottom one chosen.
+  const graffitiIndex = Math.max(
+    0,
+    graffitiLayers.findIndex((layer) => layer.id === layerId),
+  );
+  const graffitiLayer = graffitiLayers[graffitiIndex] ?? null;
+  const chosenId = graffitiMode
+    ? (graffitiLayer?.id ?? '')
+    : (chosen?.id ?? 'hair');
   useEffect(() => {
     if (focusLayer) setLayerId(focusLayer);
   }, [focusLayer]);
@@ -626,30 +705,81 @@ export const CustomSpriteEditor = ({
   const halfView = useMemo(
     () =>
       !layered &&
+      !graffitiMode &&
       fitsMiddleHalf(sprite.layers[0]?.data[direction], drawMask?.[direction]),
-    [layered, sprite, drawMask, direction],
+    [layered, graffitiMode, sprite, drawMask, direction],
   );
   const appendageFrames = useMemo(
-    () => decodeAppendages(editorData.sprite),
-    [editorData.sprite],
+    () => decodeAppendages(filled.sprite),
+    [filled.sprite],
   );
   const stackLayers = useMemo<StackLayer[]>(
     () =>
-      layered
-        ? [
-            {
-              id: 'hair',
-              appendage: null,
-              frame: sprite.layers[0]?.data[direction],
-            },
-            ...appendages.map((appendage) => ({
-              id: appendage.id,
-              appendage,
-              frame: appendageFrames[appendage.id]?.[view],
-            })),
-          ]
-        : [],
-    [layered, sprite, appendages, appendageFrames, direction],
+      graffitiMode
+        ? graffitiLayers.map((layer, index) => ({
+            id: layer.id,
+            appendage: null,
+            // The bottom layer comes as the canvas's own view, the others by id.
+            frame: index
+              ? appendageFrames[layer.id]?.[view]
+              : sprite.layers[0]?.data[direction],
+          }))
+        : layered
+          ? [
+              {
+                id: 'hair',
+                appendage: null,
+                frame: sprite.layers[0]?.data[direction],
+              },
+              ...appendages.map((appendage) => ({
+                id: appendage.id,
+                appendage,
+                frame: appendageFrames[appendage.id]?.[view],
+              })),
+            ]
+          : [],
+    [
+      layered,
+      graffitiMode,
+      graffitiLayers,
+      sprite,
+      appendages,
+      appendageFrames,
+      direction,
+    ],
+  );
+  // Which graffiti layers have paint, for the layer strip and a surface session's width.
+  const paintedLayers = useMemo(
+    () =>
+      graffitiMode
+        ? Object.fromEntries(
+            stackLayers.map((layer) => [layer.id, framePainted(layer.frame)]),
+          )
+        : {},
+    [graffitiMode, stackLayers],
+  );
+  // The window draws graffiti's alpha as its share of the ceiling (shownFrame()); strokes and copies keep it as stored.
+  const shownLayers = useMemo(
+    () =>
+      graffitiMode
+        ? stackLayers.map((layer) => ({
+            ...layer,
+            frame: layer.frame && shownFrame(layer.frame),
+          }))
+        : stackLayers,
+    [graffitiMode, stackLayers],
+  );
+  const previewFrames = useMemo(
+    () => shownLayers.map((layer) => layer.frame),
+    [shownLayers],
+  );
+  // What a surface session paints over, beneath its layers on the canvas and in the preview.
+  const surfaceBackdrop = useMemo(
+    () =>
+      graffitiMode
+        ? surfaceCanvas(graffitiBackground, sprite.width)
+        : undefined,
+    [graffitiMode, graffitiBackground, sprite.width],
   );
   const hats = useMemo(
     () => (layered && tryOnHats ? expandHats(tryOnHats) : NO_HATS),
@@ -686,22 +816,33 @@ export const CustomSpriteEditor = ({
   );
   const guideImage =
     loadedGuide?.url === guideUrl ? loadedGuide?.image : undefined;
+  const backdropImage = graffitiMode ? surfaceBackdrop : guideImage;
   const stack = useMemo(
-    () => (layered ? stackAround(stackLayers, chosenId, wornHat, view) : null),
-    [layered, stackLayers, chosenId, wornHat, view],
+    () =>
+      layered || graffitiMode
+        ? stackAround(shownLayers, chosenId, wornHat, view)
+        : null,
+    [layered, graffitiMode, shownLayers, chosenId, wornHat, view],
   );
+  // The stack is built anew with every update, but what lies beneath the chosen layer is kept while it draws the same,
+  // so the canvas background is drawn again only once it changes: a stroke on the chosen layer leaves it alone.
+  const lastBelow = useRef<StackItem[]>([]);
+  if (!sameStackItems(lastBelow.current, stack?.below ?? [])) {
+    lastBelow.current = stack?.below ?? [];
+  }
+  const below = lastBelow.current;
   const canvasBackground = useMemo(
     () =>
-      stack?.below.length
+      below.length
         ? composeBackground(
-            guideImage,
-            stack.below,
+            backdropImage,
+            below,
             hatImage,
             sprite.width,
             sprite.height,
           )
-        : guideImage,
-    [stack, guideImage, hatImage, sprite.width, sprite.height],
+        : backdropImage,
+    [below, backdropImage, hatImage, sprite.width, sprite.height],
   );
   const hatch = useMemo(() => {
     if (!chosen || !wornHat) return null;
@@ -734,6 +875,37 @@ export const CustomSpriteEditor = ({
   }, [!!chosen, hats, hatImages, guideImage, stackLayers, view, sprite]);
   // The window hands the canvas only the chosen layer; the others are drawn around it.
   const canvasSprite = useMemo((): SpriteData => {
+    if (graffitiMode) {
+      // Every stroke names its layer by place and id, the bottom one's too, so one for a layer
+      // that has since moved is refused.
+      const layerTarget = { layer: graffitiIndex + 1, layerId: chosenId };
+      const mergeLayers = () => {
+        const frames = (part: StackLayer[]) =>
+          part.flatMap((layer) => (layer.frame ? [layer.frame] : []));
+        return {
+          dir: direction,
+          below: frames(stackLayers.slice(0, graffitiIndex)),
+          above: frames(stackLayers.slice(graffitiIndex + 1)),
+        };
+      };
+      const layer = {
+        name: graffitiLayer?.name ?? '',
+        visible: true,
+        data: {
+          [direction]:
+            stackLayers[graffitiIndex]?.frame ??
+            blankFrame(sprite.width, sprite.height),
+        },
+      } as unknown as SpriteDataLayer;
+      // A surface is painted by hand, so the server refuses a paste there anyway.
+      return {
+        ...sprite,
+        layers: [layer],
+        layerTarget,
+        mergeLayers,
+        noPaste: surfaceSession,
+      };
+    }
     if (!layered) return sprite;
     const layerTarget = {
       layer: chosen ? appendages.indexOf(chosen) + 2 : 1,
@@ -763,6 +935,10 @@ export const CustomSpriteEditor = ({
     return { ...sprite, layers: [layer], layerTarget, mergeLayers };
   }, [
     layered,
+    graffitiMode,
+    graffitiIndex,
+    graffitiLayer,
+    surfaceSession,
     sprite,
     chosen,
     chosenId,
@@ -773,8 +949,14 @@ export const CustomSpriteEditor = ({
     direction,
   ]);
   // An appendage's other views come from the server as the window turns to them.
-  const layerLoading = !!chosen && !appendageFrames[chosen.id]?.[view];
-  const layerName = chosen ? chosen.name : 'Base hair layer';
+  const layerLoading = graffitiMode
+    ? !stackLayers[graffitiIndex]?.frame
+    : !!chosen && !appendageFrames[chosen.id]?.[view];
+  const layerName = graffitiMode
+    ? decodeHtmlEntities(graffitiLayer?.name ?? '')
+    : chosen
+      ? chosen.name
+      : 'Base hair layer';
   // Copy all adds the base and the other layers, so it's offered only where there are some.
   const copiedByAll = sprite.baseCopyInfo
     ? target === 'markings'
@@ -782,7 +964,7 @@ export const CustomSpriteEditor = ({
       : 'the custom hair and the base hair'
     : 'the paint of every layer';
   const mergedTooltip =
-    sprite.baseCopyInfo || appendages.length
+    sprite.baseCopyInfo || appendages.length || graffitiLayers.length > 1
       ? `While lit, Ctrl+C copies ${copiedByAll}.`
       : undefined;
   const mergedHint = `Copies ${copiedByAll}.`;
@@ -810,11 +992,15 @@ export const CustomSpriteEditor = ({
   const regionLabel = (selectedZone && regionLabels?.[selectedZone]) || '';
   const actionTarget = {
     dir: String(direction),
-    ...(regionMode ? { zone: selectedZone } : chosen && { layer: chosen.id }),
+    ...(regionMode
+      ? { zone: selectedZone }
+      : graffitiMode
+        ? { layer: chosenId }
+        : chosen && { layer: chosen.id }),
   };
   const currentEmissive = regionMode
     ? !!(selectedZone && regionEmissive?.[selectedZone]?.[direction])
-    : !!(chosen ? chosen.emissive : emissive)[direction];
+    : !!(chosen ? chosen.emissive : emissive)?.[direction];
   // Regions the server won't change right now, each with the reason, such as clothing covering it.
   const lockReason = (zone?: string | null) =>
     (zone && lockedRegions?.[zone]) || null;
@@ -1066,9 +1252,14 @@ export const CustomSpriteEditor = ({
     });
   }
   if (paletteNotice) pinned.push({ text: paletteNotice, color: 'average' });
+  if (graffiti?.roundOnly) {
+    pinned.push({ text: ROUND_ONLY_NOTICE, color: 'average' });
+  }
+  // A surface session shows the can's charges while nothing else is there.
+  const idle = graffiti && chargesLine(graffiti);
   const status: StatusMessage | undefined = flash
     ? { text: flash.text, color: 'good' }
-    : pinned[0];
+    : (pinned[0] ?? (idle ? { text: idle, color: 'label' } : undefined));
   const statusLine = (
     <span
       className={status && `color-${status.color}`}
@@ -1082,7 +1273,14 @@ export const CustomSpriteEditor = ({
     <Window
       width={windowSize[0]}
       height={windowSize[1]}
-      title={salon ? `${drawingName} for ${recipientName}` : drawingName}
+      // Graffiti's title comes from the server, which names the session.
+      title={
+        graffitiMode
+          ? undefined
+          : salon
+            ? `${drawingName} for ${recipientName}`
+            : drawingName
+      }
     >
       <Window.Content>
         {!!candidate && (
@@ -1152,49 +1350,61 @@ export const CustomSpriteEditor = ({
           <Stack.Item>
             <Stack align="center">
               <Stack.Item>
-                <div className="CustomSpriteEditor__group">
-                  {directions.map(([dir, label]) => {
-                    const painted = !!(chosen ? chosen.edited : edited)[dir];
-                    const pipLabel = layered
-                      ? painted
-                        ? `${layerName} has paint in this view`
-                        : `No ${layerName.toLowerCase()} paint in this view yet`
-                      : painted
-                        ? 'Has markings'
-                        : 'No markings yet';
-                    const pip = (
-                      <span
-                        className={classes([
-                          'CustomSpriteEditor__pip',
-                          painted && 'CustomSpriteEditor__pip--lit',
-                        ])}
-                        role="img"
-                        aria-label={pipLabel}
-                      />
-                    );
-                    return (
-                      <Button
-                        key={dir}
-                        className="CustomSpriteEditor__viewTab"
-                        icon={locked(dir) ? 'lock' : undefined}
-                        tooltip={
-                          locked(dir)
-                            ? 'You need a mirror to work on this view of your own body.'
-                            : undefined
-                        }
-                        selected={direction === dir}
-                        onClick={() => setDirection(dir)}
-                      >
-                        {label}
-                        {locked(dir) ? (
-                          pip
-                        ) : (
-                          <Tooltip content={pipLabel}>{pip}</Tooltip>
-                        )}
-                      </Button>
-                    );
-                  })}
-                </div>
+                {graffitiMode ? (
+                  <GraffitiTabs
+                    current="editor"
+                    editor
+                    onSelect={(tab) => {
+                      // Leaving ends the session, which keeps the piece, floating paint included.
+                      settleSelection();
+                      act('openTab', { tab });
+                    }}
+                  />
+                ) : (
+                  <div className="CustomSpriteEditor__group">
+                    {directions.map(([dir, label]) => {
+                      const painted = !!(chosen ? chosen.edited : edited)[dir];
+                      const pipLabel = layered
+                        ? painted
+                          ? `${layerName} has paint in this view`
+                          : `No ${layerName.toLowerCase()} paint in this view yet`
+                        : painted
+                          ? 'Has markings'
+                          : 'No markings yet';
+                      const pip = (
+                        <span
+                          className={classes([
+                            'CustomSpriteEditor__pip',
+                            painted && 'CustomSpriteEditor__pip--lit',
+                          ])}
+                          role="img"
+                          aria-label={pipLabel}
+                        />
+                      );
+                      return (
+                        <Button
+                          key={dir}
+                          className="CustomSpriteEditor__viewTab"
+                          icon={locked(dir) ? 'lock' : undefined}
+                          tooltip={
+                            locked(dir)
+                              ? 'You need a mirror to work on this view of your own body.'
+                              : undefined
+                          }
+                          selected={direction === dir}
+                          onClick={() => setDirection(dir)}
+                        >
+                          {label}
+                          {locked(dir) ? (
+                            pip
+                          ) : (
+                            <Tooltip content={pipLabel}>{pip}</Tooltip>
+                          )}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
               </Stack.Item>
               {regionMode && !!regionLabel && (
                 <Stack.Item>
@@ -1217,14 +1427,16 @@ export const CustomSpriteEditor = ({
               <Stack.Item grow />
               <Stack.Item>
                 <div className="CustomSpriteEditor__tray">
-                  <GuideToggle
-                    selected={showGuide}
-                    icon="user"
-                    tooltip="Show the body behind your paint."
-                    onClick={() => setShowGuide(!showGuide)}
-                  >
-                    Guide
-                  </GuideToggle>
+                  {!graffitiMode && (
+                    <GuideToggle
+                      selected={showGuide}
+                      icon="user"
+                      tooltip="Show the body behind your paint."
+                      onClick={() => setShowGuide(!showGuide)}
+                    >
+                      Guide
+                    </GuideToggle>
+                  )}
                   {!!canHideParts && (
                     <GuideToggle
                       selected={!hideParts}
@@ -1280,6 +1492,17 @@ export const CustomSpriteEditor = ({
               />
             </Stack.Item>
           )}
+          {graffitiMode && (
+            <Stack.Item>
+              <GraffitiLayerStrip
+                layers={graffitiLayers}
+                selected={chosenId}
+                painted={paintedLayers}
+                onSelect={setLayerId}
+                onAdd={() => act('layerAdd')}
+              />
+            </Stack.Item>
+          )}
           <Stack.Item>
             <Stack align="center">
               <Stack.Item>
@@ -1325,44 +1548,63 @@ export const CustomSpriteEditor = ({
                   icon="broom"
                   disabled={regionMode && (!selectedZone || !!selectedLock)}
                   tooltip={
-                    layered
-                      ? `Erase ${chosen ? chosen.name.toLowerCase() : 'the base hair layer'} in this view. Undo brings it back.`
-                      : !regionMode
-                        ? 'Erase this view. Undo brings it back.'
-                        : regionLabel
-                          ? `Erase all ${regionLabel.toLowerCase()} paint in this view. Undo brings it back.`
-                          : 'Choose a region to clear.'
+                    graffitiMode
+                      ? `Erase ${layerName}. Undo brings it back.`
+                      : layered
+                        ? `Erase ${chosen ? chosen.name.toLowerCase() : 'the base hair layer'} in this view. Undo brings it back.`
+                        : !regionMode
+                          ? 'Erase this view. Undo brings it back.'
+                          : regionLabel
+                            ? `Erase all ${regionLabel.toLowerCase()} paint in this view. Undo brings it back.`
+                            : 'Choose a region to clear.'
                   }
                   onClick={() => act('clear', actionTarget)}
                 >
-                  {chosen
-                    ? `Clear ${chosen.name.toLowerCase()}`
-                    : !regionMode
-                      ? 'Clear direction'
-                      : regionLabel
-                        ? `Clear ${regionLabel.toLowerCase()}`
-                        : 'Clear region'}
+                  {graffitiMode
+                    ? 'Clear layer'
+                    : chosen
+                      ? `Clear ${chosen.name.toLowerCase()}`
+                      : !regionMode
+                        ? 'Clear direction'
+                        : regionLabel
+                          ? `Clear ${regionLabel.toLowerCase()}`
+                          : 'Clear region'}
                 </Button>
               </Stack.Item>
               <Stack.Item grow />
-              <Stack.Item>
-                <div className="CustomSpriteEditor__group">
-                  <Button
-                    icon="file-import"
-                    tooltip="Preview a style file before replacing this draft."
-                    onClick={() => act('importStyle')}
-                  >
-                    Import
-                  </Button>
-                  <Button
-                    icon="file-export"
-                    tooltip="Download the current draft without saving it."
-                    onClick={() => act('exportStyle')}
-                  >
-                    Export
-                  </Button>
-                </div>
-              </Stack.Item>
+              {/* Nothing comes onto a surface, or off it, but by painting. */}
+              {!surfaceSession && (
+                <Stack.Item>
+                  <div className="CustomSpriteEditor__group">
+                    <Button
+                      icon="file-import"
+                      tooltip={
+                        graffitiMode
+                          ? 'Adds a graffiti file to Custom Graffiti.'
+                          : 'Preview a style file before replacing this draft.'
+                      }
+                      onClick={() =>
+                        act(graffitiMode ? 'importPiece' : 'importStyle')
+                      }
+                    >
+                      Import
+                    </Button>
+                    <Button
+                      icon="file-export"
+                      tooltip={
+                        graffitiMode
+                          ? 'Exports the piece as it was last saved.'
+                          : 'Download the current draft without saving it.'
+                      }
+                      onClick={() =>
+                        act(graffitiMode ? 'exportPiece' : 'exportStyle')
+                      }
+                    >
+                      Export
+                    </Button>
+                  </div>
+                </Stack.Item>
+              )}
             </Stack>
           </Stack.Item>
           <Stack.Item grow basis={0}>
@@ -1409,10 +1651,23 @@ export const CustomSpriteEditor = ({
                                     erasing,
                                   });
                                 }
-                              : undefined
+                              : surfaceSession
+                                ? () => {
+                                    // The can's spray sound, which the server paces too.
+                                    const now = Date.now();
+                                    if (now < nextDrawingActivity.current) {
+                                      return;
+                                    }
+                                    nextDrawingActivity.current = now + 1000;
+                                    act('drawing');
+                                  }
+                                : undefined
                           }
                           onSampleBackdrop={(x, y) => {
-                            if (showGuide) {
+                            // Graffiti takes the paint showing there from the other layers.
+                            if (graffitiMode) {
+                              act('sampleGuide', { x, y });
+                            } else if (showGuide) {
                               act('sampleGuide', {
                                 dir: String(direction),
                                 x,
@@ -1426,7 +1681,12 @@ export const CustomSpriteEditor = ({
                           drawBounds={drawBounds[direction] ?? [0, 0, -1, -1]}
                           drawMask={drawMask?.[direction]}
                           backgroundImage={canvasBackground}
-                          background={tileUrl ? `url(${tileUrl})` : undefined}
+                          pixelColor={graffitiMode ? shownColor : undefined}
+                          background={
+                            tileUrl && !graffitiMode
+                              ? `url(${tileUrl})`
+                              : undefined
+                          }
                           shade={drawScanlines}
                           onPointerDown={selectRegionAt}
                           overlay={
@@ -1474,12 +1734,14 @@ export const CustomSpriteEditor = ({
                       )}
                     </Box>
                   </Stack.Item>
-                  <Stack.Item
-                    textAlign="center"
-                    className="CustomSpriteEditor__canvasRotation"
-                  >
-                    <ViewRotation onRotate={rotate} />
-                  </Stack.Item>
+                  {!graffitiMode && (
+                    <Stack.Item
+                      textAlign="center"
+                      className="CustomSpriteEditor__canvasRotation"
+                    >
+                      <ViewRotation onRotate={rotate} />
+                    </Stack.Item>
+                  )}
                   {regionMode && !!selectedLock && (
                     <Stack.Item className="CustomSpriteEditor__status">
                       <Box color="average">{selectedLock}</Box>
@@ -1515,10 +1777,54 @@ export const CustomSpriteEditor = ({
                       />
                     </Stack.Item>
                   )}
+                  {!!graffitiLayer && (
+                    <Stack.Item>
+                      <LayerPanel
+                        key={graffitiLayer.id}
+                        layer={graffitiLayer}
+                        index={graffitiIndex}
+                        count={graffitiLayers.length}
+                        onRename={(name) =>
+                          act('layerRename', { id: chosenId, name })
+                        }
+                        onGlow={(enabled) =>
+                          act('layerGlow', { id: chosenId, enabled })
+                        }
+                        onMove={(delta) => {
+                          // Floating paint lands on the layer before it moves.
+                          settleSelection();
+                          act('layerMove', { id: chosenId, delta });
+                        }}
+                        onRemove={() => {
+                          const next =
+                            graffitiLayers[graffitiIndex - 1] ??
+                            graffitiLayers[graffitiIndex + 1];
+                          settleSelection();
+                          act('layerRemove', { id: chosenId });
+                          if (next) setLayerId(next.id);
+                        }}
+                      />
+                    </Stack.Item>
+                  )}
+                  {graffitiMode && !!graffiti && (
+                    <Stack.Item>
+                      <GraffitiFields
+                        graffiti={graffiti}
+                        painted={Object.values(paintedLayers).some(Boolean)}
+                        notice={transferNotice}
+                        noticeRevision={noticeRevision}
+                        act={act}
+                      />
+                    </Stack.Item>
+                  )}
                 </Stack>
               </Stack.Item>
               <Stack.Item
-                width={layered ? HAIR_PANEL_WIDTH : EDITOR_PANEL_WIDTH}
+                width={
+                  layered || graffitiMode
+                    ? HAIR_PANEL_WIDTH
+                    : EDITOR_PANEL_WIDTH
+                }
                 className="CustomSpriteEditor__sidebar"
               >
                 <Stack vertical fill>
@@ -1677,90 +1983,125 @@ export const CustomSpriteEditor = ({
                       </Section>
                     </Stack.Item>
                   )}
-                  <Stack.Item>
+                  <Stack.Item
+                    // Graffiti's colours scroll rather than push the footer off: a piece takes 63.
+                    {...(graffitiMode && {
+                      grow: true,
+                      basis: 0,
+                      minHeight: 0,
+                      className: 'Graffiti__palettes',
+                    })}
+                  >
                     <CustomSpritePalette
                       blending={
-                        <div className="CustomSpriteEditor__blending">
-                          <Collapsible title="Blending options">
-                            <BlendToggle
-                              mode={bodyBlend}
-                              current={colorMode}
-                              act={act}
-                              label={
-                                hairTarget
-                                  ? 'Blend with hair color'
-                                  : 'Blend with mutant color'
-                              }
-                            />
-                            <Stack align="center" mt={0.5}>
-                              <Stack.Item grow>
-                                <BlendToggle
-                                  mode="tint"
-                                  current={colorMode}
-                                  act={act}
-                                  label="Blend with color"
-                                />
-                              </Stack.Item>
-                              {colorMode === 'tint' && (
-                                <Stack.Item>
-                                  <Button
-                                    className="SpriteEditor__plainSwatch"
-                                    width="2em"
-                                    height="2em"
-                                    aria-label="Choose blending color"
-                                    tooltip="Choose blending color"
-                                    onClick={() => act('pickTint')}
-                                    style={{
-                                      backgroundImage: `linear-gradient(${customTint}, ${customTint})`,
-                                    }}
+                        !graffitiMode && (
+                          <div className="CustomSpriteEditor__blending">
+                            <Collapsible title="Blending options">
+                              <BlendToggle
+                                mode={bodyBlend}
+                                current={colorMode}
+                                act={act}
+                                label={
+                                  hairTarget
+                                    ? 'Blend with hair color'
+                                    : 'Blend with mutant color'
+                                }
+                              />
+                              <Stack align="center" mt={0.5}>
+                                <Stack.Item grow>
+                                  <BlendToggle
+                                    mode="tint"
+                                    current={colorMode}
+                                    act={act}
+                                    label="Blend with color"
                                   />
                                 </Stack.Item>
-                              )}
-                            </Stack>
-                          </Collapsible>
-                        </div>
+                                {colorMode === 'tint' && (
+                                  <Stack.Item>
+                                    <Button
+                                      className="SpriteEditor__plainSwatch"
+                                      width="2em"
+                                      height="2em"
+                                      aria-label="Choose blending color"
+                                      tooltip="Choose blending color"
+                                      onClick={() => act('pickTint')}
+                                      style={{
+                                        backgroundImage: `linear-gradient(${customTint}, ${customTint})`,
+                                      }}
+                                    />
+                                  </Stack.Item>
+                                )}
+                              </Stack>
+                            </Collapsible>
+                          </div>
+                        )
                       }
                       serverPalette={editorData.serverPalette}
                       customPalette={customPalette}
                       availableColors={availableColors}
                       maxCustomColors={maxCustomColors}
                       displayTint={paletteTint}
+                      defaultPalette={graffitiMode ? defaultPalette : undefined}
                     />
                   </Stack.Item>
-                  <Stack.Item>
-                    <Button.Checkbox
-                      fluid
-                      checked={currentEmissive}
-                      disabled={
-                        !emissiveAllowed ||
-                        (regionMode && (!selectedZone || !!selectedLock))
-                      }
-                      tooltip={
-                        !emissiveAllowed
-                          ? 'Enable emissive appearance in character preferences.'
+                  {/* Below the colours that scroll, so a piece gaining them never moves it. */}
+                  {graffitiMode && (
+                    <Stack.Item>
+                      <InlineColorPicker
+                        serverColor={editorData.serverSelectedColor}
+                        full={!!graffiti?.full}
+                      />
+                    </Stack.Item>
+                  )}
+                  {/* Graffiti glows by layer, in the panel under the canvas. */}
+                  {!graffitiMode && (
+                    <Stack.Item>
+                      <Button.Checkbox
+                        fluid
+                        checked={currentEmissive}
+                        disabled={
+                          !emissiveAllowed ||
+                          (regionMode && (!selectedZone || !!selectedLock))
+                        }
+                        tooltip={
+                          !emissiveAllowed
+                            ? 'Enable emissive appearance in character preferences.'
+                            : layered
+                              ? 'Makes this layer glow in the dark in this view.'
+                              : 'Makes this direction glow in the dark.'
+                        }
+                        onClick={() =>
+                          act('setEmissive', {
+                            ...actionTarget,
+                            enabled: !currentEmissive,
+                          })
+                        }
+                      >
+                        {regionMode
+                          ? `Emissives - (${regionLabel}, ${viewLabel})`
                           : layered
-                            ? 'Makes this layer glow in the dark in this view.'
-                            : 'Makes this direction glow in the dark.'
-                      }
-                      onClick={() =>
-                        act('setEmissive', {
-                          ...actionTarget,
-                          enabled: !currentEmissive,
-                        })
-                      }
-                    >
-                      {regionMode
-                        ? `Emissives - (${regionLabel}, ${viewLabel})`
-                        : layered
-                          ? `Emissive - (${layerName}, ${viewLabel})`
-                          : 'Emissive'}
-                    </Button.Checkbox>
-                  </Stack.Item>
+                            ? `Emissive - (${layerName}, ${viewLabel})`
+                            : 'Emissive'}
+                      </Button.Checkbox>
+                    </Stack.Item>
+                  )}
                   {/* The preview takes whatever height the panel has left, Try on included. */}
-                  <Stack.Item grow basis={0} minHeight="10rem">
+                  <Stack.Item
+                    {...(!graffitiMode && {
+                      grow: true,
+                      basis: 0,
+                      minHeight: '10rem',
+                    })}
+                  >
                     <Section title="Preview" fill>
                       <div className="CustomSpriteEditor__preview">
-                        {previews[direction] ? (
+                        {graffitiMode ? (
+                          <GraffitiPreview
+                            width={sprite.width}
+                            backdrop={surfaceBackdrop}
+                            frames={previewFrames}
+                          />
+                        ) : previews[direction] ? (
                           <FittedPicture
                             src={previews[direction]}
                             alt="Character with your drawing"
@@ -1775,7 +2116,7 @@ export const CustomSpriteEditor = ({
                         ) : (
                           <div className="CustomSpriteEditor__previewFit" />
                         )}
-                        {!!backgrounds?.length && (
+                        {!!backgrounds?.length && !graffitiMode && (
                           <Stack
                             justify="center"
                             wrap
@@ -1803,15 +2144,17 @@ export const CustomSpriteEditor = ({
                             ))}
                           </Stack>
                         )}
-                        <Box mt={1}>
-                          <ViewRotation onRotate={rotate}>
-                            <LightsButton
-                              fontSize="22px"
-                              off={lightsOff}
-                              onToggle={toggleLights}
-                            />
-                          </ViewRotation>
-                        </Box>
+                        {!graffitiMode && (
+                          <Box mt={1}>
+                            <ViewRotation onRotate={rotate}>
+                              <LightsButton
+                                fontSize="22px"
+                                off={lightsOff}
+                                onToggle={toggleLights}
+                              />
+                            </ViewRotation>
+                          </Box>
+                        )}
                         {!!chosen && Object.keys(hats).length > 0 && (
                           <TryOn
                             hats={hats}
@@ -1838,8 +2181,15 @@ export const CustomSpriteEditor = ({
                 {selecting ? (
                   <div className="CustomSpriteEditor__selectHint">
                     <kbd>Ctrl+C</kbd> copy · <kbd>Ctrl+X</kbd> cut ·{' '}
-                    <kbd>Ctrl+V</kbd>{' '}
-                    {appendages.length ? 'paste into this layer' : 'paste'} ·{' '}
+                    {!surfaceSession && (
+                      <>
+                        <kbd>Ctrl+V</kbd>{' '}
+                        {appendages.length || graffitiLayers.length > 1
+                          ? 'paste into this layer'
+                          : 'paste'}{' '}
+                        ·{' '}
+                      </>
+                    )}
                     {!!mergedTooltip && !!selectionBounds && (
                       <Tooltip content={mergedHint}>
                         <span>
@@ -1883,18 +2233,21 @@ export const CustomSpriteEditor = ({
                   </Button>
                 </Stack.Item>
               )}
-              <Stack.Item>
-                {salon ? (
-                  <Button.Confirm
-                    confirmContent="Discard?"
-                    onClick={() => act('discardDraft')}
-                  >
-                    Discard draft
-                  </Button.Confirm>
-                ) : (
-                  <Button onClick={() => act('discard')}>Discard</Button>
-                )}
-              </Stack.Item>
+              {/* Graffiti keeps an unsaved piece in Unfinished when the window closes. */}
+              {!graffitiMode && (
+                <Stack.Item>
+                  {salon ? (
+                    <Button.Confirm
+                      confirmContent="Discard?"
+                      onClick={() => act('discardDraft')}
+                    >
+                      Discard draft
+                    </Button.Confirm>
+                  ) : (
+                    <Button onClick={() => act('discard')}>Discard</Button>
+                  )}
+                </Stack.Item>
+              )}
               {salon && (
                 <Stack.Item>
                   <Button
@@ -1908,20 +2261,31 @@ export const CustomSpriteEditor = ({
                   </Button>
                 </Stack.Item>
               )}
-              <Stack.Item>
-                <Button
-                  color="good"
-                  disabled={salon && salonState !== 'drafting'}
-                  tooltip="Ctrl+S saves without closing."
-                  onClick={() => {
-                    // Floating paint is part of the drawing being saved or finished.
+              {graffitiMode && graffiti ? (
+                <GraffitiSaveButtons
+                  graffiti={graffiti}
+                  onSave={(copy) => {
+                    // Floating paint is part of the piece being saved.
                     settleSelection();
-                    act(salon ? 'finishWork' : 'save');
+                    act(copy ? 'saveAs' : 'save');
                   }}
-                >
-                  {salon ? 'Finish' : 'Save and close'}
-                </Button>
-              </Stack.Item>
+                />
+              ) : (
+                <Stack.Item>
+                  <Button
+                    color="good"
+                    disabled={salon && salonState !== 'drafting'}
+                    tooltip="Ctrl+S saves without closing."
+                    onClick={() => {
+                      // Floating paint is part of the drawing being saved or finished.
+                      settleSelection();
+                      act(salon ? 'finishWork' : 'save');
+                    }}
+                  >
+                    {salon ? 'Finish' : 'Save and close'}
+                  </Button>
+                </Stack.Item>
+              )}
             </Stack>
           </Stack.Item>
         </Stack>

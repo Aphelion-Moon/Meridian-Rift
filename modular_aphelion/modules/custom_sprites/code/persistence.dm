@@ -57,14 +57,24 @@
 	snapshot ||= read_snapshot("[path].bak")
 	if(!snapshot)
 		return FALSE
-	var/list/decoded = snapshot["data"]
+	load_entries(snapshot["data"])
+	last_good_json = snapshot["text"]
+	dirty = recovered
+	return TRUE
+
+/**
+ * Copies the entries this file keeps from its decoded JSON into the tree, for load().
+ *
+ * The drawing sidecar keeps one entry per character slot. A subtype that keeps other entries overrides this.
+ *
+ * Arguments:
+ * - decoded: The file's decoded JSON.
+ */
+/datum/json_savefile/custom_sprites/proc/load_entries(list/decoded)
 	for(var/slot in 1 to MAX_SAVE_SLOTS_SUBSCRIBER)
 		var/key = "character[slot]"
 		if(islist(decoded[key]))
 			set_entry(key, decoded[key])
-	last_good_json = snapshot["text"]
-	dirty = recovered
-	return TRUE
 
 /// rust-g returns error text, not a success boolean; a full readback also catches short writes.
 /datum/json_savefile/custom_sprites/proc/write_verified(contents, destination)

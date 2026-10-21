@@ -44,6 +44,74 @@ export type MarkingSheetsData = {
   speciesIcon: string;
 };
 
+/** One graffiti layer, as the editor lists them from the bottom up. */
+export type GraffitiLayer = {
+  id: string;
+  /** HTML-escaped, as the server cleans it. */
+  name: string;
+  glow: BooleanLike;
+};
+
+/**
+ * A flattened picture in the g1/g2 codec (graffitiCodec.ts): a saved piece's thumbnail, what a
+ * stopped paint job revealed, or the graffiti already on a surface. Always GRAFFITI_HEIGHT tall.
+ */
+export type GraffitiArt = {
+  w: number;
+  /** Nine-character `#rrggbbaa` entries, one per colour. */
+  pal: string;
+  /** Palette indices, 0 transparent. */
+  grid: string;
+  /** 1 where it glows. */
+  glow: string;
+};
+
+/** The graffiti editor's own fields, sent with every update. */
+export type GraffitiData = {
+  kind: 'studio' | 'surface';
+  width: number;
+  layers: GraffitiLayer[];
+  /** The can's charges in a surface session; null in the studio or for a can that never runs out. */
+  charges: number | null;
+  canSave: BooleanLike;
+  /** The paint uses GRAFFITI_MAX_COLORS colours, so the piece takes no new one. */
+  full: BooleanLike;
+  libraryCount: number | null;
+  libraryCap: number;
+  /** The surface isn't one graffiti stays on past the round. */
+  roundOnly: BooleanLike;
+  /** The library piece this is, once saved. */
+  pieceId: string | null;
+};
+
+/** A saved piece as the spray can's Custom Graffiti tab lists it. */
+export type GraffitiLibraryEntry = {
+  id: string;
+  /** HTML-escaped, as the server cleans it. */
+  name: string;
+  /** HTML-escaped, as the server cleans it. */
+  description: string;
+  width: number;
+  /** Unix seconds, as text. */
+  created: string;
+  updated: string;
+  glow: BooleanLike;
+  /** How many layers it has. */
+  layers: number;
+  thumb: GraffitiArt;
+};
+
+/** The Unfinished slot: the last interrupted or unsaved piece. */
+export type GraffitiUnfinished = Omit<GraffitiLibraryEntry, 'id'> & {
+  id: null;
+  /** Where it can carry on; null for a studio draft. Opaque to the window but for its progress. */
+  resume: { progress: number } | null;
+  /** -1 for a freehand draft; otherwise the strips a stopped paint job had revealed. */
+  progress: number | null;
+  /** What a stopped paint job revealed, flattened. */
+  revealed: GraffitiArt | null;
+};
+
 export type CustomSpriteBackground = {
   name: string;
   url: string;
@@ -52,7 +120,7 @@ export type CustomSpriteBackground = {
 };
 
 export type CustomSpriteEditorData = {
-  context?: 'preferences' | 'salon';
+  context?: 'preferences' | 'salon' | 'graffiti';
   baseCopyInfo?: BaseCopyInfo | null;
   baseCopyResult?: BaseCopyResult;
   editorData: {
@@ -64,7 +132,8 @@ export type CustomSpriteEditorData = {
     serverSelectedColor: string;
   };
   colorMode: 'literal' | 'hair' | 'mutant' | 'tint';
-  emissive: Record<Dir, boolean>;
+  /** Absent for graffiti, which glows by layer. */
+  emissive?: Record<Dir, boolean>;
   emissiveAllowed: boolean;
   saveRevision: number;
   saveError?: string | null;
@@ -146,4 +215,13 @@ export type CustomSpriteEditorData = {
   focusLayer?: string | null;
   /** Try on hats by key. Static data, hair only. */
   tryOnHats?: Record<string, TryOnHat>;
+  /** Graffiti only. */
+  graffiti?: GraffitiData;
+  /** The colours offered before a piece has its own. Static data, graffiti only. */
+  defaultPalette?: string[];
+  /**
+   * The graffiti already on each tile a surface session paints, beneath its own piece: one art or
+   * null per tile, left first. Static data, surface sessions only.
+   */
+  graffitiBackground?: (GraffitiArt | null)[] | null;
 };

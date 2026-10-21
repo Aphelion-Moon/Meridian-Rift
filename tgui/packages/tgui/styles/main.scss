@@ -29,6 +29,7 @@
 @include meta.load-css(
   './interfaces/CustomSpriteMirror.scss'
 ); // APHELION EDIT ADDITION
+@include meta.load-css('./interfaces/Graffiti.scss'); // APHELION EDIT ADDITION
 @include meta.load-css('./interfaces/Emojipedia.scss');
 @include meta.load-css('./interfaces/ExperimentConfigure.scss');
 @include meta.load-css('./interfaces/Fabricator.scss');

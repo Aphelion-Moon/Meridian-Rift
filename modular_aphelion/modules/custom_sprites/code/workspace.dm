@@ -11,6 +11,19 @@
 /datum/sprite_editor_workspace/proc/is_point_allowed(x, y, direction)
 	return x >= 0 && x < width && y >= 0 && y < height
 
+/**
+ * Whether is_point_allowed() takes every pixel of a view, so a compact stroke mask's points, all on the canvas by
+ * construction, need no check each.
+ *
+ * Arguments:
+ * - direction: The view.
+ *
+ * Returns:
+ * - TRUE/FALSE
+ */
+/datum/sprite_editor_workspace/proc/all_points_allowed(direction)
+	return FALSE
+
 /// Whether `box` is list(left, top, right, bottom) of whole pixels on the canvas, none of it inside out.
 /datum/sprite_editor_workspace/proc/valid_box(list/box)
 	if(!islist(box) || length(box) != 4)
@@ -146,6 +159,9 @@
 
 /// A custom hair or markings drawing being edited: its layers share one palette, paint stays within the body's bounds, and the history is kept within limits.
 /datum/sprite_editor_workspace/custom_sprite
+	// New() builds the canvas with these: a body's four views, in opaque colours.
+	dirs = 4
+	color_mode = SPRITE_EDITOR_COLOR_MODE_RGB
 	/// Opaque brush colors available to this workspace.
 	var/list/palette
 	/// Direction -> inclusive rectangle of editable pixels.
@@ -180,6 +196,13 @@
 	var/list/canvas_palette
 	/// Direction -> that view as codes. A null entry is rebuilt on the next update.
 	var/list/canvas_views
+	/// Layer id -> direction -> that view's codes a pixel each, row by row, which canvas_views joins. A step's pixels are
+	/// written into it, so a stroke encodes only what it painted.
+	var/list/canvas_code_lists
+	/// Layer id -> direction -> the points of each step that changed that view since it was last encoded, while only they
+	/// need encoding again. A view whose whole frame may have changed has none, nor one painted past
+	/// CUSTOM_SPRITE_MAX_PATCH_STEPS steps or as many points as it has pixels, which is encoded whole.
+	var/list/canvas_patches
 	/// Characters per pixel in canvas_views.
 	var/canvas_digits = 1
 	/// The number the next appendage layer's id takes. Ids are never reused in a draft, so the window's choice of layer survives undo.
@@ -197,7 +220,7 @@
  * canvas; a drawing larger than the canvas asked for keeps its own size.
  */
 /datum/sprite_editor_workspace/custom_sprite/New(list/drawing, list/sampled_palette, list/bounds, list/mask, canvas_width = null, canvas_height = null)
-	..(max(custom_sprite_width(drawing), canvas_width == CUSTOM_SPRITE_TAUR_WIDTH ? CUSTOM_SPRITE_TAUR_WIDTH : 32), max(custom_sprite_height(drawing), canvas_height == CUSTOM_SPRITE_TALL_HEIGHT ? CUSTOM_SPRITE_TALL_HEIGHT : 32), 4, null, SPRITE_EDITOR_COLOR_MODE_RGB, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
+	..(max(custom_sprite_width(drawing), canvas_width == CUSTOM_SPRITE_TAUR_WIDTH ? CUSTOM_SPRITE_TAUR_WIDTH : 32), max(custom_sprite_height(drawing), canvas_height == CUSTOM_SPRITE_TALL_HEIGHT ? CUSTOM_SPRITE_TALL_HEIGHT : 32), dirs, null, color_mode, SPRITE_EDITOR_ALLOW_UNDO, SPRITE_EDITOR_TOOL_PENCIL | SPRITE_EDITOR_TOOL_ERASER | SPRITE_EDITOR_TOOL_BUCKET | SPRITE_EDITOR_TOOL_DROPPER | SPRITE_EDITOR_TOOL_SELECT, "#00000000")
 	tint = drawing?["tint"]
 	emissive = custom_sprite_emissive_settings(drawing?["emissive"])
 	draw_bounds = bounds
@@ -427,6 +450,10 @@
 	var/list/rows = draw_mask[direction]
 	return rows && copytext(rows[y + 1], x + 1, x + 2) == "1"
 
+/// With no bounds and no mask, as graffiti's canvas has, every pixel of the canvas may be painted or erased.
+/datum/sprite_editor_workspace/custom_sprite/all_points_allowed(direction)
+	return isnull(draw_bounds) && isnull(draw_mask)
+
 /// Whether a pixel of `layer` holds opaque paint.
 /datum/sprite_editor_workspace/custom_sprite/proc/is_painted(x, y, direction, layer = current_layer)
 	var/list/frame = layers[layer]["data"][direction]
@@ -463,7 +490,9 @@
 /datum/sprite_editor_workspace/custom_sprite/proc/trim_history()
 	var/points = 0
 	for(var/list/step as anything in undo_stack)
-		points += step_points(step)
+		// Read without a call: this runs over the whole history after every stroke.
+		var/recorded = step["recorded_points"]
+		points += isnull(recorded) ? step_points(step) : recorded
 	while(length(undo_stack) > 1 && (length(undo_stack) > CUSTOM_SPRITE_MAX_UNDO || points > CUSTOM_SPRITE_MAX_UNDO_POINTS))
 		var/list/oldest = popleft(undo_stack)
 		undo_names.Cut(1, 2)
@@ -472,12 +501,20 @@
 			trimmed_rotations |= oldest["rotate"]
 		points -= step_points(oldest)
 
-/// The pixels one history step records: its points, every view a replacement changed, and every pixel of a layer it keeps whole.
+/**
+ * The pixels one history step records: its points, every view a replacement changed, and every pixel of a layer it keeps
+ * whole. Counted once and kept on the step, which never changes once it is in the history, as trim_history() counts the
+ * whole history after every stroke.
+ */
 /datum/sprite_editor_workspace/custom_sprite/proc/step_points(list/transaction)
+	. = transaction["recorded_points"]
+	if(!isnull(.))
+		return
 	. = length(transaction["points"])
 	for(var/_direction, points in transaction["replaced"])
 		. += length(points)
 	. += length(step_layers(transaction)) * width * height * dirs
+	transaction["recorded_points"] = .
 
 /// The last applied history entry, or null.
 /datum/sprite_editor_workspace/custom_sprite/proc/last_transaction()
@@ -567,14 +604,14 @@
 	else
 		..()
 		update_edited_direction(direction, layer)
-	pixels_changed(direction, layer)
+	pixels_changed(direction, layer, transaction["points"])
 
 /// Reverses a step: this workspace's own through apply_step(), and anything else as the base workspace does.
 /datum/sprite_editor_workspace/custom_sprite/reverse_transact(list/transaction)
 	if(apply_step(transaction, FALSE))
 		return
 	..()
-	pixels_changed(transaction["dir"], transaction["layer"])
+	pixels_changed(transaction["dir"], transaction["layer"], transaction["points"])
 	update_edited_direction(transaction["dir"], transaction["layer"])
 
 /**
@@ -781,17 +818,48 @@
 				edited[direction] = TRUE
 				return
 
-/// Pixels changed: serialization and the colours in use are worked out again, and so is the window's canvas, only that layer's view when one is named.
-/datum/sprite_editor_workspace/custom_sprite/proc/pixels_changed(direction, layer = 1)
+/**
+ * Pixels changed: serialization and the colours in use are worked out again, and so is the window's canvas, only that
+ * layer's view when one is named, and only the pixels a step changed when it gives its points. A view keeps the points
+ * of at most CUSTOM_SPRITE_MAX_PATCH_STEPS steps, and no more points than it has pixels: past either it is encoded
+ * whole, so a view the window doesn't show, as an appendage's hidden one, holds no more however long it is painted.
+ *
+ * Arguments:
+ * - direction: The view that changed, or null for every view of every layer.
+ * - layer: The layer that changed.
+ * - points: The step's points, list(x, y, ...) each, when only they changed.
+ */
+/datum/sprite_editor_workspace/custom_sprite/proc/pixels_changed(direction, layer = 1, list/points = null)
 	pixels_dirty = TRUE
 	used_colors_cache = null
 	if(!direction)
 		canvas_palette = null
 		return
 	// A layer with no views yet has all of its encoded on the next update anyway.
-	var/list/views = canvas_views?[layers[layer]["id"]]
-	if(views)
-		views[direction] = null
+	var/id = layers[layer]["id"]
+	var/list/views = canvas_views?[id]
+	if(!views)
+		return
+	var/list/pending = canvas_patches?[id]
+	// A view encoded since its frame last changed whole takes the points, and one waiting to be encoded whole stays so.
+	if(points && canvas_code_lists?[id]?[direction] && (!isnull(views[direction]) || pending?[direction]))
+		if(!pending)
+			pending = list()
+			LAZYSET(canvas_patches, id, pending)
+		var/list/patch = pending[direction]
+		if(!patch)
+			patch = list()
+			pending[direction] = patch
+		patch += list(points)
+		var/count = 0
+		for(var/list/step_points as anything in patch)
+			count += length(step_points)
+		// Past the cap a whole encode costs about as much, and a hidden view never grows past it.
+		if(length(patch) >= CUSTOM_SPRITE_MAX_PATCH_STEPS || count > width * height)
+			pending -= direction
+	else if(pending)
+		pending -= direction
+	views[direction] = null
 
 /// An appendage layer came or went, pixels and all: the window's canvas keeps the views of the layers still there, and forgets the rest.
 /datum/sprite_editor_workspace/custom_sprite/proc/layers_changed()
@@ -800,9 +868,15 @@
 	if(!canvas_views)
 		return
 	var/list/kept = list()
+	var/list/kept_codes = list()
 	for(var/list/entry as anything in layers)
 		kept[entry["id"]] = canvas_views[entry["id"]]
+		if(canvas_code_lists?[entry["id"]])
+			kept_codes[entry["id"]] = canvas_code_lists[entry["id"]]
 	canvas_views = kept
+	canvas_code_lists = kept_codes
+	// A view waiting for its points is encoded whole instead.
+	canvas_patches = null
 
 /// The views of `layer` the window's canvas carries: every view of the hair, and the visible one of an appendage.
 /datum/sprite_editor_workspace/custom_sprite/proc/canvas_directions(layer)
@@ -836,7 +910,18 @@
 		for(var/value in values)
 			known[value] = TRUE
 		for(var/list/item as anything in stale)
-			for(var/list/row as anything in layers[item[1]]["data"][item[2]])
+			var/list/frame = layers[item[1]]["data"][item[2]]
+			// Only the pixels a waiting step changed can bring a new value.
+			var/list/patch = canvas_palette && canvas_patches?[layers[item[1]]["id"]]?[item[2]]
+			if(patch)
+				for(var/list/points as anything in patch)
+					for(var/list/point as anything in points)
+						var/pixel = frame[point[2] + 1][point[1] + 1]
+						if(!known[pixel])
+							known[pixel] = TRUE
+							values += pixel
+				continue
+			for(var/list/row as anything in frame)
 				for(var/pixel in row)
 					if(!known[pixel])
 						known[pixel] = TRUE
@@ -847,6 +932,8 @@
 			canvas_digits = digits
 			canvas_codes = list()
 			canvas_views = list()
+			canvas_code_lists = list()
+			canvas_patches = null
 			stale = list()
 			for(var/layer in 1 to length(layers))
 				for(var/direction in canvas_directions(layer))
@@ -854,15 +941,31 @@
 		canvas_palette = values
 		for(var/index in length(canvas_codes) + 1 to length(canvas_palette))
 			canvas_codes[canvas_palette[index]] = custom_sprite_canvas_code(index - 1, canvas_digits)
+		canvas_code_lists ||= list()
 		for(var/list/item as anything in stale)
 			var/id = layers[item[1]]["id"]
+			var/direction = item[2]
 			var/list/views = canvas_views[id] || list()
 			canvas_views[id] = views
-			var/list/codes = list()
-			for(var/list/row as anything in layers[item[1]]["data"][item[2]])
-				for(var/pixel in row)
-					codes += canvas_codes[pixel]
-			views[item[2]] = jointext(codes, "")
+			var/list/code_lists = canvas_code_lists[id] || list()
+			canvas_code_lists[id] = code_lists
+			var/list/frame = layers[item[1]]["data"][direction]
+			var/list/codes = code_lists[direction]
+			var/list/pending = canvas_patches?[id]
+			var/list/patch = pending?[direction]
+			if(patch && codes)
+				for(var/list/points as anything in patch)
+					for(var/list/point as anything in points)
+						codes[point[2] * width + point[1] + 1] = canvas_codes[frame[point[2] + 1][point[1] + 1]]
+			else
+				codes = list()
+				for(var/list/row as anything in frame)
+					for(var/pixel in row)
+						codes += canvas_codes[pixel]
+				code_lists[direction] = codes
+			if(pending)
+				pending -= direction
+			views[direction] = jointext(codes, "")
 	var/list/appendage_views = list()
 	for(var/layer in 2 to length(layers))
 		var/id = layers[layer]["id"]
@@ -1044,6 +1147,10 @@
 /datum/sprite_editor_workspace/custom_sprite/regions/proc/region_at(x, y, direction)
 	var/list/rows = region_map?[direction]
 	return rows ? copytext(rows[y + 1], x + 1, x + 2) : "0"
+
+/// Its regions decide which pixels each tool may change.
+/datum/sprite_editor_workspace/custom_sprite/regions/all_points_allowed(direction)
+	return FALSE
 
 /// Pixels of unlocked regions inside the view's bounds. Unlike other drawings, the eraser stays inside them too.
 /datum/sprite_editor_workspace/custom_sprite/regions/is_point_allowed(x, y, direction)

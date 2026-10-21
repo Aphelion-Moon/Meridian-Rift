@@ -411,7 +411,11 @@ export namespace SpriteEditor {
     // APHELION EDIT ADDITION END
     useSpriteEditorHotkeys(!!disabled, onSave); // APHELION EDIT ADDITION
     const { width, height, backdrop } = data;
-    const [currentColor, setCurrentColor] = useAtom(currentColorAtom);
+    // const [currentColor, setCurrentColor] = useAtom(currentColorAtom); // APHELION EDIT REMOVAL
+    // APHELION EDIT ADDITION START - The tools read the brush as they act, so a colour picker drag doesn't redraw the canvas.
+    const store = useStore();
+    const setCurrentColor = useSetAtom(currentColorAtom);
+    // APHELION EDIT ADDITION END
     const currentTool = useAtomValue(currentToolAtom);
     const selectedDir = useAtomValue(dirAtom);
     const selectedLayer = useAtomValue(layerAtom);
@@ -449,7 +453,12 @@ export namespace SpriteEditor {
       setSelectionBounds,
       setSelectionMask,
       // APHELION EDIT ADDITION END
-      currentColor,
+      // currentColor, // APHELION EDIT REMOVAL
+      // APHELION EDIT ADDITION START
+      get currentColor() {
+        return store.get(currentColorAtom);
+      },
+      // APHELION EDIT ADDITION END
       setCurrentColor,
       selectedDir,
       selectedLayer,

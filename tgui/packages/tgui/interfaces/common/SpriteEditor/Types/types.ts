@@ -126,6 +126,8 @@ export type SpriteData = {
   baseCopyInfo?: BaseCopyInfo;
   layerTarget?: LayerTarget;
   mergeLayers?: MergeLayers;
+  /** Ctrl+V pastes nothing: graffiti on a surface is painted by hand. */
+  noPaste?: BooleanLike;
   // APHELION EDIT ADDITION END
 };
 
