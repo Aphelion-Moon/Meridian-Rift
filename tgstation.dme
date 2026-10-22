@@ -4368,6 +4368,8 @@
 #include "code\modules\cargo\packs\vending_restock.dm"
 #include "code\modules\chatter\chatter.dm"
 #include "code\modules\client\client_colour.dm"
+#include "code\modules\client\bug_reporting.dm"
+#include "code\modules\client\bug_reporting_context.dm"
 #include "code\modules\client\client_defines.dm"
 #include "code\modules\client\client_procs.dm"
 #include "code\modules\client\message.dm"

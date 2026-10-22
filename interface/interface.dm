@@ -52,6 +52,10 @@ GAME_VERB_HIDDEN(/client, config, "config")
 
 GAME_VERB_DESC(/client, reportissue, "report-issue", "Report an issue", null)
 
+	if(CONFIG_GET(string/bug_report_bridge_url))
+		open_bug_report()
+		return
+
 	var/githuburl = CONFIG_GET(string/githuburl)
 	if(!githuburl)
 		to_chat(src, span_danger("The Github URL is not set in the server configuration."))

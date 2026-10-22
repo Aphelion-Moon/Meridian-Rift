@@ -1,0 +1,78 @@
+// Native offline fixture: imports the production snapshot implementation.
+#define CONFIG_GET(value) "meridian-rift-main"
+#define REF(value) "\ref[value]"
+var/global/datum/globals/GLOB = new
+var/global/datum/mapping/SSmapping = new
+var/global/failures = 0
+/datum/globals
+	var/bug_report_boot_id = "boot-fixture"
+	var/round_id = 42
+	var/list/clients = list()
+	var/datum/revisions/revdata = new
+/datum/revisions
+	var/commit = "commit-fixture"
+	var/originmastercommit = "base-fixture"
+	var/list/testmerge = list()
+/datum/tgs_revision_information/test_merge
+	var/number = 12
+	var/head_commit = "merge-fixture"
+/datum/mapping
+	var/datum/map/current_map = new
+/datum/map
+	var/map_name = "Fixture"
+/mob
+	var/real_name = "Original"
+	var/stat = 0
+/mob/dead/new_player
+/mob/dead/observer
+/proc/get_turf(atom/value)
+	return isturf(value?.loc) ? value.loc : null
+/proc/get_area(atom/value)
+	return get_turf(value)?.loc
+/proc/rustg_unix_timestamp()
+	return "1792600123.456789"
+#include "../code/modules/client/bug_reporting_context.dm"
+/proc/check(condition, message)
+	if(!condition)
+		failures++
+		world.log << "FAIL: [message]"
+/world
+	maxx = 2
+	maxy = 2
+	maxz = 1
+/world/New()
+	..()
+	var/mob/original = new(locate(1, 1, 1))
+	original.name = "Original mob"
+	GLOB.revdata.testmerge += new /datum/tgs_revision_information/test_merge
+	var/list/snapshot = bug_report_context_snapshot(original, "example", "session-a", 515, 1655)
+	original.name = "Replacement name"
+	original.real_name = "Replacement identity"
+	original.loc = locate(2, 2, 1)
+	GLOB.round_id = 43
+	GLOB.revdata.commit = "new-commit"
+	var/datum/tgs_revision_information/test_merge/merge = GLOB.revdata.testmerge[1]
+	merge.head_commit = "new-merge"
+	check(snapshot["roundId"] == "42", "Round snapshot changed")
+	check(snapshot["capturedAt"] == "unix-seconds:1792600123.456789", "Timestamp precision lost in serialization")
+	check(snapshot["mob"]["name"] == "Original mob", "Mob name snapshot changed")
+	check(snapshot["mob"]["realName"] == "Original", "Real name snapshot changed")
+	check(snapshot["coordinates"]["x"] == 1, "Location snapshot changed")
+	check(snapshot["build"]["commit"] == "commit-fixture", "Build snapshot changed")
+	check(snapshot["build"]["testMerges"][1]["commit"] == "merge-fixture", "Test merges must contain scalar copies")
+	check(snapshot["versions"]["client"]["version"] == 515, "Client version unavailable")
+	check(snapshot["versions"]["server"]["version"] == world.byond_version, "Server version conflated with client")
+	check(snapshot["versions"]["compiler"]["build"] == DM_BUILD, "Compiler build not captured")
+	for(var/type in list(/mob/dead/new_player, /mob/dead/observer))
+		var/mob/special = new type()
+		var/list/special_snapshot = bug_report_context_snapshot(special, "example", "session-b", 516, 1687)
+		check(special_snapshot["mob"]["type"] == "[type]", "Lobby/observer context failed")
+		check(isnull(special_snapshot["coordinates"]), "Null location invented")
+	GLOB.round_id = null
+	var/list/missing = bug_report_context_snapshot(null, "example", "session-c", 516, 1687)
+	check(isnull(missing["roundId"]) && length(missing["roundUnavailableReason"]), "Missing round needs provenance")
+	check(isnull(missing["mob"]) && isnull(missing["coordinates"]), "Missing mob should stay null")
+	world.log << "REPORT_CONTEXT_FIXTURE failures=[failures]"
+	fdel("bug-report-context-result.json")
+	text2file(json_encode(list("failures" = failures, "snapshot" = snapshot, "missing" = missing)), "bug-report-context-result.json")
+	shutdown()

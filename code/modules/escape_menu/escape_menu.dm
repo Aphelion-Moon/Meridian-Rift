@@ -112,8 +112,9 @@ GAME_VERB_HIDDEN(/client, reset_held_keys_verb, "Reset Held Keys")
 	var/list/resources = list()
 
 	var/githuburl = CONFIG_GET(string/githuburl)
-	if(githuburl)
+	if(githuburl || CONFIG_GET(string/bug_report_bridge_url))
 		resources += list(list("id" = "bug", "label" = "Report Bug", "tooltip" = "Report a bug/issue"))
+	if(githuburl)
 		resources += list(list("id" = "github", "label" = "Github", "tooltip" = "Open the repository for the game"))
 
 	var/forumurl = CONFIG_GET(string/forumurl)
