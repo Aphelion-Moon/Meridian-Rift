@@ -234,11 +234,8 @@ GAME_VERB_NATIVE(/client, uiclose, "uiclose", null, window_id as text)
 
 	// Decode payload
 	// APHELION EDIT ADDITION START - bug report captures are bounded before their JSON is decoded
-	// The dedicated screenshot protocol permits only one 32 KiB encoded chunk.
-	// Enforce its envelope bound before JSON validation/decode.
-	if(type in list("bug-report/capture-chunk", "bug-report/capture-cancel"))
-		if(!window || !istext(href_list["payload"]) || length(href_list["payload"]) > 40000)
-			return TRUE
+	if((type == "bug-report/capture-chunk" || type == "bug-report/capture-cancel") && (!window || length(href_list["payload"]) > BUG_REPORT_CAPTURE_CHUNK + 256))
+		return TRUE
 	// APHELION EDIT ADDITION END
 	var/payload
 	if(href_list["payload"])

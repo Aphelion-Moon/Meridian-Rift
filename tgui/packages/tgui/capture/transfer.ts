@@ -1,63 +1,84 @@
-export const SNAPSHOT_CHUNK_SIZE = 32768;
-export const SNAPSHOT_ENCODED_LIMIT = 2796204; // 2 MiB, base64 encoded.
+// THIS IS AN APHELION UI FILE
 
-type Acknowledgment = { nonce: string; index: number; accepted: boolean };
 type Send = (type: string, payload: Record<string, unknown>) => void;
 
-/** A single bounded image, with at most one chunk awaiting server acknowledgment. */
+export type TransferOptions = {
+  /** Base64 characters per chunk, as the server asked */
+  chunk: number;
+  /** Most base64 characters the server takes for one image */
+  limit: number;
+  /** Least time between two chunks, which keeps us under the server's 10 topics a second */
+  spacing?: number;
+  /** How long a chunk waits for its acknowledgement before it goes again */
+  ackTimeout?: number;
+  /** Sends of one chunk before the transfer gives up */
+  tries?: number;
+  finished?: (ok: boolean) => void;
+  progress?: (sent: number, total: number) => void;
+};
+
+/**
+ * One image's base64, sent a chunk at a time. Each chunk waits for the server's acknowledgement,
+ * a lost one goes again, and the sends stay spaced under the topic rate limit.
+ */
 export class SnapshotTransfer {
   private nonce = '';
   private encoded = '';
   private index = 0;
+  private tries = 0;
+  private lastSend = 0;
   private timer?: ReturnType<typeof setTimeout>;
-  private awaiting = false;
+  private options: Required<TransferOptions>;
 
   constructor(
     private send: Send,
-    private finished: (ok: boolean) => void = () => {},
-  ) {}
+    options: TransferOptions,
+  ) {
+    this.options = {
+      spacing: 125,
+      ackTimeout: 3000,
+      tries: 3,
+      finished: () => {},
+      progress: () => {},
+      ...options,
+    };
+  }
 
   get active() {
     return this.nonce !== '';
   }
 
   start(nonce: string, encoded: string) {
-    if (this.active) throw new Error('A snapshot transfer is already active.');
+    if (this.active) throw new Error('A snapshot transfer is already running.');
     if (
       !nonce ||
       !encoded.length ||
-      encoded.length > SNAPSHOT_ENCODED_LIMIT ||
+      encoded.length > this.options.limit ||
       encoded.length % 4 ||
       !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)
     ) {
-      throw new Error('The UI snapshot exceeds the 2 MiB limit or is invalid.');
+      throw new Error('This snapshot is over the size limit or not an image.');
     }
     this.nonce = nonce;
     this.encoded = encoded;
     this.index = 0;
-    this.next();
+    this.tries = 0;
+    this.schedule();
   }
 
-  acknowledge(message: Acknowledgment) {
+  acknowledge(message: { nonce: string; index: number }) {
     if (
       !this.active ||
-      !this.awaiting ||
-      message.nonce !== this.nonce ||
+      message?.nonce !== this.nonce ||
       message.index !== this.index
     )
       return;
-    clearTimeout(this.timer);
-    this.awaiting = false;
-    if (!message.accepted) {
-      this.finish(false);
-      return;
-    }
     this.index++;
-    if (this.index * SNAPSHOT_CHUNK_SIZE >= this.encoded.length) {
-      this.finish(true);
-    } else {
-      this.timer = setTimeout(() => this.next(), 75);
-    }
+    this.tries = 0;
+    const sent = Math.min(this.index * this.options.chunk, this.encoded.length);
+    this.options.progress(sent, this.encoded.length);
+    if (sent === this.encoded.length) this.finish(true);
+    else this.schedule();
   }
 
   cancel() {
@@ -66,26 +87,37 @@ export class SnapshotTransfer {
     this.finish(false);
   }
 
-  private next() {
+  /** Sends the current chunk as soon as the spacing allows */
+  private schedule() {
+    clearTimeout(this.timer);
+    this.timer = setTimeout(
+      () => this.post(),
+      Math.max(0, this.lastSend + this.options.spacing - Date.now()),
+    );
+  }
+
+  private post() {
     if (!this.active) return;
-    this.awaiting = true;
-    this.timer = setTimeout(() => this.cancel(), 10000);
+    if (++this.tries > this.options.tries) {
+      this.cancel();
+      return;
+    }
+    const { chunk } = this.options;
+    this.lastSend = Date.now();
     this.send('bug-report/capture-chunk', {
       nonce: this.nonce,
       index: this.index,
       totalLength: this.encoded.length,
-      data: this.encoded.slice(
-        this.index * SNAPSHOT_CHUNK_SIZE,
-        (this.index + 1) * SNAPSHOT_CHUNK_SIZE,
-      ),
+      data: this.encoded.slice(this.index * chunk, (this.index + 1) * chunk),
     });
+    // No acknowledgement in time means a message was lost, so the same chunk goes again
+    this.timer = setTimeout(() => this.schedule(), this.options.ackTimeout);
   }
 
   private finish(ok: boolean) {
     clearTimeout(this.timer);
     this.nonce = '';
     this.encoded = '';
-    this.awaiting = false;
-    this.finished(ok);
+    this.options.finished(ok);
   }
 }

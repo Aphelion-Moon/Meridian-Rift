@@ -437,6 +437,7 @@
 #include "code\__DEFINES\~aphelion_defines\admin_tech.dm"
 #include "code\__DEFINES\~aphelion_defines\banning.dm"
 #include "code\__DEFINES\~aphelion_defines\body_hair.dm"
+#include "code\__DEFINES\~aphelion_defines\bug_reporting.dm"
 #include "code\__DEFINES\~aphelion_defines\bulge.dm"
 #include "code\__DEFINES\~aphelion_defines\bulky_augments.dm"
 #include "code\__DEFINES\~aphelion_defines\chastity.dm"

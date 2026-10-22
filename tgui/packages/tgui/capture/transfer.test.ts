@@ -1,40 +1,81 @@
-import { expect, test } from 'bun:test';
+// THIS IS AN APHELION UI FILE
 
-test('snapshot chunks wait for matching acknowledgments and stop on rejection', async () => {
-  const module = await import('./transfer').catch(() => ({}) as any);
-  expect(typeof module.SnapshotTransfer).toBe('function');
-  const sent: any[] = [];
-  const transfer = new module.SnapshotTransfer((type: string, payload: any) =>
-    sent.push({ type, payload }),
-  );
-  transfer.start('nonce', 'A'.repeat(32768) + 'AAAA');
+import { expect, test } from 'bun:test';
+import { SnapshotTransfer } from './transfer';
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const timings = { chunk: 4, limit: 64, spacing: 40, ackTimeout: 120, tries: 2 };
+
+function recorder() {
+  const sent: { type: string; payload: any }[] = [];
+  return {
+    sent,
+    send: (type: string, payload: any) => sent.push({ type, payload }),
+  };
+}
+
+test('chunks go out in order, each after its acknowledgement and the spacing', async () => {
+  const { sent, send } = recorder();
+  const outcome: boolean[] = [];
+  const transfer = new SnapshotTransfer(send, {
+    ...timings,
+    finished: (ok) => outcome.push(ok),
+  });
+  transfer.start('nonce', 'AAAABBBBCC==');
+  await wait(10);
   expect(sent.length).toBe(1);
-  expect(sent[0].payload.index).toBe(0);
-  transfer.acknowledge({ nonce: 'wrong', index: 0, accepted: true });
+  expect(sent[0].payload).toEqual({
+    nonce: 'nonce',
+    index: 0,
+    totalLength: 12,
+    data: 'AAAA',
+  });
+  transfer.acknowledge({ nonce: 'wrong', index: 0 });
+  transfer.acknowledge({ nonce: 'nonce', index: 1 });
+  transfer.acknowledge({ nonce: 'nonce', index: 0 });
+  await wait(10);
+  // Acknowledged at once, but the spacing holds the next chunk back
   expect(sent.length).toBe(1);
-  transfer.acknowledge({ nonce: 'nonce', index: 0, accepted: true });
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await wait(50);
   expect(sent.length).toBe(2);
-  expect(sent[1].payload.data).toBe('AAAA');
-  transfer.acknowledge({ nonce: 'nonce', index: 1, accepted: false });
+  expect(sent[1].payload.data).toBe('BBBB');
+  transfer.acknowledge({ nonce: 'nonce', index: 1 });
+  await wait(60);
+  expect(sent[2].payload.data).toBe('CC==');
+  transfer.acknowledge({ nonce: 'nonce', index: 2 });
   expect(transfer.active).toBe(false);
-  transfer.acknowledge({ nonce: 'nonce', index: 1, accepted: true });
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  expect(sent.length).toBe(2);
+  expect(outcome).toEqual([true]);
 });
 
-test('snapshot transfer bounds the entire image and rejects parallel capture', async () => {
-  const module = await import('./transfer').catch(() => ({}) as any);
-  expect(typeof module.SnapshotTransfer).toBe('function');
-  const sent: any[] = [];
-  const transfer = new module.SnapshotTransfer((type: string, payload: any) =>
-    sent.push({ type, payload }),
-  );
-  expect(() => transfer.start('nonce', 'A'.repeat(2796208))).toThrow();
-  expect(sent.length).toBe(0);
+test('a lost acknowledgement sends the same chunk again, then the transfer gives up', async () => {
+  const { sent, send } = recorder();
+  const outcome: boolean[] = [];
+  const transfer = new SnapshotTransfer(send, {
+    ...timings,
+    finished: (ok) => outcome.push(ok),
+  });
+  transfer.start('nonce', 'AAAABBBB');
+  await wait(180);
+  expect(sent.length).toBe(2);
+  expect(sent[1].payload).toEqual(sent[0].payload);
+  await wait(180);
+  expect(sent.at(-1)?.type).toBe('bug-report/capture-cancel');
+  expect(transfer.active).toBe(false);
+  expect(outcome).toEqual([false]);
+});
+
+test('an image over the limit, broken base64 or a second transfer is refused', () => {
+  const { sent, send } = recorder();
+  const transfer = new SnapshotTransfer(send, timings);
+  expect(() => transfer.start('nonce', 'A'.repeat(68))).toThrow();
+  expect(() => transfer.start('nonce', 'AAA')).toThrow();
+  expect(() => transfer.start('nonce', 'AA~A')).toThrow();
   transfer.start('nonce', 'AAAA');
   expect(() => transfer.start('another', 'AAAA')).toThrow();
   transfer.cancel();
-  expect(sent.at(-1).type).toBe('bug-report/capture-cancel');
+  transfer.cancel();
+  expect(
+    sent.filter((item) => item.type === 'bug-report/capture-cancel').length,
+  ).toBe(1);
   expect(transfer.active).toBe(false);
 });

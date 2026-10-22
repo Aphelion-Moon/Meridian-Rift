@@ -1,3 +1,14 @@
+/**
+ * Freezes what the game looked like for a report, as plain values the bridge stores as they are.
+ *
+ * Nothing here can yield, so the round, mob and build are the ones the reporter saw.
+ * Arguments:
+ * * incident_mob - the reporter's mob, which can be null
+ * * incident_ckey - the reporter's ckey
+ * * session_id - the reporting connection's session
+ * * client_version - the reporter's BYOND version
+ * * client_build - the reporter's BYOND build
+ */
 /proc/bug_report_context_snapshot(mob/incident_mob, incident_ckey, session_id, client_version, client_build)
 	var/turf/incident_turf = get_turf(incident_mob)
 	var/area/incident_area = get_area(incident_mob)

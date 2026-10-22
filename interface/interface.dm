@@ -53,7 +53,7 @@ GAME_VERB_HIDDEN(/client, config, "config")
 GAME_VERB_DESC(/client, reportissue, "report-issue", "Report an issue", null)
 
 	// APHELION EDIT ADDITION START - the in-game report form when the reporting bridge is set up
-	if(CONFIG_GET(string/bug_report_bridge_url))
+	if(bug_reports_enabled())
 		open_bug_report()
 		return
 

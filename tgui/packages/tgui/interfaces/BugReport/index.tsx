@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+// THIS IS AN APHELION UI FILE
+
+import { storage } from 'common/storage';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -9,13 +12,272 @@ import {
   TextArea,
 } from 'tgui-core/components';
 import { useBackend } from '../../backend';
+import { sendLargeAct } from '../../capture/topic';
 import { Window } from '../../layouts';
 import { hasReproductionHint } from './form-hints';
-import type { BugReportData, ReportFields } from './types';
+import type {
+  BugReportData,
+  ReportAttachment,
+  ReportContext,
+  ReportFields,
+  ReportResult,
+} from './types';
+
+/** Unsent text per report, kept in the browser so typing never touches the server */
+const DRAFTS_KEY = 'bug-report-drafts';
+const KEPT_DRAFTS = 5;
+const TEXT_FIELDS = {
+  title: 'Title',
+  observed: 'What happened',
+  expected: 'Expected result',
+  reproduction: 'Reproduction: what did you do before the problem?',
+} as const;
+type TextField = keyof typeof TEXT_FIELDS;
+const CATEGORIES = ['Other', 'UI', 'Gameplay', 'Crash', 'Performance', 'Map'];
+const SEVERITIES = ['unspecified', 'minor', 'major', 'critical'];
+const UTC_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+type StoredDraft = { epoch: number; fields: ReportFields; at: number };
+
+async function storeDraft(
+  reportId: string,
+  epoch: number,
+  fields: ReportFields | null,
+) {
+  const drafts: Record<string, StoredDraft> =
+    (await storage.get(DRAFTS_KEY)) ?? {};
+  if (fields) drafts[reportId] = { epoch, fields, at: Date.now() };
+  else delete drafts[reportId];
+  const newest = Object.entries(drafts)
+    .sort(([, a], [, b]) => b.at - a.at)
+    .slice(0, KEPT_DRAFTS);
+  storage.set(DRAFTS_KEY, Object.fromEntries(newest));
+}
+
+/** The form's text: the server's copy, then any newer unsent text this browser kept for the same report */
+function useDraft(reportId: string, epoch: number, serverFields: ReportFields) {
+  const [fields, setFields] = useState(serverFields);
+  const latest = useRef(fields);
+  latest.current = fields;
+  const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // The server's text wins whenever it replaces it (a new epoch) or the report changes
+  useEffect(() => {
+    let current = true;
+    setFields(serverFields);
+    storage.get(DRAFTS_KEY).then((drafts) => {
+      const kept: StoredDraft | undefined = drafts?.[reportId];
+      if (current && kept?.epoch === epoch) setFields(kept.fields);
+    });
+    return () => {
+      current = false;
+    };
+  }, [reportId, epoch]);
+
+  // Whatever is still waiting to be kept goes when the window closes
+  useEffect(
+    () => () => {
+      if (pending.current === undefined) return;
+      clearTimeout(pending.current);
+      storeDraft(reportId, epoch, latest.current);
+    },
+    [reportId, epoch],
+  );
+
+  const edit = useCallback(
+    (name: keyof ReportFields, value: string | null) => {
+      setFields((previous) => ({ ...previous, [name]: value }));
+      clearTimeout(pending.current);
+      pending.current = setTimeout(() => {
+        pending.current = undefined;
+        storeDraft(reportId, epoch, latest.current);
+      }, 500);
+    },
+    [reportId, epoch],
+  );
+  return [fields, edit] as const;
+}
+
+const version = (
+  context: ReportContext | undefined,
+  name: 'client' | 'server' | 'compiler',
+) => {
+  const value = context?.versions?.[name];
+  return value ? `${value.version}.${value.build}` : 'unavailable';
+};
+
+const ContextSection = memo(function ContextSection(props: {
+  context?: ReportContext;
+}) {
+  const { context } = props;
+  return (
+    <Section title="Frozen incident context">
+      <Box>
+        Round: {context?.roundId ?? 'unavailable'}; map:{' '}
+        {context?.map ?? 'unavailable'}
+      </Box>
+      <Box>
+        Client: {version(context, 'client')}; server:{' '}
+        {version(context, 'server')}; compiler: {version(context, 'compiler')}
+      </Box>
+      <Box>
+        Revision: {context?.build?.commit ?? 'unavailable'}; base:{' '}
+        {context?.build?.base ?? 'unavailable'}
+      </Box>
+      <Box>
+        Test merges:{' '}
+        {context?.build?.testMerges
+          ?.map((merge) => `#${merge.number} ${merge.commit ?? ''}`)
+          .join(', ') || 'none recorded'}
+      </Box>
+    </Section>
+  );
+});
+
+const ReceiptSection = memo(function ReceiptSection(props: {
+  receipt: NonNullable<ReportResult['receipt']>;
+}) {
+  const { act } = useBackend();
+  const { receipt } = props;
+  return (
+    <Section title="Report received">
+      <Box>Reference: {receipt.reportId}</Box>
+      <Box>
+        Screening: {receipt.screening}; publication: {receipt.publication}
+      </Box>
+      {receipt.screening === 'waiting-ai-quota' && (
+        <Box>
+          Your report is saved and waiting for free AI allowance. You do not
+          need to submit again.
+        </Box>
+      )}
+      {!!receipt.nextAttemptAt && (
+        <Box>Next attempt: {new Date(receipt.nextAttemptAt).toUTCString()}</Box>
+      )}
+      {!!receipt.issueUrl && (
+        <Button onClick={() => act('issue')}>
+          GitHub #{receipt.issueNumber}
+        </Button>
+      )}
+      <Button onClick={() => act('new')}>Report another issue</Button>
+    </Section>
+  );
+});
+
+const TextFields = memo(function TextFields(props: {
+  fields: ReportFields;
+  edit: (name: keyof ReportFields, value: string | null) => void;
+  checking: boolean;
+  feedback?: ReportResult['feedback'];
+}) {
+  const { fields, edit, checking, feedback } = props;
+  return (
+    <>
+      {(Object.keys(TEXT_FIELDS) as TextField[]).map((field) => (
+        <Stack.Item key={field}>
+          <Box bold mb={0.5}>
+            {TEXT_FIELDS[field]}
+          </Box>
+          {field === 'title' ? (
+            <Input
+              fluid
+              value={fields.title}
+              maxLength={160}
+              disabled={checking}
+              onChange={(value) => edit('title', value)}
+            />
+          ) : (
+            <TextArea
+              fluid
+              height="6rem"
+              value={fields[field]}
+              maxLength={8000}
+              disabled={checking}
+              onChange={(value) => edit(field, value)}
+            />
+          )}
+          {feedback
+            ?.filter((item) => item.field === field)
+            .map((item) => (
+              <Box key={item.message} color="bad">
+                {item.message}
+              </Box>
+            ))}
+        </Stack.Item>
+      ))}
+    </>
+  );
+});
+
+const ScreenshotSection = memo(function ScreenshotSection(props: {
+  attachment?: ReportAttachment | null;
+  attachmentPending?: boolean;
+  blocked: boolean;
+  checking: boolean;
+  preview?: { id: string; src: string };
+  previewConfirmed?: boolean;
+}) {
+  const { act } = useBackend();
+  const { attachment, blocked, checking, preview, previewConfirmed } = props;
+  return (
+    <Section title="Screenshot">
+      <Box>{attachment?.state ?? 'Upload not yet confirmed'}</Box>
+      {blocked && (
+        <Box>
+          Waiting for your screenshot. Submission stays paused until it is ready
+          or you remove it.
+        </Box>
+      )}
+      {!!preview && (
+        <img
+          key={preview.id}
+          src={preview.src}
+          alt="Selected report screenshot"
+          style={{ maxWidth: '100%', maxHeight: '24rem' }}
+          onLoad={() => act('preview_loaded', { attachmentId: preview.id })}
+        />
+      )}
+      <Button
+        disabled={checking || attachment?.state !== 'ready'}
+        onClick={() =>
+          act('preview', { attachmentId: attachment?.id, reload: true })
+        }
+      >
+        Reload preview
+      </Button>
+      <Button
+        disabled={checking}
+        onClick={() =>
+          act('remove_screenshot', { attachmentId: attachment?.id })
+        }
+      >
+        Remove screenshot
+      </Button>
+      <Button.Checkbox
+        checked={!!attachment?.publicConsent}
+        disabled={
+          checking || !previewConfirmed || attachment?.state !== 'ready'
+        }
+        onClick={() =>
+          act('screenshot_consent', {
+            attachmentId: attachment?.id,
+            publicConsent: !attachment?.publicConsent,
+          })
+        }
+      >
+        Publish this screenshot with the GitHub issue
+      </Button.Checkbox>
+      <Box>
+        The screenshot stays private unless you select public sharing after
+        previewing it.
+      </Box>
+    </Section>
+  );
+});
 
 export const BugReport = () => {
   const { act, data } = useBackend<BugReportData>();
-  const [fields, setFields] = useState<ReportFields>(data.fields);
+  const [fields, edit] = useDraft(data.reportId, data.fieldsEpoch, data.fields);
   const [hint, setHint] = useState(false);
   const [acknowledged, setAcknowledged] = useState('');
   const [error, setError] = useState('');
@@ -24,25 +286,47 @@ export const BugReport = () => {
   const checking =
     data.busy || (data.result?.kind === 'checking' && !data.pollingPaused);
   const attachmentBlocked =
-    data.attachmentPending ||
+    !!data.attachmentPending ||
     (!!data.attachment && data.attachment.state !== 'ready');
   const receipt = data.result?.receipt;
-  const context = data.context;
-  const version = (name: 'client' | 'server' | 'compiler') => {
-    const value = context?.versions?.[name];
-    return value ? `${value.version}.${value.build}` : 'unavailable';
-  };
+  const readyId =
+    data.attachment?.state === 'ready' ? data.attachment.id : undefined;
+  const preview =
+    (readyId && data.preview?.id === readyId && data.preview) || undefined;
+  const targets = data.captureTargets ?? [];
+  const target = targets.some((item) => item.id === captureTarget)
+    ? captureTarget
+    : targets[0]?.id;
+
   useEffect(() => {
-    setFields(data.fields);
     setHint(false);
     setAcknowledged('');
     setError('');
   }, [data.reportId, data.fieldsEpoch]);
-  function edit(next: ReportFields) {
-    setFields(next);
-    // Persist to the owning DM draft, without HTTP or inference on typing.
-    act('draft', { fields: next, fieldsEpoch: data.fieldsEpoch });
+
+  // The text is in the report now, so this browser can forget it
+  useEffect(() => {
+    if (receipt) storeDraft(data.reportId, 0, null);
+  }, [!!receipt]);
+
+  // The preview comes once per attachment, only when the page asks for it
+  useEffect(() => {
+    if (readyId && !preview && !data.busy)
+      act('preview', { attachmentId: readyId });
+  }, [readyId, !!preview, data.busy]);
+
+  // Other windows open and close without telling this one, so look again on focus
+  useEffect(() => {
+    const refreshTargets = () => act('targets');
+    window.addEventListener('focus', refreshTargets);
+    return () => window.removeEventListener('focus', refreshTargets);
+  }, []);
+
+  /** Sends an action carrying the form whole, past tgui's 2 KB chunking and its chunk cap */
+  function actWithFields(action: string, extra: Record<string, unknown> = {}) {
+    sendLargeAct(action, { ...extra, fields, fieldsEpoch: data.fieldsEpoch });
   }
+
   function submit(asWritten = false) {
     if (attachmentBlocked) {
       setError(
@@ -52,9 +336,7 @@ export const BugReport = () => {
     }
     if (
       fields.incidentAt &&
-      (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(
-        fields.incidentAt,
-      ) ||
+      (!UTC_TIME.test(fields.incidentAt) ||
         !Number.isFinite(Date.parse(fields.incidentAt)) ||
         new Date(fields.incidentAt).toISOString() !== fields.incidentAt)
     ) {
@@ -64,7 +346,7 @@ export const BugReport = () => {
       return;
     }
     if (
-      ['title', 'observed', 'expected', 'reproduction'].some(
+      (Object.keys(TEXT_FIELDS) as TextField[]).some(
         (key) => !fields[key].trim(),
       )
     ) {
@@ -85,14 +367,9 @@ export const BugReport = () => {
     setAcknowledged(content);
     setHint(false);
     setError('');
-    act('submit', { fields, fieldsEpoch: data.fieldsEpoch });
+    actWithFields('submit');
   }
-  const labels = {
-    title: 'Title',
-    observed: 'What happened',
-    expected: 'Expected result',
-    reproduction: 'Reproduction: what did you do before the problem?',
-  };
+
   return (
     <Window title="Report a Meridian bug" width={700} height={760}>
       <Window.Content scrollable>
@@ -101,85 +378,17 @@ export const BugReport = () => {
             Staff receive private diagnostics. Your report normally becomes a
             public GitHub issue automatically; no GitHub account is needed.
           </Box>
-          <Section title="Frozen incident context">
-            <Box>
-              Round: {context?.roundId ?? 'unavailable'}; map:{' '}
-              {context?.map ?? 'unavailable'}
-            </Box>
-            <Box>
-              Client: {version('client')}; server: {version('server')};
-              compiler: {version('compiler')}
-            </Box>
-            <Box>
-              Revision: {context?.build?.commit ?? 'unavailable'}; base:{' '}
-              {context?.build?.base ?? 'unavailable'}
-            </Box>
-            <Box>
-              Test merges:{' '}
-              {context?.build?.testMerges
-                ?.map((merge) => `#${merge.number} ${merge.commit ?? ''}`)
-                .join(', ') || 'none recorded'}
-            </Box>
-          </Section>
+          <ContextSection context={data.context} />
           {receipt ? (
-            <Section title="Report received">
-              <Box>Reference: {receipt.reportId}</Box>
-              <Box>
-                Screening: {receipt.screening}; publication:{' '}
-                {receipt.publication}
-              </Box>
-              {receipt.screening === 'waiting-ai-quota' && (
-                <Box>
-                  Your report is saved and waiting for free AI allowance. You do
-                  not need to submit again.
-                </Box>
-              )}
-              {!!receipt.nextAttemptAt && (
-                <Box>
-                  Next attempt: {new Date(receipt.nextAttemptAt).toUTCString()}
-                </Box>
-              )}
-              {!!receipt.issueUrl && (
-                <Button onClick={() => act('issue')}>
-                  GitHub #{receipt.issueNumber}
-                </Button>
-              )}
-              <Button onClick={() => act('new')}>Report another issue</Button>
-            </Section>
+            <ReceiptSection receipt={receipt} />
           ) : (
             <Stack vertical>
-              {Object.entries(labels).map(([field, label]) => (
-                <Stack.Item key={field}>
-                  <Box bold mb={0.5}>
-                    {label}
-                  </Box>
-                  {field === 'title' ? (
-                    <Input
-                      fluid
-                      value={fields.title}
-                      maxLength={160}
-                      disabled={checking}
-                      onChange={(value) => edit({ ...fields, title: value })}
-                    />
-                  ) : (
-                    <TextArea
-                      fluid
-                      height="6rem"
-                      value={fields[field]}
-                      maxLength={8000}
-                      disabled={checking}
-                      onChange={(value) => edit({ ...fields, [field]: value })}
-                    />
-                  )}
-                  {data.result?.feedback
-                    ?.filter((feedback) => feedback.field === field)
-                    .map((feedback) => (
-                      <Box key={feedback.message} color="bad">
-                        {feedback.message}
-                      </Box>
-                    ))}
-                </Stack.Item>
-              ))}
+              <TextFields
+                fields={fields}
+                edit={edit}
+                checking={checking}
+                feedback={data.result?.feedback}
+              />
               <Stack.Item>
                 <Box bold>Optional incident time (UTC)</Box>
                 <Input
@@ -188,9 +397,7 @@ export const BugReport = () => {
                   placeholder="YYYY-MM-DDTHH:mm:ss.sssZ"
                   maxLength={40}
                   disabled={checking}
-                  onChange={(value) =>
-                    edit({ ...fields, incidentAt: value || null })
-                  }
+                  onChange={(value) => edit('incidentAt', value || null)}
                 />
                 <Box>
                   Leave blank to use the captured time. An edited time is
@@ -199,44 +406,34 @@ export const BugReport = () => {
               </Stack.Item>
               <Stack.Item>
                 <Dropdown
-                  options={[
-                    'Other',
-                    'UI',
-                    'Gameplay',
-                    'Crash',
-                    'Performance',
-                    'Map',
-                  ]}
+                  options={CATEGORIES}
                   selected={fields.category}
                   disabled={checking}
-                  onSelected={(category) => edit({ ...fields, category })}
+                  onSelected={(category) => edit('category', category)}
                 />
                 <Dropdown
-                  options={['unspecified', 'minor', 'major', 'critical']}
+                  options={SEVERITIES}
                   selected={fields.severity}
                   disabled={checking}
-                  onSelected={(severity) => edit({ ...fields, severity })}
+                  onSelected={(severity) => edit('severity', severity)}
                 />
                 <Button
-                  disabled={checking || !data.captureTargets?.length}
+                  disabled={checking || !target}
                   onClick={() =>
-                    act('capture_ui', {
-                      fields,
-                      fieldsEpoch: data.fieldsEpoch,
-                      windowId: captureTarget || data.captureTargets?.[0]?.id,
-                    })
+                    actWithFields('capture_ui', { windowId: target })
                   }
                 >
                   Snapshot selected TGUI
                 </Button>
                 <Dropdown
-                  options={(data.captureTargets ?? []).map((target) => ({
-                    value: target.id,
-                    displayText: target.title,
+                  options={targets.map((item) => ({
+                    value: item.id,
+                    displayText: item.title,
                   }))}
-                  selected={captureTarget || data.captureTargets?.[0]?.id}
-                  disabled={checking || !data.captureTargets?.length}
+                  selected={target}
+                  disabled={checking || !target}
                   placeholder="Open another TGUI to snapshot it"
+                  onClick={() => act('targets')}
                   onSelected={setCaptureTarget}
                 />
                 <Box>
@@ -256,9 +453,7 @@ export const BugReport = () => {
                 </Button>
                 <Button
                   disabled={checking}
-                  onClick={() =>
-                    act('screenshot', { fields, fieldsEpoch: data.fieldsEpoch })
-                  }
+                  onClick={() => actWithFields('screenshot')}
                 >
                   Choose screenshot
                 </Button>
@@ -274,70 +469,13 @@ export const BugReport = () => {
                   </Box>
                 )}
                 {(!!data.attachment || data.attachmentPending) && (
-                  <Section title="Screenshot">
-                    <Box>
-                      {data.attachment?.state ?? 'Upload not yet confirmed'}
-                    </Box>
-                    {attachmentBlocked && (
-                      <Box>
-                        Waiting for your screenshot. Submission stays paused
-                        until it is ready or you remove it.
-                      </Box>
-                    )}
-                    {!!data.preview && (
-                      <img
-                        key={data.attachment?.id}
-                        src={data.preview}
-                        alt="Selected report screenshot"
-                        style={{ maxWidth: '100%', maxHeight: '24rem' }}
-                        onLoad={() =>
-                          act('preview_loaded', {
-                            attachmentId: data.attachment?.id,
-                          })
-                        }
-                      />
-                    )}
-                    <Button
-                      disabled={checking || data.attachment?.state !== 'ready'}
-                      onClick={() =>
-                        act('preview_screenshot', {
-                          attachmentId: data.attachment?.id,
-                        })
-                      }
-                    >
-                      Reload preview
-                    </Button>
-                    <Button
-                      disabled={checking}
-                      onClick={() =>
-                        act('remove_screenshot', {
-                          attachmentId: data.attachment?.id,
-                        })
-                      }
-                    >
-                      Remove screenshot
-                    </Button>
-                    <Button.Checkbox
-                      checked={!!data.attachment?.publicConsent}
-                      disabled={
-                        checking ||
-                        !data.previewConfirmed ||
-                        data.attachment?.state !== 'ready'
-                      }
-                      onClick={() =>
-                        act('screenshot_consent', {
-                          attachmentId: data.attachment?.id,
-                          publicConsent: !data.attachment?.publicConsent,
-                        })
-                      }
-                    >
-                      Publish this screenshot with the GitHub issue
-                    </Button.Checkbox>
-                    <Box>
-                      The screenshot stays private unless you select public
-                      sharing after previewing it.
-                    </Box>
-                  </Section>
+                  <ScreenshotSection
+                    attachment={data.attachment}
+                    blocked={attachmentBlocked}
+                    checking={checking}
+                    preview={preview}
+                    previewConfirmed={data.previewConfirmed}
+                  />
                 )}
               </Stack.Item>
               {data.conflict && (
@@ -351,9 +489,7 @@ export const BugReport = () => {
                   </Button>
                   <Button
                     disabled={checking}
-                    onClick={() =>
-                      act('keep', { fields, fieldsEpoch: data.fieldsEpoch })
-                    }
+                    onClick={() => actWithFields('keep')}
                   >
                     Keep my local text
                   </Button>

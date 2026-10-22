@@ -387,6 +387,7 @@
 #include "~nova\body_marking_collection.dm"
 #include "~nova\body_marking_colors.dm"
 #include "~nova\body_marking_fixture.dm"
+#include "~nova\bug_reporting.dm"
 #include "~nova\bulge_and_scent.dm"
 #include "~nova\bulge_interaction_framework.dm"
 #include "~nova\bulge_manifest.dm"
