@@ -160,16 +160,17 @@
 	var/datum/sprite_accessory/clothing/underwear/pants = SSaccessories.underwear_list[owner.underwear]
 	if(!pants || !GLOB.body_hair_baring_clothing[pants.type])
 		return null
-	// As the underwear's make_appearance() draws it.
+	// As get_underwear_overlays() has the underwear's make_appearance() draw it.
 	var/shape = owner.bodyshape
 	if(isvoxprimalis(owner))
 		shape |= BODYSHAPE_DIGITIGRADE
 	var/digi = pants.digi_icon_state && (shape & BODYSHAPE_DIGITIGRADE)
-	var/cut = owner.physique == FEMALE ? pants.female_sprite_flags : NONE
+	var/body_type = (owner.dna.species.sexes && limb.is_dimorphic) ? owner.physique : MALE
+	var/cut = body_type == FEMALE ? pants.female_sprite_flags : NONE
 	if(cut && (digi || (shape & (BODYSHAPE_TAUR|BODYSHAPE_CERULEAN))))
 		cut = FEMALE_UNIFORM_TOP_ONLY
 	cut = female_cut_over_pecs(owner, cut)
-	var/state = pants.get_icon_state(owner.physique, shape, owner)
+	var/state = pants.get_icon_state(body_type, shape, owner)
 	var/list/body = list()
 	for(var/zone in list(BODY_ZONE_CHEST, BODY_ZONE_R_LEG, BODY_ZONE_L_LEG))
 		var/obj/item/bodypart/part = zone == BODY_ZONE_CHEST ? limb : owner.get_bodypart(zone)
