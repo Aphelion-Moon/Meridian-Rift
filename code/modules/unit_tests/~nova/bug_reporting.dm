@@ -161,7 +161,7 @@
 	report.submit_fields()
 	TEST_ASSERT_EQUAL(length(report.calls), 0, "A sixth report in the hour reached the service")
 	TEST_ASSERT(findtext(report.status, "accepted this hour"), "The refusal didn't say why")
-	var/list/uses = GLOB.bug_report_budgets[ckey]["accepted"]
+	var/list/uses = GLOB.bug_report_budgets["[ckey]:accepted"]
 	uses[1] = world.time - 1 HOURS
 	TEST_ASSERT_EQUAL(bug_report_budget(ckey, "accepted", spend = FALSE), 0, "An hour-old acceptance still counted")
 	for(var/upload in 1 to 10)

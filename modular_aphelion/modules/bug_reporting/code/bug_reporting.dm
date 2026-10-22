@@ -27,7 +27,7 @@
 GLOBAL_VAR_INIT(bug_report_boot_id, GUID())
 /// Bridge requests in flight across the server, held under BUG_REPORT_MAX_REQUESTS
 GLOBAL_VAR_INIT(bug_report_requests, 0)
-/// Each ckey's hourly allowances - allowance kind to the world.time of each use in the last hour
+/// Hourly allowance uses - "ckey:kind" to the world.time of each use in the last hour
 GLOBAL_LIST_EMPTY(bug_report_budgets)
 
 /client
@@ -68,14 +68,9 @@ GLOBAL_LIST_EMPTY(bug_report_budgets)
 		"drafts" = BUG_REPORT_DRAFTS_PER_HOUR,
 		"uploads" = BUG_REPORT_UPLOADS_PER_HOUR,
 	)
-	var/list/kinds = GLOB.bug_report_budgets[ckey]
-	if(!kinds)
-		kinds = list()
-		GLOB.bug_report_budgets[ckey] = kinds
-	var/list/uses = kinds[kind]
-	if(!uses)
-		uses = list()
-		kinds[kind] = uses
+	var/key = "[ckey]:[kind]"
+	var/list/uses = GLOB.bug_report_budgets[key] || list()
+	GLOB.bug_report_budgets[key] = uses
 	while(length(uses) && uses[1] <= world.time - 1 HOURS)
 		uses.Cut(1, 2)
 	if(length(uses) >= caps[kind])
@@ -421,8 +416,7 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	if(busy)
 		return
 	if(!take_allowance("accepted", spend = FALSE))
-		push_update()
-		return
+		return finish_action()
 	busy = TRUE
 	push_update()
 	if(save_fields())
@@ -434,8 +428,7 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 			polling_paused = FALSE
 			result = list("kind" = "checking")
 			check_submission()
-	busy = FALSE
-	push_update()
+	finish_action()
 	schedule_poll(restart = TRUE)
 
 /// Asks the service how the submission's check is going
@@ -558,6 +551,19 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	if(extra)
 		data += extra
 	send_partial(data)
+
+/**
+ * Ends the reporter's action, saying how it went when there's news, and shows the window where things stand.
+ *
+ * Arguments:
+ * * message - a new status line, or null to keep the current one
+ * * extra - keys only sent on request, like the preview
+ */
+/datum/bug_report/proc/finish_action(message, list/extra)
+	if(message)
+		status = message
+	busy = FALSE
+	push_update(extra)
 
 /// Sends the window only these keys
 /datum/bug_report/proc/send_partial(list/data)

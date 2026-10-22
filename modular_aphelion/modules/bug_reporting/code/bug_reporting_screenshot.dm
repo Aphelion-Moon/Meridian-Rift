@@ -56,22 +56,16 @@
 	if(busy || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
 		return
 	if(!take_allowance("uploads", spend = FALSE))
-		push_update()
-		return
+		return finish_action()
 	busy = TRUE
 	push_update()
 	var/upload = save_fields() && prompt_screenshot()
 	// The prompt yields, so a disconnected client or another report can't inherit it
 	if(!upload || !valid_owner() || result?["kind"] == "accepted")
-		busy = FALSE
-		push_update()
-		return
+		return finish_action()
 	var/path = bug_report_temporary_path("upload")
 	if(!fcopy(upload, path))
-		status = "Could not stage the screenshot. Choose it again."
-		busy = FALSE
-		push_update()
-		return
+		return finish_action("Could not stage the screenshot. Choose it again.")
 	upload_staged_screenshot(path)
 
 /// Opens BYOND's file prompt with its one-image upload allowance, returning the chosen file
@@ -90,9 +84,7 @@
 /datum/bug_report/proc/upload_staged_screenshot(path, encoding)
 	if(!valid_owner() || (result?["kind"] in list("accepted", "checking")) || !take_allowance("uploads"))
 		fdel(path)
-		busy = FALSE
-		push_update()
-		return
+		return finish_action()
 	busy = TRUE
 	attachment_pending = TRUE
 	pending_previous_id = attachment?["id"]
@@ -104,8 +96,7 @@
 		update_attachment(response["attachment"])
 	else
 		status = "Screenshot upload was not confirmed. Retry connection or choose it again; submission remains paused."
-	busy = FALSE
-	push_update()
+	finish_action()
 	schedule_poll(restart = TRUE)
 
 /**
@@ -189,8 +180,7 @@
 	else if(valid_owner())
 		status = "Preview unavailable. Reload the preview to try again."
 	fdel(path)
-	busy = FALSE
-	push_update(preview_id == attachment_id ? list("preview" = list("id" = preview_id, "src" = preview_src)) : null)
+	finish_action(extra = preview_id == attachment_id ? list("preview" = list("id" = preview_id, "src" = preview_src)) : null)
 
 /// Removes the attachment, asking the service first when an upload's reply was lost
 /datum/bug_report/proc/remove_screenshot(expected_id)
@@ -220,8 +210,7 @@
 		status = "Screenshot removed."
 	else
 		status = "Screenshot removal was not confirmed. Retry connection; your image remains attached."
-	busy = FALSE
-	push_update()
+	finish_action()
 
 /// Sets whether the attachment may go public with the issue, which needs its preview shown first
 /datum/bug_report/proc/screenshot_consent(expected_id, public_consent)
@@ -234,7 +223,6 @@
 		update_attachment(response["attachment"])
 	else
 		status = "Sharing change was not confirmed. Retry connection to check its current state."
-	busy = FALSE
-	push_update()
+	finish_action()
 
 #undef BUG_REPORT_TEMPORARY

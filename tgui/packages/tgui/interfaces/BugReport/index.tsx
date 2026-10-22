@@ -20,7 +20,6 @@ import type {
   ReportAttachment,
   ReportContext,
   ReportFields,
-  ReportResult,
 } from './types';
 
 /** Unsent text per report, kept in the browser so typing never touches the server */
@@ -131,81 +130,6 @@ const ContextSection = memo(function ContextSection(props: {
           .join(', ') || 'none recorded'}
       </Box>
     </Section>
-  );
-});
-
-const ReceiptSection = memo(function ReceiptSection(props: {
-  receipt: NonNullable<ReportResult['receipt']>;
-}) {
-  const { act } = useBackend();
-  const { receipt } = props;
-  return (
-    <Section title="Report received">
-      <Box>Reference: {receipt.reportId}</Box>
-      <Box>
-        Screening: {receipt.screening}; publication: {receipt.publication}
-      </Box>
-      {receipt.screening === 'waiting-ai-quota' && (
-        <Box>
-          Your report is saved and waiting for free AI allowance. You do not
-          need to submit again.
-        </Box>
-      )}
-      {!!receipt.nextAttemptAt && (
-        <Box>Next attempt: {new Date(receipt.nextAttemptAt).toUTCString()}</Box>
-      )}
-      {!!receipt.issueUrl && (
-        <Button onClick={() => act('issue')}>
-          GitHub #{receipt.issueNumber}
-        </Button>
-      )}
-      <Button onClick={() => act('new')}>Report another issue</Button>
-    </Section>
-  );
-});
-
-const TextFields = memo(function TextFields(props: {
-  fields: ReportFields;
-  edit: (name: keyof ReportFields, value: string | null) => void;
-  checking: boolean;
-  feedback?: ReportResult['feedback'];
-}) {
-  const { fields, edit, checking, feedback } = props;
-  return (
-    <>
-      {(Object.keys(TEXT_FIELDS) as TextField[]).map((field) => (
-        <Stack.Item key={field}>
-          <Box bold mb={0.5}>
-            {TEXT_FIELDS[field]}
-          </Box>
-          {field === 'title' ? (
-            <Input
-              fluid
-              value={fields.title}
-              maxLength={160}
-              disabled={checking}
-              onChange={(value) => edit('title', value)}
-            />
-          ) : (
-            <TextArea
-              fluid
-              height="6rem"
-              value={fields[field]}
-              maxLength={8000}
-              disabled={checking}
-              onChange={(value) => edit(field, value)}
-            />
-          )}
-          {feedback
-            ?.filter((item) => item.field === field)
-            .map((item) => (
-              <Box key={item.message} color="bad">
-                {item.message}
-              </Box>
-            ))}
-        </Stack.Item>
-      ))}
-    </>
   );
 });
 
@@ -380,15 +304,64 @@ export const BugReport = () => {
           </Box>
           <ContextSection context={data.context} />
           {receipt ? (
-            <ReceiptSection receipt={receipt} />
+            <Section title="Report received">
+              <Box>Reference: {receipt.reportId}</Box>
+              <Box>
+                Screening: {receipt.screening}; publication:{' '}
+                {receipt.publication}
+              </Box>
+              {receipt.screening === 'waiting-ai-quota' && (
+                <Box>
+                  Your report is saved and waiting for free AI allowance. You do
+                  not need to submit again.
+                </Box>
+              )}
+              {!!receipt.nextAttemptAt && (
+                <Box>
+                  Next attempt: {new Date(receipt.nextAttemptAt).toUTCString()}
+                </Box>
+              )}
+              {!!receipt.issueUrl && (
+                <Button onClick={() => act('issue')}>
+                  GitHub #{receipt.issueNumber}
+                </Button>
+              )}
+              <Button onClick={() => act('new')}>Report another issue</Button>
+            </Section>
           ) : (
             <Stack vertical>
-              <TextFields
-                fields={fields}
-                edit={edit}
-                checking={checking}
-                feedback={data.result?.feedback}
-              />
+              {(Object.keys(TEXT_FIELDS) as TextField[]).map((field) => (
+                <Stack.Item key={field}>
+                  <Box bold mb={0.5}>
+                    {TEXT_FIELDS[field]}
+                  </Box>
+                  {field === 'title' ? (
+                    <Input
+                      fluid
+                      value={fields.title}
+                      maxLength={160}
+                      disabled={checking}
+                      onChange={(value) => edit('title', value)}
+                    />
+                  ) : (
+                    <TextArea
+                      fluid
+                      height="6rem"
+                      value={fields[field]}
+                      maxLength={8000}
+                      disabled={checking}
+                      onChange={(value) => edit(field, value)}
+                    />
+                  )}
+                  {data.result?.feedback
+                    ?.filter((item) => item.field === field)
+                    .map((item) => (
+                      <Box key={item.message} color="bad">
+                        {item.message}
+                      </Box>
+                    ))}
+                </Stack.Item>
+              ))}
               <Stack.Item>
                 <Box bold>Optional incident time (UTC)</Box>
                 <Input

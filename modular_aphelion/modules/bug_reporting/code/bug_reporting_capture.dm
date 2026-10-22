@@ -50,24 +50,17 @@
 	if(busy || capture_nonce || !valid_owner() || (result?["kind"] in list("accepted", "checking")) || !istext(window_id))
 		return
 	if(!COOLDOWN_FINISHED(src, capture_cooldown))
-		status = "Wait a few seconds before taking another snapshot."
-		push_update()
-		return
+		return finish_action("Wait a few seconds before taking another snapshot.")
 	if(!take_allowance("uploads", spend = FALSE))
-		push_update()
-		return
+		return finish_action()
 	var/datum/tgui_window/window = owner.tgui_windows[window_id]
 	if(!capture_window_allowed(window))
-		status = "That TGUI is no longer open. Select one of your active windows."
-		push_update()
-		return
+		return finish_action("That TGUI is no longer open. Select one of your active windows.")
 	var/datum/tgui/selected_ui = window.locked_by
 	busy = TRUE
 	push_update()
 	if(!save_fields() || !capture_window_allowed(window) || window.locked_by != selected_ui)
-		busy = FALSE
-		push_update()
-		return
+		return finish_action()
 	COOLDOWN_START(src, capture_cooldown, 10 SECONDS)
 	capture_window = window
 	capture_ui = selected_ui
@@ -97,9 +90,7 @@
 	capture_nonce = null
 	capture_window = null
 	capture_ui = null
-	busy = FALSE
-	status = message
-	push_update()
+	finish_action(message)
 
 /**
  * Takes one message of a capture from its window - a chunk to stage, or the reporter cancelling.
