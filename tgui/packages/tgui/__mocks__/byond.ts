@@ -1,6 +1,7 @@
 const ByondMock = {
   windowId: 'test-window',
   IS_BYOND: true,
+  POST_MESSAGE: true, // APHELION EDIT ADDITION - BYOND_POST_MESSAGE
   BLINK: true,
   strictMode: true,
   storageCdn: '',

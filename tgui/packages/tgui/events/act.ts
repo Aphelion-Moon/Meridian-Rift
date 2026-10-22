@@ -16,6 +16,14 @@ export function sendAct(
     logger.error(`Payload for act() must be an object, got this:`, payload);
     return;
   }
+  // APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+
+  // A posted call takes any size, so we only chunk for clients still on navigations
+  if (Byond.POST_MESSAGE) {
+    Byond.sendMessage(`act/${action}`, payload);
+    return;
+  }
+  // APHELION EDIT ADDITION END
 
   const stringifiedPayload = JSON.stringify(payload);
   const urlSize = Object.entries({

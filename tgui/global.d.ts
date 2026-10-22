@@ -46,6 +46,11 @@ type ByondType = {
    */
   IS_BYOND: boolean;
 
+  // APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+  /** Whether calls go through WebView2's postMessage, which takes any size, so nothing needs chunking */
+  POST_MESSAGE: boolean;
+
+  // APHELION EDIT ADDITION END
   /**
    * Version of Blink engine of WebView2. Null if N/A.
    */

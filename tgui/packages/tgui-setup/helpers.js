@@ -51,6 +51,10 @@
 
   // Version constants
   Byond.IS_BYOND = isByond;
+  // APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+  // WebView2 gives us postMessage, which is what BYOND's own page API sends everything through
+  Byond.POST_MESSAGE = Boolean(window.chrome && window.chrome.webview);
+  // APHELION EDIT ADDITION END
 
   // Strict mode flag
   Byond.strictMode = Boolean(Number(parseMetaTag('tgui:strictMode')));
@@ -96,6 +100,14 @@
       cef_to_byond('byond://' + url);
       return;
     }
+    // APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+
+    // Any size goes through in order and without a navigation, where the http fallback past 2048 just gets a 404
+    if (Byond.POST_MESSAGE) {
+      window.chrome.webview.postMessage('byond://' + url);
+      return;
+    }
+    // APHELION EDIT ADDITION END
 
     // Perform a standard call via location.href
     if (url.length < 2048) {
