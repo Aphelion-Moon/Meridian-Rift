@@ -151,9 +151,10 @@ test('the map capture and the file prompt never navigate the browser', () => {
   }
 });
 
-test('a snapshot names only the picked window, and focus asks for the window list again', () => {
+test('a snapshot names only the picked window, and focus or the refresh button asks for the window list again', () => {
   setData({ captureTargets: [{ id: 'tgui_2', title: 'Machine controls' }] });
   render(<BugReport />);
+  expect(screen.queryAllByText('Machine controls').length > 0).toBe(true);
   fireEvent.click(screen.getByText('Snapshot selected TGUI'));
   expect(sendLarge).toHaveBeenLastCalledWith('capture_ui', {
     windowId: 'tgui_2',
@@ -161,6 +162,13 @@ test('a snapshot names only the picked window, and focus asks for the window lis
     fieldsEpoch: 0,
   });
   fireEvent.focus(window);
+  expect(send).toHaveBeenLastCalledWith('targets');
+  send.mockClear();
+  const refresh = document
+    .querySelector('[class*="fa-sync"]')
+    ?.closest('.Button');
+  expect(!!refresh).toBe(true);
+  fireEvent.click(refresh!);
   expect(send).toHaveBeenLastCalledWith('targets');
 });
 

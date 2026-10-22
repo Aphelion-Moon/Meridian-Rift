@@ -94,7 +94,7 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
   current.root.render(
     <SnapshotPreview canvas={canvas} failure={failure} request={request} />,
   );
-  Byond.winset(Byond.windowId, { 'is-focused': true });
+  Byond.winset(Byond.windowId, { focus: true });
 }
 
 const OVERLAY: CSSProperties = {

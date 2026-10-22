@@ -404,10 +404,19 @@ export const BugReport = () => {
                     displayText: item.title,
                   }))}
                   selected={target}
+                  displayText={
+                    targets.find((item) => item.id === target)?.title
+                  }
                   disabled={checking || !target}
                   placeholder="Open another TGUI to snapshot it"
-                  onClick={() => act('targets')}
                   onSelected={setCaptureTarget}
+                />
+                {/* Other windows open and close without telling this one, and the dropdown's own clicks never reach us */}
+                <Button
+                  icon="sync"
+                  tooltip="Look for open windows again"
+                  disabled={checking}
+                  onClick={() => act('targets')}
                 />
                 <Box>
                   Snapshot one of your open TGUI windows, then preview and
