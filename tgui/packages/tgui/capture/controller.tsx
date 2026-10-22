@@ -33,6 +33,9 @@ let current:
     }
   | undefined;
 
+/** Whether this window is still drawing a snapshot, which carries on after the server ends its capture */
+let drawing = false;
+
 /** Takes the preview down, telling the server nothing */
 function close() {
   if (!current) return;
@@ -74,8 +77,10 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
     limit: Number(payload.limit) || 2796204,
   };
   const name = store.get(configAtom).interface?.name;
-  // A finished preview may still be open, but a capture in progress keeps the window
+  // A finished preview may still be open, but a capture in progress keeps the window, and so does a drawing left
+  // over from an ended one, since two clones at once share one renderer and its scroll markers
   if (
+    drawing ||
     (current && !(current.transfer && !current.transfer.active)) ||
     !name ||
     name === 'BugReport'
@@ -87,6 +92,7 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
   current = { request, deadline: setTimeout(cancelUiSnapshot, 170000) };
   let canvas: HTMLCanvasElement | undefined;
   let failure = '';
+  drawing = true;
   try {
     // Drawn before the preview exists, so the preview can never be in it
     canvas = await renderUiSnapshot(document.body);
@@ -100,6 +106,8 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
       error instanceof SnapshotRefusal
         ? error.message
         : `Could not create this UI snapshot. Choose a screenshot file in the report instead. ${error instanceof Error ? error.message : error}`;
+  } finally {
+    drawing = false;
   }
   if (current?.request.nonce !== request.nonce) return;
   current.host = document.createElement('div');
@@ -208,6 +216,20 @@ function SnapshotPreview(props: {
     }
   }
 
+  // A refusal or a failure has nothing to preview or crop, so it gets its line and a way out
+  if (!canvas) {
+    return (
+      <div
+        role="dialog"
+        aria-label="Report UI snapshot preview"
+        style={OVERLAY}
+      >
+        <p role="status">{note}</p>
+        <Button onClick={cancelUiSnapshot}>Close</Button>
+      </div>
+    );
+  }
+
   return (
     <div role="dialog" aria-label="Report UI snapshot preview" style={OVERLAY}>
       <h2>Preview this UI snapshot</h2>
@@ -216,46 +238,44 @@ function SnapshotPreview(props: {
         sensitive text. Drag a rectangle to crop, or attach the whole preview.
         It stays private until you opt in on the report.
       </p>
-      {!!canvas && (
-        <div
-          style={STAGE}
-          onPointerDown={(event) => {
-            if (phase !== 'preview') return;
-            origin.current = point(event);
+      <div
+        style={STAGE}
+        onPointerDown={(event) => {
+          if (phase !== 'preview') return;
+          origin.current = point(event);
+          showCrop(undefined);
+          event.currentTarget.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        }}
+        onPointerMove={(event) => {
+          if (!origin.current || phase !== 'preview') return;
+          const end = point(event);
+          showCrop({
+            x: Math.min(origin.current.x, end.x),
+            y: Math.min(origin.current.y, end.y),
+            width: Math.abs(origin.current.x - end.x),
+            height: Math.abs(origin.current.y - end.y),
+          });
+        }}
+        onPointerUp={(event) => {
+          origin.current = undefined;
+          const { bounds } = point(event);
+          const area = crop.current;
+          // A slip of the mouse is not a crop
+          if (
+            area &&
+            (area.width * bounds.width < 8 || area.height * bounds.height < 8)
+          )
             showCrop(undefined);
-            event.currentTarget.setPointerCapture(event.pointerId);
-            event.preventDefault();
+        }}
+      >
+        <div
+          ref={(node) => {
+            if (node && canvas.parentNode !== node) node.prepend(canvas);
           }}
-          onPointerMove={(event) => {
-            if (!origin.current || phase !== 'preview') return;
-            const end = point(event);
-            showCrop({
-              x: Math.min(origin.current.x, end.x),
-              y: Math.min(origin.current.y, end.y),
-              width: Math.abs(origin.current.x - end.x),
-              height: Math.abs(origin.current.y - end.y),
-            });
-          }}
-          onPointerUp={(event) => {
-            origin.current = undefined;
-            const { bounds } = point(event);
-            const area = crop.current;
-            // A slip of the mouse is not a crop
-            if (
-              area &&
-              (area.width * bounds.width < 8 || area.height * bounds.height < 8)
-            )
-              showCrop(undefined);
-          }}
-        >
-          <div
-            ref={(node) => {
-              if (node && canvas.parentNode !== node) node.prepend(canvas);
-            }}
-          />
-          <div ref={selection} style={SELECTION} />
-        </div>
-      )}
+        />
+        <div ref={selection} style={SELECTION} />
+      </div>
       <Box mt={1}>
         <Button disabled={phase !== 'preview'} onClick={attach}>
           Attach snapshot

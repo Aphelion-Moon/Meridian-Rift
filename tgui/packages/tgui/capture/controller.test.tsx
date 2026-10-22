@@ -60,7 +60,7 @@ test('the window says it is ready once its preview is up, and not before', async
   ]);
 });
 
-test('a refused snapshot shows its own line, and the window still says it is ready', async () => {
+test('a refused snapshot shows only its own line and Close, and the window still says it is ready', async () => {
   render.mockImplementation(async () => {
     throw new snapshot.SnapshotRefusal(snapshot.TOO_BIG);
   });
@@ -72,7 +72,17 @@ test('a refused snapshot shows its own line, and the window still says it is rea
   ]);
   const text = document.body.textContent ?? '';
   expect(text.includes(snapshot.TOO_BIG)).toBe(true);
-  expect(text.includes('Could not create this UI snapshot')).toBe(false);
+  expect(text.includes('Close')).toBe(true);
+  // There's nothing to preview, crop or attach
+  expect(
+    [
+      'Could not create this UI snapshot',
+      'Preview this UI snapshot',
+      'Drag a rectangle',
+      'Attach snapshot',
+      'Use whole snapshot',
+    ].filter((line) => text.includes(line)),
+  ).toEqual([]);
 });
 
 test('a capture the server ended while it was drawing sends nothing', async () => {
@@ -83,4 +93,29 @@ test('a capture the server ended while it was drawing sends nothing', async () =
     await request;
   });
   expect(sent.mock.calls.length).toBe(0);
+});
+
+test('a retry while an ended capture is still drawing is refused, so the window draws one snapshot at a time', async () => {
+  const { request } = await ask('fourth');
+  // The server gave up on it, but nothing stops a drawing once it starts
+  abortUiSnapshot({ nonce: 'fourth' });
+  await ask('fifth');
+  expect(render.mock.calls.length).toBe(1);
+  expect(sent.mock.calls).toEqual([
+    ['bug-report/capture-cancel', { nonce: 'fifth' }],
+  ]);
+  await act(async () => {
+    finish(document.createElement('canvas'));
+    await request;
+  });
+  const { request: next } = await ask('sixth');
+  await act(async () => {
+    finish(document.createElement('canvas'));
+    await next;
+  });
+  expect(render.mock.calls.length).toBe(2);
+  expect(sent.mock.calls).toEqual([
+    ['bug-report/capture-cancel', { nonce: 'fifth' }],
+    ['bug-report/capture-ready', { nonce: 'sixth' }],
+  ]);
 });

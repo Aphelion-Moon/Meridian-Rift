@@ -186,6 +186,15 @@
 	TEST_ASSERT(answered.capture_ready, "The window's ready didn't reach its capture")
 	answered.expire_unready_capture(nonce)
 	TEST_ASSERT_EQUAL(answered.capture_nonce, nonce, "A capture whose window answered was ended")
+	answered.cancel_ui_capture()
+	COOLDOWN_RESET(answered, capture_cooldown)
+	answered.begin_ui_capture(window.id)
+	TEST_ASSERT(answered.capture_nonce && answered.capture_nonce != nonce, "The next capture didn't start")
+	TEST_ASSERT(!answered.capture_ready, "The last capture's ready carried over to the next")
+	window.on_message("bug-report/capture-ready", list("nonce" = nonce), list())
+	TEST_ASSERT(!answered.capture_ready, "A late ready from the ended capture was taken")
+	answered.expire_unready_capture(nonce)
+	TEST_ASSERT_NOTNULL(answered.capture_nonce, "The ended capture's ready check ended the next one")
 
 /// The hourly allowances mirror the reporting service's caps, and the service never sees a refused one
 /datum/unit_test/bug_report_budgets

@@ -34,10 +34,13 @@ the backend; this module is the game's side.
 - **Snapshot limits**: the clone copies computed values, which already have every `var()` filled in,
   so CSS variables stay out (Aphelion's inherited base64 images made them 125 KB a node, and the
   Changelog's SVG 213 M characters, which killed its 32-bit renderer). `dom-snapshot.ts` refuses an SVG
-  over `MAX_SVG_CHARS` (50 M characters; drawing costs about 19 bytes a character and the renderer dies
-  near 2.5 GB) before its data URL exists. The window sends `bug-report/capture-ready` once its preview
-  is up, and the server ends a capture with no ready in 20 seconds, since a dead renderer takes the
-  page's own 170-second timer with it. The 3-minute expiry stays for a capture left open.
+  over `MAX_SVG_CHARS` (50 M characters; drawing costs about 20.5 bytes a character and the renderer
+  dies near 2.5 GB) before its data URL exists, and a window over 5,000 nodes or 4,096 pixels a side
+  the same way. A window refuses a second snapshot while it still draws one, even one whose
+  capture the server already ended. The window sends `bug-report/capture-ready` once its overlay is
+  up, with a preview or a failure, and the server ends a capture with no ready in 20 seconds, since a
+  dead renderer takes the page's own 170-second timer with it. The 3-minute expiry stays for a capture
+  left open.
 
 **Why the page posts its own messages:** tgui's `Byond.call` sends any URL of 2048 characters or more
 as an XHR GET, which DreamSeeker 516 answers with a 404, so the message never arrives (tgui's act

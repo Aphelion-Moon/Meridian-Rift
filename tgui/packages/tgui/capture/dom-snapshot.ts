@@ -12,10 +12,10 @@ export type Crop = { x: number; y: number; width: number; height: number };
 /** A snapshot turned down on purpose, its message written for the player to read as it is */
 export class SnapshotRefusal extends Error {}
 
-const MAX_NODES = 5000;
-const MAX_SIDE = 4096;
+export const MAX_NODES = 5000;
+export const MAX_SIDE = 4096;
 /**
- * Most characters of SVG a snapshot may build. Drawing it costs its renderer about 19 bytes a character
+ * Most characters of SVG a snapshot may build. Drawing it costs its renderer about 20.5 bytes a character
  * and a window's renderer dies near 2.5 GB, so this keeps a snapshot near 1 GB at its peak
  */
 export const MAX_SVG_CHARS = 50_000_000;
@@ -57,17 +57,15 @@ export async function renderUiSnapshot(
   const nodes: HTMLElement[] = [root];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
   while (walker.nextNode()) {
-    if (nodes.length >= MAX_NODES)
-      throw new Error(
-        'This UI is too complex to snapshot; use a screenshot file.',
-      );
+    if (nodes.length >= MAX_NODES) throw new SnapshotRefusal(TOO_BIG);
     nodes.push(walker.currentNode as HTMLElement);
   }
   const bounds = root.getBoundingClientRect();
   const width = Math.ceil(bounds.width);
   const height = Math.ceil(bounds.height);
-  if (!width || !height || width > MAX_SIDE || height > MAX_SIDE)
-    throw new Error('This UI is too large to snapshot.');
+  if (width > MAX_SIDE || height > MAX_SIDE) throw new SnapshotRefusal(TOO_BIG);
+  if (!width || !height)
+    throw new Error('This UI has nothing on screen to snapshot.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   const scrolling = nodes.filter((node) => node.scrollTop || node.scrollLeft);
