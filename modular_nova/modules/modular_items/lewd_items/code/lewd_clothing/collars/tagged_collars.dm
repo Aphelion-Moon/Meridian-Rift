@@ -6,22 +6,18 @@
 /datum/atom_skin/collar_tagged/thin_bell
 	preview_name = "Bell (Thin)"
 	new_icon_state = "thin_bell_collar"
-	new_name = "bell collar"
 
 /datum/atom_skin/collar_tagged/thin_cowbell
 	preview_name = "Cowbell (Thin)"
 	new_icon_state = "thin_cowbell_collar"
-	new_name = "cowbell collar"
 
 /datum/atom_skin/collar_tagged/thin_cross
 	preview_name = "Cross (Thin)"
 	new_icon_state = "thin_cross_collar"
-	new_name = "cross collar"
 
 /datum/atom_skin/collar_tagged/thin_holo
 	preview_name = "Holographic (Thin)"
 	new_icon_state = "thin_holocollar"
-	new_name = "holocollar"
 
 /datum/atom_skin/collar_tagged/thin_tag
 	preview_name = "Tagged (Thin)"
@@ -30,22 +26,18 @@
 /datum/atom_skin/collar_tagged/thick_bell
 	preview_name = "Bell (Thick)"
 	new_icon_state = "thick_bell_collar"
-	new_name = "bell collar"
 
 /datum/atom_skin/collar_tagged/thick_cowbell
 	preview_name = "Cowbell (Thick)"
 	new_icon_state = "thick_cowbell_collar"
-	new_name = "cowbell collar"
 
 /datum/atom_skin/collar_tagged/thick_cross
 	preview_name = "Cross (Thick)"
 	new_icon_state = "thick_cross_collar"
-	new_name = "cross collar"
 
 /datum/atom_skin/collar_tagged/thick_holo
 	preview_name = "Holographic (Thick)"
 	new_icon_state = "thick_holocollar"
-	new_name = "holocollar"
 
 /datum/atom_skin/collar_tagged/thick_tag
 	preview_name = "Tagged (Thick)"

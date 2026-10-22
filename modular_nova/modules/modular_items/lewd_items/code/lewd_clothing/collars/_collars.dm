@@ -172,8 +172,8 @@ N
 	icon = 'icons/map_icons/clothing/neck.dmi'
 	icon_state = "/obj/item/clothing/neck/collar/spike"
 	post_init_icon_state = "spike"
-	greyscale_config = /datum/greyscale_config/collar_spike
-	greyscale_config_worn = /datum/greyscale_config/collar_spike/worn
+	greyscale_config = /datum/greyscale_config/spiked_collar
+	greyscale_config_worn = /datum/greyscale_config/spiked_collar/worn
 	greyscale_colors = "#292929#C0C0C0"
 
 /obj/item/clothing/neck/collar/spike/setup_reskins()

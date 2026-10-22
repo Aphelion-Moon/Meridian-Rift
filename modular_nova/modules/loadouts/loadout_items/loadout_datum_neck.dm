@@ -56,7 +56,7 @@
 	name = "Collar (Leather)"
 	item_path = /obj/item/clothing/neck/collar/leather
 
-/datum/loadout_item/neck/leather_collar
+/datum/loadout_item/neck/leather_collar_tagged
 	name = "Collar (Tagged, Leather)"
 	item_path = /obj/item/clothing/neck/collar/leather/tagged
 	reskin_datum = /datum/atom_skin/leather_collar_tagged
