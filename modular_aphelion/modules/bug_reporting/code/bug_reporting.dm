@@ -117,10 +117,6 @@ GAME_VERB_DESC(/client, recent_bug_reports, "Recent bug reports", "Reopen a repo
 GAME_VERB_DESC(/client, report_upstream_issue, "Report upstream issue", "Open the manual upstream GitHub issue form", "OOC")
 	DIRECT_OUTPUT(src, link("https://github.com/tgstation/tgstation/issues/new?template=bug_report_form.yml"))
 
-GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "Create a one-time proof for linking report identity", "OOC")
-	if(bug_report_draft || new_bug_report())
-		INVOKE_ASYNC(bug_report_draft, TYPE_PROC_REF(/datum/bug_report, link_discord))
-
 /**
  * One bug report from one connection, from the moment its form opens to its receipt.
  *
@@ -175,7 +171,6 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	var/poll_delay = BUG_REPORT_POLL_MIN
 	COOLDOWN_DECLARE(refresh_cooldown)
 	COOLDOWN_DECLARE(action_cooldown)
-	COOLDOWN_DECLARE(link_cooldown)
 
 /datum/bug_report/New(client/reporting_client)
 	owner = reporting_client
@@ -264,7 +259,7 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
  * Runs an action on this report's draft at the bridge, handing it our context first if it doesn't hold it.
  *
  * Arguments:
- * * action - read, save, submit, receipt or link
+ * * action - read, save, submit or receipt
  * * extra - more fields for the action's body
  */
 /datum/bug_report/proc/bridge_action(action, list/extra)
@@ -283,15 +278,6 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	context_saved = TRUE
 	status = response["status"] == "ready" ? "Ready" : "Incident context saved locally; waiting for reporting service"
 	return TRUE
-
-/// Asks the bridge for a one-time code linking this ckey to a Discord reporting identity
-/datum/bug_report/proc/link_discord()
-	if(!COOLDOWN_FINISHED(src, link_cooldown))
-		return
-	COOLDOWN_START(src, link_cooldown, 1 MINUTES)
-	var/list/response = bridge_action("link")
-	if(response?["code"])
-		to_chat(owner, span_notice("Use this one-time code with the Discord reporting identity-link command when available. It expires in ten minutes. Keep it private: [response["code"]]"))
 
 /// Saves the reporter's text to the draft if it changed, returning whether the saved draft now matches it
 /datum/bug_report/proc/save_fields()

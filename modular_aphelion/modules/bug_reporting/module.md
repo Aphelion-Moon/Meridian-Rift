@@ -23,7 +23,7 @@ the backend; this module is the game's side.
 - **Cooldowns and hourly allowances mirror the service**, per ckey for the round, so a reconnect
   doesn't refill them: 5 accepted reports, 10 submissions with new text, 10 screenshots and 20 new
   reports an hour (the service allows 30, and refusing one there stalls everyone's registration). Bridge
-  actions wait a second between them, Retry connection five, a snapshot ten, a Discord code a minute.
+  actions wait a second between them, Retry connection five and a snapshot ten.
 - **Screenshots**: BYOND's file prompt (PNG, JPEG or WebP to 10 MiB; `AllowUpload` lifts the limit
   for that one image), or a snapshot of one of the reporter's other open TGUI windows. The window
   rebuilds itself with html-to-image, shows a preview to crop, and sends the image back in 32 KiB
