@@ -5,6 +5,12 @@
 	var/bug_report_session_id
 	var/list/tgui_windows = list()
 
+/datum/client_interface/bug_report/Destroy(force)
+	// The test windows hold us as their client, so we let go of them or neither is ever collected
+	bug_report_draft = null
+	tgui_windows = null
+	return ..()
+
 /// A report whose bridge is a script, so no request ever leaves a test
 /datum/bug_report/test
 	/// Replies the next bridge calls get, in order

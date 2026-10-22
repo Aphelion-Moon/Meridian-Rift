@@ -109,6 +109,8 @@ GAME_VERB_DESC(/client, recent_bug_reports, "Recent bug reports", "Reopen a repo
 	var/datum/bug_report/report = choices[choice]
 	if(QDELETED(report))
 		return
+	if(report != bug_report_draft)
+		bug_report_draft?.forget_preview()
 	bug_report_draft = report
 	report.ui_interact(mob)
 
@@ -249,10 +251,14 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 		return
 	if(output_file)
 		return TRUE
+	var/list/data
 	try
-		return json_decode(response.body)
+		data = json_decode(response.body)
 	catch
-		status = "Reporting service sent a reply we couldn't read. Your text is kept."
+		data = null
+	if(islist(data))
+		return data
+	status = "Reporting service sent a reply we couldn't read. Your text is kept."
 
 /**
  * Runs an action on this report's draft at the bridge, handing it our context first if it doesn't hold it.
