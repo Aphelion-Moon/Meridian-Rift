@@ -155,6 +155,38 @@
 	cancelled.cancel_ui_capture()
 	TEST_ASSERT(!fexists(path) && !cancelled.busy, "Cancelling left the staged file or a busy report")
 
+/// A window that never shows its preview, like one whose renderer died drawing it, loses its capture in seconds
+/datum/unit_test/bug_report_capture_ready
+
+/datum/unit_test/bug_report_capture_ready/Run()
+	var/datum/bug_report/test/report = bug_report_test_report(src)
+	var/datum/tgui_window/bug_report_test/window = bug_report_test_window(report)
+	report.begin_ui_capture(window.id)
+	TEST_ASSERT_NOTNULL(report.capture_nonce, "The capture didn't start")
+	var/datum/timedevent/ready_check
+	for(var/datum/timedevent/timer as anything in report._active_timers)
+		if(timer.callBack.delegate == TYPE_PROC_REF(/datum/bug_report, expire_unready_capture))
+			ready_check = timer
+	TEST_ASSERT_NOTNULL(ready_check, "The capture doesn't wait for its window to answer")
+	TEST_ASSERT(ready_check.wait < 1 MINUTES, "The capture waits minutes on a window that may be dead")
+	ready_check.callBack.Invoke()
+	TEST_ASSERT_NULL(report.capture_nonce, "A capture whose window never answered kept running")
+	TEST_ASSERT(!report.busy, "A capture whose window never answered left the report busy")
+	TEST_ASSERT(findtext(report.status, "didn't answer"), "The report didn't say the window never answered")
+	var/list/abort = window.messages[length(window.messages)]
+	TEST_ASSERT_EQUAL(abort["type"], "bug-report/capture-abort", "The silent window wasn't told to stop")
+
+	var/datum/bug_report/test/answered = bug_report_test_report(src)
+	window = bug_report_test_window(answered)
+	answered.begin_ui_capture(window.id)
+	var/nonce = answered.capture_nonce
+	window.on_message("bug-report/capture-ready", list("nonce" = "wrong"), list())
+	TEST_ASSERT(!answered.capture_ready, "A ready for another capture was taken")
+	window.on_message("bug-report/capture-ready", list("nonce" = nonce), list())
+	TEST_ASSERT(answered.capture_ready, "The window's ready didn't reach its capture")
+	answered.expire_unready_capture(nonce)
+	TEST_ASSERT_EQUAL(answered.capture_nonce, nonce, "A capture whose window answered was ended")
+
 /// The hourly allowances mirror the reporting service's caps, and the service never sees a refused one
 /datum/unit_test/bug_report_budgets
 

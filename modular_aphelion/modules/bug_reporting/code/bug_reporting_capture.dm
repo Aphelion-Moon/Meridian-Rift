@@ -1,5 +1,7 @@
 /// Most base64 characters one capture may send - 2 MiB of image, the bridge's own cap for captures
 #define BUG_REPORT_CAPTURE_MAX 2796204
+/// How long a window gets to show its snapshot preview before we take its renderer for dead
+#define BUG_REPORT_CAPTURE_READY_WAIT (20 SECONDS)
 
 /datum/bug_report
 	/// The window a capture was asked of
@@ -12,6 +14,8 @@
 	var/capture_path
 	/// When an unfinished capture gives up
 	var/capture_until = 0
+	/// Whether the capture's window has shown its preview, which one whose renderer died never does
+	var/capture_ready = FALSE
 	/// The next chunk index we take
 	var/capture_next = 0
 	/// Base64 characters staged so far
@@ -67,13 +71,21 @@
 	// Only correlates messages, the owner and the exact window and UI are what we trust
 	capture_nonce = GUID()
 	capture_until = world.time + 3 MINUTES
+	capture_ready = FALSE
 	capture_next = 0
 	capture_received = 0
 	capture_total = 0
 	status = "Preview and optionally crop the snapshot in the selected TGUI."
 	window.send_message("bug-report/capture", list("nonce" = capture_nonce, "chunk" = BUG_REPORT_CAPTURE_CHUNK, "limit" = BUG_REPORT_CAPTURE_MAX))
+	// A renderer that runs out of memory takes the page's own timers with it, so we can't wait on the window to give up
+	addtimer(CALLBACK(src, PROC_REF(expire_unready_capture), capture_nonce), BUG_REPORT_CAPTURE_READY_WAIT)
 	addtimer(CALLBACK(src, PROC_REF(expire_ui_capture), capture_nonce), 3 MINUTES)
 	push_update()
+
+/// Gives up on a capture whose window never showed its preview
+/datum/bug_report/proc/expire_unready_capture(nonce)
+	if(capture_nonce == nonce && !capture_ready)
+		cancel_ui_capture("That window didn't answer. Reopen it and try again, or use F2.")
 
 /// Gives up on a capture still unfinished when its time runs out
 /datum/bug_report/proc/expire_ui_capture(nonce)
@@ -93,13 +105,13 @@
 	finish_action(message)
 
 /**
- * Takes one message of a capture from its window - a chunk to stage, or the reporter cancelling.
+ * Takes one message of a capture from its window - its preview showing, a chunk to stage, or the reporter cancelling.
  *
  * Chunks come in order, each acknowledged before the next, and go straight to a file as the base64 they
  * are. We never decode or hold the image. Returns whether the message belonged to the capture.
  * Arguments:
  * * window - the window the message came from
- * * type - bug-report/capture-chunk or bug-report/capture-cancel
+ * * type - bug-report/capture-ready, bug-report/capture-chunk or bug-report/capture-cancel
  * * payload - the message's decoded payload
  */
 /datum/bug_report/proc/receive_ui_capture(datum/tgui_window/window, type, list/payload)
@@ -108,6 +120,9 @@
 	if(!capture_window_allowed(window) || window.locked_by != capture_ui || world.time >= capture_until)
 		cancel_ui_capture("The selected TGUI changed or closed. No snapshot was attached.")
 		return FALSE
+	if(type == "bug-report/capture-ready")
+		capture_ready = TRUE
+		return TRUE
 	if(type == "bug-report/capture-cancel")
 		cancel_ui_capture()
 		return TRUE
@@ -142,3 +157,4 @@
 	return TRUE
 
 #undef BUG_REPORT_CAPTURE_MAX
+#undef BUG_REPORT_CAPTURE_READY_WAIT

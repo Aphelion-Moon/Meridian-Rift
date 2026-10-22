@@ -1,10 +1,21 @@
 // THIS IS AN APHELION UI FILE
 
-import { type CSSProperties, type PointerEvent, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type PointerEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { Box, Button } from 'tgui-core/components';
 import { configAtom, store } from '../events/store';
-import { type Crop, encodeSnapshot, renderUiSnapshot } from './dom-snapshot';
+import {
+  type Crop,
+  encodeSnapshot,
+  renderUiSnapshot,
+  SnapshotRefusal,
+} from './dom-snapshot';
 import { sendLargeMessage } from './topic';
 import { SnapshotTransfer } from './transfer';
 
@@ -85,7 +96,10 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
       maxHeight: '65vh',
     });
   } catch (error) {
-    failure = `Could not create this UI snapshot. Choose a screenshot file in the report instead. ${error instanceof Error ? error.message : error}`;
+    failure =
+      error instanceof SnapshotRefusal
+        ? error.message
+        : `Could not create this UI snapshot. Choose a screenshot file in the report instead. ${error instanceof Error ? error.message : error}`;
   }
   if (current?.request.nonce !== request.nonce) return;
   current.host = document.createElement('div');
@@ -138,6 +152,11 @@ function SnapshotPreview(props: {
     canvas ? 'preview' : 'done',
   );
   const [note, setNote] = useState(failure);
+
+  // The server ends a capture whose window never says this, since a renderer that died drawing it can't
+  useEffect(() => {
+    sendLargeMessage('bug-report/capture-ready', { nonce: request.nonce });
+  }, [request.nonce]);
 
   function showCrop(area?: Crop) {
     crop.current = area;

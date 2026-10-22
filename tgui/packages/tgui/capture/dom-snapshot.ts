@@ -4,13 +4,24 @@ import { cloneNode } from './vendor/clone-node';
 import { embedImages } from './vendor/embed-images';
 import { embedWebFonts } from './vendor/embed-webfonts';
 import type { Options } from './vendor/types';
-import { createImage, nodeToDataURL } from './vendor/util';
+import { createImage } from './vendor/util';
 
 /** A part of the snapshot, each side a fraction of the whole from 0 to 1 */
 export type Crop = { x: number; y: number; width: number; height: number };
 
+/** A snapshot turned down on purpose, its message written for the player to read as it is */
+export class SnapshotRefusal extends Error {}
+
 const MAX_NODES = 5000;
 const MAX_SIDE = 4096;
+/**
+ * Most characters of SVG a snapshot may build. Drawing it costs its renderer about 19 bytes a character
+ * and a window's renderer dies near 2.5 GB, so this keeps a snapshot near 1 GB at its peak
+ */
+export const MAX_SVG_CHARS = 50_000_000;
+export const TOO_BIG =
+  "That window's too big to snapshot. Try a smaller one, or use F2.";
+const SVG_NS = 'http://www.w3.org/2000/svg';
 /** The snapshot is drawn no bigger than this, plenty for a bug report */
 const DRAWN_WIDTH = 1600;
 const DRAWN_HEIGHT = 1200;
@@ -65,9 +76,11 @@ export async function renderUiSnapshot(
     width,
     height,
     pixelRatio: 1,
+    // Computed values already have every var() filled in, so a variable only adds size, and the Aphelion
+    // theme's inherited images made that 125 KB a node
     includeStyleProperties: Array.from(
       getComputedStyle(document.documentElement),
-    ).filter((name) => !STILL_IRRELEVANT.test(name)),
+    ).filter((name) => !name.startsWith('--') && !STILL_IRRELEVANT.test(name)),
     fetchRequestInit: { signal: controller.signal, credentials: 'same-origin' },
     filter: (node) =>
       !['SCRIPT', 'IFRAME', 'VIDEO'].includes(node.tagName) &&
@@ -111,7 +124,7 @@ export async function renderUiSnapshot(
     await embedWebFonts(clone, options);
     await embedImages(clone, options);
     if (controller.signal.aborted) throw new Error('UI snapshot timed out.');
-    const image = await createImage(await nodeToDataURL(clone, width, height));
+    const image = await createImage(svgDataUrl(clone, width, height));
     const scale = Math.min(1, DRAWN_WIDTH / width, DRAWN_HEIGHT / height);
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(width * scale));
@@ -130,6 +143,34 @@ export async function renderUiSnapshot(
       else node.setAttribute(SCROLL_MARKER, previous[index]!);
     });
   }
+}
+
+/**
+ * The clone in an SVG as a data URL, built the way html-to-image's nodeToDataURL builds it, refused before the
+ * URL exists when the SVG is over the budget
+ */
+export function svgDataUrl(
+  node: HTMLElement,
+  width: number,
+  height: number,
+  budget = MAX_SVG_CHARS,
+): string {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  const foreignObject = document.createElementNS(SVG_NS, 'foreignObject');
+  svg.setAttribute('width', `${width}`);
+  svg.setAttribute('height', `${height}`);
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  foreignObject.setAttribute('width', '100%');
+  foreignObject.setAttribute('height', '100%');
+  foreignObject.setAttribute('x', '0');
+  foreignObject.setAttribute('y', '0');
+  foreignObject.setAttribute('externalResourcesRequired', 'true');
+  svg.appendChild(foreignObject);
+  foreignObject.appendChild(node);
+  const text = new XMLSerializer().serializeToString(svg);
+  // The renderer would decode the whole thing at once and die partway, taking the window with it
+  if (text.length > budget) throw new SnapshotRefusal(TOO_BIG);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
 }
 
 /** The canvas, or the cropped part of it, as image base64 */

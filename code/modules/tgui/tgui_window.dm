@@ -334,7 +334,7 @@
 	// APHELION EDIT ADDITION START - bug report captures of this window
 	switch(type)
 		// Snapshot bytes never reach ui_act logging or the generic payload assembler
-		if("bug-report/capture-chunk", "bug-report/capture-cancel")
+		if("bug-report/capture-ready", "bug-report/capture-chunk", "bug-report/capture-cancel")
 			client?.bug_report_draft?.receive_ui_capture(src, type, payload)
 			return
 		if("close", "suspend")

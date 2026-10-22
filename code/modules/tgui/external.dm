@@ -234,7 +234,7 @@ GAME_VERB_NATIVE(/client, uiclose, "uiclose", null, window_id as text)
 
 	// Decode payload
 	// APHELION EDIT ADDITION START - bug report captures are bounded before their JSON is decoded
-	if((type == "bug-report/capture-chunk" || type == "bug-report/capture-cancel") && (!window || length(href_list["payload"]) > BUG_REPORT_CAPTURE_CHUNK + 256))
+	if((type == "bug-report/capture-ready" || type == "bug-report/capture-chunk" || type == "bug-report/capture-cancel") && (!window || length(href_list["payload"]) > BUG_REPORT_CAPTURE_CHUNK + 256))
 		return TRUE
 	// APHELION EDIT ADDITION END
 	var/payload
