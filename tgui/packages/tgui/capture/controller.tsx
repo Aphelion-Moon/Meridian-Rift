@@ -22,6 +22,9 @@ import { SnapshotTransfer } from './transfer';
 /** What the server asks a window for - the capture's nonce, and how it wants the image sent */
 type CaptureRequest = { nonce: string; chunk: number; limit: number };
 
+/** How long this window gives a capture before it gives up, a little under the server's three minutes */
+const DEADLINE = 170000;
+
 /** The capture this window is working on, and the preview it shows for it */
 let current:
   | {
@@ -33,8 +36,8 @@ let current:
     }
   | undefined;
 
-/** Whether this window is still drawing a snapshot, which carries on after the server ends its capture */
-let drawing = false;
+/** When this window started the snapshot it's still drawing, which carries on after the server ends its capture */
+let drawingSince: number | undefined;
 
 /** Takes the preview down, telling the server nothing */
 function close() {
@@ -78,9 +81,10 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
   };
   const name = store.get(configAtom).interface?.name;
   // A finished preview may still be open, but a capture in progress keeps the window, and so does a drawing left
-  // over from an ended one, since two clones at once share one renderer and its scroll markers
+  // over from an ended one, since two clones at once share one renderer and its scroll markers. A drawing older
+  // than the deadline counts as stuck, so it stops holding the window
   if (
-    drawing ||
+    (drawingSince !== undefined && Date.now() - drawingSince < DEADLINE) ||
     (current && !(current.transfer && !current.transfer.active)) ||
     !name ||
     name === 'BugReport'
@@ -89,10 +93,11 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
     return;
   }
   close();
-  current = { request, deadline: setTimeout(cancelUiSnapshot, 170000) };
+  current = { request, deadline: setTimeout(cancelUiSnapshot, DEADLINE) };
   let canvas: HTMLCanvasElement | undefined;
   let failure = '';
-  drawing = true;
+  const started = Date.now();
+  drawingSince = started;
   try {
     // Drawn before the preview exists, so the preview can never be in it
     canvas = await renderUiSnapshot(document.body);
@@ -107,7 +112,8 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
         ? error.message
         : `Could not create this UI snapshot. Choose a screenshot file in the report instead. ${error instanceof Error ? error.message : error}`;
   } finally {
-    drawing = false;
+    // A render that counted as stuck can still settle later, and mustn't free the window from the one drawing now
+    if (drawingSince === started) drawingSince = undefined;
   }
   if (current?.request.nonce !== request.nonce) return;
   current.host = document.createElement('div');

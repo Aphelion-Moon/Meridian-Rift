@@ -119,3 +119,57 @@ test('a retry while an ended capture is still drawing is refused, so the window 
     ['bug-report/capture-ready', { nonce: 'sixth' }],
   ]);
 });
+
+test('a drawing that never settles stops holding the window at the deadline', async () => {
+  let now = 1000000;
+  const clock = spyOn(Date, 'now').mockImplementation(() => now);
+  try {
+    // The server gives up when no ready comes, but this render never finishes
+    await ask('stuck');
+    abortUiSnapshot({ nonce: 'stuck' });
+    now += 169999;
+    await ask('too soon');
+    now += 1;
+    const { request } = await ask('at the deadline');
+    await act(async () => {
+      finish(document.createElement('canvas'));
+      await request;
+    });
+  } finally {
+    clock.mockRestore();
+  }
+  expect(render.mock.calls.length).toBe(2);
+  expect(sent.mock.calls).toEqual([
+    ['bug-report/capture-cancel', { nonce: 'too soon' }],
+    ['bug-report/capture-ready', { nonce: 'at the deadline' }],
+  ]);
+});
+
+test('a stuck drawing that finishes late leaves the window to the one drawing now', async () => {
+  let now = 1000000;
+  const clock = spyOn(Date, 'now').mockImplementation(() => now);
+  try {
+    const { request: stuck } = await ask('stuck');
+    const finishStuck = finish;
+    abortUiSnapshot({ nonce: 'stuck' });
+    now += 170000;
+    const { request: slow } = await ask('slow');
+    const finishSlow = finish;
+    abortUiSnapshot({ nonce: 'slow' });
+    await act(async () => {
+      finishStuck(document.createElement('canvas'));
+      await stuck;
+    });
+    await ask('while slow draws');
+    await act(async () => {
+      finishSlow(document.createElement('canvas'));
+      await slow;
+    });
+  } finally {
+    clock.mockRestore();
+  }
+  expect(render.mock.calls.length).toBe(2);
+  expect(sent.mock.calls).toEqual([
+    ['bug-report/capture-cancel', { nonce: 'while slow draws' }],
+  ]);
+});
