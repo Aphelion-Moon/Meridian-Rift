@@ -30,7 +30,7 @@
 	return ui && !ui.closing && ui.user == owner.mob && ui.src_object != src && ui.interface != "BugReport"
 
 /datum/bug_report/proc/begin_ui_capture(window_id)
-	if(busy || capture_nonce || !valid_owner() || result?["kind"] in list("accepted", "checking") || !istext(window_id))
+	if(busy || capture_nonce || !valid_owner() || (result?["kind"] in list("accepted", "checking")) || !istext(window_id))
 		return
 	var/datum/tgui_window/window = owner.tgui_windows[window_id]
 	if(!capture_window_allowed(window))

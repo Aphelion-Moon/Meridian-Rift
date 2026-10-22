@@ -42,7 +42,7 @@ GLOBAL_VAR_INIT(bug_report_temporary_cleaned, bug_report_cleanup_temporary())
 	return upload
 
 /datum/bug_report/proc/choose_screenshot()
-	if(busy || !valid_owner() || result?["kind"] in list("accepted", "checking"))
+	if(busy || !valid_owner() || (result?["kind"] in list("accepted", "checking")))
 		return
 	busy = TRUE
 	SStgui.update_uis(src)
@@ -67,7 +67,7 @@ GLOBAL_VAR_INIT(bug_report_temporary_cleaned, bug_report_cleanup_temporary())
 	upload_staged_screenshot(path)
 
 /datum/bug_report/proc/upload_staged_screenshot(path, encoding)
-	if(!valid_owner() || result?["kind"] in list("accepted", "checking"))
+	if(!valid_owner() || (result?["kind"] in list("accepted", "checking")))
 		fdel(path)
 		busy = FALSE
 		return
@@ -176,7 +176,7 @@ GLOBAL_VAR_INIT(bug_report_temporary_cleaned, bug_report_cleanup_temporary())
 	SStgui.update_uis(src)
 
 /datum/bug_report/proc/remove_screenshot(expected_id)
-	if(busy || !valid_owner() || result?["kind"] in list("accepted", "checking") || attachment?["id"] != expected_id)
+	if(busy || !valid_owner() || (result?["kind"] in list("accepted", "checking")) || attachment?["id"] != expected_id)
 		return
 	busy = TRUE
 	var/list/response
@@ -209,7 +209,7 @@ GLOBAL_VAR_INIT(bug_report_temporary_cleaned, bug_report_cleanup_temporary())
 	SStgui.update_uis(src)
 
 /datum/bug_report/proc/screenshot_consent(expected_id, public_consent)
-	if(busy || !valid_owner() || !preview_confirmed || !preview || result?["kind"] in list("accepted", "checking") || attachment?["id"] != expected_id)
+	if(busy || !valid_owner() || !preview_confirmed || !preview || (result?["kind"] in list("accepted", "checking")) || attachment?["id"] != expected_id)
 		return
 	busy = TRUE
 	var/list/response
