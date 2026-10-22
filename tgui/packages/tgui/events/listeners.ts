@@ -8,11 +8,13 @@ import {
 import { ping } from './handlers/ping';
 import { suspend } from './handlers/suspense';
 import { update } from './handlers/update';
+// APHELION EDIT ADDITION START - bug report captures of this window
 import {
   requestUiSnapshot,
   acknowledgeUiSnapshot,
   abortUiSnapshot,
 } from '../capture/controller';
+// APHELION EDIT ADDITION END
 
 /**
  * A string/handler map.
@@ -29,9 +31,11 @@ const listeners = {
   // Chunking
   oversizePayloadResponse,
   acknowledgePayloadChunk,
+  // APHELION EDIT ADDITION START - bug report captures of this window
   'bug-report/capture': requestUiSnapshot,
   'bug-report/capture-ack': acknowledgeUiSnapshot,
   'bug-report/capture-abort': abortUiSnapshot,
+  // APHELION EDIT ADDITION END
 } as const;
 
 export const bus = new EventBus(listeners);

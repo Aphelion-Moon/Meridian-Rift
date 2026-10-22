@@ -1,5 +1,5 @@
 import { focusMap } from '../../focus';
-import { cancelUiSnapshot } from '../../capture/controller';
+import { cancelUiSnapshot } from '../../capture/controller'; // APHELION EDIT ADDITION
 import { logger } from '../../logging';
 import { suspendRenderer } from '../../renderer';
 import {
@@ -16,7 +16,7 @@ let suspendInterval: NodeJS.Timeout | null = null;
 
 /** Resets all state and refocuses byond window */
 export function suspend(): void {
-  cancelUiSnapshot();
+  cancelUiSnapshot(); // APHELION EDIT ADDITION
   suspendRenderer();
   resetStore();
 
