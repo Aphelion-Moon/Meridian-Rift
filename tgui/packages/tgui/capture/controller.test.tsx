@@ -122,7 +122,7 @@ test('a retry while an ended capture is still drawing is refused, so the window 
 
 test('a drawing that never settles stops holding the window at the deadline', async () => {
   let now = 1000000;
-  const clock = spyOn(Date, 'now').mockImplementation(() => now);
+  const clock = spyOn(performance, 'now').mockImplementation(() => now);
   try {
     // The server gives up when no ready comes, but this render never finishes
     await ask('stuck');
@@ -147,7 +147,7 @@ test('a drawing that never settles stops holding the window at the deadline', as
 
 test('a stuck drawing that finishes late leaves the window to the one drawing now', async () => {
   let now = 1000000;
-  const clock = spyOn(Date, 'now').mockImplementation(() => now);
+  const clock = spyOn(performance, 'now').mockImplementation(() => now);
   try {
     const { request: stuck } = await ask('stuck');
     const finishStuck = finish;
@@ -171,5 +171,34 @@ test('a stuck drawing that finishes late leaves the window to the one drawing no
   expect(render.mock.calls.length).toBe(2);
   expect(sent.mock.calls).toEqual([
     ['bug-report/capture-cancel', { nonce: 'while slow draws' }],
+  ]);
+});
+
+test('a stuck drawing that finishes late while a newer one draws sends nothing, and the newer one still says ready', async () => {
+  let now = 1000000;
+  const clock = spyOn(performance, 'now').mockImplementation(() => now);
+  try {
+    const { request: stuck } = await ask('stuck');
+    const finishStuck = finish;
+    abortUiSnapshot({ nonce: 'stuck' });
+    now += 170000;
+    // Not aborted, so this one is the window's capture when the stuck one settles
+    const { request: live } = await ask('live');
+    const finishLive = finish;
+    await act(async () => {
+      finishStuck(document.createElement('canvas'));
+      await stuck;
+    });
+    expect(sent.mock.calls.length).toBe(0);
+    await act(async () => {
+      finishLive(document.createElement('canvas'));
+      await live;
+    });
+  } finally {
+    clock.mockRestore();
+  }
+  expect(render.mock.calls.length).toBe(2);
+  expect(sent.mock.calls).toEqual([
+    ['bug-report/capture-ready', { nonce: 'live' }],
   ]);
 });

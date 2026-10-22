@@ -10,6 +10,7 @@ import {
   svgDataUrl,
   TOO_BIG,
 } from './dom-snapshot';
+import * as cloning from './vendor/clone-node';
 
 const PREFIX = 'data:image/svg+xml;charset=utf-8,';
 
@@ -30,6 +31,41 @@ async function outcome(root: HTMLElement) {
   } catch (error) {
     return error instanceof SnapshotRefusal ? error.message : 'failed';
   }
+}
+
+/** A window with two boxes scrolled down, sized by hand since happy-dom lays nothing out */
+function scrolledWindow() {
+  const root = box('');
+  root.getBoundingClientRect = () => ({ width: 300, height: 200 }) as DOMRect;
+  for (const id of ['first', 'second']) {
+    const pane = box(id);
+    pane.id = id;
+    pane.scrollTop = 50;
+    root.appendChild(pane);
+  }
+  return root;
+}
+
+/** Which boxes a clone shifted by their scroll offsets */
+const shifted = (clone: HTMLElement) =>
+  ['first', 'second'].filter((id) =>
+    clone
+      .querySelector(`#${id}`)
+      ?.firstElementChild?.getAttribute('style')
+      ?.includes('translate'),
+  );
+
+/** How many boxes in the live window still carry a snapshot's scroll mark */
+const marked = (root: HTMLElement) =>
+  root.querySelectorAll('[data-meridian-report-scroll]').length;
+
+/** Stands in for html-to-image's clone, each call answered by the next of these in turn */
+function cloneBy(...answers: ((node: HTMLElement) => Promise<HTMLElement>)[]) {
+  const spy = spyOn(cloning, 'cloneNode');
+  for (const answer of answers) {
+    spy.mockImplementationOnce(answer as unknown as typeof cloning.cloneNode);
+  }
+  return spy;
 }
 
 test('a snapshot under the budget becomes its SVG as a data URL', () => {
@@ -82,4 +118,86 @@ test('a window over the node or side limit is refused with the same line, and on
   }
   // happy-dom lays nothing out, so this one has no size at all
   expect(await outcome(box('Changelog'))).toBe('failed');
+});
+
+test("a stuck snapshot's scroll marks never move another box in the next one", async () => {
+  const root = scrolledWindow();
+  let finishStuck: (clone: HTMLElement) => void = () => undefined;
+  let next: HTMLElement | undefined;
+  const clone = cloneBy(
+    () =>
+      new Promise((resolve) => {
+        finishStuck = resolve;
+      }),
+    async (node) => {
+      next = node.cloneNode(true) as HTMLElement;
+      return next;
+    },
+  );
+  try {
+    const stuck = outcome(root);
+    // Only the second box is still scrolled when the next snapshot starts
+    root.querySelector<HTMLElement>('#first')!.scrollTop = 0;
+    await outcome(root);
+    expect(shifted(next!)).toEqual(['second']);
+    finishStuck(root.cloneNode(true) as HTMLElement);
+    await stuck;
+  } finally {
+    clone.mockRestore();
+  }
+  expect(marked(root)).toBe(0);
+});
+
+test('a stuck snapshot that ends while the next one clones leaves that one its scroll marks', async () => {
+  const root = scrolledWindow();
+  let finishStuck: (clone: HTMLElement) => void = () => undefined;
+  let stuck: Promise<string> | undefined;
+  let next: HTMLElement | undefined;
+  const clone = cloneBy(
+    () =>
+      new Promise((resolve) => {
+        finishStuck = resolve;
+      }),
+    async (node) => {
+      // As a clone waiting on a canvas would, this one lets the stuck snapshot end partway
+      finishStuck(node.cloneNode(true) as HTMLElement);
+      await stuck;
+      next = node.cloneNode(true) as HTMLElement;
+      return next;
+    },
+  );
+  try {
+    stuck = outcome(root);
+    await outcome(root);
+  } finally {
+    clone.mockRestore();
+  }
+  expect(shifted(next!)).toEqual(['first', 'second']);
+  expect(marked(root)).toBe(0);
+});
+
+test('a snapshot the renderer cannot decode is refused instead of drawing forever', async () => {
+  const root = scrolledWindow();
+  const clone = cloneBy(async (node) => node.cloneNode(true) as HTMLElement);
+  const decode = spyOn(HTMLImageElement.prototype, 'decode').mockImplementation(
+    () =>
+      Promise.reject(
+        new DOMException(
+          'The source image cannot be decoded.',
+          'EncodingError',
+        ),
+      ),
+  );
+  try {
+    // A drawing still going after a second is one that would never end
+    const ended = await Promise.race([
+      outcome(root),
+      new Promise((resolve) => setTimeout(resolve, 1000, 'still drawing')),
+    ]);
+    expect(ended).toBe(TOO_BIG);
+  } finally {
+    clone.mockRestore();
+    decode.mockRestore();
+  }
+  expect(marked(root)).toBe(0);
 });

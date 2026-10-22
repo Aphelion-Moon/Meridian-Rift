@@ -81,10 +81,11 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
   };
   const name = store.get(configAtom).interface?.name;
   // A finished preview may still be open, but a capture in progress keeps the window, and so does a drawing left
-  // over from an ended one, since two clones at once share one renderer and its scroll markers. A drawing older
-  // than the deadline counts as stuck, so it stops holding the window
+  // over from an ended one, since two clones at once share one renderer. A drawing older than the deadline counts
+  // as stuck, so it stops holding the window
   if (
-    (drawingSince !== undefined && Date.now() - drawingSince < DEADLINE) ||
+    (drawingSince !== undefined &&
+      performance.now() - drawingSince < DEADLINE) ||
     (current && !(current.transfer && !current.transfer.active)) ||
     !name ||
     name === 'BugReport'
@@ -96,7 +97,8 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
   current = { request, deadline: setTimeout(cancelUiSnapshot, DEADLINE) };
   let canvas: HTMLCanvasElement | undefined;
   let failure = '';
-  const started = Date.now();
+  // A steady clock like the deadline timer's, so changing the system clock can't free or hold the window early
+  const started = performance.now();
   drawingSince = started;
   try {
     // Drawn before the preview exists, so the preview can never be in it

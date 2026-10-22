@@ -4,7 +4,6 @@ import { cloneNode } from './vendor/clone-node';
 import { embedImages } from './vendor/embed-images';
 import { embedWebFonts } from './vendor/embed-webfonts';
 import type { Options } from './vendor/types';
-import { createImage } from './vendor/util';
 
 /** A part of the snapshot, each side a fraction of the whole from 0 to 1 */
 export type Crop = { x: number; y: number; width: number; height: number };
@@ -50,6 +49,9 @@ const LAYOUT_STYLES = [
   'grid-template-rows',
 ];
 
+/** How many snapshots this window has started, so each marks its scrolled boxes with its own values */
+let snapshots = 0;
+
 /** One DOM reconstruction of the selected UI, drawn on a canvas. This is not an OS or window screenshot */
 export async function renderUiSnapshot(
   root: HTMLElement,
@@ -69,7 +71,9 @@ export async function renderUiSnapshot(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   const scrolling = nodes.filter((node) => node.scrollTop || node.scrollLeft);
-  const previous = scrolling.map((node) => node.getAttribute(SCROLL_MARKER));
+  // A stuck snapshot can still be drawing, so we mark with values of our own and take off only the marks still ours
+  const snapshot = ++snapshots;
+  const marks = scrolling.map((_, index) => `${snapshot}-${index}`);
   const options: Options = {
     width,
     height,
@@ -86,16 +90,18 @@ export async function renderUiSnapshot(
   };
   try {
     for (const [index, node] of scrolling.entries()) {
-      node.setAttribute(SCROLL_MARKER, String(index));
+      node.setAttribute(SCROLL_MARKER, marks[index]);
     }
     const clone = await cloneNode(root, options, true);
     if (!clone) throw new Error('Could not snapshot this UI.');
     // A clone drops scroll offsets, so we shift each scrolled box's contents in the clone only
     scrolling.forEach((source, index) => {
       const target =
-        clone.getAttribute(SCROLL_MARKER) === String(index)
+        clone.getAttribute(SCROLL_MARKER) === marks[index]
           ? clone
-          : clone.querySelector<HTMLElement>(`[${SCROLL_MARKER}="${index}"]`);
+          : clone.querySelector<HTMLElement>(
+              `[${SCROLL_MARKER}="${marks[index]}"]`,
+            );
       if (!target) return;
       const content = document.createElement('div');
       const style = getComputedStyle(source);
@@ -122,7 +128,7 @@ export async function renderUiSnapshot(
     await embedWebFonts(clone, options);
     await embedImages(clone, options);
     if (controller.signal.aborted) throw new Error('UI snapshot timed out.');
-    const image = await createImage(svgDataUrl(clone, width, height));
+    const image = await decodeImage(svgDataUrl(clone, width, height));
     const scale = Math.min(1, DRAWN_WIDTH / width, DRAWN_HEIGHT / height);
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(width * scale));
@@ -137,10 +143,31 @@ export async function renderUiSnapshot(
   } finally {
     clearTimeout(timeout);
     scrolling.forEach((node, index) => {
-      if (previous[index] === null) node.removeAttribute(SCROLL_MARKER);
-      else node.setAttribute(SCROLL_MARKER, previous[index]!);
+      if (node.getAttribute(SCROLL_MARKER) === marks[index]) {
+        node.removeAttribute(SCROLL_MARKER);
+      }
     });
   }
+}
+
+/**
+ * The SVG as an image ready to draw, like html-to-image's createImage, except a decode that fails refuses the
+ * snapshot where createImage would never settle
+ */
+function decodeImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () =>
+      image.decode().then(
+        () => requestAnimationFrame(() => resolve(image)),
+        // Most likely a picture too big for the renderer to hold
+        () => reject(new SnapshotRefusal(TOO_BIG)),
+      );
+    image.onerror = reject;
+    image.crossOrigin = 'anonymous';
+    image.decoding = 'async';
+    image.src = url;
+  });
 }
 
 /**
