@@ -1262,14 +1262,17 @@
 /datum/loadout_item/suit/donator/furredjacket
 	name = "Furred Jacket"
 	item_path = /obj/item/clothing/suit/brownfurrich/public
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/donator/whitefurredjacket
 	name = "Furred Jacket (White)"
 	item_path = /obj/item/clothing/suit/brownfurrich/white
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/donator/creamfurredjacket
 	name = "Furred Jacket (Cream)"
 	item_path = /obj/item/clothing/suit/brownfurrich/cream
+	group = "Uncategorized"
 
 /datum/loadout_item/suit/donator/chokha //All-donators donator item for BlindPoet
 	name = "Iseurian Chokha"
