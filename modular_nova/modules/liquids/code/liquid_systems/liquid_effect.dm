@@ -31,6 +31,8 @@
 
 	var/list/reagent_list = list()
 	var/total_reagents = 0
+	/// Volume-weighted liquid_opacity of reagent_list, from 0 (clear) to 1 (opaque).
+	var/reagent_opacity = 0
 	var/temp = T20C
 
 	var/fire_state = LIQUID_FIRE_STATE_NONE
@@ -236,6 +238,16 @@
 		my_turf.liquids_change(new_state)
 	update_icon(UPDATE_OVERLAYS)
 
+/*
+ * LIQUID ART CONTRACT
+ * Replacement art drops in by keeping these names, with no new plumbing:
+ * - Floor layer: "[base_icon_state]-[junction]" bitmask smoothing states in liquid.dmi.
+ * - Depth: "stage[1-4]_bottom" and "stage[1-3]_top" in liquid_overlays.dmi, picked below from liquid_state.
+ * - Both are grayscale at full alpha. Code tints them with color (the reagent mix) and sets alpha
+ *   from depth and reagent_opacity in SSliquids.get_pool_alpha(), so the art bakes in neither.
+ * - An opaque variant, if the art has one, keys off reagent_opacity (0 to 1), which every pool carries.
+ * - "shine" and the fire states keep their own colour and alpha.
+ */
 /obj/effect/abstract/liquid_turf/update_overlays()
 	. = ..()
 
@@ -275,7 +287,7 @@
 			fire_icon_state = "fire_big"
 
 	. += mutable_appearance(icon, fire_icon_state, BELOW_MOB_LAYER, src, GAME_PLANE, appearance_flags = RESET_COLOR|RESET_ALPHA)
-	. += emissive_appearance(icon, fire_icon_state, src, alpha = src.alpha)
+	. += emissive_appearance(icon, fire_icon_state, src, appearance_flags = RESET_ALPHA)
 
 //Takes a flat of our reagents and returns it, possibly qdeling our liquids
 /obj/effect/abstract/liquid_turf/proc/take_reagents_flat(flat_amount)
@@ -332,8 +344,12 @@
 		if(check_fire(TRUE))
 			SSliquids.processing_fire[my_turf] = TRUE
 
+/// Tints the liquid to its reagent mix and sets its alpha from depth and opacity.
 /obj/effect/abstract/liquid_turf/proc/set_reagent_color_for_liquid()
 	color = mix_color_from_reagent_list(reagent_list)
+	reagent_opacity = mix_opacity_from_reagent_list(reagent_list)
+	// Alpha after color: a colour with its own alpha, like water's, overwrites alpha too.
+	alpha = SSliquids.get_pool_alpha(liquid_state, reagent_opacity)
 
 /obj/effect/abstract/liquid_turf/proc/calculate_height()
 	var/new_height = ceil(total_reagents)/LIQUID_HEIGHT_DIVISOR
@@ -355,6 +371,7 @@
 			determined_new_state = LIQUID_STATE_FULLTILE
 	if(determined_new_state != liquid_state)
 		set_new_liquid_state(determined_new_state)
+		alpha = SSliquids.get_pool_alpha(liquid_state, reagent_opacity)
 
 /obj/effect/abstract/liquid_turf/immutable/calculate_height()
 	var/new_height = ceil(total_reagents)/LIQUID_HEIGHT_DIVISOR
@@ -670,4 +687,5 @@
 		total_reagents += reagent_list[key]
 	temp = starting_temp
 	calculate_height()
-	set_reagent_color_for_liquid()
+	// Immutables keep the alpha their reagent colour carries; the ocean art is tuned for it.
+	color = mix_color_from_reagent_list(reagent_list)

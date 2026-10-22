@@ -11,6 +11,19 @@
 	///Whether a fire from this requires oxygen in the atmosphere
 	var/fire_needs_oxygen = TRUE
 
+	///How much of the floor a pool of this reagent hides, from 0 (clear) to 1 (opaque). Pools average it by volume.
+	var/liquid_opacity = 0
+
+/// Returns the volume-weighted liquid_opacity of a reagent type to volume list, from 0 (clear) to 1 (opaque).
+/proc/mix_opacity_from_reagent_list(list/reagent_list)
+	var/total_volume = 0
+	var/opaque_volume = 0
+	for(var/reagent_type, volume in reagent_list)
+		var/datum/reagent/reagent_path = reagent_type
+		total_volume += volume
+		opaque_volume += initial(reagent_path.liquid_opacity) * volume
+	return total_volume > 0 ? opaque_volume / total_volume : 0
+
 /*
 *	ALCOHOL REAGENTS
 */
@@ -217,6 +230,7 @@
 /datum/reagent/napalm
 	liquid_fire_power = 30
 	liquid_fire_burnrate = 0.1
+	liquid_opacity = 1
 
 /*
 *	OTHER
@@ -225,3 +239,37 @@
 /datum/reagent/fuel
 	liquid_fire_power = 10
 	liquid_fire_burnrate = 0.1
+	liquid_opacity = 1
+
+/*
+*	OPAQUE REAGENTS
+*/
+/datum/reagent/blood
+	liquid_opacity = 1
+
+/datum/reagent/consumable/liquidgibs
+	liquid_opacity = 1
+
+/datum/reagent/consumable/milk
+	liquid_opacity = 1
+
+/datum/reagent/consumable/soymilk
+	liquid_opacity = 1
+
+/datum/reagent/consumable/cream
+	liquid_opacity = 1
+
+/datum/reagent/drug/maint/tar
+	liquid_opacity = 1
+
+/datum/reagent/mercury
+	liquid_opacity = 1
+
+/datum/reagent/cement
+	liquid_opacity = 1
+
+/datum/reagent/concrete
+	liquid_opacity = 1
+
+/datum/reagent/concrete_mix
+	liquid_opacity = 1

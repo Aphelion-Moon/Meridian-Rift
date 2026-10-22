@@ -22,6 +22,23 @@ SUBSYSTEM_DEF(liquids)
 
 	var/run_type = SSLIQUIDS_RUN_TYPE_TURFS
 
+	/// Alpha of a clear liquid pool at each liquid state, puddle to full tile.
+	var/list/clear_alpha_by_state = list(70, 100, 125, 145, 160)
+
+/**
+ * Returns the alpha for a liquid pool.
+ *
+ * A clear pool takes its depth's entry in clear_alpha_by_state, so deeper liquid reads stronger.
+ * Opacity blends that toward 255, so a fully opaque mix hides the floor at any depth.
+ *
+ * Arguments:
+ * - liquid_state: The pool's LIQUID_STATE_* depth. Null counts as a puddle.
+ * - opacity: Volume-weighted liquid_opacity of the pool's reagents, 0 to 1.
+ */
+/datum/controller/subsystem/liquids/proc/get_pool_alpha(liquid_state, opacity)
+	var/clear_alpha = clear_alpha_by_state[liquid_state || LIQUID_STATE_PUDDLE]
+	return round(clear_alpha + (255 - clear_alpha) * opacity, 1)
+
 /datum/controller/subsystem/liquids/proc/get_immutable(type, turf/reference_turf)
 	if(isnull(singleton_immutables[type]))
 		singleton_immutables[type] = list()

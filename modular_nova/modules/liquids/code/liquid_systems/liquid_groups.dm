@@ -16,6 +16,8 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 	var/decay_counter = 0
 	var/expected_turf_height = 0
 	var/cached_color
+	/// Volume-weighted liquid_opacity of the shared reagents, cached alongside cached_color.
+	var/cached_opacity
 	var/list/last_cached_fraction_share
 	var/last_cached_total_volume = 0
 	var/last_cached_thermal = 0
@@ -161,6 +163,8 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 		if(!cached_color)
 			cached_color = mix_color_from_reagent_list(cached_add)
 		mixed_color = cached_color
+	if(use_liquids_color || isnull(cached_opacity))
+		cached_opacity = mix_opacity_from_reagent_list(cached_add)
 
 	var/height = ceil(cached_volume/LIQUID_HEIGHT_DIVISOR)
 
@@ -179,6 +183,7 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 			determined_new_state = LIQUID_STATE_SHOULDERS
 		if(LIQUID_FULLTILE_LEVEL_HEIGHT to INFINITY)
 			determined_new_state = LIQUID_STATE_FULLTILE
+	var/pool_alpha = SSliquids.get_pool_alpha(determined_new_state, cached_opacity)
 
 	var/new_liquids = FALSE
 	for(var/t in members)
@@ -198,6 +203,9 @@ GLOBAL_VAR_INIT(liquid_debug_colors, FALSE)
 		cached_liquids.attrition = 0
 
 		cached_liquids.color = mixed_color
+		// Alpha after color: a colour with its own alpha, like water's, overwrites alpha too.
+		cached_liquids.alpha = pool_alpha
+		cached_liquids.reagent_opacity = cached_opacity
 		cached_liquids.set_height(height)
 
 		if(determined_new_state != cached_liquids.liquid_state)

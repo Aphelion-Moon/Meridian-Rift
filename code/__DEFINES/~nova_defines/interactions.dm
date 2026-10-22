@@ -26,6 +26,15 @@
 /// At least one arm, for armpit interactions.
 #define INTERACTION_REQUIRE_SELF_ARM "self_arm"
 #define INTERACTION_REQUIRE_TARGET_ARM "target_arm"
+/// A penis present, unblocked and at least half-hard (AROUSAL_PARTIAL or more).
+#define INTERACTION_REQUIRE_SELF_HALF_HARD "self_half_hard"
+#define INTERACTION_REQUIRE_TARGET_HALF_HARD "target_half_hard"
+/// Visibly sweating (is_visibly_sweaty()), for interactions that sweat unlocks.
+#define INTERACTION_REQUIRE_SELF_SWEATY "self_sweaty"
+#define INTERACTION_REQUIRE_TARGET_SWEATY "target_sweaty"
+/// A chest with nipples to play with: breasts present and not nippleless pecs.
+#define INTERACTION_REQUIRE_SELF_NIPPLES "self_nipples"
+#define INTERACTION_REQUIRE_TARGET_NIPPLES "target_nipples"
 
 /// Sent to the target of someone else's lewd interaction as its effects land: (mob/living/carbon/human/user, datum/interaction/interaction)
 #define COMSIG_HUMAN_LEWD_INTERACTION_RECEIVED "human_lewd_interaction_received"
