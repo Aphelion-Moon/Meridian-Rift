@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, expect, test, spyOn } from 'bun:test';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import * as actions from '../../events/act';
 import { gameDataAtom, store } from '../../events/store';
 import { BugReport } from './index';
@@ -48,7 +54,12 @@ test('R8: authoritative epoch and report changes hydrate fields without replacin
     fields: { ...fields, title: 'Unsaved local edit' },
     fieldsEpoch: 1,
   });
-  act(() => store.set(gameDataAtom, { ...store.get(gameDataAtom), status: 'Polling attachment' }));
+  act(() =>
+    store.set(gameDataAtom, {
+      ...store.get(gameDataAtom),
+      status: 'Polling attachment',
+    }),
+  );
   view.rerender(<BugReport />);
   expect(title().value).toBe('Unsaved local edit');
   act(() =>
@@ -66,10 +77,86 @@ test('R8: authoritative epoch and report changes hydrate fields without replacin
 test('R8: divergent browser draft offers explicit load or keep-local resolution', () => {
   store.set(gameDataAtom, { ...store.get(gameDataAtom), conflict: true });
   render(<BugReport />);
-  fireEvent.click(screen.getByText('Load browser draft'));
+  fireEvent.click(screen.getByText('Load saved draft'));
   expect(send).toHaveBeenLastCalledWith('reload');
   fireEvent.click(screen.getByText('Keep my local text'));
   expect(send).toHaveBeenLastCalledWith('keep', { fields, fieldsEpoch: 0 });
+});
+
+test('native screenshot controls request client capture and choose a file without browser navigation', () => {
+  const command = spyOn(Byond, 'command').mockImplementation(() => undefined);
+  try {
+    render(<BugReport />);
+    fireEvent.click(screen.getByText('Capture game map (F2)'));
+    expect(command).toHaveBeenCalledWith('.screenshot auto');
+    expect(screen.getByText(/If no image was saved, press F2/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Choose screenshot'));
+    expect(send).toHaveBeenLastCalledWith('screenshot', {
+      fields,
+      fieldsEpoch: 0,
+    });
+    expect(screen.queryByText('Open in browser')).toBeNull();
+  } finally {
+    command.mockRestore();
+  }
+});
+
+test('selected active TGUI snapshot sends only the server window selection and local fields', () => {
+  store.set(gameDataAtom, {
+    ...store.get(gameDataAtom),
+    captureTargets: [{ id: 'tgui_2', title: 'Machine controls' }],
+  });
+  render(<BugReport />);
+  fireEvent.click(screen.getByText('Snapshot selected TGUI'));
+  expect(send).toHaveBeenLastCalledWith('capture_ui', {
+    fields,
+    fieldsEpoch: 0,
+    windowId: 'tgui_2',
+  });
+  expect(screen.queryByText('Open in browser')).toBeNull();
+});
+
+test('intended screenshot prevents submit until ready or explicitly removed', () => {
+  store.set(gameDataAtom, {
+    ...store.get(gameDataAtom),
+    attachmentPending: true,
+    attachment: { id: 'one', state: 'processing', publicConsent: false },
+  });
+  const view = render(<BugReport />);
+  fireEvent.click(screen.getByText('Submit report'));
+  expect(send).not.toHaveBeenCalledWith('submit', expect.anything());
+  fireEvent.click(screen.getByText('Remove screenshot'));
+  expect(send).toHaveBeenLastCalledWith('remove_screenshot', {
+    attachmentId: 'one',
+  });
+  act(() =>
+    store.set(gameDataAtom, {
+      ...store.get(gameDataAtom),
+      attachmentPending: false,
+      attachment: { id: 'one', state: 'ready', publicConsent: false },
+      preview: 'private-one.png',
+    }),
+  );
+  view.rerender(<BugReport />);
+  const preview = screen.getByAltText('Selected report screenshot');
+  fireEvent.load(preview);
+  expect(send).toHaveBeenLastCalledWith('preview_loaded', {
+    attachmentId: 'one',
+  });
+  act(() =>
+    store.set(gameDataAtom, {
+      ...store.get(gameDataAtom),
+      previewConfirmed: true,
+    }),
+  );
+  view.rerender(<BugReport />);
+  fireEvent.click(
+    screen.getByText('Publish this screenshot with the GitHub issue'),
+  );
+  expect(send).toHaveBeenLastCalledWith('screenshot_consent', {
+    attachmentId: 'one',
+    publicConsent: true,
+  });
 });
 
 test('R9: a paused transport check leaves text editable and exposes explicit retry', () => {
@@ -79,7 +166,9 @@ test('R9: a paused transport check leaves text editable and exposes explicit ret
     pollingPaused: true,
   });
   render(<BugReport />);
-  expect((screen.getAllByRole('textbox')[0] as HTMLInputElement).disabled).toBe(false);
+  expect((screen.getAllByRole('textbox')[0] as HTMLInputElement).disabled).toBe(
+    false,
+  );
   fireEvent.click(screen.getByText('Retry connection'));
   expect(send).toHaveBeenLastCalledWith('refresh');
 });
@@ -96,7 +185,11 @@ test('approved context and optional incident time are visible and preserve exact
         server: { version: 516, build: 1688 },
         compiler: { version: 516, build: 1686 },
       },
-      build: { commit: 'abc123', base: 'def456', testMerges: [{ number: 7, commit: 'feed123' }] },
+      build: {
+        commit: 'abc123',
+        base: 'def456',
+        testMerges: [{ number: 7, commit: 'feed123' }],
+      },
     },
   });
   render(<BugReport />);

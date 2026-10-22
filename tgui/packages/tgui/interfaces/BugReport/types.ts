@@ -17,7 +17,10 @@ export type BugReportData = {
     roundId: string | null;
     map: string | null;
     capturedAt: string;
-    versions: Record<'client' | 'server' | 'compiler', { version: number; build: number } | null>;
+    versions: Record<
+      'client' | 'server' | 'compiler',
+      { version: number; build: number } | null
+    >;
     build: {
       commit: string | null;
       base: string | null;
@@ -27,7 +30,11 @@ export type BugReportData = {
   revision: number;
   status: string;
   busy: boolean;
-  attachment?: { state: string };
+  attachment?: { id: string; state: string; publicConsent: boolean };
+  attachmentPending?: boolean;
+  preview?: string;
+  previewConfirmed?: boolean;
+  captureTargets?: { id: string; title: string }[];
   result?: {
     kind: string;
     feedback?: { field: string; message: string }[];

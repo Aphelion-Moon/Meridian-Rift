@@ -240,6 +240,17 @@ GLOBAL_LIST_INIT(unrecommended_builds, list(
 
 //This stops files larger than UPLOAD_LIMIT being sent from client to server via input(), client.Import() etc.
 /client/AllowUpload(filename, filelength)
+	// Only the authenticated report owner's outstanding native file prompt gets
+	// the attachment allowance. Every other game upload keeps its existing cap.
+	if(bug_report_upload && world.time <= bug_report_upload_until)
+		if(bug_report_upload.valid_owner() && istext(filename) && (lowertext(copytext(filename, findlasttext(filename, ".") + 1)) in list("png", "jpg", "jpeg", "webp")))
+			if(!bug_report_image_upload_allowed(filename, filelength))
+				return FALSE
+			// One successful image admission consumes the prompt's allowance.
+			bug_report_upload = null
+			bug_report_upload_until = 0
+			return TRUE
+		// Other game uploads retain their normal limit while the prompt is open.
 	var/client_max_file_size = CONFIG_GET(number/upload_limit)
 	if (holder)
 		var/admin_max_file_size = CONFIG_GET(number/upload_limit_admin)

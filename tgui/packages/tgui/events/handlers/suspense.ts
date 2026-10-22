@@ -1,4 +1,5 @@
 import { focusMap } from '../../focus';
+import { cancelUiSnapshot } from '../../capture/controller';
 import { logger } from '../../logging';
 import { suspendRenderer } from '../../renderer';
 import {
@@ -15,6 +16,7 @@ let suspendInterval: NodeJS.Timeout | null = null;
 
 /** Resets all state and refocuses byond window */
 export function suspend(): void {
+  cancelUiSnapshot();
   suspendRenderer();
   resetStore();
 

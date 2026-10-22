@@ -8,6 +8,11 @@ import {
 import { ping } from './handlers/ping';
 import { suspend } from './handlers/suspense';
 import { update } from './handlers/update';
+import {
+  requestUiSnapshot,
+  acknowledgeUiSnapshot,
+  abortUiSnapshot,
+} from '../capture/controller';
 
 /**
  * A string/handler map.
@@ -24,6 +29,9 @@ const listeners = {
   // Chunking
   oversizePayloadResponse,
   acknowledgePayloadChunk,
+  'bug-report/capture': requestUiSnapshot,
+  'bug-report/capture-ack': acknowledgeUiSnapshot,
+  'bug-report/capture-abort': abortUiSnapshot,
 } as const;
 
 export const bus = new EventBus(listeners);

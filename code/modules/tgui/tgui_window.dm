@@ -331,6 +331,12 @@
  * Callback for handling incoming tgui messages.
  */
 /datum/tgui_window/proc/on_message(type, payload, href_list)
+	// Snapshot bytes never enter ordinary ui_act logging or generic assembly.
+	if(type in list("bug-report/capture-chunk", "bug-report/capture-cancel"))
+		client?.bug_report_draft?.receive_ui_capture(src, type, payload)
+		return
+	if(type in list("close", "suspend") && client?.bug_report_draft?.capture_window == src)
+		client.bug_report_draft.cancel_ui_capture("The selected TGUI closed. No snapshot was attached.")
 	// Status can be READY if user has refreshed the window.
 	if(type == "ready" && status == TGUI_WINDOW_READY)
 		// Resend the assets

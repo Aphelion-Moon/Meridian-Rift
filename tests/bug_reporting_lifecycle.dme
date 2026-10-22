@@ -6,16 +6,19 @@
 #define CONFIG_ENTRY_HIDDEN 1
 #define PROC_REF(NAME) #NAME
 #define TYPE_PROC_REF(TYPE, NAME) #NAME
-#define INVOKE_ASYNC(OWNER, NAME, ARGS...) fixture_async_calls++
+#define INVOKE_ASYNC(OWNER, NAME, ARGS...) fixture_async(OWNER, NAME, list(ARGS))
 #define DIRECT_OUTPUT(OWNER, VALUE) fixture_outputs++
 #define CALLBACK new /datum/callback
 #define SECONDS * 10
 #define MINUTES * 600
+#define HOURS * 36000
 #define TIMER_UNIQUE 1
 #define TIMER_OVERRIDE 2
 #define RUSTG_HTTP_METHOD_POST "POST"
 #define UI_INTERACTIVE 2
 #define UI_CLOSE 0
+#define TGUI_WINDOW_READY 2
+#define rustg_file_append(TEXT, PATH) call_ext("../rust_g.dll", "file_append")(TEXT, PATH)
 var/global/fixture_outputs = 0
 var/global/fixture_timers = 0
 var/global/fixture_async_calls = 0
@@ -24,10 +27,12 @@ var/global/assertions = 0
 var/global/list/failure_messages = list()
 var/global/datum/fixture_globals/GLOB = new
 var/global/datum/fixture_tgui/SStgui = new
+/proc/fixture_async(datum/owner, name, list/arguments)
+	fixture_async_calls++
 /proc/fixture_config(entry)
 	return findtext(entry, "bridge_url") ? "http://127.0.0.1:18764" : "https://fixture.test/bug-report/"
 /proc/GUID()
-	return "fixture-id"
+	return "{1a-2b-3c-4d-5e}"
 /proc/trim(value)
 	return trimtext(value)
 /proc/qdel(datum/value)
@@ -51,6 +56,24 @@ var/global/datum/fixture_tgui/SStgui = new
 /datum/fixture_tgui/proc/try_update_ui(mob/user, datum/source, datum/tgui/ui)
 	return null
 /datum/tgui/proc/open()
+/datum/tgui
+	var/client/client
+	var/mob/user
+	var/datum/src_object
+	var/title
+	var/interface
+	var/closing = FALSE
+/client
+	var/list/tgui_windows = list()
+/datum/tgui_window
+	var/client/client
+	var/visible = TRUE
+	var/status = TGUI_WINDOW_READY
+	var/locked = TRUE
+	var/datum/tgui/locked_by
+	var/list/messages = list()
+/datum/tgui_window/proc/send_message(type, list/payload)
+	messages += list(list("type" = type, "payload" = payload))
 /datum/proc/Destroy()
 /datum/proc/ui_data(mob/user)
 /datum/proc/ui_state(mob/user)
@@ -58,7 +81,10 @@ var/global/datum/fixture_tgui/SStgui = new
 /datum/proc/ui_interact(mob/user, datum/tgui/ui)
 /datum/proc/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	return FALSE
-/datum/http_request/proc/prepare(method, url, body, list/headers, timeout_seconds)
+/datum/http_request
+	var/output_file
+/datum/http_request/proc/build_options()
+/datum/http_request/proc/prepare(method, url, body, list/headers, output_file, timeout_seconds)
 /datum/http_request/proc/begin_async()
 /datum/http_request/proc/is_complete()
 	return TRUE
@@ -69,17 +95,23 @@ var/global/datum/fixture_tgui/SStgui = new
 	var/status_code = 503
 	var/body
 #include "../code/modules/client/bug_reporting.dm"
+#include "../code/modules/client/bug_reporting_screenshot.dm"
+#include "../code/modules/client/bug_reporting_capture.dm"
 
 /datum/bug_report/fixture
 	var/list/replies = list()
 	var/accept_during_read = FALSE
+	var/owner_valid = TRUE
+	var/window_allowed = TRUE
 /datum/bug_report/fixture/New()
 	context = list("ckey" = "fixture")
 	request_id = "incident"
 	session_id = "session"
 	registered = TRUE
 /datum/bug_report/fixture/valid_owner()
-	return TRUE
+	return owner_valid
+/datum/bug_report/fixture/capture_window_allowed(datum/tgui_window/window)
+	return window_allowed && owner_valid
 /datum/bug_report/fixture/register_context()
 	return
 /datum/bug_report/fixture/bridge_request(route, list/body)
@@ -90,6 +122,24 @@ var/global/datum/fixture_tgui/SStgui = new
 	var/list/response = replies[1]
 	replies.Cut(1, 2)
 	return response
+var/global/fixture_upload_path
+/datum/bug_report/fixture/choose_screenshot_file()
+	return 'bug_reporting_context.dme'
+/datum/bug_report/fixture/attachment_request(operation, upload_file, expected_id, public_consent = FALSE, encoding)
+	if(operation == "upload")
+		fixture_upload_path = upload_file
+		check(fexists(upload_file), "Raw file exists during native upload")
+		return list("attachment" = list("id" = "native-image", "state" = "processing", "publicConsent" = FALSE))
+	return null
+/proc/fixture_capture()
+	var/datum/bug_report/fixture/report = new
+	report.capture_window = new /datum/tgui_window
+	report.capture_ui = new /datum/tgui
+	report.capture_window.locked_by = report.capture_ui
+	report.capture_nonce = "capture-nonce"
+	report.capture_until = world.time + 1000
+	report.busy = TRUE
+	return report
 /proc/check(condition, message)
 	assertions++
 	if(!condition)
@@ -162,22 +212,91 @@ var/global/datum/fixture_tgui/SStgui = new
 	accepted_during_refresh.refresh_draft()
 	check(accepted_during_refresh.result?["kind"] == "accepted", "R8 an in-flight draft read cannot regress a concurrently accepted receipt")
 
-	var/datum/bug_report/fixture/fallback = new
-	fallback.fields = fixture_fields("Keep offline text")
-	fallback.replies = list(null)
-	fixture_outputs = 0
-	fallback.open_browser("form")
-	check(fixture_outputs == 1, "R10 browser fallback must open when save fails")
-	check(fallback.fields["title"] == "Keep offline text", "R10 fallback must preserve local text")
-
 	var/datum/bug_report/fixture/capture = new
-	capture.replies = list(list("draft" = fixture_draft(1, "Partial report")), list("url" = "https://fixture.test/attachment"), list("draft" = fixture_draft(1, "Partial report")))
-	fixture_timers = 0
-	capture.open_browser("attachment")
-	capture.refresh_draft()
-	check(fixture_timers >= 2, "R11 delayed screenshot selection must keep polling after an empty first check")
-
+	capture.fields = fixture_fields("Partial screenshot report")
+	capture.replies = list(list("draft" = fixture_draft(1, "Partial screenshot report", list("id" = "image", "state" = "processing"))), list("result" = list("kind" = "accepted")))
+	capture.submit_fields()
+	check(capture.result?["kind"] != "accepted", "A pending screenshot must block native submission instead of disappearing")
+	check(hascall(capture, "choose_screenshot"), "Screenshot selection must run natively")
+	if(hascall(capture, "choose_screenshot"))
+		capture.result = null
+		capture.attachment = null
+		capture.replies = list(list("draft" = fixture_draft(1, "Partial screenshot report")))
+		call(capture, "choose_screenshot")()
+		check(capture.attachment?["id"] == "native-image", "Native upload must retain the server attachment receipt")
+		check(!fexists(fixture_upload_path), "Raw native staging file must be deleted after durable upload acknowledgment")
+		check(capture.vars["attachment_pending"], "Processing attachment continues to block submission")
+	check(bug_report_image_upload_allowed("shot.PNG", 10 * 1024 * 1024), "Native chooser accepts supported image at the size boundary")
+	check(!bug_report_image_upload_allowed("shot.exe", 10) && !bug_report_image_upload_allowed("shot.png", 10 * 1024 * 1024 + 1), "Native chooser rejects unsupported type and excess bytes")
+	var/datum/bug_report/fixture/chunks = fixture_capture()
+	var/datum/tgui_window/source_window = chunks.capture_window
+	var/list/part = list("nonce" = "wrong", "index" = 0, "totalLength" = 32772, "data" = repeat_string(32768, "A"))
+	check(!chunks.receive_ui_capture(source_window, "bug-report/capture-chunk", part) && !chunks.capture_path, "Wrong nonce cannot stage capture bytes")
+	part["nonce"] = "capture-nonce"
+	check(chunks.receive_ui_capture(source_window, "bug-report/capture-chunk", part), "First bounded capture chunk accepted")
+	var/staged_path = chunks.capture_path
+	check(length(file2text(staged_path)) == 32768, "Chunk is stored without newline or image decoding")
+	check(chunks.receive_ui_capture(source_window, "bug-report/capture-chunk", part) && length(file2text(staged_path)) == 32768, "Duplicate acknowledged chunk is not appended twice")
+	part["index"] = 1
+	part["data"] = "AAAA"
+	check(chunks.receive_ui_capture(source_window, "bug-report/capture-chunk", part) && !chunks.capture_nonce, "Final chunk transfers file ownership to uploader")
+	check(length(file2text(staged_path)) == 32772, "Bounded ASCII staging preserves complete capture bytes")
+	chunks.upload_staged_screenshot(staged_path, "base64")
+	check(!fexists(staged_path), "Capture staging file deleted after upload")
+	var/datum/bug_report/fixture/reused = fixture_capture()
+	reused.capture_window.locked_by = new /datum/tgui
+	part = list("nonce" = "capture-nonce", "index" = 0, "totalLength" = 4, "data" = "AAAA")
+	check(!reused.receive_ui_capture(reused.capture_window, "bug-report/capture-chunk", part) && !reused.capture_nonce, "A pooled window reused for another UI cannot attach the old capture")
+	var/datum/bug_report/fixture/oversized = fixture_capture()
+	part["totalLength"] = 2796208
+	check(!oversized.receive_ui_capture(oversized.capture_window, "bug-report/capture-chunk", part) && !oversized.capture_path, "Oversized entire capture rejected before staging")
+	var/datum/bug_report/fixture/disconnected = fixture_capture()
+	disconnected.owner_valid = FALSE
+	part["totalLength"] = 4
+	check(!disconnected.receive_ui_capture(disconnected.capture_window, "bug-report/capture-chunk", part), "Owner loss rejects capture continuation")
+	var/datum/bug_report/fixture/order = fixture_capture()
+	part["index"] = 1
+	check(!order.receive_ui_capture(order.capture_window, "bug-report/capture-chunk", part), "Out-of-order capture chunk rejected")
+	var/datum/bug_report/fixture/cancelled = fixture_capture()
+	part = list("nonce" = "capture-nonce", "index" = 0, "totalLength" = 32772, "data" = repeat_string(32768, "A"))
+	cancelled.receive_ui_capture(cancelled.capture_window, "bug-report/capture-chunk", part)
+	var/cancelled_path = cancelled.capture_path
+	cancelled.cancel_ui_capture()
+	check(!fexists(cancelled_path) && !cancelled.busy, "Cancelling partial capture deletes staging and releases report")
+	var/datum/bug_report/fixture/unconfirmed = new
+	unconfirmed.attachment_pending = TRUE
+	unconfirmed.replies = list(list("draft" = fixture_draft(0, "No cloud image")))
+	unconfirmed.remove_screenshot(null)
+	check(!unconfirmed.attachment_pending && !unconfirmed.busy, "Explicit removal recovers an unconfirmed upload only after authoritative no-image response")
+	var/datum/bug_report/fixture/unavailable = new
+	unavailable.attachment_pending = TRUE
+	unavailable.remove_screenshot(null)
+	check(unavailable.attachment_pending && !unavailable.busy, "Unavailable cloud state cannot silently discard intended screenshot")
+	var/cleanup_proc = text2path("/proc/bug_report_cleanup_temporary")
+	check(!!cleanup_proc, "Restart must clean orphaned generated screenshot staging files")
+	if(cleanup_proc)
+		var/old_file = "data/bug-report-temporary/bug-report-[num2text(world.realtime - 25 HOURS, 20)]-{ab-cd}.capture"
+		var/recent_file = "data/bug-report-temporary/bug-report-[num2text(world.realtime, 20)]-{bc-de}.upload"
+		text2file("expired", old_file)
+		text2file("active other process", recent_file)
+		text2file("orphan", "data/bug-report-temporary/{ab-cd}.capture")
+		text2file("preserve", "data/bug-report-temporary/keep-fixture.txt")
+		call(cleanup_proc)(TRUE)
+		check(!fexists(old_file), "Restart removes only age-qualified generated screenshot staging")
+		check(fexists(recent_file), "Restart preserves another process's recent staging file")
+		check(fexists("data/bug-report-temporary/{ab-cd}.capture"), "Unknown-age legacy files are preserved for operator inspection")
+		check(fexists("data/bug-report-temporary/keep-fixture.txt"), "Restart cleanup leaves unrelated files intact")
+		fdel(old_file)
+		fdel(recent_file)
+		fdel("data/bug-report-temporary/{ab-cd}.capture")
+		fdel("data/bug-report-temporary/keep-fixture.txt")
 	world.log << "REPORT_LIFECYCLE_FIXTURE failures=[failures]"
 	fdel("bug-report-lifecycle-result.json")
 	text2file(json_encode(list("assertions" = assertions, "failures" = failures, "failureMessages" = failure_messages)), "bug-report-lifecycle-result.json")
 	shutdown()
+
+/proc/repeat_string(count, text)
+	var/result = ""
+	for(var/index in 1 to count)
+		result += text
+	return result

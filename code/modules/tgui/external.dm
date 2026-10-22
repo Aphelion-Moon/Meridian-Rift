@@ -233,6 +233,11 @@ GAME_VERB_NATIVE(/client, uiclose, "uiclose", null, window_id as text)
 			return TRUE
 
 	// Decode payload
+	// The dedicated screenshot protocol permits only one 32 KiB encoded chunk.
+	// Enforce its envelope bound before JSON validation/decode.
+	if(type in list("bug-report/capture-chunk", "bug-report/capture-cancel"))
+		if(!window || !istext(href_list["payload"]) || length(href_list["payload"]) > 40000)
+			return TRUE
 	var/payload
 	if(href_list["payload"])
 		var/payload_text = href_list["payload"]
