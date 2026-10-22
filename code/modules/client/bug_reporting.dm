@@ -79,6 +79,16 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	var/list/attachment
 	var/submission_key
 	var/last_polled = 0
+	var/fields_dirty = FALSE
+	var/fields_epoch = 0
+	var/list/remote_draft
+	var/companion_until = 0
+	var/companion_kind
+	var/companion_attachment_id
+	var/poll_failures = 0
+	var/polling_paused = FALSE
+	var/poll_generation = 0
+	var/poll_inflight = FALSE
 
 /datum/bug_report/New(client/reporting_client)
 	owner = reporting_client
@@ -151,6 +161,11 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	return list("ckey" = context["ckey"], "sessionId" = session_id, "requestId" = request_id, "action" = action)
 
 /datum/bug_report/proc/save_fields()
+	if(result?["kind"] == "accepted")
+		return FALSE
+	if(remote_draft)
+		status = "Choose Load browser draft or Keep my local text before saving."
+		return FALSE
 	var/list/body = action_body("save")
 	body["fields"] = fields.Copy()
 	body["revision"] = revision
@@ -160,8 +175,8 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	if(response["revisionConflict"])
 		var/list/current = bridge_request("action", action_body("read"))
 		if(current?["draft"])
-			revision = current["draft"]["revision"]
-		status = "The draft changed in another window. Your text is preserved. Review it, then submit again to save this version."
+			remote_draft = current["draft"]
+		status = "The browser draft changed. Your local text is preserved. Load the browser draft or explicitly keep your local text."
 		return FALSE
 	var/list/draft = response["draft"]
 	if(!draft)
@@ -169,6 +184,54 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 		return FALSE
 	revision = draft["revision"]
 	attachment = draft["attachment"]
+	fields_dirty = FALSE
+	return TRUE
+
+/// Scalar local edits survive TGUI unmount. This performs no HTTP or AI work.
+/datum/bug_report/proc/update_local_fields(list/incoming, epoch, required = FALSE)
+	if(result?["kind"] == "accepted" || epoch != fields_epoch || !islist(incoming))
+		return FALSE
+	for(var/name in list("title", "observed", "expected", "reproduction"))
+		var/value = incoming[name]
+		if(!istext(value) || (required && !length(trim(value))) || length_char(value) > (name == "title" ? 160 : 8000))
+			status = "Fill each required field within its limit."
+			return FALSE
+	var/category = incoming["category"]
+	var/severity = incoming["severity"]
+	var/incident_at = incoming["incidentAt"]
+	if(!isnull(incident_at) && (!istext(incident_at) || length(incident_at) > 40))
+		return FALSE
+	// Exact UTC text crosses DM unchanged; the authenticated host validates it.
+	var/list/next_fields = list("title" = incoming["title"], "observed" = incoming["observed"], "expected" = incoming["expected"], "reproduction" = incoming["reproduction"], "category" = (category in list("Other", "UI", "Gameplay", "Crash", "Performance", "Map")) ? category : "Other", "severity" = (severity in list("unspecified", "minor", "major", "critical")) ? severity : "unspecified", "incidentAt" = incident_at)
+	if(json_encode(next_fields) != json_encode(fields))
+		fields = next_fields
+		fields_dirty = TRUE
+		if(polling_paused)
+			poll_generation++
+			submission_key = null
+			result = null
+			polling_paused = FALSE
+	return TRUE
+
+/datum/bug_report/proc/adopt_draft(list/draft)
+	fields = draft["fields"].Copy()
+	revision = draft["revision"]
+	fields_dirty = FALSE
+	fields_epoch++
+	remote_draft = null
+	result = null
+	status = "Browser draft loaded."
+
+/datum/bug_report/proc/resolve_draft(keep_local)
+	if(!remote_draft || result?["kind"] == "accepted")
+		return FALSE
+	if(keep_local)
+		revision = remote_draft["revision"]
+		remote_draft = null
+		fields_dirty = TRUE
+		status = "Local text selected. Submit or open the browser to save this version."
+	else
+		adopt_draft(remote_draft)
 	return TRUE
 
 /datum/bug_report/proc/submit_fields()
@@ -177,25 +240,44 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	busy = TRUE
 	if(save_fields())
 		submission_key = GUID()
+		poll_generation++
+		poll_failures = 0
+		polling_paused = FALSE
+		result = list("kind" = "checking")
 		poll_submission()
 	busy = FALSE
 	SStgui.update_uis(src)
 
-/datum/bug_report/proc/poll_submission()
-	if(!valid_owner())
+/datum/bug_report/proc/poll_submission(generation = null)
+	if(isnull(generation))
+		generation = poll_generation
+	if(!valid_owner() || !submission_key || generation != poll_generation || poll_inflight || result?["kind"] == "accepted")
 		return
+	poll_inflight = TRUE
 	var/list/body = action_body("submit")
 	body["revision"] = revision
 	body["key"] = submission_key
 	var/list/response = bridge_request("action", body)
-	if(!response)
+	poll_inflight = FALSE
+	if(!valid_owner() || generation != poll_generation || result?["kind"] == "accepted")
 		return
+	if(!response)
+		poll_failures++
+		if(poll_failures <= 3)
+			addtimer(CALLBACK(src, PROC_REF(poll_submission), generation), (2 ** poll_failures) SECONDS)
+		else
+			polling_paused = TRUE
+			status = "Checking paused after connection failures. Your text is preserved. Retry connection to recover the result, or edit and submit again."
+		SStgui.update_uis(src)
+		return
+	poll_failures = 0
+	polling_paused = FALSE
 	result = response["result"]
 	if(!result)
 		return
 	status = result["kind"]
 	if(status == "checking")
-		addtimer(CALLBACK(src, PROC_REF(poll_submission)), 2 SECONDS)
+		addtimer(CALLBACK(src, PROC_REF(poll_submission), generation), 2 SECONDS)
 	else if(status == "accepted")
 		addtimer(CALLBACK(src, PROC_REF(refresh_receipt)), 5 SECONDS)
 	SStgui.update_uis(src)
@@ -219,35 +301,63 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 		register_context()
 	if(result?["kind"] != "accepted" && !save_fields())
 		busy = FALSE
+		if(valid_owner())
+			DIRECT_OUTPUT(owner, link(CONFIG_GET(string/bug_report_web_url)))
+			status += " Browser fallback opened; the text in this game draft remains preserved."
+		SStgui.update_uis(src)
 		return
 	var/list/body = action_body("handoff")
 	body["capability"] = capability
 	var/list/response = bridge_request("action", body)
 	if(valid_owner() && response?["url"])
 		DIRECT_OUTPUT(owner, link(response["url"]))
+		companion_until = world.time + 15 MINUTES
+		companion_kind = capability
+		companion_attachment_id = attachment?["id"]
 	else if(valid_owner())
 		DIRECT_OUTPUT(owner, link(CONFIG_GET(string/bug_report_web_url)))
 	busy = FALSE
-	if(capability == "attachment")
-		addtimer(CALLBACK(src, PROC_REF(refresh_draft)), 5 SECONDS)
+	queue_companion_refresh()
 	SStgui.update_uis(src)
 
+/datum/bug_report/proc/queue_companion_refresh()
+	if(!valid_owner() || world.time >= companion_until || result?["kind"] == "accepted")
+		return
+	if(companion_kind == "attachment" && attachment && attachment["id"] != companion_attachment_id && (attachment["state"] in list("ready", "failed")))
+		companion_until = 0
+		return
+	addtimer(CALLBACK(src, PROC_REF(refresh_draft)), 5 SECONDS, TIMER_UNIQUE|TIMER_OVERRIDE)
+
 /datum/bug_report/proc/refresh_draft()
-	if(!valid_owner() || busy)
+	if(!valid_owner())
+		return
+	if(busy)
+		queue_companion_refresh()
 		return
 	if(result?["kind"] == "accepted")
 		refresh_receipt()
 		return
+	if(result?["kind"] == "checking")
+		if(!polling_paused)
+			poll_submission()
+		return
+	var/expected_generation = poll_generation
 	var/list/response = bridge_request("action", action_body("read"))
+	if(!valid_owner() || busy || expected_generation != poll_generation || result?["kind"] == "accepted")
+		queue_companion_refresh()
+		return
 	var/list/draft = response?["draft"]
 	if(draft)
 		if(draft["revision"] != revision)
-			status = "The draft changed in another window. Submitting will ask you to review your text before replacing it."
+			if(fields_dirty)
+				remote_draft = draft
+				status = "The browser draft changed. Your local text is preserved; choose which version to continue editing."
+			else
+				adopt_draft(draft)
 		attachment = draft["attachment"]
 		if(draft["intake"] == "submitted")
 			refresh_receipt()
-		else if(attachment?["state"] == "processing")
-			addtimer(CALLBACK(src, PROC_REF(refresh_draft)), 5 SECONDS)
+	queue_companion_refresh()
 	SStgui.update_uis(src)
 
 /datum/bug_report/ui_state(mob/user)
@@ -263,33 +373,30 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 	if(!ui)
 		ui = new(user, src, "BugReport", "Report a Meridian bug")
 		ui.open()
+	if(registered)
+		INVOKE_ASYNC(src, PROC_REF(refresh_draft))
 
 /datum/bug_report/ui_data(mob/user)
-	return list("fields" = fields, "revision" = revision, "status" = status, "busy" = busy, "result" = result, "attachment" = attachment)
+	return list("fields" = fields, "context" = context, "fieldsEpoch" = fields_epoch, "reportId" = request_id, "conflict" = !!remote_draft, "pollingPaused" = polling_paused, "revision" = revision, "status" = status, "busy" = busy, "result" = result, "attachment" = attachment)
 
 /datum/bug_report/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(. || !valid_owner() || usr.client != owner || busy)
 		return
-	if(action == "submit" || action == "screenshot" || action == "browser")
-		var/list/incoming = params["fields"]
-		if(!islist(incoming))
-			return
+	if(action in list("submit", "screenshot", "browser", "draft", "keep"))
 		// Never accept report IDs, context or identity from TGUI parameters.
-		for(var/name in list("title", "observed", "expected", "reproduction"))
-			var/value = incoming[name]
-			if(!istext(value) || (action == "submit" && !length(trim(value))) || length_char(value) > (name == "title" ? 160 : 8000))
-				status = "Fill each required field within its limit."
-				return TRUE
-		var/category = incoming["category"]
-		var/severity = incoming["severity"]
-		fields = list("title" = incoming["title"], "observed" = incoming["observed"], "expected" = incoming["expected"], "reproduction" = incoming["reproduction"], "category" = (category in list("Other", "UI", "Gameplay", "Crash", "Performance", "Map")) ? category : "Other", "severity" = (severity in list("unspecified", "minor", "major", "critical")) ? severity : "unspecified", "incidentAt" = null)
+		if(!update_local_fields(params["fields"], params["fieldsEpoch"], action == "submit"))
+			return TRUE
 		if(action == "submit")
 			INVOKE_ASYNC(src, PROC_REF(submit_fields))
 		else if(action == "screenshot")
 			INVOKE_ASYNC(src, PROC_REF(open_browser), "attachment")
-		else
+		else if(action == "browser")
 			INVOKE_ASYNC(src, PROC_REF(open_browser), "form")
+		else if(action == "keep")
+			resolve_draft(TRUE)
+	else if(action == "reload")
+		resolve_draft(FALSE)
 	else if(action == "new" && result?["kind"] == "accepted")
 		owner.new_bug_report()
 		owner.bug_report_draft.ui_interact(owner.mob)
@@ -298,5 +405,7 @@ GAME_VERB_DESC(/client, link_discord_bug_reports, "Link Discord for reports", "C
 		if(receipt?["issueUrl"])
 			DIRECT_OUTPUT(owner, link(receipt["issueUrl"]))
 	else if(action == "refresh")
+		poll_failures = 0
+		polling_paused = FALSE
 		INVOKE_ASYNC(src, PROC_REF(refresh_draft))
 	return TRUE

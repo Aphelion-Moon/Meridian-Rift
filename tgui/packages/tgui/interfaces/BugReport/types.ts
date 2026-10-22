@@ -5,10 +5,25 @@ export type ReportFields = {
   reproduction: string;
   category: string;
   severity: string;
-  incidentAt: number | null;
+  incidentAt: string | null;
 };
 export type BugReportData = {
+  reportId: string;
+  fieldsEpoch: number;
+  conflict?: boolean;
+  pollingPaused?: boolean;
   fields: ReportFields;
+  context?: {
+    roundId: string | null;
+    map: string | null;
+    capturedAt: string;
+    versions: Record<'client' | 'server' | 'compiler', { version: number; build: number } | null>;
+    build: {
+      commit: string | null;
+      base: string | null;
+      testMerges: { number: number; commit: string | null }[];
+    };
+  };
   revision: number;
   status: string;
   busy: boolean;
