@@ -12,7 +12,6 @@ import {
   TextArea,
 } from 'tgui-core/components';
 import { useBackend } from '../../backend';
-import { sendLargeAct } from '../../capture/topic';
 import { Window } from '../../layouts';
 import { hasReproductionHint } from './form-hints';
 import type {
@@ -246,9 +245,9 @@ export const BugReport = () => {
     return () => window.removeEventListener('focus', refreshTargets);
   }, []);
 
-  /** Sends an action carrying the form whole, past tgui's 2 KB chunking and its chunk cap */
+  /** Sends an action carrying the form whole */
   function actWithFields(action: string, extra: Record<string, unknown> = {}) {
-    sendLargeAct(action, { ...extra, fields, fieldsEpoch: data.fieldsEpoch });
+    act(action, { ...extra, fields, fieldsEpoch: data.fieldsEpoch });
   }
 
   function submit(asWritten = false) {

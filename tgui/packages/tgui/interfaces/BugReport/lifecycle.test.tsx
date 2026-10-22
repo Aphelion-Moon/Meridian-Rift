@@ -9,7 +9,6 @@ import {
   screen,
 } from '@testing-library/react';
 import { storage } from 'common/storage';
-import * as topic from '../../capture/topic';
 import * as actions from '../../events/act';
 import { gameDataAtom, gameStaticDataAtom, store } from '../../events/store';
 import { BugReport } from './index';
@@ -29,7 +28,12 @@ const title = () => screen.getAllByRole('textbox')[0] as HTMLInputElement;
 let stored: any;
 let spies: { mockRestore: () => void }[] = [];
 let send: ReturnType<typeof spyOn<typeof actions, 'sendAct'>>;
-let sendLarge: ReturnType<typeof spyOn<typeof topic, 'sendLargeAct'>>;
+
+/** The actions that went out with the form attached, the ones carrying its long text */
+const formActions = () =>
+  send.mock.calls
+    .filter(([, payload]) => payload && 'fields' in payload)
+    .map(([action]) => action);
 
 function setStatic(values: Record<string, unknown>) {
   store.set(gameStaticDataAtom, {
@@ -46,10 +50,8 @@ beforeEach(() => {
   store.set(gameDataAtom, { status: 'Ready', busy: false });
   stored = undefined;
   send = spyOn(actions, 'sendAct').mockImplementation(() => undefined);
-  sendLarge = spyOn(topic, 'sendLargeAct').mockImplementation(() => undefined);
   spies = [
     send,
-    sendLarge,
     spyOn(storage, 'get').mockImplementation(async () => stored),
     spyOn(storage, 'set').mockImplementation(async (_key, value) => {
       stored = value;
@@ -66,7 +68,6 @@ test('typing stays in the browser until an action sends the text', async () => {
   fireEvent.input(title(), { target: { value: 'Unsaved local edit' } });
   await wait(600);
   expect(send).not.toHaveBeenCalled();
-  expect(sendLarge).not.toHaveBeenCalled();
   expect(stored?.one?.fields.title).toBe('Unsaved local edit');
 });
 
@@ -113,11 +114,9 @@ test('a submission sends all of its text in one message, however long', () => {
   setStatic({ fields: full });
   render(<BugReport />);
   fireEvent.click(screen.getByText('Submit report'));
-  expect(sendLarge).toHaveBeenLastCalledWith('submit', {
-    fields: full,
-    fieldsEpoch: 0,
-  });
-  expect(send).not.toHaveBeenCalled();
+  expect(send.mock.calls).toEqual([
+    ['submit', { fields: full, fieldsEpoch: 0 }],
+  ]);
 });
 
 test('a moved-on saved draft offers loading it or keeping the local text', () => {
@@ -126,7 +125,7 @@ test('a moved-on saved draft offers loading it or keeping the local text', () =>
   fireEvent.click(screen.getByText('Load saved draft'));
   expect(send).toHaveBeenLastCalledWith('reload');
   fireEvent.click(screen.getByText('Keep my local text'));
-  expect(sendLarge).toHaveBeenLastCalledWith('keep', {
+  expect(send).toHaveBeenLastCalledWith('keep', {
     fields,
     fieldsEpoch: 0,
   });
@@ -142,7 +141,7 @@ test('the map capture and the file prompt never navigate the browser', () => {
       true,
     );
     fireEvent.click(screen.getByText('Choose screenshot'));
-    expect(sendLarge).toHaveBeenLastCalledWith('screenshot', {
+    expect(send).toHaveBeenLastCalledWith('screenshot', {
       fields,
       fieldsEpoch: 0,
     });
@@ -156,7 +155,7 @@ test('a snapshot names only the picked window, and focus or the refresh button a
   render(<BugReport />);
   expect(screen.queryAllByText('Machine controls').length > 0).toBe(true);
   fireEvent.click(screen.getByText('Snapshot selected TGUI'));
-  expect(sendLarge).toHaveBeenLastCalledWith('capture_ui', {
+  expect(send).toHaveBeenLastCalledWith('capture_ui', {
     windowId: 'tgui_2',
     fields,
     fieldsEpoch: 0,
@@ -179,7 +178,7 @@ test('a pending screenshot holds submission, and a ready one asks for its previe
   });
   const view = render(<BugReport />);
   fireEvent.click(screen.getByText('Submit report'));
-  expect(sendLarge).not.toHaveBeenCalled();
+  expect(formActions()).toEqual([]);
   fireEvent.click(screen.getByText('Remove screenshot'));
   expect(send).toHaveBeenLastCalledWith('remove_screenshot', {
     attachmentId: 'one',
@@ -246,7 +245,7 @@ test('the frozen context shows, and the incident time goes out as exact UTC text
   const time = screen.getByPlaceholderText('YYYY-MM-DDTHH:mm:ss.sssZ');
   fireEvent.input(time, { target: { value: '2026-10-22T12:34:56.789Z' } });
   fireEvent.click(screen.getByText('Submit report'));
-  expect(sendLarge).toHaveBeenLastCalledWith('submit', {
+  expect(send).toHaveBeenLastCalledWith('submit', {
     fields: { ...fields, incidentAt: '2026-10-22T12:34:56.789Z' },
     fieldsEpoch: 0,
   });

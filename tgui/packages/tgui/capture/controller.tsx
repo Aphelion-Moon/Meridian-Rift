@@ -16,7 +16,6 @@ import {
   renderUiSnapshot,
   SnapshotRefusal,
 } from './dom-snapshot';
-import { sendLargeMessage } from './topic';
 import { SnapshotTransfer } from './transfer';
 
 /** What the server asks a window for - the capture's nonce, and how it wants the image sent */
@@ -53,7 +52,7 @@ export function cancelUiSnapshot() {
   if (!current) return;
   if (current.transfer?.active) current.transfer.cancel();
   else if (!current.transfer)
-    sendLargeMessage('bug-report/capture-cancel', {
+    Byond.sendMessage('bug-report/capture-cancel', {
       nonce: current.request.nonce,
     });
   close();
@@ -90,7 +89,7 @@ export async function requestUiSnapshot(payload: CaptureRequest) {
     !name ||
     name === 'BugReport'
   ) {
-    sendLargeMessage('bug-report/capture-cancel', { nonce: request.nonce });
+    Byond.sendMessage('bug-report/capture-cancel', { nonce: request.nonce });
     return;
   }
   close();
@@ -171,7 +170,7 @@ function SnapshotPreview(props: {
 
   // The server ends a capture whose window never says this, since a renderer that died drawing it can't
   useEffect(() => {
-    sendLargeMessage('bug-report/capture-ready', { nonce: request.nonce });
+    Byond.sendMessage('bug-report/capture-ready', { nonce: request.nonce });
   }, [request.nonce]);
 
   function showCrop(area?: Crop) {
@@ -203,7 +202,7 @@ function SnapshotPreview(props: {
     try {
       const encoded = await encodeSnapshot(canvas, request.limit, crop.current);
       if (current?.request.nonce !== request.nonce) return;
-      current.transfer = new SnapshotTransfer(sendLargeMessage, {
+      current.transfer = new SnapshotTransfer(Byond.sendMessage, {
         chunk: request.chunk,
         limit: request.limit,
         finished: (ok) => {

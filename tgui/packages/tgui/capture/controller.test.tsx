@@ -1,6 +1,13 @@
 // THIS IS AN APHELION UI FILE
 
-import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test';
+import {
+  afterEach,
+  beforeEach,
+  expect,
+  type Mock,
+  spyOn,
+  test,
+} from 'bun:test';
 import { act } from 'react';
 import { configAtom, store } from '../events/store';
 import type { Config } from '../events/types';
@@ -10,9 +17,9 @@ import {
   requestUiSnapshot,
 } from './controller';
 import * as snapshot from './dom-snapshot';
-import * as topic from './topic';
 
-let sent: ReturnType<typeof spyOn<typeof topic, 'sendLargeMessage'>>;
+/** Byond.sendMessage, typed as the window calls it, since spyOn takes its last overload */
+let sent: Mock<(type: string, payload: object) => void>;
 let render: ReturnType<typeof spyOn<typeof snapshot, 'renderUiSnapshot'>>;
 /** Finishes the snapshot the window is drawing */
 let finish: (canvas: HTMLCanvasElement) => void;
@@ -32,7 +39,9 @@ beforeEach(() => {
     ...store.get(configAtom),
     interface: { name: 'Vending' } as Config['interface'],
   });
-  sent = spyOn(topic, 'sendLargeMessage').mockImplementation(() => undefined);
+  sent = spyOn(Byond, 'sendMessage').mockImplementation(
+    () => undefined,
+  ) as Mock<(type: string, payload: object) => void>;
   render = spyOn(snapshot, 'renderUiSnapshot').mockImplementation(
     () =>
       new Promise((resolve) => {

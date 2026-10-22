@@ -13,7 +13,7 @@ the backend; this module is the game's side.
   captured in `New()` before anything can yield.
 - **Typing never reaches the server.** Unsent text is kept in the browser's tgui storage per report,
   so it survives the window closing. The form sends its text only with Submit, a screenshot or a
-  snapshot, whole in one message (`capture/topic.ts`, see below).
+  snapshot, whole in one message (see below).
 - **The bridge sees one request at a time per report and eight across the server**, so no number of
   reporters can pile up rust-g jobs. We skip SShttp on purpose, it logs the bearer token and the text.
 - **The window costs nothing while it sits open.** Autoupdate is off, every change pushes its own
@@ -42,10 +42,12 @@ the backend; this module is the game's side.
   dead renderer takes the page's own 170-second timer with it. The 3-minute expiry stays for a capture
   left open.
 
-**Why the page posts its own messages:** tgui's `Byond.call` sends any URL of 2048 characters or more
-as an XHR GET, which DreamSeeker 516 answers with a 404, so the message never arrives (tgui's act
-chunking exists because of it). `sendLargeMessage()` posts through WebView2's `postMessage`, measured
-byte-identical to 2.8 MB (lab `runs/bug-reporting-20261022/hardening/ds-topic-probe`).
+**Why every tgui message is posted:** tgui's `Byond.call` sent any URL of 2048 characters or more as
+an XHR GET, which DreamSeeker 516 answers with a 404, so the message never arrived (tgui's act chunking
+exists because of it, and the topic limiter cuts chunked acts short). On a WebView2 client `Byond.call`
+now posts every URL through `postMessage`, as BYOND's own page API does, measured byte-identical to
+2.8 MB and in order (lab `runs/bug-reporting-20261022/hardening/ds-topic-probe`), and `act()` skips
+its chunking there. A client without WebView2 keeps the old path and the chunking.
 
 ### TG Proc/File Changes:
 
@@ -59,6 +61,9 @@ Edits to tg files keep their original code in `APHELION EDIT` comments.
 | `code/modules/tgui/external.dm` | capture messages are bounded before their JSON is decoded |
 | `code/modules/tgui/tgui_window.dm` | capture messages skip ui_act, and closing the window ends its capture |
 | `tgui/packages/tgui/events/listeners.ts`, `handlers/suspense.ts` | capture messages, and a suspended window cancels its capture |
+| `tgui/packages/tgui-setup/helpers.js`, `tgui/public/helpers.min.js` | `Byond.call` posts every URL through WebView2's `postMessage` and sets `Byond.POST_MESSAGE`; the minified copy comes from the package's `build:helpers` |
+| `tgui/packages/tgui/events/act.ts` | no act chunking when `Byond.POST_MESSAGE` is set |
+| `tgui/global.d.ts`, `tgui/packages/tgui/__mocks__/byond.ts` | the flag's type and its mock |
 | `tgstation.dme`, `code/modules/unit_tests/_unit_tests.dm` | includes |
 
 ### Defines:
@@ -69,7 +74,9 @@ Edits to tg files keep their original code in `APHELION EDIT` comments.
 ### Included files that are not contained in this module:
 
 - `tgui/packages/tgui/interfaces/BugReport/`: the form.
-- `tgui/packages/tgui/capture/`: the snapshot, its preview and transfer, `topic.ts`, and the vendored
+- `tgui/packages/tgui/capture/`: the snapshot, its preview and transfer, and the vendored
   html-to-image 1.11.13 (`vendor/`, unmodified).
+- `tgui/packages/tgui-setup/helpers.test.ts`, `tgui/packages/tgui/events/act.test.ts`: every call posted
+  once and verbatim on WebView2, the old paths without it, and a 30 KB act sent whole or chunked.
 - `code/modules/unit_tests/~nova/bug_reporting.dm`: guards, the capture protocol and its ready wait,
   allowances, fields, polling, an unconfigured server and crash cleanup, against a scripted bridge.
