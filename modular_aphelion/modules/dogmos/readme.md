@@ -134,7 +134,6 @@ The following inherited files adapt their listed symbols to native gas access, D
 | `code/modules/atmospherics/machinery/components/unary_devices/heat_exchanger.dm` | `/obj/machinery/atmospherics/components/unary/heat_exchanger/process_atmos` |
 | `code/modules/atmospherics/machinery/components/unary_devices/machine_connector.dm` | `/datum/gas_machine_connector/New` |
 | `code/modules/atmospherics/machinery/components/unary_devices/outlet_injector.dm` | `/obj/machinery/atmospherics/components/unary/outlet_injector/process_atmos` |
-| `code/modules/atmospherics/machinery/components/unary_devices/passive_vent.dm` | `/obj/machinery/atmospherics/components/unary/passive_vent/process_atmos` |
 | `code/modules/atmospherics/machinery/components/unary_devices/portables_connector.dm` | `/obj/machinery/atmospherics/components/unary/portables_connector/Initialize` |
 | `code/modules/atmospherics/machinery/components/unary_devices/thermomachine.dm` | `/obj/machinery/atmospherics/components/unary/thermomachine/process_atmos`, `/obj/machinery/atmospherics/components/unary/thermomachine/ui_data` |
 | `code/modules/atmospherics/machinery/components/unary_devices/vent_pump.dm` | `/obj/machinery/atmospherics/components/unary/vent_pump`, `/obj/machinery/atmospherics/components/unary/vent_pump/high_volume/Initialize`, `/obj/machinery/atmospherics/components/unary/vent_pump/proc/toggle_overclock`, `/obj/machinery/atmospherics/components/unary/vent_pump/process_atmos` |

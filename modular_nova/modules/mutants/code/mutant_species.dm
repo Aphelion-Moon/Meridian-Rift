@@ -60,7 +60,6 @@
 /datum/species/mutant/infectious
 	name = "Mutated Abomination"
 	id = SPECIES_MUTANT_INFECTIOUS
-	damage_modifier = 10
 	mutanteyes = /obj/item/organ/eyes/zombie
 	changesource_flags = MIRROR_BADMIN | WABBAJACK | ERT_SPAWN
 	bodypart_overrides = list(
@@ -72,6 +71,8 @@
 		BODY_ZONE_R_LEG = /obj/item/bodypart/leg/right/mutant_zombie/infectious,
 	)
 	var/hands_to_give = /obj/item/hnz_mutant_hand
+	/// Percentage of incoming damage resisted while this species is active.
+	var/damage_resistance = 10
 	/// The rate the mutants regenerate at
 	var/heal_rate = 1
 	/// The cooldown before the mutant can start regenerating
@@ -79,6 +80,7 @@
 
 /datum/species/mutant/infectious/on_species_gain(mob/living/carbon/human/human_who_gained_species, datum/species/old_species, pref_load, regenerate_icons)
 	. = ..()
+	human_who_gained_species.damage_resistance += damage_resistance
 	human_who_gained_species.AddComponent(/datum/component/mutant_hands, mutant_hand_path = hands_to_give)
 	RegisterSignal(human_who_gained_species, COMSIG_MOB_AFTER_APPLY_DAMAGE, PROC_REF(queue_regeneration))
 	RegisterSignal(human_who_gained_species, COMSIG_LIVING_LIFE, PROC_REF(on_life))
@@ -86,6 +88,7 @@
 
 /datum/species/mutant/infectious/on_species_loss(mob/living/carbon/human/human_who_lost_species, datum/species/new_species, pref_load)
 	. = ..()
+	human_who_lost_species.damage_resistance -= damage_resistance
 	UnregisterSignal(human_who_lost_species, list(
 		COMSIG_MOB_AFTER_APPLY_DAMAGE,
 		COMSIG_LIVING_LIFE,
@@ -102,7 +105,7 @@
 	name = "Fast Mutated Abomination"
 	id = SPECIES_MUTANT_FAST
 	hands_to_give = /obj/item/hnz_mutant_hand/fast
-	damage_modifier = 0
+	damage_resistance = 0
 	/// The rate the mutants regenerate at
 	heal_rate = 0.5
 	bodypart_overrides = list(
@@ -123,7 +126,7 @@
 /datum/species/mutant/infectious/slow
 	name = "Slow Mutated Abomination"
 	id = SPECIES_MUTANT_SLOW
-	damage_modifier = 15
+	damage_resistance = 15
 	/// The rate the mutants regenerate at
 	heal_rate = 1.5
 	bodypart_overrides = list(
