@@ -11,7 +11,7 @@ export const STRINGS = {
   'step.2': 'Picture',
   'step.3': 'Steps',
   'step.4': 'Review report',
-  'step.strip': 'Steps of the report',
+  'step.strip': 'Report progress',
   'step.done.aria': 'Go back to step {n}, {name}',
   'btn.next': 'Next',
   'btn.back': 'Back',
@@ -53,7 +53,9 @@ export const STRINGS = {
   'shot.failed':
     "This picture can't be used. Pick a PNG, JPEG, WebP or GIF under 10 MB, or remove it.",
   'shot.unconfirmed':
-    "Couldn't confirm the picture was added. Try again, or pick it again.",
+    "Couldn't confirm the picture was added. Retake it, or remove it.",
+  'shot.unconfirmed.file':
+    "Couldn't confirm the picture was added. Pick another, or remove it.",
   'shot.previewFailed': "The preview didn't load.",
   'btn.loadAgain': 'Load it again',
   'shot.alt.view': 'In-game capture of your view',
@@ -62,8 +64,8 @@ export const STRINGS = {
   'shot.public': 'Show it on the public GitHub issue',
   'shot.public.hint':
     "It may show other players' names or chat. Only staff see it unless you tick this.",
-  'shot.public.locked': 'Open the picture first, to check it.',
-  'shot.gone': "That window isn't open any more. Pick another one.",
+  'shot.public.locked': 'You can tick this once the picture shows.',
+  'shot.gone': 'Remove it and tick another window.',
   'btn.retake': 'Retake',
   'btn.pickAnother': 'Pick another',
   'btn.remove': 'Remove',
@@ -79,6 +81,7 @@ export const STRINGS = {
     'What you did, in order, one thing per step. Enter adds the next one.',
   'p3.step': 'Step {n}',
   'btn.addStep': 'Add a step',
+  'p3.steps.max': "That's {max} steps, the most a report takes.",
   'btn.removeStep.aria': 'Remove step {n}',
   'p3.expected': 'What should have happened?',
   'p3.expected.hint': 'What you expected instead',
@@ -129,13 +132,13 @@ export const STRINGS = {
   'st.back.item': '{label}: {message}',
   'st.back.quote': 'You wrote: "{quote}"',
   'st.limit.reports':
-    "You've sent {reports} reports this hour, which is the limit. You can send this one at {clock}, in about {wait}. It's kept here, so you can close this window.",
+    "You've sent {reports} reports this hour, which is the limit. You can send this one at {clock}, in {wait}. It's kept here, so you can close this window.",
   'st.limit.sends':
-    "You've tried to send {sends} times this hour. You can try again at {clock}, in about {wait}. Your report is kept.",
+    "You've tried to send {sends} times this hour. You can try again at {clock}, in {wait}. Your report is kept.",
   'st.limit.pictures':
     "You've uploaded {uploads} of your own screenshots this hour, which is the limit. Captures still work.",
-  'time.wait': '{n} minutes',
-  'time.wait.one': 'a minute',
+  'time.wait': 'about {n} minutes',
+  'time.wait.one': 'about a minute',
   'time.wait.less': 'under a minute',
   'st.offline.title': "Couldn't reach the report server",
   'st.offline.text': 'Your report is kept. Try again in a minute.',

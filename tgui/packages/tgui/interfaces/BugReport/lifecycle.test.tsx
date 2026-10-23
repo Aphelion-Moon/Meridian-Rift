@@ -51,6 +51,7 @@ const idle = {
   conflict: false,
   pollingPaused: false,
   unreachable: false,
+  refreshAnswered: 0,
   limit: null,
   pictures: null,
   uploadsLeft: 5,
@@ -292,19 +293,28 @@ test('an unreachable server offers Try again, which asks DM to refresh', () => {
   expect(send).toHaveBeenLastCalledWith('refresh');
 });
 
-test('Try again says it failed again only once the refresh it started answers', () => {
+test('Try again says it failed again only once DM says its refresh answered', () => {
   const first = 'Your report is kept. Try again in a minute.';
   const again =
     "Still can't reach it. Try again in a few minutes. Your report is kept.";
+  const refreshes = () =>
+    send.mock.calls.filter(([action]) => action === 'refresh').length;
   openAt(4);
   setData({ unreachable: true, status: "Couldn't reach the report server." });
+  // The notice says it, so the footer doesn't say it again
+  expect(screen.getByRole('status').textContent).toBe('');
   fireEvent.click(button('Try again'));
-  // The act's own update comes back before the server has answered
+  // The focus handler's targets answer and the act's own update come back before the read has
+  setData({ captureTargets: [] });
   setData({});
+  fireEvent.click(button('Try again'));
+  expect(refreshes()).toBe(1);
   expect(hasText(first)).toBe(true);
   expect(hasText(again)).toBe(false);
-  setData({});
+  setData({ refreshAnswered: 1 });
   expect(hasText(again)).toBe(true);
+  fireEvent.click(button('Try again'));
+  expect(refreshes()).toBe(2);
   setData({ unreachable: false, status: null });
   expect(hasText("Couldn't reach the report server")).toBe(false);
 });
@@ -331,8 +341,14 @@ test('the sent page names the issue and opens it, or starts the next report', ()
 
 test('a paused check offers Try again', () => {
   show();
-  setData({ result: { kind: 'checking' }, pollingPaused: true });
+  setData({
+    result: { kind: 'checking' },
+    pollingPaused: true,
+    status:
+      'Lost touch with the report server while it was checking. Your text is kept.',
+  });
   expect(hasText(/Lost touch with the report server/)).toBe(true);
+  expect(screen.getByRole('status').textContent).toBe('');
   fireEvent.click(button('Try again'));
   expect(send).toHaveBeenLastCalledWith('refresh');
 });
@@ -426,6 +442,111 @@ test('a ready picture asks for its preview once a take, and goes public only onc
   expect(send).toHaveBeenLastCalledWith('remove_screenshot', { pictureId: 1 });
 });
 
+test('a preview that loads while DM is busy tells DM once it is free, so its public tick can unlock', () => {
+  setData({ pictures: [picture] });
+  openAt(2);
+  const confirms = () =>
+    send.mock.calls.filter(([action]) => action === 'preview_loaded').length;
+  // Another picture's capture starts before this preview arrives, and DM drops every act but remove while busy
+  setData({ busy: true });
+  setData({ preview: { id: 1, take: 1, src: 'data:image/png;base64,AAAA' } });
+  fireEvent.load(screen.getByAltText('In-game capture of your view'));
+  const whileBusy = confirms();
+  setData({ busy: false });
+  const free = confirms();
+  setData({ pictures: [{ ...picture, previewSeen: true }] });
+  expect({ whileBusy, free, seen: confirms() }).toEqual({
+    whileBusy: 0,
+    free: 1,
+    seen: 1,
+  });
+});
+
+test('a preview is asked for only once DM is free, since it drops the ask while busy', () => {
+  setData({ pictures: [picture], busy: true });
+  openAt(2);
+  const asks = () =>
+    send.mock.calls.filter(([action]) => action === 'preview').length;
+  const whileBusy = asks();
+  setData({ busy: false });
+  expect({ whileBusy, free: asks() }).toEqual({ whileBusy: 0, free: 1 });
+});
+
+test('a capture waiting on its window can be removed while DM is busy, the others wait', () => {
+  setData({
+    pictures: [
+      { ...picture, source: 'window', title: 'Crafting', state: 'waiting' },
+      { ...picture, id: 2, source: 'file' },
+    ],
+    busy: true,
+  });
+  openAt(2);
+  fireEvent.click(button(/^Remove Your own screenshot/));
+  const removes = () =>
+    send.mock.calls.filter(([action]) => action === 'remove_screenshot');
+  const ready = removes().length;
+  fireEvent.click(button(/^Remove Crafting/));
+  expect({ ready, waiting: removes().at(-1) }).toEqual({
+    ready: 0,
+    waiting: ['remove_screenshot', { pictureId: 1 }],
+  });
+});
+
+test('a locked window tick tells screen readers why', () => {
+  setData({ captureTargets: [{ id: 'w1', title: 'Crafting' }], busy: true });
+  openAt(2);
+  const tick = screen.getByRole('checkbox', { name: /Crafting/ });
+  const said = (tick.getAttribute('aria-describedby') ?? '')
+    .split(' ')
+    .map((id) => document.getElementById(id)?.textContent ?? '');
+  expect(said.some((text) => text.includes('Wait for the other picture'))).toBe(
+    true,
+  );
+});
+
+test('a limit’s clock and a picture’s time stay put when a page shows again later', () => {
+  let now = new Date(2026, 9, 23, 14, 0, 0).getTime();
+  spies.push(spyOn(Date, 'now').mockImplementation(() => now));
+  setData({ pictures: [{ ...picture, takenAgo: 0 }] });
+  openAt(2);
+  const pictureBefore = hasText(/In-game capture · 14:00/);
+  fireEvent.click(button('Next'));
+  fireEvent.click(button('Next'));
+  setData({ limit: { kind: 'reports', retryIn: 30 * 60000 } });
+  const limitBefore = hasText(/at 14:30, in about 30 minutes/);
+  // The window has no autoupdate, so nothing new comes while the player looks elsewhere
+  now += 10 * 60000;
+  fireEvent.click(button('Back'));
+  fireEvent.click(button('Next'));
+  const limitAfter = hasText(/at 14:30, in about 20 minutes/);
+  fireEvent.click(button(/Go back to step 2/));
+  expect({
+    pictureBefore,
+    limitBefore,
+    limitAfter,
+    pictureAfter: hasText(/In-game capture · 14:00/),
+  }).toEqual({
+    pictureBefore: true,
+    limitBefore: true,
+    limitAfter: true,
+    pictureAfter: true,
+  });
+});
+
+test('after a send-back, a vague step moves focus to the vague question', () => {
+  setStatic({ fields: { ...fields, reproduction: '1. broken' } });
+  setData({
+    result: {
+      kind: 'needs_revision',
+      feedback: [{ field: 'reproduction', message: 'Which airlock was it?' }],
+    },
+  });
+  openAt(1);
+  fireEvent.click(button('Next'));
+  const focused = document.activeElement?.textContent ?? '';
+  expect(focused.includes("won't help anyone")).toBe(true);
+});
+
 test('a picture on the way holds sending and says why', () => {
   setData({ pictures: [{ ...picture, state: 'processing' }] });
   openAt(4);
@@ -433,10 +554,15 @@ test('a picture on the way holds sending and says why', () => {
   expect(hasButton('Send report')).toBe(false);
 });
 
-test('at the hourly upload limit, your own screenshot says the limit by its Retake', () => {
+test('at the hourly upload limit, the page says the limit once and Pick another points at it', () => {
   setData({ pictures: [{ ...picture, source: 'file' }], uploadsLeft: 0 });
   openAt(2);
-  expect(
-    screen.queryAllByText(/^You've uploaded 5 of your own screenshots/).length,
-  ).toBe(2);
+  const limit = /^You've uploaded 5 of your own screenshots/;
+  const why = (button('Pick another').getAttribute('aria-describedby') ?? '')
+    .split(' ')
+    .map((id) => document.getElementById(id)?.textContent ?? '');
+  expect({
+    shown: screen.queryAllByText(limit).length,
+    said: why.some((text) => limit.test(text)),
+  }).toEqual({ shown: 1, said: true });
 });

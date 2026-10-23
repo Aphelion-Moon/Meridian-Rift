@@ -26,15 +26,22 @@ export type PictureActions = {
 
 const SHOTS_ID = 'bug-report-shots';
 const MAX_ID = 'bug-report-pictures-count';
+const UPLOADS_ID = 'bug-report-uploads-limit';
 const SOURCE_ICON = {
   view: 'camera',
   window: 'window-maximize',
   file: 'image',
 };
 
-/** Returns the caption a picture's card shows, with the time it was taken */
-function caption(picture: ReportPicture) {
-  const time = clockText(new Date(Date.now() - picture.takenAgo));
+/**
+ * Returns the caption a picture's card shows, with the time it was taken
+ *
+ * Arguments:
+ * * picture - the picture, whose takenAgo counts back from its update
+ * * arrivedAt - when that update came
+ */
+function caption(picture: ReportPicture, arrivedAt: number) {
+  const time = clockText(new Date(arrivedAt - picture.takenAgo));
   if (picture.source === 'view') return say('shot.view', { time });
   if (picture.source === 'window')
     return say('shot.window', { window: picture.title ?? '', time });
@@ -139,13 +146,13 @@ function Preview(props: {
 function Card(props: {
   picture: ReportPicture;
   src: string | null | undefined;
+  arrivedAt: number;
   busy: boolean;
   uploadsLeft: number;
-  uploadLimit: number;
   actions: PictureActions;
 }) {
-  const { picture, src, busy, uploadsLeft, uploadLimit, actions } = props;
-  const label = caption(picture);
+  const { picture, src, arrivedAt, busy, uploadsLeft, actions } = props;
+  const label = caption(picture, arrivedAt);
   const line = pictureLine(picture);
   const ready = picture.state === 'ready';
   const shareId = `bug-report-share-${picture.id}`;
@@ -155,11 +162,12 @@ function Card(props: {
   const gone = picture.source === 'window' && !windowId;
   const noUploads = picture.source === 'file' && uploadsLeft <= 0;
   const retakeLocked = busy || onTheWay(picture) || gone || noUploads;
+  // The page already says the upload limit, so Pick another points at those words
   const retakeWhy = gone
-    ? say('shot.gone')
+    ? `${shareId}-why`
     : noUploads
-      ? say('st.limit.pictures', { uploads: uploadLimit })
-      : null;
+      ? UPLOADS_ID
+      : undefined;
   // Only a capture waiting on its window can be stopped while DM is busy, since removing it ends the wait
   const removeLocked = busy && picture.state !== 'waiting';
   const retakeLabel =
@@ -180,7 +188,14 @@ function Card(props: {
             name={picture.state === 'failed' ? 'circle-exclamation' : 'spinner'}
             spin={picture.state !== 'failed'}
           />
-          <span>{say(line, { window: picture.title ?? '' })}</span>
+          <span>
+            {say(
+              line === 'shot.unconfirmed' && picture.source === 'file'
+                ? 'shot.unconfirmed.file'
+                : line,
+              { window: picture.title ?? '' },
+            )}
+          </span>
         </div>
       )}
       {ready && (
@@ -213,7 +228,7 @@ function Card(props: {
         <ReportButton
           aria-disabled={retakeLocked || undefined}
           className={retakeLocked ? 'BugReport__locked' : undefined}
-          aria-describedby={retakeWhy ? `${shareId}-why` : undefined}
+          aria-describedby={retakeWhy}
           onClick={() => {
             if (retakeLocked) return;
             actions.take(picture.source, {
@@ -236,9 +251,9 @@ function Card(props: {
           {say('btn.remove')}
         </ReportButton>
       </div>
-      {retakeWhy && (
+      {gone && (
         <div className="BugReport__hint" id={`${shareId}-why`}>
-          {retakeWhy}
+          {say('shot.gone')}
         </div>
       )}
     </li>
@@ -249,12 +264,15 @@ export function PicturePage(props: {
   data: BugReportData;
   pictures: ReportPicture[];
   previews: Record<string, string | null>;
+  /** When the update came, which the pictures' times count back from */
+  arrivedAt: number;
   actions: PictureActions;
   shotsOpen: boolean;
   onShots: (open: boolean) => void;
   top: ReactNode;
 }) {
-  const { data, pictures, previews, actions, shotsOpen, onShots, top } = props;
+  const { data, pictures, previews, arrivedAt, actions } = props;
+  const { shotsOpen, onShots, top } = props;
   const targets: CaptureTarget[] = data.captureTargets ?? [];
   const max = data.maxPictures;
   const full = pictures.length >= max;
@@ -334,7 +352,13 @@ export function PicturePage(props: {
                   id={`bug-report-tick-${target.id}`}
                   label={target.title}
                   nested
-                  describedBy={`bug-report-windows-hint${full && !picture ? ` ${MAX_ID}` : ''}`}
+                  describedBy={[
+                    'bug-report-windows-hint',
+                    lock.why && `bug-report-tick-${target.id}-hint`,
+                    full && !picture && MAX_ID,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   hint={lock.why}
                   hintId={`bug-report-tick-${target.id}-hint`}
                   checked={!!picture || actions.working(key)}
@@ -370,7 +394,7 @@ export function PicturePage(props: {
           />
         ) : null}
         {uploadsLeft <= 0 ? (
-          <div className="BugReport__hint BugReport__limitLine">
+          <div className="BugReport__hint BugReport__limitLine" id={UPLOADS_ID}>
             <Icon name="clock" />
             <span>
               {say('st.limit.pictures', { uploads: data.limits.uploads })}
@@ -416,9 +440,9 @@ export function PicturePage(props: {
                   key={picture.id}
                   picture={picture}
                   src={previews[previewKey(picture)]}
+                  arrivedAt={arrivedAt}
                   busy={busy}
                   uploadsLeft={uploadsLeft}
-                  uploadLimit={data.limits.uploads}
                   actions={actions}
                 />
               ))}

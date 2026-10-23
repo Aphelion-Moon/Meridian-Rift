@@ -97,6 +97,8 @@ export type BugReportData = {
   conflict: boolean;
   pollingPaused: boolean;
   unreachable: boolean;
+  /** Counts the Try agains DM has answered, a dropped one too, from 0 at each open */
+  refreshAnswered: number;
   limit: ReportLimit | null;
   pictures: ReportPicture[] | null;
   uploadsLeft: number;

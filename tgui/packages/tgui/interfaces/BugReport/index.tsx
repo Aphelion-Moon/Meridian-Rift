@@ -1,6 +1,6 @@
 // THIS IS AN APHELION UI FILE
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Section, Stack } from 'tgui-core/components';
 import { useBackend } from '../../backend';
 import { Window } from '../../layouts';
@@ -20,6 +20,7 @@ import {
   SUMMARY_ID,
   stepId,
   TITLE_ID,
+  VAGUE_ID,
 } from './ids';
 import {
   CheckingState,
@@ -39,9 +40,13 @@ const STEPS = [say('step.1'), say('step.2'), say('step.3'), say('step.4')];
 const PREVIEW_WAIT = 12000;
 // A press DM never answers stops looking busy after this
 const PRESS_WAIT = 3000;
+// DM answers every Try again it gets, so one still unanswered by then never reached it
+const RETRY_WAIT = 30000;
 
 /** The control that started what DM is busy with, and whether an update came since */
 type Press = { key: string; seen: boolean };
+/** A Try again waiting on DM, with DM's count of answered ones when it was pressed */
+type Retry = { from: number };
 
 export const BugReport = () => {
   const { act, data } = useBackend<BugReportData>();
@@ -60,9 +65,9 @@ export const BugReport = () => {
   const [vague, setVague] = useState<string | null>(null);
   const [keptVague, setKeptVague] = useState<string | null>(null);
   const [press, setPress] = useState<Press | null>(null);
-  // Updates since the player pressed Try again, which the second one answers, or null when they haven't
-  const [retryUpdates, setRetryUpdates] = useState<number | null>(null);
-  const [limitUntil, setLimitUntil] = useState(0);
+  const [retry, setRetry] = useState<Retry | null>(null);
+  // An answered Try again found it still unreachable, until DM reaches it
+  const [failedAgain, setFailedAgain] = useState(false);
   const [, setNow] = useState(0);
   const [previews, setPreviews] = useState<Record<string, string | null>>({});
   const requested = useRef(new Set<string>());
@@ -81,7 +86,14 @@ export const BugReport = () => {
   const working = (key: string) => press?.key === key;
   const sending = working('send');
   const holding = pictures.some((picture) => picture.state !== 'ready');
-  const limited = !!data.limit && limitUntil > Date.now();
+  // DM's waits count from their update, so every time made from one counts from when it came, not from each render
+  const arrivedAt = useMemo(() => Date.now(), [data]);
+  const limitUntil = data.limit ? arrivedAt + data.limit.retryIn : 0;
+  const limited = limitUntil > Date.now();
+  const answered = data.refreshAnswered;
+  const retrying = !!retry && answered <= retry.from;
+  const triedAgain =
+    data.unreachable && (failedAgain || (!!retry && answered > retry.from));
 
   /** Moves focus once the page shows what it should land on */
   const focus = (id: string) => {
@@ -150,21 +162,23 @@ export const BugReport = () => {
     }
   }, [kind]);
 
-  // The limit's wait counts from the update that brought it, and Send comes back when it passes
+  // Send comes back when the limit's wait passes
   useEffect(() => {
     const wait = data.limit?.retryIn ?? 0;
-    setLimitUntil(wait > 0 ? Date.now() + wait : 0);
     if (wait <= 0) return;
     const timer = setTimeout(() => setNow(Date.now()), wait + 50);
     return () => clearTimeout(timer);
   }, [data.limit]);
 
-  // Try again's own act answers first, then the refresh it started, so only a second update still unreachable failed again
+  // Other updates come before a Try again's answer, so only DM's count passing the press says the status is its answer
   useEffect(() => {
-    setRetryUpdates((count) =>
-      count === null || !data.unreachable ? null : count + 1,
-    );
-  }, [data]);
+    if (retry && answered > retry.from) {
+      setRetry(null);
+      setFailedAgain(data.unreachable);
+    } else if (!data.unreachable) {
+      setFailedAgain(false);
+    }
+  }, [answered, data.unreachable]);
 
   // Previews come one picture at a time and only when asked, so they're kept here by picture and take
   useEffect(() => {
@@ -195,6 +209,19 @@ export const BugReport = () => {
       );
     }
   }, [data.pictures, data.busy, previews]);
+
+  // A preview that showed while DM was busy was dropped, so DM hears of it again once it's free, until it has
+  useEffect(() => {
+    if (data.busy) return;
+    for (const picture of pictures) {
+      if (
+        picture.state === 'ready' &&
+        !picture.previewSeen &&
+        loaded.current.has(previewKey(picture))
+      )
+        act('preview_loaded', { pictureId: picture.id, take: picture.take });
+    }
+  }, [data]);
 
   // A new picture opens the attached screenshots, then they stay how the player leaves them
   useEffect(() => {
@@ -239,7 +266,7 @@ export const BugReport = () => {
       if (text && text !== keptVague) {
         setErrors(null);
         setVague(text);
-        focus(NOTICE_ID);
+        focus(VAGUE_ID);
         return;
       }
     }
@@ -263,10 +290,14 @@ export const BugReport = () => {
   }
 
   function tryAgain() {
-    if (working('refresh')) return;
-    setRetryUpdates(0);
+    if (retrying) return;
+    const mark = { from: answered };
+    setRetry(mark);
     act('refresh');
-    pressed('refresh');
+    setTimeout(
+      () => setRetry((current) => (current === mark ? null : current)),
+      RETRY_WAIT,
+    );
   }
 
   function change(target: Page, focusId: string) {
@@ -305,10 +336,10 @@ export const BugReport = () => {
       setPreviews(({ [key]: _dropped, ...kept }) => kept);
     },
     loaded(picture) {
-      const key = previewKey(picture);
-      if (loaded.current.has(key)) return;
-      loaded.current.add(key);
-      act('preview_loaded', { pictureId: picture.id, take: picture.take });
+      loaded.current.add(previewKey(picture));
+      // DM drops it while busy, so the effect above sends it once DM is free
+      if (!data.busy && !picture.previewSeen)
+        act('preview_loaded', { pictureId: picture.id, take: picture.take });
     },
     lookAgain: () => act('targets'),
     pressed,
@@ -332,10 +363,11 @@ export const BugReport = () => {
   const editing = !accepted && !(checking && !sending);
   const showStrip = editing;
   const offline = data.unreachable && page === 4;
+  const paused = checking && !sending && data.pollingPaused;
 
   let body;
   if (accepted) {
-    body = <DoneState receipt={result?.receipt} />;
+    body = <DoneState receipt={result?.receipt} arrivedAt={arrivedAt} />;
   } else if (checking && !sending) {
     body = <CheckingState paused={data.pollingPaused} />;
   } else if (page === 1) {
@@ -356,6 +388,7 @@ export const BugReport = () => {
         data={data}
         pictures={pictures}
         previews={previews}
+        arrivedAt={arrivedAt}
         actions={pictureActions}
         shotsOpen={shotsOpen}
         onShots={setShotsOpen}
@@ -390,8 +423,9 @@ export const BugReport = () => {
         pictures={pictures}
         holding={holding}
         limited={limited}
+        limitUntil={limitUntil}
         offline={offline}
-        triedAgain={(retryUpdates ?? 0) >= 2}
+        triedAgain={triedAgain}
         onChange={change}
         top={conflict}
       />
@@ -411,7 +445,7 @@ export const BugReport = () => {
       main = {
         label: say('btn.tryAgain'),
         onClick: tryAgain,
-        working: working('refresh'),
+        working: retrying,
       };
   } else if (page < 4) {
     if (page > 1)
@@ -426,7 +460,7 @@ export const BugReport = () => {
       main = {
         label: say('btn.tryAgain'),
         onClick: tryAgain,
-        working: working('refresh'),
+        working: retrying,
       };
     } else if (data.enabled && !limited && !holding) {
       main = {
@@ -441,7 +475,12 @@ export const BugReport = () => {
     }
   }
 
-  const status = sending ? say('st.sending') : (data.status ?? '');
+  // DM's status says what the offline and lost touch notices already do, so it waits while they show
+  const status = sending
+    ? say('st.sending')
+    : (editing && offline) || paused
+      ? ''
+      : (data.status ?? '');
 
   return (
     <Window title={say('win.title')} width={600} height={700}>
@@ -529,7 +568,7 @@ function StepStrip(props: {
                   {inner}
                 </ReportButton>
               ) : (
-                <div className="Button Button--color--default BugReport__step BugReport__step--todo">
+                <div className="Button BugReport__step BugReport__step--todo">
                   <div className="Button__content">{inner}</div>
                 </div>
               )}

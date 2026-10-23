@@ -4,6 +4,7 @@
 export const HEADING_ID = 'bug-report-heading';
 export const SUMMARY_ID = 'bug-report-summary';
 export const NOTICE_ID = 'bug-report-notice';
+export const VAGUE_ID = 'bug-report-vague';
 export const TITLE_ID = 'bug-report-title';
 export const EXPECTED_ID = 'bug-report-expected';
 export const stepId = (index: number) => `bug-report-step-${index}`;

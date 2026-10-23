@@ -146,8 +146,8 @@ describe('the sent page and the waits', () => {
   });
   test('waits read as people say them', () => {
     expect(waitText(20000)).toBe('under a minute');
-    expect(waitText(70000)).toBe('a minute');
-    expect(waitText(23 * 60000)).toBe('23 minutes');
+    expect(waitText(70000)).toBe('about a minute');
+    expect(waitText(23 * 60000)).toBe('about 23 minutes');
     expect(clockText(new Date(2026, 9, 23, 9, 5))).toBe('09:05');
   });
   test('each picture state and refusal has its own line', () => {

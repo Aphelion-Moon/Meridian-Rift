@@ -22,6 +22,7 @@ import {
   SUMMARY_ID,
   stepId,
   TITLE_ID,
+  VAGUE_ID,
 } from './ids';
 import { ReportButton } from './ReportButton';
 import { type StringId, say } from './strings';
@@ -194,12 +195,12 @@ const feedbackFor = (
   field: FieldName,
 ) => feedback?.filter((item) => FEEDBACK_FIELD[item.field] === field) ?? [];
 
-/** The character count, only once the text is three quarters of the way to its limit */
-function Count(props: { value: string; max: number }) {
-  const { value, max } = props;
+/** The character count, only once the text is three quarters of the way to its limit, read with its field rather than as it changes */
+function Count(props: { id: string; value: string; max: number }) {
+  const { id, value, max } = props;
   const length = lengthOf(value);
   return (
-    <div className="BugReport__count" aria-live="polite">
+    <div className="BugReport__count" id={id}>
       {length >= max * 0.75 ? say('count', { n: length, max }) : ''}
     </div>
   );
@@ -245,18 +246,24 @@ export function TitlePage(props: {
           aria-describedby={describedBy(
             `${TITLE_ID}-hint`,
             !!error && `${TITLE_ID}-error`,
+            `${TITLE_ID}-count`,
           )}
           onChange={(event) => {
             const title = event.currentTarget.value;
             edit((previous) => ({ ...previous, title }));
           }}
           onKeyDown={(event) => {
-            if (event.key !== 'Enter') return;
+            // An Enter that ends an IME composition picks the word, it doesn't go on
+            if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
             event.preventDefault();
             onEnter();
           }}
         />
-        <Count value={fields.title} max={limits.title} />
+        <Count
+          id={`${TITLE_ID}-count`}
+          value={fields.title}
+          max={limits.title}
+        />
       </div>
     </div>
   );
@@ -361,6 +368,7 @@ export function StepsPage(props: {
   const stepsError = errorFor(errors, 'steps');
   const expectedError = errorFor(errors, 'expected');
   const steps = fields.steps;
+  const stepsFull = steps.length >= limits.steps;
   const sentBack = feedback?.length ? feedback : null;
 
   function setStep(index: number, text: string) {
@@ -453,6 +461,7 @@ export function StepsPage(props: {
                 )}
                 onChange={(event) => setStep(index, event.currentTarget.value)}
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return;
                   if (event.key === 'Enter') {
                     event.preventDefault();
                     addStep(index);
@@ -477,18 +486,27 @@ export function StepsPage(props: {
             </li>
           ))}
         </ol>
-        {steps.length < limits.steps && (
-          <div className="MeridianControlRow">
-            <ReportButton icon="plus" onClick={() => addStep(steps.length - 1)}>
-              {say('btn.addStep')}
-            </ReportButton>
-          </div>
-        )}
+        <div className="MeridianControlRow">
+          <ReportButton
+            icon="plus"
+            aria-disabled={stepsFull || undefined}
+            className={stepsFull ? 'BugReport__locked' : undefined}
+            aria-describedby={stepsFull ? 'bug-report-steps-max' : undefined}
+            onClick={() => addStep(steps.length - 1)}
+          >
+            {say('btn.addStep')}
+          </ReportButton>
+          {stepsFull && (
+            <span className="BugReport__hint" id="bug-report-steps-max">
+              {say('p3.steps.max', { max: limits.steps })}
+            </span>
+          )}
+        </div>
         {vague !== null && (
           <Notice
             tone="warning"
             icon="circle-info"
-            id={NOTICE_ID}
+            id={VAGUE_ID}
             actions={
               <>
                 <ReportButton onClick={onAddSteps}>
@@ -522,13 +540,18 @@ export function StepsPage(props: {
           aria-describedby={describedBy(
             `${EXPECTED_ID}-hint`,
             !!expectedError && `${EXPECTED_ID}-error`,
+            `${EXPECTED_ID}-count`,
           )}
           onChange={(event) => {
             const expected = event.currentTarget.value;
             edit((previous) => ({ ...previous, expected }));
           }}
         />
-        <Count value={fields.expected} max={limits.text} />
+        <Count
+          id={`${EXPECTED_ID}-count`}
+          value={fields.expected}
+          max={limits.text}
+        />
       </div>
       <Choices
         name="kind"
@@ -566,6 +589,8 @@ export function ReviewPage(props: {
   pictures: ReportPicture[];
   holding: boolean;
   limited: boolean;
+  /** When the hourly limit lets go, made once from the update that brought it */
+  limitUntil: number;
   offline: boolean;
   triedAgain: boolean;
   top: ReactNode;
@@ -573,7 +598,7 @@ export function ReviewPage(props: {
 }) {
   const { fields, data, pictures, holding, limited, offline, triedAgain } =
     props;
-  const { top, onChange } = props;
+  const { limitUntil, top, onChange } = props;
   const kinds = data.kinds ?? [];
   const impacts = data.impacts ?? [];
   const steps = fields.steps.filter((step) => !isBlank(step));
@@ -624,7 +649,9 @@ export function ReviewPage(props: {
     },
   ];
   const limit = data.limit;
-  const retryAt = clockText(new Date(Date.now() + (limit?.retryIn ?? 0)));
+  const retryAt = clockText(new Date(limitUntil));
+  // The clock stays put, and the wait is what's left of it now
+  const retryWait = waitText(limitUntil - Date.now());
   return (
     <div className="BugReport__pageBody">
       <h2 className="BugReport__heading" id={HEADING_ID} tabIndex={-1}>
@@ -672,12 +699,12 @@ export function ReviewPage(props: {
               ? say('st.limit.reports', {
                   reports: data.limits.reports,
                   clock: retryAt,
-                  wait: waitText(limit.retryIn),
+                  wait: retryWait,
                 })
               : say('st.limit.sends', {
                   sends: data.limits.sends,
                   clock: retryAt,
-                  wait: waitText(limit.retryIn),
+                  wait: retryWait,
                 })}
           </div>
         </Notice>
@@ -728,8 +755,12 @@ export function CheckingState(props: { paused: boolean }) {
   );
 }
 
-export function DoneState(props: { receipt?: ReportReceipt | null }) {
-  const { receipt } = props;
+export function DoneState(props: {
+  receipt?: ReportReceipt | null;
+  /** When the update came, which the receipt's wait counts from */
+  arrivedAt: number;
+}) {
+  const { receipt, arrivedAt } = props;
   const line = doneLine(receipt);
   const text =
     line === 'issue'
@@ -737,7 +768,7 @@ export function DoneState(props: { receipt?: ReportReceipt | null }) {
       : line === 'retry'
         ? say('st.done.retry', {
             clock: clockText(
-              new Date(Date.now() + (receipt?.nextAttemptIn ?? 0)),
+              new Date(arrivedAt + (receipt?.nextAttemptIn ?? 0)),
             ),
           })
         : say(`st.done.${line}`);
