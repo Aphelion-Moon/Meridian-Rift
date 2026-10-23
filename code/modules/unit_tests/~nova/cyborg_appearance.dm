@@ -63,6 +63,8 @@
 		if(!cyborg_animation_anchor(descriptor, SOUTH, "idle"))
 			TEST_ASSERT_NULL(cyborg_animation_map(descriptor), "An unauthored model must retain static manual placement.")
 			continue // Other skins deliberately use manual placement and static previews.
+		// Production UI admits this asynchronous work before composing a stage.
+		cyborg_occlusion_ensure_model_ready(descriptor["icon"], descriptor["icon_state"])
 		var/icon/movement_map = cyborg_animation_map(descriptor)
 		for(var/pose in descriptor["poses"])
 			var/state = descriptor["icon_state"] + (pose == "idle" ? "" : "-[pose]")

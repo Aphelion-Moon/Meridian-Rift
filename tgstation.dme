@@ -7403,7 +7403,6 @@
 #include "modular_aphelion\modules\cyborg_customization\code\animation.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\appearance.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\asset_resources.dm"
-#include "modular_aphelion\modules\cyborg_customization\code\direct_accessories.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\identity.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\interactions.dm"
 #include "modular_aphelion\modules\cyborg_customization\code\layout_schema.dm"

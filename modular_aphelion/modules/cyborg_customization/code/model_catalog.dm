@@ -110,3 +110,19 @@
 
 /obj/item/robot_model/proc/cyborg_customization_id()
 	return cyborg_appearance_model_id(type, cyborg_customization_skin)
+
+/// Forced model installation skips the skin picker. Resolve its authored default once,
+/// before mutable robot icon states or disguises can change its apparent identity.
+/obj/item/robot_model/proc/cyborg_resolve_installed_skin()
+	if(cyborg_customization_skin)
+		return
+	var/matched_skin
+	for(var/skin in borg_skins)
+		var/list/details = borg_skins[skin]
+		if(details[SKIN_ICON_STATE] != cyborg_base_icon || (details[SKIN_ICON] || 'icons/mob/silicon/robots.dmi') != (cyborg_icon_override || 'icons/mob/silicon/robots.dmi'))
+			continue
+		// Ambiguous declarations cannot supply an immutable identity.
+		if(matched_skin)
+			return
+		matched_skin = skin
+	cyborg_customization_skin = matched_skin

@@ -57,6 +57,42 @@
 /proc/cyborg_layout_copy(layout)
 	return deep_copy_list(layout)
 
+/** Build an independent staged revision from the previous sidecar-owned snapshots.
+ * Only unchanged library leaves may be reused; mutable draft data is always copied.
+ * Rebuild indices in current order so deletion and re-addition preserve ordering.
+ */
+/proc/cyborg_layout_snapshot(list/current, list/previous, list/changed_presets, list/changed_defaults)
+	if(!previous)
+		return cyborg_layout_copy(current)
+	var/list/snapshot = current.Copy()
+	for(var/key, value in current)
+		if(!islist(value))
+			continue
+		if(!(key in list("presets", "model_defaults")))
+			// Includes active, metadata maps and any extra nested raw-caller data.
+			snapshot[key] = cyborg_layout_copy(value)
+			continue
+		var/list/old_library = previous[key]
+		var/list/changed = key == "presets" ? changed_presets : changed_defaults
+		var/list/library = list()
+		for(var/name, layout in value)
+			library[name] = !changed?[name] && (name in old_library) ? old_library[name] : cyborg_layout_copy(layout)
+		snapshot[key] = library
+	return snapshot
+
+/// Canonical actions replace library entries. Track only changed keys, never old source leaves.
+/proc/cyborg_layout_changed_snapshots(list/previous, list/current, list/changed)
+	if(previous == current)
+		return changed
+	for(var/name, layout in current)
+		if((name in previous) && previous[name] == layout)
+			continue
+		LAZYSET(changed, name, TRUE)
+	for(var/name in previous)
+		if(!(name in current))
+			LAZYSET(changed, name, TRUE)
+	return changed
+
 /proc/cyborg_layout_number(value, minimum, maximum, default_value, step = 0.01)
 	if(istext(value))
 		value = text2num(value)

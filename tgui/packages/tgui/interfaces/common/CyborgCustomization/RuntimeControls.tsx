@@ -1,7 +1,7 @@
-import { Box, Button, NoticeBox, Section, Table } from 'tgui-core/components';
+import { Box, NoticeBox, Section, Table } from 'tgui-core/components';
 import type { BooleanLike } from 'tgui-core/react';
-import { editorLabel } from './LayoutControls';
-import type { LayoutAction } from './types';
+import { EditorButton as Button } from './controls';
+import { editorLabel, type LayoutAction } from './types';
 
 export type RuntimeCustomization = {
   parts: {

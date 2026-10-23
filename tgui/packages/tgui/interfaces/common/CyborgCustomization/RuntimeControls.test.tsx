@@ -46,7 +46,12 @@ it('exposes only configured usage controls and reports the independent viewer ga
     { operation: 'activate', slot: 'penis', value: false, character_slot: 2 },
     { operation: 'activate', slot: 'penis', value: true, character_slot: 2 },
     { operation: 'arousal', slot: 'penis', value: 'none', character_slot: 2 },
-    { operation: 'arousal', slot: 'penis', value: 'partial', character_slot: 2 },
+    {
+      operation: 'arousal',
+      slot: 'penis',
+      value: 'partial',
+      character_slot: 2,
+    },
     { operation: 'arousal', slot: 'penis', value: 'full', character_slot: 2 },
     { operation: 'viewer', value: true, character_slot: 2 },
   ]);

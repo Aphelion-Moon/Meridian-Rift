@@ -15,6 +15,23 @@
 	/// Per-session private resource payload and its pixel-only dependency key.
 	var/list/preview_resources
 	var/resource_key
+	/// Only the current six images/metadata are retained; shared FIFO eviction is harmless.
+	var/list/resource_layer_keys
+	var/list/resource_part_keys
+	var/list/resource_catalog
+	var/resource_body_key
+	/// One latest-state refresh, with a deadline that survives close/reopen and slot changes.
+	var/resource_timer
+	var/resource_generation = 0
+	var/resource_refresh_at = 0
+	var/resources_pending = FALSE
+	/// Metadata/gallery work must not interrupt placement against unchanged stage pixels.
+	var/preview_pending = FALSE
+	/// One public model load per editor; survives close/slot changes until it finishes.
+	var/occlusion_loading = FALSE
+	var/occlusion_failed_key
+	/// Bounded view fields keep the old pixels and geometry coherent during a refresh.
+	var/list/rendered_preview
 	/// Canonical session-owned store, isolated from presets and the preference cache.
 	var/list/draft
 	/// Character slot that owns the draft and every pending callback.
@@ -29,6 +46,14 @@
 	var/dirty = FALSE
 	/// Last written revision and whether it only reached memory.
 	var/saved_revision = 0
+	/// Revision already copied into the account tree; failed retries do not copy it again.
+	var/staged_revision = -1
+	/// One independent sidecar-owned baseline, never an alias to mutable draft leaves.
+	var/list/staged_snapshot
+	/// Only canonical action replacements may reuse that baseline's library snapshots.
+	var/snapshot_requires_full_copy = TRUE
+	var/list/staged_preset_changes
+	var/list/staged_default_changes
 	var/session_only = FALSE
 	/// A retryable write or staging failure, kept across UI close/reopen.
 	var/save_error
@@ -51,15 +76,19 @@
 		preview_layout_source = "active"
 		selected_part = "penis"
 	if(!page_active)
-		gallery_open = FALSE
-		gallery_department = null
-		commit_draft()
-		context_generation++
-		preview_resources = null
-		resource_key = null
+		close_editor()
 		if(user?.client)
 			preferences.update_static_data(user, always_instant = TRUE)
 	return TRUE
+
+/// The backend owns close even when native window teardown cannot deliver React cleanup.
+/datum/preference_middleware/cyborg_character/proc/close_editor()
+	page_active = FALSE
+	gallery_open = FALSE
+	gallery_department = null
+	commit_draft()
+	context_generation++
+	clear_preview_resources()
 
 /datum/preference_middleware/cyborg_character/proc/set_preview(list/params, mob/user)
 	if(!islist(params) || length(params) > 10)
@@ -82,8 +111,9 @@
 		preview_model = params["model"]
 		var/list/draft = begin_draft()
 		if(draft && draft["active_model"] != preview_model)
+			draft = draft.Copy()
 			draft["active_model"] = preview_model
-			update_draft(draft)
+			update_draft(draft, canonical_action = TRUE)
 		preview_pose = "idle"
 	if(params["direction"] in GLOB.cardinals)
 		preview_direction = params["direction"]
@@ -162,17 +192,47 @@
 				var/datum/preference/preference = GLOB.preference_entries_by_key["silicon_[part_slot]_sprite"]
 				if(!isnull(sprite) && preference.is_valid(sprite, preferences))
 					preferences.update_preference(preference, sprite)
-		update_draft(result["store"])
+		update_draft(result["store"], canonical_action = TRUE)
 		if(params["operation"] in list("load", "load_default", "delete_default"))
 			preview_layout_source = "active"
 		if(result["immediate"])
 			commit_draft()
+	else if(result["immediate"])
+		// An idempotent save may still need to flush an earlier accepted edit.
+		commit_draft()
 	return TRUE
 
 /datum/preference_middleware/cyborg_character/get_ui_data(mob/user)
 	if(!page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES)
 		return list()
 	var/list/catalog = cyborg_model_catalog()
+	// These shared assets may yield during early startup or a catalog config change.
+	// Complete that work before capturing any private draft or preview state.
+	if(cyborg_visuals_allowed(preferences))
+		var/preflight_generation = resource_generation
+		var/datum/asset/cyborg_model_gallery/gallery = get_asset_datum(/datum/asset/cyborg_model_gallery)
+		if(QDELETED(src) || QDELETED(preferences) || !page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || resource_generation != preflight_generation)
+			return list()
+		while(TRUE)
+			if(!cyborg_visuals_allowed(preferences))
+				break
+			catalog = cyborg_model_catalog()
+			gallery.build_catalog(catalog)
+			if(QDELETED(src) || QDELETED(preferences) || !page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || resource_generation != preflight_generation)
+				return list()
+			if(!cyborg_visuals_allowed(preferences))
+				break
+			var/requested_department = gallery_open ? gallery_department : null
+			gallery.send_to_viewer(user, requested_department)
+			if(QDELETED(src) || QDELETED(preferences) || !page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || resource_generation != preflight_generation)
+				return list()
+			if(!cyborg_visuals_allowed(preferences))
+				break
+			// A department/catalog change during native acquisition must acquire the
+			// current public selection before publishing its URLs. Private state is
+			// still uncaptured, so a slot/model change is resolved below from scratch.
+			if(catalog == cyborg_model_catalog() && requested_department == (gallery_open ? gallery_department : null))
+				break
 	if(!catalog[preview_model] && length(catalog))
 		var/list/draft = begin_draft()
 		preview_model = catalog[draft?["active_model"]] ? draft["active_model"] : catalog[1]
@@ -181,7 +241,7 @@
 	var/list/store = begin_draft()
 	if(!store)
 		var/needs_clear = resource_key != "unsupported"
-		preview_resources = null
+		clear_preview_resources()
 		resource_key = "unsupported"
 		if(needs_clear && user?.client)
 			preferences.update_static_data(user, always_instant = TRUE)
@@ -195,20 +255,32 @@
 		else
 			layout_source = "active"
 			preview_layout_source = "active"
-	var/list/layers = cyborg_preview_layers(preferences, descriptor, preview_layout, preview_direction, preview_pose, preview_arousal, layout_source == "model_default")
-	refresh_resources(user, catalog, descriptor, preview_layout, layout_source, layers)
-	for(var/list/layer as anything in layers)
-		layer -= "icon"
-	// Saved snapshots stay server-side. Controls only need preset names and this model's default.
+	var/resources_changed = refresh_resources(catalog, descriptor, preview_layout, layout_source)
+	var/wide = descriptor && (TRAIT_R_WIDE in descriptor["features"])
+	var/body_scale = descriptor ? cyborg_effective_base_size(cyborg_preference_value(preferences, "cyborg_size"), descriptor["features"]) : 1
+	if(!preview_pending && preview_resources)
+		var/list/layers = cyborg_preview_layers(preferences, descriptor, preview_layout, preview_direction, preview_pose, preview_arousal, layout_source == "model_default", preview_resources["layer_icons"])
+		for(var/list/layer as anything in layers)
+			layer -= "icon"
+		rendered_preview = list(
+			"model" = preview_model, "pose" = preview_pose, "direction" = preview_direction,
+			"arousal" = preview_arousal, "moving" = preview_moving,
+			"wide" = wide, "body_scale" = body_scale, "layers" = layers,
+		)
+	// Saved snapshots stay server-side. Only the saved-appearance view reads a default's full layout.
 	var/list/ui_store = store.Copy()
 	var/list/preset_names = list()
 	for(var/name in store["presets"])
 		preset_names[name] = TRUE
 	ui_store["presets"] = preset_names
+	ui_store["model_presets"] = list()
+	var/list/model_presets = store["model_presets"]
+	if(model_presets?[preview_model])
+		ui_store["model_presets"][preview_model] = model_presets[preview_model]
 	ui_store["model_defaults"] = list()
-	if(islist(defaults?[preview_model]))
+	if(layout_source == "model_default" && islist(defaults?[preview_model]))
 		ui_store["model_defaults"][preview_model] = defaults[preview_model]
-	return list("cyborg_customization" = list(
+	. = list("cyborg_customization" = list(
 		"unsupported" = FALSE,
 		"model" = preview_model,
 		"poses" = descriptor ? descriptor["poses"] : list(),
@@ -221,17 +293,26 @@
 		"gallery_department" = gallery_department,
 		"map_view" = getviewsize(user?.client?.view || world.view),
 		"map_zoom" = user?.client?.view_size?.zoom || 0,
-		"wide" = descriptor && (TRAIT_R_WIDE in descriptor["features"]),
-		"body_scale" = descriptor ? cyborg_effective_base_size(cyborg_preference_value(preferences, "cyborg_size"), descriptor["features"]) : 1,
+		"wide" = wide,
+		"body_scale" = body_scale,
 		"context" = context_generation,
 		"revision" = draft_revision,
-		"save_status" = list("pending" = dirty, "revision" = saved_revision, "session_only" = session_only, "error" = save_error),
+		"save_status" = list("pending" = dirty || preferences.cyborg_layout_store().write_pending, "revision" = saved_revision, "session_only" = session_only, "error" = save_error),
 		"store" = ui_store,
 		"layout_source" = layout_source,
 		"model_default_available" = islist(defaults) && islist(defaults[preview_model]),
-		"layers" = layers,
-		"message" = status_message,
+		"layers" = rendered_preview?["layers"] || list(),
+		"resources_pending" = resources_pending,
+		"preview_pending" = preview_pending,
+		"message" = descriptor && "[descriptor["icon"]]#[descriptor["icon_state"]]" == occlusion_failed_key ? "This model's preview could not be prepared. Choose another model." : status_message,
 	))
+	// The nested customization object is replaced on every update. Only a pixel
+	// wait needs a second stage on the wire; keep the server snapshot for later waits.
+	if(preview_pending)
+		.["cyborg_customization"]["rendered_preview"] = rendered_preview
+	// Publish the new resource identity and its geometry together before TGUI re-enters ui_data.
+	if(resources_changed && user?.client)
+		preferences.update_static_data(user, always_instant = TRUE)
 
 /datum/preference_middleware/cyborg_character/on_new_character(mob/user)
 	preview_model = null
@@ -306,6 +387,20 @@
 			entry = entry.Copy()
 			entry["sprite"] = cyborg_preference_value(preferences, "silicon_[part_slot]_sprite")
 			next["active"][part_slot] = entry
+	// Compare only the six-part snapshot, never encode/copy the complete account to
+	// discover that a repeated Save button made no change.
+	if(operation in list("save", "save_default"))
+		var/list/snapshot = next["active"]
+		var/unchanged = deep_compare_list(snapshot, active)
+		if(operation == "save_default")
+			unchanged &&= !store["model_presets"][model_id] && deep_compare_list(snapshot, store["model_defaults"][model_id])
+		else
+			unchanged &&= store["active_preset"] == name && store["preset_models"][name] == model_id && deep_compare_list(snapshot, store["presets"][name])
+			for(var/assigned_model, assigned_name in store["model_presets"])
+				if(assigned_name == name && (assigned_model != model_id || !deep_compare_list(snapshot, store["model_defaults"][assigned_model])))
+					unchanged = FALSE
+		if(unchanged)
+			return list("message" = "This setup is unchanged.", "immediate" = TRUE)
 	switch(operation)
 		if("set_placement", "nudge_placement", "inherit_placement")
 			next["active"][slot] = deep_copy_list(active[slot])
@@ -495,8 +590,9 @@
 /datum/preference_middleware/cyborg_character/proc/begin_draft()
 	if(draft && draft_slot == preferences.default_slot)
 		return draft
-	if(draft && !commit_draft())
-		stack_trace("Cyborg layout draft for slot [draft_slot] could not be written before the slot changed.")
+	if(draft)
+		// Even a failed disk write is staged under its original slot in the account tree.
+		commit_draft()
 	var/list/saved = preferences.read_cyborg_layout()
 	if(cyborg_layout_import_is_future(saved))
 		return null
@@ -506,10 +602,20 @@
 	session_only = !preferences.cyborg_layout_store().path
 	return draft
 
-/** Takes ownership of canonical action output and schedules the existing debounce. */
-/datum/preference_middleware/cyborg_character/proc/update_draft(list/layout)
+/** Accepts canonical data and schedules the existing debounce.
+ * Arbitrary callers can mutate existing leaves, so they retain the full-copy boundary.
+ * Only audited action paths that replace library entries may track incremental changes.
+ */
+/datum/preference_middleware/cyborg_character/proc/update_draft(list/layout, canonical_action = FALSE)
 	if(!draft || draft_slot != preferences.default_slot || !islist(layout) || layout["schema_version"] != CYBORG_LAYOUT_SCHEMA_VERSION)
 		return FALSE
+	if(!canonical_action)
+		snapshot_requires_full_copy = TRUE
+		staged_preset_changes = null
+		staged_default_changes = null
+	else if(!snapshot_requires_full_copy)
+		staged_preset_changes = cyborg_layout_changed_snapshots(draft["presets"], layout["presets"], staged_preset_changes)
+		staged_default_changes = cyborg_layout_changed_snapshots(draft["model_defaults"], layout["model_defaults"], staged_default_changes)
 	draft = layout
 	draft_revision++
 	dirty = TRUE
@@ -524,21 +630,34 @@
 
 /** Writes the draft to its slot in the sidecar. A failed write keeps the draft dirty for retry. */
 /datum/preference_middleware/cyborg_character/proc/commit_draft()
-	if(!dirty)
+	if(!dirty && !preferences.cyborg_layout_savefile?.write_pending)
 		return TRUE
+	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
 	if(draft_timer)
 		deltimer(draft_timer)
 		draft_timer = null
-	if(!preferences.write_cyborg_layout(draft_slot, draft))
-		save_error = "Could not save the current setup. Your edits are retained; retry saving."
-		SStgui.update_uis(preferences)
-		return FALSE
-	saved_revision = draft_revision
-	dirty = FALSE
-	session_only = !preferences.cyborg_layout_store().path
-	save_error = null
+	if(dirty && staged_revision != draft_revision)
+		var/list/previous = !snapshot_requires_full_copy && store.get_entry("character[draft_slot]") == staged_snapshot ? staged_snapshot : null
+		staged_snapshot = cyborg_layout_snapshot(draft, previous, staged_preset_changes, staged_default_changes)
+		snapshot_requires_full_copy = FALSE
+		staged_preset_changes = null
+		staged_default_changes = null
+		// Set before the synchronous completion callback can acknowledge this revision.
+		staged_revision = draft_revision
+		preferences.stage_cyborg_layout(draft_slot, staged_snapshot)
+	else
+		store.flush_pending()
+	return !store.write_pending
+
+/// A delayed account write can complete after this editor switched slots or closed.
+/datum/preference_middleware/cyborg_character/proc/sidecar_write_completed()
+	var/datum/json_savefile/cyborg_customization/store = preferences.cyborg_layout_store()
+	if(!store.write_pending && dirty && staged_revision == draft_revision)
+		saved_revision = draft_revision
+		dirty = FALSE
+	session_only = !store.path
+	save_error = store.write_failed ? "Could not save your cyborg setups. Your edits are retained; retry saving." : null
 	SStgui.update_uis(preferences)
-	return TRUE
 
 /** A stale timer cannot write a replaced draft or an older revision. */
 /datum/preference_middleware/cyborg_character/proc/flush_timer(slot, context, revision)
@@ -552,79 +671,209 @@
 	if(draft_timer)
 		deltimer(draft_timer)
 		draft_timer = null
-	preview_resources = null
-	resource_key = null
+	clear_preview_resources()
 	draft = null
 	draft_slot = null
 	dirty = FALSE
-	save_error = null
+	invalidate_staged_snapshot()
+	save_error = preferences.cyborg_layout_savefile?.write_failed ? "Could not save your cyborg setups. Your edits are retained; retry saving." : null
 	context_generation++
 	draft_revision++
 
+/// Release a superseded saved baseline without discarding the accepted editor draft.
+/datum/preference_middleware/cyborg_character/proc/invalidate_staged_snapshot()
+	staged_revision = -1
+	staged_snapshot = null
+	snapshot_requires_full_copy = TRUE
+	staged_preset_changes = null
+	staged_default_changes = null
+
 /datum/preference_middleware/cyborg_character/Destroy()
-	commit_draft()
-	discard_draft()
+	// Preferences asset registration creates ownerless metadata prototypes; only a
+	// real preferences session can own drafts, account writes or private resources.
+	if(preferences)
+		commit_draft()
+		discard_draft()
 	return ..()
 
 /** Static data is private to this preferences UI; never register sensitive PNGs globally. */
 /datum/preference_middleware/cyborg_character/get_ui_static_data(mob/user)
 	return list("cyborg_resources" = page_active && cyborg_visuals_allowed(preferences) ? preview_resources : null)
 
-/** Pixel dependencies exclude placement/rotation/scale, so a drag sends only transforms. */
-/datum/preference_middleware/cyborg_character/proc/refresh_resources(mob/user, list/catalog, list/descriptor, list/preview_layout, layout_source, list/layers)
-	if(!cyborg_visuals_allowed(preferences))
-		// A slot replacement clears our cache before TGUI drops the previous slot's static data.
-		var/needs_clear = resource_key != "denied"
-		resource_key = "denied"
-		preview_resources = null
-		if(needs_clear && user?.client)
-			preferences.update_static_data(user, always_instant = TRUE)
+/// Cancel work and release private pixels immediately, without resetting admission time.
+/datum/preference_middleware/cyborg_character/proc/clear_preview_resources()
+	resource_generation++
+	if(resource_timer)
+		deltimer(resource_timer)
+		resource_timer = null
+	resources_pending = FALSE
+	preview_pending = FALSE
+	preview_resources = null
+	rendered_preview = null
+	resource_key = null
+	resource_layer_keys = null
+	resource_part_keys = null
+	resource_catalog = null
+	resource_body_key = null
+
+/// The timer owns no layout snapshots: the next UI update reads the latest accepted draft.
+/datum/preference_middleware/cyborg_character/proc/refresh_resources_timer(generation, slot)
+	if(generation != resource_generation || slot != draft_slot || slot != preferences.default_slot)
 		return
-	var/list/dependencies = list(preview_model, preview_direction, preview_pose, preview_arousal, preview_moving, gallery_open, gallery_department, selected_part, layout_source, cyborg_visuals_allowed(preferences))
-	for(var/id in catalog)
-		dependencies += id
+	resource_timer = null
+	if(!page_active || preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES)
+		return
+	SStgui.update_uis(preferences)
+
+/** Pixel dependencies exclude placement/rotation/scale, so a drag only resolves geometry.
+ * Full private payloads are limited to one pixel refresh per second per editor. A single
+ * pending timer coalesces later input while the old coherent stage remains visible.
+ */
+/datum/preference_middleware/cyborg_character/proc/refresh_resources(list/catalog, list/descriptor, list/preview_layout, layout_source)
+	if(!cyborg_visuals_allowed(preferences))
+		var/needs_clear = resource_key != "denied"
+		clear_preview_resources()
+		resource_key = "denied"
+		return needs_clear
+	var/list/layer_keys = list()
+	var/list/part_keys = list()
 	for(var/slot in cyborg_layout_supported_slots())
 		var/list/entry = preview_layout[slot]
+		var/choice = cyborg_preference_value(preferences, "silicon_[slot]_sprite")
+		if(layout_source == "model_default" && !isnull(entry["sprite"]))
+			choice = entry["sprite"]
+		var/direction = descriptor ? cyborg_part_sprite_direction(descriptor, entry, preview_direction) : SOUTH
 		var/list/placement = cyborg_resolve_placement(entry, preview_direction, preview_pose, preview_arousal)
-		dependencies += list(list(cyborg_preference_value(preferences, "silicon_[slot]_sprite"), entry["sprite"], entry["sprite_size"], entry["reuse_south"], entry["colors"], placement["visible"]))
-	var/new_key = json_encode(dependencies)
-	if(new_key == resource_key)
-		return
+		if(descriptor && placement["visible"] && choice && choice != SPRITE_ACCESSORY_NONE)
+			layer_keys[slot] = json_encode(list(choice, entry["colors"], preview_arousal, direction, entry["sprite_size"]))
+		// Size choices show neutral artwork. Color edits never regenerate this gallery.
+		part_keys[slot] = json_encode(list(choice, preview_arousal, direction, entry["sprite_size"], slot == selected_part))
+	var/models_key = gallery_open ? gallery_department : null
+	// Preflight completed any generation/acquisition before this private snapshot.
+	var/datum/asset/cyborg_model_gallery/gallery = GLOB.asset_datums[/datum/asset/cyborg_model_gallery]
+	var/list/gallery_descriptor = gallery.ui_descriptor(models_key)
+	var/body_key = json_encode(list(preview_model, preview_direction, preview_pose, preview_moving))
+	var/new_key = json_encode(list(gallery_descriptor, body_key, layer_keys, part_keys))
+	if(new_key == resource_key && resource_catalog == catalog)
+		if(resource_timer)
+			deltimer(resource_timer)
+			resource_timer = null
+		resources_pending = FALSE
+		preview_pending = FALSE
+		return FALSE
+	if(world.time < resource_refresh_at)
+		resources_pending = TRUE
+		preview_pending = !preview_resources || resource_body_key != body_key || !deep_compare_list(resource_layer_keys, layer_keys)
+		if(!resource_timer)
+			resource_timer = addtimer(CALLBACK(src, PROC_REF(refresh_resources_timer), resource_generation, draft_slot), resource_refresh_at - world.time, TIMER_STOPPABLE)
+		return FALSE
+	// A first model use may yield in Rust-g. Keep all private snapshots in this
+	// synchronous request and show the previous coherent stage until it completes.
+	if(descriptor && cyborg_occlusion_has_model(descriptor["icon"], descriptor["icon_state"]) && !cyborg_occlusion_cached(descriptor["icon"], descriptor["icon_state"]))
+		resources_pending = TRUE
+		preview_pending = TRUE
+		// First-use failure must still leave the public model picker usable.
+		// No private pixels or geometry are published in this metadata-only payload.
+		var/publish_gallery = !preview_resources || !deep_compare_list(preview_resources["gallery"], gallery_descriptor)
+		if(publish_gallery)
+			preview_resources = preview_resources ? preview_resources.Copy() : list()
+			preview_resources["gallery"] = gallery_descriptor
+		var/model_key = "[descriptor["icon"]]#[descriptor["icon_state"]]"
+		if(!occlusion_loading && occlusion_failed_key != model_key)
+			occlusion_loading = TRUE
+			INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(cyborg_complete_editor_occlusion), WEAKREF(src), descriptor["icon"], descriptor["icon_state"])
+		return publish_gallery
+	if(resource_timer)
+		deltimer(resource_timer)
+		resource_timer = null
+	resources_pending = FALSE
+	preview_pending = FALSE
+	// Set admission before publishing: the forced full update can re-enter ui_data.
+	resource_refresh_at = world.time + 1 SECONDS
+	preview_resources = build_resources(catalog, descriptor, preview_layout, layout_source, layer_keys, part_keys, gallery_descriptor, body_key)
+	resource_layer_keys = layer_keys
+	resource_part_keys = part_keys
+	resource_catalog = catalog
+	resource_body_key = body_key
 	resource_key = new_key
-	preview_resources = build_resources(catalog, descriptor, preview_layout, layout_source, layers)
-	if(user?.client)
-		preferences.update_static_data(user, always_instant = TRUE)
+	return TRUE
 
-/** Regenerates only when a pixel dependency changes; existing global cache budgets still apply. */
-/datum/preference_middleware/cyborg_character/proc/build_resources(list/catalog, list/descriptor, list/preview_layout, layout_source, list/layers)
-	var/list/models = list()
-	for(var/id, model_entry in catalog)
-		var/list/model = list("id" = id, "department" = model_entry["department"], "skin" = model_entry["skin"])
-		if(gallery_open && gallery_department && model_entry["department"] == gallery_department)
-			var/list/directions = list()
-			for(var/direction in GLOB.cardinals)
-				directions["[direction]"] = cyborg_preview_body(model_entry, direction)
-			model["thumbnail_directions"] = directions
-		models += list(model)
+/// Only public authored identity crosses the wait; deleted editors are not retained.
+/proc/cyborg_complete_editor_occlusion(datum/weakref/editor_ref, source_file, base_state)
+	// Even an immediately cached/failed result must finish after this UI read.
+	sleep(0)
+	var/datum/preference_middleware/cyborg_character/editor = editor_ref.resolve()
+	if(QDELETED(editor))
+		return
+	if(QDELETED(editor.preferences) || !editor.page_active || editor.preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES || !cyborg_visuals_allowed(editor.preferences))
+		editor.occlusion_loading = FALSE
+		return
+	var/list/current = cyborg_model_catalog()[editor.preview_model]
+	if(!current || current["icon"] != source_file || current["icon_state"] != base_state)
+		editor.occlusion_loading = FALSE
+		SStgui.update_uis(editor.preferences)
+		return
+	// Only weak identity and public source values survive the actual wait.
+	editor = null
+	current = null
+	var/exception/failure
+	try
+		cyborg_occlusion_ensure_model_ready(source_file, base_state)
+	catch(var/exception/error)
+		failure = error
+	editor = editor_ref.resolve()
+	if(QDELETED(editor))
+		return
+	editor.occlusion_loading = FALSE
+	if(failure)
+		editor.occlusion_failed_key = "[source_file]#[base_state]"
+	if(QDELETED(editor.preferences) || !editor.page_active || editor.preferences.current_window != PREFERENCE_TAB_CHARACTER_PREFERENCES)
+		return
+	// The next read resolves the current slot, model, consent, and layout afresh.
+	SStgui.update_uis(editor.preferences)
+
+/** Reuse the current session's unchanged resources, even after shared FIFO eviction.
+ * Retention stays bounded to one gallery and six part images/metadata, not edit history.
+ */
+/datum/preference_middleware/cyborg_character/proc/build_resources(list/catalog, list/descriptor, list/preview_layout, layout_source, list/layer_keys, list/part_keys, list/gallery_descriptor, body_key)
+	var/list/result = preview_resources ? preview_resources.Copy() : list()
+	if(!preview_resources || !deep_compare_list(preview_resources["gallery"], gallery_descriptor))
+		result["gallery"] = gallery_descriptor
 	var/list/parts = list()
+	var/list/layer_icons = list()
 	for(var/slot in cyborg_layout_supported_slots())
 		var/choice = cyborg_preference_value(preferences, "silicon_[slot]_sprite")
-		var/list/part_entry = preview_layout[slot]
-		if(layout_source == "model_default" && !isnull(part_entry["sprite"]))
-			choice = part_entry["sprite"]
-		parts[slot] = cyborg_accessory_metadata(slot, choice, part_entry?["colors"] || list("#ffffff", "#ffffff", "#ffffff"), preview_arousal, descriptor ? cyborg_part_sprite_direction(descriptor, part_entry, preview_direction) : SOUTH, part_entry?["sprite_size"] || cyborg_layout_default_sprite_size(slot), slot == selected_part)
-	var/list/layer_icons = list()
-	for(var/list/layer as anything in layers)
-		layer_icons[layer["slot"]] = layer["icon"]
-	var/list/dimensions = descriptor ? get_icon_dimensions(descriptor["icon"]) : list()
-	return list(
-		"layer_icons" = layer_icons,
-		"models" = models,
-		"body" = cyborg_preview_body(descriptor, preview_direction, preview_pose),
-		"occlusion" = cyborg_visuals_allowed(preferences) ? cyborg_preview_body(descriptor, preview_direction, preview_pose, TRUE) : null,
-		"animation" = cyborg_preview_animation(descriptor, preview_direction, preview_pose, preview_moving, cyborg_visuals_allowed(preferences)),
-		"body_width" = dimensions["width"] || 32,
-		"body_height" = dimensions["height"] || 32,
-		"reference" = cyborg_preview_reference(),
-		"parts" = parts,
-	)
+		var/list/entry = preview_layout[slot]
+		if(layout_source == "model_default" && !isnull(entry["sprite"]))
+			choice = entry["sprite"]
+		var/direction = descriptor ? cyborg_part_sprite_direction(descriptor, entry, preview_direction) : SOUTH
+		if(preview_resources && resource_part_keys?[slot] == part_keys[slot])
+			parts[slot] = preview_resources["parts"][slot]
+		else
+			parts[slot] = cyborg_accessory_metadata(slot, choice, list("#ffffff", "#ffffff", "#ffffff"), preview_arousal, direction, entry["sprite_size"], slot == selected_part)
+		if(!layer_keys[slot])
+			continue
+		if(preview_resources && resource_layer_keys?[slot] == layer_keys[slot])
+			layer_icons[slot] = preview_resources["layer_icons"][slot]
+		else
+			var/list/rendered = cyborg_accessory_render(slot, choice, entry["colors"], preview_arousal, direction, entry["sprite_size"])
+			if(rendered)
+				layer_icons[slot] = rendered["base64"]
+	result["layer_icons"] = layer_icons
+	result["parts"] = parts
+	if(!preview_resources || resource_body_key != body_key)
+		var/list/dimensions = descriptor ? get_icon_dimensions(descriptor["icon"]) : list()
+		result["body"] = cyborg_preview_body(descriptor, preview_direction, preview_pose)
+		result["occlusion"] = cyborg_preview_body(descriptor, preview_direction, preview_pose, TRUE)
+		result["animation"] = cyborg_preview_animation(descriptor, preview_direction, preview_pose, preview_moving, TRUE)
+		// The client falls back to the standalone images. Only exact duplicates
+		// are omitted; frame timing, offsets and distinct movement pixels stay intact.
+		for(var/list/frame as anything in result["animation"])
+			if(frame["body"] == result["body"])
+				frame -= "body"
+			if(frame["occlusion"] == result["occlusion"])
+				frame -= "occlusion"
+		result["body_width"] = dimensions["width"] || 32
+		result["body_height"] = dimensions["height"] || 32
+		result["reference"] = cyborg_preview_reference()
+	return result

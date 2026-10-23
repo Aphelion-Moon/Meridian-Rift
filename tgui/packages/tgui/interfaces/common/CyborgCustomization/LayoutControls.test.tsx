@@ -6,8 +6,8 @@ import {
   render,
   screen,
 } from '@testing-library/react';
-import { LayoutControls } from './LayoutControls';
 import { CyborgCharacterEditor } from './CharacterEditor';
+import { LayoutControls } from './LayoutControls';
 
 afterEach(cleanup);
 
@@ -75,85 +75,86 @@ it('edits the direction and pose currently shown in the creator preview', async 
     target: { scope: 'pose', direction: 'north', pose: 'rest' },
     changes: { visible: false },
   });
-  await act(async () => fireEvent.click(screen.getByText('Resting')));
   expect(screen.queryByText('bellyup') === null).toBe(true);
-  await act(async () => fireEvent.click(screen.getByText('Sitting')));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Pose' }), {
+    target: { value: 'sit' },
+  });
   expect(previewChanges).toEqual([{ pose: 'sit' }]);
   await act(async () => cleanup());
 });
 
-it.each([false, true])(
-  'preserves effective direction settings (explicit pose: %s)',
-  async (explicitPose) => {
-    const store: LayoutStore = {
-      schema_version: 1,
-      active: Object.fromEntries<LayoutEntry>(
-        CYBORG_SLOTS.map((slot) => [
-          slot,
-          {
-            pixel_x: 0,
-            pixel_y: 0,
-            rotation: 0,
-            scale: 1,
-            colors: ['#ffffff', '#ffffff', '#ffffff'],
-            advanced: {
-              south: {
-                visible: false,
-                pixel_x: 12,
-                pixel_y: -4,
-                rotation: 20,
-                scale: 1.5,
-                priority: 3,
-                arousal: { full: { pixel_y: 8 } },
-              },
+it.each([
+  false,
+  true,
+])('preserves effective direction settings (explicit pose: %s)', async (explicitPose) => {
+  const store: LayoutStore = {
+    schema_version: 1,
+    active: Object.fromEntries<LayoutEntry>(
+      CYBORG_SLOTS.map((slot) => [
+        slot,
+        {
+          pixel_x: 0,
+          pixel_y: 0,
+          rotation: 0,
+          scale: 1,
+          colors: ['#ffffff', '#ffffff', '#ffffff'],
+          advanced: {
+            south: {
+              visible: false,
+              pixel_x: 12,
+              pixel_y: -4,
+              rotation: 20,
+              scale: 1.5,
+              priority: 3,
+              arousal: { full: { pixel_y: 8 } },
             },
           },
-        ]),
-      ) as Layout,
-      presets: {},
-      model_defaults: {},
+        },
+      ]),
+    ) as Layout,
+    presets: {},
+    model_defaults: {},
+  };
+  if (explicitPose) {
+    store.active.penis.advanced.rest_south = {
+      visible: true,
+      pixel_x: 0,
+      pixel_y: 7,
+      rotation: 0,
+      scale: 1,
+      priority: 5,
     };
-    if (explicitPose) {
-      store.active.penis.advanced.rest_south = {
-        visible: true,
-        pixel_x: 0,
-        pixel_y: 7,
-        rotation: 0,
-        scale: 1,
-        priority: 5,
-      };
-    }
-    const actions: Record<string, unknown>[] = [];
-    await act(async () => {
-      render(
-        <LayoutControls
-          store={store}
-          slot="penis"
-          placementTarget="pose"
-          onPlacementTarget={() => {}}
-          preview={{ direction: 'south', pose: 'rest', arousal: 'none' }}
-          onAction={(action) => actions.push(action)}
-        />,
-      );
-    });
-
-    await act(async () =>
-      fireEvent.click(screen.getByText('Visible in this view')),
+  }
+  const actions: Record<string, unknown>[] = [];
+  await act(async () => {
+    render(
+      <LayoutControls
+        store={store}
+        slot="penis"
+        placementTarget="pose"
+        onPlacementTarget={() => {}}
+        preview={{ direction: 'south', pose: 'rest', arousal: 'none' }}
+        onAction={(action) => actions.push(action)}
+      />,
     );
+  });
 
-    expect(actions).toHaveLength(1);
-    expect(actions[0]).toMatchObject({
-      operation: 'set_placement',
-      slot: 'penis',
-      target: { scope: 'pose', direction: 'south', pose: 'rest' },
-      changes: { visible: !explicitPose },
-    });
-    if (explicitPose) {
-      expect(store.active.penis.advanced.rest_south.visible).toBe(true);
-    } else {
-      expect(store.active.penis.advanced.rest_south).toBeUndefined();
-    }
-    expect(store.active.penis.advanced.south.visible).toBe(false);
-    await act(async () => cleanup());
-  },
-);
+  await act(async () =>
+    fireEvent.click(screen.getByText('Visible in this view')),
+  );
+
+  expect(actions).toHaveLength(1);
+  expect(actions[0]).toMatchObject({
+    operation: 'set_placement',
+    slot: 'penis',
+    target: { scope: 'pose', direction: 'south', pose: 'rest' },
+    changes: { visible: !explicitPose },
+  });
+  if (explicitPose) {
+    expect(store.active.penis.advanced.rest_south.visible).toBe(true);
+  } else {
+    expect(store.active.penis.advanced.rest_south).toBeUndefined();
+  }
+  expect(store.active.penis.advanced.south.visible).toBe(false);
+  await act(async () => cleanup());
+});

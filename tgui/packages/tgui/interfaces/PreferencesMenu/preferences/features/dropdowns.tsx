@@ -65,6 +65,25 @@ export function FeatureDropdownInput(props: DropdownInputProps) {
   const dropdownOptions = serverData ? generateOptions(serverData) : [];
   const displayText = serverData?.display_names?.[value] || String(value);
   const searchable = dropdownOptions.length > 10; // NOVA EDIT ADDITION - searchable if over 10 elements
+  // The cyborg editor opts into native keyboard navigation without replacing
+  // the shared graphical preference picker elsewhere.
+  if (props.nativeInput) {
+    return (
+      <select
+        className="Input Input--fluid"
+        aria-label={props.label}
+        disabled={disabled || !serverData}
+        value={value}
+        onChange={(event) => handleSetValue(event.currentTarget.value)}
+      >
+        {dropdownOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.displayText}
+          </option>
+        ))}
+      </select>
+    );
+  }
   return (
     <Dropdown
       buttons={buttons}

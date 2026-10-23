@@ -83,7 +83,42 @@
 	savefile_key = "see_cyborg_genitalia"
 	default_value = FALSE
 
+/// The six cyborg profile fields retain their existing byte budgets. Native
+/// byte-indexed truncation can split UTF-8; find a complete-character prefix.
+/datum/preference/text/cyborg_profile
+	abstract_type = /datum/preference/text/cyborg_profile
+
+/datum/preference/text/cyborg_profile/deserialize(input, datum/preferences/preferences)
+	if(!istext(input))
+		return null
+	var/byte_limit = maximum_value_length - 1
+	// Every codepoint occupies at least one byte. Cap scanning/allocation before
+	// searching, even when the supplied text is much larger than the field.
+	var/bounded = copytext_char(input, 1, byte_limit + 1)
+	if(length(bounded) > byte_limit)
+		var/lower = 0
+		var/upper = length_char(bounded)
+		while(lower < upper)
+			var/middle = round((lower + upper + 1) / 2)
+			if(length(copytext_char(bounded, 1, middle + 1)) <= byte_limit)
+				lower = middle
+			else
+				upper = middle - 1
+		bounded = copytext_char(bounded, 1, lower + 1)
+	return should_strip_html ? GLOB.angular_brackets.Replace(bounded, "") : bounded
+
+/datum/preference/text/cyborg_profile/compile_constant_data()
+	var/byte_limit = maximum_value_length - 1
+	return list("maximum_length" = byte_limit, "maximum_bytes" = byte_limit)
+
+/datum/preference/text/silicon_flavor_text
+	parent_type = /datum/preference/text/cyborg_profile
+
+/datum/preference/text/silicon_flavor_text_nsfw
+	parent_type = /datum/preference/text/cyborg_profile
+
 /datum/preference/text/custom_species_silicon
+	parent_type = /datum/preference/text/cyborg_profile
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "custom_species_silicon"
@@ -95,6 +130,7 @@
 	return
 
 /datum/preference/text/custom_species_lore_silicon
+	parent_type = /datum/preference/text/cyborg_profile
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "custom_species_lore_silicon"
@@ -106,6 +142,7 @@
 	return
 
 /datum/preference/text/ooc_notes_silicon
+	parent_type = /datum/preference/text/cyborg_profile
 	category = PREFERENCE_CATEGORY_NON_CONTEXTUAL
 	savefile_identifier = PREFERENCE_CHARACTER
 	savefile_key = "ooc_notes_silicon"

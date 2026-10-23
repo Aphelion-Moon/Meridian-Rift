@@ -392,6 +392,8 @@
 #include "~nova\clothing_variation_icons.dm"
 #include "~nova\cyborg_appearance.dm"
 #include "~nova\cyborg_customization.dm"
+#include "~nova\cyborg_storage.dm"
+#include "cyborg_occlusion.dm" // APHELION EDIT ADDITION - cyborg round resource and early initialization regressions
 #include "~nova\digi_underclothes.dm"
 #include "~nova\digitigrade_legs.dm"
 #include "~nova\language_understanding.dm"

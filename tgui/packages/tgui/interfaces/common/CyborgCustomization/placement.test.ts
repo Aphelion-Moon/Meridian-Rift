@@ -1,5 +1,5 @@
 import { expect, it } from 'bun:test';
-import { placementBase, placementGroup } from './placementGroups';
+import { placementBase, placementGroup } from './placement';
 import type { LayoutEntry } from './types';
 
 it('separates front/back placement from mirrored sides, retaining legacy fallback', () => {

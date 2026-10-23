@@ -1,14 +1,15 @@
 // Standalone visual fixture: actual editor components, isolated from player saves.
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, Dropdown, Input, TextArea } from 'tgui-core/components';
+import { Button, Input, TextArea } from 'tgui-core/components';
 import { store as backendStore, gameDataAtom } from '../events/store';
 import { CyborgCharacterEditor } from '../interfaces/common/CyborgCustomization/CharacterEditor';
+import { EditorSelect } from '../interfaces/common/CyborgCustomization/controls';
 import {
   placementBase,
   placementGroup,
-} from '../interfaces/common/CyborgCustomization/placementGroups';
-import { posePlacement } from '../interfaces/common/CyborgCustomization/posePlacement';
+  posePlacement,
+} from '../interfaces/common/CyborgCustomization/placement';
 import {
   CYBORG_SLOTS,
   type CyborgCustomizationData,
@@ -28,6 +29,10 @@ async function main() {
   function Fixture() {
     const [size, setSize] = useState({ width: 1180, height: 810 });
     const [panel, setPanel] = useState('creator');
+    const [previewSnapshot, setPreviewSnapshot] =
+      useState<CyborgCustomizationData | null>(null);
+    const [holdMetadata, setHoldMetadata] = useState(false);
+    const [metadataPending, setMetadataPending] = useState(false);
     const [name, setName] = useState('Service companion');
     const [values, setValues] = useState<Record<string, string | number>>({
       silicon_gender: 'They/Them',
@@ -51,7 +56,7 @@ async function main() {
         CYBORG_SLOTS.map((slot) => [
           slot,
           {
-            pixel_x: 0,
+            pixel_x: slot === 'sheath' ? 24 : 0,
             pixel_y: 0,
             rotation: 0,
             scale: 1,
@@ -77,28 +82,12 @@ async function main() {
       state.layout_source === 'model_default'
         ? store.model_defaults[state.model]
         : store.active;
-    const entry = placementBase(
-      layout.penis,
-      placementGroup(model.width > 32, state.direction),
-    );
-    const correction = posePlacement(
-      layout.penis,
-      state.direction,
-      state.pose,
-      state.arousal,
-    ).effective;
-    const mirror =
-      model.width > 32 && entry.mirror_sides !== false && state.direction === 8
-        ? -1
-        : 1;
-    const spriteDirection =
-      model.width > 32 && entry.reuse_south && state.direction === 1
-        ? 2
-        : state.direction;
     const data: CyborgCustomizationData = {
       ...state,
       layout_source: state.layout_source as 'active' | 'model_default',
       allowed: true,
+      resources_pending: metadataPending,
+      preview_pending: false,
       wide: model.width > 32,
       reference: fixtures.reference,
       body: model.images[[2, 1, 4, 8].indexOf(state.direction)],
@@ -112,6 +101,9 @@ async function main() {
         CYBORG_SLOTS.map((slot) => [
           slot,
           {
+            effective_size:
+              layout[slot].sprite_size ??
+              (['penis', 'sheath', 'testicles'].includes(slot) ? 2 : 1),
             sizes: [1, 2, 3, 4, 5].map((value) => ({
               value,
               label: String(value),
@@ -143,9 +135,30 @@ async function main() {
           : {},
       },
       model_default_available: !!store.model_defaults[state.model],
-      layers: [
-        {
-          slot: 'penis',
+      // Reuse fixture artwork for a second independently selectable part.
+      layers: (['penis', 'sheath'] as const).map((slot) => {
+        const entry = placementBase(
+          layout[slot],
+          placementGroup(model.width > 32, state.direction),
+        );
+        const correction = posePlacement(
+          layout[slot],
+          state.direction,
+          state.pose,
+          state.arousal,
+        ).effective;
+        const mirror =
+          model.width > 32 &&
+          entry.mirror_sides !== false &&
+          state.direction === 8
+            ? -1
+            : 1;
+        const spriteDirection =
+          model.width > 32 && entry.reuse_south && state.direction === 1
+            ? 2
+            : state.direction;
+        return {
+          slot,
           icon: fixtures.accessory_directions[
             [2, 1, 4, 8].indexOf(spriteDirection)
           ],
@@ -155,8 +168,8 @@ async function main() {
           rotation: entry.rotation * mirror + correction.rotation,
           mirror_x: mirror,
           priority: correction.priority,
-        },
-      ],
+        };
+      }),
     };
     const runtimeData = {
       parts: [
@@ -233,6 +246,21 @@ async function main() {
           <Button onClick={() => setSize({ width: 740, height: 650 })}>
             Narrow
           </Button>
+          <Button
+            onClick={() => setPreviewSnapshot(previewSnapshot ? null : data)}
+          >
+            {previewSnapshot
+              ? 'Deliver preview resources'
+              : 'Hold preview resources'}
+          </Button>
+          <Button
+            onClick={() => {
+              setHoldMetadata(!holdMetadata);
+              if (holdMetadata) setMetadataPending(false);
+            }}
+          >
+            {holdMetadata ? 'Deliver part metadata' : 'Hold part metadata'}
+          </Button>
         </div>
         {panel !== 'creator' ? (
           <div style={{ width: 480, height: 560, padding: 8 }}>
@@ -241,17 +269,43 @@ async function main() {
         ) : (
           <div style={{ width: size.width, height: size.height, padding: 8 }}>
             <CyborgCharacterEditor
-              data={data}
+              data={
+                previewSnapshot
+                  ? {
+                      ...data,
+                      body: previewSnapshot.body,
+                      body_width: previewSnapshot.body_width,
+                      body_height: previewSnapshot.body_height,
+                      animation: previewSnapshot.animation,
+                      occlusion: previewSnapshot.occlusion,
+                      parts: previewSnapshot.parts,
+                      resources_pending: true,
+                      preview_pending: true,
+                      rendered_preview: {
+                        model: previewSnapshot.model,
+                        pose: previewSnapshot.pose,
+                        direction: previewSnapshot.direction,
+                        arousal: previewSnapshot.arousal,
+                        moving: previewSnapshot.moving,
+                        wide: previewSnapshot.wide,
+                        body_scale: previewSnapshot.body_scale,
+                        layers: previewSnapshot.layers,
+                      },
+                    }
+                  : data
+              }
               name={name}
               values={values}
               onName={setName}
-              onPreview={(params) =>
+              onPreview={(params) => {
+                if (params.selected_part && holdMetadata)
+                  setMetadataPending(true);
                 setState((current) => ({
                   ...current,
                   ...params,
                   ...(params.model ? { layout_source: 'active' } : {}),
-                }))
-              }
+                }));
+              }}
               onLayout={(params) =>
                 setStore((current) => {
                   const next = structuredClone(current);
@@ -437,23 +491,28 @@ async function main() {
                   key.endsWith('_sprite')
                 )
                   return (
-                    <Dropdown
-                      width="100%"
-                      selected={String(value)}
-                      options={
+                    <EditorSelect
+                      label={
                         key === 'silicon_gender'
-                          ? [
-                              'Use character gender',
-                              'He/Him',
-                              'She/Her',
-                              'They/Them',
-                              'It/Its',
-                            ]
+                          ? 'Pronouns'
                           : key === 'cyborg_size'
-                            ? ['0.75', '1', '1.6', '2', '2.5']
-                            : ['None', 'Plain', 'Alternative']
+                            ? 'Body size'
+                            : key.replaceAll('_', ' ')
                       }
-                      onSelected={change}
+                      value={String(value)}
+                      options={(key === 'silicon_gender'
+                        ? [
+                            'Use character gender',
+                            'He/Him',
+                            'She/Her',
+                            'They/Them',
+                            'It/Its',
+                          ]
+                        : key === 'cyborg_size'
+                          ? ['0.75', '1', '1.6', '2', '2.5']
+                          : ['None', 'Plain', 'Alternative']
+                      ).map((value) => ({ value, label: value }))}
+                      onChange={change}
                     />
                   );
                 return (
@@ -463,9 +522,19 @@ async function main() {
                     </div>
                     {key.includes('headshot') ||
                     key === 'custom_species_silicon' ? (
-                      <Input fluid value={String(value)} onBlur={change} />
+                      <Input
+                        aria-label={
+                          notesFeature?.name ?? key.replaceAll('_', ' ')
+                        }
+                        fluid
+                        value={String(value)}
+                        onBlur={change}
+                      />
                     ) : (
                       <TextArea
+                        aria-label={
+                          notesFeature?.name ?? key.replaceAll('_', ' ')
+                        }
                         fluid
                         height="100px"
                         placeholder={notesFeature?.placeholder}

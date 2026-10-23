@@ -20,6 +20,11 @@ GLOBAL_LIST_EMPTY(asset_datums)
 
 	/// Whether or not this asset should be loaded in the "early assets" SS
 	var/early = FALSE
+	// APHELION EDIT ADDITION START - required early asset readiness barrier
+	/// Early Assets must join an existing asynchronous load before mapping/atoms.
+	/// Opt in only for assets whose consumers require initialization to be complete.
+	var/early_blocking = FALSE
+	// APHELION EDIT ADDITION END
 
 	/// Whether or not this asset can be cached across rounds of the same commit under the `CACHE_ASSETS` config.
 	/// This is not a *guarantee* the asset will be cached. Not all asset subtypes respect this field, and the

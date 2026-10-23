@@ -152,6 +152,11 @@
 	previous_persistent_client_list = null
 
 /datum/unit_test/cyborg_mock_preferences/proc/create_preferences(mob/living/silicon/robot/robot, preference_type = /datum/preferences/preferences_import_test)
+	// These existing layout/lifecycle tests exercise ready resources. Cold demand
+	// and superseded completion have dedicated tests with an empty controlled cache.
+	for(var/model_type in list(/obj/item/robot_model/engineering, /obj/item/robot_model/medical, /obj/item/robot_model/service))
+		var/list/descriptor = cyborg_model_catalog()[cyborg_appearance_model_id(model_type, "Drake")]
+		cyborg_occlusion_ensure_model_ready(descriptor["icon"], descriptor["icon_state"])
 	var/datum/client_interface/mock_client = allocate(/datum/client_interface)
 	// Reuse the native memory-only preference fixture and its parent-link teardown.
 	var/datum/preferences/preferences = allocate(preference_type, mock_client)
@@ -278,6 +283,8 @@
 	for(var/cycle in 1 to 3)
 		TEST_ASSERT(editor.set_page(list("active" = TRUE), null), "Opening the creator was rejected.")
 		TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "model" = model_id, "direction" = NORTH), null), "Selecting a valid creator model was rejected.")
+		// This content/lifecycle check starts after admission; pacing has its own test.
+		editor.resource_refresh_at = world.time
 		var/list/payload = editor.get_ui_data(null)["cyborg_customization"]
 		TEST_ASSERT_NULL(payload["body"], "Ordinary UI updates must not retransmit chassis images.")
 		if(cycle == 1)
@@ -288,9 +295,9 @@
 		TEST_ASSERT_EQUAL(payload["direction"], NORTH, "The preview did not select the requested cardinal direction.")
 		TEST_ASSERT(findtext(payload["body"], "iVBORw0KGgo") == 1, "The creator did not return a PNG body preview.")
 		TEST_ASSERT(!length(payload["layers"]), "Default None choices produced visual layers.")
-		for(var/list/model_preview as anything in payload["models"])
-			TEST_ASSERT_NULL(model_preview["thumbnail"], "Closed galleries must not render every model thumbnail on each layout edit.")
-			TEST_ASSERT_NULL(model_preview["thumbnail_directions"], "Closed galleries must not send rotation frames.")
+		TEST_ASSERT_NULL(payload["models"], "Public gallery lists must not be serialized into private UI updates.")
+		TEST_ASSERT(payload["gallery"]?["catalog_url"], "A closed gallery lost its public model catalog URL.")
+		TEST_ASSERT_NULL(payload["gallery"]?["thumbnails_url"], "A closed gallery acquired department thumbnails.")
 		TEST_ASSERT(findtext(payload["reference"], "iVBORw0KGgo") == 1, "The creator must include its fixed-size reference artwork.")
 		var/list/edit = list("character_slot" = 2, "context" = editor.context_generation, "operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = NORTH), "changes" = list("pixel_x" = 99))
 		TEST_ASSERT(!editor.edit_layout(edit, null), "A stale character slot was allowed to edit the current slot.")
@@ -307,6 +314,7 @@
 			TEST_ASSERT_NULL(editor.get_ui_static_data(null)["cyborg_resources"], "Revoking permission retained the static resource payload.")
 			TEST_ASSERT_NULL(editor.preview_resources, "Revoking permission generated or retained private resources before discarding them.")
 			preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+			editor.resource_refresh_at = world.time
 			editor.get_ui_data(null)
 			TEST_ASSERT(editor.get_ui_static_data(null)["cyborg_resources"], "Restoring permission did not restore preview resources.")
 		var/stale_context = editor.context_generation - 1
@@ -363,8 +371,8 @@
 	TEST_ASSERT(preferences.cyborg_session().update_draft(draft), "The model-default fixture was not accepted.")
 	var/list/payload = editor.get_ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["store"]["presets"]["Saved"], TRUE, "The UI must receive preset names without saved layout bodies.")
-	TEST_ASSERT_EQUAL(length(payload["store"]["model_defaults"]), 1, "The UI must not receive other models' saved layouts.")
-	TEST_ASSERT_EQUAL(payload["store"]["model_defaults"][model_id]["penis"]["pixel_x"], 31, "The current model default was lost from the UI projection.")
+	TEST_ASSERT_EQUAL(length(payload["store"]["model_defaults"]), 0, "Active editing must not receive unread saved layout bodies.")
+	TEST_ASSERT(payload["model_default_available"], "Compact active data lost saved-appearance availability.")
 	TEST_ASSERT(islist(draft["presets"]["Saved"]) && islist(draft["model_defaults"][unrelated_model]), "Building the compact UI projection mutated saved snapshots.")
 	TEST_ASSERT_EQUAL(payload["layout_source"], "active", "A newly opened creator must edit the active layout.")
 	TEST_ASSERT_EQUAL(payload["store"]["active"]["penis"]["pixel_x"], 7, "The active draft fixture was not retained.")
@@ -372,6 +380,8 @@
 	TEST_ASSERT(editor.set_preview(list("context" = editor.context_generation, "layout_source" = "model_default"), null), "Selecting the model-default preview was rejected.")
 	payload = editor.get_ui_data(null)["cyborg_customization"]
 	TEST_ASSERT_EQUAL(payload["layout_source"], "model_default", "A saved model default was not selected for preview.")
+	TEST_ASSERT_EQUAL(length(payload["store"]["model_defaults"]), 1, "Saved-appearance view must receive only its selected model's layout.")
+	TEST_ASSERT_EQUAL(payload["store"]["model_defaults"][model_id]["penis"]["pixel_x"], 31, "The viewed model default was lost from the UI projection.")
 	TEST_ASSERT_EQUAL(payload["store"]["active"]["penis"]["pixel_x"], 7, "Previewing a model default mutated the active draft.")
 	TEST_ASSERT(editor.draft_timer && editor.draft_timer != pending_timer, "Changing preview source did not reschedule its stale-context save callback.")
 	deltimer(editor.draft_timer)
@@ -1095,3 +1105,851 @@
 	TEST_ASSERT(robot._listen_lookup?[COMSIG_MOB_MIND_TRANSFERRED_INTO], "Cyborgs must apply silicon preferences on mind transfer.")
 	TEST_ASSERT(robot._listen_lookup?[COMSIG_MOB_GIVE_DIRECT_CONTROL], "Cyborgs must apply silicon preferences on admin direct control.")
 	TEST_ASSERT(robot.GetComponent(/datum/component/interactable), "Cyborgs must carry the interaction component.")
+
+/// Regression coverage for failed-write ownership, backend close and forced model installation.
+/datum/json_savefile/cyborg_customization/review_failure_store
+	var/fail_writes = FALSE
+	var/write_attempts = 0
+	var/successful_writes = 0
+	var/list/last_written
+
+/datum/json_savefile/cyborg_customization/review_failure_store/save()
+	write_attempts++
+	if(fail_writes)
+		return FALSE
+	successful_writes++
+	last_written = deep_copy_list(get_entry())
+	return TRUE
+
+/datum/unit_test/cyborg_review_failed_slot_write_retry
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_review_failed_slot_write_retry/Run()
+	var/datum/preferences/preferences = create_preferences()
+	var/datum/json_savefile/cyborg_customization/review_failure_store/store = allocate(/datum/json_savefile/cyborg_customization/review_failure_store, null)
+	preferences.cyborg_layout_savefile = store
+	preferences.default_slot = 1
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/list/draft = editor.begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 23
+	editor.update_draft(draft)
+	store.fail_writes = TRUE
+	preferences.default_slot = 2
+	editor.begin_draft()
+	store.fail_writes = FALSE
+	editor.commit_draft()
+	TEST_ASSERT_EQUAL(store.successful_writes, 1, "Recovering storage and retrying after a slot switch did not write the old pending layout.")
+	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["pixel_x"], 23, "Retry lost the original slot's accepted edit.")
+	TEST_ASSERT_NULL(store.last_written["character2"], "Retry wrote an untouched second slot.")
+
+/datum/unit_test/cyborg_review_forced_model_identity
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_review_forced_model_identity/Run()
+	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
+	var/datum/preferences/preferences = create_preferences(robot)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
+	robot.model.transform_to(/obj/item/robot_model/engineering, TRUE, FALSE)
+	// Complete the installed appearance without waiting for the cosmetic transform animation.
+	robot.update_icons()
+	robot.transfer_silicon_prefs(robot.mock_client)
+	TEST_ASSERT(robot.cyborg_appearance_model, "Forced stock model creation did not establish customization identity.")
+	TEST_ASSERT(cyborg_model_catalog()[robot.cyborg_appearance_model], "Forced stock model identity does not resolve to its actual chassis.")
+	TEST_ASSERT(length(robot.cyborg_appearance_holder?.render_layers), "A configured forced stock model rendered no custom parts.")
+
+/datum/unit_test/cyborg_review_backend_ui_close
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_review_backend_ui_close/Run()
+	var/datum/preferences/preferences = create_preferences()
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	var/list/draft = editor.begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 17
+	editor.update_draft(draft)
+	editor.preview_resources = list("review" = "private-resource")
+	preferences.ui_close(null)
+	TEST_ASSERT(!editor.page_active, "Backend UI close left the cyborg editor active.")
+	TEST_ASSERT_NULL(editor.preview_resources, "Backend UI close retained private preview resources.")
+	TEST_ASSERT(!editor.dirty && !editor.draft_timer, "Backend UI close did not flush an accepted layout edit.")
+	TEST_ASSERT_EQUAL(preferences.read_cyborg_layout()["active"]["penis"]["pixel_x"], 17, "Backend UI close lost the accepted layout.")
+
+/datum/unit_test/cyborg_idempotent_save_and_account_write_pacing
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_idempotent_save_and_account_write_pacing/Run()
+	var/datum/preferences/preferences = create_preferences()
+	var/datum/json_savefile/cyborg_customization/review_failure_store/store = allocate(/datum/json_savefile/cyborg_customization/review_failure_store, null)
+	// The test writer counts calls without opening this path; exercise disk admission.
+	store.path = "review-counter-no-file"
+	preferences.cyborg_layout_savefile = store
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	editor.preview_model = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	editor.begin_draft()
+	var/list/command = list("operation" = "save_default", "character_slot" = preferences.default_slot, "context" = editor.context_generation)
+	editor.edit_layout(command, null)
+	TEST_ASSERT_EQUAL(store.successful_writes, 1, "The initial explicit save was not durable.")
+	var/revision = editor.draft_revision
+	for(var/index in 1 to 20)
+		editor.edit_layout(command, null)
+	TEST_ASSERT_EQUAL(store.write_attempts, 1, "Identical explicit saves repeated the whole-account write.")
+	TEST_ASSERT_EQUAL(editor.draft_revision, revision, "An identical save created a new edit revision.")
+	var/list/draft = editor.begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 12
+	editor.update_draft(draft)
+	editor.edit_layout(command, null)
+	TEST_ASSERT_EQUAL(store.write_attempts, 1, "A changed save bypassed the account write interval.")
+	TEST_ASSERT(store.write_pending && store.write_timer && editor.dirty, "A coalesced write lost its pending ownership.")
+	editor.close_editor()
+	TEST_ASSERT_EQUAL(store.write_attempts, 1, "Closing the editor bypassed the account write interval.")
+	TEST_ASSERT_NULL(editor.draft_timer, "Backend close retained the editor debounce instead of the account write.")
+	TEST_ASSERT_EQUAL(store.get_entry("character[preferences.default_slot]")["active"]["penis"]["pixel_x"], 12, "The latest accepted edit was not staged before close.")
+	store.next_write_at = world.time
+	store.flush_pending()
+	TEST_ASSERT_EQUAL(store.successful_writes, 2, "The due account write did not save the latest state.")
+	TEST_ASSERT(!store.write_pending && !store.write_timer && !editor.dirty, "A successful delayed write left false pending state.")
+	TEST_ASSERT_EQUAL(store.last_written["character[preferences.default_slot]"]["active"]["penis"]["pixel_x"], 12, "Coalescing saved an earlier revision.")
+	// Both unnamed and named snapshots have idempotent explicit save semantics.
+	store.next_write_at = world.time
+	command["operation"] = "save"
+	command["name"] = "Repeated setup"
+	command["context"] = editor.context_generation
+	editor.set_page(list("active" = TRUE), null)
+	editor.edit_layout(command, null)
+	var/named_writes = store.write_attempts
+	command["overwrite"] = TRUE
+	for(var/index in 1 to 20)
+		editor.edit_layout(command, null)
+	TEST_ASSERT_EQUAL(store.write_attempts, named_writes, "Identical named preset overwrites repeated account writes.")
+
+/datum/unit_test/cyborg_failed_retry_is_paced_across_slots
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_failed_retry_is_paced_across_slots/Run()
+	var/datum/preferences/preferences = create_preferences()
+	var/datum/json_savefile/cyborg_customization/review_failure_store/store = allocate(/datum/json_savefile/cyborg_customization/review_failure_store, null)
+	store.path = "review-counter-no-file"
+	store.fail_writes = TRUE
+	preferences.cyborg_layout_savefile = store
+	preferences.default_slot = 1
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/list/draft = editor.begin_draft()
+	draft["active"]["penis"]["pixel_x"] = 27
+	editor.update_draft(draft)
+	TEST_ASSERT(!editor.commit_draft(), "The injected failed write was acknowledged.")
+	var/list/staged = store.get_entry("character1")
+	for(var/index in 1 to 20)
+		editor.commit_draft()
+	TEST_ASSERT_EQUAL(store.write_attempts, 1, "Repeated failed retries bypassed disk admission.")
+	TEST_ASSERT_EQUAL(store.get_entry("character1"), staged, "Retrying recopied an unchanged full character tree.")
+	preferences.default_slot = 2
+	editor.begin_draft()
+	TEST_ASSERT(store.write_pending && editor.save_error, "Changing slots concealed the pending failed account write.")
+	TEST_ASSERT_EQUAL(store.write_attempts, 1, "Changing slots bypassed failed-write pacing.")
+	store.fail_writes = FALSE
+	store.next_write_at = world.time
+	editor.commit_draft()
+	TEST_ASSERT_EQUAL(store.successful_writes, 1, "Recovered storage did not flush the old pending slot.")
+	TEST_ASSERT_EQUAL(store.last_written["character1"]["active"]["penis"]["pixel_x"], 27, "Retry after slot replacement lost its accepted edit.")
+	TEST_ASSERT_NULL(store.last_written["character2"], "Retry wrote a clean unrelated slot.")
+	TEST_ASSERT(!editor.save_error && !store.write_pending && !store.write_timer, "Recovery retained false pending or error state.")
+
+// Focused behavior probes for cached geometry and bounded latest-state refresh.
+/datum/unit_test/cyborg_cached_preview_geometry/Run()
+	var/list/descriptor = cyborg_model_catalog()[cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")]
+	var/list/layout = cyborg_layout_default_slots()
+	layout["penis"]["pixel_x"] = 7
+	var/list/cached = list("penis" = "review-owned-png")
+	var/list/runtime = list("choices" = list("penis" = "Dogborg Knotted"), "active" = list("penis" = TRUE), "arousal" = list("penis" = "none"), "direction" = SOUTH, "pose" = "idle", "cached_icons" = cached)
+	var/list/layers = cyborg_build_appearance(descriptor, layout, runtime)
+	TEST_ASSERT_EQUAL(length(layers), 1, "Cached preview geometry lost its visible part.")
+	var/list/layer = layers[1]
+	TEST_ASSERT_EQUAL(layer["icon"], cached["penis"], "A geometry-only preview regenerated pixels instead of reusing its owned PNG.")
+	TEST_ASSERT_NULL(layer["resource"], "Preview-only reuse retained a native icon unnecessarily.")
+	var/list/anchor = cyborg_animation_anchor(descriptor, SOUTH, "idle")
+	TEST_ASSERT_EQUAL(layer["x"], 7 + anchor["x"], "Cached pixels changed shared placement geometry.")
+
+/datum/unit_test/cyborg_latest_pixel_refresh
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_latest_pixel_refresh/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.default_slot = 1
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")), null)
+	editor.get_ui_data(null)
+	var/list/resources = editor.preview_resources
+	editor.set_preview(list("context" = editor.context_generation, "direction" = NORTH), null)
+	var/list/edit = list("context" = editor.context_generation, "character_slot" = 1, "operation" = "set", "slot" = "penis", "field" = "colors", "value" = list("#112233", "#ffffff", "#ffffff"))
+	editor.edit_layout(edit, null)
+	var/list/pending = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(editor.preview_resources == resources && pending["resources_pending"], "A second pixel edit in one budget interval rebuilt resources immediately.")
+	TEST_ASSERT_EQUAL(pending["direction"], NORTH, "Pending controls did not reflect the accepted direction.")
+	TEST_ASSERT_EQUAL(pending["rendered_preview"]["direction"], SOUTH, "Pending resources were paired with new direction geometry.")
+	var/pending_timer = editor.vars["resource_timer"]
+	TEST_ASSERT(pending_timer, "A pending refresh was not scheduled.")
+	edit["value"] = list("#445566", "#ffffff", "#ffffff")
+	editor.edit_layout(edit, null)
+	pending = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(editor.preview_resources == resources && editor.vars["resource_timer"] == pending_timer, "New input replaced the one bounded refresh timer or rebuilt the previous request.")
+	TEST_ASSERT_EQUAL(pending["store"]["active"]["penis"]["colors"][1], "#445566", "Controls did not expose the latest accepted draft while pixels waited.")
+	sleep(1.1 SECONDS)
+	var/list/ready = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(!ready["resources_pending"] && editor.preview_resources != resources, "The budget did not eventually publish latest-state pixels.")
+	TEST_ASSERT_EQUAL(ready["direction"], NORTH, "Completed pixels retained the old preview direction.")
+	TEST_ASSERT_EQUAL(editor.rendered_preview["direction"], NORTH, "Completed pixels did not retain their coherent server stage.")
+	var/list/rendered = cyborg_accessory_render("penis", "Dogborg Knotted", list("#445566", "#ffffff", "#ffffff"), "none", NORTH, 2)
+	TEST_ASSERT_EQUAL(editor.preview_resources["layer_icons"]["penis"], rendered["base64"], "Deferred work published a stale intermediate color.")
+	edit["value"] = list("#778899", "#ffffff", "#ffffff")
+	editor.edit_layout(edit, null)
+	editor.get_ui_data(null)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], FALSE)
+	var/list/denied = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT_NULL(editor.preview_resources, "Permission revocation waited for pixel refresh pacing.")
+	TEST_ASSERT_NULL(editor.vars["resource_timer"], "Permission revocation retained a private resource job.")
+	TEST_ASSERT(!denied["resources_pending"] && !length(denied["layers"]), "Denied content retained a pending preview or visible layers.")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	TEST_ASSERT(editor.get_ui_data(null)["cyborg_customization"]["resources_pending"], "Consent toggling bypassed pixel refresh admission.")
+	editor.set_page(list("active" = FALSE), null)
+	TEST_ASSERT_NULL(editor.resource_timer, "Closing the page retained a resource refresh callback.")
+	editor.set_page(list("active" = TRUE), null)
+	TEST_ASSERT(editor.get_ui_data(null)["cyborg_customization"]["resources_pending"], "Closing and reopening bypassed pixel refresh admission.")
+	editor.set_page(list("active" = FALSE), null)
+	sleep(1.1 SECONDS)
+	TEST_ASSERT(!length(editor.get_ui_data(null)) && !editor.preview_resources, "A stale deferred callback resurrected a closed preview.")
+
+/datum/unit_test/cyborg_color_refresh_reuses_unaffected_resources
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_color_refresh_reuses_unaffected_resources/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
+	preferences.write_preference(GLOB.preference_entries_by_key["silicon_sheath_sprite"], "Dogborg Knotted Sheath")
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake"), "selected_part" = "sheath", "gallery_open" = TRUE, "gallery_department" = "Engineering"), null)
+	editor.get_ui_data(null)
+	var/list/previous = editor.preview_resources
+	var/list/gallery = previous["gallery"]
+	var/list/parts = previous["parts"]
+	var/list/animation = previous["animation"]
+	// A sentinel proves an unrelated image is retained, independently of global cache hits.
+	previous["layer_icons"]["penis"] = "review-owned-unaffected-png"
+	var/list/colors = list("#112233", "#445566", "#778899")
+	editor.edit_layout(list("context" = editor.context_generation, "character_slot" = preferences.default_slot, "operation" = "set", "slot" = "sheath", "field" = "colors", "value" = colors), null)
+	editor.resource_refresh_at = world.time
+	editor.get_ui_data(null)
+	var/list/current = editor.preview_resources
+	TEST_ASSERT(current != previous, "A changed color did not publish a new resource payload.")
+	TEST_ASSERT_EQUAL(current["gallery"], gallery, "A color edit rebuilt the unchanged public gallery descriptor.")
+	TEST_ASSERT_EQUAL(current["animation"], animation, "A color edit rebuilt unchanged animation frames.")
+	for(var/slot in cyborg_layout_supported_slots())
+		TEST_ASSERT_EQUAL(current["parts"][slot], parts[slot], "A color edit rebuilt neutral size metadata for [slot].")
+	TEST_ASSERT_EQUAL(current["layer_icons"]["penis"], "review-owned-unaffected-png", "A color edit regenerated an unaffected part.")
+	var/list/rendered = cyborg_accessory_render("sheath", "Dogborg Knotted Sheath", colors, "none", SOUTH, cyborg_layout_default_sprite_size("sheath"))
+	TEST_ASSERT_EQUAL(current["layer_icons"]["sheath"], rendered["base64"], "The changed part did not use the accepted colors.")
+	var/list/size_entry = current["parts"]["sheath"]["sizes"][1]
+	var/list/neutral = cyborg_accessory_render("sheath", "Dogborg Knotted Sheath", list("#ffffff", "#ffffff", "#ffffff"), "none", SOUTH, size_entry["value"])
+	TEST_ASSERT_EQUAL(size_entry["icon"], neutral["base64"], "Size thumbnails no longer use stable neutral artwork.")
+
+/datum/unit_test/cyborg_metadata_refresh_keeps_placement_live
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_metadata_refresh_keeps_placement_live/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")), null)
+	var/list/before = editor.get_ui_data(null)["cyborg_customization"]["layers"][1]
+	var/list/resources = editor.preview_resources
+	editor.set_preview(list("context" = editor.context_generation, "selected_part" = "sheath"), null)
+	editor.edit_layout(list("context" = editor.context_generation, "character_slot" = preferences.default_slot, "operation" = "set_placement", "slot" = "penis", "target" = list("scope" = "base", "direction" = SOUTH), "changes" = list("pixel_x" = 9)), null)
+	TEST_ASSERT_EQUAL(editor.draft["active"]["penis"]["placement_groups"]["south"]["pixel_x"], 9, "The placement command was not accepted into the active draft.")
+	var/list/current = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(current["resources_pending"] && !current["preview_pending"], "Metadata-only work blocked an unchanged stage.")
+	TEST_ASSERT_EQUAL(editor.preview_resources, resources, "Metadata-only work bypassed the resource interval.")
+	var/list/after = current["layers"][1]
+	TEST_ASSERT_EQUAL(after["x"], before["x"] + 9, "A metadata refresh froze accepted placement geometry.")
+	editor.set_preview(list("context" = editor.context_generation, "direction" = NORTH), null)
+	current = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(current["preview_pending"], "A real pixel change failed to preserve the old coherent stage.")
+
+/datum/unit_test/cyborg_gallery_shared_projection/Run()
+	var/datum/asset/cyborg_model_gallery/gallery = get_asset_datum(/datum/asset/cyborg_model_gallery)
+	var/list/catalog = cyborg_model_catalog()
+	gallery.build_catalog(catalog)
+	var/datum/asset_cache_item/catalog_asset = gallery.assets[gallery.catalog_asset]
+	var/list/plain = json_decode(file2text(catalog_asset.resource))
+	TEST_ASSERT_EQUAL(length(plain), length(catalog), "The shared gallery omitted catalog models.")
+	var/list/closed = gallery.ui_descriptor(null)
+	TEST_ASSERT_EQUAL(length(closed), 2, "Closed galleries must contain only catalog identity and URL.")
+	TEST_ASSERT_EQUAL(closed["catalog_url"], SSassets.transport.get_asset_url(gallery.catalog_asset, catalog_asset), "The descriptor bypassed the configured asset transport.")
+	TEST_ASSERT_EQUAL(length(gallery.assets), length(gallery.department_assets) + 1, "The gallery retained extra public projections.")
+	var/list/owned_assets = gallery.assets
+	gallery.build_catalog(catalog)
+	TEST_ASSERT_EQUAL(gallery.assets, owned_assets, "An unchanged catalog rebuilt its encoded assets.")
+	TEST_ASSERT_EQUAL(length(gallery.assets_for_department(null)), 1, "A closed gallery acquired more than its catalog.")
+	for(var/repeat in 1 to 100)
+		TEST_ASSERT(deep_compare_list(gallery.ui_descriptor("untrusted-[repeat]"), closed), "An unknown department exposed a thumbnail URL.")
+		TEST_ASSERT_EQUAL(length(gallery.assets_for_department("untrusted-[repeat]")), 1, "Unknown input created an acquisition entry.")
+	TEST_ASSERT_EQUAL(gallery.assets, owned_assets, "Unknown departments replaced the finite asset set.")
+	for(var/list/model as anything in plain)
+		TEST_ASSERT_EQUAL(length(model), 3, "Public metadata retained thumbnails or unrelated fields.")
+		TEST_ASSERT(catalog[model["id"]] && model["department"] == catalog[model["id"]]["department"] && model["skin"] == catalog[model["id"]]["skin"], "Public metadata changed a model's canonical identity.")
+	var/thumbnail_models = 0
+	for(var/department, asset_name in gallery.department_assets)
+		var/list/descriptor = gallery.ui_descriptor(department)
+		TEST_ASSERT_EQUAL(length(descriptor), 4, "An open department descriptor has unexpected fields.")
+		TEST_ASSERT_EQUAL(descriptor["department"], department, "Department identity was lost in the descriptor.")
+		TEST_ASSERT_EQUAL(descriptor["generation"], closed["generation"], "Department and catalog generations disagree.")
+		TEST_ASSERT_EQUAL(length(gallery.assets_for_department(department)), 2, "A selected department must acquire only its thumbnails and catalog.")
+		var/datum/asset_cache_item/asset = gallery.assets[asset_name]
+		TEST_ASSERT_EQUAL(descriptor["thumbnails_url"], SSassets.transport.get_asset_url(asset_name, asset), "Thumbnail URL bypassed the asset transport.")
+		var/list/thumbnails = json_decode(file2text(asset.resource))
+		for(var/id, directions in thumbnails)
+			thumbnail_models++
+			TEST_ASSERT_EQUAL(catalog[id]?["department"], department, "A department asset contains another department's model.")
+			TEST_ASSERT_EQUAL(length(directions), 4, "A shared model is missing its directional thumbnails.")
+			for(var/direction in GLOB.cardinals)
+				TEST_ASSERT_EQUAL(directions["[direction]"], cyborg_preview_body(catalog[id], direction), "Asset thumbnails changed the authored appearance.")
+	TEST_ASSERT_EQUAL(thumbnail_models, length(catalog), "Department assets duplicated or omitted catalog models.")
+
+/datum/unit_test/cyborg_shared_asset_wait_rechecks_owner
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_shared_asset_wait_rechecks_owner/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/datum/asset/cyborg_model_gallery/gallery = get_asset_datum(/datum/asset/cyborg_model_gallery)
+	editor.set_page(list("active" = TRUE), null)
+	gallery.generating = TRUE
+	spawn(1)
+		editor.close_editor()
+		gallery.generating = FALSE
+	TEST_ASSERT(!length(editor.get_ui_data(null)), "A shared asset wait republished a closed editor.")
+	TEST_ASSERT_NULL(editor.preview_resources, "A shared asset wait retained private pixels after close.")
+	editor.set_page(list("active" = TRUE), null)
+	gallery.generating = TRUE
+	spawn(1)
+		preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], FALSE)
+		gallery.generating = FALSE
+	var/list/denied = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(!denied["allowed"], "A shared asset wait ignored consent revocation.")
+	TEST_ASSERT_NULL(editor.preview_resources, "A shared asset wait published pixels after consent revocation.")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	gallery.generating = TRUE
+	spawn(1)
+		editor.set_preview(list("context" = editor.context_generation, "direction" = NORTH), null)
+		gallery.generating = FALSE
+	editor.resource_refresh_at = world.time
+	var/list/current = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT_EQUAL(current["direction"], NORTH, "A shared asset wait captured obsolete preview state.")
+	TEST_ASSERT_EQUAL(editor.rendered_preview["direction"], NORTH, "A shared asset wait retained obsolete stage geometry.")
+
+/// Pause public resource readiness without native jobs or retained private state.
+/datum/asset/cyborg_occlusion/consumer_wait_test
+	abstract_type = /datum/asset/cyborg_occlusion/consumer_wait_test
+	var/released = FALSE
+	var/calls = 0
+	var/fail = FALSE
+	var/list/ready_resources
+
+/datum/asset/cyborg_occlusion/consumer_wait_test/ensure_model_ready(source_file, base_state)
+	calls++
+	UNTIL(released)
+	if(fail)
+		throw EXCEPTION("expected consumer readiness failure")
+	var/key = "[source_file]#[base_state]"
+	resources[key] = ready_resources[key]
+	return resources[key]
+
+/datum/unit_test/cyborg_demand_editor_latest_state
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_demand_editor_latest_state/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")), null)
+	editor.get_ui_data(null)
+	var/list/old_resources = editor.preview_resources
+	var/list/old_stage = editor.rendered_preview
+	var/datum/asset/cyborg_occlusion/original = get_asset_datum(/datum/asset/cyborg_occlusion)
+	var/datum/asset/cyborg_occlusion/consumer_wait_test/paused = new
+	paused.ready_resources = original.resources
+	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = paused
+	editor.resource_refresh_at = world.time
+	editor.set_preview(list("context" = editor.context_generation, "direction" = NORTH), null)
+	for(var/repeat in 1 to 20)
+		editor.get_ui_data(null)
+	var/nonblocking = editor.occlusion_loading && editor.preview_pending && editor.preview_resources == old_resources && editor.rendered_preview == old_stage
+	sleep(1)
+	var/one_waiter = paused.calls == 1
+	var/latest_model = cyborg_appearance_model_id(/obj/item/robot_model/medical, "Drake")
+	editor.set_preview(list("context" = editor.context_generation, "model" = latest_model), null)
+	editor.get_ui_data(null)
+	var/still_one_waiter = paused.calls == 1
+	paused.released = TRUE
+	UNTIL(!editor.occlusion_loading)
+	editor.get_ui_data(null)
+	UNTIL(!editor.occlusion_loading)
+	var/list/latest = editor.get_ui_data(null)["cyborg_customization"]
+	var/latest_correct = latest["model"] == latest_model && editor.rendered_preview?["model"] == latest_model && !latest["preview_pending"]
+	// Close while a different first-use request is pending; completion cannot revive it.
+	paused.released = FALSE
+	paused.resources = list()
+	var/calls_before_close = paused.calls
+	editor.resource_refresh_at = world.time
+	editor.set_preview(list("context" = editor.context_generation, "direction" = SOUTH), null)
+	editor.get_ui_data(null)
+	editor.close_editor()
+	paused.released = TRUE
+	UNTIL(!editor.occlusion_loading)
+	var/closed_stayed_empty = !editor.preview_resources && !length(editor.get_ui_data(null))
+	var/close_skipped_admission = paused.calls == calls_before_close
+	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = original
+	GLOB.asset_datums -= paused.type
+	qdel(paused)
+	TEST_ASSERT(nonblocking, "A missing model blocked UI reads or split the previous coherent stage.")
+	TEST_ASSERT(one_waiter && still_one_waiter, "Repeated reads or model changes retained multiple editor continuations.")
+	TEST_ASSERT(latest_correct, "An obsolete completion failed to prepare and publish the latest model.")
+	TEST_ASSERT(closed_stayed_empty, "A public resource completion resurrected a closed private preview.")
+	TEST_ASSERT(close_skipped_admission, "Closing before admission still generated an obsolete model.")
+
+/datum/unit_test/cyborg_demand_holder_revocation
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_demand_holder_revocation/Run()
+	var/mob/living/silicon/robot/robot = EASY_ALLOCATE()
+	var/datum/preferences/preferences = create_preferences(robot)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	var/list/descriptor = cyborg_model_catalog()[model_id]
+	QDEL_NULL(robot.model)
+	robot.model = new /obj/item/robot_model/engineering(robot)
+	robot.model.cyborg_customization_skin = "Drake"
+	robot.model.cyborg_base_icon = descriptor["icon_state"]
+	robot.icon = descriptor["icon"]
+	robot.icon_state = descriptor["icon_state"]
+	apply_cyborg_customization(robot, preferences)
+	var/obj/effect/client_image_holder/cyborg_customization/holder = robot.cyborg_appearance_holder
+	var/datum/asset/cyborg_occlusion/original = get_asset_datum(/datum/asset/cyborg_occlusion)
+	var/datum/asset/cyborg_occlusion/consumer_wait_test/paused = new
+	paused.ready_resources = original.resources
+	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = paused
+	for(var/repeat in 1 to 20)
+		holder.render_key = null
+		holder.update_from_owner()
+	var/coherent_empty = holder.occlusion_loading && !length(holder.render_layers) && !length(holder.shown_image.overlays) && !holder.occlusion_image && !holder.animation_image
+	sleep(1)
+	var/one_waiter = paused.calls == 1
+	robot.cyborg_appearance_allowed = FALSE
+	paused.released = TRUE
+	UNTIL(!holder.occlusion_loading)
+	var/revoked = !length(holder.render_layers) && !holder.occlusion_image && !holder.animation_image
+	paused.resources = list()
+	paused.released = FALSE
+	var/calls_before_delete = paused.calls
+	robot.cyborg_appearance_allowed = TRUE
+	holder.render_key = null
+	holder.update_from_owner()
+	var/datum/weakref/holder_ref = WEAKREF(holder)
+	QDEL_NULL(robot.cyborg_appearance_holder)
+	paused.released = TRUE
+	sleep(2)
+	var/deleted_stayed_empty = !holder_ref.resolve() && !robot.cyborg_appearance_holder
+	var/delete_skipped_admission = paused.calls == calls_before_delete
+	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = original
+	GLOB.asset_datums -= paused.type
+	qdel(paused)
+	TEST_ASSERT(coherent_empty, "A first-use live model exposed parts before its matching mask was ready.")
+	TEST_ASSERT(one_waiter, "Owner churn created duplicate live resource continuations.")
+	TEST_ASSERT(revoked, "A delayed resource completion ignored current owner consent.")
+	TEST_ASSERT(deleted_stayed_empty, "A delayed completion revived a deleted holder.")
+	TEST_ASSERT(delete_skipped_admission, "Deleting before admission still generated an obsolete model.")
+
+/datum/unit_test/cyborg_demand_first_open_failure
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_demand_first_open_failure/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/datum/asset/cyborg_occlusion/original = get_asset_datum(/datum/asset/cyborg_occlusion)
+	var/datum/asset/cyborg_occlusion/consumer_wait_test/paused = new
+	paused.ready_resources = original.resources
+	paused.fail = TRUE
+	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = paused
+	editor.set_page(list("active" = TRUE), null)
+	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")), null)
+	editor.get_ui_data(null)
+	var/can_choose_pending = editor.preview_resources?["gallery"]?["catalog_url"] && !editor.preview_resources?["models"]
+	editor.set_preview(list("context" = editor.context_generation, "gallery_open" = TRUE, "gallery_department" = "Medical"), null)
+	editor.get_ui_data(null)
+	var/can_switch_pending = editor.preview_resources?["gallery"]?["department"] == "Medical" && editor.preview_resources?["gallery"]?["thumbnails_url"]
+	paused.released = TRUE
+	UNTIL(!editor.occlusion_loading)
+	var/list/failed = editor.get_ui_data(null)["cyborg_customization"]
+	var/can_choose_failed = editor.preview_resources?["gallery"]?["catalog_url"] && findtext(failed["message"], "Choose another model")
+	paused.fail = FALSE
+	var/healthy_model = cyborg_appearance_model_id(/obj/item/robot_model/medical, "Drake")
+	editor.set_preview(list("context" = editor.context_generation, "model" = healthy_model), null)
+	editor.get_ui_data(null)
+	UNTIL(!editor.occlusion_loading)
+	var/list/healthy = editor.get_ui_data(null)["cyborg_customization"]
+	var/recovered = healthy["model"] == healthy_model && editor.rendered_preview?["model"] == healthy_model && !healthy["preview_pending"] && !findtext(healthy["message"], "could not be prepared")
+	GLOB.asset_datums[/datum/asset/cyborg_occlusion] = original
+	GLOB.asset_datums -= paused.type
+	qdel(paused)
+	TEST_ASSERT(can_choose_pending && can_switch_pending && can_choose_failed, "First-use generation failure trapped the user without a usable model picker.")
+	TEST_ASSERT(recovered, "Switching to a ready model retained obsolete failure state or failed to publish the stage.")
+
+/// UI assignment projection must not expose or mutate unrelated saved chassis assignments.
+/datum/unit_test/cyborg_ui_assignment_projection
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_ui_assignment_projection/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	var/model_a = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	var/model_b = cyborg_appearance_model_id(/obj/item/robot_model/medical, "Drake")
+	var/model_c = cyborg_appearance_model_id(/obj/item/robot_model/service, "Drake")
+	var/list/draft = editor.begin_draft()
+	draft["presets"]["Workshop"] = deep_copy_list(draft["active"])
+	draft["presets"]["Infirmary"] = deep_copy_list(draft["active"])
+	draft["preset_models"]["Workshop"] = model_a
+	draft["preset_models"]["Infirmary"] = model_b
+	draft["model_presets"][model_a] = "Workshop"
+	draft["model_presets"][model_b] = "Infirmary"
+	draft["model_defaults"][model_a] = deep_copy_list(draft["active"])
+	draft["model_defaults"][model_b] = deep_copy_list(draft["active"])
+	editor.set_preview(list("context" = editor.context_generation, "model" = model_a), null)
+	var/list/first = editor.get_ui_data(null)["cyborg_customization"]["store"]
+	TEST_ASSERT_EQUAL(length(first["model_presets"]), 1, "UI data included another chassis's assignment.")
+	TEST_ASSERT_EQUAL(first["model_presets"][model_a], "Workshop", "UI data lost the selected chassis assignment.")
+	TEST_ASSERT_EQUAL(length(first["preset_models"]), 2, "Projection removed preset labels needed to choose a different chassis.")
+	first["model_presets"][model_a] = "UI-only value"
+	TEST_ASSERT_EQUAL(draft["model_presets"][model_a], "Workshop", "UI assignment projection aliased the canonical draft.")
+	editor.set_preview(list("context" = editor.context_generation, "model" = model_b), null)
+	var/list/second = editor.get_ui_data(null)["cyborg_customization"]["store"]
+	TEST_ASSERT_EQUAL(length(second["model_presets"]), 1, "Changing model retained a previous projected assignment.")
+	TEST_ASSERT_EQUAL(second["model_presets"][model_b], "Infirmary", "Changing model failed to expose its saved assignment.")
+	editor.set_preview(list("context" = editor.context_generation, "model" = model_c), null)
+	var/list/unassigned = editor.get_ui_data(null)["cyborg_customization"]["store"]
+	TEST_ASSERT_EQUAL(length(unassigned["model_presets"]), 0, "An unassigned chassis inherited stale UI assignment data.")
+	TEST_ASSERT_EQUAL(draft["model_presets"][model_a], "Workshop", "Projection deleted another chassis's saved assignment.")
+	TEST_ASSERT_EQUAL(draft["model_presets"][model_b], "Infirmary", "Projection changed the second saved assignment.")
+	TEST_ASSERT_EQUAL(length(draft["model_defaults"]), 2, "UI projection changed the canonical saved appearance collection.")
+	editor.discard_draft()
+
+/// Availability is sufficient until the user opens the saved-appearance view.
+/datum/unit_test/cyborg_ui_default_layout_projection
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_ui_default_layout_projection/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	editor.set_preview(list("context" = editor.context_generation, "model" = model_id), null)
+	var/list/draft = editor.begin_draft()
+	var/list/saved = deep_copy_list(draft["active"])
+	saved["penis"]["pixel_x"] = 17
+	draft["model_defaults"][model_id] = saved
+	var/list/active = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(active["model_default_available"], "Omitting a saved layout hid its load/clear controls.")
+	TEST_ASSERT_EQUAL(length(active["store"]["model_defaults"]), 0, "Active editing serialized an unread saved layout.")
+	TEST_ASSERT_EQUAL(draft["model_defaults"][model_id]["penis"]["pixel_x"], 17, "Wire projection removed the canonical saved layout.")
+	editor.set_preview(list("context" = editor.context_generation, "layout_source" = "model_default"), null)
+	var/list/preview = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT_EQUAL(preview["layout_source"], "model_default", "Saved-appearance view was not selected.")
+	TEST_ASSERT_EQUAL(length(preview["store"]["model_defaults"]), 1, "Saved-appearance view did not receive exactly its selected model.")
+	TEST_ASSERT(deep_compare_list(preview["store"]["model_defaults"][model_id], saved), "Saved-appearance view lost layout controls or sprite data.")
+	TEST_ASSERT_EQUAL(length(preview["store"]["model_defaults"][model_id]), 6, "Saved-appearance view omitted a part.")
+	editor.set_preview(list("context" = editor.context_generation, "layout_source" = "active"), null)
+	active = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(active["model_default_available"] && !length(active["store"]["model_defaults"]), "Returning to active editing retained a duplicate saved layout or lost availability.")
+	TEST_ASSERT(editor.edit_layout(list("operation" = "delete_default", "model" = model_id, "character_slot" = preferences.default_slot, "context" = editor.context_generation), null), "The saved layout could not be deleted after projection.")
+	var/list/deleted = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(!deleted["model_default_available"] && !length(deleted["store"]["model_defaults"]), "Deleting the saved layout retained stale availability or payload.")
+	editor.discard_draft()
+
+/// Profile limits count UTF-8 bytes but must not split a Unicode codepoint.
+/datum/unit_test/cyborg_profile_text_boundaries/proc/repeated(glyph, count)
+	var/list/pieces = list()
+	for(var/index in 1 to count)
+		pieces += glyph
+	return pieces.Join()
+
+/datum/unit_test/cyborg_profile_text_boundaries/Run()
+	var/list/profile_types = list(
+		/datum/preference/text/custom_species_silicon,
+		/datum/preference/text/custom_species_lore_silicon,
+		/datum/preference/text/silicon_flavor_text,
+		/datum/preference/text/silicon_flavor_text_nsfw,
+		/datum/preference/text/ooc_notes_silicon,
+		/datum/preference/text/ooc_notes_silicon/nsfw,
+	)
+	for(var/preference_type in profile_types)
+		var/datum/preference/text/preference = GLOB.preference_entries[preference_type]
+		var/budget = preference.maximum_value_length - 1
+		var/list/constants = preference.compile_constant_data()
+		TEST_ASSERT_EQUAL(constants["maximum_length"], budget, "The advertised upper limit includes an invalid exclusive endpoint.")
+		TEST_ASSERT_EQUAL(constants["maximum_bytes"], budget, "The browser cannot enforce the native UTF-8 byte budget.")
+		var/ascii = repeated("a", budget)
+		TEST_ASSERT_EQUAL(preference.deserialize(ascii, null), ascii, "A boundary-sized ASCII value changed.")
+		TEST_ASSERT_EQUAL(preference.deserialize("[ascii]z", null), ascii, "ASCII truncation changed the existing accepted budget.")
+		for(var/glyph in list("é", "🦊"))
+			var/prefix = repeated(glyph, round(budget / length(glyph)))
+			var/output = preference.deserialize("[prefix][glyph]", null)
+			TEST_ASSERT_EQUAL(output, prefix, "Truncating [preference_type] split or lost a complete [glyph] codepoint.")
+			TEST_ASSERT(preference.is_valid(output, null), "Deserialization produced an invalid profile value.")
+			TEST_ASSERT(length(output) <= budget, "Profile truncation widened the saved byte budget.")
+		var/mixed = "[repeated("a", budget - 2)]é"
+		TEST_ASSERT_EQUAL(preference.deserialize("[mixed]z", null), mixed, "Mixed-width text lost a complete character at the exact byte boundary.")
+		TEST_ASSERT_EQUAL(preference.deserialize("A <b>name</b> é", null), STRIP_HTML_SIMPLE("A <b>name</b> é", preference.maximum_value_length), "The scoped profile fix changed existing HTML stripping.")
+		TEST_ASSERT_NULL(preference.deserialize(list("invalid"), null), "Structured profile input was converted into an accepted clearing value.")
+		TEST_ASSERT_EQUAL(preference.deserialize("", null), "", "An explicit empty profile value can no longer clear the field.")
+	var/datum/preference/text/unrelated = GLOB.preference_entries[/datum/preference/text/flavor_text]
+	TEST_ASSERT_EQUAL(unrelated.compile_constant_data()["maximum_length"], unrelated.maximum_value_length, "The cyborg repair changed unrelated generic text metadata.")
+	TEST_ASSERT_NULL(unrelated.compile_constant_data()["maximum_bytes"], "The cyborg repair added byte-budget UI behavior to unrelated preferences.")
+
+/// Only a pixel wait needs a second wire stage; keep its server snapshot coherent.
+/datum/unit_test/cyborg_ui_pending_stage_projection
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_ui_pending_stage_projection/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/choiced/cyborg_sprite/penis], "Dogborg Knotted")
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	editor.set_page(list("active" = TRUE), null)
+	editor.set_preview(list("context" = editor.context_generation, "model" = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")), null)
+	var/list/ready = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(!ready["preview_pending"] && !("rendered_preview" in ready), "A ready preview duplicated its current geometry on the wire.")
+	TEST_ASSERT(editor.rendered_preview && length(ready["layers"]), "Wire projection discarded the server's coherent ready stage.")
+	var/list/old_layers = editor.rendered_preview["layers"]
+	editor.resource_refresh_at = world.time + 1 SECONDS
+	editor.set_preview(list("context" = editor.context_generation, "direction" = NORTH), null)
+	var/list/pending = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(pending["preview_pending"], "Changing direction did not enter the paced pixel wait.")
+	TEST_ASSERT_EQUAL(pending["direction"], NORTH, "A pending stage hid the accepted direction from controls.")
+	TEST_ASSERT_EQUAL(pending["rendered_preview"]?["direction"], SOUTH, "Pixel wait lost the previous stage's direction.")
+	TEST_ASSERT(deep_compare_list(pending["rendered_preview"]?["layers"], old_layers), "Pixel wait combined old pixels with different geometry.")
+	editor.resource_refresh_at = world.time
+	ready = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(!ready["preview_pending"] && !("rendered_preview" in ready), "Completed pixels retained a redundant frozen wire stage.")
+	TEST_ASSERT_EQUAL(ready["direction"], NORTH, "Completed pixels exposed an obsolete direction.")
+	TEST_ASSERT_EQUAL(editor.rendered_preview["direction"], NORTH, "Projection failed to retain the latest coherent server stage.")
+	editor.resource_refresh_at = world.time + 1 SECONDS
+	editor.set_preview(list("context" = editor.context_generation, "selected_part" = "sheath"), null)
+	var/list/metadata = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(metadata["resources_pending"] && !metadata["preview_pending"], "Metadata selection incorrectly froze stage placement.")
+	TEST_ASSERT(!("rendered_preview" in metadata) && length(metadata["layers"]), "Metadata-only wait lost current geometry or serialized a second stage.")
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], FALSE)
+	var/list/denied = editor.get_ui_data(null)["cyborg_customization"]
+	TEST_ASSERT(!("rendered_preview" in denied) && !length(denied["layers"]), "Consent revocation retained wire stage geometry.")
+	TEST_ASSERT_NULL(editor.rendered_preview, "Consent revocation retained the server's private stage.")
+	TEST_ASSERT_NULL(editor.preview_resources, "Consent revocation retained private preview resources.")
+	editor.discard_draft()
+
+/// Acquisition must not turn the early public gallery into an all-client preload.
+/datum/unit_test/cyborg_gallery_selected_acquisition/Run()
+	var/datum/asset/cyborg_model_gallery/gallery = get_asset_datum(/datum/asset/cyborg_model_gallery)
+	var/list/previous_registration = list()
+	for(var/asset_name in gallery.assets)
+		previous_registration[asset_name] = SSassets.cache[asset_name]
+		if(SSassets.cache[asset_name])
+			SSassets.transport.unregister_asset(asset_name)
+	gallery.send_to_viewer(null, "Engineering")
+	var/list/selected = gallery.assets_for_department("Engineering")
+	var/only_selected = TRUE
+	for(var/asset_name in gallery.assets)
+		if((asset_name in selected) != (SSassets.cache[asset_name] == gallery.assets[asset_name]))
+			only_selected = FALSE
+	gallery.send_to_viewer(null, "untrusted-department")
+	var/unknown_unchanged = TRUE
+	for(var/asset_name in gallery.assets)
+		if((asset_name in selected) != (SSassets.cache[asset_name] == gallery.assets[asset_name]))
+			unknown_unchanged = FALSE
+		// Restore shared registration before reporting an assertion failure.
+		if(SSassets.cache[asset_name])
+			SSassets.transport.unregister_asset(asset_name)
+		if(previous_registration[asset_name])
+			SSassets.transport.register_asset(asset_name, previous_registration[asset_name])
+	TEST_ASSERT_EQUAL(length(selected), 2, "Selected acquisition must consist of catalog plus one department.")
+	TEST_ASSERT(only_selected, "Opening one department registered unrelated thumbnail resources.")
+	TEST_ASSERT(unknown_unchanged, "An invalid department registered more public resources.")
+
+/// Force the native acquisition wait without network clients or private snapshots.
+/datum/asset/cyborg_model_gallery/acquisition_wait_test
+	abstract_type = /datum/asset/cyborg_model_gallery/acquisition_wait_test
+	var/released = FALSE
+	var/calls = 0
+	var/last_department
+
+/datum/asset/cyborg_model_gallery/acquisition_wait_test/register()
+	return
+
+/datum/asset/cyborg_model_gallery/acquisition_wait_test/send_to_viewer(mob/user, department)
+	calls++
+	last_department = department
+	UNTIL(released)
+	return TRUE
+
+/datum/unit_test/cyborg_gallery_acquisition_rechecks_owner
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_gallery_acquisition_rechecks_owner/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/datum/asset/cyborg_model_gallery/original = get_asset_datum(/datum/asset/cyborg_model_gallery)
+	var/datum/asset/cyborg_model_gallery/acquisition_wait_test/paused = new
+	paused.catalog = original.catalog
+	paused.generation = original.generation
+	paused.catalog_asset = original.catalog_asset
+	paused.assets = original.assets
+	paused.department_assets = original.department_assets
+	GLOB.asset_datums[/datum/asset/cyborg_model_gallery] = paused
+	editor.set_page(list("active" = TRUE), null)
+	spawn(1)
+		editor.close_editor()
+		editor.set_page(list("active" = TRUE), null)
+		paused.released = TRUE
+	var/closed_stayed_empty = !length(editor.get_ui_data(null)) && !editor.preview_resources
+	paused.released = FALSE
+	spawn(1)
+		preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], FALSE)
+		paused.released = TRUE
+	var/list/denied = editor.get_ui_data(null)["cyborg_customization"]
+	var/revoked_stayed_empty = !denied["allowed"] && !editor.get_ui_static_data(null)["cyborg_resources"] && !editor.preview_resources
+	var/calls_while_denied = paused.calls
+	editor.get_ui_data(null)
+	var/no_denied_acquisition = paused.calls == calls_while_denied
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	editor.set_preview(list("context" = editor.context_generation, "gallery_open" = TRUE, "gallery_department" = "Engineering"), null)
+	paused.released = FALSE
+	var/calls_before_switch = paused.calls
+	spawn(1)
+		preferences.default_slot = 2
+		editor.set_preview(list("context" = editor.context_generation, "gallery_department" = "Medical"), null)
+		paused.released = TRUE
+	editor.resource_refresh_at = world.time
+	var/list/current = editor.get_ui_data(null)["cyborg_customization"]
+	var/current_slot = editor.draft_slot == 2
+	var/current_department = current["gallery_department"] == "Medical" && editor.preview_resources?["gallery"]?["department"] == "Medical"
+	var/reacquired_current = paused.calls == calls_before_switch + 2 && paused.last_department == "Medical"
+	editor.discard_draft()
+	GLOB.asset_datums[/datum/asset/cyborg_model_gallery] = original
+	GLOB.asset_datums -= paused.type
+	qdel(paused)
+	TEST_ASSERT(closed_stayed_empty, "An acquisition continuation republished into a closed/reopened editor.")
+	TEST_ASSERT(revoked_stayed_empty && no_denied_acquisition, "Revoked consent retained public acquisition or private UI resources.")
+	TEST_ASSERT(current_slot && current_department && reacquired_current, "An acquisition wait published an obsolete slot or an unacquired department URL.")
+
+/// A native write can leave partial bytes while returning an error string.
+/datum/asset/cyborg_model_gallery/write_failure_test
+	abstract_type = /datum/asset/cyborg_model_gallery/write_failure_test
+	var/last_filename
+
+/datum/asset/cyborg_model_gallery/write_failure_test/register()
+	return
+
+/datum/asset/cyborg_model_gallery/write_failure_test/write_json(encoded_data, filename)
+	last_filename = filename
+	rustg_file_write("{", filename)
+	return "expected partial-write failure"
+
+/datum/unit_test/cyborg_gallery_write_failure/Run()
+	var/datum/asset/cyborg_model_gallery/write_failure_test/gallery = new
+	var/resource
+	var/exception/failure
+	try
+		resource = gallery.json_resource(list("probe" = TRUE))
+	catch(var/exception/error)
+		failure = error
+	var/partial_removed = gallery.last_filename && !fexists(gallery.last_filename)
+	GLOB.asset_datums -= gallery.type
+	qdel(gallery)
+	TEST_ASSERT(failure && findtext(failure.name, "expected partial-write failure"), "A native write error was ignored before asset publication.")
+	TEST_ASSERT_NULL(resource, "A partial JSON file became a published resource.")
+	TEST_ASSERT(partial_removed, "Failed public asset generation retained its partial temporary file.")
+
+/// Wire omission must resolve to the exact original animation, including moving frames.
+/datum/unit_test/cyborg_ui_animation_projection
+	parent_type = /datum/unit_test/cyborg_mock_preferences
+
+/datum/unit_test/cyborg_ui_animation_projection/Run()
+	var/datum/preferences/preferences = create_preferences()
+	preferences.current_window = PREFERENCE_TAB_CHARACTER_PREFERENCES
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/master_erp_preferences], TRUE)
+	preferences.write_preference(GLOB.preference_entries[/datum/preference/toggle/allow_genitals], TRUE)
+	var/datum/preference_middleware/cyborg_character/editor = preferences.cyborg_session()
+	var/model_id = cyborg_appearance_model_id(/obj/item/robot_model/engineering, "Drake")
+	var/list/descriptor = cyborg_model_catalog()[model_id]
+	cyborg_occlusion_ensure_model_ready(descriptor["icon"], descriptor["icon_state"])
+	editor.set_page(list("active" = TRUE), null)
+	var/omitted_fields = 0
+	var/distinct_fields = 0
+	for(var/direction in GLOB.cardinals)
+		for(var/moving in list(FALSE, TRUE))
+			editor.set_preview(list("context" = editor.context_generation, "model" = model_id, "direction" = direction, "moving" = moving), null)
+			editor.resource_refresh_at = world.time
+			editor.get_ui_data(null)
+			var/list/resources = editor.preview_resources
+			var/list/projected = resources["animation"]
+			var/list/full = cyborg_preview_animation(descriptor, direction, "idle", moving, TRUE)
+			TEST_ASSERT(length(full), "The animation projection fixture has no authored frames.")
+			TEST_ASSERT_EQUAL(length(projected), length(full), "Projection changed the authored frame count.")
+			for(var/index in 1 to length(full))
+				var/list/frame = projected[index]
+				var/list/original = full[index]
+				for(var/field in list("delay", "x", "y"))
+					TEST_ASSERT_EQUAL(frame[field], original[field], "Projection changed a frame's timing or anchor offset.")
+				for(var/field in list("body", "occlusion"))
+					TEST_ASSERT_EQUAL(frame[field] || resources[field], original[field], "Frontend fallback changed a frame's resolved pixels.")
+					if(original[field] == resources[field])
+						omitted_fields++
+						TEST_ASSERT(!(field in frame), "A byte-identical standalone image was repeated in an animation frame.")
+					else
+						distinct_fields++
+						TEST_ASSERT_EQUAL(frame[field], original[field], "Projection removed distinct moving or idle frame pixels.")
+	editor.discard_draft()
+	TEST_ASSERT(omitted_fields && distinct_fields, "The animation fixture must cover both omitted duplicates and retained distinct pixels.")

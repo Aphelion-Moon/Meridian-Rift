@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useBackend } from 'tgui/backend';
 import { Box, NoticeBox } from 'tgui-core/components';
 import { CyborgCharacterEditor } from '../../common/CyborgCustomization/CharacterEditor';
+import { useCyborgGallery } from '../../common/CyborgCustomization/gallery';
 import { features } from '../preferences/features';
 import { FeatureValueInput } from '../preferences/features/base';
 import type { PreferencesMenuData } from '../types';
@@ -15,12 +16,17 @@ export function CyborgCharacterPage() {
   }, [act]);
   const state = data.cyborg_customization;
   const resources = data.cyborg_resources;
+  const gallery = useCyborgGallery(
+    state?.allowed ? resources?.gallery : undefined,
+  );
   const customization = useMemo(
     () =>
       state && {
         ...resources,
         ...state,
-        models: resources?.models ?? [],
+        models: gallery.models,
+        gallery_loading: gallery.loading,
+        gallery_error: gallery.error,
         body: resources?.body ?? null,
         body_width: resources?.body_width ?? 32,
         body_height: resources?.body_height ?? 32,
@@ -28,8 +34,15 @@ export function CyborgCharacterPage() {
           ...layer,
           icon: resources?.layer_icons?.[layer.slot || ''] || '',
         })),
+        rendered_preview: state.rendered_preview && {
+          ...state.rendered_preview,
+          layers: state.rendered_preview.layers?.map((layer) => ({
+            ...layer,
+            icon: resources?.layer_icons?.[layer.slot || ''] || '',
+          })),
+        },
       },
-    [state, resources],
+    [state, resources, gallery.models, gallery.loading, gallery.error],
   );
   const values = useMemo(
     () => cyborgPreferenceValues(data.character_preferences),
@@ -63,6 +76,7 @@ export function CyborgCharacterPage() {
       }
       onPreview={onPreview}
       onLayout={onLayout}
+      onGalleryRetry={gallery.retry}
       renderPreference={(key) =>
         values[key] !== undefined && features[key] ? (
           <>
@@ -77,6 +91,14 @@ export function CyborgCharacterPage() {
               feature={features[key]}
               featureId={key}
               value={values[key]}
+              nativeInput
+              label={
+                key === 'silicon_gender'
+                  ? 'Pronouns'
+                  : key === 'cyborg_size'
+                    ? 'Body size'
+                    : features[key].name
+              }
             />
           </>
         ) : (

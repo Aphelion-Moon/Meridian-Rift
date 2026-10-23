@@ -13,11 +13,45 @@ from build_assets import (
     frame,
     load_cached_dmi,
     marker_anchor,
+    occlusion_source_record,
+    format_occlusion_sources,
+    validate_occlusion_movement,
     read_dmi,
 )
 
 
 class AssetContracts(unittest.TestCase):
+    def test_rejected_movement_cannot_fall_back_to_a_stationary_mask(self):
+        source = {"states": [dict(name="chassis", movement=0), dict(name="chassis", movement=1)]}
+        stationary = dict(state="chassis", moving=0)
+        with self.assertRaisesRegex(ValueError, "movement"):
+            validate_occlusion_movement(source, [stationary])
+        validate_occlusion_movement(source, [stationary, dict(state="chassis", moving=1)])
+        validate_occlusion_movement(source, [])
+
+    def test_occlusion_plan_keeps_movement_timing_and_mask_provenance(self):
+        state = dict(name="chassis", dirs=4, frames=3, delays=[1, 2, 3], movement=1, loop=0, rewind=0, hotspot=None, unknown={})
+        record = occlusion_source_record(state, "source/mask.dmi", {**state, "name": "mask"}, "chassis")
+        self.assertEqual(record, dict(model="chassis", state="chassis", moving=1, mask="source/mask.dmi", mask_state="mask", dirs=4, delays=[1, 2, 3], loop=0, rewind=0))
+        rendered = format_occlusion_sources({"source/body.dmi": {"width": 64, "height": 32, "states": [record]}})
+        self.assertIn("'source/body.dmi'", rendered)
+        self.assertIn("'source/mask.dmi'", rendered)
+        self.assertIn('"moving" = 1', rendered)
+        self.assertIn('"delays" = list(1, 2, 3)', rendered)
+        self.assertNotIn("occlusion_generated", rendered)
+
+    def test_occlusion_plan_rejects_metadata_iconforge_cannot_preserve(self):
+        state = dict(name="chassis", dirs=4, frames=1, delays=[1], movement=0, loop=0, rewind=0, hotspot=None, unknown={})
+        for changes in ({"dirs": 1}, {"dirs": 8}, {"loop": 2}, {"rewind": 1}, {"hotspot": "1,2,1"}, {"unknown": {"future_field": "1"}}):
+            with self.subTest(changes=changes), self.assertRaisesRegex(ValueError, "metadata"):
+                occlusion_source_record({**state, **changes}, "mask.dmi", state, "chassis")
+
+    def test_matching_delays_do_not_hide_different_loop_or_rewind(self):
+        sheet = {"width": 64, "height": 32}
+        state = dict(dirs=4, frames=2, delays=[1, 1], loop=0, rewind=0)
+        for changes in ({"loop": 2}, {"rewind": 1}):
+            self.assertFalse(compatible(sheet, state, sheet, {**state, **changes}))
+
     def test_frame_index_respects_direction_order_and_sheet_wrapping(self):
         with tempfile.TemporaryDirectory() as directory:
             image = Image.new("RGBA", (8, 8))

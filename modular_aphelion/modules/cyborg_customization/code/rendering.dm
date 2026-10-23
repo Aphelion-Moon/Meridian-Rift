@@ -53,6 +53,9 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	var/list/choices = runtime_state["choices"]
 	var/list/active = runtime_state["active"]
 	var/list/arousal = runtime_state["arousal"]
+	// The editor owns the six displayed PNGs independently of the shared FIFO.
+	// Reusing them must still run the same placement math as the live renderer.
+	var/list/cached_icons = runtime_state["cached_icons"]
 	var/list/anchor = cyborg_animation_anchor(descriptor, runtime_state["direction"], runtime_state["pose"])
 	for(var/slot in cyborg_layout_supported_slots())
 		if(!active[slot] || !choices[slot] || choices[slot] == SPRITE_ACCESSORY_NONE)
@@ -66,11 +69,17 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 			placement["pixel_y"] += anchor["y"]
 		if(!placement["visible"])
 			continue
-		var/list/rendered = cyborg_accessory_render(slot, choices[slot], entry["colors"], state, cyborg_part_sprite_direction(descriptor, entry, runtime_state["direction"]), entry["sprite_size"])
-		if(!rendered)
+		var/list/rendered
+		var/pixels
+		if(islist(cached_icons))
+			pixels = cached_icons[slot]
+		else
+			rendered = cyborg_accessory_render(slot, choices[slot], entry["colors"], state, cyborg_part_sprite_direction(descriptor, entry, runtime_state["direction"]), entry["sprite_size"])
+			pixels = rendered?["base64"]
+		if(!pixels)
 			continue
 		layers += list(list(
-			"slot" = slot, "icon" = rendered["base64"], "resource" = rendered["icon"],
+			"slot" = slot, "icon" = pixels, "resource" = rendered?["icon"],
 			"x" = placement["pixel_x"], "y" = placement["pixel_y"],
 			"rotation" = placement["rotation"], "scale" = placement["scale"], "priority" = placement["priority"],
 			"mirror_x" = mirrored ? -1 : 1,
@@ -89,6 +98,9 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 	var/mob/living/silicon/robot/owner
 	var/render_key
 	var/list/render_layers = list()
+	/// At most one weak completion is outstanding, regardless of appearance churn.
+	var/occlusion_loading = FALSE
+	var/occlusion_failed_key
 
 /obj/effect/client_image_holder/cyborg_customization/Initialize(mapload, list/mobs_which_see_us)
 	owner = loc
@@ -187,9 +199,59 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 		"choices" = owner.cyborg_appearance_choices, "active" = owner.cyborg_appearance_active,
 		"arousal" = owner.cyborg_appearance_arousal, "direction" = owner.dir, "pose" = owner.cyborg_customization_pose(),
 	)) : list()
+	if(length(render_layers) && cyborg_occlusion_has_model(descriptor["icon"], descriptor["icon_state"]) && !cyborg_occlusion_cached(descriptor["icon"], descriptor["icon_state"]))
+		// Never attach parts without their matching chassis mask. A first use
+		// prepares the pair asynchronously; subsequent owners reuse the resource.
+		render_layers = list()
+		var/model_key = "[descriptor["icon"]]#[descriptor["icon_state"]]"
+		if(!occlusion_loading && occlusion_failed_key != model_key)
+			occlusion_loading = TRUE
+			INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(cyborg_complete_holder_occlusion), WEAKREF(src), descriptor["icon"], descriptor["icon_state"])
 	regenerate_image()
 	update_occlusion()
 	update_animation()
+
+/// Resolve the holder only after waiting. No owner, layout, or old image is captured.
+/proc/cyborg_complete_holder_occlusion(datum/weakref/holder_ref, source_file, base_state)
+	// Finish the synchronous hide before a ready/failed completion can rebuild.
+	sleep(0)
+	var/obj/effect/client_image_holder/cyborg_customization/holder = holder_ref.resolve()
+	if(QDELETED(holder))
+		return
+	if(QDELETED(holder.owner) || holder.owner.cyborg_appearance_holder != holder)
+		holder.occlusion_loading = FALSE
+		return
+	var/list/current = cyborg_model_catalog()[holder.owner.cyborg_appearance_model]
+	if(!cyborg_body_visuals_visible(holder.owner) || !current || current["icon"] != source_file || current["icon_state"] != base_state)
+		holder.occlusion_loading = FALSE
+		holder.render_key = null
+		holder.update_from_owner()
+		return
+	var/has_active_part = FALSE
+	for(var/slot in cyborg_layout_supported_slots())
+		if(holder.owner.cyborg_appearance_active[slot] && holder.owner.cyborg_appearance_choices[slot] && holder.owner.cyborg_appearance_choices[slot] != SPRITE_ACCESSORY_NONE)
+			has_active_part = TRUE
+			break
+	if(!has_active_part)
+		holder.occlusion_loading = FALSE
+		return
+	holder = null
+	current = null
+	var/exception/failure
+	try
+		cyborg_occlusion_ensure_model_ready(source_file, base_state)
+	catch(var/exception/error)
+		failure = error
+	holder = holder_ref.resolve()
+	if(QDELETED(holder))
+		return
+	holder.occlusion_loading = FALSE
+	if(failure)
+		holder.occlusion_failed_key = "[source_file]#[base_state]"
+	if(QDELETED(holder.owner) || holder.owner.cyborg_appearance_holder != holder)
+		return
+	holder.render_key = null
+	holder.update_from_owner()
 
 /datum/preference_middleware/cyborg_character/post_set_preference(mob/user, preference, value)
 	for(var/slot in cyborg_layout_supported_slots())
@@ -197,8 +259,13 @@ GLOBAL_LIST_EMPTY(cyborg_customization_holders)
 			continue
 		var/list/draft = begin_draft()
 		if(draft)
+			draft = draft.Copy()
+			var/list/active = draft["active"]
+			draft["active"] = active.Copy()
+			var/list/entry = active[slot]
+			draft["active"][slot] = entry.Copy()
 			draft["active"][slot]["sprite"] = cyborg_preference_value(preferences, preference)
-			update_draft(draft)
+			update_draft(draft, canonical_action = TRUE)
 	if(iscyborg(user))
 		var/mob/living/silicon/robot/robot = user
 		robot.cyborg_customization_sync_permissions(preferences)

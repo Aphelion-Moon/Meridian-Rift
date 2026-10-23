@@ -2,6 +2,8 @@ import { sortBy } from 'es-toolkit';
 import {
   type ComponentType,
   createElement,
+  type FormEvent,
+  type KeyboardEvent,
   type ReactNode,
   useEffect,
   useState,
@@ -65,6 +67,8 @@ export type FeatureValueProps<
   shrink?: boolean;
   placeholder?: string;
   value: TReceiving;
+  label?: string;
+  nativeInput?: boolean;
   character_preferences: CharacterPreferencesData;
 }>;
 
@@ -226,6 +230,8 @@ type FeatureValueInputProps = {
   featureId: string;
   shrink?: boolean;
   value: unknown;
+  label?: string;
+  nativeInput?: boolean;
 };
 
 export function FeatureValueInput(props: FeatureValueInputProps) {
@@ -251,6 +257,8 @@ export function FeatureValueInput(props: FeatureValueInputProps) {
     serverData: serverData?.[props.featureId] as any,
     shrink: props.shrink,
     placeholder: feature.placeholder,
+    label: props.label,
+    nativeInput: props.nativeInput,
     handleSetValue: changeValue,
     value: predictedValue,
     character_preferences: data.character_preferences,
@@ -259,7 +267,68 @@ export function FeatureValueInput(props: FeatureValueInputProps) {
 
 type FeatureShortTextData = {
   maximum_length: number;
+  maximum_bytes?: number;
 };
+
+/** Match preferences with a UTF-8 byte budget without splitting a character. */
+function limitTextBytes(value: string, maximumBytes?: number): string {
+  if (maximumBytes === undefined) return value;
+  let bytes = 0;
+  let end = 0;
+  for (const character of value) {
+    const point = character.codePointAt(0)!;
+    const width =
+      point <= 0x7f ? 1 : point <= 0x7ff ? 2 : point <= 0xffff ? 3 : 4;
+    if (bytes + width > maximumBytes) break;
+    bytes += width;
+    end += character.length;
+  }
+  return value.slice(0, end);
+}
+
+function byteLimitedInputProps(maximumBytes?: number) {
+  if (maximumBytes === undefined) return {};
+  return {
+    onChangeCapture: (
+      event: FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => {
+      // Let the IME finish its composition before enforcing the final budget.
+      if ((event.nativeEvent as InputEvent).isComposing) return;
+      const input = event.currentTarget;
+      input.value = limitTextBytes(input.value, maximumBytes);
+    },
+    onCompositionEnd: (
+      event: FormEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => {
+      const input = event.currentTarget;
+      const limited = limitTextBytes(input.value, maximumBytes);
+      if (limited === input.value) return;
+      // Update the native value, then notify Input/TextArea's local state. This
+      // also covers browsers whose final input precedes compositionend.
+      const prototype =
+        input instanceof HTMLTextAreaElement
+          ? HTMLTextAreaElement.prototype
+          : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(
+        input,
+        limited,
+      );
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+    onKeyDownCapture: (
+      event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => {
+      const input = event.currentTarget;
+      if (event.key !== 'Tab' || !(input instanceof HTMLTextAreaElement))
+        return;
+      // TextArea inserts tabs through its own state instead of an input event.
+      const next = `${input.value.slice(0, input.selectionStart)}\t${input.value.slice(input.selectionEnd)}`;
+      if (limitTextBytes(next, maximumBytes) === next) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+  };
+}
 
 export function FeatureShortTextInput(
   props: FeatureValueProps<string, string, FeatureShortTextData>,
@@ -268,11 +337,15 @@ export function FeatureShortTextInput(
 
   return (
     <Input
+      aria-label={props.label}
       disabled={!serverData}
       fluid
       value={value}
       maxLength={serverData?.maximum_length}
-      onBlur={handleSetValue}
+      {...byteLimitedInputProps(serverData?.maximum_bytes)}
+      onBlur={(value) =>
+        handleSetValue(limitTextBytes(value, serverData?.maximum_bytes))
+      }
     />
   );
 }
@@ -288,12 +361,16 @@ export const FeatureLongTextInput = (
 
   return (
     <TextArea
+      aria-label={props.label}
       height="100px"
       fluid
       placeholder={props.placeholder}
       value={value}
       maxLength={serverData?.maximum_length}
-      onBlur={(value) => handleSetValue(value)}
+      {...byteLimitedInputProps(serverData?.maximum_bytes)}
+      onBlur={(value) =>
+        handleSetValue(limitTextBytes(value, serverData?.maximum_bytes))
+      }
     />
   );
 };

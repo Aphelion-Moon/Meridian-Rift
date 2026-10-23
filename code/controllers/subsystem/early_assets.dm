@@ -24,7 +24,7 @@ SUBSYSTEM_DEF(early_assets)
 		if (!initial(asset_type.early))
 			continue
 
-		if (!load_asset_datum(asset_type))
+		if (!load_early_asset(asset_type)) // APHELION EDIT CHANGE - join required asynchronous early assets
 			stack_trace("Could not initialize early asset [asset_type]!")
 
 		CHECK_TICK
@@ -32,3 +32,13 @@ SUBSYSTEM_DEF(early_assets)
 	SSatoms.clear_tracked_initalize(init_source)
 
 	return SS_INIT_SUCCESS
+
+// APHELION EDIT ADDITION START - required early asset readiness barrier
+/// A preference request may have already published an asset datum whose register
+/// is still asleep. Required early resources must finish before this SS does.
+/datum/controller/subsystem/early_assets/proc/load_early_asset(asset_type)
+	var/datum/asset/asset = load_asset_datum(asset_type)
+	if(asset?.early_blocking)
+		asset.ensure_ready()
+	return asset
+// APHELION EDIT ADDITION END

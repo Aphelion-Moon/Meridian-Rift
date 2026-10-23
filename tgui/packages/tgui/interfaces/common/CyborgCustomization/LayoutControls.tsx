@@ -1,9 +1,17 @@
 import type { ReactNode } from 'react';
-import { Box, Button, Dropdown, Section, Tabs } from 'tgui-core/components';
+import { Box, Section } from 'tgui-core/components';
 import { AdjustmentSlider } from '../AdjustmentSlider';
-import { ColorControls } from './ColorControls';
-import { placementBase, placementGroup } from './placementGroups';
-import { type PlacementTarget, posePlacement } from './posePlacement';
+import {
+  EditorButton as Button,
+  ColorControls,
+  EditorSelect,
+} from './controls';
+import {
+  type PlacementTarget,
+  placementBase,
+  placementGroup,
+  posePlacement,
+} from './placement';
 import type {
   CyborgEditorStore,
   CyborgSlot,
@@ -12,21 +20,7 @@ import type {
   PartMetadata,
   PlacementCommand,
 } from './types';
-
-export const editorLabel = (value: string) =>
-  ({
-    idle: 'Standing',
-    rest: 'Resting',
-    sit: 'Sitting',
-    bellyup: 'Belly up',
-    rest_deep: 'Deep rest',
-    rest_alt: 'Resting (alternate)',
-    sit_alt: 'Sitting (alternate)',
-    none: 'Unaroused',
-    partial: 'Partially aroused',
-    full: 'Fully aroused',
-    base: 'All arousal states',
-  })[value] || value.charAt(0).toUpperCase() + value.slice(1);
+import { editorLabel } from './types';
 
 const adjustments = {
   pixel_x: {
@@ -75,8 +69,7 @@ export function LayoutControls(props: {
     part?.sizes.findIndex(
       (size) =>
         size.value ===
-        (part.effective_size ??
-          entry.sprite_size ??
+        (entry.sprite_size ??
           (slot === 'penis' || slot === 'testicles' || slot === 'sheath'
             ? 2
             : 1)),
@@ -135,7 +128,11 @@ export function LayoutControls(props: {
   return (
     <Section title={`${editorLabel(slot)} appearance`}>
       {props.spriteControl}
-      <Tabs mt={1}>
+      <div
+        className="CyborgEditor__selectors"
+        role="group"
+        aria-label="Placement target"
+      >
         {(
           [
             ['base', 'Shared placement'],
@@ -143,15 +140,15 @@ export function LayoutControls(props: {
             ['arousal', 'This arousal'],
           ] as const
         ).map(([value, label]) => (
-          <Tabs.Tab
+          <Button
             key={value}
             selected={target === value}
             onClick={() => props.onPlacementTarget(value)}
           >
             {label}
-          </Tabs.Tab>
+          </Button>
         ))}
-      </Tabs>
+      </div>
       {target === 'base' ? (
         <>
           {props.wide && (
@@ -194,16 +191,15 @@ export function LayoutControls(props: {
                     alt="Selected part size"
                   />
                 )}
-                <Dropdown
-                  width="100%"
+                <EditorSelect
+                  label="Part size"
                   disabled={props.disabled}
-                  selected={String(part.sizes[sizeIndex]?.value)}
-                  displayText={part.sizes[sizeIndex]?.label}
+                  value={String(part.sizes[sizeIndex]?.value)}
                   options={part.sizes.map((size) => ({
                     value: String(size.value),
-                    displayText: size.label,
+                    label: size.label,
                   }))}
-                  onSelected={(value) => set('sprite_size', Number(value))}
+                  onChange={(value) => set('sprite_size', Number(value))}
                 />
                 <Button
                   icon="chevron-right"
@@ -216,6 +212,9 @@ export function LayoutControls(props: {
                   }
                 />
               </div>
+              <Box color="label" mt={0.5}>
+                Size previews use neutral colors.
+              </Box>
             </div>
           )}
           <Box mt={1} color="label">

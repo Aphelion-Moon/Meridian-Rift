@@ -9,12 +9,19 @@ Use this checklist for the final source revision. Record the exact commit/source
 - [ ] Confirm every model reference resolves to a profile, profile output is deterministic, identical full profiles deduplicate, and forced digest-prefix collisions remain distinct through canonical full-profile equality.
 - [ ] Compare the generated model/state/direction frame data and fallback decisions to the pre-change baseline. Confirm the 36 model/state mappings and 27 fallback cases remain equivalent unless an intentional source change explains a difference.
 - [ ] Compare generated DMI/PNG decoded pixels and DMI metadata to baseline. Raw container bytes can change with Pillow/compression settings; record the environment if byte identity is part of the check.
+- [ ] Test the freshly published runtime occlusion resources before any diagnostic disk export. Every authored state must be immediately selectable at its expected dimensions; export can hide lazy native icon construction defects.
+- [ ] Verify the gallery early barrier joins existing work. Verify occlusion startup creates no model resources, first demand generates exactly one model, duplicate requests join it, different models run serially, and successful resources remain reusable for the round. Unknown keys must create no jobs or retained entries.
+- [ ] Verify per-model failure releases its lease/files, logs once, unblocks waiters and permits later models. Cleanup must not clear another IconForge job's inputs. Exercise normal deferred assets and `DO_NOT_DEFER_ASSETS` separately.
+- [ ] Hold a first model load while changing models, slots, consent and editor/owner lifetime. No private snapshot or obsolete image may be published; only one completion per consumer may remain. Test first-open failure with an available model picker and recovery to another model.
 - [ ] Confirm the manifest format version is independent of the player layout schema and that this data-only format change does not rewrite saved preference data.
 
 ## Automated and build gates
 
 - [ ] Run the focused DM tests covering draft revisions, character-slot changes, slot deletion, future-schema refusal/preservation, failed and retried sidecar writes, session-only saves, and application through `transfer_silicon_prefs()`.
 - [ ] Run the focused TGUI tests for editor actions, export, open/edit/close, preview camera, directional/pose targeting, mirroring, south-art reuse, sprite selection, and input pacing.
+- [ ] Exercise public gallery catalog/department failures, explicit retry, shared request cancellation, consent changes, catalog generation replacement, and opening before metadata arrives. Verify completed assets are reused and native numeric booleans do not appear as text.
+- [ ] Test the six profile fields at ASCII, accented and astral UTF-8 limits, including IME completion, Tab insertion/replacement and oversized action transport. Check both accepted native values and displayed text.
+- [ ] Verify elapsed animation timing after a real hidden-tab interval, continuity across identical resource republication, and first-frame pause while placing parts.
 - [ ] Run the production game build and record the exact command and exit result.
 - [ ] Record applicable repository CI gates for the same source revision. Keep focused local checks separate from hosted CI and full release qualification; a partial, timed-out, or earlier-revision run does not close a required gate.
 
@@ -25,6 +32,9 @@ Use this checklist for the final source revision. Record the exact commit/source
 - [ ] Make the sidecar unwritable; confirm the draft remains dirty, visible as failed, and retryable, and that a later write clears the error.
 - [ ] As a guest or with dev preferences, confirm the UI does not claim durable storage.
 - [ ] Verify page close, teardown, slot switch, deletion, and import replacement follow their documented save/discard behavior.
+- [ ] Verify compact sidecar round trips and incremental snapshots preserve ordering and independent ownership. Test external same-slot replacement before completion, different-slot writes, mutable raw callers and failure retries without falsely acknowledging a newer draft.
+- [ ] Change or close the editor while a shared asset is still loading. Recheck current slot/model/direction and consent after the wait; private data must not be republished after close or revocation.
+- [ ] Verify metadata-only refreshes preserve active placement gestures, pixel changes retain coherent old stage geometry, and repeated size controls advance from accepted state while metadata waits.
 - [ ] Load old layout-only records, old unbound presets, and future-version records; verify compatibility and refusal/preservation behavior without accidental migration or downgrade.
 
 ## Native visual and two-client acceptance
@@ -45,6 +55,9 @@ Use this checklist for the final source revision. Record the exact commit/source
 ## Performance, remaining human review, and evidence
 
 - [ ] If performance qualification is required, run three paired baseline/feature measurements in the same build environment and data setup; include at least the planned 100 open/edit/close stabilization cycles. Record elapsed time and memory results, not just cache bounds.
+- [ ] Measure resource generation, first use, warm reuse and access to every supported animation state separately. A warm average cannot waive a cold-use CPU regression. Distinguish compressed resource bytes, temporary staging, retained engine caches and process memory.
+- [ ] Measure an untouched round, one requested model, repeated use of that model and multiple distinct requested models. Account separately for first-use generation latency; all-model eager-generation measurements do not establish demand-loading cost or memory.
+- [ ] Measure 100 sessions with distinct colors, changed directions/departments, large accepted saved layouts, repeated explicit saves and failures. Drain admitted latest-state work before reporting improvement, then separately measure real connected-client traffic, tick usage and viewer fanout.
 - [ ] Attach representative DreamSeeker screenshots or short capture for editor/live comparison and two-client visibility. State which acceptance rows each artifact demonstrates.
 - [ ] Record outstanding failures, unrun checks, or environmental limits explicitly. Do not infer a pass from source inspection, a builder run, or an isolated UI test.
 

@@ -1,24 +1,18 @@
 import { type ReactNode, useState } from 'react';
-import {
-  Box,
-  Button,
-  Dropdown,
-  Input,
-  NoticeBox,
-  Section,
-  Tabs,
-} from 'tgui-core/components';
+import { Box, Input, NoticeBox, Section } from 'tgui-core/components';
 import { CyborgPreview } from './CyborgPreview';
-import { editorLabel, LayoutControls } from './LayoutControls';
+import { EditorButton as Button, EditorSelect } from './controls';
+import { LayoutControls } from './LayoutControls';
 import { ModelPicker } from './ModelPicker';
 import { PortraitPreview } from './PortraitPreview';
 import { PresetControls } from './PresetControls';
-import type { PlacementTarget } from './posePlacement';
+import type { PlacementTarget } from './placement';
 import {
   CYBORG_DIRECTIONS,
   CYBORG_SLOTS,
   type CyborgCustomizationData,
   type CyborgSlot,
+  editorLabel,
   type LayoutAction,
 } from './types';
 
@@ -30,6 +24,7 @@ export function CyborgCharacterEditor(props: {
   onName: (name: string) => void;
   onPreview: LayoutAction;
   onLayout: LayoutAction;
+  onGalleryRetry?: () => void;
 }) {
   const { data, name, values, renderPreference, onName, onPreview, onLayout } =
     props;
@@ -50,13 +45,17 @@ export function CyborgCharacterEditor(props: {
           <Box color="label" mb={0.5}>
             Name
           </Box>
-          <Input fluid value={name} onBlur={onName} />
+          <Input fluid aria-label="Name" value={name} onBlur={onName} />
         </div>
         <div>
           <Box color="label" mb={0.5}>
             Chassis
           </Box>
-          <ModelPicker data={data} onPreview={onPreview} />
+          <ModelPicker
+            data={data}
+            onPreview={onPreview}
+            onRetry={props.onGalleryRetry}
+          />
         </div>
       </div>
       <div className="CyborgEditor__row">
@@ -85,30 +84,28 @@ export function CyborgCharacterEditor(props: {
               <Box color="label" mb={0.5}>
                 Pose
               </Box>
-              <Dropdown
-                width="100%"
-                selected={data.pose}
-                displayText={editorLabel(data.pose)}
+              <EditorSelect
+                label="Pose"
+                value={data.pose}
                 options={data.poses.map((value) => ({
                   value,
-                  displayText: editorLabel(value),
+                  label: editorLabel(value),
                 }))}
-                onSelected={(pose) => onPreview({ pose })}
+                onChange={(pose) => onPreview({ pose })}
               />
             </div>
             <div>
               <Box color="label" mb={0.5}>
                 Arousal
               </Box>
-              <Dropdown
-                width="100%"
-                selected={data.arousal}
-                displayText={editorLabel(data.arousal)}
+              <EditorSelect
+                label="Arousal"
+                value={data.arousal}
                 options={['none', 'partial', 'full'].map((value) => ({
                   value,
-                  displayText: editorLabel(value),
+                  label: editorLabel(value),
                 }))}
-                onSelected={(arousal) => onPreview({ arousal })}
+                onChange={(arousal) => onPreview({ arousal })}
               />
             </div>
           </div>
@@ -141,6 +138,7 @@ export function CyborgCharacterEditor(props: {
             store={data.store}
             models={data.models}
             model={data.model}
+            modelDefaultAvailable={data.model_default_available}
             onAction={onLayout}
             disabled={readonly || !data.allowed}
           />
@@ -180,17 +178,21 @@ export function CyborgCharacterEditor(props: {
   );
   return (
     <div className="CyborgEditor">
-      <Tabs>
+      <div
+        className="CyborgEditor__selectors"
+        role="group"
+        aria-label="Editor page"
+      >
         {['Appearance', 'Profile'].map((label) => (
-          <Tabs.Tab
+          <Button
             key={label}
             selected={tab === label}
             onClick={() => setTab(label)}
           >
             {label}
-          </Tabs.Tab>
+          </Button>
         ))}
-      </Tabs>
+      </div>
       {tab === 'Appearance' ? (
         <div className="CyborgEditor__workspace">
           <div className="CyborgEditor__sidebar">

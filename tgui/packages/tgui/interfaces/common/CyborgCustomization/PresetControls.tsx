@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Box, Button, Dropdown, Input } from 'tgui-core/components';
+import { Box, Input } from 'tgui-core/components';
+import type { BooleanLike } from 'tgui-core/react';
+import { EditorButton as Button, EditorSelect } from './controls';
 import type { CyborgEditorStore, LayoutAction } from './types';
 
 export function PresetControls({
   store,
   model,
+  modelDefaultAvailable = false,
   onAction,
   models = [],
   disabled = false,
@@ -12,6 +15,7 @@ export function PresetControls({
   disabled?: boolean;
   store: CyborgEditorStore;
   model?: string;
+  modelDefaultAvailable?: BooleanLike;
   models?: { id: string; department: string; skin: string }[];
   onAction: LayoutAction;
 }) {
@@ -28,7 +32,7 @@ export function PresetControls({
         : 'Unbound legacy preset';
   };
   const assigned = model ? store.model_presets?.[model] : undefined;
-  const hasDefault = !!model && !!store.model_defaults[model];
+  const hasDefault = !!model && !!modelDefaultAvailable;
   return (
     <div className="CyborgEditor__presets">
       <div
@@ -46,15 +50,15 @@ export function PresetControls({
         <Box color="label" mb={0.5}>
           Saved presets
         </Box>
-        <Dropdown
-          width="100%"
+        <EditorSelect
+          label="Saved presets"
           options={Object.keys(store.presets).map((value) => ({
             value,
-            displayText: `${value} · ${modelLabel(store.preset_models?.[value])}`,
+            label: `${value} · ${modelLabel(store.preset_models?.[value])}`,
           }))}
-          selected={trimmedName}
-          displayText={exists ? trimmedName : 'Choose a saved preset'}
-          onSelected={setName}
+          value={exists ? trimmedName : ''}
+          placeholder="Choose a saved preset"
+          onChange={setName}
         />
       </div>
       {exists && (
@@ -69,6 +73,7 @@ export function PresetControls({
           value={name}
           maxLength={24}
           placeholder="Preset name"
+          aria-label="Preset name"
           onChange={setName}
         />
       </div>

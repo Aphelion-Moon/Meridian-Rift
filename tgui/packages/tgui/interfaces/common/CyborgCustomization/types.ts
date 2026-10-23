@@ -1,3 +1,5 @@
+import type { BooleanLike } from 'tgui-core/react';
+
 export const CYBORG_SLOTS = [
   'penis',
   'sheath',
@@ -7,6 +9,22 @@ export const CYBORG_SLOTS = [
   'breasts',
 ] as const;
 export type CyborgSlot = (typeof CYBORG_SLOTS)[number];
+
+export const editorLabel = (value: string) =>
+  ({
+    idle: 'Standing',
+    rest: 'Resting',
+    sit: 'Sitting',
+    bellyup: 'Belly up',
+    rest_deep: 'Deep rest',
+    rest_alt: 'Resting (alternate)',
+    sit_alt: 'Sitting (alternate)',
+    none: 'Unaroused',
+    partial: 'Partially aroused',
+    full: 'Fully aroused',
+    base: 'All arousal states',
+  })[value] || value.charAt(0).toUpperCase() + value.slice(1);
+
 export const CYBORG_DIRECTIONS: Record<string, number> = {
   north: 1,
   south: 2,
@@ -52,10 +70,34 @@ export type LayoutStore = {
 export type CyborgEditorStore = Omit<LayoutStore, 'presets'> & {
   presets: Record<string, unknown>;
 };
+export type CyborgGallery = {
+  generation: string;
+  catalog_url: string;
+  department?: string;
+  thumbnails_url?: string;
+};
 export type CyborgCustomizationData = {
+  gallery?: CyborgGallery;
+  gallery_loading?: boolean;
+  gallery_error?: boolean;
   /** Replaced drafts invalidate commands; ordinary edits only advance revision. */
   context?: number;
   revision?: number;
+  resources_pending?: boolean;
+  /** Only body/layer pixel changes interrupt placement; option metadata does not. */
+  preview_pending?: boolean;
+  /** Geometry paired with the last delivered resource set while a refresh waits. */
+  rendered_preview?: Pick<
+    CyborgCustomizationData,
+    | 'model'
+    | 'pose'
+    | 'direction'
+    | 'arousal'
+    | 'moving'
+    | 'wide'
+    | 'body_scale'
+    | 'layers'
+  > | null;
   save_status?: {
     pending: boolean;
     revision: number;
@@ -66,12 +108,13 @@ export type CyborgCustomizationData = {
   reference?: string;
   parts?: Partial<Record<CyborgSlot, PartMetadata>>;
   layout_source?: 'active' | 'model_default';
-  model_default_available?: boolean;
+  model_default_available?: BooleanLike;
   allowed: boolean;
   occlusion?: string;
   moving: boolean;
   animation?: {
-    body: string;
+    /** Missing images reuse the corresponding static preview image. */
+    body?: string;
     occlusion?: string;
     x: number;
     y: number;

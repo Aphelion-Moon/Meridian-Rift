@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { editorLabel } from './LayoutControls';
 import { opaqueBounds, pngSize } from './previewGeometry';
-import type { CyborgCustomizationData } from './types';
+import { type CyborgCustomizationData, editorLabel } from './types';
 
 /** A transparent sprite's full canvas is often much larger than the part itself. */
 export function PreviewPart({

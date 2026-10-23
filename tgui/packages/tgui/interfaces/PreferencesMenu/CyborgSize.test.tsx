@@ -59,3 +59,25 @@ it('renders numeric cyborg size choices and submits a numeric size', async () =>
   expect(changes).toEqual([1.6]);
   await act(async () => cleanup());
 });
+
+it('offers named native size selection in the cyborg editor and still submits a number', () => {
+  const SizeInput = cyborg_size.component;
+  const changes: number[] = [];
+  render(
+    <SizeInput
+      featureId="cyborg_size"
+      value={1}
+      nativeInput
+      label="Body size"
+      serverData={{ choices: [0.75, 1, 1.6, 2, 2.5] }}
+      character_preferences={characterPreferences}
+      handleSetValue={(value) => changes.push(value)}
+    />,
+  );
+  const select = screen.getByRole('combobox', { name: 'Body size' });
+  select.focus();
+  expect(document.activeElement).toBe(select);
+  fireEvent.change(select, { target: { value: '1.6' } });
+  expect(changes).toEqual([1.6]);
+  cleanup();
+});

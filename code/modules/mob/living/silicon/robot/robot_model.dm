@@ -247,6 +247,7 @@
 	if(!new_model.be_transformed_to(src, forced))
 		qdel(new_model)
 		return
+	new_model.cyborg_resolve_installed_skin() // APHELION EDIT ADDITION - CYBORG_CUSTOMIZATION
 	cyborg.drop_all_held_items()
 	cyborg.model = new_model
 	cyborg.update_module_innate()

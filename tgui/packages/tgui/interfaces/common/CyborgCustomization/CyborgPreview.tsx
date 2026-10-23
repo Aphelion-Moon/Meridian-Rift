@@ -1,16 +1,21 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Dropdown } from 'tgui-core/components';
+import { Box } from 'tgui-core/components';
 import { AdjustmentSlider } from '../AdjustmentSlider';
-import { editorLabel } from './LayoutControls';
+import { EditorButton as Button, EditorSelect } from './controls';
 import { mapPreviewZoom, previewDisplayScale } from './mapPreviewZoom';
 import { PreviewPart } from './PreviewPart';
-import { placementBase, placementGroup } from './placementGroups';
-import { type PlacementTarget, posePlacement } from './posePlacement';
+import {
+  type PlacementTarget,
+  placementBase,
+  placementGroup,
+  posePlacement,
+} from './placement';
 import { dragPlacement, fitPreview, previewBounds } from './previewGeometry';
 import {
   CYBORG_DIRECTIONS,
   type CyborgCustomizationData,
   type CyborgSlot,
+  editorLabel,
   type LayoutAction,
   type PlacementCommand,
 } from './types';
@@ -30,6 +35,12 @@ export function CyborgPreview({
   onLayout?: LayoutAction;
   placementTarget?: PlacementTarget;
 }) {
+  // Controls describe the accepted state; pixels and transforms advance together.
+  const previewPending = data.preview_pending ?? data.resources_pending;
+  const rendered =
+    previewPending && data.rendered_preview
+      ? { ...data, ...data.rendered_preview }
+      : data;
   const [mode, setMode] = useState<'camera' | 'parts'>('camera');
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
   const [draft, setDraft] = useState<{
@@ -41,6 +52,7 @@ export function CyborgPreview({
     mirrorX: number;
   } | null>(null);
   const editable = data.allowed && data.layout_source !== 'model_default';
+  const placing = mode === 'parts' && editable && !previewPending;
   const placementScope = placementGroup(!!data.wide, data.direction);
 
   const editingPosition = (part: CyborgSlot) => {
@@ -131,10 +143,11 @@ export function CyborgPreview({
     baseX?: number;
     baseY?: number;
     scale: number;
+    cssScale: number;
     mirrorX?: number;
     group?: string;
   } | null>(null);
-  const frames = data.animation;
+  const frames = rendered.animation;
   useEffect(() => {
     drag.current = null;
     setDraft(null);
@@ -144,6 +157,7 @@ export function CyborgPreview({
     data.pose,
     data.direction,
     data.arousal,
+    previewPending,
     editable,
     placementTarget,
   ]);
@@ -177,27 +191,27 @@ export function CyborgPreview({
   const bounds = useMemo(
     () =>
       previewBounds(
-        data.body_width,
-        data.body_height,
-        data.layers || [],
+        rendered.body_width,
+        rendered.body_height,
+        rendered.layers || [],
         frames,
       ),
-    [data.body_width, data.body_height, data.layers, frames],
+    [rendered.body_width, rendered.body_height, rendered.layers, frames],
   );
-  const referenceX = data.body_width / 2 + 24 / data.body_scale;
+  const referenceX = rendered.body_width / 2 + 24 / rendered.body_scale;
   const fitBounds =
     showReference && data.reference
       ? {
           ...bounds,
-          right: Math.max(bounds.right, referenceX + 16 / data.body_scale),
-          top: Math.min(bounds.top, 16 - 32 / data.body_scale),
+          right: Math.max(bounds.right, referenceX + 16 / rendered.body_scale),
+          top: Math.min(bounds.top, 16 - 32 / rendered.body_scale),
         }
       : bounds;
   const candidateFit = fitPreview(
     fitBounds,
     viewport.width,
     viewport.height,
-    data.body_scale,
+    rendered.body_scale,
   );
   // Fit is an explicit framing operation, not a reaction to every edited PNG.
   const fit = framing ?? candidateFit;
@@ -206,11 +220,11 @@ export function CyborgPreview({
   }, [
     viewport.width,
     viewport.height,
-    data.model,
-    data.body_scale,
+    rendered.model,
+    rendered.body_scale,
     showReference,
   ]);
-  const scale = zoom === null ? fit.scale : zoom * data.body_scale;
+  const scale = zoom === null ? fit.scale : zoom * rendered.body_scale;
   const center = anchor ?? { x: fit.x, y: fit.y };
   useEffect(() => {
     const element = stage.current;
@@ -223,7 +237,7 @@ export function CyborgPreview({
           0.1,
           Math.min(
             8,
-            (zoom ?? fit.scale / data.body_scale) *
+            (zoom ?? fit.scale / rendered.body_scale) *
               (event.deltaY > 0 ? 0.9 : 1.1),
           ),
         ),
@@ -231,7 +245,7 @@ export function CyborgPreview({
     };
     element.addEventListener('wheel', wheel, { passive: false });
     return () => element.removeEventListener('wheel', wheel);
-  }, [zoom, fit.scale, data.body_scale]);
+  }, [zoom, fit.scale, rendered.body_scale]);
   const fitCamera = () => {
     setFraming(candidateFit);
     setZoom(null);
@@ -250,7 +264,7 @@ export function CyborgPreview({
           const part = (event.target as HTMLElement).closest<HTMLElement>(
             '[data-part]',
           )?.dataset.part as CyborgSlot | undefined;
-          if (mode === 'parts' && (!editable || !part)) return;
+          if (mode === 'parts' && (!placing || !part)) return;
           event.preventDefault();
           if (mode === 'parts')
             (event.target as HTMLElement).closest('button')?.focus();
@@ -262,11 +276,15 @@ export function CyborgPreview({
             panX: pan.x,
             panY: pan.y,
             scale,
+            // Pointer coordinates include ancestor CSS zoom; local transforms do not.
+            cssScale:
+              event.currentTarget.getBoundingClientRect().width /
+                event.currentTarget.offsetWidth || 1,
           };
           if (mode === 'parts' && part) {
             onSelectSlot?.(part);
             setAnchor(center);
-            setZoom(scale / data.body_scale);
+            setZoom(scale / rendered.body_scale);
             const entry = editingPosition(part);
             drag.current = {
               ...drag.current,
@@ -289,8 +307,8 @@ export function CyborgPreview({
         onPointerMove={(event) => {
           const gesture = drag.current;
           if (!gesture) return;
-          const dx = event.clientX - gesture.x;
-          const dy = event.clientY - gesture.y;
+          const dx = (event.clientX - gesture.x) / gesture.cssScale;
+          const dy = (event.clientY - gesture.y) / gesture.cssScale;
           if (gesture.part) {
             setDraft({
               slot: gesture.part,
@@ -314,8 +332,8 @@ export function CyborgPreview({
             const position = dragPlacement(
               gesture.baseX!,
               gesture.baseY!,
-              event.clientX - gesture.x,
-              event.clientY - gesture.y,
+              (event.clientX - gesture.x) / gesture.cssScale,
+              (event.clientY - gesture.y) / gesture.cssScale,
               gesture.scale,
               gesture.mirrorX,
             );
@@ -343,8 +361,8 @@ export function CyborgPreview({
             pointerEvents: 'none',
           }}
         >
-          <AnimatedPreview data={data} paused={mode === 'parts'}>
-            {data.layers?.map((layer, index) => (
+          <AnimatedPreview data={rendered} paused={mode === 'parts'}>
+            {rendered.layers?.map((layer, index) => (
               <PreviewPart
                 key={layer.slot || index}
                 layer={layer}
@@ -360,10 +378,10 @@ export function CyborgPreview({
                     ? draft.y - draft.baseY
                     : 0)
                 }
-                placing={mode === 'parts' && editable}
+                placing={placing}
                 selected={layer.slot === slot}
                 onNudge={(dx, dy) => {
-                  if (!layer.slot) return;
+                  if (!placing || !layer.slot) return;
                   onSelectSlot?.(layer.slot);
                   place(
                     layer.slot,
@@ -388,7 +406,7 @@ export function CyborgPreview({
                 position: 'absolute',
                 left: referenceX,
                 top: 16,
-                transform: `scale(${1 / data.body_scale})`,
+                transform: `scale(${1 / rendered.body_scale})`,
               }}
             >
               <img
@@ -408,6 +426,11 @@ export function CyborgPreview({
           )}
         </div>
         {!data.body && <Box p={2}>No preview available for this model.</Box>}
+        {!!data.resources_pending && (
+          <div className="CyborgPreview__updateStatus" role="status">
+            {previewPending ? 'Updating preview…' : 'Updating options…'}
+          </div>
+        )}
       </div>
       <div className="CyborgPreview__camera">
         <div className="CyborgPreview__toolbar">
@@ -431,7 +454,7 @@ export function CyborgPreview({
             tooltip="Center the chassis without changing zoom."
             onClick={() => {
               setPan({ x: 0, y: 0 });
-              setAnchor({ x: 0, y: data.body_height / 2 - 16 });
+              setAnchor({ x: 0, y: rendered.body_height / 2 - 16 });
             }}
           >
             Center
@@ -442,6 +465,7 @@ export function CyborgPreview({
               key={label}
               selected={data.direction === direction}
               tooltip={editorLabel(label)}
+              aria-label={editorLabel(label)}
               onClick={() => onPreview?.({ direction })}
             >
               {label[0].toUpperCase()}
@@ -457,6 +481,30 @@ export function CyborgPreview({
             Movement
           </Button>
         </div>
+        <div
+          className="CyborgPreview__toolbar"
+          role="group"
+          aria-label="Pan camera"
+        >
+          {(
+            [
+              ['left', 'arrow-left', -32, 0],
+              ['up', 'arrow-up', 0, -32],
+              ['down', 'arrow-down', 0, 32],
+              ['right', 'arrow-right', 32, 0],
+            ] as const
+          ).map(([direction, icon, x, y]) => (
+            <Button
+              key={direction}
+              icon={icon}
+              aria-label={`Pan camera ${direction}`}
+              tooltip={`Pan camera ${direction}`}
+              onClick={() =>
+                setPan((current) => ({ x: current.x + x, y: current.y + y }))
+              }
+            />
+          ))}
+        </div>
         {!!onLayout && (
           <div className="CyborgPreview__toolbar">
             <Button
@@ -468,7 +516,7 @@ export function CyborgPreview({
             </Button>
             <Button
               icon="hand-pointer"
-              disabled={!editable}
+              disabled={!editable || previewPending}
               selected={mode === 'parts'}
               onClick={() => {
                 setMode('parts');
@@ -512,31 +560,23 @@ export function CyborgPreview({
           </Button.Checkbox>
           <AdjustmentSlider
             label="Camera zoom"
-            value={Math.round((zoom ?? fit.scale / data.body_scale) * 100)}
+            value={Math.round((zoom ?? fit.scale / rendered.body_scale) * 100)}
             min={10}
             max={800}
             step={10}
             unit="%"
             onChange={(value) => setZoom(value / 100)}
           />
-          <Dropdown
-            width="100%"
-            selected={background}
-            displayText={
-              {
-                '#30343a': 'Slate background',
-                '#ffffff': 'White background',
-                '#000000': 'Black background',
-                '#5b6854': 'Green background',
-              }[background]
-            }
+          <EditorSelect
+            label="Preview background"
+            value={background}
             options={[
-              { value: '#30343a', displayText: 'Slate background' },
-              { value: '#ffffff', displayText: 'White background' },
-              { value: '#000000', displayText: 'Black background' },
-              { value: '#5b6854', displayText: 'Green background' },
+              { value: '#30343a', label: 'Slate background' },
+              { value: '#ffffff', label: 'White background' },
+              { value: '#000000', label: 'Black background' },
+              { value: '#5b6854', label: 'Green background' },
             ]}
-            onSelected={setBackground}
+            onChange={setBackground}
           />
         </details>
       </div>
@@ -556,19 +596,45 @@ function AnimatedPreview({
 }) {
   const [frameIndex, setFrameIndex] = useState(0);
   const frames = data.animation;
-  const frame = frames?.[frameIndex % (frames.length || 1)];
-  useEffect(
-    () => setFrameIndex(0),
-    [data.model, data.direction, data.pose, data.moving, paused],
-  );
+  const timing = frames?.map((entry) => entry.delay || 100).join(',') || '';
+  const frame = frames?.[paused ? 0 : frameIndex % (frames.length || 1)];
   useEffect(() => {
-    if (paused || !frames || frames.length < 2) return;
-    const timer = setTimeout(
-      () => setFrameIndex((index) => (index + 1) % frames.length),
-      frame?.delay || 100,
-    );
-    return () => clearTimeout(timer);
-  }, [frames, frameIndex, frame?.delay, paused]);
+    setFrameIndex(0);
+    if (paused || !timing.includes(',')) return;
+    // Follow the character preview's elapsed-time playback: a slow or hidden
+    // browser catches up without stretching every authored frame's duration.
+    // Static resource refreshes allocate a new frame array even when only a
+    // part color changed. Keep the clock tied to authored timing and pose.
+    const delays = timing.split(',').map(Number);
+    const period = delays.reduce((total, delay) => total + delay, 0);
+    const started = performance.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const advance = () => {
+      if (document.hidden) {
+        timer = setTimeout(advance, 1000);
+        return;
+      }
+      let into = (performance.now() - started) % period;
+      let index = 0;
+      while (index < delays.length - 1 && into >= delays[index]) {
+        into -= delays[index++];
+      }
+      setFrameIndex(index);
+      timer = setTimeout(advance, Math.max(1, delays[index] - into));
+    };
+    const resume = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        advance();
+      }
+    };
+    document.addEventListener('visibilitychange', resume);
+    advance();
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', resume);
+    };
+  }, [timing, data.model, data.direction, data.pose, data.moving, paused]);
   const bodyStyle = {
     position: 'absolute' as const,
     left: -data.body_width / 2,
