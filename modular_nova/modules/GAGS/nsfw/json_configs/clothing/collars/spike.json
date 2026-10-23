@@ -1,14 +1,14 @@
 {
-	"bell_collar": [
+	"spike": [
 		{
 			"type": "icon_state",
-			"icon_state": "thin_strip",
+			"icon_state": "spike_collar",
 			"blend_mode": "overlay",
 			"color_ids": [1]
 		},
 		{
 			"type": "icon_state",
-			"icon_state": "bell",
+			"icon_state": "spikes",
 			"blend_mode": "overlay",
 			"color_ids": [2]
 		}

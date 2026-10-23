@@ -108,20 +108,9 @@
 				/obj/item/key/collar = 48,
 				/obj/item/clothing/erp_leash = 8,
 				/obj/item/clothing/neck/collar = 8,
-				/obj/item/clothing/neck/collar/bell = 8,
-				/obj/item/clothing/neck/collar/cowbell = 8,
-				/obj/item/clothing/neck/collar/cross = 8,
 				/obj/item/clothing/neck/collar/tagged = 8,
-				/obj/item/clothing/neck/collar/thick = 8,
-				/obj/item/clothing/neck/collar/thick/bell = 8,
-				/obj/item/clothing/neck/collar/thick/cowbell = 8,
-				/obj/item/clothing/neck/collar/thick/cross = 8,
-				/obj/item/clothing/neck/collar/thick/tagged = 8,
 				/obj/item/clothing/neck/collar/spike = 8,
 				/obj/item/clothing/neck/collar/leather = 8,
-				/obj/item/clothing/neck/collar/leather/bell = 8,
-				/obj/item/clothing/neck/collar/leather/cowbell = 8,
-				/obj/item/clothing/neck/collar/leather/cross = 8,
 				/obj/item/clothing/neck/collar/leather/tagged = 8,
 
 				//torso clothing
@@ -174,9 +163,6 @@
 	)
 
 	premium = list(
-		/obj/item/clothing/neck/collar/holocollar = 3,
-		/obj/item/clothing/neck/collar/thick/holocollar = 3,
-		/obj/item/clothing/neck/collar/leather/holocollar = 3,
 		/obj/item/clothing/neck/size_collar = 8,//It only works in the Interlink anyways
 	)
 

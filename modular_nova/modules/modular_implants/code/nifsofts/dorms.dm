@@ -41,7 +41,7 @@
 					/obj/item/clothing/ears/dorms_headphones,
 					/obj/item/clothing/mask/gas/bdsm_mask,
 					/obj/item/clothing/glasses/hypno,
-					/obj/item/clothing/neck/collar/holocollar,
+					/obj/item/clothing/neck/collar/tagged,
 
 
 					//Torso / Belt Items
