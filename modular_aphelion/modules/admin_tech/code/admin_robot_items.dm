@@ -7,7 +7,7 @@
 // Hypospray - the full upgraded medical suite, plus a CentCom-only shelf, with piercing and a fast recharge.
 // Subtyping the medical hypo means upgrade_hypo() supplies the expanded list, so it can't drift out of sync with the station one.
 /obj/item/reagent_containers/borghypo/medical/centcom
-	name = "Central Command cyborg hypospray"
+	name = "\improper Central Command cyborg hypospray"
 	desc = "A Central Command pattern chemical synthesizer. It carries the full station formulary, a shelf of reagents the station isn't trusted with, \
 		and a needle that goes through hardsuits."
 	possible_transfer_amounts = list(2, 5, 10, 15)
@@ -34,7 +34,7 @@
 
 // Combat paddles that aren't the syndicate ones. The NT elite paddles already exist for ERT defibs, this is just the cyborg mount.
 /obj/item/shockpaddles/syndicate/nanotrasen/cyborg
-	name = "Central Command cyborg defibrillator paddles"
+	name = "\improper Central Command cyborg defibrillator paddles"
 	desc = "A pair of elite Nanotrasen paddles hardwired into a cyborg chassis. They punch through armour and can deliver disabling shocks."
 	req_defib = FALSE
 
@@ -95,7 +95,7 @@
 
 // Pulse carbine - the NT answer to the syndicate cyborg LMG. Same three modes as the ERT carbine, fed from the cyborg's cell.
 /obj/item/gun/energy/pulse/carbine/cyborg
-	name = "Central Command cyborg pulse carbine"
+	name = "\improper Central Command cyborg pulse carbine"
 	desc = "A pulse carbine mounted to a cyborg chassis and fed from its internal cell. Pulse, taser and laser modes, same as the ones the response teams carry."
 	can_charge = FALSE
 	selfcharge = FALSE
@@ -110,7 +110,7 @@
 
 // Emag - a CentCom-branded sequencer. It is a stock emag underneath, with none of the subspace emag's range or blacklist bypass.
 /obj/item/card/emag/centcom
-	name = "Central Command cryptographic sequencer"
+	name = "\improper Central Command cryptographic sequencer"
 	desc = "A Central Command issue override card, for when a response unit needs into something that won't let it. Unlike the subspace one, it still has to touch what it's opening."
 	icon = 'modular_aphelion/modules/admin_tech/icons/admin_items.dmi'
 	icon_state = "sub-emag"
