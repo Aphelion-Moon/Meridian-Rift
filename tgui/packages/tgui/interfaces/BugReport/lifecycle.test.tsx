@@ -103,7 +103,7 @@ test('the server replaces local text only with a new epoch or another report', (
   expect(title().value).toBe('Another incident');
 });
 
-test('a submission sends all of its text in one message, however long', () => {
+test('a submission sends all of its text in one act, even at the limits', () => {
   const long = 'x'.repeat(8000);
   const full = {
     ...fields,

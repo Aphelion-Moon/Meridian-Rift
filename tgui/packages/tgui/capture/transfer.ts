@@ -26,7 +26,8 @@ export class SnapshotTransfer {
   private encoded = '';
   private index = 0;
   private tries = 0;
-  private lastSend = 0;
+  /** When the last chunk went, on the steady clock, so the first one never waits */
+  private lastSend = -Infinity;
   private timer?: ReturnType<typeof setTimeout>;
   private options: Required<TransferOptions>;
 
@@ -92,7 +93,7 @@ export class SnapshotTransfer {
     clearTimeout(this.timer);
     this.timer = setTimeout(
       () => this.post(),
-      Math.max(0, this.lastSend + this.options.spacing - Date.now()),
+      Math.max(0, this.lastSend + this.options.spacing - performance.now()),
     );
   }
 
@@ -103,7 +104,8 @@ export class SnapshotTransfer {
       return;
     }
     const { chunk } = this.options;
-    this.lastSend = Date.now();
+    // A steady clock like the busy check's, so changing the system clock can't bunch the chunks up or hold them back
+    this.lastSend = performance.now();
     this.send('bug-report/capture-chunk', {
       nonce: this.nonce,
       index: this.index,
