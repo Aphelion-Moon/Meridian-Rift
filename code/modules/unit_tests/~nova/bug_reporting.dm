@@ -4,6 +4,7 @@
 	var/list/bug_report_history
 	var/bug_report_session_id
 	var/list/tgui_windows = list()
+	var/tgui_oversized_log_cooldown = 0
 
 /datum/client_interface/bug_report/Destroy(force)
 	// The test windows hold us as their client, so we let go of them or neither is ever collected
@@ -53,6 +54,16 @@
 
 /datum/tgui_window/bug_report_test/close(can_be_suspended = TRUE, logout = FALSE)
 	return
+
+/// A test window that keeps every message reaching it instead of acting on it
+/datum/tgui_window/bug_report_test/inbox
+
+/datum/tgui_window/bug_report_test/inbox/on_message(type, list/payload, list/href_list)
+	messages += list(list("type" = type, "payload" = payload))
+
+/// Stands in for usr, so tgui_Topic() finds its windows on a mock connection
+/datum/bug_report_test_sender
+	var/datum/client_interface/bug_report/client
 
 /// Makes a report owned by a fresh mock connection, its context already with the bridge
 /proc/bug_report_test_report(datum/unit_test/test)
@@ -195,6 +206,39 @@
 	TEST_ASSERT(!answered.capture_ready, "A late ready from the ended capture was taken")
 	answered.expire_unready_capture(nonce)
 	TEST_ASSERT_NOTNULL(answered.capture_nonce, "The ended capture's ready check ended the next one")
+
+/// The biggest report a page can send reaches its window whole, while a pasted novel is dropped before we decode it
+/datum/unit_test/bug_report_payload_bound
+
+/datum/unit_test/bug_report_payload_bound/Run()
+	var/datum/client_interface/bug_report/reporter = allocate(/datum/client_interface/bug_report)
+	var/datum/tgui_window/bug_report_test/inbox/window = new(reporter, "tgui-window-1")
+	reporter.tgui_windows[window.id] = window
+	var/datum/bug_report_test_sender/sender = new
+	sender.client = reporter
+	// The form's four fields at their limits in three-byte letters, the most an honest page sends
+	var/full_text = ascii2text(23383)
+	while(length_char(full_text) < 8000)
+		full_text += full_text
+	full_text = copytext_char(full_text, 1, 8001)
+	var/report = "{\"fields\":{\"title\":\"[copytext_char(full_text, 1, 161)]\",\"observed\":\"[full_text]\",\"expected\":\"[full_text]\",\"reproduction\":\"[full_text]\",\"category\":\"Other\",\"severity\":\"unspecified\",\"incidentAt\":null},\"fieldsEpoch\":1}"
+	var/pasted = "a"
+	while(length(pasted) < 2 * 1024 * 1024)
+		pasted += pasted
+	var/old_usr = usr
+	usr = sender
+	tgui_Topic(list("tgui" = "1", "type" = "act/submit", "window_id" = window.id, "payload" = report))
+	tgui_Topic(list("tgui" = "1", "type" = "act/Save", "window_id" = window.id, "payload" = "{\"note\":\"[pasted]\"}"))
+	var/logged = reporter.tgui_oversized_log_cooldown
+	tgui_Topic(list("tgui" = "1", "type" = "act/Save", "window_id" = window.id, "payload" = "{\"note\":\"[pasted]\"}"))
+	usr = old_usr
+	TEST_ASSERT(length(report) > 72000, "The report is smaller than the most an honest page sends")
+	TEST_ASSERT_EQUAL(length(window.messages), 1, "The novel reached its window, or the report didn't")
+	var/list/received = window.messages[1]
+	TEST_ASSERT_EQUAL(received["type"], "act/submit", "The report didn't reach its window")
+	TEST_ASSERT_EQUAL(length_char(received["payload"]["fields"]["reproduction"]), 8000, "The report arrived cut short")
+	TEST_ASSERT(logged > world.time, "The dropped novel wasn't logged")
+	TEST_ASSERT_EQUAL(reporter.tgui_oversized_log_cooldown, logged, "A second novel inside the minute was logged again")
 
 /// The hourly allowances mirror the reporting service's caps, and the service never sees a refused one
 /datum/unit_test/bug_report_budgets

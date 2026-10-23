@@ -4,6 +4,11 @@
  * Copyright (c) 2020 Aleksej Komarov
  * SPDX-License-Identifier: MIT
  */
+// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+
+// The biggest message an honest page sends is about 72 KB (a full bug report in three-byte letters, or one stroke over a whole 96x96 canvas), so 128 KB leaves it room
+#define TGUI_MAX_PAYLOAD_BYTES (128 * 1024)
+// APHELION EDIT ADDITION END
 
 /**
  * public
@@ -165,6 +170,11 @@
  * TRUE if cache was reloaded by tgui dev server at least once.
  */
 /client/var/tgui_cache_reloaded = FALSE
+// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+
+/// When this client may next have a dropped message logged, so a flood of them logs once a minute
+/client/var/tgui_oversized_log_cooldown = 0
+// APHELION EDIT ADDITION END
 
 /**
  * public
@@ -237,6 +247,15 @@ GAME_VERB_NATIVE(/client, uiclose, "uiclose", null, window_id as text)
 	if((type == "bug-report/capture-ready" || type == "bug-report/capture-chunk" || type == "bug-report/capture-cancel") && (!window || length(href_list["payload"]) > BUG_REPORT_CAPTURE_CHUNK + 256))
 		return TRUE
 	// APHELION EDIT ADDITION END
+	// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+	// A posted message can be any size, so we drop a huge one before its JSON costs us anything
+	if(length(href_list["payload"]) > TGUI_MAX_PAYLOAD_BYTES)
+		to_chat(usr, span_warning("That was too long to send. Try something shorter."))
+		if(COOLDOWN_FINISHED(usr.client, tgui_oversized_log_cooldown))
+			COOLDOWN_START(usr.client, tgui_oversized_log_cooldown, 1 MINUTES)
+			log_tgui(usr, "Error: Dropped a [type] message of [length(href_list["payload"])] bytes, over the [TGUI_MAX_PAYLOAD_BYTES] byte limit", context = window_id)
+		return TRUE
+	// APHELION EDIT ADDITION END
 	var/payload
 	if(href_list["payload"])
 		var/payload_text = href_list["payload"]
@@ -251,3 +270,7 @@ GAME_VERB_NATIVE(/client, uiclose, "uiclose", null, window_id as text)
 	if(window)
 		window.on_message(type, payload, href_list)
 	return TRUE
+// APHELION EDIT ADDITION START - BYOND_POST_MESSAGE
+
+#undef TGUI_MAX_PAYLOAD_BYTES
+// APHELION EDIT ADDITION END
