@@ -84,7 +84,7 @@
 
 	var/in_hands = TRUE
 	if(ishuman(user))
-		in_hands = user.get_active_held_item() == src || user.get_inactive_held_item() == src
+		in_hands = user.is_holding(src)
 
 		if(in_hands)
 			. += span_notice("<b>Use in hand</b> to shape [src] into something different.")
@@ -272,7 +272,7 @@
 		var/in_hands = TRUE
 
 		if(ishuman(user))
-			in_hands = user.get_active_held_item() == src || user.get_inactive_held_item() == src
+			in_hands = user.is_holding(src)
 
 
 		if(!in_hands) // They need to be in your hands, unless you're a cyborg.

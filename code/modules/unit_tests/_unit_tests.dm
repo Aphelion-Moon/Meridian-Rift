@@ -164,6 +164,7 @@
 #include "crafting.dm"
 #include "crayons.dm"
 #include "create_and_destroy.dm"
+#include "cuffed_item.dm"
 // APHELION EDIT ADDITION START
 #include "cyborg_occlusion.dm"
 // APHELION EDIT ADDITION END
@@ -175,6 +176,7 @@
 #include "dismemberment.dm"
 #include "dna_infusion.dm"
 #include "door_access.dm"
+#include "door_control_assembly.dm"
 #include "dragon_expiration.dm"
 #include "drink_icons.dm"
 #include "dropper.dm"

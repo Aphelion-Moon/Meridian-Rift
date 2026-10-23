@@ -107,17 +107,13 @@
 /turf/open/floor/iron/shuttle/ferry,
 /area/shuttle/transport)
 "iG" = (
-/turf/open/floor/iron/shuttle/ferry{
-	icon_state = "sign_2"
-	},
+/turf/open/floor/iron/shuttle/ferry/hazard,
 /area/shuttle/transport)
 "iN" = (
 /obj/structure/chair/comfy/shuttle{
 	dir = 8
 	},
-/turf/open/floor/iron/shuttle/ferry{
-	icon_state = "floor"
-	},
+/turf/open/floor/iron/shuttle/ferry/edged,
 /area/shuttle/transport)
 "jc" = (
 /turf/closed/wall/mineral/titanium/shuttle_wall/ferry{
@@ -352,9 +348,7 @@
 	},
 /obj/structure/fans/tiny/forcefield,
 /obj/machinery/door/airlock/grunge,
-/turf/open/floor/iron/shuttle/ferry{
-	icon_state = "floor"
-	},
+/turf/open/floor/iron/shuttle/ferry/edged,
 /area/shuttle/transport)
 "GF" = (
 /turf/closed/wall/mineral/titanium/shuttle_wall/window/ferry{
@@ -423,9 +417,7 @@
 	},
 /area/shuttle/transport)
 "Mf" = (
-/turf/open/floor/iron/shuttle/ferry{
-	icon_state = "sign_1"
-	},
+/turf/open/floor/iron/shuttle/ferry/outlined,
 /area/shuttle/transport)
 "Mw" = (
 /turf/closed/wall/mineral/titanium/shuttle_wall/ferry{
@@ -482,9 +474,7 @@
 "Qg" = (
 /obj/structure/fans/tiny/forcefield,
 /obj/machinery/door/airlock/grunge,
-/turf/open/floor/iron/shuttle/ferry{
-	icon_state = "floor"
-	},
+/turf/open/floor/iron/shuttle/ferry/edged,
 /area/shuttle/transport)
 "Rb" = (
 /turf/closed/wall/mineral/titanium/shuttle_wall/ferry{
@@ -518,9 +508,7 @@
 	},
 /area/shuttle/transport)
 "Ti" = (
-/turf/open/floor/iron/shuttle/ferry{
-	icon_state = "floor"
-	},
+/turf/open/floor/iron/shuttle/ferry/edged,
 /area/shuttle/transport)
 "To" = (
 /turf/closed/wall/mineral/titanium/shuttle_wall/window/ferry{

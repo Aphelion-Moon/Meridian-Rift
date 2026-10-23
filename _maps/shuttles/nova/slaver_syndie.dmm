@@ -26,9 +26,7 @@
 /obj/machinery/atmospherics/components/unary/vent_scrubber/on/layer2{
 	dir = 4
 	},
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 "ba" = (
 /obj/machinery/shower/directional/north,
@@ -63,9 +61,7 @@
 /obj/machinery/atmospherics/components/unary/vent_pump/on{
 	dir = 4
 	},
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 "dl" = (
 /obj/machinery/atmospherics/pipe/smart/simple/supply/hidden{
@@ -344,9 +340,7 @@
 	dir = 8
 	},
 /obj/item/bedsheet/black,
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 "pu" = (
 /obj/structure/table/wood,
@@ -426,9 +420,7 @@
 /obj/machinery/atmospherics/components/unary/vent_scrubber/on/layer2{
 	dir = 8
 	},
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 "uD" = (
 /obj/effect/turf_decal/stripes/line,
@@ -597,9 +589,7 @@
 	dir = 4
 	},
 /obj/item/bedsheet/brown,
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 "AX" = (
 /obj/machinery/atmospherics/pipe/smart/manifold4w/supply/hidden,
@@ -778,9 +768,7 @@
 /obj/machinery/atmospherics/components/unary/vent_scrubber/on/layer2{
 	dir = 8
 	},
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 "HQ" = (
 /obj/structure/sink/directional/west,
@@ -794,9 +782,7 @@
 	dir = 8
 	},
 /obj/item/bedsheet/brown,
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 "Jz" = (
 /obj/machinery/atmospherics/pipe/smart/simple/supply/hidden{
@@ -1236,9 +1222,7 @@
 /obj/machinery/atmospherics/components/unary/vent_pump/on{
 	dir = 8
 	},
-/turf/open/floor/iron/shuttle/evac{
-	icon_state = "floorsec2"
-	},
+/turf/open/floor/iron/shuttle/evac/security,
 /area/shuttle/syndicate/slaver)
 
 (1,1,1) = {"

@@ -397,7 +397,7 @@
 
 	// Remove non-chest limbs, they can use their regenerate ability to regain their limbs.
 	for(var/obj/item/bodypart/part in body.bodyparts)
-		if(part.body_zone == BODY_ZONE_CHEST)
+		if(part.body_zone == BODY_ZONE_CHEST || (part.bodypart_flags & BODYPART_ABSTRACT)) // abstract parts belong to the chest
 			continue
 		part.drop_limb(TRUE)
 
